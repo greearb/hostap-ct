@@ -837,9 +837,10 @@ static int wpa_supplicant_need_to_roam(struct wpa_supplicant *wpa_s,
 	return 1;
 }
 
-
-static void _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
-					       union wpa_event_data *data)
+/** Return < 0 if scan results are a failure.
+ */
+static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
+					      union wpa_event_data *data)
 {
 	struct wpa_bss *selected;
 	struct wpa_ssid *ssid = NULL;
@@ -858,11 +859,11 @@ static void _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 						   NULL, 1);
 	if (scan_res == NULL) {
 		if (wpa_s->conf->ap_scan == 2 || ap)
-			return;
+			return -1;
 		wpa_dbg(wpa_s, MSG_DEBUG, "Failed to get scan results - try "
 			"scanning again");
 		wpa_supplicant_req_new_scan(wpa_s, 1, 0);
-		return;
+		return -1;
 	}
 
 #ifndef CONFIG_NO_RANDOM_POOL
@@ -891,13 +892,13 @@ static void _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 		scan_res_handler(wpa_s, scan_res);
 
 		wpa_scan_results_free(scan_res);
-		return;
+		return 0;
 	}
 
 	if (ap) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "Ignore scan results in AP mode");
 		wpa_scan_results_free(scan_res);
-		return;
+		return 0;
 	}
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "New scan results available");
@@ -908,18 +909,18 @@ static void _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 
 	if ((wpa_s->conf->ap_scan == 2 && !wpas_wps_searching(wpa_s))) {
 		wpa_scan_results_free(scan_res);
-		return;
+		return 0;
 	}
 
 	if (wpa_s->disconnected) {
 		wpa_supplicant_set_state(wpa_s, WPA_DISCONNECTED);
 		wpa_scan_results_free(scan_res);
-		return;
+		return 0;
 	}
 
 	if (bgscan_notify_scan(wpa_s, scan_res) == 1) {
 		wpa_scan_results_free(scan_res);
-		return;
+		return 0;
 	}
 
 	wpa_supplicant_rsn_preauth_scan_results(wpa_s, scan_res);
@@ -932,7 +933,7 @@ static void _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 						    scan_res);
 		wpa_scan_results_free(scan_res);
 		if (skip)
-			return;
+			return 0;
 		wpa_supplicant_connect(wpa_s, selected, ssid);
 	} else {
 		wpa_scan_results_free(scan_res);
@@ -958,6 +959,7 @@ static void _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 						    timeout_usec);
 		}
 	}
+	return 0;
 }
 
 
@@ -967,7 +969,13 @@ static void wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	const char *rn, *rn2;
 	struct wpa_supplicant *ifs;
 
-	_wpa_supplicant_event_scan_results(wpa_s, data);
+	if (_wpa_supplicant_event_scan_results(wpa_s, data) < 0) {
+		/* If the scan results were a failure, then no need to
+		 * notify those interfaces that did not actually request
+		 * this scan.
+		 */
+		return;
+	}
 
 	/*
 	 * Check other interfaces to see if they have the same radio-name. If
