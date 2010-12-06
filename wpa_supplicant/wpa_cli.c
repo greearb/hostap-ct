@@ -277,6 +277,11 @@ static int wpa_cli_cmd_ping(struct wpa_ctrl *ctrl, int argc, char *argv[])
 	return wpa_ctrl_command(ctrl, "PING");
 }
 
+static int wpa_cli_cmd_relog(struct wpa_ctrl *ctrl, int argc, char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "RELOG");
+}
+
 
 static int wpa_cli_cmd_note(struct wpa_ctrl *ctrl, int argc, char *argv[])
 {
@@ -2164,6 +2169,9 @@ static struct wpa_cli_cmd wpa_cli_commands[] = {
 	{ "ping", wpa_cli_cmd_ping,
 	  cli_cmd_flag_none,
 	  "= pings wpa_supplicant" },
+	{ "relog", wpa_cli_cmd_relog,
+	  cli_cmd_flag_none,
+	  "= re-open log-file (allow rolling logs)" },
 	{ "note", wpa_cli_cmd_note,
 	  cli_cmd_flag_none,
 	  "<text> = add a note to wpa_supplicant debug log" },
