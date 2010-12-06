@@ -45,6 +45,13 @@ static void wpa_driver_wext_disconnect(struct wpa_driver_wext_data *drv);
 static int wpa_driver_wext_set_auth_alg(void *priv, int auth_alg);
 
 
+/* One netlink instance per program, not per vif.
+ */
+static struct netlink_data *netlink = NULL;
+static int netlink_refcnt = 0;
+
+static struct wpa_driver_wext_data* all_driver_data = NULL;
+
 int wpa_driver_wext_set_auth_param(struct wpa_driver_wext_data *drv,
 				   int idx, u32 value)
 {
@@ -620,12 +627,18 @@ static int wpa_driver_wext_own_ifindex(struct wpa_driver_wext_data *drv,
 static void wpa_driver_wext_event_rtm_newlink(void *ctx, struct ifinfomsg *ifi,
 					      u8 *buf, size_t len)
 {
-	struct wpa_driver_wext_data *drv = ctx;
 	int attrlen, rta_len;
 	struct rtattr *attr;
+	struct wpa_driver_wext_data *drv = all_driver_data;
+	while (drv) {
+		if (wpa_driver_wext_own_ifindex(drv, ifi->ifi_index, buf, len)) {
+			break;
+		}
+		drv = drv->next;
+	}
 
-	if (!wpa_driver_wext_own_ifindex(drv, ifi->ifi_index, buf, len)) {
-		wpa_msg(drv->ctx, MSG_DEBUG, "Ignore event for foreign ifindex %d",
+	if (!drv) {
+		wpa_msg(NULL, MSG_DEBUG, "Ignore event for foreign ifindex %d",
 			ifi->ifi_index);
 		return;
 	}
@@ -659,7 +672,7 @@ static void wpa_driver_wext_event_rtm_newlink(void *ctx, struct ifinfomsg *ifi,
 	if (drv->operstate == 1 &&
 	    (ifi->ifi_flags & (IFF_LOWER_UP | IFF_DORMANT)) == IFF_LOWER_UP &&
 	    !(ifi->ifi_flags & IFF_RUNNING))
-		netlink_send_oper_ifla(drv->netlink, drv->ifindex,
+		netlink_send_oper_ifla(netlink, drv->ifindex,
 				       -1, IF_OPER_UP);
 
 	attrlen = len;
@@ -684,9 +697,20 @@ static void wpa_driver_wext_event_rtm_newlink(void *ctx, struct ifinfomsg *ifi,
 static void wpa_driver_wext_event_rtm_dellink(void *ctx, struct ifinfomsg *ifi,
 					      u8 *buf, size_t len)
 {
-	struct wpa_driver_wext_data *drv = ctx;
 	int attrlen, rta_len;
 	struct rtattr *attr;
+	struct wpa_driver_wext_data *drv = all_driver_data;
+	while (drv) {
+		if (wpa_driver_wext_own_ifindex(drv, ifi->ifi_index, buf, len)) {
+			break;
+		}
+		drv = drv->next;
+	}
+	if (!drv) {
+		wpa_msg(NULL, MSG_DEBUG, "Ignore event for foreign ifindex %d",
+			ifi->ifi_index);
+		return;
+	}
 
 	attrlen = len;
 	attr = (struct rtattr *) buf;
@@ -770,7 +794,6 @@ static void wext_get_phy_name(struct wpa_driver_wext_data *drv)
 void * wpa_driver_wext_init(void *ctx, const char *ifname)
 {
 	struct wpa_driver_wext_data *drv;
-	struct netlink_config *cfg;
 	struct rfkill_config *rcfg;
 	char path[128];
 	struct stat buf;
@@ -794,17 +817,21 @@ void * wpa_driver_wext_init(void *ctx, const char *ifname)
 		goto err1;
 	}
 
-	cfg = os_zalloc(sizeof(*cfg));
-	if (cfg == NULL)
-		goto err1;
-	cfg->ctx = drv;
-	cfg->newlink_cb = wpa_driver_wext_event_rtm_newlink;
-	cfg->dellink_cb = wpa_driver_wext_event_rtm_dellink;
-	drv->netlink = netlink_init(cfg);
-	if (drv->netlink == NULL) {
-		os_free(cfg);
-		goto err2;
+	if (netlink_refcnt == 0) {
+		struct netlink_config *cfg;
+		cfg = os_zalloc(sizeof(*cfg));
+		if (cfg == NULL)
+			goto err1;
+		cfg->ctx = NULL;
+		cfg->newlink_cb = wpa_driver_wext_event_rtm_newlink;
+		cfg->dellink_cb = wpa_driver_wext_event_rtm_dellink;
+		netlink = netlink_init(cfg);
+		if (netlink == NULL) {
+			os_free(cfg);
+			goto err2;
+		}
 	}
+        netlink_refcnt++;
 
 	rcfg = os_zalloc(sizeof(*rcfg));
 	if (rcfg == NULL)
@@ -826,11 +853,18 @@ void * wpa_driver_wext_init(void *ctx, const char *ifname)
 
 	wpa_driver_wext_set_auth_param(drv, IW_AUTH_WPA_ENABLED, 1);
 
+	drv->next = all_driver_data;
+	all_driver_data = drv;
+
 	return drv;
 
 err3:
 	rfkill_deinit(drv->rfkill);
-	netlink_deinit(drv->netlink);
+	if (--netlink_refcnt <= 0) {
+		netlink_deinit(netlink);
+		netlink = NULL;
+		netlink_refcnt = 0;
+	}
 err2:
 	close(drv->ioctl_sock);
 err1:
@@ -900,7 +934,7 @@ static int wpa_driver_wext_finish_drv_init(struct wpa_driver_wext_data *drv)
 		wpa_driver_wext_alternative_ifindex(drv, ifname2);
 	}
 
-	netlink_send_oper_ifla(drv->netlink, drv->ifindex,
+	netlink_send_oper_ifla(netlink, drv->ifindex,
 			       1, IF_OPER_DORMANT);
 
 	if (send_rfkill_event) {
@@ -933,8 +967,12 @@ void wpa_driver_wext_deinit(void *priv)
 	 */
 	wpa_driver_wext_disconnect(drv);
 
-	netlink_send_oper_ifla(drv->netlink, drv->ifindex, 0, IF_OPER_UP);
-	netlink_deinit(drv->netlink);
+	netlink_send_oper_ifla(netlink, drv->ifindex, 0, IF_OPER_UP);
+	if (--netlink_refcnt <= 0) {
+		netlink_deinit(netlink);
+		netlink = NULL;
+		netlink_refcnt = 0;
+	}
 	rfkill_deinit(drv->rfkill);
 
 	if (drv->mlme_sock >= 0)
@@ -947,6 +985,23 @@ void wpa_driver_wext_deinit(void *priv)
 		close(drv->mlme_sock);
 	os_free(drv->assoc_req_ies);
 	os_free(drv->assoc_resp_ies);
+
+	/* Unlink us from global driver data list. */
+	if (all_driver_data == drv)
+		all_driver_data = all_driver_data->next;
+	else {
+		struct wpa_driver_wext_data *prev = all_driver_data;
+		struct wpa_driver_wext_data *next = NULL;
+		if (prev)
+			next = prev->next;
+		while (next && (next != drv)) {
+			prev = next;
+			next = next->next;
+		}
+		if (next)
+			prev->next = next->next;
+	}
+
 	os_free(drv);
 }
 
@@ -2283,7 +2338,7 @@ int wpa_driver_wext_set_operstate(void *priv, int state)
 	wpa_msg(drv->ctx, MSG_DEBUG, "%s: operstate %d->%d (%s)",
 		__func__, drv->operstate, state, state ? "UP" : "DORMANT");
 	drv->operstate = state;
-	return netlink_send_oper_ifla(drv->netlink, drv->ifindex, -1,
+	return netlink_send_oper_ifla(netlink, drv->ifindex, -1,
 				      state ? IF_OPER_UP : IF_OPER_DORMANT);
 }
 
