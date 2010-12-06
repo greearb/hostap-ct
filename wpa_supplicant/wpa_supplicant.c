@@ -2332,6 +2332,14 @@ struct wpa_supplicant * wpa_supplicant_get_iface(struct wpa_global *global,
 	return NULL;
 }
 
+static const char *wpa_supplicant_msg_ifname_cb(void *ctx)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+	if (wpa_s == NULL)
+		return "NULL";
+	return wpa_s->ifname;
+}
+
 
 /**
  * wpa_supplicant_init - Initialize %wpa_supplicant
@@ -2353,6 +2361,8 @@ struct wpa_global * wpa_supplicant_init(struct wpa_params *params)
 	wpa_debug_open_file(params->wpa_debug_file_path);
 	if (params->wpa_debug_syslog)
 		wpa_debug_open_syslog();
+
+	wpa_msg_register_ifname_cb(wpa_supplicant_msg_ifname_cb);
 
 	ret = eap_register_methods();
 	if (ret) {

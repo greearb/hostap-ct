@@ -338,13 +338,19 @@ void wpa_msg_register_cb(wpa_msg_cb_func func)
 	wpa_msg_cb = func;
 }
 
+static wpa_msg_get_ifname_func wpa_msg_ifname_cb;
+
+void wpa_msg_register_ifname_cb(wpa_msg_get_ifname_func func)
+{
+	wpa_msg_ifname_cb = func;
+}
 
 void wpa_msg(void *ctx, int level, const char *fmt, ...)
 {
 	va_list ap;
 	char *buf;
 	const int buflen = 2048;
-	int len;
+	int len = 0;
 
 	buf = os_malloc(buflen);
 	if (buf == NULL) {
@@ -353,7 +359,9 @@ void wpa_msg(void *ctx, int level, const char *fmt, ...)
 		return;
 	}
 	va_start(ap, fmt);
-	len = vsnprintf(buf, buflen, fmt, ap);
+	if (wpa_msg_ifname_cb)
+		len = snprintf(buf, buflen, "%s: ", wpa_msg_ifname_cb(ctx));
+	len = vsnprintf(buf + len, buflen - len, fmt, ap);
 	va_end(ap);
 	wpa_printf(level, "%s", buf);
 	if (wpa_msg_cb)
