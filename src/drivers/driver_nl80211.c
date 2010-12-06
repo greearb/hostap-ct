@@ -2301,12 +2301,17 @@ static int wpa_driver_nl80211_scan(void *priv,
 			params->extra_ies);
 	}
 
-	if (params->freqs) {
-		for (i = 0; params->freqs[i]; i++) {
-			wpa_printf(MSG_MSGDUMP, "nl80211: Scan frequency %u "
-				   "MHz", params->freqs[i]);
-			NLA_PUT_U32(freqs, i + 1, params->freqs[i]);
+	if (params->freqs || params->can_scan_one) {
+		i = 0;
+		if (params->freqs) {
+			for (i = 0; params->freqs[i]; i++) {
+				wpa_printf(MSG_MSGDUMP, "nl80211: Scan frequency %u "
+					   "MHz", params->freqs[i]);
+				NLA_PUT_U32(freqs, i + 1, params->freqs[i]);
+			}
 		}
+		if (params->can_scan_one)
+			NLA_PUT_U32(freqs, i + 1, -1);
 		nla_put_nested(msg, NL80211_ATTR_SCAN_FREQUENCIES, freqs);
 	}
 

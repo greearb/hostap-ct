@@ -399,6 +399,8 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 			"SSID");
 	}
 
+	params.can_scan_one = wpa_s->conf->can_scan_one;
+
 #ifdef CONFIG_P2P
 	wpa_s->wps->dev.p2p = 1;
 	if (!wps) {
