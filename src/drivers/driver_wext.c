@@ -58,9 +58,9 @@ int wpa_driver_wext_set_auth_param(struct wpa_driver_wext_data *drv,
 
 	if (ioctl(drv->ioctl_sock, SIOCSIWAUTH, &iwr) < 0) {
 		if (errno != EOPNOTSUPP) {
-			wpa_printf(MSG_DEBUG, "WEXT: SIOCSIWAUTH(param %d "
-				   "value 0x%x) failed: %s)",
-				   idx, value, strerror(errno));
+			wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: SIOCSIWAUTH(param %d "
+				"value 0x%x) failed: %s)",
+				idx, value, strerror(errno));
 		}
 		ret = errno == EOPNOTSUPP ? -2 : -1;
 	}
@@ -238,8 +238,8 @@ wpa_driver_wext_event_wireless_custom(void *ctx, char *custom)
 {
 	union wpa_event_data data;
 
-	wpa_printf(MSG_MSGDUMP, "WEXT: Custom wireless event: '%s'",
-		   custom);
+	wpa_msg(ctx, MSG_MSGDUMP, "WEXT: Custom wireless event: '%s'",
+		custom);
 
 	os_memset(&data, 0, sizeof(data));
 	/* Host AP driver */
@@ -296,8 +296,8 @@ wpa_driver_wext_event_wireless_custom(void *ctx, char *custom)
 #ifdef CONFIG_PEERKEY
 	} else if (os_strncmp(custom, "STKSTART.request=", 17) == 0) {
 		if (hwaddr_aton(custom + 17, data.stkstart.peer)) {
-			wpa_printf(MSG_DEBUG, "WEXT: unrecognized "
-				   "STKSTART.request '%s'", custom + 17);
+			wpa_msg(ctx, MSG_DEBUG, "WEXT: unrecognized "
+				"STKSTART.request '%s'", custom + 17);
 			return;
 		}
 		wpa_supplicant_event(ctx, EVENT_STKSTART, &data);
@@ -317,9 +317,9 @@ static int wpa_driver_wext_event_wireless_michaelmicfailure(
 
 	mic = (const struct iw_michaelmicfailure *) ev;
 
-	wpa_printf(MSG_DEBUG, "Michael MIC failure wireless event: "
-		   "flags=0x%x src_addr=" MACSTR, mic->flags,
-		   MAC2STR(mic->src_addr.sa_data));
+	wpa_msg(ctx, MSG_DEBUG, "Michael MIC failure wireless event: "
+		"flags=0x%x src_addr=" MACSTR, mic->flags,
+		MAC2STR(mic->src_addr.sa_data));
 
 	os_memset(&data, 0, sizeof(data));
 	data.michael_mic_failure.unicast = !(mic->flags & IW_MICFAILURE_GROUP);
@@ -342,9 +342,9 @@ static int wpa_driver_wext_event_wireless_pmkidcand(
 	cand = (const struct iw_pmkid_cand *) ev;
 	addr = (const u8 *) cand->bssid.sa_data;
 
-	wpa_printf(MSG_DEBUG, "PMKID candidate wireless event: "
-		   "flags=0x%x index=%d bssid=" MACSTR, cand->flags,
-		   cand->index, MAC2STR(addr));
+	wpa_msg(drv->ctx, MSG_DEBUG, "PMKID candidate wireless event: "
+		"flags=0x%x index=%d bssid=" MACSTR, cand->flags,
+		cand->index, MAC2STR(addr));
 
 	os_memset(&data, 0, sizeof(data));
 	os_memcpy(data.pmkid_candidate.bssid, addr, ETH_ALEN);
@@ -437,8 +437,8 @@ static void wpa_driver_wext_event_wireless(struct wpa_driver_wext_data *drv,
 		/* Event data may be unaligned, so make a local, aligned copy
 		 * before processing. */
 		os_memcpy(&iwe_buf, pos, IW_EV_LCP_LEN);
-		wpa_printf(MSG_DEBUG, "Wireless event: cmd=0x%x len=%d",
-			   iwe->cmd, iwe->len);
+		wpa_msg(drv->ctx, MSG_DEBUG, "Wireless event: cmd=0x%x len=%d",
+			iwe->cmd, iwe->len);
 		if (iwe->len <= IW_EV_LCP_LEN)
 			return;
 
@@ -461,9 +461,9 @@ static void wpa_driver_wext_event_wireless(struct wpa_driver_wext_data *drv,
 
 		switch (iwe->cmd) {
 		case SIOCGIWAP:
-			wpa_printf(MSG_DEBUG, "Wireless event: new AP: "
-				   MACSTR,
-				   MAC2STR((u8 *) iwe->u.ap_addr.sa_data));
+			wpa_msg(drv->ctx, MSG_DEBUG, "Wireless event: new AP: "
+				MACSTR,
+				MAC2STR((u8 *) iwe->u.ap_addr.sa_data));
 			if (is_zero_ether_addr(
 				    (const u8 *) iwe->u.ap_addr.sa_data) ||
 			    os_memcmp(iwe->u.ap_addr.sa_data,
@@ -484,8 +484,8 @@ static void wpa_driver_wext_event_wireless(struct wpa_driver_wext_data *drv,
 			break;
 		case IWEVMICHAELMICFAILURE:
 			if (custom + iwe->u.data.length > end) {
-				wpa_printf(MSG_DEBUG, "WEXT: Invalid "
-					   "IWEVMICHAELMICFAILURE length");
+				wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Invalid "
+					"IWEVMICHAELMICFAILURE length");
 				return;
 			}
 			wpa_driver_wext_event_wireless_michaelmicfailure(
@@ -493,8 +493,8 @@ static void wpa_driver_wext_event_wireless(struct wpa_driver_wext_data *drv,
 			break;
 		case IWEVCUSTOM:
 			if (custom + iwe->u.data.length > end) {
-				wpa_printf(MSG_DEBUG, "WEXT: Invalid "
-					   "IWEVCUSTOM length");
+				wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Invalid "
+					"IWEVCUSTOM length");
 				return;
 			}
 			buf = os_malloc(iwe->u.data.length + 1);
@@ -514,8 +514,8 @@ static void wpa_driver_wext_event_wireless(struct wpa_driver_wext_data *drv,
 			break;
 		case IWEVASSOCREQIE:
 			if (custom + iwe->u.data.length > end) {
-				wpa_printf(MSG_DEBUG, "WEXT: Invalid "
-					   "IWEVASSOCREQIE length");
+				wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Invalid "
+					"IWEVASSOCREQIE length");
 				return;
 			}
 			wpa_driver_wext_event_wireless_assocreqie(
@@ -523,8 +523,8 @@ static void wpa_driver_wext_event_wireless(struct wpa_driver_wext_data *drv,
 			break;
 		case IWEVASSOCRESPIE:
 			if (custom + iwe->u.data.length > end) {
-				wpa_printf(MSG_DEBUG, "WEXT: Invalid "
-					   "IWEVASSOCRESPIE length");
+				wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Invalid "
+					"IWEVASSOCRESPIE length");
 				return;
 			}
 			wpa_driver_wext_event_wireless_assocrespie(
@@ -532,8 +532,8 @@ static void wpa_driver_wext_event_wireless(struct wpa_driver_wext_data *drv,
 			break;
 		case IWEVPMKIDCAND:
 			if (custom + iwe->u.data.length > end) {
-				wpa_printf(MSG_DEBUG, "WEXT: Invalid "
-					   "IWEVPMKIDCAND length");
+				wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Invalid "
+					"IWEVPMKIDCAND length");
 				return;
 			}
 			wpa_driver_wext_event_wireless_pmkidcand(
@@ -558,10 +558,10 @@ static void wpa_driver_wext_event_link(struct wpa_driver_wext_data *drv,
 	event.interface_status.ievent = del ? EVENT_INTERFACE_REMOVED :
 		EVENT_INTERFACE_ADDED;
 
-	wpa_printf(MSG_DEBUG, "RTM_%sLINK, IFLA_IFNAME: Interface '%s' %s",
-		   del ? "DEL" : "NEW",
-		   event.interface_status.ifname,
-		   del ? "removed" : "added");
+	wpa_msg(drv->ctx, MSG_DEBUG, "RTM_%sLINK, IFLA_IFNAME: Interface '%s' %s",
+		del ? "DEL" : "NEW",
+		event.interface_status.ifname,
+		del ? "removed" : "added");
 
 	if (os_strcmp(drv->ifname, event.interface_status.ifname) == 0) {
 		if (del)
@@ -607,8 +607,8 @@ static int wpa_driver_wext_own_ifindex(struct wpa_driver_wext_data *drv,
 
 	if (drv->if_removed && wpa_driver_wext_own_ifname(drv, buf, len)) {
 		drv->ifindex = if_nametoindex(drv->ifname);
-		wpa_printf(MSG_DEBUG, "WEXT: Update ifindex for a removed "
-			   "interface");
+		wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Update ifindex for a removed "
+			"interface");
 		wpa_driver_wext_finish_drv_init(drv);
 		return 1;
 	}
@@ -625,27 +625,27 @@ static void wpa_driver_wext_event_rtm_newlink(void *ctx, struct ifinfomsg *ifi,
 	struct rtattr *attr;
 
 	if (!wpa_driver_wext_own_ifindex(drv, ifi->ifi_index, buf, len)) {
-		wpa_printf(MSG_DEBUG, "Ignore event for foreign ifindex %d",
-			   ifi->ifi_index);
+		wpa_msg(drv->ctx, MSG_DEBUG, "Ignore event for foreign ifindex %d",
+			ifi->ifi_index);
 		return;
 	}
 
-	wpa_printf(MSG_DEBUG, "RTM_NEWLINK: operstate=%d ifi_flags=0x%x "
-		   "(%s%s%s%s)",
-		   drv->operstate, ifi->ifi_flags,
-		   (ifi->ifi_flags & IFF_UP) ? "[UP]" : "",
-		   (ifi->ifi_flags & IFF_RUNNING) ? "[RUNNING]" : "",
-		   (ifi->ifi_flags & IFF_LOWER_UP) ? "[LOWER_UP]" : "",
-		   (ifi->ifi_flags & IFF_DORMANT) ? "[DORMANT]" : "");
+	wpa_msg(drv->ctx, MSG_DEBUG, "RTM_NEWLINK: operstate=%d ifi_flags=0x%x "
+		"(%s%s%s%s)",
+		drv->operstate, ifi->ifi_flags,
+		(ifi->ifi_flags & IFF_UP) ? "[UP]" : "",
+		(ifi->ifi_flags & IFF_RUNNING) ? "[RUNNING]" : "",
+		(ifi->ifi_flags & IFF_LOWER_UP) ? "[LOWER_UP]" : "",
+		(ifi->ifi_flags & IFF_DORMANT) ? "[DORMANT]" : "");
 
 	if (!drv->if_disabled && !(ifi->ifi_flags & IFF_UP)) {
-		wpa_printf(MSG_DEBUG, "WEXT: Interface down");
+		wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Interface down");
 		drv->if_disabled = 1;
 		wpa_supplicant_event(drv->ctx, EVENT_INTERFACE_DISABLED, NULL);
 	}
 
 	if (drv->if_disabled && (ifi->ifi_flags & IFF_UP)) {
-		wpa_printf(MSG_DEBUG, "WEXT: Interface up");
+		wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Interface up");
 		drv->if_disabled = 0;
 		wpa_supplicant_event(drv->ctx, EVENT_INTERFACE_ENABLED, NULL);
 	}
@@ -705,7 +705,8 @@ static void wpa_driver_wext_event_rtm_dellink(void *ctx, struct ifinfomsg *ifi,
 
 static void wpa_driver_wext_rfkill_blocked(void *ctx)
 {
-	wpa_printf(MSG_DEBUG, "WEXT: RFKILL blocked");
+	struct wpa_driver_wext_data *drv = ctx;
+	wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: RFKILL blocked");
 	/*
 	 * This may be for any interface; use ifdown event to disable
 	 * interface.
@@ -716,10 +717,10 @@ static void wpa_driver_wext_rfkill_blocked(void *ctx)
 static void wpa_driver_wext_rfkill_unblocked(void *ctx)
 {
 	struct wpa_driver_wext_data *drv = ctx;
-	wpa_printf(MSG_DEBUG, "WEXT: RFKILL unblocked");
+	wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: RFKILL unblocked");
 	if (linux_set_iface_flags(drv->ioctl_sock, drv->ifname, 1)) {
-		wpa_printf(MSG_DEBUG, "WEXT: Could not set interface UP "
-			   "after rfkill unblock");
+		wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Could not set interface UP "
+			"after rfkill unblock");
 		return;
 	}
 	/* rtnetlink ifup handler will report interface as enabled */
@@ -737,16 +738,16 @@ static void wext_get_phy_name(struct wpa_driver_wext_data *drv)
 		 drv->ifname);
 	f = open(buf, O_RDONLY);
 	if (f < 0) {
-		wpa_printf(MSG_DEBUG, "Could not open file %s: %s",
-			   buf, strerror(errno));
+		wpa_msg(drv->ctx, MSG_DEBUG, "Could not open file %s: %s",
+			buf, strerror(errno));
 		return;
 	}
 
 	rv = read(f, drv->phyname, sizeof(drv->phyname) - 1);
 	close(f);
 	if (rv < 0) {
-		wpa_printf(MSG_DEBUG, "Could not read file %s: %s",
-			   buf, strerror(errno));
+		wpa_msg(drv->ctx, MSG_DEBUG, "Could not read file %s: %s",
+			buf, strerror(errno));
 		return;
 	}
 
@@ -754,7 +755,7 @@ static void wext_get_phy_name(struct wpa_driver_wext_data *drv)
 	pos = os_strchr(drv->phyname, '\n');
 	if (pos)
 		*pos = '\0';
-	wpa_printf(MSG_DEBUG, "wext: interface %s phy: %s",
+	wpa_msg(drv->ctx, MSG_DEBUG, "wext: interface %s phy: %s",
 		   drv->ifname, drv->phyname);
 }
 
@@ -782,7 +783,7 @@ void * wpa_driver_wext_init(void *ctx, const char *ifname)
 
 	os_snprintf(path, sizeof(path), "/sys/class/net/%s/phy80211", ifname);
 	if (stat(path, &buf) == 0) {
-		wpa_printf(MSG_DEBUG, "WEXT: cfg80211-based driver detected");
+		wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: cfg80211-based driver detected");
 		drv->cfg80211 = 1;
 		wext_get_phy_name(drv);
 	}
@@ -814,7 +815,7 @@ void * wpa_driver_wext_init(void *ctx, const char *ifname)
 	rcfg->unblocked_cb = wpa_driver_wext_rfkill_unblocked;
 	drv->rfkill = rfkill_init(rcfg);
 	if (drv->rfkill == NULL) {
-		wpa_printf(MSG_DEBUG, "WEXT: RFKILL status not available");
+		wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: RFKILL status not available");
 		os_free(rcfg);
 	}
 
@@ -850,14 +851,14 @@ static int wpa_driver_wext_finish_drv_init(struct wpa_driver_wext_data *drv)
 
 	if (linux_set_iface_flags(drv->ioctl_sock, drv->ifname, 1) < 0) {
 		if (rfkill_is_blocked(drv->rfkill)) {
-			wpa_printf(MSG_DEBUG, "WEXT: Could not yet enable "
-				   "interface '%s' due to rfkill",
-				   drv->ifname);
+			wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Could not yet enable "
+				"interface '%s' due to rfkill",
+				drv->ifname);
 			drv->if_disabled = 1;
 			send_rfkill_event = 1;
 		} else {
-			wpa_printf(MSG_ERROR, "WEXT: Could not set "
-				   "interface '%s' UP", drv->ifname);
+			wpa_msg(drv->ctx, MSG_ERROR, "WEXT: Could not set "
+				"interface '%s' UP", drv->ifname);
 			return -1;
 		}
 	}
@@ -868,8 +869,8 @@ static int wpa_driver_wext_finish_drv_init(struct wpa_driver_wext_data *drv)
 	wpa_driver_wext_flush_pmkid(drv);
 
 	if (wpa_driver_wext_set_mode(drv, 0) < 0) {
-		wpa_printf(MSG_DEBUG, "Could not configure driver to use "
-			   "managed mode");
+		wpa_msg(drv->ctx, MSG_DEBUG, "Could not configure driver to use "
+			"managed mode");
 		/* Try to use it anyway */
 	}
 
@@ -960,7 +961,7 @@ void wpa_driver_wext_deinit(void *priv)
  */
 void wpa_driver_wext_scan_timeout(void *eloop_ctx, void *timeout_ctx)
 {
-	wpa_printf(MSG_DEBUG, "Scan timeout - try to get results");
+	wpa_msg(timeout_ctx, MSG_DEBUG, "Scan timeout - try to get results");
 	wpa_supplicant_event(timeout_ctx, EVENT_SCAN_RESULTS, NULL);
 }
 
@@ -981,8 +982,8 @@ int wpa_driver_wext_scan(void *priv, struct wpa_driver_scan_params *params)
 	size_t ssid_len = params->ssids[0].ssid_len;
 
 	if (ssid_len > IW_ESSID_MAX_SIZE) {
-		wpa_printf(MSG_DEBUG, "%s: too long SSID (%lu)",
-			   __FUNCTION__, (unsigned long) ssid_len);
+		wpa_msg(drv->ctx, MSG_DEBUG, "%s: too long SSID (%lu)",
+			__FUNCTION__, (unsigned long) ssid_len);
 		return -1;
 	}
 
@@ -1016,8 +1017,8 @@ int wpa_driver_wext_scan(void *priv, struct wpa_driver_scan_params *params)
 		 */
 		timeout = 30;
 	}
-	wpa_printf(MSG_DEBUG, "Scan requested (ret=%d) - scan timeout %d "
-		   "seconds", ret, timeout);
+	wpa_msg(drv->ctx, MSG_DEBUG, "Scan requested (ret=%d) - scan timeout %d "
+		"seconds", ret, timeout);
 	eloop_cancel_timeout(wpa_driver_wext_scan_timeout, drv, drv->ctx);
 	eloop_register_timeout(timeout, 0, wpa_driver_wext_scan_timeout, drv,
 			       drv->ctx);
@@ -1052,9 +1053,9 @@ static u8 * wpa_driver_wext_giwscan(struct wpa_driver_wext_data *drv,
 			res_buf_len *= 2;
 			if (res_buf_len > 65535)
 				res_buf_len = 65535; /* 16-bit length field */
-			wpa_printf(MSG_DEBUG, "Scan results did not fit - "
-				   "trying larger buffer (%lu bytes)",
-				   (unsigned long) res_buf_len);
+			wpa_msg(drv->ctx, MSG_DEBUG, "Scan results did not fit - "
+				"trying larger buffer (%lu bytes)",
+				(unsigned long) res_buf_len);
 		} else {
 			perror("ioctl[SIOCGIWSCAN]");
 			os_free(res_buf);
@@ -1112,7 +1113,8 @@ static void wext_get_scan_ssid(struct iw_event *iwe,
 }
 
 
-static void wext_get_scan_freq(struct iw_event *iwe,
+static void wext_get_scan_freq(struct wpa_driver_wext_data *drv,
+			       struct iw_event *iwe,
 			       struct wext_scan_data *res)
 {
 	int divi = 1000000, i;
@@ -1140,10 +1142,10 @@ static void wext_get_scan_freq(struct iw_event *iwe,
 	}
 
 	if (iwe->u.freq.e > 6) {
-		wpa_printf(MSG_DEBUG, "Invalid freq in scan results (BSSID="
-			   MACSTR " m=%d e=%d)",
-			   MAC2STR(res->res.bssid), iwe->u.freq.m,
-			   iwe->u.freq.e);
+		wpa_msg(drv->ctx, MSG_DEBUG, "Invalid freq in scan results (BSSID="
+			MACSTR " m=%d e=%d)",
+			MAC2STR(res->res.bssid), iwe->u.freq.m,
+			iwe->u.freq.e);
 		return;
 	}
 
@@ -1216,7 +1218,8 @@ static void wext_get_scan_rate(struct iw_event *iwe,
 }
 
 
-static void wext_get_scan_iwevgenie(struct iw_event *iwe,
+static void wext_get_scan_iwevgenie(struct wpa_driver_wext_data *drv,
+				    struct iw_event *iwe,
 				    struct wext_scan_data *res, char *custom,
 				    char *end)
 {
@@ -1229,7 +1232,7 @@ static void wext_get_scan_iwevgenie(struct iw_event *iwe,
 	gpos = genie = custom;
 	gend = genie + iwe->u.data.length;
 	if (gend > end) {
-		wpa_printf(MSG_INFO, "IWEVGENIE overflow");
+		wpa_msg(drv->ctx, MSG_INFO, "IWEVGENIE overflow");
 		return;
 	}
 
@@ -1242,7 +1245,8 @@ static void wext_get_scan_iwevgenie(struct iw_event *iwe,
 }
 
 
-static void wext_get_scan_custom(struct iw_event *iwe,
+static void wext_get_scan_custom(struct wpa_driver_wext_data *drv,
+				 struct iw_event *iwe,
 				 struct wext_scan_data *res, char *custom,
 				 char *end)
 {
@@ -1290,12 +1294,12 @@ static void wext_get_scan_custom(struct iw_event *iwe,
 		spos = custom + 4;
 		bytes = custom + clen - spos;
 		if (bytes != 16) {
-			wpa_printf(MSG_INFO, "Invalid TSF length (%d)", bytes);
+			wpa_msg(drv->ctx, MSG_INFO, "Invalid TSF length (%d)", bytes);
 			return;
 		}
 		bytes /= 2;
 		if (hexstr2bin(spos, bin, bytes) < 0) {
-			wpa_printf(MSG_DEBUG, "WEXT: Invalid TSF value");
+			wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Invalid TSF value");
 			return;
 		}
 		res->res.tsf += WPA_GET_BE64(bin);
@@ -1448,7 +1452,7 @@ struct wpa_scan_results * wpa_driver_wext_get_scan_results(void *priv)
 			wext_get_scan_ssid(iwe, &data, custom, end);
 			break;
 		case SIOCGIWFREQ:
-			wext_get_scan_freq(iwe, &data);
+			wext_get_scan_freq(drv, iwe, &data);
 			break;
 		case IWEVQUAL:
 			wext_get_scan_qual(drv, iwe, &data);
@@ -1460,10 +1464,10 @@ struct wpa_scan_results * wpa_driver_wext_get_scan_results(void *priv)
 			wext_get_scan_rate(iwe, &data, pos, end);
 			break;
 		case IWEVGENIE:
-			wext_get_scan_iwevgenie(iwe, &data, custom, end);
+			wext_get_scan_iwevgenie(drv, iwe, &data, custom, end);
 			break;
 		case IWEVCUSTOM:
-			wext_get_scan_custom(iwe, &data, custom, end);
+			wext_get_scan_custom(drv, iwe, &data, custom, end);
 			break;
 		}
 
@@ -1475,8 +1479,8 @@ struct wpa_scan_results * wpa_driver_wext_get_scan_results(void *priv)
 		wpa_driver_wext_add_scan_entry(res, &data);
 	os_free(data.ie);
 
-	wpa_printf(MSG_DEBUG, "Received %lu bytes of scan results (%lu BSSes)",
-		   (unsigned long) len, (unsigned long) res->num);
+	wpa_msg(drv->ctx, MSG_DEBUG, "Received %lu bytes of scan results (%lu BSSes)",
+		(unsigned long) len, (unsigned long) res->num);
 
 	return res;
 }
@@ -1513,11 +1517,11 @@ static int wpa_driver_wext_get_range(void *priv)
 		return -1;
 	} else if (iwr.u.data.length >= minlen &&
 		   range->we_version_compiled >= 18) {
-		wpa_printf(MSG_DEBUG, "SIOCGIWRANGE: WE(compiled)=%d "
-			   "WE(source)=%d enc_capa=0x%x",
-			   range->we_version_compiled,
-			   range->we_version_source,
-			   range->enc_capa);
+		wpa_msg(drv->ctx, MSG_DEBUG, "SIOCGIWRANGE: WE(compiled)=%d "
+			"WE(source)=%d enc_capa=0x%x",
+			range->we_version_compiled,
+			range->we_version_source,
+			range->enc_capa);
 		drv->has_capability = 1;
 		drv->we_version_compiled = range->we_version_compiled;
 		if (range->enc_capa & IW_ENC_CAPA_WPA) {
@@ -1541,12 +1545,12 @@ static int wpa_driver_wext_get_range(void *priv)
 			WPA_DRIVER_AUTH_LEAP;
 		drv->capa.max_scan_ssids = 1;
 
-		wpa_printf(MSG_DEBUG, "  capabilities: key_mgmt 0x%x enc 0x%x "
-			   "flags 0x%x",
-			   drv->capa.key_mgmt, drv->capa.enc, drv->capa.flags);
+		wpa_msg(drv->ctx, MSG_DEBUG, "  capabilities: key_mgmt 0x%x enc 0x%x "
+			"flags 0x%x",
+			drv->capa.key_mgmt, drv->capa.enc, drv->capa.flags);
 	} else {
-		wpa_printf(MSG_DEBUG, "SIOCGIWRANGE: too old (short) data - "
-			   "assuming WPA is not supported");
+		wpa_msg(drv->ctx, MSG_DEBUG, "SIOCGIWRANGE: too old (short) data - "
+			"assuming WPA is not supported");
 	}
 
 	drv->max_level = range->max_qual.level;
@@ -1563,7 +1567,7 @@ static int wpa_driver_wext_set_psk(struct wpa_driver_wext_data *drv,
 	struct iwreq iwr;
 	int ret;
 
-	wpa_printf(MSG_DEBUG, "%s", __FUNCTION__);
+	wpa_msg(drv->ctx, MSG_DEBUG, "%s", __FUNCTION__);
 
 	if (!(drv->capa.flags & WPA_DRIVER_FLAGS_4WAY_HANDSHAKE))
 		return 0;
@@ -1605,8 +1609,8 @@ static int wpa_driver_wext_set_key_ext(void *priv, enum wpa_alg alg,
 	struct iw_encode_ext *ext;
 
 	if (seq_len > IW_ENCODE_SEQ_MAX_SIZE) {
-		wpa_printf(MSG_DEBUG, "%s: Invalid seq_len %lu",
-			   __FUNCTION__, (unsigned long) seq_len);
+		wpa_msg(drv->ctx, MSG_DEBUG, "%s: Invalid seq_len %lu",
+			__FUNCTION__, (unsigned long) seq_len);
 		return -1;
 	}
 
@@ -1658,8 +1662,8 @@ static int wpa_driver_wext_set_key_ext(void *priv, enum wpa_alg alg,
 		break;
 #endif /* CONFIG_IEEE80211W */
 	default:
-		wpa_printf(MSG_DEBUG, "%s: Unknown algorithm %d",
-			   __FUNCTION__, alg);
+		wpa_msg(drv->ctx, MSG_DEBUG, "%s: Unknown algorithm %d",
+			__FUNCTION__, alg);
 		os_free(ext);
 		return -1;
 	}
@@ -1721,10 +1725,10 @@ int wpa_driver_wext_set_key(const char *ifname, void *priv, enum wpa_alg alg,
 	struct iwreq iwr;
 	int ret = 0;
 
-	wpa_printf(MSG_DEBUG, "%s: alg=%d key_idx=%d set_tx=%d seq_len=%lu "
-		   "key_len=%lu",
-		   __FUNCTION__, alg, key_idx, set_tx,
-		   (unsigned long) seq_len, (unsigned long) key_len);
+	wpa_msg(drv->ctx, MSG_DEBUG, "%s: alg=%d key_idx=%d set_tx=%d seq_len=%lu "
+		"key_len=%lu",
+		__FUNCTION__, alg, key_idx, set_tx,
+		(unsigned long) seq_len, (unsigned long) key_len);
 
 	ret = wpa_driver_wext_set_key_ext(drv, alg, addr, key_idx, set_tx,
 					  seq, seq_len, key, key_len);
@@ -1733,12 +1737,12 @@ int wpa_driver_wext_set_key(const char *ifname, void *priv, enum wpa_alg alg,
 
 	if (ret == -2 &&
 	    (alg == WPA_ALG_NONE || alg == WPA_ALG_WEP)) {
-		wpa_printf(MSG_DEBUG, "Driver did not support "
-			   "SIOCSIWENCODEEXT, trying SIOCSIWENCODE");
+		wpa_msg(drv->ctx, MSG_DEBUG, "Driver did not support "
+			"SIOCSIWENCODEEXT, trying SIOCSIWENCODE");
 		ret = 0;
 	} else {
-		wpa_printf(MSG_DEBUG, "Driver did not support "
-			   "SIOCSIWENCODEEXT");
+		wpa_msg(drv->ctx, MSG_DEBUG, "Driver did not support "
+			"SIOCSIWENCODEEXT");
 		return ret;
 	}
 
@@ -1777,7 +1781,7 @@ static int wpa_driver_wext_set_countermeasures(void *priv,
 					       int enabled)
 {
 	struct wpa_driver_wext_data *drv = priv;
-	wpa_printf(MSG_DEBUG, "%s", __FUNCTION__);
+	wpa_msg(drv->ctx, MSG_DEBUG, "%s", __FUNCTION__);
 	return wpa_driver_wext_set_auth_param(drv,
 					      IW_AUTH_TKIP_COUNTERMEASURES,
 					      enabled);
@@ -1788,7 +1792,7 @@ static int wpa_driver_wext_set_drop_unencrypted(void *priv,
 						int enabled)
 {
 	struct wpa_driver_wext_data *drv = priv;
-	wpa_printf(MSG_DEBUG, "%s", __FUNCTION__);
+	wpa_msg(drv->ctx, MSG_DEBUG, "%s", __FUNCTION__);
 	drv->use_crypt = enabled;
 	return wpa_driver_wext_set_auth_param(drv, IW_AUTH_DROP_UNENCRYPTED,
 					      enabled);
@@ -1849,8 +1853,8 @@ static void wpa_driver_wext_disconnect(struct wpa_driver_wext_data *drv)
 			 */
 			if (wpa_driver_wext_set_bssid(drv, null_bssid) < 0 ||
 			    wpa_driver_wext_set_ssid(drv, (u8 *) "", 0) < 0) {
-				wpa_printf(MSG_DEBUG, "WEXT: Failed to clear "
-					   "to disconnect");
+				wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Failed to clear "
+					"to disconnect");
 			}
 			return;
 		}
@@ -1864,8 +1868,8 @@ static void wpa_driver_wext_disconnect(struct wpa_driver_wext_data *drv)
 			ssid[i] = rand() & 0xFF;
 		if (wpa_driver_wext_set_bssid(drv, null_bssid) < 0 ||
 		    wpa_driver_wext_set_ssid(drv, ssid, 32) < 0) {
-			wpa_printf(MSG_DEBUG, "WEXT: Failed to set bogus "
-				   "BSSID/SSID to disconnect");
+			wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Failed to set bogus "
+				"BSSID/SSID to disconnect");
 		}
 	}
 }
@@ -1876,7 +1880,7 @@ static int wpa_driver_wext_deauthenticate(void *priv, const u8 *addr,
 {
 	struct wpa_driver_wext_data *drv = priv;
 	int ret;
-	wpa_printf(MSG_DEBUG, "%s", __FUNCTION__);
+	wpa_msg(drv->ctx, MSG_DEBUG, "%s", __FUNCTION__);
 	ret = wpa_driver_wext_mlme(drv, addr, IW_MLME_DEAUTH, reason_code);
 	wpa_driver_wext_disconnect(drv);
 	return ret;
@@ -1888,7 +1892,7 @@ static int wpa_driver_wext_disassociate(void *priv, const u8 *addr,
 {
 	struct wpa_driver_wext_data *drv = priv;
 	int ret;
-	wpa_printf(MSG_DEBUG, "%s", __FUNCTION__);
+	wpa_msg(drv->ctx, MSG_DEBUG, "%s", __FUNCTION__);
 	ret = wpa_driver_wext_mlme(drv, addr, IW_MLME_DISASSOC, reason_code);
 	wpa_driver_wext_disconnect(drv);
 	return ret;
@@ -1956,8 +1960,8 @@ wpa_driver_wext_auth_alg_fallback(struct wpa_driver_wext_data *drv,
 	struct iwreq iwr;
 	int ret = 0;
 
-	wpa_printf(MSG_DEBUG, "WEXT: Driver did not support "
-		   "SIOCSIWAUTH for AUTH_ALG, trying SIOCSIWENCODE");
+	wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Driver did not support "
+		"SIOCSIWAUTH for AUTH_ALG, trying SIOCSIWENCODE");
 
 	os_memset(&iwr, 0, sizeof(iwr));
 	os_strlcpy(iwr.ifr_name, drv->ifname, IFNAMSIZ);
@@ -2001,7 +2005,7 @@ int wpa_driver_wext_associate(void *priv,
 	int allow_unencrypted_eapol;
 	int value;
 
-	wpa_printf(MSG_DEBUG, "%s", __FUNCTION__);
+	wpa_msg(drv->ctx, MSG_DEBUG, "%s", __FUNCTION__);
 
 	if (drv->cfg80211) {
 		/*
@@ -2265,8 +2269,8 @@ int wpa_driver_wext_alternative_ifindex(struct wpa_driver_wext_data *drv,
 	if (drv->ifindex2 <= 0)
 		return -1;
 
-	wpa_printf(MSG_DEBUG, "Added alternative ifindex %d (%s) for "
-		   "wireless events", drv->ifindex2, ifname);
+	wpa_msg(drv->ctx, MSG_DEBUG, "Added alternative ifindex %d (%s) for "
+		"wireless events", drv->ifindex2, ifname);
 
 	return 0;
 }
@@ -2276,8 +2280,8 @@ int wpa_driver_wext_set_operstate(void *priv, int state)
 {
 	struct wpa_driver_wext_data *drv = priv;
 
-	wpa_printf(MSG_DEBUG, "%s: operstate %d->%d (%s)",
-		   __func__, drv->operstate, state, state ? "UP" : "DORMANT");
+	wpa_msg(drv->ctx, MSG_DEBUG, "%s: operstate %d->%d (%s)",
+		__func__, drv->operstate, state, state ? "UP" : "DORMANT");
 	drv->operstate = state;
 	return netlink_send_oper_ifla(drv->netlink, drv->ifindex, -1,
 				      state ? IF_OPER_UP : IF_OPER_DORMANT);
