@@ -44,8 +44,8 @@ static void wpa_supplicant_gen_assoc_event(struct wpa_supplicant *wpa_s)
 			wpas_notify_network_changed(wpa_s);
 	}
 	wpa_supplicant_initiate_eapol(wpa_s);
-	wpa_printf(MSG_DEBUG, "Already associated with a configured network - "
-		   "generating associated event");
+	wpa_msg(wpa_s, MSG_DEBUG, "Already associated with a configured network - "
+		"generating associated event");
 	os_memset(&data, 0, sizeof(data));
 	wpa_supplicant_event(wpa_s, EVENT_ASSOC, &data);
 }
@@ -100,8 +100,8 @@ static void wpa_supplicant_assoc_try(struct wpa_supplicant *wpa_s,
 
 	/* ap_scan=2 mode - try to associate with each SSID. */
 	if (ssid == NULL) {
-		wpa_printf(MSG_DEBUG, "wpa_supplicant_scan: Reached "
-			   "end of scan list - go back to beginning");
+		wpa_msg(wpa_s, MSG_DEBUG, "wpa_supplicant_scan: Reached "
+			"end of scan list - go back to beginning");
 		wpa_s->prev_scan_ssid = WILDCARD_SSID_SCAN;
 		wpa_supplicant_req_scan(wpa_s, 0, 0);
 		return;
@@ -255,7 +255,7 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 	enum wpa_states prev_state;
 
 	if (wpa_s->wpa_state == WPA_INTERFACE_DISABLED) {
-		wpa_printf(MSG_DEBUG, "Skip scan - interface disabled");
+		wpa_msg(wpa_s, MSG_DEBUG, "Skip scan - interface disabled");
 		return;
 	}
 
@@ -266,15 +266,15 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 
 	if (!wpa_supplicant_enabled_networks(wpa_s->conf) &&
 	    !wpa_s->scan_req) {
-		wpa_printf(MSG_DEBUG, "No enabled networks - do not scan");
+		wpa_msg(wpa_s, MSG_DEBUG, "No enabled networks - do not scan");
 		wpa_supplicant_set_state(wpa_s, WPA_INACTIVE);
 		return;
 	}
 
 	if (wpa_s->conf->ap_scan != 0 &&
 	    (wpa_s->drv_flags & WPA_DRIVER_FLAGS_WIRED)) {
-		wpa_printf(MSG_DEBUG, "Using wired authentication - "
-			   "overriding ap_scan configuration");
+		wpa_msg(wpa_s, MSG_DEBUG, "Using wired authentication - "
+			"overriding ap_scan configuration");
 		wpa_s->conf->ap_scan = 0;
 		wpas_notify_ap_scan_changed(wpa_s);
 	}
@@ -373,15 +373,15 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 	if (ssid) {
 		wpa_s->prev_scan_ssid = ssid;
 		if (max_ssids > 1) {
-			wpa_printf(MSG_DEBUG, "Include wildcard SSID in the "
-				   "scan request");
+			wpa_msg(wpa_s, MSG_DEBUG, "Include wildcard SSID in the "
+				"scan request");
 			params.num_ssids++;
 		}
-		wpa_printf(MSG_DEBUG, "Starting AP scan for specific SSID(s)");
+		wpa_msg(wpa_s, MSG_DEBUG, "Starting AP scan for specific SSID(s)");
 	} else {
 		wpa_s->prev_scan_ssid = WILDCARD_SSID_SCAN;
 		params.num_ssids++;
-		wpa_printf(MSG_DEBUG, "Starting AP scan for wildcard SSID");
+		wpa_msg(wpa_s, MSG_DEBUG, "Starting AP scan for wildcard SSID");
 	}
 
 	params.can_scan_one = wpa_s->conf->can_scan_one;
@@ -398,16 +398,16 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 		/* Optimize provisioning state scan based on GO information */
 		if (wpa_s->p2p_in_provisioning < 5 &&
 		    wpa_s->go_params->freq > 0) {
-			wpa_printf(MSG_DEBUG, "P2P: Scan only GO preferred "
-				   "frequency %d MHz",
-				   wpa_s->go_params->freq);
+			wpa_msg(wpa_s, MSG_DEBUG, "P2P: Scan only GO preferred "
+				"frequency %d MHz",
+				wpa_s->go_params->freq);
 			params.freqs = os_zalloc(2 * sizeof(int));
 			if (params.freqs)
 				params.freqs[0] = wpa_s->go_params->freq;
 		} else if (wpa_s->p2p_in_provisioning < 8 &&
 			   wpa_s->go_params->freq_list[0]) {
-			wpa_printf(MSG_DEBUG, "P2P: Scan only common "
-				   "channels");
+			wpa_msg(wpa_s, MSG_DEBUG, "P2P: Scan only common "
+				"channels");
 			int_array_concat(&params.freqs,
 					 wpa_s->go_params->freq_list);
 			if (params.freqs)
@@ -423,8 +423,8 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 		 * Optimize post-provisioning scan based on channel used
 		 * during provisioning.
 		 */
-		wpa_printf(MSG_DEBUG, "WPS: Scan only frequency %u MHz that "
-			   "was used during provisioning", wpa_s->wps_freq);
+		wpa_msg(wpa_s, MSG_DEBUG, "WPS: Scan only frequency %u MHz that "
+			"was used during provisioning", wpa_s->wps_freq);
 		params.freqs = os_zalloc(2 * sizeof(int));
 		if (params.freqs)
 			params.freqs[0] = wpa_s->wps_freq;
@@ -452,8 +452,8 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 #endif /* CONFIG_P2P */
 
 	if (params.freqs == NULL && wpa_s->next_scan_freqs) {
-		wpa_printf(MSG_DEBUG, "Optimize scan based on previously "
-			   "generated frequency list");
+		wpa_msg(wpa_s, MSG_DEBUG, "Optimize scan based on previously "
+			"generated frequency list");
 		params.freqs = wpa_s->next_scan_freqs;
 	} else
 		os_free(wpa_s->next_scan_freqs);
@@ -469,7 +469,7 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 	os_free(params.filter_ssids);
 
 	if (ret) {
-		wpa_printf(MSG_WARNING, "Failed to initiate AP scan.");
+		wpa_msg(wpa_s, MSG_WARNING, "Failed to initiate AP scan.");
 		if (prev_state != wpa_s->wpa_state)
 			wpa_supplicant_set_state(wpa_s, prev_state);
 		wpa_supplicant_req_scan(wpa_s, 1, 0);
@@ -789,14 +789,14 @@ wpa_supplicant_get_scan_results(struct wpa_supplicant *wpa_s,
 	else
 		scan_res = wpa_drv_get_scan_results2(wpa_s);
 	if (scan_res == NULL) {
-		wpa_printf(MSG_DEBUG, "Failed to get scan results");
+		wpa_msg(wpa_s, MSG_DEBUG, "Failed to get scan results");
 		return NULL;
 	}
 
 #ifdef CONFIG_WPS
 	if (wpas_wps_in_progress(wpa_s)) {
-		wpa_printf(MSG_DEBUG, "WPS: Order scan results with WPS "
-			   "provisioning rules");
+		wpa_msg(wpa_s, MSG_DEBUG, "WPS: Order scan results with WPS "
+			"provisioning rules");
 		compar = wpa_scan_result_wps_compar;
 	}
 #endif /* CONFIG_WPS */
