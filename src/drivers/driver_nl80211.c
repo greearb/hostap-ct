@@ -105,6 +105,7 @@ static void nl80211_handle_destroy(struct nl_handle *handle)
 
 struct nl80211_global {
 	struct dl_list interfaces;
+	struct netlink_data *netlink;
 };
 
 struct i802_bss {
@@ -121,7 +122,6 @@ struct wpa_driver_nl80211_data {
 	u8 addr[ETH_ALEN];
 	char phyname[32];
 	void *ctx;
-	struct netlink_data *netlink;
 	int ioctl_sock; /* socket for ioctl() use */
 	char brname[IFNAMSIZ];
 	int ifindex;
@@ -452,13 +452,23 @@ static void wpa_driver_nl80211_event_rtm_newlink(void *ctx,
 						 struct ifinfomsg *ifi,
 						 u8 *buf, size_t len)
 {
-	struct wpa_driver_nl80211_data *drv = ctx;
+	struct nl80211_global *global = ctx;
+	struct wpa_driver_nl80211_data *drvtmp;
+	struct wpa_driver_nl80211_data *drv = NULL;
 	int attrlen, rta_len;
 	struct rtattr *attr;
 	u32 brid = 0;
 
-	if (!wpa_driver_nl80211_own_ifindex(drv, ifi->ifi_index, buf, len) &&
-	    !have_ifidx(drv, ifi->ifi_index)) {
+	dl_list_for_each(drvtmp, &global->interfaces,
+			 struct wpa_driver_nl80211_data, list) {
+		if (wpa_driver_nl80211_own_ifindex(drvtmp, ifi->ifi_index, buf, len) ||
+		    have_ifidx(drvtmp, ifi->ifi_index)) {
+			drv = drvtmp;
+			break;
+		}
+	}
+
+	if (!drv) {
 		wpa_printf(MSG_DEBUG, "nl80211: Ignore event for foreign "
 			   "ifindex %d", ifi->ifi_index);
 		return;
@@ -493,7 +503,7 @@ static void wpa_driver_nl80211_event_rtm_newlink(void *ctx,
 	if (drv->operstate == 1 &&
 	    (ifi->ifi_flags & (IFF_LOWER_UP | IFF_DORMANT)) == IFF_LOWER_UP &&
 	    !(ifi->ifi_flags & IFF_RUNNING))
-		netlink_send_oper_ifla(drv->netlink, drv->ifindex,
+		netlink_send_oper_ifla(drv->global->netlink, drv->ifindex,
 				       -1, IF_OPER_UP);
 
 	attrlen = len;
@@ -527,13 +537,30 @@ static void wpa_driver_nl80211_event_rtm_dellink(void *ctx,
 						 struct ifinfomsg *ifi,
 						 u8 *buf, size_t len)
 {
-	struct wpa_driver_nl80211_data *drv = ctx;
+	struct nl80211_global *global = ctx;
 	int attrlen, rta_len;
 	struct rtattr *attr;
 	u32 brid = 0;
+	struct wpa_driver_nl80211_data *drvtmp;
+	struct wpa_driver_nl80211_data *drv = NULL;
+
+	dl_list_for_each(drvtmp, &global->interfaces,
+			 struct wpa_driver_nl80211_data, list) {
+		if (wpa_driver_nl80211_own_ifindex(drvtmp, ifi->ifi_index, buf, len) ||
+		    have_ifidx(drvtmp, ifi->ifi_index)) {
+			drv = drvtmp;
+			break;
+		}
+	}
 
 	attrlen = len;
 	attr = (struct rtattr *) buf;
+
+	if (!drv) {
+		wpa_printf(MSG_DEBUG, "nl80211: Ignore dellink event for"
+			   " foreign ifindex %d", ifi->ifi_index);
+		return;
+	}
 
 	rta_len = RTA_ALIGN(sizeof(struct rtattr));
 	while (RTA_OK(attr, attrlen)) {
@@ -1808,7 +1835,6 @@ static void * wpa_driver_nl80211_init(void *ctx, const char *ifname,
 				      void *global_priv)
 {
 	struct wpa_driver_nl80211_data *drv;
-	struct netlink_config *cfg;
 	struct rfkill_config *rcfg;
 	struct i802_bss *bss;
 
@@ -1839,18 +1865,6 @@ static void * wpa_driver_nl80211_init(void *ctx, const char *ifname,
 		goto failed;
 	}
 
-	cfg = os_zalloc(sizeof(*cfg));
-	if (cfg == NULL)
-		goto failed;
-	cfg->ctx = drv;
-	cfg->newlink_cb = wpa_driver_nl80211_event_rtm_newlink;
-	cfg->dellink_cb = wpa_driver_nl80211_event_rtm_dellink;
-	drv->netlink = netlink_init(cfg);
-	if (drv->netlink == NULL) {
-		os_free(cfg);
-		goto failed;
-	}
-
 	rcfg = os_zalloc(sizeof(*rcfg));
 	if (rcfg == NULL)
 		goto failed;
@@ -1871,7 +1885,6 @@ static void * wpa_driver_nl80211_init(void *ctx, const char *ifname,
 
 failed:
 	rfkill_deinit(drv->rfkill);
-	netlink_deinit(drv->netlink);
 	if (drv->ioctl_sock >= 0)
 		close(drv->ioctl_sock);
 
@@ -2011,7 +2024,7 @@ wpa_driver_nl80211_finish_drv_init(struct wpa_driver_nl80211_data *drv)
 	if (wpa_driver_nl80211_capa(drv))
 		return -1;
 
-	netlink_send_oper_ifla(drv->netlink, drv->ifindex,
+	netlink_send_oper_ifla(drv->global->netlink, drv->ifindex,
 			       1, IF_OPER_DORMANT);
 #endif /* HOSTAPD */
 
@@ -2109,8 +2122,7 @@ static void wpa_driver_nl80211_deinit(void *priv)
 	if (drv->disable_11b_rates)
 		nl80211_disable_11b_rates(drv, drv->ifindex, 0);
 
-	netlink_send_oper_ifla(drv->netlink, drv->ifindex, 0, IF_OPER_UP);
-	netlink_deinit(drv->netlink);
+	netlink_send_oper_ifla(drv->global->netlink, drv->ifindex, 0, IF_OPER_UP);
 	rfkill_deinit(drv->rfkill);
 
 	eloop_cancel_timeout(wpa_driver_nl80211_scan_timeout, drv, drv->ctx);
@@ -4895,7 +4907,7 @@ static int wpa_driver_nl80211_set_operstate(void *priv, int state)
 	wpa_printf(MSG_DEBUG, "%s: operstate %d->%d (%s)",
 		   __func__, drv->operstate, state, state ? "UP" : "DORMANT");
 	drv->operstate = state;
-	return netlink_send_oper_ifla(drv->netlink, drv->ifindex, -1,
+	return netlink_send_oper_ifla(drv->global->netlink, drv->ifindex, -1,
 				      state ? IF_OPER_UP : IF_OPER_DORMANT);
 }
 
@@ -6370,10 +6382,28 @@ static int nl80211_set_param(void *priv, const char *param)
 static void * nl80211_global_init(void)
 {
 	struct nl80211_global *global;
+	struct netlink_config *cfg;
+
 	global = os_zalloc(sizeof(*global));
 	if (global == NULL)
 		return NULL;
 	dl_list_init(&global->interfaces);
+
+	cfg = os_zalloc(sizeof(*cfg));
+	if (cfg == NULL) {
+		os_free(global);
+		return NULL;
+	}
+	cfg->ctx = global;
+	cfg->newlink_cb = wpa_driver_nl80211_event_rtm_newlink;
+	cfg->dellink_cb = wpa_driver_nl80211_event_rtm_dellink;
+	global->netlink = netlink_init(cfg);
+	if (global->netlink == NULL) {
+		os_free(cfg);
+		os_free(global);
+		return NULL;
+	}
+
 	return global;
 }
 
@@ -6388,6 +6418,8 @@ static void nl80211_global_deinit(void *priv)
 			   "nl80211_global_deinit",
 			   dl_list_len(&global->interfaces));
 	}
+	if (global->netlink)
+		netlink_deinit(global->netlink);
 	os_free(global);
 }
 
