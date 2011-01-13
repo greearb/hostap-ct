@@ -467,6 +467,9 @@ static void usage(void)
 		"   -B   run daemon in the background\n"
 		"   -P   PID file\n"
 		"   -K   include key data in debug messages\n"
+#ifdef CONFIG_DEBUG_FILE
+		"   -f = log output to debug file instead of stdout\n"
+#endif /* CONFIG_DEBUG_FILE */
 		"   -t   include timestamps in some debug messages\n"
 		"   -v   show hostapd version\n");
 
@@ -486,7 +489,7 @@ int main(int argc, char *argv[])
 		return -1;
 
 	for (;;) {
-		c = getopt(argc, argv, "BdhKP:tv");
+		c = getopt(argc, argv, "Bdf:hKP:tv");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -501,6 +504,11 @@ int main(int argc, char *argv[])
 		case 'B':
 			daemonize++;
 			break;
+#ifdef CONFIG_DEBUG_FILE
+		case 'f':
+			wpa_debug_open_file(optarg);
+			break;
+#endif
 		case 'K':
 			wpa_debug_show_keys++;
 			break;

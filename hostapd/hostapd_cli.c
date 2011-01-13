@@ -220,6 +220,12 @@ static int hostapd_cli_cmd_ping(struct wpa_ctrl *ctrl, int argc, char *argv[])
 	return wpa_ctrl_command(ctrl, "PING");
 }
 
+#ifdef CONFIG_DEBUG_FILE
+static int hostapd_cli_cmd_relog(struct wpa_ctrl *ctrl, int argc, char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "RELOG");
+}
+#endif
 
 static int hostapd_cli_cmd_mib(struct wpa_ctrl *ctrl, int argc, char *argv[])
 {
@@ -698,6 +704,9 @@ struct hostapd_cli_cmd {
 static struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	{ "ping", hostapd_cli_cmd_ping },
 	{ "mib", hostapd_cli_cmd_mib },
+#ifdef CONFIG_DEBUG_FILE
+	{ "relog", hostapd_cli_cmd_relog },
+#endif
 	{ "sta", hostapd_cli_cmd_sta },
 	{ "all_sta", hostapd_cli_cmd_all_sta },
 	{ "new_sta", hostapd_cli_cmd_new_sta },

@@ -790,6 +790,15 @@ static void hostapd_ctrl_iface_receive(int sock, void *eloop_ctx,
 	if (os_strcmp(buf, "PING") == 0) {
 		os_memcpy(reply, "PONG\n", 5);
 		reply_len = 5;
+#ifdef CONFIG_DEBUG_FILE
+	} else if (os_strncmp(buf, "RELOG", 5) == 0) {
+		if (wpa_debug_reopen_file() < 0) {
+			const char *msg;
+			msg = "ERROR:  Failed to reopen log file.\n";
+			reply_len = strlen(msg);
+			os_memcpy(reply, msg, reply_len);
+		}
+#endif
 	} else if (os_strcmp(buf, "MIB") == 0) {
 		reply_len = ieee802_11_get_mib(hapd, reply, reply_size);
 		if (reply_len >= 0) {
