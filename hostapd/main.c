@@ -476,6 +476,13 @@ static void usage(void)
 	exit(1);
 }
 
+static const char *hostapd_msg_ifname_cb(void *ctx)
+{
+	struct hostapd_data *hapd = ctx;
+	if (hapd && hapd->iconf && hapd->iconf->bss)
+		return hapd->iconf->bss->iface;
+	return "NULL";
+}
 
 int main(int argc, char *argv[])
 {
@@ -507,6 +514,7 @@ int main(int argc, char *argv[])
 #ifdef CONFIG_DEBUG_FILE
 		case 'f':
 			wpa_debug_open_file(optarg);
+			wpa_msg_register_ifname_cb(hostapd_msg_ifname_cb);
 			break;
 #endif
 		case 'K':
