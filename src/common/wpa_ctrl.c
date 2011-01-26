@@ -244,6 +244,7 @@ int wpa_ctrl_request(struct wpa_ctrl *ctrl, const char *cmd, size_t cmd_len,
 		     void (*msg_cb)(char *msg, size_t len))
 {
 	struct timeval tv;
+	struct os_time started_at;
 	int res;
 	fd_set rfds;
 	const char *_cmd;
@@ -270,7 +271,29 @@ int wpa_ctrl_request(struct wpa_ctrl *ctrl, const char *cmd, size_t cmd_len,
 		_cmd_len = cmd_len;
 	}
 
+	errno = 0;
+	started_at.sec = 0;
+	started_at.usec = 0;
+retry_send:
 	if (send(ctrl->s, _cmd, _cmd_len, 0) < 0) {
+		if ((errno == EAGAIN) || (errno = EBUSY)
+		    || (errno == EWOULDBLOCK)) {
+			/* Must be non-blocking socket...try for a bit longer
+			 * before giving up.
+			 */
+			if (started_at.sec == 0)
+				os_get_time(&started_at);
+			else {
+				struct os_time n;
+				os_get_time(&n);
+				// Try for a few seconds.
+				if (n.sec > (started_at.sec + 5))
+					goto send_err;
+			}
+			sleep(1);
+			goto retry_send;
+		}
+	send_err:
 		os_free(cmd_buf);
 		return -1;
 	}

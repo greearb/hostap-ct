@@ -20,7 +20,8 @@
 #ifdef ANDROID
 #include <cutils/sockets.h>
 #endif /* ANDROID */
-
+#include <unistd.h>
+#include <fcntl.h>
 #include "utils/common.h"
 #include "utils/eloop.h"
 #include "utils/list.h"
@@ -265,6 +266,7 @@ wpa_supplicant_ctrl_iface_init(struct wpa_supplicant *wpa_s)
 	char *buf, *dir = NULL, *gid_str = NULL;
 	struct group *grp;
 	char *endp;
+	int  flags;
 
 	priv = os_zalloc(sizeof(*priv));
 	if (priv == NULL)
@@ -411,6 +413,17 @@ wpa_supplicant_ctrl_iface_init(struct wpa_supplicant *wpa_s)
 #ifdef ANDROID
 havesock:
 #endif /* ANDROID */
+
+	/* Make socket non-blocking so that we don't hang forever if
+	 * target dies unexpectedly.
+	 */
+	flags = fcntl(priv->sock, F_GETFL);
+	flags |= (O_NONBLOCK);
+	if (fcntl(priv->sock, F_SETFL, flags) < 0) {
+		perror("fcntl(ctrl, O_NONBLOCK)");
+		/* Not fatal, continue on.*/
+	}
+
 	eloop_register_read_sock(priv->sock, wpa_supplicant_ctrl_iface_receive,
 				 wpa_s, priv);
 	wpa_msg_register_cb(wpa_supplicant_ctrl_iface_msg_cb);
