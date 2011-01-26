@@ -38,6 +38,9 @@ void sme_stop_sa_query(struct wpa_supplicant *wpa_s);
 void sme_sa_query_rx(struct wpa_supplicant *wpa_s, const u8 *sa,
 		     const u8 *data, size_t len);
 
+void sme_auth_timer(void *eloop_ctx, void *timeout_ctx);
+void sme_assoc_timer(void *eloop_ctx, void *timeout_ctx);
+
 #else /* CONFIG_SME */
 
 static inline void sme_authenticate(struct wpa_supplicant *wpa_s,
@@ -81,6 +84,14 @@ static inline void sme_event_disassoc(struct wpa_supplicant *wpa_s,
 static inline void sme_event_unprot_disconnect(struct wpa_supplicant *wpa_s,
 					       const u8 *sa, const u8 *da,
 					       u16 reason_code)
+{
+}
+
+static inline void sme_auth_timer(void *eloop_ctx, void *timeout_ctx)
+{
+}
+
+static inline void sme_assoc_timer(void *eloop_ctx, void *timeout_ctx)
 {
 }
 

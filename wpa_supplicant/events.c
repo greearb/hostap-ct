@@ -699,13 +699,19 @@ void wpa_supplicant_connect(struct wpa_supplicant *wpa_s,
 	 */
 	if (wpa_s->reassociate ||
 	    (os_memcmp(selected->bssid, wpa_s->bssid, ETH_ALEN) != 0 &&
-	     (wpa_s->wpa_state != WPA_ASSOCIATING ||
-	      os_memcmp(selected->bssid, wpa_s->pending_bssid, ETH_ALEN) !=
-	      0))) {
+	     ((!((wpa_s->wpa_state == WPA_ASSOCIATING) ||
+		(wpa_s->wpa_state == WPA_AUTHENTICATING))) ||
+	      os_memcmp(selected->bssid, wpa_s->pending_bssid,
+			ETH_ALEN) != 0))) {
 		if (wpa_supplicant_scard_init(wpa_s, ssid)) {
 			wpa_supplicant_req_new_scan(wpa_s, 10, 0);
 			return;
 		}
+		wpa_msg(wpa_s, MSG_DEBUG, "wpa_connect calling associate, reassociate: %i  selected: "
+			MACSTR " bssid: " MACSTR " pending: " MACSTR "  wpa_state: %i",
+			wpa_s->reassociate, MAC2STR(selected->bssid), MAC2STR(wpa_s->bssid),
+			MAC2STR(wpa_s->pending_bssid),
+			wpa_s->wpa_state);
 		wpa_supplicant_associate(wpa_s, selected, ssid);
 	} else {
 		wpa_dbg(wpa_s, MSG_DEBUG, "Already associated with the "
@@ -1412,6 +1418,13 @@ static void wpa_supplicant_event_disassoc(struct wpa_supplicant *wpa_s,
 			"to proceed after disconnection event");
 		wpa_supplicant_set_state(wpa_s, WPA_AUTHENTICATING);
 		os_memcpy(wpa_s->pending_bssid, prev_pending_bssid, ETH_ALEN);
+
+
+		/* Re-arm authentication timer in case auth fails for
+		 * whatever reason.
+		 */
+		eloop_cancel_timeout(sme_auth_timer, wpa_s, NULL);
+		eloop_register_timeout(2, 0, sme_auth_timer, wpa_s, NULL);
 	}
 #endif /* CONFIG_SME */
 }

@@ -250,7 +250,8 @@ void sme_authenticate(struct wpa_supplicant *wpa_s,
 		return;
 	}
 
-	/* TODO: add timeout on authentication */
+	/* 2 second timer seem about right? */
+	eloop_register_timeout(2, 0, sme_auth_timer, wpa_s, NULL);
 
 	/*
 	 * Association will be started based on the authentication event from
@@ -288,6 +289,8 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 		data->auth.status_code);
 	wpa_hexdump(MSG_MSGDUMP, "SME: Authentication response IEs",
 		    data->auth.ies, data->auth.ies_len);
+
+	eloop_cancel_timeout(sme_auth_timer, wpa_s, NULL);
 
 	if (data->auth.status_code != WLAN_STATUS_SUCCESS) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "SME: Authentication failed (status "
@@ -404,7 +407,8 @@ void sme_associate(struct wpa_supplicant *wpa_s, enum wpas_mode mode,
 		return;
 	}
 
-	/* TODO: add timeout on association */
+	/* 2 second timer seem about right? */
+	eloop_register_timeout(2, 0, sme_assoc_timer, wpa_s, NULL);
 }
 
 
@@ -442,6 +446,8 @@ void sme_event_assoc_reject(struct wpa_supplicant *wpa_s,
 		data->assoc_reject.status_code);
 
 	bssid_changed = !is_zero_ether_addr(wpa_s->bssid);
+
+	eloop_cancel_timeout(sme_assoc_timer, wpa_s, NULL);
 
 	/*
 	 * For now, unconditionally terminate the previous authentication. In
@@ -499,6 +505,36 @@ void sme_event_disassoc(struct wpa_supplicant *wpa_s,
 			"driver state");
 		wpa_drv_deauthenticate(wpa_s, wpa_s->sme.prev_bssid,
 				       WLAN_REASON_DEAUTH_LEAVING);
+	}
+}
+
+void sme_auth_timer(void *eloop_ctx, void *timeout_ctx)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctx;
+	if (wpa_s->wpa_state == WPA_AUTHENTICATING) {
+		wpa_msg(wpa_s, MSG_DEBUG, "SME:  Authentication timout.");
+		wpa_drv_deauthenticate(wpa_s, wpa_s->pending_bssid,
+				       WLAN_REASON_DEAUTH_LEAVING);
+		wpa_s->sme.prev_bssid_set = 0;
+		wpas_connection_failed(wpa_s, wpa_s->pending_bssid);
+		wpa_supplicant_set_state(wpa_s, WPA_DISCONNECTED);
+		os_memset(wpa_s->bssid, 0, ETH_ALEN);
+		os_memset(wpa_s->pending_bssid, 0, ETH_ALEN);
+	}
+}
+
+void sme_assoc_timer(void *eloop_ctx, void *timeout_ctx)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctx;
+	if (wpa_s->wpa_state == WPA_ASSOCIATING) {
+		wpa_msg(wpa_s, MSG_DEBUG, "SME:  Association timout.");
+		wpa_drv_deauthenticate(wpa_s, wpa_s->pending_bssid,
+				       WLAN_REASON_DEAUTH_LEAVING);
+		wpa_s->sme.prev_bssid_set = 0;
+		wpas_connection_failed(wpa_s, wpa_s->pending_bssid);
+		wpa_supplicant_set_state(wpa_s, WPA_DISCONNECTED);
+		os_memset(wpa_s->bssid, 0, ETH_ALEN);
+		os_memset(wpa_s->pending_bssid, 0, ETH_ALEN);
 	}
 }
 

@@ -571,6 +571,13 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 		wpa_drv_set_supp_port(wpa_s, 0);
 #endif /* IEEE8021X_EAPOL */
 	}
+
+	/* Make sure timers are cleaned up appropriately. */
+	if (state != WPA_ASSOCIATING)
+		eloop_cancel_timeout(sme_assoc_timer, wpa_s, NULL);
+	if (state != WPA_AUTHENTICATING)
+		eloop_cancel_timeout(sme_auth_timer, wpa_s, NULL);
+
 	wpa_s->wpa_state = state;
 
 	if (wpa_s->wpa_state != old_state)
