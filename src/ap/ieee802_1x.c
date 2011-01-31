@@ -1410,6 +1410,9 @@ void ieee802_1x_abort_auth(struct hostapd_data *hapd, struct sta_info *sta)
 		 * request and we cannot continue EAP processing (EAP-Failure
 		 * could only be sent if the EAP peer actually replied).
 		 */
+		wpa_msg(hapd, MSG_DEBUG, "EAP Timeout, STA " MACSTR,
+			MAC2STR(sta->addr));
+
 		sm->eap_if->portEnabled = FALSE;
 		ap_sta_disconnect(hapd, sta, sta->addr,
 				  WLAN_REASON_PREV_AUTH_NOT_VALID);
@@ -2073,8 +2076,8 @@ static void ieee802_1x_finished(struct hostapd_data *hapd,
 		 * and some may not be be able to do that themselves, so
 		 * disconnect the client here.
 		 */
-		wpa_printf(MSG_DEBUG, "WPS: Force disconnection after "
-			   "EAP-Failure");
+		wpa_msg(hapd, MSG_DEBUG, "WPS: Force disconnection after "
+			"EAP-Failure");
 		/* Add a small sleep to increase likelihood of previously
 		 * requested EAP-Failure TX getting out before this should the
 		 * driver reorder operations.

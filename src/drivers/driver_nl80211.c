@@ -3706,6 +3706,9 @@ static int wpa_driver_nl80211_set_freq(struct wpa_driver_nl80211_data *drv,
 		}
 	}
 
+	wpa_msg(drv->ctx, MSG_DEBUG, "nl80211: Set channel (freq=%d,"
+		" ht-enabled=%d sec-channel-offset=%d)\n",
+		freq, ht_enabled, sec_channel_offset);
 	ret = send_and_recv_msgs(drv, msg, NULL, NULL);
 	if (ret == 0)
 		return 0;
