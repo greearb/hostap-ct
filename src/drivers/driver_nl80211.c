@@ -128,7 +128,7 @@ struct nl80211_global {
 	struct nl_cache *nl_cache_preq;
 	struct nl_cb *nl_cb;
 	struct genl_family *nl80211;
-
+	int ioctl_sock; /* socket for ioctl() use */
 };
 
 static struct nl80211_global* global_ptr = NULL;
@@ -153,7 +153,6 @@ struct wpa_driver_nl80211_data {
 	u8 addr[ETH_ALEN];
 	char phyname[32];
 	void *ctx;
-	int ioctl_sock; /* socket for ioctl() use */
 	int ifindex;
 	int if_removed;
 	int if_disabled;
@@ -1716,7 +1715,8 @@ static void wpa_driver_nl80211_rfkill_unblocked(void *ctx)
 {
 	struct wpa_driver_nl80211_data *drv = ctx;
 	wpa_msg(drv->ctx, MSG_DEBUG, "nl80211: RFKILL unblocked");
-	if (linux_set_iface_flags(drv->ioctl_sock, drv->first_bss.ifname, 1)) {
+	if (linux_set_iface_flags(drv->global->ioctl_sock,
+				  drv->first_bss.ifname, 1)) {
 		wpa_msg(drv->ctx, MSG_DEBUG, "nl80211: Could not set interface UP "
 			"after rfkill unblock");
 		return;
@@ -1792,14 +1792,14 @@ static void wpa_driver_nl80211_deinit(void *priv)
 		wpa_driver_nl80211_probe_req_report(bss, 0);
 
 	if (bss->added_if_into_bridge) {
-		if (linux_br_del_if(drv->ioctl_sock, bss->brname, bss->ifname)
+		if (linux_br_del_if(drv->global->ioctl_sock, bss->brname, bss->ifname)
 		    < 0)
 			wpa_msg(drv->ctx, MSG_INFO, "nl80211: Failed to remove "
 				"interface %s from bridge %s: %s",
 				bss->ifname, bss->brname, strerror(errno));
 	}
 	if (bss->added_bridge) {
-		if (linux_br_del(drv->ioctl_sock, bss->brname) < 0)
+		if (linux_br_del(drv->global->ioctl_sock, bss->brname) < 0)
 			wpa_msg(drv->ctx, MSG_INFO, "nl80211: Failed to remove "
 				"bridge %s: %s",
 				bss->brname, strerror(errno));
@@ -1837,11 +1837,8 @@ static void wpa_driver_nl80211_deinit(void *priv)
 
 	eloop_cancel_timeout(wpa_driver_nl80211_scan_timeout, drv, drv->ctx);
 
-	(void) linux_set_iface_flags(drv->ioctl_sock, bss->ifname, 0);
+	linux_set_iface_flags(drv->global->ioctl_sock, bss->ifname, 0);
 	wpa_driver_nl80211_set_mode(bss, IEEE80211_MODE_INFRA);
-
-	if (drv->ioctl_sock >= 0)
-		close(drv->ioctl_sock);
 
 	os_free(drv->filter_ssids);
 
@@ -1879,15 +1876,8 @@ static void * wpa_driver_nl80211_init(void *ctx, const char *ifname,
 	os_strlcpy(bss->ifname, ifname, sizeof(bss->ifname));
 	drv->monitor_ifidx = -1;
 	drv->monitor_sock = -1;
-	drv->ioctl_sock = -1;
 
 	nl80211_get_phy_name(drv);
-
-	drv->ioctl_sock = socket(PF_INET, SOCK_DGRAM, 0);
-	if (drv->ioctl_sock < 0) {
-		perror("socket(PF_INET,SOCK_DGRAM)");
-		goto failed;
-	}
 
 	rcfg = os_zalloc(sizeof(*rcfg));
 	if (rcfg == NULL)
@@ -2024,7 +2014,7 @@ wpa_driver_nl80211_finish_drv_init(struct wpa_driver_nl80211_data *drv)
 			"use managed mode");
 	}
 
-	if (linux_set_iface_flags(drv->ioctl_sock, bss->ifname, 1)) {
+	if (linux_set_iface_flags(drv->global->ioctl_sock, bss->ifname, 1)) {
 		if (rfkill_is_blocked(drv->rfkill)) {
 			wpa_msg(drv->ctx, MSG_DEBUG, "nl80211: Could not yet enable "
 				"interface '%s' due to rfkill",
@@ -2045,10 +2035,7 @@ wpa_driver_nl80211_finish_drv_init(struct wpa_driver_nl80211_data *drv)
 	if (wpa_driver_nl80211_capa(drv))
 		return -1;
 
-	if (wpa_driver_nl80211_capa(drv))
-		return -1;
-
-	if (linux_get_ifhwaddr(drv->ioctl_sock, bss->ifname, drv->addr))
+	if (linux_get_ifhwaddr(drv->global->ioctl_sock, bss->ifname, drv->addr))
 		return -1;
 
 	if (nl80211_register_action_frames(drv) < 0) {
@@ -3759,7 +3746,7 @@ static int nl80211_create_iface_once(struct wpa_driver_nl80211_data *drv,
 #endif /* HOSTAPD */
 
 	if (addr && iftype != NL80211_IFTYPE_MONITOR &&
-	    linux_set_ifhwaddr(drv->ioctl_sock, ifname, addr)) {
+	    linux_set_ifhwaddr(drv->global->ioctl_sock, ifname, addr)) {
 		nl80211_remove_iface(drv, ifidx);
 		return -1;
 	}
@@ -4109,7 +4096,7 @@ nl80211_create_monitor_interface(struct wpa_driver_nl80211_data *drv)
 	if (drv->monitor_ifidx < 0)
 		return -1;
 
-	if (linux_set_iface_flags(drv->ioctl_sock, buf, 1))
+	if (linux_set_iface_flags(drv->global->ioctl_sock, buf, 1))
 		goto error;
 
 	memset(&ll, 0, sizeof(ll));
@@ -4779,13 +4766,13 @@ static int wpa_driver_nl80211_set_mode(void *priv, int mode)
 	wpa_msg(drv->ctx, MSG_DEBUG, "nl80211: Try mode change after setting "
 		"interface down");
 	for (i = 0; i < 10; i++) {
-		if (linux_set_iface_flags(drv->ioctl_sock, bss->ifname, 0) ==
-		    0) {
+		if (linux_set_iface_flags(drv->global->ioctl_sock,
+					  bss->ifname, 0) == 0) {
 			/* Try to set the mode again while the interface is
 			 * down */
 			ret = nl80211_set_mode(drv, drv->ifindex, nlmode);
-			if (linux_set_iface_flags(drv->ioctl_sock, bss->ifname,
-						  1))
+			if (linux_set_iface_flags(drv->global->ioctl_sock,
+						  bss->ifname, 1))
 				ret = -1;
 			if (!ret)
 				break;
@@ -5361,11 +5348,11 @@ static int i802_set_wds_sta(void *priv, const u8 *addr, int aid, int val,
 						 NULL, 1) < 0)
 				return -1;
 			if (bridge_ifname &&
-			    linux_br_add_if(drv->ioctl_sock, bridge_ifname,
-					    name) < 0)
+			    linux_br_add_if(drv->global->ioctl_sock,
+					    bridge_ifname, name) < 0)
 				return -1;
 		}
-		linux_set_iface_flags(drv->ioctl_sock, name, 1);
+		linux_set_iface_flags(drv->global->ioctl_sock, name, 1);
 		return i802_set_sta_vlan(priv, addr, name, 0);
 	} else {
 		i802_set_sta_vlan(priv, addr, bss->ifname, 0);
@@ -5488,7 +5475,7 @@ static int i802_check_bridge(struct wpa_driver_nl80211_data *drv,
 		 * Bridge was configured, but the bridge device does
 		 * not exist. Try to add it now.
 		 */
-		if (linux_br_add(drv->ioctl_sock, brname) < 0) {
+		if (linux_br_add(drv->global->ioctl_sock, brname) < 0) {
 			wpa_msg(drv->ctx, MSG_ERROR, "nl80211: Failed to add the "
 				"bridge interface %s: %s",
 				brname, strerror(errno));
@@ -5504,7 +5491,8 @@ static int i802_check_bridge(struct wpa_driver_nl80211_data *drv,
 
 		wpa_msg(drv->ctx, MSG_DEBUG, "nl80211: Removing interface %s from "
 			"bridge %s", ifname, in_br);
-		if (linux_br_del_if(drv->ioctl_sock, in_br, ifname) < 0) {
+		if (linux_br_del_if(drv->global->ioctl_sock, in_br,
+				    ifname) < 0) {
 			wpa_msg(drv->ctx, MSG_ERROR, "nl80211: Failed to "
 				"remove interface %s from bridge "
 				"%s: %s",
@@ -5515,7 +5503,7 @@ static int i802_check_bridge(struct wpa_driver_nl80211_data *drv,
 
 	wpa_msg(drv->ctx, MSG_DEBUG, "nl80211: Adding interface %s into bridge %s",
 		ifname, brname);
-	if (linux_br_add_if(drv->ioctl_sock, brname, ifname) < 0) {
+	if (linux_br_add_if(drv->global->ioctl_sock, brname, ifname) < 0) {
 		wpa_msg(drv->ctx, MSG_ERROR, "nl80211: Failed to add interface %s "
 			"into bridge %s: %s",
 			ifname, brname, strerror(errno));
@@ -5572,11 +5560,11 @@ static void *i802_init(struct hostapd_data *hapd,
 	/* start listening for EAPOL on the default AP interface */
 	add_ifidx(drv, drv->ifindex);
 
-	if (linux_set_iface_flags(drv->ioctl_sock, bss->ifname, 0))
+	if (linux_set_iface_flags(drv->global->ioctl_sock, bss->ifname, 0))
 		goto failed;
 
 	if (params->bssid) {
-		if (linux_set_ifhwaddr(drv->ioctl_sock, bss->ifname,
+		if (linux_set_ifhwaddr(drv->global->ioctl_sock, bss->ifname,
 				       params->bssid))
 			goto failed;
 	}
@@ -5591,7 +5579,7 @@ static void *i802_init(struct hostapd_data *hapd,
 	    i802_check_bridge(drv, bss, params->bridge[0], params->ifname) < 0)
 		goto failed;
 
-	if (linux_set_iface_flags(drv->ioctl_sock, bss->ifname, 1))
+	if (linux_set_iface_flags(drv->global->ioctl_sock, bss->ifname, 1))
 		goto failed;
 
 	drv->eapol_sock = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_PAE));
@@ -5606,7 +5594,8 @@ static void *i802_init(struct hostapd_data *hapd,
 		goto failed;
 	}
 
-	if (linux_get_ifhwaddr(drv->ioctl_sock, bss->ifname, params->own_addr))
+	if (linux_get_ifhwaddr(drv->global->ioctl_sock, bss->ifname,
+			       params->own_addr))
 		goto failed;
 
 	return bss;
@@ -5718,7 +5707,8 @@ static int wpa_driver_nl80211_if_add(void *priv, enum wpa_driver_if_type type,
 	}
 
 	if (!addr &&
-	    linux_get_ifhwaddr(drv->ioctl_sock, bss->ifname, if_addr) < 0) {
+	    linux_get_ifhwaddr(drv->global->ioctl_sock, bss->ifname,
+			       if_addr) < 0) {
 		nl80211_remove_iface(drv, ifidx);
 		return -1;
 	}
@@ -5730,10 +5720,10 @@ static int wpa_driver_nl80211_if_add(void *priv, enum wpa_driver_if_type type,
 		/* Enforce unique P2P Interface Address */
 		u8 new_addr[ETH_ALEN], own_addr[ETH_ALEN];
 
-		if (linux_get_ifhwaddr(drv->ioctl_sock, bss->ifname, own_addr)
-		    < 0 ||
-		    linux_get_ifhwaddr(drv->ioctl_sock, ifname, new_addr) < 0)
-		{
+		if (linux_get_ifhwaddr(drv->global->ioctl_sock, bss->ifname,
+				       own_addr) < 0 ||
+		    linux_get_ifhwaddr(drv->global->ioctl_sock, ifname,
+				       new_addr) < 0) {
 			nl80211_remove_iface(drv, ifidx);
 			return -1;
 		}
@@ -5744,7 +5734,7 @@ static int wpa_driver_nl80211_if_add(void *priv, enum wpa_driver_if_type type,
 				nl80211_remove_iface(drv, ifidx);
 				return -1;
 			}
-			if (linux_set_ifhwaddr(drv->ioctl_sock, ifname,
+			if (linux_set_ifhwaddr(drv->global->ioctl_sock, ifname,
 					       new_addr) < 0) {
 				nl80211_remove_iface(drv, ifidx);
 				return -1;
@@ -5765,7 +5755,7 @@ static int wpa_driver_nl80211_if_add(void *priv, enum wpa_driver_if_type type,
 	}
 
 	if (type == WPA_IF_AP_BSS) {
-		if (linux_set_iface_flags(drv->ioctl_sock, ifname, 1)) {
+		if (linux_set_iface_flags(drv->global->ioctl_sock, ifname, 1)) {
 			nl80211_remove_iface(drv, ifidx);
 			os_free(new_bss);
 			return -1;
@@ -5799,14 +5789,14 @@ static int wpa_driver_nl80211_if_remove(void *priv,
 
 #ifdef HOSTAPD
 	if (bss->added_if_into_bridge) {
-		if (linux_br_del_if(drv->ioctl_sock, bss->brname, bss->ifname)
+		if (linux_br_del_if(drv->global->ioctl_sock, bss->brname, bss->ifname)
 		    < 0)
 			wpa_printf(MSG_INFO, "nl80211: Failed to remove "
 				   "interface %s from bridge %s: %s",
 				   bss->ifname, bss->brname, strerror(errno));
 	}
 	if (bss->added_bridge) {
-		if (linux_br_del(drv->ioctl_sock, bss->brname) < 0)
+		if (linux_br_del(drv->global->ioctl_sock, bss->brname) < 0)
 			wpa_printf(MSG_INFO, "nl80211: Failed to remove "
 				   "bridge %s: %s",
 				   bss->brname, strerror(errno));
@@ -6207,7 +6197,7 @@ static void wpa_driver_nl80211_resume(void *priv)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
-	if (linux_set_iface_flags(drv->ioctl_sock, bss->ifname, 1)) {
+	if (linux_set_iface_flags(drv->global->ioctl_sock, bss->ifname, 1)) {
 		wpa_msg(drv->ctx, MSG_DEBUG, "nl80211: Failed to set interface up on "
 			"resume event");
 	}
@@ -6224,7 +6214,8 @@ static int nl80211_send_ft_action(void *priv, u8 action, const u8 *target_ap,
 	size_t data_len;
 	u8 own_addr[ETH_ALEN];
 
-	if (linux_get_ifhwaddr(drv->ioctl_sock, bss->ifname, own_addr) < 0)
+	if (linux_get_ifhwaddr(drv->global->ioctl_sock, bss->ifname,
+			       own_addr) < 0)
 		return -1;
 
 	if (action != 1) {
@@ -6398,6 +6389,9 @@ static void nl80211_global_deinit(void *priv)
 	if (global->nl80211)
 		genl_family_put(global->nl80211);
 
+	if (global->ioctl_sock >= 0)
+		close(global->ioctl_sock);
+
 	if (global == global_ptr)
 		global_ptr = NULL;
 
@@ -6419,6 +6413,7 @@ static void * nl80211_global_init(void)
 	if (global == NULL)
 		return NULL;
 	global->struct_id = HAP_DRV_NL80211_GLOBAL;
+	global->ioctl_sock = -1;
 	dl_list_init(&global->interfaces);
 
 	cfg = os_zalloc(sizeof(*cfg));
@@ -6529,6 +6524,12 @@ static void * nl80211_global_init(void)
 			"membership for regulatory events: %d (%s)",
 			ret, strerror(-ret));
 		/* Continue without regulatory events */
+	}
+
+	global->ioctl_sock = socket(PF_INET, SOCK_DGRAM, 0);
+	if (global->ioctl_sock < 0) {
+		perror("socket(PF_INET,SOCK_DGRAM)");
+		goto err;
 	}
 
 	eloop_register_read_sock(nl_socket_get_fd(global->nl_handle_event),
