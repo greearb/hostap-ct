@@ -715,26 +715,26 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 	key_info = WPA_GET_BE16(key->key_info);
 	key_data_length = WPA_GET_BE16(key->key_data_length);
 	if (key_data_length > data_len - sizeof(*hdr) - sizeof(*key)) {
-		wpa_printf(MSG_INFO, "WPA: Invalid EAPOL-Key frame - "
-			   "key_data overflow (%d > %lu)",
-			   key_data_length,
-			   (unsigned long) (data_len - sizeof(*hdr) -
-					    sizeof(*key)));
+		wpa_msg(NULL, MSG_INFO, "WPA: Invalid EAPOL-Key frame - "
+			"key_data overflow (%d > %lu)",
+			key_data_length,
+			(unsigned long) (data_len - sizeof(*hdr) -
+					 sizeof(*key)));
 		return;
 	}
 
 	if (sm->wpa == WPA_VERSION_WPA2) {
 		if (key->type != EAPOL_KEY_TYPE_RSN) {
-			wpa_printf(MSG_DEBUG, "Ignore EAPOL-Key with "
-				   "unexpected type %d in RSN mode",
-				   key->type);
+			wpa_msg(NULL, MSG_DEBUG, "Ignore EAPOL-Key with "
+				"unexpected type %d in RSN mode",
+				key->type);
 			return;
 		}
 	} else {
 		if (key->type != EAPOL_KEY_TYPE_WPA) {
-			wpa_printf(MSG_DEBUG, "Ignore EAPOL-Key with "
-				   "unexpected type %d in WPA mode",
-				   key->type);
+			wpa_msg(NULL, MSG_DEBUG, "Ignore EAPOL-Key with "
+				"unexpected type %d in WPA mode",
+				key->type);
 			return;
 		}
 	}
@@ -849,9 +849,9 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 			 * Counter update and the station will be allowed to
 			 * continue.
 			 */
-			wpa_printf(MSG_DEBUG, "WPA: Reject 4-way handshake to "
-				   "collect more entropy for random number "
-				   "generation");
+			wpa_msg(NULL, MSG_DEBUG, "WPA: Reject 4-way handshake to "
+				"collect more entropy for random number "
+				"generation");
 			sm->group->reject_4way_hs_for_entropy = FALSE;
 			random_mark_pool_ready();
 			sm->group->first_sta_seen = FALSE;
@@ -1981,8 +1981,10 @@ SM_STEP(WPA_PTK)
 	if (sm->Init)
 		SM_ENTER(WPA_PTK, INITIALIZE);
 	else if (sm->Disconnect
-		 /* || FIX: dot11RSNAConfigSALifetime timeout */)
+		 /* || FIX: dot11RSNAConfigSALifetime timeout */) {
+		wpa_msg(NULL, MSG_DEBUG, "SM_STEP:  sm->Disconnect ");
 		SM_ENTER(WPA_PTK, DISCONNECT);
+	}
 	else if (sm->DeauthenticationRequest)
 		SM_ENTER(WPA_PTK, DISCONNECTED);
 	else if (sm->AuthenticationRequest)
@@ -2018,6 +2020,7 @@ SM_STEP(WPA_PTK)
 			SM_ENTER(WPA_PTK, PTKSTART);
 		else {
 			wpa_auth->dot11RSNA4WayHandshakeFailures++;
+			wpa_msg(NULL, MSG_DEBUG, "SM_STEP, 4way-handshake-failure");
 			SM_ENTER(WPA_PTK, DISCONNECT);
 		}
 		break;
@@ -2038,6 +2041,10 @@ SM_STEP(WPA_PTK)
 		else if (sm->TimeoutCtr >
 			 (int) dot11RSNAConfigPairwiseUpdateCount) {
 			wpa_auth->dot11RSNA4WayHandshakeFailures++;
+			wpa_msg(NULL, MSG_DEBUG,
+				"SM_STEP, 4way-handshake-failure (PTKSTART,"
+				" timeoutctr: %i update-cnt: %i)",
+				sm->TimeoutCtr, dot11RSNAConfigPairwiseUpdateCount);
 			SM_ENTER(WPA_PTK, DISCONNECT);
 		} else if (sm->TimeoutEvt)
 			SM_ENTER(WPA_PTK, PTKSTART);
@@ -2061,6 +2068,11 @@ SM_STEP(WPA_PTK)
 		else if (sm->TimeoutCtr >
 			 (int) dot11RSNAConfigPairwiseUpdateCount) {
 			wpa_auth->dot11RSNA4WayHandshakeFailures++;
+			wpa_msg(NULL, MSG_DEBUG,
+				"SM_STEP, 4way-handshake-failure (INITNEG,"
+				" TimeoutCtr: %i  update-count: %i)",
+				sm->TimeoutCtr,
+				dot11RSNAConfigPairwiseUpdateCount);
 			SM_ENTER(WPA_PTK, DISCONNECT);
 		} else if (sm->TimeoutEvt)
 			SM_ENTER(WPA_PTK, PTKINITNEGOTIATING);
