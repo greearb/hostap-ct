@@ -727,7 +727,7 @@ static void wpa_driver_wext_event_rtm_dellink(void *ctx, struct ifinfomsg *ifi,
 }
 
 
-static void wpa_driver_wext_rfkill_blocked(void *ctx)
+static void wpa_driver_wext_rfkill_blocked(void *ctx, int rfkill_idx)
 {
 	struct wpa_driver_wext_data *drv = ctx;
 	wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: RFKILL blocked");
@@ -737,8 +737,10 @@ static void wpa_driver_wext_rfkill_blocked(void *ctx)
 	 */
 }
 
-
-static void wpa_driver_wext_rfkill_unblocked(void *ctx)
+/* TODO:  Make this deal properly with rfkill_idx, as driver_nl80211
+ * does.  Make the rfkill object global.
+ */
+static void wpa_driver_wext_rfkill_unblocked(void *ctx, int rfkill_idx)
 {
 	struct wpa_driver_wext_data *drv = ctx;
 	wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: RFKILL unblocked");
@@ -837,10 +839,9 @@ void * wpa_driver_wext_init(void *ctx, const char *ifname)
 	if (rcfg == NULL)
 		goto err3;
 	rcfg->ctx = drv;
-	os_strlcpy(rcfg->ifname, ifname, sizeof(rcfg->ifname));
 	rcfg->blocked_cb = wpa_driver_wext_rfkill_blocked;
 	rcfg->unblocked_cb = wpa_driver_wext_rfkill_unblocked;
-	drv->rfkill = rfkill_init(rcfg);
+	drv->rfkill = rfkill_init(rcfg, NULL);
 	if (drv->rfkill == NULL) {
 		wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: RFKILL status not available");
 		os_free(rcfg);
@@ -884,7 +885,7 @@ static int wpa_driver_wext_finish_drv_init(struct wpa_driver_wext_data *drv)
 	int send_rfkill_event = 0;
 
 	if (linux_set_iface_flags(drv->ioctl_sock, drv->ifname, 1) < 0) {
-		if (rfkill_is_blocked(drv->rfkill)) {
+		if (drv->rfkill->is_blocked) {
 			wpa_msg(drv->ctx, MSG_DEBUG, "WEXT: Could not yet enable "
 				"interface '%s' due to rfkill",
 				drv->ifname);

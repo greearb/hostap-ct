@@ -15,17 +15,21 @@
 #ifndef RFKILL_H
 #define RFKILL_H
 
-struct rfkill_data;
+struct rfkill_data {
+	struct rfkill_config *cfg;
+	int fd;
+	int is_blocked;
+};
 
 struct rfkill_config {
 	void *ctx;
-	char ifname[IFNAMSIZ];
-	void (*blocked_cb)(void *ctx);
-	void (*unblocked_cb)(void *ctx);
+	void (*blocked_cb)(void *ctx, int rfkill_index);
+	void (*unblocked_cb)(void *ctx, int rfkill_index);
 };
 
-struct rfkill_data * rfkill_init(struct rfkill_config *cfg);
+struct rfkill_data * rfkill_init(struct rfkill_config *cfg,
+				 const char *phyname);
 void rfkill_deinit(struct rfkill_data *rfkill);
-int rfkill_is_blocked(struct rfkill_data *rfkill);
-
+int rfkill_idx_belongs_to_phyname(int rfkill_idx,
+				  const char *phyname);
 #endif /* RFKILL_H */

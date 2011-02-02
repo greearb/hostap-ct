@@ -129,6 +129,7 @@ struct nl80211_global {
 	struct nl_cb *nl_cb;
 	struct genl_family *nl80211;
 	int ioctl_sock; /* socket for ioctl() use */
+	struct rfkill_data *rfkill;
 };
 
 static struct nl80211_global* global_ptr = NULL;
@@ -156,10 +157,9 @@ struct wpa_driver_nl80211_data {
 	int ifindex;
 	int if_removed;
 	int if_disabled;
-	struct rfkill_data *rfkill;
 	struct wpa_driver_capa capa;
 	int has_capability;
-
+	int rfkill_blocked;
 	int operstate;
 
 	int scan_complete_events;
@@ -450,6 +450,9 @@ static int wpa_driver_nl80211_own_ifname(struct wpa_driver_nl80211_data *drv,
 {
 	int attrlen, rta_len;
 	struct rtattr *attr;
+
+	if (!buf)
+		return 0;
 
 	attrlen = len;
 	attr = (struct rtattr *) buf;
@@ -1765,26 +1768,52 @@ static int wpa_driver_nl80211_capa(struct wpa_driver_nl80211_data *drv)
 }
 
 
-static void wpa_driver_nl80211_rfkill_blocked(void *ctx)
+static void wpa_driver_nl80211_rfkill_blocked(void *ctx, int rfkill_idx)
 {
-	struct wpa_driver_nl80211_data *drv = ctx;
-	wpa_msg(drv->ctx, MSG_DEBUG, "nl80211: RFKILL blocked");
-	/*
-	 * This may be for any interface; use ifdown event to disable
-	 * interface.
+	struct nl80211_global *global = ctx;
+	struct wpa_driver_nl80211_data *drv;
+	/* For all drivers, check to see if we belong to the
+	 * phy that cooresponds to the rfkill_idx.
 	 */
+	dl_list_for_each(drv, &global->interfaces,
+			 struct wpa_driver_nl80211_data, list) {
+		if (rfkill_idx_belongs_to_phyname(rfkill_idx, drv->phyname)) {
+			if (drv->rfkill_blocked == 1)
+				continue;
+			wpa_msg(drv->ctx, MSG_DEBUG,
+				"nl80211: RFKILL blocked, idx: %i", rfkill_idx);
+			drv->rfkill_blocked = 1;
+			/*
+			 * Use ifdown event to disable interface.
+			 */
+		}
+	}
 }
 
-
-static void wpa_driver_nl80211_rfkill_unblocked(void *ctx)
+static void wpa_driver_nl80211_rfkill_unblocked(void *ctx, int rfkill_idx)
 {
-	struct wpa_driver_nl80211_data *drv = ctx;
-	wpa_msg(drv->ctx, MSG_DEBUG, "nl80211: RFKILL unblocked");
-	if (linux_set_iface_flags(drv->global->ioctl_sock,
-				  drv->first_bss.ifname, 1)) {
-		wpa_msg(drv->ctx, MSG_DEBUG, "nl80211: Could not set interface UP "
-			"after rfkill unblock");
-		return;
+	struct nl80211_global *global = ctx;
+	struct wpa_driver_nl80211_data *drv;
+
+	/* For all drivers, check to see if we belong to the
+	 * phy that cooresponds to the rfkill_idx.
+	 */
+	dl_list_for_each(drv, &global->interfaces,
+			 struct wpa_driver_nl80211_data, list) {
+		if (rfkill_idx_belongs_to_phyname(rfkill_idx, drv->phyname)) {
+			if (drv->rfkill_blocked == 0)
+				continue;
+			wpa_msg(drv->ctx, MSG_DEBUG,
+				"nl80211: RFKILL unblocked, idx: %i",
+				rfkill_idx);
+			drv->rfkill_blocked = 0;
+			if (linux_set_iface_flags(drv->global->ioctl_sock,
+						  drv->first_bss.ifname, 1)) {
+				wpa_msg(drv->ctx, MSG_DEBUG,
+					"nl80211: Could not set interface UP "
+					"after rfkill unblock");
+			}
+		}
 	}
 	/* rtnetlink ifup handler will report interface as enabled */
 }
@@ -1897,8 +1926,6 @@ static void wpa_driver_nl80211_deinit(void *priv)
 		nl80211_disable_11b_rates(drv, drv->ifindex, 0);
 
 	netlink_send_oper_ifla(drv->global->netlink, drv->ifindex, 0, IF_OPER_UP);
-	if (drv->rfkill)
-		rfkill_deinit(drv->rfkill);
 
 	eloop_cancel_timeout(wpa_driver_nl80211_scan_timeout, drv, drv->ctx);
 
@@ -1926,7 +1953,6 @@ static void * wpa_driver_nl80211_init(void *ctx, const char *ifname,
 				      void *global_priv)
 {
 	struct wpa_driver_nl80211_data *drv;
-	struct rfkill_config *rcfg;
 	struct i802_bss *bss;
 
 	drv = os_zalloc(sizeof(*drv));
@@ -1943,19 +1969,6 @@ static void * wpa_driver_nl80211_init(void *ctx, const char *ifname,
 	drv->monitor_sock = -1;
 
 	nl80211_get_phy_name(drv);
-
-	rcfg = os_zalloc(sizeof(*rcfg));
-	if (rcfg == NULL)
-		goto failed;
-	rcfg->ctx = drv;
-	os_strlcpy(rcfg->ifname, ifname, sizeof(rcfg->ifname));
-	rcfg->blocked_cb = wpa_driver_nl80211_rfkill_blocked;
-	rcfg->unblocked_cb = wpa_driver_nl80211_rfkill_unblocked;
-	drv->rfkill = rfkill_init(rcfg);
-	if (drv->rfkill == NULL) {
-		wpa_msg(drv->ctx, MSG_DEBUG, "nl80211: RFKILL status not available");
-		os_free(rcfg);
-	}
 
 	if (wpa_driver_nl80211_finish_drv_init(drv))
 		goto failed;
@@ -2069,6 +2082,10 @@ wpa_driver_nl80211_finish_drv_init(struct wpa_driver_nl80211_data *drv)
 {
 	struct i802_bss *bss = &drv->first_bss;
 	int send_rfkill_event = 0;
+#ifndef HOSTAPD
+	struct rfkill_config *rcfg;
+	struct rfkill_data *rfkill;
+#endif
 
 	drv->ifindex = if_nametoindex(bss->ifname);
 	drv->first_bss.ifindex = drv->ifindex;
@@ -2079,9 +2096,26 @@ wpa_driver_nl80211_finish_drv_init(struct wpa_driver_nl80211_data *drv)
 			"use managed mode");
 	}
 
+	/* Probe rfkill current state for our phyname */
+	rcfg = os_zalloc(sizeof(*rcfg));
+	if (rcfg) {
+		rcfg->ctx = drv;
+		rfkill = rfkill_init(rcfg, drv->phyname);
+		if (rfkill == NULL) {
+			wpa_msg(drv->ctx, MSG_DEBUG,
+				"nl80211: RFKILL status not available");
+			os_free(rcfg);
+		} else {
+			/* Set initial state and clean up */
+			drv->rfkill_blocked = rfkill->is_blocked;
+			rfkill_deinit(rfkill);
+		}
+	}
+
 	if (linux_set_iface_flags(drv->global->ioctl_sock, bss->ifname, 1)) {
-		if (rfkill_is_blocked(drv->rfkill)) {
-			wpa_msg(drv->ctx, MSG_DEBUG, "nl80211: Could not yet enable "
+		if (drv->rfkill_blocked) {
+			wpa_msg(drv->ctx, MSG_DEBUG,
+				"nl80211: Could not yet enable "
 				"interface '%s' due to rfkill",
 				bss->ifname);
 			drv->if_disabled = 1;
@@ -6504,6 +6538,9 @@ static void nl80211_global_deinit(void *priv)
 	if (global->ioctl_sock >= 0)
 		close(global->ioctl_sock);
 
+	if (global->rfkill)
+		rfkill_deinit(global->rfkill);
+
 	if (global == global_ptr)
 		global_ptr = NULL;
 
@@ -6516,6 +6553,7 @@ static void * nl80211_global_init(void)
 	struct nl80211_global *global = NULL;
 	struct netlink_config *cfg = NULL;
 	int ret;
+	struct rfkill_config *rcfg;
 
 	/* already initailized? */
 	if (global_ptr)
@@ -6642,6 +6680,19 @@ static void * nl80211_global_init(void)
 	if (global->ioctl_sock < 0) {
 		perror("socket(PF_INET,SOCK_DGRAM)");
 		goto err;
+	}
+
+	rcfg = os_zalloc(sizeof(*rcfg));
+	if (rcfg == NULL)
+		goto err;
+	rcfg->ctx = global;
+	rcfg->blocked_cb = wpa_driver_nl80211_rfkill_blocked;
+	rcfg->unblocked_cb = wpa_driver_nl80211_rfkill_unblocked;
+	global->rfkill = rfkill_init(rcfg, NULL);
+	if (global->rfkill == NULL) {
+		wpa_msg(NULL, MSG_DEBUG,
+			"nl80211: RFKILL status not available");
+		os_free(rcfg);
 	}
 
 	eloop_register_read_sock(nl_socket_get_fd(global->nl_handle_event),
