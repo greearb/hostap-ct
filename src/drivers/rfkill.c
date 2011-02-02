@@ -49,13 +49,6 @@ enum rfkill_type {
 };
 
 
-struct rfkill_data {
-	struct rfkill_config *cfg;
-	int fd;
-	int blocked;
-};
-
-
 static void rfkill_receive(int sock, void *eloop_ctx, void *sock_ctx)
 {
 	struct rfkill_data *rfkill = eloop_ctx;
@@ -93,17 +86,45 @@ static void rfkill_receive(int sock, void *eloop_ctx, void *sock_ctx)
 		new_blocked = 0;
 	}
 
-	if (new_blocked != rfkill->blocked) {
-		rfkill->blocked = new_blocked;
-		if (new_blocked)
-			rfkill->cfg->blocked_cb(rfkill->cfg->ctx);
-		else
-			rfkill->cfg->unblocked_cb(rfkill->cfg->ctx);
+	if (new_blocked) {
+		if (rfkill->cfg->blocked_cb)
+			rfkill->cfg->blocked_cb(rfkill->cfg->ctx, event.idx);
+	} else {
+		if (rfkill->cfg->unblocked_cb)
+			rfkill->cfg->unblocked_cb(rfkill->cfg->ctx, event.idx);
 	}
 }
 
+int rfkill_idx_belongs_to_phyname(int rfkill_idx,
+				  const char *phyname)
+{
+	/* Phyname: /sys/class/rfkill/rfkill[idx]/device/name */
+	char buf[100];
+	int fd;
+	snprintf(buf, sizeof(buf),
+		 "/sys/class/rfkill/rfkill%d/device/name", rfkill_idx);
+	fd = open(buf, O_RDONLY);
+	if (fd) {
+		int rv;
+		buf[0] = 0;
+		rv = read(fd, buf, sizeof(buf));
+		close(fd);
+		if (rv > 0) {
+			buf[rv] = 0;
+			if (strcmp(buf, phyname) == 0)
+				return 1;
+		}
+		return 0;
+	}
+	/* Maybe devfs isn't mounted or existing?  Or on older
+	 * kernel that doesn't have requested sysfs file?
+	 * Assume one rfkill struct for all devices.
+	 */
+	return 1;
+}
 
-struct rfkill_data * rfkill_init(struct rfkill_config *cfg)
+
+struct rfkill_data * rfkill_init(struct rfkill_config *cfg, const char *phyname)
 {
 	struct rfkill_data *rfkill;
 	struct rfkill_event event;
@@ -149,12 +170,17 @@ struct rfkill_data * rfkill_init(struct rfkill_config *cfg)
 		if (event.op != RFKILL_OP_ADD ||
 		    event.type != RFKILL_TYPE_WLAN)
 			continue;
-		if (event.hard) {
-			wpa_printf(MSG_INFO, "rfkill: WLAN hard blocked");
-			rfkill->blocked = 1;
-		} else if (event.soft) {
-			wpa_printf(MSG_INFO, "rfkill: WLAN soft blocked");
-			rfkill->blocked = 1;
+		if (!phyname || !phyname[0] ||
+		    rfkill_idx_belongs_to_phyname(event.idx, phyname)) {
+			if (event.hard) {
+				wpa_printf(MSG_INFO,
+					   "rfkill: WLAN hard blocked");
+				rfkill->is_blocked = 1;
+			} else if (event.soft) {
+				wpa_printf(MSG_INFO,
+					   "rfkill: WLAN soft blocked");
+				rfkill->is_blocked = 1;
+			}
 		}
 	}
 
@@ -182,13 +208,4 @@ void rfkill_deinit(struct rfkill_data *rfkill)
 
 	os_free(rfkill->cfg);
 	os_free(rfkill);
-}
-
-
-int rfkill_is_blocked(struct rfkill_data *rfkill)
-{
-	if (rfkill == NULL)
-		return 0;
-
-	return rfkill->blocked;
 }
