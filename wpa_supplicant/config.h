@@ -27,6 +27,7 @@
 #define DEFAULT_P2P_INTRA_BSS 1
 #define DEFAULT_BSS_MAX_COUNT 200
 #define DEFAULT_MAX_NUM_STA 128
+#define DEFAULT_MIN_SCAN_GAP 0
 
 #include "config_ssid.h"
 
@@ -412,6 +413,9 @@ struct wpa_config {
 	 * disassoc_low_ack - disassocenticate stations with massive packet loss
 	 */
 	int disassoc_low_ack;
+
+	/* Minimum interval between scan requests, in seconds */
+	int min_scan_gap;
 };
 
 
