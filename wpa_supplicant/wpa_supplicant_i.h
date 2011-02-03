@@ -367,6 +367,7 @@ struct wpa_supplicant {
 	int group_cipher;
 	int key_mgmt;
 	int mgmt_group_cipher;
+	int last_scan_rx_sec;
 
 	void *drv_priv; /* private data used by driver_ops */
 	void *global_drv_priv;

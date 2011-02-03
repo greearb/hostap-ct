@@ -29,6 +29,7 @@
 #define DEFAULT_BSS_EXPIRATION_AGE 180
 #define DEFAULT_BSS_EXPIRATION_SCAN_COUNT 2
 #define DEFAULT_MAX_NUM_STA 128
+#define DEFAULT_MIN_SCAN_GAP 0
 
 #include "config_ssid.h"
 #include "wps/wps.h"
@@ -433,6 +434,9 @@ struct wpa_config {
 	 * disassoc_low_ack - Disassocicate stations with massive packet loss
 	 */
 	int disassoc_low_ack;
+
+	/* Minimum interval between scan requests, in seconds */
+	int min_scan_gap;
 };
 
 
