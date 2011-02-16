@@ -1542,11 +1542,12 @@ int wpas_wps_er_config(struct wpa_supplicant *wpa_s, const char *uuid,
 			     os_strlen(pin), &cred);
 }
 
-
+static int callbacks_pending = 0;
 static void wpas_wps_terminate_cb(void *ctx)
 {
 	wpa_printf(MSG_DEBUG, "WPS ER: Terminated");
-	eloop_terminate();
+	if (--callbacks_pending <= 0)
+		eloop_terminate();
 }
 #endif /* CONFIG_WPS_ER */
 
@@ -1555,6 +1556,7 @@ int wpas_wps_terminate_pending(struct wpa_supplicant *wpa_s)
 {
 #ifdef CONFIG_WPS_ER
 	if (wpa_s->wps_er) {
+		callbacks_pending++;
 		wps_er_deinit(wpa_s->wps_er, wpas_wps_terminate_cb, wpa_s);
 		wpa_s->wps_er = NULL;
 		return 1;
