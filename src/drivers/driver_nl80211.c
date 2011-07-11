@@ -665,7 +665,7 @@ static unsigned int nl80211_get_assoc_freq(struct wpa_driver_nl80211_data *drv)
 	if (!msg)
 		goto nla_put_failure;
 
-	genlmsg_put(msg, 0, 0, genl_family_get_id(drv->nl80211), 0, NLM_F_DUMP,
+	genlmsg_put(msg, 0, 0, genl_family_get_id(drv->global->nl80211), 0, NLM_F_DUMP,
 		    NL80211_CMD_GET_SCAN, 0);
 	NLA_PUT_U32(msg, NL80211_ATTR_IFINDEX, drv->ifindex);
 
@@ -6727,7 +6727,7 @@ static int nl80211_pmkid(struct i802_bss *bss, int cmd, const u8 *bssid,
 	if (!msg)
 		return -ENOMEM;
 
-	genlmsg_put(msg, 0, 0, genl_family_get_id(bss->drv->nl80211), 0, 0,
+	genlmsg_put(msg, 0, 0, genl_family_get_id(bss->drv->global->nl80211), 0, 0,
 		    cmd, 0);
 
 	NLA_PUT_U32(msg, NL80211_ATTR_IFINDEX, if_nametoindex(bss->ifname));
