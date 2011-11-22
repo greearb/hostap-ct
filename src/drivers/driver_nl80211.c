@@ -1688,25 +1688,11 @@ static void nl80211_client_probe_event(struct wpa_driver_nl80211_data *drv,
 }
 
 
-static int process_event(struct nl_msg *msg, void *arg)
+static void do_process_event(struct nl_msg *msg,
+			     struct wpa_driver_nl80211_data *drv,
+			     struct genlmsghdr *gnlh,
+			     struct nlattr *tb[])
 {
-	struct wpa_driver_nl80211_data *drv = arg;
-	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
-	struct nlattr *tb[NL80211_ATTR_MAX + 1];
-
-	nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
-		  genlmsg_attrlen(gnlh, 0), NULL);
-
-	if (tb[NL80211_ATTR_IFINDEX]) {
-		int ifindex = nla_get_u32(tb[NL80211_ATTR_IFINDEX]);
-		if (ifindex != drv->ifindex && !have_ifidx(drv, ifindex)) {
-			wpa_printf(MSG_DEBUG, "nl80211: Ignored event (cmd=%d)"
-				   " for foreign interface (ifindex %d)",
-				   gnlh->cmd, ifindex);
-			return NL_SKIP;
-		}
-	}
-
 	if (drv->ap_scan_as_station != NL80211_IFTYPE_UNSPECIFIED &&
 	    (gnlh->cmd == NL80211_CMD_NEW_SCAN_RESULTS ||
 	     gnlh->cmd == NL80211_CMD_SCAN_ABORTED)) {
@@ -1818,6 +1804,25 @@ static int process_event(struct nl_msg *msg, void *arg)
 			   "(cmd=%d)", gnlh->cmd);
 		break;
 	}
+}
+
+
+static int process_event(struct nl_msg *msg, void *arg)
+{
+	struct wpa_driver_nl80211_data *drv = arg;
+	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
+	struct nlattr *tb[NL80211_ATTR_MAX + 1];
+	int ifindex = -1;
+
+	nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
+		  genlmsg_attrlen(gnlh, 0), NULL);
+
+	if (tb[NL80211_ATTR_IFINDEX])
+		ifindex = nla_get_u32(tb[NL80211_ATTR_IFINDEX]);
+
+	if (ifindex == -1 || ifindex == drv->ifindex ||
+	    have_ifidx(drv, ifindex))
+		do_process_event(msg, drv, gnlh, tb);
 
 	return NL_SKIP;
 }
