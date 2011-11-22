@@ -629,8 +629,13 @@ int hostapd_select_hw_mode(struct hostapd_iface *iface)
 			if (chan->flag & HOSTAPD_CHAN_DISABLED) {
 				wpa_printf(MSG_ERROR,
 					   "channel [%i] (%i) is disabled for "
-					   "use in AP mode, flags: 0x%x",
-					   j, chan->chan, chan->flag);
+					   "use in AP mode, flags: 0x%x"
+					   " (NO-IBSS: %i  PASSIVE-SCAN: %i"
+					   "  RADAR: %i)",
+					   j, chan->chan, chan->flag,
+					   !!(chan->flag & HOSTAPD_CHAN_NO_IBSS),
+					   !!(chan->flag & HOSTAPD_CHAN_PASSIVE_SCAN),
+					   !!(chan->flag & HOSTAPD_CHAN_RADAR));
 			} else {
 				ok = 1;
 				break;
