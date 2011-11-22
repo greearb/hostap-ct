@@ -271,15 +271,20 @@ void sme_authenticate(struct wpa_supplicant *wpa_s,
 		wpas_notify_network_changed(wpa_s);
 
 	wpa_s->sme.auth_alg = params.auth_alg;
+
+	/* 2 second timer seem about right? */
+	eloop_register_timeout(SME_AUTH_TIMEOUT, 0, sme_auth_timer, wpa_s, NULL);
+
 	if (wpa_drv_authenticate(wpa_s, &params) < 0) {
 		wpa_msg(wpa_s, MSG_INFO, "SME: Authentication request to the "
 			"driver failed");
 		wpa_supplicant_req_scan(wpa_s, 1, 0);
+		/* might should call disconnect logic here?  Either way, the
+		 * timer above should take care of things if no progress is
+		 * made within 2 seconds.
+		 */
 		return;
 	}
-
-	eloop_register_timeout(SME_AUTH_TIMEOUT, 0, sme_auth_timer, wpa_s,
-			       NULL);
 
 	/*
 	 * Association will be started based on the authentication event from
