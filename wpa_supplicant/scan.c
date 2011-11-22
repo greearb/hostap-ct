@@ -656,6 +656,24 @@ void wpa_supplicant_req_scan(struct wpa_supplicant *wpa_s, int sec, int usec)
 		}
 	}
 
+	/* With lots of VIFS, we can end up trying to scan very often.
+	 * This can cause us to not be able to associate due to missing
+	 * EAPOL key messages and such.  So, allow a minimum time between
+	 * scans.
+	 */
+	if (wpa_s->conf->min_scan_gap) {
+		int mingap;
+		struct os_time t;
+		os_get_time(&t);
+
+		mingap = wpa_s->conf->min_scan_gap
+			- (t.sec - wpa_s->last_scan_rx_sec);
+		if (mingap > wpa_s->conf->min_scan_gap)
+			mingap = wpa_s->conf->min_scan_gap;
+		if (mingap > sec)
+			sec = mingap;
+	}
+
 	wpa_dbg(wpa_s, MSG_DEBUG, "Setting scan request: %d sec %d usec",
 		sec, usec);
 	eloop_cancel_timeout(wpa_supplicant_scan, wpa_s, NULL);
