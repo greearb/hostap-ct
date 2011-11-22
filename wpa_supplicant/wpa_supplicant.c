@@ -1425,6 +1425,8 @@ void wpa_supplicant_associate(struct wpa_supplicant *wpa_s,
 	else
 		params.uapsd = -1;
 
+	wpa_supplicant_apply_ht_overrides(wpa_s, &params);
+
 	ret = wpa_drv_associate(wpa_s, &params);
 	if (ret < 0) {
 		wpa_msg(wpa_s, MSG_INFO, "Association request to the driver "
@@ -2165,6 +2167,163 @@ static struct wpa_supplicant * wpa_supplicant_alloc(void)
 	return wpa_s;
 }
 
+#ifdef CONFIG_HT_OVERRIDES
+int wpa_set_htcap_mcs(struct wpa_supplicant *wpa_s,
+		      struct ieee80211_ht_capabilities *htcaps,
+		      struct ieee80211_ht_capabilities *htcaps_mask,
+		      const char *ht_mcs)
+{
+	/* parse ht_mcs into hex array */
+	int i;
+	const char* tmp = ht_mcs;
+	char* end = NULL;
+
+	/* This is what we are setting in the kernel.. */
+	os_memset(&htcaps->supported_mcs_set, 0, IEEE80211_HT_MCS_MASK_LEN);
+
+	wpa_msg(wpa_s, MSG_ERROR, "set_htcap, ht_mcs -:%s:-\n", ht_mcs);
+
+	for (i = 0; i < IEEE80211_HT_MCS_MASK_LEN; i++) {
+		errno = 0;
+		long v = strtol(tmp, &end, 16);
+		if (errno == 0) {
+			wpa_msg(wpa_s, MSG_ERROR, "htcap value[%i]: %ld end: %p  tmp: %p\n",
+				i, v, end, tmp);
+			if (end == tmp) {
+				break;
+			}
+
+			htcaps->supported_mcs_set[i] = v;
+			tmp = end;
+		}
+		else {
+			wpa_msg(wpa_s, MSG_ERROR,
+				"Failed to parse ht-mcs: %s, error: %s\n",
+				ht_mcs, strerror(errno));
+			return -1;
+		}
+	}
+
+	if (i) {
+		os_memset(&htcaps_mask->supported_mcs_set, 0xff, IEEE80211_HT_MCS_MASK_LEN-1);
+		htcaps_mask->supported_mcs_set[IEEE80211_HT_MCS_MASK_LEN-1] = 0x1f; /* skip the 3 reserved bits */
+	}
+
+	return 0;
+}
+
+
+int wpa_disable_max_amsdu(struct wpa_supplicant *wpa_s,
+			  struct ieee80211_ht_capabilities *htcaps,
+			  struct ieee80211_ht_capabilities *htcaps_mask,
+			  int disabled)
+{
+	wpa_msg(wpa_s, MSG_DEBUG, "wpa: set_disable_max_amsdu: %d\n",
+		disabled);
+
+	if (disabled == -1)
+		return 0;
+
+	u16 msk = host_to_le16(HT_CAP_INFO_MAX_AMSDU_SIZE);
+	htcaps_mask->ht_capabilities_info |= msk;
+	if (disabled)
+		htcaps->ht_capabilities_info &= msk;
+	else
+		htcaps->ht_capabilities_info |= msk;
+	return 0;
+}
+
+int wpa_set_ampdu_factor(struct wpa_supplicant *wpa_s,
+			 struct ieee80211_ht_capabilities *htcaps,
+			 struct ieee80211_ht_capabilities *htcaps_mask,
+			 int factor)
+{
+	wpa_msg(wpa_s, MSG_DEBUG, "wpa: set_ampdu_factor: %d\n",
+		factor);
+
+	if (factor == -1)
+		return 0;
+
+	if (factor < 0 || factor > 3) {
+		wpa_msg(wpa_s, MSG_ERROR,
+			"wpa: ampdu_factor: %d out of range.  Must be 0-3 or -1\n",
+			factor);
+		return -EINVAL;
+	}
+
+	htcaps_mask->a_mpdu_params |= 0x3; // 2 bits for factor
+	htcaps->a_mpdu_params &= ~0x3;
+	htcaps->a_mpdu_params |= factor & 0x3;
+	return 0;
+}
+
+int wpa_set_ampdu_density(struct wpa_supplicant *wpa_s,
+			  struct ieee80211_ht_capabilities *htcaps,
+			  struct ieee80211_ht_capabilities *htcaps_mask,
+			  int density)
+{
+	wpa_msg(wpa_s, MSG_DEBUG, "wpa: set_ampdu_density: %d\n",
+		density);
+
+	if (density == -1)
+		return 0;
+
+	if (density < 0 || density > 7) {
+		wpa_msg(wpa_s, MSG_ERROR,
+			"wpa: ampdu_density: %d out of range.  Must be 0-7 or -1.\n",
+			density);
+		return -EINVAL;
+	}
+
+	htcaps_mask->a_mpdu_params |= 0x1C;
+	htcaps->a_mpdu_params &= ~(0x1C);
+	htcaps->a_mpdu_params |= (density << 2) & 0x1C;
+	return 0;
+}
+
+int wpa_set_disable_ht40(struct wpa_supplicant *wpa_s,
+			 struct ieee80211_ht_capabilities *htcaps,
+			 struct ieee80211_ht_capabilities *htcaps_mask,
+			 int disabled)
+{
+	/* Masking these out disables HT-40 */
+	u16 msk = host_to_le16(HT_CAP_INFO_SUPP_CHANNEL_WIDTH_SET |
+			       HT_CAP_INFO_SHORT_GI40MHZ);
+
+	wpa_msg(wpa_s, MSG_DEBUG, "wpa: set_disable_ht40: %d\n",
+		disabled);
+
+	if (disabled)
+		htcaps->ht_capabilities_info &= ~msk;
+	else
+		htcaps->ht_capabilities_info |= msk;
+
+	htcaps_mask->ht_capabilities_info |= msk;
+	return 0;
+}
+#endif
+
+
+void wpa_supplicant_apply_ht_overrides(struct wpa_supplicant *wpa_s,
+				       struct wpa_driver_associate_params *params)
+{
+#ifdef CONFIG_HT_OVERRIDES
+	struct wpa_ssid *ssid = wpa_s->current_ssid;
+	if (ssid) {
+		params->disable_ht = ssid->disable_ht;
+
+		wpa_set_htcap_mcs(wpa_s, &params->htcaps, &params->htcaps_mask, ssid->ht_mcs);
+		wpa_disable_max_amsdu(wpa_s, &params->htcaps, &params->htcaps_mask,
+				      ssid->disable_max_amsdu);
+		wpa_set_ampdu_factor(wpa_s, &params->htcaps, &params->htcaps_mask,
+				     ssid->ampdu_factor);
+		wpa_set_ampdu_density(wpa_s, &params->htcaps, &params->htcaps_mask,
+				      ssid->ampdu_density);
+		wpa_set_disable_ht40(wpa_s, &params->htcaps, &params->htcaps_mask,
+				     ssid->disable_ht40);
+	}
+#endif
+}
 
 static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 				     struct wpa_interface *iface)

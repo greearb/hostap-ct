@@ -36,6 +36,8 @@ struct scan_info;
 struct wpa_bss;
 struct wpa_scan_results;
 struct hostapd_hw_modes;
+struct ieee80211_ht_capabilities;
+struct wpa_driver_associate_params;
 
 /*
  * Forward declarations of private structures used within the ctrl_iface
@@ -514,6 +516,31 @@ struct wpa_supplicant {
 
 
 /* wpa_supplicant.c */
+#ifdef CONFIG_HT_OVERRIDES
+int wpa_set_htcap_mcs(struct wpa_supplicant *wpa_s,
+		      struct ieee80211_ht_capabilities *htcaps,
+		      struct ieee80211_ht_capabilities *htcaps_mask,
+		      const char *ht_mcs);
+int wpa_disable_max_amsdu(struct wpa_supplicant *wpa_s,
+			  struct ieee80211_ht_capabilities *htcaps,
+			  struct ieee80211_ht_capabilities *htcaps_mask,
+			  int disabled);
+int wpa_set_ampdu_factor(struct wpa_supplicant *wpa_s,
+			 struct ieee80211_ht_capabilities *htcaps,
+			 struct ieee80211_ht_capabilities *htcaps_mask,
+			 int factor);
+int wpa_set_ampdu_density(struct wpa_supplicant *wpa_s,
+			  struct ieee80211_ht_capabilities *htcaps,
+			  struct ieee80211_ht_capabilities *htcaps_mask,
+			  int density);
+int wpa_set_disable_ht40(struct wpa_supplicant *wpa_s,
+			 struct ieee80211_ht_capabilities *htcaps,
+			 struct ieee80211_ht_capabilities *htcaps_mask,
+			 int disabled);
+#endif
+void wpa_supplicant_apply_ht_overrides(struct wpa_supplicant *wpa_s,
+			struct wpa_driver_associate_params *params);
+
 int wpa_set_wep_keys(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid);
 
 int wpa_supplicant_reload_configuration(struct wpa_supplicant *wpa_s);

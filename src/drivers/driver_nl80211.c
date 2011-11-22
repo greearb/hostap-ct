@@ -5617,6 +5617,16 @@ skip_auth_type:
 		NLA_PUT_U32(msg, NL80211_ATTR_AKM_SUITES, mgmt);
 	}
 
+#ifdef CONFIG_HT_OVERRIDES
+	if (params->disable_ht)
+		NLA_PUT_FLAG(msg, NL80211_ATTR_DISABLE_HT);
+
+	NLA_PUT(msg, NL80211_ATTR_HT_CAPABILITY, sizeof(params->htcaps),
+		&params->htcaps);
+	NLA_PUT(msg, NL80211_ATTR_HT_CAPABILITY_MASK, sizeof(params->htcaps_mask),
+		&params->htcaps_mask);
+#endif
+
 	ret = nl80211_set_conn_keys(params, msg);
 	if (ret)
 		goto nla_put_failure;
@@ -5763,6 +5773,16 @@ static int wpa_driver_nl80211_associate(
 		NLA_PUT(msg, NL80211_ATTR_PREV_BSSID, ETH_ALEN,
 			params->prev_bssid);
 	}
+
+#ifdef CONFIG_HT_OVERRIDES
+	if (params->disable_ht)
+		NLA_PUT_FLAG(msg, NL80211_ATTR_DISABLE_HT);
+
+	NLA_PUT(msg, NL80211_ATTR_HT_CAPABILITY, sizeof(params->htcaps),
+		&params->htcaps);
+	NLA_PUT(msg, NL80211_ATTR_HT_CAPABILITY_MASK, sizeof(params->htcaps_mask),
+		&params->htcaps_mask);
+#endif
 
 	if (params->p2p)
 		wpa_printf(MSG_DEBUG, "  * P2P group");

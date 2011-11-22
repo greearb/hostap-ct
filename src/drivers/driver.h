@@ -26,6 +26,7 @@
 #define WPA_SUPPLICANT_DRIVER_VERSION 4
 
 #include "common/defs.h"
+#include "common/ieee802_11_defs.h"
 
 #define HOSTAPD_CHAN_DISABLED 0x00000001
 #define HOSTAPD_CHAN_PASSIVE_SCAN 0x00000002
@@ -516,6 +517,21 @@ struct wpa_driver_associate_params {
 	 * STA mode: bits 0..3 UAPSD enabled for VO,VI,BK,BE
 	 */
 	int uapsd;
+
+#ifdef CONFIG_HT_OVERRIDES
+	/**
+	 * disable_ht - Disable HT (802.11n) for this connection.
+	 */
+	int disable_ht;
+
+	/**
+	 * HT Capabilities over-rides.  Only bits set in the mask will be
+	 * used, and not all values are used by the kernel anyway.  Currently,
+	 * MCS, MPDU and MSDU fields are used.
+	 */
+	struct ieee80211_ht_capabilities htcaps;
+	struct ieee80211_ht_capabilities htcaps_mask;
+#endif
 };
 
 enum hide_ssid {

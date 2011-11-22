@@ -1408,6 +1408,11 @@ enum nl80211_attrs {
 
 	NL80211_ATTR_PROBE_RESP,
 
+	NL80211_ATTR_DFS_REGION,
+
+	NL80211_ATTR_DISABLE_HT,
+	NL80211_ATTR_HT_CAPABILITY_MASK,
+
 	/* add attributes here, update the policy in nl80211.c */
 
 	__NL80211_ATTR_AFTER_LAST,

@@ -15,6 +15,11 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#define DEFAULT_DISABLE_HT 0
+#define DEFAULT_DISABLE_HT40 0
+#define DEFAULT_DISABLE_MAX_AMSDU -1 /* no change */
+#define DEFAULT_AMPDU_FACTOR -1 /* no change */
+#define DEFAULT_AMPDU_DENSITY -1 /* no change */
 #define DEFAULT_EAPOL_VERSION 1
 #ifdef CONFIG_NO_SCAN_PROCESSING
 #define DEFAULT_AP_SCAN 2

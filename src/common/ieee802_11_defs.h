@@ -519,6 +519,7 @@ struct ieee80211_mgmt {
 } STRUCT_PACKED;
 
 
+#define IEEE80211_HT_MCS_MASK_LEN               10
 struct ieee80211_ht_capabilities {
 	le16 ht_capabilities_info;
 	u8 a_mpdu_params;

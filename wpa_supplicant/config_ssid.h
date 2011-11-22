@@ -408,6 +408,55 @@ struct wpa_ssid {
 	 * WPS or similar so that they may be exported.
 	 */
 	int export_keys;
+
+
+#ifdef CONFIG_HT_OVERRIDES
+	/**
+	 * disable_ht - Disable HT (802.11n) for this interface
+	 *
+	 * By default, use it if it is available, but this can be configured
+	 * to 1 to have it disabled.
+	 */
+	int disable_ht;
+
+	/**
+	 * disable_ht40 - Disable HT-40 for this interface
+	 *
+	 * By default, use it if it is available, but this can be configured
+	 * to 1 to have it disabled.
+	 */
+	int disable_ht40;
+
+	/**
+	 * disable_max_amsdu - Disable MAX AMSDU
+	 *
+	 * AMDSU will be 3839 bytes when disabled, or 7935
+	 * when enabled (assuming it is otherwise supported)
+	 * -1 (default) means do not apply any settings to the kernel.
+	 */
+	int disable_max_amsdu;
+
+	/**
+	 * ampdu_factor - Maximum A-MPDU Length Exponent
+	 *
+	 * Value: 0-3, see section 7.3.2.56.3 of the 802.11n-2009 spec.
+	 */
+	int ampdu_factor;
+
+	/**
+	 * ampdu_density - Minum A-MPDU Start Spacing
+	 *
+	 * Value: 0-7, see section 7.3.2.56.3 of the 802.11n-2009 spec.
+	 */
+	int ampdu_density;
+
+	/**
+	 * ht_mcs - Allowed HT-MCS rates, in ascii hex: ffff0000...
+	 *
+	 * By default (empty string):  use whatever the OS has configured.
+	 */
+	char *ht_mcs;
+#endif
 };
 
 #endif /* CONFIG_SSID_H */
