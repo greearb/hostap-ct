@@ -269,6 +269,12 @@ struct wpa_driver_scan_params {
 	 */
 	size_t num_filter_ssids;
 
+	/* If true, attempt to only scan the current active channel if at least
+	 * one VIF on this interface's phy is associated.  This can help when
+	 * you are running lots of virtual interfaces.
+	 */
+	int can_scan_one;
+
 	/**
 	 * p2p_probe - Used to disable CCK (802.11b) rates for P2P probes
 	 *
