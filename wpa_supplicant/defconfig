@@ -220,6 +220,10 @@ CONFIG_SMARTCARD=y
 # Support HT overrides (disable HT/HT40, mask MCS rates, etc.)
 #CONFIG_HT_OVERRIDES=y
 
+# Should we use poll instead of select?  Select is
+# used by default.
+# CONFIG_ELOOP_POLL=y
+
 # Development testing
 #CONFIG_EAPOL_TEST=y
 

@@ -19,6 +19,11 @@
 #include "list.h"
 #include "eloop.h"
 
+#ifdef CONFIG_ELOOP_POLL
+#include <assert.h>
+#include <poll.h>
+#endif
+
 
 struct eloop_sock {
 	int sock;
@@ -56,7 +61,13 @@ struct eloop_sock_table {
 
 struct eloop_data {
 	int max_sock;
-
+	int count; /* sum of all table counts */
+#ifdef CONFIG_ELOOP_POLL
+	int max_pollfd_map; /* number of pollfds_map currently allocated */
+	int max_poll_fds; /* number of pollfds currently allocated */
+	struct pollfd *pollfds;
+	struct pollfd **pollfds_map;
+#endif
 	struct eloop_sock_table readers;
 	struct eloop_sock_table writers;
 	struct eloop_sock_table exceptions;
@@ -154,6 +165,24 @@ static int eloop_sock_table_add_sock(struct eloop_sock_table *table,
 	table->table = tmp;
 	if (sock > eloop.max_sock)
 		eloop.max_sock = sock;
+	eloop.count++;
+#ifdef CONFIG_ELOOP_POLL
+	if (eloop.max_sock >= eloop.max_pollfd_map) {
+		os_free(eloop.pollfds_map);
+		eloop.max_pollfd_map = eloop.max_sock + 50;
+		eloop.pollfds_map = os_zalloc(sizeof(struct pollfd *) * eloop.max_pollfd_map);
+		if (!eloop.pollfds_map)
+			eloop.max_pollfd_map = 0;
+	}
+
+	if (eloop.count >= eloop.max_poll_fds) {
+		os_free(eloop.pollfds);
+		eloop.max_poll_fds = eloop.count + 50;
+		eloop.pollfds = os_zalloc(sizeof(struct pollfd) * eloop.max_poll_fds);
+		if (!eloop.pollfds)
+			eloop.max_poll_fds = 0;
+	}
+#endif
 	table->changed = 1;
 	eloop_trace_sock_add_ref(table);
 
@@ -182,11 +211,151 @@ static void eloop_sock_table_remove_sock(struct eloop_sock_table *table,
 			   sizeof(struct eloop_sock));
 	}
 	table->count--;
+	eloop.count--;
 	table->changed = 1;
 	eloop_trace_sock_add_ref(table);
 }
 
+#ifdef CONFIG_ELOOP_POLL
 
+static struct pollfd* find_pollfd(struct pollfd **pollfds_map, int fd, int mx)
+{
+	if (fd < mx && fd >= 0)
+		return pollfds_map[fd];
+	return NULL;
+}
+
+static void eloop_sock_table_set_fds(struct eloop_sock_table *readers,
+				     struct eloop_sock_table *writers,
+				     struct eloop_sock_table *exceptions,
+				     struct pollfd *pollfds,
+				     struct pollfd **pollfds_map,
+				     int max_pollfd_map,
+				     int *num_poll_fds)
+{
+	int i;
+	int nxt = 0;
+	int fd;
+	struct pollfd *pfd;
+
+	/* Clear pollfd lookup map.  It will be re-populated below. */
+	memset(pollfds_map, 0, sizeof(struct pollfd *) * max_pollfd_map);
+
+	if (readers && readers->table) {
+		for (i = 0; i < readers->count; i++) {
+			fd = readers->table[i].sock;
+			assert(fd >= 0 && fd < max_pollfd_map);
+			pollfds[nxt].fd = fd;
+			pollfds[nxt].events = POLLIN;
+			pollfds[nxt].revents = 0;
+			pollfds_map[fd] = &(pollfds[nxt]);
+			nxt++;
+		}
+	}
+
+	if (writers && writers->table) {
+		for (i = 0; i < writers->count; i++) {
+			/* See if we already added this descriptor, update it if so */
+			fd = writers->table[i].sock;
+			assert(fd >= 0 && fd < max_pollfd_map);
+			pfd = pollfds_map[fd];
+			if (!pfd) {
+				pfd = &(pollfds[nxt]);
+				pfd->events = 0;
+				pfd->fd = fd;
+				pollfds[i].revents = 0;
+				pollfds_map[fd] = pfd;
+				nxt++;
+			}
+			pfd->events |= POLLIN;
+		}
+	}
+
+	/*
+	 * Exceptions are always checked when using poll, but I suppose it's possible
+	 * that someone registered a socket *only* for exception handling.  Set
+	 * the POLLIN bit in this case.
+	 */
+	if (exceptions && exceptions->table) {
+		for (i = 0; i < exceptions->count; i++) {
+			/* See if we already added this descriptor, just use it if so */
+			fd = exceptions->table[i].sock;
+			assert(fd >= 0 && fd < max_pollfd_map);
+			pfd = pollfds_map[fd];
+			if (!pfd) {
+				pfd = &(pollfds[nxt]);
+				pfd->events = POLLIN;
+				pfd->fd = fd;
+				pollfds[i].revents = 0;
+				pollfds_map[fd] = pfd;
+				nxt++;
+			}
+		}
+	}
+
+	*num_poll_fds = nxt;
+}
+
+
+static void eloop_sock_table_dispatch(struct eloop_sock_table *readers,
+				      struct eloop_sock_table *writers,
+				      struct eloop_sock_table *exceptions,
+				      struct pollfd *pollfds,
+				      struct pollfd **pollfds_map,
+				      int max_pollfd_map)
+{
+	int i;
+	struct pollfd *pfd;
+	if (readers && readers->table) {
+		readers->changed = 0;
+		for (i = 0; i < readers->count; i++) {
+			pfd = find_pollfd(pollfds_map, readers->table[i].sock, max_pollfd_map);
+			if (pfd) {
+				if (pfd->revents & POLLIN) {
+					readers->table[i].handler(readers->table[i].sock,
+								  readers->table[i].eloop_data,
+								  readers->table[i].user_data);
+					if (readers->changed)
+						return; /* pollfds may be invalid at this point */
+				}
+			}
+		}
+	}
+
+	if (writers && writers->table) {
+		writers->changed = 0;
+		for (i = 0; i < writers->count; i++) {
+			pfd = find_pollfd(pollfds_map, writers->table[i].sock, max_pollfd_map);
+			if (pfd) {
+				if (pfd->revents & POLLOUT) {
+					writers->table[i].handler(writers->table[i].sock,
+								  writers->table[i].eloop_data,
+								  writers->table[i].user_data);
+					if (writers->changed)
+						return; /* pollfds may be invalid at this point */
+				}
+			}
+		}
+	}
+
+	if (exceptions && exceptions->table) {
+		exceptions->changed = 0;
+		for (i = 0; i < exceptions->count; i++) {
+			pfd = find_pollfd(pollfds_map, exceptions->table[i].sock, max_pollfd_map);
+			if (pfd) {
+				if (pfd->revents & (POLLERR|POLLHUP)) {
+					exceptions->table[i].handler(exceptions->table[i].sock,
+								     exceptions->table[i].eloop_data,
+								     exceptions->table[i].user_data);
+					if (exceptions->changed)
+						return; /* pollfds may be invalid at this point */
+				}
+			}
+		}
+	}
+}
+
+#else
 static void eloop_sock_table_set_fds(struct eloop_sock_table *table,
 				     fd_set *fds)
 {
@@ -221,6 +390,7 @@ static void eloop_sock_table_dispatch(struct eloop_sock_table *table,
 		}
 	}
 }
+#endif
 
 
 static void eloop_sock_table_destroy(struct eloop_sock_table *table)
@@ -502,16 +672,24 @@ int eloop_register_signal_reconfig(eloop_signal_handler handler,
 
 void eloop_run(void)
 {
+#ifdef CONFIG_ELOOP_POLL
+	int num_poll_fds;
+	int timeout_ms = 0;
+#else
 	fd_set *rfds, *wfds, *efds;
-	int res;
 	struct timeval _tv;
+#endif
+	int res;
 	struct os_time tv, now;
 
+#ifdef CONFIG_ELOOP_POLL
+#else
 	rfds = os_malloc(sizeof(*rfds));
 	wfds = os_malloc(sizeof(*wfds));
 	efds = os_malloc(sizeof(*efds));
 	if (rfds == NULL || wfds == NULL || efds == NULL)
 		goto out;
+#endif
 
 	while (!eloop.terminate &&
 	       (!dl_list_empty(&eloop.timeout) || eloop.readers.count > 0 ||
@@ -525,10 +703,28 @@ void eloop_run(void)
 				os_time_sub(&timeout->time, &now, &tv);
 			else
 				tv.sec = tv.usec = 0;
+#ifdef CONFIG_ELOOP_POLL
+			timeout_ms = tv.usec / 1000;
+			timeout_ms += (tv.sec * 1000);
+#else
 			_tv.tv_sec = tv.sec;
 			_tv.tv_usec = tv.usec;
+#endif
 		}
 
+#ifdef CONFIG_ELOOP_POLL
+		num_poll_fds = 0;
+		eloop_sock_table_set_fds(&eloop.readers, &eloop.writers,
+					 &eloop.exceptions, eloop.pollfds,
+					 eloop.pollfds_map, eloop.max_pollfd_map,
+					 &num_poll_fds);
+		res = poll(eloop.pollfds, num_poll_fds, timeout ? timeout_ms : -1);
+
+		if (res < 0 && errno != EINTR && errno != 0) {
+			perror("poll");
+			goto out;
+		}
+#else
 		eloop_sock_table_set_fds(&eloop.readers, rfds);
 		eloop_sock_table_set_fds(&eloop.writers, wfds);
 		eloop_sock_table_set_fds(&eloop.exceptions, efds);
@@ -538,6 +734,7 @@ void eloop_run(void)
 			perror("select");
 			goto out;
 		}
+#endif
 		eloop_process_pending_signals();
 
 		/* check if some registered timeouts have occurred */
@@ -559,15 +756,23 @@ void eloop_run(void)
 		if (res <= 0)
 			continue;
 
+#ifdef CONFIG_ELOOP_POLL
+		eloop_sock_table_dispatch(&eloop.readers, &eloop.writers, &eloop.exceptions,
+					  eloop.pollfds, eloop.pollfds_map, eloop.max_pollfd_map);
+#else
 		eloop_sock_table_dispatch(&eloop.readers, rfds);
 		eloop_sock_table_dispatch(&eloop.writers, wfds);
 		eloop_sock_table_dispatch(&eloop.exceptions, efds);
+#endif
 	}
 
 out:
+#ifndef CONFIG_ELOOP_POLL
 	os_free(rfds);
 	os_free(wfds);
 	os_free(efds);
+#endif
+	return;
 }
 
 
@@ -605,6 +810,11 @@ void eloop_destroy(void)
 	eloop_sock_table_destroy(&eloop.writers);
 	eloop_sock_table_destroy(&eloop.exceptions);
 	os_free(eloop.signals);
+
+#ifdef CONFIG_ELOOP_POLL
+	os_free(eloop.pollfds);
+	os_free(eloop.pollfds_map);
+#endif
 }
 
 
@@ -616,6 +826,17 @@ int eloop_terminated(void)
 
 void eloop_wait_for_read_sock(int sock)
 {
+#ifdef CONFIG_ELOOP_POLL
+	struct pollfd pfd;
+	if (sock < 0)
+		return;
+
+	memset(&pfd, 0, sizeof(pfd));
+	pfd.fd = sock;
+	pfd.events = POLLIN;
+
+	poll(&pfd, 1, -1);
+#else
 	fd_set rfds;
 
 	if (sock < 0)
@@ -624,4 +845,5 @@ void eloop_wait_for_read_sock(int sock)
 	FD_ZERO(&rfds);
 	FD_SET(sock, &rfds);
 	select(sock + 1, &rfds, NULL, NULL, NULL);
+#endif
 }
