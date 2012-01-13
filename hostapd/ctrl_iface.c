@@ -1051,7 +1051,7 @@ int hostapd_ctrl_iface_init(struct hostapd_data *hapd)
 			}
 			if (bind(s, (struct sockaddr *) &addr, sizeof(addr)) <
 			    0) {
-				perror("bind(PF_UNIX)");
+				perror("hostapd-ctrl-iface: bind(PF_UNIX)");
 				goto fail;
 			}
 			wpa_printf(MSG_DEBUG, "Successfully replaced leftover "
