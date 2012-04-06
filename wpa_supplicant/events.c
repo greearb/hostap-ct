@@ -41,6 +41,8 @@
 #include "offchannel.h"
 
 
+static int num_assoc_reqs;
+
 static int wpa_supplicant_select_config(struct wpa_supplicant *wpa_s)
 {
 	struct wpa_ssid *ssid, *old_ssid;
@@ -851,6 +853,15 @@ int wpa_supplicant_connect(struct wpa_supplicant *wpa_s,
 			wpa_supplicant_req_new_scan(wpa_s, 10, 0);
 			return 0;
 		}
+
+		if (num_assoc_reqs >= wpa_s->conf->max_assoc_per_scan) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"Deferring association attempt, reqs: %i, max: %i",
+				num_assoc_reqs, wpa_s->conf->max_assoc_per_scan);
+			return 0;
+		}
+		num_assoc_reqs++;
+
 		wpa_msg(wpa_s, MSG_DEBUG, "Request association: "
 			"reassociate: %d  selected: "MACSTR "  bssid: " MACSTR
 			"  pending: " MACSTR "  wpa_state: %s",
@@ -1138,6 +1149,14 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 		wpa_dbg(wpa_s, MSG_DEBUG, "No suitable network found");
 		ssid = wpa_supplicant_pick_new_network(wpa_s);
 		if (ssid) {
+			if (num_assoc_reqs >= wpa_s->conf->max_assoc_per_scan) {
+				wpa_dbg(wpa_s, MSG_DEBUG,
+					"Deferring association, reqs: %i, max: %i",
+					num_assoc_reqs, wpa_s->conf->max_assoc_per_scan);
+				return 0;
+			}
+			num_assoc_reqs++;
+
 			wpa_dbg(wpa_s, MSG_DEBUG, "Setup a new network");
 			wpa_supplicant_associate(wpa_s, NULL, ssid);
 			wpa_supplicant_rsn_preauth_scan_results(wpa_s);
@@ -1174,6 +1193,8 @@ static void wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 {
 	const char *rn, *rn2;
 	struct wpa_supplicant *ifs;
+
+	num_assoc_reqs = 0;
 
 	if (_wpa_supplicant_event_scan_results(wpa_s, data) < 0) {
 		/*
