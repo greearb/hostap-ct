@@ -25,6 +25,7 @@
 #define DEFAULT_MAX_NUM_STA 128
 #define DEFAULT_ACCESS_NETWORK_TYPE 15
 #define DEFAULT_SCAN_CUR_FREQ 0
+#define DEFAULT_MIN_SCAN_GAP 0
 
 #include "config_ssid.h"
 #include "wps/wps.h"
@@ -670,6 +671,9 @@ struct wpa_config {
 	 * disassoc_low_ack - Disassocicate stations with massive packet loss
 	 */
 	int disassoc_low_ack;
+
+	/* Minimum interval between scan requests, in seconds */
+	int min_scan_gap;
 
 	/**
 	 * interworking - Whether Interworking (IEEE 802.11u) is enabled
