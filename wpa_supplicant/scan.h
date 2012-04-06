@@ -10,6 +10,7 @@
 #define SCAN_H
 
 int wpa_supplicant_enabled_networks(struct wpa_supplicant *wpa_s);
+void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx);
 void wpa_supplicant_req_scan(struct wpa_supplicant *wpa_s, int sec, int usec);
 int wpa_supplicant_delayed_sched_scan(struct wpa_supplicant *wpa_s,
 				      int sec, int usec);
