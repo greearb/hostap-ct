@@ -626,6 +626,7 @@ ssid_list_set:
 
 	wpa_supplicant_optimize_freqs(wpa_s, &params);
 	extra_ie = wpa_supplicant_extra_ies(wpa_s, &params);
+	params.can_scan_one = wpa_s->conf->can_scan_one;
 
 #ifdef CONFIG_HS20
 	if (wpa_s->conf->hs20 && wpabuf_resize(&extra_ie, 6) == 0)
