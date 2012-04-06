@@ -1097,6 +1097,7 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 #ifndef CONFIG_NO_RANDOM_POOL
 	size_t i, num;
 #endif /* CONFIG_NO_RANDOM_POOL */
+	struct os_time t;
 
 #ifdef CONFIG_AP
 	if (wpa_s->ap_iface)
@@ -1173,6 +1174,19 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_AP */
 		wpa_scan_results_free(scan_res);
 		return 0;
+	}
+
+	os_get_time(&t);
+	wpa_s->last_scan_rx_sec = t.sec;
+	/* Now, *if* we have (another) scan scheduled, and a min-scan-gap
+	 * configured, make sure it happens after the minimum time.  Since
+	 * one STA's scan results can be propagated to other STA on the
+	 * same radio, this is actually a common case.
+	 */
+	if (wpa_s->conf->min_scan_gap &&
+	    eloop_is_timeout_registered(wpa_supplicant_scan, wpa_s, NULL)) {
+		/* Min gap will be applied as needed */
+		wpa_supplicant_req_scan(wpa_s, 1, 0);
 	}
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "New scan results available");

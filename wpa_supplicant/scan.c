@@ -523,7 +523,7 @@ static int shared_vif_oper_freq(struct wpa_supplicant *wpa_s)
 #endif /* CONFIG_P2P */
 
 
-static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
+void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 {
 	struct wpa_supplicant *wpa_s = eloop_ctx;
 	struct wpa_ssid *ssid;
@@ -878,6 +878,24 @@ void wpa_supplicant_req_scan(struct wpa_supplicant *wpa_s, int sec, int usec)
 			        "ensure that specific SSID scans occur");
 			return;
 		}
+	}
+
+	/* With lots of VIFS, we can end up trying to scan very often.
+	 * This can cause us to not be able to associate due to missing
+	 * EAPOL key messages and such.  So, allow a minimum time between
+	 * scans.
+	 */
+	if (wpa_s->conf->min_scan_gap) {
+		int mingap;
+		struct os_time t;
+		os_get_time(&t);
+
+		mingap = wpa_s->conf->min_scan_gap
+			- (t.sec - wpa_s->last_scan_rx_sec);
+		if (mingap > wpa_s->conf->min_scan_gap)
+			mingap = wpa_s->conf->min_scan_gap;
+		if (mingap > sec)
+			sec = mingap;
 	}
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "Setting scan request: %d sec %d usec",
