@@ -32,6 +32,7 @@
 #include "common/wpa_ctrl.h"
 #include "common/ieee802_11_defs.h"
 #include "p2p/p2p.h"
+#include "p2p/p2p_i.h"
 #include "blacklist.h"
 #include "wpas_glue.h"
 #include "wps_supplicant.h"
@@ -2692,6 +2693,8 @@ next_driver:
 static void wpa_supplicant_deinit_iface(struct wpa_supplicant *wpa_s,
 					int notify, int terminate)
 {
+	struct wpa_global *global = wpa_s->global;
+
 	if (wpa_s->drv_priv) {
 		wpa_supplicant_deauthenticate(wpa_s,
 					      WLAN_REASON_DEAUTH_LEAVING);
@@ -2701,6 +2704,31 @@ static void wpa_supplicant_deinit_iface(struct wpa_supplicant *wpa_s,
 	}
 
 	wpa_supplicant_cleanup(wpa_s);
+
+	/* P2P logic is bad:  It saves a pointer to wpa_s in global->p2p
+	 * in the wpas_p2p_init logic.  And, only does this for the first
+	 * station.  When a station goes away, the p2p logic is not fixed
+	 * up properly, leading to use-after-free issues when global->p2p->msg_ctx
+	 * or cb_ctx is used (at least).
+	 * I think p2p logic is going to need a serious re-write to get rid of
+	 * that global pointer or at least manage it better.  In the meantime,
+	 * this code attempts to at least stop crashes due to stale memory access.
+	 */
+	if (global->p2p && global->p2p->cfg &&
+	    (global->p2p->cfg->msg_ctx == wpa_s ||
+	     global->p2p->cfg->cb_ctx == wpa_s)) {
+		wpa_dbg(wpa_s, MSG_ERROR, "ERROR: global->p2p still has reference in deinit_iface()");
+		wpas_p2p_deinit(wpa_s);
+		/* If that didn't do the trick, I think we just have to
+		 * de-init everything.
+		 */
+		if (global->p2p && global->p2p->cfg &&
+		    (global->p2p->cfg->msg_ctx == wpa_s ||
+		     global->p2p->cfg->cb_ctx == wpa_s)) {
+			wpa_dbg(wpa_s, MSG_ERROR, "ERROR: global->p2p still has reference after p2p_deinit(), disabling p2p globally.");
+			wpas_p2p_deinit_global(global);
+		}
+	}
 
 	if (wpa_s->drv_priv)
 		wpa_drv_deinit(wpa_s);
