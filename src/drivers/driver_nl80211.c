@@ -154,7 +154,19 @@ static void nl_destroy_handles(struct nl_handle **handle)
 #define IF_OPER_UP 6
 #endif
 
+/* TODO:  Move this somewhere central and put struct_ids
+ * in all structs that are passed around as void* so that
+ * we can look at things in the debugger (if nothing else)
+ * have have a clue as to what we're dealing with.
+ */
+enum hostap_struct_id {
+	HAP_DRV_NL80211_GLOBAL = 1,
+	HAP_DRV_NL80211_BSS,
+	HAP_DRV_NL80211_DRV
+};
+
 struct nl80211_global {
+	enum hostap_struct_id struct_id;
 	struct dl_list interfaces;
 	int if_add_ifindex;
 	u64 if_add_wdevid;
@@ -182,6 +194,7 @@ struct nl80211_wiphy_data {
 static void nl80211_global_deinit(void *priv);
 
 struct i802_bss {
+	enum hostap_struct_id struct_id;
 	struct wpa_driver_nl80211_data *drv;
 	struct i802_bss *next;
 	int ifindex;
@@ -208,6 +221,7 @@ struct i802_bss {
 };
 
 struct wpa_driver_nl80211_data {
+	enum hostap_struct_id struct_id;
 	struct nl80211_global *global;
 	struct dl_list list;
 	struct dl_list wiphy_list;
@@ -3610,12 +3624,13 @@ static void * wpa_driver_nl80211_init(void *ctx, const char *ifname,
 	drv = os_zalloc(sizeof(*drv));
 	if (drv == NULL)
 		return NULL;
+	drv->struct_id = HAP_DRV_NL80211_DRV;
 	drv->global = global_priv;
 	drv->ctx = ctx;
 	bss = &drv->first_bss;
 	bss->drv = drv;
 	bss->ctx = ctx;
-
+	bss->struct_id = HAP_DRV_NL80211_BSS;
 	os_strlcpy(bss->ifname, ifname, sizeof(bss->ifname));
 	drv->monitor_ifidx = -1;
 	drv->monitor_sock = -1;
@@ -9876,6 +9891,7 @@ static void * nl80211_global_init(void)
 	if (global == NULL)
 		return NULL;
 	global->ioctl_sock = -1;
+	global->struct_id = HAP_DRV_NL80211_GLOBAL;
 	dl_list_init(&global->interfaces);
 	global->if_add_ifindex = -1;
 
