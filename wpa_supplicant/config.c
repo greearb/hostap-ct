@@ -2576,6 +2576,7 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	config->eapol_version = DEFAULT_EAPOL_VERSION;
 	config->ap_scan = DEFAULT_AP_SCAN;
 	config->fast_reauth = DEFAULT_FAST_REAUTH;
+	config->can_scan_one = DEFAULT_CAN_SCAN_ONE;
 	config->p2p_go_intent = DEFAULT_P2P_GO_INTENT;
 	config->p2p_intra_bss = DEFAULT_P2P_INTRA_BSS;
 	config->p2p_go_max_inactivity = DEFAULT_P2P_GO_MAX_INACTIVITY;
@@ -3032,6 +3033,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(ap_scan), 0 },
 	{ INT(disable_scan_offload), 0 },
 	{ INT(fast_reauth), 0 },
+	{ INT(can_scan_one), 0 },
 	{ STR(opensc_engine_path), 0 },
 	{ STR(pkcs11_engine_path), 0 },
 	{ STR(pkcs11_module_path), 0 },

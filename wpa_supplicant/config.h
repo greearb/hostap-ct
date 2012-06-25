@@ -16,6 +16,7 @@
 #define DEFAULT_AP_SCAN 1
 #endif /* CONFIG_NO_SCAN_PROCESSING */
 #define DEFAULT_FAST_REAUTH 1
+#define DEFAULT_CAN_SCAN_ONE 0
 #define DEFAULT_P2P_GO_INTENT 7
 #define DEFAULT_P2P_INTRA_BSS 1
 #define DEFAULT_P2P_GO_MAX_INACTIVITY (5 * 60)
@@ -658,6 +659,12 @@ struct wpa_config {
 	 * changed_parameters - Bitmap of changed parameters since last update
 	 */
 	unsigned int changed_parameters;
+
+	/* If true, attempt to only scan the current active channel if at least
+	 * one VIF on this interface's phy is associated.  This can help when
+	 * you are running lots of virtual interfaces.
+	 */
+	int can_scan_one;
 
 	/**
 	 * disassoc_low_ack - Disassocicate stations with massive packet loss

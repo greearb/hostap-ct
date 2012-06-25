@@ -282,6 +282,12 @@ struct wpa_driver_scan_params {
 	 */
 	size_t num_filter_ssids;
 
+	/* If true, attempt to only scan the current active channel if at least
+	 * one VIF on this interface's phy is associated.  This can help when
+	 * you are running lots of virtual interfaces.
+	 */
+	int can_scan_one;
+
 	/**
 	 * filter_rssi - Filter by RSSI
 	 *
