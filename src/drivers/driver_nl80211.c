@@ -3528,18 +3528,28 @@ nl80211_scan_common(struct wpa_driver_nl80211_data *drv, u8 cmd,
 			goto fail;
 	}
 
-	if (params->freqs) {
+	if (params->freqs || params->can_scan_one) {
 		struct nl_msg *freqs = nlmsg_alloc();
 		if (freqs == NULL)
 			goto fail;
-		for (i = 0; params->freqs[i]; i++) {
-			wpa_printf(MSG_MSGDUMP, "nl80211: Scan frequency %u "
-				   "MHz", params->freqs[i]);
-			if (nla_put_u32(freqs, i + 1, params->freqs[i]) < 0) {
+		i = 0;
+		if (params->freqs) {
+			for (i = 0; params->freqs[i]; i++) {
+				wpa_printf(MSG_MSGDUMP, "nl80211: Scan frequency %u "
+					   "MHz", params->freqs[i]);
+				if (nla_put_u32(freqs, i + 1, params->freqs[i]) < 0) {
+					nlmsg_free(freqs);
+					goto fail;
+				}
+			}
+		}
+		if (params->can_scan_one) {
+			if (nla_put_u32(freqs, i + 1, -1) < 0) {
 				nlmsg_free(freqs);
 				goto fail;
 			}
 		}
+		
 		err = nla_put_nested(msg, NL80211_ATTR_SCAN_FREQUENCIES,
 				     freqs);
 		nlmsg_free(freqs);
