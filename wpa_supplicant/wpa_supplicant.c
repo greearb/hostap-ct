@@ -2383,7 +2383,6 @@ static int wpa_set_ampdu_factor(struct wpa_supplicant *wpa_s,
 	return 0;
 }
 
-
 static int wpa_set_ampdu_density(struct wpa_supplicant *wpa_s,
 				 struct ieee80211_ht_capabilities *htcaps,
 				 struct ieee80211_ht_capabilities *htcaps_mask,
@@ -2430,6 +2429,27 @@ static int wpa_set_disable_ht40(struct wpa_supplicant *wpa_s,
 	return 0;
 }
 
+static int wpa_set_disable_sgi(struct wpa_supplicant *wpa_s,
+			       struct ieee80211_ht_capabilities *htcaps,
+			       struct ieee80211_ht_capabilities *htcaps_mask,
+			       int disabled)
+{
+	/* Masking these out disables SGI */
+	u16 msk = host_to_le16(HT_CAP_INFO_SHORT_GI20MHZ |
+			       HT_CAP_INFO_SHORT_GI40MHZ);
+
+	wpa_msg(wpa_s, MSG_DEBUG, "set_disable_sgi: %d", disabled);
+
+	if (disabled)
+		htcaps->ht_capabilities_info &= ~msk;
+	else
+		htcaps->ht_capabilities_info |= msk;
+
+	htcaps_mask->ht_capabilities_info |= msk;
+
+	return 0;
+}
+
 
 void wpa_supplicant_apply_ht_overrides(
 	struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
@@ -2453,6 +2473,7 @@ void wpa_supplicant_apply_ht_overrides(
 	wpa_set_ampdu_factor(wpa_s, htcaps, htcaps_mask, ssid->ampdu_factor);
 	wpa_set_ampdu_density(wpa_s, htcaps, htcaps_mask, ssid->ampdu_density);
 	wpa_set_disable_ht40(wpa_s, htcaps, htcaps_mask, ssid->disable_ht40);
+	wpa_set_disable_sgi(wpa_s, htcaps, htcaps_mask, ssid->disable_sgi);
 }
 
 #endif /* CONFIG_HT_OVERRIDES */
