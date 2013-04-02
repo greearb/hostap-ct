@@ -3863,17 +3863,21 @@ nl80211_scan_common(struct wpa_driver_nl80211_data *drv, u8 cmd,
 
 	if (params->freqs || params->can_scan_one) {
 		struct nlattr *freqs;
+		i = 0;
+
 		freqs = nla_nest_start(msg, NL80211_ATTR_SCAN_FREQUENCIES);
 		if (freqs == NULL)
 			goto fail;
-		for (i = 0; params->freqs[i]; i++) {
-			wpa_printf(MSG_MSGDUMP, "nl80211: Scan frequency %u "
-				   "MHz", params->freqs[i]);
-			if (nla_put_u32(msg, i + 1, params->freqs[i]) < 0)
-				goto fail;
+		if (params->freqs) {
+			for ( ; params->freqs[i]; i++) {
+				wpa_printf(MSG_MSGDUMP, "nl80211: Scan frequency %u "
+					   "MHz", params->freqs[i]);
+				if (nla_put_u32(msg, i + 1, params->freqs[i]) < 0)
+					goto fail;
+			}
 		}
 		if (params->can_scan_one) {
-			if (nla_put_u32(freqs, i + 1, -1) < 0)
+			if (nla_put_u32(msg, i + 1, -1) < 0)
 				goto fail;
 		}
 		nla_nest_end(msg, freqs);
