@@ -21,6 +21,7 @@
 #define DEFAULT_P2P_INTRA_BSS 1
 #define DEFAULT_P2P_GO_MAX_INACTIVITY (5 * 60)
 #define DEFAULT_BSS_MAX_COUNT 200
+#define DEFAULT_SCAN_CUR_FREQ 0
 #define DEFAULT_BSS_EXPIRATION_AGE 180
 #define DEFAULT_BSS_EXPIRATION_SCAN_COUNT 2
 #define DEFAULT_MAX_NUM_STA 128
@@ -654,6 +655,12 @@ struct wpa_config {
 	 * megahertz (MHz) to allow for narrowing scanning range.
 	 */
 	int *freq_list;
+
+
+	/* If true, attempt to scan only the current channel if any other
+	 * VIFs on this radio are already associated on a particular channel.
+	 */
+	int scan_cur_freq;
 
 	/**
 	 * changed_parameters - Bitmap of changed parameters since last update
