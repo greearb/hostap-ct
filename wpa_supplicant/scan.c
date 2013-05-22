@@ -902,6 +902,8 @@ void wpa_supplicant_req_scan(struct wpa_supplicant *wpa_s, int sec, int usec)
 	 * causes the specific SSID scan to get continually pushed back and
 	 * never happen, which causes hidden APs to never get probe-scanned.
 	 */
+	int req_sec = sec;
+	int req_usec = usec;
 	if (eloop_is_timeout_registered(wpa_supplicant_scan, wpa_s, NULL) &&
 	    wpa_s->conf->ap_scan == 1) {
 		struct wpa_ssid *ssid = wpa_s->conf->ssid;
@@ -924,7 +926,7 @@ void wpa_supplicant_req_scan(struct wpa_supplicant *wpa_s, int sec, int usec)
 	 * EAPOL key messages and such.  So, allow a minimum time between
 	 * scans.
 	 */
-	if (wpa_s->conf->min_scan_gap) {
+	if (wpa_s->conf->min_scan_gap && wpa_s->last_scan_rx_sec) {
 		int mingap;
 		struct os_time t;
 		os_get_time(&t);
@@ -937,8 +939,9 @@ void wpa_supplicant_req_scan(struct wpa_supplicant *wpa_s, int sec, int usec)
 			sec = mingap;
 	}
 
-	wpa_dbg(wpa_s, MSG_DEBUG, "Setting scan request: %d sec %d usec",
-		sec, usec);
+	wpa_dbg(wpa_s, MSG_DEBUG,
+		"Setting scan request: %d sec %d usec, req-seq: %d  req-usec: %d  min-gap: %d",
+		sec, usec, req_sec, req_usec, wpa_s->conf->min_scan_gap);
 	eloop_cancel_timeout(wpa_supplicant_scan, wpa_s, NULL);
 	eloop_register_timeout(sec, usec, wpa_supplicant_scan, wpa_s, NULL);
 }
