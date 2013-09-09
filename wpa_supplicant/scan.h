@@ -39,4 +39,6 @@ void scan_only_handler(struct wpa_supplicant *wpa_s,
 		       struct wpa_scan_results *scan_res);
 int wpas_scan_scheduled(struct wpa_supplicant *wpa_s);
 
+void int_array_concat(int **res, const int *a);
+
 #endif /* SCAN_H */

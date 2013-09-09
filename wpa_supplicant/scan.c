@@ -150,13 +150,16 @@ static int int_array_len(const int *a)
 }
 
 
-static void int_array_concat(int **res, const int *a)
+void int_array_concat(int **res, const int *a)
 {
 	int reslen, alen, i;
 	int *n;
 
 	reslen = int_array_len(*res);
 	alen = int_array_len(a);
+
+	if (alen == 0)
+		return; /* nothing to concat */
 
 	n = os_realloc_array(*res, reslen + alen + 1, sizeof(int));
 	if (n == NULL) {

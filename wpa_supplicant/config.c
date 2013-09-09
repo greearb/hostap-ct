@@ -1636,6 +1636,7 @@ static const struct parse_data ssid_fields[] = {
 	{ INT(ap_max_inactivity) },
 	{ INT(dtim_period) },
 	{ INT(beacon_int) },
+	{ INT_RANGE(interworking_defaults, 0, 1) },
 };
 
 #undef OFFSET
@@ -2023,6 +2024,77 @@ int wpa_config_remove_network(struct wpa_config *config, int id)
 
 
 /**
+ * wpa_set_user_network_defalts - Configure ssid with network defaults.
+ * @config: Configuration data from wpa_config_read()
+ * @ssid: The SSID to configure.
+ * Looks for first wpa_ssid that has interworking_defaults=1.  If found,
+ * select values are applied to the ssid.  In this way one may configure
+ * options not explicitly dealt with by interworking, such as
+ *   disable_ht=0
+ *   disable_ht40=0
+ *   etc.
+ * If no ssid is found, no action is taken.
+ */
+void wpa_config_set_user_network_defaults(struct wpa_config *config, struct wpa_ssid *ssid)
+{
+	struct wpa_ssid *s = config->ssid;
+	int i;
+
+	while (s) {
+		if (s->interworking_defaults) {
+			os_free(ssid->scan_freq);
+			ssid->scan_freq = NULL;
+			int_array_concat(&ssid->scan_freq, s->scan_freq);
+
+			os_free(ssid->freq_list);
+			ssid->freq_list = NULL;
+			int_array_concat(&ssid->freq_list, s->freq_list);
+
+			ssid->bg_scan_period = s->bg_scan_period;
+#ifdef CONFIG_HT_OVERRIDES
+			ssid->disable_ht = s->disable_ht;
+			ssid->disable_ht40 = s->disable_ht40;
+			ssid->disable_sgi = s->disable_sgi;
+			ssid->disable_max_amsdu = s->disable_max_amsdu;
+			ssid->ampdu_factor = s->ampdu_factor;
+			ssid->ampdu_density = s->ampdu_density;
+
+			os_free(ssid->ht_mcs);
+			ssid->ht_mcs = NULL;
+			if (s->ht_mcs) {
+				ssid->ht_mcs = strdup(s->ht_mcs);
+			}
+#endif
+#ifdef CONFIG_VHT_OVERRIDES
+			ssid->disable_vht = s->disable_vht;
+			ssid->vht_capa = s->vht_capa;
+			ssid->vht_capa_mask = s->vht_capa_mask;
+			ssid->vht_rx_mcs_nss_1 = s->vht_rx_mcs_nss_1;
+			ssid->vht_rx_mcs_nss_2 = s->vht_rx_mcs_nss_2;
+			ssid->vht_rx_mcs_nss_3 = s->vht_rx_mcs_nss_3;
+			ssid->vht_rx_mcs_nss_4 = s->vht_rx_mcs_nss_4;
+			ssid->vht_rx_mcs_nss_5 = s->vht_rx_mcs_nss_5;
+			ssid->vht_rx_mcs_nss_6 = s->vht_rx_mcs_nss_6;
+			ssid->vht_rx_mcs_nss_7 = s->vht_rx_mcs_nss_7;
+			ssid->vht_rx_mcs_nss_8 = s->vht_rx_mcs_nss_8;
+			ssid->vht_tx_mcs_nss_1 = s->vht_tx_mcs_nss_1;
+			ssid->vht_tx_mcs_nss_2 = s->vht_tx_mcs_nss_2;
+			ssid->vht_tx_mcs_nss_3 = s->vht_tx_mcs_nss_3;
+			ssid->vht_tx_mcs_nss_4 = s->vht_tx_mcs_nss_4;
+			ssid->vht_tx_mcs_nss_5 = s->vht_tx_mcs_nss_5;
+			ssid->vht_tx_mcs_nss_6 = s->vht_tx_mcs_nss_6;
+			ssid->vht_tx_mcs_nss_7 = s->vht_tx_mcs_nss_7;
+			ssid->vht_tx_mcs_nss_8 = s->vht_tx_mcs_nss_8;
+#endif /* CONFIG_VHT_OVERRIDES */
+			return;
+		}
+		else {
+			ssid = ssid->next;
+		}
+	}
+} /* wpa_set_user_network_defaults */
+
+/**
  * wpa_config_set_network_defaults - Set network default values
  * @ssid: Pointer to network configuration data
  */
@@ -2068,6 +2140,7 @@ void wpa_config_set_network_defaults(struct wpa_ssid *ssid)
 #ifdef CONFIG_IEEE80211W
 	ssid->ieee80211w = MGMT_FRAME_PROTECTION_DEFAULT;
 #endif /* CONFIG_IEEE80211W */
+	ssid->interworking_defaults = DEFAULT_INTERWORKING_DEFAULTS;
 }
 
 

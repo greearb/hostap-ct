@@ -33,6 +33,7 @@
 #define DEFAULT_DISABLE_MAX_AMSDU -1 /* no change */
 #define DEFAULT_AMPDU_FACTOR -1 /* no change */
 #define DEFAULT_AMPDU_DENSITY -1 /* no change */
+#define DEFAULT_INTERWORKING_DEFAULTS 0
 
 struct psk_list_entry {
 	struct dl_list list;
@@ -482,6 +483,12 @@ struct wpa_ssid {
 	 * temporary - Whether this network is temporary and not to be saved
 	 */
 	int temporary;
+
+	/**
+	 * interworking_defaults - Whether this network block should be used for
+	 *    network defaults when creating temporary interworking network blocks.
+	 */
+	int interworking_defaults;
 
 	/**
 	 * export_keys - Whether keys may be exported
