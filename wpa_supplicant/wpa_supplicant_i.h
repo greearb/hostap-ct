@@ -732,6 +732,16 @@ struct wpa_supplicant {
 #endif /* CONFIG_TESTING_GET_GTK */
 
 	unsigned int num_multichan_concurrent;
+
+#ifdef CONFIG_REPORT_TIMERS
+	struct os_time state_disconnected_at;
+	struct os_time state_authenticating_at;
+	struct os_time state_associating_at;
+	struct os_time state_associated_at;
+	struct os_time state_4way_at;
+	struct os_time state_group_handshake_at;
+	struct os_time state_wpa_completed_at;
+#endif
 };
 
 

@@ -1610,6 +1610,25 @@ static int wpa_supplicant_ctrl_iface_status(struct wpa_supplicant *wpa_s,
 	if (res >= 0)
 		pos += res;
 
+#ifdef CONFIG_REPORT_TIMERS
+#define PRINT_TIME_STAMP(a) do {					\
+		double tval = (double)(wpa_s->a.sec) +			\
+			(double)(wpa_s->a.usec) / (double)(1000000);	\
+		ret = os_snprintf(pos, end - pos, #a "=%f\n",		\
+				  tval);				\
+		if (ret < 0 || ret >= end - pos)			\
+			return pos - buf;				\
+		pos += ret;						\
+	} while (0)
+
+	PRINT_TIME_STAMP(state_disconnected_at);
+	PRINT_TIME_STAMP(state_authenticating_at);
+	PRINT_TIME_STAMP(state_associating_at);
+	PRINT_TIME_STAMP(state_associated_at);
+	PRINT_TIME_STAMP(state_4way_at);
+	PRINT_TIME_STAMP(state_group_handshake_at);
+	PRINT_TIME_STAMP(state_wpa_completed_at);
+#endif
 	return pos - buf;
 }
 

@@ -651,6 +651,36 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 		wpa_supplicant_state_txt(wpa_s->wpa_state),
 		wpa_supplicant_state_txt(state));
 
+#ifdef CONFIG_REPORT_TIMERS
+	switch (state) {
+	case WPA_DISCONNECTED:
+	case WPA_INTERFACE_DISABLED:
+	case WPA_INACTIVE:
+		os_get_time(&wpa_s->state_disconnected_at);
+		break;
+	case WPA_SCANNING:
+		break;
+	case WPA_AUTHENTICATING:
+		os_get_time(&wpa_s->state_authenticating_at);
+		break;
+	case WPA_ASSOCIATING:
+		os_get_time(&wpa_s->state_associating_at);
+		break;
+	case WPA_ASSOCIATED:
+		os_get_time(&wpa_s->state_associated_at);
+		break;
+	case WPA_4WAY_HANDSHAKE:
+		os_get_time(&wpa_s->state_4way_at);
+		break;
+	case WPA_GROUP_HANDSHAKE:
+		os_get_time(&wpa_s->state_group_handshake_at);
+		break;
+	case WPA_COMPLETED:
+		os_get_time(&wpa_s->state_wpa_completed_at);
+		break;
+	}
+#endif
+
 	if (state != WPA_SCANNING)
 		wpa_supplicant_notify_scanning(wpa_s, 0);
 
