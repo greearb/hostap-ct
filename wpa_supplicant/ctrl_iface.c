@@ -1628,6 +1628,8 @@ static int wpa_supplicant_ctrl_iface_status(struct wpa_supplicant *wpa_s,
 	PRINT_TIME_STAMP(state_4way_at);
 	PRINT_TIME_STAMP(state_group_handshake_at);
 	PRINT_TIME_STAMP(state_wpa_completed_at);
+	PRINT_TIME_STAMP(started_anqp_query_at);
+	PRINT_TIME_STAMP(finished_anqp_query_at);
 #endif
 	return pos - buf;
 }

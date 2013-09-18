@@ -741,6 +741,8 @@ struct wpa_supplicant {
 	struct os_time state_4way_at;
 	struct os_time state_group_handshake_at;
 	struct os_time state_wpa_completed_at;
+	struct os_time started_anqp_query_at;
+	struct os_time finished_anqp_query_at;
 #endif
 };
 
