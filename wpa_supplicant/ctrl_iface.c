@@ -1621,15 +1621,20 @@ static int wpa_supplicant_ctrl_iface_status(struct wpa_supplicant *wpa_s,
 		pos += ret;						\
 	} while (0)
 
+	PRINT_TIME_STAMP(state_disconnected_orig_at);
 	PRINT_TIME_STAMP(state_disconnected_at);
+	PRINT_TIME_STAMP(state_disabled_at);
+	PRINT_TIME_STAMP(state_inactive_at);
+	PRINT_TIME_STAMP(state_scanning_at);
+	PRINT_TIME_STAMP(started_anqp_query_at);
+	PRINT_TIME_STAMP(finished_anqp_query_at);
 	PRINT_TIME_STAMP(state_authenticating_at);
 	PRINT_TIME_STAMP(state_associating_at);
 	PRINT_TIME_STAMP(state_associated_at);
 	PRINT_TIME_STAMP(state_4way_at);
 	PRINT_TIME_STAMP(state_group_handshake_at);
-	PRINT_TIME_STAMP(state_wpa_completed_at);
-	PRINT_TIME_STAMP(started_anqp_query_at);
-	PRINT_TIME_STAMP(finished_anqp_query_at);
+	PRINT_TIME_STAMP(state_wpa_completed_4way_at);
+	PRINT_TIME_STAMP(state_wpa_completed_conn_at);
 #endif
 	return pos - buf;
 }
