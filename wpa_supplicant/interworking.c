@@ -572,13 +572,16 @@ static struct nai_realm_eap * nai_realm_find_eap(struct wpa_cred *cred,
 {
 	u8 e;
 
-	if (cred == NULL ||
-	    cred->username == NULL ||
-	    cred->username[0] == '\0' ||
-	    ((cred->password == NULL ||
-	      cred->password[0] == '\0') &&
-	     (cred->private_key == NULL ||
-	      cred->private_key[0] == '\0')))
+	if (cred == NULL)
+		return NULL;
+
+	/* If we have neither private key nor user + password, bail out now */
+	if ((cred->username == NULL ||
+	     cred->username[0] == '\0' ||
+	     cred->password == NULL ||
+	     cred->password[0] == '\0') &&
+	    (cred->private_key == NULL ||
+	     cred->private_key[0] == '\0'))
 		return NULL;
 
 	for (e = 0; e < realm->eap_count; e++) {
