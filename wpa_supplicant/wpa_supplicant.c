@@ -674,6 +674,13 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 			os_get_time(&wpa_s->state_scanning_at);
 			break;
 		case WPA_AUTHENTICATING:
+			/* On roam, we go from completed -> associating, never hitting
+			 * disconnected.  Treat this as disconnected with regard to timers.
+			 */
+			if (!wpa_s->disconnect_since_complete) {
+				wpa_s->state_disconnected_orig_at = wpa_s->state_disconnected_at;
+				wpa_s->disconnect_since_complete = 1;
+			}
 			os_get_time(&wpa_s->state_authenticating_at);
 			break;
 		case WPA_ASSOCIATING:
