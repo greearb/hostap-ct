@@ -678,6 +678,7 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 			 * disconnected.  Treat this as disconnected with regard to timers.
 			 */
 			if (!wpa_s->disconnect_since_complete) {
+				os_get_time(&wpa_s->state_disconnected_at);
 				wpa_s->state_disconnected_orig_at = wpa_s->state_disconnected_at;
 				wpa_s->disconnect_since_complete = 1;
 			}
