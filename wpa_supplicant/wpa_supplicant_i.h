@@ -709,6 +709,7 @@ struct wpa_supplicant {
 	 * when the driver's SME is in use.
 	 */
 	int allowed_key_mgmts;
+	int last_scan_rx_sec;
 
 	void *drv_priv; /* private data used by driver_ops */
 	void *global_drv_priv;
