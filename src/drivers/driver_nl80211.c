@@ -5963,7 +5963,7 @@ static int wpa_driver_nl80211_mlme(struct wpa_driver_nl80211_data *drv,
 	ret = send_and_recv_msgs(drv, msg, NULL, NULL);
 	msg = NULL;
 	if (ret) {
-		wpa_dbg(drv->ctx, MSG_DEBUG,
+		wpa_dbg(drv->ctx, MSG_INFO,
 			"nl80211: MLME command failed: reason=%u ret=%d (%s)",
 			reason_code, ret, strerror(-ret));
 		goto nla_put_failure;
@@ -6170,7 +6170,7 @@ retry:
 	ret = send_and_recv_msgs(drv, msg, NULL, NULL);
 	msg = NULL;
 	if (ret) {
-		wpa_dbg(drv->ctx, MSG_DEBUG,
+		wpa_dbg(drv->ctx, MSG_INFO,
 			"nl80211: MLME command failed (auth): ret=%d (%s)",
 			ret, strerror(-ret));
 		count++;
