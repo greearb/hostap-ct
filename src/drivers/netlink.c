@@ -92,6 +92,7 @@ struct netlink_data * netlink_init(struct netlink_config *cfg)
 {
 	struct netlink_data *netlink;
 	struct sockaddr_nl local;
+	int rsize;
 
 	netlink = os_zalloc(sizeof(*netlink));
 	if (netlink == NULL)
@@ -114,6 +115,18 @@ struct netlink_data * netlink_init(struct netlink_config *cfg)
 			   "socket: %s", strerror(errno));
 		netlink_deinit(netlink);
 		return NULL;
+	}
+
+	/* Set the rcv buffer large so we don't drop netlink messages
+	 * on heavily loaded systems.
+	 */
+	rsize = 1024 * 1024;
+	if (setsockopt(netlink->sock, SOL_SOCKET, SO_RCVBUF,
+		       (char *)&rsize, sizeof(rsize)) < 0) {
+		wpa_printf(MSG_ERROR,
+			   "netlink: Failed setting rcv buffer to: %i: %s\n",
+			   rsize, strerror(errno));
+		/* Not the end of the world..continue */
 	}
 
 	eloop_register_read_sock(netlink->sock, netlink_receive, netlink,
