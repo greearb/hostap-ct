@@ -70,6 +70,12 @@ There are number of run-time configuration parameters (e.g., in
 wpa_supplicant.conf when using the configuration file) that can be used
 to control Hotspot 2.0 operations.
 
+
+Requirements & Limitations in hostapd implementation:
+ *  HotSpot 2.0 requires interworking.
+ *  Interworking requires WPA2-Enterprise/EAPOL (802.1x) authentication.
+
+
 # Enable Interworking
 interworking=1
 
