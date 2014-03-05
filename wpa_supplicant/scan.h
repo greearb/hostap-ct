@@ -55,5 +55,6 @@ void wpas_mac_addr_rand_scan_clear(struct wpa_supplicant *wpa_s,
 int wpas_mac_addr_rand_scan_set(struct wpa_supplicant *wpa_s,
 				unsigned int type, const u8 *addr,
 				const u8 *mask);
+void int_array_concat(int **res, const int *a);
 
 #endif /* SCAN_H */
