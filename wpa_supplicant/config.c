@@ -4113,6 +4113,7 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	config->key_mgmt_offload = DEFAULT_KEY_MGMT_OFFLOAD;
 	config->cert_in_cb = DEFAULT_CERT_IN_CB;
 	config->wpa_rsc_relaxation = DEFAULT_WPA_RSC_RELAXATION;
+	config->min_scan_gap = DEFAULT_MIN_SCAN_GAP;
 
 #ifdef CONFIG_MBO
 	config->mbo_cell_capa = DEFAULT_MBO_CELL_CAPA;
@@ -4740,6 +4741,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(dot11RSNAConfigPMKLifetime), 0 },
 	{ INT(dot11RSNAConfigPMKReauthThreshold), 0 },
 	{ INT(dot11RSNAConfigSATimeout), 0 },
+	{ INT(min_scan_gap), 0 },
 #ifndef CONFIG_NO_CONFIG_WRITE
 	{ INT(update_config), 0 },
 #endif /* CONFIG_NO_CONFIG_WRITE */
