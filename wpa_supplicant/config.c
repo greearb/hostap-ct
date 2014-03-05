@@ -4495,6 +4495,7 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	config->wpa_rsc_relaxation = DEFAULT_WPA_RSC_RELAXATION;
 	config->extended_key_id = DEFAULT_EXTENDED_KEY_ID;
 	config->min_scan_gap = DEFAULT_MIN_SCAN_GAP;
+	config->max_assoc_per_scan = DEFAULT_MAX_ASSOC_PER_SCAN;
 
 #ifdef CONFIG_MBO
 	config->mbo_cell_capa = DEFAULT_MBO_CELL_CAPA;
@@ -5194,6 +5195,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(dot11RSNAConfigPMKReauthThreshold), 0 },
 	{ INT(dot11RSNAConfigSATimeout), 0 },
 	{ INT(min_scan_gap), 0 },
+	{ INT(max_assoc_per_scan), 0 },
 #ifndef CONFIG_NO_CONFIG_WRITE
 	{ INT(update_config), 0 },
 #endif /* CONFIG_NO_CONFIG_WRITE */
