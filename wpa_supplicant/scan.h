@@ -50,4 +50,6 @@ void wpa_scan_free_params(struct wpa_driver_scan_params *params);
 int wpas_start_pno(struct wpa_supplicant *wpa_s);
 int wpas_stop_pno(struct wpa_supplicant *wpa_s);
 
+void int_array_concat(int **res, const int *a);
+
 #endif /* SCAN_H */
