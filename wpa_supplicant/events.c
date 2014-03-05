@@ -147,6 +147,7 @@ static struct wpa_bss * wpa_supplicant_get_new_bss(
 	return bss;
 }
 
+static int num_assoc_reqs;
 
 static void wpa_supplicant_update_current_bss(struct wpa_supplicant *wpa_s)
 {
@@ -1766,8 +1767,21 @@ int wpa_supplicant_connect(struct wpa_supplicant *wpa_s,
 			wpa_supplicant_req_new_scan(wpa_s, 10, 0);
 			return 0;
 		}
-		wpa_msg(wpa_s, MSG_DEBUG, "Request association with " MACSTR,
-			MAC2STR(selected->bssid));
+
+		if (num_assoc_reqs >= wpa_s->conf->max_assoc_per_scan) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"Deferring association attempt, reqs: %i, max: %i",
+				num_assoc_reqs, wpa_s->conf->max_assoc_per_scan);
+			return 0;
+		}
+		num_assoc_reqs++;
+
+		wpa_msg(wpa_s, MSG_DEBUG, "Request association: "
+			"reassociate: %d  selected: "MACSTR "  bssid: " MACSTR
+			"  pending: " MACSTR "  wpa_state: %s",
+			wpa_s->reassociate, MAC2STR(selected->bssid),
+			MAC2STR(wpa_s->bssid), MAC2STR(wpa_s->pending_bssid),
+			wpa_supplicant_state_txt(wpa_s->wpa_state));
 		wpa_supplicant_associate(wpa_s, selected, ssid);
 	} else {
 		wpa_dbg(wpa_s, MSG_DEBUG, "Already associated or trying to "
@@ -2319,6 +2333,14 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 		wpa_dbg(wpa_s, MSG_DEBUG, "No suitable network found");
 		ssid = wpa_supplicant_pick_new_network(wpa_s);
 		if (ssid) {
+			if (num_assoc_reqs >= wpa_s->conf->max_assoc_per_scan) {
+				wpa_dbg(wpa_s, MSG_DEBUG,
+					"Deferring association, reqs: %i, max: %i",
+					num_assoc_reqs, wpa_s->conf->max_assoc_per_scan);
+				return 0;
+			}
+			num_assoc_reqs++;
+
 			wpa_dbg(wpa_s, MSG_DEBUG, "Setup a new network");
 			wpa_supplicant_associate(wpa_s, NULL, ssid);
 			if (new_scan)
@@ -2407,6 +2429,7 @@ static int wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	struct wpa_supplicant *ifs;
 	int res;
 
+	num_assoc_reqs = 0;
 	res = _wpa_supplicant_event_scan_results(wpa_s, data, 1, 0);
 	if (res == 2) {
 		/*

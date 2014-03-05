@@ -32,6 +32,7 @@
 #define DEFAULT_BSS_EXPIRATION_AGE 180
 #define DEFAULT_BSS_EXPIRATION_SCAN_COUNT 2
 #define DEFAULT_MIN_SCAN_GAP 0
+#define DEFAULT_MAX_ASSOC_PER_SCAN 25
 #define DEFAULT_MAX_NUM_STA 128
 #define DEFAULT_AP_ISOLATE 0
 #define DEFAULT_ACCESS_NETWORK_TYPE 15
@@ -960,6 +961,12 @@ struct wpa_config {
 
 	/* Minimum interval between scan requests, in seconds */
 	int min_scan_gap;
+
+	/* Maximum number of association requests per scan results
+	 * This can be used to stop a thundering herd of hundreds of
+	 * virtual stations from all trying to associate at once.
+	 */
+	int max_assoc_per_scan;
 
 	/**
 	 * interworking - Whether Interworking (IEEE 802.11u) is enabled
