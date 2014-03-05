@@ -3498,6 +3498,7 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	config->key_mgmt_offload = DEFAULT_KEY_MGMT_OFFLOAD;
 	config->cert_in_cb = DEFAULT_CERT_IN_CB;
 	config->min_scan_gap = DEFAULT_MIN_SCAN_GAP;
+	config->max_assoc_per_scan = DEFAULT_MAX_ASSOC_PER_SCAN;
 
 	if (ctrl_interface)
 		config->ctrl_interface = os_strdup(ctrl_interface);
@@ -4045,6 +4046,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(dot11RSNAConfigPMKReauthThreshold), 0 },
 	{ INT(dot11RSNAConfigSATimeout), 0 },
 	{ INT(min_scan_gap), 0 },
+	{ INT(max_assoc_per_scan), 0 },
 #ifndef CONFIG_NO_CONFIG_WRITE
 	{ INT(update_config), 0 },
 #endif /* CONFIG_NO_CONFIG_WRITE */
