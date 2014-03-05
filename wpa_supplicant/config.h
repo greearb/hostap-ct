@@ -26,6 +26,7 @@
 #define DEFAULT_ACCESS_NETWORK_TYPE 15
 #define DEFAULT_SCAN_CUR_FREQ 0
 #define DEFAULT_MIN_SCAN_GAP 0
+#define DEFAULT_MAX_ASSOC_PER_SCAN 25
 
 #include "config_ssid.h"
 #include "wps/wps.h"
@@ -786,6 +787,12 @@ struct wpa_config {
 
 	/* Minimum interval between scan requests, in seconds */
 	int min_scan_gap;
+
+	/* Maximum number of association requests per scan results
+	 * This can be used to stop a thundering herd of hundreds of
+	 * virtual stations from all trying to associate at once.
+	 */
+	int max_assoc_per_scan;
 
 	/**
 	 * interworking - Whether Interworking (IEEE 802.11u) is enabled
