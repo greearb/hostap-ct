@@ -2020,6 +2020,11 @@ OBJS += ../src/nan/nan_cm_tests.o
 endif
 endif
 
+ifdef CONFIG_REPORT_TIMERS
+CFLAGS += -DCONFIG_REPORT_TIMERS
+endif
+
+
 OBJS += ../src/drivers/driver_common.o
 OBJS_priv += ../src/drivers/driver_common.o
 
