@@ -2586,6 +2586,11 @@ static void interworking_next_anqp_fetch(struct wpa_supplicant *wpa_s)
 			hs20_osu_icon_fetch(wpa_s);
 			return;
 		}
+
+#ifdef CONFIG_REPORT_TIMERS
+		os_get_time(&wpa_s->finished_anqp_query_at);
+#endif
+
 		wpa_msg(wpa_s, MSG_INFO, "ANQP fetch completed");
 		wpa_s->fetch_anqp_in_progress = 0;
 		if (wpa_s->network_select)
@@ -2602,6 +2607,11 @@ void interworking_start_fetch_anqp(struct wpa_supplicant *wpa_s)
 		bss->flags &= ~WPA_BSS_ANQP_FETCH_TRIED;
 
 	wpa_s->fetch_anqp_in_progress = 1;
+
+#ifdef CONFIG_REPORT_TIMERS
+	os_get_time(&wpa_s->started_anqp_query_at);
+#endif
+
 	interworking_next_anqp_fetch(wpa_s);
 }
 
@@ -2626,6 +2636,9 @@ void interworking_stop_fetch_anqp(struct wpa_supplicant *wpa_s)
 	if (!wpa_s->fetch_anqp_in_progress)
 		return;
 
+#ifdef CONFIG_REPORT_TIMERS
+	os_get_time(&wpa_s->finished_anqp_query_at);
+#endif
 	wpa_s->fetch_anqp_in_progress = 0;
 }
 
