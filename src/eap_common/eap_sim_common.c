@@ -21,7 +21,12 @@
 
 static int eap_sim_prf(const u8 *key, u8 *x, size_t xlen)
 {
-	return fips186_2_prf(key, EAP_SIM_MK_LEN, x, xlen);
+	int rv = fips186_2_prf(key, EAP_SIM_MK_LEN, x, xlen);
+	if (rv < 0) {
+		wpa_printf(MSG_ERROR, "EAP-SIM: Failed to derive keys: %i,"
+			   " Compiled with INVALID CRYPTO LIBRARY?", rv);
+	}
+	return rv;
 }
 
 
@@ -79,7 +84,6 @@ int eap_sim_derive_keys(const u8 *mk, u8 *k_encr, u8 *k_aut, u8 *msk, u8 *emsk)
 	u8 buf[EAP_SIM_K_ENCR_LEN + EAP_SIM_K_AUT_LEN +
 	       EAP_SIM_KEYING_DATA_LEN + EAP_EMSK_LEN], *pos;
 	if (eap_sim_prf(mk, buf, sizeof(buf)) < 0) {
-		wpa_printf(MSG_ERROR, "EAP-SIM: Failed to derive keys");
 		return -1;
 	}
 	pos = buf;
@@ -144,7 +148,6 @@ int eap_sim_derive_keys_reauth(u16 _counter,
 	wpa_hexdump(MSG_DEBUG, "EAP-SIM: XKEY'", xkey, SHA1_MAC_LEN);
 
 	if (eap_sim_prf(xkey, buf, sizeof(buf)) < 0) {
-		wpa_printf(MSG_ERROR, "EAP-SIM: Failed to derive keys");
 		return -1;
 	}
 	if (msk) {
