@@ -1119,6 +1119,10 @@ static void ieee802_1x_get_keys(struct hostapd_data *hapd,
 			sm->eap_if->aaaEapKeyAvailable = TRUE;
 		}
 	}
+	else {
+		wpa_printf(MSG_DEBUG, "MS-MPPE: 1x_get_keys, could not get keys: %p  send: %p  recv: %p",
+			   keys, keys ? keys->send : NULL, keys ? keys->recv : NULL);
+	}
 
 	if (keys) {
 		os_free(keys->send);

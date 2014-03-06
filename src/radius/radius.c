@@ -972,13 +972,15 @@ static u8 * decrypt_ms_key(const u8 *key, size_t len,
 
 	/* key: 16-bit salt followed by encrypted key info */
 
-	if (len < 2 + 16)
+	if (len < 2 + 16) {
+		wpa_printf(MSG_DEBUG, "RADIUS: Len is too small: %i", len);
 		return NULL;
+	}
 
 	pos = key + 2;
 	left = len - 2;
 	if (left % 16) {
-		wpa_printf(MSG_INFO, "Invalid ms key len %lu",
+		wpa_printf(MSG_INFO, "RADIUS: Invalid ms key len %lu",
 			   (unsigned long) left);
 		return NULL;
 	}
@@ -1013,7 +1015,7 @@ static u8 * decrypt_ms_key(const u8 *key, size_t len,
 	}
 
 	if (plain[0] == 0 || plain[0] > plen - 1) {
-		wpa_printf(MSG_INFO, "Failed to decrypt MPPE key");
+		wpa_printf(MSG_INFO, "RADIUS: Failed to decrypt MPPE key");
 		os_free(plain);
 		return NULL;
 	}
@@ -1102,6 +1104,9 @@ radius_msg_get_ms_keys(struct radius_msg *msg, struct radius_msg *sent_msg,
 					    sent_msg->hdr->authenticator,
 					    secret, secret_len,
 					    &keys->send_len);
+		if (!keys->send) {
+			wpa_printf(MSG_DEBUG, "RADIUS: Failed to decrypt send key.");
+		}
 		os_free(key);
 	}
 
@@ -1113,6 +1118,9 @@ radius_msg_get_ms_keys(struct radius_msg *msg, struct radius_msg *sent_msg,
 					    sent_msg->hdr->authenticator,
 					    secret, secret_len,
 					    &keys->recv_len);
+		if (!keys->recv) {
+			wpa_printf(MSG_DEBUG, "RADIUS: Failed to decrypt recv key.");
+		}
 		os_free(key);
 	}
 
