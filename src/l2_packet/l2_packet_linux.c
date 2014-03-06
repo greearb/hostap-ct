@@ -277,6 +277,7 @@ struct l2_packet_data * l2_packet_init(
 	struct l2_packet_data *l2;
 	struct ifreq ifr;
 	struct sockaddr_ll ll;
+	int val = (256 + 7);
 
 	l2 = os_zalloc(sizeof(struct l2_packet_data));
 	if (l2 == NULL)
@@ -329,6 +330,17 @@ struct l2_packet_data * l2_packet_init(
 		return NULL;
 	}
 	os_memcpy(l2->own_addr, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+
+	/* Use high-priority queue for management packets
+	 * http://wireless.kernel.org/en/developers/Documentation/mac80211/queues
+	 */
+	if (setsockopt(l2->fd, SOL_SOCKET,
+		       SO_PRIORITY, (char*)&val, sizeof(val)) < 0) {
+		/* Carry on...this is not fatal. */
+		wpa_printf(MSG_DEBUG,
+			   "l2_packet: sock priority sockopt (%i) failed\n",
+			   val);
+	}
 
 	if (rx_callback)
 		eloop_register_read_sock(l2->fd, l2_packet_receive, l2, NULL);
