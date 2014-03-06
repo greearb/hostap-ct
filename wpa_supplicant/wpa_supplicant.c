@@ -901,6 +901,66 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 	}
 #endif /* CONFIG_P2P */
 
+#ifdef CONFIG_REPORT_TIMERS
+	if ((old_state != state) ||
+	    (state == WPA_DISCONNECTED && wpa_s->state_disconnected_at.sec == 0)) {
+		switch (state) {
+		case WPA_DISCONNECTED:
+			os_get_time(&wpa_s->state_disconnected_at);
+			if (! wpa_s->disconnect_since_complete) {
+				/* First disconnect state since we were last fully connected
+				 */
+				wpa_s->state_disconnected_orig_at = wpa_s->state_disconnected_at;
+				wpa_s->disconnect_since_complete = 1;
+			}
+			break;
+		case WPA_INTERFACE_DISABLED:
+			os_get_time(&wpa_s->state_disabled_at);
+			break;
+		case WPA_INACTIVE:
+			os_get_time(&wpa_s->state_inactive_at);
+			break;
+		case WPA_SCANNING:
+			os_get_time(&wpa_s->state_scanning_at);
+			break;
+		case WPA_AUTHENTICATING:
+			/* On roam, we go from completed -> associating, never hitting
+			 * disconnected.  Treat this as disconnected with regard to timers.
+			 */
+			if (!wpa_s->disconnect_since_complete) {
+				os_get_time(&wpa_s->state_disconnected_at);
+				wpa_s->state_disconnected_orig_at = wpa_s->state_disconnected_at;
+				wpa_s->disconnect_since_complete = 1;
+			}
+			os_get_time(&wpa_s->state_authenticating_at);
+			break;
+		case WPA_ASSOCIATING:
+			os_get_time(&wpa_s->state_associating_at);
+			break;
+		case WPA_ASSOCIATED:
+			os_get_time(&wpa_s->state_associated_at);
+			break;
+		case WPA_4WAY_HANDSHAKE:
+			wpa_s->had_4way_since_complete = 1;
+			os_get_time(&wpa_s->state_4way_at);
+			break;
+		case WPA_GROUP_HANDSHAKE:
+			os_get_time(&wpa_s->state_group_handshake_at);
+			break;
+		case WPA_COMPLETED:
+			if (wpa_s->had_4way_since_complete) {
+				os_get_time(&wpa_s->state_wpa_completed_4way_at);
+				wpa_s->had_4way_since_complete = 0;
+			}
+			if (wpa_s->disconnect_since_complete) {
+				os_get_time(&wpa_s->state_wpa_completed_conn_at);
+				wpa_s->disconnect_since_complete = 0;
+			}
+			break;
+		}
+	}/* if state actually changed */
+#endif
+
 	if (state != WPA_SCANNING)
 		wpa_supplicant_notify_scanning(wpa_s, 0);
 
