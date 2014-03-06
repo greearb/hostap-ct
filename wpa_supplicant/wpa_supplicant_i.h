@@ -1328,6 +1328,25 @@ struct wpa_supplicant {
 	struct rrm_data rrm;
 	struct beacon_rep_data beacon_rep_data;
 
+#ifdef CONFIG_REPORT_TIMERS
+	u8 disconnect_since_complete;
+	u8 had_4way_since_complete;
+	struct os_time state_disconnected_orig_at;
+	struct os_time state_disconnected_at;
+	struct os_time state_disabled_at;
+	struct os_time state_inactive_at;
+	struct os_time state_scanning_at;
+	struct os_time state_authenticating_at;
+	struct os_time state_associating_at;
+	struct os_time state_associated_at;
+	struct os_time state_4way_at;
+	struct os_time state_group_handshake_at;
+	struct os_time state_wpa_completed_4way_at;
+	struct os_time state_wpa_completed_conn_at;
+	struct os_time started_anqp_query_at;
+	struct os_time finished_anqp_query_at;
+#endif
+
 #ifdef CONFIG_FST
 	struct fst_iface *fst;
 	const struct wpabuf *fst_ies;
