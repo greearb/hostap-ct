@@ -409,6 +409,28 @@ struct rsn_pmksa_cache_entry * pmksa_cache_get(struct rsn_pmksa_cache *pmksa,
 			return entry;
 		entry = entry->next;
 	}
+
+#if 0
+	/* Verbose debugging, we failed to find the cache entry, so print out
+	 * everything to figure out why.
+	 */
+	wpa_printf(MSG_DEBUG, "RSN: pmksa-cache-get failed lookup, network-ctx: %p",
+		   network_ctx);
+	if (aa)
+		wpa_printf(MSG_DEBUG, "RSN: aa: " MACSTR "", MAC2STR(aa));
+	if (pmkid)
+		wpa_hexdump(MSG_DEBUG, "RSN: pmkid",
+			    pmkid, PMKID_LEN);
+	entry = pmksa->pmksa;
+	while (entry) {
+		wpa_printf(MSG_DEBUG, "RSN: entry: %p  aa: " MACSTR
+			   " network-ctx: %p",
+			   MAC2STR(entry->aa), entry->network_ctx);
+		wpa_hexdump(MSG_DEBUG, "RSN: pmkid",
+			    entry->pmkid, PMKID_LEN);
+		entry = entry->next;
+	}
+#endif
 	return NULL;
 }
 
