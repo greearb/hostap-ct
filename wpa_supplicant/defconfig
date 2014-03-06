@@ -297,7 +297,7 @@ CONFIG_PEERKEY=y
 
 # Select TLS implementation
 # openssl = OpenSSL (default)
-# gnutls = GnuTLS
+# gnutls = GnuTLS (Missing some features needed by EAP-AKA with USIM, at least)
 # internal = Internal TLSv1 implementation (experimental)
 # none = Empty template
 #CONFIG_TLS=openssl
