@@ -816,6 +816,7 @@ ssid_list_set:
 
 	wpa_supplicant_optimize_freqs(wpa_s, &params);
 	extra_ie = wpa_supplicant_extra_ies(wpa_s);
+	params.can_scan_one = wpa_s->conf->can_scan_one;
 
 	if (wpa_s->last_scan_req == MANUAL_SCAN_REQ &&
 	    wpa_s->manual_scan_only_new)
