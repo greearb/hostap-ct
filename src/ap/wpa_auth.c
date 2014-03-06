@@ -65,9 +65,9 @@ static void wpa_group_put(struct wpa_authenticator *wpa_auth,
 			  struct wpa_group *group);
 static u8 * ieee80211w_kde_add(struct wpa_state_machine *sm, u8 *pos);
 
-static const u32 eapol_key_timeout_first = 100; /* ms */
-static const u32 eapol_key_timeout_subseq = 1000; /* ms */
-static const u32 eapol_key_timeout_first_group = 500; /* ms */
+static const u32 eapol_key_timeout_first = 1000; /* ms */
+static const u32 eapol_key_timeout_subseq = 2000; /* ms */
+static const u32 eapol_key_timeout_first_group = 1500; /* ms */
 static const u32 eapol_key_timeout_no_retrans = 4000; /* ms */
 
 /* TODO: make these configurable */
