@@ -2894,7 +2894,7 @@ static int wpa_driver_nl80211_authenticate(
 	    wpa_driver_nl80211_set_mode(bss, nlmode) < 0)
 		return -1;
 
-retry:
+/*retry:*/
 	wpa_printf(MSG_DEBUG, "nl80211: Authenticate (ifindex=%d)",
 		   drv->ifindex);
 
@@ -2976,6 +2976,12 @@ retry:
 		count++;
 		if (ret == -EALREADY && count == 1 && params->bssid &&
 		    !params->local_state_change) {
+#if 0
+			/* The original commit (6d6f4bb8) put in a work-around to
+			 * deal with the spurious deauth event, but it does not
+			 * appear to work in all cases.  Removing this retry code
+			 * does fix the problem. --Ben
+			 */
 			/*
 			 * mac80211 does not currently accept new
 			 * authentication if we are already authenticated. As a
@@ -2989,6 +2995,7 @@ retry:
 				WLAN_REASON_PREV_AUTH_NOT_VALID);
 			nlmsg_free(msg);
 			goto retry;
+#endif
 		}
 
 		if (ret == -ENOENT && params->freq && !is_retry) {
