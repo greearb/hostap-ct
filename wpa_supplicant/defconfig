@@ -533,6 +533,11 @@ CONFIG_WIFI_DISPLAY=y
 # File-based backend to read passwords from an external file.
 #CONFIG_EXT_PASSWORD_FILE=y
 
+# Keep some timestamps for various events, report them with 'wpa_cli status'
+# Aids in testing APs if nothing else.   Should be low impact on CPU and
+# memory usage, but increases both slightly.
+#CONFIG_REPORT_TIMERS=y
+
 # Enable Fast Session Transfer (FST)
 #CONFIG_FST=y
 

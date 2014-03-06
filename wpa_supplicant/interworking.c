@@ -2704,6 +2704,11 @@ static void interworking_next_anqp_fetch(struct wpa_supplicant *wpa_s)
 			return;
 		}
 #endif /* CONFIG_HS20 */
+
+#ifdef CONFIG_REPORT_TIMERS
+		os_get_time(&wpa_s->finished_anqp_query_at);
+#endif
+
 		wpa_msg(wpa_s, MSG_INFO, "ANQP fetch completed");
 		wpa_s->fetch_anqp_in_progress = 0;
 		if (wpa_s->network_select)
@@ -2726,6 +2731,10 @@ void interworking_start_fetch_anqp(struct wpa_supplicant *wpa_s)
 	 * does not end up using excessive recursion.
 	 */
 	eloop_register_timeout(0, 0, interworking_continue_anqp, wpa_s, NULL);
+
+#ifdef CONFIG_REPORT_TIMERS
+	os_get_time(&wpa_s->started_anqp_query_at);
+#endif
 }
 
 
@@ -2749,6 +2758,9 @@ void interworking_stop_fetch_anqp(struct wpa_supplicant *wpa_s)
 	if (!wpa_s->fetch_anqp_in_progress)
 		return;
 
+#ifdef CONFIG_REPORT_TIMERS
+	os_get_time(&wpa_s->finished_anqp_query_at);
+#endif
 	wpa_s->fetch_anqp_in_progress = 0;
 }
 
