@@ -2297,10 +2297,22 @@ static void * wpa_driver_nl80211_drv_init(void *ctx, const char *ifname,
 		goto failed;
 
 	if (drv->data_tx_status) {
-		int enabled = 1;
+		int val = (256 + 7);
 
+		/* Use high-priority queue for EAPOL packets
+		 * http://wireless.kernel.org/en/developers/Documentation/mac80211/queues
+		 */
+		if (setsockopt(drv->eapol_tx_sock, SOL_SOCKET,
+			       SO_PRIORITY, (char*)&val, sizeof(val)) < 0) {
+			/* Carry on...this is not fatal. */
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: eapol sock priority sockopt (%i) failed\n",
+				   val);
+		}
+
+		val = 1;
 		if (setsockopt(drv->eapol_tx_sock, SOL_SOCKET, SO_WIFI_STATUS,
-			       &enabled, sizeof(enabled)) < 0) {
+			       &val, sizeof(val)) < 0) {
 			wpa_printf(MSG_DEBUG,
 				   "nl80211: wifi status sockopt failed: %s",
 				   strerror(errno));
