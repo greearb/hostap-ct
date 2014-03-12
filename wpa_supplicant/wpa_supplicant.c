@@ -5326,8 +5326,21 @@ static void radio_start_next_work(void *eloop_ctx, void *timeout_ctx)
 			return; /* already started and still in progress */
 
 		if (wpa_s && wpa_s->radio->external_scan_running) {
-			wpa_printf(MSG_DEBUG, "Delay radio work start until externally triggered scan completes");
-			return;
+			/* If external scan has been running too long, then continue with our own,
+			 * we must have missed the scan-completed event somehow..or buggy os/driver
+			 * did not deliver it.
+			 */
+			struct os_reltime now, diff;
+			os_get_reltime(&now);
+			os_reltime_sub(&now, &wpa_s->external_scan_start_time, &diff);
+			if (diff.sec > 30) {
+				wpa_msg(wpa_s, MSG_INFO, "External scan took too long: %ld.%06ld seconds, will assume it is completed.",
+					diff.sec, diff.usec);
+				wpa_s->radio->external_scan_running = 0;
+			} else {
+				wpa_msg(wpa_s, MSG_DEBUG, "Delay radio work start until externally triggered scan completes");
+				return;
+			}
 		}
 	} else {
 		work = NULL;
