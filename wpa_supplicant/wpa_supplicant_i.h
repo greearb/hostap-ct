@@ -872,6 +872,7 @@ struct wpa_supplicant {
 	struct os_reltime scan_trigger_time, scan_start_time;
 	/* Minimum freshness requirement for connection purposes */
 	struct os_reltime scan_min_time;
+	struct os_reltime external_scan_start_time;
 	int scan_runs; /* number of scan runs since WPS was started */
 	int *next_scan_freqs;
 	int *select_network_scan_freqs;
