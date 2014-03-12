@@ -4662,6 +4662,7 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		} else {
 			wpa_dbg(wpa_s, MSG_DEBUG, "External program started a scan");
 			wpa_s->radio->external_scan_running = 1;
+			os_get_reltime(&wpa_s->external_scan_start_time);
 			wpa_msg_ctrl(wpa_s, MSG_INFO, WPA_EVENT_SCAN_STARTED);
 		}
 		break;
