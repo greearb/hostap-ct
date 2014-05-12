@@ -30,6 +30,7 @@
 #define DEFAULT_P2P_SEARCH_DELAY 500
 #define DEFAULT_MIN_SCAN_GAP 0
 #define DEFAULT_MAX_ASSOC_PER_SCAN 25
+#define DEFAULT_CONCURRENT_ASSOC_OK 0
 
 #include "config_ssid.h"
 #include "wps/wps.h"
@@ -798,6 +799,13 @@ struct wpa_config {
 	 * you are running lots of virtual interfaces.
 	 */
 	int can_scan_one;
+
+	/* By default, scans are no longer shared once one of the stations starts
+	 * to associate.  This makes bringing up lots of vifs take a long time.
+	 * This override below lets us propagate scans even if a station is
+	 * associating.
+	 */
+	int concurrent_assoc_ok;
 
 	/**
 	 * disassoc_low_ack - Disassocicate stations with massive packet loss
