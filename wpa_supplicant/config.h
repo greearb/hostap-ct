@@ -33,6 +33,7 @@
 #define DEFAULT_BSS_EXPIRATION_SCAN_COUNT 2
 #define DEFAULT_MIN_SCAN_GAP 0
 #define DEFAULT_MAX_ASSOC_PER_SCAN 25
+#define DEFAULT_CONCURRENT_ASSOC_OK 0
 #define DEFAULT_MAX_NUM_STA 128
 #define DEFAULT_AP_ISOLATE 0
 #define DEFAULT_ACCESS_NETWORK_TYPE 15
@@ -953,6 +954,13 @@ struct wpa_config {
 	 * changed_parameters - Bitmap of changed parameters since last update
 	 */
 	unsigned int changed_parameters;
+
+	/* By default, scans are no longer shared once one of the stations starts
+	 * to associate.  This makes bringing up lots of vifs take a long time.
+	 * This override below lets us propagate scans even if a station is
+	 * associating.
+	 */
+	int concurrent_assoc_ok;
 
 	/**
 	 * disassoc_low_ack - Disassociate stations with massive packet loss
