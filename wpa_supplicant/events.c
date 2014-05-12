@@ -1343,6 +1343,7 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	if (wpa_s->conf->min_scan_gap &&
 	    eloop_is_timeout_registered(wpa_supplicant_scan, wpa_s, NULL)) {
 		/* Min gap will be applied as needed */
+		wpa_dbg(wpa_s, MSG_DEBUG, "Re-requesting scan to apply min-gap");
 		wpa_supplicant_req_scan(wpa_s, 1, 0);
 	}
 
@@ -1514,10 +1515,12 @@ static void wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 					      union wpa_event_data *data)
 {
 	struct wpa_supplicant *ifs;
+	int res;
 
 	num_assoc_reqs = 0;
 
-	if (_wpa_supplicant_event_scan_results(wpa_s, data, 1) != 0) {
+	if (((res = _wpa_supplicant_event_scan_results(wpa_s, data, 1)) < 0) ||
+	    ((res > 0) && !wpa_s->conf->concurrent_assoc_ok)) {
 		/*
 		 * If no scan results could be fetched, then no need to
 		 * notify those interfaces that did not actually request
@@ -1525,6 +1528,8 @@ static void wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 		 * interface, do not notify other interfaces to avoid concurrent
 		 * operations during a connection attempt.
 		 */
+		wpa_printf(MSG_DEBUG, "event-scan-results not sharable: %d",
+			   res);
 		return;
 	}
 
