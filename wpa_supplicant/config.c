@@ -3608,6 +3608,8 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	if (driver_param)
 		config->driver_param = os_strdup(driver_param);
 
+	config->concurrent_assoc_ok = DEFAULT_CONCURRENT_ASSOC_OK;
+
 	return config;
 }
 
@@ -4293,6 +4295,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(sched_scan_interval), 0 },
 	{ INT(tdls_external_control), 0},
 	{ STR(osu_dir), 0 },
+	{ INT(concurrent_assoc_ok), 0 },
 	{ STR(wowlan_triggers), 0 },
 	{ INT(p2p_search_delay), 0},
 	{ INT(mac_addr), 0 },
