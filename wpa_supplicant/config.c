@@ -4582,6 +4582,8 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 		config->driver_param = os_strdup(driver_param);
 	config->gas_rand_addr_lifetime = DEFAULT_RAND_ADDR_LIFETIME;
 
+	config->concurrent_assoc_ok = DEFAULT_CONCURRENT_ASSOC_OK;
+
 	return config;
 }
 
@@ -5374,6 +5376,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(tdls_external_control), 0},
 	{ STR(osu_dir), 0 },
 	{ STR(wowlan_triggers), CFG_CHANGED_WOWLAN_TRIGGERS },
+	{ INT(concurrent_assoc_ok), 0 },
 	{ INT(p2p_search_delay), 0},
 	{ INT(mac_addr), 0 },
 	{ INT(rand_addr_lifetime), 0 },
