@@ -1893,17 +1893,6 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 
 	os_get_reltime(&t);
 	wpa_s->last_scan_rx_sec = t.sec;
-	/* Now, *if* we have (another) scan scheduled, and a min-scan-gap
-	 * configured, make sure it happens after the minimum time.  Since
-	 * one STA's scan results can be propagated to other STA on the
-	 * same radio, this is actually a common case.
-	 */
-	if (wpa_s->conf->min_scan_gap &&
-	    eloop_is_timeout_registered(wpa_supplicant_scan, wpa_s, NULL)) {
-		/* Min gap will be applied as needed */
-		wpa_dbg(wpa_s, MSG_DEBUG, "Re-requesting scan to apply min-gap");
-		wpa_supplicant_req_scan(wpa_s, 1, 0);
-	}
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "New scan results available (own=%u ext=%u)",
 		wpa_s->own_scan_running,
@@ -1920,6 +1909,25 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	wpas_notify_scan_results(wpa_s);
 
 	wpas_notify_scan_done(wpa_s, 1);
+
+	/* Now, *if* we have (another) scan scheduled, and a min-scan-gap
+	 * configured, make sure it happens after the minimum time.  Since
+	 * one STA's scan results can be propagated to other STA on the
+	 * same radio, this is actually a common case.
+	 */
+	if (wpa_s->conf->min_scan_gap &&
+	    eloop_is_timeout_registered(wpa_supplicant_scan, wpa_s, NULL)) {
+		/* Min gap will be applied as needed */
+		wpa_dbg(wpa_s, MSG_DEBUG, "Re-requesting scan to apply min-gap/scan-on-freq");
+		/* To temporarily work around ath10k bug, only cancel existing
+		 * if we are configured to allow concurrent associations.
+		 */
+		if (wpa_s->conf->concurrent_assoc_ok) {
+			/* Cancel any existing scan request */
+			wpa_supplicant_cancel_scan(wpa_s);
+		}
+		wpa_supplicant_req_scan(wpa_s, 1, 0);
+	}
 
 	if (data && data->scan_info.external_scan) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "Do not use results from externally requested scan operation for network selection");
