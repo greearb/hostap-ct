@@ -1122,7 +1122,7 @@ int wpa_supplicant_connect(struct wpa_supplicant *wpa_s,
 
 		if (num_assoc_reqs >= wpa_s->conf->max_assoc_per_scan) {
 			wpa_dbg(wpa_s, MSG_DEBUG,
-				"Deferring association attempt, reqs: %i, max: %i",
+				"Deferring association attempt, reqs: %i, max: %i (connect)",
 				num_assoc_reqs, wpa_s->conf->max_assoc_per_scan);
 			return 0;
 		}
@@ -1372,16 +1372,17 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	 */
 	if (wpa_s->conf->min_scan_gap &&
 	    eloop_is_timeout_registered(wpa_supplicant_scan, wpa_s, NULL)) {
-		/* Min gap will be applied as needed */
-		wpa_dbg(wpa_s, MSG_DEBUG, "Re-requesting scan to apply min-gap/scan-on-freq");
 		/* To temporarily work around ath10k bug, only cancel existing
 		 * if we are configured to allow concurrent associations.
 		 */
 		if (wpa_s->conf->concurrent_assoc_ok) {
+			/* Min gap will be applied as needed */
+			wpa_dbg(wpa_s, MSG_DEBUG, "Re-requesting scan to apply min-gap/scan-on-freq");
+
 			/* Cancel any existing scan request */
 			wpa_supplicant_cancel_scan(wpa_s);
+			wpa_supplicant_req_scan(wpa_s, 1, 0);
 		}
-		wpa_supplicant_req_scan(wpa_s, 1, 0);
 	}
 
 	if (!wpa_s->own_scan_running && wpa_s->radio->external_scan_running) {
@@ -1415,21 +1416,13 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 
 	wpa_scan_results_free(scan_res);
 
-	if (wpa_s->scan_work) {
-		struct wpa_radio_work *work = wpa_s->scan_work;
-		wpa_s->scan_work = NULL;
-		radio_work_done(work);
-	}
+	wpa_remove_scan_work(wpa_s, "scan-results");
 
 	return wpas_select_network_from_last_scan(wpa_s, 1, own_request);
 
 scan_work_done:
 	wpa_scan_results_free(scan_res);
-	if (wpa_s->scan_work) {
-		struct wpa_radio_work *work = wpa_s->scan_work;
-		wpa_s->scan_work = NULL;
-		radio_work_done(work);
-	}
+	wpa_remove_scan_work(wpa_s, "scan-rsults-done");
 	return ret;
 }
 
