@@ -1656,6 +1656,9 @@ static int wpa_driver_nl80211_set_country(void *priv, const char *alpha2_arg)
 		nlmsg_free(msg);
 		return -EINVAL;
 	}
+
+	wpa_printf(MSG_INFO, "nl80211: set-country reg-domain alpha2: %s\n",
+		   alpha2);
 	if (send_and_recv_msgs(drv, msg, NULL, NULL))
 		return -EINVAL;
 	return 0;
