@@ -6532,6 +6532,9 @@ void radio_remove_works(struct wpa_supplicant *wpa_s,
 	struct wpa_radio_work *work, *tmp;
 	struct wpa_radio *radio = wpa_s->radio;
 
+	if (!radio)
+		return;
+
 	dl_list_for_each_safe(work, tmp, &radio->work, struct wpa_radio_work,
 			      list) {
 		if (type && os_strcmp(type, work->type) != 0)
