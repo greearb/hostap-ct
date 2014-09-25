@@ -16,7 +16,15 @@ HWSIM_CMD_DESTROY_RADIO = 5
 HWSIM_ATTR_CHANNELS = 9
 HWSIM_ATTR_RADIO_ID = 10
 HWSIM_ATTR_SUPPORT_P2P_DEVICE = 14
-HWSIM_ATTR_USE_CHANCTX = 15
+HWSIM_CMD_CREATE_RADIO		= 4
+HWSIM_CMD_DESTROY_RADIO		= 5
+
+HWSIM_ATTR_ADDR_TRANSMITTER     = 2
+HWSIM_ATTR_CHANNELS		= 9
+HWSIM_ATTR_RADIO_ID		= 10
+HWSIM_ATTR_SUPPORT_P2P_DEVICE	= 14
+HWSIM_ATTR_USE_CHANCTX		= 15
+HWSIM_ATTR_RADIO_NAME		= 17
 
 # the controller class
 class HWSimController(object):
@@ -41,7 +49,11 @@ class HWSimController(object):
         return msg.send_and_recv(self._conn).ret
 
     def destroy_radio(self, radio_id):
-        attrs = [netlink.U32Attr(HWSIM_ATTR_RADIO_ID, radio_id)]
+        try:
+            int(radio_id)
+            attrs = [netlink.U32Attr(HWSIM_ATTR_RADIO_ID, int(radio_id))]
+        except ValueError:
+            attrs = [netlink.NulStrAttr(HWSIM_ATTR_RADIO_NAME, radio_id)]
         msg = netlink.GenlMessage(self._fid, HWSIM_CMD_DESTROY_RADIO,
                                   flags=netlink.NLM_F_REQUEST |
                                         netlink.NLM_F_ACK,
@@ -104,9 +116,9 @@ if __name__ == '__main__':
     parser_create.set_defaults(func=create)
 
     parser_destroy = subparsers.add_parser('destroy', help='destroy a radio')
-    parser_destroy.add_argument('radio', metavar='<radio>', type=int,
-                                default=0,
-                                help='The number of the radio to be ' +
+    parser_destroy.add_argument('radio', metavar='<radio>', type=str,
+                                default="0",
+                                help='The number or name of the radio to be ' +
                                 'destroyed (i.e., 0 for phy0, 1 for phy1...)')
     parser_destroy.set_defaults(func=destroy)
 
