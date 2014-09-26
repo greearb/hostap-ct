@@ -25,6 +25,7 @@ HWSIM_ATTR_RADIO_ID		= 10
 HWSIM_ATTR_SUPPORT_P2P_DEVICE	= 14
 HWSIM_ATTR_USE_CHANCTX		= 15
 HWSIM_ATTR_RADIO_NAME		= 17
+HWSIM_ATTR_NO_VIF		= 18 # Create hwsim radio w/out auto-creating a vif.
 
 # the controller class
 class HWSimController(object):
@@ -33,7 +34,7 @@ class HWSimController(object):
         self._fid = netlink.genl_controller.get_family_id(b'MAC80211_HWSIM')
 
     def create_radio(self, n_channels=None, use_chanctx=False,
-                     use_p2p_device=False, hwname=None):
+                     use_p2p_device=False, hwname=None, no_vif=False):
         attrs = []
         if n_channels:
             attrs.append(netlink.U32Attr(HWSIM_ATTR_CHANNELS, n_channels))
@@ -43,6 +44,8 @@ class HWSimController(object):
             attrs.append(netlink.FlagAttr(HWSIM_ATTR_SUPPORT_P2P_DEVICE))
         if hwname:
             attrs.append(netlink.NulStrAttr(HWSIM_ATTR_RADIO_NAME, hwname))
+        if no_vif:
+            attrs.append(netlink.FlagAttr(HWSIM_ATTR_NO_VIF))
 
         msg = netlink.GenlMessage(self._fid, HWSIM_CMD_CREATE_RADIO,
                                   flags=netlink.NLM_F_REQUEST |
@@ -91,7 +94,8 @@ class HWSimRadio(object):
 def create(args):
     print('Created radio %d' % c.create_radio(n_channels=args.channels,
                                               use_chanctx=args.chanctx,
-                                              hwname=args.radio_name))
+                                              hwname=args.radio_name,
+                                              no_vif=args.no_vif))
 
 def destroy(args):
     print(c.destroy_radio(args.radio))
@@ -120,6 +124,10 @@ if __name__ == '__main__':
                                default="",
                                help='Optional radio name to request for the new ' +
                                'radio.')
+    parser_create.add_argument('--no_vif', action="store_true",
+                               help='Ask kernel to NOT create wlanX interfaces. ' +
+                               'User could create them manually, with specific name '
+                               'for easier scripting and automated testing.')
     parser_create.set_defaults(func=create)
 
     parser_destroy = subparsers.add_parser('destroy', help='destroy a radio')
