@@ -228,8 +228,8 @@ int wpa_supplicant_trigger_scan(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
-        wpa_dbg(wpa_s, MSG_DEBUG, "trigger-scan, freqs: %p  can-scan-one: %i",
-                params->freqs, params->can_scan_one);
+        wpa_dbg(wpa_s, MSG_DEBUG, "trigger-scan, freqs: %p",
+                params->freqs);
 	ctx = wpa_scan_clone_params(params);
 	if (ctx == NULL)
 		return -1;
