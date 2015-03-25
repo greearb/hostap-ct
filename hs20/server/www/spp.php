@@ -141,6 +141,9 @@ $addr = $_SERVER["REMOTE_ADDR"];
 putenv("HS20ADDR=$addr");
 putenv("HS20TEST=$test");
 
+// Note that systemd + apache may run under chroot, and so your log file will
+// be in some hard-to-find place like:
+// /tmp/systemd-httpd.service-XqgPdBa/tmp/hs20_spp_server.log
 $last = exec("$osu_root/spp/hs20_spp_server -r$osu_root -f/tmp/hs20_spp_server.log", $output, $ret);
 
 if ($ret == 2) {
