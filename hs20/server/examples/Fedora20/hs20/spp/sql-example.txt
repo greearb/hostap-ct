@@ -1,0 +1,17 @@
+
+INSERT INTO osu_config(realm,field,value) VALUES('ben-ota-2.lanforge.local','fqdn','ben-ota-2.lanforge.local');
+INSERT INTO osu_config(realm,field,value) VALUES('ben-ota-2.lanforge.local','friendly_name','LANforge Example Operator');
+INSERT INTO osu_config(realm,field,value) VALUES('ben-ota-2.lanforge.local','spp_http_auth_url','https://osu-server.ben-ota-2.lanforge.local:443/hs20/spp.php?realm=ben-ota-2.lanforge.local');
+INSERT INTO osu_config(realm,field,value) VALUES('ben-ota-2.lanforge.local','trust_root_cert_url','https://osu-server.ben-ota-2.lanforge.local:443/hs20/files/spp-root-ca.der');
+INSERT INTO osu_config(realm,field,value) VALUES('ben-ota-2.lanforge.local','trust_root_cert_fingerprint','1947cfb533bdbcf217ae18488eda56da6e56fcd61be15eb908d55c0f10b116b3');
+INSERT INTO osu_config(realm,field,value) VALUES('ben-ota-2.lanforge.local','aaa_trust_root_cert_url','https://osu-server.ben-ota-2.lanforge.local:443/hs20/files/aaa-root-ca.der');
+INSERT INTO osu_config(realm,field,value) VALUES('ben-ota-2.lanforge.local','aaa_trust_root_cert_fingerprint','1947cfb533bdbcf217ae18488eda56da6e56fcd61be15eb908d55c0f10b116b3');
+INSERT INTO osu_config(realm,field,value) VALUES('ben-ota-2.lanforge.local','free_account','free');
+INSERT INTO osu_config(realm,field,value) VALUES('ben-ota-2.lanforge.local','policy_url','https://osu-signup.ben-ota-2.lanforge.local:435/hs20/spp.php?realm=ben-ota-2.lanforge.local');
+INSERT INTO osu_config(realm,field,value) VALUES('ben-ota-2.lanforge.local','remediation_url','https://osu-signup.ben-ota-2.lanforge.local:435/hs20/remediation.php?session_id=');
+INSERT INTO osu_config(realm,field,value) VALUES('ben-ota-2.lanforge.local','free_remediation_url','https://osu-signup.ben-ota-2.lanforge.local:435/hs20/free-remediation.php?session_id=');
+INSERT INTO osu_config(realm,field,value) VALUES('ben-ota-2.lanforge.local','signup_url','https://osu-signup.ben-ota-2.lanforge.local:435/hs20/signup.php?session_id=');
+
+INSERT INTO users(identity,realm,methods,password,phase2,shared) VALUES('free','ben-ota-2.lanforge.local','TTLS-MSCHAPV2','free',1,1);
+
+INSERT INTO wildcards(identity,methods) VALUES('','TTLS,TLS');
