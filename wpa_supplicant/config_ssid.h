@@ -45,6 +45,7 @@
 #define DEFAULT_AMPDU_DENSITY -1 /* no change */
 #define DEFAULT_USER_SELECTED_SIM 1
 #define DEFAULT_MAX_OPER_CHWIDTH -1
+#define DEFAULT_INTERWORKING_DEFAULTS 0
 
 /* Consider global sae_pwe for SAE mechanism for PWE derivation */
 #define DEFAULT_SAE_PWE 4
@@ -675,6 +676,12 @@ struct wpa_ssid {
 	 * temporary - Whether this network is temporary and not to be saved
 	 */
 	int temporary;
+
+	/**
+	 * interworking_defaults - Whether this network block should be used for
+	 *    network defaults when creating temporary interworking network blocks.
+	 */
+	int interworking_defaults;
 
 	/**
 	 * export_keys - Whether keys may be exported
