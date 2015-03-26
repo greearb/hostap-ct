@@ -1,0 +1,5 @@
+V	250325200431Z		CE16EDE72F074085	unknown	/C=FI/O=ben-ota-2.lanforge.local/CN=Hotspot 2.0 Intermediate CA - 99
+V	170325200432Z		CE16EDE72F074086	unknown	/C=FI/O=ben-ota-2.lanforge.local/CN=ocsp.ben-ota-2.lanforge.local
+R	170325200432Z	150326200432Z	CE16EDE72F074087	unknown	/C=FI/O=ben-ota-2.lanforge.local/CN=osu-revoked.ben-ota-2.lanforge.local
+V	170325200432Z		CE16EDE72F074088	unknown	/C=FI/O=ben-ota-2.lanforge.local/CN=osu-client.ben-ota-2.lanforge.local
+V	170325200432Z		CE16EDE72F074089	unknown	/C=FI/O=ben-ota-2.lanforge.local/CN=User
