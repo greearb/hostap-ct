@@ -1552,6 +1552,7 @@ struct wpa_ssid * wpa_config_get_network(struct wpa_config *config, int id);
 struct wpa_ssid * wpa_config_add_network(struct wpa_config *config);
 int wpa_config_remove_network(struct wpa_config *config, int id);
 void wpa_config_set_network_defaults(struct wpa_ssid *ssid);
+void wpa_config_set_user_network_defaults(struct wpa_config *config, struct wpa_ssid *ssid);
 int wpa_config_set(struct wpa_ssid *ssid, const char *var, const char *value,
 		   int line);
 int wpa_config_set_quoted(struct wpa_ssid *ssid, const char *var,
