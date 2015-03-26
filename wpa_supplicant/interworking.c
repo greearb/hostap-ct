@@ -997,6 +997,7 @@ static int interworking_connect_3gpp(struct wpa_supplicant *wpa_s,
 
 	wpas_notify_network_added(wpa_s, ssid);
 	wpa_config_set_network_defaults(ssid);
+	wpa_config_set_user_network_defaults(wpa_s->conf, ssid);
 	ssid->priority = cred->priority;
 	ssid->temporary = 1;
 	ssid->ssid = os_zalloc(bss->ssid_len + 1);
@@ -1587,6 +1588,7 @@ static int interworking_connect_roaming_consortium(
 	ssid->parent_cred = cred;
 	wpas_notify_network_added(wpa_s, ssid);
 	wpa_config_set_network_defaults(ssid);
+	wpa_config_set_user_network_defaults(wpa_s->conf, ssid);
 	ssid->priority = cred->priority;
 	ssid->temporary = 1;
 	ssid->ssid = os_zalloc(bss->ssid_len + 1);
@@ -1807,6 +1809,7 @@ int interworking_connect(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 	ssid->parent_cred = cred;
 	wpas_notify_network_added(wpa_s, ssid);
 	wpa_config_set_network_defaults(ssid);
+	wpa_config_set_user_network_defaults(wpa_s->conf, ssid);
 	ssid->priority = cred->priority;
 	ssid->temporary = 1;
 	ssid->ssid = os_zalloc(bss->ssid_len + 1);
