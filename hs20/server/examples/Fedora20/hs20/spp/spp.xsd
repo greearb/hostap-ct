@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	Hotspot 2.0 Subscription Provisioning Protocol (SPP)
+
+	This document is the XML schema for Subscription Provisioning Protocol, part of the Wi-Fi Alliance Wi-Fi CERTIFIED Passpoint(tm) program,
+	a solution for next generation Wi-Fi(R) hotspots.
+
+	WI-FI ALLIANCE PROPRIETARY - SUBJECT TO CHANGE WITHOUT NOTICE
+
+	This document may be used with the permission of Wi-Fi Alliance under the terms set forth herein.
+
+	By your use of the document, you are agreeing to these terms.
+
+	Unless this document is clearly designated as an approved specification, this document is a work in process and is not an approved Wi-Fi Alliance specification.
+
+	This document is subject to revision or removal at any time without notice.
+	Information contained in this document may be used at your sole risk.
+	Wi-Fi Alliance assumes no responsibility for errors or omissions in this document.
+
+	This copyright permission does not constitute an endorsement of the products or services.
+	Wi-Fi Alliance trademarks and certification marks may not be used unless specifically allowed by Wi-Fi Alliance.
+
+	Wi-Fi Alliance has not conducted an independent intellectual property rights ("IPR") review of this document and the information contained herein,
+	and makes no representations or warranties regarding IPR, including without limitation patents, copyrights or trade secret rights.
+	This document may contain inventions for which you must obtain licenses from third parties before making, using or selling the inventions.
+
+	Wi-Fi Alliance owns the copyright in this document and reserves all rights therein.
+	A user of this document may duplicate and distribute copies of the document in connection with the authorized uses described herein,
+	provided any duplication in whole or in part includes the copyright notice and the disclaimer text set forth herein.
+	Wi-Fi Alliance hereby grants a user of the XML schema file(s) of this document a royalty-free, perpetual,
+	irrevocable copyright license to use and distribute solely the XML schema file(s) found within this document.
+
+	Unless prior written permission has been received from Wi-Fi Alliance, any other use of this document and all other duplication and distribution of this document are prohibited.
+	Unauthorized use, duplication, or distribution is an infringement of Wi-Fi Alliance's copyright.
+
+	NO REPRESENTATIONS OR WARRANTIES (WHETHER EXPRESS OR IMPLIED) ARE MADE BY WI-FI ALLIANCE AND WI-FI ALLIANCE IS NOT LIABLE FOR AND HEREBY DISCLAIMS
+	ANY DIRECT, INDIRECT, PUNITIVE, SPECIAL, INCIDENTAL, CONSEQUENTIAL, OR EXEMPLARY DAMAGES ARISING OUT OF OR IN CONNECTION WITH THE USE OF THIS DOCUMENT AND ANY INFORMATION CONTAINED IN THIS DOCUMENT.
+
+	(C) 2014 Wi-Fi Alliance.  All Rights Reserved.
+
+		Revision History
+		Revision	Date				Comments
+		1.0			April 29, 2014		Release version 1.0 based on Hotspot 2.0 Release 2 Specification, v1.0 and Test Plan, v1.0
+
+-->
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns="http://www.wi-fi.org/specifications/hotspot2dot0/v1.0/spp"
+	targetNamespace="http://www.wi-fi.org/specifications/hotspot2dot0/v1.0/spp"
+	elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xsd:element name="sppPostDevData">
+		<xsd:annotation>
+			<xsd:documentation>SOAP method by SPP client to initiate credential provisioning, to initiate subscription remediation or to initiate the updating of subscription or policy information.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="supportedSPPVersions" type="sppVersionList">
+					<xsd:annotation>
+						<xsd:documentation>This list must include version 1.0 to ensure version negotiation can always succeed.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="supportedMOList" type="sppMOList"/>
+				<xsd:element maxOccurs="unbounded" minOccurs="2" name="moContainer">
+					<xsd:complexType>
+						<xsd:simpleContent>
+							<xsd:extension base="xsd:string">
+								<xsd:attribute ref="moURN"/>
+							</xsd:extension>
+						</xsd:simpleContent>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+					<xsd:annotation>
+						<xsd:documentation>For vendor-specific extensions or future needs.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:any>
+			</xsd:sequence>
+			<xsd:attribute ref="sppVersion" use="required"/>
+			<xsd:attribute name="requestReason" use="required">
+				<xsd:annotation>
+					<xsd:documentation>Reason the mobile device has transmitted this SPP request.</xsd:documentation>
+				</xsd:annotation>
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:string">
+						<xsd:enumeration value="Subscription registration"/>
+						<xsd:enumeration value="Subscription provisioning"/>
+						<xsd:enumeration value="Subscription remediation"/>
+						<xsd:enumeration value="User input completed"/>
+						<xsd:enumeration value="No acceptable client certificate"/>
+						<xsd:enumeration value="Certificate enrollment completed"/>
+						<xsd:enumeration value="Certificate enrollment failed"/>
+						<xsd:enumeration value="Subscription metadata update"/>
+						<xsd:enumeration value="Policy update"/>
+						<xsd:enumeration value="Retrieve next command"/>
+						<xsd:enumeration value="MO upload"/>
+						<xsd:enumeration value="Unspecified"/>
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:attribute>
+			<xsd:attribute ref="sessionID" use="optional"/>
+			<xsd:attribute name="redirectURI" type="xsd:anyURI" use="optional">
+				<xsd:annotation>
+					<xsd:documentation>redirectURI generated by the mobile device which resolves to a resource internal to the mobile.  At the conclusion of user input, a Subscription Server redirects the browser to this URI thereby signaling the mobile device's connection manager to continue with the SPP message exchange sequence.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:attribute>
+			<xsd:anyAttribute namespace="##other"/>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="sppPostDevDataResponse">
+		<xsd:annotation>
+			<xsd:documentation>SOAP method response from SPP server.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexType>
+			<xsd:choice>
+				<xsd:element ref="sppError"/>
+				<xsd:element name="exec">
+					<xsd:annotation>
+						<xsd:documentation>Receipt of this element by a mobile device causes the following command to be executed.</xsd:documentation>
+					</xsd:annotation>
+					<xsd:complexType>
+						<xsd:choice>
+							<xsd:element name="launchBrowserToURI" type="httpsURIType">
+								<xsd:annotation>
+									<xsd:documentation>When the mobile device receives this command, it launches its default browser to the URI contained in this element.  The URI must use HTTPS as the protocol and must contain an FQDN.</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element ref="getCertificate"/>
+							<xsd:element name="useClientCertTLS">
+								<xsd:annotation>
+									<xsd:documentation>Command to mobile to re-negotiate the TLS connection using a client certificate of the accepted type or Issuer to authenticate with the Subscription server.</xsd:documentation>
+								</xsd:annotation>
+								<xsd:complexType>
+									<xsd:sequence>
+										<xsd:element name="providerIssuerName" minOccurs="0"
+											maxOccurs="unbounded">
+											<xsd:complexType>
+												<xsd:attribute name="name" type="xsd:string">
+												<xsd:annotation>
+												<xsd:documentation>The issuer name of an acceptable provider-issued certificate.  The text of this element is formatted in accordance with the Issuer Name field in RFC-3280.  This element is present only when acceptProviderCerts is true.</xsd:documentation>
+												</xsd:annotation>
+												</xsd:attribute>
+												<xsd:anyAttribute namespace="##other"/>
+											</xsd:complexType>
+										</xsd:element>
+										<xsd:any namespace="##other" minOccurs="0"
+											maxOccurs="unbounded"/>
+									</xsd:sequence>
+									<xsd:attribute name="acceptMfgCerts" type="xsd:boolean"
+										use="optional" default="false">
+										<xsd:annotation>
+											<xsd:documentation>When this boolean is true, IEEE 802.1ar manufacturing certificates are acceptable for mobile device authentication.</xsd:documentation>
+										</xsd:annotation>
+									</xsd:attribute>
+									<xsd:attribute name="acceptProviderCerts" type="xsd:boolean"
+										use="optional" default="true">
+										<xsd:annotation>
+											<xsd:documentation>When this boolean is true, X509v3 certificates issued by providers identified in the providerIssuerName child element(s) are acceptable for mobile device authentication.</xsd:documentation>
+										</xsd:annotation>
+									</xsd:attribute>
+									<xsd:anyAttribute namespace="##other"/>
+								</xsd:complexType>
+							</xsd:element>
+							<xsd:element name="uploadMO" maxOccurs="unbounded">
+								<xsd:annotation>
+									<xsd:documentation>Command to mobile to upload the MO named in the moURN attribute to the SPP server.</xsd:documentation>
+								</xsd:annotation>
+								<xsd:complexType>
+									<xsd:attribute ref="moURN"/>
+								</xsd:complexType>
+							</xsd:element>
+							<xsd:any namespace="##other" maxOccurs="unbounded" minOccurs="0">
+								<xsd:annotation>
+									<xsd:documentation>Element to allow the addition of new commands in the future.</xsd:documentation>
+								</xsd:annotation>
+							</xsd:any>
+						</xsd:choice>
+						<xsd:anyAttribute namespace="##other"/>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="addMO">
+					<xsd:annotation>
+						<xsd:documentation>This command causes an management object in the mobile devices management tree at the specified location to be added.  If there is already a management object at that location, the object is replaced.</xsd:documentation>
+					</xsd:annotation>
+					<xsd:complexType>
+						<xsd:simpleContent>
+							<xsd:extension base="xsd:string">
+								<xsd:attribute ref="managementTreeURI"/>
+								<xsd:attribute ref="moURN"/>
+							</xsd:extension>
+						</xsd:simpleContent>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element maxOccurs="unbounded" name="updateNode">
+					<xsd:annotation>
+						<xsd:documentation>This command causes the update of an interior node and its child nodes (if any) at the location specified in the management tree URI attribute.  The content of this element is the MO node XML.</xsd:documentation>
+					</xsd:annotation>
+					<xsd:complexType>
+						<xsd:simpleContent>
+							<xsd:extension base="xsd:string">
+								<xsd:attribute ref="managementTreeURI"/>
+							</xsd:extension>
+						</xsd:simpleContent>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="noMOUpdate">
+					<xsd:annotation>
+						<xsd:documentation>This response is used when there is no command to be executed nor update of any MO required.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+					<xsd:annotation>
+						<xsd:documentation>For vendor-specific extensions or future needs.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:any>
+			</xsd:choice>
+			<xsd:attribute ref="sppVersion" use="required"/>
+			<xsd:attribute ref="sppStatus" use="required"/>
+			<xsd:attribute ref="moreCommands" use="optional"/>
+			<xsd:attribute ref="sessionID" use="required"/>
+			<xsd:anyAttribute namespace="##other"/>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="sppUpdateResponse">
+		<xsd:annotation>
+			<xsd:documentation>SOAP method used by SPP client to confirm installation of MO addition or update.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element ref="sppError" minOccurs="0"/>
+				<xsd:any namespace="##other" maxOccurs="unbounded" minOccurs="0"/>
+			</xsd:sequence>
+			<xsd:attribute ref="sppVersion" use="required"/>
+			<xsd:attribute ref="sppStatus" use="required"/>
+			<xsd:attribute ref="sessionID" use="required"/>
+			<xsd:anyAttribute namespace="##other"/>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="sppExchangeComplete">
+		<xsd:annotation>
+			<xsd:documentation>SOAP method used by SPP server to end session.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element ref="sppError" minOccurs="0"/>
+				<xsd:any namespace="##other" maxOccurs="unbounded" minOccurs="0"/>
+			</xsd:sequence>
+			<xsd:attribute ref="sppVersion" use="required"/>
+			<xsd:attribute ref="sppStatus" use="required"/>
+			<xsd:attribute ref="sessionID" use="required"/>
+			<xsd:anyAttribute namespace="##other"/>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="getCertificate">
+		<xsd:annotation>
+			<xsd:documentation>Command to mobile to initiate certificate enrollment or re-enrollment and is a container for metadata to enable enrollment.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="enrollmentServerURI" type="httpsURIType">
+					<xsd:annotation>
+						<xsd:documentation>HTTPS URI of the server to be contacted to initiate certificate enrollment.  The URI must contain an FQDN.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="estUserID" minOccurs="0">
+					<xsd:annotation>
+						<xsd:documentation>Temporary userid used by an EST client to authenticate to the EST server using HTTP Digest authentication.  This element must be used for initial certificate enrollment; its use is optional for certificate re-enrollment.</xsd:documentation>
+					</xsd:annotation>
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:string">
+							<xsd:maxLength value="255"/>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+				<xsd:element name="estPassword" minOccurs="0">
+					<xsd:annotation>
+						<xsd:documentation>Temporary password used by an EST client to authenticate to the EST server using HTTP Digest authentication.  This element must be used for initial certificate enrollment; its use is optional for certificate re-enrollment.</xsd:documentation>
+					</xsd:annotation>
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:base64Binary">
+							<xsd:maxLength value="340"/>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+				<xsd:any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+					<xsd:annotation>
+						<xsd:documentation>For vendor-specific extensions or future needs.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:any>
+			</xsd:sequence>
+			<xsd:attribute name="enrollmentProtocol" use="required">
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:string">
+						<xsd:enumeration value="EST"/>
+						<xsd:enumeration value="Other"/>
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:attribute>
+			<xsd:anyAttribute namespace="##other"/>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="sppError">
+		<xsd:annotation>
+			<xsd:documentation>Error response.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexType>
+			<xsd:attribute name="errorCode" use="required">
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:string">
+						<xsd:enumeration value="SPP version not supported"/>
+						<xsd:enumeration value="One or more mandatory MOs not supported"/>
+						<xsd:enumeration value="Credentials cannot be provisioned at this time"/>
+						<xsd:enumeration value="Remediation cannot be completed at this time"/>
+						<xsd:enumeration value="Provisioning cannot be completed at this time"/>
+						<xsd:enumeration value="Continue to use existing certificate"/>
+						<xsd:enumeration value="Cookie invalid"/>
+						<xsd:enumeration value="No corresponding web-browser-connection Session ID"/>
+						<xsd:enumeration value="Permission denied"/>
+						<xsd:enumeration value="Command failed"/>
+						<xsd:enumeration value="MO addition or update failed"/>
+						<xsd:enumeration value="Device full"/>
+						<xsd:enumeration value="Bad management tree URI"/>
+						<xsd:enumeration value="Requested entity too large"/>
+						<xsd:enumeration value="Command not allowed"/>
+						<xsd:enumeration value="Command not executed due to user"/>
+						<xsd:enumeration value="Not found"/>
+						<xsd:enumeration value="Other"/>
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:attribute>
+			<xsd:anyAttribute namespace="##other"/>
+		</xsd:complexType>
+	</xsd:element>
+
+	<!-- Global Attributes.  The following attributes are intended to be usable via qualified attribute names on any complex type referencing them.  -->
+
+	<xsd:attribute name="sppVersion" type="sppVersionType">
+		<xsd:annotation>
+			<xsd:documentation>Subscription Provisioning Protocol version number.</xsd:documentation>
+		</xsd:annotation>
+	</xsd:attribute>
+	<xsd:attribute name="sppStatus">
+		<xsd:annotation>
+			<xsd:documentation>Subscription Provisioning Protocol response status code.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:simpleType>
+			<xsd:restriction base="xsd:string">
+				<xsd:enumeration value="OK"/>
+				<xsd:enumeration value="Provisioning complete, request sppUpdateResponse"/>
+				<xsd:enumeration value="Remediation complete, request sppUpdateResponse"/>
+				<xsd:enumeration value="Update complete, request sppUpdateResponse"/>
+				<xsd:enumeration value="Exchange complete, release TLS connection"/>
+				<xsd:enumeration value="No update available at this time"/>
+				<xsd:enumeration value="Error occurred"/>
+			</xsd:restriction>
+		</xsd:simpleType>
+	</xsd:attribute>
+	<xsd:attribute name="sessionID">
+		<xsd:annotation>
+			<xsd:documentation>Session ID provided by the SPP server in a sppPostDevDataResponse method, used to bind messages belonging to the same client to server message exchange sequence.  This facilitates the use of multiple TLS tunnels and/or TCP connections in such an exchange.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:simpleType>
+			<xsd:restriction base="xsd:hexBinary">
+				<xsd:length value="16"/>
+			</xsd:restriction>
+		</xsd:simpleType>
+	</xsd:attribute>
+	<xsd:attribute name="managementTreeURI" type="xsd:anyURI">
+		<xsd:annotation>
+			<xsd:documentation>Used in the server to client direction to specify the OMA-DM's management object location in the device's management tree.</xsd:documentation>
+		</xsd:annotation>
+	</xsd:attribute>
+	<xsd:attribute name="moURN">
+		<xsd:simpleType>
+			<xsd:restriction base="xsd:anyURI">
+				<xsd:maxLength value="255"/>
+			</xsd:restriction>
+		</xsd:simpleType>
+	</xsd:attribute>
+	<xsd:attribute name="moreCommands" type="xsd:boolean" default="false">
+		<xsd:annotation>
+			<xsd:documentation>When this boolean is true, the mobile device must send another sppPostDevData message after the completion of the current command to retrieve an additional command.</xsd:documentation>
+		</xsd:annotation>
+	</xsd:attribute>
+	<xsd:simpleType name="sppMOList">
+		<xsd:list itemType="xsd:anyURI"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="sppVersionList">
+		<xsd:list itemType="sppVersionType"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="sppVersionType">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="\d\.\d{1,2}"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="httpsURIType">
+		<xsd:restriction base="xsd:anyURI">
+			<xsd:pattern value="https://.*"/>
+			<xsd:maxLength value="1023"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>
