@@ -1,0 +1,7 @@
+"*@lanforge.com" TLS
+"0"* AKA
+"2"* AKA
+"4"* AKA
+
+# For OSEN authentication (HS20 r2)
+"osen@lanforge.com"      WFA-UNAUTH-TLS
