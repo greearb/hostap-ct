@@ -69,6 +69,7 @@ int wpas_start_pno(struct wpa_supplicant *wpa_s);
 int wpas_stop_pno(struct wpa_supplicant *wpa_s);
 void wpas_scan_reset_sched_scan(struct wpa_supplicant *wpa_s);
 void wpas_scan_restart_sched_scan(struct wpa_supplicant *wpa_s);
+void wpa_remove_scan_work(struct wpa_supplicant *wpa_s, const char* dbg, int own_request);
 
 void wpas_mac_addr_rand_scan_clear(struct wpa_supplicant *wpa_s,
 				   unsigned int type);

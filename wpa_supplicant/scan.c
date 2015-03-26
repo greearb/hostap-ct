@@ -192,6 +192,8 @@ static void wpas_trigger_scan_cb(struct wpa_radio_work *work, int deinit)
 		}
 		wpa_supplicant_notify_scanning(wpa_s, 0);
 		wpas_notify_scan_done(wpa_s, 0);
+                wpa_dbg(wpa_s, MSG_DEBUG, "trigger-scan-cb, deinit, work: %p",
+                        wpa_s->scan_work);
 		wpa_s->scan_work = NULL;
 		return;
 	}
@@ -267,6 +269,8 @@ static void wpas_trigger_scan_cb(struct wpa_radio_work *work, int deinit)
 	wpa_s->own_scan_requested = 1;
 	wpa_s->clear_driver_scan_cache = 0;
 	wpa_s->scan_work = work;
+        wpa_dbg(wpa_s, MSG_DEBUG, "trigger-scan-cb, assign work: %p",
+                wpa_s->scan_work);
 }
 
 
@@ -286,6 +290,8 @@ int wpa_supplicant_trigger_scan(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
+        wpa_dbg(wpa_s, MSG_DEBUG, "trigger-scan, freqs: %p",
+                params->freqs);
 	ctx = wpa_scan_clone_params(params);
 	if (!ctx ||
 	    radio_add_work(wpa_s, 0, "scan", 0, wpas_trigger_scan_cb, ctx) < 0)
@@ -298,6 +304,16 @@ int wpa_supplicant_trigger_scan(struct wpa_supplicant *wpa_s,
 	return 0;
 }
 
+void wpa_remove_scan_work(struct wpa_supplicant *wpa_s, const char* dbg, int own_request)
+{
+	if (own_request && wpa_s->scan_work) {
+		struct wpa_radio_work *work = wpa_s->scan_work;
+                wpa_dbg(wpa_s, MSG_DEBUG, "Remove scan work, work: %p dbg: %s",
+                        work, dbg);
+		wpa_s->scan_work = NULL;
+		radio_work_done(work);
+	}
+}
 
 static void
 wpa_supplicant_delayed_sched_scan_timeout(void *eloop_ctx, void *timeout_ctx)
@@ -700,12 +716,16 @@ static void wpa_setband_scan_freqs(struct wpa_supplicant *wpa_s,
 		return; /* unknown what channels the driver supports */
 	if (params->freqs)
 		return; /* already using a limited channel set */
-	if (wpa_s->setband == WPA_SETBAND_5G)
+	if (wpa_s->setband == WPA_SETBAND_5G) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "Scan only 5G channels.");
 		wpa_setband_scan_freqs_list(wpa_s, HOSTAPD_MODE_IEEE80211A,
 					    params, 0);
-	else if (wpa_s->setband == WPA_SETBAND_2G)
+	}
+	else if (wpa_s->setband == WPA_SETBAND_2G) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "Scan only 2G channels.");
 		wpa_setband_scan_freqs_list(wpa_s, HOSTAPD_MODE_IEEE80211G,
 					    params, 0);
+	}
 }
 
 
@@ -1194,14 +1214,6 @@ ssid_list_set:
 	} else
 		os_free(wpa_s->next_scan_freqs);
 	wpa_s->next_scan_freqs = NULL;
-	wpa_setband_scan_freqs(wpa_s, &params);
-
-	/* See if user specified frequencies. If so, scan only those. */
-	if (wpa_s->conf->freq_list && !params.freqs) {
-		wpa_dbg(wpa_s, MSG_DEBUG,
-			"Optimize scan based on conf->freq_list");
-		int_array_concat(&params.freqs, wpa_s->conf->freq_list);
-	}
 
 	/* Use current associated channel? */
 	if (wpa_s->conf->scan_cur_freq && !params.freqs) {
@@ -1225,6 +1237,15 @@ ssid_list_set:
 	if (wpa_s->enable_oce & OCE_STA)
 		params.oce_scan = 1;
 #endif /* CONFIG_MBO */
+
+	/* See if user specified frequencies. If so, scan only those. */
+	if (wpa_s->conf->freq_list && !params.freqs) {
+		wpa_dbg(wpa_s, MSG_DEBUG,
+			"Optimize scan based on conf->freq_list");
+		int_array_concat(&params.freqs, wpa_s->conf->freq_list);
+	}
+
+	wpa_setband_scan_freqs(wpa_s, &params);
 
 	params.filter_ssids = wpa_supplicant_build_filter_ssids(
 		wpa_s->conf, &params.num_filter_ssids);
@@ -1768,6 +1789,9 @@ void wpa_supplicant_cancel_scan(struct wpa_supplicant *wpa_s)
 {
 	wpa_dbg(wpa_s, MSG_DEBUG, "Cancelling scan request");
 	eloop_cancel_timeout(wpa_supplicant_scan, wpa_s, NULL);
+
+        radio_remove_works(wpa_s, "scan", 0);
+	wpa_remove_scan_work(wpa_s, "cancel-scan", 1);
 }
 
 
@@ -2512,11 +2536,8 @@ void scan_only_handler(struct wpa_supplicant *wpa_s,
 	}
 	wpas_notify_scan_results(wpa_s);
 	wpas_notify_scan_done(wpa_s, 1);
-	if (wpa_s->scan_work) {
-		struct wpa_radio_work *work = wpa_s->scan_work;
-		wpa_s->scan_work = NULL;
-		radio_work_done(work);
-	}
+
+	wpa_remove_scan_work(wpa_s, "scan-only-handler", 1);
 
 	if (wpa_s->wpa_state == WPA_SCANNING)
 		wpa_supplicant_set_state(wpa_s, wpa_s->scan_prev_wpa_state);
