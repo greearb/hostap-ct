@@ -1,0 +1,8 @@
+<Policy>
+	<PolicyUpdate>
+		<UpdateInterval>30</UpdateInterval>
+		<UpdateMethod>ClientInitiated</UpdateMethod>
+		<Restriction>Unrestricted</Restriction>
+		<URI>https://osu-server.ben-ota-2.lanforge.local:443/hs20/spp.php</URI>
+	</PolicyUpdate>
+</Policy>
