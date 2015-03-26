@@ -906,6 +906,10 @@ void int_array_concat(int **res, const int *a)
 		*res = NULL;
 		return;
 	}
+
+	if (alen == 0)
+		return; /* nothing to concat */
+
 	n = os_realloc_array(*res, reslen + alen + 1, sizeof(int));
 	if (n == NULL) {
 		os_free(*res);
