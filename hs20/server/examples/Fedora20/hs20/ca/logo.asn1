@@ -1,0 +1,20 @@
+    0:d=0  hl=3 l= 162 cons: SEQUENCE
+    3:d=1  hl=3 l= 159 cons: cont [ 0 ]
+    6:d=2  hl=3 l= 156 cons: SEQUENCE
+    9:d=3  hl=3 l= 153 cons: cont [ 0 ]
+   12:d=4  hl=3 l= 150 cons: SEQUENCE
+   15:d=5  hl=3 l= 147 cons: SEQUENCE
+   18:d=6  hl=2 l= 127 cons: SEQUENCE
+   20:d=7  hl=2 l=   9 prim: IA5STRING         :image/png
+   31:d=7  hl=2 l=  49 cons: SEQUENCE
+   33:d=8  hl=2 l=  47 cons: SEQUENCE
+   35:d=9  hl=2 l=  11 cons: SEQUENCE
+   37:d=10 hl=2 l=   9 prim: OBJECT            :sha256
+   48:d=9  hl=2 l=  32 prim: OCTET STRING      [HEX DUMP]:6A10650AD3A0BAC4D159E5BE702D45F60CB5282360392A420A86178EE56F3EA3
+   82:d=7  hl=2 l=  63 cons: SEQUENCE
+   84:d=8  hl=2 l=  61 prim: IA5STRING         :http://osu-server.ben-ota-2.lanforge.local:443/logo-64x64.png
+  147:d=6  hl=2 l=  16 cons: SEQUENCE
+  149:d=7  hl=2 l=   2 prim: INTEGER           :1D7D
+  153:d=7  hl=2 l=   2 prim: INTEGER           :80
+  157:d=7  hl=2 l=   1 prim: INTEGER           :50
+  160:d=7  hl=2 l=   3 prim: cont [ 4 ]
