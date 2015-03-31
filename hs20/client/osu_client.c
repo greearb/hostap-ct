@@ -2227,13 +2227,22 @@ static int osu_connect(struct hs20_osu_client *ctx, const char *bssid,
 	if (ssid2)
 		osu_nai = osu_nai2;
 	if (osu_nai && os_strlen(osu_nai) > 0) {
-		char dir[255], fname[300];
-		if (getcwd(dir, sizeof(dir)) == NULL)
-			return -1;
-		os_snprintf(fname, sizeof(fname), "%s/osu-ca.pem", dir);
+		char fname[300];
+		if (ctx->ca_fname) {
+			strncpy(fname, ctx->ca_fname, sizeof(fname));
+		}
+		else {
+			char dir[255];
+			if (getcwd(dir, sizeof(dir)) == NULL)
+				return -1;
+			os_snprintf(fname, sizeof(fname), "%s/osu-ca.pem", dir);
+			ctx->ca_fname = strdup(fname); /* so lib curl can use it. */
+		}
 
 		if (ssid2 && set_network_quoted(ifname, id, "ssid", ssid2) < 0)
 			return -1;
+
+		fname[sizeof(fname) - 1] = 0; /* ensure null termination */
 
 		if (set_network(ifname, id, "proto", "OSEN") < 0 ||
 		    set_network(ifname, id, "key_mgmt", "OSEN") < 0 ||
