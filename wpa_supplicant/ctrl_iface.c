@@ -123,7 +123,7 @@ static int set_disallow_aps(struct wpa_supplicant *wpa_s, char *val)
 			if (res < 0) {
 				os_free(ssid);
 				os_free(bssid);
-				wpa_printf(MSG_DEBUG, "Invalid disallow_aps "
+				wpa_dbg(wpa_s, MSG_DEBUG, "Invalid disallow_aps "
 					   "BSSID value '%s'", pos);
 				return -1;
 			}
@@ -163,7 +163,7 @@ static int set_disallow_aps(struct wpa_supplicant *wpa_s, char *val)
 				       (end - pos) / 2) < 0) {
 				os_free(ssid);
 				os_free(bssid);
-				wpa_printf(MSG_DEBUG, "Invalid disallow_aps "
+				wpa_dbg(wpa_s, MSG_DEBUG, "Invalid disallow_aps "
 					   "SSID value '%s'", pos);
 				return -1;
 			}
@@ -174,7 +174,7 @@ static int set_disallow_aps(struct wpa_supplicant *wpa_s, char *val)
 			ssid_count++;
 			pos = end;
 		} else {
-			wpa_printf(MSG_DEBUG, "Unexpected disallow_aps value "
+			wpa_dbg(wpa_s, MSG_DEBUG, "Unexpected disallow_aps value "
 				   "'%s'", pos);
 			os_free(ssid);
 			os_free(bssid);
@@ -191,7 +191,7 @@ static int set_disallow_aps(struct wpa_supplicant *wpa_s, char *val)
 	wpa_s->disallow_aps_bssid = bssid;
 	wpa_s->disallow_aps_bssid_count = count;
 
-	wpa_printf(MSG_DEBUG, "disallow_aps_ssid_count %d", (int) ssid_count);
+	wpa_dbg(wpa_s, MSG_DEBUG, "disallow_aps_ssid_count %d", (int) ssid_count);
 	os_free(wpa_s->disallow_aps_ssid);
 	wpa_s->disallow_aps_ssid = ssid;
 	wpa_s->disallow_aps_ssid_count = ssid_count;
@@ -207,7 +207,7 @@ static int set_disallow_aps(struct wpa_supplicant *wpa_s, char *val)
 	    !disallowed_ssid(wpa_s, c->ssid, c->ssid_len))
 		return 0;
 
-	wpa_printf(MSG_DEBUG, "Disconnect and try to find another network "
+	wpa_dbg(wpa_s, MSG_DEBUG, "Disconnect and try to find another network "
 		   "because current AP was marked disallowed");
 
 #ifdef CONFIG_SME
@@ -237,7 +237,7 @@ static int wpas_ctrl_set_blob(struct wpa_supplicant *wpa_s, char *pos)
 	if (len & 1)
 		return -1;
 
-	wpa_printf(MSG_DEBUG, "CTRL: Set blob '%s'", name);
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL: Set blob '%s'", name);
 	blob = os_zalloc(sizeof(*blob));
 	if (blob == NULL)
 		return -1;
@@ -249,7 +249,7 @@ static int wpas_ctrl_set_blob(struct wpa_supplicant *wpa_s, char *pos)
 	}
 
 	if (hexstr2bin(pos, blob->data, len / 2) < 0) {
-		wpa_printf(MSG_DEBUG, "CTRL: Invalid blob hex data");
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL: Invalid blob hex data");
 		wpa_config_free_blob(blob);
 		return -1;
 	}
@@ -419,7 +419,7 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 		return -1;
 	*value++ = '\0';
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE SET '%s'='%s'", cmd, value);
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE SET '%s'='%s'", cmd, value);
 	if (os_strcasecmp(cmd, "EAPOL::heldPeriod") == 0) {
 		eapol_sm_configure(wpa_s->eapol,
 				   atoi(value), -1, -1, -1);
@@ -465,22 +465,22 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 		val = strtol(value, NULL, 0);
 		if (val < 0 || val > 0xff) {
 			ret = -1;
-			wpa_printf(MSG_DEBUG, "WPS: Invalid "
+			wpa_dbg(wpa_s, MSG_DEBUG, "WPS: Invalid "
 				   "wps_version_number %ld", val);
 		} else {
 			wps_version_number = val;
-			wpa_printf(MSG_DEBUG, "WPS: Testing - force WPS "
+			wpa_dbg(wpa_s, MSG_DEBUG, "WPS: Testing - force WPS "
 				   "version %u.%u",
 				   (wps_version_number & 0xf0) >> 4,
 				   wps_version_number & 0x0f);
 		}
 	} else if (os_strcasecmp(cmd, "wps_testing_dummy_cred") == 0) {
 		wps_testing_dummy_cred = atoi(value);
-		wpa_printf(MSG_DEBUG, "WPS: Testing - dummy_cred=%d",
+		wpa_dbg(wpa_s, MSG_DEBUG, "WPS: Testing - dummy_cred=%d",
 			   wps_testing_dummy_cred);
 	} else if (os_strcasecmp(cmd, "wps_corrupt_pkhash") == 0) {
 		wps_corrupt_pkhash = atoi(value);
-		wpa_printf(MSG_DEBUG, "WPS: Testing - wps_corrupt_pkhash=%d",
+		wpa_dbg(wpa_s, MSG_DEBUG, "WPS: Testing - wps_corrupt_pkhash=%d",
 			   wps_corrupt_pkhash);
 	} else if (os_strcasecmp(cmd, "wps_force_auth_types") == 0) {
 		if (value[0] == '\0') {
@@ -504,11 +504,11 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 #ifdef CONFIG_TDLS_TESTING
 	} else if (os_strcasecmp(cmd, "tdls_testing") == 0) {
 		tdls_testing = strtol(value, NULL, 0);
-		wpa_printf(MSG_DEBUG, "TDLS: tdls_testing=0x%x", tdls_testing);
+		wpa_dbg(wpa_s, MSG_DEBUG, "TDLS: tdls_testing=0x%x", tdls_testing);
 #endif /* CONFIG_TDLS_TESTING */
 	} else if (os_strcasecmp(cmd, "tdls_disabled") == 0) {
 		int disabled = atoi(value);
-		wpa_printf(MSG_DEBUG, "TDLS: tdls_disabled=%d", disabled);
+		wpa_dbg(wpa_s, MSG_DEBUG, "TDLS: tdls_disabled=%d", disabled);
 		if (disabled) {
 			if (wpa_drv_tdls_oper(wpa_s, TDLS_DISABLE, NULL) < 0)
 				ret = -1;
@@ -652,7 +652,7 @@ static int wpa_supplicant_ctrl_iface_get(struct wpa_supplicant *wpa_s,
 {
 	int res = -1;
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE GET '%s'", cmd);
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE GET '%s'", cmd);
 
 	if (os_strcmp(cmd, "version") == 0) {
 		res = os_snprintf(buf, buflen, "%s", VERSION_STR);
@@ -699,12 +699,12 @@ static int wpa_supplicant_ctrl_iface_preauth(struct wpa_supplicant *wpa_s,
 	struct wpa_ssid *ssid = wpa_s->current_ssid;
 
 	if (hwaddr_aton(addr, bssid)) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE PREAUTH: invalid address "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE PREAUTH: invalid address "
 			   "'%s'", addr);
 		return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE PREAUTH " MACSTR, MAC2STR(bssid));
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE PREAUTH " MACSTR, MAC2STR(bssid));
 	rsn_preauth_deinit(wpa_s->wpa);
 	if (rsn_preauth_init(wpa_s->wpa, bssid, ssid ? &ssid->eap : NULL))
 		return -1;
@@ -722,12 +722,12 @@ static int wpa_supplicant_ctrl_iface_stkstart(
 	u8 peer[ETH_ALEN];
 
 	if (hwaddr_aton(addr, peer)) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE STKSTART: invalid "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE STKSTART: invalid "
 			   "address '%s'", addr);
 		return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE STKSTART " MACSTR,
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE STKSTART " MACSTR,
 		   MAC2STR(peer));
 
 	return wpa_sm_stkstart(wpa_s->wpa, peer);
@@ -744,12 +744,12 @@ static int wpa_supplicant_ctrl_iface_tdls_discover(
 	int ret;
 
 	if (hwaddr_aton(addr, peer)) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_DISCOVER: invalid "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE TDLS_DISCOVER: invalid "
 			   "address '%s'", addr);
 		return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_DISCOVER " MACSTR,
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE TDLS_DISCOVER " MACSTR,
 		   MAC2STR(peer));
 
 	if (wpa_tdls_is_external_setup(wpa_s->wpa))
@@ -768,12 +768,12 @@ static int wpa_supplicant_ctrl_iface_tdls_setup(
 	int ret;
 
 	if (hwaddr_aton(addr, peer)) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_SETUP: invalid "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE TDLS_SETUP: invalid "
 			   "address '%s'", addr);
 		return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_SETUP " MACSTR,
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE TDLS_SETUP " MACSTR,
 		   MAC2STR(peer));
 
 	if ((wpa_s->conf->tdls_external_control) &&
@@ -799,18 +799,18 @@ static int wpa_supplicant_ctrl_iface_tdls_teardown(
 
 	if (os_strcmp(addr, "*") == 0) {
 		/* remove everyone */
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_TEARDOWN *");
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE TDLS_TEARDOWN *");
 		wpa_tdls_teardown_peers(wpa_s->wpa);
 		return 0;
 	}
 
 	if (hwaddr_aton(addr, peer)) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_TEARDOWN: invalid "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE TDLS_TEARDOWN: invalid "
 			   "address '%s'", addr);
 		return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_TEARDOWN " MACSTR,
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE TDLS_TEARDOWN " MACSTR,
 		   MAC2STR(peer));
 
 	if ((wpa_s->conf->tdls_external_control) &&
@@ -853,7 +853,7 @@ static int wpa_supplicant_ctrl_iface_tdls_chan_switch(
 	char *pos, *end;
 
 	if (!wpa_tdls_is_external_setup(wpa_s->wpa)) {
-		wpa_printf(MSG_INFO,
+		wpa_dbg(wpa_s, MSG_INFO,
 			   "tdls_chanswitch: Only supported with external setup");
 		return -1;
 	}
@@ -867,7 +867,7 @@ static int wpa_supplicant_ctrl_iface_tdls_chan_switch(
 
 	oper_class = strtol(pos, &end, 10);
 	if (pos == end) {
-		wpa_printf(MSG_INFO,
+		wpa_dbg(wpa_s, MSG_INFO,
 			   "tdls_chanswitch: Invalid op class provided");
 		return -1;
 	}
@@ -875,7 +875,7 @@ static int wpa_supplicant_ctrl_iface_tdls_chan_switch(
 	pos = end;
 	freq_params.freq = atoi(pos);
 	if (freq_params.freq == 0) {
-		wpa_printf(MSG_INFO, "tdls_chanswitch: Invalid freq provided");
+		wpa_dbg(wpa_s, MSG_INFO, "tdls_chanswitch: Invalid freq provided");
 		return -1;
 	}
 
@@ -898,13 +898,13 @@ static int wpa_supplicant_ctrl_iface_tdls_chan_switch(
 	freq_params.vht_enabled = !!os_strstr(pos, " vht");
 
 	if (hwaddr_aton(cmd, peer)) {
-		wpa_printf(MSG_DEBUG,
+		wpa_dbg(wpa_s, MSG_DEBUG,
 			   "CTRL_IFACE TDLS_CHAN_SWITCH: Invalid address '%s'",
 			   cmd);
 		return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_CHAN_SWITCH " MACSTR
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE TDLS_CHAN_SWITCH " MACSTR
 		   " OP CLASS %d FREQ %d CENTER1 %d CENTER2 %d BW %d SEC_OFFSET %d%s%s",
 		   MAC2STR(peer), oper_class, freq_params.freq,
 		   freq_params.center_freq1, freq_params.center_freq2,
@@ -923,19 +923,19 @@ static int wpa_supplicant_ctrl_iface_tdls_cancel_chan_switch(
 	u8 peer[ETH_ALEN];
 
 	if (!wpa_tdls_is_external_setup(wpa_s->wpa)) {
-		wpa_printf(MSG_INFO,
+		wpa_dbg(wpa_s, MSG_INFO,
 			   "tdls_chanswitch: Only supported with external setup");
 		return -1;
 	}
 
 	if (hwaddr_aton(cmd, peer)) {
-		wpa_printf(MSG_DEBUG,
+		wpa_dbg(wpa_s, MSG_DEBUG,
 			   "CTRL_IFACE TDLS_CANCEL_CHAN_SWITCH: Invalid address '%s'",
 			   cmd);
 		return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_CANCEL_CHAN_SWITCH " MACSTR,
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE TDLS_CANCEL_CHAN_SWITCH " MACSTR,
 		   MAC2STR(peer));
 
 	return wpa_tdls_disable_chan_switch(wpa_s->wpa, peer);
@@ -951,16 +951,16 @@ static int wpa_supplicant_ctrl_iface_tdls_link_status(
 	int ret;
 
 	if (hwaddr_aton(addr, peer)) {
-		wpa_printf(MSG_DEBUG,
+		wpa_dbg(wpa_s, MSG_DEBUG,
 			   "CTRL_IFACE TDLS_LINK_STATUS: Invalid address '%s'",
 			   addr);
 		return -1;
 	}
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_LINK_STATUS " MACSTR,
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE TDLS_LINK_STATUS " MACSTR,
 		   MAC2STR(peer));
 
 	tdls_status = wpa_tdls_get_link_status(wpa_s->wpa, peer);
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_LINK_STATUS: %s", tdls_status);
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE TDLS_LINK_STATUS: %s", tdls_status);
 	ret = os_snprintf(buf, buflen, "TDLS link status: %s\n", tdls_status);
 	if (os_snprintf_error(buflen, ret))
 		return -1;
@@ -1001,7 +1001,7 @@ static int wmm_ac_ctrl_addts(struct wpa_supplicant *wpa_s, char *cmd)
 		} else if (os_strcasecmp(token, "fixed_nominal_msdu") == 0) {
 			params.fixed_nominal_msdu = 1;
 		} else {
-			wpa_printf(MSG_DEBUG,
+			wpa_dbg(wpa_s, MSG_DEBUG,
 				   "CTRL: Invalid WMM_AC_ADDTS parameter: '%s'",
 				   token);
 			return -1;
@@ -1030,12 +1030,12 @@ static int wpa_supplicant_ctrl_iface_ft_ds(
 	const u8 *mdie;
 
 	if (hwaddr_aton(addr, target_ap)) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE FT_DS: invalid "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE FT_DS: invalid "
 			   "address '%s'", addr);
 		return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE FT_DS " MACSTR, MAC2STR(target_ap));
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE FT_DS " MACSTR, MAC2STR(target_ap));
 
 	bss = wpa_bss_get_bssid(wpa_s, target_ap);
 	if (bss)
@@ -1065,7 +1065,7 @@ static int wpa_supplicant_ctrl_iface_wps_pbc(struct wpa_supplicant *wpa_s,
 #ifdef CONFIG_P2P
 	} else if (os_strncmp(cmd, "p2p_dev_addr=", 13) == 0) {
 		if (hwaddr_aton(cmd + 13, p2p_dev_addr)) {
-			wpa_printf(MSG_DEBUG, "CTRL_IFACE WPS_PBC: invalid "
+			wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE WPS_PBC: invalid "
 				   "P2P Device Address '%s'",
 				   cmd + 13);
 			return -1;
@@ -1073,7 +1073,7 @@ static int wpa_supplicant_ctrl_iface_wps_pbc(struct wpa_supplicant *wpa_s,
 		_p2p_dev_addr = p2p_dev_addr;
 #endif /* CONFIG_P2P */
 	} else if (hwaddr_aton(cmd, bssid)) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE WPS_PBC: invalid BSSID '%s'",
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE WPS_PBC: invalid BSSID '%s'",
 			   cmd);
 		return -1;
 	}
@@ -1106,7 +1106,7 @@ static int wpa_supplicant_ctrl_iface_wps_pin(struct wpa_supplicant *wpa_s,
 			return -1;
 		goto done;
 	} else if (hwaddr_aton(cmd, bssid)) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE WPS_PIN: invalid BSSID '%s'",
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE WPS_PIN: invalid BSSID '%s'",
 			   cmd);
 		return -1;
 	}
@@ -1168,12 +1168,12 @@ static int wpa_supplicant_ctrl_iface_wps_check_pin(
 			continue;
 		pin[len++] = *pos;
 		if (len == 9) {
-			wpa_printf(MSG_DEBUG, "WPS: Too long PIN");
+			wpa_dbg(wpa_s, MSG_DEBUG, "WPS: Too long PIN");
 			return -1;
 		}
 	}
 	if (len != 4 && len != 8) {
-		wpa_printf(MSG_DEBUG, "WPS: Invalid PIN length %d", (int) len);
+		wpa_dbg(wpa_s, MSG_DEBUG, "WPS: Invalid PIN length %d", (int) len);
 		return -1;
 	}
 	pin[len] = '\0';
@@ -1182,7 +1182,7 @@ static int wpa_supplicant_ctrl_iface_wps_check_pin(
 		unsigned int pin_val;
 		pin_val = atoi(pin);
 		if (!wps_pin_valid(pin_val)) {
-			wpa_printf(MSG_DEBUG, "WPS: Invalid checksum digit");
+			wpa_dbg(wpa_s, MSG_DEBUG, "WPS: Invalid checksum digit");
 			ret = os_snprintf(buf, buflen, "FAIL-CHECKSUM\n");
 			if (os_snprintf_error(buflen, ret))
 				return -1;
@@ -1345,7 +1345,7 @@ static int wpas_ctrl_nfc_get_handover_req_p2p(struct wpa_supplicant *wpa_s,
 
 	buf = wpas_p2p_nfc_handover_req(wpa_s, ndef);
 	if (buf == NULL) {
-		wpa_printf(MSG_DEBUG, "P2P: Could not generate NFC handover request");
+		wpa_dbg(wpa_s, MSG_DEBUG, "P2P: Could not generate NFC handover request");
 		return -1;
 	}
 
@@ -1512,7 +1512,7 @@ static int wpas_ctrl_nfc_report_handover(struct wpa_supplicant *wpa_s,
 	role = cmd;
 	pos = os_strchr(role, ' ');
 	if (pos == NULL) {
-		wpa_printf(MSG_DEBUG, "NFC: Missing type in handover report");
+		wpa_dbg(wpa_s, MSG_DEBUG, "NFC: Missing type in handover report");
 		return -1;
 	}
 	*pos++ = '\0';
@@ -1520,39 +1520,39 @@ static int wpas_ctrl_nfc_report_handover(struct wpa_supplicant *wpa_s,
 	type = pos;
 	pos = os_strchr(type, ' ');
 	if (pos == NULL) {
-		wpa_printf(MSG_DEBUG, "NFC: Missing request message in handover report");
+		wpa_dbg(wpa_s, MSG_DEBUG, "NFC: Missing request message in handover report");
 		return -1;
 	}
 	*pos++ = '\0';
 
 	pos2 = os_strchr(pos, ' ');
 	if (pos2 == NULL) {
-		wpa_printf(MSG_DEBUG, "NFC: Missing select message in handover report");
+		wpa_dbg(wpa_s, MSG_DEBUG, "NFC: Missing select message in handover report");
 		return -1;
 	}
 	*pos2++ = '\0';
 
 	len = os_strlen(pos);
 	if (len & 0x01) {
-		wpa_printf(MSG_DEBUG, "NFC: Invalid request message length in handover report");
+		wpa_dbg(wpa_s, MSG_DEBUG, "NFC: Invalid request message length in handover report");
 		return -1;
 	}
 	len /= 2;
 
 	req = wpabuf_alloc(len);
 	if (req == NULL) {
-		wpa_printf(MSG_DEBUG, "NFC: Failed to allocate memory for request message");
+		wpa_dbg(wpa_s, MSG_DEBUG, "NFC: Failed to allocate memory for request message");
 		return -1;
 	}
 	if (hexstr2bin(pos, wpabuf_put(req, len), len) < 0) {
-		wpa_printf(MSG_DEBUG, "NFC: Invalid request message hexdump in handover report");
+		wpa_dbg(wpa_s, MSG_DEBUG, "NFC: Invalid request message hexdump in handover report");
 		wpabuf_free(req);
 		return -1;
 	}
 
 	len = os_strlen(pos2);
 	if (len & 0x01) {
-		wpa_printf(MSG_DEBUG, "NFC: Invalid select message length in handover report");
+		wpa_dbg(wpa_s, MSG_DEBUG, "NFC: Invalid select message length in handover report");
 		wpabuf_free(req);
 		return -1;
 	}
@@ -1560,18 +1560,18 @@ static int wpas_ctrl_nfc_report_handover(struct wpa_supplicant *wpa_s,
 
 	sel = wpabuf_alloc(len);
 	if (sel == NULL) {
-		wpa_printf(MSG_DEBUG, "NFC: Failed to allocate memory for select message");
+		wpa_dbg(wpa_s, MSG_DEBUG, "NFC: Failed to allocate memory for select message");
 		wpabuf_free(req);
 		return -1;
 	}
 	if (hexstr2bin(pos2, wpabuf_put(sel, len), len) < 0) {
-		wpa_printf(MSG_DEBUG, "NFC: Invalid select message hexdump in handover report");
+		wpa_dbg(wpa_s, MSG_DEBUG, "NFC: Invalid select message hexdump in handover report");
 		wpabuf_free(req);
 		wpabuf_free(sel);
 		return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "NFC: Connection handover reported - role=%s type=%s req_len=%d sel_len=%d",
+	wpa_dbg(wpa_s, MSG_DEBUG, "NFC: Connection handover reported - role=%s type=%s req_len=%d sel_len=%d",
 		   role, type, (int) wpabuf_len(req), (int) wpabuf_len(sel));
 
 	if (os_strcmp(role, "INIT") == 0 && os_strcmp(type, "WPS") == 0) {
@@ -1593,7 +1593,7 @@ static int wpas_ctrl_nfc_report_handover(struct wpa_supplicant *wpa_s,
 						   forced_freq);
 #endif /* CONFIG_P2P */
 	} else {
-		wpa_printf(MSG_DEBUG, "NFC: Unsupported connection handover "
+		wpa_dbg(wpa_s, MSG_DEBUG, "NFC: Unsupported connection handover "
 			   "reported: role=%s type=%s", role, type);
 		ret = -1;
 	}
@@ -1601,7 +1601,7 @@ static int wpas_ctrl_nfc_report_handover(struct wpa_supplicant *wpa_s,
 	wpabuf_free(sel);
 
 	if (ret)
-		wpa_printf(MSG_DEBUG, "NFC: Failed to process reported handover messages");
+		wpa_dbg(wpa_s, MSG_DEBUG, "NFC: Failed to process reported handover messages");
 
 	return ret;
 }
@@ -1626,7 +1626,7 @@ static int wpa_supplicant_ctrl_iface_wps_reg(struct wpa_supplicant *wpa_s,
 	*pin++ = '\0';
 
 	if (hwaddr_aton(cmd, bssid)) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE WPS_REG: invalid BSSID '%s'",
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE WPS_REG: invalid BSSID '%s'",
 			   cmd);
 		return -1;
 	}
@@ -1854,12 +1854,12 @@ static int wpa_supplicant_ctrl_iface_ibss_rsn(
 	u8 peer[ETH_ALEN];
 
 	if (hwaddr_aton(addr, peer)) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE IBSS_RSN: invalid "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE IBSS_RSN: invalid "
 			   "address '%s'", addr);
 		return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE IBSS_RSN " MACSTR,
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE IBSS_RSN " MACSTR,
 		   MAC2STR(peer));
 
 	return ibss_rsn_start(wpa_s->ibss_rsn, peer);
@@ -1885,13 +1885,13 @@ static int wpa_supplicant_ctrl_iface_ctrl_rsp(struct wpa_supplicant *wpa_s,
 		return -1;
 	*pos++ = '\0';
 	id = atoi(id_pos);
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: field=%s id=%d", rsp, id);
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: field=%s id=%d", rsp, id);
 	wpa_hexdump_ascii_key(MSG_DEBUG, "CTRL_IFACE: value",
 			      (u8 *) pos, os_strlen(pos));
 
 	ssid = wpa_config_get_network(wpa_s->conf, id);
 	if (ssid == NULL) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find SSID id=%d "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find SSID id=%d "
 			   "to update", id);
 		return -1;
 	}
@@ -1899,7 +1899,7 @@ static int wpa_supplicant_ctrl_iface_ctrl_rsp(struct wpa_supplicant *wpa_s,
 	return wpa_supplicant_ctrl_iface_ctrl_rsp_handle(wpa_s, ssid, rsp,
 							 pos);
 #else /* IEEE8021X_EAPOL */
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: 802.1X not included");
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: 802.1X not included");
 	return -1;
 #endif /* IEEE8021X_EAPOL */
 }
@@ -2265,15 +2265,15 @@ static int wpa_supplicant_ctrl_iface_bssid(struct wpa_supplicant *wpa_s,
 		return -1;
 	*pos++ = '\0';
 	id = atoi(cmd);
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: id=%d bssid='%s'", id, pos);
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: id=%d bssid='%s'", id, pos);
 	if (hwaddr_aton(pos, bssid)) {
-		wpa_printf(MSG_DEBUG ,"CTRL_IFACE: invalid BSSID '%s'", pos);
+		wpa_dbg(wpa_s, MSG_DEBUG ,"CTRL_IFACE: invalid BSSID '%s'", pos);
 		return -1;
 	}
 
 	ssid = wpa_config_get_network(wpa_s->conf, id);
 	if (ssid == NULL) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find SSID id=%d "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find SSID id=%d "
 			   "to update", id);
 		return -1;
 	}
@@ -2317,9 +2317,9 @@ static int wpa_supplicant_ctrl_iface_blacklist(struct wpa_supplicant *wpa_s,
 		return 3;
 	}
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: BLACKLIST bssid='%s'", cmd);
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: BLACKLIST bssid='%s'", cmd);
 	if (hwaddr_aton(cmd, bssid)) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: invalid BSSID '%s'", cmd);
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: invalid BSSID '%s'", cmd);
 		return -1;
 	}
 
@@ -2879,22 +2879,22 @@ static int wpa_supplicant_ctrl_iface_mesh_group_add(
 	struct wpa_ssid *ssid;
 
 	id = atoi(cmd);
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: MESH_GROUP_ADD id=%d", id);
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: MESH_GROUP_ADD id=%d", id);
 
 	ssid = wpa_config_get_network(wpa_s->conf, id);
 	if (ssid == NULL) {
-		wpa_printf(MSG_DEBUG,
+		wpa_dbg(wpa_s, MSG_DEBUG,
 			   "CTRL_IFACE: Could not find network id=%d", id);
 		return -1;
 	}
 	if (ssid->mode != WPAS_MODE_MESH) {
-		wpa_printf(MSG_DEBUG,
+		wpa_dbg(wpa_s, MSG_DEBUG,
 			   "CTRL_IFACE: Cannot use MESH_GROUP_ADD on a non mesh network");
 		return -1;
 	}
 	if (ssid->key_mgmt != WPA_KEY_MGMT_NONE &&
 	    ssid->key_mgmt != WPA_KEY_MGMT_SAE) {
-		wpa_printf(MSG_ERROR,
+		wpa_dbg(wpa_s, MSG_ERROR,
 			   "CTRL_IFACE: key_mgmt for mesh network should be open or SAE");
 		return -1;
 	}
@@ -2916,7 +2916,7 @@ static int wpa_supplicant_ctrl_iface_mesh_group_remove(
 	struct wpa_global *global;
 	int found = 0;
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: MESH_GROUP_REMOVE ifname=%s", cmd);
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: MESH_GROUP_REMOVE ifname=%s", cmd);
 
 	global = wpa_s->global;
 	orig = wpa_s;
@@ -2928,13 +2928,13 @@ static int wpa_supplicant_ctrl_iface_mesh_group_remove(
 		}
 	}
 	if (!found) {
-		wpa_printf(MSG_ERROR,
+		wpa_dbg(wpa_s, MSG_ERROR,
 			   "CTRL_IFACE: MESH_GROUP_REMOVE ifname=%s not found",
 			   cmd);
 		return -1;
 	}
 	if (wpa_s->mesh_if_created && wpa_s == orig) {
-		wpa_printf(MSG_ERROR,
+		wpa_dbg(wpa_s, MSG_ERROR,
 			   "CTRL_IFACE: MESH_GROUP_REMOVE can't remove itself");
 		return -1;
 	}
@@ -3002,20 +3002,20 @@ static int wpa_supplicant_ctrl_iface_select_network(
 
 	/* cmd: "<network id>" or "any" */
 	if (os_strncmp(cmd, "any", 3) == 0) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: SELECT_NETWORK any");
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: SELECT_NETWORK any");
 		ssid = NULL;
 	} else {
 		id = atoi(cmd);
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: SELECT_NETWORK id=%d", id);
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: SELECT_NETWORK id=%d", id);
 
 		ssid = wpa_config_get_network(wpa_s->conf, id);
 		if (ssid == NULL) {
-			wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find "
+			wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find "
 				   "network id=%d", id);
 			return -1;
 		}
 		if (ssid->disabled == 2) {
-			wpa_printf(MSG_DEBUG, "CTRL_IFACE: Cannot use "
+			wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Cannot use "
 				   "SELECT_NETWORK with persistent P2P group");
 			return -1;
 		}
@@ -3046,20 +3046,20 @@ static int wpa_supplicant_ctrl_iface_enable_network(
 
 	/* cmd: "<network id>" or "all" */
 	if (os_strcmp(cmd, "all") == 0) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: ENABLE_NETWORK all");
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: ENABLE_NETWORK all");
 		ssid = NULL;
 	} else {
 		id = atoi(cmd);
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: ENABLE_NETWORK id=%d", id);
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: ENABLE_NETWORK id=%d", id);
 
 		ssid = wpa_config_get_network(wpa_s->conf, id);
 		if (ssid == NULL) {
-			wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find "
+			wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find "
 				   "network id=%d", id);
 			return -1;
 		}
 		if (ssid->disabled == 2) {
-			wpa_printf(MSG_DEBUG, "CTRL_IFACE: Cannot use "
+			wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Cannot use "
 				   "ENABLE_NETWORK with persistent P2P group");
 			return -1;
 		}
@@ -3085,20 +3085,20 @@ static int wpa_supplicant_ctrl_iface_disable_network(
 
 	/* cmd: "<network id>" or "all" */
 	if (os_strcmp(cmd, "all") == 0) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: DISABLE_NETWORK all");
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: DISABLE_NETWORK all");
 		ssid = NULL;
 	} else {
 		id = atoi(cmd);
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: DISABLE_NETWORK id=%d", id);
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: DISABLE_NETWORK id=%d", id);
 
 		ssid = wpa_config_get_network(wpa_s->conf, id);
 		if (ssid == NULL) {
-			wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find "
+			wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find "
 				   "network id=%d", id);
 			return -1;
 		}
 		if (ssid->disabled == 2) {
-			wpa_printf(MSG_DEBUG, "CTRL_IFACE: Cannot use "
+			wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Cannot use "
 				   "DISABLE_NETWORK with persistent P2P "
 				   "group");
 			return -1;
@@ -3116,7 +3116,7 @@ static int wpa_supplicant_ctrl_iface_add_network(
 	struct wpa_ssid *ssid;
 	int ret;
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: ADD_NETWORK");
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: ADD_NETWORK");
 
 	ssid = wpa_supplicant_add_network(wpa_s);
 	if (ssid == NULL)
@@ -3138,7 +3138,7 @@ static int wpa_supplicant_ctrl_iface_remove_network(
 
 	/* cmd: "<network id>" or "all" */
 	if (os_strcmp(cmd, "all") == 0) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: REMOVE_NETWORK all");
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: REMOVE_NETWORK all");
 		if (wpa_s->sched_scanning)
 			wpa_supplicant_cancel_sched_scan(wpa_s);
 
@@ -3168,16 +3168,16 @@ static int wpa_supplicant_ctrl_iface_remove_network(
 	}
 
 	id = atoi(cmd);
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: REMOVE_NETWORK id=%d", id);
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: REMOVE_NETWORK id=%d", id);
 
 	result = wpa_supplicant_remove_network(wpa_s, id);
 	if (result == -1) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find network "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find network "
 			   "id=%d", id);
 		return -1;
 	}
 	if (result == -2) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Not able to remove the "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Not able to remove the "
 			   "network id=%d", id);
 		return -1;
 	}
@@ -3193,7 +3193,7 @@ static int wpa_supplicant_ctrl_iface_update_network(
 
 	ret = wpa_config_set(ssid, name, value, 0);
 	if (ret < 0) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Failed to set network "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Failed to set network "
 			   "variable '%s'", name);
 		return -1;
 	}
@@ -3246,14 +3246,14 @@ static int wpa_supplicant_ctrl_iface_set_network(
 	*value++ = '\0';
 
 	id = atoi(cmd);
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: SET_NETWORK id=%d name='%s'",
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: SET_NETWORK id=%d name='%s'",
 		   id, name);
 	wpa_hexdump_ascii_key(MSG_DEBUG, "CTRL_IFACE: value",
 			      (u8 *) value, os_strlen(value));
 
 	ssid = wpa_config_get_network(wpa_s->conf, id);
 	if (ssid == NULL) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find network "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find network "
 			   "id=%d", id);
 		return -1;
 	}
@@ -3291,20 +3291,20 @@ static int wpa_supplicant_ctrl_iface_get_network(
 	*name++ = '\0';
 
 	id = atoi(cmd);
-	wpa_printf(MSG_EXCESSIVE, "CTRL_IFACE: GET_NETWORK id=%d name='%s'",
+	wpa_dbg(wpa_s, MSG_EXCESSIVE, "CTRL_IFACE: GET_NETWORK id=%d name='%s'",
 		   id, name);
 
 	ssid = wpa_config_get_network(wpa_s->conf, id);
 	if (ssid == NULL) {
-		wpa_printf(MSG_EXCESSIVE, "CTRL_IFACE: Could not find network "
-			   "id=%d", id);
+		wpa_dbg(wpa_s, MSG_EXCESSIVE, "CTRL_IFACE: Could not find network "
+			"id=%d", id);
 		return -1;
 	}
 
 	value = wpa_config_get_no_key(ssid, name);
 	if (value == NULL) {
-		wpa_printf(MSG_EXCESSIVE, "CTRL_IFACE: Failed to get network "
-			   "variable '%s'", name);
+		wpa_dbg(wpa_s, MSG_EXCESSIVE, "CTRL_IFACE: Failed to get network "
+			"variable '%s'", name);
 		return -1;
 	}
 
@@ -3341,28 +3341,27 @@ static int wpa_supplicant_ctrl_iface_dup_network(
 
 	id_s = atoi(cmd);
 	id_d = atoi(id);
-
-	wpa_printf(MSG_DEBUG,
-		   "CTRL_IFACE: DUP_NETWORK ifname=%s->%s id=%d->%d name='%s'",
-		   wpa_s->ifname, dst_wpa_s->ifname, id_s, id_d, name);
+	wpa_dbg(wpa_s, MSG_DEBUG,
+		"CTRL_IFACE: DUP_NETWORK ifname=%s->%s id=%d->%d name='%s'",
+		wpa_s->ifname, dst_wpa_s->ifname, id_s, id_d, name);
 
 	ssid_s = wpa_config_get_network(wpa_s->conf, id_s);
 	if (ssid_s == NULL) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find "
 			   "network id=%d", id_s);
 		return -1;
 	}
 
 	ssid_d = wpa_config_get_network(dst_wpa_s->conf, id_d);
 	if (ssid_d == NULL) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find "
 			   "network id=%d", id_d);
 		return -1;
 	}
 
 	value = wpa_config_get(ssid_s, name);
 	if (value == NULL) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Failed to get network "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Failed to get network "
 			   "variable '%s'", name);
 		return -1;
 	}
@@ -3415,7 +3414,7 @@ static int wpa_supplicant_ctrl_iface_add_cred(struct wpa_supplicant *wpa_s,
 	struct wpa_cred *cred;
 	int ret;
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: ADD_CRED");
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: ADD_CRED");
 
 	cred = wpa_config_add_cred(wpa_s->conf);
 	if (cred == NULL)
@@ -3438,13 +3437,13 @@ static int wpas_ctrl_remove_cred(struct wpa_supplicant *wpa_s,
 	int id;
 
 	if (cred == NULL) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find cred");
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find cred");
 		return -1;
 	}
 
 	id = cred->id;
 	if (wpa_config_remove_cred(wpa_s->conf, id) < 0) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find cred");
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find cred");
 		return -1;
 	}
 
@@ -3456,7 +3455,7 @@ static int wpas_ctrl_remove_cred(struct wpa_supplicant *wpa_s,
 		if (ssid->parent_cred == cred) {
 			int res;
 
-			wpa_printf(MSG_DEBUG, "Remove network id %d since it "
+			wpa_dbg(wpa_s, MSG_DEBUG, "Remove network id %d since it "
 				   "used the removed credential", ssid->id);
 			res = os_snprintf(str, sizeof(str), "%d", ssid->id);
 			if (os_snprintf_error(sizeof(str), res))
@@ -3480,7 +3479,7 @@ static int wpa_supplicant_ctrl_iface_remove_cred(struct wpa_supplicant *wpa_s,
 	/* cmd: "<cred id>", "all", "sp_fqdn=<FQDN>", or
 	 * "provisioning_sp=<FQDN> */
 	if (os_strcmp(cmd, "all") == 0) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: REMOVE_CRED all");
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: REMOVE_CRED all");
 		cred = wpa_s->conf->cred;
 		while (cred) {
 			prev = cred;
@@ -3491,7 +3490,7 @@ static int wpa_supplicant_ctrl_iface_remove_cred(struct wpa_supplicant *wpa_s,
 	}
 
 	if (os_strncmp(cmd, "sp_fqdn=", 8) == 0) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: REMOVE_CRED SP FQDN '%s'",
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: REMOVE_CRED SP FQDN '%s'",
 			   cmd + 8);
 		cred = wpa_s->conf->cred;
 		while (cred) {
@@ -3512,7 +3511,7 @@ static int wpa_supplicant_ctrl_iface_remove_cred(struct wpa_supplicant *wpa_s,
 	}
 
 	if (os_strncmp(cmd, "provisioning_sp=", 16) == 0) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: REMOVE_CRED provisioning SP FQDN '%s'",
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: REMOVE_CRED provisioning SP FQDN '%s'",
 			   cmd + 16);
 		cred = wpa_s->conf->cred;
 		while (cred) {
@@ -3526,7 +3525,7 @@ static int wpa_supplicant_ctrl_iface_remove_cred(struct wpa_supplicant *wpa_s,
 	}
 
 	id = atoi(cmd);
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: REMOVE_CRED id=%d", id);
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: REMOVE_CRED id=%d", id);
 
 	cred = wpa_config_get_cred(wpa_s->conf, id);
 	return wpas_ctrl_remove_cred(wpa_s, cred);
@@ -3552,20 +3551,20 @@ static int wpa_supplicant_ctrl_iface_set_cred(struct wpa_supplicant *wpa_s,
 	*value++ = '\0';
 
 	id = atoi(cmd);
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: SET_CRED id=%d name='%s'",
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: SET_CRED id=%d name='%s'",
 		   id, name);
 	wpa_hexdump_ascii_key(MSG_DEBUG, "CTRL_IFACE: value",
 			      (u8 *) value, os_strlen(value));
 
 	cred = wpa_config_get_cred(wpa_s->conf, id);
 	if (cred == NULL) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find cred id=%d",
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find cred id=%d",
 			   id);
 		return -1;
 	}
 
 	if (wpa_config_set_cred(cred, name, value, 0) < 0) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Failed to set cred "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Failed to set cred "
 			   "variable '%s'", name);
 		return -1;
 	}
@@ -3592,19 +3591,19 @@ static int wpa_supplicant_ctrl_iface_get_cred(struct wpa_supplicant *wpa_s,
 	*name++ = '\0';
 
 	id = atoi(cmd);
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: GET_CRED id=%d name='%s'",
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: GET_CRED id=%d name='%s'",
 		   id, name);
 
 	cred = wpa_config_get_cred(wpa_s->conf, id);
 	if (cred == NULL) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find cred id=%d",
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find cred id=%d",
 			   id);
 		return -1;
 	}
 
 	value = wpa_config_get_cred_no_key(cred, name);
 	if (value == NULL) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Failed to get cred variable '%s'",
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Failed to get cred variable '%s'",
 			   name);
 		return -1;
 	}
@@ -3627,17 +3626,17 @@ static int wpa_supplicant_ctrl_iface_save_config(struct wpa_supplicant *wpa_s)
 	int ret;
 
 	if (!wpa_s->conf->update_config) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: SAVE_CONFIG - Not allowed "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: SAVE_CONFIG - Not allowed "
 			   "to update configuration (update_config=0)");
 		return -1;
 	}
 
 	ret = wpa_config_write(wpa_s->confname, wpa_s->conf);
 	if (ret) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: SAVE_CONFIG - Failed to "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: SAVE_CONFIG - Failed to "
 			   "update configuration");
 	} else {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: SAVE_CONFIG - Configuration"
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: SAVE_CONFIG - Configuration"
 			   " updated");
 	}
 
@@ -4129,7 +4128,7 @@ static int wpa_supplicant_ctrl_iface_get_capability(
 			return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: GET_CAPABILITY '%s' %s",
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: GET_CAPABILITY '%s' %s",
 		field, strict ? strict : "");
 
 	if (os_strcmp(field, "eap") == 0) {
@@ -4218,7 +4217,7 @@ static int wpa_supplicant_ctrl_iface_get_capability(
 	}
 #endif /* CONFIG_FILS */
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: Unknown GET_CAPABILITY field '%s'",
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Unknown GET_CAPABILITY field '%s'",
 		   field);
 
 	return -1;
@@ -4759,7 +4758,7 @@ static int wpa_supplicant_ctrl_iface_bss(struct wpa_supplicant *wpa_s,
 			unsigned int id1, id2;
 
 			if ((ctmp = os_strchr(cmd + 6, '-')) == NULL) {
-				wpa_printf(MSG_INFO, "Wrong BSS range "
+				wpa_dbg(wpa_s, MSG_INFO, "Wrong BSS range "
 					   "format");
 				return 0;
 			}
@@ -4863,7 +4862,7 @@ static int wpa_supplicant_ctrl_iface_bss(struct wpa_supplicant *wpa_s,
 				res = os_snprintf(buf - 5, end - buf + 5,
 						  "####\n");
 				if (os_snprintf_error(end - buf + 5, res)) {
-					wpa_printf(MSG_DEBUG,
+					wpa_dbg(wpa_s, MSG_DEBUG,
 						   "Could not add end delim");
 				}
 			}
@@ -4926,7 +4925,7 @@ static void wpa_supplicant_ctrl_iface_bss_flush(
 #ifdef CONFIG_TESTING_OPTIONS
 static void wpa_supplicant_ctrl_iface_drop_sa(struct wpa_supplicant *wpa_s)
 {
-	wpa_printf(MSG_DEBUG, "Dropping SA without deauthentication");
+	wpa_dbg(wpa_s, MSG_DEBUG, "Dropping SA without deauthentication");
 	/* MLME-DELETEKEYS.request */
 	wpa_drv_set_key(wpa_s, WPA_ALG_NONE, NULL, 0, 0, NULL, 0, NULL, 0);
 	wpa_drv_set_key(wpa_s, WPA_ALG_NONE, NULL, 1, 0, NULL, 0, NULL, 0);
@@ -4959,22 +4958,22 @@ static int wpa_supplicant_ctrl_iface_roam(struct wpa_supplicant *wpa_s,
 	struct wpa_ssid *ssid = wpa_s->current_ssid;
 
 	if (hwaddr_aton(addr, bssid)) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE ROAM: invalid "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE ROAM: invalid "
 			   "address '%s'", addr);
 		return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE ROAM " MACSTR, MAC2STR(bssid));
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE ROAM " MACSTR, MAC2STR(bssid));
 
 	if (!ssid) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE ROAM: No network "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE ROAM: No network "
 			   "configuration known for the target AP");
 		return -1;
 	}
 
 	bss = wpa_bss_get(wpa_s, bssid, ssid->ssid, ssid->ssid_len);
 	if (!bss) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE ROAM: Target AP not found "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE ROAM: Target AP not found "
 			   "from BSS table");
 		return -1;
 	}
@@ -5225,7 +5224,7 @@ static int p2p_ctrl_asp_provision_resp(struct wpa_supplicant *wpa_s, char *cmd)
 
 	/* <addr> id=<adv_id> [role=<conncap>] [info=<infodata>] */
 
-	wpa_printf(MSG_DEBUG, "%s: %s", __func__, cmd);
+	wpa_dbg(wpa_s, MSG_DEBUG, "%s: %s", __func__, cmd);
 
 	if (hwaddr_aton(cmd, addr))
 		return -1;
@@ -5258,7 +5257,7 @@ static int p2p_ctrl_asp_provision(struct wpa_supplicant *wpa_s, char *cmd)
 	 *        session=<ses_id> mac=<ses_mac> [info=<infodata>]
 	 */
 
-	wpa_printf(MSG_DEBUG, "%s: %s", __func__, cmd);
+	wpa_dbg(wpa_s, MSG_DEBUG, "%s: %s", __func__, cmd);
 	if (hwaddr_aton(cmd, addr))
 		return -1;
 
@@ -5350,7 +5349,7 @@ static int p2p_ctrl_connect(struct wpa_supplicant *wpa_s, char *cmd,
 		ssid = wpa_config_get_network(wpa_s->conf, persistent_id);
 		if (ssid == NULL || ssid->disabled != 2 ||
 		    ssid->mode != WPAS_MODE_P2P_GO) {
-			wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find "
+			wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find "
 				   "SSID id=%d for persistent P2P group (GO)",
 				   persistent_id);
 			return -1;
@@ -5869,7 +5868,7 @@ static int p2p_ctrl_service_add(struct wpa_supplicant *wpa_s, char *cmd)
 		return p2p_ctrl_service_add_upnp(wpa_s, pos);
 	if (os_strcmp(cmd, "asp") == 0)
 		return p2p_ctrl_service_add_asp(wpa_s, 0, pos);
-	wpa_printf(MSG_DEBUG, "Unknown service '%s'", cmd);
+	wpa_dbg(wpa_s, MSG_DEBUG, "Unknown service '%s'", cmd);
 	return -1;
 }
 
@@ -5947,7 +5946,7 @@ static int p2p_ctrl_service_del(struct wpa_supplicant *wpa_s, char *cmd)
 		return p2p_ctrl_service_del_upnp(wpa_s, pos);
 	if (os_strcmp(cmd, "asp") == 0)
 		return p2p_ctrl_service_del_asp(wpa_s, pos);
-	wpa_printf(MSG_DEBUG, "Unknown service '%s'", cmd);
+	wpa_dbg(wpa_s, MSG_DEBUG, "Unknown service '%s'", cmd);
 	return -1;
 }
 
@@ -5964,7 +5963,7 @@ static int p2p_ctrl_service_replace(struct wpa_supplicant *wpa_s, char *cmd)
 	if (os_strcmp(cmd, "asp") == 0)
 		return p2p_ctrl_service_add_asp(wpa_s, 1, pos);
 
-	wpa_printf(MSG_DEBUG, "Unknown service '%s'", cmd);
+	wpa_dbg(wpa_s, MSG_DEBUG, "Unknown service '%s'", cmd);
 	return -1;
 }
 
@@ -6001,7 +6000,7 @@ static int p2p_ctrl_invite_persistent(struct wpa_supplicant *wpa_s, char *cmd)
 	}
 	ssid = wpa_config_get_network(wpa_s->conf, id);
 	if (ssid == NULL || ssid->disabled != 2) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find SSID id=%d "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find SSID id=%d "
 			   "for persistent P2P group",
 			   id);
 		return -1;
@@ -6056,7 +6055,7 @@ static int p2p_ctrl_invite_group(struct wpa_supplicant *wpa_s, char *cmd)
 	*pos = '\0';
 	pos += 6;
 	if (hwaddr_aton(pos, peer)) {
-		wpa_printf(MSG_DEBUG, "P2P: Invalid MAC address '%s'", pos);
+		wpa_dbg(wpa_s, MSG_DEBUG, "P2P: Invalid MAC address '%s'", pos);
 		return -1;
 	}
 
@@ -6064,7 +6063,7 @@ static int p2p_ctrl_invite_group(struct wpa_supplicant *wpa_s, char *cmd)
 	if (pos) {
 		pos += 13;
 		if (hwaddr_aton(pos, go_dev_addr)) {
-			wpa_printf(MSG_DEBUG, "P2P: Invalid MAC address '%s'",
+			wpa_dbg(wpa_s, MSG_DEBUG, "P2P: Invalid MAC address '%s'",
 				   pos);
 			return -1;
 		}
@@ -6094,7 +6093,7 @@ static int p2p_ctrl_group_add_persistent(struct wpa_supplicant *wpa_s,
 
 	ssid = wpa_config_get_network(wpa_s->conf, id);
 	if (ssid == NULL || ssid->disabled != 2) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find SSID id=%d "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Could not find SSID id=%d "
 			   "for persistent P2P group",
 			   id);
 		return -1;
@@ -6128,7 +6127,7 @@ static int p2p_ctrl_group_add(struct wpa_supplicant *wpa_s, char *cmd)
 		} else if (os_strcmp(token, "persistent") == 0) {
 			persistent = 1;
 		} else {
-			wpa_printf(MSG_DEBUG,
+			wpa_dbg(wpa_s, MSG_DEBUG,
 				   "CTRL: Invalid P2P_GROUP_ADD parameter: '%s'",
 				   token);
 			return -1;
@@ -6318,7 +6317,7 @@ static int p2p_ctrl_disallow_freq(struct wpa_supplicant *wpa_s,
 	for (i = 0; i < wpa_s->global->p2p_disallow_freq.num; i++) {
 		struct wpa_freq_range *freq;
 		freq = &wpa_s->global->p2p_disallow_freq.range[i];
-		wpa_printf(MSG_DEBUG, "P2P: Disallowed frequency range %u-%u",
+		wpa_dbg(wpa_s, MSG_DEBUG, "P2P: Disallowed frequency range %u-%u",
 			   freq->min, freq->max);
 	}
 
@@ -6386,7 +6385,7 @@ static int p2p_ctrl_set(struct wpa_supplicant *wpa_s, char *cmd)
 			return -1;
 		if (count == 0 && duration > 0)
 			return -1;
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: P2P_SET GO NoA: count=%d "
+		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: P2P_SET GO NoA: count=%d "
 			   "start=%d duration=%d", count, start, duration);
 		return wpas_p2p_set_noa(wpa_s, count, start, duration);
 	}
@@ -6402,7 +6401,7 @@ static int p2p_ctrl_set(struct wpa_supplicant *wpa_s, char *cmd)
 
 	if (os_strcmp(cmd, "disabled") == 0) {
 		wpa_s->global->p2p_disabled = atoi(param);
-		wpa_printf(MSG_DEBUG, "P2P functionality %s",
+		wpa_dbg(wpa_s, MSG_DEBUG, "P2P functionality %s",
 			   wpa_s->global->p2p_disabled ?
 			   "disabled" : "enabled");
 		if (wpa_s->global->p2p_disabled) {
@@ -6419,10 +6418,10 @@ static int p2p_ctrl_set(struct wpa_supplicant *wpa_s, char *cmd)
 		else if (os_strcmp(param, "p2p") == 0)
 			wpa_s->global->conc_pref = WPA_CONC_PREF_P2P;
 		else {
-			wpa_printf(MSG_INFO, "Invalid conc_pref value");
+			wpa_dbg(wpa_s, MSG_INFO, "Invalid conc_pref value");
 			return -1;
 		}
-		wpa_printf(MSG_DEBUG, "Single channel concurrency preference: "
+		wpa_dbg(wpa_s, MSG_DEBUG, "Single channel concurrency preference: "
 			   "%s", param);
 		return 0;
 	}
@@ -6548,7 +6547,7 @@ static int p2p_ctrl_set(struct wpa_supplicant *wpa_s, char *cmd)
 		return 0;
 	}
 
-	wpa_printf(MSG_DEBUG, "CTRL_IFACE: Unknown P2P_SET field value '%s'",
+	wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE: Unknown P2P_SET field value '%s'",
 		   cmd);
 
 	return -1;
@@ -6721,13 +6720,13 @@ static int ctrl_interworking_connect(struct wpa_supplicant *wpa_s, char *dst,
 	struct wpa_bss *bss;
 
 	if (hwaddr_aton(dst, bssid)) {
-		wpa_printf(MSG_DEBUG, "Invalid BSSID '%s'", dst);
+		wpa_dbg(wpa_s, MSG_DEBUG, "Invalid BSSID '%s'", dst);
 		return -1;
 	}
 
 	bss = wpa_bss_get_bssid(wpa_s, bssid);
 	if (bss == NULL) {
-		wpa_printf(MSG_DEBUG, "Could not find BSS " MACSTR,
+		wpa_dbg(wpa_s, MSG_DEBUG, "Could not find BSS " MACSTR,
 			   MAC2STR(bssid));
 		return -1;
 	}
@@ -6735,7 +6734,7 @@ static int ctrl_interworking_connect(struct wpa_supplicant *wpa_s, char *dst,
 	if (bss->ssid_len == 0) {
 		int found = 0;
 
-		wpa_printf(MSG_DEBUG, "Selected BSS entry for " MACSTR
+		wpa_dbg(wpa_s, MSG_DEBUG, "Selected BSS entry for " MACSTR
 			   " does not have SSID information", MAC2STR(bssid));
 
 		dl_list_for_each_reverse(bss, &wpa_s->bss, struct wpa_bss,
@@ -6749,7 +6748,7 @@ static int ctrl_interworking_connect(struct wpa_supplicant *wpa_s, char *dst,
 
 		if (!found)
 			return -1;
-		wpa_printf(MSG_DEBUG,
+		wpa_dbg(wpa_s, MSG_DEBUG,
 			   "Found another matching BSS entry with SSID");
 	}
 
@@ -7223,9 +7222,9 @@ static int wpas_ctrl_iface_wnm_bss_query(struct wpa_supplicant *wpa_s, char *cmd
 			btm_candidates = cmd;
 	}
 
-	wpa_printf(MSG_DEBUG,
-		   "CTRL_IFACE: WNM_BSS_QUERY query_reason=%d%s",
-		   query_reason, list ? " candidate list" : "");
+	wpa_dbg(wpa_s, MSG_DEBUG,
+		"CTRL_IFACE: WNM_BSS_QUERY query_reason=%d%s",
+		query_reason, list ? " candidate list" : "");
 
 	return wnm_send_bss_transition_mgmt_query(wpa_s, query_reason,
 						  btm_candidates,
@@ -7302,8 +7301,8 @@ static int wpas_ctrl_iface_signal_monitor(struct wpa_supplicant *wpa_s,
 	int hysteresis = 0;
 
 	if (wpa_s->bgscan && wpa_s->bgscan_priv) {
-		wpa_printf(MSG_DEBUG,
-			   "Reject SIGNAL_MONITOR command - bgscan is active");
+		wpa_dbg(wpa_s, MSG_DEBUG,
+			"Reject SIGNAL_MONITOR command - bgscan is active");
 		return -1;
 	}
 	pos = os_strstr(cmd, "THRESHOLD=");
@@ -7383,9 +7382,9 @@ static int wpas_ctrl_iface_get_pref_freq_list(
 	else
 		return -1;
 
-	wpa_printf(MSG_DEBUG,
-		   "CTRL_IFACE: GET_PREF_FREQ_LIST iface_type=%d (%s)",
-		   iface_type, buf);
+	wpa_dbg(wpa_s, MSG_DEBUG,
+		"CTRL_IFACE: GET_PREF_FREQ_LIST iface_type=%d (%s)",
+		iface_type, buf);
 
 	ret = wpa_drv_get_pref_freq_list(wpa_s, iface_type, &num, freq_list);
 	if (ret)
@@ -7506,7 +7505,7 @@ static int wpa_supplicant_vendor_cmd(struct wpa_supplicant *wpa_s, char *cmd,
 			return -1;
 
 		if (hexstr2bin(pos, data, data_len)) {
-			wpa_printf(MSG_DEBUG,
+			wpa_dbg(wpa_s, MSG_DEBUG,
 				   "Vendor command: wrong parameter format");
 			os_free(data);
 			return -EINVAL;
@@ -7659,7 +7658,7 @@ static void wpa_supplicant_ctrl_iface_flush(struct wpa_supplicant *wpa_s)
 
 	wpa_bss_flush(wpa_s);
 	if (!dl_list_empty(&wpa_s->bss)) {
-		wpa_printf(MSG_DEBUG,
+		wpa_dbg(wpa_s, MSG_DEBUG,
 			   "BSS table not empty after flush: %u entries, current_bss=%p bssid="
 			   MACSTR " pending_bssid=" MACSTR,
 			   dl_list_len(&wpa_s->bss), wpa_s->current_bss,
@@ -7925,7 +7924,7 @@ static void wpas_ctrl_scan(struct wpa_supplicant *wpa_s, char *params,
 	}
 
 	if (radio_work_pending(wpa_s, "scan")) {
-		wpa_printf(MSG_DEBUG,
+		wpa_dbg(wpa_s, MSG_DEBUG,
 			   "Pending scan scheduled - reject new request");
 		*reply_len = os_snprintf(reply, reply_size, "FAIL-BUSY\n");
 		return;
@@ -7933,7 +7932,7 @@ static void wpas_ctrl_scan(struct wpa_supplicant *wpa_s, char *params,
 
 #ifdef CONFIG_INTERWORKING
 	if (wpa_s->fetch_anqp_in_progress || wpa_s->network_select) {
-		wpa_printf(MSG_DEBUG,
+		wpa_dbg(wpa_s, MSG_DEBUG,
 			   "Interworking select in progress - reject new scan");
 		*reply_len = os_snprintf(reply, reply_size, "FAIL-BUSY\n");
 		return;
@@ -7999,9 +7998,9 @@ static void wpas_ctrl_scan(struct wpa_supplicant *wpa_s, char *params,
 				    end - pos > 2 * SSID_MAX_LEN ||
 				    hexstr2bin(pos, ssid[ssid_count].ssid,
 					       (end - pos) / 2) < 0) {
-					wpa_printf(MSG_DEBUG,
-						   "Invalid SSID value '%s'",
-						   pos);
+					wpa_dbg(wpa_s, MSG_DEBUG,
+						"Invalid SSID value '%s'",
+						pos);
 					*reply_len = -1;
 					goto done;
 				}
@@ -8071,7 +8070,7 @@ static void wpas_ctrl_scan(struct wpa_supplicant *wpa_s, char *params,
 		wpa_s->manual_scan_freqs = manual_scan_freqs;
 		manual_scan_freqs = NULL;
 
-		wpa_printf(MSG_DEBUG, "Stop ongoing sched_scan to allow requested full scan to proceed");
+		wpa_dbg(wpa_s, MSG_DEBUG, "Stop ongoing sched_scan to allow requested full scan to proceed");
 		wpa_supplicant_cancel_sched_scan(wpa_s);
 		wpa_s->scan_req = MANUAL_SCAN_REQ;
 		wpa_supplicant_req_scan(wpa_s, 0, 0);
@@ -8083,7 +8082,7 @@ static void wpas_ctrl_scan(struct wpa_supplicant *wpa_s, char *params,
 				wpa_s->manual_scan_id);
 		}
 	} else {
-		wpa_printf(MSG_DEBUG, "Ongoing scan action - reject new request");
+		wpa_dbg(wpa_s, MSG_DEBUG, "Ongoing scan action - reject new request");
 		*reply_len = os_snprintf(reply, reply_size, "FAIL-BUSY\n");
 	}
 
@@ -8122,7 +8121,7 @@ static int wpas_ctrl_iface_mgmt_tx(struct wpa_supplicant *wpa_s, char *cmd)
 	/* <DA> <BSSID> [freq=<MHz>] [wait_time=<ms>] [no_cck=1]
 	 *    <action=Action frame payload> */
 
-	wpa_printf(MSG_DEBUG, "External MGMT TX: %s", cmd);
+	wpa_dbg(wpa_s, MSG_DEBUG, "External MGMT TX: %s", cmd);
 
 	pos = cmd;
 	used = hwaddr_aton2(pos, da);
@@ -8183,7 +8182,7 @@ static int wpas_ctrl_iface_mgmt_tx(struct wpa_supplicant *wpa_s, char *cmd)
 
 static void wpas_ctrl_iface_mgmt_tx_done(struct wpa_supplicant *wpa_s)
 {
-	wpa_printf(MSG_DEBUG, "External MGMT TX - done waiting");
+	wpa_dbg(wpa_s, MSG_DEBUG, "External MGMT TX - done waiting");
 	offchannel_send_action_done(wpa_s);
 }
 
@@ -8427,7 +8426,7 @@ static int wpas_ctrl_iface_eapol_rx(struct wpa_supplicant *wpa_s, char *cmd)
 	int used;
 	size_t len;
 
-	wpa_printf(MSG_DEBUG, "External EAPOL RX: %s", cmd);
+	wpa_dbg(wpa_s, MSG_DEBUG, "External EAPOL RX: %s", cmd);
 
 	pos = cmd;
 	used = hwaddr_aton2(pos, src);
@@ -8722,7 +8721,7 @@ static void wpas_ctrl_event_test_cb(void *eloop_ctx, void *timeout_ctx)
 	struct wpa_supplicant *wpa_s = eloop_ctx;
 	int i, count = (intptr_t) timeout_ctx;
 
-	wpa_printf(MSG_DEBUG, "TEST: Send %d control interface event messages",
+	wpa_dbg(wpa_s, MSG_DEBUG, "TEST: Send %d control interface event messages",
 		   count);
 	for (i = 0; i < count; i++) {
 		wpa_msg_ctrl(wpa_s, MSG_INFO, "TEST-EVENT-MESSAGE %d/%d",
@@ -9081,7 +9080,7 @@ static int wpas_ctrl_iface_mac_rand_scan(struct wpa_supplicant *wpa_s,
 		} else if (os_strncasecmp(token, "addr=", 5) == 0) {
 			addr = _addr;
 			if (hwaddr_aton(token + 5, addr)) {
-				wpa_printf(MSG_INFO,
+				wpa_dbg(wpa_s, MSG_INFO,
 					   "CTRL: Invalid MAC address: %s",
 					   token);
 				return -1;
@@ -9089,13 +9088,13 @@ static int wpas_ctrl_iface_mac_rand_scan(struct wpa_supplicant *wpa_s,
 		} else if (os_strncasecmp(token, "mask=", 5) == 0) {
 			mask = _mask;
 			if (hwaddr_aton(token + 5, mask)) {
-				wpa_printf(MSG_INFO,
+				wpa_dbg(wpa_s, MSG_INFO,
 					   "CTRL: Invalid MAC address mask: %s",
 					   token);
 				return -1;
 			}
 		} else {
-			wpa_printf(MSG_INFO,
+			wpa_dbg(wpa_s, MSG_INFO,
 				   "CTRL: Invalid MAC_RAND_SCAN parameter: %s",
 				   token);
 			return -1;
@@ -9103,19 +9102,19 @@ static int wpas_ctrl_iface_mac_rand_scan(struct wpa_supplicant *wpa_s,
 	}
 
 	if (!type) {
-		wpa_printf(MSG_INFO, "CTRL: MAC_RAND_SCAN no type specified");
+		wpa_dbg(wpa_s, MSG_INFO, "CTRL: MAC_RAND_SCAN no type specified");
 		return -1;
 	}
 
 	if ((wpa_s->mac_addr_rand_supported & type) != type) {
-		wpa_printf(MSG_INFO,
+		wpa_dbg(wpa_s, MSG_INFO,
 			   "CTRL: MAC_RAND_SCAN types=%u != supported=%u",
 			   type, wpa_s->mac_addr_rand_supported);
 		return -1;
 	}
 
 	if (enable > 1) {
-		wpa_printf(MSG_INFO,
+		wpa_dbg(wpa_s, MSG_INFO,
 			   "CTRL: MAC_RAND_SCAN enable=<0/1> not specified");
 		return -1;
 	}
@@ -9135,13 +9134,13 @@ static int wpas_ctrl_iface_mac_rand_scan(struct wpa_supplicant *wpa_s,
 	}
 
 	if ((addr && !mask) || (!addr && mask)) {
-		wpa_printf(MSG_INFO,
+		wpa_dbg(wpa_s, MSG_INFO,
 			   "CTRL: MAC_RAND_SCAN invalid addr/mask combination");
 		return -1;
 	}
 
 	if (addr && mask && (!(mask[0] & 0x01) || (addr[0] & 0x01))) {
-		wpa_printf(MSG_INFO,
+		wpa_dbg(wpa_s, MSG_INFO,
 			   "CTRL: MAC_RAND_SCAN cannot allow multicast address");
 		return -1;
 	}
@@ -9500,7 +9499,7 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 		if (wpa_debug_reopen_file() < 0)
 			reply_len = -1;
 	} else if (os_strncmp(buf, "NOTE ", 5) == 0) {
-		wpa_printf(MSG_INFO, "NOTE: %s", buf + 5);
+		wpa_dbg(wpa_s, MSG_INFO, "NOTE: %s", buf + 5);
 	} else if (os_strcmp(buf, "MIB") == 0) {
 		reply_len = wpa_sm_get_mib(wpa_s->wpa, reply, reply_size);
 		if (reply_len >= 0) {
@@ -10670,8 +10669,8 @@ static int wpas_global_ctrl_iface_save_config(struct wpa_global *global)
 	}
 
 	if (!saved && !ret) {
-		wpa_dbg(wpa_s, MSG_DEBUG,
-			"CTRL_IFACE: SAVE_CONFIG - No configuration files could be updated");
+		wpa_printf(MSG_DEBUG,
+			   "CTRL_IFACE: SAVE_CONFIG - No configuration files could be updated");
 		ret = 1;
 	}
 
@@ -10744,7 +10743,7 @@ static int wpas_global_ctrl_iface_fst_attach(struct wpa_global *global,
 		wpa_s = wpa_supplicant_get_iface(global, ifname);
 		if (wpa_s) {
 			if (wpa_s->fst) {
-				wpa_printf(MSG_INFO, "FST: Already attached");
+				wpa_dbg(wpa_s, MSG_INFO, "FST: Already attached");
 				return -1;
 			}
 			fst_wpa_supplicant_fill_iface_obj(wpa_s, &iface_obj);
