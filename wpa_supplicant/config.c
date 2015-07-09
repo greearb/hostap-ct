@@ -4825,6 +4825,7 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	config->concurrent_assoc_ok = DEFAULT_CONCURRENT_ASSOC_OK;
+	config->accept_external_scan_results = DEFAULT_ACCEPT_EXTERNAL_SCAN_RESULTS;
 
 	return config;
 }
@@ -5727,6 +5728,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(tdls_external_control), 0},
 	{ STR(wowlan_triggers), CFG_CHANGED_WOWLAN_TRIGGERS },
 	{ INT(concurrent_assoc_ok), 0 },
+	{ INT(accept_external_scan_results), 0 },
 	{ INT(p2p_search_delay), 0},
 	{ INT_RANGE(mac_addr, 0, 2), 0 },
 	{ INT(rand_addr_lifetime), 0 },
