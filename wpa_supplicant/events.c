@@ -1500,7 +1500,8 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 		}
 	}
 
-	if (!wpa_s->own_scan_running && wpa_s->radio->external_scan_running) {
+	if (!wpa_s->conf->accept_external_scan_results &&
+	    !wpa_s->own_scan_running && wpa_s->radio->external_scan_running) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "Do not use results from externally requested scan operation for network selection");
 		wpa_scan_results_free(scan_res);
 		return 0;
