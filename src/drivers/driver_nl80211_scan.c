@@ -122,6 +122,8 @@ nl80211_scan_common(struct i802_bss *bss, u8 cmd,
 	struct nl_msg *msg;
 	size_t i;
 	u32 scan_flags = 0;
+	struct nlattr *nlrates;
+	unsigned char rates[12];
 
 	msg = nl80211_cmd_msg(bss, 0, cmd);
 	if (!msg)
@@ -954,6 +956,30 @@ int wpa_driver_nl80211_vendor_scan(struct i802_bss *bss,
 				goto fail;
 		}
 		nla_nest_end(msg, ssids);
+	}
+
+	i = nl80211_build_legacy_rateset(bss->adv_legacy_rates, 0, rates);
+	if (bss->adv_legacy_rates & (1<<31)) {
+		/* User has specified a legacy rateset, use it. */
+		nlrates = nla_nest_start(msg, NL80211_ATTR_SCAN_SUPP_RATES);
+		if (!nlrates)
+			goto fail;
+
+		if (nla_put(msg, NL80211_BAND_2GHZ, i, rates))
+			goto fail;
+
+		/* If only /b rates are set, then we will just ignore
+                 * setting 5Ghz at all and assume that other config will keep
+                 * us from trying to use that band.
+		 */
+		if (bss->adv_legacy_rates & 0xFF0) {
+			i = nl80211_build_legacy_rateset(bss->adv_legacy_rates, 1, rates);
+			if (nla_put(msg, NL80211_BAND_5GHZ, i, rates))
+				goto fail;
+		}
+
+		/* TODO:  Someday pay attention to individual HT/VHT rates as well? */
+		nla_nest_end(msg, nlrates);
 	}
 
 	if (params->extra_ies) {
