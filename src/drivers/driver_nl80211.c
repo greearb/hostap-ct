@@ -6609,7 +6609,7 @@ static int wpa_driver_nl80211_associate(
 		nl80211_dump_scan(drv);
 	} else {
 		wpa_printf(MSG_DEBUG,
-			   "nl80211: Association request send successfully");
+			   "nl80211: Association request sent successfully");
 	}
 
 fail:
