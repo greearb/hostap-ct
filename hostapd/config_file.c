@@ -3318,6 +3318,14 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 			return 1;
 		}
 		bss->send_probe_response = val;
+	} else if (os_strcmp(buf, "no_pri_sec_switch") == 0) {
+		int val = atoi(pos);
+		if (val != 0 && val != 1) {
+			wpa_printf(MSG_ERROR, "Line %d: invalid no_pri_sec_switch %d (expected 0 or 1)",
+				   line, val);
+			return 1;
+		}
+		conf->no_pri_sec_switch = val;
 	} else if (os_strcmp(buf, "supported_rates") == 0) {
 		if (hostapd_parse_intlist(&conf->supported_rates, pos)) {
 			wpa_printf(MSG_ERROR, "Line %d: invalid rate list",
