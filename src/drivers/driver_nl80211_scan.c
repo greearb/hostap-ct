@@ -1108,6 +1108,8 @@ int wpa_driver_nl80211_vendor_scan(struct i802_bss *bss,
 				goto fail;
 		}
 		nla_nest_end(msg, ssids);
+	} else {
+		wpa_printf(MSG_DEBUG, "nl80211: Passive Scan requested.");
 	}
 
 	i = nl80211_build_legacy_rateset(bss->adv_legacy_rates, 0, rates);
