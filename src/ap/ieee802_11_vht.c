@@ -25,14 +25,13 @@ u8 * hostapd_eid_vht_capabilities(struct hostapd_data *hapd, u8 *eid, u32 nsts)
 	struct ieee80211_vht_capabilities *cap;
 	struct hostapd_hw_modes *mode = hapd->iface->current_mode;
 	u8 *pos = eid;
+	int i;
 
 	if (!mode || is_6ghz_op_class(hapd->iconf->op_class))
 		return eid;
 
 	if (mode->mode == HOSTAPD_MODE_IEEE80211G && hapd->conf->vendor_vht &&
 	    mode->vht_capab == 0 && hapd->iface->hw_features) {
-		int i;
-
 		for (i = 0; i < hapd->iface->num_hw_features; i++) {
 			if (hapd->iface->hw_features[i].mode ==
 			    HOSTAPD_MODE_IEEE80211A) {
@@ -64,6 +63,26 @@ u8 * hostapd_eid_vht_capabilities(struct hostapd_data *hapd, u8 *eid, u32 nsts)
 
 	/* Supported MCS set comes from hw */
 	os_memcpy(&cap->vht_supported_mcs_set, mode->vht_mcs_set, 8);
+
+	/*
+	 * Disable all MCS rates that are out of the configured nss (antenna)
+	 * range.
+	 */
+	if (mode->conf_tx_ant) {
+		for (i = 7; i > 0; i--) {
+			if (mode->conf_tx_ant & BIT(i - 1))
+				break;
+			cap->vht_supported_mcs_set.tx_map |= (0x3 << i);
+		}
+	}
+
+	if (mode->conf_rx_ant) {
+		for (i = 7; i > 0; i--) {
+			if (mode->conf_rx_ant & BIT(i - 1))
+				break;
+			cap->vht_supported_mcs_set.rx_map |= (0x3 << i);
+		}
+	}
 
 	pos += sizeof(*cap);
 
