@@ -219,6 +219,18 @@ struct hostapd_hw_modes {
 	u16 ht_capab;
 
 	/**
+	 * conf_tx_ant - Configured TX Antenna mask
+	 * 0 means not reported by driver.
+	 */
+	u32 conf_tx_ant;
+
+	/**
+	 * conf_rx_ant - Configured RX Antenna mask
+	 * 0 means not reported by driver
+	 */
+	u32 conf_rx_ant;
+
+	/**
 	 * mcs_set - MCS (IEEE 802.11n) rate parameters
 	 */
 	u8 mcs_set[16];
