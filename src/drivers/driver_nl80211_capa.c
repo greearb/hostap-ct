@@ -1468,6 +1468,7 @@ struct phy_info_arg {
 	int last_mode, last_chan_idx;
 	int failed;
 	u8 dfs_domain;
+	u32 conf_tx_ant, conf_rx_ant;
 };
 
 static void phy_info_ht_capa(struct hostapd_hw_modes *mode, struct nlattr *capa,
@@ -1869,7 +1870,8 @@ static int phy_info_iftype(struct hostapd_hw_modes *mode,
 }
 
 
-static int phy_info_band(struct phy_info_arg *phy_info, struct nlattr *nl_band)
+static int phy_info_band(struct phy_info_arg *phy_info, struct nlattr *nl_band,
+			 struct hostapd_hw_modes **mode_used)
 {
 	struct nlattr *tb_band[NL80211_BAND_ATTR_MAX + 1];
 	struct hostapd_hw_modes *mode;
@@ -1907,6 +1909,8 @@ static int phy_info_band(struct phy_info_arg *phy_info, struct nlattr *nl_band)
 		phy_info->last_chan_idx = 0;
 	} else
 		mode = &phy_info->modes[*(phy_info->num_modes) - 1];
+
+	*mode_used = mode;
 
 	nla_parse(tb_band, NL80211_BAND_ATTR_MAX, nla_data(nl_band),
 		  nla_len(nl_band), NULL);
@@ -1954,18 +1958,44 @@ static int phy_info_handler(struct nl_msg *msg, void *arg)
 	struct phy_info_arg *phy_info = arg;
 	struct nlattr *nl_band;
 	int rem_band;
+	u32 tx, rx;
 
 	nla_parse(tb_msg, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
 		  genlmsg_attrlen(gnlh, 0), NULL);
+
+	if (tb_msg[NL80211_ATTR_WIPHY_ANTENNA_AVAIL_TX] &&
+	    tb_msg[NL80211_ATTR_WIPHY_ANTENNA_AVAIL_RX]) {
+		tx = nla_get_u32(tb_msg[NL80211_ATTR_WIPHY_ANTENNA_AVAIL_TX]);
+		rx = nla_get_u32(tb_msg[NL80211_ATTR_WIPHY_ANTENNA_AVAIL_RX]);
+		wpa_printf(MSG_DEBUG, "Available Antennas: TX %#x RX %#x",
+			   tx, rx);
+	}
+
+	if (tb_msg[NL80211_ATTR_WIPHY_ANTENNA_TX] &&
+	    tb_msg[NL80211_ATTR_WIPHY_ANTENNA_RX]) {
+		tx = nla_get_u32(tb_msg[NL80211_ATTR_WIPHY_ANTENNA_TX]);
+		rx = nla_get_u32(tb_msg[NL80211_ATTR_WIPHY_ANTENNA_RX]);
+		wpa_printf(MSG_DEBUG, "Configured Antennas: TX %#x RX %#x",
+			   tx, rx);
+		phy_info->conf_tx_ant = tx;
+		phy_info->conf_rx_ant = rx;
+	}
 
 	if (!tb_msg[NL80211_ATTR_WIPHY_BANDS])
 		return NL_SKIP;
 
 	nla_for_each_nested(nl_band, tb_msg[NL80211_ATTR_WIPHY_BANDS], rem_band)
 	{
-		int res = phy_info_band(phy_info, nl_band);
+		struct hostapd_hw_modes *mode = NULL;
+		int res = phy_info_band(phy_info, nl_band, &mode);
+
 		if (res != NL_OK)
 			return res;
+
+		if (mode) {
+			mode->conf_tx_ant = phy_info->conf_tx_ant;
+			mode->conf_rx_ant = phy_info->conf_rx_ant;
+		}
 	}
 
 	return NL_SKIP;
@@ -2468,6 +2498,8 @@ nl80211_get_hw_feature_data(void *priv, u16 *num_modes, u16 *flags,
 		.last_mode = -1,
 		.failed = 0,
 		.dfs_domain = 0,
+		.conf_tx_ant = 0,
+		.conf_rx_ant = 0,
 	};
 
 	*num_modes = 0;
