@@ -25,6 +25,7 @@ u8 * hostapd_eid_ht_capabilities(struct hostapd_data *hapd, u8 *eid)
 {
 	struct ieee80211_ht_capabilities *cap;
 	u8 *pos = eid;
+	int i;
 
 	if (!hapd->iconf->ieee80211n || !hapd->iface->current_mode ||
 	    hapd->conf->disable_11n)
@@ -39,6 +40,30 @@ u8 * hostapd_eid_ht_capabilities(struct hostapd_data *hapd, u8 *eid)
 	cap->a_mpdu_params = hapd->iface->current_mode->a_mpdu_params;
 	os_memcpy(cap->supported_mcs_set, hapd->iface->current_mode->mcs_set,
 		  16);
+
+	/*
+	 * Disable all MCS rates that are out of the configured nss (antenna)
+	 * range.
+	 */
+	if (hapd->iface->current_mode->conf_tx_ant &&
+	    hapd->iface->current_mode->conf_rx_ant) {
+		int msk;
+
+		msk = hapd->iface->current_mode->conf_tx_ant &
+			hapd->iface->current_mode->conf_rx_ant;
+		for (i = 7; i >= 0; i--) {
+			if (msk & BIT(i))
+				break;
+			if (!cap->supported_mcs_set[i])
+				continue;
+			wpa_printf(MSG_DEBUG,
+				   "Decreasing MCS set due to configured antennas: conf-tx-ant: 0x%x  conf-rx-ant: 0x%x mcs-set for nss: %d",
+				   hapd->iface->current_mode->conf_tx_ant,
+				   hapd->iface->current_mode->conf_rx_ant,
+				   i + 1);
+			cap->supported_mcs_set[i] = 0;
+		}
+	}
 
 	/* TODO: ht_extended_capabilities (now fully disabled) */
 	/* TODO: tx_bf_capability_info (now fully disabled) */
