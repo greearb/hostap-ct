@@ -539,6 +539,42 @@ def test_ap_vht_on_24ghz(dev, apdev):
     finally:
         dev[0].request("VENDOR_ELEM_REMOVE 13 *")
 
+def test_ap_vht80_antenna_config(dev, apdev):
+    """VHT with 80 MHz channel width and antenna configuration"""
+    hapd = hostapd.add_ap(apdev[0]['ifname'], { "ssid": "open" })
+    phy = hapd.get_driver_status_field("phyname")
+    hapd.disable()
+
+    try:
+        subprocess.call(['iw', 'phy', phy, 'set', 'antenna', '0x3'])
+        hapd = None
+        params = { "ssid": "vht",
+                   "country_code": "FI",
+                   "hw_mode": "a",
+                   "channel": "36",
+                   "ht_capab": "[HT40+]",
+                   "ieee80211n": "1",
+                   "ieee80211ac": "1",
+                   "vht_oper_chwidth": "1",
+                   "vht_oper_centr_freq_seg0_idx": "42" }
+        hapd = hostapd.add_ap(apdev[0]['ifname'], params)
+        bssid = apdev[0]['bssid']
+
+        dev[0].connect("vht", key_mgmt="NONE", scan_freq="5180")
+        hwsim_utils.test_connectivity(dev[0], hapd)
+    except Exception, e:
+        if isinstance(e, Exception) and str(e) == "AP startup failed":
+            if not vht_supported():
+                raise HwsimSkip("80 MHz channel not supported in regulatory information")
+        raise
+    finally:
+        dev[0].request("DISCONNECT")
+        if hapd:
+            hapd.request("DISABLE")
+        subprocess.call(['iw', 'reg', 'set', '00'])
+        dev[0].flush_scan_cache()
+        subprocess.call(['iw', 'phy', phy, 'set', 'antenna', 'all'])
+
 def test_prefer_vht40(dev, apdev):
     """Preference on VHT40 over HT40"""
     try:
