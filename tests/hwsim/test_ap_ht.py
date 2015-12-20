@@ -1126,3 +1126,30 @@ def test_ap_ht40_5ghz_invalid_pair(dev, apdev):
             raise Exception("AP setup failure timed out")
     finally:
         subprocess.call(['iw', 'reg', 'set', '00'])
+
+def test_ap_ht_antenna_config(dev, apdev):
+    """HT and antenna configuration"""
+    hapd = hostapd.add_ap(apdev[0]['ifname'], { "ssid": "open" })
+    phy = hapd.get_driver_status_field("phyname")
+    hapd.disable()
+
+    try:
+        subprocess.call(['iw', 'phy', phy, 'set', 'antenna', '0x1'])
+        hapd = None
+        params = { "ssid": "ht",
+                   "country_code": "FI",
+                   "hw_mode": "a",
+                   "channel": "36",
+                   "ieee80211n": "1" }
+        hapd = hostapd.add_ap(apdev[0]['ifname'], params)
+        bssid = apdev[0]['bssid']
+
+        dev[0].connect("ht", key_mgmt="NONE", scan_freq="5180")
+        hwsim_utils.test_connectivity(dev[0], hapd)
+    finally:
+        dev[0].request("DISCONNECT")
+        if hapd:
+            hapd.request("DISABLE")
+        subprocess.call(['iw', 'reg', 'set', '00'])
+        dev[0].flush_scan_cache()
+        subprocess.call(['iw', 'phy', phy, 'set', 'antenna', 'all'])
