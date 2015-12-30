@@ -69,19 +69,27 @@ u8 * hostapd_eid_vht_capabilities(struct hostapd_data *hapd, u8 *eid, u32 nsts)
 	 * range.
 	 */
 	if (mode->conf_tx_ant) {
+		wpa_printf(MSG_DEBUG, "configured tx-antenna: 0x%x, vht tx_map before: 0x%x",
+			   mode->conf_tx_ant, cap->vht_supported_mcs_set.tx_map);
 		for (i = 7; i > 0; i--) {
 			if (mode->conf_tx_ant & BIT(i - 1))
 				break;
-			cap->vht_supported_mcs_set.tx_map |= (0x3 << i);
+			cap->vht_supported_mcs_set.tx_map |= (0x3 << ((i - 1) * 2));
 		}
+		wpa_printf(MSG_DEBUG, "configured tx-antenna: 0x%x, vht tx_map after: 0x%x",
+			   mode->conf_tx_ant, cap->vht_supported_mcs_set.tx_map);
 	}
 
 	if (mode->conf_rx_ant) {
+		wpa_printf(MSG_DEBUG, "configured rx-antenna: 0x%x, vht rx_map before: 0x%x",
+			   mode->conf_rx_ant, cap->vht_supported_mcs_set.rx_map);
 		for (i = 7; i > 0; i--) {
 			if (mode->conf_rx_ant & BIT(i - 1))
 				break;
-			cap->vht_supported_mcs_set.rx_map |= (0x3 << i);
+			cap->vht_supported_mcs_set.rx_map |= (0x3 << ((i - 1) * 2));
 		}
+		wpa_printf(MSG_DEBUG, "configured rx-antenna: 0x%x, vht rx_map after: 0x%x",
+			   mode->conf_rx_ant, cap->vht_supported_mcs_set.rx_map);
 	}
 
 	pos += sizeof(*cap);
