@@ -5832,6 +5832,8 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 		u16 i;
 
 		for (i = 0; i < wpa_s->hw.num_modes; i++) {
+			wpa_dbg(wpa_s, MSG_DEBUG, "init-iface, hw-mode: %i  vht-capa: %d  ht-capa: %d",
+				i, wpa_s->hw.modes[i].vht_capab, wpa_s->hw.modes[i].ht_capab);
 			if (wpa_s->hw.modes[i].vht_capab) {
 				wpa_s->hw_capab = CAPAB_VHT;
 				break;
