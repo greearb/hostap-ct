@@ -3080,7 +3080,9 @@ static int tls_connection_client_cert(struct tls_connection *conn,
 	 * processing in tls_parse_pkcs12() to allow OpenSSL to build a new
 	 * chain properly.
 	 */
+#if OPENSSL_VERSION_NUMBER >= 0x10001000L
 	SSL_CTX_clear_extra_chain_certs(conn->ssl_ctx);
+#endif
 #endif /* OPENSSL_VERSION_NUMBER < 0x10002000L */
 #endif /* PKCS12_FUNCS */
 
