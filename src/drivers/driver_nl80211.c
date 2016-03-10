@@ -7718,8 +7718,8 @@ static int nl80211_set_legacy_rates(struct i802_bss *bss,
 	struct nl80211_txrate_vht txrate_vht = {};
 
 	wpa_printf(MSG_DEBUG,
-		   "nl80211: NL80211_CMD_SET_TX_BITRATE_MASK (ifindex=%d ofdm-only: %d cfg-legacy-mask: 0x%x is-advert: %d)",
-		   ifindex, b_disabled, legacy_rates, is_advert_mask);
+		   "nl80211: NL80211_CMD_SET_TX_BITRATE_MASK (ifindex=%d ofdm-only: %d cfg-legacy-mask: 0x%x is-advert: %d  bands-supported: 0x%x)",
+		   ifindex, b_disabled, legacy_rates, is_advert_mask, drv->capa.bands_mask);
 	if (ht_mask && (legacy_rates & (1<<ENABLE_HT_MASK))) {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211:  ht_mask: %02hx %02hx %02hx %02hx %02hx %02hx %02hx %02hx %02hx %02hx",
@@ -7732,6 +7732,10 @@ static int nl80211_set_legacy_rates(struct i802_bss *bss,
 			   vht_mask[0], vht_mask[1], vht_mask[2], vht_mask[3], vht_mask[4],
 			   vht_mask[5], vht_mask[6], vht_mask[7]);
 	}
+
+	if (!(drv->capa.bands_mask & ((1<<NL80211_BAND_2GHZ) | (1<<NL80211_BAND_5GHZ))))
+		/* Neither 2.4 nor 5Ghz bands are supported?? */
+		return -1;
 
 	msg = nl80211_ifindex_msg(drv, ifindex, 0,
 				  NL80211_CMD_SET_TX_BITRATE_MASK);
@@ -7749,107 +7753,112 @@ static int nl80211_set_legacy_rates(struct i802_bss *bss,
 	if (!bands)
 		goto fail;
 
-	/*
-	 * Disable 2 GHz rates 1, 2, 5.5, 11 Mbps by masking out everything
-	 * else apart from 6, 9, 12, 18, 24, 36, 48, 54 Mbps from non-MCS
-	 * rates. All 5 GHz rates are left enabled.
-	 */
-	band = nla_nest_start(msg, NL80211_BAND_2GHZ);
-	if (!band)
-		goto fail;
+	if (drv->capa.bands_mask & (1<<NL80211_BAND_2GHZ)) {
+		/*
+		 * Disable 2 GHz rates 1, 2, 5.5, 11 Mbps by masking out everything
+		 * else apart from 6, 9, 12, 18, 24, 36, 48, 54 Mbps from non-MCS
+		 * rates. All 5 GHz rates are left enabled.
+		 */
+		band = nla_nest_start(msg, NL80211_BAND_2GHZ);
+		if (!band)
+			goto fail;
 
-	if (legacy_rates & (1<<ENABLE_LEGACY_MASK) || b_disabled) {
-		unsigned char rates[12];
-		int i = nl80211_build_legacy_rateset(legacy_rates, b_disabled, rates);
-		if (legacy_rates & (1<<ENABLE_LEGACY_MASK) || i) {
+		if (legacy_rates & (1<<ENABLE_LEGACY_MASK) || b_disabled) {
+			unsigned char rates[12];
+			int i = nl80211_build_legacy_rateset(legacy_rates, b_disabled, rates);
+			if (legacy_rates & (1<<ENABLE_LEGACY_MASK) || i) {
+				if (nla_put(msg, NL80211_TXRATE_LEGACY, i, rates))
+					goto fail;
+			}
+		}/* if we might need to disable some legacy rates */
+
+		if (ht_mask && (legacy_rates & (1<<ENABLE_HT_MASK))) {
+			int cnt = build_ht_mcs(ht_mcs, ht_mask);
+			if (nla_put(msg, NL80211_TXRATE_HT, cnt, ht_mcs))
+				goto fail;
+		}
+
+		if (vht_mask && (legacy_rates & (1<<ENABLE_VHT_MASK))) {
+			memcpy(txrate_vht.mcs, vht_mask, sizeof(txrate_vht.mcs));
+			if (nla_put(msg, NL80211_TXRATE_VHT, sizeof(txrate_vht), &txrate_vht))
+				goto fail;
+		}
+
+		nla_nest_end(msg, band);
+	}
+
+	if (drv->capa.bands_mask & (1<<NL80211_BAND_5GHZ)) {
+		band = nla_nest_start(msg, NL80211_BAND_5GHZ);
+		if (!band)
+			goto fail;
+
+		if (legacy_rates & (1<<ENABLE_LEGACY_MASK)) {
+			unsigned char rates[8];
+			int i = 0;
+
+			if (legacy_rates & 0x10) { // 6Mbps
+				rates[i] = 12;
+				i++;
+			}
+			if (legacy_rates & 0x20) { // 9Mbps
+				rates[i] = 18;
+				i++;
+			}
+			if (legacy_rates & 0x40) { // 12Mbps
+				rates[i] = 24;
+				i++;
+			}
+			if (legacy_rates & 0x80) { // 18Mbps
+				rates[i] = 36;
+				i++;
+			}
+			if (legacy_rates & 0x100) { // 24Mbps
+				rates[i] = 48;
+				i++;
+			}
+			if (legacy_rates & 0x200) { // 36Mbps
+				rates[i] = 72;
+				i++;
+			}
+			if (legacy_rates & 0x400) { // 48Mbps
+				rates[i] = 96;
+				i++;
+			}
+			if (legacy_rates & 0x800) { // 54Mbps
+				rates[i] = 108;
+				i++;
+			}
+
+			/* If we have no OFDM rates at all, then set one minimum rate so that
+			 * the kernel doesn't reject the setting entirely.
+			 */
+			if (i == 0) {
+				rates[i] = 12;
+				i++;
+			}
+
+			wpa_printf(MSG_DEBUG, "nl80211: Set TX Rates 5Ghz, i: %d", i);
 			if (nla_put(msg, NL80211_TXRATE_LEGACY, i, rates))
 				goto fail;
 		}
-	}/* if we might need to disable some legacy rates */
 
-	if (ht_mask && (legacy_rates & (1<<ENABLE_HT_MASK))) {
-		int cnt = build_ht_mcs(ht_mcs, ht_mask);
-		if (nla_put(msg, NL80211_TXRATE_HT, cnt, ht_mcs))
-			goto fail;
+		if (ht_mask && (legacy_rates & (1<<ENABLE_HT_MASK))) {
+			int cnt = build_ht_mcs(ht_mcs, ht_mask);
+			if (nla_put(msg, NL80211_TXRATE_HT, cnt, ht_mcs))
+				goto fail;
+		}
+		if (vht_mask && (legacy_rates & (1<<ENABLE_VHT_MASK))) {
+			memcpy(txrate_vht.mcs, vht_mask, sizeof(txrate_vht.mcs));
+			if (nla_put(msg, NL80211_TXRATE_VHT, sizeof(txrate_vht), &txrate_vht))
+				goto fail;
+		}
+
+		nla_nest_end(msg, band);
 	}
-
-	if (vht_mask && (legacy_rates & (1<<ENABLE_VHT_MASK))) {
-		memcpy(txrate_vht.mcs, vht_mask, sizeof(txrate_vht.mcs));
-		if (nla_put(msg, NL80211_TXRATE_VHT, sizeof(txrate_vht), &txrate_vht))
-			goto fail;
-	}
-
-	nla_nest_end(msg, band);
-
-	band = nla_nest_start(msg, NL80211_BAND_5GHZ);
-	if (!band)
-		goto fail;
-
-	if (legacy_rates & (1<<ENABLE_LEGACY_MASK)) {
-		unsigned char rates[8];
-		int i = 0;
-
-		if (legacy_rates & 0x10) { // 6Mbps
-			rates[i] = 12;
-			i++;
-		}
-		if (legacy_rates & 0x20) { // 9Mbps
-			rates[i] = 18;
-			i++;
-		}
-		if (legacy_rates & 0x40) { // 12Mbps
-			rates[i] = 24;
-			i++;
-		}
-		if (legacy_rates & 0x80) { // 18Mbps
-			rates[i] = 36;
-			i++;
-		}
-		if (legacy_rates & 0x100) { // 24Mbps
-			rates[i] = 48;
-			i++;
-		}
-		if (legacy_rates & 0x200) { // 36Mbps
-			rates[i] = 72;
-			i++;
-		}
-		if (legacy_rates & 0x400) { // 48Mbps
-			rates[i] = 96;
-			i++;
-		}
-		if (legacy_rates & 0x800) { // 54Mbps
-			rates[i] = 108;
-			i++;
-		}
-
-		/* If we have no OFDM rates at all, then set one minimum rate so that
-		 * the kernel doesn't reject the setting entirely.
-		 */
-		if (i == 0) {
-			rates[i] = 12;
-			i++;
-		}
-
-		wpa_printf(MSG_DEBUG, "nl80211: Set TX Rates 5Ghz, i: %d", i);
-		if (nla_put(msg, NL80211_TXRATE_LEGACY, i, rates))
-			goto fail;
-	}
-
-	if (ht_mask && (legacy_rates & (1<<ENABLE_HT_MASK))) {
-		int cnt = build_ht_mcs(ht_mcs, ht_mask);
-		if (nla_put(msg, NL80211_TXRATE_HT, cnt, ht_mcs))
-			goto fail;
-	}
-	if (vht_mask && (legacy_rates & (1<<ENABLE_VHT_MASK))) {
-		memcpy(txrate_vht.mcs, vht_mask, sizeof(txrate_vht.mcs));
-		if (nla_put(msg, NL80211_TXRATE_VHT, sizeof(txrate_vht), &txrate_vht))
-			goto fail;
-	}
-
-	nla_nest_end(msg, band);
 
 	nla_nest_end(msg, bands);
 
+	wpa_printf(MSG_DEBUG, "nl80211: set-bitrates, sending netlink message...");
 	ret = send_and_recv_msgs(drv, msg, NULL, NULL);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: Set Legacy TX rates failed: ret=%d "
@@ -7859,6 +7868,7 @@ static int nl80211_set_legacy_rates(struct i802_bss *bss,
 	return ret;
 
 fail:
+	wpa_printf(MSG_DEBUG, "nl80211: set-bitrates failed.");
 	nlmsg_free(msg);
 	return -1;
 }
