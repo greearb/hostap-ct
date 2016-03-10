@@ -1067,6 +1067,18 @@ static int wiphy_info_handler(struct nl_msg *msg, void *arg)
 		}
 	}
 
+	if (tb[NL80211_ATTR_WIPHY_BANDS]) {
+		struct nlattr *nl;
+		int rem;
+
+		nla_for_each_nested(nl, tb[NL80211_ATTR_WIPHY_BANDS], rem) {
+			if (!(capa->bands_mask & (1<<nl->nla_type))) {
+				wpa_printf(MSG_DEBUG, "Band %d supported.", nl->nla_type);
+				capa->bands_mask |= (1<<nl->nla_type);
+			}
+		}
+	}
+
 	wiphy_info_wowlan_triggers(capa,
 				   tb[NL80211_ATTR_WOWLAN_TRIGGERS_SUPPORTED]);
 
