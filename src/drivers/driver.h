@@ -2073,6 +2073,8 @@ struct wpa_driver_capa {
 	 */
 	unsigned int max_stations;
 
+	unsigned int bands_mask; /* What bands does this radio support? */
+
 	/**
 	 * probe_resp_offloads - Bitmap of supported protocols by the driver
 	 * for Probe Response offloading.
