@@ -1934,6 +1934,12 @@ int wpa_supplicant_need_to_roam_within_ess(struct wpa_supplicant *wpa_s,
 	int cur_snr = 0;
 	int ret = 0;
 
+	if (wpa_s->conf->disable_ess_roaming) {
+		wpa_dbg(wpa_s, MSG_DEBUG,
+			"NOT considering within-ESS reassociation, disable_ess_roaming is true");
+		return 0;
+	}
+
 	wpa_dbg(wpa_s, MSG_DEBUG, "Considering within-ESS reassociation");
 	wpa_dbg(wpa_s, MSG_DEBUG, "Current BSS: " MACSTR
 		" freq=%d level=%d snr=%d est_throughput=%u",
