@@ -33,6 +33,7 @@
 #define DEFAULT_BSS_EXPIRATION_SCAN_COUNT 2
 #define DEFAULT_MIN_SCAN_GAP 0
 #define DEFAULT_MAX_ASSOC_PER_SCAN 25
+#define DEFAULT_DISABLE_ESS_ROAMING 0
 #define DEFAULT_CONCURRENT_ASSOC_OK 0
 #define DEFAULT_ACCEPT_EXTERNAL_SCAN_RESULTS 0
 #define DEFAULT_MAX_NUM_STA 128
@@ -929,6 +930,14 @@ struct wpa_config {
 	 * changed_parameters - Bitmap of changed parameters since last update
 	 */
 	unsigned int changed_parameters;
+
+#ifndef CONFIG_NO_ROAMING
+	/* If CONFIG_NO_ROAMING is not enabled, then scan results will
+	 * be used to automatically roam.  Allow disabling this automated
+	 * roaming without having to re-build the binary.
+	 */
+	int disable_ess_roaming;
+#endif
 
 	/* By default, scans are no longer shared once one of the stations starts
 	 * to associate.  This makes bringing up lots of vifs take a long time.
