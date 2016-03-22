@@ -4824,6 +4824,10 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	config->mld_connect_band_pref = DEFAULT_MLD_CONNECT_BAND_PREF;
 #endif /* CONFIG_TESTING_OPTIONS */
 
+#ifndef CONFIG_NO_ROAMING
+	config->disable_ess_roaming = DEFAULT_DISABLE_ESS_ROAMING;
+#endif
+
 	config->concurrent_assoc_ok = DEFAULT_CONCURRENT_ASSOC_OK;
 	config->accept_external_scan_results = DEFAULT_ACCEPT_EXTERNAL_SCAN_RESULTS;
 
@@ -5727,6 +5731,9 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(sched_scan_start_delay), 0 },
 	{ INT(tdls_external_control), 0},
 	{ STR(wowlan_triggers), CFG_CHANGED_WOWLAN_TRIGGERS },
+#ifndef CONFIG_NO_ROAMING
+	{ INT(disable_ess_roaming), 0 },
+#endif
 	{ INT(concurrent_assoc_ok), 0 },
 	{ INT(accept_external_scan_results), 0 },
 	{ INT(p2p_search_delay), 0},
