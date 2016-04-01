@@ -122,8 +122,6 @@ nl80211_scan_common(struct i802_bss *bss, u8 cmd,
 	struct nl_msg *msg;
 	size_t i;
 	u32 scan_flags = 0;
-	struct nlattr *nlrates;
-	unsigned char rates[12];
 
 	msg = nl80211_cmd_msg(bss, 0, cmd);
 	if (!msg)
