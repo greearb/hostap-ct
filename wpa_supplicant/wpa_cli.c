@@ -508,6 +508,7 @@ static char ** wpa_cli_complete_set(const char *str, int pos)
 		"scan_cur_freq", "scan_res_valid_for_connect",
 		"sched_scan_interval",
 		"tdls_external_control", "wowlan_triggers",
+		"probe_req_ie", "assoc_req_ie",
 		"p2p_search_delay", "mac_addr", "rand_addr_lifetime",
 		"preassoc_mac_addr", "key_mgmt_offload", "passive_scan",
 		"reassoc_same_bss_optim", "wps_priority",
