@@ -2953,6 +2953,8 @@ void wpa_config_free(struct wpa_config *config)
 	os_free(config->sae_groups);
 	wpabuf_free(config->ap_vendor_elements);
 	wpabuf_free(config->ap_assocresp_elements);
+	wpabuf_free(config->probe_req_ie);
+	wpabuf_free(config->assoc_req_ie);
 	os_free(config->osu_dir);
 	os_free(config->bgscan);
 	os_free(config->wowlan_triggers);
@@ -4986,17 +4988,18 @@ static int wpa_config_process_sae_groups(
 }
 
 
-static int wpa_config_process_ap_vendor_elements(
+static int wpa_config_process_ie_helper(
 	const struct global_parse_data *data,
-	struct wpa_config *config, int line, const char *pos)
+	int line, const char *pos,
+	const char* id, struct wpabuf **buf)
 {
 	struct wpabuf *tmp;
 	int len = os_strlen(pos) / 2;
 	u8 *p;
 
 	if (!len) {
-		wpabuf_free(config->ap_vendor_elements);
-		config->ap_vendor_elements = NULL;
+		wpabuf_free(*buf);
+		*buf = NULL;
 		return 0;
 	}
 
@@ -5005,21 +5008,45 @@ static int wpa_config_process_ap_vendor_elements(
 		p = wpabuf_put(tmp, len);
 
 		if (hexstr2bin(pos, p, len)) {
-			wpa_printf(MSG_ERROR, "Line %d: invalid "
-				   "ap_vendor_elements", line);
+			wpa_printf(MSG_ERROR, "Line %d: invalid %s",
+				   line, id);
 			wpabuf_free(tmp);
 			return -1;
 		}
 
-		wpabuf_free(config->ap_vendor_elements);
-		config->ap_vendor_elements = tmp;
+		wpabuf_free(*buf);
+		*buf = tmp;
 	} else {
-		wpa_printf(MSG_ERROR, "Cannot allocate memory for "
-			   "ap_vendor_elements");
+		wpa_printf(MSG_ERROR, "Cannot allocate memory for %s",
+			   id);
 		return -1;
 	}
 
 	return 0;
+}
+
+static int wpa_config_process_ap_vendor_elements(
+	const struct global_parse_data *data,
+	struct wpa_config *config, int line, const char *pos)
+{
+	return wpa_config_process_ie_helper(data, line, pos, "ap_vendor_elements",
+					    &config->ap_vendor_elements);
+}
+
+static int wpa_config_process_probe_req_ie(
+	const struct global_parse_data *data,
+	struct wpa_config *config, int line, const char *pos)
+{
+	return wpa_config_process_ie_helper(data, line, pos, "probe_req_ie",
+					    &config->probe_req_ie);
+}
+
+static int wpa_config_process_assoc_req_ie(
+	const struct global_parse_data *data,
+	struct wpa_config *config, int line, const char *pos)
+{
+	return wpa_config_process_ie_helper(data, line, pos, "assoc_req_ie",
+					    &config->assoc_req_ie);
 }
 
 
@@ -5266,6 +5293,8 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(beacon_int), 0 },
 	{ FUNC(ap_assocresp_elements), 0 },
 	{ FUNC(ap_vendor_elements), 0 },
+	{ FUNC(probe_req_ie), 0 },
+	{ FUNC(assoc_req_ie), 0 },
 	{ INT_RANGE(ignore_old_scan_res, 0, 1), 0 },
 	{ FUNC(freq_list), 0 },
 	{ FUNC(initial_freq_list), 0},
