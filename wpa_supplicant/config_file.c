@@ -1394,6 +1394,28 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 		}
 	}
 
+	if (config->probe_req_ie) {
+		int i, len = wpabuf_len(config->probe_req_ie);
+		const u8 *p = wpabuf_head_u8(config->probe_req_ie);
+		if (len > 0) {
+			fprintf(f, "probe_req_ie=");
+			for (i = 0; i < len; i++)
+				fprintf(f, "%02x", *p++);
+			fprintf(f, "\n");
+		}
+	}
+
+	if (config->assoc_req_ie) {
+		int i, len = wpabuf_len(config->assoc_req_ie);
+		const u8 *p = wpabuf_head_u8(config->assoc_req_ie);
+		if (len > 0) {
+			fprintf(f, "assoc_req_ie=");
+			for (i = 0; i < len; i++)
+				fprintf(f, "%02x", *p++);
+			fprintf(f, "\n");
+		}
+	}
+
 	if (config->ignore_old_scan_res)
 		fprintf(f, "ignore_old_scan_res=%d\n",
 			config->ignore_old_scan_res);

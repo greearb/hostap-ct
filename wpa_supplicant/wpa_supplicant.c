@@ -3504,6 +3504,19 @@ mscs_end:
 		wpa_ie_len += multi_ap_ie_len;
 	}
 
+	/* Add user-specified IE */
+	if (wpa_s->conf->assoc_req_ie) {
+		int v_ies_len = wpabuf_len(wpa_s->conf->assoc_req_ie);
+
+		if (wpa_ie_len + v_ies_len <= sizeof(wpa_ie)) {
+			os_memcpy(wpa_ie + wpa_ie_len,
+				  wpabuf_head(wpa_s->conf->assoc_req_ie), v_ies_len);
+			wpa_ie_len += v_ies_len;
+			wpa_msg(wpa_s, MSG_INFO, "start-assoc-cb, added user-specified vendor elements, len: %d",
+				v_ies_len);
+		}
+	}
+
 	params->wpa_ie = wpa_ie;
 	params->wpa_ie_len = wpa_ie_len;
 	params->auth_alg = algs;

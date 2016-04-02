@@ -692,6 +692,14 @@ static struct wpabuf * wpa_supplicant_extra_ies(struct wpa_supplicant *wpa_s)
 			wpabuf_put_buf(extra_ie, buf);
 	}
 
+	/* Add user-specified IE.  Duplicates what is above, it seems. --Ben */
+	if (wpa_s->conf->probe_req_ie) {
+		int ln = wpabuf_len(wpa_s->conf->probe_req_ie);
+		if (wpabuf_resize(&extra_ie, ln) == 0) {
+			wpabuf_put_buf(extra_ie, wpa_s->conf->probe_req_ie);
+		}
+	}
+
 	return extra_ie;
 }
 
