@@ -1250,6 +1250,26 @@ struct wpa_config {
 	struct wpabuf *ap_vendor_elements;
 
 	/**
+	 * probe_req_ie: Vendor specific elements for Probe-Req
+	 *
+	 * This parameter can be used to define additional vendor specific
+	 * elements for Probe Requests.
+	 * format for these element(s) is a hexdump of the raw information
+	 * elements (id+len+payload for one or more elements).
+	 */
+	struct wpabuf *probe_req_ie;
+
+	/**
+	 * assoc_req_ie: Vendor specific elements for Assoc-Req
+	 *
+	 * This parameter can be used to define additional vendor specific
+	 * elements for Association Requests.
+	 * format for these element(s) is a hexdump of the raw information
+	 * elements (id+len+payload for one or more elements).
+	 */
+	struct wpabuf *assoc_req_ie;
+
+	/**
 	 * ignore_old_scan_res - Ignore scan results older than request
 	 *
 	 * The driver may have a cache of scan results that makes it return

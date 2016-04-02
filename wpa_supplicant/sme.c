@@ -652,6 +652,19 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		wpa_s->sme.assoc_req_ie_len += wpa_s->rsnxe_len;
 	}
 
+	/* Add user-specified IE */
+	if (wpa_s->conf->assoc_req_ie) {
+		int v_ies_len = wpabuf_len(wpa_s->conf->assoc_req_ie);
+
+		if (wpa_s->sme.assoc_req_ie_len + v_ies_len <= sizeof(wpa_s->sme.assoc_req_ie)) {
+			os_memcpy(wpa_s->sme.assoc_req_ie + wpa_s->sme.assoc_req_ie_len,
+				  wpabuf_head(wpa_s->conf->assoc_req_ie), v_ies_len);
+			wpa_s->sme.assoc_req_ie_len += v_ies_len;
+			wpa_msg(wpa_s, MSG_INFO, "SME: added user-specified vendor elements, len: %d",
+				v_ies_len);
+		}
+	}
+
 #ifdef CONFIG_HS20
 	if (is_hs20_network(wpa_s, ssid, bss)) {
 		struct wpabuf *hs20;
