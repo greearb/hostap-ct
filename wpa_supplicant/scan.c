@@ -512,6 +512,14 @@ static struct wpabuf * wpa_supplicant_extra_ies(struct wpa_supplicant *wpa_s)
 		wpas_mbo_scan_ie(wpa_s, extra_ie);
 #endif /* CONFIG_MBO */
 
+	/* Add user-specified IE */
+	if (wpa_s->conf->probe_req_ie) {
+		int ln = wpabuf_len(wpa_s->conf->probe_req_ie);
+		if (wpabuf_resize(&extra_ie, ln) == 0) {
+			wpabuf_put_buf(extra_ie, wpa_s->conf->probe_req_ie);
+		}
+	}
+
 	return extra_ie;
 }
 

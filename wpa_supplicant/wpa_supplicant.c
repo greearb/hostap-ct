@@ -2434,6 +2434,19 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit)
 	}
 #endif /* CONFIG_MBO */
 
+	/* Add user-specified IE */
+	if (wpa_s->conf->assoc_req_ie) {
+		int v_ies_len = wpabuf_len(wpa_s->conf->assoc_req_ie);
+
+		if (wpa_ie_len + v_ies_len <= sizeof(wpa_ie)) {
+			os_memcpy(wpa_ie + wpa_ie_len,
+				  wpabuf_head(wpa_s->conf->assoc_req_ie), v_ies_len);
+			wpa_ie_len += v_ies_len;
+			wpa_msg(wpa_s, MSG_INFO, "start-assoc-cb, added user-specified vendor elements, len: %d",
+				v_ies_len);
+		}
+	}
+
 	wpa_clear_keys(wpa_s, bss ? bss->bssid : NULL);
 	use_crypt = 1;
 	cipher_pairwise = wpa_s->pairwise_cipher;
