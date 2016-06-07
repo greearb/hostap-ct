@@ -206,6 +206,14 @@ static int i802_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr,
 enum chan_width convert2width(int width)
 {
 	switch (width) {
+	case NL80211_CHAN_WIDTH_5_NOHT:
+		return CHAN_WIDTH_5_NOHT;
+	case NL80211_CHAN_WIDTH_5:
+		return CHAN_WIDTH_5;
+	case NL80211_CHAN_WIDTH_10_NOHT:
+		return CHAN_WIDTH_10_NOHT;
+	case NL80211_CHAN_WIDTH_10:
+		return CHAN_WIDTH_10;
 	case NL80211_CHAN_WIDTH_20_NOHT:
 		return CHAN_WIDTH_20_NOHT;
 	case NL80211_CHAN_WIDTH_20:
@@ -4573,6 +4581,12 @@ static int nl80211_put_freq_params(struct nl_msg *msg,
 
 		wpa_printf(MSG_DEBUG, "  * bandwidth=%d", freq->bandwidth);
 		switch (freq->bandwidth) {
+		case 5:
+			cw = NL80211_CHAN_WIDTH_5;
+			break;
+		case 10:
+			cw = NL80211_CHAN_WIDTH_10;
+			break;
 		case 20:
 			cw = NL80211_CHAN_WIDTH_20;
 			break;
@@ -4617,8 +4631,17 @@ static int nl80211_put_freq_params(struct nl_msg *msg,
 			ct = NL80211_CHAN_HT40PLUS;
 			break;
 		default:
-			ct = NL80211_CHAN_HT20;
-			break;
+			switch (freq->bandwidth) {
+			case 5:
+				ct = NL80211_CHAN_HT5;
+				break;
+			case 10:
+				ct = NL80211_CHAN_HT10;
+				break;
+			default:
+				ct = NL80211_CHAN_HT20;
+				break;
+			}
 		}
 
 		wpa_printf(MSG_DEBUG, "  * channel_type=%d", ct);
@@ -4634,12 +4657,26 @@ static int nl80211_put_freq_params(struct nl_msg *msg,
 			       freq->edmg.bw_config))
 			return -1;
 	} else {
-		wpa_printf(MSG_DEBUG, "  * channel_type=%d",
-			   NL80211_CHAN_NO_HT);
-		if (nla_put_u32(msg, NL80211_ATTR_WIPHY_CHANNEL_TYPE,
-				NL80211_CHAN_NO_HT))
+		enum nl80211_channel_type ct;
+		switch (freq->bandwidth) {
+		case 5:
+			ct = NL80211_CHAN_NO_HT5;
+			break;
+		case 10:
+			ct = NL80211_CHAN_NO_HT10;
+			break;
+		case 20:
+			ct = NL80211_CHAN_NO_HT;
+			break;
+		default:
+			return -EINVAL;
+		}
+
+		wpa_printf(MSG_DEBUG, "  * channel_type=%d", ct);
+		if (nla_put_u32(msg, NL80211_ATTR_WIPHY_CHANNEL_TYPE, ct))
 			return -ENOBUFS;
 	}
+
 	return 0;
 }
 

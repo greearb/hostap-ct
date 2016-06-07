@@ -999,6 +999,10 @@ int ieee80211_chaninfo_to_channel(unsigned int freq, enum chan_width chanwidth,
 
 	switch (chanwidth) {
 	case CHAN_WIDTH_UNKNOWN:
+	case CHAN_WIDTH_5:
+	case CHAN_WIDTH_5_NOHT:
+	case CHAN_WIDTH_10:
+	case CHAN_WIDTH_10_NOHT:
 	case CHAN_WIDTH_20_NOHT:
 	case CHAN_WIDTH_20:
 	case CHAN_WIDTH_40:
