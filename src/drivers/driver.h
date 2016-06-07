@@ -1916,6 +1916,10 @@ enum smps_mode {
 
 /* enum chan_width - Channel width definitions */
 enum chan_width {
+	CHAN_WIDTH_5_NOHT,
+	CHAN_WIDTH_5,
+	CHAN_WIDTH_10_NOHT,
+	CHAN_WIDTH_10,
 	CHAN_WIDTH_20_NOHT,
 	CHAN_WIDTH_20,
 	CHAN_WIDTH_40,
