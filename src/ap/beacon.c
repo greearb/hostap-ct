@@ -1512,8 +1512,7 @@ int ieee802_11_set_beacon(struct hostapd_data *hapd)
 				    hostapd_get_oper_centr_freq_seg0_idx(iconf),
 				    hostapd_get_oper_centr_freq_seg1_idx(iconf),
 				    cmode->vht_capab,
-				    &cmode->he_capab[IEEE80211_MODE_AP]) == 0)
-		params.freq = &freq;
+				    &cmode->he_capab[IEEE80211_MODE_AP], iconf->bwmode) == 0)
 
 	res = hostapd_drv_set_ap(hapd, &params);
 	hostapd_free_ap_extra_ies(hapd, beacon, proberesp, assocresp);

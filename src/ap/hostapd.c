@@ -3409,7 +3409,7 @@ static int hostapd_change_config_freq(struct hostapd_data *hapd,
 				    hostapd_get_oper_centr_freq_seg1_idx(conf),
 				    conf->vht_capab,
 				    mode ? &mode->he_capab[IEEE80211_MODE_AP] :
-				    NULL))
+				    NULL, conf->bwmode))
 		return -1;
 
 	switch (params->bandwidth) {

@@ -389,7 +389,8 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 			    int sec_channel_offset,
 			    int oper_chwidth, int center_segment0,
 			    int center_segment1, u32 vht_caps,
-			    struct he_capabilities *he_cap)
+			    struct he_capabilities *he_cap,
+			    int bwmode)
 {
 	if (!he_cap)
 		he_enabled = 0;
@@ -404,6 +405,9 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 	data->center_freq1 = freq + sec_channel_offset * 10;
 	data->center_freq2 = 0;
 	data->bandwidth = sec_channel_offset ? 40 : 20;
+
+	if (!vht_enabled && bwmode)
+		data->bandwidth = bwmode;
 
 	hostapd_encode_edmg_chan(enable_edmg, edmg_channel, channel,
 				 &data->edmg);

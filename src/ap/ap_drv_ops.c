@@ -561,7 +561,8 @@ int hostapd_set_freq(struct hostapd_data *hapd, enum hostapd_hw_mode mode,
 				    center_segment0, center_segment1,
 				    cmode ? cmode->vht_capab : 0,
 				    cmode ?
-				    &cmode->he_capab[IEEE80211_MODE_AP] : NULL))
+				    &cmode->he_capab[IEEE80211_MODE_AP] : NULL,
+				    hapd->iface->conf->bwmode))
 		return -1;
 
 	if (hapd->driver == NULL)
@@ -834,7 +835,8 @@ int hostapd_start_dfs_cac(struct hostapd_iface *iface,
 				    oper_chwidth, center_segment0,
 				    center_segment1,
 				    cmode->vht_capab,
-				    &cmode->he_capab[IEEE80211_MODE_AP])) {
+				    &cmode->he_capab[IEEE80211_MODE_AP],
+				    iface->conf->bwmode)) {
 		wpa_printf(MSG_ERROR, "Can't set freq params");
 		return -1;
 	}

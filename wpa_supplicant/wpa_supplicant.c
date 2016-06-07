@@ -2709,13 +2709,15 @@ skip_ht40:
 		freq->he_enabled = 0;
 	}
 #endif /* CONFIG_HE_OVERRIDES */
+
+	/* TODO-BEN:  Support 5-10 Mhz bandwidth here?  (See arg after vht_caps) */
 	if (hostapd_set_freq_params(&vht_freq, mode->mode, freq->freq,
 				    freq->channel, ssid->enable_edmg,
 				    ssid->edmg_channel, freq->ht_enabled,
 				    vht_freq.vht_enabled, freq->he_enabled,
 				    freq->sec_channel_offset,
 				    chwidth, seg0, seg1, vht_caps,
-				    &mode->he_capab[ieee80211_mode]) != 0)
+				    &mode->he_capab[ieee80211_mode], 0) != 0)
 		return;
 
 	*freq = vht_freq;

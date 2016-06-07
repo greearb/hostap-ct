@@ -164,7 +164,11 @@ int hostapd_prepare_rates(struct hostapd_iface *iface,
 		basic_rates = basic_rates_b;
 		break;
 	case HOSTAPD_MODE_IEEE80211G:
-		basic_rates = basic_rates_g;
+		if (iface->conf->bwmode == 5 ||
+		    iface->conf->bwmode == 10)
+			basic_rates = basic_rates_a;
+		else
+			basic_rates = basic_rates_g;
 		break;
 	case HOSTAPD_MODE_IEEE80211AD:
 		return 0; /* No basic rates for 11ad */
@@ -199,6 +203,14 @@ int hostapd_prepare_rates(struct hostapd_iface *iface,
 		if (iface->conf->supported_rates &&
 		    !hostapd_rate_found(iface->conf->supported_rates,
 					mode->rates[i]))
+			continue;
+
+		if ((iface->conf->bwmode == 5 ||
+		    iface->conf->bwmode == 10) &&
+		   (mode->rates[i] == 10 ||
+		   mode->rates[i] == 20 ||
+		   mode->rates[i] == 55 ||
+		   mode->rates[i] == 110))
 			continue;
 
 		rate = &iface->current_rates[iface->num_rates];

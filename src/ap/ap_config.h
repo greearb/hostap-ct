@@ -924,6 +924,7 @@ struct hostapd_config {
 	int acs_exclude_dfs;
 	enum hostapd_hw_mode hw_mode; /* HOSTAPD_MODE_IEEE80211A, .. */
 	int acs_exclude_6ghz_non_psc;
+	int bwmode; /* 5 10 20 */
 	enum {
 		LONG_PREAMBLE = 0,
 		SHORT_PREAMBLE = 1

@@ -1110,7 +1110,8 @@ static int hostapd_dfs_start_channel_switch(struct hostapd_iface *iface)
 				      oper_centr_freq_seg0_idx,
 				      oper_centr_freq_seg1_idx,
 				      cmode->vht_capab,
-				      &cmode->he_capab[IEEE80211_MODE_AP]);
+				      &cmode->he_capab[IEEE80211_MODE_AP],
+				      iface->conf->bwmode);
 
 	if (err) {
 		wpa_printf(MSG_ERROR, "DFS failed to calculate CSA freq params");

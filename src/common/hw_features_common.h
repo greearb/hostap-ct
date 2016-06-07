@@ -41,7 +41,8 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 			    int sec_channel_offset,
 			    int oper_chwidth, int center_segment0,
 			    int center_segment1, u32 vht_caps,
-			    struct he_capabilities *he_caps);
+			    struct he_capabilities *he_caps,
+			    int bwmode);
 void set_disable_ht40(struct ieee80211_ht_capabilities *htcaps,
 		      int disabled);
 int ieee80211ac_cap_check(u32 hw, u32 conf);

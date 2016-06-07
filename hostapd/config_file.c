@@ -3178,6 +3178,15 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 				   line, pos);
 			return 1;
 		}
+	} else if (os_strcmp(buf, "bwmode") == 0) {
+		int val = atoi(pos);
+		if (val == 0 || val == 5 || val == 10)
+			conf->bwmode = val;
+		else {
+			wpa_printf(MSG_ERROR, "Line %d: bwmode can be [0 (auto), 5, 10] MHz",
+				   line);
+			return 1;
+		}
 	} else if (os_strcmp(buf, "wps_rf_bands") == 0) {
 		if (os_strcmp(pos, "ad") == 0)
 			bss->wps_rf_bands = WPS_RF_60GHZ;

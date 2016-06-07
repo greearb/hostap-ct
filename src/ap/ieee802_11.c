@@ -55,6 +55,7 @@
 #include "dpp_hostapd.h"
 #include "gas_query_ap.h"
 
+#define DIV_ROUND_UP(n,d) (((n) + (d) - 1) / (d))
 
 #ifdef CONFIG_FILS
 static struct wpabuf *
@@ -90,9 +91,13 @@ u8 * hostapd_eid_supp_rates(struct hostapd_data *hapd, u8 *eid)
 	u8 *pos = eid;
 	int i, num, count;
 	int h2e_required;
+	u8 shift = 0;
 
 	if (hapd->iface->current_rates == NULL)
 		return eid;
+
+	if (hapd->iconf->bwmode && !hapd->iconf->ieee80211ac)
+		shift = (hapd->iconf->bwmode == 5) ? 2 : 1;
 
 	*pos++ = WLAN_EID_SUPP_RATES;
 	num = hapd->iface->num_rates;
@@ -116,7 +121,8 @@ u8 * hostapd_eid_supp_rates(struct hostapd_data *hapd, u8 *eid)
 	for (i = 0, count = 0; i < hapd->iface->num_rates && count < num;
 	     i++) {
 		count++;
-		*pos = hapd->iface->current_rates[i].rate / 5;
+		*pos = DIV_ROUND_UP(hapd->iface->current_rates[i].rate / 5,
+				1 << shift);
 		if (hapd->iface->current_rates[i].flags & HOSTAPD_RATE_BASIC)
 			*pos |= 0x80;
 		pos++;
@@ -146,9 +152,13 @@ u8 * hostapd_eid_ext_supp_rates(struct hostapd_data *hapd, u8 *eid)
 	u8 *pos = eid;
 	int i, num, count;
 	int h2e_required;
+	u8 shift = 0;
 
 	if (hapd->iface->current_rates == NULL)
 		return eid;
+
+	if (hapd->iconf->bwmode && !hapd->iconf->ieee80211ac)
+		shift = (hapd->iconf->bwmode == 5) ? 2 : 1;
 
 	num = hapd->iface->num_rates;
 	if (hapd->iconf->ieee80211n && hapd->iconf->require_ht)
@@ -172,7 +182,8 @@ u8 * hostapd_eid_ext_supp_rates(struct hostapd_data *hapd, u8 *eid)
 		count++;
 		if (count <= 8)
 			continue; /* already in SuppRates IE */
-		*pos = hapd->iface->current_rates[i].rate / 5;
+		*pos = DIV_ROUND_UP(hapd->iface->current_rates[i].rate / 5,
+				1 << shift);
 		if (hapd->iface->current_rates[i].flags & HOSTAPD_RATE_BASIC)
 			*pos |= 0x80;
 		pos++;
@@ -198,7 +209,7 @@ u8 * hostapd_eid_ext_supp_rates(struct hostapd_data *hapd, u8 *eid)
 
 	return pos;
 }
-
+#undef DIV_ROUND_UP
 
 u8 * hostapd_eid_rm_enabled_capab(struct hostapd_data *hapd, u8 *eid,
 				  size_t len)
