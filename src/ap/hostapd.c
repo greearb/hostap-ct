@@ -3210,7 +3210,7 @@ static int hostapd_change_config_freq(struct hostapd_data *hapd,
 				    conf->vht_oper_chwidth,
 				    conf->vht_oper_centr_freq_seg0_idx,
 				    conf->vht_oper_centr_freq_seg1_idx,
-				    conf->vht_capab))
+				    conf->vht_capab, conf->bwmode))
 		return -1;
 
 	switch (params->bandwidth) {

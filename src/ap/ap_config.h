@@ -745,6 +745,7 @@ struct hostapd_config {
 	struct wpa_freq_range_list acs_ch_list;
 	int acs_exclude_dfs;
 	enum hostapd_hw_mode hw_mode; /* HOSTAPD_MODE_IEEE80211A, .. */
+	int bwmode; /* 5 10 20 */
 	enum {
 		LONG_PREAMBLE = 0,
 		SHORT_PREAMBLE = 1
