@@ -4126,12 +4126,20 @@ enum nl80211_ac {
  *	below the control channel
  * @NL80211_CHAN_HT40PLUS: HT40 channel, secondary channel
  *	above the control channel
+ * @NL80211_CHAN_NO_HT5: 5 MHz, non-HT channel
+ * @NL80211_CHAN_HT5: 5 MHz HT channel
+ * @NL80211_CHAN_NO_HT10: 10 MHz, non-HT channel
+ * @NL80211_CHAN_HT10: 10 MHz HT channel
  */
 enum nl80211_channel_type {
 	NL80211_CHAN_NO_HT,
 	NL80211_CHAN_HT20,
 	NL80211_CHAN_HT40MINUS,
-	NL80211_CHAN_HT40PLUS
+	NL80211_CHAN_HT40PLUS,
+	NL80211_CHAN_NO_HT5,
+	NL80211_CHAN_HT5,
+	NL80211_CHAN_NO_HT10,
+	NL80211_CHAN_HT10
 };
 
 /**
@@ -4152,6 +4160,8 @@ enum nl80211_channel_type {
  *	attribute must be provided as well
  * @NL80211_CHAN_WIDTH_5: 5 MHz OFDM channel
  * @NL80211_CHAN_WIDTH_10: 10 MHz OFDM channel
+ * @NL80211_CHAN_WIDTH_5_NOHT: 5 MHz, non-HT channel
+ * @NL80211_CHAN_WIDTH_10_NOHT: 10 MHz, non-HT channel
  */
 enum nl80211_chan_width {
 	NL80211_CHAN_WIDTH_20_NOHT,
@@ -4162,6 +4172,8 @@ enum nl80211_chan_width {
 	NL80211_CHAN_WIDTH_160,
 	NL80211_CHAN_WIDTH_5,
 	NL80211_CHAN_WIDTH_10,
+	NL80211_CHAN_WIDTH_5_NOHT,
+	NL80211_CHAN_WIDTH_10_NOHT,
 };
 
 /**

@@ -507,6 +507,10 @@ static int calculate_chan_offset(int width, int freq, int cf1, int cf2)
 	int freq1 = 0;
 
 	switch (convert2width(width)) {
+	case CHAN_WIDTH_5:
+	case CHAN_WIDTH_5_NOHT:
+	case CHAN_WIDTH_10:
+	case CHAN_WIDTH_10_NOHT:
 	case CHAN_WIDTH_20_NOHT:
 	case CHAN_WIDTH_20:
 		return 0;
@@ -558,9 +562,13 @@ static void mlme_event_ch_switch(struct wpa_driver_nl80211_data *drv,
 
 		wpa_printf(MSG_DEBUG, "nl80211: Channel type: %d", ch_type);
 		switch (ch_type) {
+		case NL80211_CHAN_NO_HT5:
+		case NL80211_CHAN_NO_HT10:
 		case NL80211_CHAN_NO_HT:
 			ht_enabled = 0;
 			break;
+		case NL80211_CHAN_HT5:
+		case NL80211_CHAN_HT10:
 		case NL80211_CHAN_HT20:
 			break;
 		case NL80211_CHAN_HT40PLUS:
