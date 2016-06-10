@@ -47,6 +47,7 @@
 #define DEFAULT_WPA_RSC_RELAXATION 1
 #define DEFAULT_MBO_CELL_CAPA MBO_CELL_CAPA_NOT_SUPPORTED
 #define DEFAULT_DISASSOC_IMMINENT_RSSI_THRESHOLD -75
+#define DEFAULT_CHAN_WIDTH 0
 
 #include "config_ssid.h"
 #include "wps/wps.h"
@@ -1421,6 +1422,13 @@ struct wpa_config {
 	 * 2 = like 1, but maintain OUI (with local admin bit set)
 	 */
 	int gas_rand_mac_addr;
+
+	/**
+	 * scan_width - Specify channel bandwidth.
+	 *
+	 *  Options: 5, 10  Anything other than 5 or 10 will be ignored and treated as default.
+	 */
+	int chan_width;
 };
 
 
