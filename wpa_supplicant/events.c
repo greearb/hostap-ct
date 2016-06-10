@@ -869,7 +869,12 @@ static int rate_match(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 
 			/* check for legacy basic rates */
 			for (k = 0; k < mode->num_rates; k++) {
-				if (mode->rates[k] == r)
+				int rk = mode->rates[k];
+				if (wpa_s->conf->chan_width == 5)
+					rk = rk / 4;
+				else if (wpa_s->conf->chan_width == 10)
+					rk = rk / 2;
+				if (rk == r)
 					break;
 			}
 			if (k == mode->num_rates) {
@@ -880,9 +885,9 @@ static int rate_match(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 				 */
 				if (debug_print)
 					wpa_dbg(wpa_s, MSG_DEBUG,
-						"   hardware does not support required rate %d.%d Mbps (freq=%d mode==%d num_rates=%d)",
+						"   hardware does not support required rate %d.%d Mbps (freq=%d mode==%d num_rates=%d chan_width=%d)",
 						r / 10, r % 10,
-						bss->freq, mode->mode, mode->num_rates);
+						bss->freq, mode->mode, mode->num_rates, wpa_s->conf->chan_width);
 				return 0;
 			}
 		}

@@ -562,9 +562,9 @@ static void mlme_event_ch_switch(struct wpa_driver_nl80211_data *drv,
 
 		wpa_printf(MSG_DEBUG, "nl80211: Channel type: %d", ch_type);
 		switch (ch_type) {
+		case NL80211_CHAN_NO_HT:
 		case NL80211_CHAN_NO_HT5:
 		case NL80211_CHAN_NO_HT10:
-		case NL80211_CHAN_NO_HT:
 			ht_enabled = 0;
 			break;
 		case NL80211_CHAN_HT5:
