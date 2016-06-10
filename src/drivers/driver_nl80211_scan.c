@@ -303,6 +303,15 @@ nl80211_scan_common(struct i802_bss *bss, u8 cmd,
 	    nla_put_u32(msg, NL80211_ATTR_SCAN_FLAGS, scan_flags))
 		goto fail;
 
+	if (params->scan_width == 5) {
+		if (nla_put_u32(msg, NL80211_ATTR_CHANNEL_WIDTH, NL80211_CHAN_WIDTH_5))
+			goto fail;
+	}
+	else if (params->scan_width == 10) {
+		if (nla_put_u32(msg, NL80211_ATTR_CHANNEL_WIDTH, NL80211_CHAN_WIDTH_10))
+			goto fail;
+	}
+
 	return msg;
 
 fail:

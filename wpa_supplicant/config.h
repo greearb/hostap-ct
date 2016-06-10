@@ -50,6 +50,7 @@
 #define DEFAULT_DISASSOC_IMMINENT_RSSI_THRESHOLD -75
 #define DEFAULT_OCE_SUPPORT OCE_STA
 #define DEFAULT_EXTENDED_KEY_ID 0
+#define DEFAULT_CHAN_WIDTH 0
 
 #include "config_ssid.h"
 #include "wps/wps.h"
@@ -1637,6 +1638,13 @@ struct wpa_config {
 	 * 1 = use Extended Key ID when possible
 	 */
 	int extended_key_id;
+
+	/**
+	 * scan_width - Specify channel bandwidth.
+	 *
+	 *  Options: 5, 10  Anything other than 5 or 10 will be ignored and treated as default.
+	 */
+	int chan_width;
 };
 
 
