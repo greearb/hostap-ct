@@ -427,6 +427,10 @@ static int calculate_chan_offset(int width, int freq, int cf1, int cf2)
 	int freq1 = 0;
 
 	switch (convert2width(width)) {
+	case CHAN_WIDTH_5_NOHT:
+	case CHAN_WIDTH_5:
+	case CHAN_WIDTH_10_NOHT:
+	case CHAN_WIDTH_10:
 	case CHAN_WIDTH_20_NOHT:
 	case CHAN_WIDTH_20:
 		return 0;

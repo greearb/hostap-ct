@@ -768,6 +768,8 @@ void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 
 	os_memset(&params, 0, sizeof(params));
 
+        params.scan_width = wpa_s->conf->chan_width;
+
 	wpa_s->scan_prev_wpa_state = wpa_s->wpa_state;
 	if (wpa_s->wpa_state == WPA_DISCONNECTED ||
 	    wpa_s->wpa_state == WPA_INACTIVE)
@@ -2339,6 +2341,7 @@ wpa_scan_clone_params(const struct wpa_driver_scan_params *src)
 		os_memcpy(bssid, src->bssid, ETH_ALEN);
 		params->bssid = bssid;
 	}
+        params->scan_width = src->scan_width;
 
 	return params;
 

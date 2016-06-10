@@ -460,6 +460,13 @@ struct wpa_driver_scan_params {
 	 */
 	const u8 *bssid;
 
+	/**
+	 * scan_width - Specify scan bandwidth.
+	 *
+	 * Specify a bandwidth at which to scan (5, 10, 20).  Zero means default.
+	 */
+	int scan_width;
+
 	/*
 	 * NOTE: Whenever adding new parameters here, please make sure
 	 * wpa_scan_clone_params() and wpa_scan_free_params() get updated with
