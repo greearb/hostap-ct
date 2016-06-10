@@ -49,6 +49,7 @@
 #define DEFAULT_MBO_CELL_CAPA MBO_CELL_CAPA_NOT_SUPPORTED
 #define DEFAULT_DISASSOC_IMMINENT_RSSI_THRESHOLD -75
 #define DEFAULT_OCE_SUPPORT OCE_STA
+#define DEFAULT_CHAN_WIDTH 0
 
 #include "config_ssid.h"
 #include "wps/wps.h"
@@ -1582,6 +1583,13 @@ struct wpa_config {
 	 * By default, permanent MAC address is used.
 	 */
 	int p2p_interface_random_mac_addr;
+
+	/**
+	 * scan_width - Specify channel bandwidth.
+	 *
+	 *  Options: 5, 10  Anything other than 5 or 10 will be ignored and treated as default.
+	 */
+	int chan_width;
 };
 
 

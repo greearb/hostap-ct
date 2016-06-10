@@ -1438,6 +1438,9 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 	if (config->scan_cur_freq != DEFAULT_SCAN_CUR_FREQ)
 		fprintf(f, "scan_cur_freq=%d\n", config->scan_cur_freq);
 
+	if (config->chan_width != DEFAULT_CHAN_WIDTH)
+		fprintf(f, "chan_width=%d\n", config->chan_width);
+
 	if (config->sched_scan_interval)
 		fprintf(f, "sched_scan_interval=%u\n",
 			config->sched_scan_interval);
