@@ -6800,7 +6800,10 @@ static int nl80211_set_legacy_rates(struct i802_bss *bss,
 		return -1;
 
 	if (is_advert_mask)
-		if (nla_put_flag(msg, NL80211_ATTR_TX_ADVERT_RATEMASK))
+		/* Hack to re-use existing flag so we don't have to deal with out-of-tree
+		 * netlink ids that change everytime we rebase on a new upstream kernel.
+		 */
+		if (nla_put_flag(msg, NL80211_ATTR_WIPHY_SELF_MANAGED_REG))
 			goto fail;
 
 	bands = nla_nest_start(msg, NL80211_ATTR_TX_RATES);
