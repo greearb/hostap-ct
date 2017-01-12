@@ -2220,6 +2220,18 @@ struct wpa_init_params {
 	char **bridge;
 	size_t num_bridge;
 
+	/* Advertise legacy rate mask, 12 bits for legacy rates, (1<<31) to
+	 * enable use of this mask.  This determines what rates should be
+	 * advertised as supported in probe requests and so forth.
+	 */
+	unsigned int adv_legacy_rates;
+
+	/* TX legacy rate mask, 12 bits for legacy rates, (1<<31) to
+	 * enable use of this mask.  This will be used to configure the
+	 * kernel's tx-rate-ctrl logic for this interface.
+	 */
+	unsigned int tx_legacy_rates;
+
 	u8 *own_addr; /* buffer for writing own MAC address */
 };
 
@@ -3929,6 +3941,13 @@ struct wpa_driver_ops {
 	 * sched_scan is supported.
 	 */
 	int (*stop_sched_scan)(void *priv);
+
+	/**
+	 * Set the legacy rates.  User would have previously configured the
+	 * ratemask through other means.  This just tells the kernel to apply
+	 * it.
+	 */
+	int (*set_legacy_rates)(void *priv);
 
 	/**
 	 * poll_client - Probe (null data or such) the given station
