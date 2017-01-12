@@ -948,6 +948,12 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 		wpa_s->normal_scans = 0;
 	}
 
+	/* If we are moving from DISCONNECTED to Scanning, then (re)set
+	 * the legacy ratemask, as it could have just been cleared as
+	 * the network device just bounced.
+	 */
+	wpa_drv_set_legacy_rates(wpa_s);
+
 	if (state == WPA_COMPLETED) {
 		wpas_connect_work_done(wpa_s);
 		/* Reinitialize normal_scan counter */
@@ -1202,6 +1208,7 @@ int wpa_supplicant_reload_configuration(struct wpa_supplicant *wpa_s)
 	struct wpa_config *conf;
 	int reconf_ctrl;
 	int old_ap_scan;
+	int set_driver_param = 0;
 
 	if (wpa_s->confname == NULL)
 		return -1;
@@ -1220,6 +1227,23 @@ int wpa_supplicant_reload_configuration(struct wpa_supplicant *wpa_s)
 	}
 
 	conf->changed_parameters = (unsigned int) -1;
+
+	if (wpa_s->conf->driver_param) {
+		if ((!conf->driver_param) ||
+		    os_strcmp(conf->driver_param, wpa_s->conf->driver_param))
+		    set_driver_param = 1;
+	}
+	else {
+		if (conf->driver_param)
+			set_driver_param = 1;
+	}
+	if (set_driver_param) {
+		if (wpa_drv_set_param(wpa_s, conf->driver_param) < 0) {
+			wpa_msg(wpa_s, MSG_ERROR, "Driver interface rejected "
+				"driver_param '%s'", conf->driver_param);
+			return -1;
+		}
+	}
 
 	reconf_ctrl = !!conf->ctrl_interface != !!wpa_s->conf->ctrl_interface
 		|| (conf->ctrl_interface && wpa_s->conf->ctrl_interface &&
@@ -5250,6 +5274,8 @@ int wpa_supplicant_driver_init(struct wpa_supplicant *wpa_s)
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "RSN: flushing PMKID list in the driver");
 	wpa_drv_flush_pmkid(wpa_s);
+
+	wpa_drv_set_legacy_rates(wpa_s);
 
 	wpa_s->prev_scan_ssid = WILDCARD_SSID_SCAN;
 	wpa_s->prev_scan_wildcard = 0;
