@@ -86,6 +86,15 @@ struct i802_bss {
 	u8 prev_addr[ETH_ALEN];
 
 	int if_dynamic;
+#define ENABLE_VHT_MASK 29
+#define ENABLE_HT_MASK 30
+#define ENABLE_LEGACY_MASK 31
+	unsigned int tx_legacy_rates; /* 1, 2, 5.5, 11, 6, 9, 12, 18, 24, 36, 48, 54.  (1<<31) enables this mask */
+	unsigned int adv_legacy_rates; /* 1, 2, 5.5, 11, 6, 9, 12, 18, 24, 36, 48, 54.  (1<<31) enables this mask */
+	u8 tx_ht_mask[10]; /* (1<<30) in legacy rate mask enables this. */
+	u8 adv_ht_mask[10]; /* (1<<30) in legacy rate mask enables this. */
+	u16 tx_vht_mask[NL80211_VHT_NSS_MAX];  /* (1<<29) in legacy rate mask enables this. */
+	u16 adv_vht_mask[NL80211_VHT_NSS_MAX];  /* (1<<29) in legacy rate mask enables this. */
 
 	void *ctx;
 	struct nl_sock *nl_preq, *nl_mgmt, *nl_connect;
@@ -319,11 +328,12 @@ send_and_recv_resp(struct wpa_driver_nl80211_data *drv,
 			     valid_handler, valid_data, NULL, NULL, NULL);
 }
 
-int nl80211_create_iface(struct wpa_driver_nl80211_data *drv,
+int nl80211_create_iface(struct i802_bss *bss, struct wpa_driver_nl80211_data *drv,
 			 const char *ifname, enum nl80211_iftype iftype,
 			 const u8 *addr, int wds,
 			 int (*handler)(struct nl_msg *, void *),
 			 void *arg, int use_existing);
+struct nl_sock * get_connect_handle(struct i802_bss *bss);
 void nl80211_remove_iface(struct wpa_driver_nl80211_data *drv, int ifidx);
 unsigned int nl80211_get_assoc_freq(struct wpa_driver_nl80211_data *drv);
 int nl80211_get_assoc_ssid(struct wpa_driver_nl80211_data *drv, u8 *ssid);
@@ -347,7 +357,8 @@ int wpa_driver_nl80211_mlme(struct wpa_driver_nl80211_data *drv,
 			    int local_state_change,
 			    struct i802_bss *bss);
 
-int nl80211_send_monitor(struct wpa_driver_nl80211_data *drv,
+int nl80211_send_monitor(struct i802_bss *bss,
+			 struct wpa_driver_nl80211_data *drv,
 			 const void *data, size_t len,
 			 int encrypt, int noack);
 
@@ -409,6 +420,8 @@ int wpa_driver_set_ap_wps_p2p_ie(void *priv, const struct wpabuf *beacon,
 
 /* driver_nl80211_scan.c */
 
+int nl80211_build_legacy_rateset(unsigned int legacy_rates, int b_disabled,
+				 unsigned char* rates);
 void wpa_driver_nl80211_scan_timeout(void *eloop_ctx, void *timeout_ctx);
 int wpa_driver_nl80211_scan(struct i802_bss *bss,
 			    struct wpa_driver_scan_params *params);
