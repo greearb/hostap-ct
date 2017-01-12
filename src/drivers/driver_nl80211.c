@@ -183,8 +183,12 @@ static int have_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx,
 
 static int nl80211_set_channel(struct i802_bss *bss,
 			       struct hostapd_freq_params *freq, int set_chan);
-static int nl80211_disable_11b_rates(struct wpa_driver_nl80211_data *drv,
-				     int ifindex, int disabled);
+static int nl80211_set_legacy_rates(struct i802_bss *bss,
+				    struct wpa_driver_nl80211_data *drv,
+				    int ifindex, int b_disabled,
+				    unsigned int cfg_legacy_mask,
+				    int is_advert_mask,
+				    u8 *cfg_ht_mask, u16 *cfg_vht_mask);
 
 static int nl80211_leave_ibss(struct wpa_driver_nl80211_data *drv,
 			      int reset_mode);
@@ -2009,8 +2013,12 @@ static void wpa_driver_nl80211_rfkill_unblocked(void *ctx)
 		return;
 	}
 
-	if (is_p2p_net_interface(drv->nlmode))
-		nl80211_disable_11b_rates(drv, drv->ifindex, 1);
+	if (is_p2p_net_interface(drv->nlmode)) {
+		nl80211_set_legacy_rates(drv->first_bss, drv, drv->ifindex, 1, drv->first_bss->tx_legacy_rates, 0,
+					 drv->first_bss->tx_ht_mask, drv->first_bss->tx_vht_mask);
+		nl80211_set_legacy_rates(drv->first_bss, drv, drv->ifindex, 1, drv->first_bss->tx_legacy_rates, 1,
+					 drv->first_bss->tx_ht_mask, drv->first_bss->tx_vht_mask);
+	}
 
 	/*
 	 * rtnetlink ifup handler will report interfaces other than the P2P
@@ -2906,9 +2914,12 @@ wpa_driver_nl80211_finish_drv_init(struct wpa_driver_nl80211_data *drv,
 			return ret;
 		}
 
-		if (is_p2p_net_interface(nlmode))
-			nl80211_disable_11b_rates(bss->drv,
-						  bss->drv->ifindex, 1);
+		if (is_p2p_net_interface(nlmode)) {
+			nl80211_set_legacy_rates(bss, bss->drv, drv->ifindex, 1, bss->tx_legacy_rates, 0,
+						 bss->tx_ht_mask, bss->tx_vht_mask);
+			nl80211_set_legacy_rates(bss, bss->drv, drv->ifindex, 1, bss->tx_legacy_rates, 1,
+						 bss->tx_ht_mask, bss->tx_vht_mask);
+		}
 
 		if (nlmode == NL80211_IFTYPE_P2P_DEVICE)
 			return ret;
@@ -2971,8 +2982,8 @@ static void wpa_driver_nl80211_deinit(struct i802_bss *bss)
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	unsigned int i;
 
-	wpa_printf(MSG_INFO, "nl80211: deinit ifname=%s disabled_11b_rates=%d",
-		   bss->ifname, drv->disabled_11b_rates);
+	wpa_printf(MSG_INFO, "nl80211: deinit ifname=%s",
+		   bss->ifname);
 
 	bss->in_deinit = 1;
 	if (drv->data_tx_status)
@@ -3018,8 +3029,8 @@ static void wpa_driver_nl80211_deinit(struct i802_bss *bss)
 	if (drv->if_indices != drv->default_if_indices)
 		os_free(drv->if_indices);
 
-	if (drv->disabled_11b_rates)
-		nl80211_disable_11b_rates(drv, drv->ifindex, 0);
+	nl80211_set_legacy_rates(bss, drv, drv->ifindex, drv->disabled_11b_rates, 0xFFF, 0, NULL, NULL);
+	nl80211_set_legacy_rates(bss, drv, drv->ifindex, drv->disabled_11b_rates, 0xFFF, 1, NULL, NULL);
 
 	netlink_send_oper_ifla(drv->global->netlink, drv->ifindex, 0,
 			       IF_OPER_UP);
@@ -3734,25 +3745,6 @@ static void nl80211_copy_auth_params(struct wpa_driver_nl80211_data *drv,
 }
 
 
-static void nl80211_unmask_11b_rates(struct i802_bss *bss)
-{
-	struct wpa_driver_nl80211_data *drv = bss->drv;
-
-	if (is_p2p_net_interface(drv->nlmode) || !drv->disabled_11b_rates)
-		return;
-
-	/*
-	 * Looks like we failed to unmask 11b rates previously. This could
-	 * happen, e.g., if the interface was down at the point in time when a
-	 * P2P group was terminated.
-	 */
-	wpa_printf(MSG_DEBUG,
-		   "nl80211: Interface %s mode is for non-P2P, but 11b rates were disabled - re-enable them",
-		   bss->ifname);
-	nl80211_disable_11b_rates(drv, drv->ifindex, 0);
-}
-
-
 static enum nl80211_auth_type get_nl_auth_type(int wpa_auth_alg)
 {
 	if (wpa_auth_alg & WPA_AUTH_ALG_OPEN)
@@ -3786,7 +3778,10 @@ static int wpa_driver_nl80211_authenticate(
 	int is_retry;
 	struct wpa_driver_set_key_params p;
 
-	nl80211_unmask_11b_rates(bss);
+	nl80211_set_legacy_rates(bss, drv, drv->ifindex, 0, bss->tx_legacy_rates, 0,
+				 bss->tx_ht_mask, bss->tx_vht_mask);
+	nl80211_set_legacy_rates(bss, drv, drv->ifindex, 0, bss->adv_legacy_rates, 1,
+				 bss->adv_ht_mask, bss->adv_vht_mask);
 
 	is_retry = drv->retry_auth;
 	drv->retry_auth = 0;
@@ -4121,7 +4116,7 @@ send_frame_cmd:
 	if (no_encrypt && !encrypt && !drv->use_monitor) {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Request to send an unencrypted frame - use a monitor interface for this");
-		if (nl80211_create_monitor_interface(drv) < 0)
+		if (nl80211_create_monitor_interface(bss, drv) < 0)
 			return -1;
 		res = nl80211_send_monitor(drv, data, data_len, encrypt,
 					   noack);
@@ -5561,7 +5556,7 @@ static int nl80211_create_iface_once(struct wpa_driver_nl80211_data *drv,
 }
 
 
-int nl80211_create_iface(struct wpa_driver_nl80211_data *drv,
+int nl80211_create_iface(struct i802_bss *bss, struct wpa_driver_nl80211_data *drv,
 			 const char *ifname, enum nl80211_iftype iftype,
 			 const u8 *addr, int wds,
 			 int (*handler)(struct nl_msg *, void *),
@@ -5603,7 +5598,10 @@ int nl80211_create_iface(struct wpa_driver_nl80211_data *drv,
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Interface %s created for P2P - disable 11b rates",
 			   ifname);
-		nl80211_disable_11b_rates(drv, ret, 1);
+		nl80211_set_legacy_rates(bss, drv, drv->ifindex, 1, bss->tx_legacy_rates, 0,
+					 bss->tx_ht_mask, bss->tx_vht_mask);
+		nl80211_set_legacy_rates(bss, drv, drv->ifindex, 1, bss->adv_legacy_rates, 1,
+					 bss->adv_ht_mask, bss->adv_vht_mask);
 	}
 
 	return ret;
@@ -5635,7 +5633,7 @@ static int nl80211_setup_ap(struct i802_bss *bss)
 				   "nl80211: Failed to subscribe for mgmt frames from SME driver - trying to run without it");
 
 	if (!drv->device_ap_sme && drv->use_monitor &&
-	    nl80211_create_monitor_interface(drv) &&
+	    nl80211_create_monitor_interface(bss, drv) &&
 	    !drv->device_ap_sme)
 		return -1;
 
@@ -6545,7 +6543,10 @@ static int wpa_driver_nl80211_associate(
 	int ret = -1;
 	struct nl_msg *msg;
 
-	nl80211_unmask_11b_rates(bss);
+	nl80211_set_legacy_rates(bss, drv, drv->ifindex, 0, bss->tx_legacy_rates, 0,
+				 bss->tx_ht_mask, bss->tx_vht_mask);
+	nl80211_set_legacy_rates(bss, drv, drv->ifindex, 0, bss->adv_legacy_rates, 1,
+				 bss->adv_ht_mask, bss->adv_vht_mask);
 
 	if (params->mode == IEEE80211_MODE_AP)
 		return wpa_driver_nl80211_ap(drv, params);
@@ -6759,12 +6760,18 @@ done:
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Interface %s mode change to P2P - disable 11b rates",
 			   bss->ifname);
-		nl80211_disable_11b_rates(drv, drv->ifindex, 1);
-	} else if (drv->disabled_11b_rates) {
+		nl80211_set_legacy_rates(bss, drv, drv->ifindex, 1, bss->tx_legacy_rates, 0,
+					 bss->tx_ht_mask, bss->tx_vht_mask);
+		nl80211_set_legacy_rates(bss, drv, drv->ifindex, 1, bss->adv_legacy_rates, 1,
+					 bss->adv_ht_mask, bss->adv_vht_mask);
+	} else {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Interface %s mode changed to non-P2P - re-enable 11b rates",
 			   bss->ifname);
-		nl80211_disable_11b_rates(drv, drv->ifindex, 0);
+		nl80211_set_legacy_rates(bss, drv, drv->ifindex, 0, bss->tx_legacy_rates, 0,
+					  bss->tx_ht_mask, bss->tx_vht_mask);
+		nl80211_set_legacy_rates(bss, drv, drv->ifindex, 0, bss->adv_legacy_rates, 1,
+					 bss->adv_ht_mask, bss->adv_vht_mask);
 	}
 
 	if (is_ap_interface(nlmode)) {
@@ -7567,7 +7574,7 @@ static int i802_set_wds_sta(void *priv, const u8 *addr, int aid, int val,
 		   " aid=%d val=%d name=%s", MAC2STR(addr), aid, val, name);
 	if (val) {
 		if (!if_nametoindex(name)) {
-			if (nl80211_create_iface(drv, name,
+			if (nl80211_create_iface(bss, drv, name,
 						 NL80211_IFTYPE_AP_VLAN,
 						 bss->addr, 1, NULL, NULL, 0) <
 			    0)
@@ -7931,7 +7938,7 @@ static int wpa_driver_nl80211_if_add(void *priv, enum wpa_driver_if_type type,
 		struct wdev_info p2pdev_info;
 
 		os_memset(&p2pdev_info, 0, sizeof(p2pdev_info));
-		ifidx = nl80211_create_iface(drv, ifname, nlmode, addr,
+		ifidx = nl80211_create_iface(bss, drv, ifname, nlmode, addr,
 					     0, nl80211_wdev_handler,
 					     &p2pdev_info, use_existing);
 		if (!p2pdev_info.wdev_id_set || ifidx != 0) {
@@ -7948,7 +7955,7 @@ static int wpa_driver_nl80211_if_add(void *priv, enum wpa_driver_if_type type,
 			   ifname,
 			   (long long unsigned int) p2pdev_info.wdev_id);
 	} else {
-		ifidx = nl80211_create_iface(drv, ifname, nlmode, addr,
+		ifidx = nl80211_create_iface(bss, drv, ifname, nlmode, addr,
 					     0, NULL, NULL, use_existing);
 		if (use_existing && ifidx == -ENFILE) {
 			added = 0;
@@ -8468,23 +8475,128 @@ static int wpa_driver_nl80211_probe_req_report(struct i802_bss *bss, int report)
 	return -1;
 }
 
+static int build_ht_mcs(u8 *ht_mcs, const u8 *ht_mask)
+{
+	int i;
+	int m = 0;
+	for (i = 0; i<77; i++) {
+		if (ht_mask[i/8] & (1 << i % 8)) {
+			ht_mcs[m++] = i;
+		}
+	}
+	return m;
+}
 
-static int nl80211_disable_11b_rates(struct wpa_driver_nl80211_data *drv,
-				     int ifindex, int disabled)
+/* Returns count.  Zero return means use defaults (ie, all rates).
+ */
+int nl80211_build_legacy_rateset(unsigned int legacy_rates, int b_disabled,
+				 unsigned char* rates)
+{
+	int i = 0;
+	if (legacy_rates & (1<<ENABLE_LEGACY_MASK)) {
+		/* Pay attention to the legacy mask */
+		if (!(b_disabled || ((legacy_rates & 0x1) == 0))) {
+			rates[i] = 2;
+			i++;
+		}
+		if (!(b_disabled || ((legacy_rates & 0x2) == 0))) {
+			rates[i] = 4;
+			i++;
+		}
+		if (!(b_disabled || ((legacy_rates & 0x4) == 0))) {
+			rates[i] = 11;
+			i++;
+		}
+		if (!(b_disabled || ((legacy_rates & 0x8) == 0))) {
+			rates[i] = 22;
+			i++;
+		}
+		if (legacy_rates & 0x10) { // 6Mbps
+			rates[i] = 12;
+			i++;
+		}
+		if (legacy_rates & 0x20) { // 9Mbps
+			rates[i] = 18;
+			i++;
+		}
+		if (legacy_rates & 0x40) { // 12Mbps
+			rates[i] = 24;
+			i++;
+		}
+		if (legacy_rates & 0x80) { // 18Mbps
+			rates[i] = 36;
+			i++;
+		}
+		if (legacy_rates & 0x100) { // 24Mbps
+			rates[i] = 48;
+			i++;
+		}
+		if (legacy_rates & 0x200) { // 36Mbps
+			rates[i] = 72;
+			i++;
+		}
+		if (legacy_rates & 0x400) { // 48Mbps
+			rates[i] = 96;
+			i++;
+		}
+		if (legacy_rates & 0x800) { // 54Mbps
+			rates[i] = 108;
+			i++;
+		}
+	}/* if user configured a legacy mask */
+	else if (b_disabled) {
+		i = 8;
+		/* Enable all /g rates */
+		memcpy(rates, "\x0c\x12\x18\x24\x30\x48\x60\x6c", i);
+	}
+	else {
+		/* Enable all /b/g rates */
+		i = 12;
+		memcpy(rates, "\x02\x04\x0b\x16\x0c\x12\x18\x24\x30\x48\x60\x6c", 12);
+	}
+	return i;
+}
+
+static int nl80211_set_legacy_rates(struct i802_bss *bss,
+				    struct wpa_driver_nl80211_data *drv,
+				    int ifindex, int b_disabled,
+				    unsigned int legacy_rates,
+				    int is_advert_mask,
+				    u8 *ht_mask, u16* vht_mask)
 {
 	struct nl_msg *msg;
 	struct nlattr *bands, *band;
 	int ret;
+	uint8_t ht_mcs[77] = {};
+	struct nl80211_txrate_vht txrate_vht = {};
 
 	wpa_printf(MSG_DEBUG,
-		   "nl80211: NL80211_CMD_SET_TX_BITRATE_MASK (ifindex=%d %s)",
-		   ifindex, disabled ? "NL80211_TXRATE_LEGACY=OFDM-only" :
-		   "no NL80211_TXRATE_LEGACY constraint");
+		   "nl80211: NL80211_CMD_SET_TX_BITRATE_MASK (ifindex=%d ofdm-only: %d cfg-legacy-mask: 0x%x is-advert: %d)",
+		   ifindex, b_disabled, legacy_rates, is_advert_mask);
+	if (ht_mask && (legacy_rates & (1<<ENABLE_HT_MASK))) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211:  ht_mask: %02hx %02hx %02hx %02hx %02hx %02hx %02hx %02hx %02hx %02hx",
+			   ht_mask[0], ht_mask[1], ht_mask[2], ht_mask[3], ht_mask[4],
+			   ht_mask[5], ht_mask[6], ht_mask[7], ht_mask[8], ht_mask[9]);
+	}
+	if (vht_mask && (legacy_rates & (1<<ENABLE_VHT_MASK))) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211:  vht_mask: %04hx %04hx %04hx %04hx %04hx %04hx %04hx %04hx",
+			   vht_mask[0], vht_mask[1], vht_mask[2], vht_mask[3], vht_mask[4],
+			   vht_mask[5], vht_mask[6], vht_mask[7]);
+	}
 
 	msg = nl80211_ifindex_msg(drv, ifindex, 0,
 				  NL80211_CMD_SET_TX_BITRATE_MASK);
 	if (!msg)
 		return -1;
+
+	if (is_advert_mask)
+		/* Hack to re-use existing flag so we don't have to deal with out-of-tree
+		 * netlink ids that change everytime we rebase on a new upstream kernel.
+		 */
+		if (nla_put_flag(msg, NL80211_ATTR_WIPHY_SELF_MANAGED_REG))
+			goto fail;
 
 	bands = nla_nest_start(msg, NL80211_ATTR_TX_RATES);
 	if (!bands)
@@ -8496,20 +8608,106 @@ static int nl80211_disable_11b_rates(struct wpa_driver_nl80211_data *drv,
 	 * rates. All 5 GHz rates are left enabled.
 	 */
 	band = nla_nest_start(msg, NL80211_BAND_2GHZ);
-	if (!band ||
-	    (disabled && nla_put(msg, NL80211_TXRATE_LEGACY, 8,
-				 "\x0c\x12\x18\x24\x30\x48\x60\x6c")))
+	if (!band)
 		goto fail;
+
+	if (legacy_rates & (1<<ENABLE_LEGACY_MASK) || b_disabled) {
+		unsigned char rates[12];
+		int i = nl80211_build_legacy_rateset(legacy_rates, b_disabled, rates);
+		if (legacy_rates & (1<<ENABLE_LEGACY_MASK) || i) {
+			if (nla_put(msg, NL80211_TXRATE_LEGACY, i, rates))
+				goto fail;
+		}
+	}/* if we might need to disable some legacy rates */
+
+	if (ht_mask && (legacy_rates & (1<<ENABLE_HT_MASK))) {
+		int cnt = build_ht_mcs(ht_mcs, ht_mask);
+		if (nla_put(msg, NL80211_TXRATE_HT, cnt, ht_mcs))
+			goto fail;
+	}
+
+	if (vht_mask && (legacy_rates & (1<<ENABLE_VHT_MASK))) {
+		memcpy(txrate_vht.mcs, vht_mask, sizeof(txrate_vht.mcs));
+		if (nla_put(msg, NL80211_TXRATE_VHT, sizeof(txrate_vht), &txrate_vht))
+			goto fail;
+	}
+
+	nla_nest_end(msg, band);
+
+	band = nla_nest_start(msg, NL80211_BAND_5GHZ);
+	if (!band)
+		goto fail;
+
+	if (legacy_rates & (1<<ENABLE_LEGACY_MASK)) {
+		unsigned char rates[8];
+		int i = 0;
+
+		if (legacy_rates & 0x10) { // 6Mbps
+			rates[i] = 12;
+			i++;
+		}
+		if (legacy_rates & 0x20) { // 9Mbps
+			rates[i] = 18;
+			i++;
+		}
+		if (legacy_rates & 0x40) { // 12Mbps
+			rates[i] = 24;
+			i++;
+		}
+		if (legacy_rates & 0x80) { // 18Mbps
+			rates[i] = 36;
+			i++;
+		}
+		if (legacy_rates & 0x100) { // 24Mbps
+			rates[i] = 48;
+			i++;
+		}
+		if (legacy_rates & 0x200) { // 36Mbps
+			rates[i] = 72;
+			i++;
+		}
+		if (legacy_rates & 0x400) { // 48Mbps
+			rates[i] = 96;
+			i++;
+		}
+		if (legacy_rates & 0x800) { // 54Mbps
+			rates[i] = 108;
+			i++;
+		}
+
+		/* If we have no OFDM rates at all, then set one minimum rate so that
+		 * the kernel doesn't reject the setting entirely.
+		 */
+		if (i == 0) {
+			rates[i] = 12;
+			i++;
+		}
+
+		wpa_printf(MSG_DEBUG, "nl80211: Set TX Rates 5Ghz, i: %d", i);
+		if (nla_put(msg, NL80211_TXRATE_LEGACY, i, rates))
+			goto fail;
+	}
+
+	if (ht_mask && (legacy_rates & (1<<ENABLE_HT_MASK))) {
+		int cnt = build_ht_mcs(ht_mcs, ht_mask);
+		if (nla_put(msg, NL80211_TXRATE_HT, cnt, ht_mcs))
+			goto fail;
+	}
+	if (vht_mask && (legacy_rates & (1<<ENABLE_VHT_MASK))) {
+		memcpy(txrate_vht.mcs, vht_mask, sizeof(txrate_vht.mcs));
+		if (nla_put(msg, NL80211_TXRATE_VHT, sizeof(txrate_vht), &txrate_vht))
+			goto fail;
+	}
+
 	nla_nest_end(msg, band);
 
 	nla_nest_end(msg, bands);
 
 	ret = send_and_recv_msgs(drv, msg, NULL, NULL, NULL, NULL);
 	if (ret) {
-		wpa_printf(MSG_DEBUG, "nl80211: Set TX rates failed: ret=%d "
+		wpa_printf(MSG_DEBUG, "nl80211: Set Legacy TX rates failed: ret=%d "
 			   "(%s)", ret, strerror(-ret));
-	} else
-		drv->disabled_11b_rates = disabled;
+	}
 
 	return ret;
 
@@ -8518,6 +8716,14 @@ fail:
 	return -1;
 }
 
+int wpa_driver_nl80211_set_legacy_rates(void *priv)
+{
+	struct i802_bss *bss = priv;
+	nl80211_set_legacy_rates(bss, bss->drv, bss->drv->ifindex, 0, bss->tx_legacy_rates, 0,
+				 bss->tx_ht_mask, bss->tx_vht_mask);
+	return nl80211_set_legacy_rates(bss, bss->drv, bss->drv->ifindex, 0, bss->adv_legacy_rates, 1,
+					bss->adv_ht_mask, bss->adv_vht_mask);
+}
 
 static int wpa_driver_nl80211_deinit_ap(void *priv)
 {
@@ -8575,8 +8781,12 @@ static void wpa_driver_nl80211_resume(void *priv)
 	if (i802_set_iface_flags(bss, 1))
 		wpa_printf(MSG_DEBUG, "nl80211: Failed to set interface up on resume event");
 
-	if (is_p2p_net_interface(nlmode))
-		nl80211_disable_11b_rates(bss->drv, bss->drv->ifindex, 1);
+	if (is_p2p_net_interface(nlmode)) {
+		nl80211_set_legacy_rates(bss, bss->drv, bss->drv->ifindex, 1, bss->tx_legacy_rates, 0,
+					 bss->tx_ht_mask, bss->tx_vht_mask);
+		nl80211_set_legacy_rates(bss, bss->drv, bss->drv->ifindex, 1, bss->tx_legacy_rates, 1,
+					 bss->tx_ht_mask, bss->tx_vht_mask);
+	}
 }
 
 
@@ -8664,13 +8874,52 @@ static int nl80211_signal_poll(void *priv, struct wpa_signal_info *si)
 }
 
 
+static void parse_ht_mask(u8 *mask, int mask_len, const char* input)
+{
+	/* We expect no more than 10 ascii hex numbers
+	 * For instance: 08 00 00 00 00 00 00 00 00 00
+	 */
+	unsigned int tab[10];
+	int i;
+	int count = sscanf(input, "%x %x %x %x %x %x %x %x %x %x",
+			   &tab[0], &tab[1], &tab[2], &tab[3], &tab[4], &tab[5],
+			   &tab[6], &tab[7], &tab[8], &tab[9]);
+	memset(mask, 0, mask_len);
+	for (i = 0; i<count; i++) {
+		if (i >= mask_len)
+			break;
+		mask[i] = tab[i];
+	}
+}
+
+static void parse_vht_mask(u16 *mask, int mask_len, const char* input)
+{
+	/* We expect no more than 8 ascii hex numbers
+	 * For instance: 0000 0000 0000
+	 */
+	unsigned int tab[8];
+	int i;
+	int count = sscanf(input, "%x %x %x %x %x %x %x %x",
+			   &tab[0], &tab[1], &tab[2], &tab[3], &tab[4], &tab[5],
+			   &tab[6], &tab[7]);
+
+	memset(mask, 0, mask_len * 2);
+	for (i = 0; i<count; i++) {
+		if (i >= mask_len)
+			break;
+		mask[i] = tab[i];
+	}
+}
+
 static int nl80211_set_param(void *priv, const char *param)
 {
+	char* tmp;
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 
 	if (param == NULL)
 		return 0;
+
 	wpa_printf(MSG_DEBUG, "nl80211: driver param='%s'", param);
 
 #ifdef CONFIG_P2P
@@ -8684,7 +8933,13 @@ static int nl80211_set_param(void *priv, const char *param)
 
 	if (os_strstr(param, "use_monitor=1"))
 		drv->use_monitor = 1;
+	else {
+		drv->use_monitor = 0;
+	}
 
+	/* Not sure if it is safe to just back this out if param changes, so
+	 * this and similar are not changeable once value is enabled. --Ben
+	 */
 	if (os_strstr(param, "force_connect_cmd=1")) {
 		drv->capa.flags &= ~WPA_DRIVER_FLAGS_SME;
 		drv->force_connect_cmd = 1;
@@ -8726,6 +8981,41 @@ static int nl80211_set_param(void *priv, const char *param)
 				wpa_printf(MSG_DEBUG,
 					   "nl80211: Failed to re-register Action frame processing - ignore for now");
 		}
+	}
+
+	bss->tx_legacy_rates = 0;
+	bss->adv_legacy_rates = 0;
+
+	if ((tmp = os_strstr(param, "tx_legacy_rates="))) {
+		bss->tx_legacy_rates = atoi(tmp + strlen("tx_legacy_rates="));
+		bss->tx_legacy_rates |= (1<<ENABLE_LEGACY_MASK);
+	}
+	if (os_strstr(param, "tx_ht_mask=")) {
+		parse_ht_mask(bss->tx_ht_mask, sizeof(bss->tx_ht_mask),
+			      os_strstr(param, "tx_ht_mask=") + strlen("tx_ht_mask="));
+		bss->tx_legacy_rates |= (1<<ENABLE_HT_MASK);
+	}
+	if (os_strstr(param, "tx_vht_mask=")) {
+		parse_vht_mask(bss->tx_vht_mask,
+			       sizeof(bss->tx_vht_mask) / sizeof(bss->tx_vht_mask[0]),
+			       os_strstr(param, "tx_vht_mask=") + strlen("tx_vht_mask="));
+		bss->tx_legacy_rates |= (1<<ENABLE_VHT_MASK);
+	}
+
+	if ((tmp = os_strstr(param, "adv_legacy_rates="))) {
+		bss->adv_legacy_rates = atoi(tmp + strlen("adv_legacy_rates="));
+		bss->adv_legacy_rates |= (1<<ENABLE_LEGACY_MASK);
+	}
+	if (os_strstr(param, "adv_ht_mask=")) {
+		parse_ht_mask(bss->adv_ht_mask, sizeof(bss->adv_ht_mask),
+			      os_strstr(param, "adv_ht_mask=") + strlen("adv_ht_mask="));
+		bss->adv_legacy_rates |= (1<<ENABLE_HT_MASK);
+	}
+	if (os_strstr(param, "adv_vht_mask=")) {
+		parse_vht_mask(bss->adv_vht_mask,
+			       sizeof(bss->adv_vht_mask) / sizeof(bss->adv_vht_mask[0]),
+			       os_strstr(param, "adv_vht_mask=") + strlen("adv_vht_mask="));
+		bss->adv_legacy_rates |= (1<<ENABLE_VHT_MASK);
 	}
 
 	return 0;
@@ -9711,7 +10001,7 @@ static int wpa_driver_nl80211_status(void *priv, char *buf, size_t buflen)
 			  "monitor_refcount=%d\n"
 			  "last_mgmt_freq=%u\n"
 			  "eapol_tx_sock=%d\n"
-			  "%s%s%s%s%s%s%s%s%s%s%s%s%s",
+			  "%s%s%s%s%s%s%s%s%s%s%s%s",
 			  drv->phyname,
 			  MAC2STR(drv->perm_addr),
 			  drv->ifindex,
@@ -9732,8 +10022,6 @@ static int wpa_driver_nl80211_status(void *priv, char *buf, size_t buflen)
 			  "ignore_if_down_event=1\n" : "",
 			  drv->scan_complete_events ?
 			  "scan_complete_events=1\n" : "",
-			  drv->disabled_11b_rates ?
-			  "disabled_11b_rates=1\n" : "",
 			  drv->pending_remain_on_chan ?
 			  "pending_remain_on_chan=1\n" : "",
 			  drv->in_interface_list ? "in_interface_list=1\n" : "",
@@ -12356,6 +12644,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.scan2 = driver_nl80211_scan2,
 	.sched_scan = wpa_driver_nl80211_sched_scan,
 	.stop_sched_scan = wpa_driver_nl80211_stop_sched_scan,
+	.set_legacy_rates = wpa_driver_nl80211_set_legacy_rates,
 	.get_scan_results2 = wpa_driver_nl80211_get_scan_results,
 	.abort_scan = wpa_driver_nl80211_abort_scan,
 	.deauthenticate = driver_nl80211_deauthenticate,

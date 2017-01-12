@@ -124,6 +124,13 @@ static inline int wpa_drv_stop_sched_scan(struct wpa_supplicant *wpa_s)
 	return -1;
 }
 
+static inline int wpa_drv_set_legacy_rates(struct wpa_supplicant *wpa_s)
+{
+	if (wpa_s->driver->set_legacy_rates)
+		return wpa_s->driver->set_legacy_rates(wpa_s->drv_priv);
+	return -1;
+}
+
 struct wpa_scan_results *
 wpa_drv_get_scan_results2(struct wpa_supplicant *wpa_s);
 
