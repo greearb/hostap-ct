@@ -341,7 +341,7 @@ void nl80211_remove_monitor_interface(struct wpa_driver_nl80211_data *drv)
 }
 
 
-int nl80211_create_monitor_interface(struct wpa_driver_nl80211_data *drv)
+int nl80211_create_monitor_interface(struct i802_bss *bss, struct wpa_driver_nl80211_data *drv)
 {
 	char buf[IFNAMSIZ];
 	struct sockaddr_ll ll;
@@ -380,7 +380,7 @@ int nl80211_create_monitor_interface(struct wpa_driver_nl80211_data *drv)
 	buf[IFNAMSIZ - 1] = '\0';
 
 	drv->monitor_ifidx =
-		nl80211_create_iface(drv, buf, NL80211_IFTYPE_MONITOR, NULL,
+		nl80211_create_iface(bss, drv, buf, NL80211_IFTYPE_MONITOR, NULL,
 				     0, NULL, NULL, 0);
 
 	if (drv->monitor_ifidx == -EOPNOTSUPP) {
