@@ -2799,7 +2799,9 @@ static int tls_parse_pkcs12(struct tls_data *data, SSL *ssl, PKCS12 *p12,
 		 */
 		res = 0;
 #else /* OPENSSL_VERSION_NUMBER >= 0x10002000L */
+#if OPENSSL_VERSION_NUMBER >= 0x10001000L || defined(LIBRESSL_VERSION_NUMBER)
 		SSL_CTX_clear_extra_chain_certs(data->ssl);
+#endif
 		while ((cert = sk_X509_pop(certs)) != NULL) {
 			X509_NAME_oneline(X509_get_subject_name(cert), buf,
 					  sizeof(buf));
@@ -3453,13 +3455,16 @@ static int openssl_get_keyblock_size(SSL *ssl)
 int tls_connection_export_key(void *tls_ctx, struct tls_connection *conn,
 			      const char *label, u8 *out, size_t out_len)
 {
+#if OPENSSL_VERSION_NUMBER >= 0x10001000L || defined(LIBRESSL_VERSION_NUMBER)
 	if (!conn ||
 	    SSL_export_keying_material(conn->ssl, out, out_len, label,
 				       os_strlen(label), NULL, 0, 0) != 1)
 		return -1;
 	return 0;
+#else
+	return -1;
+#endif
 }
-
 
 int tls_connection_get_eap_fast_key(void *tls_ctx, struct tls_connection *conn,
 				    u8 *out, size_t out_len)
@@ -3831,7 +3836,11 @@ struct wpabuf * tls_connection_decrypt(void *tls_ctx,
 
 int tls_connection_resumed(void *ssl_ctx, struct tls_connection *conn)
 {
+#if OPENSSL_VERSION_NUMBER >= 0x10001000L || defined(LIBRESSL_VERSION_NUMBER)
 	return conn ? SSL_cache_hit(conn->ssl) : 0;
+#else
+	return 0;
+#endif
 }
 
 
