@@ -4866,6 +4866,9 @@ void wpa_supplicant_rx_eapol(void *ctx, const u8 *src_addr,
 			     const u8 *buf, size_t len)
 {
 	struct wpa_supplicant *wpa_s = ctx;
+#ifdef CONFIG_TESTING_OPTIONS
+	enum eapol_key_msg_type emt;
+#endif
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "RX EAPOL from " MACSTR, MAC2STR(src_addr));
 	wpa_hexdump(MSG_MSGDUMP, "RX EAPOL", buf, len);
@@ -4875,6 +4878,31 @@ void wpa_supplicant_rx_eapol(void *ctx, const u8 *src_addr,
 	    (os_random_16() < wpa_s->conf->ignore_auth_resp)) {
 		wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - ignore_auth_resp active!");
 		return;
+	}
+
+
+	/* Check for dropping specific eapol frames */
+	emt = wpa_eapol_key_type(wpa_s->wpa, buf, len);
+	if (emt == EAPOL_MSG_TYPE_1_OF_4) {
+		if (wpa_s->conf->ignore_eapol_1_of_4 &&
+		    (os_random_16() < wpa_s->conf->ignore_eapol_1_of_4)) {
+			wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - ignore_eapol_1_of_4 active!");
+			return;
+		}
+	}
+	else if (emt == EAPOL_MSG_TYPE_3_OF_4) {
+		if (wpa_s->conf->ignore_eapol_3_of_4 &&
+		    (os_random_16() < wpa_s->conf->ignore_eapol_3_of_4)) {
+			wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - ignore_eapol_3_of_4 active!");
+			return;
+		}
+	}
+	else if (emt == EAPOL_MSG_TYPE_GROUP_1_OF_2) {
+		if (wpa_s->conf->ignore_eapol_1_of_2 &&
+		    (os_random_16() < wpa_s->conf->ignore_eapol_1_of_2)) {
+			wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - ignore_eapol_1_of_2 active!");
+			return;
+		}
 	}
 #endif /* CONFIG_TESTING_OPTIONS */
 
