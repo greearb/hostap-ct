@@ -4871,8 +4871,9 @@ void wpa_supplicant_rx_eapol(void *ctx, const u8 *src_addr,
 	wpa_hexdump(MSG_MSGDUMP, "RX EAPOL", buf, len);
 
 #ifdef CONFIG_TESTING_OPTIONS
-	if (wpa_s->ignore_auth_resp) {
-		wpa_printf(MSG_INFO, "RX EAPOL - ignore_auth_resp active!");
+	if (wpa_s->conf->ignore_auth_resp &&
+	    (os_random_16() < wpa_s->conf->ignore_auth_resp)) {
+		wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - ignore_auth_resp active!");
 		return;
 	}
 #endif /* CONFIG_TESTING_OPTIONS */

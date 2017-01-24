@@ -1209,7 +1209,6 @@ struct wpa_supplicant {
 	char *get_pref_freq_list_override;
 	unsigned int reject_btm_req_reason;
 	unsigned int p2p_go_csa_on_inv:1;
-	unsigned int ignore_auth_resp:1;
 	unsigned int ignore_assoc_disallow:1;
 	unsigned int disable_sa_query:1;
 	unsigned int testing_resend_assoc:1;
@@ -1421,6 +1420,10 @@ struct wpa_supplicant {
 #endif /* CONFIG_PASN */
 };
 
+#ifdef CONFIG_TESTING_OPTIONS
+/** Return value that is 0 to (65535-1). */
+unsigned short os_random_16();
+#endif
 
 /* wpa_supplicant.c */
 void wpa_supplicant_apply_ht_overrides(

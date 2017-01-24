@@ -4473,6 +4473,9 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 #endif
 	config->concurrent_assoc_ok = DEFAULT_CONCURRENT_ASSOC_OK;
 	config->accept_external_scan_results = DEFAULT_ACCEPT_EXTERNAL_SCAN_RESULTS;
+#if CONFIG_TESTING_OPTIONS
+	config->ignore_auth_resp = DEFAULT_IGNORE_AUTH_RESP;
+#endif
 
 	return config;
 }
@@ -5281,6 +5284,9 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(disable_ess_roaming), 0 },
 #endif
 	{ INT(concurrent_assoc_ok), 0 },
+#if CONFIG_TESTING_OPTIONS
+	{ INT(ignore_auth_resp), 0 },
+#endif
 	{ INT(accept_external_scan_results), 0 },
 	{ INT(p2p_search_delay), 0},
 	{ INT(mac_addr), 0 },
