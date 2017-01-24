@@ -3260,6 +3260,74 @@ static int wpa_supp_aead_decrypt(struct wpa_sm *sm, u8 *buf, size_t buf_len,
 }
 #endif /* CONFIG_FILS */
 
+#ifdef CONFIG_TESTING_OPTIONS
+/* Mostly same as below, but this should not change any state.  Returns the
+ * message type so we can make decisions before feeding this into the state
+ * machine.
+ */
+enum eapol_key_msg_type wpa_eapol_key_type(struct wpa_sm *sm, const u8 *buf, size_t len)
+{
+	size_t plen;
+	const struct ieee802_1x_hdr *hdr;
+	struct wpa_eapol_key *key;
+	u16 key_info;
+	enum eapol_key_msg_type ret = EAPOL_MSG_TYPE_UNKNOWN;
+	size_t mic_len, keyhdrlen;
+
+	mic_len = wpa_mic_len(sm->key_mgmt, sm->pmk_len);
+	keyhdrlen = sizeof(*key) + mic_len + 2;
+
+	if (len < sizeof(*hdr) + keyhdrlen) {
+		return ret;
+	}
+
+	hdr = (const struct ieee802_1x_hdr *) buf;
+	plen = be_to_host16(hdr->length);
+
+	if (hdr->type != IEEE802_1X_TYPE_EAPOL_KEY) {
+		goto out;
+	}
+	if (plen > len - sizeof(*hdr) || plen < keyhdrlen) {
+		goto out;
+	}
+
+	key = (struct wpa_eapol_key *) (buf + sizeof(struct ieee802_1x_hdr));
+
+	if (key->type != EAPOL_KEY_TYPE_WPA && key->type != EAPOL_KEY_TYPE_RSN)
+	{
+		goto out;
+	}
+
+	key_info = WPA_GET_BE16(key->key_info);
+
+	if (key_info & WPA_KEY_INFO_KEY_TYPE) {
+		if (key_info & WPA_KEY_INFO_KEY_INDEX_MASK) {
+			goto out;
+		}
+
+		if (key_info & (WPA_KEY_INFO_MIC |
+				WPA_KEY_INFO_ENCR_KEY_DATA)) {
+			/* 3/4 4-Way Handshake */
+			ret = EAPOL_MSG_TYPE_3_OF_4;
+			goto out;
+		} else {
+			/* 1/4 4-Way Handshake */
+			ret = EAPOL_MSG_TYPE_1_OF_4;
+			goto out;
+		}
+	} else {
+		if ((mic_len && (key_info & WPA_KEY_INFO_MIC)) ||
+		    (!mic_len && (key_info & WPA_KEY_INFO_ENCR_KEY_DATA))) {
+			/* 1/2 Group Key Handshake */
+			ret = EAPOL_MSG_TYPE_GROUP_1_OF_2;
+			goto out;
+		}
+	}
+
+out:
+	return ret;
+}
+#endif
 
 /**
  * wpa_sm_rx_eapol - Process received WPA EAPOL frames
