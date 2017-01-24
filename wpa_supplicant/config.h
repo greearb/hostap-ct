@@ -959,6 +959,11 @@ struct wpa_config {
 	 * 0 == never, 65535 == always
 	 */
 	unsigned short ignore_auth_resp;
+	unsigned short ignore_assoc;
+	unsigned short ignore_deauth;
+	unsigned short ignore_eapol_1_of_4;
+	unsigned short ignore_eapol_3_of_4;
+	unsigned short ignore_eapol_1_of_2;
 #endif
 
 	/**
