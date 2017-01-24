@@ -605,3 +605,6 @@ CONFIG_BGSCAN_SIMPLE=y
 # This requires CONFIG_IEEE80211W=y to be enabled, too. (see
 # wpa_supplicant/README-DPP for details)
 CONFIG_DPP=y
+
+# Enable some testing options code?  Not intended for production code.
+#CONFIG_TESTING_OPTIONS=y
