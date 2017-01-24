@@ -625,3 +625,6 @@ CONFIG_DPP=y
 # support for this by default, but that functionality is subject to be removed
 # in the future.
 #CONFIG_NO_TKIP=y
+
+# Enable some testing options code?  Not intended for production code.
+#CONFIG_TESTING_OPTIONS=y

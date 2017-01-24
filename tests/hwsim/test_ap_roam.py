@@ -138,7 +138,7 @@ def test_ap_reconnect_auth_timeout(dev, apdev, params):
 
     wpas.scan_for_bss(bssid1, freq=2412)
     wpas.request("DISCONNECT")
-    if "OK" not in wpas.request("SET ignore_auth_resp 1"):
+    if "OK" not in wpas.request("SET ignore_auth_resp 65535"):
         raise Exception("SET ignore_auth_resp failed")
     if "OK" not in wpas.request("ENABLE_NETWORK " + str(id)):
         raise Exception("ENABLE_NETWORK failed")
@@ -177,7 +177,7 @@ def test_ap_roam_with_reassoc_auth_timeout(dev, apdev, params):
 
     if "OK" not in wpas.request("SET_NETWORK " + str(id) + " bssid " + bssid1):
         raise Exception("SET_NETWORK failed")
-    if "OK" not in wpas.request("SET ignore_auth_resp 1"):
+    if "OK" not in wpas.request("SET ignore_auth_resp 65535"):
         raise Exception("SET ignore_auth_resp failed")
     if "OK" not in wpas.request("REASSOCIATE"):
         raise Exception("REASSOCIATE failed")
