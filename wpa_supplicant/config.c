@@ -4563,6 +4563,11 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	config->accept_external_scan_results = DEFAULT_ACCEPT_EXTERNAL_SCAN_RESULTS;
 #if CONFIG_TESTING_OPTIONS
 	config->ignore_auth_resp = DEFAULT_IGNORE_AUTH_RESP;
+	config->ignore_assoc = DEFAULT_IGNORE_AUTH_RESP;
+	config->ignore_deauth = DEFAULT_IGNORE_AUTH_RESP;
+	config->ignore_eapol_1_of_4 = DEFAULT_IGNORE_AUTH_RESP;
+	config->ignore_eapol_3_of_4 = DEFAULT_IGNORE_AUTH_RESP;
+	config->ignore_eapol_1_of_2 = DEFAULT_IGNORE_AUTH_RESP;
 #endif
 
 	return config;
@@ -5389,6 +5394,11 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(concurrent_assoc_ok), 0 },
 #if CONFIG_TESTING_OPTIONS
 	{ INT(ignore_auth_resp), 0 },
+	{ INT(ignore_assoc), 0 },
+	{ INT(ignore_deauth), 0 },
+	{ INT(ignore_eapol_1_of_4), 0 },
+	{ INT(ignore_eapol_3_of_4), 0 },
+	{ INT(ignore_eapol_1_of_2), 0 },
 #endif
 	{ INT(accept_external_scan_results), 0 },
 	{ INT(p2p_search_delay), 0},
