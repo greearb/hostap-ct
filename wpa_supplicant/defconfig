@@ -598,3 +598,6 @@ CONFIG_BACKEND=file
 # Opportunistic Wireless Encryption (OWE)
 # Experimental implementation of draft-harkins-owe-07.txt
 #CONFIG_OWE=y
+
+# Enable some testing options code?  Not intended for production code.
+#CONFIG_TESTING_OPTIONS=y
