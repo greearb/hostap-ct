@@ -1072,7 +1072,6 @@ struct wpa_supplicant {
 	char *get_pref_freq_list_override;
 	unsigned int reject_btm_req_reason;
 	unsigned int p2p_go_csa_on_inv:1;
-	unsigned int ignore_auth_resp:1;
 	unsigned int ignore_assoc_disallow:1;
 #endif /* CONFIG_TESTING_OPTIONS */
 
@@ -1178,6 +1177,10 @@ struct wpa_supplicant {
 	struct wpabuf *ric_ies;
 };
 
+#ifdef CONFIG_TESTING_OPTIONS
+/** Return value that is 0 to (65535-1). */
+unsigned short os_random_16();
+#endif
 
 /* wpa_supplicant.c */
 void wpa_supplicant_apply_ht_overrides(
