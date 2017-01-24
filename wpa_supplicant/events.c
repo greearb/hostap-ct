@@ -1564,6 +1564,15 @@ struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 	return NULL;
 }
 
+#ifdef CONFIG_TESTING_OPTIONS
+/** Return value that is 0 to (65535-1). */
+unsigned short os_random_16()
+{
+	int rnd = os_random();
+	unsigned short rv = rnd % 65535;
+	return rv;
+}
+#endif
 
 static struct wpa_bss *
 wpa_supplicant_select_bss(struct wpa_supplicant *wpa_s,
@@ -4871,9 +4880,10 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		break;
 	case EVENT_ASSOC:
 #ifdef CONFIG_TESTING_OPTIONS
-		if (wpa_s->ignore_auth_resp) {
-			wpa_printf(MSG_INFO,
-				   "EVENT_ASSOC - ignore_auth_resp active!");
+		if (wpa_s->conf->ignore_auth_resp &&
+		    (os_random_16() < wpa_s->conf->ignore_auth_resp)) {
+			wpa_dbg(wpa_s, MSG_INFO,
+				"EVENT_ASSOC - ignore_auth_resp active!");
 			break;
 		}
 		if (wpa_s->testing_resend_assoc) {
@@ -4906,9 +4916,10 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		break;
 	case EVENT_DEAUTH:
 #ifdef CONFIG_TESTING_OPTIONS
-		if (wpa_s->ignore_auth_resp) {
-			wpa_printf(MSG_INFO,
-				   "EVENT_DEAUTH - ignore_auth_resp active!");
+		if (wpa_s->conf->ignore_auth_resp &&
+		    (os_random_16() < wpa_s->conf->ignore_auth_resp)) {
+			wpa_dbg(wpa_s, MSG_INFO,
+				"EVENT_DEAUTH - ignore_auth_resp active!");
 			break;
 		}
 		if (wpa_s->testing_resend_assoc) {
