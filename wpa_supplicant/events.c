@@ -4288,10 +4288,12 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		break;
 	case EVENT_ASSOC:
 #ifdef CONFIG_TESTING_OPTIONS
-		if (wpa_s->conf->ignore_auth_resp &&
-		    (os_random_16() < wpa_s->conf->ignore_auth_resp)) {
+		if ((wpa_s->conf->ignore_auth_resp &&
+		     (os_random_16() < wpa_s->conf->ignore_auth_resp)) ||
+		    (wpa_s->conf->ignore_assoc &&
+		     (os_random_16() < wpa_s->conf->ignore_assoc))) {
 			wpa_dbg(wpa_s, MSG_INFO,
-				"EVENT_ASSOC - ignore_auth_resp active!");
+				"EVENT_ASSOC - ignore_assoc active!");
 			break;
 		}
 		if (wpa_s->testing_resend_assoc) {
@@ -4319,10 +4321,12 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		break;
 	case EVENT_DEAUTH:
 #ifdef CONFIG_TESTING_OPTIONS
-		if (wpa_s->conf->ignore_auth_resp &&
-		    (os_random_16() < wpa_s->conf->ignore_auth_resp)) {
+		if ((wpa_s->conf->ignore_auth_resp &&
+		     (os_random_16() < wpa_s->conf->ignore_auth_resp)) ||
+		    (wpa_s->conf->ignore_deauth &&
+		     (os_random_16() < wpa_s->conf->ignore_deauth))) {
 			wpa_dbg(wpa_s, MSG_INFO,
-				"EVENT_DEAUTH - ignore_auth_resp active!");
+				"EVENT_DEAUTH - ignore_deauth active!");
 			break;
 		}
 		if (wpa_s->testing_resend_assoc) {

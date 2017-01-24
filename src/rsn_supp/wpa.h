@@ -115,7 +115,23 @@ struct rsn_supp_config {
 	const u8 *fils_cache_id;
 };
 
+enum eapol_key_msg_type {
+	EAPOL_MSG_TYPE_UNKNOWN,
+	EAPOL_MSG_TYPE_1_OF_4, /* rx by sta */
+	EAPOL_MSG_TYPE_2_OF_4, /* sent by sta */
+	EAPOL_MSG_TYPE_3_OF_4, /* rx by sta */
+	EAPOL_MSG_TYPE_4_OF_4, /* sent by sta */
+	EAPOL_MSG_TYPE_GROUP_1_OF_2, /* rx by sta */
+	EAPOL_MSG_TYPE_GROUP_2_OF_2, /* sent by sta */
+};
+
+
 #ifndef CONFIG_NO_WPA
+
+#ifdef CONFIG_TESTING_OPTIONS
+enum eapol_key_msg_type wpa_eapol_key_type(struct wpa_sm *sm, const u8 *buf, size_t len);
+#endif
+
 
 struct wpa_sm * wpa_sm_init(struct wpa_sm_ctx *ctx);
 void wpa_sm_deinit(struct wpa_sm *sm);
@@ -181,6 +197,13 @@ void wpa_sm_set_ptk_kck_kek(struct wpa_sm *sm,
 int wpa_fils_is_completed(struct wpa_sm *sm);
 
 #else /* CONFIG_NO_WPA */
+
+#ifdef CONFIG_TESTING_OPTIONS
+enum eapol_key_msg_type wpa_eapol_key_type(struct wpa_sm *sm, const u8 *src_addr,
+					   const u8 *buf, size_t len) {
+	return EAPOL_MSG_TYPE_UNKNOWN;
+}
+#endif
 
 static inline struct wpa_sm * wpa_sm_init(struct wpa_sm_ctx *ctx)
 {
