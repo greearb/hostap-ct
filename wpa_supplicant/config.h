@@ -52,6 +52,7 @@
 #define DEFAULT_OCE_SUPPORT OCE_STA
 #define DEFAULT_EXTENDED_KEY_ID 0
 #define DEFAULT_SCAN_RES_VALID_FOR_CONNECT 5
+#define DEFAULT_IGNORE_AUTH_RESP 0
 
 #include "config_ssid.h"
 #include "wps/wps.h"
@@ -1023,6 +1024,13 @@ struct wpa_config {
 	 * scan results.
 	 */
 	int accept_external_scan_results;
+
+#if CONFIG_TESTING_OPTIONS
+	/* Allow users to configure supplicant to drop a percentage of management frames.
+	 * 0 == never, 65535 == always
+	 */
+	unsigned short ignore_auth_resp;
+#endif
 
 	/**
 	 * disassoc_low_ack - Disassociate stations with massive packet loss

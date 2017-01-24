@@ -746,7 +746,7 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 	} else if (os_strcasecmp(cmd, "p2p_go_csa_on_inv") == 0) {
 		wpa_s->p2p_go_csa_on_inv = !!atoi(value);
 	} else if (os_strcasecmp(cmd, "ignore_auth_resp") == 0) {
-		wpa_s->ignore_auth_resp = !!atoi(value);
+		wpa_s->conf->ignore_auth_resp = atoi(value);
 	} else if (os_strcasecmp(cmd, "ignore_assoc_disallow") == 0) {
 		wpa_s->ignore_assoc_disallow = !!atoi(value);
 		wpa_drv_ignore_assoc_disallow(wpa_s,
@@ -8613,7 +8613,6 @@ static void wpa_supplicant_ctrl_iface_flush(struct wpa_supplicant *wpa_s)
 	wpa_s->extra_roc_dur = 0;
 	wpa_s->test_failure = WPAS_TEST_FAILURE_NONE;
 	wpa_s->p2p_go_csa_on_inv = 0;
-	wpa_s->ignore_auth_resp = 0;
 	wpa_s->ignore_assoc_disallow = 0;
 	wpa_s->disable_sa_query = 0;
 	wpa_s->testing_resend_assoc = 0;

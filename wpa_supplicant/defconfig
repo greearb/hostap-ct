@@ -657,3 +657,6 @@ CONFIG_DPP2=y
 # design is still subject to change. As such, this should not yet be enabled in
 # production use.
 #CONFIG_PASN=y
+
+# Enable some testing options code?  Not intended for production code.
+#CONFIG_TESTING_OPTIONS=y
