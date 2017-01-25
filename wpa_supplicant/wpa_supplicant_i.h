@@ -465,6 +465,16 @@ struct beacon_rep_data {
 	struct bitfield *eids;
 };
 
+#ifdef CONFIG_TESTING_OPTIONS
+struct delayed_msg {
+	struct dl_list list;
+
+	u8 msg[2000];
+	u8 src_addr[ETH_ALEN];
+	size_t msg_len;
+	struct os_reltime txtime; /* can transmit on or after this time */
+};
+#endif
 
 struct external_pmksa_cache {
 	struct dl_list list;
@@ -1113,6 +1123,10 @@ struct wpa_supplicant {
 	u8 last_tk[WPA_TK_MAX_LEN];
 	size_t last_tk_len;
 	struct wpabuf *last_assoc_req_wpa_ie;
+
+	unsigned int delays_disabled:1;
+	struct dl_list delayed_eapol_list; /* list head: struct delayed_eapol_msg */
+
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	struct wmm_ac_assoc_data *wmm_ac_assoc_info;
