@@ -1127,6 +1127,12 @@ struct wpa_config {
 	unsigned short ignore_eapol_1_of_4;
 	unsigned short ignore_eapol_3_of_4;
 	unsigned short ignore_eapol_1_of_2;
+
+	unsigned short corrupt_eapol_2_of_4;
+	unsigned short corrupt_eapol_4_of_4;
+	unsigned short corrupt_eapol_2_of_2;
+	unsigned short corrupt_eapol_key_req;
+
 #endif
 
 	/**
