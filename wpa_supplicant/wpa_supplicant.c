@@ -131,6 +131,9 @@ static void wpas_update_fils_connect_params(struct wpa_supplicant *wpa_s);
 static void wpas_update_owe_connect_params(struct wpa_supplicant *wpa_s);
 #endif /* CONFIG_OWE */
 
+#ifdef CONFIG_TESTING_OPTIONS
+static void delayed_eapol_timer(void *eloop_ctxt, void *timeout_ctxt);
+#endif
 
 #ifdef CONFIG_WEP
 /* Configure default/group WEP keys for static WEP */
@@ -554,6 +557,15 @@ static void wpa_supplicant_cleanup(struct wpa_supplicant *wpa_s)
 	wpabuf_free(wpa_s->rsnxe_override_eapol);
 	wpa_s->rsnxe_override_eapol = NULL;
 	wpas_clear_driver_signal_override(wpa_s);
+
+	while (!dl_list_empty(&wpa_s->delayed_eapol_list)) {
+		struct delayed_msg *dm = dl_list_first(&wpa_s->delayed_eapol_list,
+						       struct delayed_msg, list);
+		dl_list_del(&dm->list);
+		os_free(dm);
+	}
+	eloop_cancel_timeout(delayed_eapol_timer, wpa_s, NULL);
+
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	if (wpa_s->conf != NULL) {
@@ -5241,6 +5253,61 @@ static int wpa_supplicant_set_driver(struct wpa_supplicant *wpa_s,
 	return -1;
 }
 
+#ifdef CONFIG_TESTING_OPTIONS
+u16 rnd_min_max_delay(u16 min, u16 max)
+{
+	u16 rv = min;
+	if (max > min) {
+		int diff = max - min;
+		unsigned long rnd = os_random();
+		rv += (rnd % (diff + 1));
+	}
+
+	return rv;
+}
+
+void wpa_refresh_delayed_msg_timer(struct wpa_supplicant *wpa_s)
+{
+	if (dl_list_empty(&wpa_s->delayed_eapol_list)) {
+		eloop_cancel_timeout(delayed_eapol_timer, wpa_s, NULL);
+	}
+	else {
+		struct delayed_msg *dm = dl_list_first(&wpa_s->delayed_eapol_list,
+						       struct delayed_msg, list);
+		struct os_reltime now, diff;
+		memset(&diff, 0, sizeof(diff));
+		os_get_reltime(&now);
+		if (os_reltime_before(&now, &dm->txtime)) {
+			os_reltime_sub(&dm->txtime, &now, &diff);
+		}
+
+		eloop_cancel_timeout(delayed_eapol_timer, wpa_s, NULL);
+		eloop_register_timeout(diff.sec, diff.usec, delayed_eapol_timer, wpa_s, NULL);
+	}
+}
+
+static void delayed_eapol_timer(void *eloop_ctxt, void *timeout_ctxt)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctxt;
+	if (!dl_list_empty(&wpa_s->delayed_eapol_list)) {
+		struct delayed_msg *dm = dl_list_first(&wpa_s->delayed_eapol_list,
+						       struct delayed_msg, list);
+		struct os_reltime now;
+		os_get_reltime(&now);
+		if (!os_reltime_before(&now, &dm->txtime)) {
+			/* peel one off and transmit it */
+			dl_list_del(&dm->list);
+			/* Ensure it is not delayed again. */
+			wpa_s->delays_disabled = 1;
+			wpa_supplicant_rx_eapol(wpa_s, dm->src_addr, dm->msg,
+						dm->msg_len, dm->encrypted);
+			wpa_s->delays_disabled = 0;
+			os_free(dm);
+		}
+	}
+	wpa_refresh_delayed_msg_timer(wpa_s);
+}
+#endif
 
 /**
  * wpa_supplicant_rx_eapol - Deliver a received EAPOL frame to wpa_supplicant
@@ -5266,6 +5333,7 @@ void wpa_supplicant_rx_eapol(void *ctx, const u8 *src_addr,
 		wpa_s->ap_mld_addr : wpa_s->bssid;
 #ifdef CONFIG_TESTING_OPTIONS
 	enum eapol_key_msg_type emt;
+	u16 delay_ms = 0;
 #endif
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "RX EAPOL from " MACSTR " (encrypted=%d)",
@@ -5310,6 +5378,50 @@ void wpa_supplicant_rx_eapol(void *ctx, const u8 *src_addr,
 			return;
 		}
 	}
+
+	/* Check for delayed eapol pkts */
+	if (wpa_s->delays_disabled)
+		goto after_delay_check;
+
+	if (emt == EAPOL_MSG_TYPE_1_OF_4) {
+		if (wpa_s->conf->delay_eapol_1_of_4_min) {
+			delay_ms = rnd_min_max_delay(wpa_s->conf->delay_eapol_1_of_4_min,
+						     wpa_s->conf->delay_eapol_1_of_4_max);
+			wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - delay eapol 1 of 4 by %d ms!", delay_ms);
+		}
+	}
+	else if (emt == EAPOL_MSG_TYPE_3_OF_4) {
+		if (wpa_s->conf->delay_eapol_3_of_4_min) {
+			delay_ms = rnd_min_max_delay(wpa_s->conf->delay_eapol_3_of_4_min,
+						     wpa_s->conf->delay_eapol_3_of_4_max);
+			wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - delay eapol 3 of 4 by %d ms!", delay_ms);
+		}
+	}
+	else if (emt == EAPOL_MSG_TYPE_GROUP_1_OF_2) {
+		if (wpa_s->conf->delay_eapol_1_of_2_min) {
+			delay_ms = rnd_min_max_delay(wpa_s->conf->delay_eapol_1_of_2_min,
+						     wpa_s->conf->delay_eapol_1_of_2_max);
+			wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - delay eapol 1 of 2 by %d ms!", delay_ms);
+		}
+	}
+
+	if (delay_ms || !dl_list_empty(&wpa_s->delayed_eapol_list)) {
+		struct delayed_msg *dm = os_malloc(sizeof(*dm));
+		if (!dm) {
+			wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - OOM trying to alloc delayed msg, dropping!");
+			return;
+		}
+		os_get_reltime(&dm->txtime);
+		os_reltime_add_ms(&dm->txtime, delay_ms);
+		memcpy(dm->src_addr, src_addr, ETH_ALEN);
+		memcpy(dm->msg, buf, len);
+		dm->encrypted = encrypted;
+		dm->msg_len = len;
+		dl_list_add_tail(&wpa_s->delayed_eapol_list, &dm->list);
+		wpa_refresh_delayed_msg_timer(wpa_s);
+		return;
+	}
+after_delay_check:
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	if (wpa_s->wpa_state < WPA_ASSOCIATED ||
@@ -5691,6 +5803,7 @@ wpa_supplicant_alloc(struct wpa_supplicant *parent)
 	dl_list_init(&wpa_s->fils_hlp_req);
 #ifdef CONFIG_TESTING_OPTIONS
 	dl_list_init(&wpa_s->drv_signal_override);
+	dl_list_init(&wpa_s->delayed_eapol_list);
 #endif /* CONFIG_TESTING_OPTIONS */
 	dl_list_init(&wpa_s->active_scs_ids);
 
