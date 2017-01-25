@@ -4596,6 +4596,11 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	config->ignore_eapol_1_of_4 = DEFAULT_IGNORE_AUTH_RESP;
 	config->ignore_eapol_3_of_4 = DEFAULT_IGNORE_AUTH_RESP;
 	config->ignore_eapol_1_of_2 = DEFAULT_IGNORE_AUTH_RESP;
+
+	config->corrupt_eapol_2_of_4 = DEFAULT_IGNORE_AUTH_RESP;
+	config->corrupt_eapol_4_of_4 = DEFAULT_IGNORE_AUTH_RESP;
+	config->corrupt_eapol_2_of_2 = DEFAULT_IGNORE_AUTH_RESP;
+	config->corrupt_eapol_key_req = DEFAULT_IGNORE_AUTH_RESP;
 #endif
 
 	return config;
@@ -5428,6 +5433,10 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(ignore_eapol_1_of_4), 0 },
 	{ INT(ignore_eapol_3_of_4), 0 },
 	{ INT(ignore_eapol_1_of_2), 0 },
+	{ INT(corrupt_eapol_2_of_4), 0 },
+	{ INT(corrupt_eapol_4_of_4), 0 },
+	{ INT(corrupt_eapol_2_of_2), 0 },
+	{ INT(corrupt_eapol_key_req), 0 },
 #endif
 	{ INT(accept_external_scan_results), 0 },
 	{ INT(p2p_search_delay), 0},

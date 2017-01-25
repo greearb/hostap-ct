@@ -5287,7 +5287,6 @@ void wpa_supplicant_rx_eapol(void *ctx, const u8 *src_addr,
 		return;
 	}
 
-
 	/* Check for dropping specific eapol frames */
 	emt = wpa_eapol_key_type(wpa_s->wpa, buf, len);
 	if (emt == EAPOL_MSG_TYPE_1_OF_4) {

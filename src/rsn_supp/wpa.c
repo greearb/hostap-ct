@@ -36,6 +36,27 @@
 
 static const u8 null_rsc[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
+#ifdef CONFIG_TESTING_OPTIONS
+const char* eapol_msg_type_str(enum eapol_key_msg_type t)
+{
+	static const char* types_str[EAPOL_MSG_TYPE_MAX] =
+		{"UNKNOWN", "1/4", "2/4", "3/4", "4/4", "1/2", "2/2", "KEY-REQ",
+		 "SMK-ERROR", "SMK-M1", "SMK-M3", "STK-1/4", "STK-3/4" };
+	if (t >= 0 && t < EAPOL_MSG_TYPE_MAX)
+		return types_str[t];
+	return types_str[EAPOL_MSG_TYPE_UNKNOWN];
+}
+
+void wpa_apply_corruptions(struct wpa_sm *sm, u16 corrupt_eapol_2_of_4,
+			   u16 corrupt_eapol_4_of_4, u16 corrupt_eapol_2_of_2,
+			   u16 corrupt_eapol_key_req)
+{
+	sm->corrupt_eapol_2_of_4 = corrupt_eapol_2_of_4;
+	sm->corrupt_eapol_4_of_4 = corrupt_eapol_4_of_4;
+	sm->corrupt_eapol_2_of_2 = corrupt_eapol_2_of_2;
+	sm->corrupt_eapol_key_req = corrupt_eapol_key_req;
+}
+#endif
 
 static void _wpa_hexdump_link(int level, u8 link_id, const char *title,
 			      const void *buf, size_t len, bool key)
@@ -90,7 +111,8 @@ static void wpa_hexdump_link_key(int level, u8 link_id, const char *title,
  */
 int wpa_eapol_key_send(struct wpa_sm *sm, struct wpa_ptk *ptk,
 		       int ver, const u8 *dest, u16 proto,
-		       u8 *msg, size_t msg_len, u8 *key_mic)
+		       u8 *msg, size_t msg_len, u8 *key_mic,
+		       enum eapol_key_msg_type eapol_type)
 {
 	int ret = -1;
 	size_t mic_len = wpa_mic_len(sm->key_mgmt, sm->pmk_len);
@@ -198,6 +220,24 @@ int wpa_eapol_key_send(struct wpa_sm *sm, struct wpa_ptk *ptk,
 #endif /* CONFIG_FILS */
 	}
 
+#ifdef CONFIG_TESTING_OPTIONS
+	/* Purposefully corrupt the frame for testing purposes? */
+	if (((sm->corrupt_eapol_2_of_4 && eapol_type == EAPOL_MSG_TYPE_2_OF_4) &&
+	     (os_random() % 65535) < sm->corrupt_eapol_2_of_4) ||
+	    ((sm->corrupt_eapol_4_of_4 && eapol_type == EAPOL_MSG_TYPE_4_OF_4) &&
+	     (os_random() % 65535) < sm->corrupt_eapol_4_of_4) ||
+	    ((sm->corrupt_eapol_key_req && eapol_type == EAPOL_MSG_TYPE_KEY_REQUEST) &&
+	     (os_random() % 65535) < sm->corrupt_eapol_key_req) ||
+	    ((sm->corrupt_eapol_2_of_2 && eapol_type == EAPOL_MSG_TYPE_GROUP_2_OF_2) &&
+	     (os_random() % 65535) < sm->corrupt_eapol_2_of_2)) {
+		/* Corrupt a random byte, maybe more?? */
+		int idx = os_random() % msg_len;
+		msg[idx] = os_random();
+		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+			"WPA: Corrupting EAPOL message type: %s, idx: %d  value: 0x%x\n",
+			eapol_msg_type_str(eapol_type), idx, msg[idx]);
+	}
+#endif
 	wpa_hexdump(MSG_MSGDUMP, "WPA: TX EAPOL-Key", msg, msg_len);
 	ret = wpa_sm_ether_send(sm, dest, proto, msg, msg_len);
 	eapol_sm_notify_tx_eapol_key(sm->eapol);
@@ -285,7 +325,7 @@ void wpa_sm_key_request(struct wpa_sm *sm, int error, int pairwise)
 		"pairwise=%d ptk_set=%d len=%lu)",
 		error, pairwise, sm->ptk_set, (unsigned long) rlen);
 	wpa_eapol_key_send(sm, &sm->ptk, ver, bssid, ETH_P_EAPOL, rbuf, rlen,
-			   key_mic);
+			   key_mic, EAPOL_MSG_TYPE_KEY_REQUEST);
 }
 
 
@@ -618,7 +658,7 @@ int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 
 	wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG, "WPA: Sending EAPOL-Key 2/4");
 	return wpa_eapol_key_send(sm, ptk, ver, dst, ETH_P_EAPOL, rbuf, rlen,
-				  key_mic);
+				  key_mic, EAPOL_MSG_TYPE_2_OF_4);
 }
 
 
@@ -2141,7 +2181,7 @@ int wpa_supplicant_send_4_of_4(struct wpa_sm *sm, const unsigned char *dst,
 
 	wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG, "WPA: Sending EAPOL-Key 4/4");
 	return wpa_eapol_key_send(sm, ptk, ver, dst, ETH_P_EAPOL, rbuf, rlen,
-				  key_mic);
+				  key_mic, EAPOL_MSG_TYPE_4_OF_4);
 }
 
 
@@ -2785,7 +2825,7 @@ static int wpa_supplicant_send_2_of_2(struct wpa_sm *sm,
 
 	wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG, "WPA: Sending EAPOL-Key 2/2");
 	return wpa_eapol_key_send(sm, &sm->ptk, ver, sm->bssid, ETH_P_EAPOL,
-				  rbuf, rlen, key_mic);
+				  rbuf, rlen, key_mic, EAPOL_MSG_TYPE_GROUP_2_OF_2);
 }
 
 
