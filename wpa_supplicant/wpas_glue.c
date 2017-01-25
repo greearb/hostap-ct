@@ -1432,6 +1432,15 @@ int wpa_supplicant_init_wpa(struct wpa_supplicant *wpa_s)
 		wpa_s->ptksa = NULL;
 		return -1;
 	}
+
+#ifdef CONFIG_TESTING_OPTIONS
+	wpa_apply_corruptions(wpa_s->wpa,
+			      wpa_s->conf->corrupt_eapol_2_of_4,
+			      wpa_s->conf->corrupt_eapol_4_of_4,
+			      wpa_s->conf->corrupt_eapol_2_of_2,
+			      wpa_s->conf->corrupt_eapol_key_req);
+#endif
+
 #endif /* CONFIG_NO_WPA */
 
 	return 0;
