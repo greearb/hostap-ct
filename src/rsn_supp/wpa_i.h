@@ -155,6 +155,11 @@ struct wpa_sm {
 	struct wpabuf *test_assoc_ie;
 	int ft_rsnxe_used;
 	unsigned int oci_freq_override_eapol;
+
+	u16 corrupt_eapol_2_of_4;
+	u16 corrupt_eapol_4_of_4;
+	u16 corrupt_eapol_2_of_2;
+	u16 corrupt_eapol_key_req;
 #endif /* CONFIG_TESTING_OPTIONS */
 
 #ifdef CONFIG_FILS
@@ -440,7 +445,7 @@ static inline void wpa_sm_transition_disable(struct wpa_sm *sm, u8 bitmap)
 
 int wpa_eapol_key_send(struct wpa_sm *sm, struct wpa_ptk *ptk,
 		       int ver, const u8 *dest, u16 proto,
-		       u8 *msg, size_t msg_len, u8 *key_mic);
+		       u8 *msg, size_t msg_len, u8 *key_mic, enum eapol_key_msg_type eapol_type);
 int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 			       const struct wpa_eapol_key *key,
 			       int ver, const u8 *nonce,
