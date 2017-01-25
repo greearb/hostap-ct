@@ -970,6 +970,13 @@ struct wpa_config {
 	unsigned short corrupt_eapol_2_of_2;
 	unsigned short corrupt_eapol_key_req;
 
+	unsigned short delay_eapol_1_of_4_min;
+	unsigned short delay_eapol_1_of_4_max;
+	unsigned short delay_eapol_3_of_4_min;
+	unsigned short delay_eapol_3_of_4_max;
+	unsigned short delay_eapol_1_of_2_min;
+	unsigned short delay_eapol_1_of_2_max;
+
 #endif
 
 	/**
