@@ -83,8 +83,29 @@ static inline void os_reltime_sub(struct os_reltime *a, struct os_reltime *b,
 		res->sec--;
 		res->usec += 1000000;
 	}
+	else if (res->usec > 1000000) {
+		/* Deal with subtracting negative value */
+		res->sec++;
+		res->usec -= 1000000;
+	}
 }
 
+static inline void os_reltime_add_ms(struct os_reltime *a, os_time_t ms_to_add)
+{
+	os_time_t sec = ms_to_add / 1000000;
+	os_time_t usec = (ms_to_add % 1000000) * 1000;
+	a->sec += sec;
+	a->usec += usec;
+	if (a->usec > 1000000) {
+		a->sec++;
+		a->usec -= 1000000;
+	}
+	else if (a->usec < 0) {
+		/* added negative value? */
+		a->sec--;
+		a->usec += 1000000;
+	}
+}
 
 static inline void os_reltime_age(struct os_reltime *start,
 				  struct os_reltime *age)
