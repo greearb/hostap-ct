@@ -200,6 +200,11 @@ struct wpa_sm {
 	unsigned int eapol_2_key_info_set_mask;
 	bool encrypt_eapol_m2;
 	bool encrypt_eapol_m4;
+
+	u16 corrupt_eapol_2_of_4;
+	u16 corrupt_eapol_4_of_4;
+	u16 corrupt_eapol_2_of_2;
+	u16 corrupt_eapol_key_req;
 #endif /* CONFIG_TESTING_OPTIONS */
 
 #ifdef CONFIG_FILS
@@ -544,7 +549,7 @@ static inline void wpa_sm_ssid_verified(struct wpa_sm *sm)
 
 int wpa_eapol_key_send(struct wpa_sm *sm, struct wpa_ptk *ptk,
 		       int ver, const u8 *dest, u16 proto,
-		       u8 *msg, size_t msg_len, u8 *key_mic);
+		       u8 *msg, size_t msg_len, u8 *key_mic, enum eapol_key_msg_type eapol_type);
 int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 			       const struct wpa_eapol_key *key,
 			       int ver, const u8 *nonce,
