@@ -4573,6 +4573,13 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	config->corrupt_eapol_4_of_4 = DEFAULT_IGNORE_AUTH_RESP;
 	config->corrupt_eapol_2_of_2 = DEFAULT_IGNORE_AUTH_RESP;
 	config->corrupt_eapol_key_req = DEFAULT_IGNORE_AUTH_RESP;
+
+	config->delay_eapol_1_of_4_min = DEFAULT_IGNORE_AUTH_RESP;
+	config->delay_eapol_1_of_4_max = DEFAULT_IGNORE_AUTH_RESP;
+	config->delay_eapol_3_of_4_min = DEFAULT_IGNORE_AUTH_RESP;
+	config->delay_eapol_3_of_4_max = DEFAULT_IGNORE_AUTH_RESP;
+	config->delay_eapol_1_of_2_min = DEFAULT_IGNORE_AUTH_RESP;
+	config->delay_eapol_1_of_2_max = DEFAULT_IGNORE_AUTH_RESP;
 #endif
 
 	return config;
@@ -5408,6 +5415,12 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(corrupt_eapol_4_of_4), 0 },
 	{ INT(corrupt_eapol_2_of_2), 0 },
 	{ INT(corrupt_eapol_key_req), 0 },
+	{ INT(delay_eapol_1_of_4_min), 0 },
+	{ INT(delay_eapol_1_of_4_max), 0 },
+	{ INT(delay_eapol_3_of_4_min), 0 },
+	{ INT(delay_eapol_3_of_4_max), 0 },
+	{ INT(delay_eapol_1_of_2_min), 0 },
+	{ INT(delay_eapol_1_of_2_max), 0 },
 #endif
 	{ INT(accept_external_scan_results), 0 },
 	{ INT(p2p_search_delay), 0},
