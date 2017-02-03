@@ -5494,7 +5494,7 @@ void wpa_supplicant_apply_vht_overrides(
 	vhtcaps = (void *) params->vhtcaps;
 	vhtcaps_mask = (void *) params->vhtcaps_mask;
 
-	if (!vhtcaps || !vhtcaps_mask)
+	if (!ssid->max_oper_chwidth && (!vhtcaps || !vhtcaps_mask))
 		return;
 
 	vhtcaps->vht_capabilities_info = host_to_le32(ssid->vht_capa);
@@ -5509,6 +5509,19 @@ void wpa_supplicant_apply_vht_overrides(
 		wpa_msg(wpa_s, MSG_DEBUG,
 			"disable-sgi override specified, vht-caps: 0x%x",
 			vhtcaps->vht_capabilities_info);
+	}
+
+	if (ssid->max_oper_chwidth != CHANWIDTH_USE_HT) { // USE_HT is default value for this, ignore it.
+		vhtcaps_mask->vht_capabilities_info |= VHT_CAP_SUPP_CHAN_WIDTH_MASK;
+		vhtcaps->vht_capabilities_info &= ~VHT_CAP_SUPP_CHAN_WIDTH_MASK;
+		if (ssid->max_oper_chwidth == CHANWIDTH_160MHZ) {
+			vhtcaps->vht_capabilities_info |= VHT_CAP_SUPP_CHAN_WIDTH_160MHZ;
+		}
+		else if (ssid->max_oper_chwidth == CHANWIDTH_80P80MHZ) {
+			vhtcaps->vht_capabilities_info |= VHT_CAP_SUPP_CHAN_WIDTH_160_80PLUS80MHZ;
+		}
+		wpa_msg(wpa_s, MSG_DEBUG, "chanwidth override specified: %d  vht-caps: 0x%x",
+			ssid->max_oper_chwidth, vhtcaps->vht_capabilities_info);
 	}
 
 	/* if max ampdu is <= 3, we have to make the HT cap the same */
