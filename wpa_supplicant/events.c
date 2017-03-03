@@ -2191,8 +2191,8 @@ static int wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	dl_list_for_each(ifs, &wpa_s->radio->ifaces, struct wpa_supplicant,
 			 radio_list) {
 		if (ifs != wpa_s) {
-			wpa_printf(MSG_DEBUG, "%s: Updating scan results from "
-				   "sibling", ifs->ifname);
+			wpa_dbg(wpa_s, MSG_DEBUG, "Updating scan results for "
+				"sibling: %s", ifs->ifname);
 			res = _wpa_supplicant_event_scan_results(ifs, data, 0,
 								 res > 0);
 			if (res < 0)
