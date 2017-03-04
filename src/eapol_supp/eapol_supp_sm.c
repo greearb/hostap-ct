@@ -910,6 +910,18 @@ static void eapol_sm_txSuppRsp(struct eapol_sm *sm)
 		return;
 	}
 
+#ifdef CONFIG_TESTING_OPTIONS
+	if (!resp->corruption_checked) {
+		/* This is 'other' response then. */
+		/* Purposefully corrupt the frame for testing purposes? */
+		if (sm->corrupt_eapol_other_resp &&
+		    ((os_random() % 65535) < sm->corrupt_eapol_other_resp)) {
+			do_corrupt(sm->ctx->msg_ctx, resp, "EAPOL Other-Resp");
+		}
+		resp->corruption_checked = 1;
+	}
+#endif
+
 	/* Send EAP-Packet from the EAP layer to the Authenticator */
 	sm->ctx->eapol_send(sm->ctx->eapol_send_ctx,
 			    IEEE802_1X_TYPE_EAP_PACKET, wpabuf_head(resp),
