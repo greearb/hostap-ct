@@ -32,12 +32,13 @@
 #include "pmksa_cache.h"
 #include "wpa_i.h"
 #include "wpa_ie.h"
+#include "eap_common/eap_defs.h"
 
 
 static const u8 null_rsc[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 #ifdef CONFIG_TESTING_OPTIONS
-const char* eapol_msg_type_str(enum eapol_key_msg_type t)
+const char* eapol_key_msg_type_str(enum eapol_key_msg_type t)
 {
 	static const char* types_str[EAPOL_MSG_TYPE_MAX] =
 		{"UNKNOWN", "1/4", "2/4", "3/4", "4/4", "1/2", "2/2", "KEY-REQ",
@@ -58,14 +59,13 @@ const char* eapol_i_msg_type_str(enum i_eapol_msg_type t)
 }
 
 void wpa_apply_corruptions(struct wpa_sm *sm, u16 corrupt_eapol_2_of_4,
-			   u16 corrupt_eapol_4_of_4, u16 corrupt_eapol_2_of_2,
-			   u16 corrupt_eapol_key_req)
+			   u16 corrupt_eapol_4_of_4, u16 corrupt_eapol_2_of_2)
 {
 	sm->corrupt_eapol_2_of_4 = corrupt_eapol_2_of_4;
 	sm->corrupt_eapol_4_of_4 = corrupt_eapol_4_of_4;
 	sm->corrupt_eapol_2_of_2 = corrupt_eapol_2_of_2;
-	sm->corrupt_eapol_key_req = corrupt_eapol_key_req;
 }
+
 #endif
 
 static void _wpa_hexdump_link(int level, u8 link_id, const char *title,
@@ -236,16 +236,18 @@ int wpa_eapol_key_send(struct wpa_sm *sm, struct wpa_ptk *ptk,
 	     (os_random() % 65535) < sm->corrupt_eapol_2_of_4) ||
 	    ((sm->corrupt_eapol_4_of_4 && eapol_type == EAPOL_MSG_TYPE_4_OF_4) &&
 	     (os_random() % 65535) < sm->corrupt_eapol_4_of_4) ||
-	    ((sm->corrupt_eapol_key_req && eapol_type == EAPOL_MSG_TYPE_KEY_REQUEST) &&
-	     (os_random() % 65535) < sm->corrupt_eapol_key_req) ||
 	    ((sm->corrupt_eapol_2_of_2 && eapol_type == EAPOL_MSG_TYPE_GROUP_2_OF_2) &&
 	     (os_random() % 65535) < sm->corrupt_eapol_2_of_2)) {
 		/* Corrupt a random byte, maybe more?? */
 		int idx = os_random() % msg_len;
-		msg[idx] = os_random();
+		int rnd = os_random();
+		if (msg[idx] == rnd)
+			msg[idx]++;
+		else
+			msg[idx] = rnd;
 		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
 			"WPA: Corrupting EAPOL message type: %s, idx: %d  value: 0x%x\n",
-			eapol_msg_type_str(eapol_type), idx, msg[idx]);
+			eapol_key_msg_type_str(eapol_type), idx, msg[idx]);
 	}
 #endif
 	wpa_hexdump(MSG_MSGDUMP, "WPA: TX EAPOL-Key", msg, msg_len);
@@ -3315,7 +3317,8 @@ static int wpa_supp_aead_decrypt(struct wpa_sm *sm, u8 *buf, size_t buf_len,
  * message type so we can make decisions before feeding this into the state
  * machine.
  */
-enum eapol_key_msg_type wpa_eapol_key_type(struct wpa_sm *sm, const u8 *buf, size_t len)
+enum eapol_key_msg_type wpa_eapol_key_type(struct wpa_sm *sm, const u8 *buf, size_t len,
+					   enum i_eapol_msg_type *msg_type)
 {
 	size_t plen;
 	const struct ieee802_1x_hdr *hdr;
@@ -3324,10 +3327,11 @@ enum eapol_key_msg_type wpa_eapol_key_type(struct wpa_sm *sm, const u8 *buf, siz
 	enum eapol_key_msg_type ret = EAPOL_MSG_TYPE_UNKNOWN;
 	size_t mic_len, keyhdrlen;
 
+	*msg_type = I_EAPOL_MSG_TYPE_UNKNOWN;
 	mic_len = wpa_mic_len(sm->key_mgmt, sm->pmk_len);
 	keyhdrlen = sizeof(*key) + mic_len + 2;
 
-	if (len < sizeof(*hdr) + keyhdrlen) {
+	if (len < sizeof(*hdr)) {
 		return ret;
 	}
 
@@ -3335,8 +3339,49 @@ enum eapol_key_msg_type wpa_eapol_key_type(struct wpa_sm *sm, const u8 *buf, siz
 	plen = be_to_host16(hdr->length);
 
 	if (hdr->type != IEEE802_1X_TYPE_EAPOL_KEY) {
+		if (hdr->type == EAPOL_MSG_TYPE_UNKNOWN) /* 0 */ {
+			const struct eap_hdr* ehdr;
+
+			if (len >= (sizeof(*hdr) + sizeof(*ehdr) + 1)) {
+				int idx = sizeof(*hdr) + sizeof(*ehdr); /* identity is next byte after hdr for
+									 * request & response, at least.
+									 */
+				u8 type;
+				ehdr = (const struct eap_hdr *) (buf + sizeof(*hdr));
+				type = buf[idx];
+
+				switch (ehdr->code) {
+				case EAP_CODE_REQUEST:
+					switch (type) {
+					case EAP_TYPE_IDENTITY:
+						*msg_type = I_EAPOL_MSG_ID_REQ;
+						break;
+					default:
+						*msg_type = I_EAPOL_MSG_OTHER_REQ; /* eap-peap, for instance */
+						break;
+					};
+					break;
+				case EAP_CODE_RESPONSE:
+					switch (type) {
+					case EAP_TYPE_IDENTITY:
+						*msg_type = I_EAPOL_MSG_ID_RESP;
+						break;
+					default:
+						*msg_type = I_EAPOL_MSG_OTHER_RESP; /* eap-peap, for instance */
+						break;
+					};
+					break;
+				}/* switch */
+			}
+		}
+
 		goto out;
 	}
+
+	if (len < sizeof(*hdr) + keyhdrlen) {
+		return ret;
+	}
+
 	if (plen > len - sizeof(*hdr) || plen < keyhdrlen) {
 		goto out;
 	}
