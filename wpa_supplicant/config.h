@@ -1006,7 +1006,6 @@ struct wpa_config {
 	unsigned short delay_eapol_3_of_4_max;
 	unsigned short delay_eapol_1_of_2_min;
 	unsigned short delay_eapol_1_of_2_max;
-
 	unsigned short delay_eapol_key_req_min;
 	unsigned short delay_eapol_key_req_max;
 	unsigned short delay_eapol_id_req_min;
