@@ -4314,12 +4314,19 @@ void wpa_supplicant_rx_eapol(void *ctx, const u8 *src_addr,
 			     const u8 *buf, size_t len)
 {
 	struct wpa_supplicant *wpa_s = ctx;
+	enum eapol_key_msg_type emt = EAPOL_MSG_TYPE_UNKNOWN;
 #ifdef CONFIG_TESTING_OPTIONS
-	enum eapol_key_msg_type emt;
+	enum i_eapol_msg_type iemt;
 	u16 delay_ms = 0;
+
+	emt = wpa_eapol_key_type(wpa_s->wpa, buf, len, &iemt);
+
+	wpa_dbg(wpa_s, MSG_DEBUG, "RX EAPOL from " MACSTR " type: %d  iemt: %d",
+		MAC2STR(src_addr), emt, iemt);
+#else
+	wpa_dbg(wpa_s, MSG_DEBUG, "RX EAPOL from " MACSTR, MAC2STR(src_addr));
 #endif
 
-	wpa_dbg(wpa_s, MSG_DEBUG, "RX EAPOL from " MACSTR, MAC2STR(src_addr));
 	wpa_hexdump(MSG_MSGDUMP, "RX EAPOL", buf, len);
 
 #ifdef CONFIG_TESTING_OPTIONS
@@ -4330,8 +4337,24 @@ void wpa_supplicant_rx_eapol(void *ctx, const u8 *src_addr,
 	}
 
 	/* Check for dropping specific eapol frames */
-	emt = wpa_eapol_key_type(wpa_s->wpa, buf, len);
-	if (emt == EAPOL_MSG_TYPE_1_OF_4) {
+	if (emt == EAPOL_MSG_TYPE_UNKNOWN) {
+		/* Check iemt then */
+		if (iemt == I_EAPOL_MSG_ID_REQ) {
+			if (wpa_s->conf->ignore_eapol_id_req &&
+			    (os_random_16() < wpa_s->conf->ignore_eapol_id_req)) {
+				wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - ignore_eapol_id_req active!");
+				return;
+			}
+		}
+		else if (iemt == I_EAPOL_MSG_OTHER_REQ) {
+			if (wpa_s->conf->ignore_eapol_other_req &&
+			    (os_random_16() < wpa_s->conf->ignore_eapol_other_req)) {
+				wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - ignore_eapol_other_req active!");
+				return;
+			}
+		}
+	}
+	else if (emt == EAPOL_MSG_TYPE_1_OF_4) {
 		if (wpa_s->conf->ignore_eapol_1_of_4 &&
 		    (os_random_16() < wpa_s->conf->ignore_eapol_1_of_4)) {
 			wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - ignore_eapol_1_of_4 active!");
@@ -4352,12 +4375,36 @@ void wpa_supplicant_rx_eapol(void *ctx, const u8 *src_addr,
 			return;
 		}
 	}
+	else if (emt == EAPOL_MSG_TYPE_KEY_REQUEST) {
+		if (wpa_s->conf->ignore_eapol_key_req &&
+		    (os_random_16() < wpa_s->conf->ignore_eapol_key_req)) {
+			wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - ignore_eapol_key_req active!");
+			return;
+		}
+	}
 
 	/* Check for delayed eapol pkts */
 	if (wpa_s->delays_disabled)
 		goto after_delay_check;
 
-	if (emt == EAPOL_MSG_TYPE_1_OF_4) {
+	if (emt == EAPOL_MSG_TYPE_UNKNOWN) {
+		/* Check iemt then */
+		if (iemt == I_EAPOL_MSG_ID_REQ) {
+			if (wpa_s->conf->delay_eapol_id_req_min) {
+				delay_ms = rnd_min_max_delay(wpa_s->conf->delay_eapol_id_req_min,
+							     wpa_s->conf->delay_eapol_id_req_max);
+				wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - delay eapol id-req by %d ms!", delay_ms);
+			}
+		}
+		else if (iemt == I_EAPOL_MSG_OTHER_REQ) {
+			if (wpa_s->conf->delay_eapol_other_req_min) {
+				delay_ms = rnd_min_max_delay(wpa_s->conf->delay_eapol_other_req_min,
+							     wpa_s->conf->delay_eapol_other_req_max);
+				wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - delay eapol other-req by %d ms!", delay_ms);
+			}
+		}
+	}
+	else if (emt == EAPOL_MSG_TYPE_1_OF_4) {
 		if (wpa_s->conf->delay_eapol_1_of_4_min) {
 			delay_ms = rnd_min_max_delay(wpa_s->conf->delay_eapol_1_of_4_min,
 						     wpa_s->conf->delay_eapol_1_of_4_max);
@@ -4376,6 +4423,13 @@ void wpa_supplicant_rx_eapol(void *ctx, const u8 *src_addr,
 			delay_ms = rnd_min_max_delay(wpa_s->conf->delay_eapol_1_of_2_min,
 						     wpa_s->conf->delay_eapol_1_of_2_max);
 			wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - delay eapol 1 of 2 by %d ms!", delay_ms);
+		}
+	}
+	else if (emt == EAPOL_MSG_TYPE_KEY_REQUEST) {
+		if (wpa_s->conf->delay_eapol_key_req_min) {
+			delay_ms = rnd_min_max_delay(wpa_s->conf->delay_eapol_key_req_min,
+						     wpa_s->conf->delay_eapol_key_req_max);
+			wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - delay eapol key-req by %d ms!", delay_ms);
 		}
 	}
 
