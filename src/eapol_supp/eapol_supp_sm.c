@@ -931,6 +931,18 @@ static void eapol_sm_txSuppRsp(struct eapol_sm *sm)
 		use_eapol_send = false;
 #endif /* CONFIG_IEEE8021X_AUTH */
 
+#ifdef CONFIG_TESTING_OPTIONS
+	if (!resp->corruption_checked) {
+		/* This is 'other' response then. */
+		/* Purposefully corrupt the frame for testing purposes? */
+		if (sm->corrupt_eapol_other_resp &&
+		    ((os_random() % 65535) < sm->corrupt_eapol_other_resp)) {
+			do_corrupt(sm->ctx->msg_ctx, resp, "EAPOL Other-Resp");
+		}
+		resp->corruption_checked = 1;
+	}
+#endif
+
 	if (use_eapol_send) {
 		/* Send EAP-Packet from the EAP layer to the Authenticator */
 		sm->ctx->eapol_send(sm->ctx->eapol_send_ctx,
