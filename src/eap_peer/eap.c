@@ -978,6 +978,17 @@ SM_STATE(EAP, IDENTITY)
 	wpabuf_free(sm->eapRespData);
 	sm->eapRespData = NULL;
 	sm->eapRespData = eap_sm_buildIdentity(sm, sm->reqId, 0);
+
+#ifdef CONFIG_TESTING_OPTIONS
+	/* Purposefully corrupt the frame for testing purposes? */
+	if (sm->eapRespData && !sm->eapRespData->corruption_checked) {
+		if (sm->corrupt_eapol_id_resp &&
+		    ((os_random() % 65535) < sm->corrupt_eapol_id_resp)) {
+			do_corrupt(sm->msg_ctx, sm->eapRespData, "EAPOL ID-Resp");
+		}
+		sm->eapRespData->corruption_checked = 1;
+	}
+#endif
 }
 
 
@@ -2149,6 +2160,12 @@ struct eap_sm * eap_peer_sm_init(void *eapol_ctx,
 	return sm;
 }
 
+#ifdef CONFIG_TESTING_OPTIONS
+void eap_apply_corruptions(struct eap_sm *sm, u16 corrupt_eapol_id_resp)
+{
+	sm->corrupt_eapol_id_resp = corrupt_eapol_id_resp;
+}
+#endif
 
 /**
  * eap_peer_sm_deinit - Deinitialize and free an EAP peer state machine

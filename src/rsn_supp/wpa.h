@@ -121,7 +121,7 @@ enum eapol_key_msg_type {
 	EAPOL_MSG_TYPE_4_OF_4, /* sent by sta */
 	EAPOL_MSG_TYPE_GROUP_1_OF_2, /* rx by sta */
 	EAPOL_MSG_TYPE_GROUP_2_OF_2, /* sent by sta */
-	EAPOL_MSG_TYPE_KEY_REQUEST,
+	EAPOL_MSG_TYPE_KEY_REQUEST, /* rx by sta */
 	EAPOL_MSG_TYPE_SMK_ERROR,
 	EAPOL_MSG_TYPE_SMK_M1,
 	EAPOL_MSG_TYPE_SMK_M3,
@@ -130,15 +130,27 @@ enum eapol_key_msg_type {
 	EAPOL_MSG_TYPE_MAX,
 };
 
+#ifdef CONFIG_TESTING_OPTIONS
+/* Internal enum, not directly related to a field in a spec. */
+enum i_eapol_msg_type {
+	I_EAPOL_MSG_TYPE_UNKNOWN,
+	I_EAPOL_MSG_ID_REQ,
+	I_EAPOL_MSG_ID_RESP,
+	I_EAPOL_MSG_OTHER_REQ,
+	I_EAPOL_MSG_OTHER_RESP,
+
+	I_EAPOL_MSG_TYPE_MAX
+};
+#endif
 
 #ifndef CONFIG_NO_WPA
 
 #ifdef CONFIG_TESTING_OPTIONS
-enum eapol_key_msg_type wpa_eapol_key_type(struct wpa_sm *sm, const u8 *buf, size_t len);
-const char* eapol_msg_type_str(enum eapol_key_msg_type t);
+enum eapol_key_msg_type wpa_eapol_key_type(struct wpa_sm *sm, const u8 *buf, size_t len,
+					   enum i_eapol_msg_type *msg_type);
+const char* eapol_key_msg_type_str(enum eapol_key_msg_type t);
 void wpa_apply_corruptions(struct wpa_sm* wpa_sm, u16 corrupt_eapol_2_of_4,
-			   u16 corrupt_eapol_4_of_4, u16 corrupt_eapol_2_of_2,
-			   u16 corrupt_eapol_key_req);
+			   u16 corrupt_eapol_4_of_4, u16 corrupt_eapol_2_of_2);
 #endif
 
 
@@ -213,7 +225,7 @@ wpa_eapol_key_type(struct wpa_sm *sm, const u8 *src_addr,
 
 static inline void wpa_apply_corruptions(struct wpa_sm *sm, u16 corrupt_eapol_2_of_4,
 					 u16 corrupt_eapol_4_of_4, u16 corrupt_eapol_2_of_2,
-					 u16 corrupt_eapol_key_req)
+					 u16 corrupt_id_resp, u16 corrupt_other_resp)
 {
 }
 #endif
