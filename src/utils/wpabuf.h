@@ -22,9 +22,15 @@ struct wpabuf {
 	size_t used; /* length of data in the buffer */
 	u8 *buf; /* pointer to the head of the buffer */
 	unsigned int flags;
+#ifdef CONFIG_TESTING_OPTIONS
+	u32 corruption_checked; /* Have we checked if we should corrupt this? */
+#endif
 	/* optionally followed by the allocated buffer */
 };
 
+#ifdef CONFIG_TESTING_OPTIONS
+void do_corrupt(void* msg_ctxt, struct wpabuf *buf, const char* dbg_msg);
+#endif
 
 int wpabuf_resize(struct wpabuf **buf, size_t add_len);
 struct wpabuf * wpabuf_alloc(size_t len);

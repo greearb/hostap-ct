@@ -146,6 +146,10 @@ struct eapol_sm {
 	Boolean use_eap_proxy;
 	struct eap_proxy_sm *eap_proxy;
 #endif /* CONFIG_EAP_PROXY */
+
+#ifdef CONFIG_TESTING_OPTIONS
+	u16 corrupt_eapol_other_resp;
+#endif
 };
 
 
@@ -884,6 +888,18 @@ static void eapol_sm_txSuppRsp(struct eapol_sm *sm)
 			   "not available");
 		return;
 	}
+
+#ifdef CONFIG_TESTING_OPTIONS
+	if (!resp->corruption_checked) {
+		/* This is 'other' response then. */
+		/* Purposefully corrupt the frame for testing purposes? */
+		if (sm->corrupt_eapol_other_resp &&
+		    ((os_random() % 65535) < sm->corrupt_eapol_other_resp)) {
+			do_corrupt(sm->ctx->msg_ctx, resp, "EAPOL Other-Resp");
+		}
+		resp->corruption_checked = 1;
+	}
+#endif
 
 	/* Send EAP-Packet from the EAP layer to the Authenticator */
 	sm->ctx->eapol_send(sm->ctx->eapol_send_ctx,
@@ -2143,6 +2159,14 @@ struct eapol_sm *eapol_sm_init(struct eapol_ctx *ctx)
 	return sm;
 }
 
+#ifdef CONFIG_TESTING_OPTIONS
+void eapol_apply_corruptions(struct eapol_sm *sm, u16 corrupt_eapol_id_resp,
+			     u16 corrupt_eapol_other_resp)
+{
+	eap_apply_corruptions(sm->eap, corrupt_eapol_id_resp);
+	sm->corrupt_eapol_other_resp = corrupt_eapol_other_resp;
+}
+#endif
 
 /**
  * eapol_sm_deinit - Deinitialize EAPOL state machine
