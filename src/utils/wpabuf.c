@@ -173,8 +173,12 @@ struct wpabuf * wpabuf_dup(const struct wpabuf *src)
 	if (!src)
 		return NULL;
 	buf = wpabuf_alloc(wpabuf_len(src));
-	if (buf)
+	if (buf) {
 		wpabuf_put_data(buf, wpabuf_head(src), wpabuf_len(src));
+#ifdef CONFIG_TESTING_OPTIONS
+		buf->corruption_checked = src->corruption_checked;
+#endif
+	}
 	return buf;
 }
 
