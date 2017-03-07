@@ -1046,6 +1046,12 @@ struct wpa_config {
 	unsigned short corrupt_eapol_id_resp;
 	unsigned short corrupt_eapol_other_resp;
 
+	unsigned short dup_eapol_2_of_4;
+	unsigned short dup_eapol_4_of_4;
+	unsigned short dup_eapol_2_of_2;
+	unsigned short dup_eapol_id_resp;
+	unsigned short dup_eapol_other_resp;
+
 	unsigned short delay_eapol_1_of_4_min;
 	unsigned short delay_eapol_1_of_4_max;
 	unsigned short delay_eapol_3_of_4_min;
