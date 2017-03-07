@@ -905,6 +905,10 @@ static void eapol_sm_txSuppRsp(struct eapol_sm *sm)
 		}
 		resp->corruption_checked = 1;
 	}
+
+	//wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+	//	"WPA: dup_checked: %d  do_dup: %d dup-other-per: %d\n",
+	//	resp->dup_checked, resp->do_dup, sm->dup_eapol_other_resp);
 	if (!resp->dup_checked) {
 		/* This is 'other' response then. */
 		/* Purposefully duplicate the frame for testing purposes? */
