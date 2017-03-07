@@ -149,6 +149,7 @@ struct eapol_sm {
 
 #ifdef CONFIG_TESTING_OPTIONS
 	u16 corrupt_eapol_other_resp;
+	u16 dup_eapol_other_resp;
 #endif
 };
 
@@ -919,6 +920,27 @@ static void eapol_sm_txSuppRsp(struct eapol_sm *sm)
 			do_corrupt(sm->ctx->msg_ctx, resp, "EAPOL Other-Resp");
 		}
 		resp->corruption_checked = 1;
+	}
+	if (!resp->dup_checked) {
+		/* This is 'other' response then. */
+		/* Purposefully duplicate the frame for testing purposes? */
+		if (sm->dup_eapol_other_resp &&
+		    ((os_random() % 65535) < sm->dup_eapol_other_resp)) {
+			resp->do_dup = (os_random() % 2) + 1;
+			wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+				"WPA: Duplicating EAPOL Other-Resp message %d times",
+				resp->do_dup);
+		}
+		resp->dup_checked = 1;
+	}
+
+	if (resp->do_dup) {
+		int i;
+		for (i = 0; i<resp->do_dup; i++) {
+			sm->ctx->eapol_send(sm->ctx->eapol_send_ctx,
+					    IEEE802_1X_TYPE_EAP_PACKET, wpabuf_head(resp),
+					    wpabuf_len(resp));
+		}
 	}
 #endif
 
@@ -2188,10 +2210,12 @@ struct eapol_sm *eapol_sm_init(struct eapol_ctx *ctx)
 
 #ifdef CONFIG_TESTING_OPTIONS
 void eapol_apply_corruptions(struct eapol_sm *sm, u16 corrupt_eapol_id_resp,
-			     u16 corrupt_eapol_other_resp)
+			     u16 corrupt_eapol_other_resp, u16 dup_eapol_id_resp,
+			     u16 dup_eapol_other_resp)
 {
-	eap_apply_corruptions(sm->eap, corrupt_eapol_id_resp);
+	eap_apply_corruptions(sm->eap, corrupt_eapol_id_resp, dup_eapol_id_resp);
 	sm->corrupt_eapol_other_resp = corrupt_eapol_other_resp;
+	sm->dup_eapol_other_resp = dup_eapol_other_resp;
 }
 #endif
 
