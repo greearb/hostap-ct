@@ -396,6 +396,7 @@ struct eap_sm {
 	size_t identity_len;
 #ifdef CONFIG_TESTING_OPTIONS
 	u16 corrupt_eapol_id_resp;
+	u16 dup_eapol_id_resp;
 #endif
 };
 

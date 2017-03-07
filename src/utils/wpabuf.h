@@ -23,7 +23,9 @@ struct wpabuf {
 	u8 *buf; /* pointer to the head of the buffer */
 	unsigned int flags;
 #ifdef CONFIG_TESTING_OPTIONS
-	u32 corruption_checked; /* Have we checked if we should corrupt this? */
+	u8 corruption_checked; /* Have we checked if we should corrupt this? */
+	u8 dup_checked; /* Have we checked if we should corrupt this? */
+	u8 do_dup; /* Number of times we should duplicate this pkt when sending */
 #endif
 	/* optionally followed by the allocated buffer */
 };
