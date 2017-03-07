@@ -1012,6 +1012,13 @@ SM_STATE(EAP, IDENTITY)
 		}
 		sm->eapRespData->corruption_checked = 1;
 	}
+	if (sm->eapRespData && !sm->eapRespData->dup_checked) {
+		if (sm->dup_eapol_id_resp &&
+		    ((os_random() % 65535) < sm->dup_eapol_id_resp)) {
+			sm->eapRespData->do_dup = (os_random() % 2) + 1;
+		}
+		sm->eapRespData->dup_checked = 1;
+	}
 #endif
 }
 
@@ -2255,9 +2262,11 @@ struct eap_sm * eap_peer_sm_init(void *eapol_ctx,
 }
 
 #ifdef CONFIG_TESTING_OPTIONS
-void eap_apply_corruptions(struct eap_sm *sm, u16 corrupt_eapol_id_resp)
+void eap_apply_corruptions(struct eap_sm *sm, u16 corrupt_eapol_id_resp,
+			   u16 dup_eapol_id_resp)
 {
 	sm->corrupt_eapol_id_resp = corrupt_eapol_id_resp;
+	sm->dup_eapol_id_resp = dup_eapol_id_resp;
 }
 #endif
 
