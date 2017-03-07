@@ -1005,19 +1005,29 @@ SM_STATE(EAP, IDENTITY)
 
 #ifdef CONFIG_TESTING_OPTIONS
 	/* Purposefully corrupt the frame for testing purposes? */
-	if (sm->eapRespData && !sm->eapRespData->corruption_checked) {
-		if (sm->corrupt_eapol_id_resp &&
-		    ((os_random() % 65535) < sm->corrupt_eapol_id_resp)) {
-			do_corrupt(sm->msg_ctx, sm->eapRespData, "EAPOL ID-Resp");
+	if (sm->eapRespData) {
+		if (!sm->eapRespData->corruption_checked) {
+			if (sm->corrupt_eapol_id_resp &&
+			    ((os_random() % 65535) < sm->corrupt_eapol_id_resp)) {
+				do_corrupt(sm->msg_ctx, sm->eapRespData, "EAPOL ID-Resp");
+			}
+			sm->eapRespData->corruption_checked = 1;
 		}
-		sm->eapRespData->corruption_checked = 1;
-	}
-	if (sm->eapRespData && !sm->eapRespData->dup_checked) {
-		if (sm->dup_eapol_id_resp &&
-		    ((os_random() % 65535) < sm->dup_eapol_id_resp)) {
-			sm->eapRespData->do_dup = (os_random() % 2) + 1;
+
+		//wpa_msg(sm->msg_ctx, MSG_INFO,
+		//	"EAP: dup_checked: %d  do_dup: %d dup-id-per: %d\n",
+		//	sm->eapRespData->dup_checked, sm->eapRespData->do_dup,
+		//	sm->dup_eapol_id_resp);
+		if (!sm->eapRespData->dup_checked) {
+			if (sm->dup_eapol_id_resp &&
+			    ((os_random() % 65535) < sm->dup_eapol_id_resp)) {
+				sm->eapRespData->do_dup = (os_random() % 2) + 1;
+				wpa_msg(sm->msg_ctx, MSG_INFO,
+					"WPA: Duplicating EAPOL ID-Resp message %d times",
+					sm->eapRespData->do_dup);
+			}
+			sm->eapRespData->dup_checked = 1;
 		}
-		sm->eapRespData->dup_checked = 1;
 	}
 #endif
 }
