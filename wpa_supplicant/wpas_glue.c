@@ -1186,7 +1186,9 @@ int wpa_supplicant_init_eapol(struct wpa_supplicant *wpa_s)
 #ifdef CONFIG_TESTING_OPTIONS
 	eapol_apply_corruptions(wpa_s->eapol,
 				wpa_s->conf->corrupt_eapol_id_resp,
-				wpa_s->conf->corrupt_eapol_other_resp);
+				wpa_s->conf->corrupt_eapol_other_resp,
+				wpa_s->conf->dup_eapol_id_resp,
+				wpa_s->conf->dup_eapol_other_resp);
 #endif
 
 #endif /* IEEE8021X_EAPOL */
@@ -1381,7 +1383,10 @@ int wpa_supplicant_init_wpa(struct wpa_supplicant *wpa_s)
 	wpa_apply_corruptions(wpa_s->wpa,
 			      wpa_s->conf->corrupt_eapol_2_of_4,
 			      wpa_s->conf->corrupt_eapol_4_of_4,
-			      wpa_s->conf->corrupt_eapol_2_of_2);
+			      wpa_s->conf->corrupt_eapol_2_of_2,
+			      wpa_s->conf->dup_eapol_2_of_4,
+			      wpa_s->conf->dup_eapol_4_of_4,
+			      wpa_s->conf->dup_eapol_2_of_2);
 #endif
 
 #endif /* CONFIG_NO_WPA */

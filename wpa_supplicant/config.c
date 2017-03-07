@@ -4413,6 +4413,12 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	config->corrupt_eapol_id_resp = DEFAULT_IGNORE_AUTH_RESP;
 	config->corrupt_eapol_other_resp = DEFAULT_IGNORE_AUTH_RESP;
 
+	config->dup_eapol_2_of_4 = DEFAULT_IGNORE_AUTH_RESP;
+	config->dup_eapol_4_of_4 = DEFAULT_IGNORE_AUTH_RESP;
+	config->dup_eapol_2_of_2 = DEFAULT_IGNORE_AUTH_RESP;
+	config->dup_eapol_id_resp = DEFAULT_IGNORE_AUTH_RESP;
+	config->dup_eapol_other_resp = DEFAULT_IGNORE_AUTH_RESP;
+
 	config->delay_eapol_1_of_4_min = DEFAULT_IGNORE_AUTH_RESP;
 	config->delay_eapol_1_of_4_max = DEFAULT_IGNORE_AUTH_RESP;
 	config->delay_eapol_3_of_4_min = DEFAULT_IGNORE_AUTH_RESP;
@@ -5186,6 +5192,11 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(corrupt_eapol_key_req), 0 },
 	{ INT(corrupt_eapol_id_resp), 0 },
 	{ INT(corrupt_eapol_other_resp), 0 },
+	{ INT(dup_eapol_2_of_4), 0 },
+	{ INT(dup_eapol_4_of_4), 0 },
+	{ INT(dup_eapol_2_of_2), 0 },
+	{ INT(dup_eapol_id_resp), 0 },
+	{ INT(dup_eapol_other_resp), 0 },
 	{ INT(delay_eapol_1_of_4_min), 0 },
 	{ INT(delay_eapol_1_of_4_max), 0 },
 	{ INT(delay_eapol_3_of_4_min), 0 },
