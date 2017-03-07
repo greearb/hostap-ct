@@ -146,6 +146,10 @@ struct wpa_sm {
 	u16 corrupt_eapol_2_of_4;
 	u16 corrupt_eapol_4_of_4;
 	u16 corrupt_eapol_2_of_2;
+
+	u16 dup_eapol_2_of_4;
+	u16 dup_eapol_4_of_4;
+	u16 dup_eapol_2_of_2;
 #endif /* CONFIG_TESTING_OPTIONS */
 
 #ifdef CONFIG_FILS

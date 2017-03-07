@@ -57,11 +57,16 @@ const char* eapol_i_msg_type_str(enum i_eapol_msg_type t)
 }
 
 void wpa_apply_corruptions(struct wpa_sm *sm, u16 corrupt_eapol_2_of_4,
-			   u16 corrupt_eapol_4_of_4, u16 corrupt_eapol_2_of_2)
+			   u16 corrupt_eapol_4_of_4, u16 corrupt_eapol_2_of_2,
+			   u16 dup_eapol_2_of_4, u16 dup_eapol_4_of_4, u16 dup_eapol_2_of_2)
 {
 	sm->corrupt_eapol_2_of_4 = corrupt_eapol_2_of_4;
 	sm->corrupt_eapol_4_of_4 = corrupt_eapol_4_of_4;
 	sm->corrupt_eapol_2_of_2 = corrupt_eapol_2_of_2;
+
+	sm->dup_eapol_2_of_4 = dup_eapol_2_of_4;
+	sm->dup_eapol_4_of_4 = dup_eapol_4_of_4;
+	sm->dup_eapol_2_of_2 = dup_eapol_2_of_2;
 }
 
 #endif
@@ -212,6 +217,26 @@ int wpa_eapol_key_send(struct wpa_sm *sm, struct wpa_ptk *ptk,
 	wpa_hexdump(MSG_MSGDUMP, "WPA: TX EAPOL-Key", msg, msg_len);
 	ret = wpa_sm_ether_send(sm, dest, proto, msg, msg_len);
 	eapol_sm_notify_tx_eapol_key(sm->eapol);
+
+#ifdef CONFIG_TESTING_OPTIONS
+	/* Purposefully duplicate the frame for testing purposes? */
+	if (((sm->dup_eapol_2_of_4 && eapol_type == EAPOL_MSG_TYPE_2_OF_4) &&
+	     (os_random() % 65535) < sm->dup_eapol_2_of_4) ||
+	    ((sm->dup_eapol_4_of_4 && eapol_type == EAPOL_MSG_TYPE_4_OF_4) &&
+	     (os_random() % 65535) < sm->dup_eapol_4_of_4) ||
+	    ((sm->dup_eapol_2_of_2 && eapol_type == EAPOL_MSG_TYPE_GROUP_2_OF_2) &&
+	     (os_random() % 65535) < sm->dup_eapol_2_of_2)) {
+		int dup = (os_random() % 2) + 1;
+		int i;
+		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+			"WPA: Duplicating EAPOL message type: %s %d times.",
+			eapol_key_msg_type_str(eapol_type), dup);
+		for (i = 0; i<dup; i++) {
+			wpa_sm_ether_send(sm, dest, proto, msg, msg_len);
+		}
+	}
+#endif
+
 out:
 	os_free(msg);
 	return ret;

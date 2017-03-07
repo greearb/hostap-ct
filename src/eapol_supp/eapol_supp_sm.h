@@ -357,7 +357,8 @@ int eapol_sm_get_erp_info(struct eapol_sm *sm, struct eap_peer_config *config,
 
 #ifdef CONFIG_TESTING_OPTIONS
 void eapol_apply_corruptions(struct eapol_sm *sm, u16 corrupt_eapol_id_resp,
-			     u16 corrupt_eapol_other_resp);
+			     u16 corrupt_eapol_other_resp, u16 dup_eapol_id_resp,
+			     u16 dup_eapol_other_resp);
 #endif
 
 #else /* IEEE8021X_EAPOL */

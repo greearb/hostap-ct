@@ -384,11 +384,8 @@ void eap_peer_erp_init(struct eap_sm *sm, u8 *ext_session_id,
 		       size_t ext_session_id_len, u8 *ext_emsk,
 		       size_t ext_emsk_len);
 #ifdef CONFIG_TESTING_OPTIONS
-void eap_apply_corruptions(struct eap_sm *sm, u16 corrupt_eapol_id_resp);
-#endif
-
-#ifdef CONFIG_TESTING_OPTIONS
-void eap_apply_corruptions(struct eap_sm *sm, u16 corrupt_eapol_id_resp);
+void eap_apply_corruptions(struct eap_sm *sm, u16 corrupt_eapol_id_resp,
+			   u16 dup_eapol_id_resp);
 #endif
 
 #endif /* IEEE8021X_EAPOL */
