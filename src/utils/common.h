@@ -435,7 +435,9 @@ void perror(const char *s);
 #define __bitwise __attribute__((bitwise))
 #else
 #define __force
+#ifndef __bitwise
 #define __bitwise
+#endif
 #endif
 
 typedef u16 __bitwise be16;
