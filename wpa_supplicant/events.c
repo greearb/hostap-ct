@@ -2601,7 +2601,11 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 		scan_res_handler = wpa_s->scan_res_handler;
 		wpa_s->scan_res_handler = NULL;
 		scan_res_handler(wpa_s, scan_res);
-		ret = 1;
+
+		if (wpa_s->conf->concurrent_assoc_ok)
+			ret = 0;
+		else
+			ret = 1;
 		goto scan_work_done;
 	}
 
@@ -2810,6 +2814,10 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 
 		if (new_scan)
 			wpa_supplicant_rsn_preauth_scan_results(wpa_s);
+
+		if (wpa_s->conf->concurrent_assoc_ok)
+			return 0;
+
 		/*
 		 * Do not allow other virtual radios to trigger operations based
 		 * on these scan results since we do not want them to start
@@ -2882,6 +2890,8 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 				wpa_s->network_select = 1;
 				wpa_s->auto_network_select = 1;
 				interworking_start_fetch_anqp(wpa_s);
+				if (wpa_s->conf->concurrent_assoc_ok)
+					return 0;
 				return 1;
 			}
 #endif /* CONFIG_INTERWORKING */
@@ -2983,8 +2993,8 @@ static int wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	dl_list_for_each(ifs, &wpa_s->radio->ifaces, struct wpa_supplicant,
 			 radio_list) {
 		if (ifs != wpa_s && equal_scan_freq_list(wpa_s, ifs)) {
-			wpa_dbg(wpa_s, MSG_DEBUG, "%s: Updating scan results from "
-				"sibling", ifs->ifname);
+			wpa_dbg(wpa_s, MSG_DEBUG, "Updating scan results for "
+				"sibling: %s, res: %d", ifs->ifname, res);
 			res = _wpa_supplicant_event_scan_results(ifs, data, 0,
 								 res > 0);
 			if (res < 0)
