@@ -4751,6 +4751,11 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	/* Don't buffer stdout, we need to see events immediately as they
+	 * happen.
+	 */
+	setbuf(stdout, NULL);
+
 	interactive = (argc == optind) && (action_file == NULL);
 
 	if (interactive)
