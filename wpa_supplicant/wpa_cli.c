@@ -49,6 +49,7 @@ static int wpa_cli_last_id = 0;
 static const char *ctrl_iface_dir = CONFIG_CTRL_IFACE_DIR;
 static const char *client_socket_dir = NULL;
 static char *ctrl_ifname = NULL;
+static char *global = NULL;
 static const char *pid_file = NULL;
 static const char *action_file = NULL;
 static int ping_interval = 5;
@@ -3916,16 +3917,52 @@ static void wpa_cli_action_cb(char *msg, size_t len)
 }
 #endif /* CONFIG_ANSI_C_EXTRA */
 
+static void update_ifnames(struct wpa_ctrl *ctrl);
 
 static void wpa_cli_reconnect(void)
 {
 	wpa_cli_close_connection();
-	if (wpa_cli_open_connection(ctrl_ifname, 1) < 0)
-		return;
+
+	if (global) {
+#ifdef CONFIG_CTRL_IFACE_NAMED_PIPE
+		ctrl_conn = wpa_ctrl_open(NULL);
+#else /* CONFIG_CTRL_IFACE_NAMED_PIPE */
+		ctrl_conn = wpa_ctrl_open(global);
+#endif /* CONFIG_CTRL_IFACE_NAMED_PIPE */
+		if (ctrl_conn == NULL) {
+			fprintf(stderr, "Failed to re-connect to wpa_supplicant "
+				"global interface: %s  error: %s\n",
+				global, strerror(errno));
+			return;
+		}
+
+		if (interactive) {
+			update_ifnames(ctrl_conn);
+			mon_conn = wpa_ctrl_open(global);
+			if (mon_conn) {
+				if (wpa_ctrl_attach(mon_conn) == 0) {
+					wpa_cli_attached = 1;
+					eloop_register_read_sock(
+						wpa_ctrl_get_fd(mon_conn),
+						wpa_cli_mon_receive,
+						NULL, NULL);
+				} else {
+					printf("Failed to re-open monitor "
+					       "connection through global "
+					       "control interface\n");
+				}
+			}
+		}
+		printf("\rConnection to wpa_supplicant re-established, global: %s\n", global);
+	}
+	else {
+		if (wpa_cli_open_connection(ctrl_ifname, 1) < 0)
+			return;
+		printf("\rConnection to wpa_supplicant re-established, ctrl-ifname: %s\n", ctrl_ifname);
+	}
 
 	if (interactive) {
 		edit_clear_line();
-		printf("\rConnection to wpa_supplicant re-established\n");
 		edit_redraw();
 		update_stations(ctrl_conn);
 	}
@@ -4445,7 +4482,6 @@ int main(int argc, char *argv[])
 	int c;
 	int daemonize = 0;
 	int ret = 0;
-	const char *global = NULL;
 
 	if (os_program_init())
 		return -1;
@@ -4462,7 +4498,7 @@ int main(int argc, char *argv[])
 			daemonize = 1;
 			break;
 		case 'g':
-			global = optarg;
+			global = os_strdup(optarg);
 			break;
 		case 'G':
 			ping_interval = atoi(optarg);
