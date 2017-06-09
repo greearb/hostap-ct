@@ -2754,6 +2754,18 @@ struct wpa_driver_ops {
 			       const u8 *own_addr, u32 flags);
 
 	/**
+	 * send_eapol - Send an EAPOL packet (STA only)
+	 * @priv: private driver interface data
+	 * @addr: Destination MAC address
+	 * @data: EAPOL packet starting with IEEE 802.1X header
+	 * @data_len: Length of the EAPOL packet in octets
+	 *
+	 * Returns: 0 on success, -1 on failure
+	 */
+	int (*send_eapol)(void *priv, const u8 *addr, const u8 *data,
+			       size_t data_len);
+
+	/**
 	 * sta_deauth - Deauthenticate a station (AP only)
 	 * @priv: Private driver interface data
 	 * @own_addr: Source address and BSSID for the Deauthentication frame

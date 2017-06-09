@@ -4990,6 +4990,16 @@ static int wpa_driver_nl80211_hapd_send_eapol(
 	return res;
 }
 
+static int wpa_driver_nl80211_send_eapol(
+	void *priv, const u8 *addr, const u8 *data,
+	size_t data_len)
+{
+	struct i802_bss *bss = priv;
+
+	return nl80211_send_eapol_data(bss, addr, data, data_len);
+}
+
+
 
 static int wpa_driver_nl80211_sta_set_flags(void *priv, const u8 *addr,
 					    unsigned int total_flags,
@@ -10927,6 +10937,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.sta_add = wpa_driver_nl80211_sta_add,
 	.sta_remove = driver_nl80211_sta_remove,
 	.hapd_send_eapol = wpa_driver_nl80211_hapd_send_eapol,
+	.send_eapol = wpa_driver_nl80211_send_eapol,
 	.sta_set_flags = wpa_driver_nl80211_sta_set_flags,
 	.hapd_init = i802_init,
 	.hapd_deinit = i802_deinit,

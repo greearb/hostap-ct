@@ -97,6 +97,7 @@ static u8 * wpa_alloc_eapol(const struct wpa_supplicant *wpa_s, u8 type,
 static int wpa_ether_send(struct wpa_supplicant *wpa_s, const u8 *dest,
 			  u16 proto, const u8 *buf, size_t len)
 {
+	int ret;
 #ifdef CONFIG_TESTING_OPTIONS
 	if (wpa_s->ext_eapol_frame_io && proto == ETH_P_EAPOL) {
 		size_t hex_len = 2 * len + 1;
@@ -111,6 +112,14 @@ static int wpa_ether_send(struct wpa_supplicant *wpa_s, const u8 *dest,
 		return 0;
 	}
 #endif /* CONFIG_TESTING_OPTIONS */
+	ret = wpa_drv_send_eapol(wpa_s, dest, buf, len);
+
+	wpa_sm_eapol_tx_status_available(wpa_s->wpa, ret >= 0);
+
+	if (ret >= 0)
+		return ret;
+
+	wpa_dbg(wpa_s, MSG_DEBUG, "wpa_drv_send_eapol rv (%d)", ret);
 
 	if (wpa_s->l2) {
 		return l2_packet_send(wpa_s->l2, dest, proto, buf, len);
