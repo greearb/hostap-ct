@@ -356,6 +356,16 @@ static inline int wpa_drv_hapd_send_eapol(struct wpa_supplicant *wpa_s,
 	return -1;
 }
 
+static inline int wpa_drv_send_eapol(struct wpa_supplicant *wpa_s,
+					  const u8 *addr, const u8 *data,
+					  size_t data_len)
+{
+	if (wpa_s->driver->hapd_send_eapol)
+		return wpa_s->driver->send_eapol(wpa_s->drv_priv, addr,
+						      data, data_len);
+	return -1;
+}
+
 static inline int wpa_drv_sta_set_flags(struct wpa_supplicant *wpa_s,
 					const u8 *addr, int total_flags,
 					int flags_or, int flags_and)
