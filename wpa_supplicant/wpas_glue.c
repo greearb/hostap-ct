@@ -98,6 +98,9 @@ static u8 * wpa_alloc_eapol(const struct wpa_supplicant *wpa_s, u8 type,
 static int wpa_ether_send(struct wpa_supplicant *wpa_s, const u8 *dest,
 			  u16 proto, const u8 *buf, size_t len)
 {
+	int ret;
+	int tx_status_avail = 0;
+
 #ifdef CONFIG_TESTING_OPTIONS
 	if (wpa_s->ext_eapol_frame_io && proto == ETH_P_EAPOL) {
 		size_t hex_len = 2 * len + 1;
@@ -112,6 +115,18 @@ static int wpa_ether_send(struct wpa_supplicant *wpa_s, const u8 *dest,
 		return 0;
 	}
 #endif /* CONFIG_TESTING_OPTIONS */
+	ret = wpa_drv_send_eapol(wpa_s, dest, buf, len);
+
+	if (wpa_drv_supports_data_tx_status(wpa_s))
+		tx_status_avail = (ret >= 0);
+
+	wpa_sm_eapol_tx_status_available(wpa_s->wpa, tx_status_avail);
+
+	wpa_dbg(wpa_s, MSG_DEBUG, "wpa_drv_send_eapol rv (%d) tx-status-avail: %d",
+		ret, tx_status_avail);
+
+	if (ret >= 0)
+		return ret;
 
 	if (wpa_s->drv_flags & WPA_DRIVER_FLAGS_CONTROL_PORT) {
 		int encrypt = wpa_s->wpa &&
@@ -162,8 +177,10 @@ static int wpa_supplicant_eapol_send(void *ctx, int type, const u8 *buf,
 		 * EAPOL frames (mainly, EAPOL-Start) from EAPOL state
 		 * machines. */
 		wpa_printf(MSG_DEBUG, "WPA: drop TX EAPOL in non-IEEE 802.1X "
-			   "mode (type=%d len=%lu)", type,
-			   (unsigned long) len);
+			   "mode (type=%d len=%lu key_mgmt=%d is-psk=%d) "
+			   "(this message is normal for PSK connections)", type,
+			   (unsigned long) len, (unsigned int)(wpa_s->key_mgmt),
+			   wpa_key_mgmt_wpa_psk(wpa_s->key_mgmt));
 		return -1;
 	}
 
