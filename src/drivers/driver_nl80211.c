@@ -5830,6 +5830,13 @@ static int nl80211_send_eapol_data(struct i802_bss *bss,
 	return ret;
 }
 
+static int driver_nl80211_supports_data_tx_status(
+	void *priv)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	return drv->data_tx_status;
+}
 
 static const u8 rfc1042_header[6] = { 0xaa, 0xaa, 0x03, 0x00, 0x00, 0x00 };
 
@@ -5902,6 +5909,16 @@ static int wpa_driver_nl80211_hapd_send_eapol(
 
 	return res;
 }
+
+static int wpa_driver_nl80211_send_eapol(
+	void *priv, const u8 *addr, const u8 *data,
+	size_t data_len)
+{
+	struct i802_bss *bss = priv;
+
+	return nl80211_send_eapol_data(bss, addr, data, data_len);
+}
+
 
 
 static int wpa_driver_nl80211_sta_set_flags(void *priv, const u8 *addr,
@@ -13192,6 +13209,8 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.sta_remove = driver_nl80211_sta_remove,
 	.tx_control_port = nl80211_tx_control_port,
 	.hapd_send_eapol = wpa_driver_nl80211_hapd_send_eapol,
+	.send_eapol = wpa_driver_nl80211_send_eapol,
+	.supports_data_tx_status = driver_nl80211_supports_data_tx_status,
 	.sta_set_flags = wpa_driver_nl80211_sta_set_flags,
 	.sta_set_airtime_weight = driver_nl80211_sta_set_airtime_weight,
 	.hapd_init = i802_init,
