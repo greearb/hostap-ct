@@ -194,6 +194,11 @@ struct wpa_sm {
 	struct wpabuf *dpp_z;
 	int dpp_pfs;
 #endif /* CONFIG_DPP2 */
+
+	u8 waiting_for_4_of_4_sent; /* boolean */
+	u8 eapol_tx_status_available;
+	u16 last_3_of_4_len;
+	u8 last_3_of_4_buf[1500];
 };
 
 
