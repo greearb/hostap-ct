@@ -55,6 +55,7 @@ static const char *action_file = NULL;
 static int reconnect = 0;
 static int ping_interval = 5;
 static int interactive = 0;
+static int do_monitor = 0;
 static char *ifname_prefix = NULL;
 
 static DEFINE_DL_LIST(bsses); /* struct cli_txt_entry */
@@ -95,6 +96,7 @@ static void usage(void)
 	       "  -r = try to reconnect when client socket is disconnected.\n"
 	       "       This is useful only when used with -a.\n"
 	       "  -B = run a daemon in the background\n"
+	       "  -m = Run in monitor mode, even if we don't have an action file.\n"
 	       "  default path: " CONFIG_CTRL_IFACE_DIR "\n"
 	       "  default interface: first interface found in socket path\n");
 	print_help(NULL);
@@ -129,7 +131,7 @@ static int wpa_cli_open_connection(const char *ifname, int attach)
 	if (ctrl_conn == NULL)
 		return -1;
 
-	if (attach && interactive)
+	if (attach && (interactive || do_monitor))
 		mon_conn = wpa_ctrl_open(ifname);
 	else
 		mon_conn = NULL;
@@ -174,7 +176,7 @@ static int wpa_cli_open_connection(const char *ifname, int attach)
 		return -1;
 	}
 
-	if (attach && interactive)
+	if (attach && (interactive || do_monitor))
 		mon_conn = wpa_ctrl_open2(cfile, client_socket_dir);
 	else
 		mon_conn = NULL;
@@ -184,7 +186,7 @@ static int wpa_cli_open_connection(const char *ifname, int attach)
 	if (mon_conn) {
 		if (wpa_ctrl_attach(mon_conn) == 0) {
 			wpa_cli_attached = 1;
-			if (interactive)
+			if (interactive || do_monitor)
 				eloop_register_read_sock(
 					wpa_ctrl_get_fd(mon_conn),
 					wpa_cli_mon_receive, NULL, NULL);
@@ -206,7 +208,7 @@ static void wpa_cli_close_connection(void)
 		return;
 
 	if (wpa_cli_attached) {
-		wpa_ctrl_detach(interactive ? mon_conn : ctrl_conn);
+		wpa_ctrl_detach((interactive || do_monitor) ? mon_conn : ctrl_conn);
 		wpa_cli_attached = 0;
 	}
 	wpa_ctrl_close(ctrl_conn);
@@ -4255,6 +4257,9 @@ static void wpa_cli_action_process(const char *msg)
 	if (eloop_terminated())
 		return;
 
+	if (!action_file)
+		return;
+
 	pos = msg;
 	if (os_strncmp(pos, "IFNAME=", 7) == 0) {
 		const char *end;
@@ -4414,8 +4419,9 @@ static int wpa_cli_open_global_ctrl(void)
 		return -1;
 	}
 
-	if (interactive) {
-		update_ifnames(ctrl_conn);
+	if (interactive || do_monitor) {
+		if (interactive)
+			update_ifnames(ctrl_conn);
 		mon_conn = wpa_ctrl_open(global);
 		if (mon_conn) {
 			if (wpa_ctrl_attach(mon_conn) == 0) {
@@ -4907,6 +4913,7 @@ static void wpa_cli_action(struct wpa_ctrl *ctrl)
 	int fd;
 
 	fd = wpa_ctrl_get_fd(ctrl);
+
 	eloop_register_timeout(ping_interval, 0, wpa_cli_action_ping,
 			       ctrl, NULL);
 	eloop_register_read_sock(fd, wpa_cli_action_receive, ctrl, NULL);
@@ -5012,7 +5019,7 @@ int main(int argc, char *argv[])
 		return -1;
 
 	for (;;) {
-		c = getopt(argc, argv, "a:Bg:G:hi:p:P:rs:v");
+		c = getopt(argc, argv, "a:Bg:G:hi:mp:P:rs:v");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -5034,6 +5041,9 @@ int main(int argc, char *argv[])
 		case 'v':
 			printf("%s\n", wpa_cli_version);
 			return 0;
+		case 'm':
+			do_monitor = 1;
+			break;
 		case 'i':
 			os_free(ctrl_ifname);
 			ctrl_ifname = os_strdup(optarg);
@@ -5061,7 +5071,7 @@ int main(int argc, char *argv[])
 	 */
 	setbuf(stdout, NULL);
 
-	interactive = (argc == optind) && (action_file == NULL);
+	interactive = (argc == optind) && (action_file == NULL) && !do_monitor;
 
 	if (interactive)
 		printf("%s\n\n%s\n\n", wpa_cli_version, cli_license);
@@ -5074,7 +5084,7 @@ int main(int argc, char *argv[])
 
 	eloop_register_signal_terminate(wpa_cli_terminate, NULL);
 
-	if (ctrl_ifname == NULL)
+	if (ctrl_ifname == NULL && !do_monitor)
 		ctrl_ifname = wpa_cli_get_default_ifname();
 
 	if (reconnect && action_file && ctrl_ifname) {
@@ -5104,7 +5114,7 @@ int main(int argc, char *argv[])
 			return -1;
 		}
 
-		if (action_file) {
+		if (action_file || do_monitor) {
 			if (wpa_ctrl_attach(ctrl_conn) == 0) {
 				wpa_cli_attached = 1;
 			} else {
@@ -5117,7 +5127,7 @@ int main(int argc, char *argv[])
 		if (daemonize && os_daemonize(pid_file) && eloop_sock_requeue())
 			return -1;
 
-		if (action_file)
+		if (action_file || do_monitor)
 			wpa_cli_action(ctrl_conn);
 		else
 			ret = wpa_request(ctrl_conn, argc - optind,
