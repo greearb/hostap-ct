@@ -6465,8 +6465,11 @@ static int i802_set_wds_sta(void *priv, const u8 *addr, int aid, int val,
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	char name[IFNAMSIZ + 1];
+	char tmp[34]; /* make F-26 gcc stop complaining about size of snprintf destination */
 
-	os_snprintf(name, sizeof(name), "%s.sta%d", bss->ifname, aid);
+	os_snprintf(tmp, sizeof(tmp), "%s.sta%d", bss->ifname, aid);
+	os_strlcpy(name, tmp, sizeof(name));
+
 	if (ifname_wds)
 		os_strlcpy(ifname_wds, name, IFNAMSIZ + 1);
 
