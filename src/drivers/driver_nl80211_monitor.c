@@ -340,7 +340,7 @@ void nl80211_remove_monitor_interface(struct wpa_driver_nl80211_data *drv)
 
 int nl80211_create_monitor_interface(struct i802_bss *bss, struct wpa_driver_nl80211_data *drv)
 {
-	char buf[IFNAMSIZ];
+	char buf[IFNAMSIZ + 20];
 	struct sockaddr_ll ll;
 	int optval;
 	socklen_t optlen;
@@ -362,7 +362,7 @@ int nl80211_create_monitor_interface(struct i802_bss *bss, struct wpa_driver_nl8
 		snprintf(buf, IFNAMSIZ, "mon-%s", drv->first_bss->ifname + 4);
 	} else {
 		/* Non-P2P interface with AP functionality. */
-		snprintf(buf, IFNAMSIZ, "mon.%s", drv->first_bss->ifname);
+		snprintf(buf, sizeof(buf), "mon.%s", drv->first_bss->ifname);
 	}
 
 	buf[IFNAMSIZ - 1] = '\0';
