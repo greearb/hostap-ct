@@ -219,6 +219,15 @@ typedef struct {
 	} d;
 } AttrOrOID;
 
+#ifndef OPENSSL_IS_BORINGSSL
+#ifdef SKM_sk_num
+#define sk_AttrOrOID_num(st) SKM_sk_num(AttrOrOID, (st))
+#define sk_AttrOrOID_value(st, i) SKM_sk_value(AttrOrOID, (st), (i))
+#else
+DEFINE_STACK_OF(AttrOrOID)
+#endif
+#endif
+
 typedef struct {
 	int type;
 	STACK_OF(AttrOrOID) *attrs;
@@ -352,9 +361,9 @@ static void add_csrattrs(struct hs20_osu_client *ctx, CsrAttrs *csrattrs,
 		}
 	}
 #else /* OPENSSL_IS_BORINGSSL */
-	num = SKM_sk_num(AttrOrOID, csrattrs->attrs);
+	num = sk_AttrOrOID_num(csrattrs->attrs);
 	for (i = 0; i < num; i++) {
-		AttrOrOID *ao = SKM_sk_value(AttrOrOID, csrattrs->attrs, i);
+		AttrOrOID *ao = sk_AttrOrOID_value(csrattrs->attrs, i);
 		switch (ao->type) {
 		case 0:
 			add_csrattrs_oid(ctx, ao->d.oid, exts);

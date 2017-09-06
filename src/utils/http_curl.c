@@ -446,6 +446,7 @@ sk_num(CHECKED_CAST(_STACK *, STACK_OF(ASN1_IA5STRING) *, (st)))
 #define sk_ASN1_IA5STRING_value(st, i) (ASN1_IA5STRING *) \
 sk_value(CHECKED_CAST(_STACK *, const STACK_OF(ASN1_IA5STRING) *, (st)), (i))
 #else /* OPENSSL_IS_BORINGSSL */
+#ifdef SKM_sk_num
 #define sk_LogotypeInfo_num(st) SKM_sk_num(LogotypeInfo, (st))
 #define sk_LogotypeInfo_value(st, i) SKM_sk_value(LogotypeInfo, (st), (i))
 #define sk_LogotypeImage_num(st) SKM_sk_num(LogotypeImage, (st))
@@ -456,6 +457,13 @@ sk_value(CHECKED_CAST(_STACK *, const STACK_OF(ASN1_IA5STRING) *, (st)), (i))
 #define sk_HashAlgAndValue_value(st, i) SKM_sk_value(HashAlgAndValue, (st), (i))
 #define sk_ASN1_IA5STRING_num(st) SKM_sk_num(ASN1_IA5STRING, (st))
 #define sk_ASN1_IA5STRING_value(st, i) SKM_sk_value(ASN1_IA5STRING, (st), (i))
+#else
+DEFINE_STACK_OF(LogotypeInfo)
+DEFINE_STACK_OF(LogotypeImage)
+DEFINE_STACK_OF(LogotypeAudio)
+DEFINE_STACK_OF(HashAlgAndValue)
+DEFINE_STACK_OF(ASN1_IA5STRING)
+#endif
 #endif /* OPENSSL_IS_BORINGSSL */
 
 
@@ -1136,7 +1144,7 @@ static int ocsp_resp_cb(SSL *s, void *arg)
 		return 0;
 	}
 
-	store = SSL_CTX_get_cert_store(s->ctx);
+	store = SSL_CTX_get_cert_store(SSL_get_SSL_CTX(s));
 	if (ctx->peer_issuer) {
 		wpa_printf(MSG_DEBUG, "OpenSSL: Add issuer");
 		debug_dump_cert("OpenSSL: Issuer certificate",
@@ -1271,13 +1279,14 @@ static int ocsp_resp_cb(SSL *s, void *arg)
 	return 1;
 }
 
+#if (OPENSSL_VERSION_NUMBER < 0x1010006fL)
 
 static SSL_METHOD patch_ssl_method;
 static const SSL_METHOD *real_ssl_method;
 
 static int curl_patch_ssl_new(SSL *s)
 {
-	SSL_CTX *ssl = s->ctx;
+	SSL_CTX *ssl = SSL_get_SSL_CTX(s);
 	int ret;
 
 	ssl->method = real_ssl_method;
@@ -1288,6 +1297,7 @@ static int curl_patch_ssl_new(SSL *s)
 
 	return ret;
 }
+#endif
 
 #endif /* HAVE_OCSP */
 
@@ -1306,6 +1316,7 @@ static CURLcode curl_cb_ssl(CURL *curl, void *sslctx, void *parm)
 		SSL_CTX_set_tlsext_status_cb(ssl, ocsp_resp_cb);
 		SSL_CTX_set_tlsext_status_arg(ssl, ctx);
 
+#if (OPENSSL_VERSION_NUMBER < 0x1010006fL)
 		/*
 		 * Use a temporary SSL_METHOD to get a callback on SSL_new()
 		 * from libcurl since there is no proper callback registration
@@ -1315,6 +1326,7 @@ static CURLcode curl_cb_ssl(CURL *curl, void *sslctx, void *parm)
 		patch_ssl_method.ssl_new = curl_patch_ssl_new;
 		real_ssl_method = ssl->method;
 		ssl->method = &patch_ssl_method;
+#endif
 	}
 #endif /* HAVE_OCSP */
 
@@ -1351,12 +1363,16 @@ static CURL * setup_curl_post(struct http_ctx *ctx, const char *address,
 #ifdef EAP_TLS_OPENSSL
 		curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, curl_cb_ssl);
 		curl_easy_setopt(curl, CURLOPT_SSL_CTX_DATA, ctx);
-#ifdef OPENSSL_IS_BORINGSSL
+#if (defined OPENSSL_IS_BORINGSSL) || (OPENSSL_VERSION_NUMBER >= 0x1010006fL)
 		/* For now, using the CURLOPT_SSL_VERIFYSTATUS option only
 		 * with BoringSSL since the OpenSSL specific callback hack to
 		 * enable OCSP is not available with BoringSSL. The OCSP
 		 * implementation within libcurl is not sufficient for the
 		 * Hotspot 2.0 OSU needs, so cannot use this with OpenSSL.
+		 */
+		/* Fedora-26 OpenSSL (0x1010006f) Lno longer has access
+		 * to internals to do that hack, so enable the option for
+		 * that as well. --Ben
 		 */
 		if (ctx->ocsp != NO_OCSP)
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYSTATUS, 1L);
