@@ -985,7 +985,7 @@ static void mlme_event_deauth_disassoc(struct wpa_driver_nl80211_data *drv,
 		event.deauth_info.locally_generated =
 			!os_memcmp(mgmt->sa, drv->first_bss->addr, ETH_ALEN);
 		if (drv->ignore_deauth_event) {
-			wpa_printf(MSG_DEBUG, "nl80211: Ignore deauth event due to previous forced deauth-during-auth");
+			wpa_dbg(drv->ctx, MSG_INFO, "nl80211: Ignore deauth event due to previous forced deauth-during-auth, drv: %p  bssid: " MACSTR, drv, MAC2STR(bssid));
 			drv->ignore_deauth_event = 0;
 			if (event.deauth_info.locally_generated)
 				drv->ignore_next_local_deauth = 0;
