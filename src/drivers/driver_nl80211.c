@@ -3299,7 +3299,7 @@ static int wpa_driver_nl80211_authenticate(
 	    wpa_driver_nl80211_set_mode(bss, nlmode) < 0)
 		return -1;
 
-/*retry:*/
+retry:
 	wpa_printf(MSG_DEBUG, "nl80211: Authenticate (ifindex=%d)",
 		   drv->ifindex);
 
@@ -3371,7 +3371,10 @@ static int wpa_driver_nl80211_authenticate(
 		count++;
 		if (ret == -EALREADY && count == 1 && params->bssid &&
 		    !params->local_state_change) {
-#if 0
+			/* Nov 9, 2017:  Re-enable this...user saw endless loop of
+			 * hitting this case.  Maybe the original reason I put this hack
+			 * in back in 2014 is gone now. --Ben
+			 */
 			/* The original commit (6d6f4bb8) put in a work-around to
 			 * deal with the spurious deauth event, but it does not
 			 * appear to work in all cases.  Removing this retry code
@@ -3390,7 +3393,6 @@ static int wpa_driver_nl80211_authenticate(
 				WLAN_REASON_PREV_AUTH_NOT_VALID);
 			nlmsg_free(msg);
 			goto retry;
-#endif
 		}
 
 		if (ret == -ENOENT && params->freq && !is_retry) {
