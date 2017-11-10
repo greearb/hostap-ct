@@ -3290,10 +3290,10 @@ retry:
 	ret = send_and_recv_msgs(drv, msg, NULL, NULL);
 	msg = NULL;
 	if (ret) {
-		wpa_dbg(drv->ctx, MSG_INFO,
-			"nl80211: MLME command failed (auth): ret=%d (%s)",
-			ret, strerror(-ret));
 		count++;
+		wpa_dbg(drv->ctx, MSG_INFO,
+			"nl80211: MLME command failed (auth): count=%d ret=%d (%s)",
+			count, ret, strerror(-ret));
 		if (ret == -EALREADY && count == 1 && params->bssid &&
 		    !params->local_state_change) {
 			/* Nov 9, 2017:  Re-enable this...user saw endless loop of
@@ -3310,8 +3310,8 @@ retry:
 			 * authentication if we are already authenticated. As a
 			 * workaround, force deauthentication and try again.
 			 */
-			wpa_printf(MSG_DEBUG, "nl80211: Retry authentication "
-				   "after forced deauthentication");
+			wpa_dbg(drv->ctx, MSG_INFO, "nl80211: Retry authentication "
+				"after forced deauthentication, drv: %p", drv);
 			drv->ignore_deauth_event = 1;
 			wpa_driver_nl80211_deauthenticate(
 				bss, params->bssid,
