@@ -3968,8 +3968,8 @@ retry:
 			 * authentication if we are already authenticated. As a
 			 * workaround, force deauthentication and try again.
 			 */
-			wpa_printf(MSG_DEBUG, "nl80211: Retry authentication "
-				   "after forced deauthentication");
+			wpa_dbg(drv->ctx, MSG_INFO, "nl80211: Retry authentication "
+				"after forced deauthentication, drv: %p", drv);
 			drv->ignore_deauth_event = 1;
 			wpa_driver_nl80211_deauthenticate(
 				bss, params->bssid,
