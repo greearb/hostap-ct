@@ -207,8 +207,8 @@ static void wpa_supplicant_ctrl_iface_receive(int sock, void *eloop_ctx,
 		if (sendto(sock, reply, reply_len, 0, (struct sockaddr *) &from,
 			   fromlen) < 0) {
 			int _errno = errno;
-			wpa_dbg(wpa_s, MSG_DEBUG,
-				"ctrl_iface sendto failed: %d - %s",
+			wpa_dbg(wpa_s, MSG_INFO,
+				"CTRL_IFACE sendto failed: %d - %s",
 				_errno, strerror(_errno));
 			if (_errno == ENOBUFS || _errno == EAGAIN) {
 				/*
@@ -235,8 +235,10 @@ static void wpa_supplicant_ctrl_iface_receive(int sock, void *eloop_ctx,
 	os_free(reply_buf);
 	os_free(buf);
 
-	if (new_attached)
+	if (new_attached) {
+		wpa_dbg(wpa_s, MSG_INFO, "CTRL_IFACE:  Attaching");
 		eapol_sm_notify_ctrl_attached(wpa_s->eapol);
+	}
 }
 
 
@@ -998,9 +1000,9 @@ static void wpa_supplicant_ctrl_iface_send(struct wpa_supplicant *wpa_s,
 		}
 
 		_errno = errno;
-		os_snprintf(txt, sizeof(txt), "CTRL_IFACE monitor: %d (%s) for",
-			    _errno, strerror(_errno));
-		sockaddr_print(MSG_DEBUG, txt, &dst->addr, dst->addrlen);
+		os_snprintf(txt, sizeof(txt), "CTRL_IFACE monitor: %d (%s), dst->errors: %d for",
+			    _errno, strerror(_errno), dst->errors);
+		sockaddr_print(MSG_INFO, txt, &dst->addr, dst->addrlen);
 		dst->errors++;
 
 		if (dst->errors > 10 || _errno == ENOENT || _errno == EPERM) {

@@ -162,7 +162,7 @@ int ctrl_iface_attach(struct dl_list *ctrl_dst, struct sockaddr_storage *from,
 	ctrl_set_events(dst, input);
 	dl_list_add(ctrl_dst, &dst->list);
 
-	sockaddr_print(MSG_DEBUG, "CTRL_IFACE monitor attached", from, fromlen);
+	sockaddr_print(MSG_INFO, "CTRL_IFACE monitor attached", from, fromlen);
 	return 0;
 }
 
