@@ -409,8 +409,11 @@ static int wpa_cli_cmd_license(struct wpa_ctrl *ctrl, int argc, char *argv[])
 static int wpa_cli_cmd_quit(struct wpa_ctrl *ctrl, int argc, char *argv[])
 {
 	wpa_cli_quit = 1;
-	if (interactive)
+	if (interactive) {
+		if (do_monitor)
+			fprintf(stderr, "wpa-cli:  cmd-quit, exiting.\n");
 		eloop_terminate();
+	}
 	return 0;
 }
 
@@ -4581,6 +4584,8 @@ static void wpa_cli_edit_cmd_cb(void *ctx, char *cmd)
 
 static void wpa_cli_edit_eof_cb(void *ctx)
 {
+	if (do_monitor)
+		fprintf(stderr, "wpa-cli:  edit-eof-cb, exiting\n");
 	eloop_terminate();
 }
 
@@ -4613,6 +4618,8 @@ static void start_edit(void)
 
 	if (edit_init(wpa_cli_edit_cmd_cb, wpa_cli_edit_eof_cb,
 		      wpa_cli_edit_completion_cb, NULL, hfile, ps) < 0) {
+		if (do_monitor)
+			fprintf(stderr, "wpa-cli:  edit-init failed, exiting\n");
 		eloop_terminate();
 		return;
 	}
@@ -4827,7 +4834,7 @@ static void wpa_cli_interactive(void)
 static void wpa_cli_action_ping(void *eloop_ctx, void *timeout_ctx)
 {
 	struct wpa_ctrl *ctrl = eloop_ctx;
-	char buf[256];
+	char buf[256] = {0};
 	size_t len;
 
 	/* verify that connection is still working */
@@ -4835,7 +4842,8 @@ static void wpa_cli_action_ping(void *eloop_ctx, void *timeout_ctx)
 	if (wpa_ctrl_request(ctrl, "PING", 4, buf, &len,
 			     wpa_cli_action_cb) < 0 ||
 	    len < 4 || os_memcmp(buf, "PONG", 4) != 0) {
-		printf("wpa_supplicant did not reply to PING command - exiting\n");
+		fprintf(stderr, "wpa-cli: wpa_supplicant did not reply to PING command, len: %d buf: %s - exiting\n",
+			(int)len, buf);
 		eloop_terminate();
 		return;
 	}
@@ -4884,6 +4892,8 @@ static void wpa_cli_cleanup(void)
 
 static void wpa_cli_terminate(int sig, void *ctx)
 {
+	if (do_monitor)
+		fprintf(stderr, "wpa-cli:  terminate called (sig: %d), exiting\n", sig);
 	eloop_terminate();
 	if (reconnect)
 		wpa_cli_quit = 1;
@@ -5086,6 +5096,8 @@ int main(int argc, char *argv[])
 	eloop_destroy();
 	wpa_cli_cleanup();
 
+	if (do_monitor)
+		fprintf(stderr, "wpa-cli:  Exiting with value: %d\n", ret);
 	return ret;
 }
 
