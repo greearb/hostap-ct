@@ -4644,6 +4644,12 @@ void wpa_supplicant_apply_vht_overrides(
 	vhtcaps_mask->vht_capabilities_info = host_to_le32(ssid->vht_capa_mask);
 
 #ifdef CONFIG_HT_OVERRIDES
+	if (ssid->disable_sgi) {
+		vhtcaps_mask->vht_capabilities_info |= (VHT_CAP_SHORT_GI_80 | VHT_CAP_SHORT_GI_160);
+		vhtcaps->vht_capabilities_info &= ~(VHT_CAP_SHORT_GI_80 | VHT_CAP_SHORT_GI_160);
+		wpa_msg(wpa_s, MSG_DEBUG, "disable-sgi override specified, vht-caps: 0x%x",
+			vhtcaps->vht_capabilities_info);
+	}
 	if (ssid->max_oper_chwidth != VHT_CHANWIDTH_USE_HT) { // USE_HT is default value for this, ignore it.
 		vhtcaps_mask->vht_capabilities_info |= VHT_CAP_SUPP_CHAN_WIDTH_MASK;
 		vhtcaps->vht_capabilities_info &= ~VHT_CAP_SUPP_CHAN_WIDTH_MASK;
