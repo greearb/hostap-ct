@@ -3369,7 +3369,8 @@ retry:
 		wpa_dbg(drv->ctx, MSG_INFO,
 			"nl80211: MLME command failed (auth): count=%d ret=%d (%s)",
 			count, ret, strerror(-ret));
-		if (ret == -EALREADY && count == 1 && params->bssid &&
+		if (((ret == -EALREADY) || (ret == -EEXIST))
+		    && count == 1 && params->bssid &&
 		    !params->local_state_change) {
 			/* Nov 9, 2017:  Re-enable this...user saw endless loop of
 			 * hitting this case.  Maybe the original reason I put this hack
