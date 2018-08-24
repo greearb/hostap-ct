@@ -475,7 +475,7 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 
 	if (!wpa_s->conf->no_oper_classes_ie) {
 		wpa_s->sme.assoc_req_ie_len += wpas_supp_op_class_ie(
-			wpa_s, bss->freq,
+			wpa_s, ssid, bss->freq,
 			wpa_s->sme.assoc_req_ie + wpa_s->sme.assoc_req_ie_len,
 			sizeof(wpa_s->sme.assoc_req_ie) - wpa_s->sme.assoc_req_ie_len);
 	}
