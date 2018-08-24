@@ -1222,6 +1222,16 @@ struct wpa_config {
 	int okc;
 
 	/**
+	 * At least some APs (dpc3941) will not reliably associate a station on the
+	 * 2.4Ghz radio with at least some client devices (ath10k 9880) if the
+	 * supported operating classes IE advertises 2.4 and 5Ghz range
+	 * (81, 83, 84, 115 ... 130)
+	 * So, allow users to disable the operating-class IE in order to work around
+	 * this.
+	 */
+	int no_oper_classes_ie;
+
+	/**
 	 * pmf - Whether to enable/require PMF by default
 	 *
 	 * By default, PMF is disabled unless enabled by the per-network
