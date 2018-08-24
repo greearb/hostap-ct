@@ -618,10 +618,12 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 
 	sme_auth_handle_rrm(wpa_s, bss);
 
-	wpa_s->sme.assoc_req_ie_len += wpas_supp_op_class_ie(
-		wpa_s, ssid, bss,
-		wpa_s->sme.assoc_req_ie + wpa_s->sme.assoc_req_ie_len,
-		sizeof(wpa_s->sme.assoc_req_ie) - wpa_s->sme.assoc_req_ie_len);
+	if (!wpa_s->conf->no_oper_classes_ie) {
+		wpa_s->sme.assoc_req_ie_len += wpas_supp_op_class_ie(
+			wpa_s, ssid, bss,
+			wpa_s->sme.assoc_req_ie + wpa_s->sme.assoc_req_ie_len,
+			sizeof(wpa_s->sme.assoc_req_ie) - wpa_s->sme.assoc_req_ie_len);
+	}
 
 	if (params.p2p)
 		wpa_drv_get_ext_capa(wpa_s, WPA_IF_P2P_CLIENT);
