@@ -867,7 +867,7 @@ static void wpa_driver_wext_send_rfkill(void *eloop_ctx, void *timeout_ctx)
 static int wext_hostap_ifname(struct wpa_driver_wext_data *drv,
 			      const char *ifname)
 {
-	char buf[200], *res;
+	char buf[400], *res;
 	int type, ret;
 	FILE *f;
 
