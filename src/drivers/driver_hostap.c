@@ -217,6 +217,7 @@ static int hostap_init_sockets(struct hostap_driver_data *drv, u8 *own_addr)
 {
 	struct ifreq ifr;
 	struct sockaddr_ll addr;
+	char buf[40] = {0};
 
 	drv->sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 	if (drv->sock < 0) {
@@ -231,11 +232,12 @@ static int hostap_init_sockets(struct hostap_driver_data *drv, u8 *own_addr)
 	}
 
         memset(&ifr, 0, sizeof(ifr));
-	if (os_snprintf(ifr.ifr_name, sizeof(ifr.ifr_name), "%sap",
+	if (os_snprintf(buf, sizeof(ifr.ifr_name), "%sap",
 			drv->iface) >= (int) sizeof(ifr.ifr_name)) {
 		wpa_printf(MSG_ERROR, "hostap: AP interface name truncated");
 		return -1;
 	}
+        memcpy(ifr.ifr_name, buf, sizeof(ifr.ifr_name));
         if (ioctl(drv->sock, SIOCGIFINDEX, &ifr) != 0) {
 		wpa_printf(MSG_ERROR, "ioctl(SIOCGIFINDEX): %s",
 			   strerror(errno));
@@ -350,9 +352,9 @@ static int hostap_set_iface_flags(void *priv, int dev_up)
 {
 	struct hostap_driver_data *drv = priv;
 	struct ifreq ifr;
-	char ifname[IFNAMSIZ];
+	char ifname[IFNAMSIZ + 20];
 
-	if (os_snprintf(ifname, IFNAMSIZ, "%sap", drv->iface) >= IFNAMSIZ) {
+	if (os_snprintf(ifname, sizeof(ifname) - 1, "%sap", drv->iface) >= IFNAMSIZ) {
 		wpa_printf(MSG_ERROR, "hostap: AP interface name truncated");
 		return -1;
 	}
