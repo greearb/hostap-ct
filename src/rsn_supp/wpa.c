@@ -47,6 +47,16 @@ const char* eapol_msg_type_str(enum eapol_key_msg_type t)
 	return types_str[EAPOL_MSG_TYPE_UNKNOWN];
 }
 
+/* For non-key related messages */
+const char* eapol_i_msg_type_str(enum i_eapol_msg_type t)
+{
+	static const char* types_str[I_EAPOL_MSG_TYPE_MAX] =
+		{"UNKNOWN", "ID-REQ", "ID-RESP", "OTHER-REQ", "OTHER-RESP" };
+	if (t >= 0 && t < I_EAPOL_MSG_TYPE_MAX)
+		return types_str[t];
+	return types_str[I_EAPOL_MSG_TYPE_UNKNOWN];
+}
+
 void wpa_apply_corruptions(struct wpa_sm *sm, u16 corrupt_eapol_2_of_4,
 			   u16 corrupt_eapol_4_of_4, u16 corrupt_eapol_2_of_2,
 			   u16 corrupt_eapol_key_req)
