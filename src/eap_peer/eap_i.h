@@ -394,6 +394,9 @@ struct eap_sm {
 	/* Identity used in EAP-Response/Identity */
 	u8 *identity;
 	size_t identity_len;
+#ifdef CONFIG_TESTING_OPTIONS
+	u16 corrupt_eapol_id_resp;
+#endif
 };
 
 const u8 * eap_get_config_identity(struct eap_sm *sm, size_t *len);
