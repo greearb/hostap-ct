@@ -368,12 +368,23 @@ int eapol_sm_get_erp_info(struct eapol_sm *sm, struct eap_peer_config *config,
 			  u16 *erp_next_seq_num, const u8 **rrk,
 			  size_t *rrk_len);
 
+#ifdef CONFIG_TESTING_OPTIONS
+void eapol_apply_corruptions(struct eapol_sm *sm, u16 corrupt_eapol_id_resp,
+			     u16 corrupt_eapol_other_resp);
+#endif
+
 #else /* IEEE8021X_EAPOL */
 static inline struct eapol_sm *eapol_sm_init(struct eapol_ctx *ctx)
 {
 	free(ctx);
 	return (struct eapol_sm *) 1;
 }
+#ifdef CONFIG_TESTING_OPTIONS
+static inline void eapol_apply_coruptions(struct eapol_sm *sm, u16 corrupt_eapol_id_resp,
+					  u16 corrupt_eapol_other_resp);
+{
+}
+#endif
 static inline void eapol_sm_deinit(struct eapol_sm *sm)
 {
 }
