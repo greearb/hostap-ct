@@ -2243,6 +2243,12 @@ struct eap_sm * eap_peer_sm_init(void *eapol_ctx,
 	return sm;
 }
 
+#ifdef CONFIG_TESTING_OPTIONS
+void eap_apply_corruptions(struct eap_sm *sm, u16 corrupt_eapol_id_resp)
+{
+	sm->corrupt_eapol_id_resp = corrupt_eapol_id_resp;
+}
+#endif
 
 /**
  * eap_peer_sm_deinit - Deinitialize and free an EAP peer state machine
