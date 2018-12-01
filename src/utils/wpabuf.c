@@ -174,6 +174,22 @@ struct wpabuf * wpabuf_dup(const struct wpabuf *src)
 	return buf;
 }
 
+#ifdef CONFIG_TESTING_OPTIONS
+void do_corrupt(void* msg_ctx, struct wpabuf *buf, const char* dbg_msg)
+{
+	/* Corrupt a random byte, maybe more?? */
+	u8 *msg = buf->buf;
+	int idx = os_random() % wpabuf_len(buf);
+	int rnd = os_random();
+	if (msg[idx] == rnd)
+		msg[idx]++;
+	else
+		msg[idx] = rnd;
+	wpa_msg(msg_ctx, MSG_INFO,
+		"WPA: Corrupting %s message, idx: %d  value: 0x%x\n",
+		dbg_msg, idx, msg[idx]);
+}
+#endif
 
 /**
  * wpabuf_free - Free a wpabuf
