@@ -183,6 +183,19 @@ enum eapol_key_msg_type {
 	EAPOL_MSG_TYPE_MAX,
 };
 
+#ifdef CONFIG_TESTING_OPTIONS
+/* Internal enum, not directly related to a field in a spec. */
+enum i_eapol_msg_type {
+	I_EAPOL_MSG_TYPE_UNKNOWN,
+	I_EAPOL_MSG_ID_REQ,
+	I_EAPOL_MSG_ID_RESP,
+	I_EAPOL_MSG_OTHER_REQ,
+	I_EAPOL_MSG_OTHER_RESP,
+
+	I_EAPOL_MSG_TYPE_MAX
+};
+#endif
+
 #ifndef CONFIG_NO_WPA
 
 #ifdef CONFIG_TESTING_OPTIONS
