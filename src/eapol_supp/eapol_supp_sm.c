@@ -151,6 +151,9 @@ struct eapol_sm {
 	bool eap_over_auth_frame;
 	struct wpabuf *eapRespData;
 #endif /* CONFIG_IEEE8021X_AUTH */
+#ifdef CONFIG_TESTING_OPTIONS
+	u16 corrupt_eapol_other_resp;
+#endif
 };
 
 
@@ -2209,6 +2212,14 @@ struct eapol_sm *eapol_sm_init(struct eapol_ctx *ctx)
 	return sm;
 }
 
+#ifdef CONFIG_TESTING_OPTIONS
+void eapol_apply_corruptions(struct eapol_sm *sm, u16 corrupt_eapol_id_resp,
+			     u16 corrupt_eapol_other_resp)
+{
+	eap_apply_corruptions(sm->eap, corrupt_eapol_id_resp);
+	sm->corrupt_eapol_other_resp = corrupt_eapol_other_resp;
+}
+#endif
 
 /**
  * eapol_sm_deinit - Deinitialize EAPOL state machine
