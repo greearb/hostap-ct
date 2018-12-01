@@ -379,12 +379,23 @@ struct wpabuf * eapol_sm_get_eapol_pdu(struct eapol_sm *sm, uint8_t type);
 bool eapol_sm_get_success(struct eapol_sm *sm);
 bool eapol_sm_get_failure(struct eapol_sm *sm);
 
+#ifdef CONFIG_TESTING_OPTIONS
+void eapol_apply_corruptions(struct eapol_sm *sm, u16 corrupt_eapol_id_resp,
+			     u16 corrupt_eapol_other_resp);
+#endif
+
 #else /* IEEE8021X_EAPOL */
 static inline struct eapol_sm *eapol_sm_init(struct eapol_ctx *ctx)
 {
 	free(ctx);
 	return (struct eapol_sm *) 1;
 }
+#ifdef CONFIG_TESTING_OPTIONS
+static inline void eapol_apply_coruptions(struct eapol_sm *sm, u16 corrupt_eapol_id_resp,
+					  u16 corrupt_eapol_other_resp);
+{
+}
+#endif
 static inline void eapol_sm_deinit(struct eapol_sm *sm)
 {
 }
