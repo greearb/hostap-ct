@@ -174,7 +174,7 @@ enum eapol_key_msg_type {
 	EAPOL_MSG_TYPE_4_OF_4, /* sent by sta */
 	EAPOL_MSG_TYPE_GROUP_1_OF_2, /* rx by sta */
 	EAPOL_MSG_TYPE_GROUP_2_OF_2, /* sent by sta */
-	EAPOL_MSG_TYPE_KEY_REQUEST,
+	EAPOL_MSG_TYPE_KEY_REQUEST, /* rx by sta */
 	EAPOL_MSG_TYPE_SMK_ERROR,
 	EAPOL_MSG_TYPE_SMK_M1,
 	EAPOL_MSG_TYPE_SMK_M3,
