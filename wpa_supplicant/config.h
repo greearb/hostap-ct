@@ -1035,11 +1035,16 @@ struct wpa_config {
 	unsigned short ignore_eapol_1_of_4;
 	unsigned short ignore_eapol_3_of_4;
 	unsigned short ignore_eapol_1_of_2;
+	unsigned short ignore_eapol_key_req;
+	unsigned short ignore_eapol_id_req;
+	unsigned short ignore_eapol_other_req;
 
 	unsigned short corrupt_eapol_2_of_4;
 	unsigned short corrupt_eapol_4_of_4;
 	unsigned short corrupt_eapol_2_of_2;
 	unsigned short corrupt_eapol_key_req;
+	unsigned short corrupt_eapol_id_resp;
+	unsigned short corrupt_eapol_other_resp;
 
 	unsigned short delay_eapol_1_of_4_min;
 	unsigned short delay_eapol_1_of_4_max;
@@ -1048,6 +1053,12 @@ struct wpa_config {
 	unsigned short delay_eapol_1_of_2_min;
 	unsigned short delay_eapol_1_of_2_max;
 
+	unsigned short delay_eapol_key_req_min;
+	unsigned short delay_eapol_key_req_max;
+	unsigned short delay_eapol_id_req_min;
+	unsigned short delay_eapol_id_req_max;
+	unsigned short delay_eapol_other_req_min;
+	unsigned short delay_eapol_other_req_max;
 #endif
 
 	/**
