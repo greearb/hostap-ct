@@ -1303,6 +1303,12 @@ static int hostapd_cli_cmd_set_neighbor(struct wpa_ctrl *ctrl, int argc,
 	return wpa_ctrl_command(ctrl, cmd);
 }
 
+static int hostapd_cli_cmd_show_neighbor(struct wpa_ctrl *ctrl, int argc,
+					 char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "SHOW_NEIGHBOR");
+}
+
 
 static int hostapd_cli_cmd_remove_neighbor(struct wpa_ctrl *ctrl, int argc,
 					   char *argv[])
@@ -1628,6 +1634,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	{ "set_neighbor", hostapd_cli_cmd_set_neighbor, NULL,
 	  "<addr> <ssid=> <nr=> [lci=] [civic=] [stat]\n"
 	  "  = add AP to neighbor database" },
+	{ "show_neighbor", hostapd_cli_cmd_show_neighbor, NULL,
+	  "  = show neighbor database entries" },
 	{ "remove_neighbor", hostapd_cli_cmd_remove_neighbor, NULL,
 	  "<addr> <ssid=> = remove AP from neighbor database" },
 	{ "req_lci", hostapd_cli_cmd_req_lci, hostapd_complete_stations,

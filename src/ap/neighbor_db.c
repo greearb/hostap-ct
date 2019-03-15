@@ -33,6 +33,73 @@ hostapd_neighbor_get(struct hostapd_data *hapd, const u8 *bssid,
 	return NULL;
 }
 
+int
+hostapd_neighbor_show(struct hostapd_data *hapd, char* buf, size_t buflen)
+{
+	struct hostapd_neighbor_entry *nr;
+	char *pos, *end;
+
+	pos = buf;
+	end = buf + buflen;
+
+	dl_list_for_each(nr, &hapd->nr_db, struct hostapd_neighbor_entry,
+			 list) {
+		int ret;
+		char nrie[120];
+		char lci[120];
+		char civic[120];
+		char ssid[SSID_MAX_LEN * 2 + 1];
+		int i = 0;
+		static const char* blank = "[BLANK]";
+
+		for (i = 0; i<nr->ssid.ssid_len; i++) {
+			os_snprintf(ssid + i * 2, 3, "%02hx", nr->ssid.ssid[i]);
+		}
+		if (i == 0)
+			os_snprintf(ssid, sizeof(ssid), "%s", blank);
+
+		i = 0;
+		if (nr->nr) {
+			for (i = 0; i<nr->nr->used; i++) {
+				if (i * 2 + 2 >= sizeof(nrie))
+					break;
+				os_snprintf(nrie + i * 2, 3, "%02hx", nr->nr->buf[i]);
+			}
+		}
+		if (i == 0)
+			os_snprintf(nrie, sizeof(nrie), "%s", blank);
+
+		i = 0;
+		if (nr->lci) {
+			for (i = 0; i<nr->lci->used; i++) {
+				if (i * 2 + 2 >= sizeof(lci))
+					break;
+				os_snprintf(lci + i * 2, 3, "%02hx", nr->lci->buf[i]);
+			}
+		}
+		if (i == 0)
+			os_snprintf(lci, sizeof(lci), "%s", blank);
+
+		i = 0;
+		if (nr->civic) {
+			for (i = 0; i<nr->civic->used; i++) {
+				if (i * 2 + 2 >= sizeof(civic))
+					break;
+				os_snprintf(civic + i * 2, 3, "%02hx", nr->civic->buf[i]);
+			}
+		}
+		if (i == 0)
+			os_snprintf(civic, sizeof(civic), "%s", blank);
+
+		ret = os_snprintf(pos, end - pos, MACSTR " ssid=%s nr=%s lci=%s civic=%s stationary=%i\n",
+				  MAC2STR(nr->bssid), ssid, nrie, lci, civic, nr->stationary);
+		if (os_snprintf_error(end - pos, ret))
+			break;
+		pos += ret;
+	}
+	return pos - buf;
+}
+
 
 static void hostapd_neighbor_clear_entry(struct hostapd_neighbor_entry *nr)
 {
