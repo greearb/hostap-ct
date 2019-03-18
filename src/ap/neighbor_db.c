@@ -181,7 +181,7 @@ int hostapd_neighbor_remove(struct hostapd_data *hapd, const u8 *bssid,
 
 	nr = hostapd_neighbor_get(hapd, bssid, ssid);
 	if (!nr)
-		return -1;
+		return 0; /* already gone, treat as success */
 
 	hostapd_neighbor_clear_entry(nr);
 	dl_list_del(&nr->list);
