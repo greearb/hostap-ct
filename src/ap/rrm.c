@@ -195,36 +195,21 @@ static size_t hostapd_neighbor_report_len(struct wpabuf *buf,
 	return len;
 }
 
-
-static void hostapd_send_nei_report_resp(struct hostapd_data *hapd,
-					 const u8 *addr, u8 dialog_token,
-					 struct wpa_ssid_value *ssid, u8 lci,
-					 u8 civic, u16 lci_max_age)
+void hostapd_rrm_add_neigh_report_ies(struct hostapd_data *hapd,
+				      struct wpabuf *buf, struct wpa_ssid_value *ssid,
+				      u8 lci, u8 civic, u16 lci_max_age)
 {
 	struct hostapd_neighbor_entry *nr;
-	struct wpabuf *buf;
 	u8 *msmt_token;
-
-	/*
-	 * The number and length of the Neighbor Report elements in a Neighbor
-	 * Report frame is limited by the maximum allowed MMPDU size; + 3 bytes
-	 * of RRM header.
-	 */
-	buf = wpabuf_alloc(3 + IEEE80211_MAX_MMPDU_SIZE);
-	if (!buf)
-		return;
-
-	wpabuf_put_u8(buf, WLAN_ACTION_RADIO_MEASUREMENT);
-	wpabuf_put_u8(buf, WLAN_RRM_NEIGHBOR_REPORT_RESPONSE);
-	wpabuf_put_u8(buf, dialog_token);
 
 	dl_list_for_each(nr, &hapd->nr_db, struct hostapd_neighbor_entry,
 			 list) {
 		int send_lci;
 		size_t len;
 
-		if (ssid->ssid_len != nr->ssid.ssid_len ||
-		    os_memcmp(ssid->ssid, nr->ssid.ssid, ssid->ssid_len) != 0)
+		if (ssid &&
+		    (ssid->ssid_len != nr->ssid.ssid_len ||
+		     os_memcmp(ssid->ssid, nr->ssid.ssid, ssid->ssid_len) != 0))
 			continue;
 
 		send_lci = (lci != 0) && hostapd_check_lci_age(nr, lci_max_age);
@@ -268,6 +253,29 @@ static void hostapd_send_nei_report_resp(struct hostapd_data *hapd,
 			*msmt_token = civic;
 		}
 	}
+}
+
+static void hostapd_send_nei_report_resp(struct hostapd_data *hapd,
+					 const u8 *addr, u8 dialog_token,
+					 struct wpa_ssid_value *ssid, u8 lci,
+					 u8 civic, u16 lci_max_age)
+{
+	struct wpabuf *buf;
+
+	/*
+	 * The number and length of the Neighbor Report elements in a Neighbor
+	 * Report frame is limited by the maximum allowed MMPDU size; + 3 bytes
+	 * of RRM header.
+	 */
+	buf = wpabuf_alloc(3 + IEEE80211_MAX_MMPDU_SIZE);
+	if (!buf)
+		return;
+
+	wpabuf_put_u8(buf, WLAN_ACTION_RADIO_MEASUREMENT);
+	wpabuf_put_u8(buf, WLAN_RRM_NEIGHBOR_REPORT_RESPONSE);
+	wpabuf_put_u8(buf, dialog_token);
+
+	hostapd_rrm_add_neigh_report_ies(hapd, buf, ssid, lci, civic, lci_max_age);
 
 	hostapd_drv_send_action(hapd, hapd->iface->freq, 0, addr,
 				wpabuf_head(buf), wpabuf_len(buf));
