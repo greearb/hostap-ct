@@ -31,5 +31,8 @@ void hostapd_rrm_beacon_req_tx_status(struct hostapd_data *hapd,
 				      size_t len, int ok);
 int hostapd_send_link_measurement_req(struct hostapd_data *hapd,
 				      const u8 *addr);
+void hostapd_rrm_add_neigh_report_ies(struct hostapd_data *hapd,
+				      struct wpabuf *buf, struct wpa_ssid_value *ssid,
+				      u8 lci, u8 civic, u16 lci_max_age);
 
 #endif /* RRM_H */
