@@ -369,8 +369,9 @@ static int ieee802_11_send_bss_trans_mgmt_request(struct hostapd_data *hapd,
 	size_t len;
 	u8 *pos;
 	int res;
+	struct wpabuf *buf;
 
-	mgmt = os_zalloc(sizeof(*mgmt));
+	mgmt = os_zalloc(IEEE80211_MAX_MMPDU_SIZE);
 	if (mgmt == NULL)
 		return -1;
 	os_memcpy(mgmt->da, addr, ETH_ALEN);
@@ -381,10 +382,32 @@ static int ieee802_11_send_bss_trans_mgmt_request(struct hostapd_data *hapd,
 	mgmt->u.action.category = WLAN_ACTION_WNM;
 	mgmt->u.action.u.bss_tm_req.action = WNM_BSS_TRANS_MGMT_REQ;
 	mgmt->u.action.u.bss_tm_req.dialog_token = dialog_token;
+	/* set 0x1 flag for prefered candidate list included.
+	 * see: 9.6.14.9 BSS Transition Management Request frame format
+	 */
 	mgmt->u.action.u.bss_tm_req.req_mode = 0;
 	mgmt->u.action.u.bss_tm_req.disassoc_timer = host_to_le16(0);
 	mgmt->u.action.u.bss_tm_req.validity_interval = 1;
 	pos = mgmt->u.action.u.bss_tm_req.variable;
+
+	buf = wpabuf_alloc(IEEE80211_MAX_MMPDU_SIZE - sizeof(*mgmt));
+	if (buf) {
+		/* Grab neighbor list */
+		/* TODO:  Maybe round-robin and only send one?
+		 * Or take load into consideration?
+		 * Maybe we should skip our own entry?
+		 */
+		int lci = 1; /* add lci sub-element */
+		int civic = 1; /* add civic sub-element */
+		int lci_age = 0xffff; /* maximum age, send all */
+		hostapd_rrm_add_neigh_report_ies(hapd, buf, NULL, lci, civic, lci_age);
+		if (wpabuf_len(buf)) {
+			mgmt->u.action.u.bss_tm_req.req_mode = 0x1;
+			os_memcpy(pos, wpabuf_head(buf), wpabuf_len(buf));
+			pos += wpabuf_len(buf);
+		}
+		wpabuf_free(buf);
+	}
 
 	wpa_printf(MSG_DEBUG, "WNM: Send BSS Transition Management Request to "
 		   MACSTR " dialog_token=%u req_mode=0x%x disassoc_timer=%u "
