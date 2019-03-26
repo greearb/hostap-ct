@@ -1385,7 +1385,13 @@ struct wpa_supplicant {
 	struct os_time state_disabled_at;
 	struct os_time state_inactive_at;
 	struct os_time state_scanning_at;
-	struct os_time state_authenticating_at;
+	struct os_time state_authenticating_at; /* start auth */
+	/* 9984 can take around 270ms to change channel, so the auth takes
+	 * a long time.  Also keep a timer for when auth pkt was actually
+	 * sent as that is the time-stamp that actually matters if we are trying
+	 * to measure how well an AP is doing.
+	 */
+	struct os_time state_authenticate_sent_at; /* auth tx status received */
 	struct os_time state_associating_at;
 	struct os_time state_associated_at;
 	struct os_time state_4way_at;

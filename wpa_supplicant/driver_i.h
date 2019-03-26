@@ -51,9 +51,14 @@ static inline int wpa_drv_set_countermeasures(struct wpa_supplicant *wpa_s,
 static inline int wpa_drv_authenticate(struct wpa_supplicant *wpa_s,
 				       struct wpa_driver_auth_params *params)
 {
-	if (wpa_s->driver->authenticate)
-		return wpa_s->driver->authenticate(wpa_s->drv_priv, params);
-	return -1;
+	int rv = -1;
+	if (wpa_s->driver->authenticate) {
+		rv = wpa_s->driver->authenticate(wpa_s->drv_priv, params);
+#ifdef CONFIG_REPORT_TIMERS
+		os_get_time(&wpa_s->state_authenticate_sent_at);
+#endif
+	}
+	return rv;
 }
 
 static inline int wpa_drv_associate(struct wpa_supplicant *wpa_s,
