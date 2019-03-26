@@ -2555,6 +2555,7 @@ static int wpa_supplicant_ctrl_iface_status(struct wpa_supplicant *wpa_s,
 	PRINT_TIME_STAMP(started_anqp_query_at);
 	PRINT_TIME_STAMP(finished_anqp_query_at);
 	PRINT_TIME_STAMP(state_authenticating_at);
+	PRINT_TIME_STAMP(state_authenticate_sent_at);
 	PRINT_TIME_STAMP(state_associating_at);
 	PRINT_TIME_STAMP(state_associated_at);
 	PRINT_TIME_STAMP(state_4way_at);
