@@ -7474,8 +7474,8 @@ static int wpa_driver_nl80211_send_action(struct i802_bss *bss,
 	int offchanok = (freq != bss->freq);
 
 	wpa_printf(MSG_DEBUG, "nl80211: Send Action frame (ifindex=%d, "
-		   "freq=%u MHz wait=%d ms no_cck=%d offchanok=%d)",
-		   drv->ifindex, freq, wait_time, no_cck, offchanok);
+		   "freq=%u bss->freq=%u MHz wait=%d ms no_cck=%d offchanok=%d)",
+		   drv->ifindex, freq, bss->freq, wait_time, no_cck, offchanok);
 
 	buf = os_zalloc(24 + data_len);
 	if (buf == NULL)
