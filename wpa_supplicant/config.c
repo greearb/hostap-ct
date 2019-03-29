@@ -4435,6 +4435,8 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	config->bss_max_count = DEFAULT_BSS_MAX_COUNT;
 	config->bss_expiration_age = DEFAULT_BSS_EXPIRATION_AGE;
 	config->bss_expiration_scan_count = DEFAULT_BSS_EXPIRATION_SCAN_COUNT;
+	config->reassoc_throughput_level_th = DEFAULT_REASSOC_THROUGHPUT_THRESHOLD;
+	config->reassoc_rssi_level_th = DEFAULT_REASSOC_RSSI_THRESHOLD;
 	config->max_num_sta = DEFAULT_MAX_NUM_STA;
 	config->ap_isolate = DEFAULT_AP_ISOLATE;
 	config->access_network_type = DEFAULT_ACCESS_NETWORK_TYPE;
@@ -5324,6 +5326,8 @@ static const struct global_parse_data global_fields[] = {
 	{ INT_RANGE(sae_pwe, 0, 3), 0 },
 	{ INT_RANGE(sae_pmkid_in_assoc, 0, 1), 0 },
 	{ INT(dtim_period), 0 },
+	{ INT(reassoc_throughput_level_th), 0 },
+	{ INT(reassoc_rssi_level_th), 0 },
 	{ INT(beacon_int), 0 },
 	{ FUNC(ap_assocresp_elements), 0 },
 	{ FUNC(ap_vendor_elements), 0 },
