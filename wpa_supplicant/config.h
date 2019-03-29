@@ -32,6 +32,8 @@
 #define DEFAULT_BSS_MAX_COUNT 200
 #define DEFAULT_BSS_EXPIRATION_AGE 180
 #define DEFAULT_BSS_EXPIRATION_SCAN_COUNT 2
+#define DEFAULT_REASSOC_THROUGHPUT_THRESHOLD 5000
+#define DEFAULT_REASSOC_RSSI_THRESHOLD 0
 #define DEFAULT_MIN_SCAN_GAP 0
 #define DEFAULT_MAX_ASSOC_PER_SCAN 25
 #define DEFAULT_DISABLE_ESS_ROAMING 0
@@ -1355,6 +1357,19 @@ struct wpa_config {
 	 * blocks that do not specify dtim_period.
 	 */
 	int dtim_period;
+
+
+	/**
+	 * The throughput difference at which a station will roam based on
+	 * scan results.  Set to 5000 for default behaviour.
+	 */
+	int reassoc_throughput_level_th;
+
+	/**
+	 * The minimum rssi level difference that can cause a roam based on
+	 * scan results.  Set to zero for default behaviour.
+	 */
+	int reassoc_rssi_level_th;
 
 	/**
 	 * beacon_int - Default Beacon interval in TU
