@@ -2383,6 +2383,7 @@ void scan_est_throughput(struct wpa_supplicant *wpa_s,
 		}
 	}
 
+	/* TODO: Take number of spatial streams into account */
 	/* TODO: channel utilization and AP load (e.g., from AP Beacon) */
 
 	res->est_throughput = est;

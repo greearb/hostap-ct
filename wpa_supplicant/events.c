@@ -1728,10 +1728,12 @@ static int wpa_supplicant_need_to_roam(struct wpa_supplicant *wpa_s,
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "Considering within-ESS reassociation");
 	wpa_dbg(wpa_s, MSG_DEBUG, "Current BSS: " MACSTR
-		" freq=%d level=%d snr=%d est_throughput=%u",
+		" freq=%d level=%d snr=%d est_throughput=%u throughput_threshold=%d min_rssi_threshold=%d",
 		MAC2STR(current_bss->bssid),
 		current_bss->freq, current_bss->level,
-		current_bss->snr, current_bss->est_throughput);
+		current_bss->snr, current_bss->est_throughput,
+		wpa_s->conf->reassoc_throughput_level_th,
+		wpa_s->conf->reassoc_rssi_level_th);
 	wpa_dbg(wpa_s, MSG_DEBUG, "Selected BSS: " MACSTR
 		" freq=%d level=%d snr=%d est_throughput=%u",
 		MAC2STR(selected->bssid), selected->freq, selected->level,
@@ -1745,9 +1747,11 @@ static int wpa_supplicant_need_to_roam(struct wpa_supplicant *wpa_s,
 		return 1;
 	}
 
-	if (selected->est_throughput > current_bss->est_throughput + 5000) {
+	if (selected->est_throughput > current_bss->est_throughput + wpa_s->conf->reassoc_throughput_level_th) {
 		wpa_dbg(wpa_s, MSG_DEBUG,
-			"Allow reassociation - selected BSS has better estimated throughput");
+			"Allow reassociation - selected BSS has better estimated throughput: %d vs %d, trigger-level: %d",
+			selected->est_throughput, current_bss->est_throughput,
+			wpa_s->conf->reassoc_throughput_level_th);
 		return 1;
 	}
 
@@ -1760,9 +1764,11 @@ static int wpa_supplicant_need_to_roam(struct wpa_supplicant *wpa_s,
 		return 0;
 	}
 
-	if (current_bss->est_throughput > selected->est_throughput + 5000) {
+	if (current_bss->est_throughput > selected->est_throughput + wpa_s->conf->reassoc_throughput_level_th) {
 		wpa_dbg(wpa_s, MSG_DEBUG,
-			"Skip roam - Current BSS has better estimated throughput");
+			"Skip roam - Current BSS has good enough estimated throughput: %d vs %d, trigger-level: %d",
+			current_bss->est_throughput, selected->est_throughput,
+			wpa_s->conf->reassoc_throughput_level_th);
 		return 0;
 	}
 
@@ -1778,8 +1784,17 @@ static int wpa_supplicant_need_to_roam(struct wpa_supplicant *wpa_s,
 			min_diff = 3;
 		else if (current_bss->level < -70)
 			min_diff = 4;
-		else
+		else if (current_bss->level < -60)
 			min_diff = 5;
+		else if (current_bss->level < -50)
+			min_diff = 8;
+		else if (current_bss->level < -40)
+			min_diff = 10;
+		else if (current_bss->level < -30)
+			min_diff = 20;
+		else
+			min_diff = 30;
+
 		if (cur_est > sel_est * 1.5)
 			min_diff += 10;
 		else if (cur_est > sel_est * 1.2)
@@ -1805,6 +1820,11 @@ static int wpa_supplicant_need_to_roam(struct wpa_supplicant *wpa_s,
 		else
 			min_diff = 0;
 	}
+
+	/* Let user override this so we can force roaming and still scan. */
+	if (wpa_s->conf->reassoc_rssi_level_th > min_diff)
+		min_diff = wpa_s->conf->reassoc_rssi_level_th;
+
 	diff = abs(current_bss->level - selected->level);
 	if (diff < min_diff) {
 		wpa_dbg(wpa_s, MSG_DEBUG,
