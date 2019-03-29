@@ -3435,6 +3435,8 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 		}
 	}
 
+	/* TODO: Take number of spatial streams into account */
+
 	return est;
 }
 
