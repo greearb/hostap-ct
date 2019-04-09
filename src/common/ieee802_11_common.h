@@ -19,6 +19,7 @@ struct element {
 } STRUCT_PACKED;
 
 struct hostapd_hw_modes;
+struct hostapd_data;
 
 #define MAX_NOF_MB_IES_SUPPORTED 5
 
@@ -310,7 +311,7 @@ bool is_same_band(int freq1, int freq2);
 #define IS_2P4GHZ(n) (n >= 2412 && n <= 2484)
 #define IS_5GHZ(n) (n > 4000 && n < 5895)
 
-int ieee802_11_parse_candidate_list(const char *pos, u8 *nei_rep,
+int ieee802_11_parse_candidate_list(struct hostapd_data *hapd, const char *pos, u8 *nei_rep,
 				    size_t nei_rep_len);
 
 int ieee802_11_ext_capab(const u8 *ie, unsigned int capab);
