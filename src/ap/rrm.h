@@ -17,6 +17,8 @@
  */
 #define RRM_RANGE_REQ_MAX_RESPONDERS 16
 
+struct hostapd_neighbor_entry;
+
 void hostapd_handle_radio_measurement(struct hostapd_data *hapd,
 				      const u8 *buf, size_t len);
 int hostapd_send_lci_req(struct hostapd_data *hapd, const u8 *addr);
@@ -32,5 +34,8 @@ void hostapd_rrm_beacon_req_tx_status(struct hostapd_data *hapd,
 void hostapd_rrm_add_neigh_report_ies(struct hostapd_data *hapd,
 				      struct wpabuf *buf, struct wpa_ssid_value *ssid,
 				      u8 lci, u8 civic, u16 lci_max_age);
+void hostapd_rrm_add_one_neigh_report_ies(struct hostapd_data *hapd, struct hostapd_neighbor_entry *nr,
+					  struct wpabuf *buf,
+					  u8 lci, u8 civic, u16 lci_max_age);
 
 #endif /* RRM_H */
