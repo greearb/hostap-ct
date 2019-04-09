@@ -195,63 +195,70 @@ static size_t hostapd_neighbor_report_len(struct wpabuf *buf,
 	return len;
 }
 
+void hostapd_rrm_add_one_neigh_report_ies(struct hostapd_data *hapd, struct hostapd_neighbor_entry *nr,
+					  struct wpabuf *buf,
+					  u8 lci, u8 civic, u16 lci_max_age)
+{
+	int send_lci;
+	size_t len;
+	u8 *msmt_token;
+
+	send_lci = (lci != 0) && hostapd_check_lci_age(nr, lci_max_age);
+	len = hostapd_neighbor_report_len(buf, nr, send_lci, civic);
+
+	if (len - 2 > 0xff) {
+		wpa_printf(MSG_DEBUG,
+			   "NR entry for " MACSTR " exceeds 0xFF bytes",
+			   MAC2STR(nr->bssid));
+		return;
+	}
+
+	if (len > wpabuf_tailroom(buf))
+		return;
+
+	wpabuf_put_u8(buf, WLAN_EID_NEIGHBOR_REPORT);
+	wpabuf_put_u8(buf, len - 2);
+	wpabuf_put_buf(buf, nr->nr);
+
+	if (send_lci && nr->lci) {
+		wpabuf_put_u8(buf, WLAN_EID_MEASURE_REPORT);
+		wpabuf_put_u8(buf, wpabuf_len(nr->lci));
+		/*
+		 * Override measurement token - the first byte of the
+		 * Measurement Report element.
+		 */
+		msmt_token = wpabuf_put(buf, 0);
+		wpabuf_put_buf(buf, nr->lci);
+		*msmt_token = lci;
+	}
+
+	if (civic && nr->civic) {
+		wpabuf_put_u8(buf, WLAN_EID_MEASURE_REPORT);
+		wpabuf_put_u8(buf, wpabuf_len(nr->civic));
+		/*
+		 * Override measurement token - the first byte of the
+		 * Measurement Report element.
+		 */
+		msmt_token = wpabuf_put(buf, 0);
+		wpabuf_put_buf(buf, nr->civic);
+		*msmt_token = civic;
+	}
+}
+
 void hostapd_rrm_add_neigh_report_ies(struct hostapd_data *hapd,
 				      struct wpabuf *buf, struct wpa_ssid_value *ssid,
 				      u8 lci, u8 civic, u16 lci_max_age)
 {
 	struct hostapd_neighbor_entry *nr;
-	u8 *msmt_token;
 
 	dl_list_for_each(nr, &hapd->nr_db, struct hostapd_neighbor_entry,
 			 list) {
-		int send_lci;
-		size_t len;
-
 		if (ssid &&
 		    (ssid->ssid_len != nr->ssid.ssid_len ||
 		     os_memcmp(ssid->ssid, nr->ssid.ssid, ssid->ssid_len) != 0))
 			continue;
 
-		send_lci = (lci != 0) && hostapd_check_lci_age(nr, lci_max_age);
-		len = hostapd_neighbor_report_len(buf, nr, send_lci, civic);
-
-		if (len - 2 > 0xff) {
-			wpa_printf(MSG_DEBUG,
-				   "NR entry for " MACSTR " exceeds 0xFF bytes",
-				   MAC2STR(nr->bssid));
-			continue;
-		}
-
-		if (len > wpabuf_tailroom(buf))
-			break;
-
-		wpabuf_put_u8(buf, WLAN_EID_NEIGHBOR_REPORT);
-		wpabuf_put_u8(buf, len - 2);
-		wpabuf_put_buf(buf, nr->nr);
-
-		if (send_lci && nr->lci) {
-			wpabuf_put_u8(buf, WLAN_EID_MEASURE_REPORT);
-			wpabuf_put_u8(buf, wpabuf_len(nr->lci));
-			/*
-			 * Override measurement token - the first byte of the
-			 * Measurement Report element.
-			 */
-			msmt_token = wpabuf_put(buf, 0);
-			wpabuf_put_buf(buf, nr->lci);
-			*msmt_token = lci;
-		}
-
-		if (civic && nr->civic) {
-			wpabuf_put_u8(buf, WLAN_EID_MEASURE_REPORT);
-			wpabuf_put_u8(buf, wpabuf_len(nr->civic));
-			/*
-			 * Override measurement token - the first byte of the
-			 * Measurement Report element.
-			 */
-			msmt_token = wpabuf_put(buf, 0);
-			wpabuf_put_buf(buf, nr->civic);
-			*msmt_token = civic;
-		}
+		hostapd_rrm_add_one_neigh_report_ies(hapd, nr, buf, lci, civic, lci_max_age);
 	}
 }
 
