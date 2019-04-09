@@ -1625,6 +1625,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	{ "ess_disassoc", hostapd_cli_cmd_ess_disassoc, NULL,
 	  "= send ESS Dissassociation Imminent notification" },
 	{ "bss_tm_req", hostapd_cli_cmd_bss_tm_req, NULL,
+	  "<peer-addr> [disassoc_timer=0-65535] [valid_int=?] [bss_term=hex]\n\t"
+	  "[neighbor=a,b,c | neighbor=-[neigh-bssid]] [url=?] [pref=1] [abridged=1] [disassoc_imminent=1 [mbo=?] "
 	  "= send BSS Transition Management Request" },
 	{ "get_config", hostapd_cli_cmd_get_config, NULL,
 	  "= show current configuration" },
