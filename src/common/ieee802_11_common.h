@@ -19,6 +19,7 @@ struct element {
 } STRUCT_PACKED;
 
 struct hostapd_hw_modes;
+struct hostapd_data;
 
 #define MAX_NOF_MB_IES_SUPPORTED 5
 #define MAX_NUM_FRAG_IES_SUPPORTED 3
@@ -271,7 +272,7 @@ bool is_6ghz_op_class(u8 op_class);
 bool is_6ghz_psc_frequency(int freq);
 int get_6ghz_sec_channel(int channel);
 
-int ieee802_11_parse_candidate_list(const char *pos, u8 *nei_rep,
+int ieee802_11_parse_candidate_list(struct hostapd_data *hapd, const char *pos, u8 *nei_rep,
 				    size_t nei_rep_len);
 
 int ieee802_11_ext_capab(const u8 *ie, unsigned int capab);

@@ -15,6 +15,10 @@
 #include "qca-vendor.h"
 #include "ieee802_11_defs.h"
 #include "ieee802_11_common.h"
+#ifdef HOSTAPD
+#include "../ap/rrm.h"
+#include "../ap/neighbor_db.h"
+#endif
 
 
 static int ieee802_11_parse_vendor_specific(const u8 *pos, size_t elen,
@@ -2335,7 +2339,7 @@ int get_6ghz_sec_channel(int channel)
 }
 
 
-int ieee802_11_parse_candidate_list(const char *pos, u8 *nei_rep,
+int ieee802_11_parse_candidate_list(struct hostapd_data *hapd, const char *pos, u8 *nei_rep,
 				    size_t nei_rep_len)
 {
 	u8 *nei_pos = nei_rep;
@@ -2360,6 +2364,44 @@ int ieee802_11_parse_candidate_list(const char *pos, u8 *nei_rep,
 			return -1;
 		}
 		pos += 10;
+
+#ifdef HOSTAPD
+		if (pos[0] == '-') {
+			/* Get neigh from DB */
+			u8 bssid[ETH_ALEN];
+			struct wpabuf *buf;
+			u8 lci = 0, civic = 0; /* Measurement tokens */
+			u16 lci_max_age = 0;
+
+			if (hwaddr_aton(pos + 1, bssid)) {
+				wpa_printf(MSG_DEBUG, "Invalid Neigh BSSID");
+				return -1;
+			}
+			struct hostapd_neighbor_entry * nr = hostapd_neighbor_get(hapd, bssid, NULL);
+			if (!nr) {
+				wpa_printf(MSG_DEBUG, "Could not find Neighbor: " MACSTR " in DB",
+					   MAC2STR(bssid));
+				return -1;
+			}
+
+			buf = wpabuf_alloc(nei_rep_len);
+			if (!buf) {
+				wpa_printf(MSG_DEBUG, "Could not allocate wpa-buf of lenght: %d\n",
+					   nei_rep_len);
+				return -1;
+			}
+
+			hostapd_rrm_add_one_neigh_report_ies(hapd, nr, buf, lci, civic, lci_max_age);
+			if (wpabuf_len(buf)) {
+				os_memcpy(nei_pos, wpabuf_head(buf), wpabuf_len(buf));
+				nei_pos += wpabuf_len(buf);
+			}
+			wpabuf_free(buf);
+
+			pos = os_strstr(pos, " "); /* Move forward for next entry */
+			continue;
+		}
+#endif
 
 		nei_start = nei_pos;
 		*nei_pos++ = WLAN_EID_NEIGHBOR_REPORT;
