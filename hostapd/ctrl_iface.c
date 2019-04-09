@@ -893,7 +893,7 @@ static int hostapd_ctrl_iface_bss_tm_req(struct hostapd_data *hapd,
 		WPA_PUT_LE16(&bss_term_dur[10], atoi(end));
 	}
 
-	nei_len = ieee802_11_parse_candidate_list(cmd, nei_rep,
+	nei_len = ieee802_11_parse_candidate_list(hapd, cmd, nei_rep,
 						  sizeof(nei_rep));
 	if (nei_len < 0)
 		return -1;
@@ -2658,10 +2658,6 @@ static int hostapd_ctrl_iface_req_beacon(struct hostapd_data *hapd,
 static int hostapd_ctrl_iface_show_neighbor(struct hostapd_data *hapd,
 					    char *buf, size_t buflen)
 {
-	struct hostapd_iface *iface = hapd->iface;
-	struct hostapd_sta_info *info;
-	struct os_reltime now;
-
 	if (!(hapd->conf->radio_measurements[0] &
 	      WLAN_RRM_CAPS_NEIGHBOR_REPORT)) {
 		wpa_printf(MSG_ERROR,

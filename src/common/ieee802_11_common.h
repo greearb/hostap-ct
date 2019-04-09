@@ -19,6 +19,7 @@ struct element {
 } STRUCT_PACKED;
 
 struct hostapd_hw_modes;
+struct hostapd_data;
 
 #define MAX_NOF_MB_IES_SUPPORTED 5
 
@@ -217,7 +218,7 @@ u8 country_to_global_op_class(const char *country, u8 op_class);
 const struct oper_class_map * get_oper_class(const char *country, u8 op_class);
 int oper_class_bw_to_int(const struct oper_class_map *map);
 
-int ieee802_11_parse_candidate_list(const char *pos, u8 *nei_rep,
+int ieee802_11_parse_candidate_list(struct hostapd_data *hapd, const char *pos, u8 *nei_rep,
 				    size_t nei_rep_len);
 
 int ieee802_11_ext_capab(const u8 *ie, unsigned int capab);
