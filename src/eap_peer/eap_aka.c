@@ -303,7 +303,8 @@ static int eap_aka_umts_auth(struct eap_sm *sm, struct eap_aka_data *data)
 			   "implementation for UMTS authentication");
 		if (conf->password_len < 78) {
 			wpa_printf(MSG_DEBUG, "EAP-AKA: invalid Milenage "
-				   "password");
+				   "password, too small: %d  password: %s",
+				   (int)(conf->password_len), conf->password);
 			return -1;
 		}
 		pos = (const char *) conf->password;
