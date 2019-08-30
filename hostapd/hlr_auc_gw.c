@@ -67,6 +67,7 @@ static int sqn_changes = 0;
 static int ind_len = 5;
 static int stdout_debug = 1;
 static bool stop = false;
+static int increase_sqn = 1;
 
 /* GSM triplets */
 struct gsm_triplet {
@@ -776,7 +777,9 @@ static int aka_req_auth(char *imsi, char *resp, size_t resp_len)
 				return -1;
 		}
 		res_len = EAP_AKA_RES_MAX_LEN;
-		inc_sqn(m->sqn);
+		if (increase_sqn) {
+			inc_sqn(m->sqn);
+		}
 #ifdef CONFIG_SQLITE
 		db_update_milenage_sqn(m);
 #endif /* CONFIG_SQLITE */
@@ -1030,6 +1033,7 @@ static void usage(void)
 	       "  -m<milenage file> = path for Milenage keys\n"
 	       "  -D<DB file> = path to SQLite database\n"
 	       "  -i<IND len in bits> = IND length for SQN (default: 5)\n"
+	       "  -S = Do not change sequence number (default: seq no is increased)\n"
 	       "\n"
 	       "If the optional command argument, like "
 	       "\"AKA-REQ-AUTH <IMSI>\" is used, a single\n"
@@ -1055,7 +1059,7 @@ int main(int argc, char *argv[])
 	socket_path = default_socket_path;
 
 	for (;;) {
-		c = getopt(argc, argv, "D:g:hi:m:s:u");
+		c = getopt(argc, argv, "D:g:hi:m:s:uS");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -1088,6 +1092,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'u':
 			update_milenage = 1;
+			break;
+		case 'S':
+			increase_sqn = 0;
 			break;
 		default:
 			usage();
