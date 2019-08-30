@@ -86,7 +86,9 @@ struct milenage_parameters {
 	u8 opc[16];
 	u8 amf[2];
 	u8 sqn[6];
+	u8 rand[16];
 	int set;
+	int random_set; /* random value hard-coded? */
 	size_t res_len;
 };
 
@@ -470,14 +472,27 @@ static int read_milenage(const char *fname)
 
 		pos = str_token(buf, " ", &pos2);
 		if (pos) {
-			m->res_len = atoi(pos);
-			if (m->res_len &&
-			    (m->res_len < EAP_AKA_RES_MIN_LEN ||
-			     m->res_len > EAP_AKA_RES_MAX_LEN)) {
-				printf("%s:%d - Invalid RES_len\n",
-				       fname, line);
-				ret = -1;
-				break;
+			if (pos[0] == 'R') {
+				if ((os_strlen(pos) != 33) || hexstr2bin(pos+1, m->rand, 16)) {
+					printf("%s:%d  invalid random",
+					       fname, line);
+					ret = -1;
+					break;
+				}
+				else {
+					m->random_set = 1;
+				}
+			}
+			else {
+				m->res_len = atoi(pos);
+				if (m->res_len &&
+				    (m->res_len < EAP_AKA_RES_MIN_LEN ||
+				     m->res_len > EAP_AKA_RES_MAX_LEN)) {
+					printf("%s:%d - Invalid RES_len\n",
+					       fname, line);
+					ret = -1;
+					break;
+				}
 			}
 		}
 
@@ -616,8 +631,13 @@ static int sim_req_auth(char *imsi, char *resp, size_t resp_len)
 	if (m) {
 		u8 _rand[16], sres[4], kc[8];
 		for (count = 0; count < max_chal; count++) {
-			if (random_get_bytes(_rand, 16) < 0)
-				return -1;
+			if (m->random_set) {
+				os_memcpy(_rand, m->rand, 16);
+			}
+			else {
+				if (random_get_bytes(_rand, 16) < 0)
+					return -1;
+			}
 			gsm_milenage(m->opc, m->ki, _rand, sres, kc);
 			*rpos++ = ' ';
 			rpos += wpa_snprintf_hex(rpos, rend - rpos, kc, 8);
@@ -747,8 +767,13 @@ static int aka_req_auth(char *imsi, char *resp, size_t resp_len)
 
 	m = get_milenage(imsi);
 	if (m) {
-		if (random_get_bytes(_rand, EAP_AKA_RAND_LEN) < 0)
-			return -1;
+		if (m->random_set) {
+			os_memcpy(_rand, m->rand, EAP_AKA_RAND_LEN);
+		}
+		else {
+			if (random_get_bytes(_rand, EAP_AKA_RAND_LEN) < 0)
+				return -1;
+		}
 		res_len = EAP_AKA_RES_MAX_LEN;
 		inc_sqn(m->sqn);
 #ifdef CONFIG_SQLITE
