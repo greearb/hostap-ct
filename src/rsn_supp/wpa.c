@@ -62,6 +62,11 @@ void wpa_apply_corruptions(struct wpa_sm *sm, u16 corrupt_eapol_2_of_4,
 			   u16 corrupt_eapol_4_of_4, u16 corrupt_eapol_2_of_2,
 			   u16 dup_eapol_2_of_4, u16 dup_eapol_4_of_4, u16 dup_eapol_2_of_2)
 {
+	//wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+	//	"WPA: apply-corruptions, corrupt-eapol-2/4: %d  4/4: %d  2/2: %d  dup-eapol-2/4: %d  4/4: %d  2/2: %d sm: %p\n",
+	//	corrupt_eapol_2_of_4, corrupt_eapol_4_of_4, corrupt_eapol_2_of_2,
+	//	dup_eapol_2_of_4, dup_eapol_4_of_4, dup_eapol_2_of_2, sm);
+
 	sm->corrupt_eapol_2_of_4 = corrupt_eapol_2_of_4;
 	sm->corrupt_eapol_4_of_4 = corrupt_eapol_4_of_4;
 	sm->corrupt_eapol_2_of_2 = corrupt_eapol_2_of_2;
@@ -236,6 +241,10 @@ int wpa_eapol_key_send(struct wpa_sm *sm, struct wpa_ptk *ptk,
 	}
 
 #ifdef CONFIG_TESTING_OPTIONS
+	//wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+	//	"WPA: Check should corrupt, corrupt-eapol-2/4: %d  4/4: %d  2/2: %d eapol-type: %d sm: %p\n",
+	//	sm->corrupt_eapol_2_of_4, sm->corrupt_eapol_4_of_4, sm->corrupt_eapol_2_of_2,
+	//	eapol_type, sm);
 	/* Purposefully corrupt the frame for testing purposes? */
 	if (((sm->corrupt_eapol_2_of_4 && eapol_type == EAPOL_MSG_TYPE_2_OF_4) &&
 	     (os_random() % 65535) < sm->corrupt_eapol_2_of_4) ||
@@ -260,6 +269,10 @@ int wpa_eapol_key_send(struct wpa_sm *sm, struct wpa_ptk *ptk,
 	eapol_sm_notify_tx_eapol_key(sm->eapol);
 
 #ifdef CONFIG_TESTING_OPTIONS
+	//wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+	//	"WPA: Check should duplicate, dup-eapol-2/4: %d  4/4: %d  2/2: %d eapol-type: %d\n",
+	//	sm->dup_eapol_2_of_4, sm->dup_eapol_4_of_4, sm->dup_eapol_2_of_2,
+	//	eapol_type);
 	/* Purposefully duplicate the frame for testing purposes? */
 	if (((sm->dup_eapol_2_of_4 && eapol_type == EAPOL_MSG_TYPE_2_OF_4) &&
 	     (os_random() % 65535) < sm->dup_eapol_2_of_4) ||
