@@ -1226,6 +1226,10 @@ int wpa_supplicant_reload_configuration(struct wpa_supplicant *wpa_s)
 
 	if (wpa_s->confname == NULL)
 		return -1;
+
+	wpa_msg(wpa_s, MSG_INFO, "Reloading file: %s",
+		wpa_s->confname);
+
 	conf = wpa_config_read(wpa_s->confname, NULL);
 	if (conf == NULL) {
 		wpa_msg(wpa_s, MSG_ERROR, "Failed to parse the configuration "
@@ -7785,6 +7789,31 @@ void wpa_supplicant_update_config(struct wpa_supplicant *wpa_s)
 	    wpa_s->wpa_state == WPA_COMPLETED)
 		wpa_supplicant_reset_bgscan(wpa_s);
 #endif /* CONFIG_BGSCAN */
+
+#ifdef CONFIG_TESTING_OPTIONS
+	//wpa_msg(wpa_s, MSG_INFO,
+	//	"WPA: wpa-supplicant update config, eapol: %p wpa: %p dup-eapol-2/4: %d  4/4: %d  2/2: %d",
+	//	wpa_s->eapol, wpa_s->wpa, wpa_s->conf->dup_eapol_2_of_4, wpa_s->conf->dup_eapol_4_of_4,
+	//	wpa_s->conf->dup_eapol_2_of_2);
+
+	if (wpa_s->wpa) {
+		wpa_apply_corruptions(wpa_s->wpa,
+				      wpa_s->conf->corrupt_eapol_2_of_4,
+				      wpa_s->conf->corrupt_eapol_4_of_4,
+				      wpa_s->conf->corrupt_eapol_2_of_2,
+				      wpa_s->conf->dup_eapol_2_of_4,
+				      wpa_s->conf->dup_eapol_4_of_4,
+				      wpa_s->conf->dup_eapol_2_of_2);
+	}
+
+	if (wpa_s->eapol) {
+		eapol_apply_corruptions(wpa_s->eapol,
+					wpa_s->conf->corrupt_eapol_id_resp,
+					wpa_s->conf->corrupt_eapol_other_resp,
+					wpa_s->conf->dup_eapol_id_resp,
+					wpa_s->conf->dup_eapol_other_resp);
+	}
+#endif
 
 #ifdef CONFIG_WPS
 	wpas_wps_update_config(wpa_s);
