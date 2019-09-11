@@ -4291,6 +4291,8 @@ static void delayed_eapol_timer(void *eloop_ctxt, void *timeout_ctxt)
 			dl_list_del(&dm->list);
 			/* Ensure it is not delayed again. */
 			wpa_s->delays_disabled = 1;
+			wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - insert delay eapol pkt, txtime: %ld:%ld  now: %ld:%ld, dm: %p",
+				(long)(dm->txtime.sec), (long)(dm->txtime.usec), (long)(now.sec), (long)(now.usec), dm);
 			wpa_supplicant_rx_eapol(wpa_s, dm->src_addr, dm->msg, dm->msg_len);
 			wpa_s->delays_disabled = 0;
 			os_free(dm);
@@ -4444,9 +4446,13 @@ void wpa_supplicant_rx_eapol(void *ctx, const u8 *src_addr,
 			return;
 		}
 		os_get_reltime(&dm->txtime);
+		//wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - add delay eapol, reltime-now: %ld:%ld\n",
+		//	(long)(dm->txtime.sec), (long)(dm->txtime.usec));
 		os_reltime_add_ms(&dm->txtime, delay_ms);
 		memcpy(dm->src_addr, src_addr, ETH_ALEN);
 		memcpy(dm->msg, buf, len);
+		//wpa_dbg(wpa_s, MSG_INFO, "RX EAPOL - add delay eapol, txtime: %ld:%ld, dm: %p\n",
+		//	(long)(dm->txtime.sec), (long)(dm->txtime.usec), dm);
 		dm->msg_len = len;
 		dl_list_add_tail(&wpa_s->delayed_eapol_list, &dm->list);
 		wpa_refresh_delayed_msg_timer(wpa_s);
