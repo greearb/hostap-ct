@@ -92,8 +92,8 @@ static inline void os_reltime_sub(struct os_reltime *a, struct os_reltime *b,
 
 static inline void os_reltime_add_ms(struct os_reltime *a, os_time_t ms_to_add)
 {
-	os_time_t sec = ms_to_add / 1000000;
-	os_time_t usec = (ms_to_add % 1000000) * 1000;
+	os_time_t sec = ms_to_add / 1000;
+	os_time_t usec = (ms_to_add % 1000) * 1000;
 	a->sec += sec;
 	a->usec += usec;
 	if (a->usec > 1000000) {
