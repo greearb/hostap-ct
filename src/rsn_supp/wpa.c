@@ -255,13 +255,16 @@ int wpa_eapol_key_send(struct wpa_sm *sm, struct wpa_ptk *ptk,
 		/* Corrupt a random byte, maybe more?? */
 		int idx = os_random() % msg_len;
 		int rnd = os_random();
+		u8 orig = msg[idx];
 		if (msg[idx] == rnd)
-			msg[idx]++;
+			msg[idx] += 1;
 		else
 			msg[idx] = rnd;
+		// When sniffing, byte offset is +92 bytes in wireshark.
+		// ieee frame started at +58, so offset from first of wifi frame is 34
 		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
-			"WPA: Corrupting EAPOL message type: %s, idx: %d  value: 0x%x\n",
-			eapol_key_msg_type_str(eapol_type), idx, msg[idx]);
+			"WPA: Corrupting EAPOL message type: %s, idx: %d  value: 0x%x orig: 0x%x rnd: 0x%x\n",
+			eapol_key_msg_type_str(eapol_type), idx, msg[idx], orig, rnd);
 	}
 #endif
 	wpa_hexdump(MSG_MSGDUMP, "WPA: TX EAPOL-Key", msg, msg_len);
