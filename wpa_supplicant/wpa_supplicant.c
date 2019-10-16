@@ -1237,8 +1237,8 @@ int wpa_supplicant_reload_configuration(struct wpa_supplicant *wpa_s)
 	if (wpa_s->confname == NULL)
 		return -1;
 
-	wpa_msg(wpa_s, MSG_INFO, "Reloading file: %s",
-		wpa_s->confname);
+	/*wpa_msg(wpa_s, MSG_INFO, "Reloading file: %s",
+	  wpa_s->confname);*/
 
 	conf = wpa_config_read(wpa_s->confname, NULL);
 	if (conf == NULL) {
