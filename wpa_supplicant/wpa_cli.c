@@ -504,6 +504,7 @@ static char ** wpa_cli_complete_set(const char *str, int pos)
 		"p2p_search_delay", "mac_addr", "rand_addr_lifetime",
 		"preassoc_mac_addr", "key_mgmt_offload", "passive_scan",
 		"reassoc_same_bss_optim", "wps_priority",
+		"eapol_completed_timeout", "first_eapol_timeout",
 #ifdef CONFIG_TESTING_OPTIONS
 		"ignore_auth_resp",
 #endif /* CONFIG_TESTING_OPTIONS */

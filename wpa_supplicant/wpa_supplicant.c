@@ -3928,6 +3928,7 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit)
 	} else {
 		/* Timeout for IEEE 802.11 authentication and association */
 		int timeout = 60;
+		int timeoutms = 0;
 
 		if (assoc_failed) {
 			/* give IBSS a bit more time */
@@ -3936,7 +3937,11 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit)
 			/* give IBSS a bit more time */
 			timeout = ssid->mode == WPAS_MODE_IBSS ? 20 : 10;
 		}
-		wpa_supplicant_req_auth_timeout(wpa_s, timeout, 0);
+		if (wpa_s->conf->eapol_completed_timeout) {
+			timeout = wpa_s->conf->eapol_completed_timeout / 1000;
+			timeoutms = wpa_s->conf->eapol_completed_timeout % 1000;
+		}
+		wpa_supplicant_req_auth_timeout(wpa_s, timeout, timeoutms);
 	}
 
 #ifdef CONFIG_WEP
@@ -5005,6 +5010,7 @@ after_delay_check:
 	     wpa_s->current_ssid->mode != WPAS_MODE_IBSS)) {
 		/* Timeout for completing IEEE 802.1X and WPA authentication */
 		int timeout = 10;
+		int timeoutms = 0;
 
 		if (wpa_key_mgmt_wpa_ieee8021x(wpa_s->key_mgmt) ||
 		    wpa_s->key_mgmt == WPA_KEY_MGMT_IEEE8021X_NO_WPA ||
@@ -5033,7 +5039,11 @@ after_delay_check:
 		}
 #endif /* CONFIG_WPS */
 
-		wpa_supplicant_req_auth_timeout(wpa_s, timeout, 0);
+		if (wpa_s->conf->eapol_completed_timeout) {
+			timeout = wpa_s->conf->eapol_completed_timeout / 1000;
+			timeoutms = wpa_s->conf->eapol_completed_timeout % 1000;
+		}
+		wpa_supplicant_req_auth_timeout(wpa_s, timeout, timeoutms);
 	}
 	wpa_s->eapol_received++;
 
