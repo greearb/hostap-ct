@@ -635,6 +635,10 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 			dpp_nonce_override_len = hex_len / 2;
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_DPP */
+	} else if (os_strcasecmp(cmd, "eapol_completed_timeout") == 0) {
+		wpa_s->conf->eapol_completed_timeout = atoi(value);
+	} else if (os_strcasecmp(cmd, "first_eapol_timeout") == 0) {
+		wpa_s->conf->first_eapol_timeout = atoi(value);
 #ifdef CONFIG_TESTING_OPTIONS
 	} else if (os_strcasecmp(cmd, "ext_mgmt_frame_handling") == 0) {
 		wpa_s->ext_mgmt_frame_handling = !!atoi(value);
