@@ -981,6 +981,17 @@ struct wpa_config {
 	 */
 	int accept_external_scan_results;
 
+	/* set to zero for default values, otherwise milisecond timeout to use.
+	 * This overrides some hard-coded timeouts (often 10 seconds) for completing
+	 * EAPOL after it is started.
+	 */
+	int eapol_completed_timeout;
+
+	/* set to zero for default values (10), otherwise milisecond timeout to use.
+	 * This is timeout to receive first EAPOL message during auth.
+	 */
+	int first_eapol_timeout;
+
 #if CONFIG_TESTING_OPTIONS
 	/* Allow users to configure supplicant to drop a percentage of management frames.
 	 * 0 == never, 65535 == always

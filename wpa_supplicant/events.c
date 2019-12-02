@@ -3281,7 +3281,13 @@ static void wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 		wpa_supplicant_set_state(wpa_s, WPA_COMPLETED);
 	} else if (!ft_completed) {
 		/* Timeout for receiving the first EAPOL packet */
-		wpa_supplicant_req_auth_timeout(wpa_s, 10, 0);
+		int timeout = 10;
+		int timeoutms = 0;
+		if (wpa_s->conf->first_eapol_timeout) {
+			timeout = wpa_s->conf->first_eapol_timeout / 1000;
+			timeoutms = wpa_s->conf->first_eapol_timeout % 1000;
+		}
+		wpa_supplicant_req_auth_timeout(wpa_s, timeout, timeoutms);
 	}
 	wpa_supplicant_cancel_scan(wpa_s);
 
