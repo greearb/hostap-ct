@@ -4477,6 +4477,8 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 #endif
 	config->concurrent_assoc_ok = DEFAULT_CONCURRENT_ASSOC_OK;
 	config->accept_external_scan_results = DEFAULT_ACCEPT_EXTERNAL_SCAN_RESULTS;
+	config->eapol_completed_timeout = 0; /* default: use values baked into the code. */
+	config->first_eapol_timeout = 0; /* default: use values baked into the code. */
 #if CONFIG_TESTING_OPTIONS
 	config->ignore_auth_resp = DEFAULT_IGNORE_AUTH_RESP;
 	config->ignore_assoc = DEFAULT_IGNORE_AUTH_RESP;
@@ -5347,6 +5349,8 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(disable_ess_roaming), 0 },
 #endif
 	{ INT(concurrent_assoc_ok), 0 },
+	{ INT(eapol_completed_timeout), 0 },
+	{ INT(first_eapol_timeout), 0 },
 #if CONFIG_TESTING_OPTIONS
 	{ INT(ignore_auth_resp), 0 },
 	{ INT(ignore_assoc), 0 },
