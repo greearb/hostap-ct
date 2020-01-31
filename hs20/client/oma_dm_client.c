@@ -957,7 +957,10 @@ static xml_node_t * oma_dm_send_recv(struct hs20_osu_client *ctx,
 	ctx->server_url = os_strdup(url);
 	res = http_post(ctx->http, url, str, "application/vnd.syncml.dm+xml",
 			ext_hdr, ctx->ca_fname, username, password,
-			client_cert, client_key, NULL);
+			client_cert, client_key, NULL,
+			ctx->do_bind_iface ? ctx->ifname : NULL,
+			ctx->dns);
+
 	os_free(str);
 	os_free(resp_uri);
 	resp_uri = NULL;
@@ -1209,6 +1212,8 @@ int cmd_oma_dm_sim_prov(struct hs20_osu_client *ctx, const char *url)
 		wpa_printf(MSG_INFO, "Could not get IP address for WLAN - try connection anyway");
 	}
 	write_summary(ctx, "OMA-DM SIM provisioning");
+
+	check_dns_file(ctx);
 
 	msgid++;
 	syncml = build_oma_dm_1_sub_prov(ctx, url, msgid);

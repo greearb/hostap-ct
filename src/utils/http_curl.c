@@ -50,8 +50,11 @@ struct http_ctx {
 	char *svc_password;
 	char *svc_client_cert;
 	char *svc_client_key;
+	char *ifname;
+	char *dns;
 	char *curl_buf;
 	size_t curl_buf_len;
+	char curl_err_buffer[CURL_ERROR_SIZE + 1];
 
 	int (*cert_cb)(void *ctx, struct http_cert *cert);
 	void *cert_cb_ctx;
@@ -1327,7 +1330,7 @@ static CURLcode curl_cb_ssl(CURL *curl, void *sslctx, void *parm)
 static CURL * setup_curl_post(struct http_ctx *ctx, const char *address,
 			      const char *ca_fname, const char *username,
 			      const char *password, const char *client_cert,
-			      const char *client_key)
+			      const char *client_key, const char* ifname, const char* dns)
 {
 	CURL *curl;
 #ifdef EAP_TLS_OPENSSL
@@ -1342,6 +1345,15 @@ static CURL * setup_curl_post(struct http_ctx *ctx, const char *address,
 	curl = curl_easy_init();
 	if (curl == NULL)
 		return NULL;
+
+	ctx->curl_err_buffer[0] = 0;
+	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, ctx->curl_err_buffer);
+
+	if (ifname)
+		http_bind_iface(ctx, curl, ifname);
+
+	if (dns)
+		http_bind_dns(ctx, curl, dns);
 
 	curl_easy_setopt(curl, CURLOPT_URL, address);
 	curl_easy_setopt(curl, CURLOPT_POST, 1L);
@@ -1377,6 +1389,7 @@ static CURL * setup_curl_post(struct http_ctx *ctx, const char *address,
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_cb_write);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, ctx);
 	curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
 	if (username) {
 		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_ANYSAFE);
 		curl_easy_setopt(curl, CURLOPT_USERNAME, username);
@@ -1386,11 +1399,67 @@ static CURL * setup_curl_post(struct http_ctx *ctx, const char *address,
 	return curl;
 }
 
+int http_bind_iface(struct http_ctx *ctx, void* _curl, const char* ifname)
+{
+	int rv;
+	CURL* curl = _curl;
+
+	if (!curl)
+		curl = ctx->curl;
+
+	if (ctx->ifname)
+		os_free(ctx->ifname);
+	ctx->ifname = NULL;
+	clone_str(&ctx->ifname, ifname);
+
+	/* Bind DNS resolver to the local interface, if curl is using such. */
+	rv = curl_easy_setopt(curl, CURLOPT_DNS_INTERFACE, ifname);
+	if (rv != CURLE_OK) {
+		wpa_printf(MSG_ERROR, "Failed CURLOPT_DNS_INTERFACE, curl: %p ifname: %s  error: %s rv: %d (%s)\n",
+			   curl, ifname, ctx->curl_err_buffer, rv, curl_easy_strerror(rv));
+	}
+	else {
+		wpa_printf(MSG_DEBUG, "Bound curl DNS to interface: %s\n", ifname);
+	}
+	rv = curl_easy_setopt(curl, CURLOPT_INTERFACE, ifname);
+	if (rv != CURLE_OK) {
+		wpa_printf(MSG_ERROR, "Failed CURLOPT_INTERFACE, curl: %p ifname: %s  error: %s, rv: %d(%s)\n",
+			   curl, ifname, ctx->curl_err_buffer, rv, curl_easy_strerror(rv));
+	}
+	else {
+		wpa_printf(MSG_DEBUG, "Bound curl to interface: %s\n", ifname);
+	}
+	return rv;
+}
+
+int http_bind_dns(struct http_ctx *ctx, void* _curl, const char* dns)
+{
+	CURL* curl = _curl;
+	int rv;
+
+	if (!curl)
+		curl = ctx->curl;
+
+	if (ctx->dns)
+		os_free(ctx->dns);
+	ctx->dns = NULL;
+	clone_str(&ctx->dns, dns);
+
+	rv = curl_easy_setopt(curl, CURLOPT_DNS_SERVERS, dns);
+	if (rv != CURLE_OK) {
+		wpa_printf(MSG_ERROR, "Failed CURLOPT_DNS_SERVERS, curl: %p dns: %s  error: %s rv: %d(%s)\n",
+			   curl, dns, ctx->curl_err_buffer, rv, curl_easy_strerror(rv));
+	}
+	else {
+		wpa_printf(MSG_DEBUG, "Bound curl DNS servers: %s\n", dns);
+	}
+	return rv;
+}
 
 static int post_init_client(struct http_ctx *ctx, const char *address,
 			    const char *ca_fname, const char *username,
 			    const char *password, const char *client_cert,
-			    const char *client_key)
+			    const char *client_key, const char* ifname, const char* dns)
 {
 	char *pos;
 	int count;
@@ -1401,6 +1470,8 @@ static int post_init_client(struct http_ctx *ctx, const char *address,
 	clone_str(&ctx->svc_password, password);
 	clone_str(&ctx->svc_client_cert, client_cert);
 	clone_str(&ctx->svc_client_key, client_key);
+	clone_str(&ctx->ifname, ifname);
+	clone_str(&ctx->dns, dns);
 
 	/*
 	 * Workaround for Apache "Hostname 'FOO' provided via SNI and hostname
@@ -1414,7 +1485,7 @@ static int post_init_client(struct http_ctx *ctx, const char *address,
 	}
 
 	ctx->curl = setup_curl_post(ctx, ctx->svc_address, ca_fname, username,
-				    password, client_cert, client_key);
+				    password, client_cert, client_key, ifname, dns);
 	if (ctx->curl == NULL)
 		return -1;
 
@@ -1425,10 +1496,10 @@ static int post_init_client(struct http_ctx *ctx, const char *address,
 int soap_init_client(struct http_ctx *ctx, const char *address,
 		     const char *ca_fname, const char *username,
 		     const char *password, const char *client_cert,
-		     const char *client_key)
+		     const char *client_key, const char* ifname, const char* dns)
 {
 	if (post_init_client(ctx, address, ca_fname, username, password,
-			     client_cert, client_key) < 0)
+			     client_cert, client_key, ifname, dns) < 0)
 		return -1;
 
 	ctx->curl_hdr = curl_slist_append(ctx->curl_hdr,
@@ -1449,6 +1520,8 @@ int soap_reinit_client(struct http_ctx *ctx)
 	char *password = NULL;
 	char *client_cert = NULL;
 	char *client_key = NULL;
+	char *ifname = NULL;
+	char *dns = NULL;
 	int ret;
 
 	clear_curl(ctx);
@@ -1459,9 +1532,11 @@ int soap_reinit_client(struct http_ctx *ctx)
 	clone_str(&password, ctx->svc_password);
 	clone_str(&client_cert, ctx->svc_client_cert);
 	clone_str(&client_key, ctx->svc_client_key);
+	clone_str(&ifname, ctx->ifname);
+	clone_str(&dns, ctx->dns);
 
 	ret = soap_init_client(ctx, address, ca_fname, username, password,
-			       client_cert, client_key);
+			       client_cert, client_key, ifname, dns);
 	os_free(address);
 	os_free(ca_fname);
 	str_clear_free(username);
@@ -1593,7 +1668,8 @@ void http_deinit_ctx(struct http_ctx *ctx)
 
 
 int http_download_file(struct http_ctx *ctx, const char *url,
-		       const char *fname, const char *ca_fname)
+		       const char *fname, const char *ca_fname,
+		       const char* ifname, const char* dns)
 {
 	CURL *curl;
 	FILE *f = NULL;
@@ -1609,6 +1685,15 @@ int http_download_file(struct http_ctx *ctx, const char *url,
 	curl = curl_easy_init();
 	if (curl == NULL)
 		goto fail;
+
+	ctx->curl_err_buffer[0] = 0;
+	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, ctx->curl_err_buffer);
+
+	if (ifname)
+		http_bind_iface(ctx, curl, ifname);
+
+	if (dns)
+		http_bind_dns(ctx, curl, dns);
 
 	f = fopen(fname, "wb");
 	if (!f)
@@ -1663,7 +1748,7 @@ char * http_post(struct http_ctx *ctx, const char *url, const char *data,
 		 const char *ca_fname,
 		 const char *username, const char *password,
 		 const char *client_cert, const char *client_key,
-		 size_t *resp_len)
+		 size_t *resp_len, const char* ifname, const char* dns)
 {
 	long http = 0;
 	CURLcode res;
@@ -1675,7 +1760,7 @@ char * http_post(struct http_ctx *ctx, const char *url, const char *data,
 	ctx->url = url;
 	wpa_printf(MSG_DEBUG, "curl: HTTP POST to %s", url);
 	curl = setup_curl_post(ctx, url, ca_fname, username, password,
-			       client_cert, client_key);
+			       client_cert, client_key, ifname, dns);
 	if (curl == NULL)
 		goto fail;
 
