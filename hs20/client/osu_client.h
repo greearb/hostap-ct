@@ -15,10 +15,15 @@ struct hs20_osu_client {
 	const char *result_file;
 	const char *summary_file;
 	const char *ifname;
+	const char *dns_file;
+	const char* dns;
+	int do_bind_iface;
 #define WORKAROUND_OCSP_OPTIONAL 0x00000001
 	unsigned long int workarounds;
 	int ignore_tls; /* whether to ignore TLS validation issues with HTTPS
 			 * server certificate */
 };
+
+void check_dns_file(struct hs20_osu_client* ctx);
 
 #endif /* OSU_CLIENT_H */
