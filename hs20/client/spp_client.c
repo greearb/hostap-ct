@@ -796,7 +796,9 @@ void spp_sub_rem(struct hs20_osu_client *ctx, const char *address,
 
 	if (soap_init_client(ctx->http, address, ctx->ca_fname,
 			     cred_username, cred_password, client_cert,
-			     client_key) == 0) {
+			     client_key,
+			     ctx->do_bind_iface ? ctx->ifname : NULL,
+			     ctx->dns) == 0) {
 		spp_post_dev_data(ctx, SPP_SUBSCRIPTION_REMEDIATION,
 				  "Subscription remediation", pps_fname, pps);
 	}
@@ -942,7 +944,9 @@ void spp_pol_upd(struct hs20_osu_client *ctx, const char *address,
 	ctx->server_url = os_strdup(address);
 
 	if (soap_init_client(ctx->http, address, ctx->ca_fname, cred_username,
-			     cred_password, client_cert, client_key) == 0) {
+			     cred_password, client_cert, client_key,
+			     ctx->do_bind_iface ? ctx->ifname : NULL,
+			     ctx->dns) == 0) {
 		spp_post_dev_data(ctx, SPP_POLICY_UPDATE, "Policy update",
 				  pps_fname, pps);
 	}
@@ -967,7 +971,9 @@ int cmd_prov(struct hs20_osu_client *ctx, const char *url)
 	ctx->server_url = os_strdup(url);
 
 	if (soap_init_client(ctx->http, url, ctx->ca_fname, NULL, NULL, NULL,
-			     NULL) < 0)
+			     NULL,
+			     ctx->do_bind_iface ? ctx->ifname : NULL,
+			     ctx->dns) < 0)
 		return -1;
 	spp_post_dev_data(ctx, SPP_SUBSCRIPTION_REGISTRATION,
 			  "Subscription registration", NULL, NULL);
@@ -994,8 +1000,12 @@ int cmd_sim_prov(struct hs20_osu_client *ctx, const char *url)
 		wpa_printf(MSG_INFO, "Could not get IP address for WLAN - try connection anyway");
 	}
 
+	check_dns_file(ctx);
+
 	if (soap_init_client(ctx->http, url, ctx->ca_fname, NULL, NULL, NULL,
-			     NULL) < 0)
+			     NULL,
+			     ctx->do_bind_iface ? ctx->ifname : NULL,
+			     ctx->dns) < 0)
 		return -1;
 	spp_post_dev_data(ctx, SPP_SUBSCRIPTION_REGISTRATION,
 			  "Subscription provisioning", NULL, NULL);
