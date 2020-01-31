@@ -137,7 +137,10 @@ int est_load_cacerts(struct hs20_osu_client *ctx, const char *url)
 	ctx->no_osu_cert_validation = 1;
 	http_ocsp_set(ctx->http, 1);
 	res = http_download_file(ctx->http, buf, "Cert/est-cacerts.txt",
-				 ctx->ca_fname);
+				 ctx->ca_fname,
+				 ctx->do_bind_iface ? ctx->ifname : NULL,
+				 ctx->dns);
+
 	http_ocsp_set(ctx->http,
 		      (ctx->workarounds & WORKAROUND_OCSP_OPTIONAL) ? 1 : 2);
 	ctx->no_osu_cert_validation = 0;
@@ -619,7 +622,10 @@ int est_build_csr(struct hs20_osu_client *ctx, const char *url)
 	ctx->no_osu_cert_validation = 1;
 	http_ocsp_set(ctx->http, 1);
 	res = http_download_file(ctx->http, buf, "Cert/est-csrattrs.txt",
-				 ctx->ca_fname);
+				 ctx->ca_fname,
+				 ctx->do_bind_iface ? ctx->ifname : NULL,
+				 ctx->dns);
+
 	http_ocsp_set(ctx->http,
 		      (ctx->workarounds & WORKAROUND_OCSP_OPTIONAL) ? 1 : 2);
 	ctx->no_osu_cert_validation = 0;
@@ -721,7 +727,10 @@ int est_simple_enroll(struct hs20_osu_client *ctx, const char *url,
 	resp = http_post(ctx->http, buf, req, "application/pkcs10",
 			 "Content-Transfer-Encoding: base64",
 			 ctx->ca_fname, user, pw, client_cert, client_key,
-			 &resp_len);
+			 &resp_len,
+			 ctx->do_bind_iface ? ctx->ifname : NULL,
+			 ctx->dns);
+
 	http_ocsp_set(ctx->http,
 		      (ctx->workarounds & WORKAROUND_OCSP_OPTIONAL) ? 1 : 2);
 	ctx->no_osu_cert_validation = 0;
