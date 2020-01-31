@@ -109,7 +109,10 @@ static int download_cert(struct hs20_osu_client *ctx, xml_node_t *params,
 
 	write_summary(ctx, "Download certificate from %s", url);
 	http_ocsp_set(ctx->http, 1);
-	res = http_download_file(ctx->http, url, TMP_CERT_DL_FILE, NULL);
+	res = http_download_file(ctx->http, url, TMP_CERT_DL_FILE, NULL,
+				 ctx->do_bind_iface ? ctx->ifname : NULL,
+				 ctx->dns);
+
 	http_ocsp_set(ctx->http,
 		      (ctx->workarounds & WORKAROUND_OCSP_OPTIONAL) ? 1 : 2);
 	xml_node_get_text_free(ctx->xml, url);
@@ -1247,6 +1250,34 @@ static void set_pps_credential(struct hs20_osu_client *ctx, int id,
 	}
 }
 
+void check_dns_file(struct hs20_osu_client* ctx)
+{
+	/* Look for DNS servers in case user specified a place to look. */
+	if (ctx->dns_file) {
+		FILE *f;
+		char buf[100];
+
+		f = fopen(ctx->dns_file, "r");
+		if (f) {
+			if (fgets(buf, sizeof(buf), f)) {
+				wpa_printf(MSG_DEBUG, "Checking DNS file: %s contents: %s",
+					   ctx->dns_file, buf);
+				if (strncmp(buf, "DNS:", 4) == 0) {
+					/* remove ending whitespace */
+					int len = strlen(buf);
+					if ((buf[len - 2] == '\n') || (buf[len - 2] == '\r'))
+						buf[len - 2] = 0;
+					else if ((buf[len - 1] == '\n') || (buf[len - 1] == '\r'))
+						buf[len - 1] = 0;
+					http_bind_dns(ctx->http, NULL, buf + 4);
+					ctx->dns = strdup(buf + 4);
+				}
+			}
+			fclose(f);
+		}
+	}
+}
+
 
 static void set_pps(struct hs20_osu_client *ctx, xml_node_t *pps,
 		    const char *fqdn)
@@ -1463,7 +1494,7 @@ static void check_workarounds(struct hs20_osu_client *ctx)
 static void usage(void)
 {
 	printf("usage: hs20-osu-client [-dddqqKtT] [-S<station ifname>] \\\n"
-	       "    [-w<wpa_supplicant ctrl_iface dir>] "
+	       "    [-w<wpa_supplicant ctrl_iface dir>] [-D<dns-file-name>] "
 	       "[-r<result file>] [-f<debug file>] \\\n"
 	       "    [-s<summary file>] \\\n"
 	       "    [-x<spp.xsd file name>] \\\n"
@@ -1495,13 +1526,16 @@ int main(int argc, char *argv[])
 		return -1;
 
 	for (;;) {
-		c = getopt(argc, argv, "df:hKqr:s:S:tTw:");
+		c = getopt(argc, argv, "dDf:hKqr:s:S:tTw:");
 		if (c < 0)
 			break;
 		switch (c) {
 		case 'd':
 			if (wpa_debug_level > 0)
 				wpa_debug_level--;
+			break;
+		case 'D':
+			ctx.dns_file = optarg;
 			break;
 		case 'f':
 			wpa_debug_file_path = optarg;
@@ -1520,6 +1554,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'S':
 			ctx.ifname = optarg;
+			ctx.do_bind_iface = 1;
 			break;
 		case 't':
 			wpa_debug_timestamp++;
