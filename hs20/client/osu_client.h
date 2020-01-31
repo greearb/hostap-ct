@@ -34,6 +34,9 @@ struct hs20_osu_client {
 	const char *summary_file;
 	const char *ifname;
 	const char *ca_fname;
+	const char *dns_file;
+	const char* dns;
+	int do_bind_iface;
 	int no_osu_cert_validation; /* for EST operations */
 	char *fqdn;
 	char *server_url;
@@ -73,6 +76,7 @@ int update_pps_file(struct hs20_osu_client *ctx, const char *pps_fname,
 		    xml_node_t *pps);
 void cmd_set_pps(struct hs20_osu_client *ctx, const char *pps_fname);
 
+void check_dns_file(struct hs20_osu_client* ctx);
 
 /* spp_client.c */
 
