@@ -38,22 +38,28 @@ struct http_cert {
 int soap_init_client(struct http_ctx *ctx, const char *address,
 		     const char *ca_fname, const char *username,
 		     const char *password, const char *client_cert,
-		     const char *client_key);
+		     const char *client_key, const char* ifname, const char* dns);
 int soap_reinit_client(struct http_ctx *ctx);
 xml_node_t * soap_send_receive(struct http_ctx *ctx, xml_node_t *node);
+
+/* Bind curl to an interface. */
+int http_bind_iface(struct http_ctx *ctx, void* curl, const char* ifname);
+/* Tell curl's resolver (in case it is using one) to use a specific DNS server. */
+int http_bind_dns(struct http_ctx *ctx, void* curl, const char* dns);
 
 struct http_ctx * http_init_ctx(void *upper_ctx, struct xml_node_ctx *xml_ctx);
 void http_ocsp_set(struct http_ctx *ctx, int val);
 void http_deinit_ctx(struct http_ctx *ctx);
 
 int http_download_file(struct http_ctx *ctx, const char *url,
-		       const char *fname, const char *ca_fname);
+		       const char *fname, const char *ca_fname,
+		       const char* ifname, const char* dns);
 char * http_post(struct http_ctx *ctx, const char *url, const char *data,
 		 const char *content_type, const char *ext_hdr,
 		 const char *ca_fname,
 		 const char *username, const char *password,
 		 const char *client_cert, const char *client_key,
-		 size_t *resp_len);
+		 size_t *resp_len, const char* ifname, const char* dns);
 void http_set_cert_cb(struct http_ctx *ctx,
 		      int (*cb)(void *ctx, struct http_cert *cert),
 		      void *cb_ctx);
