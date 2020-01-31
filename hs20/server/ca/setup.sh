@@ -21,6 +21,7 @@ OCSP_URI="http://$CNO:8888/"
 LOGO_URI="http://osu.w1.fi/w1fi_logo.png"
 LOGO_HASH256="4532f7ec36424381617c03c6ce87b55a51d6e7177ffafda243cebf280a68954d"
 LOGO_HASH1="5e1d5085676eede6b02da14d31c523ec20ffba0b"
+DAYS=7300
 
 # Command line overrides
 USAGE=$( cat <<EOF
@@ -39,12 +40,13 @@ Usage:\n
 # -r:  Operator-english ($OPER_ENG)\n
 # -R:  Operator-finish ($OPER_FI)\n
 # -S:  OSU Server name ($OSU_SERVER_HOSTNAME)\n
+# -P:  OSU Signup Server name ($OSU_SIGNUP_SERVER_HOSTNAME)\n
 # -u:  OCSP-URI ($OCSP_URI)\n
 # -V:  Subject name CN for OSU-Revoked Server ($CNV)\n
 EOF
 )
 
-while getopts "c:C:Dg:G:l:m:o:O:p:r:R:S:u:V:h" flag
+while getopts "c:C:Dg:G:l:m:o:O:p:r:R:S:P:u:V:h" flag
   do
   case $flag in
       c) COMPANY=$OPTARG;;
@@ -61,6 +63,7 @@ while getopts "c:C:Dg:G:l:m:o:O:p:r:R:S:u:V:h" flag
       r) OPER_ENG=$OPTARG;;
       R) OPER_FI=$OPTARG;;
       S) OSU_SERVER_HOSTNAME=$OPTARG;;
+      P) OSU_SIGNUP_SERVER_HOSTNAME=$OPTARG;;
       u) OCSP_URI=$OPTARG;;
       V) CNV=$OPTARG;;
       *) echo "Unknown flag: $flag"; echo -e $USAGE; exit 1;;
@@ -141,7 +144,7 @@ echo
 
 cat my-openssl.cnf | sed "s/#@CN@/commonName_default = $CNO/" > openssl.cnf.tmp
 $OPENSSL req -config $PWD/openssl.cnf.tmp -batch -new -newkey rsa:2048 -nodes -out ocsp.csr -keyout ocsp.key -extensions v3_OCSP
-$OPENSSL ca -config $PWD/openssl.cnf.tmp -batch -md sha256 -keyfile demoCA/private/cakey.pem -passin pass:$PASS -in ocsp.csr -out ocsp.pem -days 730 -extensions v3_OCSP || fail "Could not generate ocsp.pem"
+$OPENSSL ca -config $PWD/openssl.cnf.tmp -batch -md sha256 -keyfile demoCA/private/cakey.pem -passin pass:$PASS -in ocsp.csr -out ocsp.pem -days $DAYS -extensions v3_OCSP || fail "Could not generate ocsp.pem"
 
 echo
 echo "---[ Server - to be revoked ] ------------------------------------------"
@@ -149,7 +152,7 @@ echo
 
 cat my-openssl.cnf | sed "s/#@CN@/commonName_default = $CNV/" > openssl.cnf.tmp
 $OPENSSL req -config $PWD/openssl.cnf.tmp -batch -new -newkey rsa:2048 -nodes -out server-revoked.csr -keyout server-revoked.key
-$OPENSSL ca -config $PWD/openssl.cnf.tmp -batch -md sha256 -in server-revoked.csr -out server-revoked.pem -key $PASS -days 730 -extensions ext_server
+$OPENSSL ca -config $PWD/openssl.cnf.tmp -batch -md sha256 -in server-revoked.csr -out server-revoked.pem -key $PASS -days $DAYS -extensions ext_server
 $OPENSSL ca -revoke server-revoked.pem -key $PASS
 
 echo
@@ -159,7 +162,7 @@ echo
 
 cat my-openssl.cnf | sed "s/#@CN@/commonName_default = $CNOC/" > openssl.cnf.tmp
 $OPENSSL req -config $PWD/openssl.cnf.tmp -batch -new -newkey rsa:2048 -nodes -out server-client.csr -keyout server-client.key || fail "Could not create server-client.key"
-$OPENSSL ca -config $PWD/openssl.cnf.tmp -batch -md sha256 -in server-client.csr -out server-client.pem -key $PASS -days 730 -extensions ext_client || fail "Could not create server-client.pem"
+$OPENSSL ca -config $PWD/openssl.cnf.tmp -batch -md sha256 -in server-client.csr -out server-client.pem -key $PASS -days $DAYS -extensions ext_client || fail "Could not create server-client.pem"
 
 echo
 echo "---[ User ]-------------------------------------------------------------"
@@ -167,7 +170,7 @@ echo
 
 cat my-openssl.cnf | sed "s/#@CN@/commonName_default = User/" > openssl.cnf.tmp
 $OPENSSL req -config $PWD/openssl.cnf.tmp -batch -new -newkey rsa:2048 -nodes -out user.csr -keyout user.key || fail "Could not create user.key"
-$OPENSSL ca -config $PWD/openssl.cnf.tmp -batch -md sha256 -in user.csr -out user.pem -key $PASS -days 730 -extensions ext_client || fail "Could not create user.pem"
+$OPENSSL ca -config $PWD/openssl.cnf.tmp -batch -md sha256 -in user.csr -out user.pem -key $PASS -days $DAYS -extensions ext_client || fail "Could not create user.pem"
 
 echo
 echo "---[ Server ]-----------------------------------------------------------"
@@ -180,12 +183,35 @@ ALT="$ALT,otherName:1.3.6.1.4.1.40808.1.1.1;UTF8String:$OPER_FI"
 cat my-openssl.cnf |
 	sed "s/#@CN@/commonName_default = $OSU_SERVER_HOSTNAME/" |
 	sed "s/^##organizationalUnitName/organizationalUnitName/" |
-	sed "s/#@OU@/organizationalUnitName_default = Hotspot 2.0 Online Sign Up Server/" |
+	sed "s/#@OU@/organizationalUnitName_default = Hotspot 2.0 Online Server/" |
 	sed "s/#@ALTNAME@/subjectAltName=critical,$ALT/" \
 	> openssl.cnf.tmp
 echo $OPENSSL req -config $PWD/openssl.cnf.tmp -batch -sha256 -new -newkey rsa:2048 -nodes -out server.csr -keyout server.key -reqexts v3_osu_server
 $OPENSSL req -config $PWD/openssl.cnf.tmp -batch -sha256 -new -newkey rsa:2048 -nodes -out server.csr -keyout server.key -reqexts v3_osu_server || fail "Failed to generate server request"
-$OPENSSL ca -config $PWD/openssl.cnf.tmp -batch -md sha256 -in server.csr -out server.pem -key $PASS -days 730 -extensions ext_server -policy policy_osu_server || fail "Failed to sign server certificate"
+$OPENSSL ca -config $PWD/openssl.cnf.tmp -batch -md sha256 -in server.csr -out server.pem -key $PASS -days $DAYS -extensions ext_server -policy policy_osu_server || fail "Failed to sign server certificate"
+
+#dump logotype details for debugging
+$OPENSSL x509 -in server.pem -out server.der -outform DER
+openssl asn1parse -in server.der -inform DER | grep HEX | tail -1 | sed 's/.*://' | xxd -r -p > logo.der
+openssl asn1parse -in logo.der -inform DER > logo.asn1
+
+echo
+echo "---[ Signup Server ]-----------------------------------------------------------"
+echo
+
+ALT="DNS:$OSU_SIGNUP_SERVER_HOSTNAME"
+ALT="$ALT,otherName:1.3.6.1.4.1.40808.1.1.1;UTF8String:$OPER_ENG"
+ALT="$ALT,otherName:1.3.6.1.4.1.40808.1.1.1;UTF8String:$OPER_FI"
+
+cat my-openssl.cnf |
+	sed "s/#@CN@/commonName_default = $OSU_SIGNUP_SERVER_HOSTNAME/" |
+	sed "s/^##organizationalUnitName/organizationalUnitName/" |
+	sed "s/#@OU@/organizationalUnitName_default = Hotspot 2.0 Online Sign Up Server/" |
+	sed "s/#@ALTNAME@/subjectAltName=critical,$ALT/" \
+	> openssl.cnf.tmp
+echo $OPENSSL req -config $PWD/openssl.cnf.tmp -batch -sha256 -new -newkey rsa:2048 -nodes -out signup-server.csr -keyout signup-server.key -reqexts v3_osu_server
+$OPENSSL req -config $PWD/openssl.cnf.tmp -batch -sha256 -new -newkey rsa:2048 -nodes -out signup-server.csr -keyout signup-server.key -reqexts v3_osu_server || fail "Failed to generate signup server request"
+$OPENSSL ca -config $PWD/openssl.cnf.tmp -batch -md sha256 -in signup-server.csr -out signup-server.pem -key $PASS -days $DAYS -extensions ext_server -policy policy_osu_server || fail "Failed to sign signup server certificate"
 
 #dump logotype details for debugging
 $OPENSSL x509 -in server.pem -out server.der -outform DER
