@@ -2321,6 +2321,8 @@ static int osu_connect(struct hs20_osu_client *ctx, const char *bssid,
 		wpa_printf(MSG_INFO, "Could not get IP address for WLAN - try connection anyway");
 	}
 
+	/* Give a bit more time in case external tools are still configuring things, like VRF. */
+	os_sleep(1, 0);
 	check_dns_file(ctx);
 
 	if (no_prod_assoc) {
@@ -2766,6 +2768,9 @@ static int cmd_sub_rem(struct hs20_osu_client *ctx, const char *address,
 	if (wait_ip_addr(ctx->ifname, 15) < 0) {
 		wpa_printf(MSG_INFO, "Could not get IP address for WLAN - try connection anyway");
 	}
+
+	/* Give a bit more time in case external tools are still configuring things, like VRF. */
+	os_sleep(1, 0);
 	check_dns_file(ctx);
 
 	if (spp)
