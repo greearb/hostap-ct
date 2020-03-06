@@ -98,7 +98,7 @@ struct wpa_ctrl * open_wpa_mon(const char *ifname)
 
 int get_wpa_cli_event2(struct wpa_ctrl *mon,
 		       const char *event, const char *event2,
-		       char *buf, size_t buf_size)
+		       char *buf, size_t buf_size, long timeout)
 {
 	int fd, ret;
 	fd_set rfd;
@@ -108,8 +108,10 @@ int get_wpa_cli_event2(struct wpa_ctrl *mon,
 
 	printf("Waiting for wpa_cli event %s\n", event);
 	fd = wpa_ctrl_get_fd(mon);
-	if (fd < 0)
+	if (fd < 0) {
+		printf("ERROR:  fd is bad when waiting for event %s\n", event);
 		return -1;
+	}
 
 	time(&start);
 	while (1) {
@@ -117,7 +119,7 @@ int get_wpa_cli_event2(struct wpa_ctrl *mon,
 
 		FD_ZERO(&rfd);
 		FD_SET(fd, &rfd);
-		tv.tv_sec = default_timeout;
+		tv.tv_sec = timeout;
 		tv.tv_usec = 0;
 		ret = select(fd + 1, &rfd, NULL, NULL, &tv);
 		if (ret == 0) {
@@ -141,11 +143,13 @@ int get_wpa_cli_event2(struct wpa_ctrl *mon,
 		if (pos &&
 		    (strncmp(pos + 1, event, strlen(event)) == 0 ||
 		     (event2 &&
-		      strncmp(pos + 1, event2, strlen(event2)) == 0)))
+		      strncmp(pos + 1, event2, strlen(event2)) == 0))) {
+			printf("Event found: %s\n", buf);
 			return 0; /* Event found */
+		}
 
 		time(&now);
-		if ((int) (now - start) > default_timeout) {
+		if ((int) (now - start) > timeout) {
 			printf("Timeout on waiting for event %s\n", event);
 			return -1;
 		}
@@ -156,7 +160,13 @@ int get_wpa_cli_event2(struct wpa_ctrl *mon,
 int get_wpa_cli_event(struct wpa_ctrl *mon,
 		      const char *event, char *buf, size_t buf_size)
 {
-	return get_wpa_cli_event2(mon, event, NULL, buf, buf_size);
+	return get_wpa_cli_event2(mon, event, NULL, buf, buf_size, default_timeout);
+}
+
+int get_wpa_cli_event_t(struct wpa_ctrl *mon,
+			const char *event, char *buf, size_t buf_size, long timeout)
+{
+	return get_wpa_cli_event2(mon, event, NULL, buf, buf_size, timeout);
 }
 
 
