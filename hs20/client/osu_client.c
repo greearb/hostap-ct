@@ -2259,6 +2259,10 @@ static int osu_connect(struct hs20_osu_client *ctx, const char *bssid,
 	if (mon == NULL)
 		return -1;
 
+	/* Read buffer in case there is something already there to be read. */
+	get_wpa_cli_event_t(mon, "CTRL-EVENT-CONNECTED",
+			    buf, sizeof(buf), 0);
+
 	wpa_printf(MSG_INFO, "Associate with OSU SSID");
 	write_summary(ctx, "Associate with OSU SSID");
 	snprintf(buf, sizeof(buf), "SELECT_NETWORK %d", id);
@@ -2281,6 +2285,10 @@ static int osu_connect(struct hs20_osu_client *ctx, const char *bssid,
 	}
 
 	write_summary(ctx, "Waiting for IP address for subscription registration");
+
+	/* Wait in case old IP has not been removed quite yet. */
+	os_sleep(5, 0);
+
 	if (wait_ip_addr(ifname, 15) < 0) {
 		wpa_printf(MSG_INFO, "Could not get IP address for WLAN - try connection anyway");
 	}
@@ -2567,6 +2575,10 @@ static int cmd_signup(struct hs20_osu_client *ctx, int no_prod_assoc,
 	if (mon == NULL)
 		return -1;
 
+	/* Read buffer in case there is something already there to be read. */
+	get_wpa_cli_event_t(mon, "OSU provider fetch completed",
+			    buf, sizeof(buf), 0);
+
 	wpa_printf(MSG_INFO, "Starting OSU fetch");
 	write_summary(ctx, "Starting OSU provider information fetch");
 	if (wpa_command(ifname, "FETCH_OSU") < 0) {
@@ -2728,6 +2740,9 @@ static int cmd_sub_rem(struct hs20_osu_client *ctx, const char *address,
 
 	write_summary(ctx, "Wait for IP address for subscriptiom remediation");
 	wpa_printf(MSG_INFO, "Wait for IP address before starting subscription remediation");
+
+	/* Wait in case old IP has not been removed quite yet. */
+	os_sleep(5, 0);
 
 	if (wait_ip_addr(ctx->ifname, 15) < 0) {
 		wpa_printf(MSG_INFO, "Could not get IP address for WLAN - try connection anyway");
