@@ -20,9 +20,12 @@ struct wpa_ctrl * open_wpa_mon(const char *ifname);
 int wait_ip_addr(const char *ifname, int timeout);
 int get_wpa_cli_event(struct wpa_ctrl *mon,
 		      const char *event, char *buf, size_t buf_size);
+int get_wpa_cli_event_t(struct wpa_ctrl *mon,
+			const char *event, char *buf, size_t buf_size,
+			long timeout);
 int get_wpa_cli_event2(struct wpa_ctrl *mon,
 		       const char *event, const char *event2,
-		       char *buf, size_t buf_size);
+		       char *buf, size_t buf_size, long timeout);
 
 int add_network(const char *ifname);
 int set_network(const char *ifname, int id, const char *field,
