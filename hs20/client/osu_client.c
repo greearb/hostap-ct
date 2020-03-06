@@ -3470,7 +3470,7 @@ int main(int argc, char *argv[])
 			exit(0);
 		}
 
-		wpa_printf(MSG_INFO, "Launch web browser to URL %s",
+		wpa_printf(MSG_INFO, "main: Launch web browser to URL %s",
 			   argv[optind + 1]);
 		ret = hs20_web_browser(argv[optind + 1], ctx.ignore_tls);
 		wpa_printf(MSG_INFO, "Web browser result: %d", ret);

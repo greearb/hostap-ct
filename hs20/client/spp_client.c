@@ -545,8 +545,8 @@ static int hs20_spp_exec(struct hs20_osu_client *ctx, xml_node_t *exec,
 			free(id);
 			return -1;
 		}
-		wpa_printf(MSG_INFO, "Launch browser to URI '%s'", uri);
-		write_summary(ctx, "Launch browser to URI '%s'", uri);
+		wpa_printf(MSG_INFO, "spp-exec: Launch browser to URI '%s'", uri);
+		write_summary(ctx, "spp-exec: Launch browser to URI '%s'", uri);
 		res = hs20_web_browser(uri, 1);
 		xml_node_get_text_free(ctx->xml, uri);
 		if (res > 0) {
