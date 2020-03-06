@@ -63,6 +63,9 @@ static void process_request_starting_uri(struct browser_context *ctx,
 {
 	int quit = 0;
 
+	wpa_printf(MSG_DEBUG, "BROWSER: process-request-starting-uri: %s  started: %d\n",
+		   uri, ctx->gtk_main_started);
+
 	if (g_str_has_prefix(uri, "osu://")) {
 		ctx->success = atoi(uri + 6);
 		quit = 1;
