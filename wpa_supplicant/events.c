@@ -638,14 +638,16 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 		if (!(ie.pairwise_cipher & ssid->pairwise_cipher)) {
 			if (debug_print)
 				wpa_dbg(wpa_s, MSG_DEBUG,
-					"   skip RSN IE - PTK cipher mismatch");
+					"   skip RSN IE - PTK cipher mismatch, ie: 0x%x  pairwise: 0x%x",
+					ie.pairwise_cipher, ssid->pairwise_cipher);
 			break;
 		}
 
 		if (!(ie.group_cipher & ssid->group_cipher)) {
 			if (debug_print)
 				wpa_dbg(wpa_s, MSG_DEBUG,
-					"   skip RSN IE - GTK cipher mismatch");
+					"   skip RSN IE - GTK cipher mismatch, ie: 0x%x  group: 0x%x",
+					ie.group_cipher, ssid->group_cipher);
 			break;
 		}
 
@@ -713,7 +715,7 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 	    (!(ssid->key_mgmt & WPA_KEY_MGMT_OWE) || ssid->owe_only)) {
 		if (debug_print)
 			wpa_dbg(wpa_s, MSG_DEBUG,
-				"   skip - MFP Required but network not MFP Capable");
+				"   skip - MFP Required but network not MFP Capable (WPA, OSEN failed, and Not OWE)");
 		return 0;
 	}
 
