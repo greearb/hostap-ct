@@ -12,6 +12,7 @@
 #include "radius.h"
 #include "radius_client.h"
 #include "eloop.h"
+#include <net/if.h>
 
 /* Defaults for RADIUS retransmit values (exponential backoff) */
 
@@ -1158,6 +1159,25 @@ radius_change_server(struct radius_client_data *radius,
 			   nserv->addr.af, sock, sock6, auth);
 		return -1;
 	}
+
+#ifdef __linux__
+	if (conf->force_client_dev && conf->force_client_dev[0]) {
+		struct ifreq ifr;
+		os_memset(&ifr, 0, sizeof(ifr));
+		os_strlcpy(ifr.ifr_ifrn.ifrn_name, conf->force_client_dev, IFNAMSIZ);
+		if (setsockopt(sel_sock, SOL_SOCKET, SO_BINDTODEVICE,
+			       (char *) &ifr, sizeof(ifr)) < 0) {
+			wpa_printf(MSG_ERROR,
+				   "setsockopt[RADIUS CLIENT, SO_BINDTODEVICE]: %s",
+				   strerror(errno));
+			/* probably not critical error, continue on and hope for the best. */
+		}
+		else {
+			wpa_printf(MSG_ERROR,
+				   "Bound radius client socket to device: %s", conf->force_client_dev);
+		}
+	}
+#endif
 
 	if (conf->force_client_addr) {
 		switch (conf->client_addr.af) {

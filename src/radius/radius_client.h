@@ -174,6 +174,11 @@ struct hostapd_radius_servers {
 	 * force_client_addr - Whether to force client (local) address
 	 */
 	int force_client_addr;
+
+	/**
+	 * Will call SO_BINDTODEVICE on this if non null and non-empty string.
+	 */
+	char* force_client_dev;
 };
 
 
