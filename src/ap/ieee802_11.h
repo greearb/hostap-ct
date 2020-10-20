@@ -137,6 +137,9 @@ static inline void sae_clear_retransmit_timer(struct hostapd_data *hapd,
 }
 #endif /* CONFIG_SAE */
 
+u8 * hostapd_eid_rm_enabled_capab(struct hostapd_data *hapd,
+						u8 *eid, size_t len);
+
 #ifdef CONFIG_MBO
 
 u8 * hostapd_eid_mbo(struct hostapd_data *hapd, u8 *eid, size_t len);
