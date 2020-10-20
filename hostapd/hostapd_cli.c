@@ -1603,6 +1603,11 @@ static int hostapd_cli_cmd_deny_macacl(struct wpa_ctrl *ctrl, int argc,
 	return hostapd_cli_cmd(ctrl, "DENY_ACL", 1, argc, argv);
 }
 
+static int hostapd_cli_cmd_signal_monitor(struct wpa_ctrl *ctrl, int argc,
+					  char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "SIGNAL_MONITOR", 0, argc, argv);
+}
 
 static int hostapd_cli_cmd_poll_sta(struct wpa_ctrl *ctrl, int argc,
 				    char *argv[])
@@ -1868,6 +1873,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	  "=Add/Delete/Show/Clear deny MAC ACL" },
 	{ "poll_sta", hostapd_cli_cmd_poll_sta, hostapd_complete_stations,
 	  "<addr> = poll a STA to check connectivity with a QoS null frame" },
+	{ "signal_monitor", hostapd_cli_cmd_signal_monitor, NULL,
+	  "= set signal monitor parameters" },
 	{ "req_beacon", hostapd_cli_cmd_req_beacon, NULL,
 	  "<addr> [req_mode=] <measurement request hexdump>  = send a Beacon report request to a station" },
 	{ "req_link_measurement", hostapd_cli_cmd_req_link_measurement, NULL,
