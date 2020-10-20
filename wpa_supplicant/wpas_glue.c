@@ -754,13 +754,17 @@ static int wpa_supplicant_mark_authenticated(void *ctx, const u8 *target_ap)
 
 static int wpa_supplicant_tdls_get_capa(void *ctx, int *tdls_supported,
 					int *tdls_ext_setup,
-					int *tdls_chan_switch)
+					int *tdls_chan_switch,
+					int *tdls_inact_teardown,
+					int *tdls_inact_timeout)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 
 	*tdls_supported = 0;
 	*tdls_ext_setup = 0;
 	*tdls_chan_switch = 0;
+	*tdls_inact_teardown = 0;
+	*tdls_inact_timeout = 0;
 
 	if (!wpa_s->drv_capa_known)
 		return -1;
@@ -773,6 +777,11 @@ static int wpa_supplicant_tdls_get_capa(void *ctx, int *tdls_supported,
 
 	if (wpa_s->drv_flags & WPA_DRIVER_FLAGS_TDLS_CHANNEL_SWITCH)
 		*tdls_chan_switch = 1;
+
+	if (wpa_s->drv_flags & WPA_DRIVER_FLAGS_TDLS_INACTIVITY_TIMER)
+		*tdls_inact_teardown = 1;
+
+	*tdls_inact_timeout = wpa_s->conf->tdls_peer_max_inactivity;
 
 	return 0;
 }
@@ -864,6 +873,13 @@ static int wpa_supplicant_tdls_disable_channel_switch(void *ctx, const u8 *addr)
 	struct wpa_supplicant *wpa_s = ctx;
 
 	return wpa_drv_tdls_disable_channel_switch(wpa_s, addr);
+}
+
+static int wpa_supplicant_tdls_get_peer_inact_time(void *ctx, const u8 *addr)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	return wpa_drv_get_inactive_time(wpa_s, addr);
 }
 
 #endif /* CONFIG_TDLS */
@@ -1461,6 +1477,7 @@ int wpa_supplicant_init_wpa(struct wpa_supplicant *wpa_s)
 		wpa_supplicant_tdls_enable_channel_switch;
 	ctx->tdls_disable_channel_switch =
 		wpa_supplicant_tdls_disable_channel_switch;
+	ctx->tdls_get_peer_inact_time = wpa_supplicant_tdls_get_peer_inact_time;
 #endif /* CONFIG_TDLS */
 	ctx->set_rekey_offload = wpa_supplicant_set_rekey_offload;
 	ctx->key_mgmt_set_pmk = wpa_supplicant_key_mgmt_set_pmk;

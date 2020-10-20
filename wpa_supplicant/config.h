@@ -52,6 +52,7 @@
 #define DEFAULT_MBO_CELL_CAPA MBO_CELL_CAPA_NOT_SUPPORTED
 #define DEFAULT_DISASSOC_IMMINENT_RSSI_THRESHOLD -75
 #define DEFAULT_OCE_SUPPORT OCE_STA
+#define DEFAULT_TDLS_PEER_MAX_INACTIVITY 300
 #define DEFAULT_EXTENDED_KEY_ID 0
 #define DEFAULT_SCAN_RES_VALID_FOR_CONNECT 5
 #define DEFAULT_IGNORE_AUTH_RESP 0
@@ -1757,6 +1758,15 @@ struct wpa_config {
 	 * 1 = enabled (true)
 	 */
 	int coloc_intf_reporting;
+
+	/**
+	 * tdls_peer_max_inactivity - Timeout to detect TDLS peer inactivity
+	 *
+	 * Time duration in seconds to detect TDLS peer inactivity and clean up
+	 * of inactive TDLS peers.
+	 * Default Value: 300 seconds.
+	 */
+	int tdls_peer_max_inactivity;
 
 	/**
 	 * p2p_device_random_mac_addr - P2P Device MAC address policy default
