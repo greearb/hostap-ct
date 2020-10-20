@@ -792,6 +792,7 @@ void hostapd_config_free_bss(struct hostapd_bss_config *conf)
 	os_free(conf->radius_req_attr_sqlite);
 	os_free(conf->rsn_preauth_interfaces);
 	os_free(conf->ctrl_interface);
+	os_free(conf->config_id);
 	os_free(conf->ca_cert);
 	os_free(conf->server_cert);
 	os_free(conf->server_cert2);
@@ -988,6 +989,7 @@ void hostapd_config_free(struct hostapd_config *conf)
 
 	for (i = 0; i < conf->num_bss; i++)
 		hostapd_config_free_bss(conf->bss[i]);
+	os_free(conf->config_id);
 	os_free(conf->bss);
 	os_free(conf->supported_rates);
 	os_free(conf->basic_rates);

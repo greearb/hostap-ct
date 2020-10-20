@@ -304,7 +304,7 @@ static void handle_term(int sig, void *signal_ctx)
 
 static int handle_reload_iface(struct hostapd_iface *iface, void *ctx)
 {
-	if (hostapd_reload_config(iface) < 0) {
+	if (hostapd_reload_config(iface, 0) < 0) {
 		wpa_printf(MSG_WARNING, "Failed to read new configuration "
 			   "file - continuing with old.");
 	}
