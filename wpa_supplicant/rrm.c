@@ -1124,7 +1124,7 @@ static int wpas_rm_handle_beacon_req_subelem(struct wpa_supplicant *wpa_s,
 		}
 
 		for (i = 0; i < slen; i++)
-			bitfield_set(data->eids, subelem[i]);
+			bitfield_set_local(data->eids, subelem[i]);
 		break;
 	case WLAN_BEACON_REQUEST_SUBELEM_AP_CHANNEL:
 		/* Skip - it will be processed when freqs are added */
