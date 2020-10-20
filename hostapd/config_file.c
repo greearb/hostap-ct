@@ -4328,6 +4328,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 	} else if (os_strcmp(buf, "wowlan_triggers") == 0) {
 		os_free(bss->wowlan_triggers);
 		bss->wowlan_triggers = os_strdup(pos);
+	} else if (os_strcmp(buf, "disable_40mhz_scan") == 0) {
+		conf->disable_40mhz_scan = atoi(pos);
 #ifdef CONFIG_FST
 	} else if (os_strcmp(buf, "fst_group_id") == 0) {
 		size_t len = os_strlen(pos);

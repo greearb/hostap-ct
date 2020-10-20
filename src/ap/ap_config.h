@@ -1087,6 +1087,7 @@ struct hostapd_config {
 	} *acs_chan_bias;
 	unsigned int num_acs_chan_bias;
 #endif /* CONFIG_ACS */
+	int disable_40mhz_scan;
 
 	struct wpabuf *lci;
 	struct wpabuf *civic;
