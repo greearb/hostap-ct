@@ -769,6 +769,7 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 #endif /* IEEE8021X_EAPOL */
 	INT(mode);
 	INT(no_auto_peer);
+	INT(noscan);
 	INT(frequency);
 	INT(enable_edmg);
 	INT(edmg_channel);

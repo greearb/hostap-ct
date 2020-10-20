@@ -976,6 +976,8 @@ struct wpa_ssid {
 	 */
 	int no_auto_peer;
 
+	int noscan;
+
 	/**
 	 * mesh_rssi_threshold - Set mesh parameter mesh_rssi_threshold (dBm)
 	 *
