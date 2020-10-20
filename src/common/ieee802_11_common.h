@@ -11,6 +11,7 @@
 
 #include "defs.h"
 #include "ieee802_11_defs.h"
+#include "ap/sta_info.h"
 
 struct element {
 	u8 id;
@@ -266,8 +267,8 @@ bool is_6ghz_freq(int freq);
 bool is_6ghz_op_class(u8 op_class);
 bool is_6ghz_psc_frequency(int freq);
 
-int ieee802_11_parse_candidate_list(struct hostapd_data *hapd, const char *pos, u8 *nei_rep,
-				    size_t nei_rep_len);
+int ieee802_11_parse_candidate_list(struct hostapd_data *hapd, const char *pos, struct sta_info *sta,
+				    u8 *nei_rep, size_t nei_rep_len);
 
 int ieee802_11_ext_capab(const u8 *ie, unsigned int capab);
 int op_class_to_bandwidth(u8 op_class);

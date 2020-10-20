@@ -1630,7 +1630,7 @@ int wnm_send_bss_transition_mgmt_query(struct wpa_supplicant *wpa_s,
 			return ret;
 		}
 
-		ret = ieee802_11_parse_candidate_list(NULL /* hapd */, btm_candidates,
+		ret = ieee802_11_parse_candidate_list(NULL /* hapd */, btm_candidates, NULL,
 						      wpabuf_put(buf, 0),
 						      max_len);
 		if (ret < 0) {
