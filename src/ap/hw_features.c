@@ -367,7 +367,17 @@ static void ieee80211n_check_scan(struct hostapd_iface *iface)
 
 	if (iface->conf->secondary_channel)
 		res = ieee80211n_allowed_ht40_channel_pair(iface);
+
+	/*
+	 * Secondary channel is set to 0 if OBSS failed.
+	 * The function ieee80211n_allowed_ht40_channel_pair() sets primary
+	 * and secondary channel to same value in this case.
+	 */
+	if(iface->conf->secondary_channel)
+		res = ieee80211n_allowed_ht40_channel_pair(iface);
+
 	if (!res) {
+		/* Downgrade to 20MHz. */
 		iface->conf->secondary_channel = 0;
 		hostapd_set_oper_centr_freq_seg0_idx(iface->conf, 0);
 		hostapd_set_oper_centr_freq_seg1_idx(iface->conf, 0);
