@@ -2331,11 +2331,21 @@ int get_6ghz_sec_channel(int channel)
 }
 
 
-int ieee802_11_parse_candidate_list(struct hostapd_data *hapd, const char *pos, u8 *nei_rep,
-				    size_t nei_rep_len)
+int ieee802_11_parse_candidate_list(struct hostapd_data *hapd, const char *pos, struct sta_info *sta,
+				    u8 *nei_rep, size_t nei_rep_len)
 {
 	u8 *nei_pos = nei_rep;
 	const char *end;
+#ifdef CONFIG_MBO
+	u8 non_pref_chan = 0;
+	u8 *pref_pos = NULL;
+	int i;
+
+	struct mbo_non_pref_chan_info *info = NULL;
+
+	if (sta && sta->non_pref_chan)
+		info = sta->non_pref_chan;
+#endif
 
 	/*
 	 * BSS Transition Candidate List Entries - Neighbor Report elements
@@ -2429,6 +2439,9 @@ int ieee802_11_parse_candidate_list(struct hostapd_data *hapd, const char *pos, 
 		pos++;
 
 		*nei_pos++ = atoi(pos); /* Channel Number */
+#ifdef CONFIG_MBO
+		non_pref_chan = atoi(pos);
+#endif
 		pos = os_strchr(pos, ',');
 		if (pos == NULL) {
 			wpa_printf(MSG_DEBUG, "Missing PHY Type");
@@ -2460,6 +2473,25 @@ int ieee802_11_parse_candidate_list(struct hostapd_data *hapd, const char *pos, 
 					   "Invalid neighbor subelement info");
 				return -1;
 			}
+#ifdef CONFIG_MBO
+			if (info) {
+				for (i = 0; i < (len / 2); i++)
+					if (nei_pos[i] == WNM_NEIGHBOR_BSS_TRANSITION_CANDIDATE &&
+					    nei_pos[i + 1] == 0x1) /* length */
+						pref_pos = (nei_pos + i + 2);
+
+			/* If STA had updated MBO non-pref chan report,
+			 * use the same candidate preference value in the
+			 * BSS Transition Candidate sub-element.
+			 */
+				for ( ; info ; info = info->next)
+					for (i = 0; i < info->num_channels; i++)
+						if (non_pref_chan == info->channels[i])
+							*pref_pos = info->pref;
+
+				info = sta->non_pref_chan;
+			}
+#endif
 			nei_pos += len / 2;
 			pos = end;
 		}

@@ -693,10 +693,10 @@ static int ieee80211ax_supported_he_capab(struct hostapd_iface *iface)
 
 	// TODO:  This must need some newer upstream patch to make this logic work correctly.
 	// This bit below is from openwrt patch. --Ben
-	if (conf->he_phy_capab.he_ul_mumimo != -1)
-		HE_CAP_CHECK(hw->phy_cap, HE_PHYCAP_UL_MUMIMO_CAPB,
-			     HE_PHYCAP_UL_MUMIMO_CAPB_IDX,
-			     conf->he_phy_capab.he_ul_mumimo);
+	//if (conf->he_phy_capab.he_ul_mumimo != -1)
+	//	HE_CAP_CHECK(hw->phy_cap, HE_PHYCAP_UL_MUMIMO_CAPB,
+	//		     HE_PHYCAP_UL_MUMIMO_CAPB_IDX,
+	//		     conf->he_phy_capab.he_ul_mumimo);
 
 	return 1;
 }

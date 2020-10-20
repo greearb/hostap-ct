@@ -152,12 +152,14 @@ u8 * hostapd_eid_he_capab(struct hostapd_data *hapd, u8 *eid,
 		cap->he_phy_capab_info[HE_PHYCAP_MU_BEAMFORMER_CAPAB_IDX] &=
 			~HE_PHYCAP_MU_BEAMFORMER_CAPAB;
 
-	if (hapd->iface->conf->he_phy_capab.he_ul_mumimo == 1)
-		cap->he_phy_capab_info[HE_PHYCAP_UL_MUMIMO_CAPB_IDX] |=
-			HE_PHYCAP_UL_MUMIMO_CAPB;
-	else if (hapd->iface->conf->he_phy_capab.he_ul_mumimo == 0)
-		cap->he_phy_capab_info[HE_PHYCAP_UL_MUMIMO_CAPB_IDX] &=
-			~HE_PHYCAP_UL_MUMIMO_CAPB;
+	if (hapd->iface->conf->he_phy_capab.he_ul_mumimo == 1) {
+		cap->he_phy_capab_info[2] |= HE_PHY_CAP2_UL_MU_PARTIAL_MU_MIMO;
+		cap->he_phy_capab_info[2] |= HE_PHY_CAP2_UL_MU_FULL_MU_MIMO;
+	}
+	else if (hapd->iface->conf->he_phy_capab.he_ul_mumimo == 0) {
+		cap->he_phy_capab_info[2] &= ~HE_PHY_CAP2_UL_MU_PARTIAL_MU_MIMO;
+		cap->he_phy_capab_info[2] &= ~HE_PHY_CAP2_UL_MU_FULL_MU_MIMO;
+	}
 
 	cap->he_phy_capab_info[HE_PHYCAP_CHANNEL_WIDTH_SET_IDX] &=
 		he_oper_chwidth;
