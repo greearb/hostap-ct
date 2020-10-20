@@ -866,9 +866,14 @@ int hostapd_check_ht_capab(struct hostapd_iface *iface)
 	if (hostapd_check_phy_capab(iface))
 		return -1;
 
-	ret = ieee80211n_check_40mhz(iface);
-	if (ret)
-		return ret;
+	if (!iface->conf->disable_40mhz_scan) {
+		ret = ieee80211n_check_40mhz(iface);
+		if (ret)
+			return ret;
+	} else {
+		wpa_printf(MSG_INFO, "%s:40mhz scan disabled",
+		iface->conf->bss[0]->iface);
+	}
 	if (!ieee80211n_allowed_ht40_channel_pair(iface))
 		return -1;
 
