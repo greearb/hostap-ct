@@ -2789,7 +2789,7 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 	struct hostapd_hw_modes *cmode = iface->current_mode;
 	struct wpabuf *beacon, *proberesp, *assocresp;
 	bool twt_he_responder = false;
-	int res, ret = -1, i;
+	int res = 0, ret = -1, i;
 	struct hostapd_hw_modes *mode;
 	struct hostapd_channel_info info;
 
