@@ -4563,6 +4563,20 @@ struct wpa_driver_ops {
 	int (*get_peer_inactive_time)(void *priv, const u8 *addr);
 
 	/**
+	 * signal_txrate - Set signal monitoring parameters
+	 * @priv: Private driver interface data
+	 * @low_thold: Low threshold value for signal txrate events; 0 = disabled
+	 * @high_thold: High threshold value for signal txrate events; 0 = disabled
+	 * Returns: 0 on success, -1 on failure (or if not supported)
+	 *
+	 * This function can be used to configure monitoring of signal tx rate
+	 * with the current AP. Whenever txrate drops below the low_thold
+	 * or increases above high_thold.
+	 */
+	int (*signal_txrate)(void *priv, const u32 low_thold,
+			     u32 high_thold);
+
+	/**
 	 * update_connect_params - Update the connection parameters
 	 * @priv: Private driver interface data
 	 * @params: Association parameters

@@ -4940,6 +4940,17 @@ enum nl80211_ps_state {
  *	loss event
  * @NL80211_ATTR_CQM_RSSI_LEVEL: the RSSI value in dBm that triggered the
  *	RSSI threshold event.
+ * @NL80211_ATTR_CQM_LOW_TX_RATE_THOLD: TX_RATE threshold in Kbps. This value
+ *    specifies the low threshold for the TX_RATE level at which an event will be
+ *    sent. Zero to disable. Events will be sent when the TX_RATE value goes
+ *    lesser than this threshold.
+ * @NL80211_ATTR_CQM_HIGH_TX_RATE_THOLD: TX RATE in Kbps. This value
+ *    specifies the high threshold for the TX_RATE  level at which an event will
+ *    be sent. Zero to diable. Event will be sent when the TX_RATE values goes
+ *    greater than this threshold.
+ * @NL80211_ATTR_CQM_TX_RATE_THRESHOLD_EVENT: TX_RATE threshold event
+ * @NL80211_ATTR_CQM_TX_RATE_LEVEL: the tx rate value in Kbps that triggered the
+ *    TX_RATE threshold event.
  * @__NL80211_ATTR_CQM_AFTER_LAST: internal
  * @NL80211_ATTR_CQM_MAX: highest key attribute
  */
@@ -4954,7 +4965,10 @@ enum nl80211_attr_cqm {
 	NL80211_ATTR_CQM_TXE_INTVL,
 	NL80211_ATTR_CQM_BEACON_LOSS_EVENT,
 	NL80211_ATTR_CQM_RSSI_LEVEL,
-
+	NL80211_ATTR_CQM_LOW_TX_RATE_THOLD,
+	NL80211_ATTR_CQM_HIGH_TX_RATE_THOLD,
+	NL80211_ATTR_CQM_TX_RATE_THRESHOLD_EVENT,
+	NL80211_ATTR_CQM_TX_RATE_LEVEL,
 	/* keep last */
 	__NL80211_ATTR_CQM_AFTER_LAST,
 	NL80211_ATTR_CQM_MAX = __NL80211_ATTR_CQM_AFTER_LAST - 1
@@ -4968,13 +4982,17 @@ enum nl80211_attr_cqm {
  *      configured threshold
  * @NL80211_CQM_RSSI_BEACON_LOSS_EVENT: (reserved, never sent)
  */
+
 enum nl80211_cqm_rssi_threshold_event {
 	NL80211_CQM_RSSI_THRESHOLD_EVENT_LOW,
 	NL80211_CQM_RSSI_THRESHOLD_EVENT_HIGH,
 	NL80211_CQM_RSSI_BEACON_LOSS_EVENT,
 };
 
-
+enum nl80211_cqm_tx_rate_threshold_event {
+	NL80211_CQM_TX_RATE_THRESHOLD_EVENT_LOW = 1,
+	NL80211_CQM_TX_RATE_THRESHOLD_EVENT_HIGH,
+};
 /**
  * enum nl80211_tx_power_setting - TX power adjustment
  * @NL80211_TX_POWER_AUTOMATIC: automatically determine transmit power

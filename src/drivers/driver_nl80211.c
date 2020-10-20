@@ -8806,6 +8806,29 @@ static int nl80211_signal_monitor(void *priv, int threshold, int hysteresis)
 	return send_and_recv_msgs(drv, msg, NULL, NULL, NULL, NULL);
 }
 
+static int nl80211_signal_txrate(void *priv, const u32 low_thold,
+				 u32 high_thold)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *cqm;
+
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_SET_CQM)) ||
+	    !(cqm = nla_nest_start(msg, NL80211_ATTR_CQM)) ||
+		nla_put_u32(msg, NL80211_ATTR_CQM_LOW_TX_RATE_THOLD,
+			    low_thold) ||
+			nla_put_u32(msg, NL80211_ATTR_CQM_HIGH_TX_RATE_THOLD,
+				    high_thold)) {
+		nlmsg_free(msg);
+		wpa_printf(MSG_WARNING, "nl80211: Signal txrate returning");
+		return -1;
+	}
+
+	nla_nest_end(msg, cqm);
+
+	return send_and_recv_msgs(drv, msg, NULL, NULL, NULL, NULL);
+}
 
 static int get_channel_width(struct nl_msg *msg, void *arg)
 {
@@ -12505,6 +12528,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.deinit_p2p_cli = wpa_driver_nl80211_deinit_p2p_cli,
 	.resume = wpa_driver_nl80211_resume,
 	.signal_monitor = nl80211_signal_monitor,
+	.signal_txrate = nl80211_signal_txrate,
 	.signal_poll = nl80211_signal_poll,
 	.channel_info = nl80211_channel_info,
 	.set_param = nl80211_set_param,
