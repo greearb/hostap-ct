@@ -688,11 +688,59 @@ static int ieee80211ac_supported_vht_capab(struct hostapd_iface *iface)
 
 
 #ifdef CONFIG_IEEE80211AX
+static int _ieee80211he_cap_check(u8 *hw, u32 offset, u8 bits)
+{
+	if (bits & hw[offset])
+		return 1;
+
+	return 0;
+}
+
 static int ieee80211ax_supported_he_capab(struct hostapd_iface *iface)
 {
+	struct hostapd_hw_modes *mode = iface->current_mode;
+	struct he_capabilities *hw = &mode->he_capab[IEEE80211_MODE_AP];
+	struct hostapd_config *conf = iface->conf;
 
-	// TODO:  This must need some newer upstream patch to make this logic work correctly.
-	// This bit below is from openwrt patch. --Ben
+#define HE_CAP_CHECK(hw_cap, cap, bytes, conf) \
+	do { \
+		if (conf && !_ieee80211he_cap_check(hw_cap, bytes, cap)) { \
+			wpa_printf(MSG_ERROR, "Driver does not support configured" \
+				     " HE capability [%s]", #cap); \
+			return 0; \
+		} \
+	} while (0)
+
+#define HE_CAP_CHECK2(hw_cap, cap, bytes, cap1, bytes1, conf) \
+	do { \
+		if (conf && !(_ieee80211he_cap_check(hw_cap, bytes, cap) || \
+		     _ieee80211he_cap_check(hw_cap, bytes1, cap1))) { \
+			wpa_printf(MSG_ERROR, "Driver does not support configured HE" \
+				   " capability [%s-%s]", #cap, #cap1); \
+			return 0; \
+		} \
+	} while (0)
+
+	HE_CAP_CHECK(hw->phy_cap, HE_PHYCAP_SU_BEAMFORMER_CAPAB,
+		     HE_PHYCAP_SU_BEAMFORMER_CAPAB_IDX,
+		     conf->he_phy_capab.he_su_beamformer);
+	HE_CAP_CHECK(hw->phy_cap, HE_PHYCAP_SU_BEAMFORMEE_CAPAB,
+		     HE_PHYCAP_SU_BEAMFORMEE_CAPAB_IDX,
+		     conf->he_phy_capab.he_su_beamformee);
+	HE_CAP_CHECK(hw->phy_cap, HE_PHYCAP_MU_BEAMFORMER_CAPAB,
+		     HE_PHYCAP_MU_BEAMFORMER_CAPAB_IDX,
+		     conf->he_phy_capab.he_mu_beamformer);
+	HE_CAP_CHECK(hw->phy_cap, HE_PHYCAP_SPR_SR_CAPB,
+		     HE_PHYCAP_SPR_SR_CAPB_IDX, conf->spr.sr_control);
+
+	HE_CAP_CHECK2(hw->phy_cap, HE_PHYCAP_UL_MUMIMO_CAPB,
+		      HE_PHYCAP_UL_MUMIMO_CAPB_IDX, HE_PHYCAP_UL_MUOFDMA_CAPB,
+		      HE_PHYCAP_UL_MUOFDMA_CAPB_IDX, conf->he_mu_edca.he_qos_info);
+
+	HE_CAP_CHECK2(hw->mac_cap, HE_MACCAP_TWT_REQUESTER, HE_MACCAP_TWT_REQUESTER_IDX,
+		      HE_MACCAP_TWT_RESPONDER, HE_MACCAP_TWT_RESPONDER_IDX,
+		      conf->he_op.he_twt_required);
+
 	if (conf->he_phy_capab.he_ul_mumimo != -1)
 		HE_CAP_CHECK(hw->phy_cap, HE_PHYCAP_UL_MUMIMO_CAPB,
 			     HE_PHYCAP_UL_MUMIMO_CAPB_IDX,

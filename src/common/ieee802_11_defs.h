@@ -2252,7 +2252,10 @@ struct ieee80211_spatial_reuse {
 
 /* HE Capabilities Information defines */
 
-#define HE_MACCAP_TWT_RESPONDER			((u8) BIT(2))
+#define HE_MACCAP_TWT_REQUESTER_IDX     0
+#define HE_MACCAP_TWT_REQUESTER         ((u8) BIT(1))
+#define HE_MACCAP_TWT_RESPONDER_IDX     0
+#define HE_MACCAP_TWT_RESPONDER		((u8) BIT(2))
 
 #define HE_PHYCAP_CHANNEL_WIDTH_SET_IDX		0
 #define HE_PHYCAP_CHANNEL_WIDTH_MASK		((u8) (BIT(1) | BIT(2) | \
@@ -2268,6 +2271,13 @@ struct ieee80211_spatial_reuse {
 #define HE_PHYCAP_SU_BEAMFORMEE_CAPAB		((u8) BIT(0))
 #define HE_PHYCAP_MU_BEAMFORMER_CAPAB_IDX	4
 #define HE_PHYCAP_MU_BEAMFORMER_CAPAB		((u8) BIT(1))
+
+#define HE_PHYCAP_UL_MUMIMO_CAPB_IDX	2
+#define HE_PHYCAP_UL_MUMIMO_CAPB	((u8) BIT(6))
+#define HE_PHYCAP_UL_MUOFDMA_CAPB_IDX	2
+#define HE_PHYCAP_UL_MUOFDMA_CAPB	((u8) BIT(7))
+#define HE_PHYCAP_SPR_SR_CAPB_IDX	7
+#define HE_PHYCAP_SPR_SR_CAPB		((u8) BIT(0))
 
 #define HE_PHYCAP_PPE_THRESHOLD_PRESENT_IDX	6
 #define HE_PHYCAP_PPE_THRESHOLD_PRESENT		((u8) BIT(7))
