@@ -746,6 +746,7 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 			  "secondary_channel=%d\n"
 			  "ieee80211n=%d\n"
 			  "ieee80211ac=%d\n"
+			  "ieee80211ad=%d\n"
 			  "ieee80211ax=%d\n"
 			  "ieee80211be=%d\n"
 			  "beacon_int=%u\n"
@@ -758,6 +759,7 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 			  iface->conf->ieee80211n && !hapd->conf->disable_11n,
 			  iface->conf->ieee80211ac &&
 			  !hapd->conf->disable_11ac,
+			  iface->conf->hw_mode == HOSTAPD_MODE_IEEE80211AD,
 			  iface->conf->ieee80211ax &&
 			  !hapd->conf->disable_11ax,
 			  iface->conf->ieee80211be &&
