@@ -1051,7 +1051,7 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 		   mic_len, key_data_length);
 	wpa_hexdump(MSG_MSGDUMP,
 		    "WPA: EAPOL-Key header (ending before Key MIC)",
-		    key, sizeof(*key));
+		    (u8 *)key, sizeof(*key));
 	wpa_hexdump(MSG_MSGDUMP, "WPA: EAPOL-Key Key MIC",
 		    mic, mic_len);
 	if (key_data_length > data_len - sizeof(*hdr) - keyhdrlen) {
@@ -3140,7 +3140,7 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 		idx = bitfield_get_first_zero(wpa_auth->ip_pool);
 		if (idx >= 0) {
 			u32 start = WPA_GET_BE32(wpa_auth->conf.ip_addr_start);
-			bitfield_set(wpa_auth->ip_pool, idx);
+			bitfield_set_local(wpa_auth->ip_pool, idx);
 			WPA_PUT_BE32(sm->ip_addr, start + idx);
 			wpa_printf(MSG_DEBUG,
 				   "P2P: Assigned IP address %u.%u.%u.%u to "
