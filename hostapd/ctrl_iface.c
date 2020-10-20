@@ -186,7 +186,7 @@ static int hostapd_ctrl_iface_update(struct hostapd_data *hapd, char *txt)
 	iface->interfaces->config_read_cb = hostapd_ctrl_iface_config_read;
 	reload_opts = txt;
 
-	hostapd_reload_config(iface);
+	hostapd_reload_config(iface, 0);
 
 	iface->interfaces->config_read_cb = config_read_cb;
 }
