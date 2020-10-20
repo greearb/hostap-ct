@@ -50,6 +50,7 @@
 /* Maximum number of supported rates (from both Supported Rates and Extended
  * Supported Rates IEs). */
 #define WLAN_SUPP_RATES_MAX 32
+#define WLAN_SUPP_HT_RATES_MAX 77
 
 struct hostapd_data;
 
