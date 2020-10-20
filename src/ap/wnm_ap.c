@@ -20,6 +20,7 @@
 #include "ap/wpa_auth.h"
 #include "mbo_ap.h"
 #include "wnm_ap.h"
+#include "neighbor_db.h"
 
 #define MAX_TFS_IE_LEN  1024
 
@@ -366,12 +367,28 @@ static int ieee802_11_send_bss_trans_mgmt_request(struct hostapd_data *hapd,
 						  u8 dialog_token)
 {
 	struct ieee80211_mgmt *mgmt;
-	size_t len;
-	u8 *pos;
+	size_t len, nr_len = 0;
+	u8 *pos, *nr_pos;
+	u8 req_mode = 0;
 	int res;
 	struct wpabuf *buf;
 
-	mgmt = os_zalloc(IEEE80211_MAX_MMPDU_SIZE);
+#ifdef CONFIG_MBO
+	struct hostapd_neighbor_entry *nr;
+	struct wpabuf *nrbuf = NULL;
+	if (hapd->conf->mbo_enabled) {
+		dl_list_for_each(nr, &hapd->nr_db, struct hostapd_neighbor_entry,
+				 list)
+			/* ID and length */
+			nr_len += wpabuf_len(nr->nr) + 1 + 1;
+
+		nrbuf = wpabuf_alloc(nr_len);
+		if (nrbuf == NULL)
+			return -1;
+	}
+#endif
+	mgmt = os_zalloc(sizeof(*mgmt) + nr_len);
+
 	if (mgmt == NULL)
 		return -1;
 	os_memcpy(mgmt->da, addr, ETH_ALEN);
@@ -382,10 +399,12 @@ static int ieee802_11_send_bss_trans_mgmt_request(struct hostapd_data *hapd,
 	mgmt->u.action.category = WLAN_ACTION_WNM;
 	mgmt->u.action.u.bss_tm_req.action = WNM_BSS_TRANS_MGMT_REQ;
 	mgmt->u.action.u.bss_tm_req.dialog_token = dialog_token;
-	/* set 0x1 flag for prefered candidate list included.
-	 * see: 9.6.14.9 BSS Transition Management Request frame format
-	 */
-	mgmt->u.action.u.bss_tm_req.req_mode = 0;
+
+#ifdef CONFIG_MBO
+	if (hapd->conf->mbo_enabled)
+		req_mode |= WNM_BSS_TM_REQ_PREF_CAND_LIST_INCLUDED;
+#endif
+	mgmt->u.action.u.bss_tm_req.req_mode = req_mode;
 	mgmt->u.action.u.bss_tm_req.disassoc_timer = host_to_le16(0);
 	mgmt->u.action.u.bss_tm_req.validity_interval = 1;
 	pos = mgmt->u.action.u.bss_tm_req.variable;
@@ -417,6 +436,25 @@ static int ieee802_11_send_bss_trans_mgmt_request(struct hostapd_data *hapd,
 		   le_to_host16(mgmt->u.action.u.bss_tm_req.disassoc_timer),
 		   mgmt->u.action.u.bss_tm_req.validity_interval);
 
+#ifdef CONFIG_MBO
+	if (hapd->conf->mbo_enabled) {
+		dl_list_for_each(nr, &hapd->nr_db, struct hostapd_neighbor_entry,
+				 list) {
+			wpabuf_put_u8(nrbuf, WLAN_EID_NEIGHBOR_REPORT);
+			/* Length to be filled */
+			nr_pos = (u8 *)wpabuf_put(nrbuf, 1);
+			if (hostapd_prepare_neighbor_buf(hapd, nr->bssid,
+							 nrbuf) < 0) {
+				res = -1;
+			}
+			/* Fill in the length field */
+			*nr_pos = ((u8 *)wpabuf_put(nrbuf, 0) - nr_pos - 1);
+		}
+		os_memcpy(pos, nrbuf->buf, nr_len);
+		pos += nr_len;
+		wpabuf_free(nrbuf);
+	}
+#endif
 	len = pos - &mgmt->u.action.category;
 	res = hostapd_drv_send_action(hapd, hapd->iface->freq, 0,
 				      mgmt->da, &mgmt->u.action.category, len);

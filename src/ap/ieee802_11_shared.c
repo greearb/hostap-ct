@@ -807,11 +807,13 @@ u8 * hostapd_eid_mbo(struct hostapd_data *hapd, u8 *eid, size_t len)
 	    !OCE_STA_CFON_ENABLED(hapd) && !OCE_AP_ENABLED(hapd))
 		return eid;
 
-	if (hapd->conf->mbo_enabled) {
+	if (hapd->conf->mbo_enabled && hapd->conf->oce & OCE_AP) {
 		*mbo_pos++ = MBO_ATTR_ID_AP_CAPA_IND;
 		*mbo_pos++ = 1;
-		/* Not Cellular aware */
-		*mbo_pos++ = 0;
+		if (hapd->conf->mbo_ap_cap_ind & MBO_AP_CAPA_CELL_AWARE)
+			*mbo_pos++ = MBO_AP_CAPA_CELL_AWARE;
+		else
+			*mbo_pos++ = 0;
 	}
 
 	if (hapd->conf->mbo_enabled && hapd->mbo_assoc_disallow) {

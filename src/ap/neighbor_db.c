@@ -160,6 +160,24 @@ fail:
 	return -1;
 }
 
+int hostapd_prepare_neighbor_buf(struct hostapd_data *hapd,
+				 const u8 *bssid, struct wpabuf *nrbuf)
+{
+	struct hostapd_neighbor_entry *nr;
+
+	nr = hostapd_neighbor_get(hapd, bssid, NULL);
+	if (!nr)
+		return -1;
+
+	if (wpabuf_tailroom(nrbuf) < wpabuf_len(nr->nr)) {
+		wpa_printf(MSG_ERROR,
+			   "Invalid buf size for Neighbor Report\n");
+		return -1;
+	}
+
+	wpabuf_put_buf(nrbuf, nr->nr);
+	return 0;
+}
 
 int hostapd_neighbor_remove(struct hostapd_data *hapd, const u8 *bssid,
 			    const struct wpa_ssid_value *ssid)

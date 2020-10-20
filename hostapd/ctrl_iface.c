@@ -939,10 +939,11 @@ static int hostapd_ctrl_iface_bss_tm_req(struct hostapd_data *hapd,
 	if (pos) {
 		pos += 10;
 		req_mode |= WNM_BSS_TM_REQ_BSS_TERMINATION_INCLUDED;
-		/* TODO: TSF configurable/learnable */
+		/* TODO: TSF learnable */
 		bss_term_dur[0] = 4; /* Subelement ID */
 		bss_term_dur[1] = 10; /* Length */
-		os_memset(&bss_term_dur[2], 0, 8);
+		bss_term_dur[2] = atoi(pos); /* TSF */
+		os_memset(&bss_term_dur[3], 0, 7);
 		end = os_strchr(pos, ',');
 		if (end == NULL) {
 			wpa_printf(MSG_DEBUG, "Invalid bss_term data");
