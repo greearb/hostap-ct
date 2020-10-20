@@ -218,6 +218,10 @@ static int hostapd_iface_conf_changed(struct hostapd_config *newconf,
 {
 	size_t i;
 
+	if (newconf->config_id != oldconf->config_id)
+		if (strcmp(newconf->config_id, oldconf->config_id))
+			return 1;
+
 	if (newconf->num_bss != oldconf->num_bss)
 		return 1;
 
@@ -231,7 +235,7 @@ static int hostapd_iface_conf_changed(struct hostapd_config *newconf,
 }
 
 
-int hostapd_reload_config(struct hostapd_iface *iface)
+int hostapd_reload_config(struct hostapd_iface *iface, int reconf)
 {
 	struct hapd_interfaces *interfaces = iface->interfaces;
 	struct hostapd_data *hapd = iface->bss[0];
@@ -254,12 +258,15 @@ int hostapd_reload_config(struct hostapd_iface *iface)
 	if (newconf == NULL)
 		return -1;
 
-	hostapd_clear_old(iface);
-
 	oldconf = hapd->iconf;
 	if (hostapd_iface_conf_changed(newconf, oldconf)) {
 		char *fname;
 		int res;
+
+		if (reconf)
+			return -1;
+
+		hostapd_clear_old(iface);
 
 		wpa_printf(MSG_DEBUG,
 			   "Configuration changes include interface/BSS modification - force full disable+enable sequence");
@@ -285,6 +292,24 @@ int hostapd_reload_config(struct hostapd_iface *iface)
 			wpa_printf(MSG_ERROR,
 				   "Failed to enable interface on config reload");
 		return res;
+	} else {
+		for (j = 0; j < iface->num_bss; j++) {
+			hapd = iface->bss[j];
+			if (!hapd->config_id || strcmp(hapd->config_id, newconf->bss[j]->config_id)) {
+				hostapd_flush_old_stations(iface->bss[j],
+							   WLAN_REASON_PREV_AUTH_NOT_VALID);
+#ifdef CONFIG_WEP
+				hostapd_broadcast_wep_clear(iface->bss[j]);
+#endif
+
+#ifndef CONFIG_NO_RADIUS
+				/* TODO: update dynamic data based on changed configuration
+				 * items (e.g., open/close sockets, etc.) */
+				radius_client_flush(iface->bss[j]->radius, 0);
+#endif /* CONFIG_NO_RADIUS */
+				wpa_printf(MSG_INFO, "bss %zu changed", j);
+			}
+		}
 	}
 	iface->conf = newconf;
 
@@ -301,6 +326,12 @@ int hostapd_reload_config(struct hostapd_iface *iface)
 
 	for (j = 0; j < iface->num_bss; j++) {
 		hapd = iface->bss[j];
+		if (hapd->config_id) {
+			os_free(hapd->config_id);
+			hapd->config_id = NULL;
+		}
+		if (newconf->bss[j]->config_id)
+			hapd->config_id = strdup(newconf->bss[j]->config_id);
 		hapd->iconf = newconf;
 		hapd->conf = newconf->bss[j];
 		hostapd_reload_bss(hapd);
@@ -2369,6 +2400,10 @@ hostapd_alloc_bss_data(struct hostapd_iface *hapd_iface,
 	hapd->iconf = conf;
 	hapd->conf = bss;
 	hapd->iface = hapd_iface;
+	if (bss && bss->config_id)
+		hapd->config_id = strdup(bss->config_id);
+	else
+		hapd->config_id = NULL;
 	if (conf)
 		hapd->driver = conf->driver;
 	hapd->ctrl_sock = -1;
