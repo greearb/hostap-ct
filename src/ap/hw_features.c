@@ -690,6 +690,14 @@ static int ieee80211ac_supported_vht_capab(struct hostapd_iface *iface)
 #ifdef CONFIG_IEEE80211AX
 static int ieee80211ax_supported_he_capab(struct hostapd_iface *iface)
 {
+
+	// TODO:  This must need some newer upstream patch to make this logic work correctly.
+	// This bit below is from openwrt patch. --Ben
+	if (conf->he_phy_capab.he_ul_mumimo != -1)
+		HE_CAP_CHECK(hw->phy_cap, HE_PHYCAP_UL_MUMIMO_CAPB,
+			     HE_PHYCAP_UL_MUMIMO_CAPB_IDX,
+			     conf->he_phy_capab.he_ul_mumimo);
+
 	return 1;
 }
 #endif /* CONFIG_IEEE80211AX */
@@ -737,7 +745,6 @@ int hostapd_check_ht_capab(struct hostapd_iface *iface)
 
 	return 0;
 }
-
 
 int hostapd_check_edmg_capab(struct hostapd_iface *iface)
 {
@@ -1044,7 +1051,6 @@ static void hostapd_notify_bad_chans(struct hostapd_iface *iface)
 		       HOSTAPD_LEVEL_WARNING,
 		       "Hardware does not support configured channel");
 }
-
 
 int hostapd_acs_completed(struct hostapd_iface *iface, int err)
 {
