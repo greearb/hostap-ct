@@ -5446,7 +5446,7 @@ wpa_supplicant_alloc(struct wpa_supplicant *parent)
 	if (wpa_s == NULL)
 		return NULL;
 	wpa_s->scan_req = INITIAL_SCAN_REQ;
-	wpa_s->scan_interval = 5;
+	wpa_s->scan_interval = 1;
 	wpa_s->new_connection = 1;
 	wpa_s->parent = parent ? parent : wpa_s;
 	wpa_s->p2pdev = wpa_s->parent;
