@@ -84,8 +84,12 @@ static void count_backlogged_sta(struct hostapd_data *hapd)
 			data.backlog_bytes = 1;
 #endif /* CONFIG_TESTING_OPTIONS */
 
-		if (data.backlog_bytes > 0)
+		if (data.backlog_bytes > 0 ||
+			data.tx_airtime > sta->tx_airtime) {
 			set_new_backlog_time(hapd, sta, &now);
+			sta->tx_airtime = data.tx_airtime;
+		}
+
 		if (os_reltime_before(&now, &sta->backlogged_until))
 			num_backlogged++;
 	}
