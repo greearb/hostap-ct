@@ -1149,7 +1149,7 @@ void * tls_init(const struct tls_config *conf)
 	if (conf && conf->openssl_ciphers)
 		ciphers = conf->openssl_ciphers;
 	else
-		ciphers = TLS_DEFAULT_CIPHERS;
+		ciphers = "DEFAULT:!EXP:!LOW";
 	if (SSL_CTX_set_cipher_list(ssl, ciphers) != 1) {
 		wpa_printf(MSG_ERROR,
 			   "OpenSSL: Failed to set cipher string '%s'",

@@ -142,7 +142,7 @@ static int bitfield_tests(void)
 			errors++;
 		if (i > 0 && bitfield_is_set(bf, i - 1))
 			errors++;
-		bitfield_set(bf, i);
+		bitfield_set_local(bf, i);
 		if (!bitfield_is_set(bf, i))
 			errors++;
 		bitfield_clear(bf, i);
@@ -155,7 +155,7 @@ static int bitfield_tests(void)
 			errors++;
 		if (i > 0 && bitfield_is_set(bf, i - 1))
 			errors++;
-		bitfield_set(bf, i);
+		bitfield_set_local(bf, i);
 		if (bitfield_is_set(bf, i))
 			errors++;
 		bitfield_clear(bf, i);
@@ -166,7 +166,7 @@ static int bitfield_tests(void)
 	for (i = 0; i < 123; i++) {
 		if (bitfield_is_set(bf, i) || bitfield_is_set(bf, i + 1))
 			errors++;
-		bitfield_set(bf, i);
+		bitfield_set_local(bf, i);
 		if (!bitfield_is_set(bf, i))
 			errors++;
 	}
@@ -182,7 +182,7 @@ static int bitfield_tests(void)
 	for (i = 0; i < 123; i++) {
 		if (bitfield_get_first_zero(bf) != i)
 			errors++;
-		bitfield_set(bf, i);
+		bitfield_set_local(bf, i);
 	}
 	if (bitfield_get_first_zero(bf) != -1)
 		errors++;
@@ -192,7 +192,7 @@ static int bitfield_tests(void)
 		bitfield_clear(bf, i);
 		if (bitfield_get_first_zero(bf) != i)
 			errors++;
-		bitfield_set(bf, i);
+		bitfield_set_local(bf, i);
 	}
 	if (bitfield_get_first_zero(bf) != -1)
 		errors++;
@@ -205,7 +205,7 @@ static int bitfield_tests(void)
 	if (bitfield_get_first_zero(bf) != 0)
 		errors++;
 	for (i = 0; i < 8; i++)
-		bitfield_set(bf, i);
+		bitfield_set_local(bf, i);
 	if (bitfield_get_first_zero(bf) != -1)
 		errors++;
 	bitfield_free(bf);

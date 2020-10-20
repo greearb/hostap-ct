@@ -37,7 +37,7 @@ void bitfield_free(struct bitfield *bf)
 }
 
 
-void bitfield_set(struct bitfield *bf, size_t bit)
+void bitfield_set_local(struct bitfield *bf, size_t bit)
 {
 	if (bit >= bf->max_bits)
 		return;
