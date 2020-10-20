@@ -3501,6 +3501,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		conf->he_phy_capab.he_su_beamformee = atoi(pos);
 	} else if (os_strcmp(buf, "he_mu_beamformer") == 0) {
 		conf->he_phy_capab.he_mu_beamformer = atoi(pos);
+	} else if (os_strcmp(buf, "he_ul_mumimo") == 0) {
+		conf->he_phy_capab.he_ul_mumimo = atoi(pos);
 	} else if (os_strcmp(buf, "he_bss_color") == 0) {
 		conf->he_op.he_bss_color = atoi(pos) & 0x3f;
 		conf->he_op.he_bss_color_disabled = 0;
