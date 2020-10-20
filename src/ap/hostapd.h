@@ -46,7 +46,7 @@ struct mesh_conf;
 struct hostapd_iface;
 
 struct hapd_interfaces {
-	int (*reload_config)(struct hostapd_iface *iface);
+	int (*reload_config)(struct hostapd_iface *iface, int reconf);
 	struct hostapd_config * (*config_read_cb)(const char *config_fname);
 	int (*ctrl_iface_init)(struct hostapd_data *hapd);
 	void (*ctrl_iface_deinit)(struct hostapd_data *hapd);
@@ -168,6 +168,7 @@ struct hostapd_data {
 	struct hostapd_iface *iface;
 	struct hostapd_config *iconf;
 	struct hostapd_bss_config *conf;
+	char *config_id;
 	int interface_added; /* virtual interface added for this BSS */
 	unsigned int started:1;
 	unsigned int disabled:1;
@@ -651,7 +652,7 @@ struct hostapd_iface {
 int hostapd_for_each_interface(struct hapd_interfaces *interfaces,
 			       int (*cb)(struct hostapd_iface *iface,
 					 void *ctx), void *ctx);
-int hostapd_reload_config(struct hostapd_iface *iface);
+int hostapd_reload_config(struct hostapd_iface *iface, int reconf);
 void hostapd_reconfig_encryption(struct hostapd_data *hapd);
 struct hostapd_data *
 hostapd_alloc_bss_data(struct hostapd_iface *hapd_iface,

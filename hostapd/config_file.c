@@ -2416,6 +2416,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->isolate = atoi(pos);
 	} else if (os_strcmp(buf, "ap_max_inactivity") == 0) {
 		bss->ap_max_inactivity = atoi(pos);
+	} else if (os_strcmp(buf, "config_id") == 0) {
+		bss->config_id = os_strdup(pos);
 	} else if (os_strcmp(buf, "skip_inactivity_poll") == 0) {
 		bss->skip_inactivity_poll = atoi(pos);
 	} else if (os_strcmp(buf, "country_code") == 0) {
@@ -3121,6 +3123,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		}
 	} else if (os_strcmp(buf, "acs_exclude_dfs") == 0) {
 		conf->acs_exclude_dfs = atoi(pos);
+	} else if (os_strcmp(buf, "radio_config_id") == 0) {
+			conf->config_id = os_strdup(pos);
 	} else if (os_strcmp(buf, "op_class") == 0) {
 		conf->op_class = atoi(pos);
 	} else if (os_strcmp(buf, "channel") == 0) {
