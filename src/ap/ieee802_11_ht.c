@@ -255,6 +255,9 @@ void hostapd_2040_coex_action(struct hostapd_data *hapd,
 		return;
 	}
 
+	if (iface->conf->noscan || iface->conf->no_ht_coex)
+		return;
+
 	if (len < IEEE80211_HDRLEN + 2 + sizeof(*bc_ie)) {
 		wpa_printf(MSG_DEBUG,
 			   "Ignore too short 20/40 BSS Coexistence Management frame");
@@ -413,6 +416,9 @@ u16 copy_sta_ht_capab(struct hostapd_data *hapd, struct sta_info *sta,
 void ht40_intolerant_add(struct hostapd_iface *iface, struct sta_info *sta)
 {
 	if (iface->current_mode->mode != HOSTAPD_MODE_IEEE80211G)
+		return;
+
+	if (iface->conf->noscan || iface->conf->no_ht_coex)
 		return;
 
 	wpa_printf(MSG_INFO, "HT: Forty MHz Intolerant is set by STA " MACSTR
