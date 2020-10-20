@@ -4512,6 +4512,8 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	config->delay_eapol_key_req_max = DEFAULT_IGNORE_AUTH_RESP;
 #endif
 
+	config->tdls_peer_max_inactivity = DEFAULT_TDLS_PEER_MAX_INACTIVITY;
+
 	return config;
 }
 
@@ -5393,6 +5395,7 @@ static const struct global_parse_data global_fields[] = {
 	{ STR(dpp_mud_url), 0 },
 #endif /* CONFIG_DPP */
 	{ INT_RANGE(coloc_intf_reporting, 0, 1), 0 },
+	{ INT(tdls_peer_max_inactivity), 0 },
 #ifdef CONFIG_WNM
 	{ INT_RANGE(disable_btm, 0, 1), CFG_CHANGED_DISABLE_BTM },
 	{ INT_RANGE(extended_key_id, 0, 1), 0 },

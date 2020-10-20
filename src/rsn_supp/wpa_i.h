@@ -136,6 +136,12 @@ struct wpa_sm {
 
 	/* The driver supports TDLS channel switching */
 	int tdls_chan_switch;
+
+	/* Driver supports TDLS peer inactivity teardown */
+	int tdls_inactivity_teardown;
+
+	/* Supplicant TDLS inactivity logic uses this timeout */
+	int tdls_peer_max_inactive_time;
 #endif /* CONFIG_TDLS */
 
 #ifdef CONFIG_IEEE80211R
@@ -375,11 +381,15 @@ static inline void wpa_sm_set_rekey_offload(struct wpa_sm *sm)
 static inline int wpa_sm_tdls_get_capa(struct wpa_sm *sm,
 				       int *tdls_supported,
 				       int *tdls_ext_setup,
-				       int *tdls_chan_switch)
+				       int *tdls_chan_switch,
+				       int *tdls_inact_teardown,
+				       int *tdls_inact_timeout)
 {
 	if (sm->ctx->tdls_get_capa)
 		return sm->ctx->tdls_get_capa(sm->ctx->ctx, tdls_supported,
-					      tdls_ext_setup, tdls_chan_switch);
+					      tdls_ext_setup, tdls_chan_switch,
+					      tdls_inact_teardown,
+					      tdls_inact_timeout);
 	return -1;
 }
 
@@ -450,6 +460,14 @@ wpa_sm_tdls_disable_channel_switch(struct wpa_sm *sm, const u8 *addr)
 {
 	if (sm->ctx->tdls_disable_channel_switch)
 		return sm->ctx->tdls_disable_channel_switch(sm->ctx->ctx, addr);
+	return -1;
+}
+
+static inline int
+wpa_sm_tdls_get_peer_inactive_time(struct wpa_sm *sm, const u8 *addr)
+{
+	if (sm->ctx->tdls_get_peer_inact_time)
+		return sm->ctx->tdls_get_peer_inact_time(sm->ctx->ctx, addr);
 	return -1;
 }
 #endif /* CONFIG_TDLS */

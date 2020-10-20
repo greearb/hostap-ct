@@ -727,11 +727,11 @@ static void wpa_tdls_peer_clear(struct wpa_sm *sm, struct wpa_tdls_peer *peer)
 
 static void wpa_tdls_peer_free(struct wpa_sm *sm, struct wpa_tdls_peer *peer)
 {
+	eloop_cancel_timeout(wpa_tdls_peer_inactivity_handler, sm, peer);
 	wpa_tdls_peer_clear(sm, peer);
 	wpa_tdls_peer_remove_from_list(sm, peer);
 	os_free(peer);
 }
-
 
 static void wpa_tdls_linkid(struct wpa_sm *sm, struct wpa_tdls_peer *peer,
 			    struct wpa_tdls_lnkid *lnkid)
@@ -1811,7 +1811,6 @@ static int tdls_nonce_set(const u8 *nonce)
 	return 0;
 }
 
-
 static int wpa_tdls_process_tpk_m1(struct wpa_sm *sm, const u8 *src_addr,
 				   const u8 *buf, size_t len)
 {
@@ -2177,9 +2176,68 @@ error:
 	return -1;
 }
 
+void wpa_tdls_peer_inactivity_handler(void *eloop_data, void *user_data)
+{
+	struct wpa_sm *sm = eloop_data;
+	struct wpa_tdls_peer *peer = user_data;
+	int inactive_time = 0;
+	unsigned long next_time = 0;
+	u8 teardown = 0;
+
+	if (peer->tpk_in_progress)
+		return;
+
+	inactive_time = wpa_sm_tdls_get_peer_inactive_time(sm,
+							   peer->addr);
+
+	if (inactive_time == -1) {
+		wpa_printf(MSG_DEBUG, "TDLS: failed to get station info "
+			   "for " MACSTR, MAC2STR(peer->addr));
+
+		next_time = sm->tdls_peer_max_inactive_time;
+	} else if (inactive_time == -ENOENT) {
+		wpa_printf(MSG_DEBUG, "TDLS: failed to find kernel entry for "
+			   "peer " MACSTR ", teardown the link",
+			   MAC2STR(peer->addr));
+
+		teardown = 1;
+	} else if (inactive_time < sm->tdls_peer_max_inactive_time) {
+		wpa_printf(MSG_DEBUG, "TDLS: peer " MACSTR " has been inactive "
+			   "for %d seconds", MAC2STR(peer->addr), inactive_time);
+
+		next_time = sm->tdls_peer_max_inactive_time - inactive_time;
+	} else {
+		wpa_printf(MSG_DEBUG, "TDLS: peer " MACSTR " has been inactive "
+			   "for long time: %d seconds, max inactive time: %d seconds",
+			   MAC2STR(peer->addr), inactive_time,
+			   sm->tdls_peer_max_inactive_time);
+
+		teardown = 1;
+	}
+
+	if (teardown) {
+		wpa_printf(MSG_DEBUG, "TDLS: tearing down TDLS link with peer "
+			   MACSTR " (due to inactivity)", MAC2STR(peer->addr));
+
+		wpa_tdls_do_teardown(sm, peer,
+				     WLAN_REASON_TDLS_TEARDOWN_UNSPECIFIED);
+		return;
+	}
+
+	if (next_time) {
+		wpa_printf(MSG_DEBUG, "TDLS: reschedule inactivity timer for "
+			   "peer " MACSTR " (%lu seconds)", MAC2STR(peer->addr),
+			   next_time);
+
+		eloop_register_timeout(next_time, 0, wpa_tdls_peer_inactivity_handler,
+				       sm, peer);
+	}
+}
 
 static int wpa_tdls_enable_link(struct wpa_sm *sm, struct wpa_tdls_peer *peer)
 {
+	int ret;
+
 	peer->tpk_success = 1;
 	peer->tpk_in_progress = 0;
 	eloop_cancel_timeout(wpa_tdls_tpk_timeout, sm, peer);
@@ -2209,7 +2267,23 @@ static int wpa_tdls_enable_link(struct wpa_sm *sm, struct wpa_tdls_peer *peer)
 	}
 	peer->reconfig_key = 0;
 
-	return wpa_sm_tdls_oper(sm, TDLS_ENABLE_LINK, peer->addr);
+	ret = wpa_sm_tdls_oper(sm, TDLS_ENABLE_LINK, peer->addr);
+
+	/* Do not trigger supplicant inactivity logic if driver
+	 * already supports it
+	 */
+	if (!ret && !sm->tdls_inactivity_teardown &&
+	    (sm->tdls_peer_max_inactive_time > 0)) {
+		wpa_printf(MSG_DEBUG, "TDLS: register inactivity handler for "
+			   "peer "MACSTR " (%d seconds)", MAC2STR(peer->addr),
+			   sm->tdls_peer_max_inactive_time);
+
+		eloop_register_timeout(sm->tdls_peer_max_inactive_time,
+				       0, wpa_tdls_peer_inactivity_handler,
+				       sm, peer);
+	}
+
+	return ret;
 }
 
 
@@ -2868,9 +2942,12 @@ int wpa_tdls_init(struct wpa_sm *sm)
 	 */
 	if (wpa_sm_tdls_get_capa(sm, &sm->tdls_supported,
 				 &sm->tdls_external_setup,
-				 &sm->tdls_chan_switch) < 0) {
+				 &sm->tdls_chan_switch,
+				 &sm->tdls_inactivity_teardown,
+				 &sm->tdls_peer_max_inactive_time) < 0) {
 		sm->tdls_supported = 1;
 		sm->tdls_external_setup = 0;
+		sm->tdls_inactivity_teardown = 1;
 	}
 
 	wpa_printf(MSG_DEBUG, "TDLS: TDLS operation%s supported by "
@@ -2879,6 +2956,8 @@ int wpa_tdls_init(struct wpa_sm *sm)
 		   sm->tdls_external_setup ? "external" : "internal");
 	wpa_printf(MSG_DEBUG, "TDLS: Driver %s TDLS channel switching",
 		   sm->tdls_chan_switch ? "supports" : "does not support");
+	wpa_printf(MSG_DEBUG, "TDLS: Driver %s TDLS peer inactivity teardown",
+		   sm->tdls_inactivity_teardown ? "supports" : "does not support");
 
 	return 0;
 }

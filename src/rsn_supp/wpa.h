@@ -58,7 +58,8 @@ struct wpa_sm_ctx {
 	int (*mark_authenticated)(void *ctx, const u8 *target_ap);
 #ifdef CONFIG_TDLS
 	int (*tdls_get_capa)(void *ctx, int *tdls_supported,
-			     int *tdls_ext_setup, int *tdls_chan_switch);
+			     int *tdls_ext_setup, int *tdls_chan_switch,
+			     int *tdls_inact_teardown, int *tdls_inact_timeout);
 	int (*send_tdls_mgmt)(void *ctx, const u8 *dst,
 			      u8 action_code, u8 dialog_token,
 			      u16 status_code, u32 peer_capab,
@@ -80,6 +81,7 @@ struct wpa_sm_ctx {
 		void *ctx, const u8 *addr, u8 oper_class,
 		const struct hostapd_freq_params *params);
 	int (*tdls_disable_channel_switch)(void *ctx, const u8 *addr);
+	int (*tdls_get_peer_inact_time)(void *ctx, const u8 *addr);
 #endif /* CONFIG_TDLS */
 	void (*set_rekey_offload)(void *ctx, const u8 *kek, size_t kek_len,
 				  const u8 *kck, size_t kck_len,
@@ -581,6 +583,7 @@ int wpa_tdls_enable_chan_switch(struct wpa_sm *sm, const u8 *addr,
 				u8 oper_class,
 				struct hostapd_freq_params *freq_params);
 int wpa_tdls_disable_chan_switch(struct wpa_sm *sm, const u8 *addr);
+void wpa_tdls_peer_inactivity_handler(void *eloop_data, void *user_data);
 #ifdef CONFIG_TDLS_TESTING
 extern unsigned int tdls_testing;
 #endif /* CONFIG_TDLS_TESTING */
