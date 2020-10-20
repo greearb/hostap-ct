@@ -1061,6 +1061,12 @@ static int wpa_supplicant_ctrl_iface_tdls_discover(
 	u8 peer[ETH_ALEN];
 	int ret;
 
+	if (wpa_s->wpa_state != WPA_COMPLETED || wpa_s->current_ssid == NULL) {
+		wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_SETUP : ignoring request "
+			   "not associated!");
+		return -ENOTCONN;
+	}
+
 	if (hwaddr_aton(addr, peer)) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE TDLS_DISCOVER: invalid "
 			   "address '%s'", addr);
@@ -1084,6 +1090,12 @@ static int wpa_supplicant_ctrl_iface_tdls_setup(
 {
 	u8 peer[ETH_ALEN];
 	int ret;
+
+	if (wpa_s->wpa_state != WPA_COMPLETED || wpa_s->current_ssid == NULL) {
+		wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_SETUP : ignoring request "
+			   "not associated!");
+		return -ENOTCONN;
+	}
 
 	if (hwaddr_aton(addr, peer)) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "CTRL_IFACE TDLS_SETUP: invalid "
