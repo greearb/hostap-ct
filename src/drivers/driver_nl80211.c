@@ -3027,12 +3027,15 @@ static int wpa_driver_nl80211_del_beacon(struct i802_bss *bss)
 	struct nl_msg *msg;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 
+	if (!bss->beacon_set)
+		return 0;
+
 	wpa_printf(MSG_DEBUG, "nl80211: Remove beacon (ifindex=%d)",
-		   drv->ifindex);
+		   bss->ifindex);
 	bss->beacon_set = 0;
 	bss->freq = 0;
 	nl80211_put_wiphy_data_ap(bss);
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_DEL_BEACON);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_DEL_BEACON);
 	return send_and_recv_msgs(drv, msg, NULL, NULL, NULL, NULL);
 }
 
@@ -5752,7 +5755,7 @@ static void nl80211_teardown_ap(struct i802_bss *bss)
 		nl80211_mgmt_unsubscribe(bss, "AP teardown");
 
 	nl80211_put_wiphy_data_ap(bss);
-	bss->beacon_set = 0;
+	wpa_driver_nl80211_del_beacon(bss);
 }
 
 
@@ -8295,8 +8298,6 @@ static int wpa_driver_nl80211_if_remove(struct i802_bss *bss,
 	} else {
 		wpa_printf(MSG_DEBUG, "nl80211: First BSS - reassign context");
 		nl80211_teardown_ap(bss);
-		if (!bss->added_if && !drv->first_bss->next)
-			wpa_driver_nl80211_del_beacon(bss);
 		nl80211_destroy_bss(bss);
 		if (!bss->added_if)
 			i802_set_iface_flags(bss, 0);
