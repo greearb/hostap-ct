@@ -3131,6 +3131,26 @@ static int hostapd_ctrl_iface_remove_neighbor(struct hostapd_data *hapd,
 	return hostapd_neighbor_remove(hapd, bssid, ssidp);
 }
 
+static int hostapd_ctrl_iface_signal_monitor(struct hostapd_data *hapd,
+					     char *cmd)
+{
+	const char *pos;
+	int threshold = 0, hysteresis = 0;
+
+	pos = os_strstr(cmd, "THRESHOLD=");
+	if (pos)
+		threshold = atoi(pos + 10);
+	pos = os_strstr(cmd, "HYSTERESIS=");
+	if (pos)
+		hysteresis = atoi(pos + 11);
+
+	if (hapd->driver->signal_monitor)
+		return hapd->driver->signal_monitor(hapd->drv_priv,
+						    threshold, hysteresis);
+
+	return -1;
+}
+
 
 static int hostapd_ctrl_driver_flags(struct hostapd_iface *iface, char *buf,
 				     size_t buflen)
@@ -3764,6 +3784,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		if (radius_server_dac_request(hapd->radius_srv, buf + 12) < 0)
 			reply_len = -1;
 #endif /* RADIUS_SERVER */
+	} else if (os_strncmp(buf, "SIGNAL_MONITOR", 14) == 0) {
+		if (hostapd_ctrl_iface_signal_monitor(hapd, buf + 14))
+			reply_len = -1;
 	} else if (os_strncmp(buf, "GET_CAPABILITY ", 15) == 0) {
 		reply_len = hostapd_ctrl_iface_get_capability(
 			hapd, buf + 15, reply, reply_size);
