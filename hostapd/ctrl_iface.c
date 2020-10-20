@@ -3337,6 +3337,92 @@ set:
 	return ret;
 }
 
+static int hostapd_2ghz_ht40_allow_map(struct hostapd_hw_modes *mode,
+				       char *buf, size_t buflen)
+{
+	int j, ret, len = 0;
+
+	for (j = 0; j < mode->num_channels; j++) {
+		struct hostapd_channel_data *chan = &mode->channels[j];
+		if (!(chan->flag & HOSTAPD_CHAN_DISABLED)) {
+			ret = os_snprintf(buf + len, buflen - len,
+					  "Channel: %d : %d HT40%c%c\n",
+					  chan->chan, chan->freq,
+					  (chan->flag & HOSTAPD_CHAN_HT40MINUS) ?
+						'-' : ' ',
+					  (chan->flag & HOSTAPD_CHAN_HT40PLUS) ?
+						'+' : ' ');
+			if (os_snprintf_error(buflen - len, ret))
+				return len;
+			len += ret;
+		}
+	}
+	return len;
+}
+
+static int hostapd_5ghz_ht40_allow_map(struct hostapd_hw_modes *mode,
+				       char *buf, size_t buflen)
+{
+	int j, k, ok, ret, len = 0, allowed[] = { 36, 44, 52, 60, 100, 108, 116, 124, 132, 140,
+						149, 157, 184, 192 };
+
+	for (j = 0; j < mode->num_channels; j++) {
+		struct hostapd_channel_data *chan = &mode->channels[j];
+
+		if ((chan->flag & HOSTAPD_CHAN_HT40MINUS) ||
+				(chan->flag & HOSTAPD_CHAN_HT40PLUS)) {
+			ok = 0;
+			for (k = 0; k < ARRAY_SIZE(allowed); k++) {
+				if (chan->chan < allowed[k])
+					break;
+				if (chan->chan == allowed[k]) {
+					ok = 1;
+					break;
+				}
+			}
+
+			if (!ok && chan->chan != (allowed[k - 1] + 4))
+				ok = -1;
+
+			if (ok == 1 && (mode->channels[j + 1].flag &
+					HOSTAPD_CHAN_DISABLED))
+				ok = -1;
+
+			if (ok != -1) {
+				ret = os_snprintf(buf + len, buflen - len,
+						  "Channel: %d : %d HT40%s\n",
+						  chan->chan, chan->freq,
+						  ok == 1 ? "+" : "-");
+
+				if (os_snprintf_error(buflen - len, ret))
+					return len;
+
+				len += ret;
+			}
+		}
+	}
+	return len;
+}
+
+static int hostapd_ctrl_iface_ht40_allow_map(struct hostapd_iface *iface,
+					     char *buf, size_t buflen)
+{
+	struct hostapd_data *hapd = iface->bss[0];
+	struct hostapd_hw_modes *mode;
+	int len = 0;
+	u16 num_modes, flags;
+	u8 dfs_domain;
+
+	mode = hostapd_get_hw_feature_data(hapd, &num_modes, &flags,
+					   &dfs_domain);
+
+	if (mode->mode != HOSTAPD_MODE_IEEE80211A)
+		len = hostapd_2ghz_ht40_allow_map(mode, buf, buflen);
+	else
+		len = hostapd_5ghz_ht40_allow_map(mode, buf, buflen);
+
+	return len;
+}
 
 static int hostapd_ctrl_iface_remove_neighbor(struct hostapd_data *hapd,
 					      char *buf)
@@ -4091,6 +4177,10 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "SIGNAL_TXRATE", 13) == 0) {
 		if (hostapd_ctrl_iface_signal_txrate(hapd, buf + 13))
 			reply_len = -1;
+	} else if (os_strcmp(buf, "HT40_ALLOW_MAP") == 0) {
+		reply_len = hostapd_ctrl_iface_ht40_allow_map(hapd->iface,
+							      reply,
+							      reply_size);
 	} else if (os_strncmp(buf, "GET_CAPABILITY ", 15) == 0) {
 		reply_len = hostapd_ctrl_iface_get_capability(
 			hapd, buf + 15, reply, reply_size);
