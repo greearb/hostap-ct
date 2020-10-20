@@ -716,6 +716,11 @@ struct hostapd_bss_config {
 	 *  - Set BIT(2) to enable OCE in AP mode
 	 */
 	unsigned int oce;
+	/**
+	 *  Set BIT(6) to advertise cellular data aware capability
+	 *  in AP mode
+	 */
+	unsigned int mbo_ap_cap_ind;
 	int mbo_cell_data_conn_pref;
 #endif /* CONFIG_MBO */
 

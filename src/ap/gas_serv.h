@@ -40,6 +40,8 @@
 	(1 << (ANQP_TDLS_CAPABILITY - ANQP_QUERY_LIST))
 #define ANQP_REQ_EMERGENCY_NAI \
 	(1 << (ANQP_EMERGENCY_NAI - ANQP_QUERY_LIST))
+#define ANQP_REQ_NEIGHBOR_REPORT \
+	(1 << (ANQP_NEIGHBOR_REPORT - ANQP_QUERY_LIST))
 /*
  * First 15 Hotspot 2.0 vendor specific ANQP-elements can be included in the
  * optimized bitmap.
