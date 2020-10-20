@@ -1462,7 +1462,13 @@ int hostapd_parse_csa_settings(struct hostapd_iface *iface,
 
 int hostapd_ctrl_iface_stop_ap(struct hostapd_data *hapd)
 {
-	return hostapd_drv_stop_ap(hapd);
+	struct hostapd_iface *iface = hapd->iface;
+	int i;
+
+	for (i = 0; i < iface->num_bss; i++)
+		hostapd_drv_stop_ap(iface->bss[i]);
+
+	return 0;
 }
 
 
