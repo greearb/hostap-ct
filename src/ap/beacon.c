@@ -2100,7 +2100,7 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 	struct hostapd_config *iconf = iface->conf;
 	struct hostapd_hw_modes *cmode = iface->current_mode;
 	struct wpabuf *beacon, *proberesp, *assocresp;
-	int res, ret = -1, i;
+	int res = 0, ret = -1, i;
 	struct hostapd_hw_modes *mode;
 
 	if (!hapd->drv_priv) {
