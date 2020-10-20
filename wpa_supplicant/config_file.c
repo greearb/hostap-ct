@@ -1549,6 +1549,9 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 	if (config->coloc_intf_reporting)
 		fprintf(f, "coloc_intf_reporting=%d\n",
 			config->coloc_intf_reporting);
+	if (config->tdls_peer_max_inactivity != DEFAULT_TDLS_PEER_MAX_INACTIVITY)
+		fprintf(f, "tdls_peer_max_inactivity=%d\n",
+			config->tdls_peer_max_inactivity);
 	if (config->p2p_device_random_mac_addr)
 		fprintf(f, "p2p_device_random_mac_addr=%d\n",
 			config->p2p_device_random_mac_addr);

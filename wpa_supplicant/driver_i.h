@@ -1146,4 +1146,12 @@ static inline int wpa_drv_dpp_listen(struct wpa_supplicant *wpa_s, bool enable)
 	return wpa_s->driver->dpp_listen(wpa_s->drv_priv, enable);
 }
 
+static inline int wpa_drv_get_inactive_time(struct wpa_supplicant *wpa_s,
+					    const u8 *addr)
+{
+	if (!wpa_s->driver->get_peer_inactive_time)
+		return -1;
+	return wpa_s->driver->get_peer_inactive_time(wpa_s->drv_priv, addr);
+}
+
 #endif /* DRIVER_I_H */

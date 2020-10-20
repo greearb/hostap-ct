@@ -2015,6 +2015,7 @@ struct wpa_driver_capa {
 /** Driver supports Extended Key ID */
 #define WPA_DRIVER_FLAGS_EXTENDED_KEY_ID	0x8000000000000000ULL
 	u64 flags;
+#define WPA_DRIVER_FLAGS_TDLS_INACTIVITY_TIMER	0x0000040000000000ULL
 
 /** Driver supports a separate control port RX for EAPOL frames */
 #define WPA_DRIVER_FLAGS2_CONTROL_PORT_RX	0x0000000000000001ULL
@@ -4550,6 +4551,16 @@ struct wpa_driver_ops {
 	 */
 	int (*set_bssid_tmp_disallow)(void *priv, unsigned int num_bssid,
 				      const u8 *bssid);
+
+	/**
+	 * get_peer_inactive_time - Get peer inactive time
+	 * @priv: Private driver interface data
+	 * @addr: MAC address of the peer
+	 *
+	 * Get the peer inactive time in seconds, for now used only for
+	 * TDLS peers.
+	 */
+	int (*get_peer_inactive_time)(void *priv, const u8 *addr);
 
 	/**
 	 * update_connect_params - Update the connection parameters
