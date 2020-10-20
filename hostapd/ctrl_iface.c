@@ -3282,6 +3282,25 @@ static int hostapd_ctrl_iface_signal_monitor(struct hostapd_data *hapd,
 	return -1;
 }
 
+static int hostapd_ctrl_iface_signal_txrate(struct hostapd_data *hapd,
+					    char *cmd)
+{
+	char *pos;
+	unsigned int low_thold = 0, high_thold = 0;
+
+	pos = os_strstr(cmd, "LOW=");
+	if (pos)
+		low_thold = atoi(pos + 4);
+
+	pos = os_strstr(cmd, "HIGH=");
+	if (pos)
+		high_thold = atoi(pos + 5);
+
+	if (hapd->driver->signal_txrate)
+		return hapd->driver->signal_txrate(hapd->drv_priv, low_thold,
+						   high_thold);
+	return -1;
+}
 
 static int hostapd_ctrl_driver_flags(struct hostapd_iface *iface, char *buf,
 				     size_t buflen)
@@ -3957,6 +3976,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 #endif /* RADIUS_SERVER */
 	} else if (os_strncmp(buf, "SIGNAL_MONITOR", 14) == 0) {
 		if (hostapd_ctrl_iface_signal_monitor(hapd, buf + 14))
+			reply_len = -1;
+	} else if (os_strncmp(buf, "SIGNAL_TXRATE", 13) == 0) {
+		if (hostapd_ctrl_iface_signal_txrate(hapd, buf + 13))
 			reply_len = -1;
 	} else if (os_strncmp(buf, "GET_CAPABILITY ", 15) == 0) {
 		reply_len = hostapd_ctrl_iface_get_capability(
