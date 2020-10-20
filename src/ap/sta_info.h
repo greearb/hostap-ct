@@ -294,6 +294,7 @@ struct sta_info {
 #ifdef CONFIG_AIRTIME_POLICY
 	unsigned int airtime_weight;
 	struct os_reltime backlogged_until;
+	unsigned long long tx_airtime;
 #endif /* CONFIG_AIRTIME_POLICY */
 
 #ifdef CONFIG_PASN
