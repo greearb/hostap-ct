@@ -1418,11 +1418,14 @@ static void nl80211_cqm_event(struct wpa_driver_nl80211_data *drv,
 		[NL80211_ATTR_CQM_TXE_INTVL] = { .type = NLA_U32 },
 		[NL80211_ATTR_CQM_BEACON_LOSS_EVENT] = { .type = NLA_FLAG },
 		[NL80211_ATTR_CQM_RSSI_LEVEL] = { .type = NLA_U32 },
+		[NL80211_ATTR_CQM_TX_RATE_THRESHOLD_EVENT] =
+							{ .type = NLA_U32 },
 	};
 	struct nlattr *cqm[NL80211_ATTR_CQM_MAX + 1];
-	enum nl80211_cqm_rssi_threshold_event event;
+	enum nl80211_cqm_rssi_threshold_event rssi_event;
+	enum nl80211_cqm_tx_rate_threshold_event txrate_event;
 	union wpa_event_data ed;
-	int res, rssi_level;
+	int res, rssi_level, txrate_level;
 	u8 *addr = NULL;
 
 	if (tb[NL80211_ATTR_CQM] == NULL ||
@@ -1467,19 +1470,41 @@ static void nl80211_cqm_event(struct wpa_driver_nl80211_data *drv,
 		return;
 	}
 
+	if (tb[NL80211_ATTR_MAC])
+		addr = nla_data(tb[NL80211_ATTR_MAC]);
+
+	if (cqm[NL80211_ATTR_CQM_TX_RATE_THRESHOLD_EVENT]) {
+		txrate_event =
+		nla_get_u32(cqm[NL80211_ATTR_CQM_TX_RATE_THRESHOLD_EVENT]);
+		txrate_level =
+			nla_get_u32(cqm[NL80211_ATTR_CQM_TX_RATE_LEVEL]);
+
+		if (txrate_event == NL80211_CQM_TX_RATE_THRESHOLD_EVENT_HIGH) {
+			wpa_msg(drv->ctx, MSG_INFO, "nl80211: CQM TXRATE HIGH "
+				"event for "MACSTR " txrate :%d",
+				MAC2STR(addr), txrate_level);
+		} else if (txrate_event ==
+				NL80211_CQM_TX_RATE_THRESHOLD_EVENT_LOW) {
+			wpa_msg(drv->ctx, MSG_INFO, "nl80211: CQM TXRATE LOW "
+				"event for "MACSTR  " txrate :%d",
+				MAC2STR(addr), txrate_level);
+		} else {
+			wpa_msg(drv->ctx, MSG_INFO, "Unknown CQM TXRATE "
+				" threshold event :%d", txrate_event);
+			return;
+		}
+	}
+
 	if (cqm[NL80211_ATTR_CQM_RSSI_THRESHOLD_EVENT] == NULL) {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Not a CQM RSSI threshold event");
 		return;
 	}
-	event = nla_get_u32(cqm[NL80211_ATTR_CQM_RSSI_THRESHOLD_EVENT]);
-
-	if (tb[NL80211_ATTR_MAC])
-		addr = nla_data(tb[NL80211_ATTR_MAC]);
+	rssi_event = nla_get_u32(cqm[NL80211_ATTR_CQM_RSSI_THRESHOLD_EVENT]);
 
 	rssi_level = (s32) nla_get_u32(cqm[NL80211_ATTR_CQM_RSSI_LEVEL]);
 
-	if (event == NL80211_CQM_RSSI_THRESHOLD_EVENT_HIGH) {
+	if (rssi_event == NL80211_CQM_RSSI_THRESHOLD_EVENT_HIGH) {
 		if (addr) {
 			wpa_msg(drv->ctx, MSG_INFO, "nl80211: CQM RSSI HIGH "
 				"event for "MACSTR " RSSI :%d", MAC2STR(addr),
@@ -1489,7 +1514,7 @@ static void nl80211_cqm_event(struct wpa_driver_nl80211_data *drv,
 		wpa_printf(MSG_DEBUG, "nl80211: Connection quality monitor "
 			   "event: RSSI high");
 		ed.signal_change.above_threshold = 1;
-	} else if (event == NL80211_CQM_RSSI_THRESHOLD_EVENT_LOW) {
+	} else if (rssi_event == NL80211_CQM_RSSI_THRESHOLD_EVENT_LOW) {
 		if (addr) {
 			wpa_msg(drv->ctx, MSG_INFO, "nl80211: CQM RSSI LOW "
 				"event for "MACSTR " RSSI :%d", MAC2STR(addr),
@@ -1502,7 +1527,7 @@ static void nl80211_cqm_event(struct wpa_driver_nl80211_data *drv,
 	} else {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Unknown CQM RSSI threshold event: %d",
-			   event);
+			   rssi_event);
 		return;
 	}
 
