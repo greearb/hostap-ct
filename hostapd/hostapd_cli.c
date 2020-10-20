@@ -1361,6 +1361,12 @@ static int hostapd_cli_cmd_driver_flags(struct wpa_ctrl *ctrl, int argc,
 	return wpa_ctrl_command(ctrl, "DRIVER_FLAGS");
 }
 
+static int hostapd_cli_cmd_ht40_allow_map(struct wpa_ctrl *ctrl,
+					  int argc, char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "HT40_ALLOW_MAP");
+}
+
 
 #ifdef CONFIG_DPP
 
@@ -1745,6 +1751,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	{ "signal_txrate", hostapd_cli_cmd_signal_txrate, NULL,
 	  "= set signal tx rate parameters: signal_txrate "
 	  "LOW=<> HIGH=<>" },
+	{ "ht40_allow_map", hostapd_cli_cmd_ht40_allow_map, NULL,
+	  "= show ht40 allow map status" },
 	{ "req_beacon", hostapd_cli_cmd_req_beacon, NULL,
 	  "<addr> [req_mode=] <measurement request hexdump>  = send a Beacon report request to a station" },
 	{ "reload_wpa_psk", hostapd_cli_cmd_reload_wpa_psk, NULL,
