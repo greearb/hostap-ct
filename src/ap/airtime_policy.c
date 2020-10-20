@@ -80,8 +80,12 @@ static void count_backlogged_sta(struct hostapd_data *hapd)
 		if (hostapd_drv_read_sta_data(hapd, &data, sta->addr))
 			continue;
 
-		if (data.backlog_bytes > 0)
+		if (data.backlog_bytes > 0 ||
+			data.tx_airtime > sta->tx_airtime) {
 			set_new_backlog_time(hapd, sta, &now);
+			sta->tx_airtime = data.tx_airtime;
+		}
+
 		if (os_reltime_before(&now, &sta->backlogged_until))
 			num_backlogged++;
 	}
