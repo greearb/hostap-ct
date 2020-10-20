@@ -174,6 +174,15 @@ static int hostapd_radius_acl_query(struct hostapd_data *hapd, const u8 *addr,
 int hostapd_check_acl(struct hostapd_data *hapd, const u8 *addr,
 		      struct vlan_description *vlan_id)
 {
+
+#ifdef CONFIG_WPS
+	/* According to WPS spec 2.0, disable MAC address filtering
+	 * if WPS is enabled on the AP.
+	 */
+	if (hapd->conf->wps_state)
+		return HOSTAPD_ACL_ACCEPT;
+#endif /*CONFIG_WPS */
+
 	if (hostapd_maclist_found(hapd->conf->accept_mac,
 				  hapd->conf->num_accept_mac, addr, vlan_id))
 		return HOSTAPD_ACL_ACCEPT;
