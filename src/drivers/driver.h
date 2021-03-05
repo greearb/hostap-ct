@@ -1156,6 +1156,10 @@ struct wpa_driver_associate_params {
 	 * disable_he - Disable HE for this connection
 	 */
 	int disable_he;
+	/**
+	 * disable_twt - Disable TWT for this connection
+	 */
+	int disable_twt;
 #endif /* CONFIG_HE_OVERRIDES */
 
 	/**

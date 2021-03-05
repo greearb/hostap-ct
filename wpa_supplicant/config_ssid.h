@@ -813,6 +813,13 @@ struct wpa_ssid {
 	 * to 1 to have it disabled.
 	 */
 	int disable_he;
+	/**
+	 * disable_twt - Disable TWT for this network
+	 *
+	 * By default, use it if it is available, but this can be configured
+	 * to 1 to have it disabled.
+	 */
+	int disable_twt;
 #endif /* CONFIG_HE_OVERRIDES */
 
 	/**
