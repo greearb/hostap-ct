@@ -1481,6 +1481,7 @@ static const char *network_fields[] = {
 #endif /* CONFIG_VHT_OVERRIDES */
 #ifdef CONFIG_HE_OVERRIDES
 	"disable_he",
+	"disable_twt",
 #endif /* CONFIG_HE_OVERRIDES */
 	"ap_max_inactivity", "dtim_period", "beacon_int",
 #ifdef CONFIG_MACSEC

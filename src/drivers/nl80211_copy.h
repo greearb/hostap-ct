@@ -3053,6 +3053,7 @@ enum nl80211_attrs {
 	NL80211_ATTR_SAR_SPEC,
 
 	NL80211_ATTR_DISABLE_HE,
+	NL80211_ATTR_DISABLE_TWT,
 
 	/* add attributes here, update the policy in nl80211.c */
 
