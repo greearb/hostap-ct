@@ -5990,6 +5990,11 @@ static int nl80211_ht_vht_overrides(struct nl_msg *msg,
 		if (nla_put_flag(msg, NL80211_ATTR_DISABLE_HE))
 			return -1;
 	}
+	if (params->disable_twt) {
+		wpa_printf(MSG_DEBUG, "  * TWT disabled");
+		if (nla_put_flag(msg, NL80211_ATTR_DISABLE_TWT))
+			return -1;
+	}
 #endif /* CONFIG_HE_OVERRIDES */
 
 	return 0;
