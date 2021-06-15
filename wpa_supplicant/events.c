@@ -923,8 +923,31 @@ static int rate_match(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 		}
 	}
 
-	if (mode == NULL)
+	if (mode == NULL) {
+		if (debug_print) {
+			/* Give use some idea what is the issue. */
+			for (i = 0; i < wpa_s->hw.num_modes; i++) {
+				wpa_dbg(wpa_s, MSG_DEBUG, "Checking mode [%i]", i);
+				for (j = 0; j < modes[i].num_channels; j++) {
+					int freq = modes[i].channels[j].freq;
+					wpa_dbg(wpa_s, MSG_DEBUG, "Checking channel [%i] freq: %d  bss->freq: %d",
+						j, freq, bss->freq);
+					if (freq == bss->freq) {
+						if (mode &&
+						    mode->mode == HOSTAPD_MODE_IEEE80211G)
+							break; /* do not allow 802.11b replace
+								* 802.11g */
+						mode = &modes[i];
+						break;
+					}
+				}
+			}
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"   rates-match: mode not found");
+
+		}
 		return 0;
+	}
 
 	for (i = 0; i < (int) sizeof(scan_ie); i++) {
 		rate_ie = wpa_bss_get_ie(bss, scan_ie[i]);
