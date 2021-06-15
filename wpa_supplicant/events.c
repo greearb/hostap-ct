@@ -997,7 +997,7 @@ static int rate_match(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 				    wpa_key_mgmt_sae(ssid->key_mgmt)) {
 					if (debug_print)
 						wpa_dbg(wpa_s, MSG_DEBUG,
-							"   SAE H2E disabled");
+							"   mismatch: SAE H2E disabled, AP requests SAE_H2E only.");
 #ifdef CONFIG_TESTING_OPTIONS
 					if (wpa_s->ignore_sae_h2e_only) {
 						wpa_dbg(wpa_s, MSG_DEBUG,
