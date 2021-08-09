@@ -5991,8 +5991,17 @@ static int nl80211_ht_vht_overrides(struct nl_msg *msg,
 			return -1;
 	}
 	if (params->disable_twt) {
-		wpa_printf(MSG_DEBUG, "  * TWT disabled");
-		if (nla_put_flag(msg, NL80211_ATTR_DISABLE_TWT))
+		struct ct_assoc_info cai = {0};
+
+		if (params->disable_twt) {
+			cai.flags |= CT_DISABLE_TWT;
+			wpa_printf(MSG_DEBUG, "  * TWT disabled");
+		}
+
+		if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, CANDELA_VENDOR_ID))
+			return -1;
+
+		if (nla_put(msg, NL80211_ATTR_VENDOR_DATA, sizeof(cai), &cai))
 			return -1;
 	}
 #endif /* CONFIG_HE_OVERRIDES */
