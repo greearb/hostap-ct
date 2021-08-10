@@ -1160,6 +1160,10 @@ struct wpa_driver_associate_params {
 	 * disable_twt - Disable TWT for this connection
 	 */
 	int disable_twt;
+	/**
+	 * disable_160 - Disable 160Mhz for this connection
+	 */
+	int disable_160;
 #endif /* CONFIG_HE_OVERRIDES */
 
 	/**
