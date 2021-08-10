@@ -45,12 +45,11 @@
 /* Candela hacker space. */
 #define CANDELA_VENDOR_ID 0xCD1A
 struct ct_assoc_info {
-#define CT_DISABLE_TWT (1<<0)
+#define CT_DISABLE_TWT    (1<<0)
+#define CT_DISABLE_160MHZ (1<<1)
 	u32 flags;
-	u8 bw; /* 0 == any, 1 == 20, 40,80,160 */
-	u8 pad8[3];
-	u32 pad32[6]; /* room to grow */
-};
+	u32 pad32[7]; /* room to grow */
+} __attribute__((packed));
 
 
 #define NL80211_GENL_NAME "nl80211"
