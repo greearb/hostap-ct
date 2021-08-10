@@ -5945,6 +5945,7 @@ void wpa_supplicant_apply_he_overrides(
 
 	params->disable_he = ssid->disable_he;
 	params->disable_twt = ssid->disable_twt;
+	params->disable_160 = ssid->disable_160;
 }
 #endif /* CONFIG_HE_OVERRIDES */
 

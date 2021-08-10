@@ -815,6 +815,13 @@ struct wpa_ssid {
 	 * to 1 to have it disabled.
 	 */
 	int disable_twt;
+	/**
+	 * disable_160 - Disable 160Mhz for this network
+	 *
+	 * By default, use it if it is available, but this can be configured
+	 * to 1 to have it disabled.
+	 */
+	int disable_160;
 #endif /* CONFIG_HE_OVERRIDES */
 
 	/**
