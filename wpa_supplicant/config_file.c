@@ -880,6 +880,7 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 #ifdef CONFIG_HE_OVERRIDES
 	INT(disable_he);
 	INT(disable_twt);
+	INT(disable_160);
 #endif /* CONFIG_HE_OVERRIDES */
 	INT(disable_eht);
 

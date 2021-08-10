@@ -6109,12 +6109,17 @@ static int nl80211_ht_vht_overrides(struct nl_msg *msg,
 		if (nla_put_flag(msg, NL80211_ATTR_DISABLE_HE))
 			return -1;
 	}
-	if (params->disable_twt) {
+	{
 		struct ct_assoc_info cai = {0};
 
 		if (params->disable_twt) {
 			cai.flags |= CT_DISABLE_TWT;
 			wpa_printf(MSG_DEBUG, "  * TWT disabled");
+		}
+
+		if (params->disable_160) {
+			cai.flags |= CT_DISABLE_160MHZ;
+			wpa_printf(MSG_DEBUG, "  * 160Mhz disabled");
 		}
 
 		if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, CANDELA_VENDOR_ID))
