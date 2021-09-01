@@ -6122,6 +6122,11 @@ static int nl80211_ht_vht_overrides(struct nl_msg *msg,
 			wpa_printf(MSG_DEBUG, "  * 160Mhz disabled");
 		}
 
+		if (params->disable_ofdma) {
+			cai.flags |= CT_DISABLE_OFDMA;
+			wpa_printf(MSG_DEBUG, "  * OFDMA disabled");
+		}
+
 		if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, CANDELA_VENDOR_ID))
 			return -1;
 
