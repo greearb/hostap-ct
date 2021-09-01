@@ -1164,6 +1164,10 @@ struct wpa_driver_associate_params {
 	 * disable_160 - Disable 160Mhz for this connection
 	 */
 	int disable_160;
+	/**
+	 * disable_ofdma - Disable OFDMA for this connection
+	 */
+	int disable_ofdma;
 #endif /* CONFIG_HE_OVERRIDES */
 
 	/**
