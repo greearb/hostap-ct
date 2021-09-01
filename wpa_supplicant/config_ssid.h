@@ -822,6 +822,13 @@ struct wpa_ssid {
 	 * to 1 to have it disabled.
 	 */
 	int disable_160;
+	/**
+	 * disable_ofdma - Disable OFDMA for this network
+	 *
+	 * By default, use it if it is available, but this can be configured
+	 * to 1 to have it disabled.
+	 */
+	int disable_ofdma;
 #endif /* CONFIG_HE_OVERRIDES */
 
 	/**

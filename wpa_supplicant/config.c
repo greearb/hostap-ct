@@ -2603,6 +2603,7 @@ static const struct parse_data ssid_fields[] = {
 	{ INT_RANGE(disable_he, 0, 1)},
 	{ INT_RANGE(disable_twt, 0, 1)},
 	{ INT_RANGE(disable_160, 0, 1)},
+	{ INT_RANGE(disable_ofdma, 0, 1)},
 #endif /* CONFIG_HE_OVERRIDES */
 	{ INT(ap_max_inactivity) },
 	{ INT(dtim_period) },
