@@ -1513,6 +1513,7 @@ static const char *network_fields[] = {
 	"disable_he",
 	"disable_twt",
 	"disable_160",
+	"disable_ofdma",
 #endif /* CONFIG_HE_OVERRIDES */
 	"disable_eht",
 	"ap_max_inactivity", "dtim_period", "beacon_int",
