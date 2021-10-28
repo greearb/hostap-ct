@@ -1257,6 +1257,8 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 			config->p2p_ignore_shared_freq);
 	if (config->p2p_cli_probe)
 		fprintf(f, "p2p_cli_probe=%d\n", config->p2p_cli_probe);
+	if (config->disable_obss_scan)
+		fprintf(f, "disable_obss_scan=%d\n", config->disable_obss_scan);
 	if (config->p2p_go_freq_change_policy != DEFAULT_P2P_GO_FREQ_MOVE)
 		fprintf(f, "p2p_go_freq_change_policy=%u\n",
 			config->p2p_go_freq_change_policy);

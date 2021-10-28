@@ -1310,6 +1310,15 @@ struct wpa_config {
 	int p2p_cli_probe;
 
 	/**
+	 * disable_obss_scan - Disable OBSS scan.
+	 *
+	 * If this parameter is set to 1, station will not scan to look for
+	 * 20/40 intollerant beacons.  This in turn will ensure we do not send
+	 * the BSS Intolerant action frame.  Default value: 0.
+	 */
+	int disable_obss_scan;
+
+	/**
 	 * okc - Whether to enable opportunistic key caching by default
 	 *
 	 * By default, OKC is disabled unless enabled by the per-network

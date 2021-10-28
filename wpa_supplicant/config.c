@@ -5392,6 +5392,7 @@ static const struct global_parse_data global_fields[] = {
 	{ IPV4(ip_addr_start), 0 },
 	{ IPV4(ip_addr_end), 0 },
 	{ INT_RANGE(p2p_cli_probe, 0, 1), 0 },
+	{ INT_RANGE(disable_obss_scan, 0, 1), 0 },
 	{ INT(p2p_device_random_mac_addr), 0 },
 	{ FUNC(p2p_device_persistent_mac_addr), 0 },
 	{ INT(p2p_interface_random_mac_addr), 0 },
