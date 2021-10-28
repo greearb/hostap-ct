@@ -1102,7 +1102,10 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 		wpa_s->known_wps_freq = 0;
 		wpas_p2p_completed(wpa_s);
 
-		sme_sched_obss_scan(wpa_s, 1);
+		if (wpa_s->conf->disable_obss_scan)
+			sme_sched_obss_scan(wpa_s, 0);
+		else
+			sme_sched_obss_scan(wpa_s, 1);
 
 #if defined(CONFIG_FILS) && defined(IEEE8021X_EAPOL)
 		if (!fils_hlp_sent && ssid && ssid->eap.erp)
