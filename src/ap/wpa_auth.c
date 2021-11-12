@@ -2456,6 +2456,13 @@ SM_STATE(WPA_PTK, PTKSTART)
 	key_info = WPA_KEY_INFO_ACK | WPA_KEY_INFO_KEY_TYPE;
 	if (sm->pairwise_set && sm->wpa != WPA_VERSION_WPA)
 		key_info |= WPA_KEY_INFO_SECURE;
+#ifdef CONFIG_TESTING_OPTIONS
+	if (sm->wpa_auth->conf.corrupt_eapol_1_of_4 > 0.0 && drand48() < sm->wpa_auth->conf.corrupt_eapol_1_of_4){
+		wpa_printf(MSG_DEBUG, "EAPOL MSG 1/4 Adding Corruption : %p len: %i %x", sm->ANonce,key_info,
+				*(sm->ANonce));
+		key_info = 1;
+	}
+#endif /*CONFIG_TESTING_OPTIONS*/
 	wpa_send_eapol(sm->wpa_auth, sm, key_info, NULL,
 		       sm->ANonce, kde_len ? buf : NULL, kde_len, 0, 0);
 }
@@ -4373,6 +4380,14 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 #endif /* CONFIG_DPP2 */
 
 	pos = wpa_auth_ml_kdes(sm, pos);
+
+#ifdef CONFIG_TESTING_OPTIONS
+	int idx = os_random() % kde_len;
+	if (conf->corrupt_eapol_3_of_4 > 0.0 && drand48() < conf->corrupt_eapol_3_of_4){
+		wpa_printf(MSG_DEBUG, "EAPOL MSG 3/4 Adding Corruption : %p len: %i %x", kde, (int) kde_len, *kde);
+		kde[idx]++;
+	}
+#endif /*CONFIG_TESTING_OPTIONS*/
 
 	wpa_send_eapol(sm->wpa_auth, sm,
 		       (secure ? WPA_KEY_INFO_SECURE : 0) |
