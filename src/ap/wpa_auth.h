@@ -228,6 +228,8 @@ struct wpa_auth_config {
 	int ap_mlme;
 #ifdef CONFIG_TESTING_OPTIONS
 	double corrupt_gtk_rekey_mic_probability;
+	double corrupt_eapol_1_of_4;
+	double corrupt_eapol_3_of_4;
 	u8 own_ie_override[MAX_OWN_IE_OVERRIDE];
 	size_t own_ie_override_len;
 	bool rsne_override_set;
