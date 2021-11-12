@@ -1079,6 +1079,9 @@ struct hostapd_config {
 	double ignore_assoc_probability;
 	double ignore_reassoc_probability;
 	double corrupt_gtk_rekey_mic_probability;
+	/* Corrupt Packets */
+	double corrupt_eapol_1_of_4;
+	double corrupt_eapol_3_of_4;
 	int ecsa_ie_only;
 #endif /* CONFIG_TESTING_OPTIONS */
 
