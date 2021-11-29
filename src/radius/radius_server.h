@@ -17,6 +17,11 @@ struct eap_user;
  */
 struct radius_server_conf {
 	/**
+	 * bind_dev - Bind to this network device if specified.
+	 */
+	char bind_dev[40];
+
+	/**
 	 * auth_port - UDP port to listen to as an authentication server
 	 */
 	int auth_port;
