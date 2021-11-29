@@ -108,6 +108,8 @@ static int hostapd_setup_radius_srv(struct hostapd_data *hapd)
 	os_memset(&srv, 0, sizeof(srv));
 	srv.client_file = conf->radius_server_clients;
 	srv.auth_port = conf->radius_server_auth_port;
+	if (conf->radius_server_dev)
+		strncpy(srv.bind_dev, conf->radius_server_dev, sizeof(srv.bind_dev) - 1);
 	srv.acct_port = conf->radius_server_acct_port;
 	srv.conf_ctx = hapd;
 	srv.ipv6 = conf->radius_server_ipv6;

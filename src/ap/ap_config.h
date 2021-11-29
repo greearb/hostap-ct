@@ -442,6 +442,7 @@ struct hostapd_bss_config {
 	int fragment_size;
 	u16 pwd_group;
 
+	char *radius_server_dev;
 	char *radius_server_clients;
 	int radius_server_auth_port;
 	int radius_server_acct_port;

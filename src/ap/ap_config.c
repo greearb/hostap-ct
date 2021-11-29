@@ -813,6 +813,7 @@ void hostapd_config_free_bss(struct hostapd_bss_config *conf)
 	os_free(conf->eap_fast_a_id_info);
 	os_free(conf->eap_sim_db);
 	os_free(conf->radius_server_clients);
+	os_free(conf->radius_server_dev);
 	os_free(conf->radius);
 	os_free(conf->radius_das_shared_secret);
 	hostapd_config_free_vlan(conf);
