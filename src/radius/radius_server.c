@@ -1930,7 +1930,7 @@ static int radius_server_disable_pmtu_discovery(int s)
 }
 
 
-static int radius_server_open_socket(int port)
+static int radius_server_open_socket(int port, const char* bind_dev)
 {
 	int s;
 	struct sockaddr_in addr;
@@ -1942,6 +1942,25 @@ static int radius_server_open_socket(int port)
 	}
 
 	radius_server_disable_pmtu_discovery(s);
+
+	/* Bind to network device */
+#ifdef __linux__
+	if (bind_dev && bind_dev[0]) {
+               if (setsockopt(s, SOL_SOCKET, SO_BINDTODEVICE,
+                              bind_dev,
+                              os_strlen(bind_dev)) < 0) {
+                       wpa_printf(MSG_ERROR,
+                                  "RADIUS-Server: setsockopt[SO_BINDTODEVICE]: %s",
+                                  strerror(errno));
+                       /* Probably not a critical error; continue on and hope
+                        * for the best. */
+               } else {
+                       wpa_printf(MSG_DEBUG,
+                                  "RADIUS-Server: Bound client socket to device: %s",
+                                  bind_dev);
+               }
+       }
+#endif /* __linux__ */
 
 	os_memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
@@ -1957,7 +1976,7 @@ static int radius_server_open_socket(int port)
 
 
 #ifdef CONFIG_IPV6
-static int radius_server_open_socket6(int port)
+static int radius_server_open_socket6(int port, const char* bind_dev)
 {
 	int s;
 	struct sockaddr_in6 addr;
@@ -1968,6 +1987,24 @@ static int radius_server_open_socket6(int port)
 			   strerror(errno));
 		return -1;
 	}
+
+	#ifdef __linux__
+	if (bind_dev && bind_dev[0]) {
+               if (setsockopt(s, SOL_SOCKET, SO_BINDTODEVICE,
+                              bind_dev,
+                              os_strlen(bind_dev)) < 0) {
+                       wpa_printf(MSG_ERROR,
+                                  "RADIUS-Server6: setsockopt[SO_BINDTODEVICE]: %s",
+                                  strerror(errno));
+                       /* Probably not a critical error; continue on and hope
+                        * for the best. */
+               } else {
+                       wpa_printf(MSG_DEBUG,
+                                  "RADIUS-Server6: Bound client socket to device: %s",
+                                  bind_dev);
+               }
+       }
+#endif /* __linux__ */
 
 	os_memset(&addr, 0, sizeof(addr));
 	addr.sin6_family = AF_INET6;
@@ -2260,10 +2297,10 @@ radius_server_init(struct radius_server_conf *conf)
 
 #ifdef CONFIG_IPV6
 	if (conf->ipv6)
-		data->auth_sock = radius_server_open_socket6(conf->auth_port);
+		data->auth_sock = radius_server_open_socket6(conf->auth_port, conf->bind_dev);
 	else
 #endif /* CONFIG_IPV6 */
-	data->auth_sock = radius_server_open_socket(conf->auth_port);
+	data->auth_sock = radius_server_open_socket(conf->auth_port, conf->bind_dev);
 	if (data->auth_sock < 0) {
 		wpa_printf(MSG_ERROR, "Failed to open UDP socket for RADIUS authentication server");
 		goto fail;
@@ -2278,10 +2315,10 @@ radius_server_init(struct radius_server_conf *conf)
 #ifdef CONFIG_IPV6
 		if (conf->ipv6)
 			data->acct_sock = radius_server_open_socket6(
-				conf->acct_port);
+				conf->acct_port, conf->bind_dev);
 		else
 #endif /* CONFIG_IPV6 */
-		data->acct_sock = radius_server_open_socket(conf->acct_port);
+		data->acct_sock = radius_server_open_socket(conf->acct_port, conf->bind_dev);
 		if (data->acct_sock < 0) {
 			wpa_printf(MSG_ERROR, "Failed to open UDP socket for RADIUS accounting server");
 			goto fail;
