@@ -829,8 +829,10 @@ int radius_msg_verify_msg_auth(struct radius_msg *msg, const u8 *secret,
 			  sizeof(msg->hdr->authenticator));
 	}
 	if (hmac_md5(secret, secret_len, wpabuf_head(msg->buf),
-		     wpabuf_len(msg->buf), auth) < 0)
+		     wpabuf_len(msg->buf), auth) < 0) {
+		wpa_printf(MSG_INFO, "hmac_md5 of secret failed.");
 		return 1;
+	}
 	os_memcpy(attr + 1, orig, MD5_MAC_LEN);
 	if (req_auth) {
 		os_memcpy(msg->hdr->authenticator, orig_authenticator,
@@ -838,7 +840,11 @@ int radius_msg_verify_msg_auth(struct radius_msg *msg, const u8 *secret,
 	}
 
 	if (os_memcmp_const(orig, auth, MD5_MAC_LEN) != 0) {
+		char buf[1000];
+
 		wpa_printf(MSG_INFO, "Invalid Message-Authenticator!");
+		wpa_snprintf_hex(buf, sizeof(buf), secret, secret_len);
+		wpa_printf(MSG_INFO, "      secret: %s", buf);
 		return 1;
 	}
 
