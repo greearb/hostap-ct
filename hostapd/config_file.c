@@ -4188,6 +4188,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 	 */
 	PARSE_TEST_PROBABILITY(corrupt_eapol_1_of_4)
 	PARSE_TEST_PROBABILITY(corrupt_eapol_3_of_4)
+	PARSE_TEST_PROBABILITY(drop_eapol_1_of_4)
+	PARSE_TEST_PROBABILITY(drop_eapol_3_of_4)
 	} else if (os_strcmp(buf, "ecsa_ie_only") == 0) {
 		conf->ecsa_ie_only = atoi(pos);
 	} else if (os_strcmp(buf, "bss_load_test") == 0) {
