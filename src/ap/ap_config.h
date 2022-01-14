@@ -1141,6 +1141,9 @@ struct hostapd_config {
 	/* Corrupt Packets */
 	double corrupt_eapol_1_of_4;
 	double corrupt_eapol_3_of_4;
+	/* Drop Packets */
+	double drop_eapol_1_of_4;
+	double drop_eapol_3_of_4;
 	int ecsa_ie_only;
 	int csa_ie_only;
 	bool delay_eapol_tx;
