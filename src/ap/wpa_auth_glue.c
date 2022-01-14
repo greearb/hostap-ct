@@ -121,6 +121,10 @@ static void hostapd_wpa_auth_conf(struct hostapd_bss_config *conf,
 		iconf->corrupt_eapol_1_of_4;
 	wconf->corrupt_eapol_3_of_4 =
 		iconf->corrupt_eapol_3_of_4;
+	wconf->drop_eapol_1_of_4 =
+			iconf->drop_eapol_1_of_4;
+	wconf->drop_eapol_3_of_4 =
+			iconf->drop_eapol_3_of_4;
 	if (conf->own_ie_override &&
 	    wpabuf_len(conf->own_ie_override) <= MAX_OWN_IE_OVERRIDE) {
 		wconf->own_ie_override_len = wpabuf_len(conf->own_ie_override);

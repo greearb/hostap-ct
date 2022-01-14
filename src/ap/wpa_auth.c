@@ -2332,9 +2332,17 @@ SM_STATE(WPA_PTK, PTKSTART)
 				*(sm->ANonce));
 		key_info = 1;
 	}
+	if (sm->wpa_auth->conf.drop_eapol_1_of_4 > 0.0 && drand48() < sm->wpa_auth->conf.drop_eapol_1_of_4){
+		wpa_printf(MSG_DEBUG, "EAPOL MSG 1/4 Dropping : %lf len: %x", sm->wpa_auth->conf.drop_eapol_1_of_4,
+						*(sm->ANonce));
+		goto done;
+
+	}
 #endif /*CONFIG_TESTING_OPTIONS*/
 	wpa_send_eapol(sm->wpa_auth, sm, key_info, NULL,
 		       sm->ANonce, pmkid, pmkid_len, 0, 0);
+ done:
+		return;
 }
 
 
@@ -3770,6 +3778,10 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 	if (conf->corrupt_eapol_3_of_4 > 0.0 && drand48() < conf->corrupt_eapol_3_of_4){
 		wpa_printf(MSG_DEBUG, "EAPOL MSG 3/4 Adding Corruption : %p len: %i %x", kde, (int) kde_len, *kde);
 		kde[idx]++;
+	}
+	if (conf->drop_eapol_3_of_4 > 0.0 && drand48() < conf->drop_eapol_3_of_4){
+		wpa_printf(MSG_DEBUG, "EAPOL MSG 3/4 Dropping: %p len: %i %x", kde, (int) kde_len, *kde);
+		goto done;
 	}
 #endif /*CONFIG_TESTING_OPTIONS*/
 
