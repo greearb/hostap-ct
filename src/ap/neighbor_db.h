@@ -25,4 +25,13 @@ int hostapd_neighbor_remove(struct hostapd_data *hapd, const u8 *bssid,
 			    const struct wpa_ssid_value *ssid);
 void hostapd_free_neighbor_db(struct hostapd_data *hapd);
 
+int hostapd_neighbor_count(struct hostapd_data *hapd);
+int hostapd_neighbor_insert_buffer(struct hostapd_data *hapd, char *buf,
+        size_t buflen);
+void hostapd_neighbor_set_own_report_pref(struct hostapd_data *hapd, char *nei_buf,
+			 size_t buflen, const int pref);
+#ifdef CONFIG_MBO
+void hostapd_neighbor_set_pref_by_non_pref_chan(struct hostapd_data *hapd,
+			 struct sta_info* sta, char *nei_buf, size_t buflen);
+#endif
 #endif /* NEIGHBOR_DB_H */

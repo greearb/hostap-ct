@@ -590,6 +590,7 @@ struct hostapd_bss_config {
 	int wnm_sleep_mode;
 	int wnm_sleep_mode_no_keys;
 	int bss_transition;
+	unsigned int bss_termination_tsf;
 
 	/* IEEE 802.11u - Interworking */
 	int interworking;

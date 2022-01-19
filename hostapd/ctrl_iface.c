@@ -1334,6 +1334,11 @@ static int hostapd_ctrl_iface_set(struct hostapd_data *hapd, char *cmd)
 #endif /* CONFIG_DPP */
 	} else if (os_strcasecmp(cmd, "setband") == 0) {
 		ret = hostapd_ctrl_iface_set_band(hapd, value);
+	} else if (os_strcasecmp(cmd, "bss_termination_tsf") == 0) {
+		int termination_sec = atoi(value);
+		hapd->conf->bss_termination_tsf = termination_sec;
+		wpa_printf(MSG_DEBUG, "BSS Termination TSF: value = %d",
+                termination_sec);
 	} else {
 		ret = hostapd_set_iface(hapd->iconf, hapd->conf, cmd, value);
 		if (ret)
