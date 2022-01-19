@@ -185,6 +185,7 @@ void hostapd_config_defaults_bss(struct hostapd_bss_config *bss)
 	bss->pmksa_caching_privacy = 0;
 	bss->eap_using_authentication_frames = 0;
 #endif /* CONFIG_ENC_ASSOC */
+	bss->bss_termination_tsf = 0;
 }
 
 
