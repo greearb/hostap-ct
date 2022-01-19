@@ -26,6 +26,7 @@
 #include "mbo_ap.h"
 #include "taxonomy.h"
 #include "wnm_ap.h"
+#include "neighbor_db.h"
 
 
 static size_t hostapd_write_ht_mcs_bitmask(char *buf, size_t buflen,
@@ -1899,6 +1900,10 @@ int hostapd_ctrl_iface_bss_tm_req(struct hostapd_data *hapd,
 			wpa_printf(MSG_DEBUG, "Invalid bss_term data");
 			return -1;
 		}
+		if (hapd->conf->bss_termination_tsf) {
+			WPA_PUT_LE64(&bss_term_dur[2], hapd->conf->bss_termination_tsf);
+		}
+
 		end++;
 		WPA_PUT_LE16(&bss_term_dur[10], atoi(end));
 	}
@@ -1925,16 +1930,26 @@ int hostapd_ctrl_iface_bss_tm_req(struct hostapd_data *hapd,
 		req_mode |= WNM_BSS_TM_REQ_ESS_DISASSOC_IMMINENT;
 	}
 
-	if (os_strstr(cmd, " pref=1"))
+	if (os_strstr(cmd, " pref=1")) {
 		req_mode |= WNM_BSS_TM_REQ_PREF_CAND_LIST_INCLUDED;
+		if (nei_len == 0) {
+			// Add neigibor report from neighbor report db to nei_rep buffer
+			nei_len = hostapd_neighbor_insert_buffer (hapd, nei_rep, 1000);
+		}
+	}
 	if (os_strstr(cmd, " abridged=1"))
 		req_mode |= WNM_BSS_TM_REQ_ABRIDGED;
-	if (os_strstr(cmd, " disassoc_imminent=1"))
+	if (os_strstr(cmd, " disassoc_imminent=1")) {
 		req_mode |= WNM_BSS_TM_REQ_DISASSOC_IMMINENT;
+		/* Set own BSS neighbor report preference value as 0 */
+		hostapd_neighbor_set_own_report_pref(hapd, nei_rep, nei_len, 0);
+	}
 	if (os_strstr(cmd, " link_removal_imminent=1"))
 		req_mode |= WNM_BSS_TM_REQ_LINK_REMOVAL_IMMINENT;
 
 #ifdef CONFIG_MBO
+	hostapd_neighbor_set_pref_by_non_pref_chan(hapd, sta, nei_rep, nei_len);
+
 	pos = os_strstr(cmd, "mbo=");
 	if (pos) {
 		unsigned int mbo_reason, cell_pref, reassoc_delay;

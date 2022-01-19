@@ -179,6 +179,7 @@ void hostapd_config_defaults_bss(struct hostapd_bss_config *bss)
 #endif /* CONFIG_PASN */
 	bss->urnm_mfpr_x20 = -1;
 	bss->urnm_mfpr = -1;
+	bss->bss_termination_tsf = 0;
 }
 
 
