@@ -11,7 +11,7 @@
 
 #include "utils/common.h"
 #include "utils/crc32.h"
-#include "hostapd.h"
+#include "sta_info.h"
 #include "ieee802_11.h"
 #include "neighbor_db.h"
 
@@ -83,6 +83,38 @@ int hostapd_neighbor_show(struct hostapd_data *hapd, char *buf, size_t buflen)
 		if (os_snprintf_error(end - pos, ret))
 			break;
 		pos += ret;
+	}
+
+	return pos - buf;
+}
+
+
+int hostapd_neighbor_count(struct hostapd_data *hapd)
+{
+	struct hostapd_neighbor_entry *nr;
+	int count = 0;
+
+	dl_list_for_each(nr, &hapd->nr_db, struct hostapd_neighbor_entry,
+			 list) {
+		count++;
+	}
+	return count;
+}
+
+
+int hostapd_neighbor_insert_buffer(struct hostapd_data *hapd, char *buf,
+        size_t buflen)
+{
+	struct hostapd_neighbor_entry *nr;
+	char *pos = buf;
+
+	dl_list_for_each(nr, &hapd->nr_db, struct hostapd_neighbor_entry,
+			 list) {
+		/* For neighbor report IE, we only need bssid and nr*/
+		*pos++ = WLAN_EID_NEIGHBOR_REPORT;
+		*pos++ = wpabuf_len(nr->nr);
+		os_memcpy(pos, wpabuf_head(nr->nr), wpabuf_len(nr->nr));
+		pos += wpabuf_len(nr->nr);
 	}
 
 	return pos - buf;
@@ -361,3 +393,89 @@ int hostapd_neighbor_sync_own_report(struct hostapd_data *hapd)
 
 	return 0;
 }
+
+void hostapd_neighbor_set_own_report_pref(struct hostapd_data *hapd, char *nei_buf,
+			 size_t buflen, const int pref)
+{
+	struct hostapd_neighbor_entry *nr;
+	char *pos, *next_nr;
+
+	pos = nei_buf;
+	next_nr = nei_buf;
+
+	dl_list_for_each(nr, &hapd->nr_db, struct hostapd_neighbor_entry,
+			 list) {
+		pos = next_nr;
+		next_nr = pos + 2 + wpabuf_len(nr->nr);
+		/* Shift 2 bytes for Element ID and Neighbor report length */
+		pos = pos + 2;
+		if(os_memcmp(pos, hapd->own_addr, ETH_ALEN) == 0) {
+			/* Shift for BSSID + BSSID info + Op_class + channel num + PHY type */
+			pos = pos + 6 + 4 + 1 + 1 + 1;
+
+			/* Iterate Subelement */
+			while (next_nr - pos > 0) {
+				if (*pos == 3) {
+					pos = pos + 2;
+					*pos = pref;
+					return;
+				} else {
+					pos++;
+					int shift_len = *pos++;
+					pos = pos + shift_len;
+				}
+			}
+		}
+	}
+}
+
+#ifdef CONFIG_MBO
+void hostapd_neighbor_set_pref_by_non_pref_chan(struct hostapd_data *hapd,
+			 struct sta_info* sta, char *nei_buf, size_t buflen)
+{
+	struct hostapd_neighbor_entry *nr;
+	struct mbo_non_pref_chan_info *info;
+	u8 i;
+
+	for(info = sta->non_pref_chan; info; info = info->next) {
+		/* Check OP_Class and Channel num */
+		for(i = 0; i < info->num_channels; i++) {
+			char *pos, *next_nr;
+
+			pos = nei_buf;
+			next_nr = nei_buf;
+
+			/* Iterate Neighbor report database */
+			dl_list_for_each(nr, &hapd->nr_db, struct hostapd_neighbor_entry,
+					 list) {
+				pos = next_nr;
+				next_nr = pos + 2 + wpabuf_len(nr->nr);
+				/**
+				 * Shift 12 bytes for Element ID, Neighbor report length,
+				 * BSSID and BSSID info.
+				 */
+				pos = pos + 12;
+				int nr_op_class = *pos++;
+				int nr_channel = *pos;
+				if(info->op_class == nr_op_class && info->channels[i] == nr_channel) {
+					/* Shift for Channel Num + PHY type */
+					pos = pos + 1 + 1;
+
+					// Iterate Subelement
+					while(next_nr - pos > 0) {
+						if(*pos == 3) {
+							pos = pos + 2;
+							*pos = info->pref;
+							break;
+						}else {
+							pos++;
+							int shift_len = *pos++;
+							pos = pos + shift_len;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+#endif
