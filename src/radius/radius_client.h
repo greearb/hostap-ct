@@ -179,6 +179,11 @@ struct hostapd_radius_servers {
 	 * force_client_dev - Bind the socket to a specified interface, if set
 	 */
 	char *force_client_dev;
+
+	/**
+	 * drop_msg_probability - Probability to randomly drop the first message
+	 */
+	double drop_msg_probability;
 };
 
 
