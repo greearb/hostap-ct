@@ -2699,6 +2699,16 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 	} else if (os_strcmp(buf, "radius_client_dev") == 0) {
 			os_free(bss->radius->force_client_dev);
 			bss->radius->force_client_dev = os_strdup(pos);
+	} else if (os_strcmp(buf, "radius_drop_probability") == 0) {
+		char *end;
+		bss->radius->drop_msg_probability = strtod(pos, &end);
+		if (*end || bss->radius->drop_msg_probability < 0.0 ||
+		    bss->radius->drop_msg_probability > 1.0) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: Invalid value '%s'",
+				   line, pos);
+			return 1;
+		}
 	} else if (os_strcmp(buf, "auth_server_addr") == 0) {
 		if (hostapd_config_read_radius_addr(
 			    &bss->radius->auth_servers,
