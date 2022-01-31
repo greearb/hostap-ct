@@ -953,14 +953,21 @@ int radius_client_send(struct radius_client_data *radius,
 		buf = out;
 	}
 #endif /* CONFIG_RADIUS_TLS */
-	wpa_printf(MSG_DEBUG, "RADIUS: Send %zu bytes to the server",
-		   wpabuf_len(buf));
-	res = send(s, wpabuf_head(buf), wpabuf_len(buf), 0);
+	if ((radius_msg_get_attr(msg, RADIUS_ATTR_STATE, NULL, 0) >= 0) ||
+	    conf->drop_msg_probability <= drand48()) {
+		wpa_printf(MSG_DEBUG, "RADIUS: Send %zu bytes to the server",
+			   wpabuf_len(buf));
+		res = send(s, wpabuf_head(buf), wpabuf_len(buf), 0);
+		if (res < 0)
+			radius_client_handle_send_error(radius, s, msg_type);
+	}
+	else {
+		wpa_printf(MSG_INFO, "Dropping RADIUS message due to drop probability");
+	}
+
 #ifdef CONFIG_RADIUS_TLS
 	wpabuf_free(out);
 #endif /* CONFIG_RADIUS_TLS */
-	if (res < 0)
-		radius_client_handle_send_error(radius, s, msg_type);
 
 #ifdef CONFIG_RADIUS_TLS
 skip_send:
