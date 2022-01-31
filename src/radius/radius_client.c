@@ -799,14 +799,19 @@ int radius_client_send(struct radius_client_data *radius,
 	if (conf->msg_dumps)
 		radius_msg_dump(msg);
 
-	buf = radius_msg_get_buf(msg);
-	res = send(s, wpabuf_head(buf), wpabuf_len(buf), 0);
-	if (res < 0)
-		radius_client_handle_send_error(radius, s, msg_type);
+	if ((radius_msg_get_attr(msg, RADIUS_ATTR_STATE, NULL, 0) >= 0) ||
+	    conf->drop_msg_probability <= drand48()){
+		buf = radius_msg_get_buf(msg);
+		res = send(s, wpabuf_head(buf), wpabuf_len(buf), 0);
+		if (res < 0)
+			radius_client_handle_send_error(radius, s, msg_type);
 
-	radius_client_list_add(radius, msg, msg_type, shared_secret,
-			       shared_secret_len, addr);
-
+		radius_client_list_add(radius, msg, msg_type, shared_secret,
+				       shared_secret_len, addr);
+	}
+	else {
+		wpa_printf(MSG_INFO, "Dropping RADIUS message due to drop probability");
+	}
 	return 0;
 }
 
