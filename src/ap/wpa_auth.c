@@ -2328,8 +2328,9 @@ SM_STATE(WPA_PTK, PTKSTART)
 		key_info |= WPA_KEY_INFO_SECURE;
 #ifdef CONFIG_TESTING_OPTIONS
 	if (sm->wpa_auth->conf.corrupt_eapol_1_of_4 > 0.0 && drand48() < sm->wpa_auth->conf.corrupt_eapol_1_of_4){
-		wpa_printf(MSG_DEBUG, "EAPOL MSG 1/4 Adding Corruption : %p len: %i %x", sm->ANonce,key_info,
+		wpa_printf(MSG_DEBUG, "EAPOL MSG 1/4 Adding Corruption : %p len: %i %x", sm->SNonce,key_info,
 				*(sm->ANonce));
+		sm->SNonce[0]++;
 		key_info = 1;
 	}
 	if (sm->wpa_auth->conf.drop_eapol_1_of_4 > 0.0 && drand48() < sm->wpa_auth->conf.drop_eapol_1_of_4){
