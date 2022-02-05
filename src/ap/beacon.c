@@ -2694,6 +2694,7 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 							IEEE80211_MODE_AP);
 	params.ubpr.unsol_bcast_probe_resp_tmpl =
 		hostapd_unsol_bcast_probe_resp(hapd, &params.ubpr);
+	params.he_ofdma_disable = hapd->iface->conf->he_op.he_ofdma_disable;
 #endif /* CONFIG_IEEE80211AX */
 	params.twt_responder =
 		twt_he_responder || hostapd_get_ht_vht_twt_responder(hapd);
