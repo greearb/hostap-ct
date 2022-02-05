@@ -1618,6 +1618,11 @@ struct wpa_driver_ap_params {
 	int twt_responder;
 
 	/**
+	 * he_ofdma_disable - Disable OFDMA for this AP
+	 */
+	int he_ofdma_disable;
+
+	/**
 	 * sae_pwe - SAE mechanism for PWE derivation
 	 * 0 = hunting-and-pecking loop only
 	 * 1 = hash-to-element only
