@@ -1936,6 +1936,7 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 	params.he_bss_color_partial =
 		hapd->iface->conf->he_op.he_bss_color_partial;
 	params.he_bss_color = hapd->iface->conf->he_op.he_bss_color;
+	params.he_ofdma_disable = hapd->iface->conf->he_op.he_ofdma_disable;
 	params.twt_responder = hostapd_get_he_twt_responder(hapd,
 							    IEEE80211_MODE_AP);
 	params.unsol_bcast_probe_resp_tmpl =

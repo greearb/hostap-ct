@@ -3514,6 +3514,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		conf->he_op.he_bss_color_partial = atoi(pos);
 	} else if (os_strcmp(buf, "he_default_pe_duration") == 0) {
 		conf->he_op.he_default_pe_duration = atoi(pos);
+	} else if (os_strcmp(buf, "he_ofdma_disable") == 0) {
+		conf->he_op.he_ofdma_disable = atoi(pos);
 	} else if (os_strcmp(buf, "he_twt_required") == 0) {
 		conf->he_op.he_twt_required = atoi(pos);
 	} else if (os_strcmp(buf, "he_twt_responder") == 0) {

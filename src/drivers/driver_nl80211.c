@@ -4842,6 +4842,23 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 	if (params->unsol_bcast_probe_resp_interval &&
 	    nl80211_unsol_bcast_probe_resp(bss, msg, params) < 0)
 		goto fail;
+
+	/* Allow disabling OFDMA, with private CANDELA vendor hacks */
+	{
+		struct ct_assoc_info cai = {0};
+
+		if (params->he_ofdma_disable) {
+			cai.flags |= CT_DISABLE_OFDMA;
+			wpa_printf(MSG_DEBUG, "  * OFDMA disabled");
+		}
+
+		if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, CANDELA_VENDOR_ID))
+			return -1;
+
+		if (nla_put(msg, NL80211_ATTR_VENDOR_DATA, sizeof(cai), &cai))
+			return -1;
+	}
+
 #endif /* CONFIG_IEEE80211AX */
 
 #ifdef CONFIG_SAE
