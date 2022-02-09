@@ -2453,8 +2453,8 @@ int ieee802_11_parse_candidate_list(struct hostapd_data *hapd, const char *pos, 
 
 			buf = wpabuf_alloc(nei_rep_len);
 			if (!buf) {
-				wpa_printf(MSG_DEBUG, "Could not allocate wpa-buf of lenght: %d\n",
-					   nei_rep_len);
+				wpa_printf(MSG_DEBUG, "Could not allocate wpa-buf of length: %d\n",
+					   (int)(nei_rep_len));
 				return -1;
 			}
 
