@@ -21,6 +21,7 @@
 #include "mbo_ap.h"
 #include "wnm_ap.h"
 #include "neighbor_db.h"
+#include "rrm.h"
 
 #define MAX_TFS_IE_LEN  1024
 
@@ -368,7 +369,10 @@ static int ieee802_11_send_bss_trans_mgmt_request(struct hostapd_data *hapd,
 {
 	struct ieee80211_mgmt *mgmt;
 	size_t len, nr_len = 0;
-	u8 *pos, *nr_pos;
+	u8 *pos;
+#ifdef CONFIG_MBO
+	u8 *nr_pos;
+#endif
 	u8 req_mode = 0;
 	int res;
 	struct wpabuf *buf;
