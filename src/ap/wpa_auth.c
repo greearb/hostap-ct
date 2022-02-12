@@ -2313,6 +2313,14 @@ SM_STATE(WPA_PTK, PTKSTART)
 		goto done;
 
 	}
+	if (sm->wpa_auth->conf.dup_eapol_1_of_4 > 0.0 && drand48() < sm->wpa_auth->conf.dup_eapol_1_of_4){
+		wpa_printf(MSG_DEBUG, "EAPOL MSG 1/4 sending Duplicate : %lf len: %x", sm->wpa_auth->conf.dup_eapol_1_of_4,
+							*(sm->ANonce));
+		wpa_send_eapol(sm->wpa_auth, sm,
+			       key_info, NULL, sm->ANonce,
+			       pmkid, pmkid_len, 0, 0);
+
+	}
 #endif /*CONFIG_TESTING_OPTIONS*/
 	wpa_send_eapol(sm->wpa_auth, sm, key_info, NULL,
 		       sm->ANonce, pmkid, pmkid_len, 0, 0);
@@ -3682,6 +3690,18 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 	if (conf->drop_eapol_3_of_4 > 0.0 && drand48() < conf->drop_eapol_3_of_4){
 		wpa_printf(MSG_DEBUG, "EAPOL MSG 3/4 Dropping: %p len: %i %x", kde, (int) kde_len, *kde);
 		goto done;
+	}
+	if (sm->wpa_auth->conf.dup_eapol_3_of_4 > 0.0 && drand48() < sm->wpa_auth->conf.dup_eapol_3_of_4){
+		wpa_printf(MSG_DEBUG, "EAPOL MSG 3/4 sending Duplicate : %lf len: %x", sm->wpa_auth->conf.dup_eapol_3_of_4,
+						*(sm->ANonce));
+		wpa_send_eapol(sm->wpa_auth, sm,
+			       (secure ? WPA_KEY_INFO_SECURE : 0) |
+			       (wpa_mic_len(sm->wpa_key_mgmt, sm->pmk_len) ?
+				WPA_KEY_INFO_MIC : 0) |
+			       WPA_KEY_INFO_ACK | WPA_KEY_INFO_INSTALL |
+			       WPA_KEY_INFO_KEY_TYPE,
+			       _rsc, sm->ANonce, kde, pos - kde, 0, encr);
+
 	}
 #endif /*CONFIG_TESTING_OPTIONS*/
 

@@ -1086,6 +1086,9 @@ struct hostapd_config {
 	/* Drop Packets */
 	double drop_eapol_1_of_4;
 	double drop_eapol_3_of_4;
+	/* Duplicate Packets */
+	double dup_eapol_1_of_4;
+	double dup_eapol_3_of_4;
 	int ecsa_ie_only;
 #endif /* CONFIG_TESTING_OPTIONS */
 
