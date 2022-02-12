@@ -262,6 +262,8 @@ struct hostapd_config * hostapd_config_defaults(void)
 	conf->corrupt_eapol_3_of_4 = 0.0;
 	conf->drop_eapol_1_of_4 = 0.0;
 	conf->drop_eapol_3_of_4 = 0.0;
+	conf->dup_eapol_1_of_4 = 0.0;
+	conf->dup_eapol_3_of_4 = 0.0;
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	conf->acs = 0;
