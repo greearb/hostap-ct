@@ -610,9 +610,11 @@ static int dfs_set_valid_channel(struct hostapd_iface *iface, int skip_radar)
 					skip_radar ? DFS_AVAILABLE :
 					DFS_ANY_CHANNEL);
 	if (!channel) {
-		wpa_printf(MSG_ERROR, "could not get valid channel");
+		wpa_printf(MSG_ERROR, "set_valid_channel: could not get valid channel");
 		return -1;
 	}
+	wpa_printf(MSG_ERROR, "set_valid_channel: selected channel: %d",
+		channel->chan);
 
 	iface->freq = channel->freq;
 	iface->conf->channel = channel->chan;
@@ -1209,7 +1211,7 @@ dfs_downgrade_bandwidth(struct hostapd_iface *iface, int *secondary_channel,
 						oper_centr_freq_seg1_idx,
 						*channel_type);
 		if (channel) {
-			wpa_printf(MSG_DEBUG, "DFS: Selected channel: %d",
+			wpa_printf(MSG_DEBUG, "DFS: downgrade bandwidth, selected channel: %d",
 				   channel->chan);
 			return channel;
 		}
@@ -1256,12 +1258,12 @@ static int hostapd_dfs_start_channel_switch_cac(struct hostapd_iface *iface)
 						  &oper_centr_freq_seg1_idx,
 						  &channel_type);
 		if (!channel) {
-			wpa_printf(MSG_ERROR, "No valid channel available");
+			wpa_printf(MSG_ERROR, "start_channel_switch_cac: No valid channel available");
 			return err;
 		}
 	}
 
-	wpa_printf(MSG_DEBUG, "DFS will switch to a new channel %d",
+	wpa_printf(MSG_DEBUG, "start_channel_switch: DFS will switch to a new channel %d",
 		   channel->chan);
 	wpa_msg(iface->bss[0]->msg_ctx, MSG_INFO, DFS_EVENT_NEW_CHANNEL
 		"freq=%d chan=%d sec_chan=%d", channel->freq,
