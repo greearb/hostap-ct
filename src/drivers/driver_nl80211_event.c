@@ -2187,22 +2187,28 @@ static void nl80211_radar_event(struct wpa_driver_nl80211_data *drv,
 
 	switch (event_type) {
 	case NL80211_RADAR_DETECTED:
+		wpa_printf(MSG_DEBUG, "nl80211: DFS event: radar detected.");
 		wpa_supplicant_event(drv->ctx, EVENT_DFS_RADAR_DETECTED, &data);
 		break;
 	case NL80211_RADAR_CAC_FINISHED:
+		wpa_printf(MSG_DEBUG, "nl80211: DFS event: CAC finished.");
 		wpa_supplicant_event(drv->ctx, EVENT_DFS_CAC_FINISHED, &data);
 		break;
 	case NL80211_RADAR_CAC_ABORTED:
+		wpa_printf(MSG_DEBUG, "nl80211: DFS event: CAC aborted.");
 		wpa_supplicant_event(drv->ctx, EVENT_DFS_CAC_ABORTED, &data);
 		break;
 	case NL80211_RADAR_NOP_FINISHED:
+		wpa_printf(MSG_DEBUG, "nl80211: DFS event: NOP finished.");
 		wpa_supplicant_event(drv->ctx, EVENT_DFS_NOP_FINISHED, &data);
 		break;
 	case NL80211_RADAR_PRE_CAC_EXPIRED:
+		wpa_printf(MSG_DEBUG, "nl80211: DFS event: CAC expired.");
 		wpa_supplicant_event(drv->ctx, EVENT_DFS_PRE_CAC_EXPIRED,
 				     &data);
 		break;
 	case NL80211_RADAR_CAC_STARTED:
+		wpa_printf(MSG_DEBUG, "nl80211: DFS event: CAC started.");
 		wpa_supplicant_event(drv->ctx, EVENT_DFS_CAC_STARTED, &data);
 		break;
 	default:
