@@ -391,7 +391,10 @@ static int ieee802_11_send_bss_trans_mgmt_request(struct hostapd_data *hapd,
 			return -1;
 	}
 #endif
-	mgmt = os_zalloc(sizeof(*mgmt) + nr_len);
+	/* we end up adding variable amount of neighbors, so buffer needs to be
+	 * big enough to hold whatever is there..
+	 */
+	mgmt = os_zalloc(IEEE80211_MAX_MMPDU_SIZE);
 
 	if (mgmt == NULL)
 		return -1;
@@ -413,7 +416,7 @@ static int ieee802_11_send_bss_trans_mgmt_request(struct hostapd_data *hapd,
 	mgmt->u.action.u.bss_tm_req.validity_interval = 1;
 	pos = mgmt->u.action.u.bss_tm_req.variable;
 
-	buf = wpabuf_alloc(IEEE80211_MAX_MMPDU_SIZE - sizeof(*mgmt));
+	buf = wpabuf_alloc(IEEE80211_MAX_MMPDU_SIZE - ((unsigned long)pos - (unsigned long)mgmt));
 	if (buf) {
 		/* Grab neighbor list */
 		/* TODO:  Maybe round-robin and only send one?
