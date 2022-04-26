@@ -414,7 +414,7 @@ static int ieee802_11_send_bss_trans_mgmt_request(struct hostapd_data *hapd,
 	mgmt->u.action.u.bss_tm_req.validity_interval = 1;
 	pos = mgmt->u.action.u.bss_tm_req.variable;
 
-	buf = wpabuf_alloc(IEEE80211_MAX_MMPDU_SIZE - sizeof(*mgmt));
+	buf = wpabuf_alloc(IEEE80211_MAX_MMPDU_SIZE - ((unsigned long)pos - (unsigned long)mgmt));
 	if (buf) {
 		/* Grab neighbor list */
 		/* TODO:  Maybe round-robin and only send one?
