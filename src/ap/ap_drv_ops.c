@@ -1414,3 +1414,30 @@ int hostapd_remove_pmkid(struct hostapd_data *hapd, const u8 *sta_addr,
 
 	return hostapd_drv_remove_pmkid(hapd, &params);
 }
+
+
+int hostapd_drv_configure_edcca_enable(struct hostapd_data *hapd)
+{
+	if (!hapd->driver || !hapd->driver->configure_edcca_enable)
+		return 0;
+	return hapd->driver->configure_edcca_enable(hapd->drv_priv,
+			hapd->iconf->edcca_enable,
+				hapd->iconf->edcca_compensation);
+}
+
+
+int hostapd_drv_configure_edcca_threshold(struct hostapd_data *hapd,
+					  const int *threshold)
+{
+	if (!hapd->driver || !hapd->driver->configure_edcca_threshold)
+		return 0;
+	return hapd->driver->configure_edcca_threshold(hapd->drv_priv, threshold);
+}
+
+
+int hostapd_drv_get_edcca(struct hostapd_data *hapd, const u8 mode, u8 *value)
+{
+	if (!hapd->driver || !hapd->driver->get_edcca)
+		return 0;
+	return hapd->driver->get_edcca(hapd->drv_priv, mode, value);
+}
