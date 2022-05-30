@@ -5579,6 +5579,11 @@ struct wpa_driver_ops {
 	 */
 	struct hostapd_multi_hw_info *
 	(*get_multi_hw_info)(void *priv, unsigned int *num_multi_hws);
+
+	int (*configure_edcca_enable)(void *priv, const u8 edcca_enable,
+				  const s8 edcca_compensation);
+	int (*configure_edcca_threshold)(void *priv, const int *threshold);
+	int (*get_edcca)(void *priv, const u8 mode, u8 *value);
 };
 
 /**

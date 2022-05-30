@@ -314,6 +314,9 @@ struct hostapd_config * hostapd_config_defaults(void)
 	conf->airtime_update_interval = AIRTIME_DEFAULT_UPDATE_INTERVAL;
 #endif /* CONFIG_AIRTIME_POLICY */
 
+	conf->edcca_enable = EDCCA_MODE_AUTO;
+	conf->edcca_compensation = EDCCA_DEFAULT_COMPENSATION;
+
 	hostapd_set_and_check_bw320_offset(conf, 0);
 
 	return conf;
@@ -1041,6 +1044,7 @@ void hostapd_config_free(struct hostapd_config *conf)
 #ifdef CONFIG_ACS
 	os_free(conf->acs_chan_bias);
 #endif /* CONFIG_ACS */
+	os_free(conf->edcca_threshold);
 	wpabuf_free(conf->lci);
 	wpabuf_free(conf->civic);
 

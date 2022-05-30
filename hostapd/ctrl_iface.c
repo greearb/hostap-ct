@@ -652,6 +652,17 @@ static int hostapd_ctrl_iface_wps_get_status(struct hostapd_data *hapd,
 
 #endif /* CONFIG_WPS */
 
+static const char *edcca_mode_str(enum edcca_mode status)
+{
+	switch (status) {
+	case EDCCA_MODE_FORCE_DISABLE:
+		return "Force Disable";
+	case EDCCA_MODE_AUTO:
+		return "Auto";
+	default:
+		return "Unknown";
+	}
+}
 
 #ifdef CONFIG_HS20
 static int hostapd_ctrl_iface_hs20_deauth_req(struct hostapd_data *hapd,
@@ -3697,6 +3708,106 @@ static int hostapd_ctrl_iface_link_remove(struct hostapd_data *hapd, char *cmd,
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
 
+static int
+hostapd_ctrl_iface_set_edcca(struct hostapd_data *hapd, char *cmd,
+					 char *buf, size_t buflen)
+{
+	char *pos, *config, *value;
+	config = cmd;
+	pos = os_strchr(config, ' ');
+	if (pos == NULL)
+		return -1;
+	*pos++ = '\0';
+	value = pos;
+
+	if (os_strcmp(config, "enable") == 0) {
+		int mode = atoi(value);
+		if (mode < EDCCA_MODE_FORCE_DISABLE || mode > EDCCA_MODE_AUTO) {
+			wpa_printf(MSG_ERROR, "Invalid value for edcca enable");
+			return -1;
+		}
+		hapd->iconf->edcca_enable = (u8) mode;
+		if (hostapd_drv_configure_edcca_enable(hapd) != 0)
+			return -1;
+	} else if (os_strcmp(config, "compensation") == 0) {
+		int compensation = atoi(value);
+		if (compensation < EDCCA_MIN_COMPENSATION ||
+		    compensation > EDCCA_MAX_COMPENSATION) {
+			wpa_printf(MSG_ERROR, "Invalid value for edcca compensation");
+			return -1;
+		}
+		hapd->iconf->edcca_compensation = (s8) compensation;
+		if (hostapd_drv_configure_edcca_enable(hapd) != 0)
+			return -1;
+	} else if (os_strcmp(config, "threshold") == 0) {
+		char *thres_value;
+		thres_value = os_strchr(value, ':');
+		if (thres_value == NULL)
+			return -1;
+		*thres_value++ = '\0';
+
+		int bw_idx = atoi(value);
+		int threshold = atoi(thres_value);
+
+		if (bw_idx < EDCCA_BW_20 || bw_idx > EDCCA_BW_160) {
+			wpa_printf(MSG_ERROR,
+				   "Unsupported Bandwidth idx %d for SET_EDCCA",
+				   bw_idx);
+			return -1;
+		}
+		if (threshold < EDCCA_MIN_CONFIG_THRES ||
+		    threshold > EDCCA_MAX_CONFIG_THRES) {
+			wpa_printf(MSG_ERROR,
+				   "Unsupported threshold %d for SET_EDCCA",
+				   threshold);
+			return -1;
+		}
+
+		int threshold_arr[EDCCA_MAX_BW_NUM];
+		/* 0x7f means keep the origival value in firmware */
+		os_memset(threshold_arr, 0x7f, sizeof(threshold_arr));
+		threshold_arr[bw_idx] = threshold;
+
+		if (hostapd_drv_configure_edcca_threshold(hapd, threshold_arr) != 0)
+			return -1;
+	} else {
+		wpa_printf(MSG_ERROR,
+			"Unsupported parameter %s for SET_EDCCA", config);
+		return -1;
+	}
+	return os_snprintf(buf, buflen, "OK\n");
+}
+
+
+static int
+hostapd_ctrl_iface_get_edcca(struct hostapd_data *hapd, char *cmd, char *buf,
+			     size_t buflen)
+{
+	char *pos, *end;
+
+	pos = buf;
+	end = buf + buflen;
+	u8 value[EDCCA_MAX_BW_NUM] = {0};
+
+	if (os_strcmp(cmd, "enable") == 0) {
+		return os_snprintf(pos, end - pos, "Enable: %s\n",
+				   edcca_mode_str(hapd->iconf->edcca_enable));
+	} else if (os_strcmp(cmd, "compensation") == 0) {
+		return os_snprintf(pos, end - pos, "Compensation: %d\n",
+				  hapd->iconf->edcca_compensation);
+	} else if (os_strcmp(cmd, "threshold") == 0) {
+		if (hostapd_drv_get_edcca(hapd, EDCCA_CTRL_GET_THRES, value) != 0)
+			return -1;
+		return os_snprintf(pos, end - pos,
+				   "Threshold BW20: 0x%x, BW40: 0x%x, BW80: 0x%x, BW160: 0x%x\n",
+				   value[0], value[1], value[2], value[3]);
+	} else {
+		wpa_printf(MSG_ERROR,
+			"Unsupported parameter %s for GET_EDCCA", cmd);
+		return -1;
+	}
+}
+
 
 #ifdef CONFIG_NAN_USD
 
@@ -4635,6 +4746,12 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		if (hostapd_ctrl_iface_sae_password_bind(hapd, buf + 18))
 			reply_len = -1;
 #endif /* CONFIG_SAE */
+	} else if (os_strncmp(buf, "SET_EDCCA ", 10) == 0) {
+		reply_len = hostapd_ctrl_iface_set_edcca(hapd, buf+10, reply,
+							  reply_size);
+	} else if (os_strncmp(buf, "GET_EDCCA ", 10) == 0) {
+		reply_len = hostapd_ctrl_iface_get_edcca(hapd, buf+10, reply,
+							  reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;

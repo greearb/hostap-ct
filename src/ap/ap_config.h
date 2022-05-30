@@ -1277,8 +1277,38 @@ struct hostapd_config {
 
 	/* Set I2R LMR policy to allow LMR response from ISTA */
 	bool i2r_lmr_policy;
+
+	u8 edcca_enable;
+	s8 edcca_compensation;
+	int *edcca_threshold;
 };
 
+enum edcca_mode {
+	EDCCA_MODE_FORCE_DISABLE = 0,
+	EDCCA_MODE_AUTO = 1,
+};
+
+enum edcca_bw_id {
+	EDCCA_BW_20 = 0,
+	EDCCA_BW_40,
+	EDCCA_BW_80,
+	EDCCA_BW_160,
+	EDCCA_MAX_BW_NUM,
+};
+
+enum mtk_vendor_attr_edcca_ctrl_mode {
+	EDCCA_CTRL_SET_EN = 0,
+	EDCCA_CTRL_SET_THRES,
+	EDCCA_CTRL_GET_EN,
+	EDCCA_CTRL_GET_THRES,
+	EDCCA_CTRL_NUM,
+};
+
+#define EDCCA_DEFAULT_COMPENSATION -6
+#define EDCCA_MIN_COMPENSATION -126
+#define EDCCA_MAX_COMPENSATION 126
+#define EDCCA_MIN_CONFIG_THRES -126
+#define EDCCA_MAX_CONFIG_THRES 0
 
 static inline enum oper_chan_width
 hostapd_get_oper_chwidth(struct hostapd_config *conf)

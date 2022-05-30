@@ -155,6 +155,10 @@ int hostapd_drv_set_secure_ranging_ctx(struct hostapd_data *hapd,
 				       u8 ltf_keyseed_len,
 				       const u8 *ltf_keyseed, u32 action);
 
+int hostapd_drv_configure_edcca_enable(struct hostapd_data *hapd);
+int hostapd_drv_configure_edcca_threshold(struct hostapd_data *hapd,
+					  const int *threshold);
+int hostapd_drv_get_edcca(struct hostapd_data *hapd, const u8 mode, u8 *value);
 
 #include "drivers/driver.h"
 
