@@ -30,14 +30,22 @@ enum mtk_vendor_attr_edcca_ctrl {
 		NUM_MTK_VENDOR_ATTRS_EDCCA_CTRL - 1
 };
 
-enum mtk_vendor_attr_edcca_ctrl_mode {
-	EDCCA_CTRL_SET_EN = 0,
-	EDCCA_CTRL_SET_THERS,
-	EDCCA_CTRL_GET_EN,
-	EDCCA_CTRL_GET_THERS,
-	EDCCA_CTRL_NUM,
+enum mtk_vendor_attr_edcca_dump {
+	MTK_VENDOR_ATTR_EDCCA_DUMP_UNSPEC = 0,
+
+	MTK_VENDOR_ATTR_EDCCA_DUMP_MODE,
+	MTK_VENDOR_ATTR_EDCCA_DUMP_PRI20_VAL,
+	MTK_VENDOR_ATTR_EDCCA_DUMP_SEC40_VAL,
+	MTK_VENDOR_ATTR_EDCCA_DUMP_SEC80_VAL,
+	MTK_VENDOR_ATTR_EDCCA_DUMP_SEC160_VAL,
+
+	/* keep last */
+	NUM_MTK_VENDOR_ATTRS_EDCCA_DUMP,
+	MTK_VENDOR_ATTR_EDCCA_DUMP_MAX =
+		NUM_MTK_VENDOR_ATTRS_EDCCA_DUMP - 1
 };
 
+#if 0
 static struct nla_policy edcca_ctrl_policy[NUM_MTK_VENDOR_ATTRS_EDCCA_CTRL] = {
 	[MTK_VENDOR_ATTR_EDCCA_CTRL_MODE] = { .type = NLA_U8 },
 	[MTK_VENDOR_ATTR_EDCCA_CTRL_PRI20_VAL] = { .type = NLA_U8 },
@@ -47,6 +55,7 @@ static struct nla_policy edcca_ctrl_policy[NUM_MTK_VENDOR_ATTRS_EDCCA_CTRL] = {
 	[MTK_VENDOR_ATTR_EDCCA_CTRL_COMPENSATE] = { .type = NLA_U8 },
 	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC160_VAL] = { .type = NLA_U8 },
 };
+#endif
 
 enum mtk_vendor_attr_csi_ctrl {
 	MTK_VENDOR_ATTR_CSI_CTRL_UNSPEC,

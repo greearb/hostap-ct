@@ -5072,6 +5072,40 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->mld_indicate_disabled = atoi(pos);
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
+	} else if (os_strcmp(buf, "edcca_threshold") == 0) {
+		if (hostapd_parse_intlist(&conf->edcca_threshold, pos) ||
+		    conf->edcca_threshold[0] < EDCCA_MIN_CONFIG_THRES ||
+		    conf->edcca_threshold[0] > EDCCA_MAX_CONFIG_THRES ||
+		    conf->edcca_threshold[1] < EDCCA_MIN_CONFIG_THRES ||
+		    conf->edcca_threshold[1] > EDCCA_MAX_CONFIG_THRES ||
+		    conf->edcca_threshold[2] < EDCCA_MIN_CONFIG_THRES ||
+		    conf->edcca_threshold[2] > EDCCA_MAX_CONFIG_THRES ||
+		    conf->edcca_threshold[3] < EDCCA_MIN_CONFIG_THRES ||
+		    conf->edcca_threshold[3] > EDCCA_MAX_CONFIG_THRES) {
+			wpa_printf(MSG_ERROR, "Line %d: invalid edcca threshold",
+				   line);
+			return 1;
+		}
+	} else if (os_strcmp(buf, "edcca_enable") == 0) {
+		int mode = atoi(pos);
+		if (mode < EDCCA_MODE_FORCE_DISABLE || mode > EDCCA_MODE_AUTO) {
+			wpa_printf(MSG_ERROR, "Line %d: Invalid edcca_enable %d;"
+				  " allowed value 0 (Force Disable) or 1(Auto) ",
+				   line, mode);
+			return 1;
+		}
+		conf->edcca_enable = (u8) mode;
+	} else if (os_strcmp(buf, "edcca_compensation") == 0) {
+		int val = atoi(pos);
+		if (val < EDCCA_MIN_COMPENSATION ||
+		    val > EDCCA_MAX_COMPENSATION) {
+			wpa_printf(MSG_ERROR, "Line %d: Invalid compensation"
+				   " value %d; allowed value %d ~ %d.",
+				   line, val, EDCCA_MIN_COMPENSATION,
+				   EDCCA_MAX_COMPENSATION);
+			return 1;
+		}
+		conf->edcca_compensation = (s8) val;
 	} else {
 		wpa_printf(MSG_ERROR,
 			   "Line %d: unknown configuration item '%s'",

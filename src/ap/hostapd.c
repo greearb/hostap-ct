@@ -2786,6 +2786,13 @@ dfs_offload:
 	}
 #endif /* CONFIG_MESH */
 
+	if (hostapd_drv_configure_edcca_enable(hapd) < 0)
+		goto fail;
+
+	if (hostapd_drv_configure_edcca_threshold(hapd,
+						  hapd->iconf->edcca_threshold) < 0)
+		goto fail;
+
 	wpa_printf(MSG_DEBUG, "%s: Setup of interface done.",
 		   iface->bss[0]->conf->iface);
 	if (iface->interfaces && iface->interfaces->terminate_on_error > 0)
