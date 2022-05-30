@@ -18,6 +18,7 @@
 #include "common/qca-vendor-attr.h"
 #include "common/brcm_vendor.h"
 #include "driver_nl80211.h"
+#include "common/mtk_vendor.h"
 
 
 static int protocol_feature_handler(struct nl_msg *msg, void *arg)
@@ -1142,6 +1143,12 @@ static int wiphy_info_handler(struct nl_msg *msg, void *arg)
 					break;
 				}
 #endif /* CONFIG_DRIVER_NL80211_BRCM */
+			} else if (vinfo->vendor_id == OUI_MTK) {
+				switch (vinfo->subcmd) {
+				case MTK_NL80211_VENDOR_SUBCMD_EDCCA_CTRL:
+					drv->mtk_edcca_vendor_cmd_avail = 1;
+					break;
+				}
 			}
 
 			wpa_printf(MSG_DEBUG, "nl80211: Supported vendor command: vendor_id=0x%x subcmd=%u",
