@@ -4948,7 +4948,6 @@ static int nl80211_fils_discovery(struct i802_bss *bss, struct nl_msg *msg,
 	     nla_put(msg, NL80211_FILS_DISCOVERY_ATTR_TMPL,
 		     params->fd_frame_tmpl_len, params->fd_frame_tmpl)))
 		return -1;
-
 	nla_nest_end(msg, attr);
 	return 0;
 }
@@ -5601,7 +5600,10 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 #endif /* CONFIG_SAE */
 
 #ifdef CONFIG_FILS
-	if (params->fd_max_int && nl80211_fils_discovery(bss, msg, params) < 0)
+	if ((params->fd_max_int ||
+	    ((params->freq && is_6ghz_freq(params->freq->freq)) &&
+	      !(params->ubpr.unsol_bcast_probe_resp_interval))) &&
+	     nl80211_fils_discovery(bss, msg, params) < 0)
 		goto fail;
 #endif /* CONFIG_FILS */
 
