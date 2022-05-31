@@ -665,6 +665,24 @@ static int hostapd_cli_cmd_wps_config(struct wpa_ctrl *ctrl, int argc,
 	return wpa_ctrl_command(ctrl, buf);
 }
 
+static int hostapd_cli_cmd_inband_discovery(struct wpa_ctrl *ctrl, int argc,
+					    char *argv[])
+{
+	char buf[300];
+	int res;
+
+	if (argc < 2) {
+		printf("Invalid 'inband_discovery' command - two arguments"
+		       "tx_type interval\n");
+		return -1;
+	}
+
+	res = os_snprintf(buf, sizeof(buf), "INBAND_DISCOVERY %s %s",
+			  argv[0], argv[1]);
+	if (os_snprintf_error(sizeof(buf), res))
+		return -1;
+	return wpa_ctrl_command(ctrl, buf);
+}
 
 static int hostapd_cli_cmd_disassoc_imminent(struct wpa_ctrl *ctrl, int argc,
 					     char *argv[])
@@ -2047,6 +2065,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	{ "afc_send_request", hostapd_cli_cmd_afc_send_request, NULL,
 	  " = Send another AFC request and upadte the timeout"},
 #endif /* CONFIG_AFC */
+	{ "inband_discovery", hostapd_cli_cmd_inband_discovery, NULL,
+          "<tx type(0/1/2)> <interval> = runtime set inband discovery" },
 	{ NULL, NULL, NULL, NULL }
 };
 
