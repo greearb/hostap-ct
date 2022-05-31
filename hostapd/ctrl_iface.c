@@ -805,6 +805,69 @@ static int hostapd_ctrl_iface_send_qos_map_conf(struct hostapd_data *hapd,
 
 #endif /* CONFIG_INTERWORKING */
 
+static int hostapd_ctrl_iface_inband_discovery(struct hostapd_data *hapd,
+					       const char *cmd)
+{
+	struct hostapd_bss_config *conf = hapd->conf;
+	const char *pos = cmd;
+	int tx_type, interval, ret;
+
+	tx_type = atoi(pos);
+	if (tx_type < 0 || tx_type > 2) {
+		wpa_printf(MSG_ERROR, "Invalid tx type\n");
+		return -1;
+	}
+
+	pos = os_strchr(pos, ' ');
+	if(!pos)
+		return -1;
+	pos++;
+	interval = atoi(pos);
+	if (interval < 0 || interval > 20) {
+		wpa_printf(MSG_ERROR, "Invalid interval value\n");
+		return -1;
+	}
+
+	wpa_printf(MSG_ERROR, "Set inband discovery type:%d, interval:%d\n",
+			      tx_type, interval);
+
+#define DISABLE_INBAND_DISC 0
+#define UNSOL_PROBE_RESP 1
+#define FILS_DISCOVERY 2
+
+#ifdef CONFIG_FILS
+	conf->fils_discovery_max_int = 0;
+	conf->fils_discovery_min_int = 0;
+#endif /* CONFIG_FILS */
+	conf->unsol_bcast_probe_resp_interval = 0;
+
+	switch (tx_type) {
+	case DISABLE_INBAND_DISC:
+	default:
+		/* Disable both Unsolicited probe response and FILS discovery*/
+		break;
+	case UNSOL_PROBE_RESP:
+		/* Enable Unsolicited probe response */
+		conf->unsol_bcast_probe_resp_interval = interval;
+		break;
+#ifdef CONFIG_FILS
+	case FILS_DISCOVERY:
+		/* Enable FILS discovery */
+		conf->fils_discovery_min_int = interval;
+		conf->fils_discovery_max_int = interval;
+		break;
+#endif /* CONFIG_FILS */
+	}
+
+	ret = ieee802_11_update_beacons(hapd->iface);
+	if(ret) {
+		wpa_printf(MSG_DEBUG,
+			"Failed to update with inband discovery parameters\n");
+		return -1;
+	}
+
+	return 0;
+}
 
 #ifdef CONFIG_WNM_AP
 
@@ -4324,6 +4387,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		if (hostapd_ctrl_iface_coloc_intf_req(hapd, buf + 15))
 			reply_len = -1;
 #endif /* CONFIG_WNM_AP */
+	} else if (os_strncmp(buf, "INBAND_DISCOVERY ", 17) == 0) {
+		if (hostapd_ctrl_iface_inband_discovery(hapd, buf + 17))
+			reply_len = -1;
 	} else if (os_strcmp(buf, "GET_CONFIG") == 0) {
 		reply_len = hostapd_ctrl_iface_get_config(hapd, reply,
 							  reply_size);
