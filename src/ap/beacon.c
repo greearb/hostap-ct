@@ -2160,6 +2160,8 @@ static u8 * hostapd_fils_discovery(struct hostapd_data *hapd,
 				   struct wpa_driver_ap_params *params)
 {
 	params->fd_max_int = hapd->conf->fils_discovery_max_int;
+	params->ubpr.unsol_bcast_probe_resp_interval =
+		hapd->conf->unsol_bcast_probe_resp_interval;
 	if (is_6ghz_op_class(hapd->iconf->op_class) &&
 	    params->fd_max_int > FD_MAX_INTERVAL_6GHZ)
 		params->fd_max_int = FD_MAX_INTERVAL_6GHZ;
@@ -2168,7 +2170,8 @@ static u8 * hostapd_fils_discovery(struct hostapd_data *hapd,
 	if (params->fd_min_int > params->fd_max_int)
 		params->fd_min_int = params->fd_max_int;
 
-	if (params->fd_max_int)
+	if (params->fd_max_int || (is_6ghz_op_class(hapd->iconf->op_class) &&
+	    !params->ubpr.unsol_bcast_probe_resp_interval))
 		return hostapd_gen_fils_discovery(hapd,
 						  &params->fd_frame_tmpl_len);
 
