@@ -184,7 +184,7 @@ static void wpa_bss_anqp_free(struct wpa_bss_anqp *anqp)
 
 
 static void wpa_bss_update_pending_connect(struct wpa_supplicant *wpa_s,
-					   struct wpa_bss *old_bss,
+					   long old_bss_addr,
 					   struct wpa_bss *new_bss)
 {
 	struct wpa_radio_work *work;
@@ -197,7 +197,7 @@ static void wpa_bss_update_pending_connect(struct wpa_supplicant *wpa_s,
 		return;
 
 	cwork = work->ctx;
-	if (cwork->bss != old_bss)
+	if ((long)(cwork->bss) != old_bss_addr)
 		return;
 
 	wpa_printf(MSG_DEBUG,
@@ -224,7 +224,7 @@ void wpa_bss_remove(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 			}
 		}
 	}
-	wpa_bss_update_pending_connect(wpa_s, bss, NULL);
+	wpa_bss_update_pending_connect(wpa_s, (long)bss, NULL);
 	dl_list_del(&bss->list);
 	dl_list_del(&bss->list_id);
 	wpa_s->num_bss--;
@@ -686,6 +686,8 @@ wpa_bss_update(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 	} else {
 		struct wpa_bss *nbss;
 		struct dl_list *prev = bss->list_id.prev;
+		long old_addr = (long)bss;
+
 		dl_list_del(&bss->list_id);
 		nbss = os_realloc(bss, sizeof(*bss) + res->ie_len +
 				  res->beacon_ie_len);
@@ -699,7 +701,7 @@ wpa_bss_update(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 			}
 			if (wpa_s->current_bss == bss)
 				wpa_s->current_bss = nbss;
-			wpa_bss_update_pending_connect(wpa_s, bss, nbss);
+			wpa_bss_update_pending_connect(wpa_s, old_addr, nbss);
 			bss = nbss;
 			os_memcpy(bss->ies, res + 1,
 				  res->ie_len + res->beacon_ie_len);
