@@ -5485,6 +5485,7 @@ int tls_connection_set_params(void *tls_ctx, struct tls_connection *conn,
 	if (!params->openssl_ecdh_curves) {
 #ifndef OPENSSL_IS_BORINGSSL
 #ifndef OPENSSL_NO_EC
+#ifndef HAP_OPENSSL_NO_EC
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 		if (SSL_set_ecdh_auto(conn->ssl, 1) != 1) {
 			wpa_printf(MSG_INFO,
@@ -5492,6 +5493,7 @@ int tls_connection_set_params(void *tls_ctx, struct tls_connection *conn,
 			return -1;
 		}
 #endif /* < 1.1.0 */
+#endif /* HAP_OPENSSL_NO_EC */
 #endif /* OPENSSL_NO_EC */
 #endif /* OPENSSL_IS_BORINGSSL */
 	} else if (params->openssl_ecdh_curves[0]) {
@@ -5500,7 +5502,7 @@ int tls_connection_set_params(void *tls_ctx, struct tls_connection *conn,
 			"OpenSSL: ECDH configuration not supported");
 		return -1;
 #else /* !OPENSSL_IS_BORINGSSL */
-#ifndef OPENSSL_NO_EC
+#if ! (defined OPENSSL_NO_EC || defined HAP_OPENSSL_NO_EC)
 		if (SSL_set1_curves_list(conn->ssl,
 					 params->openssl_ecdh_curves) != 1) {
 			wpa_printf(MSG_INFO,
@@ -5707,7 +5709,7 @@ int tls_global_set_params(void *tls_ctx,
 
 	if (!params->openssl_ecdh_curves) {
 #ifndef OPENSSL_IS_BORINGSSL
-#ifndef OPENSSL_NO_EC
+#if ! (defined OPENSSL_NO_EC || defined HAP_OPENSSL_NO_EC)
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 		if (SSL_CTX_set_ecdh_auto(ssl_ctx, 1) != 1) {
 			wpa_printf(MSG_INFO,
@@ -5723,7 +5725,7 @@ int tls_global_set_params(void *tls_ctx,
 			"OpenSSL: ECDH configuration not supported");
 		return -1;
 #else /* !OPENSSL_IS_BORINGSSL */
-#ifndef OPENSSL_NO_EC
+#if ! (defined OPENSSL_NO_EC || defined HAP_OPENSSL_NO_EC)
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 		SSL_CTX_set_ecdh_auto(ssl_ctx, 1);
 #endif
