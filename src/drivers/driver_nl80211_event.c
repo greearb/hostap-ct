@@ -2979,8 +2979,8 @@ static void nl80211_obss_color_collision(struct wpa_driver_nl80211_data *drv,
 	data.bss_color_collision.bitmap =
 		nla_get_u64(tb[NL80211_ATTR_OBSS_COLOR_BITMAP]);
 
-	wpa_printf(MSG_DEBUG, "nl80211: BSS color collision - bitmap %08lx",
-		   data.bss_color_collision.bitmap);
+	wpa_printf(MSG_DEBUG, "nl80211: BSS color collision - bitmap %08llx",
+		   (unsigned long long)(data.bss_color_collision.bitmap));
 	wpa_supplicant_event(drv->ctx, EVENT_BSS_COLOR_COLLISION, &data);
 }
 
