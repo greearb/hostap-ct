@@ -4353,7 +4353,7 @@ struct crypto_rsa_key * crypto_rsa_key_read(const char *file, bool private_key)
 struct wpabuf * crypto_rsa_oaep_sha256_encrypt(struct crypto_rsa_key *key,
 					       const struct wpabuf *in)
 {
-#if !defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER >= 0x30400000L
+#if !defined(HAP_OPENSSL_NO_EC) && (!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER >= 0x30400000L)
 	EVP_PKEY *pkey = (EVP_PKEY *) key;
 	EVP_PKEY_CTX *pkctx;
 	struct wpabuf *res = NULL;
@@ -4390,7 +4390,7 @@ fail:
 struct wpabuf * crypto_rsa_oaep_sha256_decrypt(struct crypto_rsa_key *key,
 					       const struct wpabuf *in)
 {
-#if !defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER >= 0x30400000L
+#if !defined(HAP_OPENSSL_NO_EC) && (!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER >= 0x30400000L)
 	EVP_PKEY *pkey = (EVP_PKEY *) key;
 	EVP_PKEY_CTX *pkctx;
 	struct wpabuf *res = NULL;
