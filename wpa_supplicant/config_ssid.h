@@ -1151,6 +1151,16 @@ struct wpa_ssid {
 	 */
 	int multi_ap_backhaul_sta;
 
+#ifdef CONFIG_IEEE80211R
+	/**
+	 * ft_over_ds - FT over-DS preference when automatically roaming.
+	 *
+	 * 0 = Don't use FT over-DS (default)
+	 * 1 = Use FT over-DS, if available
+	 */
+	int ft_over_ds;
+#endif /* CONFIG_IEEE80211R */
+
 	/**
 	 * ft_eap_pmksa_caching - Whether FT-EAP PMKSA caching is allowed
 	 * 0 = do not try to use PMKSA caching with FT-EAP

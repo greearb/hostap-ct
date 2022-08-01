@@ -2609,6 +2609,17 @@ void wpa_supplicant_associate(struct wpa_supplicant *wpa_s,
 
 	if ((wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME) &&
 	    ssid->mode == WPAS_MODE_INFRA) {
+#ifdef CONFIG_IEEE80211R
+		const u8 *ie = NULL;
+		if (bss && wpa_s->reassoc_same_ess &&
+		    (wpa_s->wpa_state >= WPA_ASSOCIATED))
+			ie = wpa_bss_get_ie(bss, WLAN_EID_MOBILITY_DOMAIN);
+
+		if (ie && (ie[1] >= MOBILITY_DOMAIN_ID_LEN) &&
+		    ssid->ft_over_ds && (ie[4] & RSN_FT_CAPAB_FT_OVER_DS)) {
+			wpa_ft_start_over_ds(wpa_s->wpa, bss->bssid, ie, false);
+		} else
+#endif /* CONFIG_IEEE80211R */
 		sme_authenticate(wpa_s, bss, ssid);
 		return;
 	}
