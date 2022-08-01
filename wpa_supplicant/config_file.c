@@ -877,6 +877,9 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 	INT_DEF(vht_tx_mcs_nss_7, -1);
 	INT_DEF(vht_tx_mcs_nss_8, -1);
 #endif /* CONFIG_VHT_OVERRIDES */
+#ifdef CONFIG_IEEE80211R
+	INT(ft_over_ds);
+#endif /* CONFIG_IEEE80211R */
 #ifdef CONFIG_HE_OVERRIDES
 	INT(disable_he);
 	INT(disable_twt);
