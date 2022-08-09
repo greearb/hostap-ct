@@ -4126,6 +4126,67 @@ static int hostapd_ctrl_iface_sae_password_bind(struct hostapd_data *hapd,
 #endif /* CONFIG_SAE */
 
 
+static int
+hostapd_ctrl_iface_set_mu(struct hostapd_data *hapd, char *cmd,
+					 char *buf, size_t buflen)
+{
+	char *pos, *config, *value;
+	config = cmd;
+	pos = os_strchr(config, ' ');
+	if (pos == NULL)
+		return -1;
+	*pos++ = '\0';
+
+	if(pos == NULL)
+		return -1;
+	value = pos;
+
+	if (os_strcmp(config, "onoff") == 0) {
+		int mu = atoi(value);
+		if (mu < 0 || mu > 15) {
+			wpa_printf(MSG_ERROR, "Invalid value for mu");
+			return -1;
+		}
+		hapd->iconf->mu_onoff = (u8) mu;
+	} else {
+		wpa_printf(MSG_ERROR,
+			"Unsupported parameter %s for SET_MU", config);
+		return -1;
+	}
+
+	if(hostapd_drv_mu_ctrl(hapd) == 0) {
+		return os_snprintf(buf, buflen, "OK\n");
+	} else {
+		return -1;
+	}
+}
+
+
+static int
+hostapd_ctrl_iface_get_mu(struct hostapd_data *hapd, char *buf,
+					 size_t buflen)
+{
+	u8 mu_onoff;
+	char *pos, *end;
+
+	pos = buf;
+	end = buf + buflen;
+
+	if (hapd->iface->state != HAPD_IFACE_ENABLED)
+		return os_snprintf(pos, end - pos, "Not allowed to get_mu when current state is %s\n",
+				   hostapd_state_text(hapd->iface->state));
+
+	if (hostapd_drv_mu_dump(hapd, &mu_onoff) == 0) {
+		hapd->iconf->mu_onoff = mu_onoff;
+		return os_snprintf(pos, end - pos, "[hostapd_cli] = UL MU-MIMO: %d, DL MU-MIMO: %d, UL OFDMA: %d, DL OFDMA: %d\n",
+			!!(mu_onoff&BIT(3)), !!(mu_onoff&BIT(2)), !!(mu_onoff&BIT(1)), !!(mu_onoff&BIT(0)));
+	} else {
+		wpa_printf(MSG_INFO, "ctrl iface failed to call");
+		return -1;
+	}
+}
+
+
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
 					      int reply_size,
@@ -4752,6 +4813,11 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "GET_EDCCA ", 10) == 0) {
 		reply_len = hostapd_ctrl_iface_get_edcca(hapd, buf+10, reply,
 							  reply_size);
+	} else if (os_strncmp(buf, "SET_MU ", 7) == 0) {
+		reply_len = hostapd_ctrl_iface_set_mu(hapd, buf + 7, reply,
+							  reply_size);
+	} else if (os_strncmp(buf, "GET_MU", 6) == 0) {
+		reply_len = hostapd_ctrl_iface_get_mu(hapd, reply, reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;

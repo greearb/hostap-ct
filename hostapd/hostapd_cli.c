@@ -1466,6 +1466,20 @@ static int hostapd_cli_cmd_driver_flags2(struct wpa_ctrl *ctrl, int argc,
 }
 
 
+static int hostapd_cli_cmd_set_mu(struct wpa_ctrl *ctrl, int argc,
+					   char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "SET_MU", 1, argc, argv);
+}
+
+
+static int hostapd_cli_cmd_get_mu(struct wpa_ctrl *ctrl, int argc,
+					   char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "GET_MU", 0, argc, argv);
+}
+
+
 #ifdef CONFIG_DPP
 
 static int hostapd_cli_cmd_dpp_qr_code(struct wpa_ctrl *ctrl, int argc,
@@ -1848,6 +1862,10 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	  " = show supported driver flags"},
 	{ "driver_flags2", hostapd_cli_cmd_driver_flags2, NULL,
 	  " = show supported driver flags2"},
+	{ "set_mu", hostapd_cli_cmd_set_mu, NULL,
+		"<value> [0-15] bitmap- UL MU-MIMO(bit3), DL MU-MIMO(bit2), UL OFDMA(bit1), DL OFDMA(bit0)"},
+	{ "get_mu", hostapd_cli_cmd_get_mu, NULL,
+		" = show mu onoff value in 0-15 bitmap"},
 #ifdef CONFIG_DPP
 	{ "dpp_qr_code", hostapd_cli_cmd_dpp_qr_code, NULL,
 	  "report a scanned DPP URI from a QR Code" },

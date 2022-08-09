@@ -3797,6 +3797,15 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->mbssid_index = atoi(pos);
 	} else if (os_strcmp(buf, "mbssid_max") == 0) {
 		conf->mbssid_max = atoi(pos);
+	} else if (os_strcmp(buf, "mu_onoff") == 0) {
+		int val = atoi(pos);
+		if (val < 0 || val > 15) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: invalid mu_onoff value",
+				   line);
+			return 1;
+		}
+		conf->mu_onoff = val;
 #endif /* CONFIG_IEEE80211AX */
 	} else if (os_strcmp(buf, "max_listen_interval") == 0) {
 		bss->max_listen_interval = atoi(pos);

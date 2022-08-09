@@ -187,6 +187,11 @@ struct hostapd_channel_data {
 	 * punct_bitmap - RU puncturing bitmap
 	 */
 	u16 punct_bitmap;
+
+	/**
+	 * mu onoff=<val> (bitmap- UL MU-MIMO(bit3), DL MU-MIMO(bit2), UL OFDMA(bit1), DL OFDMA(bit0))
+	 */
+	u8 mu_onoff;
 };
 
 #define HE_MAC_CAPAB_0		0
@@ -5584,6 +5589,14 @@ struct wpa_driver_ops {
 				  const s8 edcca_compensation);
 	int (*configure_edcca_threshold)(void *priv, const int *threshold);
 	int (*get_edcca)(void *priv, const u8 mode, u8 *value);
+
+	/**
+	 * mu_ctrl - ctrl on off for UL/DL MURU
+	 * @priv: Private driver interface data
+	 *
+	 */
+	 int (*mu_ctrl)(void *priv, u8 mu_onoff);
+	 int (*mu_dump)(void *priv, u8 *mu_onoff);
 };
 
 /**

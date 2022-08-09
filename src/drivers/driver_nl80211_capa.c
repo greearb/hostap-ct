@@ -1150,6 +1150,9 @@ static int wiphy_info_handler(struct nl_msg *msg, void *arg)
 				case MTK_NL80211_VENDOR_SUBCMD_EDCCA_CTRL:
 					drv->mtk_edcca_vendor_cmd_avail = 1;
 					break;
+				case MTK_NL80211_VENDOR_SUBCMD_MU_CTRL :
+					drv->mtk_mu_vendor_cmd_avail = 1;
+					break;
 				}
 			}
 
