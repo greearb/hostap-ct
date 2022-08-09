@@ -298,6 +298,7 @@ struct hostapd_config * hostapd_config_defaults(void)
 	conf->reg_def_cli_eirp_psd = -1;
 	conf->reg_sub_cli_eirp_psd = -1;
 	conf->reg_def_cli_eirp = -1;
+	conf->mu_onoff = 15;
 #endif /* CONFIG_IEEE80211AX */
 
 	/* The third octet of the country string uses an ASCII space character
