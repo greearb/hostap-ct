@@ -14977,6 +14977,107 @@ fail:
 }
 
 
+#ifdef CONFIG_IEEE80211AX
+static int nl80211_mu_onoff(void *priv, u8 mu_onoff)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *data;
+	int ret;
+
+	if (!drv->mtk_mu_vendor_cmd_avail) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Driver does not support setting mu control");
+		return 0;
+	}
+
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR)) ||
+		nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+		nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD, MTK_NL80211_VENDOR_SUBCMD_MU_CTRL) ||
+		!(data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA)) ||
+		nla_put_u8(msg, MTK_VENDOR_ATTR_MU_CTRL_ONOFF, mu_onoff)) {
+		nlmsg_free(msg);
+		return -ENOBUFS;
+	}
+	nla_nest_end(msg, data);
+	ret = send_and_recv_cmd(drv, msg);
+	if(ret){
+		wpa_printf(MSG_ERROR, "Failed to set mu_onoff. ret=%d (%s)", ret, strerror(-ret));
+	}
+	return ret;
+}
+
+
+static int mu_dump_handler(struct nl_msg *msg, void *arg)
+{
+	u8 *mu_onoff = (u8 *) arg;
+	struct nlattr *tb[NL80211_ATTR_MAX + 1];
+	struct nlattr *tb_vendor[MTK_VENDOR_ATTR_MU_CTRL_MAX + 1];
+	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
+	struct nlattr *nl_vend, *attr;
+
+#if 0
+	static const struct nla_policy
+	mu_ctrl_policy[NUM_MTK_VENDOR_ATTRS_MU_CTRL + 1] = {
+		[MTK_VENDOR_ATTR_MU_CTRL_ONOFF] = {.type = NLA_U8 },
+		[MTK_VENDOR_ATTR_MU_CTRL_DUMP] = {.type = NLA_U8 },
+	};
+#endif
+
+	nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
+			genlmsg_attrlen(gnlh, 0), NULL);
+
+	nl_vend = tb[NL80211_ATTR_VENDOR_DATA];
+	if (!nl_vend)
+		return NL_SKIP;
+
+	nla_parse(tb_vendor, MTK_VENDOR_ATTR_MU_CTRL_MAX,
+		  nla_data(nl_vend), nla_len(nl_vend), NULL);
+
+	attr = tb_vendor[MTK_VENDOR_ATTR_MU_CTRL_DUMP];
+	if (!attr) {
+		wpa_printf(MSG_ERROR, "nl80211: cannot find MTK_VENDOR_ATTR_MU_CTRL_DUMP");
+		return NL_SKIP;
+	}
+
+	*mu_onoff = nla_get_u8(attr);
+	wpa_printf(MSG_DEBUG, "nla_get mu_onoff: %d\n", *mu_onoff);
+
+	return 0;
+}
+
+static int nl80211_mu_dump(void *priv, u8 *mu_onoff)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	int ret;
+
+	if (!drv->mtk_mu_vendor_cmd_avail) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Driver does not support setting mu control");
+		return 0;
+	}
+
+	if (!(msg = nl80211_bss_msg(bss, NLM_F_DUMP, NL80211_CMD_VENDOR)) ||
+		nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+		nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD, MTK_NL80211_VENDOR_SUBCMD_MU_CTRL)) {
+		nlmsg_free(msg);
+		return -ENOBUFS;
+	}
+
+	ret = send_and_recv_resp(drv, msg, mu_dump_handler, mu_onoff);
+
+	if(ret){
+		wpa_printf(MSG_ERROR, "Failed to get mu_onoff. ret=%d (%s)", ret, strerror(-ret));
+	}
+
+	return ret;
+}
+#endif /* CONFIG_IEEE80211AX */
+
+
 #ifdef CONFIG_DPP
 static int nl80211_dpp_listen(void *priv, bool enable)
 {
@@ -15674,6 +15775,8 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.update_connect_params = nl80211_update_connection_params,
 	.send_external_auth_status = nl80211_send_external_auth_status,
 	.set_4addr_mode = nl80211_set_4addr_mode,
+	.mu_ctrl = nl80211_mu_onoff,
+	.mu_dump = nl80211_mu_dump,
 #ifdef CONFIG_DPP
 	.dpp_listen = nl80211_dpp_listen,
 #endif /* CONFIG_DPP */
