@@ -1214,6 +1214,7 @@ struct hostapd_config {
 	int reg_def_cli_eirp;
 
 	bool require_he;
+	u8 mu_onoff;
 #endif /* CONFIG_IEEE80211AX */
 
 	/* VHT enable/disable config from CHAN_SWITCH */
