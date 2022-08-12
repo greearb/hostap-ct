@@ -40,7 +40,11 @@ static void bgscan_simple_timeout(void *eloop_ctx, void *timeout_ctx)
 	params.num_ssids = 1;
 	params.ssids[0].ssid = data->ssid->ssid;
 	params.ssids[0].ssid_len = data->ssid->ssid_len;
-	params.freqs = data->ssid->scan_freq;
+	
+	if (data->ssid->freq_list == NULL)
+			params.freqs = data->ssid->scan_freq;
+	else
+			params.freqs = data->ssid->freq_list;
 
 	/*
 	 * A more advanced bgscan module would learn about most like channels
