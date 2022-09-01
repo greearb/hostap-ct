@@ -13,6 +13,7 @@ enum mtk_nl80211_vendor_subcmds {
 	MTK_NL80211_VENDOR_SUBCMD_MU_CTRL = 0xc5,
 	MTK_NL80211_VENDOR_SUBCMD_PHY_CAPA_CTRL= 0xc6,
 	MTK_NL80211_VENDOR_SUBCMD_EDCCA_CTRL = 0xc7,
+	MTK_NL80211_VENDOR_SUBCMD_3WIRE_CTRL = 0xc8
 };
 
 enum mtk_vendor_attr_edcca_ctrl {
@@ -56,6 +57,23 @@ static struct nla_policy edcca_ctrl_policy[NUM_MTK_VENDOR_ATTRS_EDCCA_CTRL] = {
 	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC80_VAL] = { .type = NLA_U8 },
 	[MTK_VENDOR_ATTR_EDCCA_CTRL_COMPENSATE] = { .type = NLA_U8 },
 	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC160_VAL] = { .type = NLA_U8 },
+};
+#endif
+
+enum mtk_vendor_attr_3wire_ctrl {
+	MTK_VENDOR_ATTR_3WIRE_CTRL_UNSPEC,
+
+	MTK_VENDOR_ATTR_3WIRE_CTRL_MODE,
+
+	/* keep last */
+	NUM_MTK_VENDOR_ATTRS_3WIRE_CTRL,
+	MTK_VENDOR_ATTR_3WIRE_CTRL_MAX =
+		NUM_MTK_VENDOR_ATTRS_3WIRE_CTRL - 1
+};
+
+#if 0
+static struct nla_policy three_wire_ctrl_policy[NUM_MTK_VENDOR_ATTRS_3WIRE_CTRL] = {
+	[MTK_VENDOR_ATTR_3WIRE_CTRL_MODE] = {.type = NLA_U8 },
 };
 #endif
 

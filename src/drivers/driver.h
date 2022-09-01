@@ -5576,6 +5576,14 @@ struct wpa_driver_ops {
 	 */
 	 int (*mu_ctrl)(void *priv, u8 mu_onoff);
 	 int (*mu_dump)(void *priv, u8 *mu_onoff);
+
+	/**
+	 * three_wire_ctrl - set three_wire_ctrl mode
+	 * @priv: Private driver interface data
+	 * @three_wire_enable: three_wire_ctrl mode
+	 *
+	 */
+	 int (*three_wire_ctrl)(void *priv, u8 three_wire_enable);
 };
 
 /**
