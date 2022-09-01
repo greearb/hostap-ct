@@ -15788,6 +15788,38 @@ static int nl80211_get_edcca(void *priv, const u8 mode, u8 *value)
 	return ret;
 }
 
+static int nl80211_enable_three_wire(void *priv, const u8 three_wire_enable)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	/* Prepare nl80211 cmd */
+	struct nl_msg *msg;
+	struct nlattr *data;
+	int ret;
+
+	if (!drv->mtk_3wire_vendor_cmd_avail) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Driver does not support setting three wire control");
+		return 0;
+	}
+
+	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+			MTK_NL80211_VENDOR_SUBCMD_3WIRE_CTRL) ||
+	    !(data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA)) ||
+	    nla_put_u8(msg, MTK_VENDOR_ATTR_3WIRE_CTRL_MODE, three_wire_enable)) {
+		nlmsg_free(msg);
+		return -ENOBUFS;
+	}
+	nla_nest_end(msg, data);
+	ret = send_and_recv_cmd(drv, msg);
+	if (ret) {
+		wpa_printf(MSG_ERROR, "Failed to enable three wire. ret=%d (%s) ",
+			   ret, strerror(-ret));
+	}
+	return ret;
+}
 
 static struct hostapd_multi_hw_info *
 wpa_driver_get_multi_hw_info(void *priv, unsigned int *num_multi_hws)
@@ -15976,4 +16008,5 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.configure_edcca_enable = nl80211_configure_edcca_enable,
 	.configure_edcca_threshold = nl80211_configure_edcca_threshold,
 	.get_edcca = nl80211_get_edcca,
+	.three_wire_ctrl = nl80211_enable_three_wire,
 };

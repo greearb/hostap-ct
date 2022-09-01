@@ -317,6 +317,7 @@ struct hostapd_config * hostapd_config_defaults(void)
 
 	conf->edcca_enable = EDCCA_MODE_AUTO;
 	conf->edcca_compensation = EDCCA_DEFAULT_COMPENSATION;
+	conf->three_wire_enable = THREE_WIRE_MODE_DISABLE;
 
 	hostapd_set_and_check_bw320_offset(conf, 0);
 

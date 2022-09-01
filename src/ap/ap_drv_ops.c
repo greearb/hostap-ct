@@ -1463,3 +1463,14 @@ int hostapd_drv_mu_dump(struct hostapd_data *hapd, u8 *mu_onoff)
 		return 0;
 	return hapd->driver->mu_dump(hapd->drv_priv, mu_onoff);
 }
+
+int hostapd_drv_three_wire_ctrl(struct hostapd_data *hapd)
+{
+	if (!hapd->driver || !hapd->driver->three_wire_ctrl)
+		return 0;
+	if (hapd->iconf->three_wire_enable > THREE_WIRE_MODE_MAX) {
+		wpa_printf(MSG_INFO, "Invalid value for three wire enable\n");
+		return 0;
+	}
+	return hapd->driver->three_wire_ctrl(hapd->drv_priv, hapd->iconf->three_wire_enable);
+}

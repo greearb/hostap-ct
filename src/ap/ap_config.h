@@ -1282,6 +1282,19 @@ struct hostapd_config {
 	u8 edcca_enable;
 	s8 edcca_compensation;
 	int *edcca_threshold;
+	u8 three_wire_enable;
+};
+
+enum three_wire_mode {
+	THREE_WIRE_MODE_DISABLE,
+	THREE_WIRE_MODE_EXT0_ENABLE,
+	THREE_WIRE_MODE_EXT1_ENABLE,
+	THREE_WIRE_MODE_ALL_ENABLE,
+
+	/* keep last */
+	NUM_THREE_WIRE_MODE,
+	THREE_WIRE_MODE_MAX =
+		NUM_THREE_WIRE_MODE - 1
 };
 
 enum edcca_mode {
