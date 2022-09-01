@@ -5115,6 +5115,10 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 			return 1;
 		}
 		conf->edcca_compensation = (s8) val;
+	} else if (os_strcmp(buf, "three_wire_enable") == 0) {
+		u8 en = atoi(pos);
+
+		conf->three_wire_enable = en;
 	} else {
 		wpa_printf(MSG_ERROR,
 			   "Line %d: unknown configuration item '%s'",
