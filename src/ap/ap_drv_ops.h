@@ -162,6 +162,8 @@ int hostapd_drv_get_edcca(struct hostapd_data *hapd, const u8 mode, u8 *value);
 int hostapd_drv_mu_ctrl(struct hostapd_data *hapd);
 int hostapd_drv_mu_dump(struct hostapd_data *hapd, u8 *mu_onoff);
 int hostapd_drv_three_wire_ctrl(struct hostapd_data *hapd);
+int hostapd_drv_ibf_ctrl(struct hostapd_data *hapd);
+int hostapd_drv_ibf_dump(struct hostapd_data *hapd, u8 *ibf_enable);
 
 #include "drivers/driver.h"
 

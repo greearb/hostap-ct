@@ -192,6 +192,11 @@ struct hostapd_channel_data {
 	 * mu onoff=<val> (bitmap- UL MU-MIMO(bit3), DL MU-MIMO(bit2), UL OFDMA(bit1), DL OFDMA(bit0))
 	 */
 	u8 mu_onoff;
+
+	/**
+	 * ibf_enable=<val>
+	 */
+	u8 ibf_enable;
 };
 
 #define HE_MAC_CAPAB_0		0
@@ -5597,6 +5602,20 @@ struct wpa_driver_ops {
 	 *
 	 */
 	 int (*three_wire_ctrl)(void *priv, u8 three_wire_enable);
+
+	/**
+	 * ibf_ctrl - ctrl disable/enable for ibf
+	 * @priv: Private driver interface data
+	 *
+	 */
+	int (*ibf_ctrl)(void *priv, u8 ibf_enable);
+
+	/**
+	 * ibf_dump - dump ibf
+	 * @priv: Private driver interface data
+	 *
+	 */
+	int (*ibf_dump)(void *priv, u8 *ibf_enable);
 };
 
 /**

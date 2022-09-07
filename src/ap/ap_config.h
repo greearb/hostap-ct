@@ -1276,6 +1276,7 @@ struct hostapd_config {
 	s8 edcca_compensation;
 	int *edcca_threshold;
 	u8 three_wire_enable;
+	u8 ibf_enable;
 };
 
 enum three_wire_mode {
@@ -1439,6 +1440,7 @@ hostapd_set_and_check_bw320_offset(struct hostapd_config *conf,
 #endif /* CONFIG_IEEE80211BE */
 }
 
+#define IBF_DEFAULT_ENABLE 0
 
 int hostapd_mac_comp(const void *a, const void *b);
 struct hostapd_config * hostapd_config_defaults(void);
