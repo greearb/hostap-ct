@@ -5127,6 +5127,9 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		u8 en = atoi(pos);
 
 		conf->three_wire_enable = en;
+	} else if (os_strcmp(buf, "ibf_enable") == 0) { /*ibf setting is per device*/
+		int val = atoi(pos);
+		conf->ibf_enable = !!val;
 	} else {
 		wpa_printf(MSG_ERROR,
 			   "Line %d: unknown configuration item '%s'",
