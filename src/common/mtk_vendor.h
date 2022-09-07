@@ -13,7 +13,8 @@ enum mtk_nl80211_vendor_subcmds {
 	MTK_NL80211_VENDOR_SUBCMD_MU_CTRL = 0xc5,
 	MTK_NL80211_VENDOR_SUBCMD_PHY_CAPA_CTRL= 0xc6,
 	MTK_NL80211_VENDOR_SUBCMD_EDCCA_CTRL = 0xc7,
-	MTK_NL80211_VENDOR_SUBCMD_3WIRE_CTRL = 0xc8
+	MTK_NL80211_VENDOR_SUBCMD_3WIRE_CTRL = 0xc8,
+	MTK_NL80211_VENDOR_SUBCMD_IBF_CTRL = 0xc9,
 };
 
 enum mtk_vendor_attr_edcca_ctrl {
@@ -209,6 +210,40 @@ enum mtk_vendor_attr_mu_ctrl {
 	MTK_VENDOR_ATTR_MU_CTRL_MAX =
 		NUM_MTK_VENDOR_ATTRS_MU_CTRL - 1
 };
+
+enum mtk_vendor_attr_ibf_ctrl {
+	MTK_VENDOR_ATTR_IBF_CTRL_UNSPEC,
+
+	MTK_VENDOR_ATTR_IBF_CTRL_ENABLE,
+
+	/* keep last */
+	NUM_MTK_VENDOR_ATTRS_IBF_CTRL,
+	MTK_VENDOR_ATTR_IBF_CTRL_MAX =
+		NUM_MTK_VENDOR_ATTRS_IBF_CTRL - 1
+};
+
+enum mtk_vendor_attr_ibf_dump {
+	MTK_VENDOR_ATTR_IBF_DUMP_UNSPEC,
+
+	MTK_VENDOR_ATTR_IBF_DUMP_ENABLE,
+
+	/* keep last */
+	NUM_MTK_VENDOR_ATTRS_IBF_DUMP,
+	MTK_VENDOR_ATTR_IBF_DUMP_MAX =
+		NUM_MTK_VENDOR_ATTRS_IBF_DUMP - 1
+};
+
+#if 0
+static struct nla_policy
+ibf_ctrl_policy[NUM_MTK_VENDOR_ATTRS_IBF_CTRL] = {
+	[MTK_VENDOR_ATTR_IBF_CTRL_ENABLE] = { .type = NLA_U8 },
+};
+
+static struct nla_policy
+ibf_dump_policy[NUM_MTK_VENDOR_ATTRS_IBF_DUMP] = {
+	[MTK_VENDOR_ATTR_IBF_DUMP_ENABLE] = { .type = NLA_U8 },
+};
+#endif
 
 
 #define CSI_MAX_COUNT 256
