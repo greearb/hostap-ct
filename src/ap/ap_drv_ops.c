@@ -1466,3 +1466,17 @@ int hostapd_drv_three_wire_ctrl(struct hostapd_data *hapd)
 	}
 	return hapd->driver->three_wire_ctrl(hapd->drv_priv, hapd->iconf->three_wire_enable);
 }
+
+int hostapd_drv_ibf_ctrl(struct hostapd_data *hapd)
+{
+	if (!hapd->driver || !hapd->driver->ibf_ctrl)
+		return 0;
+	return hapd->driver->ibf_ctrl(hapd->drv_priv, hapd->iconf->ibf_enable);
+}
+
+int hostapd_drv_ibf_dump(struct hostapd_data *hapd, u8 *ibf_enable)
+{
+	if (!hapd->driver || !hapd->driver->ibf_dump)
+		return 0;
+	return hapd->driver->ibf_dump(hapd->drv_priv, ibf_enable);
+}
