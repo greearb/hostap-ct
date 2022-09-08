@@ -738,7 +738,10 @@
 #define WLAN_RRM_CAPS_BEACON_REPORT_TABLE BIT(6)
 /* byte 2 (out of 5) */
 #define WLAN_RRM_CAPS_LCI_MEASUREMENT BIT(4)
+/* byte 3 (out of 5) */
+#define WLAN_RRM_CAPS_CHANNEL_REPORT_CAPA BIT(0)
 /* byte 5 (out of 5) */
+#define WLAN_RRM_CAPS_BSS_ACC BIT(0)
 #define WLAN_RRM_CAPS_FTM_RANGE_REPORT BIT(2)
 
 /*
