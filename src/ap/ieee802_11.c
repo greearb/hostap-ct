@@ -5543,7 +5543,7 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 #endif /* CONFIG_IEEE80211AC */
 
 #ifdef CONFIG_IEEE80211AX
-	if (hostapd_is_he_enabled(hapd)) {
+	if (hostapd_is_he_enabled(hapd) && sta && sta->flags & WLAN_STA_HE) {
 		p = hostapd_eid_he_capab(hapd, p, IEEE80211_MODE_AP);
 		p = hostapd_eid_he_operation(hapd, p);
 		p = hostapd_eid_cca(hapd, p);
