@@ -2730,6 +2730,7 @@ enum wpa_drv_update_connect_params_mask {
  *	the real status code for failures. Used only for the request interface
  *	from user space to the driver.
  * @pmkid: Generated PMKID as part of external auth exchange (e.g., SAE).
+ * @mld_addr: AP's MLD address or %NULL if MLO is not used
  */
 struct external_auth {
 	enum {
@@ -2742,6 +2743,7 @@ struct external_auth {
 	unsigned int key_mgmt_suite;
 	u16 status;
 	const u8 *pmkid;
+	const u8 *mld_addr;
 };
 
 #define WPAS_MAX_PASN_PEERS 10

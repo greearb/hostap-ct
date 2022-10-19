@@ -3116,6 +3116,7 @@ static void nl80211_external_auth(struct wpa_driver_nl80211_data *drv,
 {
 	union wpa_event_data event;
 	enum nl80211_external_auth_action act;
+	char mld_addr[50];
 
 	if (!tb[NL80211_ATTR_AKM_SUITES] ||
 	    !tb[NL80211_ATTR_EXTERNAL_AUTH_ACTION] ||
@@ -3146,10 +3147,21 @@ static void nl80211_external_auth(struct wpa_driver_nl80211_data *drv,
 
 	event.external_auth.bssid = nla_data(tb[NL80211_ATTR_BSSID]);
 
+	mld_addr[0] = '\0';
+	if (tb[NL80211_ATTR_MLD_ADDR]) {
+		event.external_auth.mld_addr =
+			nla_data(tb[NL80211_ATTR_MLD_ADDR]);
+		os_snprintf(mld_addr, sizeof(mld_addr), ", MLD ADDR: " MACSTR,
+			    MAC2STR(event.external_auth.mld_addr));
+	}
+
 	wpa_printf(MSG_DEBUG,
-		   "nl80211: External auth action: %u, AKM: 0x%x",
+		   "nl80211: External auth action: %u, AKM: 0x%x, SSID: %s, BSSID: " MACSTR "%s",
 		   event.external_auth.action,
-		   event.external_auth.key_mgmt_suite);
+		   event.external_auth.key_mgmt_suite,
+		   wpa_ssid_txt(event.external_auth.ssid,
+				event.external_auth.ssid_len),
+		   MAC2STR(event.external_auth.bssid), mld_addr);
 	wpa_supplicant_event(drv->ctx, EVENT_EXTERNAL_AUTH, &event);
 }
 
