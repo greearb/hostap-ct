@@ -56,6 +56,7 @@
 #define DEFAULT_SCAN_RES_VALID_FOR_CONNECT 5
 #define DEFAULT_MLD_CONNECT_BAND_PREF MLD_CONNECT_BAND_PREF_AUTO
 #define DEFAULT_IGNORE_AUTH_RESP 0
+#define DEFAULT_IGNORE_RRM_BEACON_REQ 0
 
 #include "config_ssid.h"
 #include "wps/wps.h"
@@ -1105,6 +1106,10 @@ struct wpa_config {
 	 * scan results.
 	 */
 	int accept_external_scan_results;
+
+	/* Shall we ignore RRM requests for MEASURE_TYPE_BEACON (which will cause a scann)?
+	 */
+	int ignore_rrm_beacon_req;
 
 	/* set to zero for default values, otherwise milisecond timeout to use.
 	 * This overrides some hard-coded timeouts (often 10 seconds) for completing
