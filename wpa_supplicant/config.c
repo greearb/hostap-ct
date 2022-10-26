@@ -4595,6 +4595,7 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 #ifndef CONFIG_NO_ROAMING
 	config->disable_ess_roaming = DEFAULT_DISABLE_ESS_ROAMING;
 #endif
+	config->ignore_rrm_beacon_req = DEFAULT_IGNORE_RRM_BEACON_REQ;
 	config->concurrent_assoc_ok = DEFAULT_CONCURRENT_ASSOC_OK;
 	config->accept_external_scan_results = DEFAULT_ACCEPT_EXTERNAL_SCAN_RESULTS;
 	config->eapol_completed_timeout = 0; /* default: use values baked into the code. */
@@ -5459,6 +5460,7 @@ static const struct global_parse_data global_fields[] = {
 #ifndef CONFIG_NO_ROAMING
 	{ INT(disable_ess_roaming), 0 },
 #endif
+	{ INT(ignore_rrm_beacon_req), 0 },
 	{ INT(concurrent_assoc_ok), 0 },
 	{ INT(eapol_completed_timeout), 0 },
 	{ INT(first_eapol_timeout), 0 },

@@ -16,6 +16,7 @@
 #include "bss.h"
 #include "scan.h"
 #include "p2p_supplicant.h"
+#include "config.h"
 
 
 static void wpas_rrm_neighbor_rep_timeout_handler(void *data, void *user_ctx)
@@ -1294,6 +1295,11 @@ wpas_rrm_handle_msr_req_element(
 	case MEASURE_TYPE_LCI:
 		return wpas_rrm_build_lci_report(wpa_s, req, buf);
 	case MEASURE_TYPE_BEACON:
+		if (wpa_s->conf->ignore_rrm_beacon_req) {
+			wpa_printf(MSG_DEBUG,
+				   "RRM: supplicant configured to ignore RRM Beacon measurement, so reject request.");
+			goto reject;
+		}
 		if (duration_mandatory &&
 		    !(wpa_s->drv_rrm_flags &
 		      WPA_DRIVER_FLAGS_SUPPORT_SET_SCAN_DWELL)) {
