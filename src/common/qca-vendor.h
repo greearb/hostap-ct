@@ -888,6 +888,12 @@ enum qca_radiotap_vendor_ids {
  *
  *	The attributes used with this command are defined in enum
  *	qca_wlan_vendor_attr_get_monitor_mode.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_ROAM_STATS: This vendor command is used to
+ *	get roam information from the driver to user space. It provides the
+ *	latest several instances of roam information cached in the driver.
+ *	The command is only used for STA mode. The attributes used with this
+ *	command are defined in enum qca_wlan_vendor_attr_roam_cached_stats.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1097,6 +1103,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_AFC_RESPONSE = 223,
 	QCA_NL80211_VENDOR_SUBCMD_DOZED_AP = 224,
 	QCA_NL80211_VENDOR_SUBCMD_GET_MONITOR_MODE = 225,
+	QCA_NL80211_VENDOR_SUBCMD_ROAM_STATS = 226,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -12409,6 +12416,394 @@ enum qca_wlan_vendor_attr_mcc_quota {
 	QCA_WLAN_VENDOR_ATTR_MCC_QUOTA_LAST,
 	QCA_WLAN_VENDOR_ATTR_MCC_QUOTA_MAX =
 	QCA_WLAN_VENDOR_ATTR_MCC_QUOTA_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_roam_stats_invoke_reason - Roam invoke reason. These values
+ * are used by the attribute
+ * %QCA_WLAN_VENDOR_ATTR_ROAM_STATS_USER_TRIGGER_INVOKE_REASON.
+ *
+ * @QCA_WLAN_ROAM_STATS_INVOKE_REASON_UNDEFINED: Default value when target
+ *  invoke roam.
+ * @QCA_WLAN_ROAM_STATS_INVOKE_REASON_NUD_FAILURE: Neighbor unreachable
+ *  detection failed when the roam trigger.
+ * @QCA_WLAN_ROAM_STATS_INVOKE_REASON_USER_SPACE: Invoke from user space.
+ */
+
+enum qca_wlan_roam_stats_invoke_reason {
+	QCA_WLAN_ROAM_STATS_INVOKE_REASON_UNDEFINED = 0,
+	QCA_WLAN_ROAM_STATS_INVOKE_REASON_NUD_FAILURE = 1,
+	QCA_WLAN_ROAM_STATS_INVOKE_REASON_USER_SPACE = 2,
+};
+
+/**
+ * enum qca_wlan_roam_stats_tx_failures_reason - Roam TX failures reason. These
+ * values are used by the attribute
+ * %QCA_WLAN_VENDOR_ATTR_ROAM_STATS_TX_FAILURES_REASON.
+ *
+ * @QCA_WLAN_ROAM_STATS_KICKOUT_REASON_UNSPECIFIED: Default value when
+ *  roam by kickout.
+ * @QCA_WLAN_ROAM_STATS_KICKOUT_REASON_XRETRY: Excessive retry when roam
+ *  trigger by kickout.
+ * @QCA_WLAN_ROAM_STATS_KICKOUT_REASON_INACTIVITY: Station inactivity when
+ *  roam trigger by kickout.
+ * @QCA_WLAN_ROAM_STATS_KICKOUT_REASON_IBSS_DISCONNECT: IBSS disconnect when
+ *  roam trigger by kickout.
+ * @QCA_WLAN_ROAM_STATS_KICKOUT_REASON_TDLS_DISCONNECT: TDLS peer has
+ *  disappeared, and all TX is failing when roam trigger by kickout.
+ * @QCA_WLAN_ROAM_STATS_KICKOUT_REASON_SA_QUERY_TIMEOUT: SA query process
+ *   timeout when roam trigger by kickout.
+ * @QCA_WLAN_ROAM_STATS_KICKOUT_REASON_ROAMING_EVENT: Directly connected
+ *  peer has roamed to a repeater.
+ */
+enum qca_wlan_roam_stats_tx_failures_reason {
+	QCA_WLAN_ROAM_STATS_KICKOUT_REASON_UNSPECIFIED = 0,
+	QCA_WLAN_ROAM_STATS_KICKOUT_REASON_XRETRY = 1,
+	QCA_WLAN_ROAM_STATS_KICKOUT_REASON_INACTIVITY = 2,
+	QCA_WLAN_ROAM_STATS_KICKOUT_REASON_IBSS_DISCONNECT = 3,
+	QCA_WLAN_ROAM_STATS_KICKOUT_REASON_TDLS_DISCONNECT = 4,
+	QCA_WLAN_ROAM_STATS_KICKOUT_REASON_SA_QUERY_TIMEOUT = 5,
+	QCA_WLAN_ROAM_STATS_KICKOUT_REASON_ROAMING_EVENT = 6,
+};
+
+/**
+ * enum qca_wlan_roam_stats_abort_reason - Roam abort reason. These values
+ * are used by the attribute %QCA_WLAN_VENDOR_ATTR_ROAM_STATS_ABORT_REASON.
+ *
+ * @QCA_WLAN_ROAM_STATS_ABORT_UNSPECIFIED: Target did not specify the
+ *  detailed reason for roam scan being aborted.
+ * @QCA_WLAN_ROAM_STATS_ABORT_LOWRSSI_DATA_RSSI_HIGH: Roam scan is not
+ *  started due to high data RSSI during LOW-RSSI roaming.
+ * @QCA_WLAN_ROAM_STATS_ABORT_LOWRSSI_LINK_SPEED_GOOD: Roam scan is not
+ *  started due to good link speed during LOW-RSSI roaming.
+ * @QCA_WLAN_ROAM_STATS_ABORT_BG_DATA_RSSI_HIGH: Roam scan is not started
+ *  due to high data RSSI during background roaming.
+ * @QCA_WLAN_ROAM_STATS_ABORT_BG_RSSI_ABOVE_THRESHOLD: Roam scan is not
+ *  started due to high beacon RSSI during background roaming
+ */
+enum qca_wlan_roam_stats_abort_reason {
+	QCA_WLAN_ROAM_STATS_ABORT_UNSPECIFIED = 0,
+	QCA_WLAN_ROAM_STATS_ABORT_LOWRSSI_DATA_RSSI_HIGH = 1,
+	QCA_WLAN_ROAM_STATS_ABORT_LOWRSSI_LINK_SPEED_GOOD = 2,
+	QCA_WLAN_ROAM_STATS_ABORT_BG_DATA_RSSI_HIGH = 3,
+	QCA_WLAN_ROAM_STATS_ABORT_BG_RSSI_ABOVE_THRESHOLD = 4,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_roam_stats_scan_chan_info - Attributes used inside
+ * the %QCA_WLAN_VENDOR_ATTR_ROAM_STATS_SCAN_CHAN_INFO nested attribute.
+ */
+enum qca_wlan_vendor_attr_roam_stats_scan_chan_info {
+	/* 32-bit unsigned value to indicate center frequency of the primary
+	 * channel in MHz for each roam scan channel.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_SCAN_CHANNEL_FREQ = 1,
+	/* 8-bit unsigned value to indicate channel scan type for each
+	 * roam scan channel. 0-passive, 1-active.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_SCAN_DWELL_TYPE = 2,
+	/* 32-bit unsigned value to indicate maximum scan time in milliseconds
+	 * for each roam scan channel.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_MAX_DWELL_TIME = 3,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_SCAN_INFO_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_SCAN_INFO_FRAME_MAX =
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_SCAN_INFO_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_roam_stats_frame_subtype - Roam frame subtypes. These values
+ * are used by the attribute %QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_SUBTYPE.
+ *
+ * @QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_PREAUTH: Pre-authentication frame
+ * @QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_REASSOC: Reassociation frame
+ * @QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_EAPOL_M1: EAPOL-Key M1 frame
+ * @QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_EAPOL_M2: EAPOL-Key M2 frame
+ * @QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_EAPOL_M3: EAPOL-Key M3 frame
+ * @QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_EAPOL_M4: EAPOL-Key M4 frame
+ * @QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_EAPOL_GTK_M1: EAPOL-Key GTK M1 frame
+ * @QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_EAPOL_GTK_M2: EAPOL-Key GTK M2 frame
+ */
+enum qca_wlan_roam_stats_frame_subtype {
+	QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_PREAUTH = 1,
+	QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_REASSOC = 2,
+	QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_EAPOL_M1 = 3,
+	QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_EAPOL_M2 = 4,
+	QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_EAPOL_M3 = 5,
+	QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_EAPOL_M4 = 6,
+	QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_EAPOL_GTK_M1 = 7,
+	QCA_WLAN_ROAM_STATS_FRAME_SUBTYPE_EAPOL_GTK_M2 = 8,
+};
+
+/**
+ * enum roam_frame_status - Specifies the valid values the vendor roam frame
+ * attribute QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_STATUS can take.
+ *
+ * @QCA_WLAN_ROAM_FRAME_STATUS_SUCCESS: It indicates the roam frame was
+ *  sent or received successfully.
+ * @QCA_WLAN_ROAM_FRAME_STATUS_FAIL: It indicates the roam frame sending or
+ *  receiving failed.
+ */
+enum qca_wlan_roam_stats_frame_status {
+	QCA_WLAN_ROAM_STATS_FRAME_STATUS_SUCCESS = 0,
+	QCA_WLAN_ROAM_STATS_FRAME_STATUS_FAIL = 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_roam_stats_frame_info - Attributes used within the
+ * %QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_INFO nested attribute.
+ */
+enum qca_wlan_vendor_attr_roam_stats_frame_info {
+	/* 8-bit unsigned value to indicate the frame subtype during
+	 * roaming, one of the values in qca_wlan_roam_stats_frame_subtype.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_SUBTYPE = 1,
+	/* 8-bit unsigned value to indicate the frame is successful or failed
+	 * during roaming, one of the values in
+	 * qca_wlan_roam_stats_frame_status.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_STATUS = 2,
+	/* 64-bit unsigned value to indicate the timestamp for frame of
+	 * preauthentication/reassociation/EAPOL-M1/EAPOL-M2/EAPOL-M3/EAPOL-M4
+	 * when sent or received during roaming, timestamp in milliseconds
+	 * from system boot.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_TIMESTAMP = 3,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_INFO_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_INFO_MAX =
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_INFO_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_roam_stats_info - Used by the attribute
+ * QCA_WLAN_VENDOR_ATTR_ROAM_STATS_INFO.
+ */
+enum qca_wlan_vendor_attr_roam_stats_info {
+	/* 64-bit unsigned value to indicate the timestamp when roam was
+	 * triggered by the firmware, timestamp in milliseconds from system
+	 * boot.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_ROAM_TRIGGER_TIMESTAMP = 1,
+	/* 32-bit unsigned value to indicate the roam trigger reason for the
+	 * last roaming attempted by the firmware. This can be queried either
+	 * in a connected state or disconnected state. The values of this
+	 * attribute represent the roam trigger reason codes, which
+	 * are defined in enum qca_roam_reason.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_TRIGGER_REASON = 2,
+	/* 8-bit unsigned value to indicate percentage of packets for which
+	 * the RX rate is lower than the RX rate threshold in total RX packets,
+	 * used for roaming trigger by per.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_PER_RXRATE_THRESHOLD_PERCENT = 3,
+	/* 8-bit unsigned value to indicate percentage of packets for which
+	 * the TX rate is lower than TX rate threshold in total TX packets,
+	 * used for roaming trigger by per.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_PER_TXRATE_THRESHOLD_PERCENT = 4,
+	/* 32-bit unsigned value to indicate final beacon miss count for
+	 * trigger reason of beacon miss.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FINAL_BMISS_CNT = 5,
+	/* 32-bit unsigned value to indicate consecutive beacon miss count
+	 * for trigger reason of beacon miss.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_CONSECUTIVE_BMISS_CNT = 6,
+	/* 8-bit unsigned value to indicate QOS-NULL TX status for trigger
+	 * reason of beacon miss, 0 - success, 1 - fail.
+	 * If QOS-NULL TX status is successful, beacon miss final count and
+	 * consecutive beacon miss count will be reset to zero, and roam will
+	 * not be triggered. If QOS-NULL TX status is failed, beacon miss final
+	 * count and consecutive beacon miss count continue to calculate until
+	 * roaming trigger by beacon miss.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BMISS_QOS_NULL_SUCCESS = 7,
+	/* 8-bit unsigned value to indicate connected AP RSSI in dBm
+	 * for trigger reason of poor RSSI.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_POOR_RSSI_CURRENT_RSSI = 8,
+	/* 8-bit unsigned value to indicate RSSI threshold value in dBm
+	 * for trigger reason of poor RSSI.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_POOR_RSSI_ROAM_RSSI_THRESHOLD = 9,
+	/* 8-bit unsigned value to indicate RX link speed status
+	 * for trigger reason of poor RSSI, 0 - good link speed,
+	 * 1 - bad link speed.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_POOR_RSSI_RX_LINKSPEED_STATUS = 10,
+	/* 8-bit unsigned value to indicate connected AP RSSI in dBm
+	 * for trigger reason of better RSSI.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BETTER_RSSI_CURRENT_RSSI = 11,
+	/* 8-bit unsigned value to indicate RSSI threshold value in dBm
+	 * for trigger reason of better RSSI.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BETTER_RSSI_HIGH_RSSI_THRESHOLD = 12,
+	/* 32-bit unsigned value to indicate RX throughput in bytes per second
+	 * for trigger reason of congestion.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_CONGESTION_RX_TPUT = 13,
+	/* 32-bit unsigned value to indicate TX throughput in bytes per second
+	 * for trigger reason of congestion.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_CONGESTION_TX_TPUT = 14,
+	/* 8-bit unsigned value to indicate roamable AP count
+	 * for trigger reason of congestion.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_CONGESTION_ROAMABLE_CNT = 15,
+	/* 8-bit unsigned value to indicate invoke reason, one of the values
+	 * defined in qca_wlan_roam_stats_invoke_reason.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_USER_TRIGGER_INVOKE_REASON = 16,
+	/* 8-bit unsigned value to indicate request mode for trigger reason
+	 * of BTM, values are defined in IEEE Std 802.11-2020, 9.6.13.9.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BTM_REQUEST_MODE = 17,
+	/* 32-bit unsigned value to indicate disassociate time in milliseconds
+	 * for trigger reason of BTM.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BTM_DISASSOC_IMMINENT_TIME = 18,
+	/* 32-bit unsigned value to indicate preferred candidate list valid
+	 * interval in milliseconds for trigger reason of BTM.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BTM_VALID_INTERNAL = 19,
+	/* 8-bit unsigned value to indicate the number of preferred
+	 * candidates for trigger reason of BTM.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BTM_CANDIDATE_LIST_CNT = 20,
+	/* 8-bit unsigned value to indicate response status for trigger
+	 * reason of BTM, values are defined in IEEE Std 802.11-2020,
+	 * Table 9-428 (BTM status code definitions).
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BTM_RESPONSE_STATUS_CODE = 21,
+	/* 32-bit unsigned value to indicate BSS termination timeout value
+	 * in milliseconds for trigger reason of BTM.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BTM_BSS_TERMINATION_TIMEOUT = 22,
+	/* 32-bit unsigned value to indicate MBO associate retry timeout
+	 * value in milliseconds for trigger reason of BTM.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BTM_MBO_ASSOC_RETRY_TIMEOUT = 23,
+	/* 8-bit unsigned value to indicate dialog token number
+	 * for trigger reason of BTM.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BTM_REQ_DIALOG_TOKEN = 24,
+	/* 8-bit unsigned value to indicate percentage of connected AP
+	 * channel congestion utilization for trigger reason of BSS load.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BSS_CU_LOAD = 25,
+	/* 8-bit unsigned value to indicate disconnection type
+	 * for trigger reason of disconnection. 1 - Deauthentication,
+	 * 2 - Disassociation.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_DISCONNECTION_TYPE = 26,
+	/* 16-bit unsigned value to indicate deauthentication or disassociation
+	 * reason for trigger reason of disconnection, values are defined
+	 * in IEEE Std 802.11-2020, Table 9-49 (Reason codes).
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_DISCONNECTION_REASON = 27,
+	/* 32-bit unsigned value to indicate milliseconds of roam scan
+	 * periodicity when needing to roam to find a better AP for trigger
+	 * reason of periodic timer.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_PERIODIC_TIMER_MS = 28,
+	/* 8-bit unsigned value to indicate connected AP RSSI in dBm for
+	 * trigger reason of background scan.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BACKGROUND_SCAN_CURRENT_RSSI = 29,
+	/* 8-bit unsigned value to indicate data RSSI in dBm for trigger reason
+	 * of background scan.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BACKGROUND_SCAN_DATA_RSSI = 30,
+	/* 8-bit unsigned value to indicate data RSSI threshold in dBm
+	 * for trigger reason of background scan.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BACKGROUND_SCAN_DATA_RSSI_THRESH = 31,
+	/* 32-bit unsigned value to indicate consecutive TX failure threshold
+	 * for trigger reason of TX failures.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_TX_FAILURES_THRESHOLD = 32,
+	/* 8-bit unsigned value to indicate TX failure reason for trigger
+	 * reason of TX failures, one of the values defined in
+	 *  qca_wlan_roam_stats_tx_failures_reason.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_TX_FAILURES_REASON = 33,
+	/* 8-bit unsigned value to indicate detail abort reason. One of the
+	 * values in enum qca_wlan_roam_stats_abort_reason.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_ABORT_REASON = 34,
+	/* 8-bit unsigned value to indicate data RSSI in dBm when aborting the
+	 * roam scan.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_DATA_RSSI = 35,
+	/* 8-bit unsigned value to indicate data RSSI threshold in dBm when
+	 * aborting the roam scan.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_DATA_RSSI_THRESHOLD = 36,
+	/* 8-bit unsigned value to indicate data RSSI threshold in RX link
+	 * speed status when aborting the roam scan.
+	 * 0 - good link speed, 1 - bad link speed
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_DATA_RX_LINKSPEED_STATUS = 37,
+	/* 8-bit unsigned value to indicate roaming scan type.
+	 * 0 - Partial roam scan, 1 - Full roam scan
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_SCAN_TYPE = 38,
+	/* 8-bit unsigned value to indicate roaming result, used in STA mode
+	 * only.
+	 * 0-Roaming is successful, 1-Roaming is failed
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_ROAM_STATUS = 39,
+	/* 8-bit unsigned value to indicate the roam fail reason for the
+	 * last failed roaming attempt by the firmware. Different roam failure
+	 * reason codes are specified in enum qca_vendor_roam_fail_reasons.
+	 * This can be queried either in connected state or disconnected state.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FAIL_REASON = 40,
+	/* Nested attribute. Indicate roam scan info for each channel, the
+	 * attributes defined in enum
+	 * qca_wlan_vendor_attr_roam_stats_scan_chan_info are used inside
+	 * this attribute.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_SCAN_CHAN_INFO = 41,
+	/* 32-bit unsigned value to indicate total scan time during roam scan
+	 * all channels, time in milliseconds.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_TOTAL_SCAN_TIME = 42,
+	/* Nested attribute. This attribute shall be used by the driver to
+	 * send roam information of each subtype. The attributes defined in
+	 * enum qca_wlan_vendor_attr_roam_stats_frame_info are used inside
+	 * this attribute.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_INFO = 43,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_MAX =
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_roam_cached_stats - Vendor subcmd attributes to
+ * report cached roam info from the driver to user space, enum values are used
+ * for netlink attributes sent with the
+ * %QCA_NL80211_VENDOR_SUBCMD_ROAM_STATS sub command.
+ */
+enum qca_wlan_vendor_attr_roam_cached_stats {
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_INVALID = 0,
+	/* Nested attribute, this attribute contains nested array roam info
+	 * statistics defined in enum qca_wlan_vendor_attr_roam_stats_info.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_INFO = 1,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_ROAM_CACHED_STATS_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_ROAM_CACHED_STATS_MAX =
+	QCA_WLAN_VENDOR_ATTR_ROAM_CACHED_STATS_AFTER_LAST - 1,
 };
 
 /**
