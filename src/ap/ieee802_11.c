@@ -7298,7 +7298,8 @@ hostapd_eid_rnr_iface_len(struct hostapd_data *hapd,
 	ap_mld = !!hapd->conf->mld_ap;
 #endif /* CONFIG_IEEE80211BE */
 
-	while (start < hapd->iface->num_bss) {
+	/* active_local_bss cannot be used in conjunction with peer bss */
+	while (start < hapd->iface->num_bss && !hapd->conf->active_local_bss) {
 		if (!len ||
 		    len + RNR_TBTT_HEADER_LEN + RNR_TBTT_INFO_LEN > 255 ||
 		    tbtt_count >= RNR_TBTT_INFO_COUNT_MAX) {
@@ -7340,6 +7341,42 @@ hostapd_eid_rnr_iface_len(struct hostapd_data *hapd,
 		start = i;
 	}
 
+	/* And specifically configured peers not in this hostapd instance */
+	start = 0;
+	while (start < MAX_LOCAL_BSS_INFO) {
+
+		struct hostapd_local_bss_info *local_bss = &hapd->conf->local_bss_info[start];
+
+		if (is_zero_ether_addr(local_bss->own_addr))
+			continue;
+
+		if (!len ||
+		    len + RNR_TBTT_HEADER_LEN + RNR_TBTT_INFO_LEN > 255) {
+			len = RNR_HEADER_LEN;
+			total_len += RNR_HEADER_LEN;
+		}
+
+		len += RNR_TBTT_HEADER_LEN;
+		total_len += RNR_TBTT_HEADER_LEN;
+
+		for (i = start; i < MAX_LOCAL_BSS_INFO; i++) {
+
+			local_bss = &hapd->conf->local_bss_info[i];
+
+			if (is_zero_ether_addr(local_bss->own_addr))
+				continue;
+
+			if (len + RNR_TBTT_INFO_LEN > 255 ||
+			    tbtt_count >= RNR_TBTT_INFO_COUNT_MAX)
+				break;
+
+			len += RNR_TBTT_INFO_LEN;
+			total_len += RNR_TBTT_INFO_LEN;
+			tbtt_count++;
+		}
+		start = i;
+	}
+
 	if (!tbtt_count)
 		total_len = 0;
 	else
@@ -7376,7 +7413,7 @@ static enum colocation_mode get_colocation_mode(struct hostapd_data *hapd)
 			continue;
 
 		is_colocated_6ghz = is_6ghz_op_class(iface->conf->op_class);
-		if (!is_6ghz && is_colocated_6ghz)
+		if (!is_6ghz && (is_colocated_6ghz || hapd->conf->active_local_bss))
 			return COLOCATED_LOWER_BAND;
 		if (is_6ghz && !is_colocated_6ghz)
 			return COLOCATED_6GHZ;
@@ -7384,6 +7421,8 @@ static enum colocation_mode get_colocation_mode(struct hostapd_data *hapd)
 
 	if (is_6ghz)
 		return STANDALONE_6GHZ;
+	else if (hapd->conf->active_local_bss)
+		return COLOCATED_LOWER_BAND;
 
 	return NO_COLOCATED_6GHZ;
 }
@@ -7395,6 +7434,11 @@ static size_t hostapd_eid_rnr_multi_iface_len(struct hostapd_data *hapd,
 	struct hostapd_iface *iface;
 	size_t len = 0;
 	size_t i;
+
+	/* Local configured instances */
+	if (hapd->conf && hapd->conf->active_local_bss)
+		len += hostapd_eid_rnr_iface_len(hapd->iface->bss[0], hapd,
+						 current_len, NULL);
 
 	if (!hapd->iface || !hapd->iface->interfaces)
 		return 0;
@@ -7443,7 +7487,7 @@ size_t hostapd_eid_rnr_len(struct hostapd_data *hapd, u32 type)
 				hostapd_eid_rnr_multi_iface_len(hapd,
 								&current_len);
 
-		if (hapd->conf->rnr && hapd->iface->num_bss > 1 &&
+		if (((hapd->conf->rnr && hapd->iface->num_bss > 1) || hapd->conf->active_local_bss > 0) &&
 		    !hapd->iconf->mbssid)
 			total_len += hostapd_eid_rnr_iface_len(hapd, hapd,
 							       &current_len,
@@ -7616,17 +7660,23 @@ static u8 * hostapd_eid_rnr_iface(struct hostapd_data *hapd,
 	ap_mld = !!hapd->conf->mld_ap;
 #endif /* CONFIG_IEEE80211BE */
 
-	if (!(iface->drv_flags & WPA_DRIVER_FLAGS_AP_CSA) || !iface->freq)
+	if (!(iface->drv_flags & WPA_DRIVER_FLAGS_AP_CSA) || !iface->freq) {
+		wpa_printf(MSG_DEBUG, "hostapd_eid_rnr_iface, skipping: no CSA or not freq: %d",
+			iface->freq);
 		return eid;
+	}
 
 	if (ieee80211_freq_to_channel_ext(iface->freq,
 					  hapd->iconf->secondary_channel,
 					  hostapd_get_oper_chwidth(hapd->iconf),
 					  &op_class, &channel) ==
-	    NUM_HOSTAPD_MODES)
+	    NUM_HOSTAPD_MODES) {
+		wpa_printf(MSG_DEBUG, "hostapd_eid_rnr_iface, skipping: freq-to-channel-ext == NUM_HOSTAPD MODES");
 		return eid;
+	}
 
-	while (start < iface->num_bss) {
+	/* active_local_bss cannot be used in conjunction with peer bss */
+	while (start < iface->num_bss && !hapd->conf->active_local_bss) {
 		if (!len ||
 		    len + RNR_TBTT_HEADER_LEN + RNR_TBTT_INFO_LEN > 255 ||
 		    tbtt_count >= RNR_TBTT_INFO_COUNT_MAX) {
@@ -7655,6 +7705,74 @@ static u8 * hostapd_eid_rnr_iface(struct hostapd_data *hapd,
 		*size_offset = (eid - size_offset) - 1;
 	}
 
+	start = 0;
+	while (start < MAX_LOCAL_BSS_INFO) {
+		struct hostapd_local_bss_info *local_bss = &hapd->conf->local_bss_info[start];
+		u8 bss_param;
+
+		if (is_zero_ether_addr(local_bss->own_addr))
+			continue;
+
+		/* wpa_printf(MSG_DEBUG, "hostapd_eid_rnr_iface, found local-bss[%i]: " MACSTR,
+		              (int)(start), MAC2STR(local_bss->own_addr)); */
+
+		if (!len ||
+		    len + RNR_TBTT_HEADER_LEN + RNR_TBTT_INFO_LEN > 255) {
+			eid_start = eid;
+			*eid++ = WLAN_EID_REDUCED_NEIGHBOR_REPORT;
+			size_offset = eid++;
+			len = RNR_HEADER_LEN;
+			tbtt_count = 0;
+		}
+
+		tbtt_count_pos = eid++;
+		*eid++ = RNR_TBTT_INFO_LEN;
+		*eid++ = local_bss->op_class;
+		*eid++ = local_bss->channel;
+		len += RNR_TBTT_HEADER_LEN;
+
+		for (i = start; i < MAX_LOCAL_BSS_INFO; i++) {
+			local_bss = &hapd->conf->local_bss_info[i];
+
+			if (is_zero_ether_addr(local_bss->own_addr))
+				continue;
+
+			/* wpa_printf(MSG_DEBUG, "hostapd_eid_rnr_iface, adding local-bss[%i]: " MACSTR,
+			              (int)(i), MAC2STR(local_bss->own_addr)); */
+
+			bss_param = 0;
+
+			if (len + RNR_TBTT_INFO_LEN > 255 ||
+			    tbtt_count >= RNR_TBTT_INFO_COUNT_MAX)
+				break;
+
+			*eid++ = RNR_NEIGHBOR_AP_OFFSET_UNKNOWN;
+			os_memcpy(eid, local_bss->own_addr, ETH_ALEN);
+			eid += ETH_ALEN;
+			os_memcpy(eid, &local_bss->short_ssid, 4);
+			eid += 4;
+			if (local_bss->short_ssid ==
+			    reporting_hapd->conf->ssid.short_ssid)
+				bss_param |= RNR_BSS_PARAM_SAME_SSID;
+
+			if (is_6ghz_op_class(local_bss->op_class) &&
+			    local_bss->unsol_bcast_probe_resp_interval)
+				bss_param |=
+					RNR_BSS_PARAM_UNSOLIC_PROBE_RESP_ACTIVE;
+
+			bss_param |= RNR_BSS_PARAM_CO_LOCATED;
+
+			*eid++ = bss_param;
+			*eid++ = RNR_20_MHZ_PSD_MAX_TXPOWER - 1;
+			len += RNR_TBTT_INFO_LEN;
+			tbtt_count += 1;
+		}
+
+		start = i;
+		*tbtt_count_pos = RNR_TBTT_INFO_COUNT(tbtt_count - 1);
+		*size_offset = (eid - size_offset) - 1;
+	}
+
 	if (tbtt_count == 0)
 		return eid_start;
 
@@ -7668,6 +7786,14 @@ static u8 * hostapd_eid_rnr_multi_iface(struct hostapd_data *hapd, u8 *eid,
 {
 	struct hostapd_iface *iface;
 	size_t i;
+
+	/* wpa_printf(MSG_DEBUG, "hostapd_eid_rnr_colocation, active_local_bss: %d",
+	              hapd->conf->active_local_bss); */
+
+	/* Local configured instances */
+	if (hapd->conf->active_local_bss)
+		eid = hostapd_eid_rnr_iface(hapd->iface->bss[0], hapd, eid,
+					    current_len, NULL);
 
 	if (!hapd->iface || !hapd->iface->interfaces)
 		return eid;
@@ -7686,6 +7812,7 @@ static u8 * hostapd_eid_rnr_multi_iface(struct hostapd_data *hapd, u8 *eid,
 		    !(is_6ghz_op_class(iface->conf->op_class) || ap_mld))
 			continue;
 
+		wpa_printf(MSG_DEBUG, "hostapd_eid_rnr_colocation, non-active-local-bss");
 		eid = hostapd_eid_rnr_iface(iface->bss[0], hapd, eid,
 					    current_len, NULL);
 	}
@@ -7700,6 +7827,7 @@ u8 * hostapd_eid_rnr(struct hostapd_data *hapd, u8 *eid, u32 type)
 	size_t current_len = 0;
 	enum colocation_mode mode = get_colocation_mode(hapd);
 	bool ap_mld = false;
+	bool did_colocation_lbi = false;
 
 #ifdef CONFIG_IEEE80211BE
 	ap_mld = !!hapd->conf->mld_ap;
@@ -7707,22 +7835,30 @@ u8 * hostapd_eid_rnr(struct hostapd_data *hapd, u8 *eid, u32 type)
 
 	switch (type) {
 	case WLAN_FC_STYPE_BEACON:
+		wpa_printf(MSG_DEBUG, "hostapd_eid_rnr, beacon type, rnr: %d",
+			   hapd->conf->rnr);
 		if (hapd->conf->rnr)
 			eid = hostapd_eid_nr_db(hapd, eid, &current_len);
 		/* fallthrough */
 
 	case WLAN_FC_STYPE_PROBE_RESP:
-		if (mode == COLOCATED_LOWER_BAND || ap_mld)
+		if (mode == COLOCATED_LOWER_BAND || ap_mld) {
+			if (hapd->conf->active_local_bss)
+				did_colocation_lbi = true;
 			eid = hostapd_eid_rnr_multi_iface(hapd, eid,
 							  &current_len);
+		}
 
-		if (hapd->conf->rnr && hapd->iface->num_bss > 1 &&
-		    !hapd->iconf->mbssid)
+		if ((hapd->conf->rnr && !hapd->iconf->mbssid) &&
+		    (hapd->iface->num_bss > 1 ||
+		     (hapd->conf->active_local_bss && !did_colocation_lbi))) {
 			eid = hostapd_eid_rnr_iface(hapd, hapd, eid,
 						    &current_len, NULL);
+		}
 		break;
 
 	case WLAN_FC_STYPE_ACTION:
+		wpa_printf(MSG_DEBUG, "hostapd_eid_rnr, action frame");
 		if (hapd->iface->num_bss > 1 && mode == STANDALONE_6GHZ)
 			eid = hostapd_eid_rnr_iface(hapd, hapd, eid,
 						    &current_len, NULL);
