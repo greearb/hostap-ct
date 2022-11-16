@@ -276,6 +276,19 @@ struct airtime_sta_weight {
 
 #define EXT_CAPA_MAX_LEN 15
 
+/* User-specified configuration related to RNR IEs, so that we can do RNR
+ * logic without having multiple ifaces handled by single hostapd instance
+ * if so desired.
+ * These are considered co-located to the iface upon which they are configured.
+ */
+struct hostapd_local_bss_info {
+	u8 op_class;
+	u8 channel;
+	u8 own_addr[ETH_ALEN];
+	u32 short_ssid;
+	unsigned int unsol_bcast_probe_resp_interval;
+};
+
 /**
  * struct hostapd_bss_config - Per-BSS configuration
  */
@@ -922,6 +935,11 @@ struct hostapd_bss_config {
 	u8 ext_capa[EXT_CAPA_MAX_LEN];
 
 	u8 rnr;
+
+#define MAX_LOCAL_BSS_INFO 8
+	struct hostapd_local_bss_info local_bss_info[MAX_LOCAL_BSS_INFO];
+	u8 active_local_bss; /* count of configured local-bss-info */
+
 	char *config_id;
 };
 

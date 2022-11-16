@@ -2306,6 +2306,35 @@ static int get_hex_config(u8 *buf, size_t max_len, int line,
 	return 0;
 }
 
+static void add_or_update_lbi(struct hostapd_bss_config *bss,
+			      struct hostapd_local_bss_info *lbi) {
+	int i;
+
+	/* See if this is an update */
+	for (i = 0; i<MAX_LOCAL_BSS_INFO; i++) {
+		if (memcmp(lbi->own_addr, bss->local_bss_info[i].own_addr, ETH_ALEN) == 0) {
+			memcpy(&bss->local_bss_info[i], lbi, sizeof(*lbi));
+			goto count;
+		}
+	}
+
+	/* Add new entry */
+	for (i = 0; i<MAX_LOCAL_BSS_INFO; i++) {
+		if (is_zero_ether_addr(bss->local_bss_info[i].own_addr)) {
+			memcpy(&bss->local_bss_info[i], lbi, sizeof(*lbi));
+			goto count;
+		}
+	}
+	wpa_printf(MSG_ERROR, "Could not add new local-bss-info, max entries reached: %d", MAX_LOCAL_BSS_INFO);
+
+count:
+	/* Count active ones */
+	bss->active_local_bss = 0;
+	for (i = 0; i<MAX_LOCAL_BSS_INFO; i++) {
+		if (!is_zero_ether_addr(bss->local_bss_info[i].own_addr))
+			bss->active_local_bss++;
+	}
+}
 
 static int hostapd_config_fill(struct hostapd_config *conf,
 			       struct hostapd_bss_config *bss,
@@ -4757,6 +4786,61 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 			return 1;
 	} else if (os_strcmp(buf, "rnr") == 0) {
 		bss->rnr = atoi(pos);
+	} else if (os_strcmp(buf, "rnr_local_bss") == 0) {
+		struct hostapd_local_bss_info lbi = {0};
+		size_t slen;
+		char *str;
+
+		/* rnr_local_bss=bssid op_class channel unsol_bcast_probe_resp_interval "ssid" */
+		if (hwaddr_aton(pos, lbi.own_addr)) {
+			wpa_printf(MSG_ERROR, "Line %d: invalid bssid", line);
+			return 1;
+		}
+
+		pos = strstr(pos, " ");
+		if (!pos) {
+			wpa_printf(MSG_ERROR, "Line %d: could not find op_class", line);
+			return 1;
+		}
+		pos++;
+		lbi.op_class = atoi(pos);
+
+		pos = strstr(pos, " ");
+		if (!pos) {
+			wpa_printf(MSG_ERROR, "Line %d: could not find channel", line);
+			return 1;
+		}
+		pos++;
+		lbi.channel = atoi(pos);
+
+		pos = strstr(pos, " ");
+		if (!pos) {
+			wpa_printf(MSG_ERROR, "Line %d: could not find unsol_bcast_probe_resp_interval", line);
+			return 1;
+		}
+		pos++;
+		lbi.unsol_bcast_probe_resp_interval = atoi(pos);
+
+		pos = strstr(pos, " ");
+		if (!pos) {
+			wpa_printf(MSG_ERROR, "Line %d: could not find SSID", line);
+			return 1;
+		}
+		pos++;
+
+		str = wpa_config_parse_string(pos, &slen);
+
+		if (!str || slen < 1 || slen > SSID_MAX_LEN) {
+			wpa_printf(MSG_ERROR, "Line %d: invalid SSID '%s'",
+				   line, pos);
+			os_free(str);
+			return 1;
+		}
+		lbi.short_ssid = ieee80211_crc32((unsigned char*)(str), slen);
+		os_free(str);
+
+		/* If here, we have a new entry, add it to the configuration. */
+		add_or_update_lbi(bss, &lbi);
 #ifdef CONFIG_IEEE80211BE
 	} else if (os_strcmp(buf, "ieee80211be") == 0) {
 		conf->ieee80211be = atoi(pos);
