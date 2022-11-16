@@ -17,7 +17,9 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #include <openssl/opensslv.h>
-#include <openssl/buffer.h>
+#ifdef OPENSSL_IS_BORINGSSL
+#include <openssl/buf.h>
+#endif /* OPENSSL_IS_BORINGSSL */
 
 #include "common.h"
 #include "utils/base64.h"
@@ -221,7 +223,9 @@ typedef struct {
 	} d;
 } AttrOrOID;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(OPENSSL_IS_BORINGSSL)
 DEFINE_STACK_OF(AttrOrOID)
+#endif
 
 typedef struct {
 	int type;
@@ -339,13 +343,30 @@ static void add_csrattrs(struct hs20_osu_client *ctx, CsrAttrs *csrattrs,
 	if (!csrattrs || ! csrattrs->attrs)
 		return;
 
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#ifdef OPENSSL_IS_BORINGSSL
+	num = sk_num(CHECKED_CAST(_STACK *, STACK_OF(AttrOrOID) *,
+				  csrattrs->attrs));
+	for (i = 0; i < num; i++) {
+		AttrOrOID *ao = sk_value(
+			CHECKED_CAST(_STACK *, const STACK_OF(AttrOrOID) *,
+				     csrattrs->attrs), i);
+		switch (ao->type) {
+		case 0:
+			add_csrattrs_oid(ctx, ao->d.oid, exts);
+			break;
+		case 1:
+			add_csrattrs_attr(ctx, ao->d.attribute, exts);
+			break;
+		}
+	}
+#else /* OPENSSL_IS_BORINGSSL */
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(OPENSSL_IS_BORINGSSL)
 	num = sk_AttrOrOID_num(csrattrs->attrs);
 #else
 	num = SKM_sk_num(AttrOrOID, csrattrs->attrs);
 #endif
 	for (i = 0; i < num; i++) {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(OPENSSL_IS_BORINGSSL)
 		AttrOrOID *ao = sk_AttrOrOID_value(csrattrs->attrs, i);
 #else
 		AttrOrOID *ao = SKM_sk_value(AttrOrOID, csrattrs->attrs, i);
@@ -359,6 +380,7 @@ static void add_csrattrs(struct hs20_osu_client *ctx, CsrAttrs *csrattrs,
 			break;
 		}
 	}
+#endif /* OPENSSL_IS_BORINGSSL */
 }
 
 
