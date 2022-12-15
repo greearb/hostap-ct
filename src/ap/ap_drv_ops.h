@@ -164,6 +164,8 @@ int hostapd_drv_mu_dump(struct hostapd_data *hapd, u8 *mu_onoff);
 int hostapd_drv_three_wire_ctrl(struct hostapd_data *hapd);
 int hostapd_drv_ibf_ctrl(struct hostapd_data *hapd);
 int hostapd_drv_ibf_dump(struct hostapd_data *hapd, u8 *ibf_enable);
+int hostapd_drv_amsdu_ctrl(struct hostapd_data *hapd);
+int hostapd_drv_amsdu_dump(struct hostapd_data *hapd, u8 *amsdu);
 
 #include "drivers/driver.h"
 
