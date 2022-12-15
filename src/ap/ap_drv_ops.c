@@ -1480,3 +1480,17 @@ int hostapd_drv_ibf_dump(struct hostapd_data *hapd, u8 *ibf_enable)
 		return 0;
 	return hapd->driver->ibf_dump(hapd->drv_priv, ibf_enable);
 }
+
+int hostapd_drv_amsdu_ctrl(struct hostapd_data *hapd)
+{
+	if (!hapd->driver || !hapd->driver->amsdu_ctrl)
+		return 0;
+	return hapd->driver->amsdu_ctrl(hapd->drv_priv, hapd->iconf->amsdu);
+}
+
+int hostapd_drv_amsdu_dump(struct hostapd_data *hapd, u8 *amsdu)
+{
+	if (!hapd->driver || !hapd->driver->amsdu_dump)
+		return 0;
+	return hapd->driver->amsdu_dump(hapd->drv_priv, amsdu);
+}
