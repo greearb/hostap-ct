@@ -1709,6 +1709,13 @@ static int hostapd_cli_cmd_get_ibf(struct wpa_ctrl *ctrl, int argc,
 }
 
 
+static int hostapd_cli_cmd_get_amsdu(struct wpa_ctrl *ctrl, int argc,
+					   char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "GET_AMSDU", 0, NULL, NULL);
+}
+
+
 struct hostapd_cli_cmd {
 	const char *cmd;
 	int (*handler)(struct wpa_ctrl *ctrl, int argc, char *argv[]);
@@ -1949,6 +1956,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
           "<tx type(0/1/2)> <interval> = runtime set inband discovery" },
 	{ "get_ibf", hostapd_cli_cmd_get_ibf, NULL,
 	  " = show iBF state (enabled/disabled)"},
+	{ "get_amsdu", hostapd_cli_cmd_get_amsdu, NULL,
+		" = show AMSDU state"},
 	{ NULL, NULL, NULL, NULL }
 };
 

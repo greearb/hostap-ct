@@ -4231,6 +4231,30 @@ hostapd_ctrl_iface_set_dfs_detect_mode(struct hostapd_data *hapd, char *value,
 }
 
 
+static int
+hostapd_ctrl_iface_get_amsdu(struct hostapd_data *hapd, char *buf,
+					 size_t buflen)
+{
+	u8 amsdu;
+	int ret;
+	char *pos, *end;
+
+	pos = buf;
+	end = buf + buflen;
+
+	if (hostapd_drv_amsdu_dump(hapd, &amsdu) == 0) {
+		hapd->iconf->amsdu = amsdu;
+		ret = os_snprintf(pos, end - pos, "[hostapd_cli] AMSDU: %u\n",
+					hapd->iconf->amsdu);
+	}
+
+	if (os_snprintf_error(end - pos, ret))
+		return 0;
+
+	return ret;
+}
+
+
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
 					      int reply_size,
@@ -4867,6 +4891,8 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "DFS_DETECT_MODE ", 16) == 0) {
 		reply_len = hostapd_ctrl_iface_set_dfs_detect_mode(hapd, buf + 16,
 								   reply, reply_size);
+	} else if (os_strncmp(buf, "GET_AMSDU", 9) == 0) {
+		reply_len = hostapd_ctrl_iface_get_amsdu(hapd, reply, reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;

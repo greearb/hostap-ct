@@ -5134,6 +5134,15 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		u8 en = strtol(pos, NULL, 10);
 
 		conf->dfs_detect_mode = en;
+	} else if (os_strcmp(buf, "amsdu") == 0) {
+		int val = atoi(pos);
+		if (val < 0 || val > 1) {
+			wpa_printf(MSG_ERROR,
+					 "Line %d: invalid amsdu value",
+					 line);
+			return 1;
+		}
+		conf->amsdu = val;
 	} else {
 		wpa_printf(MSG_ERROR,
 			   "Line %d: unknown configuration item '%s'",

@@ -1285,6 +1285,7 @@ struct hostapd_config {
 	u8 three_wire_enable;
 	u8 ibf_enable;
 	u8 dfs_detect_mode;
+	u8 amsdu;
 };
 
 enum three_wire_mode {

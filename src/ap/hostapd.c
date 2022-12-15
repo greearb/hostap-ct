@@ -2813,6 +2813,8 @@ dfs_offload:
 		goto fail;
 	if (hostapd_drv_ibf_ctrl(hapd) < 0)
 		goto fail;
+	if (hostapd_drv_amsdu_ctrl(hapd) < 0)
+		goto fail;
 
 	wpa_printf(MSG_DEBUG, "%s: Setup of interface done.",
 		   iface->bss[0]->conf->iface);

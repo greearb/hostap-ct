@@ -15935,6 +15935,118 @@ fail:
 	return -ENOBUFS;
 }
 
+static int nl80211_enable_amsdu(void *priv, u8 amsdu)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *data;
+	int ret;
+
+	if (!drv->mtk_wireless_vendor_cmd_avail) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Driver does not support setting ap wireless control");
+		return 0;
+	}
+
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
+	if (!msg)
+		goto fail;
+
+	if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+		nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD, MTK_NL80211_VENDOR_SUBCMD_WIRELESS_CTRL))
+		goto fail;
+
+	data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA);
+	if (!data)
+		goto fail;
+
+	nla_put_u8(msg, MTK_VENDOR_ATTR_WIRELESS_CTRL_AMSDU, amsdu);
+
+	nla_nest_end(msg, data);
+	ret = send_and_recv_cmd(drv, msg);
+	if (ret) {
+		wpa_printf(MSG_ERROR, "Failed to set amsdu. ret=%d (%s)", ret, strerror(-ret));
+	}
+
+	return ret;
+
+fail:
+	nlmsg_free(msg);
+	return -ENOBUFS;
+}
+
+static int dump_amsdu_handler(struct nl_msg *msg, void *arg)
+{
+	u8 *amsdu = (u8 *) arg;
+	struct nlattr *tb[NL80211_ATTR_MAX + 1];
+	struct nlattr *tb_vendor[MTK_VENDOR_ATTR_WIRELESS_DUMP_MAX + 1];
+	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
+	struct nlattr *nl_vend, *attr_amsdu;
+
+	nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
+			genlmsg_attrlen(gnlh, 0), NULL);
+
+	nl_vend = tb[NL80211_ATTR_VENDOR_DATA];
+	if (!nl_vend)
+		return NL_SKIP;
+
+	nla_parse(tb_vendor, MTK_VENDOR_ATTR_WIRELESS_DUMP_MAX,
+			nla_data(nl_vend), nla_len(nl_vend), NULL);
+
+	attr_amsdu = tb_vendor[MTK_VENDOR_ATTR_WIRELESS_DUMP_AMSDU];
+	if (!attr_amsdu ){
+		wpa_printf(MSG_ERROR, "nl80211: cannot find vendor attributes");
+		return NL_SKIP;
+	}
+
+	*amsdu = nla_get_u8(attr_amsdu);
+
+	return NL_SKIP;
+}
+
+static int
+nl80211_dump_amsdu(void *priv, u8 *amsdu)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *data;
+	int ret;
+
+	if (!drv->mtk_wireless_vendor_cmd_avail) {
+		wpa_printf(MSG_INFO,
+				 "nl80211: Driver does not support ap_wireless control");
+		return 0;
+	}
+
+	msg = nl80211_bss_msg(bss, NLM_F_DUMP, NL80211_CMD_VENDOR);
+	if (!msg)
+		goto fail;
+
+	if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+		nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD, MTK_NL80211_VENDOR_SUBCMD_WIRELESS_CTRL))
+		goto fail;
+
+	data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA);
+	if (!data)
+		goto fail;
+
+	nla_nest_end(msg, data);
+
+	ret = send_and_recv_resp(drv, msg, dump_amsdu_handler, amsdu);
+
+	if (ret) {
+		wpa_printf(MSG_ERROR, "Failed to dump amsdu. ret=%d (%s)", ret, strerror(-ret));
+	}
+
+	return ret;
+
+fail:
+	nlmsg_free(msg);
+	return -ENOBUFS;
+}
+
 const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.name = "nl80211",
 	.desc = "Linux nl80211/cfg80211",
@@ -16116,4 +16228,6 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.three_wire_ctrl = nl80211_enable_three_wire,
 	.ibf_ctrl = nl80211_ibf_enable,
 	.ibf_dump = nl80211_ibf_dump,
+	.amsdu_ctrl = nl80211_enable_amsdu,
+	.amsdu_dump = nl80211_dump_amsdu,
 };

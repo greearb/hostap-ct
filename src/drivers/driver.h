@@ -5624,6 +5624,15 @@ struct wpa_driver_ops {
 	 *
 	 */
 	int (*ibf_dump)(void *priv, u8 *ibf_enable);
+
+	/**
+	 * amsdu_ctrl - enable/disable amsdu
+	 * amsdu_dump - get current amsdu status
+	 * @priv: Private driver interface data
+	 *
+	 */
+	int (*amsdu_ctrl)(void *priv, u8 amsdu);
+	int (*amsdu_dump)(void *priv, u8 *amsdu);
 };
 
 /**
