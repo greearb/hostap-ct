@@ -598,9 +598,14 @@ int p2p_invite_send(struct p2p_data *p2p, struct p2p_device *dev,
 	p2p->pending_action_state = P2P_PENDING_INVITATION_REQUEST;
 	p2p->invite_peer = dev;
 	dev->invitation_reqs++;
+
+	/* In case of an active P2P GO use a shorter wait time to avoid
+	 * issues if not sending out multiple consecutive Beacon frames. */
 	if (p2p_send_action(p2p, freq, dev->info.p2p_device_addr,
 			    p2p->cfg->dev_addr, dev->info.p2p_device_addr,
-			    wpabuf_head(req), wpabuf_len(req), 500) < 0) {
+			    wpabuf_head(req), wpabuf_len(req),
+			    p2p->inv_role == P2P_INVITE_ROLE_ACTIVE_GO ?
+			    150 : 500) < 0) {
 		p2p_dbg(p2p, "Failed to send Action frame");
 		/* Use P2P find to recover and retry */
 		p2p_set_timeout(p2p, 0, 0);
