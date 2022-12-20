@@ -254,6 +254,7 @@ void wpas_dbus_signal_preq(struct wpa_supplicant *wpa_s,
 			   const u8 *ie, size_t ie_len, u32 ssi_signal);
 void wpas_dbus_signal_eap_status(struct wpa_supplicant *wpa_s,
 				 const char *status, const char *parameter);
+void wpas_dbus_signal_psk_mismatch(struct wpa_supplicant *wpa_s);
 void wpas_dbus_signal_sta_authorized(struct wpa_supplicant *wpa_s,
 				     const u8 *sta);
 void wpas_dbus_signal_sta_deauthorized(struct wpa_supplicant *wpa_s,
@@ -582,6 +583,10 @@ static inline void wpas_dbus_signal_preq(struct wpa_supplicant *wpa_s,
 static inline void wpas_dbus_signal_eap_status(struct wpa_supplicant *wpa_s,
 					       const char *status,
 					       const char *parameter)
+{
+}
+
+static inline void wpas_dbus_signal_psk_mismatch(struct wpa_supplicant *wpa_s)
 {
 }
 

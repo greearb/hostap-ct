@@ -1102,6 +1102,29 @@ void wpas_dbus_signal_eap_status(struct wpa_supplicant *wpa_s,
 }
 
 
+void wpas_dbus_signal_psk_mismatch(struct wpa_supplicant *wpa_s)
+{
+	struct wpas_dbus_priv *iface;
+	DBusMessage *msg;
+
+	iface = wpa_s->global->dbus;
+
+	/* Do nothing if the control interface is not turned on */
+	if (!iface || !wpa_s->dbus_new_path)
+		return;
+
+	msg = dbus_message_new_signal(wpa_s->dbus_new_path,
+				      WPAS_DBUS_NEW_IFACE_INTERFACE,
+				      "PskMismatch");
+	if (!msg)
+		return;
+
+	dbus_connection_send(iface->con, msg, NULL);
+
+	dbus_message_unref(msg);
+}
+
+
 /**
  * wpas_dbus_signal_sta - Send a station related event signal
  * @wpa_s: %wpa_supplicant network interface data

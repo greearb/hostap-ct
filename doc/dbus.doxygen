@@ -1329,6 +1329,11 @@ fi.w1.wpa_supplicant1.CreateInterface.
       <li>
 	<h3>InterworkingSelectDone ( )</h3>
       </li>
+
+      <li>
+	<h3>PskMismatch ( )</h3>
+	<p>A possible PSK mismatch is identified.</p>
+      </li>
     </ul>
 
 
