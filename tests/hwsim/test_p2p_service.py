@@ -277,6 +277,32 @@ def test_p2p_service_discovery_req_cancel(dev):
         raise Exception("Unexpected SD(broadcast) cancel failure")
 
 @remote_compatible
+def test_p2p_service_discovery_from_go(dev):
+    """P2P service discovery initiated from a GO device"""
+    addr0 = dev[0].p2p_dev_addr()
+    addr1 = dev[1].p2p_dev_addr()
+
+    dev[0].p2p_start_go(freq=2412)
+    dev[1].p2p_listen()
+
+    dev[0].global_request("P2P_SERV_DISC_REQ "+ addr1 + " 02000001")
+    if not dev[0].discover_peer(addr1, social=True, force_find=True):
+        raise Exception("Peer " + addr1 + " not found")
+
+    ev = dev[1].wait_global_event(["P2P-SERV-DISC-REQ"], timeout=10)
+    if ev is None:
+        raise Exception("Service discovery timed out")
+    if addr0 not in ev:
+        raise Exception("Unexpected service discovery request source")
+
+    ev = dev[0].wait_global_event(["P2P-SERV-DISC-RESP"], timeout=10)
+    if ev is None:
+        raise Exception("Service discovery timed out")
+    if addr1 not in ev:
+        raise Exception("Unexpected service discovery response source")
+    dev[0].p2p_stop_find()
+
+@remote_compatible
 def test_p2p_service_discovery_go(dev):
     """P2P service discovery from GO"""
     addr0 = dev[0].p2p_dev_addr()
