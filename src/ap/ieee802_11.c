@@ -5330,10 +5330,10 @@ static int handle_action(struct hostapd_data *hapd,
 
 			pos = &mgmt->u.action.u.public_action.action;
 			end = ((const u8 *) mgmt) + len;
-			gas_query_ap_rx(hapd->gas, mgmt->sa,
-					mgmt->u.action.category,
-					pos, end - pos, freq);
-			return 1;
+			if (gas_query_ap_rx(hapd->gas, mgmt->sa,
+					    mgmt->u.action.category,
+					    pos, end - pos, freq) == 0)
+				return 1;
 		}
 #endif /* CONFIG_DPP */
 		if (hapd->public_action_cb) {
