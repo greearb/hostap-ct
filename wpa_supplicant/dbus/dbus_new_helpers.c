@@ -1086,6 +1086,9 @@ int wpas_dbus_new_from_signal_information(DBusMessageIter *iter,
 	    (si->data.current_rx_rate &&
 	     !wpa_dbus_dict_append_uint32(&iter_dict, "linktxspeed",
 					  si->data.current_tx_rate)) ||
+	    (si->data.inactive_msec &&
+	     !wpa_dbus_dict_append_uint32(&iter_dict, "inactive-time",
+					 si->data.inactive_msec)) ||
 	    (si->data.tx_retry_failed &&
 	     !wpa_dbus_dict_append_uint32(&iter_dict, "retries-failed",
 					  si->data.tx_retry_failed)) ||
