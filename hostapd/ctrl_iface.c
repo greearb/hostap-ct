@@ -3550,6 +3550,8 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 			if (hostapd_set_acl(hapd) ||
 			    hostapd_disassoc_accept_mac(hapd))
 				reply_len = -1;
+		} else {
+			reply_len = -1;
 		}
 	} else if (os_strncmp(buf, "DENY_ACL ", 9) == 0) {
 		if (os_strncmp(buf + 9, "ADD_MAC ", 8) == 0) {
@@ -3575,6 +3577,8 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 				&hapd->conf->num_deny_mac);
 			if (hostapd_set_acl(hapd))
 				reply_len = -1;
+		} else {
+			reply_len = -1;
 		}
 #ifdef CONFIG_DPP
 	} else if (os_strncmp(buf, "DPP_QR_CODE ", 12) == 0) {
