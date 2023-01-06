@@ -436,6 +436,7 @@ struct wpa_scan_res {
 	int snr;
 	u64 parent_tsf;
 	u8 tsf_bssid[ETH_ALEN];
+	u8 prefer_band;
 	bool beacon_newer;
 	bool mlo_tput_accumulated;
 	size_t ie_len;
