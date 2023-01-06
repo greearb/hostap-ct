@@ -2446,6 +2446,31 @@ static int wpa_scan_result_compar(const void *a, const void *b)
 	    (wb->caps & IEEE80211_CAP_PRIVACY) == 0)
 		return -1;
 
+	/* preferred band, if set */
+	if (wa->prefer_band) {
+		switch (wa->prefer_band) {
+			case 2:
+				if (IS_2P4GHZ(wa->freq) && !IS_2P4GHZ(wb->freq))
+					return -1;
+				if (!IS_2P4GHZ(wa->freq) && IS_2P4GHZ(wb->freq))
+					return 1;
+				break;
+			case 5:
+				if (IS_5GHZ(wa->freq) && !IS_5GHZ(wb->freq))
+					return -1;
+				if (!IS_5GHZ(wa->freq) && IS_5GHZ(wb->freq))
+					return 1;
+				break;
+			case 6:
+				if (is_6ghz_freq(wa->freq) && !is_6ghz_freq(wb->freq))
+					return -1;
+				if (!is_6ghz_freq(wa->freq) && is_6ghz_freq(wb->freq))
+					return 1;
+			default:
+				break;
+		}
+	}
+
 	if (wa->flags & wb->flags & WPA_SCAN_LEVEL_DBM) {
 		/*
 		 * The scan result estimates SNR over 20 MHz, while Data frames
@@ -3234,6 +3259,7 @@ wpa_supplicant_get_scan_results(struct wpa_supplicant *wpa_s,
 {
 	struct wpa_scan_results *scan_res;
 	size_t i;
+	u8 pref_initial_band;
 	int (*compar)(const void *, const void *) = wpa_scan_result_compar;
 
 	scan_res = wpa_drv_get_scan_results(wpa_s, bssid);
@@ -3250,11 +3276,23 @@ wpa_supplicant_get_scan_results(struct wpa_supplicant *wpa_s,
 	}
 	filter_scan_res(wpa_s, scan_res);
 
+	/* set initial preferred band */
+	if (wpa_s->conf->initial_band_pref && !(wpa_s->wpa_state == WPA_COMPLETED)) {
+		pref_initial_band = wpa_s->conf->initial_band_pref;
+		wpa_dbg(wpa_s, MSG_DEBUG, "INITIAL_BAND: preferring "
+			"to associate with networks on %dGHz band.", pref_initial_band);
+	}
+	else {
+		pref_initial_band = 0;
+		wpa_dbg(wpa_s, MSG_DEBUG, "INITIAL_BAND: Not enforcing initial band connection preferences.");
+	}
+
 	for (i = 0; i < scan_res->num; i++) {
 		struct wpa_scan_res *scan_res_item = scan_res->res[i];
 
 		scan_snr(scan_res_item);
 		scan_est_throughput(wpa_s, scan_res_item);
+		scan_res_item->prefer_band = pref_initial_band;
 	}
 
 #ifdef CONFIG_WPS
