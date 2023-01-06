@@ -985,6 +985,15 @@ struct wpa_config {
 	 */
 	int *initial_freq_list;
 
+	/*
+	* initial_band_pref - preferred band during initial connection
+	*
+	* This is an optional integer allowing the user to prioritize
+	* association with a network on the specified band, only if not
+	* already associated with this network (initial association only).
+	*/
+	int initial_band_pref;
+
 	/**
 	 * scan_cur_freq - Whether to scan only the current channel
 	 *
