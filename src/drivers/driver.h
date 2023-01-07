@@ -2317,6 +2317,13 @@ struct wpa_driver_capa {
 
 struct hostapd_data;
 
+enum guard_interval {
+	GUARD_INTERVAL_0_4 = 1,
+	GUARD_INTERVAL_0_8 = 2,
+	GUARD_INTERVAL_1_6 = 3,
+	GUARD_INTERVAL_3_2 = 4,
+};
+
 #define STA_DRV_DATA_TX_MCS BIT(0)
 #define STA_DRV_DATA_RX_MCS BIT(1)
 #define STA_DRV_DATA_TX_VHT_MCS BIT(2)
@@ -2331,6 +2338,10 @@ struct hostapd_data;
 #define STA_DRV_DATA_RX_HE_MCS BIT(11)
 #define STA_DRV_DATA_TX_HE_NSS BIT(12)
 #define STA_DRV_DATA_RX_HE_NSS BIT(13)
+#define STA_DRV_DATA_TX_HE_DCM BIT(14)
+#define STA_DRV_DATA_RX_HE_DCM BIT(15)
+#define STA_DRV_DATA_TX_HE_GI BIT(16)
+#define STA_DRV_DATA_RX_HE_GI BIT(17)
 
 struct hostap_sta_driver_data {
 	unsigned long rx_packets, tx_packets;
@@ -2368,6 +2379,8 @@ struct hostap_sta_driver_data {
 	s8 avg_signal; /* dBm */
 	s8 avg_beacon_signal; /* dBm */
 	s8 avg_ack_signal; /* dBm */
+	enum guard_interval rx_guard_interval, tx_guard_interval;
+	u8 rx_dcm, tx_dcm;
 };
 
 struct hostapd_sta_add_params {

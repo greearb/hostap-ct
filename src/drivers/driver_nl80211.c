@@ -7384,6 +7384,8 @@ static int get_sta_handler(struct nl_msg *msg, void *arg)
 		[NL80211_RATE_INFO_VHT_NSS] = { .type = NLA_U8 },
 		[NL80211_RATE_INFO_HE_MCS] = { .type = NLA_U8 },
 		[NL80211_RATE_INFO_HE_NSS] = { .type = NLA_U8 },
+		[NL80211_RATE_INFO_HE_GI] = { .type = NLA_U8 },
+		[NL80211_RATE_INFO_HE_DCM] = { .type = NLA_U8 },
 	};
 
 	nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
@@ -7507,8 +7509,10 @@ static int get_sta_handler(struct nl_msg *msg, void *arg)
 				nla_get_u8(rate[NL80211_RATE_INFO_VHT_MCS]);
 			data->flags |= STA_DRV_DATA_TX_VHT_MCS;
 		}
-		if (rate[NL80211_RATE_INFO_SHORT_GI])
+		if (rate[NL80211_RATE_INFO_SHORT_GI]) {
+			data->tx_guard_interval = GUARD_INTERVAL_0_4;
 			data->flags |= STA_DRV_DATA_TX_SHORT_GI;
+		}
 		if (rate[NL80211_RATE_INFO_VHT_NSS]) {
 			data->tx_vht_nss =
 				nla_get_u8(rate[NL80211_RATE_INFO_VHT_NSS]);
@@ -7523,6 +7527,25 @@ static int get_sta_handler(struct nl_msg *msg, void *arg)
 			data->tx_he_nss =
 				nla_get_u8(rate[NL80211_RATE_INFO_HE_NSS]);
 			data->flags |= STA_DRV_DATA_TX_HE_NSS;
+		}
+		if (rate[NL80211_RATE_INFO_HE_GI]) {
+			switch (nla_get_u8(rate[NL80211_RATE_INFO_HE_GI])) {
+			case NL80211_RATE_INFO_HE_GI_0_8:
+				data->tx_guard_interval = GUARD_INTERVAL_0_8;
+				break;
+			case NL80211_RATE_INFO_HE_GI_1_6:
+				data->tx_guard_interval = GUARD_INTERVAL_1_6;
+				break;
+			case NL80211_RATE_INFO_HE_GI_3_2:
+				data->tx_guard_interval = GUARD_INTERVAL_3_2;
+				break;
+			}
+			data->flags |= STA_DRV_DATA_TX_HE_GI;
+		}
+		if (rate[NL80211_RATE_INFO_HE_DCM]) {
+			data->tx_dcm =
+				nla_get_u8(rate[NL80211_RATE_INFO_HE_DCM]);
+			data->flags |= STA_DRV_DATA_TX_HE_DCM;
 		}
 	}
 
@@ -7550,8 +7573,10 @@ static int get_sta_handler(struct nl_msg *msg, void *arg)
 				nla_get_u8(rate[NL80211_RATE_INFO_VHT_MCS]);
 			data->flags |= STA_DRV_DATA_RX_VHT_MCS;
 		}
-		if (rate[NL80211_RATE_INFO_SHORT_GI])
+		if (rate[NL80211_RATE_INFO_SHORT_GI]) {
+			data->rx_guard_interval = GUARD_INTERVAL_0_4;
 			data->flags |= STA_DRV_DATA_RX_SHORT_GI;
+		}
 		if (rate[NL80211_RATE_INFO_VHT_NSS]) {
 			data->rx_vht_nss =
 				nla_get_u8(rate[NL80211_RATE_INFO_VHT_NSS]);
@@ -7566,6 +7591,25 @@ static int get_sta_handler(struct nl_msg *msg, void *arg)
 			data->rx_he_nss =
 				nla_get_u8(rate[NL80211_RATE_INFO_HE_NSS]);
 			data->flags |= STA_DRV_DATA_RX_HE_NSS;
+		}
+		if (rate[NL80211_RATE_INFO_HE_GI]) {
+			switch (nla_get_u8(rate[NL80211_RATE_INFO_HE_GI])) {
+			case NL80211_RATE_INFO_HE_GI_0_8:
+				data->rx_guard_interval = GUARD_INTERVAL_0_8;
+				break;
+			case NL80211_RATE_INFO_HE_GI_1_6:
+				data->rx_guard_interval = GUARD_INTERVAL_1_6;
+				break;
+			case NL80211_RATE_INFO_HE_GI_3_2:
+				data->rx_guard_interval = GUARD_INTERVAL_3_2;
+				break;
+			}
+			data->flags |= STA_DRV_DATA_RX_HE_GI;
+		}
+		if (rate[NL80211_RATE_INFO_HE_DCM]) {
+			data->rx_dcm =
+				nla_get_u8(rate[NL80211_RATE_INFO_HE_DCM]);
+			data->flags |= STA_DRV_DATA_RX_HE_DCM;
 		}
 	}
 
