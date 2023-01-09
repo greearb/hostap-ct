@@ -986,6 +986,10 @@ void wpa_bss_flush_by_age(struct wpa_supplicant *wpa_s, int age)
 		return;
 
 	os_get_reltime(&t);
+
+	if (t.sec < age)
+		return; /* avoid underflow; there can be no older entries */
+
 	t.sec -= age;
 
 	dl_list_for_each_safe(bss, n, &wpa_s->bss, struct wpa_bss, list) {
