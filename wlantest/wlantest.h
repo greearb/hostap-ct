@@ -310,22 +310,22 @@ void sta_new_ptk(struct wlantest *wt, struct wlantest_sta *sta,
 		 struct wpa_ptk *ptk);
 
 u8 * ccmp_decrypt(const u8 *tk, const struct ieee80211_hdr *hdr,
-		  const u8 *a1, const u8 *a2, const u8 *data, size_t data_len,
-		  size_t *decrypted_len);
+		  const u8 *a1, const u8 *a2, const u8 *a3,
+		  const u8 *data, size_t data_len, size_t *decrypted_len);
 u8 * ccmp_encrypt(const u8 *tk, u8 *frame, size_t len, size_t hdrlen,
-		  const u8 *qos, const u8 *a1, const u8 *a2, const u8 *pn,
-		  int keyid, size_t *encrypted_len);
+		  const u8 *qos, const u8 *a1, const u8 *a2, const u8 *a3,
+		  const u8 *pn, int keyid, size_t *encrypted_len);
 u8 * ccmp_encrypt_pv1(const u8 *tk, const u8 *a1, const u8 *a2, const u8 *a3,
 		      const u8 *frame, size_t len,
 		      size_t hdrlen, const u8 *pn, int keyid,
 		      size_t *encrypted_len);
 void ccmp_get_pn(u8 *pn, const u8 *data);
 u8 * ccmp_256_decrypt(const u8 *tk, const struct ieee80211_hdr *hdr,
-		      const u8 *a1, const u8 *a2,
+		      const u8 *a1, const u8 *a2, const u8 *a3,
 		      const u8 *data, size_t data_len, size_t *decrypted_len);
 u8 * ccmp_256_encrypt(const u8 *tk, u8 *frame, size_t len, size_t hdrlen,
-		      const u8 *qos, const u8 *a1, const u8 *a2, const u8 *pn,
-		      int keyid, size_t *encrypted_len);
+		      const u8 *qos, const u8 *a1, const u8 *a2, const u8 *a3,
+		      const u8 *pn, int keyid, size_t *encrypted_len);
 
 enum michael_mic_result {
 	MICHAEL_MIC_OK,
@@ -348,11 +348,11 @@ u8 * bip_gmac_protect(const u8 *igtk, size_t igtk_len, u8 *frame, size_t len,
 		      u8 *ipn, int keyid, size_t *prot_len);
 
 u8 * gcmp_decrypt(const u8 *tk, size_t tk_len, const struct ieee80211_hdr *hdr,
-		  const u8 *a1, const u8 *a2, const u8 *data, size_t data_len,
-		  size_t *decrypted_len);
+		  const u8 *a1, const u8 *a2, const u8 *a3,
+		  const u8 *data, size_t data_len, size_t *decrypted_len);
 u8 * gcmp_encrypt(const u8 *tk, size_t tk_len, const u8 *frame, size_t len,
 		  size_t hdrlen, const u8 *qos, const u8 *a1, const u8 *a2,
-		  const u8 *pn, int keyid, size_t *encrypted_len);
+		  const u8 *a3, const u8 *pn, int keyid, size_t *encrypted_len);
 
 int ctrl_init(struct wlantest *wt);
 void ctrl_deinit(struct wlantest *wt);

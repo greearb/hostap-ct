@@ -2307,16 +2307,18 @@ static u8 * try_tk(struct wpa_ptk *ptk, size_t ptk_len,
 
 	hdr = (const struct ieee80211_hdr *) data;
 	if (ptk_len == 16) {
-		decrypted = ccmp_decrypt(ptk->tk, hdr, NULL, NULL,
+		decrypted = ccmp_decrypt(ptk->tk, hdr, NULL, NULL, NULL,
 					 data + 24, len - 24, dlen);
 		if (!decrypted)
 			decrypted = gcmp_decrypt(ptk->tk, 16, hdr, NULL, NULL,
+						 NULL,
 						 data + 24, len - 24, dlen);
 	} else if (ptk_len == 32) {
-		decrypted = ccmp_256_decrypt(ptk->tk, hdr, NULL, NULL,
+		decrypted = ccmp_256_decrypt(ptk->tk, hdr, NULL, NULL, NULL,
 					     data + 24, len - 24, dlen);
 		if (!decrypted)
 			decrypted = gcmp_decrypt(ptk->tk, 32, hdr, NULL, NULL,
+						 NULL,
 						 data + 24, len - 24, dlen);
 	} else {
 		decrypted = NULL;
@@ -2445,18 +2447,18 @@ static u8 * mgmt_decrypt(struct wlantest *wt, const u8 *data, size_t len,
 	}
 
 	if (sta->pairwise_cipher == WPA_CIPHER_CCMP_256) {
-		decrypted = ccmp_256_decrypt(sta->ptk.tk, hdr, NULL, NULL,
+		decrypted = ccmp_256_decrypt(sta->ptk.tk, hdr, NULL, NULL, NULL,
 					     data + 24, len - 24, dlen);
 		write_decrypted_note(wt, decrypted, sta->ptk.tk, 32, keyid);
 	} else if (sta->pairwise_cipher == WPA_CIPHER_GCMP ||
 		   sta->pairwise_cipher == WPA_CIPHER_GCMP_256) {
 		decrypted = gcmp_decrypt(sta->ptk.tk, sta->ptk.tk_len, hdr,
-					 NULL, NULL,
+					 NULL, NULL, NULL,
 					 data + 24, len - 24, dlen);
 		write_decrypted_note(wt, decrypted, sta->ptk.tk,
 				     sta->ptk.tk_len, keyid);
 	} else {
-		decrypted = ccmp_decrypt(sta->ptk.tk, hdr, NULL, NULL,
+		decrypted = ccmp_decrypt(sta->ptk.tk, hdr, NULL, NULL, NULL,
 					 data + 24, len - 24, dlen);
 		write_decrypted_note(wt, decrypted, sta->ptk.tk, 16, keyid);
 	}
