@@ -94,8 +94,9 @@ static void rx_data_eapol_key_1_of_4(struct wlantest *wt, const u8 *dst,
 	u16 key_data_len;
 	struct wpa_eapol_ie_parse ie;
 
-	wpa_printf(MSG_DEBUG, "EAPOL-Key 1/4 " MACSTR " -> " MACSTR,
-		   MAC2STR(src), MAC2STR(dst));
+	wpa_printf(MSG_DEBUG, "EAPOL-Key 1/4 " MACSTR " -> " MACSTR " (BSSID "
+		   MACSTR ")",
+		   MAC2STR(src), MAC2STR(dst), MAC2STR(bssid));
 	if (os_memcmp(src, bssid, ETH_ALEN) == 0) {
 		bss = bss_get(wt, src);
 	} else {
@@ -340,8 +341,9 @@ static void rx_data_eapol_key_2_of_4(struct wlantest *wt, const u8 *dst,
 	struct wpa_eapol_ie_parse ie;
 	int link_id;
 
-	wpa_printf(MSG_DEBUG, "EAPOL-Key 2/4 " MACSTR " -> " MACSTR,
-		   MAC2STR(src), MAC2STR(dst));
+	wpa_printf(MSG_DEBUG, "EAPOL-Key 2/4 " MACSTR " -> " MACSTR " (BSSID "
+		   MACSTR ")",
+		   MAC2STR(src), MAC2STR(dst), MAC2STR(bssid));
 	if (os_memcmp(dst, bssid, ETH_ALEN) == 0) {
 		bss = bss_get(wt, dst);
 	} else {
@@ -922,8 +924,9 @@ static void rx_data_eapol_key_3_of_4(struct wlantest *wt, const u8 *dst,
 	size_t rsne_len;
 	int link_id;
 
-	wpa_printf(MSG_DEBUG, "EAPOL-Key 3/4 " MACSTR " -> " MACSTR,
-		   MAC2STR(src), MAC2STR(dst));
+	wpa_printf(MSG_DEBUG, "EAPOL-Key 3/4 " MACSTR " -> " MACSTR " (BSSID "
+		   MACSTR ")",
+		   MAC2STR(src), MAC2STR(dst), MAC2STR(bssid));
 	if (os_memcmp(src, bssid, ETH_ALEN) == 0) {
 		bss = bss_get(wt, src);
 	} else {
@@ -1153,8 +1156,9 @@ static void rx_data_eapol_key_4_of_4(struct wlantest *wt, const u8 *dst,
 	const u8 *kck;
 	size_t kck_len;
 
-	wpa_printf(MSG_DEBUG, "EAPOL-Key 4/4 " MACSTR " -> " MACSTR,
-		   MAC2STR(src), MAC2STR(dst));
+	wpa_printf(MSG_DEBUG, "EAPOL-Key 4/4 " MACSTR " -> " MACSTR " (BSSID "
+		   MACSTR ")",
+		   MAC2STR(src), MAC2STR(dst), MAC2STR(bssid));
 	if (os_memcmp(dst, bssid, ETH_ALEN) == 0) {
 		bss = bss_get(wt, dst);
 	} else {
@@ -1223,8 +1227,9 @@ static void rx_data_eapol_key_1_of_2(struct wlantest *wt, const u8 *dst,
 	size_t decrypted_len = 0;
 	size_t mic_len;
 
-	wpa_printf(MSG_DEBUG, "EAPOL-Key 1/2 " MACSTR " -> " MACSTR,
-		   MAC2STR(src), MAC2STR(dst));
+	wpa_printf(MSG_DEBUG, "EAPOL-Key 1/2 " MACSTR " -> " MACSTR " (BSSID "
+		   MACSTR ")",
+		   MAC2STR(src), MAC2STR(dst), MAC2STR(bssid));
 	if (os_memcmp(src, bssid, ETH_ALEN) == 0) {
 		bss = bss_get(wt, src);
 	} else {
@@ -1359,8 +1364,9 @@ static void rx_data_eapol_key_2_of_2(struct wlantest *wt, const u8 *dst,
 	const struct wpa_eapol_key *hdr;
 	u16 key_info;
 
-	wpa_printf(MSG_DEBUG, "EAPOL-Key 2/2 " MACSTR " -> " MACSTR,
-		   MAC2STR(src), MAC2STR(dst));
+	wpa_printf(MSG_DEBUG, "EAPOL-Key 2/2 " MACSTR " -> " MACSTR " (BSSID "
+		   MACSTR ")",
+		   MAC2STR(src), MAC2STR(dst), MAC2STR(bssid));
 	if (os_memcmp(dst, bssid, ETH_ALEN) == 0) {
 		bss = bss_get(wt, dst);
 	} else {
