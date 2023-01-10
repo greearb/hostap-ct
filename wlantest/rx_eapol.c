@@ -102,7 +102,7 @@ static void rx_data_eapol_key_1_of_4(struct wlantest *wt, const u8 *dst,
 	} else {
 		bss = bss_find(wt, bssid);
 		bss_mld = bss_find(wt, src);
-		if (bss_mld)
+		if (bss_mld && (!bss || sta_find(bss_mld, src)))
 			bss = bss_get(wt, src);
 		else
 			bss = bss_get(wt, bssid);
@@ -349,7 +349,7 @@ static void rx_data_eapol_key_2_of_4(struct wlantest *wt, const u8 *dst,
 	} else {
 		bss = bss_find(wt, bssid);
 		bss_mld = bss_find(wt, dst);
-		if (bss_mld)
+		if (bss_mld && (!bss || sta_find(bss_mld, src)))
 			bss = bss_get(wt, dst);
 		else
 			bss = bss_get(wt, bssid);
@@ -932,7 +932,7 @@ static void rx_data_eapol_key_3_of_4(struct wlantest *wt, const u8 *dst,
 	} else {
 		bss = bss_find(wt, bssid);
 		bss_mld = bss_find(wt, src);
-		if (bss_mld)
+		if (bss_mld && (!bss || sta_find(bss_mld, src)))
 			bss = bss_get(wt, src);
 		else
 			bss = bss_get(wt, bssid);
@@ -1164,7 +1164,7 @@ static void rx_data_eapol_key_4_of_4(struct wlantest *wt, const u8 *dst,
 	} else {
 		bss = bss_find(wt, bssid);
 		bss_mld = bss_find(wt, dst);
-		if (bss_mld)
+		if (bss_mld && (!bss || sta_find(bss_mld, src)))
 			bss = bss_get(wt, dst);
 		else
 			bss = bss_get(wt, bssid);
@@ -1235,7 +1235,7 @@ static void rx_data_eapol_key_1_of_2(struct wlantest *wt, const u8 *dst,
 	} else {
 		bss = bss_find(wt, bssid);
 		bss_mld = bss_find(wt, src);
-		if (bss_mld)
+		if (bss_mld && (!bss || sta_find(bss_mld, src)))
 			bss = bss_get(wt, src);
 		else
 			bss = bss_get(wt, bssid);
@@ -1372,7 +1372,7 @@ static void rx_data_eapol_key_2_of_2(struct wlantest *wt, const u8 *dst,
 	} else {
 		bss = bss_find(wt, bssid);
 		bss_mld = bss_find(wt, dst);
-		if (bss_mld)
+		if (bss_mld && (!bss || sta_find(bss_mld, src)))
 			bss = bss_get(wt, dst);
 		else
 			bss = bss_get(wt, bssid);
