@@ -12136,11 +12136,15 @@ enum qca_wlan_concurrent_sta_policy_config {
  *
  * @QCA_WLAN_CONCURRENT_AP_POLICY_LOSSLESS_AUDIO_STREAMING: Select interface
  * concurrencies to meet lossless audio streaming requirements.
+ *
+ * @QCA_WLAN_CONCURRENT_AP_POLICY_XR: Select interface concurrencies to meet
+ * XR (eXtended Reality) requirements.
  */
 enum qca_wlan_concurrent_ap_policy_config {
 	QCA_WLAN_CONCURRENT_AP_POLICY_UNSPECIFIED = 0,
 	QCA_WLAN_CONCURRENT_AP_POLICY_GAMING_AUDIO = 1,
 	QCA_WLAN_CONCURRENT_AP_POLICY_LOSSLESS_AUDIO_STREAMING = 2,
+	QCA_WLAN_CONCURRENT_AP_POLICY_XR = 3,
 };
 
 /**
