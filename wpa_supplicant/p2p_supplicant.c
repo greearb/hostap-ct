@@ -6938,6 +6938,16 @@ static int wpas_start_p2p_client(struct wpa_supplicant *wpa_s,
 		WPA_CIPHER_CCMP;
 	ssid->group_cipher = params->pbss ? WPA_CIPHER_GCMP : WPA_CIPHER_CCMP;
 	ssid->key_mgmt = WPA_KEY_MGMT_PSK;
+	if (is_6ghz_freq(freq) &&
+	    is_p2p_6ghz_capable(wpa_s->global->p2p)) {
+		ssid->auth_alg |= WPA_AUTH_ALG_SAE;
+		ssid->key_mgmt |= WPA_KEY_MGMT_SAE;
+		ssid->ieee80211w = MGMT_FRAME_PROTECTION_OPTIONAL;
+		ssid->sae_pwe = SAE_PWE_HASH_TO_ELEMENT;
+		wpa_dbg(wpa_s, MSG_DEBUG,
+			"P2P: Enable SAE auth_alg and key_mgmt");
+	}
+
 	ssid->ssid = os_malloc(params->ssid_len);
 	if (ssid->ssid == NULL) {
 		wpa_config_remove_network(wpa_s->conf, ssid->id);
