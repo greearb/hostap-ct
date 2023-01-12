@@ -139,6 +139,13 @@ u8 * hostapd_eid_he_capab(struct hostapd_data *hapd, u8 *eid,
 		os_memcpy(&cap->optional[mcs_nss_size],
 			  mode->he_capab[opmode].ppet,  ppet_size);
 
+	if (hapd->iface->conf->he_phy_capab.he_ldpc)
+		cap->he_phy_capab_info[HE_PHYCAP_LDPC_CODING_IN_PAYLOAD_IDX] |=
+			HE_PHYCAP_LDPC_CODING_IN_PAYLOAD;
+	else
+		cap->he_phy_capab_info[HE_PHYCAP_LDPC_CODING_IN_PAYLOAD_IDX] &=
+			~HE_PHYCAP_LDPC_CODING_IN_PAYLOAD;
+
 	if (hapd->iface->conf->he_phy_capab.he_su_beamformer)
 		cap->he_phy_capab_info[HE_PHYCAP_SU_BEAMFORMER_CAPAB_IDX] |=
 			HE_PHYCAP_SU_BEAMFORMER_CAPAB;
