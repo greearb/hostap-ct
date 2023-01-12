@@ -283,6 +283,7 @@ struct hostapd_config * hostapd_config_defaults(void)
 #endif /* CONFIG_ACS */
 
 #ifdef CONFIG_IEEE80211AX
+	conf->he_phy_capab.he_ldpc = 1;
 	conf->he_op.he_rts_threshold = HE_OPERATION_RTS_THRESHOLD_MASK >>
 		HE_OPERATION_RTS_THRESHOLD_OFFSET;
 	/* Set default basic MCS/NSS set to single stream MCS 0-7 */
