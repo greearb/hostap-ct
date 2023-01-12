@@ -1016,6 +1016,7 @@ struct hostapd_bss_config {
  * struct he_phy_capabilities_info - HE PHY capabilities
  */
 struct he_phy_capabilities_info {
+	bool he_ldpc;
 	bool he_su_beamformer;
 	bool he_su_beamformee;
 	bool he_mu_beamformer;
