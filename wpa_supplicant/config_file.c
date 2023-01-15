@@ -339,13 +339,13 @@ struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 	while (wpa_config_get_line(buf, sizeof(buf), f, &line, &pos)) {
 		if (os_strcmp(pos, "network={") == 0) {
 			ssid = wpa_config_read_network(f, &line, id++);
-			ssid->ro = ro;
 			if (ssid == NULL) {
 				wpa_printf(MSG_ERROR, "Line %d: failed to "
 					   "parse network block.", line);
 				errors++;
 				continue;
 			}
+			ssid->ro = ro;
 			if (head == NULL) {
 				head = tail = ssid;
 			} else {
