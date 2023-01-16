@@ -108,7 +108,7 @@ def test_wext_pmksa_cache(dev, apdev):
     # of scanning to avoid reporting errors incorrectly just because of scans
     # not having seen the target AP.
     for i in range(3):
-        wpas.scan()
+        wpas.scan(timeout=30)
         if wpas.get_bss(bssid2) is not None:
             break
         logger.info("Scan again to find target AP")
@@ -125,7 +125,7 @@ def test_wext_pmksa_cache(dev, apdev):
 
     wpas.dump_monitor()
     logger.info("Roam back to AP1")
-    wpas.scan()
+    wpas.scan(timeout=30)
     wpas.request("ROAM " + bssid)
     ev = wpas.wait_event(["CTRL-EVENT-EAP-STARTED",
                           "CTRL-EVENT-CONNECTED"], timeout=15)

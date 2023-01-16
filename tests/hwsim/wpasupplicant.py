@@ -1155,7 +1155,7 @@ class WpaSupplicant:
         return id
 
     def scan(self, type=None, freq=None, no_wait=False, only_new=False,
-             passive=False):
+             passive=False, timeout=15):
         if not no_wait:
             self.dump_monitor()
         if type:
@@ -1176,7 +1176,7 @@ class WpaSupplicant:
         if no_wait:
             return
         ev = self.wait_event(["CTRL-EVENT-SCAN-RESULTS",
-                              "CTRL-EVENT-SCAN-FAILED"], 15)
+                              "CTRL-EVENT-SCAN-FAILED"], timeout)
         if ev is None:
             raise Exception("Scan timed out")
         if "CTRL-EVENT-SCAN-FAILED" in ev:
