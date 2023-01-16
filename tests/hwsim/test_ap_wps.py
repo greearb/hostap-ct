@@ -3919,9 +3919,11 @@ def test_ap_wps_iteration_error(dev, apdev):
     hapd.request("SET ext_eapol_frame_io 1")
     bssid = apdev[0]['bssid']
     pin = dev[0].wps_read_pin()
+    dev[0].scan_for_bss(bssid, freq="2412")
+    dev[0].dump_monitor()
     dev[0].request("WPS_PIN any " + pin)
 
-    ev = hapd.wait_event(["EAPOL-TX"], timeout=15)
+    ev = hapd.wait_event(["EAPOL-TX"], timeout=30)
     if ev is None:
         raise Exception("No EAPOL-TX (EAP-Request/Identity) from hostapd")
     dev[0].request("EAPOL_RX " + bssid + " " + ev.split(' ')[2])
