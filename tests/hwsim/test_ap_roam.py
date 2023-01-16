@@ -20,7 +20,7 @@ def test_ap_roam_open(dev, apdev):
     dev[0].connect("test-open", key_mgmt="NONE")
     hwsim_utils.test_connectivity(dev[0], hapd0)
     hapd1 = hostapd.add_ap(apdev[1], {"ssid": "test-open"})
-    dev[0].scan(type="ONLY")
+    dev[0].scan(type="ONLY", timeout=30)
     dev[0].roam(apdev[1]['bssid'])
     hwsim_utils.test_connectivity(dev[0], hapd1)
     dev[0].roam(apdev[0]['bssid'])
