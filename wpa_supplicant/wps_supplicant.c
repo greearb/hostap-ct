@@ -1014,6 +1014,7 @@ static void wpas_wps_timeout(void *eloop_ctx, void *timeout_ctx)
 	 */
 	wpas_notify_wps_event_fail(wpa_s, &data.fail);
 	wpa_s->supp_pbc_active = false;
+	wpa_s->wps_overlap = false;
 	wpas_clear_wps(wpa_s);
 }
 
@@ -1386,6 +1387,7 @@ int wpas_wps_cancel(struct wpa_supplicant *wpa_s)
 	}
 
 	wpa_s->supp_pbc_active = false;
+	wpa_s->wps_overlap = false;
 	wpa_msg(wpa_s, MSG_INFO, WPS_EVENT_CANCEL);
 	wpa_s->after_wps = 0;
 
