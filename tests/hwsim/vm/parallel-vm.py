@@ -201,12 +201,18 @@ def vm_read_stderr(vm):
             raise
 
 def vm_next_step(_vm, scr, test_queue):
-    scr.move(_vm['idx'] + 1, 10)
-    scr.clrtoeol()
+    max_y, max_x = scr.getmaxyx()
+    status_line = num_servers + 1
+    if status_line >= max_y:
+        status_line = max_y - 1
+    if _vm['idx'] + 1 < status_line:
+        scr.move(_vm['idx'] + 1, 10)
+        scr.clrtoeol()
     if not test_queue:
         _vm['proc'].stdin.write(b'\n')
         _vm['proc'].stdin.flush()
-        scr.addstr("shutting down")
+        if _vm['idx'] + 1 < status_line:
+            scr.addstr("shutting down")
         logger.info("VM[%d] shutting down" % _vm['idx'])
         return
     (name, count) = test_queue.pop(0)
@@ -214,11 +220,16 @@ def vm_next_step(_vm, scr, test_queue):
     _vm['current_count'] = count
     _vm['proc'].stdin.write(name.encode() + b'\n')
     _vm['proc'].stdin.flush()
-    scr.addstr(name)
+    if _vm['idx'] + 1 < status_line:
+        scr.addstr(name)
     logger.debug("VM[%d] start test %s" % (_vm['idx'], name))
 
 def check_vm_start(scr, sel, test_queue):
     running = False
+    max_y, max_x = scr.getmaxyx()
+    status_line = num_servers + 1
+    if status_line >= max_y:
+        status_line = max_y - 1
     for i in range(num_servers):
         if vm[i]['proc']:
             running = True
@@ -231,9 +242,10 @@ def check_vm_start(scr, sel, test_queue):
         num_starting = num_vm_starting()
         if vm[i]['cmd'] and len(test_queue) > num_starting and \
            num_starting < max_start:
-            scr.move(i + 1, 10)
-            scr.clrtoeol()
-            scr.addstr(i + 1, 10, "starting VM")
+            if i + 1 < status_line:
+                scr.move(i + 1, 10)
+                scr.clrtoeol()
+                scr.addstr(i + 1, 10, "starting VM")
             start_vm(vm[i], sel)
             return True, True
 
@@ -244,12 +256,18 @@ def vm_terminated(_vm, scr, sel, test_queue):
     for stream in [_vm['proc'].stdout, _vm['proc'].stderr]:
         sel.unregister(stream)
     _vm['proc'] = None
-    scr.move(_vm['idx'] + 1, 10)
-    scr.clrtoeol()
+    max_y, max_x = scr.getmaxyx()
+    status_line = num_servers + 1
+    if status_line >= max_y:
+        status_line = max_y - 1
+    if _vm['idx'] + 1 < status_line:
+        scr.move(_vm['idx'] + 1, 10)
+        scr.clrtoeol()
     log = '{}/{}.srv.{}/console'.format(dir, timestamp, _vm['idx'] + 1)
     with open(log, 'r') as f:
         if "Kernel panic" in f.read():
-            scr.addstr("kernel panic")
+            if _vm['idx'] + 1 < status_line:
+                scr.addstr("kernel panic")
             logger.info("VM[%d] kernel panic" % _vm['idx'])
             updated = True
     if test_queue:
@@ -258,21 +276,26 @@ def vm_terminated(_vm, scr, sel, test_queue):
             if _vm['proc']:
                 num_vm += 1
         if len(test_queue) > num_vm:
-            scr.addstr("unexpected exit")
+            if _vm['idx'] + 1 < status_line:
+                scr.addstr("unexpected exit")
             logger.info("VM[%d] unexpected exit" % i)
             updated = True
     return updated
 
 def update_screen(scr, total_tests):
-    scr.move(num_servers + 1, 10)
+    max_y, max_x = scr.getmaxyx()
+    status_line = num_servers + 1
+    if status_line >= max_y:
+        status_line = max_y - 1
+    scr.move(status_line, 10)
     scr.clrtoeol()
     scr.addstr("{} %".format(int(100.0 * (total_passed + total_failed + total_skipped) / total_tests)))
-    scr.addstr(num_servers + 1, 20,
+    scr.addstr(status_line, 20,
                "TOTAL={} STARTED={} PASS={} FAIL={} SKIP={}".format(total_tests, total_started, total_passed, total_failed, total_skipped))
     global all_failed
     max_y, max_x = scr.getmaxyx()
     max_lines = max_y - num_servers - 3
-    if len(all_failed) > 0 and max_lines > 0:
+    if len(all_failed) > 0 and max_lines > 0 and num_servers + 2 < max_y - 1:
         scr.move(num_servers + 2, 0)
         scr.addstr("Last failed test cases:")
         if max_lines >= len(all_failed):
@@ -280,6 +303,8 @@ def update_screen(scr, total_tests):
         count = 0
         for i in range(len(all_failed) - max_lines, len(all_failed)):
             count += 1
+            if num_servers + 2 + count >= max_y:
+                break
             scr.move(num_servers + 2 + count, 0)
             scr.addstr(all_failed[i])
             scr.clrtoeol()
@@ -302,13 +327,18 @@ def show_progress(scr):
     start_vm(vm[0], sel)
 
     scr.leaveok(1)
+    max_y, max_x = scr.getmaxyx()
+    status_line = num_servers + 1
+    if status_line >= max_y:
+        status_line = max_y - 1
     scr.addstr(0, 0, "Parallel test execution status", curses.A_BOLD)
     for i in range(0, num_servers):
-        scr.addstr(i + 1, 0, "VM %d:" % (i + 1), curses.A_BOLD)
-        status = "starting VM" if vm[i]['proc'] else "not yet started"
-        scr.addstr(i + 1, 10, status)
-    scr.addstr(num_servers + 1, 0, "Total:", curses.A_BOLD)
-    scr.addstr(num_servers + 1, 20, "TOTAL={} STARTED=0 PASS=0 FAIL=0 SKIP=0".format(total_tests))
+        if i + 1 < status_line:
+            scr.addstr(i + 1, 0, "VM %d:" % (i + 1), curses.A_BOLD)
+            status = "starting VM" if vm[i]['proc'] else "not yet started"
+            scr.addstr(i + 1, 10, status)
+    scr.addstr(status_line, 0, "Total:", curses.A_BOLD)
+    scr.addstr(status_line, 20, "TOTAL={} STARTED=0 PASS=0 FAIL=0 SKIP=0".format(total_tests))
     scr.refresh()
 
     while True:
