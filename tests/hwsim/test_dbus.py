@@ -738,6 +738,7 @@ def test_dbus_wps_pbc_overlap(dev, apdev):
     dev[0].request("WPS_CANCEL")
     dev[0].request("DISCONNECT")
     hapd.disable()
+    hapd2.disable()
     dev[0].flush_scan_cache()
 
 def test_dbus_wps_pin(dev, apdev):
