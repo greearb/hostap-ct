@@ -206,7 +206,6 @@ void wpas_p2p_cancel_remain_on_channel_cb(struct wpa_supplicant *wpa_s,
 void wpas_p2p_interface_unavailable(struct wpa_supplicant *wpa_s);
 void wpas_p2p_notif_connected(struct wpa_supplicant *wpa_s);
 void wpas_p2p_notif_disconnected(struct wpa_supplicant *wpa_s);
-int wpas_p2p_notif_pbc_overlap(struct wpa_supplicant *wpa_s);
 int wpas_p2p_4way_hs_failed(struct wpa_supplicant *wpa_s);
 void wpas_p2p_ap_setup_failed(struct wpa_supplicant *wpa_s);
 bool wpas_p2p_retry_limit_exceeded(struct wpa_supplicant *wpa_s);
@@ -302,11 +301,6 @@ static inline void wpas_p2p_notif_connected(struct wpa_supplicant *wpa_s)
 
 static inline void wpas_p2p_notif_disconnected(struct wpa_supplicant *wpa_s)
 {
-}
-
-static inline int wpas_p2p_notif_pbc_overlap(struct wpa_supplicant *wpa_s)
-{
-	return 0;
 }
 
 static inline int wpas_p2p_4way_hs_failed(struct wpa_supplicant *wpa_s)
