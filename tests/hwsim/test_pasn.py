@@ -309,6 +309,7 @@ def test_pasn_sae_kdk(dev, apdev):
         hapd = start_pasn_ap(apdev[0], params)
 
         dev[0].set("force_kdk_derivation", "1")
+        dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "2")
         dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE",
                        scan_freq="2412")
