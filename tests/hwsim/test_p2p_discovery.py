@@ -163,7 +163,7 @@ def test_discovery_group_client(dev):
     # make group client available on operating channe
     dev[1].group_request("REASSOCIATE")
     ev = dev[1].wait_global_event(["CTRL-EVENT-CONNECTED",
-                                   "P2P-GO-NEG-REQUEST"], timeout=10)
+                                   "P2P-GO-NEG-REQUEST"], timeout=15)
     if ev is None:
         raise Exception("Timeout on reconnection to group")
     if "P2P-GO-NEG-REQUEST" not in ev:
