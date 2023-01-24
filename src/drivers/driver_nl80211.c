@@ -80,6 +80,63 @@ enum nlmsgerr_attrs {
 #endif /* ANDROID */
 
 
+#if 0
+static struct nla_policy
+ibf_ctrl_policy[NUM_MTK_VENDOR_ATTRS_IBF_CTRL] = {
+	[MTK_VENDOR_ATTR_IBF_CTRL_ENABLE] = { .type = NLA_U8 },
+};
+
+static struct nla_policy
+ibf_dump_policy[NUM_MTK_VENDOR_ATTRS_IBF_DUMP] = {
+	[MTK_VENDOR_ATTR_IBF_DUMP_ENABLE] = { .type = NLA_U8 },
+};
+
+static struct nla_policy three_wire_ctrl_policy[NUM_MTK_VENDOR_ATTRS_3WIRE_CTRL] = {
+	[MTK_VENDOR_ATTR_3WIRE_CTRL_MODE] = {.type = NLA_U8 },
+};
+
+static struct nla_policy edcca_ctrl_policy[NUM_MTK_VENDOR_ATTRS_EDCCA_CTRL] = {
+	[MTK_VENDOR_ATTR_EDCCA_CTRL_MODE] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_EDCCA_CTRL_PRI20_VAL] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC20_VAL] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC40_VAL] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC80_VAL] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_EDCCA_CTRL_COMPENSATE] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC160_VAL] = { .type = NLA_U8 },
+};
+
+static const struct nla_policy
+wireless_dump_policy[NUM_MTK_VENDOR_ATTRS_WIRELESS_DUMP] = {
+	[MTK_VENDOR_ATTR_WIRELESS_DUMP_AMSDU] = { .type = NLA_U8 },
+};
+
+static const struct nla_policy
+rfeature_ctrl_policy[NUM_MTK_VENDOR_ATTRS_RFEATURE_CTRL] = {
+	[MTK_VENDOR_ATTR_RFEATURE_CTRL_HE_GI] = {.type = NLA_U8 },
+	[MTK_VENDOR_ATTR_RFEATURE_CTRL_HE_LTF] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_RFEATURE_CTRL_TRIG_TYPE_CFG] = { .type = NLA_NESTED },
+	[MTK_VENDOR_ATTR_RFEATURE_CTRL_TRIG_TYPE_EN] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_RFEATURE_CTRL_TRIG_TYPE] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_RFEATURE_CTRL_ACK_PLCY] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_RFEATURE_CTRL_TRIG_TXBF] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_RFEATURE_CTRL_TRIG_VARIANT_TYPE] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_RFEATURE_CTRL_CODING_TYPE] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_RFEATURE_CTRL_LINK_ID] = { .type = NLA_U8 },
+};
+
+static const struct nla_policy
+wireless_ctrl_policy[NUM_MTK_VENDOR_ATTRS_WIRELESS_CTRL] = {
+	[MTK_VENDOR_ATTR_WIRELESS_CTRL_FIXED_MCS] = {.type = NLA_U8 },
+	[MTK_VENDOR_ATTR_WIRELESS_CTRL_FIXED_OFDMA] = {.type = NLA_U8 },
+	[MTK_VENDOR_ATTR_WIRELESS_CTRL_PPDU_TX_TYPE] = {.type = NLA_U8 },
+	[MTK_VENDOR_ATTR_WIRELESS_CTRL_NUSERS_OFDMA] = {.type = NLA_U8 },
+	[MTK_VENDOR_ATTR_WIRELESS_CTRL_MIMO] = {.type = NLA_U8 },
+	[MTK_VENDOR_ATTR_WIRELESS_CTRL_BA_BUFFER_SIZE] = {.type = NLA_U16 },
+	[MTK_VENDOR_ATTR_WIRELESS_CTRL_AMSDU] = {.type = NLA_U8 },
+	[MTK_VENDOR_ATTR_WIRELESS_CTRL_CERT] = {.type = NLA_U8 },
+};
+#endif
+
 static struct nl_sock * nl_create_handle(struct nl_cb *cb, const char *dbg)
 {
 	struct nl_sock *handle;
@@ -15935,7 +15992,6 @@ static int nl80211_get_aval_color_bmp(void *priv, u64 *aval_color_bmp)
 	return ret;
 }
 
-#if 0
 static int nl80211_ap_wireless(void *priv, u8 sub_vendor_id, int value)
 {
 	struct i802_bss *bss = priv;
@@ -15978,10 +16034,8 @@ fail:
 	nlmsg_free(msg);
 	return -ENOBUFS;
 }
-#endif
 
-#if 0
-static int nl80211_ap_rfeatures(void *priv, u8 sub_vendor_id, int value)
+static int nl80211_ap_rfeatures(void *priv, u8 sub_vendor_id, int value, s8 link_id)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -16009,6 +16063,9 @@ static int nl80211_ap_rfeatures(void *priv, u8 sub_vendor_id, int value)
 
 	nla_put_u8(msg, sub_vendor_id, (u8) value);
 
+	if (link_id > -1)
+		nla_put_u8(msg, MTK_VENDOR_ATTR_RFEATURE_CTRL_LINK_ID, link_id);
+
 	nla_nest_end(msg, data);
 
 	ret = send_and_recv_cmd(drv, msg);
@@ -16021,9 +16078,7 @@ fail:
 	nlmsg_free(msg);
 	return -ENOBUFS;
 }
-#endif
 
-#if 0
 static int nl80211_ap_trigtype(void *priv, u8 enable, u8 type)
 {
 	struct i802_bss *bss = priv;
@@ -16070,7 +16125,6 @@ fail:
 	nlmsg_free(msg);
 	return -ENOBUFS;
 }
-#endif
 
 const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.name = "nl80211",
@@ -16256,4 +16310,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.amsdu_ctrl = nl80211_enable_amsdu,
 	.amsdu_dump = nl80211_dump_amsdu,
 	.get_aval_color_bmp = nl80211_get_aval_color_bmp,
+	.ap_wireless = nl80211_ap_wireless,
+	.ap_rfeatures = nl80211_ap_rfeatures,
+	.ap_trigtype = nl80211_ap_trigtype,
 };
