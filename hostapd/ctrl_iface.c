@@ -72,6 +72,7 @@
 #include "ctrl_iface.h"
 #include "config_file.h"
 
+#include "common/mtk_vendor.h"
 
 #define HOSTAPD_CLI_DUP_VALUE_MAX_LEN 256
 
@@ -4534,6 +4535,96 @@ hostapd_ctrl_iface_get_aval_color_bmp(struct hostapd_data *hapd, char *buf,
 	return pos - buf;
 }
 
+static int
+hostapd_ctrl_iface_ap_wireless(struct hostapd_data *hapd, char *cmd,
+					 char *buf, size_t buflen)
+{
+	char *pos, *value, *config = cmd;
+	enum mtk_vendor_attr_wireless_ctrl sub_cmd;
+
+	pos = os_strchr(config, '=');
+	if (pos == NULL)
+		return -1;
+	*pos++ = '\0';
+	value = pos;
+
+	if (os_strncmp(config, "fixed_mcs", 9) == 0)
+		sub_cmd = MTK_VENDOR_ATTR_WIRELESS_CTRL_FIXED_MCS;
+	else if (os_strncmp(config, "ofdma", 5) == 0)
+		sub_cmd = MTK_VENDOR_ATTR_WIRELESS_CTRL_FIXED_OFDMA;
+	else if (os_strncmp(config, "ppdu_type", 9) == 0)
+		sub_cmd = MTK_VENDOR_ATTR_WIRELESS_CTRL_PPDU_TX_TYPE;
+	else if (os_strncmp(config, "nusers_ofdma", 12) == 0)
+		sub_cmd = MTK_VENDOR_ATTR_WIRELESS_CTRL_NUSERS_OFDMA;
+	else if (os_strncmp(config, "add_ba_req_bufsize", 18) == 0)
+		sub_cmd = MTK_VENDOR_ATTR_WIRELESS_CTRL_BA_BUFFER_SIZE;
+	else if (os_strncmp(config, "mimo", 4) == 0)
+		sub_cmd = MTK_VENDOR_ATTR_WIRELESS_CTRL_MIMO;
+	else if (os_strncmp(config, "cert", 4) == 0)
+		sub_cmd = MTK_VENDOR_ATTR_WIRELESS_CTRL_CERT ;
+	else if (os_strncmp(config, "amsdu", 5) == 0)
+		sub_cmd = MTK_VENDOR_ATTR_WIRELESS_CTRL_AMSDU;
+	else if (os_strncmp(config, "rts_sigta", 9) == 0)
+		sub_cmd = MTK_VENDOR_ATTR_WIRELESS_CTRL_RTS_SIGTA;
+	else {
+		wpa_printf(MSG_ERROR,
+			"Unsupported parameter %s for ap_wireless", config);
+		return -1;
+	}
+
+	if (hostapd_drv_ap_wireless(hapd, (u8) sub_cmd, atoi(value)) != 0)
+		return -1;
+
+	return os_snprintf(buf, buflen, "OK\n");
+}
+
+static int
+hostapd_ctrl_iface_ap_rfeatures(struct hostapd_data *hapd, char *cmd,
+					 char *buf, size_t buflen)
+{
+	char *pos, *value, *type, *config = cmd;
+	enum mtk_vendor_attr_rfeature_ctrl sub_cmd;
+
+	pos = os_strchr(config, '=');
+	if (pos == NULL)
+		return -1;
+	*pos++ = '\0';
+	value = pos;
+
+	if (os_strncmp(config, "he_gi", 5) == 0)
+		sub_cmd = MTK_VENDOR_ATTR_RFEATURE_CTRL_HE_GI;
+	else if (os_strncmp(config, "he_ltf", 6) == 0)
+		sub_cmd = MTK_VENDOR_ATTR_RFEATURE_CTRL_HE_LTF;
+	else if (os_strncmp(config, "trig_type", 9) == 0) {
+		pos = os_strchr(value, ',');
+		if (pos == NULL)
+			return -1;
+		*pos++ = '\0';
+		type = pos;
+		goto trigtype;
+	} else if (os_strcmp(config, "ack_policy") == 0)
+		sub_cmd = MTK_VENDOR_ATTR_RFEATURE_CTRL_ACK_PLCY;
+	else if (os_strcmp(config, "trig_variant") == 0)
+		sub_cmd = MTK_VENDOR_ATTR_RFEATURE_CTRL_TRIG_VARIANT_TYPE;
+	else if (os_strcmp(config, "coding_type") == 0)
+		sub_cmd = MTK_VENDOR_ATTR_RFEATURE_CTRL_CODING_TYPE;
+	else {
+		wpa_printf(MSG_ERROR,
+			"Unsupported parameter %s for ap_rfeatures", config);
+		return -1;
+	}
+
+	if (hostapd_drv_ap_rfeatures(hapd, (u8) sub_cmd, atoi(value)) != 0)
+		return -1;
+	goto exit;
+
+trigtype:
+	if (hostapd_drv_ap_trig_type(hapd, atoi(value), atoi(type)) != 0)
+		return -1;
+
+exit:
+	return os_snprintf(buf, buflen, "OK\n");
+}
 
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
@@ -5168,6 +5259,10 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		reply_len = hostapd_ctrl_iface_get_bss_color(hapd, reply, reply_size);
 	} else if (os_strncmp(buf, "AVAL_COLOR_BMP", 14) == 0) {
 		reply_len = hostapd_ctrl_iface_get_aval_color_bmp(hapd, reply, reply_size);
+	} else if (os_strncmp(buf, "ap_wireless ", 12) == 0) {
+		reply_len = hostapd_ctrl_iface_ap_wireless(hapd, buf + 12, reply, reply_size);
+	} else if (os_strncmp(buf, "ap_rfeatures ", 13) == 0) {
+		reply_len = hostapd_ctrl_iface_ap_rfeatures(hapd, buf + 13, reply, reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;
