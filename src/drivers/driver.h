@@ -5641,6 +5641,29 @@ struct wpa_driver_ops {
 	 *
 	 */
 	int (*get_aval_color_bmp)(void *priv, u64 *aval_color_bmp);
+
+	/**
+	* ap_wireless - set wireless command
+	* @priv: Private driver interface data
+	* @value: value
+	*/
+	int (*ap_wireless)(void *priv, u8 mode, int value);
+
+	/**
+	* ap_rfeatures - set ap rf features command
+	* @priv: Private driver interface data
+	* @value: value
+	* @link_id: MLD link id. -1 if this is an non-MLD AP.
+	*/
+	int (*ap_rfeatures)(void *priv, u8 mode, int value, s8 link_id);
+
+	/**
+	* ap_trigtype - set trigger type
+	* @priv: Private driver interface data
+	* @enable: enable or disable
+	* @type: trigger type
+	*/
+	int (*ap_trigtype)(void *priv, u8 enable, u8 type);
 };
 
 /**
