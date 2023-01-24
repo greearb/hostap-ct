@@ -50,18 +50,6 @@ enum mtk_vendor_attr_edcca_dump {
 		NUM_MTK_VENDOR_ATTRS_EDCCA_DUMP - 1
 };
 
-#if 0
-static struct nla_policy edcca_ctrl_policy[NUM_MTK_VENDOR_ATTRS_EDCCA_CTRL] = {
-	[MTK_VENDOR_ATTR_EDCCA_CTRL_MODE] = { .type = NLA_U8 },
-	[MTK_VENDOR_ATTR_EDCCA_CTRL_PRI20_VAL] = { .type = NLA_U8 },
-	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC20_VAL] = { .type = NLA_U8 },
-	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC40_VAL] = { .type = NLA_U8 },
-	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC80_VAL] = { .type = NLA_U8 },
-	[MTK_VENDOR_ATTR_EDCCA_CTRL_COMPENSATE] = { .type = NLA_U8 },
-	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC160_VAL] = { .type = NLA_U8 },
-};
-#endif
-
 enum mtk_vendor_attr_3wire_ctrl {
 	MTK_VENDOR_ATTR_3WIRE_CTRL_UNSPEC,
 
@@ -72,12 +60,6 @@ enum mtk_vendor_attr_3wire_ctrl {
 	MTK_VENDOR_ATTR_3WIRE_CTRL_MAX =
 		NUM_MTK_VENDOR_ATTRS_3WIRE_CTRL - 1
 };
-
-#if 0
-static struct nla_policy three_wire_ctrl_policy[NUM_MTK_VENDOR_ATTRS_3WIRE_CTRL] = {
-	[MTK_VENDOR_ATTR_3WIRE_CTRL_MODE] = {.type = NLA_U8 },
-};
-#endif
 
 enum mtk_vendor_attr_csi_ctrl {
 	MTK_VENDOR_ATTR_CSI_CTRL_UNSPEC,
@@ -175,7 +157,8 @@ enum mtk_vendor_attr_wireless_ctrl {
 	MTK_VENDOR_ATTR_WIRELESS_CTRL_BA_BUFFER_SIZE,
 	MTK_VENDOR_ATTR_WIRELESS_CTRL_MIMO,
 	MTK_VENDOR_ATTR_WIRELESS_CTRL_AMSDU,
-	MTK_VENDOR_ATTR_WIRELESS_CTRL_CERT,
+	MTK_VENDOR_ATTR_WIRELESS_CTRL_CERT = 9,
+	MTK_VENDOR_ATTR_WIRELESS_CTRL_RTS_SIGTA,
 
 	/* keep last */
 	NUM_MTK_VENDOR_ATTRS_WIRELESS_CTRL,
@@ -194,11 +177,6 @@ enum mtk_vendor_attr_wireless_dump {
 		NUM_MTK_VENDOR_ATTRS_WIRELESS_DUMP - 1
 };
 
-static const struct nla_policy
-wireless_dump_policy[NUM_MTK_VENDOR_ATTRS_WIRELESS_DUMP] = {
-	[MTK_VENDOR_ATTR_WIRELESS_DUMP_AMSDU] = { .type = NLA_U8 },
-};
-
 enum mtk_vendor_attr_rfeature_ctrl {
 	MTK_VENDOR_ATTR_RFEATURE_CTRL_UNSPEC,
 
@@ -208,6 +186,10 @@ enum mtk_vendor_attr_rfeature_ctrl {
 	MTK_VENDOR_ATTR_RFEATURE_CTRL_TRIG_TYPE_EN,
 	MTK_VENDOR_ATTR_RFEATURE_CTRL_TRIG_TYPE,
 	MTK_VENDOR_ATTR_RFEATURE_CTRL_ACK_PLCY,
+	MTK_VENDOR_ATTR_RFEATURE_CTRL_TRIG_TXBF,
+	MTK_VENDOR_ATTR_RFEATURE_CTRL_TRIG_VARIANT_TYPE,
+	MTK_VENDOR_ATTR_RFEATURE_CTRL_CODING_TYPE,
+	MTK_VENDOR_ATTR_RFEATURE_CTRL_LINK_ID,
 
 	/* keep last */
 	NUM_MTK_VENDOR_ATTRS_RFEATURE_CTRL,
@@ -248,18 +230,6 @@ enum mtk_vendor_attr_ibf_dump {
 	MTK_VENDOR_ATTR_IBF_DUMP_MAX =
 		NUM_MTK_VENDOR_ATTRS_IBF_DUMP - 1
 };
-
-#if 0
-static struct nla_policy
-ibf_ctrl_policy[NUM_MTK_VENDOR_ATTRS_IBF_CTRL] = {
-	[MTK_VENDOR_ATTR_IBF_CTRL_ENABLE] = { .type = NLA_U8 },
-};
-
-static struct nla_policy
-ibf_dump_policy[NUM_MTK_VENDOR_ATTRS_IBF_DUMP] = {
-	[MTK_VENDOR_ATTR_IBF_DUMP_ENABLE] = { .type = NLA_U8 },
-};
-#endif
 
 enum mtk_vendor_attr_bss_color_ctrl {
 	MTK_VENDOR_ATTR_BSS_COLOR_CTRL_UNSPEC,
