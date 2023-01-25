@@ -74,6 +74,14 @@ EAP_ERP_TLV_NAS_IDENTIFIER = 130
 EAP_ERP_TLV_NAS_IP_ADDRESS = 131
 EAP_ERP_TLV_NAS_IPV6_ADDRESS = 132
 
+def add_message_authenticator_attr(reply, digest):
+    if digest.startswith(b'0x'):
+        # Work around pyrad tools.py EncodeOctets() functionality that
+        # assumes a binary value that happens to start with "0x" to be
+        # a hex string.
+        digest = b"0x" + binascii.hexlify(digest)
+    reply.AddAttribute("Message-Authenticator", digest)
+
 def run_pyrad_server(srv, t_stop, eap_handler):
     srv.RunWithStop(t_stop, eap_handler)
 
@@ -119,7 +127,7 @@ def start_radius_server(eap_handler):
             hmac_obj.update(pkt.authenticator)
             hmac_obj.update(attrs)
             del reply[80]
-            reply.AddAttribute("Message-Authenticator", hmac_obj.digest())
+            add_message_authenticator_attr(reply, hmac_obj.digest())
 
             self.SendReplyPacket(pkt.fd, reply)
 
