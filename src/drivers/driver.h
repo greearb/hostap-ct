@@ -5612,6 +5612,14 @@ struct wpa_driver_ops {
 	 */
 	int (*amsdu_ctrl)(void *priv, u8 amsdu);
 	int (*amsdu_dump)(void *priv, u8 *amsdu);
+
+	/**
+	 * get_aval_color_bmp - get available BSS color bitmap
+	 * @priv: Private driver interface data
+	 * @aval_color_bmp: available bss color bitmap
+	 *
+	 */
+	int (*get_aval_color_bmp)(void *priv, u64 *aval_color_bmp);
 };
 
 /**
