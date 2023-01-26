@@ -13838,7 +13838,6 @@ static void nl80211_parse_btm_candidate_info(struct candidate_list *candidate,
 		   num, MAC2STR(candidate->bssid), buf);
 }
 
-
 static int
 nl80211_get_bss_transition_status_handler(struct nl_msg *msg, void *arg)
 {
@@ -15869,6 +15868,210 @@ fail:
 	return -ENOBUFS;
 }
 
+static int nl80211_get_aval_color_bmp_handler(struct nl_msg *msg, void *arg)
+{
+	u64 *aval_color_bmp = arg;
+	struct nlattr *tb[NL80211_ATTR_MAX + 1];
+	struct nlattr *tb_vendor[MTK_VENDOR_ATTR_BSS_COLOR_CTRL_MAX + 1];
+	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
+	struct nlattr *nl_vend;
+
+#if 0
+	static const struct nla_policy
+	bss_color_ctrl_policy[NUM_MTK_VENDOR_ATTRS_BSS_COLOR_CTRL + 1] = {
+		[MTK_VENDOR_ATTR_AVAL_BSS_COLOR_BMP] = { .type = NLA_U64 },
+	};
+#endif
+
+	nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
+			genlmsg_attrlen(gnlh, 0), NULL);
+
+	nl_vend = tb[NL80211_ATTR_VENDOR_DATA];
+	if (!nl_vend)
+		return NL_SKIP;
+
+	nla_parse(tb_vendor, MTK_VENDOR_ATTR_BSS_COLOR_CTRL_MAX,
+			nla_data(nl_vend), nla_len(nl_vend), NULL);
+
+	*aval_color_bmp = nla_get_u64(tb_vendor[MTK_VENDOR_ATTR_AVAL_BSS_COLOR_BMP]);
+
+	return 0;
+}
+
+static int nl80211_get_aval_color_bmp(void *priv, u64 *aval_color_bmp)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *attr;
+	int ret;
+
+	if (!drv->mtk_bss_color_vendor_cmd_avail) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Driver does not support BSS COLOR vendor cmd");
+		return 0;
+	}
+
+	if (!(msg = nl80211_drv_msg(drv, NLM_F_DUMP, NL80211_CMD_VENDOR)) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+			MTK_NL80211_VENDOR_SUBCMD_BSS_COLOR_CTRL))
+		return -ENOBUFS;
+
+	attr = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA);
+	if (!attr) {
+		nlmsg_free(msg);
+		return -1;
+	}
+
+	nla_nest_end(msg, attr);
+
+	ret = send_and_recv_resp(drv, msg, nl80211_get_aval_color_bmp_handler, aval_color_bmp);
+
+	if (ret) {
+		wpa_printf(MSG_ERROR, "Failed to send BSS COLOR vendor cmd. ret=%d (%s) ",
+			   ret, strerror(-ret));
+	}
+	return ret;
+}
+
+#if 0
+static int nl80211_ap_wireless(void *priv, u8 sub_vendor_id, int value)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *data;
+	int ret;
+
+	if (!drv->mtk_wireless_vendor_cmd_avail) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Driver does not support setting ap wireless control");
+		return 0;
+	}
+
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
+	if (!msg)
+		goto fail;
+
+	if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+		nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD, MTK_NL80211_VENDOR_SUBCMD_WIRELESS_CTRL))
+		goto fail;
+
+	data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA);
+	if (!data)
+		goto fail;
+
+	if (sub_vendor_id == MTK_VENDOR_ATTR_WIRELESS_CTRL_BA_BUFFER_SIZE)
+		nla_put_u16(msg, sub_vendor_id, (u16) value);
+	else
+		nla_put_u8(msg, sub_vendor_id, (u8) value);
+
+	nla_nest_end(msg, data);
+	ret = send_and_recv_cmd(drv, msg);
+	if (ret)
+		wpa_printf(MSG_ERROR, "Failed to set ap_wireless. ret=%d (%s)", ret, strerror(-ret));
+
+	return ret;
+
+fail:
+	nlmsg_free(msg);
+	return -ENOBUFS;
+}
+#endif
+
+#if 0
+static int nl80211_ap_rfeatures(void *priv, u8 sub_vendor_id, int value)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *data;
+	int ret;
+
+	if (!drv->mtk_rfeatures_vendor_cmd_avail) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Driver does not support setting ap rfeatures control");
+		return 0;
+	}
+
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
+	if (!msg)
+		goto fail;
+
+	if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+		nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD, MTK_NL80211_VENDOR_SUBCMD_RFEATURE_CTRL))
+		goto fail;
+
+	data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA);
+	if (!data)
+		goto fail;
+
+	nla_put_u8(msg, sub_vendor_id, (u8) value);
+
+	nla_nest_end(msg, data);
+
+	ret = send_and_recv_cmd(drv, msg);
+	if (ret)
+		wpa_printf(MSG_ERROR, "Failed to set rf_features. ret=%d (%s)", ret, strerror(-ret));
+
+	return ret;
+
+fail:
+	nlmsg_free(msg);
+	return -ENOBUFS;
+}
+#endif
+
+#if 0
+static int nl80211_ap_trigtype(void *priv, u8 enable, u8 type)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *data, *data2;
+	int ret;
+
+	if (!drv->mtk_rfeatures_vendor_cmd_avail) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Driver does not support setting ap rfeatures control");
+		return 0;
+	}
+
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
+	if (!msg)
+		goto fail;
+
+	if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+		nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD, MTK_NL80211_VENDOR_SUBCMD_RFEATURE_CTRL))
+		goto fail;
+
+	data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA);
+	if (!data)
+		goto fail;
+
+	data2 = nla_nest_start(msg, MTK_VENDOR_ATTR_RFEATURE_CTRL_TRIG_TYPE_CFG);
+	if (!data2)
+		goto fail;
+
+	nla_put_u8(msg, MTK_VENDOR_ATTR_RFEATURE_CTRL_TRIG_TYPE_EN, enable);
+	nla_put_u8(msg, MTK_VENDOR_ATTR_RFEATURE_CTRL_TRIG_TYPE, type);
+
+	nla_nest_end(msg, data2);
+	nla_nest_end(msg, data);
+
+	ret = send_and_recv_cmd(drv, msg);
+	if (ret)
+		wpa_printf(MSG_ERROR, "Failed to set trig_type. ret=%d (%s)", ret, strerror(-ret));
+
+	return ret;
+
+fail:
+	nlmsg_free(msg);
+	return -ENOBUFS;
+}
+#endif
+
 const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.name = "nl80211",
 	.desc = "Linux nl80211/cfg80211",
@@ -16052,4 +16255,5 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.ibf_dump = nl80211_ibf_dump,
 	.amsdu_ctrl = nl80211_enable_amsdu,
 	.amsdu_dump = nl80211_dump_amsdu,
+	.get_aval_color_bmp = nl80211_get_aval_color_bmp,
 };
