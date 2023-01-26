@@ -1687,6 +1687,20 @@ static int hostapd_cli_cmd_reload_rxkhs(struct wpa_ctrl *ctrl, int argc,
 #endif /* CONFIG_IEEE80211R_AP */
 
 
+static int hostapd_cli_cmd_get_bss_color(struct wpa_ctrl *ctrl, int argc,
+					  char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "GET_BSS_COLOR");
+}
+
+
+static int hostapd_cli_cmd_get_aval_color_bmp(struct wpa_ctrl *ctrl, int argc,
+					  char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "AVAL_COLOR_BMP");
+}
+
+
 #ifdef ANDROID
 static int hostapd_cli_cmd_driver(struct wpa_ctrl *ctrl, int argc, char *argv[])
 {
@@ -1937,6 +1951,10 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	{ "get_rxkhs", hostapd_cli_cmd_get_rxkhs, NULL,
 	  "= get R0KHs and R1KHs" },
 #endif /* CONFIG_IEEE80211R_AP */
+	{ "get_bss_color", hostapd_cli_cmd_get_bss_color, NULL,
+	  "= get current BSS color" },
+	{ "get_color_bmp", hostapd_cli_cmd_get_aval_color_bmp, NULL,
+	  "= get available BSS color bitmap" },
 #ifdef ANDROID
 	{ "driver", hostapd_cli_cmd_driver, NULL,
 	  "<driver sub command> [<hex formatted data>] = send driver command data" },

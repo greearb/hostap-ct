@@ -4464,6 +4464,76 @@ hostapd_ctrl_iface_get_amsdu(struct hostapd_data *hapd, char *buf,
 	return ret;
 }
 
+static int
+hostapd_ctrl_iface_get_bss_color(struct hostapd_data *hapd, char *buf,
+		size_t buflen)
+{
+	int ret;
+	char *pos, *end;
+	int i;
+
+	pos = buf;
+	end = buf + buflen;
+
+	if (hapd->iface->conf->he_op.he_bss_color_disabled)
+		ret = os_snprintf(buf, buflen, "BSS Color disabled\n");
+	else
+		ret = os_snprintf(buf, buflen, "BSS Color=%u\n",
+				  hapd->iface->conf->he_op.he_bss_color);
+
+	pos += ret;
+
+	return pos - buf;
+}
+
+
+static int
+hostapd_ctrl_iface_get_aval_color_bmp(struct hostapd_data *hapd, char *buf,
+		size_t buflen)
+{
+	int ret;
+	char *pos, *end;
+	int i;
+	u64 aval_color_bmp = 0;
+
+	hostapd_drv_get_aval_bss_color_bmp(hapd, &aval_color_bmp);
+	hapd->color_collision_bitmap = ~aval_color_bmp;
+
+	pos = buf;
+	end = buf + buflen;
+
+	ret = os_snprintf(buf, buflen,
+			  "available color bitmap=0x%lx\n",
+			  aval_color_bmp);
+	if (os_snprintf_error(end - pos, ret))
+		return pos - buf;
+	pos += ret;
+
+	for (i = 0; i < HE_OPERATION_BSS_COLOR_MAX; i++) {
+		int bit = !!((aval_color_bmp >> i) & 1LLU);
+
+		if (i % 8 == 0) {
+			ret = os_snprintf(pos, end - pos, "%2d: ", i);
+			if (os_snprintf_error(end - pos, ret))
+				return pos - buf;
+			pos += ret;
+		}
+
+		ret = os_snprintf(pos, end - pos, "%d ", bit);
+		if (os_snprintf_error(end - pos, ret))
+			return pos - buf;
+		pos += ret;
+
+		if (i % 8 == 7) {
+			ret = os_snprintf(pos, end - pos, "\n");
+			if (os_snprintf_error(end - pos, ret))
+				return pos - buf;
+			pos += ret;
+		}
+	}
+	return pos - buf;
+}
+
 
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
@@ -5094,6 +5164,10 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 								   reply, reply_size);
 	} else if (os_strncmp(buf, "GET_AMSDU", 9) == 0) {
 		reply_len = hostapd_ctrl_iface_get_amsdu(hapd, reply, reply_size);
+	} else if (os_strncmp(buf, "GET_BSS_COLOR", 13) == 0) {
+		reply_len = hostapd_ctrl_iface_get_bss_color(hapd, reply, reply_size);
+	} else if (os_strncmp(buf, "AVAL_COLOR_BMP", 14) == 0) {
+		reply_len = hostapd_ctrl_iface_get_aval_color_bmp(hapd, reply, reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;
