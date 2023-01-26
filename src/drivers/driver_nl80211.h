@@ -241,6 +241,8 @@ struct wpa_driver_nl80211_data {
 	unsigned int mtk_3wire_vendor_cmd_avail:1;
 	unsigned int mtk_ibf_vendor_cmd_avail:1;
 	unsigned int mtk_wireless_vendor_cmd_avail:1;
+	unsigned int mtk_bss_color_vendor_cmd_avail:1;
+	unsigned int mtk_rfeatures_vendor_cmd_avail:1;
 
 	u8 extra_bss_membership_selectors[8];
 
