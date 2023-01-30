@@ -6,11 +6,16 @@ error()
     exit 1
 }
 
+JOBS=`nproc`
+if [ -z "$ABC" ]; then
+    JOBS=8
+fi
+
 for i in *; do
     if [ -d $i ]; then
 	cd $i
 	make clean
-	make -j8 || error
+	make QUIET=1 -j$JOBS || error
 	make clean
 	cd ..
     fi
