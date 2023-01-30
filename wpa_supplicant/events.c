@@ -2874,10 +2874,12 @@ static int wpa_supplicant_use_own_rsne_params(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
+#ifdef CONFIG_OCV
 	if (((wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME) ||
 	     (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_OCV)) && ssid->ocv)
 		wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_OCV,
 				 !!(ie.capabilities & WPA_CAPABILITY_OCVC));
+#endif /* CONFIG_OCV */
 
 	/*
 	 * Update PMK in wpa_sm and the driver if roamed to WPA/WPA2 PSK from a
