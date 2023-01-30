@@ -981,6 +981,7 @@ static int rate_match(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 				if (wpa_s->conf->sae_pwe ==
 				    SAE_PWE_HUNT_AND_PECK &&
 				    !ssid->sae_password_id &&
+				    !is_6ghz_freq(bss->freq) &&
 				    wpa_key_mgmt_sae(ssid->key_mgmt)) {
 					if (debug_print)
 						wpa_dbg(wpa_s, MSG_DEBUG,
