@@ -894,6 +894,11 @@ enum qca_radiotap_vendor_ids {
  *	latest several instances of roam information cached in the driver.
  *	The command is only used for STA mode. The attributes used with this
  *	command are defined in enum qca_wlan_vendor_attr_roam_cached_stats.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_MLO_LINK_STATE: This vendor subcommand is used to
+ *	configure and fetch the state information of the MLO links affiliated
+ *	with the STA interface. The attributes used with this command are
+ *	defined in enum qca_wlan_vendor_attr_mlo_link_state.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1104,6 +1109,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_DOZED_AP = 224,
 	QCA_NL80211_VENDOR_SUBCMD_GET_MONITOR_MODE = 225,
 	QCA_NL80211_VENDOR_SUBCMD_ROAM_STATS = 226,
+	QCA_NL80211_VENDOR_SUBCMD_MLO_LINK_STATE = 227,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -14896,6 +14902,160 @@ enum qca_wlan_vendor_attr_get_monitor_mode {
 	QCA_WLAN_VENDOR_ATTR_GET_MONITOR_MODE_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_GET_MONITOR_MODE_MAX =
 	QCA_WLAN_VENDOR_ATTR_GET_MONITOR_MODE_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_link_state_op_types - Defines different types of
+ * operations for which %QCA_NL80211_VENDOR_SUBCMD_MLO_LINK_STATE can be used.
+ * Will be used with %QCA_WLAN_VENDOR_ATTR_LINK_STATE_OP_TYPE attribute.
+ *
+ * @QCA_WLAN_VENDOR_LINK_STATE_OP_GET - Get the MLO links state information.
+ * @QCA_WLAN_VENDOR_LINK_STATE_OP_SET - Set the MLO links state information.
+ */
+enum qca_wlan_vendor_link_state_op_types {
+	QCA_WLAN_VENDOR_LINK_STATE_OP_GET = 0,
+	QCA_WLAN_VENDOR_LINK_STATE_OP_SET = 1,
+};
+
+/**
+ * enum qca_wlan_vendor_link_state_control_modes - Represents the types of MLO
+ * links state control modes. This enum is used by
+ * %QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONTROL_MODE attribute.
+ *
+ * @QCA_WLAN_VENDOR_LINK_STATE_CONTROL_MODE_DEFAULT: MLO links state controlled
+ * by the driver.
+ * @QCA_WLAN_VENDOR_LINK_STATE_CONTROL_MODE_USER: MLO links state controlled by
+ * user space.
+ * @QCA_WLAN_VENDOR_LINK_STATE_CONTROL_MODE_MIXED: User space provides the
+ * desired number of MLO links to operate in active state at any given time.
+ * The driver will choose which MLO links should operate in the active state.
+ * See enum qca_wlan_vendor_link_state for active state definition.
+ */
+enum qca_wlan_vendor_link_state_control_modes {
+	QCA_WLAN_VENDOR_LINK_STATE_CONTROL_MODE_DEFAULT = 0,
+	QCA_WLAN_VENDOR_LINK_STATE_CONTROL_MODE_USER = 1,
+	QCA_WLAN_VENDOR_LINK_STATE_CONTROL_MODE_MIXED = 2,
+};
+
+/**
+ * enum qca_wlan_vendor_link_state_operation_modes - Represents the types of MLO
+ * links state operation modes. This enum is used by
+ * %QCA_WLAN_VENDOR_ATTR_LINK_STATE_OPERATION_MODE attribute.
+ *
+ * @QCA_WLAN_VENDOR_LINK_STATE_OPERATION_MODE_DEFAULT: In the default operation
+ * mode, the driver selects the operating mode of the links, without any
+ * guidance from the user space.
+ * @QCA_WLAN_VENDOR_LINK_STATE_OPERATION_MODE_LOW_LATENCY: In the low latency
+ * operation mode the driver should select MLO links that will achieve low
+ * latency.
+ * @QCA_WLAN_VENDOR_LINK_STATE_OPERATION_MODE_HIGH_THROUGHPUT: In the high
+ * throughput operation mode the driver should select MLO links that will
+ * achieve higher throughput.
+ * @QCA_WLAN_VENDOR_LINK_STATE_OPERATION_MODE_LOW_POWER: In the low power
+ * operation mode the driver should select MLO links that will achieve low
+ * power.
+ */
+enum qca_wlan_vendor_link_state_operation_modes {
+	QCA_WLAN_VENDOR_LINK_STATE_OPERATION_MODE_DEFAULT = 0,
+	QCA_WLAN_VENDOR_LINK_STATE_OPERATION_MODE_LOW_LATENCY = 1,
+	QCA_WLAN_VENDOR_LINK_STATE_OPERATION_MODE_HIGH_THROUGHPUT = 2,
+	QCA_WLAN_VENDOR_LINK_STATE_OPERATION_MODE_LOW_POWER = 3,
+};
+
+/**
+ * enum qca_wlan_vendor_link_state - Represents the possible link states of an
+ * MLO link.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_STATE_INACTIVE: In this state, the link will not
+ * be used for data transmission but it can have TIDs mapped to it. It will be
+ * in doze state always and does not monitor the beacons.
+ * @QCA_WLAN_VENDOR_ATTR_LINK_STATE_ACTIVE: In this state, the link will be
+ * used for data TX/RX and monitors the beacons to check TIM bit indication.
+ * It may enter doze state and comes out based on the transmit data traffic and
+ * TIM bit indication in the beacon.
+ */
+enum qca_wlan_vendor_link_state {
+	QCA_WLAN_VENDOR_LINK_STATE_INACTIVE = 0,
+	QCA_WLAN_VENDOR_LINK_STATE_ACTIVE = 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_link_state_config - Definition of attributes used
+ * inside nested attribute %QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONFIG.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONFIG_LINK_ID: u8 attribute, link ID of the
+ * MLO link.
+ * @QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONFIG_STATE: u32 attribute. See
+ * enum qca_wlan_vendor_link_state for possible MLO link states.
+ */
+
+enum qca_wlan_vendor_attr_link_state_config {
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONFIG_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONFIG_LINK_ID = 1,
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONFIG_STATE = 2,
+
+	/* Keep last */
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONFIG_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONFIG_MAX =
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONFIG_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_mlo_link_state - Attributes used by
+ * %QCA_NL80211_VENDOR_SUBCMD_MLO_LINK_STATE vendor command.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_STATE_OP_TYPE: u32 attribute. Indicates the type
+ * of the operation %QCA_NL80211_VENDOR_SUBCMD_MLO_LINK_STATE intended for.
+ * Required only in a command. Possible values for this attribute are defined in
+ * enum qca_wlan_vendor_link_state_op_types.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONTROL_MODE: u32 attribute. Indicates MLO
+ * links control mode type. Optional attribute in a command when
+ * %QCA_WLAN_VENDOR_ATTR_LINK_STATE_OP_TYPE is set to
+ * %QCA_WLAN_VENDOR_LINK_STATE_OP_SET. Required attribute in a response when
+ * %QCA_WLAN_VENDOR_ATTR_LINK_STATE_OP_TYPE is set to
+ * %QCA_WLAN_VENDOR_LINK_STATE_OP_GET.
+ * See enum qca_wlan_vendor_link_state_control_modes for possible control modes.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONFIG: Array of nested attributes.
+ * Indicates the state of the each MLO link affiliated with the interface.
+ * Required attribute in a command when %QCA_WLAN_VENDOR_ATTR_LINK_STATE_OP_TYPE
+ * is set to %QCA_WLAN_VENDOR_LINK_STATE_OP_SET and
+ * %QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONTROL_MODE is set to
+ * %QCA_WLAN_VENDOR_LINK_STATE_CONTROL_MODE_USER. Required attribute in a
+ * response when %QCA_WLAN_VENDOR_ATTR_LINK_STATE_OP_TYPE is set to
+ * %QCA_WLAN_VENDOR_LINK_STATE_OP_GET.
+ * See enum qca_wlan_vendor_attr_link_state_config for the nested attributes.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_STATE_MIXED_MODE_ACTIVE_NUM_LINKS: u8 attribute.
+ * Represents the number of active state links. See enum
+ * qca_wlan_vendor_link_state for active state definition.
+ * Required attribute in a command when %QCA_WLAN_VENDOR_ATTR_LINK_STATE_OP_TYPE
+ * is set to %QCA_WLAN_VENDOR_LINK_STATE_OP_SET and
+ * %QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONTROL_MODE is set to
+ * %QCA_WLAN_VENDOR_LINK_STATE_CONTROL_MODE_MIXED.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_STATE_OPERATION_MODE: u32 attribute. Indicates MLO
+ * links operation mode type. Optional attribute in a command when
+ * %QCA_WLAN_VENDOR_ATTR_LINK_STATE_OP_TYPE is set to
+ * %QCA_WLAN_VENDOR_LINK_STATE_OP_SET. Required attribute in a response when
+ * %QCA_WLAN_VENDOR_ATTR_LINK_STATE_OP_TYPE is set to
+ * %QCA_WLAN_VENDOR_LINK_STATE_OP_GET.
+ * See enum qca_wlan_vendor_link_state_operation_modes for possible operation
+ * modes.
+ */
+enum qca_wlan_vendor_attr_mlo_link_state {
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_OP_TYPE = 1,
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONTROL_MODE = 2,
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CONFIG = 3,
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_MIXED_MODE_ACTIVE_NUM_LINKS = 4,
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_OPERATION_MODE = 5,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_MAX =
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
