@@ -2705,6 +2705,26 @@ static void interworking_process_assoc_resp(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_INTERWORKING */
 
 
+static void wpa_supplicant_set_4addr_mode(struct wpa_supplicant *wpa_s)
+{
+	if (wpa_s->enabled_4addr_mode) {
+		wpa_printf(MSG_DEBUG, "4addr mode already set");
+		return;
+	}
+
+	if (wpa_drv_set_4addr_mode(wpa_s, 1) < 0) {
+		wpa_msg(wpa_s, MSG_ERROR, "Failed to set 4addr mode");
+		goto fail;
+	}
+	wpa_s->enabled_4addr_mode = 1;
+	wpa_msg(wpa_s, MSG_INFO, "Successfully set 4addr mode");
+	return;
+
+fail:
+	wpa_supplicant_deauthenticate(wpa_s, WLAN_REASON_DEAUTH_LEAVING);
+}
+
+
 static void multi_ap_process_assoc_resp(struct wpa_supplicant *wpa_s,
 					const u8 *ies, size_t ies_len)
 {
@@ -2757,11 +2777,7 @@ static void multi_ap_set_4addr_mode(struct wpa_supplicant *wpa_s)
 		goto fail;
 	}
 
-	if (wpa_drv_set_4addr_mode(wpa_s, 1) < 0) {
-		wpa_printf(MSG_ERROR, "Failed to set 4addr mode");
-		goto fail;
-	}
-	wpa_s->enabled_4addr_mode = 1;
+	wpa_supplicant_set_4addr_mode(wpa_s);
 	return;
 
 fail:
@@ -3849,6 +3865,9 @@ static void wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 #ifdef CONFIG_DPP2
 	wpa_s->dpp_pfs_fallback = 0;
 #endif /* CONFIG_DPP2 */
+
+	if (wpa_s->current_ssid && wpa_s->current_ssid->enable_4addr_mode)
+		wpa_supplicant_set_4addr_mode(wpa_s);
 }
 
 

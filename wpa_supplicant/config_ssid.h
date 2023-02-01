@@ -1240,6 +1240,17 @@ struct wpa_ssid {
 	 * to 1 to have it disabled.
 	 */
 	int disable_eht;
+
+	/**
+	 * enable_4addr_mode - Set 4addr mode after association
+	 * 0 = Do not attempt to set 4addr mode
+	 * 1 = Try to set 4addr mode after association
+	 *
+	 * Linux requires that an interface is set to 4addr mode before it can
+	 * be added to a bridge. Set this to 1 for networks where you intent
+	 * to use the interface in a bridge.
+	 */
+	int enable_4addr_mode;
 };
 
 #endif /* CONFIG_SSID_H */
