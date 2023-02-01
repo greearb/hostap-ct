@@ -661,3 +661,22 @@ def test_wpas_config_update_without_file(dev, apdev):
     wpas.set("update_config", "1")
     if "FAIL" not in wpas.request("SAVE_CONFIG"):
         raise Exception("SAVE_CONFIG accepted unexpectedly")
+
+def test_wpas_config_file_invalid_network(dev, apdev, params):
+    """wpa_supplicant config file parsing of an invalid network"""
+    config = params['prefix'] + '.conf.wlan5'
+    wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+    with open(config, "w") as f:
+        f.write("network={\n")
+        f.write("\tunknown=UNKNOWN\n")
+        f.write("}\n")
+    success = False
+    try:
+        wpas.interface_add("wlan5", config=config)
+        success = True
+    except Exception as e:
+        if str(e) != "Failed to add a dynamic wpa_supplicant interface":
+            raise
+
+    if success:
+        raise Exception("Interface addition succeeded with invalid configuration")
