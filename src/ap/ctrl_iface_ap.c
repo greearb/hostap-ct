@@ -212,6 +212,26 @@ static const char * timeout_next_str(int val)
 }
 
 
+static const char * hw_mode_str(enum hostapd_hw_mode mode)
+{
+	switch (mode) {
+	case HOSTAPD_MODE_IEEE80211B:
+		return "b";
+	case HOSTAPD_MODE_IEEE80211G:
+		return "g";
+	case HOSTAPD_MODE_IEEE80211A:
+		return "a";
+	case HOSTAPD_MODE_IEEE80211AD:
+		return "ad";
+	case HOSTAPD_MODE_IEEE80211ANY:
+		return "any";
+	case NUM_HOSTAPD_MODES:
+		return "invalid";
+	}
+	return "unknown";
+}
+
+
 static int hostapd_ctrl_iface_sta_mib(struct hostapd_data *hapd,
 				      struct sta_info *sta,
 				      char *buf, size_t buflen)
@@ -729,6 +749,14 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 	if (os_snprintf_error(buflen - len, ret))
 		return len;
 	len += ret;
+
+	if (mode) {
+		ret = os_snprintf(buf + len, buflen - len, "hw_mode=%s\n",
+				  hw_mode_str(mode->mode));
+		if (os_snprintf_error(buflen - len, ret))
+			return len;
+		len += ret;
+	}
 
 	if (!iface->cac_started || !iface->dfs_cac_ms) {
 		ret = os_snprintf(buf + len, buflen - len,
