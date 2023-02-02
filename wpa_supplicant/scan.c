@@ -2171,6 +2171,7 @@ static int wpa_scan_result_compar(const void *a, const void *b)
 					return -1;
 				if (!is_6ghz_freq(wa->freq) && is_6ghz_freq(wb->freq))
 					return 1;
+				break;
 			default:
 				break;
 		}
@@ -2833,8 +2834,14 @@ wpa_supplicant_get_scan_results(struct wpa_supplicant *wpa_s,
 	}
 	filter_scan_res(wpa_s, scan_res);
 
-	/* set initial preferred band */
-	if (wpa_s->conf->initial_band_pref && !(wpa_s->wpa_state == WPA_COMPLETED)) {
+	/*
+	 * set initial preferred band
+	 * a reset (up/down) STA will initially be in WPA_SCANNING state.
+	 * then for each scan once already connected, STA should be in WPA_COMPLETED state or
+	 * WPA_ASSOCIATING state (sometimes STA triggers scan while in association process).
+	*/
+	if (wpa_s->conf->initial_band_pref &&
+		 !(wpa_s->wpa_state == WPA_COMPLETED || wpa_s->wpa_state == WPA_ASSOCIATING)) {
 		pref_initial_band = wpa_s->conf->initial_band_pref;
 		wpa_dbg(wpa_s, MSG_DEBUG, "INITIAL_BAND: preferring "
 			"to associate with networks on %dGHz band.", pref_initial_band);
