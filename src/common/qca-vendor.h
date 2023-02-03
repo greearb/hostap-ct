@@ -12364,13 +12364,19 @@ enum qca_wlan_vendor_attr_radar_history {
  *	command it clears MCC quota setting and restores adaptive scheduling.
  * @QCA_WLAN_VENDOR_MCC_QUOTA_TYPE_FIXED: Channel time quota is fixed and
  *      will not be changed.
+ *      This quota type is present in command/event.
  * @QCA_WLAN_VENDOR_MCC_QUOTA_TYPE_DYNAMIC: Channel time quota is dynamic
  *      and the target may change the quota based on the data activity.
+ *      This quota type is only present in event.
+ * @QCA_WLAN_VENDOR_MCC_QUOTA_TYPE_LOW_LATENCY: Channel time quota is optimized
+ *      by the target for low latency.
+ *      This quota type is only present in command.
  */
 enum qca_wlan_vendor_mcc_quota_type {
 	QCA_WLAN_VENDOR_MCC_QUOTA_TYPE_CLEAR = 0,
 	QCA_WLAN_VENDOR_MCC_QUOTA_TYPE_FIXED = 1,
 	QCA_WLAN_VENDOR_MCC_QUOTA_TYPE_DYNAMIC = 2,
+	QCA_WLAN_VENDOR_MCC_QUOTA_TYPE_LOW_LATENCY = 3,
 };
 
 /**
@@ -12407,6 +12413,15 @@ enum qca_wlan_vendor_mcc_quota_type {
  * configurations are applied. This is required in a command only. Only one
  * interface index may be specified. If not specified, the configuration is
  * rejected.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_MCC_QUOTA_LOW_LATENCY_MODE_ENABLE
+ * 8-bit unsigned value to enable/disable Multi-Channel Concurrency
+ * low latency mode. The firmware will do optimization for low
+ * latency in Multi-Channel concurrency state if enabled. And all existing
+ * user quota setting will be overwritten by the target.
+ * 0 - disable(default), 1 - enable.
+ * It is only present in a command with quota type of
+ * QCA_WLAN_VENDOR_MCC_QUOTA_TYPE_LOW_LATENCY.
  */
 enum qca_wlan_vendor_attr_mcc_quota {
 	QCA_WLAN_VENDOR_ATTR_MCC_QUOTA_INVALID = 0,
@@ -12415,6 +12430,7 @@ enum qca_wlan_vendor_attr_mcc_quota {
 	QCA_WLAN_VENDOR_ATTR_MCC_QUOTA_CHAN_FREQ = 3,
 	QCA_WLAN_VENDOR_ATTR_MCC_QUOTA_CHAN_TIME_PERCENTAGE = 4,
 	QCA_WLAN_VENDOR_ATTR_MCC_QUOTA_IFINDEX = 5,
+	QCA_WLAN_VENDOR_ATTR_MCC_QUOTA_LOW_LATENCY_MODE_ENABLE = 6,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_MCC_QUOTA_LAST,
