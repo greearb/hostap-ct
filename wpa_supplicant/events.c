@@ -1971,7 +1971,7 @@ int wpa_supplicant_need_to_roam_within_ess(struct wpa_supplicant *wpa_s,
 					   struct wpa_bss *selected)
 {
 	int min_diff, diff;
-	int to_5ghz;
+	int to_5ghz, to_6ghz;
 	int cur_level;
 	unsigned int cur_est, sel_est;
 	struct wpa_signal_info si;
@@ -2038,8 +2038,11 @@ int wpa_supplicant_need_to_roam_within_ess(struct wpa_supplicant *wpa_s,
 	}
 
 	to_5ghz = selected->freq > 4000 && current_bss->freq < 4000;
+	to_6ghz = is_6ghz_freq(selected->freq) &&
+		!is_6ghz_freq(current_bss->freq);
 
-	if (cur_level < 0 && cur_level > selected->level + to_5ghz * 2 &&
+	if (cur_level < 0 &&
+	    cur_level > selected->level + to_5ghz * 2 + to_6ghz * 2 &&
 	    sel_est < cur_est * 1.2) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "Skip roam - Current BSS has better "
 			"signal level");
@@ -2090,6 +2093,8 @@ int wpa_supplicant_need_to_roam_within_ess(struct wpa_supplicant *wpa_s,
 		min_diff--;
 
 	if (to_5ghz)
+		min_diff -= 2;
+	if (to_6ghz)
 		min_diff -= 2;
 	diff = selected->level - cur_level;
 	if (diff < min_diff) {
