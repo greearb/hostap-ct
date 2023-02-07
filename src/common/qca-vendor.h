@@ -1376,6 +1376,9 @@ enum qca_roaming_policy {
  *
  * @QCA_ROAM_REASON_BT_ACTIVITY: Roam triggered due to Bluetooth connection is
  * established when the station is connected in the 2.4 GHz band.
+ *
+ * @QCA_ROAM_REASON_STA_KICKOUT: Roam triggered due to continuous TX Data frame
+ * failures to the connected AP.
  */
 enum qca_roam_reason {
 	QCA_ROAM_REASON_UNKNOWN,
@@ -1393,6 +1396,7 @@ enum qca_roam_reason {
 	QCA_ROAM_REASON_PERIODIC_TIMER,
 	QCA_ROAM_REASON_BACKGROUND_SCAN,
 	QCA_ROAM_REASON_BT_ACTIVITY,
+	QCA_ROAM_REASON_STA_KICKOUT,
 };
 
 enum qca_wlan_vendor_attr_roam_auth {
@@ -12490,6 +12494,44 @@ enum qca_wlan_roam_stats_abort_reason {
 };
 
 /**
+ * enum qca_wlan_roam_stats_scan_type - Roam scan type define.
+ * These values are used by the attribute
+ * %QCA_WLAN_VENDOR_ATTR_ROAM_STATS_SCAN_TYPE.
+ *
+ * @QCA_WLAN_ROAM_STATS_SCAN_TYPE_PARTIAL: Partial channel scan
+ * @QCA_WLAN_ROAM_STATS_SCAN_TYPE_FULL: Full channel scan
+ * @QCA_WLAN_ROAM_STATS_SCAN_TYPE_NO_SCAN: No roam scan was triggered.
+ *  This is generally used in BTM events to indicate BTM frame exchange logs.
+ * @QCA_WLAN_ROAM_STATS_SCAN_TYPE_HIGHER_BAND_5GHZ_6GHZ: Higher band roam scan
+ *  from 2.4 GHz to 5 GHz or 6 GHz
+ * @QCA_WLAN_ROAM_STATS_SCAN_TYPE_HIGHER_BAND_6GHZ: Higher band roam scan from
+ *  5 GHz to 6 GHz
+ */
+enum qca_wlan_roam_stats_scan_type {
+	QCA_WLAN_ROAM_STATS_SCAN_TYPE_PARTIAL = 0,
+	QCA_WLAN_ROAM_STATS_SCAN_TYPE_FULL = 1,
+	QCA_WLAN_ROAM_STATS_SCAN_TYPE_NO_SCAN = 2,
+	QCA_WLAN_ROAM_STATS_SCAN_TYPE_HIGHER_BAND_5GHZ_6GHZ = 3,
+	QCA_WLAN_ROAM_STATS_SCAN_TYPE_HIGHER_BAND_6GHZ = 4,
+};
+
+/**
+ * enum qca_wlan_roam_stats_scan_dwell_type - Roam scan dwell type.
+ * These values are used by the attribute
+ * %QCA_WLAN_VENDOR_ATTR_ROAM_STATS_SCAN_DWELL_TYPE.
+ *
+ * @QCA_WLAN_ROAM_STATS_DWELL_TYPE_UNSPECIFIED: Target did not specify the
+ *  detailed roam scan type.
+ * @QCA_WLAN_ROAM_STATS_DWELL_ACTIVE_TYPE: Active scan during roam.
+ * @QCA_WLAN_ROAM_STATS_DWELL_PASSIVE_TYPE: Passive scan during roam.
+ */
+enum qca_wlan_roam_stats_scan_dwell_type {
+	QCA_WLAN_ROAM_STATS_DWELL_TYPE_UNSPECIFIED = 0,
+	QCA_WLAN_ROAM_STATS_DWELL_TYPE_ACTIVE = 1,
+	QCA_WLAN_ROAM_STATS_DWELL_TYPE_PASSIVE = 2,
+};
+
+/**
  * enum qca_wlan_vendor_attr_roam_stats_scan_chan_info - Attributes used inside
  * the %QCA_WLAN_VENDOR_ATTR_ROAM_STATS_SCAN_CHAN_INFO nested attribute.
  */
@@ -12499,7 +12541,7 @@ enum qca_wlan_vendor_attr_roam_stats_scan_chan_info {
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_SCAN_CHANNEL_FREQ = 1,
 	/* 8-bit unsigned value to indicate channel scan type for each
-	 * roam scan channel. 0-passive, 1-active.
+	 * roam scan channel, values in qca_wlan_roam_stats_scan_dwell_type.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_SCAN_DWELL_TYPE = 2,
 	/* 32-bit unsigned value to indicate maximum scan time in milliseconds
@@ -12622,11 +12664,11 @@ enum qca_wlan_vendor_attr_roam_stats_info {
 	 * roaming trigger by beacon miss.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BMISS_QOS_NULL_SUCCESS = 7,
-	/* 8-bit unsigned value to indicate connected AP RSSI in dBm
+	/* 8-bit signed value to indicate connected AP RSSI in dBm
 	 * for trigger reason of poor RSSI.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_POOR_RSSI_CURRENT_RSSI = 8,
-	/* 8-bit unsigned value to indicate RSSI threshold value in dBm
+	/* 8-bit signed value to indicate RSSI threshold value in dBm
 	 * for trigger reason of poor RSSI.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_POOR_RSSI_ROAM_RSSI_THRESHOLD = 9,
@@ -12635,11 +12677,11 @@ enum qca_wlan_vendor_attr_roam_stats_info {
 	 * 1 - bad link speed.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_POOR_RSSI_RX_LINKSPEED_STATUS = 10,
-	/* 8-bit unsigned value to indicate connected AP RSSI in dBm
+	/* 8-bit signed value to indicate connected AP RSSI in dBm
 	 * for trigger reason of better RSSI.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BETTER_RSSI_CURRENT_RSSI = 11,
-	/* 8-bit unsigned value to indicate RSSI threshold value in dBm
+	/* 8-bit signed value to indicate RSSI threshold value in dBm
 	 * for trigger reason of better RSSI.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BETTER_RSSI_HIGH_RSSI_THRESHOLD = 12,
@@ -12711,15 +12753,15 @@ enum qca_wlan_vendor_attr_roam_stats_info {
 	 * reason of periodic timer.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_PERIODIC_TIMER_MS = 28,
-	/* 8-bit unsigned value to indicate connected AP RSSI in dBm for
+	/* 8-bit signed value to indicate connected AP RSSI in dBm for
 	 * trigger reason of background scan.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BACKGROUND_SCAN_CURRENT_RSSI = 29,
-	/* 8-bit unsigned value to indicate data RSSI in dBm for trigger reason
+	/* 8-bit signed value to indicate data RSSI in dBm for trigger reason
 	 * of background scan.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BACKGROUND_SCAN_DATA_RSSI = 30,
-	/* 8-bit unsigned value to indicate data RSSI threshold in dBm
+	/* 8-bit signed value to indicate data RSSI threshold in dBm
 	 * for trigger reason of background scan.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_BACKGROUND_SCAN_DATA_RSSI_THRESH = 31,
@@ -12736,11 +12778,11 @@ enum qca_wlan_vendor_attr_roam_stats_info {
 	 * values in enum qca_wlan_roam_stats_abort_reason.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_ABORT_REASON = 34,
-	/* 8-bit unsigned value to indicate data RSSI in dBm when aborting the
+	/* 8-bit signed value to indicate data RSSI in dBm when aborting the
 	 * roam scan.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_DATA_RSSI = 35,
-	/* 8-bit unsigned value to indicate data RSSI threshold in dBm when
+	/* 8-bit signed value to indicate data RSSI threshold in dBm when
 	 * aborting the roam scan.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_DATA_RSSI_THRESHOLD = 36,
@@ -12750,7 +12792,7 @@ enum qca_wlan_vendor_attr_roam_stats_info {
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_DATA_RX_LINKSPEED_STATUS = 37,
 	/* 8-bit unsigned value to indicate roaming scan type.
-	 * 0 - Partial roam scan, 1 - Full roam scan
+	 * One of the values in enum qca_wlan_roam_stats_scan_type.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_SCAN_TYPE = 38,
 	/* 8-bit unsigned value to indicate roaming result, used in STA mode
