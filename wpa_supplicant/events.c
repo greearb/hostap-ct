@@ -4771,6 +4771,12 @@ static void wpas_event_rx_mgmt_action(struct wpa_supplicant *wpa_s,
 		wpa_dbg(wpa_s, MSG_DEBUG,
 			"TDLS: Received Discovery Response from " MACSTR,
 			MAC2STR(mgmt->sa));
+		if (wpa_s->valid_links &&
+		    wpa_tdls_process_discovery_response(wpa_s->wpa, mgmt->sa,
+							&payload[1], plen - 1))
+			wpa_dbg(wpa_s, MSG_ERROR,
+				"TDLS: Discovery Response process failed for "
+				MACSTR, MAC2STR(mgmt->sa));
 		return;
 	}
 #endif /* CONFIG_TDLS */

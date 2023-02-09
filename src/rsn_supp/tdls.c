@@ -159,6 +159,8 @@ struct wpa_tdls_peer {
 
 	/* channel switch currently enabled */
 	int chan_switch_enabled;
+
+	int mld_link_id;
 };
 
 
@@ -737,6 +739,7 @@ static void wpa_tdls_peer_clear(struct wpa_sm *sm, struct wpa_tdls_peer *peer)
 	os_memset(&peer->tpk, 0, sizeof(peer->tpk));
 	os_memset(peer->inonce, 0, WPA_NONCE_LEN);
 	os_memset(peer->rnonce, 0, WPA_NONCE_LEN);
+	peer->mld_link_id = -1;
 }
 
 
@@ -1075,6 +1078,7 @@ wpa_tdls_add_peer(struct wpa_sm *sm, const u8 *addr, int *existing)
 		return NULL;
 
 	os_memcpy(peer->addr, addr, ETH_ALEN);
+	peer->mld_link_id = -1;
 	peer->next = sm->tdls;
 	sm->tdls = peer;
 
@@ -1541,6 +1545,38 @@ skip_ies:
 	os_free(rbuf);
 
 	return status;
+}
+
+
+static bool wpa_tdls_is_lnkid_bss_valid(struct wpa_sm *sm,
+					const struct wpa_tdls_lnkid *lnkid,
+					int *link_id)
+{
+	*link_id = -1;
+
+	if (!sm->mlo.valid_links) {
+		if (os_memcmp(sm->bssid, lnkid->bssid, ETH_ALEN) != 0)
+			return false;
+	} else {
+		int i;
+
+		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+			if ((sm->mlo.valid_links & BIT(i)) &&
+			    os_memcmp(lnkid->bssid, sm->mlo.links[i].bssid,
+				      ETH_ALEN) == 0) {
+				*link_id = i;
+				break;
+			}
+		}
+		if (*link_id < 0) {
+			wpa_printf(MSG_DEBUG,
+				   "TDLS: MLD link not found for linkid BSS "
+				   MACSTR, MAC2STR(lnkid->bssid));
+			return false;
+		}
+	}
+
+	return true;
 }
 
 
@@ -3117,6 +3153,63 @@ void wpa_tdls_enable(struct wpa_sm *sm, int enabled)
 int wpa_tdls_is_external_setup(struct wpa_sm *sm)
 {
 	return sm->tdls_external_setup;
+}
+
+
+int wpa_tdls_process_discovery_response(struct wpa_sm *sm, const u8 *addr,
+					const u8 *buf, size_t len)
+{
+	struct ieee802_11_elems elems;
+	struct wpa_tdls_lnkid lnkid;
+	struct wpa_tdls_peer *peer;
+	size_t min_req_len = 1 /* Dialog Token */ + 2 /* Capability */ +
+		sizeof(struct wpa_tdls_lnkid);
+	int link_id = -1;
+
+	wpa_printf(MSG_DEBUG, "TDLS: Process Discovery Response from " MACSTR,
+		   MAC2STR(addr));
+
+	if (len < min_req_len) {
+		wpa_printf(MSG_DEBUG, "TDLS Discovery Resp is too short: %zu",
+			   len);
+		return -1;
+	}
+
+	/* Elements start after the three octets of fixed field (one octet for
+	 * the Dialog Token field and two octets for the Capability field. */
+	if (ieee802_11_parse_elems(buf + 3, len - 3, &elems, 1) ==
+	    ParseFailed) {
+		wpa_printf(MSG_DEBUG,
+			   "TDLS: Failed to parse IEs in Discovery Response");
+		return -1;
+	}
+
+	if (!elems.link_id) {
+		wpa_printf(MSG_DEBUG,
+			   "TDLS: Link Identifier element not found in Discovery Response");
+		return -1;
+	}
+
+	os_memcpy(&lnkid.bssid[0], elems.link_id, sizeof(lnkid) - 2);
+
+	if (!wpa_tdls_is_lnkid_bss_valid(sm, &lnkid, &link_id)) {
+		wpa_printf(MSG_DEBUG,
+			   "TDLS: Discovery Response from different BSS "
+			   MACSTR, MAC2STR(lnkid.bssid));
+		return -1;
+	}
+
+	peer = wpa_tdls_add_peer(sm, addr, NULL);
+	if (!peer) {
+		wpa_printf(MSG_DEBUG, "TDLS: Could not add peer entry");
+		return -1;
+	}
+
+	peer->mld_link_id = link_id;
+	wpa_printf(MSG_DEBUG, "TDLS: Link identifier BSS: " MACSTR
+		   " , link id: %u", MAC2STR(lnkid.bssid), link_id);
+
+	return 0;
 }
 
 
