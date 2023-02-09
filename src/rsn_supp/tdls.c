@@ -139,6 +139,8 @@ struct wpa_tdls_peer {
 	struct ieee80211_he_capabilities *he_capabilities;
 	size_t he_capab_len;
 	struct ieee80211_he_6ghz_band_cap *he_6ghz_band_capabilities;
+	struct ieee80211_eht_capabilities *eht_capabilities;
+	size_t eht_capab_len;
 
 	u8 qos_info;
 
@@ -718,6 +720,8 @@ static void wpa_tdls_peer_clear(struct wpa_sm *sm, struct wpa_tdls_peer *peer)
 	peer->he_capabilities = NULL;
 	os_free(peer->he_6ghz_band_capabilities);
 	peer->he_6ghz_band_capabilities = NULL;
+	os_free(peer->eht_capabilities);
+	peer->eht_capabilities = NULL;
 	os_free(peer->ext_capab);
 	peer->ext_capab = NULL;
 	os_free(peer->supp_channels);
@@ -1752,6 +1756,29 @@ static int copy_peer_ext_capab(const struct wpa_eapol_ie_parse *kde,
 }
 
 
+static int copy_peer_eht_capab(const struct wpa_eapol_ie_parse *kde,
+			       struct wpa_tdls_peer *peer)
+{
+	if (!kde->eht_capabilities) {
+		wpa_printf(MSG_DEBUG, "TDLS: No EHT capabilities received");
+		return 0;
+	}
+
+	os_free(peer->eht_capabilities);
+	peer->eht_capab_len = 0;
+	peer->eht_capabilities = os_memdup(kde->eht_capabilities,
+					   kde->eht_capab_len);
+	if (!peer->eht_capabilities)
+		return -1;
+
+	peer->eht_capab_len = kde->eht_capab_len;
+	wpa_hexdump(MSG_DEBUG, "TDLS: Peer EHT capabilities",
+		    peer->eht_capabilities, peer->eht_capab_len);
+
+	return 0;
+}
+
+
 static int copy_peer_wmm_capab(const struct wpa_eapol_ie_parse *kde,
 			       struct wpa_tdls_peer *peer)
 {
@@ -1978,6 +2005,9 @@ static int wpa_tdls_process_tpk_m1(struct wpa_sm *sm, const u8 *src_addr,
 	if (copy_peer_vht_capab(&kde, peer) < 0 ||
 	    copy_peer_he_capab(&kde, peer) < 0 ||
 	    copy_peer_he_6ghz_band_capab(&kde, peer) < 0)
+		goto error;
+
+	if (copy_peer_eht_capab(&kde, peer) < 0)
 		goto error;
 
 	if (copy_peer_ext_capab(&kde, peer) < 0)
@@ -2388,6 +2418,9 @@ static int wpa_tdls_process_tpk_m2(struct wpa_sm *sm, const u8 *src_addr,
 	if (copy_peer_vht_capab(&kde, peer) < 0 ||
 	    copy_peer_he_capab(&kde, peer) < 0 ||
 	    copy_peer_he_6ghz_band_capab(&kde, peer) < 0)
+		goto error;
+
+	if (copy_peer_eht_capab(&kde, peer) < 0)
 		goto error;
 
 	if (copy_peer_ext_capab(&kde, peer) < 0)
