@@ -10275,6 +10275,42 @@ static int nl80211_add_peer_capab(struct nl_msg *msg,
 }
 
 
+static int
+nl80211_tdls_set_discovery_resp_link(struct wpa_driver_nl80211_data *drv,
+				     int link_id)
+{
+#ifdef CONFIG_DRIVER_NL80211_QCA
+	struct nl_msg *msg;
+	struct nlattr *params;
+
+	wpa_printf(MSG_DEBUG, "nl80211: TDLS Discovery Response Tx link ID %u",
+		   link_id);
+
+	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	    nla_put_u32(msg, NL80211_ATTR_IFINDEX, drv->ifindex) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+			QCA_NL80211_VENDOR_SUBCMD_TDLS_DISC_RSP_EXT) ||
+	    !(params = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA)) ||
+	    nla_put_u8(msg, QCA_WLAN_VENDOR_ATTR_TDLS_DISC_RSP_EXT_TX_LINK,
+		       link_id)) {
+		wpa_printf(MSG_ERROR,
+			   "%s: err in adding vendor_cmd and vendor_data",
+			   __func__);
+		nlmsg_free(msg);
+		return -1;
+	}
+	nla_nest_end(msg, params);
+
+	return send_and_recv_msgs(drv, msg, NULL, NULL, NULL, NULL);
+#else /* CONFIG_DRIVER_NL80211_QCA */
+	wpa_printf(MSG_ERROR,
+		   "nl80211: Setting TX link for TDLS Discovery Response not supported");
+	return -1;
+#endif /* CONFIG_DRIVER_NL80211_QCA */
+}
+
+
 static int nl80211_send_tdls_mgmt(void *priv, const u8 *dst, u8 action_code,
 				  u8 dialog_token, u16 status_code,
 				  u32 peer_capab, int initiator, const u8 *buf,
@@ -10289,6 +10325,10 @@ static int nl80211_send_tdls_mgmt(void *priv, const u8 *dst, u8 action_code,
 
 	if (!dst)
 		return -EINVAL;
+
+	if (link_id >= 0 &&
+	    nl80211_tdls_set_discovery_resp_link(drv, link_id) < 0)
+		return -EOPNOTSUPP;
 
 	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_TDLS_MGMT)) ||
 	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, dst) ||
