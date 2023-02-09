@@ -1623,10 +1623,11 @@ wpa_tdls_process_discovery_request(struct wpa_sm *sm, const u8 *addr,
 
 	lnkid = (const struct wpa_tdls_lnkid *) kde.lnkid;
 
-	if (os_memcmp(sm->bssid, lnkid->bssid, ETH_ALEN) != 0) {
-		wpa_printf(MSG_DEBUG, "TDLS: Discovery Request from different "
-			   " BSS " MACSTR, MAC2STR(lnkid->bssid));
-		return -1;
+	if (!wpa_tdls_is_lnkid_bss_valid(sm, lnkid, &link_id)) {
+		wpa_printf(MSG_DEBUG,
+			   "TDLS: Discovery Request from different BSS "
+			   MACSTR, MAC2STR(lnkid->bssid));
+			return -1;
 	}
 
 	peer = wpa_tdls_add_peer(sm, addr, NULL);
