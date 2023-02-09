@@ -10278,7 +10278,7 @@ static int nl80211_add_peer_capab(struct nl_msg *msg,
 static int nl80211_send_tdls_mgmt(void *priv, const u8 *dst, u8 action_code,
 				  u8 dialog_token, u16 status_code,
 				  u32 peer_capab, int initiator, const u8 *buf,
-				  size_t len)
+				  size_t len, int link_id)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;

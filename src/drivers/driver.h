@@ -4103,6 +4103,8 @@ struct wpa_driver_ops {
 	 * @initiator: Is the current end the TDLS link initiator
 	 * @buf: TDLS IEs to add to the message
 	 * @len: Length of buf in octets
+	 * @link_id: If >= 0 indicates the link of the AP MLD to specify the
+	 * operating channel on which to send a TDLS Discovery Response frame.
 	 * Returns: 0 on success, negative (<0) on failure
 	 *
 	 * This optional function can be used to send packet to driver which is
@@ -4110,7 +4112,8 @@ struct wpa_driver_ops {
 	 */
 	int (*send_tdls_mgmt)(void *priv, const u8 *dst, u8 action_code,
 			      u8 dialog_token, u16 status_code, u32 peer_capab,
-			      int initiator, const u8 *buf, size_t len);
+			      int initiator, const u8 *buf, size_t len,
+			      int link_id);
 
 	/**
 	 * tdls_oper - Ask the driver to perform high-level TDLS operations

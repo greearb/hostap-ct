@@ -380,13 +380,13 @@ static inline int wpa_sm_send_tdls_mgmt(struct wpa_sm *sm, const u8 *dst,
 					u8 action_code, u8 dialog_token,
 					u16 status_code, u32 peer_capab,
 					int initiator, const u8 *buf,
-					size_t len)
+					size_t len, int link_id)
 {
 	if (sm->ctx->send_tdls_mgmt)
 		return sm->ctx->send_tdls_mgmt(sm->ctx->ctx, dst, action_code,
 					       dialog_token, status_code,
 					       peer_capab, initiator, buf,
-					       len);
+					       len, link_id);
 	return -1;
 }
 
