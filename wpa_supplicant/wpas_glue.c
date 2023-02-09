@@ -795,7 +795,9 @@ static int wpa_supplicant_tdls_peer_addset(
 	const struct ieee80211_he_6ghz_band_cap *he_6ghz_he_capab,
 	u8 qosinfo, int wmm, const u8 *ext_capab, size_t ext_capab_len,
 	const u8 *supp_channels, size_t supp_channels_len,
-	const u8 *supp_oper_classes, size_t supp_oper_classes_len)
+	const u8 *supp_oper_classes, size_t supp_oper_classes_len,
+	const struct ieee80211_eht_capabilities *eht_capab,
+	size_t eht_capab_len, int mld_link_id)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 	struct hostapd_sta_add_params params;
@@ -830,6 +832,9 @@ static int wpa_supplicant_tdls_peer_addset(
 	params.supp_channels_len = supp_channels_len;
 	params.supp_oper_classes = supp_oper_classes;
 	params.supp_oper_classes_len = supp_oper_classes_len;
+	params.eht_capab = eht_capab;
+	params.eht_capab_len = eht_capab_len;
+	params.mld_link_id = mld_link_id;
 
 	return wpa_drv_sta_add(wpa_s, &params);
 }

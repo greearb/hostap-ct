@@ -79,7 +79,9 @@ struct wpa_sm_ctx {
 				size_t ext_capab_len, const u8 *supp_channels,
 				size_t supp_channels_len,
 				const u8 *supp_oper_classes,
-				size_t supp_oper_classes_len);
+				size_t supp_oper_classes_len,
+				const struct ieee80211_eht_capabilities *eht_capab,
+				size_t eht_capab_len, int mld_link_id);
 	int (*tdls_enable_channel_switch)(
 		void *ctx, const u8 *addr, u8 oper_class,
 		const struct hostapd_freq_params *params);

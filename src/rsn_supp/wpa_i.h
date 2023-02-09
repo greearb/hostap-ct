@@ -410,7 +410,9 @@ wpa_sm_tdls_peer_addset(struct wpa_sm *sm, const u8 *addr, int add,
 			u8 qosinfo, int wmm, const u8 *ext_capab,
 			size_t ext_capab_len, const u8 *supp_channels,
 			size_t supp_channels_len, const u8 *supp_oper_classes,
-			size_t supp_oper_classes_len)
+			size_t supp_oper_classes_len,
+			const struct ieee80211_eht_capabilities *eht_capab,
+			size_t eht_capab_len, int mld_link_id)
 {
 	if (sm->ctx->tdls_peer_addset)
 		return sm->ctx->tdls_peer_addset(sm->ctx->ctx, addr, add,
@@ -423,7 +425,9 @@ wpa_sm_tdls_peer_addset(struct wpa_sm *sm, const u8 *addr, int add,
 						 supp_channels,
 						 supp_channels_len,
 						 supp_oper_classes,
-						 supp_oper_classes_len);
+						 supp_oper_classes_len,
+						 eht_capab, eht_capab_len,
+						 mld_link_id);
 	return -1;
 }
 

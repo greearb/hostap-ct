@@ -1918,7 +1918,10 @@ static int wpa_tdls_addset_peer(struct wpa_sm *sm, struct wpa_tdls_peer *peer,
 				       peer->supp_channels,
 				       peer->supp_channels_len,
 				       peer->supp_oper_classes,
-				       peer->supp_oper_classes_len);
+				       peer->supp_oper_classes_len,
+				       peer->eht_capabilities,
+				       peer->eht_capab_len,
+				       peer->mld_link_id);
 }
 
 
@@ -2087,7 +2090,7 @@ static int wpa_tdls_process_tpk_m1(struct wpa_sm *sm, const u8 *src_addr,
 		peer->initiator = 1;
 		wpa_sm_tdls_peer_addset(sm, peer->addr, 1, 0, 0, NULL, 0, NULL,
 					NULL, NULL, 0, NULL, 0, 0, NULL, 0,
-					NULL, 0, NULL, 0);
+					NULL, 0, NULL, 0, NULL, 0, link_id);
 		if (wpa_tdls_send_tpk_m1(sm, peer) == -2) {
 			peer = NULL;
 			goto error;
@@ -2870,7 +2873,7 @@ int wpa_tdls_start(struct wpa_sm *sm, const u8 *addr)
 	/* add the peer to the driver as a "setup in progress" peer */
 	if (wpa_sm_tdls_peer_addset(sm, peer->addr, 1, 0, 0, NULL, 0, NULL,
 				    NULL, NULL, 0, NULL, 0, 0, NULL, 0, NULL, 0,
-				    NULL, 0)) {
+				    NULL, 0, NULL, 0, peer->mld_link_id)) {
 		wpa_tdls_disable_peer_link(sm, peer);
 		return -1;
 	}
