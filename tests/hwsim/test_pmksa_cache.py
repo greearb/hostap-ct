@@ -422,6 +422,7 @@ def test_pmksa_cache_and_cui(dev, apdev):
         raise Exception("No PMKSA cache entry found")
     if pmksa['pmkid'] != pmksa1b['pmkid']:
         raise Exception("Unexpected PMKID change for AP1")
+    hapd.wait_sta()
 
     dev[0].request("REAUTHENTICATE")
     ev = dev[0].wait_event(["CTRL-EVENT-EAP-SUCCESS"], timeout=10)
