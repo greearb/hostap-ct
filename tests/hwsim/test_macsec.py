@@ -151,7 +151,8 @@ def set_mka_psk_config(dev, mka_priority=None, integ_only=False, port=None,
 
     dev.select_network(id)
 
-def set_mka_eap_config(dev, mka_priority=None, integ_only=False, port=None):
+def set_mka_eap_config(dev, mka_priority=None, integ_only=False, port=None,
+                       eap_psk=False):
     dev.set("eapol_version", "3")
     dev.set("ap_scan", "0")
     dev.set("fast_reauth", "1")
@@ -168,12 +169,17 @@ def set_mka_eap_config(dev, mka_priority=None, integ_only=False, port=None):
         dev.set_network(id, "macsec_port", str(port))
 
     dev.set_network(id, "key_mgmt", "IEEE8021X")
-    dev.set_network(id, "eap", "TTLS")
-    dev.set_network_quoted(id, "ca_cert", "auth_serv/ca.pem")
-    dev.set_network_quoted(id, "phase2", "auth=MSCHAPV2")
-    dev.set_network_quoted(id, "anonymous_identity", "ttls")
-    dev.set_network_quoted(id, "identity", "DOMAIN\mschapv2 user")
-    dev.set_network_quoted(id, "password", "password")
+    if eap_psk:
+        dev.set_network(id, "eap", "PSK")
+        dev.set_network_quoted(id, "identity", "psk.user@example.com")
+        dev.set_network(id, "password", "0123456789abcdef0123456789abcdef")
+    else:
+        dev.set_network(id, "eap", "TTLS")
+        dev.set_network_quoted(id, "ca_cert", "auth_serv/ca.pem")
+        dev.set_network_quoted(id, "phase2", "auth=MSCHAPV2")
+        dev.set_network_quoted(id, "anonymous_identity", "ttls")
+        dev.set_network_quoted(id, "identity", "DOMAIN\mschapv2 user")
+        dev.set_network_quoted(id, "password", "password")
 
     dev.select_network(id)
 
@@ -824,8 +830,17 @@ def test_macsec_hostapd_eap(dev, apdev, params):
     finally:
         cleanup_macsec_hostapd()
 
+def test_macsec_hostapd_eap_psk(dev, apdev, params):
+    """MACsec EAP-PSK with hostapd"""
+    try:
+        run_macsec_hostapd_eap(dev, apdev, params, "macsec_hostapd_eap_psk",
+                               eap_psk=True)
+    finally:
+        cleanup_macsec_hostapd()
+
 def run_macsec_hostapd_eap(dev, apdev, params, prefix, integ_only=False,
-                           port0=None, port1=None, expect_failure=False):
+                           port0=None, port1=None, expect_failure=False,
+                           eap_psk=False):
     add_veth()
 
     cap_veth0 = os.path.join(params['logdir'], prefix + ".veth0.pcap")
@@ -844,7 +859,7 @@ def run_macsec_hostapd_eap(dev, apdev, params, prefix, integ_only=False,
     wpas0 = wpa[0]
 
     set_mka_eap_config(wpas0, integ_only=integ_only, port=port0,
-                       mka_priority=100)
+                       mka_priority=100, eap_psk=eap_psk)
 
     params = {"driver": "macsec_linux",
               "interface": "veth1",
