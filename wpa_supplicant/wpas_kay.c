@@ -262,32 +262,6 @@ void ieee802_1x_dealloc_kay_sm(struct wpa_supplicant *wpa_s)
 }
 
 
-static int ieee802_1x_auth_get_session_id(struct wpa_supplicant *wpa_s,
-					  const u8 *addr, u8 *sid, size_t *len)
-{
-	const u8 *session_id;
-	size_t id_len, need_len;
-
-	session_id = eapol_sm_get_session_id(wpa_s->eapol, &id_len);
-	if (session_id == NULL) {
-		wpa_printf(MSG_DEBUG,
-			   "Failed to get SessionID from EAPOL state machines");
-		return -1;
-	}
-
-	need_len = 1 + 2 * 32 /* random size */;
-	if (need_len > id_len) {
-		wpa_printf(MSG_DEBUG, "EAP Session-Id not long enough");
-		return -1;
-	}
-
-	os_memcpy(sid, session_id, need_len);
-	*len = need_len;
-
-	return 0;
-}
-
-
 static int ieee802_1x_auth_get_msk(struct wpa_supplicant *wpa_s, const u8 *addr,
 				   u8 *msk, size_t *len)
 {
@@ -320,8 +294,8 @@ static int ieee802_1x_auth_get_msk(struct wpa_supplicant *wpa_s, const u8 *addr,
 void * ieee802_1x_notify_create_actor(struct wpa_supplicant *wpa_s,
 				      const u8 *peer_addr)
 {
-	u8 *sid;
-	size_t sid_len = 128;
+	const u8 *sid;
+	size_t sid_len;
 	struct mka_key_name *ckn;
 	struct mka_key *cak;
 	struct mka_key *msk;
@@ -335,10 +309,9 @@ void * ieee802_1x_notify_create_actor(struct wpa_supplicant *wpa_s,
 		   MACSTR, MAC2STR(peer_addr));
 
 	msk = os_zalloc(sizeof(*msk));
-	sid = os_zalloc(sid_len);
 	ckn = os_zalloc(sizeof(*ckn));
 	cak = os_zalloc(sizeof(*cak));
-	if (!msk || !sid || !ckn || !cak)
+	if (!msk || !ckn || !cak)
 		goto fail;
 
 	msk->len = DEFAULT_KEY_LEN;
@@ -347,8 +320,8 @@ void * ieee802_1x_notify_create_actor(struct wpa_supplicant *wpa_s,
 		goto fail;
 	}
 
-	if (ieee802_1x_auth_get_session_id(wpa_s, wpa_s->bssid, sid, &sid_len))
-	{
+	sid = eapol_sm_get_session_id(wpa_s->eapol, &sid_len);
+	if (!sid) {
 		wpa_printf(MSG_ERROR,
 			   "IEEE 802.1X: Could not get EAP Session Id");
 		goto fail;
@@ -382,7 +355,6 @@ fail:
 		os_memset(msk, 0, sizeof(*msk));
 		os_free(msk);
 	}
-	os_free(sid);
 	os_free(ckn);
 	if (cak) {
 		os_memset(cak, 0, sizeof(*cak));
