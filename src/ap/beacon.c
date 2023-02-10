@@ -533,8 +533,7 @@ static u8 * hostapd_eid_mbssid_config(struct hostapd_data *hapd, u8 *eid,
 static u8 * hostapd_gen_probe_resp(struct hostapd_data *hapd,
 				   const struct ieee80211_mgmt *req,
 				   int is_p2p, size_t *resp_len,
-				   bool bcast_probe_resp, const u8 *known_bss,
-				   u8 known_bss_len)
+				   const u8 *known_bss, u8 known_bss_len)
 {
 	struct ieee80211_mgmt *resp;
 	u8 *pos, *epos, *csa_pos;
@@ -603,9 +602,16 @@ static u8 * hostapd_gen_probe_resp(struct hostapd_data *hapd,
 
 	resp->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT,
 					   WLAN_FC_STYPE_PROBE_RESP);
-	if (req)
+	/* Unicast the response to all requests on bands other than 6 GHz. For
+	 * the 6 GHz, unicast is used only if the actual SSID is not included in
+	 * the Beacon frames. Otherwise, broadcast response is used per IEEE
+	 * Std 802.11ax-2021, 26.17.2.3.2. Broadcast address is also used for
+	 * the Probe Response frame template for the unsolicited (i.e., not as
+	 * a response to a specific request) case. */
+	if (req && (!is_6ghz_op_class(hapd->iconf->op_class) ||
+		    hapd->conf->ignore_broadcast_ssid))
 		os_memcpy(resp->da, req->sa, ETH_ALEN);
-	else if (bcast_probe_resp)
+	else
 		os_memset(resp->da, 0xff, ETH_ALEN);
 
 	os_memcpy(resp->sa, hapd->own_addr, ETH_ALEN);
@@ -1230,7 +1236,7 @@ void handle_probe_req(struct hostapd_data *hapd,
 		     " signal=%d", MAC2STR(mgmt->sa), ssi_signal);
 
 	resp = hostapd_gen_probe_resp(hapd, mgmt, elems.p2p != NULL,
-				      &resp_len, false, elems.mbssid_known_bss,
+				      &resp_len, elems.mbssid_known_bss,
 				      elems.mbssid_known_bss_len);
 	if (resp == NULL)
 		return;
@@ -1301,7 +1307,7 @@ static u8 * hostapd_probe_resp_offloads(struct hostapd_data *hapd,
 			   "this");
 
 	/* Generate a Probe Response template for the non-P2P case */
-	return hostapd_gen_probe_resp(hapd, NULL, 0, resp_len, false, NULL, 0);
+	return hostapd_gen_probe_resp(hapd, NULL, 0, resp_len, NULL, 0);
 }
 
 #endif /* NEED_AP_MLME */
@@ -1320,7 +1326,7 @@ static u8 * hostapd_unsol_bcast_probe_resp(struct hostapd_data *hapd,
 
 	return hostapd_gen_probe_resp(hapd, NULL, 0,
 				      &params->unsol_bcast_probe_resp_tmpl_len,
-				      true, NULL, 0);
+				      NULL, 0);
 }
 #endif /* CONFIG_IEEE80211AX */
 
