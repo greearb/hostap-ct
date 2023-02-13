@@ -58,6 +58,264 @@ static const char * mgmt_stype(u16 stype)
 }
 
 
+static void parse_basic_ml(const u8 *ie, size_t len, bool ap)
+{
+	const u8 *pos, *end, *ci_end, *info_end;
+	u16 ctrl, eml, cap;
+	const struct element *elem;
+
+	pos = ie;
+	end = ie + len;
+
+	if (end - pos < 2)
+		return;
+	ctrl = WPA_GET_LE16(pos);
+	wpa_printf(MSG_DEBUG,
+		   "Multi-Link Control: Type=%u Reserved=%u Presence Bitmap=0x%x",
+		   ctrl & MULTI_LINK_CONTROL_TYPE_MASK,
+		   ctrl & BIT(3),
+		   ctrl >> 4);
+	pos += 2;
+
+	/* Common Info */
+
+	if (end - pos < 1)
+		return;
+	len = *pos;
+	if (len > end - pos) {
+		wpa_printf(MSG_INFO,
+			   "Truncated Multi-Link Common Info (len=%zu left=%zu)",
+			   len, (size_t) (end - pos));
+		return;
+	}
+	if (len < 1 + ETH_ALEN) {
+		wpa_printf(MSG_INFO,
+			   "No room for MLD MAC Address in Multi-Link Common Info");
+		return;
+	}
+	ci_end = pos + len;
+	pos += 1 + ETH_ALEN;
+
+	if (ctrl & BASIC_MULTI_LINK_CTRL_PRES_LINK_ID) {
+		if (ci_end - pos < 1) {
+			wpa_printf(MSG_INFO,
+				   "No room for Link ID Info in Multi-Link Common Info");
+			return;
+		}
+		wpa_printf(MSG_DEBUG, "Link ID Info: 0x%x", *pos);
+		if (!ap)
+			wpa_printf(MSG_INFO,
+				   "Unexpected Link ID Info in Common Info from a non-AP STA");
+		pos++;
+	}
+	if (ctrl & BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT) {
+		if (ci_end - pos < 1) {
+			wpa_printf(MSG_INFO,
+				   "No room for BSS Parameters Change Count in Multi-Link Common Info");
+			return;
+		}
+		wpa_printf(MSG_DEBUG, "BSS Parameters Change Count: %u", *pos);
+		if (!ap)
+			wpa_printf(MSG_INFO,
+				   "Unexpected BSS Parameters Change Count in Common Info from a non-AP STA");
+		pos++;
+	}
+	if (ctrl & BASIC_MULTI_LINK_CTRL_PRES_MSD_INFO) {
+		if (ci_end - pos < 2) {
+			wpa_printf(MSG_INFO,
+				   "No room for Medium Synchronization Delay Information in Multi-Link Common Info");
+			return;
+		}
+		wpa_printf(MSG_DEBUG,
+			   "Medium Synchronization Delay Information: 0x%x",
+			   WPA_GET_LE16(pos));
+		if (!ap)
+			wpa_printf(MSG_INFO,
+				   "Unexpected Medium Synchronization Delay Information in Common Info from a non-AP STA");
+		pos += 2;
+	}
+	if (ctrl & BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA) {
+		if (ci_end - pos < 2) {
+			wpa_printf(MSG_INFO,
+				   "No room for EML Capabilities in Multi-Link Common Info");
+			return;
+		}
+		eml = WPA_GET_LE16(pos);
+		pos += 2;
+		wpa_printf(MSG_DEBUG,
+			   "EML Capabilities: 0x%x (EMLSR=%u EMLSR_Padding_Delay=%u EMLSR_Transition_Delay=%u EMLMR=%u EMLMR_Delay=%u Transition_Timeout=%u Reserved=%u)",
+			   eml,
+			   !!(eml & EHT_ML_EML_CAPA_EMLSR_SUPP),
+			   (eml & EHT_ML_EML_CAPA_EMLSR_PADDING_DELAY_MASK) >>
+			   1,
+			   (eml & EHT_ML_EML_CAPA_EMLSR_TRANS_DELAY_MASK) >> 4,
+			   !!(eml & EHT_ML_EML_CAPA_EMLMR_SUPP),
+			   (eml & EHT_ML_EML_CAPA_EMLMR_DELAY_MASK) >> 8,
+			   (eml & EHT_ML_EML_CAPA_TRANSITION_TIMEOUT_MASK) >>
+			   11,
+			   !!(eml & BIT(15)));
+	}
+	if (ctrl & BASIC_MULTI_LINK_CTRL_PRES_MLD_CAPA) {
+		if (ci_end - pos < 2) {
+			wpa_printf(MSG_INFO,
+				   "No room for MLD Capabilities and Operations in Multi-Link Common Info");
+			return;
+		}
+		cap = WPA_GET_LE16(pos);
+		pos += 2;
+		wpa_printf(MSG_DEBUG,
+			   "MLD Capabilities and Operations: 0x%x (Max_Simultaneous_Links=%u SRS=%u T2L=0x%x Freq_Sep_STR=0x%x AAR=%u Reserved=0x%x)",
+			   cap,
+			   cap & EHT_ML_MLD_CAPA_MAX_NUM_SIM_LINKS_MASK,
+			   !!(cap & EHT_ML_MLD_CAPA_SRS_SUPP),
+			   (cap &
+			    EHT_ML_MLD_CAPA_TID_TO_LINK_MAP_NEG_SUPP_MSK) >> 5,
+			   (cap & EHT_ML_MLD_CAPA_FREQ_SEP_FOR_STR_MASK) >> 7,
+			   !!(cap & EHT_ML_MLD_CAPA_AAR_SUPP),
+			   (cap & 0xe000) >> 13);
+	}
+	if (ctrl & BASIC_MULTI_LINK_CTRL_PRES_AP_MLD_ID) {
+		if (ci_end - pos < 1) {
+			wpa_printf(MSG_INFO,
+				   "No room for AP MLD ID in Multi-Link Common Info");
+			return;
+		}
+		wpa_printf(MSG_DEBUG, "AP MLD ID: %u", *pos);
+		pos++;
+	}
+
+	if (pos < ci_end) {
+		wpa_hexdump(MSG_INFO,
+			    "Extra information at the end of Common Info",
+			    pos, ci_end - pos);
+		pos = ci_end;
+	}
+
+	/* Link Info */
+
+	for_each_element(elem, pos, end - pos) {
+		if (elem->id != EHT_ML_SUB_ELEM_PER_STA_PROFILE) {
+			wpa_printf(MSG_DEBUG, "Link Info subelement id=%u",
+				   elem->id);
+			wpa_hexdump(MSG_DEBUG, "Link Info subelement data",
+				    elem->data, elem->datalen);
+			continue;
+		}
+
+		pos = elem->data;
+		end = pos + elem->datalen;
+
+		if (end - pos < 2) {
+			wpa_printf(MSG_INFO,
+				   "Truncated Per-STA Profile subelement");
+			continue;
+		}
+		ctrl = WPA_GET_LE16(pos);
+		pos += 2;
+
+		wpa_printf(MSG_DEBUG, "Per-STA Profile: len=%u Link_ID=%u Complete=%u Reserved=0x%x",
+			   elem->datalen,
+			   ctrl & BASIC_MLE_STA_CTRL_LINK_ID_MASK,
+			   !!(ctrl & BASIC_MLE_STA_CTRL_COMPLETE_PROFILE),
+			   (ctrl & 0xf000) >> 12);
+
+		if (end - pos < 1) {
+			wpa_printf(MSG_INFO, "No room for STA Info field");
+			continue;
+		}
+		len = *pos;
+		if (len < 1 || len > end - pos) {
+			wpa_printf(MSG_INFO, "Truncated STA Info field");
+			continue;
+		}
+		info_end = pos + len;
+		pos++;
+		if (ctrl & BASIC_MLE_STA_CTRL_PRES_STA_MAC) {
+			if (info_end - pos < ETH_ALEN) {
+				wpa_printf(MSG_INFO,
+					   "Truncated STA MAC Address in STA Info");
+				continue;
+			}
+			wpa_printf(MSG_DEBUG, "STA MAC Address: " MACSTR,
+				   MAC2STR(pos));
+			pos += ETH_ALEN;
+		}
+		if (ctrl & BASIC_MLE_STA_CTRL_PRES_BEACON_INT) {
+			if (info_end - pos < 2) {
+				wpa_printf(MSG_INFO,
+					   "Truncated Beacon Interval in STA Info");
+				continue;
+			}
+			wpa_printf(MSG_DEBUG, "Beacon Interval: %u",
+				   WPA_GET_LE16(pos));
+			pos += 2;
+		}
+		if (ctrl & BASIC_MLE_STA_CTRL_PRES_TSF_OFFSET) {
+			if (info_end - pos < 8) {
+				wpa_printf(MSG_INFO,
+					   "Truncated TSF Offset in STA Info");
+				continue;
+			}
+			wpa_printf(MSG_DEBUG, "TSF Offset: 0x%llx",
+				   (long long unsigned) WPA_GET_LE64(pos));
+			pos += 8;
+		}
+		if (ctrl & BASIC_MLE_STA_CTRL_PRES_DTIM_INFO) {
+			if (info_end - pos < 2) {
+				wpa_printf(MSG_INFO,
+					   "Truncated DTIM Info in STA Info");
+				continue;
+			}
+			wpa_printf(MSG_DEBUG, "DTIM Info: 0x%x",
+				   WPA_GET_LE16(pos));
+			pos += 2;
+		}
+		if ((ctrl & (BASIC_MLE_STA_CTRL_COMPLETE_PROFILE |
+			     BASIC_MLE_STA_CTRL_PRES_NSTR_LINK_PAIR)) ==
+		    (BASIC_MLE_STA_CTRL_COMPLETE_PROFILE |
+		     BASIC_MLE_STA_CTRL_PRES_NSTR_LINK_PAIR)) {
+			if (ctrl & BASIC_MLE_STA_CTRL_NSTR_BITMAP) {
+				if (info_end - pos < 2) {
+					wpa_printf(MSG_INFO,
+						   "Truncated NSTR Indication Bitmap in STA Info");
+					continue;
+				}
+				wpa_printf(MSG_DEBUG, "NSTR Indication Bitmap: 0x%04x",
+					   WPA_GET_LE16(pos));
+				pos += 2;
+			} else {
+				if (info_end - pos < 1) {
+					wpa_printf(MSG_INFO,
+						   "Truncated NSTR Indication Bitmap in STA Info");
+					continue;
+				}
+				wpa_printf(MSG_DEBUG, "NSTR Indication Bitmap: 0x%02x",
+					   *pos);
+				pos++;
+			}
+		}
+		if (ctrl & BASIC_MLE_STA_CTRL_PRES_BSS_PARAM_COUNT) {
+			if (info_end - pos < 1) {
+				wpa_printf(MSG_INFO,
+					   "Truncated BSS Parameters Change Count in STA Info");
+				continue;
+			}
+			wpa_printf(MSG_DEBUG, "BSS Parameters Change Count: %u",
+				   *pos);
+			pos++;
+		}
+		if (info_end > pos) {
+			wpa_hexdump(MSG_INFO,
+				    "Extra information at the end of STA Info",
+				    pos, ci_end - pos);
+			pos = info_end;
+		}
+
+		wpa_hexdump(MSG_DEBUG, "STA Profile", pos, end - pos);
+	}
+}
+
+
 static void rx_mgmt_beacon(struct wlantest *wt, const u8 *data, size_t len)
 {
 	const struct ieee80211_mgmt *mgmt;
@@ -674,6 +932,8 @@ static void rx_mgmt_assoc_req(struct wlantest *wt, const u8 *data, size_t len)
 
 	sta->assocreq_seen = 1;
 	sta_update_assoc(sta, &elems);
+	if (elems.basic_mle)
+		parse_basic_ml(elems.basic_mle, elems.basic_mle_len, false);
 }
 
 
@@ -745,6 +1005,7 @@ static void rx_mgmt_assoc_resp(struct wlantest *wt, const u8 *data, size_t len)
 	const u8 *ies;
 	size_t ies_len;
 	struct wpa_ft_ies parse;
+	const u8 *ml;
 
 	mgmt = (const struct ieee80211_mgmt *) data;
 	bss = bss_get(wt, mgmt->bssid);
@@ -771,6 +1032,10 @@ static void rx_mgmt_assoc_resp(struct wlantest *wt, const u8 *data, size_t len)
 		   " (capab=0x%x status=%u aid=%u)",
 		   MAC2STR(mgmt->sa), MAC2STR(mgmt->da), capab, status,
 		   aid & 0x3fff);
+
+	ml = get_ml_ie(ies, ies_len, MULTI_LINK_CONTROL_TYPE_BASIC);
+	if (ml)
+		parse_basic_ml(ml + 3, ml[1], true);
 
 	if (sta->auth_alg == WLAN_AUTH_FILS_SK) {
 		const u8 *session, *frame_ad, *frame_ad_end, *encr_end;
@@ -910,6 +1175,8 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 
 	sta->assocreq_seen = 1;
 	sta_update_assoc(sta, &elems);
+	if (elems.basic_mle)
+		parse_basic_ml(elems.basic_mle, elems.basic_mle_len, false);
 
 	if (elems.ftie) {
 		struct wpa_ft_ies parse;
@@ -1320,6 +1587,7 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 	const u8 *ies;
 	size_t ies_len;
 	struct ieee802_11_elems elems;
+	const u8 *ml;
 
 	mgmt = (const struct ieee80211_mgmt *) data;
 	bss = bss_get(wt, mgmt->bssid);
@@ -1346,6 +1614,10 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 		   " (capab=0x%x status=%u aid=%u)",
 		   MAC2STR(mgmt->sa), MAC2STR(mgmt->da), capab, status,
 		   aid & 0x3fff);
+
+	ml = get_ml_ie(ies, ies_len, MULTI_LINK_CONTROL_TYPE_BASIC);
+	if (ml)
+		parse_basic_ml(ml + 3, ml[1], true);
 
 	if (sta->auth_alg == WLAN_AUTH_FILS_SK) {
 		const u8 *session, *frame_ad, *frame_ad_end, *encr_end;

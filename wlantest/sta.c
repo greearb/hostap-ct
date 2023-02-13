@@ -103,6 +103,26 @@ void sta_deinit(struct wlantest_sta *sta)
 }
 
 
+static void sta_update_assoc_ml(struct wlantest_sta *sta,
+				struct ieee802_11_elems *elems)
+{
+	const u8 *mld_addr;
+
+	if (!elems->basic_mle)
+		return;
+
+	mld_addr = get_basic_mle_mld_addr(elems->basic_mle,
+					  elems->basic_mle_len);
+	if (!mld_addr) {
+		wpa_printf(MSG_INFO, "MLO: Invalid Basic Multi-Link element");
+		return;
+	}
+
+	wpa_printf(MSG_DEBUG, "STA MLD Address: " MACSTR, MAC2STR(mld_addr));
+	os_memcpy(sta->mld_mac_addr, mld_addr, ETH_ALEN);
+}
+
+
 void sta_update_assoc(struct wlantest_sta *sta, struct ieee802_11_elems *elems)
 {
 	struct wpa_ie_data data;
@@ -271,6 +291,8 @@ skip_rsn_wpa:
 		   sta->rsn_capab & WPA_CAPABILITY_OCVC ? "OCVC " : "",
 		   sta->rsn_capab & WPA_CAPABILITY_EXT_KEY_ID_FOR_UNICAST ?
 		   "ExtKeyID " : "");
+
+	sta_update_assoc_ml(sta, elems);
 }
 
 
