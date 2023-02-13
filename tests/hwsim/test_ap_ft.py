@@ -378,6 +378,20 @@ def test_ap_ft_vlan(dev, apdev):
     if filename.startswith('/tmp/'):
         os.unlink(filename)
 
+    sta = hapd0.get_sta(dev[0].own_addr())
+    if not (sta and "vlan_id" in sta):
+        raise Exception("VLAN information not in STA output")
+    vlan_id = int(sta["vlan_id"])
+    if vlan_id != 1:
+        raise Exception("Unexpected vlan_id %d" % vlan_id)
+
+    sta = hapd1.get_sta(dev[0].own_addr())
+    if not (sta and "vlan_id" in sta):
+        raise Exception("VLAN information not in STA output")
+    vlan_id = int(sta["vlan_id"])
+    if vlan_id != 1:
+        raise Exception("Unexpected vlan_id %d" % vlan_id)
+
 def test_ap_ft_vlan_disconnected(dev, apdev):
     """WPA2-PSK-FT AP with VLAN and local key generation"""
     ssid = "test-ft"

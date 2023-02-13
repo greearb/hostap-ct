@@ -782,6 +782,14 @@ def test_ap_vlan_psk(dev, apdev, params):
     hwsim_utils.test_connectivity_iface(dev[1], hapd, "brvlan2")
     hwsim_utils.test_connectivity_iface(dev[2], hapd, "brvlan3")
 
+    for i in range(3):
+        sta = hapd.get_sta(dev[i].own_addr())
+        if not (sta and "vlan_id" in sta):
+            raise Exception("VLAN information not in STA output")
+        vlan_id = int(sta["vlan_id"])
+        if vlan_id != i + 1:
+            raise Exception("Unexpected vlan_id %d for dev[%d]" % (vlan_id, i))
+
 def test_ap_vlan_sae(dev, apdev, params):
     """AP VLAN based on SAE Password Identifier"""
     for i in range(3):
@@ -804,3 +812,11 @@ def test_ap_vlan_sae(dev, apdev, params):
     hwsim_utils.test_connectivity_iface(dev[0], hapd, "brvlan1")
     hwsim_utils.test_connectivity_iface(dev[1], hapd, "brvlan2")
     hwsim_utils.test_connectivity_iface(dev[2], hapd, "brvlan3")
+
+    for i in range(3):
+        sta = hapd.get_sta(dev[i].own_addr())
+        if not (sta and "vlan_id" in sta):
+            raise Exception("VLAN information not in STA output")
+        vlan_id = int(sta["vlan_id"])
+        if vlan_id != i + 1:
+            raise Exception("Unexpected vlan_id %d for dev[%d]" % (vlan_id, i))
