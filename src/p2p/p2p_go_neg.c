@@ -11,6 +11,7 @@
 #include "common.h"
 #include "utils/eloop.h"
 #include "common/ieee802_11_defs.h"
+#include "common/ieee802_11_common.h"
 #include "common/wpa_ctrl.h"
 #include "wps/wps_defs.h"
 #include "p2p_i.h"
@@ -697,6 +698,7 @@ void p2p_check_pref_chan(struct p2p_data *p2p, int go,
 	unsigned int i;
 	u8 op_class, op_channel;
 	char txt[100], *pos, *end;
+	bool is_6ghz_capab;
 	int res;
 
 	/*
@@ -718,6 +720,8 @@ void p2p_check_pref_chan(struct p2p_data *p2p, int go,
 	if (!size)
 		return;
 	/* Filter out frequencies that are not acceptable for P2P use */
+	is_6ghz_capab = is_p2p_6ghz_capable(p2p) &&
+		p2p_is_peer_6ghz_capab(p2p, dev->info.p2p_device_addr);
 	i = 0;
 	while (i < size) {
 		if (p2p_freq_to_channel(p2p->pref_freq_list[i].freq,
@@ -725,7 +729,9 @@ void p2p_check_pref_chan(struct p2p_data *p2p, int go,
 		    (!p2p_channels_includes(&p2p->cfg->channels,
 					    op_class, op_channel) &&
 		     (go || !p2p_channels_includes(&p2p->cfg->cli_channels,
-						   op_class, op_channel)))) {
+						   op_class, op_channel))) ||
+		    (is_6ghz_freq(p2p->pref_freq_list[i].freq) &&
+		     !is_6ghz_capab)) {
 			p2p_dbg(p2p,
 				"Ignore local driver frequency preference %u MHz since it is not acceptable for P2P use (go=%d)",
 				p2p->pref_freq_list[i].freq, go);
