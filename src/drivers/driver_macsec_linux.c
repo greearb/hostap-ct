@@ -32,6 +32,10 @@
 
 #define UNUSED_SCI 0xffffffffffffffff
 
+#if LIBNL_VER_NUM >= LIBNL_VER(3, 6)
+#define LIBNL_HAS_OFFLOAD
+#endif
+
 struct cb_arg {
 	struct macsec_drv_data *drv;
 	u32 *pn;
@@ -72,6 +76,11 @@ struct macsec_drv_data {
 
 	bool replay_protect;
 	bool replay_protect_set;
+
+#ifdef LIBNL_HAS_OFFLOAD
+	enum macsec_offload offload;
+	bool offload_set;
+#endif /* LIBNL_HAS_OFFLOAD */
 
 	u32 replay_window;
 
@@ -227,6 +236,15 @@ static int try_commit(struct macsec_drv_data *drv)
 			rtnl_link_macsec_set_window(drv->link,
 						    drv->replay_window);
 	}
+
+#ifdef LIBNL_HAS_OFFLOAD
+	if (drv->offload_set) {
+		wpa_printf(MSG_DEBUG, DRV_PREFIX
+			   "%s: try_commit offload=%d",
+			   drv->ifname, drv->offload);
+		rtnl_link_macsec_set_offload(drv->link, drv->offload);
+	}
+#endif /* LIBNL_HAS_OFFLOAD */
 
 	if (drv->encoding_sa_set) {
 		wpa_printf(MSG_DEBUG, DRV_PREFIX
@@ -452,6 +470,36 @@ static int macsec_drv_set_replay_protect(void *priv, bool enabled,
 		drv->replay_window = window;
 
 	return try_commit(drv);
+}
+
+
+/**
+ * macsec_drv_set_offload - Set offload status
+ * @priv: Private driver interface data
+ * @offload: 0 = MACSEC_OFFLOAD_OFF
+ *           1 = MACSEC_OFFLOAD_PHY
+ *           2 = MACSEC_OFFLOAD_MAC
+ * Returns: 0 on success, -1 on failure (or if not supported)
+ */
+static int macsec_drv_set_offload(void *priv, u8 offload)
+{
+#ifdef LIBNL_HAS_OFFLOAD
+	struct macsec_drv_data *drv = priv;
+
+	wpa_printf(MSG_DEBUG, "%s -> %02" PRIx8, __func__, offload);
+
+	drv->offload_set = true;
+	drv->offload = offload;
+
+	return try_commit(drv);
+#else /* LIBNL_HAS_OFFLOAD */
+	if (offload == 0)
+		return 0;
+	wpa_printf(MSG_INFO,
+		   "%s: libnl version does not include support for MACsec offload",
+		   __func__);
+	return -1;
+#endif /* LIBNL_HAS_OFFLOAD */
 }
 
 
@@ -1648,6 +1696,7 @@ const struct wpa_driver_ops wpa_driver_macsec_linux_ops = {
 	.enable_protect_frames = macsec_drv_enable_protect_frames,
 	.enable_encrypt = macsec_drv_enable_encrypt,
 	.set_replay_protect = macsec_drv_set_replay_protect,
+	.set_offload = macsec_drv_set_offload,
 	.set_current_cipher_suite = macsec_drv_set_current_cipher_suite,
 	.enable_controlled_port = macsec_drv_enable_controlled_port,
 	.get_receive_lowest_pn = macsec_drv_get_receive_lowest_pn,
