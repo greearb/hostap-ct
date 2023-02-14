@@ -1959,6 +1959,42 @@ enum wnm_notification_Type {
 	WNM_NOTIF_TYPE_VENDOR_SPECIFIC = 221,
 };
 
+struct wnm_event_report_element {
+	u8 eid; /* WLAN_EID_EVENT_REPORT */
+	u8 len;
+	u8 token;
+	u8 type;
+	u8 status;
+	/* Followed by conditional fields */
+	union {
+		struct {
+			u8 tsf[8]; /* Event TSF */
+			u8 color_bitmap[8]; /* Event Report field */
+		} STRUCT_PACKED bss_color_collision;
+		struct {
+			u8 tsf[8]; /* Event TSF */
+			u8 color; /* Event Report field */
+		} STRUCT_PACKED bss_color_in_use;
+	} u;
+} STRUCT_PACKED;
+
+enum wnm_event_report_status {
+	WNM_STATUS_SUCCESSFUL = 0,
+	WNM_STATUS_REQ_FAILED = 1,
+	WNM_STATUS_REQ_REFUSED = 2,
+	WNM_STATUS_REQ_INCAPABLE = 3,
+	WNM_STATUS_FREQUENT_TRANSITION = 4,
+};
+
+enum wnm_event_report_type {
+       WNM_EVENT_TYPE_TRANSITION = 0,
+       WNM_EVENT_TYPE_RSNA = 1,
+       WNM_EVENT_TYPE_P2P_LINK = 2,
+       WNM_EVENT_TYPE_WNM_LOG = 3,
+       WNM_EVENT_TYPE_BSS_COLOR_COLLISION = 4,
+       WNM_EVENT_TYPE_BSS_COLOR_IN_USE = 5,
+};
+
 /* Channel Switch modes (802.11h) */
 #define CHAN_SWITCH_MODE_ALLOW_TX	0
 #define CHAN_SWITCH_MODE_BLOCK_TX	1

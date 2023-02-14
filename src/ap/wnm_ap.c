@@ -643,6 +643,133 @@ static void ieee802_11_rx_wnm_coloc_intf_report(struct hostapd_data *hapd,
 }
 
 
+
+static const char * wnm_event_type2str(enum wnm_event_report_type wtype)
+{
+#define W2S(wtype) case WNM_EVENT_TYPE_ ## wtype: return #wtype;
+	switch (wtype) {
+	W2S(TRANSITION)
+	W2S(RSNA)
+	W2S(P2P_LINK)
+	W2S(WNM_LOG)
+	W2S(BSS_COLOR_COLLISION)
+	W2S(BSS_COLOR_IN_USE)
+	}
+	return "UNKNOWN";
+#undef W2S
+}
+
+
+static void ieee802_11_rx_wnm_event_report(struct hostapd_data *hapd,
+					   const u8 *addr, const u8 *buf,
+					   size_t len)
+{
+	struct sta_info *sta;
+	u8 dialog_token;
+	struct wnm_event_report_element *report_ie;
+	const u8 *pos = buf, *end = buf + len;
+	const size_t fixed_field_len = 3; /* Event Token/Type/Report Status */
+#ifdef CONFIG_IEEE80211AX
+	const size_t tsf_len = 8;
+	u8 color;
+	u64 bitmap;
+#endif /* CONFIG_IEEE80211AX */
+
+	if (end - pos < 1 + 2) {
+		wpa_printf(MSG_DEBUG,
+			   "WNM: Ignore too short WNM Event Report frame from "
+			   MACSTR, MAC2STR(addr));
+		return;
+	}
+
+	dialog_token = *pos++;
+	report_ie = (struct wnm_event_report_element *) pos;
+
+	if (end - pos < 2 + report_ie->len ||
+	    report_ie->len < fixed_field_len) {
+		wpa_printf(MSG_DEBUG,
+			   "WNM: Ignore truncated WNM Event Report frame from "
+			   MACSTR, MAC2STR(addr));
+		return;
+	}
+
+	if (report_ie->eid != WLAN_EID_EVENT_REPORT ||
+	    report_ie->status != WNM_STATUS_SUCCESSFUL)
+		return;
+
+	wpa_printf(MSG_DEBUG, "WNM: Received WNM Event Report frame from "
+		   MACSTR " dialog_token=%u event_token=%u type=%d (%s)",
+		   MAC2STR(addr), dialog_token, report_ie->token,
+		   report_ie->type, wnm_event_type2str(report_ie->type));
+
+	pos += 2 + fixed_field_len;
+	wpa_hexdump(MSG_MSGDUMP, "WNM: Event Report", pos, end - pos);
+
+	sta = ap_get_sta(hapd, addr);
+	if (!sta || !(sta->flags & WLAN_STA_ASSOC)) {
+		wpa_printf(MSG_DEBUG, "Station " MACSTR
+			   " not found for received WNM Event Report",
+			   MAC2STR(addr));
+		return;
+	}
+
+	switch (report_ie->type) {
+#ifdef CONFIG_IEEE80211AX
+	case WNM_EVENT_TYPE_BSS_COLOR_COLLISION:
+		if (!hapd->iconf->ieee80211ax || hapd->conf->disable_11ax)
+			return;
+		if (report_ie->len <
+		    fixed_field_len + tsf_len + 8) {
+			wpa_printf(MSG_DEBUG,
+				   "WNM: Too short BSS color collision event report from "
+				   MACSTR, MAC2STR(addr));
+			return;
+		}
+		bitmap = WPA_GET_LE64(report_ie->u.bss_color_collision.color_bitmap);
+		wpa_printf(MSG_DEBUG,
+			   "WNM: BSS color collision bitmap 0x%llx reported by "
+			   MACSTR, (unsigned long long) bitmap, MAC2STR(addr));
+		hostapd_switch_color(hapd->iface->bss[0], bitmap);
+		break;
+	case WNM_EVENT_TYPE_BSS_COLOR_IN_USE:
+		if (!hapd->iconf->ieee80211ax || hapd->conf->disable_11ax)
+			return;
+		if (report_ie->len < fixed_field_len + tsf_len + 1) {
+			wpa_printf(MSG_DEBUG,
+				   "WNM: Too short BSS color in use event report from "
+				   MACSTR, MAC2STR(addr));
+			return;
+		}
+		color = report_ie->u.bss_color_in_use.color;
+		if (color > 63) {
+			wpa_printf(MSG_DEBUG,
+				   "WNM: Invalid BSS color %u report from "
+				   MACSTR, color, MAC2STR(addr));
+			return;
+		}
+		if (color == 0) {
+			wpa_printf(MSG_DEBUG,
+				   "WNM: BSS color use report canceled by "
+				   MACSTR, MAC2STR(addr));
+			/* TODO: Clear stored color from the collision bitmap
+			 * if there are no other users for it. */
+			return;
+		}
+		wpa_printf(MSG_DEBUG, "WNM: BSS color %u use report by "
+			   MACSTR, color, MAC2STR(addr));
+		hapd->color_collision_bitmap |= 1ULL << color;
+		break;
+#endif /* CONFIG_IEEE80211AX */
+	default:
+		wpa_printf(MSG_DEBUG,
+			   "WNM Event Report type=%d (%s) not supported",
+			   report_ie->type,
+			   wnm_event_type2str(report_ie->type));
+		break;
+	}
+}
+
+
 int ieee802_11_rx_wnm_action_ap(struct hostapd_data *hapd,
 				const struct ieee80211_mgmt *mgmt, size_t len)
 {
@@ -658,6 +785,10 @@ int ieee802_11_rx_wnm_action_ap(struct hostapd_data *hapd,
 	plen = len - IEEE80211_HDRLEN - 2;
 
 	switch (action) {
+	case WNM_EVENT_REPORT:
+		ieee802_11_rx_wnm_event_report(hapd, mgmt->sa, payload,
+					       plen);
+		return 0;
 	case WNM_BSS_TRANS_MGMT_QUERY:
 		ieee802_11_rx_bss_trans_mgmt_query(hapd, mgmt->sa, payload,
 						   plen);
