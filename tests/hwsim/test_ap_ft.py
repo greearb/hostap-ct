@@ -441,6 +441,53 @@ def test_ap_ft_vlan_2(dev, apdev):
     if filename.startswith('/tmp/'):
         os.unlink(filename)
 
+def test_ap_ft_vlan_psk_file(dev, apdev, params):
+    """WPA2-PSK-FT AP with PSK and VLAN from a file"""
+    ssid = "test-ft"
+    passphrase = "12345678"
+    psk = params['prefix'] + '.wpa_psk'
+
+    with open(psk, 'w') as f:
+        f.write("00:00:00:00:00:00 default-passphrase\n")
+        f.write("vlanid=1 00:00:00:00:00:00 vlan-passphrase\n")
+
+    params = ft_params1(ssid=ssid, passphrase=passphrase)
+    params['dynamic_vlan'] = "1"
+    params['wpa_psk_file'] = psk
+    hapd0 = hostapd.add_ap(apdev[0], params)
+
+    params = ft_params2(ssid=ssid, passphrase=passphrase)
+    params['dynamic_vlan'] = "1"
+    params['wpa_psk_file'] = psk
+    hapd1 = hostapd.add_ap(apdev[1], params)
+
+    run_roams(dev[0], apdev, hapd0, hapd1, ssid, "vlan-passphrase",
+              conndev="brvlan1", force_initial_conn_to_first_ap=True,
+              test_connectivity=False)
+    run_roams(dev[1], apdev, hapd0, hapd1, ssid, "default-passphrase",
+              force_initial_conn_to_first_ap=True)
+
+    sta = hapd0.get_sta(dev[0].own_addr())
+    if not (sta and "vlan_id" in sta):
+        raise Exception("VLAN information not in STA output (hapd0)")
+    vlan_id = int(sta["vlan_id"])
+    if vlan_id != 1:
+        raise Exception("Unexpected vlan_id %d (hapd0)" % vlan_id)
+
+    sta = hapd1.get_sta(dev[0].own_addr())
+    if not (sta and "vlan_id" in sta):
+        raise Exception("VLAN information not in STA output (hapd1)")
+    vlan_id = int(sta["vlan_id"])
+    if vlan_id != 1:
+        raise Exception("Unexpected vlan_id %d (hapd1)" % vlan_id)
+
+    sta = hapd0.get_sta(dev[1].own_addr())
+    if "vlan_id" in sta:
+        raise Exception("Unexpected vlan_id hapd0/dev1")
+    sta = hapd1.get_sta(dev[1].own_addr())
+    if "vlan_id" in sta:
+        raise Exception("Unexpected vlan_id hapd1/dev1")
+
 def test_ap_ft_many(dev, apdev):
     """WPA2-PSK-FT AP multiple times"""
     ssid = "test-ft"
