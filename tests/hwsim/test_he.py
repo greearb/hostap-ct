@@ -1163,6 +1163,8 @@ def test_he_twt(dev, apdev):
 
 def test_he_6ghz(dev, apdev):
     """HE with 20 MHz channel width on 6 GHz"""
+    check_sae_capab(dev[0])
+
     try:
         dev[0].set("sae_pwe", "1")
         hapd = None
@@ -1180,6 +1182,7 @@ def test_he_6ghz(dev, apdev):
         hapd = hostapd.add_ap(apdev[0], params, set_channel=False)
         bssid = apdev[0]['bssid']
 
+        dev[0].set("sae_groups", "")
         dev[0].connect("he", sae_password="password", key_mgmt="SAE",
                        ieee80211w="2", scan_freq="5975")
         hwsim_utils.test_connectivity(dev[0], hapd)
@@ -1219,6 +1222,7 @@ def test_he_6ghz(dev, apdev):
 
 def test_he_6ghz_auto_security(dev, apdev):
     """HE on 6 GHz and automatic security settings on STA"""
+    check_sae_capab(dev[0])
     try:
         hapd = None
         params = {"ssid": "he",
@@ -1234,6 +1238,7 @@ def test_he_6ghz_auto_security(dev, apdev):
         hapd = hostapd.add_ap(apdev[0], params, set_channel=False)
         bssid = apdev[0]['bssid']
 
+        dev[0].set("sae_groups", "")
         dev[0].connect("he", psk="password", key_mgmt="SAE WPA-PSK",
                        ieee80211w="1", scan_freq="5975")
         status = dev[0].get_status()
