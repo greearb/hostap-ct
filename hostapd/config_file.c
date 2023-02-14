@@ -4636,6 +4636,16 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->macsec_replay_protect = macsec_replay_protect;
 	} else if (os_strcmp(buf, "macsec_replay_window") == 0) {
 		bss->macsec_replay_window = atoi(pos);
+	} else if (os_strcmp(buf, "macsec_offload") == 0) {
+		int macsec_offload = atoi(pos);
+
+		if (macsec_offload < 0 || macsec_offload > 2) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: invalid macsec_offload (%d): '%s'.",
+				   line, macsec_offload, pos);
+			return 1;
+		}
+		bss->macsec_offload = macsec_offload;
 	} else if (os_strcmp(buf, "macsec_port") == 0) {
 		int macsec_port = atoi(pos);
 

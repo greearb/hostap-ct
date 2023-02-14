@@ -814,6 +814,7 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 	INT(macsec_integ_only);
 	INT(macsec_replay_protect);
 	INT(macsec_replay_window);
+	INT(macsec_offload);
 	INT(macsec_port);
 	INT_DEF(mka_priority, DEFAULT_PRIO_NOT_KEY_SERVER);
 	INT(macsec_csindex);

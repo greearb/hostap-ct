@@ -3464,8 +3464,8 @@ static void kay_l2_receive(void *ctx, const u8 *src_addr, const u8 *buf,
 struct ieee802_1x_kay *
 ieee802_1x_kay_init(struct ieee802_1x_kay_ctx *ctx, enum macsec_policy policy,
 		    bool macsec_replay_protect, u32 macsec_replay_window,
-		    u16 port, u8 priority, u32 macsec_csindex,
-		    const char *ifname, const u8 *addr)
+		    u8 macsec_offload, u16 port, u8 priority,
+		    u32 macsec_csindex, const char *ifname, const u8 *addr)
 {
 	struct ieee802_1x_kay *kay;
 
@@ -3524,6 +3524,7 @@ ieee802_1x_kay_init(struct ieee802_1x_kay_ctx *ctx, enum macsec_policy policy,
 		kay->macsec_validate = Disabled;
 		kay->macsec_replay_protect = false;
 		kay->macsec_replay_window = 0;
+		kay->macsec_offload = 0;
 		kay->macsec_confidentiality = CONFIDENTIALITY_NONE;
 		kay->mka_hello_time = MKA_HELLO_TIME;
 	} else {
@@ -3540,6 +3541,7 @@ ieee802_1x_kay_init(struct ieee802_1x_kay_ctx *ctx, enum macsec_policy policy,
 		kay->macsec_validate = Strict;
 		kay->macsec_replay_protect = macsec_replay_protect;
 		kay->macsec_replay_window = macsec_replay_window;
+		kay->macsec_offload = macsec_offload;
 		kay->mka_hello_time = MKA_HELLO_TIME;
 	}
 
@@ -3740,6 +3742,7 @@ ieee802_1x_kay_create_mka(struct ieee802_1x_kay *kay,
 	secy_cp_control_protect_frames(kay, kay->macsec_protect);
 	secy_cp_control_replay(kay, kay->macsec_replay_protect,
 			       kay->macsec_replay_window);
+	secy_cp_control_offload(kay, kay->macsec_offload);
 	if (secy_create_transmit_sc(kay, participant->txsc))
 		goto fail;
 

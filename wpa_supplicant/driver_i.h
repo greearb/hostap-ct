@@ -803,6 +803,14 @@ static inline int wpa_drv_set_replay_protect(struct wpa_supplicant *wpa_s,
 						 window);
 }
 
+static inline int wpa_drv_set_offload(struct wpa_supplicant *wpa_s, u8 offload)
+{
+	if (!wpa_s->driver->set_offload)
+		return -1;
+	return wpa_s->driver->set_offload(wpa_s->drv_priv, offload);
+
+}
+
 static inline int wpa_drv_set_current_cipher_suite(struct wpa_supplicant *wpa_s,
 						   u64 cs)
 {

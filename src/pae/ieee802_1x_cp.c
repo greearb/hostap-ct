@@ -84,6 +84,7 @@ struct ieee802_1x_cp_sm {
 
 	/* not defined IEEE Std 802.1X-2010 */
 	struct ieee802_1x_kay *kay;
+	u8 offload;
 };
 
 static void ieee802_1x_cp_retire_when_timeout(void *eloop_ctx,
@@ -188,6 +189,7 @@ SM_STATE(CP, AUTHENTICATED)
 	sm->protect_frames = false;
 	sm->replay_protect = false;
 	sm->validate_frames = Checked;
+	sm->offload = sm->kay->macsec_offload;
 
 	sm->port_valid = false;
 	sm->controlled_port_enabled = true;
@@ -197,6 +199,7 @@ SM_STATE(CP, AUTHENTICATED)
 	secy_cp_control_encrypt(sm->kay, sm->kay->macsec_encrypt);
 	secy_cp_control_validate_frames(sm->kay, sm->validate_frames);
 	secy_cp_control_replay(sm->kay, sm->replay_protect, sm->replay_window);
+	secy_cp_control_offload(sm->kay, sm->offload);
 }
 
 
@@ -208,6 +211,7 @@ SM_STATE(CP, SECURED)
 
 	sm->protect_frames = sm->kay->macsec_protect;
 	sm->replay_protect = sm->kay->macsec_replay_protect;
+	sm->offload = sm->kay->macsec_offload;
 	sm->validate_frames = sm->kay->macsec_validate;
 
 	sm->current_cipher_suite = sm->cipher_suite;
@@ -223,6 +227,7 @@ SM_STATE(CP, SECURED)
 	secy_cp_control_encrypt(sm->kay, sm->kay->macsec_encrypt);
 	secy_cp_control_validate_frames(sm->kay, sm->validate_frames);
 	secy_cp_control_replay(sm->kay, sm->replay_protect, sm->replay_window);
+	secy_cp_control_offload(sm->kay, sm->offload);
 }
 
 
@@ -462,6 +467,7 @@ struct ieee802_1x_cp_sm * ieee802_1x_cp_sm_init(struct ieee802_1x_kay *kay)
 	sm->validate_frames = kay->macsec_validate;
 	sm->replay_protect = kay->macsec_replay_protect;
 	sm->replay_window = kay->macsec_replay_window;
+	sm->offload = kay->macsec_offload;
 
 	sm->controlled_port_enabled = false;
 
@@ -491,6 +497,7 @@ struct ieee802_1x_cp_sm * ieee802_1x_cp_sm_init(struct ieee802_1x_kay *kay)
 	secy_cp_control_confidentiality_offset(sm->kay,
 					       sm->confidentiality_offset);
 	secy_cp_control_current_cipher_suite(sm->kay, sm->current_cipher_suite);
+	secy_cp_control_offload(sm->kay, sm->offload);
 
 	SM_STEP_RUN(CP);
 

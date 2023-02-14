@@ -927,6 +927,18 @@ struct wpa_ssid {
 	u32 macsec_replay_window;
 
 	/**
+	 * macsec_offload - Enable MACsec hardware offload
+	 *
+	 * This setting applies only when MACsec is in use, i.e.,
+	 *  - the key server has decided to enable MACsec
+	 *
+	 * 0 = MACSEC_OFFLOAD_OFF (default)
+	 * 1 = MACSEC_OFFLOAD_PHY
+	 * 2 = MACSEC_OFFLOAD_MAC
+	 */
+	int macsec_offload;
+
+	/**
 	 * macsec_port - MACsec port (in SCI)
 	 *
 	 * Port component of the SCI.

@@ -4521,6 +4521,16 @@ struct wpa_driver_ops {
 	int (*set_replay_protect)(void *priv, bool enabled, u32 window);
 
 	/**
+	 * set_offload - Set MACsec hardware offload
+	 * @priv: Private driver interface data
+	 * @offload: 0 = MACSEC_OFFLOAD_OFF
+	 *           1 = MACSEC_OFFLOAD_PHY
+	 *           2 = MACSEC_OFFLOAD_MAC
+	 * Returns: 0 on success, -1 on failure (or if not supported)
+	 */
+	int (*set_offload)(void *priv, u8 offload);
+
+	/**
 	 * set_current_cipher_suite - Set current cipher suite
 	 * @priv: Private driver interface data
 	 * @cs: EUI64 identifier
