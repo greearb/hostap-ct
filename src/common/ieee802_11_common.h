@@ -186,6 +186,10 @@ typedef enum { ParseOK = 0, ParseUnknown = 1, ParseFailed = -1 } ParseRes;
 ParseRes ieee802_11_parse_elems(const u8 *start, size_t len,
 				struct ieee802_11_elems *elems,
 				int show_errors);
+void ieee802_11_elems_clear_ids(struct ieee802_11_elems *elems,
+				const u8 *ids, size_t num);
+void ieee802_11_elems_clear_ext_ids(struct ieee802_11_elems *elems,
+				    const u8 *ids, size_t num);
 int ieee802_11_ie_count(const u8 *ies, size_t ies_len);
 struct wpabuf * ieee802_11_vendor_ie_concat(const u8 *ies, size_t ies_len,
 					    u32 oui_type);

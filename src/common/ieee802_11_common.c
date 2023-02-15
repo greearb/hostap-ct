@@ -684,6 +684,266 @@ ParseRes ieee802_11_parse_elems(const u8 *start, size_t len,
 }
 
 
+/**
+ * ieee802_11_elems_clear_ids - Clear the data for the given element IDs
+ * @ids: Array of element IDs for which data should be cleared.
+ * @num: The number of entries in the array
+ */
+void ieee802_11_elems_clear_ids(struct ieee802_11_elems *elems,
+				const u8 *ids, size_t num)
+{
+	size_t i;
+
+	for (i = 0; i < num; i++) {
+		switch (ids[i]) {
+		case WLAN_EID_SSID:
+			elems->ssid = NULL;
+			elems->ssid_len = 0;
+			break;
+		case WLAN_EID_SUPP_RATES:
+			elems->supp_rates = NULL;
+			elems->supp_rates_len = 0;
+			break;
+		case WLAN_EID_DS_PARAMS:
+			elems->ds_params = NULL;
+			break;
+		case WLAN_EID_CHALLENGE:
+			elems->challenge = NULL;
+			elems->challenge_len = 0;
+			break;
+		case WLAN_EID_ERP_INFO:
+			elems->erp_info = NULL;
+			break;
+		case WLAN_EID_EXT_SUPP_RATES:
+			elems->ext_supp_rates = NULL;
+			elems->ext_supp_rates_len = 0;
+			break;
+		case WLAN_EID_RSN:
+			elems->rsn_ie = NULL;
+			elems->rsn_ie_len = 0;
+			break;
+		case WLAN_EID_RSNX:
+			elems->rsnxe = NULL;
+			elems->rsnxe_len = 0;
+			break;
+		case WLAN_EID_PWR_CAPABILITY:
+			elems->power_capab = NULL;
+			elems->power_capab_len = 0;
+			break;
+		case WLAN_EID_SUPPORTED_CHANNELS:
+			elems->supp_channels = NULL;
+			elems->supp_channels_len = 0;
+			break;
+		case WLAN_EID_MOBILITY_DOMAIN:
+			elems->mdie = NULL;
+			elems->mdie_len = 0;
+			break;
+		case WLAN_EID_FAST_BSS_TRANSITION:
+			elems->ftie = NULL;
+			elems->ftie_len = 0;
+			break;
+		case WLAN_EID_TIMEOUT_INTERVAL:
+			elems->timeout_int = NULL;
+			break;
+		case WLAN_EID_HT_CAP:
+			elems->ht_capabilities = NULL;
+			break;
+		case WLAN_EID_HT_OPERATION:
+			elems->ht_operation = NULL;
+			break;
+		case WLAN_EID_MESH_CONFIG:
+			elems->mesh_config = NULL;
+			elems->mesh_config_len = 0;
+			break;
+		case WLAN_EID_MESH_ID:
+			elems->mesh_id = NULL;
+			elems->mesh_id_len = 0;
+			break;
+		case WLAN_EID_PEER_MGMT:
+			elems->peer_mgmt = NULL;
+			elems->peer_mgmt_len = 0;
+			break;
+		case WLAN_EID_VHT_CAP:
+			elems->vht_capabilities = NULL;
+			break;
+		case WLAN_EID_VHT_OPERATION:
+			elems->vht_operation = NULL;
+			break;
+		case WLAN_EID_VHT_OPERATING_MODE_NOTIFICATION:
+			elems->vht_opmode_notif = NULL;
+			break;
+		case WLAN_EID_LINK_ID:
+			elems->link_id = NULL;
+			break;
+		case WLAN_EID_INTERWORKING:
+			elems->interworking = NULL;
+			elems->interworking_len = 0;
+			break;
+		case WLAN_EID_QOS_MAP_SET:
+			elems->qos_map_set = NULL;
+			elems->qos_map_set_len = 0;
+			break;
+		case WLAN_EID_EXT_CAPAB:
+			elems->ext_capab = NULL;
+			elems->ext_capab_len = 0;
+			break;
+		case WLAN_EID_BSS_MAX_IDLE_PERIOD:
+			elems->bss_max_idle_period = NULL;
+			break;
+		case WLAN_EID_SSID_LIST:
+			elems->ssid_list = NULL;
+			elems->ssid_list_len = 0;
+			break;
+		case WLAN_EID_AMPE:
+			elems->ampe = NULL;
+			elems->ampe_len = 0;
+			break;
+		case WLAN_EID_MIC:
+			elems->mic = NULL;
+			elems->mic_len = 0;
+			break;
+		case WLAN_EID_MULTI_BAND:
+			os_memset(&elems->mb_ies, 0, sizeof(elems->mb_ies));
+			elems->mb_ies.nof_ies = 0;
+			break;
+		case WLAN_EID_SUPPORTED_OPERATING_CLASSES:
+			elems->supp_op_classes = NULL;
+			elems->supp_op_classes_len = 0;
+			break;
+		case WLAN_EID_RRM_ENABLED_CAPABILITIES:
+			elems->rrm_enabled = NULL;
+			elems->rrm_enabled_len = 0;
+			break;
+		case WLAN_EID_CAG_NUMBER:
+			elems->cag_number = NULL;
+			elems->cag_number_len = 0;
+			break;
+		case WLAN_EID_AP_CSN:
+			elems->ap_csn = NULL;
+			break;
+		case WLAN_EID_FILS_INDICATION:
+			elems->fils_indic = NULL;
+			elems->fils_indic_len = 0;
+			break;
+		case WLAN_EID_DILS:
+			elems->dils = NULL;
+			elems->dils_len = 0;
+			break;
+		case WLAN_EID_S1G_CAPABILITIES:
+			elems->s1g_capab = NULL;
+			break;
+		}
+	}
+}
+
+
+/**
+ * ieee802_11_elems_clear_ext_ids - Clear the data for the given element
+ * extension IDs
+ * @ids: Array of element extension IDs for which data should be cleared.
+ * @num: The number of entries in the array
+ */
+void ieee802_11_elems_clear_ext_ids(struct ieee802_11_elems *elems,
+				    const u8 *ids, size_t num)
+{
+	size_t i;
+
+	for (i = 0; i < num; i++) {
+		switch (ids[i]) {
+		case WLAN_EID_EXT_ASSOC_DELAY_INFO:
+			elems->assoc_delay_info = NULL;
+			break;
+		case WLAN_EID_EXT_FILS_REQ_PARAMS:
+			elems->fils_req_params = NULL;
+			elems->fils_req_params_len = 0;
+			break;
+		case WLAN_EID_EXT_FILS_KEY_CONFIRM:
+			elems->fils_key_confirm = NULL;
+			elems->fils_key_confirm_len = 0;
+			break;
+		case WLAN_EID_EXT_FILS_SESSION:
+			elems->fils_session = NULL;
+			break;
+		case WLAN_EID_EXT_FILS_HLP_CONTAINER:
+			elems->fils_hlp = NULL;
+			elems->fils_hlp_len = 0;
+			break;
+		case WLAN_EID_EXT_FILS_IP_ADDR_ASSIGN:
+			elems->fils_ip_addr_assign = NULL;
+			elems->fils_ip_addr_assign_len = 0;
+			break;
+		case WLAN_EID_EXT_KEY_DELIVERY:
+			elems->key_delivery = NULL;
+			elems->key_delivery_len = 0;
+			break;
+		case WLAN_EID_EXT_WRAPPED_DATA:
+			elems->wrapped_data = NULL;
+			elems->wrapped_data_len = 0;
+			break;
+		case WLAN_EID_EXT_FILS_PUBLIC_KEY:
+			elems->fils_pk = NULL;
+			elems->fils_pk_len = 0;
+			break;
+		case WLAN_EID_EXT_FILS_NONCE:
+			elems->fils_nonce = NULL;
+			break;
+		case WLAN_EID_EXT_OWE_DH_PARAM:
+			elems->owe_dh = NULL;
+			elems->owe_dh_len = 0;
+			break;
+		case WLAN_EID_EXT_PASSWORD_IDENTIFIER:
+			elems->password_id = NULL;
+			elems->password_id_len = 0;
+			break;
+		case WLAN_EID_EXT_HE_CAPABILITIES:
+			elems->he_capabilities = NULL;
+			elems->he_capabilities_len = 0;
+			break;
+		case WLAN_EID_EXT_HE_OPERATION:
+			elems->he_operation = NULL;
+			elems->he_operation_len = 0;
+			break;
+		case WLAN_EID_EXT_OCV_OCI:
+			elems->oci = NULL;
+			elems->oci_len = 0;
+			break;
+		case WLAN_EID_EXT_SHORT_SSID_LIST:
+			elems->short_ssid_list = NULL;
+			elems->short_ssid_list_len = 0;
+			break;
+		case WLAN_EID_EXT_HE_6GHZ_BAND_CAP:
+			elems->he_6ghz_band_cap = NULL;
+			break;
+		case WLAN_EID_EXT_PASN_PARAMS:
+			elems->pasn_params = NULL;
+			elems->pasn_params_len = 0;
+			break;
+		case WLAN_EID_EXT_MULTI_LINK:
+			elems->basic_mle = NULL;
+			elems->probe_req_mle = NULL;
+			elems->reconf_mle = NULL;
+			elems->tdls_mle = NULL;
+			elems->prior_access_mle = NULL;
+
+			elems->basic_mle_len = 0;
+			elems->probe_req_mle_len = 0;
+			elems->reconf_mle_len = 0;
+			elems->tdls_mle_len = 0;
+			elems->prior_access_mle_len = 0;
+			break;
+		case WLAN_EID_EXT_EHT_CAPABILITIES:
+			elems->eht_capabilities = NULL;
+			elems->eht_capabilities_len = 0;
+			break;
+		case WLAN_EID_EXT_EHT_OPERATION:
+			elems->eht_operation = NULL;
+			elems->eht_operation_len = 0;
+			break;
+		}
+	}
+}
+
+
 int ieee802_11_ie_count(const u8 *ies, size_t ies_len)
 {
 	const struct element *elem;
