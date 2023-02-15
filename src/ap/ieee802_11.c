@@ -3652,40 +3652,34 @@ static bool check_sa_query(struct hostapd_data *hapd, struct sta_info *sta,
 }
 
 
-static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
-			   const u8 *ies, size_t ies_len, int reassoc)
+static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
+			     const u8 *ies, size_t ies_len,
+			     struct ieee802_11_elems *elems, int reassoc)
 {
-	struct ieee802_11_elems elems;
 	int resp;
 	const u8 *wpa_ie;
 	size_t wpa_ie_len;
 	const u8 *p2p_dev_addr = NULL;
 
-	if (ieee802_11_parse_elems(ies, ies_len, &elems, 1) == ParseFailed) {
-		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
-			       HOSTAPD_LEVEL_INFO, "Station sent an invalid "
-			       "association request");
-		return WLAN_STATUS_UNSPECIFIED_FAILURE;
-	}
-
-	resp = check_ssid(hapd, sta, elems.ssid, elems.ssid_len);
+	resp = check_ssid(hapd, sta, elems->ssid, elems->ssid_len);
 	if (resp != WLAN_STATUS_SUCCESS)
 		return resp;
-	resp = check_wmm(hapd, sta, elems.wmm, elems.wmm_len);
+	resp = check_wmm(hapd, sta, elems->wmm, elems->wmm_len);
 	if (resp != WLAN_STATUS_SUCCESS)
 		return resp;
-	resp = check_ext_capab(hapd, sta, elems.ext_capab, elems.ext_capab_len);
+	resp = check_ext_capab(hapd, sta, elems->ext_capab,
+			       elems->ext_capab_len);
 	if (resp != WLAN_STATUS_SUCCESS)
 		return resp;
-	resp = copy_supp_rates(hapd, sta, &elems);
+	resp = copy_supp_rates(hapd, sta, elems);
 	if (resp != WLAN_STATUS_SUCCESS)
 		return resp;
 
-	resp = check_multi_ap(hapd, sta, elems.multi_ap, elems.multi_ap_len);
+	resp = check_multi_ap(hapd, sta, elems->multi_ap, elems->multi_ap_len);
 	if (resp != WLAN_STATUS_SUCCESS)
 		return resp;
 
-	resp = copy_sta_ht_capab(hapd, sta, elems.ht_capabilities);
+	resp = copy_sta_ht_capab(hapd, sta, elems->ht_capabilities);
 	if (resp != WLAN_STATUS_SUCCESS)
 		return resp;
 	if (hapd->iconf->ieee80211n && hapd->iconf->require_ht &&
@@ -3698,11 +3692,11 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 
 #ifdef CONFIG_IEEE80211AC
 	if (hapd->iconf->ieee80211ac) {
-		resp = copy_sta_vht_capab(hapd, sta, elems.vht_capabilities);
+		resp = copy_sta_vht_capab(hapd, sta, elems->vht_capabilities);
 		if (resp != WLAN_STATUS_SUCCESS)
 			return resp;
 
-		resp = set_sta_vht_opmode(hapd, sta, elems.vht_opmode_notif);
+		resp = set_sta_vht_opmode(hapd, sta, elems->vht_opmode_notif);
 		if (resp != WLAN_STATUS_SUCCESS)
 			return resp;
 	}
@@ -3715,9 +3709,9 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		return WLAN_STATUS_ASSOC_DENIED_NO_VHT;
 	}
 
-	if (hapd->conf->vendor_vht && !elems.vht_capabilities) {
-		resp = copy_sta_vendor_vht(hapd, sta, elems.vendor_vht,
-					   elems.vendor_vht_len);
+	if (hapd->conf->vendor_vht && !elems->vht_capabilities) {
+		resp = copy_sta_vendor_vht(hapd, sta, elems->vendor_vht,
+					   elems->vendor_vht_len);
 		if (resp != WLAN_STATUS_SUCCESS)
 			return resp;
 	}
@@ -3725,8 +3719,8 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 #ifdef CONFIG_IEEE80211AX
 	if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax) {
 		resp = copy_sta_he_capab(hapd, sta, IEEE80211_MODE_AP,
-					 elems.he_capabilities,
-					 elems.he_capabilities_len);
+					 elems->he_capabilities,
+					 elems->he_capabilities_len);
 		if (resp != WLAN_STATUS_SUCCESS)
 			return resp;
 
@@ -3747,7 +3741,7 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 				return WLAN_STATUS_DENIED_HE_NOT_SUPPORTED;
 			}
 			resp = copy_sta_he_6ghz_capab(hapd, sta,
-						      elems.he_6ghz_band_cap);
+						      elems->he_6ghz_band_cap);
 			if (resp != WLAN_STATUS_SUCCESS)
 				return resp;
 		}
@@ -3756,17 +3750,17 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be) {
 		resp = copy_sta_eht_capab(hapd, sta, IEEE80211_MODE_AP,
-					  elems.he_capabilities,
-					  elems.he_capabilities_len,
-					  elems.eht_capabilities,
-					  elems.eht_capabilities_len);
+					  elems->he_capabilities,
+					  elems->he_capabilities_len,
+					  elems->eht_capabilities,
+					  elems->eht_capabilities_len);
 		if (resp != WLAN_STATUS_SUCCESS)
 			return resp;
 	}
 #endif /* CONFIG_IEEE80211BE */
 
 #ifdef CONFIG_P2P
-	if (elems.p2p) {
+	if (elems->p2p && ies && ies_len) {
 		wpabuf_free(sta->p2p_ie);
 		sta->p2p_ie = ieee802_11_vendor_ie_concat(ies, ies_len,
 							  P2P_IE_VENDOR_TYPE);
@@ -3778,13 +3772,13 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 	}
 #endif /* CONFIG_P2P */
 
-	if ((hapd->conf->wpa & WPA_PROTO_RSN) && elems.rsn_ie) {
-		wpa_ie = elems.rsn_ie;
-		wpa_ie_len = elems.rsn_ie_len;
+	if ((hapd->conf->wpa & WPA_PROTO_RSN) && elems->rsn_ie) {
+		wpa_ie = elems->rsn_ie;
+		wpa_ie_len = elems->rsn_ie_len;
 	} else if ((hapd->conf->wpa & WPA_PROTO_WPA) &&
-		   elems.wpa_ie) {
-		wpa_ie = elems.wpa_ie;
-		wpa_ie_len = elems.wpa_ie_len;
+		   elems->wpa_ie) {
+		wpa_ie = elems->wpa_ie;
+		wpa_ie_len = elems->wpa_ie_len;
 	} else {
 		wpa_ie = NULL;
 		wpa_ie_len = 0;
@@ -3792,7 +3786,7 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 
 #ifdef CONFIG_WPS
 	sta->flags &= ~(WLAN_STA_WPS | WLAN_STA_MAYBE_WPS | WLAN_STA_WPS2);
-	if (hapd->conf->wps_state && elems.wps_ie) {
+	if (hapd->conf->wps_state && elems->wps_ie && ies && ies_len) {
 		wpa_printf(MSG_DEBUG, "STA included WPS IE in (Re)Association "
 			   "Request - assume WPS is used");
 		if (check_sa_query(hapd, sta, reassoc))
@@ -3846,10 +3840,12 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		res = wpa_validate_wpa_ie(hapd->wpa_auth, sta->wpa_sm,
 					  hapd->iface->freq,
 					  wpa_ie, wpa_ie_len,
-					  elems.rsnxe ? elems.rsnxe - 2 : NULL,
-					  elems.rsnxe ? elems.rsnxe_len + 2 : 0,
-					  elems.mdie, elems.mdie_len,
-					  elems.owe_dh, elems.owe_dh_len);
+					  elems->rsnxe ? elems->rsnxe - 2 :
+					  NULL,
+					  elems->rsnxe ? elems->rsnxe_len + 2 :
+					  0,
+					  elems->mdie, elems->mdie_len,
+					  elems->owe_dh, elems->owe_dh_len);
 		resp = wpa_res_to_status_code(res);
 		if (resp != WLAN_STATUS_SUCCESS)
 			return resp;
@@ -3906,7 +3902,7 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		if (hapd->conf->sae_pwe == SAE_PWE_BOTH &&
 		    sta->auth_alg == WLAN_AUTH_SAE &&
 		    sta->sae && !sta->sae->h2e &&
-		    ieee802_11_rsnx_capab_len(elems.rsnxe, elems.rsnxe_len,
+		    ieee802_11_rsnx_capab_len(elems->rsnxe, elems->rsnxe_len,
 					      WLAN_RSNX_CAPAB_SAE_H2E)) {
 			wpa_printf(MSG_INFO, "SAE: " MACSTR
 				   " indicates support for SAE H2E, but did not use it",
@@ -3918,9 +3914,9 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 #ifdef CONFIG_OWE
 		if ((hapd->conf->wpa_key_mgmt & WPA_KEY_MGMT_OWE) &&
 		    wpa_auth_sta_key_mgmt(sta->wpa_sm) == WPA_KEY_MGMT_OWE &&
-		    elems.owe_dh) {
-			resp = owe_process_assoc_req(hapd, sta, elems.owe_dh,
-						     elems.owe_dh_len);
+		    elems->owe_dh) {
+			resp = owe_process_assoc_req(hapd, sta, elems->owe_dh,
+						     elems->owe_dh_len);
 			if (resp != WLAN_STATUS_SUCCESS)
 				return resp;
 		}
@@ -3934,7 +3930,7 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		    (hapd->conf->wpa_key_mgmt & WPA_KEY_MGMT_DPP) &&
 		    hapd->conf->dpp_netaccesskey && sta->wpa_sm &&
 		    wpa_auth_sta_key_mgmt(sta->wpa_sm) == WPA_KEY_MGMT_DPP &&
-		    elems.owe_dh) {
+		    elems->owe_dh) {
 			sta->dpp_pfs = dpp_pfs_init(
 				wpabuf_head(hapd->conf->dpp_netaccesskey),
 				wpabuf_len(hapd->conf->dpp_netaccesskey));
@@ -3945,8 +3941,8 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 				goto pfs_fail;
 			}
 
-			if (dpp_pfs_process(sta->dpp_pfs, elems.owe_dh,
-					    elems.owe_dh_len) < 0) {
+			if (dpp_pfs_process(sta->dpp_pfs, elems->owe_dh,
+					    elems->owe_dh_len) < 0) {
 				dpp_pfs_free(sta->dpp_pfs);
 				sta->dpp_pfs = NULL;
 				return WLAN_STATUS_UNSPECIFIED_FAILURE;
@@ -3969,7 +3965,7 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		}
 #ifdef CONFIG_HS20
 	} else if (hapd->conf->osen) {
-		if (elems.osen == NULL) {
+		if (!elems->osen) {
 			hostapd_logger(
 				hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
 				HOSTAPD_LEVEL_INFO,
@@ -3987,7 +3983,7 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 			return WLAN_STATUS_UNSPECIFIED_FAILURE;
 		}
 		if (wpa_validate_osen(hapd->wpa_auth, sta->wpa_sm,
-				      elems.osen - 2, elems.osen_len + 2) < 0)
+				      elems->osen - 2, elems->osen_len + 2) < 0)
 			return WLAN_STATUS_INVALID_IE;
 #endif /* CONFIG_HS20 */
 	} else
@@ -3999,12 +3995,12 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 
 #ifdef CONFIG_HS20
 	wpabuf_free(sta->hs20_ie);
-	if (elems.hs20 && elems.hs20_len > 4) {
+	if (elems->hs20 && elems->hs20_len > 4) {
 		int release;
 
-		sta->hs20_ie = wpabuf_alloc_copy(elems.hs20 + 4,
-						 elems.hs20_len - 4);
-		release = ((elems.hs20[4] >> 4) & 0x0f) + 1;
+		sta->hs20_ie = wpabuf_alloc_copy(elems->hs20 + 4,
+						 elems->hs20_len - 4);
+		release = ((elems->hs20[4] >> 4) & 0x0f) + 1;
 		if (release >= 2 && !wpa_auth_uses_mfp(sta->wpa_sm) &&
 		    hapd->conf->ieee80211w != NO_MGMT_FRAME_PROTECTION) {
 			wpa_printf(MSG_DEBUG,
@@ -4017,10 +4013,10 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 	}
 
 	wpabuf_free(sta->roaming_consortium);
-	if (elems.roaming_cons_sel)
+	if (elems->roaming_cons_sel)
 		sta->roaming_consortium = wpabuf_alloc_copy(
-			elems.roaming_cons_sel + 4,
-			elems.roaming_cons_sel_len - 4);
+			elems->roaming_cons_sel + 4,
+			elems->roaming_cons_sel_len - 4);
 	else
 		sta->roaming_consortium = NULL;
 #endif /* CONFIG_HS20 */
@@ -4028,16 +4024,16 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 #ifdef CONFIG_FST
 	wpabuf_free(sta->mb_ies);
 	if (hapd->iface->fst)
-		sta->mb_ies = mb_ies_by_info(&elems.mb_ies);
+		sta->mb_ies = mb_ies_by_info(&elems->mb_ies);
 	else
 		sta->mb_ies = NULL;
 #endif /* CONFIG_FST */
 
 #ifdef CONFIG_MBO
-	mbo_ap_check_sta_assoc(hapd, sta, &elems);
+	mbo_ap_check_sta_assoc(hapd, sta, elems);
 
 	if (hapd->conf->mbo_enabled && (hapd->conf->wpa & 2) &&
-	    elems.mbo && sta->cell_capa && !(sta->flags & WLAN_STA_MFP) &&
+	    elems->mbo && sta->cell_capa && !(sta->flags & WLAN_STA_MFP) &&
 	    hapd->conf->ieee80211w != NO_MGMT_FRAME_PROTECTION) {
 		wpa_printf(MSG_INFO,
 			   "MBO: Reject WPA2 association without PMF");
@@ -4067,7 +4063,7 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 					  &tx_seg1_idx) < 0)
 			return WLAN_STATUS_UNSPECIFIED_FAILURE;
 
-		res = ocv_verify_tx_params(elems.oci, elems.oci_len, &ci,
+		res = ocv_verify_tx_params(elems->oci, elems->oci_len, &ci,
 					   tx_chanwidth, tx_seg1_idx);
 		if (wpa_auth_uses_ocv(sta->wpa_sm) == 2 &&
 		    res == OCI_NOT_FOUND) {
@@ -4086,24 +4082,40 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 	}
 #endif /* CONFIG_FILS && CONFIG_OCV */
 
-	ap_copy_sta_supp_op_classes(sta, elems.supp_op_classes,
-				    elems.supp_op_classes_len);
+	ap_copy_sta_supp_op_classes(sta, elems->supp_op_classes,
+				    elems->supp_op_classes_len);
 
 	if ((sta->capability & WLAN_CAPABILITY_RADIO_MEASUREMENT) &&
-	    elems.rrm_enabled &&
-	    elems.rrm_enabled_len >= sizeof(sta->rrm_enabled_capa))
-		os_memcpy(sta->rrm_enabled_capa, elems.rrm_enabled,
+	    elems->rrm_enabled &&
+	    elems->rrm_enabled_len >= sizeof(sta->rrm_enabled_capa))
+		os_memcpy(sta->rrm_enabled_capa, elems->rrm_enabled,
 			  sizeof(sta->rrm_enabled_capa));
 
-	if (elems.power_capab) {
-		sta->min_tx_power = elems.power_capab[0];
-		sta->max_tx_power = elems.power_capab[1];
+	if (elems->power_capab) {
+		sta->min_tx_power = elems->power_capab[0];
+		sta->max_tx_power = elems->power_capab[1];
 		sta->power_capab = 1;
 	} else {
 		sta->power_capab = 0;
 	}
 
 	return WLAN_STATUS_SUCCESS;
+}
+
+
+static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
+			   const u8 *ies, size_t ies_len, int reassoc)
+{
+	struct ieee802_11_elems elems;
+
+	if (ieee802_11_parse_elems(ies, ies_len, &elems, 1) == ParseFailed) {
+		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
+			       HOSTAPD_LEVEL_INFO,
+			       "Station sent an invalid association request");
+		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+	}
+
+	return __check_assoc_ies(hapd, sta, ies, ies_len, &elems, reassoc);
 }
 
 
