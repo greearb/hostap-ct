@@ -2858,13 +2858,22 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 	u32 vht_caps = 0;
 	u8 channel = freq->channel;
 
+	if (!freq->vht_enabled && !freq->he_enabled)
+		return true;
+
 	vht_freq = *freq;
 
-	/* 6 GHz does not have VHT enabled, so allow that exception here. */
-	if (!freq->he_enabled && is_6ghz)
-		return false;
-	if (!vht_freq.vht_enabled && !is_6ghz)
-		return false;
+	chwidth = CONF_OPER_CHWIDTH_USE_HT;
+	seg0 = freq->channel + 2 * freq->sec_channel_offset;
+	seg1 = 0;
+	if (freq->sec_channel_offset == 0) {
+		seg0 = 0;
+		/* Don't try 80 MHz if 40 MHz failed, except in 6 GHz */
+		if (freq->ht_enabled && !is_6ghz)
+			goto skip_80mhz;
+	}
+	if (ssid->max_oper_chwidth == CONF_OPER_CHWIDTH_USE_HT)
+		goto skip_80mhz;
 
 	/* setup center_freq1, bandwidth */
 	for (j = 0; j < ARRAY_SIZE(bw80); j++) {
@@ -2875,26 +2884,24 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 
 	if (j == ARRAY_SIZE(bw80) ||
 	    ieee80211_freq_to_chan(bw80[j], &channel) == NUM_HOSTAPD_MODES)
-		return false;
+		goto skip_80mhz;
 
-	/* Back to HT configuration if channel not usable */
+	/* Use 40 MHz if channel not usable */
 	if (!ibss_mesh_is_80mhz_avail(channel, mode))
-		return false;
+		goto skip_80mhz;
 
 	chwidth = CONF_OPER_CHWIDTH_80MHZ;
 	seg0 = channel + 6;
 	seg1 = 0;
 
+	/* In 160 MHz, the initial four 20 MHz channels were validated
+	 * above. If 160 MHz is supported, check the remaining four 20 MHz
+	 * channels for the total of 160 MHz bandwidth for 6 GHz.
+	 */
 	if ((mode->he_capab[ieee80211_mode].phy_cap[
 		     HE_PHYCAP_CHANNEL_WIDTH_SET_IDX] &
-	     HE_PHYCAP_CHANNEL_WIDTH_SET_160MHZ_IN_5G) && is_6ghz) {
-		/* In 160 MHz, the initial four 20 MHz channels were validated
-		 * above; check the remaining four 20 MHz channels for the total
-		 * of 160 MHz bandwidth.
-		 */
-		if (!ibss_mesh_is_80mhz_avail(channel + 16, mode))
-			return false;
-
+	     HE_PHYCAP_CHANNEL_WIDTH_SET_160MHZ_IN_5G) && is_6ghz &&
+	    ibss_mesh_is_80mhz_avail(channel + 16, mode)) {
 		for (j = 0; j < ARRAY_SIZE(bw160); j++) {
 			if (freq->freq == bw160[j]) {
 				chwidth = CONF_OPER_CHWIDTH_160MHZ;
@@ -2913,7 +2920,7 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 
 			if (ieee80211_freq_to_chan(bw80[k], &channel) ==
 			    NUM_HOSTAPD_MODES)
-				return false;
+				break;
 
 			for (i = channel; i < channel + 16; i += 4) {
 				struct hostapd_channel_data *chan;
@@ -2948,19 +2955,13 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 			vht_caps |= VHT_CAP_SUPP_CHAN_WIDTH_160MHZ;
 			seg0 = 114;
 		}
-	} else if (ssid->max_oper_chwidth == CONF_OPER_CHWIDTH_USE_HT) {
-		chwidth = CONF_OPER_CHWIDTH_USE_HT;
-		seg0 = channel + 2;
-#ifdef CONFIG_HT_OVERRIDES
-		if (ssid->disable_ht40)
-			seg0 = 0;
-#endif /* CONFIG_HT_OVERRIDES */
 	}
 
+skip_80mhz:
 	if (hostapd_set_freq_params(&vht_freq, mode->mode, freq->freq,
 				    freq->channel, ssid->enable_edmg,
 				    ssid->edmg_channel, freq->ht_enabled,
-				    vht_freq.vht_enabled, freq->he_enabled,
+				    freq->vht_enabled, freq->he_enabled,
 				    false,
 				    freq->sec_channel_offset,
 				    chwidth, seg0, seg1, vht_caps,
@@ -3033,7 +3034,7 @@ void ibss_mesh_setup_freq(struct wpa_supplicant *wpa_s,
 		ibss_mesh_select_40mhz(wpa_s, ssid, mode, freq, obss_scan);
 		if (!ibss_mesh_select_80_160mhz(wpa_s, ssid, mode, freq,
 						ieee80211_mode, is_6ghz))
-			freq->vht_enabled = false;
+			freq->he_enabled = freq->vht_enabled = false;
 	}
 }
 
