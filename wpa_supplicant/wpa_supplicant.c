@@ -2742,8 +2742,9 @@ static void ibss_mesh_select_40mhz(struct wpa_supplicant *wpa_s,
 	struct hostapd_channel_data *pri_chan = NULL, *sec_chan = NULL;
 	int i, res;
 	unsigned int j;
-	int ht40plus[] = { 36, 44, 52, 60, 100, 108, 116, 124, 132, 149, 157,
-			   184, 192 };
+	static const int ht40plus[] = {
+		36, 44, 52, 60, 100, 108, 116, 124, 132, 149, 157, 184, 192
+	};
 	int ht40 = -1;
 
 	if (!freq->ht_enabled)
@@ -2842,10 +2843,14 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 				       struct hostapd_hw_modes *mode,
 				       struct hostapd_freq_params *freq,
 				       int ieee80211_mode, bool is_6ghz) {
-	int bw80[] = { 5180, 5260, 5500, 5580, 5660, 5745, 5955,
-		       6035, 6115, 6195, 6275, 6355, 6435, 6515,
-		       6595, 6675, 6755, 6835, 6915, 6995 };
-	int bw160[] = { 5955, 6115, 6275, 6435, 6595, 6755, 6915 };
+	static const int bw80[] = {
+		5180, 5260, 5500, 5580, 5660, 5745, 5955,
+		6035, 6115, 6195, 6275, 6355, 6435, 6515,
+		6595, 6675, 6755, 6835, 6915, 6995
+	};
+	static const int bw160[] = {
+		5955, 6115, 6275, 6435, 6595, 6755, 6915
+	};
 	struct hostapd_freq_params vht_freq;
 	int i;
 	unsigned int j, k;
