@@ -4962,6 +4962,15 @@ struct wpa_driver_ops {
 	int (*get_sta_mlo_info)(void *priv,
 				struct driver_sta_mlo_info *mlo_info);
 
+	/**
+	 * link_add - Add a link to the AP MLD interface
+	 * @priv: Private driver interface data
+	 * @link_id: The link ID
+	 * @addr: The MAC address to use for the link
+	 * Returns: 0 on success, negative value on failure
+	 */
+	int (*link_add)(void *priv, u8 link_id, const u8 *addr);
+
 #ifdef CONFIG_TESTING_OPTIONS
 	int (*register_frame)(void *priv, u16 type,
 			      const u8 *match, size_t match_len,

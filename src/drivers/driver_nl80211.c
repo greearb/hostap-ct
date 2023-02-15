@@ -13105,6 +13105,77 @@ static int nl80211_dpp_listen(void *priv, bool enable)
 #endif /* CONFIG_DPP */
 
 
+static int nl80211_link_add(void *priv, u8 link_id, const u8 *addr)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	unsigned int idx, i;
+	int ret;
+
+	wpa_printf(MSG_DEBUG, "nl80211: MLD: add link_id=%u, addr=" MACSTR,
+		   link_id, MAC2STR(addr));
+
+	if (drv->nlmode != NL80211_IFTYPE_AP) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: MLD: cannot add link to iftype=%u",
+			   drv->nlmode);
+		return -EINVAL;
+	}
+
+	if (bss->n_links >= MAX_NUM_MLD_LINKS) {
+		wpa_printf(MSG_DEBUG, "nl80211: MLD: already have n_links=%zu",
+			   bss->n_links);
+		return -EINVAL;
+	}
+
+	for (i = 0; i < bss->n_links; i++) {
+		if (bss->links[i].link_id == link_id &&
+		    bss->links[i].beacon_set) {
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: MLD: link already set");
+			return -EINVAL;
+		}
+	}
+
+	/* try using the first link entry, assuming it is not beaconing yet */
+	if (bss->n_links == 1 &&
+	    bss->flink->link_id == NL80211_DRV_LINK_ID_NA) {
+		if (bss->flink->beacon_set) {
+			wpa_printf(MSG_DEBUG, "nl80211: BSS already beaconing");
+			return -EINVAL;
+		}
+
+		idx = 0;
+	} else {
+		idx = bss->n_links;
+	}
+
+	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_ADD_LINK);
+	if (!msg ||
+	    nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id) ||
+	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, addr)) {
+		nlmsg_free(msg);
+		return -ENOBUFS;
+	}
+
+	ret = send_and_recv_msgs(drv, msg, NULL, NULL, NULL, NULL);
+	if (ret) {
+		wpa_printf(MSG_DEBUG, "nl80211: add link failed. ret=%d (%s)",
+			   ret, strerror(-ret));
+		return ret;
+	}
+
+	bss->links[idx].link_id = link_id;
+	os_memcpy(bss->links[idx].addr, addr, ETH_ALEN);
+
+	bss->n_links = idx + 1;
+
+	wpa_printf(MSG_DEBUG, "nl80211: MLD: n_links=%zu", bss->n_links);
+	return 0;
+}
+
+
 #ifdef CONFIG_TESTING_OPTIONS
 
 static int testing_nl80211_register_frame(void *priv, u16 type,
@@ -13297,6 +13368,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.dpp_listen = nl80211_dpp_listen,
 #endif /* CONFIG_DPP */
 	.get_sta_mlo_info = nl80211_get_sta_mlo_info,
+	.link_add = nl80211_link_add,
 #ifdef CONFIG_TESTING_OPTIONS
 	.register_frame = testing_nl80211_register_frame,
 	.radio_disable = testing_nl80211_radio_disable,
