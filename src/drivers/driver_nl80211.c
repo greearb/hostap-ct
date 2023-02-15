@@ -5285,16 +5285,29 @@ static int wpa_driver_nl80211_sta_add(void *priv,
 	struct nl_msg *msg;
 	struct nl80211_sta_flag_update upd;
 	int ret = -ENOBUFS;
+	u8 cmd;
+	const char *cmd_string;
 
 	if ((params->flags & WPA_STA_TDLS_PEER) &&
 	    !(drv->capa.flags & WPA_DRIVER_FLAGS_TDLS_SUPPORT))
 		return -EOPNOTSUPP;
 
+	if (params->mld_link_sta) {
+		cmd = params->set ? NL80211_CMD_MODIFY_LINK_STA :
+			NL80211_CMD_ADD_LINK_STA;
+		cmd_string = params->set ? "NL80211_CMD_MODIFY_LINK_STA" :
+			"NL80211_CMD_ADD_LINK_STA";
+	} else {
+		cmd = params->set ? NL80211_CMD_SET_STATION :
+			NL80211_CMD_NEW_STATION;
+		cmd_string = params->set ? "NL80211_CMD_SET_STATION" :
+			"NL80211_CMD_NEW_STATION";
+	}
+
 	wpa_printf(MSG_DEBUG, "nl80211: %s STA " MACSTR,
-		   params->set ? "Set" : "Add", MAC2STR(params->addr));
-	msg = nl80211_bss_msg(bss, 0, params->set ? NL80211_CMD_SET_STATION :
-			      NL80211_CMD_NEW_STATION);
-	if (!msg || nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, params->addr))
+		   cmd_string, MAC2STR(params->addr));
+	msg = nl80211_bss_msg(bss, 0, cmd);
+	if (!msg)
 		goto fail;
 
 	/*
@@ -5512,12 +5525,43 @@ static int wpa_driver_nl80211_sta_add(void *priv,
 		nla_nest_end(msg, wme);
 	}
 
+	/* In case we are an AP MLD need to always specify the link ID */
+	if (params->mld_link_id >= 0) {
+		wpa_printf(MSG_DEBUG, "  * mld_link_id=%d",
+			   params->mld_link_id);
+		if (nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID,
+			       params->mld_link_id))
+			goto fail;
+
+		/*
+		 * If the link address is specified the station is a non-AP MLD
+		 * and thus need to provide the MLD address as the station
+		 * address, and the non-AP MLD link address as the link address.
+		 */
+		if (params->mld_link_addr) {
+			wpa_printf(MSG_DEBUG, "  * mld_link_addr=" MACSTR,
+				   MAC2STR(params->mld_link_addr));
+
+			if (nla_put(msg, NL80211_ATTR_MLD_ADDR,
+				    ETH_ALEN, params->addr) ||
+			    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN,
+				    params->mld_link_addr))
+				goto fail;
+		} else {
+			if (nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN,
+				    params->addr))
+				goto fail;
+		}
+	} else {
+		if (nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, params->addr))
+			goto fail;
+	}
+
 	ret = send_and_recv_msgs(drv, msg, NULL, NULL, NULL, NULL);
 	msg = NULL;
 	if (ret)
-		wpa_printf(MSG_DEBUG, "nl80211: NL80211_CMD_%s_STATION "
-			   "result: %d (%s)", params->set ? "SET" : "NEW", ret,
-			   strerror(-ret));
+		wpa_printf(MSG_DEBUG, "nl80211: %s result: %d (%s)",
+			   cmd_string, ret, strerror(-ret));
 	if (ret == -EEXIST)
 		ret = 0;
 fail:

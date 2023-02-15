@@ -459,6 +459,7 @@ int hostapd_sta_add(struct hostapd_data *hapd,
 	params.qosinfo = qosinfo;
 	params.support_p2p_ps = supp_p2p_ps;
 	params.set = set;
+	params.mld_link_id = -1;
 	return hapd->driver->sta_add(hapd->drv_priv, &params);
 }
 

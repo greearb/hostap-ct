@@ -2403,6 +2403,10 @@ struct hostapd_sta_add_params {
 	const u8 *supp_oper_classes;
 	size_t supp_oper_classes_len;
 	int support_p2p_ps;
+
+	bool mld_link_sta;
+	s8 mld_link_id;
+	const u8 *mld_link_addr;
 };
 
 struct mac_address {
