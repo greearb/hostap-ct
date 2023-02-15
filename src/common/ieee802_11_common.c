@@ -944,6 +944,153 @@ void ieee802_11_elems_clear_ext_ids(struct ieee802_11_elems *elems,
 }
 
 
+ParseRes ieee802_11_parse_link_assoc_req(const u8 *start, size_t len,
+					 struct ieee802_11_elems *elems,
+					 struct wpabuf *mlbuf,
+					 u8 link_id, bool show_errors)
+{
+	const struct ieee80211_eht_ml *ml;
+	const u8 *pos;
+	ParseRes res = ParseFailed;
+
+	pos = wpabuf_head(mlbuf);
+	len = wpabuf_len(mlbuf);
+
+	/* Must have control and common info length */
+	if (len < sizeof(*ml) + 1 || len < sizeof(*ml) + pos[sizeof(*ml)])
+		goto out;
+
+	ml = (const struct ieee80211_eht_ml *) pos;
+
+	/* As we are interested with the Per-STA profile, ignore other types */
+	if ((le_to_host16(ml->ml_control) & MULTI_LINK_CONTROL_TYPE_MASK) !=
+	     MULTI_LINK_CONTROL_TYPE_BASIC)
+		goto out;
+
+	/* Skip the common info */
+	len -= sizeof(*ml) + pos[sizeof(*ml)];
+	pos += sizeof(*ml) + pos[sizeof(*ml)];
+
+	while (len > 2) {
+		size_t sub_elem_len = *(pos + 1);
+		size_t sta_info_len;
+		u16 link_info_control;
+		const u8 *non_inherit;
+
+		wpa_printf(MSG_DEBUG,
+			   "MLD: sub element: len=%zu, sub_elem_len=%zu",
+			   len, sub_elem_len);
+
+		if (2 + sub_elem_len > len) {
+			if (show_errors)
+				wpa_printf(MSG_DEBUG,
+					   "MLD: error: len=%zu, sub_elem_len=%zu",
+					   len, sub_elem_len);
+			goto out;
+		}
+
+		if (*pos != 0) {
+			pos += 2 + sub_elem_len;
+			len -= 2 + sub_elem_len;
+			continue;
+		}
+
+		if (sub_elem_len < 3) {
+			if (show_errors)
+				wpa_printf(MSG_DEBUG,
+					   "MLD: error: sub_elem_len=%zu < 5",
+					   sub_elem_len);
+			goto out;
+		}
+
+		link_info_control = WPA_GET_LE16(pos + 2);
+		if ((link_info_control & BASIC_MLE_STA_CTRL_LINK_ID_MASK) !=
+		    link_id) {
+			pos += 2 + sub_elem_len;
+			len -= 2 + sub_elem_len;
+			continue;
+		}
+
+		sta_info_len = *(pos + 4);
+		if (sub_elem_len < sta_info_len + 3 || sta_info_len < 1) {
+			if (show_errors)
+				wpa_printf(MSG_DEBUG,
+					   "MLD: error: sub_elem_len=%zu, sta_info_len=%zu",
+					   sub_elem_len, sta_info_len);
+			goto out;
+		}
+
+		pos += sta_info_len + 4;
+		sub_elem_len -= sta_info_len + 2;
+
+		if (sub_elem_len < 2) {
+			if (show_errors)
+				wpa_printf(MSG_DEBUG,
+					   "MLD: missing capability info");
+			goto out;
+		}
+
+		pos += 2;
+		sub_elem_len -= 2;
+
+		/* Handle non-inheritance */
+		non_inherit = get_ie_ext(pos, sub_elem_len,
+					 WLAN_EID_EXT_NON_INHERITANCE);
+		if (non_inherit && non_inherit[1] > 1) {
+			u8 non_inherit_len = non_inherit[1] - 1;
+
+			/*
+			 * Do not include the Non-Inheritance element when
+			 * parsing below. It should be the last element in the
+			 * subelement.
+			 */
+			if (3U + non_inherit_len > sub_elem_len)
+				goto out;
+			sub_elem_len -= 3 + non_inherit_len;
+
+			/* Skip the ID, length and extension ID */
+			non_inherit += 3;
+
+			if (non_inherit_len < 1UL + non_inherit[0]) {
+				if (show_errors)
+					wpa_printf(MSG_DEBUG,
+						   "MLD: Invalid inheritance");
+				goto out;
+			}
+
+			ieee802_11_elems_clear_ids(elems, &non_inherit[1],
+						   non_inherit[0]);
+
+			non_inherit_len -= 1 + non_inherit[0];
+			non_inherit += 1 + non_inherit[0];
+
+			if (non_inherit_len < 1UL + non_inherit[0]) {
+				if (show_errors)
+					wpa_printf(MSG_DEBUG,
+						   "MLD: Invalid inheritance");
+				goto out;
+			}
+
+			ieee802_11_elems_clear_ext_ids(elems, &non_inherit[1],
+						       non_inherit[0]);
+		}
+
+		wpa_printf(MSG_DEBUG, "MLD: link: sub_elem_len=%zu",
+			   sub_elem_len);
+
+		if (sub_elem_len)
+			res = __ieee802_11_parse_elems(pos, sub_elem_len,
+						       elems, show_errors);
+		else
+			res = ParseOK;
+		break;
+	}
+
+out:
+	return res;
+}
+
+
 int ieee802_11_ie_count(const u8 *ies, size_t ies_len)
 {
 	const struct element *elem;
