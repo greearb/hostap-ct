@@ -327,7 +327,7 @@ static void mlme_event_assoc(struct wpa_driver_nl80211_data *drv,
 	}
 
 	event.assoc_info.freq = drv->assoc_freq;
-	drv->first_bss->freq = drv->assoc_freq;
+	drv->first_bss->flink->freq = drv->assoc_freq;
 
 	nl80211_parse_wmm_params(wmm, &event.assoc_info.wmm_params);
 
@@ -852,7 +852,7 @@ static void mlme_event_connect(struct wpa_driver_nl80211_data *drv,
 	}
 
 	event.assoc_info.freq = nl80211_get_assoc_freq(drv);
-	drv->first_bss->freq = drv->assoc_freq;
+	drv->first_bss->flink->freq = drv->assoc_freq;
 
 	if ((!ssid || ssid[1] == 0 || ssid[1] > 32) &&
 	    (ssid_len = nl80211_get_assoc_ssid(drv, drv->ssid)) > 0) {
@@ -1057,7 +1057,7 @@ static void mlme_event_ch_switch(struct wpa_driver_nl80211_data *drv,
 		data.ch_switch.cf2 = nla_get_u32(cf2);
 
 	if (finished)
-		bss->freq = data.ch_switch.freq;
+		bss->flink->freq = data.ch_switch.freq;
 
 	if (link) {
 		u8 link_id = nla_get_u8(link);
@@ -1569,7 +1569,7 @@ static void mlme_event_join_ibss(struct wpa_driver_nl80211_data *drv,
 	if (freq) {
 		wpa_printf(MSG_DEBUG, "nl80211: IBSS on frequency %u MHz",
 			   freq);
-		drv->first_bss->freq = freq;
+		drv->first_bss->flink->freq = freq;
 	}
 
 	os_memset(&event, 0, sizeof(event));
