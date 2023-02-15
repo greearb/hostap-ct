@@ -2989,18 +2989,47 @@ wpa_driver_nl80211_finish_drv_init(struct wpa_driver_nl80211_data *drv,
 }
 
 
-static int wpa_driver_nl80211_del_beacon(struct i802_bss *bss)
+static int wpa_driver_nl80211_del_beacon(struct i802_bss *bss,
+					 struct i802_link *link)
 {
 	struct nl_msg *msg;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 
+	if (!link->beacon_set)
+		return 0;
+
 	wpa_printf(MSG_DEBUG, "nl80211: Remove beacon (ifindex=%d)",
 		   drv->ifindex);
-	bss->flink->beacon_set = 0;
-	bss->flink->freq = 0;
+	link->beacon_set = 0;
+	link->freq = 0;
+
 	nl80211_put_wiphy_data_ap(bss);
 	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_DEL_BEACON);
+	if (!msg)
+		return -ENOBUFS;
+
+	if (link->link_id != NL80211_DRV_LINK_ID_NA) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: MLD: stop beaconing on link=%u",
+			   link->link_id);
+
+		if (nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID,
+			       link->link_id)) {
+			nlmsg_free(msg);
+			return -ENOBUFS;
+		}
+	}
+
 	return send_and_recv_msgs(drv, msg, NULL, NULL, NULL, NULL);
+}
+
+
+static void wpa_driver_nl80211_del_beacon_all(struct i802_bss *bss)
+{
+	unsigned int i;
+
+	for (i = 0; i < bss->n_links; i++)
+		wpa_driver_nl80211_del_beacon(bss, &bss->links[i]);
 }
 
 
@@ -3053,7 +3082,7 @@ static void wpa_driver_nl80211_deinit(struct i802_bss *bss)
 	nl80211_remove_monitor_interface(drv);
 
 	if (is_ap_interface(drv->nlmode))
-		wpa_driver_nl80211_del_beacon(bss);
+		wpa_driver_nl80211_del_beacon_all(bss);
 
 	if (drv->eapol_sock >= 0) {
 		eloop_unregister_read_sock(drv->eapol_sock);
@@ -8555,7 +8584,7 @@ static int wpa_driver_nl80211_if_remove(struct i802_bss *bss,
 		wpa_printf(MSG_DEBUG, "nl80211: First BSS - reassign context");
 		nl80211_teardown_ap(bss);
 		if (!bss->added_if && !drv->first_bss->next)
-			wpa_driver_nl80211_del_beacon(bss);
+			wpa_driver_nl80211_del_beacon_all(bss);
 		nl80211_destroy_bss(bss);
 		if (!bss->added_if)
 			i802_set_iface_flags(bss, 0);
@@ -8951,13 +8980,71 @@ fail:
 }
 
 
+static void nl80211_remove_links(struct i802_bss *bss)
+{
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	int ret;
+	u8 link_id;
+
+	while (bss->links[0].link_id != NL80211_DRV_LINK_ID_NA) {
+		struct i802_link *link = &bss->links[0];
+
+		wpa_printf(MSG_DEBUG, "nl80211: MLD: remove link_id=%u",
+			   link->link_id);
+
+		wpa_driver_nl80211_del_beacon(bss, link);
+
+		link_id = link->link_id;
+
+		/* First remove the link locally */
+		if (bss->n_links == 1) {
+			bss->flink->link_id = NL80211_DRV_LINK_ID_NA;
+			os_memcpy(bss->flink->addr, bss->addr, ETH_ALEN);
+		} else {
+			struct i802_link *other = &bss->links[bss->n_links - 1];
+
+			os_memcpy(link, other, sizeof(*link));
+			other->link_id = NL80211_DRV_LINK_ID_NA;
+			os_memset(other->addr, 0, ETH_ALEN);
+
+			bss->n_links--;
+		}
+
+		/* Remove the link from the kernel */
+		msg = nl80211_drv_msg(drv, 0, NL80211_CMD_REMOVE_LINK);
+		if (!msg ||
+		    nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id)) {
+			nlmsg_free(msg);
+			wpa_printf(MSG_ERROR,
+				   "nl80211: remove link (%d) failed",
+				   link_id);
+			return;
+		}
+
+		ret = send_and_recv_msgs(drv, msg, NULL, NULL, NULL, NULL);
+		if (ret) {
+			wpa_printf(MSG_ERROR,
+				   "nl80211: remove link (%d) failed. ret=%d (%s)",
+				   link_id, ret, strerror(-ret));
+			return;
+		}
+	}
+}
+
+
 static int wpa_driver_nl80211_deinit_ap(void *priv)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
+
 	if (!is_ap_interface(drv->nlmode))
 		return -1;
-	wpa_driver_nl80211_del_beacon(bss);
+
+	/* Stop beaconing */
+	wpa_driver_nl80211_del_beacon(bss, bss->flink);
+
+	nl80211_remove_links(bss);
 
 	/*
 	 * If the P2P GO interface was dynamically added, then it is
@@ -8974,9 +9061,12 @@ static int wpa_driver_nl80211_stop_ap(void *priv)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
+
 	if (!is_ap_interface(drv->nlmode))
 		return -1;
-	wpa_driver_nl80211_del_beacon(bss);
+
+	wpa_driver_nl80211_del_beacon_all(bss);
+
 	return 0;
 }
 
