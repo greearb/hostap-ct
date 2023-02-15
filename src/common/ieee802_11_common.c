@@ -408,22 +408,12 @@ static int ieee802_11_parse_extension(const u8 *pos, size_t elen,
 }
 
 
-/**
- * ieee802_11_parse_elems - Parse information elements in management frames
- * @start: Pointer to the start of IEs
- * @len: Length of IE buffer in octets
- * @elems: Data structure for parsed elements
- * @show_errors: Whether to show parsing errors in debug log
- * Returns: Parsing result
- */
-ParseRes ieee802_11_parse_elems(const u8 *start, size_t len,
-				struct ieee802_11_elems *elems,
-				int show_errors)
+static ParseRes __ieee802_11_parse_elems(const u8 *start, size_t len,
+					 struct ieee802_11_elems *elems,
+					 int show_errors)
 {
 	const struct element *elem;
 	int unknown = 0;
-
-	os_memset(elems, 0, sizeof(*elems));
 
 	if (!start)
 		return ParseOK;
@@ -673,6 +663,24 @@ ParseRes ieee802_11_parse_elems(const u8 *start, size_t len,
 
 done:
 	return unknown ? ParseUnknown : ParseOK;
+}
+
+
+/**
+ * ieee802_11_parse_elems - Parse information elements in management frames
+ * @start: Pointer to the start of IEs
+ * @len: Length of IE buffer in octets
+ * @elems: Data structure for parsed elements
+ * @show_errors: Whether to show parsing errors in debug log
+ * Returns: Parsing result
+ */
+ParseRes ieee802_11_parse_elems(const u8 *start, size_t len,
+				struct ieee802_11_elems *elems,
+				int show_errors)
+{
+	os_memset(elems, 0, sizeof(*elems));
+
+	return __ieee802_11_parse_elems(start, len, elems, show_errors);
 }
 
 
