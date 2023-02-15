@@ -3003,7 +3003,9 @@ void ibss_mesh_setup_freq(struct wpa_supplicant *wpa_s,
 
 	hw_mode = ieee80211_freq_to_chan(freq->freq, &channel);
 	for (i = 0; wpa_s->hw.modes && i < wpa_s->hw.num_modes; i++) {
-		if (wpa_s->hw.modes[i].mode == hw_mode) {
+		if (wpa_s->hw.modes[i].mode == hw_mode &&
+		    hw_mode_get_channel(&wpa_s->hw.modes[i], freq->freq,
+					NULL) != NULL) {
 			mode = &wpa_s->hw.modes[i];
 			break;
 		}
