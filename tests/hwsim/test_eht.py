@@ -90,6 +90,7 @@ def test_eht_sae(dev, apdev):
                        pairwise="GCMP-256", group="GCMP-256",
                        group_mgmt="BIP-GMAC-256", scan_freq="2412")
     finally:
+        dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
 
 def test_eht_sae_mlo(dev, apdev):
@@ -115,4 +116,5 @@ def test_eht_sae_mlo(dev, apdev):
             if "status_code=15" not in ev:
                 raise Exception("Unexpected authentication failure: " + ev)
     finally:
+        dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
