@@ -6111,6 +6111,12 @@ union wpa_event_data {
 		 * ssi_signal - Signal strength in dBm (or 0 if not available)
 		 */
 		int ssi_signal;
+
+		/**
+		 * link_id - MLO link on which the frame was received or -1 for
+		 * non MLD.
+		 */
+		int link_id;
 	} rx_mgmt;
 
 	/**
@@ -6211,6 +6217,7 @@ union wpa_event_data {
 		const u8 *data;
 		size_t data_len;
 		enum frame_encryption encrypted;
+		int link_id;
 	} eapol_rx;
 
 	/**
@@ -6565,12 +6572,14 @@ static inline void drv_event_eapol_rx(void *ctx, const u8 *src, const u8 *data,
 	event.eapol_rx.data = data;
 	event.eapol_rx.data_len = data_len;
 	event.eapol_rx.encrypted = FRAME_ENCRYPTION_UNKNOWN;
+	event.eapol_rx.link_id = -1;
 	wpa_supplicant_event(ctx, EVENT_EAPOL_RX, &event);
 }
 
 static inline void drv_event_eapol_rx2(void *ctx, const u8 *src, const u8 *data,
-				      size_t data_len,
-				       enum frame_encryption encrypted)
+				       size_t data_len,
+				       enum frame_encryption encrypted,
+				       int link_id)
 {
 	union wpa_event_data event;
 	os_memset(&event, 0, sizeof(event));
@@ -6578,6 +6587,7 @@ static inline void drv_event_eapol_rx2(void *ctx, const u8 *src, const u8 *data,
 	event.eapol_rx.data = data;
 	event.eapol_rx.data_len = data_len;
 	event.eapol_rx.encrypted = encrypted;
+	event.eapol_rx.link_id = link_id;
 	wpa_supplicant_event(ctx, EVENT_EAPOL_RX, &event);
 }
 

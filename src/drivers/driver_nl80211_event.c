@@ -1111,7 +1111,8 @@ static void mlme_timeout_event(struct wpa_driver_nl80211_data *drv,
 
 static void mlme_event_mgmt(struct i802_bss *bss,
 			    struct nlattr *freq, struct nlattr *sig,
-			    const u8 *frame, size_t len)
+			    const u8 *frame, size_t len,
+			    int link_id)
 {
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	const struct ieee80211_mgmt *mgmt;
@@ -1149,6 +1150,8 @@ static void mlme_event_mgmt(struct i802_bss *bss,
 	event.rx_mgmt.frame_len = len;
 	event.rx_mgmt.ssi_signal = ssi_signal;
 	event.rx_mgmt.drv_priv = bss;
+	event.rx_mgmt.link_id = link_id;
+
 	wpa_supplicant_event(drv->ctx, EVENT_RX_MGMT, &event);
 }
 
@@ -1403,12 +1406,14 @@ static void mlme_event(struct i802_bss *bss,
 		       struct nlattr *addr, struct nlattr *timed_out,
 		       struct nlattr *freq, struct nlattr *ack,
 		       struct nlattr *cookie, struct nlattr *sig,
-		       struct nlattr *wmm, struct nlattr *req_ie)
+		       struct nlattr *wmm, struct nlattr *req_ie,
+		       struct nlattr *link)
 {
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	u16 stype = 0, auth_type = 0;
 	const u8 *data;
 	size_t len;
+	int link_id;
 
 	if (timed_out && addr) {
 		mlme_timeout_event(drv, cmd, addr);
@@ -1422,6 +1427,11 @@ static void mlme_event(struct i802_bss *bss,
 		return;
 	}
 
+	if (link)
+		link_id = nla_get_u8(link);
+	else
+		link_id = -1;
+
 	data = nla_data(frame);
 	len = nla_len(frame);
 	if (len < 4 + 2 * ETH_ALEN) {
@@ -1432,10 +1442,10 @@ static void mlme_event(struct i802_bss *bss,
 		return;
 	}
 	wpa_printf(MSG_MSGDUMP, "nl80211: MLME event %d (%s) on %s(" MACSTR
-		   ") A1=" MACSTR " A2=" MACSTR, cmd,
+		   ") A1=" MACSTR " A2=" MACSTR " on link_id=%d", cmd,
 		   nl80211_command_to_string(cmd), bss->ifname,
 		   MAC2STR(bss->addr), MAC2STR(data + 4),
-		   MAC2STR(data + 4 + ETH_ALEN));
+		   MAC2STR(data + 4 + ETH_ALEN), link_id);
 
 	/* PASN Authentication frame can be received with a different source MAC
 	 * address. Allow NL80211_CMD_FRAME event with foreign addresses also.
@@ -1489,7 +1499,7 @@ static void mlme_event(struct i802_bss *bss,
 		break;
 	case NL80211_CMD_FRAME:
 		mlme_event_mgmt(bss, freq, sig, nla_data(frame),
-				nla_len(frame));
+				nla_len(frame), link_id);
 		break;
 	case NL80211_CMD_FRAME_TX_STATUS:
 		mlme_event_mgmt_tx_status(drv, cookie, nla_data(frame),
@@ -3282,6 +3292,7 @@ static void nl80211_control_port_frame(struct wpa_driver_nl80211_data *drv,
 	u8 *src_addr;
 	u16 ethertype;
 	enum frame_encryption encrypted;
+	int link_id;
 
 	if (!tb[NL80211_ATTR_MAC] ||
 	    !tb[NL80211_ATTR_FRAME] ||
@@ -3293,6 +3304,11 @@ static void nl80211_control_port_frame(struct wpa_driver_nl80211_data *drv,
 	encrypted = nla_get_flag(tb[NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT]) ?
 		FRAME_NOT_ENCRYPTED : FRAME_ENCRYPTED;
 
+	if (tb[NL80211_ATTR_MLO_LINK_ID])
+		link_id = nla_get_u8(tb[NL80211_ATTR_MLO_LINK_ID]);
+	else
+		link_id = -1;
+
 	switch (ethertype) {
 	case ETH_P_RSN_PREAUTH:
 		wpa_printf(MSG_INFO, "nl80211: Got pre-auth frame from "
@@ -3303,7 +3319,7 @@ static void nl80211_control_port_frame(struct wpa_driver_nl80211_data *drv,
 		drv_event_eapol_rx2(drv->ctx, src_addr,
 				    nla_data(tb[NL80211_ATTR_FRAME]),
 				    nla_len(tb[NL80211_ATTR_FRAME]),
-				    encrypted);
+				    encrypted, link_id);
 		break;
 	default:
 		wpa_printf(MSG_INFO,
@@ -3553,7 +3569,8 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 			   tb[NL80211_ATTR_COOKIE],
 			   tb[NL80211_ATTR_RX_SIGNAL_DBM],
 			   tb[NL80211_ATTR_STA_WME],
-			   tb[NL80211_ATTR_REQ_IE]);
+			   tb[NL80211_ATTR_REQ_IE],
+			   tb[NL80211_ATTR_MLO_LINK_ID]);
 		break;
 	case NL80211_CMD_CONNECT:
 	case NL80211_CMD_ROAM:
@@ -3779,7 +3796,8 @@ int process_bss_event(struct nl_msg *msg, void *arg)
 			   tb[NL80211_ATTR_WIPHY_FREQ], tb[NL80211_ATTR_ACK],
 			   tb[NL80211_ATTR_COOKIE],
 			   tb[NL80211_ATTR_RX_SIGNAL_DBM],
-			   tb[NL80211_ATTR_STA_WME], NULL);
+			   tb[NL80211_ATTR_STA_WME], NULL,
+			   tb[NL80211_ATTR_MLO_LINK_ID]);
 		break;
 	case NL80211_CMD_UNEXPECTED_FRAME:
 		nl80211_spurious_frame(bss, tb, 0);
