@@ -1922,6 +1922,12 @@ def update_hapd_config(hapd):
 
 def run_dpp_ap_config(dev, apdev, curve=None, conf_curve=None,
                       reconf_configurator=False, sae=False):
+    if sae:
+        check_sae_capab(dev[0])
+        check_sae_capab(dev[1])
+        dev[0].set("sae_groups", "")
+        dev[1].set("sae_groups", "")
+
     brainpool = (curve and "BP-" in curve) or \
         (conf_curve and "BP-" in conf_curve)
     check_dpp_capab(dev[0], brainpool)
