@@ -1277,6 +1277,7 @@ struct hostapd_config {
 	int *edcca_threshold;
 	u8 three_wire_enable;
 	u8 ibf_enable;
+	u8 dfs_detect_mode;
 };
 
 enum three_wire_mode {
@@ -1289,6 +1290,18 @@ enum three_wire_mode {
 	NUM_THREE_WIRE_MODE,
 	THREE_WIRE_MODE_MAX =
 		NUM_THREE_WIRE_MODE - 1
+};
+
+enum dfs_mode {
+	DFS_DETECT_MODE_DISABLE,
+	DFS_DETECT_MODE_AP_ENABLE,
+	DFS_DETECT_MODE_BACKGROUND_ENABLE,
+	DFS_DETECT_MODE_ALL_ENABLE,
+
+	/* keep last */
+	NUM_DFS_DETECT_MODE,
+	DFS_DETECT_MODE_MAX =
+		NUM_DFS_DETECT_MODE - 1
 };
 
 enum edcca_mode {

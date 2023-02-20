@@ -1336,6 +1336,11 @@ hostapd_dfs_background_start_channel_switch(struct hostapd_iface *iface,
 		   __func__, iface->radar_background.cac_started ? "yes" : "no",
 		   hostapd_csa_in_progress(iface) ? "yes" : "no");
 
+	/* Skip channel switch when background dfs detect mode is on */
+	if (iface->conf->dfs_detect_mode == DFS_DETECT_MODE_BACKGROUND_ENABLE ||
+	    iface->conf->dfs_detect_mode == DFS_DETECT_MODE_ALL_ENABLE)
+		return 0;
+
 	/* Check if CSA in progress */
 	if (hostapd_csa_in_progress(iface))
 		return 0;
@@ -1383,6 +1388,11 @@ static int hostapd_dfs_start_channel_switch(struct hostapd_iface *iface)
 	wpa_printf(MSG_DEBUG, "%s called (CAC active: %s, CSA active: %s)",
 		   __func__, iface->cac_started ? "yes" : "no",
 		   hostapd_csa_in_progress(iface) ? "yes" : "no");
+
+	/* Skip channel switch when dfs detect mode is on */
+	if (iface->conf->dfs_detect_mode == DFS_DETECT_MODE_AP_ENABLE ||
+	    iface->conf->dfs_detect_mode == DFS_DETECT_MODE_ALL_ENABLE)
+		return 0;
 
 	/* Check if CSA in progress */
 	if (hostapd_csa_in_progress(iface))
