@@ -4211,6 +4211,26 @@ hostapd_ctrl_iface_get_ibf(struct hostapd_data *hapd, char *buf,
 }
 
 
+static int
+hostapd_ctrl_iface_set_dfs_detect_mode(struct hostapd_data *hapd, char *value,
+				       char *buf, size_t buflen)
+{
+	u8 dfs_detect_mode;
+
+	if (!value)
+		return -1;
+
+	dfs_detect_mode = strtol(value, NULL, 10);
+	if (dfs_detect_mode > DFS_DETECT_MODE_MAX) {
+		wpa_printf(MSG_ERROR, "Invalid value for dfs detect mode");
+		return -1;
+	}
+	hapd->iconf->dfs_detect_mode = dfs_detect_mode;
+
+	return os_snprintf(buf, buflen, "OK\n");
+}
+
+
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
 					      int reply_size,
@@ -4844,6 +4864,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		reply_len = hostapd_ctrl_iface_get_mu(hapd, reply, reply_size);
 	} else if (os_strncmp(buf, "GET_IBF", 7) == 0) {
 		reply_len = hostapd_ctrl_iface_get_ibf(hapd, reply, reply_size);
+	} else if (os_strncmp(buf, "DFS_DETECT_MODE ", 16) == 0) {
+		reply_len = hostapd_ctrl_iface_set_dfs_detect_mode(hapd, buf + 16,
+								   reply, reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;

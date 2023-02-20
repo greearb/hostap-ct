@@ -5130,6 +5130,10 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 	} else if (os_strcmp(buf, "ibf_enable") == 0) { /*ibf setting is per device*/
 		int val = atoi(pos);
 		conf->ibf_enable = !!val;
+	} else if (os_strcmp(buf, "dfs_detect_mode") == 0) { /*bypass channel switch*/
+		u8 en = strtol(pos, NULL, 10);
+
+		conf->dfs_detect_mode = en;
 	} else {
 		wpa_printf(MSG_ERROR,
 			   "Line %d: unknown configuration item '%s'",
