@@ -716,6 +716,7 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 {
 	struct hostapd_iface *iface = hapd->iface;
 	struct hostapd_hw_modes *mode = iface->current_mode;
+	struct hostapd_config *iconf = hapd->iconf;
 	int len = 0, ret, j;
 	size_t i;
 
@@ -753,6 +754,16 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 	if (mode) {
 		ret = os_snprintf(buf + len, buflen - len, "hw_mode=%s\n",
 				  hw_mode_str(mode->mode));
+		if (os_snprintf_error(buflen - len, ret))
+			return len;
+		len += ret;
+	}
+
+	if (iconf->country[0] && iconf->country[1]) {
+		ret = os_snprintf(buf + len, buflen - len,
+				  "country_code=%c%c\ncountry3=0x%X\n",
+				  iconf->country[0], iconf->country[1],
+				  iconf->country[2]);
 		if (os_snprintf_error(buflen - len, ret))
 			return len;
 		len += ret;
