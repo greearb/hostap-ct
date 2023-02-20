@@ -38,7 +38,7 @@ def start_wnm_ap(apdev, bss_transition=True, time_adv=False, ssid=None,
                  ocv=False, ap_max_inactivity=0, coloc_intf_reporting=False,
                  hw_mode=None, channel=None, country_code=None, country3=None,
                  pmf=True, passphrase=None, ht=True, vht=False, mbo=False,
-                 beacon_prot=False):
+                 beacon_prot=False, he=False):
     if rsn:
         if not ssid:
             ssid = "test-wnm-rsn"
@@ -82,6 +82,9 @@ def start_wnm_ap(apdev, bss_transition=True, time_adv=False, ssid=None,
         params['ieee80211ac'] = "1"
         params["vht_oper_chwidth"] = "0"
         params["vht_oper_centr_freq_seg0_idx"] = "0"
+    if he:
+        params["ieee80211ax"] = "1"
+        params["he_bss_color"] = "42"
     if mbo:
         params["mbo"] = "1"
     try:
@@ -481,6 +484,7 @@ def test_wnm_sleep_mode_proto(dev, apdev):
 
 MGMT_SUBTYPE_ACTION = 13
 ACTION_CATEG_WNM = 10
+WNM_ACT_EVENT_REPORT = 1
 WNM_ACT_BSS_TM_REQ = 7
 WNM_ACT_BSS_TM_RESP = 8
 WNM_ACT_SLEEP_MODE_REQ = 16
@@ -489,6 +493,7 @@ WNM_ACT_NOTIFICATION_REQ = 26
 WNM_ACT_NOTIFICATION_RESP = 27
 WNM_NOTIF_TYPE_FW_UPGRADE = 0
 WNM_NOTIF_TYPE_WFA = 1
+WLAN_EID_EVENT_REPORT = 79
 WLAN_EID_TFS_REQ = 91
 WLAN_EID_TFS_RESP = 92
 WLAN_EID_WNMSLEEP = 93
@@ -1986,3 +1991,126 @@ def test_wnm_time_adv_restart(dev, apdev):
     hapd.disable()
     hapd.enable()
     dev[0].connect("test-wnm", key_mgmt="NONE", scan_freq="2412")
+
+def test_wnm_event_report(dev, apdev):
+    """WNM event report"""
+    ssid = "test-wnm-rsn"
+    hapd = start_wnm_ap(apdev[0], rsn=True, he=True)
+    bssid = apdev[0]['bssid']
+    dev[0].connect(ssid, psk="12345678", key_mgmt="WPA-PSK-SHA256",
+                   proto="WPA2", ieee80211w="2", scan_freq="2412")
+    hapd.wait_sta()
+
+    msg = {'fc': MGMT_SUBTYPE_ACTION << 4,
+           'da': bssid,
+           'sa': dev[0].own_addr(),
+           'bssid': bssid}
+    cmd = "MGMT_TX {} {} freq=2412 wait_time=200 no_cck=1=".format(bssid, bssid)
+    cmd += " action="
+
+    for i in range(10):
+        hapd.note("Event Type %d" % i)
+        payload = struct.pack("<3B5B",
+                              ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                              WLAN_EID_EVENT_REPORT, 3, 0, i, 0)
+        mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    hapd.note("Too short Event Report element")
+    payload = struct.pack("<3B4B",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT, 2, 0, 0)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    hapd.note("Truncated Event Report element")
+    payload = struct.pack("<3B4B",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT, 3, 0, 0)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    hapd.note("Request failed")
+    payload = struct.pack("<3B5B",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT, 3, 0, 0, 1)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    hapd.note("Unexpected element ID")
+    payload = struct.pack("<3B5B",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT + 1, 3, 0, 0, 0)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    hapd.note("Too short BSS color collision report")
+    payload = struct.pack("<3B5B",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT, 3, 0, 4, 0)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    hapd.note("Too short BSS color collision report")
+    payload = struct.pack("<3B5BQ7B",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT, 3 + 8 + 7, 0, 4, 0, 0,
+                          0, 0, 0, 0, 0, 0, 0)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    hapd.note("BSS color collision report")
+    payload = struct.pack("<3B5BQQ",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT, 3 + 8 + 8, 0, 4, 0,
+                          0x1122334455667788, 0x123456789)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    hapd.note("Too short BSS color in use report")
+    payload = struct.pack("<3B5B",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT, 3, 0, 5, 0)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    hapd.note("Too short BSS color in use report")
+    payload = struct.pack("<3B5BQ",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT, 3 + 8, 0, 5, 0, 0)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    hapd.note("BSS color in use report for color 1")
+    payload = struct.pack("<3B5BQB",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT, 3 + 8 + 1, 0, 5, 0, 0, 1)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    hapd.note("BSS color in use report for canceling")
+    payload = struct.pack("<3B5BQB",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT, 3 + 8 + 1, 0, 5, 0, 0, 0)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    hapd.note("BSS color in use report for invalid color")
+    payload = struct.pack("<3B5BQB",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT, 3 + 8 + 1, 0, 5, 0, 0, 64)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    time.sleep(51)
+    hapd.note("BSS color collision report for more colors")
+    payload = struct.pack("<3B5BQQ",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT, 3 + 8 + 8, 0, 4, 0,
+                          0x1122334455667788, 0xfffffffffffffff0)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    time.sleep(11)
+    hapd.note("BSS color collision report")
+    payload = struct.pack("<3B5BQQ",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT, 3 + 8 + 8, 0, 4, 0,
+                          0x1122334455667788, 0xf)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    time.sleep(51)
+    hapd.note("BSS color collision report for all colors")
+    payload = struct.pack("<3B5BQQ",
+                          ACTION_CATEG_WNM, WNM_ACT_EVENT_REPORT, 0,
+                          WLAN_EID_EVENT_REPORT, 3 + 8 + 8, 0, 4, 0,
+                          0x1122334455667788, 0xffffffffffffffff)
+    mgmt_tx(dev[0], cmd + binascii.hexlify(payload).decode())
+
+    time.sleep(11)
