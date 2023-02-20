@@ -162,6 +162,8 @@ wpas_p2p_consider_moving_gos(struct wpa_supplicant *wpa_s,
 			     struct wpa_used_freq_data *freqs, unsigned int num,
 			     enum wpas_p2p_channel_update_trig trig);
 static void wpas_p2p_reconsider_moving_go(void *eloop_ctx, void *timeout_ctx);
+static int wpas_p2p_disallowed_freq(struct wpa_global *global,
+				    unsigned int freq);
 
 
 static int wpas_get_6ghz_he_chwidth_capab(struct hostapd_hw_modes *mode)
@@ -3105,6 +3107,68 @@ static int wpas_p2p_pick_best_used_freq(struct wpa_supplicant *wpa_s,
 }
 
 
+/**
+ * Pick the best frequency the driver suggests.
+ *
+ * num_pref_freq is used as both input and output
+ * - input: the max size of pref_freq_list,
+ * - output: the valid size of pref_freq_list filled with data.
+ */
+static int wpas_p2p_pick_best_pref_freq(struct wpa_supplicant *wpa_s, bool go,
+					struct weighted_pcl *pref_freq_list,
+					unsigned int *num_pref_freq)
+{
+	int best_freq = 0;
+	unsigned int max_pref_freq, i;
+	int res;
+	enum wpa_driver_if_type iface_type;
+
+	max_pref_freq = *num_pref_freq;
+	*num_pref_freq = 0;
+
+	if (go)
+		iface_type = WPA_IF_P2P_GO;
+	else
+		iface_type = WPA_IF_P2P_CLIENT;
+
+	res = wpa_drv_get_pref_freq_list(wpa_s, iface_type, &max_pref_freq,
+					 pref_freq_list);
+	if (!res && !is_p2p_allow_6ghz(wpa_s->global->p2p))
+		max_pref_freq = p2p_remove_6ghz_channels(pref_freq_list,
+							 max_pref_freq);
+	if (res || !max_pref_freq) {
+		wpa_printf(MSG_DEBUG,
+			   "P2P: No preferred frequency list available");
+		return 0;
+	}
+
+	*num_pref_freq = max_pref_freq;
+	i = 0;
+	while (i < *num_pref_freq &&
+	       (!p2p_supported_freq(wpa_s->global->p2p,
+				    pref_freq_list[i].freq) ||
+		wpas_p2p_disallowed_freq(wpa_s->global,
+					 pref_freq_list[i].freq) ||
+		!p2p_pref_freq_allowed(&pref_freq_list[i], go))) {
+		wpa_printf(MSG_DEBUG,
+			   "P2P: preferred_freq_list[%d]=%d is disallowed",
+			   i, pref_freq_list[i].freq);
+		i++;
+	}
+	if (i != *num_pref_freq) {
+		best_freq = pref_freq_list[i].freq;
+		wpa_printf(MSG_DEBUG, "P2P: Using preferred_freq_list[%d]=%d",
+			   i, best_freq);
+	} else {
+		wpa_printf(MSG_DEBUG,
+			   "P2P: All driver preferred frequencies are disallowed for P2P use");
+		*num_pref_freq = 0;
+	}
+
+	return best_freq;
+}
+
+
 static u8 wpas_invitation_process(void *ctx, const u8 *sa, const u8 *bssid,
 				  const u8 *go_dev_addr, const u8 *ssid,
 				  size_t ssid_len, int *go, u8 *group_bssid,
@@ -3117,6 +3181,10 @@ static u8 wpas_invitation_process(void *ctx, const u8 *sa, const u8 *bssid,
 	struct wpa_used_freq_data *freqs;
 	struct wpa_supplicant *grp;
 	int best_freq;
+	struct weighted_pcl pref_freq_list[P2P_MAX_PREF_CHANNELS];
+	unsigned int num_pref_freq;
+	int res;
+
 
 	if (!persistent_group) {
 		wpa_printf(MSG_DEBUG, "P2P: Invitation from " MACSTR
@@ -3221,6 +3289,12 @@ accept_inv:
 		best_freq = wpas_p2p_pick_best_used_freq(wpa_s, freqs, num);
 		os_free(freqs);
 	}
+
+	num_pref_freq = P2P_MAX_PREF_CHANNELS;
+	res = wpas_p2p_pick_best_pref_freq(wpa_s, *go, pref_freq_list,
+					   &num_pref_freq);
+	if (res > 0)
+		best_freq = res;
 
 	/* Get one of the frequencies currently in use */
 	if (best_freq > 0) {
@@ -5797,53 +5871,14 @@ static int wpas_p2p_setup_freqs(struct wpa_supplicant *wpa_s, int freq,
 	best_freq = wpas_p2p_pick_best_used_freq(wpa_s, freqs, num);
 
 	if (!wpa_s->conf->num_p2p_pref_chan && *pref_freq == 0) {
-		enum wpa_driver_if_type iface_type;
-
-		if (go)
-			iface_type = WPA_IF_P2P_GO;
-		else
-			iface_type = WPA_IF_P2P_CLIENT;
-
 		wpa_printf(MSG_DEBUG, "P2P: best_freq=%d, go=%d",
 			   best_freq, go);
 
-		res = wpa_drv_get_pref_freq_list(wpa_s, iface_type,
-						 &max_pref_freq,
-						 pref_freq_list);
-		if (!is_p2p_allow_6ghz(wpa_s->global->p2p))
-			max_pref_freq = p2p_remove_6ghz_channels(pref_freq_list,
-								 max_pref_freq);
-
-		if (!res && max_pref_freq > 0) {
-			*num_pref_freq = max_pref_freq;
-			i = 0;
-			while (i < *num_pref_freq &&
-			       (!p2p_supported_freq(wpa_s->global->p2p,
-						    pref_freq_list[i].freq) ||
-				wpas_p2p_disallowed_freq(
-					wpa_s->global,
-					pref_freq_list[i].freq) ||
-				!p2p_pref_freq_allowed(&pref_freq_list[i],
-						       go))) {
-				wpa_printf(MSG_DEBUG,
-					   "P2P: preferred_freq_list[%d]=%d is disallowed",
-					   i, pref_freq_list[i].freq);
-				i++;
-			}
-			if (i != *num_pref_freq) {
-				best_freq = pref_freq_list[i].freq;
-				wpa_printf(MSG_DEBUG,
-					   "P2P: Using preferred_freq_list[%d]=%d",
-					   i, best_freq);
-			} else {
-				wpa_printf(MSG_DEBUG,
-					   "P2P: All driver preferred frequencies are disallowed for P2P use");
-				*num_pref_freq = 0;
-			}
-		} else {
-			wpa_printf(MSG_DEBUG,
-				   "P2P: No preferred frequency list available");
-		}
+		*num_pref_freq = max_pref_freq;
+		res = wpas_p2p_pick_best_pref_freq(wpa_s, go, pref_freq_list,
+						   num_pref_freq);
+		if (res > 0)
+			best_freq = res;
 	}
 
 	/* We have a candidate frequency to use */
