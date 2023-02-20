@@ -1128,6 +1128,14 @@ static int
 hostapd_dfs_start_channel_switch_background(struct hostapd_iface *iface)
 {
 	u8 current_vht_oper_chwidth = hostapd_get_oper_chwidth(iface->conf);
+	int ret;
+
+	ret = hostapd_dfs_request_channel_switch(iface, iface->radar_background.channel,
+						 iface->radar_background.freq,
+						 iface->radar_background.secondary_channel,
+						 current_vht_oper_chwidth,
+						 iface->radar_background.centr_freq_seg0_idx,
+						 iface->radar_background.centr_freq_seg1_idx);
 
 	iface->conf->channel = iface->radar_background.channel;
 	iface->freq = iface->radar_background.freq;
@@ -1140,11 +1148,7 @@ hostapd_dfs_start_channel_switch_background(struct hostapd_iface *iface)
 
 	hostapd_dfs_update_background_chain(iface);
 
-	return hostapd_dfs_request_channel_switch(
-		iface, iface->conf->channel, iface->freq,
-		iface->conf->secondary_channel, current_vht_oper_chwidth,
-		hostapd_get_oper_centr_freq_seg0_idx(iface->conf),
-		hostapd_get_oper_centr_freq_seg1_idx(iface->conf));
+	return ret;
 }
 
 
