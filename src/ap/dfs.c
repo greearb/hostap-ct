@@ -1607,6 +1607,26 @@ int hostapd_dfs_nop_finished(struct hostapd_iface *iface, int freq,
 }
 
 
+int hostapd_dfs_sta_update_state(struct hostapd_iface *iface, int freq,
+				 int ht_enabled, int chan_offset, int chan_width,
+				 int cf1, int cf2, u32 state)
+{
+	wpa_msg(iface->bss[0]->msg_ctx, MSG_INFO, DFS_EVENT_STA_UPDATE
+		"freq=%d ht_enabled=%d chan_offset=%d chan_width=%d cf1=%d cf2=%d state=%s",
+		freq, ht_enabled, chan_offset, chan_width, cf1, cf2,
+		(state == HOSTAPD_CHAN_DFS_AVAILABLE) ? "available" : "usable");
+
+	/* Proceed only if DFS is not offloaded to the driver */
+	if (iface->drv_flags & WPA_DRIVER_FLAGS_DFS_OFFLOAD)
+		return 0;
+
+	set_dfs_state(iface, freq, ht_enabled, chan_offset, chan_width,
+		      cf1, cf2, state);
+
+	return 0;
+}
+
+
 int hostapd_is_dfs_required(struct hostapd_iface *iface)
 {
 	int n_chans, n_chans1, start_chan_idx, start_chan_idx1, res;
