@@ -2329,6 +2329,24 @@ static void hostapd_event_dfs_cac_started(struct hostapd_data *hapd,
 			      radar->cf1, radar->cf2);
 }
 
+static void hostapd_event_dfs_sta_cac_skipped(struct hostapd_data *hapd,
+					      struct dfs_event *radar)
+{
+	wpa_printf(MSG_DEBUG, "DFS CAC skipped (by STA) on %d MHz", radar->freq);
+	hostapd_dfs_sta_update_state(hapd->iface, radar->freq, radar->ht_enabled,
+				     radar->chan_offset, radar->chan_width,
+				     radar->cf1, radar->cf2, HOSTAPD_CHAN_DFS_AVAILABLE);
+}
+
+static void hostapd_event_dfs_sta_cac_expired(struct hostapd_data *hapd,
+					      struct dfs_event *radar)
+{
+	wpa_printf(MSG_DEBUG, "DFS CAC expired (by STA) on %d MHz", radar->freq);
+	hostapd_dfs_sta_update_state(hapd->iface, radar->freq, radar->ht_enabled,
+				     radar->chan_offset, radar->chan_width,
+				     radar->cf1, radar->cf2, HOSTAPD_CHAN_DFS_USABLE);
+}
+
 #endif /* NEED_AP_MLME */
 
 
@@ -2827,6 +2845,16 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			break;
 		hapd = switch_link_hapd(hapd, data->dfs_event.link_id);
 		hostapd_event_dfs_nop_finished(hapd, &data->dfs_event);
+		break;
+	case EVENT_DFS_STA_CAC_SKIPPED:
+		if (!data)
+			break;
+		hostapd_event_dfs_sta_cac_skipped(hapd, &data->dfs_event);
+		break;
+	case EVENT_DFS_STA_CAC_EXPIRED:
+		if (!data)
+			break;
+		hostapd_event_dfs_sta_cac_expired(hapd, &data->dfs_event);
 		break;
 	case EVENT_CHANNEL_LIST_CHANGED:
 		/* channel list changed (regulatory?), update channel list */

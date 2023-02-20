@@ -2686,6 +2686,18 @@ static void nl80211_process_radar_event(struct i802_bss *bss,
 		wpa_printf(MSG_DEBUG, "nl80211: DFS event: CAC started.");
 		wpa_supplicant_event(bss->ctx, EVENT_DFS_CAC_STARTED, data);
 		break;
+	case NL80211_RADAR_BACKGROUND_CHAN_UPDATE:
+		wpa_supplicant_event(bss->ctx, EVENT_DFS_BACKGROUND_CHAN_UPDATE, data);
+		break;
+	case NL80211_RADAR_BACKGROUND_CHAN_EXPAND:
+		wpa_supplicant_event(bss->ctx, EVENT_DFS_BACKGROUND_CHAN_EXPAND, data);
+		break;
+	case NL80211_RADAR_STA_CAC_SKIPPED:
+		wpa_supplicant_event(bss->ctx, EVENT_DFS_STA_CAC_SKIPPED, data);
+		break;
+	case NL80211_RADAR_STA_CAC_EXPIRED:
+		wpa_supplicant_event(bss->ctx, EVENT_DFS_STA_CAC_EXPIRED, data);
+		break;
 	default:
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Unknown radar event %d received",

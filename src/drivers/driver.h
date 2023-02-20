@@ -6246,6 +6246,32 @@ enum wpa_event_type {
 	EVENT_MLD_INTERFACE_FREED,
 
 	/**
+	 * EVENT_DFS_STA_CAC_SKIPPED - Notification that CAC has been skipped
+	 *
+	 * The channel in the notification is now marked as available.
+	 */
+	EVENT_DFS_STA_CAC_SKIPPED,
+
+	/**
+	 * EVENT_DFS_STA_CAC_EXPIRED - Notification that CAC has expired
+	 *
+	 * The channel in the notification is now marked as usable.
+	 */
+	EVENT_DFS_STA_CAC_EXPIRED,
+
+	/**
+	 * EVENT_DFS_BACKGROUND_CHAN_UPDATE - Notification that background
+	 * channel has been updated.
+	 */
+	EVENT_DFS_BACKGROUND_CHAN_UPDATE,
+
+	/**
+	 * EVENT_DFS_BACKGROUND_CHAN_EXPAND - Notification that background
+	 * channel has been updated and operating channel should expand its width.
+	 */
+	EVENT_DFS_BACKGROUND_CHAN_EXPAND,
+
+	/**
 	 * EVENT_SETUP_LINK_RECONFIG - Notification that new AP links added
 	 */
 	EVENT_SETUP_LINK_RECONFIG,
