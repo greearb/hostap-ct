@@ -1116,7 +1116,8 @@ class WpaSupplicant:
                       "multi_ap_backhaul_sta", "rx_stbc", "tx_stbc",
                       "ft_eap_pmksa_caching", "beacon_prot",
                       "mac_value",
-                      "wpa_deny_ptk0_rekey"]
+                      "wpa_deny_ptk0_rekey",
+                      "enable_4addr_mode"]
         for field in not_quoted:
             if field in kwargs and kwargs[field]:
                 self.set_network(id, field, kwargs[field])

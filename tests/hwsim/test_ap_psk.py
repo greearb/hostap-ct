@@ -3663,3 +3663,34 @@ def run_ap_wpa2_psk_ext_key_id_ptk_rekey_sta(dev, apdev, ext_key_id):
         hwsim_utils.test_connectivity(dev[0], hapd)
     finally:
         dev[0].set("extended_key_id", "0")
+
+def test_ap_wpa2_psk_4addr(dev, apdev):
+    """WPA2-PSK and STA using 4addr mode"""
+    br_ifname = 'sta-br0'
+    ssid = "test-wpa2-psk"
+    passphrase = 'qwertyuiop'
+    params = hostapd.wpa2_params(ssid=ssid, passphrase=passphrase)
+    hapd = hostapd.add_ap(apdev[0], params)
+    dev[0].connect(ssid, psk=passphrase, scan_freq="2412",
+                   enable_4addr_mode="1")
+
+    # Verify that the station interface can be added into a bridge.
+    ifname = dev[0].ifname
+    try:
+        subprocess.check_call(['brctl', 'addbr', br_ifname])
+        subprocess.check_call(['ip', 'link', 'set', 'dev', br_ifname, 'up'])
+        subprocess.check_call(['brctl', 'addif', br_ifname, ifname])
+        cmd = subprocess.Popen(['brctl', 'show'], stdout=subprocess.PIPE)
+        res = cmd.stdout.read().decode()
+    finally:
+        subprocess.call(['brctl', 'delif', br_ifname, ifname])
+        subprocess.call(['ip', 'link', 'set', 'dev', br_ifname, 'down'])
+        subprocess.call(['brctl', 'delbr', br_ifname])
+
+    found = False
+    for s in res.splitlines():
+        vals = s.split()
+        if br_ifname in vals and ifname in vals:
+            found = True
+    if not found:
+        raise Exception("Station interface was not seen in the bridge")
