@@ -35,6 +35,9 @@
 const unsigned int ftRRBseqTimeout = 10;
 const unsigned int ftRRBmaxQueueLen = 100;
 
+/* TODO: make these configurable */
+static const int dot11RSNAConfigPMKLifetime = 43200;
+
 
 static int wpa_ft_send_rrb_auth_resp(struct wpa_state_machine *sm,
 				     const u8 *current_ap, const u8 *sta_addr,
@@ -2949,6 +2952,9 @@ void wpa_ft_install_ptk(struct wpa_state_machine *sm, int retry)
 	/* FIX: MLME-SetProtection.Request(TA, Tx_Rx) */
 	sm->pairwise_set = true;
 	sm->tk_already_set = true;
+
+	wpa_auth_store_ptksa(sm->wpa_auth, sm->addr, sm->pairwise,
+			     dot11RSNAConfigPMKLifetime, &sm->PTK);
 }
 
 
