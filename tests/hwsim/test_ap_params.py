@@ -128,6 +128,11 @@ def test_ap_country(dev, apdev):
         hapd = hostapd.add_ap(apdev[0], params)
         dev[0].connect(ssid, psk=passphrase, scan_freq="5180")
         hwsim_utils.test_connectivity(dev[0], hapd)
+        status = hapd.get_status()
+        if "country_code" not in status or "country3" not in status:
+            raise Exception("Country information not available in STATUS")
+        if status["country_code"] != "FI" or status["country3"] != "0x20":
+            raise Exception("Unexpected country information: %s %s" % (status["country_code"], status["country3"]))
     finally:
         if hapd:
             hapd.request("DISABLE")
