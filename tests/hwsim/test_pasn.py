@@ -319,6 +319,57 @@ def test_pasn_sae_kdk(dev, apdev):
         dev[0].set("force_kdk_derivation", "0")
         dev[0].set("sae_pwe", "0")
 
+def test_pasn_sae_kdk_ft(dev, apdev):
+    """Station authentication with SAE AP with KDK derivation during connection with FT protocol"""
+    check_pasn_capab(dev[0])
+    check_sae_capab(dev[0])
+
+    try:
+        params = hostapd.wpa2_params(ssid="test-sae",
+                                     passphrase="12345678")
+        params['wpa_key_mgmt'] = 'FT-SAE'
+        params['sae_pwe'] = "2"
+        params['force_kdk_derivation'] = "1"
+        params['nas_identifier'] = "nas1.w1.fi"
+        params['r1_key_holder'] = "000102030405"
+        params['r0kh'] = ["02:00:00:00:03:00 nas1.w1.fi 100102030405060708090a0b0c0d0e0f100102030405060708090a0b0c0d0e0f",
+                          "02:00:00:00:04:00 nas2.w1.fi 300102030405060708090a0b0c0d0e0f300102030405060708090a0b0c0d0e0f"]
+        params['r1kh'] = "02:00:00:00:04:00 00:01:02:03:04:06 200102030405060708090a0b0c0d0e0f200102030405060708090a0b0c0d0e0f"
+        hapd = start_pasn_ap(apdev[0], params)
+
+        dev[0].set("force_kdk_derivation", "1")
+        dev[0].set("sae_groups", "")
+        dev[0].set("sae_pwe", "2")
+        dev[0].connect("test-sae", psk="12345678", key_mgmt="FT-SAE",
+                       scan_freq="2412")
+
+        check_pasn_ptk(dev[0], hapd, "CCMP", clear_keys=False)
+
+        params = hostapd.wpa2_params(ssid="test-sae",
+                                     passphrase="12345678")
+        params['wpa_key_mgmt'] = 'FT-SAE'
+        params['sae_pwe'] = "2"
+        params['force_kdk_derivation'] = "1"
+        params['nas_identifier'] = "nas2.w1.fi"
+        params['r1_key_holder'] = "000102030406"
+        params['r0kh'] = ["02:00:00:00:03:00 nas1.w1.fi 200102030405060708090a0b0c0d0e0f200102030405060708090a0b0c0d0e0f",
+                          "02:00:00:00:04:00 nas2.w1.fi 000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f"]
+        params['r1kh'] = "02:00:00:00:03:00 00:01:02:03:04:05 300102030405060708090a0b0c0d0e0f300102030405060708090a0b0c0d0e0f"
+        hapd2 = start_pasn_ap(apdev[1], params)
+
+        bssid = hapd2.own_addr()
+        dev[0].scan_for_bss(bssid, freq="2412")
+        dev[0].roam(bssid)
+
+        check_pasn_ptk(dev[0], hapd2, "CCMP", clear_keys=False)
+
+        bssid = hapd.own_addr()
+        dev[0].roam(bssid)
+
+        check_pasn_ptk(dev[0], hapd, "CCMP", clear_keys=False)
+    finally:
+        dev[0].set("force_kdk_derivation", "0")
+        dev[0].set("sae_pwe", "0")
 
 def check_pasn_fils_kdk(dev, apdev, params, key_mgmt):
     check_fils_capa(dev[0])
