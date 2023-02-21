@@ -1360,7 +1360,7 @@ static void wpa_supplicant_transition_disable(void *_wpa_s, u8 bitmap)
 }
 
 
-static void wpa_supplicant_store_ptk(void *ctx, u8 *addr, int cipher,
+static void wpa_supplicant_store_ptk(void *ctx, const u8 *addr, int cipher,
 				     u32 life_time, const struct wpa_ptk *ptk)
 {
 	struct wpa_supplicant *wpa_s = ctx;
