@@ -106,6 +106,11 @@ def check_pasn_akmp_cipher(dev, hapd, akmp="PASN", cipher="CCMP",
     if status:
         return
 
+    # There is a small window for a race condition here since the hostapd side
+    # might not yet have processed the PASN message 3 and added the PTKSA entry,
+    # so wait a bit before checking the results.
+    time.sleep(0.1)
+
     check_pasn_ptk(dev, hapd, cipher, fail_ptk)
 
 @remote_compatible
