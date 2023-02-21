@@ -251,12 +251,13 @@ void wpa_auth_store_ptksa(struct wpa_authenticator *wpa_auth,
 }
 
 
-void wpa_auth_remove_ptksa(struct wpa_authenticator *wpa_auth,
-			   const u8 *addr, int cipher)
+static void wpa_auth_remove_ptksa(struct wpa_authenticator *wpa_auth,
+				  const u8 *addr, int cipher)
 {
 	if (wpa_auth->cb->clear_ptksa)
 		wpa_auth->cb->clear_ptksa(wpa_auth->cb_ctx, addr, cipher);
 }
+
 
 void wpa_auth_logger(struct wpa_authenticator *wpa_auth, const u8 *addr,
 		     logger_level level, const char *txt)
