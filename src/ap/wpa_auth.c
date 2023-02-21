@@ -2394,7 +2394,8 @@ static int wpa_derive_ptk(struct wpa_state_machine *sm, const u8 *snonce,
 						sm->pairwise, kdk_len);
 		} else {
 			ret = wpa_auth_derive_ptk_ft(sm, ptk, pmk_r0, pmk_r1,
-						     pmk_r0_name, key_len);
+						     pmk_r0_name, key_len,
+						     kdk_len);
 		}
 		if (ret) {
 			wpa_printf(MSG_ERROR, "FT: PTK derivation failed");

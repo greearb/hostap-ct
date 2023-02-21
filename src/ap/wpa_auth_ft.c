@@ -2111,7 +2111,7 @@ int wpa_ft_store_pmk_fils(struct wpa_state_machine *sm,
 
 int wpa_auth_derive_ptk_ft(struct wpa_state_machine *sm, struct wpa_ptk *ptk,
 			   u8 *pmk_r0, u8 *pmk_r1, u8 *pmk_r0_name,
-			   size_t *key_len)
+			   size_t *key_len, size_t kdk_len)
 {
 	size_t pmk_r0_len, pmk_r1_len;
 	u8 ptk_name[WPA_PMK_NAME_LEN];
@@ -2158,7 +2158,7 @@ int wpa_auth_derive_ptk_ft(struct wpa_state_machine *sm, struct wpa_ptk *ptk,
 	return wpa_pmk_r1_to_ptk(pmk_r1, pmk_r1_len, sm->SNonce, sm->ANonce,
 				 sm->addr, sm->wpa_auth->addr, sm->pmk_r1_name,
 				 ptk, ptk_name, sm->wpa_key_mgmt, sm->pairwise,
-				 0);
+				 kdk_len);
 }
 
 

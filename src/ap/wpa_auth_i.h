@@ -306,7 +306,7 @@ int wpa_write_ftie(struct wpa_auth_config *conf, int key_mgmt, size_t key_len,
 		   size_t subelem_len, int rsnxe_used);
 int wpa_auth_derive_ptk_ft(struct wpa_state_machine *sm, struct wpa_ptk *ptk,
 			   u8 *pmk_r0, u8 *pmk_r1, u8 *pmk_r0_name,
-			   size_t *key_len);
+			   size_t *key_len, size_t kdk_len);
 void wpa_auth_ft_store_keys(struct wpa_state_machine *sm, const u8 *pmk_r0,
 			    const u8 *pmk_r1, const u8 *pmk_r0_name,
 			    size_t key_len);
