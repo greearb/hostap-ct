@@ -445,11 +445,43 @@ static void wpa_supplicant_optimize_freqs(
 	}
 
 	if (params->freqs == NULL && wpa_s->p2p_in_invitation) {
+		struct wpa_ssid *ssid = wpa_s->current_ssid;
+
+		/*
+		 * Perform a single-channel scan if the GO has already been
+		 * discovered on another non-P2P interface. Note that a scan
+		 * initiated by a P2P interface (e.g., the device interface)
+		 * should already have sufficient IEs and scan results will be
+		 * fetched on interface creation in that case.
+		 */
+		if (wpa_s->p2p_in_invitation == 1 && ssid) {
+			struct wpa_supplicant *ifs;
+			struct wpa_bss *bss = NULL;
+			const u8 *bssid = ssid->bssid_set ? ssid->bssid : NULL;
+
+			dl_list_for_each(ifs, &wpa_s->radio->ifaces,
+					 struct wpa_supplicant, radio_list) {
+				bss = wpa_bss_get(ifs, bssid, ssid->ssid,
+						  ssid->ssid_len);
+				if (bss)
+					break;
+			}
+			if (bss && !disabled_freq(wpa_s, bss->freq)) {
+				params->freqs = os_calloc(2, sizeof(int));
+				if (params->freqs) {
+					wpa_dbg(wpa_s, MSG_DEBUG,
+						"P2P: Scan only the known GO frequency %d MHz during invitation",
+						bss->freq);
+					params->freqs[0] = bss->freq;
+				}
+			}
+		}
+
 		/*
 		 * Optimize scan based on GO information during persistent
 		 * group reinvocation
 		 */
-		if (wpa_s->p2p_in_invitation < 5 &&
+		if (!params->freqs && wpa_s->p2p_in_invitation < 5 &&
 		    wpa_s->p2p_invite_go_freq > 0) {
 			if (wpa_s->p2p_invite_go_freq == 2 ||
 			    wpa_s->p2p_invite_go_freq == 5) {

@@ -1826,6 +1826,7 @@ int get_shared_radio_freqs_data(struct wpa_supplicant *wpa_s,
 int get_shared_radio_freqs(struct wpa_supplicant *wpa_s,
 			   int *freq_array, unsigned int len,
 			   bool exclude_current);
+int disabled_freq(struct wpa_supplicant *wpa_s, int freq);
 
 void wpas_network_reenabled(void *eloop_ctx, void *timeout_ctx);
 

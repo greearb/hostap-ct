@@ -3373,7 +3373,8 @@ static void wpas_invitation_received(void *ctx, const u8 *sa, const u8 *bssid,
 				wpa_s->conf->p2p_go_he,
 				wpa_s->conf->p2p_go_edmg, NULL,
 				go ? P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE : 0,
-				1, is_p2p_allow_6ghz(wpa_s->global->p2p), 0);
+				1, is_p2p_allow_6ghz(wpa_s->global->p2p), 0,
+				NULL);
 		} else if (bssid) {
 			wpa_s->user_initiated_pd = 0;
 			wpa_msg_global(wpa_s, MSG_INFO,
@@ -3603,7 +3604,8 @@ static void wpas_invitation_result(void *ctx, int status, const u8 *bssid,
 				      ssid->mode == WPAS_MODE_P2P_GO ?
 				      P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE :
 				      0, 1,
-				      is_p2p_allow_6ghz(wpa_s->global->p2p), 0);
+				      is_p2p_allow_6ghz(wpa_s->global->p2p), 0,
+				      NULL);
 }
 
 
@@ -4689,7 +4691,7 @@ static void wpas_p2ps_prov_complete(void *ctx, u8 status, const u8 *dev,
 					persistent_go->mode ==
 					WPAS_MODE_P2P_GO ?
 					P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE :
-					0, 0, false, 0);
+					0, 0, false, 0, NULL);
 			} else if (response_done) {
 				wpas_p2p_group_add(wpa_s, 1, freq,
 						   0, 0, 0, 0, 0, 0, false);
@@ -4812,7 +4814,7 @@ static int wpas_prov_disc_resp_cb(void *ctx)
 			NULL,
 			persistent_go->mode == WPAS_MODE_P2P_GO ?
 			P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE : 0, 0,
-			is_p2p_allow_6ghz(wpa_s->global->p2p), 0);
+			is_p2p_allow_6ghz(wpa_s->global->p2p), 0, NULL);
 	} else {
 		wpas_p2p_group_add(wpa_s, 1, freq, 0, 0, 0, 0, 0, 0,
 				   is_p2p_allow_6ghz(wpa_s->global->p2p));
@@ -6946,7 +6948,8 @@ int wpas_p2p_group_add(struct wpa_supplicant *wpa_s, int persistent_group,
 
 static int wpas_start_p2p_client(struct wpa_supplicant *wpa_s,
 				 struct wpa_ssid *params, int addr_allocated,
-				 int freq, int force_scan, int retry_limit)
+				 int freq, int force_scan, int retry_limit,
+				 const u8 *go_bssid)
 {
 	struct wpa_ssid *ssid;
 	int other_iface_found = 0;
@@ -6999,6 +7002,11 @@ static int wpas_start_p2p_client(struct wpa_supplicant *wpa_s,
 	if (params->passphrase)
 		ssid->passphrase = os_strdup(params->passphrase);
 
+	if (go_bssid) {
+		ssid->bssid_set = 1;
+		os_memcpy(ssid->bssid, go_bssid, ETH_ALEN);
+	}
+
 	wpa_s->show_group_started = 1;
 	wpa_s->p2p_in_invitation = 1;
 	wpa_s->p2p_retry_limit = retry_limit;
@@ -7045,7 +7053,8 @@ int wpas_p2p_group_add_persistent(struct wpa_supplicant *wpa_s,
 				  int edmg,
 				  const struct p2p_channels *channels,
 				  int connection_timeout, int force_scan,
-				  bool allow_6ghz, int retry_limit)
+				  bool allow_6ghz, int retry_limit,
+				  const u8 *go_bssid)
 {
 	struct p2p_go_neg_results params;
 	int go = 0, freq;
@@ -7113,7 +7122,7 @@ int wpas_p2p_group_add_persistent(struct wpa_supplicant *wpa_s,
 		}
 
 		return wpas_start_p2p_client(wpa_s, ssid, addr_allocated, freq,
-					     force_scan, retry_limit);
+					     force_scan, retry_limit, go_bssid);
 	} else {
 		return -1;
 	}

@@ -1163,7 +1163,7 @@ static void owe_trans_ssid(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 }
 
 
-static int disabled_freq(struct wpa_supplicant *wpa_s, int freq)
+int disabled_freq(struct wpa_supplicant *wpa_s, int freq)
 {
 	int i, j;
 
