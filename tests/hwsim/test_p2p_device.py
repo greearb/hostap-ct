@@ -550,3 +550,43 @@ def test_p2p_device_autogo_chan_switch(dev):
         dev[1].dump_monitor()
         time.sleep(0.1)
         hwsim_utils.test_connectivity_p2p(wpas, dev[1])
+
+def test_p2p_device_persistent_group_go_bssid(dev):
+    """P2P persistent group re-invocation (go_bssid) with cfg80211 P2P Device"""
+    with HWSimRadio(use_p2p_device=True) as (radio, iface):
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(iface)
+        wpas.global_request("SET p2p_no_group_iface 0")
+
+        addr0 = dev[0].p2p_dev_addr()
+        addr1 = wpas.p2p_dev_addr()
+        [i_res, r_res] = go_neg_pin_authorized_persistent(i_dev=dev[0],
+                                                          i_intent=15,
+                                                          r_dev=wpas,
+                                                          r_intent=0)
+        bssid = wpas.get_group_status_field("bssid")
+        wpas.remove_group()
+        wpas.dump_monitor()
+
+        wpas.p2p_listen()
+        if not dev[0].discover_peer(addr1, social=True):
+            raise Exception("Peer " + peer + " not found")
+        dev[0].global_request("P2P_INVITE group=" + dev[0].group_ifname + " peer=" + addr1)
+        ev = wpas.wait_global_event(["P2P-INVITATION-RECEIVED"], timeout=10)
+        if ev is None:
+            raise Exception("Timeout on invitation")
+        if "sa=" + addr0 + " persistent=" not in ev:
+            raise Exception("Unexpected invitation event")
+        [event, addr, persistent] = ev.split(' ', 2)
+
+        wpas.p2p_stop_find()
+        time.sleep(1)
+        wpas.dump_monitor()
+        wpas.flush_scan_cache()
+
+        cmd = "P2P_GROUP_ADD " + persistent + " go_bssid=" + bssid
+        if "OK" not in wpas.global_request(cmd):
+            raise Exception("Could not re-start persistent group")
+        ev = wpas.wait_global_event(["P2P-GROUP-STARTED"], timeout=30)
+        if ev is None:
+            raise Exception("Timeout on group restart")
