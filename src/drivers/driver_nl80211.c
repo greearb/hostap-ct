@@ -173,6 +173,8 @@ static int nl80211_send_frame_cmd(struct i802_bss *bss,
 				  const u16 *csa_offs, size_t csa_offs_len);
 static int wpa_driver_nl80211_probe_req_report(struct i802_bss *bss,
 					       int report);
+static int nl80211_put_freq_params(struct nl_msg *msg,
+				   const struct hostapd_freq_params *freq);
 
 #define IFIDX_ANY -1
 
@@ -4947,6 +4949,9 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 
 		nla_nest_end(msg, spr);
 	}
+
+	if (params->freq && nl80211_put_freq_params(msg, params->freq) < 0)
+		goto fail;
 
 	if (params->freq && params->freq->he_enabled) {
 		struct nlattr *bss_color;
