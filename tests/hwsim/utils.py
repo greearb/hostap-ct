@@ -146,7 +146,7 @@ def check_tls_tod(dev):
 
 def vht_supported():
     cmd = subprocess.Popen(["iw", "reg", "get"], stdout=subprocess.PIPE)
-    reg = cmd.stdout.read()
+    reg = cmd.stdout.read().decode()
     if "@ 80)" in reg or "@ 160)" in reg:
         return True
     return False
