@@ -922,6 +922,140 @@ def test_dpp_config_legacy_gen_psk(dev, apdev):
                                  init_extra="conf=sta-psk psk=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
                                  require_conf_success=True)
 
+def test_dpp_config_legacy_gen_two_conf(dev, apdev):
+    """Generate DPP Config Object for legacy network (two config objects)"""
+    ssid1 = "test1"
+    pass1 = "passphrase for psk"
+    ssid2 = "test-2"
+    pass2 = "password for sae"
+    ssid1h = binascii.hexlify(ssid1.encode()).decode()
+    pass1h = binascii.hexlify(pass1.encode()).decode()
+    ssid2h = binascii.hexlify(ssid2.encode()).decode()
+    pass2h = binascii.hexlify(pass2.encode()).decode()
+    extra = "conf=sta-psk pass=%s ssid=%s @CONF-OBJ-SEP@ conf=sta-sae pass=%s ssid=%s" % (pass1h, ssid1h, pass2h, ssid2h)
+    try:
+        dev[0].set("dpp_config_processing", "1")
+        run_dpp_qr_code_auth_unicast(dev, apdev, "prime256v1",
+                                     init_extra=extra,
+                                     require_conf_success=True)
+    finally:
+        dev[0].set("dpp_config_processing", "0", allow_fail=True)
+
+    ev = dev[0].wait_event(["DPP-CONFOBJ-AKM"], timeout=5)
+    if ev is None or ev.split()[1] != "psk":
+        raise Exception("Unexpected confobj 1 AKM: " + str(ev))
+    ev = dev[0].wait_event(["DPP-CONFOBJ-SSID"], timeout=5)
+    if ev is None or ev.split()[1] != ssid1:
+        raise Exception("Unexpected confobj 1 SSID: " + str(ev))
+    ev = dev[0].wait_event(["DPP-CONFOBJ-PASS"], timeout=5)
+    if ev is None or ev.split()[1] != pass1h:
+        raise Exception("Unexpected confobj 1 pass: " + str(ev))
+
+    ev = dev[0].wait_event(["DPP-CONFOBJ-AKM"], timeout=5)
+    if ev is None or ev.split()[1] != "sae":
+        raise Exception("Unexpected confobj 2 AKM: " + str(ev))
+    ev = dev[0].wait_event(["DPP-CONFOBJ-SSID"], timeout=5)
+    if ev is None or ev.split()[1] != ssid2:
+        raise Exception("Unexpected confobj 2 SSID: " + str(ev))
+    ev = dev[0].wait_event(["DPP-CONFOBJ-PASS"], timeout=5)
+    if ev is None or ev.split()[1] != pass2h:
+        raise Exception("Unexpected confobj 2 pass: " + str(ev))
+
+    val = dev[0].get_network(0, "ssid")
+    if val != '"' + ssid1 + '"':
+        raise Exception("Unexpected network 1 ssid: " + val)
+    val = dev[0].get_network(0, "key_mgmt")
+    if val != "WPA-PSK FT-PSK WPA-PSK-SHA256":
+        raise Exception("Unexpected network 1 key_mgmt: " + val)
+
+    val = dev[0].get_network(1, "ssid")
+    if val != '"' + ssid2 + '"':
+        raise Exception("Unexpected network 2 ssid: " + val)
+    val = dev[0].get_network(1, "key_mgmt")
+    if val != "SAE FT-SAE":
+        raise Exception("Unexpected network 2 key_mgmt: " + val)
+
+def test_dpp_config_legacy_gen_two_conf_psk(dev, apdev):
+    """Generate DPP Config Object for legacy network (two config objects, psk)"""
+    ssid1 = "test1"
+    psk1 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    ssid2 = "test-2"
+    pass2 = "password for sae"
+    ssid1h = binascii.hexlify(ssid1.encode()).decode()
+    ssid2h = binascii.hexlify(ssid2.encode()).decode()
+    pass2h = binascii.hexlify(pass2.encode()).decode()
+    extra = "conf=sta-psk psk=%s ssid=%s @CONF-OBJ-SEP@ conf=sta-sae pass=%s ssid=%s" % (psk1, ssid1h, pass2h, ssid2h)
+    try:
+        dev[0].set("dpp_config_processing", "1")
+        run_dpp_qr_code_auth_unicast(dev, apdev, "prime256v1",
+                                     init_extra=extra,
+                                     require_conf_success=True)
+    finally:
+        dev[0].set("dpp_config_processing", "0", allow_fail=True)
+
+    ev = dev[0].wait_event(["DPP-CONFOBJ-AKM"], timeout=5)
+    if ev is None or ev.split()[1] != "psk":
+        raise Exception("Unexpected confobj 1 AKM: " + str(ev))
+    ev = dev[0].wait_event(["DPP-CONFOBJ-SSID"], timeout=5)
+    if ev is None or ev.split()[1] != ssid1:
+        raise Exception("Unexpected confobj 1 SSID: " + str(ev))
+    ev = dev[0].wait_event(["DPP-CONFOBJ-PSK"], timeout=5)
+    if ev is None or ev.split()[1] != psk1:
+        raise Exception("Unexpected confobj 1 psk: " + str(ev))
+
+    ev = dev[0].wait_event(["DPP-CONFOBJ-AKM"], timeout=5)
+    if ev is None or ev.split()[1] != "sae":
+        raise Exception("Unexpected confobj 2 AKM: " + str(ev))
+    ev = dev[0].wait_event(["DPP-CONFOBJ-SSID"], timeout=5)
+    if ev is None or ev.split()[1] != ssid2:
+        raise Exception("Unexpected confobj 2 SSID: " + str(ev))
+    ev = dev[0].wait_event(["DPP-CONFOBJ-PASS"], timeout=5)
+    if ev is None or ev.split()[1] != pass2h:
+        raise Exception("Unexpected confobj 2 pass: " + str(ev))
+
+    val = dev[0].get_network(0, "ssid")
+    if val != '"' + ssid1 + '"':
+        raise Exception("Unexpected network 1 ssid: " + val)
+    val = dev[0].get_network(0, "key_mgmt")
+    if val != "WPA-PSK FT-PSK WPA-PSK-SHA256":
+        raise Exception("Unexpected network 1 key_mgmt: " + val)
+
+    val = dev[0].get_network(1, "ssid")
+    if val != '"' + ssid2 + '"':
+        raise Exception("Unexpected network 2 ssid: " + val)
+    val = dev[0].get_network(1, "key_mgmt")
+    if val != "SAE FT-SAE":
+        raise Exception("Unexpected network 2 key_mgmt: " + val)
+
+def test_dpp_config_legacy_gen_sta_ap_conf(dev, apdev):
+    """Generate DPP Config Object for legacy network (sta and ap config)"""
+    ssid1 = "test-AP"
+    pass1 = "password for AP sae"
+    ssid2 = "test-STA"
+    pass2 = "password for STA sae"
+    ssid1h = binascii.hexlify(ssid1.encode()).decode()
+    pass1h = binascii.hexlify(pass1.encode()).decode()
+    ssid2h = binascii.hexlify(ssid2.encode()).decode()
+    pass2h = binascii.hexlify(pass2.encode()).decode()
+    extra = "conf=ap-sae pass=%s ssid=%s @CONF-OBJ-SEP@ conf=sta-sae pass=%s ssid=%s" % (pass1h, ssid1h, pass2h, ssid2h)
+    run_dpp_qr_code_auth_unicast(dev, apdev, "prime256v1",
+                                 init_extra=extra,
+                                 require_conf_success=True)
+
+    ev = dev[0].wait_event(["DPP-CONFOBJ-AKM"], timeout=5)
+    if ev is None or ev.split()[1] != "sae":
+        raise Exception("Unexpected confobj 2 AKM: " + str(ev))
+    ev = dev[0].wait_event(["DPP-CONFOBJ-SSID"], timeout=5)
+    if ev is None or ev.split()[1] != ssid2:
+        raise Exception("Unexpected confobj 2 SSID: " + str(ev))
+    ev = dev[0].wait_event(["DPP-CONFOBJ-PASS"], timeout=5)
+    if ev is None or ev.split()[1] != pass2h:
+        raise Exception("Unexpected confobj 2 pass: " + str(ev))
+
+    ev = dev[0].wait_event(["DPP-CONFOBJ-AKM"], timeout=1)
+    if ev is not None:
+        raise Exception("Unexpected second confobj")
+
 def test_dpp_config_dpp_gen_prime256v1(dev, apdev):
     """Generate DPP Config Object for DPP network (P-256)"""
     run_dpp_qr_code_auth_unicast(dev, apdev, "prime256v1",
