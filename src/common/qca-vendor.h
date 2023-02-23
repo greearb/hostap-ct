@@ -2,7 +2,7 @@
  * Qualcomm Atheros OUI and vendor specific assignments
  * Copyright (c) 2014-2017, Qualcomm Atheros, Inc.
  * Copyright (c) 2018-2020, The Linux Foundation
- * Copyright (c) 2021-2022, Qualcomm Innovation Center, Inc.
+ * Copyright (c) 2021-2023, Qualcomm Innovation Center, Inc.
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -1152,7 +1152,7 @@ enum qca_wlan_vendor_attr {
 	 * use QCA_WLAN_VENDOR_ATTR_SETBAND_MASK instead.
 	 */
 	QCA_WLAN_VENDOR_ATTR_SETBAND_VALUE = 12,
-	/* Dummy (NOP) attribute for 64 bit padding */
+	/* Attribute used for padding for 64-bit alignment */
 	QCA_WLAN_VENDOR_ATTR_PAD = 13,
 	/* Unique FTM session cookie (Unsigned 64 bit). Specified in
 	 * QCA_NL80211_VENDOR_SUBCMD_FTM_START_SESSION. Reported in
@@ -2031,6 +2031,8 @@ enum qca_access_policy {
  * This attribute is used to provide TSF sync interval and only applicable when
  * TSF command is %QCA_TSF_SYNC_START. If this attribute is not provided, the
  * driver will use the default value. Time unit is in milliseconds.
+ * @QCA_WLAN_VENDOR_ATTR_TSF_PAD: Attribute used for padding for 64-bit
+ * alignment.
  */
 enum qca_vendor_attr_tsf_cmd {
 	QCA_WLAN_VENDOR_ATTR_TSF_INVALID = 0,
@@ -2038,6 +2040,7 @@ enum qca_vendor_attr_tsf_cmd {
 	QCA_WLAN_VENDOR_ATTR_TSF_TIMER_VALUE,
 	QCA_WLAN_VENDOR_ATTR_TSF_SOC_TIMER_VALUE,
 	QCA_WLAN_VENDOR_ATTR_TSF_SYNC_INTERVAL,
+	QCA_WLAN_VENDOR_ATTR_TSF_PAD,
 	QCA_WLAN_VENDOR_ATTR_TSF_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_TSF_MAX =
 	QCA_WLAN_VENDOR_ATTR_TSF_AFTER_LAST - 1
@@ -2212,6 +2215,8 @@ enum qca_wlan_vendor_scan_priority {
  *	qca_wlan_vendor_scan_priority. This is an optional attribute.
  *	If this attribute is not configured, the driver shall use
  *	QCA_WLAN_VENDOR_SCAN_PRIORITY_HIGH as the priority of vendor scan.
+ * @QCA_WLAN_VENDOR_ATTR_SCAN_PAD: Attribute used for padding for 64-bit
+ *	alignment.
  */
 enum qca_wlan_vendor_attr_scan {
 	QCA_WLAN_VENDOR_ATTR_SCAN_INVALID_PARAM = 0,
@@ -2228,6 +2233,7 @@ enum qca_wlan_vendor_attr_scan {
 	QCA_WLAN_VENDOR_ATTR_SCAN_BSSID = 11,
 	QCA_WLAN_VENDOR_ATTR_SCAN_DWELL_TIME = 12,
 	QCA_WLAN_VENDOR_ATTR_SCAN_PRIORITY = 13,
+	QCA_WLAN_VENDOR_ATTR_SCAN_PAD = 14,
 	QCA_WLAN_VENDOR_ATTR_SCAN_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_SCAN_MAX =
 	QCA_WLAN_VENDOR_ATTR_SCAN_AFTER_LAST - 1
@@ -3442,6 +3448,8 @@ enum qca_wlan_vendor_attr_get_hw_capability {
  *    timestamp and calculate transfer delay for the message.
  * @QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_MEASUREMENT_TIME: u32
  *    Real period for this measurement, unit in us.
+ * @QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PAD: Attribute used for padding for
+ *    64-bit alignment.
  */
 enum qca_wlan_vendor_attr_ll_stats_ext {
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_INVALID = 0,
@@ -3537,6 +3545,7 @@ enum qca_wlan_vendor_attr_ll_stats_ext {
 
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_REPORT_TIME,
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_MEASUREMENT_TIME,
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PAD,
 
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_LAST,
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_MAX =
@@ -3822,7 +3831,8 @@ enum qca_vendor_attr_loc_session_status {
  * @QCA_WLAN_VENDOR_ATTR_FTM_MEAS_INITIATOR_TOA_ERR: TOA error measured by
  *	initiator. Not always provided.
  *	See IEEE P802.11-REVmc/D7.0, 9.6.8.33 for more information.
- * @QCA_WLAN_VENDOR_ATTR_FTM_MEAS_PAD: Dummy attribute for padding.
+ * @QCA_WLAN_VENDOR_ATTR_FTM_MEAS_PAD: Attribute used for padding for 64-bit
+ *	alignment.
  */
 enum qca_wlan_vendor_attr_ftm_meas {
 	QCA_WLAN_VENDOR_ATTR_FTM_MEAS_INVALID,
@@ -4370,6 +4380,8 @@ enum qca_wlan_vendor_attr_ll_stats_results {
 	 *	after STA has indicated power save exit by QoS Null Data frame.
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_TIM_BEACON_ERR = 89,
+	/* Attribute used for padding for 64-bit alignment */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_PAD = 90,
 
 	/* Signed 32 bit value. It represents the noise floor calibration value.
 	 * Possible values are -120~-50 dBm.
@@ -5854,6 +5866,9 @@ enum qca_wlan_vendor_attr_gscan_results {
 	 */
 	QCA_WLAN_VENDOR_ATTR_GSCAN_MAX_NUM_DENYLISTED_BSSID = 46,
 
+	/* Attribute used for padding for 64-bit alignment */
+	QCA_WLAN_VENDOR_ATTR_GSCAN_RESULTS_PAD = 47,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_GSCAN_RESULTS_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_GSCAN_RESULTS_MAX =
@@ -7044,6 +7059,8 @@ enum qca_wlan_vendor_attr_spectral_scan {
 	 * gain changes.
 	 */
 	QCA_WLAN_VENDOR_ATTR_SPECTRAL_SCAN_CONFIG_FFT_RECAPTURE = 31,
+	/* Attribute used for padding for 64-bit alignment */
+	QCA_WLAN_VENDOR_ATTR_SPECTRAL_SCAN_CONFIG_PAD = 32,
 
 	QCA_WLAN_VENDOR_ATTR_SPECTRAL_SCAN_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_SPECTRAL_SCAN_CONFIG_MAX =
@@ -7076,6 +7093,8 @@ enum qca_wlan_vendor_attr_spectral_diag_stats {
 	 * mismatches in search fft report. u64 attribute.
 	 */
 	QCA_WLAN_VENDOR_ATTR_SPECTRAL_SCAN_DIAG_VHTSEG2ID_MISMATCH = 5,
+	/* Attribute used for padding for 64-bit alignment */
+	QCA_WLAN_VENDOR_ATTR_SPECTRAL_SCAN_DIAG_PAD = 6,
 
 	QCA_WLAN_VENDOR_ATTR_SPECTRAL_SCAN_DIAG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_SPECTRAL_SCAN_DIAG_MAX =
@@ -9407,12 +9426,15 @@ enum qca_wlan_vendor_bss_filter_action {
  * @QCA_WLAN_VENDOR_BSS_FILTER_STA_STATS_RSSI_TS: Time stamp of the host
  *	driver for the last received RSSI. Unsigned 64 bit number containing
  *	nanoseconds from the boottime.
+ * @QCA_WLAN_VENDOR_BSS_FILTER_STA_STATS_PAD: Attribute used for padding for
+ *	64-bit alignment.
  */
 enum qca_wlan_vendor_bss_filter_sta_stats {
 	QCA_WLAN_VENDOR_BSS_FILTER_STA_STATS_INVALID = 0,
 	QCA_WLAN_VENDOR_BSS_FILTER_STA_STATS_MAC = 1,
 	QCA_WLAN_VENDOR_BSS_FILTER_STA_STATS_RSSI = 2,
 	QCA_WLAN_VENDOR_BSS_FILTER_STA_STATS_RSSI_TS = 3,
+	QCA_WLAN_VENDOR_BSS_FILTER_STA_STATS_PAD = 4,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_BSS_FILTER_STA_STATS_AFTER_LAST,
@@ -9703,6 +9725,9 @@ enum qca_wlan_twt_setup_state {
  * start. The default value in the firmware is 0.
  * This parameter is used for
  * 1. TWT SET Request
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TWT_SETUP_PAD: Attribute used for padding for 64-bit
+ * alignment.
  */
 enum qca_wlan_vendor_attr_twt_setup {
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_INVALID = 0,
@@ -9738,6 +9763,8 @@ enum qca_wlan_vendor_attr_twt_setup {
 
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_RESPONDER_PM_MODE = 25,
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_ANNOUNCE_TIMEOUT = 26,
+
+	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_PAD = 27,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_AFTER_LAST,
@@ -9912,6 +9939,8 @@ enum qca_wlan_vendor_attr_twt_resume {
  * If provided, this attribute will override
  * QCA_WLAN_VENDOR_ATTR_TWT_NUDGE_WAKE_TIME. The units are in microseconds.
  *
+ * @QCA_WLAN_VENDOR_ATTR_TWT_NUDGE_PAD: Attribute used for padding for 64-bit
+ * alignment.
  */
 enum qca_wlan_vendor_attr_twt_nudge {
 	QCA_WLAN_VENDOR_ATTR_TWT_NUDGE_INVALID = 0,
@@ -9921,6 +9950,7 @@ enum qca_wlan_vendor_attr_twt_nudge {
 	QCA_WLAN_VENDOR_ATTR_TWT_NUDGE_MAC_ADDR = 4,
 	QCA_WLAN_VENDOR_ATTR_TWT_NUDGE_WAKE_TIME_TSF = 5,
 	QCA_WLAN_VENDOR_ATTR_TWT_NUDGE_SP_START_OFFSET = 6,
+	QCA_WLAN_VENDOR_ATTR_TWT_NUDGE_PAD = 7,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_TWT_NUDGE_AFTER_LAST,
@@ -10422,6 +10452,9 @@ enum qca_wlan_vendor_cfr_capture_type {
  * to userspace along with QCA_NL80211_VENDOR_SUBCMD_PEER_CFR_CAPTURE_CFG as an
  * asynchronous event when the driver is configured to send CFR data using
  * netlink events with %QCA_WLAN_VENDOR_CFR_DATA_NETLINK_EVENTS.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_PAD: Attribute used for padding for 64-bit
+ * alignment.
  */
 enum qca_wlan_vendor_peer_cfr_capture_attr {
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_CAPTURE_INVALID = 0,
@@ -10453,6 +10486,7 @@ enum qca_wlan_vendor_peer_cfr_capture_attr {
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_DATA_TRANSPORT_MODE = 26,
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_DATA_RECEIVER_PID = 27,
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_RESP_DATA = 28,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_PAD = 29,
 
 	/* Keep last */
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_AFTER_LAST,
@@ -10745,6 +10779,8 @@ enum qca_vendor_attr_peer_stats_cache_type {
  * containing buffer of statistics to send to application layer entity.
  * @QCA_WLAN_VENDOR_ATTR_PEER_STATS_CACHE_PEER_COOKIE: Unsigned 64-bit attribute
  * representing a cookie for peer unique session.
+ * @QCA_WLAN_VENDOR_ATTR_PEER_STATS_CACHE_PAD: Attribute used for padding for
+ * 64-bit alignment.
  */
 enum qca_wlan_vendor_attr_peer_stats_cache_params {
 	QCA_WLAN_VENDOR_ATTR_PEER_STATS_INVALID = 0,
@@ -10753,6 +10789,7 @@ enum qca_wlan_vendor_attr_peer_stats_cache_params {
 	QCA_WLAN_VENDOR_ATTR_PEER_STATS_CACHE_PEER_MAC = 2,
 	QCA_WLAN_VENDOR_ATTR_PEER_STATS_CACHE_DATA = 3,
 	QCA_WLAN_VENDOR_ATTR_PEER_STATS_CACHE_PEER_COOKIE = 4,
+	QCA_WLAN_VENDOR_ATTR_PEER_STATS_CACHE_PAD = 5,
 
 	/* Keep last */
 	QCA_WLAN_VENDOR_ATTR_PEER_STATS_CACHE_LAST,
@@ -11031,6 +11068,8 @@ enum qca_wlan_vendor_attr_beacon_reporting_params {
 	 * reported.
 	 */
 	QCA_WLAN_VENDOR_ATTR_BEACON_REPORTING_DO_NOT_RESUME = 13,
+	/* Attribute used for padding for 64-bit alignment */
+	QCA_WLAN_VENDOR_ATTR_BEACON_REPORTING_PAD = 14,
 
 	/* Keep last */
 	QCA_WLAN_VENDOR_ATTR_BEACON_REPORTING_LAST,
@@ -11574,6 +11613,9 @@ enum qca_vendor_wlan_sta_guard_interval {
  * rate value of RX packets. Every index of this nested attribute corresponds
  * to MCS index, e.g., Index 0 represents MCS0 RX rate. This can be
  * queried in connected state.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_PAD: Attribute used for padding for
+ * 64-bit alignment.
  */
 enum qca_wlan_vendor_attr_get_sta_info {
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_INVALID = 0,
@@ -11629,6 +11671,7 @@ enum qca_wlan_vendor_attr_get_sta_info {
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_UPLINK_DELAY = 50,
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_PER_MCS_TX_PACKETS = 51,
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_PER_MCS_RX_PACKETS = 52,
+	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_PAD = 53,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_AFTER_LAST,
@@ -12352,6 +12395,8 @@ enum qca_wlan_vendor_attr_usable_channels {
  *	or radar detection.
  * @QCA_WLAN_VENDOR_ATTR_RADAR_HISTORY_DETECTED: NLA_FLAG attribute.
  *	This flag indicates radar signal has been detected.
+ * @QCA_WLAN_VENDOR_ATTR_RADAR_HISTORY_PAD: Attribute used for padding for
+ *	64-bit alignment.
  */
 enum qca_wlan_vendor_attr_radar_history {
 	QCA_WLAN_VENDOR_ATTR_RADAR_HISTORY_INVALID = 0,
@@ -12360,6 +12405,7 @@ enum qca_wlan_vendor_attr_radar_history {
 	QCA_WLAN_VENDOR_ATTR_RADAR_HISTORY_FREQ = 2,
 	QCA_WLAN_VENDOR_ATTR_RADAR_HISTORY_TIMESTAMP = 3,
 	QCA_WLAN_VENDOR_ATTR_RADAR_HISTORY_DETECTED = 4,
+	QCA_WLAN_VENDOR_ATTR_RADAR_HISTORY_PAD = 5,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_RADAR_HISTORY_LAST,
@@ -12640,6 +12686,8 @@ enum qca_wlan_vendor_attr_roam_stats_frame_info {
 	 * from system boot.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_TIMESTAMP = 3,
+	/* Attribute used for padding for 64-bit alignment */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_PAD = 4,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_INFO_AFTER_LAST,
@@ -12849,6 +12897,8 @@ enum qca_wlan_vendor_attr_roam_stats_info {
 	 * this attribute.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_INFO = 43,
+	/* Attribute used for padding for 64-bit alignment */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_PAD = 44,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_AFTER_LAST,
@@ -13765,6 +13815,9 @@ enum qca_wlan_vendor_attr_coap_offload_periodic_tx {
  * greater than the maximum size, it will be truncated and leaving only
  * the first 1152 bytes.
  * This attribute is mandatory.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_COAP_OFFLOAD_CACHE_INFO_PAD: Attribute used for
+ * padding for 64-bit alignment
  */
 enum qca_wlan_vendor_attr_coap_offload_cache_info {
 	QCA_WLAN_VENDOR_ATTR_COAP_OFFLOAD_CACHE_INFO_INVALID = 0,
@@ -13772,6 +13825,7 @@ enum qca_wlan_vendor_attr_coap_offload_cache_info {
 	QCA_WLAN_VENDOR_ATTR_COAP_OFFLOAD_CACHE_INFO_SRC_IPV4 = 2,
 	QCA_WLAN_VENDOR_ATTR_COAP_OFFLOAD_CACHE_INFO_SRC_IPV6 = 3,
 	QCA_WLAN_VENDOR_ATTR_COAP_OFFLOAD_CACHE_INFO_MSG = 4,
+	QCA_WLAN_VENDOR_ATTR_COAP_OFFLOAD_CACHE_INFO_PAD = 5,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_COAP_OFFLOAD_CACHE_INFO_AFTER_LAST,
@@ -14860,6 +14914,9 @@ enum qca_wlan_dozed_ap_state {
  * @QCA_WLAN_VENDOR_ATTR_DOZED_AP_BI_MULTIPLIER: u16 attribute.
  * Used with event to inform the periodicity of beacon transmission that would
  * be skipped at all TBTTs in between.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_DOZED_AP_PAD: Attribute used for padding for 64-bit
+ * alignment.
  */
 enum qca_wlan_vendor_attr_dozed_ap {
 	QCA_WLAN_VENDOR_ATTR_DOZED_AP_INVALID = 0,
@@ -14867,6 +14924,7 @@ enum qca_wlan_vendor_attr_dozed_ap {
 	QCA_WLAN_VENDOR_ATTR_DOZED_AP_COOKIE = 2,
 	QCA_WLAN_VENDOR_ATTR_DOZED_AP_NEXT_TSF = 3,
 	QCA_WLAN_VENDOR_ATTR_DOZED_AP_BI_MULTIPLIER = 4,
+	QCA_WLAN_VENDOR_ATTR_DOZED_AP_PAD = 5,
 
 	/* Keep last */
 	QCA_WLAN_VENDOR_ATTR_DOZED_AP_AFTER_LAST,
