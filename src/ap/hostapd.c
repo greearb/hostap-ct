@@ -1784,6 +1784,11 @@ static int setup_interface2(struct hostapd_iface *iface)
 	} else {
 		int ret;
 
+		if (iface->conf->acs) {
+			iface->freq = 0;
+			iface->conf->channel = 0;
+		}
+
 		ret = configured_fixed_chan_to_freq(iface);
 		if (ret < 0)
 			goto fail;
