@@ -1435,6 +1435,22 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 		return -1;
 	}
 
+	if (conf->bridge[0]) {
+		/* Set explicitly configured bridge parameters that might have
+		 * been lost if the interface has been removed out of the
+		 * bridge. */
+
+		/* multicast to unicast on bridge ports */
+		if (conf->bridge_multicast_to_unicast)
+			hostapd_drv_br_port_set_attr(
+				hapd, DRV_BR_PORT_ATTR_MCAST2UCAST, 1);
+
+		/* hairpin mode */
+		if (conf->bridge_hairpin)
+			hostapd_drv_br_port_set_attr(
+				hapd, DRV_BR_PORT_ATTR_HAIRPIN_MODE, 1);
+	}
+
 	if (conf->proxy_arp) {
 		if (x_snoop_init(hapd)) {
 			wpa_printf(MSG_ERROR,

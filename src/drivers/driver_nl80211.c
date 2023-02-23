@@ -11615,6 +11615,8 @@ static const char * drv_br_port_attr_str(enum drv_br_port_attr attr)
 		return "proxyarp_wifi";
 	case DRV_BR_PORT_ATTR_HAIRPIN_MODE:
 		return "hairpin_mode";
+	case DRV_BR_PORT_ATTR_MCAST2UCAST:
+		return "multicast_to_unicast";
 	}
 
 	return NULL;

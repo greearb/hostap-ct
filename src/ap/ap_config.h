@@ -284,6 +284,7 @@ struct hostapd_bss_config {
 	char bridge[IFNAMSIZ + 1];
 	char vlan_bridge[IFNAMSIZ + 1];
 	char wds_bridge[IFNAMSIZ + 1];
+	int bridge_hairpin; /* hairpin_mode on bridge members */
 
 	enum hostapd_logger_level logger_syslog_level, logger_stdout_level;
 
@@ -748,6 +749,7 @@ struct hostapd_bss_config {
 #endif /* CONFIG_FILS */
 
 	int multicast_to_unicast;
+	int bridge_multicast_to_unicast;
 
 	int broadcast_deauth;
 

@@ -2647,6 +2647,7 @@ struct macsec_init_params {
 enum drv_br_port_attr {
 	DRV_BR_PORT_ATTR_PROXYARP,
 	DRV_BR_PORT_ATTR_HAIRPIN_MODE,
+	DRV_BR_PORT_ATTR_MCAST2UCAST,
 };
 
 enum drv_br_net_param {
