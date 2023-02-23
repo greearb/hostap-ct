@@ -11,7 +11,6 @@
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/pkcs7.h>
-#include <openssl/rsa.h>
 #include <openssl/asn1.h>
 #include <openssl/asn1t.h>
 #include <openssl/x509.h>
@@ -367,7 +366,6 @@ static int generate_csr(struct hs20_osu_client *ctx, char *key_pem,
 {
 	EVP_PKEY_CTX *pctx = NULL;
 	EVP_PKEY *pkey = NULL;
-	RSA *rsa;
 	X509_REQ *req = NULL;
 	int ret = -1;
 	unsigned int val;
@@ -395,16 +393,11 @@ static int generate_csr(struct hs20_osu_client *ctx, char *key_pem,
 	EVP_PKEY_CTX_free(pctx);
 	pctx = NULL;
 
-	rsa = EVP_PKEY_get1_RSA(pkey);
-	if (rsa == NULL)
-		goto fail;
-
 	if (key_pem) {
 		FILE *f = fopen(key_pem, "wb");
 		if (f == NULL)
 			goto fail;
-		if (!PEM_write_RSAPrivateKey(f, rsa, NULL, NULL, 0, NULL,
-					     NULL)) {
+		if (!PEM_write_PrivateKey(f, pkey, NULL, NULL, 0, NULL, NULL)) {
 			wpa_printf(MSG_INFO, "Could not write private key: %s",
 				   ERR_error_string(ERR_get_error(), NULL));
 			fclose(f);
