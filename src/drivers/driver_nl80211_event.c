@@ -1717,7 +1717,7 @@ static void send_scan_event(struct wpa_driver_nl80211_data *drv, int aborted,
 		}
 	}
 	if (tb[NL80211_ATTR_SCAN_FREQUENCIES]) {
-		char msg[MAX_REPORT_FREQS * 5], *pos, *end;
+		char msg[MAX_REPORT_FREQS * 5 + 1], *pos, *end;
 		int res;
 
 		pos = msg;
@@ -1732,7 +1732,7 @@ static void send_scan_event(struct wpa_driver_nl80211_data *drv, int aborted,
 			if (!os_snprintf_error(end - pos, res))
 				pos += res;
 			num_freqs++;
-			if (num_freqs == MAX_REPORT_FREQS - 1)
+			if (num_freqs == MAX_REPORT_FREQS)
 				break;
 		}
 		info->freqs = freqs;
