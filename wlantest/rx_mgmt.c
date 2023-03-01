@@ -346,6 +346,13 @@ static void rx_mgmt_beacon(struct wlantest *wt, const u8 *data, size_t len)
 		return;
 	}
 
+	if (elems.rsnxe) {
+		os_memcpy(bss->rsnxe, elems.rsnxe, elems.rsnxe_len);
+		bss->rsnxe_len = elems.rsnxe_len;
+	} else {
+		bss->rsnxe_len = 0;
+	}
+
 	if (!bss->proberesp_seen)
 		bss_update(wt, bss, &elems, 1);
 
@@ -920,6 +927,11 @@ static void rx_mgmt_assoc_req(struct wlantest *wt, const u8 *data, size_t len)
 		return;
 	}
 
+	if (elems.rsnxe) {
+		os_memcpy(sta->rsnxe, elems.rsnxe, elems.rsnxe_len);
+		sta->rsnxe_len = elems.rsnxe_len;
+	}
+
 	sta->assocreq_capab_info = le_to_host16(mgmt->u.assoc_req.capab_info);
 	sta->assocreq_listen_int =
 		le_to_host16(mgmt->u.assoc_req.listen_interval);
@@ -1160,6 +1172,11 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 		add_note(wt, MSG_INFO, "Invalid IEs in Reassociation Request "
 			 "frame from " MACSTR, MAC2STR(mgmt->sa));
 		return;
+	}
+
+	if (elems.rsnxe) {
+		os_memcpy(sta->rsnxe, elems.rsnxe, elems.rsnxe_len);
+		sta->rsnxe_len = elems.rsnxe_len;
 	}
 
 	sta->assocreq_capab_info =

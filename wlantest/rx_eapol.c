@@ -179,11 +179,20 @@ static int try_pmk(struct wlantest *wt, struct wlantest_bss *bss,
 	struct wpa_ptk ptk;
 	const u8 *sa, *aa;
 	bool mlo;
+	size_t kdk_len;
 
 	mlo = !is_zero_ether_addr(sta->mld_mac_addr) &&
 		!is_zero_ether_addr(bss->mld_mac_addr);
 	sa = mlo ? sta->mld_mac_addr : sta->addr;
 	aa = mlo ? bss->mld_mac_addr : bss->bssid;
+
+	if (ieee802_11_rsnx_capab_len(bss->rsnxe, bss->rsnxe_len,
+				      WLAN_RSNX_CAPAB_SECURE_LTF) &&
+	    ieee802_11_rsnx_capab_len(sta->rsnxe, sta->rsnxe_len,
+				      WLAN_RSNX_CAPAB_SECURE_LTF))
+		kdk_len = WPA_KDK_MAX_LEN;
+	else
+		kdk_len = 0;
 
 	if (wpa_key_mgmt_ft(sta->key_mgmt)) {
 		u8 ptk_name[WPA_PMK_NAME_LEN];
@@ -217,7 +226,7 @@ static int try_pmk(struct wlantest *wt, struct wlantest_bss *bss,
 				  "Pairwise key expansion",
 				  aa, sa, sta->anonce,
 				  sta->snonce, &ptk, sta->key_mgmt,
-				  sta->pairwise_cipher, NULL, 0, 0) < 0 ||
+				  sta->pairwise_cipher, NULL, 0, kdk_len) < 0 ||
 		   check_mic(sta, ptk.kck, ptk.kck_len, ver, data, len) < 0) {
 		return -1;
 	}
