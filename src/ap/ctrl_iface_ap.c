@@ -1599,6 +1599,11 @@ int hostapd_parse_csa_settings(struct hostapd_iface *iface,
 		return -1;
 	}
 
+	settings->freq_params.eht_enabled = !!os_strstr(pos, " eht");
+	settings->freq_params.he_enabled = !!os_strstr(pos, " he") ||
+		settings->freq_params.eht_enabled;
+	settings->freq_params.radar_background = !!os_strstr(pos, " skip_cac");
+
 	settings->block_tx = !!os_strstr(pos, " blocktx");
 
 	ret = hostapd_parse_freq_params(end, &settings->freq_params, 0);

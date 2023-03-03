@@ -2608,6 +2608,16 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 		break;
 	}
 
+	if (settings.freq_params.radar_background) {
+		hostapd_dfs_sta_update_state(iface,
+			settings.freq_params.freq,
+			settings.freq_params.ht_enabled,
+			settings.freq_params.sec_channel_offset,
+			bandwidth, settings.freq_params.center_freq1,
+			settings.freq_params.center_freq2,
+			HOSTAPD_CHAN_DFS_AVAILABLE);
+	}
+
 	if (settings.freq_params.center_freq1)
 		dfs_range += hostapd_is_dfs_overlap(
 			iface, bandwidth, settings.freq_params.center_freq1);
