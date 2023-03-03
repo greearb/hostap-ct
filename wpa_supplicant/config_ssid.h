@@ -584,6 +584,8 @@ struct wpa_ssid {
 
 	int he;
 
+	int eht;
+
 	enum oper_chan_width max_oper_chwidth;
 
 	unsigned int vht_center_freq1;

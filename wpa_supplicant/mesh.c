@@ -225,7 +225,7 @@ static int wpas_mesh_update_freq_params(struct wpa_supplicant *wpa_s)
 		    ifmsh->conf->ieee80211n,
 		    ifmsh->conf->ieee80211ac,
 		    ifmsh->conf->ieee80211ax,
-		    false,
+		    ifmsh->conf->ieee80211be,
 		    ifmsh->conf->secondary_channel,
 		    hostapd_get_oper_chwidth(ifmsh->conf),
 		    hostapd_get_oper_centr_freq_seg0_idx(ifmsh->conf),
@@ -634,6 +634,7 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 	wpa_s->mesh_ht_enabled = !!params->freq.ht_enabled;
 	wpa_s->mesh_vht_enabled = !!params->freq.vht_enabled;
 	wpa_s->mesh_he_enabled = !!params->freq.he_enabled;
+	wpa_s->mesh_eht_enabled = !!params->freq.eht_enabled;
 	if (params->freq.ht_enabled && params->freq.sec_channel_offset)
 		ssid->ht40 = params->freq.sec_channel_offset;
 
@@ -662,6 +663,8 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 	}
 	if (wpa_s->mesh_he_enabled)
 		ssid->he = 1;
+	if (wpa_s->mesh_eht_enabled)
+		ssid->eht = 1;
 	if (ssid->beacon_int > 0)
 		params->beacon_int = ssid->beacon_int;
 	else if (wpa_s->conf->beacon_int > 0)

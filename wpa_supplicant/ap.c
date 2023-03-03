@@ -326,6 +326,16 @@ int wpa_supplicant_conf_ap_ht(struct wpa_supplicant *wpa_s,
 
 		if (mode && is_6ghz_freq(ssid->frequency) &&
 		    conf->hw_mode == HOSTAPD_MODE_IEEE80211A) {
+			if (mode->eht_capab[wpas_mode_to_ieee80211_mode(
+					    ssid->mode)].eht_supported &&
+			    ssid->eht)
+				conf->ieee80211be = 1;
+
+			if (mode->he_capab[wpas_mode_to_ieee80211_mode(
+					    ssid->mode)].he_supported &&
+			    ssid->he)
+				conf->ieee80211ax = 1;
+
 #ifdef CONFIG_P2P
 			wpas_conf_ap_he_6ghz(wpa_s, mode, ssid, conf);
 #endif /* CONFIG_P2P */
@@ -400,6 +410,11 @@ int wpa_supplicant_conf_ap_ht(struct wpa_supplicant *wpa_s,
 			/* check this before VHT, because setting oper chan
 			 * width and friends is the same call for HE and VHT
 			 * and checks if conf->ieee8021ax == 1 */
+			if (mode->eht_capab[wpas_mode_to_ieee80211_mode(
+					    ssid->mode)].eht_supported &&
+			    ssid->eht)
+				conf->ieee80211be = 1;
+
 			if (mode->he_capab[wpas_mode_to_ieee80211_mode(
 					    ssid->mode)].he_supported &&
 			    ssid->he)

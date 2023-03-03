@@ -2733,6 +2733,25 @@ static bool ibss_mesh_can_use_he(struct wpa_supplicant *wpa_s,
 }
 
 
+static bool ibss_mesh_can_use_eht(struct wpa_supplicant *wpa_s,
+				  const struct wpa_ssid *ssid,
+				  const struct hostapd_hw_modes *mode,
+				  int ieee80211_mode)
+{
+	if (ssid->disable_eht)
+		return false;
+
+	switch(mode->mode) {
+	case HOSTAPD_MODE_IEEE80211G:
+	case HOSTAPD_MODE_IEEE80211B:
+	case HOSTAPD_MODE_IEEE80211A:
+		return mode->eht_capab[ieee80211_mode].eht_supported;
+	default:
+		return false;
+	}
+}
+
+
 static void ibss_mesh_select_40mhz(struct wpa_supplicant *wpa_s,
 				   const struct wpa_ssid *ssid,
 				   struct hostapd_hw_modes *mode,
@@ -2962,11 +2981,11 @@ skip_80mhz:
 				    freq->channel, ssid->enable_edmg,
 				    ssid->edmg_channel, freq->ht_enabled,
 				    freq->vht_enabled, freq->he_enabled,
-				    false,
+				    freq->eht_enabled,
 				    freq->sec_channel_offset,
 				    chwidth, seg0, seg1, vht_caps,
 				    &mode->he_capab[ieee80211_mode],
-				    NULL) != 0)
+				    &mode->eht_capab[ieee80211_mode]) != 0)
 		return false;
 
 	*freq = vht_freq;
@@ -3020,6 +3039,7 @@ void ibss_mesh_setup_freq(struct wpa_supplicant *wpa_s,
 	freq->ht_enabled = 0;
 	freq->vht_enabled = 0;
 	freq->he_enabled = 0;
+	freq->eht_enabled = 0;
 
 	if (!is_6ghz)
 		freq->ht_enabled = ibss_mesh_can_use_ht(wpa_s, ssid, mode);
@@ -3036,6 +3056,10 @@ void ibss_mesh_setup_freq(struct wpa_supplicant *wpa_s,
 						ieee80211_mode, is_6ghz))
 			freq->he_enabled = freq->vht_enabled = false;
 	}
+
+	if (freq->he_enabled)
+		freq->eht_enabled = ibss_mesh_can_use_eht(wpa_s, ssid, mode,
+							  ieee80211_mode);
 }
 
 
