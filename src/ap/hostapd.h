@@ -730,7 +730,8 @@ void hostapd_prune_associations(struct hostapd_data *hapd, const u8 *addr,
 void hostapd_notify_assoc_fils_finish(struct hostapd_data *hapd,
 				      struct sta_info *sta);
 int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
-			const u8 *ie, size_t ielen, int reassoc);
+			const u8 *req_ie, size_t req_ielen, const u8 *resp_ie,
+			size_t resp_ielen, const u8 *link_addr, int reassoc);
 void hostapd_notif_disassoc(struct hostapd_data *hapd, const u8 *addr);
 void hostapd_event_sta_low_ack(struct hostapd_data *hapd, const u8 *addr);
 void hostapd_event_connect_failed_reason(struct hostapd_data *hapd,

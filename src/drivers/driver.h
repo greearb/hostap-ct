@@ -5953,6 +5953,17 @@ union wpa_event_data {
 		 * fils_pmkid - PMKID used or generated in FILS authentication
 		 */
 		const u8 *fils_pmkid;
+
+		/**
+		 * link_addr - Link address of the STA
+		 */
+		const u8 *link_addr;
+
+		/**
+		 * assoc_link_id - Association link id of the MLO association or
+		 *	-1 if MLO is not used
+		 */
+		int assoc_link_id;
 	} assoc_info;
 
 	/**
@@ -6674,15 +6685,21 @@ void wpa_supplicant_event_global(void *ctx, enum wpa_event_type event,
  * event indication for some of the common events.
  */
 
-static inline void drv_event_assoc(void *ctx, const u8 *addr, const u8 *ie,
-				   size_t ielen, int reassoc)
+static inline void drv_event_assoc(void *ctx, const u8 *addr, const u8 *req_ies,
+				   size_t req_ielen, const u8 *resp_ies,
+				   size_t resp_ielen, const u8 *link_addr,
+				   int assoc_link_id, int reassoc)
 {
 	union wpa_event_data event;
 	os_memset(&event, 0, sizeof(event));
 	event.assoc_info.reassoc = reassoc;
-	event.assoc_info.req_ies = ie;
-	event.assoc_info.req_ies_len = ielen;
+	event.assoc_info.req_ies = req_ies;
+	event.assoc_info.req_ies_len = req_ielen;
+	event.assoc_info.resp_ies = resp_ies;
+	event.assoc_info.resp_ies_len = resp_ielen;
 	event.assoc_info.addr = addr;
+	event.assoc_info.link_addr = link_addr;
+	event.assoc_info.assoc_link_id = assoc_link_id;
 	wpa_supplicant_event(ctx, EVENT_ASSOC, &event);
 }
 

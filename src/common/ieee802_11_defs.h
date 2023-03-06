@@ -2607,6 +2607,7 @@ struct ieee80211_eht_capabilities {
  * STA Control field definitions of Per-STA Profile subelement in Basic
  * Multi-Link element as described in Figure 9-1002n: STA Control field format.
  */
+#define BASIC_MLE_STA_CTRL_LEN				2
 #define BASIC_MLE_STA_CTRL_LINK_ID_MASK			0x000F
 #define BASIC_MLE_STA_CTRL_COMPLETE_PROFILE		0x0010
 #define BASIC_MLE_STA_CTRL_PRES_STA_MAC			0x0020

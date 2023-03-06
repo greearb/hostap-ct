@@ -913,14 +913,16 @@ static void atheros_raw_receive(void *ctx, const u8 *src_addr, const u8 *buf,
 			break;
 		ielen = len - (IEEE80211_HDRLEN + sizeof(mgmt->u.assoc_req));
 		iebuf = mgmt->u.assoc_req.variable;
-		drv_event_assoc(drv->hapd, mgmt->sa, iebuf, ielen, 0);
+		drv_event_assoc(drv->hapd, mgmt->sa, iebuf, ielen, NULL, 0,
+				NULL, -1, 0);
 		break;
 	case WLAN_FC_STYPE_REASSOC_REQ:
 		if (len < IEEE80211_HDRLEN + sizeof(mgmt->u.reassoc_req))
 			break;
 		ielen = len - (IEEE80211_HDRLEN + sizeof(mgmt->u.reassoc_req));
 		iebuf = mgmt->u.reassoc_req.variable;
-		drv_event_assoc(drv->hapd, mgmt->sa, iebuf, ielen, 1);
+		drv_event_assoc(drv->hapd, mgmt->sa, iebuf, ielen, NULL, 0,
+				NULL, -1, 1);
 		break;
 	case WLAN_FC_STYPE_AUTH:
 		if (len < IEEE80211_HDRLEN + sizeof(mgmt->u.auth))
@@ -1222,7 +1224,7 @@ atheros_new_sta(struct atheros_driver_data *drv, u8 addr[IEEE80211_ADDR_LEN])
 		ielen += 2;
 
 no_ie:
-	drv_event_assoc(hapd, addr, iebuf, ielen, 0);
+	drv_event_assoc(hapd, addr, iebuf, ielen, NULL, 0, NULL, -1, 0);
 
 	if (os_memcmp(addr, drv->acct_mac, ETH_ALEN) == 0) {
 		/* Cached accounting data is not valid anymore. */

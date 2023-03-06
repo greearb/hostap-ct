@@ -132,8 +132,122 @@ static bool check_sa_query_need(struct hostapd_data *hapd, struct sta_info *sta)
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+static int hostapd_update_sta_links_status(struct hostapd_data *hapd,
+					   struct sta_info *sta,
+					   const u8 *resp_ies,
+					   size_t resp_ies_len)
+{
+	struct mld_info *info = &sta->mld_info;
+	struct wpabuf *mlebuf;
+	const u8 *mle, *pos;
+	struct ieee802_11_elems elems;
+	size_t mle_len, rem_len;
+	int ret = 0;
+
+	if (!resp_ies) {
+		wpa_printf(MSG_DEBUG,
+			   "MLO: (Re)Association Response frame elements not available");
+		return -1;
+	}
+
+	if (ieee802_11_parse_elems(resp_ies, resp_ies_len, &elems, 0) ==
+	    ParseFailed) {
+		wpa_printf(MSG_DEBUG,
+			   "MLO: Failed to parse (Re)Association Response frame elements");
+		return -1;
+	}
+
+	mlebuf = ieee802_11_defrag_mle(&elems, MULTI_LINK_CONTROL_TYPE_BASIC);
+	if (!mlebuf) {
+		wpa_printf(MSG_ERROR,
+			   "MLO: Basic Multi-Link element not found in (Re)Association Response frame");
+		return -1;
+	}
+
+	mle = wpabuf_head(mlebuf);
+	mle_len = wpabuf_len(mlebuf);
+	if (mle_len < MULTI_LINK_CONTROL_LEN + 1 ||
+	    mle_len - MULTI_LINK_CONTROL_LEN < mle[MULTI_LINK_CONTROL_LEN]) {
+		wpa_printf(MSG_ERROR,
+			   "MLO: Invalid Multi-Link element in (Re)Association Response frame");
+		ret = -1;
+		goto out;
+	}
+
+	/* Skip Common Info */
+	pos = mle + MULTI_LINK_CONTROL_LEN + mle[MULTI_LINK_CONTROL_LEN];
+	rem_len = mle_len -
+		(MULTI_LINK_CONTROL_LEN + mle[MULTI_LINK_CONTROL_LEN]);
+
+	/* Parse Subelements */
+	while (rem_len > 2) {
+		size_t ie_len = 2 + pos[1];
+
+		if (rem_len < ie_len)
+			break;
+
+		if (pos[0] == MULTI_LINK_SUB_ELEM_ID_PER_STA_PROFILE) {
+			u8 link_id;
+			const u8 *sta_profile;
+			size_t sta_profile_len;
+			u16 sta_ctrl;
+
+			if (pos[1] < BASIC_MLE_STA_CTRL_LEN + 1) {
+				wpa_printf(MSG_DEBUG,
+					   "MLO: Invalid per-STA profile IE");
+				goto next_subelem;
+			}
+
+			sta_profile_len = pos[1];
+			sta_profile = &pos[2];
+			sta_ctrl = WPA_GET_LE16(sta_profile);
+			link_id = sta_ctrl & BASIC_MLE_STA_CTRL_LINK_ID_MASK;
+			if (link_id >= MAX_NUM_MLD_LINKS) {
+				wpa_printf(MSG_DEBUG,
+					   "MLO: Invalid link ID in per-STA profile IE");
+				goto next_subelem;
+			}
+
+			/* Skip STA Control and STA Info */
+			if (sta_profile_len - BASIC_MLE_STA_CTRL_LEN <
+			    sta_profile[BASIC_MLE_STA_CTRL_LEN]) {
+				wpa_printf(MSG_DEBUG,
+					   "MLO: Invalid STA info in per-STA profile IE");
+				goto next_subelem;
+			}
+
+			sta_profile_len = sta_profile_len -
+				(BASIC_MLE_STA_CTRL_LEN +
+				 sta_profile[BASIC_MLE_STA_CTRL_LEN]);
+			sta_profile = sta_profile + BASIC_MLE_STA_CTRL_LEN +
+				sta_profile[BASIC_MLE_STA_CTRL_LEN];
+
+			/* Skip Capabilities Information field */
+			if (sta_profile_len < 2)
+				goto next_subelem;
+			sta_profile_len -= 2;
+			sta_profile += 2;
+
+			/* Get status of the link */
+			info->links[link_id].status = WPA_GET_LE16(sta_profile);
+		}
+next_subelem:
+		pos += ie_len;
+		rem_len -= ie_len;
+	}
+
+out:
+	wpabuf_free(mlebuf);
+	return ret;
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
-			const u8 *req_ies, size_t req_ies_len, int reassoc)
+			const u8 *req_ies, size_t req_ies_len,
+			const u8 *resp_ies, size_t resp_ies_len,
+			const u8 *link_addr, int reassoc)
 {
 	struct sta_info *sta;
 	int new_assoc;
@@ -226,6 +340,45 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 			return -1;
 		}
 	}
+
+#ifdef CONFIG_IEEE80211BE
+	if (link_addr) {
+		struct mld_info *info = &sta->mld_info;
+		int i, num_valid_links = 0;
+		u8 link_id = hapd->mld_link_id;
+
+		info->mld_sta = true;
+		sta->mld_assoc_link_id = link_id;
+		os_memcpy(info->common_info.mld_addr, addr, ETH_ALEN);
+		info->links[link_id].valid = true;
+		os_memcpy(info->links[link_id].peer_addr, link_addr, ETH_ALEN);
+		os_memcpy(info->links[link_id].local_addr, hapd->own_addr,
+			  ETH_ALEN);
+
+		if (!elems.basic_mle ||
+		    hostapd_process_ml_assoc_req(hapd, &elems, sta) !=
+		    WLAN_STATUS_SUCCESS) {
+			reason = WLAN_REASON_UNSPECIFIED;
+			wpa_printf(MSG_DEBUG,
+				   "Failed to get STA non-assoc links info");
+			goto fail;
+		}
+
+		for (i = 0 ; i < MAX_NUM_MLD_LINKS; i++) {
+			if (info->links[i].valid)
+				num_valid_links++;
+		}
+		if (num_valid_links > 1 &&
+		    hostapd_update_sta_links_status(hapd, sta, resp_ies,
+						    resp_ies_len)) {
+			wpa_printf(MSG_DEBUG,
+				   "Failed to get STA non-assoc links status info");
+			reason = WLAN_REASON_UNSPECIFIED;
+			goto fail;
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	sta->flags &= ~(WLAN_STA_WPS | WLAN_STA_MAYBE_WPS | WLAN_STA_WPS2);
 
 	/*
@@ -365,6 +518,15 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 				   "Failed to initialize WPA state machine");
 			return -1;
 		}
+#ifdef CONFIG_IEEE80211BE
+		if (sta->mld_info.mld_sta) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Set ML info in RSN Authenticator");
+			wpa_auth_set_ml_info(sta->wpa_sm, hapd->mld_addr,
+					     sta->mld_assoc_link_id,
+					     &sta->mld_info);
+		}
+#endif /* CONFIG_IEEE80211BE */
 		res = wpa_validate_wpa_ie(hapd->wpa_auth, sta->wpa_sm,
 					  hapd->iface->freq,
 					  ie, ielen,
@@ -2120,9 +2282,23 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 	case EVENT_ASSOC:
 		if (!data)
 			return;
+#ifdef CONFIG_IEEE80211BE
+		if (data->assoc_info.assoc_link_id != -1) {
+			hapd = hostapd_mld_get_link_bss(
+				hapd, data->assoc_info.assoc_link_id);
+			if (!hapd) {
+				wpa_printf(MSG_ERROR,
+					   "MLD: Failed to get link BSS for EVENT_ASSOC");
+				return;
+			}
+		}
+#endif /* CONFIG_IEEE80211BE */
 		hostapd_notif_assoc(hapd, data->assoc_info.addr,
 				    data->assoc_info.req_ies,
 				    data->assoc_info.req_ies_len,
+				    data->assoc_info.resp_ies,
+				    data->assoc_info.resp_ies_len,
+				    data->assoc_info.link_addr,
 				    data->assoc_info.reassoc);
 		break;
 #ifdef CONFIG_OWE

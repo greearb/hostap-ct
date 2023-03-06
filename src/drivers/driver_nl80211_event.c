@@ -2165,23 +2165,60 @@ static void nl80211_new_station_event(struct wpa_driver_nl80211_data *drv,
 				      struct i802_bss *bss,
 				      struct nlattr **tb)
 {
-	u8 *addr;
+	u8 *peer_addr;
 	union wpa_event_data data;
 
 	if (tb[NL80211_ATTR_MAC] == NULL)
 		return;
-	addr = nla_data(tb[NL80211_ATTR_MAC]);
-	wpa_printf(MSG_DEBUG, "nl80211: New station " MACSTR, MAC2STR(addr));
+	peer_addr = nla_data(tb[NL80211_ATTR_MAC]);
+	wpa_printf(MSG_DEBUG, "nl80211: New station " MACSTR,
+		   MAC2STR(peer_addr));
 
 	if (is_ap_interface(drv->nlmode) && drv->device_ap_sme) {
-		u8 *ies = NULL;
-		size_t ies_len = 0;
-		if (tb[NL80211_ATTR_IE]) {
-			ies = nla_data(tb[NL80211_ATTR_IE]);
-			ies_len = nla_len(tb[NL80211_ATTR_IE]);
+		u8 *link_addr = NULL;
+		int assoc_link_id = -1;
+		u8 *req_ies = NULL, *resp_ies = NULL;
+		size_t req_ies_len = 0, resp_ies_len = 0;
+
+		if (bss->links[0].link_id == NL80211_DRV_LINK_ID_NA &&
+		    (tb[NL80211_ATTR_MLO_LINK_ID] ||
+		     tb[NL80211_ATTR_MLD_ADDR])) {
+			wpa_printf(MSG_ERROR,
+				   "nl80211: MLO info not expected for new station event for non-MLD AP");
+			return;
 		}
-		wpa_hexdump(MSG_DEBUG, "nl80211: Assoc Req IEs", ies, ies_len);
-		drv_event_assoc(bss->ctx, addr, ies, ies_len, 0);
+
+		if (tb[NL80211_ATTR_MLO_LINK_ID]) {
+			assoc_link_id =
+				nla_get_u8(tb[NL80211_ATTR_MLO_LINK_ID]);
+			wpa_printf(MSG_DEBUG, "nl80211: STA assoc link ID %d",
+				   assoc_link_id);
+			if (tb[NL80211_ATTR_MLD_ADDR]) {
+				peer_addr = nla_data(tb[NL80211_ATTR_MLD_ADDR]);
+				link_addr = nla_data(tb[NL80211_ATTR_MAC]);
+				wpa_printf(MSG_DEBUG,
+					   "nl80211: STA MLD address " MACSTR,
+					   MAC2STR(peer_addr));
+			}
+		}
+
+		if (tb[NL80211_ATTR_IE]) {
+			req_ies = nla_data(tb[NL80211_ATTR_IE]);
+			req_ies_len = nla_len(tb[NL80211_ATTR_IE]);
+			wpa_hexdump(MSG_DEBUG, "nl80211: Assoc Req IEs",
+				    req_ies, req_ies_len);
+		}
+
+		if (tb[NL80211_ATTR_RESP_IE]) {
+			resp_ies = nla_data(tb[NL80211_ATTR_RESP_IE]);
+			resp_ies_len = nla_len(tb[NL80211_ATTR_RESP_IE]);
+			wpa_hexdump(MSG_DEBUG, "nl80211: Assoc Resp IEs",
+				    resp_ies, resp_ies_len);
+		}
+
+		drv_event_assoc(bss->ctx, peer_addr, req_ies, req_ies_len,
+				resp_ies, resp_ies_len, link_addr,
+				assoc_link_id, 0);
 		return;
 	}
 
@@ -2189,7 +2226,7 @@ static void nl80211_new_station_event(struct wpa_driver_nl80211_data *drv,
 		return;
 
 	os_memset(&data, 0, sizeof(data));
-	os_memcpy(data.ibss_rsn_start.peer, addr, ETH_ALEN);
+	os_memcpy(data.ibss_rsn_start.peer, peer_addr, ETH_ALEN);
 	wpa_supplicant_event(bss->ctx, EVENT_IBSS_RSN_START, &data);
 }
 
