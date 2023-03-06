@@ -1936,7 +1936,7 @@ static void hostapd_event_wds_sta_interface_status(struct hostapd_data *hapd,
 #ifdef CONFIG_OWE
 static int hostapd_notif_update_dh_ie(struct hostapd_data *hapd,
 				      const u8 *peer, const u8 *ie,
-				      size_t ie_len)
+				      size_t ie_len, const u8 *link_addr)
 {
 	u16 status;
 	struct sta_info *sta;
@@ -1986,15 +1986,31 @@ static int hostapd_notif_update_dh_ie(struct hostapd_data *hapd,
 	}
 	sta->flags &= ~(WLAN_STA_WPS | WLAN_STA_MAYBE_WPS | WLAN_STA_WPS2);
 
+#ifdef CONFIG_IEEE80211BE
+	if (link_addr) {
+		struct mld_info *info = &sta->mld_info;
+		u8 link_id = hapd->mld_link_id;
+
+		info->mld_sta = true;
+		sta->mld_assoc_link_id = link_id;;
+		os_memcpy(info->common_info.mld_addr, peer, ETH_ALEN);
+		info->links[link_id].valid = true;
+		os_memcpy(info->links[link_id].local_addr, hapd->own_addr,
+			  ETH_ALEN);
+		os_memcpy(info->links[link_id].peer_addr, link_addr, ETH_ALEN);
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	status = owe_process_rsn_ie(hapd, sta, elems.rsn_ie,
 				    elems.rsn_ie_len, elems.owe_dh,
-				    elems.owe_dh_len);
+				    elems.owe_dh_len, link_addr);
 	if (status != WLAN_STATUS_SUCCESS)
 		ap_free_sta(hapd, sta);
 
 	return 0;
 err:
-	hostapd_drv_update_dh_ie(hapd, peer, status, NULL, 0);
+	hostapd_drv_update_dh_ie(hapd, link_addr ? link_addr : peer, status,
+				 NULL, 0);
 	return 0;
 }
 #endif /* CONFIG_OWE */
@@ -2113,9 +2129,22 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 	case EVENT_UPDATE_DH:
 		if (!data)
 			return;
+#ifdef CONFIG_IEEE80211BE
+		if (data->update_dh.assoc_link_id != -1) {
+			hapd = hostapd_mld_get_link_bss(
+				hapd, data->update_dh.assoc_link_id);
+			if (!hapd) {
+				wpa_printf(MSG_ERROR,
+					   "MLD: Failed to get link BSS for EVENT_UPDATE_DH assoc_link_id=%d",
+					   data->update_dh.assoc_link_id);
+				return;
+			}
+		}
+#endif /* CONFIG_IEEE80211BE */
 		hostapd_notif_update_dh_ie(hapd, data->update_dh.peer,
 					   data->update_dh.ie,
-					   data->update_dh.ie_len);
+					   data->update_dh.ie_len,
+					   data->update_dh.link_addr);
 		break;
 #endif /* CONFIG_OWE */
 	case EVENT_DISASSOC:

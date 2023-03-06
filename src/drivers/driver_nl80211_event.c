@@ -1905,6 +1905,8 @@ static void mlme_event_dh_event(struct wpa_driver_nl80211_data *drv,
 				struct nlattr *tb[])
 {
 	union wpa_event_data data;
+	u8 *addr, *link_addr = NULL;
+	int assoc_link_id = -1;
 
 	if (!is_ap_interface(drv->nlmode))
 		return;
@@ -1912,9 +1914,37 @@ static void mlme_event_dh_event(struct wpa_driver_nl80211_data *drv,
 		return;
 
 	os_memset(&data, 0, sizeof(data));
-	data.update_dh.peer = nla_data(tb[NL80211_ATTR_MAC]);
+	addr = nla_data(tb[NL80211_ATTR_MAC]);
+
+	if (bss->links[0].link_id == NL80211_DRV_LINK_ID_NA &&
+	    (tb[NL80211_ATTR_MLO_LINK_ID] ||
+	     tb[NL80211_ATTR_MLD_ADDR])) {
+		wpa_printf(MSG_ERROR,
+			   "nl80211: Link info not expected for DH event for non-MLD AP");
+		return;
+	}
+
+	if (tb[NL80211_ATTR_MLO_LINK_ID]) {
+		assoc_link_id = nla_get_u8(tb[NL80211_ATTR_MLO_LINK_ID]);
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: STA assoc link ID %d in UPDATE_OWE_INFO event",
+			   assoc_link_id);
+
+		if (assoc_link_id != NL80211_DRV_LINK_ID_NA &&
+		    tb[NL80211_ATTR_MLD_ADDR]) {
+			link_addr = addr;
+			addr = nla_data(tb[NL80211_ATTR_MLD_ADDR]);
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: STA assoc link addr " MACSTR,
+				   MAC2STR(link_addr));
+		}
+	}
+
+	data.update_dh.peer = addr;
 	data.update_dh.ie = nla_data(tb[NL80211_ATTR_IE]);
 	data.update_dh.ie_len = nla_len(tb[NL80211_ATTR_IE]);
+	data.update_dh.assoc_link_id = assoc_link_id;
+	data.update_dh.link_addr = link_addr;
 
 	wpa_printf(MSG_DEBUG, "nl80211: DH event - peer " MACSTR,
 		   MAC2STR(data.update_dh.peer));
