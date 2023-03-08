@@ -1617,6 +1617,9 @@ int ecc_projective_add_point(ecc_point *P, ecc_point *Q, ecc_point *R,
 
 struct crypto_ec {
 	ecc_key *key;
+#ifdef CONFIG_DPP
+	ecc_point *g; /* Only used in DPP for now */
+#endif /* CONFIG_DPP */
 	mp_int a;
 	mp_int prime;
 	mp_int order;
@@ -1658,6 +1661,18 @@ struct crypto_ec * crypto_ec_init(int group)
 		LOG_WOLF_ERROR_FUNC(wc_ecc_set_curve, err);
 		goto done;
 	}
+#ifdef CONFIG_DPP
+	e->g = wc_ecc_new_point();
+	if (!e->g) {
+		LOG_WOLF_ERROR_FUNC_NULL(wc_ecc_new_point);
+		goto done;
+	}
+	err = wc_ecc_get_generator(e->g, wc_ecc_get_curve_idx(curve_id));
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_get_generator, err);
+		goto done;
+	}
+#endif /* CONFIG_DPP */
 	err = mp_init_multi(&e->a, &e->prime, &e->order, &e->b, NULL, NULL);
 	if (err != MP_OKAY) {
 		LOG_WOLF_ERROR_FUNC(mp_init_multi, err);
@@ -1708,6 +1723,9 @@ void crypto_ec_deinit(struct crypto_ec* e)
 	mp_clear(&e->order);
 	mp_clear(&e->prime);
 	mp_clear(&e->a);
+#ifdef CONFIG_DPP
+	wc_ecc_del_point(e->g);
+#endif /* CONFIG_DPP */
 	if (e->own_key)
 		ecc_key_deinit(e->key);
 	os_free(e);
@@ -1784,6 +1802,14 @@ void crypto_ec_point_deinit(struct crypto_ec_point *p, int clear)
 	}
 	wc_ecc_del_point(point);
 }
+
+
+#ifdef CONFIG_DPP
+const struct crypto_ec_point * crypto_ec_get_generator(struct crypto_ec *e)
+{
+	return (const struct crypto_ec_point *) e->g;
+}
+#endif /* CONFIG_DPP */
 
 
 int crypto_ec_point_x(struct crypto_ec *e, const struct crypto_ec_point *p,
