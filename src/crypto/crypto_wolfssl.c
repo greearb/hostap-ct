@@ -280,23 +280,43 @@ static int wolfssl_hmac_vector(int type, const u8 *key,
 {
 	Hmac hmac;
 	size_t i;
+	int err;
+	int ret = -1;
 
 	(void) mdlen;
 
 	if (TEST_FAIL())
 		return -1;
 
-	if (wc_HmacInit(&hmac, NULL, INVALID_DEVID) != 0 ||
-	    wc_HmacSetKey(&hmac, type, key, (word32) key_len) != 0)
+	err = wc_HmacInit(&hmac, NULL, INVALID_DEVID);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_HmacInit, err);
 		return -1;
-	for (i = 0; i < num_elem; i++)
-		if (wc_HmacUpdate(&hmac, addr[i], len[i]) != 0)
-			return -1;
-	if (wc_HmacFinal(&hmac, mac) != 0)
-		return -1;
-	wc_HmacFree(&hmac);
+	}
 
-	return 0;
+	err = wc_HmacSetKey(&hmac, type, key, (word32) key_len);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_HmacSetKey, err);
+		goto fail;
+	}
+
+	for (i = 0; i < num_elem; i++) {
+		err = wc_HmacUpdate(&hmac, addr[i], len[i]);
+		if (err != 0) {
+			LOG_WOLF_ERROR_FUNC(wc_HmacUpdate, err);
+			goto fail;
+		}
+	}
+	err = wc_HmacFinal(&hmac, mac);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_HmacFinal, err);
+		goto fail;
+	}
+
+	ret = 0;
+fail:
+	wc_HmacFree(&hmac);
+	return ret;
 }
 
 
