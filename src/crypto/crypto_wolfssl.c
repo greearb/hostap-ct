@@ -38,6 +38,24 @@
 #endif /* CONFIG_FIPS */
 
 
+#define LOG_WOLF_ERROR_VA(msg, ...) \
+	wpa_printf(MSG_ERROR, "wolfSSL: %s:%d " msg, \
+		   __func__, __LINE__, __VA_ARGS__)
+
+#define LOG_WOLF_ERROR(msg) \
+	LOG_WOLF_ERROR_VA("%s", (msg))
+
+#define LOG_WOLF_ERROR_FUNC(func, err) \
+	LOG_WOLF_ERROR_VA(#func " failed with err: %d %s", \
+			  (err), wc_GetErrorString(err))
+
+#define LOG_WOLF_ERROR_FUNC_NULL(func) \
+	LOG_WOLF_ERROR(#func " failed with NULL return")
+
+#define LOG_INVALID_PARAMETERS() \
+	LOG_WOLF_ERROR("invalid input parameters")
+
+
 #ifndef CONFIG_FIPS
 
 int md4_vector(size_t num_elem, const u8 *addr[], const size_t *len, u8 *mac)
