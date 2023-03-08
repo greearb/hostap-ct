@@ -1540,8 +1540,10 @@ struct crypto_ec * crypto_ec_init(int group)
 	}
 
 	e = os_zalloc(sizeof(*e));
-	if (!e)
+	if (!e) {
+		LOG_WOLF_ERROR_FUNC_NULL(os_zalloc);
 		return NULL;
+	}
 
 	if (wc_ecc_init(&e->key) != 0 ||
 	    wc_ecc_set_curve(&e->key, 0, curve_id) != 0 ||
@@ -1659,13 +1661,17 @@ int crypto_ec_point_to_bin(struct crypto_ec *e,
 			   const struct crypto_ec_point *point, u8 *x, u8 *y)
 {
 	ecc_point *p = (ecc_point *) point;
+	int err;
 
 	if (TEST_FAIL())
 		return -1;
 
 	if (!mp_isone(p->z)) {
-		if (ecc_map(p, &e->prime, e->mont_b) != MP_OKAY)
+		err = ecc_map(p, &e->prime, e->mont_b);
+		if (err != MP_OKAY) {
+			LOG_WOLF_ERROR_FUNC(ecc_map, err);
 			return -1;
+		}
 	}
 
 	if (x) {
@@ -1954,31 +1960,43 @@ struct wpabuf * crypto_ecdh_set_peerkey(struct crypto_ecdh *ecdh, int inc_y,
 	ecc_point *point = NULL;
 	size_t need_key_len = inc_y ? 2 * key_len : key_len;
 
-	if (len < need_key_len)
+	if (len < need_key_len) {
+		LOG_WOLF_ERROR("key len too small");
 		goto fail;
+	}
 	pubkey = wpabuf_alloc(1 + 2 * key_len);
-	if (!pubkey)
+	if (!pubkey) {
+		LOG_WOLF_ERROR_FUNC_NULL(wpabuf_alloc);
 		goto fail;
+	}
 	wpabuf_put_u8(pubkey, inc_y ? ECC_POINT_UNCOMP : ECC_POINT_COMP_EVEN);
 	wpabuf_put_data(pubkey, key, need_key_len);
 
 	point = wc_ecc_new_point();
-	if (!point)
+	if (!point) {
+		LOG_WOLF_ERROR_FUNC_NULL(wc_ecc_new_point);
 		goto fail;
+	}
 
 	ret = wc_ecc_import_point_der(wpabuf_mhead(pubkey), 1 + 2 * key_len,
 				      ecdh->ec->key.idx, point);
-	if (ret != MP_OKAY)
+	if (ret != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_import_point_der, ret);
 		goto fail;
+	}
 
 	secret = wpabuf_alloc(key_len);
-	if (!secret)
+	if (!secret) {
+		LOG_WOLF_ERROR_FUNC_NULL(wpabuf_alloc);
 		goto fail;
+	}
 
 	ret = wc_ecc_shared_secret_ex(&ecdh->ec->key, point,
 				      wpabuf_put(secret, key_len), &key_len);
-	if (ret != MP_OKAY)
+	if (ret != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_shared_secret_ex, ret);
 		goto fail;
+	}
 
 done:
 	wc_ecc_del_point(point);
@@ -2055,16 +2073,17 @@ struct crypto_ec_key * crypto_ec_key_parse_priv(const u8 *der, size_t der_len)
 {
 	struct crypto_ec_key *ret;
 	word32 idx = 0;
+	int err;
 
 	ret = crypto_ec_key_init();
 	if (!ret) {
-		wpa_printf(MSG_ERROR, "wolfSSL: crypto_ec_key_init failed");
+		LOG_WOLF_ERROR_FUNC_NULL(crypto_ec_key_init);
 		goto fail;
 	}
 
-	if (wc_EccPrivateKeyDecode(der, &idx, ret->eckey, (word32) der_len) !=
-	    0) {
-		wpa_printf(MSG_ERROR, "wolfSSL: wc_EccPrivateKeyDecode failed");
+	err = wc_EccPrivateKeyDecode(der, &idx, ret->eckey, (word32) der_len);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_EccPrivateKeyDecode, err);
 		goto fail;
 	}
 
@@ -2080,8 +2099,7 @@ int crypto_ec_key_group(struct crypto_ec_key *key)
 {
 
 	if (!key || !key->eckey || !key->eckey->dp) {
-		wpa_printf(MSG_ERROR, "wolfSSL: %s: invalid input parameters",
-			   __func__);
+		LOG_INVALID_PARAMETERS();
 		return -1;
 	}
 
@@ -2100,8 +2118,8 @@ int crypto_ec_key_group(struct crypto_ec_key *key)
 		return 30;
 	}
 
-	wpa_printf(MSG_ERROR, "wolfSSL: Unsupported curve (id=%d) in EC key",
-		   key->eckey->dp->id);
+	LOG_WOLF_ERROR_VA("Unsupported curve (id=%d) in EC key",
+			  key->eckey->dp->id);
 	return -1;
 }
 
@@ -2113,8 +2131,7 @@ struct wpabuf * crypto_ec_key_get_subject_public_key(struct crypto_ec_key *key)
 	struct wpabuf *ret = NULL;
 
 	if (!key || !key->eckey) {
-		wpa_printf(MSG_ERROR, "wolfSSL: %s: invalid input parameters",
-			   __func__);
+		LOG_INVALID_PARAMETERS();
 		goto fail;
 	}
 
@@ -2148,16 +2165,17 @@ struct crypto_ec_key * crypto_ec_key_parse_pub(const u8 *der, size_t der_len)
 {
 	word32 idx = 0;
 	struct crypto_ec_key *ret = NULL;
+	int err;
 
 	ret = crypto_ec_key_init();
 	if (!ret) {
-		wpa_printf(MSG_ERROR, "wolfSSL: crypto_ec_key_init failed");
+		LOG_WOLF_ERROR_FUNC_NULL(crypto_ec_key_init);
 		goto fail;
 	}
 
-	if (wc_EccPublicKeyDecode(der, &idx, ret->eckey, (word32) der_len) != 0)
-	{
-		wpa_printf(MSG_ERROR, "wolfSSL: wc_EccPublicKeyDecode failed");
+	err = wc_EccPublicKeyDecode(der, &idx, ret->eckey, (word32) der_len);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_EccPublicKeyDecode, err);
 		goto fail;
 	}
 
@@ -2177,8 +2195,7 @@ struct wpabuf * crypto_ec_key_sign(struct crypto_ec_key *key, const u8 *data,
 	struct wpabuf *ret = NULL;
 
 	if (!key || !key->eckey || !data || len == 0) {
-		wpa_printf(MSG_ERROR, "wolfSSL: %s: invalid input parameters",
-			   __func__);
+		LOG_INVALID_PARAMETERS();
 		goto fail;
 	}
 
@@ -2203,7 +2220,7 @@ struct wpabuf * crypto_ec_key_sign(struct crypto_ec_key *key, const u8 *data,
 
 	der_len = wc_ecc_sig_size(key->eckey);
 	if (der_len <= 0) {
-		wpa_printf(MSG_ERROR, "wolfSSL: wc_ecc_sig_size failed");
+		LOG_WOLF_ERROR_FUNC(wc_ecc_sig_size, der_len);
 		goto fail;
 	}
 
@@ -2235,20 +2252,18 @@ int crypto_ec_key_verify_signature(struct crypto_ec_key *key, const u8 *data,
 	int res = 0;
 
 	if (!key || !key->eckey || !data || len == 0 || !sig || sig_len == 0) {
-		wpa_printf(MSG_ERROR, "wolfSSL: %s: invalid input parameters",
-			   __func__);
+		LOG_INVALID_PARAMETERS();
 		return -1;
 	}
 
 	if (wc_ecc_verify_hash(sig, sig_len, data, len, &res, key->eckey) != 0)
 	{
-		wpa_printf(MSG_ERROR, "wolfSSL: wc_ecc_verify_hash failed");
+		LOG_WOLF_ERROR("wc_ecc_verify_hash failed");
 		return -1;
 	}
 
 	if (res != 1)
-		wpa_printf(MSG_DEBUG,
-			   "wolfSSL: crypto_ec_key_verify_signature failed");
+		LOG_WOLF_ERROR("crypto_ec_key_verify_signature failed");
 
 	return res;
 }
