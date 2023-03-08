@@ -10,6 +10,7 @@
 
 #include "common.h"
 #include "crypto.h"
+#include "tls/asn1.h"
 
 /* wolfSSL headers */
 #include <wolfssl/options.h> /* options.h needs to be included first */
@@ -2568,6 +2569,978 @@ int crypto_ec_key_verify_signature(struct crypto_ec_key *key, const u8 *data,
 }
 
 #endif /* CONFIG_ECC */
+
+#ifdef CONFIG_DPP
+
+struct wpabuf * crypto_ec_key_get_ecprivate_key(struct crypto_ec_key *key,
+						bool include_pub)
+{
+	int len;
+	int err;
+	struct wpabuf *ret = NULL;
+
+	if (!key || !key->eckey) {
+		LOG_INVALID_PARAMETERS();
+		return NULL;
+	}
+
+#ifdef WOLFSSL_OLD_FIPS
+	if (key->eckey->type != ECC_PRIVATEKEY &&
+	    key->eckey->type != ECC_PRIVATEKEY_ONLY) {
+		LOG_INVALID_PARAMETERS();
+		return NULL;
+	}
+#endif /* WOLFSSL_OLD_FIPS */
+
+	len = err = wc_EccKeyDerSize(key->eckey, include_pub);
+	if (err == ECC_PRIVATEONLY_E && include_pub) {
+		if (crypto_ec_key_gen_public_key(key) != 0) {
+			LOG_WOLF_ERROR_FUNC(crypto_ec_key_gen_public_key, -1);
+			return NULL;
+		}
+		len = err = wc_EccKeyDerSize(key->eckey, include_pub);
+	}
+	if (err <= 0) {
+		/* Exception for BAD_FUNC_ARG because higher levels blindly call
+		 * this function to determine if this is a private key or not.
+		 * BAD_FUNC_ARG most probably means that key->eckey is a public
+		 * key not private. */
+		if (err != BAD_FUNC_ARG)
+			LOG_WOLF_ERROR_FUNC(wc_EccKeyDerSize, err);
+		return NULL;
+	}
+
+	ret = wpabuf_alloc(len);
+	if (!ret) {
+		LOG_WOLF_ERROR_FUNC_NULL(wpabuf_alloc);
+		return NULL;
+	}
+
+	if (include_pub)
+		err = wc_EccKeyToDer(key->eckey, wpabuf_put(ret, len), len);
+	else
+		err = wc_EccPrivateKeyToDer(key->eckey, wpabuf_put(ret, len),
+					    len);
+
+	if (err != len) {
+		LOG_WOLF_ERROR_VA("%s failed with err: %d", include_pub ?
+				  "wc_EccKeyToDer" : "wc_EccPrivateKeyToDer",
+				  err);
+		wpabuf_free(ret);
+		ret = NULL;
+	}
+
+	return ret;
+}
+
+
+struct wpabuf * crypto_ec_key_get_pubkey_point(struct crypto_ec_key *key,
+					       int prefix)
+{
+	int err;
+	word32 len = 0;
+	struct wpabuf *ret = NULL;
+
+	if (!key || !key->eckey) {
+		LOG_INVALID_PARAMETERS();
+		return NULL;
+	}
+
+	err = wc_ecc_export_x963(key->eckey, NULL, &len);
+	if (err != LENGTH_ONLY_E) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_export_x963, err);
+		goto fail;
+	}
+
+	ret = wpabuf_alloc(len);
+	if (!ret) {
+		LOG_WOLF_ERROR_FUNC_NULL(wpabuf_alloc);
+		goto fail;
+	}
+
+	err = wc_ecc_export_x963(key->eckey, wpabuf_mhead(ret), &len);
+	if (err == ECC_PRIVATEONLY_E) {
+		if (crypto_ec_key_gen_public_key(key) != 0) {
+			LOG_WOLF_ERROR_FUNC(crypto_ec_key_gen_public_key, -1);
+			goto fail;
+		}
+		err = wc_ecc_export_x963(key->eckey, wpabuf_mhead(ret), &len);
+	}
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_export_x963, err);
+		goto fail;
+	}
+
+	if (!prefix)
+		os_memmove(wpabuf_mhead(ret), wpabuf_mhead_u8(ret) + 1,
+			   (size_t)--len);
+	wpabuf_put(ret, len);
+
+	return ret;
+
+fail:
+	wpabuf_free(ret);
+	return NULL;
+}
+
+
+struct crypto_ec_key * crypto_ec_key_set_pub(int group, const u8 *x,
+					     const u8 *y, size_t len)
+{
+	struct crypto_ec_key *ret = NULL;
+	int curve_id = crypto_ec_group_2_id(group);
+	int err;
+
+	if (!x || !y || len == 0 || curve_id == ECC_CURVE_INVALID ||
+	    wc_ecc_get_curve_size_from_id(curve_id) != (int) len) {
+		LOG_INVALID_PARAMETERS();
+		return NULL;
+	}
+
+	ret = crypto_ec_key_init();
+	if (!ret) {
+		LOG_WOLF_ERROR_FUNC_NULL(crypto_ec_key_init);
+		return NULL;
+	}
+
+	/* Cast necessary for FIPS API */
+	err = wc_ecc_import_unsigned(ret->eckey, (u8 *) x, (u8 *) y, NULL,
+				     curve_id);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_import_unsigned, err);
+		crypto_ec_key_deinit(ret);
+		return NULL;
+	}
+
+	return ret;
+}
+
+
+int crypto_ec_key_cmp(struct crypto_ec_key *key1, struct crypto_ec_key *key2)
+{
+	int ret;
+	struct wpabuf *key1_buf = crypto_ec_key_get_subject_public_key(key1);
+	struct wpabuf *key2_buf = crypto_ec_key_get_subject_public_key(key2);
+
+	if ((key1 && !key1_buf) || (key2 && !key2_buf)) {
+		LOG_WOLF_ERROR("crypto_ec_key_get_subject_public_key failed");
+		return -1;
+	}
+
+	ret = wpabuf_cmp(key1_buf, key2_buf);
+	if (ret != 0)
+		ret = -1; /* Default to -1 for different keys */
+
+	wpabuf_clear_free(key1_buf);
+	wpabuf_clear_free(key2_buf);
+	return ret;
+}
+
+
+/* wolfSSL doesn't have a pretty print function for keys so just print out the
+ * PEM of the private key. */
+void crypto_ec_key_debug_print(const struct crypto_ec_key *key,
+			       const char *title)
+{
+	struct wpabuf * key_buf;
+	struct wpabuf * out = NULL;
+	int err;
+	int pem_len;
+
+	if (!key || !key->eckey) {
+		LOG_INVALID_PARAMETERS();
+		return;
+	}
+
+	if (key->eckey->type == ECC_PUBLICKEY)
+		key_buf = crypto_ec_key_get_subject_public_key(
+			(struct crypto_ec_key *) key);
+	else
+		key_buf = crypto_ec_key_get_ecprivate_key(
+			(struct crypto_ec_key *) key, 1);
+
+	if (!key_buf) {
+		LOG_WOLF_ERROR_VA("%s has returned NULL",
+				  key->eckey->type == ECC_PUBLICKEY ?
+				  "crypto_ec_key_get_subject_public_key" :
+				  "crypto_ec_key_get_ecprivate_key");
+		goto fail;
+	}
+
+	if (!title)
+		title = "";
+
+	err = wc_DerToPem(wpabuf_head(key_buf), wpabuf_len(key_buf), NULL, 0,
+			  ECC_TYPE);
+	if (err <= 0) {
+		LOG_WOLF_ERROR_FUNC(wc_DerToPem, err);
+		goto fail;
+	}
+	pem_len = err;
+
+	out = wpabuf_alloc(pem_len + 1);
+	if (!out) {
+		LOG_WOLF_ERROR_FUNC_NULL(wc_DerToPem);
+		goto fail;
+	}
+
+	err = wc_DerToPem(wpabuf_head(key_buf), wpabuf_len(key_buf),
+			  wpabuf_mhead(out), pem_len, ECC_TYPE);
+	if (err <= 0) {
+		LOG_WOLF_ERROR_FUNC(wc_DerToPem, err);
+		goto fail;
+	}
+
+	wpabuf_mhead_u8(out)[err] = '\0';
+	wpabuf_put(out, err + 1);
+	wpa_printf(MSG_DEBUG, "%s:\n%s", title,
+		   (const char *) wpabuf_head(out));
+
+fail:
+	wpabuf_clear_free(key_buf);
+	wpabuf_clear_free(out);
+}
+
+
+void crypto_ec_point_debug_print(const struct crypto_ec *e,
+				 const struct crypto_ec_point *p,
+				 const char *title)
+{
+	u8 x[ECC_MAXSIZE];
+	u8 y[ECC_MAXSIZE];
+	int coord_size;
+	int err;
+
+	if (!p || !e) {
+		LOG_INVALID_PARAMETERS();
+		return;
+	}
+
+	coord_size = e->key->dp->size;
+
+	if (!title)
+		title = "";
+
+	err = crypto_ec_point_to_bin((struct crypto_ec *)e, p, x, y);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(crypto_ec_point_to_bin, err);
+		return;
+	}
+
+	wpa_hexdump(MSG_DEBUG, title, x, coord_size);
+	wpa_hexdump(MSG_DEBUG, title, y, coord_size);
+}
+
+
+struct crypto_ec_key * crypto_ec_key_gen(int group)
+{
+	int curve_id = crypto_ec_group_2_id(group);
+	int err;
+	struct crypto_ec_key * ret = NULL;
+
+	if (curve_id == ECC_CURVE_INVALID) {
+		LOG_INVALID_PARAMETERS();
+		return NULL;
+	}
+
+	ret = crypto_ec_key_init();
+	if (!ret) {
+		LOG_WOLF_ERROR_FUNC_NULL(crypto_ec_key_init);
+		return NULL;
+	}
+
+	if (!crypto_ec_key_init_rng(ret)) {
+		LOG_WOLF_ERROR_FUNC_NULL(crypto_ec_key_init_rng);
+		goto fail;
+	}
+
+	err = wc_ecc_make_key_ex(ret->rng, 0, ret->eckey, curve_id);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_make_key_ex, err);
+		goto fail;
+	}
+
+	return ret;
+fail:
+	crypto_ec_key_deinit(ret);
+	return NULL;
+}
+
+
+int crypto_ec_key_verify_signature_r_s(struct crypto_ec_key *key,
+				       const u8 *data, size_t len,
+				       const u8 *r, size_t r_len,
+				       const u8 *s, size_t s_len)
+{
+	int err;
+	u8 sig[ECC_MAX_SIG_SIZE];
+	word32 sig_len = ECC_MAX_SIG_SIZE;
+
+	if (!key || !key->eckey || !data || !len || !r || !r_len ||
+	    !s || !s_len) {
+		LOG_INVALID_PARAMETERS();
+		return -1;
+	}
+
+	err = wc_ecc_rs_raw_to_sig(r, r_len, s, s_len, sig, &sig_len);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_rs_raw_to_sig, err);
+		return -1;
+	}
+
+	return crypto_ec_key_verify_signature(key, data, len, sig, sig_len);
+}
+
+
+struct crypto_ec_point * crypto_ec_key_get_public_key(struct crypto_ec_key *key)
+{
+	ecc_point *point = NULL;
+	int err;
+	u8 *der = NULL;
+	word32 der_len = 0;
+
+	if (!key || !key->eckey || !key->eckey->dp) {
+		LOG_INVALID_PARAMETERS();
+		goto fail;
+	}
+
+	err = wc_ecc_export_x963(key->eckey, NULL, &der_len);
+	if (err != LENGTH_ONLY_E) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_export_x963, err);
+		goto fail;
+	}
+
+	der = os_malloc(der_len);
+	if (!der) {
+		LOG_WOLF_ERROR_FUNC_NULL(os_malloc);
+		goto fail;
+	}
+
+	err = wc_ecc_export_x963(key->eckey, der, &der_len);
+	if (err == ECC_PRIVATEONLY_E) {
+		if (crypto_ec_key_gen_public_key(key) != 0) {
+			LOG_WOLF_ERROR_FUNC(crypto_ec_key_gen_public_key, -1);
+			goto fail;
+		}
+		err = wc_ecc_export_x963(key->eckey, der, &der_len);
+	}
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_export_x963, err);
+		goto fail;
+	}
+
+	point = wc_ecc_new_point();
+	if (!point) {
+		LOG_WOLF_ERROR_FUNC_NULL(wc_ecc_new_point);
+		goto fail;
+	}
+
+	err = wc_ecc_import_point_der(der, der_len, key->eckey->idx, point);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_import_point_der, err);
+		goto fail;
+	}
+
+	os_free(der);
+	return (struct crypto_ec_point *) point;
+
+fail:
+	os_free(der);
+	if (point)
+		wc_ecc_del_point(point);
+	return NULL;
+}
+
+
+struct crypto_bignum * crypto_ec_key_get_private_key(struct crypto_ec_key *key)
+{
+	u8 priv[ECC_MAXSIZE];
+	word32 priv_len = ECC_MAXSIZE;
+#ifdef WOLFSSL_OLD_FIPS
+	/* Needed to be compliant with the old API */
+	u8 qx[ECC_MAXSIZE];
+	word32 qx_len = ECC_MAXSIZE;
+	u8 qy[ECC_MAXSIZE];
+	word32 qy_len = ECC_MAXSIZE;
+#endif /* WOLFSSL_OLD_FIPS */
+	struct crypto_bignum *ret = NULL;
+	int err;
+
+	if (!key || !key->eckey) {
+		LOG_INVALID_PARAMETERS();
+		return NULL;
+	}
+
+#ifndef WOLFSSL_OLD_FIPS
+	err = wc_ecc_export_private_raw(key->eckey, NULL, NULL, NULL, NULL,
+					priv, &priv_len);
+#else /* WOLFSSL_OLD_FIPS */
+	err = wc_ecc_export_private_raw(key->eckey, qx, &qx_len, qy, &qy_len,
+					priv, &priv_len);
+#endif /* WOLFSSL_OLD_FIPS */
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_export_private_raw, err);
+		return NULL;
+	}
+
+	ret = crypto_bignum_init_set(priv, priv_len);
+	forced_memzero(priv, priv_len);
+	return ret;
+}
+
+
+struct wpabuf * crypto_ec_key_sign_r_s(struct crypto_ec_key *key,
+				       const u8 *data, size_t len)
+{
+	int err;
+	u8 success = 0;
+	mp_int r;
+	mp_int s;
+	u8 rs_init = 0;
+	int sz;
+	struct wpabuf * ret = NULL;
+
+	if (!key || !key->eckey || !key->eckey->dp || !data || !len) {
+		LOG_INVALID_PARAMETERS();
+		return NULL;
+	}
+
+	sz = key->eckey->dp->size;
+
+	if (!crypto_ec_key_init_rng(key)) {
+		LOG_WOLF_ERROR_FUNC_NULL(crypto_ec_key_init_rng);
+		goto fail;
+	}
+
+	err = mp_init_multi(&r, &s, NULL, NULL, NULL, NULL);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(mp_init_multi, err);
+		goto fail;
+	}
+	rs_init = 1;
+
+	err = wc_ecc_sign_hash_ex(data, len, key->rng, key->eckey, &r, &s);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_sign_hash_ex, err);
+		goto fail;
+	}
+
+	if (mp_unsigned_bin_size(&r) > sz || mp_unsigned_bin_size(&s) > sz) {
+		LOG_WOLF_ERROR_VA("Unexpected size of r or s (%d %d %d)", sz,
+				  mp_unsigned_bin_size(&r),
+				  mp_unsigned_bin_size(&s));
+		goto fail;
+	}
+
+	ret = wpabuf_alloc(2 * sz);
+	if (!ret) {
+		LOG_WOLF_ERROR_FUNC_NULL(wpabuf_alloc);
+		goto fail;
+	}
+
+	err = mp_to_unsigned_bin_len(&r, wpabuf_put(ret, sz), sz);
+	if (err == MP_OKAY)
+		err = mp_to_unsigned_bin_len(&s, wpabuf_put(ret, sz), sz);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_sign_hash_ex, err);
+		goto fail;
+	}
+
+	success = 1;
+fail:
+	if (rs_init) {
+		mp_free(&r);
+		mp_free(&s);
+	}
+	if (!success) {
+		wpabuf_free(ret);
+		ret = NULL;
+	}
+
+	return ret;
+}
+
+
+struct crypto_ec_key *
+crypto_ec_key_set_pub_point(struct crypto_ec *e,
+			    const struct crypto_ec_point *pub)
+{
+	struct crypto_ec_key  *ret = NULL;
+	int err;
+	byte *buf = NULL;
+	word32 buf_len = 0;
+
+	if (!e || !pub) {
+		LOG_INVALID_PARAMETERS();
+		return NULL;
+	}
+
+	/* Export to DER to not mess with wolfSSL internals */
+	err = wc_ecc_export_point_der(wc_ecc_get_curve_idx(e->curve_id),
+				      (ecc_point *) pub, NULL, &buf_len);
+	if (err != LENGTH_ONLY_E || !buf_len) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_export_point_der, err);
+		goto fail;
+	}
+
+	buf = os_malloc(buf_len);
+	if (!buf) {
+		LOG_WOLF_ERROR_FUNC_NULL(os_malloc);
+		goto fail;
+	}
+
+	err = wc_ecc_export_point_der(wc_ecc_get_curve_idx(e->curve_id),
+			(ecc_point *) pub, buf, &buf_len);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_export_point_der, err);
+		goto fail;
+	}
+
+	ret = crypto_ec_key_init();
+	if (!ret) {
+		LOG_WOLF_ERROR_FUNC_NULL(crypto_ec_key_init);
+		goto fail;
+	}
+
+	err = wc_ecc_import_x963_ex(buf, buf_len, ret->eckey, e->curve_id);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_import_x963_ex, err);
+		goto fail;
+	}
+
+	os_free(buf);
+	return ret;
+
+fail:
+	os_free(buf);
+	crypto_ec_key_deinit(ret);
+	return NULL;
+}
+
+
+struct wpabuf * crypto_pkcs7_get_certificates(const struct wpabuf *pkcs7)
+{
+	PKCS7 *p7 = NULL;
+	struct wpabuf *ret = NULL;
+	int err = 0;
+	int total_sz = 0;
+	int i;
+
+	if (!pkcs7) {
+		LOG_INVALID_PARAMETERS();
+		return NULL;
+	}
+
+	p7 = wc_PKCS7_New(NULL, INVALID_DEVID);
+	if (!p7) {
+		LOG_WOLF_ERROR_FUNC_NULL(wc_PKCS7_New);
+		return NULL;
+	}
+
+	err = wc_PKCS7_VerifySignedData(p7, (byte *) wpabuf_head(pkcs7),
+					wpabuf_len(pkcs7));
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_PKCS7_VerifySignedData, err);
+		wc_PKCS7_Free(p7);
+		goto fail;
+	}
+
+	/* Need to access p7 members directly */
+	for (i = 0; i < MAX_PKCS7_CERTS; i++) {
+		if (p7->certSz[i] == 0)
+			continue;
+		err = wc_DerToPem(p7->cert[i], p7->certSz[i], NULL, 0,
+				  CERT_TYPE);
+		if (err > 0) {
+			total_sz += err;
+		} else {
+			LOG_WOLF_ERROR_FUNC(wc_DerToPem, err);
+			goto fail;
+		}
+	}
+
+	if (total_sz == 0) {
+		LOG_WOLF_ERROR("No certificates found in PKCS7 input");
+		goto fail;
+	}
+
+	ret = wpabuf_alloc(total_sz);
+	if (!ret) {
+		LOG_WOLF_ERROR_FUNC_NULL(wpabuf_alloc);
+		goto fail;
+	}
+
+	/* Need to access p7 members directly */
+	for (i = 0; i < MAX_PKCS7_CERTS; i++) {
+		if (p7->certSz[i] == 0)
+			continue;
+		/* Not using wpabuf_put() here so that wpabuf_overflow() isn't
+		 * called in case of a size mismatch. wc_DerToPem() checks if
+		 * the output is large enough internally. */
+		err = wc_DerToPem(p7->cert[i], p7->certSz[i],
+				  wpabuf_mhead_u8(ret) + wpabuf_len(ret),
+				  wpabuf_tailroom(ret),
+				  CERT_TYPE);
+		if (err > 0) {
+			wpabuf_put(ret, err);
+		} else {
+			LOG_WOLF_ERROR_FUNC(wc_DerToPem, err);
+			wpabuf_free(ret);
+			ret = NULL;
+			goto fail;
+		}
+	}
+
+fail:
+	if (p7)
+		wc_PKCS7_Free(p7);
+	return ret;
+}
+
+
+/* BEGIN Certificate Signing Request (CSR) APIs */
+
+enum cert_type {
+	cert_type_none = 0,
+	cert_type_decoded_cert,
+	cert_type_cert,
+};
+
+struct crypto_csr {
+	union {
+		/* For parsed csr should be read-only for higher levels */
+		DecodedCert dc;
+		Cert c; /* For generating a csr */
+	} req;
+	enum cert_type type;
+	struct crypto_ec_key *pubkey;
+};
+
+
+/* Helper function to make sure that the correct type is initialized */
+static void crypto_csr_init_type(struct crypto_csr *csr, enum cert_type type,
+				 const byte *source, word32 in_sz)
+{
+	int err;
+
+	if (csr->type == type)
+		return; /* Already correct type */
+
+	switch (csr->type) {
+	case cert_type_decoded_cert:
+		wc_FreeDecodedCert(&csr->req.dc);
+		break;
+	case cert_type_cert:
+#ifdef WOLFSSL_CERT_GEN_CACHE
+		wc_SetCert_Free(&csr->req.c);
+#endif /* WOLFSSL_CERT_GEN_CACHE */
+		break;
+	case cert_type_none:
+		break;
+	}
+
+	switch (type) {
+	case cert_type_decoded_cert:
+		wc_InitDecodedCert(&csr->req.dc, source, in_sz, NULL);
+		break;
+	case cert_type_cert:
+		err = wc_InitCert(&csr->req.c);
+		if (err != 0)
+			LOG_WOLF_ERROR_FUNC(wc_InitCert, err);
+		break;
+	case cert_type_none:
+		break;
+	}
+
+	csr->type = type;
+}
+
+
+struct crypto_csr * crypto_csr_init(void)
+{
+	struct crypto_csr *ret = os_malloc(sizeof(struct crypto_csr));
+
+	if (!ret) {
+		LOG_WOLF_ERROR_FUNC_NULL(os_malloc);
+		return NULL;
+	}
+
+	ret->type = cert_type_none;
+	crypto_csr_init_type(ret, cert_type_cert, NULL, 0);
+	ret->pubkey = NULL;
+
+	return ret;
+}
+
+
+void crypto_csr_deinit(struct crypto_csr *csr)
+{
+	if (csr) {
+		crypto_csr_init_type(csr, cert_type_none, NULL, 0);
+		crypto_ec_key_deinit(csr->pubkey);
+		os_free(csr);
+	}
+}
+
+
+int crypto_csr_set_ec_public_key(struct crypto_csr *csr,
+				 struct crypto_ec_key *key)
+{
+	struct wpabuf *der = NULL;
+
+	if (!csr || !key || !key->eckey) {
+		LOG_INVALID_PARAMETERS();
+		return -1;
+	}
+
+	if (csr->pubkey) {
+		crypto_ec_key_deinit(csr->pubkey);
+		csr->pubkey = NULL;
+	}
+
+	/* Create copy of key to mitigate use-after-free errors */
+	der = crypto_ec_key_get_subject_public_key(key);
+	if (!der) {
+		LOG_WOLF_ERROR_FUNC_NULL(crypto_ec_key_get_subject_public_key);
+		return -1;
+	}
+
+	csr->pubkey = crypto_ec_key_parse_pub(wpabuf_head(der),
+					      wpabuf_len(der));
+	wpabuf_free(der);
+	if (!csr->pubkey) {
+		LOG_WOLF_ERROR_FUNC_NULL(crypto_ec_key_parse_pub);
+		return -1;
+	}
+
+	return 0;
+}
+
+
+int crypto_csr_set_name(struct crypto_csr *csr, enum crypto_csr_name type,
+			const char *name)
+{
+	int name_len;
+	char *dest;
+
+	if (!csr || !name) {
+		LOG_INVALID_PARAMETERS();
+		return -1;
+	}
+
+	if (csr->type != cert_type_cert) {
+		LOG_WOLF_ERROR_VA("csr is incorrect type (%d)", csr->type);
+		return -1;
+	}
+
+	name_len = os_strlen(name);
+	if (name_len >= CTC_NAME_SIZE) {
+		LOG_WOLF_ERROR("name input too long");
+		return -1;
+	}
+
+	switch (type) {
+	case CSR_NAME_CN:
+		dest = csr->req.c.subject.commonName;
+		break;
+	case CSR_NAME_SN:
+		dest = csr->req.c.subject.sur;
+		break;
+	case CSR_NAME_C:
+		dest = csr->req.c.subject.country;
+		break;
+	case CSR_NAME_O:
+		dest = csr->req.c.subject.org;
+		break;
+	case CSR_NAME_OU:
+		dest = csr->req.c.subject.unit;
+		break;
+	default:
+		LOG_INVALID_PARAMETERS();
+		return -1;
+	}
+
+	os_memcpy(dest, name, name_len);
+	dest[name_len] = '\0';
+
+	return 0;
+}
+
+
+int crypto_csr_set_attribute(struct crypto_csr *csr, enum crypto_csr_attr attr,
+			     int attr_type, const u8 *value, size_t len)
+{
+	if (!csr || attr_type != ASN1_TAG_UTF8STRING || !value ||
+	    len >= CTC_NAME_SIZE) {
+		LOG_INVALID_PARAMETERS();
+		return -1;
+	}
+
+	if (csr->type != cert_type_cert) {
+		LOG_WOLF_ERROR_VA("csr is incorrect type (%d)", csr->type);
+		return -1;
+	}
+
+	switch (attr) {
+	case CSR_ATTR_CHALLENGE_PASSWORD:
+		os_memcpy(csr->req.c.challengePw, value, len);
+		csr->req.c.challengePw[len] = '\0';
+		break;
+	default:
+		return -1;
+	}
+
+	return 0;
+}
+
+
+const u8 * crypto_csr_get_attribute(struct crypto_csr *csr,
+				    enum crypto_csr_attr attr,
+				    size_t *len, int *type)
+{
+	if (!csr || !len || !type) {
+		LOG_INVALID_PARAMETERS();
+		return NULL;;
+	}
+
+	switch (attr) {
+	case CSR_ATTR_CHALLENGE_PASSWORD:
+		switch (csr->type) {
+		case cert_type_decoded_cert:
+			*type = ASN1_TAG_UTF8STRING;
+			*len = csr->req.dc.cPwdLen;
+			return (const u8 *) csr->req.dc.cPwd;
+		case cert_type_cert:
+			*type = ASN1_TAG_UTF8STRING;
+			*len = os_strlen(csr->req.c.challengePw);
+			return (const u8 *) csr->req.c.challengePw;
+		case cert_type_none:
+			return NULL;
+		}
+		break;
+	}
+	return NULL;
+}
+
+
+struct wpabuf * crypto_csr_sign(struct crypto_csr *csr,
+				struct crypto_ec_key *key,
+				enum crypto_hash_alg algo)
+{
+	int err;
+	int len;
+	u8 *buf = NULL;
+	int buf_len;
+	struct wpabuf *ret = NULL;
+
+	if (!csr || !key || !key->eckey) {
+		LOG_INVALID_PARAMETERS();
+		return NULL;
+	}
+
+	if (csr->type != cert_type_cert) {
+		LOG_WOLF_ERROR_VA("csr is incorrect type (%d)", csr->type);
+		return NULL;
+	}
+
+	if (!crypto_ec_key_init_rng(key)) {
+		LOG_WOLF_ERROR_FUNC_NULL(crypto_ec_key_init_rng);
+		return NULL;
+	}
+
+	switch (algo) {
+	case CRYPTO_HASH_ALG_SHA256:
+		csr->req.c.sigType = CTC_SHA256wECDSA;
+		break;
+	case CRYPTO_HASH_ALG_SHA384:
+		csr->req.c.sigType = CTC_SHA384wECDSA;
+		break;
+	case CRYPTO_HASH_ALG_SHA512:
+		csr->req.c.sigType = CTC_SHA512wECDSA;
+		break;
+	default:
+		LOG_INVALID_PARAMETERS();
+		return NULL;
+	}
+
+	/* Pass in large value that is guaranteed to be larger than the
+	 * necessary buffer */
+	err = wc_MakeCertReq(&csr->req.c, NULL, 100000, NULL,
+			     csr->pubkey->eckey);
+	if (err <= 0) {
+		LOG_WOLF_ERROR_FUNC(wc_MakeCertReq, err);
+		goto fail;
+	}
+	len = err;
+
+	buf_len = len + MAX_SEQ_SZ * 2 + MAX_ENCODED_SIG_SZ;
+	buf = os_malloc(buf_len);
+	if (!buf) {
+		LOG_WOLF_ERROR_FUNC_NULL(os_malloc);
+		goto fail;
+	}
+
+	err = wc_MakeCertReq(&csr->req.c, buf, buf_len, NULL,
+			     csr->pubkey->eckey);
+	if (err <= 0) {
+		LOG_WOLF_ERROR_FUNC(wc_MakeCertReq, err);
+		goto fail;
+	}
+	len = err;
+
+	err = wc_SignCert(len, csr->req.c.sigType, buf, buf_len, NULL,
+			  key->eckey, key->rng);
+	if (err <= 0) {
+		LOG_WOLF_ERROR_FUNC(wc_SignCert, err);
+		goto fail;
+	}
+	len = err;
+
+	ret = wpabuf_alloc_copy(buf, len);
+	if (!ret) {
+		LOG_WOLF_ERROR_FUNC_NULL(wpabuf_alloc_copy);
+		goto fail;
+	}
+
+fail:
+	os_free(buf);
+	return ret;
+}
+
+
+struct crypto_csr * crypto_csr_verify(const struct wpabuf *req)
+{
+	struct crypto_csr *csr = NULL;
+	int err;
+
+	if (!req) {
+		LOG_INVALID_PARAMETERS();
+		return NULL;
+	}
+
+	csr = crypto_csr_init();
+	if (!csr) {
+		LOG_WOLF_ERROR_FUNC_NULL(crypto_csr_init);
+		goto fail;
+	}
+
+	crypto_csr_init_type(csr, cert_type_decoded_cert,
+			     wpabuf_head(req), wpabuf_len(req));
+	err = wc_ParseCert(&csr->req.dc, CERTREQ_TYPE, VERIFY, NULL);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_ParseCert, err);
+		goto fail;
+	}
+
+	return csr;
+fail:
+	crypto_csr_deinit(csr);
+	return NULL;
+}
+
+/* END Certificate Signing Request (CSR) APIs */
+
+#endif /* CONFIG_DPP */
 
 
 void crypto_unload(void)
