@@ -4371,6 +4371,11 @@ enum qca_wlan_vendor_attr_ll_stats_results {
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_TIM_BEACON_ERR = 89,
 
+	/* Signed 32 bit value. It represents the noise floor calibration value.
+	 * Possible values are -120~-50 dBm.
+	 */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_NF_CAL_VAL = 90,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_MAX =
