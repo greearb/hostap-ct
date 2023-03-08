@@ -1642,9 +1642,13 @@ void crypto_ec_point_deinit(struct crypto_ec_point *p, int clear)
 		return;
 
 	if (clear) {
+#ifdef CONFIG_FIPS
 		mp_forcezero(point->x);
 		mp_forcezero(point->y);
 		mp_forcezero(point->z);
+#else /* CONFIG_FIPS */
+		wc_ecc_forcezero_point(point);
+#endif /* CONFIG_FIPS */
 	}
 	wc_ecc_del_point(point);
 }
