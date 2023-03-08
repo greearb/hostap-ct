@@ -1667,11 +1667,34 @@ struct crypto_ec * crypto_ec_init(int group)
 		LOG_WOLF_ERROR_FUNC_NULL(wc_ecc_new_point);
 		goto done;
 	}
+#ifdef CONFIG_FIPS
+	/* Setup generator manually in FIPS mode */
+	if (!e->key->dp) {
+		LOG_WOLF_ERROR_FUNC_NULL(e->key->dp);
+		goto done;
+	}
+	err = mp_read_radix(e->g->x, e->key->dp->Gx, MP_RADIX_HEX);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(mp_read_radix, err);
+		goto done;
+	}
+	err = mp_read_radix(e->g->y, e->key->dp->Gy, MP_RADIX_HEX);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(mp_read_radix, err);
+		goto done;
+	}
+	err = mp_set(e->g->z, 1);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(mp_set, err);
+		goto done;
+	}
+#else /* CONFIG_FIPS */
 	err = wc_ecc_get_generator(e->g, wc_ecc_get_curve_idx(curve_id));
 	if (err != MP_OKAY) {
 		LOG_WOLF_ERROR_FUNC(wc_ecc_get_generator, err);
 		goto done;
 	}
+#endif /* CONFIG_FIPS */
 #endif /* CONFIG_DPP */
 	err = mp_init_multi(&e->a, &e->prime, &e->order, &e->b, NULL, NULL);
 	if (err != MP_OKAY) {
