@@ -1670,20 +1670,31 @@ static struct wpabuf * wolfssl_handshake(struct tls_connection *conn,
 		wpa_printf(MSG_DEBUG, "SSL: wolfSSL_connect: %d", res);
 	}
 
-	if (res != 1) {
+	if (res != WOLFSSL_SUCCESS) {
 		int err = wolfSSL_get_error(conn->ssl, res);
 
-		if (err == SSL_ERROR_WANT_READ) {
+		if (err == WOLFSSL_ERROR_NONE) {
 			wpa_printf(MSG_DEBUG,
-				   "SSL: wolfSSL_connect - want more data");
-		} else if (err == SSL_ERROR_WANT_WRITE) {
+				   "SSL: %s - WOLFSSL_ERROR_NONE (%d)",
+				   server ? "wolfSSL_accept" :
+				   "wolfSSL_connect", res);
+		} else if (err == WOLFSSL_ERROR_WANT_READ) {
 			wpa_printf(MSG_DEBUG,
-				   "SSL: wolfSSL_connect - want to write");
+				   "SSL: %s - want more data",
+				   server ? "wolfSSL_accept" :
+				   "wolfSSL_connect");
+		} else if (err == WOLFSSL_ERROR_WANT_WRITE) {
+			wpa_printf(MSG_DEBUG,
+				   "SSL: %s - want to write",
+				   server ? "wolfSSL_accept" :
+				   "wolfSSL_connect");
 		} else {
 			char msg[80];
 
 			wpa_printf(MSG_DEBUG,
-				   "SSL: wolfSSL_connect - failed %s",
+				   "SSL: %s - failed %s",
+				   server ? "wolfSSL_accept" :
+				   "wolfSSL_connect",
 				   wolfSSL_ERR_error_string(err, msg));
 			conn->failed++;
 		}
