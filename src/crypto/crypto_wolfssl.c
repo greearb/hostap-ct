@@ -1525,6 +1525,7 @@ struct crypto_ec {
 	mp_int order;
 	mp_digit mont_b;
 	mp_int b;
+	int curve_id;
 };
 
 
@@ -1545,6 +1546,7 @@ struct crypto_ec * crypto_ec_init(int group)
 		return NULL;
 	}
 
+	e->curve_id = curve_id;
 	if (wc_ecc_init(&e->key) != 0 ||
 	    wc_ecc_set_curve(&e->key, 0, curve_id) != 0 ||
 	    mp_init(&e->a) != MP_OKAY ||
@@ -1665,6 +1667,7 @@ int crypto_ec_point_to_bin(struct crypto_ec *e,
 			   const struct crypto_ec_point *point, u8 *x, u8 *y)
 {
 	ecc_point *p = (ecc_point *) point;
+	int len;
 	int err;
 
 	if (TEST_FAIL())
@@ -1678,18 +1681,27 @@ int crypto_ec_point_to_bin(struct crypto_ec *e,
 		}
 	}
 
+	len = wc_ecc_get_curve_size_from_id(e->curve_id);
+	if (len <= 0) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_get_curve_size_from_id, len);
+		LOG_WOLF_ERROR_VA("wc_ecc_get_curve_size_from_id error for curve_id %d", e->curve_id);
+		return -1;
+	}
+
 	if (x) {
 		if (crypto_bignum_to_bin((struct crypto_bignum *)p->x, x,
-					 e->key.dp->size,
-					 e->key.dp->size) <= 0)
+					 (size_t) len, (size_t) len) <= 0) {
+			LOG_WOLF_ERROR_FUNC(crypto_bignum_to_bin, -1);
 			return -1;
+		}
 	}
 
 	if (y) {
 		if (crypto_bignum_to_bin((struct crypto_bignum *) p->y, y,
-					 e->key.dp->size,
-					 e->key.dp->size) <= 0)
+					 (size_t) len, (size_t) len) <= 0) {
+			LOG_WOLF_ERROR_FUNC(crypto_bignum_to_bin, -1);
 			return -1;
+		}
 	}
 
 	return 0;
