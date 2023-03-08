@@ -2110,12 +2110,20 @@ int crypto_ec_key_group(struct crypto_ec_key *key)
 		return 20;
 	case ECC_SECP521R1:
 		return 21;
+	case ECC_SECP192R1:
+		return 25;
+	case ECC_SECP224R1:
+		return 26;
+#ifdef HAVE_ECC_BRAINPOOL
+	case ECC_BRAINPOOLP224R1:
+		return 27;
 	case ECC_BRAINPOOLP256R1:
 		return 28;
 	case ECC_BRAINPOOLP384R1:
 		return 29;
 	case ECC_BRAINPOOLP512R1:
 		return 30;
+#endif /* HAVE_ECC_BRAINPOOL */
 	}
 
 	LOG_WOLF_ERROR_VA("Unsupported curve (id=%d) in EC key",
