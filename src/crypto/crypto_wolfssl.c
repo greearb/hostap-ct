@@ -456,15 +456,20 @@ int des_encrypt(const u8 *clear, const u8 *key, u8 *cypher)
 void * aes_encrypt_init(const u8 *key, size_t len)
 {
 	Aes *aes;
+	int err;
 
 	if (TEST_FAIL())
 		return NULL;
 
 	aes = os_malloc(sizeof(Aes));
-	if (!aes)
+	if (!aes) {
+		LOG_WOLF_ERROR_FUNC_NULL(os_malloc);
 		return NULL;
+	}
 
-	if (wc_AesSetKey(aes, key, len, NULL, AES_ENCRYPTION) < 0) {
+	err = wc_AesSetKey(aes, key, len, NULL, AES_ENCRYPTION);
+	if (err < 0) {
+		LOG_WOLF_ERROR_FUNC(wc_AesSetKey, err);
 		os_free(aes);
 		return NULL;
 	}
@@ -475,7 +480,12 @@ void * aes_encrypt_init(const u8 *key, size_t len)
 
 int aes_encrypt(void *ctx, const u8 *plain, u8 *crypt)
 {
-	wc_AesEncryptDirect(ctx, crypt, plain);
+	int err = wc_AesEncryptDirect(ctx, crypt, plain);
+
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_AesEncryptDirect, err);
+		return -1;
+	}
 	return 0;
 }
 
@@ -489,15 +499,20 @@ void aes_encrypt_deinit(void *ctx)
 void * aes_decrypt_init(const u8 *key, size_t len)
 {
 	Aes *aes;
+	int err;
 
 	if (TEST_FAIL())
 		return NULL;
 
 	aes = os_malloc(sizeof(Aes));
-	if (!aes)
+	if (!aes) {
+		LOG_WOLF_ERROR_FUNC_NULL(os_malloc);
 		return NULL;
+	}
 
-	if (wc_AesSetKey(aes, key, len, NULL, AES_DECRYPTION) < 0) {
+	err = wc_AesSetKey(aes, key, len, NULL, AES_DECRYPTION);
+	if (err < 0) {
+		LOG_WOLF_ERROR_FUNC(wc_AesSetKey, err);
 		os_free(aes);
 		return NULL;
 	}
@@ -508,7 +523,12 @@ void * aes_decrypt_init(const u8 *key, size_t len)
 
 int aes_decrypt(void *ctx, const u8 *crypt, u8 *plain)
 {
-	wc_AesDecryptDirect(ctx, plain, crypt);
+	int err = wc_AesDecryptDirect(ctx, plain, crypt);
+
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_AesDecryptDirect, err);
+		return -1;
+	}
 	return 0;
 }
 
