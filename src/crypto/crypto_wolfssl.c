@@ -81,18 +81,36 @@ int md5_vector(size_t num_elem, const u8 *addr[], const size_t *len, u8 *mac)
 {
 	wc_Md5 md5;
 	size_t i;
+	int err;
+	int ret = -1;
 
 	if (TEST_FAIL())
 		return -1;
 
-	wc_InitMd5(&md5);
+	err = wc_InitMd5(&md5);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_InitMd5, err);
+		return -1;
+	}
 
-	for (i = 0; i < num_elem; i++)
-		wc_Md5Update(&md5, addr[i], len[i]);
+	for (i = 0; i < num_elem; i++) {
+		err = wc_Md5Update(&md5, addr[i], len[i]);
+		if (err != 0) {
+			LOG_WOLF_ERROR_FUNC(wc_Md5Update, err);
+			goto fail;
+		}
+	}
 
-	wc_Md5Final(&md5, mac);
+	err = wc_Md5Final(&md5, mac);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_Md5Final, err);
+		goto fail;
+	}
 
-	return 0;
+	ret = 0;
+fail:
+	wc_Md5Free(&md5);
+	return ret;
 }
 
 #endif /* CONFIG_FIPS */
@@ -102,19 +120,36 @@ int sha1_vector(size_t num_elem, const u8 *addr[], const size_t *len, u8 *mac)
 {
 	wc_Sha sha;
 	size_t i;
+	int err;
+	int ret = -1;
 
 	if (TEST_FAIL())
 		return -1;
 
-	wc_InitSha(&sha);
+	err = wc_InitSha(&sha);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_InitSha, err);
+		return -1;
+	}
 
-	for (i = 0; i < num_elem; i++)
-		wc_ShaUpdate(&sha, addr[i], len[i]);
+	for (i = 0; i < num_elem; i++) {
+		err = wc_ShaUpdate(&sha, addr[i], len[i]);
+		if (err != 0) {
+			LOG_WOLF_ERROR_FUNC(wc_ShaUpdate, err);
+			goto fail;
+		}
+	}
 
-	wc_ShaFinal(&sha, mac);
+	err = wc_ShaFinal(&sha, mac);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_ShaFinal, err);
+		goto fail;
+	}
+
+	ret = 0;
+fail:
 	wc_ShaFree(&sha);
-
-	return 0;
+	return ret;
 }
 
 
@@ -124,19 +159,36 @@ int sha256_vector(size_t num_elem, const u8 *addr[], const size_t *len,
 {
 	wc_Sha256 sha256;
 	size_t i;
+	int err;
+	int ret = -1;
 
 	if (TEST_FAIL())
 		return -1;
 
-	wc_InitSha256(&sha256);
+	err = wc_InitSha256(&sha256);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_InitSha256, err);
+		return -1;
+	}
 
-	for (i = 0; i < num_elem; i++)
-		wc_Sha256Update(&sha256, addr[i], len[i]);
+	for (i = 0; i < num_elem; i++) {
+		err = wc_Sha256Update(&sha256, addr[i], len[i]);
+		if (err != 0) {
+			LOG_WOLF_ERROR_FUNC(wc_Sha256Update, err);
+			goto fail;
+		}
+	}
 
-	wc_Sha256Final(&sha256, mac);
+	err = wc_Sha256Final(&sha256, mac);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_Sha256Final, err);
+		goto fail;
+	}
+
+	ret = 0;
+fail:
 	wc_Sha256Free(&sha256);
-
-	return 0;
+	return ret;
 }
 #endif /* NO_SHA256_WRAPPER */
 
@@ -147,19 +199,36 @@ int sha384_vector(size_t num_elem, const u8 *addr[], const size_t *len,
 {
 	wc_Sha384 sha384;
 	size_t i;
+	int err;
+	int ret = -1;
 
 	if (TEST_FAIL())
 		return -1;
 
-	wc_InitSha384(&sha384);
+	err = wc_InitSha384(&sha384);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_InitSha384, err);
+		return -1;
+	}
 
-	for (i = 0; i < num_elem; i++)
-		wc_Sha384Update(&sha384, addr[i], len[i]);
+	for (i = 0; i < num_elem; i++) {
+		err = wc_Sha384Update(&sha384, addr[i], len[i]);
+		if (err != 0) {
+			LOG_WOLF_ERROR_FUNC(wc_Sha384Update, err);
+			goto fail;
+		}
+	}
 
-	wc_Sha384Final(&sha384, mac);
+	err = wc_Sha384Final(&sha384, mac);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_Sha384Final, err);
+		goto fail;
+	}
+
+	ret = 0;
+fail:
 	wc_Sha384Free(&sha384);
-
-	return 0;
+	return ret;
 }
 #endif /* CONFIG_SHA384 */
 
@@ -170,19 +239,36 @@ int sha512_vector(size_t num_elem, const u8 *addr[], const size_t *len,
 {
 	wc_Sha512 sha512;
 	size_t i;
+	int err;
+	int ret = -1;
 
 	if (TEST_FAIL())
 		return -1;
 
-	wc_InitSha512(&sha512);
+	err = wc_InitSha512(&sha512);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_InitSha512, err);
+		return -1;
+	}
 
-	for (i = 0; i < num_elem; i++)
-		wc_Sha512Update(&sha512, addr[i], len[i]);
+	for (i = 0; i < num_elem; i++) {
+		err = wc_Sha512Update(&sha512, addr[i], len[i]);
+		if (err != 0) {
+			LOG_WOLF_ERROR_FUNC(wc_Sha512Update, err);
+			goto fail;
+		}
+	}
 
-	wc_Sha512Final(&sha512, mac);
+	err = wc_Sha512Final(&sha512, mac);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_Sha512Final, err);
+		goto fail;
+	}
+
+	ret = 0;
+fail:
 	wc_Sha512Free(&sha512);
-
-	return 0;
+	return ret;
 }
 #endif /* CONFIG_SHA512 */
 
