@@ -31,6 +31,12 @@
 #include <wolfssl/wolfcrypt/sha256.h>
 #include <wolfssl/wolfcrypt/sha512.h>
 
+#ifdef CONFIG_FIPS
+#ifndef HAVE_FIPS
+#warning "You are compiling wpa_supplicant/hostapd in FIPS mode but wolfSSL is not configured for FIPS mode."
+#endif /* HAVE_FIPS */
+#endif /* CONFIG_FIPS */
+
 
 #ifndef CONFIG_FIPS
 
