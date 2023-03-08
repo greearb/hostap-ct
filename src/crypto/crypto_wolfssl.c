@@ -2012,6 +2012,12 @@ int crypto_ec_point_cmp(const struct crypto_ec *e,
 	return wc_ecc_cmp_point((ecc_point *) a, (ecc_point *) b);
 }
 
+struct crypto_ec_key {
+	ecc_key *eckey;
+	WC_RNG *rng; /* Needs to be initialized before use.
+		      * *NOT* initialized in crypto_ec_key_init */
+};
+
 
 struct crypto_ecdh {
 	struct crypto_ec *ec;
@@ -2076,6 +2082,36 @@ struct crypto_ecdh * crypto_ecdh_init(int group)
 		LOG_WOLF_ERROR_FUNC(wc_ecc_make_key_ex, err);
 		crypto_ecdh_deinit(ret);
 		ret = NULL;
+	}
+
+	return ret;
+}
+
+
+struct crypto_ecdh * crypto_ecdh_init2(int group, struct crypto_ec_key *own_key)
+{
+	struct crypto_ecdh *ret = NULL;
+
+	if (!own_key || crypto_ec_key_group(own_key) != group) {
+		LOG_INVALID_PARAMETERS();
+		return NULL;
+	}
+
+	ret = _crypto_ecdh_init(group);
+	if (ret) {
+		/* Already init'ed to the right group. Enough to substitute the
+		 * key. */
+		ecc_key_deinit(ret->ec->key);
+		ret->ec->key = own_key->eckey;
+		ret->ec->own_key = false;
+#if defined(ECC_TIMING_RESISTANT) && !defined(WOLFSSL_OLD_FIPS)
+		if (!ret->ec->key->rng) {
+			int err = wc_ecc_set_rng(ret->ec->key, ret->rng);
+
+			if (err != 0)
+				LOG_WOLF_ERROR_FUNC(wc_ecc_set_rng, err);
+		}
+#endif /* ECC_TIMING_RESISTANT && !CONFIG_FIPS */
 	}
 
 	return ret;
@@ -2193,14 +2229,6 @@ size_t crypto_ecdh_prime_len(struct crypto_ecdh *ecdh)
 {
 	return crypto_ec_prime_len(ecdh->ec);
 }
-
-
-struct crypto_ec_key {
-	ecc_key *eckey;
-	WC_RNG *rng; /* Needs to be initialized before use.
-		      * *NOT* initialized in crypto_ec_key_init */
-};
-
 
 static struct crypto_ec_key * crypto_ec_key_init(void)
 {
