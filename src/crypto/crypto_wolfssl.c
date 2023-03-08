@@ -13,6 +13,7 @@
 
 /* wolfSSL headers */
 #include <wolfssl/options.h> /* options.h needs to be included first */
+#include <wolfssl/version.h>
 #include <wolfssl/openssl/bn.h>
 #include <wolfssl/wolfcrypt/aes.h>
 #include <wolfssl/wolfcrypt/arc4.h>
@@ -38,6 +39,21 @@
 #endif /* CONFIG_FIPS */
 
 
+#ifdef CONFIG_FIPS
+#if !defined(HAVE_FIPS_VERSION) || HAVE_FIPS_VERSION <= 2
+#define WOLFSSL_OLD_FIPS
+#endif
+#endif
+
+#if LIBWOLFSSL_VERSION_HEX < 0x05004000
+static int wc_EccPublicKeyToDer_ex(ecc_key *key, byte *output,
+				   word32 inLen, int with_AlgCurve,
+				   int comp)
+{
+	return wc_EccPublicKeyToDer(key, output, inLen, with_AlgCurve);
+}
+#endif /* version < 5.4.0 */
+
 #define LOG_WOLF_ERROR_VA(msg, ...) \
 	wpa_printf(MSG_ERROR, "wolfSSL: %s:%d " msg, \
 		   __func__, __LINE__, __VA_ARGS__)
@@ -54,6 +70,87 @@
 
 #define LOG_INVALID_PARAMETERS() \
 	LOG_WOLF_ERROR("invalid input parameters")
+
+
+/* Helper functions to make type allocation uniform */
+
+static WC_RNG * wc_rng_init(void)
+{
+	WC_RNG *ret;
+
+#ifdef CONFIG_FIPS
+	ret = os_zalloc(sizeof(WC_RNG));
+	if (!ret) {
+		LOG_WOLF_ERROR_FUNC_NULL(os_zalloc);
+	} else {
+		int err;
+
+		err = wc_InitRng(ret);
+		if (err != 0) {
+			LOG_WOLF_ERROR_FUNC(wc_InitRng, err);
+			os_free(ret);
+			ret = NULL;
+		}
+	}
+#else /* CONFIG_FIPS */
+	ret = wc_rng_new(NULL, 0, NULL);
+	if (!ret)
+		LOG_WOLF_ERROR_FUNC_NULL(wc_rng_new);
+#endif /* CONFIG_FIPS */
+
+	return ret;
+}
+
+
+static void wc_rng_deinit(WC_RNG *rng)
+{
+#ifdef CONFIG_FIPS
+	wc_FreeRng(rng);
+	os_free(rng);
+#else /* CONFIG_FIPS */
+	wc_rng_free(rng);
+#endif /* CONFIG_FIPS */
+}
+
+
+static ecc_key * ecc_key_init(void)
+{
+	ecc_key *ret;
+#ifdef CONFIG_FIPS
+	int err;
+
+	ret = os_zalloc(sizeof(ecc_key));
+	if (!ret) {
+		LOG_WOLF_ERROR_FUNC_NULL(os_zalloc);
+	} else {
+		err = wc_ecc_init_ex(ret, NULL, INVALID_DEVID);
+		if (err != 0) {
+			LOG_WOLF_ERROR("wc_ecc_init_ex failed");
+			os_free(ret);
+			ret = NULL;
+		}
+	}
+#else /* CONFIG_FIPS */
+	ret = wc_ecc_key_new(NULL);
+	if (!ret)
+		LOG_WOLF_ERROR_FUNC_NULL(wc_ecc_key_new);
+#endif /* CONFIG_FIPS */
+
+	return ret;
+}
+
+
+static void ecc_key_deinit(ecc_key *key)
+{
+#ifdef CONFIG_FIPS
+	wc_ecc_free(key);
+	os_free(key);
+#else /* CONFIG_FIPS */
+	wc_ecc_key_free(key);
+#endif /* CONFIG_FIPS */
+}
+
+/* end of helper functions */
 
 
 #ifndef CONFIG_FIPS
@@ -1519,13 +1616,14 @@ int ecc_projective_add_point(ecc_point *P, ecc_point *Q, ecc_point *R,
 			     mp_int *a, mp_int *modulus, mp_digit mp);
 
 struct crypto_ec {
-	ecc_key key;
+	ecc_key *key;
 	mp_int a;
 	mp_int prime;
 	mp_int order;
 	mp_digit mont_b;
 	mp_int b;
 	int curve_id;
+	bool own_key; /* Should we free the `key` */
 };
 
 
@@ -1534,6 +1632,7 @@ struct crypto_ec * crypto_ec_init(int group)
 	int built = 0;
 	struct crypto_ec *e;
 	int curve_id = crypto_ec_group_2_id(group);
+	int err;
 
 	if (curve_id == ECC_CURVE_INVALID) {
 		LOG_INVALID_PARAMETERS();
@@ -1547,18 +1646,48 @@ struct crypto_ec * crypto_ec_init(int group)
 	}
 
 	e->curve_id = curve_id;
-	if (wc_ecc_init(&e->key) != 0 ||
-	    wc_ecc_set_curve(&e->key, 0, curve_id) != 0 ||
-	    mp_init(&e->a) != MP_OKAY ||
-	    mp_init(&e->prime) != MP_OKAY ||
-	    mp_init(&e->order) != MP_OKAY ||
-	    mp_init(&e->b) != MP_OKAY ||
-	    mp_read_radix(&e->a, e->key.dp->Af, 16) != MP_OKAY ||
-	    mp_read_radix(&e->b, e->key.dp->Bf, 16) != MP_OKAY ||
-	    mp_read_radix(&e->prime, e->key.dp->prime, 16) != MP_OKAY ||
-	    mp_read_radix(&e->order, e->key.dp->order, 16) != MP_OKAY ||
-	    mp_montgomery_setup(&e->prime, &e->mont_b) != MP_OKAY)
+	e->own_key = true;
+	e->key = ecc_key_init();
+	if (!e->key) {
+		LOG_WOLF_ERROR_FUNC_NULL(ecc_key_init);
 		goto done;
+	}
+
+	err = wc_ecc_set_curve(e->key, 0, curve_id);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_set_curve, err);
+		goto done;
+	}
+	err = mp_init_multi(&e->a, &e->prime, &e->order, &e->b, NULL, NULL);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(mp_init_multi, err);
+		goto done;
+	}
+	err = mp_read_radix(&e->a, e->key->dp->Af, 16);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(mp_read_radix, err);
+		goto done;
+	}
+	err = mp_read_radix(&e->b, e->key->dp->Bf, 16);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(mp_read_radix, err);
+		goto done;
+	}
+	err = mp_read_radix(&e->prime, e->key->dp->prime, 16);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(mp_read_radix, err);
+		goto done;
+	}
+	err = mp_read_radix(&e->order, e->key->dp->order, 16);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(mp_read_radix, err);
+		goto done;
+	}
+	err = mp_montgomery_setup(&e->prime, &e->mont_b);
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(mp_montgomery_setup, err);
+		goto done;
+	}
 
 	built = 1;
 done:
@@ -1579,7 +1708,8 @@ void crypto_ec_deinit(struct crypto_ec* e)
 	mp_clear(&e->order);
 	mp_clear(&e->prime);
 	mp_clear(&e->a);
-	wc_ecc_free(&e->key);
+	if (e->own_key)
+		ecc_key_deinit(e->key);
 	os_free(e);
 }
 
@@ -1721,10 +1851,10 @@ struct crypto_ec_point * crypto_ec_point_from_bin(struct crypto_ec *e,
 	if (!point)
 		goto done;
 
-	if (mp_read_unsigned_bin(point->x, val, e->key.dp->size) != MP_OKAY)
+	if (mp_read_unsigned_bin(point->x, val, e->key->dp->size) != MP_OKAY)
 		goto done;
-	val += e->key.dp->size;
-	if (mp_read_unsigned_bin(point->y, val, e->key.dp->size) != MP_OKAY)
+	val += e->key->dp->size;
+	if (mp_read_unsigned_bin(point->y, val, e->key->dp->size) != MP_OKAY)
 		goto done;
 	mp_set(point->z, 1);
 
@@ -1885,50 +2015,84 @@ int crypto_ec_point_cmp(const struct crypto_ec *e,
 
 struct crypto_ecdh {
 	struct crypto_ec *ec;
-	WC_RNG rng;
+	WC_RNG *rng;
 };
 
-struct crypto_ecdh * crypto_ecdh_init(int group)
+static struct crypto_ecdh * _crypto_ecdh_init(int group)
 {
 	struct crypto_ecdh *ecdh = NULL;
+#if defined(ECC_TIMING_RESISTANT) && !defined(WOLFSSL_OLD_FIPS)
 	int ret;
+#endif /* ECC_TIMING_RESISTANT && !WOLFSSL_OLD_FIPS */
 
 	ecdh = os_zalloc(sizeof(*ecdh));
-	if (!ecdh)
-		goto fail;
+	if (!ecdh) {
+		LOG_WOLF_ERROR_FUNC_NULL(os_zalloc);
+		return NULL;
+	}
 
-	if (wc_InitRng(&ecdh->rng) != 0)
+	ecdh->rng = wc_rng_init();
+	if (!ecdh->rng) {
+		LOG_WOLF_ERROR_FUNC_NULL(wc_rng_init);
 		goto fail;
+	}
 
 	ecdh->ec = crypto_ec_init(group);
-	if (!ecdh->ec)
+	if (!ecdh->ec) {
+		LOG_WOLF_ERROR_FUNC_NULL(crypto_ec_init);
 		goto fail;
+	}
 
-	ret = wc_ecc_make_key_ex(&ecdh->rng, ecdh->ec->key.dp->size,
-				 &ecdh->ec->key, ecdh->ec->key.dp->id);
-	if (ret < 0)
+#if defined(ECC_TIMING_RESISTANT) && !defined(WOLFSSL_OLD_FIPS)
+	ret = wc_ecc_set_rng(ecdh->ec->key, ecdh->rng);
+	if (ret != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_set_rng, ret);
 		goto fail;
+	}
+#endif /* ECC_TIMING_RESISTANT && !WOLFSSL_OLD_FIPS */
 
-#if defined(ECC_TIMING_RESISTANT) && !defined(CONFIG_FIPS)
-	ret = wc_ecc_set_rng(&ecdh->ec->key, &ecdh->rng);
-	if (ret < 0)
-		goto fail;
-#endif /* ECC_TIMING_RESISTANT && !CONFIG_FIPS */
-
-done:
 	return ecdh;
 fail:
 	crypto_ecdh_deinit(ecdh);
-	ecdh = NULL;
-	goto done;
+	return NULL;
+}
+
+
+struct crypto_ecdh * crypto_ecdh_init(int group)
+{
+	struct crypto_ecdh *ret = NULL;
+	int err;
+
+	ret = _crypto_ecdh_init(group);
+
+	if (!ret) {
+		LOG_WOLF_ERROR_FUNC_NULL(_crypto_ecdh_init);
+		return NULL;
+	}
+
+	err = wc_ecc_make_key_ex(ret->rng, 0, ret->ec->key,
+				 crypto_ec_group_2_id(group));
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_make_key_ex, err);
+		crypto_ecdh_deinit(ret);
+		ret = NULL;
+	}
+
+	return ret;
 }
 
 
 void crypto_ecdh_deinit(struct crypto_ecdh *ecdh)
 {
 	if (ecdh) {
+#if defined(ECC_TIMING_RESISTANT) && !defined(WOLFSSL_OLD_FIPS)
+		/* Disassociate the rng */
+		if (ecdh->ec && ecdh->ec->key &&
+		    ecdh->ec->key->rng == ecdh->rng)
+			(void) wc_ecc_set_rng(ecdh->ec->key, NULL);
+#endif /* ECC_TIMING_RESISTANT && !WOLFSSL_OLD_FIPS */
 		crypto_ec_deinit(ecdh->ec);
-		wc_FreeRng(&ecdh->rng);
+		wc_rng_deinit(ecdh->rng);
 		os_free(ecdh);
 	}
 }
@@ -1938,20 +2102,20 @@ struct wpabuf * crypto_ecdh_get_pubkey(struct crypto_ecdh *ecdh, int inc_y)
 {
 	struct wpabuf *buf = NULL;
 	int ret;
-	int len = ecdh->ec->key.dp->size;
+	int len = ecdh->ec->key->dp->size;
 
 	buf = wpabuf_alloc(inc_y ? 2 * len : len);
 	if (!buf)
 		goto fail;
 
 	ret = crypto_bignum_to_bin((struct crypto_bignum *)
-				   ecdh->ec->key.pubkey.x, wpabuf_put(buf, len),
+				   ecdh->ec->key->pubkey.x, wpabuf_put(buf, len),
 				   len, len);
 	if (ret < 0)
 		goto fail;
 	if (inc_y) {
 		ret = crypto_bignum_to_bin((struct crypto_bignum *)
-					   ecdh->ec->key.pubkey.y,
+					   ecdh->ec->key->pubkey.y,
 					   wpabuf_put(buf, len), len, len);
 		if (ret < 0)
 			goto fail;
@@ -1972,7 +2136,7 @@ struct wpabuf * crypto_ecdh_set_peerkey(struct crypto_ecdh *ecdh, int inc_y,
 	int ret;
 	struct wpabuf *pubkey = NULL;
 	struct wpabuf *secret = NULL;
-	word32 key_len = ecdh->ec->key.dp->size;
+	word32 key_len = ecdh->ec->key->dp->size;
 	ecc_point *point = NULL;
 	size_t need_key_len = inc_y ? 2 * key_len : key_len;
 
@@ -1995,7 +2159,7 @@ struct wpabuf * crypto_ecdh_set_peerkey(struct crypto_ecdh *ecdh, int inc_y,
 	}
 
 	ret = wc_ecc_import_point_der(wpabuf_mhead(pubkey), 1 + 2 * key_len,
-				      ecdh->ec->key.idx, point);
+				      ecdh->ec->key->idx, point);
 	if (ret != MP_OKAY) {
 		LOG_WOLF_ERROR_FUNC(wc_ecc_import_point_der, ret);
 		goto fail;
@@ -2007,7 +2171,7 @@ struct wpabuf * crypto_ecdh_set_peerkey(struct crypto_ecdh *ecdh, int inc_y,
 		goto fail;
 	}
 
-	ret = wc_ecc_shared_secret_ex(&ecdh->ec->key, point,
+	ret = wc_ecc_shared_secret_ex(ecdh->ec->key, point,
 				      wpabuf_put(secret, key_len), &key_len);
 	if (ret != MP_OKAY) {
 		LOG_WOLF_ERROR_FUNC(wc_ecc_shared_secret_ex, ret);
@@ -2044,27 +2208,15 @@ static struct crypto_ec_key * crypto_ec_key_init(void)
 
 	key = os_zalloc(sizeof(struct crypto_ec_key));
 	if (key) {
-#ifdef CONFIG_FIPS
-		key->eckey = os_zalloc(sizeof(ecc_key));
-#else /* CONFIG_FIPS */
-		key->eckey = wc_ecc_key_new(NULL);
-#endif /* CONFIG_FIPS */
+		key->eckey = ecc_key_init();
 		/* Omit key->rng initialization because it seeds itself and thus
 		 * consumes entropy that may never be used. Lazy initialize when
 		 * necessary. */
 		if (!key->eckey) {
-			wpa_printf(MSG_ERROR,
-				   "wolfSSL: crypto_ec_key_init() failed");
+			LOG_WOLF_ERROR_FUNC_NULL(ecc_key_init);
 			crypto_ec_key_deinit(key);
 			key = NULL;
 		}
-#ifdef CONFIG_FIPS
-		else if (wc_ecc_init_ex(key->eckey, NULL, INVALID_DEVID) != 0) {
-			wpa_printf(MSG_ERROR, "wolfSSL: wc_ecc_init_ex failed");
-			crypto_ec_key_deinit(key);
-			key = NULL;
-		}
-#endif /* CONFIG_FIPS */
 	}
 	return key;
 }
@@ -2073,15 +2225,22 @@ static struct crypto_ec_key * crypto_ec_key_init(void)
 void crypto_ec_key_deinit(struct crypto_ec_key *key)
 {
 	if (key) {
-#ifdef CONFIG_FIPS
-		os_free(key->rng);
-		os_free(key->eckey);
-#else /* CONFIG_FIPS */
-		wc_rng_free(key->rng);
-		wc_ecc_key_free(key->eckey);
-#endif /* CONFIG_FIPS */
+		ecc_key_deinit(key->eckey);
+		wc_rng_deinit(key->rng);
 		os_free(key);
 	}
+}
+
+
+static WC_RNG * crypto_ec_key_init_rng(struct crypto_ec_key *key)
+{
+	if (!key->rng) {
+		/* Lazy init key->rng */
+		key->rng = wc_rng_init();
+		if (!key->rng)
+			LOG_WOLF_ERROR_FUNC_NULL(wc_rng_init);
+	}
+	return key->rng;
 }
 
 
@@ -2148,39 +2307,92 @@ int crypto_ec_key_group(struct crypto_ec_key *key)
 }
 
 
+static int crypto_ec_key_gen_public_key(struct crypto_ec_key *key)
+{
+	int err;
+
+#ifdef WOLFSSL_OLD_FIPS
+	err = wc_ecc_make_pub(key->eckey, NULL);
+#else /* WOLFSSL_OLD_FIPS */
+	/* Have wolfSSL generate the public key to make it available for output
+	 */
+	if (!crypto_ec_key_init_rng(key)) {
+		LOG_WOLF_ERROR_FUNC_NULL(crypto_ec_key_init_rng);
+		return -1;
+	}
+
+	err = wc_ecc_make_pub_ex(key->eckey, NULL, key->rng);
+#endif /* WOLFSSL_OLD_FIPS */
+
+	if (err != MP_OKAY) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_make_pub_ex, err);
+		return -1;
+	}
+
+	return 0;
+}
+
+
 struct wpabuf * crypto_ec_key_get_subject_public_key(struct crypto_ec_key *key)
 {
-	byte *der = NULL;
 	int der_len;
 	struct wpabuf *ret = NULL;
+	int err;
 
 	if (!key || !key->eckey) {
 		LOG_INVALID_PARAMETERS();
 		goto fail;
 	}
 
-	der_len = wc_EccPublicKeyDerSize(key->eckey, 1);
-	if (der_len <= 0) {
-		wpa_printf(MSG_ERROR, "wolfSSL: wc_EccPublicKeyDerSize failed");
+#ifdef WOLFSSL_OLD_FIPS
+	if (key->eckey->type == ECC_PRIVATEKEY_ONLY &&
+	    crypto_ec_key_gen_public_key(key) != 0) {
+		LOG_WOLF_ERROR_FUNC(crypto_ec_key_gen_public_key, -1);
+		goto fail;
+	}
+#endif /* WOLFSSL_OLD_FIPS */
+
+	der_len = err = wc_EccPublicKeyToDer_ex(key->eckey, NULL, 0, 1, 1);
+	if (err == ECC_PRIVATEONLY_E) {
+		if (crypto_ec_key_gen_public_key(key) != 0) {
+			LOG_WOLF_ERROR_FUNC(crypto_ec_key_gen_public_key, -1);
+			goto fail;
+		}
+		der_len = err = wc_EccPublicKeyToDer_ex(key->eckey, NULL, 0, 1,
+							1);
+	}
+	if (err <= 0) {
+		LOG_WOLF_ERROR_FUNC(wc_EccPublicKeyDerSize, err);
 		goto fail;
 	}
 
-	der = os_malloc(der_len);
-	if (!der)
-		goto fail;
-
-	der_len = wc_EccPublicKeyToDer(key->eckey, der, der_len, 1);
-	if (der_len <= 0) {
-		wpa_printf(MSG_ERROR, "wolfSSL: wc_EccPublicKeyToDer failed");
+	ret = wpabuf_alloc(der_len);
+	if (!ret) {
+		LOG_WOLF_ERROR_FUNC_NULL(wpabuf_alloc);
 		goto fail;
 	}
 
-	ret = wpabuf_alloc_copy(der, der_len);
-	os_free(der);
+	err = wc_EccPublicKeyToDer_ex(key->eckey, wpabuf_mhead(ret), der_len, 1,
+				      1);
+	if (err == ECC_PRIVATEONLY_E) {
+		if (crypto_ec_key_gen_public_key(key) != 0) {
+			LOG_WOLF_ERROR_FUNC(crypto_ec_key_gen_public_key, -1);
+			goto fail;
+		}
+		err = wc_EccPublicKeyToDer_ex(key->eckey, wpabuf_mhead(ret),
+					      der_len, 1, 1);
+	}
+	if (err <= 0) {
+		LOG_WOLF_ERROR_FUNC(wc_EccPublicKeyToDer, err);
+		goto fail;
+	}
+	der_len = err;
+	wpabuf_put(ret, der_len);
+
 	return ret;
 
 fail:
-	os_free(der);
+	wpabuf_free(ret);
 	return NULL;
 }
 
@@ -2213,8 +2425,8 @@ fail:
 struct wpabuf * crypto_ec_key_sign(struct crypto_ec_key *key, const u8 *data,
 				   size_t len)
 {
-	byte *der = NULL;
 	int der_len;
+	int err;
 	word32 w32_der_len;
 	struct wpabuf *ret = NULL;
 
@@ -2223,23 +2435,9 @@ struct wpabuf * crypto_ec_key_sign(struct crypto_ec_key *key, const u8 *data,
 		goto fail;
 	}
 
-	if (!key->rng) {
-		/* Lazy init key->rng */
-#ifdef CONFIG_FIPS
-		key->rng = os_zalloc(sizeof(WC_RNG));
-#else /* CONFIG_FIPS */
-		key->rng = wc_rng_new(NULL, 0, NULL);
-#endif /* CONFIG_FIPS */
-		if (!key->rng) {
-			wpa_printf(MSG_ERROR, "wolfSSL: wc_rng_new failed");
-			goto fail;
-		}
-#ifdef CONFIG_FIPS
-		if (wc_InitRng(key->rng) != 0) {
-			wpa_printf(MSG_ERROR, "wolfSSL: wc_InitRng failed");
-			goto fail;
-		}
-#endif /* CONFIG_FIPS */
+	if (!crypto_ec_key_init_rng(key)) {
+		LOG_WOLF_ERROR_FUNC_NULL(crypto_ec_key_init_rng);
+		goto fail;
 	}
 
 	der_len = wc_ecc_sig_size(key->eckey);
@@ -2248,24 +2446,24 @@ struct wpabuf * crypto_ec_key_sign(struct crypto_ec_key *key, const u8 *data,
 		goto fail;
 	}
 
-	der = os_malloc(der_len);
-	if (!der)
-		goto fail;
-
-	w32_der_len = (word32) der_len;
-	if (wc_ecc_sign_hash(data, len, der, &w32_der_len, key->rng, key->eckey)
-	    != 0) {
-		wpa_printf(MSG_ERROR, "wolfSSL: wc_ecc_sign_hash failed");
+	ret = wpabuf_alloc(der_len);
+	if (!ret) {
+		LOG_WOLF_ERROR_FUNC_NULL(wpabuf_alloc);
 		goto fail;
 	}
 
-	ret = wpabuf_alloc_copy(der, der_len);
-	os_free(der);
-	if (!ret)
-		wpa_printf(MSG_ERROR, "wolfSSL: wpabuf_alloc_copy failed");
+	w32_der_len = (word32) der_len;
+	err = wc_ecc_sign_hash(data, len, wpabuf_mhead(ret), &w32_der_len,
+			       key->rng, key->eckey);
+	if (err != 0) {
+		LOG_WOLF_ERROR_FUNC(wc_ecc_sign_hash, err);
+		goto fail;
+	}
+	wpabuf_put(ret, w32_der_len);
+
 	return ret;
 fail:
-	os_free(der);
+	wpabuf_free(ret);
 	return NULL;
 }
 
