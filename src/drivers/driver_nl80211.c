@@ -1900,6 +1900,16 @@ static int wpa_driver_nl80211_get_country(void *priv, char *alpha2)
 		return -ENOMEM;
 
 	nl80211_cmd(drv, msg, 0, NL80211_CMD_GET_REG);
+
+	if (drv->capa.flags & WPA_DRIVER_FLAGS_SELF_MANAGED_REGULATORY) {
+		/* put wiphy idx to get the interface specific country code
+		 * instead of the global one. */
+		if (nla_put_u32(msg, NL80211_ATTR_WIPHY, drv->wiphy_idx)) {
+			nlmsg_free(msg);
+			return -1;
+		}
+	}
+
 	alpha2[0] = '\0';
 	ret = send_and_recv_msgs(drv, msg, nl80211_get_country, alpha2,
 				 NULL, NULL);
