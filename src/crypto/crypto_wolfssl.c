@@ -420,9 +420,8 @@ int pbkdf2_sha1(const char *passphrase, const u8 *ssid, size_t ssid_len,
 			ssid, ssid_len, iterations, buflen, WC_SHA);
 	if (ret != 0) {
 		if (ret == HMAC_MIN_KEYLEN_E) {
-			wpa_printf(MSG_ERROR,
-				   "wolfSSL: Password is too short. Make sure your password is at least %d characters long. This is a requirement for FIPS builds.",
-				   HMAC_FIPS_MIN_KEY);
+			LOG_WOLF_ERROR_VA("wolfSSL: Password is too short. Make sure your password is at least %d characters long. This is a requirement for FIPS builds.",
+					  HMAC_FIPS_MIN_KEY);
 		}
 		return -1;
 	}
