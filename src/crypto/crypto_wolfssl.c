@@ -1484,6 +1484,36 @@ int crypto_bignum_legendre(const struct crypto_bignum *a,
 
 #ifdef CONFIG_ECC
 
+static int crypto_ec_group_2_id(int group)
+{
+	switch (group) {
+	case 19:
+		return ECC_SECP256R1;
+	case 20:
+		return ECC_SECP384R1;
+	case 21:
+		return ECC_SECP521R1;
+	case 25:
+		return ECC_SECP192R1;
+	case 26:
+		return ECC_SECP224R1;
+#ifdef HAVE_ECC_BRAINPOOL
+	case 27:
+		return ECC_BRAINPOOLP224R1;
+	case 28:
+		return ECC_BRAINPOOLP256R1;
+	case 29:
+		return ECC_BRAINPOOLP384R1;
+	case 30:
+		return ECC_BRAINPOOLP512R1;
+#endif /* HAVE_ECC_BRAINPOOL */
+	default:
+		LOG_WOLF_ERROR_VA("Unsupported curve (id=%d) in EC key", group);
+		return ECC_CURVE_INVALID;
+	}
+}
+
+
 int ecc_map(ecc_point *, mp_int *, mp_digit);
 int ecc_projective_add_point(ecc_point *P, ecc_point *Q, ecc_point *R,
 			     mp_int *a, mp_int *modulus, mp_digit mp);
@@ -1502,40 +1532,10 @@ struct crypto_ec * crypto_ec_init(int group)
 {
 	int built = 0;
 	struct crypto_ec *e;
-	int curve_id;
+	int curve_id = crypto_ec_group_2_id(group);
 
-	/* Map from IANA registry for IKE D-H groups to OpenSSL NID */
-	switch (group) {
-	case 19:
-		curve_id = ECC_SECP256R1;
-		break;
-	case 20:
-		curve_id = ECC_SECP384R1;
-		break;
-	case 21:
-		curve_id = ECC_SECP521R1;
-		break;
-	case 25:
-		curve_id = ECC_SECP192R1;
-		break;
-	case 26:
-		curve_id = ECC_SECP224R1;
-		break;
-#ifdef HAVE_ECC_BRAINPOOL
-	case 27:
-		curve_id = ECC_BRAINPOOLP224R1;
-		break;
-	case 28:
-		curve_id = ECC_BRAINPOOLP256R1;
-		break;
-	case 29:
-		curve_id = ECC_BRAINPOOLP384R1;
-		break;
-	case 30:
-		curve_id = ECC_BRAINPOOLP512R1;
-		break;
-#endif /* HAVE_ECC_BRAINPOOL */
-	default:
+	if (curve_id == ECC_CURVE_INVALID) {
+		LOG_INVALID_PARAMETERS();
 		return NULL;
 	}
 
