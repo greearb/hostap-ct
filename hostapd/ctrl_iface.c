@@ -2437,6 +2437,26 @@ static int hostapd_ctrl_check_freq_params(struct hostapd_freq_params *params,
 {
 	u32 start_freq;
 
+	if (is_6ghz_freq(params->freq)) {
+		const int bw_idx[] = { 20, 40, 80, 160, 320 };
+		int idx, bw;
+
+		/* The 6 GHz band requires HE to be enabled. */
+		params->he_enabled = 1;
+
+		if (params->center_freq1) {
+			if (params->freq == 5935)
+				idx = (params->center_freq1 - 5925) / 5;
+			else
+				idx = (params->center_freq1 - 5950) / 5;
+
+			bw = center_idx_to_bw_6ghz(idx);
+			if (bw < 0 || bw > (int) ARRAY_SIZE(bw_idx) ||
+			    bw_idx[bw] != params->bandwidth)
+				return -1;
+		}
+	}
+
 	switch (params->bandwidth) {
 	case 0:
 		/* bandwidth not specified: use 20 MHz by default */
