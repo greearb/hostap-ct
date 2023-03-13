@@ -2786,6 +2786,7 @@ enum mscs_description_subelem {
 #define FD_CAP_BSS_CHWIDTH_40				1
 #define FD_CAP_BSS_CHWIDTH_80				2
 #define FD_CAP_BSS_CHWIDTH_160_80_80			3
+#define FD_CAP_BSS_CHWIDTH_320				4
 #define FD_CAP_BSS_CHWIDTH_SHIFT			2
 
 #define FD_CAP_NSS_1					0

@@ -1357,6 +1357,9 @@ static u16 hostapd_fils_discovery_cap(struct hostapd_data *hapd)
 		phy_index = FD_CAP_PHY_INDEX_HE;
 
 		switch (hapd->iconf->op_class) {
+		case 137:
+			chwidth = FD_CAP_BSS_CHWIDTH_320;
+			break;
 		case 135:
 			mcs_nss_size += 4;
 			/* fallthrough */
