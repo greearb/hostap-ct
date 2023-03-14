@@ -3655,6 +3655,9 @@ static int hostapd_fill_csa_settings(struct hostapd_data *hapd,
 	struct hostapd_iface *iface = hapd->iface;
 	struct hostapd_freq_params old_freq;
 	int ret;
+#ifdef CONFIG_IEEE80211BE
+	u16 old_punct_bitmap;
+#endif /* CONFIG_IEEE80211BE */
 	u8 chan, bandwidth;
 
 	os_memset(&old_freq, 0, sizeof(old_freq));
@@ -3700,9 +3703,16 @@ static int hostapd_fill_csa_settings(struct hostapd_data *hapd,
 	if (ret)
 		return ret;
 
+#ifdef CONFIG_IEEE80211BE
+	old_punct_bitmap = iface->conf->punct_bitmap;
+	iface->conf->punct_bitmap = settings->punct_bitmap;
+#endif /* CONFIG_IEEE80211BE */
 	ret = hostapd_build_beacon_data(hapd, &settings->beacon_after);
 
 	/* change back the configuration */
+#ifdef CONFIG_IEEE80211BE
+	iface->conf->punct_bitmap = old_punct_bitmap;
+#endif /* CONFIG_IEEE80211BE */
 	hostapd_change_config_freq(iface->bss[0], iface->conf,
 				   &old_freq, NULL);
 
