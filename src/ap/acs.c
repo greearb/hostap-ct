@@ -722,7 +722,7 @@ static void acs_update_puncturing_bitmap(struct hostapd_iface *iface,
 					 int index_primary)
 {
 	struct hostapd_config *conf = iface->conf;
-	struct hostapd_channel_data *adj_chan = NULL;
+	struct hostapd_channel_data *adj_chan = NULL, *first_chan = chan;
 	int i;
 	long double threshold;
 
@@ -754,9 +754,16 @@ static void acs_update_puncturing_bitmap(struct hostapd_iface *iface,
 			return;
 		}
 
+		if (i == 0)
+			first_chan = adj_chan;
+
 		if (adj_chan->interference_factor > threshold)
 			chan->punct_bitmap |= BIT(i);
 	}
+
+	if (!is_punct_bitmap_valid(bw, (chan->freq - first_chan->freq) / 20,
+				   chan->punct_bitmap))
+		chan->punct_bitmap = 0;
 }
 #endif /* CONFIG_IEEE80211BE */
 
