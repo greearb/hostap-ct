@@ -10649,7 +10649,7 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 	int i;
 
 	wpa_printf(MSG_DEBUG,
-		   "nl80211: Channel switch request (cs_count=%u block_tx=%u freq=%d channel=%d sec_channel_offset=%d width=%d cf1=%d cf2=%d%s%s%s)",
+		   "nl80211: Channel switch request (cs_count=%u block_tx=%u freq=%d channel=%d sec_channel_offset=%d width=%d cf1=%d cf2=%d puncturing_bitmap=0x%04x%s%s%s)",
 		   settings->cs_count, settings->block_tx,
 		   settings->freq_params.freq,
 		   settings->freq_params.channel,
@@ -10657,6 +10657,7 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 		   settings->freq_params.bandwidth,
 		   settings->freq_params.center_freq1,
 		   settings->freq_params.center_freq2,
+		   settings->punct_bitmap,
 		   settings->freq_params.ht_enabled ? " ht" : "",
 		   settings->freq_params.vht_enabled ? " vht" : "",
 		   settings->freq_params.he_enabled ? " he" : "");
@@ -10727,7 +10728,10 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 			settings->cs_count) ||
 	    (ret = nl80211_put_freq_params(msg, &settings->freq_params)) ||
 	    (settings->block_tx &&
-	     nla_put_flag(msg, NL80211_ATTR_CH_SWITCH_BLOCK_TX)))
+	     nla_put_flag(msg, NL80211_ATTR_CH_SWITCH_BLOCK_TX)) ||
+	    (settings->punct_bitmap &&
+	     nla_put_u32(msg, NL80211_ATTR_PUNCT_BITMAP,
+			 settings->punct_bitmap)))
 		goto error;
 
 	/* beacon_after params */
