@@ -18,6 +18,7 @@ struct ieee80211_vht_capabilities;
 struct ieee80211_mgmt;
 struct radius_sta;
 enum ieee80211_op_mode;
+enum oper_chan_width;
 
 int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 		    struct hostapd_frame_info *fi);
@@ -222,5 +223,7 @@ u8 * hostapd_eid_mbssid(struct hostapd_data *hapd, u8 *eid, u8 *end,
 			unsigned int frame_stype, u8 elem_count,
 			u8 **elem_offset,
 			const u8 *known_bss, size_t known_bss_len);
+void punct_update_legacy_bw(u16 bitmap, u8 pri_chan,
+			    enum oper_chan_width *width, u8 *seg0, u8 *seg1);
 
 #endif /* IEEE802_11_H */

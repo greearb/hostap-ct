@@ -7027,4 +7027,73 @@ u8 * hostapd_eid_mbssid(struct hostapd_data *hapd, u8 *eid, u8 *end,
 	return eid;
 }
 
+
+static void punct_update_legacy_bw_80(u8 bitmap, u8 pri_chan, u8 *seg0)
+{
+	u8 first_chan = *seg0 - 6, sec_chan;
+
+	switch (bitmap) {
+	case 0x6:
+		*seg0 = 0;
+		return;
+	case 0x8:
+	case 0x4:
+	case 0x2:
+	case 0x1:
+	case 0xC:
+	case 0x3:
+		if (pri_chan < *seg0)
+			*seg0 -= 4;
+		else
+			*seg0 += 4;
+		break;
+	}
+
+	if (pri_chan < *seg0)
+		sec_chan = pri_chan + 4;
+	else
+		sec_chan = pri_chan - 4;
+
+	if (bitmap & BIT((sec_chan - first_chan) / 4))
+		*seg0 = 0;
+}
+
+
+static void punct_update_legacy_bw_160(u8 bitmap, u8 pri,
+				       enum oper_chan_width *width, u8 *seg0)
+{
+	if (pri < *seg0) {
+		*seg0 -= 8;
+		if (bitmap & 0x0F) {
+			*width = 0;
+			punct_update_legacy_bw_80(bitmap & 0xF, pri, seg0);
+		}
+	} else {
+		*seg0 += 8;
+		if (bitmap & 0xF0) {
+			*width = 0;
+			punct_update_legacy_bw_80((bitmap & 0xF0) >> 4, pri,
+						  seg0);
+		}
+	}
+}
+
+
+void punct_update_legacy_bw(u16 bitmap, u8 pri, enum oper_chan_width *width,
+			    u8 *seg0, u8 *seg1)
+{
+	if (*width == CONF_OPER_CHWIDTH_80MHZ && (bitmap & 0xF)) {
+		*width = CONF_OPER_CHWIDTH_USE_HT;
+		punct_update_legacy_bw_80(bitmap & 0xF, pri, seg0);
+	}
+
+	if (*width == CONF_OPER_CHWIDTH_160MHZ && (bitmap & 0xFF)) {
+		*width = CONF_OPER_CHWIDTH_80MHZ;
+		*seg1 = 0;
+		punct_update_legacy_bw_160(bitmap & 0xFF, pri, width, seg0);
+	}
+
+	/* TODO: 320 MHz */
+}
+
 #endif /* CONFIG_NATIVE_WINDOWS */
