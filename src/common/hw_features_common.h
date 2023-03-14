@@ -54,5 +54,6 @@ u32 num_chan_to_bw(int num_chans);
 int chan_bw_allowed(const struct hostapd_channel_data *chan, u32 bw,
 		    int ht40_plus, int pri);
 int chan_pri_allowed(const struct hostapd_channel_data *chan);
+bool is_punct_bitmap_valid(u16 bw, u16 pri_ch_bit_pos, u16 punct_bitmap);
 
 #endif /* HW_FEATURES_COMMON_H */

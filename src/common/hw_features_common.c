@@ -876,3 +876,70 @@ int chan_pri_allowed(const struct hostapd_channel_data *chan)
 	return !(chan->flag & HOSTAPD_CHAN_DISABLED) &&
 		(chan->allowed_bw & HOSTAPD_CHAN_WIDTH_20);
 }
+
+
+/* IEEE P802.11be/D3.0, Table 36-30 - Definition of the Punctured Channel
+ * Information field in the U-SIG for an EHT MU PPDU using non-OFDMA
+ * transmissions */
+static const u16 punct_bitmap_80[] = { 0xF, 0xE, 0xD, 0xB, 0x7 };
+static const u16 punct_bitmap_160[] = {
+	0xFF, 0xFE, 0xFD, 0xFB, 0xF7, 0xEF, 0xDF, 0xBF,
+	0x7F, 0xFC, 0xF3, 0xCF, 0x3F
+};
+static const u16 punct_bitmap_320[] = {
+	0xFFFF, 0xFFFC, 0xFFF3, 0xFFCF, 0xFF3F, 0xFCFF, 0xF3FF, 0xCFFF,
+	0x3FFF, 0xFFF0, 0xFF0F, 0xF0FF, 0x0FFF, 0xFFC0, 0xFF30, 0xFCF0,
+	0xF3F0, 0xCFF0, 0x3FF0, 0x0FFC, 0x0FF3, 0x0FCF, 0x0F3F, 0x0CFF,
+	0x03FF
+};
+
+
+bool is_punct_bitmap_valid(u16 bw, u16 pri_ch_bit_pos, u16 punct_bitmap)
+{
+	u8 i, count;
+	u16 bitmap;
+	const u16 *valid_bitmaps;
+
+	if (!punct_bitmap) /* All channels active */
+		return true;
+
+	bitmap = ~punct_bitmap;
+
+	switch (bw) {
+	case 80:
+		bitmap &= 0xF;
+		valid_bitmaps = punct_bitmap_80;
+		count = ARRAY_SIZE(punct_bitmap_80);
+		break;
+
+	case 160:
+		bitmap &= 0xFF;
+		valid_bitmaps = punct_bitmap_160;
+		count = ARRAY_SIZE(punct_bitmap_160);
+		break;
+
+	case 320:
+		bitmap &= 0xFFFF;
+		valid_bitmaps = punct_bitmap_320;
+		count = ARRAY_SIZE(punct_bitmap_320);
+		break;
+
+	default:
+		return false;
+	}
+
+	if (!bitmap) /* No channel active */
+		return false;
+
+	if (!(bitmap & BIT(pri_ch_bit_pos))) {
+		wpa_printf(MSG_DEBUG, "Primary channel cannot be punctured");
+		return false;
+	}
+
+	for (i = 0; i < count; i++) {
+		if (valid_bitmaps[i] == bitmap)
+			return true;
+	}
+
+	return false;
+}

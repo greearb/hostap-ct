@@ -893,6 +893,55 @@ static int hostapd_is_usable_edmg(struct hostapd_iface *iface)
 }
 
 
+static bool hostapd_is_usable_punct_bitmap(struct hostapd_iface *iface)
+{
+#ifdef CONFIG_IEEE80211BE
+	struct hostapd_config *conf = iface->conf;
+	u8 bw, start_chan;
+
+	if (!conf->punct_bitmap)
+		return true;
+
+	if (!conf->ieee80211be) {
+		wpa_printf(MSG_ERROR,
+			   "Currently RU puncturing is supported only if ieee80211be is enabled");
+		return false;
+	}
+
+	if (iface->freq >= 2412 && iface->freq <= 2484) {
+		wpa_printf(MSG_ERROR,
+			   "RU puncturing not supported in 2.4 GHz");
+		return false;
+	}
+
+	switch (conf->eht_oper_chwidth) {
+	case 0:
+		wpa_printf(MSG_ERROR,
+			   "RU puncturing is supported only in 80 MHz and 160 MHz");
+		return false;
+	case 1:
+		bw = 80;
+		start_chan = conf->eht_oper_centr_freq_seg0_idx - 6;
+		break;
+	case 2:
+		bw = 160;
+		start_chan = conf->eht_oper_centr_freq_seg0_idx - 14;
+		break;
+	default:
+		return false;
+	}
+
+	if (!is_punct_bitmap_valid(bw, (conf->channel - start_chan) / 4,
+				   conf->punct_bitmap)) {
+		wpa_printf(MSG_ERROR, "Invalid puncturing bitmap");
+		return false;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
+	return true;
+}
+
+
 static int hostapd_is_usable_chans(struct hostapd_iface *iface)
 {
 	int secondary_freq;
@@ -913,6 +962,9 @@ static int hostapd_is_usable_chans(struct hostapd_iface *iface)
 		return 0;
 	}
 	if (!hostapd_is_usable_edmg(iface))
+		return 0;
+
+	if (!hostapd_is_usable_punct_bitmap(iface))
 		return 0;
 
 	if (!iface->conf->secondary_channel)
