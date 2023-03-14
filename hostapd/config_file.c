@@ -4760,6 +4760,16 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		conf->eht_phy_capab.mu_beamformer = atoi(pos);
 	} else if (os_strcmp(buf, "punct_bitmap") == 0) {
 		conf->punct_bitmap = atoi(pos);
+	} else if (os_strcmp(buf, "punct_acs_threshold") == 0) {
+		int val = atoi(pos);
+
+		if (val < 0 || val > 100) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: punct_acs_threshold must be between 0 and 100",
+				   line);
+			return 1;
+		}
+		conf->punct_acs_threshold = val;
 #endif /* CONFIG_IEEE80211BE */
 	} else {
 		wpa_printf(MSG_ERROR,
