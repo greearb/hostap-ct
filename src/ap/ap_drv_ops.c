@@ -646,8 +646,8 @@ struct hostapd_hw_modes *
 hostapd_get_hw_feature_data(struct hostapd_data *hapd, u16 *num_modes,
 			    u16 *flags, u8 *dfs_domain)
 {
-	if (hapd->driver == NULL ||
-	    hapd->driver->get_hw_feature_data == NULL)
+	if (!hapd->driver || !hapd->driver->get_hw_feature_data ||
+	    !hapd->drv_priv)
 		return NULL;
 	return hapd->driver->get_hw_feature_data(hapd->drv_priv, num_modes,
 						 flags, dfs_domain);
@@ -889,6 +889,7 @@ void hostapd_get_hw_mode_any_channels(struct hostapd_data *hapd,
 				      int **freq_list)
 {
 	int i;
+	bool is_no_ir = false;
 
 	for (i = 0; i < mode->num_channels; i++) {
 		struct hostapd_channel_data *chan = &mode->channels[i];
@@ -917,7 +918,12 @@ void hostapd_get_hw_mode_any_channels(struct hostapd_data *hapd,
 		      (chan->flag & HOSTAPD_CHAN_RADAR)) &&
 		    !(chan->max_tx_power < hapd->iface->conf->min_tx_power))
 			int_array_add_unique(freq_list, chan->freq);
+		else if ((chan->flag & HOSTAPD_CHAN_NO_IR) &&
+			 is_6ghz_freq(chan->freq))
+			is_no_ir = true;
 	}
+
+	hapd->iface->is_no_ir = is_no_ir;
 }
 
 
@@ -935,6 +941,11 @@ void hostapd_get_ext_capa(struct hostapd_iface *iface)
 }
 
 
+/**
+ * hostapd_drv_do_acs - Start automatic channel selection
+ * @hapd: BSS data for the device initiating ACS
+ * Returns: 0 on success, -1 on failure, 1 on failure due to NO_IR (AFC)
+ */
 int hostapd_drv_do_acs(struct hostapd_data *hapd)
 {
 	struct drv_acs_params params;
@@ -970,6 +981,12 @@ int hostapd_drv_do_acs(struct hostapd_data *hapd)
 			continue;
 		hostapd_get_hw_mode_any_channels(hapd, mode, acs_ch_list_all,
 						 false, &freq_list);
+	}
+
+	if (!freq_list && hapd->iface->is_no_ir) {
+		wpa_printf(MSG_ERROR,
+			   "NO_IR: Interface freq_list is empty. Failing do_acs.");
+		return 1;
 	}
 
 	params.freq_list = freq_list;

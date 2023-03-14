@@ -1607,6 +1607,125 @@ static int start_ctrl_iface(struct hostapd_iface *iface)
 }
 
 
+/* When NO_IR flag is set and AP is stopped, clean up BSS parameters without
+ * deinitializing the driver and the control interfaces. A subsequent
+ * REG_CHANGE event can bring the AP back up.
+ */
+static void hostapd_no_ir_cleanup(struct hostapd_data *bss)
+{
+	hostapd_bss_deinit_no_free(bss);
+	hostapd_free_hapd_data(bss);
+	hostapd_cleanup_iface_partial(bss->iface);
+}
+
+
+static int hostapd_no_ir_channel_list_updated(struct hostapd_iface *iface,
+					      void *ctx)
+{
+	bool all_no_ir, is_6ghz;
+	int i, j;
+	struct hostapd_hw_modes *mode = NULL;
+
+	if (hostapd_get_hw_features(iface))
+		return 0;
+
+	all_no_ir = true;
+	is_6ghz = false;
+
+	for (i = 0; i < iface->num_hw_features; i++) {
+		mode = &iface->hw_features[i];
+
+		if (mode->mode == iface->conf->hw_mode) {
+			if (iface->freq > 0 &&
+			    !hw_mode_get_channel(mode, iface->freq, NULL)) {
+				mode = NULL;
+				continue;
+			}
+
+			for (j = 0; j < mode->num_channels; j++) {
+				if (!(mode->channels[j].flag &
+				      HOSTAPD_CHAN_NO_IR))
+					all_no_ir = false;
+
+				if (is_6ghz_freq(mode->channels[j].freq))
+					is_6ghz = true;
+			}
+			break;
+		}
+	}
+
+	if (!mode || !is_6ghz)
+		return 0;
+	iface->current_mode = mode;
+
+	if (iface->state == HAPD_IFACE_ENABLED) {
+		if (!all_no_ir) {
+			struct hostapd_channel_data *chan;
+
+			chan = hw_get_channel_freq(iface->current_mode->mode,
+						   iface->freq, NULL,
+						   iface->hw_features,
+						   iface->num_hw_features);
+
+			if (!chan) {
+				wpa_printf(MSG_ERROR,
+					   "NO_IR: Could not derive chan from freq");
+				return 0;
+			}
+
+			if (!(chan->flag & HOSTAPD_CHAN_NO_IR))
+				return 0;
+			wpa_printf(MSG_DEBUG,
+				   "NO_IR: The current channel has NO_IR flag now, stop AP.");
+		} else {
+			wpa_printf(MSG_DEBUG,
+				   "NO_IR: All chan in new chanlist are NO_IR, stop AP.");
+		}
+
+		hostapd_set_state(iface, HAPD_IFACE_NO_IR);
+		iface->is_no_ir = true;
+		hostapd_drv_stop_ap(iface->bss[0]);
+		hostapd_no_ir_cleanup(iface->bss[0]);
+		wpa_msg(iface->bss[0]->msg_ctx, MSG_INFO, AP_EVENT_NO_IR);
+	} else if (iface->state == HAPD_IFACE_NO_IR) {
+		if (all_no_ir) {
+			wpa_printf(MSG_DEBUG,
+				   "NO_IR: AP in NO_IR and all chan in the new chanlist are NO_IR. Ignore");
+			return 0;
+		}
+
+		if (!iface->conf->acs) {
+			struct hostapd_channel_data *chan;
+
+			chan = hw_get_channel_freq(iface->current_mode->mode,
+						   iface->freq, NULL,
+						   iface->hw_features,
+						   iface->num_hw_features);
+			if (!chan) {
+				wpa_printf(MSG_ERROR,
+					   "NO_IR: Could not derive chan from freq");
+				return 0;
+			}
+
+			/* If the last operating channel is NO_IR, trigger ACS.
+			 */
+			if (chan->flag & HOSTAPD_CHAN_NO_IR) {
+				iface->freq = 0;
+				iface->conf->channel = 0;
+				if (acs_init(iface) != HOSTAPD_CHAN_ACS)
+					wpa_printf(MSG_ERROR,
+						   "NO_IR: Could not start ACS");
+				return 0;
+			}
+		}
+
+		setup_interface2(iface);
+	}
+
+	return 0;
+}
+
+
 static void channel_list_update_timeout(void *eloop_ctx, void *timeout_ctx)
 {
 	struct hostapd_iface *iface = eloop_ctx;
@@ -1627,6 +1746,13 @@ static void channel_list_update_timeout(void *eloop_ctx, void *timeout_ctx)
 
 void hostapd_channel_list_updated(struct hostapd_iface *iface, int initiator)
 {
+	if (initiator == REGDOM_SET_BY_DRIVER) {
+		hostapd_for_each_interface(iface->interfaces,
+					   hostapd_no_ir_channel_list_updated,
+					   NULL);
+		return;
+	}
+
 	if (!iface->wait_channel_update || initiator != REGDOM_SET_BY_USER)
 		return;
 
@@ -1776,6 +1902,7 @@ static void hostapd_set_6ghz_sec_chan(struct hostapd_iface *iface)
 static int setup_interface2(struct hostapd_iface *iface)
 {
 	iface->wait_channel_update = 0;
+	iface->is_no_ir = false;
 
 	if (hostapd_get_hw_features(iface)) {
 		/* Not all drivers support this yet, so continue without hw
@@ -1831,6 +1958,14 @@ static int setup_interface2(struct hostapd_iface *iface)
 	return hostapd_setup_interface_complete(iface, 0);
 
 fail:
+	if (iface->is_no_ir) {
+		/* If AP is in NO_IR state, it can be reenabled by the driver
+		 * regulatory update and EVENT_CHANNEL_LIST_CHANGED. */
+		hostapd_set_state(iface, HAPD_IFACE_NO_IR);
+		wpa_msg(iface->bss[0]->msg_ctx, MSG_INFO, AP_EVENT_NO_IR);
+		return 0;
+	}
+
 	hostapd_set_state(iface, HAPD_IFACE_DISABLED);
 	wpa_msg(iface->bss[0]->msg_ctx, MSG_INFO, AP_EVENT_DISABLED);
 	if (iface->interfaces && iface->interfaces->terminate_on_error)
@@ -2321,6 +2456,13 @@ dfs_offload:
 
 fail:
 	wpa_printf(MSG_ERROR, "Interface initialization failed");
+
+	if (iface->is_no_ir) {
+		hostapd_set_state(iface, HAPD_IFACE_NO_IR);
+		wpa_msg(hapd->msg_ctx, MSG_INFO, AP_EVENT_NO_IR);
+		return 0;
+	}
+
 	hostapd_set_state(iface, HAPD_IFACE_DISABLED);
 	wpa_msg(hapd->msg_ctx, MSG_INFO, AP_EVENT_DISABLED);
 #ifdef CONFIG_FST
@@ -2366,8 +2508,15 @@ int hostapd_setup_interface_complete(struct hostapd_iface *iface, int err)
 
 	if (err) {
 		wpa_printf(MSG_ERROR, "Interface initialization failed");
-		hostapd_set_state(iface, HAPD_IFACE_DISABLED);
 		iface->need_to_start_in_sync = 0;
+
+		if (iface->is_no_ir) {
+			hostapd_set_state(iface, HAPD_IFACE_NO_IR);
+			wpa_msg(hapd->msg_ctx, MSG_INFO, AP_EVENT_NO_IR);
+			return 0;
+		}
+
+		hostapd_set_state(iface, HAPD_IFACE_DISABLED);
 		wpa_msg(hapd->msg_ctx, MSG_INFO, AP_EVENT_DISABLED);
 		if (interfaces && interfaces->terminate_on_error)
 			eloop_terminate();
@@ -2536,6 +2685,7 @@ void hostapd_interface_deinit(struct hostapd_iface *iface)
 
 	eloop_cancel_timeout(channel_list_update_timeout, iface, NULL);
 	iface->wait_channel_update = 0;
+	iface->is_no_ir = false;
 
 #ifdef CONFIG_FST
 	if (iface->fst) {
@@ -3421,6 +3571,8 @@ const char * hostapd_state_text(enum hostapd_iface_state s)
 		return "DFS";
 	case HAPD_IFACE_ENABLED:
 		return "ENABLED";
+	case HAPD_IFACE_NO_IR:
+		return "NO_IR";
 	}
 
 	return "UNKNOWN";

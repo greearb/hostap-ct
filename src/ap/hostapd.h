@@ -99,6 +99,7 @@ enum hostapd_chan_status {
 	HOSTAPD_CHAN_VALID = 0, /* channel is ready */
 	HOSTAPD_CHAN_INVALID = 1, /* no usable channel found */
 	HOSTAPD_CHAN_ACS = 2, /* ACS work being performed */
+	HOSTAPD_CHAN_INVALID_NO_IR = 3, /* channel invalid due to AFC NO IR */
 };
 
 struct hostapd_probereq_cb {
@@ -491,6 +492,7 @@ struct hostapd_iface {
 		HAPD_IFACE_ACS,
 		HAPD_IFACE_HT_SCAN,
 		HAPD_IFACE_DFS,
+		HAPD_IFACE_NO_IR,
 		HAPD_IFACE_ENABLED
 	} state;
 
@@ -650,6 +652,9 @@ struct hostapd_iface {
 
 	int (*enable_iface_cb)(struct hostapd_iface *iface);
 	int (*disable_iface_cb)(struct hostapd_iface *iface);
+
+	/* Configured freq of interface is NO_IR */
+	bool is_no_ir;
 };
 
 /* hostapd.c */

@@ -1353,12 +1353,20 @@ static int acs_request_scan(struct hostapd_iface *iface)
 
 enum hostapd_chan_status acs_init(struct hostapd_iface *iface)
 {
+	int err;
+
 	wpa_printf(MSG_INFO, "ACS: Automatic channel selection started, this may take a bit");
 
 	if (iface->drv_flags & WPA_DRIVER_FLAGS_ACS_OFFLOAD) {
 		wpa_printf(MSG_INFO, "ACS: Offloading to driver");
-		if (hostapd_drv_do_acs(iface->bss[0]))
+
+		err = hostapd_drv_do_acs(iface->bss[0]);
+		if (err) {
+			if (err == 1)
+				return HOSTAPD_CHAN_INVALID_NO_IR;
 			return HOSTAPD_CHAN_INVALID;
+		}
+
 		return HOSTAPD_CHAN_ACS;
 	}
 

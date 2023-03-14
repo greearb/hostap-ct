@@ -794,6 +794,11 @@ int hostapd_check_he_6ghz_capab(struct hostapd_iface *iface)
 }
 
 
+/* Returns:
+ * 1 = usable
+ * 0 = not usable
+ * -1 = not currently usable due to 6 GHz NO-IR
+ */
 static int hostapd_is_usable_chan(struct hostapd_iface *iface,
 				  int frequency, int primary)
 {
@@ -817,6 +822,10 @@ static int hostapd_is_usable_chan(struct hostapd_iface *iface,
 		   chan->flag,
 		   chan->flag & HOSTAPD_CHAN_NO_IR ? " NO-IR" : "",
 		   chan->flag & HOSTAPD_CHAN_RADAR ? " RADAR" : "");
+
+	if (is_6ghz_freq(chan->freq) && (chan->flag & HOSTAPD_CHAN_NO_IR))
+		return -1;
+
 	return 0;
 }
 
@@ -826,6 +835,7 @@ static int hostapd_is_usable_edmg(struct hostapd_iface *iface)
 	int i, contiguous = 0;
 	int num_of_enabled = 0;
 	int max_contiguous = 0;
+	int err;
 	struct ieee80211_edmg_config edmg;
 	struct hostapd_channel_data *pri_chan;
 
@@ -865,8 +875,9 @@ static int hostapd_is_usable_edmg(struct hostapd_iface *iface)
 		if (num_of_enabled > 4)
 			return 0;
 
-		if (!hostapd_is_usable_chan(iface, freq, 1))
-			return 0;
+		err = hostapd_is_usable_chan(iface, freq, 1);
+		if (err <= 0)
+			return err;
 
 		if (contiguous > max_contiguous)
 			max_contiguous = contiguous;
@@ -942,10 +953,16 @@ static bool hostapd_is_usable_punct_bitmap(struct hostapd_iface *iface)
 }
 
 
+/* Returns:
+ * 1 = usable
+ * 0 = not usable
+ * -1 = not currently usable due to 6 GHz NO-IR
+ */
 static int hostapd_is_usable_chans(struct hostapd_iface *iface)
 {
 	int secondary_freq;
 	struct hostapd_channel_data *pri_chan;
+	int err;
 
 	if (!iface->current_mode)
 		return 0;
@@ -957,12 +974,15 @@ static int hostapd_is_usable_chans(struct hostapd_iface *iface)
 		wpa_printf(MSG_ERROR, "Primary frequency not present");
 		return 0;
 	}
-	if (!hostapd_is_usable_chan(iface, pri_chan->freq, 1)) {
+
+	err = hostapd_is_usable_chan(iface, pri_chan->freq, 1);
+	if (err <= 0) {
 		wpa_printf(MSG_ERROR, "Primary frequency not allowed");
-		return 0;
+		return err;
 	}
-	if (!hostapd_is_usable_edmg(iface))
-		return 0;
+	err = hostapd_is_usable_edmg(iface);
+	if (err <= 0)
+		return err;
 
 	if (!hostapd_is_usable_punct_bitmap(iface))
 		return 0;
@@ -970,8 +990,9 @@ static int hostapd_is_usable_chans(struct hostapd_iface *iface)
 	if (!iface->conf->secondary_channel)
 		return 1;
 
-	if (hostapd_is_usable_chan(iface, iface->freq +
-				   iface->conf->secondary_channel * 20, 0)) {
+	err = hostapd_is_usable_chan(iface, iface->freq +
+				     iface->conf->secondary_channel * 20, 0);
+	if (err > 0) {
 		if (iface->conf->secondary_channel == 1 &&
 		    (pri_chan->allowed_bw & HOSTAPD_CHAN_WIDTH_40P))
 			return 1;
@@ -980,24 +1001,24 @@ static int hostapd_is_usable_chans(struct hostapd_iface *iface)
 			return 1;
 	}
 	if (!iface->conf->ht40_plus_minus_allowed)
-		return 0;
+		return err;
 
 	/* Both HT40+ and HT40- are set, pick a valid secondary channel */
 	secondary_freq = iface->freq + 20;
-	if (hostapd_is_usable_chan(iface, secondary_freq, 0) &&
-	    (pri_chan->allowed_bw & HOSTAPD_CHAN_WIDTH_40P)) {
+	err = hostapd_is_usable_chan(iface, secondary_freq, 0);
+	if (err > 0 && (pri_chan->allowed_bw & HOSTAPD_CHAN_WIDTH_40P)) {
 		iface->conf->secondary_channel = 1;
 		return 1;
 	}
 
 	secondary_freq = iface->freq - 20;
-	if (hostapd_is_usable_chan(iface, secondary_freq, 0) &&
-	    (pri_chan->allowed_bw & HOSTAPD_CHAN_WIDTH_40M)) {
+	err = hostapd_is_usable_chan(iface, secondary_freq, 0);
+	if (err > 0 && (pri_chan->allowed_bw & HOSTAPD_CHAN_WIDTH_40M)) {
 		iface->conf->secondary_channel = -1;
 		return 1;
 	}
 
-	return 0;
+	return err;
 }
 
 
@@ -1058,11 +1079,17 @@ static enum hostapd_chan_status
 hostapd_check_chans(struct hostapd_iface *iface)
 {
 	if (iface->freq) {
+		int err;
+
 		hostapd_determine_mode(iface);
-		if (hostapd_is_usable_chans(iface))
-			return HOSTAPD_CHAN_VALID;
-		else
-			return HOSTAPD_CHAN_INVALID;
+
+		err = hostapd_is_usable_chans(iface);
+		if (err <= 0) {
+			if (!err)
+				return HOSTAPD_CHAN_INVALID;
+			return HOSTAPD_CHAN_INVALID_NO_IR;
+		}
+		return HOSTAPD_CHAN_VALID;
 	}
 
 	/*
@@ -1073,6 +1100,8 @@ hostapd_check_chans(struct hostapd_iface *iface)
 	switch (acs_init(iface)) {
 	case HOSTAPD_CHAN_ACS:
 		return HOSTAPD_CHAN_ACS;
+	case HOSTAPD_CHAN_INVALID_NO_IR:
+		return HOSTAPD_CHAN_INVALID_NO_IR;
 	case HOSTAPD_CHAN_VALID:
 	case HOSTAPD_CHAN_INVALID:
 	default:
@@ -1112,6 +1141,7 @@ int hostapd_acs_completed(struct hostapd_iface *iface, int err)
 
 	switch (hostapd_check_chans(iface)) {
 	case HOSTAPD_CHAN_VALID:
+		iface->is_no_ir = false;
 		wpa_msg(iface->bss[0]->msg_ctx, MSG_INFO,
 			ACS_EVENT_COMPLETED "freq=%d channel=%d",
 			iface->freq, iface->conf->channel);
@@ -1121,6 +1151,9 @@ int hostapd_acs_completed(struct hostapd_iface *iface, int err)
 		wpa_msg(iface->bss[0]->msg_ctx, MSG_INFO, ACS_EVENT_FAILED);
 		hostapd_notify_bad_chans(iface);
 		goto out;
+	case HOSTAPD_CHAN_INVALID_NO_IR:
+		iface->is_no_ir = true;
+		/* fall through */
 	case HOSTAPD_CHAN_INVALID:
 	default:
 		wpa_printf(MSG_ERROR, "ACS picked unusable channels");
@@ -1206,9 +1239,13 @@ int hostapd_select_hw_mode(struct hostapd_iface *iface)
 
 	switch (hostapd_check_chans(iface)) {
 	case HOSTAPD_CHAN_VALID:
+		iface->is_no_ir = false;
 		return 0;
 	case HOSTAPD_CHAN_ACS: /* ACS will run and later complete */
 		return 1;
+	case HOSTAPD_CHAN_INVALID_NO_IR:
+		iface->is_no_ir = true;
+		/* fall through */
 	case HOSTAPD_CHAN_INVALID:
 	default:
 		hostapd_notify_bad_chans(iface);
