@@ -1713,6 +1713,14 @@ struct wpa_driver_ap_params {
 	 * ema - Enhanced MBSSID advertisements support.
 	 */
 	bool ema;
+
+	/**
+	 * punct_bitmap - Preamble puncturing bitmap
+	 * Each bit corresponds to a 20 MHz subchannel, the lowest bit for the
+	 * channel with the lowest frequency. A bit set to 1 indicates that the
+	 * subchannel is punctured, otherwise active.
+	 */
+	u16 punct_bitmap;
 };
 
 struct wpa_driver_mesh_bss_params {

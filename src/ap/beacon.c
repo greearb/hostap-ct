@@ -2101,6 +2101,10 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 	params.fd_frame_tmpl = hostapd_fils_discovery(hapd, &params);
 #endif /* CONFIG_FILS */
 
+#ifdef CONFIG_IEEE80211BE
+	params.punct_bitmap = iconf->punct_bitmap;
+#endif /* CONFIG_IEEE80211BE */
+
 	if (cmode &&
 	    hostapd_set_freq_params(&freq, iconf->hw_mode, iface->freq,
 				    iconf->channel, iconf->enable_edmg,
