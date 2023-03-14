@@ -1839,7 +1839,8 @@ int ap_ctrl_iface_chanswitch(struct wpa_supplicant *wpa_s, const char *pos)
 
 
 void wpas_ap_ch_switch(struct wpa_supplicant *wpa_s, int freq, int ht,
-		       int offset, int width, int cf1, int cf2, int finished)
+		       int offset, int width, int cf1, int cf2,
+		       u16 punct_bitmap, int finished)
 {
 	struct hostapd_iface *iface = wpa_s->ap_iface;
 
@@ -1851,7 +1852,8 @@ void wpas_ap_ch_switch(struct wpa_supplicant *wpa_s, int freq, int ht,
 	if (wpa_s->current_ssid)
 		wpa_s->current_ssid->frequency = freq;
 	hostapd_event_ch_switch(iface->bss[0], freq, ht,
-				offset, width, cf1, cf2, finished);
+				offset, width, cf1, cf2, punct_bitmap,
+				finished);
 }
 
 

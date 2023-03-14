@@ -5622,6 +5622,7 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 					  data->ch_switch.ch_width,
 					  data->ch_switch.cf1,
 					  data->ch_switch.cf2,
+					  data->ch_switch.punct_bitmap,
 					  1);
 		}
 #endif /* CONFIG_AP */

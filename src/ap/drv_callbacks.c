@@ -859,7 +859,7 @@ void hostapd_event_sta_opmode_changed(struct hostapd_data *hapd, const u8 *addr,
 
 void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 			     int offset, int width, int cf1, int cf2,
-			     int finished)
+			     u16 punct_bitmap, int finished)
 {
 #ifdef NEED_AP_MLME
 	int channel, chwidth, is_dfs0, is_dfs;
@@ -868,14 +868,14 @@ void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 
 	hostapd_logger(hapd, NULL, HOSTAPD_MODULE_IEEE80211,
 		       HOSTAPD_LEVEL_INFO,
-		       "driver %s channel switch: iface->freq=%d, freq=%d, ht=%d, vht_ch=0x%x, "
-		       "he_ch=0x%x, eht_ch=0x%x, offset=%d, width=%d (%s), cf1=%d, cf2=%d",
+		       "driver %s channel switch: iface->freq=%d, freq=%d, ht=%d, vht_ch=0x%x, he_ch=0x%x, eht_ch=0x%x, offset=%d, width=%d (%s), cf1=%d, cf2=%d, puncturing_bitmap=0x%x",
 		       finished ? "had" : "starting",
 		       hapd->iface->freq,
 		       freq, ht, hapd->iconf->ch_switch_vht_config,
 		       hapd->iconf->ch_switch_he_config,
 		       hapd->iconf->ch_switch_eht_config, offset,
-		       width, channel_width_to_string(width), cf1, cf2);
+		       width, channel_width_to_string(width), cf1, cf2,
+		       punct_bitmap);
 
 	if (!hapd->iface->current_mode) {
 		hostapd_logger(hapd, NULL, HOSTAPD_MODULE_IEEE80211,
@@ -987,6 +987,9 @@ void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 	hostapd_set_oper_chwidth(hapd->iconf, chwidth);
 	hostapd_set_oper_centr_freq_seg0_idx(hapd->iconf, seg0_idx);
 	hostapd_set_oper_centr_freq_seg1_idx(hapd->iconf, seg1_idx);
+#ifdef CONFIG_IEEE80211BE
+	hapd->iconf->punct_bitmap = punct_bitmap;
+#endif /* CONFIG_IEEE80211BE */
 	if (hapd->iconf->ieee80211ac) {
 		hapd->iconf->vht_capab &= ~VHT_CAP_SUPP_CHAN_WIDTH_MASK;
 		if (chwidth == CONF_OPER_CHWIDTH_160MHZ)
@@ -1001,11 +1004,11 @@ void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 				  hapd->iface->num_hw_features);
 
 	wpa_msg(hapd->msg_ctx, MSG_INFO,
-		"%sfreq=%d ht_enabled=%d ch_offset=%d ch_width=%s cf1=%d cf2=%d is_dfs0=%d dfs=%d",
+		"%sfreq=%d ht_enabled=%d ch_offset=%d ch_width=%s cf1=%d cf2=%d is_dfs0=%d dfs=%d puncturing_bitmap=0x%04x",
 		finished ? WPA_EVENT_CHANNEL_SWITCH :
 		WPA_EVENT_CHANNEL_SWITCH_STARTED,
 		freq, ht, offset, channel_width_to_string(width),
-		cf1, cf2, is_dfs0, is_dfs);
+		cf1, cf2, is_dfs0, is_dfs, punct_bitmap);
 	if (!finished)
 		return;
 
@@ -2025,6 +2028,7 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 					data->ch_switch.ch_width,
 					data->ch_switch.cf1,
 					data->ch_switch.cf2,
+					data->ch_switch.punct_bitmap,
 					event == EVENT_CH_SWITCH);
 		break;
 	case EVENT_CONNECT_FAILED_REASON:

@@ -6326,6 +6326,7 @@ union wpa_event_data {
 	 * @cf1: Center frequency 1
 	 * @cf2: Center frequency 2
 	 * @link_id: Link ID of the MLO link
+	 * @punct_bitmap: Puncturing bitmap
 	 */
 	struct ch_switch {
 		int freq;
@@ -6335,6 +6336,7 @@ union wpa_event_data {
 		int cf1;
 		int cf2;
 		int link_id;
+		u16 punct_bitmap;
 	} ch_switch;
 
 	/**
