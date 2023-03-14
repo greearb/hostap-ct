@@ -202,6 +202,9 @@ u8 * hostapd_eid_eht_operation(struct hostapd_data *hapd, u8 *eid)
 	if (!hapd->iface->current_mode)
 		return eid;
 
+	if (hapd->iconf->punct_bitmap)
+		elen += EHT_OPER_DISABLED_SUBCHAN_BITMAP_SIZE;
+
 	*pos++ = WLAN_EID_EXTENSION;
 	*pos++ = 1 + elen;
 	*pos++ = WLAN_EID_EXT_EHT_OPERATION;
@@ -252,6 +255,12 @@ u8 * hostapd_eid_eht_operation(struct hostapd_data *hapd, u8 *eid)
 
 	oper->oper_info.ccfs0 = seg0 ? seg0 : hapd->iconf->channel;
 	oper->oper_info.ccfs1 = seg1;
+
+	if (hapd->iconf->punct_bitmap) {
+		oper->oper_params |= EHT_OPER_DISABLED_SUBCHAN_BITMAP_PRESENT;
+		oper->oper_info.disabled_chan_bitmap =
+			host_to_le16(hapd->iconf->punct_bitmap);
+	}
 
 	return pos + elen;
 }

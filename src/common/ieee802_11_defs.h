@@ -2473,6 +2473,7 @@ struct ieee80211_he_mu_edca_parameter_set {
 #define EHT_OPER_DEFAULT_PE_DURATION                   BIT(2)
 #define EHT_OPER_GROUP_ADDR_BU_INDICATION_LIMIT        BIT(3)
 #define EHT_OPER_GROUP_ADDR_BU_INDICATION_EXPONENT     (BIT(4) | BIT(5))
+#define EHT_OPER_DISABLED_SUBCHAN_BITMAP_SIZE          2
 
 /* Control subfield: Channel Width subfield; see Table 9-401b */
 #define EHT_OPER_CHANNEL_WIDTH_20MHZ                   0
