@@ -170,6 +170,11 @@ struct hostapd_channel_data {
 	 * wmm_rules - WMM regulatory rules
 	 */
 	struct hostapd_wmm_rule wmm_rules[WMM_AC_NUM];
+
+	/**
+	 * punct_bitmap - RU puncturing bitmap
+	 */
+	u16 punct_bitmap;
 };
 
 #define HE_MAC_CAPAB_0		0

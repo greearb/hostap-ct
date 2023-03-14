@@ -326,6 +326,7 @@ static void acs_cleanup_mode(struct hostapd_hw_modes *mode)
 		dl_list_init(&chan->survey_list);
 		chan->flag |= HOSTAPD_CHAN_SURVEY_LIST_INITIALIZED;
 		chan->min_nf = 0;
+		chan->punct_bitmap = 0;
 	}
 }
 
@@ -711,6 +712,55 @@ static int is_common_24ghz_chan(int chan)
 #define ACS_24GHZ_PREFER_1_6_11 0.8
 #endif /* ACS_24GHZ_PREFER_1_6_11 */
 
+
+#ifdef CONFIG_IEEE80211BE
+static void acs_update_puncturing_bitmap(struct hostapd_iface *iface,
+					 struct hostapd_hw_modes *mode, u32 bw,
+					 int n_chans,
+					 struct hostapd_channel_data *chan,
+					 long double factor,
+					 int index_primary)
+{
+	struct hostapd_config *conf = iface->conf;
+	struct hostapd_channel_data *adj_chan = NULL;
+	int i;
+	long double threshold;
+
+	/*
+	 * If threshold is 0 or user configured puncturing pattern is
+	 * available then don't add additional puncturing.
+	 */
+	if (!conf->punct_acs_threshold || conf->punct_bitmap)
+		return;
+
+	if (is_24ghz_mode(mode->mode) || bw < 80)
+		return;
+
+	threshold = factor * conf->punct_acs_threshold / 100;
+	for (i = 0; i < n_chans; i++) {
+		int adj_freq;
+
+		if (i == index_primary)
+			continue; /* Cannot puncture primary channel */
+
+		if (i > index_primary)
+			adj_freq = chan->freq + (i - index_primary) * 20;
+		else
+			adj_freq = chan->freq - (index_primary - i) * 20;
+
+		adj_chan = acs_find_chan(iface, adj_freq);
+		if (!adj_chan) {
+			chan->punct_bitmap = 0;
+			return;
+		}
+
+		if (adj_chan->interference_factor > threshold)
+			chan->punct_bitmap |= BIT(i);
+	}
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 static void
 acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 			 struct hostapd_hw_modes *mode,
@@ -734,7 +784,13 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 		/* Since in the current ACS implementation the first channel is
 		 * always a primary channel, skip channels not available as
 		 * primary until more sophisticated channel selection is
-		 * implemented. */
+		 * implemented.
+		 *
+		 * If this implementation is changed to allow any channel in
+		 * the bandwidth to be the primary one, the last parameter to
+		 * acs_update_puncturing_bitmap() should be changed to the index
+		 * of the primary channel
+		 */
 		if (!chan_pri_allowed(chan))
 			continue;
 
@@ -913,8 +969,20 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 
 		if (acs_usable_chan(chan) &&
 		    (!*ideal_chan || factor < *ideal_factor)) {
+			/* Reset puncturing bitmap for the previous ideal
+			 * channel */
+			if (*ideal_chan)
+				(*ideal_chan)->punct_bitmap = 0;
+
 			*ideal_factor = factor;
 			*ideal_chan = chan;
+
+#ifdef CONFIG_IEEE80211BE
+			if (iface->conf->ieee80211be)
+				acs_update_puncturing_bitmap(iface, mode, bw,
+							     n_chans, chan,
+							     factor, 0);
+#endif /* CONFIG_IEEE80211BE */
 		}
 
 		/* This channel would at least be usable */
@@ -991,8 +1059,21 @@ bw_selected:
 	if (ideal_chan) {
 		wpa_printf(MSG_DEBUG, "ACS: Ideal channel is %d (%d MHz) with total interference factor of %Lg",
 			   ideal_chan->chan, ideal_chan->freq, ideal_factor);
+
+#ifdef CONFIG_IEEE80211BE
+		if (iface->conf->punct_acs_threshold)
+			wpa_printf(MSG_DEBUG, "ACS: RU puncturing bitmap 0x%x",
+				   ideal_chan->punct_bitmap);
+#endif /* CONFIG_IEEE80211BE */
+
 		return ideal_chan;
 	}
+
+#ifdef CONFIG_IEEE80211BE
+	if (iface->conf->punct_acs_threshold)
+		wpa_printf(MSG_DEBUG, "ACS: RU puncturing bitmap 0x%x",
+			   ideal_chan->punct_bitmap);
+#endif /* CONFIG_IEEE80211BE */
 
 	return rand_chan;
 }
@@ -1106,6 +1187,9 @@ static void acs_study(struct hostapd_iface *iface)
 
 	iface->conf->channel = ideal_chan->chan;
 	iface->freq = ideal_chan->freq;
+#ifdef CONFIG_IEEE80211BE
+	iface->conf->punct_bitmap = ideal_chan->punct_bitmap;
+#endif /* CONFIG_IEEE80211BE */
 
 	if (iface->conf->ieee80211ac || iface->conf->ieee80211ax) {
 		acs_adjust_secondary(iface);
