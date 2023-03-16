@@ -2625,12 +2625,8 @@ enum qca_wlan_vendor_attr_config {
 	 * state, it should not exceed the negotiated channel width. If it is
 	 * configured when STA is in disconnected state, the configured value
 	 * will take effect for the next immediate connection.
-	 * Possible values are:
-	 *   NL80211_CHAN_WIDTH_20
-	 *   NL80211_CHAN_WIDTH_40
-	 *   NL80211_CHAN_WIDTH_80
-	 *   NL80211_CHAN_WIDTH_80P80
-	 *   NL80211_CHAN_WIDTH_160
+	 *
+	 * This uses values defined in enum nl80211_chan_width.
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_CHANNEL_WIDTH = 63,
 
