@@ -2515,6 +2515,7 @@ void wpa_supplicant_associate(struct wpa_supplicant *wpa_s,
 		if (bss)
 			ssid->frequency = bss->freq;
 		if (wpa_supplicant_join_mesh(wpa_s, ssid) < 0) {
+			wpa_supplicant_set_state(wpa_s, WPA_INACTIVE);
 			wpa_msg(wpa_s, MSG_ERROR, "Could not join mesh");
 			return;
 		}
