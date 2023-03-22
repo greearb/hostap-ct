@@ -10,6 +10,7 @@ logger = logging.getLogger()
 
 import hostapd
 from utils import HwsimSkip, fail_test
+from test_ap_eap import check_tls13_support
 
 def check_suite_b_capa(dev):
     if "GCMP" not in dev[0].get_capability("pairwise"):
@@ -401,6 +402,11 @@ def test_suite_b_192_rsa(dev, apdev):
     """WPA2/GCMP-256 connection at Suite B 192-bit level and RSA"""
     run_suite_b_192_rsa(dev, apdev)
 
+def test_suite_b_192_rsa_tls_13(dev, apdev):
+    """WPA2/GCMP-256 connection at Suite B 192-bit level and RSA (TLS v1.3)"""
+    check_tls13_support(dev[0])
+    run_suite_b_192_rsa(dev, apdev, tls13=True)
+
 def test_suite_b_192_rsa_ecdhe(dev, apdev):
     """WPA2/GCMP-256 connection at Suite B 192-bit level and RSA (ECDHE)"""
     run_suite_b_192_rsa(dev, apdev, no_dhe=True)
@@ -409,29 +415,44 @@ def test_suite_b_192_rsa_dhe(dev, apdev):
     """WPA2/GCMP-256 connection at Suite B 192-bit level and RSA (DHE)"""
     run_suite_b_192_rsa(dev, apdev, no_ecdh=True)
 
-def run_suite_b_192_rsa(dev, apdev, no_ecdh=False, no_dhe=False):
+def run_suite_b_192_rsa(dev, apdev, no_ecdh=False, no_dhe=False, tls13=False):
     check_suite_b_192_capa(dev, dhe=no_ecdh)
     dev[0].flush_scan_cache()
     params = suite_b_192_rsa_ap_params()
+    tls_flags = ""
     if no_ecdh:
-        params["tls_flags"] = "[SUITEB-NO-ECDH]"
+        tls_flags += "[SUITEB-NO-ECDH]"
     if no_dhe:
         del params["dh_file"]
+    if tls13:
+        if not no_ecdh:
+            tls_flags += "[SUITEB]"
+        tls_flags += "[ENABLE-TLSv1.3]"
+    if len(tls_flags) > 0:
+        params["tls_flags"] = tls_flags
     hapd = hostapd.add_ap(apdev[0], params)
 
+    phase1 = "tls_suiteb=1"
+    if tls13:
+        phase1 += " tls_disable_tlsv1_0=1 tls_disable_tlsv1_1=1 tls_disable_tlsv1_2=1 tls_disable_tlsv1_3=0"
     dev[0].connect("test-suite-b", key_mgmt="WPA-EAP-SUITE-B-192",
                    ieee80211w="2",
-                   phase1="tls_suiteb=1",
+                   phase1=phase1,
                    eap="TLS", identity="tls user",
                    ca_cert="auth_serv/rsa3072-ca.pem",
                    client_cert="auth_serv/rsa3072-user.pem",
                    private_key="auth_serv/rsa3072-user.key",
                    pairwise="GCMP-256", group="GCMP-256", scan_freq="2412")
+    ver = dev[0].get_status_field("eap_tls_version")
+    logger.info("TLS version: " + ver)
+    if tls13 and ver != "TLSv1.3":
+        raise Exception("Unexpected TLS version: " + ver)
     tls_cipher = dev[0].get_status_field("EAP TLS cipher")
     if tls_cipher != "ECDHE-RSA-AES256-GCM-SHA384" and \
        tls_cipher != "DHE-RSA-AES256-GCM-SHA384" and \
        tls_cipher != "ECDHE-RSA-AES-256-GCM-AEAD" and \
-       tls_cipher != "DHE-RSA-AES-256-GCM-AEAD":
+       tls_cipher != "DHE-RSA-AES-256-GCM-AEAD" and \
+       tls_cipher != "TLS_AES_256_GCM_SHA384":
         raise Exception("Unexpected TLS cipher: " + tls_cipher)
     cipher = dev[0].get_status_field("mgmt_group_cipher")
     if cipher != "BIP-GMAC-256":
