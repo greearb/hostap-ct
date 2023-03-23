@@ -1202,6 +1202,9 @@ void hostapd_acs_channel_selected(struct hostapd_data *hapd,
 			hapd->iconf, acs_res->vht_seg1_center_ch);
 		hostapd_set_oper_centr_freq_seg1_idx(hapd->iconf, 0);
 	}
+
+	if (hapd->iface->conf->ieee80211be && acs_res->puncture_bitmap)
+		hapd->iconf->punct_bitmap = acs_res->puncture_bitmap;
 #endif /* CONFIG_IEEE80211BE */
 
 out:

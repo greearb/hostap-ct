@@ -6540,6 +6540,7 @@ union wpa_event_data {
 		u8 vht_seg1_center_ch;
 		u16 ch_width;
 		enum hostapd_hw_mode hw_mode;
+		u16 puncture_bitmap;
 	} acs_selected_channels;
 
 	/**
