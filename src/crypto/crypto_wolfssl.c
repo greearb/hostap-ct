@@ -578,12 +578,18 @@ void * aes_encrypt_init(const u8 *key, size_t len)
 
 int aes_encrypt(void *ctx, const u8 *plain, u8 *crypt)
 {
+#if defined(HAVE_FIPS) && \
+    (!defined(HAVE_FIPS_VERSION) || (HAVE_FIPS_VERSION <= 2))
+	/* Old FIPS has void return on this API */
+	wc_AesEncryptDirect(ctx, crypt, plain);
+#else
 	int err = wc_AesEncryptDirect(ctx, crypt, plain);
 
 	if (err != 0) {
 		LOG_WOLF_ERROR_FUNC(wc_AesEncryptDirect, err);
 		return -1;
 	}
+#endif
 	return 0;
 }
 
@@ -621,12 +627,18 @@ void * aes_decrypt_init(const u8 *key, size_t len)
 
 int aes_decrypt(void *ctx, const u8 *crypt, u8 *plain)
 {
+#if defined(HAVE_FIPS) && \
+    (!defined(HAVE_FIPS_VERSION) || (HAVE_FIPS_VERSION <= 2))
+	/* Old FIPS has void return on this API */
+	wc_AesDecryptDirect(ctx, plain, crypt);
+#else
 	int err = wc_AesDecryptDirect(ctx, plain, crypt);
 
 	if (err != 0) {
 		LOG_WOLF_ERROR_FUNC(wc_AesDecryptDirect, err);
 		return -1;
 	}
+#endif
 	return 0;
 }
 
