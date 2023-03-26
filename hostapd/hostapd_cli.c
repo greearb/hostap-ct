@@ -314,6 +314,12 @@ static void hostapd_cli_action_process(char *msg, size_t len)
 }
 
 
+static void hostapd_cli_action_cb(char *msg, size_t len)
+{
+	hostapd_cli_action_process(msg, len);
+}
+
+
 static int hostapd_cli_cmd_sta(struct wpa_ctrl *ctrl, int argc, char *argv[])
 {
 	char buf[64];
@@ -2033,7 +2039,6 @@ static void hostapd_cli_interactive(void)
 			os_snprintf(hfile, hfile_len, "%s/%s", home, fname);
 	}
 
-	eloop_register_signal_terminate(hostapd_cli_eloop_terminate, NULL);
 	edit_init(hostapd_cli_edit_cmd_cb, hostapd_cli_edit_eof_cb,
 		  hostapd_cli_edit_completion_cb, NULL, hfile, NULL);
 	eloop_register_timeout(ping_interval, 0, hostapd_cli_ping, NULL, NULL);
@@ -2057,40 +2062,46 @@ static void hostapd_cli_cleanup(void)
 }
 
 
-static void hostapd_cli_action(struct wpa_ctrl *ctrl)
+static void hostapd_cli_action_ping(void *eloop_ctx, void *timeout_ctx)
 {
-	fd_set rfds;
-	int fd, res;
-	struct timeval tv;
+	struct wpa_ctrl *ctrl = eloop_ctx;
 	char buf[256];
 	size_t len;
 
-	fd = wpa_ctrl_get_fd(ctrl);
-
-	while (!hostapd_cli_quit) {
-		FD_ZERO(&rfds);
-		FD_SET(fd, &rfds);
-		tv.tv_sec = ping_interval;
-		tv.tv_usec = 0;
-		res = select(fd + 1, &rfds, NULL, NULL, &tv);
-		if (res < 0 && errno != EINTR) {
-			perror("select");
-			break;
-		}
-
-		if (FD_ISSET(fd, &rfds))
-			hostapd_cli_recv_pending(ctrl, 0, 1);
-		else {
-			len = sizeof(buf) - 1;
-			if (wpa_ctrl_request(ctrl, "PING", 4, buf, &len,
-					     hostapd_cli_action_process) < 0 ||
-			    len < 4 || os_memcmp(buf, "PONG", 4) != 0) {
-				printf("hostapd did not reply to PING "
-				       "command - exiting\n");
-				break;
-			}
-		}
+	/* verify that connection is still working */
+	len = sizeof(buf) - 1;
+	if (wpa_ctrl_request(ctrl, "PING", 4, buf, &len,
+			     hostapd_cli_action_cb) < 0 ||
+	    len < 4 || os_memcmp(buf, "PONG", 4) != 0) {
+		printf("hostapd did not reply to PING command - exiting\n");
+		eloop_terminate();
+		return;
 	}
+	eloop_register_timeout(ping_interval, 0, hostapd_cli_action_ping,
+			       ctrl, NULL);
+}
+
+
+static void hostapd_cli_action_receive(int sock, void *eloop_ctx,
+				       void *sock_ctx)
+{
+	struct wpa_ctrl *ctrl = eloop_ctx;
+
+	hostapd_cli_recv_pending(ctrl, 0, 1);
+}
+
+
+static void hostapd_cli_action(struct wpa_ctrl *ctrl)
+{
+	int fd;
+
+	fd = wpa_ctrl_get_fd(ctrl);
+	eloop_register_timeout(ping_interval, 0, hostapd_cli_action_ping,
+			       ctrl, NULL);
+	eloop_register_read_sock(fd, hostapd_cli_action_receive, ctrl, NULL);
+	eloop_run();
+	eloop_cancel_timeout(hostapd_cli_action_ping, ctrl, NULL);
+	eloop_unregister_read_sock(fd);
 }
 
 
@@ -2192,6 +2203,8 @@ int main(int argc, char *argv[])
 		os_sleep(1, 0);
 		continue;
 	}
+
+	eloop_register_signal_terminate(hostapd_cli_eloop_terminate, NULL);
 
 	if (action_file && !hostapd_cli_attached)
 		return -1;
