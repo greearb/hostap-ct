@@ -812,7 +812,11 @@ static void rx_data_bss(struct wlantest *wt, const struct ieee80211_hdr *hdr,
 
 		bss = bss_get(wt, bssid);
 		if (bss) {
-			struct wlantest_sta *sta = sta_get(bss, sta_addr);
+			struct wlantest_sta *sta;
+
+			sta = sta_find_mlo(wt, bss, sta_addr);
+			if (!sta)
+				sta = sta_get(bss, sta_addr);
 
 			if (sta) {
 				if (qos) {
