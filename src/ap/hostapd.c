@@ -1765,7 +1765,7 @@ static void hostapd_set_6ghz_sec_chan(struct hostapd_iface *iface)
 	bw = center_idx_to_bw_6ghz(seg0);
 	/* Assign the secondary channel if absent in config for
 	 * bandwidths > 20 MHz */
-	if (bw > 20 && !iface->conf->secondary_channel) {
+	if (bw > 0 && !iface->conf->secondary_channel) {
 		if (((iface->conf->channel - 1) / 4) % 2)
 			iface->conf->secondary_channel = -1;
 		else
