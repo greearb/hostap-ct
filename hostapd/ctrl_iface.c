@@ -2546,6 +2546,36 @@ static int hostapd_ctrl_check_freq_params(struct hostapd_freq_params *params,
 			return -1;
 		}
 		break;
+	case 320:
+		if (!params->center_freq1 || params->center_freq2 ||
+		    !params->sec_channel_offset)
+			return -1;
+
+		switch (params->sec_channel_offset) {
+		case 1:
+			if (params->freq + 150 != params->center_freq1 &&
+			    params->freq + 110 != params->center_freq1 &&
+			    params->freq + 70 != params->center_freq1 &&
+			    params->freq + 30 != params->center_freq1 &&
+			    params->freq - 10 != params->center_freq1 &&
+			    params->freq - 50 != params->center_freq1 &&
+			    params->freq - 90 != params->center_freq1 &&
+			    params->freq - 130 != params->center_freq1)
+				return -1;
+			break;
+		case -1:
+			if (params->freq + 130 != params->center_freq1 &&
+			    params->freq + 90 != params->center_freq1 &&
+			    params->freq + 50 != params->center_freq1 &&
+			    params->freq + 10 != params->center_freq1 &&
+			    params->freq - 30 != params->center_freq1 &&
+			    params->freq - 70 != params->center_freq1 &&
+			    params->freq - 110 != params->center_freq1 &&
+			    params->freq - 150 != params->center_freq1)
+				return -1;
+			break;
+		}
+		break;
 	default:
 		return -1;
 	}

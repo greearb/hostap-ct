@@ -3601,6 +3601,7 @@ static int hostapd_change_config_freq(struct hostapd_data *hapd,
 	case 40:
 	case 80:
 	case 160:
+	case 320:
 		conf->ht_capab |= HT_CAP_INFO_SUPP_CHANNEL_WIDTH_SET;
 		break;
 	default:
@@ -3672,6 +3673,9 @@ static int hostapd_fill_csa_settings(struct hostapd_data *hapd,
 		break;
 	case 160:
 		bandwidth = CONF_OPER_CHWIDTH_160MHZ;
+		break;
+	case 320:
+		bandwidth = CONF_OPER_CHWIDTH_320MHZ;
 		break;
 	default:
 		bandwidth = CONF_OPER_CHWIDTH_USE_HT;

@@ -978,7 +978,8 @@ void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 	hapd->iconf->ch_switch_eht_config = 0;
 
 	if (width == CHAN_WIDTH_40 || width == CHAN_WIDTH_80 ||
-	    width == CHAN_WIDTH_80P80 || width == CHAN_WIDTH_160)
+	    width == CHAN_WIDTH_80P80 || width == CHAN_WIDTH_160 ||
+	    width == CHAN_WIDTH_320)
 		hapd->iconf->ht_capab |= HT_CAP_INFO_SUPP_CHANNEL_WIDTH_SET;
 	else if (width == CHAN_WIDTH_20 || width == CHAN_WIDTH_20_NOHT)
 		hapd->iconf->ht_capab &= ~HT_CAP_INFO_SUPP_CHANNEL_WIDTH_SET;

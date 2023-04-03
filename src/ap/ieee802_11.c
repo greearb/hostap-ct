@@ -6347,7 +6347,7 @@ u8 * hostapd_eid_wb_chsw_wrapper(struct hostapd_data *hapd, u8 *eid)
 	     !hapd->cs_freq_params.eht_enabled))
 		return eid;
 
-	/* bandwidth: 0: 40, 1: 80, 2: 160, 3: 80+80 */
+	/* bandwidth: 0: 40, 1: 80, 2: 160, 3: 80+80, 4: 320 */
 	switch (hapd->cs_freq_params.bandwidth) {
 	case 40:
 		bw = 0;
@@ -6361,6 +6361,9 @@ u8 * hostapd_eid_wb_chsw_wrapper(struct hostapd_data *hapd, u8 *eid)
 		break;
 	case 160:
 		bw = 2;
+		break;
+	case 320:
+		bw = 4;
 		break;
 	default:
 		/* not valid VHT bandwidth or not in CSA */
