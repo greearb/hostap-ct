@@ -156,6 +156,11 @@ int hostapd_drv_set_qos_map(struct hostapd_data *hapd, const u8 *qos_map_set,
 
 void hostapd_get_ext_capa(struct hostapd_iface *iface);
 
+void hostapd_get_hw_mode_any_channels(struct hostapd_data *hapd,
+				      struct hostapd_hw_modes *mode,
+				      int acs_ch_list_all, bool allow_disabled,
+				      int **freq_list);
+
 static inline int hostapd_drv_set_countermeasures(struct hostapd_data *hapd,
 						  int enabled)
 {

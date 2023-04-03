@@ -883,10 +883,10 @@ int hostapd_drv_set_qos_map(struct hostapd_data *hapd,
 }
 
 
-static void hostapd_get_hw_mode_any_channels(struct hostapd_data *hapd,
-					     struct hostapd_hw_modes *mode,
-					     int acs_ch_list_all,
-					     int **freq_list)
+void hostapd_get_hw_mode_any_channels(struct hostapd_data *hapd,
+				      struct hostapd_hw_modes *mode,
+				      int acs_ch_list_all, bool allow_disabled,
+				      int **freq_list)
 {
 	int i;
 
@@ -912,7 +912,7 @@ static void hostapd_get_hw_mode_any_channels(struct hostapd_data *hapd,
 		     (!hapd->iface->conf->ieee80211ax &&
 		      !hapd->iface->conf->ieee80211be)))
 			continue;
-		if (!(chan->flag & HOSTAPD_CHAN_DISABLED) &&
+		if ((!(chan->flag & HOSTAPD_CHAN_DISABLED) || allow_disabled) &&
 		    !(hapd->iface->conf->acs_exclude_dfs &&
 		      (chan->flag & HOSTAPD_CHAN_RADAR)) &&
 		    !(chan->max_tx_power < hapd->iface->conf->min_tx_power))
@@ -969,7 +969,7 @@ int hostapd_drv_do_acs(struct hostapd_data *hapd)
 		    selected_mode != mode->mode)
 			continue;
 		hostapd_get_hw_mode_any_channels(hapd, mode, acs_ch_list_all,
-						 &freq_list);
+						 false, &freq_list);
 	}
 
 	params.freq_list = freq_list;

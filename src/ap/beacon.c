@@ -2058,6 +2058,8 @@ void ieee802_11_free_ap_params(struct wpa_driver_ap_params *params)
 	os_free(params->unsol_bcast_probe_resp_tmpl);
 	params->unsol_bcast_probe_resp_tmpl = NULL;
 #endif /* CONFIG_IEEE80211AX */
+	os_free(params->allowed_freqs);
+	params->allowed_freqs = NULL;
 }
 
 
@@ -2069,7 +2071,8 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 	struct hostapd_config *iconf = iface->conf;
 	struct hostapd_hw_modes *cmode = iface->current_mode;
 	struct wpabuf *beacon, *proberesp, *assocresp;
-	int res, ret = -1;
+	int res, ret = -1, i;
+	struct hostapd_hw_modes *mode;
 
 	if (!hapd->drv_priv) {
 		wpa_printf(MSG_ERROR, "Interface is disabled");
@@ -2143,6 +2146,19 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 				    &cmode->he_capab[IEEE80211_MODE_AP],
 				    &cmode->eht_capab[IEEE80211_MODE_AP]) == 0)
 		params.freq = &freq;
+
+	for (i = 0; i < hapd->iface->num_hw_features; i++) {
+		mode = &hapd->iface->hw_features[i];
+
+		if (iconf->hw_mode != HOSTAPD_MODE_IEEE80211ANY &&
+		    iconf->hw_mode != mode->mode)
+			continue;
+
+		hostapd_get_hw_mode_any_channels(hapd, mode,
+						 !(iconf->acs_freq_list.num ||
+						   iconf->acs_ch_list.num),
+						 true, &params.allowed_freqs);
+	}
 
 	res = hostapd_drv_set_ap(hapd, &params);
 	hostapd_free_ap_extra_ies(hapd, beacon, proberesp, assocresp);

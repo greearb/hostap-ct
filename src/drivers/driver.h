@@ -1748,6 +1748,16 @@ struct wpa_driver_ap_params {
 	 * The driver will use these to include RNR elements in EMA beacons.
 	 */
 	u8 **rnr_elem_offset;
+
+	/**
+	 * allowed_freqs - List of allowed 20 MHz channel center frequencies in
+	 * MHz for AP operation. Drivers which support this parameter will
+	 * generate a new list based on this provided list by filtering out
+	 * channels that cannot be used at that time due to regulatory or other
+	 * constraints. The resulting list is used as the list of all allowed
+	 * channels whenever performing operations like ACS and DFS.
+	 */
+	int *allowed_freqs;
 };
 
 struct wpa_driver_mesh_bss_params {
