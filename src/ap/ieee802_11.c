@@ -6550,7 +6550,8 @@ size_t hostapd_eid_rnr_len(struct hostapd_data *hapd, u32 type)
 			total_len += hostapd_eid_rnr_colocation_len(
 				hapd, &current_len);
 
-		if (hapd->conf->rnr && hapd->iface->num_bss > 1)
+		if (hapd->conf->rnr && hapd->iface->num_bss > 1 &&
+		    !hapd->iconf->mbssid)
 			total_len += hostapd_eid_rnr_iface_len(hapd, hapd,
 							       &current_len);
 		break;
@@ -6759,7 +6760,8 @@ u8 * hostapd_eid_rnr(struct hostapd_data *hapd, u8 *eid, u32 type)
 			eid = hostapd_eid_rnr_colocation(hapd, eid,
 							 &current_len);
 
-		if (hapd->conf->rnr && hapd->iface->num_bss > 1)
+		if (hapd->conf->rnr && hapd->iface->num_bss > 1 &&
+		    !hapd->iconf->mbssid)
 			eid = hostapd_eid_rnr_iface(hapd, hapd, eid,
 						    &current_len);
 		break;
