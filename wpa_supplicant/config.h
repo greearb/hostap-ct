@@ -615,6 +615,7 @@ struct wpa_config {
 	 */
 	int fast_reauth;
 
+#ifndef CONFIG_OPENSC_ENGINE_PATH
 	/**
 	 * opensc_engine_path - Path to the OpenSSL engine for opensc
 	 *
@@ -622,7 +623,9 @@ struct wpa_config {
 	 * engine (engine_opensc.so); if %NULL, this engine is not loaded.
 	 */
 	char *opensc_engine_path;
+#endif /* CONFIG_OPENSC_ENGINE_PATH */
 
+#ifndef CONFIG_PKCS11_ENGINE_PATH
 	/**
 	 * pkcs11_engine_path - Path to the OpenSSL engine for PKCS#11
 	 *
@@ -630,7 +633,9 @@ struct wpa_config {
 	 * engine (engine_pkcs11.so); if %NULL, this engine is not loaded.
 	 */
 	char *pkcs11_engine_path;
+#endif /* CONFIG_PKCS11_ENGINE_PATH */
 
+#ifndef CONFIG_PKCS11_MODULE_PATH
 	/**
 	 * pkcs11_module_path - Path to the OpenSSL OpenSC/PKCS#11 module
 	 *
@@ -639,6 +644,7 @@ struct wpa_config {
 	 * module is not loaded.
 	 */
 	char *pkcs11_module_path;
+#endif /* CONFIG_PKCS11_MODULE_PATH */
 
 	/**
 	 * openssl_ciphers - OpenSSL cipher string

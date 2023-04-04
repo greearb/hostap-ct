@@ -2136,9 +2136,15 @@ struct eapol_sm *eapol_sm_init(struct eapol_ctx *ctx)
 	sm->authPeriod = 30;
 
 	os_memset(&conf, 0, sizeof(conf));
+#ifndef CONFIG_OPENSC_ENGINE_PATH
 	conf.opensc_engine_path = ctx->opensc_engine_path;
+#endif /* CONFIG_OPENSC_ENGINE_PATH */
+#ifndef CONFIG_PKCS11_ENGINE_PATH
 	conf.pkcs11_engine_path = ctx->pkcs11_engine_path;
+#endif /* CONFIG_PKCS11_ENGINE_PATH */
+#ifndef CONFIG_PKCS11_MODULE_PATH
 	conf.pkcs11_module_path = ctx->pkcs11_module_path;
+#endif /* CONFIG_PKCS11_MODULE_PATH */
 	conf.openssl_ciphers = ctx->openssl_ciphers;
 	conf.wps = ctx->wps;
 	conf.cert_in_cb = ctx->cert_in_cb;

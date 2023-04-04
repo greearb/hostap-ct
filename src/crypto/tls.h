@@ -80,9 +80,15 @@ union tls_event_data {
 };
 
 struct tls_config {
+#ifndef CONFIG_OPENSC_ENGINE_PATH
 	const char *opensc_engine_path;
+#endif /* CONFIG_OPENSC_ENGINE_PATH */
+#ifndef CONFIG_PKCS11_ENGINE_PATH
 	const char *pkcs11_engine_path;
+#endif /* CONFIG_PKCS11_ENGINE_PATH */
+#ifndef CONFIG_PKCS11_MODULE_PATH
 	const char *pkcs11_module_path;
+#endif /* CONFIG_PKCS11_MODULE_PATH */
 	int fips_mode;
 	int cert_in_cb;
 	const char *openssl_ciphers;

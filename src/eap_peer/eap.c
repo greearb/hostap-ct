@@ -2220,9 +2220,15 @@ struct eap_sm * eap_peer_sm_init(void *eapol_ctx,
 	dl_list_init(&sm->erp_keys);
 
 	os_memset(&tlsconf, 0, sizeof(tlsconf));
+#ifndef CONFIG_OPENSC_ENGINE_PATH
 	tlsconf.opensc_engine_path = conf->opensc_engine_path;
+#endif /* CONFIG_OPENSC_ENGINE_PATH */
+#ifndef CONFIG_PKCS11_ENGINE_PATH
 	tlsconf.pkcs11_engine_path = conf->pkcs11_engine_path;
+#endif /* CONFIG_PKCS11_ENGINE_PATH */
+#ifndef CONFIG_PKCS11_MODULE_PATH
 	tlsconf.pkcs11_module_path = conf->pkcs11_module_path;
+#endif /* CONFIG_PKCS11_MODULE_PATH */
 	tlsconf.openssl_ciphers = conf->openssl_ciphers;
 #ifdef CONFIG_FIPS
 	tlsconf.fips_mode = 1;

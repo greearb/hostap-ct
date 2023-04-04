@@ -4343,11 +4343,18 @@ dbus_bool_t wpas_dbus_getter_pkcs11_engine_path(
 	const struct wpa_dbus_property_desc *property_desc,
 	DBusMessageIter *iter, DBusError *error, void *user_data)
 {
+
+#ifndef CONFIG_PKCS11_ENGINE_PATH
 	struct wpa_supplicant *wpa_s = user_data;
 
 	return wpas_dbus_string_property_getter(iter,
 						wpa_s->conf->pkcs11_engine_path,
 						error);
+#else /* CONFIG_PKCS11_ENGINE_PATH */
+	return wpas_dbus_string_property_getter(iter,
+						CONFIG_PKCS11_ENGINE_PATH,
+						error);
+#endif /* CONFIG_PKCS11_ENGINE_PATH */
 }
 
 
@@ -4364,11 +4371,17 @@ dbus_bool_t wpas_dbus_getter_pkcs11_module_path(
 	const struct wpa_dbus_property_desc *property_desc,
 	DBusMessageIter *iter, DBusError *error, void *user_data)
 {
+#ifndef CONFIG_PKCS11_MODULE_PATH
 	struct wpa_supplicant *wpa_s = user_data;
 
 	return wpas_dbus_string_property_getter(iter,
 						wpa_s->conf->pkcs11_module_path,
 						error);
+#else /* CONFIG_PKCS11_MODULE_PATH */
+	return wpas_dbus_string_property_getter(iter,
+						CONFIG_PKCS11_MODULE_PATH,
+						error);
+#endif /* CONFIG_PKCS11_MODULE_PATH */
 }
 
 

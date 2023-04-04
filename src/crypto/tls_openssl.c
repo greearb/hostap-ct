@@ -992,6 +992,26 @@ void * tls_init(const struct tls_config *conf)
 	SSL_CTX *ssl;
 	struct tls_context *context;
 	const char *ciphers;
+#ifndef OPENSSL_NO_ENGINE
+#ifdef CONFIG_OPENSC_ENGINE_PATH
+	char const * const opensc_engine_path = CONFIG_OPENSC_ENGINE_PATH;
+#else /* CONFIG_OPENSC_ENGINE_PATH */
+	char const * const opensc_engine_path =
+		conf ? conf->opensc_engine_path : NULL;
+#endif /* CONFIG_OPENSC_ENGINE_PATH */
+#ifdef CONFIG_PKCS11_ENGINE_PATH
+	char const * const pkcs11_engine_path = CONFIG_PKCS11_ENGINE_PATH;
+#else /* CONFIG_PKCS11_ENGINE_PATH */
+	char const * const pkcs11_engine_path =
+		conf ? conf->pkcs11_engine_path : NULL;
+#endif /* CONFIG_PKCS11_ENGINE_PATH */
+#ifdef CONFIG_PKCS11_MODULE_PATH
+	char const * const pkcs11_module_path = CONFIG_PKCS11_MODULE_PATH;
+#else /* CONFIG_PKCS11_MODULE_PATH */
+	char const * const pkcs11_module_path =
+		conf ? conf->pkcs11_module_path : NULL;
+#endif /* CONFIG_PKCS11_MODULE_PATH */
+#endif /* OPENSSL_NO_ENGINE */
 
 	if (tls_openssl_ref_count == 0) {
 		void openssl_load_legacy_provider(void);
@@ -1134,12 +1154,10 @@ void * tls_init(const struct tls_config *conf)
 	wpa_printf(MSG_DEBUG, "ENGINE: Loading builtin engines");
 	ENGINE_load_builtin_engines();
 
-	if (conf &&
-	    (conf->opensc_engine_path || conf->pkcs11_engine_path ||
-	     conf->pkcs11_module_path)) {
-		if (tls_engine_load_dynamic_opensc(conf->opensc_engine_path) ||
-		    tls_engine_load_dynamic_pkcs11(conf->pkcs11_engine_path,
-						   conf->pkcs11_module_path)) {
+	if (opensc_engine_path || pkcs11_engine_path || pkcs11_module_path) {
+		if (tls_engine_load_dynamic_opensc(opensc_engine_path) ||
+		    tls_engine_load_dynamic_pkcs11(pkcs11_engine_path,
+						   pkcs11_module_path)) {
 			tls_deinit(data);
 			return NULL;
 		}

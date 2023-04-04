@@ -401,6 +401,22 @@ CONFIG_CTRL_IFACE_DBUS_INTRO=y
 # amount of memory/flash.
 #CONFIG_DYNAMIC_EAP_METHODS=y
 
+# Dynamic library loading
+
+# Add the ability to configure libraries to load at compile time.
+# If set, these disable dynamic configuration.
+#CONFIG_PKCS11_ENGINE_PATH - pkcs11_engine library location.
+#CONFIG_PKCS11_MODULE_PATH - pkcs11_module library location.
+#CONFIG_OPENSC_ENGINE_PATH - opensc_engine library location.
+#
+# Prevent library loading at runtime
+#CONFIG_NO_PKCS11_ENGINE_PATH=y # prevents loading pkcs11_engine library.
+#CONFIG_NO_PKCS11_MODULE_PATH=y # prevents loading pkcs11_module library.
+# CONFIG_NO_OPENSC_ENGINE_PATH=y # prevents loading opensc_engine library.
+
+# Prevents loading EAP libraries at runtime
+#CONFIG_NO_LOAD_DYNAMIC_EAP=y
+
 # IEEE Std 802.11r-2008 (Fast BSS Transition) for station mode
 CONFIG_IEEE80211R=y
 

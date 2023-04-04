@@ -3023,9 +3023,15 @@ void wpa_config_free(struct wpa_config *config)
 		wpabuf_free(config->wps_vendor_ext[i]);
 	os_free(config->ctrl_interface);
 	os_free(config->ctrl_interface_group);
+#ifndef CONFIG_OPENSC_ENGINE_PATH
 	os_free(config->opensc_engine_path);
+#endif /* CONFIG_OPENSC_ENGINE_PATH */
+#ifndef CONFIG_PKCS11_ENGINE_PATH
 	os_free(config->pkcs11_engine_path);
+#endif /* CONFIG_PKCS11_ENGINE_PATH */
+#ifndef CONFIG_PKCS11_MODULE_PATH
 	os_free(config->pkcs11_module_path);
+#endif /* CONFIG_PKCS11_MODULE_PATH */
 	os_free(config->openssl_ciphers);
 	os_free(config->pcsc_reader);
 	str_clear_free(config->pcsc_pin);
@@ -4939,6 +4945,7 @@ static int wpa_config_process_country(const struct global_parse_data *data,
 }
 
 
+#ifndef CONFIG_NO_LOAD_DYNAMIC_EAP
 static int wpa_config_process_load_dynamic_eap(
 	const struct global_parse_data *data, struct wpa_config *config,
 	int line, const char *so)
@@ -4957,6 +4964,7 @@ static int wpa_config_process_load_dynamic_eap(
 
 	return 0;
 }
+#endif /* CONFIG_NO_LOAD_DYNAMIC_EAP */
 
 
 #ifdef CONFIG_WPS
@@ -5338,9 +5346,15 @@ static const struct global_parse_data global_fields[] = {
 #endif /* CONFIG_MESH */
 	{ INT(disable_scan_offload), 0 },
 	{ INT(fast_reauth), 0 },
+#ifndef CONFIG_OPENSC_ENGINE_PATH
 	{ STR(opensc_engine_path), 0 },
+#endif /* CONFIG_OPENSC_ENGINE_PATH */
+#ifndef CONFIG_PKCS11_ENGINE_PATH
 	{ STR(pkcs11_engine_path), 0 },
+#endif /* CONFIG_PKCS11_ENGINE_PATH */
+#ifndef CONFIG_PKCS11_MODULE_PATH
 	{ STR(pkcs11_module_path), 0 },
+#endif /* CONFIG_PKCS11_MODULE_PATH */
 	{ STR(openssl_ciphers), 0 },
 	{ STR(pcsc_reader), 0 },
 	{ STR(pcsc_pin), 0 },
@@ -5352,7 +5366,9 @@ static const struct global_parse_data global_fields[] = {
 #ifndef CONFIG_NO_CONFIG_WRITE
 	{ INT(update_config), 0 },
 #endif /* CONFIG_NO_CONFIG_WRITE */
+#ifndef CONFIG_NO_LOAD_DYNAMIC_EAP
 	{ FUNC_NO_VAR(load_dynamic_eap), 0 },
+#endif /* CONFIG_NO_LOAD_DYNAMIC_EAP */
 #ifdef CONFIG_WPS
 	{ FUNC(uuid), CFG_CHANGED_UUID },
 	{ INT_RANGE(auto_uuid, 0, 1), 0 },

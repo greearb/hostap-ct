@@ -1185,9 +1185,15 @@ int wpa_supplicant_init_eapol(struct wpa_supplicant *wpa_s)
 	ctx->get_config_blob = wpa_supplicant_get_config_blob;
 #endif /* CONFIG_NO_CONFIG_BLOBS */
 	ctx->aborted_cached = wpa_supplicant_aborted_cached;
+#ifndef CONFIG_OPENSC_ENGINE_PATH
 	ctx->opensc_engine_path = wpa_s->conf->opensc_engine_path;
+#endif /* CONFIG_OPENSC_ENGINE_PATH */
+#ifndef CONFIG_PKCS11_ENGINE_PATH
 	ctx->pkcs11_engine_path = wpa_s->conf->pkcs11_engine_path;
+#endif /* CONFIG_PKCS11_ENGINE_PATH */
+#ifndef CONFIG_PKCS11_MODULE_PATH
 	ctx->pkcs11_module_path = wpa_s->conf->pkcs11_module_path;
+#endif /* CONFIG_PKCS11_MODULE_PATH */
 	ctx->openssl_ciphers = wpa_s->conf->openssl_ciphers;
 	ctx->wps = wpa_s->wps;
 	ctx->eap_param_needed = wpa_supplicant_eap_param_needed;

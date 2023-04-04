@@ -188,6 +188,7 @@ struct eapol_ctx {
 	 */
 	void (*aborted_cached)(void *ctx);
 
+#ifndef CONFIG_OPENSC_ENGINE_PATH
 	/**
 	 * opensc_engine_path - Path to the OpenSSL engine for opensc
 	 *
@@ -195,7 +196,9 @@ struct eapol_ctx {
 	 * engine (engine_opensc.so); if %NULL, this engine is not loaded.
 	 */
 	const char *opensc_engine_path;
+#endif /* CONFIG_OPENSC_ENGINE_PATH */
 
+#ifndef CONFIG_PKCS11_ENGINE_PATH
 	/**
 	 * pkcs11_engine_path - Path to the OpenSSL engine for PKCS#11
 	 *
@@ -203,7 +206,9 @@ struct eapol_ctx {
 	 * engine (engine_pkcs11.so); if %NULL, this engine is not loaded.
 	 */
 	const char *pkcs11_engine_path;
+#endif /* CONFIG_PKCS11_ENGINE_PATH */
 
+#ifndef CONFIG_PKCS11_MODULE_PATH
 	/**
 	 * pkcs11_module_path - Path to the OpenSSL OpenSC/PKCS#11 module
 	 *
@@ -212,6 +217,7 @@ struct eapol_ctx {
 	 * module is not loaded.
 	 */
 	const char *pkcs11_module_path;
+#endif /* CONFIG_PKCS11_MODULE_PATH */
 
 	/**
 	 * openssl_ciphers - OpenSSL cipher string
