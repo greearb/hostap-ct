@@ -468,8 +468,9 @@ ieee802_11_build_ap_params_mbssid(struct hostapd_data *hapd,
 {
 	struct hostapd_iface *iface = hapd->iface;
 	struct hostapd_data *tx_bss;
-	size_t len;
+	size_t len, rnr_len = 0;
 	u8 elem_count = 0, *elem = NULL, **elem_offset = NULL, *end;
+	u8 rnr_elem_count = 0, *rnr_elem = NULL, **rnr_elem_offset = NULL;
 
 	if (!iface->mbssid_max_interfaces ||
 	    iface->num_bss > iface->mbssid_max_interfaces ||
@@ -479,7 +480,7 @@ ieee802_11_build_ap_params_mbssid(struct hostapd_data *hapd,
 
 	tx_bss = hostapd_mbssid_get_tx_bss(hapd);
 	len = hostapd_eid_mbssid_len(tx_bss, WLAN_FC_STYPE_BEACON, &elem_count,
-				     NULL, 0);
+				     NULL, 0, &rnr_len);
 	if (!len || (iface->conf->mbssid == ENHANCED_MBSSID_ENABLED &&
 		     elem_count > iface->ema_max_periodicity))
 		goto fail;
@@ -492,8 +493,19 @@ ieee802_11_build_ap_params_mbssid(struct hostapd_data *hapd,
 	if (!elem_offset)
 		goto fail;
 
+	if (rnr_len) {
+		rnr_elem = os_zalloc(rnr_len);
+		if (!rnr_elem)
+			goto fail;
+
+		rnr_elem_offset = os_calloc(elem_count + 1, sizeof(u8 *));
+		if (!rnr_elem_offset)
+			goto fail;
+	}
+
 	end = hostapd_eid_mbssid(tx_bss, elem, elem + len, WLAN_FC_STYPE_BEACON,
-				 elem_count, elem_offset, NULL, 0);
+				 elem_count, elem_offset, NULL, 0, rnr_elem,
+				 &rnr_elem_count, rnr_elem_offset, rnr_len);
 
 	params->mbssid_tx_iface = tx_bss->conf->iface;
 	params->mbssid_index = hostapd_mbssid_get_bss_index(hapd);
@@ -501,12 +513,19 @@ ieee802_11_build_ap_params_mbssid(struct hostapd_data *hapd,
 	params->mbssid_elem_len = end - elem;
 	params->mbssid_elem_count = elem_count;
 	params->mbssid_elem_offset = elem_offset;
+	params->rnr_elem = rnr_elem;
+	params->rnr_elem_len = rnr_len;
+	params->rnr_elem_count = rnr_elem_count;
+	params->rnr_elem_offset = rnr_elem_offset;
 	if (iface->conf->mbssid == ENHANCED_MBSSID_ENABLED)
 		params->ema = true;
 
 	return 0;
 
 fail:
+	os_free(rnr_elem);
+	os_free(rnr_elem_offset);
+	os_free(elem_offset);
 	os_free(elem);
 	wpa_printf(MSG_ERROR, "MBSSID: Configuration failed");
 	return -1;
@@ -590,7 +609,7 @@ static u8 * hostapd_gen_probe_resp(struct hostapd_data *hapd,
 #endif /* CONFIG_IEEE80211BE */
 
 	buflen += hostapd_eid_mbssid_len(hapd, WLAN_FC_STYPE_PROBE_RESP, NULL,
-					 known_bss, known_bss_len);
+					 known_bss, known_bss_len, NULL);
 	buflen += hostapd_eid_rnr_len(hapd, WLAN_FC_STYPE_PROBE_RESP);
 	buflen += hostapd_mbo_ie_len(hapd);
 	buflen += hostapd_eid_owe_trans_len(hapd);
@@ -658,7 +677,8 @@ static u8 * hostapd_gen_probe_resp(struct hostapd_data *hapd,
 	pos = hostapd_get_rsne(hapd, pos, epos - pos);
 	pos = hostapd_eid_bss_load(hapd, pos, epos - pos);
 	pos = hostapd_eid_mbssid(hapd, pos, epos, WLAN_FC_STYPE_PROBE_RESP, 0,
-				 NULL, known_bss, known_bss_len);
+				 NULL, known_bss, known_bss_len, NULL, NULL,
+				 NULL, 0);
 	pos = hostapd_eid_rm_enabled_capab(hapd, pos, epos - pos);
 	pos = hostapd_get_mde(hapd, pos, epos - pos);
 
@@ -2026,6 +2046,10 @@ void ieee802_11_free_ap_params(struct wpa_driver_ap_params *params)
 	params->mbssid_elem = NULL;
 	os_free(params->mbssid_elem_offset);
 	params->mbssid_elem_offset = NULL;
+	os_free(params->rnr_elem);
+	params->rnr_elem = NULL;
+	os_free(params->rnr_elem_offset);
+	params->rnr_elem_offset = NULL;
 #ifdef CONFIG_FILS
 	os_free(params->fd_frame_tmpl);
 	params->fd_frame_tmpl = NULL;

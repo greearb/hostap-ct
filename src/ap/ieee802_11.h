@@ -218,11 +218,12 @@ u16 copy_sta_eht_capab(struct hostapd_data *hapd, struct sta_info *sta,
 		       const u8 *eht_capab, size_t eht_capab_len);
 size_t hostapd_eid_mbssid_len(struct hostapd_data *hapd, u32 frame_type,
 			      u8 *elem_count, const u8 *known_bss,
-			      size_t known_bss_len);
+			      size_t known_bss_len, size_t *rnr_len);
 u8 * hostapd_eid_mbssid(struct hostapd_data *hapd, u8 *eid, u8 *end,
 			unsigned int frame_stype, u8 elem_count,
 			u8 **elem_offset,
-			const u8 *known_bss, size_t known_bss_len);
+			const u8 *known_bss, size_t known_bss_len, u8 *rnr_eid,
+			u8 *rnr_count, u8 **rnr_offset, size_t rnr_len);
 void punct_update_legacy_bw(u16 bitmap, u8 pri_chan,
 			    enum oper_chan_width *width, u8 *seg0, u8 *seg1);
 
