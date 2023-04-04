@@ -4725,6 +4725,28 @@ static int nl80211_mbssid(struct nl_msg *msg,
 		nla_nest_end(msg, elems);
 	}
 
+	if (!params->ema)
+		return 0;
+
+	if (params->rnr_elem_count && params->rnr_elem_len &&
+	    params->rnr_elem_offset && *params->rnr_elem_offset) {
+		u8 i, **offs = params->rnr_elem_offset;
+
+		elems = nla_nest_start(msg, NL80211_ATTR_EMA_RNR_ELEMS);
+		if (!elems)
+			return -1;
+
+		for (i = 0; i < params->rnr_elem_count - 1; i++) {
+			if (nla_put(msg, i + 1, offs[i + 1] - offs[i], offs[i]))
+				return -1;
+		}
+
+		if (nla_put(msg, i + 1, *offs + params->rnr_elem_len - offs[i],
+			    offs[i]))
+			return -1;
+		nla_nest_end(msg, elems);
+	}
+
 	return 0;
 }
 
