@@ -4154,24 +4154,65 @@ enum qca_wlan_vendor_attr_ll_stats_get {
 
 enum qca_wlan_vendor_attr_ll_stats_results {
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_INVALID = 0,
+
+	/*
+	 * For Multi Link Operation (MLO) connection, per-link statistics will
+	 * be sent inside of %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and
+	 * cumulative statistics will be sent outside of
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK to maintain backward
+	 * compatibility with legacy user space. Attributes which don't have
+	 * explicit documentation for MLO will be sent only outside of
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK, such attributes values
+	 * don't depend on whether the connection is MLO capable or not, e.g.,
+	 * radio and channel specific attributes.
+	 */
+
 	/* Unsigned 32bit value. Used by the driver; must match the request id
 	 * provided with the QCA_NL80211_VENDOR_SUBCMD_LL_STATS_GET command.
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_RESULTS_REQ_ID = 1,
 
-	/* Unsigned 32 bit value */
+	/* Unsigned 32 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_BEACON_RX = 2,
-	/* Unsigned 32 bit value */
+	/* Unsigned 32 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_MGMT_RX = 3,
-	/* Unsigned 32 bit value */
+	/* Unsigned 32 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_MGMT_ACTION_RX = 4,
-	/* Unsigned 32 bit value */
+	/* Unsigned 32 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_MGMT_ACTION_TX = 5,
-	/* Signed 32 bit value */
+	/* Unsigned 32 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_RSSI_MGMT = 6,
-	/* Signed 32 bit value */
+	/* Unsigned 32 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_RSSI_DATA = 7,
-	/* Signed 32 bit value */
+	/* Unsigned 32 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_RSSI_ACK = 8,
 
 	/* Attributes of type QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_* are
@@ -4195,7 +4236,8 @@ enum qca_wlan_vendor_attr_ll_stats_results {
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_CAPABILITIES = 13,
 	/* NULL terminated SSID. An array of 33 Unsigned 8bit values */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_SSID = 14,
-	/* BSSID. An array of 6 unsigned 8 bit values */
+	/* For non-MLO connection, BSSID of the AP. For MLO connection, MLD
+	 * address of the AP. An array of 6 unsigned 8 bit values */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_BSSID = 15,
 	/* Country string advertised by AP. An array of 3 unsigned 8 bit
 	 * values.
@@ -4208,6 +4250,15 @@ enum qca_wlan_vendor_attr_ll_stats_results {
 
 	/* Attributes of type QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_* could
 	 * be nested within the interface stats.
+	 * For an MLO connection, all %QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_*
+	 * attributes except %QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_CONTENTION_*
+	 * indicate the aggregate of all links outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_CONTENTION_* attributes
+	 * indicate value of the MLO link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 * These attributes indicate the link specific value inside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
 	 */
 
 	/* Type = enum wifi_traffic_ac, e.g., V0, VI, BE and BK */
@@ -4310,6 +4361,12 @@ enum qca_wlan_vendor_attr_ll_stats_results {
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_RATE_RETRIES_LONG = 48,
 
+	/* Unsigned 32 bit value. This is used to indicate radio ID of the radio
+	 * statistics when %QCA_WLAN_VENDOR_ATTR_LL_STATS_TYPE is
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_TYPE_RADIO. This is also used
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK to indicate radio ID
+	 * of the MLO link.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_RADIO_ID = 49,
 	/* Unsigned 32 bit value. Total number of msecs the radio is awake
 	 * accruing over time.
@@ -4356,7 +4413,13 @@ enum qca_wlan_vendor_attr_ll_stats_results {
 
 	/* Type = enum wifi_channel_width. Channel width, e.g., 20, 40, 80 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_CHANNEL_INFO_WIDTH = 60,
-	/* Unsigned 32 bit value. Primary 20 MHz channel. */
+	/* Unsigned 32 bit value. Primary 20 MHz channel. This is used to
+	 * indicate the primary frequency of the channel when
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_TYPE is
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_TYPE_RADIO. This is also used inside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK to indicate the frequency
+	 * on which the MLO link is operating.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_CHANNEL_INFO_CENTER_FREQ = 61,
 	/* Unsigned 32 bit value. Center frequency (MHz) first segment. */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_CHANNEL_INFO_CENTER_FREQ0 = 62,
@@ -4386,7 +4449,9 @@ enum qca_wlan_vendor_attr_ll_stats_results {
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_CH_INFO = 67,
 
 	/* Signifies the nested list of peer info attributes
-	 * QCA_WLAN_VENDOR_ATTR_LL_STATS_PEER_INFO_*
+	 * QCA_WLAN_VENDOR_ATTR_LL_STATS_PEER_INFO_*. For MLO connection,
+	 * this also contains %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK_ID to
+	 * indicate on which link the peer is connected.
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_PEER_INFO = 68,
 
@@ -4407,16 +4472,32 @@ enum qca_wlan_vendor_attr_ll_stats_results {
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_RESULTS_MORE_DATA = 71,
 
-	/* Unsigned 64 bit value */
+	/* Unsigned 64 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_AVERAGE_TSF_OFFSET = 72,
 
-	/* Unsigned 32 bit value */
+	/* Unsigned 32 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_LEAKY_AP_DETECTED = 73,
 
-	/* Unsigned 32 bit value */
+	/* Unsigned 32 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_LEAKY_AP_AVG_NUM_FRAMES_LEAKED = 74,
 
-	/* Unsigned 32 bit value */
+	/* Unsigned 32 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_LEAKY_AP_GUARD_TIME = 75,
 
 	/* Unsigned 32 bit value */
@@ -4429,13 +4510,29 @@ enum qca_wlan_vendor_attr_ll_stats_results {
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_RADIO_TX_TIME_PER_LEVEL = 78,
 
-	/* Unsigned 32 bit value */
+	/* Unsigned 32 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_RTS_SUCC_CNT = 79,
-	/* Unsigned 32 bit value */
+	/* Unsigned 32 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_RTS_FAIL_CNT = 80,
-	/* Unsigned 32 bit value */
+	/* Unsigned 32 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_PPDU_SUCC_CNT = 81,
-	/* Unsigned 32 bit value */
+	/* Unsigned 32 bit value. For an MLO connection, indicates the value of
+	 * the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
+	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_PPDU_FAIL_CNT = 82,
 
 	/* Unsigned int 32 value.
@@ -4459,12 +4556,18 @@ enum qca_wlan_vendor_attr_ll_stats_results {
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_CHANNEL_LOAD_PERCENTAGE = 86,
 	/* u8 value representing the time slicing duty cycle percentage.
-	 * Possible values are 0-100.
+	 * Possible values are 0-100. For an MLO connection, indicates the value
+	 * of the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_INFO_TS_DUTY_CYCLE = 87,
 	/* Unsigned 32 bit value. The number of Beacon frames which are received
 	 * from the associated AP and indicate buffered unicast frame(s) for us
-	 * in the TIM element.
+	 * in the TIM element. For an MLO connection, indicates the value of the
+	 * link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_TIM_BEACON = 88,
 	/* Unsigned 32 bit value. The total number of Beacon frames received
@@ -4475,16 +4578,45 @@ enum qca_wlan_vendor_attr_ll_stats_results {
 	 *      doesn’t receive any unicast data after this beacon.
 	 * 2)	The related TIM element is still set in the beacon for STA
 	 *	after STA has indicated power save exit by QoS Null Data frame.
+	 * For an MLO connection, indicates the value of the link with the best
+	 * RSSI outside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link
+	 * specific value inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_TIM_BEACON_ERR = 89,
 
 	/* Signed 32 bit value. It represents the noise floor calibration value.
-	 * Possible values are -120~-50 dBm.
+	 * Possible values are -120~-50 dBm. For an MLO connection, indicates
+	 * the value of the link with the best RSSI outside
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK and the link specific value
+	 * inside %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK.
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_NF_CAL_VAL = 90,
 
 	/* Attribute used for padding for 64-bit alignment */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_PAD = 91,
+
+	/* Unsigned u8 value, link ID of an MLO link. Used inside nested
+	 * attribute %QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK to represent the
+	 * link ID of the MLO link for which the statistics are embedded in the
+	 * nested attribute. Used inside nested attribute
+	 * %QCA_WLAN_VENDOR_ATTR_LL_STATS_PEER_INFO to represent the connected
+	 * link ID of the peer.
+	 */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK_ID = 92,
+
+	/* A nested array of attributes for each MLO link, each containing
+	 * per-link statistics of a multi link connection. The attributes used
+	 * inside this nested attribute are defined in enum
+	 * qca_wlan_vendor_attr_ll_stats_results.
+	 *
+	 * For non-MLO connection, this attribute is not present and the
+	 * statistics will be sent outside this attribute (without nesting).
+	 *
+	 * For MLO connection, this attribute is present and also cumulative
+	 * statistics of all the links will be sent outside of this attribute
+	 * to be compatible with legacy user space.
+	 */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK = 93,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_AFTER_LAST,
