@@ -274,9 +274,23 @@
       </varlistentry>
 
       <varlistentry>
+	<term>macsec_linux</term>
+	<listitem>
+	  <para>MACsec Ethernet driver for Linux</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
 	<term>roboswitch</term>
 	<listitem>
 	  <para>wpa_supplicant Broadcom switch driver</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>none</term>
+	<listitem>
+	  <para>no driver (RADIUS server/WPS ER only)</para>
 	</listitem>
       </varlistentry>
 
