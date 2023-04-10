@@ -4047,18 +4047,55 @@ enum qca_wlan_vendor_attr_ll_stats_set {
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_SET_AFTER_LAST - 1,
 };
 
+/**
+ * qca_wlan_ll_stats_clr_req_bitmap - Represents the bitmap to clear LL STATS
+ * values for %QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_CONFIG_REQ_MASK.
+ *
+ * @QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO: Clear all radio statistics.
+ *
+ * @QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO_CCA: Clear cca_busy_time within
+ * radio statistics.
+ *
+ * @QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO_CHANNEL: Clear all channel
+ * statistics within radio statistics.
+ *
+ * @QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_SCAN: Clear all scan statistics within
+ * radio statistics.
+ *
+ * @QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE: Clear all interface statistics.
+ *
+ * @QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_TXRATE: Clear all TX rate statistics
+ * within interface statistics.
+ *
+ * @QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_AC: Clear all AC statistics within
+ * interface statistics.
+ *
+ * @QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_CONTENTION: Clear all contention
+ * (min, max, avg) statistics within AC statistics.
+ *
+ * @QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_ALL_PEER: Clear all peer statistics
+ * on this interface.
+ *
+ * @QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_PER_PEER: Clear particular peer
+ * statistics depending on the peer_mac.
+ */
+enum qca_wlan_ll_stats_clr_req_bitmap {
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO = 		BIT(0),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO_CCA = 		BIT(1),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO_CHANNELS = 	BIT(2),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO_SCAN = 		BIT(3),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE = 		BIT(4),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_TXRATE = 	BIT(5),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_AC = 		BIT(6),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_CONTENTION =	BIT(7),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_ALL_PEER = 	BIT(8),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_PER_PEER = 	BIT(9),
+};
+
 enum qca_wlan_vendor_attr_ll_stats_clr {
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_INVALID = 0,
-	/* Unsigned 32bit bitmap for clearing statistics
-	 * All radio statistics                     0x00000001
-	 * cca_busy_time (within radio statistics)  0x00000002
-	 * All channel stats (within radio statistics) 0x00000004
-	 * All scan statistics (within radio statistics) 0x00000008
-	 * All interface statistics                     0x00000010
-	 * All tx rate statistics (within interface statistics) 0x00000020
-	 * All ac statistics (with in interface statistics) 0x00000040
-	 * All contention (min, max, avg) statistics (within ac statisctics)
-	 * 0x00000080.
+	/* Unsigned 32bit bitmap for clearing statistics, specified
+	 * in the enum qca_wlan_ll_stats_clr_req_bitmap.
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_CONFIG_REQ_MASK = 1,
 	/* Unsigned 8 bit value: Request to stop statistics collection */
@@ -4078,6 +4115,25 @@ enum qca_wlan_vendor_attr_ll_stats_clr {
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_AFTER_LAST - 1,
 };
 
+/**
+ * qca_wlan_ll_stats_get_req_bitmap - Represents the bitmap to request LL STATS
+ * values for %QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_CONFIG_REQ_MASK.
+ *
+ * @QCA_WLAN_LL_STATS_GET_REQ_BITMAP_RADIO: Request all radio statistics.
+ *
+ * @QCA_WLAN_LL_STATS_GET_REQ_BITMAP_IFACE: Request interface statistics.
+ *
+ * @QCA_WLAN_LL_STATS_GET_REQ_BITMAP_ALL_PEER: Request all peer statistics.
+ *
+ * @QCA_WLAN_LL_STATS_GET_REQ_BITMAP_PER_PEER: Request per peer statistics.
+ */
+enum qca_wlan_ll_stats_get_req_bitmap {
+	QCA_WLAN_LL_STATS_GET_REQ_BITMAP_RADIO =	BIT(0),
+	QCA_WLAN_LL_STATS_GET_REQ_BITMAP_IFACE =	BIT(1),
+	QCA_WLAN_LL_STATS_GET_REQ_BITMAP_ALL_PEER = 	BIT(2),
+	QCA_WLAN_LL_STATS_GET_REQ_BITMAP_PER_PEER = 	BIT(3),
+};
+
 enum qca_wlan_vendor_attr_ll_stats_get {
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_INVALID = 0,
 	/* Unsigned 32 bit value provided by the caller issuing the GET stats
@@ -4086,11 +4142,8 @@ enum qca_wlan_vendor_attr_ll_stats_get {
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_CONFIG_REQ_ID = 1,
 	/* Unsigned 32 bit value - bit mask to identify what statistics are
-	 * requested for retrieval.
-	 * Radio Statistics 0x00000001
-	 * Interface Statistics 0x00000020
-	 * All Peer Statistics 0x00000040
-	 * Peer Statistics     0x00000080
+	 * requested for retrieval specified in the enum
+	 * qca_wlan_ll_stats_get_req_bitmap
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_CONFIG_REQ_MASK = 2,
 	/* keep last */
