@@ -1476,11 +1476,11 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 		return -1;
 	}
 
-	if (hapd->wpa_auth && wpa_init_keys(hapd->wpa_auth) < 0)
+	if (start_beacon && hostapd_start_beacon(hapd, flush_old_stations) < 0)
 		return -1;
 
-	if (start_beacon)
-		return hostapd_start_beacon(hapd, flush_old_stations);
+	if (hapd->wpa_auth && wpa_init_keys(hapd->wpa_auth) < 0)
+		return -1;
 
 	return 0;
 }
