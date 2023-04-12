@@ -2845,6 +2845,17 @@ wpa_supplicant_get_scan_results(struct wpa_supplicant *wpa_s,
 		pref_initial_band = wpa_s->conf->initial_band_pref;
 		wpa_dbg(wpa_s, MSG_DEBUG, "INITIAL_BAND: preferring "
 			"to associate with networks on %dGHz band.", pref_initial_band);
+
+		// *edge case for some radios:
+		// if we want to initially connect to 6GHz but the scan didn't include 6GHz, ignore scan results.
+		// this logic assumes that the info->freqs object is in ascending order.
+		if (wpa_s->conf->initial_band_pref == 6) {
+			if ((info != NULL && info->num_freqs > 0) &&
+				 !is_6ghz_freq(info->freqs[info->num_freqs-1])) {
+				wpa_dbg(wpa_s, MSG_DEBUG, "INITIAL_BAND: preference is for 6GHz, but 6GHz wasn't scanned. Dropping scan results.");
+				return NULL;
+			}
+		}
 	}
 	else {
 		pref_initial_band = 0;
