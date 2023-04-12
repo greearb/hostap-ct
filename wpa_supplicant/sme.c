@@ -1619,7 +1619,8 @@ static int sme_external_ml_auth(struct wpa_supplicant *wpa_s,
 	if (os_memcmp(wpa_s->sme.ext_auth_ap_mld_addr, mld_addr, ETH_ALEN) !=
 	    0) {
 		wpa_printf(MSG_DEBUG, "MLD: Unexpected MLD address (expected "
-			   MACSTR ")", MAC2STR(wpa_s->ap_mld_addr));
+			   MACSTR ")",
+			   MAC2STR(wpa_s->sme.ext_auth_ap_mld_addr));
 		return -1;
 	}
 
