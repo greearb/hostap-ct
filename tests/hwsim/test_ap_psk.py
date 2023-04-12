@@ -1533,7 +1533,7 @@ def eapol_test(apdev, dev, wpa2=True, ieee80211w=0):
         if ieee80211w == 2:
             rsne = binascii.unhexlify('30140100000fac040100000fac040100000fac02cc00')
         else:
-            rsne = binascii.unhexlify('30140100000fac040100000fac040100000fac020000')
+            rsne = binascii.unhexlify('30140100000fac040100000fac040100000fac020c00')
     else:
         rsne = binascii.unhexlify('dd160050f20101000050f20201000050f20201000050f202')
     snonce = binascii.unhexlify('1111111111111111111111111111111111111111111111111111111111111111')

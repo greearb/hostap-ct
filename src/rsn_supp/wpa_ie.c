@@ -109,6 +109,10 @@ u16 rsn_supp_capab(struct wpa_sm *sm)
 {
 	u16 capab = 0;
 
+	if (sm->wmm_enabled) {
+		/* Advertise 16 PTKSA replay counters when using WMM */
+		capab |= RSN_NUM_REPLAY_COUNTERS_16 << 2;
+	}
 	if (sm->mfp)
 		capab |= WPA_CAPABILITY_MFPC;
 	if (sm->mfp == 2)

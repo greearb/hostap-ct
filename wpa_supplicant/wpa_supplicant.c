@@ -1582,6 +1582,7 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 	int sel, proto;
 	enum sae_pwe sae_pwe;
 	const u8 *bss_wpa, *bss_rsn, *bss_rsnx, *bss_osen;
+	bool wmm;
 
 	if (bss) {
 		bss_wpa = wpa_bss_get_vendor_ie(bss, WPA_IE_VENDOR_TYPE);
@@ -1977,6 +1978,22 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 		wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_EXT_KEY_ID, 0);
 		wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_USE_EXT_KEY_ID, 0);
 	}
+
+	/* Mark WMM enabled for any HT/VHT/HE/EHT association to get more
+	 * appropriate advertisement of the supported number of PTKSA receive
+	 * counters. In theory, this could be based on a driver capability, but
+	 * in practice all cases using WMM support at least eight replay
+	 * counters, so use a hardcoded value for now since there is no explicit
+	 * driver capability indication for this.
+	 *
+	 * In addition, claim WMM to be enabled if the AP supports it since it
+	 * is far more likely for any current device to support WMM. */
+	wmm = wpa_s->connection_set &&
+		(wpa_s->connection_ht || wpa_s->connection_vht ||
+		 wpa_s->connection_he || wpa_s->connection_eht);
+	if (!wmm && bss)
+		wmm = wpa_bss_get_vendor_ie(bss, WMM_IE_VENDOR_TYPE);
+	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_WMM_ENABLED, wmm);
 
 	if (!skip_default_rsne) {
 		if (wpa_sm_set_assoc_wpa_ie_default(wpa_s->wpa, wpa_ie,

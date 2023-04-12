@@ -388,9 +388,9 @@ class APConnection:
         pmk = binascii.unhexlify("c2c6c255af836bed1b3f2f1ded98e052f5ad618bb554e2836757b55854a0eab7")
 
         if sta_ocv != "0":
-            self.rsne = binascii.unhexlify("301a0100000fac040100000fac040100000fac0280400000000fac06")
+            self.rsne = binascii.unhexlify("301a0100000fac040100000fac040100000fac028c400000000fac06")
         else:
-            self.rsne = binascii.unhexlify("301a0100000fac040100000fac040100000fac0280000000000fac06")
+            self.rsne = binascii.unhexlify("301a0100000fac040100000fac040100000fac028c000000000fac06")
         self.snonce = binascii.unhexlify('1111111111111111111111111111111111111111111111111111111111111111')
 
         dev.connect(self.ssid, raw_psk=self.psk, scan_freq=freq, ocv=sta_ocv,

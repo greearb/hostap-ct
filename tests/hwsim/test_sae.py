@@ -2370,7 +2370,7 @@ def test_sae_rsne_mismatch(dev, apdev):
 
     # First, test with matching RSNE to confirm testing capability
     dev[0].set("rsne_override_eapol",
-               "30140100000fac040100000fac040100000fac080000")
+               "30140100000fac040100000fac040100000fac080c00")
     dev[0].connect("sae-pwe", psk="12345678", key_mgmt="SAE",
                    scan_freq="2412")
     dev[0].request("REMOVE_NETWORK all")
@@ -2378,7 +2378,7 @@ def test_sae_rsne_mismatch(dev, apdev):
     dev[0].dump_monitor()
 
     # Then, test with modified RSNE
-    tests = ["30140100000fac040100000fac040100000fac080010", "0000"]
+    tests = ["30140100000fac040100000fac040100000fac080c10", "0000"]
     for ie in tests:
         dev[0].set("rsne_override_eapol", ie)
         dev[0].connect("sae-pwe", psk="12345678", key_mgmt="SAE",
