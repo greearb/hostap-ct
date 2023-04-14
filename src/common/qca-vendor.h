@@ -4477,13 +4477,14 @@ enum qca_wlan_vendor_attr_ll_stats_results {
 	 *	after STA has indicated power save exit by QoS Null Data frame.
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_TIM_BEACON_ERR = 89,
-	/* Attribute used for padding for 64-bit alignment */
-	QCA_WLAN_VENDOR_ATTR_LL_STATS_PAD = 90,
 
 	/* Signed 32 bit value. It represents the noise floor calibration value.
 	 * Possible values are -120~-50 dBm.
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_NF_CAL_VAL = 90,
+
+	/* Attribute used for padding for 64-bit alignment */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_PAD = 91,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_AFTER_LAST,
