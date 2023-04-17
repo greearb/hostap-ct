@@ -874,7 +874,15 @@ static void sae_sme_send_external_auth_status(struct hostapd_data *hapd,
 
 	os_memset(&params, 0, sizeof(params));
 	params.status = status;
-	params.bssid = sta->addr;
+
+#ifdef CONFIG_IEEE80211BE
+	if (sta->mld_info.mld_sta)
+		params.bssid =
+			sta->mld_info.links[sta->mld_assoc_link_id].peer_addr;
+#endif /* CONFIG_IEEE80211BE */
+	if (!params.bssid)
+		params.bssid = sta->addr;
+
 	if (status == WLAN_STATUS_SUCCESS && sta->sae &&
 	    !hapd->conf->disable_pmksa_caching)
 		params.pmkid = sta->sae->pmkid;
