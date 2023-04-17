@@ -8438,6 +8438,30 @@ enum qca_wlan_vendor_attr_ndp_params {
 	 * This attribute is used and optional for ndp indication.
 	 */
 	QCA_WLAN_VENDOR_ATTR_NDP_SERVICE_ID = 31,
+	/* Unsigned 8-bit value for Cipher Suite capabilities.
+	 * u8 attribute.
+	 * This attribute is used and optional in ndp request, ndp response,
+	 * ndp indication, and ndp confirm.
+	 * This attribute is used to indicate the Capabilities field of Cipher
+	 * Suite Information attribute (CSIA) of NDP frames as defined in
+	 * Wi-Fi Aware Specification v4.0, 9.5.21.2, Table 122.
+	 * Firmware can accept or ignore any of the capability bits.
+	 */
+	QCA_WLAN_VENDOR_ATTR_NDP_CSIA_CAPABILITIES = 32,
+	/* Indicate that GTK protection is required for NDP.
+	 * NLA_FLAG attribute.
+	 * This attribute can be used in ndp request, ndp response, ndp
+	 * indication, and ndp confirm.
+	 * GTK protection required is indicated in the NDPE attribute of NAN
+	 * action frame (NAF) during NDP negotiation as defined in
+	 * Wi-Fi Aware Specification v4.0, 9.5.16.2.
+	 * If the device and peer supports GTKSA and if GTK protection required
+	 * bit is set in NDPE IE, devices will share GTK to each other in SKDA
+	 * of Data Path Security Confirm and Data Path Security Install frames
+	 * of NDP negotiation to send and receive protected group addressed data
+	 * frames from each other.
+	 */
+	QCA_WLAN_VENDOR_ATTR_NDP_GTK_REQUIRED = 33,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_NDP_PARAMS_AFTER_LAST,
