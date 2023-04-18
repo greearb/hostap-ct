@@ -162,6 +162,8 @@ echo
 echo "---[ Additional steps ]-------------------------------------------------"
 echo
 
+rm ca-openssl.cnf.tmp
+
 echo "test_ap_eap.py: ap_wpa2_eap_ttls_server_cert_hash srv_cert_hash"
 
 $OPENSSL x509 -in server.pem -out server.der -outform DER
