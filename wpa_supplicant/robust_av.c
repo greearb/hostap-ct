@@ -97,12 +97,27 @@ static int wpas_populate_type10_classifier(struct type10_params *type10_param,
 }
 
 
+static bool tclas_elem_required(const struct qos_characteristics *qos_elem)
+{
+	if (!qos_elem || !qos_elem->available)
+		return true;
+
+	if (qos_elem->direction == SCS_DIRECTION_DOWN)
+		return true;
+
+	return false;
+}
+
+
 static int wpas_populate_scs_descriptor_ie(struct scs_desc_elem *desc_elem,
-					   struct wpabuf *buf)
+					   struct wpabuf *buf,
+					   bool allow_scs_traffic_desc)
 {
 	u8 *len, *len1;
 	struct tclas_element *tclas_elem;
 	unsigned int i;
+	struct qos_characteristics *qos_elem;
+	u32 control_info = 0;
 
 	/* SCS Descriptor element */
 	wpabuf_put_u8(buf, WLAN_EID_SCS_DESCRIPTOR);
@@ -111,6 +126,9 @@ static int wpas_populate_scs_descriptor_ie(struct scs_desc_elem *desc_elem,
 	wpabuf_put_u8(buf, desc_elem->request_type);
 	if (desc_elem->request_type == SCS_REQ_REMOVE)
 		goto end;
+
+	if (!tclas_elem_required(&desc_elem->qos_char_elem))
+		goto skip_tclas_elem;
 
 	if (desc_elem->intra_access_priority || desc_elem->scs_up_avail) {
 		wpabuf_put_u8(buf, WLAN_EID_INTRA_ACCESS_CATEGORY_PRIORITY);
@@ -162,6 +180,40 @@ static int wpas_populate_scs_descriptor_ie(struct scs_desc_elem *desc_elem,
 		wpabuf_put_u8(buf, WLAN_EID_TCLAS_PROCESSING);
 		wpabuf_put_u8(buf, 1);
 		wpabuf_put_u8(buf, desc_elem->tclas_processing);
+	}
+
+skip_tclas_elem:
+	if (allow_scs_traffic_desc && desc_elem->qos_char_elem.available) {
+		qos_elem = &desc_elem->qos_char_elem;
+		/* Element ID, Length, and Element ID Extension */
+		wpabuf_put_u8(buf, WLAN_EID_EXTENSION);
+		len1 = wpabuf_put(buf, 1);
+		wpabuf_put_u8(buf, WLAN_EID_EXT_QOS_CHARACTERISTICS);
+
+		/* IEEE P802.11be/D4.0, 9.4.2.316 QoS Characteristics element,
+		 * Figure 9-1001av (Control Info field format)
+		 */
+		control_info = ((u32) qos_elem->direction <<
+				EHT_QOS_CONTROL_INFO_DIRECTION_OFFSET);
+		control_info |= ((u32) desc_elem->intra_access_priority <<
+				 EHT_QOS_CONTROL_INFO_TID_OFFSET);
+		control_info |= ((u32) desc_elem->intra_access_priority <<
+				 EHT_QOS_CONTROL_INFO_USER_PRIORITY_OFFSET);
+		control_info |= ((u32) qos_elem->mask <<
+				 EHT_QOS_CONTROL_INFO_PRESENCE_MASK_OFFSET);
+
+		/* Control Info */
+		wpabuf_put_le32(buf, control_info);
+		/* Minimum Service Interval */
+		wpabuf_put_le32(buf, qos_elem->min_si);
+		/* Maximum Service Interval */
+		wpabuf_put_le32(buf, qos_elem->max_si);
+		/* Minimum Data Rate */
+		wpabuf_put_le24(buf, qos_elem->min_data_rate);
+		/* Delay Bound */
+		wpabuf_put_le24(buf, qos_elem->delay_bound);
+
+		*len1 = (u8 *) wpabuf_put(buf, 0) - len1 - 1;
 	}
 
 end:
@@ -273,8 +325,26 @@ static size_t tclas_elem_len(const struct tclas_element *elem)
 }
 
 
+static size_t qos_char_len(const struct qos_characteristics *qos_elem)
+{
+	size_t buf_len = 0;
+
+	buf_len += 1 +	/* Element ID */
+		1 +	/* Length */
+		1 +	/* Element ID Extension */
+		4 +	/* Control Info */
+		4 +	/* Minimum Service Interval */
+		4 +	/* Maximum Service Interval */
+		3 +	/* Minimum Data Rate */
+		3;	/* Delay Bound */
+
+	return buf_len;
+}
+
+
 static struct wpabuf * allocate_scs_buf(struct scs_desc_elem *desc_elem,
-					unsigned int num_scs_desc)
+					unsigned int num_scs_desc,
+					bool allow_scs_traffic_desc)
 {
 	struct wpabuf *buf;
 	size_t buf_len = 0;
@@ -290,6 +360,13 @@ static struct wpabuf * allocate_scs_buf(struct scs_desc_elem *desc_elem,
 			   1 ;	/* Request type */
 
 		if (desc_elem->request_type == SCS_REQ_REMOVE)
+			continue;
+
+		if (allow_scs_traffic_desc &&
+		    desc_elem->qos_char_elem.available)
+			buf_len += qos_char_len(&desc_elem->qos_char_elem);
+
+		if (!tclas_elem_required(&desc_elem->qos_char_elem))
 			continue;
 
 		if (desc_elem->intra_access_priority || desc_elem->scs_up_avail)
@@ -369,8 +446,11 @@ int wpas_send_scs_req(struct wpa_supplicant *wpa_s)
 {
 	struct wpabuf *buf = NULL;
 	struct scs_desc_elem *desc_elem = NULL;
+	const struct ieee80211_eht_capabilities *eht;
+	const u8 *eht_ie;
 	int ret = -1;
 	unsigned int i;
+	bool allow_scs_traffic_desc = false;
 
 	if (wpa_s->wpa_state != WPA_COMPLETED || !wpa_s->current_ssid)
 		return -1;
@@ -385,8 +465,28 @@ int wpas_send_scs_req(struct wpa_supplicant *wpa_s)
 	if (!desc_elem)
 		return -1;
 
+	if (wpa_is_non_eht_scs_traffic_desc_supported(wpa_s->current_bss))
+		allow_scs_traffic_desc = true;
+
+	/* Allow SCS Traffic descriptor support for EHT connection */
+	eht_ie = wpa_bss_get_ie_ext(wpa_s->current_bss,
+				    WLAN_EID_EXT_EHT_CAPABILITIES);
+	if (wpa_s->connection_eht && eht_ie &&
+	    eht_ie[1] >= 1 + IEEE80211_EHT_CAPAB_MIN_LEN) {
+		eht = (const struct ieee80211_eht_capabilities *) &eht_ie[3];
+		if (eht->mac_cap & EHT_MACCAP_SCS_TRAFFIC_DESC)
+			allow_scs_traffic_desc = true;
+	}
+
+	if (!allow_scs_traffic_desc && desc_elem->qos_char_elem.available) {
+		wpa_dbg(wpa_s, MSG_INFO,
+			"Connection does not support EHT/non-EHT SCS Traffic Description - could not send SCS Request with QoS Characteristics");
+		return -1;
+	}
+
 	buf = allocate_scs_buf(desc_elem,
-			       wpa_s->scs_robust_av_req.num_scs_desc);
+			       wpa_s->scs_robust_av_req.num_scs_desc,
+			       allow_scs_traffic_desc);
 	if (!buf)
 		return -1;
 
@@ -400,7 +500,8 @@ int wpas_send_scs_req(struct wpa_supplicant *wpa_s)
 	for (i = 0; i < wpa_s->scs_robust_av_req.num_scs_desc;
 	     i++, desc_elem++) {
 		/* SCS Descriptor element */
-		if (wpas_populate_scs_descriptor_ie(desc_elem, buf) < 0)
+		if (wpas_populate_scs_descriptor_ie(desc_elem, buf,
+						    allow_scs_traffic_desc) < 0)
 			goto end;
 	}
 

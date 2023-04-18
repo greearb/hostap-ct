@@ -501,6 +501,7 @@
 #define WLAN_EID_EXT_EHT_CAPABILITIES 108
 #define WLAN_EID_EXT_TID_TO_LINK_MAPPING 109
 #define WLAN_EID_EXT_MULTI_LINK_TRAFFIC_INDICATION 110
+#define WLAN_EID_EXT_QOS_CHARACTERISTICS 113
 #define WLAN_EID_EXT_AKM_SUITE_SELECTOR 114
 
 /* Extended Capabilities field */
@@ -2767,6 +2768,26 @@ enum scs_request_type {
 	SCS_REQ_REMOVE = 1,
 	SCS_REQ_CHANGE = 2,
 };
+
+/*
+ * IEEE P802.11be/D4.0, 9.4.2.316 QoS Characteristics element,
+ * Table 9-404s (Direction subfield encoding)
+ */
+enum scs_direction {
+	SCS_DIRECTION_UP = 0,
+	SCS_DIRECTION_DOWN = 1,
+	SCS_DIRECTION_DIRECT = 2,
+};
+
+/*
+ * IEEE P802.11be/D4.0, 9.4.2.316 QoS Characteristics element,
+ * Figure 9-1001av (Control Info field format)
+ */
+#define EHT_QOS_CONTROL_INFO_DIRECTION_OFFSET		0
+#define EHT_QOS_CONTROL_INFO_TID_OFFSET			2
+#define EHT_QOS_CONTROL_INFO_USER_PRIORITY_OFFSET	6
+#define EHT_QOS_CONTROL_INFO_PRESENCE_MASK_OFFSET	9
+#define EHT_QOS_CONTROL_INFO_LINK_ID_OFFSET		25
 
 /* Optional subelement IDs for MSCS Descriptor element */
 enum mscs_description_subelem {

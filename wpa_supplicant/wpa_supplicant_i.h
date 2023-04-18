@@ -596,6 +596,24 @@ struct tclas_element {
 };
 
 
+struct qos_characteristics {
+	bool available;
+
+	/* Control Info Direction */
+	u8 direction;
+	/* Presence Bitmap Of Additional Parameters */
+	u16 mask;
+	/* Minimum Service Interval */
+	u32 min_si;
+	/* Maximum Service Interval */
+	u32 max_si;
+	/* Minimum Data Rate */
+	u32 min_data_rate;
+	/* Delay Bound */
+	u32 delay_bound;
+};
+
+
 struct scs_desc_elem {
 	u8 scs_id;
 	enum scs_request_type request_type;
@@ -604,6 +622,7 @@ struct scs_desc_elem {
 	struct tclas_element *tclas_elems;
 	unsigned int num_tclas_elem;
 	u8 tclas_processing;
+	struct qos_characteristics qos_char_elem;
 };
 
 

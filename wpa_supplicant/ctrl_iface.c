@@ -11528,7 +11528,11 @@ static int wpas_ctrl_iface_configure_scs(struct wpa_supplicant *wpa_s,
 	 * [scs_id=<decimal number>] <add|remove|change> [scs_up=<0-7>]
 	 * [classifier_type=<4|10>]
 	 * [classifier params based on classifier type]
-	 * [tclas_processing=<0|1>] [scs_id=<decimal number>] ...
+	 * [tclas_processing=<0|1>]
+	 * [qos_characteristics] <up/down/direct> [min_si=<decimal number>]
+	 * [max_si=<decimal number>] [min_data_rate=<decimal number>]
+	 * [delay_bound=<decimal number>]
+	 * [scs_id=<decimal number>] ...
 	 */
 	pos1 = os_strstr(cmd, "scs_id=");
 	if (!pos1) {
@@ -11543,7 +11547,8 @@ static int wpas_ctrl_iface_configure_scs(struct wpa_supplicant *wpa_s,
 		struct active_scs_elem *active_scs_desc;
 		char *next_scs_desc;
 		unsigned int num_tclas_elem = 0;
-		bool scsid_active = false;
+		bool scsid_active = false, tclas_present = false;
+		struct qos_characteristics *qos_elem = &desc_elem.qos_char_elem;
 
 		desc_elem.scs_id = atoi(pos1 + 7);
 		pos1 += 7;
@@ -11619,8 +11624,9 @@ static int wpas_ctrl_iface_configure_scs(struct wpa_supplicant *wpa_s,
 		pos = os_strstr(pos1, "classifier_type=");
 		if (!pos) {
 			wpa_printf(MSG_ERROR, "classifier type empty");
-			goto free_scs_desc;
+			goto qos_characteristics;
 		}
+		tclas_present = true;
 
 		while (pos) {
 			struct tclas_element elem = { 0 }, *n;
@@ -11682,6 +11688,68 @@ static int wpas_ctrl_iface_configure_scs(struct wpa_supplicant *wpa_s,
 			}
 
 			desc_elem.tclas_processing = val;
+		}
+
+	qos_characteristics:
+		pos1 = os_strstr(pos1, "qos_characteristics");
+		if (!pos1 && !tclas_present)
+			goto free_scs_desc;
+		if (!pos1)
+			goto scs_desc_end;
+
+		qos_elem->available = true;
+		if (os_strstr(pos1, "up ")) {
+			qos_elem->direction = SCS_DIRECTION_UP;
+			if (tclas_present) {
+				wpa_printf(MSG_ERROR,
+					   "TCLAS with direction:UP not allowed");
+				goto free_scs_desc;
+			}
+		} else if (os_strstr(pos1, "down ")) {
+			qos_elem->direction = SCS_DIRECTION_DOWN;
+		} else if (os_strstr(pos1, "direct ")) {
+			qos_elem->direction = SCS_DIRECTION_DIRECT;
+		}
+
+		pos1 = os_strstr(pos1, "min_si=");
+		if (!pos1) {
+			wpa_printf(MSG_ERROR, "Min SI is required");
+			goto free_scs_desc;
+		}
+		qos_elem->min_si = atoi(pos1 + 7);
+
+		pos1 = os_strstr(pos1, "max_si=");
+		if (!pos1) {
+			wpa_printf(MSG_ERROR, "Max SI is required");
+			goto free_scs_desc;
+		}
+		qos_elem->max_si = atoi(pos1 + 7);
+
+		if (qos_elem->min_si && qos_elem->max_si &&
+		    qos_elem->max_si < qos_elem->min_si) {
+			wpa_printf(MSG_ERROR, "Invalid Max SI");
+			goto free_scs_desc;
+		}
+
+		pos1 = os_strstr(pos1, "min_data_rate=");
+		if (!pos1) {
+			wpa_printf(MSG_ERROR, "Min data rate is required");
+			goto free_scs_desc;
+		}
+		qos_elem->min_data_rate = atoi(pos1 + 14);
+
+		pos1 = os_strstr(pos1, "delay_bound=");
+		if (!pos1) {
+			wpa_printf(MSG_ERROR, "Delay Bound is required");
+			goto free_scs_desc;
+		}
+		qos_elem->delay_bound = atoi(pos1 + 12);
+
+		if (qos_elem->min_data_rate >= BIT(24) ||
+		    qos_elem->delay_bound >= BIT(24)) {
+			wpa_printf(MSG_ERROR,
+				   "Invalid min_data_rate or delay_bound");
+			goto free_scs_desc;
 		}
 
 scs_desc_end:
