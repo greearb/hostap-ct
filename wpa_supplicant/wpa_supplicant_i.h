@@ -1918,4 +1918,6 @@ void wpas_pasn_auth_trigger(struct wpa_supplicant *wpa_s,
 			    struct pasn_auth *pasn_auth);
 void wpas_pasn_auth_work_done(struct wpa_supplicant *wpa_s, int status);
 
+bool wpa_is_non_eht_scs_traffic_desc_supported(struct wpa_bss *bss);
+
 #endif /* WPA_SUPPLICANT_I_H */
