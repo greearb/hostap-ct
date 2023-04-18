@@ -2965,6 +2965,20 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AP_ALLOWED_FREQ_LIST = 91,
 
+	/* Nested attribute to indicate EHT MLO links to be forced active.
+	 * It contains link MAC address attributes. These nested attributes are
+	 * of the type NL80211_ATTR_MAC and are used to force enabling of the
+	 * MLO links corresponding to the indicated link MAC addresses.
+	 * Subsequently, the links corresponding to the link MAC addresses that
+	 * are not indicated are forced inactive.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_EHT_MLO_ACTIVE_LINKS = 92,
+
+	/* 8-bit unsigned value to configure EMLSR mode entry or exit.
+	 * Uses enum qca_wlan_emlsr_mode values.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_EMLSR_MODE_SWITCH = 93,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
@@ -8792,6 +8806,16 @@ enum qca_wlan_eht_mlo_mode {
 	QCA_WLAN_EHT_EMLSR = 2,
 	QCA_WLAN_EHT_NON_STR_MLMR = 3,
 	QCA_WLAN_EHT_STR_MLMR = 4,
+};
+
+/**
+ * enum qca_wlan_emlsr_mode: Enhanced Multi-link Single Radio mode configuration
+ * @QCA_WLAN_EMLSR_MODE_ENTER: Enter EMLSR mode
+ * @QCA_WLAN_EMLSR_MODE_EXIT: Exit EMLSR mode
+ */
+enum qca_wlan_emlsr_mode {
+	QCA_WLAN_EMLSR_MODE_ENTER = 0,
+	QCA_WLAN_EMLSR_MODE_EXIT = 1,
 };
 
 /**
