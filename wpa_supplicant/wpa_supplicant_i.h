@@ -611,6 +611,22 @@ struct qos_characteristics {
 	u32 min_data_rate;
 	/* Delay Bound */
 	u32 delay_bound;
+	/* Maximum MSDU Size */
+	u16 max_msdu_size;
+	/* Service Start Time */
+	u32 service_start_time;
+	/* Service Start Time LinkID */
+	u8 service_start_time_link_id;
+	/* Mean Data Rate */
+	u32 mean_data_rate;
+	/* Delayed Bounded Burst Size */
+	u32 burst_size;
+	/* MSDU Lifetime */
+	u16 msdu_lifetime;
+	/* MSDU Delivery Info */
+	u8 msdu_delivery_info;
+	/* Medium Time */
+	u16 medium_time;
 };
 
 

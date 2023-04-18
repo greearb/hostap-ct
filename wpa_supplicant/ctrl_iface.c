@@ -11531,7 +11531,12 @@ static int wpas_ctrl_iface_configure_scs(struct wpa_supplicant *wpa_s,
 	 * [tclas_processing=<0|1>]
 	 * [qos_characteristics] <up/down/direct> [min_si=<decimal number>]
 	 * [max_si=<decimal number>] [min_data_rate=<decimal number>]
-	 * [delay_bound=<decimal number>]
+	 * [delay_bound=<decimal number>] [max_msdu=<decimal number>]
+	 * [service_start_time=<decimal number>]
+	 * [service_start_time_link_id=<decimal number>]
+	 * [mean_data_rate=<decimal number>] [burst_size=<decimal number>]
+	 * [msdu_lifetime=<decimal number>]
+	 * [msdu_delivery_info=<decimal number>] [medium_time=<decimal number>]
 	 * [scs_id=<decimal number>] ...
 	 */
 	pos1 = os_strstr(cmd, "scs_id=");
@@ -11545,7 +11550,7 @@ static int wpas_ctrl_iface_configure_scs(struct wpa_supplicant *wpa_s,
 	while (pos1) {
 		struct scs_desc_elem *n1;
 		struct active_scs_elem *active_scs_desc;
-		char *next_scs_desc;
+		char *next_scs_desc, *pos2;
 		unsigned int num_tclas_elem = 0;
 		bool scsid_active = false, tclas_present = false;
 		struct qos_characteristics *qos_elem = &desc_elem.qos_char_elem;
@@ -11750,6 +11755,55 @@ static int wpas_ctrl_iface_configure_scs(struct wpa_supplicant *wpa_s,
 			wpa_printf(MSG_ERROR,
 				   "Invalid min_data_rate or delay_bound");
 			goto free_scs_desc;
+		}
+
+		pos2 = os_strstr(pos1, "max_msdu=");
+		if (pos2) {
+			qos_elem->max_msdu_size = atoi(pos2 + 9);
+			qos_elem->mask |= SCS_QOS_BIT_MAX_MSDU_SIZE;
+		}
+
+		pos2 = os_strstr(pos1, "service_start_time=");
+		if (pos2) {
+			qos_elem->service_start_time = atoi(pos2 + 19);
+			qos_elem->mask |= SCS_QOS_BIT_SERVICE_START_TIME;
+		}
+
+		pos2 = os_strstr(pos1, "service_start_time_link_id=");
+		if (pos2) {
+			qos_elem->service_start_time_link_id = atoi(pos2 + 27);
+			qos_elem->mask |= SCS_QOS_BIT_SERVICE_START_TIME_LINKID;
+		}
+
+		pos2 = os_strstr(pos1, "mean_data_rate=");
+		if (pos2) {
+			qos_elem->mean_data_rate = atoi(pos2 + 15);
+			qos_elem->mask |= SCS_QOS_BIT_MEAN_DATA_RATE;
+		}
+
+		pos2 = os_strstr(pos1, "burst_size=");
+		if (pos2) {
+			qos_elem->burst_size = atoi(pos2 + 11);
+			qos_elem->mask |=
+				SCS_QOS_BIT_DELAYED_BOUNDED_BURST_SIZE;
+		}
+
+		pos2 = os_strstr(pos1, "msdu_lifetime=");
+		if (pos2) {
+			qos_elem->msdu_lifetime = atoi(pos2 + 14);
+			qos_elem->mask |= SCS_QOS_BIT_MSDU_LIFETIME;
+		}
+
+		pos2 = os_strstr(pos1, "msdu_delivery_info=");
+		if (pos2) {
+			qos_elem->msdu_delivery_info = atoi(pos2 + 19);
+			qos_elem->mask |= SCS_QOS_BIT_MSDU_DELIVERY_INFO;
+		}
+
+		pos2 = os_strstr(pos1, "medium_time=");
+		if (pos2) {
+			qos_elem->medium_time = atoi(pos2 + 12);
+			qos_elem->mask |= SCS_QOS_BIT_MEDIUM_TIME;
 		}
 
 scs_desc_end:

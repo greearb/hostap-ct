@@ -2789,6 +2789,19 @@ enum scs_direction {
 #define EHT_QOS_CONTROL_INFO_PRESENCE_MASK_OFFSET	9
 #define EHT_QOS_CONTROL_INFO_LINK_ID_OFFSET		25
 
+/*
+ * IEEE P802.11be/D4.0, 9.4.2.316 QoS Characteristics element,
+ * Presence Bitmap Of Additional Parameters
+ */
+#define SCS_QOS_BIT_MAX_MSDU_SIZE			((u16) BIT(0))
+#define SCS_QOS_BIT_SERVICE_START_TIME			((u16) BIT(1))
+#define SCS_QOS_BIT_SERVICE_START_TIME_LINKID		((u16) BIT(2))
+#define SCS_QOS_BIT_MEAN_DATA_RATE			((u16) BIT(3))
+#define SCS_QOS_BIT_DELAYED_BOUNDED_BURST_SIZE		((u16) BIT(4))
+#define SCS_QOS_BIT_MSDU_LIFETIME			((u16) BIT(5))
+#define SCS_QOS_BIT_MSDU_DELIVERY_INFO			((u16) BIT(6))
+#define SCS_QOS_BIT_MEDIUM_TIME				((u16) BIT(7))
+
 /* Optional subelement IDs for MSCS Descriptor element */
 enum mscs_description_subelem {
 	MCSC_SUBELEM_STATUS = 1,

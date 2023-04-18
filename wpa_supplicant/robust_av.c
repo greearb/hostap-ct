@@ -190,6 +190,21 @@ skip_tclas_elem:
 		len1 = wpabuf_put(buf, 1);
 		wpabuf_put_u8(buf, WLAN_EID_EXT_QOS_CHARACTERISTICS);
 
+		/* Remove invalid mask bits */
+
+		/* Medium Time is applicable only for direct link */
+		if ((qos_elem->mask & SCS_QOS_BIT_MEDIUM_TIME) &&
+		    qos_elem->direction != SCS_DIRECTION_DIRECT)
+			qos_elem->mask &= ~SCS_QOS_BIT_MEDIUM_TIME;
+
+		/* Service Start Time LinkID is valid only when Service Start
+		 * Time is present.
+		 */
+		if ((qos_elem->mask & SCS_QOS_BIT_SERVICE_START_TIME_LINKID) &&
+		    !(qos_elem->mask & SCS_QOS_BIT_SERVICE_START_TIME))
+			qos_elem->mask &=
+				~SCS_QOS_BIT_SERVICE_START_TIME_LINKID;
+
 		/* IEEE P802.11be/D4.0, 9.4.2.316 QoS Characteristics element,
 		 * Figure 9-1001av (Control Info field format)
 		 */
@@ -212,6 +227,32 @@ skip_tclas_elem:
 		wpabuf_put_le24(buf, qos_elem->min_data_rate);
 		/* Delay Bound */
 		wpabuf_put_le24(buf, qos_elem->delay_bound);
+
+		/* Maximum MSDU Size */
+		if (qos_elem->mask & SCS_QOS_BIT_MAX_MSDU_SIZE)
+			wpabuf_put_le16(buf, qos_elem->max_msdu_size);
+		/* Start Service Time */
+		if (qos_elem->mask & SCS_QOS_BIT_SERVICE_START_TIME)
+			wpabuf_put_le32(buf, qos_elem->service_start_time);
+		/* Service Start Time LinkID */
+		if (qos_elem->mask & SCS_QOS_BIT_SERVICE_START_TIME_LINKID)
+			wpabuf_put_u8(buf,
+				      qos_elem->service_start_time_link_id);
+		/* Mean Data Rate */
+		if (qos_elem->mask & SCS_QOS_BIT_MEAN_DATA_RATE)
+			wpabuf_put_le24(buf, qos_elem->mean_data_rate);
+		/* Delayed Bounded Burst Size */
+		if (qos_elem->mask & SCS_QOS_BIT_DELAYED_BOUNDED_BURST_SIZE)
+			wpabuf_put_le32(buf, qos_elem->burst_size);
+		/* MSDU Lifetime */
+		if (qos_elem->mask & SCS_QOS_BIT_MSDU_LIFETIME)
+			wpabuf_put_le16(buf, qos_elem->msdu_lifetime);
+		/* MSDU Delivery Info */
+		if (qos_elem->mask & SCS_QOS_BIT_MSDU_DELIVERY_INFO)
+			wpabuf_put_u8(buf, qos_elem->msdu_delivery_info);
+		/* Medium Time */
+		if (qos_elem->mask & SCS_QOS_BIT_MEDIUM_TIME)
+			wpabuf_put_le16(buf, qos_elem->medium_time);
 
 		*len1 = (u8 *) wpabuf_put(buf, 0) - len1 - 1;
 	}
@@ -337,6 +378,31 @@ static size_t qos_char_len(const struct qos_characteristics *qos_elem)
 		4 +	/* Maximum Service Interval */
 		3 +	/* Minimum Data Rate */
 		3;	/* Delay Bound */
+
+	if (qos_elem->mask & SCS_QOS_BIT_MAX_MSDU_SIZE)
+		buf_len += 2;	 /* Maximum MSDU Size */
+
+	if (qos_elem->mask & SCS_QOS_BIT_SERVICE_START_TIME) {
+		buf_len += 4;	 /* Service Start Time */
+		if (qos_elem->mask & SCS_QOS_BIT_SERVICE_START_TIME_LINKID)
+			buf_len++;	/* Service Start Time LinkID */
+	}
+
+	if (qos_elem->mask & SCS_QOS_BIT_MEAN_DATA_RATE)
+		buf_len += 3;	 /* Mean Data Rate */
+
+	if (qos_elem->mask & SCS_QOS_BIT_DELAYED_BOUNDED_BURST_SIZE)
+		buf_len += 4;	 /* Delayed Bounded Burst Size */
+
+	if (qos_elem->mask & SCS_QOS_BIT_MSDU_LIFETIME)
+		buf_len += 2;	 /* MSDU Lifetime */
+
+	if (qos_elem->mask & SCS_QOS_BIT_MSDU_DELIVERY_INFO)
+		buf_len++;	 /* MSDU Delivery Info */
+
+	if (qos_elem->mask & SCS_QOS_BIT_MEDIUM_TIME &&
+	    qos_elem->direction == SCS_DIRECTION_DIRECT)
+		buf_len += 2;	 /* Medium Time */
 
 	return buf_len;
 }
