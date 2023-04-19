@@ -4966,6 +4966,8 @@ enum qca_vendor_roam_triggers {
  * @QCA_ROAM_FAIL_REASON_SAE_PREAUTH_TIMEOUT: WPA3-SAE pre-authentication times
  * out.
  * @QCA_ROAM_FAIL_REASON_SAE_PREAUTH_FAIL: WPA3-SAE pre-authentication fails.
+ * @QCA_ROAM_FAIL_REASON_CURR_AP_STILL_OK: Roam scan did not happen since the
+ * current network conditions are fine.
  */
 enum qca_vendor_roam_fail_reasons {
 	QCA_ROAM_FAIL_REASON_NONE = 0,
@@ -4998,6 +5000,7 @@ enum qca_vendor_roam_fail_reasons {
 	QCA_ROAM_FAIL_REASON_SAE_INVALID_PMKID = 27,
 	QCA_ROAM_FAIL_REASON_SAE_PREAUTH_TIMEOUT = 28,
 	QCA_ROAM_FAIL_REASON_SAE_PREAUTH_FAIL = 29,
+	QCA_ROAM_FAIL_REASON_CURR_AP_STILL_OK = 30,
 };
 
 /*
