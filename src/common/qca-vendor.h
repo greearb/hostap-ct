@@ -9516,6 +9516,25 @@ enum qca_wlan_vendor_attr_wifi_test_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_EMLSR_PADDING_DELAY = 68,
 
+	/*
+	 * 8-bit unsigned value to indicate the firmware to force the active MLO
+	 * links to power save mode for the configured number of beacon periods.
+	 * This allows the firmware to suspend STA links for X beacon periods
+	 * and remain asleep even if the AP advertises TIM as opposed to regular
+	 * power save mode where STA links wake up if the AP indicates that it
+	 * has buffered data to send.
+	 * This attribute is used to configure the testbed device.
+	 */
+	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_FORCE_MLO_POWER_SAVE_BCN_PERIOD = 69,
+
+	/*
+	 * 8-bit unsigned value to indicate the firmware to be in STR MLMR mode
+	 * to enable simultaneous transmission of PPDUs on all active links.
+	 * 0 - Default behavior
+	 * 1 - Enter STR mode for simultaneous data transmission on all links
+	 */
+	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_EHT_MLO_STR_TX = 70,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_MAX =
