@@ -1529,7 +1529,7 @@ static int hostapd_cli_cmd_dpp_stop_chirp(struct wpa_ctrl *ctrl, int argc,
 static int hostapd_cli_cmd_dpp_push_button(struct wpa_ctrl *ctrl, int argc,
 					   char *argv[])
 {
-	return hostapd_cli_cmd(ctrl, "DPP_PUSH_BUTTON", 1, argc, argv);
+	return hostapd_cli_cmd(ctrl, "DPP_PUSH_BUTTON", 0, argc, argv);
 }
 #endif /* CONFIG_DPP3 */
 #endif /* CONFIG_DPP */
