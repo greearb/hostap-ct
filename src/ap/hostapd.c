@@ -1756,16 +1756,15 @@ static int configured_fixed_chan_to_freq(struct hostapd_iface *iface)
 
 static void hostapd_set_6ghz_sec_chan(struct hostapd_iface *iface)
 {
-	int bw, seg0;
+	int bw;
 
 	if (!is_6ghz_op_class(iface->conf->op_class))
 		return;
 
-	seg0 = hostapd_get_oper_centr_freq_seg0_idx(iface->conf);
-	bw = center_idx_to_bw_6ghz(seg0);
+	bw = op_class_to_bandwidth(iface->conf->op_class);
 	/* Assign the secondary channel if absent in config for
 	 * bandwidths > 20 MHz */
-	if (bw > 0 && !iface->conf->secondary_channel) {
+	if (bw >= 40 && !iface->conf->secondary_channel) {
 		if (((iface->conf->channel - 1) / 4) % 2)
 			iface->conf->secondary_channel = -1;
 		else
