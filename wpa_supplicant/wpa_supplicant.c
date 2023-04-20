@@ -4813,7 +4813,8 @@ void wpa_supplicant_select_network(struct wpa_supplicant *wpa_s,
 		wpa_s->current_ssid = ssid;
 		eapol_sm_notify_config(wpa_s->eapol, NULL, NULL);
 		wpa_s->connect_without_scan =
-			(ssid->mode == WPAS_MODE_MESH) ? ssid : NULL;
+			(ssid->mode == WPAS_MODE_MESH ||
+			 ssid->mode == WPAS_MODE_AP) ? ssid : NULL;
 
 		/*
 		 * Don't optimize next scan freqs since a new ESS has been
