@@ -1835,6 +1835,18 @@ ieee802_1x_mka_decode_dist_sak_body(
 	kay->rcvd_keys++;
 	participant->to_use_sak = true;
 
+	/*
+	 * The key server may not include dist sak and use sak in one packet.
+	 * Meanwhile, after dist sak, the current participant (non-key server)
+	 * will install SC or SA(s) after decoding the dist sak which may take
+	 * few seconds in real physical platforms. Meanwhile, the peer expire
+	 * time is always initialized at adding the key server to peer list.
+	 * The gap between adding the key server to peer list and processing
+	 * next use sak packet may exceed the threshold of MKA_LIFE_TIME (6 s).
+	 * It will cause an unexpected cleanup (delete SC and SA(s)), so,
+	 * update the expire timeout at dist sak also. */
+	peer->expire = time(NULL) + MKA_LIFE_TIME / 1000;
+
 	return 0;
 }
 
