@@ -9543,6 +9543,11 @@ static int nl80211_set_param(void *priv, const char *param)
 		}
 	}
 
+	if (os_strstr(param, "secure_ltf=1")) {
+		drv->capa.flags2 |= WPA_DRIVER_FLAGS2_SEC_LTF_STA |
+			WPA_DRIVER_FLAGS2_SEC_LTF_AP;
+	}
+
 	return 0;
 }
 
