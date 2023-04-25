@@ -1001,9 +1001,27 @@ static int hostapd_is_usable_chans(struct hostapd_iface *iface)
 }
 
 
+static bool skip_mode(struct hostapd_iface *iface,
+		      struct hostapd_hw_modes *mode)
+{
+	int chan;
+
+	if (iface->freq > 0 && !hw_mode_get_channel(mode, iface->freq, &chan))
+		return true;
+
+	if (is_6ghz_op_class(iface->conf->op_class) && iface->freq == 0 &&
+	    (mode->mode != HOSTAPD_MODE_IEEE80211A ||
+	     mode->num_channels == 0 ||
+	     !is_6ghz_freq(mode->channels[0].freq)))
+		return true;
+
+	return false;
+}
+
+
 static void hostapd_determine_mode(struct hostapd_iface *iface)
 {
-	int i, chan;
+	int i;
 	enum hostapd_hw_mode target_mode;
 
 	if (iface->current_mode ||
@@ -1022,8 +1040,7 @@ static void hostapd_determine_mode(struct hostapd_iface *iface)
 
 		mode = &iface->hw_features[i];
 		if (mode->mode == target_mode) {
-			if (iface->freq > 0 &&
-			    !hw_mode_get_channel(mode, iface->freq, &chan))
+			if (skip_mode(iface, mode))
 				continue;
 
 			iface->current_mode = mode;
@@ -1156,11 +1173,9 @@ int hostapd_select_hw_mode(struct hostapd_iface *iface)
 	iface->current_mode = NULL;
 	for (i = 0; i < iface->num_hw_features; i++) {
 		struct hostapd_hw_modes *mode = &iface->hw_features[i];
-		int chan;
 
 		if (mode->mode == iface->conf->hw_mode) {
-			if (iface->freq > 0 &&
-			    !hw_mode_get_channel(mode, iface->freq, &chan))
+			if (skip_mode(iface, mode))
 				continue;
 
 			iface->current_mode = mode;
