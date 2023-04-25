@@ -190,6 +190,7 @@ static int wpa_supplicant_select_config(struct wpa_supplicant *wpa_s,
 					union wpa_event_data *data)
 {
 	struct wpa_ssid *ssid, *old_ssid;
+	struct wpa_bss *bss;
 	u8 drv_ssid[SSID_MAX_LEN];
 	size_t drv_ssid_len;
 	int res;
@@ -265,6 +266,7 @@ static int wpa_supplicant_select_config(struct wpa_supplicant *wpa_s,
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "Network configuration found for the "
 		"current AP");
+	bss = wpa_supplicant_update_current_bss(wpa_s, wpa_s->bssid);
 	if (wpa_key_mgmt_wpa_any(ssid->key_mgmt)) {
 		u8 wpa_ie[80];
 		size_t wpa_ie_len = sizeof(wpa_ie);
@@ -274,7 +276,7 @@ static int wpa_supplicant_select_config(struct wpa_supplicant *wpa_s,
 		 * driver indicated the actual values used in the
 		 * (Re)Association Request frame. */
 		skip_default_rsne = data && data->assoc_info.req_ies;
-		if (wpa_supplicant_set_suites(wpa_s, NULL, ssid,
+		if (wpa_supplicant_set_suites(wpa_s, bss, ssid,
 					      wpa_ie, &wpa_ie_len,
 					      skip_default_rsne) < 0)
 			wpa_dbg(wpa_s, MSG_DEBUG, "Could not set WPA suites");
@@ -286,8 +288,6 @@ static int wpa_supplicant_select_config(struct wpa_supplicant *wpa_s,
 		eapol_sm_invalidate_cached_session(wpa_s->eapol);
 	old_ssid = wpa_s->current_ssid;
 	wpa_s->current_ssid = ssid;
-
-	wpa_supplicant_update_current_bss(wpa_s, wpa_s->bssid);
 
 	wpa_supplicant_rsn_supp_set_config(wpa_s, wpa_s->current_ssid);
 	wpa_supplicant_initiate_eapol(wpa_s);
