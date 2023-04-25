@@ -14,6 +14,7 @@ import hostapd
 from wpasupplicant import WpaSupplicant
 from utils import *
 from test_dfs import wait_dfs_event
+from test_ap_acs import wait_acs
 
 def test_he_open(dev, apdev):
     """HE AP with open mode configuration"""
@@ -1273,6 +1274,56 @@ def test_he_6ghz_auto_security(dev, apdev):
     sta = hapd.get_sta(dev[0].own_addr())
     if "[MFP]" in sta["flags"]:
         raise Exception("MFP reported unexpectedly(2)")
+
+def test_he_6ghz_acs(dev, apdev):
+    """HE with ACS on 6 GHz using a 40 MHz channel"""
+    check_sae_capab(dev[0])
+
+    try:
+        dev[0].set("sae_pwe", "1")
+        hapd = None
+        params = {"ssid": "he",
+                  "country_code": "DE",
+                  "op_class": "132",
+                  "hw_mode": "a",
+                  "channel": "0",
+                  "ieee80211ax": "1",
+                  "wpa": "2",
+                  "rsn_pairwise": "CCMP",
+                  "wpa_key_mgmt": "SAE",
+                  "sae_pwe": "1",
+                  "sae_password": "password",
+                  "ieee80211w": "2"}
+        hapd = hostapd.add_ap(apdev[0], params, wait_enabled=False)
+        wait_acs(hapd)
+        bssid = apdev[0]['bssid']
+
+        freq = hapd.get_status_field("freq")
+        if int(freq) < 5955:
+            raise Exception("Unexpected frequency: " + freq)
+
+        sec = hapd.get_status_field("secondary_channel")
+        if int(sec) == 0:
+            raise Exception("Secondary channel not set")
+
+        dev[0].set("sae_groups", "")
+        dev[0].connect("he", sae_password="password", key_mgmt="SAE",
+                       ieee80211w="2", scan_freq=freq)
+        hwsim_utils.test_connectivity(dev[0], hapd)
+        sig = dev[0].request("SIGNAL_POLL").splitlines()
+        if "FREQUENCY=" + freq not in sig:
+            raise Exception("Unexpected SIGNAL_POLL value(1): " + str(sig))
+        if "WIDTH=40 MHz" not in sig:
+            raise Exception("Unexpected SIGNAL_POLL value(2): " + str(sig))
+    except Exception as e:
+        if isinstance(e, Exception) and str(e) == "AP startup failed":
+            if not he_supported():
+                raise HwsimSkip("HE 6 GHz channel not supported in regulatory information")
+        raise
+    finally:
+        dev[0].request("DISCONNECT")
+        dev[0].set("sae_pwe", "0")
+        clear_regdom(hapd, dev)
 
 def test_he_6ghz_security(dev, apdev):
     """HE AP and 6 GHz security parameter validation"""
