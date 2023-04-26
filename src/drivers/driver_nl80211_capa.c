@@ -1567,9 +1567,10 @@ int wpa_driver_nl80211_capa(struct wpa_driver_nl80211_data *drv)
 #endif /* CONFIG_DRIVER_NL80211_QCA */
 
 	wpa_printf(MSG_DEBUG,
-		   "nl80211: key_mgmt=0x%x enc=0x%x auth=0x%x flags=0x%llx rrm_flags=0x%x probe_resp_offloads=0x%x max_stations=%u max_remain_on_chan=%u max_scan_ssids=%d",
+		   "nl80211: key_mgmt=0x%x enc=0x%x auth=0x%x flags=0x%llx flags2=0x%llx rrm_flags=0x%x probe_resp_offloads=0x%x max_stations=%u max_remain_on_chan=%u max_scan_ssids=%d",
 		   drv->capa.key_mgmt, drv->capa.enc, drv->capa.auth,
-		   (unsigned long long) drv->capa.flags, drv->capa.rrm_flags,
+		   (unsigned long long) drv->capa.flags,
+		   (unsigned long long) drv->capa.flags2, drv->capa.rrm_flags,
 		   drv->capa.probe_resp_offloads, drv->capa.max_stations,
 		   drv->capa.max_remain_on_chan, drv->capa.max_scan_ssids);
 	return 0;
