@@ -1275,8 +1275,7 @@ def test_he_6ghz_auto_security(dev, apdev):
     if "[MFP]" in sta["flags"]:
         raise Exception("MFP reported unexpectedly(2)")
 
-def test_he_6ghz_acs(dev, apdev):
-    """HE with ACS on 6 GHz using a 40 MHz channel"""
+def he_6ghz_acs(dev, apdev, op_class, bw):
     check_sae_capab(dev[0])
 
     try:
@@ -1284,7 +1283,7 @@ def test_he_6ghz_acs(dev, apdev):
         hapd = None
         params = {"ssid": "he",
                   "country_code": "DE",
-                  "op_class": "132",
+                  "op_class": str(op_class),
                   "hw_mode": "a",
                   "channel": "0",
                   "ieee80211ax": "1",
@@ -1303,8 +1302,10 @@ def test_he_6ghz_acs(dev, apdev):
             raise Exception("Unexpected frequency: " + freq)
 
         sec = hapd.get_status_field("secondary_channel")
-        if int(sec) == 0:
+        if bw > 20 and int(sec) == 0:
             raise Exception("Secondary channel not set")
+        if bw == 20 and int(sec) != 0:
+            raise Exception("Secondary channel set")
 
         dev[0].set("sae_groups", "")
         dev[0].connect("he", sae_password="password", key_mgmt="SAE",
@@ -1313,7 +1314,7 @@ def test_he_6ghz_acs(dev, apdev):
         sig = dev[0].request("SIGNAL_POLL").splitlines()
         if "FREQUENCY=" + freq not in sig:
             raise Exception("Unexpected SIGNAL_POLL value(1): " + str(sig))
-        if "WIDTH=40 MHz" not in sig:
+        if "WIDTH=" + str(bw) + " MHz" not in sig:
             raise Exception("Unexpected SIGNAL_POLL value(2): " + str(sig))
     except Exception as e:
         if isinstance(e, Exception) and str(e) == "AP startup failed":
@@ -1324,6 +1325,22 @@ def test_he_6ghz_acs(dev, apdev):
         dev[0].request("DISCONNECT")
         dev[0].set("sae_pwe", "0")
         clear_regdom(hapd, dev)
+
+def test_he_6ghz_acs_20mhz(dev, apdev):
+    """HE with ACS on 6 GHz using a 20 MHz channel"""
+    he_6ghz_acs(dev, apdev, 131, 20)
+
+def test_he_6ghz_acs_40mhz(dev, apdev):
+    """HE with ACS on 6 GHz using a 40 MHz channel"""
+    he_6ghz_acs(dev, apdev, 132, 40)
+
+def test_he_6ghz_acs_80mhz(dev, apdev):
+    """HE with ACS on 6 GHz using an 80 MHz channel"""
+    he_6ghz_acs(dev, apdev, 133, 80)
+
+def test_he_6ghz_acs_160mhz(dev, apdev):
+    """HE with ACS on 6 GHz using a 160 MHz channel"""
+    he_6ghz_acs(dev, apdev, 134, 160)
 
 def test_he_6ghz_security(dev, apdev):
     """HE AP and 6 GHz security parameter validation"""
