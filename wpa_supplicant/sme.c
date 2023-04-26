@@ -930,7 +930,7 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		wpa_drv_get_ext_capa(wpa_s, WPA_IF_STATION);
 
 	ext_capab_len = wpas_build_ext_capab(wpa_s, ext_capab,
-					     sizeof(ext_capab));
+					     sizeof(ext_capab), bss);
 	if (ext_capab_len > 0) {
 		u8 *pos = wpa_s->sme.assoc_req_ie;
 		if (wpa_s->sme.assoc_req_ie_len > 0 && pos[0] == WLAN_EID_RSN)

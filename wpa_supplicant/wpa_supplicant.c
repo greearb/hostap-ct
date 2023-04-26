@@ -2077,7 +2077,8 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 }
 
 
-static void wpas_ext_capab_byte(struct wpa_supplicant *wpa_s, u8 *pos, int idx)
+static void wpas_ext_capab_byte(struct wpa_supplicant *wpa_s, u8 *pos, int idx,
+				struct wpa_bss *bss)
 {
 	bool scs = true, mscs = true;
 
@@ -2128,6 +2129,13 @@ static void wpas_ext_capab_byte(struct wpa_supplicant *wpa_s, u8 *pos, int idx)
 		if (wpa_s->disable_scs_support)
 			scs = false;
 #endif /* CONFIG_TESTING_OPTIONS */
+		if (bss && !wpa_bss_ext_capab(bss, WLAN_EXT_CAPAB_SCS)) {
+			/* Drop own SCS capability indication since the AP does
+			 * not support it. This is needed to avoid
+			 * interoperability issues with APs that get confused
+			 * with Extended Capabilities element. */
+			scs = false;
+		}
 		if (scs)
 			*pos |= 0x40; /* Bit 54 - SCS */
 		break;
@@ -2150,6 +2158,13 @@ static void wpas_ext_capab_byte(struct wpa_supplicant *wpa_s, u8 *pos, int idx)
 		if (wpa_s->disable_mscs_support)
 			mscs = false;
 #endif /* CONFIG_TESTING_OPTIONS */
+		if (bss && !wpa_bss_ext_capab(bss, WLAN_EXT_CAPAB_MSCS)) {
+			/* Drop own MSCS capability indication since the AP does
+			 * not support it. This is needed to avoid
+			 * interoperability issues with APs that get confused
+			 * with Extended Capabilities element. */
+			mscs = false;
+		}
 		if (mscs)
 			*pos |= 0x20; /* Bit 85 - Mirrored SCS */
 		break;
@@ -2157,7 +2172,8 @@ static void wpas_ext_capab_byte(struct wpa_supplicant *wpa_s, u8 *pos, int idx)
 }
 
 
-int wpas_build_ext_capab(struct wpa_supplicant *wpa_s, u8 *buf, size_t buflen)
+int wpas_build_ext_capab(struct wpa_supplicant *wpa_s, u8 *buf,
+			  size_t buflen, struct wpa_bss *bss)
 {
 	u8 *pos = buf;
 	u8 len = 11, i;
@@ -2173,7 +2189,7 @@ int wpas_build_ext_capab(struct wpa_supplicant *wpa_s, u8 *buf, size_t buflen)
 	*pos++ = WLAN_EID_EXT_CAPAB;
 	*pos++ = len;
 	for (i = 0; i < len; i++, pos++) {
-		wpas_ext_capab_byte(wpa_s, pos, i);
+		wpas_ext_capab_byte(wpa_s, pos, i, bss);
 
 		if (i < wpa_s->extended_capa_len) {
 			*pos &= ~wpa_s->extended_capa_mask[i];
@@ -3495,7 +3511,7 @@ static u8 * wpas_populate_assoc_ies(
 		u8 ext_capab[18];
 		int ext_capab_len;
 		ext_capab_len = wpas_build_ext_capab(wpa_s, ext_capab,
-						     sizeof(ext_capab));
+						     sizeof(ext_capab), bss);
 		if (ext_capab_len > 0 &&
 		    wpa_ie_len + ext_capab_len <= max_wpa_ie_len) {
 			u8 *pos = wpa_ie;

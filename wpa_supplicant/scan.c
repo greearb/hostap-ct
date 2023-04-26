@@ -621,7 +621,7 @@ void wpa_supplicant_set_default_scan_ies(struct wpa_supplicant *wpa_s)
 	wpa_drv_get_ext_capa(wpa_s, type);
 
 	ext_capab_len = wpas_build_ext_capab(wpa_s, ext_capab,
-					     sizeof(ext_capab));
+					     sizeof(ext_capab), NULL);
 	if (ext_capab_len > 0 &&
 	    wpabuf_resize(&default_ies, ext_capab_len) == 0)
 		wpabuf_put_data(default_ies, ext_capab, ext_capab_len);
@@ -743,7 +743,7 @@ static struct wpabuf * wpa_supplicant_extra_ies(struct wpa_supplicant *wpa_s)
 		wpa_drv_get_ext_capa(wpa_s, WPA_IF_STATION);
 
 	ext_capab_len = wpas_build_ext_capab(wpa_s, ext_capab,
-					     sizeof(ext_capab));
+					     sizeof(ext_capab), NULL);
 	if (ext_capab_len > 0 &&
 	    wpabuf_resize(&extra_ie, ext_capab_len) == 0)
 		wpabuf_put_data(extra_ie, ext_capab, ext_capab_len);
