@@ -1807,6 +1807,8 @@ enum qca_wlan_vendor_acs_hw_mode {
  * @QCA_WLAN_VENDOR_FEATURE_AP_ALLOWED_FREQ_LIST: Flag indicates that the device
  *	in AP mode supports configuring allowed frequency list for AP operation
  *	with %QCA_WLAN_VENDOR_ATTR_CONFIG_AP_ALLOWED_FREQ_LIST.
+ * @QCA_WLAN_VENDOR_FEATURE_ENHANCED_AUDIO_EXPERIENCE_OVER_WLAN: Flag indicates
+ *	that the device supports enhanced audio experience over WLAN feature.
  * @NUM_QCA_WLAN_VENDOR_FEATURES: Number of assigned feature bits
  */
 enum qca_wlan_vendor_features {
@@ -1833,6 +1835,7 @@ enum qca_wlan_vendor_features {
 	QCA_WLAN_VENDOR_FEATURE_PROT_RANGE_NEGO_AND_MEASURE_STA = 20,
 	QCA_WLAN_VENDOR_FEATURE_PROT_RANGE_NEGO_AND_MEASURE_AP = 21,
 	QCA_WLAN_VENDOR_FEATURE_AP_ALLOWED_FREQ_LIST = 22,
+	QCA_WLAN_VENDOR_FEATURE_ENHANCED_AUDIO_EXPERIENCE_OVER_WLAN = 23,
 	NUM_QCA_WLAN_VENDOR_FEATURES /* keep last */
 };
 
@@ -2860,6 +2863,9 @@ enum qca_wlan_vendor_attr_config {
 	 * 8-bit unsigned value. This attribute can be used to configure the
 	 * data path mode to be followed for audio traffic. Possible values
 	 * are defined in enum qca_wlan_audio_data_path.
+	 *
+	 * This attribute is used only when the driver advertises support for
+	 * QCA_WLAN_VENDOR_FEATURE_ENHANCED_AUDIO_EXPERIENCE_OVER_WLAN.
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AUDIO_DATA_PATH = 82,
 
@@ -12522,9 +12528,13 @@ enum qca_wlan_concurrent_sta_policy_config {
  *
  * @QCA_WLAN_CONCURRENT_AP_POLICY_GAMING_AUDIO: Select interface concurrencies
  * to meet gaming audio latency requirements.
+ * This policy is used only when the driver advertises support for
+ * QCA_WLAN_VENDOR_FEATURE_ENHANCED_AUDIO_EXPERIENCE_OVER_WLAN.
  *
  * @QCA_WLAN_CONCURRENT_AP_POLICY_LOSSLESS_AUDIO_STREAMING: Select interface
  * concurrencies to meet lossless audio streaming requirements.
+ * This policy is used only when the driver advertises support for
+ * QCA_WLAN_VENDOR_FEATURE_ENHANCED_AUDIO_EXPERIENCE_OVER_WLAN.
  *
  * @QCA_WLAN_CONCURRENT_AP_POLICY_XR: Select interface concurrencies to meet
  * XR (eXtended Reality) requirements.
