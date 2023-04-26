@@ -3696,7 +3696,7 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		if (resp != WLAN_STATUS_SUCCESS)
 			return resp;
 
-		resp = set_sta_vht_opmode(hapd, sta, elems->vht_opmode_notif);
+		resp = set_sta_vht_opmode(hapd, sta, elems->opmode_notif);
 		if (resp != WLAN_STATUS_SUCCESS)
 			return resp;
 	}
@@ -6382,9 +6382,9 @@ u8 * hostapd_eid_wb_chsw_wrapper(struct hostapd_data *hapd, u8 *eid)
 				   &chan2) != HOSTAPD_MODE_IEEE80211A)
 		return eid;
 
-	*eid++ = WLAN_EID_VHT_CHANNEL_SWITCH_WRAPPER;
+	*eid++ = WLAN_EID_CHANNEL_SWITCH_WRAPPER;
 	*eid++ = 5; /* Length of Channel Switch Wrapper */
-	*eid++ = WLAN_EID_VHT_WIDE_BW_CHSWITCH;
+	*eid++ = WLAN_EID_WIDE_BW_CHSWITCH;
 	*eid++ = 3; /* Length of Wide Bandwidth Channel Switch element */
 	*eid++ = bw; /* New Channel Width */
 	*eid++ = chan1; /* New Channel Center Frequency Segment 0 */

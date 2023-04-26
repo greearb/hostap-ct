@@ -542,10 +542,10 @@ static ParseRes __ieee802_11_parse_elems(const u8 *start, size_t len,
 				break;
 			elems->vht_operation = pos;
 			break;
-		case WLAN_EID_VHT_OPERATING_MODE_NOTIFICATION:
+		case WLAN_EID_OPERATING_MODE_NOTIFICATION:
 			if (elen != 1)
 				break;
-			elems->vht_opmode_notif = pos;
+			elems->opmode_notif = pos;
 			break;
 		case WLAN_EID_LINK_ID:
 			if (elen < 18)
@@ -769,8 +769,8 @@ void ieee802_11_elems_clear_ids(struct ieee802_11_elems *elems,
 		case WLAN_EID_VHT_OPERATION:
 			elems->vht_operation = NULL;
 			break;
-		case WLAN_EID_VHT_OPERATING_MODE_NOTIFICATION:
-			elems->vht_opmode_notif = NULL;
+		case WLAN_EID_OPERATING_MODE_NOTIFICATION:
+			elems->opmode_notif = NULL;
 			break;
 		case WLAN_EID_LINK_ID:
 			elems->link_id = NULL;

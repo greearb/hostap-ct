@@ -3567,7 +3567,7 @@ int wpa_parse_kde_ies(const u8 *buf, size_t len, struct wpa_eapol_ie_parse *ie)
 		} else if (*pos == WLAN_EID_HT_CAP &&
 			   pos[1] >= sizeof(struct ieee80211_ht_capabilities)) {
 			ie->ht_capabilities = pos + 2;
-		} else if (*pos == WLAN_EID_VHT_AID) {
+		} else if (*pos == WLAN_EID_AID) {
 			if (pos[1] >= 2)
 				ie->aid = WPA_GET_LE16(pos + 2) & 0x3fff;
 		} else if (*pos == WLAN_EID_VHT_CAP &&
