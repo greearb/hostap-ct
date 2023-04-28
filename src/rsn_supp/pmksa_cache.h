@@ -17,6 +17,8 @@ struct rsn_pmksa_cache_entry {
 	u8 pmkid[PMKID_LEN];
 	u8 pmk[PMK_LEN_MAX];
 	size_t pmk_len;
+	u8 kck[WPA_KCK_MAX_LEN];
+	size_t kck_len;
 	os_time_t expiration;
 	int akmp; /* WPA_KEY_MGMT_* */
 	u8 aa[ETH_ALEN];

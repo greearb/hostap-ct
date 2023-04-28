@@ -242,6 +242,9 @@ pmksa_cache_add(struct rsn_pmksa_cache *pmksa, const u8 *pmk, size_t pmk_len,
 	if (pmk_len > PMK_LEN_MAX)
 		return NULL;
 
+	if (kck_len > WPA_KCK_MAX_LEN)
+		return NULL;
+
 	if (wpa_key_mgmt_suite_b(akmp) && !kck)
 		return NULL;
 
@@ -250,6 +253,8 @@ pmksa_cache_add(struct rsn_pmksa_cache *pmksa, const u8 *pmk, size_t pmk_len,
 		return NULL;
 	os_memcpy(entry->pmk, pmk, pmk_len);
 	entry->pmk_len = pmk_len;
+	os_memcpy(entry->kck, kck, kck_len);
+	entry->kck_len = kck_len;
 	if (pmkid)
 		os_memcpy(entry->pmkid, pmkid, PMKID_LEN);
 	else if (akmp == WPA_KEY_MGMT_IEEE8021X_SUITE_B_192)
@@ -508,7 +513,7 @@ pmksa_cache_clone_entry(struct rsn_pmksa_cache *pmksa,
 	    wpa_key_mgmt_fils(old_entry->akmp))
 		pmkid = old_entry->pmkid;
 	new_entry = pmksa_cache_add(pmksa, old_entry->pmk, old_entry->pmk_len,
-				    pmkid, NULL, 0,
+				    pmkid, old_entry->kck, old_entry->kck_len,
 				    aa, pmksa->sm->own_addr,
 				    old_entry->network_ctx, old_entry->akmp,
 				    old_entry->fils_cache_id_set ?
