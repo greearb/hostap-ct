@@ -915,6 +915,16 @@ enum qca_radiotap_vendor_ids {
  *	%NL80211_CMD_GET_SURVEY response.
  *	CU = %NL80211_SURVEY_INFO_TIME_BUSY * 100 / %NL80211_SURVEY_INFO_TIME.
  *	This command is only used for STA mode.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_TID_TO_LINK_MAP: This vendor subcommand is
+ *	used as an event to notify the userspace of TID-to-link map changes
+ *	negotiated by the driver or updated by associated AP MLD with Beacon,
+ *	Probe Response, or Action frames. The attributes used with this command
+ *	are defined in enum qca_wlan_vendor_attr_tid_to_link_map.
+ *
+ *	Note that the attribute
+ *	%QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_AP_MLD_ADDR may not correspond to
+ *	the current connected AP MLD address.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1127,6 +1137,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_ROAM_STATS = 226,
 	QCA_NL80211_VENDOR_SUBCMD_MLO_LINK_STATE = 227,
 	QCA_NL80211_VENDOR_SUBCMD_CONNECTED_CHANNEL_STATS = 228,
+	QCA_NL80211_VENDOR_SUBCMD_TID_TO_LINK_MAP = 229,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -15463,6 +15474,62 @@ enum qca_wlan_vendor_attr_mlo_link_state {
 	QCA_WLAN_VENDOR_ATTR_LINK_STATE_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_LINK_STATE_MAX =
 	QCA_WLAN_VENDOR_ATTR_LINK_STATE_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_tid_link_map_status - Definition of attributes used
+ * inside nested attribute %QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_STATUS.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_TID_MAP_STATUS_UPLINK: Required u16 attribute
+ * within nested attribute %QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_STATUS.
+ * Indicates the link mapping bitmap of a TID for uplink traffic. It is a
+ * bitmask of the link IDs in which a bit set means that the TID is mapped with
+ * that link ID in uplink traffic. Otherwise, the TID is not mapped to uplink
+ * traffic for that link.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_TID_MAP_STATUS_DOWNLINK: Required u16 attribute
+ * within nested attribute %QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_STATUS.
+ * Indicates the link mapping bitmap of a TID for downlink traffic. It is a
+ * bitmask of the link IDs in which a bit set means that the TID is mapped with
+ * that link ID in downlink traffic. Otherwise, the TID is not mapped to
+ * downlink traffic for that link.
+ */
+enum qca_wlan_vendor_attr_tid_link_map_status {
+	QCA_WLAN_VENDOR_ATTR_LINK_TID_MAP_STATUS_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_LINK_TID_MAP_STATUS_UPLINK = 1,
+	QCA_WLAN_VENDOR_ATTR_LINK_TID_MAP_STATUS_DOWNLINK = 2,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_LINK_TID_MAP_STATUS_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_LINK_TID_MAP_STATUS_MAX =
+	QCA_WLAN_VENDOR_ATTR_LINK_TID_MAP_STATUS_AFTER_LAST - 1,
+};
+
+/*
+ * enum qca_wlan_vendor_attr_tid_to_link_map: Definition of attributes used with
+ * %QCA_NL80211_VENDOR_SUBCMD_TID_TO_LINK_MAP event.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_AP_MLD_ADDR: Required attribute. 6-byte
+ * AP MLD address with which this TID-to-link negotiation mapping is
+ * established/updated.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_STATUS: Optional attribute. Array of
+ * nested attributes containing TID-to-links mapping information. This will have
+ * TID-to-link mapping for TID0 to TID7, each containing the uplink and downlink
+ * map information. If this attribute is not present the default TID-to-link
+ * mapping is in use, i.e., all TIDs are mapped to all links for both uplink and
+ * downlink traffic.
+ * See enum qca_wlan_vendor_attr_tid_link_map_status for the nested attributes.
+ */
+enum qca_wlan_vendor_attr_tid_to_link_map {
+	QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_AP_MLD_ADDR = 1,
+	QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_STATUS = 2,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_MAX =
+	QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
