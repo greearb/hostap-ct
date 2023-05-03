@@ -925,6 +925,17 @@ enum qca_radiotap_vendor_ids {
  *	Note that the attribute
  *	%QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_AP_MLD_ADDR may not correspond to
  *	the current connected AP MLD address.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_LINK_RECONFIG: Notify userspace about the removal
+ *	of STA MLD setup links due to the AP MLD removing the corresponding
+ *	affiliated APs with Multi-Link reconfiguration. If all the STA MLD setup
+ *	links are removed during Multi-Link reconfiguration, the driver shall
+ *	use %NL80211_CMD_DISCONNECT instead of this command since it is a
+ *	connection drop. The attributes used with this command are defined in
+ *	enum qca_wlan_vendor_attr_link_reconfig.
+ *	Note that the attribute
+ *	%QCA_WLAN_VENDOR_ATTR_LINK_RECONFIG_AP_MLD_ADDR may not correspond to
+ *	the current connected AP MLD address.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1138,6 +1149,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_MLO_LINK_STATE = 227,
 	QCA_NL80211_VENDOR_SUBCMD_CONNECTED_CHANNEL_STATS = 228,
 	QCA_NL80211_VENDOR_SUBCMD_TID_TO_LINK_MAP = 229,
+	QCA_NL80211_VENDOR_SUBCMD_LINK_RECONFIG = 230,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -15530,6 +15542,28 @@ enum qca_wlan_vendor_attr_tid_to_link_map {
 	QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_MAX =
 	QCA_WLAN_VENDOR_ATTR_TID_TO_LINK_MAP_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_link_reconfig: Definition of attributes used
+ * with %QCA_NL80211_VENDOR_SUBCMD_LINK_RECONFIG event.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_RECONFIG_AP_MLD_ADDR: Required attribute.
+ * 6-byte AP MLD address of the AP which indicated the link reconfiguration.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_RECONFIG_REMOVED_LINKS: Required u16 attribute.
+ * A bitmap of the removed setup links link IDs.
+ */
+enum qca_wlan_vendor_attr_link_reconfig {
+
+	QCA_WLAN_VENDOR_ATTR_LINK_RECONFIG_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_LINK_RECONFIG_AP_MLD_ADDR = 1,
+	QCA_WLAN_VENDOR_ATTR_LINK_RECONFIG_REMOVED_LINKS = 2,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_LINK_RECONFIG_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_LINK_RECONFIG_MAX =
+	QCA_WLAN_VENDOR_ATTR_LINK_RECONFIG_AFTER_LAST - 1
 };
 
 #endif /* QCA_VENDOR_H */
