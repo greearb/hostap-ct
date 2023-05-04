@@ -43,9 +43,9 @@
 #ifdef CONFIG_HS20
 static void ieee802_1x_wnm_notif_send(void *eloop_ctx, void *timeout_ctx);
 #endif /* CONFIG_HS20 */
-static void ieee802_1x_finished(struct hostapd_data *hapd,
+static bool ieee802_1x_finished(struct hostapd_data *hapd,
 				struct sta_info *sta, int success,
-				int remediation);
+				int remediation, bool logoff);
 
 
 static void ieee802_1x_send(struct hostapd_data *hapd, struct sta_info *sta,
@@ -2287,16 +2287,18 @@ static void ieee802_1x_aaa_send(void *ctx, void *sta_ctx,
 }
 
 
-static void _ieee802_1x_finished(void *ctx, void *sta_ctx, int success,
-				 int preauth, int remediation)
+static bool _ieee802_1x_finished(void *ctx, void *sta_ctx, int success,
+				 int preauth, int remediation, bool logoff)
 {
 	struct hostapd_data *hapd = ctx;
 	struct sta_info *sta = sta_ctx;
 
-	if (preauth)
+	if (preauth) {
 		rsn_preauth_finished(hapd, sta, success);
-	else
-		ieee802_1x_finished(hapd, sta, success, remediation);
+		return false;
+	}
+
+	return ieee802_1x_finished(hapd, sta, success, remediation, logoff);
 }
 
 
@@ -2977,9 +2979,9 @@ static void ieee802_1x_wnm_notif_send(void *eloop_ctx, void *timeout_ctx)
 #endif /* CONFIG_HS20 */
 
 
-static void ieee802_1x_finished(struct hostapd_data *hapd,
+static bool ieee802_1x_finished(struct hostapd_data *hapd,
 				struct sta_info *sta, int success,
-				int remediation)
+				int remediation, bool logoff)
 {
 	const u8 *key;
 	size_t len;
@@ -3039,6 +3041,11 @@ static void ieee802_1x_finished(struct hostapd_data *hapd,
 		 * EAP-FAST with anonymous provisioning, may require another
 		 * EAPOL authentication to be started to complete connection.
 		 */
-		ap_sta_delayed_1x_auth_fail_disconnect(hapd, sta);
+		ap_sta_delayed_1x_auth_fail_disconnect(hapd, sta,
+						       logoff ? 0 : 10);
+		if (logoff && sta->wpa_sm)
+			return true;
 	}
+
+	return false;
 }
