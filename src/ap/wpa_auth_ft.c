@@ -3085,7 +3085,7 @@ static int wpa_ft_local_derive_pmk_r1(struct wpa_authenticator *wpa_auth,
 				      struct wpa_state_machine *sm,
 				      const u8 *r0kh_id, size_t r0kh_id_len,
 				      const u8 *req_pmk_r0_name,
-				      const u8 *req_pmk_r1_name,
+				      u8 *out_pmk_r1_name,
 				      u8 *out_pmk_r1, int *out_pairwise,
 				      struct vlan_description *vlan,
 				      const u8 **identity, size_t *identity_len,
@@ -3096,7 +3096,6 @@ static int wpa_ft_local_derive_pmk_r1(struct wpa_authenticator *wpa_auth,
 {
 	struct wpa_auth_config *conf = &wpa_auth->conf;
 	const struct wpa_ft_pmk_r0_sa *r0;
-	u8 pmk_r1_name[WPA_PMK_NAME_LEN];
 	int expires_in = 0;
 	int session_timeout = 0;
 	struct os_reltime now;
@@ -3115,7 +3114,7 @@ static int wpa_ft_local_derive_pmk_r1(struct wpa_authenticator *wpa_auth,
 
 	if (wpa_derive_pmk_r1(r0->pmk_r0, r0->pmk_r0_len, r0->pmk_r0_name,
 			      conf->r1_key_holder,
-			      sm->addr, out_pmk_r1, pmk_r1_name) < 0)
+			      sm->addr, out_pmk_r1, out_pmk_r1_name) < 0)
 		return -1;
 
 	os_get_reltime(&now);
@@ -3126,7 +3125,7 @@ static int wpa_ft_local_derive_pmk_r1(struct wpa_authenticator *wpa_auth,
 		session_timeout = r0->session_timeout - now.sec;
 
 	wpa_ft_store_pmk_r1(wpa_auth, sm->addr, out_pmk_r1, r0->pmk_r0_len,
-			    pmk_r1_name,
+			    out_pmk_r1_name,
 			    sm->pairwise, r0->vlan, expires_in, session_timeout,
 			    r0->identity, r0->identity_len,
 			    r0->radius_cui, r0->radius_cui_len);
