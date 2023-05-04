@@ -16,6 +16,7 @@ import hostapd
 from utils import *
 from wlantest import Wlantest
 from wpasupplicant import WpaSupplicant
+from test_eap_proto import rx_msg, tx_msg, proxy_msg
 
 @remote_compatible
 def test_ap_pmf_required(dev, apdev):
@@ -1514,3 +1515,70 @@ def test_ap_pmf_drop_robust_mgmt_prior_to_keys_installation(dev, apdev):
     ev = dev[0].wait_event(['CTRL-EVENT-STARTED-CHANNEL-SWITCH'], timeout=5)
     if ev is None:
         raise Exception("Expected CSA handling after keys installation")
+
+def test_ap_pmf_eapol_logoff(dev, apdev):
+    """WPA2-EAP AP with PMF required and EAPOL-Logoff"""
+    ssid = "test-pmf-required-eap"
+    params = hostapd.wpa2_eap_params(ssid=ssid)
+    params["wpa_key_mgmt"] = "WPA-EAP-SHA256"
+    params["ieee80211w"] = "2"
+    hapd = hostapd.add_ap(apdev[0], params)
+    hapd.request("SET ext_eapol_frame_io 1")
+
+    dev[0].set("ext_eapol_frame_io", "1")
+    dev[0].connect("test-pmf-required-eap", key_mgmt="WPA-EAP-SHA256",
+                   ieee80211w="2", eap="PSK", identity="psk.user@example.com",
+                   password_hex="0123456789abcdef0123456789abcdef",
+                   scan_freq="2412", wait_connect=False)
+
+    # EAP-Request/Identity
+    proxy_msg(hapd, dev[0])
+
+    # EAP-Response/Identity RX
+    msg = rx_msg(dev[0])
+    # EAPOL-Logoff TX (inject)
+    tx_msg(dev[0], hapd, "02020000")
+    # EAP-Response/Identity TX (proxy previously received)
+    tx_msg(dev[0], hapd, msg)
+
+    # Verify that the 10 ms timeout for deauthenticating STA after EAP-Failure
+    # is not used in this sequence with the EAPOL-Logoff message before the
+    # successful authentication.
+    ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=0.03)
+    if ev:
+        raise Exception("Unexpected disconnection")
+
+    # EAP-Request/Identity
+    proxy_msg(hapd, dev[0])
+    # EAP-Response/Identity
+    proxy_msg(dev[0], hapd)
+
+    # EAP-PSK
+    proxy_msg(hapd, dev[0])
+    proxy_msg(dev[0], hapd)
+    proxy_msg(hapd, dev[0])
+    proxy_msg(dev[0], hapd)
+    proxy_msg(hapd, dev[0])
+
+    # 4-way handshake
+    proxy_msg(hapd, dev[0])
+    proxy_msg(dev[0], hapd)
+    proxy_msg(hapd, dev[0])
+    proxy_msg(dev[0], hapd)
+
+    ev = hapd.wait_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=1)
+    if ev is None:
+        raise Exception("4-way handshake did not complete successfully")
+    dev[0].wait_connected(timeout=0.1)
+    hapd.wait_sta()
+
+    # Verify that the STA gets disconnected when the EAPOL-Logoff message is
+    # sent after successful authentication.
+
+    # EAPOL-Logoff TX (inject)
+    tx_msg(dev[0], hapd, "02020000")
+    hapd.request("SET ext_eapol_frame_io 0")
+    dev[0].set("ext_eapol_frame_io", "0")
+    ev = dev[0].wait_disconnected(timeout=1)
+    if "reason=23" not in ev:
+        raise Exception("Unexpected disconnection reason: " + ev)
