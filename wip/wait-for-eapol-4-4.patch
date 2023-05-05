@@ -1,0 +1,669 @@
+commit 5c58af18f4ce0de6004f48b9ea44fe92e99c73cb
+Author: Wojciech Dubowik <Wojciech.Dubowik@neratec.com>
+Date:   Fri Jun 9 11:21:30 2017 +0200
+
+    wpa_supplicant: Wait for eapol 4/4 tx-status before setting key.
+    
+    Supplicant is using generic L2 send function for EAPOL
+    messages which doesn't give back status whether frame has been
+    acked or not. It can lead to wrong wpa states when EAPOL 4/4
+    is lost i.e. client is in connected state but keys aren't
+    established on AP side.
+    Fix that by using nl80211_send_eapol_data as for AP side
+    and check in conneced state that 4/4 EAPOL has been acked.
+    
+    As a combined improvement, do not actually set the keys until
+    we receive notification that the 4/4 message was sent.  This fixes
+    races in ath10k CT firmware, and may eventually let other firmware
+    remove hacks that were needed to work around this key-setting
+    race.
+    
+    Signed-off-by: Wojciech Dubowik <Wojciech.Dubowik@neratec.com>
+    Signed-off-by: Ben Greear <greearb@candelatech.com>
+
+diff --git a/src/drivers/driver.h b/src/drivers/driver.h
+index 700a4a3fd..1889f6823 100644
+--- a/src/drivers/driver.h
++++ b/src/drivers/driver.h
+@@ -3572,6 +3572,23 @@ struct wpa_driver_ops {
+ 			       size_t data_len, int encrypt,
+ 			       const u8 *own_addr, u32 flags);
+ 
++	/**
++	 * Supports data tx status?
++	 */
++	int (*supports_data_tx_status)(void *priv);
++
++	/**
++	 * send_eapol - Send an EAPOL packet (STA only)
++	 * @priv: private driver interface data
++	 * @addr: Destination MAC address
++	 * @data: EAPOL packet starting with IEEE 802.1X header
++	 * @data_len: Length of the EAPOL packet in octets
++	 *
++	 * Returns: 0 on success, -1 on failure
++	 */
++	int (*send_eapol)(void *priv, const u8 *addr, const u8 *data,
++			       size_t data_len);
++
+ 	/**
+ 	 * sta_deauth - Deauthenticate a station (AP only)
+ 	 * @priv: Private driver interface data
+diff --git a/src/drivers/driver_nl80211.c b/src/drivers/driver_nl80211.c
+index 0eb6d23af..f56b515eb 100644
+--- a/src/drivers/driver_nl80211.c
++++ b/src/drivers/driver_nl80211.c
+@@ -6073,6 +6073,13 @@ static int nl80211_send_eapol_data(struct i802_bss *bss,
+ 	return ret;
+ }
+ 
++static int driver_nl80211_supports_data_tx_status(
++	void *priv)
++{
++	struct i802_bss *bss = priv;
++	struct wpa_driver_nl80211_data *drv = bss->drv;
++	return drv->data_tx_status;
++}
+ 
+ static const u8 rfc1042_header[6] = { 0xaa, 0xaa, 0x03, 0x00, 0x00, 0x00 };
+ 
+@@ -6146,6 +6153,16 @@ static int wpa_driver_nl80211_hapd_send_eapol(
+ 	return res;
+ }
+ 
++static int wpa_driver_nl80211_send_eapol(
++	void *priv, const u8 *addr, const u8 *data,
++	size_t data_len)
++{
++	struct i802_bss *bss = priv;
++
++	return nl80211_send_eapol_data(bss, addr, data, data_len);
++}
++
++
+ 
+ static int wpa_driver_nl80211_sta_set_flags(void *priv, const u8 *addr,
+ 					    unsigned int total_flags,
+@@ -13805,6 +13822,8 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
+ 	.sta_remove = driver_nl80211_sta_remove,
+ 	.tx_control_port = nl80211_tx_control_port,
+ 	.hapd_send_eapol = wpa_driver_nl80211_hapd_send_eapol,
++	.send_eapol = wpa_driver_nl80211_send_eapol,
++	.supports_data_tx_status = driver_nl80211_supports_data_tx_status,
+ 	.sta_set_flags = wpa_driver_nl80211_sta_set_flags,
+ 	.sta_set_airtime_weight = driver_nl80211_sta_set_airtime_weight,
+ 	.hapd_init = i802_init,
+diff --git a/src/rsn_supp/wpa.c b/src/rsn_supp/wpa.c
+index a90368ba1..01a3f03d6 100644
+--- a/src/rsn_supp/wpa.c
++++ b/src/rsn_supp/wpa.c
+@@ -1124,6 +1124,9 @@ static void wpa_supplicant_process_1_of_4(struct wpa_sm *sm,
+ 		kde_len = pos - kde;
+ 	}
+ 
++	sm->waiting_for_4_of_4_wpa_sent = 0; /* not yet */
++	sm->waiting_for_4_of_4_rsn_sent = 0; /* not yet */
++
+ 	if (wpa_supplicant_send_2_of_4(sm, wpa_sm_get_auth_addr(sm), key, ver,
+ 				       sm->snonce, kde, kde_len, ptk) < 0)
+ 		goto failed;
+@@ -2420,16 +2423,14 @@ static int wpa_validate_mlo_ieee80211w_kdes(struct wpa_sm *sm,
+ 	return 0;
+ }
+ 
+-
+-static void wpa_supplicant_process_3_of_4_wpa(struct wpa_sm *sm,
+-					      const struct wpa_eapol_key *key,
+-					      u16 ver, const u8 *key_data,
+-					      size_t key_data_len)
++static void wpa_supplicant_process_3_of_4_wpa_send(struct wpa_sm *sm,
++						   const struct wpa_eapol_key *key,
++						   u16 ver, const u8 *key_data,
++						   size_t key_data_len)
+ {
+ 	u16 key_info, keylen;
+ 	struct wpa_eapol_ie_parse ie;
+ 
+-	wpa_sm_set_state(sm, WPA_4WAY_HANDSHAKE);
+ 	wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG,
+ 		"WPA: RX message 3 of 4-Way Handshake from " MACSTR
+ 		" (ver=%d)", MAC2STR(sm->bssid), ver);
+@@ -2459,46 +2460,30 @@ static void wpa_supplicant_process_3_of_4_wpa(struct wpa_sm *sm,
+ 		goto failed;
+ 	}
+ 
+-	if (wpa_supplicant_send_4_of_4(sm, wpa_sm_get_auth_addr(sm), key, ver,
+-				       key_info, &sm->ptk) < 0)
+-		goto failed;
+-
+-	/* SNonce was successfully used in msg 3/4, so mark it to be renewed
+-	 * for the next 4-Way Handshake. If msg 3 is received again, the old
+-	 * SNonce will still be used to avoid changing PTK. */
+-	sm->renew_snonce = 1;
++	sm->waiting_for_4_of_4_wpa_sent = 1;
+ 
+-	if ((key_info & WPA_KEY_INFO_INSTALL) &&
+-	    wpa_supplicant_install_ptk(sm, key, KEY_FLAG_RX_TX))
++	if (wpa_supplicant_send_4_of_4(sm, wpa_sm_get_auth_addr(sm), key, ver,
++				       key_info, &sm->ptk) < 0) {
++		sm->waiting_for_4_of_4_wpa_sent = 0;
+ 		goto failed;
+-
+-	if (key_info & WPA_KEY_INFO_SECURE) {
+-		wpa_sm_mlme_setprotection(
+-			sm, sm->bssid, MLME_SETPROTECTION_PROTECT_TYPE_RX,
+-			MLME_SETPROTECTION_KEY_TYPE_PAIRWISE);
+-		eapol_sm_notify_portValid(sm->eapol, true);
+ 	}
+-	wpa_sm_set_state(sm, WPA_GROUP_HANDSHAKE);
+-
+-	sm->msg_3_of_4_ok = 1;
+ 	return;
+ 
+ failed:
++	wpa_sm_set_state(sm, WPA_4WAY_HANDSHAKE);
+ 	wpa_sm_deauthenticate(sm, WLAN_REASON_UNSPECIFIED);
+ }
+ 
+-
+-static void wpa_supplicant_process_3_of_4(struct wpa_sm *sm,
+-					  const struct wpa_eapol_key *key,
+-					  u16 ver, const u8 *key_data,
+-					  size_t key_data_len)
++static void wpa_supplicant_process_3_of_4_send(struct wpa_sm *sm,
++					       const struct wpa_eapol_key *key,
++					       u16 ver, const u8 *key_data,
++					       size_t key_data_len)
+ {
+ 	u16 key_info, keylen;
+ 	struct wpa_eapol_ie_parse ie;
+ 	bool mlo = sm->mlo.valid_links;
+ 	int i;
+ 
+-	wpa_sm_set_state(sm, WPA_4WAY_HANDSHAKE);
+ 	wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG,
+ 		"RSN: RX message 3 of 4-Way Handshake from " MACSTR
+ 		" (ver=%d)%s", MAC2STR(sm->bssid), ver, mlo ? " (MLO)" : "");
+@@ -2652,93 +2637,17 @@ static void wpa_supplicant_process_3_of_4(struct wpa_sm *sm,
+ 	    wpa_supplicant_install_ptk(sm, key, KEY_FLAG_RX))
+ 		goto failed;
+ 
+-	if (wpa_supplicant_send_4_of_4(sm, wpa_sm_get_auth_addr(sm), key, ver,
+-				       key_info, &sm->ptk) < 0)
+-		goto failed;
+-
+-	/* SNonce was successfully used in msg 3/4, so mark it to be renewed
+-	 * for the next 4-Way Handshake. If msg 3 is received again, the old
+-	 * SNonce will still be used to avoid changing PTK. */
+-	sm->renew_snonce = 1;
+-
+-	if (key_info & WPA_KEY_INFO_INSTALL) {
+-		int res;
+-
+-		if (sm->use_ext_key_id)
+-			res = wpa_supplicant_activate_ptk(sm);
+-		else
+-			res = wpa_supplicant_install_ptk(sm, key,
+-							 KEY_FLAG_RX_TX);
+-		if (res)
+-			goto failed;
+-	}
++	sm->waiting_for_4_of_4_rsn_sent = 1;
+ 
+-	if (key_info & WPA_KEY_INFO_SECURE) {
+-		wpa_sm_mlme_setprotection(
+-			sm, sm->bssid, MLME_SETPROTECTION_PROTECT_TYPE_RX,
+-			MLME_SETPROTECTION_KEY_TYPE_PAIRWISE);
+-		eapol_sm_notify_portValid(sm->eapol, true);
+-	}
+-	wpa_sm_set_state(sm, WPA_GROUP_HANDSHAKE);
+-
+-	if (mlo) {
+-		if (wpa_supplicant_pairwise_mlo_gtk(sm, key, &ie,
+-						    key_info) < 0) {
+-			wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+-				"MLO RSN: Failed to configure MLO GTKs");
+-			goto failed;
+-		}
+-	} else if (sm->group_cipher == WPA_CIPHER_GTK_NOT_USED) {
+-		/* No GTK to be set to the driver */
+-	} else if (!ie.gtk && sm->proto == WPA_PROTO_RSN) {
+-		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+-			"RSN: No GTK KDE included in EAPOL-Key msg 3/4");
+-		goto failed;
+-	} else if (ie.gtk &&
+-	    wpa_supplicant_pairwise_gtk(sm, key,
+-					ie.gtk, ie.gtk_len, key_info) < 0) {
+-		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+-			"RSN: Failed to configure GTK");
+-		goto failed;
+-	}
+-
+-	if ((mlo && mlo_ieee80211w_set_keys(sm, &ie) < 0) ||
+-	    (!mlo && ieee80211w_set_keys(sm, &ie) < 0)) {
+-		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+-			"RSN: Failed to configure IGTK");
++	if (wpa_supplicant_send_4_of_4(sm, wpa_sm_get_auth_addr(sm), key, ver,
++				       key_info, &sm->ptk) < 0) {
++		sm->waiting_for_4_of_4_rsn_sent = 0;
+ 		goto failed;
+ 	}
+-
+-	if (mlo || sm->group_cipher == WPA_CIPHER_GTK_NOT_USED || ie.gtk)
+-		wpa_supplicant_key_neg_complete(sm, sm->bssid,
+-						key_info & WPA_KEY_INFO_SECURE);
+-
+-	if (mlo || ie.gtk)
+-		wpa_sm_set_rekey_offload(sm);
+-
+-	/* Add PMKSA cache entry for Suite B AKMs here since PMKID can be
+-	 * calculated only after KCK has been derived. Though, do not replace an
+-	 * existing PMKSA entry after each 4-way handshake (i.e., new KCK/PMKID)
+-	 * to avoid unnecessary changes of PMKID while continuing to use the
+-	 * same PMK. */
+-	if (sm->proto == WPA_PROTO_RSN && wpa_key_mgmt_suite_b(sm->key_mgmt) &&
+-	    !sm->cur_pmksa) {
+-		struct rsn_pmksa_cache_entry *sa;
+-
+-		sa = pmksa_cache_add(sm->pmksa, sm->pmk, sm->pmk_len, NULL,
+-				     sm->ptk.kck, sm->ptk.kck_len,
+-				     wpa_sm_get_auth_addr(sm), sm->own_addr,
+-				     sm->network_ctx, sm->key_mgmt, NULL);
+-		if (!sm->cur_pmksa)
+-			sm->cur_pmksa = sa;
+-	}
+-
+-	if (ie.transition_disable)
+-		wpa_sm_transition_disable(sm, ie.transition_disable[0]);
+-	sm->msg_3_of_4_ok = 1;
+ 	return;
+ 
+ failed:
++	wpa_sm_set_state(sm, WPA_4WAY_HANDSHAKE);
+ 	wpa_sm_deauthenticate(sm, WLAN_REASON_UNSPECIFIED);
+ }
+ 
+@@ -3483,6 +3392,163 @@ static int wpa_supp_aead_decrypt(struct wpa_sm *sm, u8 *buf, size_t buf_len,
+ }
+ #endif /* CONFIG_FILS */
+ 
++
++static void wpa_supplicant_process_4_of_4_wpa_sent(struct wpa_sm *sm)
++{
++	struct wpa_eapol_key *key;
++	u16 key_info;
++	u8 *buf = sm->last_3_of_4_buf;
++
++	key = (struct wpa_eapol_key *) (buf + sizeof(struct ieee802_1x_hdr));
++	key_info = WPA_GET_BE16(key->key_info);
++
++	/* SNonce was successfully used in msg 3/4, so mark it to be renewed
++	 * for the next 4-Way Handshake. If msg 3 is received again, the old
++	 * SNonce will still be used to avoid changing PTK. */
++	sm->renew_snonce = 1;
++
++	if ((key_info & WPA_KEY_INFO_INSTALL) &&
++	    wpa_supplicant_install_ptk(sm, key, KEY_FLAG_RX_TX))
++		goto failed;
++
++	if (key_info & WPA_KEY_INFO_SECURE) {
++		wpa_sm_mlme_setprotection(
++			sm, sm->bssid, MLME_SETPROTECTION_PROTECT_TYPE_RX,
++			MLME_SETPROTECTION_KEY_TYPE_PAIRWISE);
++		eapol_sm_notify_portValid(sm->eapol, true);
++	}
++	wpa_sm_set_state(sm, WPA_GROUP_HANDSHAKE);
++
++	sm->msg_3_of_4_ok = 1;
++	return;
++
++failed:
++	wpa_sm_deauthenticate(sm, WLAN_REASON_UNSPECIFIED);
++}
++
++static void wpa_supplicant_process_4_of_4_rsn_sent(struct wpa_sm *sm)
++{
++	struct wpa_eapol_key *key;
++	u16 key_info;
++	struct wpa_eapol_ie_parse ie;
++	u8 *buf = sm->last_3_of_4_buf;
++	bool mlo = sm->mlo.valid_links;
++
++	key = (struct wpa_eapol_key *) (buf + sizeof(struct ieee802_1x_hdr));
++	key_info = WPA_GET_BE16(key->key_info);
++
++	/* SNonce was successfully used in msg 3/4, so mark it to be renewed
++	 * for the next 4-Way Handshake. If msg 3 is received again, the old
++	 * SNonce will still be used to avoid changing PTK. */
++	sm->renew_snonce = 1;
++
++	if (key_info & WPA_KEY_INFO_INSTALL) {
++		int res;
++
++		if (sm->use_ext_key_id)
++			res = wpa_supplicant_activate_ptk(sm);
++		else
++			res = wpa_supplicant_install_ptk(sm, key,
++							 KEY_FLAG_RX_TX);
++		if (res)
++			goto failed;
++	}
++
++	if (key_info & WPA_KEY_INFO_SECURE) {
++		wpa_sm_mlme_setprotection(
++			sm, sm->bssid, MLME_SETPROTECTION_PROTECT_TYPE_RX,
++			MLME_SETPROTECTION_KEY_TYPE_PAIRWISE);
++		eapol_sm_notify_portValid(sm->eapol, true);
++	}
++	wpa_sm_set_state(sm, WPA_GROUP_HANDSHAKE);
++
++	if (mlo) {
++		if (wpa_supplicant_pairwise_mlo_gtk(sm, key, &ie,
++						    key_info) < 0) {
++			wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
++				"MLO RSN: Failed to configure MLO GTKs");
++			goto failed;
++		}
++	} else if (sm->group_cipher == WPA_CIPHER_GTK_NOT_USED) {
++		/* No GTK to be set to the driver */
++	} else if (!ie.gtk && sm->proto == WPA_PROTO_RSN) {
++		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
++			"RSN: No GTK KDE included in EAPOL-Key msg 3/4");
++		goto failed;
++	} else if (ie.gtk &&
++	    wpa_supplicant_pairwise_gtk(sm, key,
++					ie.gtk, ie.gtk_len, key_info) < 0) {
++		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
++			"RSN: Failed to configure GTK");
++		goto failed;
++	}
++
++	if ((mlo && mlo_ieee80211w_set_keys(sm, &ie) < 0) ||
++	    (!mlo && ieee80211w_set_keys(sm, &ie) < 0)) {
++		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
++			"RSN: Failed to configure IGTK");
++		goto failed;
++	}
++
++	if (mlo || sm->group_cipher == WPA_CIPHER_GTK_NOT_USED || ie.gtk)
++		wpa_supplicant_key_neg_complete(sm, sm->bssid,
++						key_info & WPA_KEY_INFO_SECURE);
++
++	if (mlo || ie.gtk)
++		wpa_sm_set_rekey_offload(sm);
++
++	/* Add PMKSA cache entry for Suite B AKMs here since PMKID can be
++	 * calculated only after KCK has been derived. Though, do not replace an
++	 * existing PMKSA entry after each 4-way handshake (i.e., new KCK/PMKID)
++	 * to avoid unnecessary changes of PMKID while continuing to use the
++	 * same PMK. */
++	if (sm->proto == WPA_PROTO_RSN && wpa_key_mgmt_suite_b(sm->key_mgmt) &&
++	    !sm->cur_pmksa) {
++		struct rsn_pmksa_cache_entry *sa;
++
++		sa = pmksa_cache_add(sm->pmksa, sm->pmk, sm->pmk_len, NULL,
++				     sm->ptk.kck, sm->ptk.kck_len,
++				     wpa_sm_get_auth_addr(sm), sm->own_addr,
++				     sm->network_ctx, sm->key_mgmt, NULL);
++		if (!sm->cur_pmksa)
++			sm->cur_pmksa = sa;
++	}
++
++	if (ie.transition_disable)
++		wpa_sm_transition_disable(sm, ie.transition_disable[0]);
++	sm->msg_3_of_4_ok = 1;
++	return;
++
++failed:
++	wpa_sm_deauthenticate(sm, WLAN_REASON_UNSPECIFIED);
++}
++
++void wpa_sm_eapol_tx_status_available(struct wpa_sm *sm, int is_available)
++{
++	sm->eapol_tx_status_available = is_available;
++}
++
++/* De-auth if return is < 0 */
++int wpa_sm_eapol_tx_status(struct wpa_sm *sm, const u8 *dst,
++			   const u8 *buf, size_t len, int ack)
++{
++	wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG,
++		"EAPOL_TX_STATUS: ACK(%d) waiting 4/4-tx-status: wpa-sent: %d  rsn-sent: %d",
++		ack, sm->waiting_for_4_of_4_wpa_sent, sm->waiting_for_4_of_4_rsn_sent);
++	if (ack && (sm->waiting_for_4_of_4_rsn_sent || sm->waiting_for_4_of_4_wpa_sent)) {
++		if (sm->waiting_for_4_of_4_rsn_sent)
++			wpa_supplicant_process_4_of_4_rsn_sent(sm);
++		else
++			wpa_supplicant_process_4_of_4_wpa_sent(sm);
++	}
++	else if (!ack && (sm->waiting_for_4_of_4_rsn_sent || sm->waiting_for_4_of_4_wpa_sent)) {
++		wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG,
++			"EAPOL 4/4 Not acked, disconnecting");
++		return -1;
++	}
++	return 0;
++}
++
+ #ifdef CONFIG_TESTING_OPTIONS
+ /* Mostly same as below, but this should not change any state.  Returns the
+  * message type so we can make decisions before feeding this into the state
+@@ -3599,7 +3665,8 @@ static int wpa_sm_rx_eapol_wpa(struct wpa_sm *sm, const u8 *src_addr,
+ 			       struct wpa_eapol_key *key,
+ 			       enum frame_encryption encrypted,
+ 			       const u8 *tmp, size_t data_len,
+-			       u8 *key_data, size_t key_data_len)
++			       u8 *key_data, size_t key_data_len,
++			       const u8 *buf, size_t len)
+ {
+ 	u16 key_info, ver;
+ 
+@@ -3650,9 +3717,19 @@ static int wpa_sm_rx_eapol_wpa(struct wpa_sm *sm, const u8 *src_addr,
+ 		if (key_info & (WPA_KEY_INFO_MIC |
+ 				WPA_KEY_INFO_ENCR_KEY_DATA)) {
+ 			/* 3/4 4-Way Handshake */
+-			wpa_supplicant_process_3_of_4_wpa(sm, key, ver,
+-							  key_data,
+-							  key_data_len);
++			/* Save buffer for doing the second half of the 4/4 processing
++			 * once we get 4/4 ack status
++			 */
++			int my_len = sizeof(sm->last_3_of_4_buf);
++			if (len < my_len)
++				my_len = len;
++			memcpy(sm->last_3_of_4_buf, buf, my_len);
++			sm->last_3_of_4_len = my_len;
++
++			wpa_supplicant_process_3_of_4_wpa_send(sm, key, ver, key_data,
++							       key_data_len);
++			if (!sm->eapol_tx_status_available)
++				wpa_supplicant_process_4_of_4_wpa_sent(sm);
+ 		} else {
+ 			/* 1/4 4-Way Handshake */
+ 			wpa_supplicant_process_1_of_4_wpa(sm, src_addr, key,
+@@ -3821,7 +3898,7 @@ int wpa_sm_rx_eapol(struct wpa_sm *sm, const u8 *src_addr,
+ 	if (sm->proto == WPA_PROTO_WPA) {
+ 		ret = wpa_sm_rx_eapol_wpa(sm, src_addr, key, encrypted,
+ 					  tmp, data_len,
+-					  key_data, key_data_len);
++					  key_data, key_data_len, buf, len);
+ 		goto out;
+ 	}
+ 
+@@ -3946,8 +4023,19 @@ int wpa_sm_rx_eapol(struct wpa_sm *sm, const u8 *src_addr,
+ 		if (key_info & (WPA_KEY_INFO_MIC |
+ 				WPA_KEY_INFO_ENCR_KEY_DATA)) {
+ 			/* 3/4 4-Way Handshake */
+-			wpa_supplicant_process_3_of_4(sm, key, ver, key_data,
+-						      key_data_len);
++			/* Save buffer for doing the second half of the 4/4 processing
++			 * once we get 4/4 ack status
++			 */
++			int my_len = sizeof(sm->last_3_of_4_buf);
++			if (len < my_len)
++				my_len = len;
++			memcpy(sm->last_3_of_4_buf, buf, my_len);
++			sm->last_3_of_4_len = my_len;
++
++			wpa_supplicant_process_3_of_4_send(sm, key, ver, key_data,
++							   key_data_len);
++			if (!sm->eapol_tx_status_available)
++				wpa_supplicant_process_4_of_4_rsn_sent(sm);
+ 		} else {
+ 			/* 1/4 4-Way Handshake */
+ 			wpa_supplicant_process_1_of_4(sm, src_addr, key,
+diff --git a/src/rsn_supp/wpa.h b/src/rsn_supp/wpa.h
+index a652d5eba..d3fb149d5 100644
+--- a/src/rsn_supp/wpa.h
++++ b/src/rsn_supp/wpa.h
+@@ -292,6 +292,9 @@ void wpa_sm_set_ptk_kck_kek(struct wpa_sm *sm,
+ int wpa_fils_is_completed(struct wpa_sm *sm);
+ void wpa_sm_pmksa_cache_reconfig(struct wpa_sm *sm);
+ int wpa_sm_set_mlo_params(struct wpa_sm *sm, const struct wpa_sm_mlo *mlo);
++int wpa_sm_eapol_tx_status(struct wpa_sm *sm, const u8 *dst,
++			   const u8 *buf, size_t len, int ack);
++void wpa_sm_eapol_tx_status_available(struct wpa_sm *sm, int is_available);
+ 
+ #else /* CONFIG_NO_WPA */
+ 
+@@ -523,10 +526,16 @@ static inline void wpa_sm_pmksa_cache_reconfig(struct wpa_sm *sm)
+ 
+ static inline int wpa_sm_set_mlo_params(struct wpa_sm *sm,
+ 					const struct wpa_sm_mlo *mlo)
++static int wpa_sm_eapol_tx_status(struct wpa_sm *sm, const u8 *dst,
++			   const u8 *buf, size_t len, int ack)
+ {
+ 	return 0;
+ }
+ 
++static void wpa_sm_eapol_tx_status_available(struct wpa_sm *sm, int is_available)
++{
++}
++
+ #endif /* CONFIG_NO_WPA */
+ 
+ #ifdef CONFIG_IEEE80211R
+diff --git a/src/rsn_supp/wpa_i.h b/src/rsn_supp/wpa_i.h
+index a26ece0bb..3ab6158c4 100644
+--- a/src/rsn_supp/wpa_i.h
++++ b/src/rsn_supp/wpa_i.h
+@@ -230,6 +230,11 @@ struct wpa_sm {
+ 	struct wpa_sm_mlo mlo;
+ 
+ 	bool wmm_enabled;
++	u8 waiting_for_4_of_4_rsn_sent; /* boolean */
++	u8 waiting_for_4_of_4_wpa_sent; /* boolean */
++	u8 eapol_tx_status_available;
++	u16 last_3_of_4_len;
++	u8 last_3_of_4_buf[1500];
+ };
+ 
+ 
+diff --git a/wpa_supplicant/driver_i.h b/wpa_supplicant/driver_i.h
+index 40bba828d..785df0ce5 100644
+--- a/wpa_supplicant/driver_i.h
++++ b/wpa_supplicant/driver_i.h
+@@ -396,6 +396,23 @@ static inline int wpa_drv_hapd_send_eapol(struct wpa_supplicant *wpa_s,
+ 	return -1;
+ }
+ 
++static inline int wpa_drv_supports_data_tx_status(struct wpa_supplicant *wpa_s)
++{
++	if (wpa_s->driver->supports_data_tx_status)
++		return wpa_s->driver->supports_data_tx_status(wpa_s->drv_priv);
++	return 0;
++}
++
++static inline int wpa_drv_send_eapol(struct wpa_supplicant *wpa_s,
++					  const u8 *addr, const u8 *data,
++					  size_t data_len)
++{
++	if (wpa_s->driver->hapd_send_eapol)
++		return wpa_s->driver->send_eapol(wpa_s->drv_priv, addr,
++						      data, data_len);
++	return -1;
++}
++
+ static inline int wpa_drv_sta_set_flags(struct wpa_supplicant *wpa_s,
+ 					const u8 *addr, int total_flags,
+ 					int flags_or, int flags_and)
+diff --git a/wpa_supplicant/events.c b/wpa_supplicant/events.c
+index 0478acee9..0b618733c 100644
+--- a/wpa_supplicant/events.c
++++ b/wpa_supplicant/events.c
+@@ -5606,13 +5606,25 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
+ 		}
+ #endif /* CONFIG_AP */
+ 		break;
+-#ifdef CONFIG_AP
+ 	case EVENT_EAPOL_TX_STATUS:
+-		ap_eapol_tx_status(wpa_s, data->eapol_tx_status.dst,
+-				   data->eapol_tx_status.data,
+-				   data->eapol_tx_status.data_len,
+-				   data->eapol_tx_status.ack);
++		if (wpa_s->ap_iface) {
++			ap_eapol_tx_status(wpa_s, data->eapol_tx_status.dst,
++					   data->eapol_tx_status.data,
++					   data->eapol_tx_status.data_len,
++					   data->eapol_tx_status.ack);
++		}
++		else {
++			if (wpa_sm_eapol_tx_status(wpa_s->wpa, data->eapol_tx_status.dst,
++						   data->eapol_tx_status.data,
++						   data->eapol_tx_status.data_len,
++						   data->eapol_tx_status.ack) < 0) {
++				wpa_s->own_disconnect_req = 1;
++				wpa_supplicant_deauthenticate(
++					wpa_s, WLAN_REASON_4WAY_HANDSHAKE_TIMEOUT);
++			}
++		}
+ 		break;
++#ifdef CONFIG_AP
+ 	case EVENT_DRIVER_CLIENT_POLL_OK:
+ 		ap_client_poll_ok(wpa_s, data->client_poll.addr);
+ 		break;
+diff --git a/wpa_supplicant/wpas_glue.c b/wpa_supplicant/wpas_glue.c
+index 7a0219843..35cdbb979 100644
+--- a/wpa_supplicant/wpas_glue.c
++++ b/wpa_supplicant/wpas_glue.c
+@@ -98,6 +98,9 @@ static u8 * wpa_alloc_eapol(const struct wpa_supplicant *wpa_s, u8 type,
+ int wpa_ether_send(struct wpa_supplicant *wpa_s, const u8 *dest,
+ 		   u16 proto, const u8 *buf, size_t len)
+ {
++	int ret;
++	int tx_status_avail = 0;
++
+ #ifdef CONFIG_TESTING_OPTIONS
+ 	if (wpa_s->ext_eapol_frame_io && proto == ETH_P_EAPOL) {
+ 		size_t hex_len = 2 * len + 1;
+@@ -112,6 +115,18 @@ int wpa_ether_send(struct wpa_supplicant *wpa_s, const u8 *dest,
+ 		return 0;
+ 	}
+ #endif /* CONFIG_TESTING_OPTIONS */
++	ret = wpa_drv_send_eapol(wpa_s, dest, buf, len);
++
++	if (wpa_drv_supports_data_tx_status(wpa_s))
++		tx_status_avail = (ret >= 0);
++
++	wpa_sm_eapol_tx_status_available(wpa_s->wpa, tx_status_avail);
++
++	wpa_dbg(wpa_s, MSG_DEBUG, "wpa_drv_send_eapol rv (%d) tx-status-avail: %d",
++		ret, tx_status_avail);
++
++	if (ret >= 0)
++		return ret;
+ 
+ 	if (wpa_s->drv_flags & WPA_DRIVER_FLAGS_CONTROL_PORT) {
+ 		int encrypt = wpa_s->wpa &&
+@@ -162,8 +177,10 @@ static int wpa_supplicant_eapol_send(void *ctx, int type, const u8 *buf,
+ 		 * EAPOL frames (mainly, EAPOL-Start) from EAPOL state
+ 		 * machines. */
+ 		wpa_printf(MSG_DEBUG, "WPA: drop TX EAPOL in non-IEEE 802.1X "
+-			   "mode (type=%d len=%lu)", type,
+-			   (unsigned long) len);
++			   "mode (type=%d len=%lu key_mgmt=%d is-psk=%d) "
++			   "(this message is normal for PSK connections)", type,
++			   (unsigned long) len, (unsigned int)(wpa_s->key_mgmt),
++			   wpa_key_mgmt_wpa_psk(wpa_s->key_mgmt));
+ 		return -1;
+ 	}
+ 
