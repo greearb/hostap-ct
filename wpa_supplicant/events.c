@@ -3674,7 +3674,13 @@ static void wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 	wpas_fst_update_mb_assoc(wpa_s, data);
 
 #ifdef CONFIG_SME
-	os_memcpy(wpa_s->sme.prev_bssid, bssid, ETH_ALEN);
+	/*
+	 * Cache the current AP's BSSID (for non-MLO connection) or MLD address
+	 * (for MLO connection) as the previous BSSID for subsequent
+	 * reassociation requests handled by SME-in-wpa_supplicant.
+	 */
+	os_memcpy(wpa_s->sme.prev_bssid,
+		  wpa_s->valid_links ? wpa_s->ap_mld_addr : bssid, ETH_ALEN);
 	wpa_s->sme.prev_bssid_set = 1;
 	wpa_s->sme.last_unprot_disconnect.sec = 0;
 #endif /* CONFIG_SME */
