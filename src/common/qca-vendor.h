@@ -2985,6 +2985,16 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_EMLSR_MODE_SWITCH = 93,
 
+	/* 8-bit unsigned value to configure the channel bandwidth
+	 * for CTS frame transmission during the dymamic bandwidth
+	 * signaling CTS procedure referred in IEEE Std 802.11-2020,
+	 * 10.3.2.9 CTS and DMG CTS procedure.
+	 * This configuration is used for testing purposes.
+	 *
+	 * This uses values defined in enum nl80211_chan_width.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_CTS_CHANNEL_WIDTH = 94,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
