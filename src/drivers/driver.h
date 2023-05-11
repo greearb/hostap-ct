@@ -5656,6 +5656,22 @@ struct wpa_driver_ops {
 	* @type: trigger type
 	*/
 	int (*ap_trigtype)(void *priv, u8 enable, u8 type);
+
+	/**
+	* amnt_set - add/delete station from monitoring
+	* @priv: Private driver interface data
+	* @amnt_idx: Monitor Index
+	* @amnt_sta_mac: station mac address
+	*/
+	int (*amnt_set)(void *priv, u8 amnt_idx, u8 *amnt_sta_mac);
+
+	/**
+	* amnt_dump - Dump particular/ all station
+	* @priv: Private driver interface data
+	* @amnt_idx: Monitor Index
+	* @amnt_dump_buf: Buffer to print
+	*/
+	int (*amnt_dump)(void *priv, u8 amnt_idx, u8 *amnt_dump_buf);
 };
 
 /**
