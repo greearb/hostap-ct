@@ -137,6 +137,19 @@ wireless_ctrl_policy[NUM_MTK_VENDOR_ATTRS_WIRELESS_CTRL] = {
 };
 #endif
 
+static struct nla_policy
+amnt_ctrl_policy[NUM_MTK_VENDOR_ATTRS_AMNT_CTRL] = {
+	[MTK_VENDOR_ATTR_AMNT_CTRL_SET] = {.type = NLA_NESTED },
+	[MTK_VENDOR_ATTR_AMNT_CTRL_DUMP] = { .type = NLA_NESTED },
+};
+
+static struct nla_policy
+amnt_dump_policy[NUM_MTK_VENDOR_ATTRS_AMNT_DUMP] = {
+	[MTK_VENDOR_ATTR_AMNT_DUMP_INDEX] = {.type = NLA_U8 },
+	[MTK_VENDOR_ATTR_AMNT_DUMP_LEN] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_AMNT_DUMP_RESULT] = { .type = NLA_NESTED },
+};
+
 static struct nl_sock * nl_create_handle(struct nl_cb *cb, const char *dbg)
 {
 	struct nl_sock *handle;
@@ -16098,6 +16111,170 @@ fail:
 	return -ENOBUFS;
 }
 
+static int
+nl80211_amnt_set(void *priv, u8 amnt_idx, u8 *amnt_sta_mac)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *data;
+	void *tb1;
+	int ret;
+
+	if (!drv->mtk_amnt_vendor_cmd_avail) {
+		wpa_printf(MSG_ERROR,
+			"nl80211: Driver does not support air monitor");
+		return 0;
+	}
+
+	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
+	if (!msg)
+		goto fail;
+
+	if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+			nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+			MTK_NL80211_VENDOR_SUBCMD_AMNT_CTRL))
+		goto fail;
+
+	data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA | NLA_F_NESTED);
+	if (!data)
+		goto fail;
+
+	tb1 = nla_nest_start(msg, MTK_VENDOR_ATTR_AMNT_CTRL_SET);
+	if (!tb1)
+		goto fail;
+
+	nla_put_u8(msg, MTK_VENDOR_ATTR_AMNT_SET_INDEX, amnt_idx);
+
+	nla_put(msg, MTK_VENDOR_ATTR_AMNT_SET_MACADDR, ETH_ALEN, amnt_sta_mac);
+
+	nla_nest_end(msg, tb1);
+	nla_nest_end(msg, data);
+
+	ret = send_and_recv_cmd(drv, msg);
+
+	if (ret)
+		wpa_printf(MSG_ERROR, "Failed to set air monitor. ret=%d (%s)",
+			ret, strerror(-ret));
+
+	return ret;
+
+fail:
+	nlmsg_free(msg);
+	return -ENOBUFS;
+
+}
+
+static int
+mt76_amnt_dump_cb(struct nl_msg *msg, void *arg)
+{
+	struct nlattr *tb[NL80211_ATTR_MAX + 1];
+	struct nlattr *tb1[NUM_MTK_VENDOR_ATTRS_AMNT_CTRL];
+	struct nlattr *tb2[NUM_MTK_VENDOR_ATTRS_AMNT_DUMP];
+	struct nlattr *attr, *cur, *data;
+	struct amnt_data *res;
+	int len = 0, rem;
+	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
+	struct amnt_resp_data *amnt_dump = (struct amnt_resp_data *)arg;
+
+	nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
+		genlmsg_attrlen(gnlh, 0), NULL);
+
+	attr = tb[NL80211_ATTR_VENDOR_DATA];
+	if (!attr)
+		return NL_SKIP;
+
+	nla_parse_nested(tb1, MTK_VENDOR_ATTR_AMNT_CTRL_MAX,
+			attr, amnt_ctrl_policy);
+
+	if (!tb1[MTK_VENDOR_ATTR_AMNT_CTRL_DUMP])
+		return NL_SKIP;
+
+	nla_parse_nested(tb2, NUM_MTK_VENDOR_ATTRS_AMNT_DUMP,
+			tb1[MTK_VENDOR_ATTR_AMNT_CTRL_DUMP], amnt_dump_policy);
+
+	if (!tb2[MTK_VENDOR_ATTR_AMNT_DUMP_LEN])
+		return NL_SKIP;
+
+	len = nla_get_u8(tb2[MTK_VENDOR_ATTR_AMNT_DUMP_LEN]);
+	if (!len)
+		return 0;
+
+	if (!tb2[MTK_VENDOR_ATTR_AMNT_DUMP_RESULT])
+		return NL_SKIP;
+
+	data = tb2[MTK_VENDOR_ATTR_AMNT_DUMP_RESULT];
+
+	nla_for_each_nested(cur, data, rem) {
+		if (amnt_dump->sta_num >= AIR_MONITOR_MAX_ENTRY)
+			return NL_SKIP;
+		res = (struct amnt_data *) nla_data(cur);
+		wpa_printf(MSG_ERROR, "[vendor] amnt_idx: %d, "
+			"addr="MACSTR", "
+			"rssi=%d/%d/%d/%d, last_seen=%u\n",
+			res->idx,
+			MAC2STR(res->addr),
+			res->rssi[0], res->rssi[1], res->rssi[2],
+			res->rssi[3], res->last_seen);
+		os_memcpy(&amnt_dump->resp_data[amnt_dump->sta_num], res,
+			sizeof(struct amnt_data));
+		amnt_dump->sta_num++;
+	}
+	return 0;
+}
+
+static int
+nl80211_amnt_dump(void *priv, u8 amnt_idx, u8 *dump_buf)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *data;
+	void *tb1;
+	int ret;
+
+	if (!drv->mtk_amnt_vendor_cmd_avail) {
+		wpa_printf(MSG_INFO,
+			"nl80211: Driver does not support air monitor");
+		return 0;
+	}
+
+	msg = nl80211_drv_msg(drv, NLM_F_DUMP, NL80211_CMD_VENDOR);
+	if (!msg)
+		goto fail;
+
+	if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+			nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+			MTK_NL80211_VENDOR_SUBCMD_AMNT_CTRL))
+		goto fail;
+
+	data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA | NLA_F_NESTED);
+	if (!data)
+		goto fail;
+
+	tb1 = nla_nest_start(msg, MTK_VENDOR_ATTR_AMNT_CTRL_DUMP
+			| NLA_F_NESTED);
+	if (!tb1)
+		goto fail;
+
+	nla_put_u8(msg, MTK_VENDOR_ATTR_AMNT_DUMP_INDEX, amnt_idx);
+
+	nla_nest_end(msg, tb1);
+	nla_nest_end(msg, data);
+
+	ret = send_and_recv_resp(drv, msg, mt76_amnt_dump_cb, dump_buf);
+
+	if (ret)
+		wpa_printf(MSG_ERROR, "Failed to Dump air monitor. ret=%d (%s)"
+			, ret, strerror(-ret));
+
+	return ret;
+
+fail:
+	nlmsg_free(msg);
+	return -ENOBUFS;
+}
+
 const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.name = "nl80211",
 	.desc = "Linux nl80211/cfg80211",
@@ -16285,4 +16462,6 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.ap_wireless = nl80211_ap_wireless,
 	.ap_rfeatures = nl80211_ap_rfeatures,
 	.ap_trigtype = nl80211_ap_trigtype,
+	.amnt_set = nl80211_amnt_set,
+	.amnt_dump = nl80211_amnt_dump,
 };
