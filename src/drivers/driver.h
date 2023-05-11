@@ -5588,11 +5588,11 @@ struct wpa_driver_ops {
 	int (*get_edcca)(void *priv, const u8 mode, u8 *value);
 
 	/**
-	 * mu_ctrl - ctrl on off for UL/DL MURU
+	 * mu_ctrl - ctrl for UL/DL MURU
 	 * @priv: Private driver interface data
 	 *
 	 */
-	 int (*mu_ctrl)(void *priv, u8 mu_onoff);
+	 int (*mu_ctrl)(void *priv, u8 mode, u8 val);
 	 int (*mu_dump)(void *priv, u8 *mu_onoff);
 
 	/**
