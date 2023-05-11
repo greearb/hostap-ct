@@ -4374,6 +4374,44 @@ hostapd_ctrl_iface_ap_wireless(struct hostapd_data *hapd, char *cmd,
 
 	if (hostapd_drv_ap_wireless(hapd, (u8) sub_cmd, atoi(value)) != 0)
 		return -1;
+	return os_snprintf(buf, buflen, "OK\n");
+}
+
+static int
+hostapd_ctrl_iface_set_amnt(struct hostapd_data *hapd, char *cmd,
+					char *buf, size_t buflen)
+{
+	char *tmp, sta_mac[ETH_ALEN] = {0};
+	int amnt_idx = 0;
+
+	tmp = strtok_r(cmd, " ", &cmd);
+
+	if (!tmp) {
+		wpa_printf(MSG_ERROR, "Error in command format\n");
+		return -1;
+	}
+
+	amnt_idx = strtol(tmp, &tmp, 10);
+
+	if (amnt_idx < 0 || amnt_idx > 15) {
+		wpa_printf(MSG_ERROR, "Wrong AMNT index %d\n", amnt_idx);
+		return -1;
+	}
+
+	if (!cmd) {
+		wpa_printf(MSG_ERROR, "Error in command format\n");
+		return -1;
+	}
+
+	if (hwaddr_aton(cmd, sta_mac) < 0) {
+		wpa_printf(MSG_ERROR, "station mac is not right.\n");
+		return -1;
+	}
+
+	if (hostapd_drv_amnt_set(hapd, amnt_idx, sta_mac)) {
+		wpa_printf(MSG_ERROR, "Not able to set amnt index\n");
+		return -1;
+	}
 
 	return os_snprintf(buf, buflen, "OK\n");
 }
@@ -4424,6 +4462,75 @@ trigtype:
 
 exit:
 	return os_snprintf(buf, buflen, "OK\n");
+}
+
+static int
+hostapd_ctrl_iface_dump_amnt(struct hostapd_data *hapd, char *cmd,
+				char *buf, size_t buflen)
+{
+	char *tmp;
+	int amnt_idx = 0, ret = 0;
+	struct amnt_resp_data *resp_buf;
+	char *pos, *end;
+	struct amnt_data *res;
+
+	pos = buf;
+	end = buf + buflen;
+
+	tmp = strtok_r(cmd, " ", &cmd);
+
+	if (!tmp) {
+		wpa_printf(MSG_ERROR, "Error in command format\n");
+		return -1;
+	}
+
+	amnt_idx = strtoul(tmp, &tmp, 0);
+
+	if ((amnt_idx < 0 || amnt_idx > 15) && amnt_idx != 0xff) {
+		wpa_printf(MSG_ERROR, "Wrong AMNT index\n");
+		return -1;
+	}
+
+	if (amnt_idx == 0xff)
+		resp_buf = (struct amnt_resp_data *) os_zalloc(AIR_MONITOR_MAX_ENTRY
+							* sizeof(struct amnt_data) + 1);
+	else
+		resp_buf = (struct amnt_resp_data *) os_zalloc(sizeof(struct amnt_data) + 1);
+
+	if (resp_buf == NULL) {
+		wpa_printf(MSG_ERROR, "Error in memory allocation\n");
+		return -1;
+	}
+
+	if (hostapd_drv_amnt_dump(hapd, amnt_idx, (u8 *)resp_buf)) {
+		wpa_printf(MSG_ERROR, "Not able to set amnt index\n");
+		os_free(resp_buf);
+		return -1;
+	}
+
+	for (int i = 0; i < resp_buf->sta_num && i < AIR_MONITOR_MAX_ENTRY; i++) {
+		res = &resp_buf->resp_data[i];
+		ret = os_snprintf(pos, end - pos,
+				"[hostapd_cli] amnt_idx: %d, addr="MACSTR
+				", rssi=%d/%d/%d/%d, last_seen=%u\n",
+				res->idx,
+				MAC2STR(res->addr), res->rssi[0],
+				res->rssi[1], res->rssi[2],
+				res->rssi[3], res->last_seen);
+		if (os_snprintf_error(end - pos, ret)) {
+			os_free(resp_buf);
+			return 0;
+		}
+		pos = pos + ret;
+	}
+
+	os_free(resp_buf);
+
+	if (pos == buf)
+		return os_snprintf(buf, buflen, "Index %d is not monitored\n",
+				amnt_idx);
+	else
+		return pos - buf;
 }
 
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
@@ -5072,6 +5179,12 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		reply_len = hostapd_ctrl_iface_ap_wireless(hapd, buf + 12, reply, reply_size);
 	} else if (os_strncmp(buf, "ap_rfeatures ", 13) == 0) {
 		reply_len = hostapd_ctrl_iface_ap_rfeatures(hapd, buf + 13, reply, reply_size);
+	} else if (os_strncmp(buf, "SET_AMNT", 8) == 0) {
+		reply_len = hostapd_ctrl_iface_set_amnt(hapd, buf+9,
+							reply, reply_size);
+	} else if (os_strncmp(buf, "DUMP_AMNT", 9) == 0) {
+		reply_len = hostapd_ctrl_iface_dump_amnt(hapd, buf+10,
+							reply, reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;

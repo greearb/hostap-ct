@@ -1164,6 +1164,8 @@ static int wiphy_info_handler(struct nl_msg *msg, void *arg)
 					break;
 				case MTK_NL80211_VENDOR_SUBCMD_BSS_COLOR_CTRL :
 					drv->mtk_bss_color_vendor_cmd_avail = 1;
+				case MTK_NL80211_VENDOR_SUBCMD_AMNT_CTRL:
+					drv->mtk_amnt_vendor_cmd_avail = 1;
 					break;
 				case MTK_NL80211_VENDOR_SUBCMD_RFEATURE_CTRL:
 					drv->mtk_rfeatures_vendor_cmd_avail = 1;

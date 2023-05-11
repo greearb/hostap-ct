@@ -261,10 +261,18 @@ struct csi_data {
 	u16 rx_idx;
 };
 
+#define AIR_MONITOR_MAX_ENTRY 16
+
 struct amnt_data {
 	u8 idx;
 	u8 addr[ETH_ALEN];
 	s8 rssi[4];
 	u32 last_seen;
 };
+
+struct amnt_resp_data {
+	u8 sta_num;
+	struct amnt_data resp_data[0];
+};
+
 #endif /* MTK_VENDOR_H */
