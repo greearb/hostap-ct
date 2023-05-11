@@ -58,6 +58,7 @@
 #include "wpa_auth_kay.h"
 #include "hw_features.h"
 
+#include "common/mtk_vendor.h"
 
 static int hostapd_flush_old_stations(struct hostapd_data *hapd, u16 reason);
 #ifdef CONFIG_WEP
@@ -2790,7 +2791,7 @@ dfs_offload:
 	if (hostapd_drv_configure_edcca_threshold(hapd,
 						  hapd->iconf->edcca_threshold) < 0)
 		goto fail;
-	if (hostapd_drv_mu_ctrl(hapd) < 0)
+	if (hostapd_drv_mu_ctrl(hapd, MU_CTRL_ONOFF, hapd->iconf->mu_onoff) < 0)
 		goto fail;
 	if (hostapd_drv_three_wire_ctrl(hapd) < 0)
 		goto fail;

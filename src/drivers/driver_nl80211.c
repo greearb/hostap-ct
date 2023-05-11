@@ -15021,13 +15021,13 @@ fail:
 
 
 #ifdef CONFIG_IEEE80211AX
-static int nl80211_mu_onoff(void *priv, u8 mu_onoff)
+static int nl80211_mu_ctrl(void *priv, u8 mode, u8 val)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct nl_msg *msg;
 	struct nlattr *data;
-	int ret;
+	int ret = -ENOBUFS;
 
 	if (!drv->mtk_mu_vendor_cmd_avail) {
 		wpa_printf(MSG_INFO,
@@ -15038,16 +15038,37 @@ static int nl80211_mu_onoff(void *priv, u8 mu_onoff)
 	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR)) ||
 		nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
 		nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD, MTK_NL80211_VENDOR_SUBCMD_MU_CTRL) ||
-		!(data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA)) ||
-		nla_put_u8(msg, MTK_VENDOR_ATTR_MU_CTRL_ONOFF, mu_onoff)) {
-		nlmsg_free(msg);
-		return -ENOBUFS;
+		!(data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA)))
+		goto fail;
+
+	switch (mode) {
+	case MU_CTRL_ONOFF:
+			if (nla_put_u8(msg, MTK_VENDOR_ATTR_MU_CTRL_ONOFF, val))
+				goto fail;
+		break;
+	case MU_CTRL_UL_USER_CNT:
+	case MU_CTRL_DL_USER_CNT:
+			if (nla_put_u8(msg, MTK_VENDOR_ATTR_MU_CTRL_OFDMA_MODE, mode) ||
+			    nla_put_u8(msg, MTK_VENDOR_ATTR_MU_CTRL_OFDMA_VAL, val))
+				goto fail;
+		break;
+	default:
+		wpa_printf(MSG_ERROR, "nl80211: Wrong mu mode !");
+		ret = -EINVAL;
+		goto fail;
 	}
+
 	nla_nest_end(msg, data);
+
 	ret = send_and_recv_cmd(drv, msg);
 	if(ret){
-		wpa_printf(MSG_ERROR, "Failed to set mu_onoff. ret=%d (%s)", ret, strerror(-ret));
+		wpa_printf(MSG_ERROR, "Failed to set mu_ctrl. ret=%d (%s)", ret, strerror(-ret));
 	}
+	return ret;
+
+fail:
+	nl80211_nlmsg_clear(msg);
+	nlmsg_free(msg);
 	return ret;
 }
 
@@ -16430,7 +16451,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.update_connect_params = nl80211_update_connection_params,
 	.send_external_auth_status = nl80211_send_external_auth_status,
 	.set_4addr_mode = nl80211_set_4addr_mode,
-	.mu_ctrl = nl80211_mu_onoff,
+	.mu_ctrl = nl80211_mu_ctrl,
 	.mu_dump = nl80211_mu_dump,
 #ifdef CONFIG_DPP
 	.dpp_listen = nl80211_dpp_listen,
