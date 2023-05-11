@@ -1722,6 +1722,17 @@ static int hostapd_cli_cmd_get_amsdu(struct wpa_ctrl *ctrl, int argc,
 	return hostapd_cli_cmd(ctrl, "GET_AMSDU", 0, NULL, NULL);
 }
 
+static int hostapd_cli_cmd_set_amnt(struct wpa_ctrl *ctrl, int argc,
+					   char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "SET_AMNT", 2, argc, argv);
+}
+
+static int hostapd_cli_cmd_dump_amnt(struct wpa_ctrl *ctrl, int argc,
+					   char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "DUMP_AMNT", 1, argc, argv);
+}
 
 struct hostapd_cli_cmd {
 	const char *cmd;
@@ -1965,6 +1976,10 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	  " = show iBF state (enabled/disabled)"},
 	{ "get_amsdu", hostapd_cli_cmd_get_amsdu, NULL,
 		" = show AMSDU state"},
+	{ "set_amnt", hostapd_cli_cmd_set_amnt, NULL,
+		" = Set Station index and mac to monitor"},
+	{ "dump_amnt", hostapd_cli_cmd_dump_amnt, NULL,
+		" = Dump RSSI of monitoring Station"},
 	{ NULL, NULL, NULL, NULL }
 };
 
