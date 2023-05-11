@@ -1443,11 +1443,11 @@ int hostapd_drv_get_edcca(struct hostapd_data *hapd, const u8 mode, u8 *value)
 	return hapd->driver->get_edcca(hapd->drv_priv, mode, value);
 }
 
-int hostapd_drv_mu_ctrl(struct hostapd_data *hapd)
+int hostapd_drv_mu_ctrl(struct hostapd_data *hapd, u8 mode, u8 val)
 {
 	if (!hapd->driver || !hapd->driver->mu_ctrl)
 		return 0;
-	return hapd->driver->mu_ctrl(hapd->drv_priv, hapd->iconf->mu_onoff);
+	return hapd->driver->mu_ctrl(hapd->drv_priv, mode, val);
 }
 
 int hostapd_drv_mu_dump(struct hostapd_data *hapd, u8 *mu_onoff)

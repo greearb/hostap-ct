@@ -3943,6 +3943,8 @@ hostapd_ctrl_iface_set_edcca(struct hostapd_data *hapd, char *cmd,
 					 char *buf, size_t buflen)
 {
 	char *pos, *config, *value;
+	u8 mode;
+
 	config = cmd;
 	pos = os_strchr(config, ' ');
 	if (pos == NULL)
@@ -4342,6 +4344,8 @@ hostapd_ctrl_iface_set_mu(struct hostapd_data *hapd, char *cmd,
 					 char *buf, size_t buflen)
 {
 	char *pos, *config, *value;
+	u8 mode;
+
 	config = cmd;
 	pos = os_strchr(config, ' ');
 	if (pos == NULL)
@@ -4359,13 +4363,20 @@ hostapd_ctrl_iface_set_mu(struct hostapd_data *hapd, char *cmd,
 			return -1;
 		}
 		hapd->iconf->mu_onoff = (u8) mu;
+		mode = MU_CTRL_ONOFF;
+	} else if (os_strcmp(config, "ul_user_cnt") == 0) {
+		mode = MU_CTRL_UL_USER_CNT;
+		wpa_printf(MSG_ERROR, "ul_user_cnt:%d\n", (u8)atoi(value));
+	} else if (os_strcmp(config, "dl_user_cnt") == 0) {
+		mode = MU_CTRL_DL_USER_CNT;
+		wpa_printf(MSG_ERROR, "dl_user_cnt:%d\n", (u8)atoi(value));
 	} else {
 		wpa_printf(MSG_ERROR,
 			"Unsupported parameter %s for SET_MU", config);
 		return -1;
 	}
 
-	if(hostapd_drv_mu_ctrl(hapd) == 0) {
+	if(hostapd_drv_mu_ctrl(hapd, mode, (u8)atoi(value)) == 0) {
 		return os_snprintf(buf, buflen, "OK\n");
 	} else {
 		return -1;

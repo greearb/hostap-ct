@@ -202,6 +202,8 @@ enum mtk_vendor_attr_mu_ctrl {
 
 	MTK_VENDOR_ATTR_MU_CTRL_ONOFF,
 	MTK_VENDOR_ATTR_MU_CTRL_DUMP,
+	MTK_VENDOR_ATTR_MU_CTRL_OFDMA_MODE,
+	MTK_VENDOR_ATTR_MU_CTRL_OFDMA_VAL,
 
 	/* keep last */
 	NUM_MTK_VENDOR_ATTRS_MU_CTRL,
@@ -275,4 +277,9 @@ struct amnt_resp_data {
 	struct amnt_data resp_data[0];
 };
 
+enum {
+	MU_CTRL_ONOFF,
+	MU_CTRL_DL_USER_CNT,
+	MU_CTRL_UL_USER_CNT,
+};
 #endif /* MTK_VENDOR_H */

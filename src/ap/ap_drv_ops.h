@@ -159,7 +159,7 @@ int hostapd_drv_configure_edcca_enable(struct hostapd_data *hapd);
 int hostapd_drv_configure_edcca_threshold(struct hostapd_data *hapd,
 					  const int *threshold);
 int hostapd_drv_get_edcca(struct hostapd_data *hapd, const u8 mode, u8 *value);
-int hostapd_drv_mu_ctrl(struct hostapd_data *hapd);
+int hostapd_drv_mu_ctrl(struct hostapd_data *hapd, u8 mode, u8 val);
 int hostapd_drv_mu_dump(struct hostapd_data *hapd, u8 *mu_onoff);
 int hostapd_drv_three_wire_ctrl(struct hostapd_data *hapd);
 int hostapd_drv_ibf_ctrl(struct hostapd_data *hapd);
