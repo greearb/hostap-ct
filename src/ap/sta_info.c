@@ -1280,10 +1280,12 @@ void ap_sta_set_authorized(struct hostapd_data *hapd, struct sta_info *sta,
 	if (!!authorized == !!(sta->flags & WLAN_STA_AUTHORIZED))
 		return;
 
-	if (authorized)
+	if (authorized) {
+		hostapd_prune_associations(hapd, sta->addr);
 		sta->flags |= WLAN_STA_AUTHORIZED;
-	else
+	} else {
 		sta->flags &= ~WLAN_STA_AUTHORIZED;
+	}
 
 #ifdef CONFIG_P2P
 	if (hapd->p2p_group == NULL) {
