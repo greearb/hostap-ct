@@ -936,6 +936,24 @@ enum qca_radiotap_vendor_ids {
  *	Note that the attribute
  *	%QCA_WLAN_VENDOR_ATTR_LINK_RECONFIG_AP_MLD_ADDR may not correspond to
  *	the current connected AP MLD address.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_TDLS_DISC_RSP_EXT: Vendor command to configure
+ *	the driver with MLO link id information on which to transmit the TDLS
+ *	discovery response frame on the configured MLO BSS link when the
+ *	local station is connected in MLO mode. This command is sent to the
+ *	driver prior to the TDLS discovery response management transmit
+ *	operation and is followed immediately by the TDLS discovery response
+ *	management frame transmit command.
+ *
+ *	The driver saves the configured MLO link id information and uses it for
+ *	the following TDLS discovery response frame transmission on the
+ *	configured MLO BSS link and the link id information is cleared in the
+ *	driver after the TDLS discovery response frame is successfully
+ *	transmitted. This behavior is indepent of the TDLS peer STA connection
+ *	mode (MLO or non-MLO).
+ *
+ *	Uses the attributes defined in
+ *	enum qca_wlan_vendor_attr_tdls_disc_rsp_ext.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1150,6 +1168,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_CONNECTED_CHANNEL_STATS = 228,
 	QCA_NL80211_VENDOR_SUBCMD_TID_TO_LINK_MAP = 229,
 	QCA_NL80211_VENDOR_SUBCMD_LINK_RECONFIG = 230,
+	QCA_NL80211_VENDOR_SUBCMD_TDLS_DISC_RSP_EXT = 231,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -15564,6 +15583,24 @@ enum qca_wlan_vendor_attr_link_reconfig {
 	QCA_WLAN_VENDOR_ATTR_LINK_RECONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_LINK_RECONFIG_MAX =
 	QCA_WLAN_VENDOR_ATTR_LINK_RECONFIG_AFTER_LAST - 1
+};
+
+/**
+ * enum qca_wlan_vendor_attr_tdls_disc_rsp_ext - Attributes used by
+ * %QCA_NL80211_VENDOR_SUBCMD_TDLS_DISC_RSP_EXT vendor command.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_DISC_RSP_EXT_TX_LINK: u8 attribute.
+ * Indicates the MLO link id on which the TDLS discovery response
+ * frame is to be transmitted.
+ */
+enum qca_wlan_vendor_attr_tdls_disc_rsp_ext {
+	QCA_WLAN_VENDOR_ATTR_TDLS_DISC_RSP_EXT_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TDLS_DISC_RSP_EXT_TX_LINK = 1,
+
+	/* Keep last */
+	QCA_WLAN_VENDOR_ATTR_TDLS_DISC_RSP_EXT_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TDLS_DISC_RSP_EXT_MAX =
+	QCA_WLAN_VENDOR_ATTR_TDLS_DISC_RSP_EXT_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
