@@ -95,7 +95,8 @@ struct pasn_data {
 	u8 wrapped_data_format;
 	struct wpabuf *secret;
 
-	/* Reponder */
+	/* Responder */
+	bool noauth; /* Whether PASN without mutual authentication is enabled */
 	int wpa_key_mgmt;
 	int rsn_pairwise;
 	bool derive_kdk;

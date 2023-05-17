@@ -743,6 +743,12 @@ int handle_auth_pasn_1(struct pasn_data *pasn,
 		goto send_resp;
 	}
 
+	if (!pasn->noauth && pasn->akmp == WPA_KEY_MGMT_PASN) {
+		wpa_printf(MSG_DEBUG, "PASN: Refuse PASN-UNAUTH");
+		status = WLAN_STATUS_UNSPECIFIED_FAILURE;
+		goto send_resp;
+	}
+
 	derive_keys = true;
 	if (pasn_params.wrapped_data_format != WPA_PASN_WRAPPED_DATA_NO) {
 		wrapped_data = ieee802_11_defrag(&elems,

@@ -2527,6 +2527,7 @@ static void hapd_initialize_pasn(struct hostapd_data *hapd,
 	pasn->cb_ctx = hapd;
 	pasn->send_mgmt = hapd_pasn_send_mlme;
 	pasn->pasn_groups = hapd->conf->pasn_groups;
+	pasn->noauth = hapd->conf->pasn_noauth;
 	pasn->wpa_key_mgmt = hapd->conf->wpa_key_mgmt;
 	pasn->rsn_pairwise = hapd->conf->rsn_pairwise;
 	pasn->derive_kdk = hapd->iface->drv_flags2 &

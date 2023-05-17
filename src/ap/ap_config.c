@@ -169,6 +169,7 @@ void hostapd_config_defaults_bss(struct hostapd_bss_config *bss)
 #ifdef CONFIG_PASN
 	/* comeback after 10 TUs */
 	bss->pasn_comeback_after = 10;
+	bss->pasn_noauth = 1;
 #endif /* CONFIG_PASN */
 }
 
