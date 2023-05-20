@@ -197,7 +197,10 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	ap_sta_set_authorized(hapd, sta, 0);
 	hostapd_set_sta_flags(hapd, sta);
 
-	if (sta->flags & (WLAN_STA_WDS | WLAN_STA_MULTI_AP))
+	if ((sta->flags & WLAN_STA_WDS) ||
+	    (sta->flags & WLAN_STA_MULTI_AP &&
+	     !(hapd->conf->multi_ap & FRONTHAUL_BSS) &&
+	     !(sta->flags & WLAN_STA_WPS)))
 		hostapd_set_wds_sta(hapd, NULL, sta->addr, sta->aid, 0);
 
 	if (sta->ipaddr)
