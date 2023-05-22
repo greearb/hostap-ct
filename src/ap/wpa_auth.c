@@ -4628,11 +4628,16 @@ SM_STATE(WPA_PTK_GROUP, REKEYNEGOTIATING)
 {
 	u8 rsc[WPA_KEY_RSC_LEN];
 	struct wpa_group *gsm = sm->group;
-	const u8 *kde;
+	const u8 *kde = NULL;
 	u8 *kde_buf = NULL, *pos, hdr[2];
 	size_t kde_len = 0;
 	u8 *gtk, stub_gtk[32];
 	struct wpa_auth_config *conf = &sm->wpa_auth->conf;
+	bool is_mld = false;
+
+#ifdef CONFIG_IEEE80211BE
+	is_mld = sm->mld_assoc_link_id >= 0;
+#endif /* CONFIG_IEEE80211BE */
 
 	SM_ENTRY_MA(WPA_PTK_GROUP, REKEYNEGOTIATING, wpa_ptk_group);
 
@@ -4667,7 +4672,8 @@ SM_STATE(WPA_PTK_GROUP, REKEYNEGOTIATING)
 			return;
 		gtk = stub_gtk;
 	}
-	if (sm->wpa == WPA_VERSION_WPA2) {
+
+	if (sm->wpa == WPA_VERSION_WPA2 && !is_mld) {
 		kde_len = 2 + RSN_SELECTOR_LEN + 2 + gsm->GTK_len +
 			ieee80211w_kde_len(sm) + ocv_oci_len(sm);
 		kde_buf = os_malloc(kde_len);
@@ -4686,6 +4692,18 @@ SM_STATE(WPA_PTK_GROUP, REKEYNEGOTIATING)
 			return;
 		}
 		kde_len = pos - kde;
+#ifdef CONFIG_IEEE80211BE
+	} else if (sm->wpa == WPA_VERSION_WPA2 && is_mld) {
+		kde_len = wpa_auth_ml_group_kdes_len(sm);
+		if (kde_len) {
+			kde_buf = os_malloc(kde_len);
+			if (!kde_buf)
+				return;
+
+			kde = pos = kde_buf;
+			wpa_auth_ml_group_kdes(sm, pos);
+		}
+#endif /* CONFIG_IEEE80211BE */
 	} else {
 		kde = gtk;
 		kde_len = gsm->GTK_len;
