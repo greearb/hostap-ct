@@ -3785,6 +3785,7 @@ struct wpa_driver_ops {
 	 * @ifname: Interface (main or virtual BSS or VLAN)
 	 * @addr: MAC address of the associated station
 	 * @vlan_id: VLAN ID
+	 * @link_id: The link ID or -1 for non-MLO
 	 * Returns: 0 on success, -1 on failure
 	 *
 	 * This function is used to bind a station to a specific virtual
@@ -3794,7 +3795,7 @@ struct wpa_driver_ops {
 	 * domains to be used with a single BSS.
 	 */
 	int (*set_sta_vlan)(void *priv, const u8 *addr, const char *ifname,
-			    int vlan_id);
+			    int vlan_id, int link_id);
 
 	/**
 	 * commit - Optional commit changes handler (AP only)

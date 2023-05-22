@@ -8025,7 +8025,7 @@ fail:
 
 
 static int i802_set_sta_vlan(struct i802_bss *bss, const u8 *addr,
-			     const char *ifname, int vlan_id)
+			     const char *ifname, int vlan_id, int link_id)
 {
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct nl_msg *msg;
@@ -8039,6 +8039,8 @@ static int i802_set_sta_vlan(struct i802_bss *bss, const u8 *addr,
 	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, addr) ||
 	    (vlan_id && (drv->capa.flags & WPA_DRIVER_FLAGS_VLAN_OFFLOAD) &&
 	     nla_put_u16(msg, NL80211_ATTR_VLAN_ID, vlan_id)) ||
+	    (link_id != NL80211_DRV_LINK_ID_NA &&
+	     nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id)) ||
 	    nla_put_u32(msg, NL80211_ATTR_STA_VLAN, if_nametoindex(ifname))) {
 		nlmsg_free(msg);
 		return -ENOBUFS;
@@ -8297,7 +8299,8 @@ static int i802_set_wds_sta(void *priv, const u8 *addr, int aid, int val,
 			wpa_printf(MSG_ERROR, "nl80211: Failed to set WDS STA "
 				   "interface %s up", name);
 		}
-		return i802_set_sta_vlan(priv, addr, name, 0);
+		return i802_set_sta_vlan(priv, addr, name, 0,
+					 NL80211_DRV_LINK_ID_NA);
 	} else {
 		if (bridge_ifname &&
 		    linux_br_del_if(drv->global->ioctl_sock, bridge_ifname,
@@ -8306,7 +8309,8 @@ static int i802_set_wds_sta(void *priv, const u8 *addr, int aid, int val,
 				   "nl80211: Failed to remove interface %s from bridge %s: %s",
 				   name, bridge_ifname, strerror(errno));
 
-		i802_set_sta_vlan(priv, addr, bss->ifname, 0);
+		i802_set_sta_vlan(priv, addr, bss->ifname, 0,
+				  NL80211_DRV_LINK_ID_NA);
 		nl80211_remove_iface(drv, if_nametoindex(name));
 		os_memset(&event, 0, sizeof(event));
 		event.wds_sta_interface.sta_addr = addr;
@@ -10477,10 +10481,11 @@ static int driver_nl80211_sta_remove(void *priv, const u8 *addr)
 
 
 static int driver_nl80211_set_sta_vlan(void *priv, const u8 *addr,
-				       const char *ifname, int vlan_id)
+				       const char *ifname, int vlan_id,
+				       int link_id)
 {
 	struct i802_bss *bss = priv;
-	return i802_set_sta_vlan(bss, addr, ifname, vlan_id);
+	return i802_set_sta_vlan(bss, addr, ifname, vlan_id, link_id);
 }
 
 
