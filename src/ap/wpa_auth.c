@@ -3122,6 +3122,71 @@ int get_sta_tx_parameters(struct wpa_state_machine *sm, int ap_max_chanwidth,
 #endif /* CONFIG_OCV */
 
 
+static int wpa_auth_validate_ml_kdes_m2(struct wpa_state_machine *sm,
+					struct wpa_eapol_ie_parse *kde)
+{
+#ifdef CONFIG_IEEE80211BE
+	int i;
+	unsigned int n_links = 0;
+
+	if (sm->mld_assoc_link_id < 0)
+		return 0;
+
+	/* MLD MAC address must be the same */
+	if (!kde->mac_addr ||
+	    os_memcmp(kde->mac_addr, sm->peer_mld_addr, ETH_ALEN) != 0) {
+		wpa_printf(MSG_DEBUG, "RSN: MLD: Invalid MLD address");
+		return -1;
+	}
+
+	/* Find matching link ID and the MAC address for each link */
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+		if (!(kde->valid_mlo_links & BIT(i)))
+			continue;
+
+		/*
+		 * Each entry should contain the link information and the MAC
+		 * address.
+		 */
+		if (kde->mlo_link_len[i] != 1 + ETH_ALEN) {
+			wpa_printf(MSG_DEBUG,
+				   "RSN: MLD: Invalid MLO Link (ID %u) KDE len=%zu",
+				   i, kde->mlo_link_len[i]);
+			return -1;
+		}
+
+		if (!sm->mld_links[i].valid || i == sm->mld_assoc_link_id) {
+			wpa_printf(MSG_DEBUG,
+				   "RSN: MLD: Invalid link ID=%u", i);
+			return -1;
+		}
+
+		if (os_memcmp(sm->mld_links[i].peer_addr, kde->mlo_link[i] + 1,
+			      ETH_ALEN) != 0) {
+			wpa_printf(MSG_DEBUG,
+				   "RSN: MLD: invalid MAC address=" MACSTR
+				   " expected " MACSTR " (link ID %u)",
+				   MAC2STR(kde->mlo_link[i] + 1),
+				   MAC2STR(sm->mld_links[i].peer_addr), i);
+			return -1;
+		}
+
+		n_links++;
+	}
+
+	/* Must have the same number of MLO links (excluding the local one) */
+	if (n_links != sm->n_mld_affiliated_links) {
+		wpa_printf(MSG_DEBUG,
+			   "RSN: MLD: Expecting %u MLD links in msg 2, but got %u",
+			   sm->n_mld_affiliated_links, n_links);
+		return -1;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
+	return 0;
+}
+
+
 SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 {
 	struct wpa_authenticator *wpa_auth = sm->wpa_auth;
@@ -3391,6 +3456,12 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 		}
 	}
 #endif /* CONFIG_DPP2 */
+
+	if (wpa_auth_validate_ml_kdes_m2(sm, &kde) < 0) {
+		wpa_sta_disconnect(wpa_auth, sm->addr,
+				   WLAN_REASON_PREV_AUTH_NOT_VALID);
+		return;
+	}
 
 #ifdef CONFIG_IEEE80211R_AP
 	if (sm->wpa == WPA_VERSION_WPA2 && wpa_key_mgmt_ft(sm->wpa_key_mgmt)) {
