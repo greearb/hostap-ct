@@ -3700,6 +3700,51 @@ static void wpa_auth_get_ml_rsn_info(struct wpa_authenticator *wpa_auth,
 	wpa_auth->cb->get_ml_rsn_info(wpa_auth->cb_ctx, info);
 }
 
+
+void wpa_auth_ml_get_key_info(struct wpa_authenticator *a,
+			      struct wpa_auth_ml_link_key_info *info,
+			      bool mgmt_frame_prot, bool beacon_prot)
+{
+	struct wpa_group *gsm = a->group;
+	u8 rsc[WPA_KEY_RSC_LEN];
+
+	wpa_printf(MSG_DEBUG,
+		   "MLD: Get group key info: link_id=%u, IGTK=%u, BIGTK=%u",
+		   info->link_id, mgmt_frame_prot, beacon_prot);
+
+	info->gtkidx = gsm->GN & 0x03;
+	info->gtk = gsm->GTK[gsm->GN - 1];
+	info->gtk_len = gsm->GTK_len;
+
+	if (wpa_auth_get_seqnum(a, NULL, gsm->GN, rsc) < 0)
+		os_memset(info->pn, 0, sizeof(info->pn));
+	else
+		os_memcpy(info->pn, rsc, sizeof(info->pn));
+
+	if (!mgmt_frame_prot)
+		return;
+
+	info->igtkidx = gsm->GN_igtk;
+	info->igtk = gsm->IGTK[gsm->GN_igtk - 4];
+	info->igtk_len = wpa_cipher_key_len(a->conf.group_mgmt_cipher);
+
+	if (wpa_auth_get_seqnum(a, NULL, gsm->GN_igtk, rsc) < 0)
+		os_memset(info->ipn, 0, sizeof(info->ipn));
+	else
+		os_memcpy(info->ipn, rsc, sizeof(info->ipn));
+
+	if (!beacon_prot)
+		return;
+
+	info->bigtkidx = gsm->GN_bigtk;
+	info->bigtk = gsm->BIGTK[gsm->GN_bigtk - 6];
+
+	if (wpa_auth_get_seqnum(a, NULL, gsm->GN_bigtk, rsc) < 0)
+		os_memset(info->bipn, 0, sizeof(info->bipn));
+	else
+		os_memcpy(info->bipn, rsc, sizeof(info->bipn));
+}
+
 #endif /* CONFIG_IEEE80211BE */
 
 

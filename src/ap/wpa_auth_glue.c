@@ -1497,6 +1497,7 @@ static int hostapd_set_ltf_keyseed(void *ctx, const u8 *peer_addr,
 
 
 #ifdef CONFIG_IEEE80211BE
+
 static int hostapd_wpa_auth_get_ml_rsn_info(void *ctx,
 					    struct wpa_auth_ml_rsn_info *info)
 {
@@ -1537,6 +1538,51 @@ static int hostapd_wpa_auth_get_ml_rsn_info(void *ctx,
 
 	return 0;
 }
+
+
+static int hostapd_wpa_auth_get_ml_key_info(void *ctx,
+					    struct wpa_auth_ml_key_info *info)
+{
+	struct hostapd_data *hapd = ctx;
+	unsigned int i, j;
+
+	wpa_printf(MSG_DEBUG, "WPA_AUTH: MLD: Get key info CB: n_mld_links=%u",
+		   info->n_mld_links);
+
+	if (!hapd->conf->mld_ap || !hapd->iface || !hapd->iface->interfaces)
+		return -1;
+
+	for (i = 0; i < info->n_mld_links; i++) {
+		u8 link_id = info->links[i].link_id;
+
+		wpa_printf(MSG_DEBUG,
+			   "WPA_AUTH: MLD: Get link info CB: link_id=%u",
+			   link_id);
+
+		for (j = 0; j < hapd->iface->interfaces->count; j++) {
+			struct hostapd_iface *iface =
+				hapd->iface->interfaces->iface[j];
+
+			if (!iface->bss[0]->conf->mld_ap ||
+			    hapd->conf->mld_id != iface->bss[0]->conf->mld_id ||
+			    link_id != iface->bss[0]->mld_link_id)
+				continue;
+
+			wpa_auth_ml_get_key_info(iface->bss[0]->wpa_auth,
+						 &info->links[i],
+						 info->mgmt_frame_prot,
+						 info->beacon_prot);
+			break;
+		}
+
+		if (j == hapd->iface->interfaces->count)
+			wpa_printf(MSG_DEBUG,
+				   "WPA_AUTH: MLD: link=%u not found", link_id);
+	}
+
+	return 0;
+}
+
 #endif /* CONFIG_IEEE80211BE */
 
 
@@ -1591,6 +1637,7 @@ int hostapd_setup_wpa(struct hostapd_data *hapd)
 #endif /* CONFIG_PASN */
 #ifdef CONFIG_IEEE80211BE
 		.get_ml_rsn_info = hostapd_wpa_auth_get_ml_rsn_info,
+		.get_ml_key_info = hostapd_wpa_auth_get_ml_key_info,
 #endif /* CONFIG_IEEE80211BE */
 	};
 	const u8 *wpa_ie;
