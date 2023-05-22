@@ -123,6 +123,8 @@ struct wpa_driver_nl80211_data {
 		enum nl80211_iftype iftype;
 		u8 *ext_capa, *ext_capa_mask;
 		unsigned int ext_capa_len;
+		u16 eml_capa;
+		u16 mld_capa_and_ops;
 	} iface_capa[NL80211_IFTYPE_MAX];
 	unsigned int num_iface_capa;
 

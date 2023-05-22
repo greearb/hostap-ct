@@ -13186,6 +13186,37 @@ static int nl80211_get_ext_capab(void *priv, enum wpa_driver_if_type type,
 }
 
 
+static int nl80211_get_mld_capab(void *priv, enum wpa_driver_if_type type,
+				 u16 *eml_capa, u16 *mld_capa_and_ops)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	enum nl80211_iftype nlmode;
+	unsigned int i;
+
+	if (!eml_capa || !mld_capa_and_ops)
+		return -1;
+
+	nlmode = wpa_driver_nl80211_if_type(type);
+
+	/* By default, set to zero */
+	*eml_capa = 0;
+	*mld_capa_and_ops = 0;
+
+	/* Replace the default value if a per-interface type value exists */
+	for (i = 0; i < drv->num_iface_capa; i++) {
+		if (nlmode == drv->iface_capa[i].iftype) {
+			*eml_capa = drv->iface_capa[i].eml_capa;
+			*mld_capa_and_ops =
+				drv->iface_capa[i].mld_capa_and_ops;
+			break;
+		}
+	}
+
+	return 0;
+}
+
+
 static int nl80211_update_connection_params(
 	void *priv, struct wpa_driver_associate_params *params,
 	enum wpa_drv_update_connect_params_mask mask)
@@ -13614,6 +13645,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.do_acs = nl80211_do_acs,
 	.configure_data_frame_filters = nl80211_configure_data_frame_filters,
 	.get_ext_capab = nl80211_get_ext_capab,
+	.get_mld_capab = nl80211_get_mld_capab,
 	.update_connect_params = nl80211_update_connection_params,
 	.send_external_auth_status = nl80211_send_external_auth_status,
 	.set_4addr_mode = nl80211_set_4addr_mode,
