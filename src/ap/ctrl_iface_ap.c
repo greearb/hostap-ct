@@ -938,6 +938,21 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 		if (os_snprintf_error(buflen - len, ret))
 			return len;
 		len += ret;
+
+#ifdef CONFIG_IEEE80211BE
+		if (bss->conf->mld_ap) {
+			ret = os_snprintf(buf + len, buflen - len,
+					  "mld_addr[%d]=" MACSTR "\n"
+					  "mld_id[%d]=%d\n"
+					  "mld_link_id[%d]=%d\n",
+					  (int) i, MAC2STR(bss->mld_addr),
+					  (int) i, bss->conf->mld_id,
+					  (int) i, bss->mld_link_id);
+			if (os_snprintf_error(buflen - len, ret))
+				return len;
+			len += ret;
+		}
+#endif /* CONFIG_IEEE80211BE */
 	}
 
 	if (hapd->conf->chan_util_avg_period) {
