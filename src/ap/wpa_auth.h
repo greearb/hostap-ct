@@ -15,6 +15,7 @@
 #include "common/ieee802_11_defs.h"
 
 struct vlan_description;
+struct mld_info;
 
 #define MAX_OWN_IE_OVERRIDE 256
 
@@ -288,6 +289,16 @@ typedef enum {
 	WPA_EAPOL_keyDone, WPA_EAPOL_inc_EapolFramesTx
 } wpa_eapol_variable;
 
+struct wpa_auth_ml_rsn_info {
+	unsigned int n_mld_links;
+
+	struct wpa_auth_ml_link_rsn_info {
+		unsigned int link_id;
+		const u8 *rsn_ies;
+		size_t rsn_ies_len;
+	} links[MAX_NUM_MLD_LINKS];
+};
+
 struct wpa_auth_callbacks {
 	void (*logger)(void *ctx, const u8 *addr, logger_level level,
 		       const char *txt);
@@ -355,6 +366,9 @@ struct wpa_auth_callbacks {
 	int (*set_ltf_keyseed)(void *ctx, const u8 *addr, const u8 *ltf_keyseed,
 			       size_t ltf_keyseed_len);
 #endif /* CONFIG_PASN */
+#ifdef CONFIG_IEEE80211BE
+	int (*get_ml_rsn_info)(void *ctx, struct wpa_auth_ml_rsn_info *info);
+#endif /* CONFIG_IEEE80211BE */
 };
 
 struct wpa_authenticator * wpa_init(const u8 *addr,
@@ -592,5 +606,10 @@ void wpa_auth_set_ocv_override_freq(struct wpa_authenticator *wpa_auth,
 				    unsigned int freq);
 
 void wpa_auth_sta_radius_psk_resp(struct wpa_state_machine *sm, bool success);
+
+void wpa_auth_set_ml_info(struct wpa_state_machine *sm, const u8 *mld_addr,
+			  u8 mld_assoc_link_id, struct mld_info *info);
+void wpa_auth_ml_get_rsn_info(struct wpa_authenticator *a,
+			      struct wpa_auth_ml_link_rsn_info *info);
 
 #endif /* WPA_AUTH_H */

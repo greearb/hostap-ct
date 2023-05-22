@@ -3970,15 +3970,34 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 
 		wpa_ie -= 2;
 		wpa_ie_len += 2;
-		if (sta->wpa_sm == NULL)
+
+		if (!sta->wpa_sm) {
+#ifdef CONFIG_IEEE80211BE
+			struct mld_info *info = &sta->mld_info;
+#endif /* CONFIG_IEEE80211BE */
+
 			sta->wpa_sm = wpa_auth_sta_init(hapd->wpa_auth,
 							sta->addr,
 							p2p_dev_addr);
-		if (sta->wpa_sm == NULL) {
-			wpa_printf(MSG_WARNING, "Failed to initialize WPA "
-				   "state machine");
-			return WLAN_STATUS_UNSPECIFIED_FAILURE;
+
+			if (!sta->wpa_sm) {
+				wpa_printf(MSG_WARNING,
+					   "Failed to initialize RSN state machine");
+				return WLAN_STATUS_UNSPECIFIED_FAILURE;
+			}
+
+#ifdef CONFIG_IEEE80211BE
+			if (info->mld_sta) {
+				wpa_printf(MSG_DEBUG,
+					   "MLD: Set ML info in RSN Authenticator");
+				wpa_auth_set_ml_info(sta->wpa_sm,
+						     hapd->mld_addr,
+						     sta->mld_assoc_link_id,
+						     info);
+			}
+#endif /* CONFIG_IEEE80211BE */
 		}
+
 		wpa_auth_set_auth_alg(sta->wpa_sm, sta->auth_alg);
 		res = wpa_validate_wpa_ie(hapd->wpa_auth, sta->wpa_sm,
 					  hapd->iface->freq,
