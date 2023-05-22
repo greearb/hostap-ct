@@ -2030,6 +2030,14 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 		}
 	}
 
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap && hapd->iconf->ieee80211be &&
+	    !hapd->conf->disable_11be) {
+		params->mld_ap = true;
+		params->mld_link_id = hapd->mld_link_id;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	return 0;
 }
 

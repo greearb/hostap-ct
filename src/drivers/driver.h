@@ -1770,6 +1770,16 @@ struct wpa_driver_ap_params {
 	 * channels whenever performing operations like ACS and DFS.
 	 */
 	int *allowed_freqs;
+
+	/*
+	 * mld_ap - Whether operating as an AP MLD
+	 */
+	bool mld_ap;
+
+	/**
+	 * mld_link_id - Link id for MLD BSS's
+	 */
+	u8 mld_link_id;
 };
 
 struct wpa_driver_mesh_bss_params {
