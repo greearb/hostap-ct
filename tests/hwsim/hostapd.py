@@ -101,6 +101,11 @@ class HostapdGlobal:
             if not ignore_error:
                 raise Exception("Could not add hostapd BSS")
 
+    def add_link(self, ifname, confname):
+        res = self.request("ADD " + ifname + " config=" + confname)
+        if "OK" not in res:
+            raise Exception("Could not add hostapd link")
+
     def remove(self, ifname):
         self.request("REMOVE " + ifname, timeout=30)
 
@@ -141,13 +146,14 @@ class HostapdGlobal:
         self.host.send_file(src, dst)
 
 class Hostapd:
-    def __init__(self, ifname, bssidx=0, hostname=None, port=8877):
+    def __init__(self, ifname, bssidx=0, hostname=None, ctrl=hapd_ctrl,
+                 port=8877):
         self.hostname = hostname
         self.host = remotehost.Host(hostname, ifname)
         self.ifname = ifname
         if hostname is None:
-            self.ctrl = wpaspy.Ctrl(os.path.join(hapd_ctrl, ifname))
-            self.mon = wpaspy.Ctrl(os.path.join(hapd_ctrl, ifname))
+            self.ctrl = wpaspy.Ctrl(os.path.join(ctrl, ifname))
+            self.mon = wpaspy.Ctrl(os.path.join(ctrl, ifname))
             self.dbg = ifname
         else:
             self.ctrl = wpaspy.Ctrl(hostname, port)
@@ -156,6 +162,7 @@ class Hostapd:
         self.mon.attach()
         self.bssid = None
         self.bssidx = bssidx
+        self.mld_addr = None
 
     def cmd_execute(self, cmd_array, shell=False):
         if self.hostname is None:
@@ -184,8 +191,15 @@ class Hostapd:
             self.bssid = self.get_status_field('bssid[%d]' % self.bssidx)
         return self.bssid
 
+    def own_mld_addr(self):
+        if self.mld_addr is None:
+            self.mld_addr = self.get_status_field('mld_addr[%d]' % self.bssidx)
+        return self.mld_addr
+
     def get_addr(self, group=False):
-        return self.own_addr()
+        if self.own_mld_addr() is None:
+            return self.own_addr()
+        return self.own_mld_addr()
 
     def request(self, cmd):
         logger.debug(self.dbg + ": CTRL: " + cmd)
@@ -682,6 +696,37 @@ def add_iface(apdev, confname):
         raise Exception("Could not ping hostapd")
     return hapd
 
+def add_mld_link(apdev, params):
+    if isinstance(apdev, dict):
+        ifname = apdev['ifname']
+        try:
+            hostname = apdev['hostname']
+            port = apdev['port']
+            logger.info("Adding link on: " + hostname + "/" + port + " ifname=" + ifname)
+        except:
+            logger.info("Adding link on: ifname=" + ifname)
+            hostname = None
+            port = 8878
+    else:
+        ifname = apdev
+        logger.info("Adding link on: ifname=" + ifname)
+        hostname = None
+        port = 8878
+
+    hapd_global = HostapdGlobal(apdev)
+    confname, ctrl_iface = cfg_mld_link_file(ifname, params)
+    hapd_global.send_file(confname, confname)
+    try:
+        hapd_global.add_link(ifname, confname)
+    except Exception as e:
+        if str(e) == "Could not add hostapd link":
+            raise utils.HwsimSkip("No MLO support in hostapd")
+    port = hapd_global.get_ctrl_iface_port(ifname)
+    hapd = Hostapd(ifname, hostname=hostname, ctrl=ctrl_iface, port=port)
+    if not hapd.ping():
+        raise Exception("Could not ping hostapd")
+    return hapd
+
 def remove_bss(apdev, ifname=None):
     if ifname == None:
         ifname = apdev['ifname']
@@ -904,3 +949,32 @@ def cfg_file(apdev, conf, ifname=None):
         return fname
 
     return conf
+
+idx = 0
+def cfg_mld_link_file(ifname, params):
+    global idx
+    ctrl_iface="/var/run/hostapd"
+    conf = "link-%d.conf" % idx
+
+    fd, fname = tempfile.mkstemp(dir='/tmp', prefix=conf + '-')
+    f = os.fdopen(fd, 'w')
+
+    if idx != 0:
+        ctrl_iface="/var/run/hostapd_%d" % idx
+
+    f.write("ctrl_interface=%s\n" % ctrl_iface)
+    f.write("driver=nl80211\n")
+    f.write("ieee80211n=1\n")
+    f.write("ieee80211ac=1\n")
+    f.write("ieee80211ax=1\n")
+    f.write("ieee80211be=1\n")
+    f.write("interface=%s\n" % ifname)
+    f.write("mld_ap=1\n")
+    f.write("mld_id=0\n")
+
+    for k, v in list(params.items()):
+        f.write("{}={}\n".format(k,v))
+
+    idx = idx + 1
+
+    return fname, ctrl_iface
