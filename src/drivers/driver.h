@@ -3740,9 +3740,10 @@ struct wpa_driver_ops {
 	 * @cw_min: cwMin
 	 * @cw_max: cwMax
 	 * @burst_time: Maximum length for bursting in 0.1 msec units
+	 * @link_id: Link ID to use, or -1 for non MLD.
 	 */
 	int (*set_tx_queue_params)(void *priv, int queue, int aifs, int cw_min,
-				   int cw_max, int burst_time);
+				   int cw_max, int burst_time, int link_id);
 
 	/**
 	 * if_add - Add a virtual interface
