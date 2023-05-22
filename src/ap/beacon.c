@@ -2194,21 +2194,29 @@ int ieee802_11_set_beacon(struct hostapd_data *hapd)
 	if (!iface->interfaces || iface->interfaces->count <= 1)
 		return 0;
 
-	/* Update Beacon frames in case of 6 GHz colocation */
+	/* Update Beacon frames in case of 6 GHz colocation or AP MLD */
 	is_6g = is_6ghz_op_class(iface->conf->op_class);
 	for (j = 0; j < iface->interfaces->count; j++) {
-		struct hostapd_iface *colocated;
+		struct hostapd_iface *other;
+		bool mld_ap = false;
 
-		colocated = iface->interfaces->iface[j];
-		if (colocated == iface || !colocated || !colocated->conf)
+		other = iface->interfaces->iface[j];
+		if (other == iface || !other || !other->conf)
 			continue;
 
-		if (is_6g == is_6ghz_op_class(colocated->conf->op_class))
+#ifdef CONFIG_IEEE80211BE
+		if (hapd->conf->mld_ap && other->bss[0]->conf->mld_ap &&
+		    hapd->conf->mld_id == other->bss[0]->conf->mld_id)
+			mld_ap = true;
+#endif /* CONFIG_IEEE80211BE */
+
+		if (is_6g == is_6ghz_op_class(other->conf->op_class) &&
+		    !mld_ap)
 			continue;
 
-		for (i = 0; i < colocated->num_bss; i++) {
-			if (colocated->bss[i] && colocated->bss[i]->started)
-				__ieee802_11_set_beacon(colocated->bss[i]);
+		for (i = 0; i < other->num_bss; i++) {
+			if (other->bss[i] && other->bss[i]->started)
+				__ieee802_11_set_beacon(other->bss[i]);
 		}
 	}
 

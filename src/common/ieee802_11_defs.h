@@ -2454,6 +2454,7 @@ struct ieee80211_he_mu_edca_parameter_set {
 #define RNR_TBTT_INFO_COUNT(x)                      (((x) & 0xf) << 4)
 #define RNR_TBTT_INFO_COUNT_MAX                     16
 #define RNR_TBTT_INFO_LEN                           13
+#define RNR_TBTT_INFO_MLD_LEN                       16
 #define RNR_NEIGHBOR_AP_OFFSET_UNKNOWN              255
 /* Figure 9-632a - BSS Parameters subfield format */
 #define RNR_BSS_PARAM_OCT_RECOMMENDED               BIT(0)
