@@ -86,6 +86,10 @@ void hostapd_get_eht_capab(struct hostapd_data *hapd,
 			   size_t len);
 u8 * hostapd_eid_eht_basic_ml(struct hostapd_data *hapd, u8 *eid,
 			      struct sta_info *info, bool include_mld_id);
+struct wpabuf * hostapd_ml_auth_resp(struct hostapd_data *hapd);
+const u8 * hostapd_process_ml_auth(struct hostapd_data *hapd,
+				   const struct ieee80211_mgmt *mgmt,
+				   size_t len);
 int hostapd_get_aid(struct hostapd_data *hapd, struct sta_info *sta);
 u16 copy_sta_ht_capab(struct hostapd_data *hapd, struct sta_info *sta,
 		      const u8 *ht_capab);
