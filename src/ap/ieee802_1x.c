@@ -104,6 +104,88 @@ static void ieee802_1x_send(struct hostapd_data *hapd, struct sta_info *sta,
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+static void ieee802_1x_ml_set_link_sta_auth(struct hostapd_data *hapd,
+					    struct sta_info *sta,
+					    bool authorized)
+{
+	int res;
+
+	if (sta->flags & WLAN_STA_PREAUTH)
+		return;
+
+	ap_sta_set_authorized(hapd, sta, authorized);
+	res = hostapd_set_authorized(hapd, sta, authorized);
+	hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE8021X,
+		       HOSTAPD_LEVEL_DEBUG, "%sauthorizing port",
+		       authorized ? "" : "un");
+
+	if (res) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Could not set station " MACSTR " flags",
+			   MAC2STR(sta->addr));
+	}
+
+	if (authorized) {
+		os_get_reltime(&sta->connected_time);
+		accounting_sta_start(hapd, sta);
+	}
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
+static void ieee802_1x_ml_set_sta_authorized(struct hostapd_data *hapd,
+					     struct sta_info *sta,
+					     bool authorized)
+{
+#ifdef CONFIG_IEEE80211BE
+	unsigned int i, link_id;
+
+	if (!hostapd_is_mld_ap(hapd))
+		return;
+
+	/*
+	 * Authorizing the station should be done only in the station
+	 * performing the association
+	 */
+	if (authorized && hapd->mld_link_id != sta->mld_assoc_link_id)
+		return;
+
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+		struct mld_link_info *link = &sta->mld_info.links[link_id];
+
+		if (!link->valid)
+			continue;
+
+		for (i = 0; i < hapd->iface->interfaces->count; i++) {
+			struct sta_info *tmp_sta;
+			struct hostapd_data *tmp_hapd =
+				hapd->iface->interfaces->iface[i]->bss[0];
+
+			if (tmp_hapd->conf->mld_ap ||
+			    hapd->conf->mld_id != tmp_hapd->conf->mld_id)
+				continue;
+
+			for (tmp_sta = tmp_hapd->sta_list; tmp_sta;
+			     tmp_sta = tmp_sta->next) {
+				if (tmp_sta == sta ||
+				    tmp_sta->mld_assoc_link_id !=
+				    sta->mld_assoc_link_id ||
+				    tmp_sta->aid != sta->aid)
+					continue;
+
+				ieee802_1x_ml_set_link_sta_auth(tmp_hapd,
+								tmp_sta,
+								authorized);
+				break;
+			}
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
+}
+
+
+
 void ieee802_1x_set_sta_authorized(struct hostapd_data *hapd,
 				   struct sta_info *sta, int authorized)
 {
@@ -134,6 +216,8 @@ void ieee802_1x_set_sta_authorized(struct hostapd_data *hapd,
 		os_get_reltime(&sta->connected_time);
 		accounting_sta_start(hapd, sta);
 	}
+
+	ieee802_1x_ml_set_sta_authorized(hapd, sta, !!authorized);
 }
 
 
