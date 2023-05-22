@@ -301,7 +301,15 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	sae_clear_retransmit_timer(hapd, sta);
 
 	ieee802_1x_free_station(hapd, sta);
+
+#ifdef CONFIG_IEEE80211BE
+	if (!hapd->conf->mld_ap || !sta->mld_info.mld_sta ||
+	    hapd->mld_link_id == sta->mld_assoc_link_id)
+		wpa_auth_sta_deinit(sta->wpa_sm);
+#else
 	wpa_auth_sta_deinit(sta->wpa_sm);
+#endif /* CONFIG_IEEE80211BE */
+
 	rsn_preauth_free_station(hapd, sta);
 #ifndef CONFIG_NO_RADIUS
 	if (hapd->radius)
@@ -866,7 +874,14 @@ void ap_sta_disassociate(struct hostapd_data *hapd, struct sta_info *sta,
 			       ap_handle_timer, hapd, sta);
 	accounting_sta_stop(hapd, sta);
 	ieee802_1x_free_station(hapd, sta);
+#ifdef CONFIG_IEEE80211BE
+	if (!hapd->conf->mld_ap ||
+	    hapd->mld_link_id == sta->mld_assoc_link_id)
+		wpa_auth_sta_deinit(sta->wpa_sm);
+#else
 	wpa_auth_sta_deinit(sta->wpa_sm);
+#endif /* CONFIG_IEEE80211BE */
+
 	sta->wpa_sm = NULL;
 
 	sta->disassoc_reason = reason;
