@@ -4118,7 +4118,7 @@ int wpa_driver_nl80211_authenticate_retry(struct wpa_driver_nl80211_data *drv)
 }
 
 
-static struct i802_link * nl80211_get_link(struct i802_bss *bss, s8 link_id)
+struct i802_link * nl80211_get_link(struct i802_bss *bss, s8 link_id)
 {
 	unsigned int i;
 

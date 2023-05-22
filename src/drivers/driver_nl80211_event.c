@@ -1611,6 +1611,21 @@ static void mlme_event_unprot_beacon(struct wpa_driver_nl80211_data *drv,
 }
 
 
+static struct i802_link *
+nl80211_get_mld_link_by_freq(struct i802_bss *bss, unsigned int freq)
+{
+	unsigned int i;
+
+	for (i = 0; i < bss->n_links; i++) {
+		if ((unsigned int) bss->links[i].freq == freq &&
+		    bss->links[i].link_id != -1)
+			return &bss->links[i];
+	}
+
+	return NULL;
+}
+
+
 static void mlme_event(struct i802_bss *bss,
 		       enum nl80211_commands cmd, struct nlattr *frame,
 		       struct nlattr *addr, struct nlattr *timed_out,
@@ -1623,7 +1638,8 @@ static void mlme_event(struct i802_bss *bss,
 	u16 stype = 0, auth_type = 0;
 	const u8 *data;
 	size_t len;
-	int link_id;
+	int link_id = -1;
+	struct i802_link *mld_link = NULL;
 
 	if (timed_out && addr) {
 		mlme_timeout_event(drv, cmd, addr);
@@ -1637,10 +1653,15 @@ static void mlme_event(struct i802_bss *bss,
 		return;
 	}
 
+	/* Determine the MLD link either by an explicitly provided link id or
+	 * finding a match based on the frequency. */
 	if (link)
-		link_id = nla_get_u8(link);
-	else
-		link_id = -1;
+		mld_link = nl80211_get_link(bss, nla_get_u8(link));
+	else if (freq)
+		mld_link = nl80211_get_mld_link_by_freq(bss, nla_get_u32(freq));
+
+	if (mld_link)
+		link_id = mld_link->link_id;
 
 	data = nla_data(frame);
 	len = nla_len(frame);
@@ -1683,7 +1704,9 @@ static void mlme_event(struct i802_bss *bss,
 		   os_memcmp(bss->addr, data + 4 + ETH_ALEN, ETH_ALEN) != 0 &&
 		   (is_zero_ether_addr(drv->first_bss->prev_addr) ||
 		    os_memcmp(bss->prev_addr, data + 4 + ETH_ALEN,
-			      ETH_ALEN) != 0)) {
+			      ETH_ALEN) != 0) &&
+		   (!mld_link ||
+		    os_memcmp(mld_link->addr, data + 4, ETH_ALEN) != 0)) {
 		wpa_printf(MSG_MSGDUMP, "nl80211: %s: Ignore MLME frame event "
 			   "for foreign address", bss->ifname);
 		return;
