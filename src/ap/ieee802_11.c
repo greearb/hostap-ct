@@ -5511,8 +5511,8 @@ static void hostapd_deauth_sta(struct hostapd_data *hapd,
 			       struct sta_info *sta,
 			       const struct ieee80211_mgmt *mgmt)
 {
-	wpa_msg(hapd->msg_ctx, MSG_DEBUG, "deauthentication: STA=" MACSTR
-		" reason_code=%d",
+	wpa_msg(hapd->msg_ctx, MSG_DEBUG,
+		"deauthentication: STA=" MACSTR " reason_code=%d",
 		MAC2STR(mgmt->sa), le_to_host16(mgmt->u.deauth.reason_code));
 
 	ap_sta_set_authorized(hapd, sta, 0);
@@ -5535,9 +5535,9 @@ static void hostapd_disassoc_sta(struct hostapd_data *hapd,
 				 struct sta_info *sta,
 				 const struct ieee80211_mgmt *mgmt)
 {
-	wpa_printf(MSG_DEBUG, "disassocation: STA=" MACSTR " reason_code=%d",
-		   MAC2STR(mgmt->sa),
-		   le_to_host16(mgmt->u.disassoc.reason_code));
+	wpa_msg(hapd->msg_ctx, MSG_DEBUG,
+		"disassocation: STA=" MACSTR " reason_code=%d",
+		MAC2STR(mgmt->sa), le_to_host16(mgmt->u.disassoc.reason_code));
 
 	ap_sta_set_authorized(hapd, sta, 0);
 	sta->last_seq_ctrl = WLAN_INVALID_MGMT_SEQ;
@@ -5588,16 +5588,17 @@ static void handle_disassoc(struct hostapd_data *hapd,
 	struct sta_info *sta;
 
 	if (len < IEEE80211_HDRLEN + sizeof(mgmt->u.disassoc)) {
-		wpa_printf(MSG_INFO,
+		wpa_msg(hapd->msg_ctx, MSG_DEBUG,
 			   "handle_disassoc - too short payload (len=%lu)",
 			   (unsigned long) len);
 		return;
 	}
 
 	sta = ap_get_sta(hapd, mgmt->sa);
-	if (sta == NULL) {
-		wpa_printf(MSG_INFO, "Station " MACSTR " trying to disassociate, but it is not associated",
-			   MAC2STR(mgmt->sa));
+	if (!sta) {
+		wpa_msg(hapd->msg_ctx, MSG_DEBUG, "Station " MACSTR
+			" trying to disassociate, but it is not associated",
+			MAC2STR(mgmt->sa));
 		return;
 	}
 
@@ -5611,8 +5612,9 @@ static void handle_deauth(struct hostapd_data *hapd,
 	struct sta_info *sta;
 
 	if (len < IEEE80211_HDRLEN + sizeof(mgmt->u.deauth)) {
-		wpa_msg(hapd->msg_ctx, MSG_DEBUG, "handle_deauth - too short "
-			"payload (len=%lu)", (unsigned long) len);
+		wpa_msg(hapd->msg_ctx, MSG_DEBUG,
+			"handle_deauth - too short payload (len=%lu)",
+			(unsigned long) len);
 		return;
 	}
 
@@ -5620,9 +5622,9 @@ static void handle_deauth(struct hostapd_data *hapd,
 	ptksa_cache_flush(hapd->ptksa, mgmt->sa, WPA_CIPHER_NONE);
 
 	sta = ap_get_sta(hapd, mgmt->sa);
-	if (sta == NULL) {
-		wpa_msg(hapd->msg_ctx, MSG_DEBUG, "Station " MACSTR " trying "
-			"to deauthenticate, but it is not authenticated",
+	if (!sta) {
+		wpa_msg(hapd->msg_ctx, MSG_DEBUG, "Station " MACSTR
+			" trying to deauthenticate, but it is not authenticated",
 			MAC2STR(mgmt->sa));
 		return;
 	}
