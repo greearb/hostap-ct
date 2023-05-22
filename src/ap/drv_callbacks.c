@@ -1623,24 +1623,75 @@ static int hostapd_event_new_sta(struct hostapd_data *hapd, const u8 *addr)
 }
 
 
+static struct hostapd_data * hostapd_find_by_sta(struct hostapd_iface *iface,
+						 const u8 *src)
+{
+	struct sta_info *sta;
+	unsigned int j;
+
+	for (j = 0; j < iface->num_bss; j++) {
+		sta = ap_get_sta(iface->bss[j], src);
+		if (sta && sta->flags & WLAN_STA_ASSOC)
+			return iface->bss[j];
+	}
+
+	return NULL;
+}
+
+
 static void hostapd_event_eapol_rx(struct hostapd_data *hapd, const u8 *src,
 				   const u8 *data, size_t data_len,
 				   enum frame_encryption encrypted,
 				   int link_id)
 {
-	struct hostapd_iface *iface;
-	struct sta_info *sta;
-	size_t j;
+	struct hostapd_data *orig_hapd = hapd;
 
-	hapd = switch_link_hapd(hapd, link_id);
-	iface = hapd->iface;
+#ifdef CONFIG_IEEE80211BE
+	if (link_id != -1) {
+		struct hostapd_data *h_hapd;
 
-	for (j = 0; j < iface->num_bss; j++) {
-		sta = ap_get_sta(iface->bss[j], src);
-		if (sta && sta->flags & WLAN_STA_ASSOC) {
-			hapd = iface->bss[j];
-			break;
+		hapd = switch_link_hapd(hapd, link_id);
+		h_hapd = hostapd_find_by_sta(hapd->iface, src);
+		if (!h_hapd)
+			h_hapd = hostapd_find_by_sta(orig_hapd->iface, src);
+		if (h_hapd)
+			hapd = h_hapd;
+	} else if (hapd->conf->mld_ap) {
+		unsigned int i;
+
+		/* Search for STA on other MLO BSSs */
+		for (i = 0; i < hapd->iface->interfaces->count; i++) {
+			struct hostapd_iface *h =
+				hapd->iface->interfaces->iface[i];
+			struct hostapd_data *h_hapd = h->bss[0];
+			struct hostapd_bss_config *hconf = h_hapd->conf;
+
+			if (!hconf->mld_ap ||
+			    hconf->mld_id != hapd->conf->mld_id)
+				continue;
+
+			h_hapd = hostapd_find_by_sta(h, src);
+			if (h_hapd) {
+				hapd = h_hapd;
+				break;
+			}
 		}
+	} else {
+		hapd = hostapd_find_by_sta(hapd->iface, src);
+	}
+#else /* CONFIG_IEEE80211BE */
+	hapd = hostapd_find_by_sta(hapd->iface, src);
+#endif /* CONFIG_IEEE80211BE */
+
+	if (!hapd) {
+		/* WLAN cases need to have an existing association, but non-WLAN
+		 * cases (mainly, wired IEEE 802.1X) need to be able to process
+		 * EAPOL frames from new devices that do not yet have a STA
+		 * entry and as such, do not get a match in
+		 * hostapd_find_by_sta(). */
+		wpa_printf(MSG_DEBUG,
+			   "No STA-specific hostapd instance for EAPOL RX found - fall back to initial context");
+		hapd = orig_hapd;
 	}
 
 	ieee802_1x_receive(hapd, src, data, data_len, encrypted);
