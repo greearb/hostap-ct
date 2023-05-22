@@ -235,6 +235,8 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 		 */
 		hostapd_get_ext_capa(iface);
 
+		hostapd_get_mld_capa(iface);
+
 		triggs = wpa_get_wowlan_triggers(conf->wowlan_triggers, &capa);
 		if (triggs && hapd->driver->set_wowlan) {
 			if (hapd->driver->set_wowlan(hapd->drv_priv, triggs))

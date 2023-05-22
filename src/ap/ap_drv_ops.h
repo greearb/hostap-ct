@@ -155,6 +155,7 @@ int hostapd_drv_set_qos_map(struct hostapd_data *hapd, const u8 *qos_map_set,
 			    u8 qos_map_set_len);
 
 void hostapd_get_ext_capa(struct hostapd_iface *iface);
+void hostapd_get_mld_capa(struct hostapd_iface *iface);
 
 void hostapd_get_hw_mode_any_channels(struct hostapd_data *hapd,
 				      struct hostapd_hw_modes *mode,
