@@ -3273,12 +3273,13 @@ struct wpa_driver_ops {
 	 * @no_encrypt: Do not encrypt frame even if appropriate key exists
 	 *	(used only for testing purposes)
 	 * @wait: Time to wait off-channel for a response (in ms), or zero
+	 * @link_id: Link ID to use for TX, or -1 if not set
 	 * Returns: 0 on success, -1 on failure
 	 */
 	int (*send_mlme)(void *priv, const u8 *data, size_t data_len,
 			 int noack, unsigned int freq, const u16 *csa_offs,
 			 size_t csa_offs_len, int no_encrypt,
-			 unsigned int wait);
+			 unsigned int wait, int link_id);
 
 	/**
 	 * update_ft_ies - Update FT (IEEE 802.11r) IEs
@@ -3580,14 +3581,15 @@ struct wpa_driver_ops {
 	 * @priv: Private driver interface data
 	 * @own_addr: Source address and BSSID for the Deauthentication frame
 	 * @addr: MAC address of the station to deauthenticate
-	 * @reason: Reason code for the Deauthentiation frame
+	 * @reason: Reason code for the Deauthentication frame
+	 * @link_id: Link ID to use for Deauthentication frame, or -1 if not set
 	 * Returns: 0 on success, -1 on failure
 	 *
 	 * This function requests a specific station to be deauthenticated and
 	 * a Deauthentication frame to be sent to it.
 	 */
 	int (*sta_deauth)(void *priv, const u8 *own_addr, const u8 *addr,
-			  u16 reason);
+			  u16 reason, int link_id);
 
 	/**
 	 * sta_disassoc - Disassociate a station (AP only)

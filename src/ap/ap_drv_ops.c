@@ -760,20 +760,35 @@ int hostapd_drv_send_mlme(struct hostapd_data *hapd,
 			  const u16 *csa_offs, size_t csa_offs_len,
 			  int no_encrypt)
 {
+	int link_id = -1;
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+#endif /* CONFIG_IEEE80211BE */
+
 	if (!hapd->driver || !hapd->driver->send_mlme || !hapd->drv_priv)
 		return 0;
 	return hapd->driver->send_mlme(hapd->drv_priv, msg, len, noack, 0,
-				       csa_offs, csa_offs_len, no_encrypt, 0);
+				       csa_offs, csa_offs_len, no_encrypt, 0,
+				       link_id);
 }
 
 
 int hostapd_drv_sta_deauth(struct hostapd_data *hapd,
 			   const u8 *addr, int reason)
 {
+	int link_id = -1;
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+#endif /* CONFIG_IEEE80211BE */
+
 	if (!hapd->driver || !hapd->driver->sta_deauth || !hapd->drv_priv)
 		return 0;
 	return hapd->driver->sta_deauth(hapd->drv_priv, hapd->own_addr, addr,
-					reason);
+					reason, link_id);
 }
 
 

@@ -202,7 +202,7 @@ static inline int wpa_drv_sta_deauth(struct wpa_supplicant *wpa_s,
 	if (wpa_s->driver->sta_deauth) {
 		return wpa_s->driver->sta_deauth(wpa_s->drv_priv,
 						 wpa_s->own_addr, addr,
-						 reason_code);
+						 reason_code, -1);
 	}
 	return -1;
 }
@@ -328,7 +328,7 @@ static inline int wpa_drv_send_mlme(struct wpa_supplicant *wpa_s,
 	if (wpa_s->driver->send_mlme)
 		return wpa_s->driver->send_mlme(wpa_s->drv_priv,
 						data, data_len, noack,
-						freq, NULL, 0, 0, wait);
+						freq, NULL, 0, 0, wait, -1);
 	return -1;
 }
 

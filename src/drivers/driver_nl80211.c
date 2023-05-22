@@ -4170,7 +4170,8 @@ static int wpa_driver_nl80211_send_mlme(struct i802_bss *bss, const u8 *data,
 					int offchanok,
 					unsigned int wait_time,
 					const u16 *csa_offs,
-					size_t csa_offs_len, int no_encrypt)
+					size_t csa_offs_len, int no_encrypt,
+					int link_id)
 {
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct ieee80211_mgmt *mgmt;
@@ -4178,6 +4179,7 @@ static int wpa_driver_nl80211_send_mlme(struct i802_bss *bss, const u8 *data,
 	u16 fc;
 	int use_cookie = 1;
 	int res;
+	struct i802_link *link = nl80211_get_link(bss, link_id);
 
 	mgmt = (struct ieee80211_mgmt *) data;
 	fc = le_to_host16(mgmt->frame_control);
@@ -4277,14 +4279,14 @@ static int wpa_driver_nl80211_send_mlme(struct i802_bss *bss, const u8 *data,
 	}
 	if (freq == 0) {
 		wpa_printf(MSG_DEBUG, "nl80211: send_mlme - Use bss->freq=%u",
-			   bss->flink->freq);
-		freq = bss->flink->freq;
+			   link->freq);
+		freq = link->freq;
 	}
 
 	if (drv->use_monitor && is_ap_interface(drv->nlmode)) {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: send_frame(freq=%u bss->freq=%u) -> send_monitor",
-			   freq, bss->flink->freq);
+			   freq, link->freq);
 		return nl80211_send_monitor(drv, data, data_len, encrypt,
 					    noack);
 	}
@@ -8075,14 +8077,15 @@ static int i802_sta_clear_stats(void *priv, const u8 *addr)
 
 
 static int i802_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr,
-			   u16 reason)
+			   u16 reason, int link_id)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct ieee80211_mgmt mgmt;
 	u8 channel;
+	struct i802_link *link = nl80211_get_link(bss, link_id);
 
-	if (ieee80211_freq_to_chan(bss->flink->freq, &channel) ==
+	if (ieee80211_freq_to_chan(link->freq, &channel) ==
 	    HOSTAPD_MODE_IEEE80211AD) {
 		/* Deauthentication is not used in DMG/IEEE 802.11ad;
 		 * disassociate the STA instead. */
@@ -8105,7 +8108,7 @@ static int i802_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr,
 	return wpa_driver_nl80211_send_mlme(bss, (u8 *) &mgmt,
 					    IEEE80211_HDRLEN +
 					    sizeof(mgmt.u.deauth), 0, 0, 0, 0,
-					    0, NULL, 0, 0);
+					    0, NULL, 0, 0, -1);
 }
 
 
@@ -8132,7 +8135,7 @@ static int i802_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr,
 	return wpa_driver_nl80211_send_mlme(bss, (u8 *) &mgmt,
 					    IEEE80211_HDRLEN +
 					    sizeof(mgmt.u.disassoc), 0, 0, 0, 0,
-					    0, NULL, 0, 0);
+					    0, NULL, 0, 0, -1);
 }
 
 
@@ -9004,7 +9007,7 @@ static int wpa_driver_nl80211_send_action(struct i802_bss *bss,
 	     !drv->use_monitor))
 		ret = wpa_driver_nl80211_send_mlme(bss, buf, 24 + data_len,
 						   0, freq, no_cck, offchanok,
-						   wait_time, NULL, 0, 0);
+						   wait_time, NULL, 0, 0, -1);
 	else
 		ret = nl80211_send_frame_cmd(bss, freq, wait_time, buf,
 					     24 + data_len,
@@ -10103,7 +10106,7 @@ static void nl80211_send_null_frame(struct i802_bss *bss, const u8 *own_addr,
 	os_memcpy(nulldata.hdr.IEEE80211_SA_FROMDS, own_addr, ETH_ALEN);
 
 	if (wpa_driver_nl80211_send_mlme(bss, (u8 *) &nulldata, size, 0, 0, 0,
-					 0, 0, NULL, 0, 0) < 0)
+					 0, 0, NULL, 0, 0, -1) < 0)
 		wpa_printf(MSG_DEBUG, "nl80211_send_null_frame: Failed to "
 			   "send poll frame");
 }
@@ -10452,12 +10455,13 @@ static int driver_nl80211_send_mlme(void *priv, const u8 *data,
 				    size_t data_len, int noack,
 				    unsigned int freq,
 				    const u16 *csa_offs, size_t csa_offs_len,
-				    int no_encrypt, unsigned int wait)
+				    int no_encrypt, unsigned int wait,
+				    int link_id)
 {
 	struct i802_bss *bss = priv;
 	return wpa_driver_nl80211_send_mlme(bss, data, data_len, noack,
 					    freq, 0, 0, wait, csa_offs,
-					    csa_offs_len, no_encrypt);
+					    csa_offs_len, no_encrypt, link_id);
 }
 
 

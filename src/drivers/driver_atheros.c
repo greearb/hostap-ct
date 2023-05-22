@@ -81,7 +81,7 @@ struct atheros_driver_data {
 };
 
 static int atheros_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr,
-			      u16 reason_code);
+			      u16 reason_code, int link_id);
 static int atheros_set_privacy(void *priv, int enabled);
 
 static const char * athr_get_ioctl_name(int op)
@@ -637,7 +637,7 @@ atheros_flush(void *priv)
 	u8 allsta[IEEE80211_ADDR_LEN];
 	os_memset(allsta, 0xff, IEEE80211_ADDR_LEN);
 	return atheros_sta_deauth(priv, NULL, allsta,
-				  IEEE80211_REASON_AUTH_LEAVE);
+				  IEEE80211_REASON_AUTH_LEAVE, -1);
 }
 
 
@@ -756,7 +756,7 @@ atheros_set_opt_ie(void *priv, const u8 *ie, size_t ie_len)
 
 static int
 atheros_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr,
-		   u16 reason_code)
+		   u16 reason_code, int link_id)
 {
 	struct atheros_driver_data *drv = priv;
 	struct ieee80211req_mlme mlme;
@@ -1964,7 +1964,7 @@ static int atheros_set_ap(void *priv, struct wpa_driver_ap_params *params)
 static int atheros_send_mgmt(void *priv, const u8 *frm, size_t data_len,
 			     int noack, unsigned int freq,
 			     const u16 *csa_offs, size_t csa_offs_len,
-			     int no_encrypt, unsigned int wait)
+			     int no_encrypt, unsigned int wait, int link_id)
 {
 	struct atheros_driver_data *drv = priv;
 	u8 buf[1510];

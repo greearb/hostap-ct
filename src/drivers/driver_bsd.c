@@ -882,7 +882,7 @@ bsd_wireless_event_receive(int sock, void *ctx, void *sock_ctx)
 #undef WPA_OUI_TYPE
 
 static int bsd_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr,
-			  u16 reason_code);
+			  u16 reason_code, int link_id);
 
 static const char *
 ether_sprintf(const u8 *addr)
@@ -951,7 +951,8 @@ bsd_flush(void *priv)
 	u8 allsta[IEEE80211_ADDR_LEN];
 
 	memset(allsta, 0xff, IEEE80211_ADDR_LEN);
-	return bsd_sta_deauth(priv, NULL, allsta, IEEE80211_REASON_AUTH_LEAVE);
+	return bsd_sta_deauth(priv, NULL, allsta, IEEE80211_REASON_AUTH_LEAVE,
+			      -1);
 }
 
 
@@ -974,7 +975,8 @@ bsd_read_sta_driver_data(void *priv, struct hostap_sta_driver_data *data,
 }
 
 static int
-bsd_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, u16 reason_code)
+bsd_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, u16 reason_code,
+	       int link_id)
 {
 	return bsd_send_mlme_param(priv, IEEE80211_MLME_DEAUTH, reason_code,
 				   addr);
