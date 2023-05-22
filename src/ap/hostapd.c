@@ -393,6 +393,25 @@ static int hostapd_broadcast_wep_set(struct hostapd_data *hapd)
 #endif /* CONFIG_WEP */
 
 
+static void hostapd_clear_drv_priv(struct hostapd_data *hapd)
+{
+	unsigned int i;
+
+	for (i = 0; i < hapd->iface->interfaces->count; i++) {
+		struct hostapd_iface *iface = hapd->iface->interfaces->iface[i];
+
+		if (hapd->iface == iface)
+			continue;
+
+		if (iface->bss && iface->bss[0] &&
+		    iface->bss[0]->mld_first_bss == hapd)
+			iface->bss[0]->drv_priv = NULL;
+	}
+
+	hapd->drv_priv = NULL;
+}
+
+
 void hostapd_free_hapd_data(struct hostapd_data *hapd)
 {
 	os_free(hapd->probereq_cb);
@@ -449,7 +468,7 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 			 * driver wrapper may have removed its internal instance
 			 * and hapd->drv_priv is not valid anymore.
 			 */
-			hapd->drv_priv = NULL;
+			hostapd_clear_drv_priv(hapd);
 		}
 	}
 
@@ -2950,8 +2969,9 @@ void hostapd_interface_deinit_free(struct hostapd_iface *iface)
 	wpa_printf(MSG_DEBUG, "%s: driver=%p drv_priv=%p -> hapd_deinit",
 		   __func__, driver, drv_priv);
 	if (driver && driver->hapd_deinit && drv_priv) {
-		driver->hapd_deinit(drv_priv);
-		iface->bss[0]->drv_priv = NULL;
+		if (!iface->bss[0]->mld_first_bss)
+			driver->hapd_deinit(drv_priv);
+		hostapd_clear_drv_priv(iface->bss[0]);
 	}
 	hostapd_interface_free(iface);
 }
@@ -2966,13 +2986,14 @@ static void hostapd_deinit_driver(const struct wpa_driver_ops *driver,
 	wpa_printf(MSG_DEBUG, "%s: driver=%p drv_priv=%p -> hapd_deinit",
 		   __func__, driver, drv_priv);
 	if (driver && driver->hapd_deinit && drv_priv) {
-		driver->hapd_deinit(drv_priv);
+		if (!hapd_iface->bss[0]->mld_first_bss)
+			driver->hapd_deinit(drv_priv);
 		for (j = 0; j < hapd_iface->num_bss; j++) {
 			wpa_printf(MSG_DEBUG, "%s:bss[%d]->drv_priv=%p",
 				   __func__, (int) j,
 				   hapd_iface->bss[j]->drv_priv);
 			if (hapd_iface->bss[j]->drv_priv == drv_priv) {
-				hapd_iface->bss[j]->drv_priv = NULL;
+				hostapd_clear_drv_priv(hapd_iface->bss[j]);
 				hapd_iface->extended_capa = NULL;
 				hapd_iface->extended_capa_mask = NULL;
 				hapd_iface->extended_capa_len = 0;
@@ -3313,8 +3334,14 @@ int hostapd_add_iface(struct hapd_interfaces *interfaces, char *buf)
 		conf_file = ptr + 7;
 
 	for (i = 0; i < interfaces->count; i++) {
+		bool mld_ap = false;
+
+#ifdef CONFIG_IEEE80211BE
+		mld_ap = interfaces->iface[i]->conf->bss[0]->mld_ap;
+#endif /* CONFIG_IEEE80211BE */
+
 		if (!os_strcmp(interfaces->iface[i]->conf->bss[0]->iface,
-			       buf)) {
+			       buf) && !mld_ap) {
 			wpa_printf(MSG_INFO, "Cannot add interface - it "
 				   "already exists");
 			return -1;

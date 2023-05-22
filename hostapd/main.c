@@ -164,6 +164,59 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 		return -1;
 	}
 
+#ifdef CONFIG_IEEE80211BE
+	for (i = 0; conf->mld_ap && i < iface->interfaces->count; i++) {
+		struct hostapd_iface *h = iface->interfaces->iface[i];
+		struct hostapd_data *h_hapd = h->bss[0];
+		struct hostapd_bss_config *hconf = h_hapd->conf;
+
+		if (h == iface) {
+			wpa_printf(MSG_DEBUG, "MLD: Skip own interface");
+			continue;
+		}
+
+		if (!hconf->mld_ap || hconf->mld_id != conf->mld_id) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Skip non matching mld_id");
+			continue;
+		}
+
+		wpa_printf(MSG_DEBUG, "MLD: Found matching MLD interface");
+		if (!h_hapd->drv_priv) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Matching MLD BSS not initialized yet");
+			continue;
+		}
+
+		hapd->drv_priv = h_hapd->drv_priv;
+
+		/*
+		 * All interfaces participating in the AP MLD would have
+		 * the same MLD address, which is the interface hardware
+		 * address, while the interface address would be
+		 * derived from the original interface address if BSSID
+		 * is not configured, and otherwise it would be the
+		 * configured BSSID.
+		 */
+		os_memcpy(hapd->mld_addr, h_hapd->mld_addr, ETH_ALEN);
+		if (is_zero_ether_addr(b)) {
+			os_memcpy(hapd->own_addr, h_hapd->mld_addr, ETH_ALEN);
+			random_mac_addr_keep_oui(hapd->own_addr);
+		} else {
+			os_memcpy(hapd->own_addr, b, ETH_ALEN);
+		}
+
+		/*
+		 * Mark the interface as a secondary interface, as this
+		 * is needed for the de-initialization flow
+		 */
+		hapd->mld_first_bss = h_hapd;
+		hapd->mld_link_id = hapd->mld_first_bss->mld_next_link_id++;
+
+		goto setup_mld;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	/* Initialize the driver interface */
 	if (!(b[0] | b[1] | b[2] | b[3] | b[4] | b[5]))
 		b = NULL;
@@ -214,6 +267,22 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 		return -1;
 	}
 
+#ifdef CONFIG_IEEE80211BE
+	/*
+	 * This is the first interface added to the AP MLD, so have the
+	 * interface hardware address be the MLD address and set a link address
+	 * to this interface.
+	 */
+	if (hapd->conf->mld_ap) {
+		os_memcpy(hapd->mld_addr, hapd->own_addr, ETH_ALEN);
+		random_mac_addr_keep_oui(hapd->own_addr);
+		hapd->mld_next_link_id = 0;
+		hapd->mld_link_id = hapd->mld_next_link_id++;
+	}
+
+setup_mld:
+#endif /* CONFIG_IEEE80211BE */
+
 	if (hapd->driver->get_capa &&
 	    hapd->driver->get_capa(hapd->drv_priv, &capa) == 0) {
 		struct wowlan_triggers *triggs;
@@ -247,6 +316,25 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 		iface->mbssid_max_interfaces = capa.mbssid_max_interfaces;
 		iface->ema_max_periodicity = capa.ema_max_periodicity;
 	}
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap) {
+		if (!(iface->drv_flags2 & WPA_DRIVER_FLAGS2_MLO)) {
+			wpa_printf(MSG_INFO,
+				   "MLD: Not supported by the driver");
+			return -1;
+		}
+
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Set link_id=%u, mld_addr=" MACSTR
+			   ", own_addr=" MACSTR,
+			   hapd->mld_link_id, MAC2STR(hapd->mld_addr),
+			   MAC2STR(hapd->own_addr));
+
+		hostapd_drv_link_add(hapd, hapd->mld_link_id,
+				     hapd->own_addr);
+	}
+#endif /* CONFIG_IEEE80211BE */
 
 	return 0;
 }

@@ -175,6 +175,12 @@ struct hostapd_data {
 	unsigned int reenable_beacon:1;
 
 	u8 own_addr[ETH_ALEN];
+	u8 mld_addr[ETH_ALEN];
+	u8 mld_link_id;
+	/* Used for mld_link_id assignment - valid on the first MLD BSS only */
+	u8 mld_next_link_id;
+
+	struct hostapd_data *mld_first_bss;
 
 	int num_sta; /* number of entries in sta_list */
 	struct sta_info *sta_list; /* STA info list head */
