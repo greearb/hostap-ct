@@ -4935,6 +4935,7 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct i802_link *link = bss->flink;
 	struct nl_msg *msg;
 	u8 cmd = NL80211_CMD_NEW_BEACON;
 	int ret = -ENOBUFS;
@@ -4946,7 +4947,24 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 	struct wpa_driver_mesh_bss_params mesh_params;
 #endif /* CONFIG_MESH */
 
-	beacon_set = params->reenable ? 0 : bss->flink->beacon_set;
+	if (params->mld_ap) {
+		size_t i;
+
+		for (i = 0; i < bss->n_links; i++) {
+			if (bss->links[i].link_id == params->mld_link_id) {
+				link = &bss->links[i];
+				break;
+			}
+		}
+
+		if (i == bss->n_links) {
+			wpa_printf(MSG_DEBUG, "nl80211: Link ID=%u not found",
+				   params->mld_link_id);
+			return -EINVAL;
+		}
+	}
+
+	beacon_set = params->reenable ? 0 : link->beacon_set;
 
 	wpa_printf(MSG_DEBUG, "nl80211: Set beacon (beacon_set=%d)",
 		   beacon_set);
@@ -4978,6 +4996,21 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 	    nl80211_put_dtim_period(msg, params->dtim_period) ||
 	    nla_put(msg, NL80211_ATTR_SSID, params->ssid_len, params->ssid))
 		goto fail;
+
+	if (params->mld_ap) {
+		wpa_printf(MSG_DEBUG, "nl80211: link_id=%u",
+			   params->mld_link_id);
+
+		if (nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID,
+			       params->mld_link_id) ||
+		    (params->freq &&
+		     nl80211_put_freq_params(msg, params->freq) < 0))
+			goto fail;
+
+		nl80211_link_set_freq(bss, params->mld_link_id,
+				      params->freq->freq);
+	}
+
 	if (params->proberesp && params->proberesp_len) {
 		wpa_hexdump(MSG_DEBUG, "nl80211: proberesp (offload)",
 			    params->proberesp, params->proberesp_len);
@@ -5263,17 +5296,17 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 		wpa_printf(MSG_DEBUG, "nl80211: Beacon set failed: %d (%s)",
 			   ret, strerror(-ret));
 	} else {
-		bss->flink->beacon_set = 1;
+		link->beacon_set = 1;
 		nl80211_set_bss(bss, params->cts_protect, params->preamble,
 				params->short_slot_time, params->ht_opmode,
 				params->isolate, params->basic_rates);
 		nl80211_set_multicast_to_unicast(bss,
 						 params->multicast_to_unicast);
 		if (beacon_set && params->freq &&
-		    params->freq->bandwidth != bss->flink->bandwidth) {
+		    params->freq->bandwidth != link->bandwidth) {
 			wpa_printf(MSG_DEBUG,
 				   "nl80211: Update BSS %s bandwidth: %d -> %d",
-				   bss->ifname, bss->flink->bandwidth,
+				   bss->ifname, link->bandwidth,
 				   params->freq->bandwidth);
 			ret = nl80211_set_channel(bss, params->freq, 1);
 			if (ret) {
@@ -5283,7 +5316,7 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 			} else {
 				wpa_printf(MSG_DEBUG,
 					   "nl80211: Frequency set succeeded for ht2040 coex");
-				bss->flink->bandwidth = params->freq->bandwidth;
+				link->bandwidth = params->freq->bandwidth;
 			}
 		} else if (!beacon_set && params->freq) {
 			/*
@@ -5291,7 +5324,7 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 			 * mode only at the point when beaconing is started, so
 			 * set the initial value here.
 			 */
-			bss->flink->bandwidth = params->freq->bandwidth;
+			link->bandwidth = params->freq->bandwidth;
 		}
 	}
 
