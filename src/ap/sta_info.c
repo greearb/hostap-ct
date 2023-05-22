@@ -1569,6 +1569,9 @@ int ap_sta_pending_delayed_1x_auth_fail_disconnect(struct hostapd_data *hapd,
 
 int ap_sta_re_add(struct hostapd_data *hapd, struct sta_info *sta)
 {
+	const u8 *mld_link_addr = NULL;
+	bool mld_link_sta = false;
+
 	/*
 	 * If a station that is already associated to the AP, is trying to
 	 * authenticate again, remove the STA entry, in order to make sure the
@@ -1576,6 +1579,16 @@ int ap_sta_re_add(struct hostapd_data *hapd, struct sta_info *sta)
 	 * this, station's added_unassoc flag is cleared once the station has
 	 * completed association.
 	 */
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap && sta->mld_info.mld_sta) {
+		u8 mld_link_id = hapd->mld_link_id;
+
+		mld_link_sta = sta->mld_assoc_link_id != mld_link_id;
+		mld_link_addr = sta->mld_info.links[mld_link_id].peer_addr;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	ap_sta_set_authorized(hapd, sta, 0);
 	hostapd_drv_sta_remove(hapd, sta->addr);
 	sta->flags &= ~(WLAN_STA_ASSOC | WLAN_STA_AUTH | WLAN_STA_AUTHORIZED);
@@ -1584,7 +1597,8 @@ int ap_sta_re_add(struct hostapd_data *hapd, struct sta_info *sta)
 			    sta->supported_rates,
 			    sta->supported_rates_len,
 			    0, NULL, NULL, NULL, 0, NULL, 0, NULL,
-			    sta->flags, 0, 0, 0, 0)) {
+			    sta->flags, 0, 0, 0, 0,
+			    mld_link_addr, mld_link_sta)) {
 		hostapd_logger(hapd, sta->addr,
 			       HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_NOTICE,

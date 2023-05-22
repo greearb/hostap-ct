@@ -430,7 +430,7 @@ int hostapd_sta_add(struct hostapd_data *hapd,
 		    size_t eht_capab_len,
 		    const struct ieee80211_he_6ghz_band_cap *he_6ghz_capab,
 		    u32 flags, u8 qosinfo, u8 vht_opmode, int supp_p2p_ps,
-		    int set)
+		    int set, const u8 *link_addr, bool mld_link_sta)
 {
 	struct hostapd_sta_add_params params;
 
@@ -460,6 +460,19 @@ int hostapd_sta_add(struct hostapd_data *hapd,
 	params.support_p2p_ps = supp_p2p_ps;
 	params.set = set;
 	params.mld_link_id = -1;
+
+#ifdef CONFIG_IEEE80211BE
+	/*
+	 * An AP MLD needs to always specify to what link the station needs
+	 * to be added.
+	 */
+	if (hapd->conf->mld_ap) {
+		params.mld_link_id = hapd->mld_link_id;
+		params.mld_link_addr = link_addr;
+		params.mld_link_sta = mld_link_sta;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	return hapd->driver->sta_add(hapd->drv_priv, &params);
 }
 
