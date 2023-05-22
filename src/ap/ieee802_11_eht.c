@@ -417,3 +417,207 @@ void hostapd_get_eht_capab(struct hostapd_data *hapd,
 	os_memset(dest, 0, sizeof(*dest));
 	os_memcpy(dest, src, len);
 }
+
+
+u8 * hostapd_eid_eht_basic_ml(struct hostapd_data *hapd, u8 *eid,
+			      struct sta_info *info, bool include_mld_id)
+{
+	struct wpabuf *buf;
+	u16 control;
+	u8 *pos = eid;
+	const u8 *ptr;
+	size_t len, slice_len;
+	u8 link_id;
+	u8 common_info_len;
+
+	/*
+	 * As the Multi-Link element can exceed the size of 255 bytes need to
+	 * first build it and then handle fragmentation.
+	 */
+	buf = wpabuf_alloc(1024);
+	if (!buf)
+		return pos;
+
+	/* Multi-Link Control field */
+	control = MULTI_LINK_CONTROL_TYPE_BASIC |
+		BASIC_MULTI_LINK_CTRL_PRES_LINK_ID |
+		BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT |
+		BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA |
+		BASIC_MULTI_LINK_CTRL_PRES_MLD_CAPA;
+
+	/*
+	 * Set the basic Multi-Link common information. Hard code the common
+	 * info length to 13 based on the length of the present fields:
+	 * Length (1) + MLD address (6) + Link ID (1) +
+	 * BSS Parameters Change Count (1) + EML Capabilities (2) +
+	 * MLD Capabilities and Operations (2)
+	 */
+	common_info_len = 13;
+
+	if (include_mld_id) {
+		/* AP MLD ID */
+		control |= BASIC_MULTI_LINK_CTRL_PRES_AP_MLD_ID;
+		common_info_len++;
+	}
+
+	wpabuf_put_le16(buf, control);
+
+	wpabuf_put_u8(buf, common_info_len);
+
+	/* Own MLD MAC Address */
+	wpabuf_put_data(buf, hapd->mld_addr, ETH_ALEN);
+
+	/* Own Link ID */
+	wpabuf_put_u8(buf, hapd->mld_link_id);
+
+	/* Currently hard code the BSS Parameters Change Count to 0x1 */
+	wpabuf_put_u8(buf, 0x1);
+
+	wpa_printf(MSG_DEBUG, "MLD: EML Capabilities=0x%x",
+		   hapd->iface->mld_eml_capa);
+	wpabuf_put_le16(buf, hapd->iface->mld_eml_capa);
+
+	wpa_printf(MSG_DEBUG, "MLD: MLD Capabilities and Operations=0x%x",
+		   hapd->iface->mld_mld_capa);
+	wpabuf_put_le16(buf, hapd->iface->mld_mld_capa);
+
+	if (include_mld_id) {
+		wpa_printf(MSG_DEBUG, "MLD: AP MLD ID=0x%x",
+			   hapd->conf->mld_id);
+		wpabuf_put_u8(buf, hapd->conf->mld_id);
+	}
+
+	if (!info)
+		goto out;
+
+	/* Add link info for the other links */
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+		struct mld_link_info *link = &info->mld_info.links[link_id];
+		struct hostapd_data *link_bss;
+
+		/*
+		 * control (2) + station info length (1) + MAC address (6) +
+		 * beacon interval (2) + TSF offset (8) + DTIM info (2) + BSS
+		 * parameters change counter (1) + station profile length.
+		 */
+		const size_t fixed_len = 22;
+		size_t total_len = fixed_len + link->resp_sta_profile_len;
+
+		/* Skip the local one */
+		if (link_id == hapd->mld_link_id || !link->valid)
+			continue;
+
+		link_bss = hostapd_mld_get_link_bss(hapd, link_id);
+		if (!link_bss) {
+			wpa_printf(MSG_ERROR,
+				   "MLD: Couldn't find link BSS - skip it");
+			continue;
+		}
+
+		/* Per-STA Profile subelement */
+		wpabuf_put_u8(buf, EHT_ML_SUB_ELEM_PER_STA_PROFILE);
+
+		if (total_len <= 255)
+			wpabuf_put_u8(buf, total_len);
+		else
+			wpabuf_put_u8(buf, 255);
+
+		/* STA Control */
+		control = (link_id & 0xf) |
+			EHT_PER_STA_CTRL_MAC_ADDR_PRESENT_MSK |
+			EHT_PER_STA_CTRL_COMPLETE_PROFILE_MSK |
+			EHT_PER_STA_CTRL_TSF_OFFSET_PRESENT_MSK |
+			EHT_PER_STA_CTRL_BEACON_INTERVAL_PRESENT_MSK |
+			EHT_PER_STA_CTRL_DTIM_INFO_PRESENT_MSK |
+			EHT_PER_STA_CTRL_BSS_PARAM_CNT_PRESENT_MSK;
+		wpabuf_put_le16(buf, control);
+
+		/* STA Info */
+
+		/* STA Info Length */
+		wpabuf_put_u8(buf, fixed_len - 2);
+		wpabuf_put_data(buf, link->local_addr, ETH_ALEN);
+		wpabuf_put_le16(buf, link_bss->iconf->beacon_int);
+
+		/* TSF Offset */
+		/*
+		 * TODO: Currently setting TSF offset to zero. However, this
+		 * information needs to come from the driver.
+		 */
+		wpabuf_put_le64(buf, 0);
+
+		/* DTIM Info */
+		wpabuf_put_le16(buf, link_bss->conf->dtim_period);
+
+		/* BSS Parameters Change Count */
+		/* TODO: Currently hard code the BSS Parameters Change Count to
+		 * 0x1 */
+		wpabuf_put_u8(buf, 0x1);
+
+		/* Fragment the sub element if needed */
+		if (total_len <= 255) {
+			wpabuf_put_data(buf, link->resp_sta_profile,
+					link->resp_sta_profile_len);
+		} else {
+			ptr = link->resp_sta_profile;
+			len = link->resp_sta_profile_len;
+
+			slice_len = 255 - fixed_len;
+
+			wpabuf_put_data(buf, ptr, slice_len);
+			len -= slice_len;
+			ptr += slice_len;
+
+			while (len) {
+				if (len <= 255)
+					slice_len = len;
+				else
+					slice_len = 255;
+
+				wpabuf_put_u8(buf, EHT_ML_SUB_ELEM_FRAGMENT);
+				wpabuf_put_u8(buf, slice_len);
+				wpabuf_put_data(buf, ptr, slice_len);
+
+				len -= slice_len;
+				ptr += slice_len;
+			}
+		}
+	}
+
+out:
+	/* Fragment the Multi-Link element, if needed */
+	len = wpabuf_len(buf);
+	ptr = wpabuf_head(buf);
+
+	if (len <= 254)
+		slice_len = len;
+	else
+		slice_len = 254;
+
+	*pos++ = WLAN_EID_EXTENSION;
+	*pos++ = slice_len + 1;
+	*pos++ = WLAN_EID_EXT_MULTI_LINK;
+	os_memcpy(pos, ptr, slice_len);
+
+	ptr += slice_len;
+	pos += slice_len;
+	len -= slice_len;
+
+	while (len) {
+		if (len <= 255)
+			slice_len = len;
+		else
+			slice_len = 255;
+
+		*pos++ = WLAN_EID_FRAGMENT;
+		*pos++ = slice_len;
+		os_memcpy(pos, ptr, slice_len);
+
+		ptr += slice_len;
+		pos += slice_len;
+		len -= slice_len;
+	}
+
+	wpabuf_free(buf);
+	return pos;
+}

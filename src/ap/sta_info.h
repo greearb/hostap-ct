@@ -69,6 +69,35 @@ struct pending_eapol_rx {
 	enum frame_encryption encrypted;
 };
 
+#define EHT_ML_MAX_STA_PROF_LEN 1024
+struct mld_info {
+	bool mld_sta;
+
+	struct ml_common_info {
+		u8 mld_addr[ETH_ALEN];
+		u16 medium_sync_delay;
+		u16 eml_capa;
+		u16 mld_capa;
+	} common_info;
+
+	struct mld_link_info {
+		u8 valid;
+		u8 local_addr[ETH_ALEN];
+		u8 peer_addr[ETH_ALEN];
+
+		size_t nstr_bitmap_len;
+		u8 nstr_bitmap[2];
+
+		u16 capability;
+
+		u16 status;
+		size_t resp_sta_profile_len;
+		u8 resp_sta_profile[EHT_ML_MAX_STA_PROF_LEN];
+
+		const u8 *rsne, *rsnxe;
+	} links[MAX_NUM_MLD_LINKS];
+};
+
 struct sta_info {
 	struct sta_info *next; /* next entry in sta list */
 	struct sta_info *hnext; /* next entry in hash table list */
@@ -299,6 +328,11 @@ struct sta_info {
 #ifdef CONFIG_PASN
 	struct pasn_data *pasn;
 #endif /* CONFIG_PASN */
+
+#ifdef CONFIG_IEEE80211BE
+	struct mld_info mld_info;
+	u8 mld_assoc_link_id;
+#endif /* CONFIG_IEEE80211BE */
 };
 
 

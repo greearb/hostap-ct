@@ -4260,3 +4260,26 @@ void hostapd_ocv_check_csa_sa_query(void *eloop_ctx, void *timeout_ctx)
 	}
 }
 #endif /* CONFIG_OCV */
+
+
+#ifdef CONFIG_IEEE80211BE
+struct hostapd_data * hostapd_mld_get_link_bss(struct hostapd_data *hapd,
+					       u8 link_id)
+{
+	unsigned int i;
+
+	for (i = 0; i < hapd->iface->interfaces->count; i++) {
+		struct hostapd_iface *h = hapd->iface->interfaces->iface[i];
+		struct hostapd_data *h_hapd = h->bss[0];
+		struct hostapd_bss_config *hconf = h_hapd->conf;
+
+		if (!hconf->mld_ap || hconf->mld_id != hapd->conf->mld_id)
+			continue;
+
+		if (h_hapd->mld_link_id == link_id)
+			return h_hapd;
+	}
+
+	return NULL;
+}
+#endif /* CONFIG_IEEE80211BE */
