@@ -604,12 +604,18 @@ static struct wpabuf * auth_build_sae_commit(struct hostapd_data *hapd,
 	int use_pt = 0;
 	struct sae_pt *pt = NULL;
 	const struct sae_pk *pk = NULL;
+	const u8 *own_addr = hapd->own_addr;
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap && sta->mld_info.mld_sta)
+		own_addr = hapd->mld_addr;
+#endif /* CONFIG_IEEE80211BE */
 
 	if (sta->sae->tmp) {
 		rx_id = sta->sae->tmp->pw_id;
 		use_pt = sta->sae->h2e;
 #ifdef CONFIG_SAE_PK
-		os_memcpy(sta->sae->tmp->own_addr, hapd->own_addr, ETH_ALEN);
+		os_memcpy(sta->sae->tmp->own_addr, own_addr, ETH_ALEN);
 		os_memcpy(sta->sae->tmp->peer_addr, sta->addr, ETH_ALEN);
 #endif /* CONFIG_SAE_PK */
 	}
@@ -629,12 +635,12 @@ static struct wpabuf * auth_build_sae_commit(struct hostapd_data *hapd,
 	}
 
 	if (update && use_pt &&
-	    sae_prepare_commit_pt(sta->sae, pt, hapd->own_addr, sta->addr,
+	    sae_prepare_commit_pt(sta->sae, pt, own_addr, sta->addr,
 				  NULL, pk) < 0)
 		return NULL;
 
 	if (update && !use_pt &&
-	    sae_prepare_commit(hapd->own_addr, sta->addr,
+	    sae_prepare_commit(own_addr, sta->addr,
 			       (u8 *) password, os_strlen(password),
 			       sta->sae) < 0) {
 		wpa_printf(MSG_DEBUG, "SAE: Could not pick PWE");
