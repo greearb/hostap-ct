@@ -106,6 +106,15 @@ static int hostapd_setup_radius_srv(struct hostapd_data *hapd)
 {
 	struct radius_server_conf srv;
 	struct hostapd_bss_config *conf = hapd->conf;
+
+	if (hapd->mld_first_bss) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Using RADIUS server of the first BSS");
+
+		hapd->radius_srv = hapd->mld_first_bss->radius_srv;
+		return 0;
+	}
+
 	os_memset(&srv, 0, sizeof(srv));
 	srv.client_file = conf->radius_server_clients;
 	srv.auth_port = conf->radius_server_auth_port;
@@ -238,6 +247,19 @@ static struct eap_config * authsrv_eap_config(struct hostapd_data *hapd)
 
 int authsrv_init(struct hostapd_data *hapd)
 {
+	if (hapd->mld_first_bss) {
+		wpa_printf(MSG_DEBUG, "MLD: Using auth_serv of the first BSS");
+
+#ifdef EAP_TLS_FUNCS
+		hapd->ssl_ctx = hapd->mld_first_bss->ssl_ctx;
+#endif /* EAP_TLS_FUNCS */
+		hapd->eap_cfg = hapd->mld_first_bss->eap_cfg;
+#ifdef EAP_SIM_DB
+		hapd->eap_sim_db_priv = hapd->mld_first_bss->eap_sim_db_priv;
+#endif /* EAP_SIM_DB */
+		return 0;
+	}
+
 #ifdef EAP_TLS_FUNCS
 	if (hapd->conf->eap_server &&
 	    (hapd->conf->ca_cert || hapd->conf->server_cert ||
@@ -352,6 +374,21 @@ int authsrv_init(struct hostapd_data *hapd)
 
 void authsrv_deinit(struct hostapd_data *hapd)
 {
+	if (hapd->mld_first_bss) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Deinit auth_serv of a non-first BSS");
+
+		hapd->radius_srv = NULL;
+		hapd->eap_cfg = NULL;
+#ifdef EAP_SIM_DB
+		hapd->eap_sim_db_priv = NULL;
+#endif /* EAP_SIM_DB */
+#ifdef EAP_TLS_FUNCS
+		hapd->ssl_ctx = NULL;
+#endif /* EAP_TLS_FUNCS */
+		return;
+	}
+
 #ifdef RADIUS_SERVER
 	radius_server_deinit(hapd->radius_srv);
 	hapd->radius_srv = NULL;

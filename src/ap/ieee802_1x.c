@@ -2474,6 +2474,14 @@ int ieee802_1x_init(struct hostapd_data *hapd)
 	struct eapol_auth_config conf;
 	struct eapol_auth_cb cb;
 
+	if (hapd->mld_first_bss) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Using IEEE 802.1X state machine of the first BSS");
+
+		hapd->eapol_auth = hapd->mld_first_bss->eapol_auth;
+		return 0;
+	}
+
 	dl_list_init(&hapd->erp_keys);
 
 	os_memset(&conf, 0, sizeof(conf));
@@ -2558,6 +2566,14 @@ void ieee802_1x_erp_flush(struct hostapd_data *hapd)
 
 void ieee802_1x_deinit(struct hostapd_data *hapd)
 {
+	if (hapd->mld_first_bss) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Deinit IEEE 802.1X state machine of a non-first BSS");
+
+		hapd->eapol_auth = NULL;
+		return;
+	}
+
 #ifdef CONFIG_WEP
 	eloop_cancel_timeout(ieee802_1x_rekey, hapd, NULL);
 #endif /* CONFIG_WEP */
