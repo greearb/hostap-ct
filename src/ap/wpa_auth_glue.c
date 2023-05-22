@@ -522,6 +522,11 @@ int hostapd_wpa_auth_send_eapol(void *ctx, const u8 *addr,
 	struct hostapd_data *hapd = ctx;
 	struct sta_info *sta;
 	u32 flags = 0;
+	int link_id = -1;
+
+#ifdef CONFIG_IEEE80211BE
+	link_id = hapd->conf->mld_ap ? hapd->mld_link_id : -1;
+#endif /* CONFIG_IEEE80211BE */
 
 #ifdef CONFIG_TESTING_OPTIONS
 	if (hapd->ext_eapol_frame_io) {
@@ -539,11 +544,16 @@ int hostapd_wpa_auth_send_eapol(void *ctx, const u8 *addr,
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	sta = ap_get_sta(hapd, addr);
-	if (sta)
+	if (sta) {
 		flags = hostapd_sta_flags_to_drv(sta->flags);
+#ifdef CONFIG_IEEE80211BE
+		if (sta->mld_info.mld_sta && (sta->flags & WLAN_STA_AUTHORIZED))
+			link_id = -1;
+#endif /* CONFIG_IEEE80211BE */
+	}
 
 	return hostapd_drv_hapd_send_eapol(hapd, addr, data, data_len,
-					   encrypt, flags);
+					   encrypt, flags, link_id);
 }
 
 

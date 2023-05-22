@@ -1644,7 +1644,7 @@ atheros_wireless_event_init(struct atheros_driver_data *drv)
 
 static int
 atheros_send_eapol(void *priv, const u8 *addr, const u8 *data, size_t data_len,
-		   int encrypt, const u8 *own_addr, u32 flags)
+		   int encrypt, const u8 *own_addr, u32 flags, int link_id)
 {
 	struct atheros_driver_data *drv = priv;
 	unsigned char buf[3000];

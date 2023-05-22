@@ -3541,6 +3541,7 @@ struct wpa_driver_ops {
 	 * @buf: Frame payload starting from IEEE 802.1X header
 	 * @len: Frame payload length
 	 * @no_encrypt: Do not encrypt frame
+	 * @link_id: Link ID to use for TX, or -1 if not set
 	 *
 	 * Returns 0 on success, else an error
 	 *
@@ -3558,7 +3559,7 @@ struct wpa_driver_ops {
 	 */
 	int (*tx_control_port)(void *priv, const u8 *dest,
 			       u16 proto, const u8 *buf, size_t len,
-			       int no_encrypt);
+			       int no_encrypt, int link_id);
 
 	/**
 	 * hapd_send_eapol - Send an EAPOL packet (AP only)
@@ -3569,12 +3570,13 @@ struct wpa_driver_ops {
 	 * @encrypt: Whether the frame should be encrypted
 	 * @own_addr: Source MAC address
 	 * @flags: WPA_STA_* flags for the destination station
+	 * @link_id: Link ID to use for TX, or -1 if not set
 	 *
 	 * Returns: 0 on success, -1 on failure
 	 */
 	int (*hapd_send_eapol)(void *priv, const u8 *addr, const u8 *data,
 			       size_t data_len, int encrypt,
-			       const u8 *own_addr, u32 flags);
+			       const u8 *own_addr, u32 flags, int link_id);
 
 	/**
 	 * sta_deauth - Deauthenticate a station (AP only)

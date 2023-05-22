@@ -95,9 +95,14 @@ static void ieee802_1x_send(struct hostapd_data *hapd, struct sta_info *sta,
 	if (sta->flags & WLAN_STA_PREAUTH) {
 		rsn_preauth_send(hapd, sta, buf, len);
 	} else {
+		int link_id = -1;
+
+#ifdef CONFIG_IEEE80211BE
+		link_id = hapd->conf->mld_ap ? hapd->mld_link_id : -1;
+#endif /* CONFIG_IEEE80211BE */
 		hostapd_drv_hapd_send_eapol(
 			hapd, sta->addr, buf, len,
-			encrypt, hostapd_sta_flags_to_drv(sta->flags));
+			encrypt, hostapd_sta_flags_to_drv(sta->flags), link_id);
 	}
 
 	os_free(buf);

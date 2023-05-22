@@ -6104,7 +6104,7 @@ static void nl80211_teardown_ap(struct i802_bss *bss)
 
 static int nl80211_tx_control_port(void *priv, const u8 *dest,
 				   u16 proto, const u8 *buf, size_t len,
-				   int no_encrypt)
+				   int no_encrypt, int link_id)
 {
 	struct nl80211_ack_ext_arg ext_arg;
 	struct i802_bss *bss = priv;
@@ -6123,7 +6123,9 @@ static int nl80211_tx_control_port(void *priv, const u8 *dest,
 	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, dest) ||
 	    nla_put(msg, NL80211_ATTR_FRAME, len, buf) ||
 	    (no_encrypt &&
-	     nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT))) {
+	     nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT)) ||
+	    (link_id != NL80211_DRV_LINK_ID_NA &&
+	     nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id))) {
 		nlmsg_free(msg);
 		return -ENOBUFS;
 	}
@@ -6181,7 +6183,8 @@ static const u8 rfc1042_header[6] = { 0xaa, 0xaa, 0x03, 0x00, 0x00, 0x00 };
 
 static int wpa_driver_nl80211_hapd_send_eapol(
 	void *priv, const u8 *addr, const u8 *data,
-	size_t data_len, int encrypt, const u8 *own_addr, u32 flags)
+	size_t data_len, int encrypt, const u8 *own_addr, u32 flags,
+	int link_id)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -6196,7 +6199,8 @@ static int wpa_driver_nl80211_hapd_send_eapol(
 	if (drv->control_port_ap &&
 	    (drv->capa.flags & WPA_DRIVER_FLAGS_CONTROL_PORT))
 		return nl80211_tx_control_port(bss, addr, ETH_P_EAPOL,
-					       data, data_len, !encrypt);
+					       data, data_len, !encrypt,
+					       link_id);
 
 	if (drv->device_ap_sme || !drv->use_monitor)
 		return nl80211_send_eapol_data(bss, addr, data, data_len);
