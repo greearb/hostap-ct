@@ -3589,6 +3589,10 @@ nl80211_control_port_frame_tx_status(struct wpa_driver_nl80211_data *drv,
 	event.eapol_tx_status.data = frame + ETH_HLEN;
 	event.eapol_tx_status.data_len = len - ETH_HLEN;
 	event.eapol_tx_status.ack = ack != NULL;
+	event.eapol_tx_status.link_id =
+		nla_get_u64(cookie) == drv->eapol_tx_cookie ?
+		drv->eapol_tx_link_id : NL80211_DRV_LINK_ID_NA;
+
 	wpa_supplicant_event(drv->ctx, EVENT_EAPOL_TX_STATUS, &event);
 }
 

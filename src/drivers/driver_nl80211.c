@@ -6145,6 +6145,7 @@ static int nl80211_tx_control_port(void *priv, const u8 *dest,
 			   "nl80211: tx_control_port cookie=0x%llx",
 			   (long long unsigned int) cookie);
 		drv->eapol_tx_cookie = cookie;
+		drv->eapol_tx_link_id = link_id;
 	}
 
 	return ret;

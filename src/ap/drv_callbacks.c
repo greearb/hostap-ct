@@ -1986,6 +1986,7 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		}
 		break;
 	case EVENT_EAPOL_TX_STATUS:
+		hapd = switch_link_hapd(hapd, data->eapol_tx_status.link_id);
 		hostapd_eapol_tx_status(hapd, data->eapol_tx_status.dst,
 					data->eapol_tx_status.data,
 					data->eapol_tx_status.data_len,

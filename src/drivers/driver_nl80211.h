@@ -210,6 +210,7 @@ struct wpa_driver_nl80211_data {
 	u64 send_frame_cookies[MAX_SEND_FRAME_COOKIES];
 	unsigned int num_send_frame_cookies;
 	u64 eapol_tx_cookie;
+	int eapol_tx_link_id;
 
 	unsigned int last_mgmt_freq;
 
