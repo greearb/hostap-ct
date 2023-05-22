@@ -5582,6 +5582,119 @@ static void hostapd_disassoc_sta(struct hostapd_data *hapd,
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+static struct sta_info *
+hostapd_ml_get_assoc_sta(struct hostapd_data *hapd, struct sta_info *sta,
+			 struct hostapd_data **assoc_hapd)
+{
+	struct hostapd_data *other_hapd = NULL;
+	struct sta_info *tmp_sta;
+
+	*assoc_hapd = hapd;
+
+	/* The station is the one on which the association was performed */
+	if (sta->mld_assoc_link_id == hapd->mld_link_id)
+		return sta;
+
+	other_hapd = hostapd_mld_get_link_bss(hapd, sta->mld_assoc_link_id);
+	if (!other_hapd) {
+		wpa_printf(MSG_DEBUG, "MLD: No link match for link_id=%u",
+			   sta->mld_assoc_link_id);
+		return sta;
+	}
+
+	/*
+	 * Iterate over the stations and find the one with the matching link ID
+	 * and association ID.
+	 */
+	for (tmp_sta = other_hapd->sta_list; tmp_sta; tmp_sta = tmp_sta->next) {
+		if (tmp_sta->mld_assoc_link_id == sta->mld_assoc_link_id &&
+		    tmp_sta->aid == sta->aid) {
+			*assoc_hapd = other_hapd;
+			return tmp_sta;
+		}
+	}
+
+	return sta;
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
+static bool hostapd_ml_handle_disconnect(struct hostapd_data *hapd,
+					 struct sta_info *sta,
+					 const struct ieee80211_mgmt *mgmt,
+					 bool disassoc)
+{
+#ifdef CONFIG_IEEE80211BE
+	struct hostapd_data *assoc_hapd, *tmp_hapd;
+	struct sta_info *assoc_sta;
+	unsigned int i, link_id;
+
+	if (!hostapd_is_mld_ap(hapd))
+		return false;
+
+	/*
+	 * Get the station on which the association was performed, as it holds
+	 * the information about all the other links.
+	 */
+	assoc_sta = hostapd_ml_get_assoc_sta(hapd, sta, &assoc_hapd);
+
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+		for (i = 0; i < assoc_hapd->iface->interfaces->count; i++) {
+			struct sta_info *tmp_sta;
+
+			if (!assoc_sta->mld_info.links[link_id].valid)
+				continue;
+
+			tmp_hapd =
+				assoc_hapd->iface->interfaces->iface[i]->bss[0];
+
+			if (!tmp_hapd->conf->mld_ap ||
+			    assoc_hapd->conf->mld_id != tmp_hapd->conf->mld_id)
+				continue;
+
+			for (tmp_sta = tmp_hapd->sta_list; tmp_sta;
+			     tmp_sta = tmp_sta->next) {
+				/*
+				 * Remove the station on which the association
+				 * was done only after all other link stations
+				 * are removed. Since there is only a single
+				 * station per struct hostapd_hapd with the
+				 * same association link simply break out from
+				 * the loop.
+				 */
+				if (tmp_sta == assoc_sta)
+					break;
+
+				if (tmp_sta->mld_assoc_link_id !=
+				    assoc_sta->mld_assoc_link_id ||
+				    tmp_sta->aid != assoc_sta->aid)
+					continue;
+
+				if (!disassoc)
+					hostapd_deauth_sta(tmp_hapd, tmp_sta,
+							   mgmt);
+				else
+					hostapd_disassoc_sta(tmp_hapd, tmp_sta,
+							     mgmt);
+				break;
+			}
+		}
+	}
+
+	/* Remove the station on which the association was performed. */
+	if (!disassoc)
+		hostapd_deauth_sta(assoc_hapd, assoc_sta, mgmt);
+	else
+		hostapd_disassoc_sta(assoc_hapd, assoc_sta, mgmt);
+
+	return true;
+#else /* CONFIG_IEEE80211BE */
+	return false;
+#endif /* CONFIG_IEEE80211BE */
+}
+
+
 static void handle_disassoc(struct hostapd_data *hapd,
 			    const struct ieee80211_mgmt *mgmt, size_t len)
 {
@@ -5601,6 +5714,9 @@ static void handle_disassoc(struct hostapd_data *hapd,
 			MAC2STR(mgmt->sa));
 		return;
 	}
+
+	if (hostapd_ml_handle_disconnect(hapd, sta, mgmt, true))
+		return;
 
 	hostapd_disassoc_sta(hapd, sta, mgmt);
 }
@@ -5628,6 +5744,9 @@ static void handle_deauth(struct hostapd_data *hapd,
 			MAC2STR(mgmt->sa));
 		return;
 	}
+
+	if (hostapd_ml_handle_disconnect(hapd, sta, mgmt, false))
+		return;
 
 	hostapd_deauth_sta(hapd, sta, mgmt);
 }
