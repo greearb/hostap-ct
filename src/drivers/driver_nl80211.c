@@ -3154,9 +3154,9 @@ static void wpa_driver_nl80211_deinit(struct i802_bss *bss)
 
 	os_free(drv->extended_capa);
 	os_free(drv->extended_capa_mask);
-	for (i = 0; i < drv->num_iface_ext_capa; i++) {
-		os_free(drv->iface_ext_capa[i].ext_capa);
-		os_free(drv->iface_ext_capa[i].ext_capa_mask);
+	for (i = 0; i < drv->num_iface_capa; i++) {
+		os_free(drv->iface_capa[i].ext_capa);
+		os_free(drv->iface_capa[i].ext_capa_mask);
 	}
 	os_free(drv->first_bss);
 #ifdef CONFIG_DRIVER_NL80211_QCA
@@ -13173,11 +13173,11 @@ static int nl80211_get_ext_capab(void *priv, enum wpa_driver_if_type type,
 	*ext_capa_len = drv->extended_capa_len;
 
 	/* Replace the default value if a per-interface type value exists */
-	for (i = 0; i < drv->num_iface_ext_capa; i++) {
-		if (nlmode == drv->iface_ext_capa[i].iftype) {
-			*ext_capa = drv->iface_ext_capa[i].ext_capa;
-			*ext_capa_mask = drv->iface_ext_capa[i].ext_capa_mask;
-			*ext_capa_len = drv->iface_ext_capa[i].ext_capa_len;
+	for (i = 0; i < drv->num_iface_capa; i++) {
+		if (nlmode == drv->iface_capa[i].iftype) {
+			*ext_capa = drv->iface_capa[i].ext_capa;
+			*ext_capa_mask = drv->iface_capa[i].ext_capa_mask;
+			*ext_capa_len = drv->iface_capa[i].ext_capa_len;
 			break;
 		}
 	}

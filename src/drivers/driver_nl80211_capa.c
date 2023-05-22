@@ -817,12 +817,12 @@ static void wiphy_info_extended_capab(struct wpa_driver_nl80211_data *drv,
 	int rem = 0, i;
 	struct nlattr *tb1[NL80211_ATTR_MAX + 1], *attr;
 
-	if (!tb || drv->num_iface_ext_capa == NL80211_IFTYPE_MAX)
+	if (!tb || drv->num_iface_capa == NL80211_IFTYPE_MAX)
 		return;
 
 	nla_for_each_nested(attr, tb, rem) {
 		unsigned int len;
-		struct drv_nl80211_ext_capa *capa;
+		struct drv_nl80211_iface_capa *capa;
 
 		nla_parse(tb1, NL80211_ATTR_MAX, nla_data(attr),
 			  nla_len(attr), NULL);
@@ -832,7 +832,7 @@ static void wiphy_info_extended_capab(struct wpa_driver_nl80211_data *drv,
 		    !tb1[NL80211_ATTR_EXT_CAPA_MASK])
 			continue;
 
-		capa = &drv->iface_ext_capa[drv->num_iface_ext_capa];
+		capa = &drv->iface_capa[drv->num_iface_capa];
 		capa->iftype = nla_get_u32(tb1[NL80211_ATTR_IFTYPE]);
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Driver-advertised extended capabilities for interface type %s",
@@ -858,8 +858,8 @@ static void wiphy_info_extended_capab(struct wpa_driver_nl80211_data *drv,
 		wpa_hexdump(MSG_DEBUG, "nl80211: Extended capabilities mask",
 			    capa->ext_capa_mask, capa->ext_capa_len);
 
-		drv->num_iface_ext_capa++;
-		if (drv->num_iface_ext_capa == NL80211_IFTYPE_MAX)
+		drv->num_iface_capa++;
+		if (drv->num_iface_capa == NL80211_IFTYPE_MAX)
 			break;
 	}
 
@@ -868,13 +868,13 @@ static void wiphy_info_extended_capab(struct wpa_driver_nl80211_data *drv,
 err:
 	/* Cleanup allocated memory on error */
 	for (i = 0; i < NL80211_IFTYPE_MAX; i++) {
-		os_free(drv->iface_ext_capa[i].ext_capa);
-		drv->iface_ext_capa[i].ext_capa = NULL;
-		os_free(drv->iface_ext_capa[i].ext_capa_mask);
-		drv->iface_ext_capa[i].ext_capa_mask = NULL;
-		drv->iface_ext_capa[i].ext_capa_len = 0;
+		os_free(drv->iface_capa[i].ext_capa);
+		drv->iface_capa[i].ext_capa = NULL;
+		os_free(drv->iface_capa[i].ext_capa_mask);
+		drv->iface_capa[i].ext_capa_mask = NULL;
+		drv->iface_capa[i].ext_capa_len = 0;
 	}
-	drv->num_iface_ext_capa = 0;
+	drv->num_iface_capa = 0;
 }
 
 
