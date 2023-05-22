@@ -85,12 +85,20 @@ static const int dot11RSNAConfigSATimeout = 60;
 
 static const u8 * wpa_auth_get_aa(const struct wpa_state_machine *sm)
 {
+#ifdef CONFIG_IEEE80211BE
+	if (sm->mld_assoc_link_id >= 0)
+		return sm->own_mld_addr;
+#endif /* CONFIG_IEEE80211BE */
 	return sm->wpa_auth->addr;
 }
 
 
 static const u8 * wpa_auth_get_spa(const struct wpa_state_machine *sm)
 {
+#ifdef CONFIG_IEEE80211BE
+	if (sm->mld_assoc_link_id >= 0)
+		return sm->peer_mld_addr;
+#endif /* CONFIG_IEEE80211BE */
 	return sm->addr;
 }
 
