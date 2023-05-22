@@ -5495,6 +5495,10 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 #ifdef CONFIG_MESH
 	    !(hapd->conf->mesh & MESH_ENABLED) &&
 #endif /* CONFIG_MESH */
+#ifdef CONFIG_IEEE80211BE
+	    !(hapd->conf->mld_ap &&
+	      os_memcmp(hapd->mld_addr, mgmt->bssid, ETH_ALEN) == 0) &&
+#endif /* CONFIG_IEEE80211BE */
 	    os_memcmp(mgmt->bssid, hapd->own_addr, ETH_ALEN) != 0) {
 		wpa_printf(MSG_INFO, "MGMT: BSSID=" MACSTR " not our address",
 			   MAC2STR(mgmt->bssid));
@@ -5514,6 +5518,10 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 
 	if ((!is_broadcast_ether_addr(mgmt->da) ||
 	     stype != WLAN_FC_STYPE_ACTION) &&
+#ifdef CONFIG_IEEE80211BE
+	    !(hapd->conf->mld_ap &&
+	      os_memcmp(hapd->mld_addr, mgmt->bssid, ETH_ALEN) == 0) &&
+#endif /* CONFIG_IEEE80211BE */
 	    os_memcmp(mgmt->da, hapd->own_addr, ETH_ALEN) != 0) {
 		hostapd_logger(hapd, mgmt->sa, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_DEBUG,

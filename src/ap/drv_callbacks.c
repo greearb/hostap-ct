@@ -1459,6 +1459,7 @@ static int hostapd_mgmt_rx(struct hostapd_data *hapd, struct rx_mgmt *rx_mgmt)
 	const u8 *bssid;
 	struct hostapd_frame_info fi;
 	int ret;
+	bool is_mld = false;
 
 #ifdef CONFIG_TESTING_OPTIONS
 	if (hapd->ext_mgmt_frame_handling) {
@@ -1480,8 +1481,16 @@ static int hostapd_mgmt_rx(struct hostapd_data *hapd, struct rx_mgmt *rx_mgmt)
 	if (bssid == NULL)
 		return 0;
 
-	hapd = get_hapd_bssid(iface, bssid);
-	if (hapd == NULL) {
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap &&
+	    os_memcmp(hapd->mld_addr, bssid, ETH_ALEN) == 0)
+		is_mld = true;
+#endif /* CONFIG_IEEE80211BE */
+
+	if (!is_mld)
+		hapd = get_hapd_bssid(iface, bssid);
+
+	if (!hapd) {
 		u16 fc = le_to_host16(hdr->frame_control);
 
 		/*
