@@ -760,6 +760,11 @@ int hostapd_drv_set_key(const char *ifname, struct hostapd_data *hapd,
 	params.key_flag = key_flag;
 	params.link_id = -1;
 
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap && !(key_flag & KEY_FLAG_PAIRWISE))
+		params.link_id = hapd->mld_link_id;
+#endif /* CONFIG_IEEE80211BE */
+
 	return hapd->driver->set_key(hapd->drv_priv, &params);
 }
 
