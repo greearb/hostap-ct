@@ -1555,10 +1555,19 @@ static int hostapd_mgmt_rx(struct hostapd_data *hapd, struct rx_mgmt *rx_mgmt)
 
 
 static void hostapd_mgmt_tx_cb(struct hostapd_data *hapd, const u8 *buf,
-			       size_t len, u16 stype, int ok)
+			       size_t len, u16 stype, int ok, int link_id)
 {
 	struct ieee80211_hdr *hdr;
-	struct hostapd_data *orig_hapd = hapd, *tmp_hapd;
+	struct hostapd_data *orig_hapd, *tmp_hapd;
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap && link_id != -1) {
+		tmp_hapd = hostapd_mld_get_link_bss(hapd, link_id);
+		if (tmp_hapd)
+			hapd = tmp_hapd;
+	}
+#endif /* CONFIG_IEEE80211BE */
+	orig_hapd = hapd;
 
 	hdr = (struct ieee80211_hdr *) buf;
 	tmp_hapd = get_hapd_bssid(hapd->iface, get_hdr_bssid(hdr, len));
@@ -1975,7 +1984,8 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			hostapd_mgmt_tx_cb(hapd, data->tx_status.data,
 					   data->tx_status.data_len,
 					   data->tx_status.stype,
-					   data->tx_status.ack);
+					   data->tx_status.ack,
+					   data->tx_status.link_id);
 			break;
 		case WLAN_FC_TYPE_DATA:
 			hostapd_tx_status(hapd, data->tx_status.dst,

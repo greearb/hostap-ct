@@ -1424,6 +1424,8 @@ static void mlme_event_mgmt_tx_status(struct wpa_driver_nl80211_data *drv,
 	event.tx_status.data = frame;
 	event.tx_status.data_len = len;
 	event.tx_status.ack = ack != NULL;
+	event.tx_status.link_id = cookie_val == drv->send_frame_cookie ?
+		drv->send_frame_link_id : NL80211_DRV_LINK_ID_NA;
 	wpa_supplicant_event(drv->ctx, EVENT_TX_STATUS, &event);
 }
 

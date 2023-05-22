@@ -6187,6 +6187,7 @@ union wpa_event_data {
 		const u8 *data;
 		size_t data_len;
 		int ack;
+		int link_id;
 	} tx_status;
 
 	/**
