@@ -1299,7 +1299,19 @@ void ap_sta_set_authorized(struct hostapd_data *hapd, struct sta_info *sta,
 		return;
 
 	if (authorized) {
-		hostapd_prune_associations(hapd, sta->addr);
+		int mld_assoc_link_id = -1;
+
+#ifdef CONFIG_IEEE80211BE
+		if (hapd->conf->mld_ap && sta->mld_info.mld_sta) {
+			if (sta->mld_assoc_link_id == hapd->mld_link_id)
+				mld_assoc_link_id = sta->mld_assoc_link_id;
+			else
+				mld_assoc_link_id = -2;
+		}
+#endif /* CONFIG_IEEE80211BE */
+		if (mld_assoc_link_id != -2)
+			hostapd_prune_associations(hapd, sta->addr,
+						   mld_assoc_link_id);
 		sta->flags |= WLAN_STA_AUTHORIZED;
 	} else {
 		sta->flags &= ~WLAN_STA_AUTHORIZED;

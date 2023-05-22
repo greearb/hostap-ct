@@ -723,7 +723,8 @@ int hostapd_register_probereq_cb(struct hostapd_data *hapd,
 					   const u8 *ie, size_t ie_len,
 					   int ssi_signal),
 				 void *ctx);
-void hostapd_prune_associations(struct hostapd_data *hapd, const u8 *addr);
+void hostapd_prune_associations(struct hostapd_data *hapd, const u8 *addr,
+				int mld_assoc_link_id);
 
 /* drv_callbacks.c (TODO: move to somewhere else?) */
 void hostapd_notify_assoc_fils_finish(struct hostapd_data *hapd,
