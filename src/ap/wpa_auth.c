@@ -2288,8 +2288,9 @@ SM_STATE(WPA_PTK, INITPSK)
 
 SM_STATE(WPA_PTK, PTKSTART)
 {
-	u8 buf[2 + RSN_SELECTOR_LEN + PMKID_LEN], *pmkid = NULL;
-	size_t pmkid_len = 0;
+	u8 buf[2 * (2 + RSN_SELECTOR_LEN) + PMKID_LEN + ETH_ALEN];
+	u8 *pmkid = NULL;
+	size_t kde_len = 0;
 	u16 key_info;
 
 	SM_ENTRY_MA(WPA_PTK, PTKSTART, wpa_ptk);
@@ -2327,7 +2328,7 @@ SM_STATE(WPA_PTK, PTKSTART)
 	     wpa_key_mgmt_sae(sm->wpa_key_mgmt)) &&
 	    sm->wpa_key_mgmt != WPA_KEY_MGMT_OSEN) {
 		pmkid = buf;
-		pmkid_len = 2 + RSN_SELECTOR_LEN + PMKID_LEN;
+		kde_len = 2 + RSN_SELECTOR_LEN + PMKID_LEN;
 		pmkid[0] = WLAN_EID_VENDOR_SPECIFIC;
 		pmkid[1] = RSN_SELECTOR_LEN + PMKID_LEN;
 		RSN_SELECTOR_PUT(&pmkid[2], RSN_KEY_DATA_PMKID);
@@ -2395,12 +2396,24 @@ SM_STATE(WPA_PTK, PTKSTART)
 		}
 	}
 	if (!pmkid)
-		pmkid_len = 0;
+		kde_len = 0;
+
+#ifdef CONFIG_IEEE80211BE
+	if (sm->mld_assoc_link_id >= 0) {
+		wpa_printf(MSG_DEBUG,
+			   "RSN: MLD: Add MAC Address KDE: kde_len=%zu",
+			   kde_len);
+		wpa_add_kde(buf + kde_len, RSN_KEY_DATA_MAC_ADDR,
+			    sm->own_mld_addr, ETH_ALEN, NULL, 0);
+		kde_len += 2 + RSN_SELECTOR_LEN + ETH_ALEN;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	key_info = WPA_KEY_INFO_ACK | WPA_KEY_INFO_KEY_TYPE;
 	if (sm->pairwise_set && sm->wpa != WPA_VERSION_WPA)
 		key_info |= WPA_KEY_INFO_SECURE;
 	wpa_send_eapol(sm->wpa_auth, sm, key_info, NULL,
-		       sm->ANonce, pmkid, pmkid_len, 0, 0);
+		       sm->ANonce, kde_len ? buf : NULL, kde_len, 0, 0);
 }
 
 
