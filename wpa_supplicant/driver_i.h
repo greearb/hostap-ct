@@ -60,6 +60,9 @@ static inline int wpa_drv_associate(struct wpa_supplicant *wpa_s,
 				    struct wpa_driver_associate_params *params)
 {
 	if (wpa_s->driver->associate) {
+		if (params)
+			params->freq.link_id = -1;
+
 		return wpa_s->driver->associate(wpa_s->drv_priv, params);
 	}
 	return -1;
@@ -1098,6 +1101,10 @@ static inline int wpa_drv_update_connect_params(
 {
 	if (!wpa_s->driver->update_connect_params)
 		return -1;
+
+	if (params)
+		params->freq.link_id = -1;
+
 	return wpa_s->driver->update_connect_params(wpa_s->drv_priv, params,
 						    mask);
 }

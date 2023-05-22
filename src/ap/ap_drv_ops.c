@@ -584,6 +584,17 @@ int hostapd_set_freq(struct hostapd_data *hapd, enum hostapd_hw_mode mode,
 		return 0;
 	if (hapd->driver->set_freq == NULL)
 		return 0;
+
+	data.link_id = -1;
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap) {
+		data.link_id = hapd->mld_link_id;
+		wpa_printf(MSG_DEBUG,
+			   "hostapd_set_freq: link_id=%d", data.link_id);
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	return hapd->driver->set_freq(hapd->drv_priv, &data);
 }
 

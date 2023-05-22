@@ -4120,6 +4120,29 @@ int wpa_driver_nl80211_authenticate_retry(struct wpa_driver_nl80211_data *drv)
 }
 
 
+static struct i802_link * nl80211_get_link(struct i802_bss *bss, s8 link_id)
+{
+	unsigned int i;
+
+	for (i = 0; i < bss->n_links; i++) {
+		if (bss->links[i].link_id != link_id)
+			continue;
+
+		return &bss->links[i];
+	}
+
+	return bss->flink;
+}
+
+
+static void nl80211_link_set_freq(struct i802_bss *bss, s8 link_id, int freq)
+{
+	struct i802_link *link = nl80211_get_link(bss, link_id);
+
+	link->freq = freq;
+}
+
+
 static int wpa_driver_nl80211_send_mlme(struct i802_bss *bss, const u8 *data,
 					size_t data_len, int noack,
 					unsigned int freq, int no_cck,
@@ -5292,6 +5315,27 @@ static int nl80211_put_freq_params(struct nl_msg *msg,
 }
 
 
+static bool nl80211_link_valid(struct i802_bss *bss, s8 link_id)
+{
+	unsigned int i;
+
+	if (link_id < 0)
+		return false;
+
+	for (i = 0; i < bss->n_links; i++) {
+		wpa_printf(MSG_DEBUG, "nl80211: %s - i=%u, link_id=%u",
+			   __func__, i, bss->links[i].link_id);
+		if (bss->links[i].link_id == NL80211_DRV_LINK_ID_NA)
+			continue;
+
+		if (bss->links[i].link_id == link_id)
+			return true;
+	}
+
+	return false;
+}
+
+
 static int nl80211_set_channel(struct i802_bss *bss,
 			       struct hostapd_freq_params *freq, int set_chan)
 {
@@ -5312,9 +5356,19 @@ static int nl80211_set_channel(struct i802_bss *bss,
 		return -1;
 	}
 
+	if (nl80211_link_valid(bss, freq->link_id)) {
+		wpa_printf(MSG_DEBUG, "nl80211: Set link_id=%u for freq",
+			   freq->link_id);
+
+		if (nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, freq->link_id)) {
+			nlmsg_free(msg);
+			return -ENOBUFS;
+		}
+	}
+
 	ret = send_and_recv_msgs(drv, msg, NULL, NULL, NULL, NULL);
 	if (ret == 0) {
-		bss->flink->freq = freq->freq;
+		nl80211_link_set_freq(bss, freq->link_id, freq->freq);
 		return 0;
 	}
 	wpa_printf(MSG_DEBUG, "nl80211: Failed to set channel (freq=%d): "
