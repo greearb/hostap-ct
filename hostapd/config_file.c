@@ -4772,6 +4772,10 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 			return 1;
 		}
 		conf->punct_acs_threshold = val;
+	} else if (os_strcmp(buf, "mld_ap") == 0) {
+		bss->mld_ap = !!atoi(pos);
+	} else if (os_strcmp(buf, "mld_id") == 0) {
+		bss->mld_id = atoi(pos);
 #endif /* CONFIG_IEEE80211BE */
 	} else {
 		wpa_printf(MSG_ERROR,
