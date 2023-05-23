@@ -1332,7 +1332,8 @@ void wpas_transition_disable(struct wpa_supplicant *wpa_s, u8 bitmap)
 	    wpa_key_mgmt_wpa_ieee8021x(wpa_s->key_mgmt) &&
 	    (ssid->key_mgmt & (WPA_KEY_MGMT_IEEE8021X |
 			       WPA_KEY_MGMT_FT_IEEE8021X |
-			       WPA_KEY_MGMT_IEEE8021X_SHA256)) &&
+			       WPA_KEY_MGMT_IEEE8021X_SHA256 |
+			       WPA_KEY_MGMT_IEEE8021X_SHA384)) &&
 	    (ssid->ieee80211w != MGMT_FRAME_PROTECTION_REQUIRED ||
 	     (ssid->group_cipher & WPA_CIPHER_TKIP))) {
 		disable_wpa_wpa2(ssid);

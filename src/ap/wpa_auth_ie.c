@@ -212,6 +212,13 @@ int wpa_write_rsn_ie(struct wpa_auth_config *conf, u8 *buf, size_t len,
 		num_suites++;
 	}
 #endif /* CONFIG_IEEE80211R_AP */
+#ifdef CONFIG_SHA384
+	if (conf->wpa_key_mgmt & WPA_KEY_MGMT_IEEE8021X_SHA384) {
+		RSN_SELECTOR_PUT(pos, RSN_AUTH_KEY_MGMT_802_1X_SHA384);
+		pos += RSN_SELECTOR_LEN;
+		num_suites++;
+	}
+#endif /* CONFIG_SHA384 */
 	if (conf->wpa_key_mgmt & WPA_KEY_MGMT_IEEE8021X_SHA256) {
 		RSN_SELECTOR_PUT(pos, RSN_AUTH_KEY_MGMT_802_1X_SHA256);
 		pos += RSN_SELECTOR_LEN;
@@ -705,6 +712,10 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 		else if (data.key_mgmt & WPA_KEY_MGMT_OSEN)
 			selector = RSN_AUTH_KEY_MGMT_OSEN;
 #endif /* CONFIG_HS20 */
+#ifdef CONFIG_SHA384
+		else if (data.key_mgmt & WPA_KEY_MGMT_IEEE8021X_SHA384)
+			selector = RSN_AUTH_KEY_MGMT_802_1X_SHA384;
+#endif /* CONFIG_SHA384 */
 		wpa_auth->dot11RSNAAuthenticationSuiteSelected = selector;
 
 		selector = wpa_cipher_to_suite(WPA_PROTO_RSN,
@@ -787,6 +798,10 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 	else if (key_mgmt & WPA_KEY_MGMT_FT_PSK)
 		sm->wpa_key_mgmt = WPA_KEY_MGMT_FT_PSK;
 #endif /* CONFIG_IEEE80211R_AP */
+#ifdef CONFIG_SHA384
+	else if (key_mgmt & WPA_KEY_MGMT_IEEE8021X_SHA384)
+		sm->wpa_key_mgmt = WPA_KEY_MGMT_IEEE8021X_SHA384;
+#endif /* CONFIG_SHA384 */
 	else if (key_mgmt & WPA_KEY_MGMT_IEEE8021X_SHA256)
 		sm->wpa_key_mgmt = WPA_KEY_MGMT_IEEE8021X_SHA256;
 	else if (key_mgmt & WPA_KEY_MGMT_PSK_SHA256)

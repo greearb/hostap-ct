@@ -1362,7 +1362,7 @@ static struct wpa_ssid * wpas_dpp_add_network(struct wpa_supplicant *wpa_s,
 
 		ssid->key_mgmt = WPA_KEY_MGMT_IEEE8021X |
 			WPA_KEY_MGMT_IEEE8021X_SHA256 |
-			WPA_KEY_MGMT_IEEE8021X_SHA256;
+			WPA_KEY_MGMT_IEEE8021X_SHA384;
 		ssid->ieee80211w = MGMT_FRAME_PROTECTION_OPTIONAL;
 
 		if (conf->cacert) {

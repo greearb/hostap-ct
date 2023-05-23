@@ -2967,6 +2967,16 @@ static char * wpa_supplicant_ie_txt(char *pos, char *end, const char *proto,
 		pos += ret;
 	}
 
+#ifdef CONFIG_SHA384
+	if (data.key_mgmt & WPA_KEY_MGMT_IEEE8021X_SHA384) {
+		ret = os_snprintf(pos, end - pos, "%sEAP-SHA384",
+				  pos == start ? "" : "+");
+		if (os_snprintf_error(end - pos, ret))
+			return pos;
+		pos += ret;
+	}
+#endif /* CONFIG_SHA384 */
+
 	pos = wpa_supplicant_cipher_txt(pos, end, data.pairwise_cipher);
 
 	if (data.capabilities & WPA_CAPABILITY_PREAUTH) {

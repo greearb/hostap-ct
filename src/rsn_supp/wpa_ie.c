@@ -230,6 +230,10 @@ static int wpa_gen_wpa_ie_rsn(u8 *rsn_ie, size_t rsn_ie_len,
 	} else if (key_mgmt & WPA_KEY_MGMT_OSEN) {
 		RSN_SELECTOR_PUT(pos, RSN_AUTH_KEY_MGMT_OSEN);
 #endif /* CONFIG_HS20 */
+#ifdef CONFIG_SHA384
+	} else if (key_mgmt == WPA_KEY_MGMT_IEEE8021X_SHA384) {
+		RSN_SELECTOR_PUT(pos, RSN_AUTH_KEY_MGMT_802_1X_SHA384);
+#endif /* CONFIG_SHA384 */
 	} else {
 		wpa_printf(MSG_WARNING, "Invalid key management type (%d).",
 			   key_mgmt);

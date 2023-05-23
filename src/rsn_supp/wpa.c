@@ -3828,6 +3828,8 @@ static u32 wpa_key_mgmt_suite(struct wpa_sm *sm)
 		return RSN_AUTH_KEY_MGMT_802_1X_SUITE_B;
 	case WPA_KEY_MGMT_IEEE8021X_SUITE_B_192:
 		return RSN_AUTH_KEY_MGMT_802_1X_SUITE_B_192;
+	case WPA_KEY_MGMT_IEEE8021X_SHA384:
+		return RSN_AUTH_KEY_MGMT_802_1X_SHA384;
 	default:
 		return 0;
 	}

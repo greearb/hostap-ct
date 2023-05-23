@@ -3284,6 +3284,7 @@ static int wpa_key_mgmt_to_suites(unsigned int key_mgmt_suites, u32 suites[],
 	__AKM(OWE, OWE);
 	__AKM(DPP, DPP);
 	__AKM(FT_IEEE8021X_SHA384, FT_802_1X_SHA384);
+	__AKM(IEEE8021X_SHA384, 802_1X_SHA384);
 #undef __AKM
 
 	return num_suites;
@@ -6503,7 +6504,8 @@ retry:
 	if (params->key_mgmt_suite == WPA_KEY_MGMT_IEEE8021X ||
 	    params->key_mgmt_suite == WPA_KEY_MGMT_PSK ||
 	    params->key_mgmt_suite == WPA_KEY_MGMT_IEEE8021X_SHA256 ||
-	    params->key_mgmt_suite == WPA_KEY_MGMT_PSK_SHA256) {
+	    params->key_mgmt_suite == WPA_KEY_MGMT_PSK_SHA256 ||
+	    params->key_mgmt_suite == WPA_KEY_MGMT_IEEE8021X_SHA384) {
 		wpa_printf(MSG_DEBUG, "  * control port");
 		if (nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT))
 			goto fail;
@@ -6803,7 +6805,8 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 	    params->key_mgmt_suite == WPA_KEY_MGMT_FT_FILS_SHA256 ||
 	    params->key_mgmt_suite == WPA_KEY_MGMT_FT_FILS_SHA384 ||
 	    params->key_mgmt_suite == WPA_KEY_MGMT_OWE ||
-	    params->key_mgmt_suite == WPA_KEY_MGMT_DPP) {
+	    params->key_mgmt_suite == WPA_KEY_MGMT_DPP ||
+	    params->key_mgmt_suite == WPA_KEY_MGMT_IEEE8021X_SHA384) {
 		u32 *mgmt;
 		unsigned int akm_count = 1, i;
 
@@ -6886,6 +6889,9 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 			break;
 		case WPA_KEY_MGMT_DPP:
 			mgmt[0] = RSN_AUTH_KEY_MGMT_DPP;
+			break;
+		case WPA_KEY_MGMT_IEEE8021X_SHA384:
+			mgmt[0] = RSN_AUTH_KEY_MGMT_802_1X_SHA384;
 			break;
 		case WPA_KEY_MGMT_PSK:
 		default:

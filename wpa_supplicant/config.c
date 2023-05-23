@@ -793,6 +793,10 @@ static int wpa_config_parse_key_mgmt(const struct parse_data *data,
 			val |= WPA_KEY_MGMT_FT_IEEE8021X_SHA384;
 #endif /* CONFIG_SHA384 */
 #endif /* CONFIG_IEEE80211R */
+#ifdef CONFIG_SHA384
+		else if (os_strcmp(start, "WPA-EAP-SHA384") == 0)
+			val |= WPA_KEY_MGMT_IEEE8021X_SHA384;
+#endif /* CONFIG_SHA384 */
 		else if (os_strcmp(start, "WPA-PSK-SHA256") == 0)
 			val |= WPA_KEY_MGMT_PSK_SHA256;
 		else if (os_strcmp(start, "WPA-EAP-SHA256") == 0)
@@ -964,6 +968,18 @@ static char * wpa_config_write_key_mgmt(const struct parse_data *data,
 	}
 #endif /* CONFIG_SHA384 */
 #endif /* CONFIG_IEEE80211R */
+
+#ifdef CONFIG_SHA384
+	if (ssid->key_mgmt & WPA_KEY_MGMT_IEEE8021X_SHA384) {
+		ret = os_snprintf(pos, end - pos, "%sWPA-EAP-SHA384",
+				  pos == buf ? "" : " ");
+		if (os_snprintf_error(end - pos, ret)) {
+			end[-1] = '\0';
+			return buf;
+		}
+		pos += ret;
+	}
+#endif /* CONFIG_SHA384 */
 
 	if (ssid->key_mgmt & WPA_KEY_MGMT_PSK_SHA256) {
 		ret = os_snprintf(pos, end - pos, "%sWPA-PSK-SHA256",

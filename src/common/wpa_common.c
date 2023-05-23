@@ -26,6 +26,7 @@ static unsigned int wpa_kck_len(int akmp, size_t pmk_len)
 {
 	switch (akmp) {
 	case WPA_KEY_MGMT_IEEE8021X_SUITE_B_192:
+	case WPA_KEY_MGMT_IEEE8021X_SHA384:
 	case WPA_KEY_MGMT_FT_IEEE8021X_SHA384:
 		return 24;
 	case WPA_KEY_MGMT_FILS_SHA256:
@@ -71,6 +72,7 @@ static unsigned int wpa_kek_len(int akmp, size_t pmk_len)
 	case WPA_KEY_MGMT_FILS_SHA256:
 	case WPA_KEY_MGMT_FT_FILS_SHA256:
 	case WPA_KEY_MGMT_FT_IEEE8021X_SHA384:
+	case WPA_KEY_MGMT_IEEE8021X_SHA384:
 		return 32;
 	case WPA_KEY_MGMT_DPP:
 		return pmk_len <= 32 ? 16 : 32;
@@ -105,6 +107,7 @@ unsigned int wpa_mic_len(int akmp, size_t pmk_len)
 	switch (akmp) {
 	case WPA_KEY_MGMT_IEEE8021X_SUITE_B_192:
 	case WPA_KEY_MGMT_FT_IEEE8021X_SHA384:
+	case WPA_KEY_MGMT_IEEE8021X_SHA384:
 		return 24;
 	case WPA_KEY_MGMT_FILS_SHA256:
 	case WPA_KEY_MGMT_FILS_SHA384:
@@ -135,6 +138,7 @@ int wpa_use_akm_defined(int akmp)
 		akmp == WPA_KEY_MGMT_OWE ||
 		akmp == WPA_KEY_MGMT_DPP ||
 		akmp == WPA_KEY_MGMT_FT_IEEE8021X_SHA384 ||
+		akmp == WPA_KEY_MGMT_IEEE8021X_SHA384 ||
 		wpa_key_mgmt_sae(akmp) ||
 		wpa_key_mgmt_suite_b(akmp) ||
 		wpa_key_mgmt_fils(akmp);
@@ -173,6 +177,7 @@ int wpa_use_aes_key_wrap(int akmp)
 	return akmp == WPA_KEY_MGMT_OSEN ||
 		akmp == WPA_KEY_MGMT_OWE ||
 		akmp == WPA_KEY_MGMT_DPP ||
+		akmp == WPA_KEY_MGMT_IEEE8021X_SHA384 ||
 		wpa_key_mgmt_ft(akmp) ||
 		wpa_key_mgmt_sha256(akmp) ||
 		wpa_key_mgmt_sae(akmp) ||
@@ -331,15 +336,18 @@ int wpa_eapol_key_mic(const u8 *key, size_t key_len, int akmp, int ver,
 			os_memcpy(mic, hash, key_len);
 			break;
 #endif /* CONFIG_DPP */
-#if defined(CONFIG_IEEE80211R) && defined(CONFIG_SHA384)
+#ifdef CONFIG_SHA384
+		case WPA_KEY_MGMT_IEEE8021X_SHA384:
+#ifdef CONFIG_IEEE80211R
 		case WPA_KEY_MGMT_FT_IEEE8021X_SHA384:
+#endif /* CONFIG_IEEE80211R */
 			wpa_printf(MSG_DEBUG,
-				   "WPA: EAPOL-Key MIC using HMAC-SHA384 (AKM-defined - FT 802.1X SHA384)");
+				   "WPA: EAPOL-Key MIC using HMAC-SHA384 (AKM-defined - 802.1X SHA384)");
 			if (hmac_sha384(key, key_len, buf, len, hash))
 				return -1;
 			os_memcpy(mic, hash, 24);
 			break;
-#endif /* CONFIG_IEEE80211R && CONFIG_SHA384 */
+#endif /* CONFIG_SHA384 */
 		default:
 			wpa_printf(MSG_DEBUG,
 				   "WPA: EAPOL-Key MIC algorithm not known (AKM-defined - akmp=0x%x)",
@@ -454,14 +462,14 @@ int wpa_pmk_to_ptk(const u8 *pmk, size_t pmk_len, const char *label,
 	ptk_len = ptk->kck_len + ptk->kek_len + ptk->tk_len + ptk->kdk_len;
 
 	if (wpa_key_mgmt_sha384(akmp)) {
-#if defined(CONFIG_SUITEB192) || defined(CONFIG_FILS)
+#ifdef CONFIG_SHA384
 		wpa_printf(MSG_DEBUG, "WPA: PTK derivation using PRF(SHA384)");
 		if (sha384_prf(pmk, pmk_len, label, data, data_len,
 			       tmp, ptk_len) < 0)
 			return -1;
-#else /* CONFIG_SUITEB192 || CONFIG_FILS */
+#else /* CONFIG_SHA384 */
 		return -1;
-#endif /* CONFIG_SUITEB192 || CONFIG_FILS */
+#endif /* CONFIG_SHA384 */
 	} else if (wpa_key_mgmt_sha256(akmp)) {
 		wpa_printf(MSG_DEBUG, "WPA: PTK derivation using PRF(SHA256)");
 		if (sha256_prf(pmk, pmk_len, label, data, data_len,
@@ -1771,6 +1779,10 @@ static int rsn_key_mgmt_to_bitfield(const u8 *s)
 		return WPA_KEY_MGMT_FT_IEEE8021X_SHA384;
 #endif /* CONFIG_SHA384 */
 #endif /* CONFIG_IEEE80211R */
+#ifdef CONFIG_SHA384
+	if (RSN_SELECTOR_GET(s) == RSN_AUTH_KEY_MGMT_802_1X_SHA384)
+		return WPA_KEY_MGMT_IEEE8021X_SHA384;
+#endif /* CONFIG_SHA384 */
 	if (RSN_SELECTOR_GET(s) == RSN_AUTH_KEY_MGMT_802_1X_SHA256)
 		return WPA_KEY_MGMT_IEEE8021X_SHA256;
 	if (RSN_SELECTOR_GET(s) == RSN_AUTH_KEY_MGMT_PSK_SHA256)
@@ -2787,6 +2799,8 @@ const char * wpa_key_mgmt_txt(int key_mgmt, int proto)
 		return "DPP";
 	case WPA_KEY_MGMT_PASN:
 		return "PASN";
+	case WPA_KEY_MGMT_IEEE8021X_SHA384:
+		return "WPA2-EAP-SHA384";
 	default:
 		return "UNKNOWN";
 	}
@@ -2801,6 +2815,8 @@ u32 wpa_akm_to_suite(int akm)
 		return RSN_AUTH_KEY_MGMT_FT_802_1X;
 	if (akm & WPA_KEY_MGMT_FT_PSK)
 		return RSN_AUTH_KEY_MGMT_FT_PSK;
+	if (akm & WPA_KEY_MGMT_IEEE8021X_SHA384)
+		return RSN_AUTH_KEY_MGMT_802_1X_SHA384;
 	if (akm & WPA_KEY_MGMT_IEEE8021X_SHA256)
 		return RSN_AUTH_KEY_MGMT_802_1X_SHA256;
 	if (akm & WPA_KEY_MGMT_IEEE8021X)

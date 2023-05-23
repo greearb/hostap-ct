@@ -54,7 +54,8 @@ static int rsn_preauth_key_mgmt(int akmp)
 	return !!(akmp & (WPA_KEY_MGMT_IEEE8021X |
 			  WPA_KEY_MGMT_IEEE8021X_SHA256 |
 			  WPA_KEY_MGMT_IEEE8021X_SUITE_B |
-			  WPA_KEY_MGMT_IEEE8021X_SUITE_B_192));
+			  WPA_KEY_MGMT_IEEE8021X_SUITE_B_192 |
+			  WPA_KEY_MGMT_IEEE8021X_SHA384));
 }
 
 
