@@ -152,8 +152,8 @@ def read_pem(fname, decode=True):
 def eap_connect(dev, hapd, method, identity, raw_identity=None,
                 sha256=False, expect_failure=False, local_error_report=False,
                 maybe_local_error=False, report_failure=False,
-                expect_cert_error=None, **kwargs):
-    id = dev.connect("test-wpa2-eap", key_mgmt="WPA-EAP WPA-EAP-SHA256",
+                expect_cert_error=None, sha384=False, **kwargs):
+    id = dev.connect("test-wpa2-eap", key_mgmt="WPA-EAP WPA-EAP-SHA256 WPA-EAP-SHA384",
                      eap=method, identity=identity, raw_identity=raw_identity,
                      wait_connect=False, scan_freq="2412", ieee80211w="1",
                      **kwargs)
@@ -162,7 +162,8 @@ def eap_connect(dev, hapd, method, identity, raw_identity=None,
                    local_error_report=local_error_report,
                    maybe_local_error=maybe_local_error,
                    report_failure=report_failure,
-                   expect_cert_error=expect_cert_error)
+                   expect_cert_error=expect_cert_error,
+                   sha384=sha384)
     if expect_failure:
         return id
     if hapd:
@@ -174,7 +175,7 @@ def eap_connect(dev, hapd, method, identity, raw_identity=None,
 def eap_check_auth(dev, method, initial, rsn=True, sha256=False,
                    expect_failure=False, local_error_report=False,
                    maybe_local_error=False, report_failure=False,
-                   expect_cert_error=None):
+                   expect_cert_error=None, sha384=False):
     ev = dev.wait_event(["CTRL-EVENT-EAP-STARTED"], timeout=16)
     if ev is None:
         raise Exception("Association and EAP start timed out")
@@ -239,6 +240,8 @@ def eap_check_auth(dev, method, initial, rsn=True, sha256=False,
         raise Exception("Incorrect EAP method status")
     if sha256:
         e = "WPA2-EAP-SHA256"
+    elif sha384:
+        e = "WPA2-EAP-SHA384"
     elif rsn:
         e = "WPA2/IEEE 802.1X/EAP"
     else:
@@ -247,10 +250,10 @@ def eap_check_auth(dev, method, initial, rsn=True, sha256=False,
         raise Exception("Unexpected key_mgmt status: " + status["key_mgmt"])
     return status
 
-def eap_reauth(dev, method, rsn=True, sha256=False, expect_failure=False):
+def eap_reauth(dev, method, rsn=True, sha256=False, expect_failure=False, sha384=False):
     dev.request("REAUTHENTICATE")
     return eap_check_auth(dev, method, False, rsn=rsn, sha256=sha256,
-                          expect_failure=expect_failure)
+                          expect_failure=expect_failure, sha384=sha384)
 
 def test_ap_wpa2_eap_sim(dev, apdev):
     """WPA2-Enterprise connection using EAP-SIM"""
@@ -7837,3 +7840,23 @@ def test_ap_wpa3_eap_transition_disable(dev, apdev):
     dev[0].wait_disconnected()
     dev[0].request("RECONNECT")
     dev[0].wait_connected()
+
+def test_ap_wpa2_eap_sha384_psk(dev, apdev):
+    """WPA2-Enterprise connection using 802.1X-SHA384 and EAP-PSK"""
+    params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")
+    params["wpa_key_mgmt"] = "WPA-EAP-SHA384"
+    params["ieee80211w"] = "2"
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    eap_connect(dev[0], hapd, "PSK", "psk.user@example.com",
+                password_hex="0123456789abcdef0123456789abcdef", sha384=True)
+
+    eap_reauth(dev[0], "PSK", sha384=True)
+    check_mib(dev[0], [("dot11RSNAAuthenticationSuiteRequested", "00-0f-ac-23"),
+                       ("dot11RSNAAuthenticationSuiteSelected", "00-0f-ac-23")])
+
+    bss = dev[0].get_bss(apdev[0]['bssid'])
+    if 'flags' not in bss:
+        raise Exception("Could not get BSS flags from BSS table")
+    if "[WPA2-EAP-SHA384-CCMP]" not in bss['flags']:
+        raise Exception("Unexpected BSS flags: " + bss['flags'])
