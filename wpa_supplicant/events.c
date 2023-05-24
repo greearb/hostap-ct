@@ -5254,6 +5254,59 @@ static void wpas_event_unprot_beacon(struct wpa_supplicant *wpa_s,
 }
 
 
+static const char * bitmap_to_str(u8 value, char *buf)
+{
+	char *pos = buf;
+	int i, k = 0;
+
+	for (i = 7; i >= 0; i--)
+		pos[k++] = (value & BIT(i)) ? '1' : '0';
+
+	pos[8] = '\0';
+	return pos;
+}
+
+
+static void wpas_tid_link_map(struct wpa_supplicant *wpa_s,
+			      struct tid_link_map_info *info)
+{
+	char map_info[1000], *pos, *end;
+	int res, i;
+
+	pos = map_info;
+	end = pos + sizeof(map_info);
+	res = os_snprintf(map_info, sizeof(map_info), "default=%d",
+			  info->default_map);
+	if (os_snprintf_error(end - pos, res))
+		return;
+	pos += res;
+
+	if (!info->default_map) {
+		for (i = 0; i < MAX_NUM_MLD_LINKS && end > pos; i++) {
+			char uplink_map_str[9];
+			char downlink_map_str[9];
+
+			if (!(info->valid_links & BIT(i)))
+				continue;
+
+			bitmap_to_str(info->t2lmap[i].uplink, uplink_map_str);
+			bitmap_to_str(info->t2lmap[i].downlink,
+				      downlink_map_str);
+
+			res = os_snprintf(pos, end - pos,
+					  " link_id=%d up_link=%s down_link=%s",
+					  i, uplink_map_str,
+					  downlink_map_str);
+			if (os_snprintf_error(end - pos, res))
+				return;
+			pos += res;
+		}
+	}
+
+	wpa_msg(wpa_s, MSG_INFO, WPA_EVENT_T2LM_UPDATE "%s", map_info);
+}
+
+
 void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			  union wpa_event_data *data)
 {
@@ -6158,6 +6211,10 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 #ifdef CONFIG_DPP
 		wpas_dpp_tx_wait_expire(wpa_s);
 #endif /* CONFIG_DPP */
+		break;
+	case EVENT_TID_LINK_MAP:
+		if (data)
+			wpas_tid_link_map(wpa_s, &data->t2l_map_info);
 		break;
 	default:
 		wpa_msg(wpa_s, MSG_INFO, "Unknown event %d", event);

@@ -110,6 +110,8 @@ extern "C" {
 #define WPA_EVENT_DO_ROAM "CTRL-EVENT-DO-ROAM "
 /** Decision made to skip a within-ESS roam */
 #define WPA_EVENT_SKIP_ROAM "CTRL-EVENT-SKIP-ROAM "
+/** TID-to-link mapping response event */
+#define WPA_EVENT_T2LM_UPDATE "CTRL-EVENT-T2LM-UPDATE "
 
 /** IP subnet status change notification
  *
