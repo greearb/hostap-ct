@@ -1198,9 +1198,6 @@ struct ieee80211_ampe_ie {
 	 */
 } STRUCT_PACKED;
 
-#ifdef _MSC_VER
-#pragma pack(pop)
-#endif /* _MSC_VER */
 
 #define ERP_INFO_NON_ERP_PRESENT BIT(0)
 #define ERP_INFO_USE_PROTECTION BIT(1)
@@ -2932,5 +2929,9 @@ struct ieee80211_neighbor_ap_info {
 	/* Followed by the rest of the TBTT Information field contents */
 	u8 data[0];
 } STRUCT_PACKED;
+
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif /* _MSC_VER */
 
 #endif /* IEEE802_11_DEFS_H */
