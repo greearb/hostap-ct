@@ -257,6 +257,8 @@ struct wpa_driver_nl80211_data {
 	size_t pending_roam_data_len;
 	u8 *pending_t2lm_data;
 	size_t pending_t2lm_data_len;
+	u8 *pending_link_reconfig_data;
+	size_t pending_link_reconfig_data_len;
 #endif /* CONFIG_DRIVER_NL80211_QCA */
 };
 

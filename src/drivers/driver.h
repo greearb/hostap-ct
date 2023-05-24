@@ -5664,6 +5664,11 @@ enum wpa_event_type {
 	 * Described in wpa_event_data.t2l_map_info.
 	 */
 	EVENT_TID_LINK_MAP,
+
+	/**
+	 * EVENT_LINK_RECONFIG - Notification that AP links removed
+	 */
+	EVENT_LINK_RECONFIG,
 };
 
 

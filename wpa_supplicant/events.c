@@ -5307,6 +5307,44 @@ static void wpas_tid_link_map(struct wpa_supplicant *wpa_s,
 }
 
 
+static void wpas_link_reconfig(struct wpa_supplicant *wpa_s)
+{
+	u8 bssid[ETH_ALEN];
+
+	if (wpa_drv_get_bssid(wpa_s, bssid) < 0) {
+		wpa_printf(MSG_ERROR, "LINK_RECONFIG: Failed to get BSSID");
+		wpa_supplicant_deauthenticate(wpa_s,
+					      WLAN_REASON_DEAUTH_LEAVING);
+		return;
+	}
+
+	if (os_memcmp(bssid, wpa_s->bssid, ETH_ALEN) != 0) {
+		os_memcpy(wpa_s->bssid, bssid, ETH_ALEN);
+		wpa_supplicant_update_current_bss(wpa_s, wpa_s->bssid);
+		wpas_notify_bssid_changed(wpa_s);
+	}
+
+	if (wpa_drv_get_mlo_info(wpa_s) < 0) {
+		wpa_printf(MSG_ERROR,
+			   "LINK_RECONFIG: Failed to get MLO connection info");
+		wpa_supplicant_deauthenticate(wpa_s,
+					      WLAN_REASON_DEAUTH_LEAVING);
+		return;
+	}
+
+	if (wpa_sm_set_ml_info(wpa_s)) {
+		wpa_printf(MSG_ERROR,
+			   "LINK_RECONFIG: Failed to set MLO connection info to wpa_sm");
+		wpa_supplicant_deauthenticate(wpa_s,
+					      WLAN_REASON_DEAUTH_LEAVING);
+		return;
+	}
+
+	wpa_msg(wpa_s, MSG_INFO, WPA_EVENT_LINK_RECONFIG "valid_links=0x%x",
+		wpa_s->valid_links);
+}
+
+
 void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			  union wpa_event_data *data)
 {
@@ -5405,6 +5443,9 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 #endif /* CONFIG_TESTING_OPTIONS */
 		wpas_event_deauth(wpa_s,
 				  data ? &data->deauth_info : NULL);
+		break;
+	case EVENT_LINK_RECONFIG:
+		wpas_link_reconfig(wpa_s);
 		break;
 	case EVENT_MICHAEL_MIC_FAILURE:
 		wpa_supplicant_event_michael_mic_failure(wpa_s, data);

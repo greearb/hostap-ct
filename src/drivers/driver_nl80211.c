@@ -281,6 +281,8 @@ void nl80211_mark_disconnected(struct wpa_driver_nl80211_data *drv)
 	drv->pending_roam_data = NULL;
 	os_free(drv->pending_t2lm_data);
 	drv->pending_t2lm_data = NULL;
+	os_free(drv->pending_link_reconfig_data);
+	drv->pending_link_reconfig_data = NULL;
 #endif /* CONFIG_DRIVER_NL80211_QCA */
 
 	drv->auth_mld = false;
