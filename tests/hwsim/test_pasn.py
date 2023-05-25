@@ -999,3 +999,13 @@ def test_pasn_owe_tm_kdk_secure_ltf(dev, apdev):
     wpas.request("RECONNECT")
     wpas.wait_connected()
     check_pasn_ptk(wpas, hapd, "CCMP", clear_keys=False, require_kdk=True)
+
+def test_pasn_noauth_0(dev, apdev):
+    """PASN without mutual authentication disabled on the AP"""
+    check_pasn_capab(dev[0])
+
+    params = pasn_ap_params("PASN", "CCMP", "19")
+    params["pasn_noauth"] = "0"
+    hapd = start_pasn_ap(apdev[0], params)
+
+    check_pasn_akmp_cipher(dev[0], hapd, "PASN", "CCMP", status=1)
