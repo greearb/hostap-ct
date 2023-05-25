@@ -21,7 +21,7 @@
 #include "driver_nl80211.h"
 
 
-#define MAX_NL80211_NOISE_FREQS 50
+#define MAX_NL80211_NOISE_FREQS 100
 
 struct nl80211_noise_info {
 	u32 freq[MAX_NL80211_NOISE_FREQS];
