@@ -3094,6 +3094,29 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_UL_MU_CONFIG = 95,
 
+	/* 8-bit unsigned value. Optionally specified along with
+	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_CHANNEL_WIDTH when STA is in connected
+	 * state. This configuration is applicable only for the current
+	 * connection. This configuration not allowed in disconnected state.
+	 *
+	 * valid values:
+	 * 0 - The maximum allowed bandwidth change is applicable for both Tx
+	 *	and Rx paths. The driver shall conduct OMI operation as defined
+	 *	in 26.9 (Operating mode indication) or OMN operation as
+	 *	defined in 11.40 (Notification of operating mode
+	 *	changes) in IEEE P802.11-REVme/D2.0 with AP to indicate the
+	 *	change in the maximum allowed operating bandwidth.
+	 * 1 - Limit the change in maximum allowed bandwidth only to Tx path.
+	 *	In this case the driver doesn't need to conduct OMI/OMN
+	 *	operation since %QCA_WLAN_VENDOR_ATTR_CONFIG_CHANNEL_WIDTH is
+	 *	expected to be less than the current connection maximum
+	 *	negotiated bandwidth.
+	 *	For example: Negotiated maximum bandwidth is 160 MHz and the new
+	 *	maximum bandwidth configured is 80 MHz, now the driver limits
+	 *	the maximum bandwidth to 80 MHz only in the Tx path.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_CHAN_WIDTH_UPDATE_TYPE = 96,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
