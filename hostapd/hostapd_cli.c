@@ -1315,6 +1315,13 @@ static int hostapd_cli_cmd_stop_ap(struct wpa_ctrl *ctrl, int argc,
 }
 
 
+static int hostapd_cli_cmd_rekey_gtk(struct wpa_ctrl *ctrl, int argc,
+				      char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "REKEY_GTK");
+}
+
+
 static int hostapd_cli_cmd_vendor(struct wpa_ctrl *ctrl, int argc, char *argv[])
 {
 	char cmd[256];
@@ -1878,6 +1885,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	  "= update Beacon frame contents\n"},
 	{ "stop_ap", hostapd_cli_cmd_stop_ap, NULL,
 	  "= stop AP\n"},
+	{ "rekey_gtk", hostapd_cli_cmd_rekey_gtk, NULL,
+	  "= rekey gtk\n"},
 	{ "erp_flush", hostapd_cli_cmd_erp_flush, NULL,
 	  "= drop all ERP keys"},
 	{ "log_level", hostapd_cli_cmd_log_level, NULL,
