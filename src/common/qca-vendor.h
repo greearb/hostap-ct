@@ -2976,8 +2976,13 @@ enum qca_wlan_vendor_attr_config {
 	QCA_WLAN_VENDOR_ATTR_CONFIG_EHT_MLO_MAX_SIMULTANEOUS_LINKS = 88,
 
 	/* 8-bit unsigned value to configure the driver with EHT MLO maximum
-	 * number of links to be used for MLO connection.
-	 * The range of the value is 1 to 16.
+	 * number of links to be used for MLO connection. Value 0 restores the
+	 * default value of the maximum MLO links capability of the device.
+	 * The range of the value is 0 to 15.
+	 *
+	 * 0 - Restore default device limit.
+	 * 1 to 15 - Set the maximum number of links to be used for an MLO
+	 * connection.
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_EHT_MLO_MAX_NUM_LINKS = 89,
 
