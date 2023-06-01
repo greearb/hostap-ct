@@ -41,7 +41,7 @@ static int get_noise_for_scan_results(struct nl_msg *msg, void *arg)
 	struct nl80211_noise_info *info = arg;
 
 	if (info->count >= MAX_NL80211_NOISE_FREQS)
-		return NL_STOP;
+		return NL_SKIP;
 
 	nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
 		  genlmsg_attrlen(gnlh, 0), NULL);
