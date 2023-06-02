@@ -2560,8 +2560,7 @@ static void nl80211_dump_chan_list(struct wpa_driver_nl80211_data *drv,
 		for (j = 0; j < mode->num_channels; j++) {
 			struct hostapd_channel_data *chan = &mode->channels[j];
 
-			if (chan->freq >= 5925 && chan->freq <= 7125 &&
-			    !(chan->flag & HOSTAPD_CHAN_DISABLED))
+			if (is_6ghz_freq(chan->freq))
 				drv->uses_6ghz = true;
 			res = os_snprintf(pos, end - pos, " %d%s%s%s",
 					  chan->freq,
