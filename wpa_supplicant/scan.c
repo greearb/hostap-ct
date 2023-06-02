@@ -420,29 +420,6 @@ wpa_supplicant_build_filter_ssids(struct wpa_config *conf, size_t *num_ssids)
 }
 
 
-#ifdef CONFIG_P2P
-static bool is_6ghz_supported(struct wpa_supplicant *wpa_s)
-{
-	struct hostapd_channel_data *chnl;
-	int i, j;
-
-	for (i = 0; i < wpa_s->hw.num_modes; i++) {
-		if (wpa_s->hw.modes[i].mode == HOSTAPD_MODE_IEEE80211A) {
-			chnl = wpa_s->hw.modes[i].channels;
-			for (j = 0; j < wpa_s->hw.modes[i].num_channels; j++) {
-				if (chnl[j].flag & HOSTAPD_CHAN_DISABLED)
-					continue;
-				if (is_6ghz_freq(chnl[j].freq))
-					return true;
-			}
-		}
-	}
-
-	return false;
-}
-#endif /* CONFIG_P2P */
-
-
 static void wpa_supplicant_optimize_freqs(
 	struct wpa_supplicant *wpa_s, struct wpa_driver_scan_params *params)
 {
@@ -1555,7 +1532,7 @@ scan:
 		}
 	}
 
-	if (!params.freqs && is_6ghz_supported(wpa_s) &&
+	if (!params.freqs && wpas_is_6ghz_supported(wpa_s, true) &&
 	    (wpa_s->p2p_in_invitation || wpa_s->p2p_in_provisioning))
 		wpas_p2p_scan_freqs(wpa_s, &params, true);
 #endif /* CONFIG_P2P */

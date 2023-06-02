@@ -7118,6 +7118,7 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 				 wpa_s->hw_capab == CAPAB_NO_HT_VHT)
 				wpa_s->hw_capab = CAPAB_HT;
 		}
+		wpa_s->support_6ghz = wpas_is_6ghz_supported(wpa_s, false);
 	}
 
 	capa_res = wpa_drv_get_capa(wpa_s, &capa);
@@ -9244,4 +9245,26 @@ int wpa_drv_send_action(struct wpa_supplicant *wpa_s, unsigned int freq,
 
 	return wpa_s->driver->send_action(wpa_s->drv_priv, freq, wait, dst, src,
 					  bssid, data, data_len, no_cck);
+}
+
+
+bool wpas_is_6ghz_supported(struct wpa_supplicant *wpa_s, bool only_enabled)
+{
+	struct hostapd_channel_data *chnl;
+	int i, j;
+
+	for (i = 0; i < wpa_s->hw.num_modes; i++) {
+		if (wpa_s->hw.modes[i].mode == HOSTAPD_MODE_IEEE80211A) {
+			chnl = wpa_s->hw.modes[i].channels;
+			for (j = 0; j < wpa_s->hw.modes[i].num_channels; j++) {
+				if (only_enabled &&
+				    (chnl[j].flag & HOSTAPD_CHAN_DISABLED))
+					continue;
+				if (is_6ghz_freq(chnl[j].freq))
+					return true;
+			}
+		}
+	}
+
+	return false;
 }
