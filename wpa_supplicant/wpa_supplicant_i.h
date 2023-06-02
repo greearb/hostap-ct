@@ -1566,6 +1566,10 @@ struct wpa_supplicant {
 	unsigned int enable_dscp_policy_capa:1;
 	unsigned int connection_dscp:1;
 	unsigned int wait_for_dscp_req:1;
+	bool is_6ghz_enabled;
+	bool crossed_6ghz_dom;
+	bool last_scan_all_chan;
+	bool last_scan_non_coloc_6ghz;
 	bool support_6ghz;
 
 	struct wpa_signal_info last_signal_info;

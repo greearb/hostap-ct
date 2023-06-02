@@ -1033,7 +1033,7 @@ static void wpas_rrm_scan_timeout(void *eloop_ctx, void *timeout_ctx)
 	}
 	os_get_reltime(&wpa_s->beacon_rep_scan);
 	if (wpa_s->scanning || wpas_p2p_in_progress(wpa_s) ||
-	    wpa_supplicant_trigger_scan(wpa_s, params, true))
+	    wpa_supplicant_trigger_scan(wpa_s, params, true, false))
 		wpas_rrm_refuse_request(wpa_s);
 	params->duration = prev_duration;
 }

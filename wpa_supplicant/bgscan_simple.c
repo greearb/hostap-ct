@@ -49,7 +49,7 @@ static void bgscan_simple_timeout(void *eloop_ctx, void *timeout_ctx)
 	 */
 
 	wpa_printf(MSG_DEBUG, "bgscan simple: Request a background scan");
-	if (wpa_supplicant_trigger_scan(wpa_s, &params, true)) {
+	if (wpa_supplicant_trigger_scan(wpa_s, &params, true, false)) {
 		wpa_printf(MSG_DEBUG, "bgscan simple: Failed to trigger scan");
 		eloop_register_timeout(data->scan_interval, 0,
 				       bgscan_simple_timeout, data, NULL);

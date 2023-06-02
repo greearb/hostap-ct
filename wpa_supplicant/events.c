@@ -57,7 +57,9 @@
 
 #ifndef CONFIG_NO_SCAN_PROCESSING
 static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
-					      int new_scan, int own_request);
+					      int new_scan, int own_request,
+					      bool trigger_6ghz_scan,
+					      union wpa_event_data *data);
 #endif /* CONFIG_NO_SCAN_PROCESSING */
 #ifdef CONFIG_OWE
 static void owe_trans_ssid(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
@@ -2310,6 +2312,7 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	struct wpa_scan_results *scan_res = NULL;
 	int ret = 0;
 	int ap = 0;
+	bool trigger_6ghz_scan;
 #ifndef CONFIG_NO_RANDOM_POOL
 	size_t i, num;
 #endif /* CONFIG_NO_RANDOM_POOL */
@@ -2318,6 +2321,11 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	if (wpa_s->ap_iface)
 		ap = 1;
 #endif /* CONFIG_AP */
+
+	trigger_6ghz_scan = wpa_s->crossed_6ghz_dom &&
+		wpa_s->last_scan_all_chan;
+	wpa_s->crossed_6ghz_dom = false;
+	wpa_s->last_scan_all_chan = false;
 
 	wpa_supplicant_notify_scanning(wpa_s, 0);
 
@@ -2472,7 +2480,8 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	if (wpa_s->supp_pbc_active && !wpas_wps_partner_link_scan_done(wpa_s))
 		return ret;
 
-	return wpas_select_network_from_last_scan(wpa_s, 1, own_request);
+	return wpas_select_network_from_last_scan(wpa_s, 1, own_request,
+						  trigger_6ghz_scan, data);
 
 scan_work_done:
 	wpa_scan_results_free(scan_res);
@@ -2485,8 +2494,44 @@ scan_work_done:
 }
 
 
+static int wpas_trigger_6ghz_scan(struct wpa_supplicant *wpa_s,
+				  union wpa_event_data *data)
+{
+	struct wpa_driver_scan_params params;
+	unsigned int j;
+
+	wpa_dbg(wpa_s, MSG_INFO, "Triggering 6GHz-only scan");
+	os_memset(&params, 0, sizeof(params));
+	params.non_coloc_6ghz = wpa_s->last_scan_non_coloc_6ghz;
+	for (j = 0; j < data->scan_info.num_ssids; j++)
+		params.ssids[j] = data->scan_info.ssids[j];
+	params.num_ssids = data->scan_info.num_ssids;
+	wpa_add_scan_freqs_list(wpa_s, HOSTAPD_MODE_IEEE80211A, &params,
+				true, !wpa_s->last_scan_non_coloc_6ghz, false);
+	if (!wpa_supplicant_trigger_scan(wpa_s, &params, true, true)) {
+		os_free(params.freqs);
+		return 1;
+	}
+	wpa_dbg(wpa_s, MSG_INFO, "Failed to trigger 6GHz-only scan");
+	os_free(params.freqs);
+	return 0;
+}
+
+
+/**
+ * Select a network from the last scan
+ * @wpa_s: Pointer to wpa_supplicant data
+ * @new_scan: Whether this function was called right after a scan has finished
+ * @own_request: Whether the scan was requested by this interface
+ * @trigger_6ghz_scan: Whether to trigger a 6ghz-only scan when applicable
+ * @data: Scan data from scan that finished if applicable
+ *
+ * See _wpa_supplicant_event_scan_results() for return values.
+ */
 static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
-					      int new_scan, int own_request)
+					      int new_scan, int own_request,
+					      bool trigger_6ghz_scan,
+					      union wpa_event_data *data)
 {
 	struct wpa_bss *selected;
 	struct wpa_ssid *ssid = NULL;
@@ -2558,6 +2603,10 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 			if (new_scan)
 				wpa_supplicant_rsn_preauth_scan_results(wpa_s);
 		} else if (own_request) {
+			if (wpa_s->support_6ghz && trigger_6ghz_scan && data &&
+			    wpas_trigger_6ghz_scan(wpa_s, data) < 0)
+				return 1;
+
 			/*
 			 * No SSID found. If SCAN results are as a result of
 			 * own scan request and not due to a scan request on
@@ -2705,7 +2754,7 @@ int wpa_supplicant_fast_associate(struct wpa_supplicant *wpa_s)
 		return -1;
 	}
 
-	return wpas_select_network_from_last_scan(wpa_s, 0, 1);
+	return wpas_select_network_from_last_scan(wpa_s, 0, 1, false, NULL);
 #endif /* CONFIG_NO_SCAN_PROCESSING */
 }
 
@@ -2715,7 +2764,7 @@ int wpa_wps_supplicant_fast_associate(struct wpa_supplicant *wpa_s)
 #ifdef CONFIG_NO_SCAN_PROCESSING
 	return -1;
 #else /* CONFIG_NO_SCAN_PROCESSING */
-	return wpas_select_network_from_last_scan(wpa_s, 1, 1);
+	return wpas_select_network_from_last_scan(wpa_s, 1, 1, false, NULL);
 #endif /* CONFIG_NO_SCAN_PROCESSING */
 }
 
@@ -4796,11 +4845,16 @@ void wpa_supplicant_update_channel_list(struct wpa_supplicant *wpa_s,
 
 	dl_list_for_each(ifs, &wpa_s->radio->ifaces, struct wpa_supplicant,
 			 radio_list) {
+		bool was_6ghz_enabled;
+
 		wpa_printf(MSG_DEBUG, "%s: Updating hw mode",
 			   ifs->ifname);
 		free_hw_features(ifs);
 		ifs->hw.modes = wpa_drv_get_hw_feature_data(
 			ifs, &ifs->hw.num_modes, &ifs->hw.flags, &dfs_domain);
+
+		was_6ghz_enabled = ifs->is_6ghz_enabled;
+		ifs->is_6ghz_enabled = wpas_is_6ghz_supported(ifs, true);
 
 		/* Restart PNO/sched_scan with updated channel list */
 		if (ifs->pno) {
@@ -4810,6 +4864,12 @@ void wpa_supplicant_update_channel_list(struct wpa_supplicant *wpa_s,
 			wpa_dbg(ifs, MSG_DEBUG,
 				"Channel list changed - restart sched_scan");
 			wpas_scan_restart_sched_scan(ifs);
+		} else if (ifs->scanning && !was_6ghz_enabled &&
+			   ifs->is_6ghz_enabled) {
+			/* Look for APs in the 6 GHz band */
+			wpa_dbg(ifs, MSG_INFO,
+				"Channel list changed - trigger 6 GHz-only scan");
+			ifs->crossed_6ghz_dom = true;
 		}
 	}
 
