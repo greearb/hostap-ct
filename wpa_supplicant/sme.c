@@ -3093,7 +3093,7 @@ static void sme_obss_scan_timeout(void *eloop_ctx, void *timeout_ctx)
 	params.low_priority = 1;
 	wpa_printf(MSG_DEBUG, "SME OBSS: Request an OBSS scan");
 
-	if (wpa_supplicant_trigger_scan(wpa_s, &params))
+	if (wpa_supplicant_trigger_scan(wpa_s, &params, true))
 		wpa_printf(MSG_DEBUG, "SME OBSS: Failed to trigger scan");
 	else
 		wpa_s->sme.sched_obss_scan = 1;

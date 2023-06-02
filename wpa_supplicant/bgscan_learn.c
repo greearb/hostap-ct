@@ -305,7 +305,7 @@ static void bgscan_learn_timeout(void *eloop_ctx, void *timeout_ctx)
 	}
 
 	wpa_printf(MSG_DEBUG, "bgscan learn: Request a background scan");
-	if (wpa_supplicant_trigger_scan(wpa_s, &params)) {
+	if (wpa_supplicant_trigger_scan(wpa_s, &params, true)) {
 		wpa_printf(MSG_DEBUG, "bgscan learn: Failed to trigger scan");
 		eloop_register_timeout(data->scan_interval, 0,
 				       bgscan_learn_timeout, data, NULL);

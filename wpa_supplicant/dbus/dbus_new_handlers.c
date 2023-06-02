@@ -1632,6 +1632,7 @@ DBusMessage * wpas_dbus_handler_scan(DBusMessage *message,
 	dbus_bool_t allow_roam = TRUE;
 	dbus_bool_t non_coloc_6ghz = FALSE;
 	dbus_bool_t scan_6ghz_only = FALSE;
+	bool custom_ies = false;
 
 	os_memset(&params, 0, sizeof(params));
 
@@ -1658,6 +1659,7 @@ DBusMessage * wpas_dbus_handler_scan(DBusMessage *message,
 			if (wpas_dbus_get_scan_ies(message, &variant_iter,
 						   &params, &reply) < 0)
 				goto out;
+			custom_ies = true;
 		} else if (os_strcmp(key, "Channels") == 0) {
 			if (wpas_dbus_get_scan_channels(message, &variant_iter,
 							&params, &reply) < 0)
@@ -1724,7 +1726,8 @@ DBusMessage * wpas_dbus_handler_scan(DBusMessage *message,
 			if (params.freqs && params.freqs[0]) {
 				wpa_s->last_scan_req = MANUAL_SCAN_REQ;
 				if (wpa_supplicant_trigger_scan(wpa_s,
-								&params)) {
+								&params,
+								false)) {
 					reply = wpas_dbus_error_scan_error(
 						message,
 						"Scan request rejected");
@@ -1750,7 +1753,7 @@ DBusMessage * wpas_dbus_handler_scan(DBusMessage *message,
 		}
 
 		wpa_s->last_scan_req = MANUAL_SCAN_REQ;
-		if (wpa_supplicant_trigger_scan(wpa_s, &params)) {
+		if (wpa_supplicant_trigger_scan(wpa_s, &params, !custom_ies)) {
 			reply = wpas_dbus_error_scan_error(
 				message, "Scan request rejected");
 		}

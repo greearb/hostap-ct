@@ -209,7 +209,7 @@ fi.w1.wpa_supplicant1.CreateInterface.
 	      <tr><th>Key</th><th>Value type</th><th>Description</th><th>Required</th>
 	      <tr><td>Type</td><td>s</td><td>Type of the scan. Possible values: "active", "passive"</td><td>Yes</td>
 	      <tr><td>SSIDs</td><td>aay</td><td>Array of SSIDs to scan for (applies only if scan type is active)</td><td>No</td>
-	      <tr><td>IEs</td><td>aay</td><td>Information elements to used in active scan (applies only if scan type is active)</td><td>No</td>
+	      <tr><td>IEs</td><td>aay</td><td>Information elements to used in active scan (applies only if scan type is active). Default IEs will be used in absence of this option.</td><td>No</td>
 	      <tr><td>Channels</td><td>a(uu)</td><td>Array of frequencies to scan in form of (center, width) in MHz.</td><td>No</td>
 	      <tr><td>AllowRoam</td><td>b</td><td>TRUE (or absent) to allow a roaming decision based on the results of this scan, FALSE to prevent a roaming decision.</td><td>No</td>
 	      <tr><td>NonColoc6GHz</td><td>b</td><td>TRUE to force scanning of non-PSC 6 GHz channels, FALSE (or absent) to skip scanning of non-PSC 6 GHz channels.</td><td>No</td>
