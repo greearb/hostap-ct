@@ -2808,7 +2808,7 @@ dfs_offload:
 	if (hostapd_drv_configure_edcca_threshold(hapd,
 						  hapd->iconf->edcca_threshold) < 0)
 		goto fail;
-	if (hostapd_drv_mu_ctrl(hapd, MU_CTRL_ONOFF, hapd->iconf->mu_onoff) < 0)
+	if (hostapd_drv_mu_ctrl(hapd, MU_CTRL_ONOFF) < 0)
 		goto fail;
 	if (hostapd_drv_three_wire_ctrl(hapd) < 0)
 		goto fail;

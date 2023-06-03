@@ -5600,7 +5600,7 @@ struct wpa_driver_ops {
 	 * @priv: Private driver interface data
 	 *
 	 */
-	 int (*mu_ctrl)(void *priv, u8 mode, u8 val);
+	 int (*mu_ctrl)(void *priv, u8 mode, void *config);
 	 int (*mu_dump)(void *priv, u8 *mu_onoff);
 
 	/**
