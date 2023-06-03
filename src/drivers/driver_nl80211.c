@@ -15047,12 +15047,13 @@ fail:
 
 
 #ifdef CONFIG_IEEE80211AX
-static int nl80211_mu_ctrl(void *priv, u8 mode, u8 val)
+static int nl80211_mu_ctrl(void *priv, u8 mode, void *config)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct nl_msg *msg;
 	struct nlattr *data;
+	struct hostapd_config *cfg = config;
 	int ret = -ENOBUFS;
 
 	if (!drv->mtk_mu_vendor_cmd_avail) {
@@ -15069,17 +15070,16 @@ static int nl80211_mu_ctrl(void *priv, u8 mode, u8 val)
 
 	switch (mode) {
 	case MU_CTRL_ONOFF:
-			if (nla_put_u8(msg, MTK_VENDOR_ATTR_MU_CTRL_ONOFF, val))
-				goto fail;
+		if (nla_put_u8(msg, MTK_VENDOR_ATTR_MU_CTRL_ONOFF, cfg->mu_onoff))
+			goto fail;
 		break;
-	case MU_CTRL_UL_USER_CNT:
-	case MU_CTRL_DL_USER_CNT:
-			if (nla_put_u8(msg, MTK_VENDOR_ATTR_MU_CTRL_OFDMA_MODE, mode) ||
-			    nla_put_u8(msg, MTK_VENDOR_ATTR_MU_CTRL_OFDMA_VAL, val))
-				goto fail;
+	case MU_CTRL_UPDATE:
+		if (nla_put(msg, MTK_VENDOR_ATTR_MU_CTRL_STRUCT,
+			    sizeof(struct connac3_muru), cfg->muru_config))
+			goto fail;
 		break;
 	default:
-		wpa_printf(MSG_ERROR, "nl80211: Wrong mu mode !");
+		wpa_printf(MSG_ERROR, "nl80211: Wrong mu mode %u!", mode);
 		ret = -EINVAL;
 		goto fail;
 	}
@@ -15087,9 +15087,8 @@ static int nl80211_mu_ctrl(void *priv, u8 mode, u8 val)
 	nla_nest_end(msg, data);
 
 	ret = send_and_recv_cmd(drv, msg);
-	if(ret){
+	if (ret)
 		wpa_printf(MSG_ERROR, "Failed to set mu_ctrl. ret=%d (%s)", ret, strerror(-ret));
-	}
 	return ret;
 
 fail:

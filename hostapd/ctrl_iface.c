@@ -19,6 +19,7 @@
 #include <netinet/ip.h>
 #endif /* CONFIG_TESTING_OPTIONS */
 
+#include <math.h>
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <stddef.h>
@@ -4040,7 +4041,6 @@ hostapd_ctrl_iface_get_edcca(struct hostapd_data *hapd, char *cmd, char *buf,
 	}
 }
 
-
 #ifdef CONFIG_NAN_USD
 
 static int hostapd_ctrl_nan_publish(struct hostapd_data *hapd, char *cmd,
@@ -4340,20 +4340,60 @@ fail:
 
 
 static int
+hostapd_parse_argument_helper(char *value, u16 **ptr_input)
+{
+#define MAX_MU_CTRL_NUM 17
+	u16 *input;
+	char *endptr;
+	int cnt = 0;
+
+	input = os_zalloc(MAX_MU_CTRL_NUM * sizeof(u16));
+	if (input == NULL) {
+		wpa_printf(MSG_ERROR, "Failed to allocate memory.\n");
+		return -1;
+	}
+	while (value) {
+		u8 val = strtol(value, &endptr, 10);
+
+		if (value != endptr) {
+			input[cnt++] = val;
+			value = os_strchr(endptr, ':');
+			if (value)
+				value++;
+		} else {
+			break;
+		}
+	}
+
+	*ptr_input = input;
+	return cnt;
+}
+
+#define MURU_CFG_DEPENDENCE_CHECK(_val, _mask) do {				\
+		if ((le_to_host32(_val) & (_mask)) != _mask) {			\
+			wpa_printf(MSG_ERROR, "Set %s first\n", #_mask);	\
+			goto fail;						\
+		}								\
+	} while(0)
+
+static int
 hostapd_ctrl_iface_set_mu(struct hostapd_data *hapd, char *cmd,
-					 char *buf, size_t buflen)
+			  char *buf, size_t buflen)
 {
 	char *pos, *config, *value;
-	u8 mode;
+	u8 i;
+	int cnt = 0, ret;
+	u16 *val;
+	struct connac3_muru *muru;
+	struct connac3_muru_dl *dl;
+	struct connac3_muru_ul *ul;
+	struct connac3_muru_comm *comm;
 
 	config = cmd;
 	pos = os_strchr(config, ' ');
-	if (pos == NULL)
-		return -1;
-	*pos++ = '\0';
+	if (pos != NULL)
+		*pos++ = '\0';
 
-	if(pos == NULL)
-		return -1;
 	value = pos;
 
 	if (os_strcmp(config, "onoff") == 0) {
@@ -4363,24 +4403,170 @@ hostapd_ctrl_iface_set_mu(struct hostapd_data *hapd, char *cmd,
 			return -1;
 		}
 		hapd->iconf->mu_onoff = (u8) mu;
-		mode = MU_CTRL_ONOFF;
-	} else if (os_strcmp(config, "ul_user_cnt") == 0) {
-		mode = MU_CTRL_UL_USER_CNT;
-		wpa_printf(MSG_ERROR, "ul_user_cnt:%d\n", (u8)atoi(value));
-	} else if (os_strcmp(config, "dl_user_cnt") == 0) {
-		mode = MU_CTRL_DL_USER_CNT;
-		wpa_printf(MSG_ERROR, "dl_user_cnt:%d\n", (u8)atoi(value));
-	} else {
-		wpa_printf(MSG_ERROR,
-			"Unsupported parameter %s for SET_MU", config);
-		return -1;
+
+		if (hostapd_drv_mu_ctrl(hapd, MU_CTRL_ONOFF) == 0)
+			return os_snprintf(buf, buflen, "OK\n");
+		else
+			goto fail;
 	}
 
-	if(hostapd_drv_mu_ctrl(hapd, mode, (u8)atoi(value)) == 0) {
-		return os_snprintf(buf, buflen, "OK\n");
+	if (hapd->iconf->muru_config == NULL)
+		hapd->iconf->muru_config = os_zalloc(sizeof(struct connac3_muru));
+
+	muru = hapd->iconf->muru_config;
+	dl = &muru->dl;
+	ul = &muru->ul;
+	comm = &muru->comm;
+
+	if (os_strncmp(config, "update", 6) == 0) {
+		ret = hostapd_drv_mu_ctrl(hapd, MU_CTRL_UPDATE);
+
+		os_free(hapd->iconf->muru_config);
+		hapd->iconf->muru_config = NULL;
+
+		if (ret)
+			goto fail;
+	} else if (os_strcmp(config, "ul_comm_user_cnt") == 0) {
+		ul->user_num = (u8)atoi(value);
+		comm->ppdu_format |= MURU_PPDU_HE_TRIG;
+		comm->sch_type |= MURU_OFDMA_SCH_TYPE_UL;
+		muru->cfg_comm |= host_to_le32(MURU_COMM_SET);
+		muru->cfg_ul |= host_to_le32(MURU_FIXED_UL_TOTAL_USER_CNT);
+	} else if (os_strcmp(config, "dl_comm_user_cnt") == 0) {
+		dl->user_num = (u8)atoi(value);
+		comm->ppdu_format |= MURU_PPDU_HE_MU;
+		comm->sch_type |= MURU_OFDMA_SCH_TYPE_DL;
+		muru->cfg_comm |= host_to_le32(MURU_COMM_SET);
+		muru->cfg_dl |= host_to_le32(MURU_FIXED_DL_TOTAL_USER_CNT);
+	} else if (os_strcmp(config, "dl_comm_bw") == 0) {
+		dl->bw = (u8)atoi(value);
+		muru->cfg_dl |= host_to_le32(MURU_FIXED_DL_BW);
+	} else if (os_strcmp(config, "ul_comm_bw") == 0) {
+		ul->bw = (u8)atoi(value);
+		muru->cfg_ul |= host_to_le32(MURU_FIXED_UL_BW);
+	} else if (os_strcmp(config, "dl_user_ru_alloc") == 0) {
+		MURU_CFG_DEPENDENCE_CHECK(muru->cfg_dl, MURU_FIXED_DL_TOTAL_USER_CNT);
+		cnt = hostapd_parse_argument_helper(value, &val);
+		if (cnt == -1)
+			goto fail;
+		if (cnt != (dl->user_num * 2))
+			goto para_fail;
+		for (i = 0; i < dl->user_num; i++) {
+			dl->usr[i].ru_alloc_seg = (val[2 * i] & 0x1);
+			dl->usr[i].ru_allo_ps160 = ((val[2 * i] & 0x2) >> 1);
+			dl->usr[i].ru_idx = val[(2 * i) + 1];
+		}
+		os_free(val);
+		muru->cfg_dl |= host_to_le32(MURU_FIXED_USER_DL_RU_ALLOC);
+	} else if (os_strcmp(config, "ul_user_ru_alloc") == 0) {
+		MURU_CFG_DEPENDENCE_CHECK(muru->cfg_ul, MURU_FIXED_UL_TOTAL_USER_CNT);
+		cnt = hostapd_parse_argument_helper(value, &val);
+		if (cnt == -1)
+			goto fail;
+		if (cnt != (ul->user_num * 2))
+			goto para_fail;
+		for (i = 0; i < ul->user_num; i++) {
+			ul->usr[i].ru_alloc_seg = (val[2 * i] & 0x1);
+			ul->usr[i].ru_allo_ps160 = ((val[2 * i] & 0x2) >> 1);
+			ul->usr[i].ru_idx = val[(2 * i) + 1];
+		}
+		os_free(val);
+		muru->cfg_ul |= host_to_le32(MURU_FIXED_USER_UL_RU_ALLOC);
+	} else if (os_strcmp(config, "dl_user_mcs") == 0) {
+		MURU_CFG_DEPENDENCE_CHECK(muru->cfg_dl, MURU_FIXED_DL_TOTAL_USER_CNT);
+		cnt = hostapd_parse_argument_helper(value, &val);
+		if (cnt == -1)
+			goto fail;
+		if (cnt != dl->user_num)
+			goto para_fail;
+		for (i = 0; i < cnt; i++)
+			dl->usr[i].mcs = (u8) val[i];
+		os_free(val);
+		muru->cfg_dl |= host_to_le32(MURU_FIXED_USER_DL_MCS);
+	} else if (os_strcmp(config, "ul_user_mcs") == 0) {
+		MURU_CFG_DEPENDENCE_CHECK(muru->cfg_ul, MURU_FIXED_UL_TOTAL_USER_CNT);
+		cnt = hostapd_parse_argument_helper(value, &val);
+		if (cnt == -1)
+			goto fail;
+		if (cnt != ul->user_num)
+			goto para_fail;
+		for (i = 0; i < cnt; i++)
+			ul->usr[i].mcs = (u8) val[i];
+		os_free(val);
+		muru->cfg_ul |= host_to_le32(MURU_FIXED_USER_UL_MCS);
+	} else if (os_strcmp(config, "dl_user_cod") == 0) {
+		MURU_CFG_DEPENDENCE_CHECK(muru->cfg_dl, MURU_FIXED_DL_TOTAL_USER_CNT);
+		cnt = hostapd_parse_argument_helper(value, &val);
+		if (cnt == -1)
+			goto fail;
+		if (cnt != dl->user_num)
+			goto para_fail;
+		for (i = 0; i < cnt; i++)
+			dl->usr[i].ldpc = (u8) val[i];
+		os_free(val);
+		muru->cfg_dl |= host_to_le32(MURU_FIXED_USER_DL_COD);
+	} else if (os_strcmp(config, "ul_user_cod") == 0) {
+		MURU_CFG_DEPENDENCE_CHECK(muru->cfg_ul, MURU_FIXED_UL_TOTAL_USER_CNT);
+		cnt = hostapd_parse_argument_helper(value, &val);
+		if (cnt == -1)
+			goto fail;
+		if (cnt != ul->user_num)
+			goto para_fail;
+		for (i = 0; i < cnt; i++)
+			ul->usr[i].ldpc = (u8) val[i];
+		os_free(val);
+		muru->cfg_ul |= host_to_le32(MURU_FIXED_USER_UL_COD);
+	} else if (os_strcmp(config, "ul_user_ssAlloc_raru") == 0) {
+		MURU_CFG_DEPENDENCE_CHECK(muru->cfg_ul, MURU_FIXED_UL_TOTAL_USER_CNT);
+		cnt = hostapd_parse_argument_helper(value, &val);
+		if (cnt == -1)
+			goto fail;
+		if (cnt != ul->user_num)
+			goto para_fail;
+		for (i = 0; i < cnt; i++)
+			ul->usr[i].nss = (u8) val[i];
+		os_free(val);
+		muru->cfg_ul |= host_to_le32(MURU_FIXED_USER_UL_NSS);
+	} else if (os_strcmp(config, "dl_comm_gi") == 0) {
+		dl->gi = (u8)atoi(value);
+		muru->cfg_dl |= host_to_le32(MURU_FIXED_DL_GI);
+	} else if (os_strcmp(config, "dl_comm_ltf") == 0) {
+		dl->ltf = (u8)atoi(value);
+		muru->cfg_dl |= host_to_le32(MURU_FIXED_DL_LTF);
+	} else if (os_strcmp(config, "ul_comm_gi_ltf") == 0) {
+		ul->gi_ltf = (u8)atoi(value);
+		muru->cfg_ul |= host_to_le32(MURU_FIXED_UL_GILTF);
+	} else if (os_strcmp(config, "dl_comm_ack_policy") == 0) {
+		dl->ack_policy = (u8)atoi(value);
+		muru->cfg_dl |= host_to_le32(MURU_FIXED_DL_ACK_PLY);
+	} else if (os_strcmp(config, "dl_comm_toneplan") == 0) {
+		MURU_CFG_DEPENDENCE_CHECK(muru->cfg_dl, MURU_FIXED_DL_BW);
+		cnt = hostapd_parse_argument_helper(value, &val);
+		if (cnt == -1)
+			goto fail;
+		i = pow(2, dl->bw);
+		if (cnt != i)
+			goto para_fail;
+		for (i = 0; i < cnt; i++)
+			dl->ru[i] = host_to_le16(val[i]);
+		os_free(val);
+		muru->cfg_dl |= host_to_le32(MURU_FIXED_DL_TONE_PLAN);
+	} else if (os_strcmp(config, "global_comm_band") == 0) {
+		comm->band = (u8)atoi(value);
+		muru->cfg_comm |= host_to_le32(MURU_COMM_BAND);
 	} else {
-		return -1;
+		wpa_printf(MSG_ERROR,
+			   "Unsupported parameter %s for SET_MU", config);
+		goto fail;
 	}
+
+	return os_snprintf(buf, buflen, "OK\n");
+
+para_fail:
+	os_free(val);
+	wpa_printf(MSG_ERROR, "Input number or value is incorrect\n");
+fail:
+	return os_snprintf(buf, buflen, "FAIL\n");
 }
 
 
@@ -5362,8 +5548,7 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		reply_len = hostapd_ctrl_iface_get_edcca(hapd, buf+10, reply,
 							  reply_size);
 	} else if (os_strncmp(buf, "SET_MU ", 7) == 0) {
-		reply_len = hostapd_ctrl_iface_set_mu(hapd, buf + 7, reply,
-							  reply_size);
+		reply_len = hostapd_ctrl_iface_set_mu(hapd, buf + 7, reply, reply_size);
 	} else if (os_strncmp(buf, "GET_MU", 6) == 0) {
 		reply_len = hostapd_ctrl_iface_get_mu(hapd, reply, reply_size);
 	} else if (os_strncmp(buf, "GET_IBF", 7) == 0) {
@@ -5387,6 +5572,14 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "DUMP_AMNT", 9) == 0) {
 		reply_len = hostapd_ctrl_iface_dump_amnt(hapd, buf+10,
 							reply, reply_size);
+	} else if (os_strncmp(buf, "set_muru_manual_config=", 23) == 0) {
+		// Replace first ':' with a single space ' '
+		char *pos = buf + 23;
+
+		pos = os_strchr(pos, ':');
+		if (pos)
+			*pos = ' ';
+		reply_len = hostapd_ctrl_iface_set_mu(hapd, buf + 23, reply, reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;
