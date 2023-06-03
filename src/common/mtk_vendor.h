@@ -202,8 +202,11 @@ enum mtk_vendor_attr_mu_ctrl {
 
 	MTK_VENDOR_ATTR_MU_CTRL_ONOFF,
 	MTK_VENDOR_ATTR_MU_CTRL_DUMP,
-	MTK_VENDOR_ATTR_MU_CTRL_OFDMA_MODE,
-	MTK_VENDOR_ATTR_MU_CTRL_OFDMA_VAL,
+	/**
+	 * The above attrs are also used by connac 2. It is best not to modify the
+	 * above data structure.
+	 */
+	MTK_VENDOR_ATTR_MU_CTRL_STRUCT,
 
 	/* keep last */
 	NUM_MTK_VENDOR_ATTRS_MU_CTRL,
@@ -278,8 +281,163 @@ struct amnt_resp_data {
 };
 
 enum {
+	MU_CTRL_UPDATE,
 	MU_CTRL_ONOFF,
-	MU_CTRL_DL_USER_CNT,
-	MU_CTRL_UL_USER_CNT,
 };
+
+struct connac3_muru_comm {
+	u8 pda_pol;
+	u8 band;
+	u8 spe_idx;
+	u8 proc_type;
+
+	le16 mlo_ctrl;
+	u8 sch_type;
+	u8 ppdu_format;
+	u8 ac;
+	u8 _rsv[3];
+};
+
+struct connac3_muru_dl {
+	u8 user_num;
+	u8 tx_mode;
+	u8 bw;
+	u8 gi;
+
+	u8 ltf;
+	u8 mcs;
+	u8 dcm;
+	u8 cmprs;
+
+	le16 ru[16];
+
+	u8 c26[2];
+	u8 ack_policy;
+	u8 tx_power;
+
+	le16 mu_ppdu_duration;
+	u8 agc_disp_order;
+	u8 _rsv1;
+
+	u8 agc_disp_pol;
+	u8 agc_disp_ratio;
+	le16 agc_disp_linkMFG;
+
+	le16 prmbl_punc_bmp;
+	u8 _rsv2[2];
+
+	struct {
+		le16 wlan_idx;
+		u8 ru_alloc_seg;
+		u8 ru_idx;
+		u8 ldpc;
+		u8 nss;
+		u8 mcs;
+		u8 mu_group_idx;
+		u8 vht_groud_id;
+		u8 vht_up;
+		u8 he_start_stream;
+		u8 he_mu_spatial;
+		le16 tx_power_alpha;
+		u8 ack_policy;
+		u8 ru_allo_ps160;
+	} usr[16];
+};
+
+struct connac3_muru_ul {
+	u8 user_num;
+	u8 tx_mode;
+
+	u8 ba_type;
+	u8 _rsv;
+
+	u8 bw;
+	u8 gi_ltf;
+	le16 ul_len;
+
+	le16 trig_cnt;
+	u8 pad;
+	u8 trig_type;
+
+	le16 trig_intv;
+	u8 trig_ta[ETH_ALEN];
+	le16 ul_ru[16];
+
+	u8 c26[2];
+	le16 agc_disp_linkMFG;
+
+	u8 agc_disp_mu_len;
+	u8 agc_disp_pol;
+	u8 agc_disp_ratio;
+	u8 agc_disp_pu_idx;
+
+	struct {
+		le16 wlan_idx;
+		u8 ru_alloc_seg;
+		u8 ru_idx;
+		u8 ldpc;
+		u8 nss;
+		u8 mcs;
+		u8 target_rssi;
+		le32 trig_pkt_size;
+		u8 ru_allo_ps160;
+		u8 _rsv2[3];
+	} usr[16];
+};
+
+struct connac3_muru_dbg {
+	/* HE TB RX Debug */
+	le32 rx_hetb_nonsf_en_bitmap;
+	le32 rx_hetb_cfg[2];
+};
+
+struct connac3_muru {
+	le32 cfg_comm;
+	le32 cfg_dl;
+	le32 cfg_ul;
+	le32 cfg_dbg;
+
+	struct connac3_muru_comm comm;
+	struct connac3_muru_dl dl;
+	struct connac3_muru_ul ul;
+	struct connac3_muru_dbg dbg;
+};
+
+#define MURU_OFDMA_SCH_TYPE_DL	BIT(0)
+#define MURU_OFDMA_SCH_TYPE_UL	BIT(1)
+#define MURU_PPDU_HE_TRIG	BIT(2)
+#define MURU_PPDU_HE_MU		BIT(3)
+
+/* Common Config */
+#define MURU_COMM_PPDU_FMT	BIT(0)
+#define MURU_COMM_BAND		BIT(2)
+#define MURU_COMM_WMM		BIT(3)
+#define MURU_COMM_SPE_IDX	BIT(4)
+#define MURU_COMM_SET		(MURU_COMM_PPDU_FMT | MURU_COMM_BAND | \
+				 MURU_COMM_WMM | MURU_COMM_SPE_IDX)
+
+/* DL Common config */
+#define MURU_FIXED_DL_BW		BIT(0)
+#define MURU_FIXED_DL_GI		BIT(1)
+#define MURU_FIXED_DL_TONE_PLAN		BIT(3)
+#define MURU_FIXED_DL_TOTAL_USER_CNT	BIT(4)
+#define MURU_FIXED_DL_LTF		BIT(5)
+#define MURU_FIXED_DL_ACK_PLY		BIT(9)
+
+/* DL Per User Config */
+#define MURU_FIXED_USER_DL_COD		BIT(17)
+#define MURU_FIXED_USER_DL_MCS		BIT(18)
+#define MURU_FIXED_USER_DL_RU_ALLOC	BIT(20)
+
+/* UL Common Config */
+#define MURU_FIXED_UL_TOTAL_USER_CNT	BIT(4)
+#define MURU_FIXED_UL_BW		BIT(5)
+#define MURU_FIXED_UL_GILTF		BIT(6)
+
+/* UL Per User Config */
+#define MURU_FIXED_USER_UL_COD		BIT(18)
+#define MURU_FIXED_USER_UL_MCS		BIT(19)
+#define MURU_FIXED_USER_UL_NSS		BIT(20)
+#define MURU_FIXED_USER_UL_RU_ALLOC	BIT(21)
+
 #endif /* MTK_VENDOR_H */
