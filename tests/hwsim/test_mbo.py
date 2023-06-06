@@ -171,7 +171,7 @@ def test_mbo_supp_oper_classes_us(dev, apdev):
 def test_mbo_supp_oper_classes_jp(dev, apdev):
     """MBO and supported operating classes (JP)"""
     run_mbo_supp_oper_class(dev, apdev, "JP",
-                            "51525354737475767778797a7b808182", True)
+                            "51525354737475767778797a7b8081838482", True)
 
 def test_mbo_supp_oper_classes_bd(dev, apdev):
     """MBO and supported operating classes (BD)"""
