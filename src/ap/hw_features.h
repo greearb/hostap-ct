@@ -28,6 +28,7 @@ int hostapd_prepare_rates(struct hostapd_iface *iface,
 void hostapd_stop_setup_timers(struct hostapd_iface *iface);
 int hostapd_hw_skip_mode(struct hostapd_iface *iface,
 			 struct hostapd_hw_modes *mode);
+void hostapd_determine_mode(struct hostapd_iface *iface);
 #else /* NEED_AP_MLME */
 static inline void
 hostapd_free_hw_features(struct hostapd_hw_modes *hw_features,
@@ -89,6 +90,10 @@ static inline int hostapd_hw_skip_mode(struct hostapd_iface *iface,
 static inline int hostapd_check_he_6ghz_capab(struct hostapd_iface *iface)
 {
 	return 0;
+}
+
+static inline void hostapd_determine_mode(struct hostapd_iface *iface)
+{
 }
 
 #endif /* NEED_AP_MLME */

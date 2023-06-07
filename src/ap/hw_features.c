@@ -1040,7 +1040,7 @@ static bool skip_mode(struct hostapd_iface *iface,
 }
 
 
-static void hostapd_determine_mode(struct hostapd_iface *iface)
+void hostapd_determine_mode(struct hostapd_iface *iface)
 {
 	int i;
 	enum hostapd_hw_mode target_mode;
