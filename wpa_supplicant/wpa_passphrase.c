@@ -34,27 +34,32 @@ int main(int argc, char *argv[])
 		passphrase = argv[2];
 	} else {
 		bool ctrl_echo;
+		bool reset_term = true;
 
 		fprintf(stderr, "# reading passphrase from stdin\n");
 		if (tcgetattr(STDIN_FILENO, &term) < 0) {
-			perror("tcgetattr");
-			return 1;
+			//perror("tcgetattr"); // reading from a pipe perhaps.
+			reset_term = false;
 		}
-		ctrl_echo = term.c_lflag & ECHO;
-		term.c_lflag &= ~ECHO;
-		if (ctrl_echo && tcsetattr(STDIN_FILENO, TCSANOW, &term) < 0) {
-			perror("tcsetattr:error disabling echo");
-			return 1;
+		else {
+			ctrl_echo = term.c_lflag & ECHO;
+			term.c_lflag &= ~ECHO;
+			if (ctrl_echo && tcsetattr(STDIN_FILENO, TCSANOW, &term) < 0) {
+				perror("tcsetattr:error disabling echo");
+				return 1;
+			}
 		}
 		if (fgets(buf, sizeof(buf), stdin) == NULL) {
 			fprintf(stderr, "Failed to read passphrase\n");
 			return 1;
 		}
-		term.c_lflag |= ECHO;
-		if (ctrl_echo && tcsetattr(STDIN_FILENO, TCSANOW, &term) < 0) {
-			perror("tcsetattr:error enabling echo");
-			return 1;
+		if (reset_term) {
+			term.c_lflag |= ECHO;
+			if (ctrl_echo && tcsetattr(STDIN_FILENO, TCSANOW, &term) < 0) {
+				perror("tcsetattr:error enabling echo");
+			}
 		}
+
 		buf[sizeof(buf) - 1] = '\0';
 		pos = buf;
 		while (*pos != '\0') {
