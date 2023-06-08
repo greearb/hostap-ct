@@ -16,10 +16,14 @@
 #include "driver_i.h"
 #include "scan.h"
 #include "bgscan.h"
+#include "config.h"
+#include "wnm_sta.h"
 
 struct bgscan_simple_data {
 	struct wpa_supplicant *wpa_s;
 	const struct wpa_ssid *ssid;
+	int use_wnm_query;
+	unsigned int scan_action_count;
 	int scan_interval;
 	int signal_threshold;
 	int short_scan_count; /* counter for scans using short scan interval */
@@ -35,6 +39,22 @@ static void bgscan_simple_timeout(void *eloop_ctx, void *timeout_ctx)
 	struct bgscan_simple_data *data = eloop_ctx;
 	struct wpa_supplicant *wpa_s = data->wpa_s;
 	struct wpa_driver_scan_params params;
+
+	if (data->use_wnm_query && !wpa_s->conf->disable_btm) {
+		int mod;
+
+		/* try wnm x times, scan on x + 1 */
+		data->scan_action_count++;
+		mod = data->scan_action_count % (data->use_wnm_query + 1);
+		if (mod < data->use_wnm_query) {
+			wpa_printf(MSG_DEBUG, "bgscan simple: Send bss transition mgt query %d/%d",
+				   mod, data->use_wnm_query);
+			if (wnm_send_bss_transition_mgmt_query(wpa_s, 6 /* better AP found */, NULL, 0))
+				wpa_printf(MSG_DEBUG, "bgscan simple: Failed send bss transition mgt query");
+			else
+				goto scan_ok;
+		}
+	}
 
 	os_memset(&params, 0, sizeof(params));
 	params.num_ssids = 1;
@@ -58,6 +78,7 @@ static void bgscan_simple_timeout(void *eloop_ctx, void *timeout_ctx)
 		eloop_register_timeout(data->scan_interval, 0,
 				       bgscan_simple_timeout, data, NULL);
 	} else {
+	scan_ok:
 		if (data->scan_interval == data->short_interval) {
 			data->short_scan_count++;
 			if (data->short_scan_count >= data->max_short_scans) {
@@ -84,6 +105,8 @@ static int bgscan_simple_get_params(struct bgscan_simple_data *data,
 {
 	const char *pos;
 
+	data->use_wnm_query = 0;
+
 	data->short_interval = atoi(params);
 
 	pos = os_strchr(params, ':');
@@ -99,6 +122,11 @@ static int bgscan_simple_get_params(struct bgscan_simple_data *data,
 	}
 	pos++;
 	data->long_interval = atoi(pos);
+	pos = os_strchr(pos, ':');
+	if (pos) {
+		pos++;
+		data->use_wnm_query = atoi(pos);
+	}
 
 	return 0;
 }
