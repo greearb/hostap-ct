@@ -9706,6 +9706,14 @@ enum qca_wlan_vendor_attr_wifi_test_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_EHT_MLO_STR_TX = 70,
 
+	/* Nested attribute to indicate EHT MLO links on which powersave to be
+	 * enabled. It contains link ID attributes. These nested attributes are
+	 * of the type u8 and are used to enable the powersave on associated
+	 * MLO links corresponding to the link IDs provided in the command.
+	 * This attribute is used to configure the testbed device.
+	 */
+	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_EHT_MLO_LINK_POWER_SAVE = 71,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_MAX =
