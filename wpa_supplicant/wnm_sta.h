@@ -37,6 +37,7 @@ struct neighbor_report {
 	u32 distance; /* valid if bearing_present=1 */
 	u64 bss_term_tsf; /* valid if bss_term_present=1 */
 	u16 bss_term_dur; /* valid if bss_term_present=1 */
+	unsigned int disassoc_imminent:1;
 	unsigned int preference_present:1;
 	unsigned int tsf_present:1;
 	unsigned int country_present:1;
