@@ -39,6 +39,7 @@ static void bgscan_simple_timeout(void *eloop_ctx, void *timeout_ctx)
 	struct bgscan_simple_data *data = eloop_ctx;
 	struct wpa_supplicant *wpa_s = data->wpa_s;
 	struct wpa_driver_scan_params params;
+	bool was_btm = false;
 
 	if (data->use_wnm_query && !wpa_s->conf->disable_btm) {
 		int mod;
@@ -49,10 +50,13 @@ static void bgscan_simple_timeout(void *eloop_ctx, void *timeout_ctx)
 		if (mod < data->use_wnm_query) {
 			wpa_printf(MSG_DEBUG, "bgscan simple: Send bss transition mgt query %d/%d",
 				   mod, data->use_wnm_query);
-			if (wnm_send_bss_transition_mgmt_query(wpa_s, 6 /* better AP found */, NULL, 0))
+			if (wnm_send_bss_transition_mgmt_query(wpa_s, 6 /* better AP found */, NULL, 0)) {
 				wpa_printf(MSG_DEBUG, "bgscan simple: Failed send bss transition mgt query");
-			else
+			}
+			else {
+				was_btm = true;
 				goto scan_ok;
+			}
 		}
 	}
 
@@ -80,7 +84,11 @@ static void bgscan_simple_timeout(void *eloop_ctx, void *timeout_ctx)
 	} else {
 	scan_ok:
 		if (data->scan_interval == data->short_interval) {
-			data->short_scan_count++;
+			/* btm is more efficient than scan, we assume,
+			 * so don't penalize it.
+			 */
+			if (!was_btm)
+				data->short_scan_count++;
 			if (data->short_scan_count >= data->max_short_scans) {
 				data->scan_interval = data->long_interval;
 				wpa_printf(MSG_DEBUG, "bgscan simple: Backing "
