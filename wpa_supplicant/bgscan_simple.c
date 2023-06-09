@@ -79,9 +79,12 @@ static void bgscan_simple_timeout(void *eloop_ctx, void *timeout_ctx)
 	struct bgscan_simple_data *data = eloop_ctx;
 	struct wpa_supplicant *wpa_s = data->wpa_s;
 	struct wpa_driver_scan_params params;
+	bool was_btm = false;
 
-	if (bgscan_simple_btm_query(wpa_s, data))
+	if (bgscan_simple_btm_query(wpa_s, data)) {
+		was_btm = true;
 		goto scan_ok;
+	}
 
 	os_memset(&params, 0, sizeof(params));
 	params.num_ssids = 1;
@@ -111,7 +114,11 @@ static void bgscan_simple_timeout(void *eloop_ctx, void *timeout_ctx)
 	} else {
 	scan_ok:
 		if (data->scan_interval == data->short_interval) {
-			data->short_scan_count++;
+			/* btm is more efficient than scan, we assume,
+			 * so don't penalize it.
+			 */
+			if (!was_btm)
+				data->short_scan_count++;
 			if (data->short_scan_count >= data->max_short_scans) {
 				data->scan_interval = data->long_interval;
 				wpa_printf(MSG_DEBUG, "bgscan simple: Backing "
