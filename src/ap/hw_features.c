@@ -749,6 +749,32 @@ static int ieee80211be_supported_eht_capab(struct hostapd_iface *iface)
 #ifdef CONFIG_IEEE80211AX
 static int ieee80211ax_supported_he_capab(struct hostapd_iface *iface)
 {
+	struct hostapd_hw_modes *mode = iface->current_mode;
+	struct he_capabilities *he_cap = &mode->he_capab[IEEE80211_MODE_AP];
+	struct hostapd_config *conf = iface->conf;
+
+#define HE_CAP_CHECK(hw_cap, field, phy_idx, cfg_cap)					\
+	do {									\
+		if (cfg_cap && !(hw_cap[phy_idx] & field)) {	\
+			wpa_printf(MSG_ERROR, "Driver does not support configured" \
+				     " HE capability [%s]", #field);		\
+			return 0;						\
+		}								\
+	} while (0)
+
+	HE_CAP_CHECK(he_cap->phy_cap, HE_PHYCAP_LDPC_CODING_IN_PAYLOAD,
+		     HE_PHYCAP_LDPC_CODING_IN_PAYLOAD_IDX,
+		     conf->he_phy_capab.he_ldpc);
+	HE_CAP_CHECK(he_cap->phy_cap, HE_PHYCAP_SU_BEAMFORMER_CAPAB,
+		     HE_PHYCAP_SU_BEAMFORMER_CAPAB_IDX,
+		     conf->he_phy_capab.he_su_beamformer);
+	HE_CAP_CHECK(he_cap->phy_cap, HE_PHYCAP_SU_BEAMFORMEE_CAPAB,
+		     HE_PHYCAP_SU_BEAMFORMEE_CAPAB_IDX,
+		     conf->he_phy_capab.he_su_beamformee);
+	HE_CAP_CHECK(he_cap->phy_cap, HE_PHYCAP_MU_BEAMFORMER_CAPAB,
+		     HE_PHYCAP_MU_BEAMFORMER_CAPAB_IDX,
+		     conf->he_phy_capab.he_mu_beamformer);
+
 	return iface->current_mode->he_capab[IEEE80211_MODE_AP].he_supported;
 }
 #endif /* CONFIG_IEEE80211AX */
