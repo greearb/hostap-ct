@@ -104,10 +104,9 @@ static void ieee802_1x_send(struct hostapd_data *hapd, struct sta_info *sta,
 }
 
 
-#ifdef CONFIG_IEEE80211BE
-static void ieee802_1x_ml_set_link_sta_auth(struct hostapd_data *hapd,
-					    struct sta_info *sta,
-					    bool authorized)
+static void ieee802_1x_set_authorized(struct hostapd_data *hapd,
+				      struct sta_info *sta,
+				      bool authorized, bool mld)
 {
 	int res;
 
@@ -120,7 +119,11 @@ static void ieee802_1x_ml_set_link_sta_auth(struct hostapd_data *hapd,
 		       HOSTAPD_LEVEL_DEBUG, "%sauthorizing port",
 		       authorized ? "" : "un");
 
-	if (res) {
+	if (!mld && res && errno != ENOENT) {
+		wpa_printf(MSG_DEBUG, "Could not set station " MACSTR
+			   " flags for kernel driver (errno=%d).",
+			   MAC2STR(sta->addr), errno);
+	} else if (mld && res) {
 		wpa_printf(MSG_DEBUG,
 			   "MLD: Could not set station " MACSTR " flags",
 			   MAC2STR(sta->addr));
@@ -131,7 +134,6 @@ static void ieee802_1x_ml_set_link_sta_auth(struct hostapd_data *hapd,
 		accounting_sta_start(hapd, sta);
 	}
 }
-#endif /* CONFIG_IEEE80211BE */
 
 
 static void ieee802_1x_ml_set_sta_authorized(struct hostapd_data *hapd,
@@ -174,9 +176,8 @@ static void ieee802_1x_ml_set_sta_authorized(struct hostapd_data *hapd,
 				    tmp_sta->aid != sta->aid)
 					continue;
 
-				ieee802_1x_ml_set_link_sta_auth(tmp_hapd,
-								tmp_sta,
-								authorized);
+				ieee802_1x_set_authorized(tmp_hapd, tmp_sta,
+							  authorized, true);
 				break;
 			}
 		}
@@ -189,34 +190,7 @@ static void ieee802_1x_ml_set_sta_authorized(struct hostapd_data *hapd,
 void ieee802_1x_set_sta_authorized(struct hostapd_data *hapd,
 				   struct sta_info *sta, int authorized)
 {
-	int res;
-
-	if (sta->flags & WLAN_STA_PREAUTH)
-		return;
-
-	if (authorized) {
-		ap_sta_set_authorized(hapd, sta, 1);
-		res = hostapd_set_authorized(hapd, sta, 1);
-		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE8021X,
-			       HOSTAPD_LEVEL_DEBUG, "authorizing port");
-	} else {
-		ap_sta_set_authorized(hapd, sta, 0);
-		res = hostapd_set_authorized(hapd, sta, 0);
-		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE8021X,
-			       HOSTAPD_LEVEL_DEBUG, "unauthorizing port");
-	}
-
-	if (res && errno != ENOENT) {
-		wpa_printf(MSG_DEBUG, "Could not set station " MACSTR
-			   " flags for kernel driver (errno=%d).",
-			   MAC2STR(sta->addr), errno);
-	}
-
-	if (authorized) {
-		os_get_reltime(&sta->connected_time);
-		accounting_sta_start(hapd, sta);
-	}
-
+	ieee802_1x_set_authorized(hapd, sta, authorized, false);
 	ieee802_1x_ml_set_sta_authorized(hapd, sta, !!authorized);
 }
 
