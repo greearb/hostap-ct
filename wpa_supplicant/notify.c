@@ -396,6 +396,10 @@ void wpas_notify_network_removed(struct wpa_supplicant *wpa_s,
 		wpa_s->last_ssid = NULL;
 	if (wpa_s->current_ssid == ssid)
 		wpa_s->current_ssid = NULL;
+	if (wpa_s->ml_connect_probe_ssid == ssid) {
+		wpa_s->ml_connect_probe_ssid = NULL;
+		wpa_s->ml_connect_probe_bss = NULL;
+	}
 #if defined(CONFIG_SME) && defined(CONFIG_SAE)
 	if (wpa_s->sme.ext_auth_wpa_ssid == ssid)
 		wpa_s->sme.ext_auth_wpa_ssid = NULL;

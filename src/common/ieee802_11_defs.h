@@ -2452,8 +2452,12 @@ struct ieee80211_he_mu_edca_parameter_set {
  */
 #define RNR_HEADER_LEN                              2
 #define RNR_TBTT_HEADER_LEN                         4
+#define RNR_TBTT_INFO_HDR_TYPE_MSK                  0x03
+#define RNR_TBTT_INFO_HDR_FILTERED_AP               0x04
+#define RNR_TBTT_INFO_HDR_CNT_MSK                   0xf0
 #define RNR_TBTT_INFO_COUNT(x)                      (((x) & 0xf) << 4)
 #define RNR_TBTT_INFO_COUNT_MAX                     16
+#define RNR_TBTT_INFO_COUNT_VAL(x)                  (((x) & 0xf0) >> 4)
 #define RNR_TBTT_INFO_LEN                           13
 #define RNR_TBTT_INFO_MLD_LEN                       16
 #define RNR_NEIGHBOR_AP_OFFSET_UNKNOWN              255

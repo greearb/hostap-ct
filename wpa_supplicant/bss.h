@@ -124,6 +124,15 @@ struct wpa_bss {
 	size_t beacon_ie_len;
 	/** MLD address of the AP */
 	u8 mld_addr[ETH_ALEN];
+
+	/** An array of MLD links */
+	u8 n_mld_links;
+	struct mld_link {
+		u8 link_id;
+		u8 bssid[ETH_ALEN];
+		int freq;
+	} mld_links[MAX_NUM_MLD_LINKS];
+
 	/* followed by ie_len octets of IEs */
 	/* followed by beacon_ie_len octets of IEs */
 	u8 ies[];
@@ -202,5 +211,9 @@ void calculate_update_time(const struct os_reltime *fetch_time,
 			   struct os_reltime *update_time);
 
 struct wpabuf * wpa_bss_defrag_mle(const struct wpa_bss *bss, u8 type);
+int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
+				   struct wpa_bss *bss,
+				   u8 *ap_mld_addr,
+				   u16 *missing_links);
 
 #endif /* BSS_H */

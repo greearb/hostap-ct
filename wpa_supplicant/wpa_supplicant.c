@@ -4456,6 +4456,8 @@ static void wpa_supplicant_clear_connection(struct wpa_supplicant *wpa_s,
 {
 	struct wpa_ssid *old_ssid;
 
+	wpa_s->ml_connect_probe_ssid = NULL;
+	wpa_s->ml_connect_probe_bss = NULL;
 	wpas_connect_work_done(wpa_s);
 	wpa_clear_keys(wpa_s, addr);
 	old_ssid = wpa_s->current_ssid;
@@ -5768,6 +5770,7 @@ wpa_supplicant_alloc(struct wpa_supplicant *parent)
 	dl_list_init(&wpa_s->drv_signal_override);
 #endif /* CONFIG_TESTING_OPTIONS */
 	dl_list_init(&wpa_s->active_scs_ids);
+	wpa_s->ml_probe_mld_id = -1;
 
 	return wpa_s;
 }

@@ -904,6 +904,10 @@ struct wpa_supplicant {
 	unsigned int suitable_network;
 	unsigned int no_suitable_network;
 
+	u8 ml_probe_bssid[ETH_ALEN];
+	int ml_probe_mld_id;
+	u16 ml_probe_links;
+
 	u64 drv_flags;
 	u64 drv_flags2;
 	unsigned int drv_enc;
@@ -1564,6 +1568,9 @@ struct wpa_supplicant {
 	unsigned int wait_for_dscp_req:1;
 
 	struct wpa_signal_info last_signal_info;
+
+	struct wpa_ssid *ml_connect_probe_ssid;
+	struct wpa_bss *ml_connect_probe_bss;
 };
 
 

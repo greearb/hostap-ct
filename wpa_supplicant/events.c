@@ -1832,6 +1832,76 @@ static void wpa_supplicant_req_new_scan(struct wpa_supplicant *wpa_s,
 }
 
 
+static bool ml_link_probe_scan(struct wpa_supplicant *wpa_s)
+{
+	if (!wpa_s->ml_connect_probe_ssid || !wpa_s->ml_connect_probe_bss)
+		return false;
+
+	wpa_msg(wpa_s, MSG_DEBUG,
+		"Request association with " MACSTR " after ML probe",
+		MAC2STR(wpa_s->ml_connect_probe_bss->bssid));
+
+	wpa_supplicant_associate(wpa_s, wpa_s->ml_connect_probe_bss,
+				 wpa_s->ml_connect_probe_ssid);
+
+	wpa_s->ml_connect_probe_ssid = NULL;
+	wpa_s->ml_connect_probe_bss = NULL;
+
+	return true;
+}
+
+
+static int wpa_supplicant_connect_ml_missing(struct wpa_supplicant *wpa_s,
+					     struct wpa_bss *selected,
+					     struct wpa_ssid *ssid)
+{
+	int *freqs;
+	u16 missing_links = 0;
+
+	if (!((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
+	      (wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME)))
+		return 0;
+
+	/* Try to resolve any missing link information */
+	if (wpa_bss_parse_basic_ml_element(wpa_s, selected, NULL,
+					   &missing_links) || !missing_links)
+		return 0;
+
+	wpa_dbg(wpa_s, MSG_DEBUG,
+		"MLD: Doing an ML probe for missing links 0x%04x",
+		missing_links);
+
+	freqs = os_malloc(sizeof(int) * 2);
+	if (!freqs)
+		return 0;
+
+	wpa_s->ml_connect_probe_ssid = ssid;
+	wpa_s->ml_connect_probe_bss = selected;
+
+	freqs[0] = selected->freq;
+	freqs[1] = 0;
+
+	wpa_s->manual_scan_passive = 0;
+	wpa_s->manual_scan_use_id = 0;
+	wpa_s->manual_scan_only_new = 0;
+	wpa_s->scan_id_count = 0;
+	os_free(wpa_s->manual_scan_freqs);
+	wpa_s->manual_scan_freqs = freqs;
+
+	os_memcpy(wpa_s->ml_probe_bssid, selected->bssid, ETH_ALEN);
+	wpa_s->ml_probe_mld_id = -1;
+	wpa_s->ml_probe_links = missing_links;
+
+	wpa_s->normal_scans = 0;
+	wpa_s->scan_req = MANUAL_SCAN_REQ;
+	wpa_s->after_wps = 0;
+	wpa_s->known_wps_freq = 0;
+	wpa_supplicant_req_scan(wpa_s, 0, 0);
+
+	return 1;
+}
+
+
 int wpa_supplicant_connect(struct wpa_supplicant *wpa_s,
 			   struct wpa_bss *selected,
 			   struct wpa_ssid *ssid)
@@ -1888,6 +1958,10 @@ int wpa_supplicant_connect(struct wpa_supplicant *wpa_s,
 			wpa_supplicant_req_new_scan(wpa_s, 10, 0);
 			return 0;
 		}
+
+		if (wpa_supplicant_connect_ml_missing(wpa_s, selected, ssid))
+			return 0;
+
 		wpa_msg(wpa_s, MSG_DEBUG, "Request association with " MACSTR,
 			MAC2STR(selected->bssid));
 		wpa_supplicant_associate(wpa_s, selected, ssid);
@@ -2313,6 +2387,9 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 
 	if (own_request && data &&
 	    wpas_beacon_rep_scan_process(wpa_s, scan_res, &data->scan_info) > 0)
+		goto scan_work_done;
+
+	if (ml_link_probe_scan(wpa_s))
 		goto scan_work_done;
 
 	if ((wpa_s->conf->ap_scan == 2 && !wpas_wps_searching(wpa_s)))

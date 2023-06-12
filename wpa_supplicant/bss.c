@@ -385,6 +385,9 @@ static int wpa_bss_in_use(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 	if (bss == wpa_s->current_bss)
 		return 1;
 
+	if (bss == wpa_s->ml_connect_probe_bss)
+		return 1;
+
 	if (wpa_s->current_bss &&
 	    (bss->ssid_len != wpa_s->current_bss->ssid_len ||
 	     os_memcmp(bss->ssid, wpa_s->current_bss->ssid,
@@ -736,8 +739,13 @@ wpa_bss_update(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 					break;
 				}
 			}
+
 			if (wpa_s->current_bss == bss)
 				wpa_s->current_bss = nbss;
+
+			if (wpa_s->ml_connect_probe_bss == bss)
+				wpa_s->ml_connect_probe_bss = nbss;
+
 			wpa_bss_update_pending_connect(wpa_s, bss, nbss);
 			bss = nbss;
 			os_memcpy(bss->ies, res + 1,
@@ -1467,4 +1475,236 @@ struct wpabuf * wpa_bss_defrag_mle(const struct wpa_bss *bss, u8 type)
 		return NULL;
 
 	return ieee802_11_defrag_mle(&elems, type);
+}
+
+
+static void
+wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
+			     struct wpa_bss *bss, u8 mbssid_idx,
+			     const struct ieee80211_neighbor_ap_info *ap_info,
+			     size_t len, u16 *seen, u16 *missing)
+{
+	const u8 *pos, *end;
+	const u8 *mld_params;
+	u8 count, mld_params_offset;
+	u8 i, type, link_id;
+
+	count = RNR_TBTT_INFO_COUNT_VAL(ap_info->tbtt_info_hdr) + 1;
+	type = ap_info->tbtt_info_hdr & RNR_TBTT_INFO_HDR_TYPE_MSK;
+
+	/* MLD information is at offset 13 or at start */
+	if (type == 0 && ap_info->tbtt_info_len >= RNR_TBTT_INFO_MLD_LEN) {
+		/* MLD info is appended */
+		mld_params_offset = RNR_TBTT_INFO_LEN;
+	} else {
+		/* TODO: Support NSTR AP */
+		return;
+	}
+
+	pos = (const u8 *) ap_info;
+	end = pos + len;
+	pos += sizeof(*ap_info);
+
+	for (i = 0; i < count; i++) {
+		if (bss->n_mld_links >= MAX_NUM_MLD_LINKS)
+			return;
+
+		if (end - pos < ap_info->tbtt_info_len)
+			break;
+
+		mld_params = pos + mld_params_offset;
+
+		link_id = *(mld_params + 1) & EHT_ML_LINK_ID_MSK;
+
+		if (*mld_params != mbssid_idx) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Reported link not part of MLD");
+		} else if (!(BIT(link_id) & *seen)) {
+			struct wpa_bss *neigh_bss =
+				wpa_bss_get_bssid(wpa_s, ap_info->data + 1);
+
+			*seen |= BIT(link_id);
+			wpa_printf(MSG_DEBUG, "MLD: mld ID=%u, link ID=%u",
+				   *mld_params, link_id);
+
+			if (neigh_bss) {
+				struct mld_link *l;
+
+				l = &bss->mld_links[bss->n_mld_links];
+				l->link_id = link_id;
+				os_memcpy(l->bssid, ap_info->data + 1,
+					  ETH_ALEN);
+				l->freq = neigh_bss->freq;
+				bss->n_mld_links++;
+			} else {
+				*missing |= BIT(link_id);
+			}
+		}
+
+		pos += ap_info->tbtt_info_len;
+	}
+}
+
+
+/**
+ * wpa_bss_parse_basic_ml_element - Parse the Basic Multi-Link element
+ * @wpa_s: Pointer to wpa_supplicant data
+ * @bss: BSS table entry
+ * @mld_addr: AP MLD address (or %NULL)
+ * @link_info: Array to store link information (or %NULL),
+ *   should be initialized and #MAX_NUM_MLD_LINKS elements long
+ * @missing_links: Result bitmask of links that were not discovered (or %NULL)
+ * Returns: 0 on success or -1 for non-MLD or parsing failures
+ *
+ * Parses the Basic Multi-Link element of the BSS into @link_info using the scan
+ * information stored in the wpa_supplicant data to fill in information for
+ * links where possible. The @missing_links out parameter will contain any links
+ * for which no corresponding BSS was found.
+ */
+int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
+				   struct wpa_bss *bss,
+				   u8 *ap_mld_addr,
+				   u16 *missing_links)
+{
+	struct ieee802_11_elems elems;
+	struct wpabuf *mlbuf;
+	const struct element *elem;
+	u8 mbssid_idx = 0;
+	u8 ml_ie_len;
+	const struct ieee80211_eht_ml *eht_ml;
+	const struct eht_ml_basic_common_info *ml_basic_common_info;
+	u8 i, link_id;
+	const u16 control_mask =
+		MULTI_LINK_CONTROL_TYPE_MASK |
+		BASIC_MULTI_LINK_CTRL_PRES_LINK_ID |
+		BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT |
+		BASIC_MULTI_LINK_CTRL_PRES_MLD_CAPA;
+	const u16 control =
+		MULTI_LINK_CONTROL_TYPE_BASIC |
+		BASIC_MULTI_LINK_CTRL_PRES_LINK_ID |
+		BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT |
+		BASIC_MULTI_LINK_CTRL_PRES_MLD_CAPA;
+	u16 missing = 0;
+	u16 seen;
+	const u8 *ies_pos = wpa_bss_ie_ptr(bss);
+	size_t ies_len = bss->ie_len ? bss->ie_len : bss->beacon_ie_len;
+	int ret = -1;
+	struct mld_link *l;
+
+	if (ieee802_11_parse_elems(ies_pos, ies_len, &elems, 1) ==
+	    ParseFailed) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: Failed to parse elements");
+		return ret;
+	}
+
+	mlbuf = ieee802_11_defrag_mle(&elems, MULTI_LINK_CONTROL_TYPE_BASIC);
+	if (!mlbuf) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No Multi-Link element");
+		return ret;
+	}
+
+	ml_ie_len = wpabuf_len(mlbuf);
+
+	/*
+	 * for ext ID + 2 control + common info len + MLD address +
+	 * link info
+	 */
+	if (ml_ie_len < 2UL + 1UL + ETH_ALEN + 1UL)
+		goto out;
+
+	eht_ml = (const struct ieee80211_eht_ml *) wpabuf_head(mlbuf);
+	if ((le_to_host16(eht_ml->ml_control) & control_mask) != control) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Unexpected Multi-Link element control=0x%x (mask 0x%x expected 0x%x)",
+			   le_to_host16(eht_ml->ml_control), control_mask,
+			   control);
+		goto out;
+	}
+
+	ml_basic_common_info =
+		(const struct eht_ml_basic_common_info *) eht_ml->variable;
+
+	/* Common info length should be valid */
+	if (ml_basic_common_info->len < ETH_ALEN + 1UL)
+		goto out;
+
+	/* Get the MLD address and MLD link ID */
+	if (ap_mld_addr)
+		os_memcpy(ap_mld_addr, ml_basic_common_info->mld_addr,
+			  ETH_ALEN);
+
+	bss->n_mld_links = 0;
+	l = &bss->mld_links[bss->n_mld_links];
+	link_id = ml_basic_common_info->variable[0] & EHT_ML_LINK_ID_MSK;
+	l->link_id = link_id;
+	os_memcpy(l->bssid, bss->bssid, ETH_ALEN);
+	l->freq = bss->freq;
+
+	seen = BIT(link_id);
+	bss->n_mld_links++;
+
+	/*
+	 * The AP MLD ID in the RNR corresponds to the MBSSID index, see
+	 * IEEE P802.11be/D4.0, 9.4.2.169.2 (Neighbor AP Information field).
+	 *
+	 * For the transmitting BSSID it is clear that both the MBSSID index
+	 * and the AP MLD ID in the RNR are zero.
+	 *
+	 * For nontransmitted BSSIDs we will have a BSS generated from the
+	 * MBSSID element(s) using inheritance rules. Included in the elements
+	 * is the MBSSID Index Element. The RNR is copied from the Beacon/Probe
+	 * Response frame that was send by the transmitting BSSID. As such, the
+	 * reported AP MLD ID in the RNR will match the value in the MBSSID
+	 * Index Element.
+	 */
+	elem = (const struct element *)
+		wpa_bss_get_ie(bss, WLAN_EID_MULTIPLE_BSSID_INDEX);
+	if (elem && elem->datalen >= 1)
+		mbssid_idx = elem->data[0];
+
+	for_each_element_id(elem, WLAN_EID_REDUCED_NEIGHBOR_REPORT,
+			    wpa_bss_ie_ptr(bss),
+			    bss->ie_len ? bss->ie_len : bss->beacon_ie_len) {
+		const struct ieee80211_neighbor_ap_info *ap_info;
+		const u8 *pos = elem->data;
+		size_t len = elem->datalen;
+
+		/* RNR IE may contain more than one Neighbor AP Info */
+		while (sizeof(*ap_info) <= len) {
+			size_t ap_info_len = sizeof(*ap_info);
+			u8 count;
+
+			ap_info = (const struct ieee80211_neighbor_ap_info *)
+				pos;
+			count = RNR_TBTT_INFO_COUNT_VAL(ap_info->tbtt_info_hdr) + 1;
+			ap_info_len += count * ap_info->tbtt_info_len;
+
+			if (ap_info_len > len)
+				goto out;
+
+			wpa_bss_parse_ml_rnr_ap_info(wpa_s, bss, mbssid_idx,
+						     ap_info, len, &seen,
+						     &missing);
+
+			pos += ap_info_len;
+			len -= ap_info_len;
+		}
+	}
+
+	wpa_printf(MSG_DEBUG, "MLD: n_mld_links=%u (unresolved: 0x%04hx)",
+		   bss->n_mld_links, missing);
+
+	for (i = 0; i < bss->n_mld_links; i++) {
+		wpa_printf(MSG_DEBUG, "MLD: link=%u, bssid=" MACSTR,
+			   bss->mld_links[i].link_id,
+			   MAC2STR(bss->mld_links[i].bssid));
+	}
+
+	if (missing_links)
+		*missing_links = missing;
+
+	ret = 0;
+out:
+	wpabuf_free(mlbuf);
+	return ret;
 }
