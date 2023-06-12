@@ -3045,6 +3045,7 @@ wpa_scan_clone_params(const struct wpa_driver_scan_params *src)
 	params->relative_adjust_rssi = src->relative_adjust_rssi;
 	params->p2p_include_6ghz = src->p2p_include_6ghz;
 	params->non_coloc_6ghz = src->non_coloc_6ghz;
+	params->min_probe_req_content = src->min_probe_req_content;
 	return params;
 
 failed:

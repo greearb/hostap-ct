@@ -315,6 +315,14 @@ nl80211_scan_common(struct i802_bss *bss, u8 cmd,
 			NL80211_SCAN_FLAG_OCE_PROBE_REQ_DEFERRAL_SUPPRESSION;
 	}
 
+	if (params->min_probe_req_content) {
+		if (drv->capa.flags2 & WPA_DRIVER_FLAGS2_SCAN_MIN_PREQ)
+			scan_flags |= NL80211_SCAN_FLAG_MIN_PREQ_CONTENT;
+		else
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: NL80211_SCAN_FLAG_MIN_PREQ_CONTENT not supported");
+	}
+
 	if (scan_flags &&
 	    nla_put_u32(msg, NL80211_ATTR_SCAN_FLAGS, scan_flags))
 		goto fail;

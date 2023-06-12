@@ -685,6 +685,13 @@ struct wpa_driver_scan_params {
 	 */
 	unsigned int non_coloc_6ghz:1;
 
+	/**
+	 * min_probe_req_content - Minimize probe request content to only have
+	 * minimal requirement elements, e.g., supported rates etc., and no
+	 * additional elements other then those provided by user space.
+	 */
+	unsigned int min_probe_req_content:1;
+
 	/*
 	 * NOTE: Whenever adding new parameters here, please make sure
 	 * wpa_scan_clone_params() and wpa_scan_free_params() get updated with
@@ -2253,6 +2260,8 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_FLAGS2_PROT_RANGE_NEG_STA	0x0000000000002000ULL
 /** Driver supports MLO in station/AP mode */
 #define WPA_DRIVER_FLAGS2_MLO			0x0000000000004000ULL
+/** Driver supports minimal scan request probe content  */
+#define WPA_DRIVER_FLAGS2_SCAN_MIN_PREQ         0x0000000000008000ULL
 	u64 flags2;
 
 #define FULL_AP_CLIENT_STATE_SUPP(drv_flags) \
