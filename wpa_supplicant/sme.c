@@ -541,6 +541,15 @@ out:
 }
 
 
+static void wpas_ml_handle_removed_links(struct wpa_supplicant *wpa_s,
+					 struct wpa_bss *bss)
+{
+	u16 removed_links = wpa_bss_parse_reconf_ml_element(wpa_s, bss);
+
+	wpa_s->valid_links &= ~removed_links;
+}
+
+
 static void wpas_sme_ml_auth(struct wpa_supplicant *wpa_s,
 			     union wpa_event_data *data,
 			     int ie_offset)
@@ -639,6 +648,7 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		params.mld = true;
 		params.mld_link_id = wpa_s->mlo_assoc_link_id;
 		params.ap_mld_addr = wpa_s->ap_mld_addr;
+		wpas_ml_handle_removed_links(wpa_s, bss);
 	}
 
 	if (wpa_s->sme.ssid_len != params.ssid_len ||

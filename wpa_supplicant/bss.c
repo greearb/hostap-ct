@@ -1708,3 +1708,83 @@ out:
 	wpabuf_free(mlbuf);
 	return ret;
 }
+
+
+/*
+ * wpa_bss_parse_reconf_ml_element - Parse the Reconfiguration ML element
+ * @wpa_s: Pointer to wpa_supplicant data
+ * @bss: BSS table entry
+ * Returns: The bitmap of links that are going to be removed
+ */
+u16 wpa_bss_parse_reconf_ml_element(struct wpa_supplicant *wpa_s,
+				    struct wpa_bss *bss)
+{
+	struct ieee802_11_elems elems;
+	struct wpabuf *mlbuf;
+	const u8 *pos = wpa_bss_ie_ptr(bss);
+	size_t len = bss->ie_len ? bss->ie_len : bss->beacon_ie_len;
+	const struct ieee80211_eht_ml *ml;
+	u16 removed_links = 0;
+	u8 ml_common_len;
+
+	if (ieee802_11_parse_elems(pos, len, &elems, 1) == ParseFailed)
+		return 0;
+
+	if (!elems.reconf_mle || !elems.reconf_mle_len)
+		return 0;
+
+	mlbuf = ieee802_11_defrag_mle(&elems, MULTI_LINK_CONTROL_TYPE_RECONF);
+	if (!mlbuf)
+		return 0;
+
+	ml = (const struct ieee80211_eht_ml *) wpabuf_head(mlbuf);
+	len = wpabuf_len(mlbuf);
+
+	if (len < sizeof(*ml))
+		goto out;
+
+	ml_common_len = 1;
+	if (ml->ml_control & RECONF_MULTI_LINK_CTRL_PRES_MLD_MAC_ADDR)
+		ml_common_len += ETH_ALEN;
+
+	if (len < sizeof(*ml) + ml_common_len) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Unexpected Reconfiguration ML element length: (%zu < %zu)",
+			   len, sizeof(*ml) + ml_common_len);
+		goto out;
+	}
+
+	pos = ml->variable + ml_common_len;
+	len -= sizeof(*ml) + ml_common_len;
+
+	while (len >= 2 + sizeof(struct ieee80211_eht_per_sta_profile)) {
+		size_t sub_elem_len = *(pos + 1);
+
+		if (2 + sub_elem_len > len) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Invalid link info len: %zu %zu",
+				   2 + sub_elem_len, len);
+			goto out;
+		}
+
+		if  (*pos == EHT_ML_SUB_ELEM_PER_STA_PROFILE) {
+			const struct ieee80211_eht_per_sta_profile *sta_prof =
+				(const struct ieee80211_eht_per_sta_profile *)
+				(pos + 2);
+			u16 control = le_to_host16(sta_prof->sta_control);
+			u8 link_id;
+
+			link_id = control & EHT_PER_STA_RECONF_CTRL_LINK_ID_MSK;
+			removed_links |= BIT(link_id);
+		}
+
+		pos += 2 + sub_elem_len;
+		len -= 2 + sub_elem_len;
+	}
+
+	wpa_printf(MSG_DEBUG, "MLD: Reconfiguration: removed_links=0x%x",
+		   removed_links);
+out:
+	wpabuf_free(mlbuf);
+	return removed_links;
+}

@@ -1177,6 +1177,26 @@ static void owe_trans_ssid(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 }
 
 
+static bool wpas_valid_ml_bss(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
+
+{
+	u16 removed_links;
+
+	if (wpa_bss_parse_basic_ml_element(wpa_s, bss, NULL, NULL))
+		return true;
+
+	if (bss->n_mld_links == 0)
+		return true;
+
+	/* Check if the current BSS is going to be removed */
+	removed_links = wpa_bss_parse_reconf_ml_element(wpa_s, bss);
+	if (BIT(bss->mld_links[0].link_id) & removed_links)
+		return false;
+
+	return true;
+}
+
+
 int disabled_freq(struct wpa_supplicant *wpa_s, int freq)
 {
 	int i, j;
@@ -1579,6 +1599,13 @@ skip_assoc_disallow:
 		return false;
 	}
 
+	if (!wpas_valid_ml_bss(wpa_s, bss)) {
+		if (debug_print)
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"   skip - ML BSS going to be removed");
+		return false;
+	}
+
 	/* Matching configuration found */
 	return true;
 }
@@ -1856,7 +1883,7 @@ static int wpa_supplicant_connect_ml_missing(struct wpa_supplicant *wpa_s,
 					     struct wpa_ssid *ssid)
 {
 	int *freqs;
-	u16 missing_links = 0;
+	u16 missing_links = 0, removed_links;
 
 	if (!((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
 	      (wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME)))
@@ -1865,6 +1892,12 @@ static int wpa_supplicant_connect_ml_missing(struct wpa_supplicant *wpa_s,
 	/* Try to resolve any missing link information */
 	if (wpa_bss_parse_basic_ml_element(wpa_s, selected, NULL,
 					   &missing_links) || !missing_links)
+		return 0;
+
+	removed_links = wpa_bss_parse_reconf_ml_element(wpa_s, selected);
+	missing_links &= ~removed_links;
+
+	if (!missing_links)
 		return 0;
 
 	wpa_dbg(wpa_s, MSG_DEBUG,
