@@ -2091,10 +2091,19 @@ static int wpa_cli_cmd_resume(struct wpa_ctrl *ctrl, int argc, char *argv[])
 
 
 #ifdef CONFIG_TESTING_OPTIONS
+
 static int wpa_cli_cmd_drop_sa(struct wpa_ctrl *ctrl, int argc, char *argv[])
 {
 	return wpa_ctrl_command(ctrl, "DROP_SA");
 }
+
+
+static int wpa_cli_cmd_ml_probe_req(struct wpa_ctrl *ctrl,
+				    int argc, char *argv[])
+{
+	return wpa_cli_cmd(ctrl, "ML_PROBE_REQ", 2, argc, argv);
+}
+
 #endif /* CONFIG_TESTING_OPTIONS */
 
 
@@ -3673,6 +3682,8 @@ static const struct wpa_cli_cmd wpa_cli_commands[] = {
 #ifdef CONFIG_TESTING_OPTIONS
 	{ "drop_sa", wpa_cli_cmd_drop_sa, NULL, cli_cmd_flag_none,
 	  "= drop SA without deauth/disassoc (test command)" },
+	{ "ml_probe_req", wpa_cli_cmd_ml_probe_req, NULL, cli_cmd_flag_none,
+	  "= send Multi-Link Probe request <bssid=addr> <mld_id=id> [link_id=id] (test command)" },
 #endif /* CONFIG_TESTING_OPTIONS */
 	{ "roam", wpa_cli_cmd_roam, wpa_cli_complete_bss,
 	  cli_cmd_flag_none,

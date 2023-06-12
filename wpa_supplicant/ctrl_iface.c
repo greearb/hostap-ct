@@ -12037,6 +12037,80 @@ static int wpas_ctrl_iface_mlo_status(struct wpa_supplicant *wpa_s,
 }
 
 
+#ifdef CONFIG_TESTING_OPTIONS
+static int wpas_ctrl_ml_probe(struct wpa_supplicant *wpa_s, char *cmd)
+{
+	char *token, *context = NULL;
+	u8 bssid[ETH_ALEN];
+	int mld_id = -1, link_id = -1;
+	struct wpa_bss *bss;
+	int *freqs;
+
+	os_memset(bssid, 0, sizeof(bssid));
+
+	while ((token = str_token(cmd, " ", &context))) {
+		if (os_strncmp(token, "bssid=", 6) == 0) {
+			if (hwaddr_aton(token + 6, bssid))
+				return -1;
+		} else if (os_strncmp(token, "mld_id=", 7) == 0) {
+			mld_id = atoi(token + 7);
+		} else if (os_strncmp(token, "link_id=", 8) == 0) {
+			link_id = atoi(token + 8);
+		}
+	}
+
+	if (mld_id < 0 || is_zero_ether_addr(bssid)) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Failed parsing ML probe request arguments");
+		return -1;
+	}
+
+	bss = wpa_bss_get_bssid(wpa_s, bssid);
+	if (!bss) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Unknown BSS for " MACSTR, MAC2STR(bssid));
+		return -1;
+	}
+
+	if (wpa_s->sched_scanning || wpa_s->scanning ||
+	    (wpa_s->wpa_state > WPA_SCANNING &&
+	     wpa_s->wpa_state != WPA_COMPLETED)) {
+		wpa_printf(MSG_DEBUG,
+			   "MLO: Ongoing scan: Reject ML probe request");
+		return -1;
+	}
+
+	freqs = os_malloc(sizeof(int) * 2);
+	if (!freqs)
+		return -1;
+
+	freqs[0] = bss->freq;
+	freqs[1] = 0;
+
+	wpa_s->manual_scan_passive = 0;
+	wpa_s->manual_scan_use_id = 0;
+	wpa_s->manual_scan_only_new = 0;
+	wpa_s->scan_id_count = 0;
+	wpa_s->scan_res_handler = scan_only_handler;
+	os_free(wpa_s->manual_scan_freqs);
+	wpa_s->manual_scan_freqs = freqs;
+
+	os_memcpy(wpa_s->ml_probe_bssid, bssid, ETH_ALEN);
+	wpa_s->ml_probe_mld_id = mld_id;
+	if (link_id >= 0)
+		wpa_s->ml_probe_links = BIT(link_id);
+
+	wpa_s->normal_scans = 0;
+	wpa_s->scan_req = MANUAL_SCAN_REQ;
+	wpa_s->after_wps = 0;
+	wpa_s->known_wps_freq = 0;
+	wpa_supplicant_req_scan(wpa_s, 0, 0);
+
+	return 0;
+}
+#endif /* CONFIG_TESTING_OPTIONS */
+
+
 char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 					 char *buf, size_t *resp_len)
 {
@@ -12841,6 +12915,9 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 			reply_len = -1;
 	} else if (os_strcmp(buf, "TWT_TEARDOWN") == 0) {
 		if (wpas_ctrl_iface_send_twt_teardown(wpa_s, ""))
+			reply_len = -1;
+	} else if (os_strncmp(buf, "ML_PROBE_REQ ", 13) == 0) {
+		if (wpas_ctrl_ml_probe(wpa_s, buf + 13))
 			reply_len = -1;
 #endif /* CONFIG_TESTING_OPTIONS */
 	} else if (os_strncmp(buf, "VENDOR_ELEM_ADD ", 16) == 0) {
