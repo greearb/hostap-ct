@@ -845,6 +845,16 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 		if (os_snprintf_error(buflen - len, ret))
 			return len;
 		len += ret;
+
+		if (!iconf->he_op.he_bss_color_disabled &&
+		    iconf->he_op.he_bss_color) {
+			ret = os_snprintf(buf + len, buflen - len,
+					  "he_bss_color=%d\n",
+					  iconf->he_op.he_bss_color);
+			if (os_snprintf_error(buflen - len, ret))
+				return len;
+			len += ret;
+		}
 	}
 #endif /* CONFIG_IEEE80211AX */
 
