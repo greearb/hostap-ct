@@ -410,3 +410,77 @@ def test_eht_mld_sae_legacy_client(dev, apdev):
 
         eht_verify_status(dev[0], hapd0, 2412, 20, is_ht=True)
         traffic_test(dev[0], hapd0)
+
+def test_eht_mld_sae_transition(dev, apdev):
+    """EHT MLD AP in SAE/PSK transition mode with MLD client connection using two links"""
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        passphrase = 'qwertyuiop'
+        ssid = "mld_ap_sae_two_link"
+        params = eht_mld_ap_wpa2_params(ssid, passphrase,
+                                        key_mgmt="SAE-EXT-KEY SAE WPA-PSK WPA-PSK-SHA256",
+                                        mfp="1")
+
+        hapd0 = eht_mld_enable_ap(hapd_iface, params)
+
+        params['channel'] = '6'
+
+        hapd1 = eht_mld_enable_ap(hapd_iface, params)
+
+        wpas.connect(ssid, sae_password=passphrase, scan_freq="2412 2437",
+                     key_mgmt="SAE-EXT-KEY", ieee80211w="2")
+
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True)
+        eht_verify_wifi_version(wpas)
+        traffic_test(wpas, hapd0)
+        traffic_test(wpas, hapd1)
+
+        dev[0].set("sae_groups", "")
+        dev[0].connect(ssid, sae_password=passphrase, scan_freq="2412",
+                       key_mgmt="SAE", ieee80211w="2", beacon_prot="1")
+        dev[1].connect(ssid, psk=passphrase, scan_freq="2412",
+                       key_mgmt="WPA-PSK", ieee80211w="0")
+
+def test_eht_mld_ptk_rekey(dev, apdev):
+    """EHT MLD AP and PTK rekeying with MLD client connection using two links"""
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        passphrase = 'qwertyuiop'
+        ssid = "mld_ap_sae_two_link"
+        params = eht_mld_ap_wpa2_params(ssid, passphrase,
+                                        key_mgmt="SAE-EXT-KEY SAE WPA-PSK WPA-PSK-SHA256",
+                                        mfp="1")
+        params['wpa_ptk_rekey'] = '5'
+
+        hapd0 = eht_mld_enable_ap(hapd_iface, params)
+
+        params['channel'] = '6'
+
+        hapd1 = eht_mld_enable_ap(hapd_iface, params)
+
+        wpas.connect(ssid, sae_password=passphrase, scan_freq="2412 2437",
+                     key_mgmt="SAE-EXT-KEY", ieee80211w="2")
+        ev0 = hapd0.wait_event(["AP-STA-CONNECT"], timeout=1)
+        if ev0 is None:
+            ev1 = hapd1.wait_event(["AP-STA-CONNECT"], timeout=1)
+        traffic_test(wpas, hapd0)
+        traffic_test(wpas, hapd1)
+
+        ev = wpas.wait_event(["WPA: Key negotiation completed",
+                              "CTRL-EVENT-DISCONNECTED"], timeout=10)
+        if ev is None:
+            raise Exception("PTK rekey timed out")
+        if "CTRL-EVENT-DISCONNECTED" in ev:
+            raise Exception("Disconnect instead of rekey")
+
+        time.sleep(0.1)
+        traffic_test(wpas, hapd0)
+        traffic_test(wpas, hapd1)
