@@ -3485,6 +3485,7 @@ struct wpa_driver_ops {
 	 * @priv: Private driver interface data
 	 * @addr: MAC address of the station or %NULL for group keys
 	 * @idx: Key index
+	 * @link_id: Link ID for a group key, or -1 if not set
 	 * @seq: Buffer for returning the latest used TSC/packet number
 	 * Returns: 0 on success, -1 on failure
 	 *
@@ -3494,7 +3495,7 @@ struct wpa_driver_ops {
 	 * unicast keys (i.e., addr != %NULL).
 	 */
 	int (*get_seqnum)(const char *ifname, void *priv, const u8 *addr,
-			  int idx, u8 *seq);
+			  int idx, int link_id, u8 *seq);
 
 	/**
 	 * flush - Flush all association stations (AP only)

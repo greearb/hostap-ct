@@ -62,7 +62,7 @@ int hostapd_if_remove(struct hostapd_data *hapd, enum wpa_driver_if_type type,
 int hostapd_set_ieee8021x(struct hostapd_data *hapd,
 			  struct wpa_bss_params *params);
 int hostapd_get_seqnum(const char *ifname, struct hostapd_data *hapd,
-		       const u8 *addr, int idx, u8 *seq);
+		       const u8 *addr, int idx, int link_id, u8 *seq);
 int hostapd_flush(struct hostapd_data *hapd);
 int hostapd_set_freq(struct hostapd_data *hapd, enum hostapd_hw_mode mode,
 		     int freq, int channel, int edmg, u8 edmg_channel,

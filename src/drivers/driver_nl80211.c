@@ -7520,24 +7520,33 @@ static int get_key_handler(struct nl_msg *msg, void *arg)
 
 
 static int i802_get_seqnum(const char *iface, void *priv, const u8 *addr,
-			   int idx, u8 *seq)
+			   int idx, int link_id, u8 *seq)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct nl_msg *msg;
+	int res;
 
 	msg = nl80211_ifindex_msg(drv, if_nametoindex(iface), 0,
 				  NL80211_CMD_GET_KEY);
 	if (!msg ||
 	    (addr && nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, addr)) ||
+	    (link_id != NL80211_DRV_LINK_ID_NA &&
+	     nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id)) ||
 	    nla_put_u8(msg, NL80211_ATTR_KEY_IDX, idx)) {
 		nlmsg_free(msg);
 		return -ENOBUFS;
 	}
 
-	memset(seq, 0, 6);
+	os_memset(seq, 0, 6);
+	res = send_and_recv_msgs(drv, msg, get_key_handler, seq, NULL, NULL);
+	if (res) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Failed to get current TX sequence for a key (link_id=%d idx=%d): %d (%s)",
+			   link_id, idx, res, strerror(-res));
+	}
 
-	return send_and_recv_msgs(drv, msg, get_key_handler, seq, NULL, NULL);
+	return res;
 }
 
 

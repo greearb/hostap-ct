@@ -586,7 +586,7 @@ atheros_set_key(void *priv, struct wpa_driver_set_key_params *params)
 
 static int
 atheros_get_seqnum(const char *ifname, void *priv, const u8 *addr, int idx,
-		   u8 *seq)
+		   int link_id, u8 *seq)
 {
 	struct atheros_driver_data *drv = priv;
 	struct ieee80211req_key wk;

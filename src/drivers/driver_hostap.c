@@ -459,7 +459,7 @@ static int wpa_driver_hostap_set_key(void *priv,
 
 
 static int hostap_get_seqnum(const char *ifname, void *priv, const u8 *addr,
-			     int idx, u8 *seq)
+			     int idx, int link_id, u8 *seq)
 {
 	struct hostap_driver_data *drv = priv;
 	struct prism2_hostapd_param *param;

@@ -553,12 +553,12 @@ int hostapd_set_ieee8021x(struct hostapd_data *hapd,
 
 
 int hostapd_get_seqnum(const char *ifname, struct hostapd_data *hapd,
-		       const u8 *addr, int idx, u8 *seq)
+		       const u8 *addr, int idx, int link_id, u8 *seq)
 {
 	if (hapd->driver == NULL || hapd->driver->get_seqnum == NULL)
 		return 0;
 	return hapd->driver->get_seqnum(ifname, hapd->drv_priv, addr, idx,
-					seq);
+					link_id, seq);
 }
 
 

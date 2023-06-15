@@ -906,7 +906,7 @@ bsd_set_privacy(void *priv, int enabled)
 
 static int
 bsd_get_seqnum(const char *ifname, void *priv, const u8 *addr, int idx,
-	       u8 *seq)
+	       int link_id, u8 *seq)
 {
 	struct ieee80211req_key wk;
 

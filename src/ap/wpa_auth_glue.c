@@ -511,7 +511,14 @@ static int hostapd_wpa_auth_get_seqnum(void *ctx, const u8 *addr, int idx,
 				       u8 *seq)
 {
 	struct hostapd_data *hapd = ctx;
-	return hostapd_get_seqnum(hapd->conf->iface, hapd, addr, idx, seq);
+	int link_id = -1;
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap && idx)
+		link_id = hapd->mld_link_id;
+#endif /* CONFIG_IEEE80211BE */
+	return hostapd_get_seqnum(hapd->conf->iface, hapd, addr, idx, link_id,
+				  seq);
 }
 
 
