@@ -8,10 +8,11 @@
 
 import hostapd
 import binascii
-import os
+import os, time
 import struct
 from test_wnm import expect_ack
 from tshark import run_tshark
+from utils import clear_regdom, long_duration_test
 
 def _test_kernel_bss_leak(dev, apdev, deauth):
     ssid = "test-bss-leak"
@@ -126,3 +127,24 @@ def test_kernel_unknown_action_frame_rejection_sta(dev, apdev, params):
         raise Exception("Unexpected Action frame rejection: " + str(categ))
     if 0xf0 not in categ or 0xf4 not in categ:
         raise Exception("Action frame rejection missing: " + str(categ))
+
+@long_duration_test
+def test_kernel_reg_disconnect(dev, apdev):
+    """Connect and force disconnect via regulatory"""
+    hapd = None
+    try:
+        ssid = "test-reg-disconnect"
+        passphrase = 'qwertyuiop'
+        params = hostapd.wpa2_params(ssid=ssid, passphrase=passphrase)
+        params["country_code"] = "DE"
+        params["hw_mode"] = "b"
+        params["channel"] = "13"
+        hapd = hostapd.add_ap(apdev[0], params)
+        dev[0].set("country", "DE")
+        dev[0].connect(ssid, psk=passphrase, scan_freq="2472")
+        dev[0].set("country", "US")
+        time.sleep(61)
+        dev[0].wait_disconnected(error="no regulatory disconnect")
+    finally:
+        dev[0].request("DISCONNECT")
+        clear_regdom(hapd, dev)
