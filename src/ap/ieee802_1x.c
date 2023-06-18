@@ -169,7 +169,7 @@ static void ieee802_1x_ml_set_sta_authorized(struct hostapd_data *hapd,
 			struct hostapd_data *tmp_hapd =
 				hapd->iface->interfaces->iface[i]->bss[0];
 
-			if (tmp_hapd->conf->mld_ap ||
+			if (!tmp_hapd->conf->mld_ap ||
 			    hapd->conf->mld_id != tmp_hapd->conf->mld_id)
 				continue;
 
