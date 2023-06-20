@@ -5625,7 +5625,11 @@ enum qca_vendor_attr_roam_candidate_selection_criteria {
  * @QCA_ATTR_ROAM_CONTROL_CONNECTED_RSSI_THRESHOLD: Signed 32-bit value in dBm,
  *	signifying the RSSI threshold of the current connected AP, indicating
  *	the driver to trigger roam only when the current connected AP's RSSI
- *	is less than this threshold.
+ *	is less than this threshold. The RSSI threshold through this attribute
+ *	is only used by the STA when the connected AP asks it to roam through
+ *	a BTM request. Based on this threshold, the STA can either honor or
+ *	reject the AP's request to roam, and notify the status to the AP in a
+ *	BTM response.
  *
  * @QCA_ATTR_ROAM_CONTROL_CANDIDATE_RSSI_THRESHOLD: Signed 32-bit value in dBm,
  *	signifying the RSSI threshold of the candidate AP, indicating
@@ -5760,6 +5764,34 @@ enum qca_vendor_attr_roam_candidate_selection_criteria {
  *	   discovered.
  *	The default behavior if this flag is not specified is to include all
  *	the supported 6 GHz PSC frequencies in the roam full scan.
+ *
+ * @QCA_ATTR_ROAM_CONTROL_CONNECTED_LOW_RSSI_THRESHOLD: Signed 32-bit value
+ *	in dBm.
+ *	This attribute configures the low RSSI threshold of the connected AP,
+ *	based on which the STA can start looking for the neighbor APs and
+ *	trigger the roam eventually. STA keeps monitoring for the connected
+ *	AP's RSSI and will start scanning for neighboring APs once the RSSI
+ *	falls below this threshold. This attribute differs from
+ *	QCA_ATTR_ROAM_CONTROL_CONNECTED_RSSI_THRESHOLD where the configured
+ *	threshold is used only when the connected AP asks the STA to roam
+ *	through a BTM request.
+ *
+ * @QCA_ATTR_ROAM_CONTROL_CANDIDATE_ROAM_RSSI_DIFF: Unsigned 8-bit value.
+ *	This attribute signifies the RSSI difference threshold between the
+ *	connected AP and the new candidate AP. This parameter influences the
+ *	STA to roam to the new candidate only when its RSSI is better than
+ *	the current connected one by this threshold.
+ *	This parameter configures the roam behavior among the 2.4/5/6 GHz bands.
+ *
+ * @QCA_ATTR_ROAM_CONTROL_6GHZ_CANDIDATE_ROAM_RSSI_DIFF: Unsigned 8-bit value.
+ *	This attribute signifies the RSSI difference threshold between the
+ *	connected AP in the 2.4/5 GHz bands and the new candidate AP in the
+ *	6 GHz band. This parameter influences the STA to roam to the new 6 GHz
+ *	candidate only when its RSSI is better than the current connected one
+ *	by this threshold. This threshold overrides
+ *	QCA_ATTR_ROAM_CONTROL_CANDIDATE_ROAM_RSSI_DIFF for the roam from 2.4/5
+ *	GHz to 6 GHz alone with the intention to have a different value to roam
+ *	to the preferred 6 GHz band.
  */
 enum qca_vendor_attr_roam_control {
 	QCA_ATTR_ROAM_CONTROL_ENABLE = 1,
@@ -5789,6 +5821,9 @@ enum qca_vendor_attr_roam_control {
 	QCA_ATTR_ROAM_CONTROL_HO_DELAY_FOR_RX = 25,
 	QCA_ATTR_ROAM_CONTROL_FULL_SCAN_NO_REUSE_PARTIAL_SCAN_FREQ = 26,
 	QCA_ATTR_ROAM_CONTROL_FULL_SCAN_6GHZ_ONLY_ON_PRIOR_DISCOVERY = 27,
+	QCA_ATTR_ROAM_CONTROL_CONNECTED_LOW_RSSI_THRESHOLD = 28,
+	QCA_ATTR_ROAM_CONTROL_CANDIDATE_ROAM_RSSI_DIFF = 29,
+	QCA_ATTR_ROAM_CONTROL_6GHZ_CANDIDATE_ROAM_RSSI_DIFF = 30,
 
 	/* keep last */
 	QCA_ATTR_ROAM_CONTROL_AFTER_LAST,
