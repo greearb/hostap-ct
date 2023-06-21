@@ -3042,6 +3042,22 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_CTS_CHANNEL_WIDTH = 94,
 
+	/* 8-bit unsigned value. This attribute is used to dynamically
+	 * enable/suspend trigger based UL MU transmission.
+	 * This is supported in STA mode and the device sends Operating
+	 * Mode Indication to inform the change as described in
+	 * IEEE Std 802.11ax-2021, 26.9.
+	 *
+	 * This attribute can be configured when the STA is associated
+	 * to an AP and the configuration is maintained until the current
+	 * association terminates.
+	 *
+	 * By default all UL MU transmissions are enabled.
+	 *
+	 * Uses enum qca_ul_mu_config values.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_UL_MU_CONFIG = 95,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
@@ -3055,6 +3071,16 @@ enum qca_wlan_vendor_attr_config {
 	QCA_WLAN_VENDOR_ATTR_CONFIG_DISCONNECT_IES
 #define QCA_WLAN_VENDOR_ATTR_BEACON_REPORT_FAIL \
 	QCA_WLAN_VENDOR_ATTR_CONFIG_BEACON_REPORT_FAIL
+
+/**
+ * enum qca_ul_mu_config - UL MU configuration
+ * @QCA_UL_MU_SUSPEND - All trigger based UL MU transmission is suspended
+ * @QCA_UL_MU_ENABLE - All trigger based UL MU transmission is enabled
+ */
+enum qca_ul_mu_config {
+	QCA_UL_MU_SUSPEND = 0,
+	QCA_UL_MU_ENABLE = 1,
+};
 
 /**
  * enum qca_dbam_config - Specifies DBAM config mode
