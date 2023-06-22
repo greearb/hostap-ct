@@ -2665,14 +2665,18 @@ static u8 * mgmt_decrypt(struct wlantest *wt, const u8 *data, size_t len,
 	u8 pn[6], *rsc;
 	u16 fc;
 	u8 mask;
+	size_t hdrlen = 24;
 
 	hdr = (const struct ieee80211_hdr *) data;
 	fc = le_to_host16(hdr->frame_control);
 
-	if (len < 24 + 4)
+	if (fc & WLAN_FC_HTC)
+		hdrlen += 4; /* HT Control field */
+
+	if (len < hdrlen + 4)
 		return NULL;
 
-	if (!(data[24 + 3] & 0x20)) {
+	if (!(data[hdrlen + 3] & 0x20)) {
 		add_note(wt, MSG_INFO, "Expected CCMP/GCMP frame from " MACSTR
 			 " did not have ExtIV bit set to 1",
 			 MAC2STR(hdr->addr2));
@@ -2683,12 +2687,12 @@ static u8 * mgmt_decrypt(struct wlantest *wt, const u8 *data, size_t len,
 	if (WLAN_FC_GET_STYPE(fc) == WLAN_FC_STYPE_ACTION ||
 	    WLAN_FC_GET_STYPE(fc) == WLAN_FC_STYPE_ACTION_NO_ACK)
 		mask &= ~0x10; /* FTM */
-	if (data[24 + 2] != 0 || (data[24 + 3] & mask) != 0) {
+	if (data[hdrlen + 2] != 0 || (data[hdrlen + 3] & mask) != 0) {
 		add_note(wt, MSG_INFO, "CCMP/GCMP mgmt frame from " MACSTR
 			 " used non-zero reserved bit", MAC2STR(hdr->addr2));
 	}
 
-	keyid = data[24 + 3] >> 6;
+	keyid = data[hdrlen + 3] >> 6;
 	if (keyid != 0) {
 		add_note(wt, MSG_INFO, "Unexpected non-zero KeyID %d in "
 			 "individually addressed Management frame from "
@@ -2720,7 +2724,7 @@ static u8 * mgmt_decrypt(struct wlantest *wt, const u8 *data, size_t len,
 	else
 		rsc = sta->rsc_fromds[16];
 
-	ccmp_get_pn(pn, data + 24);
+	ccmp_get_pn(pn, data + hdrlen);
 	if (os_memcmp(pn, rsc, 6) <= 0) {
 		u16 seq_ctrl = le_to_host16(hdr->seq_ctrl);
 		add_note(wt, MSG_INFO, "replay detected: A1=" MACSTR
@@ -2737,27 +2741,27 @@ static u8 * mgmt_decrypt(struct wlantest *wt, const u8 *data, size_t len,
 
 	if (sta->pairwise_cipher == WPA_CIPHER_CCMP_256) {
 		decrypted = ccmp_256_decrypt(sta->ptk.tk, hdr, NULL, NULL, NULL,
-					     data + 24, len - 24, dlen);
+					     data + hdrlen, len - hdrlen, dlen);
 		write_decrypted_note(wt, decrypted, sta->ptk.tk, 32, keyid);
 	} else if (sta->pairwise_cipher == WPA_CIPHER_GCMP ||
 		   sta->pairwise_cipher == WPA_CIPHER_GCMP_256) {
 		decrypted = gcmp_decrypt(sta->ptk.tk, sta->ptk.tk_len, hdr,
 					 NULL, NULL, NULL,
-					 data + 24, len - 24, dlen);
+					 data + hdrlen, len - hdrlen, dlen);
 		write_decrypted_note(wt, decrypted, sta->ptk.tk,
 				     sta->ptk.tk_len, keyid);
 	} else {
 		decrypted = ccmp_decrypt(sta->ptk.tk, hdr, NULL, NULL, NULL,
-					 data + 24, len - 24, dlen);
+					 data + hdrlen, len - hdrlen, dlen);
 		write_decrypted_note(wt, decrypted, sta->ptk.tk, 16, keyid);
 	}
 	if (decrypted) {
 		os_memcpy(rsc, pn, 6);
-		frame = os_malloc(24 + *dlen);
+		frame = os_malloc(hdrlen + *dlen);
 		if (frame) {
-			os_memcpy(frame, data, 24);
-			os_memcpy(frame + 24, decrypted, *dlen);
-			*dlen += 24;
+			os_memcpy(frame, data, hdrlen);
+			os_memcpy(frame + hdrlen, decrypted, *dlen);
+			*dlen += hdrlen;
 		}
 	} else {
 		/* Assume the frame was corrupted and there was no FCS to check.
