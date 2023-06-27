@@ -2833,8 +2833,13 @@ enum qca_wlan_vendor_attr_config {
 	 * configure the asymmetric NSS configuration (such as 1X2).
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_NSS = 70,
-	/* 8-bit unsigned value to trigger Optimized Power Management:
-	 * 1-Enable, 0-Disable
+	/* 8-bit unsigned value to configure Optimized Power Management mode:
+	 * Modes are defined by enum qca_wlan_vendor_opm_mode.
+	 *
+	 * This attribute shall be configured along with
+	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_ITO and
+	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_SPEC_WAKE_INTERVAL attributes
+	 * when its value is set to %QCA_WLAN_VENDOR_OPM_MODE_USER_DEFINED.
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_OPTIMIZED_POWER_MANAGEMENT = 71,
 
@@ -3201,6 +3206,34 @@ enum qca_wlan_vendor_attr_config {
 	 * the AP interface.
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MLO_LINKS = 100,
+
+	/* 16-bit unsigned value to configure power save inactivity timeout in
+	 * milliseconds.
+	 *
+	 * STA enters into power save mode (PM=1) after TX/RX inactivity of time
+	 * duration specified by %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_ITO.
+	 *
+	 * This attribute shall be configured along with
+	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_SPEC_WAKE_INTERVAL when
+	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPTIMIZED_POWER_MANAGEMENT
+	 * is set to %QCA_WLAN_VENDOR_OPM_MODE_USER_DEFINED mode.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_ITO = 101,
+
+	/* 16-bit unsigned value to configure speculative wake interval in
+	 * milliseconds.
+	 *
+	 * STA speculatively wakes up to look for buffered data by AP at
+	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_SPEC_WAKE_INTERVAL interval after
+	 * entering into power save. If configured zero, STA wakes up at
+	 * upcoming DTIM beacon.
+	 *
+	 * This attribute shall be configured along with
+	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_ITO and
+	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPTIMIZED_POWER_MANAGEMENT
+	 * to %QCA_WLAN_VENDOR_OPM_MODE_USER_DEFINED mode.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_SPEC_WAKE_INTERVAL = 102,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
@@ -15995,6 +16028,24 @@ enum qca_wlan_vendor_attr_tdls_state {
 	QCA_WLAN_VENDOR_ATTR_TDLS_STATE_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_TDLS_STATE_MAX =
 	QCA_WLAN_VENDOR_ATTR_TDLS_STATE_AFTER_LAST - 1,
+};
+
+/*
+ * enum qca_wlan_vendor_opm_mode - Modes supported by
+ * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPTIMIZED_POWER_MANAGEMENT vendor attribute.
+ *
+ * @QCA_WLAN_VENDOR_OPM_MODE_DISABLE: OPM Disabled
+ * @QCA_WLAN_VENDOR_OPM_MODE_ENABLE: OPM Enabled
+ * @QCA_WLAN_VENDOR_OPM_MODE_USER_DEFINED: User defined mode which allows user
+ * 	to configure power save inactivity timeout and speculative wake up
+ * 	interval through %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_ITO and
+ * 	%QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_SPEC_WAKE_INTERVAL attributes.
+ */
+
+enum qca_wlan_vendor_opm_mode {
+	QCA_WLAN_VENDOR_OPM_MODE_DISABLE = 0,
+	QCA_WLAN_VENDOR_OPM_MODE_ENABLE = 1,
+	QCA_WLAN_VENDOR_OPM_MODE_USER_DEFINED = 2,
 };
 
 #endif /* QCA_VENDOR_H */
