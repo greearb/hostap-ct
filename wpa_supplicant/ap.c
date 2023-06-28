@@ -314,7 +314,19 @@ int wpa_supplicant_conf_ap_ht(struct wpa_supplicant *wpa_s,
 #ifdef CONFIG_HT_OVERRIDES
 		if (ssid->disable_ht)
 			ssid->ht = 0;
+		if (ssid->disable_ht40)
+			ssid->ht40 = 0;
 #endif /* CONFIG_HT_OVERRIDES */
+
+#ifdef CONFIG_VHT_OVERRIDES
+		if (ssid->disable_vht)
+			ssid->vht = 0;
+#endif /* CONFIG_VHT_OVERRIDES */
+
+#ifdef CONFIG_HE_OVERRIDES
+		if (ssid->disable_he)
+			ssid->he = 0;
+#endif /* CONFIG_HE_OVERRIDES */
 
 		if (!ssid->ht) {
 			wpa_printf(MSG_DEBUG,
