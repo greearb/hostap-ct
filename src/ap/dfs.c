@@ -815,10 +815,13 @@ static int dfs_are_channels_overlapped(struct hostapd_iface *iface, int freq,
 
 static void dfs_check_background_overlapped(struct hostapd_iface *iface)
 {
-	int width = hostapd_get_oper_chwidth(iface->conf);
+	int width = iface->radar_background.new_chwidth;
 
 	if (!dfs_use_radar_background(iface))
 		return;
+
+	if (!width)
+		width = hostapd_get_oper_chwidth(iface->conf);
 
 	if (dfs_are_channels_overlapped(iface, iface->radar_background.freq,
 					width, iface->radar_background.centr_freq_seg0_idx,
@@ -984,6 +987,15 @@ int hostapd_handle_dfs(struct hostapd_iface *iface)
 		iface->radar_background.temp_ch = 1;
 		return 1;
 	} else if (dfs_use_radar_background(iface)) {
+		/*
+		 * AP is going to perform CAC, so reset temp_ch to 0,
+		 * when dedicated rx has already started CAC.
+		 */
+		if (iface->radar_background.cac_started) {
+			iface->radar_background.temp_ch = 0;
+			return 0;
+		}
+
 		if (iface->dfs_domain == HOSTAPD_DFS_REGION_ETSI)
 			channel_type = DFS_ANY_CHANNEL;
 
@@ -1140,6 +1152,8 @@ static int hostapd_dfs_request_channel_switch(struct hostapd_iface *iface,
 	 * ch_switch_notify event is received */
 	wpa_printf(MSG_DEBUG, "DFS waiting channel switch event");
 
+	hostapd_set_oper_chwidth(iface->conf, new_vht_oper_chwidth);
+
 	return 0;
 }
 
@@ -1191,6 +1205,9 @@ static void hostapd_dfs_update_background_chain(struct hostapd_iface *iface)
 	iface->radar_background.secondary_channel = sec;
 	iface->radar_background.centr_freq_seg0_idx = oper_centr_freq_seg0_idx;
 	iface->radar_background.centr_freq_seg1_idx = oper_centr_freq_seg1_idx;
+	/* if main channel do not require dfs, then set temp_ch = 1 */
+	if (!hostapd_is_dfs_required(iface))
+		iface->radar_background.temp_ch = 1;
 
 	wpa_printf(MSG_DEBUG,
 		   "%s: setting background chain to chan %d (%d MHz)",
@@ -1232,6 +1249,10 @@ hostapd_dfs_start_channel_switch_background(struct hostapd_iface *iface)
 	u8 current_vht_oper_chwidth = hostapd_get_oper_chwidth(iface->conf);
 	int ret;
 
+	if (iface->radar_background.new_chwidth) {
+		hostapd_set_oper_chwidth(iface->conf, iface->radar_background.new_chwidth);
+		iface->radar_background.new_chwidth = 0;
+	}
 	ret = hostapd_dfs_request_channel_switch(iface, iface->radar_background.channel,
 						 iface->radar_background.freq,
 						 iface->radar_background.secondary_channel,
@@ -1251,6 +1272,52 @@ hostapd_dfs_start_channel_switch_background(struct hostapd_iface *iface)
 	hostapd_dfs_update_background_chain(iface);
 
 	return ret;
+}
+
+
+static void
+hostapd_dfs_background_expand(struct hostapd_iface *iface, int chan_width)
+{
+	struct hostapd_hw_modes *mode = iface->current_mode;
+	struct hostapd_channel_data *chan;
+	int i, channel, width = channel_width_to_int(chan_width);
+
+	if (iface->conf->channel - iface->radar_background.channel == width / 5)
+		channel = iface->radar_background.channel;
+	else if (iface->radar_background.channel - iface->conf->channel == width / 5)
+		channel = iface->conf->channel;
+	else
+		return;
+
+	for (i = 0; i < mode->num_channels; i++) {
+		chan = &mode->channels[i];
+		if (chan->chan == channel)
+			break;
+	}
+
+	if (i == mode->num_channels || !dfs_is_chan_allowed(chan, width / 10))
+		return;
+
+	switch (chan_width) {
+	case CHAN_WIDTH_20_NOHT:
+	case CHAN_WIDTH_20:
+		iface->radar_background.new_chwidth = CONF_OPER_CHWIDTH_USE_HT;
+		break;
+	case CHAN_WIDTH_40:
+		iface->radar_background.new_chwidth = CONF_OPER_CHWIDTH_80MHZ;
+		break;
+	case CHAN_WIDTH_80:
+		iface->radar_background.new_chwidth = CONF_OPER_CHWIDTH_160MHZ;
+		break;
+	default:
+		return;
+	}
+
+	iface->radar_background.freq = channel * 5 + 5000;
+	iface->radar_background.channel = channel;
+	iface->radar_background.centr_freq_seg0_idx = channel + width / 5 - 2;
+	iface->radar_background.secondary_channel = 1;
+	iface->radar_background.expand_ch = 0;
 }
 
 
@@ -1304,6 +1371,10 @@ int hostapd_dfs_complete_cac(struct hostapd_iface *iface, int success, int freq,
 					return 0;
 
 				iface->radar_background.temp_ch = 0;
+
+				if (iface->radar_background.expand_ch)
+					hostapd_dfs_background_expand(iface, chan_width);
+
 				return hostapd_dfs_start_channel_switch_background(iface);
 			}
 
@@ -1334,6 +1405,8 @@ int hostapd_dfs_complete_cac(struct hostapd_iface *iface, int success, int freq,
 		}
 	} else if (hostapd_dfs_is_background_event(iface, freq)) {
 		iface->radar_background.cac_started = 0;
+		iface->radar_background.temp_ch = 0;
+		iface->radar_background.expand_ch = 0;
 		hostapd_dfs_update_background_chain(iface);
 	}
 
@@ -1481,6 +1554,9 @@ hostapd_dfs_background_start_channel_switch(struct hostapd_iface *iface,
 	if (iface->conf->dfs_detect_mode == DFS_DETECT_MODE_BACKGROUND_ENABLE ||
 	    iface->conf->dfs_detect_mode == DFS_DETECT_MODE_ALL_ENABLE)
 		return 0;
+
+	iface->radar_background.temp_ch = 0;
+	iface->radar_background.expand_ch = 0;
 
 	/* Check if CSA in progress */
 	if (hostapd_csa_in_progress(iface))
@@ -1730,6 +1806,35 @@ int hostapd_is_dfs_required(struct hostapd_iface *iface)
 	if (start_chan_idx1 >= 0 && n_chans1 > 0)
 		res = dfs_check_chans_radar(iface, start_chan_idx1, n_chans1);
 	return res;
+}
+
+
+int hostapd_dfs_background_chan_update(struct hostapd_iface *iface, int freq,
+				       int ht_enabled, int chan_offset, int chan_width,
+				       int cf1, int cf2, bool expand)
+{
+	switch (chan_width) {
+	case CHAN_WIDTH_80:
+		iface->radar_background.new_chwidth = CONF_OPER_CHWIDTH_80MHZ;
+		break;
+	case CHAN_WIDTH_160:
+		iface->radar_background.new_chwidth = CONF_OPER_CHWIDTH_160MHZ;
+		break;
+	default:
+		iface->radar_background.new_chwidth = CONF_OPER_CHWIDTH_USE_HT;
+		break;
+	};
+
+	iface->radar_background.freq = freq;
+	iface->radar_background.channel = (freq - 5000) / 5;
+	iface->radar_background.centr_freq_seg0_idx = (cf1 - 5000) / 5;
+	iface->radar_background.centr_freq_seg1_idx = cf2 ? (cf2 - 5000) / 5 : 0;
+	if (expand) {
+		iface->radar_background.temp_ch = 1;
+		iface->radar_background.expand_ch = 1;
+	}
+
+	return 0;
 }
 
 

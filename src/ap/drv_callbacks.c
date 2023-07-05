@@ -2323,6 +2323,18 @@ static void hostapd_event_dfs_cac_started(struct hostapd_data *hapd,
 			      radar->cf1, radar->cf2);
 }
 
+
+static void hostapd_event_dfs_background_chan_update(struct hostapd_data *hapd,
+						     struct dfs_event *radar, bool expand)
+{
+	wpa_printf(MSG_DEBUG, "DFS background channel %s to %d MHz",
+		   expand ? "expand" : "update", radar->freq);
+	hostapd_dfs_background_chan_update(hapd->iface, radar->freq, radar->ht_enabled,
+					   radar->chan_offset, radar->chan_width,
+					   radar->cf1, radar->cf2, expand);
+}
+
+
 static void hostapd_event_dfs_sta_cac_skipped(struct hostapd_data *hapd,
 					      struct dfs_event *radar)
 {
@@ -2840,6 +2852,18 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			break;
 		hapd = switch_link_hapd(hapd, data->dfs_event.link_id);
 		hostapd_event_dfs_nop_finished(hapd, &data->dfs_event);
+		break;
+	case EVENT_DFS_BACKGROUND_CHAN_UPDATE:
+		if (!data)
+			break;
+		hapd = switch_link_hapd(hapd, data->dfs_event.link_id);
+		hostapd_event_dfs_background_chan_update(hapd, &data->dfs_event, false);
+		break;
+	case EVENT_DFS_BACKGROUND_CHAN_EXPAND:
+		if (!data)
+			break;
+		hapd = switch_link_hapd(hapd, data->dfs_event.link_id);
+		hostapd_event_dfs_background_chan_update(hapd, &data->dfs_event, true);
 		break;
 	case EVENT_DFS_STA_CAC_SKIPPED:
 		if (!data)

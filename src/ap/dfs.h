@@ -24,6 +24,9 @@ int hostapd_dfs_radar_detected(struct hostapd_iface *iface, int freq,
 int hostapd_dfs_nop_finished(struct hostapd_iface *iface, int freq,
 			     int ht_enabled,
 			     int chan_offset, int chan_width, int cf1, int cf2);
+int hostapd_dfs_background_chan_update(struct hostapd_iface *iface, int freq,
+				       int ht_enabled, int chan_offset, int chan_width,
+				       int cf1, int cf2, bool expand);
 int hostapd_dfs_sta_update_state(struct hostapd_iface *iface, int freq,
 				 int ht_enabled, int chan_offset, int chan_width,
 				 int cf1, int cf2, u32 state);
