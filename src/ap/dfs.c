@@ -1763,9 +1763,11 @@ int hostapd_dfs_start_cac(struct hostapd_iface *iface, int freq,
 	/* TODO: How to check CAC time for ETSI weather channels? */
 	iface->dfs_cac_ms = 60000;
 	wpa_msg(iface->bss[0]->msg_ctx, MSG_INFO, DFS_EVENT_CAC_START
-		"freq=%d chan=%d chan_offset=%d width=%d seg0=%d "
+		"freq=%d chan=%d chan_offset=%d width=%s seg0=%d "
 		"seg1=%d cac_time=%ds%s",
-		freq, (freq - 5000) / 5, chan_offset, chan_width, cf1, cf2,
+		freq, (freq - 5000) / 5, chan_offset,
+		channel_width_to_string(chan_width),
+		(cf1 - 5000) / 5, cf2 ? (cf2 - 5000) / 5 : 0,
 		iface->dfs_cac_ms / 1000,
 		hostapd_dfs_is_background_event(iface, freq) ?
 		" (background)" : "");
