@@ -649,6 +649,11 @@ struct hostapd_iface {
 		unsigned int temp_ch:1;
 		/* CAC started on radar offchain */
 		unsigned int cac_started:1;
+		/* Main chain should expand its width according to the
+		 * current offchain channel after CAC detection on radar offchain.
+		 */
+		unsigned int expand_ch:1;
+		int new_chwidth;
 	} radar_background;
 
 	u16 hw_flags;
