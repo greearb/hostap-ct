@@ -814,6 +814,20 @@ static int dfs_are_channels_overlapped(struct hostapd_iface *iface, int freq,
 }
 
 
+static void dfs_check_background_overlapped(struct hostapd_iface *iface)
+{
+	int width = hostapd_get_oper_chwidth(iface->conf);
+
+	if (!dfs_use_radar_background(iface))
+		return;
+
+	if (dfs_are_channels_overlapped(iface, iface->radar_background.freq,
+					width, iface->radar_background.centr_freq_seg0_idx,
+					iface->radar_background.centr_freq_seg1_idx))
+		iface->radar_background.channel = -1;
+}
+
+
 static unsigned int dfs_get_cac_time(struct hostapd_iface *iface,
 				     int start_chan_idx, int n_chans)
 {
@@ -1157,6 +1171,8 @@ static void hostapd_dfs_update_background_chain(struct hostapd_iface *iface)
 						  &oper_centr_freq_seg1_idx,
 						  &channel_type);
 	if (!channel ||
+	    channel->chan == iface->conf->channel ||
+	    channel->chan == iface->radar_background.channel ||
 	    hostapd_start_dfs_cac(iface, iface->conf->hw_mode,
 				  channel->freq, channel->chan,
 				  iface->conf->ieee80211n,
@@ -1443,6 +1459,7 @@ static int hostapd_dfs_start_channel_switch_cac(struct hostapd_iface *iface)
 		iface->conf->op_class = op_class;
 	}
 	err = 0;
+	dfs_check_background_overlapped(iface);
 
 	hostapd_setup_interface_complete(iface, err);
 	return err;
@@ -1560,6 +1577,7 @@ static int hostapd_dfs_start_channel_switch(struct hostapd_iface *iface)
 			hostapd_set_oper_centr_freq_seg1_idx(
 				iface->conf, oper_centr_freq_seg1_idx);
 
+			dfs_check_background_overlapped(iface);
 			hostapd_disable_iface(iface);
 			hostapd_enable_iface(iface);
 			return 0;
