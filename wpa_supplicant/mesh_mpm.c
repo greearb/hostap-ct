@@ -561,8 +561,11 @@ static int mesh_mpm_plink_close(struct hostapd_data *hapd, struct sta_info *sta,
 	int reason = WLAN_REASON_MESH_PEERING_CANCELLED;
 
 	if (sta) {
-		if (sta->plink_state == PLINK_ESTAB)
+		if (sta->plink_state == PLINK_ESTAB) {
 			hapd->num_plinks--;
+			wpa_msg(wpa_s, MSG_INFO, MESH_PEER_DISCONNECTED MACSTR,
+				MAC2STR(sta->addr));
+		}
 		wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
 		mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
 		wpa_printf(MSG_DEBUG, "MPM closing plink sta=" MACSTR,
@@ -1428,8 +1431,13 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 /* called by ap_free_sta */
 void mesh_mpm_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 {
-	if (sta->plink_state == PLINK_ESTAB)
+	struct wpa_supplicant *wpa_s = hapd->iface->owner;
+
+	if (sta->plink_state == PLINK_ESTAB) {
 		hapd->num_plinks--;
+		wpa_msg(wpa_s, MSG_INFO, MESH_PEER_DISCONNECTED MACSTR,
+			MAC2STR(sta->addr));
+	}
 	eloop_cancel_timeout(plink_timer, ELOOP_ALL_CTX, sta);
 	eloop_cancel_timeout(mesh_auth_timer, ELOOP_ALL_CTX, sta);
 }
