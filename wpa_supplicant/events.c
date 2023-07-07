@@ -4409,6 +4409,20 @@ out:
 	return wpa_sm_set_mlo_params(wpa_s->wpa, &wpa_mlo);
 }
 
+static void wpa_supplicant_tx_queue_params(struct wpa_supplicant *wpa_s){
+	struct hostapd_tx_queue_params *p;
+
+	for (int i = 0; i < NUM_TX_QUEUES; i++){
+		p = &wpa_s->conf->tx_queue[i];
+		if(wpa_drv_set_tx_queue_params(wpa_s, i, p->aifs,
+						      p->cwmin, p->cwmax,
+						      p->burst)) {
+			wpa_printf(MSG_DEBUG, "Failed to set TX queue "
+				   "parameters for queue %d.", i);
+			/* Continue anyway */
+		}
+	}
+}
 
 static void wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 				       union wpa_event_data *data)
@@ -4744,6 +4758,8 @@ static void wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 
 	if (wpa_s->current_ssid && wpa_s->current_ssid->enable_4addr_mode)
 		wpa_supplicant_set_4addr_mode(wpa_s);
+
+	wpa_supplicant_tx_queue_params(wpa_s);
 }
 
 
