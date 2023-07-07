@@ -344,6 +344,18 @@ static inline int wpa_drv_set_country(struct wpa_supplicant *wpa_s,
 	return 0;
 }
 
+static inline int wpa_drv_set_tx_queue_params(struct wpa_supplicant *wpa_s,
+					      int q, int aifs, int cw_min,
+					      int cw_max, int burst_time)
+{
+	int link_id = -1;
+	if (wpa_s->driver->set_tx_queue_params)
+		return wpa_s->driver->set_tx_queue_params(wpa_s->drv_priv, q,
+							  aifs, cw_min, cw_max,
+							  burst_time, link_id);
+	return 0;
+}
+
 static inline int wpa_drv_send_mlme(struct wpa_supplicant *wpa_s,
 				    const u8 *data, size_t data_len, int noack,
 				    unsigned int freq, unsigned int wait)
