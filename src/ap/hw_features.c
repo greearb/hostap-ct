@@ -1079,14 +1079,14 @@ static bool skip_mode(struct hostapd_iface *iface,
 }
 
 
-void hostapd_determine_mode(struct hostapd_iface *iface)
+int hostapd_determine_mode(struct hostapd_iface *iface)
 {
 	int i;
 	enum hostapd_hw_mode target_mode;
 
 	if (iface->current_mode ||
 	    iface->conf->hw_mode != HOSTAPD_MODE_IEEE80211ANY)
-		return;
+		return 0;
 
 	if (iface->freq < 4000)
 		target_mode = HOSTAPD_MODE_IEEE80211G;
@@ -1109,8 +1109,11 @@ void hostapd_determine_mode(struct hostapd_iface *iface)
 		}
 	}
 
-	if (!iface->current_mode)
-		wpa_printf(MSG_ERROR, "ACS: Cannot decide mode");
+	if (!iface->current_mode) {
+		wpa_printf(MSG_ERROR, "ACS/CSA: Cannot decide mode");
+		return -1;
+	}
+	return 0;
 }
 
 
@@ -1212,6 +1215,25 @@ int hostapd_acs_completed(struct hostapd_iface *iface, int err)
 	ret = 0;
 out:
 	return hostapd_setup_interface_complete(iface, ret);
+}
+
+
+/**
+ * hostapd_csa_update_hwmode - Update hardware mode
+ * @iface: Pointer to interface data.
+ * Returns: 0 on success, < 0 on failure
+ *
+ * Update hardware mode when the operating channel changed because of CSA.
+ */
+int hostapd_csa_update_hwmode(struct hostapd_iface *iface)
+{
+	if (!iface || !iface->conf)
+		return -1;
+
+	iface->current_mode = NULL;
+	iface->conf->hw_mode = HOSTAPD_MODE_IEEE80211ANY;
+
+	return hostapd_determine_mode(iface);
 }
 
 

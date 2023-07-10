@@ -1085,6 +1085,12 @@ void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 		break;
 	}
 
+	/* The operating channel changed when CSA finished, so need to update
+	 * hw_mode for all following operations to cover the cases where the
+	 * driver changed the operating band. */
+	if (finished && hostapd_csa_update_hwmode(hapd->iface))
+		return;
+
 	switch (hapd->iface->current_mode->mode) {
 	case HOSTAPD_MODE_IEEE80211A:
 		if (cf1 == 5935)
