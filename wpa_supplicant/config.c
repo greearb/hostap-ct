@@ -4761,19 +4761,19 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	const struct hostapd_wmm_ac_params ac_bk =
 		{ aCWmin, aCWmax, 7, 0, 0 }; /* background traffic */
 	const struct hostapd_wmm_ac_params ac_be =
-		{ aCWmin, aCWmax, 3, 0, 0 }; /* best effort traffic */
+		{ aCWmin, aCWmin + 2, 3, 0, 0 }; /* best effort traffic */
 	const struct hostapd_wmm_ac_params ac_vi = /* video traffic */
-		{ aCWmin - 1, aCWmin, 2, 3008 / 32, 0 };
+		{ aCWmin - 1, aCWmin, 1, 3008 / 32, 0 };
 	const struct hostapd_wmm_ac_params ac_vo = /* voice traffic */
-		{ aCWmin - 2, aCWmin - 1, 2, 1504 / 32, 0 };
+		{ aCWmin - 2, aCWmin - 1, 1, 1504 / 32, 0 };
 	const struct hostapd_tx_queue_params txq_bk =
 		{ 7, ecw2cw(aCWmin), ecw2cw(aCWmax), 0 };
 	const struct hostapd_tx_queue_params txq_be =
-		{ 3, ecw2cw(aCWmin), 4 * (ecw2cw(aCWmin) + 1) - 1, 0 };
+		{ 3, ecw2cw(aCWmin), ecw2cw(aCWmax), 0 };
 	const struct hostapd_tx_queue_params txq_vi =
-		{ 1, (ecw2cw(aCWmin) + 1) / 2 - 1, ecw2cw(aCWmin), 30 };
+		{ 2, (ecw2cw(aCWmin) + 1) / 2 - 1, ecw2cw(aCWmin), 30 };
 	const struct hostapd_tx_queue_params txq_vo =
-		{ 1, (ecw2cw(aCWmin) + 1) / 4 - 1,
+		{ 2, (ecw2cw(aCWmin) + 1) / 4 - 1,
 		  (ecw2cw(aCWmin) + 1) / 2 - 1, 15 };
 
 #undef ecw2cw
