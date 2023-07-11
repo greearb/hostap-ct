@@ -1085,6 +1085,7 @@ static int wpas_p2p_group_delete(struct wpa_supplicant *wpa_s,
 		 * Likewise, we don't send out network removed signals for such
 		 * network objects.
 		 */
+		wpas_notify_network_removed(wpa_s, ssid);
 		wpa_config_remove_network(wpa_s->conf, id);
 		wpa_supplicant_clear_status(wpa_s);
 		wpa_supplicant_cancel_sched_scan(wpa_s);
