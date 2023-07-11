@@ -79,6 +79,9 @@ int hostapd_get_hw_features(struct hostapd_iface *iface)
 	u16 num_modes, flags;
 	struct hostapd_hw_modes *modes;
 	u8 dfs_domain;
+	enum hostapd_hw_mode mode = HOSTAPD_MODE_IEEE80211ANY;
+	bool is_6ghz = false;
+	bool orig_mode_valid = false;
 
 	if (hostapd_drv_none(hapd))
 		return -1;
@@ -95,6 +98,20 @@ int hostapd_get_hw_features(struct hostapd_iface *iface)
 	iface->hw_flags = flags;
 	iface->dfs_domain = dfs_domain;
 
+	if (iface->current_mode) {
+		/*
+		 * Received driver event CHANNEL_LIST_CHANGED when the current
+		 * hw mode is valid. Clear iface->current_mode temporarily as
+		 * the mode instance will be replaced with a new instance and
+		 * the current pointer would be pointing to freed memory.
+		 */
+		orig_mode_valid = true;
+		mode = iface->current_mode->mode;
+		is_6ghz = mode == HOSTAPD_MODE_IEEE80211A &&
+			iface->current_mode->num_channels > 0 &&
+			is_6ghz_freq(iface->current_mode->channels[0].freq);
+		iface->current_mode = NULL;
+	}
 	hostapd_free_hw_features(iface->hw_features, iface->num_hw_features);
 	iface->hw_features = modes;
 	iface->num_hw_features = num_modes;
@@ -103,6 +120,12 @@ int hostapd_get_hw_features(struct hostapd_iface *iface)
 		struct hostapd_hw_modes *feature = &modes[i];
 		int dfs_enabled = hapd->iconf->ieee80211h &&
 			(iface->drv_flags & WPA_DRIVER_FLAGS_RADAR);
+
+		/* Restore orignal mode if possible */
+		if (orig_mode_valid && feature->mode == mode &&
+		    feature->num_channels > 0 &&
+		    is_6ghz == is_6ghz_freq(feature->channels[0].freq))
+			iface->current_mode = feature;
 
 		/* set flag for channels we can use in current regulatory
 		 * domain */
@@ -139,6 +162,12 @@ int hostapd_get_hw_features(struct hostapd_iface *iface)
 				   feature->channels[j].max_tx_power,
 				   dfs ? dfs_info(&feature->channels[j]) : "");
 		}
+	}
+
+	if (orig_mode_valid && !iface->current_mode) {
+		wpa_printf(MSG_ERROR,
+			   "%s: Could not update iface->current_mode",
+			   __func__);
 	}
 
 	return 0;
