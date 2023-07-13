@@ -91,7 +91,7 @@ static void ccmp_aad_nonce_pv1(const u8 *hdr, const u8 *a1, const u8 *a2,
 			       const u8 *a3, const u8 *pn,
 			       u8 *aad, size_t *aad_len, u8 *nonce)
 {
-	u16 fc, type;
+	u16 fc, type, ptid;
 	u8 *pos;
 
 	nonce[0] = BIT(5); /* PV1 */
@@ -102,6 +102,11 @@ static void ccmp_aad_nonce_pv1(const u8 *hdr, const u8 *a1, const u8 *a2,
 
 	if (type == 1)
 		nonce[0] |= 0x10; /* Management */
+	else if ((type == 0) || (type == 3)) {
+		/* QoS Data */
+		ptid = (fc & (BIT(5) | BIT(6) | BIT(7))) >> 5;
+		nonce[0] |= ptid;
+	}
 
 	fc &= ~(BIT(10) | BIT(11) | BIT(13) | BIT(14) | BIT(15));
 	fc |= BIT(12);
