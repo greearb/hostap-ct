@@ -150,7 +150,7 @@ int linux_br_del(int sock, const char *brname)
 int linux_br_add_if(int sock, const char *brname, const char *ifname)
 {
 	struct ifreq ifr;
-	int ifindex;
+	int ifindex, ret;
 
 	ifindex = if_nametoindex(ifname);
 	if (ifindex == 0)
@@ -165,6 +165,17 @@ int linux_br_add_if(int sock, const char *brname, const char *ifname)
 
 		wpa_printf(MSG_DEBUG, "Could not add interface %s into bridge "
 			   "%s: %s", ifname, brname, strerror(errno));
+
+		/* If ioctl returns -EBUSY when adding interface into bridge,
+		 * the interface might already be added by netifd, so here we
+		 * check whether the interface is currently on the right
+		 * bridge. */
+		if(errno == EBUSY && linux_br_get(in_br, ifname) == 0 &&
+	           os_strcmp(in_br, brname) == 0)
+			ret = 0;
+		else
+			ret = -1;
+
 		errno = saved_errno;
 
 		/* If ioctl() returns EBUSY when adding an interface into the
@@ -175,6 +186,8 @@ int linux_br_add_if(int sock, const char *brname, const char *ifname)
 		if (errno != EBUSY || linux_br_get(in_br, ifname) != 0 ||
 		    os_strcmp(in_br, brname) != 0)
 			return -1;
+
+		return ret;
 	}
 
 	return 0;
