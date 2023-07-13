@@ -200,7 +200,7 @@ static void test_vector_ccmp_pv1(void)
 	wpa_hexdump(MSG_INFO, "PN (PN0..PN5)", pn, sizeof(pn));
 
 	wpa_printf(MSG_INFO,
-		   "\nPV1 test vector #1:\nHeader compression used and A3 was previously stored at the receiver\n");
+		   "\nPV1 test vector #1:\nHeader compression used and A3 was previously stored at the receiver");
 	fc = WPA_GET_LE16(frame1);
 	wpa_printf(MSG_INFO,
 		   "FC=0x%04x (PV=%u Type=%u PTID/Subtype=%u From_DS=%u More_Fragments=%u Power_Management=%u More_Data=%u Protected_Frame=%u End_of_SP=%u Relayed_Frame=%u Ack_Policy=%u)",
@@ -249,7 +249,7 @@ static void test_vector_ccmp_pv1(void)
 	wpa_hexdump(MSG_INFO, "Encrypted Frame FCS", fcs, sizeof(fcs));
 
 	wpa_printf(MSG_INFO,
-		   "\nPV1 test vector #2:\nHeader compression used and A3 was not previously stored at the receiver\n");
+		   "\nPV1 test vector #2:\nHeader compression used and A3 was not previously stored at the receiver");
 	fc = WPA_GET_LE16(frame2);
 	wpa_printf(MSG_INFO,
 		   "FC=0x%04x (PV=%u Type=%u PTID/Subtype=%u From_DS=%u More_Fragments=%u Power_Management=%u More_Data=%u Protected_Frame=%u End_of_SP=%u Relayed_Frame=%u Ack_Policy=%u)",
@@ -299,7 +299,7 @@ static void test_vector_ccmp_pv1(void)
 	wpa_hexdump(MSG_INFO, "Encrypted Frame FCS", fcs, sizeof(fcs));
 
 	wpa_printf(MSG_INFO,
-		   "\nPV1 test vector #3:\nType 3 frame from SA to DA(=BSSID) (i.e., no separate DA in this example)\n");
+		   "\nPV1 test vector #3:\nType 3 frame from SA to DA(=BSSID) (i.e., no separate DA in this example)");
 	fc = WPA_GET_LE16(frame3);
 	wpa_printf(MSG_INFO,
 		   "FC=0x%04x (PV=%u Type=%u PTID/Subtype=%u From_DS=%u More_Fragments=%u Power_Management=%u More_Data=%u Protected_Frame=%u End_of_SP=%u Relayed_Frame=%u Ack_Policy=%u)",
