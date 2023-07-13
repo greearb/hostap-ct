@@ -120,7 +120,7 @@ static void test_vector_ccmp(void)
 
 	wpa_debug_level = MSG_INFO;
 	plain = ccmp_decrypt(tk, (const struct ieee80211_hdr *) enc,
-			     enc + 24, NULL, NULL, NULL, enc_len - 24,
+			     NULL, NULL, NULL, enc + 24, enc_len - 24,
 			     &plain_len);
 	wpa_debug_level = MSG_EXCESSIVE;
 	os_free(enc);
@@ -414,7 +414,7 @@ static void test_vector_ccmp_mgmt(void)
 
 	wpa_debug_level = MSG_INFO;
 	plain = ccmp_decrypt(tk, (const struct ieee80211_hdr *) enc,
-			     enc + 24, NULL, NULL, NULL, enc_len - 24,
+			     NULL, NULL, NULL, enc + 24, enc_len - 24,
 			     &plain_len);
 	wpa_debug_level = MSG_EXCESSIVE;
 	os_free(enc);
@@ -789,7 +789,7 @@ static int test_vector_ccmp_256(void)
 
 	wpa_debug_level = MSG_INFO;
 	plain = ccmp_256_decrypt(tk, (const struct ieee80211_hdr *) enc,
-				 enc + 24, NULL, NULL, NULL, enc_len - 24,
+				 NULL, NULL, NULL, enc + 24, enc_len - 24,
 				 &plain_len);
 	wpa_debug_level = MSG_EXCESSIVE;
 	os_free(enc);
