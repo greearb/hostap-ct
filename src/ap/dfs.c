@@ -362,8 +362,9 @@ static int dfs_get_start_chan_idx(struct hostapd_iface *iface, int *seg1_start)
 	if (iface->conf->ieee80211n && iface->conf->secondary_channel == -1)
 		channel_no -= 4;
 
-	/* VHT/HE */
-	if (iface->conf->ieee80211ac || iface->conf->ieee80211ax) {
+	/* VHT/HE/EHT */
+	if (iface->conf->ieee80211ac || iface->conf->ieee80211ax ||
+	    iface->conf->ieee80211be) {
 		switch (hostapd_get_oper_chwidth(iface->conf)) {
 		case CONF_OPER_CHWIDTH_USE_HT:
 			break;
@@ -381,9 +382,13 @@ static int dfs_get_start_chan_idx(struct hostapd_iface *iface, int *seg1_start)
 			chan_seg1 = hostapd_get_oper_centr_freq_seg1_idx(
 				iface->conf) - 6;
 			break;
+		case CONF_OPER_CHWIDTH_320MHZ:
+			channel_no = hostapd_get_oper_centr_freq_seg0_idx(
+				iface->conf) - 30;
+			break;
 		default:
 			wpa_printf(MSG_INFO,
-				   "DFS only VHT20/40/80/160/80+80 is supported now");
+				   "DFS only EHT20/40/80/160/80+80/320 is supported now");
 			channel_no = -1;
 			break;
 		}
