@@ -337,6 +337,45 @@ def test_ieee8021x_reauth(dev, apdev):
     time.sleep(0.1)
     hwsim_utils.test_connectivity(dev[0], hapd)
 
+def test_ieee8021x_reauth_peap(dev, apdev):
+    """IEEE 802.1X and EAPOL_REAUTH request (PEAP and session resumption)"""
+    run_ieee8021x_reauth_peap(dev, apdev, False)
+
+def test_ieee8021x_reauth_peap2(dev, apdev):
+    """IEEE 802.1X and EAPOL_REAUTH request (PEAP and session resumption; Phase 2 auth forced)"""
+    run_ieee8021x_reauth_peap(dev, apdev, True)
+
+def run_ieee8021x_reauth_peap(dev, apdev, phase2_auth):
+    params = {"eap_server": "1", "eap_user_file": "auth_serv/eap_user.conf",
+              "ca_cert": "auth_serv/ca.pem",
+              "server_cert": "auth_serv/server.pem",
+              "private_key": "auth_serv/server.key",
+              "dh_file": "auth_serv/dh.conf",
+              "tls_session_lifetime": "60"}
+    params["ssid"] = "ieee8021x-open"
+    params["ieee8021x"] = "1"
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    phase1 = "phase2_auth=2" if phase2_auth else ""
+    dev[0].connect("ieee8021x-open", key_mgmt="IEEE8021X", eapol_flags="0",
+                   eap="PEAP", identity="user", anonymous_identity="peap",
+                   password="password", ca_cert="auth_serv/ca.pem",
+                   phase1=phase1, phase2="auth=MSCHAPV2",
+                   scan_freq="2412")
+
+    hapd.request("EAPOL_REAUTH " + dev[0].own_addr())
+    ev = dev[0].wait_event(["CTRL-EVENT-EAP-STARTED"], timeout=5)
+    if ev is None:
+        raise Exception("EAP authentication did not start")
+    ev = dev[0].wait_event(["CTRL-EVENT-EAP-SUCCESS"], timeout=5)
+    if ev is None:
+        raise Exception("EAP authentication did not succeed")
+    reused = dev[0].get_status_field("tls_session_reused") == '1'
+    if phase2_auth and reused:
+        raise Exception("Session resumption used on the second connection")
+    if not phase2_auth and not reused:
+        raise Exception("Session resumption not used on the second connection")
+
 def test_ieee8021x_reauth_wep(dev, apdev, params):
     """IEEE 802.1X and EAPOL_REAUTH request with WEP"""
     check_wep_capa(dev[0])
