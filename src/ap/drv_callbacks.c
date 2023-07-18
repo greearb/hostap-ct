@@ -59,9 +59,10 @@ void hostapd_notify_assoc_fils_finish(struct hostapd_data *hapd,
 	if (!sta->fils_pending_assoc_req)
 		return;
 
-	ieee802_11_parse_elems(sta->fils_pending_assoc_req,
-			       sta->fils_pending_assoc_req_len, &elems, 0);
-	if (!elems.fils_session) {
+	if (ieee802_11_parse_elems(sta->fils_pending_assoc_req,
+				   sta->fils_pending_assoc_req_len, &elems,
+				   0) == ParseFailed ||
+	    !elems.fils_session) {
 		wpa_printf(MSG_DEBUG, "%s failed to find FILS Session element",
 			   __func__);
 		return;
@@ -176,7 +177,12 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 	hostapd_logger(hapd, addr, HOSTAPD_MODULE_IEEE80211,
 		       HOSTAPD_LEVEL_INFO, "associated");
 
-	ieee802_11_parse_elems(req_ies, req_ies_len, &elems, 0);
+	if (ieee802_11_parse_elems(req_ies, req_ies_len, &elems, 0) ==
+	    ParseFailed) {
+		wpa_printf(MSG_DEBUG, "%s: Could not parse elements", __func__);
+		return -1;
+	}
+
 	if (elems.wps_ie) {
 		ie = elems.wps_ie - 2;
 		ielen = elems.wps_ie_len + 2;

@@ -183,8 +183,8 @@ void get_pri_sec_chan(struct wpa_scan_res *bss, int *pri_chan, int *sec_chan)
 
 	*pri_chan = *sec_chan = 0;
 
-	ieee802_11_parse_elems((u8 *) (bss + 1), bss->ie_len, &elems, 0);
-	if (elems.ht_operation) {
+	if (ieee802_11_parse_elems((u8 *) (bss + 1), bss->ie_len, &elems, 0) !=
+	    ParseFailed && elems.ht_operation) {
 		oper = (struct ieee80211_ht_operation *) elems.ht_operation;
 		*pri_chan = oper->primary_chan;
 		if (oper->ht_param & HT_INFO_HT_PARAM_STA_CHNL_WIDTH) {
@@ -273,7 +273,10 @@ static int check_20mhz_bss(struct wpa_scan_res *bss, int pri_freq, int start,
 	if (bss->freq < start || bss->freq > end || bss->freq == pri_freq)
 		return 0;
 
-	ieee802_11_parse_elems((u8 *) (bss + 1), bss->ie_len, &elems, 0);
+	if (ieee802_11_parse_elems((u8 *) (bss + 1), bss->ie_len, &elems, 0) ==
+	    ParseFailed)
+		return 0;
+
 	if (!elems.ht_capabilities) {
 		wpa_printf(MSG_DEBUG, "Found overlapping legacy BSS: "
 			   MACSTR " freq=%d", MAC2STR(bss->bssid), bss->freq);
@@ -357,9 +360,9 @@ int check_40mhz_2g4(struct hostapd_hw_modes *mode,
 			}
 		}
 
-		ieee802_11_parse_elems((u8 *) (bss + 1), bss->ie_len, &elems,
-				       0);
-		if (elems.ht_capabilities) {
+		if (ieee802_11_parse_elems((u8 *) (bss + 1), bss->ie_len,
+					   &elems, 0) != ParseFailed &&
+		    elems.ht_capabilities) {
 			struct ieee80211_ht_capabilities *ht_cap =
 				(struct ieee80211_ht_capabilities *)
 				elems.ht_capabilities;

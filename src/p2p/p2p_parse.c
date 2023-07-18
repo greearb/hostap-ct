@@ -545,7 +545,9 @@ int p2p_parse_ies(const u8 *data, size_t len, struct p2p_message *msg)
 {
 	struct ieee802_11_elems elems;
 
-	ieee802_11_parse_elems(data, len, &elems, 0);
+	if (ieee802_11_parse_elems(data, len, &elems, 0) == ParseFailed)
+		return -1;
+
 	if (elems.ds_params)
 		msg->ds_params = elems.ds_params;
 	if (elems.ssid)
