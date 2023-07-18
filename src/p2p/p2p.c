@@ -1499,11 +1499,12 @@ static void p2p_prepare_channel_best(struct p2p_data *p2p)
 	} else {
 		/* Select any random available channel from the first available
 		 * operating class */
-		p2p_channel_select(&p2p->cfg->channels, NULL,
-				   &p2p->op_reg_class,
-				   &p2p->op_channel);
-		p2p_dbg(p2p, "Select random available channel %d from operating class %d as operating channel preference",
-			p2p->op_channel, p2p->op_reg_class);
+		if (p2p_channel_select(&p2p->cfg->channels, NULL,
+				       &p2p->op_reg_class,
+				       &p2p->op_channel) == 0)
+			p2p_dbg(p2p,
+				"Select random available channel %d from operating class %d as operating channel preference",
+				p2p->op_channel, p2p->op_reg_class);
 	}
 
 	p2p_copy_channels(&p2p->channels, &p2p->cfg->channels, p2p->allow_6ghz);
