@@ -1450,7 +1450,7 @@ static u16 hostapd_fils_discovery_cap(struct hostapd_data *hapd)
 		int i;
 		u16 nss = 0, mcs[6];
 
-		os_memset(mcs, 0xffff, 6 * sizeof(u16));
+		os_memset(mcs, 0xff, 6 * sizeof(u16));
 
 		if (mcs_nss_size == 4) {
 			mcs[0] = WPA_GET_LE16(&he_mcs[0]);
