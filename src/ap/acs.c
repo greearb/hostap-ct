@@ -1076,12 +1076,6 @@ bw_selected:
 		return ideal_chan;
 	}
 
-#ifdef CONFIG_IEEE80211BE
-	if (iface->conf->punct_acs_threshold)
-		wpa_printf(MSG_DEBUG, "ACS: RU puncturing bitmap 0x%x",
-			   ideal_chan->punct_bitmap);
-#endif /* CONFIG_IEEE80211BE */
-
 	return rand_chan;
 }
 
