@@ -1026,6 +1026,23 @@ DBusMessage * wpas_dbus_reply_new_from_error(DBusMessage *message,
 }
 
 
+static double guard_interval_to_double(enum guard_interval value)
+{
+	switch (value) {
+	case GUARD_INTERVAL_0_4:
+		return 0.4;
+	case GUARD_INTERVAL_0_8:
+		return 0.8;
+	case GUARD_INTERVAL_1_6:
+		return 1.6;
+	case GUARD_INTERVAL_3_2:
+		return 3.2;
+	default:
+		return 0;
+	}
+}
+
+
 /**
  * wpas_dbus_new_from_signal_information - Adds a wpa_signal_info
  * to a DBusMessage.
@@ -1149,6 +1166,20 @@ int wpas_dbus_new_from_signal_information(DBusMessageIter *iter,
 	    (si->data.avg_ack_signal &&
 	     !wpa_dbus_dict_append_int32(&iter_dict, "avg-ack-rssi",
 					 si->data.avg_ack_signal)) ||
+	    (si->data.rx_guard_interval &&
+	     !wpa_dbus_dict_append_double(
+		     &iter_dict, "rx-guard-interval",
+		     guard_interval_to_double(si->data.rx_guard_interval))) ||
+	    (si->data.tx_guard_interval &&
+	     !wpa_dbus_dict_append_double(
+		     &iter_dict, "tx-guard-interval",
+		     guard_interval_to_double(si->data.tx_guard_interval))) ||
+	    ((si->data.flags & STA_DRV_DATA_RX_HE_DCM) &&
+	     !wpa_dbus_dict_append_bool(&iter_dict, "rx-dcm",
+					si->data.rx_dcm)) ||
+	    ((si->data.flags & STA_DRV_DATA_TX_HE_DCM) &&
+	     !wpa_dbus_dict_append_bool(&iter_dict, "tx-dcm",
+					si->data.tx_dcm)) ||
 	    !wpa_dbus_dict_close_write(&variant_iter, &iter_dict) ||
 	    !dbus_message_iter_close_container(iter, &variant_iter))
 		return -ENOMEM;

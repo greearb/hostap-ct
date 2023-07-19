@@ -59,6 +59,10 @@ dbus_bool_t wpa_dbus_dict_append_byte_array(DBusMessageIter *iter_dict,
 					    const char *value,
 					    const dbus_uint32_t value_len);
 
+dbus_bool_t wpa_dbus_dict_append_double(DBusMessageIter *iter_dict,
+					const char *key,
+					const double value);
+
 /* Manual construction and addition of array elements */
 dbus_bool_t wpa_dbus_dict_begin_array(DBusMessageIter *iter_dict,
 				      const char *key, const char *type,

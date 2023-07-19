@@ -362,6 +362,27 @@ dbus_bool_t wpa_dbus_dict_append_byte_array(DBusMessageIter *iter_dict,
 
 
 /**
+ * Add a double entry to the dict.
+ *
+ * @param iter_dict A valid DBusMessageIter returned from
+ *    wpa_dbus_dict_open_write()
+ * @param key The key of the dict item
+ * @param value The double value
+ * @return TRUE on success, FALSE on failure
+ *
+ */
+dbus_bool_t wpa_dbus_dict_append_double(DBusMessageIter *iter_dict,
+					const char *key,
+					const double value)
+{
+	if (!key)
+		return FALSE;
+	return _wpa_dbus_add_dict_entry_basic(iter_dict, key, DBUS_TYPE_DOUBLE,
+					      &value);
+}
+
+
+/**
  * Begin an array entry in the dict
  *
  * @param iter_dict A valid DBusMessageIter returned from
