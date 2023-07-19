@@ -1761,7 +1761,8 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 
 	sel = ie.key_mgmt & ssid->key_mgmt;
 #ifdef CONFIG_SAE
-	if (!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_SAE) ||
+	if ((!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_SAE) &&
+	     !(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_SAE_OFFLOAD_STA)) ||
 	    wpas_is_sae_avoided(wpa_s, ssid, &ie))
 		sel &= ~(WPA_KEY_MGMT_SAE | WPA_KEY_MGMT_SAE_EXT_KEY |
 			 WPA_KEY_MGMT_FT_SAE | WPA_KEY_MGMT_FT_SAE_EXT_KEY);
@@ -4309,6 +4310,17 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit)
 		     wpa_key_mgmt_wpa_psk_no_sae(params.allowed_key_mgmts)) &&
 		    wpa_supplicant_get_psk(wpa_s, bss, ssid, psk) == 0)
 			params.psk = psk;
+	}
+
+	if ((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_SAE_OFFLOAD_STA) &&
+	    wpa_key_mgmt_sae(params.key_mgmt_suite)) {
+		params.auth_alg = WPA_AUTH_ALG_SAE;
+		if (ssid->sae_password) {
+			params.sae_password = ssid->sae_password;
+			params.sae_password_id = ssid->sae_password_id;
+		} else if (ssid->passphrase) {
+			params.passphrase = ssid->passphrase;
+		}
 	}
 
 	params.drop_unencrypted = use_crypt;
