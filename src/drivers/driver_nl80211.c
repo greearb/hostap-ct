@@ -7037,6 +7037,27 @@ static int wpa_driver_nl80211_try_connect(
 	     wpa_key_mgmt_sae(params->allowed_key_mgmts)) &&
 	    nl80211_put_sae_pwe(msg, params->sae_pwe) < 0)
 		goto fail;
+
+	/* Add SAE password in case of SAE authentication offload */
+	if ((params->sae_password || params->passphrase) &&
+	    (drv->capa.flags2 & WPA_DRIVER_FLAGS2_SAE_OFFLOAD_STA)) {
+		const char *password;
+		size_t pwd_len;
+
+		if (params->sae_password && params->sae_password_id) {
+			wpa_printf(MSG_INFO,
+				   "nl80211: Use of SAE password identifiers not supported with driver-based SAE");
+			goto fail;
+		}
+
+		password = params->sae_password;
+		if (!password)
+			password = params->passphrase;
+		pwd_len = os_strlen(password);
+		wpa_printf(MSG_DEBUG, "  * SAE password");
+		if (nla_put(msg, NL80211_ATTR_SAE_PASSWORD, pwd_len, password))
+			goto fail;
+	}
 #endif /* CONFIG_SAE */
 
 	algs = 0;
@@ -7049,6 +7070,8 @@ static int wpa_driver_nl80211_try_connect(
 	if (params->auth_alg & WPA_AUTH_ALG_FILS)
 		algs++;
 	if (params->auth_alg & WPA_AUTH_ALG_FT)
+		algs++;
+	if (params->auth_alg & WPA_AUTH_ALG_SAE)
 		algs++;
 	if (algs > 1) {
 		wpa_printf(MSG_DEBUG, "  * Leave out Auth Type for automatic "

@@ -1129,6 +1129,23 @@ struct wpa_driver_associate_params {
 	const u8 *psk;
 
 	/**
+	 * sae_password - Password for SAE authentication
+	 *
+	 * This value is made available only for WPA3-Personal (SAE) and only
+	 * for drivers that set WPA_DRIVER_FLAGS2_SAE_OFFLOAD.
+	 */
+	const char *sae_password;
+
+	/**
+	 * sae_password_id - Password Identifier for SAE authentication
+	 *
+	 * This value is made available only for WPA3-Personal (SAE) and only
+	 * for drivers that set WPA_DRIVER_FLAGS2_SAE_OFFLOAD. If %NULL, SAE
+	 * password identifier is not used.
+	 */
+	const char *sae_password_id;
+
+	/**
 	 * drop_unencrypted - Enable/disable unencrypted frame filtering
 	 *
 	 * Configure the driver to drop all non-EAPOL frames (both receive and
@@ -2262,6 +2279,8 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_FLAGS2_MLO			0x0000000000004000ULL
 /** Driver supports minimal scan request probe content  */
 #define WPA_DRIVER_FLAGS2_SCAN_MIN_PREQ         0x0000000000008000ULL
+/** Driver supports SAE authentication offload in STA mode */
+#define WPA_DRIVER_FLAGS2_SAE_OFFLOAD_STA	0x0000000000010000ULL
 	u64 flags2;
 
 #define FULL_AP_CLIENT_STATE_SUPP(drv_flags) \
