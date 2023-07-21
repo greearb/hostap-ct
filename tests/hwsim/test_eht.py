@@ -403,13 +403,17 @@ def test_eht_mld_sae_legacy_client(dev, apdev):
 
         hapd1 = eht_mld_enable_ap(hapd_iface, params)
 
-        dev[0].set("sae_groups", "")
-        dev[0].set("sae_pwe", "1")
-        dev[0].connect(ssid, sae_password=passphrase, scan_freq="2412",
-                       key_mgmt="SAE", ieee80211w="2", beacon_prot="1")
+        try:
+            dev[0].set("sae_groups", "")
+            dev[0].set("sae_pwe", "1")
+            dev[0].connect(ssid, sae_password=passphrase, scan_freq="2412",
+                           key_mgmt="SAE", ieee80211w="2", beacon_prot="1")
 
-        eht_verify_status(dev[0], hapd0, 2412, 20, is_ht=True)
-        traffic_test(dev[0], hapd0)
+            eht_verify_status(dev[0], hapd0, 2412, 20, is_ht=True)
+            traffic_test(dev[0], hapd0)
+        finally:
+            dev[0].set("sae_groups", "")
+            dev[0].set("sae_pwe", "0")
 
 def test_eht_mld_sae_transition(dev, apdev):
     """EHT MLD AP in SAE/PSK transition mode with MLD client connection using two links"""
