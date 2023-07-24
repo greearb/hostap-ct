@@ -2848,6 +2848,7 @@ enum mscs_description_subelem {
 #define FD_CAP_PHY_INDEX_HT				2
 #define FD_CAP_PHY_INDEX_VHT				3
 #define FD_CAP_PHY_INDEX_HE				4 /* P802.11ax */
+#define FD_CAP_PHY_INDEX_EHT				5 /* P802.11be */
 #define FD_CAP_PHY_INDEX_SHIFT				10
 
 /*

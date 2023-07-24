@@ -1377,6 +1377,11 @@ void sta_track_del(struct hostapd_sta_info *info)
 
 static u16 hostapd_gen_fils_discovery_phy_index(struct hostapd_data *hapd)
 {
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be)
+		return FD_CAP_PHY_INDEX_EHT;
+#endif /* CONFIG_IEEE80211BE */
+
 #ifdef CONFIG_IEEE80211AX
 	if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax)
 		return FD_CAP_PHY_INDEX_HE;
@@ -1399,7 +1404,10 @@ static u16 hostapd_gen_fils_discovery_nss(struct hostapd_hw_modes *mode,
 {
 	u16 nss = 0;
 
-	if (mode && phy_index == FD_CAP_PHY_INDEX_HE) {
+	if (!mode)
+		return 0;
+
+	if (phy_index == FD_CAP_PHY_INDEX_HE) {
 		const u8 *he_mcs = mode->he_capab[IEEE80211_MODE_AP].mcs;
 		int i;
 		u16 mcs[6];
@@ -1449,6 +1457,31 @@ static u16 hostapd_gen_fils_discovery_nss(struct hostapd_hw_modes *mode,
 				continue;
 			}
 		}
+	} else if (phy_index == FD_CAP_PHY_INDEX_EHT) {
+		u8 rx_nss, tx_nss, max_nss = 0, i;
+		u8 *mcs = mode->eht_capab[IEEE80211_MODE_AP].mcs;
+
+		/*
+		 * The Supported EHT-MCS And NSS Set field for the AP contains
+		 * one to three EHT-MCS Map fields based on the supported
+		 * bandwidth. Check the first byte (max NSS for Rx/Tx that
+		 * supports EHT-MCS 0-9) for each bandwidth (<= 80,
+		 * 160, 320) to find the maximum NSS. This assumes that
+		 * the lowest MCS rates support the largest number of spatial
+		 * streams. If values are different between Tx, Rx or the
+		 * bandwidths, choose the highest value.
+		 */
+		for (i = 0; i < 3; i++) {
+			rx_nss = mcs[3 * i] & 0x0F;
+			if (rx_nss > max_nss)
+				max_nss = rx_nss;
+
+			tx_nss = (mcs[3 * i] & 0xF0) >> 4;
+			if (tx_nss > max_nss)
+				max_nss = tx_nss;
+		}
+
+		nss = max_nss;
 	}
 
 	if (nss > 4)
