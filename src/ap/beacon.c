@@ -1375,9 +1375,28 @@ void sta_track_del(struct hostapd_sta_info *info)
 
 #ifdef CONFIG_FILS
 
+static u16 hostapd_gen_fils_discovery_phy_index(struct hostapd_data *hapd)
+{
+#ifdef CONFIG_IEEE80211AX
+	if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax)
+		return FD_CAP_PHY_INDEX_HE;
+#endif /* CONFIG_IEEE80211AX */
+
+#ifdef CONFIG_IEEE80211AC
+	if (hapd->iconf->ieee80211ac && !hapd->conf->disable_11ac)
+		return FD_CAP_PHY_INDEX_VHT;
+#endif /* CONFIG_IEEE80211AC */
+
+	if (hapd->iconf->ieee80211n && !hapd->conf->disable_11n)
+		return FD_CAP_PHY_INDEX_HT;
+
+	return 0;
+}
+
+
 static u16 hostapd_fils_discovery_cap(struct hostapd_data *hapd)
 {
-	u16 cap_info, phy_index = 0;
+	u16 cap_info, phy_index;
 	u8 chwidth = FD_CAP_BSS_CHWIDTH_20, mcs_nss_size = 4;
 	struct hostapd_hw_modes *mode = hapd->iface->current_mode;
 
@@ -1386,8 +1405,6 @@ static u16 hostapd_fils_discovery_cap(struct hostapd_data *hapd)
 		cap_info |= FD_CAP_PRIVACY;
 
 	if (is_6ghz_op_class(hapd->iconf->op_class)) {
-		phy_index = FD_CAP_PHY_INDEX_HE;
-
 		switch (hapd->iconf->op_class) {
 		case 137:
 			chwidth = FD_CAP_BSS_CHWIDTH_320;
@@ -1427,21 +1444,9 @@ static u16 hostapd_fils_discovery_cap(struct hostapd_data *hapd)
 		default:
 			break;
 		}
-
-#ifdef CONFIG_IEEE80211AX
-		if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax)
-			phy_index = FD_CAP_PHY_INDEX_HE;
-#endif /* CONFIG_IEEE80211AX */
-#ifdef CONFIG_IEEE80211AC
-		if (!phy_index &&
-		    hapd->iconf->ieee80211ac && !hapd->conf->disable_11ac)
-			phy_index = FD_CAP_PHY_INDEX_VHT;
-#endif /* CONFIG_IEEE80211AC */
-		if (!phy_index &&
-		    hapd->iconf->ieee80211n && !hapd->conf->disable_11n)
-			phy_index = FD_CAP_PHY_INDEX_HT;
 	}
 
+	phy_index = hostapd_gen_fils_discovery_phy_index(hapd);
 	cap_info |= phy_index << FD_CAP_PHY_INDEX_SHIFT;
 	cap_info |= chwidth << FD_CAP_BSS_CHWIDTH_SHIFT;
 
