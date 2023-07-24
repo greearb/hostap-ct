@@ -1394,6 +1394,70 @@ static u16 hostapd_gen_fils_discovery_phy_index(struct hostapd_data *hapd)
 }
 
 
+static u16 hostapd_gen_fils_discovery_nss(struct hostapd_hw_modes *mode,
+					  u16 phy_index, u8 mcs_nss_size)
+{
+	u16 nss = 0;
+
+	if (mode && phy_index == FD_CAP_PHY_INDEX_HE) {
+		const u8 *he_mcs = mode->he_capab[IEEE80211_MODE_AP].mcs;
+		int i;
+		u16 mcs[6];
+
+		os_memset(mcs, 0xff, 6 * sizeof(u16));
+
+		if (mcs_nss_size == 4) {
+			mcs[0] = WPA_GET_LE16(&he_mcs[0]);
+			mcs[1] = WPA_GET_LE16(&he_mcs[2]);
+		}
+
+		if (mcs_nss_size == 8) {
+			mcs[2] = WPA_GET_LE16(&he_mcs[4]);
+			mcs[3] = WPA_GET_LE16(&he_mcs[6]);
+		}
+
+		if (mcs_nss_size == 12) {
+			mcs[4] = WPA_GET_LE16(&he_mcs[8]);
+			mcs[5] = WPA_GET_LE16(&he_mcs[10]);
+		}
+
+		for (i = 0; i < HE_NSS_MAX_STREAMS; i++) {
+			u16 nss_mask = 0x3 << (i * 2);
+
+			/*
+			 * If NSS values supported by RX and TX are different
+			 * then choose the smaller of the two as the maximum
+			 * supported NSS as that is the value supported by
+			 * both RX and TX.
+			 */
+			if (mcs_nss_size == 4 &&
+			    (((mcs[0] & nss_mask) == nss_mask) ||
+			     ((mcs[1] & nss_mask) == nss_mask)))
+				continue;
+
+			if (mcs_nss_size == 8 &&
+			    (((mcs[2] & nss_mask) == nss_mask) ||
+			     ((mcs[3] & nss_mask) == nss_mask)))
+				continue;
+
+			if (mcs_nss_size == 12 &&
+			    (((mcs[4] & nss_mask) == nss_mask) ||
+			     ((mcs[5] & nss_mask) == nss_mask)))
+				continue;
+
+			nss++;
+		}
+	}
+
+	if (nss > 4)
+		return FD_CAP_NSS_5_8 << FD_CAP_NSS_SHIFT;
+	if (nss)
+		return (nss - 1) << FD_CAP_NSS_SHIFT;
+
+	return 0;
+}
+
+
 static u16 hostapd_fils_discovery_cap(struct hostapd_data *hapd)
 {
 	u16 cap_info, phy_index;
@@ -1449,62 +1513,8 @@ static u16 hostapd_fils_discovery_cap(struct hostapd_data *hapd)
 	phy_index = hostapd_gen_fils_discovery_phy_index(hapd);
 	cap_info |= phy_index << FD_CAP_PHY_INDEX_SHIFT;
 	cap_info |= chwidth << FD_CAP_BSS_CHWIDTH_SHIFT;
-
-	if (mode && phy_index == FD_CAP_PHY_INDEX_HE) {
-		const u8 *he_mcs = mode->he_capab[IEEE80211_MODE_AP].mcs;
-		int i;
-		u16 nss = 0, mcs[6];
-
-		os_memset(mcs, 0xff, 6 * sizeof(u16));
-
-		if (mcs_nss_size == 4) {
-			mcs[0] = WPA_GET_LE16(&he_mcs[0]);
-			mcs[1] = WPA_GET_LE16(&he_mcs[2]);
-		}
-
-		if (mcs_nss_size == 8) {
-			mcs[2] = WPA_GET_LE16(&he_mcs[4]);
-			mcs[3] = WPA_GET_LE16(&he_mcs[6]);
-		}
-
-		if (mcs_nss_size == 12) {
-			mcs[4] = WPA_GET_LE16(&he_mcs[8]);
-			mcs[5] = WPA_GET_LE16(&he_mcs[10]);
-		}
-
-		for (i = 0; i < HE_NSS_MAX_STREAMS; i++) {
-			u16 nss_mask = 0x3 << (i * 2);
-
-			/*
-			 * If NSS values supported by RX and TX are different
-			 * then choose the smaller of the two as the maximum
-			 * supported NSS as that is the value supported by
-			 * both RX and TX.
-			 */
-			if (mcs_nss_size == 4 &&
-			    (((mcs[0] & nss_mask) == nss_mask) ||
-			     ((mcs[1] & nss_mask) == nss_mask)))
-				continue;
-
-			if (mcs_nss_size == 8 &&
-			    (((mcs[2] & nss_mask) == nss_mask) ||
-			     ((mcs[3] & nss_mask) == nss_mask)))
-				continue;
-
-			if (mcs_nss_size == 12 &&
-			    (((mcs[4] & nss_mask) == nss_mask) ||
-			     ((mcs[5] & nss_mask) == nss_mask)))
-				continue;
-
-			nss++;
-		}
-
-		if (nss > 4)
-			cap_info |= FD_CAP_NSS_5_8 << FD_CAP_NSS_SHIFT;
-		else if (nss)
-			cap_info |= (nss - 1) << FD_CAP_NSS_SHIFT;
-	}
-
+	cap_info |= hostapd_gen_fils_discovery_nss(mode, phy_index,
+						   mcs_nss_size);
 	return cap_info;
 }
 
