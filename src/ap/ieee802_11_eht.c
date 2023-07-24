@@ -642,6 +642,8 @@ struct wpabuf * hostapd_ml_auth_resp(struct hostapd_data *hapd)
 }
 
 
+#ifdef CONFIG_SAE
+
 static const u8 *
 sae_commit_skip_fixed_fields(const struct ieee80211_mgmt *mgmt, size_t len,
 			     const u8 *pos, u16 status_code)
@@ -750,14 +752,18 @@ sae_confirm_skip_fixed_fields(struct hostapd_data *hapd,
 	return pos;
 }
 
+#endif /* CONFIG_SAE */
+
 
 static const u8 * auth_skip_fixed_fields(struct hostapd_data *hapd,
 					 const struct ieee80211_mgmt *mgmt,
 					 size_t len)
 {
 	u16 auth_alg = le_to_host16(mgmt->u.auth.auth_alg);
+#ifdef CONFIG_SAE
 	u16 auth_transaction = le_to_host16(mgmt->u.auth.auth_transaction);
 	u16 status_code = le_to_host16(mgmt->u.auth.status_code);
+#endif /* CONFIG_SAE */
 	const u8 *pos = mgmt->u.auth.variable;
 
 	/* Skip fixed fields as based on IEE P802.11-REVme/D3.0, Table 9-69
@@ -765,6 +771,7 @@ static const u8 * auth_skip_fixed_fields(struct hostapd_data *hapd,
 	switch (auth_alg) {
 	case WLAN_AUTH_OPEN:
 		return pos;
+#ifdef CONFIG_SAE
 	case WLAN_AUTH_SAE:
 		if (auth_transaction == 1) {
 			if (status_code == WLAN_STATUS_SUCCESS) {
@@ -781,6 +788,7 @@ static const u8 * auth_skip_fixed_fields(struct hostapd_data *hapd,
 		}
 
 		return pos;
+#endif /* CONFIG_SAE */
 	/* TODO: Support additional algorithms that can be used for MLO */
 	case WLAN_AUTH_FT:
 	case WLAN_AUTH_FILS_SK:
@@ -791,7 +799,9 @@ static const u8 * auth_skip_fixed_fields(struct hostapd_data *hapd,
 		break;
 	}
 
+#ifdef CONFIG_SAE
 out:
+#endif /* CONFIG_SAE */
 	wpa_printf(MSG_DEBUG,
 		   "TODO: Authentication algorithm %u not supported with MLD",
 		   auth_alg);
