@@ -5282,7 +5282,10 @@ enum qca_roam_scan_scheme {
  *	due to poor RSSI of the connected AP.
  * @QCA_ROAM_TRIGGER_REASON_BETTER_RSSI: Set if the roam has to be triggered
  *	upon finding a BSSID with a better RSSI than the connected BSSID.
- *	Here the RSSI of the current BSSID need not be poor.
+ *	Also, set if the roam has to be triggered due to the high RSSI of the
+ *	current connected AP (better than
+ *	QCA_ATTR_ROAM_CONTROL_CONNECTED_HIGH_RSSI_OFFSET). Here the RSSI of
+ *	the current BSSID need not be poor.
  * @QCA_ROAM_TRIGGER_REASON_PERIODIC: Set if the roam has to be triggered
  *	by triggering a periodic scan to find a better AP to roam.
  * @QCA_ROAM_TRIGGER_REASON_DENSE: Set if the roam has to be triggered
@@ -5792,6 +5795,16 @@ enum qca_vendor_attr_roam_candidate_selection_criteria {
  *	QCA_ATTR_ROAM_CONTROL_CANDIDATE_ROAM_RSSI_DIFF for the roam from 2.4/5
  *	GHz to 6 GHz alone with the intention to have a different value to roam
  *	to the preferred 6 GHz band.
+ *
+ * @QCA_ATTR_ROAM_CONTROL_CONNECTED_HIGH_RSSI_OFFSET: Unsigned 8-bit value.
+ *	This attribute signifies the RSSI offset that is added to low RSSI
+ *	threshold (QCA_ATTR_ROAM_CONTROL_CONNECTED_LOW_RSSI_THRESHOLD) to imply
+ *	high RSSI threshold. STA is expected to trigger roam if the current
+ *	connected AP's RSSI gets above this high RSSI threshold. STA's roam
+ *	attempt on high RSSI threshold aims to find candidates from other
+ *	better Wi-Fi bands. E.g., STA would initially connect to a 2.4 GHz BSSID
+ *	and would migrate to 5/6 GHz when it comes closer to the AP (high RSSI
+ *	for 2.4 GHz BSS).
  */
 enum qca_vendor_attr_roam_control {
 	QCA_ATTR_ROAM_CONTROL_ENABLE = 1,
@@ -5824,6 +5837,7 @@ enum qca_vendor_attr_roam_control {
 	QCA_ATTR_ROAM_CONTROL_CONNECTED_LOW_RSSI_THRESHOLD = 28,
 	QCA_ATTR_ROAM_CONTROL_CANDIDATE_ROAM_RSSI_DIFF = 29,
 	QCA_ATTR_ROAM_CONTROL_6GHZ_CANDIDATE_ROAM_RSSI_DIFF = 30,
+	QCA_ATTR_ROAM_CONTROL_CONNECTED_HIGH_RSSI_OFFSET = 31,
 
 	/* keep last */
 	QCA_ATTR_ROAM_CONTROL_AFTER_LAST,
