@@ -1395,7 +1395,7 @@ static u16 hostapd_gen_fils_discovery_phy_index(struct hostapd_data *hapd)
 
 
 static u16 hostapd_gen_fils_discovery_nss(struct hostapd_hw_modes *mode,
-					  u16 phy_index, u8 mcs_nss_size)
+					  u16 phy_index, u8 he_mcs_nss_size)
 {
 	u16 nss = 0;
 
@@ -1406,17 +1406,17 @@ static u16 hostapd_gen_fils_discovery_nss(struct hostapd_hw_modes *mode,
 
 		os_memset(mcs, 0xff, 6 * sizeof(u16));
 
-		if (mcs_nss_size == 4) {
+		if (he_mcs_nss_size == 4) {
 			mcs[0] = WPA_GET_LE16(&he_mcs[0]);
 			mcs[1] = WPA_GET_LE16(&he_mcs[2]);
 		}
 
-		if (mcs_nss_size == 8) {
+		if (he_mcs_nss_size == 8) {
 			mcs[2] = WPA_GET_LE16(&he_mcs[4]);
 			mcs[3] = WPA_GET_LE16(&he_mcs[6]);
 		}
 
-		if (mcs_nss_size == 12) {
+		if (he_mcs_nss_size == 12) {
 			mcs[4] = WPA_GET_LE16(&he_mcs[8]);
 			mcs[5] = WPA_GET_LE16(&he_mcs[10]);
 		}
@@ -1430,17 +1430,17 @@ static u16 hostapd_gen_fils_discovery_nss(struct hostapd_hw_modes *mode,
 			 * supported NSS as that is the value supported by
 			 * both RX and TX.
 			 */
-			if (mcs_nss_size == 4 &&
+			if (he_mcs_nss_size == 4 &&
 			    (((mcs[0] & nss_mask) == nss_mask) ||
 			     ((mcs[1] & nss_mask) == nss_mask)))
 				continue;
 
-			if (mcs_nss_size == 8 &&
+			if (he_mcs_nss_size == 8 &&
 			    (((mcs[2] & nss_mask) == nss_mask) ||
 			     ((mcs[3] & nss_mask) == nss_mask)))
 				continue;
 
-			if (mcs_nss_size == 12 &&
+			if (he_mcs_nss_size == 12 &&
 			    (((mcs[4] & nss_mask) == nss_mask) ||
 			     ((mcs[5] & nss_mask) == nss_mask)))
 				continue;
@@ -1461,7 +1461,7 @@ static u16 hostapd_gen_fils_discovery_nss(struct hostapd_hw_modes *mode,
 static u16 hostapd_fils_discovery_cap(struct hostapd_data *hapd)
 {
 	u16 cap_info, phy_index;
-	u8 chwidth = FD_CAP_BSS_CHWIDTH_20, mcs_nss_size = 4;
+	u8 chwidth = FD_CAP_BSS_CHWIDTH_20, he_mcs_nss_size = 4;
 	struct hostapd_hw_modes *mode = hapd->iface->current_mode;
 
 	cap_info = FD_CAP_ESS;
@@ -1474,10 +1474,10 @@ static u16 hostapd_fils_discovery_cap(struct hostapd_data *hapd)
 			chwidth = FD_CAP_BSS_CHWIDTH_320;
 			break;
 		case 135:
-			mcs_nss_size += 4;
+			he_mcs_nss_size += 4;
 			/* fallthrough */
 		case 134:
-			mcs_nss_size += 4;
+			he_mcs_nss_size += 4;
 			chwidth = FD_CAP_BSS_CHWIDTH_160_80_80;
 			break;
 		case 133:
@@ -1490,10 +1490,10 @@ static u16 hostapd_fils_discovery_cap(struct hostapd_data *hapd)
 	} else {
 		switch (hostapd_get_oper_chwidth(hapd->iconf)) {
 		case CONF_OPER_CHWIDTH_80P80MHZ:
-			mcs_nss_size += 4;
+			he_mcs_nss_size += 4;
 			/* fallthrough */
 		case CONF_OPER_CHWIDTH_160MHZ:
-			mcs_nss_size += 4;
+			he_mcs_nss_size += 4;
 			chwidth = FD_CAP_BSS_CHWIDTH_160_80_80;
 			break;
 		case CONF_OPER_CHWIDTH_80MHZ:
@@ -1514,7 +1514,7 @@ static u16 hostapd_fils_discovery_cap(struct hostapd_data *hapd)
 	cap_info |= phy_index << FD_CAP_PHY_INDEX_SHIFT;
 	cap_info |= chwidth << FD_CAP_BSS_CHWIDTH_SHIFT;
 	cap_info |= hostapd_gen_fils_discovery_nss(mode, phy_index,
-						   mcs_nss_size);
+						   he_mcs_nss_size);
 	return cap_info;
 }
 
