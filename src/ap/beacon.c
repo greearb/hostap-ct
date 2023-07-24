@@ -1425,27 +1425,29 @@ static u16 hostapd_gen_fils_discovery_nss(struct hostapd_hw_modes *mode,
 			u16 nss_mask = 0x3 << (i * 2);
 
 			/*
-			 * If NSS values supported by RX and TX are different
-			 * then choose the smaller of the two as the maximum
-			 * supported NSS as that is the value supported by
-			 * both RX and TX.
+			 * If Tx and/or Rx indicate support for a given NSS,
+			 * count it towards the maximum NSS.
 			 */
 			if (he_mcs_nss_size == 4 &&
-			    (((mcs[0] & nss_mask) == nss_mask) ||
-			     ((mcs[1] & nss_mask) == nss_mask)))
+			    (((mcs[0] & nss_mask) != nss_mask) ||
+			     ((mcs[1] & nss_mask) != nss_mask))) {
+				nss++;
 				continue;
+			}
 
 			if (he_mcs_nss_size == 8 &&
-			    (((mcs[2] & nss_mask) == nss_mask) ||
-			     ((mcs[3] & nss_mask) == nss_mask)))
+			    (((mcs[2] & nss_mask) != nss_mask) ||
+			     ((mcs[3] & nss_mask) != nss_mask))) {
+				nss++;
 				continue;
+			}
 
 			if (he_mcs_nss_size == 12 &&
-			    (((mcs[4] & nss_mask) == nss_mask) ||
-			     ((mcs[5] & nss_mask) == nss_mask)))
+			    (((mcs[4] & nss_mask) != nss_mask) ||
+			     ((mcs[5] & nss_mask) != nss_mask))) {
+				nss++;
 				continue;
-
-			nss++;
+			}
 		}
 	}
 
