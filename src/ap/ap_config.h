@@ -944,6 +944,9 @@ struct hostapd_bss_config {
 
 	/* The MLD ID to which the AP MLD is affiliated with */
 	u8 mld_id;
+
+	/* The AP's MLD MAC address within the AP MLD */
+	u8 mld_addr[ETH_ALEN];
 #endif /* CONFIG_IEEE80211BE */
 };
 

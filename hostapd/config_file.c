@@ -4776,6 +4776,12 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->mld_ap = !!atoi(pos);
 	} else if (os_strcmp(buf, "mld_id") == 0) {
 		bss->mld_id = atoi(pos);
+	} else if (os_strcmp(buf, "mld_addr") == 0) {
+		if (hwaddr_aton(pos, bss->mld_addr)) {
+			wpa_printf(MSG_ERROR, "Line %d: Invalid mld_addr",
+				   line);
+			return 1;
+		}
 #endif /* CONFIG_IEEE80211BE */
 	} else {
 		wpa_printf(MSG_ERROR,
