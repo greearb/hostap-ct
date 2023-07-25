@@ -218,7 +218,7 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 #endif /* CONFIG_IEEE80211BE */
 
 	/* Initialize the driver interface */
-	if (!(b[0] | b[1] | b[2] | b[3] | b[4] | b[5]))
+	if (is_zero_ether_addr(b))
 		b = NULL;
 
 	os_memset(&params, 0, sizeof(params));
