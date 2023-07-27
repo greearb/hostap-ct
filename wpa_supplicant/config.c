@@ -5620,6 +5620,7 @@ int wpa_config_process_global(struct wpa_config *config, char *pos, int line)
 					   line);
 				return -1;
 			}
+			return ret;
 		}
 
 		if (os_strncmp(pos, "wmm_ac_", 7) == 0) {
