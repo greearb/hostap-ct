@@ -12511,17 +12511,20 @@ static int nl80211_qca_do_acs(struct wpa_driver_nl80211_data *drv,
 	    add_acs_ch_list(msg, params->freq_list) ||
 	    add_acs_freq_list(msg, params->freq_list) ||
 	    (params->edmg_enabled &&
-	     nla_put_flag(msg, QCA_WLAN_VENDOR_ATTR_ACS_EDMG_ENABLED))) {
+	     nla_put_flag(msg, QCA_WLAN_VENDOR_ATTR_ACS_EDMG_ENABLED)) ||
+	    (params->link_id != NL80211_DRV_LINK_ID_NA &&
+	     nla_put_u8(msg, QCA_WLAN_VENDOR_ATTR_ACS_LINK_ID,
+			params->link_id))) {
 		nlmsg_free(msg);
 		return -ENOBUFS;
 	}
 	nla_nest_end(msg, data);
 
 	wpa_printf(MSG_DEBUG,
-		   "nl80211: ACS Params: HW_MODE: %d HT: %d HT40: %d VHT: %d EHT: %d BW: %d EDMG: %d",
+		   "nl80211: ACS Params: HW_MODE: %d HT: %d HT40: %d VHT: %d EHT: %d BW: %d EDMG: %d, link_id: %d",
 		   params->hw_mode, params->ht_enabled, params->ht40_enabled,
 		   params->vht_enabled, params->eht_enabled, params->ch_width,
-		   params->edmg_enabled);
+		   params->edmg_enabled, params->link_id);
 
 	ret = send_and_recv_cmd(drv, msg);
 	if (ret) {
