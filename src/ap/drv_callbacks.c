@@ -1278,6 +1278,18 @@ void hostapd_acs_channel_selected(struct hostapd_data *hapd,
 	int err = 0;
 	struct hostapd_channel_data *pri_chan;
 
+#ifdef CONFIG_IEEE80211BE
+	if (acs_res->link_id != -1) {
+		hapd = hostapd_mld_get_link_bss(hapd, acs_res->link_id);
+		if (!hapd) {
+			wpa_printf(MSG_ERROR,
+				   "MLD: Failed to get link BSS for EVENT_ACS_CHANNEL_SELECTED link_id=%d",
+				   acs_res->link_id);
+			return;
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	if (hapd->iconf->channel) {
 		wpa_printf(MSG_INFO, "ACS: Channel was already set to %d",
 			   hapd->iconf->channel);

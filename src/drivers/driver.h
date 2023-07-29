@@ -6618,7 +6618,9 @@ union wpa_event_data {
 	 * @ch_width: Selected Channel width by driver. Driver may choose to
 	 *	change hostapd configured ACS channel width due driver internal
 	 *	channel restrictions.
-	 * hw_mode: Selected band (used with hw_mode=any)
+	 * @hw_mode: Selected band (used with hw_mode=any)
+	 * @puncture_bitmap: Indicate the puncturing channels
+	 * @link_id: Indicate the link id if operating as AP MLD; -1 otherwise
 	 */
 	struct acs_selected_channels {
 		unsigned int pri_freq;
@@ -6629,6 +6631,7 @@ union wpa_event_data {
 		u16 ch_width;
 		enum hostapd_hw_mode hw_mode;
 		u16 puncture_bitmap;
+		int link_id;
 	} acs_selected_channels;
 
 	/**
