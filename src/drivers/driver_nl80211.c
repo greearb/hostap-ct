@@ -11340,7 +11340,7 @@ static int nl80211_set_qos_map(void *priv, const u8 *qos_map_set,
 	wpa_hexdump(MSG_DEBUG, "nl80211: Setting QoS Map",
 		    qos_map_set, qos_map_set_len);
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_SET_QOS_MAP)) ||
+	if (!(msg = nl80211_cmd_msg(bss, 0, NL80211_CMD_SET_QOS_MAP)) ||
 	    nla_put(msg, NL80211_ATTR_QOS_MAP, qos_map_set_len, qos_map_set)) {
 		nlmsg_free(msg);
 		return -ENOBUFS;
