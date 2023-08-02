@@ -16323,6 +16323,39 @@ fail:
 	return -ENOBUFS;
 }
 
+static int nl80211_background_radar_mode(void *priv, const u8 background_radar_mode)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	/* Prepare nl80211 cmd */
+	struct nl_msg *msg;
+	struct nlattr *data;
+	int ret;
+
+	if (!drv->mtk_background_radar_vendor_cmd_avail) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Driver does not support setting background radar mode");
+		return 0;
+	}
+
+	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+			MTK_NL80211_VENDOR_SUBCMD_BACKGROUND_RADAR_CTRL) ||
+	    !(data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA)) ||
+	    nla_put_u8(msg, MTK_VENDOR_ATTR_BACKGROUND_RADAR_CTRL_MODE, background_radar_mode)) {
+		nlmsg_free(msg);
+		return -ENOBUFS;
+	}
+	nla_nest_end(msg, data);
+	ret = send_and_recv_cmd(drv, msg);
+	if (ret) {
+		wpa_printf(MSG_ERROR, "Failed to set background radar mode. ret=%d (%s) ",
+			   ret, strerror(-ret));
+	}
+	return ret;
+}
+
 const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.name = "nl80211",
 	.desc = "Linux nl80211/cfg80211",
@@ -16512,4 +16545,5 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.ap_trigtype = nl80211_ap_trigtype,
 	.amnt_set = nl80211_amnt_set,
 	.amnt_dump = nl80211_amnt_dump,
+	.background_radar_mode = nl80211_background_radar_mode,
 };

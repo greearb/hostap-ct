@@ -5672,6 +5672,13 @@ struct wpa_driver_ops {
 	* @amnt_dump_buf: Buffer to print
 	*/
 	int (*amnt_dump)(void *priv, u8 amnt_idx, u8 *amnt_dump_buf);
+
+	/**
+	 * background_radar_mode - set background radar mode
+	 * @priv: Private driver interface data
+	 * @background_radar_mode: background radar mode
+	 */
+	int (*background_radar_mode)(void *priv, u8 background_radar_mode);
 };
 
 /**
