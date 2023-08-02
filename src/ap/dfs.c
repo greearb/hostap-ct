@@ -984,6 +984,9 @@ int hostapd_handle_dfs(struct hostapd_iface *iface)
 		if (res < 0)
 			return res;
 
+		if (hostapd_drv_background_radar_mode(iface->bss[0]) < 0)
+			return -1;
+
 		iface->radar_background.temp_ch = 1;
 		return 1;
 	} else if (dfs_use_radar_background(iface)) {
@@ -1024,6 +1027,9 @@ int hostapd_handle_dfs(struct hostapd_iface *iface)
 		iface->radar_background.secondary_channel = sec;
 		iface->radar_background.centr_freq_seg0_idx = cf1;
 		iface->radar_background.centr_freq_seg1_idx = cf2;
+
+		if (hostapd_drv_background_radar_mode(iface->bss[0]) < 0)
+			return -1;
 	}
 
 	return 0;

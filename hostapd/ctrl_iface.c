@@ -4788,6 +4788,33 @@ hostapd_ctrl_iface_dump_amnt(struct hostapd_data *hapd, char *cmd,
 		return pos - buf;
 }
 
+static int
+hostapd_ctrl_iface_set_background_radar_mode(struct hostapd_data *hapd, char *cmd,
+					     char *buf, size_t buflen)
+{
+	struct hostapd_iface *iface = hapd->iface;
+	char *pos, *param;
+
+	param = os_strchr(cmd, ' ');
+	if (!param)
+		return -1;
+	*param++ = '\0';
+
+	pos = os_strstr(param, "mode=");
+	if (!pos)
+		return -1;
+
+	if (os_strncmp(pos + 5, "cert", 4) == 0)
+		iface->conf->background_radar_mode = BACKGROUND_RADAR_CERT_MODE;
+	else if (os_strncmp(pos + 5, "normal", 6) == 0)
+		iface->conf->background_radar_mode = BACKGROUND_RADAR_NORMAL_MODE;
+
+	if (hostapd_drv_background_radar_mode(hapd) < 0)
+		return -1;
+
+	return os_snprintf(buf, buflen, "OK\n");
+}
+
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
 					      int reply_size,
@@ -5447,6 +5474,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		if (pos)
 			*pos = ' ';
 		reply_len = hostapd_ctrl_iface_set_mu(hapd, buf + 23, reply, reply_size);
+	} else if (os_strncmp(buf, "SET_BACKGROUND_RADAR_MODE", 25) == 0) {
+		reply_len = hostapd_ctrl_iface_set_background_radar_mode(hapd, buf + 25,
+									 reply, reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;
