@@ -1545,3 +1545,17 @@ int hostapd_drv_amnt_dump(struct hostapd_data *hapd, u8 amnt_idx, u8 *amnt_dump_
 		return 0;
 	return hapd->driver->amnt_dump(hapd->drv_priv, amnt_idx, amnt_dump_buf);
 }
+
+int hostapd_drv_background_radar_mode(struct hostapd_data *hapd)
+{
+	if (!hapd->driver || !hapd->driver->background_radar_mode ||
+	    !(hapd->iface->drv_flags2 & WPA_DRIVER_FLAGS2_RADAR_BACKGROUND) ||
+	    !hapd->iface->conf->enable_background_radar)
+		return 0;
+	if (hapd->iconf->background_radar_mode > BACKGROUND_RADAR_CERT_MODE) {
+		wpa_printf(MSG_INFO, "Invalid value for background radar mode\n");
+		return 0;
+	}
+	return hapd->driver->background_radar_mode(hapd->drv_priv,
+						   hapd->iconf->background_radar_mode);
+}
