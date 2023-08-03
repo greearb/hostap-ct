@@ -3312,6 +3312,11 @@ int hostapd_get_aid(struct hostapd_data *hapd, struct sta_info *sta)
 {
 	int i, j = 32, aid;
 
+	/* Transmitted and non-transmitted BSSIDs share the same AID pool, so
+	 * use the shared storage in the transmitted BSS to find the next
+	 * available value. */
+	hapd = hostapd_mbssid_get_tx_bss(hapd);
+
 	/* get a unique AID */
 	if (sta->aid > 0) {
 		wpa_printf(MSG_DEBUG, "  old AID %d", sta->aid);
