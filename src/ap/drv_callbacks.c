@@ -2471,7 +2471,8 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 	case EVENT_CCA_NOTIFY:
 		wpa_printf(MSG_DEBUG, "CCA finished on on %s",
 			   hapd->conf->iface);
-		hapd->iface->conf->he_op.he_bss_color = hapd->cca_color;
+		if (hapd->cca_color)
+			hapd->iface->conf->he_op.he_bss_color = hapd->cca_color;
 		hostapd_cleanup_cca_params(hapd);
 		break;
 #endif /* CONFIG_IEEE80211AX */
