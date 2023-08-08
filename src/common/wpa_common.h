@@ -638,7 +638,7 @@ struct wpa_pasn_params_data {
 #define WPA_PASN_PUBKEY_UNCOMPRESSED 0x04
 
 int wpa_ft_parse_ies(const u8 *ies, size_t ies_len, struct wpa_ft_ies *parse,
-		     int key_mgmt);
+		     int key_mgmt, bool reassoc_resp);
 
 struct wpa_eapol_ie_parse {
 	const u8 *wpa_ie;

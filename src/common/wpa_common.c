@@ -1198,7 +1198,7 @@ static int wpa_ft_parse_fte(int key_mgmt, const u8 *ie, size_t len,
 
 
 int wpa_ft_parse_ies(const u8 *ies, size_t ies_len, struct wpa_ft_ies *parse,
-		     int key_mgmt)
+		     int key_mgmt, bool reassoc_resp)
 {
 	const u8 *end, *pos;
 	struct wpa_ie_data data;
@@ -1207,10 +1207,16 @@ int wpa_ft_parse_ies(const u8 *ies, size_t ies_len, struct wpa_ft_ies *parse,
 	const u8 *fte = NULL;
 	size_t fte_len = 0;
 	bool is_fte = false;
+	struct ieee802_11_elems elems;
 
 	os_memset(parse, 0, sizeof(*parse));
 	if (ies == NULL)
 		return 0;
+
+	if (ieee802_11_parse_elems(ies, ies_len, &elems, 0) == ParseFailed) {
+		wpa_printf(MSG_DEBUG, "FT: Failed to parse elements");
+		return -1;
+	}
 
 	pos = ies;
 	end = ies + ies_len;
@@ -1328,13 +1334,28 @@ int wpa_ft_parse_ies(const u8 *ies, size_t ies_len, struct wpa_ft_ies *parse,
 	 * Check that the protected IE count matches with IEs included in the
 	 * frame.
 	 */
-	if (parse->rsn)
-		prot_ie_count--;
+	if (reassoc_resp && elems.basic_mle) {
+		unsigned int link_id;
+
+		/* TODO: This count should be done based on all _requested_,
+		 * not _accepted_ links. */
+		for (link_id = 0; link_id < MAX_NUM_MLO_LINKS; link_id++) {
+			if (parse->mlo_gtk[link_id]) {
+				if (parse->rsn)
+					prot_ie_count--;
+				if (parse->rsnxe)
+					prot_ie_count--;
+			}
+		}
+	} else {
+		if (parse->rsn)
+			prot_ie_count--;
+		if (parse->rsnxe)
+			prot_ie_count--;
+	}
 	if (parse->mdie)
 		prot_ie_count--;
 	if (parse->ftie)
-		prot_ie_count--;
-	if (parse->rsnxe)
 		prot_ie_count--;
 	if (prot_ie_count < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Some required IEs not included in "

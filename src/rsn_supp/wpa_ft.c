@@ -127,7 +127,7 @@ int wpa_sm_set_ft_params(struct wpa_sm *sm, const u8 *ies, size_t ies_len)
 		return 0;
 	}
 
-	if (wpa_ft_parse_ies(ies, ies_len, &ft, sm->key_mgmt) < 0)
+	if (wpa_ft_parse_ies(ies, ies_len, &ft, sm->key_mgmt, false) < 0)
 		return -1;
 
 	if (ft.mdie_len < MOBILITY_DOMAIN_ID_LEN + 1)
@@ -615,7 +615,8 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 		return -1;
 	}
 
-	if (wpa_ft_parse_ies(ies, ies_len, &parse, sm->key_mgmt) < 0) {
+	if (wpa_ft_parse_ies(ies, ies_len, &parse, sm->key_mgmt,
+			     !ft_action) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to parse IEs");
 		return -1;
 	}
@@ -1033,7 +1034,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 		return 0;
 	}
 
-	if (wpa_ft_parse_ies(ies, ies_len, &parse, sm->key_mgmt) < 0) {
+	if (wpa_ft_parse_ies(ies, ies_len, &parse, sm->key_mgmt, true) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to parse IEs");
 		return -1;
 	}
