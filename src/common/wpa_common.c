@@ -1013,6 +1013,7 @@ static int wpa_ft_parse_ftie(const u8 *ie, size_t ie_len,
 			     struct wpa_ft_ies *parse, const u8 *opt)
 {
 	const u8 *end, *pos;
+	u8 link_id;
 
 	parse->ftie = ie;
 	parse->ftie_len = ie_len;
@@ -1077,6 +1078,51 @@ static int wpa_ft_parse_ftie(const u8 *ie, size_t ie_len,
 			wpa_printf(MSG_DEBUG, "FT: BIGTK");
 			parse->bigtk = pos;
 			parse->bigtk_len = len;
+			break;
+		case FTIE_SUBELEM_MLO_GTK:
+			if (len < 2 + 1 + 1 + 8) {
+				wpa_printf(MSG_DEBUG,
+					   "FT: Too short MLO GTK in FTE");
+				return -1;
+			}
+			link_id = pos[2] & 0x0f;
+			wpa_printf(MSG_DEBUG, "FT: MLO GTK (Link ID %u)",
+				   link_id);
+			if (link_id >= MAX_NUM_MLO_LINKS)
+				break;
+			parse->valid_mlo_gtks |= BIT(link_id);
+			parse->mlo_gtk[link_id] = pos;
+			parse->mlo_gtk_len[link_id] = len;
+			break;
+		case FTIE_SUBELEM_MLO_IGTK:
+			if (len < 2 + 6 + 1 + 1) {
+				wpa_printf(MSG_DEBUG,
+					   "FT: Too short MLO IGTK in FTE");
+				return -1;
+			}
+			link_id = pos[2 + 6] & 0x0f;
+			wpa_printf(MSG_DEBUG, "FT: MLO IGTK (Link ID %u)",
+				   link_id);
+			if (link_id >= MAX_NUM_MLO_LINKS)
+				break;
+			parse->valid_mlo_igtks |= BIT(link_id);
+			parse->mlo_igtk[link_id] = pos;
+			parse->mlo_igtk_len[link_id] = len;
+			break;
+		case FTIE_SUBELEM_MLO_BIGTK:
+			if (len < 2 + 6 + 1 + 1) {
+				wpa_printf(MSG_DEBUG,
+					   "FT: Too short MLO BIGTK in FTE");
+				return -1;
+			}
+			link_id = pos[2 + 6] & 0x0f;
+			wpa_printf(MSG_DEBUG, "FT: MLO BIGTK (Link ID %u)",
+				   link_id);
+			if (link_id >= MAX_NUM_MLO_LINKS)
+				break;
+			parse->valid_mlo_bigtks |= BIT(link_id);
+			parse->mlo_bigtk[link_id] = pos;
+			parse->mlo_bigtk_len[link_id] = len;
 			break;
 		default:
 			wpa_printf(MSG_DEBUG, "FT: Unknown subelem id %u", id);

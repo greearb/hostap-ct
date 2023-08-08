@@ -427,6 +427,9 @@ struct rsn_ftie_sha512 {
 #define FTIE_SUBELEM_IGTK 4
 #define FTIE_SUBELEM_OCI 5
 #define FTIE_SUBELEM_BIGTK 6
+#define FTIE_SUBELEM_MLO_GTK 8
+#define FTIE_SUBELEM_MLO_IGTK 9
+#define FTIE_SUBELEM_MLO_BIGTK 10
 
 struct rsn_rdie {
 	u8 id;
@@ -553,6 +556,8 @@ int wpa_compare_rsn_ie(int ft_initial_assoc,
 		       const u8 *ie2, size_t ie2len);
 int wpa_insert_pmkid(u8 *ies, size_t *ies_len, const u8 *pmkid);
 
+#define MAX_NUM_MLO_LINKS 15
+
 struct wpa_ft_ies {
 	const u8 *mdie;
 	size_t mdie_len;
@@ -589,6 +594,15 @@ struct wpa_ft_ies {
 	int pairwise_cipher;
 	const u8 *rsnxe;
 	size_t rsnxe_len;
+	u16 valid_mlo_gtks; /* bitmap of valid link GTK subelements */
+	const u8 *mlo_gtk[MAX_NUM_MLO_LINKS];
+	size_t mlo_gtk_len[MAX_NUM_MLO_LINKS];
+	u16 valid_mlo_igtks; /* bitmap of valid link IGTK subelements */
+	const u8 *mlo_igtk[MAX_NUM_MLO_LINKS];
+	size_t mlo_igtk_len[MAX_NUM_MLO_LINKS];
+	u16 valid_mlo_bigtks; /* bitmap of valid link BIGTK subelements */
+	const u8 *mlo_bigtk[MAX_NUM_MLO_LINKS];
+	size_t mlo_bigtk_len[MAX_NUM_MLO_LINKS];
 };
 
 /* IEEE P802.11az/D2.6 - 9.4.2.303 PASN Parameters element */
@@ -679,7 +693,6 @@ struct wpa_eapol_ie_parse {
 	u16 aid;
 	const u8 *wmm;
 	size_t wmm_len;
-#define MAX_NUM_MLO_LINKS 15
 	u16 valid_mlo_gtks; /* bitmap of valid link GTK KDEs */
 	const u8 *mlo_gtk[MAX_NUM_MLO_LINKS];
 	size_t mlo_gtk_len[MAX_NUM_MLO_LINKS];
