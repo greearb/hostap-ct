@@ -34,17 +34,20 @@ static int is_zero(const u8 *buf, size_t len)
 static size_t determine_mic_len(struct wlantest_sta *sta)
 {
 	size_t pmk_len = PMK_LEN;
+	int group = 0;
 
-	if (sta && wpa_key_mgmt_sae_ext_key(sta->key_mgmt) &&
-	    sta->sae_group) {
-		switch (sta->sae_group) {
-		case 20:
-			pmk_len = 48;
-			break;
-		case 21:
-			pmk_len = 64;
-			break;
-		}
+	if (sta && wpa_key_mgmt_sae_ext_key(sta->key_mgmt))
+		group = sta->sae_group;
+	else if (sta && sta->key_mgmt == WPA_KEY_MGMT_OWE)
+		group = sta->owe_group;
+
+	switch (group) {
+	case 20:
+		pmk_len = 48;
+		break;
+	case 21:
+		pmk_len = 64;
+		break;
 	}
 
 	return wpa_mic_len(sta->key_mgmt, pmk_len);

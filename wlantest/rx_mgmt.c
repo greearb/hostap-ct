@@ -932,6 +932,11 @@ static void rx_mgmt_assoc_req(struct wlantest *wt, const u8 *data, size_t len)
 		sta->rsnxe_len = elems.rsnxe_len;
 	}
 
+	if (elems.owe_dh && elems.owe_dh_len >= 2) {
+		sta->owe_group = WPA_GET_LE16(elems.owe_dh);
+		wpa_printf(MSG_DEBUG, "OWE using group %u", sta->owe_group);
+	}
+
 	sta->assocreq_capab_info = le_to_host16(mgmt->u.assoc_req.capab_info);
 	sta->assocreq_listen_int =
 		le_to_host16(mgmt->u.assoc_req.listen_interval);
@@ -1014,6 +1019,7 @@ static void rx_mgmt_assoc_resp(struct wlantest *wt, const u8 *data, size_t len)
 	struct wlantest_bss *bss;
 	struct wlantest_sta *sta;
 	u16 capab, status, aid;
+	struct ieee802_11_elems elems;
 	const u8 *ies;
 	size_t ies_len;
 	struct wpa_ft_ies parse;
@@ -1063,16 +1069,15 @@ static void rx_mgmt_assoc_resp(struct wlantest *wt, const u8 *data, size_t len)
 		}
 	}
 
+	if (ieee802_11_parse_elems(ies, ies_len, &elems, 0) == ParseFailed) {
+		add_note(wt, MSG_INFO,
+			 "Failed to parse IEs in AssocResp from " MACSTR,
+			 MAC2STR(mgmt->sa));
+	}
+
 	if (status == WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY) {
-		struct ieee802_11_elems elems;
-		if (ieee802_11_parse_elems(ies, ies_len, &elems, 0) ==
-		    ParseFailed) {
-			add_note(wt, MSG_INFO, "Failed to parse IEs in "
-				 "AssocResp from " MACSTR,
-				 MAC2STR(mgmt->sa));
-		} else if (elems.timeout_int == NULL ||
-			   elems.timeout_int[0] !=
-			   WLAN_TIMEOUT_ASSOC_COMEBACK) {
+		if (!elems.timeout_int ||
+		    elems.timeout_int[0] != WLAN_TIMEOUT_ASSOC_COMEBACK) {
 			add_note(wt, MSG_INFO, "No valid Timeout Interval IE "
 				 "with Assoc Comeback time in AssocResp "
 				 "(status=30) from " MACSTR,
@@ -1114,6 +1119,11 @@ static void rx_mgmt_assoc_resp(struct wlantest *wt, const u8 *data, size_t len)
 		}
 		if (parse.r1kh_id)
 			os_memcpy(bss->r1kh_id, parse.r1kh_id, FT_R1KH_ID_LEN);
+	}
+
+	if (elems.owe_dh && elems.owe_dh_len >= 2) {
+		sta->owe_group = WPA_GET_LE16(elems.owe_dh);
+		wpa_printf(MSG_DEBUG, "OWE using group %u", sta->owe_group);
 	}
 }
 
@@ -1177,6 +1187,11 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 	if (elems.rsnxe) {
 		os_memcpy(sta->rsnxe, elems.rsnxe, elems.rsnxe_len);
 		sta->rsnxe_len = elems.rsnxe_len;
+	}
+
+	if (elems.owe_dh && elems.owe_dh_len >= 2) {
+		sta->owe_group = WPA_GET_LE16(elems.owe_dh);
+		wpa_printf(MSG_DEBUG, "OWE using group %u", sta->owe_group);
 	}
 
 	sta->assocreq_capab_info =
@@ -1898,6 +1913,11 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 				     parse.igtk, parse.igtk_len);
 		process_bigtk_subelem(wt, bss, sta, kek, kek_len,
 				      parse.bigtk, parse.bigtk_len);
+	}
+
+	if (elems.owe_dh && elems.owe_dh_len >= 2) {
+		sta->owe_group = WPA_GET_LE16(elems.owe_dh);
+		wpa_printf(MSG_DEBUG, "OWE using group %u", sta->owe_group);
 	}
 }
 

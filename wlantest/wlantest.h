@@ -120,6 +120,7 @@ struct wlantest_sta {
 	u32 rx_tid[16 + 1];
 
 	u16 sae_group;
+	u16 owe_group;
 };
 
 struct wlantest_tdls {
