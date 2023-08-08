@@ -17,6 +17,7 @@
 #include "crypto/aes_wrap.h"
 #include "crypto/crypto.h"
 #include "ieee802_11_defs.h"
+#include "ieee802_11_common.h"
 #include "defs.h"
 #include "wpa_common.h"
 
@@ -1203,6 +1204,9 @@ int wpa_ft_parse_ies(const u8 *ies, size_t ies_len, struct wpa_ft_ies *parse,
 	struct wpa_ie_data data;
 	int ret;
 	int prot_ie_count = 0;
+	const u8 *fte = NULL;
+	size_t fte_len = 0;
+	bool is_fte = false;
 
 	os_memset(parse, 0, sizeof(*parse));
 	if (ies == NULL)
@@ -1217,6 +1221,10 @@ int wpa_ft_parse_ies(const u8 *ies, size_t ies_len, struct wpa_ft_ies *parse,
 		len = *pos++;
 		if (len > end - pos)
 			break;
+
+		if (id != WLAN_EID_FAST_BSS_TRANSITION &&
+		    id != WLAN_EID_FRAGMENT)
+			is_fte = false;
 
 		switch (id) {
 		case WLAN_EID_RSN:
@@ -1266,9 +1274,16 @@ int wpa_ft_parse_ies(const u8 *ies, size_t ies_len, struct wpa_ft_ies *parse,
 				return -1;
 			prot_ie_count = pos[1]; /* Element Count field in
 						 * MIC Control */
-
-			if (wpa_ft_parse_fte(key_mgmt, pos, len, parse) < 0)
-				return -1;
+			is_fte = true;
+			fte = pos;
+			fte_len = len;
+			break;
+		case WLAN_EID_FRAGMENT:
+			if (is_fte) {
+				wpa_hexdump(MSG_DEBUG, "FT: FTE fragment",
+					    pos, len);
+				fte_len += 2 + len;
+			}
 			break;
 		case WLAN_EID_TIMEOUT_INTERVAL:
 			wpa_hexdump(MSG_DEBUG, "FT: Timeout Interval",
@@ -1285,6 +1300,25 @@ int wpa_ft_parse_ies(const u8 *ies, size_t ies_len, struct wpa_ft_ies *parse,
 		}
 
 		pos += len;
+	}
+
+	if (fte) {
+		int res;
+
+		if (fte_len < 255) {
+			res = wpa_ft_parse_fte(key_mgmt, fte, fte_len, parse);
+		} else {
+			struct wpabuf *buf;
+
+			buf = ieee802_11_defrag_data(fte, fte_len, false);
+			if (!buf)
+				return -1;
+			res = wpa_ft_parse_fte(key_mgmt, wpabuf_head(buf),
+					       wpabuf_len(buf), parse);
+			wpabuf_free(buf);
+		}
+		if (res < 0)
+			return -1;
 	}
 
 	if (prot_ie_count == 0)
