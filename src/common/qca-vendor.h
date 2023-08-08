@@ -13530,6 +13530,38 @@ enum qca_wlan_vendor_attr_roam_stats_info {
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_FRAME_INFO = 43,
 	/* Attribute used for padding for 64-bit alignment */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_PAD = 44,
+	/* 6-byte MAC address used by the driver to send roam stats information
+	 * of the original AP BSSID. The original AP is the connected AP before
+	 * roam happens, regardless of the roam resulting in success or failure.
+	 * This attribute is only present when
+	 * QCA_WLAN_VENDOR_ATTR_ROAM_STATS_ROAM_STATUS has a value of
+	 * 0 (success) or 1 (failure).
+	 * For non-MLO scenario, it indicates the original connected AP BSSID.
+	 * For MLO scenario, it indicates the original BSSID of the link
+	 * for which the reassociation occurred during the roam.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_ORIGINAL_BSSID = 45,
+	/* 6-byte MAC address used by the driver to send roam stats information
+	 * of the roam candidate AP BSSID when roam failed. This is only present
+	 * when QCA_WLAN_VENDOR_ATTR_ROAM_STATS_ROAM_STATUS has a value of
+	 * 1 (failure). If the firmware updates more than one candidate AP BSSID
+	 * to the driver, the driver only fills the last candidate AP BSSID and
+	 * reports it to user space.
+	 * For non-MLO scenario, it indicates the last candidate AP BSSID.
+	 * For MLO scenario, it indicates the AP BSSID which may be the primary
+	 * link BSSID or a nonprimary link BSSID.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_CANDIDATE_BSSID = 46,
+	/* 6-byte MAC address used by the driver to send roam stats information
+	 * of the roamed AP BSSID when roam succeeds. This is only present when
+	 * QCA_WLAN_VENDOR_ATTR_ROAM_STATS_ROAM_STATUS has a value of
+	 * 0 (success).
+	 * For non-MLO scenario, it indicates the new AP BSSID to which has
+	 * been successfully roamed.
+	 * For MLO scenario, it indicates the new AP BSSID of the link on
+	 * which the reassociation occurred during the roam.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_ROAMED_BSSID = 47,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_ROAM_STATS_AFTER_LAST,
