@@ -4855,6 +4855,13 @@ hostapd_switch_channel_fallback(struct hostapd_iface *iface,
 		break;
 	}
 
+	if ((iface->current_mode->ht_capab & HT_CAP_INFO_SUPP_CHANNEL_WIDTH_SET) &&
+	    freq_params->bandwidth > 20)
+		iface->conf->ht_capab |= HT_CAP_INFO_SUPP_CHANNEL_WIDTH_SET;
+	if ((iface->current_mode->vht_capab & VHT_CAP_SUPP_CHAN_WIDTH_160MHZ) &&
+	    freq_params->bandwidth == 160)
+		iface->conf->vht_capab |= VHT_CAP_SUPP_CHAN_WIDTH_160MHZ;
+
 	iface->freq = freq_params->freq;
 	iface->conf->channel = freq_params->channel;
 	iface->conf->secondary_channel = freq_params->sec_channel_offset;
