@@ -2449,9 +2449,8 @@ SM_STATE(WPA_PTK, PTKSTART)
 	if (sm->wpa_auth->conf.dup_eapol_1_of_4 > 0.0 && drand48() < sm->wpa_auth->conf.dup_eapol_1_of_4){
 		wpa_printf(MSG_DEBUG, "EAPOL MSG 1/4 sending Duplicate : %lf len: %x", sm->wpa_auth->conf.dup_eapol_1_of_4,
 							*(sm->ANonce));
-		wpa_send_eapol(sm->wpa_auth, sm,
-			       key_info, NULL, sm->ANonce,
-			       pmkid, pmkid_len, 0, 0);
+		wpa_send_eapol(sm->wpa_auth, sm, key_info, NULL,
+			       sm->ANonce, kde_len ? buf : NULL, kde_len, 0, 0);
 
 	}
 #endif /*CONFIG_TESTING_OPTIONS*/
