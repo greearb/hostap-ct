@@ -560,6 +560,9 @@ def test_ap_ft_pmf_required_over_ds(dev, apdev):
 def test_ap_ft_pmf_beacon_prot(dev, apdev):
     """WPA2-PSK-FT AP with PMF and beacon protection"""
     run_ap_ft_pmf(dev, apdev, "1", beacon_prot=True)
+    ev = dev[0].wait_event(["CTRL-EVENT-BEACON-LOSS"], timeout=5)
+    if ev is not None:
+        raise Exception("Beacon loss detected")
 
 def run_ap_ft_pmf(dev, apdev, ieee80211w, over_ds=False, beacon_prot=False):
     ssid = "test-ft"
