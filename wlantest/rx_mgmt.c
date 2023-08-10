@@ -58,7 +58,8 @@ static const char * mgmt_stype(u16 stype)
 }
 
 
-static void parse_basic_ml(const u8 *ie, size_t len, bool ap)
+static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
+			   struct wlantest_sta *sta)
 {
 	const u8 *pos, *end, *ci_end, *info_end;
 	u16 ctrl, eml, cap;
@@ -194,6 +195,8 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap)
 	/* Link Info */
 
 	for_each_element(elem, pos, end - pos) {
+		u8 link_id;
+
 		if (elem->id != EHT_ML_SUB_ELEM_PER_STA_PROFILE) {
 			wpa_printf(MSG_DEBUG, "Link Info subelement id=%u",
 				   elem->id);
@@ -213,9 +216,10 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap)
 		ctrl = WPA_GET_LE16(pos);
 		pos += 2;
 
+		link_id = ctrl & BASIC_MLE_STA_CTRL_LINK_ID_MASK;
 		wpa_printf(MSG_DEBUG, "Per-STA Profile: len=%u Link_ID=%u Complete=%u Reserved=0x%x",
 			   elem->datalen,
-			   ctrl & BASIC_MLE_STA_CTRL_LINK_ID_MASK,
+			   link_id,
 			   !!(ctrl & BASIC_MLE_STA_CTRL_COMPLETE_PROFILE),
 			   (ctrl & 0xf000) >> 12);
 
@@ -238,6 +242,15 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap)
 			}
 			wpa_printf(MSG_DEBUG, "STA MAC Address: " MACSTR,
 				   MAC2STR(pos));
+			if (sta && link_id < MAX_NUM_MLO_LINKS) {
+				os_memcpy(sta->link_addr[link_id], pos,
+					  ETH_ALEN);
+				wpa_printf(MSG_DEBUG,
+					   "Learned Link ID %u MAC address "
+					   MACSTR
+					   " from Association Request",
+					   link_id, MAC2STR(pos));
+			}
 			pos += ETH_ALEN;
 		}
 		if (ctrl & BASIC_MLE_STA_CTRL_PRES_BEACON_INT) {
@@ -950,7 +963,8 @@ static void rx_mgmt_assoc_req(struct wlantest *wt, const u8 *data, size_t len)
 	sta->assocreq_seen = 1;
 	sta_update_assoc(sta, &elems);
 	if (elems.basic_mle)
-		parse_basic_ml(elems.basic_mle, elems.basic_mle_len, false);
+		parse_basic_ml(elems.basic_mle, elems.basic_mle_len, false,
+			       sta);
 }
 
 
@@ -1053,7 +1067,7 @@ static void rx_mgmt_assoc_resp(struct wlantest *wt, const u8 *data, size_t len)
 
 	ml = get_ml_ie(ies, ies_len, MULTI_LINK_CONTROL_TYPE_BASIC);
 	if (ml)
-		parse_basic_ml(ml + 3, ml[1], true);
+		parse_basic_ml(ml + 3, ml[1], true, NULL);
 
 	if (sta->auth_alg == WLAN_AUTH_FILS_SK) {
 		const u8 *session, *frame_ad, *frame_ad_end, *encr_end;
@@ -1208,7 +1222,8 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 	sta->assocreq_seen = 1;
 	sta_update_assoc(sta, &elems);
 	if (elems.basic_mle)
-		parse_basic_ml(elems.basic_mle, elems.basic_mle_len, false);
+		parse_basic_ml(elems.basic_mle, elems.basic_mle_len, false,
+			       sta);
 
 	if (elems.ftie) {
 		struct wpa_ft_ies parse;
@@ -1650,7 +1665,7 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 
 	ml = get_ml_ie(ies, ies_len, MULTI_LINK_CONTROL_TYPE_BASIC);
 	if (ml)
-		parse_basic_ml(ml + 3, ml[1], true);
+		parse_basic_ml(ml + 3, ml[1], true, NULL);
 
 	if (sta->auth_alg == WLAN_AUTH_FILS_SK) {
 		const u8 *session, *frame_ad, *frame_ad_end, *encr_end;
