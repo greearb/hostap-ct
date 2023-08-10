@@ -162,7 +162,8 @@ static void rx_data_eapol_key_1_of_4(struct wlantest *wt, const u8 *dst,
 			wpa_printf(MSG_DEBUG,
 				   "Learned AP MLD MAC Address from EAPOL-Key 1/4: "
 				   MACSTR, MAC2STR(ie.mac_addr));
-		} else {
+		} else if (os_memcmp(bss->mld_mac_addr, ie.mac_addr,
+				     ETH_ALEN) != 0) {
 			wpa_printf(MSG_DEBUG,
 				   "Updated AP MLD MAC Address from EAPOL-Key 1/4: "
 				   MACSTR " --> " MACSTR,
