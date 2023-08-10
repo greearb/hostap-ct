@@ -2398,7 +2398,7 @@ static u8 * wpa_ft_bigtk_subelem(struct wpa_state_machine *sm, size_t *len)
 	wpa_auth_get_seqnum(sm->wpa_auth, NULL, gsm->GN_bigtk, pos);
 	pos += 6;
 	*pos++ = bigtk_len;
-	bigtk = gsm->IGTK[gsm->GN_bigtk - 6];
+	bigtk = gsm->BIGTK[gsm->GN_bigtk - 6];
 	if (sm->wpa_key_mgmt == WPA_KEY_MGMT_OSEN) {
 		/*
 		 * Provide unique random BIGTK to each OSEN STA to prevent use
