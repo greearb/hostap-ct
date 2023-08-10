@@ -1156,7 +1156,9 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 	bss = bss_get(wt, mgmt->bssid);
 	if (bss == NULL)
 		return;
-	sta = sta_get(bss, mgmt->sa);
+	sta = sta_find_mlo(wt, bss, mgmt->sa);
+	if (!sta)
+		sta = sta_get(bss, mgmt->sa);
 	if (sta == NULL)
 		return;
 
@@ -1641,7 +1643,9 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 	bss = bss_get(wt, mgmt->bssid);
 	if (bss == NULL)
 		return;
-	sta = sta_get(bss, mgmt->da);
+	sta = sta_find_mlo(wt, bss, mgmt->da);
+	if (!sta)
+		sta = sta_get(bss, mgmt->da);
 	if (sta == NULL)
 		return;
 
