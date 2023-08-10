@@ -29,6 +29,19 @@ struct wlantest_bss * bss_find(struct wlantest *wt, const u8 *bssid)
 }
 
 
+struct wlantest_bss * bss_find_mld(struct wlantest *wt, const u8 *mld_mac_addr)
+{
+	struct wlantest_bss *bss;
+
+	dl_list_for_each(bss, &wt->bss, struct wlantest_bss, list) {
+		if (os_memcmp(bss->mld_mac_addr, mld_mac_addr, ETH_ALEN) == 0)
+			return bss;
+	}
+
+	return NULL;
+}
+
+
 struct wlantest_bss * bss_get(struct wlantest *wt, const u8 *bssid)
 {
 	struct wlantest_bss *bss;

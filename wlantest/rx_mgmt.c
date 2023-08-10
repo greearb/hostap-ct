@@ -2084,7 +2084,7 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 				       const struct ieee80211_mgmt *mgmt,
 				       size_t len)
 {
-	struct wlantest_bss *bss;
+	struct wlantest_bss *bss, *bss2;
 	struct wlantest_sta *new_sta;
 	const u8 *ies;
 	size_t ies_len;
@@ -2113,7 +2113,16 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 		return;
 	}
 
-	bss = bss_get(wt, mgmt->u.action.u.ft_action_resp.target_ap_addr);
+	bss = bss_find(wt, mgmt->u.action.u.ft_action_resp.target_ap_addr);
+	bss2 = bss_find_mld(wt, mgmt->u.action.u.ft_action_resp.target_ap_addr);
+	if (!bss)
+		bss = bss2;
+	if (bss && bss2 && bss != bss2 && !sta_find(bss, sta->addr))
+		bss = bss2;
+	if (!bss)
+		bss = bss_get(wt,
+			      mgmt->u.action.u.ft_action_resp.target_ap_addr);
+
 	if (!bss) {
 		add_note(wt, MSG_INFO, "No BSS entry for Target AP");
 		return;
