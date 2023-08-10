@@ -38,6 +38,8 @@ struct wlantest_sta * sta_find_mlo(struct wlantest *wt,
 	dl_list_for_each(sta, &bss->sta, struct wlantest_sta, list) {
 		if (os_memcmp(sta->addr, addr, ETH_ALEN) == 0)
 			return sta;
+		if (os_memcmp(sta->mld_mac_addr, addr, ETH_ALEN) == 0)
+			return sta;
 	}
 
 	if (is_zero_ether_addr(addr))
@@ -60,6 +62,8 @@ struct wlantest_sta * sta_find_mlo(struct wlantest *wt,
 			continue;
 		dl_list_for_each(sta, &obss->sta, struct wlantest_sta, list) {
 			if (os_memcmp(sta->addr, addr, ETH_ALEN) == 0)
+				return sta;
+			if (os_memcmp(sta->mld_mac_addr, addr, ETH_ALEN) == 0)
 				return sta;
 			for (link_id = 0; link_id < MAX_NUM_MLO_LINKS;
 			     link_id++) {
