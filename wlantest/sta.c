@@ -345,6 +345,9 @@ void sta_new_ptk(struct wlantest *wt, struct wlantest_sta *sta,
 
 			if (!match)
 				continue;
+			if (os_memcmp(sta->bss->mld_mac_addr,
+				      osta->bss->mld_mac_addr, ETH_ALEN) != 0)
+				continue;
 			wpa_printf(MSG_DEBUG,
 				   "Add PTK to another MLO STA entry " MACSTR
 				   " (MLD " MACSTR " --> " MACSTR ") in BSS "
@@ -358,8 +361,6 @@ void sta_new_ptk(struct wlantest *wt, struct wlantest_sta *sta,
 			sta_copy_ptk(osta, ptk);
 			os_memcpy(osta->mld_mac_addr, sta->mld_mac_addr,
 				  ETH_ALEN);
-			os_memcpy(osta->bss->mld_mac_addr,
-				  sta->bss->mld_mac_addr, ETH_ALEN);
 		}
 	}
 }
