@@ -376,6 +376,21 @@ skip_replay_det:
 }
 
 
+static bool is_sta_link_addr(struct wlantest_sta *sta, const u8 *addr)
+{
+	unsigned int link_id;
+
+	if (os_memcmp(addr, sta->addr, ETH_ALEN) == 0)
+		return true;
+	for (link_id = 0; link_id < MAX_NUM_MLO_LINKS; link_id++) {
+		if (os_memcmp(sta->link_addr[link_id], addr, ETH_ALEN) == 0)
+			return true;
+	}
+
+	return false;
+}
+
+
 static u8 * try_ptk_decrypt(struct wlantest *wt, struct wlantest_sta *sta,
 			    const struct ieee80211_hdr *hdr, int keyid,
 			    const u8 *data, size_t len,
@@ -388,7 +403,7 @@ static u8 * try_ptk_decrypt(struct wlantest *wt, struct wlantest_sta *sta,
 	if ((fc & (WLAN_FC_TODS | WLAN_FC_FROMDS)) &&
 	    !is_zero_ether_addr(sta->mld_mac_addr) &&
 	    !is_zero_ether_addr(sta->bss->mld_mac_addr)) {
-		if (os_memcmp(hdr->addr1, sta->addr, ETH_ALEN) == 0) {
+		if (is_sta_link_addr(sta, hdr->addr1)) {
 			a1 = sta->mld_mac_addr;
 			a2 = sta->bss->mld_mac_addr;
 		} else {
