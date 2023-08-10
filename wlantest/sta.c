@@ -97,8 +97,10 @@ struct wlantest_sta * sta_get(struct wlantest_bss *bss, const u8 *addr)
 	sta->bss = bss;
 	os_memcpy(sta->addr, addr, ETH_ALEN);
 	dl_list_add(&bss->sta, &sta->list);
-	wpa_printf(MSG_DEBUG, "Discovered new STA " MACSTR " in BSS " MACSTR,
-		   MAC2STR(sta->addr), MAC2STR(bss->bssid));
+	wpa_printf(MSG_DEBUG, "Discovered new STA " MACSTR " in BSS " MACSTR
+		   " (MLD " MACSTR ")",
+		   MAC2STR(sta->addr),
+		   MAC2STR(bss->bssid), MAC2STR(bss->mld_mac_addr));
 	return sta;
 }
 
