@@ -230,6 +230,17 @@ void bss_update(struct wlantest *wt, struct wlantest_bss *bss,
 
 	bss->mesh = elems->mesh_id != NULL;
 
+	if (is_zero_ether_addr(bss->mld_mac_addr) &&
+	    elems->basic_mle && elems->basic_mle_len >= 2 + 1 + ETH_ALEN &&
+	    elems->basic_mle[2] >= 1 + ETH_ALEN) {
+		os_memcpy(bss->mld_mac_addr, &elems->basic_mle[2 + 1],
+			  ETH_ALEN);
+		wpa_printf(MSG_DEBUG,
+			   "Learned AP MLD MAC Address from Beacon/Probe Response frame: "
+			   MACSTR " (BSSID " MACSTR ")",
+			   MAC2STR(bss->mld_mac_addr), MAC2STR(bss->bssid));
+	}
+
 	if (!update)
 		return;
 
