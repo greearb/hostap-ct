@@ -1018,6 +1018,12 @@ enum qca_radiotap_vendor_ids {
  *
  *	Uses the attributes defined in
  *	enum qca_wlan_vendor_attr_tdls_disc_rsp_ext.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_TX_LATENCY: This vendor subcommand is used to
+ *	configure, retrieve, and report per-link transmit latency statistics.
+ *
+ *	The attributes used with this subcommand are defined in
+ *	enum qca_wlan_vendor_attr_tx_latency.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1234,6 +1240,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_LINK_RECONFIG = 230,
 	QCA_NL80211_VENDOR_SUBCMD_TDLS_DISC_RSP_EXT = 231,
 	/* 232 - reserved for QCA */
+	QCA_NL80211_VENDOR_SUBCMD_TX_LATENCY = 233,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -16187,6 +16194,259 @@ enum qca_wlan_vendor_opm_mode {
 	QCA_WLAN_VENDOR_OPM_MODE_DISABLE = 0,
 	QCA_WLAN_VENDOR_OPM_MODE_ENABLE = 1,
 	QCA_WLAN_VENDOR_OPM_MODE_USER_DEFINED = 2,
+};
+
+/*
+ * enum qca_wlan_vendor_tx_latency_type - Represents the possible latency
+ * types.
+ *
+ * @QCA_WLAN_VENDOR_TX_LATENCY_TYPE_DRIVER: Per MSDU latency
+ * from: An MSDU is presented to the driver
+ * to: the MSDU is queued into TCL SRNG
+ *
+ * @QCA_WLAN_VENDOR_TX_LATENCY_TYPE_RING: Per MSDU latency
+ * from: the MSDU is queued into TCL SRNG
+ * to: the MSDU is released by the driver
+ *
+ * @QCA_WLAN_VENDOR_TX_LATENCY_TYPE_HW: Per MSDU latency
+ * from: the MSDU is presented to the hardware
+ * to: the MSDU is released by the hardware
+ *
+ * @QCA_WLAN_VENDOR_TX_LATENCY_TYPE_CCA: Per PPDU latency
+ * The time spent on Clear Channel Assessment, the maximum value is 50000 (us)
+ * from: A PPDU is presented to the hardware LMAC
+ * to: over-the-air transmission is started for the PPDU
+ */
+enum qca_wlan_vendor_tx_latency_type {
+	QCA_WLAN_VENDOR_TX_LATENCY_TYPE_DRIVER = 0,
+	QCA_WLAN_VENDOR_TX_LATENCY_TYPE_RING = 1,
+	QCA_WLAN_VENDOR_TX_LATENCY_TYPE_HW = 2,
+	QCA_WLAN_VENDOR_TX_LATENCY_TYPE_CCA = 3,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_tx_latency_bucket - Definition of attributes
+ * used inside nested attributes
+ * %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKETS and
+ * %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_STAT_BUCKETS.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_TYPE: u8 attribute.
+ * Indicates the latency type.
+ * See enum qca_wlan_vendor_tx_latency_type for the supported types.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_GRANULARITY: u32 attribute.
+ * Indicates the granularity (in microseconds) of the distribution for the
+ * type (specified by %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_TYPE), the value
+ * must be positive.
+ * If %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_TYPE is
+ * %QCA_WLAN_VENDOR_TX_LATENCY_TYPE_CCA, the value must be an integer multiple
+ * of 1000, and the maximum allowed value is 15000 (us).
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_AVERAGE: u32 attribute.
+ * Indicates the average of the latency (in microseconds) for the type
+ * (specified by %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_TYPE) within a cycle.
+ * If there is no transmitted MSDUs/MPDUs during a cycle, this average is 0;
+ * otherwise, it represents the quotient of <accumulated latency of the
+ * transmitted MSDUs/MPDUs in a cycle> divided by <the number of the transmitted
+ * MSDUs/MPDUs in a cycle>.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_DISTRIBUTION:
+ * Array of u32, 4 elements in total, represents the latency distribution for
+ * the type (specified by %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_TYPE).
+ * Each element holds the count of MSDUs/PPDUs (according to the latency type)
+ * within a range:
+ * element[0]: latency >= 0 && latency < granularity
+ * element[1]: latency >= granularity && latency < granularity * 2
+ * element[2]: latency >= granularity * 2 && latency < granularity * 3
+ * element[3]: latency >= granularity * 3
+ */
+enum qca_wlan_vendor_attr_tx_latency_bucket {
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_TYPE = 1,
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_GRANULARITY = 2,
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_AVERAGE = 3,
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_DISTRIBUTION = 4,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_MAX =
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_tx_latency_link - Definition of attributes
+ * used inside nested attribute %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINKS.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_MAC_REMOTE: 6-byte MAC address.
+ * Indicates link MAC address of the remote peer. For example, when running
+ * in station mode, it's the BSSID of the link; while when running in AP
+ * mode, it's the link MAC address of the remote station.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_STAT_BUCKETS:
+ * Array of nested attribute.
+ * Represents the transmit latency statistics for the link specified by
+ * %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_MAC_REMOTE.
+ * Each entry represents the statistics for one of the types defined in
+ * enum qca_wlan_vendor_tx_latency_type.
+ * Each defined type has and must have one entry.
+ * See enum qca_wlan_vendor_attr_tx_latency_bucket for nested attributes.
+ */
+enum qca_wlan_vendor_attr_tx_latency_link {
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_MAC_REMOTE = 1,
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_STAT_BUCKETS = 2,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_MAX =
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_tx_latency_action - Represents the possible actions
+ * for %QCA_NL80211_VENDOR_SUBCMD_TX_LATENCY.
+ *
+ * @QCA_WLAN_VENDOR_TX_LATENCY_ACTION_DISABLE:
+ * Disable transmit latency monitoring.
+ *
+ * @QCA_WLAN_VENDOR_TX_LATENCY_ACTION_ENABLE:
+ * Enable transmit latency monitoring.
+ *
+ * @QCA_WLAN_VENDOR_TX_LATENCY_ACTION_GET:
+ * Get transmit latency statistics of the last cycle (period is specified by
+ * %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_PERIOD).
+ */
+enum qca_wlan_vendor_tx_latency_action {
+	QCA_WLAN_VENDOR_TX_LATENCY_ACTION_DISABLE = 0,
+	QCA_WLAN_VENDOR_TX_LATENCY_ACTION_ENABLE = 1,
+	QCA_WLAN_VENDOR_TX_LATENCY_ACTION_GET = 2,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_tx_latency - Definition of attributes used by
+ * %QCA_NL80211_VENDOR_SUBCMD_TX_LATENCY to configure, retrieve, and report
+ * per-link transmit latency statistics.
+ *
+ * There are 6 uses of %QCA_NL80211_VENDOR_SUBCMD_TX_LATENCY:
+ * 1) used as a command to enable the feature
+ * Precondition(s):
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_ACTION is
+ *	%QCA_WLAN_VENDOR_TX_LATENCY_ACTION_ENABLE
+ * Mandatory attribute(s):
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_ACTION,
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_PERIOD,
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKETS with nested attributes
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_TYPE,
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_GRANULARITY.
+ * Notes:
+ *	The driver will monitor the transmit latency for the active links
+ *	and save the statistics for each cycle (period is set by
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_PERIOD) when the feature is enabled.
+ * 	Set flag %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_PERIODIC_REPORT if periodical
+ *	report is required.
+ *
+ * 2) used as a command to disable the feature
+ * Precondition(s):
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_ACTION is
+ *	%QCA_WLAN_VENDOR_TX_LATENCY_ACTION_DISABLE
+ * Mandatory attribute(s):
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_ACTION
+ *
+ * 3) used as a command to retrieve the statistics for all the active links on
+ *    the requested interface
+ * Precondition(s):
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_ACTION is
+ *	QCA_WLAN_VENDOR_TX_LATENCY_ACTION_GET and
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINKS is NOT present.
+ * Mandatory attribute(s):
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_ACTION
+ * Notes:
+ *	The driver returns failure directly if the feature is not enabled or
+ *	there is no active link.
+ *	The driver returns the statistics of the last cycle in the case of
+ *	success.
+ *
+ * 4) used as a command to retrieve the statistics for the specified links
+ * Precondition(s):
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_ACTION is
+ *	QCA_WLAN_VENDOR_TX_LATENCY_ACTION_GET and
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINKS is present.
+ * Mandatory attribute(s):
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_ACTION,
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINKS, with nested attribute
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_MAC_REMOTE.
+ * Notes:
+ *	The driver returns failure directly if the feature is not enabled or
+ *	any of the links (specified by %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINKS)
+ *	does not exist or is not in active state.
+ *
+ * 5) used as a command response for #3 or #4
+ * Precondition(s):
+ *	Userspace issues command #3 or #4, and the driver gets corresponding
+ *	statistics successfully.
+ * Mandatory attribute(s):
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINKS, with nested attributes
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_MAC_REMOTE,
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_STAT_BUCKETS with nested
+ *	attributes %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_TYPE,
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_GRANULARITY,
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_AVERAGE and
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_DISTRIBUTION.
+ *
+ * 6) used as an asynchronous event to report the statistics periodically
+ * Precondition(s):
+ *	Userspace set flag %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_PERIODIC_REPORT in
+ *	#1.
+ *	One or more links are in active state.
+ * Mandatory attribute(s):
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINKS, with nested attributes
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_MAC_REMOTE,
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINK_STAT_BUCKETS with nested
+ *	attributes %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_TYPE,
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_GRANULARITY,
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_AVERAGE and
+ *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKET_DISTRIBUTION.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TX_LATENCY_INVALID: Invalid attribute
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TX_LATENCY_ACTION: u32 attribute.
+ * Action to take in this vendor command.
+ * See enum qca_wlan_vendor_tx_latency_action for supported actions.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TX_LATENCY_PERIODIC_REPORT: Flag attribute.
+ * Enable (flag attribute present) - The driver needs to report transmit latency
+ * statistics at the end of each statistical period.
+ * Disable (flag attribute not present) - The driver doesn't need to report
+ * transmit latency statistics periodically.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TX_LATENCY_PERIOD: u32 attribute.
+ * Indicates statistical period for transmit latency in terms of milliseconds,
+ * the minimal allowed value is 100 and the maximum allowed value is 60000.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKETS: Array of nested attribute.
+ * Each entry represents the latency buckets configuration for one of the types
+ * defined in enum qca_wlan_vendor_tx_latency_type.
+ * Each defined type has and must have one entry.
+ * See enum qca_wlan_vendor_attr_tx_latency_bucket for the list of
+ * supported attributes.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINKS: Array of nested attribute.
+ * Information of the links, each entry represents for one link.
+ * See enum qca_wlan_vendor_attr_tx_latency_link for the list of
+ * supported attributes for each entry.
+ */
+enum qca_wlan_vendor_attr_tx_latency {
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_ACTION = 1,
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_PERIODIC_REPORT = 2,
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_PERIOD = 3,
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_BUCKETS = 4,
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_LINKS = 5,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_MAX =
+	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
