@@ -1428,12 +1428,12 @@ static void rx_data_eapol_key(struct wlantest *wt, const u8 *bssid,
 {
 	const struct ieee802_1x_hdr *eapol;
 	const struct wpa_eapol_key *hdr;
-	const u8 *key_data;
-	u16 key_info, key_length, ver, key_data_length;
-	size_t mic_len = 16;
+	const u8 *key_data, *alt_key_data;
+	u16 key_info, key_length, ver, key_data_length, alt_key_data_length;
+	size_t mic_len = 16, alt_mic_len;
 	const u8 *mic;
 	struct wlantest_bss *bss;
-	struct wlantest_sta *sta;
+	struct wlantest_sta *sta = NULL;
 
 	bss = bss_get(wt, bssid);
 	if (bss) {
@@ -1474,6 +1474,54 @@ static void rx_data_eapol_key(struct wlantest *wt, const u8 *bssid,
 	key_length = WPA_GET_BE16(hdr->key_length);
 	key_data_length = WPA_GET_BE16(mic + mic_len);
 	key_data = mic + mic_len + 2;
+
+	if (key_data + key_data_length != data + len && sta &&
+	    ((wpa_key_mgmt_sae_ext_key(sta->key_mgmt) && sta->sae_group == 0) ||
+	     (sta->key_mgmt == WPA_KEY_MGMT_OWE && sta->owe_group == 0))) {
+		/* We do not know which group was used (e.g., due to use of
+		 * PMKSA caching without the initial association included in
+		 * the capture file), so the MIC length might not be correct.
+		 * Try the other options to see if matching EAPOL-Key length
+		 * can be determined. */
+
+		/* Group 20 */
+		alt_mic_len = wpa_mic_len(sta->key_mgmt, 48);
+		alt_key_data_length = WPA_GET_BE16(mic + alt_mic_len);
+		alt_key_data = mic + alt_mic_len + 2;
+		if (len >= sizeof(*hdr) + alt_mic_len + 2 &&
+		    alt_key_data + alt_key_data_length == data + len) {
+			add_note(wt, MSG_INFO,
+				 "Assume group 20 was used to get matching Key MIC length for EAPOL-Key");
+			if (wpa_key_mgmt_sae_ext_key(sta->key_mgmt))
+				sta->sae_group = 20;
+			else
+				sta->owe_group = 20;
+			mic_len = alt_mic_len;
+			key_data_length = alt_key_data_length;
+			key_data = alt_key_data;
+			goto group_determined;
+		}
+
+		/* Group 21 */
+		alt_mic_len = wpa_mic_len(sta->key_mgmt, 64);
+		alt_key_data_length = WPA_GET_BE16(mic + alt_mic_len);
+		alt_key_data = mic + alt_mic_len + 2;
+		if (len >= sizeof(*hdr) + alt_mic_len + 2 &&
+		    alt_key_data + alt_key_data_length == data + len) {
+			add_note(wt, MSG_INFO,
+				 "Assume group 21 was used to get matching Key MIC length for EAPOL-Key");
+			if (wpa_key_mgmt_sae_ext_key(sta->key_mgmt))
+				sta->sae_group = 21;
+			else
+				sta->owe_group = 21;
+			mic_len = alt_mic_len;
+			key_data_length = alt_key_data_length;
+			key_data = alt_key_data;
+			goto group_determined;
+		}
+	}
+
+group_determined:
 	if (key_data + key_data_length > data + len) {
 		add_note(wt, MSG_INFO, "Truncated EAPOL-Key from " MACSTR,
 			 MAC2STR(src));
