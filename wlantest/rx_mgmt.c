@@ -2135,7 +2135,7 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 		os_memcpy(bss->r1kh_id, parse.r1kh_id, FT_R1KH_ID_LEN);
 
 	if (wpa_derive_pmk_r1(sta->pmk_r0, sta->pmk_r0_len, sta->pmk_r0_name,
-			      bss->r1kh_id, sta->addr, sta->pmk_r1,
+			      bss->r1kh_id, spa, sta->pmk_r1,
 			      sta->pmk_r1_name) < 0)
 		return;
 	sta->pmk_r1_len = sta->pmk_r0_len;
@@ -2153,7 +2153,7 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 		  sizeof(sta->pmk_r1_name));
 	if (!parse.fte_anonce || !parse.fte_snonce ||
 	    wpa_pmk_r1_to_ptk(sta->pmk_r1, sta->pmk_r1_len, parse.fte_snonce,
-			      parse.fte_anonce, new_sta->addr, bss->bssid,
+			      parse.fte_anonce, spa, aa,
 			      sta->pmk_r1_name, &ptk, ptk_name,
 			      new_sta->key_mgmt, new_sta->pairwise_cipher,
 			      0) < 0)
