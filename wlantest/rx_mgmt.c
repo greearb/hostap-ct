@@ -2042,6 +2042,7 @@ static void rx_mgmt_action_ft_request(struct wlantest *wt,
 	const u8 *ies;
 	size_t ies_len;
 	struct wpa_ft_ies parse;
+	const u8 *spa, *aa;
 	struct wlantest_bss *bss;
 	struct wlantest_sta *sta;
 
@@ -2050,10 +2051,11 @@ static void rx_mgmt_action_ft_request(struct wlantest *wt,
 		return;
 	}
 
+	spa = mgmt->u.action.u.ft_action_resp.sta_addr;
+	aa = mgmt->u.action.u.ft_action_resp.target_ap_addr;
 	wpa_printf(MSG_DEBUG, "FT Request: STA Address: " MACSTR
 		   " Target AP Address: " MACSTR,
-		   MAC2STR(mgmt->u.action.u.ft_action_req.sta_addr),
-		   MAC2STR(mgmt->u.action.u.ft_action_req.target_ap_addr));
+		   MAC2STR(spa), MAC2STR(aa));
 	ies = mgmt->u.action.u.ft_action_req.variable;
 	ies_len = len - (24 + 2 + 2 * ETH_ALEN);
 	wpa_hexdump(MSG_DEBUG, "FT Request frame body", ies, ies_len);
@@ -2063,7 +2065,7 @@ static void rx_mgmt_action_ft_request(struct wlantest *wt,
 		return;
 	}
 
-	bss = bss_get(wt, mgmt->u.action.u.ft_action_resp.target_ap_addr);
+	bss = bss_get(wt, aa);
 	if (!bss) {
 		add_note(wt, MSG_INFO, "No BSS entry for Target AP");
 		return;
@@ -2086,6 +2088,7 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 {
 	struct wlantest_bss *bss, *bss2;
 	struct wlantest_sta *new_sta;
+	const u8 *spa, *aa;
 	const u8 *ies;
 	size_t ies_len;
 	struct wpa_ft_ies parse;
@@ -2098,10 +2101,11 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 		return;
 	}
 
+	spa = mgmt->u.action.u.ft_action_resp.sta_addr;
+	aa = mgmt->u.action.u.ft_action_resp.target_ap_addr;
 	wpa_printf(MSG_DEBUG, "FT Response: STA Address: " MACSTR
 		   " Target AP Address: " MACSTR " Status Code: %u",
-		   MAC2STR(mgmt->u.action.u.ft_action_resp.sta_addr),
-		   MAC2STR(mgmt->u.action.u.ft_action_resp.target_ap_addr),
+		   MAC2STR(spa), MAC2STR(aa),
 		   le_to_host16(mgmt->u.action.u.ft_action_resp.status_code));
 	ies = mgmt->u.action.u.ft_action_req.variable;
 	ies_len = len - (24 + 2 + 2 * ETH_ALEN);
@@ -2113,15 +2117,14 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 		return;
 	}
 
-	bss = bss_find(wt, mgmt->u.action.u.ft_action_resp.target_ap_addr);
-	bss2 = bss_find_mld(wt, mgmt->u.action.u.ft_action_resp.target_ap_addr);
+	bss = bss_find(wt, aa);
+	bss2 = bss_find_mld(wt, aa);
 	if (!bss)
 		bss = bss2;
 	if (bss && bss2 && bss != bss2 && !sta_find(bss, sta->addr))
 		bss = bss2;
 	if (!bss)
-		bss = bss_get(wt,
-			      mgmt->u.action.u.ft_action_resp.target_ap_addr);
+		bss = bss_get(wt, aa);
 
 	if (!bss) {
 		add_note(wt, MSG_INFO, "No BSS entry for Target AP");
