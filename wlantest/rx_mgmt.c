@@ -1156,11 +1156,6 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 	bss = bss_get(wt, mgmt->bssid);
 	if (bss == NULL)
 		return;
-	sta = sta_find_mlo(wt, bss, mgmt->sa);
-	if (!sta)
-		sta = sta_get(bss, mgmt->sa);
-	if (sta == NULL)
-		return;
 
 	if (len < 24 + 4 + ETH_ALEN) {
 		add_note(wt, MSG_INFO, "Too short Reassociation Request frame "
@@ -1175,10 +1170,51 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 		   le_to_host16(mgmt->u.reassoc_req.listen_interval),
 		   MAC2STR(mgmt->u.reassoc_req.current_ap));
 
-	sta->counters[WLANTEST_STA_COUNTER_REASSOCREQ_TX]++;
-
 	ie = mgmt->u.reassoc_req.variable;
 	ie_len = len - (mgmt->u.reassoc_req.variable - data);
+
+	if (ieee802_11_parse_elems(ie, ie_len, &elems, 0) == ParseFailed) {
+		add_note(wt, MSG_INFO,
+			 "Invalid IEs in Reassociation Request frame from "
+			 MACSTR, MAC2STR(mgmt->sa));
+		return;
+	}
+
+	sta = sta_find_mlo(wt, bss, mgmt->sa);
+	/*
+	 * In the case of FT over-the-DS roaming, STA entry was created with the
+	 * MLD MAC address and attached to one of the BSSs affiliated with the
+	 * AP MLD but that BSS might not be in the STA's requested reassociation
+	 * links, so move it to reassociation link BSS and update STA link
+	 * address.
+	 */
+	if (!sta && elems.basic_mle) {
+		const u8 *mld_addr;
+		struct wlantest_sta *sta1;
+
+		mld_addr = get_basic_mle_mld_addr(elems.basic_mle,
+						  elems.basic_mle_len);
+		if (!mld_addr)
+			return;
+
+		sta1 = sta_find_mlo(wt, bss, mld_addr);
+		if (sta1 && sta1->ft_over_ds) {
+			dl_list_del(&sta1->list);
+			dl_list_add(&bss->sta, &sta1->list);
+			wpa_printf(MSG_DEBUG,
+				   "Move existing STA entry from another affiliated BSS to the reassociation BSS (addr "
+				   MACSTR " -> " MACSTR ")",
+				   MAC2STR(sta1->addr), MAC2STR(mgmt->sa));
+			os_memcpy(sta1->addr, mgmt->sa, ETH_ALEN);
+			sta = sta1;
+		}
+	}
+	if (!sta)
+		sta = sta_get(bss, mgmt->sa);
+	if (!sta)
+		return;
+
+	sta->counters[WLANTEST_STA_COUNTER_REASSOCREQ_TX]++;
 
 	if (sta->auth_alg == WLAN_AUTH_FILS_SK) {
 		const u8 *session, *frame_ad, *frame_ad_end, *encr_end;
@@ -1192,12 +1228,6 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 					 frame_ad_end, encr_end);
 			ie_len = session - ie;
 		}
-	}
-
-	if (ieee802_11_parse_elems(ie, ie_len, &elems, 0) == ParseFailed) {
-		add_note(wt, MSG_INFO, "Invalid IEs in Reassociation Request "
-			 "frame from " MACSTR, MAC2STR(mgmt->sa));
-		return;
 	}
 
 	if (elems.rsnxe) {
@@ -2043,7 +2073,7 @@ static void rx_mgmt_action_ft_request(struct wlantest *wt,
 	size_t ies_len;
 	struct wpa_ft_ies parse;
 	const u8 *spa, *aa;
-	struct wlantest_bss *bss;
+	struct wlantest_bss *bss, *bss2;
 	struct wlantest_sta *sta;
 
 	if (len < 24 + 2 + 2 * ETH_ALEN) {
@@ -2065,13 +2095,20 @@ static void rx_mgmt_action_ft_request(struct wlantest *wt,
 		return;
 	}
 
-	bss = bss_get(wt, aa);
+	bss = bss_find(wt, aa);
+	bss2 = bss_find_mld(wt, aa);
+	if (!bss)
+		bss = bss2;
+	if (bss && bss2 && bss != bss2 && !sta_find(bss, spa))
+		bss = bss2;
+	if (!bss)
+		bss = bss_get(wt, aa);
 	if (!bss) {
 		add_note(wt, MSG_INFO, "No BSS entry for Target AP");
 		return;
 	}
 
-	sta = sta_get(bss, mgmt->sa);
+	sta = sta_get(bss, spa);
 	if (!sta)
 		return;
 
@@ -2121,7 +2158,7 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 	bss2 = bss_find_mld(wt, aa);
 	if (!bss)
 		bss = bss2;
-	if (bss && bss2 && bss != bss2 && !sta_find(bss, sta->addr))
+	if (bss && bss2 && bss != bss2 && !sta_find(bss, spa))
 		bss = bss2;
 	if (!bss)
 		bss = bss_get(wt, aa);
@@ -2140,7 +2177,7 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 		return;
 	sta->pmk_r1_len = sta->pmk_r0_len;
 
-	new_sta = sta_get(bss, sta->addr);
+	new_sta = sta_get(bss, spa);
 	if (!new_sta)
 		return;
 	os_memcpy(new_sta->pmk_r0, sta->pmk_r0, sta->pmk_r0_len);
