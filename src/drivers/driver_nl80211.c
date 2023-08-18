@@ -4531,7 +4531,7 @@ static int nl80211_put_beacon_rate(struct nl_msg *msg, u64 flags, u64 flags2,
 		}
 
 		if (nla_put_u8(msg, NL80211_TXRATE_LEGACY,
-			       (u8) params->beacon_rate / 5) ||
+			       (u8) (params->beacon_rate / 5)) ||
 		    nla_put(msg, NL80211_TXRATE_HT, 0, NULL) ||
 		    (params->freq->vht_enabled &&
 		     nla_put(msg, NL80211_TXRATE_VHT, sizeof(vht_rate),
