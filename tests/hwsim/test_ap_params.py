@@ -650,12 +650,19 @@ def test_ap_beacon_rate_legacy(dev, apdev):
 
 def test_ap_beacon_rate_legacy2(dev, apdev):
     """Open AP with Beacon frame TX rate 12 Mbps in VHT BSS"""
+    run_ap_beacon_rate_legacy(dev, apdev, "120")
+
+def test_ap_beacon_rate_legacy3(dev, apdev):
+    """Open AP with Beacon frame TX rate 54 Mbps in VHT BSS"""
+    run_ap_beacon_rate_legacy(dev, apdev, "540")
+
+def run_ap_beacon_rate_legacy(dev, apdev, rate):
     hapd = hostapd.add_ap(apdev[0], {'ssid': 'beacon-rate'})
     res = hapd.get_driver_status_field('capa.flags')
     if (int(res, 0) & 0x0000080000000000) == 0:
         raise HwsimSkip("Setting Beacon frame TX rate not supported")
     hapd.disable()
-    hapd.set('beacon_rate', '120')
+    hapd.set('beacon_rate', rate)
     hapd.set("country_code", "DE")
     hapd.set("hw_mode", "a")
     hapd.set("channel", "36")
