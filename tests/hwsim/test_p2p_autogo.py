@@ -934,3 +934,28 @@ def test_autogo_remove_iface(dev):
     time.sleep(0.1)
     wpas.global_request("INTERFACE_REMOVE " + wpas.ifname)
     time.sleep(1)
+
+def test_autogo_network_clear(dev, apdev):
+    """P2P autonomous GO and clearing of networking information"""
+    # Add a BSS entry so that the BSS_FLUSH command will find something to do
+    # in wpa_bss_flush_by_age().
+    hapd = hostapd.add_ap(apdev[0], {"ssid": "open"})
+    bssid = hapd.own_addr()
+    dev[0].scan_for_bss(bssid, freq=2412)
+
+    # Start a P2P GO and restart the network as an AP to force reassoc_same_ess
+    # to become 1.
+    autogo(dev[0])
+    dev[0].request("DISCONNECT")
+    dev[0].set_network(0, "mode", "2")
+    dev[0].request("SELECT_NETWORK 0")
+
+    # Test wpas_p2p_group_delete() behavior, i.e., verify that wpa_s->last_ssid
+    # gets cleared.
+    dev[0].remove_group()
+
+    # Verify that wpa_bss_flush_by_age() does not end up dereferencing the
+    # invalid wpa_s->last_ssid value. This is a regression test for an earlier
+    # issue.
+    time.sleep(1)
+    dev[0].request("BSS_FLUSH 1")
