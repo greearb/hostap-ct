@@ -6263,7 +6263,7 @@ static int wpas_p2p_select_go_freq(struct wpa_supplicant *wpa_s, int freq)
 
 		res = wpa_drv_get_pref_freq_list(wpa_s, WPA_IF_P2P_GO,
 						 &size, pref_freq_list);
-		if (!is_p2p_allow_6ghz(wpa_s->global->p2p))
+		if (!res && size > 0 && !is_p2p_allow_6ghz(wpa_s->global->p2p))
 			size = p2p_remove_6ghz_channels(pref_freq_list, size);
 
 		if (!res && size > 0) {
