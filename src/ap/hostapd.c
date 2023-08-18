@@ -401,7 +401,7 @@ static void hostapd_clear_drv_priv(struct hostapd_data *hapd)
 	for (i = 0; i < hapd->iface->interfaces->count; i++) {
 		struct hostapd_iface *iface = hapd->iface->interfaces->iface[i];
 
-		if (hapd->iface == iface)
+		if (hapd->iface == iface || !iface)
 			continue;
 
 		if (iface->bss && iface->bss[0] &&
