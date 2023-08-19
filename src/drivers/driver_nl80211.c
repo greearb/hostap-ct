@@ -6483,6 +6483,11 @@ static int nl80211_ht_vht_overrides(struct nl_msg *msg,
 			wpa_printf(MSG_DEBUG, "  * 160Mhz disabled");
 		}
 
+		if (params->disable_320) {
+			cai.flags |= CT_DISABLE_320MHZ;
+			wpa_printf(MSG_DEBUG, "  * 320Mhz disabled");
+		}
+
 		if (params->disable_ofdma) {
 			cai.flags |= CT_DISABLE_OFDMA;
 			wpa_printf(MSG_DEBUG, "  * OFDMA disabled");
