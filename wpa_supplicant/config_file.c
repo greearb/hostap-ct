@@ -894,6 +894,7 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 	INT(disable_he);
 	INT(disable_twt);
 	INT(disable_160);
+	INT(disable_320);
 	INT(disable_ofdma);
 #endif /* CONFIG_HE_OVERRIDES */
 	INT(disable_eht);
