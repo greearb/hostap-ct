@@ -881,6 +881,13 @@ struct wpa_ssid {
 	 */
 	int disable_160;
 	/**
+	 * disable_320 - Disable 320Mhz for this network
+	 *
+	 * By default, use it if it is available, but this can be configured
+	 * to 1 to have it disabled.
+	 */
+	int disable_320;
+	/**
 	 * disable_ofdma - Disable OFDMA for this network
 	 *
 	 * By default, use it if it is available, but this can be configured
