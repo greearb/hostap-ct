@@ -1513,6 +1513,7 @@ static const char *network_fields[] = {
 	"disable_he",
 	"disable_twt",
 	"disable_160",
+	"disable_320",
 	"disable_ofdma",
 #endif /* CONFIG_HE_OVERRIDES */
 	"disable_eht",
