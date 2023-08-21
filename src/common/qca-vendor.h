@@ -3265,6 +3265,21 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_PEER_AMPDU_CNT = 103,
 
+	/*
+	 * 8-bit unsigned value to configure TID-to-link mapping negotiation
+	 * type.
+	 * Uses enum qca_wlan_ttlm_negotiation_support values.
+	 *
+	 * This value applies to the complete AP/non-AP MLD interface, and the
+	 * MLD advertises it within the Basic Multi-Link element in the
+	 * association frames. If a new value is configured during an active
+	 * connection, it will take effect in the subsequent associations and
+	 * is not reset during disconnection.
+	 *
+	 * This attribute is used for testing purposes.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_TTLM_NEGOTIATION_SUPPORT = 104,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
@@ -9190,6 +9205,21 @@ enum qca_wlan_eht_mlo_mode {
 enum qca_wlan_emlsr_mode {
 	QCA_WLAN_EMLSR_MODE_ENTER = 0,
 	QCA_WLAN_EMLSR_MODE_EXIT = 1,
+};
+
+/**
+ * enum qca_wlan_ttlm_negotiation_support: TID-To-Link Mapping Negotiation
+ * support
+ * @QCA_WLAN_TTLM_DISABLE: TTLM disabled
+ * @QCA_WLAN_TTLM_SAME_LINK_SET: Mapping of all TIDs to the same link set,
+ * both DL and UL
+ * @QCA_WLAN_TTLM_SAME_DIFF_LINK_SET: Mapping of each TID to the same or
+ * different link set
+ */
+enum qca_wlan_ttlm_negotiation_support {
+	QCA_WLAN_TTLM_DISABLE = 0,
+	QCA_WLAN_TTLM_SAME_LINK_SET = 1,
+	QCA_WLAN_TTLM_SAME_DIFF_LINK_SET = 2,
 };
 
 /**
