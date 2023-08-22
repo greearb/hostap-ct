@@ -1226,8 +1226,13 @@ def check_commit_status(hapd, use_status, expect_status):
     element_x = "559cb8928db4ce4e3cbd6555e837591995e5ebe503ef36b503d9ca519d63728d"
     element_y = "d3c7c676b8e8081831b6bc3a64bdf136061a7de175e17d1965bfa41983ed02f8"
     status = binascii.hexlify(struct.pack('<H', use_status)).decode()
+    hapd.dump_monitor()
     hapd.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=" + hdr + "03000100" + status + group + scalar + element_x + element_y)
     ev = hapd.wait_event(["MGMT-TX-STATUS"], timeout=5)
+    if ev:
+        msg = ev.split(' ')[3].split('=')[1]
+        if not msg.startswith("b0"):
+            ev = hapd.wait_event(["MGMT-TX-STATUS"], timeout=5)
     if ev is None:
         raise Exception("MGMT-TX-STATUS not seen")
     msg = ev.split(' ')[3].split('=')[1]
