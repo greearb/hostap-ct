@@ -473,6 +473,7 @@ extern "C" {
 #define WPA_BSS_MASK_FILS_INDICATION	BIT(24)
 #define WPA_BSS_MASK_RNR		BIT(25)
 #define WPA_BSS_MASK_ML			BIT(26)
+#define WPA_BSS_MASK_AP_MLD_ADDR	BIT(27)
 
 
 /* VENDOR_ELEM_* frame id values */

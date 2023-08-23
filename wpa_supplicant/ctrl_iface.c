@@ -5686,7 +5686,8 @@ static int print_bss_info(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 	}
 #endif /* CONFIG_FILS */
 
-	if (!is_zero_ether_addr(bss->mld_addr)) {
+	if (!is_zero_ether_addr(bss->mld_addr) &&
+	    (mask & WPA_BSS_MASK_AP_MLD_ADDR)) {
 		ret = os_snprintf(pos, end - pos,
 				  "ap_mld_addr=" MACSTR "\n",
 				  MAC2STR(bss->mld_addr));
