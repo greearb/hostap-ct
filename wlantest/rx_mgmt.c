@@ -962,9 +962,19 @@ static void rx_mgmt_assoc_req(struct wlantest *wt, const u8 *data, size_t len)
 
 	sta->assocreq_seen = 1;
 	sta_update_assoc(sta, &elems);
-	if (elems.basic_mle)
+	if (elems.basic_mle) {
+		if (bss->link_id_set) {
+			os_memcpy(sta->link_addr[bss->link_id], mgmt->sa,
+				  ETH_ALEN);
+			wpa_printf(MSG_DEBUG,
+				   "Learned Link ID %u MAC address "
+				   MACSTR
+				   " from Association Request (assoc link)",
+				   bss->link_id, MAC2STR(mgmt->sa));
+		}
 		parse_basic_ml(elems.basic_mle, elems.basic_mle_len, false,
 			       sta);
+	}
 }
 
 
@@ -1253,9 +1263,20 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 
 	sta->assocreq_seen = 1;
 	sta_update_assoc(sta, &elems);
-	if (elems.basic_mle)
+	if (elems.basic_mle) {
+		os_memset(sta->link_addr, 0, sizeof(sta->link_addr));
+		if (bss->link_id_set) {
+			os_memcpy(sta->link_addr[bss->link_id], mgmt->sa,
+				  ETH_ALEN);
+			wpa_printf(MSG_DEBUG,
+				   "Learned Link ID %u MAC address "
+				   MACSTR
+				   " from Reassociation Request (assoc link)",
+				   bss->link_id, MAC2STR(mgmt->sa));
+		}
 		parse_basic_ml(elems.basic_mle, elems.basic_mle_len, false,
 			       sta);
+	}
 
 	if (elems.ftie) {
 		struct wpa_ft_ies parse;
