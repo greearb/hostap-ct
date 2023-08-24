@@ -2108,7 +2108,9 @@ static void rx_mgmt_action_ft_request(struct wlantest *wt,
 		return;
 	}
 
-	sta = sta_get(bss, spa);
+	sta = sta_find_mlo(wt, bss, spa);
+	if (!sta)
+		sta = sta_get(bss, spa);
 	if (!sta)
 		return;
 
@@ -2177,7 +2179,9 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 		return;
 	sta->pmk_r1_len = sta->pmk_r0_len;
 
-	new_sta = sta_get(bss, spa);
+	new_sta = sta_find_mlo(wt, bss, spa);
+	if (!new_sta)
+		new_sta = sta_get(bss, spa);
 	if (!new_sta)
 		return;
 	os_memcpy(new_sta->pmk_r0, sta->pmk_r0, sta->pmk_r0_len);
