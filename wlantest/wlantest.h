@@ -144,6 +144,8 @@ struct wlantest_bss {
 	struct dl_list list;
 	u8 bssid[ETH_ALEN];
 	u8 mld_mac_addr[ETH_ALEN];
+	u8 link_id;
+	bool link_id_set;
 	u16 capab_info;
 	u16 prev_capab_info;
 	u8 ssid[32];
