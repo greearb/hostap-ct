@@ -452,6 +452,7 @@ struct rsn_rdie {
 #pragma pack(pop)
 #endif /* _MSC_VER */
 
+#define MAX_NUM_MLO_LINKS 15
 
 int wpa_eapol_key_mic(const u8 *key, size_t key_len, int akmp, int ver,
 		      const u8 *buf, size_t len, u8 *mic);
@@ -485,6 +486,7 @@ int wpa_ft_mic(int key_mgmt, const u8 *kck, size_t kck_len, const u8 *sta_addr,
 	       const u8 *rsnie, size_t rsnie_len,
 	       const u8 *ric, size_t ric_len,
 	       const u8 *rsnxe, size_t rsnxe_len,
+	       const u8 link_addr[MAX_NUM_MLO_LINKS][ETH_ALEN],
 	       u8 *mic);
 int wpa_derive_pmk_r0(const u8 *xxkey, size_t xxkey_len,
 		      const u8 *ssid, size_t ssid_len,
@@ -555,8 +557,6 @@ int wpa_compare_rsn_ie(int ft_initial_assoc,
 		       const u8 *ie1, size_t ie1len,
 		       const u8 *ie2, size_t ie2len);
 int wpa_insert_pmkid(u8 *ies, size_t *ies_len, const u8 *pmkid);
-
-#define MAX_NUM_MLO_LINKS 15
 
 struct wpa_ft_ies {
 	const u8 *mdie;

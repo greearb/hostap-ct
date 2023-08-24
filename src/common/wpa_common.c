@@ -890,10 +890,11 @@ int wpa_ft_mic(int key_mgmt, const u8 *kck, size_t kck_len, const u8 *sta_addr,
 	       const u8 *rsnie, size_t rsnie_len,
 	       const u8 *ric, size_t ric_len,
 	       const u8 *rsnxe, size_t rsnxe_len,
+	       const u8 link_addr[MAX_NUM_MLO_LINKS][ETH_ALEN],
 	       u8 *mic)
 {
-	const u8 *addr[10];
-	size_t len[10];
+	const u8 *addr[10 + MAX_NUM_MLO_LINKS];
+	size_t len[10 + MAX_NUM_MLO_LINKS];
 	size_t i, num_elem = 0;
 	u8 zero_mic[32];
 	size_t mic_len, fte_fixed_len;
@@ -969,6 +970,16 @@ int wpa_ft_mic(int key_mgmt, const u8 *kck, size_t kck_len, const u8 *sta_addr,
 		addr[num_elem] = rsnxe;
 		len[num_elem] = rsnxe_len;
 		num_elem++;
+	}
+
+	if (link_addr) {
+		for (i = 0; i < MAX_NUM_MLO_LINKS; i++) {
+			if (is_zero_ether_addr(link_addr[i]))
+				continue;
+			addr[num_elem] = link_addr[i];
+			len[num_elem] = ETH_ALEN;
+			num_elem++;
+		}
 	}
 
 	for (i = 0; i < num_elem; i++)

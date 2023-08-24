@@ -472,6 +472,7 @@ static u8 * wpa_ft_gen_req_ies(struct wpa_sm *sm, size_t *len,
 			       ftie_pos, 2 + *ftie_len,
 			       (u8 *) rsnie, 2 + rsnie->len, ric_ies,
 			       ric_ies_len, rsnxe_len ? rsnxe : NULL, rsnxe_len,
+			       NULL,
 			       fte_mic) < 0) {
 			wpa_printf(MSG_INFO, "FT: Failed to calculate MIC");
 			os_free(buf);
@@ -1146,6 +1147,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 		       parse.ric, parse.ric_len,
 		       parse.rsnxe ? parse.rsnxe - 2 : NULL,
 		       parse.rsnxe ? parse.rsnxe_len + 2 : 0,
+		       NULL,
 		       mic) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to calculate MIC");
 		return -1;

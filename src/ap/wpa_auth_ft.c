@@ -2851,6 +2851,7 @@ u8 * wpa_sm_write_assoc_resp_ies(struct wpa_state_machine *sm, u8 *pos,
 		       rsnie, rsnie_len,
 		       ric_start, ric_start ? pos - ric_start : 0,
 		       rsnxe_len ? rsnxe : NULL, rsnxe_len,
+		       NULL,
 		       fte_mic) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to calculate MIC");
 		return NULL;
@@ -3616,6 +3617,7 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 		       parse.ric, parse.ric_len,
 		       parse.rsnxe ? parse.rsnxe - 2 : NULL,
 		       parse.rsnxe ? parse.rsnxe_len + 2 : 0,
+		       NULL,
 		       mic) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to calculate MIC");
 		return WLAN_STATUS_UNSPECIFIED_FAILURE;
