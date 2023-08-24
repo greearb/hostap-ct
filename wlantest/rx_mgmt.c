@@ -1289,6 +1289,15 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 		size_t mic_len = 16;
 		const u8 *kck;
 		size_t kck_len;
+		const u8 *aa, *spa;
+
+		if (elems.basic_mle) {
+			aa = bss->mld_mac_addr;
+			spa = sta->mld_mac_addr;
+		} else {
+			aa = bss->bssid;
+			spa = sta->addr;
+		}
 
 		use_sha384 = wpa_key_mgmt_sha384(sta->key_mgmt);
 
@@ -1417,25 +1426,26 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 			kck_len = sta->ptk.kck_len;
 		}
 		if (wpa_ft_mic(sta->key_mgmt, kck, kck_len,
-			       sta->addr, bss->bssid, 5,
+			       spa, aa, 5,
 			       parse.mdie - 2, parse.mdie_len + 2,
 			       parse.ftie - 2, parse.ftie_len + 2,
 			       parse.rsn - 2, parse.rsn_len + 2,
 			       parse.ric, parse.ric_len,
 			       parse.rsnxe ? parse.rsnxe - 2 : NULL,
 			       parse.rsnxe ? parse.rsnxe_len + 2 : 0,
-			       NULL,
+			       elems.basic_mle ? sta->link_addr : NULL,
 			       mic) < 0) {
 			add_note(wt, MSG_INFO, "FT: Failed to calculate MIC");
 			return;
 		}
 
 		if (os_memcmp_const(mic, fte_mic, mic_len) != 0) {
+			int link_id;
+
 			add_note(wt, MSG_INFO, "FT: Invalid MIC in FTE");
 			wpa_printf(MSG_DEBUG,
 				   "FT: addr=" MACSTR " auth_addr=" MACSTR,
-				   MAC2STR(sta->addr),
-				   MAC2STR(bss->bssid));
+				   MAC2STR(spa), MAC2STR(aa));
 			wpa_hexdump(MSG_MSGDUMP, "FT: Received MIC",
 				    fte_mic, mic_len);
 			wpa_hexdump(MSG_MSGDUMP, "FT: Calculated MIC",
@@ -1449,6 +1459,15 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 			wpa_hexdump(MSG_MSGDUMP, "FT: RSNXE",
 				    parse.rsnxe ? parse.rsnxe - 2 : NULL,
 				    parse.rsnxe ? parse.rsnxe_len + 2 : 0);
+			for (link_id = 0; link_id < MAX_NUM_MLO_LINKS;
+			     link_id++) {
+				if (is_zero_ether_addr(sta->link_addr[link_id]))
+					continue;
+				wpa_printf(MSG_DEBUG,
+					   "FT: STA link %d address: " MACSTR,
+					   link_id,
+					   MAC2STR(sta->link_addr[link_id]));
+			}
 			return;
 		}
 
