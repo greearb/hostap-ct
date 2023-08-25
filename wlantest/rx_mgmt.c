@@ -1833,6 +1833,16 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 		size_t mic_len = 16;
 		const u8 *kck, *kek;
 		size_t kck_len, kek_len;
+		const u8 *aa, *spa;
+		struct wpabuf *extra = NULL, *rsne = NULL, *rsnxe = NULL;
+
+		if (ml) {
+			aa = bss->mld_mac_addr;
+			spa = sta->mld_mac_addr;
+		} else {
+			aa = bss->bssid;
+			spa = sta->addr;
+		}
 
 		use_sha384 = wpa_key_mgmt_sha384(sta->key_mgmt);
 
@@ -1949,11 +1959,64 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 			os_memcpy(bss->r1kh_id, parse.r1kh_id, FT_R1KH_ID_LEN);
 		}
 
-		count = 3;
+		count = 2; /* MDE and FTE */
+		if (ml) {
+			int link_id;
+			struct wlantest_bss *l_bss;
+
+			extra = wpabuf_alloc(MAX_NUM_MLO_LINKS * ETH_ALEN);
+			rsne = wpabuf_alloc(MAX_NUM_MLO_LINKS * 256);
+			rsnxe = wpabuf_alloc(MAX_NUM_MLO_LINKS * 256);
+			if (!extra || !rsne || !rsnxe)
+				goto out;
+
+			for (link_id = 0; link_id < MAX_NUM_MLO_LINKS;
+			     link_id++) {
+				if (is_zero_ether_addr(sta->link_addr[link_id]))
+					continue;
+
+				l_bss = bss_find_mld(wt, bss->mld_mac_addr,
+						     link_id);
+				if (!l_bss) {
+					wpa_printf(MSG_DEBUG,
+						   "FT: No BSS entry found for AP MLD "
+						   MACSTR " link ID %u",
+						   MAC2STR(bss->mld_mac_addr),
+						   link_id);
+					continue;
+				}
+
+				count++; /* RSNE */
+				wpabuf_put_data(rsne, l_bss->rsnie,
+						2 + l_bss->rsnie[1]);
+
+				if (l_bss->rsnxe_len) {
+					count++;
+					wpabuf_put_u8(rsnxe, WLAN_EID_RSNX);
+					wpabuf_put_u8(rsnxe, l_bss->rsnxe_len);
+					wpabuf_put_data(rsnxe,
+							l_bss->rsnxe,
+							l_bss->rsnxe_len);
+				}
+
+				wpabuf_put_data(extra, l_bss->bssid, ETH_ALEN);
+			}
+		} else {
+			count++; /* RSNE */
+			rsne = wpabuf_alloc_copy(parse.rsn - 2,
+						 parse.rsn_len + 2);
+			if (!rsne)
+				goto out;
+			if (parse.rsnxe) {
+				count++;
+				rsnxe = wpabuf_alloc_copy(parse.rsnxe - 2,
+							  parse.rsnxe_len + 2);
+				if (!rsnxe)
+					goto out;
+			}
+		}
 		if (parse.ric)
 			count += ieee802_11_ie_count(parse.ric, parse.ric_len);
-		if (parse.rsnxe)
-			count++;
 		if (fte_elem_count != count) {
 			add_note(wt, MSG_INFO,
 				 "FT: Unexpected IE count in MIC Control: received %u expected %u",
@@ -1972,26 +2035,30 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 			kek = sta->ptk.kek;
 			kek_len = sta->ptk.kek_len;
 		}
+
+		/* FTE might be fragmented. If it is, the separate Fragment
+		 * elements are included in MIC calculation as full elements. */
 		if (wpa_ft_mic(sta->key_mgmt, kck, kck_len,
-			       sta->addr, bss->bssid, 6,
+			       spa, aa, 6,
 			       parse.mdie - 2, parse.mdie_len + 2,
-			       parse.ftie - 2, parse.ftie_len + 2,
-			       parse.rsn - 2, parse.rsn_len + 2,
+			       elems.ftie - 2, elems.fte_defrag_len + 2,
+			       wpabuf_head(rsne), wpabuf_len(rsne),
 			       parse.ric, parse.ric_len,
-			       parse.rsnxe ? parse.rsnxe - 2 : NULL,
-			       parse.rsnxe ? parse.rsnxe_len + 2 : 0,
-			       NULL,
+			       rsnxe ? wpabuf_head(rsnxe) : NULL,
+			       rsnxe ? wpabuf_len(rsnxe) : 0,
+			       extra,
 			       mic) < 0) {
 			add_note(wt, MSG_INFO, "FT: Failed to calculate MIC");
 			goto out;
 		}
 
 		if (os_memcmp_const(mic, fte_mic, mic_len) != 0) {
+			int link_id;
+
 			add_note(wt, MSG_INFO, "FT: Invalid MIC in FTE");
 			wpa_printf(MSG_DEBUG,
 				   "FT: addr=" MACSTR " auth_addr=" MACSTR,
-				   MAC2STR(sta->addr),
-				   MAC2STR(bss->bssid));
+				   MAC2STR(spa), MAC2STR(aa));
 			wpa_hexdump(MSG_MSGDUMP, "FT: Received MIC",
 				    fte_mic, mic_len);
 			wpa_hexdump(MSG_MSGDUMP, "FT: Calculated MIC",
@@ -1999,12 +2066,23 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 			wpa_hexdump(MSG_MSGDUMP, "FT: MDE",
 				    parse.mdie - 2, parse.mdie_len + 2);
 			wpa_hexdump(MSG_MSGDUMP, "FT: FTE",
-				    parse.ftie - 2, parse.ftie_len + 2);
-			wpa_hexdump(MSG_MSGDUMP, "FT: RSN",
-				    parse.rsn - 2, parse.rsn_len + 2);
-			wpa_hexdump(MSG_MSGDUMP, "FT: RSNXE",
-				    parse.rsnxe ? parse.rsnxe - 2 : NULL,
-				    parse.rsnxe ? parse.rsnxe_len + 2 : 0);
+				    elems.ftie - 2, elems.fte_defrag_len + 2);
+			wpa_hexdump_buf(MSG_MSGDUMP, "FT: RSNE", rsne);
+			wpa_hexdump_buf(MSG_MSGDUMP, "FT: RSNXE", rsnxe);
+			for (link_id = 0; link_id < MAX_NUM_MLO_LINKS;
+			     link_id++) {
+				struct wlantest_bss *l_bss;
+
+				if (is_zero_ether_addr(sta->link_addr[link_id]))
+					continue;
+				l_bss = bss_find_mld(wt, bss->mld_mac_addr,
+						     link_id);
+				if (l_bss)
+					wpa_printf(MSG_DEBUG,
+						   "FT: AP link %d address: "
+						   MACSTR, link_id,
+						   MAC2STR(l_bss->bssid));
+			}
 			goto out;
 		}
 
@@ -2032,6 +2110,9 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 
 	out:
 		wpa_ft_parse_ies_free(&parse);
+		wpabuf_free(rsne);
+		wpabuf_free(rsnxe);
+		wpabuf_free(extra);
 	}
 
 	if (elems.owe_dh && elems.owe_dh_len >= 2) {
