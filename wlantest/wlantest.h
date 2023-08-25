@@ -296,7 +296,8 @@ void rx_data_80211_encap(struct wlantest *wt, const u8 *bssid,
 			 const u8 *data, size_t len);
 
 struct wlantest_bss * bss_find(struct wlantest *wt, const u8 *bssid);
-struct wlantest_bss * bss_find_mld(struct wlantest *wt, const u8 *mld_mac_addr);
+struct wlantest_bss * bss_find_mld(struct wlantest *wt, const u8 *mld_mac_addr,
+				   int link_id);
 struct wlantest_bss * bss_get(struct wlantest *wt, const u8 *bssid);
 void bss_deinit(struct wlantest_bss *bss);
 void bss_update(struct wlantest *wt, struct wlantest_bss *bss,

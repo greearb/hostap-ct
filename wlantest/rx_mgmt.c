@@ -2138,7 +2138,7 @@ static void rx_mgmt_action_ft_request(struct wlantest *wt,
 	}
 
 	bss = bss_find(wt, aa);
-	bss2 = bss_find_mld(wt, aa);
+	bss2 = bss_find_mld(wt, aa, -1);
 	if (!bss)
 		bss = bss2;
 	if (bss && bss2 && bss != bss2 && !sta_find(bss, spa))
@@ -2199,7 +2199,7 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 	}
 
 	bss = bss_find(wt, aa);
-	bss2 = bss_find_mld(wt, aa);
+	bss2 = bss_find_mld(wt, aa, -1);
 	if (!bss)
 		bss = bss2;
 	if (bss && bss2 && bss != bss2 && !sta_find(bss, spa))
