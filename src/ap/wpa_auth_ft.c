@@ -2821,8 +2821,10 @@ u8 * wpa_sm_write_assoc_resp_ies(struct wpa_state_machine *sm, u8 *pos,
 	} else {
 		res = wpa_write_rsnxe(&sm->wpa_auth->conf, rsnxe,
 				      sizeof(rsnxe_buf));
-		if (res < 0)
-			return NULL;
+		if (res < 0) {
+			pos = NULL;
+			goto fail;
+		}
 		rsnxe_len = res;
 	}
 #ifdef CONFIG_TESTING_OPTIONS
@@ -2854,15 +2856,20 @@ u8 * wpa_sm_write_assoc_resp_ies(struct wpa_state_machine *sm, u8 *pos,
 		       NULL,
 		       fte_mic) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to calculate MIC");
-		return NULL;
+		pos = NULL;
+		goto fail;
 	}
 
 	os_free(sm->assoc_resp_ftie);
 	sm->assoc_resp_ftie = os_malloc(ftie_len);
-	if (!sm->assoc_resp_ftie)
-		return NULL;
+	if (!sm->assoc_resp_ftie) {
+		pos = NULL;
+		goto fail;
+	}
 	os_memcpy(sm->assoc_resp_ftie, ftie, ftie_len);
 
+fail:
+	wpa_ft_parse_ies_free(&parse);
 	return pos;
 }
 
@@ -3174,6 +3181,7 @@ static int wpa_ft_process_auth_req(struct wpa_state_machine *sm,
 	const u8 *identity, *radius_cui;
 	size_t identity_len = 0, radius_cui_len = 0;
 	size_t pmk_r1_len, kdk_len, len;
+	int retval = WLAN_STATUS_UNSPECIFIED_FAILURE;
 
 	*resp_ies = NULL;
 	*resp_ies_len = 0;
@@ -3195,17 +3203,20 @@ static int wpa_ft_process_auth_req(struct wpa_state_machine *sm,
 		      sm->wpa_auth->conf.mobility_domain,
 		      MOBILITY_DOMAIN_ID_LEN) != 0) {
 		wpa_printf(MSG_DEBUG, "FT: Invalid MDIE");
-		return WLAN_STATUS_INVALID_MDIE;
+		retval = WLAN_STATUS_INVALID_MDIE;
+		goto out;
 	}
 
 	if (!parse.ftie || parse.ftie_len < sizeof(struct rsn_ftie)) {
 		wpa_printf(MSG_DEBUG, "FT: Invalid FTIE");
-		return WLAN_STATUS_INVALID_FTIE;
+		retval = WLAN_STATUS_INVALID_FTIE;
+		goto out;
 	}
 
 	if (parse.r0kh_id == NULL) {
 		wpa_printf(MSG_DEBUG, "FT: Invalid FTIE - no R0KH-ID");
-		return WLAN_STATUS_INVALID_FTIE;
+		retval = WLAN_STATUS_INVALID_FTIE;
+		goto out;
 	}
 
 	wpa_hexdump(MSG_DEBUG, "FT: STA R0KH-ID",
@@ -3215,11 +3226,12 @@ static int wpa_ft_process_auth_req(struct wpa_state_machine *sm,
 
 	if (parse.rsn_pmkid == NULL) {
 		wpa_printf(MSG_DEBUG, "FT: No PMKID in RSNIE");
-		return WLAN_STATUS_INVALID_PMKID;
+		retval = WLAN_STATUS_INVALID_PMKID;
+		goto out;
 	}
 
 	if (wpa_ft_set_key_mgmt(sm, &parse) < 0)
-		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+		goto out;
 
 	wpa_hexdump(MSG_DEBUG, "FT: Requested PMKR0Name",
 		    parse.rsn_pmkid, WPA_PMK_NAME_LEN);
@@ -3229,12 +3241,14 @@ static int wpa_ft_process_auth_req(struct wpa_state_machine *sm,
 		if (wpa_derive_pmk_r1_name(parse.rsn_pmkid,
 					   sm->wpa_auth->conf.r1_key_holder,
 					   sm->addr, pmk_r1_name, PMK_LEN) < 0)
-			return WLAN_STATUS_UNSPECIFIED_FAILURE;
+			goto out;
 		if (wpa_ft_psk_pmk_r1(sm, pmk_r1_name, pmk_r1, &pairwise,
 				      &vlan, &identity, &identity_len,
 				      &radius_cui, &radius_cui_len,
-				      &session_timeout) < 0)
-			return WLAN_STATUS_INVALID_PMKID;
+				      &session_timeout) < 0) {
+			retval = WLAN_STATUS_INVALID_PMKID;
+			goto out;
+		}
 		pmk_r1_len = PMK_LEN;
 		wpa_printf(MSG_DEBUG,
 			   "FT: Generated PMK-R1 for FT-PSK locally");
@@ -3285,10 +3299,12 @@ static int wpa_ft_process_auth_req(struct wpa_state_machine *sm,
 	if (wpa_ft_pull_pmk_r1(sm, ies, ies_len, parse.rsn_pmkid) < 0) {
 		wpa_printf(MSG_DEBUG,
 			   "FT: Did not have matching PMK-R1 and either unknown or blocked R0KH-ID or NAK from R0KH");
-		return WLAN_STATUS_INVALID_PMKID;
+		retval = WLAN_STATUS_INVALID_PMKID;
+		goto out;
 	}
 
-	return -1; /* Status pending */
+	retval = -1; /* Status pending */
+	goto out;
 
 pmk_r1_derived:
 	wpa_hexdump_key(MSG_DEBUG, "FT: Selected PMK-R1", pmk_r1, pmk_r1_len);
@@ -3300,7 +3316,7 @@ pmk_r1_derived:
 	if (random_get_bytes(sm->ANonce, WPA_NONCE_LEN)) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to get random data for "
 			   "ANonce");
-		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+		goto out;
 	}
 
 	/* Now that we know the correct PMK-R1 length and as such, the length
@@ -3311,7 +3327,8 @@ pmk_r1_derived:
 		ftie = (const struct rsn_ftie_sha512 *) parse.ftie;
 		if (!ftie || parse.ftie_len < sizeof(*ftie)) {
 			wpa_printf(MSG_DEBUG, "FT: Invalid FTIE");
-			return WLAN_STATUS_INVALID_FTIE;
+			retval = WLAN_STATUS_INVALID_FTIE;
+			goto out;
 		}
 
 		os_memcpy(sm->SNonce, ftie->snonce, WPA_NONCE_LEN);
@@ -3321,7 +3338,8 @@ pmk_r1_derived:
 		ftie = (const struct rsn_ftie_sha384 *) parse.ftie;
 		if (!ftie || parse.ftie_len < sizeof(*ftie)) {
 			wpa_printf(MSG_DEBUG, "FT: Invalid FTIE");
-			return WLAN_STATUS_INVALID_FTIE;
+			retval = WLAN_STATUS_INVALID_FTIE;
+			goto out;
 		}
 
 		os_memcpy(sm->SNonce, ftie->snonce, WPA_NONCE_LEN);
@@ -3331,7 +3349,8 @@ pmk_r1_derived:
 		ftie = (const struct rsn_ftie *) parse.ftie;
 		if (!ftie || parse.ftie_len < sizeof(*ftie)) {
 			wpa_printf(MSG_DEBUG, "FT: Invalid FTIE");
-			return WLAN_STATUS_INVALID_FTIE;
+			retval = WLAN_STATUS_INVALID_FTIE;
+			goto out;
 		}
 
 		os_memcpy(sm->SNonce, ftie->snonce, WPA_NONCE_LEN);
@@ -3353,14 +3372,14 @@ pmk_r1_derived:
 			      sm->addr, sm->wpa_auth->addr, pmk_r1_name,
 			      &sm->PTK, ptk_name, parse.key_mgmt,
 			      pairwise, kdk_len) < 0)
-		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+		goto out;
 
 #ifdef CONFIG_PASN
 	if (sm->wpa_auth->conf.secure_ltf &&
 	    ieee802_11_rsnx_capab(sm->rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF) &&
 	    wpa_ltf_keyseed(&sm->PTK, parse.key_mgmt, pairwise)) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to derive LTF keyseed");
-		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+		goto out;
 	}
 #endif /* CONFIG_PASN */
 
@@ -3371,14 +3390,14 @@ pmk_r1_derived:
 
 	if (wpa_ft_set_vlan(sm->wpa_auth, sm->addr, &vlan) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to configure VLAN");
-		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+		goto out;
 	}
 	if (wpa_ft_set_identity(sm->wpa_auth, sm->addr,
 				identity, identity_len) < 0 ||
 	    wpa_ft_set_radius_cui(sm->wpa_auth, sm->addr,
 				  radius_cui, radius_cui_len) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to configure identity/CUI");
-		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+		goto out;
 	}
 	wpa_ft_set_session_timeout(sm->wpa_auth, sm->addr, session_timeout);
 
@@ -3411,11 +3430,14 @@ pmk_r1_derived:
 
 	*resp_ies_len = pos - *resp_ies;
 
-	return WLAN_STATUS_SUCCESS;
+	retval = WLAN_STATUS_SUCCESS;
+	goto out;
 fail:
 	os_free(*resp_ies);
 	*resp_ies = NULL;
-	return WLAN_STATUS_UNSPECIFIED_FAILURE;
+out:
+	wpa_ft_parse_ies_free(&parse);
+	return retval;
 }
 
 
@@ -3474,6 +3496,7 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 	const u8 *kck;
 	size_t kck_len;
 	struct wpa_auth_config *conf;
+	int retval = WLAN_STATUS_UNSPECIFIED_FAILURE;
 
 	if (sm == NULL)
 		return WLAN_STATUS_UNSPECIFIED_FAILURE;
@@ -3490,19 +3513,21 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 
 	if (parse.rsn == NULL) {
 		wpa_printf(MSG_DEBUG, "FT: No RSNIE in Reassoc Req");
-		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+		goto out;
 	}
 
 	if (parse.rsn_pmkid == NULL) {
 		wpa_printf(MSG_DEBUG, "FT: No PMKID in RSNIE");
-		return WLAN_STATUS_INVALID_PMKID;
+		retval = WLAN_STATUS_INVALID_PMKID;
+		goto out;
 	}
 
 	if (os_memcmp_const(parse.rsn_pmkid, sm->pmk_r1_name, WPA_PMK_NAME_LEN)
 	    != 0) {
 		wpa_printf(MSG_DEBUG, "FT: PMKID in Reassoc Req did not match "
 			   "with the PMKR1Name derived from auth request");
-		return WLAN_STATUS_INVALID_PMKID;
+		retval = WLAN_STATUS_INVALID_PMKID;
+		goto out;
 	}
 
 	mdie = (struct rsn_mdie *) parse.mdie;
@@ -3510,7 +3535,8 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 	    os_memcmp(mdie->mobility_domain, conf->mobility_domain,
 		      MOBILITY_DOMAIN_ID_LEN) != 0) {
 		wpa_printf(MSG_DEBUG, "FT: Invalid MDIE");
-		return WLAN_STATUS_INVALID_MDIE;
+		retval = WLAN_STATUS_INVALID_MDIE;
+		goto out;
 	}
 
 	if (sm->wpa_key_mgmt == WPA_KEY_MGMT_FT_SAE_EXT_KEY &&
@@ -3528,7 +3554,8 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 		wpa_printf(MSG_DEBUG,
 			   "FT: Invalid FTE (fte_mic_len=%zu mic_len=%zu)",
 			   parse.fte_mic_len, mic_len);
-		return WLAN_STATUS_INVALID_FTIE;
+		retval = WLAN_STATUS_INVALID_FTIE;
+		goto out;
 	}
 
 	if (os_memcmp(parse.fte_snonce, sm->SNonce, WPA_NONCE_LEN) != 0) {
@@ -3537,7 +3564,8 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 			    parse.fte_snonce, WPA_NONCE_LEN);
 		wpa_hexdump(MSG_DEBUG, "FT: Expected SNonce",
 			    sm->SNonce, WPA_NONCE_LEN);
-		return WLAN_STATUS_INVALID_FTIE;
+		retval = WLAN_STATUS_INVALID_FTIE;
+		goto out;
 	}
 
 	if (os_memcmp(parse.fte_anonce, sm->ANonce, WPA_NONCE_LEN) != 0) {
@@ -3546,12 +3574,14 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 			    parse.fte_anonce, WPA_NONCE_LEN);
 		wpa_hexdump(MSG_DEBUG, "FT: Expected ANonce",
 			    sm->ANonce, WPA_NONCE_LEN);
-		return WLAN_STATUS_INVALID_FTIE;
+		retval = WLAN_STATUS_INVALID_FTIE;
+		goto out;
 	}
 
 	if (parse.r0kh_id == NULL) {
 		wpa_printf(MSG_DEBUG, "FT: No R0KH-ID subelem in FTIE");
-		return WLAN_STATUS_INVALID_FTIE;
+		retval = WLAN_STATUS_INVALID_FTIE;
+		goto out;
 	}
 
 	if (parse.r0kh_id_len != sm->r0kh_id_len ||
@@ -3563,12 +3593,14 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 			    parse.r0kh_id, parse.r0kh_id_len);
 		wpa_hexdump(MSG_DEBUG, "FT: The current R0KH-ID",
 			    sm->r0kh_id, sm->r0kh_id_len);
-		return WLAN_STATUS_INVALID_FTIE;
+		retval = WLAN_STATUS_INVALID_FTIE;
+		goto out;
 	}
 
 	if (parse.r1kh_id == NULL) {
 		wpa_printf(MSG_DEBUG, "FT: No R1KH-ID subelem in FTIE");
-		return WLAN_STATUS_INVALID_FTIE;
+		retval = WLAN_STATUS_INVALID_FTIE;
+		goto out;
 	}
 
 	if (os_memcmp_const(parse.r1kh_id, conf->r1_key_holder,
@@ -3579,7 +3611,8 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 			    parse.r1kh_id, FT_R1KH_ID_LEN);
 		wpa_hexdump(MSG_DEBUG, "FT: Expected R1KH-ID",
 			    conf->r1_key_holder, FT_R1KH_ID_LEN);
-		return WLAN_STATUS_INVALID_FTIE;
+		retval = WLAN_STATUS_INVALID_FTIE;
+		goto out;
 	}
 
 	if (parse.rsn_pmkid == NULL ||
@@ -3587,7 +3620,8 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 	{
 		wpa_printf(MSG_DEBUG, "FT: No matching PMKR1Name (PMKID) in "
 			   "RSNIE (pmkid=%d)", !!parse.rsn_pmkid);
-		return WLAN_STATUS_INVALID_PMKID;
+		retval = WLAN_STATUS_INVALID_PMKID;
+		goto out;
 	}
 
 	count = 3;
@@ -3599,7 +3633,7 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 		wpa_printf(MSG_DEBUG, "FT: Unexpected IE count in MIC "
 			   "Control: received %u expected %u",
 			   parse.fte_elem_count, count);
-		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+		goto out;
 	}
 
 	if (wpa_key_mgmt_fils(sm->wpa_key_mgmt)) {
@@ -3620,7 +3654,7 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 		       NULL,
 		       mic) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to calculate MIC");
-		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+		goto out;
 	}
 
 	if (os_memcmp_const(mic, parse.fte_mic, mic_len) != 0) {
@@ -3639,7 +3673,8 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 		wpa_hexdump(MSG_MSGDUMP, "FT: RSNXE",
 			    parse.rsnxe ? parse.rsnxe - 2 : NULL,
 			    parse.rsnxe ? parse.rsnxe_len + 2 : 0);
-		return WLAN_STATUS_INVALID_FTIE;
+		retval = WLAN_STATUS_INVALID_FTIE;
+		goto out;
 	}
 
 	if (parse.fte_rsnxe_used &&
@@ -3648,7 +3683,8 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 	    !parse.rsnxe) {
 		wpa_printf(MSG_INFO,
 			   "FT: FTE indicated that STA uses RSNXE, but RSNXE was not included");
-		return -1; /* discard request */
+		retval = -1; /* discard request */
+		goto out;
 	}
 
 #ifdef CONFIG_OCV
@@ -3661,14 +3697,14 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 		if (wpa_channel_info(sm->wpa_auth, &ci) != 0) {
 			wpa_printf(MSG_WARNING,
 				   "Failed to get channel info to validate received OCI in (Re)Assoc Request");
-			return WLAN_STATUS_UNSPECIFIED_FAILURE;
+			goto out;
 		}
 
 		if (get_sta_tx_parameters(sm,
 					  channel_width_to_int(ci.chanwidth),
 					  ci.seg1_idx, &tx_chanwidth,
 					  &tx_seg1_idx) < 0)
-			return WLAN_STATUS_UNSPECIFIED_FAILURE;
+			goto out;
 
 		res = ocv_verify_tx_params(parse.oci, parse.oci_len, &ci,
 					   tx_chanwidth, tx_seg1_idx);
@@ -3684,12 +3720,16 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 					OCV_FAILURE "addr=" MACSTR
 					" frame=ft-reassoc-req error=%s",
 					MAC2STR(sm->addr), ocv_errorstr);
-			return WLAN_STATUS_INVALID_FTIE;
+			retval = WLAN_STATUS_INVALID_FTIE;
+			goto out;
 		}
 	}
 #endif /* CONFIG_OCV */
 
-	return WLAN_STATUS_SUCCESS;
+	retval = WLAN_STATUS_SUCCESS;
+out:
+	wpa_ft_parse_ies_free(&parse);
+	return retval;
 }
 
 

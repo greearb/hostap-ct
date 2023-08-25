@@ -130,8 +130,10 @@ int wpa_sm_set_ft_params(struct wpa_sm *sm, const u8 *ies, size_t ies_len)
 	if (wpa_ft_parse_ies(ies, ies_len, &ft, sm->key_mgmt, false) < 0)
 		return -1;
 
-	if (ft.mdie_len < MOBILITY_DOMAIN_ID_LEN + 1)
+	if (ft.mdie_len < MOBILITY_DOMAIN_ID_LEN + 1) {
+		wpa_ft_parse_ies_free(&ft);
 		return -1;
+	}
 
 	wpa_hexdump(MSG_DEBUG, "FT: Mobility domain",
 		    ft.mdie, MOBILITY_DOMAIN_ID_LEN);
@@ -179,6 +181,7 @@ int wpa_sm_set_ft_params(struct wpa_sm *sm, const u8 *ies, size_t ies_len)
 			    sm->assoc_resp_ies, sm->assoc_resp_ies_len);
 	}
 
+	wpa_ft_parse_ies_free(&ft);
 	return 0;
 }
 
@@ -587,10 +590,12 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 	struct wpa_ft_ies parse;
 	struct rsn_mdie *mdie;
 	u8 ptk_name[WPA_PMK_NAME_LEN];
-	int ret;
+	int ret = -1, res;
 	const u8 *bssid;
 	const u8 *kck;
 	size_t kck_len, kdk_len;
+
+	os_memset(&parse, 0, sizeof(parse));
 
 	wpa_hexdump(MSG_DEBUG, "FT: Response IEs", ies, ies_len);
 	wpa_hexdump(MSG_DEBUG, "FT: RIC IEs", ric_ies, ric_ies_len);
@@ -599,27 +604,27 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 		if (!sm->over_the_ds_in_progress) {
 			wpa_printf(MSG_DEBUG, "FT: No over-the-DS in progress "
 				   "- drop FT Action Response");
-			return -1;
+			goto fail;
 		}
 
 		if (os_memcmp(target_ap, sm->target_ap, ETH_ALEN) != 0) {
 			wpa_printf(MSG_DEBUG, "FT: No over-the-DS in progress "
 				   "with this Target AP - drop FT Action "
 				   "Response");
-			return -1;
+			goto fail;
 		}
 	}
 
 	if (!wpa_key_mgmt_ft(sm->key_mgmt)) {
 		wpa_printf(MSG_DEBUG, "FT: Reject FT IEs since FT is not "
 			   "enabled for this connection");
-		return -1;
+		goto fail;
 	}
 
 	if (wpa_ft_parse_ies(ies, ies_len, &parse, sm->key_mgmt,
 			     !ft_action) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to parse IEs");
-		return -1;
+		goto fail;
 	}
 
 	mdie = (struct rsn_mdie *) parse.mdie;
@@ -627,12 +632,12 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 	    os_memcmp(mdie->mobility_domain, sm->mobility_domain,
 		      MOBILITY_DOMAIN_ID_LEN) != 0) {
 		wpa_printf(MSG_DEBUG, "FT: Invalid MDIE");
-		return -1;
+		goto fail;
 	}
 
 	if (!parse.ftie || !parse.fte_anonce || !parse.fte_snonce) {
 		wpa_printf(MSG_DEBUG, "FT: Invalid FTE");
-		return -1;
+		goto fail;
 	}
 
 	if (os_memcmp(parse.fte_snonce, sm->snonce, WPA_NONCE_LEN) != 0) {
@@ -641,12 +646,12 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 			    parse.fte_snonce, WPA_NONCE_LEN);
 		wpa_hexdump(MSG_DEBUG, "FT: Expected SNonce",
 			    sm->snonce, WPA_NONCE_LEN);
-		return -1;
+		goto fail;
 	}
 
 	if (parse.r0kh_id == NULL) {
 		wpa_printf(MSG_DEBUG, "FT: No R0KH-ID subelem in FTIE");
-		return -1;
+		goto fail;
 	}
 
 	if (parse.r0kh_id_len != sm->r0kh_id_len ||
@@ -658,12 +663,12 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 			    parse.r0kh_id, parse.r0kh_id_len);
 		wpa_hexdump(MSG_DEBUG, "FT: The current R0KH-ID",
 			    sm->r0kh_id, sm->r0kh_id_len);
-		return -1;
+		goto fail;
 	}
 
 	if (parse.r1kh_id == NULL) {
 		wpa_printf(MSG_DEBUG, "FT: No R1KH-ID subelem in FTIE");
-		return -1;
+		goto fail;
 	}
 
 	if (parse.rsn_pmkid == NULL ||
@@ -671,13 +676,13 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 	{
 		wpa_printf(MSG_DEBUG, "FT: No matching PMKR0Name (PMKID) in "
 			   "RSNIE");
-		return -1;
+		goto fail;
 	}
 
 	if (sm->mfp == 2 && !(parse.rsn_capab & WPA_CAPABILITY_MFPC)) {
 		wpa_printf(MSG_INFO,
 			   "FT: Target AP does not support PMF, but local configuration requires that");
-		return -1;
+		goto fail;
 	}
 
 	os_memcpy(sm->r1kh_id, parse.r1kh_id, FT_R1KH_ID_LEN);
@@ -688,7 +693,7 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 	if (wpa_derive_pmk_r1(sm->pmk_r0, sm->pmk_r0_len, sm->pmk_r0_name,
 			      sm->r1kh_id, sm->own_addr, sm->pmk_r1,
 			      sm->pmk_r1_name) < 0)
-		return -1;
+		goto fail;
 	sm->pmk_r1_len = sm->pmk_r0_len;
 
 	bssid = target_ap;
@@ -708,7 +713,7 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 			      sm->pmk_r1_name, &sm->ptk, ptk_name, sm->key_mgmt,
 			      sm->pairwise_cipher,
 			      kdk_len) < 0)
-		return -1;
+		goto fail;
 
 	os_memcpy(sm->key_mobility_domain, sm->mobility_domain,
 		  MOBILITY_DOMAIN_ID_LEN);
@@ -718,7 +723,7 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 	    ieee802_11_rsnx_capab(sm->ap_rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF) &&
 	    wpa_ltf_keyseed(&sm->ptk, sm->key_mgmt, sm->pairwise_cipher)) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to derive LTF keyseed");
-		return -1;
+		goto fail;
 	}
 #endif /* CONFIG_PASN */
 
@@ -742,8 +747,8 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 	}
 
 	wpa_sm_mark_authenticated(sm, bssid);
-	ret = wpa_ft_install_ptk(sm, bssid);
-	if (ret) {
+	res = wpa_ft_install_ptk(sm, bssid);
+	if (res) {
 		/*
 		 * Some drivers do not support key configuration when we are
 		 * not associated with the target AP. Work around this by
@@ -765,7 +770,10 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 		os_memcpy(sm->bssid, target_ap, ETH_ALEN);
 	}
 
-	return 0;
+	ret = 0;
+fail:
+	wpa_ft_parse_ies_free(&parse);
+	return ret;
 }
 
 
@@ -1021,13 +1029,16 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 	size_t kck_len;
 	int own_rsnxe_used;
 	size_t mic_len;
+	int ret = -1;
+
+	os_memset(&parse, 0, sizeof(parse));
 
 	wpa_hexdump(MSG_DEBUG, "FT: Response IEs", ies, ies_len);
 
 	if (!wpa_key_mgmt_ft(sm->key_mgmt)) {
 		wpa_printf(MSG_DEBUG, "FT: Reject FT IEs since FT is not "
 			   "enabled for this connection");
-		return -1;
+		goto fail;
 	}
 
 	if (sm->ft_reassoc_completed) {
@@ -1037,7 +1048,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 
 	if (wpa_ft_parse_ies(ies, ies_len, &parse, sm->key_mgmt, true) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to parse IEs");
-		return -1;
+		goto fail;
 	}
 
 	mdie = (struct rsn_mdie *) parse.mdie;
@@ -1045,7 +1056,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 	    os_memcmp(mdie->mobility_domain, sm->mobility_domain,
 		      MOBILITY_DOMAIN_ID_LEN) != 0) {
 		wpa_printf(MSG_DEBUG, "FT: Invalid MDIE");
-		return -1;
+		goto fail;
 	}
 
 	if (sm->key_mgmt == WPA_KEY_MGMT_FT_SAE_EXT_KEY &&
@@ -1063,7 +1074,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 		wpa_printf(MSG_DEBUG,
 			   "FT: Invalid FTE (fte_mic_len=%zu mic_len=%zu)",
 			   parse.fte_mic_len, mic_len);
-		return -1;
+		goto fail;
 	}
 
 	if (os_memcmp(parse.fte_snonce, sm->snonce, WPA_NONCE_LEN) != 0) {
@@ -1072,7 +1083,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 			    parse.fte_snonce, WPA_NONCE_LEN);
 		wpa_hexdump(MSG_DEBUG, "FT: Expected SNonce",
 			    sm->snonce, WPA_NONCE_LEN);
-		return -1;
+		goto fail;
 	}
 
 	if (os_memcmp(parse.fte_anonce, sm->anonce, WPA_NONCE_LEN) != 0) {
@@ -1081,12 +1092,12 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 			    parse.fte_anonce, WPA_NONCE_LEN);
 		wpa_hexdump(MSG_DEBUG, "FT: Expected ANonce",
 			    sm->anonce, WPA_NONCE_LEN);
-		return -1;
+		goto fail;
 	}
 
 	if (parse.r0kh_id == NULL) {
 		wpa_printf(MSG_DEBUG, "FT: No R0KH-ID subelem in FTIE");
-		return -1;
+		goto fail;
 	}
 
 	if (parse.r0kh_id_len != sm->r0kh_id_len ||
@@ -1098,18 +1109,18 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 			    parse.r0kh_id, parse.r0kh_id_len);
 		wpa_hexdump(MSG_DEBUG, "FT: The current R0KH-ID",
 			    sm->r0kh_id, sm->r0kh_id_len);
-		return -1;
+		goto fail;
 	}
 
 	if (parse.r1kh_id == NULL) {
 		wpa_printf(MSG_DEBUG, "FT: No R1KH-ID subelem in FTIE");
-		return -1;
+		goto fail;
 	}
 
 	if (os_memcmp_const(parse.r1kh_id, sm->r1kh_id, FT_R1KH_ID_LEN) != 0) {
 		wpa_printf(MSG_DEBUG, "FT: Unknown R1KH-ID used in "
 			   "ReassocResp");
-		return -1;
+		goto fail;
 	}
 
 	if (parse.rsn_pmkid == NULL ||
@@ -1117,7 +1128,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 	{
 		wpa_printf(MSG_DEBUG, "FT: No matching PMKR1Name (PMKID) in "
 			   "RSNIE (pmkid=%d)", !!parse.rsn_pmkid);
-		return -1;
+		goto fail;
 	}
 
 	count = 3;
@@ -1129,7 +1140,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 		wpa_printf(MSG_DEBUG, "FT: Unexpected IE count in MIC "
 			   "Control: received %u expected %u",
 			   parse.fte_elem_count, count);
-		return -1;
+		goto fail;
 	}
 
 	if (wpa_key_mgmt_fils(sm->key_mgmt)) {
@@ -1150,7 +1161,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 		       NULL,
 		       mic) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to calculate MIC");
-		return -1;
+		goto fail;
 	}
 
 	if (os_memcmp_const(mic, parse.fte_mic, mic_len) != 0) {
@@ -1158,13 +1169,13 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 		wpa_hexdump(MSG_MSGDUMP, "FT: Received MIC",
 			    parse.fte_mic, mic_len);
 		wpa_hexdump(MSG_MSGDUMP, "FT: Calculated MIC", mic, mic_len);
-		return -1;
+		goto fail;
 	}
 
 	if (parse.fte_rsnxe_used && !sm->ap_rsnxe) {
 		wpa_printf(MSG_INFO,
 			   "FT: FTE indicated that AP uses RSNXE, but RSNXE was not included in Beacon/Probe Response frames");
-		return -1;
+		goto fail;
 	}
 
 	if (!sm->ap_rsn_ie) {
@@ -1173,7 +1184,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 		if (wpa_sm_get_beacon_ie(sm) < 0) {
 			wpa_msg(sm->ctx->msg_ctx, MSG_WARNING,
 				"FT: Could not find AP from the scan results");
-			return -1;
+			goto fail;
 		}
 		wpa_msg(sm->ctx->msg_ctx, MSG_DEBUG,
 			"FT: Found the current AP from updated scan results");
@@ -1191,7 +1202,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 			    "RSNE in FT protocol Reassociation Response frame",
 			    parse.rsn ? parse.rsn - 2 : NULL,
 			    parse.rsn ? parse.rsn_len + 2 : 0);
-		return -1;
+		goto fail;
 	}
 
 	own_rsnxe_used = wpa_key_mgmt_sae(sm->key_mgmt) &&
@@ -1211,7 +1222,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 			    "RSNXE in FT protocol Reassociation Response frame",
 			    parse.rsnxe ? parse.rsnxe - 2 : NULL,
 			    parse.rsnxe ? parse.rsnxe_len + 2 : 0);
-		return -1;
+		goto fail;
 	}
 
 #ifdef CONFIG_OCV
@@ -1221,7 +1232,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 		if (wpa_sm_channel_info(sm, &ci) != 0) {
 			wpa_printf(MSG_WARNING,
 				   "Failed to get channel info to validate received OCI in (Re)Assoc Response");
-			return -1;
+			goto fail;
 		}
 
 		if (ocv_verify_tx_params(parse.oci, parse.oci_len, &ci,
@@ -1230,7 +1241,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 			wpa_msg(sm->ctx->msg_ctx, MSG_INFO, OCV_FAILURE
 				"addr=" MACSTR " frame=ft-assoc error=%s",
 				MAC2STR(src_addr), ocv_errorstr);
-			return -1;
+			goto fail;
 		}
 	}
 #endif /* CONFIG_OCV */
@@ -1240,13 +1251,13 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 	if (wpa_ft_process_gtk_subelem(sm, parse.gtk, parse.gtk_len) < 0 ||
 	    wpa_ft_process_igtk_subelem(sm, parse.igtk, parse.igtk_len) < 0 ||
 	    wpa_ft_process_bigtk_subelem(sm, parse.bigtk, parse.bigtk_len) < 0)
-		return -1;
+		goto fail;
 
 	if (sm->set_ptk_after_assoc) {
 		wpa_printf(MSG_DEBUG, "FT: Try to set PTK again now that we "
 			   "are associated");
 		if (wpa_ft_install_ptk(sm, src_addr) < 0)
-			return -1;
+			goto fail;
 		sm->set_ptk_after_assoc = 0;
 	}
 
@@ -1259,7 +1270,10 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 
 	wpa_printf(MSG_DEBUG, "FT: Completed successfully");
 
-	return 0;
+	ret = 0;
+fail:
+	wpa_ft_parse_ies_free(&parse);
+	return ret;
 }
 
 

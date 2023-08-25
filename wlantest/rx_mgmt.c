@@ -537,11 +537,11 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 	if (trans == 1) {
 		sta->key_mgmt = parse.key_mgmt;
 		sta->pairwise_cipher = parse.pairwise_cipher;
-		return;
+		goto out;
 	}
 
 	if (trans != 2)
-		return;
+		goto out;
 
 	/* TODO: Should find the latest updated PMK-R0 value here instead
 	 * copying the one from the first found matching old STA entry. */
@@ -553,7 +553,7 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 			break;
 	}
 	if (!old_sta)
-		return;
+		goto out;
 
 	os_memcpy(sta->pmk_r0, old_sta->pmk_r0, old_sta->pmk_r0_len);
 	sta->pmk_r0_len = old_sta->pmk_r0_len;
@@ -566,7 +566,7 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 	if (wpa_derive_pmk_r1(sta->pmk_r0, sta->pmk_r0_len, sta->pmk_r0_name,
 			      bss->r1kh_id, sta->addr, sta->pmk_r1,
 			      sta->pmk_r1_name) < 0)
-		return;
+		goto out;
 	sta->pmk_r1_len = sta->pmk_r0_len;
 
 	if (!parse.fte_anonce || !parse.fte_snonce ||
@@ -574,9 +574,11 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 			      parse.fte_anonce, sta->addr, bss->bssid,
 			      sta->pmk_r1_name, &ptk, ptk_name, sta->key_mgmt,
 			      sta->pairwise_cipher, 0) < 0)
-		return;
+		goto out;
 
 	sta_new_ptk(wt, sta, &ptk);
+out:
+	wpa_ft_parse_ies_free(&parse);
 }
 
 
@@ -1143,6 +1145,7 @@ static void rx_mgmt_assoc_resp(struct wlantest *wt, const u8 *data, size_t len)
 		}
 		if (parse.r1kh_id)
 			os_memcpy(bss->r1kh_id, parse.r1kh_id, FT_R1KH_ID_LEN);
+		wpa_ft_parse_ies_free(&parse);
 	}
 
 	if (elems.owe_dh && elems.owe_dh_len >= 2) {
@@ -1310,12 +1313,12 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 
 		if (!parse.rsn) {
 			add_note(wt, MSG_INFO, "FT: No RSNE in Reassoc Req");
-			return;
+			goto out;
 		}
 
 		if (!parse.rsn_pmkid) {
 			add_note(wt, MSG_INFO, "FT: No PMKID in RSNE");
-			return;
+			goto out;
 		}
 
 		if (os_memcmp_const(parse.rsn_pmkid, sta->pmk_r1_name,
@@ -1328,7 +1331,7 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 			wpa_hexdump(MSG_DEBUG,
 				    "FT: Previously derived PMKR1Name",
 				    sta->pmk_r1_name, WPA_PMK_NAME_LEN);
-			return;
+			goto out;
 		}
 
 		mde = (struct rsn_mdie *) parse.mdie;
@@ -1344,7 +1347,7 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 			fte = (struct rsn_ftie_sha384 *) parse.ftie;
 			if (!fte || parse.ftie_len < sizeof(*fte)) {
 				add_note(wt, MSG_INFO, "FT: Invalid FTE");
-				return;
+				goto out;
 			}
 
 			anonce = fte->anonce;
@@ -1357,7 +1360,7 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 			fte = (struct rsn_ftie *) parse.ftie;
 			if (!fte || parse.ftie_len < sizeof(*fte)) {
 				add_note(wt, MSG_INFO, "FT: Invalid FTIE");
-				return;
+				goto out;
 			}
 
 			anonce = fte->anonce;
@@ -1372,7 +1375,7 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 				    snonce, WPA_NONCE_LEN);
 			wpa_hexdump(MSG_DEBUG, "FT: Expected SNonce",
 				    sta->snonce, WPA_NONCE_LEN);
-			return;
+			goto out;
 		}
 
 		if (os_memcmp(anonce, sta->anonce, WPA_NONCE_LEN) != 0) {
@@ -1381,19 +1384,19 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 				    anonce, WPA_NONCE_LEN);
 			wpa_hexdump(MSG_DEBUG, "FT: Expected ANonce",
 				    sta->anonce, WPA_NONCE_LEN);
-			return;
+			goto out;
 		}
 
 		if (!parse.r0kh_id) {
 			add_note(wt, MSG_INFO, "FT: No R0KH-ID subelem in FTE");
-			return;
+			goto out;
 		}
 		os_memcpy(bss->r0kh_id, parse.r0kh_id, parse.r0kh_id_len);
 		bss->r0kh_id_len = parse.r0kh_id_len;
 
 		if (!parse.r1kh_id) {
 			add_note(wt, MSG_INFO, "FT: No R1KH-ID subelem in FTE");
-			return;
+			goto out;
 		}
 
 		os_memcpy(bss->r1kh_id, parse.r1kh_id, FT_R1KH_ID_LEN);
@@ -1404,7 +1407,7 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 			add_note(wt, MSG_INFO,
 				 "FT: No matching PMKR1Name (PMKID) in RSNE (pmkid=%d)",
 				 !!parse.rsn_pmkid);
-			return;
+			goto out;
 		}
 
 		count = 3;
@@ -1416,7 +1419,7 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 			add_note(wt, MSG_INFO,
 				 "FT: Unexpected IE count in MIC Control: received %u expected %u",
 				 fte_elem_count, count);
-			return;
+			goto out;
 		}
 
 		if (wpa_key_mgmt_fils(sta->key_mgmt)) {
@@ -1432,7 +1435,7 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 
 			extra = wpabuf_alloc(MAX_NUM_MLO_LINKS * ETH_ALEN);
 			if (!extra)
-				return;
+				goto out;
 			for (i = 0; i < MAX_NUM_MLO_LINKS; i++) {
 				if (!is_zero_ether_addr(sta->link_addr[i]))
 					wpabuf_put_data(extra,
@@ -1453,7 +1456,7 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 			       mic) < 0) {
 			wpabuf_free(extra);
 			add_note(wt, MSG_INFO, "FT: Failed to calculate MIC");
-			return;
+			goto out;
 		}
 		wpabuf_free(extra);
 
@@ -1486,10 +1489,12 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 					   link_id,
 					   MAC2STR(sta->link_addr[link_id]));
 			}
-			return;
+			goto out;
 		}
 
 		add_note(wt, MSG_INFO, "FT: Valid FTE MIC");
+	out:
+		wpa_ft_parse_ies_free(&parse);
 	}
 }
 
@@ -1839,12 +1844,12 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 
 		if (!parse.rsn) {
 			add_note(wt, MSG_INFO, "FT: No RSNE in Reassoc Resp");
-			return;
+			goto out;
 		}
 
 		if (!parse.rsn_pmkid) {
 			add_note(wt, MSG_INFO, "FT: No PMKID in RSNE");
-			return;
+			goto out;
 		}
 
 		if (os_memcmp_const(parse.rsn_pmkid, sta->pmk_r1_name,
@@ -1857,7 +1862,7 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 			wpa_hexdump(MSG_DEBUG,
 				    "FT: Previously derived PMKR1Name",
 				    sta->pmk_r1_name, WPA_PMK_NAME_LEN);
-			return;
+			goto out;
 		}
 
 		mde = (struct rsn_mdie *) parse.mdie;
@@ -1873,7 +1878,7 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 			fte = (struct rsn_ftie_sha384 *) parse.ftie;
 			if (!fte || parse.ftie_len < sizeof(*fte)) {
 				add_note(wt, MSG_INFO, "FT: Invalid FTE");
-				return;
+				goto out;
 			}
 
 			anonce = fte->anonce;
@@ -1886,7 +1891,7 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 			fte = (struct rsn_ftie *) parse.ftie;
 			if (!fte || parse.ftie_len < sizeof(*fte)) {
 				add_note(wt, MSG_INFO, "FT: Invalid FTIE");
-				return;
+				goto out;
 			}
 
 			anonce = fte->anonce;
@@ -1901,7 +1906,7 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 				    snonce, WPA_NONCE_LEN);
 			wpa_hexdump(MSG_DEBUG, "FT: Expected SNonce",
 				    sta->snonce, WPA_NONCE_LEN);
-			return;
+			goto out;
 		}
 
 		if (os_memcmp(anonce, sta->anonce, WPA_NONCE_LEN) != 0) {
@@ -1910,12 +1915,12 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 				    anonce, WPA_NONCE_LEN);
 			wpa_hexdump(MSG_DEBUG, "FT: Expected ANonce",
 				    sta->anonce, WPA_NONCE_LEN);
-			return;
+			goto out;
 		}
 
 		if (!parse.r0kh_id) {
 			add_note(wt, MSG_INFO, "FT: No R0KH-ID subelem in FTE");
-			return;
+			goto out;
 		}
 
 		if (parse.r0kh_id_len != bss->r0kh_id_len ||
@@ -1934,7 +1939,7 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 
 		if (!parse.r1kh_id) {
 			add_note(wt, MSG_INFO, "FT: No R1KH-ID subelem in FTE");
-			return;
+			goto out;
 		}
 
 		if (os_memcmp_const(parse.r1kh_id, bss->r1kh_id,
@@ -1953,7 +1958,7 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 			add_note(wt, MSG_INFO,
 				 "FT: Unexpected IE count in MIC Control: received %u expected %u",
 				 fte_elem_count, count);
-			return;
+			goto out;
 		}
 
 		if (wpa_key_mgmt_fils(sta->key_mgmt)) {
@@ -1978,7 +1983,7 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 			       NULL,
 			       mic) < 0) {
 			add_note(wt, MSG_INFO, "FT: Failed to calculate MIC");
-			return;
+			goto out;
 		}
 
 		if (os_memcmp_const(mic, fte_mic, mic_len) != 0) {
@@ -2000,7 +2005,7 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 			wpa_hexdump(MSG_MSGDUMP, "FT: RSNXE",
 				    parse.rsnxe ? parse.rsnxe - 2 : NULL,
 				    parse.rsnxe ? parse.rsnxe_len + 2 : 0);
-			return;
+			goto out;
 		}
 
 		add_note(wt, MSG_INFO, "FT: Valid FTE MIC");
@@ -2024,6 +2029,9 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 				     parse.igtk, parse.igtk_len);
 		process_bigtk_subelem(wt, bss, sta, kek, kek_len,
 				      parse.bigtk, parse.bigtk_len);
+
+	out:
+		wpa_ft_parse_ies_free(&parse);
 	}
 
 	if (elems.owe_dh && elems.owe_dh_len >= 2) {
@@ -2165,18 +2173,20 @@ static void rx_mgmt_action_ft_request(struct wlantest *wt,
 		bss = bss_get(wt, aa);
 	if (!bss) {
 		add_note(wt, MSG_INFO, "No BSS entry for Target AP");
-		return;
+		goto out;
 	}
 
 	sta = sta_find_mlo(wt, bss, spa);
 	if (!sta)
 		sta = sta_get(bss, spa);
 	if (!sta)
-		return;
+		goto out;
 
 	sta->ft_over_ds = true;
 	sta->key_mgmt = parse.key_mgmt;
 	sta->pairwise_cipher = parse.pairwise_cipher;
+out:
+	wpa_ft_parse_ies_free(&parse);
 }
 
 
@@ -2227,7 +2237,7 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 
 	if (!bss) {
 		add_note(wt, MSG_INFO, "No BSS entry for Target AP");
-		return;
+		goto out;
 	}
 
 	if (parse.r1kh_id)
@@ -2236,14 +2246,14 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 	if (wpa_derive_pmk_r1(sta->pmk_r0, sta->pmk_r0_len, sta->pmk_r0_name,
 			      bss->r1kh_id, spa, sta->pmk_r1,
 			      sta->pmk_r1_name) < 0)
-		return;
+		goto out;
 	sta->pmk_r1_len = sta->pmk_r0_len;
 
 	new_sta = sta_find_mlo(wt, bss, spa);
 	if (!new_sta)
 		new_sta = sta_get(bss, spa);
 	if (!new_sta)
-		return;
+		goto out;
 	os_memcpy(new_sta->pmk_r0, sta->pmk_r0, sta->pmk_r0_len);
 	new_sta->pmk_r0_len = sta->pmk_r0_len;
 	os_memcpy(new_sta->pmk_r0_name, sta->pmk_r0_name,
@@ -2258,11 +2268,13 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 			      sta->pmk_r1_name, &ptk, ptk_name,
 			      new_sta->key_mgmt, new_sta->pairwise_cipher,
 			      0) < 0)
-		return;
+		goto out;
 
 	sta_new_ptk(wt, new_sta, &ptk);
 	os_memcpy(new_sta->snonce, parse.fte_snonce, WPA_NONCE_LEN);
 	os_memcpy(new_sta->anonce, parse.fte_anonce, WPA_NONCE_LEN);
+out:
+	wpa_ft_parse_ies_free(&parse);
 }
 
 

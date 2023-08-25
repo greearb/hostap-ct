@@ -5372,6 +5372,11 @@ int fils_process_auth(struct wpa_sm *sm, const u8 *bssid, const u8 *data,
 	const u8 *g_ap = NULL;
 	size_t g_ap_len = 0, kdk_len;
 	struct wpabuf *pub = NULL;
+#ifdef CONFIG_IEEE80211R
+	struct wpa_ft_ies parse;
+
+	os_memset(&parse, 0, sizeof(parse));
+#endif /* CONFIG_IEEE80211R */
 
 	os_memcpy(sm->bssid, bssid, ETH_ALEN);
 
@@ -5450,8 +5455,6 @@ int fils_process_auth(struct wpa_sm *sm, const u8 *bssid, const u8 *data,
 
 #ifdef CONFIG_IEEE80211R
 	if (wpa_key_mgmt_ft(sm->key_mgmt)) {
-		struct wpa_ft_ies parse;
-
 		if (!elems.mdie || !elems.ftie) {
 			wpa_printf(MSG_DEBUG, "FILS+FT: No MDE or FTE");
 			goto fail;
@@ -5662,10 +5665,16 @@ int fils_process_auth(struct wpa_sm *sm, const u8 *bssid, const u8 *data,
 			       &sm->fils_key_auth_len);
 	wpabuf_free(pub);
 	forced_memzero(ick, sizeof(ick));
+#ifdef CONFIG_IEEE80211R
+	wpa_ft_parse_ies_free(&parse);
+#endif /* CONFIG_IEEE80211R */
 	return res;
 fail:
 	wpabuf_free(pub);
 	wpabuf_clear_free(dh_ss);
+#ifdef CONFIG_IEEE80211R
+	wpa_ft_parse_ies_free(&parse);
+#endif /* CONFIG_IEEE80211R */
 	return -1;
 }
 

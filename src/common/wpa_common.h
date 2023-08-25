@@ -604,6 +604,8 @@ struct wpa_ft_ies {
 	u16 valid_mlo_bigtks; /* bitmap of valid link BIGTK subelements */
 	const u8 *mlo_bigtk[MAX_NUM_MLO_LINKS];
 	size_t mlo_bigtk_len[MAX_NUM_MLO_LINKS];
+
+	struct wpabuf *fte_buf;
 };
 
 /* IEEE P802.11az/D2.6 - 9.4.2.303 PASN Parameters element */
@@ -640,6 +642,7 @@ struct wpa_pasn_params_data {
 
 int wpa_ft_parse_ies(const u8 *ies, size_t ies_len, struct wpa_ft_ies *parse,
 		     int key_mgmt, bool reassoc_resp);
+void wpa_ft_parse_ies_free(struct wpa_ft_ies *parse);
 
 struct wpa_eapol_ie_parse {
 	const u8 *wpa_ie;
