@@ -21,6 +21,8 @@
 #ifndef CRYPTO_H
 #define CRYPTO_H
 
+#define HMAC_VECTOR_MAX_ELEM 11
+
 /**
  * md4_vector - MD4 hash for data vector
  * @num_elem: Number of elements in the data vector

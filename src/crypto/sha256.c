@@ -28,11 +28,11 @@ int hmac_sha256_vector(const u8 *key, size_t key_len, size_t num_elem,
 {
 	unsigned char k_pad[64]; /* padding - key XORd with ipad/opad */
 	unsigned char tk[32];
-	const u8 *_addr[26];
-	size_t _len[26], i;
+	const u8 *_addr[HMAC_VECTOR_MAX_ELEM + 1];
+	size_t _len[HMAC_VECTOR_MAX_ELEM + 1], i;
 	int ret;
 
-	if (num_elem > 25) {
+	if (num_elem > HMAC_VECTOR_MAX_ELEM) {
 		/*
 		 * Fixed limit on the number of fragments to avoid having to
 		 * allocate memory (which could fail).
