@@ -1290,6 +1290,7 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 		const u8 *kck;
 		size_t kck_len;
 		const u8 *aa, *spa;
+		struct wpabuf *extra = NULL;
 
 		if (elems.basic_mle) {
 			aa = bss->mld_mac_addr;
@@ -1425,6 +1426,21 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 			kck = sta->ptk.kck;
 			kck_len = sta->ptk.kck_len;
 		}
+
+		if (elems.basic_mle) {
+			int i;
+
+			extra = wpabuf_alloc(MAX_NUM_MLO_LINKS * ETH_ALEN);
+			if (!extra)
+				return;
+			for (i = 0; i < MAX_NUM_MLO_LINKS; i++) {
+				if (!is_zero_ether_addr(sta->link_addr[i]))
+					wpabuf_put_data(extra,
+							sta->link_addr[i],
+							ETH_ALEN);
+			}
+		}
+
 		if (wpa_ft_mic(sta->key_mgmt, kck, kck_len,
 			       spa, aa, 5,
 			       parse.mdie - 2, parse.mdie_len + 2,
@@ -1433,11 +1449,13 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 			       parse.ric, parse.ric_len,
 			       parse.rsnxe ? parse.rsnxe - 2 : NULL,
 			       parse.rsnxe ? parse.rsnxe_len + 2 : 0,
-			       elems.basic_mle ? sta->link_addr : NULL,
+			       extra,
 			       mic) < 0) {
+			wpabuf_free(extra);
 			add_note(wt, MSG_INFO, "FT: Failed to calculate MIC");
 			return;
 		}
+		wpabuf_free(extra);
 
 		if (os_memcmp_const(mic, fte_mic, mic_len) != 0) {
 			int link_id;
