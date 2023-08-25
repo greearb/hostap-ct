@@ -1018,7 +1018,7 @@ void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 {
 #ifdef NEED_AP_MLME
 	int channel, chwidth, is_dfs0, is_dfs;
-	u8 seg0_idx = 0, seg1_idx = 0;
+	u8 seg0_idx = 0, seg1_idx = 0, op_class, chan_no;
 	size_t i;
 
 	hostapd_logger(hapd, NULL, HOSTAPD_MODULE_IEEE80211,
@@ -1153,6 +1153,10 @@ void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 		hapd->iconf->ht_capab &= ~HT_CAP_INFO_SUPP_CHANNEL_WIDTH_SET;
 
 	hapd->iconf->secondary_channel = offset;
+	if (ieee80211_freq_to_channel_ext(freq, offset, chwidth,
+					  &op_class, &chan_no) !=
+	    NUM_HOSTAPD_MODES)
+		hapd->iconf->op_class = op_class;
 	hostapd_set_oper_chwidth(hapd->iconf, chwidth);
 	hostapd_set_oper_centr_freq_seg0_idx(hapd->iconf, seg0_idx);
 	hostapd_set_oper_centr_freq_seg1_idx(hapd->iconf, seg1_idx);
