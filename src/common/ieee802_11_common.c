@@ -421,6 +421,7 @@ static ParseRes __ieee802_11_parse_elems(const u8 *start, size_t len,
 	for_each_element(elem, start, len) {
 		u8 id = elem->id, elen = elem->datalen;
 		const u8 *pos = elem->data;
+		size_t *total_len = NULL;
 
 		if (id == WLAN_EID_FRAGMENT && elems->num_frag_elems > 0) {
 			elems->num_frag_elems--;
@@ -504,6 +505,8 @@ static ParseRes __ieee802_11_parse_elems(const u8 *start, size_t len,
 				break;
 			elems->ftie = pos;
 			elems->ftie_len = elen;
+			elems->fte_defrag_len = elen;
+			total_len = &elems->fte_defrag_len;
 			break;
 		case WLAN_EID_TIMEOUT_INTERVAL:
 			if (elen != 5)
@@ -649,6 +652,12 @@ static ParseRes __ieee802_11_parse_elems(const u8 *start, size_t len,
 				   id, elen);
 			break;
 		}
+
+		if (elen == 255 && total_len)
+			*total_len += ieee802_11_fragments_length(
+				elems, pos + elen,
+				(start + len) - (pos + elen));
+
 	}
 
 	if (!for_each_element_completed(elem, start, len)) {

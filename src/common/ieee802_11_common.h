@@ -174,6 +174,8 @@ struct ieee802_11_elems {
 
 	struct mb_ies_info mb_ies;
 
+	size_t fte_defrag_len;
+
 	/*
 	 * The number of fragment elements to be skipped after a known
 	 * fragmented element.
