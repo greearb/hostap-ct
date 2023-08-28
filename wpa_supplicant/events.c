@@ -1963,9 +1963,15 @@ static void wpa_supplicant_rsn_preauth_scan_results(
 
 static int wpas_get_snr_signal_info(u32 frequency, int avg_signal, int noise)
 {
-	if (noise == WPA_INVALID_NOISE)
-		noise = IS_5GHZ(frequency) ? DEFAULT_NOISE_FLOOR_5GHZ :
-			DEFAULT_NOISE_FLOOR_2GHZ;
+	if (noise == WPA_INVALID_NOISE) {
+		if (IS_5GHZ(frequency)) {
+			noise = DEFAULT_NOISE_FLOOR_5GHZ;
+		} else if (is_6ghz_freq(frequency)) {
+			noise = DEFAULT_NOISE_FLOOR_6GHZ;
+		} else {
+			noise = DEFAULT_NOISE_FLOOR_2GHZ;
+		}
+	}
 	return avg_signal - noise;
 }
 
