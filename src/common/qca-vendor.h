@@ -3247,6 +3247,24 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_SPEC_WAKE_INTERVAL = 102,
 
+	/*
+	 * 16-bit unsigned value to configure TX max A-MPDU count.
+	 *
+	 * For STA interface, this attribute is applicable only in connected
+	 * state, peer MAC address is not required to be provided.
+	 *
+	 * For AP interface, this attribute is applicable only in started
+	 * state and one of the associated peer STAs must be specified with
+	 * QCA_WLAN_VENDOR_ATTR_CONFIG_PEER_MAC. If this is for an ML
+	 * association, the peer MAC address provided is the link address of
+	 * the non-AP MLD.
+	 *
+	 * This attribute runtime configures the TX maximum aggregation size.
+	 * The value must be in range of 1 to BA window size for the specific
+	 * peer.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_PEER_AMPDU_CNT = 103,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
