@@ -902,6 +902,35 @@ static void derive_fils_keys(struct wlantest *wt, struct wlantest_bss *bss,
 }
 
 
+static void dump_mld_info(struct wlantest *wt, struct wlantest_sta *sta)
+{
+	int link_id;
+	struct wlantest_bss *bss;
+	u8 zero[ETH_ALEN];
+	const u8 *bssid;
+
+	wpa_printf(MSG_INFO, "MLO association - AP MLD: " MACSTR
+		   "  STA MLD: " MACSTR,
+		   MAC2STR(sta->bss->mld_mac_addr), MAC2STR(sta->mld_mac_addr));
+
+	os_memset(zero, 0, ETH_ALEN);
+
+	for (link_id = 0; link_id < MAX_NUM_MLO_LINKS; link_id++) {
+		bss = bss_find_mld(wt, sta->bss->mld_mac_addr, link_id);
+		if (!bss &&
+		    is_zero_ether_addr(sta->link_addr[link_id]))
+			continue;
+		if (bss)
+			bssid = bss->bssid;
+		else
+			bssid = zero;
+		wpa_printf(MSG_INFO, "  Link %u - AP: " MACSTR "  STA: " MACSTR,
+			   link_id, MAC2STR(bssid),
+			   MAC2STR(sta->link_addr[link_id]));
+	}
+}
+
+
 static void rx_mgmt_assoc_req(struct wlantest *wt, const u8 *data, size_t len)
 {
 	const struct ieee80211_mgmt *mgmt;
@@ -990,6 +1019,7 @@ static void rx_mgmt_assoc_req(struct wlantest *wt, const u8 *data, size_t len)
 		}
 		parse_basic_ml(elems.basic_mle, elems.basic_mle_len, false,
 			       sta);
+		dump_mld_info(wt, sta);
 	}
 }
 
@@ -1293,6 +1323,7 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 		}
 		parse_basic_ml(elems.basic_mle, elems.basic_mle_len, false,
 			       sta);
+		dump_mld_info(wt, sta);
 	}
 
 	if (elems.ftie) {
