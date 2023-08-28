@@ -2585,7 +2585,10 @@ enum qca_wlan_vendor_attr_config {
 	/* 32-bit unsigned value to set reorder timeout for AC_BK */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_BACKGROUND = 34,
 	/* 6-byte MAC address to point out the specific peer */
-	QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_PEER_MAC = 35,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_PEER_MAC = 35,
+	/* Backward compatibility with the original name */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_PEER_MAC =
+	QCA_WLAN_VENDOR_ATTR_CONFIG_PEER_MAC,
 	/* 32-bit unsigned value to set window size for specific peer */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_WINLIMIT = 36,
 	/* 8-bit unsigned value to set the beacon miss threshold in 2.4 GHz */
