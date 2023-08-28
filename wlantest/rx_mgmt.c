@@ -537,11 +537,25 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 	if (trans == 1) {
 		sta->key_mgmt = parse.key_mgmt;
 		sta->pairwise_cipher = parse.pairwise_cipher;
+		if (parse.fte_snonce)
+			os_memcpy(sta->snonce, parse.fte_snonce, WPA_NONCE_LEN);
 		goto out;
 	}
 
 	if (trans != 2)
 		goto out;
+
+	if (!parse.fte_snonce ||
+	    os_memcmp(sta->snonce, parse.fte_snonce, WPA_NONCE_LEN) != 0) {
+		add_note(wt, MSG_INFO, "FT: SNonce mismatch in FTE");
+		wpa_hexdump(MSG_DEBUG, "FT: Received SNonce",
+			    parse.fte_snonce, WPA_NONCE_LEN);
+		wpa_hexdump(MSG_DEBUG, "FT: Expected SNonce",
+			    sta->snonce, WPA_NONCE_LEN);
+	}
+
+	if (parse.fte_anonce)
+		os_memcpy(sta->anonce, parse.fte_anonce, WPA_NONCE_LEN);
 
 	/* TODO: Should find the latest updated PMK-R0 value here instead
 	 * copying the one from the first found matching old STA entry. */
