@@ -168,9 +168,9 @@ wpa_driver_nl80211_finish_drv_init(struct wpa_driver_nl80211_data *drv,
 static int nl80211_send_frame_cmd(struct i802_bss *bss,
 				  unsigned int freq, unsigned int wait,
 				  const u8 *buf, size_t buf_len,
-				  int save_cookie,
-				  int no_cck, int no_ack, int offchanok,
-				  const u16 *csa_offs, size_t csa_offs_len);
+				  int save_cookie, int no_cck, int no_ack,
+				  int offchanok, const u16 *csa_offs,
+				  size_t csa_offs_len, int link_id);
 static int wpa_driver_nl80211_probe_req_report(struct i802_bss *bss,
 					       int report);
 
@@ -4409,7 +4409,7 @@ send_frame_cmd:
 	wpa_printf(MSG_DEBUG, "nl80211: send_mlme -> send_frame_cmd");
 	res = nl80211_send_frame_cmd(bss, freq, wait_time, data, data_len,
 				     use_cookie, no_cck, noack, offchanok,
-				     csa_offs, csa_offs_len);
+				     csa_offs, csa_offs_len, link_id);
 	if (!res)
 		drv->send_frame_link_id = link_id;
 
@@ -9060,7 +9060,7 @@ static int nl80211_send_frame_cmd(struct i802_bss *bss,
 				  const u8 *buf, size_t buf_len,
 				  int save_cookie, int no_cck, int no_ack,
 				  int offchanok, const u16 *csa_offs,
-				  size_t csa_offs_len)
+				  size_t csa_offs_len, int link_id)
 {
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct nl_msg *msg;
@@ -9073,6 +9073,8 @@ static int nl80211_send_frame_cmd(struct i802_bss *bss,
 	wpa_hexdump(MSG_MSGDUMP, "CMD_FRAME", buf, buf_len);
 
 	if (!(msg = nl80211_cmd_msg(bss, 0, NL80211_CMD_FRAME)) ||
+	    ((link_id != NL80211_DRV_LINK_ID_NA) &&
+	     nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id)) ||
 	    (freq && nla_put_u32(msg, NL80211_ATTR_WIPHY_FREQ, freq)) ||
 	    (wait && nla_put_u32(msg, NL80211_ATTR_DURATION, wait)) ||
 	    (offchanok && ((drv->capa.flags & WPA_DRIVER_FLAGS_OFFCHANNEL_TX) ||
@@ -9199,8 +9201,9 @@ static int wpa_driver_nl80211_send_action(struct i802_bss *bss,
 						   wait_time, NULL, 0, 0, -1);
 	else
 		ret = nl80211_send_frame_cmd(bss, freq, wait_time, buf,
-					     24 + data_len,
-					     1, no_cck, 0, offchanok, NULL, 0);
+					     24 + data_len, 1, no_cck, 0,
+					     offchanok, NULL, 0,
+					     NL80211_DRV_LINK_ID_NA);
 
 	os_free(buf);
 	return ret;
