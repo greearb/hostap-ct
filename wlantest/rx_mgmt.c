@@ -2031,6 +2031,8 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 		if (ml) {
 			int link_id;
 			struct wlantest_bss *l_bss;
+			u8 rsne_buf[257];
+			size_t rsne_len;
 
 			extra = wpabuf_alloc(MAX_NUM_MLO_LINKS * ETH_ALEN);
 			rsne = wpabuf_alloc(MAX_NUM_MLO_LINKS * 256);
@@ -2040,6 +2042,8 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 
 			for (link_id = 0; link_id < MAX_NUM_MLO_LINKS;
 			     link_id++) {
+				struct wpa_ie_data ie_data;
+
 				if (is_zero_ether_addr(sta->link_addr[link_id]))
 					continue;
 
@@ -2054,9 +2058,29 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 					continue;
 				}
 
+				/* Insert PMKID=PMKR1Name into each RSNE */
+				rsne_len = 2 + l_bss->rsnie[1];
+				if (wpa_parse_wpa_ie_rsn(l_bss->rsnie,
+							 rsne_len, &ie_data) <
+				    0 ||
+				    rsne_len > 200) {
+					wpa_printf(MSG_DEBUG,
+						   "FT: Could not parse AP RSNE (or too long element) for link ID %u ",
+						   link_id);
+					continue;
+				}
+
+				os_memcpy(rsne_buf, l_bss->rsnie, rsne_len);
+				if (wpa_insert_pmkid(rsne_buf, &rsne_len,
+						     sta->pmk_r1_name) < 0) {
+					wpa_printf(MSG_DEBUG,
+						   "FT: Could not insert PMKR1Name into AP RSNE for link ID %u ",
+						   link_id);
+					continue;
+				}
+
 				count++; /* RSNE */
-				wpabuf_put_data(rsne, l_bss->rsnie,
-						2 + l_bss->rsnie[1]);
+				wpabuf_put_data(rsne, rsne_buf, rsne_len);
 
 				if (l_bss->rsnxe_len) {
 					count++;
