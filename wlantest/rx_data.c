@@ -791,18 +791,22 @@ static void rx_data_bss(struct wlantest *wt, const struct ieee80211_hdr *hdr,
 	if (qos) {
 		u8 ack = (qos[0] & 0x60) >> 5;
 		wpa_printf(MSG_MSGDUMP, "BSS DATA: " MACSTR " -> " MACSTR
-			   " len=%u%s tid=%u%s%s",
+			   " len=%u%s tid=%u%s%s%s%s",
 			   MAC2STR(src), MAC2STR(dst), (unsigned int) len,
 			   prot ? " Prot" : "", qos[0] & 0x0f,
+			   (fc & WLAN_FC_TODS) ? " ToDS" : "",
+			   (fc & WLAN_FC_FROMDS) ? " FromDS" : "",
 			   (qos[0] & 0x10) ? " EOSP" : "",
 			   ack == 0 ? "" :
 			   (ack == 1 ? " NoAck" :
 			    (ack == 2 ? " NoExpAck" : " BA")));
 	} else {
 		wpa_printf(MSG_MSGDUMP, "BSS DATA: " MACSTR " -> " MACSTR
-			   " len=%u%s",
+			   " len=%u%s%s%s",
 			   MAC2STR(src), MAC2STR(dst), (unsigned int) len,
-			   prot ? " Prot" : "");
+			   prot ? " Prot" : "",
+			   (fc & WLAN_FC_TODS) ? " ToDS" : "",
+			   (fc & WLAN_FC_FROMDS) ? " FromDS" : "");
 	}
 
 	if (prot)
