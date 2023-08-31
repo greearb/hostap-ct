@@ -528,7 +528,7 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 	u8 ptk_name[WPA_PMK_NAME_LEN];
 	struct wlantest_bss *old_bss;
 	struct wlantest_sta *old_sta = NULL;
-	const u8 *spa;
+	const u8 *spa, *aa;
 	struct ieee802_11_elems elems;
 	const u8 *ie;
 	size_t ie_len;
@@ -566,6 +566,7 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 		goto out;
 
 	spa = elems.basic_mle ? sta->mld_mac_addr : sta->addr;
+	aa = elems.basic_mle ? bss->mld_mac_addr : bss->bssid;
 
 	if (!parse.fte_snonce ||
 	    os_memcmp(sta->snonce, parse.fte_snonce, WPA_NONCE_LEN) != 0) {
@@ -607,7 +608,7 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 
 	if (!parse.fte_anonce || !parse.fte_snonce ||
 	    wpa_pmk_r1_to_ptk(sta->pmk_r1, sta->pmk_r1_len, parse.fte_snonce,
-			      parse.fte_anonce, sta->addr, bss->bssid,
+			      parse.fte_anonce, spa, aa,
 			      sta->pmk_r1_name, &ptk, ptk_name, sta->key_mgmt,
 			      sta->pairwise_cipher, 0) < 0)
 		goto out;
