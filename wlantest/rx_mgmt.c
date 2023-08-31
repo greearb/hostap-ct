@@ -95,7 +95,16 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
 		return;
 	}
 	ci_end = pos + len;
-	pos += 1 + ETH_ALEN;
+
+	pos++;
+	wpa_printf(MSG_DEBUG, "MLD MAC Address: " MACSTR, MAC2STR(pos));
+	if (!ap && sta && is_zero_ether_addr(sta->mld_mac_addr)) {
+		os_memcpy(sta->mld_mac_addr, pos, ETH_ALEN);
+		wpa_printf(MSG_DEBUG,
+			   "Learned non-AP STA MLD MAC Address from Basic MLE: "
+			   MACSTR, MAC2STR(sta->mld_mac_addr));
+	}
+	pos += ETH_ALEN;
 
 	if (ctrl & BASIC_MULTI_LINK_CTRL_PRES_LINK_ID) {
 		if (ci_end - pos < 1) {
@@ -519,6 +528,10 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 	u8 ptk_name[WPA_PMK_NAME_LEN];
 	struct wlantest_bss *old_bss;
 	struct wlantest_sta *old_sta = NULL;
+	const u8 *spa;
+	struct ieee802_11_elems elems;
+	const u8 *ie;
+	size_t ie_len;
 
 	if (sta->auth_alg != WLAN_AUTH_FT ||
 	    len < IEEE80211_HDRLEN + sizeof(mgmt->u.auth))
@@ -526,15 +539,22 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 
 	trans = le_to_host16(mgmt->u.auth.auth_transaction);
 
-	if (wpa_ft_parse_ies(mgmt->u.auth.variable,
-			     len - IEEE80211_HDRLEN - sizeof(mgmt->u.auth),
-			     &parse, 0, false)) {
+	ie = mgmt->u.auth.variable;
+	ie_len = len - IEEE80211_HDRLEN - sizeof(mgmt->u.auth);
+	if (wpa_ft_parse_ies(ie, ie_len, &parse, 0, false)) {
 		add_note(wt, MSG_INFO,
 			 "Could not parse FT Authentication Response frame");
 		return;
 	}
 
+	if (ieee802_11_parse_elems(ie, ie_len, &elems, 0) == ParseFailed)
+		wpa_printf(MSG_INFO,
+			   "FT: Failed to parse IEs in FT Authentication frame");
+
 	if (trans == 1) {
+		if (elems.basic_mle)
+			parse_basic_ml(elems.basic_mle, elems.basic_mle_len,
+				       false, sta);
 		sta->key_mgmt = parse.key_mgmt;
 		sta->pairwise_cipher = parse.pairwise_cipher;
 		if (parse.fte_snonce)
@@ -544,6 +564,8 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 
 	if (trans != 2)
 		goto out;
+
+	spa = elems.basic_mle ? sta->mld_mac_addr : sta->addr;
 
 	if (!parse.fte_snonce ||
 	    os_memcmp(sta->snonce, parse.fte_snonce, WPA_NONCE_LEN) != 0) {
@@ -578,7 +600,7 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 		os_memcpy(bss->r1kh_id, parse.r1kh_id, FT_R1KH_ID_LEN);
 
 	if (wpa_derive_pmk_r1(sta->pmk_r0, sta->pmk_r0_len, sta->pmk_r0_name,
-			      bss->r1kh_id, sta->addr, sta->pmk_r1,
+			      bss->r1kh_id, spa, sta->pmk_r1,
 			      sta->pmk_r1_name) < 0)
 		goto out;
 	sta->pmk_r1_len = sta->pmk_r0_len;
