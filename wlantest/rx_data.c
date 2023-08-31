@@ -376,21 +376,6 @@ skip_replay_det:
 }
 
 
-static bool is_sta_link_addr(struct wlantest_sta *sta, const u8 *addr)
-{
-	unsigned int link_id;
-
-	if (os_memcmp(addr, sta->addr, ETH_ALEN) == 0)
-		return true;
-	for (link_id = 0; link_id < MAX_NUM_MLO_LINKS; link_id++) {
-		if (os_memcmp(sta->link_addr[link_id], addr, ETH_ALEN) == 0)
-			return true;
-	}
-
-	return false;
-}
-
-
 static u8 * try_ptk_decrypt(struct wlantest *wt, struct wlantest_sta *sta,
 			    const struct ieee80211_hdr *hdr,
 			    const u8 *a1, const u8 *a2, const u8 *a3,
@@ -436,6 +421,7 @@ static void rx_data_bss_prot(struct wlantest *wt,
 	int only_zero_tk = 0;
 	u16 seq_ctrl = le_to_host16(hdr->seq_ctrl);
 	const u8 *a1 = NULL, *a2 = NULL, *a3 = NULL;
+	enum { NO, YES, UNKNOWN } a1_is_sta = UNKNOWN;
 
 	if (hdr->addr1[0] & 0x01) {
 		rx_data_bss_prot_group(wt, hdr, hdrlen, qos, dst, src,
@@ -449,6 +435,7 @@ static void rx_data_bss_prot(struct wlantest *wt,
 		if (bss) {
 			sta = sta_find_mlo(wt, bss, hdr->addr2);
 			if (sta) {
+				a1_is_sta = NO;
 				sta->counters[
 					WLANTEST_STA_COUNTER_PROT_DATA_TX]++;
 			}
@@ -458,6 +445,7 @@ static void rx_data_bss_prot(struct wlantest *wt,
 					sta2 = sta_find_mlo(wt, bss2,
 							    hdr->addr1);
 					if (sta2 && (!sta || sta2->ptk_set)) {
+						a1_is_sta = YES;
 						bss = bss2;
 						sta = sta2;
 					}
@@ -468,6 +456,8 @@ static void rx_data_bss_prot(struct wlantest *wt,
 			if (!bss)
 				return;
 			sta = sta_find_mlo(wt, bss, hdr->addr1);
+			if (sta)
+				a1_is_sta = YES;
 		}
 	} else if (fc & WLAN_FC_TODS) {
 		bss = bss_get(wt, hdr->addr1);
@@ -478,6 +468,7 @@ static void rx_data_bss_prot(struct wlantest *wt,
 			sta = sta_get(bss, hdr->addr2);
 		if (sta)
 			sta->counters[WLANTEST_STA_COUNTER_PROT_DATA_TX]++;
+		a1_is_sta = NO;
 	} else if (fc & WLAN_FC_FROMDS) {
 		bss = bss_get(wt, hdr->addr2);
 		if (bss == NULL)
@@ -485,6 +476,8 @@ static void rx_data_bss_prot(struct wlantest *wt,
 		sta = sta_find_mlo(wt, bss, hdr->addr1);
 		if (!sta)
 			sta = sta_get(bss, hdr->addr1);
+		if (sta)
+			a1_is_sta = YES;
 	} else {
 		bss = bss_get(wt, hdr->addr3);
 		if (bss == NULL)
@@ -583,13 +576,13 @@ static void rx_data_bss_prot(struct wlantest *wt,
 
 	if (qos) {
 		tid = qos[0] & 0x0f;
-		if (fc & WLAN_FC_TODS)
+		if (a1_is_sta == NO)
 			sta->tx_tid[tid]++;
 		else
 			sta->rx_tid[tid]++;
 	} else {
 		tid = 0;
-		if (fc & WLAN_FC_TODS)
+		if (a1_is_sta == NO)
 			sta->tx_tid[16]++;
 		else
 			sta->rx_tid[16]++;
@@ -601,11 +594,11 @@ static void rx_data_bss_prot(struct wlantest *wt,
 			rsc = tdls->rsc_resp[tid];
 	} else if ((fc & (WLAN_FC_TODS | WLAN_FC_FROMDS)) ==
 		   (WLAN_FC_TODS | WLAN_FC_FROMDS)) {
-		if (os_memcmp(sta->addr, hdr->addr2, ETH_ALEN) == 0)
+		if (a1_is_sta == NO)
 			rsc = sta->rsc_tods[tid];
 		else
 			rsc = sta->rsc_fromds[tid];
-	} else if (fc & WLAN_FC_TODS)
+	} else if (a1_is_sta == NO)
 		rsc = sta->rsc_tods[tid];
 	else
 		rsc = sta->rsc_fromds[tid];
@@ -638,8 +631,9 @@ static void rx_data_bss_prot(struct wlantest *wt,
 skip_replay_det:
 	if ((fc & (WLAN_FC_TODS | WLAN_FC_FROMDS)) &&
 	    !is_zero_ether_addr(sta->mld_mac_addr) &&
-	    !is_zero_ether_addr(bss->mld_mac_addr)) {
-		if (is_sta_link_addr(sta, hdr->addr1)) {
+	    !is_zero_ether_addr(bss->mld_mac_addr) &&
+	    a1_is_sta != UNKNOWN) {
+		if (a1_is_sta == YES) {
 			a1 = sta->mld_mac_addr;
 			a2 = bss->mld_mac_addr;
 		} else {
