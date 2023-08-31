@@ -392,28 +392,13 @@ static bool is_sta_link_addr(struct wlantest_sta *sta, const u8 *addr)
 
 
 static u8 * try_ptk_decrypt(struct wlantest *wt, struct wlantest_sta *sta,
-			    const struct ieee80211_hdr *hdr, int keyid,
+			    const struct ieee80211_hdr *hdr,
+			    const u8 *a1, const u8 *a2, const u8 *a3,
+			    int keyid,
 			    const u8 *data, size_t len,
 			    const u8 *tk, size_t tk_len, size_t *dlen)
 {
 	u8 *decrypted = NULL;
-	u16 fc = le_to_host16(hdr->frame_control);
-	const u8 *a1 = NULL, *a2 = NULL, *a3 = NULL;
-
-	if ((fc & (WLAN_FC_TODS | WLAN_FC_FROMDS)) &&
-	    !is_zero_ether_addr(sta->mld_mac_addr) &&
-	    !is_zero_ether_addr(sta->bss->mld_mac_addr)) {
-		if (is_sta_link_addr(sta, hdr->addr1)) {
-			a1 = sta->mld_mac_addr;
-			a2 = sta->bss->mld_mac_addr;
-		} else {
-			a1 = sta->bss->mld_mac_addr;
-			a2 = sta->mld_mac_addr;
-		}
-
-		if (os_memcmp(hdr->addr3, sta->bss->bssid, ETH_ALEN) == 0)
-			a3 = sta->bss->mld_mac_addr;
-	}
 
 	if (sta->pairwise_cipher == WPA_CIPHER_CCMP_256)
 		decrypted = ccmp_256_decrypt(tk, hdr, a1, a2, a3,
@@ -654,7 +639,7 @@ skip_replay_det:
 	if ((fc & (WLAN_FC_TODS | WLAN_FC_FROMDS)) &&
 	    !is_zero_ether_addr(sta->mld_mac_addr) &&
 	    !is_zero_ether_addr(bss->mld_mac_addr)) {
-		if (os_memcmp(hdr->addr1, sta->addr, ETH_ALEN) == 0) {
+		if (is_sta_link_addr(sta, hdr->addr1)) {
 			a1 = sta->mld_mac_addr;
 			a2 = bss->mld_mac_addr;
 		} else {
@@ -695,7 +680,8 @@ skip_replay_det:
 	} else if (sta->pairwise_cipher == WPA_CIPHER_WEP40) {
 		decrypted = wep_decrypt(wt, hdr, data, len, &dlen);
 	} else if (sta->ptk_set) {
-		decrypted = try_ptk_decrypt(wt, sta, hdr, keyid, data, len,
+		decrypted = try_ptk_decrypt(wt, sta, hdr, a1, a2, a3,
+					    keyid, data, len,
 					    sta->ptk.tk, sta->ptk.tk_len,
 					    &dlen);
 	} else {
@@ -750,7 +736,8 @@ check_zero_tk:
 		/* Check whether TPTK has a matching TK that could be used to
 		 * decrypt the frame. That could happen if EAPOL-Key msg 4/4
 		 * was missing in the capture and this was PTK rekeying. */
-		decrypted = try_ptk_decrypt(wt, sta, hdr, keyid, data, len,
+		decrypted = try_ptk_decrypt(wt, sta, hdr, a1, a2, a3,
+					    keyid, data, len,
 					    sta->tptk.tk, sta->tptk.tk_len,
 					    &dlen);
 		if (decrypted) {
