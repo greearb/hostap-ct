@@ -462,7 +462,7 @@ static void rx_data_bss_prot(struct wlantest *wt,
 	    (WLAN_FC_TODS | WLAN_FC_FROMDS)) {
 		bss = bss_find(wt, hdr->addr1);
 		if (bss) {
-			sta = sta_find(bss, hdr->addr2);
+			sta = sta_find_mlo(wt, bss, hdr->addr2);
 			if (sta) {
 				sta->counters[
 					WLANTEST_STA_COUNTER_PROT_DATA_TX]++;
@@ -470,7 +470,8 @@ static void rx_data_bss_prot(struct wlantest *wt,
 			if (!sta || !sta->ptk_set) {
 				bss2 = bss_find(wt, hdr->addr2);
 				if (bss2) {
-					sta2 = sta_find(bss2, hdr->addr1);
+					sta2 = sta_find_mlo(wt, bss2,
+							    hdr->addr1);
 					if (sta2 && (!sta || sta2->ptk_set)) {
 						bss = bss2;
 						sta = sta2;
@@ -481,7 +482,7 @@ static void rx_data_bss_prot(struct wlantest *wt,
 			bss = bss_find(wt, hdr->addr2);
 			if (!bss)
 				return;
-			sta = sta_find(bss, hdr->addr1);
+			sta = sta_find_mlo(wt, bss, hdr->addr1);
 		}
 	} else if (fc & WLAN_FC_TODS) {
 		bss = bss_get(wt, hdr->addr1);
