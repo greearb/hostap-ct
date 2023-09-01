@@ -5007,7 +5007,7 @@ void hostapd_switch_color(struct hostapd_data *hapd, u64 bitmap)
 {
 	struct os_reltime now;
 
-	if (hapd->cca_in_progress)
+	if (hapd->cca_in_progress || !hapd->beacon_set_done)
 		return;
 
 	if (os_get_reltime(&now))
