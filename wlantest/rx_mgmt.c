@@ -1571,13 +1571,14 @@ static void process_gtk_subelem(struct wlantest *wt, struct wlantest_bss *bss,
 				struct wlantest_sta *sta,
 				const u8 *kek, size_t kek_len,
 				const u8 *gtk_elem,
-				size_t gtk_elem_len)
+				size_t gtk_elem_len, bool mlo)
 {
 	u8 gtk[32];
 	int keyidx;
 	enum wpa_alg alg;
 	size_t gtk_len, keylen;
 	const u8 *rsc;
+	size_t hlen;
 
 	if (!gtk_elem) {
 		add_note(wt, MSG_INFO, "FT: No GTK included in FTE");
@@ -1587,14 +1588,17 @@ static void process_gtk_subelem(struct wlantest *wt, struct wlantest_bss *bss,
 	wpa_hexdump(MSG_DEBUG, "FT: Received GTK in Reassoc Resp",
 		    gtk_elem, gtk_elem_len);
 
-	if (gtk_elem_len < 11 + 24 || (gtk_elem_len - 11) % 8 ||
-	    gtk_elem_len - 19 > sizeof(gtk)) {
+	hlen = 2 + 1 + 8;
+	if (mlo)
+		hlen++;
+	if (gtk_elem_len < hlen + 24 || (gtk_elem_len - hlen) % 8 ||
+	    gtk_elem_len - (hlen + 8) > sizeof(gtk)) {
 		add_note(wt, MSG_INFO, "FT: Invalid GTK sub-elem length %zu",
 			 gtk_elem_len);
 		return;
 	}
-	gtk_len = gtk_elem_len - 19;
-	if (aes_unwrap(kek, kek_len, gtk_len / 8, gtk_elem + 11, gtk)) {
+	gtk_len = gtk_elem_len - (hlen + 8);
+	if (aes_unwrap(kek, kek_len, gtk_len / 8, gtk_elem + hlen, gtk)) {
 		add_note(wt, MSG_INFO,
 			 "FT: AES unwrap failed - could not decrypt GTK");
 		return;
@@ -1613,14 +1617,15 @@ static void process_gtk_subelem(struct wlantest *wt, struct wlantest_bss *bss,
 		return;
 	}
 
-	/* Key Info[2] | Key Length[1] | RSC[8] | Key[5..32]. */
+	/* Key Info[2] | [Link ID Info[1] | Key Length[1] | RSC[8] |
+	 * Key[5..32]. */
 
 	keyidx = WPA_GET_LE16(gtk_elem) & 0x03;
 
-	if (gtk_elem[2] != keylen) {
+	if (gtk_elem[hlen - 8 - 1] != keylen) {
 		add_note(wt, MSG_INFO,
 			 "FT: GTK length mismatch: received %u negotiated %zu",
-			 gtk_elem[2], keylen);
+			 gtk_elem[hlen - 8 - 1], keylen);
 		return;
 	}
 
@@ -1636,10 +1641,12 @@ static void process_gtk_subelem(struct wlantest *wt, struct wlantest_bss *bss,
 	}
 
 	bss->gtk_len[keyidx] = gtk_len;
-	sta->gtk_len = gtk_len;
+	if (sta)
+		sta->gtk_len = gtk_len;
 	os_memcpy(bss->gtk[keyidx], gtk, gtk_len);
-	os_memcpy(sta->gtk, gtk, gtk_len);
-	rsc = gtk_elem + 2;
+	if (sta)
+		os_memcpy(sta->gtk, gtk, gtk_len);
+	rsc = gtk_elem + hlen - 8;
 	bss->rsc[keyidx][0] = rsc[5];
 	bss->rsc[keyidx][1] = rsc[4];
 	bss->rsc[keyidx][2] = rsc[3];
@@ -1647,7 +1654,8 @@ static void process_gtk_subelem(struct wlantest *wt, struct wlantest_bss *bss,
 	bss->rsc[keyidx][4] = rsc[1];
 	bss->rsc[keyidx][5] = rsc[0];
 	bss->gtk_idx = keyidx;
-	sta->gtk_idx = keyidx;
+	if (sta)
+		sta->gtk_idx = keyidx;
 	wpa_hexdump(MSG_DEBUG, "RSC", bss->rsc[keyidx], 6);
 }
 
@@ -1655,12 +1663,14 @@ static void process_gtk_subelem(struct wlantest *wt, struct wlantest_bss *bss,
 static void process_igtk_subelem(struct wlantest *wt, struct wlantest_bss *bss,
 				 struct wlantest_sta *sta,
 				 const u8 *kek, size_t kek_len,
-				 const u8 *igtk_elem, size_t igtk_elem_len)
+				 const u8 *igtk_elem, size_t igtk_elem_len,
+				 bool mlo)
 {
 	u8 igtk[WPA_IGTK_MAX_LEN];
 	size_t igtk_len;
 	u16 keyidx;
 	const u8 *ipn;
+	size_t hlen;
 
 	if (bss->mgmt_group_cipher != WPA_CIPHER_AES_128_CMAC &&
 	    bss->mgmt_group_cipher != WPA_CIPHER_BIP_GMAC_128 &&
@@ -1677,25 +1687,28 @@ static void process_igtk_subelem(struct wlantest *wt, struct wlantest_bss *bss,
 		    igtk_elem, igtk_elem_len);
 
 	igtk_len = wpa_cipher_key_len(bss->mgmt_group_cipher);
-	if (igtk_elem_len != 2 + 6 + 1 + igtk_len + 8) {
+	hlen = 2 + 6 + 1;
+	if (mlo)
+		hlen++;
+	if (igtk_elem_len != hlen + igtk_len + 8) {
 		add_note(wt, MSG_INFO, "FT: Invalid IGTK sub-elem length %zu",
 			 igtk_elem_len);
 		return;
 	}
-	if (igtk_elem[8] != igtk_len) {
+	if (igtk_elem[hlen - 1] != igtk_len) {
 		add_note(wt, MSG_INFO,
 			 "FT: Invalid IGTK sub-elem Key Length %d",
-			 igtk_elem[8]);
+			 igtk_elem[hlen - 1]);
 		return;
 	}
 
-	if (aes_unwrap(kek, kek_len, igtk_len / 8, igtk_elem + 9, igtk)) {
+	if (aes_unwrap(kek, kek_len, igtk_len / 8, igtk_elem + hlen, igtk)) {
 		add_note(wt, MSG_INFO,
 			 "FT: AES unwrap failed - could not decrypt IGTK");
 		return;
 	}
 
-	/* KeyID[2] | IPN[6] | Key Length[1] | Key[16+8] */
+	/* KeyID[2] | IPN[6] | [Link ID info[1]] | Key Length[1] | Key[16+8] */
 
 	keyidx = WPA_GET_LE16(igtk_elem);
 
@@ -1725,12 +1738,14 @@ static void process_igtk_subelem(struct wlantest *wt, struct wlantest_bss *bss,
 static void process_bigtk_subelem(struct wlantest *wt, struct wlantest_bss *bss,
 				  struct wlantest_sta *sta,
 				  const u8 *kek, size_t kek_len,
-				  const u8 *bigtk_elem, size_t bigtk_elem_len)
+				  const u8 *bigtk_elem, size_t bigtk_elem_len,
+				  bool mlo)
 {
 	u8 bigtk[WPA_BIGTK_MAX_LEN];
 	size_t bigtk_len;
 	u16 keyidx;
 	const u8 *ipn;
+	size_t hlen;
 
 	if (!bigtk_elem ||
 	    (bss->mgmt_group_cipher != WPA_CIPHER_AES_128_CMAC &&
@@ -1743,26 +1758,29 @@ static void process_bigtk_subelem(struct wlantest *wt, struct wlantest_bss *bss,
 			bigtk_elem, bigtk_elem_len);
 
 	bigtk_len = wpa_cipher_key_len(bss->mgmt_group_cipher);
-	if (bigtk_elem_len != 2 + 6 + 1 + bigtk_len + 8) {
+	hlen = 2 + 6 + 1;
+	if (mlo)
+		hlen++;
+	if (bigtk_elem_len != hlen + bigtk_len + 8) {
 		add_note(wt, MSG_INFO,
 			 "FT: Invalid BIGTK sub-elem length %zu",
 			 bigtk_elem_len);
 		return;
 	}
-	if (bigtk_elem[8] != bigtk_len) {
+	if (bigtk_elem[hlen - 1] != bigtk_len) {
 		add_note(wt, MSG_INFO,
 			 "FT: Invalid BIGTK sub-elem Key Length %d",
 			 bigtk_elem[8]);
 		return;
 	}
 
-	if (aes_unwrap(kek, kek_len, bigtk_len / 8, bigtk_elem + 9, bigtk)) {
+	if (aes_unwrap(kek, kek_len, bigtk_len / 8, bigtk_elem + hlen, bigtk)) {
 		add_note(wt, MSG_INFO,
 			 "FT: AES unwrap failed - could not decrypt BIGTK");
 		return;
 	}
 
-	/* KeyID[2] | IPN[6] | Key Length[1] | Key[16+8] */
+	/* KeyID[2] | IPN[6] | [Link ID Info[1]] | Key Length[1] | Key[16+8] */
 
 	keyidx = WPA_GET_LE16(bigtk_elem);
 
@@ -1786,6 +1804,63 @@ static void process_bigtk_subelem(struct wlantest *wt, struct wlantest_bss *bss,
 	bss->ipn[keyidx][4] = ipn[1];
 	bss->ipn[keyidx][5] = ipn[0];
 	bss->bigtk_idx = keyidx;
+}
+
+
+static void process_fte_group_keys(struct wlantest *wt,
+				   struct wlantest_bss *bss,
+				   struct wlantest_sta *sta,
+				   const u8 *kek, size_t kek_len,
+				   struct wpa_ft_ies *parse)
+{
+	process_gtk_subelem(wt, bss, sta, kek, kek_len,
+			    parse->gtk, parse->gtk_len, false);
+	process_igtk_subelem(wt, bss, sta, kek, kek_len,
+			     parse->igtk, parse->igtk_len, false);
+	process_bigtk_subelem(wt, bss, sta, kek, kek_len,
+			      parse->bigtk, parse->bigtk_len, false);
+}
+
+
+static void process_fte_group_keys_mlo(struct wlantest *wt,
+				       struct wlantest_bss *bss,
+				       struct wlantest_sta *sta,
+				       const u8 *kek, size_t kek_len,
+				       struct wpa_ft_ies *parse)
+{
+	int link_id;
+
+	for (link_id = 0; link_id < MAX_NUM_MLO_LINKS; link_id++) {
+		struct wlantest_bss *l_bss;
+		struct wlantest_sta *l_sta;
+
+		if (!(parse->valid_mlo_gtks & BIT(link_id)))
+			continue;
+
+		l_bss = bss_find_mld(wt, bss->mld_mac_addr, link_id);
+		if (!l_bss) {
+			wpa_printf(MSG_DEBUG,
+				   "FT: No BSS entry found for AP MLD " MACSTR
+				   " link ID %u",
+				   MAC2STR(bss->mld_mac_addr),link_id);
+			continue;
+		}
+
+		wpa_printf(MSG_DEBUG,
+			   "Trying to learn group keys for Link ID %u",
+			   link_id);
+		l_sta = bss == l_bss ? sta : NULL;
+
+		process_gtk_subelem(wt, l_bss, l_sta, kek, kek_len,
+				    parse->mlo_gtk[link_id],
+				    parse->mlo_gtk_len[link_id], true);
+		process_igtk_subelem(wt, l_bss, l_sta, kek, kek_len,
+				     parse->mlo_igtk[link_id],
+				     parse->mlo_igtk_len[link_id], true);
+		process_bigtk_subelem(wt, l_bss, l_sta, kek, kek_len,
+				      parse->mlo_bigtk[link_id],
+				      parse->mlo_bigtk_len[link_id], true);
+	}
 }
 
 
@@ -2193,12 +2268,12 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 				    parse.rsn ? parse.rsn_len + 2 : 0);
 		}
 
-		process_gtk_subelem(wt, bss, sta, kek, kek_len,
-				    parse.gtk, parse.gtk_len);
-		process_igtk_subelem(wt, bss, sta, kek, kek_len,
-				     parse.igtk, parse.igtk_len);
-		process_bigtk_subelem(wt, bss, sta, kek, kek_len,
-				      parse.bigtk, parse.bigtk_len);
+		if (ml)
+			process_fte_group_keys_mlo(wt, bss, sta, kek, kek_len,
+						   &parse);
+		else
+			process_fte_group_keys(wt, bss, sta, kek, kek_len,
+					       &parse);
 
 	out:
 		wpa_ft_parse_ies_free(&parse);
