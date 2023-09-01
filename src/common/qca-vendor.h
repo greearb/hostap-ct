@@ -1453,6 +1453,23 @@ enum qca_wlan_vendor_attr {
 	 */
 	QCA_WLAN_VENDOR_ATTR_SETBAND_MASK = 43,
 
+	/* Unsigned 8-bit used by QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES.
+	 * This field describes the maximum number of links supported by the
+	 * chip for MLO association.
+	 * This is an optional attribute.
+	 */
+	QCA_WLAN_VENDOR_ATTR_MLO_CAPABILITY_MAX_ASSOCIATION_COUNT = 44,
+
+	/* Unsigned 8-bit used by QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES.
+	 * This field describes the maximum number of Simultaneous Transmit
+	 * and Receive (STR) links used in Multi-Link Operation.
+	 * The maximum number of STR links used can be different
+	 * from the maximum number of radios supported by the chip.
+	 * This is a static configuration of the chip.
+	 * This is an optional attribute.
+	 */
+	QCA_WLAN_VENDOR_ATTR_MLO_CAPABILITY_MAX_STR_LINK_COUNT = 45,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_MAX	= QCA_WLAN_VENDOR_ATTR_AFTER_LAST - 1,
