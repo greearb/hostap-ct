@@ -59,7 +59,7 @@ static const char * mgmt_stype(u16 stype)
 
 
 static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
-			   struct wlantest_sta *sta)
+			   struct wlantest_sta *sta, size_t fields_len)
 {
 	const u8 *pos, *end, *ci_end, *info_end, *li_end;
 	u16 ctrl, eml, cap;
@@ -363,6 +363,22 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
 		}
 
 		wpa_hexdump(MSG_DEBUG, "STA Profile", pos, end - pos);
+		if (end - pos > fields_len) {
+			struct ieee802_11_elems elems;
+
+			if (ieee802_11_parse_elems(pos + fields_len,
+						   end - pos - fields_len,
+						   &elems, 0) != ParseFailed) {
+				if (elems.rsn_ie)
+					wpa_hexdump(MSG_DEBUG, "RSNE",
+						    elems.rsn_ie,
+						    elems.rsn_ie_len);
+				if (elems.rsnxe)
+					wpa_hexdump(MSG_DEBUG, "RSNXE",
+						    elems.rsnxe,
+						    elems.rsnxe_len);
+			}
+		}
 	}
 
 	wpabuf_free(profile);
@@ -370,13 +386,14 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
 
 
 static void parse_basic_ml_elems(struct ieee802_11_elems *elems, bool ap,
-				 struct wlantest_sta *sta)
+				 struct wlantest_sta *sta, size_t fields_len)
 {
 	struct wpabuf *mlbuf;
 
 	mlbuf = ieee802_11_defrag_mle(elems, MULTI_LINK_CONTROL_TYPE_BASIC);
 	if (mlbuf) {
-		parse_basic_ml(wpabuf_head(mlbuf), wpabuf_len(mlbuf), ap, sta);
+		parse_basic_ml(wpabuf_head(mlbuf), wpabuf_len(mlbuf), ap, sta,
+			       fields_len);
 		wpabuf_free(mlbuf);
 	}
 }
@@ -597,7 +614,7 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 
 	if (trans == 1) {
 		if (elems.basic_mle)
-			parse_basic_ml_elems(&elems, false, sta);
+			parse_basic_ml_elems(&elems, false, sta, 6);
 		sta->key_mgmt = parse.key_mgmt;
 		sta->pairwise_cipher = parse.pairwise_cipher;
 		if (parse.fte_snonce)
@@ -1083,7 +1100,7 @@ static void rx_mgmt_assoc_req(struct wlantest *wt, const u8 *data, size_t len)
 				   " from Association Request (assoc link)",
 				   bss->link_id, MAC2STR(mgmt->sa));
 		}
-		parse_basic_ml_elems(&elems, false, sta);
+		parse_basic_ml_elems(&elems, false, sta, 2);
 		dump_mld_info(wt, sta);
 	}
 }
@@ -1189,7 +1206,7 @@ static void rx_mgmt_assoc_resp(struct wlantest *wt, const u8 *data, size_t len)
 	ml = get_ml_ie(ies, ies_len, MULTI_LINK_CONTROL_TYPE_BASIC);
 	if (ml &&
 	    ieee802_11_parse_elems(ies, ies_len, &elems, 0) != ParseFailed)
-		parse_basic_ml_elems(&elems, true, NULL);
+		parse_basic_ml_elems(&elems, true, NULL, 4);
 
 	if (sta->auth_alg == WLAN_AUTH_FILS_SK) {
 		const u8 *session, *frame_ad, *frame_ad_end, *encr_end;
@@ -1387,7 +1404,7 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 				   " from Reassociation Request (assoc link)",
 				   bss->link_id, MAC2STR(mgmt->sa));
 		}
-		parse_basic_ml_elems(&elems, false, sta);
+		parse_basic_ml_elems(&elems, false, sta, 2);
 		dump_mld_info(wt, sta);
 	}
 
@@ -1949,7 +1966,7 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 	ml = get_ml_ie(ies, ies_len, MULTI_LINK_CONTROL_TYPE_BASIC);
 	if (ml &&
 	    ieee802_11_parse_elems(ies, ies_len, &elems, 0) != ParseFailed)
-		parse_basic_ml_elems(&elems, true, NULL);
+		parse_basic_ml_elems(&elems, true, NULL, 4);
 
 	if (sta->auth_alg == WLAN_AUTH_FILS_SK) {
 		const u8 *session, *frame_ad, *frame_ad_end, *encr_end;
