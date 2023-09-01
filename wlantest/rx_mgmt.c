@@ -64,6 +64,7 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
 	const u8 *pos, *end, *ci_end, *info_end, *li_end;
 	u16 ctrl, eml, cap;
 	const struct element *elem;
+	struct wpabuf *profile = NULL;
 
 	wpa_hexdump(MSG_MSGDUMP, "Basic MLE", ie, len);
 	pos = ie;
@@ -209,6 +210,11 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
 	li_end = end;
 	for_each_element(elem, pos, li_end - pos) {
 		u8 link_id;
+		const u8 *fpos;
+		u8 flen;
+
+		if (elem->id == EHT_ML_SUB_ELEM_FRAGMENT)
+			continue;
 
 		if (elem->id != EHT_ML_SUB_ELEM_PER_STA_PROFILE) {
 			wpa_printf(MSG_DEBUG, "Link Info subelement id=%u",
@@ -218,8 +224,25 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
 			continue;
 		}
 
-		pos = elem->data;
-		end = pos + elem->datalen;
+		wpabuf_free(profile);
+		profile = wpabuf_alloc_copy(elem->data, elem->datalen);
+		if (!profile)
+			continue;
+		flen = elem->datalen;
+		fpos = elem->data + flen;
+		while (flen == 255 && li_end - fpos >= 2 &&
+		       *fpos == EHT_ML_SUB_ELEM_FRAGMENT &&
+		       li_end - fpos >= 2 + fpos[1]) {
+			/* Reassemble truncated subelement */
+			fpos++;
+			flen = *fpos++;
+			if (wpabuf_resize(&profile, flen) < 0)
+				continue;
+			wpabuf_put_data(profile, fpos, flen);
+			fpos += flen;
+		}
+		pos = wpabuf_head(profile);
+		end = pos + wpabuf_len(profile);
 
 		if (end - pos < 2) {
 			wpa_printf(MSG_INFO,
@@ -232,8 +255,8 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
 		pos += 2;
 
 		link_id = ctrl & BASIC_MLE_STA_CTRL_LINK_ID_MASK;
-		wpa_printf(MSG_DEBUG, "Per-STA Profile: len=%u Link_ID=%u Complete=%u Reserved=0x%x",
-			   elem->datalen,
+		wpa_printf(MSG_DEBUG, "Per-STA Profile: len=%zu Link_ID=%u Complete=%u Reserved=0x%x",
+			   wpabuf_len(profile),
 			   link_id,
 			   !!(ctrl & BASIC_MLE_STA_CTRL_COMPLETE_PROFILE),
 			   (ctrl & 0xf000) >> 12);
@@ -341,6 +364,8 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
 
 		wpa_hexdump(MSG_DEBUG, "STA Profile", pos, end - pos);
 	}
+
+	wpabuf_free(profile);
 }
 
 
