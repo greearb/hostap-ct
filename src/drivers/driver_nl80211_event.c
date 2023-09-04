@@ -2455,13 +2455,22 @@ static void nl80211_radar_event(struct wpa_driver_nl80211_data *drv,
 {
 	union wpa_event_data data;
 	enum nl80211_radar_event event_type;
+	struct i802_link *mld_link = NULL;
 
 	if (!tb[NL80211_ATTR_WIPHY_FREQ] || !tb[NL80211_ATTR_RADAR_EVENT])
 		return;
 
 	os_memset(&data, 0, sizeof(data));
+	data.dfs_event.link_id = NL80211_DRV_LINK_ID_NA;
 	data.dfs_event.freq = nla_get_u32(tb[NL80211_ATTR_WIPHY_FREQ]);
 	event_type = nla_get_u32(tb[NL80211_ATTR_RADAR_EVENT]);
+
+	if (data.dfs_event.freq) {
+		mld_link = nl80211_get_mld_link_by_freq(drv->first_bss,
+							data.dfs_event.freq);
+		if (mld_link)
+			data.dfs_event.link_id = mld_link->link_id;
+	}
 
 	/* Check HT params */
 	if (tb[NL80211_ATTR_WIPHY_CHANNEL_TYPE]) {
@@ -2493,10 +2502,12 @@ static void nl80211_radar_event(struct wpa_driver_nl80211_data *drv,
 	if (tb[NL80211_ATTR_CENTER_FREQ2])
 		data.dfs_event.cf2 = nla_get_u32(tb[NL80211_ATTR_CENTER_FREQ2]);
 
-	wpa_printf(MSG_DEBUG, "nl80211: DFS event on freq %d MHz, ht: %d, offset: %d, width: %d, cf1: %dMHz, cf2: %dMHz",
+	wpa_printf(MSG_DEBUG,
+		   "nl80211: DFS event on freq %d MHz, ht: %d, offset: %d, width: %d, cf1: %dMHz, cf2: %dMHz, link_id=%d",
 		   data.dfs_event.freq, data.dfs_event.ht_enabled,
 		   data.dfs_event.chan_offset, data.dfs_event.chan_width,
-		   data.dfs_event.cf1, data.dfs_event.cf2);
+		   data.dfs_event.cf1, data.dfs_event.cf2,
+		   data.dfs_event.link_id);
 
 	switch (event_type) {
 	case NL80211_RADAR_DETECTED:
@@ -2817,6 +2828,7 @@ static void qca_nl80211_dfs_offload_radar_event(
 {
 	union wpa_event_data data;
 	struct nlattr *tb[NL80211_ATTR_MAX + 1];
+	struct i802_link *mld_link = NULL;
 
 	wpa_printf(MSG_DEBUG,
 		   "nl80211: DFS offload radar vendor event received");
@@ -2833,9 +2845,17 @@ static void qca_nl80211_dfs_offload_radar_event(
 
 	os_memset(&data, 0, sizeof(data));
 	data.dfs_event.freq = nla_get_u32(tb[NL80211_ATTR_WIPHY_FREQ]);
+	data.dfs_event.link_id = NL80211_DRV_LINK_ID_NA;
 
-	wpa_printf(MSG_DEBUG, "nl80211: DFS event on freq %d MHz",
-		   data.dfs_event.freq);
+	if (data.dfs_event.freq) {
+		mld_link = nl80211_get_mld_link_by_freq(drv->first_bss,
+							data.dfs_event.freq);
+		if (mld_link)
+			data.dfs_event.link_id = mld_link->link_id;
+	}
+
+	wpa_printf(MSG_DEBUG, "nl80211: DFS event on freq %d MHz, link=%d",
+		   data.dfs_event.freq, data.dfs_event.link_id);
 
 	/* Check HT params */
 	if (tb[NL80211_ATTR_WIPHY_CHANNEL_TYPE]) {

@@ -2399,26 +2399,31 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 	case EVENT_DFS_RADAR_DETECTED:
 		if (!data)
 			break;
+		hapd = switch_link_hapd(hapd, data->dfs_event.link_id);
 		hostapd_event_dfs_radar_detected(hapd, &data->dfs_event);
 		break;
 	case EVENT_DFS_PRE_CAC_EXPIRED:
 		if (!data)
 			break;
+		hapd = switch_link_hapd(hapd, data->dfs_event.link_id);
 		hostapd_event_dfs_pre_cac_expired(hapd, &data->dfs_event);
 		break;
 	case EVENT_DFS_CAC_FINISHED:
 		if (!data)
 			break;
+		hapd = switch_link_hapd(hapd, data->dfs_event.link_id);
 		hostapd_event_dfs_cac_finished(hapd, &data->dfs_event);
 		break;
 	case EVENT_DFS_CAC_ABORTED:
 		if (!data)
 			break;
+		hapd = switch_link_hapd(hapd, data->dfs_event.link_id);
 		hostapd_event_dfs_cac_aborted(hapd, &data->dfs_event);
 		break;
 	case EVENT_DFS_NOP_FINISHED:
 		if (!data)
 			break;
+		hapd = switch_link_hapd(hapd, data->dfs_event.link_id);
 		hostapd_event_dfs_nop_finished(hapd, &data->dfs_event);
 		break;
 	case EVENT_CHANNEL_LIST_CHANGED:
@@ -2432,6 +2437,7 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 	case EVENT_DFS_CAC_STARTED:
 		if (!data)
 			break;
+		hapd = switch_link_hapd(hapd, data->dfs_event.link_id);
 		hostapd_event_dfs_cac_started(hapd, &data->dfs_event);
 		break;
 #endif /* NEED_AP_MLME */
