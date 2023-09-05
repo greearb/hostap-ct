@@ -2361,6 +2361,18 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 	case EVENT_CH_SWITCH:
 		if (!data)
 			break;
+#ifdef CONFIG_IEEE80211BE
+		if (data->ch_switch.link_id != -1) {
+			hapd = hostapd_mld_get_link_bss(
+				hapd, data->ch_switch.link_id);
+			if (!hapd) {
+				wpa_printf(MSG_ERROR,
+					   "MLD: Failed to get link (ID %d) BSS for EVENT_CH_SWITCH/EVENT_CH_SWITCH_STARTED",
+					   data->ch_switch.link_id);
+				break;
+			}
+		}
+#endif /* CONFIG_IEEE80211BE */
 		hostapd_event_ch_switch(hapd, data->ch_switch.freq,
 					data->ch_switch.ht_enabled,
 					data->ch_switch.ch_offset,
