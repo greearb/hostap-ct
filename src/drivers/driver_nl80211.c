@@ -4435,7 +4435,7 @@ static int nl80211_put_basic_rates(struct nl_msg *msg, const int *basic_rates)
 
 static int nl80211_set_bss(struct i802_bss *bss, int cts, int preamble,
 			   int slot, int ht_opmode, int ap_isolate,
-			   const int *basic_rates)
+			   const int *basic_rates, int link_id)
 {
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct nl_msg *msg;
@@ -4451,7 +4451,9 @@ static int nl80211_set_bss(struct i802_bss *bss, int cts, int preamble,
 	     nla_put_u16(msg, NL80211_ATTR_BSS_HT_OPMODE, ht_opmode)) ||
 	    (ap_isolate >= 0 &&
 	     nla_put_u8(msg, NL80211_ATTR_AP_ISOLATE, ap_isolate)) ||
-	    nl80211_put_basic_rates(msg, basic_rates)) {
+	    nl80211_put_basic_rates(msg, basic_rates) ||
+	    (link_id != NL80211_DRV_LINK_ID_NA &&
+	     nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id))) {
 		nlmsg_free(msg);
 		return -ENOBUFS;
 	}
@@ -5439,7 +5441,9 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 		link->beacon_set = 1;
 		nl80211_set_bss(bss, params->cts_protect, params->preamble,
 				params->short_slot_time, params->ht_opmode,
-				params->isolate, params->basic_rates);
+				params->isolate, params->basic_rates,
+				params->mld_ap ? params->mld_link_id :
+				NL80211_DRV_LINK_ID_NA);
 		nl80211_set_multicast_to_unicast(bss,
 						 params->multicast_to_unicast);
 		if (beacon_set && params->freq &&
