@@ -1435,6 +1435,33 @@ def run_ap_pmf_beacon_protection_mismatch(dev, apdev, clear):
     if ev is None:
         raise Exception("WNM-Notification Request frame not reported")
 
+def test_ap_pmf_beacon_protection_reconnect(dev, apdev):
+    """Beacon protection and reconnection"""
+    ssid = "test-beacon-prot"
+    params = hostapd.wpa2_params(ssid=ssid, passphrase="12345678")
+    params["wpa_key_mgmt"] = "WPA-PSK-SHA256"
+    params["ieee80211w"] = "2"
+    params["beacon_prot"] = "1"
+    params["group_mgmt_cipher"] = "AES-128-CMAC"
+    try:
+        hapd = hostapd.add_ap(apdev[0], params)
+    except Exception as e:
+        if "Failed to enable hostapd interface" in str(e):
+            raise HwsimSkip("Beacon protection not supported")
+        raise
+
+    dev[0].connect(ssid, psk="12345678", ieee80211w="2", beacon_prot="1",
+                   key_mgmt="WPA-PSK-SHA256", proto="WPA2", scan_freq="2412")
+    dev[0].request("DISCONNECT")
+    dev[0].wait_disconnected()
+    dev[0].request("RECONNECT")
+    dev[0].wait_connected()
+    time.sleep(1)
+    check_mac80211_bigtk(dev[0], hapd)
+    ev = dev[0].wait_event(["CTRL-EVENT-BEACON-LOSS"], timeout=5)
+    if ev is not None:
+        raise Exception("Beacon loss detected")
+
 def test_ap_pmf_sta_global_require(dev, apdev):
     """WPA2-PSK AP with PMF optional and wpa_supplicant pmf=2"""
     ssid = "test-pmf-optional"
