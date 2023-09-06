@@ -3168,21 +3168,7 @@ enum qca_wlan_vendor_attr_config {
 	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_MLO_LINKS to specify the maximum
 	 * supported channel width update type per-MLO link.
 	 *
-	 * valid values:
-	 * 0 - The maximum allowed bandwidth change is applicable for both Tx
-	 *	and Rx paths. The driver shall conduct OMI operation as defined
-	 *	in 26.9 (Operating mode indication) or OMN operation as
-	 *	defined in 11.40 (Notification of operating mode
-	 *	changes) in IEEE P802.11-REVme/D2.0 with AP to indicate the
-	 *	change in the maximum allowed operating bandwidth.
-	 * 1 - Limit the change in maximum allowed bandwidth only to Tx path.
-	 *	In this case the driver doesn't need to conduct OMI/OMN
-	 *	operation since %QCA_WLAN_VENDOR_ATTR_CONFIG_CHANNEL_WIDTH is
-	 *	expected to be less than the current connection maximum
-	 *	negotiated bandwidth.
-	 *	For example: Negotiated maximum bandwidth is 160 MHz and the new
-	 *	maximum bandwidth configured is 80 MHz, now the driver limits
-	 *	the maximum bandwidth to 80 MHz only in the Tx path.
+	 * Uses enum qca_chan_width_update_type values.
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_CHAN_WIDTH_UPDATE_TYPE = 96,
 
@@ -16526,6 +16512,42 @@ enum qca_wlan_vendor_attr_tx_latency {
 	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_MAX =
 	QCA_WLAN_VENDOR_ATTR_TX_LATENCY_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_chan_width_update_type - Represents the possible values for
+ * %QCA_WLAN_VENDOR_ATTR_CONFIG_CHAN_WIDTH_UPDATE_TYPE.
+ *
+ * @QCA_CHAN_WIDTH_UPDATE_TYPE_TX_RX: The maximum allowed bandwidth change is
+ * applicable for both Tx and Rx paths. The driver shall conduct OMI operation
+ * as defined in 26.9 (Operating mode indication) or OMN operation as defined in
+ * 11.40 (Notification of operating mode changes) in IEEE P802.11-REVme/D2.0
+ * with AP to indicate the change in the maximum allowed operating bandwidth.
+ *
+ * @QCA_CHAN_WIDTH_UPDATE_TYPE_TX_ONLY: Limit the change in maximum allowed
+ * bandwidth only to Tx path. In this case the driver doesn't need to conduct
+ * OMI/OMN operation since %QCA_WLAN_VENDOR_ATTR_CONFIG_CHANNEL_WIDTH is
+ * expected to be less than the current connection maximum negotiated bandwidth.
+ * For example: Negotiated maximum bandwidth is 160 MHz and the new maximum
+ * bandwidth configured is 80 MHz, now the driver limits the maximum bandwidth
+ * to 80 MHz only in the Tx path.
+ *
+ * @QCA_CHAN_WIDTH_UPDATE_TYPE_TX_RX_EXT: This is similar to
+ * %QCA_CHAN_WIDTH_UPDATE_TYPE_TX_RX but the driver doesn't change current
+ * phymode bandwidth to avoid interoperability issues with APs which don't
+ * handle the maximum bandwidth change indication correctly.
+ * For example: Negotiated maximum bandwidth is 40 MHz and the new maximum
+ * bandwidth configured is 20 MHz, now the driver indicates the change in
+ * maximum allowed bandwidth to the AP and limits the bandwidth to 20 MHz in the
+ * Tx path but keeps the phymode bandwidth as 40 MHz. This will avoid
+ * interoperability issues with APs which still use 40 MHz for sending the
+ * frames though it received maximum allowed bandwidth indication as 20 MHz
+ * from the STA.
+ */
+enum qca_chan_width_update_type {
+	QCA_CHAN_WIDTH_UPDATE_TYPE_TX_RX = 0,
+	QCA_CHAN_WIDTH_UPDATE_TYPE_TX_ONLY = 1,
+	QCA_CHAN_WIDTH_UPDATE_TYPE_TX_RX_EXT = 2,
 };
 
 #endif /* QCA_VENDOR_H */
