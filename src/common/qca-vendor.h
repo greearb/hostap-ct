@@ -2454,9 +2454,11 @@ enum qca_wlan_vendor_attr_config {
 	 * used to calculate statistics like average the TSF offset or average
 	 * number of frame leaked.
 	 * For instance, upon Beacon frame reception:
-	 * current_avg = ((beacon_TSF - TBTT) * factor + previous_avg * (0x10000 - factor) ) / 0x10000
+	 * current_avg = ((beacon_TSF - TBTT) * factor +
+	 *                previous_avg * (0x10000 - factor)) / 0x10000
 	 * For instance, when evaluating leaky APs:
-	 * current_avg = ((num frame received within guard time) * factor + previous_avg * (0x10000 - factor)) / 0x10000
+	 * current_avg = ((num frame received within guard time) * factor +
+	 *                previous_avg * (0x10000 - factor)) / 0x10000
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_STATS_AVG_FACTOR = 2,
 	/* Unsigned 32-bit value to configure guard time, i.e., when
