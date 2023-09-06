@@ -193,6 +193,7 @@ static int nl80211_leave_ibss(struct wpa_driver_nl80211_data *drv,
 
 static int i802_set_iface_flags(struct i802_bss *bss, int up);
 static int nl80211_set_param(void *priv, const char *param);
+static void nl80211_remove_links(struct i802_bss *bss);
 #ifdef CONFIG_MESH
 static int nl80211_put_mesh_config(struct nl_msg *msg,
 				   struct wpa_driver_mesh_bss_params *params);
@@ -3185,8 +3186,10 @@ static void wpa_driver_nl80211_deinit(struct i802_bss *bss)
 
 	nl80211_remove_monitor_interface(drv);
 
-	if (is_ap_interface(drv->nlmode))
+	if (is_ap_interface(drv->nlmode)) {
 		wpa_driver_nl80211_del_beacon_all(bss);
+		nl80211_remove_links(bss);
+	}
 
 	if (drv->eapol_sock >= 0) {
 		eloop_unregister_read_sock(drv->eapol_sock);
