@@ -12234,7 +12234,7 @@ enum qca_vendor_wlan_sta_guard_interval {
  * the disconnected state.
  *
  * @QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_TARGET_POWER_5G_MCS0: u32, used in the
- * STA mode. This represents the Target power in dBm for for transmissions done
+ * STA mode. This represents the Target power in dBm for transmissions done
  * to the AP in 5 GHz at MCS0 rate. This data is maintained per connect session.
  * Represents the count of last connected session, when queried in the
  * disconnected state.
@@ -12572,7 +12572,7 @@ enum qca_wlan_tspec_direction {
 };
 
 /**
- * enum qca_wlan_tspec_ack_policy - MAC acknowledgement policy in TSPEC
+ * enum qca_wlan_tspec_ack_policy - MAC acknowledgment policy in TSPEC
  * As what is defined in IEEE Std 802.11-2016, Table 9-141.
  *
  * Values for %QCA_WLAN_VENDOR_ATTR_CONFIG_TSPEC_ACK_POLICY.
