@@ -4405,16 +4405,16 @@ enum qca_wlan_vendor_attr_ll_stats_set {
  * statistics depending on the peer_mac.
  */
 enum qca_wlan_ll_stats_clr_req_bitmap {
-	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO = 		BIT(0),
-	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO_CCA = 		BIT(1),
-	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO_CHANNELS = 	BIT(2),
-	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO_SCAN = 		BIT(3),
-	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE = 		BIT(4),
-	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_TXRATE = 	BIT(5),
-	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_AC = 		BIT(6),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO =		BIT(0),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO_CCA =		BIT(1),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO_CHANNELS =	BIT(2),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_RADIO_SCAN =		BIT(3),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE =		BIT(4),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_TXRATE =		BIT(5),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_AC =		BIT(6),
 	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_CONTENTION =	BIT(7),
-	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_ALL_PEER = 	BIT(8),
-	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_PER_PEER = 	BIT(9),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_ALL_PEER =	BIT(8),
+	QCA_WLAN_LL_STATS_CLR_REQ_BITMAP_IFACE_PER_PEER =	BIT(9),
 };
 
 enum qca_wlan_vendor_attr_ll_stats_clr {
@@ -4455,8 +4455,8 @@ enum qca_wlan_vendor_attr_ll_stats_clr {
 enum qca_wlan_ll_stats_get_req_bitmap {
 	QCA_WLAN_LL_STATS_GET_REQ_BITMAP_RADIO =	BIT(0),
 	QCA_WLAN_LL_STATS_GET_REQ_BITMAP_IFACE =	BIT(1),
-	QCA_WLAN_LL_STATS_GET_REQ_BITMAP_ALL_PEER = 	BIT(2),
-	QCA_WLAN_LL_STATS_GET_REQ_BITMAP_PER_PEER = 	BIT(3),
+	QCA_WLAN_LL_STATS_GET_REQ_BITMAP_ALL_PEER =	BIT(2),
+	QCA_WLAN_LL_STATS_GET_REQ_BITMAP_PER_PEER =	BIT(3),
 };
 
 enum qca_wlan_vendor_attr_ll_stats_get {
@@ -16246,9 +16246,9 @@ enum qca_wlan_vendor_attr_tdls_state {
  * @QCA_WLAN_VENDOR_OPM_MODE_DISABLE: OPM Disabled
  * @QCA_WLAN_VENDOR_OPM_MODE_ENABLE: OPM Enabled
  * @QCA_WLAN_VENDOR_OPM_MODE_USER_DEFINED: User defined mode which allows user
- * 	to configure power save inactivity timeout and speculative wake up
- * 	interval through %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_ITO and
- * 	%QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_SPEC_WAKE_INTERVAL attributes.
+ *	to configure power save inactivity timeout and speculative wake up
+ *	interval through %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_ITO and
+ *	%QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_SPEC_WAKE_INTERVAL attributes.
  */
 
 enum qca_wlan_vendor_opm_mode {
@@ -16403,7 +16403,7 @@ enum qca_wlan_vendor_tx_latency_action {
  *	The driver will monitor the transmit latency for the active links
  *	and save the statistics for each cycle (period is set by
  *	%QCA_WLAN_VENDOR_ATTR_TX_LATENCY_PERIOD) when the feature is enabled.
- * 	Set flag %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_PERIODIC_REPORT if periodical
+ *	Set flag %QCA_WLAN_VENDOR_ATTR_TX_LATENCY_PERIODIC_REPORT if periodical
  *	report is required.
  *
  * 2) used as a command to disable the feature
