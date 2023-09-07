@@ -1249,6 +1249,20 @@ static int hostapd_cli_cmd_disable(struct wpa_ctrl *ctrl, int argc,
 }
 
 
+static int hostapd_cli_cmd_enable_mld(struct wpa_ctrl *ctrl, int argc,
+				      char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "ENABLE_MLD");
+}
+
+
+static int hostapd_cli_cmd_disable_mld(struct wpa_ctrl *ctrl, int argc,
+				      char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "DISABLE_MLD");
+}
+
+
 static int hostapd_cli_cmd_update_beacon(struct wpa_ctrl *ctrl, int argc,
 				      char *argv[])
 {
@@ -1739,6 +1753,10 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	  "= reload configuration for current interface" },
 	{ "disable", hostapd_cli_cmd_disable, NULL,
 	  "= disable hostapd on current interface" },
+	{ "enable_mld", hostapd_cli_cmd_enable_mld, NULL,
+	  "= enable AP MLD to which the interface is affiliated" },
+	{ "disable_mld", hostapd_cli_cmd_disable_mld, NULL,
+	  "= disable AP MLD to which the interface is affiliated" },
 	{ "update_beacon", hostapd_cli_cmd_update_beacon, NULL,
 	  "= update Beacon frame contents\n"},
 	{ "erp_flush", hostapd_cli_cmd_erp_flush, NULL,

@@ -3457,6 +3457,104 @@ static int hostapd_ctrl_iface_driver_cmd(struct hostapd_data *hapd, char *cmd,
 
 
 #ifdef CONFIG_IEEE80211BE
+
+static int hostapd_ctrl_iface_enable_mld(struct hostapd_iface *iface)
+{
+	unsigned int i;
+
+	if (!iface || !iface->bss[0]->conf->mld_ap) {
+		wpa_printf(MSG_ERROR,
+			   "Trying to enable AP MLD on an interface that is not affiliated with an AP MLD");
+		return -1;
+	}
+
+	for (i = 0; i < iface->interfaces->count; ++i) {
+		struct hostapd_iface *h_iface = iface->interfaces->iface[i];
+		struct hostapd_data *h_hapd = h_iface->bss[0];
+		struct hostapd_bss_config *h_conf = h_hapd->conf;
+
+		if (!h_conf->mld_ap ||
+		    h_conf->mld_id != iface->bss[0]->conf->mld_id)
+			continue;
+
+		if (hostapd_enable_iface(h_iface)) {
+			wpa_printf(MSG_ERROR, "Enabling of AP MLD failed");
+			return -1;
+		}
+	}
+	return 0;
+}
+
+
+static void hostapd_disable_iface_bss(struct hostapd_iface *iface)
+{
+	unsigned int i;
+
+	for (i = 0; i < iface->num_bss; i++)
+		hostapd_bss_deinit_no_free(iface->bss[i]);
+}
+
+
+static int hostapd_ctrl_iface_disable_mld(struct hostapd_iface *iface)
+{
+	unsigned int i;
+	struct hostapd_iface *first_iface = NULL;
+
+	if (!iface || !iface->bss[0]->conf->mld_ap) {
+		wpa_printf(MSG_ERROR,
+			   "Trying to disable AP MLD on an interface that is not affiliated with an AP MLD.");
+		return -1;
+	}
+
+	/* First, disable BSSs before stopping beaconing and doing driver
+	 * deinit so that the broadcast Deauthentication frames go out. */
+
+	for (i = 0; i < iface->interfaces->count; ++i) {
+		struct hostapd_iface *h_iface = iface->interfaces->iface[i];
+		struct hostapd_data *h_hapd = h_iface->bss[0];
+		struct hostapd_bss_config *h_conf = h_hapd->conf;
+
+		if (!h_conf->mld_ap ||
+		    h_conf->mld_id != iface->bss[0]->conf->mld_id)
+			continue;
+
+		if (!h_hapd->mld_first_bss) {
+			first_iface = h_iface;
+			continue;
+		}
+		hostapd_disable_iface_bss(iface);
+	}
+
+	if (first_iface)
+		hostapd_disable_iface_bss(first_iface);
+
+	/* Then, fully disable interfaces */
+
+	for (i = 0; i < iface->interfaces->count; ++i) {
+		struct hostapd_iface *h_iface = iface->interfaces->iface[i];
+		struct hostapd_data *h_hapd = h_iface->bss[0];
+		struct hostapd_bss_config *h_conf = h_hapd->conf;
+
+		if (!h_conf->mld_ap ||
+		    h_conf->mld_id != iface->bss[0]->conf->mld_id ||
+		    !h_hapd->mld_first_bss)
+			continue;
+
+		if (hostapd_disable_iface(h_iface)) {
+			wpa_printf(MSG_ERROR, "Disabling AP MLD failed");
+			return -1;
+		}
+	}
+
+	if (first_iface && hostapd_disable_iface(first_iface)) {
+		wpa_printf(MSG_ERROR, "Disabling AP MLD failed");
+		return -1;
+	}
+
+	return 0;
+}
+
+
 #ifdef CONFIG_TESTING_OPTIONS
 static int hostapd_ctrl_iface_link_remove(struct hostapd_data *hapd, char *cmd,
 					  char *buf, size_t buflen)
@@ -4044,6 +4142,12 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 							  reply_size);
 #endif /* ANDROID */
 #ifdef CONFIG_IEEE80211BE
+	} else if (os_strcmp(buf, "ENABLE_MLD") == 0) {
+		if (hostapd_ctrl_iface_enable_mld(hapd->iface))
+			reply_len = -1;
+	} else if (os_strcmp(buf, "DISABLE_MLD") == 0) {
+		if (hostapd_ctrl_iface_disable_mld(hapd->iface))
+			reply_len = -1;
 #ifdef CONFIG_TESTING_OPTIONS
 	} else if (os_strncmp(buf, "LINK_REMOVE ", 12) == 0) {
 		if (hostapd_ctrl_iface_link_remove(hapd, buf + 12,
