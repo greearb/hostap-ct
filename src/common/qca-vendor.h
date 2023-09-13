@@ -11989,6 +11989,12 @@ enum qca_wlan_vendor_attr_add_sta_node_params {
 	 */
 	QCA_WLAN_VENDOR_ATTR_ADD_STA_NODE_AUTH_ALGO = 2,
 
+	/*
+	 * This flag attribute is set if the node being added is an
+	 * MLD STA node.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ADD_STA_NODE_IS_ML = 3,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_ADD_STA_NODE_PARAM_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_ADD_STA_NODE_PARAM_MAX =
