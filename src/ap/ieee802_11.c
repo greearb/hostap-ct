@@ -5932,7 +5932,7 @@ static void handle_assoc(struct hostapd_data *hapd,
 			set_beacon = true;
 	}
 
-	if (update_ht_state(hapd, sta) > 0)
+	if (!is_6ghz_op_class(hapd->iconf->op_class) && update_ht_state(hapd, sta) > 0)
 		set_beacon = true;
 
 	hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
