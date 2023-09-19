@@ -1799,6 +1799,7 @@ static int ieee80211_chan_to_freq_eu(u8 op_class, u8 chan)
 
 static int ieee80211_chan_to_freq_jp(u8 op_class, u8 chan)
 {
+	/* Table E-3 in IEEE Std 802.11-2020 - Operating classes in Japan */
 	switch (op_class) {
 	case 30: /* channels 1..13 */
 	case 56: /* channels 1..9; 40 MHz */
@@ -1822,14 +1823,14 @@ static int ieee80211_chan_to_freq_jp(u8 op_class, u8 chan)
 		if (chan < 34 || chan > 64)
 			return -1;
 		return 5000 + 5 * chan;
-	case 34: /* channels 100-140 */
-	case 35: /* channels 100-140 */
-	case 39: /* channels 100-132; 40 MHz */
-	case 40: /* channels 100-132; 40 MHz */
-	case 44: /* channels 104-136; 40 MHz */
-	case 45: /* channels 104-136; 40 MHz */
-	case 58: /* channels 100-140 */
-		if (chan < 100 || chan > 140)
+	case 34: /* channels 100-144 */
+	case 35: /* reserved */
+	case 39: /* channels 100-140; 40 MHz */
+	case 40: /* reserved */
+	case 44: /* channels 104-144; 40 MHz */
+	case 45: /* reserved */
+	case 58: /* channels 100-144 */
+		if (chan < 100 || chan > 144)
 			return -1;
 		return 5000 + 5 * chan;
 	case 59: /* 60 GHz band, channels 1..6 */
@@ -1883,7 +1884,7 @@ static int ieee80211_chan_to_freq_cn(u8 op_class, u8 chan)
 
 static int ieee80211_chan_to_freq_global(u8 op_class, u8 chan)
 {
-	/* Table E-4 in IEEE Std 802.11-2012 - Global operating classes */
+	/* Table E-4 in IEEE Std 802.11-2020 - Global operating classes */
 	switch (op_class) {
 	case 81:
 		/* channels 1..13 */
@@ -1909,10 +1910,10 @@ static int ieee80211_chan_to_freq_global(u8 op_class, u8 chan)
 		if (chan < 36 || chan > 64)
 			return -1;
 		return 5000 + 5 * chan;
-	case 121: /* channels 100-140 */
-	case 122: /* channels 100-142; 40 MHz */
-	case 123: /* channels 104-136; 40 MHz */
-		if (chan < 100 || chan > 140)
+	case 121: /* channels 100-144 */
+	case 122: /* channels 100-140; 40 MHz */
+	case 123: /* channels 104-144; 40 MHz */
+		if (chan < 100 || chan > 144)
 			return -1;
 		return 5000 + 5 * chan;
 	case 124: /* channels 149,153,157,161 */
@@ -2014,7 +2015,7 @@ int ieee80211_is_dfs(int freq, const struct hostapd_hw_modes *modes,
 
 	if (!modes || !num_modes)
 		return (freq >= 5260 && freq <= 5320) ||
-			(freq >= 5500 && freq <= 5700);
+			(freq >= 5500 && freq <= 5720);
 
 	for (i = 0; i < num_modes; i++) {
 		for (j = 0; j < modes[i].num_channels; j++) {
@@ -2386,9 +2387,9 @@ const struct oper_class_map global_op_class[] = {
 	{ HOSTAPD_MODE_IEEE80211A, 118, 52, 64, 4, BW20, NO_P2P_SUPP },
 	{ HOSTAPD_MODE_IEEE80211A, 119, 52, 60, 8, BW40PLUS, NO_P2P_SUPP },
 	{ HOSTAPD_MODE_IEEE80211A, 120, 56, 64, 8, BW40MINUS, NO_P2P_SUPP },
-	{ HOSTAPD_MODE_IEEE80211A, 121, 100, 140, 4, BW20, NO_P2P_SUPP },
-	{ HOSTAPD_MODE_IEEE80211A, 122, 100, 132, 8, BW40PLUS, NO_P2P_SUPP },
-	{ HOSTAPD_MODE_IEEE80211A, 123, 104, 136, 8, BW40MINUS, NO_P2P_SUPP },
+	{ HOSTAPD_MODE_IEEE80211A, 121, 100, 144, 4, BW20, NO_P2P_SUPP },
+	{ HOSTAPD_MODE_IEEE80211A, 122, 100, 140, 8, BW40PLUS, NO_P2P_SUPP },
+	{ HOSTAPD_MODE_IEEE80211A, 123, 104, 144, 8, BW40MINUS, NO_P2P_SUPP },
 	{ HOSTAPD_MODE_IEEE80211A, 124, 149, 161, 4, BW20, P2P_SUPP },
 	{ HOSTAPD_MODE_IEEE80211A, 125, 149, 177, 4, BW20, P2P_SUPP },
 	{ HOSTAPD_MODE_IEEE80211A, 126, 149, 173, 8, BW40PLUS, P2P_SUPP },
@@ -3063,10 +3064,10 @@ int op_class_to_bandwidth(u8 op_class)
 	case 119: /* channels 52,60; 40 MHz; dfs */
 	case 120: /* channels 56,64; 40 MHz; dfs */
 		return 40;
-	case 121: /* channels 100-140 */
+	case 121: /* channels 100-144 */
 		return 20;
-	case 122: /* channels 100-142; 40 MHz */
-	case 123: /* channels 104-136; 40 MHz */
+	case 122: /* channels 100-140; 40 MHz */
+	case 123: /* channels 104-144; 40 MHz */
 		return 40;
 	case 124: /* channels 149,153,157,161 */
 	case 125: /* channels 149,153,157,161,165,169,173,177 */
@@ -3126,10 +3127,10 @@ enum oper_chan_width op_class_to_ch_width(u8 op_class)
 	case 119: /* channels 52,60; 40 MHz; dfs */
 	case 120: /* channels 56,64; 40 MHz; dfs */
 		return CONF_OPER_CHWIDTH_USE_HT;
-	case 121: /* channels 100-140 */
+	case 121: /* channels 100-144 */
 		return CONF_OPER_CHWIDTH_USE_HT;
-	case 122: /* channels 100-142; 40 MHz */
-	case 123: /* channels 104-136; 40 MHz */
+	case 122: /* channels 100-140; 40 MHz */
+	case 123: /* channels 104-144; 40 MHz */
 		return CONF_OPER_CHWIDTH_USE_HT;
 	case 124: /* channels 149,153,157,161 */
 	case 125: /* channels 149,153,157,161,165,169,171 */
