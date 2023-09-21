@@ -5016,6 +5016,59 @@ hostapd_ctrl_iface_set_background_radar_mode(struct hostapd_data *hapd, char *cm
 	return os_snprintf(buf, buflen, "OK\n");
 }
 
+static int
+hostapd_ctrl_iface_set_pp(struct hostapd_data *hapd, char *cmd, char *buf,
+			  size_t buflen)
+{
+	char *pos, *config, *value;
+
+	config = cmd;
+	pos = os_strchr(config, ' ');
+	if (pos == NULL)
+		return -1;
+	*pos++ = '\0';
+
+	if (pos == NULL)
+		return -1;
+	value = pos;
+
+	if (os_strcmp(config, "mode") == 0) {
+		int val = atoi(value);
+
+		if (val < PP_DISABLE || val > PP_AUTO_MODE) {
+			wpa_printf(MSG_ERROR, "Invalid value for set_pp");
+			return -1;
+		}
+		hapd->iconf->pp_mode = (u8) val;
+		if (hostapd_drv_pp_mode_set(hapd) != 0)
+			return -1;
+	} else {
+		wpa_printf(MSG_ERROR,
+			   "Unsupported parameter %s for set_pp", config);
+		return -1;
+	}
+	return os_snprintf(buf, buflen, "OK\n");
+}
+
+static int
+hostapd_ctrl_iface_get_pp(struct hostapd_data *hapd, char *cmd, char *buf,
+			  size_t buflen)
+{
+	char *pos, *end;
+
+	pos = buf;
+	end = buf + buflen;
+
+	if (os_strcmp(cmd, "mode") == 0) {
+		return os_snprintf(pos, end - pos, "pp_mode: %d\n",
+				   hapd->iconf->pp_mode);
+	} else {
+		wpa_printf(MSG_ERROR,
+			   "Unsupported parameter %s for get_pp", cmd);
+		return -1;
+	}
+}
+
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
 					      int reply_size,
@@ -5658,6 +5711,12 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "DUMP_AMNT", 9) == 0) {
 		reply_len = hostapd_ctrl_iface_dump_amnt(hapd, buf+10,
 							reply, reply_size);
+	} else if (os_strncmp(buf, "set_pp", 6) == 0) {
+		reply_len = hostapd_ctrl_iface_set_pp(hapd, buf + 7, reply,
+						      reply_size);
+	} else if (os_strncmp(buf, "get_pp", 6) == 0) {
+		reply_len = hostapd_ctrl_iface_get_pp(hapd, buf + 7, reply,
+						      reply_size);
 	} else if (os_strncmp(buf, "set_muru_manual_config=", 23) == 0) {
 		// Replace first ':' with a single space ' '
 		char *pos = buf + 23;
