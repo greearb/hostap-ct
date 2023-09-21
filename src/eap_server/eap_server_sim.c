@@ -514,7 +514,30 @@ skip_id_attr:
 			/* Remain in START state for another round */
 			return;
 		}
-		wpa_printf(MSG_DEBUG, "EAP-SIM: Using fast re-authentication");
+
+		if (data->reauth->counter >
+		    sm->cfg->eap_sim_aka_fast_reauth_limit &&
+		    (sm->cfg->eap_sim_id & 0x04)) {
+			wpa_printf(MSG_DEBUG,
+				   "EAP-SIM: Too many fast re-authentication attemps - fall back to full authentication");
+			wpa_printf(MSG_DEBUG,
+				   "EAP-SIM: Permanent identity recognized - skip new Identity query");
+			os_strlcpy(data->permanent,
+				   data->reauth->permanent,
+				   sizeof(data->permanent));
+			os_strlcpy(sm->sim_aka_permanent,
+				   data->reauth->permanent,
+				   sizeof(sm->sim_aka_permanent));
+			eap_sim_db_remove_reauth(
+				sm->cfg->eap_sim_db_priv,
+				data->reauth);
+			data->reauth = NULL;
+			goto skip_id_update;
+		}
+
+		wpa_printf(MSG_DEBUG,
+			   "EAP-SIM: Using fast re-authentication (counter=%d)",
+			   data->reauth->counter);
 		os_strlcpy(data->permanent, data->reauth->permanent,
 			   sizeof(data->permanent));
 		data->counter = data->reauth->counter;

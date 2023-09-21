@@ -224,6 +224,8 @@ static struct eap_config * authsrv_eap_config(struct hostapd_data *hapd)
 	cfg->eap_sim_aka_result_ind = hapd->conf->eap_sim_aka_result_ind;
 	cfg->eap_sim_id = hapd->conf->eap_sim_id;
 	cfg->imsi_privacy_key = hapd->imsi_privacy_key;
+	cfg->eap_sim_aka_fast_reauth_limit =
+		hapd->conf->eap_sim_aka_fast_reauth_limit;
 	cfg->tnc = hapd->conf->tnc;
 	cfg->wps = hapd->wps;
 	cfg->fragment_size = hapd->conf->fragment_size;

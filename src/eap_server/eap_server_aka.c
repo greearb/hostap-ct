@@ -110,7 +110,29 @@ static int eap_aka_check_identity_reauth(struct eap_sm *sm,
 		return 0;
 	}
 
-	wpa_printf(MSG_DEBUG, "EAP-AKA: Using fast re-authentication");
+	if (data->reauth->counter > sm->cfg->eap_sim_aka_fast_reauth_limit) {
+		wpa_printf(MSG_DEBUG,
+			   "EAP-AKA: Too many fast re-authentication attemps - fall back to full authentication");
+		if (sm->cfg->eap_sim_id & 0x04) {
+			wpa_printf(MSG_DEBUG,
+				   "EAP-AKA: Permanent identity recognized - skip AKA-Identity exchange");
+			os_strlcpy(data->permanent, data->reauth->permanent,
+				   sizeof(data->permanent));
+			os_strlcpy(sm->sim_aka_permanent,
+				   data->reauth->permanent,
+				   sizeof(sm->sim_aka_permanent));
+			eap_sim_db_remove_reauth(sm->cfg->eap_sim_db_priv,
+						 data->reauth);
+			data->reauth = NULL;
+			eap_aka_fullauth(sm, data);
+			return 1;
+		}
+		return 0;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "EAP-AKA: Using fast re-authentication (counter=%d)",
+		   data->reauth->counter);
 	os_strlcpy(data->permanent, data->reauth->permanent,
 		   sizeof(data->permanent));
 	data->counter = data->reauth->counter;

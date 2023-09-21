@@ -2603,6 +2603,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 	} else if (os_strcmp(buf, "imsi_privacy_key") == 0) {
 		os_free(bss->imsi_privacy_key);
 		bss->imsi_privacy_key = os_strdup(pos);
+	} else if (os_strcmp(buf, "eap_sim_aka_fast_reauth_limit") == 0) {
+		bss->eap_sim_aka_fast_reauth_limit = atoi(pos);
 #endif /* EAP_SERVER_SIM */
 #ifdef EAP_SERVER_TNC
 	} else if (os_strcmp(buf, "tnc") == 0) {

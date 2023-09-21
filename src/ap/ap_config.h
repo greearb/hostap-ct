@@ -448,6 +448,7 @@ struct hostapd_bss_config {
 	int eap_sim_aka_result_ind;
 	int eap_sim_id;
 	char *imsi_privacy_key;
+	int eap_sim_aka_fast_reauth_limit;
 	int tnc;
 	int fragment_size;
 	u16 pwd_group;

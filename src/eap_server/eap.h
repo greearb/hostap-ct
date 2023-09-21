@@ -220,6 +220,10 @@ struct eap_config {
 	int eap_sim_aka_result_ind;
 	int eap_sim_id;
 
+	/* Maximum number of fast re-authentications allowed after each full
+	 * EAP-SIM/AKA authentication. */
+	int eap_sim_aka_fast_reauth_limit;
+
 	/**
 	 * tnc - Trusted Network Connect (TNC)
 	 *
