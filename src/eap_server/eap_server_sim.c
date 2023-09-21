@@ -106,12 +106,28 @@ static struct wpabuf * eap_sim_build_start(struct eap_sm *sm,
 {
 	struct eap_sim_msg *msg;
 	u8 ver[2];
+	bool id_req = true;
 
 	wpa_printf(MSG_DEBUG, "EAP-SIM: Generating Start");
 	msg = eap_sim_msg_init(EAP_CODE_REQUEST, id, EAP_TYPE_SIM,
 			       EAP_SIM_SUBTYPE_START);
 	data->start_round++;
-	if (data->start_round == 1) {
+
+	if (data->start_round == 1 && (sm->cfg->eap_sim_id & 0x04)) {
+		char *username;
+
+		username = sim_get_username(sm->identity, sm->identity_len);
+		if (username && username[0] == EAP_SIM_REAUTH_ID_PREFIX &&
+		    eap_sim_db_get_reauth_entry(sm->cfg->eap_sim_db_priv,
+						username))
+			id_req = false;
+
+		os_free(username);
+	}
+
+	if (!id_req) {
+		wpa_printf(MSG_DEBUG, "   No identity request");
+	} else if (data->start_round == 1) {
 		/*
 		 * RFC 4186, Chap. 4.2.4 recommends that identity from EAP is
 		 * ignored and the SIM/Start is used to request the identity.
@@ -434,6 +450,7 @@ static void eap_sim_process_start(struct eap_sm *sm,
 				  struct wpabuf *respData,
 				  struct eap_sim_attrs *attr)
 {
+	const u8 *identity;
 	size_t identity_len;
 	u8 ver_list[2];
 	u8 *new_identity;
@@ -449,9 +466,13 @@ static void eap_sim_process_start(struct eap_sm *sm,
 		goto skip_id_update;
 	}
 
+	if ((sm->cfg->eap_sim_id & 0x04) &&
+	    (!attr->identity || attr->identity_len == 0))
+		goto skip_id_attr;
+
 	/*
-	 * We always request identity in SIM/Start, so the peer is required to
-	 * have replied with one.
+	 * Unless explicitly configured otherwise, we always request identity
+	 * in SIM/Start, so the peer is required to have replied with one.
 	 */
 	if (!attr->identity || attr->identity_len == 0) {
 		wpa_printf(MSG_DEBUG, "EAP-SIM: Peer did not provide any "
@@ -467,9 +488,17 @@ static void eap_sim_process_start(struct eap_sm *sm,
 	os_memcpy(sm->identity, attr->identity, attr->identity_len);
 	sm->identity_len = attr->identity_len;
 
+skip_id_attr:
+	if (sm->sim_aka_permanent[0]) {
+		identity = (const u8 *) sm->sim_aka_permanent;
+		identity_len = os_strlen(sm->sim_aka_permanent);
+	} else {
+		identity = sm->identity;
+		identity_len = sm->identity_len;
+	}
 	wpa_hexdump_ascii(MSG_DEBUG, "EAP-SIM: Identity",
-			  sm->identity, sm->identity_len);
-	username = sim_get_username(sm->identity, sm->identity_len);
+			  identity, identity_len);
+	username = sim_get_username(identity, identity_len);
 	if (username == NULL)
 		goto failed;
 
