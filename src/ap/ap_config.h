@@ -1289,6 +1289,7 @@ struct hostapd_config {
 	u8 dfs_detect_mode;
 	u8 amsdu;
 	void *muru_config;
+	u8 pp_mode;
 };
 
 enum three_wire_mode {
@@ -1339,6 +1340,12 @@ enum mtk_vendor_attr_edcca_ctrl_mode {
 	EDCCA_CTRL_GET_EN,
 	EDCCA_CTRL_GET_THRES,
 	EDCCA_CTRL_NUM,
+};
+
+enum pp_mode {
+	PP_DISABLE = 0,
+	PP_AUTO_MODE,
+	PP_MANUAL_MODE,
 };
 
 #define EDCCA_DEFAULT_COMPENSATION -6
