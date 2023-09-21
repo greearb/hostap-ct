@@ -429,6 +429,26 @@ def test_ap_wpa2_eap_sim_sql(dev, apdev, params):
     logger.info("SIM reauth with max reauth count reached")
     eap_reauth(dev[0], "SIM")
 
+
+def test_ap_wpa2_eap_sim_sql_fallback_to_pseudonym(dev, apdev, params):
+    """WPA2-Enterprise connection using EAP-SIM (SQL) and fallback to pseudonym without SIM-Identity"""
+    run_ap_wpa2_eap_sim_sql_fallback_to_pseudonym(dev, apdev, params, 7)
+
+def run_ap_wpa2_eap_sim_sql_fallback_to_pseudonym(dev, apdev, params,
+                                                  eap_sim_id):
+    check_hlr_auc_gw_support()
+    db = os.path.join(params['logdir'], "hostapd.db")
+    params = int_eap_server_params()
+    params['eap_sim_db'] = 'unix:/tmp/hlr_auc_gw.sock db=' + db
+    params['eap_sim_aka_fast_reauth_limit'] = '0'
+    params['eap_sim_id'] = str(eap_sim_id)
+    hapd = hostapd.add_ap(apdev[0], params)
+    eap_connect(dev[0], hapd, "SIM", "1232010000000000",
+                password="90dca4eda45b53cf0f12d7c9c3bc6a89:cb9cccc4b9258e6dca4760379fb82581")
+
+    logger.info("SIM fallback from fast re-auth to full auth with pseudonym")
+    eap_reauth(dev[0], "SIM")
+
 def test_ap_wpa2_eap_sim_config(dev, apdev):
     """EAP-SIM configuration options"""
     params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")
@@ -475,6 +495,22 @@ def test_ap_wpa2_eap_sim_id_2(dev, apdev):
 def test_ap_wpa2_eap_sim_id_3(dev, apdev):
     """WPA2-Enterprise connection using EAP-SIM (pseudonym and reauth)"""
     run_ap_wpa2_eap_sim_id(dev, apdev, 3)
+
+def test_ap_wpa2_eap_sim_id_4(dev, apdev):
+    """WPA2-Enterprise connection using EAP-SIM (no pseudonym or reauth)"""
+    run_ap_wpa2_eap_sim_id(dev, apdev, 4)
+
+def test_ap_wpa2_eap_sim_id_5(dev, apdev):
+    """WPA2-Enterprise connection using EAP-SIM (pseudonym, no reauth)"""
+    run_ap_wpa2_eap_sim_id(dev, apdev, 5)
+
+def test_ap_wpa2_eap_sim_id_6(dev, apdev):
+    """WPA2-Enterprise connection using EAP-SIM (no pseudonym, reauth)"""
+    run_ap_wpa2_eap_sim_id(dev, apdev, 6)
+
+def test_ap_wpa2_eap_sim_id_7(dev, apdev):
+    """WPA2-Enterprise connection using EAP-SIM (pseudonym and reauth)"""
+    run_ap_wpa2_eap_sim_id(dev, apdev, 7)
 
 def run_ap_wpa2_eap_sim_id(dev, apdev, eap_sim_id):
     check_hlr_auc_gw_support()
@@ -1098,9 +1134,25 @@ def test_ap_wpa2_eap_aka(dev, apdev):
 
 def test_ap_wpa2_eap_aka_imsi_identity(dev, apdev, params):
     """WPA2-Enterprise connection using EAP-AKA and imsi_identity"""
+    run_ap_wpa2_eap_aka_imsi_identity(dev, apdev, params, False)
+
+def test_ap_wpa2_eap_aka_imsi_identity_fallback(dev, apdev, params):
+    """WPA2-Enterprise connection using EAP-AKA and imsi_identity"""
+    run_ap_wpa2_eap_aka_imsi_identity(dev, apdev, params, True)
+
+def run_ap_wpa2_eap_aka_imsi_identity(dev, apdev, params, fallback):
     check_hlr_auc_gw_support()
     prefix = params['prefix']
-    params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")
+    if fallback:
+        db = os.path.join(params['logdir'], "hostapd.db")
+        params = int_eap_server_params()
+        params['imsi_privacy_key'] = "auth_serv/imsi-privacy-key.pem"
+        params['eap_sim_db'] = 'unix:/tmp/hlr_auc_gw.sock db=' + db
+        params['eap_sim_aka_fast_reauth_limit'] = '0'
+        params['eap_sim_id'] = "7"
+    else:
+        params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")
+
     hapd = hostapd.add_ap(apdev[0], params)
     check_imsi_privacy_support(hapd)
 
@@ -1240,6 +1292,71 @@ def test_ap_wpa2_eap_aka_sql(dev, apdev, params):
         cur = con.cursor()
         cur.execute("UPDATE reauth SET counter='1001' WHERE permanent='0232010000000000'")
     logger.info("AKA reauth with max reauth count reached")
+    eap_reauth(dev[0], "AKA")
+
+def test_ap_wpa2_eap_aka_sql_fallback_to_pseudonym_id(dev, apdev, params):
+    """WPA2-Enterprise connection using EAP-AKA (SQL) and fallback to pseudonym using AKA-Identity"""
+    run_ap_wpa2_eap_aka_sql_fallback_to_pseudonym(dev, apdev, params, 3)
+
+def test_ap_wpa2_eap_aka_sql_fallback_to_pseudonym(dev, apdev, params):
+    """WPA2-Enterprise connection using EAP-AKA (SQL) and fallback to pseudonym without AKA-Identity"""
+    run_ap_wpa2_eap_aka_sql_fallback_to_pseudonym(dev, apdev, params, 7)
+
+def run_ap_wpa2_eap_aka_sql_fallback_to_pseudonym(dev, apdev, params,
+                                                  eap_sim_id):
+    check_hlr_auc_gw_support()
+    db = os.path.join(params['logdir'], "hostapd.db")
+    params = int_eap_server_params()
+    params['eap_sim_db'] = 'unix:/tmp/hlr_auc_gw.sock db=' + db
+    params['eap_sim_aka_fast_reauth_limit'] = '0'
+    params['eap_sim_id'] = str(eap_sim_id)
+    hapd = hostapd.add_ap(apdev[0], params)
+    eap_connect(dev[0], hapd, "AKA", "0232010000000000",
+                password="90dca4eda45b53cf0f12d7c9c3bc6a89:cb9cccc4b9258e6dca4760379fb82581:000000000000")
+
+    logger.info("AKA fallback from fast re-auth to full auth with pseudonym")
+    eap_reauth(dev[0], "AKA")
+
+def test_ap_wpa2_eap_aka_id_0(dev, apdev):
+    """WPA2-Enterprise connection using EAP-AKA (no pseudonym or reauth)"""
+    run_ap_wpa2_eap_aka_id(dev, apdev, 0)
+
+def test_ap_wpa2_eap_aka_id_1(dev, apdev):
+    """WPA2-Enterprise connection using EAP-AKA (pseudonym, no reauth)"""
+    run_ap_wpa2_eap_aka_id(dev, apdev, 1)
+
+def test_ap_wpa2_eap_aka_id_2(dev, apdev):
+    """WPA2-Enterprise connection using EAP-AKA (no pseudonym, reauth)"""
+    run_ap_wpa2_eap_aka_id(dev, apdev, 2)
+
+def test_ap_wpa2_eap_aka_id_3(dev, apdev):
+    """WPA2-Enterprise connection using EAP-AKA (pseudonym and reauth)"""
+    run_ap_wpa2_eap_aka_id(dev, apdev, 3)
+
+def test_ap_wpa2_eap_aka_id_4(dev, apdev):
+    """WPA2-Enterprise connection using EAP-AKA (no pseudonym or reauth)"""
+    run_ap_wpa2_eap_aka_id(dev, apdev, 4)
+
+def test_ap_wpa2_eap_aka_id_5(dev, apdev):
+    """WPA2-Enterprise connection using EAP-AKA (pseudonym, no reauth)"""
+    run_ap_wpa2_eap_aka_id(dev, apdev, 5)
+
+def test_ap_wpa2_eap_aka_id_6(dev, apdev):
+    """WPA2-Enterprise connection using EAP-AKA (no pseudonym, reauth)"""
+    run_ap_wpa2_eap_aka_id(dev, apdev, 6)
+
+def test_ap_wpa2_eap_aka_id_7(dev, apdev):
+    """WPA2-Enterprise connection using EAP-AKA (pseudonym and reauth)"""
+    run_ap_wpa2_eap_aka_id(dev, apdev, 7)
+
+def run_ap_wpa2_eap_aka_id(dev, apdev, eap_sim_id):
+    check_hlr_auc_gw_support()
+    params = int_eap_server_params()
+    params['eap_sim_id'] = str(eap_sim_id)
+    params['eap_sim_db'] = 'unix:/tmp/hlr_auc_gw.sock'
+    hapd = hostapd.add_ap(apdev[0], params)
+    eap_connect(dev[0], hapd, "AKA", "0232010000000000",
+                password="90dca4eda45b53cf0f12d7c9c3bc6a89:cb9cccc4b9258e6dca4760379fb82581:000000000000")
     eap_reauth(dev[0], "AKA")
 
 def test_ap_wpa2_eap_aka_config(dev, apdev):
