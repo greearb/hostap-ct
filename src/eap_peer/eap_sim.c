@@ -43,8 +43,8 @@ struct eap_sim_data {
 	size_t reauth_id_len;
 	int reauth;
 	unsigned int counter, counter_too_small;
-	u8 *last_eap_identity;
-	size_t last_eap_identity_len;
+	u8 *mk_identity;
+	size_t mk_identity_len;
 	enum {
 		CONTINUE, START_DONE, RESULT_SUCCESS, SUCCESS, FAILURE
 	} state;
@@ -158,6 +158,13 @@ static void * eap_sim_init(struct eap_sm *sm)
 		}
 	}
 
+	if (sm->identity) {
+		/* Use the EAP-Response/Identity in MK derivation if AT_IDENTITY
+		 * is not used. */
+		data->mk_identity = os_memdup(sm->identity, sm->identity_len);
+		data->mk_identity_len = sm->identity_len;
+	}
+
 	eap_sim_state(data, CONTINUE);
 
 	return data;
@@ -185,7 +192,7 @@ static void eap_sim_deinit(struct eap_sm *sm, void *priv)
 		os_free(data->ver_list);
 		os_free(data->pseudonym);
 		os_free(data->reauth_id);
-		os_free(data->last_eap_identity);
+		os_free(data->mk_identity);
 		eap_sim_clear_keys(data, 0);
 #ifdef CRYPTO_RSA_OAEP_SHA256
 		crypto_rsa_key_free(data->imsi_privacy_key);
@@ -399,7 +406,6 @@ static int eap_sim_supported_ver(int version)
 
 #define CLEAR_PSEUDONYM	0x01
 #define CLEAR_REAUTH_ID	0x02
-#define CLEAR_EAP_ID	0x04
 
 static void eap_sim_clear_identities(struct eap_sm *sm,
 				     struct eap_sim_data *data, int id)
@@ -417,12 +423,6 @@ static void eap_sim_clear_identities(struct eap_sm *sm,
 		os_free(data->reauth_id);
 		data->reauth_id = NULL;
 		data->reauth_id_len = 0;
-	}
-	if ((id & CLEAR_EAP_ID) && data->last_eap_identity) {
-		wpa_printf(MSG_DEBUG, "EAP-SIM: forgetting old eap_id");
-		os_free(data->last_eap_identity);
-		data->last_eap_identity = NULL;
-		data->last_eap_identity_len = 0;
 	}
 }
 
@@ -567,6 +567,8 @@ static struct wpabuf * eap_sim_response_start(struct eap_sm *sm,
 	struct eap_sim_msg *msg;
 	struct wpabuf *resp;
 	struct wpabuf *enc_identity = NULL;
+	struct eap_peer_config *config = NULL;
+	bool use_imsi_identity = false;
 
 	data->reauth = 0;
 	if (id_req == ANY_ID && data->reauth_id) {
@@ -590,10 +592,13 @@ static struct wpabuf * eap_sim_response_start(struct eap_sm *sm,
 						       data->pseudonym_len))
 				ids &= ~CLEAR_PSEUDONYM;
 			eap_sim_clear_identities(sm, data, ids);
+
+			config = eap_get_config(sm);
+			if (config && config->imsi_identity)
+				use_imsi_identity = true;
 		}
 #ifdef CRYPTO_RSA_OAEP_SHA256
 		if (identity && data->imsi_privacy_key) {
-			struct eap_peer_config *config;
 			const char *attr = NULL;
 
 			config = eap_get_config(sm);
@@ -609,13 +614,16 @@ static struct wpabuf * eap_sim_response_start(struct eap_sm *sm,
 					data, id,
 					EAP_SIM_UNABLE_TO_PROCESS_PACKET);
 			}
+			/* Use the real identity, not the encrypted one, in MK
+			 * derivation. */
+			os_free(data->mk_identity);
+			data->mk_identity = os_memdup(identity, identity_len);
+			data->mk_identity_len = identity_len;
 			identity = wpabuf_head(enc_identity);
 			identity_len = wpabuf_len(enc_identity);
 		}
 #endif /* CRYPTO_RSA_OAEP_SHA256 */
 	}
-	if (id_req != NO_ID_REQ)
-		eap_sim_clear_identities(sm, data, CLEAR_EAP_ID);
 
 	wpa_printf(MSG_DEBUG, "Generating EAP-SIM Start (id=%d)", id);
 	msg = eap_sim_msg_init(EAP_CODE_RESPONSE, id,
@@ -625,6 +633,22 @@ static struct wpabuf * eap_sim_response_start(struct eap_sm *sm,
 				  identity, identity_len);
 		eap_sim_msg_add(msg, EAP_SIM_AT_IDENTITY, identity_len,
 				identity, identity_len);
+		if (use_imsi_identity && config && config->imsi_identity) {
+			/* Use the IMSI identity override, i.e., the not
+			 * encrypted one, in MK derivation, when using
+			 * externally encrypted identity in configuration. */
+			os_free(data->mk_identity);
+			data->mk_identity = os_memdup(
+				config->imsi_identity,
+				config->imsi_identity_len);
+			data->mk_identity_len = config->imsi_identity_len;
+		} else if (!enc_identity) {
+			/* Use the last AT_IDENTITY value as the identity in
+			 * MK derivation. */
+			os_free(data->mk_identity);
+			data->mk_identity = os_memdup(identity, identity_len);
+			data->mk_identity_len = identity_len;
+		}
 	}
 	wpabuf_free(enc_identity);
 	if (!data->reauth) {
@@ -886,28 +910,9 @@ static struct wpabuf * eap_sim_process_challenge(struct eap_sm *sm,
 		return eap_sim_client_error(data, id,
 					    EAP_SIM_UNABLE_TO_PROCESS_PACKET);
 	}
-	if (data->last_eap_identity) {
-		identity = data->last_eap_identity;
-		identity_len = data->last_eap_identity_len;
-	} else if (data->reauth_id) {
-		identity = data->reauth_id;
-		identity_len = data->reauth_id_len;
-	} else if (data->pseudonym &&
-		   !eap_sim_anonymous_username(data->pseudonym,
-					       data->pseudonym_len)) {
-		identity = data->pseudonym;
-		identity_len = data->pseudonym_len;
-	} else {
-		struct eap_peer_config *config;
 
-		config = eap_get_config(sm);
-		if (config && config->imsi_identity) {
-			identity = config->imsi_identity;
-			identity_len = config->imsi_identity_len;
-		} else {
-			identity = eap_get_config_identity(sm, &identity_len);
-		}
-	}
+	identity = data->mk_identity;
+	identity_len = data->mk_identity_len;
 	wpa_hexdump_ascii(MSG_DEBUG, "EAP-SIM: Selected identity for MK "
 			  "derivation", identity, identity_len);
 	eap_sim_derive_mk(identity, identity_len, data->nonce_mt,
@@ -933,7 +938,7 @@ static struct wpabuf * eap_sim_process_challenge(struct eap_sm *sm,
 	 * other words, if no new reauth identity is received, full
 	 * authentication will be used on next reauthentication (using
 	 * pseudonym identity or permanent identity). */
-	eap_sim_clear_identities(sm, data, CLEAR_REAUTH_ID | CLEAR_EAP_ID);
+	eap_sim_clear_identities(sm, data, CLEAR_REAUTH_ID);
 
 	if (attr->encr_data) {
 		u8 *decrypted;
@@ -1143,14 +1148,8 @@ static struct wpabuf * eap_sim_process_reauthentication(
 
 		/* Reply using Re-auth w/ AT_COUNTER_TOO_SMALL. The current
 		 * reauth_id must not be used to start a new reauthentication.
-		 * However, since it was used in the last EAP-Response-Identity
-		 * packet, it has to saved for the following fullauth to be
-		 * used in MK derivation. */
-		os_free(data->last_eap_identity);
-		data->last_eap_identity = data->reauth_id;
-		data->last_eap_identity_len = data->reauth_id_len;
-		data->reauth_id = NULL;
-		data->reauth_id_len = 0;
+		 */
+		eap_sim_clear_identities(sm, data, CLEAR_REAUTH_ID);
 
 		res = eap_sim_response_reauth(data, id, 1, eattr.nonce_s);
 		os_free(decrypted);
@@ -1167,7 +1166,7 @@ static struct wpabuf * eap_sim_process_reauthentication(
 				   data->reauth_id, data->reauth_id_len,
 				   data->nonce_s, data->mk, data->msk,
 				   data->emsk);
-	eap_sim_clear_identities(sm, data, CLEAR_REAUTH_ID | CLEAR_EAP_ID);
+	eap_sim_clear_identities(sm, data, CLEAR_REAUTH_ID);
 	eap_sim_learn_ids(sm, data, &eattr);
 
 	if (data->result_ind && attr->result_ind)
@@ -1183,8 +1182,7 @@ static struct wpabuf * eap_sim_process_reauthentication(
 	if (data->counter > EAP_SIM_MAX_FAST_REAUTHS) {
 		wpa_printf(MSG_DEBUG, "EAP-SIM: Maximum number of "
 			   "fast reauths performed - force fullauth");
-		eap_sim_clear_identities(sm, data,
-					 CLEAR_REAUTH_ID | CLEAR_EAP_ID);
+		eap_sim_clear_identities(sm, data, CLEAR_REAUTH_ID);
 	}
 	os_free(decrypted);
 	return eap_sim_response_reauth(data, id, 0, data->nonce_s);
@@ -1293,7 +1291,10 @@ static bool eap_sim_has_reauth_data(struct eap_sm *sm, void *priv)
 static void eap_sim_deinit_for_reauth(struct eap_sm *sm, void *priv)
 {
 	struct eap_sim_data *data = priv;
-	eap_sim_clear_identities(sm, data, CLEAR_EAP_ID);
+
+	os_free(data->mk_identity);
+	data->mk_identity = NULL;
+	data->mk_identity_len = 0;
 	data->use_result_ind = 0;
 	eap_sim_clear_keys(data, 1);
 }
@@ -1308,6 +1309,15 @@ static void * eap_sim_init_for_reauth(struct eap_sm *sm, void *priv)
 		eap_sim_deinit(sm, data);
 		return NULL;
 	}
+
+	if (sm->identity) {
+		/* Use the EAP-Response/Identity in MK derivation if AT_IDENTITY
+		 * is not used. */
+		os_free(data->mk_identity);
+		data->mk_identity = os_memdup(sm->identity, sm->identity_len);
+		data->mk_identity_len = sm->identity_len;
+	}
+
 	data->num_id_req = 0;
 	data->num_notification = 0;
 	eap_sim_state(data, CONTINUE);

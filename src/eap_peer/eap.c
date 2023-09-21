@@ -1759,6 +1759,10 @@ struct wpabuf * eap_sm_buildIdentity(struct eap_sm *sm, int id, int encrypted)
 	wpabuf_put_data(resp, identity, identity_len);
 	wpabuf_free(privacy_identity);
 
+	os_free(sm->identity);
+	sm->identity = os_memdup(identity, identity_len);
+	sm->identity_len = identity_len;
+
 	return resp;
 }
 
@@ -2262,6 +2266,7 @@ void eap_peer_sm_deinit(struct eap_sm *sm)
 		tls_deinit(sm->ssl_ctx2);
 	tls_deinit(sm->ssl_ctx);
 	eap_peer_erp_free_keys(sm);
+	os_free(sm->identity);
 	os_free(sm);
 }
 
