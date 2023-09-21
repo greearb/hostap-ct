@@ -1558,3 +1558,12 @@ int hostapd_drv_background_radar_mode(struct hostapd_data *hapd)
 	return hapd->driver->background_radar_mode(hapd->drv_priv,
 						   hapd->iconf->background_radar_mode);
 }
+
+int hostapd_drv_pp_mode_set(struct hostapd_data *hapd)
+{
+	if (!hapd->driver || !hapd->driver->pp_mode_set ||
+	    hapd->iconf->pp_mode > PP_AUTO_MODE)
+		return 0;
+	return hapd->driver->pp_mode_set(hapd->drv_priv,
+					 hapd->iconf->pp_mode);
+}
