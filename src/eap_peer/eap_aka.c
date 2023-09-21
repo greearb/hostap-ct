@@ -1150,6 +1150,9 @@ static struct wpabuf * eap_aka_process_challenge(struct eap_sm *sm,
 	if (data->last_eap_identity) {
 		identity = data->last_eap_identity;
 		identity_len = data->last_eap_identity_len;
+	} else if (data->reauth_id) {
+		identity = data->reauth_id;
+		identity_len = data->reauth_id_len;
 	} else if (data->pseudonym &&
 		   !eap_sim_anonymous_username(data->pseudonym,
 					       data->pseudonym_len)) {
