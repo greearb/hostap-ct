@@ -319,6 +319,7 @@ struct hostapd_config * hostapd_config_defaults(void)
 	conf->three_wire_enable = THREE_WIRE_MODE_DISABLE;
 	conf->ibf_enable = IBF_DEFAULT_ENABLE;
 	conf->amsdu = 1;
+	conf->pp_mode = PP_DISABLE;
 
 	hostapd_set_and_check_bw320_offset(conf, 0);
 

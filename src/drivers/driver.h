@@ -5679,6 +5679,12 @@ struct wpa_driver_ops {
 	 * @background_radar_mode: background radar mode
 	 */
 	int (*background_radar_mode)(void *priv, u8 background_radar_mode);
+	/**
+	 * pp_mode_set - Set preamble puncture operation mode
+	 * @priv: Private driver interface data
+	 * @pp_mode: Value is defined in enum pp_mode
+	 */
+	int (*pp_mode_set)(void *priv, const u8 pp_mode);
 };
 
 /**
