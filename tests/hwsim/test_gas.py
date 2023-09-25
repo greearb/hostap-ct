@@ -1495,6 +1495,7 @@ def _test_gas_anqp_address3_pmf(dev, apdev):
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="auth_serv/ca.pem", scan_freq="2412",
                    ieee80211w="2")
+    hapd.wait_sta()
 
     if "OK" not in dev[0].request("ANQP_GET " + bssid + " 258"):
         raise Exception("ANQP_GET command failed")
@@ -1533,6 +1534,7 @@ def test_gas_prot_vs_not_prot(dev, apdev, params):
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="auth_serv/ca.pem", scan_freq="2412",
                    ieee80211w="2")
+    hapd.wait_sta()
 
     if "OK" not in dev[0].request("ANQP_GET " + bssid + " 258"):
         raise Exception("ANQP_GET command failed")
@@ -1765,6 +1767,7 @@ def test_gas_anqp_venue_url_pmf(dev, apdev):
     dev[0].flush_scan_cache()
     dev[0].connect("gas/anqp/pmf", psk="12345678", ieee80211w="2",
                    scan_freq="2412")
+    hapd.wait_sta()
     if "OK" not in dev[0].request("ANQP_GET " + bssid + " 277"):
         raise Exception("ANQP_GET command failed")
 
