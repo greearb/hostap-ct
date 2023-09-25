@@ -725,6 +725,9 @@ def test_ap_open_poll_sta_no_ack(dev, apdev):
     hapd.set("ext_mgmt_frame_handling", "1")
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected()
+    # eat up the deauth frame, so it cannot be processed
+    # after we disable ext_mgmt_frame_handling again
+    hapd.wait_event(["MGMT-RX"], timeout=1)
     hapd.set("ext_mgmt_frame_handling", "0")
     if "OK" not in hapd.request("POLL_STA " + addr):
         raise Exception("POLL_STA failed")
