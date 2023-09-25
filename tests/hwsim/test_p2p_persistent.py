@@ -337,7 +337,7 @@ def test_persistent_go_client_list(dev):
         raise Exception("Timeout on group restart (on client)")
     dev[1].group_form_result(ev)
     clients = dev[0].global_request("GET_NETWORK " + id + " p2p_client_list").rstrip()
-    if clients != addr1 + " " + addr2:
+    if set(clients.split()) != set((addr1, addr2)):
         raise Exception("Unexpected p2p_client_list entry(4): " + clients)
 
     dev[2].remove_group()
