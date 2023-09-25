@@ -52,10 +52,25 @@ def check_pasn_ptk(dev, hapd, cipher, fail_ptk=False, clear_keys=True,
     sta_ptksa = dev.get_ptksa(hapd.own_addr(), cipher)
     ap_ptksa = hapd.get_ptksa(dev.own_addr(), cipher)
 
+    # There's no event indicating hostapd has finished
+    # processing - so just try once more if it isn't
+    # yet available, it might become available still.
+    for i in range(10):
+        if ap_ptksa:
+            break
+        time.sleep(0.1)
+        ap_ptksa = hapd.get_ptksa(dev.own_addr(), cipher)
+
     if not (sta_ptksa and ap_ptksa):
         if fail_ptk:
             return
-        raise Exception("Could not get PTKSA entry")
+        if not sta_ptksa and not ap_ptksa:
+            source = 'both'
+        elif sta_ptksa:
+            source = 'ap'
+        else:
+            source = 'sta'
+        raise Exception("Could not get PTKSA entry from %s" % source)
 
     logger.info("sta: TK: %s KDK: %s" % (sta_ptksa['tk'], sta_ptksa['kdk']))
     logger.info("ap : TK: %s KDK: %s" % (ap_ptksa['tk'], ap_ptksa['kdk']))
