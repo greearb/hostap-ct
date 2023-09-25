@@ -1380,7 +1380,7 @@ def test_ap_hs20_connect_no_full_match(dev, apdev):
     params = hs20_ap_params()
     params['hessid'] = bssid
     params['anqp_3gpp_cell_net'] = "555,444"
-    hostapd.add_ap(apdev[0], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     dev[0].flush_scan_cache()
     dev[0].hs20_enable()
@@ -1400,8 +1400,12 @@ def test_ap_hs20_connect_no_full_match(dev, apdev):
     if "below_min_backhaul=1" not in ev:
         raise Exception("below_min_backhaul not reported")
     interworking_connect(dev[0], bssid, "TTLS")
+    # wait for sta to connect so it can actually disconnect later
+    hapd.wait_sta()
     dev[0].remove_cred(id)
     dev[0].wait_disconnected()
+    # wait for sta to disconnect so it can send GAS query
+    hapd.wait_event(["AP-STA-DISCONNECTED"], timeout=1)
 
     vals = {'imsi': "555444-333222111", 'eap': "SIM",
             'milenage': "5122250214c33e723a5dd523fc145fc0:981d464c7c52eb6e5036234984ad0bcf:000000000123",
