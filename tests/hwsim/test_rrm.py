@@ -2193,18 +2193,22 @@ def test_rrm_reassociation(dev, apdev):
     addr = dev[0].own_addr()
     dev[0].flush_scan_cache()
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
+    hapd.wait_sta()
     check_beacon_req(hapd, addr, 1)
 
     dev[0].request("REASSOCIATE")
     dev[0].wait_connected()
+    hapd.wait_sta()
     check_beacon_req(hapd, addr, 1)
 
     hapd2 = hostapd.add_ap(apdev[1]['ifname'], params)
     bssid2 = hapd2.own_addr()
     dev[0].scan_for_bss(bssid2, freq=2412)
     dev[0].roam(bssid2)
+    hapd2.wait_sta()
     check_beacon_req(hapd2, addr, 2)
 
     dev[0].scan_for_bss(bssid, freq=2412)
     dev[0].roam(bssid)
+    hapd.wait_sta()
     check_beacon_req(hapd, addr, 3)

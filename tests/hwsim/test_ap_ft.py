@@ -3476,6 +3476,7 @@ def test_ap_ft_roam_rrm(dev, apdev):
     dev[0].flush_scan_cache()
     dev[0].connect(ssid, psk=passphrase, key_mgmt="FT-PSK", proto="WPA2",
                    scan_freq="2412")
+    hapd0.wait_sta()
     check_beacon_req(hapd0, addr, 1)
 
     params = ft_params2(ssid=ssid, passphrase=passphrase)
@@ -3485,10 +3486,12 @@ def test_ap_ft_roam_rrm(dev, apdev):
 
     dev[0].scan_for_bss(bssid1, freq=2412)
     dev[0].roam(bssid1)
+    hapd1.wait_sta()
     check_beacon_req(hapd1, addr, 2)
 
     dev[0].scan_for_bss(bssid0, freq=2412)
     dev[0].roam(bssid0)
+    hapd0.wait_sta()
     check_beacon_req(hapd0, addr, 3)
 
 def test_ap_ft_pmksa_caching(dev, apdev):
