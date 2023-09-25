@@ -54,6 +54,7 @@ def test_ap_mixed_security(dev, apdev):
     if sae and dev[2].get_status_field("key_mgmt") != "SAE":
         raise Exception("Unexpected key_mgmt(3)")
 
+    time.sleep(0.1) # give it time for AP to set up stations fully
     hwsim_utils.test_connectivity(dev[0], dev[1])
     if sae:
         hwsim_utils.test_connectivity(dev[1], dev[2])
