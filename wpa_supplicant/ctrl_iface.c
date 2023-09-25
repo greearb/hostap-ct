@@ -3609,6 +3609,7 @@ static int wpa_supplicant_ctrl_iface_update_network(
 
 	if (os_strcmp(name, "bssid") != 0 &&
 	    os_strcmp(name, "bssid_hint") != 0 &&
+	    os_strcmp(name, "scan_freq") != 0 &&
 	    os_strcmp(name, "priority") != 0) {
 		wpa_sm_pmksa_cache_flush(wpa_s->wpa, ssid);
 
