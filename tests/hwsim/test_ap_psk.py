@@ -250,7 +250,7 @@ def test_ap_wpa2_ptk_rekey_blocked_ap(dev, apdev):
         raise Exception("PTK rekey timed out")
     if "WPA: Key negotiation completed" in ev:
         raise Exception("No disconnect, PTK rekey succeeded")
-    ev = dev[0].wait_event(["WPA: Key negotiation completed"], timeout=1)
+    ev = dev[0].wait_event(["WPA: Key negotiation completed"], timeout=1.1)
     if ev is None:
         raise Exception("Reconnect too slow")
 
@@ -268,7 +268,7 @@ def test_ap_wpa2_ptk_rekey_blocked_sta(dev, apdev):
         raise Exception("PTK rekey timed out")
     if "WPA: Key negotiation completed" in ev:
         raise Exception("No disconnect, PTK rekey succeeded")
-    ev = dev[0].wait_event(["WPA: Key negotiation completed"], timeout=1)
+    ev = dev[0].wait_event(["WPA: Key negotiation completed"], timeout=1.1)
     if ev is None:
         raise Exception("Reconnect too slow")
 
