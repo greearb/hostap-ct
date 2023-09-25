@@ -336,9 +336,11 @@ def test_autogo_legacy(dev):
     logger.info("Connect legacy non-WPS client")
     dev[2].request("FLUSH")
     dev[2].request("P2P_SET disabled 1")
+    dev[0].dump_monitor()
     dev[2].connect(ssid=res['ssid'], psk=res['passphrase'], proto='RSN',
                    key_mgmt='WPA-PSK', pairwise='CCMP', group='CCMP',
                    scan_freq=res['freq'])
+    dev[0].wait_event(["EAPOL-4WAY-HS-COMPLETED"])
     hwsim_utils.test_connectivity_p2p_sta(dev[1], dev[2])
     dev[2].request("DISCONNECT")
 
