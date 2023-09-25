@@ -87,7 +87,7 @@ def test_ocv_sa_query(dev, apdev):
     dev[0].connect(ssid, psk="12345678", ieee80211w="1", ocv="1",
                    key_mgmt="WPA-PSK WPA-PSK-SHA256", proto="WPA2",
                    scan_freq="2412")
-
+    hapd.wait_sta() # wait so we can actually request SA_QUERY
     # Test that client can handle SA Query with OCI element
     if "OK" not in hapd.request("SA_QUERY " + dev[0].own_addr()):
         raise Exception("SA_QUERY failed")
@@ -144,7 +144,7 @@ def test_ocv_sa_query_csa_missing(dev, apdev):
     dev[0].connect(ssid, psk="12345678", ieee80211w="1", ocv="1",
                    key_mgmt="WPA-PSK WPA-PSK-SHA256", proto="WPA2",
                    scan_freq="2412")
-
+    hapd.wait_sta() # wait so kernel won't drop deauth frame (MFP)
     hapd.set("ext_mgmt_frame_handling", "1")
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected()
