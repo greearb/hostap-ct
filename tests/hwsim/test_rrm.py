@@ -859,6 +859,7 @@ def test_rrm_beacon_req_table(dev, apdev):
     dev[0].scan_for_bss(apdev[1]['bssid'], freq=2412)
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(mode=2)
     token = run_req_beacon(hapd, addr, req)
@@ -899,6 +900,7 @@ def test_rrm_beacon_req_frame_body_fragmentation(dev, apdev):
     dev[0].flush_scan_cache()
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(mode=2)
     token = run_req_beacon(hapd, addr, req)
@@ -941,6 +943,7 @@ def test_rrm_beacon_req_last_frame_indication(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     # The request contains the last beacon report indication subelement
     req = build_beacon_request(mode=2)
@@ -998,6 +1001,7 @@ def test_rrm_beacon_req_table_detail(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     logger.info("Reporting Detail 0")
     req = build_beacon_request(mode=2)
@@ -1063,6 +1067,7 @@ def test_rrm_beacon_req_table_request(dev, apdev):
     dev[0].flush_scan_cache()
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(mode=2)
     token = run_req_beacon(hapd, addr, req + "020101" + "0a03000106")
@@ -1107,6 +1112,7 @@ def test_rrm_beacon_req_table_request_oom(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(mode=2)
     with alloc_fail(dev[0], 1,
@@ -1152,6 +1158,7 @@ def test_rrm_beacon_req_table_bssid(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     bssid2 = hapd2.own_addr()
     req = build_beacon_request(mode=2, bssid=bssid2)
@@ -1177,6 +1184,7 @@ def test_rrm_beacon_req_table_ssid(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     bssid2 = hapd2.own_addr()
     req = build_beacon_request(mode=2)
@@ -1220,6 +1228,7 @@ def test_rrm_beacon_req_table_info(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     logger.info("Unsupported reporting information 1")
     req = build_beacon_request(mode=2)
@@ -1248,6 +1257,7 @@ def test_rrm_beacon_req_table_unknown_subelem(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(mode=2)
     token = run_req_beacon(hapd, addr, req + "330101" + "fe00")
@@ -1266,6 +1276,7 @@ def test_rrm_beacon_req_table_truncated_subelem(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(mode=2)
     token = run_req_beacon(hapd, addr, req + "0001")
@@ -1283,6 +1294,7 @@ def test_rrm_beacon_req_table_rsne(dev, apdev):
 
     dev[0].connect("rrm-rsn", psk="12345678", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(mode=2)
     token = run_req_beacon(hapd, addr, req + "020101" + "0a0130")
@@ -1333,6 +1345,7 @@ def test_rrm_beacon_req_table_vht(dev, apdev):
         dev[0].connect("rrm-vht", key_mgmt="NONE", scan_freq="5180")
 
         addr = dev[0].own_addr()
+        hapd.wait_sta()
 
         req = build_beacon_request(opclass=240, mode=2)
         token = run_req_beacon(hapd, addr, req)
@@ -1369,6 +1382,7 @@ def test_rrm_beacon_req_active(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(duration=100, mode=1)
     token = run_req_beacon(hapd, addr, req)
@@ -1399,6 +1413,7 @@ def test_rrm_beacon_req_active_ignore_old_result(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(chan=1, duration=100, mode=1)
     token = run_req_beacon(hapd, addr, req)
@@ -1447,6 +1462,7 @@ def test_rrm_beacon_req_active_many(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     ok = False
     for j in range(3):
@@ -1476,6 +1492,7 @@ def test_rrm_beacon_req_active_ap_channels(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(chan=255, duration=100, mode=1)
     token = run_req_beacon(hapd, addr, req + "dd0111" + "330351010b" + "dd0111")
@@ -1502,6 +1519,7 @@ def test_rrm_beacon_req_active_no_ir(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(opclass=118, chan=52, duration=100, mode=1)
     token = run_req_beacon(hapd, addr, req)
@@ -1526,6 +1544,7 @@ def test_rrm_beacon_req_passive_ap_channels(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(chan=255, duration=100)
     token = run_req_beacon(hapd, addr, req + "330351010b" + "3300" + "dd00")
@@ -1553,6 +1572,7 @@ def test_rrm_beacon_req_active_single_channel(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(chan=11, duration=100, mode=1)
     token = run_req_beacon(hapd, addr, req)
@@ -1573,6 +1593,7 @@ def test_rrm_beacon_req_active_ap_channels_unknown_opclass(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(chan=255, duration=100, mode=1)
     token = run_req_beacon(hapd, addr, req + "3303ff010b")
@@ -1594,6 +1615,7 @@ def test_rrm_beacon_req_active_ap_channel_oom(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     with alloc_fail(dev[0], 1, "wpas_add_channels"):
         req = build_beacon_request(chan=255, duration=100, mode=1)
@@ -1614,6 +1636,7 @@ def test_rrm_beacon_req_active_scan_fail(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     with alloc_fail(dev[0], 1, "wpa_supplicant_trigger_scan"):
         req = build_beacon_request(chan=255, duration=100, mode=1)
@@ -1635,6 +1658,7 @@ def test_rrm_beacon_req_active_zero_duration(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(mode=1)
     token = run_req_beacon(hapd, addr, req)
@@ -1649,6 +1673,7 @@ def test_rrm_beacon_req_active_fail_random(dev, apdev):
     hapd = hostapd.add_ap(apdev[0], params)
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     with fail_test(dev[0], 1, "os_get_random;wpas_rm_handle_beacon_req"):
         req = build_beacon_request(duration=100, mode=1)
@@ -1669,6 +1694,7 @@ def test_rrm_beacon_req_passive(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(duration=100)
     token = run_req_beacon(hapd, addr, req)
@@ -1695,6 +1721,7 @@ def test_rrm_beacon_req_passive_no_match(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(chan=1, duration=100, bssid="02:11:22:33:44:55")
     token = run_req_beacon(hapd, addr, req)
@@ -1713,6 +1740,7 @@ def test_rrm_beacon_req_passive_no_match_oom(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(chan=1, duration=100, bssid="02:11:22:33:44:55")
     with alloc_fail(dev[0], 1, "wpabuf_resize;wpas_beacon_rep_scan_process"):
@@ -1739,6 +1767,7 @@ def test_rrm_beacon_req_active_duration_mandatory(dev, apdev):
 
     dev[0].connect("rrm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()
+    hapd.wait_sta()
 
     req = build_beacon_request(duration=100, mode=1)
     token = run_req_beacon(hapd, addr, "req_mode=10 " + req)
@@ -1781,6 +1810,7 @@ def test_rrm_beacon_req_passive_scan_vht(dev, apdev):
         dev[0].connect("rrm-vht", key_mgmt="NONE", scan_freq="5180")
 
         addr = dev[0].own_addr()
+        hapd.wait_sta()
 
         req = build_beacon_request(opclass=128, duration=100)
         token = run_req_beacon(hapd, addr, req)
@@ -1837,6 +1867,7 @@ def test_rrm_beacon_req_passive_scan_vht160(dev, apdev):
             raise Exception("Unexpected SIGNAL_POLL value: " + str(sig))
 
         addr = dev[0].own_addr()
+        hapd.wait_sta()
 
         req = build_beacon_request(opclass=129, duration=100)
         token = run_req_beacon(hapd, addr, req)
