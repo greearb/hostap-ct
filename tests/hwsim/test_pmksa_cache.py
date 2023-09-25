@@ -980,6 +980,7 @@ def test_pmksa_cache_ctrl(dev, apdev):
     pmksa_sta = dev[0].get_pmksa(bssid)
     if pmksa_sta is None:
         raise Exception("No PMKSA cache entry created on STA")
+    hapd.wait_sta()
     pmksa_ap = hapd.get_pmksa(addr)
     if pmksa_ap is None:
         raise Exception("No PMKSA cache entry created on AP")
@@ -1000,6 +1001,7 @@ def test_pmksa_cache_ctrl(dev, apdev):
     pmksa_sta2 = dev[0].get_pmksa(bssid)
     if pmksa_sta2 is None:
         raise Exception("No PMKSA cache entry created on STA after reconnect")
+    hapd.wait_sta()
     pmksa_ap2 = hapd.get_pmksa(addr)
     if pmksa_ap2 is None:
         raise Exception("No PMKSA cache entry created on AP after reconnect")
