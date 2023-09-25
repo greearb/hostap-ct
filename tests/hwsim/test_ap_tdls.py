@@ -22,9 +22,7 @@ def start_ap_wpa2_psk(ap):
     return hostapd.add_ap(ap, params)
 
 def connectivity(dev, hapd):
-    hwsim_utils.test_connectivity_sta(dev[0], dev[1])
-    hwsim_utils.test_connectivity(dev[0], hapd)
-    hwsim_utils.test_connectivity(dev[1], hapd)
+    check_connectivity(dev[0], dev[1], hapd)
 
 def connect_2sta(dev, ssid, hapd, sae=False):
     key_mgmt = "SAE" if sae else "WPA-PSK"
@@ -112,6 +110,8 @@ def tdls_check_ap(sta0, sta1, bssid, addr0, addr1):
         raise Exception("Invalid frames through AP path")
 
 def check_connectivity(sta0, sta1, hapd):
+    # give a bit of time for all sides to mark kernel STAs authorized
+    time.sleep(0.1)
     hwsim_utils.test_connectivity_sta(sta0, sta1)
     hwsim_utils.test_connectivity(sta0, hapd)
     hwsim_utils.test_connectivity(sta1, hapd)
@@ -358,6 +358,8 @@ def test_ap_wpa2_tdls_bssid_mismatch(dev, apdev):
                        bssid=apdev[0]['bssid'])
         dev[1].connect(ssid, psk=passphrase, scan_freq="2412",
                        bssid=apdev[1]['bssid'])
+        # give a bit of time for all sides to mark kernel STAs authorized
+        time.sleep(0.1)
         hwsim_utils.test_connectivity_sta(dev[0], dev[1])
         hwsim_utils.test_connectivity_iface(dev[0], hapd, "ap-br0")
         hwsim_utils.test_connectivity_iface(dev[1], hapd, "ap-br0")
