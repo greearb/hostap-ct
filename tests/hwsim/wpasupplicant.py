@@ -1545,6 +1545,15 @@ class WpaSupplicant:
             cmd += " role=" + role
         if "OK" not in self.request(cmd):
             raise Exception("Failed to start listen operation")
+        # Since DPP listen is a radio work, make sure it has started
+        # by the time we return and continue with the test, since it
+        # usually will send something this side should receive.
+        work_started = "dpp-listen@" + self.ifname + ":" + str(freq) + ":1"
+        for i in range(10):
+            if work_started in self.request("RADIO_WORK show"):
+                return
+            time.sleep(0.01)
+        raise Exception("Failed to start DPP listen work")
 
     def dpp_auth_init(self, peer=None, uri=None, conf=None, configurator=None,
                       extra=None, own=None, role=None, neg_freq=None,
