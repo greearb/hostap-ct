@@ -335,6 +335,8 @@ pasn_derive_keys(struct pasn_data *pasn,
 		}
 	}
 
+	pasn->pmk_len = pmk_len;
+	os_memcpy(pasn->pmk, pmk, pmk_len);
 	ret = pasn_pmk_to_ptk(pmk, pmk_len, peer_addr, own_addr,
 			      wpabuf_head(secret), wpabuf_len(secret),
 			      &pasn->ptk, pasn->akmp,
