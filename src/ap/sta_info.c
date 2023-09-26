@@ -290,7 +290,7 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 #endif /* CONFIG_MESH */
 
 	if (set_beacon)
-		ieee802_11_set_beacons(hapd->iface);
+		ieee802_11_update_beacons(hapd->iface);
 
 	wpa_printf(MSG_DEBUG, "%s: cancel ap_handle_timer for " MACSTR,
 		   __func__, MAC2STR(sta->addr));
