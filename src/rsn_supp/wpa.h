@@ -611,5 +611,7 @@ struct rsn_pmksa_cache * wpa_sm_get_pmksa_cache(struct wpa_sm *sm);
 void wpa_sm_set_cur_pmksa(struct wpa_sm *sm,
 			  struct rsn_pmksa_cache_entry *entry);
 const u8 * wpa_sm_get_auth_addr(struct wpa_sm *sm);
+void wpa_sm_set_driver_bss_selection(struct wpa_sm *sm,
+				     bool driver_bss_selection);
 
 #endif /* WPA_H */

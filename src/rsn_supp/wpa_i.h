@@ -222,6 +222,7 @@ struct wpa_sm {
 	struct wpa_sm_mlo mlo;
 
 	bool wmm_enabled;
+	bool driver_bss_selection;
 };
 
 

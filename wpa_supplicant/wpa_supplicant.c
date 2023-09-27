@@ -7161,6 +7161,9 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 #ifdef CONFIG_PASN
 	wpa_pasn_sm_set_caps(wpa_s->wpa, wpa_s->drv_flags2);
 #endif /* CONFIG_PASN */
+	wpa_sm_set_driver_bss_selection(wpa_s->wpa,
+					!!(wpa_s->drv_flags &
+					   WPA_DRIVER_FLAGS_BSS_SELECTION));
 	if (wpa_s->max_remain_on_chan == 0)
 		wpa_s->max_remain_on_chan = 1000;
 

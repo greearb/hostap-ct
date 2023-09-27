@@ -132,6 +132,23 @@ static void pmksa_cache_reauth(void *eloop_ctx, void *timeout_ctx)
 	if (!pmksa->sm)
 		return;
 
+	if (pmksa->sm->driver_bss_selection) {
+		struct rsn_pmksa_cache_entry *entry;
+
+		entry = pmksa->sm->cur_pmksa ?
+			pmksa->sm->cur_pmksa :
+			pmksa_cache_get(pmksa, pmksa->sm->bssid, NULL, NULL,
+					NULL, 0);
+		if (entry && wpa_key_mgmt_sae(entry->akmp)) {
+			wpa_printf(MSG_DEBUG,
+				   "RSN: remove reauth threshold passed PMKSA from the driver for SAE");
+			entry->sae_reauth_scheduled = true;
+			wpa_sm_remove_pmkid(pmksa->sm, entry->network_ctx,
+					    entry->aa, entry->pmkid, NULL);
+			return;
+		}
+	}
+
 	pmksa->sm->cur_pmksa = NULL;
 	eapol_sm_request_reauth(pmksa->sm->eapol);
 }
@@ -178,7 +195,10 @@ static void pmksa_cache_set_expiration(struct rsn_pmksa_cache *pmksa)
 
 	entry = pmksa->sm->cur_pmksa ? pmksa->sm->cur_pmksa :
 		pmksa_cache_get(pmksa, pmksa->sm->bssid, NULL, NULL, NULL, 0);
-	if (entry && !wpa_key_mgmt_sae(entry->akmp)) {
+	if (entry &&
+	    (!wpa_key_mgmt_sae(entry->akmp) ||
+	     (pmksa->sm->driver_bss_selection &&
+	      !entry->sae_reauth_scheduled))) {
 		sec = pmksa->pmksa->reauth_time - now.sec;
 		if (sec < 0)
 			sec = 0;

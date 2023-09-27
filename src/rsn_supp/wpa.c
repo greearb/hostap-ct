@@ -6511,3 +6511,11 @@ void wpa_sm_set_cur_pmksa(struct wpa_sm *sm,
 	if (sm)
 		sm->cur_pmksa = entry;
 }
+
+
+void wpa_sm_set_driver_bss_selection(struct wpa_sm *sm,
+				     bool driver_bss_selection)
+{
+	if (sm)
+		sm->driver_bss_selection = driver_bss_selection;
+}

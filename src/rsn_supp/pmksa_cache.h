@@ -45,6 +45,13 @@ struct rsn_pmksa_cache_entry {
 	void *network_ctx;
 	int opportunistic;
 	bool external;
+
+	/**
+	 * This field is used to avoid duplicate pmksa_cache_reauth() calls for
+	 * every 10 minutes during the periodic expiration check of the current
+	 * PMKSA for SAE.
+	 */
+	bool sae_reauth_scheduled;
 };
 
 struct rsn_pmksa_cache;
