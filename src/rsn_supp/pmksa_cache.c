@@ -611,12 +611,13 @@ void pmksa_cache_clear_current(struct wpa_sm *sm)
  * @network_ctx: Network configuration context
  * @try_opportunistic: Whether to allow opportunistic PMKSA caching
  * @fils_cache_id: Pointer to FILS Cache Identifier or %NULL if not used
+ * @associated: Whether the device is associated
  * Returns: 0 if PMKSA was found or -1 if no matching entry was found
  */
 int pmksa_cache_set_current(struct wpa_sm *sm, const u8 *pmkid,
 			    const u8 *bssid, void *network_ctx,
 			    int try_opportunistic, const u8 *fils_cache_id,
-			    int akmp)
+			    int akmp, bool associated)
 {
 	struct rsn_pmksa_cache *pmksa = sm->pmksa;
 	wpa_printf(MSG_DEBUG, "RSN: PMKSA cache search - network_ctx=%p "
@@ -654,13 +655,29 @@ int pmksa_cache_set_current(struct wpa_sm *sm, const u8 *pmkid,
 		if (wpa_key_mgmt_sae(sm->cur_pmksa->akmp) &&
 		    os_get_reltime(&now) == 0 &&
 		    sm->cur_pmksa->reauth_time < now.sec) {
-			wpa_printf(MSG_DEBUG,
-				   "RSN: Do not allow PMKSA cache entry for "
-				   MACSTR
-				   " to be used for SAE since its reauth threshold has passed",
-				   MAC2STR(sm->cur_pmksa->aa));
-			sm->cur_pmksa = NULL;
-			return -1;
+			/* Driver-based roaming might have used a PMKSA entry
+			 * that is already past the reauthentication threshold.
+			 * Remove the related PMKID from the driver to avoid
+			 * further uses for this PMKSA, but allow the
+			 * association to continue since the PMKSA has not yet
+			 * expired. */
+			wpa_sm_remove_pmkid(sm, sm->cur_pmksa->network_ctx,
+					    sm->cur_pmksa->aa,
+					    sm->cur_pmksa->pmkid, NULL);
+			if (associated) {
+				wpa_printf(MSG_DEBUG,
+					   "RSN: Associated with " MACSTR
+					   " using reauth threshold passed PMKSA cache entry",
+					   MAC2STR(sm->cur_pmksa->aa));
+			} else {
+				wpa_printf(MSG_DEBUG,
+					   "RSN: Do not allow PMKSA cache entry for "
+					   MACSTR
+					   " to be used for SAE since its reauth threshold has passed",
+					   MAC2STR(sm->cur_pmksa->aa));
+				sm->cur_pmksa = NULL;
+				return -1;
+			}
 		}
 
 		wpa_hexdump(MSG_DEBUG, "RSN: PMKSA cache entry found - PMKID",
