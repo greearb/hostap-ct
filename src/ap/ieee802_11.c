@@ -7055,7 +7055,7 @@ u8 * hostapd_eid_txpower_envelope(struct hostapd_data *hapd, u8 *eid)
 
 u8 * hostapd_eid_wb_chsw_wrapper(struct hostapd_data *hapd, u8 *eid)
 {
-	u8 bw, chan1, chan2 = 0;
+	u8 bw, chan1 = 0, chan2 = 0;
 	int freq1;
 
 	if (!hapd->cs_freq_params.channel ||
@@ -7064,20 +7064,17 @@ u8 * hostapd_eid_wb_chsw_wrapper(struct hostapd_data *hapd, u8 *eid)
 	     !hapd->cs_freq_params.eht_enabled))
 		return eid;
 
-	/* bandwidth: 0: 40, 1: 80, 2: 160, 3: 80+80, 4: 320 */
+	/* bandwidth: 0: 40, 1: 80, 160, 80+80, 4: 320 as per
+	 * IEEE P802.11-REVme/D4.0, 9.4.2.159 and Table 9-314. */
 	switch (hapd->cs_freq_params.bandwidth) {
 	case 40:
 		bw = 0;
 		break;
 	case 80:
-		/* check if it's 80+80 */
-		if (!hapd->cs_freq_params.center_freq2)
-			bw = 1;
-		else
-			bw = 3;
+		bw = 1;
 		break;
 	case 160:
-		bw = 2;
+		bw = 1;
 		break;
 	case 320:
 		bw = 4;
@@ -7104,6 +7101,21 @@ u8 * hostapd_eid_wb_chsw_wrapper(struct hostapd_data *hapd, u8 *eid)
 	*eid++ = WLAN_EID_WIDE_BW_CHSWITCH;
 	*eid++ = 3; /* Length of Wide Bandwidth Channel Switch element */
 	*eid++ = bw; /* New Channel Width */
+	if (hapd->cs_freq_params.bandwidth == 160) {
+		/* Update the CCFS0 and CCFS1 values in the element based on
+		 * IEEE P802.11-REVme/D4.0, Table 9-314 */
+
+		/* CCFS1 - The channel center frequency index of the 160 MHz
+		 * channel. */
+		chan2 = chan1;
+
+		/* CCFS0 - The channel center frequency index of the 80 MHz
+		 * channel segment that contains the primary channel. */
+		if (hapd->cs_freq_params.channel < chan1)
+			chan1 -= 8;
+		else
+			chan1 += 8;
+	}
 	*eid++ = chan1; /* New Channel Center Frequency Segment 0 */
 	*eid++ = chan2; /* New Channel Center Frequency Segment 1 */
 
