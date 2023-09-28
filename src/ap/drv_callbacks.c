@@ -910,6 +910,54 @@ fail:
 }
 
 
+static void hostapd_remove_sta(struct hostapd_data *hapd, struct sta_info *sta)
+{
+	ap_sta_set_authorized(hapd, sta, 0);
+	sta->flags &= ~(WLAN_STA_AUTH | WLAN_STA_ASSOC);
+	hostapd_set_sta_flags(hapd, sta);
+	wpa_auth_sm_event(sta->wpa_sm, WPA_DISASSOC);
+	sta->acct_terminate_cause = RADIUS_ACCT_TERMINATE_CAUSE_USER_REQUEST;
+	ieee802_1x_notify_port_enabled(sta->eapol_sm, 0);
+	ap_free_sta(hapd, sta);
+}
+
+
+#ifdef CONFIG_IEEE80211BE
+static void hostapd_notif_disassoc_mld(struct hostapd_data *assoc_hapd,
+				       struct sta_info *sta,
+				       const u8 *addr)
+{
+	unsigned int link_id, i;
+	struct hostapd_data *tmp_hapd;
+	struct hapd_interfaces *interfaces = assoc_hapd->iface->interfaces;
+
+	/* Remove STA entry in non-assoc links */
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+		if (!sta->mld_info.links[link_id].valid)
+			continue;
+
+		for (i = 0; i < interfaces->count; i++) {
+			struct sta_info *tmp_sta;
+
+			tmp_hapd = interfaces->iface[i]->bss[0];
+
+			if (!tmp_hapd->conf->mld_ap ||
+			    assoc_hapd == tmp_hapd ||
+			    assoc_hapd->conf->mld_id != tmp_hapd->conf->mld_id)
+				continue;
+
+			tmp_sta = ap_get_sta(tmp_hapd, addr);
+			if (tmp_sta)
+				ap_free_sta(tmp_hapd, tmp_sta);
+		}
+	}
+
+	/* Remove STA in assoc link */
+	hostapd_remove_sta(assoc_hapd, sta);
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 void hostapd_notif_disassoc(struct hostapd_data *hapd, const u8 *addr)
 {
 	struct sta_info *sta;
@@ -931,6 +979,48 @@ void hostapd_notif_disassoc(struct hostapd_data *hapd, const u8 *addr)
 		       HOSTAPD_LEVEL_INFO, "disassociated");
 
 	sta = ap_get_sta(hapd, addr);
+#ifdef CONFIG_IEEE80211BE
+	if (hostapd_is_mld_ap(hapd)) {
+		struct hostapd_data *assoc_hapd;
+		unsigned int i;
+
+		if (!sta) {
+			/* Find non-MLO cases from any of the affiliated AP
+			 * links. */
+			for (i = 0; i < hapd->iface->interfaces->count; ++i) {
+				struct hostapd_iface *h =
+					hapd->iface->interfaces->iface[i];
+				struct hostapd_data *h_hapd = h->bss[0];
+				struct hostapd_bss_config *hconf = h_hapd->conf;
+
+				if (!hconf->mld_ap ||
+				    hconf->mld_id != hapd->conf->mld_id)
+					continue;
+
+				sta = ap_get_sta(h_hapd, addr);
+				if (sta) {
+					if (!sta->mld_info.mld_sta) {
+						hapd = h_hapd;
+						goto legacy;
+					}
+					break;
+				}
+			}
+		}
+		if (!sta) {
+			wpa_printf(MSG_DEBUG,
+			   "Disassociation notification for unknown STA "
+			   MACSTR, MAC2STR(addr));
+			return;
+		}
+		sta = hostapd_ml_get_assoc_sta(hapd, sta, &assoc_hapd);
+		if (sta)
+			hostapd_notif_disassoc_mld(assoc_hapd, sta, addr);
+		return;
+	}
+
+legacy:
+#endif /* CONFIG_IEEE80211BE */
 	if (sta == NULL) {
 		wpa_printf(MSG_DEBUG,
 			   "Disassociation notification for unknown STA "
@@ -938,13 +1028,7 @@ void hostapd_notif_disassoc(struct hostapd_data *hapd, const u8 *addr)
 		return;
 	}
 
-	ap_sta_set_authorized(hapd, sta, 0);
-	sta->flags &= ~(WLAN_STA_AUTH | WLAN_STA_ASSOC);
-	hostapd_set_sta_flags(hapd, sta);
-	wpa_auth_sm_event(sta->wpa_sm, WPA_DISASSOC);
-	sta->acct_terminate_cause = RADIUS_ACCT_TERMINATE_CAUSE_USER_REQUEST;
-	ieee802_1x_notify_port_enabled(sta->eapol_sm, 0);
-	ap_free_sta(hapd, sta);
+	hostapd_remove_sta(hapd, sta);
 }
 
 
