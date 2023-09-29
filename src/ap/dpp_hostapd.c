@@ -2406,7 +2406,9 @@ static void hostapd_dpp_pb_pkex_init(struct hostapd_data *hapd,
 	char ssid_hex[2 * SSID_MAX_LEN + 1], *pass_hex = NULL;
 	char cmd[300];
 	const char *password = NULL;
+#ifdef CONFIG_SAE
 	struct sae_password_entry *e;
+#endif /* CONFIG_SAE */
 	int conf_id = -1;
 	bool sae = false, psk = false;
 	size_t len;
