@@ -564,6 +564,14 @@ int hostapd_wpa_auth_send_eapol(void *ctx, const u8 *addr,
 }
 
 
+static int hostapd_wpa_auth_get_sta_count(void *ctx)
+{
+	struct hostapd_data *hapd = ctx;
+
+	return hapd->num_sta;
+}
+
+
 static int hostapd_wpa_auth_for_each_sta(
 	void *ctx, int (*cb)(struct wpa_state_machine *sm, void *ctx),
 	void *cb_ctx)
@@ -1608,6 +1616,7 @@ int hostapd_setup_wpa(struct hostapd_data *hapd)
 		.set_key = hostapd_wpa_auth_set_key,
 		.get_seqnum = hostapd_wpa_auth_get_seqnum,
 		.send_eapol = hostapd_wpa_auth_send_eapol,
+		.get_sta_count = hostapd_wpa_auth_get_sta_count,
 		.for_each_sta = hostapd_wpa_auth_for_each_sta,
 		.for_each_auth = hostapd_wpa_auth_for_each_auth,
 		.send_ether = hostapd_wpa_auth_send_ether,

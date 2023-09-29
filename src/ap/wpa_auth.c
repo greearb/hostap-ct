@@ -1800,6 +1800,15 @@ void __wpa_send_eapol(struct wpa_authenticator *wpa_auth,
 }
 
 
+static int wpa_auth_get_sta_count(struct wpa_authenticator *wpa_auth)
+{
+	if (!wpa_auth->cb->get_sta_count)
+		return -1;
+
+	return wpa_auth->cb->get_sta_count(wpa_auth->cb_ctx);
+}
+
+
 static void wpa_send_eapol(struct wpa_authenticator *wpa_auth,
 			   struct wpa_state_machine *sm, int key_info,
 			   const u8 *key_rsc, const u8 *nonce,
@@ -1832,11 +1841,16 @@ static void wpa_send_eapol(struct wpa_authenticator *wpa_auth,
 skip_tx:
 #endif /* CONFIG_TESTING_OPTIONS */
 
-	if (ctr == 1 && wpa_auth->conf.tx_status)
-		timeout_ms = pairwise ? eapol_key_timeout_first :
-			eapol_key_timeout_first_group;
-	else
+	if (ctr == 1 && wpa_auth->conf.tx_status) {
+		if (pairwise)
+			timeout_ms = eapol_key_timeout_first;
+		else if (wpa_auth_get_sta_count(wpa_auth) > 100)
+			timeout_ms = eapol_key_timeout_first_group * 2;
+		else
+			timeout_ms = eapol_key_timeout_first_group;
+	} else {
 		timeout_ms = eapol_key_timeout_subseq;
+	}
 	if (wpa_auth->conf.wpa_disable_eapol_key_retries &&
 	    (!pairwise || (key_info & WPA_KEY_INFO_MIC)))
 		timeout_ms = eapol_key_timeout_no_retrans;
