@@ -1241,6 +1241,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_TDLS_DISC_RSP_EXT = 231,
 	/* 232 - reserved for QCA */
 	QCA_NL80211_VENDOR_SUBCMD_TX_LATENCY = 233,
+	/* 234 - reserved for QCA */
 };
 
 /* Compatibility defines for previously used subcmd names.
