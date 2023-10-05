@@ -1252,6 +1252,7 @@ struct wpa_supplicant {
 	unsigned int num_prov_found;
 #endif /* CONFIG_INTERWORKING */
 	unsigned int drv_capa_known;
+	unsigned int scan_attempts;
 
 	struct {
 		struct hostapd_hw_modes *modes;
