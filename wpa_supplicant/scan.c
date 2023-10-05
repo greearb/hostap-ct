@@ -1522,6 +1522,14 @@ ssid_list_set:
 		params.non_coloc_6ghz = 1;
 	}
 
+	/* If we are not finding the AP after several scans, try disabling coloc-6ghz */
+	if (((++wpa_s->scan_attempts % 5) == 0) &&
+	    (wpa_s->wpa_state <= WPA_SCANNING)) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "Disabling coloc-6ghz in scan attempt: %d",
+			wpa_s->scan_attempts);
+		params.non_coloc_6ghz = 1;
+	}
+
 	scan_params = &params;
 
 scan:

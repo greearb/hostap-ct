@@ -1261,6 +1261,7 @@ struct wpa_supplicant {
 	struct wpa_bss *interworking_gas_bss;
 #endif /* CONFIG_INTERWORKING */
 	unsigned int drv_capa_known;
+	unsigned int scan_attempts;
 
 	struct {
 		struct hostapd_hw_modes *modes;
