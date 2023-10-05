@@ -1086,6 +1086,7 @@ void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 	struct wpa_driver_scan_params *scan_params;
 	size_t max_ssids;
 	int connect_without_scan = 0;
+	int scan_on_channel = 0;
 
 	wpa_s->ignore_post_flush_scan_res = 0;
 
@@ -1441,6 +1442,7 @@ ssid_list_set:
 				wpa_dbg(wpa_s, MSG_DEBUG, "Scan only the "
 					"current operating channels since "
 					"scan_cur_freq is enabled");
+				scan_on_channel = 1;
 			} else {
 				os_free(params.freqs);
 				params.freqs = NULL;
@@ -1523,10 +1525,12 @@ ssid_list_set:
 	}
 
 	/* If we are not finding the AP after several scans, try disabling coloc-6ghz */
-	if (((++wpa_s->scan_attempts % 5) == 0) &&
-	    (wpa_s->wpa_state <= WPA_SCANNING)) {
-		wpa_dbg(wpa_s, MSG_DEBUG, "Disabling coloc-6ghz in scan attempt: %d",
-			wpa_s->scan_attempts);
+	if ((params.non_coloc_6ghz == 0) &&
+	    (scan_on_channel ||
+	     (((++wpa_s->scan_attempts % 5) == 0) &&
+	      (wpa_s->wpa_state <= WPA_SCANNING)))) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "Disabling coloc-6ghz in scan attempt: %d  scan-on-channel: %d",
+			wpa_s->scan_attempts, scan_on_channel);
 		params.non_coloc_6ghz = 1;
 	}
 
