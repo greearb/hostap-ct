@@ -612,7 +612,8 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 
 	os_memset(&params, 0, sizeof(params));
 
-	if ((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
+	if ((!(ssid->disable_eht || ssid->disable_mlo))
+	    && (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
 	    !wpa_bss_parse_basic_ml_element(wpa_s, bss, wpa_s->ap_mld_addr,
 					    NULL, ssid, NULL) &&
 	    bss->valid_links) {

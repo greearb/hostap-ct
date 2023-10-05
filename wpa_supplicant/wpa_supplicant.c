@@ -3780,6 +3780,7 @@ static u8 * wpas_populate_assoc_ies(
 
 		if (!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME) &&
 		    (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
+		    !(ssid->disable_eht || ssid->disable_mlo) &&
 		    !is_zero_ether_addr(bss->mld_addr))
 			addr = bss->mld_addr;
 
