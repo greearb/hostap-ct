@@ -1078,6 +1078,7 @@ static int hostapd_ctrl_iface_get_config(struct hostapd_data *hapd,
 {
 	int ret;
 	char *pos, *end;
+	int i;
 
 	pos = buf;
 	end = buf + buflen;
@@ -1252,6 +1253,64 @@ static int hostapd_ctrl_iface_get_config(struct hostapd_data *hapd,
 	if ((hapd->conf->wpa & WPA_PROTO_RSN) && hapd->conf->extended_key_id) {
 		ret = os_snprintf(pos, end - pos, "extended_key_id=%d\n",
 				  hapd->conf->extended_key_id);
+		if (os_snprintf_error(end - pos, ret))
+			return pos - buf;
+		pos += ret;
+	}
+
+	/* dump chanlist */
+	if (hapd->iface->conf->acs_ch_list.num > 0) {
+		ret = os_snprintf(pos, end - pos, "chanlist=");
+		if (os_snprintf_error(end - pos, ret))
+			return pos - buf;
+		pos += ret;
+
+		for (i = 0; i < hapd->iface->conf->acs_ch_list.num; i++) {
+			if (i > 0) {
+				ret = os_snprintf(pos, end - pos, ", ");
+				if (os_snprintf_error(end - pos, ret))
+					return pos - buf;
+				pos += ret;
+			}
+
+			ret = os_snprintf(pos, end - pos, "%d-%d",
+				hapd->iface->conf->acs_ch_list.range[i].min,
+				hapd->iface->conf->acs_ch_list.range[i].max);
+			if (os_snprintf_error(end - pos, ret))
+				return pos - buf;
+			pos += ret;
+		}
+
+		ret = os_snprintf(pos, end - pos, "\n");
+		if (os_snprintf_error(end - pos, ret))
+			return pos - buf;
+		pos += ret;
+	}
+
+	/* dump freqlist */
+	if (hapd->iface->conf->acs_freq_list.num > 0) {
+		ret = os_snprintf(pos, end - pos, "freqlist=");
+		if (os_snprintf_error(end - pos, ret))
+			return pos - buf;
+		pos += ret;
+
+		for (i = 0; i < hapd->iface->conf->acs_freq_list.num; i++) {
+			if (i > 0) {
+				ret = os_snprintf(pos, end - pos, ", ");
+				if (os_snprintf_error(end - pos, ret))
+					return pos - buf;
+				pos += ret;
+			}
+
+			ret = os_snprintf(pos, end - pos, "%d-%d",
+				hapd->iface->conf->acs_freq_list.range[i].min,
+				hapd->iface->conf->acs_freq_list.range[i].max);
+			if (os_snprintf_error(end - pos, ret))
+				return pos - buf;
+			pos += ret;
+		}
+
+		ret = os_snprintf(pos, end - pos, "\n");
 		if (os_snprintf_error(end - pos, ret))
 			return pos - buf;
 		pos += ret;
