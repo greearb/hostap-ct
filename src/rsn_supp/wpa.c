@@ -2744,8 +2744,8 @@ static int wpa_supplicant_send_2_of_2(struct wpa_sm *sm,
 #endif /* CONFIG_OCV */
 
 	wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG, "WPA: Sending EAPOL-Key 2/2");
-	return wpa_eapol_key_send(sm, &sm->ptk, ver, sm->bssid, ETH_P_EAPOL,
-				  rbuf, rlen, key_mic);
+	return wpa_eapol_key_send(sm, &sm->ptk, ver, wpa_sm_get_auth_addr(sm),
+				  ETH_P_EAPOL, rbuf, rlen, key_mic);
 }
 
 
