@@ -1866,3 +1866,19 @@ out:
 	wpabuf_free(mlbuf);
 	return removed_links;
 }
+
+
+const u8 * wpa_bss_get_rsne(struct wpa_supplicant *wpa_s,
+			    const struct wpa_bss *bss, struct wpa_ssid *ssid,
+			    bool mlo)
+{
+	return wpa_bss_get_ie(bss, WLAN_EID_RSN);
+}
+
+
+const u8 * wpa_bss_get_rsnxe(struct wpa_supplicant *wpa_s,
+			     const struct wpa_bss *bss, struct wpa_ssid *ssid,
+			     bool mlo)
+{
+	return wpa_bss_get_ie(bss, WLAN_EID_RSNX);
+}

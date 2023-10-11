@@ -5635,7 +5635,7 @@ dbus_bool_t wpas_dbus_getter_bss_rsn(
 		return FALSE;
 
 	os_memset(&wpa_data, 0, sizeof(wpa_data));
-	ie = wpa_bss_get_ie(res, WLAN_EID_RSN);
+	ie = wpa_bss_get_rsne(args->wpa_s, res, NULL, false);
 	if (ie && wpa_parse_wpa_ie(ie, 2 + ie[1], &wpa_data) < 0) {
 		dbus_set_error_const(error, DBUS_ERROR_FAILED,
 				     "failed to parse RSN IE");

@@ -425,11 +425,11 @@ static int wpa_get_beacon_ie(struct wpa_supplicant *wpa_s)
 		if (wpa_sm_set_ap_wpa_ie(wpa_s->wpa, ie, ie ? 2 + ie[1] : 0))
 			ret = -1;
 
-		ie = wpa_bss_get_ie(curr, WLAN_EID_RSN);
+		ie = wpa_bss_get_rsne(wpa_s, curr, ssid, false);
 		if (wpa_sm_set_ap_rsn_ie(wpa_s->wpa, ie, ie ? 2 + ie[1] : 0))
 			ret = -1;
 
-		ie = wpa_bss_get_ie(curr, WLAN_EID_RSNX);
+		ie = wpa_bss_get_rsnxe(wpa_s, curr, ssid, false);
 		if (wpa_sm_set_ap_rsnxe(wpa_s->wpa, ie, ie ? 2 + ie[1] : 0))
 			ret = -1;
 	} else {

@@ -1087,7 +1087,7 @@ void hs20_osu_icon_fetch(struct wpa_supplicant *wpa_s)
 		prov_anqp = bss->anqp->hs20_osu_providers_list;
 		if (prov_anqp == NULL)
 			continue;
-		ie = wpa_bss_get_ie(bss, WLAN_EID_RSN);
+		ie = wpa_bss_get_rsne(wpa_s, bss, NULL, false);
 		if (ie && wpa_parse_wpa_ie(ie, 2 + ie[1], &data) == 0 &&
 		    (data.key_mgmt & WPA_KEY_MGMT_OSEN)) {
 			osu_ssid2 = bss->ssid;
