@@ -1296,7 +1296,9 @@ static bool wpa_scan_res_ok(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 
 #ifdef CONFIG_SAE
 	ie = wpa_bss_get_rsnxe(wpa_s, bss, ssid, false);
-	if (ie && ie[1] >= 1)
+	if (ie && ie[0] == WLAN_EID_VENDOR_SPECIFIC && ie[1] >= 4 + 1)
+		rsnxe_capa = ie[4 + 2];
+	else if (ie && ie[1] >= 1)
 		rsnxe_capa = ie[2];
 #endif /* CONFIG_SAE */
 
@@ -3665,7 +3667,27 @@ no_pfs:
 			wpa_sm_set_ap_rsn_ie(wpa_s->wpa, p, len);
 		}
 
+		if (wpas_rsn_overriding(wpa_s) &&
+		    p[0] == WLAN_EID_VENDOR_SPECIFIC && p[1] >= 6 &&
+		    WPA_GET_BE32(&p[2]) == RSNE_OVERRIDE_2_IE_VENDOR_TYPE) {
+			rsn_found = 1;
+			wpa_sm_set_ap_rsn_ie(wpa_s->wpa, p, len);
+		}
+
+		if (!rsn_found &&
+		    wpas_rsn_overriding(wpa_s) &&
+		    p[0] == WLAN_EID_VENDOR_SPECIFIC && p[1] >= 6 &&
+		    WPA_GET_BE32(&p[2]) == RSNE_OVERRIDE_IE_VENDOR_TYPE) {
+			rsn_found = 1;
+			wpa_sm_set_ap_rsn_ie(wpa_s->wpa, p, len);
+		}
+
 		if (p[0] == WLAN_EID_RSNX && p[1] >= 1)
+			wpa_sm_set_ap_rsnxe(wpa_s->wpa, p, len);
+
+		if (wpas_rsn_overriding(wpa_s) &&
+		    p[0] == WLAN_EID_VENDOR_SPECIFIC && p[1] >= 6 &&
+		    WPA_GET_BE32(&p[2]) == RSNXE_OVERRIDE_IE_VENDOR_TYPE)
 			wpa_sm_set_ap_rsnxe(wpa_s->wpa, p, len);
 
 		l -= len;

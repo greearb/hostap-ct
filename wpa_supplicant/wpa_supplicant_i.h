@@ -1727,6 +1727,7 @@ void wpas_connection_failed(struct wpa_supplicant *wpa_s, const u8 *bssid,
 void fils_connection_failure(struct wpa_supplicant *wpa_s);
 void fils_pmksa_cache_flush(struct wpa_supplicant *wpa_s);
 int wpas_driver_bss_selection(struct wpa_supplicant *wpa_s);
+bool wpas_rsn_overriding(struct wpa_supplicant *wpa_s);
 int wpas_is_p2p_prioritized(struct wpa_supplicant *wpa_s);
 void wpas_auth_failed(struct wpa_supplicant *wpa_s, const char *reason,
 		      const u8 *bssid);
@@ -2011,5 +2012,9 @@ bool wpas_is_6ghz_supported(struct wpa_supplicant *wpa_s, bool only_enabled);
 
 bool wpa_is_non_eht_scs_traffic_desc_supported(struct wpa_bss *bss);
 bool wpas_ap_link_address(struct wpa_supplicant *wpa_s, const u8 *addr);
+bool wpas_ap_supports_rsn_overriding(struct wpa_supplicant *wpa_s,
+				     struct wpa_bss *bss);
+bool wpas_ap_supports_rsn_overriding_2(struct wpa_supplicant *wpa_s,
+				       struct wpa_bss *bss);
 
 #endif /* WPA_SUPPLICANT_I_H */

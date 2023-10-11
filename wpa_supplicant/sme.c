@@ -191,7 +191,10 @@ static struct wpabuf * sme_auth_build_sae_commit(struct wpa_supplicant *wpa_s,
 		const u8 *rsnxe;
 
 		rsnxe = wpa_bss_get_rsnxe(wpa_s, bss, ssid, false);
-		if (rsnxe && rsnxe[1] >= 1)
+		if (rsnxe && rsnxe[0] == WLAN_EID_VENDOR_SPECIFIC &&
+		    rsnxe[1] >= 1 + 4)
+			rsnxe_capa = rsnxe[2 + 4];
+		else if (rsnxe && rsnxe[1] >= 1)
 			rsnxe_capa = rsnxe[2];
 	}
 
@@ -2462,6 +2465,28 @@ mscs_fail:
 			return;
 		}
 		wpa_s->sme.assoc_req_ie_len += multi_ap_ie_len;
+	}
+
+	if (wpas_rsn_overriding(wpa_s) &&
+	    wpas_ap_supports_rsn_overriding(wpa_s, wpa_s->current_bss) &&
+	    wpa_s->sme.assoc_req_ie_len + 2 + 4 <=
+	    sizeof(wpa_s->sme.assoc_req_ie)) {
+		u8 *pos = wpa_s->sme.assoc_req_ie + wpa_s->sme.assoc_req_ie_len;
+		u32 type = 0;
+		const u8 *ie;
+
+		ie = wpa_bss_get_rsne(wpa_s, wpa_s->current_bss, ssid,
+				      wpa_s->valid_links);
+		if (ie && ie[0] == WLAN_EID_VENDOR_SPECIFIC && ie[1] >= 4)
+			type = WPA_GET_BE32(&ie[2]);
+
+		if (type) {
+			/* Indicate support for RSN overriding */
+			*pos++ = WLAN_EID_VENDOR_SPECIFIC;
+			*pos++ = 4;
+			WPA_PUT_BE32(pos, type);
+			wpa_s->sme.assoc_req_ie_len += 2 + 4;
+		}
 	}
 
 	params.bssid = bssid;

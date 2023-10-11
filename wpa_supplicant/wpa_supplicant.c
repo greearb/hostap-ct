@@ -3943,6 +3943,57 @@ mscs_end:
 		wpa_ie_len += multi_ap_ie_len;
 	}
 
+	if (!wpas_driver_bss_selection(wpa_s) &&
+	    wpas_rsn_overriding(wpa_s) &&
+	    wpas_ap_supports_rsn_overriding(wpa_s, bss) &&
+	    wpa_ie_len + 2 + 4 <= max_wpa_ie_len) {
+		u8 *pos = wpa_ie + wpa_ie_len;
+		u32 type = 0;
+		const u8 *ie;
+
+		ie = wpa_bss_get_rsne(wpa_s, bss, ssid, wpa_s->valid_links);
+		if (ie && ie[0] == WLAN_EID_VENDOR_SPECIFIC && ie[1] >= 4)
+			type = WPA_GET_BE32(&ie[2]);
+
+		if (type) {
+			/* Indicate support for RSN overriding */
+			*pos++ = WLAN_EID_VENDOR_SPECIFIC;
+			*pos++ = 4;
+			WPA_PUT_BE32(pos, type);
+			pos += 4;
+			wpa_hexdump(MSG_MSGDUMP, "RSNE Override", wpa_ie,
+				    pos - wpa_ie);
+			wpa_ie_len += 2 + 4;
+		}
+	}
+
+	if (wpas_driver_bss_selection(wpa_s) &&
+	    wpas_rsn_overriding(wpa_s)) {
+		if (wpa_ie_len + 2 + 4 <= max_wpa_ie_len) {
+			u8 *pos = wpa_ie + wpa_ie_len;
+
+			*pos++ = WLAN_EID_VENDOR_SPECIFIC;
+			*pos++ = 4;
+			WPA_PUT_BE32(pos, RSNE_OVERRIDE_IE_VENDOR_TYPE);
+			pos += 4;
+			wpa_hexdump(MSG_MSGDUMP, "RSNE Override", wpa_ie,
+				    pos - wpa_ie);
+			wpa_ie_len += 2 + 4;
+		}
+
+		if (wpa_ie_len + 2 + 4 <= max_wpa_ie_len) {
+			u8 *pos = wpa_ie + wpa_ie_len;
+
+			*pos++ = WLAN_EID_VENDOR_SPECIFIC;
+			*pos++ = 4;
+			WPA_PUT_BE32(pos, RSNE_OVERRIDE_2_IE_VENDOR_TYPE);
+			pos += 4;
+			wpa_hexdump(MSG_MSGDUMP, "RSNE Override 2",
+				    wpa_ie, pos - wpa_ie);
+			wpa_ie_len += 2 + 4;
+		}
+	}
+
 	params->wpa_ie = wpa_ie;
 	params->wpa_ie_len = wpa_ie_len;
 	params->auth_alg = algs;
@@ -8557,6 +8608,28 @@ int wpas_driver_bss_selection(struct wpa_supplicant *wpa_s)
 }
 
 
+static bool wpas_driver_rsn_override(struct wpa_supplicant *wpa_s)
+{
+	return !!(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_RSN_OVERRIDE_STA);
+}
+
+
+bool wpas_rsn_overriding(struct wpa_supplicant *wpa_s)
+{
+	if (wpa_s->conf->rsn_overriding == RSN_OVERRIDING_DISABLED)
+		return false;
+
+	if (wpa_s->conf->rsn_overriding == RSN_OVERRIDING_ENABLED)
+		return true;
+
+	if (!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME) ||
+	    wpas_driver_bss_selection(wpa_s))
+		return wpas_driver_rsn_override(wpa_s);
+
+	return true;
+}
+
+
 #if defined(CONFIG_CTRL_IFACE) || defined(CONFIG_CTRL_IFACE_DBUS_NEW)
 int wpa_supplicant_ctrl_iface_ctrl_rsp_handle(struct wpa_supplicant *wpa_s,
 					      struct wpa_ssid *ssid,
@@ -9527,6 +9600,61 @@ bool wpas_is_6ghz_supported(struct wpa_supplicant *wpa_s, bool only_enabled)
 					return true;
 			}
 		}
+	}
+
+	return false;
+}
+
+
+bool wpas_ap_supports_rsn_overriding(struct wpa_supplicant *wpa_s,
+				     struct wpa_bss *bss)
+{
+	int i;
+
+	if (!bss)
+		return false;
+	if (wpa_bss_get_vendor_ie(bss, RSNE_OVERRIDE_IE_VENDOR_TYPE) ||
+	    wpa_bss_get_vendor_ie(bss, RSNE_OVERRIDE_2_IE_VENDOR_TYPE))
+		return true;
+
+	if (!wpa_s->valid_links)
+		return false;
+
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+		if (!(wpa_s->valid_links & BIT(i)))
+			continue;
+		if (wpa_s->links[i].bss &&
+		    (wpa_bss_get_vendor_ie(wpa_s->links[i].bss,
+					   RSNE_OVERRIDE_IE_VENDOR_TYPE) ||
+		     wpa_bss_get_vendor_ie(wpa_s->links[i].bss,
+					   RSNE_OVERRIDE_2_IE_VENDOR_TYPE)))
+			return true;
+	}
+
+	return false;
+}
+
+
+bool wpas_ap_supports_rsn_overriding_2(struct wpa_supplicant *wpa_s,
+				       struct wpa_bss *bss)
+{
+	int i;
+
+	if (!bss)
+		return false;
+	if (wpa_bss_get_vendor_ie(bss, RSNE_OVERRIDE_2_IE_VENDOR_TYPE))
+		return true;
+
+	if (!wpa_s->valid_links)
+		return false;
+
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+		if (!(wpa_s->valid_links & BIT(i)))
+			continue;
+		if (wpa_s->links[i].bss &&
+		    wpa_bss_get_vendor_ie(wpa_s->links[i].bss,
+					  RSNE_OVERRIDE_2_IE_VENDOR_TYPE))
+			return true;
 	}
 
 	return false;

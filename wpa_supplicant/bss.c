@@ -1657,10 +1657,22 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 
 	if (ssid) {
 		struct wpa_ie_data ie;
+		const u8 *rsne;
+		size_t rsne_len;
 
-		if (!elems.rsn_ie ||
-		    wpa_parse_wpa_ie(elems.rsn_ie - 2, 2 + elems.rsn_ie_len,
-				     &ie)) {
+		if (elems.rsne_override_2 && wpas_rsn_overriding(wpa_s)) {
+			rsne = elems.rsne_override_2;
+			rsne_len = elems.rsne_override_2_len;
+		} else if (elems.rsne_override &&
+			   wpas_rsn_overriding(wpa_s)) {
+			rsne = elems.rsne_override;
+			rsne_len = elems.rsne_override_len;
+		} else {
+			rsne = elems.rsn_ie;
+			rsne_len = elems.rsn_ie_len;
+		}
+		if (!rsne ||
+		    wpa_parse_wpa_ie(rsne - 2, 2 + rsne_len, &ie)) {
 			wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No RSN element");
 			goto out;
 		}
@@ -1868,10 +1880,163 @@ out:
 }
 
 
+static bool wpa_bss_supported_cipher(struct wpa_supplicant *wpa_s,
+				     int pairwise_cipher)
+{
+	if (!wpa_s->drv_enc)
+		return true;
+
+	if ((pairwise_cipher & WPA_CIPHER_CCMP) &&
+	    (wpa_s->drv_enc & WPA_DRIVER_CAPA_ENC_CCMP))
+		return true;
+
+	if ((pairwise_cipher & WPA_CIPHER_GCMP) &&
+	    (wpa_s->drv_enc & WPA_DRIVER_CAPA_ENC_GCMP))
+		return true;
+
+	if ((pairwise_cipher & WPA_CIPHER_CCMP_256) &&
+	    (wpa_s->drv_enc & WPA_DRIVER_CAPA_ENC_CCMP_256))
+		return true;
+
+	if ((pairwise_cipher & WPA_CIPHER_GCMP_256) &&
+	    (wpa_s->drv_enc & WPA_DRIVER_CAPA_ENC_GCMP_256))
+		return true;
+
+	return false;
+}
+
+
+static bool wpa_bss_supported_key_mgmt(struct wpa_supplicant *wpa_s,
+				       int key_mgmt)
+{
+	if (!wpa_s->drv_key_mgmt)
+		return true;
+
+	if ((key_mgmt & WPA_KEY_MGMT_IEEE8021X) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_WPA2))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_IEEE8021X_SHA256) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_802_1X_SHA256))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_FT_IEEE8021X) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_FT))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_FT_IEEE8021X_SHA384) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_FT_802_1X_SHA384))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_IEEE8021X_SUITE_B) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_SUITE_B))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_IEEE8021X_SUITE_B_192) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_SUITE_B_192))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_PSK) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_WPA2_PSK))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_FT_PSK) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_FT_PSK))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_PSK_SHA256) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_PSK_SHA256))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_SAE) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_SAE))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_SAE_EXT_KEY) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_SAE_EXT_KEY))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_FT_SAE) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_FT_SAE))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_FT_SAE_EXT_KEY) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_FT_SAE_EXT_KEY))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_OWE) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_OWE))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_DPP) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_DPP))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_FILS_SHA256) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_FILS_SHA256))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_FILS_SHA384) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_FILS_SHA384))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_FT_FILS_SHA256) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_FT_FILS_SHA256))
+		return true;
+	if ((key_mgmt & WPA_KEY_MGMT_FT_FILS_SHA384) &&
+	    (wpa_s->drv_key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_FT_FILS_SHA384))
+		return true;
+
+	return false;
+}
+
+
+static bool wpa_bss_supported_rsne(struct wpa_supplicant *wpa_s,
+				   struct wpa_ssid *ssid, const u8 *ie)
+{
+	struct wpa_ie_data data;
+
+	if (wpa_parse_wpa_ie_rsn(ie, 2 + ie[1], &data) < 0)
+		return false;
+
+	/* Check that there is a supported AKM and pairwise cipher based on
+	 * overall capabilities */
+	if (!data.pairwise_cipher || !data.key_mgmt)
+		return false;
+
+	if (wpa_s->drv_capa_known) {
+		if (!wpa_bss_supported_cipher(wpa_s, data.pairwise_cipher) ||
+		    !wpa_bss_supported_key_mgmt(wpa_s, data.key_mgmt))
+			return false;
+	}
+
+	if (ssid) {
+		/* Check that there is a supported AKM and pairwise cipher
+		 * based on the specific network profile. */
+		if ((ssid->pairwise_cipher & data.pairwise_cipher) == 0)
+			return false;
+		if ((ssid->key_mgmt & data.key_mgmt) == 0)
+			return false;
+	}
+
+	return true;
+}
+
+
 const u8 * wpa_bss_get_rsne(struct wpa_supplicant *wpa_s,
 			    const struct wpa_bss *bss, struct wpa_ssid *ssid,
 			    bool mlo)
 {
+	const u8 *ie;
+
+	if (wpas_rsn_overriding(wpa_s)) {
+		if (!ssid)
+			ssid = wpa_s->current_ssid;
+
+		/* MLO cases for RSN overriding are required to use RSNE
+		 * Override 2 element and RSNXE Override element together. */
+		ie = wpa_bss_get_vendor_ie(bss, RSNE_OVERRIDE_2_IE_VENDOR_TYPE);
+		if (mlo && ie &&
+		    !wpa_bss_get_vendor_ie(bss,
+					   RSNXE_OVERRIDE_IE_VENDOR_TYPE)) {
+			wpa_printf(MSG_DEBUG, "BSS " MACSTR
+				   " advertises RSNE Override 2 element without RSNXE Override element - ignore RSNE Override 2 element for MLO",
+				   MAC2STR(bss->bssid));
+		} else if (ie && wpa_bss_supported_rsne(wpa_s, ssid, ie)) {
+			return ie;
+		}
+
+		if (!mlo) {
+			ie = wpa_bss_get_vendor_ie(
+				bss, RSNE_OVERRIDE_IE_VENDOR_TYPE);
+			if (ie && wpa_bss_supported_rsne(wpa_s, ssid, ie))
+				return ie;
+		}
+	}
+
 	return wpa_bss_get_ie(bss, WLAN_EID_RSN);
 }
 
@@ -1880,5 +2045,33 @@ const u8 * wpa_bss_get_rsnxe(struct wpa_supplicant *wpa_s,
 			     const struct wpa_bss *bss, struct wpa_ssid *ssid,
 			     bool mlo)
 {
+	const u8 *ie;
+
+	if (wpas_rsn_overriding(wpa_s)) {
+		ie = wpa_bss_get_vendor_ie(bss, RSNXE_OVERRIDE_IE_VENDOR_TYPE);
+		if (ie) {
+			const u8 *tmp;
+
+			tmp = wpa_bss_get_rsne(wpa_s, bss, ssid, mlo);
+			if (!tmp || tmp[0] == WLAN_EID_RSN) {
+				/* An acceptable RSNE override element was not
+				 * found, so need to ignore RSNXE overriding. */
+				return NULL;
+			}
+
+			return ie;
+		}
+
+		/* MLO cases for RSN overriding are required to use RSNE
+		 * Override 2 element and RSNXE Override element together. */
+		if (mlo && wpa_bss_get_vendor_ie(
+			    bss, RSNE_OVERRIDE_2_IE_VENDOR_TYPE)) {
+			wpa_printf(MSG_DEBUG, "BSS " MACSTR
+				   " advertises RSNXE Override element without RSNE Override 2 element - ignore RSNXE Override element for MLO",
+				   MAC2STR(bss->bssid));
+			return NULL;
+		}
+	}
+
 	return wpa_bss_get_ie(bss, WLAN_EID_RSNX);
 }

@@ -5579,6 +5579,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT_RANGE(extended_key_id, 0, 1), 0 },
 #endif /* CONFIG_WNM */
 	{ INT_RANGE(wowlan_disconnect_on_deinit, 0, 1), 0},
+	{ INT_RANGE(rsn_overriding, 0, 2), 0},
 #ifdef CONFIG_PASN
 #ifdef CONFIG_TESTING_OPTIONS
 	{ INT_RANGE(force_kdk_derivation, 0, 1), 0 },

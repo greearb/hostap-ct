@@ -4550,12 +4550,27 @@ int wpa_sm_set_mlo_params(struct wpa_sm *sm, const struct wpa_sm_mlo *mlo)
 		} else {
 			wpa_hexdump_link(MSG_DEBUG, i, "RSN: Set AP RSNE",
 					 ie, len);
-			sm->mlo.links[i].ap_rsne = os_memdup(ie, len);
-			if (!sm->mlo.links[i].ap_rsne) {
-				sm->mlo.links[i].ap_rsne_len = 0;
-				return -1;
+			if (ie[0] == WLAN_EID_VENDOR_SPECIFIC && len > 2 + 4) {
+				sm->mlo.links[i].ap_rsne = os_malloc(len - 4);
+				if (!sm->mlo.links[i].ap_rsne)
+					return -1;
+				sm->mlo.links[i].ap_rsne[0] = WLAN_EID_RSN;
+				sm->mlo.links[i].ap_rsne[1] = len - 2 - 4;
+				os_memcpy(&sm->mlo.links[i].ap_rsne[2],
+					  ie + 2 + 4, len - 2 - 4);
+				sm->mlo.links[i].ap_rsne_len = len - 4;
+				wpa_hexdump(MSG_DEBUG,
+					    "RSN: Converted RSNE override to RSNE",
+					    sm->mlo.links[i].ap_rsne,
+					    sm->mlo.links[i].ap_rsne_len);
+			} else {
+				sm->mlo.links[i].ap_rsne = os_memdup(ie, len);
+				if (!sm->mlo.links[i].ap_rsne) {
+					sm->mlo.links[i].ap_rsne_len = 0;
+					return -1;
+				}
+				sm->mlo.links[i].ap_rsne_len = len;
 			}
-			sm->mlo.links[i].ap_rsne_len = len;
 		}
 
 		ie = mlo->links[i].ap_rsnxe;
@@ -4571,12 +4586,27 @@ int wpa_sm_set_mlo_params(struct wpa_sm *sm, const struct wpa_sm_mlo *mlo)
 		} else {
 			wpa_hexdump_link(MSG_DEBUG, i, "RSN: Set AP RSNXE", ie,
 					 len);
-			sm->mlo.links[i].ap_rsnxe = os_memdup(ie, len);
-			if (!sm->mlo.links[i].ap_rsnxe) {
-				sm->mlo.links[i].ap_rsnxe_len = 0;
-				return -1;
+			if (ie[0] == WLAN_EID_VENDOR_SPECIFIC && len > 2 + 4) {
+				sm->mlo.links[i].ap_rsnxe = os_malloc(len - 4);
+				if (!sm->mlo.links[i].ap_rsnxe)
+					return -1;
+				sm->mlo.links[i].ap_rsnxe[0] = WLAN_EID_RSNX;
+				sm->mlo.links[i].ap_rsnxe[1] = len - 2 - 4;
+				os_memcpy(&sm->mlo.links[i].ap_rsnxe[2],
+					  ie + 2 + 4, len - 2 - 4);
+				sm->mlo.links[i].ap_rsnxe_len = len - 4;
+				wpa_hexdump(MSG_DEBUG,
+					    "RSN: Converted RSNXE override to RSNXE",
+					    sm->mlo.links[i].ap_rsnxe,
+					    sm->mlo.links[i].ap_rsnxe_len);
+			} else {
+				sm->mlo.links[i].ap_rsnxe = os_memdup(ie, len);
+				if (!sm->mlo.links[i].ap_rsnxe) {
+					sm->mlo.links[i].ap_rsnxe_len = 0;
+					return -1;
+				}
+				sm->mlo.links[i].ap_rsnxe_len = len;
 			}
-			sm->mlo.links[i].ap_rsnxe_len = len;
 		}
 	}
 
@@ -5077,11 +5107,24 @@ int wpa_sm_set_ap_rsn_ie(struct wpa_sm *sm, const u8 *ie, size_t len)
 		sm->ap_rsn_ie_len = 0;
 	} else {
 		wpa_hexdump(MSG_DEBUG, "WPA: set AP RSN IE", ie, len);
-		sm->ap_rsn_ie = os_memdup(ie, len);
-		if (sm->ap_rsn_ie == NULL)
-			return -1;
+		if (ie[0] == WLAN_EID_VENDOR_SPECIFIC && len > 2 + 4) {
+			sm->ap_rsn_ie = os_malloc(len - 4);
+			if (!sm->ap_rsn_ie)
+				return -1;
+			sm->ap_rsn_ie[0] = WLAN_EID_RSN;
+			sm->ap_rsn_ie[1] = len - 2 - 4;
+			os_memcpy(&sm->ap_rsn_ie[2], ie + 2 + 4, len - 2 - 4);
+			sm->ap_rsn_ie_len = len - 4;
+			wpa_hexdump(MSG_DEBUG,
+				    "RSN: Converted RSNE override to RSNE",
+				    sm->ap_rsn_ie, sm->ap_rsn_ie_len);
+		} else {
+			sm->ap_rsn_ie = os_memdup(ie, len);
+			if (sm->ap_rsn_ie == NULL)
+				return -1;
 
-		sm->ap_rsn_ie_len = len;
+			sm->ap_rsn_ie_len = len;
+		}
 	}
 
 	return 0;
@@ -5110,11 +5153,24 @@ int wpa_sm_set_ap_rsnxe(struct wpa_sm *sm, const u8 *ie, size_t len)
 		sm->ap_rsnxe_len = 0;
 	} else {
 		wpa_hexdump(MSG_DEBUG, "WPA: set AP RSNXE", ie, len);
-		sm->ap_rsnxe = os_memdup(ie, len);
-		if (!sm->ap_rsnxe)
-			return -1;
+		if (ie[0] == WLAN_EID_VENDOR_SPECIFIC && len > 2 + 4) {
+			sm->ap_rsnxe = os_malloc(len - 4);
+			if (!sm->ap_rsnxe)
+				return -1;
+			sm->ap_rsnxe[0] = WLAN_EID_RSNX;
+			sm->ap_rsnxe[1] = len - 2 - 4;
+			os_memcpy(&sm->ap_rsnxe[2], ie + 2 + 4, len - 2 - 4);
+			sm->ap_rsnxe_len = len - 4;
+			wpa_hexdump(MSG_DEBUG,
+				    "RSN: Converted RSNXE override to RSNXE",
+				    sm->ap_rsnxe, sm->ap_rsnxe_len);
+		} else {
+			sm->ap_rsnxe = os_memdup(ie, len);
+			if (!sm->ap_rsnxe)
+				return -1;
 
-		sm->ap_rsnxe_len = len;
+			sm->ap_rsnxe_len = len;
+		}
 	}
 
 	return 0;
