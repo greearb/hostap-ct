@@ -1945,6 +1945,9 @@ void handle_auth_fils(struct hostapd_data *hapd, struct sta_info *sta,
 	if (resp != WLAN_STATUS_SUCCESS)
 		goto fail;
 
+	wpa_auth_set_rsn_override(sta->wpa_sm, elems.rsne_override != NULL);
+	wpa_auth_set_rsn_override_2(sta->wpa_sm, elems.rsne_override_2 != NULL);
+
 	if (!elems.fils_nonce) {
 		wpa_printf(MSG_DEBUG, "FILS: No FILS Nonce field");
 		resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
@@ -2961,7 +2964,10 @@ static void handle_auth(struct hostapd_data *hapd,
 	       auth_alg == WLAN_AUTH_FT) ||
 #endif /* CONFIG_IEEE80211R_AP */
 #ifdef CONFIG_SAE
-	      (hapd->conf->wpa && wpa_key_mgmt_sae(hapd->conf->wpa_key_mgmt) &&
+	      (hapd->conf->wpa &&
+	       wpa_key_mgmt_sae(hapd->conf->wpa_key_mgmt |
+				hapd->conf->rsn_override_key_mgmt |
+				hapd->conf->rsn_override_key_mgmt_2) &&
 	       auth_alg == WLAN_AUTH_SAE) ||
 #endif /* CONFIG_SAE */
 #ifdef CONFIG_FILS
@@ -4128,6 +4134,10 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 #endif /* CONFIG_IEEE80211BE */
 
 		wpa_auth_set_auth_alg(sta->wpa_sm, sta->auth_alg);
+		wpa_auth_set_rsn_override(sta->wpa_sm,
+					  elems->rsne_override != NULL);
+		wpa_auth_set_rsn_override_2(sta->wpa_sm,
+					    elems->rsne_override_2 != NULL);
 		res = wpa_validate_wpa_ie(hapd->wpa_auth, sta->wpa_sm,
 					  hapd->iface->freq,
 					  wpa_ie, wpa_ie_len,

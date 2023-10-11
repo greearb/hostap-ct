@@ -3156,6 +3156,16 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->wpa_key_mgmt = hostapd_config_parse_key_mgmt(line, pos);
 		if (bss->wpa_key_mgmt == -1)
 			return 1;
+	} else if (os_strcmp(buf, "rsn_override_key_mgmt") == 0) {
+		bss->rsn_override_key_mgmt =
+			hostapd_config_parse_key_mgmt(line, pos);
+		if (bss->rsn_override_key_mgmt == -1)
+			return 1;
+	} else if (os_strcmp(buf, "rsn_override_key_mgmt_2") == 0) {
+		bss->rsn_override_key_mgmt_2 =
+			hostapd_config_parse_key_mgmt(line, pos);
+		if (bss->rsn_override_key_mgmt_2 == -1)
+			return 1;
 	} else if (os_strcmp(buf, "wpa_psk_radius") == 0) {
 		bss->wpa_psk_radius = atoi(pos);
 		if (bss->wpa_psk_radius != PSK_RADIUS_IGNORED &&
@@ -3184,6 +3194,32 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		if (bss->rsn_pairwise &
 		    (WPA_CIPHER_NONE | WPA_CIPHER_WEP40 | WPA_CIPHER_WEP104)) {
 			wpa_printf(MSG_ERROR, "Line %d: unsupported pairwise cipher suite '%s'",
+				   line, pos);
+			return 1;
+		}
+	} else if (os_strcmp(buf, "rsn_override_pairwise") == 0) {
+		bss->rsn_override_pairwise =
+			hostapd_config_parse_cipher(line, pos);
+		if (bss->rsn_override_pairwise == -1 ||
+		    bss->rsn_override_pairwise == 0)
+			return 1;
+		if (bss->rsn_override_pairwise &
+		    (WPA_CIPHER_NONE | WPA_CIPHER_WEP40 | WPA_CIPHER_WEP104)) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: unsupported pairwise cipher suite '%s'",
+				   line, pos);
+			return 1;
+		}
+	} else if (os_strcmp(buf, "rsn_override_pairwise_2") == 0) {
+		bss->rsn_override_pairwise_2 =
+			hostapd_config_parse_cipher(line, pos);
+		if (bss->rsn_override_pairwise_2 == -1 ||
+		    bss->rsn_override_pairwise_2 == 0)
+			return 1;
+		if (bss->rsn_override_pairwise_2 &
+		    (WPA_CIPHER_NONE | WPA_CIPHER_WEP40 | WPA_CIPHER_WEP104)) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: unsupported pairwise cipher suite '%s'",
 				   line, pos);
 			return 1;
 		}
@@ -3642,6 +3678,10 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		conf->use_driver_iface_addr = atoi(pos);
 	} else if (os_strcmp(buf, "ieee80211w") == 0) {
 		bss->ieee80211w = atoi(pos);
+	} else if (os_strcmp(buf, "rsn_override_mfp") == 0) {
+		bss->rsn_override_mfp = atoi(pos);
+	} else if (os_strcmp(buf, "rsn_override_mfp_2") == 0) {
+		bss->rsn_override_mfp_2 = atoi(pos);
 	} else if (os_strcmp(buf, "group_mgmt_cipher") == 0) {
 		if (os_strcmp(pos, "AES-128-CMAC") == 0) {
 			bss->group_mgmt_cipher = WPA_CIPHER_AES_128_CMAC;

@@ -45,6 +45,8 @@ static void hostapd_wpa_auth_conf(struct hostapd_bss_config *conf,
 	wconf->wpa = conf->wpa;
 	wconf->extended_key_id = conf->extended_key_id;
 	wconf->wpa_key_mgmt = conf->wpa_key_mgmt;
+	wconf->rsn_override_key_mgmt = conf->rsn_override_key_mgmt;
+	wconf->rsn_override_key_mgmt_2 = conf->rsn_override_key_mgmt_2;
 	wconf->wpa_pairwise = conf->wpa_pairwise;
 	wconf->wpa_group = conf->wpa_group;
 	wconf->wpa_group_rekey = conf->wpa_group_rekey;
@@ -56,6 +58,8 @@ static void hostapd_wpa_auth_conf(struct hostapd_bss_config *conf,
 		conf->wpa_disable_eapol_key_retries;
 	wconf->wpa_pairwise_update_count = conf->wpa_pairwise_update_count;
 	wconf->rsn_pairwise = conf->rsn_pairwise;
+	wconf->rsn_override_pairwise = conf->rsn_override_pairwise;
+	wconf->rsn_override_pairwise_2 = conf->rsn_override_pairwise_2;
 	wconf->rsn_preauth = conf->rsn_preauth;
 	wconf->eapol_version = conf->eapol_version;
 #ifdef CONFIG_MACSEC
@@ -70,6 +74,8 @@ static void hostapd_wpa_auth_conf(struct hostapd_bss_config *conf,
 #endif /* CONFIG_OCV */
 	wconf->okc = conf->okc;
 	wconf->ieee80211w = conf->ieee80211w;
+	wconf->rsn_override_mfp = conf->rsn_override_mfp;
+	wconf->rsn_override_mfp_2 = conf->rsn_override_mfp_2;
 	wconf->beacon_prot = conf->beacon_prot;
 	wconf->group_mgmt_cipher = conf->group_mgmt_cipher;
 	wconf->sae_require_mfp = conf->sae_require_mfp;

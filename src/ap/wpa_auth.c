@@ -885,6 +885,9 @@ void wpa_deinit(struct wpa_authenticator *wpa_auth)
 
 
 	os_free(wpa_auth->wpa_ie);
+	os_free(wpa_auth->rsne_override);
+	os_free(wpa_auth->rsne_override_2);
+	os_free(wpa_auth->rsnxe_override);
 
 	group = wpa_auth->group;
 	while (group) {
@@ -4449,7 +4452,7 @@ static size_t wpa_auth_ml_kdes_len(struct wpa_state_machine *sm)
 	/* MLO Link KDE for each link */
 	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 		struct wpa_authenticator *wpa_auth;
-		const u8 *ie;
+		const u8 *ie, *ieo;
 
 		wpa_auth = wpa_get_link_auth(sm->wpa_auth, link_id);
 		if (!wpa_auth)
@@ -4458,11 +4461,22 @@ static size_t wpa_auth_ml_kdes_len(struct wpa_state_machine *sm)
 		kde_len += 2 + RSN_SELECTOR_LEN + 1 + ETH_ALEN;
 		ie = get_ie(wpa_auth->wpa_ie, wpa_auth->wpa_ie_len,
 			    WLAN_EID_RSN);
-		if (ie)
+		ieo = get_vendor_ie(wpa_auth->wpa_ie, wpa_auth->wpa_ie_len,
+				    sm->rsn_override_2 ?
+				    RSNE_OVERRIDE_2_IE_VENDOR_TYPE :
+				    RSNE_OVERRIDE_IE_VENDOR_TYPE);
+		if ((sm->rsn_override || sm->rsn_override_2) && ieo)
+			kde_len += 2 + ieo[1 - 4];
+		else
 			kde_len += 2 + ie[1];
+
 		ie = get_ie(wpa_auth->wpa_ie, wpa_auth->wpa_ie_len,
 			    WLAN_EID_RSNX);
-		if (ie)
+		ieo = get_vendor_ie(wpa_auth->wpa_ie, wpa_auth->wpa_ie_len,
+				    RSNXE_OVERRIDE_IE_VENDOR_TYPE);
+		if ((sm->rsn_override || sm->rsn_override_2) && ieo)
+			kde_len += 2 + ieo[1] - 4;
+		else if (ie)
 			kde_len += 2 + ie[1];
 	}
 
@@ -4488,7 +4502,7 @@ static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
 
 	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 		struct wpa_authenticator *wpa_auth;
-		const u8 *rsne, *rsnxe;
+		const u8 *rsne, *rsnxe, *rsneo, *rsnxeo;
 		size_t rsne_len, rsnxe_len;
 
 		wpa_auth = wpa_get_link_auth(sm->wpa_auth, link_id);
@@ -4498,10 +4512,24 @@ static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
 		rsne = get_ie(wpa_auth->wpa_ie, wpa_auth->wpa_ie_len,
 			     WLAN_EID_RSN);
 		rsne_len = rsne ? 2 + rsne[1] : 0;
+		rsneo = get_vendor_ie(wpa_auth->wpa_ie, wpa_auth->wpa_ie_len,
+				      sm->rsn_override_2 ?
+				      RSNE_OVERRIDE_2_IE_VENDOR_TYPE :
+				      RSNE_OVERRIDE_IE_VENDOR_TYPE);
+		if ((sm->rsn_override || sm->rsn_override_2) && rsneo)
+			rsne_len = 2 + rsneo[1] - 4;
+		else
+			rsneo = NULL;
 
 		rsnxe = get_ie(wpa_auth->wpa_ie, wpa_auth->wpa_ie_len,
 			       WLAN_EID_RSNX);
 		rsnxe_len = rsnxe ? 2 + rsnxe[1] : 0;
+		rsnxeo = get_vendor_ie(wpa_auth->wpa_ie, wpa_auth->wpa_ie_len,
+				       RSNXE_OVERRIDE_IE_VENDOR_TYPE);
+		if ((sm->rsn_override || sm->rsn_override_2) && rsnxeo)
+			rsnxe_len = 2 + rsnxeo[1] - 4;
+		else
+			rsnxeo = NULL;
 
 		wpa_printf(MSG_DEBUG,
 			   "RSN: MLO Link: link=%u, len=%zu", link_id,
@@ -4527,13 +4555,27 @@ static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
 		pos += ETH_ALEN;
 
 		if (rsne_len) {
-			os_memcpy(pos, rsne, rsne_len);
-			pos += rsne_len;
+			if (rsneo) {
+				*pos++ = WLAN_EID_RSN;
+				*pos++ = rsneo[1] - 4;
+				os_memcpy(pos, &rsneo[2 + 4], rsneo[1] - 4);
+				pos += rsneo[1] - 4;
+			} else {
+				os_memcpy(pos, rsne, rsne_len);
+				pos += rsne_len;
+			}
 		}
 
 		if (rsnxe_len) {
-			os_memcpy(pos, rsnxe, rsnxe_len);
-			pos += rsnxe_len;
+			if (rsnxeo) {
+				*pos++ = WLAN_EID_RSNX;
+				*pos++ = rsnxeo[1] - 4;
+				os_memcpy(pos, &rsnxeo[2 + 4], rsnxeo[1] - 4);
+				pos += rsnxeo[1] - 4;
+			} else {
+				os_memcpy(pos, rsnxe, rsnxe_len);
+				pos += rsnxe_len;
+			}
 		}
 	}
 
@@ -4552,7 +4594,7 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 	struct wpa_group *gsm = sm->group;
 	u8 *wpa_ie;
 	int secure, gtkidx, encr = 0;
-	u8 *wpa_ie_buf = NULL, *wpa_ie_buf2 = NULL;
+	u8 *wpa_ie_buf = NULL, *wpa_ie_buf2 = NULL, *wpa_ie_buf3 = NULL;
 	u8 hdr[2];
 	struct wpa_auth_config *conf = &sm->wpa_auth->conf;
 #ifdef CONFIG_IEEE80211BE
@@ -4592,6 +4634,80 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 		if (wpa_ie[0] == WLAN_EID_MOBILITY_DOMAIN)
 			wpa_ie = wpa_ie + wpa_ie[1] + 2;
 		wpa_ie_len = wpa_ie[1] + 2;
+	}
+	if ((sm->rsn_override &&
+	     get_vendor_ie(wpa_ie, wpa_ie_len, RSNE_OVERRIDE_IE_VENDOR_TYPE)) ||
+	    (sm->rsn_override_2 &&
+	     get_vendor_ie(wpa_ie, wpa_ie_len,
+			   RSNE_OVERRIDE_2_IE_VENDOR_TYPE))) {
+		const u8 *mde, *fte, *tie, *tie2 = NULL;
+		const u8 *override_rsne = NULL, *override_rsnxe = NULL;
+		const struct element *elem;
+
+		wpa_printf(MSG_DEBUG,
+			   "RSN: Use RSNE/RSNXE override element contents");
+		mde = get_ie(wpa_ie, wpa_ie_len, WLAN_EID_MOBILITY_DOMAIN);
+		fte = get_ie(wpa_ie, wpa_ie_len, WLAN_EID_FAST_BSS_TRANSITION);
+		tie = get_ie(wpa_ie, wpa_ie_len, WLAN_EID_TIMEOUT_INTERVAL);
+		if (tie) {
+			const u8 *next = tie + 2 + tie[1];
+
+			tie2 = get_ie(next, wpa_ie + wpa_ie_len - next,
+				      WLAN_EID_TIMEOUT_INTERVAL);
+		}
+		for_each_element_id(elem, WLAN_EID_VENDOR_SPECIFIC,
+				    wpa_ie, wpa_ie_len) {
+			if (elem->datalen >= 4) {
+				if (WPA_GET_BE32(elem->data) ==
+				    (sm->rsn_override_2 ?
+				     RSNE_OVERRIDE_2_IE_VENDOR_TYPE :
+				     RSNE_OVERRIDE_IE_VENDOR_TYPE))
+					override_rsne = &elem->id;
+				if (WPA_GET_BE32(elem->data) ==
+				    RSNXE_OVERRIDE_IE_VENDOR_TYPE)
+					override_rsnxe = &elem->id;
+			}
+		}
+		wpa_hexdump(MSG_DEBUG, "EAPOL-Key msg 3/4 IEs before edits",
+			    wpa_ie, wpa_ie_len);
+		wpa_ie_buf3 = os_malloc(wpa_ie_len);
+		if (!wpa_ie_buf3)
+			goto done;
+		pos = wpa_ie_buf3;
+		if (override_rsne) {
+			*pos++ = WLAN_EID_RSN;
+			*pos++ = override_rsne[1] - 4;
+			os_memcpy(pos, &override_rsne[2 + 4],
+				  override_rsne[1] - 4);
+			pos += override_rsne[1] - 4;
+		}
+		if (mde) {
+			os_memcpy(pos, mde, 2 + mde[1]);
+			pos += 2 + mde[1];
+		}
+		if (fte) {
+			os_memcpy(pos, fte, 2 + fte[1]);
+			pos += 2 + fte[1];
+		}
+		if (tie) {
+			os_memcpy(pos, tie, 2 + tie[1]);
+			pos += 2 + tie[1];
+		}
+		if (tie2) {
+			os_memcpy(pos, tie2, 2 + tie2[1]);
+			pos += 2 + tie2[1];
+		}
+		if (override_rsnxe) {
+			*pos++ = WLAN_EID_RSNX;
+			*pos++ = override_rsnxe[1] - 4;
+			os_memcpy(pos, &override_rsnxe[2 + 4],
+				  override_rsnxe[1] - 4);
+			pos += override_rsnxe[1] - 4;
+		}
+		wpa_ie = wpa_ie_buf3;
+		wpa_ie_len = pos - wpa_ie_buf3;
+		wpa_hexdump(MSG_DEBUG, "EAPOL-Key msg 3/4 IEs after edits",
+			    wpa_ie, wpa_ie_len);
 	}
 #ifdef CONFIG_TESTING_OPTIONS
 	if (conf->rsne_override_eapol_set) {
@@ -4862,6 +4978,7 @@ done:
 	bin_clear_free(kde, kde_len);
 	os_free(wpa_ie_buf);
 	os_free(wpa_ie_buf2);
+	os_free(wpa_ie_buf3);
 }
 
 
@@ -6810,6 +6927,20 @@ void wpa_auth_set_auth_alg(struct wpa_state_machine *sm, u16 auth_alg)
 {
 	if (sm)
 		sm->auth_alg = auth_alg;
+}
+
+
+void wpa_auth_set_rsn_override(struct wpa_state_machine *sm, bool val)
+{
+	if (sm)
+		sm->rsn_override = val;
+}
+
+
+void wpa_auth_set_rsn_override_2(struct wpa_state_machine *sm, bool val)
+{
+	if (sm)
+		sm->rsn_override_2 = val;
 }
 
 

@@ -403,6 +403,81 @@ static u8 * hostapd_get_osen_ie(struct hostapd_data *hapd, u8 *pos, size_t len)
 }
 
 
+static u8 * hostapd_get_rsne_override(struct hostapd_data *hapd, u8 *pos,
+				      size_t len)
+{
+	const u8 *ie;
+
+	ie = hostapd_vendor_wpa_ie(hapd, RSNE_OVERRIDE_IE_VENDOR_TYPE);
+	if (!ie || 2U + ie[1] > len)
+		return pos;
+
+	os_memcpy(pos, ie, 2 + ie[1]);
+	return pos + 2 + ie[1];
+}
+
+
+static u8 * hostapd_get_rsne_override_2(struct hostapd_data *hapd, u8 *pos,
+					size_t len)
+{
+	const u8 *ie;
+
+	ie = hostapd_vendor_wpa_ie(hapd, RSNE_OVERRIDE_2_IE_VENDOR_TYPE);
+	if (!ie || 2U + ie[1] > len)
+		return pos;
+
+	os_memcpy(pos, ie, 2 + ie[1]);
+	return pos + 2 + ie[1];
+}
+
+
+static u8 * hostapd_get_rsnxe_override(struct hostapd_data *hapd, u8 *pos,
+				       size_t len)
+{
+	const u8 *ie;
+
+	ie = hostapd_vendor_wpa_ie(hapd, RSNXE_OVERRIDE_IE_VENDOR_TYPE);
+	if (!ie || 2U + ie[1] > len)
+		return pos;
+
+	os_memcpy(pos, ie, 2 + ie[1]);
+	return pos + 2 + ie[1];
+}
+
+
+static size_t hostapd_get_rsne_override_len(struct hostapd_data *hapd)
+{
+	const u8 *ie;
+
+	ie = hostapd_vendor_wpa_ie(hapd, RSNE_OVERRIDE_IE_VENDOR_TYPE);
+	if (!ie)
+		return 0;
+	return 2 + ie[1];
+}
+
+
+static size_t hostapd_get_rsne_override_2_len(struct hostapd_data *hapd)
+{
+	const u8 *ie;
+
+	ie = hostapd_vendor_wpa_ie(hapd, RSNE_OVERRIDE_2_IE_VENDOR_TYPE);
+	if (!ie)
+		return 0;
+	return 2 + ie[1];
+}
+
+
+static size_t hostapd_get_rsnxe_override_len(struct hostapd_data *hapd)
+{
+	const u8 *ie;
+
+	ie = hostapd_vendor_wpa_ie(hapd, RSNXE_OVERRIDE_IE_VENDOR_TYPE);
+	if (!ie)
+		return 0;
+	return 2 + ie[1];
+}
+
+
 static u8 * hostapd_eid_csa(struct hostapd_data *hapd, u8 *eid)
 {
 #ifdef CONFIG_TESTING_OPTIONS
@@ -686,6 +761,9 @@ static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 	buflen += hostapd_mbo_ie_len(hapd);
 	buflen += hostapd_eid_owe_trans_len(hapd);
 	buflen += hostapd_eid_dpp_cc_len(hapd);
+	buflen += hostapd_get_rsne_override_len(hapd);
+	buflen += hostapd_get_rsne_override_2_len(hapd);
+	buflen += hostapd_get_rsnxe_override_len(hapd);
 
 	return buflen;
 }
@@ -884,6 +962,10 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 	pos = hostapd_eid_mbo(hapd, pos, epos - pos);
 	pos = hostapd_eid_owe_trans(hapd, pos, epos - pos);
 	pos = hostapd_eid_dpp_cc(hapd, pos, epos - pos);
+
+	pos = hostapd_get_rsne_override(hapd, pos, epos - pos);
+	pos = hostapd_get_rsne_override_2(hapd, pos, epos - pos);
+	pos = hostapd_get_rsnxe_override(hapd, pos, epos - pos);
 
 	if (hapd->conf->vendor_elements) {
 		os_memcpy(pos, wpabuf_head(hapd->conf->vendor_elements),
@@ -2157,6 +2239,9 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 	tail_len += hostapd_mbo_ie_len(hapd);
 	tail_len += hostapd_eid_owe_trans_len(hapd);
 	tail_len += hostapd_eid_dpp_cc_len(hapd);
+	tail_len += hostapd_get_rsne_override_len(hapd);
+	tail_len += hostapd_get_rsne_override_2_len(hapd);
+	tail_len += hostapd_get_rsnxe_override_len(hapd);
 
 	tailpos = tail = os_malloc(tail_len);
 	if (head == NULL || tail == NULL) {
@@ -2368,6 +2453,13 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 					tail + tail_len - tailpos);
 	tailpos = hostapd_eid_dpp_cc(hapd, tailpos, tail + tail_len - tailpos);
 
+	tailpos = hostapd_get_rsne_override(hapd, tailpos,
+					    tail + tail_len - tailpos);
+	tailpos = hostapd_get_rsne_override_2(hapd, tailpos,
+					      tail + tail_len - tailpos);
+	tailpos = hostapd_get_rsnxe_override(hapd, tailpos,
+					     tail + tail_len - tailpos);
+
 	if (hapd->conf->vendor_elements) {
 		os_memcpy(tailpos, wpabuf_head(hapd->conf->vendor_elements),
 			  wpabuf_len(hapd->conf->vendor_elements));
@@ -2400,7 +2492,9 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 	/* If SAE offload is enabled, provide password to lower layer for
 	 * SAE authentication and PMK generation.
 	 */
-	if (wpa_key_mgmt_sae(hapd->conf->wpa_key_mgmt) &&
+	if (wpa_key_mgmt_sae(hapd->conf->wpa_key_mgmt |
+			     hapd->conf->rsn_override_key_mgmt |
+			     hapd->conf->rsn_override_key_mgmt_2) &&
 	    (hapd->iface->drv_flags2 & WPA_DRIVER_FLAGS2_SAE_OFFLOAD_AP)) {
 		if (hostapd_sae_pk_in_use(hapd->conf)) {
 			wpa_printf(MSG_ERROR,
@@ -2445,7 +2539,9 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 	else if (hapd->conf->wpa & WPA_PROTO_WPA)
 		params->pairwise_ciphers = hapd->conf->wpa_pairwise;
 	params->group_cipher = hapd->conf->wpa_group;
-	params->key_mgmt_suites = hapd->conf->wpa_key_mgmt;
+	params->key_mgmt_suites = hapd->conf->wpa_key_mgmt |
+		hapd->conf->rsn_override_key_mgmt |
+		hapd->conf->rsn_override_key_mgmt_2;
 	params->auth_algs = hapd->conf->auth_algs;
 	params->wpa_version = hapd->conf->wpa;
 	params->privacy = hapd->conf->wpa;

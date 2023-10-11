@@ -173,6 +173,8 @@ struct wpa_auth_config {
 	int wpa;
 	int extended_key_id;
 	int wpa_key_mgmt;
+	int rsn_override_key_mgmt;
+	int rsn_override_key_mgmt_2;
 	int wpa_pairwise;
 	int wpa_group;
 	int wpa_group_rekey;
@@ -184,6 +186,8 @@ struct wpa_auth_config {
 	u32 wpa_pairwise_update_count;
 	int wpa_disable_eapol_key_retries;
 	int rsn_pairwise;
+	int rsn_override_pairwise;
+	int rsn_override_pairwise_2;
 	int rsn_preauth;
 	int eapol_version;
 	int wmm_enabled;
@@ -192,6 +196,8 @@ struct wpa_auth_config {
 	int okc;
 	int tx_status;
 	enum mfp_options ieee80211w;
+	enum mfp_options rsn_override_mfp;
+	enum mfp_options rsn_override_mfp_2;
 	int beacon_prot;
 	int group_mgmt_cipher;
 	int sae_require_mfp;
@@ -605,6 +611,8 @@ u8 * wpa_auth_write_assoc_resp_fils(struct wpa_state_machine *sm,
 bool wpa_auth_write_fd_rsn_info(struct wpa_authenticator *wpa_auth,
 				u8 *fd_rsn_info);
 void wpa_auth_set_auth_alg(struct wpa_state_machine *sm, u16 auth_alg);
+void wpa_auth_set_rsn_override(struct wpa_state_machine *sm, bool val);
+void wpa_auth_set_rsn_override_2(struct wpa_state_machine *sm, bool val);
 void wpa_auth_set_dpp_z(struct wpa_state_machine *sm, const struct wpabuf *z);
 void wpa_auth_set_ssid_protection(struct wpa_state_machine *sm, bool val);
 void wpa_auth_set_transition_disable(struct wpa_authenticator *wpa_auth,
