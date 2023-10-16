@@ -4436,6 +4436,9 @@ static int wpa_drv_get_mlo_info(struct wpa_supplicant *wpa_s)
 	wpa_s->valid_links = mlo.valid_links;
 	wpa_s->mlo_assoc_link_id = mlo.assoc_link_id;
 	os_memcpy(wpa_s->ap_mld_addr, mlo.ap_mld_addr, ETH_ALEN);
+	wpa_dbg(wpa_s, MSG_DEBUG,
+		"MLO: drv_get_mlo_info, valid_links: 0x%x  assoc-link-id: %d  mld-addr: " MACSTR,
+		wpa_s->valid_links, wpa_s->mlo_assoc_link_id, MAC2STR(wpa_s->ap_mld_addr));
 	for_each_link(wpa_s->valid_links, i) {
 		os_memcpy(wpa_s->links[i].addr, mlo.links[i].addr, ETH_ALEN);
 		os_memcpy(wpa_s->links[i].bssid, mlo.links[i].bssid, ETH_ALEN);
@@ -4468,6 +4471,9 @@ static int wpa_sm_set_ml_info(struct wpa_supplicant *wpa_s)
 	wpa_mlo.valid_links = drv_mlo.valid_links;
 	wpa_mlo.req_links = drv_mlo.req_links;
 
+	wpa_dbg(wpa_s, MSG_DEBUG,
+		"MLO: sm-set-ml-info, valid_links: 0x%x  assoc-link-id: %d  mld-addr: " MACSTR,
+		wpa_mlo.valid_links, wpa_mlo.assoc_link_id, MAC2STR(wpa_mlo.ap_mld_addr));
 	for_each_link(drv_mlo.req_links, i) {
 		struct wpa_bss *bss;
 		const u8 *rsne, *rsnxe, *rsnoe, *rsno2e, *rsnxoe;
