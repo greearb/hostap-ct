@@ -6471,7 +6471,7 @@ static void handle_assoc_cb(struct hostapd_data *hapd,
 	/* WPS not supported on backhaul BSS. Disable 4addr mode on fronthaul */
 	if ((sta->flags & WLAN_STA_WDS) ||
 	    (sta->flags & WLAN_STA_MULTI_AP &&
-	     !(hapd->conf->multi_ap & FRONTHAUL_BSS) &&
+	     (hapd->conf->multi_ap & BACKHAUL_BSS) &&
 	     !(sta->flags & WLAN_STA_WPS))) {
 		int ret;
 		char ifname_wds[IFNAMSIZ + 1];
