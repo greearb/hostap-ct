@@ -336,6 +336,7 @@ static void mlme_event_assoc(struct wpa_driver_nl80211_data *drv,
 			   wpa_ssid_txt(drv->ssid, drv->ssid_len));
 	}
 
+	drv->assoc_freq = nl80211_get_assoc_freq(drv);
 	event.assoc_info.freq = drv->assoc_freq;
 	drv->first_bss->flink->freq = drv->assoc_freq;
 
