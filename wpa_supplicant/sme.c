@@ -207,7 +207,8 @@ static struct wpabuf * sme_auth_build_sae_commit(struct wpa_supplicant *wpa_s,
 	if (wpa_key_mgmt_sae_ext_key(key_mgmt) &&
 	    sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK)
 		use_pt = 1;
-	if (bss && is_6ghz_freq(bss->freq) &&
+
+	if (bss && (is_6ghz_freq(bss->freq) || !is_zero_ether_addr(bss->mld_addr)) &&
 	    sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK)
 		use_pt = 1;
 #ifdef CONFIG_SAE_PK
