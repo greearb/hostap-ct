@@ -4097,7 +4097,7 @@ struct wpa_driver_ops {
 	int (*if_add)(void *priv, enum wpa_driver_if_type type,
 		      const char *ifname, const u8 *addr, void *bss_ctx,
 		      void **drv_priv, char *force_ifname, u8 *if_addr,
-		      const char *bridge, int use_existing, int setup_ap);
+		      const char *bridge, int use_existing, int setup_ap, int freq);
 
 	/**
 	 * if_remove - Remove a virtual interface
