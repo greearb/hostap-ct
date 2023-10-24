@@ -410,7 +410,6 @@ CONFIG_IPV6=y
 # Experimental implementation based on IEEE P802.11z/D2.6 and the protocol
 # design is still subject to change. As such, this should not yet be enabled in
 # production use.
-# This requires CONFIG_IEEE80211W=y to be enabled, too.
 #CONFIG_PASN=y
 
 # Device Provisioning Protocol (DPP) (also known as Wi-Fi Easy Connect)
