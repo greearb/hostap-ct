@@ -157,17 +157,7 @@ def test_eht_sae_mlo(dev, apdev):
         dev[0].connect("eht", key_mgmt="SAE-EXT-KEY", psk="12345678",
                        ieee80211w="2", beacon_prot="1",
                        pairwise="GCMP-256", group="GCMP-256",
-                       group_mgmt="BIP-GMAC-256", scan_freq="2412",
-                       wait_connect=False)
-        ev = dev[0].wait_event(["CTRL-EVENT-CONNECTED",
-                                "CTRL-EVENT-AUTH-REJECT"], timeout=10)
-        if ev is None:
-            raise Exception("No connection result reported")
-        if "CTRL-EVENT-AUTH-REJECT" in ev:
-            # There is no MLO support with SAE in hostapd yet, so allow failure
-            # due to MLD address not being used.
-            if "status_code=15" not in ev:
-                raise Exception("Unexpected authentication failure: " + ev)
+                       group_mgmt="BIP-GMAC-256", scan_freq="2412")
     finally:
         dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
