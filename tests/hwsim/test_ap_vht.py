@@ -165,6 +165,34 @@ def test_ap_vht80d(dev, apdev):
     """VHT with 80 MHz channel width (HT40- channel 48)"""
     vht80_test(apdev[0], dev, 48, "[HT40-]")
 
+def test_ap_vht80e(dev, apdev):
+    """VHT with 80 MHz channel width (HT40- channel 161)"""
+    clear_scan_cache(apdev[0])
+    try:
+        hapd = None
+        params = {"ssid": "vht",
+                  "country_code": "US",
+                  "hw_mode": "a",
+                  "channel": "161",
+                  "ht_capab": "[HT40-]",
+                  "ieee80211n": "1",
+                  "ieee80211ac": "1",
+                  "vht_oper_chwidth": "1",
+                  "vht_oper_centr_freq_seg0_idx": "155"}
+        hapd = hostapd.add_ap(apdev[0], params)
+        bssid = apdev[0]['bssid']
+
+        dev[0].connect("vht", key_mgmt="NONE",
+                       scan_freq=str(5000 + 5 * 161))
+        hwsim_utils.test_connectivity(dev[0], hapd)
+    except Exception as e:
+        if isinstance(e, Exception) and str(e) == "AP startup failed":
+            if not vht_supported():
+                raise HwsimSkip("80 MHz channel not supported in regulatory information")
+        raise
+    finally:
+        clear_regdom(hapd, dev)
+
 def test_ap_vht80_params(dev, apdev):
     """VHT with 80 MHz channel width and number of optional features enabled"""
     clear_scan_cache(apdev[0])
