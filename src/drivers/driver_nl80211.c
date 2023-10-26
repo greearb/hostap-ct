@@ -11609,6 +11609,15 @@ static int nl80211_set_mac_addr(void *priv, const u8 *addr)
 	if (!addr)
 		addr = drv->perm_addr;
 
+	/*
+	 * Try to change the address first without setting the interface
+	 * down and then fall back to DOWN/set addr/UP if the first
+	 * attempt failed. This can reduce the interface setup time
+	 * significantly with some drivers.
+	 */
+	if (!linux_set_ifhwaddr(drv->global->ioctl_sock, bss->ifname, addr))
+		goto done;
+
 	if (linux_set_iface_flags(drv->global->ioctl_sock, bss->ifname, 0) < 0)
 		return -1;
 
@@ -11625,17 +11634,18 @@ static int nl80211_set_mac_addr(void *priv, const u8 *addr)
 		return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "nl80211: set_mac_addr for %s to " MACSTR,
-		   bss->ifname, MAC2STR(addr));
-	drv->addr_changed = new_addr;
-	os_memcpy(bss->prev_addr, bss->addr, ETH_ALEN);
-	os_memcpy(bss->addr, addr, ETH_ALEN);
-
 	if (linux_set_iface_flags(drv->global->ioctl_sock, bss->ifname, 1) < 0)
 	{
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Could not restore interface UP after set_mac_addr");
 	}
+
+done:
+	wpa_printf(MSG_DEBUG, "nl80211: set_mac_addr for %s to " MACSTR,
+		   bss->ifname, MAC2STR(addr));
+	drv->addr_changed = new_addr;
+	os_memcpy(bss->prev_addr, bss->addr, ETH_ALEN);
+	os_memcpy(bss->addr, addr, ETH_ALEN);
 
 	return 0;
 }
