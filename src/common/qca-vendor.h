@@ -14177,12 +14177,14 @@ enum qca_wlan_vendor_attr_roam_events {
  * @QCA_WLAN_RATEMASK_PARAMS_TYPE_HT: HT rate mask config
  * @QCA_WLAN_RATEMASK_PARAMS_TYPE_VHT: VHT rate mask config
  * @QCA_WLAN_RATEMASK_PARAMS_TYPE_HE: HE rate mask config
+ * @QCA_WLAN_RATEMASK_PARAMS_TYPE_EHT: EHT rate mask config
  */
 enum qca_wlan_ratemask_params_type {
 	QCA_WLAN_RATEMASK_PARAMS_TYPE_CCK_OFDM = 0,
 	QCA_WLAN_RATEMASK_PARAMS_TYPE_HT = 1,
 	QCA_WLAN_RATEMASK_PARAMS_TYPE_VHT = 2,
 	QCA_WLAN_RATEMASK_PARAMS_TYPE_HE = 3,
+	QCA_WLAN_RATEMASK_PARAMS_TYPE_EHT = 4,
 };
 
 /**
