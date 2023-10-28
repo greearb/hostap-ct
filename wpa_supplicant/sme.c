@@ -382,6 +382,7 @@ static void wpas_process_tbtt_info(struct wpa_supplicant *wpa_s, const u8 *data)
 {
 	struct wpa_bss *neigh_bss;
 	const u8 *bssid;
+	u8 bss_params;
 	u8 link_id;
 
 	/* TBTT Information field
@@ -398,12 +399,14 @@ static void wpas_process_tbtt_info(struct wpa_supplicant *wpa_s, const u8 *data)
 	 *   B21: Disabled Link Indication */
 
 	bssid = data + 1;
+	bss_params = data[1 + ETH_ALEN + 4];
 
 	data += 13; /* MLD Parameters */
 	link_id = *(data + 1) & 0xF;
 
-	wpa_printf(MSG_DEBUG, "MLD: mld ID=%u, link ID=%u",
-		   *data, link_id);
+	wpa_dbg(wpa_s, MSG_DEBUG,
+		"MLD: mld ID=%u, link ID=%u, bssid=" MACSTR ", bss_params=0x%x",
+		*data, link_id, MAC2STR(bssid), bss_params);
 
 	if (*data) {
 		wpa_printf(MSG_DEBUG, "MLD: Reported link not part of MLD");
@@ -416,7 +419,9 @@ static void wpas_process_tbtt_info(struct wpa_supplicant *wpa_s, const u8 *data)
 		return;
 	}
 
-	if (!wpa_scan_res_match(wpa_s, 0, neigh_bss, wpa_s->current_ssid,
+	if (!((bss_params & RNR_BSS_PARAM_SAME_SSID) &&
+	      (bss_params & RNR_BSS_PARAM_CO_LOCATED)) &&
+	    !wpa_scan_res_match(wpa_s, 0, neigh_bss, wpa_s->current_ssid,
 				1, 0)) {
 		wpa_printf(MSG_DEBUG,
 			   "MLD: Neighbor doesn't match current SSID - skip link");
