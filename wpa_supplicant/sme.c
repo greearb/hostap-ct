@@ -435,9 +435,18 @@ static void wpas_process_rnr(struct wpa_supplicant *wpa_s, const u8 *pos,
 	while (rnr_ie_len > sizeof(struct ieee80211_neighbor_ap_info)) {
 		const struct ieee80211_neighbor_ap_info *ap_info =
 			(const struct ieee80211_neighbor_ap_info *) pos;
+		/* The first TBTT Information field */
 		const u8 *data = ap_info->data;
-		size_t len = sizeof(struct ieee80211_neighbor_ap_info) +
-			ap_info->tbtt_info_len;
+		u8 tbtt_count;
+		size_t len;
+		int tbtt_i;
+
+		if (rnr_ie_len < sizeof(struct ieee80211_neighbor_ap_info))
+			break;
+
+		tbtt_count = (ap_info->tbtt_info_hdr >> 4) + 1;
+		len = sizeof(struct ieee80211_neighbor_ap_info) +
+			ap_info->tbtt_info_len * tbtt_count;
 
 		wpa_printf(MSG_DEBUG, "MLD: op_class=%u, channel=%u",
 			   ap_info->op_class, ap_info->channel);
@@ -451,7 +460,10 @@ static void wpas_process_rnr(struct wpa_supplicant *wpa_s, const u8 *pos,
 			continue;
 		}
 
-		wpas_process_tbtt_info(wpa_s, data);
+		for (tbtt_i = 0; tbtt_i < tbtt_count; tbtt_i++) {
+			wpas_process_tbtt_info(wpa_s, data);
+			data += ap_info->tbtt_info_len;
+		}
 
 		rnr_ie_len -= len;
 		pos += len;
