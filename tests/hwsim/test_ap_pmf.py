@@ -901,10 +901,33 @@ def test_ap_pmf_inject_auth(dev, apdev):
 
 def test_ap_pmf_inject_assoc(dev, apdev):
     """WPA2-PSK with PMF and Association Request frame injection"""
+    run_ap_pmf_inject_assoc(dev, apdev, False)
+
+def test_ap_pmf_inject_assoc_wps(dev, apdev):
+    """WPA2-PSK/WPS with PMF and Association Request frame injection"""
+    run_ap_pmf_inject_assoc(dev, apdev, True)
+
+def inject_assoc_req(hapd, addr, frame):
+    hapd.set("ext_mgmt_frame_handling", "1")
+    res = hapd.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=%s" % frame)
+    if "OK" not in res:
+        raise Exception("MGMT_RX_PROCESS failed")
+    hapd.set("ext_mgmt_frame_handling", "0")
+    sta = hapd.get_sta(addr)
+    if "[MFP]" not in sta['flags']:
+        raise Exception("MFP flag removed")
+    if sta["AKMSuiteSelector"] != '00-0f-ac-6':
+        raise Exception("AKMSuiteSelector value changed")
+
+def run_ap_pmf_inject_assoc(dev, apdev, wps):
     ssid = "test-pmf"
     params = hostapd.wpa2_params(ssid=ssid, passphrase="12345678")
     params["wpa_key_mgmt"] = "WPA-PSK WPA-PSK-SHA256"
     params["ieee80211w"] = "1"
+    if wps:
+        params["eap_server"] = "1"
+        params["wps_state"] = "2"
+
     hapd = hostapd.add_ap(apdev[0], params)
     dev[0].connect(ssid, psk="12345678", ieee80211w="2",
                    key_mgmt="WPA-PSK-SHA256", proto="WPA2",
@@ -920,48 +943,19 @@ def test_ap_pmf_inject_assoc(dev, apdev):
     addr = dev[0].own_addr().replace(':', '')
 
     # Inject unprotected Association Request frames
-    failed = False
+    assoc1 = "00003a01" + bssid + addr + bssid + '2000' + '31040500' + '0008746573742d706d66' + '010802040b160c121824' + '30140100000fac040100000fac040100000fac020000'
+    assoc2 = "00003a01" + bssid + addr + bssid + '2000' + '31040500' + '0008746573742d706d66' + '010802040b160c121824' + '30140100000fac040100000fac040100000fac060000'
+    assoc3 = "00003a01" + bssid + addr + bssid + '2000' + '31040500' + '0008746573742d706d66' + '010802040b160c121824'
 
-    hapd.set("ext_mgmt_frame_handling", "1")
-    assoc = "00003a01" + bssid + addr + bssid + '2000' + '31040500' + '0008746573742d706d66' + '010802040b160c121824' + '30140100000fac040100000fac040100000fac020000'
-    res = hapd.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=%s" % assoc)
-    if "OK" not in res:
-        failed = True
-    hapd.set("ext_mgmt_frame_handling", "0")
-    sta = hapd.get_sta(dev[0].own_addr())
-    if "[MFP]" not in sta['flags']:
-        raise Exception("MFP flag removed")
-    #if sta["AKMSuiteSelector"] != '00-0f-ac-6':
-    #    raise Exception("AKMSuiteSelector value changed")
-
+    inject_assoc_req(hapd, dev[0].own_addr(), assoc1)
     time.sleep(0.1)
-    hapd.set("ext_mgmt_frame_handling", "1")
-    res = hapd.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=%s" % assoc)
-    if "OK" not in res:
-        failed = True
-    hapd.set("ext_mgmt_frame_handling", "0")
-    sta = hapd.get_sta(dev[0].own_addr())
-    if "[MFP]" not in sta['flags']:
-        raise Exception("MFP flag removed")
-    if sta["AKMSuiteSelector"] != '00-0f-ac-6':
-        raise Exception("AKMSuiteSelector value changed")
-
+    inject_assoc_req(hapd, dev[0].own_addr(), assoc1)
     time.sleep(0.1)
-    hapd.set("ext_mgmt_frame_handling", "1")
-    assoc = "00003a01" + bssid + addr + bssid + '2000' + '31040500' + '0008746573742d706d66' + '010802040b160c121824' + '30140100000fac040100000fac040100000fac060000'
-    res = hapd.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=%s" % assoc)
-    if "OK" not in res:
-        failed = True
-
-    hapd.request("SET ext_mgmt_frame_handling 0")
-    if failed:
-        raise Exception("MGMT_RX_PROCESS failed")
-
-    sta = hapd.get_sta(dev[0].own_addr())
-    if "[MFP]" not in sta['flags']:
-        raise Exception("MFP flag removed")
-    if sta["AKMSuiteSelector"] != '00-0f-ac-6':
-        raise Exception("AKMSuiteSelector value changed")
+    inject_assoc_req(hapd, dev[0].own_addr(), assoc2)
+    time.sleep(0.1)
+    inject_assoc_req(hapd, dev[0].own_addr(), assoc3)
+    time.sleep(0.1)
+    inject_assoc_req(hapd, dev[0].own_addr(), assoc2)
 
     ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=5.1)
     if ev:
