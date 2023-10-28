@@ -2796,6 +2796,12 @@ static void wpas_stop_listen(void *ctx)
 		wpa_drv_probe_req_report(wpa_s, 0);
 
 	wpas_p2p_listen_work_done(wpa_s);
+
+	if (radio_work_pending(wpa_s, "p2p-listen")) {
+		wpa_printf(MSG_DEBUG,
+			   "P2P: p2p-listen is still pending - remove it");
+		radio_remove_works(wpa_s, "p2p-listen", 0);
+	}
 }
 
 
