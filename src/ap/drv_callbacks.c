@@ -341,6 +341,14 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 		}
 	}
 
+	if (hapd->conf->wpa && check_sa_query_need(hapd, sta)) {
+		status = WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY;
+		p = hostapd_eid_assoc_comeback_time(hapd, sta, p);
+		hostapd_sta_assoc(hapd, addr, reassoc, status, buf, p - buf);
+
+		return 0;
+	}
+
 #ifdef CONFIG_IEEE80211BE
 	if (link_addr) {
 		struct mld_info *info = &sta->mld_info;
@@ -473,17 +481,6 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 		    os_memcmp(ie + 2, "\x00\x50\xf2\x04", 4) == 0) {
 			struct wpabuf *wps;
 
-			if (check_sa_query_need(hapd, sta)) {
-				status = WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY;
-
-				p = hostapd_eid_assoc_comeback_time(hapd, sta,
-								    p);
-
-				hostapd_sta_assoc(hapd, addr, reassoc, status,
-						  buf, p - buf);
-				return 0;
-			}
-
 			sta->flags |= WLAN_STA_WPS;
 			wps = ieee802_11_vendor_ie_concat(ie, ielen,
 							  WPS_IE_VENDOR_TYPE);
@@ -498,16 +495,6 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 			goto skip_wpa_check;
 		}
 #endif /* CONFIG_WPS */
-
-		if (check_sa_query_need(hapd, sta)) {
-			status = WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY;
-
-			p = hostapd_eid_assoc_comeback_time(hapd, sta, p);
-
-			hostapd_sta_assoc(hapd, addr, reassoc, status, buf,
-					  p - buf);
-			return 0;
-		}
 
 		if (sta->wpa_sm == NULL)
 			sta->wpa_sm = wpa_auth_sta_init(hapd->wpa_auth,

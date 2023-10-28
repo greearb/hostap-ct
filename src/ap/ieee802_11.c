@@ -3958,8 +3958,6 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 	if (hapd->conf->wps_state && elems->wps_ie && ies && ies_len) {
 		wpa_printf(MSG_DEBUG, "STA included WPS IE in (Re)Association "
 			   "Request - assume WPS is used");
-		if (check_sa_query(hapd, sta, reassoc))
-			return WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY;
 		sta->flags |= WLAN_STA_WPS;
 		wpabuf_free(sta->wps_ie);
 		sta->wps_ie = ieee802_11_vendor_ie_concat(ies, ies_len,
@@ -3990,9 +3988,6 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 
 	if (hapd->conf->wpa && wpa_ie) {
 		enum wpa_validate_result res;
-
-		if (check_sa_query(hapd, sta, reassoc))
-			return WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY;
 
 		wpa_ie -= 2;
 		wpa_ie_len += 2;
@@ -5343,6 +5338,11 @@ static void handle_assoc(struct hostapd_data *hapd,
 		goto fail;
 	}
 #endif /* CONFIG_MBO */
+
+	if (hapd->conf->wpa && check_sa_query(hapd, sta, reassoc)) {
+		resp = WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY;
+		goto fail;
+	}
 
 	/*
 	 * sta->capability is used in check_assoc_ies() for RRM enabled
