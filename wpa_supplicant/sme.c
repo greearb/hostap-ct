@@ -454,6 +454,7 @@ static bool wpas_ml_element(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 			     BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT |
 			     BASIC_MULTI_LINK_CTRL_PRES_MLD_CAPA);
 	bool ret = false;
+	int rnr_idx;
 
 	if (!(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO))
 		return false;
@@ -519,14 +520,23 @@ static bool wpas_ml_element(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 
 	wpa_s->valid_links = BIT(wpa_s->mlo_assoc_link_id);
 
-	rnr_ie = wpa_bss_get_ie(bss, WLAN_EID_REDUCED_NEIGHBOR_REPORT);
-	if (!rnr_ie) {
-		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No RNR element");
-		ret = true;
-		goto out;
-	}
+	ret = true;
 
-	wpas_process_rnr(wpa_s, rnr_ie + 2, rnr_ie[1]);
+	/* Process all Reduced Neighbor Report elements */
+	for (rnr_idx = 1; ; rnr_idx++) {
+		rnr_ie = wpa_bss_get_ie_nth(bss,
+					    WLAN_EID_REDUCED_NEIGHBOR_REPORT,
+					    rnr_idx);
+		if (!rnr_ie) {
+			if (rnr_idx == 0) {
+				wpa_dbg(wpa_s, MSG_DEBUG,
+					"MLD: No RNR element");
+				goto out;
+			}
+			break;
+		}
+		wpas_process_rnr(wpa_s, rnr_ie + 2, rnr_ie[1]);
+	}
 
 	wpa_printf(MSG_DEBUG, "MLD: valid_links=0x%x", wpa_s->valid_links);
 
@@ -538,7 +548,6 @@ static bool wpas_ml_element(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 			   i, MAC2STR(wpa_s->links[i].bssid));
 	}
 
-	ret = true;
 out:
 	wpabuf_free(mlbuf);
 	return ret;

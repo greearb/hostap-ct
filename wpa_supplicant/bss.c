@@ -1221,6 +1221,22 @@ const u8 * wpa_bss_get_ie(const struct wpa_bss *bss, u8 ie)
 
 
 /**
+ * wpa_bss_get_ie_nth - Fetch a specified information element from a BSS entry
+ * @bss: BSS table entry
+ * @ie: Information element identitifier (WLAN_EID_*)
+ * @nth: Return the nth element of the requested type (2 returns the second)
+ * Returns: Pointer to the information element (id field) or %NULL if not found
+ *
+ * This function returns the nth matching information element in the BSS
+ * entry.
+ */
+const u8 * wpa_bss_get_ie_nth(const struct wpa_bss *bss, u8 ie, int nth)
+{
+	return get_ie_nth(wpa_bss_ie_ptr(bss), bss->ie_len, ie, nth);
+}
+
+
+/**
  * wpa_bss_get_ie_ext - Fetch a specified extended IE from a BSS entry
  * @bss: BSS table entry
  * @ext: Information element extension identifier (WLAN_EID_EXT_*)
