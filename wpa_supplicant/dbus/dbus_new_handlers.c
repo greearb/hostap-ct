@@ -1629,7 +1629,7 @@ DBusMessage * wpas_dbus_handler_scan(DBusMessage *message,
 	char *key = NULL, *type = NULL;
 	struct wpa_driver_scan_params params;
 	size_t i;
-	dbus_bool_t allow_roam = 1;
+	dbus_bool_t allow_roam = TRUE;
 	dbus_bool_t non_coloc_6ghz = FALSE;
 	dbus_bool_t scan_6ghz_only = FALSE;
 
