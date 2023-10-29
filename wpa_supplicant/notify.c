@@ -949,6 +949,8 @@ void wpas_notify_mesh_peer_connected(struct wpa_supplicant *wpa_s,
 	if (wpa_s->p2p_mgmt)
 		return;
 
+	wpa_msg(wpa_s, MSG_INFO, MESH_PEER_CONNECTED MACSTR,
+		MAC2STR(peer_addr));
 	wpas_dbus_signal_mesh_peer_connected(wpa_s, peer_addr);
 }
 
@@ -959,6 +961,8 @@ void wpas_notify_mesh_peer_disconnected(struct wpa_supplicant *wpa_s,
 	if (wpa_s->p2p_mgmt)
 		return;
 
+	wpa_msg(wpa_s, MSG_INFO, MESH_PEER_DISCONNECTED MACSTR,
+		MAC2STR(peer_addr));
 	wpas_dbus_signal_mesh_peer_disconnected(wpa_s, peer_addr, reason_code);
 }
 

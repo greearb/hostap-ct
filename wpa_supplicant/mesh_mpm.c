@@ -563,8 +563,8 @@ static int mesh_mpm_plink_close(struct hostapd_data *hapd, struct sta_info *sta,
 	if (sta) {
 		if (sta->plink_state == PLINK_ESTAB) {
 			hapd->num_plinks--;
-			wpa_msg(wpa_s, MSG_INFO, MESH_PEER_DISCONNECTED MACSTR,
-				MAC2STR(sta->addr));
+			wpas_notify_mesh_peer_disconnected(
+				wpa_s, sta->addr, WLAN_REASON_UNSPECIFIED);
 		}
 		wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
 		mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
@@ -954,11 +954,6 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 	peer_add_timer(wpa_s, NULL);
 	eloop_cancel_timeout(plink_timer, wpa_s, sta);
 
-	/* Send ctrl event */
-	wpa_msg(wpa_s, MSG_INFO, MESH_PEER_CONNECTED MACSTR,
-		MAC2STR(sta->addr));
-
-	/* Send D-Bus event */
 	wpas_notify_mesh_peer_connected(wpa_s, sta->addr);
 }
 
@@ -1109,10 +1104,6 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 				" closed with reason %d",
 				MAC2STR(sta->addr), reason);
 
-			wpa_msg(wpa_s, MSG_INFO, MESH_PEER_DISCONNECTED MACSTR,
-				MAC2STR(sta->addr));
-
-			/* Send D-Bus event */
 			wpas_notify_mesh_peer_disconnected(wpa_s, sta->addr,
 							   reason);
 
@@ -1435,8 +1426,8 @@ void mesh_mpm_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 
 	if (sta->plink_state == PLINK_ESTAB) {
 		hapd->num_plinks--;
-		wpa_msg(wpa_s, MSG_INFO, MESH_PEER_DISCONNECTED MACSTR,
-			MAC2STR(sta->addr));
+		wpas_notify_mesh_peer_disconnected(
+			wpa_s, sta->addr, WLAN_REASON_UNSPECIFIED);
 	}
 	eloop_cancel_timeout(plink_timer, ELOOP_ALL_CTX, sta);
 	eloop_cancel_timeout(mesh_auth_timer, ELOOP_ALL_CTX, sta);
