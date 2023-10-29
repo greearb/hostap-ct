@@ -502,3 +502,43 @@ def test_eht_mld_ptk_rekey(dev, apdev):
         time.sleep(0.1)
         traffic_test(wpas, hapd0)
         traffic_test(wpas, hapd1)
+
+def test_eht_ml_probe_req(dev, apdev):
+    """AP MLD with two links and non-AP MLD sending ML Probe Request"""
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        passphrase = 'qwertyuiop'
+        ssid = "mld_ap_sae_two_link"
+        params = eht_mld_ap_wpa2_params(ssid, passphrase,
+                                        key_mgmt="SAE-EXT-KEY")
+
+        hapd0 = eht_mld_enable_ap(hapd_iface, params)
+
+        params['channel'] = '6'
+
+        hapd1 = eht_mld_enable_ap(hapd_iface, params)
+
+        bssid = hapd0.own_addr()
+        wpas.scan_for_bss(bssid, freq=2412)
+
+        time.sleep(1)
+        cmd = "ML_PROBE_REQ bssid=" + bssid + " mld_id=0"
+        if "OK" not in wpas.request(cmd):
+            raise Exception("Failed to run: " + cmd)
+        ev = wpas.wait_event(["CTRL-EVENT-SCAN-RESULTS",
+                              "CTRL-EVENT-SCAN-FAILED"], timeout=10)
+        if ev is None:
+            raise Exception("ML_PROBE_REQ did not result in scan results")
+
+        time.sleep(1)
+        cmd = "ML_PROBE_REQ bssid=" + bssid + " mld_id=0 link_id=2"
+        if "OK" not in wpas.request(cmd):
+            raise Exception("Failed to run: " + cmd)
+        ev = wpas.wait_event(["CTRL-EVENT-SCAN-RESULTS",
+                              "CTRL-EVENT-SCAN-FAILED"], timeout=10)
+        if ev is None:
+            raise Exception("ML_PROBE_REQ did not result in scan results")
