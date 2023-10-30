@@ -334,6 +334,10 @@ pmksa_cache_auth_create_entry(const u8 *pmk, size_t pmk_len, const u8 *pmkid,
 		return NULL;
 	os_memcpy(entry->pmk, pmk, pmk_len);
 	entry->pmk_len = pmk_len;
+	if (kck && kck_len && kck_len < WPA_KCK_MAX_LEN) {
+		os_memcpy(entry->kck, kck, kck_len);
+		entry->kck_len = kck_len;
+	}
 	if (pmkid)
 		os_memcpy(entry->pmkid, pmkid, PMKID_LEN);
 	else if (akmp == WPA_KEY_MGMT_IEEE8021X_SUITE_B_192)
@@ -525,8 +529,17 @@ struct rsn_pmksa_cache_entry * pmksa_cache_get_okc(
 				return entry;
 			continue;
 		}
-		rsn_pmkid(entry->pmk, entry->pmk_len, aa, spa, new_pmkid,
-			  entry->akmp);
+		if (entry->akmp == WPA_KEY_MGMT_IEEE8021X_SUITE_B_192 &&
+		    entry->kck_len > 0)
+			rsn_pmkid_suite_b_192(entry->kck, entry->kck_len,
+					      aa, spa, new_pmkid);
+		else if (wpa_key_mgmt_suite_b(entry->akmp) &&
+			 entry->kck_len > 0)
+		rsn_pmkid_suite_b(entry->kck, entry->kck_len, aa, spa,
+				  new_pmkid);
+		else
+			rsn_pmkid(entry->pmk, entry->pmk_len, aa, spa,
+				  new_pmkid, entry->akmp);
 		if (os_memcmp(new_pmkid, pmkid, PMKID_LEN) == 0)
 			return entry;
 	}
