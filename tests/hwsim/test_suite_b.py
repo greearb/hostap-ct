@@ -760,3 +760,70 @@ def test_suite_b_192_pmksa_caching_roam(dev, apdev):
         raise Exception("Second roam to AP2 connected back to AP1")
     hapd2.wait_sta()
     dev[0].dump_monitor()
+
+def test_suite_b_192_okc(dev, apdev):
+    """WPA3/GCMP-256 connection at Suite B 192-bit level and OKC"""
+    check_suite_b_192_capa(dev)
+    dev[0].flush_scan_cache()
+    params = suite_b_192_ap_params()
+    params['okc'] = "1"
+    hapd = hostapd.add_ap(apdev[0], params)
+    bssid = hapd.own_addr()
+
+    dev[0].connect("test-suite-b", key_mgmt="WPA-EAP-SUITE-B-192",
+                   ieee80211w="2",
+                   openssl_ciphers="SUITEB192",
+                   eap="TLS", identity="tls user",
+                   ca_cert="auth_serv/ec2-ca.pem",
+                   client_cert="auth_serv/ec2-user.pem",
+                   private_key="auth_serv/ec2-user.key",
+                   pairwise="GCMP-256", group="GCMP-256", okc=True,
+                   scan_freq="2412")
+    hapd.wait_sta()
+
+    pmksa = dev[0].get_pmksa(bssid)
+    if pmksa is None:
+        raise Exception("No PMKSA cache entry created")
+    if pmksa['opportunistic'] != '0':
+        raise Exception("Unexpected opportunistic PMKSA cache entry")
+
+    hapd2 = hostapd.add_ap(apdev[1], params)
+    bssid2 = hapd2.own_addr()
+    dev[0].scan_for_bss(bssid2, freq=2412)
+    dev[0].request("ROAM " + bssid2)
+    ev = dev[0].wait_event(["CTRL-EVENT-EAP-STARTED",
+                            "CTRL-EVENT-CONNECTED"], timeout=10)
+    if ev is None:
+        raise Exception("Roaming with the AP timed out")
+    if "CTRL-EVENT-EAP-STARTED" in ev:
+        raise Exception("Unexpected EAP exchange")
+    pmksa2 = dev[0].get_pmksa(bssid2)
+    if pmksa2 is None:
+        raise Exception("No PMKSA cache entry created")
+
+    dev[0].request("ROAM " + bssid)
+    ev = dev[0].wait_event(["CTRL-EVENT-EAP-STARTED",
+                            "CTRL-EVENT-CONNECTED"], timeout=10)
+    if ev is None:
+        raise Exception("Roaming with the AP timed out")
+    if "CTRL-EVENT-EAP-STARTED" in ev:
+        raise Exception("Unexpected EAP exchange")
+
+    pmksa1b = dev[0].get_pmksa(bssid)
+    if pmksa1b is None:
+        raise Exception("No PMKSA cache entry found")
+    if pmksa['pmkid'] != pmksa1b['pmkid']:
+        raise Exception("Unexpected PMKID change for AP1")
+
+    dev[0].request("ROAM " + bssid2)
+    ev = dev[0].wait_event(["CTRL-EVENT-EAP-STARTED",
+                            "CTRL-EVENT-CONNECTED"], timeout=10)
+    if ev is None:
+        raise Exception("Roaming with the AP timed out")
+    if "CTRL-EVENT-EAP-STARTED" in ev:
+        raise Exception("Unexpected EAP exchange")
+    pmksa2b = dev[0].get_pmksa(bssid2)
+    if pmksa2b is None:
+        raise Exception("No PMKSA cache entry created")
+    if pmksa2['pmkid'] != pmksa2b['pmkid']:
+        raise Exception("Unexpected PMKID change for AP2")
