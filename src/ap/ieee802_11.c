@@ -7785,11 +7785,12 @@ static u8 * hostapd_eid_mbssid_elem(struct hostapd_data *hapd, u8 *eid, u8 *end,
 			non_inherit_ie[ie_count++] = WLAN_EID_EXT_SUPP_RATES;
 		if (ie_count) {
 			*eid++ = WLAN_EID_EXTENSION;
-			*eid++ = 2 + ie_count;
+			*eid++ = 2 + ie_count + 1;
 			*eid++ = WLAN_EID_EXT_NON_INHERITANCE;
 			*eid++ = ie_count;
 			os_memcpy(eid, non_inherit_ie, ie_count);
 			eid += ie_count;
+			*eid++ = 0; /* No Element ID Extension List */
 		}
 
 		*eid_len_pos = (eid - eid_len_pos) - 1;
