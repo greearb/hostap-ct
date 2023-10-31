@@ -1638,7 +1638,8 @@ def test_rrm_beacon_req_active_scan_fail(dev, apdev):
     addr = dev[0].own_addr()
     hapd.wait_sta()
 
-    with alloc_fail(dev[0], 1, "wpa_supplicant_trigger_scan"):
+    with alloc_fail(dev[0], 1,
+                    "wpa_scan_clone_params;wpa_supplicant_trigger_scan"):
         req = build_beacon_request(chan=255, duration=100, mode=1)
         token = run_req_beacon(hapd, addr, req + "330351010b")
         wait_fail_trigger(dev[0], "GET_ALLOC_FAIL")
