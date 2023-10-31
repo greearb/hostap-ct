@@ -71,7 +71,8 @@ def mbssid_write_bss_params(f, ifname, idx, params=None):
         if field in params:
             f.write("%s=%s\n" % (field, params[field]))
 
-def mbssid_start_ap(dev, apdev, params, fname, ifname, sta_params):
+def mbssid_start_ap(dev, apdev, params, fname, ifname, sta_params,
+                    sta_params2=None):
     pid = params['prefix'] + ".hostapd.pid"
     cmd = ['../../hostapd/hostapd', '-dtSB', '-dt', '-P', pid, '-f',
            params['prefix'] + ".hostapd-log", fname]
@@ -102,6 +103,11 @@ def mbssid_start_ap(dev, apdev, params, fname, ifname, sta_params):
     if "[HE]" not in sta['flags']:
         raise Exception("Missing STA flag: HE")
     dev[0].request("DISCONNECT")
+
+    if sta_params2:
+        dev[0].wait_disconnected()
+        dev[0].connect("bss-1", **sta_params2)
+        dev[0].request("DISCONNECT")
 
     if "OK" not in hapd.request("TERMINATE"):
         raise Exception("Failed to terminate hostapd process")
@@ -216,6 +222,36 @@ def test_he_ap_mbssid_mixed_security2(dev, apdev, params):
         sta_params = {"key_mgmt": "NONE", "scan_freq": "2412"}
         mbssid_start_ap(dev, apdev, params, fname, ifname, sta_params)
     finally:
+        subprocess.call(['ip', 'link', 'set', 'dev', apdev[0]['ifname'],
+                         'address', apdev[0]['bssid']])
+
+def test_he_ap_mbssid_mixed_security3(dev, apdev, params):
+    """HE AP MBSSID with mixed security (WPA2-Personal + WPA3-Personal)"""
+    f, fname, ifname = mbssid_create_cfg_file(apdev, params)
+
+    psk_params = {"wpa": "2", "wpa_passphrase": "12345678",
+                  "wpa_pairwise": "CCMP", "wpa_key_mgmt": "WPA-PSK"}
+
+    sae_params = {"wpa": "2", "wpa_passphrase": "12345678",
+                  "wpa_pairwise": "CCMP", "wpa_key_mgmt": "SAE",
+                  "sae_pwe": "1", "ieee80211w": "2"}
+
+    mbssid_write_bss_params(f, ifname, 0, psk_params)
+    mbssid_write_bss_params(f, ifname, 1, sae_params)
+
+    f.close()
+
+    try:
+        dev[0].set("sae_pwe", "1")
+        dev[0].set("sae_groups", "")
+        sta_params = {"psk": "12345678", "key_mgmt": "WPA-PSK",
+                      "pairwise": "CCMP", "group": "CCMP", "scan_freq": "2412"}
+        sta_params2 = {"psk": "12345678", "key_mgmt": "SAE", "ieee80211w": "2",
+                      "pairwise": "CCMP", "group": "CCMP", "scan_freq": "2412"}
+        mbssid_start_ap(dev, apdev, params, fname, ifname, sta_params,
+                        sta_params2)
+    finally:
+        dev[0].set("sae_pwe", "0")
         subprocess.call(['ip', 'link', 'set', 'dev', apdev[0]['ifname'],
                          'address', apdev[0]['bssid']])
 
