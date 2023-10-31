@@ -471,12 +471,21 @@ ieee802_11_build_ap_params_mbssid(struct hostapd_data *hapd,
 	size_t len, rnr_len = 0;
 	u8 elem_count = 0, *elem = NULL, **elem_offset = NULL, *end;
 	u8 rnr_elem_count = 0, *rnr_elem = NULL, **rnr_elem_offset = NULL;
+	size_t i;
 
 	if (!iface->mbssid_max_interfaces ||
 	    iface->num_bss > iface->mbssid_max_interfaces ||
 	    (iface->conf->mbssid == ENHANCED_MBSSID_ENABLED &&
 	     !iface->ema_max_periodicity))
 		goto fail;
+
+	/* Make sure bss->xrates_supported is set for all BSSs to know whether
+	 * it need to be non-inherited. */
+	for (i = 0; i < iface->num_bss; i++) {
+		u8 buf[100];
+
+		hostapd_eid_ext_supp_rates(iface->bss[i], buf);
+	}
 
 	tx_bss = hostapd_mbssid_get_tx_bss(hapd);
 	len = hostapd_eid_mbssid_len(tx_bss, WLAN_FC_STYPE_BEACON, &elem_count,
