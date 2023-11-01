@@ -4864,6 +4864,9 @@ hostapd_switch_channel_fallback(struct hostapd_iface *iface,
 
 	iface->freq = freq_params->freq;
 	iface->conf->channel = freq_params->channel;
+	if (iface->conf->channel != 0) /* If channel not zero, will disable acs. */
+		iface->conf->acs = 0;
+
 	iface->conf->secondary_channel = freq_params->sec_channel_offset;
 	if (ieee80211_freq_to_channel_ext(freq_params->freq,
 					  freq_params->sec_channel_offset, bw,
