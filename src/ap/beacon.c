@@ -2266,6 +2266,12 @@ fail:
 }
 
 
+void ieee802_11_set_beacon_per_bss_only(struct hostapd_data *hapd)
+{
+	__ieee802_11_set_beacon(hapd);
+}
+
+
 int ieee802_11_set_beacon(struct hostapd_data *hapd)
 {
 	struct hostapd_iface *iface = hapd->iface;
