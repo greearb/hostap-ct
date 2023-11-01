@@ -87,6 +87,12 @@ static u8 ieee802_11_erp_info(struct hostapd_data *hapd)
 
 static u8 * hostapd_eid_ds_params(struct hostapd_data *hapd, u8 *eid)
 {
+	enum hostapd_hw_mode hw_mode = hapd->iconf->hw_mode;
+
+	if (hw_mode != HOSTAPD_MODE_IEEE80211G &&
+	    hw_mode != HOSTAPD_MODE_IEEE80211B)
+		return eid;
+
 	*eid++ = WLAN_EID_DS_PARAMS;
 	*eid++ = 1;
 	*eid++ = hapd->iconf->channel;
