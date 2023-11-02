@@ -2962,7 +2962,7 @@ bool ieee802_11_rsnx_capab_len(const u8 *rsnxe, size_t rsnxe_len,
 	for (i = 0; i < flen; i++)
 		capabs |= rsnxe[i] << (8 * i);
 
-	return capabs & BIT(capab);
+	return !!(capabs & BIT(capab));
 }
 
 
