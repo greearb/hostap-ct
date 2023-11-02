@@ -678,6 +678,19 @@
 #define WLAN_PA_FILS_DISCOVERY 34
 #define WLAN_PA_LOCATION_MEASUREMENT_REPORT 47
 
+/* HT Action field values (IEEE P802.11-REVme/D4.0, 9.6.11.1, Table 9-491) */
+#define WLAN_HT_ACTION_NOTIFY_CHANWIDTH 0
+#define WLAN_HT_ACTION_SMPS 1
+#define WLAN_HT_ACTION_CSI 4
+#define WLAN_HT_ACTION_NONCOMPRESSED_BF 5
+#define WLAN_HT_ACTION_COMPRESSED_BF 6
+#define WLAN_HT_ACTION_ASEL_IDX_FEEDBACK 7
+
+/* VHT Action field values (IEEE P802.11-REVme/D4.0, 9.6.22.1, Table 9-579) */
+#define WLAN_VHT_ACTION_COMPRESSED_BF 0
+#define WLAN_VHT_ACTION_GROUP_ID_MGMT 1
+#define WLAN_VHT_ACTION_OPMODE_NOTIF 2
+
 /* Protected Dual of Public Action frames (IEEE Std 802.11-2016, 9.6.11,
  * Table 9-332) */
 #define WLAN_PROT_DSE_ENABLEMENT 1
@@ -1356,6 +1369,10 @@ struct ieee80211_ampe_ie {
 #define VHT_OPMODE_NOTIF_RX_NSS_SHIFT		    4
 
 #define VHT_RX_NSS_MAX_STREAMS			    8
+
+#define VHT_OPMODE_CHANNEL_40MHZ		    ((u8) BIT(0))
+#define VHT_OPMODE_CHANNEL_80MHZ		    ((u8) BIT(1))
+#define VHT_OPMODE_CHANNEL_160MHZ		    ((u8) BIT(1) | BIT(2))
 
 /* VHT operation information - channel widths */
 #define CHANWIDTH_USE_HT	0
