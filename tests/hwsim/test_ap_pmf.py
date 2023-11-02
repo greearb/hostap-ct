@@ -1456,6 +1456,80 @@ def test_ap_pmf_beacon_protection_reconnect(dev, apdev):
     if ev is not None:
         raise Exception("Beacon loss detected")
 
+def test_ap_pmf_beacon_protection_unicast(dev, apdev):
+    """WPA2-PSK Beacon protection (BIP) and unicast Beacon frame"""
+    try:
+        run_ap_pmf_beacon_protection_unicast(dev, apdev)
+    finally:
+        stop_monitor(apdev[1]["ifname"])
+
+def run_ap_pmf_beacon_protection_unicast(dev, apdev):
+    cipher = "AES-128-CMAC"
+    ssid = "test-beacon-prot"
+    params = hostapd.wpa2_params(ssid=ssid, passphrase="12345678")
+    params["wpa_key_mgmt"] = "WPA-PSK-SHA256"
+    params["ieee80211w"] = "2"
+    params["beacon_prot"] = "1"
+    params["group_mgmt_cipher"] = cipher
+    try:
+        hapd = hostapd.add_ap(apdev[0], params)
+    except Exception as e:
+        if "Failed to enable hostapd interface" in str(e):
+            raise HwsimSkip("Beacon protection not supported")
+        raise
+
+    bssid = hapd.own_addr()
+
+    Wlantest.setup(hapd)
+    wt = Wlantest()
+    wt.flush()
+    wt.add_passphrase("12345678")
+
+    # STA with Beacon protection enabled
+    dev[0].connect(ssid, psk="12345678", ieee80211w="2", beacon_prot="1",
+                   key_mgmt="WPA-PSK-SHA256", proto="WPA2", scan_freq="2412")
+    hapd.wait_sta()
+
+    sock = start_monitor(apdev[1]["ifname"])
+    radiotap = radiotap_build()
+
+    bssid = hapd.own_addr().replace(':', '')
+    addr = dev[0].own_addr().replace(':', '')
+
+    h = "80000000" + addr + bssid + bssid + "0000"
+    h += "c0a0260d27090600"+ "6400" + "1104"
+    h += "0010746573742d626561636f6e2d70726f74"
+    h += "010882848b960c121824"
+    h += "03010"
+    h += "1050400020000"
+    h += "2a0104"
+    h += "32043048606c"
+    h += "30140100000fac040100000fac040100000fac06cc00"
+    h += "3b025100"
+    h += "2d1a0c001bffff000000000000000000000100000000000000000000"
+    h += "3d1601000000000000000000000000000000000000000000"
+    h += "7f0b0400000200000040000010"
+    h += "dd180050f2020101010003a4000027a4000042435e0062322f00"
+
+    frame = binascii.unhexlify(h)
+    h += "4c1006002100000000002b8fab24bcef3bb1" #MME
+    frame2 = binascii.unhexlify(h)
+
+    sock.send(radiotap + frame)
+    ev = dev[0].wait_event(["CTRL-EVENT-UNPROT-BEACON"], timeout=5)
+    if ev is None:
+        raise Exception("Unprotected beacon was not reported")
+    if hapd.own_addr() not in ev:
+        raise Exception("Unexpected BSSID in unproted beacon indication")
+
+    time.sleep(10.1)
+    sock.send(radiotap + frame2)
+    ev = dev[0].wait_event(["CTRL-EVENT-UNPROT-BEACON"], timeout=5)
+    if ev is None:
+        raise Exception("Unprotected beacon was not reported")
+    if hapd.own_addr() not in ev:
+        raise Exception("Unexpected BSSID in unproted beacon indication")
+
 def test_ap_pmf_sta_global_require(dev, apdev):
     """WPA2-PSK AP with PMF optional and wpa_supplicant pmf=2"""
     ssid = "test-pmf-optional"
