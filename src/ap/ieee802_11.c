@@ -7175,9 +7175,11 @@ hostapd_eid_rnr_iface_len(struct hostapd_data *hapd,
 
 	while (start < hapd->iface->num_bss) {
 		if (!len ||
-		    len + RNR_TBTT_HEADER_LEN + RNR_TBTT_INFO_LEN > 255) {
+		    len + RNR_TBTT_HEADER_LEN + RNR_TBTT_INFO_LEN > 255 ||
+		    tbtt_count >= RNR_TBTT_INFO_COUNT_MAX) {
 			len = RNR_HEADER_LEN;
 			total_len += RNR_HEADER_LEN;
+			tbtt_count = 0;
 		}
 
 		len += RNR_TBTT_HEADER_LEN;
@@ -7422,7 +7424,8 @@ static u8 * hostapd_eid_rnr_iface(struct hostapd_data *hapd,
 
 	while (start < iface->num_bss) {
 		if (!len ||
-		    len + RNR_TBTT_HEADER_LEN + RNR_TBTT_INFO_LEN > 255) {
+		    len + RNR_TBTT_HEADER_LEN + RNR_TBTT_INFO_LEN > 255 ||
+		    tbtt_count >= RNR_TBTT_INFO_COUNT_MAX) {
 			eid_start = eid;
 			*eid++ = WLAN_EID_REDUCED_NEIGHBOR_REPORT;
 			size_offset = eid++;
