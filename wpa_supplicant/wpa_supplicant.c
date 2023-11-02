@@ -5268,8 +5268,9 @@ struct wpa_ssid * wpa_supplicant_get_ssid(struct wpa_supplicant *wpa_s)
 
 #ifdef CONFIG_OWE
 		if (!wpas_network_disabled(wpa_s, entry) &&
-		    owe_trans_ssid_match(wpa_s, bssid, entry->ssid,
-		    entry->ssid_len) &&
+		    (entry->ssid &&
+		     owe_trans_ssid_match(wpa_s, bssid, entry->ssid,
+					  entry->ssid_len)) &&
 		    (!entry->bssid_set ||
 		     os_memcmp(bssid, entry->bssid, ETH_ALEN) == 0))
 			return entry;
