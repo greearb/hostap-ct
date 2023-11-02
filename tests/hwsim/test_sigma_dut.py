@@ -96,9 +96,9 @@ def sigma_dut_cmd(cmd, port=9000, timeout=2, dump_dev=None):
                     done = True
                     res = line
                     break
-                if running and not done:
-                    # Read the actual response
-                    res = sock.recv(1000).decode()
+            if running and not done:
+                # Read the actual response
+                res = sock.recv(1000).decode()
         except:
             res = ''
             pass
