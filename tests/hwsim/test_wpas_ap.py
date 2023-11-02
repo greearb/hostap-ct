@@ -978,8 +978,8 @@ def test_wpas_ap_sae_and_psk_transition_disable(dev):
     dev[1].set("sae_groups", "")
     dev[1].connect("wpas-ap-sae", key_mgmt="SAE WPA-PSK",
                    psk="12345678", ieee80211w="1",
-                   scan_freq="2412")
-    ev = dev[1].wait_event(["TRANSITION-DISABLE"], timeout=1)
+                   scan_freq="2412", wait_connect=False)
+    ev = dev[1].wait_event(["TRANSITION-DISABLE"], timeout=15)
     if ev is None:
         raise Exception("Transition disable not indicated")
     if ev.split(' ')[1] != "01":

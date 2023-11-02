@@ -7813,8 +7813,8 @@ def test_ap_wpa3_eap_transition_disable(dev, apdev):
                         proto="WPA WPA2", pairwise="CCMP", group="TKIP CCMP",
                         eap="GPSK", identity="gpsk user",
                         password="abcdefghijklmnop0123456789abcdef",
-                        scan_freq="2412")
-    ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=1)
+                        scan_freq="2412", wait_connect=False)
+    ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=20)
     if ev is None:
         raise Exception("Transition disable not indicated")
     if ev.split(' ')[1] != "04":

@@ -5791,8 +5791,8 @@ def test_sigma_dut_ap_transition_disable(dev, apdev, params):
 
             dev[0].set("sae_groups", "")
             dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
-                           ieee80211w="2", scan_freq="2412")
-            ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=1)
+                           ieee80211w="2", scan_freq="2412", wait_connect=False)
+            ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=15)
             if ev is None:
                 raise Exception("Transition disable not indicated")
             if ev.split(' ')[1] != "01":
@@ -5816,8 +5816,8 @@ def test_sigma_dut_ap_transition_disable_change(dev, apdev, params):
             sigma_dut_cmd_check("ap_config_commit,NAME,AP")
             dev[0].set("sae_groups", "")
             dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
-                           ieee80211w="2", scan_freq="2412")
-            ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=1)
+                           ieee80211w="2", scan_freq="2412", wait_connect=False)
+            ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=15)
             if ev is not None:
                 raise Exception("Unexpected transition disable indication")
             dev[0].request("DISCONNECT")
@@ -5826,8 +5826,7 @@ def test_sigma_dut_ap_transition_disable_change(dev, apdev, params):
 
             sigma_dut_cmd_check("ap_set_rfeature,NAME,AP,Transition_Disable,1,Transition_Disable_Index,0")
             dev[0].request("RECONNECT")
-            dev[0].wait_connected()
-            ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=1)
+            ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=15)
             if ev is None:
                 raise Exception("Transition disable not indicated")
             if ev.split(' ')[1] != "01":

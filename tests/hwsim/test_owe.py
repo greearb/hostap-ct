@@ -976,9 +976,9 @@ def test_owe_transition_mode_disable(dev, apdev):
     dev[0].scan_for_bss(bssid2, freq="2412")
 
     id = dev[0].connect("owe-test", key_mgmt="OWE", ieee80211w="2",
-                        scan_freq="2412")
+                        scan_freq="2412", wait_connect=False)
 
-    ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=1)
+    ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=15)
     if ev is None:
         raise Exception("Transition disable not indicated")
     if ev.split(' ')[1] != "08":

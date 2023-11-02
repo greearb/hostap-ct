@@ -259,8 +259,8 @@ def test_sae_pk_transition_disable(dev, apdev):
     hapd = hostapd.add_ap(apdev[0], params)
 
     id = dev[0].connect(SAE_PK_SSID, sae_password=SAE_PK_SEC3_PW,
-                        key_mgmt="SAE", scan_freq="2412")
-    ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=1)
+                        key_mgmt="SAE", scan_freq="2412", wait_connect=False)
+    ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=15)
     if ev is None:
         raise Exception("Transition disable not indicated")
     if ev.split(' ')[1] != "02":

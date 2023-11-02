@@ -501,8 +501,8 @@ def test_sae_and_psk_transition_disable(dev, apdev):
 
     dev[0].request("SET sae_groups ")
     id = dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE WPA-PSK",
-                        ieee80211w="1", scan_freq="2412")
-    ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=1)
+                        ieee80211w="1", scan_freq="2412", wait_connect=False)
+    ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=15)
     if ev is None:
         raise Exception("Transition disable not indicated")
     if ev.split(' ')[1] != "01":
