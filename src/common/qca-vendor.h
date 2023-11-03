@@ -3191,8 +3191,11 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_EPCS_FUNCTION = 98,
 
-	/* 8-bit unsigned value. Used only for representing MLO link ID of a
-	 * link inside %QCA_WLAN_VENDOR_ATTR_CONFIG_MLO_LINKS.
+	/* 8-bit unsigned value. Used to specify the MLO link ID of a link
+	 * that is being configured. This attribute must be included in each
+	 * record nested inside %QCA_WLAN_VENDOR_ATTR_CONFIG_MLO_LINKS, and
+	 * may be included without nesting to indicate the link that is the
+	 * target of other configuration attributes.
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MLO_LINK_ID = 99,
 
