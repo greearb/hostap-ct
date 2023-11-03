@@ -2761,6 +2761,7 @@ def _test_ap_hs20_remediation_required_ctrl(dev, apdev):
     interworking_select(dev[0], bssid, freq="2412")
     interworking_connect(dev[0], bssid, "TTLS")
 
+    hapd.wait_sta()
     hapd.request("HS20_WNM_NOTIF " + addr + " https://example.com/")
     ev = dev[0].wait_event(["HS20-SUBSCRIPTION-REMEDIATION"], timeout=5)
     if ev is None:
