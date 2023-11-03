@@ -1536,3 +1536,74 @@ def test_he_capab_parsing(dev, apdev):
             raise Exception("MGMT_RX_PROCESS failed")
 
         hapd.dump_monitor()
+
+def test_he_cw_change_notification(dev, apdev):
+    """HE AP on 80 MHz channel and CW change notification"""
+    try:
+        hapd = None
+        params = {"ssid": "he",
+                  "country_code": "FI",
+                  "hw_mode": "a",
+                  "channel": "36",
+                  "ht_capab": "[HT40+]",
+                  "ieee80211n": "1",
+                  "ieee80211ac": "1",
+                  "ieee80211ax": "1",
+                  "vht_oper_chwidth": "1",
+                  "vht_oper_centr_freq_seg0_idx": "42",
+                  "he_oper_chwidth": "1",
+                  "he_oper_centr_freq_seg0_idx": "42"}
+        hapd = hostapd.add_ap(apdev[0], params)
+        bssid = apdev[0]['bssid']
+
+        dev[0].connect("he", key_mgmt="NONE", scan_freq="5180")
+        dev[1].connect("he", key_mgmt="NONE", scan_freq="5180",
+                       disable_he="1")
+        dev[2].connect("he", key_mgmt="NONE", scan_freq="5180",
+                       disable_he="1", disable_vht="1")
+
+        sta = hapd.get_sta(dev[0].own_addr())
+        logger.info("hostapd STA0: " + str(sta))
+        if "[HT]" not in sta['flags']:
+            raise Exception("Missing STA0 flag: HT")
+        if "[VHT]" not in sta['flags']:
+            raise Exception("Missing STA0 flag: VHT")
+        if "[HE]" not in sta['flags']:
+            raise Exception("Missing STA0 flag: HE")
+
+        sta = hapd.get_sta(dev[1].own_addr())
+        logger.info("hostapd STA1: " + str(sta))
+        if "[HT]" not in sta['flags']:
+            raise Exception("Missing STA1 flag: HT")
+        if "[VHT]" not in sta['flags']:
+            raise Exception("Missing STA1 flag: VHT")
+        if "[HE]" in sta['flags']:
+            raise Exception("Unexpected STA1 flag: HE")
+
+        sta = hapd.get_sta(dev[2].own_addr())
+        logger.info("hostapd STA1: " + str(sta))
+        if "[HT]" not in sta['flags']:
+            raise Exception("Missing STA2 flag: HT")
+        if "[VHT]" in sta['flags']:
+            raise Exception("Unxpected STA2 flag: VHT")
+        if "[HE]" in sta['flags']:
+            raise Exception("Unexpected STA2 flag: HE")
+
+        for i in [2, 1, 0]:
+            if "OK" not in hapd.request("NOTIFY_CW_CHANGE %d" % i):
+                raise Exception("NOTIFY_CW_CHANGE %d failed" % i)
+
+            time.sleep(1)
+            hwsim_utils.test_connectivity(dev[0], hapd)
+            hwsim_utils.test_connectivity(dev[1], hapd)
+            hwsim_utils.test_connectivity(dev[2], hapd)
+    except Exception as e:
+        if isinstance(e, Exception) and str(e) == "AP startup failed":
+            if not he_supported():
+                raise HwsimSkip("80 MHz channel not supported in regulatory information")
+        raise
+    finally:
+        dev[0].request("DISCONNECT")
+        dev[1].request("DISCONNECT")
+        dev[2].request("DISCONNECT")
+        clear_regdom(hapd, dev)
