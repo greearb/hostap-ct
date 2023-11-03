@@ -2796,8 +2796,8 @@ static void ibss_mesh_select_40mhz(struct wpa_supplicant *wpa_s,
 	int i, res;
 	unsigned int j;
 	static const int ht40plus[] = {
-		36, 44, 52, 60, 100, 108, 116, 124, 132, 149, 157, 165, 173,
-		184, 192
+		36, 44, 52, 60, 100, 108, 116, 124, 132, 140,
+		149, 157, 165, 173, 184, 192
 	};
 	int ht40 = -1;
 
