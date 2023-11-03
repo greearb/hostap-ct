@@ -999,6 +999,33 @@ def _test_wpas_mesh_open_5ghz(dev, apdev):
     dev[0].dump_monitor()
     dev[1].dump_monitor()
 
+def test_wpas_mesh_open_5ghz_chan140(dev, apdev):
+    """Mesh BSS on 5 GHz band channel 140"""
+    try:
+        _test_wpas_mesh_open_5ghz_chan140(dev, apdev)
+    finally:
+        clear_reg_setting(dev)
+
+def _test_wpas_mesh_open_5ghz_chan140(dev, apdev):
+    check_mesh_support(dev[0])
+    subprocess.call(['iw', 'reg', 'set', 'ZA'])
+    for i in range(2):
+        for j in range(5):
+            ev = dev[i].wait_event(["CTRL-EVENT-REGDOM-CHANGE"], timeout=5)
+            if ev is None:
+                raise Exception("No regdom change event")
+            if "alpha2=ZA" in ev:
+                break
+        add_open_mesh_network(dev[i], freq="5700")
+
+    check_mesh_joined_connected(dev, connectivity=True)
+
+    dev[0].mesh_group_remove()
+    dev[1].mesh_group_remove()
+    check_mesh_group_removed(dev[0])
+    check_mesh_group_removed(dev[1])
+    dev[0].dump_monitor()
+    dev[1].dump_monitor()
 
 def test_wpas_mesh_open_ht40(dev, apdev):
     """Mesh and HT40 support difference"""
