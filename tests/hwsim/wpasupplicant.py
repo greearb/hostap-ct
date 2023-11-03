@@ -504,7 +504,6 @@ class WpaSupplicant:
         self.dump_monitor()
         self.select_network(id)
         self.wait_connected(timeout=timeout)
-        self.dump_monitor()
 
     def get_status(self, extra=None):
         if extra:
