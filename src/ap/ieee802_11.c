@@ -4437,7 +4437,8 @@ static void ieee80211_ml_process_link(struct hostapd_data *hapd,
 	}
 	hapd->sta_aid[(sta->aid - 1) / 32] |= BIT((sta->aid - 1) % 32);
 	sta->listen_interval = origin_sta->listen_interval;
-	update_ht_state(hapd, sta);
+	if (update_ht_state(hapd, sta) > 0)
+		ieee802_11_update_beacons(hapd->iface);
 
 	/* RSN Authenticator should always be the one on the original station */
 	wpa_auth_sta_deinit(sta->wpa_sm);
@@ -5164,6 +5165,7 @@ static void handle_assoc(struct hostapd_data *hapd,
 	int delay_assoc = 0;
 #endif /* CONFIG_FILS */
 	int omit_rsnxe = 0;
+	bool set_beacon = false;
 
 	if (len < IEEE80211_HDRLEN + (reassoc ? sizeof(mgmt->u.reassoc_req) :
 				      sizeof(mgmt->u.assoc_req))) {
@@ -5405,7 +5407,7 @@ static void handle_assoc(struct hostapd_data *hapd,
 		sta->nonerp_set = 1;
 		hapd->iface->num_sta_non_erp++;
 		if (hapd->iface->num_sta_non_erp == 1)
-			ieee802_11_update_beacons(hapd->iface);
+			set_beacon = true;
 	}
 
 	if (!(sta->capability & WLAN_CAPABILITY_SHORT_SLOT_TIME) &&
@@ -5416,7 +5418,7 @@ static void handle_assoc(struct hostapd_data *hapd,
 		    hapd->iface->current_mode->mode ==
 		    HOSTAPD_MODE_IEEE80211G &&
 		    hapd->iface->num_sta_no_short_slot_time == 1)
-			ieee802_11_update_beacons(hapd->iface);
+			set_beacon = true;
 	}
 
 	if (sta->capability & WLAN_CAPABILITY_SHORT_PREAMBLE)
@@ -5431,10 +5433,11 @@ static void handle_assoc(struct hostapd_data *hapd,
 		if (hapd->iface->current_mode &&
 		    hapd->iface->current_mode->mode == HOSTAPD_MODE_IEEE80211G
 		    && hapd->iface->num_sta_no_short_preamble == 1)
-			ieee802_11_update_beacons(hapd->iface);
+			set_beacon = true;
 	}
 
-	update_ht_state(hapd, sta);
+	if (update_ht_state(hapd, sta) > 0)
+		set_beacon = true;
 
 	hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
 		       HOSTAPD_LEVEL_DEBUG,
@@ -5472,6 +5475,9 @@ static void handle_assoc(struct hostapd_data *hapd,
 			delay_assoc = 1;
 	}
 #endif /* CONFIG_FILS */
+
+	if (set_beacon)
+		ieee802_11_set_beacons(hapd->iface);
 
  fail:
 

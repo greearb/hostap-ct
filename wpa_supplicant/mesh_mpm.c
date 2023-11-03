@@ -16,6 +16,7 @@
 #include "ap/hostapd.h"
 #include "ap/sta_info.h"
 #include "ap/ieee802_11.h"
+#include "ap/beacon.h"
 #include "ap/wpa_auth.h"
 #include "wpa_supplicant_i.h"
 #include "driver_i.h"
@@ -769,7 +770,8 @@ static struct sta_info * mesh_mpm_add_peer(struct wpa_supplicant *wpa_s,
 		set_disable_ht40(sta->ht_capabilities, 1);
 	}
 
-	update_ht_state(data, sta);
+	if (update_ht_state(data, sta) > 0)
+		ieee802_11_update_beacons(data->iface);
 
 #ifdef CONFIG_IEEE80211AC
 	copy_sta_vht_capab(data, sta, elems->vht_capabilities);

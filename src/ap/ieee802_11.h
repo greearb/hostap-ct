@@ -100,7 +100,7 @@ u16 copy_sta_ht_capab(struct hostapd_data *hapd, struct sta_info *sta,
 u16 copy_sta_vendor_vht(struct hostapd_data *hapd, struct sta_info *sta,
 			const u8 *ie, size_t len);
 
-void update_ht_state(struct hostapd_data *hapd, struct sta_info *sta);
+int update_ht_state(struct hostapd_data *hapd, struct sta_info *sta);
 void ht40_intolerant_add(struct hostapd_iface *iface, struct sta_info *sta);
 void ht40_intolerant_remove(struct hostapd_iface *iface, struct sta_info *sta);
 u16 copy_sta_vht_capab(struct hostapd_data *hapd, struct sta_info *sta,
