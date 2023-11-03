@@ -4293,7 +4293,7 @@ wpa_supplicant_event_michael_mic_failure(struct wpa_supplicant *wpa_s,
 	wpa_msg(wpa_s, MSG_WARNING, "Michael MIC failure detected");
 	pairwise = (data && data->michael_mic_failure.unicast);
 	os_get_reltime(&t);
-	if ((wpa_s->last_michael_mic_error.sec &&
+	if ((os_reltime_initialized(&wpa_s->last_michael_mic_error) &&
 	     !os_reltime_expired(&t, &wpa_s->last_michael_mic_error, 60)) ||
 	    wpa_s->pending_mic_error_report) {
 		if (wpa_s->pending_mic_error_report) {
