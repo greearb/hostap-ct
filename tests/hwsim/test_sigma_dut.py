@@ -2726,6 +2726,7 @@ def run_sigma_dut_dpp_pkex_responder(dev, apdev, v1=False):
         stop_sigma_dut(sigma)
 
 def dpp_init_conf(dev, id1, conf, conf_id, extra):
+    time.sleep(1)
     logger.info("Starting DPP initiator/configurator in a thread")
     cmd = "DPP_AUTH_INIT peer=%d conf=%s %s configurator=%d" % (id1, conf, extra, conf_id)
     if "OK" not in dev.request(cmd):
