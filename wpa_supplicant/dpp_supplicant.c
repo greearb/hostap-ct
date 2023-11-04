@@ -443,6 +443,23 @@ void wpas_dpp_connected(struct wpa_supplicant *wpa_s)
 #endif /* CONFIG_DPP2 */
 
 
+static void wpas_dpp_drv_wait_timeout(void *eloop_ctx, void *timeout_ctx)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctx;
+	struct dpp_authentication *auth = wpa_s->dpp_auth;
+
+	if (auth && auth->waiting_auth_resp) {
+		wpa_printf(MSG_DEBUG,
+			   "DPP: Call wpas_dpp_auth_init_next() from %s",
+			   __func__);
+		wpas_dpp_auth_init_next(wpa_s);
+	} else {
+		wpa_printf(MSG_DEBUG, "DPP: %s, but no waiting_auth_resp",
+			   __func__);
+	}
+}
+
+
 static void wpas_dpp_tx_status(struct wpa_supplicant *wpa_s,
 			       unsigned int freq, const u8 *dst,
 			       const u8 *src, const u8 *bssid,
@@ -519,7 +536,12 @@ static void wpas_dpp_tx_status(struct wpa_supplicant *wpa_s,
 			/* In case of DPP Authentication Request frame, move to
 			 * the next channel immediately. */
 			offchannel_send_action_done(wpa_s);
-			wpas_dpp_auth_init_next(wpa_s);
+			/* Call wpas_dpp_auth_init_next(wpa_s) from driver event
+			 * notifying frame wait was completed or from eloop
+			 * timeout. */
+			eloop_register_timeout(0, 10000,
+					       wpas_dpp_drv_wait_timeout,
+					       wpa_s, NULL);
 			return;
 		}
 		if (auth->waiting_auth_conf) {
@@ -680,6 +702,8 @@ static int wpas_dpp_auth_init_next(struct wpa_supplicant *wpa_s)
 	const u8 *dst;
 	unsigned int wait_time, max_wait_time, freq, max_tries, used;
 	struct os_reltime now, diff;
+
+	eloop_cancel_timeout(wpas_dpp_drv_wait_timeout, wpa_s, NULL);
 
 	wpa_s->dpp_in_response_listen = 0;
 	if (!auth)
@@ -1219,8 +1243,19 @@ void wpas_dpp_tx_wait_expire(struct wpa_supplicant *wpa_s)
 	struct dpp_authentication *auth = wpa_s->dpp_auth;
 	int freq;
 
-	if (!wpa_s->dpp_gas_server || !auth)
+	if (!wpa_s->dpp_gas_server || !auth) {
+		if (auth && auth->waiting_auth_resp &&
+		    eloop_is_timeout_registered(wpas_dpp_drv_wait_timeout,
+						wpa_s, NULL)) {
+			eloop_cancel_timeout(wpas_dpp_drv_wait_timeout,
+					     wpa_s, NULL);
+			wpa_printf(MSG_DEBUG,
+				   "DPP: Call wpas_dpp_auth_init_next() from %s",
+				   __func__);
+			wpas_dpp_auth_init_next(wpa_s);
+		}
 		return;
+	}
 
 	freq = auth->neg_freq > 0 ? auth->neg_freq : auth->curr_freq;
 	if (wpa_s->dpp_listen_work || (int) wpa_s->dpp_listen_freq == freq)
@@ -4714,6 +4749,7 @@ void wpas_dpp_deinit(struct wpa_supplicant *wpa_s)
 	eloop_cancel_timeout(wpas_dpp_auth_resp_retry_timeout, wpa_s, NULL);
 	eloop_cancel_timeout(wpas_dpp_gas_initial_resp_timeout, wpa_s, NULL);
 	eloop_cancel_timeout(wpas_dpp_gas_client_timeout, wpa_s, NULL);
+	eloop_cancel_timeout(wpas_dpp_drv_wait_timeout, wpa_s, NULL);
 #ifdef CONFIG_DPP2
 	eloop_cancel_timeout(wpas_dpp_config_result_wait_timeout, wpa_s, NULL);
 	eloop_cancel_timeout(wpas_dpp_conn_status_result_wait_timeout,
