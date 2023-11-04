@@ -8,6 +8,7 @@
 
 #include "utils/includes.h"
 #include "utils/common.h"
+#include "crypto/crypto.h"
 #include "crypto/dh_groups.h"
 #include "hostapd.h"
 #include "sta_info.h"
