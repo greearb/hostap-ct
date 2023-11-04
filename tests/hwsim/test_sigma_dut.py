@@ -164,10 +164,17 @@ def stop_sigma_dut(sigma):
     sigma_log_output(cmd)
     logger.debug("Terminating sigma_dut process")
     cmd.terminate()
-    cmd.wait()
-    out, err = cmd.communicate()
-    logger.debug("sigma_dut stdout: " + str(out.decode()))
-    logger.debug("sigma_dut stderr: " + str(err.decode()))
+    try:
+        out, err = cmd.communicate(timeout=200)
+        logger.debug("sigma_dut stdout: " + str(out.decode()))
+        logger.debug("sigma_dut stderr: " + str(err.decode()))
+    except subprocess.TimeoutExpired:
+        logger.debug("sigma_dut termination timed out")
+        cmd.kill()
+        out, err = cmd.communicate()
+        logger.debug("sigma_dut stdout: " + str(out.decode()))
+        logger.debug("sigma_dut stderr: " + str(err.decode()))
+
     subprocess.call(["ip", "addr", "del", "dev", sigma['ifname'],
                      "127.0.0.11/24"],
                     stderr=open('/dev/null', 'w'))
