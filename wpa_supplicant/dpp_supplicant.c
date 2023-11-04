@@ -431,13 +431,30 @@ void wpas_dpp_send_conn_status_result(struct wpa_supplicant *wpa_s,
 }
 
 
-void wpas_dpp_connected(struct wpa_supplicant *wpa_s)
+static void wpas_dpp_connected_timeout(void *eloop_ctx, void *timeout_ctx)
 {
+	struct wpa_supplicant *wpa_s = eloop_ctx;
 	struct dpp_authentication *auth = wpa_s->dpp_auth;
 
 	if ((auth && auth->conn_status_requested) ||
 	    dpp_tcp_conn_status_requested(wpa_s->dpp))
 		wpas_dpp_send_conn_status_result(wpa_s, DPP_STATUS_OK);
+}
+
+
+void wpas_dpp_connected(struct wpa_supplicant *wpa_s)
+{
+	struct dpp_authentication *auth = wpa_s->dpp_auth;
+
+	if ((auth && auth->conn_status_requested) ||
+	    dpp_tcp_conn_status_requested(wpa_s->dpp)) {
+		/* Report connection result from an eloop timeout to avoid delay
+		 * to completing all connection completion steps since this
+		 * function is called in a middle of the post 4-way handshake
+		 * processing. */
+		eloop_register_timeout(0, 0, wpas_dpp_connected_timeout,
+				       wpa_s, NULL);
+	}
 }
 
 #endif /* CONFIG_DPP2 */
@@ -4758,6 +4775,7 @@ void wpas_dpp_deinit(struct wpa_supplicant *wpa_s)
 	eloop_cancel_timeout(wpas_dpp_reconfig_reply_wait_timeout,
 			     wpa_s, NULL);
 	eloop_cancel_timeout(wpas_dpp_build_csr, wpa_s, NULL);
+	eloop_cancel_timeout(wpas_dpp_connected_timeout, wpa_s, NULL);
 	dpp_pfs_free(wpa_s->dpp_pfs);
 	wpa_s->dpp_pfs = NULL;
 	wpas_dpp_chirp_stop(wpa_s);
