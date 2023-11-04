@@ -1646,9 +1646,10 @@ def start_md5_assoc(dev, hapd):
     proxy_msg(dev, hapd) # NAK
     proxy_msg(hapd, dev) # MD5 Request
 
-def stop_md5_assoc(dev, hapd):
+def stop_md5_assoc(dev, hapd, wait=True):
     dev.request("REMOVE_NETWORK all")
-    dev.wait_disconnected()
+    if wait:
+        dev.wait_disconnected()
     dev.dump_monitor()
     hapd.dump_monitor()
 
@@ -1667,10 +1668,14 @@ def test_eap_proto_md5_server(dev, apdev):
     start_md5_assoc(dev[0], hapd)
     proxy_msg(dev[0], hapd) # MD5 Response
     proxy_msg(hapd, dev[0]) # EAP-Success
-    ev = dev[0].wait_event(["CTRL-EVENT-EAP-SUCCESS"], timeout=5)
+    # Accept both EAP-Success and disconnection indication since it is possible
+    # for disconnection from the AP (due to EAP-MD5 not deriving keys) to be
+    # processed more quickly.
+    ev = dev[0].wait_event(["CTRL-EVENT-EAP-SUCCESS",
+                            "CTRL-EVENT-DISCONNECTED"], timeout=5)
     if ev is None:
         raise Exception("No EAP-Success reported")
-    stop_md5_assoc(dev[0], hapd)
+    stop_md5_assoc(dev[0], hapd, wait="CTRL-EVENT-EAP-SUCCESS" in ev)
 
     start_md5_assoc(dev[0], hapd)
     resp = rx_msg(dev[0])
