@@ -1382,6 +1382,9 @@ class WpaSupplicant:
         ev = self.wait_event(["MGMT-RX"], timeout=timeout)
         if ev is None:
             return None
+        return self.mgmt_rx_parse(ev)
+
+    def mgmt_rx_parse(self, ev):
         msg = {}
         items = ev.split(' ')
         field, val = items[1].split('=')
