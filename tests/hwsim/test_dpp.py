@@ -924,6 +924,7 @@ def test_dpp_config_legacy_gen_psk(dev, apdev):
 
 def test_dpp_config_legacy_gen_two_conf(dev, apdev):
     """Generate DPP Config Object for legacy network (two config objects)"""
+    check_dpp_capab(dev[0])
     ssid1 = "test1"
     pass1 = "passphrase for psk"
     ssid2 = "test-2"
@@ -977,6 +978,7 @@ def test_dpp_config_legacy_gen_two_conf(dev, apdev):
 
 def test_dpp_config_legacy_gen_two_conf_psk(dev, apdev):
     """Generate DPP Config Object for legacy network (two config objects, psk)"""
+    check_dpp_capab(dev[0])
     ssid1 = "test1"
     psk1 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     ssid2 = "test-2"
