@@ -129,6 +129,37 @@ def test_bgscan_simple_same_scan_int(dev, apdev):
         if ev is None:
             raise Exception("Scanning not continued")
 
+def test_bgscan_simple_btm_query(dev, apdev):
+    """bgscan_simple and BTM query"""
+    params = {"ssid": "bgscan",
+              "bss_transition": "1"}
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].connect("bgscan", key_mgmt="NONE", scan_freq="2412",
+                   bgscan="simple:1:-20:1:2")
+    ev = dev[0].wait_event(["WNM: BSS Transition Management Request"], 10)
+    if ev is None:
+        raise Exception("BSS TM not used")
+    for i in range(2):
+        ev = dev[0].wait_event(["CTRL-EVENT-SCAN-RESULTS"], 10)
+        if ev is None:
+            raise Exception("Scanning not continued")
+
+def test_bgscan_simple_btm_query_no_ap_support(dev, apdev):
+    """bgscan_simple and BTM query and no AP support"""
+    params = {"ssid": "bgscan",
+              "bss_transition": "0"}
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].connect("bgscan", key_mgmt="NONE", scan_freq="2412",
+                   bgscan="simple:1:-20:1:2")
+    ev = dev[0].wait_event(["WNM: BSS Transition Management Request",
+                            "CTRL-EVENT-SCAN-RESULTS"], 10)
+    if ev is None:
+        raise Exception("No background scan seen")
+    if "WNM: BSS" in ev:
+        raise Exception("Unexpected use of BSS TM")
+
 def test_bgscan_simple_oom(dev, apdev):
     """bgscan_simple OOM"""
     hapd = hostapd.add_ap(apdev[0], {"ssid": "bgscan"})
