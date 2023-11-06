@@ -503,6 +503,48 @@ def test_eht_mld_ptk_rekey(dev, apdev):
         traffic_test(wpas, hapd0)
         traffic_test(wpas, hapd1)
 
+def test_eht_mld_gtk_rekey(dev, apdev):
+    """AP MLD and GTK rekeying with MLD client connection using two links"""
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        passphrase = 'qwertyuiop'
+        ssid = "mld_ap_sae_two_link"
+        params = eht_mld_ap_wpa2_params(ssid, passphrase,
+                                        key_mgmt="SAE-EXT-KEY SAE WPA-PSK WPA-PSK-SHA256",
+                                        mfp="1")
+        params['wpa_group_rekey'] = '5'
+
+        hapd0 = eht_mld_enable_ap(hapd_iface, params)
+
+        params['channel'] = '6'
+
+        hapd1 = eht_mld_enable_ap(hapd_iface, params)
+
+        wpas.connect(ssid, sae_password=passphrase, scan_freq="2412 2437",
+                     key_mgmt="SAE-EXT-KEY", ieee80211w="2")
+        ev0 = hapd0.wait_event(["AP-STA-CONNECT"], timeout=1)
+        if ev0 is None:
+            ev1 = hapd1.wait_event(["AP-STA-CONNECT"], timeout=1)
+        traffic_test(wpas, hapd0)
+        traffic_test(wpas, hapd1)
+
+        for i in range(2):
+            ev = wpas.wait_event(["MLO RSN: Group rekeying completed",
+                                  "CTRL-EVENT-DISCONNECTED"], timeout=10)
+            if ev is None:
+                raise Exception("GTK rekey timed out")
+            if "CTRL-EVENT-DISCONNECTED" in ev:
+                raise Exception("Disconnect instead of rekey")
+
+            #TODO: Uncomment these ones GTK rekeying works for MLO
+            #time.sleep(0.1)
+            #traffic_test(wpas, hapd0)
+            #traffic_test(wpas, hapd1)
+
 def test_eht_ml_probe_req(dev, apdev):
     """AP MLD with two links and non-AP MLD sending ML Probe Request"""
     with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
