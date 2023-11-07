@@ -378,13 +378,73 @@ static void sme_auth_handle_rrm(struct wpa_supplicant *wpa_s,
 }
 
 
+static void wpas_process_rnr(struct wpa_supplicant *wpa_s, const u8 *pos,
+			     size_t rnr_ie_len)
+{
+	while (rnr_ie_len > sizeof(struct ieee80211_neighbor_ap_info)) {
+		const struct ieee80211_neighbor_ap_info *ap_info =
+			(const struct ieee80211_neighbor_ap_info *) pos;
+		const u8 *data = ap_info->data;
+		size_t len = sizeof(struct ieee80211_neighbor_ap_info) +
+			ap_info->tbtt_info_len;
+
+		wpa_printf(MSG_DEBUG, "MLD: op_class=%u, channel=%u",
+			   ap_info->op_class, ap_info->channel);
+
+		if (len > rnr_ie_len)
+			break;
+
+		if (ap_info->tbtt_info_len < 16) {
+			rnr_ie_len -= len;
+			pos += len;
+			continue;
+		}
+
+		data += 13;
+
+		wpa_printf(MSG_DEBUG, "MLD: mld ID=%u, link ID=%u",
+			   *data, *(data + 1) & 0xF);
+
+		if (*data) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Reported link not part of MLD");
+		} else {
+			struct wpa_bss *neigh_bss =
+				wpa_bss_get_bssid(wpa_s, ap_info->data + 1);
+			u8 link_id = *(data + 1) & 0xF;
+
+			if (neigh_bss) {
+				if (wpa_scan_res_match(wpa_s, 0, neigh_bss,
+						       wpa_s->current_ssid,
+						       1, 0)) {
+					wpa_s->valid_links |= BIT(link_id);
+					os_memcpy(wpa_s->links[link_id].bssid,
+						  ap_info->data + 1, ETH_ALEN);
+					wpa_s->links[link_id].freq =
+						neigh_bss->freq;
+				} else {
+					wpa_printf(MSG_DEBUG,
+						   "MLD: Neighbor doesn't match current SSID - skip link");
+				}
+			} else {
+				wpa_printf(MSG_DEBUG,
+					   "MLD: Neighbor not found in scan");
+			}
+		}
+
+		rnr_ie_len -= len;
+		pos += len;
+	}
+}
+
+
 static bool wpas_ml_element(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 			    struct wpa_ssid *ssid)
 {
 	struct wpabuf *mlbuf;
-	const u8 *rnr_ie, *pos, *rsn_ie;
+	const u8 *rnr_ie, *rsn_ie;
 	struct wpa_ie_data ie;
-	u8 ml_ie_len, rnr_ie_len;
+	u8 ml_ie_len;
 	const struct ieee80211_eht_ml *eht_ml;
 	const struct eht_ml_basic_common_info *ml_basic_common_info;
 	u8 i;
@@ -466,63 +526,7 @@ static bool wpas_ml_element(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 		goto out;
 	}
 
-	rnr_ie_len = rnr_ie[1];
-	pos = rnr_ie + 2;
-
-	while (rnr_ie_len > sizeof(struct ieee80211_neighbor_ap_info)) {
-		const struct ieee80211_neighbor_ap_info *ap_info =
-			(const struct ieee80211_neighbor_ap_info *) pos;
-		const u8 *data = ap_info->data;
-		size_t len = sizeof(struct ieee80211_neighbor_ap_info) +
-			ap_info->tbtt_info_len;
-
-		wpa_printf(MSG_DEBUG, "MLD: op_class=%u, channel=%u",
-			   ap_info->op_class, ap_info->channel);
-
-		if (len > rnr_ie_len)
-			break;
-
-		if (ap_info->tbtt_info_len < 16) {
-			rnr_ie_len -= len;
-			pos += len;
-			continue;
-		}
-
-		data += 13;
-
-		wpa_printf(MSG_DEBUG, "MLD: mld ID=%u, link ID=%u",
-			   *data, *(data + 1) & 0xF);
-
-		if (*data) {
-			wpa_printf(MSG_DEBUG,
-				   "MLD: Reported link not part of MLD");
-		} else {
-			struct wpa_bss *neigh_bss =
-				wpa_bss_get_bssid(wpa_s, ap_info->data + 1);
-			u8 link_id = *(data + 1) & 0xF;
-
-			if (neigh_bss) {
-				if (wpa_scan_res_match(wpa_s, 0, neigh_bss,
-						       wpa_s->current_ssid,
-						       1, 0)) {
-					wpa_s->valid_links |= BIT(link_id);
-					os_memcpy(wpa_s->links[link_id].bssid,
-						  ap_info->data + 1, ETH_ALEN);
-					wpa_s->links[link_id].freq =
-						neigh_bss->freq;
-				} else {
-					wpa_printf(MSG_DEBUG,
-						   "MLD: Neighbor doesn't match current SSID - skip link");
-				}
-			} else {
-				wpa_printf(MSG_DEBUG,
-					   "MLD: Neighbor not found in scan");
-			}
-		}
-
-		rnr_ie_len -= len;
-		pos += len;
-	}
+	wpas_process_rnr(wpa_s, rnr_ie + 2, rnr_ie[1]);
 
 	wpa_printf(MSG_DEBUG, "MLD: valid_links=0x%x", wpa_s->valid_links);
 
