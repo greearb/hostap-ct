@@ -7763,7 +7763,13 @@ static u8 * hostapd_eid_mbssid_elem(struct hostapd_data *hapd, u8 *eid, u8 *end,
 			    (conf->dtim_period % elem_count))
 				conf->dtim_period = elem_count;
 			*eid++ = conf->dtim_period;
-			*eid++ = 0xFF; /* DTIM Count */
+			/* The driver is expected to update the DTIM Count
+			 * field for each BSS that corresponds to a
+			 * nontransmitted BSSID. The value is initialized to
+			 * 0 here so that the DTIM count would be somewhat
+			 * functional even if the driver were not to update
+			 * this. */
+			*eid++ = 0; /* DTIM Count */
 		} else {
 			/* Probe Request frame does not include DTIM Period and
 			 * DTIM Count fields. */
