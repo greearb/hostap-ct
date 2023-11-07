@@ -378,6 +378,57 @@ static void sme_auth_handle_rrm(struct wpa_supplicant *wpa_s,
 }
 
 
+static void wpas_process_tbtt_info(struct wpa_supplicant *wpa_s, const u8 *data)
+{
+	struct wpa_bss *neigh_bss;
+	const u8 *bssid;
+	u8 link_id;
+
+	/* TBTT Information field
+	 * Neighbor AP TBTT Offset[1]
+	 * BSSID[6]
+	 * Short SSID[4]
+	 * BSS parameters[1]
+	 * 20 MHz PSD[1]
+	 * MLD Parameters[3]
+	 *   B0..B7: AP MLD ID
+	 *   B7..B11: Link ID
+	 *   B12..B19: BSS Parameters Change Count
+	 *   B20: All Updates Included
+	 *   B21: Disabled Link Indication */
+
+	bssid = data + 1;
+
+	data += 13; /* MLD Parameters */
+	link_id = *(data + 1) & 0xF;
+
+	wpa_printf(MSG_DEBUG, "MLD: mld ID=%u, link ID=%u",
+		   *data, link_id);
+
+	if (*data) {
+		wpa_printf(MSG_DEBUG, "MLD: Reported link not part of MLD");
+		return;
+	}
+
+	neigh_bss = wpa_bss_get_bssid(wpa_s, bssid);
+	if (!neigh_bss) {
+		wpa_printf(MSG_DEBUG, "MLD: Neighbor not found in scan");
+		return;
+	}
+
+	if (!wpa_scan_res_match(wpa_s, 0, neigh_bss, wpa_s->current_ssid,
+				1, 0)) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Neighbor doesn't match current SSID - skip link");
+		return;
+	}
+
+	wpa_s->valid_links |= BIT(link_id);
+	os_memcpy(wpa_s->links[link_id].bssid, bssid, ETH_ALEN);
+	wpa_s->links[link_id].freq = neigh_bss->freq;
+}
+
+
 static void wpas_process_rnr(struct wpa_supplicant *wpa_s, const u8 *pos,
 			     size_t rnr_ie_len)
 {
@@ -400,37 +451,7 @@ static void wpas_process_rnr(struct wpa_supplicant *wpa_s, const u8 *pos,
 			continue;
 		}
 
-		data += 13;
-
-		wpa_printf(MSG_DEBUG, "MLD: mld ID=%u, link ID=%u",
-			   *data, *(data + 1) & 0xF);
-
-		if (*data) {
-			wpa_printf(MSG_DEBUG,
-				   "MLD: Reported link not part of MLD");
-		} else {
-			struct wpa_bss *neigh_bss =
-				wpa_bss_get_bssid(wpa_s, ap_info->data + 1);
-			u8 link_id = *(data + 1) & 0xF;
-
-			if (neigh_bss) {
-				if (wpa_scan_res_match(wpa_s, 0, neigh_bss,
-						       wpa_s->current_ssid,
-						       1, 0)) {
-					wpa_s->valid_links |= BIT(link_id);
-					os_memcpy(wpa_s->links[link_id].bssid,
-						  ap_info->data + 1, ETH_ALEN);
-					wpa_s->links[link_id].freq =
-						neigh_bss->freq;
-				} else {
-					wpa_printf(MSG_DEBUG,
-						   "MLD: Neighbor doesn't match current SSID - skip link");
-				}
-			} else {
-				wpa_printf(MSG_DEBUG,
-					   "MLD: Neighbor not found in scan");
-			}
-		}
+		wpas_process_tbtt_info(wpa_s, data);
 
 		rnr_ie_len -= len;
 		pos += len;
