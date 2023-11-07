@@ -1097,7 +1097,6 @@ static void owe_trans_ssid(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 #ifdef CONFIG_OWE
 	const u8 *owe, *pos, *end, *bssid;
 	u8 ssid_len;
-	struct wpa_bss *open_bss;
 
 	owe = wpa_bss_get_vendor_ie(bss, OWE_IE_VENDOR_TYPE);
 	if (!owe || !wpa_bss_get_ie(bss, WLAN_EID_RSN))
@@ -1138,48 +1137,6 @@ static void owe_trans_ssid(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 			}
 		}
 	}
-
-	if (bss->ssid_len > 0)
-		return;
-
-	open_bss = wpa_bss_get_bssid_latest(wpa_s, bssid);
-	if (!open_bss)
-		return;
-	if (ssid_len != open_bss->ssid_len ||
-	    os_memcmp(pos, open_bss->ssid, ssid_len) != 0) {
-		wpa_dbg(wpa_s, MSG_DEBUG,
-			"OWE: transition mode SSID mismatch: %s",
-			wpa_ssid_txt(open_bss->ssid, open_bss->ssid_len));
-		return;
-	}
-
-	owe = wpa_bss_get_vendor_ie(open_bss, OWE_IE_VENDOR_TYPE);
-	if (!owe || wpa_bss_get_ie(open_bss, WLAN_EID_RSN)) {
-		wpa_dbg(wpa_s, MSG_DEBUG,
-			"OWE: transition mode open BSS unexpected info");
-		return;
-	}
-
-	pos = owe + 6;
-	end = owe + 2 + owe[1];
-
-	if (end - pos < ETH_ALEN + 1)
-		return;
-	if (os_memcmp(pos, bss->bssid, ETH_ALEN) != 0) {
-		wpa_dbg(wpa_s, MSG_DEBUG,
-			"OWE: transition mode BSSID mismatch: " MACSTR,
-			MAC2STR(pos));
-		return;
-	}
-	pos += ETH_ALEN;
-	ssid_len = *pos++;
-	if (end - pos < ssid_len || ssid_len > SSID_MAX_LEN)
-		return;
-	wpa_dbg(wpa_s, MSG_DEBUG, "OWE: learned transition mode OWE SSID: %s",
-		wpa_ssid_txt(pos, ssid_len));
-	os_memcpy(bss->ssid, pos, ssid_len);
-	bss->ssid_len = ssid_len;
-	bss->flags |= WPA_BSS_OWE_TRANSITION;
 #endif /* CONFIG_OWE */
 }
 
