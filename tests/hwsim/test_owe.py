@@ -329,6 +329,61 @@ def run_owe_transition_mode_ifname_acs(dev, apdev, wait_first):
     if val != "OWE":
         raise Exception("Unexpected key_mgmt: " + val)
 
+def test_owe_transition_mode_multi_assoc(dev, apdev):
+    """Opportunistic Wireless Encryption transition mode and multiple associations"""
+    if "OWE" not in dev[0].get_capability("key_mgmt"):
+        raise HwsimSkip("OWE not supported")
+    dev[0].flush_scan_cache()
+    params = {"ssid": "owe-random",
+              "wpa": "2",
+              "wpa_key_mgmt": "OWE",
+              "rsn_pairwise": "CCMP",
+              "ieee80211w": "2",
+              "owe_transition_bssid": apdev[1]['bssid'],
+              "owe_transition_ssid": '"owe-test"',
+              "ignore_broadcast_ssid": "1"}
+    hapd = hostapd.add_ap(apdev[0], params)
+    bssid = hapd.own_addr()
+
+    params = {"ssid": "owe-test",
+              "owe_transition_bssid": apdev[0]['bssid'],
+              "owe_transition_ssid": '"owe-random"'}
+    hapd2 = hostapd.add_ap(apdev[1], params)
+    bssid2 = hapd2.own_addr()
+
+    dev[0].scan_for_bss(bssid, freq="2412")
+    dev[0].scan_for_bss(bssid2, freq="2412")
+
+    dev[0].connect("owe-test", key_mgmt="OWE", ieee80211w="2")
+    hapd.wait_sta()
+
+    if dev[0].get_status_field("bssid") != bssid:
+        raise Exception("Unexpected BSSID")
+
+    for i in range(5):
+        dev[0].request("DISCONNECT")
+        dev[0].wait_disconnected()
+        dev[0].dump_monitor()
+
+        dev[0].scan(freq=2412)
+
+        dev[0].request("RECONNECT")
+        dev[0].wait_connected()
+        hapd.wait_sta()
+        if dev[0].get_status_field("bssid") != bssid:
+            raise Exception("Unexpected BSSID")
+        time.sleep(1)
+        dev[0].dump_monitor()
+
+    res = dev[0].request("SCAN_RESULTS").splitlines()
+    num = 0
+    for r in res:
+        if "owe-random" in r:
+            num += 1
+    if num != 1:
+        logger.info("SCAN_RESULTS:\n" + str(res))
+        raise Exception("Unexpected number of BSS entries for owe-random: %d" % num)
+
 def test_owe_transition_mode_open_only_ap(dev, apdev):
     """Opportunistic Wireless Encryption transition mode connect to open-only AP"""
     if "OWE" not in dev[0].get_capability("key_mgmt"):
