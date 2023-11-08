@@ -296,6 +296,7 @@ static void wpa_bss_copy_res(struct wpa_bss *dst, struct wpa_scan_res *src,
 	dst->flags = src->flags;
 	os_memcpy(dst->bssid, src->bssid, ETH_ALEN);
 	dst->freq = src->freq;
+	dst->max_cw = src->max_cw;
 	dst->beacon_int = src->beacon_int;
 	dst->caps = src->caps;
 	dst->qual = src->qual;

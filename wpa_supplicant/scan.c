@@ -2213,6 +2213,160 @@ struct wpabuf * wpa_scan_get_vendor_ie_multi(const struct wpa_scan_res *res,
 }
 
 
+static int wpas_channel_width_offset(enum chan_width cw)
+{
+	switch (cw) {
+	case CHAN_WIDTH_40:
+		return 1;
+	case CHAN_WIDTH_80:
+		return 2;
+	case CHAN_WIDTH_80P80:
+	case CHAN_WIDTH_160:
+		return 3;
+	case CHAN_WIDTH_320:
+		return 4;
+	default:
+		return 0;
+	}
+}
+
+
+/**
+ * wpas_channel_width_tx_pwr - Calculate the max transmit power at the channel
+ * width
+ * @ies: Information elements
+ * @ies_len: Length of elements
+ * @cw: The channel width
+ * Returns: The max transmit power at the channel width, TX_POWER_NO_CONSTRAINT
+ * if it is not constrained.
+ *
+ * This function is only used to estimate the actual signal RSSI when associated
+ * based on the beacon RSSI at the STA. Beacon frames are transmitted on 20 MHz
+ * channels, while the Data frames usually use higher channel width. Therefore
+ * their RSSIs may be different. Assuming there is a fixed gap between the TX
+ * power limit of the STA defined by the Transmit Power Envelope element and the
+ * TX power of the AP, the difference in the TX power of X MHz and Y MHz at the
+ * STA equals to the difference at the AP, and the difference in the signal RSSI
+ * at the STA. tx_pwr is a floating point number in the standard, but the error
+ * of casting to int is trivial in comparing two BSSes.
+ */
+static int wpas_channel_width_tx_pwr(const u8 *ies, size_t ies_len,
+				     enum chan_width cw)
+{
+#define MIN(a, b) (a < b ? a : b)
+	int offset = wpas_channel_width_offset(cw);
+	const struct element *elem;
+	int max_tx_power = TX_POWER_NO_CONSTRAINT, tx_pwr = 0;
+
+	for_each_element_id(elem, WLAN_EID_TRANSMIT_POWER_ENVELOPE, ies,
+			    ies_len) {
+		int max_tx_pwr_count;
+		enum max_tx_pwr_interpretation tx_pwr_intrpn;
+		enum reg_6g_client_type client_type;
+
+		if (elem->datalen < 1)
+			continue;
+
+		/*
+		 * IEEE Std 802.11ax-2021, 9.4.2.161 (Transmit Power Envelope
+		 * element) defines Maximum Transmit Power Count (B0-B2),
+		 * Maximum Transmit Power Interpretation (B3-B5), and Maximum
+		 * Transmit Power Category (B6-B7).
+		 */
+		max_tx_pwr_count = elem->data[0] & 0x07;
+		tx_pwr_intrpn = (elem->data[0] >> 3) & 0x07;
+		client_type = (elem->data[0] >> 6) & 0x03;
+
+		if (client_type != REG_DEFAULT_CLIENT)
+			continue;
+
+		if (tx_pwr_intrpn == LOCAL_EIRP ||
+		    tx_pwr_intrpn == REGULATORY_CLIENT_EIRP) {
+			int offs;
+
+			max_tx_pwr_count = MIN(max_tx_pwr_count, 3);
+			offs = MIN(offset, max_tx_pwr_count) + 1;
+			if (elem->datalen <= offs)
+				continue;
+			tx_pwr = (signed char) elem->data[offs];
+			/*
+			 * Maximum Transmit Power subfield is encoded as an
+			 * 8-bit 2s complement signed integer in the range -64
+			 * dBm to 63 dBm with a 0.5 dB step. 63.5 dBm means no
+			 * local maximum transmit power constraint.
+			 */
+			if (tx_pwr == 127)
+				continue;
+			tx_pwr /= 2;
+			max_tx_power = MIN(max_tx_power, tx_pwr);
+		} else if (tx_pwr_intrpn == LOCAL_EIRP_PSD ||
+			   tx_pwr_intrpn == REGULATORY_CLIENT_EIRP_PSD) {
+			if (elem->datalen < 2)
+				continue;
+
+			tx_pwr = (signed char) elem->data[1];
+			/*
+			 * Maximum Transmit PSD subfield is encoded as an 8-bit
+			 * 2s complement signed integer. -128 indicates that the
+			 * corresponding 20 MHz channel cannot be used for
+			 * transmission. +127 indicates that no maximum PSD
+			 * limit is specified for the corresponding 20 MHz
+			 * channel.
+			 */
+			if (tx_pwr == 127 || tx_pwr == -128)
+				continue;
+
+			/*
+			 * The Maximum Transmit PSD subfield indicates the
+			 * maximum transmit PSD for the 20 MHz channel. Suppose
+			 * the PSD value is X dBm/MHz, the TX power of N MHz is
+			 * X + 10*log10(N) = X + 10*log10(20) + 10*log10(N/20) =
+			 * X + 13 + 3*log2(N/20)
+			 */
+			tx_pwr = tx_pwr / 2 + 13 + offset * 3;
+			max_tx_power = MIN(max_tx_power, tx_pwr);
+		}
+	}
+
+	return max_tx_power;
+#undef MIN
+}
+
+
+/**
+ * Estimate the RSSI bump of channel width |cw| with respect to 20 MHz channel.
+ * If the TX power has no constraint, it is unable to estimate the RSSI bump.
+ */
+int wpas_channel_width_rssi_bump(const u8 *ies, size_t ies_len,
+				 enum chan_width cw)
+{
+	int max_20mhz_tx_pwr = wpas_channel_width_tx_pwr(ies, ies_len,
+							 CHAN_WIDTH_20);
+	int max_cw_tx_pwr = wpas_channel_width_tx_pwr(ies, ies_len, cw);
+
+	return (max_20mhz_tx_pwr == TX_POWER_NO_CONSTRAINT ||
+		max_cw_tx_pwr == TX_POWER_NO_CONSTRAINT) ?
+		0 : (max_cw_tx_pwr - max_20mhz_tx_pwr);
+}
+
+
+int wpas_adjust_snr_by_chanwidth(const u8 *ies, size_t ies_len,
+				 enum chan_width max_cw, int snr)
+{
+	int rssi_bump = wpas_channel_width_rssi_bump(ies, ies_len, max_cw);
+	/*
+	 * The noise has uniform power spectral density (PSD) across the
+	 * frequency band, its power is proportional to the channel width.
+	 * Suppose the PSD of noise is X dBm/MHz, the noise power of N MHz is
+	 * X + 10*log10(N), and the noise power bump with respect to 20 MHz is
+	 * 10*log10(N) - 10*log10(20) = 10*log10(N/20) = 3*log2(N/20)
+	 */
+	int noise_bump = 3 * wpas_channel_width_offset(max_cw);
+
+	return snr + rssi_bump - noise_bump;
+}
+
+
 /* Compare function for sorting scan results. Return >0 if @b is considered
  * better. */
 static int wpa_scan_result_compar(const void *a, const void *b)
@@ -2224,6 +2378,7 @@ static int wpa_scan_result_compar(const void *a, const void *b)
 	struct wpa_scan_res *wb = *_wb;
 	int wpa_a, wpa_b;
 	int snr_a, snr_b, snr_a_full, snr_b_full;
+	size_t ies_len;
 
 	/* WPA/WPA2 support preferred */
 	wpa_a = wpa_scan_get_vendor_ie(wa, WPA_IE_VENDOR_TYPE) != NULL ||
@@ -2245,10 +2400,21 @@ static int wpa_scan_result_compar(const void *a, const void *b)
 		return -1;
 
 	if (wa->flags & wb->flags & WPA_SCAN_LEVEL_DBM) {
-		snr_a_full = wa->snr;
-		snr_a = MIN(wa->snr, GREAT_SNR);
-		snr_b_full = wb->snr;
-		snr_b = MIN(wb->snr, GREAT_SNR);
+		/*
+		 * The scan result estimates SNR over 20 MHz, while Data frames
+		 * usually use wider channel width. The TX power and noise power
+		 * are both affected by the channel width.
+		 */
+		ies_len = wa->ie_len ? wa->ie_len : wa->beacon_ie_len;
+		snr_a_full = wpas_adjust_snr_by_chanwidth((const u8 *) (wa + 1),
+							  ies_len, wa->max_cw,
+							  wa->snr);
+		snr_a = MIN(snr_a_full, GREAT_SNR);
+		ies_len = wb->ie_len ? wb->ie_len : wb->beacon_ie_len;
+		snr_b_full = wpas_adjust_snr_by_chanwidth((const u8 *) (wb + 1),
+							  ies_len, wb->max_cw,
+							  wb->snr);
+		snr_b = MIN(snr_b_full, GREAT_SNR);
 	} else {
 		/* Level is not in dBm, so we can't calculate
 		 * SNR. Just use raw level (units unknown). */
@@ -2701,7 +2867,7 @@ static unsigned int max_he_eht_rate(const struct minsnr_bitrate_entry table[],
 
 unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 			      const u8 *ies, size_t ies_len, int rate,
-			      int snr, int freq)
+			      int snr, int freq, enum chan_width *max_cw)
 {
 	struct hostapd_hw_modes *hw_mode;
 	unsigned int est, tmp;
@@ -2754,6 +2920,7 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 	if (hw_mode && hw_mode->ht_capab) {
 		ie = get_ie(ies, ies_len, WLAN_EID_HT_CAP);
 		if (ie) {
+			*max_cw = CHAN_WIDTH_20;
 			tmp = max_ht20_rate(snr, false);
 			if (tmp > est)
 				est = tmp;
@@ -2765,6 +2932,7 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 		ie = get_ie(ies, ies_len, WLAN_EID_HT_OPERATION);
 		if (ie && ie[1] >= 2 &&
 		    (ie[3] & HT_INFO_HT_PARAM_SECONDARY_CHNL_OFF_MASK)) {
+			*max_cw = CHAN_WIDTH_40;
 			tmp = max_ht40_rate(snr, false);
 			if (tmp > est)
 				est = tmp;
@@ -2777,6 +2945,8 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 		if (ie) {
 			bool vht80 = false, vht160 = false;
 
+			if (*max_cw == CHAN_WIDTH_UNKNOWN)
+				*max_cw = CHAN_WIDTH_20;
 			tmp = max_ht20_rate(snr, true) + 1;
 			if (tmp > est)
 				est = tmp;
@@ -2785,6 +2955,7 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 			if (ie && ie[1] >= 2 &&
 			    (ie[3] &
 			     HT_INFO_HT_PARAM_SECONDARY_CHNL_OFF_MASK)) {
+				*max_cw = CHAN_WIDTH_40;
 				tmp = max_ht40_rate(snr, true) + 1;
 				if (tmp > est)
 					est = tmp;
@@ -2811,6 +2982,7 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 			}
 
 			if (vht80) {
+				*max_cw = CHAN_WIDTH_80;
 				tmp = max_vht80_rate(snr) + 1;
 				if (tmp > est)
 					est = tmp;
@@ -2820,6 +2992,7 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 			    (hw_mode->vht_capab &
 			     (VHT_CAP_SUPP_CHAN_WIDTH_160MHZ |
 			      VHT_CAP_SUPP_CHAN_WIDTH_160_80PLUS80MHZ))) {
+				*max_cw = CHAN_WIDTH_160;
 				tmp = max_vht160_rate(snr) + 1;
 				if (tmp > est)
 					est = tmp;
@@ -2853,6 +3026,8 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 			}
 		}
 
+		if (*max_cw == CHAN_WIDTH_UNKNOWN)
+			*max_cw = CHAN_WIDTH_20;
 		tmp = max_he_eht_rate(he20_table, snr, is_eht) + boost;
 		if (tmp > est)
 			est = tmp;
@@ -2862,6 +3037,9 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 		if (cw &
 		    (IS_2P4GHZ(freq) ? HE_PHYCAP_CHANNEL_WIDTH_SET_40MHZ_IN_2G :
 		     HE_PHYCAP_CHANNEL_WIDTH_SET_40MHZ_80MHZ_IN_5G)) {
+			if (*max_cw == CHAN_WIDTH_UNKNOWN ||
+			    *max_cw < CHAN_WIDTH_40)
+				*max_cw = CHAN_WIDTH_40;
 			tmp = max_he_eht_rate(he40_table, snr, is_eht) + boost;
 			if (tmp > est)
 				est = tmp;
@@ -2869,6 +3047,9 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 
 		if (!IS_2P4GHZ(freq) &&
 		    (cw & HE_PHYCAP_CHANNEL_WIDTH_SET_40MHZ_80MHZ_IN_5G)) {
+			if (*max_cw == CHAN_WIDTH_UNKNOWN ||
+			    *max_cw < CHAN_WIDTH_80)
+				*max_cw = CHAN_WIDTH_80;
 			tmp = max_he_eht_rate(he80_table, snr, is_eht) + boost;
 			if (tmp > est)
 				est = tmp;
@@ -2877,6 +3058,9 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 		if (!IS_2P4GHZ(freq) &&
 		    (cw & (HE_PHYCAP_CHANNEL_WIDTH_SET_160MHZ_IN_5G |
 			   HE_PHYCAP_CHANNEL_WIDTH_SET_80PLUS80MHZ_IN_5G))) {
+			if (*max_cw == CHAN_WIDTH_UNKNOWN ||
+			    *max_cw < CHAN_WIDTH_160)
+				*max_cw = CHAN_WIDTH_160;
 			tmp = max_he_eht_rate(he160_table, snr, is_eht) + boost;
 			if (tmp > est)
 				est = tmp;
@@ -2890,6 +3074,9 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 		if (is_6ghz_freq(freq) &&
 		    (eht->phy_cap[EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_IDX] &
 		     EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_MASK)) {
+			if (*max_cw == CHAN_WIDTH_UNKNOWN ||
+			    *max_cw < CHAN_WIDTH_320)
+				*max_cw = CHAN_WIDTH_320;
 			tmp = max_he_eht_rate(eht320_table, snr, true);
 			if (tmp > est)
 				est = tmp;
@@ -2916,8 +3103,8 @@ void scan_est_throughput(struct wpa_supplicant *wpa_s,
 
 	if (!ie_len)
 		ie_len = res->beacon_ie_len;
-	res->est_throughput =
-		wpas_get_est_tpt(wpa_s, ies, ie_len, rate, snr, res->freq);
+	res->est_throughput = wpas_get_est_tpt(wpa_s, ies, ie_len, rate, snr,
+					       res->freq, &res->max_cw);
 
 	/* TODO: channel utilization and AP load (e.g., from AP Beacon) */
 }

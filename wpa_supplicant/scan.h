@@ -30,6 +30,14 @@
  */
 #define GREAT_SNR 25
 
+/*
+ * IEEE Sts 802.11ax-2021, 9.4.2.161 (Transmit Power Envelope element) indicates
+ * no max TX power limit if Maximum Transmit Power field is 63.5 dBm.
+ * The default TX power if it is not constrained by Transmit Power Envelope
+ * element.
+ */
+#define TX_POWER_NO_CONSTRAINT 64
+
 #define IS_2P4GHZ(n) (n >= 2412 && n <= 2484)
 #define IS_5GHZ(n) (n > 4000 && n < 5895)
 
@@ -88,12 +96,16 @@ void scan_est_throughput(struct wpa_supplicant *wpa_s,
 			 struct wpa_scan_res *res);
 unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 			      const u8 *ies, size_t ies_len, int rate,
-			      int snr, int freq);
+			      int snr, int freq, enum chan_width *max_cw);
 void wpa_supplicant_set_default_scan_ies(struct wpa_supplicant *wpa_s);
 int wpa_add_scan_freqs_list(struct wpa_supplicant *wpa_s,
 			    enum hostapd_hw_mode band,
 			    struct wpa_driver_scan_params *params,
 			    bool is_6ghz, bool only_6ghz_psc,
 			    bool exclude_radar);
+int wpas_channel_width_rssi_bump(const u8 *ies, size_t ies_len,
+				 enum chan_width cw);
+int wpas_adjust_snr_by_chanwidth(const u8 *ies, size_t ies_len,
+				 enum chan_width max_cw, int snr);
 
 #endif /* SCAN_H */

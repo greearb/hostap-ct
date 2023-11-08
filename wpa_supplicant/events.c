@@ -2058,8 +2058,10 @@ wpas_get_est_throughput_from_bss_snr(const struct wpa_supplicant *wpa_s,
 	int rate = wpa_bss_get_max_rate(bss);
 	const u8 *ies = wpa_bss_ie_ptr(bss);
 	size_t ie_len = bss->ie_len ? bss->ie_len : bss->beacon_ie_len;
+	enum chan_width max_cw = CHAN_WIDTH_UNKNOWN;
 
-	return wpas_get_est_tpt(wpa_s, ies, ie_len, rate, snr, bss->freq);
+	return wpas_get_est_tpt(wpa_s, ies, ie_len, rate, snr, bss->freq,
+				&max_cw);
 }
 
 
