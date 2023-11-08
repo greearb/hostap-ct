@@ -22,6 +22,7 @@
 #include "common/wpa_ctrl.h"
 #include "eap_peer/eap.h"
 #include "ap/hostapd.h"
+#include "ap/sta_info.h"
 #include "p2p/p2p.h"
 #include "fst/fst.h"
 #include "wnm_sta.h"
@@ -6411,6 +6412,21 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		break;
 #endif /* CONFIG_PASN */
 	case EVENT_PORT_AUTHORIZED:
+#ifdef CONFIG_AP
+		if (wpa_s->ap_iface && wpa_s->ap_iface->bss[0]) {
+			struct sta_info *sta;
+
+			sta = ap_get_sta(wpa_s->ap_iface->bss[0],
+					 data->port_authorized.sta_addr);
+			if (sta)
+				ap_sta_set_authorized(wpa_s->ap_iface->bss[0],
+						      sta, 1);
+			else
+				wpa_printf(MSG_DEBUG,
+					   "No STA info matching port authorized event found");
+			break;
+		}
+#endif /* CONFIG_AP */
 #ifndef CONFIG_NO_WPA
 		if (data->port_authorized.td_bitmap_len) {
 			wpa_printf(MSG_DEBUG,

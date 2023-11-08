@@ -3506,7 +3506,13 @@ static void nl80211_port_authorized(struct wpa_driver_nl80211_data *drv,
 	}
 
 	addr = nla_data(tb[NL80211_ATTR_MAC]);
-	if (os_memcmp(addr, drv->bssid, ETH_ALEN) != 0) {
+	if (is_ap_interface(drv->nlmode) && drv->device_ap_sme) {
+		event.port_authorized.sta_addr = addr;
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Port authorized for STA addr "  MACSTR,
+			MAC2STR(addr));
+	} else if (is_sta_interface(drv->nlmode) &&
+		   os_memcmp(addr, drv->bssid, ETH_ALEN) != 0) {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Ignore port authorized event for " MACSTR
 			   " (not the currently connected BSSID " MACSTR ")",

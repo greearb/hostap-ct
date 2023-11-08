@@ -2186,6 +2186,7 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			  union wpa_event_data *data)
 {
 	struct hostapd_data *hapd = ctx;
+	struct sta_info *sta;
 #ifndef CONFIG_NO_STDOUT_DEBUG
 	int level = MSG_DEBUG;
 
@@ -2304,6 +2305,15 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 				    data->assoc_info.resp_ies_len,
 				    data->assoc_info.link_addr,
 				    data->assoc_info.reassoc);
+		break;
+	case EVENT_PORT_AUTHORIZED:
+		/* Port authorized event for an associated STA */
+		sta = ap_get_sta(hapd, data->port_authorized.sta_addr);
+		if (sta)
+			ap_sta_set_authorized(hapd, sta, 1);
+		else
+			wpa_printf(MSG_DEBUG,
+				   "No STA info matching port authorized event found");
 		break;
 #ifdef CONFIG_OWE
 	case EVENT_UPDATE_DH:

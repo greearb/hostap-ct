@@ -17,6 +17,7 @@
 #include "common/ieee802_11_common.h"
 #include "common/hw_features_common.h"
 #include "common/wpa_ctrl.h"
+#include "crypto/sha1.h"
 #include "wps/wps_defs.h"
 #include "p2p/p2p.h"
 #include "hostapd.h"
@@ -2025,6 +2026,23 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 
 	resp = hostapd_probe_resp_offloads(hapd, &resp_len);
 #endif /* NEED_AP_MLME */
+
+	/* If key management offload is enabled, configure PSK to the driver. */
+	if (wpa_key_mgmt_wpa_psk_no_sae(hapd->conf->wpa_key_mgmt) &&
+	    (hapd->iface->drv_flags2 &
+	     WPA_DRIVER_FLAGS2_4WAY_HANDSHAKE_AP_PSK)) {
+		if (hapd->conf->ssid.wpa_psk && hapd->conf->ssid.wpa_psk_set) {
+			os_memcpy(params->psk, hapd->conf->ssid.wpa_psk->psk,
+				  PMK_LEN);
+			params->psk_len = PMK_LEN;
+		} else if (hapd->conf->ssid.wpa_passphrase &&
+			   pbkdf2_sha1(hapd->conf->ssid.wpa_passphrase,
+				       hapd->conf->ssid.ssid,
+				       hapd->conf->ssid.ssid_len, 4096,
+				       params->psk, PMK_LEN) == 0) {
+			params->psk_len = PMK_LEN;
+		}
+	}
 
 	params->head = (u8 *) head;
 	params->head_len = head_len;

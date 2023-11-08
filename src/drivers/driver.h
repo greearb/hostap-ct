@@ -1812,6 +1812,16 @@ struct wpa_driver_ap_params {
 	 * mld_link_id - Link id for MLD BSS's
 	 */
 	u8 mld_link_id;
+
+	/**
+	 * psk - PSK passed to the driver for 4-way handshake offload
+	 */
+	u8 psk[PMK_LEN];
+
+	/**
+	 * psk_len - PSK length in bytes (0 = not set)
+	 */
+	size_t psk_len;
 };
 
 struct wpa_driver_mesh_bss_params {
@@ -2284,6 +2294,8 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_FLAGS2_SCAN_MIN_PREQ         0x0000000000008000ULL
 /** Driver supports SAE authentication offload in STA mode */
 #define WPA_DRIVER_FLAGS2_SAE_OFFLOAD_STA	0x0000000000010000ULL
+/** Driver support AP_PSK authentication offload */
+#define WPA_DRIVER_FLAGS2_4WAY_HANDSHAKE_AP_PSK	0x0000000000020000ULL
 	u64 flags2;
 
 #define FULL_AP_CLIENT_STATE_SUPP(drv_flags) \
@@ -6672,10 +6684,19 @@ union wpa_event_data {
 
 	/**
 	 * struct port_authorized - Data for EVENT_PORT_AUTHORIZED
+	 * @td_bitmap: For STA mode, transition disable bitmap, if received in
+	 *	EAPOL-Key msg 3/4
+	 * @td_bitmap_len: For STA mode, length of td_bitmap
+	 * @sta_addr: For AP mode, the MAC address of the associated STA
+	 *
+	 * This event is used to indicate that the port is authorized and
+	 * open for normal data in STA and AP modes when 4-way handshake is
+	 * offloaded to the driver.
 	 */
 	struct port_authorized {
 		const u8 *td_bitmap;
 		size_t td_bitmap_len;
+		const u8 *sta_addr;
 	} port_authorized;
 
 	/**

@@ -3573,8 +3573,12 @@ void hostapd_new_assoc_sta(struct hostapd_data *hapd, struct sta_info *sta,
 		    sta->auth_alg != WLAN_AUTH_FILS_PK &&
 		    !(sta->flags & (WLAN_STA_WPS | WLAN_STA_MAYBE_WPS)))
 			wpa_auth_sm_event(sta->wpa_sm, WPA_REAUTH);
-	} else
+	} else if (!(hapd->iface->drv_flags2 &
+		     WPA_DRIVER_FLAGS2_4WAY_HANDSHAKE_AP_PSK)) {
+		/* The 4-way handshake offloaded case will have this handled
+		 * based on the port authorized event. */
 		wpa_auth_sta_associated(hapd->wpa_auth, sta->wpa_sm);
+	}
 
 	if (hapd->iface->drv_flags & WPA_DRIVER_FLAGS_WIRED) {
 		if (eloop_cancel_timeout(ap_handle_timer, hapd, sta) > 0) {

@@ -705,6 +705,10 @@ static void wiphy_info_ext_feature_flags(struct wiphy_info_data *info,
 	if (ext_feature_isset(ext_features, len,
 			      NL80211_EXT_FEATURE_SCAN_MIN_PREQ_CONTENT))
 		capa->flags2 |= WPA_DRIVER_FLAGS2_SCAN_MIN_PREQ;
+
+	if (ext_feature_isset(ext_features, len,
+			      NL80211_EXT_FEATURE_4WAY_HANDSHAKE_AP_PSK))
+		capa->flags2 |= WPA_DRIVER_FLAGS2_4WAY_HANDSHAKE_AP_PSK;
 }
 
 
