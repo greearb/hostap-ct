@@ -749,6 +749,11 @@ static void wpa_supplicant_cleanup(struct wpa_supplicant *wpa_s)
 #endif /* CONFIG_PASN */
 	wpas_scs_deinit(wpa_s);
 	wpas_dscp_deinit(wpa_s);
+
+#ifdef CONFIG_OWE
+	os_free(wpa_s->owe_trans_scan_freq);
+	wpa_s->owe_trans_scan_freq = NULL;
+#endif /* CONFIG_OWE */
 }
 
 

@@ -1576,6 +1576,12 @@ struct wpa_supplicant {
 
 	struct wpa_ssid *ml_connect_probe_ssid;
 	struct wpa_bss *ml_connect_probe_bss;
+
+#ifdef CONFIG_OWE
+	/* An array of frequencies to scan for OWE transition mode BSSs when
+	 * owe_transition_search == 1 */
+	int *owe_trans_scan_freq;
+#endif /* CONFIG_OWE */
 };
 
 

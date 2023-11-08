@@ -1600,6 +1600,22 @@ skip_assoc_disallow:
 #endif /* CONFIG_SAE_PK */
 
 	if (bss->ssid_len == 0) {
+#ifdef CONFIG_OWE
+		const u8 *owe_ssid = NULL;
+		size_t owe_ssid_len = 0;
+
+		owe_trans_ssid(wpa_s, bss, &owe_ssid, &owe_ssid_len);
+		if (owe_ssid && owe_ssid_len &&
+		    owe_ssid_len == ssid->ssid_len &&
+		    os_memcmp(owe_ssid, ssid->ssid, owe_ssid_len) == 0) {
+			if (debug_print)
+				wpa_dbg(wpa_s, MSG_DEBUG,
+					"   skip - no SSID in BSS entry for a possible OWE transition mode BSS");
+			int_array_add_unique(&wpa_s->owe_trans_scan_freq,
+					     bss->freq);
+			return false;
+		}
+#endif /* CONFIG_OWE */
 		if (debug_print)
 			wpa_dbg(wpa_s, MSG_DEBUG,
 				"   skip - no SSID known for the BSS");
@@ -2556,6 +2572,10 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 		return 0; /* no normal connection on p2p_mgmt interface */
 
 	wpa_s->owe_transition_search = 0;
+#ifdef CONFIG_OWE
+	os_free(wpa_s->owe_trans_scan_freq);
+	wpa_s->owe_trans_scan_freq = NULL;
+#endif /* CONFIG_OWE */
 	selected = wpa_supplicant_pick_network(wpa_s, &ssid);
 
 #ifdef CONFIG_MESH
@@ -2675,6 +2695,13 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 					"OWE: Use shorter wait during transition mode search");
 				timeout_sec = 0;
 				timeout_usec = 500000;
+				if (wpa_s->owe_trans_scan_freq) {
+					os_free(wpa_s->next_scan_freqs);
+					wpa_s->next_scan_freqs =
+						wpa_s->owe_trans_scan_freq;
+					wpa_s->owe_trans_scan_freq = NULL;
+					timeout_usec = 100000;
+				}
 				wpa_supplicant_req_new_scan(wpa_s, timeout_sec,
 							    timeout_usec);
 				return 0;
