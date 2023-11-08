@@ -3596,6 +3596,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strcmp(buf, "RELOAD_BSS") == 0) {
 		if (hostapd_ctrl_iface_reload_bss(hapd))
 			reply_len = -1;
+	} else if (os_strcmp(buf, "RELOAD_CONFIG") == 0) {
+		if (hostapd_reload_config(hapd->iface))
+			reply_len = -1;
 	} else if (os_strncmp(buf, "RELOAD", 6) == 0) {
 		if (hostapd_ctrl_iface_reload(hapd->iface))
 			reply_len = -1;

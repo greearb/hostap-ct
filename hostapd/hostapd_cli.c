@@ -1235,6 +1235,13 @@ static int hostapd_cli_cmd_reload_bss(struct wpa_ctrl *ctrl, int argc,
 }
 
 
+static int hostapd_cli_cmd_reload_config(struct wpa_ctrl *ctrl, int argc,
+					 char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "RELOAD_CONFIG");
+}
+
+
 static int hostapd_cli_cmd_disable(struct wpa_ctrl *ctrl, int argc,
 				      char *argv[])
 {
@@ -1710,6 +1717,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	  "= reload configuration for current interface" },
 	{ "reload_bss", hostapd_cli_cmd_reload_bss, NULL,
 	  "= reload configuration for current BSS" },
+	{ "reload_config", hostapd_cli_cmd_reload_config, NULL,
+	  "= reload configuration for current interface" },
 	{ "disable", hostapd_cli_cmd_disable, NULL,
 	  "= disable hostapd on current interface" },
 	{ "update_beacon", hostapd_cli_cmd_update_beacon, NULL,
