@@ -144,8 +144,13 @@ static struct wpa_bss * wpa_supplicant_get_new_bss(
 {
 	struct wpa_bss *bss = NULL;
 	struct wpa_ssid *ssid = wpa_s->current_ssid;
+	u8 drv_ssid[SSID_MAX_LEN];
+	int res;
 
-	if (ssid && ssid->ssid_len > 0)
+	res = wpa_drv_get_ssid(wpa_s, drv_ssid);
+	if (res > 0)
+		bss = wpa_bss_get(wpa_s, bssid, drv_ssid, res);
+	if (!bss && ssid && ssid->ssid_len > 0)
 		bss = wpa_bss_get(wpa_s, bssid, ssid->ssid, ssid->ssid_len);
 	if (!bss)
 		bss = wpa_bss_get_bssid(wpa_s, bssid);
