@@ -61,10 +61,6 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 					      bool trigger_6ghz_scan,
 					      union wpa_event_data *data);
 #endif /* CONFIG_NO_SCAN_PROCESSING */
-#ifdef CONFIG_OWE
-static void owe_trans_ssid(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
-			   const u8 **ret_ssid, size_t *ret_ssid_len);
-#endif /* CONFIG_OWE */
 
 
 int wpas_temp_disabled(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid)
@@ -221,14 +217,6 @@ static int wpa_supplicant_select_config(struct wpa_supplicant *wpa_s,
 			return 0; /* current profile still in use */
 
 #ifdef CONFIG_OWE
-		if (wpa_s->current_bss &&
-		    !(wpa_s->current_bss->flags & WPA_BSS_OWE_TRANSITION)) {
-			const u8 *match_ssid;
-			size_t match_ssid_len;
-
-			owe_trans_ssid(wpa_s, wpa_s->current_bss,
-				       &match_ssid, &match_ssid_len);
-		}
 		if ((wpa_s->current_ssid->key_mgmt & WPA_KEY_MGMT_OWE) &&
 		    wpa_s->current_bss &&
 		    (wpa_s->current_bss->flags & WPA_BSS_OWE_TRANSITION) &&
