@@ -709,6 +709,14 @@ static void wiphy_info_ext_feature_flags(struct wiphy_info_data *info,
 	if (ext_feature_isset(ext_features, len,
 			      NL80211_EXT_FEATURE_4WAY_HANDSHAKE_AP_PSK))
 		capa->flags2 |= WPA_DRIVER_FLAGS2_4WAY_HANDSHAKE_AP_PSK;
+
+	if (ext_feature_isset(ext_features, len,
+			      NL80211_EXT_FEATURE_OWE_OFFLOAD))
+		capa->flags2 |= WPA_DRIVER_FLAGS2_OWE_OFFLOAD_STA;
+
+	if (ext_feature_isset(ext_features, len,
+			      NL80211_EXT_FEATURE_OWE_OFFLOAD_AP))
+		capa->flags2 |= WPA_DRIVER_FLAGS2_OWE_OFFLOAD_AP;
 }
 
 

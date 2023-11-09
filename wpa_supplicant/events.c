@@ -3376,6 +3376,7 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 
 #ifdef CONFIG_OWE
 	if (wpa_s->key_mgmt == WPA_KEY_MGMT_OWE &&
+	    !(wpa_s->drv_flags & WPA_DRIVER_FLAGS2_OWE_OFFLOAD_STA) &&
 	    (!bssid_known ||
 	     owe_process_assoc_resp(wpa_s->wpa,
 				    wpa_s->valid_links ?

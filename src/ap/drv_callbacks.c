@@ -260,6 +260,9 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 	u16 reason = WLAN_REASON_UNSPECIFIED;
 	int status = WLAN_STATUS_SUCCESS;
 	const u8 *p2p_dev_addr = NULL;
+#ifdef CONFIG_OWE
+	struct hostapd_iface *iface = hapd->iface;
+#endif /* CONFIG_OWE */
 
 	if (addr == NULL) {
 		/*
@@ -772,6 +775,7 @@ skip_wpa_check:
 
 #ifdef CONFIG_OWE
 	if ((hapd->conf->wpa_key_mgmt & WPA_KEY_MGMT_OWE) &&
+	    !(iface->drv_flags & WPA_DRIVER_FLAGS2_OWE_OFFLOAD_AP) &&
 	    wpa_auth_sta_key_mgmt(sta->wpa_sm) == WPA_KEY_MGMT_OWE &&
 	    elems.owe_dh) {
 		u8 *npos;
