@@ -5116,6 +5116,13 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 	    nla_put(msg, NL80211_ATTR_PMK, params->psk_len, params->psk))
 		goto fail;
 
+	if (wpa_key_mgmt_sae(params->key_mgmt_suites) &&
+	    (drv->capa.flags2 & WPA_DRIVER_FLAGS2_SAE_OFFLOAD_AP) &&
+	    params->sae_password &&
+	    nla_put(msg, NL80211_ATTR_SAE_PASSWORD,
+		    os_strlen(params->sae_password), params->sae_password))
+		goto fail;
+
 	if (params->key_mgmt_suites & WPA_KEY_MGMT_IEEE8021X_NO_WPA &&
 	    (!params->pairwise_ciphers ||
 	     params->pairwise_ciphers & (WPA_CIPHER_WEP104 | WPA_CIPHER_WEP40)) &&

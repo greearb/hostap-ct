@@ -1601,6 +1601,20 @@ static int hostapd_wpa_auth_get_ml_key_info(void *ctx,
 #endif /* CONFIG_IEEE80211BE */
 
 
+static int hostapd_wpa_auth_get_drv_flags(void *ctx,
+					  u64 *drv_flags, u64 *drv_flags2)
+{
+	struct hostapd_data *hapd = ctx;
+
+	if (drv_flags)
+		*drv_flags = hapd->iface->drv_flags;
+	if (drv_flags2)
+		*drv_flags2 = hapd->iface->drv_flags2;
+
+	return 0;
+}
+
+
 int hostapd_setup_wpa(struct hostapd_data *hapd)
 {
 	struct wpa_auth_config _conf;
@@ -1655,6 +1669,7 @@ int hostapd_setup_wpa(struct hostapd_data *hapd)
 		.get_ml_rsn_info = hostapd_wpa_auth_get_ml_rsn_info,
 		.get_ml_key_info = hostapd_wpa_auth_get_ml_key_info,
 #endif /* CONFIG_IEEE80211BE */
+		.get_drv_flags = hostapd_wpa_auth_get_drv_flags,
 	};
 	const u8 *wpa_ie;
 	size_t wpa_ie_len;

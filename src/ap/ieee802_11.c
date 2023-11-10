@@ -540,12 +540,12 @@ static void sae_set_state(struct sta_info *sta, enum sae_state state,
 }
 
 
-static const char * sae_get_password(struct hostapd_data *hapd,
-				     struct sta_info *sta,
-				     const char *rx_id,
-				     struct sae_password_entry **pw_entry,
-				     struct sae_pt **s_pt,
-				     const struct sae_pk **s_pk)
+const char * sae_get_password(struct hostapd_data *hapd,
+			      struct sta_info *sta,
+			      const char *rx_id,
+			      struct sae_password_entry **pw_entry,
+			      struct sae_pt **s_pt,
+			      const struct sae_pk **s_pk)
 {
 	const char *password = NULL;
 	struct sae_password_entry *pw;
@@ -555,7 +555,8 @@ static const char * sae_get_password(struct hostapd_data *hapd,
 
 	for (pw = hapd->conf->sae_passwords; pw; pw = pw->next) {
 		if (!is_broadcast_ether_addr(pw->peer_addr) &&
-		    os_memcmp(pw->peer_addr, sta->addr, ETH_ALEN) != 0)
+		    (!sta ||
+		     os_memcmp(pw->peer_addr, sta->addr, ETH_ALEN) != 0))
 			continue;
 		if ((rx_id && !pw->identifier) || (!rx_id && pw->identifier))
 			continue;
@@ -573,7 +574,7 @@ static const char * sae_get_password(struct hostapd_data *hapd,
 		pt = hapd->conf->ssid.pt;
 	}
 
-	if (!password) {
+	if (!password && sta) {
 		for (psk = sta->psk; psk; psk = psk->next) {
 			if (psk->is_passphrase) {
 				password = psk->passphrase;

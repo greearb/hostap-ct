@@ -10,6 +10,7 @@
 
 #include "utils/common.h"
 #include "common/ieee802_11_defs.h"
+#include "drivers/driver.h"
 #include "eapol_auth/eapol_auth_sm.h"
 #include "ap_config.h"
 #include "ieee802_11.h"
@@ -1013,11 +1014,23 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 	}
 
 #ifdef CONFIG_SAE
-	if (sm->wpa_key_mgmt == WPA_KEY_MGMT_SAE && data.num_pmkid &&
-	    !sm->pmksa) {
-		wpa_auth_vlogger(wpa_auth, sm->addr, LOGGER_DEBUG,
-				 "No PMKSA cache entry found for SAE");
-		return WPA_INVALID_PMKID;
+	if (sm->wpa_key_mgmt == WPA_KEY_MGMT_SAE) {
+		u64 drv_flags = 0;
+		u64 drv_flags2 = 0;
+		bool ap_sae_offload = false;
+
+		if (wpa_auth->cb->get_drv_flags &&
+		    wpa_auth->cb->get_drv_flags(wpa_auth->cb_ctx, &drv_flags,
+						&drv_flags2) == 0)
+			ap_sae_offload =
+				!!(drv_flags2 &
+				   WPA_DRIVER_FLAGS2_SAE_OFFLOAD_AP);
+
+		if (!ap_sae_offload && data.num_pmkid && !sm->pmksa) {
+			wpa_auth_vlogger(wpa_auth, sm->addr, LOGGER_DEBUG,
+					 "No PMKSA cache entry found for SAE");
+			return WPA_INVALID_PMKID;
+		}
 	}
 #endif /* CONFIG_SAE */
 

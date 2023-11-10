@@ -2044,6 +2044,33 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 		}
 	}
 
+#ifdef CONFIG_SAE
+	/* If SAE offload is enabled, provide password to lower layer for
+	 * SAE authentication and PMK generation.
+	 */
+	if (wpa_key_mgmt_sae(hapd->conf->wpa_key_mgmt) &&
+	    (hapd->iface->drv_flags2 & WPA_DRIVER_FLAGS2_SAE_OFFLOAD_AP)) {
+		if (hostapd_sae_pk_in_use(hapd->conf)) {
+			wpa_printf(MSG_ERROR,
+				   "SAE PK not supported with SAE offload");
+			return -1;
+		}
+
+		if (hostapd_sae_pw_id_in_use(hapd->conf)) {
+			wpa_printf(MSG_ERROR,
+				   "SAE Password Identifiers not supported with SAE offload");
+			return -1;
+		}
+
+		params->sae_password = sae_get_password(hapd, NULL, NULL, NULL,
+							NULL, NULL);
+		if (!params->sae_password) {
+			wpa_printf(MSG_ERROR, "SAE password not configured for offload");
+			return -1;
+		}
+	}
+#endif /* CONFIG_SAE */
+
 	params->head = (u8 *) head;
 	params->head_len = head_len;
 	params->tail = tail;

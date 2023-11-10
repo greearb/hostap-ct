@@ -20,6 +20,9 @@ struct radius_sta;
 enum ieee80211_op_mode;
 enum oper_chan_width;
 struct ieee802_11_elems;
+struct sae_pk;
+struct sae_pt;
+struct sae_password_entry;
 
 int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 		    struct hostapd_frame_info *fi);
@@ -238,5 +241,9 @@ u8 * hostapd_eid_mbssid(struct hostapd_data *hapd, u8 *eid, u8 *end,
 void punct_update_legacy_bw(u16 bitmap, u8 pri_chan,
 			    enum oper_chan_width *width, u8 *seg0, u8 *seg1);
 bool hostapd_is_mld_ap(struct hostapd_data *hapd);
+const char * sae_get_password(struct hostapd_data *hapd,
+			      struct sta_info *sta, const char *rx_id,
+			      struct sae_password_entry **pw_entry,
+			      struct sae_pt **s_pt, const struct sae_pk **s_pk);
 
 #endif /* IEEE802_11_H */
