@@ -1014,7 +1014,8 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 	}
 
 #ifdef CONFIG_SAE
-	if (sm->wpa_key_mgmt == WPA_KEY_MGMT_SAE) {
+	if (sm->wpa_key_mgmt == WPA_KEY_MGMT_SAE ||
+	    sm->wpa_key_mgmt == WPA_KEY_MGMT_SAE_EXT_KEY) {
 		u64 drv_flags = 0;
 		u64 drv_flags2 = 0;
 		bool ap_sae_offload = false;
