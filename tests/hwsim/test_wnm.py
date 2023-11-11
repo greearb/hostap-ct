@@ -131,6 +131,36 @@ def test_wnm_disassoc_imminent(dev, apdev):
     if ev is None:
         raise Exception("Timeout while waiting for re-connection scan")
 
+def test_wnm_disassoc_imminent_bssid_set(dev, apdev):
+    """WNM Disassociation Imminent and bssid set"""
+    hapd = start_wnm_ap(apdev[0], time_adv=True, wnm_sleep_mode=True)
+    hapd2 = start_wnm_ap(apdev[1], time_adv=True, wnm_sleep_mode=True)
+    dev[0].connect("test-wnm", key_mgmt="NONE", bssid=hapd.own_addr(),
+                   scan_freq="2412")
+    addr = dev[0].own_addr()
+    cmd = "BSS_TM_REQ " + addr + " pref=1 disassoc_imminent=1 disassoc_timer=100 neighbor=" + apdev[1]['bssid'] + ",0x0000," + "81,1,7,0301ff"
+    if "OK" not in hapd.request(cmd):
+        raise Exception("BSS_TM_REQ command failed")
+
+    ev = dev[0].wait_event(["WNM: Disassociation Imminent"])
+    if ev is None:
+        raise Exception("Timeout while waiting for disassociation imminent")
+    if "Disassociation Timer 100" not in ev:
+        raise Exception("Unexpected disassociation imminent contents")
+
+    ev = hapd.wait_event(['BSS-TM-RESP'], timeout=10)
+    if ev is None:
+        raise Exception("No BSS Transition Management Response")
+    if "status_code=7" not in ev:
+        raise Exception("Unexpected BSS TM response status: " + ev)
+
+    ev = dev[0].wait_event(["CTRL-EVENT-SCAN-STARTED"], timeout=2)
+    if ev is not None:
+        raise Exception("Unexpected scan started")
+
+    dev[0].request("DISCONNECT")
+    dev[0].wait_disconnected()
+
 def test_wnm_disassoc_imminent_fail(dev, apdev):
     """WNM Disassociation Imminent failure"""
     hapd = start_wnm_ap(apdev[0])
