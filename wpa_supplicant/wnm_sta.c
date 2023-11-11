@@ -1517,7 +1517,8 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 	if (wpa_s->wnm_mode & WNM_BSS_TM_REQ_DISASSOC_IMMINENT) {
 		wpa_msg(wpa_s, MSG_INFO, "WNM: Disassociation Imminent - "
 			"Disassociation Timer %u", wpa_s->wnm_dissoc_timer);
-		if (wpa_s->wnm_dissoc_timer && !wpa_s->scanning) {
+		if (wpa_s->wnm_dissoc_timer && !wpa_s->scanning &&
+		    (!wpa_s->current_ssid || !wpa_s->current_ssid->bssid_set)) {
 			wpa_printf(MSG_DEBUG, "Trying to find another BSS");
 			wpa_supplicant_req_scan(wpa_s, 0, 0);
 		}
@@ -1581,6 +1582,17 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		if (!wpa_s->wnm_num_neighbor_report) {
 			wpa_printf(MSG_DEBUG,
 				   "WNM: Candidate list included bit is set, but no candidates found");
+			wnm_send_bss_transition_mgmt_resp(
+				wpa_s, wpa_s->wnm_dialog_token,
+				WNM_BSS_TM_REJECT_NO_SUITABLE_CANDIDATES,
+				MBO_TRANSITION_REJECT_REASON_UNSPECIFIED, 0,
+				NULL);
+			return;
+		}
+
+		if (wpa_s->current_ssid && wpa_s->current_ssid->bssid_set) {
+			wpa_printf(MSG_DEBUG,
+				   "WNM: Configuration prevents roaming (BSSID set)");
 			wnm_send_bss_transition_mgmt_resp(
 				wpa_s, wpa_s->wnm_dialog_token,
 				WNM_BSS_TM_REJECT_NO_SUITABLE_CANDIDATES,
