@@ -7713,7 +7713,18 @@ static size_t hostapd_eid_mbssid_elem_len(struct hostapd_data *hapd,
 					  size_t known_bss_len)
 {
 	struct hostapd_data *tx_bss = hostapd_mbssid_get_tx_bss(hapd);
-	size_t len = 3, i;
+	size_t len, i;
+
+	/* Element ID: 1 octet
+	 * Length: 1 octet
+	 * MaxBSSID Indicator: 1 octet
+	 * Optional Subelements: vatiable
+	 *
+	 * Total fixed length: 3 octets
+	 *
+	 * 1 octet in len for the MaxBSSID Indicator field.
+	 */
+	len = 1;
 
 	for (i = *bss_index; i < hapd->iface->num_bss; i++) {
 		struct hostapd_data *bss = hapd->iface->bss[i];
@@ -7766,7 +7777,9 @@ static size_t hostapd_eid_mbssid_elem_len(struct hostapd_data *hapd,
 	}
 
 	*bss_index = i;
-	return len;
+
+	/* Add 2 octets to get the full size of the element */
+	return len + 2;
 }
 
 
