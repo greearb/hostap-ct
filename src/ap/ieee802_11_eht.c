@@ -199,10 +199,22 @@ u8 * hostapd_eid_eht_operation(struct hostapd_data *hapd, u8 *eid)
 	struct ieee80211_eht_operation *oper;
 	u8 *pos = eid, seg0 = 0, seg1 = 0;
 	enum oper_chan_width chwidth;
-	size_t elen = 1 + 4 + 3;
+	size_t elen = 1 + 4;
+	bool eht_oper_info_present;
 
 	if (!hapd->iface->current_mode)
 		return eid;
+
+	if (is_6ghz_op_class(conf->op_class))
+		chwidth = op_class_to_ch_width(conf->op_class);
+	else
+		chwidth = conf->eht_oper_chwidth;
+
+	eht_oper_info_present = chwidth == CONF_OPER_CHWIDTH_320MHZ ||
+		hapd->iconf->punct_bitmap;
+
+	if (eht_oper_info_present)
+		elen += 3;
 
 	if (hapd->iconf->punct_bitmap)
 		elen += EHT_OPER_DISABLED_SUBCHAN_BITMAP_SIZE;
@@ -212,7 +224,7 @@ u8 * hostapd_eid_eht_operation(struct hostapd_data *hapd, u8 *eid)
 	*pos++ = WLAN_EID_EXT_EHT_OPERATION;
 
 	oper = (struct ieee80211_eht_operation *) pos;
-	oper->oper_params = EHT_OPER_INFO_PRESENT;
+	oper->oper_params = 0;
 
 	/* TODO: Fill in appropriate EHT-MCS max Nss information */
 	oper->basic_eht_mcs_nss_set[0] = 0x11;
@@ -220,11 +232,10 @@ u8 * hostapd_eid_eht_operation(struct hostapd_data *hapd, u8 *eid)
 	oper->basic_eht_mcs_nss_set[2] = 0x00;
 	oper->basic_eht_mcs_nss_set[3] = 0x00;
 
-	if (is_6ghz_op_class(conf->op_class))
-		chwidth = op_class_to_ch_width(conf->op_class);
-	else
-		chwidth = conf->eht_oper_chwidth;
+	if (!eht_oper_info_present)
+		return pos + elen;
 
+	oper->oper_params = EHT_OPER_INFO_PRESENT;
 	seg0 = hostapd_get_oper_centr_freq_seg0_idx(conf);
 
 	switch (chwidth) {
