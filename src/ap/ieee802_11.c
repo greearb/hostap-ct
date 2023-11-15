@@ -6692,6 +6692,11 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 		return 1;
 	}
 
+	if (hapd->iface->cac_started) {
+		wpa_printf(MSG_DEBUG, "MGMT: Ignore management frame during CAC");
+		return 1;
+	}
+
 	if (stype == WLAN_FC_STYPE_PROBE_REQ) {
 		handle_probe_req(hapd, mgmt, len, ssi_signal);
 		return 1;

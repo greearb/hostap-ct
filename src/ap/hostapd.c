@@ -4622,11 +4622,18 @@ static int hostapd_fill_csa_settings(struct hostapd_data *hapd,
 	u8 chan, bandwidth;
 
 	os_memset(&old_freq, 0, sizeof(old_freq));
-	if (!iface || !iface->freq || hapd->csa_in_progress)
+	if (!iface || !iface->freq || iface->state != HAPD_IFACE_ENABLED)
 		return -1;
 
 	if (settings->freq_params.bandwidth != 20)
 		hapd->iconf->ht_capab |= HT_CAP_INFO_SUPP_CHANNEL_WIDTH_SET;
+
+	/* allow another channel switch during post CSA radar detection */
+	if (hapd->csa_in_progress) {
+		if (!iface->cac_started)
+			return -1;
+		hostapd_cleanup_cs_params(hapd);
+	}
 
 	switch (settings->freq_params.bandwidth) {
 	case 40:
@@ -4888,42 +4895,6 @@ int hostapd_update_aff_link_beacon(struct hostapd_data *hapd, u8 cs_count)
 	}
 
 	return 0;
-}
-
-
-int hostapd_force_channel_switch(struct hostapd_iface *iface,
-				 struct csa_settings *settings)
-{
-	int ret = 0;
-
-	if (!settings->freq_params.channel) {
-		/* Check if the new channel is supported */
-		settings->freq_params.channel = hostapd_hw_get_channel(
-			iface->bss[0], settings->freq_params.freq);
-		if (!settings->freq_params.channel)
-			return -1;
-	}
-
-	ret = hostapd_disable_iface(iface);
-	if (ret) {
-		wpa_printf(MSG_DEBUG, "Failed to disable the interface");
-		return ret;
-	}
-
-	hostapd_chan_switch_config(iface->bss[0], &settings->freq_params);
-	ret = hostapd_change_config_freq(iface->bss[0], iface->conf,
-					 &settings->freq_params, NULL);
-	if (ret) {
-		wpa_printf(MSG_DEBUG,
-			   "Failed to set the new channel in config");
-		return ret;
-	}
-
-	ret = hostapd_enable_iface(iface);
-	if (ret)
-		wpa_printf(MSG_DEBUG, "Failed to enable the interface");
-
-	return ret;
 }
 
 
