@@ -1306,6 +1306,7 @@ int hostapd_parse_csa_settings(const char *pos,
 			       struct csa_settings *settings)
 {
 	char *end;
+	int ret;
 
 	os_memset(settings, 0, sizeof(*settings));
 	settings->cs_count = strtol(pos, &end, 10);
@@ -1315,7 +1316,9 @@ int hostapd_parse_csa_settings(const char *pos,
 	}
 
 	settings->freq_params.freq = atoi(end);
-	if (settings->freq_params.freq == 0) {
+	ret = ieee80211_freq_to_chan(settings->freq_params.freq,
+				     (u8 *)&settings->freq_params.channel);
+	if (ret == NUM_HOSTAPD_MODES) {
 		wpa_printf(MSG_ERROR, "chanswitch: invalid freq provided");
 		return -1;
 	}

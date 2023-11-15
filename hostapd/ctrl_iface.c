@@ -2887,13 +2887,13 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 {
 #ifdef NEED_AP_MLME
 	struct hostapd_hw_modes *mode = iface->current_mode;
-	struct csa_settings settings;
+	struct csa_settings settings, background_settings;
 	struct hostapd_hw_modes *target_mode;
 	int ret;
-	int dfs_range = 0;
+	int freq, state;
+	int bandwidth, oper_chwidth;
+	bool background_radar, bw_changed, cac_required = false;
 	unsigned int i;
-	int bandwidth;
-	u8 chan;
 	unsigned int num_err = 0;
 	int err = 0;
 
@@ -2938,21 +2938,28 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 	switch (settings.freq_params.bandwidth) {
 	case 40:
 		bandwidth = CHAN_WIDTH_40;
+		oper_chwidth = CONF_OPER_CHWIDTH_USE_HT;
 		break;
 	case 80:
-		if (settings.freq_params.center_freq2)
+		if (settings.freq_params.center_freq2) {
 			bandwidth = CHAN_WIDTH_80P80;
-		else
+			oper_chwidth = CONF_OPER_CHWIDTH_80P80MHZ;
+		} else {
 			bandwidth = CHAN_WIDTH_80;
+			oper_chwidth = CONF_OPER_CHWIDTH_80MHZ;
+		}
 		break;
 	case 160:
 		bandwidth = CHAN_WIDTH_160;
+		oper_chwidth = CONF_OPER_CHWIDTH_160MHZ;
 		break;
 	case 320:
 		bandwidth = CHAN_WIDTH_320;
+		oper_chwidth = CONF_OPER_CHWIDTH_320MHZ;
 		break;
 	default:
 		bandwidth = CHAN_WIDTH_20;
+		oper_chwidth = CONF_OPER_CHWIDTH_USE_HT;
 		break;
 	}
 
@@ -2967,47 +2974,29 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 	}
 
 	if (settings.freq_params.center_freq1)
-		dfs_range += hostapd_is_dfs_overlap(
-			iface, bandwidth, settings.freq_params.center_freq1);
+		freq = settings.freq_params.center_freq1;
 	else
-		dfs_range += hostapd_is_dfs_overlap(
-			iface, bandwidth, settings.freq_params.freq);
+		freq = settings.freq_params.freq;
 
-	if (settings.freq_params.center_freq2)
-		dfs_range += hostapd_is_dfs_overlap(
-			iface, bandwidth, settings.freq_params.center_freq2);
-
-	if (dfs_range) {
-		ret = ieee80211_freq_to_chan(settings.freq_params.freq, &chan);
-		if (ret == NUM_HOSTAPD_MODES) {
-			wpa_printf(MSG_ERROR,
-				   "Failed to get channel for (freq=%d, sec_channel_offset=%d, bw=%d)",
-				   settings.freq_params.freq,
-				   settings.freq_params.sec_channel_offset,
-				   settings.freq_params.bandwidth);
-			return -1;
-		}
-
-		settings.freq_params.channel = chan;
-
-		wpa_printf(MSG_DEBUG,
-			   "DFS/CAC to (channel=%u, freq=%d, sec_channel_offset=%d, bw=%d, center_freq1=%d)",
-			   settings.freq_params.channel,
-			   settings.freq_params.freq,
-			   settings.freq_params.sec_channel_offset,
-			   settings.freq_params.bandwidth,
-			   settings.freq_params.center_freq1);
-
-		/* Perform CAC and switch channel */
-		iface->is_ch_switch_dfs = true;
-		hostapd_switch_channel_fallback(iface, &settings.freq_params);
-		return 0;
-	}
-
-	if (iface->cac_started) {
-		wpa_printf(MSG_DEBUG,
-			   "CAC is in progress - switching channel without CSA");
-		return hostapd_force_channel_switch(iface, &settings);
+	bw_changed = oper_chwidth != hostapd_get_oper_chwidth(iface->conf);
+	state = hostapd_dfs_get_target_state(iface, bandwidth, freq,
+					     settings.freq_params.center_freq2);
+	switch (state) {
+	case HOSTAPD_CHAN_DFS_USABLE:
+		cac_required = true;
+		/* fallthrough */
+	case HOSTAPD_CHAN_DFS_AVAILABLE:
+		background_radar = hostapd_dfs_handle_csa(iface, &settings,
+							  &background_settings,
+							  cac_required,
+							  bw_changed);
+		break;
+	case HOSTAPD_CHAN_DFS_UNAVAILABLE:
+		wpa_printf(MSG_INFO,
+			   "chanswitch: target channel is UNAVAILABLE, so stop switching");
+		return -1;
+	default:
+		break;
 	}
 
 	for (i = 0; i < iface->num_bss; i++) {
@@ -3033,6 +3022,37 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 		 */
 		iface->bss[i]->eht_mld_bss_critical_update = 0;
 #endif /* CONFIG_IEEE80211BE */
+	}
+
+	if (background_radar) {
+		u8 seg0 = 0, seg1 = 0;
+
+		ieee80211_freq_to_chan(background_settings.freq_params.center_freq1, &seg0);
+		ieee80211_freq_to_chan(background_settings.freq_params.center_freq2, &seg1);
+		ret = hostapd_start_dfs_cac(iface, iface->conf->hw_mode,
+					    background_settings.freq_params.freq,
+					    background_settings.freq_params.channel,
+					    background_settings.freq_params.ht_enabled,
+					    background_settings.freq_params.vht_enabled,
+					    background_settings.freq_params.he_enabled,
+					    background_settings.freq_params.eht_enabled,
+					    background_settings.freq_params.sec_channel_offset,
+					    oper_chwidth, seg0, seg1, true);
+		if (ret) {
+			wpa_printf(MSG_ERROR, "Background radar start dfs cac failed, %d",
+				   ret);
+			iface->radar_background.channel = -1;
+			return -1;
+		}
+
+		/* Cache background radar parameters. */
+		iface->radar_background.channel = background_settings.freq_params.channel;
+		iface->radar_background.secondary_channel =
+			background_settings.freq_params.sec_channel_offset;
+		iface->radar_background.freq = background_settings.freq_params.freq;
+		iface->radar_background.centr_freq_seg0_idx = seg0;
+		iface->radar_background.centr_freq_seg1_idx = seg1;
+		iface->radar_background.new_chwidth = -1;
 	}
 
 	return (iface->num_bss == num_err) ? ret : 0;
