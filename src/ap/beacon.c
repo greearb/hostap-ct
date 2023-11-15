@@ -2777,6 +2777,11 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 
 	wpa_printf(MSG_ERROR, "set_beacon called, configured color: %d", hapd->iface->conf->he_op.he_bss_color);
 
+	if (iface->cac_started) {
+		wpa_printf(MSG_DEBUG, "Ignore set beacons during CAC period");
+		return 0;
+	}
+
 	hapd->beacon_set_done = 1;
 
 	if (ieee802_11_build_ap_params(hapd, &params) < 0)
