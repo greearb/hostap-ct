@@ -263,7 +263,8 @@ u8 * hostapd_eid_he_operation(struct hostapd_data *hapd, u8 *eid)
 		*pos++ = control;
 
 		/* Channel Center Freq Seg0/Seg1 */
-		if (oper_chwidth == 2) {
+		if (oper_chwidth == CONF_OPER_CHWIDTH_160MHZ ||
+		    oper_chwidth == CONF_OPER_CHWIDTH_320MHZ) {
 			/*
 			 * Seg 0 indicates the channel center frequency index of
 			 * the 160 MHz channel.
