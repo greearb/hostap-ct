@@ -717,7 +717,8 @@ wpa_bss_update(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 	dl_list_del(&bss->list);
 #ifdef CONFIG_P2P
 	if (wpa_bss_get_vendor_ie(bss, P2P_IE_VENDOR_TYPE) &&
-	    !wpa_scan_get_vendor_ie(res, P2P_IE_VENDOR_TYPE)) {
+	    !wpa_scan_get_vendor_ie(res, P2P_IE_VENDOR_TYPE) &&
+	    !(changes & WPA_BSS_FREQ_CHANGED_FLAG)) {
 		/*
 		 * This can happen when non-P2P station interface runs a scan
 		 * without P2P IE in the Probe Request frame. P2P GO would reply
