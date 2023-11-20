@@ -2698,9 +2698,11 @@ struct ieee80211_eht_per_sta_profile {
 	u8 variable[];
 } STRUCT_PACKED;
 
-/* IEEE P802.11be/D2.0, 9.4.2.312.3 - Probe Request Multi-Link element */
+/* IEEE P802.11be/D4.0, 9.4.2.312.3 - Probe Request Multi-Link element
+ * Presence Bitmap field is B4..B15 of the Multi-Link Control field, i.e.,
+ * B0 in the presence bitmap is B4 in the control field. */
 
-#define EHT_ML_PRES_BM_PROBE_REQ_AP_MLD_ID 0x0001
+#define EHT_ML_PRES_BM_PROBE_REQ_AP_MLD_ID 0x0010
 
 struct eht_ml_probe_req_common_info {
 	u8 len;
