@@ -10,6 +10,7 @@ from hwsim import HWSimRadio
 import hwsim_utils
 from wpasupplicant import WpaSupplicant
 import re
+from tshark import run_tshark
 
 def eht_verify_wifi_version(dev):
     status = dev.get_status()
@@ -675,6 +676,122 @@ def test_eht_ml_probe_req(dev, apdev):
                               "CTRL-EVENT-SCAN-FAILED"], timeout=10)
         if ev is None:
             raise Exception("ML_PROBE_REQ did not result in scan results")
+
+def test_eht_mld_connect_probes(dev, apdev, params):
+    """MLD client sends ML probe to connect to not discovered links"""
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        ssid = "mld_ap"
+        passphrase = 'qwertyuiop'
+        link_params = eht_mld_ap_wpa2_params(ssid, passphrase, mfp="2",
+                                             key_mgmt="SAE", pwe='2')
+        link_params['channel'] = '1'
+        link_params['bssid'] = '00:11:22:33:44:01'
+        hapd0 = eht_mld_enable_ap(hapd_iface, link_params)
+
+        link_params['channel'] = '6'
+        link_params['bssid'] = '00:11:22:33:44:02'
+        hapd1 = eht_mld_enable_ap(hapd_iface, link_params)
+
+        wpas.set("sae_pwe", "1")
+        wpas.connect(ssid, sae_password= passphrase, ieee80211w="2",
+                     key_mgmt="SAE", scan_freq="2412")
+
+        out = run_tshark(os.path.join(params['logdir'], 'hwsim0.pcapng'),
+                         'wlan.fc.type_subtype == 0x0004 && wlan.ext_tag.number == 107 && wlan.ext_tag.data == 11:00:02:00:00:02:11:00',
+                         display=['frame.number'])
+        if not out.splitlines():
+            raise Exception('ML probe request not found')
+
+        # Probe Response frame has the ML element, which will be fragmented
+        out = run_tshark(os.path.join(params['logdir'], "hwsim0.pcapng"),
+                         "wlan.fc.type_subtype == 0x0005 && wlan.ext_tag.number == 107 && wlan.ext_tag.length == 254",
+                         display=['frame.number'])
+        if not out.splitlines():
+            # This requires new tshark (e.g., 4.0.6); for now, ignore the issue
+            # to avoid forcing such upgrade.
+            logger.info('ML probe response not found')
+            #raise Exception('ML probe response not found')
+
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
+        traffic_test(wpas, hapd0)
+        traffic_test(wpas, hapd1)
+
+def test_eht_tx_link_rejected_connect_other(dev, apdev, params):
+    """EHT MLD AP with MLD client being rejected on TX link, but then connecting on second link"""
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        ssid = "mld_ap"
+        passphrase = 'qwertyuiop'
+        link_params = eht_mld_ap_wpa2_params(ssid, passphrase, mfp="2",
+                                             key_mgmt="SAE", pwe='2')
+        link_params['channel'] = '1'
+        link_params['bssid'] = '00:11:22:33:44:01'
+        hapd0 = eht_mld_enable_ap(hapd_iface, link_params)
+
+        link_params['channel'] = '6'
+        link_params['bssid'] = '00:11:22:33:44:02'
+        hapd1 = eht_mld_enable_ap(hapd_iface, link_params)
+
+        wpas.set("sae_pwe", "1")
+        with fail_test(hapd0, 1, "hostapd_get_aid"):
+            wpas.connect(ssid, sae_password=passphrase, ieee80211w="2",
+                         key_mgmt="SAE", scan_freq="2412")
+
+        eht_verify_status(wpas, hapd1, 2437, 20, is_ht=True, mld=True,
+                          valid_links=2, active_links=2)
+        traffic_test(wpas, hapd0)
+        traffic_test(wpas, hapd1)
+
+def test_eht_all_links_rejected(dev, apdev, params):
+    """EHT MLD AP with MLD client ignores all rejected links"""
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        ssid = "mld_ap"
+        passphrase = 'qwertyuiop'
+        link_params = eht_mld_ap_wpa2_params(ssid, passphrase, mfp="2",
+                                             key_mgmt="SAE", pwe='2')
+        link_params['channel'] = '1'
+        link_params['bssid'] = '00:11:22:33:44:01'
+        hapd0 = eht_mld_enable_ap(hapd_iface, link_params)
+
+        link_params['channel'] = '6'
+        link_params['bssid'] = '00:11:22:33:44:02'
+        hapd1 = eht_mld_enable_ap(hapd_iface, link_params)
+        wpas.set("mld_connect_bssid_pref", "00:11:22:33:44:01")
+        wpas.set("sae_pwe", "1")
+
+        with fail_test(hapd0, 1, "hostapd_get_aid",
+                       1, "hostapd_process_assoc_ml_info"):
+            wpas.connect(ssid, sae_password=passphrase, ieee80211w="2",
+                         key_mgmt="SAE", scan_freq="2412", wait_connect=False)
+            ev = wpas.wait_event(['CTRL-EVENT-ASSOC-REJECT'])
+            if not ev:
+                raise Exception('Rejection not found')
+
+            ev1 = wpas.wait_event(['Added BSSID'])
+            ev2 = wpas.wait_event(['Added BSSID'])
+            if (not ev1 or not ev2) or \
+                not ((hapd0.own_addr() in ev1 and hapd1.own_addr() in ev2) or
+                     (hapd1.own_addr() in ev1 and hapd0.own_addr() in ev2)):
+                raise Exception('Not all BSSs were added to the ignore list')
+
+            # After this message, a new scan clears the ignore and the STA
+            # connects.
+            wpas.wait_connected(timeout=15)
 
 def test_eht_mld_link_removal(dev, apdev):
     """EHT MLD with two links. Links removed during association"""
