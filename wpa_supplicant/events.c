@@ -4151,15 +4151,9 @@ static void wpa_supplicant_event_disassoc_finish(struct wpa_supplicant *wpa_s,
 						 int locally_generated)
 {
 	const u8 *bssid;
-	int authenticating;
-	u8 prev_pending_bssid[ETH_ALEN];
 	struct wpa_bss *fast_reconnect = NULL;
 	struct wpa_ssid *fast_reconnect_ssid = NULL;
-	struct wpa_ssid *last_ssid;
 	struct wpa_bss *curr = NULL;
-
-	authenticating = wpa_s->wpa_state == WPA_AUTHENTICATING;
-	os_memcpy(prev_pending_bssid, wpa_s->pending_bssid, ETH_ALEN);
 
 	if (wpa_s->key_mgmt == WPA_KEY_MGMT_WPA_NONE) {
 		/*
@@ -4190,7 +4184,7 @@ static void wpa_supplicant_event_disassoc_finish(struct wpa_supplicant *wpa_s,
 			"pre-shared key may be incorrect");
 		if (wpas_p2p_4way_hs_failed(wpa_s) > 0)
 			return; /* P2P group removed */
-		wpas_auth_failed(wpa_s, "WRONG_KEY", prev_pending_bssid);
+		wpas_auth_failed(wpa_s, "WRONG_KEY", wpa_s->pending_bssid);
 		wpas_notify_psk_mismatch(wpa_s);
 #ifdef CONFIG_DPP2
 		wpas_dpp_send_conn_status_result(wpa_s,
@@ -4254,16 +4248,10 @@ static void wpa_supplicant_event_disassoc_finish(struct wpa_supplicant *wpa_s,
 		wpa_dbg(wpa_s, MSG_DEBUG, "Disconnect event - remove keys");
 		wpa_clear_keys(wpa_s, wpa_s->bssid);
 	}
-	last_ssid = wpa_s->current_ssid;
 	wpa_supplicant_mark_disassoc(wpa_s);
 
 	if (curr)
 		wpa_bss_remove(wpa_s, curr, "Connection to AP lost");
-
-	if (authenticating && (wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME)) {
-		sme_disassoc_while_authenticating(wpa_s, prev_pending_bssid);
-		wpa_s->current_ssid = last_ssid;
-	}
 
 	if (fast_reconnect &&
 	    !wpas_network_disabled(wpa_s, fast_reconnect_ssid) &&

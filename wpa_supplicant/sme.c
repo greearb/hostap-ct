@@ -2888,28 +2888,6 @@ void sme_state_changed(struct wpa_supplicant *wpa_s)
 }
 
 
-void sme_disassoc_while_authenticating(struct wpa_supplicant *wpa_s,
-				       const u8 *prev_pending_bssid)
-{
-	/*
-	 * mac80211-workaround to force deauth on failed auth cmd,
-	 * requires us to remain in authenticating state to allow the
-	 * second authentication attempt to be continued properly.
-	 */
-	wpa_dbg(wpa_s, MSG_DEBUG, "SME: Allow pending authentication "
-		"to proceed after disconnection event");
-	wpa_supplicant_set_state(wpa_s, WPA_AUTHENTICATING);
-	os_memcpy(wpa_s->pending_bssid, prev_pending_bssid, ETH_ALEN);
-
-	/*
-	 * Re-arm authentication timer in case auth fails for whatever reason.
-	 */
-	eloop_cancel_timeout(sme_auth_timer, wpa_s, NULL);
-	eloop_register_timeout(SME_AUTH_TIMEOUT, 0, sme_auth_timer, wpa_s,
-			       NULL);
-}
-
-
 void sme_clear_on_disassoc(struct wpa_supplicant *wpa_s)
 {
 	wpa_s->sme.prev_bssid_set = 0;
