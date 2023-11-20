@@ -92,8 +92,8 @@ def eht_verify_status(wpas, hapd, freq, bw, is_ht=False, is_vht=False,
     time.sleep(0.1)
     _eht_verify_links(wpas, valid_links, active_links)
 
-def traffic_test(wpas, hapd):
-    hwsim_utils.test_connectivity(wpas, hapd)
+def traffic_test(wpas, hapd, success=True):
+    hwsim_utils.test_connectivity(wpas, hapd, success_expected=success)
 
 def test_eht_open(dev, apdev):
     """EHT AP with open mode configuration"""
@@ -625,3 +625,44 @@ def test_eht_ml_probe_req(dev, apdev):
                               "CTRL-EVENT-SCAN-FAILED"], timeout=10)
         if ev is None:
             raise Exception("ML_PROBE_REQ did not result in scan results")
+
+def test_eht_mld_link_removal(dev, apdev):
+    """EHT MLD with two links. Links removed during association"""
+
+    with HWSimRadio(use_mlo=True) as (hapd0_radio, hapd0_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        ssid = "mld_ap_owe_two_link"
+        params = eht_mld_ap_wpa2_params(ssid, key_mgmt="OWE", mfp="2")
+        hapd0 = eht_mld_enable_ap(hapd0_iface, params)
+
+        params['channel'] = '6'
+        hapd1 = eht_mld_enable_ap(hapd0_iface, params)
+
+        wpas.connect(ssid, scan_freq="2412 2437", key_mgmt="OWE",
+                     ieee80211w="2")
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
+        eht_verify_wifi_version(wpas)
+        traffic_test(wpas, hapd0)
+
+        logger.info("Disable the 2nd link in 4 beacon intervals")
+        hapd1.link_remove(4)
+        time.sleep(0.6)
+
+        logger.info("Test traffic after 2nd link disabled")
+        traffic_test(wpas, hapd0)
+
+        logger.info("Disable the 1st link in 20 beacon intervals")
+        hapd0.link_remove(20)
+        time.sleep(1)
+
+        logger.info("Verify that traffic is valid before the link is removed")
+        traffic_test(wpas, hapd0)
+        time.sleep(2)
+
+        logger.info("Test traffic after 1st link disabled")
+        traffic_test(wpas, hapd0, success=False)

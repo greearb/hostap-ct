@@ -266,6 +266,10 @@ class Hostapd:
         if "OK" not in self.request("DISABLE"):
             raise Exception("Failed to disable hostapd interface " + self.ifname)
 
+    def link_remove(self, count=10):
+        if "OK" not in self.request("LINK_REMOVE %u" % count):
+            raise Exception("Failed to remove hostapd link " + self.ifname)
+
     def dump_monitor(self):
         while self.mon.pending():
             ev = self.mon.recv()
