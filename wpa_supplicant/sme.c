@@ -28,6 +28,7 @@
 #include "p2p_supplicant.h"
 #include "notify.h"
 #include "bss.h"
+#include "bssid_ignore.h"
 #include "scan.h"
 #include "sme.h"
 #include "hs20_supplicant.h"
@@ -2594,11 +2595,36 @@ mscs_fail:
 	}
 
 	if (wpa_drv_associate(wpa_s, &params) < 0) {
+		unsigned int n_failed_links = 0;
+		int i;
+
 		wpa_msg(wpa_s, MSG_INFO, "SME: Association request to the "
 			"driver failed");
-		wpas_connection_failed(wpa_s, wpa_s->pending_bssid, NULL);
-		wpa_supplicant_set_state(wpa_s, WPA_DISCONNECTED);
-		os_memset(wpa_s->pending_bssid, 0, ETH_ALEN);
+
+		/* Prepare list of failed links for error report */
+		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+			if (!(wpa_s->valid_links & BIT(i)) ||
+			    wpa_s->mlo_assoc_link_id == i ||
+			    !params.mld_params.mld_links[i].error)
+				continue;
+
+			wpa_bssid_ignore_add(wpa_s, wpa_s->links[i].bssid);
+			n_failed_links++;
+		}
+
+		if (n_failed_links) {
+			/* Deauth and connect (possibly to the same AP MLD) */
+			wpa_drv_deauthenticate(wpa_s, wpa_s->ap_mld_addr,
+					       WLAN_REASON_DEAUTH_LEAVING);
+			wpas_connect_work_done(wpa_s);
+			wpa_supplicant_mark_disassoc(wpa_s);
+			wpas_request_connection(wpa_s);
+		} else {
+			wpas_connection_failed(wpa_s, wpa_s->pending_bssid,
+					       NULL);
+			wpa_supplicant_set_state(wpa_s, WPA_DISCONNECTED);
+			os_memset(wpa_s->pending_bssid, 0, ETH_ALEN);
+		}
 		return;
 	}
 
