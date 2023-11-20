@@ -378,225 +378,6 @@ static void sme_auth_handle_rrm(struct wpa_supplicant *wpa_s,
 }
 
 
-static void wpas_process_tbtt_info(struct wpa_supplicant *wpa_s, const u8 *data)
-{
-	struct wpa_bss *neigh_bss;
-	const u8 *bssid;
-	u8 bss_params;
-	u8 link_id;
-
-	/* TBTT Information field
-	 * Neighbor AP TBTT Offset[1]
-	 * BSSID[6]
-	 * Short SSID[4]
-	 * BSS parameters[1]
-	 * 20 MHz PSD[1]
-	 * MLD Parameters[3]
-	 *   B0..B7: AP MLD ID
-	 *   B7..B11: Link ID
-	 *   B12..B19: BSS Parameters Change Count
-	 *   B20: All Updates Included
-	 *   B21: Disabled Link Indication */
-
-	bssid = data + 1;
-	bss_params = data[1 + ETH_ALEN + 4];
-
-	data += 13; /* MLD Parameters */
-	link_id = *(data + 1) & 0xF;
-
-	wpa_dbg(wpa_s, MSG_DEBUG,
-		"MLD: mld ID=%u, link ID=%u, bssid=" MACSTR ", bss_params=0x%x",
-		*data, link_id, MAC2STR(bssid), bss_params);
-
-	if (*data) {
-		wpa_printf(MSG_DEBUG, "MLD: Reported link not part of MLD");
-		return;
-	}
-
-	neigh_bss = wpa_bss_get_bssid(wpa_s, bssid);
-	if (!neigh_bss) {
-		wpa_printf(MSG_DEBUG, "MLD: Neighbor not found in scan");
-		return;
-	}
-
-	if (!((bss_params & RNR_BSS_PARAM_SAME_SSID) &&
-	      (bss_params & RNR_BSS_PARAM_CO_LOCATED)) &&
-	    !wpa_scan_res_match(wpa_s, 0, neigh_bss, wpa_s->current_ssid,
-				1, 0)) {
-		wpa_printf(MSG_DEBUG,
-			   "MLD: Neighbor doesn't match current SSID - skip link");
-		return;
-	}
-
-	wpa_s->valid_links |= BIT(link_id);
-	os_memcpy(wpa_s->links[link_id].bssid, bssid, ETH_ALEN);
-	wpa_s->links[link_id].freq = neigh_bss->freq;
-}
-
-
-static void wpas_process_rnr(struct wpa_supplicant *wpa_s, const u8 *pos,
-			     size_t rnr_ie_len)
-{
-	while (rnr_ie_len > sizeof(struct ieee80211_neighbor_ap_info)) {
-		const struct ieee80211_neighbor_ap_info *ap_info =
-			(const struct ieee80211_neighbor_ap_info *) pos;
-		/* The first TBTT Information field */
-		const u8 *data = ap_info->data;
-		u8 tbtt_count;
-		size_t len;
-		int tbtt_i;
-
-		if (rnr_ie_len < sizeof(struct ieee80211_neighbor_ap_info))
-			break;
-
-		tbtt_count = (ap_info->tbtt_info_hdr >> 4) + 1;
-		len = sizeof(struct ieee80211_neighbor_ap_info) +
-			ap_info->tbtt_info_len * tbtt_count;
-
-		wpa_printf(MSG_DEBUG, "MLD: op_class=%u, channel=%u",
-			   ap_info->op_class, ap_info->channel);
-
-		if (len > rnr_ie_len)
-			break;
-
-		if (ap_info->tbtt_info_len < 16) {
-			rnr_ie_len -= len;
-			pos += len;
-			continue;
-		}
-
-		for (tbtt_i = 0; tbtt_i < tbtt_count; tbtt_i++) {
-			wpas_process_tbtt_info(wpa_s, data);
-			data += ap_info->tbtt_info_len;
-		}
-
-		rnr_ie_len -= len;
-		pos += len;
-	}
-}
-
-
-static bool wpas_ml_element(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
-			    struct wpa_ssid *ssid)
-{
-	struct wpabuf *mlbuf;
-	const u8 *rnr_ie, *rsn_ie;
-	struct wpa_ie_data ie;
-	u8 ml_ie_len;
-	const struct ieee80211_eht_ml *eht_ml;
-	const struct eht_ml_basic_common_info *ml_basic_common_info;
-	struct ieee802_11_elems elems;
-	u8 i;
-	const u16 control =
-		host_to_le16(MULTI_LINK_CONTROL_TYPE_BASIC |
-			     BASIC_MULTI_LINK_CTRL_PRES_LINK_ID |
-			     BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT |
-			     BASIC_MULTI_LINK_CTRL_PRES_MLD_CAPA);
-	bool ret = false;
-	int rnr_idx;
-
-	if (!(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO))
-		return false;
-
-	if (ieee802_11_parse_elems(wpa_bss_ie_ptr(bss),
-				   bss->ie_len, &elems, 1) == ParseFailed)
-		return false;
-
-	mlbuf = ieee802_11_defrag(elems.basic_mle, elems.basic_mle_len, true);
-	if (!mlbuf) {
-		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No ML element");
-		return false;
-	}
-
-	rsn_ie = wpa_bss_get_ie(bss, WLAN_EID_RSN);
-	if (!rsn_ie || wpa_parse_wpa_ie(rsn_ie, 2 + rsn_ie[1], &ie)) {
-		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No RSN element");
-		goto out;
-	}
-
-	if (!(ie.capabilities & WPA_CAPABILITY_MFPC) ||
-	    wpas_get_ssid_pmf(wpa_s, ssid) == NO_MGMT_FRAME_PROTECTION) {
-		wpa_dbg(wpa_s, MSG_DEBUG,
-			"MLD: No management frame protection");
-		goto out;
-	}
-
-	ie.key_mgmt &= ~(WPA_KEY_MGMT_PSK | WPA_KEY_MGMT_FT_PSK |
-			 WPA_KEY_MGMT_PSK_SHA256);
-	if (!(ie.key_mgmt & ssid->key_mgmt)) {
-		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No valid key management");
-		goto out;
-	}
-
-	ml_ie_len = wpabuf_len(mlbuf);
-
-	/* control + common info len + MLD address + MLD link information */
-	if (ml_ie_len < 2 + 1 + ETH_ALEN + 1)
-		goto out;
-
-	eht_ml = wpabuf_head(mlbuf);
-	if ((eht_ml->ml_control & control) != control) {
-		wpa_printf(MSG_DEBUG, "MLD: Unexpected ML element control=0x%x",
-			   eht_ml->ml_control);
-		goto out;
-	}
-
-	ml_basic_common_info =
-		(const struct eht_ml_basic_common_info *) eht_ml->variable;
-
-	/* common info length should be valid (self, mld_addr, link_id) */
-	if (ml_basic_common_info->len < 1 + ETH_ALEN + 1)
-		goto out;
-
-	/* get the MLD address and MLD link ID */
-	os_memcpy(wpa_s->ap_mld_addr, ml_basic_common_info->mld_addr,
-		  ETH_ALEN);
-	wpa_s->mlo_assoc_link_id = ml_basic_common_info->variable[0] &
-		EHT_ML_LINK_ID_MSK;
-
-	os_memcpy(wpa_s->links[wpa_s->mlo_assoc_link_id].bssid, bss->bssid,
-		  ETH_ALEN);
-	wpa_s->links[wpa_s->mlo_assoc_link_id].freq = bss->freq;
-
-	wpa_printf(MSG_DEBUG, "MLD: address=" MACSTR ", link ID=%u",
-		   MAC2STR(wpa_s->ap_mld_addr), wpa_s->mlo_assoc_link_id);
-
-	wpa_s->valid_links = BIT(wpa_s->mlo_assoc_link_id);
-
-	ret = true;
-
-	/* Process all Reduced Neighbor Report elements */
-	for (rnr_idx = 1; ; rnr_idx++) {
-		rnr_ie = wpa_bss_get_ie_nth(bss,
-					    WLAN_EID_REDUCED_NEIGHBOR_REPORT,
-					    rnr_idx);
-		if (!rnr_ie) {
-			if (rnr_idx == 0) {
-				wpa_dbg(wpa_s, MSG_DEBUG,
-					"MLD: No RNR element");
-				goto out;
-			}
-			break;
-		}
-		wpas_process_rnr(wpa_s, rnr_ie + 2, rnr_ie[1]);
-	}
-
-	wpa_printf(MSG_DEBUG, "MLD: valid_links=0x%x", wpa_s->valid_links);
-
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(wpa_s->valid_links & BIT(i)))
-			continue;
-
-		wpa_printf(MSG_DEBUG, "MLD: link=%u, bssid=" MACSTR,
-			   i, MAC2STR(wpa_s->links[i].bssid));
-	}
-
-out:
-	wpabuf_free(mlbuf);
-	return ret;
-}
-
-
 static void wpas_ml_handle_removed_links(struct wpa_supplicant *wpa_s,
 					 struct wpa_bss *bss)
 {
@@ -737,6 +518,27 @@ out:
 }
 
 
+static void wpas_sme_set_mlo_links(struct wpa_supplicant *wpa_s,
+				   struct wpa_bss *bss)
+{
+	int i;
+
+	wpa_s->valid_links = 0;
+
+	for (i = 0; i < bss->n_mld_links; i++) {
+		u8 link_id = bss->mld_links[i].link_id;
+		const u8 *bssid = bss->mld_links[i].bssid;
+
+		if (i == 0)
+			wpa_s->mlo_assoc_link_id = link_id;
+		wpa_s->valid_links |= BIT(link_id);
+		os_memcpy(wpa_s->links[link_id].bssid, bssid, ETH_ALEN);
+		wpa_s->links[link_id].freq = bss->mld_links[i].freq;
+		wpa_s->links[link_id].bss = wpa_bss_get_bssid(wpa_s, bssid);
+	}
+}
+
+
 static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 				    struct wpa_bss *bss, struct wpa_ssid *ssid,
 				    int start)
@@ -769,8 +571,14 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 	}
 
 	os_memset(&params, 0, sizeof(params));
-	if (wpas_ml_element(wpa_s, bss, ssid)) {
+
+	if ((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
+	    !wpa_bss_parse_basic_ml_element(wpa_s, bss, wpa_s->ap_mld_addr,
+					    NULL, ssid) &&
+	    bss->n_mld_links) {
 		wpa_printf(MSG_DEBUG, "MLD: In authentication");
+		wpas_sme_set_mlo_links(wpa_s, bss);
+
 #ifdef CONFIG_TESTING_OPTIONS
 		bss = wpas_ml_connect_pref(wpa_s, bss);
 

@@ -2496,35 +2496,6 @@ const u8 * get_ie(const u8 *ies, size_t len, u8 eid)
 
 
 /**
- * get_ie_nth - Fetch a specified information element from IEs buffer
- * @ies: Information elements buffer
- * @len: Information elements buffer length
- * @eid: Information element identifier (WLAN_EID_*)
- * @nth: Return the nth element of the requested type (2 returns the second)
- * Returns: Pointer to the information element (id field) or %NULL if not found
- *
- * This function returns the nth matching information element in the IEs
- * buffer or %NULL in case the element is not found.
- */
-const u8 * get_ie_nth(const u8 *ies, size_t len, u8 eid, int nth)
-{
-	const struct element *elem;
-	int sofar = 0;
-
-	if (!ies)
-		return NULL;
-
-	for_each_element_id(elem, eid, ies, len) {
-		sofar++;
-		if (sofar == nth)
-			return &elem->id;
-	}
-
-	return NULL;
-}
-
-
-/**
  * get_ie_ext - Fetch a specified extended information element from IEs buffer
  * @ies: Information elements buffer
  * @len: Information elements buffer length

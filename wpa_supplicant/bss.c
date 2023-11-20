@@ -13,6 +13,7 @@
 #include "common/ieee802_11_defs.h"
 #include "drivers/driver.h"
 #include "eap_peer/eap.h"
+#include "rsn_supp/wpa.h"
 #include "wpa_supplicant_i.h"
 #include "config.h"
 #include "notify.h"
@@ -1223,22 +1224,6 @@ const u8 * wpa_bss_get_ie(const struct wpa_bss *bss, u8 ie)
 
 
 /**
- * wpa_bss_get_ie_nth - Fetch a specified information element from a BSS entry
- * @bss: BSS table entry
- * @ie: Information element identitifier (WLAN_EID_*)
- * @nth: Return the nth element of the requested type (2 returns the second)
- * Returns: Pointer to the information element (id field) or %NULL if not found
- *
- * This function returns the nth matching information element in the BSS
- * entry.
- */
-const u8 * wpa_bss_get_ie_nth(const struct wpa_bss *bss, u8 ie, int nth)
-{
-	return get_ie_nth(wpa_bss_ie_ptr(bss), bss->ie_len, ie, nth);
-}
-
-
-/**
  * wpa_bss_get_ie_ext - Fetch a specified extended IE from a BSS entry
  * @bss: BSS table entry
  * @ext: Information element extension identifier (WLAN_EID_EXT_*)
@@ -1501,7 +1486,8 @@ static void
 wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 			     struct wpa_bss *bss, u8 mbssid_idx,
 			     const struct ieee80211_neighbor_ap_info *ap_info,
-			     size_t len, u16 *seen, u16 *missing)
+			     size_t len, u16 *seen, u16 *missing,
+			     struct wpa_ssid *ssid)
 {
 	const u8 *pos, *end;
 	const u8 *mld_params;
@@ -1525,12 +1511,15 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 	pos += sizeof(*ap_info);
 
 	for (i = 0; i < count; i++) {
+		u8 bss_params;
+
 		if (bss->n_mld_links >= MAX_NUM_MLD_LINKS)
 			return;
 
 		if (end - pos < ap_info->tbtt_info_len)
 			break;
 
+		bss_params = pos[1 + ETH_ALEN + 4];
 		mld_params = pos + mld_params_offset;
 
 		link_id = *(mld_params + 1) & EHT_ML_LINK_ID_MSK;
@@ -1546,7 +1535,13 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 			wpa_printf(MSG_DEBUG, "MLD: mld ID=%u, link ID=%u",
 				   *mld_params, link_id);
 
-			if (neigh_bss) {
+			if (!neigh_bss) {
+				*missing |= BIT(link_id);
+			} else if (!ssid ||
+				   (bss_params & (RNR_BSS_PARAM_SAME_SSID |
+						  RNR_BSS_PARAM_CO_LOCATED)) ||
+				   wpa_scan_res_match(wpa_s, 0, neigh_bss,
+						      ssid, 1, 0)) {
 				struct mld_link *l;
 
 				l = &bss->mld_links[bss->n_mld_links];
@@ -1555,8 +1550,6 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 					  ETH_ALEN);
 				l->freq = neigh_bss->freq;
 				bss->n_mld_links++;
-			} else {
-				*missing |= BIT(link_id);
 			}
 		}
 
@@ -1573,6 +1566,7 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
  * @link_info: Array to store link information (or %NULL),
  *   should be initialized and #MAX_NUM_MLD_LINKS elements long
  * @missing_links: Result bitmask of links that were not discovered (or %NULL)
+ * @ssid: Target SSID (or %NULL)
  * Returns: 0 on success or -1 for non-MLD or parsing failures
  *
  * Parses the Basic Multi-Link element of the BSS into @link_info using the scan
@@ -1583,7 +1577,8 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 				   struct wpa_bss *bss,
 				   u8 *ap_mld_addr,
-				   u16 *missing_links)
+				   u16 *missing_links,
+				   struct wpa_ssid *ssid)
 {
 	struct ieee802_11_elems elems;
 	struct wpabuf *mlbuf;
@@ -1623,6 +1618,32 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 	}
 
 	ml_ie_len = wpabuf_len(mlbuf);
+
+	if (ssid) {
+		struct wpa_ie_data ie;
+
+		if (!elems.rsn_ie ||
+		    wpa_parse_wpa_ie(elems.rsn_ie - 2, 2 + elems.rsn_ie_len,
+				     &ie)) {
+			wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No RSN element");
+			goto out;
+		}
+
+		if (!(ie.capabilities & WPA_CAPABILITY_MFPC) ||
+		    wpas_get_ssid_pmf(wpa_s, ssid) == NO_MGMT_FRAME_PROTECTION) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"MLD: No management frame protection");
+			goto out;
+		}
+
+		ie.key_mgmt &= ~(WPA_KEY_MGMT_PSK | WPA_KEY_MGMT_FT_PSK |
+				 WPA_KEY_MGMT_PSK_SHA256);
+		if (!(ie.key_mgmt & ssid->key_mgmt)) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"MLD: No valid key management");
+			goto out;
+		}
+	}
 
 	/*
 	 * for ext ID + 2 control + common info len + MLD address +
@@ -1703,7 +1724,7 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 
 			wpa_bss_parse_ml_rnr_ap_info(wpa_s, bss, mbssid_idx,
 						     ap_info, len, &seen,
-						     &missing);
+						     &missing, ssid);
 
 			pos += ap_info_len;
 			len -= ap_info_len;

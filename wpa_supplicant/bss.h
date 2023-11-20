@@ -171,7 +171,6 @@ struct wpa_bss * wpa_bss_get_id(struct wpa_supplicant *wpa_s, unsigned int id);
 struct wpa_bss * wpa_bss_get_id_range(struct wpa_supplicant *wpa_s,
 				      unsigned int idf, unsigned int idl);
 const u8 * wpa_bss_get_ie(const struct wpa_bss *bss, u8 ie);
-const u8 * wpa_bss_get_ie_nth(const struct wpa_bss *bss, u8 ie, int nth);
 const u8 * wpa_bss_get_ie_ext(const struct wpa_bss *bss, u8 ext);
 const u8 * wpa_bss_get_vendor_ie(const struct wpa_bss *bss, u32 vendor_type);
 const u8 * wpa_bss_get_vendor_ie_beacon(const struct wpa_bss *bss,
@@ -216,7 +215,8 @@ void calculate_update_time(const struct os_reltime *fetch_time,
 int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 				   struct wpa_bss *bss,
 				   u8 *ap_mld_addr,
-				   u16 *missing_links);
+				   u16 *missing_links,
+				   struct wpa_ssid *ssid);
 u16 wpa_bss_parse_reconf_ml_element(struct wpa_supplicant *wpa_s,
 				    struct wpa_bss *bss);
 
