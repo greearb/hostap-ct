@@ -3469,26 +3469,32 @@ def test_ap_wpa2_eap_eke_server_oom(dev, apdev):
             dev[0].request("REMOVE_NETWORK all")
 
     for count in range(1, 1000):
-        try:
-            with alloc_fail(hapd, count, "eap_server_sm_step"):
-                dev[0].connect("test-wpa2-eap",
-                               key_mgmt="WPA-EAP WPA-EAP-SHA256",
-                               eap="EKE", identity="eke user", password=pw,
-                               wait_connect=False, scan_freq="2412")
-                # This would eventually time out, but we can stop after having
-                # reached the allocation failure.
-                for i in range(10):
-                    time.sleep(0.1)
-                    if hapd.request("GET_ALLOC_FAIL").startswith('0'):
-                        break
-                dev[0].request("REMOVE_NETWORK all")
-        except Exception as e:
-            if str(e) == "Allocation failure did not trigger":
-                if count < 30:
-                    raise Exception("Too few allocation failures")
-                logger.info("%d allocation failures tested" % (count - 1))
+        # Fail on allocation number "count"
+        hapd.request("TEST_ALLOC_FAIL %d:eap_server_sm_step" % count)
+
+        dev[0].connect("test-wpa2-eap",
+                       key_mgmt="WPA-EAP WPA-EAP-SHA256",
+                       eap="EKE", identity="eke user", password=pw,
+                       wait_connect=False, scan_freq="2412")
+        # This would eventually time out, but we can stop after having
+        # reached the allocation failure.
+        for i in range(10):
+            time.sleep(0.1)
+            if hapd.request("GET_ALLOC_FAIL").startswith('0'):
                 break
-            raise e
+        else:
+            # Last iteration had no failure
+            # i.e. we exceeded the number of allocations
+            dev[0].request("REMOVE_NETWORK all")
+            logger.info("%d allocation failures tested" % (count - 1))
+            break
+    else:
+        # All iterations had an allocation failure
+        hapd.request("TEST_ALLOC_FAIL 0:")
+        raise Exception("More than %d allocations, test aborted" % (count - 1))
+
+    if count < 30:
+        raise Exception("Too few allocation failures")
 
 def test_ap_wpa2_eap_ikev2(dev, apdev):
     """WPA2-Enterprise connection using EAP-IKEv2"""
