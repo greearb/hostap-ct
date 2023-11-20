@@ -777,4 +777,23 @@ struct hostapd_data * hostapd_mld_get_link_bss(struct hostapd_data *hapd,
 					       u8 link_id);
 int hostapd_link_remove(struct hostapd_data *hapd, u32 count);
 
+#ifdef CONFIG_IEEE80211BE
+#define for_each_mld_link(_link, _bss_idx, _iface_idx, _ifaces, _mld_id) \
+	for (_iface_idx = 0;						\
+	     _iface_idx < (_ifaces)->count;				\
+	     _iface_idx++)						\
+		for (_bss_idx = 0;					\
+		     _bss_idx <						\
+			(_ifaces)->iface[_iface_idx]->num_bss;		\
+		     _bss_idx++)					\
+			for (_link =					\
+			     (_ifaces)->iface[_iface_idx]->bss[_bss_idx]; \
+			    _link && _link->conf->mld_ap &&		\
+				_link->conf->mld_id == _mld_id;		\
+			    _link = NULL)
+#else /* CONFIG_IEEE80211BE */
+#define for_each_mld_link(_link, _bss_idx, _iface_idx, _ifaces, _mld_id) \
+	if (false)
+#endif /* CONFIG_IEEE80211BE */
+
 #endif /* HOSTAPD_H */
