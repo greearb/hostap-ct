@@ -85,9 +85,9 @@ int wpa_bssid_ignore_add(struct wpa_supplicant *wpa_s, const u8 *bssid)
 			e->timeout_secs = 60;
 		else
 			e->timeout_secs = 10;
-		wpa_printf(MSG_INFO, "BSSID " MACSTR
-			   " ignore list count incremented to %d, ignoring for %d seconds",
-			   MAC2STR(bssid), e->count, e->timeout_secs);
+		wpa_msg(wpa_s, MSG_INFO, "BSSID " MACSTR
+			" ignore list count incremented to %d, ignoring for %d seconds",
+			MAC2STR(bssid), e->count, e->timeout_secs);
 		return e->count;
 	}
 
@@ -100,9 +100,9 @@ int wpa_bssid_ignore_add(struct wpa_supplicant *wpa_s, const u8 *bssid)
 	e->start = now;
 	e->next = wpa_s->bssid_ignore;
 	wpa_s->bssid_ignore = e;
-	wpa_printf(MSG_DEBUG, "Added BSSID " MACSTR
-		   " into ignore list, ignoring for %d seconds",
-		   MAC2STR(bssid), e->timeout_secs);
+	wpa_msg(wpa_s, MSG_INFO, "Added BSSID " MACSTR
+		" into ignore list, ignoring for %d seconds",
+		MAC2STR(bssid), e->timeout_secs);
 
 	return e->count;
 }
@@ -129,8 +129,8 @@ int wpa_bssid_ignore_del(struct wpa_supplicant *wpa_s, const u8 *bssid)
 			} else {
 				prev->next = e->next;
 			}
-			wpa_printf(MSG_DEBUG, "Removed BSSID " MACSTR
-				   " from ignore list", MAC2STR(bssid));
+			wpa_msg(wpa_s, MSG_INFO, "Removed BSSID " MACSTR
+				" from ignore list", MAC2STR(bssid));
 			os_free(e);
 			return 0;
 		}
@@ -175,8 +175,8 @@ void wpa_bssid_ignore_clear(struct wpa_supplicant *wpa_s)
 	while (e) {
 		prev = e;
 		e = e->next;
-		wpa_printf(MSG_DEBUG, "Removed BSSID " MACSTR
-			   " from ignore list (clear)", MAC2STR(prev->bssid));
+		wpa_msg(wpa_s, MSG_INFO, "Removed BSSID " MACSTR
+			" from ignore list (clear)", MAC2STR(prev->bssid));
 		os_free(prev);
 	}
 }
@@ -209,9 +209,9 @@ void wpa_bssid_ignore_update(struct wpa_supplicant *wpa_s)
 				wpa_s->bssid_ignore = e->next;
 				e = wpa_s->bssid_ignore;
 			}
-			wpa_printf(MSG_INFO, "Removed BSSID " MACSTR
-				   " from ignore list (expired)",
-				   MAC2STR(to_delete->bssid));
+			wpa_msg(wpa_s, MSG_INFO, "Removed BSSID " MACSTR
+				" from ignore list (expired)",
+				MAC2STR(to_delete->bssid));
 			os_free(to_delete);
 		} else {
 			prev = e;
