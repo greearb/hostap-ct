@@ -3642,6 +3642,262 @@ static void wpas_fst_update_mb_assoc(struct wpa_supplicant *wpa_s,
 }
 
 
+static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
+					struct ieee802_11_elems *elems,
+					struct ml_sta_link_info *ml_info)
+{
+	struct wpabuf *mlbuf;
+	struct ieee80211_eht_ml *ml;
+	size_t ml_len;
+	struct eht_ml_basic_common_info *common_info;
+	const u8 *pos;
+	u16 eml_capa = 0, mld_capa = 0;
+	const u16 control =
+		host_to_le16(MULTI_LINK_CONTROL_TYPE_BASIC |
+			     BASIC_MULTI_LINK_CTRL_PRES_LINK_ID |
+			     BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT);
+	u8 expected_common_info_len = 9;
+	unsigned int i = 0;
+	u16 ml_control;
+
+	if (!wpa_s->valid_links || !elems->basic_mle || !elems->basic_mle_len)
+		return 0;
+
+	mlbuf = ieee802_11_defrag(elems->basic_mle, elems->basic_mle_len, true);
+	if (!mlbuf)
+		return 0;
+
+	ml = (struct ieee80211_eht_ml *) wpabuf_head(mlbuf);
+	ml_len = wpabuf_len(mlbuf);
+	if (ml_len < sizeof(*ml))
+		goto out;
+
+	os_memset(ml_info, 0, sizeof(*ml_info) * MAX_NUM_MLD_LINKS);
+
+	ml_control = le_to_host16(ml->ml_control);
+
+	if ((ml_control & control) != control) {
+		wpa_printf(MSG_DEBUG, "MLD: Invalid presence BM=0x%x",
+			   ml_control);
+		goto out;
+	}
+
+	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA) {
+		wpa_printf(MSG_DEBUG, "MLD: EML capabilities included");
+		expected_common_info_len += 2;
+	}
+
+	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_MLD_CAPA) {
+		wpa_printf(MSG_DEBUG, "MLD: MLD capabilities included");
+		expected_common_info_len += 2;
+	}
+
+	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_MSD_INFO) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Unexpected: medium sync delay info present");
+		expected_common_info_len += 2;
+	}
+
+	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_AP_MLD_ID) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Unexpected: MLD ID present");
+		expected_common_info_len++;
+	}
+
+	if (sizeof(*ml) + expected_common_info_len > ml_len) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Not enough bytes for common info. ml_len=%zu",
+			   ml_len);
+		goto out;
+	}
+
+	common_info = (struct eht_ml_basic_common_info *) ml->variable;
+	if (common_info->len != expected_common_info_len) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Invalid common info len=%u. expected=%u",
+			   common_info->len, expected_common_info_len);
+		goto out;
+	}
+
+	wpa_printf(MSG_DEBUG, "MLD: address: " MACSTR,
+		   MAC2STR(common_info->mld_addr));
+
+	if (os_memcmp(wpa_s->ap_mld_addr, common_info->mld_addr, ETH_ALEN) !=
+	    0) {
+		wpa_printf(MSG_DEBUG, "MLD: Mismatching MLD address (expected "
+			   MACSTR ")", MAC2STR(wpa_s->ap_mld_addr));
+		goto out;
+	}
+
+	pos = common_info->variable;
+
+	/* Store the information for the association link */
+	ml_info[i].link_id = *pos;
+	pos++;
+
+	/* Skip the BSS Parameters Change Count */
+	pos++;
+
+	/* Skip the Medium Synchronization Delay Information if present  */
+	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_MSD_INFO)
+		pos += 2;
+
+	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA) {
+		eml_capa = WPA_GET_LE16(pos);
+		pos += 2;
+	}
+
+	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_MLD_CAPA) {
+		mld_capa = WPA_GET_LE16(pos);
+		pos += 2;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "MLD: link_id=%u, eml=0x%x, mld=0x%x",
+		   ml_info[i].link_id, eml_capa, mld_capa);
+
+	i++;
+
+	pos = ((u8 *) common_info) + common_info->len;
+	ml_len -= sizeof(*ml) + common_info->len;
+	while (ml_len > 2 && i < MAX_NUM_MLD_LINKS) {
+		u8 sub_elem_len = pos[1];
+		u8 sta_info_len;
+		u8 nstr_bitmap_len = 0;
+		u16 ctrl;
+		const u8 *end;
+
+		wpa_printf(MSG_DEBUG, "MLD: Subelement len=%u", sub_elem_len);
+
+		if (sub_elem_len > ml_len - 2) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Invalid link info len: %u > %zu",
+				   2 + sub_elem_len, ml_len);
+			goto out;
+		}
+
+		switch (*pos) {
+		case EHT_ML_SUB_ELEM_PER_STA_PROFILE:
+			break;
+		case EHT_ML_SUB_ELEM_FRAGMENT:
+		case EHT_ML_SUB_ELEM_VENDOR:
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Skip subelement id=%u, len=%u",
+				   *pos, sub_elem_len);
+			pos += 2 + sub_elem_len;
+			ml_len -= 2 + sub_elem_len;
+			continue;
+		default:
+			wpa_printf(MSG_DEBUG, "MLD: Unknown subelement ID=%u",
+				   *pos);
+			goto out;
+		}
+
+		end = pos + 2 + sub_elem_len;
+
+		/* Skip the subelement ID and the length */
+		pos += 2;
+		ml_len -= 2;
+
+		if (end - pos < 2)
+			goto out;
+
+		/* Get the station control field */
+		ctrl = WPA_GET_LE16(pos);
+
+		pos += 2;
+		ml_len -= 2;
+
+		if (!(ctrl & EHT_PER_STA_CTRL_COMPLETE_PROFILE_MSK)) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Per STA complete profile expected");
+			goto out;
+		}
+
+		if (!(ctrl & EHT_PER_STA_CTRL_MAC_ADDR_PRESENT_MSK)) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Per STA MAC address not present");
+			goto out;
+		}
+
+		if (!(ctrl & EHT_PER_STA_CTRL_TSF_OFFSET_PRESENT_MSK)) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Per STA TSF offset not present");
+			goto out;
+		}
+
+		if (!(ctrl & EHT_PER_STA_CTRL_BEACON_INTERVAL_PRESENT_MSK)) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Beacon interval not present");
+			goto out;
+		}
+
+		if (!(ctrl & EHT_PER_STA_CTRL_DTIM_INFO_PRESENT_MSK)) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD:  DTIM information not present");
+			goto out;
+		}
+
+		if (ctrl & EHT_PER_STA_CTRL_NSTR_LINK_PAIR_PRESENT_MSK) {
+			if (ctrl & EHT_PER_STA_CTRL_NSTR_BM_SIZE_MSK)
+				nstr_bitmap_len = 2;
+			else
+				nstr_bitmap_len = 1;
+		}
+
+		if (!(ctrl & EHT_PER_STA_CTRL_BSS_PARAM_CNT_PRESENT_MSK)) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD:  BSS params change count not present");
+			goto out;
+		}
+
+		sta_info_len = 1 + ETH_ALEN + 8 + 2 + 2 + 1 + nstr_bitmap_len;
+		if (sta_info_len > ml_len || sta_info_len > end - pos ||
+		    sta_info_len + 2 > sub_elem_len ||
+		    sta_info_len != *pos) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Invalid STA info len=%u, len=%u",
+				   sta_info_len, *pos);
+			goto out;
+		}
+
+		/* Get the link address */
+		wpa_printf(MSG_DEBUG,
+			   "MLD: link addr: " MACSTR " nstr BM len=%u",
+			   MAC2STR(pos + 1), nstr_bitmap_len);
+
+		ml_info[i].link_id = ctrl & EHT_PER_STA_CTRL_LINK_ID_MSK;
+		os_memcpy(ml_info[i].bssid, pos + 1, ETH_ALEN);
+
+		pos += sta_info_len;
+		ml_len -= sta_info_len;
+
+		wpa_printf(MSG_DEBUG, "MLD: sub_elem_len=%u, sta_info_len=%u",
+			   sub_elem_len, sta_info_len);
+
+		sub_elem_len -= sta_info_len + 2;
+		if (sub_elem_len < 4) {
+			wpa_printf(MSG_DEBUG, "MLD: Per STA profile too short");
+			goto out;
+		}
+
+		wpa_hexdump(MSG_MSGDUMP, "MLD: STA profile", pos, sub_elem_len);
+		ml_info[i].status = WPA_GET_LE16(pos + 2);
+
+		pos += sub_elem_len;
+		ml_len -= sub_elem_len;
+
+		i++;
+	}
+
+	wpabuf_free(mlbuf);
+	return i;
+out:
+	wpabuf_free(mlbuf);
+	return 0;
+}
+
+
 static int wpa_drv_get_mlo_info(struct wpa_supplicant *wpa_s)
 {
 	struct driver_sta_mlo_info mlo;
@@ -4236,7 +4492,7 @@ static void wpa_supplicant_event_disassoc_finish(struct wpa_supplicant *wpa_s,
 	if (is_zero_ether_addr(bssid))
 		bssid = wpa_s->pending_bssid;
 	if (wpa_s->wpa_state >= WPA_AUTHENTICATING)
-		wpas_connection_failed(wpa_s, bssid);
+		wpas_connection_failed(wpa_s, bssid, NULL);
 	wpa_sm_notify_disassoc(wpa_s->wpa);
 	ptksa_cache_flush(wpa_s->ptksa, wpa_s->bssid, WPA_CIPHER_NONE);
 
@@ -5251,6 +5507,8 @@ static void wpas_event_assoc_reject(struct wpa_supplicant *wpa_s,
 				    union wpa_event_data *data)
 {
 	const u8 *bssid = data->assoc_reject.bssid;
+	struct ieee802_11_elems elems;
+	const u8 *link_bssids[MAX_NUM_MLD_LINKS];
 #ifdef CONFIG_MBO
 	struct wpa_bss *reject_bss;
 #endif /* CONFIG_MBO */
@@ -5305,7 +5563,7 @@ static void wpas_event_assoc_reject(struct wpa_supplicant *wpa_s,
 		if (!bss) {
 			bss = wpa_supplicant_get_new_bss(wpa_s, bssid);
 			if (!bss) {
-				wpas_connection_failed(wpa_s, bssid);
+				wpas_connection_failed(wpa_s, bssid, NULL);
 				wpa_supplicant_mark_disassoc(wpa_s);
 				return;
 			}
@@ -5340,7 +5598,7 @@ static void wpas_event_assoc_reject(struct wpa_supplicant *wpa_s,
 		if (!bss || wpa_s->dpp_pfs_fallback) {
 			wpa_printf(MSG_DEBUG,
 				   "DPP: Updated PFS policy for next try");
-			wpas_connection_failed(wpa_s, bssid);
+			wpas_connection_failed(wpa_s, bssid, NULL);
 			wpa_supplicant_mark_disassoc(wpa_s);
 			return;
 		}
@@ -5377,8 +5635,34 @@ static void wpas_event_assoc_reject(struct wpa_supplicant *wpa_s,
 	}
 #endif /* CONFIG_MBO */
 
+	/* Check for other failed links in the response */
+	os_memset(link_bssids, 0, sizeof(link_bssids));
+	if (ieee802_11_parse_elems(data->assoc_reject.resp_ies,
+				   data->assoc_reject.resp_ies_len,
+				   &elems, 1) != ParseFailed) {
+		struct ml_sta_link_info ml_info[MAX_NUM_MLD_LINKS];
+		unsigned int n_links, i, idx;
+
+		idx = 0;
+		n_links = wpas_ml_parse_assoc(wpa_s, &elems, ml_info);
+
+		for (i = 1; i < n_links; i++) {
+			/* The status cannot be success here.
+			 * Add the link to the failed list if it is reporting
+			 * an error. The only valid "non-error" status is
+			 * TX_LINK_NOT_ACCEPTED as that means this link may
+			 * still accept an association from us.
+			 */
+			if (ml_info[i].status !=
+			    WLAN_STATUS_DENIED_TX_LINK_NOT_ACCEPTED) {
+				link_bssids[idx] = ml_info[i].bssid;
+				idx++;
+			}
+		}
+	}
+
 	if (wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME) {
-		sme_event_assoc_reject(wpa_s, data);
+		sme_event_assoc_reject(wpa_s, data, link_bssids);
 		return;
 	}
 
@@ -5415,7 +5699,7 @@ static void wpas_event_assoc_reject(struct wpa_supplicant *wpa_s,
 	}
 #endif /* CONFIG_FILS */
 
-	wpas_connection_failed(wpa_s, bssid);
+	wpas_connection_failed(wpa_s, bssid, link_bssids);
 	wpa_supplicant_mark_disassoc(wpa_s);
 }
 

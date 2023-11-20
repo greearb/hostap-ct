@@ -19,7 +19,8 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data);
 int sme_update_ft_ies(struct wpa_supplicant *wpa_s, const u8 *md,
 		      const u8 *ies, size_t ies_len);
 void sme_event_assoc_reject(struct wpa_supplicant *wpa_s,
-			    union wpa_event_data *data);
+			    union wpa_event_data *data,
+			    const u8 **link_bssids);
 void sme_event_auth_timed_out(struct wpa_supplicant *wpa_s,
 			      union wpa_event_data *data);
 void sme_event_assoc_timed_out(struct wpa_supplicant *wpa_s,
@@ -63,7 +64,8 @@ static inline int sme_update_ft_ies(struct wpa_supplicant *wpa_s, const u8 *md,
 
 
 static inline void sme_event_assoc_reject(struct wpa_supplicant *wpa_s,
-					  union wpa_event_data *data)
+					  union wpa_event_data *data,
+					  const u8 **link_bssids)
 {
 }
 
