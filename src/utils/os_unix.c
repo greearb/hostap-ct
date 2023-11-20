@@ -545,8 +545,12 @@ static unsigned int wpa_trace_fail_after;
 
 static int testing_fail_alloc(void)
 {
+	const char *ignore_list[] = {
+		__func__, "os_malloc", "os_zalloc", "os_calloc", "os_realloc",
+		"os_realloc_array", "os_strdup", "os_memdup"
+	};
 	const char *func[WPA_TRACE_LEN];
-	size_t i, res, len;
+	size_t i, j, res, len;
 	char *pos, *next;
 	int match;
 
@@ -555,22 +559,12 @@ static int testing_fail_alloc(void)
 
 	res = wpa_trace_calling_func(func, WPA_TRACE_LEN);
 	i = 0;
-	if (i < res && os_strcmp(func[i], __func__) == 0)
-		i++;
-	if (i < res && os_strcmp(func[i], "os_malloc") == 0)
-		i++;
-	if (i < res && os_strcmp(func[i], "os_zalloc") == 0)
-		i++;
-	if (i < res && os_strcmp(func[i], "os_calloc") == 0)
-		i++;
-	if (i < res && os_strcmp(func[i], "os_realloc") == 0)
-		i++;
-	if (i < res && os_strcmp(func[i], "os_realloc_array") == 0)
-		i++;
-	if (i < res && os_strcmp(func[i], "os_strdup") == 0)
-		i++;
-	if (i < res && os_strcmp(func[i], "os_memdup") == 0)
-		i++;
+
+	/* Skip this function as well as allocation helpers */
+	for (j = 0; j < ARRAY_SIZE(ignore_list) && i < res; j++) {
+		if (os_strcmp(func[i], ignore_list[j]) == 0)
+			i++;
+	}
 
 	pos = wpa_trace_fail_func;
 
