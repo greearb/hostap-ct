@@ -247,8 +247,12 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 	 * Use the configured MLD MAC address as the interface hardware address
 	 * if this AP is a part of an AP MLD.
 	 */
-	if (!is_zero_ether_addr(hapd->conf->mld_addr) && hapd->conf->mld_ap)
-		params.bssid = hapd->conf->mld_addr;
+	if (hapd->conf->mld_ap) {
+		if (!is_zero_ether_addr(hapd->conf->mld_addr))
+			params.bssid = hapd->conf->mld_addr;
+		else
+			params.bssid = NULL;
+	}
 #endif /* CONFIG_IEEE80211BE */
 
 	params.ifname = hapd->conf->iface;
