@@ -3511,13 +3511,19 @@ static void nl80211_port_authorized(struct wpa_driver_nl80211_data *drv,
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Port authorized for STA addr "  MACSTR,
 			MAC2STR(addr));
-	} else if (is_sta_interface(drv->nlmode) &&
-		   os_memcmp(addr, drv->bssid, ETH_ALEN) != 0) {
-		wpa_printf(MSG_DEBUG,
-			   "nl80211: Ignore port authorized event for " MACSTR
-			   " (not the currently connected BSSID " MACSTR ")",
-			   MAC2STR(addr), MAC2STR(drv->bssid));
-		return;
+	} else if (is_sta_interface(drv->nlmode)) {
+		const u8 *connected_addr;
+
+		connected_addr = drv->sta_mlo_info.valid_links ?
+			drv->sta_mlo_info.ap_mld_addr : drv->bssid;
+		if (os_memcmp(addr, connected_addr, ETH_ALEN) != 0) {
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: Ignore port authorized event for "
+				   MACSTR " (not the currently connected BSSID "
+				   MACSTR ")",
+				   MAC2STR(addr), MAC2STR(connected_addr));
+			return;
+		}
 	}
 
 	if (tb[NL80211_ATTR_TD_BITMAP]) {
