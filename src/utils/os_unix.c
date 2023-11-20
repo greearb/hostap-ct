@@ -570,6 +570,11 @@ int testing_test_fail(bool is_alloc)
 
 	pos = wpa_trace_fail_func[is_alloc];
 
+	/* The prefixes mean:
+	 * - '=': The function needs to be next in the backtrace
+	 * - '?': The function is optionally present in the backtrace
+	 */
+
 	match = 0;
 	while (i < res) {
 		int allow_skip = 1;
