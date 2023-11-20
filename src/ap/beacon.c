@@ -1081,6 +1081,90 @@ void sta_track_claim_taxonomy_info(struct hostapd_iface *iface, const u8 *addr,
 #endif /* CONFIG_TAXONOMY */
 
 
+#ifdef CONFIG_IEEE80211BE
+static bool parse_ml_probe_req(const struct ieee80211_eht_ml *ml, size_t ml_len,
+			       int *mld_id, u16 *links)
+{
+	u16 ml_control;
+	const struct element *sub;
+	const u8 *pos;
+	size_t len;
+
+	*mld_id = -1;
+	*links = 0xffff;
+
+	if (ml_len < sizeof(struct ieee80211_eht_ml))
+		return false;
+
+	ml_control = le_to_host16(ml->ml_control);
+	if ((ml_control & MULTI_LINK_CONTROL_TYPE_MASK) !=
+	    MULTI_LINK_CONTROL_TYPE_PROBE_REQ) {
+		wpa_printf(MSG_DEBUG, "MLD: Not an ML probe req");
+		return false;
+	}
+
+	if (sizeof(struct ieee80211_eht_ml) + 1 > ml_len) {
+		wpa_printf(MSG_DEBUG, "MLD: ML probe req too short");
+		return false;
+	}
+
+	pos = ml->variable;
+	len = pos[0];
+	if (len < 1 || sizeof(struct ieee80211_eht_ml) + len > ml_len) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: ML probe request with invalid length");
+		return false;
+	}
+
+	if (ml_control & EHT_ML_PRES_BM_PROBE_REQ_AP_MLD_ID) {
+		if (len < 2) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: ML probe req too short for MLD ID");
+			return false;
+		}
+
+		*mld_id = pos[1];
+	}
+	pos += len;
+
+	/* Parse subelements (if there are any) */
+	len = ml_len - len - sizeof(struct ieee80211_eht_ml);
+	for_each_element_id(sub, 0, pos, len) {
+		const struct ieee80211_eht_per_sta_profile *sta;
+		u16 sta_control;
+
+		if (*links == 0xffff)
+			*links = 0;
+
+		if (sub->datalen <
+		    sizeof(struct ieee80211_eht_per_sta_profile)) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: ML probe req %d too short for sta profile",
+				   sub->datalen);
+			return false;
+		}
+
+		sta = (struct ieee80211_eht_per_sta_profile *) sub->data;
+
+		/*
+		 * Extract the link ID, do not return whether a complete or
+		 * partial profile was requested.
+		 */
+		sta_control = le_to_host16(sta->sta_control);
+		*links |= BIT(sta_control & EHT_PER_STA_CTRL_LINK_ID_MSK);
+	}
+
+	if (!for_each_element_completed(sub, pos, len)) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: ML probe req sub-elements parsing error");
+		return false;
+	}
+
+	return true;
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 void handle_probe_req(struct hostapd_data *hapd,
 		      const struct ieee80211_mgmt *mgmt, size_t len,
 		      int ssi_signal)
@@ -1096,6 +1180,10 @@ void handle_probe_req(struct hostapd_data *hapd,
 	size_t csa_offs_len;
 	struct radius_sta rad_info;
 	struct probe_resp_params params;
+#ifdef CONFIG_IEEE80211BE
+	int mld_id;
+	u16 links;
+#endif /* CONFIG_IEEE80211BE */
 
 	if (hapd->iconf->rssi_ignore_probe_request && ssi_signal &&
 	    ssi_signal < hapd->iconf->rssi_ignore_probe_request)
@@ -1326,6 +1414,16 @@ void handle_probe_req(struct hostapd_data *hapd,
 
 	wpa_msg_ctrl(hapd->msg_ctx, MSG_INFO, RX_PROBE_REQUEST "sa=" MACSTR
 		     " signal=%d", MAC2STR(mgmt->sa), ssi_signal);
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap && elems.probe_req_mle &&
+	    parse_ml_probe_req((struct ieee80211_eht_ml *) elems.probe_req_mle,
+			       elems.probe_req_mle_len, &mld_id, &links)) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Got ML probe request with AP MLD ID %d for links %04x",
+			   mld_id, links);
+	}
+#endif /* CONFIG_IEEE80211BE */
 
 	os_memset(&params, 0, sizeof(params));
 	params.req = mgmt;
