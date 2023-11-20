@@ -1584,7 +1584,7 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 	struct wpabuf *mlbuf;
 	const struct element *elem;
 	u8 mbssid_idx = 0;
-	u8 ml_ie_len;
+	size_t ml_ie_len;
 	const struct ieee80211_eht_ml *eht_ml;
 	const struct eht_ml_basic_common_info *ml_basic_common_info;
 	u8 i, link_id;
