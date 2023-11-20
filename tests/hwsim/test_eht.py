@@ -793,6 +793,46 @@ def test_eht_all_links_rejected(dev, apdev, params):
             # connects.
             wpas.wait_connected(timeout=15)
 
+def test_eht_connect_invalid_link(dev, apdev, params):
+    """EHT MLD AP where one link is incorrectly configured and rejected by mac80211"""
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        ssid = "mld_ap"
+        passphrase = 'qwertyuiop'
+        ssid = "mld_ap"
+        passphrase = 'qwertyuiop'
+        link_params = eht_mld_ap_wpa2_params(ssid, passphrase, mfp="2",
+                                             key_mgmt="SAE", pwe='2')
+        link_params['channel'] = '1'
+        link_params['bssid'] = '00:11:22:33:44:01'
+        hapd0 = eht_mld_enable_ap(hapd_iface, link_params)
+
+        link_params['channel'] = '6'
+        link_params['bssid'] = '00:11:22:33:44:02'
+        hapd1 = eht_mld_enable_ap(hapd_iface, link_params)
+
+        # We scan for both APs, then try to connect to link 0, but only the
+        # second attempt will work if mac80211 rejects the second link.
+        wpas.set("mld_connect_bssid_pref", "00:11:22:33:44:01")
+        wpas.set("sae_pwe", "1")
+        with fail_test(wpas, 1, "assoc;wpa_driver_nl80211_associate",
+                             2, "link;wpa_driver_nl80211_associate"):
+            wpas.connect(ssid, sae_password=passphrase, ieee80211w="2",
+                         key_mgmt="SAE", scan_freq="2412")
+
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=1, active_links=1)
+
+        out = run_tshark(os.path.join(params['logdir'], 'hwsim0.pcapng'),
+                         'wlan.fc.type_subtype == 0x0000 && wlan.ext_tag.data == 00:01:09:%s:00:00' % wpas.own_addr(),
+                         display=['frame.number'])
+        if not out.splitlines():
+            raise Exception('Association request send by mac80211 had unexpected ML element content (probably it contained a second link)')
+
 def test_eht_mld_link_removal(dev, apdev):
     """EHT MLD with two links. Links removed during association"""
 

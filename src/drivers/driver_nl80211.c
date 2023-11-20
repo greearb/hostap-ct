@@ -7326,9 +7326,25 @@ static int wpa_driver_nl80211_associate(
 			goto fail;
 	}
 
-	ret = send_and_recv_msgs_connect_handle(drv, msg, drv->first_bss, 1,
-						&err_info);
-	msg = NULL;
+	if (!TEST_FAIL_TAG("assoc")) {
+		ret = send_and_recv_msgs_connect_handle(drv, msg,
+							drv->first_bss, 1,
+							&err_info);
+		msg = NULL;
+	} else {
+		int i;
+
+		/* Error and force TEST_FAIL checking for each link */
+		ret = -EINVAL;
+		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+			if (!(params->mld_params.valid_links & BIT(i)))
+				continue;
+
+			if (TEST_FAIL_TAG("link"))
+				err_info.link_id = i;
+		}
+	}
+
 	if (ret) {
 		wpa_dbg(drv->ctx, MSG_DEBUG,
 			"nl80211: MLME command failed (assoc): ret=%d (%s)",
