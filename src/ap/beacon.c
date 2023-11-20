@@ -581,16 +581,11 @@ struct probe_resp_params {
 #endif /* CONFIG_IEEE80211AX */
 };
 
-void hostapd_gen_probe_resp(struct hostapd_data *hapd,
-			    struct probe_resp_params *params)
+static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
+					   struct probe_resp_params *params)
 {
-	u8 *pos, *epos, *csa_pos;
-	size_t buflen;
+	size_t buflen = 0;
 
-	hapd = hostapd_mbssid_get_tx_bss(hapd);
-
-#define MAX_PROBERESP_LEN 768
-	buflen = MAX_PROBERESP_LEN;
 #ifdef CONFIG_WPS
 	if (hapd->wps_probe_resp_ie)
 		buflen += wpabuf_len(hapd->wps_probe_resp_ie);
@@ -653,38 +648,19 @@ void hostapd_gen_probe_resp(struct hostapd_data *hapd,
 	buflen += hostapd_eid_owe_trans_len(hapd);
 	buflen += hostapd_eid_dpp_cc_len(hapd);
 
-	params->resp = os_zalloc(buflen);
-	if (!params->resp) {
-		params->resp_len = 0;
-		return;
-	}
+	return buflen;
+}
 
-	epos = ((u8 *) params->resp) + MAX_PROBERESP_LEN;
 
-	params->resp->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT,
-						   WLAN_FC_STYPE_PROBE_RESP);
-	/* Unicast the response to all requests on bands other than 6 GHz. For
-	 * the 6 GHz, unicast is used only if the actual SSID is not included in
-	 * the Beacon frames. Otherwise, broadcast response is used per IEEE
-	 * Std 802.11ax-2021, 26.17.2.3.2. Broadcast address is also used for
-	 * the Probe Response frame template for the unsolicited (i.e., not as
-	 * a response to a specific request) case. */
-	if (params->req && (!is_6ghz_op_class(hapd->iconf->op_class) ||
-			    hapd->conf->ignore_broadcast_ssid))
-		os_memcpy(params->resp->da, params->req->sa, ETH_ALEN);
-	else
-		os_memset(params->resp->da, 0xff, ETH_ALEN);
-	os_memcpy(params->resp->sa, hapd->own_addr, ETH_ALEN);
+static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
+					  struct probe_resp_params *params,
+					  u8 *pos, size_t len)
+{
+	u8 *csa_pos;
+	u8 *epos;
 
-	os_memcpy(params->resp->bssid, hapd->own_addr, ETH_ALEN);
-	params->resp->u.probe_resp.beacon_int =
-		host_to_le16(hapd->iconf->beacon_int);
+	epos = pos + len;
 
-	/* hardware or low-level driver will setup seq_ctrl and timestamp */
-	params->resp->u.probe_resp.capab_info =
-		host_to_le16(hostapd_own_capab_info(hapd));
-
-	pos = params->resp->u.probe_resp.variable;
 	*pos++ = WLAN_EID_SSID;
 	*pos++ = hapd->conf->ssid.ssid_len;
 	os_memcpy(pos, hapd->conf->ssid.ssid, hapd->conf->ssid.ssid_len);
@@ -845,16 +821,63 @@ void hostapd_gen_probe_resp(struct hostapd_data *hapd,
 	pos = hostapd_eid_hs20_indication(hapd, pos);
 #endif /* CONFIG_HS20 */
 
-	pos = hostapd_eid_mbo(hapd, pos, (u8 *) params->resp + buflen - pos);
-	pos = hostapd_eid_owe_trans(hapd, pos,
-				    (u8 *) params->resp + buflen - pos);
-	pos = hostapd_eid_dpp_cc(hapd, pos, (u8 *) params->resp + buflen - pos);
+	pos = hostapd_eid_mbo(hapd, pos, epos - pos);
+	pos = hostapd_eid_owe_trans(hapd, pos, epos - pos);
+	pos = hostapd_eid_dpp_cc(hapd, pos, epos - pos);
 
 	if (hapd->conf->vendor_elements) {
 		os_memcpy(pos, wpabuf_head(hapd->conf->vendor_elements),
 			  wpabuf_len(hapd->conf->vendor_elements));
 		pos += wpabuf_len(hapd->conf->vendor_elements);
 	}
+
+	return pos;
+}
+
+
+void hostapd_gen_probe_resp(struct hostapd_data *hapd,
+			    struct probe_resp_params *params)
+{
+	u8 *pos;
+	size_t buflen;
+
+	hapd = hostapd_mbssid_get_tx_bss(hapd);
+
+#define MAX_PROBERESP_LEN 768
+	buflen = MAX_PROBERESP_LEN;
+	buflen += hostapd_probe_resp_elems_len(hapd, params);
+	params->resp = os_zalloc(buflen);
+	if (!params->resp) {
+		params->resp_len = 0;
+		return;
+	}
+
+	params->resp->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT,
+						   WLAN_FC_STYPE_PROBE_RESP);
+	/* Unicast the response to all requests on bands other than 6 GHz. For
+	 * the 6 GHz, unicast is used only if the actual SSID is not included in
+	 * the Beacon frames. Otherwise, broadcast response is used per IEEE
+	 * Std 802.11ax-2021, 26.17.2.3.2. Broadcast address is also used for
+	 * the Probe Response frame template for the unsolicited (i.e., not as
+	 * a response to a specific request) case. */
+	if (params->req && (!is_6ghz_op_class(hapd->iconf->op_class) ||
+		    hapd->conf->ignore_broadcast_ssid))
+		os_memcpy(params->resp->da, params->req->sa, ETH_ALEN);
+	else
+		os_memset(params->resp->da, 0xff, ETH_ALEN);
+	os_memcpy(params->resp->sa, hapd->own_addr, ETH_ALEN);
+
+	os_memcpy(params->resp->bssid, hapd->own_addr, ETH_ALEN);
+	params->resp->u.probe_resp.beacon_int =
+		host_to_le16(hapd->iconf->beacon_int);
+
+	/* hardware or low-level driver will setup seq_ctrl and timestamp */
+	params->resp->u.probe_resp.capab_info =
+		host_to_le16(hostapd_own_capab_info(hapd));
+
+	pos = hostapd_probe_resp_fill_elems(hapd, params,
+					    params->resp->u.probe_resp.variable,
+					    buflen);
 
 	params->resp_len = pos - (u8 *) params->resp;
 }
