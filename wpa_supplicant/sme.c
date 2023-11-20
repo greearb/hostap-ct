@@ -575,7 +575,7 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 
 	if ((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
 	    !wpa_bss_parse_basic_ml_element(wpa_s, bss, wpa_s->ap_mld_addr,
-					    NULL, ssid) &&
+					    NULL, ssid, NULL) &&
 	    bss->n_mld_links) {
 		wpa_printf(MSG_DEBUG, "MLD: In authentication");
 		wpas_sme_set_mlo_links(wpa_s, bss);

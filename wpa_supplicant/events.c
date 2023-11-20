@@ -1153,7 +1153,7 @@ static bool wpas_valid_ml_bss(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 {
 	u16 removed_links;
 
-	if (wpa_bss_parse_basic_ml_element(wpa_s, bss, NULL, NULL, NULL))
+	if (wpa_bss_parse_basic_ml_element(wpa_s, bss, NULL, NULL, NULL, NULL))
 		return true;
 
 	if (bss->n_mld_links == 0)
@@ -1871,6 +1871,7 @@ static int wpa_supplicant_connect_ml_missing(struct wpa_supplicant *wpa_s,
 {
 	int *freqs;
 	u16 missing_links = 0, removed_links;
+	u8 ap_mld_id;
 
 	if (!((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
 	      (wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME)))
@@ -1878,7 +1879,8 @@ static int wpa_supplicant_connect_ml_missing(struct wpa_supplicant *wpa_s,
 
 	/* Try to resolve any missing link information */
 	if (wpa_bss_parse_basic_ml_element(wpa_s, selected, NULL,
-					   &missing_links, ssid) ||
+					   &missing_links, ssid,
+					   &ap_mld_id) ||
 	    !missing_links)
 		return 0;
 
@@ -1910,7 +1912,19 @@ static int wpa_supplicant_connect_ml_missing(struct wpa_supplicant *wpa_s,
 	wpa_s->manual_scan_freqs = freqs;
 
 	os_memcpy(wpa_s->ml_probe_bssid, selected->bssid, ETH_ALEN);
-	wpa_s->ml_probe_mld_id = -1;
+
+	/*
+	 * In case the ML probe request is intended to retrieve information from
+	 * the transmitted BSS, the AP MLD ID should be included and should be
+	 * set to zero.
+	 * In case the ML probe requested is intended to retrieve information
+	 * from a non-transmitted BSS, the AP MLD ID should not be included.
+	 */
+	if (ap_mld_id)
+		wpa_s->ml_probe_mld_id = -1;
+	else
+		wpa_s->ml_probe_mld_id = 0;
+
 	wpa_s->ml_probe_links = missing_links;
 
 	wpa_s->normal_scans = 0;

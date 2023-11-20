@@ -1571,6 +1571,7 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
  *   should be initialized and #MAX_NUM_MLD_LINKS elements long
  * @missing_links: Result bitmask of links that were not discovered (or %NULL)
  * @ssid: Target SSID (or %NULL)
+ * @ap_mld_id: On return would hold the corresponding AP MLD ID (or %NULL)
  * Returns: 0 on success or -1 for non-MLD or parsing failures
  *
  * Parses the Basic Multi-Link element of the BSS into @link_info using the scan
@@ -1582,7 +1583,8 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 				   struct wpa_bss *bss,
 				   u8 *ap_mld_addr,
 				   u16 *missing_links,
-				   struct wpa_ssid *ssid)
+				   struct wpa_ssid *ssid,
+				   u8 *ap_mld_id)
 {
 	struct ieee802_11_elems elems;
 	struct wpabuf *mlbuf;
@@ -1746,6 +1748,9 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 
 	if (missing_links)
 		*missing_links = missing;
+
+	if (ap_mld_id)
+		*ap_mld_id = mbssid_idx;
 
 	ret = 0;
 out:
