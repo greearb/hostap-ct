@@ -7260,6 +7260,7 @@ static int wpa_driver_nl80211_associate(
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl80211_err_info err_info;
 	int ret = -1;
 	struct nl_msg *msg;
 
@@ -7319,13 +7320,27 @@ static int wpa_driver_nl80211_associate(
 	}
 
 	ret = send_and_recv_msgs_connect_handle(drv, msg, drv->first_bss, 1,
-						NULL);
+						&err_info);
 	msg = NULL;
 	if (ret) {
 		wpa_dbg(drv->ctx, MSG_DEBUG,
 			"nl80211: MLME command failed (assoc): ret=%d (%s)",
 			ret, strerror(-ret));
 		nl80211_dump_scan(drv);
+
+		/* Mark failed link within params */
+		if (err_info.link_id >= 0) {
+			if (err_info.link_id >= MAX_NUM_MLD_LINKS ||
+			    !(params->mld_params.valid_links &
+			      BIT(err_info.link_id))) {
+				wpa_printf(MSG_DEBUG,
+					   "nl80211: Invalid errorred link_id %d",
+					   err_info.link_id);
+				goto fail;
+			}
+			params->mld_params.mld_links[err_info.link_id].error =
+				ret;
+		}
 	} else {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Association request send successfully");
