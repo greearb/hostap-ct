@@ -250,7 +250,7 @@ def test_eht_mld_discovery(dev, apdev):
 
         rnr_pattern = re.compile(".*ap_info.*, mld ID=0, link ID=",
                                  re.MULTILINE)
-        ml_pattern = re.compile(".*multi-link:.*, MLD ID=0x0", re.MULTILINE)
+        ml_pattern = re.compile(".*multi-link:.*, MLD addr=.*", re.MULTILINE)
 
         bss = wpas.request("BSS " + hapd0.own_addr())
         logger.info("BSS 0: " + str(bss))

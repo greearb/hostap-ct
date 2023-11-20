@@ -2289,7 +2289,7 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be) {
 		if (hapd->conf->mld_ap)
 			tailpos = hostapd_eid_eht_ml_beacon(hapd, NULL,
-							    tailpos, true);
+							    tailpos, false);
 		tailpos = hostapd_eid_eht_capab(hapd, tailpos,
 						IEEE80211_MODE_AP);
 		tailpos = hostapd_eid_eht_operation(hapd, tailpos);
