@@ -4066,6 +4066,30 @@ int process_global_event(struct nl_msg *msg, void *arg)
 	int wdev_id_set = 0;
 	int wiphy_idx_set = 0;
 
+	/* Event marker, all prior events have been processed */
+	if (gnlh->cmd == NL80211_CMD_GET_PROTOCOL_FEATURES) {
+		u32 seq = nlmsg_hdr(msg)->nlmsg_seq;
+
+		dl_list_for_each_safe(drv, tmp, &global->interfaces,
+				      struct wpa_driver_nl80211_data, list) {
+			if (drv->ignore_next_local_deauth > 0 &&
+			    drv->ignore_next_local_deauth <= seq) {
+				wpa_printf(MSG_DEBUG,
+					   "nl80211: No DEAUTHENTICATE event was ignored");
+				drv->ignore_next_local_deauth = 0;
+			}
+
+			if (drv->ignore_next_local_disconnect > 0 &&
+			    drv->ignore_next_local_disconnect <= seq) {
+				wpa_printf(MSG_DEBUG,
+					   "nl80211: No DISCONNECT event was ignored");
+				drv->ignore_next_local_disconnect = 0;
+			}
+		}
+
+		return NL_SKIP;
+	}
+
 	nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
 		  genlmsg_attrlen(gnlh, 0), NULL);
 

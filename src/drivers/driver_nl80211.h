@@ -165,8 +165,6 @@ struct wpa_driver_nl80211_data {
 	unsigned int scan_for_auth:1;
 	unsigned int retry_auth:1;
 	unsigned int use_monitor:1;
-	unsigned int ignore_next_local_disconnect:1;
-	unsigned int ignore_next_local_deauth:1;
 	unsigned int hostapd:1;
 	unsigned int start_mode_sta:1;
 	unsigned int start_iface_up:1;
@@ -202,6 +200,9 @@ struct wpa_driver_nl80211_data {
 	unsigned int secure_ranging_ctx_vendor_cmd_avail:1;
 	unsigned int puncturing:1;
 	unsigned int qca_ap_allowed_freqs:1;
+
+	u32 ignore_next_local_disconnect;
+	u32 ignore_next_local_deauth;
 
 	u64 vendor_scan_cookie;
 	u64 remain_on_chan_cookie;

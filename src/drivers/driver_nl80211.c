@@ -405,6 +405,41 @@ static void nl80211_nlmsg_clear(struct nl_msg *msg)
 }
 
 
+static int send_event_marker(struct wpa_driver_nl80211_data *drv)
+{
+	struct nl_sock *handle;
+	struct nl_msg *msg;
+	struct nlmsghdr *hdr;
+	int res = 0;
+	int err = -NLE_NOMEM;
+
+	msg = nlmsg_alloc();
+	if (!msg)
+		goto out;
+
+	/* We only care about the returned sequence number for matching. */
+	if (!nl80211_cmd(drv, msg, 0, NL80211_CMD_GET_PROTOCOL_FEATURES))
+		goto out;
+
+	handle = (void *) (((intptr_t) drv->global->nl_event) ^
+			   ELOOP_SOCKET_INVALID);
+
+	err = nl_send_auto_complete(handle, msg);
+	if (err < 0)
+		goto out;
+
+	hdr = nlmsg_hdr(msg);
+	res = hdr->nlmsg_seq;
+
+out:
+	nlmsg_free(msg);
+	if (err)
+		wpa_printf(MSG_INFO, "nl80211: %s failed: %s",
+			   __func__, nl_geterror(err));
+	return res;
+}
+
+
 static int send_and_recv(struct nl80211_global *global,
 			 struct nl_sock *nl_handle, struct nl_msg *msg,
 			 int (*valid_handler)(struct nl_msg *, void *),
@@ -3736,7 +3771,6 @@ static int wpa_driver_nl80211_disconnect(struct wpa_driver_nl80211_data *drv,
 					 struct i802_bss *bss)
 {
 	int ret;
-	int drv_associated = drv->associated;
 
 	wpa_printf(MSG_DEBUG, "%s(reason_code=%d)", __func__, reason_code);
 	nl80211_mark_disconnected(drv);
@@ -3747,7 +3781,8 @@ static int wpa_driver_nl80211_disconnect(struct wpa_driver_nl80211_data *drv,
 	 * For locally generated disconnect, supplicant already generates a
 	 * DEAUTH event, so ignore the event from NL80211.
 	 */
-	drv->ignore_next_local_disconnect = drv_associated && (ret == 0);
+	if (ret == 0)
+		drv->ignore_next_local_disconnect = send_event_marker(drv);
 
 	return ret;
 }
@@ -3758,7 +3793,6 @@ static int wpa_driver_nl80211_deauthenticate(struct i802_bss *bss,
 {
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	int ret;
-	int drv_associated = drv->associated;
 
 	if (drv->nlmode == NL80211_IFTYPE_ADHOC) {
 		nl80211_mark_disconnected(drv);
@@ -3776,7 +3810,8 @@ static int wpa_driver_nl80211_deauthenticate(struct i802_bss *bss,
 	 * For locally generated deauthenticate, supplicant already generates a
 	 * DEAUTH event, so ignore the event from NL80211.
 	 */
-	drv->ignore_next_local_deauth = drv_associated && (ret == 0);
+	if (ret == 0)
+		drv->ignore_next_local_deauth = send_event_marker(drv);
 
 	return ret;
 }
@@ -10811,9 +10846,9 @@ static int wpa_driver_nl80211_status(void *priv, char *buf, size_t buflen)
 			  drv->retry_auth ? "retry_auth=1\n" : "",
 			  drv->use_monitor ? "use_monitor=1\n" : "",
 			  drv->ignore_next_local_disconnect ?
-			  "ignore_next_local_disconnect=1\n" : "",
+			  "ignore_next_local_disconnect\n" : "",
 			  drv->ignore_next_local_deauth ?
-			  "ignore_next_local_deauth=1\n" : "");
+			  "ignore_next_local_deauth\n" : "");
 	if (os_snprintf_error(end - pos, res))
 		return pos - buf;
 	pos += res;
