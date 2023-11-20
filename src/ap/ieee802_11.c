@@ -4536,7 +4536,8 @@ static void hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 				break;
 		}
 
-		if (!iface || j == hapd->iface->interfaces->count) {
+		if (!iface || j == hapd->iface->interfaces->count ||
+		    TEST_FAIL()) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: No link match for link_id=%u", i);
 
