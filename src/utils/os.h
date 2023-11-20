@@ -667,8 +667,8 @@ int os_exec(const char *program, const char *arg, int wait_completion);
 
 
 #if defined(WPA_TRACE_BFD) && defined(CONFIG_TESTING_OPTIONS)
-#define TEST_FAIL() testing_test_fail()
-int testing_test_fail(void);
+#define TEST_FAIL() testing_test_fail(false)
+int testing_test_fail(bool is_alloc);
 int testing_set_fail_pattern(bool is_alloc, char *patterns);
 int testing_get_fail_pattern(bool is_alloc, char *buf, size_t buflen);
 #else

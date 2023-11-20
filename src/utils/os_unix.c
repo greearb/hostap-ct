@@ -540,10 +540,10 @@ void * os_memdup(const void *src, size_t len)
 #ifdef WPA_TRACE
 
 #if defined(WPA_TRACE_BFD) && defined(CONFIG_TESTING_OPTIONS)
-static char wpa_trace_fail_func[256] = { 0 };
-static unsigned int wpa_trace_fail_after;
+static char wpa_trace_fail_func[2][256] = { "", "" };
+static unsigned int wpa_trace_fail_after[2];
 
-static int testing_fail_alloc(void)
+int testing_test_fail(bool is_alloc)
 {
 	const char *ignore_list[] = {
 		__func__, "os_malloc", "os_zalloc", "os_calloc", "os_realloc",
@@ -554,7 +554,9 @@ static int testing_fail_alloc(void)
 	char *pos, *next;
 	int match;
 
-	if (!wpa_trace_fail_after)
+	is_alloc = !!is_alloc;
+
+	if (!wpa_trace_fail_after[is_alloc])
 		return 0;
 
 	res = wpa_trace_calling_func(func, WPA_TRACE_LEN);
@@ -566,7 +568,7 @@ static int testing_fail_alloc(void)
 			i++;
 	}
 
-	pos = wpa_trace_fail_func;
+	pos = wpa_trace_fail_func[is_alloc];
 
 	match = 0;
 	while (i < res) {
@@ -606,82 +608,10 @@ static int testing_fail_alloc(void)
 	if (!match)
 		return 0;
 
-	wpa_trace_fail_after--;
-	if (wpa_trace_fail_after == 0) {
-		wpa_printf(MSG_INFO, "TESTING: fail allocation at %s",
-			   wpa_trace_fail_func);
-		for (i = 0; i < res; i++)
-			wpa_printf(MSG_INFO, "backtrace[%d] = %s",
-				   (int) i, func[i]);
-		return 1;
-	}
-
-	return 0;
-}
-
-
-static char wpa_trace_test_fail_func[256] = { 0 };
-static unsigned int wpa_trace_test_fail_after;
-
-int testing_test_fail(void)
-{
-	const char *func[WPA_TRACE_LEN];
-	size_t i, res, len;
-	char *pos, *next;
-	int match;
-
-	if (!wpa_trace_test_fail_after)
-		return 0;
-
-	res = wpa_trace_calling_func(func, WPA_TRACE_LEN);
-	i = 0;
-	if (i < res && os_strcmp(func[i], __func__) == 0)
-		i++;
-
-	pos = wpa_trace_test_fail_func;
-
-	match = 0;
-	while (i < res) {
-		int allow_skip = 1;
-		int maybe = 0;
-
-		if (*pos == '=') {
-			allow_skip = 0;
-			pos++;
-		} else if (*pos == '?') {
-			maybe = 1;
-			pos++;
-		}
-		next = os_strchr(pos, ';');
-		if (next)
-			len = next - pos;
-		else
-			len = os_strlen(pos);
-		if (os_memcmp(pos, func[i], len) != 0) {
-			if (maybe && next) {
-				pos = next + 1;
-				continue;
-			}
-			if (allow_skip) {
-				i++;
-				continue;
-			}
-			return 0;
-		}
-		if (!next) {
-			match = 1;
-			break;
-		}
-		pos = next + 1;
-		i++;
-	}
-	if (!match)
-		return 0;
-
-	wpa_trace_test_fail_after--;
-	if (wpa_trace_test_fail_after == 0) {
+	wpa_trace_fail_after[is_alloc]--;
+	if (wpa_trace_fail_after[is_alloc] == 0) {
 		wpa_printf(MSG_INFO, "TESTING: fail at %s",
-			   wpa_trace_test_fail_func);
+			   wpa_trace_fail_func[is_alloc]);
 		for (i = 0; i < res; i++)
 			wpa_printf(MSG_INFO, "backtrace[%d] = %s",
 				   (int) i, func[i]);
@@ -697,26 +627,15 @@ int testing_set_fail_pattern(bool is_alloc, char *patterns)
 #ifdef WPA_TRACE_BFD
 	char *pos;
 
-	if (is_alloc) {
-		wpa_trace_fail_after = atoi(patterns);
-		pos = os_strchr(patterns, ':');
-		if (pos) {
-			pos++;
-			os_strlcpy(wpa_trace_fail_func, pos,
-				   sizeof(wpa_trace_fail_func));
-		} else {
-			wpa_trace_fail_after = 0;
-		}
+	is_alloc = !!is_alloc;
+	wpa_trace_fail_after[is_alloc] = atoi(patterns);
+	pos = os_strchr(patterns, ':');
+	if (pos) {
+		pos++;
+		os_strlcpy(wpa_trace_fail_func[is_alloc], pos,
+			   sizeof(wpa_trace_fail_func[is_alloc]));
 	} else {
-		wpa_trace_test_fail_after = atoi(patterns);
-		pos = os_strchr(patterns, ':');
-		if (pos) {
-			pos++;
-			os_strlcpy(wpa_trace_test_fail_func, pos,
-				   sizeof(wpa_trace_test_fail_func));
-		} else {
-			wpa_trace_test_fail_after = 0;
-		}
+		wpa_trace_fail_after[is_alloc] = 0;
 	}
 
 	return 0;
@@ -729,29 +648,21 @@ int testing_set_fail_pattern(bool is_alloc, char *patterns)
 int testing_get_fail_pattern(bool is_alloc, char *buf, size_t buflen)
 {
 #ifdef WPA_TRACE_BFD
-	if (is_alloc)
-		return os_snprintf(buf, buflen, "%u:%s", wpa_trace_fail_after,
-				   wpa_trace_fail_func);
-	return os_snprintf(buf, buflen, "%u:%s", wpa_trace_test_fail_after,
-			   wpa_trace_test_fail_func);
+	is_alloc = !!is_alloc;
+	return os_snprintf(buf, buflen, "%u:%s", wpa_trace_fail_after[is_alloc],
+			   wpa_trace_fail_func[is_alloc]);
 #else /* WPA_TRACE_BFD */
 	return -1;
 #endif /* WPA_TRACE_BFD */
 }
 
-#else
-
-static inline int testing_fail_alloc(void)
-{
-	return 0;
-}
 #endif
 
 void * os_malloc(size_t size)
 {
 	struct os_alloc_trace *a;
 
-	if (testing_fail_alloc())
+	if (testing_test_fail(true))
 		return NULL;
 
 	a = malloc(sizeof(*a) + size);
