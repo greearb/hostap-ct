@@ -468,6 +468,10 @@ struct hostapd_data {
 #ifdef CONFIG_CTRL_IFACE_UDP
        unsigned char ctrl_iface_cookie[CTRL_IFACE_COOKIE_LEN];
 #endif /* CONFIG_CTRL_IFACE_UDP */
+
+#ifdef CONFIG_IEEE80211BE
+	u8 eht_mld_bss_param_change;
+#endif /* CONFIG_IEEE80211BE */
 };
 
 

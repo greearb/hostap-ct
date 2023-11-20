@@ -338,6 +338,9 @@ setup_mld:
 			return -1;
 		}
 
+		/* Initialize the BSS parameter change to 1 */
+		hapd->eht_mld_bss_param_change = 1;
+
 		wpa_printf(MSG_DEBUG,
 			   "MLD: Set link_id=%u, mld_addr=" MACSTR
 			   ", own_addr=" MACSTR,

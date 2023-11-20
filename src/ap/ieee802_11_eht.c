@@ -563,9 +563,7 @@ u8 * hostapd_eid_eht_basic_ml(struct hostapd_data *hapd, u8 *eid,
 		wpabuf_put_le16(buf, link_bss->conf->dtim_period);
 
 		/* BSS Parameters Change Count */
-		/* TODO: Currently hard code the BSS Parameters Change Count to
-		 * 0x1 */
-		wpabuf_put_u8(buf, 0x1);
+		wpabuf_put_u8(buf, hapd->eht_mld_bss_param_change);
 
 		/* Fragment the sub element if needed */
 		if (total_len <= 255) {
