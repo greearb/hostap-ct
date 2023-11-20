@@ -606,6 +606,88 @@ static void wpas_ml_handle_removed_links(struct wpa_supplicant *wpa_s,
 }
 
 
+#ifdef CONFIG_TESTING_OPTIONS
+static struct wpa_bss * wpas_ml_connect_pref(struct wpa_supplicant *wpa_s,
+					     struct wpa_bss *bss)
+{
+	unsigned int low, high, i;
+
+	wpa_printf(MSG_DEBUG,
+		   "MLD: valid_links=%d, band_pref=%u, bssid_pref=" MACSTR,
+		   wpa_s->valid_links,
+		   wpa_s->conf->mld_connect_band_pref,
+		   MAC2STR(wpa_s->conf->mld_connect_bssid_pref));
+
+	/* Check if there are more than one link */
+	if (!(wpa_s->valid_links & (wpa_s->valid_links - 1)))
+		return bss;
+
+	if (!is_zero_ether_addr(wpa_s->conf->mld_connect_bssid_pref)) {
+		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+			if (!(wpa_s->valid_links & BIT(i)))
+				continue;
+
+			if (wpa_s->mlo_assoc_link_id == i)
+				continue;
+
+			if (os_memcmp(wpa_s->links[i].bssid,
+				      wpa_s->conf->mld_connect_bssid_pref,
+				      ETH_ALEN) == 0)
+				goto found;
+		}
+	}
+
+	if (wpa_s->conf->mld_connect_band_pref == MLD_CONNECT_BAND_PREF_AUTO)
+		return bss;
+
+	switch (wpa_s->conf->mld_connect_band_pref) {
+	case MLD_CONNECT_BAND_PREF_2GHZ:
+		low = 2412;
+		high = 2472;
+		break;
+	case MLD_CONNECT_BAND_PREF_5GHZ:
+		low = 5180;
+		high = 5985;
+		break;
+	case MLD_CONNECT_BAND_PREF_6GHZ:
+		low = 5955;
+		high = 7125;
+		break;
+	default:
+		return bss;
+	}
+
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+		if (!(wpa_s->valid_links & BIT(i)))
+			continue;
+
+		if (wpa_s->mlo_assoc_link_id == i)
+			continue;
+
+		if (wpa_s->links[i].freq >= low && wpa_s->links[i].freq <= high)
+			goto found;
+	}
+
+found:
+	if (i == MAX_NUM_MLD_LINKS) {
+		wpa_printf(MSG_DEBUG, "MLD: No match for connect/band pref");
+		return bss;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "MLD: Change BSS for connect: " MACSTR " -> " MACSTR,
+		   MAC2STR(wpa_s->links[wpa_s->mlo_assoc_link_id].bssid),
+		   MAC2STR(wpa_s->links[i].bssid));
+
+	/* Get the BSS entry and do the switch */
+	bss = wpa_bss_get_bssid(wpa_s, wpa_s->links[i].bssid);
+	wpa_s->mlo_assoc_link_id = i;
+
+	return bss;
+}
+#endif /* CONFIG_TESTING_OPTIONS */
+
+
 static void wpas_sme_ml_auth(struct wpa_supplicant *wpa_s,
 			     union wpa_event_data *data,
 			     int ie_offset)
@@ -686,11 +768,27 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		return;
 	}
 
+	os_memset(&params, 0, sizeof(params));
+	if (wpas_ml_element(wpa_s, bss, ssid)) {
+		wpa_printf(MSG_DEBUG, "MLD: In authentication");
+#ifdef CONFIG_TESTING_OPTIONS
+		bss = wpas_ml_connect_pref(wpa_s, bss);
+
+		if (wpa_s->conf->mld_force_single_link) {
+			wpa_printf(MSG_DEBUG, "MLD: Force single link");
+			wpa_s->valid_links = BIT(wpa_s->mlo_assoc_link_id);
+		}
+#endif /* CONFIG_TESTING_OPTIONS */
+		params.mld = true;
+		params.mld_link_id = wpa_s->mlo_assoc_link_id;
+		params.ap_mld_addr = wpa_s->ap_mld_addr;
+		wpas_ml_handle_removed_links(wpa_s, bss);
+	}
+
 	skip_auth = wpa_s->conf->reassoc_same_bss_optim &&
 		wpa_s->reassoc_same_bss;
 	wpa_s->current_bss = bss;
 
-	os_memset(&params, 0, sizeof(params));
 	wpa_s->reassociate = 0;
 
 	params.freq = bss->freq;
@@ -698,14 +796,6 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 	params.ssid = bss->ssid;
 	params.ssid_len = bss->ssid_len;
 	params.p2p = ssid->p2p_group;
-
-	if (wpas_ml_element(wpa_s, bss, ssid)) {
-		wpa_printf(MSG_DEBUG, "MLD: In authentication");
-		params.mld = true;
-		params.mld_link_id = wpa_s->mlo_assoc_link_id;
-		params.ap_mld_addr = wpa_s->ap_mld_addr;
-		wpas_ml_handle_removed_links(wpa_s, bss);
-	}
 
 	if (wpa_s->sme.ssid_len != params.ssid_len ||
 	    os_memcmp(wpa_s->sme.ssid, params.ssid, params.ssid_len) != 0)

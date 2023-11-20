@@ -47,6 +47,7 @@
 #define DEFAULT_OCE_SUPPORT OCE_STA
 #define DEFAULT_EXTENDED_KEY_ID 0
 #define DEFAULT_SCAN_RES_VALID_FOR_CONNECT 5
+#define DEFAULT_MLD_CONNECT_BAND_PREF MLD_CONNECT_BAND_PREF_AUTO
 
 #include "config_ssid.h"
 #include "wps/wps.h"
@@ -1777,6 +1778,20 @@ struct wpa_config {
 
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_PASN*/
+
+#ifdef CONFIG_TESTING_OPTIONS
+	enum {
+		MLD_CONNECT_BAND_PREF_AUTO = 0,
+		MLD_CONNECT_BAND_PREF_2GHZ = 1,
+		MLD_CONNECT_BAND_PREF_5GHZ = 2,
+		MLD_CONNECT_BAND_PREF_6GHZ = 3,
+		MLD_CONNECT_BAND_PREF_MAX = 4,
+	}  mld_connect_band_pref;
+
+	u8 mld_connect_bssid_pref[ETH_ALEN];
+
+	int mld_force_single_link;
+#endif /* CONFIG_TESTING_OPTIONS */
 };
 
 

@@ -4671,6 +4671,10 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 		config->driver_param = os_strdup(driver_param);
 	config->gas_rand_addr_lifetime = DEFAULT_RAND_ADDR_LIFETIME;
 
+#ifdef CONFIG_TESTING_OPTIONS
+	config->mld_connect_band_pref = DEFAULT_MLD_CONNECT_BAND_PREF;
+#endif /* CONFIG_TESTING_OPTIONS */
+
 	return config;
 }
 
@@ -5306,6 +5310,23 @@ static int wpa_config_get_ipv4(const char *name, struct wpa_config *config,
 #endif /* CONFIG_P2P */
 
 
+#ifdef CONFIG_TESTING_OPTIONS
+static int wpa_config_process_mld_connect_bssid_pref(
+	const struct global_parse_data *data,
+	struct wpa_config *config, int line, const char *pos)
+{
+	if (hwaddr_aton2(pos, config->mld_connect_bssid_pref) < 0) {
+		wpa_printf(MSG_ERROR,
+			   "Line %d: Invalid mld_connect_bssid_pref '%s'",
+			   line, pos);
+		return -1;
+	}
+
+	return 0;
+}
+#endif /* CONFIG_TESTING_OPTIONS */
+
+
 #ifdef OFFSET
 #undef OFFSET
 #endif /* OFFSET */
@@ -5519,6 +5540,11 @@ static const struct global_parse_data global_fields[] = {
 	{ INT_RANGE(pasn_corrupt_mic, 0, 1), 0 },
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_PASN */
+#ifdef CONFIG_TESTING_OPTIONS
+	{ INT_RANGE(mld_force_single_link, 0, 1), 0 },
+	{ INT_RANGE(mld_connect_band_pref, 0, MLD_CONNECT_BAND_PREF_MAX), 0 },
+	{ FUNC(mld_connect_bssid_pref), 0 },
+#endif /* CONFIG_TESTING_OPTIONS */
 	/* NOTE: When adding new parameters here, add_interface() in
 	 * wpa_supplicant/dbus_new_introspect.c may need to be modified to
 	 * increase the size of the iface->xml buffer. */
