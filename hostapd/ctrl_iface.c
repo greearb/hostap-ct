@@ -3445,6 +3445,32 @@ static int hostapd_ctrl_iface_driver_cmd(struct hostapd_data *hapd, char *cmd,
 #endif /* ANDROID */
 
 
+#ifdef CONFIG_IEEE80211BE
+#ifdef CONFIG_TESTING_OPTIONS
+static int hostapd_ctrl_iface_link_remove(struct hostapd_data *hapd, char *cmd,
+					  char *buf, size_t buflen)
+{
+	int ret;
+	u32 count = atoi(cmd);
+
+	if (!count)
+		count = 1;
+
+	ret = hostapd_link_remove(hapd, count);
+	if (ret == 0) {
+		ret = os_snprintf(buf, buflen, "%s\n", "OK");
+		if (os_snprintf_error(buflen, ret))
+			ret = -1;
+		else
+			ret = 0;
+	}
+
+	return ret;
+}
+#endif /* CONFIG_TESTING_OPTIONS */
+#endif /* CONFIG_IEEE80211BE */
+
+
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
 					      int reply_size,
@@ -3996,6 +4022,14 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		reply_len = hostapd_ctrl_iface_driver_cmd(hapd, buf + 7, reply,
 							  reply_size);
 #endif /* ANDROID */
+#ifdef CONFIG_IEEE80211BE
+#ifdef CONFIG_TESTING_OPTIONS
+	} else if (os_strncmp(buf, "LINK_REMOVE ", 12) == 0) {
+		if (hostapd_ctrl_iface_link_remove(hapd, buf + 12,
+						   reply, reply_size))
+			reply_len = -1;
+#endif /* CONFIG_TESTING_OPTIONS */
+#endif /* CONFIG_IEEE80211BE */
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;

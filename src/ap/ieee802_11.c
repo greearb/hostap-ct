@@ -4893,7 +4893,7 @@ rsnxe_done:
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be) {
 		if (hapd->conf->mld_ap)
-			p = hostapd_eid_eht_basic_ml(hapd, p, sta, false);
+			p = hostapd_eid_eht_ml_assoc(hapd, sta, p);
 		p = hostapd_eid_eht_capab(hapd, p, IEEE80211_MODE_AP);
 		p = hostapd_eid_eht_operation(hapd, p);
 	}

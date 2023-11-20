@@ -413,6 +413,61 @@ static void hostapd_clear_drv_priv(struct hostapd_data *hapd)
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+#ifdef CONFIG_TESTING_OPTIONS
+
+#define TU_TO_USEC(_val) ((_val) * 1024)
+
+static void hostapd_link_remove_timeout_handler(void *eloop_data,
+						void *user_ctx)
+{
+	struct hostapd_data *hapd = (struct hostapd_data *) eloop_data;
+
+	if (hapd->eht_mld_link_removal_count == 0)
+		return;
+	hapd->eht_mld_link_removal_count--;
+
+	wpa_printf(MSG_DEBUG, "MLD: Remove link_id=%u in %u beacons",
+		   hapd->mld_link_id,
+		   hapd->eht_mld_link_removal_count);
+
+	ieee802_11_set_beacon(hapd);
+
+	if (!hapd->eht_mld_link_removal_count) {
+		hostapd_disable_iface(hapd->iface);
+		return;
+	}
+
+	eloop_register_timeout(0, TU_TO_USEC(hapd->iconf->beacon_int),
+			       hostapd_link_remove_timeout_handler,
+			       hapd, NULL);
+}
+
+
+int hostapd_link_remove(struct hostapd_data *hapd, u32 count)
+{
+	if (!hapd->conf->mld_ap)
+		return -1;
+
+	wpa_printf(MSG_DEBUG,
+		   "MLD: Remove link_id=%u in %u beacons",
+		   hapd->mld_link_id, count);
+
+	hapd->eht_mld_link_removal_count = count;
+	hapd->eht_mld_bss_param_change++;
+
+	eloop_register_timeout(0, TU_TO_USEC(hapd->iconf->beacon_int),
+			       hostapd_link_remove_timeout_handler,
+			       hapd, NULL);
+
+	ieee802_11_set_beacon(hapd);
+	return 0;
+}
+
+#endif /* CONFIG_TESTING_OPTIONS */
+#endif /* CONFIG_IEEE80211BE */
+
+
 void hostapd_free_hapd_data(struct hostapd_data *hapd)
 {
 	os_free(hapd->probereq_cb);
@@ -525,6 +580,12 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 
 #ifdef CONFIG_IEEE80211AX
 	eloop_cancel_timeout(hostapd_switch_color_timeout_handler, hapd, NULL);
+#ifdef CONFIG_TESTING_OPTIONS
+#ifdef CONFIG_IEEE80211BE
+	eloop_cancel_timeout(hostapd_link_remove_timeout_handler, hapd, NULL);
+#endif /* CONFIG_IEEE80211BE */
+#endif /* CONFIG_TESTING_OPTIONS */
+
 #endif /* CONFIG_IEEE80211AX */
 }
 

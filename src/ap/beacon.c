@@ -780,7 +780,7 @@ static u8 * hostapd_gen_probe_resp(struct hostapd_data *hapd,
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be) {
 		if (hapd->conf->mld_ap)
-			pos = hostapd_eid_eht_basic_ml(hapd, pos, NULL, true);
+			pos = hostapd_eid_eht_ml_beacon(hapd, NULL, pos, true);
 		pos = hostapd_eid_eht_capab(hapd, pos, IEEE80211_MODE_AP);
 		pos = hostapd_eid_eht_operation(hapd, pos);
 	}
@@ -1966,8 +1966,8 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be) {
 		if (hapd->conf->mld_ap)
-			tailpos = hostapd_eid_eht_basic_ml(hapd, tailpos, NULL,
-							   true);
+			tailpos = hostapd_eid_eht_ml_beacon(hapd, NULL,
+							    tailpos, true);
 		tailpos = hostapd_eid_eht_capab(hapd, tailpos,
 						IEEE80211_MODE_AP);
 		tailpos = hostapd_eid_eht_operation(hapd, tailpos);

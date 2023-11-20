@@ -23,6 +23,7 @@ struct ieee802_11_elems;
 struct sae_pk;
 struct sae_pt;
 struct sae_password_entry;
+struct mld_info;
 
 int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 		    struct hostapd_frame_info *fi);
@@ -88,8 +89,11 @@ void hostapd_get_eht_capab(struct hostapd_data *hapd,
 			   const struct ieee80211_eht_capabilities *src,
 			   struct ieee80211_eht_capabilities *dest,
 			   size_t len);
-u8 * hostapd_eid_eht_basic_ml(struct hostapd_data *hapd, u8 *eid,
-			      struct sta_info *info, bool include_mld_id);
+u8 * hostapd_eid_eht_ml_beacon(struct hostapd_data *hapd,
+			       struct mld_info *mld_info,
+			       u8 *eid, bool include_mld_id);
+u8 * hostapd_eid_eht_ml_assoc(struct hostapd_data *hapd, struct sta_info *info,
+			      u8 *eid);
 struct wpabuf * hostapd_ml_auth_resp(struct hostapd_data *hapd);
 const u8 * hostapd_process_ml_auth(struct hostapd_data *hapd,
 				   const struct ieee80211_mgmt *mgmt,
