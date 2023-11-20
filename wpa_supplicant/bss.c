@@ -18,6 +18,7 @@
 #include "config.h"
 #include "notify.h"
 #include "scan.h"
+#include "bssid_ignore.h"
 #include "bss.h"
 
 static void wpa_bss_set_hessid(struct wpa_bss *bss)
@@ -1535,13 +1536,16 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 			wpa_printf(MSG_DEBUG, "MLD: mld ID=%u, link ID=%u",
 				   *mld_params, link_id);
 
+
 			if (!neigh_bss) {
 				*missing |= BIT(link_id);
-			} else if (!ssid ||
-				   (bss_params & (RNR_BSS_PARAM_SAME_SSID |
-						  RNR_BSS_PARAM_CO_LOCATED)) ||
-				   wpa_scan_res_match(wpa_s, 0, neigh_bss,
-						      ssid, 1, 0)) {
+			} else if ((!ssid ||
+				    (bss_params & (RNR_BSS_PARAM_SAME_SSID |
+						   RNR_BSS_PARAM_CO_LOCATED)) ||
+				    wpa_scan_res_match(wpa_s, 0, neigh_bss,
+						       ssid, 1, 0)) &&
+				   !wpa_bssid_ignore_is_listed(
+					   wpa_s, neigh_bss->bssid)) {
 				struct mld_link *l;
 
 				l = &bss->mld_links[bss->n_mld_links];
