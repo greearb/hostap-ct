@@ -51,13 +51,14 @@ u8 * hostapd_eid_assoc_comeback_time(struct hostapd_data *hapd,
 void ieee802_11_send_sa_query_req(struct hostapd_data *hapd,
 				  const u8 *addr, const u8 *trans_id)
 {
-#ifdef CONFIG_OCV
-	struct sta_info *sta;
-#endif /* CONFIG_OCV */
+#if defined(CONFIG_OCV) || defined(CONFIG_IEEE80211BE)
+	struct sta_info *sta = ap_get_sta(hapd, addr);
+#endif /* CONFIG_OCV || CONFIG_IEEE80211BE */
 	struct ieee80211_mgmt *mgmt;
 	u8 *oci_ie = NULL;
 	u8 oci_ie_len = 0;
 	u8 *end;
+	const u8 *own_addr = hapd->own_addr;
 
 	wpa_printf(MSG_DEBUG, "IEEE 802.11: Sending SA Query Request to "
 		   MACSTR, MAC2STR(addr));
@@ -65,7 +66,6 @@ void ieee802_11_send_sa_query_req(struct hostapd_data *hapd,
 		    trans_id, WLAN_SA_QUERY_TR_ID_LEN);
 
 #ifdef CONFIG_OCV
-	sta = ap_get_sta(hapd, addr);
 	if (sta && wpa_auth_uses_ocv(sta->wpa_sm)) {
 		struct wpa_channel_info ci;
 
@@ -108,11 +108,16 @@ void ieee802_11_send_sa_query_req(struct hostapd_data *hapd,
 		return;
 	}
 
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap && sta && sta->mld_info.mld_sta)
+		own_addr = hapd->mld_addr;
+#endif /* CONFIG_IEEE80211BE */
+
 	mgmt->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT,
 					   WLAN_FC_STYPE_ACTION);
 	os_memcpy(mgmt->da, addr, ETH_ALEN);
-	os_memcpy(mgmt->sa, hapd->own_addr, ETH_ALEN);
-	os_memcpy(mgmt->bssid, hapd->own_addr, ETH_ALEN);
+	os_memcpy(mgmt->sa, own_addr, ETH_ALEN);
+	os_memcpy(mgmt->bssid, own_addr, ETH_ALEN);
 	mgmt->u.action.category = WLAN_ACTION_SA_QUERY;
 	mgmt->u.action.u.sa_query_req.action = WLAN_SA_QUERY_REQUEST;
 	os_memcpy(mgmt->u.action.u.sa_query_req.trans_id, trans_id,
@@ -141,6 +146,7 @@ static void ieee802_11_send_sa_query_resp(struct hostapd_data *hapd,
 	u8 *oci_ie = NULL;
 	u8 oci_ie_len = 0;
 	u8 *end;
+	const u8 *own_addr = hapd->own_addr;
 
 	wpa_printf(MSG_DEBUG, "IEEE 802.11: Received SA Query Request from "
 		   MACSTR, MAC2STR(sa));
@@ -200,11 +206,16 @@ static void ieee802_11_send_sa_query_resp(struct hostapd_data *hapd,
 	wpa_printf(MSG_DEBUG, "IEEE 802.11: Sending SA Query Response to "
 		   MACSTR, MAC2STR(sa));
 
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap && sta->mld_info.mld_sta)
+		own_addr = hapd->mld_addr;
+#endif /* CONFIG_IEEE80211BE */
+
 	resp->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT,
 					   WLAN_FC_STYPE_ACTION);
 	os_memcpy(resp->da, sa, ETH_ALEN);
-	os_memcpy(resp->sa, hapd->own_addr, ETH_ALEN);
-	os_memcpy(resp->bssid, hapd->own_addr, ETH_ALEN);
+	os_memcpy(resp->sa, own_addr, ETH_ALEN);
+	os_memcpy(resp->bssid, own_addr, ETH_ALEN);
 	resp->u.action.category = WLAN_ACTION_SA_QUERY;
 	resp->u.action.u.sa_query_req.action = WLAN_SA_QUERY_RESPONSE;
 	os_memcpy(resp->u.action.u.sa_query_req.trans_id, trans_id,
