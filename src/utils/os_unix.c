@@ -545,10 +545,10 @@ struct wpa_trace_test_fail {
 	char pattern[256];
 } wpa_trace_test_fail[5][2];
 
-int testing_test_fail(bool is_alloc)
+int testing_test_fail(const char *tag, bool is_alloc)
 {
 	const char *ignore_list[] = {
-		__func__, "os_malloc", "os_zalloc", "os_calloc", "os_realloc",
+		"os_malloc", "os_zalloc", "os_calloc", "os_realloc",
 		"os_realloc_array", "os_strdup", "os_memdup"
 	};
 	const char *func[WPA_TRACE_LEN];
@@ -568,9 +568,22 @@ int testing_test_fail(bool is_alloc)
 	res = wpa_trace_calling_func(func, WPA_TRACE_LEN);
 	i = 0;
 
-	/* Skip this function as well as allocation helpers */
-	for (j = 0; j < ARRAY_SIZE(ignore_list) && i < res; j++) {
-		if (os_strcmp(func[i], ignore_list[j]) == 0)
+	if (is_alloc) {
+		/* Skip our own stack frame */
+		i++;
+
+		/* Skip allocation helpers */
+		for (j = 0; j < ARRAY_SIZE(ignore_list) && i < res; j++) {
+			if (os_strcmp(func[i], ignore_list[j]) == 0)
+				i++;
+		}
+	} else {
+		/* Not allocation, we might have a tag, if so, replace our
+		 * own stack frame with the tag, otherwise skip it.
+		 */
+		if (tag)
+			func[0] = tag;
+		else
 			i++;
 	}
 
@@ -702,7 +715,7 @@ void * os_malloc(size_t size)
 {
 	struct os_alloc_trace *a;
 
-	if (testing_test_fail(true))
+	if (testing_test_fail(NULL, true))
 		return NULL;
 
 	a = malloc(sizeof(*a) + size);
