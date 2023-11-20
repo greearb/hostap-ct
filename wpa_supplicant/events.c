@@ -1925,6 +1925,23 @@ static int wpa_supplicant_connect_ml_missing(struct wpa_supplicant *wpa_s,
 	else
 		wpa_s->ml_probe_mld_id = 0;
 
+	if (ssid && ssid->ssid_len) {
+		os_free(wpa_s->ssids_from_scan_req);
+		wpa_s->num_ssids_from_scan_req = 0;
+
+		wpa_s->ssids_from_scan_req =
+			os_zalloc(sizeof(struct wpa_ssid_value));
+		if (wpa_s->ssids_from_scan_req) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: ML probe: With direct SSID");
+
+			wpa_s->num_ssids_from_scan_req = 1;
+			wpa_s->ssids_from_scan_req[0].ssid_len = ssid->ssid_len;
+			os_memcpy(wpa_s->ssids_from_scan_req[0].ssid,
+				  ssid->ssid, ssid->ssid_len);
+		}
+	}
+
 	wpa_s->ml_probe_links = missing_links;
 
 	wpa_s->normal_scans = 0;
