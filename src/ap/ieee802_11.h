@@ -94,6 +94,9 @@ u8 * hostapd_eid_eht_ml_beacon(struct hostapd_data *hapd,
 			       u8 *eid, bool include_mld_id);
 u8 * hostapd_eid_eht_ml_assoc(struct hostapd_data *hapd, struct sta_info *info,
 			      u8 *eid);
+size_t hostapd_eid_eht_ml_beacon_len(struct hostapd_data *hapd,
+				     struct mld_info *info,
+				     bool include_mld_id);
 struct wpabuf * hostapd_ml_auth_resp(struct hostapd_data *hapd);
 const u8 * hostapd_process_ml_auth(struct hostapd_data *hapd,
 				   const struct ieee80211_mgmt *mgmt,

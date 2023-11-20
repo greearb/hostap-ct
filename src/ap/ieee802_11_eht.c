@@ -466,7 +466,8 @@ static u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	 * BSS Parameters Change Count (1) + EML Capabilities (2) +
 	 * MLD Capabilities and Operations (2)
 	 */
-	common_info_len = 13;
+#define EHT_ML_COMMON_INFO_LEN 13
+	common_info_len = EHT_ML_COMMON_INFO_LEN;
 
 	if (include_mld_id) {
 		/* AP MLD ID */
@@ -514,8 +515,9 @@ static u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 		 * beacon interval (2) + TSF offset (8) + DTIM info (2) + BSS
 		 * parameters change counter (1) + station profile length.
 		 */
-		const size_t fixed_len = 22;
-		size_t total_len = fixed_len + link->resp_sta_profile_len;
+#define EHT_ML_STA_INFO_LEN 22
+		size_t total_len = EHT_ML_STA_INFO_LEN +
+			link->resp_sta_profile_len;
 
 		/* Skip the local one */
 		if (link_id == hapd->mld_link_id || !link->valid)
@@ -549,7 +551,7 @@ static u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 		/* STA Info */
 
 		/* STA Info Length */
-		wpabuf_put_u8(buf, fixed_len - 2);
+		wpabuf_put_u8(buf, EHT_ML_STA_INFO_LEN - 2);
 		wpabuf_put_data(buf, link->local_addr, ETH_ALEN);
 		wpabuf_put_le16(buf, link_bss->iconf->beacon_int);
 
@@ -574,7 +576,7 @@ static u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 			ptr = link->resp_sta_profile;
 			len = link->resp_sta_profile_len;
 
-			slice_len = 255 - fixed_len;
+			slice_len = 255 - EHT_ML_STA_INFO_LEN;
 
 			wpabuf_put_data(buf, ptr, slice_len);
 			len -= slice_len;
@@ -708,6 +710,47 @@ static u8 * hostapd_eid_eht_reconf_ml(struct hostapd_data *hapd, u8 *eid)
 }
 
 
+static size_t hostapd_eid_eht_ml_len(struct mld_info *info,
+				     bool include_mld_id)
+{
+	size_t len = 0;
+	size_t eht_ml_len = 2 + EHT_ML_COMMON_INFO_LEN;
+	u8 link_id;
+
+	if (include_mld_id)
+		eht_ml_len++;
+
+	for (link_id = 0; info && link_id < ARRAY_SIZE(info->links);
+	     link_id++) {
+		struct mld_link_info *link;
+		size_t sta_len = EHT_ML_STA_INFO_LEN;
+
+		link = &info->links[link_id];
+		if (!link->valid)
+			continue;
+
+		sta_len += link->resp_sta_profile_len;
+
+		/* Element data and (fragmentation) headers */
+		eht_ml_len += sta_len;
+		eht_ml_len += 2 + sta_len / 255 * 2;
+	}
+
+	/* Element data */
+	len += eht_ml_len;
+
+	/* First header (254 bytes of data) */
+	len += 3;
+
+	/* Fragmentation headers; +1 for shorter first chunk */
+	len += (eht_ml_len + 1) / 255 * 2;
+
+	return len;
+}
+#undef EHT_ML_COMMON_INFO_LEN
+#undef EHT_ML_STA_INFO_LEN
+
+
 u8 * hostapd_eid_eht_ml_beacon(struct hostapd_data *hapd,
 			       struct mld_info *info,
 			       u8 *eid, bool include_mld_id)
@@ -727,6 +770,14 @@ u8 * hostapd_eid_eht_ml_assoc(struct hostapd_data *hapd, struct sta_info *info,
 	eid = hostapd_eid_eht_basic_ml_common(hapd, eid, &info->mld_info,
 					      false);
 	return hostapd_eid_eht_reconf_ml(hapd, eid);
+}
+
+
+size_t hostapd_eid_eht_ml_beacon_len(struct hostapd_data *hapd,
+				     struct mld_info *info,
+				     bool include_mld_id)
+{
+	return hostapd_eid_eht_ml_len(info, include_mld_id);
 }
 
 
