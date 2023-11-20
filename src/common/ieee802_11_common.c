@@ -3201,8 +3201,7 @@ enum oper_chan_width op_class_to_ch_width(u8 op_class)
 }
 
 
-struct wpabuf * ieee802_11_defrag_data(const u8 *data, size_t len,
-				       bool ext_elem)
+struct wpabuf * ieee802_11_defrag(const u8 *data, size_t len, bool ext_elem)
 {
 	struct wpabuf *buf;
 	const u8 *pos, *end = data + len;
@@ -3242,44 +3241,6 @@ struct wpabuf * ieee802_11_defrag_data(const u8 *data, size_t len,
 }
 
 
-struct wpabuf * ieee802_11_defrag(struct ieee802_11_elems *elems,
-				  u8 eid, u8 eid_ext)
-{
-	const u8 *data;
-	size_t len;
-
-	/*
-	 * TODO: Defragmentation mechanism can be supported for all IEs. For now
-	 * handle only those that are used (or use ieee802_11_defrag_data()).
-	 */
-	switch (eid) {
-	case WLAN_EID_EXTENSION:
-		switch (eid_ext) {
-		case WLAN_EID_EXT_FILS_HLP_CONTAINER:
-			data = elems->fils_hlp;
-			len = elems->fils_hlp_len;
-			break;
-		case WLAN_EID_EXT_WRAPPED_DATA:
-			data = elems->wrapped_data;
-			len = elems->wrapped_data_len;
-			break;
-		default:
-			wpa_printf(MSG_DEBUG,
-				   "Defragmentation not supported. eid_ext=%u",
-				   eid_ext);
-			return NULL;
-		}
-		break;
-	default:
-		wpa_printf(MSG_DEBUG,
-			   "Defragmentation not supported. eid=%u", eid);
-		return NULL;
-	}
-
-	return ieee802_11_defrag_data(data, len, true);
-}
-
-
 const u8 * get_ml_ie(const u8 *ies, size_t len, u8 type)
 {
 	const struct element *elem;
@@ -3313,41 +3274,4 @@ const u8 * get_basic_mle_mld_addr(const u8 *buf, size_t len)
 		return NULL;
 
 	return &buf[mld_addr_pos];
-}
-
-
-struct wpabuf * ieee802_11_defrag_mle(struct ieee802_11_elems *elems, u8 type)
-{
-	const u8 *data;
-	size_t len;
-
-	switch (type) {
-	case MULTI_LINK_CONTROL_TYPE_BASIC:
-		data = elems->basic_mle;
-		len = elems->basic_mle_len;
-		break;
-	case MULTI_LINK_CONTROL_TYPE_PROBE_REQ:
-		data = elems->probe_req_mle;
-		len = elems->probe_req_mle_len;
-		break;
-	case MULTI_LINK_CONTROL_TYPE_RECONF:
-		data = elems->reconf_mle;
-		len = elems->reconf_mle_len;
-		break;
-	case MULTI_LINK_CONTROL_TYPE_TDLS:
-		data = elems->tdls_mle;
-		len = elems->tdls_mle_len;
-		break;
-	case MULTI_LINK_CONTROL_TYPE_PRIOR_ACCESS:
-		data = elems->prior_access_mle;
-		len = elems->prior_access_mle_len;
-		break;
-	default:
-		wpa_printf(MSG_DEBUG,
-			   "Defragmentation not supported for Multi-Link element type=%u",
-			   type);
-		return NULL;
-	}
-
-	return ieee802_11_defrag_data(data, len, true);
 }

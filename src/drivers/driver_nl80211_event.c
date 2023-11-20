@@ -660,7 +660,8 @@ static int nl80211_update_rejected_links_info(struct driver_sta_mlo_info *mlo,
 		return -1;
 	}
 
-	mle = ieee802_11_defrag_mle(&req_elems, MULTI_LINK_CONTROL_TYPE_BASIC);
+	mle = ieee802_11_defrag(req_elems.basic_mle, req_elems.basic_mle_len,
+				true);
 	if (!mle) {
 		wpa_printf(MSG_INFO,
 			   "nl80211: MLO: Basic Multi-Link element not found in Association Request");
@@ -671,7 +672,8 @@ static int nl80211_update_rejected_links_info(struct driver_sta_mlo_info *mlo,
 					 &req_info);
 	wpabuf_free(mle);
 
-	mle = ieee802_11_defrag_mle(&resp_elems, MULTI_LINK_CONTROL_TYPE_BASIC);
+	mle = ieee802_11_defrag(resp_elems.basic_mle, resp_elems.basic_mle_len,
+				true);
 	if (!mle) {
 		wpa_printf(MSG_ERROR,
 			   "nl80211: MLO: Basic Multi-Link element not found in Association Response");

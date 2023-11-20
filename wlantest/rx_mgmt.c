@@ -390,7 +390,7 @@ static void parse_basic_ml_elems(struct ieee802_11_elems *elems, bool ap,
 {
 	struct wpabuf *mlbuf;
 
-	mlbuf = ieee802_11_defrag_mle(elems, MULTI_LINK_CONTROL_TYPE_BASIC);
+	mlbuf = ieee802_11_defrag(elems->basic_mle, elems->basic_mle_len, true);
 	if (mlbuf) {
 		parse_basic_ml(wpabuf_head(mlbuf), wpabuf_len(mlbuf), ap, sta,
 			       fields_len);

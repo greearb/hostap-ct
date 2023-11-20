@@ -485,6 +485,7 @@ static bool wpas_ml_element(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 	u8 ml_ie_len;
 	const struct ieee80211_eht_ml *eht_ml;
 	const struct eht_ml_basic_common_info *ml_basic_common_info;
+	struct ieee802_11_elems elems;
 	u8 i;
 	const u16 control =
 		host_to_le16(MULTI_LINK_CONTROL_TYPE_BASIC |
@@ -497,7 +498,11 @@ static bool wpas_ml_element(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 	if (!(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO))
 		return false;
 
-	mlbuf = wpa_bss_defrag_mle(bss, MULTI_LINK_CONTROL_TYPE_BASIC);
+	if (ieee802_11_parse_elems(wpa_bss_ie_ptr(bss),
+				   bss->ie_len, &elems, 1) == ParseFailed)
+		return false;
+
+	mlbuf = ieee802_11_defrag(elems.basic_mle, elems.basic_mle_len, true);
 	if (!mlbuf) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No ML element");
 		return false;

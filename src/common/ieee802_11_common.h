@@ -350,11 +350,7 @@ void hostapd_encode_edmg_chan(int edmg_enable, u8 edmg_channel,
 int ieee802_edmg_is_allowed(struct ieee80211_edmg_config allowed,
 			    struct ieee80211_edmg_config requested);
 
-struct wpabuf * ieee802_11_defrag_data(const u8 *data, size_t len,
-				       bool ext_elem);
-struct wpabuf * ieee802_11_defrag(struct ieee802_11_elems *elems,
-				  u8 eid, u8 eid_ext);
-struct wpabuf * ieee802_11_defrag_mle(struct ieee802_11_elems *elems, u8 type);
+struct wpabuf * ieee802_11_defrag(const u8 *data, size_t len, bool ext_elem);
 const u8 * get_ml_ie(const u8 *ies, size_t len, u8 type);
 const u8 * get_basic_mle_mld_addr(const u8 *buf, size_t len);
 

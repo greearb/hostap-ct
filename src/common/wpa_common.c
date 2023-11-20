@@ -1329,8 +1329,7 @@ int wpa_ft_parse_ies(const u8 *ies, size_t ies_len, struct wpa_ft_ies *parse,
 		if (fte_len < 255) {
 			res = wpa_ft_parse_fte(key_mgmt, fte, fte_len, parse);
 		} else {
-			parse->fte_buf = ieee802_11_defrag_data(fte, fte_len,
-								false);
+			parse->fte_buf = ieee802_11_defrag(fte, fte_len, false);
 			if (!parse->fte_buf)
 				goto fail;
 			res = wpa_ft_parse_fte(key_mgmt,

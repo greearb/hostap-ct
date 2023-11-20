@@ -158,7 +158,7 @@ static int hostapd_update_sta_links_status(struct hostapd_data *hapd,
 		return -1;
 	}
 
-	mlebuf = ieee802_11_defrag_mle(&elems, MULTI_LINK_CONTROL_TYPE_BASIC);
+	mlebuf = ieee802_11_defrag(elems.basic_mle, elems.basic_mle_len, true);
 	if (!mlebuf) {
 		wpa_printf(MSG_ERROR,
 			   "MLO: Basic Multi-Link element not found in (Re)Association Response frame");

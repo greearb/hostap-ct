@@ -378,8 +378,8 @@ static int wpas_pasn_wd_fils_rx(struct pasn_data *pasn, struct wpabuf *wd)
 		return -1;
 	}
 
-	fils_wd = ieee802_11_defrag(&elems, WLAN_EID_EXTENSION,
-				    WLAN_EID_EXT_WRAPPED_DATA);
+	fils_wd = ieee802_11_defrag(elems.wrapped_data, elems.wrapped_data_len,
+				    true);
 
 	if (!fils_wd) {
 		wpa_printf(MSG_DEBUG,
@@ -1200,9 +1200,9 @@ int wpa_pasn_auth_rx(struct pasn_data *pasn, const u8 *data, size_t len,
 	}
 
 	if (pasn_params->wrapped_data_format != WPA_PASN_WRAPPED_DATA_NO) {
-		wrapped_data = ieee802_11_defrag(&elems,
-						 WLAN_EID_EXTENSION,
-						 WLAN_EID_EXT_WRAPPED_DATA);
+		wrapped_data = ieee802_11_defrag(elems.wrapped_data,
+						 elems.wrapped_data_len,
+						 true);
 
 		if (!wrapped_data) {
 			wpa_printf(MSG_DEBUG, "PASN: Missing wrapped data");

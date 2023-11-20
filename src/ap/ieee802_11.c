@@ -2520,8 +2520,8 @@ static int pasn_wd_handle_fils(struct hostapd_data *hapd, struct sta_info *sta,
 		    FILS_SESSION_LEN);
 	os_memcpy(fils->session, elems.fils_session, FILS_SESSION_LEN);
 
-	fils_wd = ieee802_11_defrag(&elems, WLAN_EID_EXTENSION,
-				    WLAN_EID_EXT_WRAPPED_DATA);
+	fils_wd = ieee802_11_defrag(elems.wrapped_data, elems.wrapped_data_len,
+				    true);
 
 	if (!fils_wd) {
 		wpa_printf(MSG_DEBUG, "PASN: FILS: Missing wrapped data");
@@ -2690,8 +2690,8 @@ static void hapd_pasn_update_params(struct hostapd_data *hapd,
 		return;
 	}
 	if (pasn_params.wrapped_data_format != WPA_PASN_WRAPPED_DATA_NO) {
-		wrapped_data = ieee802_11_defrag(&elems, WLAN_EID_EXTENSION,
-						 WLAN_EID_EXT_WRAPPED_DATA);
+		wrapped_data = ieee802_11_defrag(elems.wrapped_data,
+						 elems.wrapped_data_len, true);
 		if (!wrapped_data) {
 			wpa_printf(MSG_DEBUG, "PASN: Missing wrapped data");
 			return;
@@ -4401,7 +4401,7 @@ static void ieee80211_ml_process_link(struct hostapd_data *hapd,
 		goto out;
 	}
 
-	mlbuf = ieee802_11_defrag_mle(&elems, MULTI_LINK_CONTROL_TYPE_BASIC);
+	mlbuf = ieee802_11_defrag(elems.basic_mle, elems.basic_mle_len, true);
 	if (!mlbuf)
 		goto out;
 

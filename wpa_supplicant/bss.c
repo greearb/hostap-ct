@@ -1497,24 +1497,6 @@ int wpa_bss_ext_capab(const struct wpa_bss *bss, unsigned int capab)
 }
 
 
-/**
- * wpa_bss_defrag_mle - Get a buffer holding a de-fragmented ML element
- * @bss: BSS table entry
- * @type: ML control type
- */
-struct wpabuf * wpa_bss_defrag_mle(const struct wpa_bss *bss, u8 type)
-{
-	struct ieee802_11_elems elems;
-	const u8 *pos = wpa_bss_ie_ptr(bss);
-	size_t len = bss->ie_len;
-
-	if (ieee802_11_parse_elems(pos, len, &elems, 1) == ParseFailed)
-		return NULL;
-
-	return ieee802_11_defrag_mle(&elems, type);
-}
-
-
 static void
 wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 			     struct wpa_bss *bss, u8 mbssid_idx,
@@ -1634,7 +1616,7 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 		return ret;
 	}
 
-	mlbuf = ieee802_11_defrag_mle(&elems, MULTI_LINK_CONTROL_TYPE_BASIC);
+	mlbuf = ieee802_11_defrag(elems.basic_mle, elems.basic_mle_len, true);
 	if (!mlbuf) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No Multi-Link element");
 		return ret;
@@ -1770,7 +1752,7 @@ u16 wpa_bss_parse_reconf_ml_element(struct wpa_supplicant *wpa_s,
 	if (!elems.reconf_mle || !elems.reconf_mle_len)
 		return 0;
 
-	mlbuf = ieee802_11_defrag_mle(&elems, MULTI_LINK_CONTROL_TYPE_RECONF);
+	mlbuf = ieee802_11_defrag(elems.reconf_mle, elems.reconf_mle_len, true);
 	if (!mlbuf)
 		return 0;
 

@@ -919,7 +919,7 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 	int ret = -1;
 	u16 ml_control;
 
-	mlbuf = ieee802_11_defrag_mle(elems, MULTI_LINK_CONTROL_TYPE_BASIC);
+	mlbuf = ieee802_11_defrag(elems->basic_mle, elems->basic_mle_len, true);
 	if (!mlbuf)
 		return WLAN_STATUS_SUCCESS;
 
