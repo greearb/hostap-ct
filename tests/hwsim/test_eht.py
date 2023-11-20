@@ -250,6 +250,30 @@ def eht_mld_ap_wpa2_params(ssid, passphrase=None, key_mgmt="WPA-PSK-SHA256",
 
     return params
 
+def _eht_mld_probe_req(wpas, hapd, tsf0, link_id=-1):
+    if "OK" not in wpas.request("ML_PROBE_REQ bssid=%s mld_id=0 link_id=%d" % (hapd.own_addr(), link_id)):
+        raise Exception("Failed to request ML probe request")
+
+    ev = wpas.wait_event(["CTRL-EVENT-SCAN-STARTED"])
+    if ev is None:
+        raise Exception("Scan did not start")
+
+    ev = wpas.wait_event(["CTRL-EVENT-SCAN-RESULTS"])
+    if ev is None:
+        raise Exception("Scan did not complete")
+
+    logger.info("ML Probe request scan done")
+
+    bss = wpas.get_bss(hapd.own_addr())
+    if not bss:
+        raise Exception("AP did not reply to ML probe request")
+
+    tsf1 = int(bss['tsf'])
+    logger.info("tsf0=%s, tsf1=%s" % (tsf0, tsf1))
+
+    if tsf0 >= tsf1:
+        raise Exception("AP was not found in ML probe request scan")
+
 def test_eht_mld_discovery(dev, apdev):
     """EHT MLD AP discovery"""
     with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
@@ -269,7 +293,8 @@ def test_eht_mld_discovery(dev, apdev):
         hapd0 = eht_mld_enable_ap(hapd_iface, link0_params)
         hapd1 = eht_mld_enable_ap(hapd_iface, link1_params)
 
-        res = wpas.request("SCAN freq=2412,2417")
+        # Only scan link 0
+        res = wpas.request("SCAN freq=2412")
         if "FAIL" in res:
             raise Exception("Failed to start scan")
 
@@ -296,6 +321,20 @@ def test_eht_mld_discovery(dev, apdev):
         if ml_pattern.search(bss) is None:
             raise Exception("ML element not found for first link")
 
+        # Save the tsf0 for checking ML Probe request scan later
+        tsf0 = int(wpas.get_bss(hapd0.own_addr())['tsf'])
+
+        if wpas.get_bss(hapd1.own_addr()) is not None:
+            raise Exception("BSS for link 1 found without ML probe request")
+
+        # Now send an ML probe request (for all links)
+        _eht_mld_probe_req(wpas, hapd0, tsf0)
+        tsf0 = int(wpas.get_bss(hapd0.own_addr())['tsf'])
+
+        # NOTE: hostapd incorrectly reports a TSF offset of zero
+        # This only works because the source is always the ML probe response
+        tsf1 = int(wpas.get_bss(hapd1.own_addr())['tsf'])
+
         bss = wpas.request("BSS " + hapd1.own_addr())
         logger.info("BSS 1: " + str(bss))
 
@@ -304,6 +343,17 @@ def test_eht_mld_discovery(dev, apdev):
 
         if ml_pattern.search(bss) is None:
             raise Exception("ML element not found for second link")
+
+        _eht_mld_probe_req(wpas, hapd0, tsf0, link_id=1)
+        if int(wpas.get_bss(hapd1.own_addr())['tsf']) <= tsf1:
+            raise Exception("Probe for link ID did not update BSS")
+        tsf0 = int(wpas.get_bss(hapd0.own_addr())['tsf'])
+        tsf1 = int(wpas.get_bss(hapd1.own_addr())['tsf'])
+
+        # Probing the wrong link ID should not update second link
+        _eht_mld_probe_req(wpas, hapd0, tsf0, link_id=4)
+        if int(wpas.get_bss(hapd1.own_addr())['tsf']) != tsf1:
+            raise Exception("Probe for other link ID not updated BSS")
 
 def test_eht_mld_owe_two_links(dev, apdev):
     """EHT MLD AP with MLD client OWE connection using two links"""
