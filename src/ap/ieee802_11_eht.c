@@ -1050,6 +1050,85 @@ static int hostapd_mld_validate_assoc_info(struct hostapd_data *hapd,
 }
 
 
+int hostapd_process_ml_assoc_req_addr(struct hostapd_data *hapd,
+				      const u8 *basic_mle, size_t basic_mle_len,
+				      u8 *mld_addr)
+{
+	struct wpabuf *mlbuf = ieee802_11_defrag(basic_mle, basic_mle_len,
+						 true);
+	struct ieee80211_eht_ml *ml;
+	struct eht_ml_basic_common_info *common_info;
+	size_t ml_len, common_info_len;
+	int ret = -1;
+	u16 ml_control;
+
+	if (!mlbuf)
+		return WLAN_STATUS_SUCCESS;
+
+	ml = (struct ieee80211_eht_ml *) wpabuf_head(mlbuf);
+	ml_len = wpabuf_len(mlbuf);
+
+	if (ml_len < sizeof(*ml))
+		goto out;
+
+	ml_control = le_to_host16(ml->ml_control);
+	if ((ml_control & MULTI_LINK_CONTROL_TYPE_MASK) !=
+	    MULTI_LINK_CONTROL_TYPE_BASIC) {
+		wpa_printf(MSG_DEBUG, "MLD: Invalid ML type=%u",
+			   ml_control & MULTI_LINK_CONTROL_TYPE_MASK);
+		goto out;
+	}
+
+	/* Common Info Length and MLD MAC Address must always be present */
+	common_info_len = 1 + ETH_ALEN;
+
+	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_LINK_ID) {
+		wpa_printf(MSG_DEBUG, "MLD: Link ID Info not expected");
+		goto out;
+	}
+
+	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: BSS Parameters Change Count not expected");
+		goto out;
+	}
+
+	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_MSD_INFO) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Medium Synchronization Delay Information not expected");
+		goto out;
+	}
+
+	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA)
+		common_info_len += 2;
+
+	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_MLD_CAPA)
+		common_info_len += 2;
+
+	if (sizeof(*ml) + common_info_len > ml_len) {
+		wpa_printf(MSG_DEBUG, "MLD: Not enough bytes for common info");
+		goto out;
+	}
+
+	common_info = (struct eht_ml_basic_common_info *) ml->variable;
+
+	/* Common information length includes the length octet */
+	if (common_info->len != common_info_len) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Invalid common info len=%u", common_info->len);
+		goto out;
+	}
+
+	/* Get the MLD MAC Address */
+	os_memcpy(mld_addr, common_info->mld_addr, ETH_ALEN);
+	ret = 0;
+
+out:
+	wpabuf_free(mlbuf);
+	return ret;
+}
+
+
 u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 				 struct ieee802_11_elems *elems,
 				 struct sta_info *sta)

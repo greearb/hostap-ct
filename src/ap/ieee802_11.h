@@ -104,6 +104,9 @@ const u8 * hostapd_process_ml_auth(struct hostapd_data *hapd,
 u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 				 struct ieee802_11_elems *elems,
 				 struct sta_info *sta);
+int hostapd_process_ml_assoc_req_addr(struct hostapd_data *hapd,
+				      const u8 *basic_mle, size_t basic_mle_len,
+				      u8 *mld_addr);
 int hostapd_get_aid(struct hostapd_data *hapd, struct sta_info *sta);
 u16 copy_sta_ht_capab(struct hostapd_data *hapd, struct sta_info *sta,
 		      const u8 *ht_capab);

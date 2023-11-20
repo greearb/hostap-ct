@@ -85,6 +85,11 @@ static void handle_auth(struct hostapd_data *hapd,
 			int rssi, int from_queue);
 static int add_associated_sta(struct hostapd_data *hapd,
 			      struct sta_info *sta, int reassoc);
+#ifdef CONFIG_IEEE80211BE
+static struct sta_info *
+hostapd_ml_get_assoc_sta(struct hostapd_data *hapd, struct sta_info *sta,
+			 struct hostapd_data **assoc_hapd);
+#endif /* CONFIG_IEEE80211BE */
 
 
 u8 * hostapd_eid_multi_ap(struct hostapd_data *hapd, u8 *eid)
@@ -4709,7 +4714,7 @@ static int add_associated_sta(struct hostapd_data *hapd,
 static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 			   const u8 *addr, u16 status_code, int reassoc,
 			   const u8 *ies, size_t ies_len, int rssi,
-			   int omit_rsnxe)
+			   int omit_rsnxe, bool allow_mld_addr_trans)
 {
 	int send_len;
 	u8 *buf;
@@ -4759,7 +4764,8 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 	 * Once a non-AP MLD is added to the driver, the addressing should use
 	 * MLD MAC address.
 	 */
-	if (hapd->conf->mld_ap && sta && sta->mld_info.mld_sta)
+	if (hapd->conf->mld_ap && sta && sta->mld_info.mld_sta &&
+	    allow_mld_addr_trans)
 		sa = hapd->mld_addr;
 #endif /* CONFIG_IEEE80211BE */
 
@@ -5125,7 +5131,8 @@ void fils_hlp_finish_assoc(struct hostapd_data *hapd, struct sta_info *sta)
 	reply_res = send_assoc_resp(hapd, sta, sta->addr, WLAN_STATUS_SUCCESS,
 				    sta->fils_pending_assoc_is_reassoc,
 				    sta->fils_pending_assoc_req,
-				    sta->fils_pending_assoc_req_len, 0, 0);
+				    sta->fils_pending_assoc_req_len, 0, 0,
+				    true);
 	os_free(sta->fils_pending_assoc_req);
 	sta->fils_pending_assoc_req = NULL;
 	sta->fils_pending_assoc_req_len = 0;
@@ -5160,6 +5167,48 @@ void fils_hlp_timeout(void *eloop_ctx, void *eloop_data)
 #endif /* CONFIG_FILS */
 
 
+#ifdef CONFIG_IEEE80211BE
+static struct sta_info * handle_mlo_translate(struct hostapd_data *hapd,
+					      const struct ieee80211_mgmt *mgmt,
+					      size_t len, bool reassoc,
+					      struct hostapd_data **assoc_hapd)
+{
+	struct sta_info *sta;
+	struct ieee802_11_elems elems;
+	u8 mld_addr[ETH_ALEN];
+	const u8 *pos;
+
+	if (!hapd->iconf->ieee80211be || hapd->conf->disable_11be)
+		return NULL;
+
+	if (reassoc) {
+		len -= IEEE80211_HDRLEN + sizeof(mgmt->u.reassoc_req);
+		pos = mgmt->u.reassoc_req.variable;
+	} else {
+		len -= IEEE80211_HDRLEN + sizeof(mgmt->u.assoc_req);
+		pos = mgmt->u.assoc_req.variable;
+	}
+
+	if (ieee802_11_parse_elems(pos, len, &elems, 1) == ParseFailed)
+		return NULL;
+
+	if (hostapd_process_ml_assoc_req_addr(hapd, elems.basic_mle,
+					      elems.basic_mle_len,
+					      mld_addr))
+		return NULL;
+
+	sta = ap_get_sta(hapd, mld_addr);
+	if (!sta)
+		return NULL;
+
+	wpa_printf(MSG_DEBUG, "MLD: assoc: mld=" MACSTR ", link=" MACSTR,
+		   MAC2STR(mld_addr), MAC2STR(mgmt->sa));
+
+	return hostapd_ml_get_assoc_sta(hapd, sta, assoc_hapd);
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 static void handle_assoc(struct hostapd_data *hapd,
 			 const struct ieee80211_mgmt *mgmt, size_t len,
 			 int reassoc, int rssi)
@@ -5176,6 +5225,7 @@ static void handle_assoc(struct hostapd_data *hapd,
 #endif /* CONFIG_FILS */
 	int omit_rsnxe = 0;
 	bool set_beacon = false;
+	bool mld_addrs_not_translated = false;
 
 	if (len < IEEE80211_HDRLEN + (reassoc ? sizeof(mgmt->u.reassoc_req) :
 				      sizeof(mgmt->u.assoc_req))) {
@@ -5233,6 +5283,28 @@ static void handle_assoc(struct hostapd_data *hapd,
 	}
 
 	sta = ap_get_sta(hapd, mgmt->sa);
+
+#ifdef CONFIG_IEEE80211BE
+	/*
+	 * It is possible that the association frame is from an associated
+	 * non-AP MLD station, that tries to re-associate using different link
+	 * addresses. In such a case, try to find the station based on the AP
+	 * MLD MAC address.
+	 */
+	if (!sta) {
+		struct hostapd_data *assoc_hapd;
+
+		sta = handle_mlo_translate(hapd, mgmt, len, reassoc,
+					   &assoc_hapd);
+		if (sta) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Switching to assoc hapd/station");
+			hapd = assoc_hapd;
+			mld_addrs_not_translated = true;
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 #ifdef CONFIG_IEEE80211R_AP
 	if (sta && sta->auth_alg == WLAN_AUTH_FT &&
 	    (sta->flags & WLAN_STA_AUTH) == 0) {
@@ -5553,8 +5625,12 @@ static void handle_assoc(struct hostapd_data *hapd,
 #endif /* CONFIG_FILS */
 
 	if (resp >= 0)
-		reply_res = send_assoc_resp(hapd, sta, mgmt->sa, resp, reassoc,
-					    pos, left, rssi, omit_rsnxe);
+		reply_res = send_assoc_resp(hapd,
+					    mld_addrs_not_translated ?
+					    NULL : sta,
+					    mgmt->sa, resp, reassoc,
+					    pos, left, rssi, omit_rsnxe,
+					    !mld_addrs_not_translated);
 	os_free(tmp);
 
 	/*
