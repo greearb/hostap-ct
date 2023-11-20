@@ -2667,10 +2667,16 @@ int sme_update_ft_ies(struct wpa_supplicant *wpa_s, const u8 *md,
 static void sme_deauth(struct wpa_supplicant *wpa_s, const u8 **link_bssids)
 {
 	int bssid_changed;
+	const u8 *bssid;
 
 	bssid_changed = !is_zero_ether_addr(wpa_s->bssid);
 
-	if (wpa_drv_deauthenticate(wpa_s, wpa_s->pending_bssid,
+	if (wpa_s->valid_links)
+		bssid = wpa_s->ap_mld_addr;
+	else
+		bssid = wpa_s->pending_bssid;
+
+	if (wpa_drv_deauthenticate(wpa_s, bssid,
 				   WLAN_REASON_DEAUTH_LEAVING) < 0) {
 		wpa_msg(wpa_s, MSG_INFO, "SME: Deauth request to the driver "
 			"failed");
@@ -2706,8 +2712,14 @@ void sme_event_assoc_reject(struct wpa_supplicant *wpa_s,
 		if (wpa_s->current_bss) {
 			struct wpa_bss *bss = wpa_s->current_bss;
 			struct wpa_ssid *ssid = wpa_s->current_ssid;
+			const u8 *bssid;
 
-			wpa_drv_deauthenticate(wpa_s, wpa_s->pending_bssid,
+			if (wpa_s->valid_links)
+				bssid = wpa_s->ap_mld_addr;
+			else
+				bssid = wpa_s->pending_bssid;
+
+			wpa_drv_deauthenticate(wpa_s, bssid,
 					       WLAN_REASON_DEAUTH_LEAVING);
 			wpas_connect_work_done(wpa_s);
 			wpa_supplicant_mark_disassoc(wpa_s);
