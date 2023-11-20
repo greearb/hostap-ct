@@ -669,12 +669,20 @@ int os_exec(const char *program, const char *arg, int wait_completion);
 #if defined(WPA_TRACE_BFD) && defined(CONFIG_TESTING_OPTIONS)
 #define TEST_FAIL() testing_test_fail()
 int testing_test_fail(void);
-extern char wpa_trace_fail_func[256];
-extern unsigned int wpa_trace_fail_after;
-extern char wpa_trace_test_fail_func[256];
-extern unsigned int wpa_trace_test_fail_after;
+int testing_set_fail_pattern(bool is_alloc, char *patterns);
+int testing_get_fail_pattern(bool is_alloc, char *buf, size_t buflen);
 #else
 #define TEST_FAIL() 0
+static inline int testing_set_fail_pattern(bool is_alloc, char *patterns)
+{
+	return -1;
+}
+
+static inline int testing_get_fail_pattern(bool is_alloc, char *buf,
+					   size_t buflen)
+{
+	return -1;
+}
 #endif
 
 #endif /* OS_H */

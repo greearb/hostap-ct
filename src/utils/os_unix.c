@@ -540,8 +540,8 @@ void * os_memdup(const void *src, size_t len)
 #ifdef WPA_TRACE
 
 #if defined(WPA_TRACE_BFD) && defined(CONFIG_TESTING_OPTIONS)
-char wpa_trace_fail_func[256] = { 0 };
-unsigned int wpa_trace_fail_after;
+static char wpa_trace_fail_func[256] = { 0 };
+static unsigned int wpa_trace_fail_after;
 
 static int testing_fail_alloc(void)
 {
@@ -626,8 +626,8 @@ static int testing_fail_alloc(void)
 }
 
 
-char wpa_trace_test_fail_func[256] = { 0 };
-unsigned int wpa_trace_test_fail_after;
+static char wpa_trace_test_fail_func[256] = { 0 };
+static unsigned int wpa_trace_test_fail_after;
 
 int testing_test_fail(void)
 {
@@ -695,6 +695,54 @@ int testing_test_fail(void)
 	}
 
 	return 0;
+}
+
+
+int testing_set_fail_pattern(bool is_alloc, char *patterns)
+{
+#ifdef WPA_TRACE_BFD
+	char *pos;
+
+	if (is_alloc) {
+		wpa_trace_fail_after = atoi(patterns);
+		pos = os_strchr(patterns, ':');
+		if (pos) {
+			pos++;
+			os_strlcpy(wpa_trace_fail_func, pos,
+				   sizeof(wpa_trace_fail_func));
+		} else {
+			wpa_trace_fail_after = 0;
+		}
+	} else {
+		wpa_trace_test_fail_after = atoi(patterns);
+		pos = os_strchr(patterns, ':');
+		if (pos) {
+			pos++;
+			os_strlcpy(wpa_trace_test_fail_func, pos,
+				   sizeof(wpa_trace_test_fail_func));
+		} else {
+			wpa_trace_test_fail_after = 0;
+		}
+	}
+
+	return 0;
+#else /* WPA_TRACE_BFD */
+	return -1;
+#endif /* WPA_TRACE_BFD */
+}
+
+
+int testing_get_fail_pattern(bool is_alloc, char *buf, size_t buflen)
+{
+#ifdef WPA_TRACE_BFD
+	if (is_alloc)
+		return os_snprintf(buf, buflen, "%u:%s", wpa_trace_fail_after,
+				   wpa_trace_fail_func);
+	return os_snprintf(buf, buflen, "%u:%s", wpa_trace_test_fail_after,
+			   wpa_trace_test_fail_func);
+#else /* WPA_TRACE_BFD */
+	return -1;
+#endif /* WPA_TRACE_BFD */
 }
 
 #else
