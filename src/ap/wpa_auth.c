@@ -5735,28 +5735,11 @@ void wpa_auth_add_sae_pmkid(struct wpa_state_machine *sm, const u8 *pmkid)
 
 int wpa_auth_pmksa_add2(struct wpa_authenticator *wpa_auth, const u8 *addr,
 			const u8 *pmk, size_t pmk_len, const u8 *pmkid,
-			int session_timeout, int akmp)
-{
-	if (!wpa_auth || wpa_auth->conf.disable_pmksa_caching)
-		return -1;
-
-	wpa_hexdump_key(MSG_DEBUG, "RSN: Cache PMK (2)", pmk, PMK_LEN);
-	if (pmksa_cache_auth_add(wpa_auth->pmksa, pmk, pmk_len, pmkid,
-				 NULL, 0, wpa_auth->addr, addr, session_timeout,
-				 NULL, akmp))
-		return 0;
-
-	return -1;
-}
-
-
-int wpa_auth_pmksa_add3(struct wpa_authenticator *wpa_auth, const u8 *addr,
-			const u8 *pmk, size_t pmk_len, const u8 *pmkid,
 			int session_timeout, int akmp, const u8 *dpp_pkhash)
 {
 	struct rsn_pmksa_cache_entry *entry;
 
-	if (wpa_auth->conf.disable_pmksa_caching)
+	if (!wpa_auth || wpa_auth->conf.disable_pmksa_caching)
 		return -1;
 
 	wpa_hexdump_key(MSG_DEBUG, "RSN: Cache PMK (3)", pmk, PMK_LEN);

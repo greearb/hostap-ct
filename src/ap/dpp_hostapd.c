@@ -2133,7 +2133,7 @@ static void hostapd_dpp_rx_peer_disc_req(struct hostapd_data *hapd,
 	else
 		expiration = 0;
 
-	if (wpa_auth_pmksa_add3(hapd->wpa_auth, src, intro.pmk, intro.pmk_len,
+	if (wpa_auth_pmksa_add2(hapd->wpa_auth, src, intro.pmk, intro.pmk_len,
 				intro.pmkid, expiration,
 				WPA_KEY_MGMT_DPP, pkhash) < 0) {
 		wpa_printf(MSG_ERROR, "DPP: Failed to add PMKSA cache entry");
@@ -2907,7 +2907,7 @@ hostapd_dpp_rx_priv_peer_intro_update(struct hostapd_data *hapd, const u8 *src,
 	else
 		expiration = 0;
 
-	if (wpa_auth_pmksa_add3(hapd->wpa_auth, src, intro.pmk, intro.pmk_len,
+	if (wpa_auth_pmksa_add2(hapd->wpa_auth, src, intro.pmk, intro.pmk_len,
 				intro.pmkid, expiration,
 				WPA_KEY_MGMT_DPP, pkhash) < 0) {
 		wpa_printf(MSG_ERROR, "DPP: Failed to add PMKSA cache entry");

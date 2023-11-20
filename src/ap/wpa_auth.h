@@ -482,9 +482,6 @@ int wpa_auth_pmksa_add_sae(struct wpa_authenticator *wpa_auth, const u8 *addr,
 void wpa_auth_add_sae_pmkid(struct wpa_state_machine *sm, const u8 *pmkid);
 int wpa_auth_pmksa_add2(struct wpa_authenticator *wpa_auth, const u8 *addr,
 			const u8 *pmk, size_t pmk_len, const u8 *pmkid,
-			int session_timeout, int akmp);
-int wpa_auth_pmksa_add3(struct wpa_authenticator *wpa_auth, const u8 *addr,
-			const u8 *pmk, size_t pmk_len, const u8 *pmkid,
 			int session_timeout, int akmp, const u8 *dpp_pkhash);
 void wpa_auth_pmksa_remove(struct wpa_authenticator *wpa_auth,
 			   const u8 *sta_addr);
