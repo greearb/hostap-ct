@@ -20,8 +20,38 @@ def eht_verify_wifi_version(dev):
     if status['wifi_generation'] != "7":
         raise Exception("Unexpected wifi_generation value: " + status['wifi_generation'])
 
+def _eht_get_links_bitmap(wpas, name):
+    vfile = "/sys/kernel/debug/ieee80211/%s/netdev:%s/%s" % \
+        (wpas.get_driver_status_field("phyname"), wpas.ifname, name)
+
+    if wpas.cmd_execute(["ls", vfile])[0] != 0:
+        logger_info("%s not supported in mac80211: %s" % (name, vfile))
+        return 0
+
+    res, out = wpas.cmd_execute(["cat", vfile], shell=True)
+    if res != 0:
+        raise Exception("Failed to read %s" % fname)
+
+    logger.info("%s=%s" % (name, out))
+    return int(out, 16)
+
+def _eht_valid_links(wpas):
+    return _eht_get_links_bitmap(wpas, "valid_links")
+
+def _eht_active_links(wpas):
+    return _eht_get_links_bitmap(wpas, "active_links")
+
+def _eht_verify_links(wpas, valid_links=0, active_links=0):
+    vlinks = _eht_valid_links(wpas)
+    if vlinks != valid_links:
+        raise Exception("Unexpected valid links (0x%04x != 0x%04x)" % (vlinks, valid_links))
+
+    alinks = _eht_active_links(wpas)
+    if alinks != active_links:
+        raise Exception("Unexpected active links (0x%04x != 0x%04x)" % (alinks, active_links))
+
 def eht_verify_status(wpas, hapd, freq, bw, is_ht=False, is_vht=False,
-                      mld=False):
+                      mld=False, valid_links=0, active_links=0):
     status = hapd.get_status()
 
     logger.info("hostapd STATUS: " + str(status))
@@ -56,6 +86,11 @@ def eht_verify_status(wpas, hapd, freq, bw, is_ht=False, is_vht=False,
             raise Exception("Unexpected SIGNAL_POLL value(1): " + str(sig))
         if "WIDTH=%s MHz" % bw not in sig:
             raise Exception("Unexpected SIGNAL_POLL value(2): " + str(sig))
+
+    # Active links are updated in async work after the connection.
+    # Sleep a bit to allow it to run.
+    time.sleep(0.1)
+    _eht_verify_links(wpas, valid_links, active_links)
 
 def traffic_test(wpas, hapd):
     hwsim_utils.test_connectivity(wpas, hapd)
@@ -292,7 +327,8 @@ def test_eht_mld_owe_two_links(dev, apdev):
         wpas.connect(ssid, scan_freq="2412 2437", key_mgmt="OWE",
                      ieee80211w="2")
 
-        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True)
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
         eht_verify_wifi_version(wpas)
         traffic_test(wpas, hapd0)
         traffic_test(wpas, hapd1)
@@ -315,7 +351,8 @@ def test_eht_mld_sae_single_link(dev, apdev):
         wpas.connect(ssid, sae_password=passphrase, scan_freq="2412",
                      key_mgmt="SAE", ieee80211w="2")
 
-        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True)
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=1, active_links=1)
         eht_verify_wifi_version(wpas)
         traffic_test(wpas, hapd0)
 
@@ -342,7 +379,8 @@ def run_eht_mld_sae_two_links(dev, apdev, beacon_prot="1"):
         wpas.connect(ssid, sae_password=passphrase, scan_freq="2412 2437",
                      key_mgmt="SAE", ieee80211w="2", beacon_prot="1")
 
-        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True)
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
         eht_verify_wifi_version(wpas)
         traffic_test(wpas, hapd0)
         traffic_test(wpas, hapd1)
@@ -372,7 +410,8 @@ def test_eht_mld_sae_ext_one_link(dev, apdev):
         wpas.connect(ssid, sae_password=passphrase, scan_freq="2412",
                      key_mgmt="SAE-EXT-KEY", ieee80211w="2")
 
-        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True)
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=1, active_links=1)
         eht_verify_wifi_version(wpas)
         traffic_test(wpas, hapd0)
 
@@ -398,7 +437,8 @@ def test_eht_mld_sae_ext_two_links(dev, apdev):
         wpas.connect(ssid, sae_password=passphrase, scan_freq="2412 2437",
                      key_mgmt="SAE-EXT-KEY", ieee80211w="2")
 
-        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True)
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
         eht_verify_wifi_version(wpas)
         traffic_test(wpas, hapd0)
         traffic_test(wpas, hapd1)
@@ -452,7 +492,8 @@ def test_eht_mld_sae_transition(dev, apdev):
         wpas.connect(ssid, sae_password=passphrase, scan_freq="2412 2437",
                      key_mgmt="SAE-EXT-KEY", ieee80211w="2")
 
-        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True)
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
         eht_verify_wifi_version(wpas)
         traffic_test(wpas, hapd0)
         traffic_test(wpas, hapd1)
