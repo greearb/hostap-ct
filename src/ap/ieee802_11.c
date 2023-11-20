@@ -4500,7 +4500,7 @@ bool hostapd_is_mld_ap(struct hostapd_data *hapd)
 static void hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 					  struct sta_info *sta,
 					  const u8 *ies, size_t ies_len,
-					  bool reassoc)
+					  bool reassoc, int tx_link_status)
 {
 #ifdef CONFIG_IEEE80211BE
 	unsigned int i, j;
@@ -4541,6 +4541,14 @@ static void hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 				   "MLD: No link match for link_id=%u", i);
 
 			link->status = WLAN_STATUS_UNSPECIFIED_FAILURE;
+			link->resp_sta_profile_len =
+				ieee80211_ml_build_assoc_resp(
+					hapd, link->status,
+					link->resp_sta_profile,
+					sizeof(link->resp_sta_profile));
+		} else if (tx_link_status != WLAN_STATUS_SUCCESS) {
+			/* TX link rejected the connection */
+			link->status = WLAN_STATUS_DENIED_TX_LINK_NOT_ACCEPTED;
 			link->resp_sta_profile_len =
 				ieee80211_ml_build_assoc_resp(
 					hapd, link->status,
@@ -5500,8 +5508,7 @@ static void handle_assoc(struct hostapd_data *hapd,
 	 *    issues with processing other non-Data Class 3 frames during this
 	 *    window.
 	 */
-	if (resp == WLAN_STATUS_SUCCESS)
-		hostapd_process_assoc_ml_info(hapd, sta, pos, left, reassoc);
+	hostapd_process_assoc_ml_info(hapd, sta, pos, left, reassoc, resp);
 
 	if (resp == WLAN_STATUS_SUCCESS && sta &&
 	    add_associated_sta(hapd, sta, reassoc))
