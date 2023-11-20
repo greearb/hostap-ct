@@ -1134,7 +1134,7 @@ def test_rrm_beacon_req_table_request_oom(dev, apdev):
     with fail_test(dev[0], 1,
                     "wpa_driver_nl80211_send_action;wpas_rrm_send_msr_report_mpdu"):
         token = run_req_beacon(hapd, addr, req + "020101" + "0a03000106")
-        wait_fail_trigger(dev[0], "GET_ALLOC_FAIL")
+        wait_fail_trigger(dev[0], "GET_FAIL")
         ev = hapd.wait_event(["BEACON-RESP-RX"], timeout=0.1)
         if ev is not None:
             raise Exception("Unexpected beacon report response received (OOM)")

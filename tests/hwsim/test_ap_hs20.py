@@ -5470,7 +5470,7 @@ def run_proxyarp_errors(dev, apdev, params):
     with fail_test(hapd, 1, "x_snoop_mcast_to_ucast_convert_send"):
         if "OK" not in hapd.request("DATA_TEST_FRAME ifname=ap-br0 " + binascii.hexlify(pkt).decode()):
             raise Exception("DATA_TEST_FRAME failed")
-        wait_fail_trigger(dev[0], "GET_FAIL")
+        wait_fail_trigger(hapd, "GET_FAIL")
 
     with alloc_fail(hapd, 1, "sta_ip6addr_add"):
         src_ll_opt0 = b"\x01\x01" + binascii.unhexlify(addr0.replace(':', ''))
@@ -5479,7 +5479,7 @@ def run_proxyarp_errors(dev, apdev, params):
                        opt=src_ll_opt0)
         if "OK" not in dev[0].request("DATA_TEST_FRAME " + binascii.hexlify(pkt).decode()):
             raise Exception("DATA_TEST_FRAME failed")
-        wait_fail_trigger(dev[0], "GET_ALLOC_FAIL")
+        wait_fail_trigger(hapd, "GET_ALLOC_FAIL")
 
 def test_ap_hs20_connect_deinit(dev, apdev):
     """Hotspot 2.0 connection interrupted with deinit"""
