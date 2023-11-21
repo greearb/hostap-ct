@@ -3888,7 +3888,8 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 
 	/* Add MLO GTK KDEs */
 	for (i = 0, link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
-		if (!sm->mld_links[link_id].valid)
+		if (!sm->mld_links[link_id].valid ||
+		    !ml_key_info.links[i].gtk_len)
 			continue;
 
 		wpa_printf(MSG_DEBUG, "RSN: MLO GTK: link=%u", link_id);
@@ -3920,7 +3921,8 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 
 	/* Add MLO IGTK KDEs */
 	for (i = 0, link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
-		if (!sm->mld_links[link_id].valid)
+		if (!sm->mld_links[link_id].valid ||
+		    !ml_key_info.links[i].igtk_len)
 			continue;
 
 		wpa_printf(MSG_DEBUG, "RSN: MLO IGTK: link=%u", link_id);
@@ -3959,7 +3961,9 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 
 	/* Add MLO BIGTK KDEs */
 	for (i = 0, link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
-		if (!sm->mld_links[link_id].valid)
+		if (!sm->mld_links[link_id].valid ||
+		    !ml_key_info.links[i].bigtk ||
+		    !ml_key_info.links[i].igtk_len)
 			continue;
 
 		wpa_printf(MSG_DEBUG, "RSN: MLO BIGTK: link=%u", link_id);
@@ -4755,7 +4759,8 @@ SM_STATE(WPA_PTK_GROUP, REKEYNEGOTIATING)
 				return;
 
 			kde = pos = kde_buf;
-			wpa_auth_ml_group_kdes(sm, pos);
+			pos = wpa_auth_ml_group_kdes(sm, pos);
+			kde_len = pos - kde_buf;
 		}
 #endif /* CONFIG_IEEE80211BE */
 	} else {
