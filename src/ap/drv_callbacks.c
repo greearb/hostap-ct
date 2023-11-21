@@ -856,6 +856,16 @@ skip_wpa_check:
 	}
 #endif /* CONFIG_IEEE80211R_AP || CONFIG_FILS */
 
+#ifdef CONFIG_IEEE80211BE
+	if (hostapd_process_assoc_ml_info(hapd, sta, req_ies, req_ies_len,
+					  !!reassoc, WLAN_STATUS_SUCCESS,
+					  true)) {
+		status = WLAN_STATUS_UNSPECIFIED_FAILURE;
+		reason = WLAN_REASON_UNSPECIFIED;
+		goto fail;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	new_assoc = (sta->flags & WLAN_STA_ASSOC) == 0;
 	sta->flags |= WLAN_STA_AUTH | WLAN_STA_ASSOC;
 	sta->flags &= ~WLAN_STA_WNM_SLEEP_MODE;

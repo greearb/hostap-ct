@@ -4381,11 +4381,11 @@ out:
 }
 
 
-static void ieee80211_ml_process_link(struct hostapd_data *hapd,
-				      struct sta_info *origin_sta,
-				      struct mld_link_info *link,
-				      const u8 *ies, size_t ies_len,
-				      bool reassoc)
+static int ieee80211_ml_process_link(struct hostapd_data *hapd,
+				     struct sta_info *origin_sta,
+				     struct mld_link_info *link,
+				     const u8 *ies, size_t ies_len,
+				     bool reassoc, bool offload)
 {
 	struct ieee802_11_elems elems;
 	struct wpabuf *mlbuf = NULL;
@@ -4448,20 +4448,22 @@ static void ieee80211_ml_process_link(struct hostapd_data *hapd,
 		li->resp_sta_profile_len = 0;
 	}
 
-	/*
-	 * Get the AID from the station on which the association was performed,
-	 * and mark it as used.
-	 */
-	sta->aid = origin_sta->aid;
-	if (sta->aid == 0) {
-		wpa_printf(MSG_DEBUG, "MLD: link: No AID assigned");
-		status = WLAN_STATUS_UNSPECIFIED_FAILURE;
-		goto out;
+	if (!offload) {
+		/*
+		 * Get the AID from the station on which the association was
+		 * performed, and mark it as used.
+		 */
+		sta->aid = origin_sta->aid;
+		if (sta->aid == 0) {
+			wpa_printf(MSG_DEBUG, "MLD: link: No AID assigned");
+			status = WLAN_STATUS_UNSPECIFIED_FAILURE;
+			goto out;
+		}
+		hapd->sta_aid[(sta->aid - 1) / 32] |= BIT((sta->aid - 1) % 32);
+		sta->listen_interval = origin_sta->listen_interval;
+		if (update_ht_state(hapd, sta) > 0)
+			ieee802_11_update_beacons(hapd->iface);
 	}
-	hapd->sta_aid[(sta->aid - 1) / 32] |= BIT((sta->aid - 1) % 32);
-	sta->listen_interval = origin_sta->listen_interval;
-	if (update_ht_state(hapd, sta) > 0)
-		ieee802_11_update_beacons(hapd->iface);
 
 	/* RSN Authenticator should always be the one on the original station */
 	wpa_auth_sta_deinit(sta->wpa_sm);
@@ -4487,17 +4489,23 @@ static void ieee80211_ml_process_link(struct hostapd_data *hapd,
 
 	/* TODO: What other processing is required? */
 
-	if (add_associated_sta(hapd, sta, reassoc))
+	if (!offload && add_associated_sta(hapd, sta, reassoc))
 		status = WLAN_STATUS_AP_UNABLE_TO_HANDLE_NEW_STA;
 out:
 	wpabuf_free(mlbuf);
 	link->status = status;
 
-	wpa_printf(MSG_DEBUG, "MLD: link: status=%u", status);
-	if (sta && status != WLAN_STATUS_SUCCESS)
-		ap_free_sta(hapd, sta);
+	if (!offload)
+		ieee80211_ml_build_assoc_resp(hapd, link);
 
-	ieee80211_ml_build_assoc_resp(hapd, link);
+	wpa_printf(MSG_DEBUG, "MLD: link: status=%u", status);
+	if (status != WLAN_STATUS_SUCCESS) {
+		if (sta)
+			ap_free_sta(hapd, sta);
+		return -1;
+	}
+
+	return 0;
 }
 
 
@@ -4516,16 +4524,17 @@ bool hostapd_is_mld_ap(struct hostapd_data *hapd)
 #endif /* CONFIG_IEEE80211BE */
 
 
-static void hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
-					  struct sta_info *sta,
-					  const u8 *ies, size_t ies_len,
-					  bool reassoc, int tx_link_status)
+int hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
+				  struct sta_info *sta,
+				  const u8 *ies, size_t ies_len,
+				  bool reassoc, int tx_link_status,
+				  bool offload)
 {
 #ifdef CONFIG_IEEE80211BE
 	unsigned int i, j;
 
 	if (!hostapd_is_mld_ap(hapd))
-		return;
+		return 0;
 
 	/*
 	 * This is not really needed, but make the interaction with the RSN
@@ -4561,17 +4570,23 @@ static void hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 				   "MLD: No link match for link_id=%u", i);
 
 			link->status = WLAN_STATUS_UNSPECIFIED_FAILURE;
-			ieee80211_ml_build_assoc_resp(hapd, link);
+			if (!offload)
+				ieee80211_ml_build_assoc_resp(hapd, link);
 		} else if (tx_link_status != WLAN_STATUS_SUCCESS) {
 			/* TX link rejected the connection */
 			link->status = WLAN_STATUS_DENIED_TX_LINK_NOT_ACCEPTED;
-			ieee80211_ml_build_assoc_resp(hapd, link);
+			if (!offload)
+				ieee80211_ml_build_assoc_resp(hapd, link);
 		} else {
-			ieee80211_ml_process_link(iface->bss[0], sta, link,
-						  ies, ies_len, reassoc);
+			if (ieee80211_ml_process_link(iface->bss[0], sta, link,
+						      ies, ies_len, reassoc,
+						      offload))
+				return -1;
 		}
 	}
 #endif /* CONFIG_IEEE80211BE */
+
+	return 0;
 }
 
 
@@ -5588,7 +5603,7 @@ static void handle_assoc(struct hostapd_data *hapd,
 	 */
 	if (sta)
 		hostapd_process_assoc_ml_info(hapd, sta, pos, left, reassoc,
-					      resp);
+					      resp, false);
 
 	if (resp == WLAN_STATUS_SUCCESS && sta &&
 	    add_associated_sta(hapd, sta, reassoc))

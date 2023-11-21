@@ -258,5 +258,10 @@ const char * sae_get_password(struct hostapd_data *hapd,
 struct sta_info * hostapd_ml_get_assoc_sta(struct hostapd_data *hapd,
 					   struct sta_info *sta,
 					   struct hostapd_data **assoc_hapd);
+int hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
+				  struct sta_info *sta,
+				  const u8 *ies, size_t ies_len,
+				  bool reassoc, int tx_link_status,
+				  bool offload);
 
 #endif /* IEEE802_11_H */
