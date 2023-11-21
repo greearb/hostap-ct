@@ -775,6 +775,7 @@ def test_wnm_bss_tm_req(dev, apdev):
     dev[0].dump_monitor()
 
 @remote_compatible
+@disable_ipv6
 def test_wnm_bss_keep_alive(dev, apdev):
     """WNM keep-alive"""
     hapd = start_wnm_ap(apdev[0], bss_transition=False, ap_max_inactivity=1)
