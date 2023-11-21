@@ -656,6 +656,15 @@ def test_eht_mld_link_removal(dev, apdev):
         logger.info("Test traffic after 2nd link disabled")
         traffic_test(wpas, hapd0)
 
+        if "OK" not in hapd0.request("REKEY_GTK"):
+            raise Exception("REKEY_GTK failed")
+
+        ev = wpas.wait_event(["MLO RSN: Group rekeying completed"], timeout=2)
+        if ev is None:
+            raise Exception("GTK rekey timed out")
+
+        traffic_test(wpas, hapd0)
+
         logger.info("Disable the 1st link in 20 beacon intervals")
         hapd0.link_remove(20)
         time.sleep(1)
