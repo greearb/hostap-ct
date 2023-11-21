@@ -4048,6 +4048,9 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 		nl80211_color_change_announcement_completed(bss);
 		break;
 #endif /* CONFIG_IEEE80211AX */
+	case NL80211_CMD_LINKS_REMOVED:
+		wpa_supplicant_event(drv->ctx, EVENT_LINK_RECONFIG, NULL);
+		break;
 	default:
 		wpa_dbg(drv->ctx, MSG_DEBUG, "nl80211: Ignored unknown event "
 			"(cmd=%d)", cmd);
