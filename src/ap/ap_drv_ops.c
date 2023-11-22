@@ -1567,3 +1567,11 @@ int hostapd_drv_pp_mode_set(struct hostapd_data *hapd)
 	return hapd->driver->pp_mode_set(hapd->drv_priv,
 					 hapd->iconf->pp_mode);
 }
+
+int hostapd_drv_beacon_ctrl(struct hostapd_data *hapd, u8 beacon_mode)
+{
+	if (!hapd->driver || !hapd->driver->beacon_ctrl)
+		return 0;
+	return hapd->driver->beacon_ctrl(hapd->drv_priv, beacon_mode);
+}
+

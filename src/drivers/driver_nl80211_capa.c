@@ -1174,6 +1174,9 @@ static int wiphy_info_handler(struct nl_msg *msg, void *arg)
 				case MTK_NL80211_VENDOR_SUBCMD_PP_CTRL:
 					drv->mtk_pp_vendor_cmd_avail = 1;
 					break;
+				case MTK_NL80211_VENDOR_SUBCMD_BEACON_CTRL :
+					drv->mtk_beacon_ctrl_vendor_cmd_avail = 1;
+					break;
 				}
 			}
 
