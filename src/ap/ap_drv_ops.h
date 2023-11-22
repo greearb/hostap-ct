@@ -176,6 +176,7 @@ int hostapd_drv_amnt_set(struct hostapd_data *hapd, u8 amnt_idx, u8 *amnt_sta_ma
 int hostapd_drv_amnt_dump(struct hostapd_data *hapd, u8 amnt_idx, u8 *amnt_dump_buf);
 int hostapd_drv_background_radar_mode(struct hostapd_data *hapd);
 int hostapd_drv_pp_mode_set(struct hostapd_data *hapd);
+int hostapd_drv_beacon_ctrl(struct hostapd_data *hapd, u8 beacon_mode);
 
 #include "drivers/driver.h"
 
