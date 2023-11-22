@@ -827,3 +827,29 @@ def test_suite_b_192_okc(dev, apdev):
         raise Exception("No PMKSA cache entry created")
     if pmksa2['pmkid'] != pmksa2b['pmkid']:
         raise Exception("Unexpected PMKID change for AP2")
+
+def test_suite_b_192_rsa_no_cs_match(dev, apdev):
+    """Suite B 192-bit level RSA failing (no CS match)"""
+    check_suite_b_192_capa(dev)
+    dev[0].flush_scan_cache()
+    params = suite_b_192_rsa_ap_params()
+    params['openssl_ciphers'] = "DHE-RSA-AES256-SHA"
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].connect("test-suite-b", key_mgmt="WPA-EAP-SUITE-B-192",
+                   ieee80211w="2",
+                   phase1="tls_suiteb=1",
+                   eap="TLS", identity="tls user",
+                   ca_cert="auth_serv/rsa3072-ca.pem",
+                   client_cert="auth_serv/rsa3072-user.pem",
+                   private_key="auth_serv/rsa3072-user.key",
+                   pairwise="GCMP-256", group="GCMP-256", scan_freq="2412",
+                   wait_connect=False)
+    ev = dev[0].wait_event(["CTRL-EVENT-EAP-FAILURE"], timeout=10)
+    if ev is None:
+        raise Exception("EAP-Failure not reported")
+    ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=5)
+    if ev is None:
+        raise Exception("Disconnection not reported")
+    if "reason=23" not in ev:
+        raise Exception("Unexpected disconnection reason: " + ev)
