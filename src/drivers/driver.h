@@ -5596,6 +5596,13 @@ struct wpa_driver_ops {
 	 int (*mu_dump)(void *priv, u8 *mu_onoff);
 
 	/**
+	 * beacon_ctrl - ctrl on off for beacon
+	 * @priv: Private driver interface data
+	 *
+	 */
+	int (*beacon_ctrl)(void *priv, u8 beacon_mode);
+
+	/**
 	 * three_wire_ctrl - set three_wire_ctrl mode
 	 * @priv: Private driver interface data
 	 * @three_wire_enable: three_wire_ctrl mode

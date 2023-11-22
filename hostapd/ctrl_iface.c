@@ -5069,6 +5069,24 @@ hostapd_ctrl_iface_get_pp(struct hostapd_data *hapd, char *cmd, char *buf,
 	}
 }
 
+static int
+hostapd_ctrl_iface_disable_beacon(struct hostapd_data *hapd, char *value,
+				  char *buf, size_t buflen)
+{
+	int disable_beacon = atoi(value);
+
+	if (disable_beacon < 0) {
+		wpa_printf(MSG_ERROR, "Invalid value for beacon ctrl");
+		return -1;
+	}
+
+	if (hostapd_drv_beacon_ctrl(hapd, !disable_beacon) == 0)
+		return os_snprintf(buf, buflen, "OK\n");
+	else
+		return -1;
+
+}
+
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
 					      int reply_size,
@@ -5728,6 +5746,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "SET_BACKGROUND_RADAR_MODE", 25) == 0) {
 		reply_len = hostapd_ctrl_iface_set_background_radar_mode(hapd, buf + 25,
 									 reply, reply_size);
+	} else if (os_strncmp(buf, "NO_BEACON ", 10) == 0) {
+		reply_len = hostapd_ctrl_iface_disable_beacon(hapd, buf + 10, reply,
+							      reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;
