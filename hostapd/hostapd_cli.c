@@ -1486,6 +1486,11 @@ static int hostapd_cli_cmd_get_mu(struct wpa_ctrl *ctrl, int argc,
 	return hostapd_cli_cmd(ctrl, "GET_MU", 0, argc, argv);
 }
 
+static int hostapd_cli_cmd_disable_beacon(struct wpa_ctrl *ctrl, int argc,
+					   char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "NO_BEACON", 1, argc, argv);
+}
 
 #ifdef CONFIG_DPP
 
@@ -1914,6 +1919,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 		"<value> [0-15] bitmap- UL MU-MIMO(bit3), DL MU-MIMO(bit2), UL OFDMA(bit1), DL OFDMA(bit0)"},
 	{ "get_mu", hostapd_cli_cmd_get_mu, NULL,
 		" = show mu onoff value in 0-15 bitmap"},
+	{ "no_beacon", hostapd_cli_cmd_disable_beacon, NULL,
+		"<value> 0: Enable beacon, 1: Disable beacon"},
 #ifdef CONFIG_DPP
 	{ "dpp_qr_code", hostapd_cli_cmd_dpp_qr_code, NULL,
 	  "report a scanned DPP URI from a QR Code" },
