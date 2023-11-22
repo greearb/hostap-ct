@@ -775,7 +775,7 @@ skip_wpa_check:
 
 #ifdef CONFIG_OWE
 	if ((hapd->conf->wpa_key_mgmt & WPA_KEY_MGMT_OWE) &&
-	    !(iface->drv_flags & WPA_DRIVER_FLAGS2_OWE_OFFLOAD_AP) &&
+	    !(iface->drv_flags2 & WPA_DRIVER_FLAGS2_OWE_OFFLOAD_AP) &&
 	    wpa_auth_sta_key_mgmt(sta->wpa_sm) == WPA_KEY_MGMT_OWE &&
 	    elems.owe_dh) {
 		u8 *npos;
