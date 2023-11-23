@@ -1849,8 +1849,7 @@ static struct hostapd_data * hostapd_find_by_sta(struct hostapd_iface *iface,
 
 
 #ifdef CONFIG_IEEE80211BE
-static bool search_mld_sta(struct hostapd_data **p_hapd, const u8 *src,
-			   bool rsn)
+static bool search_mld_sta(struct hostapd_data **p_hapd, const u8 *src)
 {
 	struct hostapd_data *hapd = *p_hapd;
 	unsigned int i;
@@ -1866,8 +1865,13 @@ static bool search_mld_sta(struct hostapd_data **p_hapd, const u8 *src,
 		    hconf->mld_id != hapd->conf->mld_id)
 			continue;
 
-		h_hapd = hostapd_find_by_sta(h, src, true);
+		h_hapd = hostapd_find_by_sta(h, src, false);
 		if (h_hapd) {
+			struct sta_info *sta = ap_get_sta(h_hapd, src);
+
+			if (sta && sta->mld_info.mld_sta &&
+			    sta->mld_assoc_link_id != h_hapd->mld_link_id)
+				continue;
 			*p_hapd = h_hapd;
 			return true;
 		}
@@ -1902,11 +1906,7 @@ static void hostapd_event_eapol_rx(struct hostapd_data *hapd, const u8 *src,
 		if (h_hapd)
 			hapd = h_hapd;
 	} else if (hapd->conf->mld_ap) {
-		bool found;
-
-		found = search_mld_sta(&hapd, src, true);
-		if (!found)
-			search_mld_sta(&hapd, src, false);
+		search_mld_sta(&hapd, src);
 	} else {
 		hapd = hostapd_find_by_sta(hapd->iface, src, false);
 	}
