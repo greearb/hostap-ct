@@ -2379,6 +2379,7 @@ static int wpa_scan_result_compar(const void *a, const void *b)
 	int wpa_a, wpa_b;
 	int snr_a, snr_b, snr_a_full, snr_b_full;
 	size_t ies_len;
+	const u8 *rsne_a, *rsne_b;
 
 	/* WPA/WPA2 support preferred */
 	wpa_a = wpa_scan_get_vendor_ie(wa, WPA_IE_VENDOR_TYPE) != NULL ||
@@ -2420,6 +2421,32 @@ static int wpa_scan_result_compar(const void *a, const void *b)
 		 * SNR. Just use raw level (units unknown). */
 		snr_a = snr_a_full = wa->level;
 		snr_b = snr_b_full = wb->level;
+	}
+
+	/* If SNR of a SAE BSS is good or at least as high as the PSK BSS,
+	 * prefer SAE over PSK for mixed WPA3-Personal transition mode and
+	 * WPA2-Personal deployments */
+	rsne_a = wpa_scan_get_ie(wa, WLAN_EID_RSN);
+	rsne_b = wpa_scan_get_ie(wb, WLAN_EID_RSN);
+	if (rsne_a && rsne_b) {
+		struct wpa_ie_data data;
+		bool psk_a = false, psk_b = false, sae_a = false, sae_b = false;
+
+		if (wpa_parse_wpa_ie_rsn(rsne_a, 2 + rsne_a[1], &data) == 0) {
+			psk_a = wpa_key_mgmt_wpa_psk_no_sae(data.key_mgmt);
+			sae_a = wpa_key_mgmt_sae(data.key_mgmt);
+		}
+		if (wpa_parse_wpa_ie_rsn(rsne_b, 2 + rsne_b[1], &data) == 0) {
+			psk_b = wpa_key_mgmt_wpa_psk_no_sae(data.key_mgmt);
+			sae_b = wpa_key_mgmt_sae(data.key_mgmt);
+		}
+
+		if (sae_a && !sae_b && psk_b &&
+		    (snr_a >= GREAT_SNR || snr_a >= snr_b))
+			return -1;
+		if (sae_b && !sae_a && psk_a &&
+		    (snr_b >= GREAT_SNR || snr_b >= snr_a))
+			return 1;
 	}
 
 	/* If SNR is close, decide by max rate or frequency band. For cases
