@@ -758,15 +758,33 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 		return 0;
 	}
 
+	wpa_ie = wpa_bss_get_vendor_ie(bss, WPA_IE_VENDOR_TYPE);
+
 	if (wpas_get_ssid_pmf(wpa_s, ssid) == MGMT_FRAME_PROTECTION_REQUIRED &&
 	    (!(ssid->key_mgmt & WPA_KEY_MGMT_OWE) || ssid->owe_only)) {
+#ifdef CONFIG_OWE
+		if ((ssid->key_mgmt & WPA_KEY_MGMT_OWE) && ssid->owe_only &&
+		    !wpa_ie && !rsn_ie &&
+		    wpa_s->owe_transition_select &&
+		    wpa_bss_get_vendor_ie(bss, OWE_IE_VENDOR_TYPE) &&
+		    ssid->owe_transition_bss_select_count + 1 <=
+		    MAX_OWE_TRANSITION_BSS_SELECT_COUNT) {
+			ssid->owe_transition_bss_select_count++;
+			if (debug_print)
+				wpa_dbg(wpa_s, MSG_DEBUG,
+					"   skip OWE open BSS (selection count %d does not exceed %d)",
+					ssid->owe_transition_bss_select_count,
+					MAX_OWE_TRANSITION_BSS_SELECT_COUNT);
+			wpa_s->owe_transition_search = 1;
+			return 0;
+		}
+#endif /* CONFIG_OWE */
 		if (debug_print)
 			wpa_dbg(wpa_s, MSG_DEBUG,
 				"   skip - MFP Required but network not MFP Capable");
 		return 0;
 	}
 
-	wpa_ie = wpa_bss_get_vendor_ie(bss, WPA_IE_VENDOR_TYPE);
 	while ((ssid->proto & WPA_PROTO_WPA) && wpa_ie) {
 		proto_match++;
 
