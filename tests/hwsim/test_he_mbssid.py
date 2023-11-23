@@ -47,7 +47,7 @@ def mbssid_create_cfg_file(apdev, params, mbssid=1):
 
     return (f, fname, ifname)
 
-def mbssid_write_bss_params(f, ifname, idx, params=None):
+def mbssid_write_bss_params(f, ifname, idx, params=None, single_ssid=False):
     # Add BSS specific characteristics
     fields = ["wpa", "wpa_pairwise", "rsn_pairwise", "wpa_passphrase",
               "wpa_key_mgmt", "ieee80211w", "sae_pwe" ]
@@ -58,7 +58,10 @@ def mbssid_write_bss_params(f, ifname, idx, params=None):
         f.write("\nbss=%s\n" % (ifname + '-' + str(idx)))
 
     f.write("ctrl_interface=/var/run/hostapd\n")
-    f.write("ssid=bss-%s\n" % idx)
+    if single_ssid:
+        f.write("ssid=single\n")
+    else:
+        f.write("ssid=bss-%s\n" % idx)
     f.write("bridge=br-lan\n")
     f.write("bssid=00:03:7f:12:2a:%02x\n" % idx)
     f.write("preamble=1\n")
@@ -71,8 +74,21 @@ def mbssid_write_bss_params(f, ifname, idx, params=None):
         if field in params:
             f.write("%s=%s\n" % (field, params[field]))
 
+def mbssid_stop_ap(hapd, pid):
+    if "OK" not in hapd.request("TERMINATE"):
+        raise Exception("Failed to terminate hostapd process")
+    ev = hapd.wait_event(["CTRL-EVENT-TERMINATING"], timeout=15)
+    if ev is None:
+        raise Exception("CTRL-EVENT-TERMINATING not seen")
+    for i in range(30):
+        time.sleep(0.1)
+        if not os.path.exists(pid):
+            break
+    if os.path.exists(pid):
+        raise Exception("PID file exits after process termination")
+
 def mbssid_start_ap(dev, apdev, params, fname, ifname, sta_params,
-                    sta_params2=None):
+                    sta_params2=None, single_ssid=False, only_start_ap=False):
     pid = params['prefix'] + ".hostapd.pid"
     cmd = ['../../hostapd/hostapd', '-dtSB', '-dt', '-P', pid, '-f',
            params['prefix'] + ".hostapd-log", fname]
@@ -97,8 +113,11 @@ def mbssid_start_ap(dev, apdev, params, fname, ifname, sta_params,
 
     # Allow enough time to pass for a Beacon frame to be captured.
     time.sleep(0.1)
+    if only_start_ap:
+        return hapd, pid
 
-    dev[0].connect("bss-0", **sta_params)
+    ssid = "single" if single_ssid else "bss-0"
+    dev[0].connect(ssid, **sta_params)
     sta = hapd.get_sta(dev[0].own_addr())
     if "[HE]" not in sta['flags']:
         raise Exception("Missing STA flag: HE")
@@ -106,20 +125,11 @@ def mbssid_start_ap(dev, apdev, params, fname, ifname, sta_params,
 
     if sta_params2:
         dev[0].wait_disconnected()
-        dev[0].connect("bss-1", **sta_params2)
+        ssid = "single" if single_ssid else "bss-1"
+        dev[0].connect(ssid, **sta_params2)
         dev[0].request("DISCONNECT")
 
-    if "OK" not in hapd.request("TERMINATE"):
-        raise Exception("Failed to terminate hostapd process")
-    ev = hapd.wait_event(["CTRL-EVENT-TERMINATING"], timeout=15)
-    if ev is None:
-        raise Exception("CTRL-EVENT-TERMINATING not seen")
-    for i in range(30):
-        time.sleep(0.1)
-        if not os.path.exists(pid):
-            break
-    if os.path.exists(pid):
-        raise Exception("PID file exits after process termination")
+    mbssid_stop_ap(hapd, pid)
 
 def test_he_ap_mbssid_open(dev, apdev, params):
     """HE AP MBSSID all open"""
@@ -252,6 +262,67 @@ def test_he_ap_mbssid_mixed_security3(dev, apdev, params):
                         sta_params2)
     finally:
         dev[0].set("sae_pwe", "0")
+        subprocess.call(['ip', 'link', 'set', 'dev', apdev[0]['ifname'],
+                         'address', apdev[0]['bssid']])
+
+def test_he_ap_mbssid_single_ssid(dev, apdev, params):
+    """HE AP MBSSID with mixed security and single SSID"""
+    f, fname, ifname = mbssid_create_cfg_file(apdev, params)
+
+    psk_params = {"wpa": "2", "wpa_passphrase": "12345678",
+                  "wpa_pairwise": "CCMP", "wpa_key_mgmt": "WPA-PSK"}
+
+    sae_params = {"wpa": "2", "wpa_passphrase": "12345678",
+                  "wpa_pairwise": "CCMP", "wpa_key_mgmt": "SAE",
+                  "sae_pwe": "1", "ieee80211w": "2", "beacon_prot": "1"}
+
+    mbssid_write_bss_params(f, ifname, 0, psk_params, single_ssid=True)
+    mbssid_write_bss_params(f, ifname, 1, sae_params, single_ssid=True)
+
+    f.close()
+
+    try:
+        dev[0].set("sae_pwe", "1")
+        dev[0].set("sae_groups", "")
+        sta_params = {"psk": "12345678", "key_mgmt": "WPA-PSK",
+                      "pairwise": "CCMP", "group": "CCMP", "scan_freq": "2412"}
+        sta_params2 = {"psk": "12345678", "key_mgmt": "SAE", "ieee80211w": "2",
+                       "pairwise": "CCMP", "group": "CCMP", "scan_freq": "2412",
+                       "beacon_prot": "1"}
+        mbssid_start_ap(dev, apdev, params, fname, ifname, sta_params,
+                        sta_params2, single_ssid=True)
+    finally:
+        dev[0].set("sae_pwe", "0")
+        subprocess.call(['ip', 'link', 'set', 'dev', apdev[0]['ifname'],
+                         'address', apdev[0]['bssid']])
+
+def test_he_ap_mbssid_single_ssid_tm(dev, apdev, params):
+    """HE AP MBSSID with mixed security and single SSID and transition mode"""
+    f, fname, ifname = mbssid_create_cfg_file(apdev, params)
+
+    psk_params = {"wpa": "2", "wpa_passphrase": "12345678",
+                  "wpa_pairwise": "CCMP", "wpa_key_mgmt": "WPA-PSK"}
+
+    tm_params = {"wpa": "2", "wpa_passphrase": "12345678",
+                 "wpa_pairwise": "CCMP", "wpa_key_mgmt": "SAE WPA-PSK",
+                 "sae_pwe": "2", "ieee80211w": "1", "beacon_prot": "1"}
+
+    mbssid_write_bss_params(f, ifname, 0, psk_params, single_ssid=True)
+    mbssid_write_bss_params(f, ifname, 1, tm_params, single_ssid=True)
+
+    f.close()
+
+    try:
+        dev[0].set("sae_groups", "")
+        hapd, pid = mbssid_start_ap(dev, apdev, params, fname, ifname, None,
+                                    single_ssid=True, only_start_ap=True)
+        dev[0].connect("single", psk="12345678", key_mgmt="SAE WPA-PSK",
+                       ieee80211w="1", scan_freq="2412", beacon_prot="1")
+        key_mgmt = dev[0].get_status_field("key_mgmt")
+        mbssid_stop_ap(hapd, pid)
+        if key_mgmt != "SAE":
+            raise Exception("Did not use SAE")
+    finally:
         subprocess.call(['ip', 'link', 'set', 'dev', apdev[0]['ifname'],
                          'address', apdev[0]['bssid']])
 
