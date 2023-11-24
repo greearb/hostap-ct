@@ -50,7 +50,8 @@ def mbssid_create_cfg_file(apdev, params, mbssid=1):
 def mbssid_write_bss_params(f, ifname, idx, params=None, single_ssid=False):
     # Add BSS specific characteristics
     fields = ["wpa", "wpa_pairwise", "rsn_pairwise", "wpa_passphrase",
-              "wpa_key_mgmt", "ieee80211w", "sae_pwe" ]
+              "wpa_key_mgmt", "ieee80211w", "sae_pwe", "beacon_prot",
+              "sae_password"]
 
     if idx == 0:
         f.write("interface=%s\n" % ifname)
@@ -74,6 +75,11 @@ def mbssid_write_bss_params(f, ifname, idx, params=None, single_ssid=False):
         if field in params:
             f.write("%s=%s\n" % (field, params[field]))
 
+def mbssid_dump_config(fname):
+    with open(fname, 'r') as f:
+        cfg = f.read()
+        logger.debug("hostapd config:\n" + cfg)
+
 def mbssid_stop_ap(hapd, pid):
     if "OK" not in hapd.request("TERMINATE"):
         raise Exception("Failed to terminate hostapd process")
@@ -90,7 +96,7 @@ def mbssid_stop_ap(hapd, pid):
 def mbssid_start_ap(dev, apdev, params, fname, ifname, sta_params,
                     sta_params2=None, single_ssid=False, only_start_ap=False):
     pid = params['prefix'] + ".hostapd.pid"
-    cmd = ['../../hostapd/hostapd', '-dtSB', '-dt', '-P', pid, '-f',
+    cmd = ['../../hostapd/hostapd', '-ddKtSB', '-P', pid, '-f',
            params['prefix'] + ".hostapd-log", fname]
 
     logger.info("Starting APs for " + ifname)
@@ -318,6 +324,10 @@ def test_he_ap_mbssid_single_ssid_tm(dev, apdev, params):
                                     single_ssid=True, only_start_ap=True)
         dev[0].connect("single", psk="12345678", key_mgmt="SAE WPA-PSK",
                        ieee80211w="1", scan_freq="2412", beacon_prot="1")
+        beacon_loss = False
+        ev = dev[0].wait_event(["CTRL-EVENT-BEACON-LOSS"], timeout=5)
+        if ev is not None:
+            beacon_loss = True
         key_mgmt = dev[0].get_status_field("key_mgmt")
         mbssid_stop_ap(hapd, pid)
         if key_mgmt != "SAE":
@@ -347,5 +357,50 @@ def test_he_ap_ema(dev, apdev, params):
         mbssid_start_ap(dev, apdev, params, fname, ifname, sta_params)
     finally:
         dev[0].set("sae_pwe", "0")
+        subprocess.call(['ip', 'link', 'set', 'dev', apdev[0]['ifname'],
+                         'address', apdev[0]['bssid']])
+
+def test_he_ap_mbssid_beacon_prot(dev, apdev, params):
+    """HE AP MBSSID beacon protection"""
+    check_sae_capab(dev[0])
+    check_sae_capab(dev[1])
+    f, fname, ifname = mbssid_create_cfg_file(apdev, params)
+
+    sae_params = {"wpa": "2", "sae_password": "12345678",
+                  "wpa_pairwise": "CCMP", "wpa_key_mgmt": "SAE",
+                  "ieee80211w": "2", "beacon_prot": "1"}
+    mbssid_write_bss_params(f, ifname, 0, sae_params)
+    sae_params = {"wpa": "2", "sae_password": "another password",
+                  "wpa_pairwise": "CCMP", "wpa_key_mgmt": "SAE",
+                  "ieee80211w": "2", "beacon_prot": "1"}
+    mbssid_write_bss_params(f, ifname, 1, sae_params)
+
+    f.close()
+    mbssid_dump_config(fname)
+
+    try:
+        dev[0].set("sae_groups", "")
+        dev[1].set("sae_groups", "")
+        hapd, pid = mbssid_start_ap(dev, apdev, params, fname, ifname, None,
+                                    only_start_ap=True)
+        dev[0].connect("bss-0", psk="12345678", key_mgmt="SAE",
+                       ieee80211w="2", beacon_prot="1", scan_freq="2412")
+        dev[1].connect("bss-1", psk="another password", key_mgmt="SAE",
+                       ieee80211w="2", beacon_prot="1", scan_freq="2412")
+
+        beacon_loss0 = False
+        beacon_loss1 = False
+        ev = dev[1].wait_event(["CTRL-EVENT-BEACON-LOSS"], timeout=5)
+        if ev is not None:
+            beacon_loss1 = True
+        ev = dev[0].wait_event(["CTRL-EVENT-BEACON-LOSS"], timeout=0.1)
+        if ev is not None:
+            beacon_loss0 = True
+
+        mbssid_stop_ap(hapd, pid)
+
+        if beacon_loss0 or beacon_loss1:
+            raise Exception("Beacon loss detected")
+    finally:
         subprocess.call(['ip', 'link', 'set', 'dev', apdev[0]['ifname'],
                          'address', apdev[0]['bssid']])
