@@ -9570,17 +9570,30 @@ static int wpa_driver_nl80211_deinit_ap(void *priv)
 }
 
 
-static int wpa_driver_nl80211_stop_ap(void *priv)
+static int wpa_driver_nl80211_stop_ap(void *priv, int link_id)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
+	unsigned int i;
 
 	if (!is_ap_interface(drv->nlmode))
 		return -1;
 
-	wpa_driver_nl80211_del_beacon_all(bss);
+	if (link_id == -1) {
+		wpa_driver_nl80211_del_beacon_all(bss);
+		return 0;
+	}
 
-	return 0;
+	for (i = 0; i < bss->n_links; ++i) {
+		struct i802_link *link = &bss->links[i];
+
+		if (link->link_id == link_id) {
+			wpa_driver_nl80211_del_beacon(bss, link);
+			return 0;
+		}
+	}
+
+	return -1;
 }
 
 

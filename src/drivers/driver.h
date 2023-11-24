@@ -4544,13 +4544,14 @@ struct wpa_driver_ops {
 	/**
 	 * stop_ap - Removes beacon from AP
 	 * @priv: Private driver interface data
+	 * @link_id: Link ID of the specified link; -1 for non-MLD
 	 * Returns: 0 on success, -1 on failure (or if not supported)
 	 *
 	 * This optional function can be used to disable AP mode related
 	 * configuration. Unlike deinit_ap, it does not change to station
 	 * mode.
 	 */
-	int (*stop_ap)(void *priv);
+	int (*stop_ap)(void *priv, int link_id);
 
 	/**
 	 * get_survey - Retrieve survey data
