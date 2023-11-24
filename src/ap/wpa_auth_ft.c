@@ -2366,7 +2366,8 @@ static u8 * wpa_ft_igtk_subelem(struct wpa_state_machine *sm, size_t *len)
 static u8 * wpa_ft_bigtk_subelem(struct wpa_state_machine *sm, size_t *len)
 {
 	u8 *subelem, *pos;
-	struct wpa_group *gsm = sm->group;
+	struct wpa_authenticator *wpa_auth = sm->wpa_auth;
+	struct wpa_group *gsm = wpa_auth->group;
 	size_t subelem_len;
 	const u8 *kek, *bigtk;
 	size_t kek_len;
@@ -2381,7 +2382,7 @@ static u8 * wpa_ft_bigtk_subelem(struct wpa_state_machine *sm, size_t *len)
 		kek_len = sm->PTK.kek_len;
 	}
 
-	bigtk_len = wpa_cipher_key_len(sm->wpa_auth->conf.group_mgmt_cipher);
+	bigtk_len = wpa_cipher_key_len(wpa_auth->conf.group_mgmt_cipher);
 
 	/* Sub-elem ID[1] | Length[1] | KeyID[2] | BIPN[6] | Key Length[1] |
 	 * Key[16+8] */
@@ -2395,7 +2396,7 @@ static u8 * wpa_ft_bigtk_subelem(struct wpa_state_machine *sm, size_t *len)
 	*pos++ = subelem_len - 2;
 	WPA_PUT_LE16(pos, gsm->GN_bigtk);
 	pos += 2;
-	wpa_auth_get_seqnum(sm->wpa_auth, NULL, gsm->GN_bigtk, pos);
+	wpa_auth_get_seqnum(wpa_auth, NULL, gsm->GN_bigtk, pos);
 	pos += 6;
 	*pos++ = bigtk_len;
 	bigtk = gsm->BIGTK[gsm->GN_bigtk - 6];

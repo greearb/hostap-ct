@@ -222,6 +222,8 @@ struct wpa_group {
 	u8 BIGTK[2][WPA_IGTK_MAX_LEN];
 	int GN_igtk, GM_igtk;
 	int GN_bigtk, GM_bigtk;
+	bool bigtk_set;
+	bool bigtk_configured;
 	/* Number of references except those in struct wpa_group->next */
 	unsigned int references;
 	unsigned int num_setup_iface;
@@ -256,6 +258,8 @@ struct wpa_authenticator {
 
 	struct rsn_pmksa_cache *pmksa;
 	struct wpa_ft_pmk_cache *ft_pmk_cache;
+
+	bool non_tx_beacon_prot;
 
 #ifdef CONFIG_P2P
 	struct bitfield *ip_pool;

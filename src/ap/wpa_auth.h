@@ -277,6 +277,11 @@ struct wpa_auth_config {
 	bool force_kdk_derivation;
 
 	bool radius_psk;
+
+	/* Pointer to Multi-BSSID transmitted BSS authenticator instance.
+	 * Set only in nontransmitted BSSs, i.e., is NULL for transmitted BSS
+	 * and in BSSs that are not part of a Multi-BSSID set. */
+	struct wpa_authenticator *tx_bss_auth;
 };
 
 typedef enum {
