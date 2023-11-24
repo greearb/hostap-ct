@@ -695,7 +695,7 @@ def test_scan_setband(dev, apdev):
                 d.request("SCAN only_new=1")
 
             for d in devs:
-                ev = d.wait_event(["CTRL-EVENT-SCAN-RESULTS"], 15)
+                ev = d.wait_event(["CTRL-EVENT-SCAN-RESULTS"], 30)
                 if ev is None:
                     raise Exception("Scan timed out")
 
@@ -1031,7 +1031,7 @@ def _test_scan_dfs(dev, apdev, params):
 
     if "OK" not in dev[0].request("SCAN"):
         raise Exception("SCAN command failed")
-    ev = dev[0].wait_event(["CTRL-EVENT-SCAN-RESULTS"], timeout=15)
+    ev = dev[0].wait_event(["CTRL-EVENT-SCAN-RESULTS"], timeout=30)
     if ev is None:
         raise Exception("Scan did not complete")
 

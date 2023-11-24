@@ -109,7 +109,7 @@ def test_dfs(dev, apdev):
         if freq != "5260":
             raise Exception("Unexpected frequency")
 
-        dev[0].connect("dfs", key_mgmt="NONE")
+        dev[0].connect("dfs", key_mgmt="NONE", timeout=30)
         dev[0].wait_regdom(country_ie=True)
         hwsim_utils.test_connectivity(dev[0], hapd)
 

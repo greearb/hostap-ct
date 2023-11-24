@@ -1069,7 +1069,7 @@ class WpaSupplicant:
         if tspecs:
             raise Exception("DELTS failed (still in tspec list)")
 
-    def connect(self, ssid=None, ssid2=None, **kwargs):
+    def connect(self, ssid=None, ssid2=None, timeout=None, **kwargs):
         logger.info("Connect STA " + self.ifname + " to AP")
         id = self.add_network()
         if ssid:
@@ -1121,6 +1121,12 @@ class WpaSupplicant:
             if field in kwargs and kwargs[field]:
                 self.set_network(id, field, kwargs[field])
 
+        if timeout is None:
+            if "eap" in kwargs:
+                timeout=20
+            else:
+                timeout=15
+
         known_args = {"raw_psk", "password_hex", "peerkey", "okc", "ocsp",
                       "only_add_network", "wait_connect", "raw_identity"}
         unknown = set(kwargs.keys())
@@ -1145,10 +1151,7 @@ class WpaSupplicant:
         if "only_add_network" in kwargs and kwargs['only_add_network']:
             return id
         if "wait_connect" not in kwargs or kwargs['wait_connect']:
-            if "eap" in kwargs:
-                self.connect_network(id, timeout=20)
-            else:
-                self.connect_network(id, timeout=15)
+            self.connect_network(id, timeout=timeout)
         else:
             self.dump_monitor()
             self.select_network(id)
