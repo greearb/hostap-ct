@@ -458,7 +458,7 @@ static int sae_derive_pwe_ffc(struct sae_data *sae, const u8 *addr1,
 		       * mask */
 	u8 mask;
 	struct crypto_bignum *pwe;
-	size_t prime_len = sae->tmp->prime_len * 8;
+	size_t prime_len = sae->tmp->prime_len;
 	u8 *pwe_buf;
 
 	crypto_bignum_deinit(sae->tmp->pwe_ffc, 1);
