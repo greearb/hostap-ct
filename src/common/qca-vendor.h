@@ -1242,6 +1242,8 @@ enum qca_nl80211_vendor_subcmds {
 	/* 232 - reserved for QCA */
 	QCA_NL80211_VENDOR_SUBCMD_TX_LATENCY = 233,
 	/* 234 - reserved for QCA */
+	QCA_NL80211_VENDOR_SUBCMD_SDWF_PHY_OPS = 235,
+	QCA_NL80211_VENDOR_SUBCMD_SDWF_DEV_OPS = 236,
 };
 
 /* Compatibility defines for previously used subcmd names.
