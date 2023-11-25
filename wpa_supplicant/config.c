@@ -5519,6 +5519,9 @@ static const struct global_parse_data global_fields[] = {
 	{ INT_RANGE(pasn_corrupt_mic, 0, 1), 0 },
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_PASN */
+	/* NOTE: When adding new parameters here, add_interface() in
+	 * wpa_supplicant/dbus_new_introspect.c may need to be modified to
+	 * increase the size of the iface->xml buffer. */
 };
 
 #undef FUNC
