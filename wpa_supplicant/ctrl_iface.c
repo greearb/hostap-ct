@@ -10505,6 +10505,8 @@ static int wpas_ctrl_vendor_elem_remove(struct wpa_supplicant *wpa_s, char *cmd)
 }
 
 
+#ifndef CONFIG_NO_RRM
+
 static void wpas_ctrl_neighbor_rep_cb(void *ctx, struct wpabuf *neighbor_rep)
 {
 	struct wpa_supplicant *wpa_s = ctx;
@@ -10647,6 +10649,8 @@ static int wpas_ctrl_iface_send_neighbor_rep(struct wpa_supplicant *wpa_s,
 
 	return ret;
 }
+
+#endif /* CONFIG_NO_RRM */
 
 
 static int wpas_ctrl_iface_erp_flush(struct wpa_supplicant *wpa_s)
@@ -12873,9 +12877,11 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strncmp(buf, "VENDOR_ELEM_REMOVE ", 19) == 0) {
 		if (wpas_ctrl_vendor_elem_remove(wpa_s, buf + 19) < 0)
 			reply_len = -1;
+#ifndef CONFIG_NO_RRM
 	} else if (os_strncmp(buf, "NEIGHBOR_REP_REQUEST", 20) == 0) {
 		if (wpas_ctrl_iface_send_neighbor_rep(wpa_s, buf + 20))
 			reply_len = -1;
+#endif /* CONFIG_NO_RRM */
 	} else if (os_strcmp(buf, "ERP_FLUSH") == 0) {
 		wpas_ctrl_iface_erp_flush(wpa_s);
 	} else if (os_strncmp(buf, "MAC_RAND_SCAN ", 14) == 0) {

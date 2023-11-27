@@ -557,7 +557,9 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 	hapd->setup_complete_cb = NULL;
 #endif /* CONFIG_MESH */
 
+#ifndef CONFIG_NO_RRM
 	hostapd_clean_rrm(hapd);
+#endif /* CONFIG_NO_RRM */
 	fils_hlp_deinit(hapd);
 
 #ifdef CONFIG_OCV

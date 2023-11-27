@@ -261,8 +261,10 @@ static void wpas_trigger_scan_cb(struct wpa_radio_work *work, int deinit)
 			wpa_s->scan_res_handler = NULL;
 		}
 
+#ifndef CONFIG_NO_RRM
 		if (wpa_s->beacon_rep_data.token)
 			wpas_rrm_refuse_request(wpa_s);
+#endif /* CONFIG_NO_RRM */
 
 		return;
 	}

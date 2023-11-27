@@ -101,8 +101,6 @@ OBJS += src/utils/bitfield.c
 OBJS += src/utils/ip_addr.c
 OBJS += src/utils/crc32.c
 OBJS += wmm_ac.c
-OBJS += op_classes.c
-OBJS += rrm.c
 OBJS += twt.c
 OBJS += robust_av.c
 OBJS_p = wpa_passphrase.c
@@ -421,6 +419,16 @@ endif
 
 ifdef CONFIG_NO_TKIP
 L_CFLAGS += -DCONFIG_NO_TKIP
+endif
+
+ifdef CONFIG_NO_RRM
+L_CFLAGS += -DCONFIG_NO_RRM
+else
+OBJS += rrm.c
+ifdef CONFIG_AP
+OBJS += src/ap/rrm.c
+endif
+OBJS += op_classes.c
 endif
 
 
@@ -906,7 +914,6 @@ OBJS += src/ap/beacon.c
 OBJS += src/ap/bss_load.c
 OBJS += src/ap/eap_user_db.c
 OBJS += src/ap/neighbor_db.c
-OBJS += src/ap/rrm.c
 OBJS += src/ap/ieee802_11_ht.c
 ifdef CONFIG_IEEE80211AC
 OBJS += src/ap/ieee802_11_vht.c

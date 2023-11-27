@@ -715,7 +715,9 @@ static void wpa_supplicant_cleanup(struct wpa_supplicant *wpa_s)
 
 	wpabuf_free(wpa_s->lci);
 	wpa_s->lci = NULL;
+#ifndef CONFIG_NO_RRM
 	wpas_clear_beacon_rep_data(wpa_s);
+#endif /* CONFIG_NO_RRM */
 
 #ifdef CONFIG_PMKSA_CACHE_EXTERNAL
 #ifdef CONFIG_MESH
@@ -3499,12 +3501,14 @@ static u8 * wpas_populate_assoc_ies(
 	os_memset(wpa_s->p2p_ip_addr_info, 0, sizeof(wpa_s->p2p_ip_addr_info));
 #endif /* CONFIG_P2P */
 
+#ifndef CONFIG_NO_RRM
 	if (bss) {
 		wpa_ie_len += wpas_supp_op_class_ie(wpa_s, ssid, bss,
 						    wpa_ie + wpa_ie_len,
 						    max_wpa_ie_len -
 						    wpa_ie_len);
 	}
+#endif /* CONFIG_NO_RRM */
 
 	/*
 	 * Workaround: Add Extended Capabilities element only if the AP
@@ -7352,7 +7356,9 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 	if (wpas_init_ext_pw(wpa_s) < 0)
 		return -1;
 
+#ifndef CONFIG_NO_RRM
 	wpas_rrm_reset(wpa_s);
+#endif /* CONFIG_NO_RRM */
 
 	wpas_sched_scan_plans_set(wpa_s, wpa_s->conf->sched_scan_plans);
 

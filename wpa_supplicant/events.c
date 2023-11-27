@@ -382,7 +382,9 @@ void wpa_supplicant_mark_disassoc(struct wpa_supplicant *wpa_s)
 	wpa_s->key_mgmt = 0;
 	wpa_s->allowed_key_mgmts = 0;
 
+#ifndef CONFIG_NO_RRM
 	wpas_rrm_reset(wpa_s);
+#endif /* CONFIG_NO_RRM */
 	wpa_s->wnmsleep_used = 0;
 	wnm_clear_coloc_intf_reporting(wpa_s);
 	wpa_s->disable_mbo_oce = 0;
@@ -2470,9 +2472,11 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	if (sme_proc_obss_scan(wpa_s) > 0)
 		goto scan_work_done;
 
+#ifndef CONFIG_NO_RRM
 	if (own_request && data &&
 	    wpas_beacon_rep_scan_process(wpa_s, scan_res, &data->scan_info) > 0)
 		goto scan_work_done;
+#endif /* CONFIG_NO_RRM */
 
 	if (ml_link_probe_scan(wpa_s))
 		goto scan_work_done;
@@ -5294,6 +5298,7 @@ static void wpas_event_rx_mgmt_action(struct wpa_supplicant *wpa_s,
 	}
 #endif /* CONFIG_INTERWORKING */
 
+#ifndef CONFIG_NO_RRM
 	if (category == WLAN_ACTION_RADIO_MEASUREMENT &&
 	    payload[0] == WLAN_RRM_RADIO_MEASUREMENT_REQUEST) {
 		wpas_rrm_handle_radio_measurement_request(wpa_s, mgmt->sa,
@@ -5316,6 +5321,7 @@ static void wpas_event_rx_mgmt_action(struct wpa_supplicant *wpa_s,
 							 rssi);
 		return;
 	}
+#endif /* CONFIG_NO_RRM */
 
 #ifdef CONFIG_FST
 	if (mgmt->u.action.category == WLAN_ACTION_FST && wpa_s->fst) {

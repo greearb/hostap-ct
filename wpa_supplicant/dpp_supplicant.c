@@ -1915,7 +1915,11 @@ static void wpas_dpp_start_gas_client(struct wpa_supplicant *wpa_s)
 	offchannel_send_action_done(wpa_s);
 	wpas_dpp_listen_stop(wpa_s);
 
+#ifdef CONFIG_NO_RRM
+	supp_op_classes = NULL;
+#else /* CONFIG_NO_RRM */
 	supp_op_classes = wpas_supp_op_classes(wpa_s);
+#endif /* CONFIG_NO_RRM */
 	buf = dpp_build_conf_req_helper(auth, wpa_s->conf->dpp_name,
 					wpa_s->dpp_netrole,
 					wpa_s->conf->dpp_mud_url,

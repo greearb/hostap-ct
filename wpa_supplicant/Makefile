@@ -111,8 +111,6 @@ OBJS += ../src/utils/wpabuf.o
 OBJS += ../src/utils/bitfield.o
 OBJS += ../src/utils/ip_addr.o
 OBJS += ../src/utils/crc32.o
-OBJS += op_classes.o
-OBJS += rrm.o
 OBJS += twt.o
 OBJS += robust_av.o
 OBJS_p = wpa_passphrase.o
@@ -471,6 +469,16 @@ endif
 
 ifdef CONFIG_NO_LOAD_DYNAMIC_EAP
 CFLAGS += -DCONFIG_NO_LOAD_DYNAMIC_EAP
+endif
+
+ifdef CONFIG_NO_RRM
+CFLAGS += -DCONFIG_NO_RRM
+else
+OBJS += rrm.o
+ifdef CONFIG_AP
+OBJS += ../src/ap/rrm.o
+endif
+OBJS += op_classes.o
 endif
 
 include ../src/drivers/drivers.mak
@@ -979,7 +987,6 @@ OBJS += ../src/ap/beacon.o
 OBJS += ../src/ap/bss_load.o
 OBJS += ../src/ap/eap_user_db.o
 OBJS += ../src/ap/neighbor_db.o
-OBJS += ../src/ap/rrm.o
 OBJS += ../src/ap/ieee802_11_ht.o
 ifdef CONFIG_IEEE80211AC
 OBJS += ../src/ap/ieee802_11_vht.o
