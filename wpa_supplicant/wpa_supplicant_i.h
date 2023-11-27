@@ -1547,8 +1547,24 @@ struct wpa_supplicant {
 	unsigned int multi_ap_ie:1;
 	unsigned int multi_ap_backhaul:1;
 	unsigned int multi_ap_fronthaul:1;
+
+#ifndef CONFIG_NO_ROBUST_AV
 	struct robust_av_data robust_av;
 	bool mscs_setup_done;
+	struct scs_robust_av_data scs_robust_av_req;
+	u8 scs_dialog_token;
+	struct dl_list active_scs_ids;
+	bool ongoing_scs_req;
+	u8 dscp_req_dialog_token;
+	u8 dscp_query_dialog_token;
+	unsigned int enable_dscp_policy_capa:1;
+	unsigned int connection_dscp:1;
+	unsigned int wait_for_dscp_req:1;
+#ifdef CONFIG_TESTING_OPTIONS
+	unsigned int disable_scs_support:1;
+	unsigned int disable_mscs_support:1;
+#endif /* CONFIG_TESTING_OPTIONS */
+#endif /* CONFIG_NO_ROBUST_AV */
 
 	bool wps_scan_done; /* Set upon receiving scan results event */
 	bool supp_pbc_active; /* Set for interface when PBC is triggered */
@@ -1560,19 +1576,7 @@ struct wpa_supplicant {
 	unsigned int pasn_count;
 	struct pasn_auth *pasn_params;
 #endif /* CONFIG_PASN */
-	struct scs_robust_av_data scs_robust_av_req;
-	u8 scs_dialog_token;
-#ifdef CONFIG_TESTING_OPTIONS
-	unsigned int disable_scs_support:1;
-	unsigned int disable_mscs_support:1;
-#endif /* CONFIG_TESTING_OPTIONS */
-	struct dl_list active_scs_ids;
-	bool ongoing_scs_req;
-	u8 dscp_req_dialog_token;
-	u8 dscp_query_dialog_token;
-	unsigned int enable_dscp_policy_capa:1;
-	unsigned int connection_dscp:1;
-	unsigned int wait_for_dscp_req:1;
+
 	bool is_6ghz_enabled;
 	bool crossed_6ghz_dom;
 	bool last_scan_all_chan;

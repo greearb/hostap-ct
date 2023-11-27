@@ -112,7 +112,6 @@ OBJS += ../src/utils/bitfield.o
 OBJS += ../src/utils/ip_addr.o
 OBJS += ../src/utils/crc32.o
 OBJS += twt.o
-OBJS += robust_av.o
 OBJS_p = wpa_passphrase.o
 OBJS_p += ../src/utils/common.o
 OBJS_p += ../src/utils/wpa_debug.o
@@ -479,6 +478,12 @@ ifdef CONFIG_AP
 OBJS += ../src/ap/rrm.o
 endif
 OBJS += op_classes.o
+endif
+
+ifdef CONFIG_NO_ROBUST_AV
+CFLAGS += -DCONFIG_NO_ROBUST_AV
+else
+OBJS += robust_av.o
 endif
 
 include ../src/drivers/drivers.mak

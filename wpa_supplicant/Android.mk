@@ -102,7 +102,6 @@ OBJS += src/utils/ip_addr.c
 OBJS += src/utils/crc32.c
 OBJS += wmm_ac.c
 OBJS += twt.c
-OBJS += robust_av.c
 OBJS_p = wpa_passphrase.c
 OBJS_p += src/utils/common.c
 OBJS_p += src/utils/wpa_debug.c
@@ -429,6 +428,12 @@ ifdef CONFIG_AP
 OBJS += src/ap/rrm.c
 endif
 OBJS += op_classes.c
+endif
+
+ifdef CONFIG_NO_ROBUST_AV
+L_CFLAGS += -DCONFIG_NO_ROBUST_AV
+else
+OBJS += robust_av.c
 endif
 
 

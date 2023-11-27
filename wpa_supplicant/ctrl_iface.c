@@ -833,10 +833,12 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 			wpa_s->sae_commit_override = wpabuf_parse_bin(value);
 	} else if (os_strcasecmp(cmd, "driver_signal_override") == 0) {
 		ret = wpas_ctrl_iface_set_dso(wpa_s, value);
+#ifndef CONFIG_NO_ROBUST_AV
 	} else if (os_strcasecmp(cmd, "disable_scs_support") == 0) {
 		wpa_s->disable_scs_support = !!atoi(value);
 	} else if (os_strcasecmp(cmd, "disable_mscs_support") == 0) {
 		wpa_s->disable_mscs_support = !!atoi(value);
+#endif /* CONFIG_NO_ROBUST_AV */
 	} else if (os_strcasecmp(cmd, "disable_eapol_g2_tx") == 0) {
 		wpa_s->disable_eapol_g2_tx = !!atoi(value);
 		/* Populate value to wpa_sm if already associated. */
@@ -932,8 +934,10 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 			return -1;
 		wnm_set_coloc_intf_elems(wpa_s, elems);
 #endif /* CONFIG_WNM */
+#ifndef CONFIG_NO_ROBUST_AV
 	} else if (os_strcasecmp(cmd, "enable_dscp_policy_capa") == 0) {
 		wpa_s->enable_dscp_policy_capa = !!atoi(value);
+#endif /* CONFIG_NO_ROBUST_AV */
 	} else {
 		value[-1] = '=';
 		ret = wpa_config_process_global(wpa_s->conf, cmd, -1);
@@ -8880,9 +8884,11 @@ static void wpa_supplicant_ctrl_iface_flush(struct wpa_supplicant *wpa_s)
 	wpabuf_free(wpa_s->rsnxe_override_eapol);
 	wpa_s->rsnxe_override_eapol = NULL;
 	wpas_clear_driver_signal_override(wpa_s);
+#ifndef CONFIG_NO_ROBUST_AV
 	wpa_s->disable_scs_support = 0;
 	wpa_s->disable_mscs_support = 0;
 	wpa_s->enable_dscp_policy_capa = 0;
+#endif /* CONFIG_NO_ROBUST_AV */
 	wpa_s->oci_freq_override_eapol = 0;
 	wpa_s->oci_freq_override_saquery_req = 0;
 	wpa_s->oci_freq_override_saquery_resp = 0;
@@ -8911,7 +8917,9 @@ static void wpa_supplicant_ctrl_iface_flush(struct wpa_supplicant *wpa_s)
 	wpa_s->next_scan_bssid_wildcard_ssid = 0;
 	os_free(wpa_s->select_network_scan_freqs);
 	wpa_s->select_network_scan_freqs = NULL;
+#ifndef CONFIG_NO_ROBUST_AV
 	os_memset(&wpa_s->robust_av, 0, sizeof(struct robust_av_data));
+#endif /* CONFIG_NO_ROBUST_AV */
 
 	wpa_bss_flush(wpa_s);
 	if (!dl_list_empty(&wpa_s->bss)) {
@@ -8938,7 +8946,9 @@ static void wpa_supplicant_ctrl_iface_flush(struct wpa_supplicant *wpa_s)
 
 	free_bss_tmp_disallowed(wpa_s);
 
+#ifndef CONFIG_NO_ROBUST_AV
 	os_memset(&wpa_s->robust_av, 0, sizeof(struct robust_av_data));
+#endif /* CONFIG_NO_ROBUST_AV */
 
 #ifdef CONFIG_PASN
 	wpas_pasn_auth_stop(wpa_s);
@@ -11005,6 +11015,7 @@ int wpas_ctrl_cmd_debug_level(const char *cmd)
 }
 
 
+#ifndef CONFIG_NO_ROBUST_AV
 static int wpas_ctrl_iface_configure_mscs(struct wpa_supplicant *wpa_s,
 					  const char *cmd)
 {
@@ -11073,6 +11084,7 @@ static int wpas_ctrl_iface_configure_mscs(struct wpa_supplicant *wpa_s,
 
 	return wpas_send_mscs_req(wpa_s);
 }
+#endif /* CONFIG_NO_ROBUST_AV */
 
 
 #ifdef CONFIG_PASN
@@ -11176,6 +11188,8 @@ static int wpas_ctrl_iface_pasn_deauthenticate(struct wpa_supplicant *wpa_s,
 
 #endif /* CONFIG_PASN */
 
+
+#ifndef CONFIG_NO_ROBUST_AV
 
 static int set_type4_frame_classifier(const char *cmd,
 				      struct type4_params *param)
@@ -11872,6 +11886,8 @@ static int wpas_ctrl_iface_send_dscp_query(struct wpa_supplicant *wpa_s,
 
 	return wpas_send_dscp_query(wpa_s, pos + 12, os_strlen(pos + 12));
 }
+
+#endif /* CONFIG_NO_ROBUST_AV */
 
 
 static int wpas_ctrl_iface_mlo_signal_poll(struct wpa_supplicant *wpa_s,
@@ -13054,9 +13070,6 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 			reply_len = -1;
 #endif /* CONFIG_DPP3 */
 #endif /* CONFIG_DPP */
-	} else if (os_strncmp(buf, "MSCS ", 5) == 0) {
-		if (wpas_ctrl_iface_configure_mscs(wpa_s, buf + 5))
-			reply_len = -1;
 #ifdef CONFIG_PASN
 	} else if (os_strncmp(buf, "PASN_START ", 11) == 0) {
 		if (wpas_ctrl_iface_pasn_start(wpa_s, buf + 11) < 0)
@@ -13069,6 +13082,10 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 		if (wpas_ctrl_iface_pasn_deauthenticate(wpa_s, buf + 12) < 0)
 			reply_len = -1;
 #endif /* CONFIG_PASN */
+#ifndef CONFIG_NO_ROBUST_AV
+	} else if (os_strncmp(buf, "MSCS ", 5) == 0) {
+		if (wpas_ctrl_iface_configure_mscs(wpa_s, buf + 5))
+			reply_len = -1;
 	} else if (os_strncmp(buf, "SCS ", 4) == 0) {
 		if (wpas_ctrl_iface_configure_scs(wpa_s, buf + 4))
 			reply_len = -1;
@@ -13078,6 +13095,7 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strncmp(buf, "DSCP_QUERY ", 11) == 0) {
 		if (wpas_ctrl_iface_send_dscp_query(wpa_s, buf + 11))
 			reply_len = -1;
+#endif /* CONFIG_NO_ROBUST_AV */
 	} else if (os_strcmp(buf, "MLO_STATUS") == 0) {
 		reply_len = wpas_ctrl_iface_mlo_status(wpa_s, reply,
 						       reply_size);
