@@ -1155,8 +1155,10 @@ static inline int wpa_drv_set_secure_ranging_ctx(struct wpa_supplicant *wpa_s,
 {
 	struct secure_ranging_params params;
 
+	/* Configure secure ranging context only to the drivers that support it.
+	 */
 	if (!wpa_s->driver->set_secure_ranging_ctx)
-		return -1;
+		return 0;
 
 	os_memset(&params, 0, sizeof(params));
 	params.action = action;
