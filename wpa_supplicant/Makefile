@@ -1071,6 +1071,7 @@ endif
 ifdef CONFIG_MBO
 OBJS += mbo.o
 CFLAGS += -DCONFIG_MBO
+NEED_GAS=y
 endif
 
 ifdef NEED_RSN_AUTHENTICATOR
