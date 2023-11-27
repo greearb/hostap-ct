@@ -120,7 +120,6 @@ OBJS_c = wpa_cli.o ../src/common/wpa_ctrl.o
 OBJS_c += ../src/utils/wpa_debug.o
 OBJS_c += ../src/utils/common.o
 OBJS_c += ../src/common/cli.o
-OBJS += wmm_ac.o
 
 ifndef CONFIG_OS
 ifdef CONFIG_NATIVE_WINDOWS
@@ -478,6 +477,12 @@ ifdef CONFIG_AP
 OBJS += ../src/ap/rrm.o
 endif
 OBJS += op_classes.o
+endif
+
+ifdef CONFIG_NO_WMM_AC
+CFLAGS += -DCONFIG_NO_WMM_AC
+else
+OBJS += wmm_ac.o
 endif
 
 ifdef CONFIG_NO_ROBUST_AV

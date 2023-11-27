@@ -1264,6 +1264,8 @@ static int wpa_supplicant_ctrl_iface_tdls_link_status(
 #endif /* CONFIG_TDLS */
 
 
+#ifndef CONFIG_NO_WMM_AC
+
 static int wmm_ac_ctrl_addts(struct wpa_supplicant *wpa_s, char *cmd)
 {
 	char *token, *context = NULL;
@@ -1312,6 +1314,8 @@ static int wmm_ac_ctrl_delts(struct wpa_supplicant *wpa_s, char *cmd)
 
 	return wpas_wmm_ac_delts(wpa_s, tsid);
 }
+
+#endif /* CONFIG_NO_WMM_AC */
 
 
 #ifdef CONFIG_IEEE80211R
@@ -12746,6 +12750,7 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 		reply_len = wpa_supplicant_ctrl_iface_tdls_link_status(
 			wpa_s, buf + 17, reply, reply_size);
 #endif /* CONFIG_TDLS */
+#ifndef CONFIG_NO_WMM_AC
 	} else if (os_strcmp(buf, "WMM_AC_STATUS") == 0) {
 		reply_len = wpas_wmm_ac_status(wpa_s, reply, reply_size);
 	} else if (os_strncmp(buf, "WMM_AC_ADDTS ", 13) == 0) {
@@ -12754,6 +12759,7 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strncmp(buf, "WMM_AC_DELTS ", 13) == 0) {
 		if (wmm_ac_ctrl_delts(wpa_s, buf + 13))
 			reply_len = -1;
+#endif /* CONFIG_NO_WMM_AC */
 	} else if (os_strncmp(buf, "SIGNAL_POLL", 11) == 0) {
 		reply_len = wpa_supplicant_signal_poll(wpa_s, reply,
 						       reply_size);

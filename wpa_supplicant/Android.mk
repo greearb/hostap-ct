@@ -100,7 +100,6 @@ OBJS += src/utils/wpabuf.c
 OBJS += src/utils/bitfield.c
 OBJS += src/utils/ip_addr.c
 OBJS += src/utils/crc32.c
-OBJS += wmm_ac.c
 OBJS += twt.c
 OBJS_p = wpa_passphrase.c
 OBJS_p += src/utils/common.c
@@ -428,6 +427,12 @@ ifdef CONFIG_AP
 OBJS += src/ap/rrm.c
 endif
 OBJS += op_classes.c
+endif
+
+ifdef CONFIG_NO_WMM_AC
+L_CFLAGS += -DCONFIG_NO_WMM_AC
+else
+OBJS += wmm_ac.c
 endif
 
 ifdef CONFIG_NO_ROBUST_AV

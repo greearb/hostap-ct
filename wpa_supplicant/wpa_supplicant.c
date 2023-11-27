@@ -582,7 +582,9 @@ static void wpa_supplicant_cleanup(struct wpa_supplicant *wpa_s)
 	wpa_tdls_deinit(wpa_s->wpa);
 #endif /* CONFIG_TDLS */
 
+#ifndef CONFIG_NO_WMM_AC
 	wmm_ac_clear_saved_tspecs(wpa_s);
+#endif /* CONFIG_NO_WMM_AC */
 	pmksa_candidate_free(wpa_s->wpa);
 	ptksa_cache_deinit(wpa_s->ptksa);
 	wpa_s->ptksa = NULL;
@@ -699,7 +701,9 @@ static void wpa_supplicant_cleanup(struct wpa_supplicant *wpa_s)
 		wpa_s->vendor_elem[i] = NULL;
 	}
 
+#ifndef CONFIG_NO_WMM_AC
 	wmm_ac_notify_disassoc(wpa_s);
+#endif /* CONFIG_NO_WMM_AC */
 
 	wpa_s->sched_scan_plans_num = 0;
 	os_free(wpa_s->sched_scan_plans);
@@ -1067,8 +1071,10 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 	if (state == WPA_DISCONNECTED || state == WPA_INACTIVE)
 		wpa_supplicant_start_autoscan(wpa_s);
 
+#ifndef CONFIG_NO_WMM_AC
 	if (old_state >= WPA_ASSOCIATED && wpa_s->wpa_state < WPA_ASSOCIATED)
 		wmm_ac_notify_disassoc(wpa_s);
+#endif /* CONFIG_NO_WMM_AC */
 
 	if (wpa_s->wpa_state != old_state) {
 		wpas_notify_state_changed(wpa_s, wpa_s->wpa_state, old_state);
@@ -2486,7 +2492,9 @@ void wpa_supplicant_associate(struct wpa_supplicant *wpa_s,
 
 	wpa_s->eapol_failed = 0;
 	wpa_s->multi_ap_ie = 0;
+#ifndef CONFIG_NO_WMM_AC
 	wmm_ac_clear_saved_tspecs(wpa_s);
+#endif /* CONFIG_NO_WMM_AC */
 	wpa_s->reassoc_same_bss = 0;
 	wpa_s->reassoc_same_ess = 0;
 #ifdef CONFIG_TESTING_OPTIONS
@@ -2497,7 +2505,9 @@ void wpa_supplicant_associate(struct wpa_supplicant *wpa_s,
 		wpa_dbg(wpa_s, MSG_DEBUG, "Re-association to the same ESS");
 		wpa_s->reassoc_same_ess = 1;
 		if (wpa_s->current_bss && wpa_s->current_bss == bss) {
+#ifndef CONFIG_NO_WMM_AC
 			wmm_ac_save_tspecs(wpa_s);
+#endif /* CONFIG_NO_WMM_AC */
 			wpa_s->reassoc_same_bss = 1;
 		} else if (wpa_s->current_bss && wpa_s->current_bss != bss) {
 			os_get_reltime(&wpa_s->roam_start);
@@ -7217,7 +7227,9 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 		wpa_s->extended_capa_len = capa.extended_capa_len;
 		wpa_s->num_multichan_concurrent =
 			capa.num_multichan_concurrent;
+#ifndef CONFIG_NO_WMM_AC
 		wpa_s->wmm_ac_supported = capa.wmm_ac_supported;
+#endif /* CONFIG_NO_WMM_AC */
 		wpa_s->max_num_akms = capa.max_num_akms;
 
 		if (capa.mac_addr_rand_scan_supported)
