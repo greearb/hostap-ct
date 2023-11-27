@@ -4008,6 +4008,11 @@ static int hostapd_fill_csa_settings(struct hostapd_data *hapd,
 	settings->counter_offset_presp[0] = hapd->cs_c_off_proberesp;
 	settings->counter_offset_beacon[1] = hapd->cs_c_off_ecsa_beacon;
 	settings->counter_offset_presp[1] = hapd->cs_c_off_ecsa_proberesp;
+	settings->link_id = -1;
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap)
+		settings->link_id = hapd->mld_link_id;
+#endif /* CONFIG_IEEE80211BE */
 
 	return 0;
 }

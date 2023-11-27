@@ -2568,6 +2568,12 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 	if (ret)
 		return ret;
 
+	settings.link_id = -1;
+#ifdef CONFIG_IEEE80211BE
+	if (iface->num_bss && iface->bss[0]->conf->mld_ap)
+		settings.link_id = iface->bss[0]->mld_link_id;
+#endif /* CONFIG_IEEE80211BE */
+
 	ret = hostapd_ctrl_check_freq_params(&settings.freq_params,
 					     settings.punct_bitmap);
 	if (ret) {

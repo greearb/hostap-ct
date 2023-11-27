@@ -983,6 +983,11 @@ static int hostapd_dfs_request_channel_switch(struct hostapd_iface *iface,
 	os_memset(&csa_settings, 0, sizeof(csa_settings));
 	csa_settings.cs_count = 5;
 	csa_settings.block_tx = 1;
+	csa_settings.link_id = -1;
+#ifdef CONFIG_IEEE80211BE
+	if (iface->bss[0]->conf->mld_ap)
+		csa_settings.link_id = iface->bss[0]->mld_link_id;
+#endif /* CONFIG_IEEE80211BE */
 #ifdef CONFIG_MESH
 	if (iface->mconf)
 		ieee80211_mode = IEEE80211_MODE_MESH;

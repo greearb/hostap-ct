@@ -2709,6 +2709,7 @@ struct beacon_data {
  * @counter_offset_beacon: Offset to the count field in beacon's tail
  * @counter_offset_presp: Offset to the count field in probe resp.
  * @punct_bitmap - Preamble puncturing bitmap
+ * @link_id: Link ID to determine the link for MLD; -1 for non-MLD
  */
 struct csa_settings {
 	u8 cs_count;
@@ -2722,6 +2723,7 @@ struct csa_settings {
 	u16 counter_offset_presp[2];
 
 	u16 punct_bitmap;
+	int link_id;
 };
 
 /**

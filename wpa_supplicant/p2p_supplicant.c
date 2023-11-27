@@ -9796,6 +9796,7 @@ static int wpas_p2p_move_go_csa(struct wpa_supplicant *wpa_s)
 	os_memset(&csa_settings, 0, sizeof(csa_settings));
 	csa_settings.cs_count = P2P_GO_CSA_COUNT;
 	csa_settings.block_tx = P2P_GO_CSA_BLOCK_TX;
+	csa_settings.link_id = -1;
 	csa_settings.freq_params.freq = params.freq;
 	csa_settings.freq_params.sec_channel_offset = conf->secondary_channel;
 	csa_settings.freq_params.ht_enabled = conf->ieee80211n;
