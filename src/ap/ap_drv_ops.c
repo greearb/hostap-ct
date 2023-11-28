@@ -265,9 +265,35 @@ int hostapd_set_ap_wps_ie(struct hostapd_data *hapd)
 }
 
 
+static bool hostapd_sta_is_link_sta(struct hostapd_data *hapd,
+				    struct sta_info *sta)
+{
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap && sta->mld_info.mld_sta &&
+	    sta->mld_assoc_link_id != hapd->mld_link_id)
+		return true;
+#endif /* CONFIG_IEEE80211BE */
+
+	return false;
+}
+
+
 int hostapd_set_authorized(struct hostapd_data *hapd,
 			   struct sta_info *sta, int authorized)
 {
+	/*
+	 * The WPA_STA_AUTHORIZED flag is relevant only for the MLD station and
+	 * not to the link stations (as the authorization is done between the
+	 * MLD peers). Thus, do not propagate the change to the driver for the
+	 * link stations.
+	 */
+	if (hostapd_sta_is_link_sta(hapd, sta)) {
+		wpa_printf(MSG_DEBUG,
+			   "%s: Do not update link station flags (" MACSTR ")",
+			   __func__, MAC2STR(sta->addr));
+		return 0;
+	}
+
 	if (authorized) {
 		return hostapd_sta_set_flags(hapd, sta->addr,
 					     hostapd_sta_flags_to_drv(
@@ -286,6 +312,22 @@ int hostapd_set_sta_flags(struct hostapd_data *hapd, struct sta_info *sta)
 	int set_flags, total_flags, flags_and, flags_or;
 	total_flags = hostapd_sta_flags_to_drv(sta->flags);
 	set_flags = WPA_STA_SHORT_PREAMBLE | WPA_STA_WMM | WPA_STA_MFP;
+
+	/*
+	 * All the station flags other than WPA_STA_SHORT_PREAMBLE are relevant
+	 * only for the MLD station and not to the link stations (as these flags
+	 * are related to the MLD state and not the link state). As for the
+	 * WPA_STA_SHORT_PREAMBLE, since the station is an EHT station, it must
+	 * support short preamble. Thus, do not propagate the change to the
+	 * driver for the link stations.
+	 */
+	if (hostapd_sta_is_link_sta(hapd, sta)) {
+		wpa_printf(MSG_DEBUG,
+			   "%s: Do not update link station flags (" MACSTR ")",
+			   __func__, MAC2STR(sta->addr));
+		return 0;
+	}
+
 	if (((!hapd->conf->ieee802_1x && !hapd->conf->wpa) ||
 	     sta->auth_alg == WLAN_AUTH_FT) &&
 	    sta->flags & WLAN_STA_AUTHORIZED)
