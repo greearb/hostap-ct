@@ -311,7 +311,8 @@ int hostapd_set_sta_flags(struct hostapd_data *hapd, struct sta_info *sta)
 {
 	int set_flags, total_flags, flags_and, flags_or;
 	total_flags = hostapd_sta_flags_to_drv(sta->flags);
-	set_flags = WPA_STA_SHORT_PREAMBLE | WPA_STA_WMM | WPA_STA_MFP;
+	set_flags = WPA_STA_SHORT_PREAMBLE | WPA_STA_WMM | WPA_STA_MFP |
+		WPA_STA_AUTHORIZED;
 
 	/*
 	 * All the station flags other than WPA_STA_SHORT_PREAMBLE are relevant
@@ -328,10 +329,6 @@ int hostapd_set_sta_flags(struct hostapd_data *hapd, struct sta_info *sta)
 		return 0;
 	}
 
-	if (((!hapd->conf->ieee802_1x && !hapd->conf->wpa) ||
-	     sta->auth_alg == WLAN_AUTH_FT) &&
-	    sta->flags & WLAN_STA_AUTHORIZED)
-		set_flags |= WPA_STA_AUTHORIZED;
 	flags_or = total_flags & set_flags;
 	flags_and = total_flags | ~set_flags;
 	return hostapd_sta_set_flags(hapd, sta->addr, total_flags,
