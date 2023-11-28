@@ -2,7 +2,8 @@ ALL=test-base64 test-md4 test-milenage \
 	test-rsa-sig-ver \
 	test-sha1 \
 	test-https test-https_server \
-	test-sha256 test-aes test-x509v3 test-list test-rc4
+	test-sha256 test-aes test-x509v3 test-list test-rc4 \
+	test-bss
 
 include ../src/build.rules
 
@@ -82,6 +83,63 @@ test-x509v3: $(call BUILDOBJ,test-x509v3.o) $(LIBS)
 	$(LDO) $(LDFLAGS) -o $@ $< $(LLIBS)
 
 
+# We could cut this down more by enabling fewer options (above)
+ELIBS += $(SRC)/crypto/libcrypto.a
+ELIBS += $(SRC)/tls/libtls.a
+
+WPAS_SRC=../wpa_supplicant
+SRC=../src
+WPA_LIBS = $(SRC)/common/libcommon.a
+
+CFLAGS += -I$(SRC) -I$(SRC)/utils -I$(WPAS_SRC)
+
+CFLAGS += -DCONFIG_DRIVER_NONE
+CFLAGS += -DIEEE8021X_EAPOL
+
+WPA_OBJS = $(WPAS_SRC)/bssid_ignore.o
+WPA_OBJS += $(WPAS_SRC)/bss.o
+WPA_OBJS += $(WPAS_SRC)/config.o
+WPA_OBJS += $(WPAS_SRC)/config_file.o
+WPA_OBJS += $(WPAS_SRC)/eap_register.o
+WPA_OBJS += $(WPAS_SRC)/events.o
+WPA_OBJS += $(WPAS_SRC)/notify.o
+WPA_OBJS += $(WPAS_SRC)/offchannel.o
+WPA_OBJS += $(WPAS_SRC)/op_classes.o
+WPA_OBJS += $(WPAS_SRC)/robust_av.o
+WPA_OBJS += $(WPAS_SRC)/rrm.o
+WPA_OBJS += $(WPAS_SRC)/scan.o
+WPA_OBJS += $(WPAS_SRC)/wmm_ac.o
+WPA_OBJS += $(WPAS_SRC)/wpa_supplicant.o
+WPA_OBJS += $(WPAS_SRC)/wpas_glue.o
+WPA_OBJS += $(SRC)/rsn_supp/wpa.o
+WPA_OBJS += $(SRC)/rsn_supp/wpa_ft.o
+WPA_OBJS += $(SRC)/rsn_supp/wpa_ie.o
+WPA_OBJS += $(SRC)/rsn_supp/tdls.o
+WPA_OBJS += $(SRC)/rsn_supp/preauth.o
+WPA_OBJS += $(SRC)/rsn_supp/pmksa_cache.o
+WPA_OBJS += $(SRC)/eapol_supp/eapol_supp_sm.o
+WPA_OBJS += $(SRC)/eap_common/eap_common.o
+WPA_OBJS += $(SRC)/eap_peer/eap.o
+WPA_OBJS += $(SRC)/eap_peer/eap_methods.o
+WPA_OBJS += $(SRC)/drivers/driver_common.o
+WPA_OBJS += $(SRC)/drivers/driver_none.o
+WPA_OBJS += $(SRC)/drivers/drivers.o
+WPA_OBJS += $(SRC)/l2_packet/l2_packet_none.o
+
+_OBJS_VAR := WPA_OBJS
+include ../src/objs.mk
+
+_OBJS_VAR := WPA_LIBS
+include ../src/objs.mk
+
+_OBJS_VAR := ELIBS
+include ../src/objs.mk
+
+LIBS=$(SLIBS) $(DLIBS) $(WPA_LIBS) $(ELIBS)
+
+test-bss: $(call BUILDOBJ,test-bss.o) $(WPA_OBJS) $(LIBS)
+	$(LDO) $(LDFLAGS) -o $@ $< $(LLIBS) $(WPA_CFLAGS) $(WPA_OBJS) $(LIBS)
+
 run-tests: $(ALL)
 	./test-aes
 	./test-list
@@ -90,6 +148,7 @@ run-tests: $(ALL)
 	./test-rsa-sig-ver
 	./test-sha1
 	./test-sha256
+	./test-bss
 	@echo
 	@echo All tests completed successfully.
 
