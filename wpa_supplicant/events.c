@@ -5117,6 +5117,20 @@ static const char * reg_type_str(enum reg_type type)
 }
 
 
+static void wpas_beacon_hint(struct wpa_supplicant *wpa_s, const char *title,
+			     struct frequency_attrs *attrs)
+{
+	if (!attrs->freq)
+		return;
+	wpa_msg(wpa_s, MSG_INFO, WPA_EVENT_REGDOM_BEACON_HINT
+		"%s freq=%u max_tx_power=%u%s%s%s",
+		title, attrs->freq, attrs->max_tx_power,
+		attrs->disabled ? " disabled=1" : "",
+		attrs->no_ir ? " no_ir=1" : "",
+		attrs->radar ? " radar=1" : "");
+}
+
+
 void wpa_supplicant_update_channel_list(struct wpa_supplicant *wpa_s,
 					struct channel_list_changed *info)
 {
@@ -5138,6 +5152,13 @@ void wpa_supplicant_update_channel_list(struct wpa_supplicant *wpa_s,
 			reg_init_str(info->initiator), reg_type_str(info->type),
 			info->alpha2[0] ? " alpha2=" : "",
 			info->alpha2[0] ? info->alpha2 : "");
+
+		if (info->initiator == REGDOM_BEACON_HINT) {
+			wpas_beacon_hint(ifs, "before",
+					 &info->beacon_hint_before);
+			wpas_beacon_hint(ifs, "after",
+					 &info->beacon_hint_after);
+		}
 	}
 
 	if (wpa_s->drv_priv == NULL)

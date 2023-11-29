@@ -6554,11 +6554,22 @@ union wpa_event_data {
 	 * @initiator: Initiator of the regulatory change
 	 * @type: Regulatory change type
 	 * @alpha2: Country code (or "" if not available)
+	 * @beacon_hint_before: Data for frequency attributes before beacon hint
+	 *	event if initiator == REGDOM_BEACON_HINT
+	 * @beacon_hint_after: Data for frequency attributes after beacon hint
+	 *	event if initiator == REGDOM_BEACON_HINT
 	 */
 	struct channel_list_changed {
 		enum reg_change_initiator initiator;
 		enum reg_type type;
 		char alpha2[3];
+		struct frequency_attrs {
+			unsigned int freq;
+			unsigned int max_tx_power;
+			bool disabled;
+			bool no_ir;
+			bool radar;
+		} beacon_hint_before, beacon_hint_after;
 	} channel_list_changed;
 
 	/**

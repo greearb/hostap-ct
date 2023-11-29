@@ -3413,7 +3413,8 @@ static void nl80211_reg_change_event(struct wpa_driver_nl80211_data *drv,
 }
 
 
-static void nl80211_dump_freq(const char *title, struct nlattr *nl_freq)
+static void nl80211_parse_freq_attrs(const char *title, struct nlattr *nl_freq,
+				     struct frequency_attrs *attrs)
 {
 	static struct nla_policy freq_policy[NL80211_FREQUENCY_ATTR_MAX + 1] = {
 		[NL80211_FREQUENCY_ATTR_FREQ] = { .type = NLA_U32 },
@@ -3440,6 +3441,15 @@ static void nl80211_dump_freq(const char *title, struct nlattr *nl_freq)
 		   tb[NL80211_FREQUENCY_ATTR_DISABLED] ? " disabled" : "",
 		   tb[NL80211_FREQUENCY_ATTR_NO_IR] ? " no-IR" : "",
 		   tb[NL80211_FREQUENCY_ATTR_RADAR] ? " radar" : "");
+
+	attrs->freq = freq;
+	attrs->max_tx_power = max_tx_power;
+	if (tb[NL80211_FREQUENCY_ATTR_DISABLED])
+		attrs->disabled = true;
+	if (tb[NL80211_FREQUENCY_ATTR_NO_IR])
+		attrs->no_ir = true;
+	if (tb[NL80211_FREQUENCY_ATTR_RADAR])
+		attrs->radar = true;
 }
 
 
@@ -3453,9 +3463,13 @@ static void nl80211_reg_beacon_hint_event(struct wpa_driver_nl80211_data *drv,
 	data.channel_list_changed.initiator = REGDOM_BEACON_HINT;
 
 	if (tb[NL80211_ATTR_FREQ_BEFORE])
-		nl80211_dump_freq("before", tb[NL80211_ATTR_FREQ_BEFORE]);
+		nl80211_parse_freq_attrs(
+			"before", tb[NL80211_ATTR_FREQ_BEFORE],
+			&data.channel_list_changed.beacon_hint_before);
 	if (tb[NL80211_ATTR_FREQ_AFTER])
-		nl80211_dump_freq("after", tb[NL80211_ATTR_FREQ_AFTER]);
+		nl80211_parse_freq_attrs(
+			"after", tb[NL80211_ATTR_FREQ_AFTER],
+			&data.channel_list_changed.beacon_hint_after);
 
 	wpa_supplicant_event(drv->ctx, EVENT_CHANNEL_LIST_CHANGED, &data);
 }
