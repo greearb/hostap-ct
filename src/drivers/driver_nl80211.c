@@ -9151,6 +9151,9 @@ static int wpa_driver_nl80211_send_action(struct i802_bss *bss,
 	    bss->flink->beacon_set)
 		offchanok = 0;
 
+	if (!freq && is_sta_interface(drv->nlmode))
+		offchanok = 0;
+
 	wpa_printf(MSG_DEBUG, "nl80211: Send Action frame (ifindex=%d, "
 		   "freq=%u MHz wait=%d ms no_cck=%d offchanok=%d)",
 		   drv->ifindex, freq, wait_time, no_cck, offchanok);
