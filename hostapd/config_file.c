@@ -2159,6 +2159,7 @@ static int add_airtime_weight(struct hostapd_bss_config *bss, char *value)
 
 
 #ifdef CONFIG_SAE
+
 static int parse_sae_password(struct hostapd_bss_config *bss, const char *val)
 {
 	struct sae_password_entry *pw;
@@ -2262,6 +2263,38 @@ fail:
 	os_free(pw);
 	return -1;
 }
+
+
+static int parse_sae_password_file(struct hostapd_bss_config *bss,
+				   const char *fname)
+{
+	FILE *f;
+	char buf[500], *pos;
+	unsigned int line = 0;
+
+	f = fopen(fname, "r");
+	if (!f) {
+		wpa_printf(MSG_ERROR, "sae_password_file '%s' not found.",
+			   fname);
+		return -1;
+	}
+
+	while (fgets(buf, sizeof(buf), f)) {
+		pos = os_strchr(buf, '\n');
+		if (pos)
+			*pos = '\0';
+		line++;
+		if (parse_sae_password(bss, buf)) {
+			wpa_printf(MSG_ERROR,
+				   "Invalid SAE password at line %d in '%s'",
+				   line, fname);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 #endif /* CONFIG_SAE */
 
 
@@ -4297,6 +4330,13 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 	} else if (os_strcmp(buf, "sae_password") == 0) {
 		if (parse_sae_password(bss, pos) < 0) {
 			wpa_printf(MSG_ERROR, "Line %d: Invalid sae_password",
+				   line);
+			return 1;
+		}
+	} else if (os_strcmp(buf, "sae_password_file") == 0) {
+		if (parse_sae_password_file(bss, pos) < 0) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: Invalid sae_password in file",
 				   line);
 			return 1;
 		}
