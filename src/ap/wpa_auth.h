@@ -507,7 +507,7 @@ wpa_auth_pmksa_get_fils_cache_id(struct wpa_authenticator *wpa_auth,
 void wpa_auth_pmksa_set_to_sm(struct rsn_pmksa_cache_entry *pmksa,
 			      struct wpa_state_machine *sm,
 			      struct wpa_authenticator *wpa_auth,
-			      u8 *pmkid, u8 *pmk);
+			      u8 *pmkid, u8 *pmk, size_t *pmk_len);
 int wpa_auth_sta_set_vlan(struct wpa_state_machine *sm, int vlan_id);
 void wpa_auth_eapol_key_tx_status(struct wpa_authenticator *wpa_auth,
 				  struct wpa_state_machine *sm, int ack);

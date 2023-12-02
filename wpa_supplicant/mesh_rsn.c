@@ -386,7 +386,8 @@ int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s,
 			   " - try to use PMKSA caching instead of new SAE authentication",
 			   MAC2STR(sta->addr));
 		wpa_auth_pmksa_set_to_sm(pmksa, sta->wpa_sm, hapd->wpa_auth,
-					 sta->sae->pmkid, sta->sae->pmk);
+					 sta->sae->pmkid, sta->sae->pmk,
+					 &sta->sae->pmk_len);
 		sae_accept_sta(hapd, sta);
 		sta->mesh_sae_pmksa_caching = 1;
 		return 0;

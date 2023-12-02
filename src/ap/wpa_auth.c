@@ -5868,13 +5868,14 @@ wpa_auth_pmksa_get(struct wpa_authenticator *wpa_auth, const u8 *sta_addr,
 void wpa_auth_pmksa_set_to_sm(struct rsn_pmksa_cache_entry *pmksa,
 			      struct wpa_state_machine *sm,
 			      struct wpa_authenticator *wpa_auth,
-			      u8 *pmkid, u8 *pmk)
+			      u8 *pmkid, u8 *pmk, size_t *pmk_len)
 {
 	if (!sm)
 		return;
 
 	sm->pmksa = pmksa;
-	os_memcpy(pmk, pmksa->pmk, PMK_LEN);
+	os_memcpy(pmk, pmksa->pmk, pmksa->pmk_len);
+	*pmk_len = pmksa->pmk_len;
 	os_memcpy(pmkid, pmksa->pmkid, PMKID_LEN);
 	os_memcpy(wpa_auth->dot11RSNAPMKIDUsed, pmksa->pmkid, PMKID_LEN);
 }
