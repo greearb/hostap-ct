@@ -99,8 +99,12 @@ def check_pkcs5_v15_support(dev):
 
 def check_tls13_support(dev):
     tls = dev.request("GET tls_library")
-    if "run=OpenSSL 1.1.1" not in tls and "run=OpenSSL 3.0" not in tls and "wolfSSL" not in tls:
-        raise HwsimSkip("TLS v1.3 not supported")
+    ok = ['run=OpenSSL 1.1.1', 'run=OpenSSL 3.0', 'run=OpenSSL 3.1',
+          'run=OpenSSL 3.2', 'wolfSSL']
+    for s in ok:
+        if s in tls:
+            return
+    raise HwsimSkip("TLS v1.3 not supported")
 
 def check_ocsp_multi_support(dev):
     tls = dev.request("GET tls_library")
@@ -4312,7 +4316,7 @@ def test_ap_wpa2_eap_fast_cipher_suites(dev, apdev):
             if cipher == "RC4-SHA" and \
                ("Could not select EAP method" in str(e) or \
                 "EAP failed" in str(e)):
-                if "run=OpenSSL 1.1" in tls or "run=OpenSSL 3.0" in tls:
+                if "run=OpenSSL" in tls:
                     logger.info("Allow failure due to missing TLS library support")
                     dev[0].request("REMOVE_NETWORK all")
                     dev[0].wait_disconnected()
@@ -6184,7 +6188,7 @@ def test_ap_wpa2_eap_tls_versions(dev, apdev):
                   "tls_disable_tlsv1_0=1 tls_disable_tlsv1_1=0 tls_disable_tlsv1_2=1", "TLSv1.1")
     check_tls_ver(dev[2], hapd,
                   "tls_disable_tlsv1_0=0 tls_disable_tlsv1_1=1 tls_disable_tlsv1_2=1", "TLSv1")
-    if "run=OpenSSL 1.1.1" in tls or "run=OpenSSL 3.0" in tls:
+    if "run=OpenSSL 1.1.1" in tls or "run=OpenSSL 3." in tls:
         check_tls_ver(dev[0], hapd,
                       "tls_disable_tlsv1_0=1 tls_disable_tlsv1_1=1 tls_disable_tlsv1_2=1 tls_disable_tlsv1_3=0", "TLSv1.3")
 
