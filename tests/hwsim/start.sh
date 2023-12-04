@@ -112,7 +112,7 @@ fi
 
 test -d /sys/module/mac80211_hwsim || sudo modprobe mac80211_hwsim radios=7 channels=$NUM_CH support_p2p_device=0 dyndbg=+p
 
-sudo ifconfig hwsim0 up
+sudo ip link set hwsim0 up
 sudo $WLANTEST -i hwsim0 -n $LOGDIR/hwsim0.pcapng -c -dtN -L $LOGDIR/hwsim0 &
 for i in 0 1 2; do
     DBUSARG=""

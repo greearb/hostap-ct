@@ -15,7 +15,7 @@ for i in `pidof valgrind.bin`; do
 done
 sudo killall -q wlantest
 if grep -q hwsim0 /proc/net/dev; then
-    sudo ifconfig hwsim0 down
+    sudo ip link set hwsim0 down
 fi
 
 sudo killall -q hlr_auc_gw
