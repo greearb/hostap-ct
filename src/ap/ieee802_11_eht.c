@@ -226,6 +226,9 @@ u8 * hostapd_eid_eht_operation(struct hostapd_data *hapd, u8 *eid)
 	oper = (struct ieee80211_eht_operation *) pos;
 	oper->oper_params = 0;
 
+	if (hapd->iconf->eht_default_pe_duration)
+		oper->oper_params |= EHT_OPER_DEFAULT_PE_DURATION;
+
 	/* TODO: Fill in appropriate EHT-MCS max Nss information */
 	oper->basic_eht_mcs_nss_set[0] = 0x11;
 	oper->basic_eht_mcs_nss_set[1] = 0x00;
@@ -235,7 +238,7 @@ u8 * hostapd_eid_eht_operation(struct hostapd_data *hapd, u8 *eid)
 	if (!eht_oper_info_present)
 		return pos + elen;
 
-	oper->oper_params = EHT_OPER_INFO_PRESENT;
+	oper->oper_params |= EHT_OPER_INFO_PRESENT;
 	seg0 = hostapd_get_oper_centr_freq_seg0_idx(conf);
 
 	switch (chwidth) {

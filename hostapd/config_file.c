@@ -4766,6 +4766,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		conf->eht_phy_capab.su_beamformee = atoi(pos);
 	} else if (os_strcmp(buf, "eht_mu_beamformer") == 0) {
 		conf->eht_phy_capab.mu_beamformer = atoi(pos);
+	} else if (os_strcmp(buf, "eht_default_pe_duration") == 0) {
+		conf->eht_default_pe_duration = atoi(pos);
 	} else if (os_strcmp(buf, "punct_bitmap") == 0) {
 		conf->punct_bitmap = atoi(pos);
 	} else if (os_strcmp(buf, "punct_acs_threshold") == 0) {

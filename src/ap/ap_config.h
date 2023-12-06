@@ -1173,6 +1173,7 @@ struct hostapd_config {
 	struct eht_phy_capabilities_info eht_phy_capab;
 	u16 punct_bitmap; /* a bitmap of disabled 20 MHz channels */
 	u8 punct_acs_threshold;
+	u8 eht_default_pe_duration;
 #endif /* CONFIG_IEEE80211BE */
 
 	/* EHT enable/disable config from CHAN_SWITCH */
