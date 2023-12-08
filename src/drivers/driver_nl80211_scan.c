@@ -385,7 +385,15 @@ int wpa_driver_nl80211_scan(struct i802_bss *bss,
 	if (params->bssid) {
 		wpa_printf(MSG_DEBUG, "nl80211: Scan for a specific BSSID: "
 			   MACSTR, MAC2STR(params->bssid));
-		if (nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, params->bssid))
+		if (nla_put(msg, NL80211_ATTR_BSSID, ETH_ALEN, params->bssid))
+			goto fail;
+		/* NL80211_ATTR_MAC was used for this purpose initially and the
+		 * NL80211_ATTR_BSSID was added in 2016 when MAC address
+		 * randomization was added. For compatibility with older kernel
+		 * versions, add the NL80211_ATTR_MAC attribute as well when
+		 * the conflicting functionality is not in use. */
+		if (!params->mac_addr_rand &&
+		    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, params->bssid))
 			goto fail;
 	}
 
