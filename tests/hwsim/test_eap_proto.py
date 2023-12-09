@@ -5584,6 +5584,7 @@ def test_eap_proto_sim_errors(dev, apdev):
         dev[0].request("REMOVE_NETWORK all")
         dev[0].dump_monitor()
 
+    hapd2.dump_monitor()
     tests = ["eap_sim_msg_add_encr_start;eap_sim_response_notification",
              "aes_128_cbc_encrypt;eap_sim_response_notification"]
     for func in tests:
@@ -5593,6 +5594,7 @@ def test_eap_proto_sim_errors(dev, apdev):
                            eap="SIM", identity="1232010000000000",
                            phase1="result_ind=1",
                            password="90dca4eda45b53cf0f12d7c9c3bc6a89:cb9cccc4b9258e6dca4760379fb82581")
+            hapd2.wait_sta()
             dev[0].request("REAUTHENTICATE")
             ev = dev[0].wait_event(["CTRL-EVENT-EAP-METHOD"], timeout=5)
             if ev is None:
@@ -5601,7 +5603,9 @@ def test_eap_proto_sim_errors(dev, apdev):
             wait_fail_trigger(dev[0], "GET_FAIL")
             dev[0].request("REMOVE_NETWORK all")
             dev[0].dump_monitor()
+            hapd2.wait_sta_disconnect()
 
+    hapd2.dump_monitor()
     tests = ["eap_sim_parse_encr;eap_sim_process_notification_reauth"]
     for func in tests:
         with alloc_fail(dev[0], 1, func):
@@ -5610,6 +5614,7 @@ def test_eap_proto_sim_errors(dev, apdev):
                            eap="SIM", identity="1232010000000000",
                            phase1="result_ind=1",
                            password="90dca4eda45b53cf0f12d7c9c3bc6a89:cb9cccc4b9258e6dca4760379fb82581")
+            hapd2.wait_sta()
             dev[0].request("REAUTHENTICATE")
             ev = dev[0].wait_event(["CTRL-EVENT-EAP-METHOD"], timeout=5)
             if ev is None:
@@ -5618,6 +5623,7 @@ def test_eap_proto_sim_errors(dev, apdev):
             wait_fail_trigger(dev[0], "GET_ALLOC_FAIL")
             dev[0].request("REMOVE_NETWORK all")
             dev[0].dump_monitor()
+            hapd2.wait_sta_disconnect()
 
 def test_eap_proto_aka_errors(dev, apdev):
     """EAP-AKA protocol tests (error paths)"""
@@ -5694,6 +5700,7 @@ def test_eap_proto_aka_errors(dev, apdev):
             dev[0].wait_disconnected()
             dev[0].dump_monitor()
 
+    hapd2.dump_monitor()
     tests = ["eap_sim_msg_add_encr_start;eap_aka_response_notification",
              "aes_128_cbc_encrypt;eap_aka_response_notification"]
     for func in tests:
@@ -5703,6 +5710,7 @@ def test_eap_proto_aka_errors(dev, apdev):
                            eap="AKA", identity="0232010000000000",
                            phase1="result_ind=1",
                            password="90dca4eda45b53cf0f12d7c9c3bc6a89:cb9cccc4b9258e6dca4760379fb82581:000000000123")
+            hapd2.wait_sta()
             dev[0].request("REAUTHENTICATE")
             ev = dev[0].wait_event(["CTRL-EVENT-EAP-METHOD"], timeout=5)
             if ev is None:
@@ -5711,7 +5719,9 @@ def test_eap_proto_aka_errors(dev, apdev):
             wait_fail_trigger(dev[0], "GET_FAIL")
             dev[0].request("REMOVE_NETWORK all")
             dev[0].dump_monitor()
+            hapd2.wait_sta_disconnect()
 
+    hapd2.dump_monitor()
     tests = ["eap_sim_parse_encr;eap_aka_process_notification_reauth"]
     for func in tests:
         with alloc_fail(dev[0], 1, func):
@@ -5720,6 +5730,7 @@ def test_eap_proto_aka_errors(dev, apdev):
                            eap="AKA", identity="0232010000000000",
                            phase1="result_ind=1",
                            password="90dca4eda45b53cf0f12d7c9c3bc6a89:cb9cccc4b9258e6dca4760379fb82581:000000000123")
+            hapd2.wait_sta()
             dev[0].request("REAUTHENTICATE")
             ev = dev[0].wait_event(["CTRL-EVENT-EAP-METHOD"], timeout=5)
             if ev is None:
@@ -5728,6 +5739,7 @@ def test_eap_proto_aka_errors(dev, apdev):
             wait_fail_trigger(dev[0], "GET_ALLOC_FAIL")
             dev[0].request("REMOVE_NETWORK all")
             dev[0].dump_monitor()
+            hapd2.wait_sta_disconnect()
 
 def test_eap_proto_aka_prime_errors(dev, apdev):
     """EAP-AKA' protocol tests (error paths)"""

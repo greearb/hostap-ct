@@ -2239,6 +2239,7 @@ def test_fst_session_respond_fail(dev, apdev, test_params):
         sta = sta1.get_instance()
         sta.request("DISCONNECT")
         sta.wait_disconnected()
+        ap1.hapd.wait_sta_disconnect()
         req = "FST-MANAGER SESSION_RESPOND %s reject" % ev['id']
         s = ap1.grequest(req)
         if not s.startswith("FAIL"):

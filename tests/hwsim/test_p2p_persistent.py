@@ -124,11 +124,15 @@ def test_persistent_group_per_sta_psk(dev):
             raise Exception("Timeout on group restart")
         dev[i].group_form_result(ev)
 
+    dev[0].wait_sta()
+    dev[0].wait_sta()
+
     logger.info("Leave persistent group and rejoin it")
     dev[2].remove_group()
     ev = dev[2].wait_global_event(["P2P-GROUP-REMOVED"], timeout=3)
     if ev is None:
         raise Exception("Group removal event timed out")
+    dev[0].wait_sta_disconnect()
     if not dev[2].discover_peer(addr0, social=True):
         raise Exception("Peer " + addr0 + " not found")
     dev[2].dump_monitor()
@@ -140,6 +144,7 @@ def test_persistent_group_per_sta_psk(dev):
     cli_res = dev[2].group_form_result(ev)
     if not cli_res['persistent']:
         raise Exception("Persistent group not restarted as persistent (cli)")
+    dev[0].wait_sta(addr=dev[2].p2p_interface_addr())
     hwsim_utils.test_connectivity_p2p(dev[1], dev[2])
 
     logger.info("Remove one of the clients from the group without removing persistent group information for the client")

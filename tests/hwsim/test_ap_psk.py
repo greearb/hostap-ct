@@ -646,8 +646,8 @@ def test_ap_wpa2_bridge_fdb(dev, apdev):
                        bssid=apdev[0]['bssid'])
         dev[1].connect(ssid, psk=passphrase, scan_freq="2412",
                        bssid=apdev[0]['bssid'])
-        hapd.wait_sta()
-        hapd.wait_sta()
+        hapd.wait_sta(wait_4way_hs=True)
+        hapd.wait_sta(wait_4way_hs=True)
         addr0 = dev[0].p2p_interface_addr()
         hwsim_utils.test_connectivity_sta(dev[0], dev[1])
         err, macs1 = hapd.cmd_execute(['brctl', 'showmacs', 'ap-br0'])

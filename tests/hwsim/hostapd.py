@@ -294,12 +294,27 @@ class Hostapd:
                 break
         return None
 
-    def wait_sta(self, addr=None, timeout=2):
+    def wait_sta(self, addr=None, timeout=2, wait_4way_hs=False):
         ev = self.wait_event(["AP-STA-CONNECT"], timeout=timeout)
         if ev is None:
             raise Exception("AP did not report STA connection")
         if addr and addr not in ev:
             raise Exception("Unexpected STA address in connection event: " + ev)
+        if wait_4way_hs:
+            ev2 = self.wait_event(["EAPOL-4WAY-HS-COMPLETED"],
+                                  timeout=timeout)
+            if ev2 is None:
+                raise Exception("AP did not report 4-way handshake completion")
+            if addr and addr not in ev2:
+                raise Exception("Unexpected STA address in 4-way handshake completion event: " + ev2)
+        return ev
+
+    def wait_sta_disconnect(self, addr=None, timeout=2):
+        ev = self.wait_event(["AP-STA-DISCONNECT"], timeout=timeout)
+        if ev is None:
+            raise Exception("AP did not report STA disconnection")
+        if addr and addr not in ev:
+            raise Exception("Unexpected STA address in disconnection event: " + ev)
         return ev
 
     def wait_ptkinitdone(self, addr, timeout=2):

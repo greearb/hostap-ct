@@ -593,6 +593,7 @@ def test_ap_vlan_without_station(dev, apdev, p):
         time.sleep(.1)
 
         dev[0].connect("test-vlan", psk="12345678x", scan_freq="2412")
+        hapd.wait_sta()
 
         # inject some traffic
         sa = hapd.own_addr()

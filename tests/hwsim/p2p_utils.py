@@ -205,6 +205,7 @@ def connect_cli(go, client, social=False, freq=None):
     res = client.p2p_connect_group(go.p2p_dev_addr(), pin, timeout=60,
                                    social=social, freq=freq)
     logger.info("Client connected")
+    go.wait_sta(client.p2p_interface_addr())
     hwsim_utils.test_connectivity_p2p(go, client)
     return res
 
@@ -295,6 +296,12 @@ def go_neg_pin_authorized(i_dev, r_dev, i_intent=None, r_intent=None,
     r_res = r_dev.p2p_go_neg_auth_result(expect_failure=expect_failure)
     logger.debug("i_res: " + str(i_res))
     logger.debug("r_res: " + str(r_res))
+    if not expect_failure and i_res and r_res and \
+       i_res['result'] == 'success' and r_res['result'] == 'success':
+        if i_res['role'] == 'GO':
+            i_dev.wait_sta(addr=r_dev.p2p_interface_addr())
+        if r_res['role'] == 'GO':
+            r_dev.wait_sta(addr=i_dev.p2p_interface_addr())
     r_dev.dump_monitor()
     i_dev.dump_monitor()
     if i_go_neg_status:

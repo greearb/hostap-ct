@@ -1259,12 +1259,18 @@ def test_ap_wpa2_eap_aka_sql(dev, apdev, params):
 
     logger.info("AKA fast re-authentication")
     eap_reauth(dev[0], "AKA")
+    ev = hapd.wait_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=1)
+    if ev is None:
+        raise Exception("hostapd did not report 4-way handshake completion")
 
     logger.info("AKA full auth with pseudonym")
     with con:
         cur = con.cursor()
         cur.execute("DELETE FROM reauth WHERE permanent='0232010000000000'")
     eap_reauth(dev[0], "AKA")
+    ev = hapd.wait_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=1)
+    if ev is None:
+        raise Exception("hostapd did not report 4-way handshake completion")
 
     logger.info("AKA full auth with permanent identity")
     with con:
@@ -1272,6 +1278,9 @@ def test_ap_wpa2_eap_aka_sql(dev, apdev, params):
         cur.execute("DELETE FROM reauth WHERE permanent='0232010000000000'")
         cur.execute("DELETE FROM pseudonyms WHERE permanent='0232010000000000'")
     eap_reauth(dev[0], "AKA")
+    ev = hapd.wait_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=1)
+    if ev is None:
+        raise Exception("hostapd did not report 4-way handshake completion")
 
     logger.info("AKA reauth with mismatching MK")
     with con:
@@ -1286,12 +1295,20 @@ def test_ap_wpa2_eap_aka_sql(dev, apdev, params):
         cur = con.cursor()
         cur.execute("UPDATE reauth SET counter='10' WHERE permanent='0232010000000000'")
     eap_reauth(dev[0], "AKA")
+    ev = hapd.wait_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=1)
+    if ev is None:
+        raise Exception("hostapd did not report 4-way handshake completion")
     with con:
         cur = con.cursor()
         cur.execute("UPDATE reauth SET counter='10' WHERE permanent='0232010000000000'")
     logger.info("AKA reauth with mismatching counter")
     eap_reauth(dev[0], "AKA")
+    ev = hapd.wait_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=1)
+    if ev is None:
+        raise Exception("hostapd did not report 4-way handshake completion")
     dev[0].request("REMOVE_NETWORK all")
+    dev[0].wait_disconnected()
+    hapd.wait_sta_disconnect()
 
     eap_connect(dev[0], hapd, "AKA", "0232010000000000",
                 password="90dca4eda45b53cf0f12d7c9c3bc6a89:cb9cccc4b9258e6dca4760379fb82581:000000000123")
@@ -1300,6 +1317,9 @@ def test_ap_wpa2_eap_aka_sql(dev, apdev, params):
         cur.execute("UPDATE reauth SET counter='1001' WHERE permanent='0232010000000000'")
     logger.info("AKA reauth with max reauth count reached")
     eap_reauth(dev[0], "AKA")
+    ev = hapd.wait_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=1)
+    if ev is None:
+        raise Exception("hostapd did not report 4-way handshake completion")
 
 def test_ap_wpa2_eap_aka_sql_fallback_to_pseudonym_id(dev, apdev, params):
     """WPA2-Enterprise connection using EAP-AKA (SQL) and fallback to pseudonym using AKA-Identity"""

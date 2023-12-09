@@ -227,9 +227,11 @@ def test_sae_pk_modes(dev, apdev):
         val = dev[0].get_status_field("sae_pk")
         if val != str(expected):
             raise Exception("Unexpected sae_pk=%d result %s" % (sae_pk, val))
+        hapd.wait_sta()
         dev[0].request("REMOVE_NETWORK *")
         dev[0].wait_disconnected()
         dev[0].dump_monitor()
+        hapd.wait_sta_disconnect()
 
 def test_sae_pk_not_on_ap(dev, apdev):
     """SAE-PK password, but no PK on AP"""

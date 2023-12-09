@@ -45,6 +45,7 @@ def test_ap_qosmap(dev, apdev):
     params['qos_map_set'] = '53,2,22,6,8,15,0,7,255,255,16,31,32,39,255,255,40,47,48,55'
     hapd = hostapd.add_ap(apdev[0], params)
     dev[0].connect(ssid, key_mgmt="NONE", scan_freq="2412")
+    hapd.wait_sta()
     time.sleep(0.1)
     addr = dev[0].p2p_interface_addr()
     dev[0].request("DATA_TEST_CONFIG 1")
@@ -82,6 +83,8 @@ def test_ap_qosmap_default(dev, apdev):
     params = {"ssid": ssid}
     hapd = hostapd.add_ap(apdev[0], params)
     dev[0].connect(ssid, key_mgmt="NONE", scan_freq="2412")
+    hapd.wait_sta()
+    time.sleep(0.1)
     addr = dev[0].p2p_interface_addr()
     dev[0].request("DATA_TEST_CONFIG 1")
     hapd.request("DATA_TEST_CONFIG 1")
@@ -119,6 +122,8 @@ def test_ap_qosmap_default_acm(dev, apdev):
     hapd = hostapd.add_ap(apdev[0], params)
     dev[0].connect(ssid, key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].p2p_interface_addr()
+    hapd.wait_sta()
+    time.sleep(0.1)
     dev[0].request("DATA_TEST_CONFIG 1")
     hapd.request("DATA_TEST_CONFIG 1")
     Wlantest.setup(hapd)
@@ -163,6 +168,8 @@ def test_ap_qosmap_invalid(dev, apdev):
             raise Exception("SET_QOS_MAP_SET accepted during forced driver failure")
 
     dev[0].connect(ssid, key_mgmt="NONE", scan_freq="2412")
+    hapd.wait_sta()
+    time.sleep(0.1)
     with alloc_fail(hapd, 1,
                     "wpabuf_alloc;hostapd_ctrl_iface_send_qos_map_conf"):
         if "FAIL" not in hapd.request("SEND_QOS_MAP_CONF " + dev[0].own_addr()):

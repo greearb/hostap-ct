@@ -55,15 +55,19 @@ def hs20_ap_params(ssid="test-hs20"):
     params['anqp_3gpp_cell_net'] = "244,91"
     return params
 
-def check_auto_select(dev, bssid):
+def check_auto_select(dev, bssid, hapd=None):
     dev.scan_for_bss(bssid, freq="2412")
     dev.request("INTERWORKING_SELECT auto freq=2412")
     ev = dev.wait_connected(timeout=15)
     if bssid not in ev:
         raise Exception("Connected to incorrect network")
+    if hapd:
+        hapd.wait_sta()
     dev.request("REMOVE_NETWORK all")
     dev.wait_disconnected()
     dev.dump_monitor()
+    if hapd:
+        hapd.wait_sta_disconnect()
 
 def interworking_select(dev, bssid, type=None, no_match=False, freq=None):
     dev.dump_monitor()
@@ -1485,7 +1489,7 @@ def test_ap_hs20_gas_while_associated(dev, apdev):
     bssid = apdev[0]['bssid']
     params = hs20_ap_params()
     params['hessid'] = bssid
-    hostapd.add_ap(apdev[0], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     dev[0].hs20_enable()
     id = dev[0].add_cred_values({'realm': "example.com",
@@ -1495,6 +1499,7 @@ def test_ap_hs20_gas_while_associated(dev, apdev):
                                  'domain': "example.com"})
     interworking_select(dev[0], bssid, "home", freq="2412")
     interworking_connect(dev[0], bssid, "TTLS")
+    hapd.wait_sta()
 
     logger.info("Verifying GAS query while associated")
     dev[0].request("FETCH_ANQP")
@@ -1509,7 +1514,7 @@ def test_ap_hs20_gas_with_another_ap_while_associated(dev, apdev):
     bssid = apdev[0]['bssid']
     params = hs20_ap_params()
     params['hessid'] = bssid
-    hostapd.add_ap(apdev[0], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     bssid2 = apdev[1]['bssid']
     params = hs20_ap_params()
@@ -1525,6 +1530,7 @@ def test_ap_hs20_gas_with_another_ap_while_associated(dev, apdev):
                                  'domain': "example.com"})
     interworking_select(dev[0], bssid, "home", freq="2412")
     interworking_connect(dev[0], bssid, "TTLS")
+    hapd.wait_sta()
     dev[0].dump_monitor()
 
     logger.info("Verifying GAS query with same AP while associated")
@@ -2253,7 +2259,7 @@ def test_ap_hs20_req_conn_capab(dev, apdev):
     check_eap_capa(dev[0], "MSCHAPV2")
     bssid = apdev[0]['bssid']
     params = hs20_ap_params()
-    hostapd.add_ap(apdev[0], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     dev[0].hs20_enable()
     dev[0].scan_for_bss(bssid, freq="2412")
@@ -2269,7 +2275,7 @@ def test_ap_hs20_req_conn_capab(dev, apdev):
     check_conn_capab_selection(dev[0], "roaming", True)
 
     logger.info("Verify that req_conn_capab does not prevent connection if no other network is available")
-    check_auto_select(dev[0], bssid)
+    check_auto_select(dev[0], bssid, hapd=hapd)
 
     logger.info("Additional req_conn_capab checks")
 
@@ -2324,25 +2330,25 @@ def test_ap_hs20_req_conn_capab_and_roaming_partner_preference(dev, apdev):
     params = hs20_ap_params()
     params['domain_name'] = "roaming.example.org"
     params['hs20_conn_capab'] = ["1:0:2", "6:22:1", "17:5060:0", "50:0:1"]
-    hostapd.add_ap(apdev[0], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     bssid2 = apdev[1]['bssid']
     params = hs20_ap_params(ssid="test-hs20-b")
     params['domain_name'] = "roaming.example.net"
-    hostapd.add_ap(apdev[1], params)
+    hapd2 = hostapd.add_ap(apdev[1], params)
 
     values = default_cred()
     values['roaming_partner'] = "roaming.example.net,1,127,*"
     id = dev[0].add_cred_values(values)
-    check_auto_select(dev[0], bssid2)
+    check_auto_select(dev[0], bssid2, hapd=hapd2)
 
     dev[0].set_cred(id, "req_conn_capab", "50")
-    check_auto_select(dev[0], bssid)
+    check_auto_select(dev[0], bssid, hapd=hapd)
 
     dev[0].remove_cred(id)
     id = dev[0].add_cred_values(values)
     dev[0].set_cred(id, "req_conn_capab", "51")
-    check_auto_select(dev[0], bssid2)
+    check_auto_select(dev[0], bssid2, hapd=hapd2)
 
 def check_bandwidth_selection(dev, type, below):
     dev.request("INTERWORKING_SELECT freq=2412")
@@ -2374,7 +2380,7 @@ def test_ap_hs20_min_bandwidth_home(dev, apdev):
     check_eap_capa(dev[0], "MSCHAPV2")
     bssid = apdev[0]['bssid']
     params = hs20_ap_params()
-    hostapd.add_ap(apdev[0], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     dev[0].hs20_enable()
     dev[0].scan_for_bss(bssid, freq="2412")
@@ -2396,14 +2402,14 @@ def test_ap_hs20_min_bandwidth_home(dev, apdev):
     values = bw_cred(domain="example.com", dl_home=5491, ul_home=59)
     id = dev[0].add_cred_values(values)
     check_bandwidth_selection(dev[0], "home", True)
-    check_auto_select(dev[0], bssid)
+    check_auto_select(dev[0], bssid, hapd=hapd)
 
     bssid2 = apdev[1]['bssid']
     params = hs20_ap_params(ssid="test-hs20-b")
     params['hs20_wan_metrics'] = "01:8000:1000:1:1:3000"
-    hostapd.add_ap(apdev[1], params)
+    hapd2 = hostapd.add_ap(apdev[1], params)
 
-    check_auto_select(dev[0], bssid2)
+    check_auto_select(dev[0], bssid2, hapd=hapd2)
 
 def test_ap_hs20_min_bandwidth_home2(dev, apdev):
     """Hotspot 2.0 network selection with min bandwidth - special cases"""
@@ -2446,7 +2452,7 @@ def test_ap_hs20_min_bandwidth_home_hidden_ssid_in_scan_res(dev, apdev):
     hapd_global.remove(apdev[0]['ifname'])
 
     params = hs20_ap_params()
-    hostapd.add_ap(apdev[0], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     dev[0].hs20_enable()
     dev[0].scan_for_bss(bssid, freq="2412")
@@ -2468,14 +2474,14 @@ def test_ap_hs20_min_bandwidth_home_hidden_ssid_in_scan_res(dev, apdev):
     values = bw_cred(domain="example.com", dl_home=5491, ul_home=59)
     id = dev[0].add_cred_values(values)
     check_bandwidth_selection(dev[0], "home", True)
-    check_auto_select(dev[0], bssid)
+    check_auto_select(dev[0], bssid, hapd=hapd)
 
     bssid2 = apdev[1]['bssid']
     params = hs20_ap_params(ssid="test-hs20-b")
     params['hs20_wan_metrics'] = "01:8000:1000:1:1:3000"
-    hostapd.add_ap(apdev[1], params)
+    hapd2 = hostapd.add_ap(apdev[1], params)
 
-    check_auto_select(dev[0], bssid2)
+    check_auto_select(dev[0], bssid2, hapd=hapd2)
 
     dev[0].flush_scan_cache()
 
@@ -2484,7 +2490,7 @@ def test_ap_hs20_min_bandwidth_roaming(dev, apdev):
     check_eap_capa(dev[0], "MSCHAPV2")
     bssid = apdev[0]['bssid']
     params = hs20_ap_params()
-    hostapd.add_ap(apdev[0], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     dev[0].hs20_enable()
     dev[0].scan_for_bss(bssid, freq="2412")
@@ -2506,14 +2512,14 @@ def test_ap_hs20_min_bandwidth_roaming(dev, apdev):
     values = bw_cred(domain="example.org", dl_roaming=5491, ul_roaming=59)
     id = dev[0].add_cred_values(values)
     check_bandwidth_selection(dev[0], "roaming", True)
-    check_auto_select(dev[0], bssid)
+    check_auto_select(dev[0], bssid, hapd=hapd)
 
     bssid2 = apdev[1]['bssid']
     params = hs20_ap_params(ssid="test-hs20-b")
     params['hs20_wan_metrics'] = "01:8000:1000:1:1:3000"
-    hostapd.add_ap(apdev[1], params)
+    hapd2 = hostapd.add_ap(apdev[1], params)
 
-    check_auto_select(dev[0], bssid2)
+    check_auto_select(dev[0], bssid2, hapd=hapd2)
 
 def test_ap_hs20_min_bandwidth_and_roaming_partner_preference(dev, apdev):
     """Hotspot 2.0 and minimum bandwidth with roaming partner preference"""
@@ -2522,23 +2528,23 @@ def test_ap_hs20_min_bandwidth_and_roaming_partner_preference(dev, apdev):
     params = hs20_ap_params()
     params['domain_name'] = "roaming.example.org"
     params['hs20_wan_metrics'] = "01:8000:1000:1:1:3000"
-    hostapd.add_ap(apdev[0], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     bssid2 = apdev[1]['bssid']
     params = hs20_ap_params(ssid="test-hs20-b")
     params['domain_name'] = "roaming.example.net"
-    hostapd.add_ap(apdev[1], params)
+    hapd2 = hostapd.add_ap(apdev[1], params)
 
     values = default_cred()
     values['roaming_partner'] = "roaming.example.net,1,127,*"
     id = dev[0].add_cred_values(values)
-    check_auto_select(dev[0], bssid2)
+    check_auto_select(dev[0], bssid2, hapd=hapd2)
 
     dev[0].set_cred(id, "min_dl_bandwidth_roaming", "6000")
-    check_auto_select(dev[0], bssid)
+    check_auto_select(dev[0], bssid, hapd=hapd)
 
     dev[0].set_cred(id, "min_dl_bandwidth_roaming", "10000")
-    check_auto_select(dev[0], bssid2)
+    check_auto_select(dev[0], bssid2, hapd=hapd2)
 
 def test_ap_hs20_min_bandwidth_no_wan_metrics(dev, apdev):
     """Hotspot 2.0 network selection with min bandwidth but no WAN Metrics"""

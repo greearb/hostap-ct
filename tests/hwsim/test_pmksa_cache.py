@@ -1115,6 +1115,7 @@ def test_pmksa_cache_ctrl_ext_ft(dev, apdev):
                         eap="GPSK", identity="gpsk user",
                         password="abcdefghijklmnop0123456789abcdef",
                         scan_freq="2412")
+    hapd.wait_sta()
 
     res1 = dev[0].request("PMKSA_GET %d" % id)
     logger.info("PMKSA_GET: " + res1)
@@ -1127,6 +1128,7 @@ def test_pmksa_cache_ctrl_ext_ft(dev, apdev):
     dev[0].wait_disconnected()
     dev[0].dump_monitor()
     dev[0].request("PMKSA_FLUSH")
+    hapd.wait_sta_disconnect()
 
     id = dev[0].connect("test-pmksa-cache", proto="RSN", key_mgmt="FT-EAP",
                         eap="GPSK", identity="gpsk user",

@@ -205,8 +205,10 @@ def test_fils_sk_pmksa_caching_ocv(dev, apdev, params):
     if pmksa is None:
         raise Exception("No PMKSA cache entry created")
 
+    hapd.wait_sta()
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected()
+    hapd.wait_sta_disconnect()
 
     dev[0].dump_monitor()
     dev[0].select_network(id, freq=2412)
@@ -216,6 +218,7 @@ def test_fils_sk_pmksa_caching_ocv(dev, apdev, params):
         raise Exception("Connection using PMKSA caching timed out")
     if "CTRL-EVENT-EAP-STARTED" in ev:
         raise Exception("Unexpected EAP exchange")
+    hapd.wait_sta()
     hwsim_utils.test_connectivity(dev[0], hapd)
     pmksa2 = dev[0].get_pmksa(bssid)
     if pmksa2 is None:
@@ -231,6 +234,9 @@ def test_fils_sk_pmksa_caching_ocv(dev, apdev, params):
     ev = dev[0].wait_event(["CTRL-EVENT-EAP-SUCCESS"], timeout=5)
     if ev is None:
         raise Exception("EAP authentication did not succeed")
+    ev = hapd.wait_event(["CTRL-EVENT-EAP-SUCCESS2"], timeout=1)
+    if ev is None:
+        raise Exception("hostapd did not report EAP-Success on reauth")
     time.sleep(0.1)
     hwsim_utils.test_connectivity(dev[0], hapd)
 
@@ -346,6 +352,7 @@ def test_fils_sk_pmksa_caching_ctrl_ext(dev, apdev, params):
     if "ffee" not in res1:
         raise Exception("FILS Cache Identifier not seen in PMKSA cache entry")
 
+    hapd.wait_sta()
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected()
     hapd_as.disable()

@@ -439,10 +439,13 @@ def test_autogo_passphrase_len(dev):
         dev[2].dump_monitor()
         dev[2].request("WPS_PIN any " + pin)
         dev[2].wait_connected(timeout=30)
+        dev[0].wait_sta(addr=dev[2].own_addr())
         status = dev[2].get_status()
         if status['wpa_state'] != 'COMPLETED':
             raise Exception("Not fully connected")
         dev[2].request("DISCONNECT")
+        dev[2].wait_disconnected()
+        dev[0].wait_sta_disconnect()
 
         logger.info("Connect legacy non-WPS client")
         dev[2].request("FLUSH")
@@ -450,6 +453,7 @@ def test_autogo_passphrase_len(dev):
         dev[2].connect(ssid=res['ssid'], psk=res['passphrase'], proto='RSN',
                        key_mgmt='WPA-PSK', pairwise='CCMP', group='CCMP',
                        scan_freq=res['freq'])
+        dev[0].wait_sta(addr=dev[2].own_addr())
         hwsim_utils.test_connectivity_p2p_sta(dev[1], dev[2])
         dev[2].request("DISCONNECT")
 

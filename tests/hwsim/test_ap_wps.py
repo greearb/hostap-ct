@@ -10327,6 +10327,10 @@ def test_ap_wps_random_uuid(dev, apdev, params):
 
         wpas.interface_remove("wlan5")
 
+        for j in range(3):
+            ev = hapd.wait_event(["WPS-ENROLLEE-SEEN"], timeout=1)
+            if ev:
+                logger.info("Ignored extra event at the end: " + ev)
         hapd.dump_monitor()
 
     logger.info("Seen UUIDs: " + str(uuid))

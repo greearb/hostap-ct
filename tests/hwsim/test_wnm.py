@@ -221,6 +221,7 @@ def test_wnm_ess_disassoc_imminent_pmf(dev, apdev):
     dev[0].connect("test-wnm-rsn", psk="12345678", ieee80211w="2",
                    key_mgmt="WPA-PSK-SHA256", proto="WPA2", scan_freq="2412")
     addr = dev[0].p2p_interface_addr()
+    hapd.wait_sta(wait_4way_hs=True)
     hapd.request("ESS_DISASSOC " + addr + " 10 http://example.com/session-info")
     ev = dev[0].wait_event(["ESS-DISASSOC-IMMINENT"])
     if ev is None:
@@ -472,6 +473,7 @@ def test_wnm_sleep_mode_rsn_ocv_failure(dev, apdev):
 
     dev[0].connect("test-wnm-rsn", psk="12345678", ieee80211w="2", ocv="1",
                    key_mgmt="WPA-PSK-SHA256", proto="WPA2", scan_freq="2412")
+    hapd.wait_sta()
     # Failed to allocate buffer for OCI element in WNM-Sleep Mode frame
     with alloc_fail(hapd, 2, "ieee802_11_send_wnmsleep_resp"):
             if "OK" not in dev[0].request("WNM_SLEEP enter"):
