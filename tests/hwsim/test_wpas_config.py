@@ -297,6 +297,16 @@ def test_wpas_config_file(dev, apdev, params):
         wpas.request("SET country 00")
         wpas.wait_event(["CTRL-EVENT-REGDOM-CHANGE"], timeout=1)
 
+    country = False
+    for i in range(5):
+        ev = dev[0].wait_event(["CTRL-EVENT-REGDOM-CHANGE"], timeout=1)
+        if ev is None:
+            break
+        if "alpha2=FI" in ev:
+            country = True
+        if country and "type=WORLD":
+            break
+
 def test_wpas_config_file_wps(dev, apdev):
     """wpa_supplicant config file parsing/writing with WPS"""
     config = "/tmp/test_wpas_config_file.conf"
