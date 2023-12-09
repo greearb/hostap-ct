@@ -21,6 +21,16 @@ def wait_ap_ready(dev):
     if ev is None:
         raise Exception("AP failed to start")
 
+def set_regdom(dev, country):
+    dev.set("country", country)
+    for i in range(5):
+        ev = dev.wait_event(["CTRL-EVENT-REGDOM-CHANGE"], timeout=5)
+        if not ev:
+            return
+        if "alpha2=" + country in ev:
+            return
+    logger.info("No regdom change event indicated")
+
 def log_channel_info(dev):
     gen = dev.get_status_field('wifi_generation')
     if gen:
@@ -684,7 +694,7 @@ def _test_wpas_ap_5ghz(dev):
 def test_wpas_ap_open_ht40(dev):
     """wpa_supplicant AP mode - HT 40 MHz"""
     id = dev[0].add_network()
-    dev[0].set("country", "FI")
+    set_regdom(dev[0], "FI")
     try:
         dev[0].set_network(id, "mode", "2")
         dev[0].set_network_quoted(id, "ssid", "wpas-ap-open")
@@ -713,7 +723,7 @@ def test_wpas_ap_open_ht40(dev):
 def test_wpas_ap_open_vht80(dev):
     """wpa_supplicant AP mode - VHT 80 MHz"""
     id = dev[0].add_network()
-    dev[0].set("country", "FI")
+    set_regdom(dev[0], "FI")
     try:
         dev[0].set_network(id, "mode", "2")
         dev[0].set_network_quoted(id, "ssid", "wpas-ap-open")
@@ -760,7 +770,7 @@ def test_wpas_ap_open_vht80_us_161(dev):
 
 def run_wpas_ap_open_vht80_us(dev, freq, center_freq, ht40):
     id = dev[0].add_network()
-    dev[0].set("country", "US")
+    set_regdom(dev[0], "US")
     try:
         dev[0].set_network(id, "mode", "2")
         dev[0].set_network_quoted(id, "ssid", "wpas-ap-open")
@@ -833,7 +843,7 @@ def test_wpas_ap_no_ht(dev):
 def test_wpas_ap_async_fail(dev):
     """wpa_supplicant AP mode - Async failure"""
     id = dev[0].add_network()
-    dev[0].set("country", "FI")
+    set_regdom(dev[0], "FI")
     try:
         dev[0].set_network(id, "mode", "2")
         dev[0].set_network_quoted(id, "ssid", "wpas-ap-open")
