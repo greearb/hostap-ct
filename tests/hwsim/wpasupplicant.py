@@ -1556,6 +1556,7 @@ class WpaSupplicant:
         work_started = "dpp-listen@" + self.ifname + ":" + str(freq) + ":1"
         for i in range(10):
             if work_started in self.request("RADIO_WORK show"):
+                time.sleep(0.0005)
                 return
             time.sleep(0.01)
         raise Exception("Failed to start DPP listen work")
