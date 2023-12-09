@@ -1078,8 +1078,14 @@ def test_sigma_dut_ap_sae_pw_id(dev, apdev, params):
                 dev[0].connect("test-sae", key_mgmt="SAE", sae_password=pw,
                                sae_password_id=pw_id,
                                ieee80211w="2", scan_freq="2412")
+                # Allow some time for AP to complete handling of connection
+                # before disconnecting.
+                time.sleep(0.1)
                 dev[0].request("REMOVE_NETWORK all")
                 dev[0].wait_disconnected()
+                # Allow some time for AP to complete handling of disconnection
+                # before trying SAE again.
+                time.sleep(0.1)
 
             sigma_dut_cmd_check("ap_reset_default")
         finally:
@@ -1148,8 +1154,14 @@ def test_sigma_dut_ap_sae_pw_id_ft(dev, apdev, params):
                 dev[0].connect("test-sae", key_mgmt=key_mgmt, sae_password=pw,
                                sae_password_id=pw_id,
                                ieee80211w="2", scan_freq="2412")
+                # Allow some time for AP to complete handling of connection
+                # before disconnecting.
+                time.sleep(0.1)
                 dev[0].request("REMOVE_NETWORK all")
                 dev[0].wait_disconnected()
+                # Allow some time for AP to complete handling of disconnection
+                # before trying SAE again.
+                time.sleep(0.1)
 
             sigma_dut_cmd_check("ap_reset_default")
         finally:
