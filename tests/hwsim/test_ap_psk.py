@@ -2621,8 +2621,12 @@ def read_process_memory(pid, key=None):
             for name in ["[heap]", "[stack]"]:
                 if name in l:
                     logger.info("%s 0x%x-0x%x is at %d-%d" % (name, start, end, len(buf), len(buf) + (end - start)))
-            mem.seek(start)
-            data = mem.read(end - start)
+            try:
+                mem.seek(start)
+                data = mem.read(end - start)
+            except OSError as e:
+                logger.info("Could not read mem: start=%d end=%d: %s" % (start, end, str(e)))
+                continue
             buf += data
             if key and key in data:
                 logger.info("Key found in " + l)
