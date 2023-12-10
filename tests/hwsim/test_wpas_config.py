@@ -253,7 +253,9 @@ def test_wpas_config_file(dev, apdev, params):
         wpas.interface_add("wlan5", config=config)
         if len(wpas.list_networks()) != 2:
             raise Exception("Unexpected number of networks")
-        if len(wpas.request("LIST_CREDS").splitlines()) != 2:
+        res = wpas.request("LIST_CREDS")
+        logger.info("Credentials:\n" + res)
+        if len(res.splitlines()) != 2:
             raise Exception("Unexpected number of credentials")
 
         val = wpas.get_cred(0, "roaming_consortiums")
@@ -304,7 +306,7 @@ def test_wpas_config_file(dev, apdev, params):
             break
         if "alpha2=FI" in ev:
             country = True
-        if country and "type=WORLD":
+        if country and "type=WORLD" in ev:
             break
 
 def test_wpas_config_file_wps(dev, apdev):
