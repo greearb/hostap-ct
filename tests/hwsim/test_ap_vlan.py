@@ -261,6 +261,7 @@ def generic_ap_vlan_wpa2_radius_id_change(dev, apdev, tagged):
                    password_hex="0123456789abcdef0123456789abcdef",
                    scan_freq="2412")
     hapd.wait_sta()
+    time.sleep(0.1)
     if tagged:
         hwsim_utils.run_connectivity_test(dev[0], hapd, 0, ifname1="wlan0.1",
                                           ifname2="brvlan1")
@@ -289,6 +290,10 @@ def generic_ap_vlan_wpa2_radius_id_change(dev, apdev, tagged):
         raise Exception("No VLAN ID in STA info")
     if (not tagged) and (sta['vlan_id'] != '2'):
         raise Exception("Unexpected VLAN ID: " + sta['vlan_id'])
+    ev = hapd.wait_event(["CTRL-EVENT-EAP-SUCCESS2"], timeout=1)
+    if ev is None:
+        raise Exception("EAP reauthentication timed out (AP)")
+    time.sleep(0.1)
     if tagged:
         hwsim_utils.run_connectivity_test(dev[0], hapd, 0, ifname1="wlan0.2",
                                           ifname2="brvlan2")
@@ -313,6 +318,9 @@ def generic_ap_vlan_wpa2_radius_id_change(dev, apdev, tagged):
     state = dev[0].get_status_field('wpa_state')
     if state != "COMPLETED":
         raise Exception("Unexpected state after reauth: " + state)
+    ev = hapd.wait_event(["CTRL-EVENT-EAP-SUCCESS2"], timeout=1)
+    if ev is None:
+        raise Exception("EAP reauthentication timed out (AP)")
     sta = hapd.get_sta(dev[0].own_addr())
     if 'vlan_id' not in sta:
         raise Exception("No VLAN ID in STA info")
@@ -330,6 +338,7 @@ def generic_ap_vlan_wpa2_radius_id_change(dev, apdev, tagged):
         # It is possible for new bridge setup to not be ready immediately, so
         # try again to avoid reporting issues related to that.
         logger.info("First VLAN-ID 1 data test failed - try again")
+        time.sleep(0.1)
         if tagged:
             hwsim_utils.run_connectivity_test(dev[0], hapd, 0,
                                               ifname1="wlan0.1",

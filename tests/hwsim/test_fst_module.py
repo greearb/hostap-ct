@@ -2363,6 +2363,7 @@ def fst_start_and_connect(apdev, group, sgroup):
     wpas.connect("fst_11a", key_mgmt="NONE", scan_freq="5180",
                  wait_connect=False)
     wpas.wait_connected()
+    hapd.wait_sta()
 
     fst_wait_event_peer_sta(wpas, "connected", wpas.ifname, apdev[0]['bssid'])
     fst_wait_event_peer_ap(hglobal, "connected", apdev[0]['ifname'],
@@ -2371,10 +2372,12 @@ def fst_start_and_connect(apdev, group, sgroup):
     wpas2.connect("fst_11g", key_mgmt="NONE", scan_freq="2412",
                   wait_connect=False)
     wpas2.wait_connected()
+    hapd2.wait_sta()
 
     fst_wait_event_peer_sta(wpas, "connected", wpas2.ifname, apdev[1]['bssid'])
     fst_wait_event_peer_ap(hglobal, "connected", apdev[1]['ifname'],
                            wpas2.own_addr())
+    time.sleep(0.1)
     return hglobal, wpas, wpas2, hapd, hapd2
 
 def test_fst_test_setup(dev, apdev, test_params):

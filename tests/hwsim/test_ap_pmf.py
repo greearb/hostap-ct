@@ -248,12 +248,17 @@ def test_ap_pmf_assoc_comeback(dev, apdev):
     dev[0].connect(ssid, psk="12345678", ieee80211w="1",
                    key_mgmt="WPA-PSK WPA-PSK-SHA256", proto="WPA2",
                    scan_freq="2412")
+    hapd.wait_sta(wait_4way_hs=True)
     hapd.set("ext_mgmt_frame_handling", "1")
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected(timeout=10)
+    ev = hapd.wait_event(["MGMT-RX"], timeout=1)
+    if ev is None:
+        raise Exception("Deauthentication frame RX not reported")
     hapd.set("ext_mgmt_frame_handling", "0")
     dev[0].request("REASSOCIATE")
     dev[0].wait_connected(timeout=10, error="Timeout on re-connection")
+    hapd.wait_4way_hs()
     if wt.get_sta_counter("assocresp_comeback", apdev[0]['bssid'],
                           dev[0].p2p_interface_addr()) < 1:
         raise Exception("AP did not use association comeback request")

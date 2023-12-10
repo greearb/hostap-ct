@@ -330,8 +330,11 @@ def test_autogo_legacy(dev):
     status = dev[2].get_status()
     if status['wpa_state'] != 'COMPLETED':
         raise Exception("Not fully connected")
+    dev[0].wait_sta(addr=dev[2].own_addr())
     hwsim_utils.test_connectivity_p2p_sta(dev[1], dev[2])
     dev[2].request("DISCONNECT")
+    dev[2].wait_disconnected()
+    dev[0].wait_sta_disconnect(addr=dev[2].own_addr())
 
     logger.info("Connect legacy non-WPS client")
     dev[2].request("FLUSH")
@@ -340,9 +343,11 @@ def test_autogo_legacy(dev):
     dev[2].connect(ssid=res['ssid'], psk=res['passphrase'], proto='RSN',
                    key_mgmt='WPA-PSK', pairwise='CCMP', group='CCMP',
                    scan_freq=res['freq'])
-    dev[0].wait_event(["EAPOL-4WAY-HS-COMPLETED"])
+    dev[0].wait_sta(addr=dev[2].own_addr(), wait_4way_hs=True)
     hwsim_utils.test_connectivity_p2p_sta(dev[1], dev[2])
     dev[2].request("DISCONNECT")
+    dev[2].wait_disconnected()
+    dev[0].wait_sta_disconnect(addr=dev[2].own_addr())
 
     dev[0].remove_group()
     dev[1].wait_go_ending_session()

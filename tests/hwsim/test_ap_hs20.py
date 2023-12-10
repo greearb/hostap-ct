@@ -5909,8 +5909,10 @@ def test_ap_hs20_set_profile_failures(dev, apdev):
     dev[0].request("NOTE Successful connection with cred->username including realm")
     dev[0].request("INTERWORKING_CONNECT " + bssid)
     dev[0].wait_connected()
+    hapd.wait_sta()
     dev[0].remove_cred(id)
     dev[0].wait_disconnected()
+    hapd.wait_sta_disconnect()
 
     id = dev[0].add_cred_values({'realm': "example.com",
                                  'domain': "example.com",
@@ -5957,8 +5959,10 @@ def test_ap_hs20_set_profile_failures(dev, apdev):
     dev[0].request("NOTE Successful connection with cred->realm not included")
     dev[0].request("INTERWORKING_CONNECT " + bssid)
     dev[0].wait_connected()
+    hapd.wait_sta()
     dev[0].remove_cred(id)
     dev[0].wait_disconnected()
+    hapd.wait_sta_disconnect()
 
     id = dev[0].add_cred_values({'home_ois': ["112233"],
                                  'domain': "example.com",

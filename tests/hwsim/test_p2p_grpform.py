@@ -330,6 +330,7 @@ def test_grpform_per_sta_psk_wps(dev):
     dev[2].request("WPS_PBC")
     dev[2].wait_connected(timeout=30)
 
+    dev[0].wait_sta(dev[2].p2p_interface_addr())
     hwsim_utils.test_connectivity_p2p_sta(dev[1], dev[2])
 
     dev[0].remove_group()

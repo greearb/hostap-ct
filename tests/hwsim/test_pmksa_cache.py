@@ -499,15 +499,17 @@ def generic_pmksa_cache_preauth(dev, apdev, extraparams, identity, databridge,
             params[key] = value
         hapd1 = hostapd.add_ap(apdev[1], params)
         bssid1 = apdev[1]['bssid']
+        if dev[0].get_pmksa(bssid1):
+            raise Exception("Unexpected PMKSA entry for AP before pre-auth")
         dev[0].scan(freq="2412")
         success = False
         status_seen = False
-        for i in range(0, 50):
+        for i in range(0, 500):
             if not status_seen:
                 status = dev[0].request("STATUS")
                 if "Pre-authentication EAPOL state machines:" in status:
                     status_seen = True
-            time.sleep(0.1)
+            time.sleep(0.01)
             pmksa = dev[0].get_pmksa(bssid1)
             if pmksa:
                 success = True
@@ -515,7 +517,8 @@ def generic_pmksa_cache_preauth(dev, apdev, extraparams, identity, databridge,
         if not success:
             raise Exception("No PMKSA cache entry created from pre-authentication")
         if not status_seen:
-            raise Exception("Pre-authentication EAPOL status was not available")
+            # This might not be seen due to a race condition.
+            logger.info("Pre-authentication EAPOL status was not available")
 
         dev[0].scan(freq="2412")
         if "[WPA2-EAP-CCMP-preauth]" not in dev[0].request("SCAN_RESULTS"):

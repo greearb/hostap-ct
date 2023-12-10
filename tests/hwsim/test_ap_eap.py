@@ -394,12 +394,14 @@ def test_ap_wpa2_eap_sim_sql(dev, apdev, params):
 
     logger.info("SIM fast re-authentication")
     eap_reauth(dev[0], "SIM")
+    hapd.wait_4way_hs()
 
     logger.info("SIM full auth with pseudonym")
     with con:
         cur = con.cursor()
         cur.execute("DELETE FROM reauth WHERE permanent='1232010000000000'")
     eap_reauth(dev[0], "SIM")
+    hapd.wait_4way_hs()
 
     logger.info("SIM full auth with permanent identity")
     with con:
@@ -407,6 +409,7 @@ def test_ap_wpa2_eap_sim_sql(dev, apdev, params):
         cur.execute("DELETE FROM reauth WHERE permanent='1232010000000000'")
         cur.execute("DELETE FROM pseudonyms WHERE permanent='1232010000000000'")
     eap_reauth(dev[0], "SIM")
+    hapd.wait_4way_hs()
 
     logger.info("SIM reauth with mismatching MK")
     with con:
@@ -421,12 +424,15 @@ def test_ap_wpa2_eap_sim_sql(dev, apdev, params):
         cur = con.cursor()
         cur.execute("UPDATE reauth SET counter='10' WHERE permanent='1232010000000000'")
     eap_reauth(dev[0], "SIM")
+    hapd.wait_4way_hs()
     with con:
         cur = con.cursor()
         cur.execute("UPDATE reauth SET counter='10' WHERE permanent='1232010000000000'")
     logger.info("SIM reauth with mismatching counter")
     eap_reauth(dev[0], "SIM")
     dev[0].request("REMOVE_NETWORK all")
+    dev[0].wait_disconnected()
+    hapd.wait_sta_disconnect()
 
     eap_connect(dev[0], hapd, "SIM", "1232010000000000",
                 password="90dca4eda45b53cf0f12d7c9c3bc6a89:cb9cccc4b9258e6dca4760379fb82581")
@@ -435,7 +441,7 @@ def test_ap_wpa2_eap_sim_sql(dev, apdev, params):
         cur.execute("UPDATE reauth SET counter='1001' WHERE permanent='1232010000000000'")
     logger.info("SIM reauth with max reauth count reached")
     eap_reauth(dev[0], "SIM")
-
+    hapd.wait_4way_hs()
 
 def test_ap_wpa2_eap_sim_sql_fallback_to_pseudonym(dev, apdev, params):
     """WPA2-Enterprise connection using EAP-SIM (SQL) and fallback to pseudonym without SIM-Identity"""
@@ -1259,18 +1265,14 @@ def test_ap_wpa2_eap_aka_sql(dev, apdev, params):
 
     logger.info("AKA fast re-authentication")
     eap_reauth(dev[0], "AKA")
-    ev = hapd.wait_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=1)
-    if ev is None:
-        raise Exception("hostapd did not report 4-way handshake completion")
+    hapd.wait_4way_hs()
 
     logger.info("AKA full auth with pseudonym")
     with con:
         cur = con.cursor()
         cur.execute("DELETE FROM reauth WHERE permanent='0232010000000000'")
     eap_reauth(dev[0], "AKA")
-    ev = hapd.wait_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=1)
-    if ev is None:
-        raise Exception("hostapd did not report 4-way handshake completion")
+    hapd.wait_4way_hs()
 
     logger.info("AKA full auth with permanent identity")
     with con:
@@ -1278,9 +1280,7 @@ def test_ap_wpa2_eap_aka_sql(dev, apdev, params):
         cur.execute("DELETE FROM reauth WHERE permanent='0232010000000000'")
         cur.execute("DELETE FROM pseudonyms WHERE permanent='0232010000000000'")
     eap_reauth(dev[0], "AKA")
-    ev = hapd.wait_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=1)
-    if ev is None:
-        raise Exception("hostapd did not report 4-way handshake completion")
+    hapd.wait_4way_hs()
 
     logger.info("AKA reauth with mismatching MK")
     with con:
@@ -1295,17 +1295,13 @@ def test_ap_wpa2_eap_aka_sql(dev, apdev, params):
         cur = con.cursor()
         cur.execute("UPDATE reauth SET counter='10' WHERE permanent='0232010000000000'")
     eap_reauth(dev[0], "AKA")
-    ev = hapd.wait_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=1)
-    if ev is None:
-        raise Exception("hostapd did not report 4-way handshake completion")
+    hapd.wait_4way_hs()
     with con:
         cur = con.cursor()
         cur.execute("UPDATE reauth SET counter='10' WHERE permanent='0232010000000000'")
     logger.info("AKA reauth with mismatching counter")
     eap_reauth(dev[0], "AKA")
-    ev = hapd.wait_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=1)
-    if ev is None:
-        raise Exception("hostapd did not report 4-way handshake completion")
+    hapd.wait_4way_hs()
     dev[0].request("REMOVE_NETWORK all")
     dev[0].wait_disconnected()
     hapd.wait_sta_disconnect()
@@ -1317,9 +1313,7 @@ def test_ap_wpa2_eap_aka_sql(dev, apdev, params):
         cur.execute("UPDATE reauth SET counter='1001' WHERE permanent='0232010000000000'")
     logger.info("AKA reauth with max reauth count reached")
     eap_reauth(dev[0], "AKA")
-    ev = hapd.wait_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=1)
-    if ev is None:
-        raise Exception("hostapd did not report 4-way handshake completion")
+    hapd.wait_4way_hs()
 
 def test_ap_wpa2_eap_aka_sql_fallback_to_pseudonym_id(dev, apdev, params):
     """WPA2-Enterprise connection using EAP-AKA (SQL) and fallback to pseudonym using AKA-Identity"""
@@ -1611,12 +1605,14 @@ def test_ap_wpa2_eap_aka_prime_sql(dev, apdev, params):
 
     logger.info("AKA' fast re-authentication")
     eap_reauth(dev[0], "AKA'")
+    hapd.wait_4way_hs()
 
     logger.info("AKA' full auth with pseudonym")
     with con:
         cur = con.cursor()
         cur.execute("DELETE FROM reauth WHERE permanent='6555444333222111'")
     eap_reauth(dev[0], "AKA'")
+    hapd.wait_4way_hs()
 
     logger.info("AKA' full auth with permanent identity")
     with con:
@@ -1624,6 +1620,7 @@ def test_ap_wpa2_eap_aka_prime_sql(dev, apdev, params):
         cur.execute("DELETE FROM reauth WHERE permanent='6555444333222111'")
         cur.execute("DELETE FROM pseudonyms WHERE permanent='6555444333222111'")
     eap_reauth(dev[0], "AKA'")
+    hapd.wait_4way_hs()
 
     logger.info("AKA' reauth with mismatching k_aut")
     with con:
@@ -1638,12 +1635,16 @@ def test_ap_wpa2_eap_aka_prime_sql(dev, apdev, params):
         cur = con.cursor()
         cur.execute("UPDATE reauth SET counter='10' WHERE permanent='6555444333222111'")
     eap_reauth(dev[0], "AKA'")
+    hapd.wait_4way_hs()
     with con:
         cur = con.cursor()
         cur.execute("UPDATE reauth SET counter='10' WHERE permanent='6555444333222111'")
     logger.info("AKA' reauth with mismatching counter")
     eap_reauth(dev[0], "AKA'")
+    hapd.wait_4way_hs()
     dev[0].request("REMOVE_NETWORK all")
+    dev[0].wait_disconnected()
+    hapd.wait_sta_disconnect()
 
     eap_connect(dev[0], hapd, "AKA'", "6555444333222111",
                 password="5122250214c33e723a5dd523fc145fc0:981d464c7c52eb6e5036234984ad0bcf:000000000123")
@@ -1652,6 +1653,7 @@ def test_ap_wpa2_eap_aka_prime_sql(dev, apdev, params):
         cur.execute("UPDATE reauth SET counter='1001' WHERE permanent='6555444333222111'")
     logger.info("AKA' reauth with max reauth count reached")
     eap_reauth(dev[0], "AKA'")
+    hapd.wait_4way_hs()
 
 def test_ap_wpa2_eap_aka_prime_ext_auth_fail(dev, apdev):
     """EAP-AKA' with external UMTS auth and auth failing"""
@@ -6740,6 +6742,7 @@ def test_eap_tls_session_resumption(dev, apdev):
                 private_key="auth_serv/user.key")
     if dev[0].get_status_field("tls_session_reused") != '0':
         raise Exception("Unexpected session resumption on the first connection")
+    hapd.dump_monitor()
 
     dev[0].request("REAUTHENTICATE")
     ev = dev[0].wait_event(["CTRL-EVENT-EAP-SUCCESS"], timeout=10)
@@ -6750,6 +6753,11 @@ def test_eap_tls_session_resumption(dev, apdev):
         raise Exception("Key handshake with the AP timed out")
     if dev[0].get_status_field("tls_session_reused") != '1':
         raise Exception("Session resumption not used on the second connection")
+    ev = hapd.wait_event(["CTRL-EVENT-EAP-SUCCESS"], timeout=1)
+    if ev is None:
+        raise Exception("EAP success timed out (AP)")
+    hapd.wait_4way_hs()
+    hapd.dump_monitor()
 
     dev[0].request("REAUTHENTICATE")
     ev = dev[0].wait_event(["CTRL-EVENT-EAP-SUCCESS"], timeout=10)
@@ -6760,6 +6768,11 @@ def test_eap_tls_session_resumption(dev, apdev):
         raise Exception("Key handshake with the AP timed out")
     if dev[0].get_status_field("tls_session_reused") != '1':
         raise Exception("Session resumption not used on the third connection")
+    ev = hapd.wait_event(["CTRL-EVENT-EAP-SUCCESS"], timeout=1)
+    if ev is None:
+        raise Exception("EAP success timed out (AP)")
+    hapd.wait_4way_hs()
+    hapd.dump_monitor()
 
 def test_eap_tls_session_resumption_expiration(dev, apdev):
     """EAP-TLS session resumption"""

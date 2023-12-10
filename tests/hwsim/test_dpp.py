@@ -5861,10 +5861,12 @@ def run_dpp_controller_relay(dev, apdev, params, chirp=False, discover=False,
         raise Exception("DPP network id not reported")
     network = int(ev.split(' ')[1])
     dev[0].wait_connected()
+    relay.wait_sta()
     dev[0].dump_monitor()
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected()
     dev[0].dump_monitor()
+    relay.wait_sta_disconnect()
 
     if "OK" not in dev[0].request("DPP_RECONFIG %s" % network):
         raise Exception("Failed to start reconfiguration")
@@ -5875,6 +5877,7 @@ def run_dpp_controller_relay(dev, apdev, params, chirp=False, discover=False,
     if network == network2:
         raise Exception("Network ID did not change")
     dev[0].wait_connected()
+    relay.wait_sta()
 
     time.sleep(0.5)
     wt.close()
@@ -7310,8 +7313,10 @@ def run_dpp_reconfig_hostapd_configurator(dev, apdev):
         raise Exception("DPP network id not reported")
     network = int(ev.split(' ')[1])
     dev[0].wait_connected()
+    hapd.wait_sta()
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected()
+    hapd.wait_sta_disconnect()
     dev[0].dump_monitor()
     time.sleep(10)
     if "FAIL" in dev[0].request("PMKSA_FLUSH"):
@@ -7338,6 +7343,7 @@ def run_dpp_reconfig_hostapd_configurator(dev, apdev):
     if network == network2:
         raise Exception("Network ID did not change")
     dev[0].wait_connected()
+    hapd.wait_sta()
 
 def test_dpp_qr_code_auth_rand_mac_addr(dev, apdev):
     """DPP QR Code and authentication exchange (rand_mac_addr=1)"""

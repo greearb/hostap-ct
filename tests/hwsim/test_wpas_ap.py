@@ -1080,11 +1080,13 @@ def run_wpas_ap_lifetime_in_memory(dev, apdev, params, raw):
     get_key_locations(buf, pmk, "PMK")
 
     dev[1].connect(ssid, psk=passphrase, scan_freq="2412")
+    dev[0].wait_sta()
 
     buf = read_process_memory(pid, pmk)
 
     dev[1].request("DISCONNECT")
     dev[1].wait_disconnected()
+    dev[0].wait_sta_disconnect()
 
     buf2 = read_process_memory(pid, pmk)
 

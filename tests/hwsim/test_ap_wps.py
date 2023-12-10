@@ -1161,15 +1161,15 @@ def _test_ap_wps_er_add_enrollee(dev, apdev):
     ssid = "wps-er-add-enrollee"
     ap_pin = "12345670"
     ap_uuid = "27ea801a-9e5c-4e73-bd82-f89cbcd10d7e"
-    hostapd.add_ap(apdev[0],
-                   {"ssid": ssid, "eap_server": "1", "wps_state": "1",
-                    "device_name": "Wireless AP", "manufacturer": "Company",
-                    "model_name": "WAP", "model_number": "123",
-                    "serial_number": "12345", "device_type": "6-0050F204-1",
-                    "os_version": "01020300",
-                    'friendly_name': "WPS AP - <>&'\" - TEST",
-                    "config_methods": "label push_button",
-                    "ap_pin": ap_pin, "uuid": ap_uuid, "upnp_iface": "lo"})
+    params = {"ssid": ssid, "eap_server": "1", "wps_state": "1",
+              "device_name": "Wireless AP", "manufacturer": "Company",
+              "model_name": "WAP", "model_number": "123",
+              "serial_number": "12345", "device_type": "6-0050F204-1",
+              "os_version": "01020300",
+              'friendly_name': "WPS AP - <>&'\" - TEST",
+              "config_methods": "label push_button",
+              "ap_pin": ap_pin, "uuid": ap_uuid, "upnp_iface": "lo"}
+    hapd = hostapd.add_ap(apdev[0], params)
     logger.info("WPS configuration step")
     new_passphrase = "1234567890"
     dev[0].dump_monitor()
@@ -1186,6 +1186,11 @@ def _test_ap_wps_er_add_enrollee(dev, apdev):
         raise Exception("Unexpected encryption configuration")
     if status['key_mgmt'] != 'WPA2-PSK':
         raise Exception("Unexpected key_mgmt")
+
+    # WPS provisioning
+    hapd.wait_sta(dev[0].own_addr())
+    # Data connection
+    hapd.wait_sta(dev[0].own_addr())
 
     logger.info("Start ER")
     dev[0].request("WPS_ER_START ifname=lo")
@@ -1228,6 +1233,7 @@ def _test_ap_wps_er_add_enrollee(dev, apdev):
     ev = dev[0].wait_event(["WPS-SUCCESS"], timeout=15)
     if ev is None:
         raise Exception("WPS ER did not report success")
+    hapd.wait_sta(dev[1].own_addr())
     hwsim_utils.test_connectivity_sta(dev[0], dev[1])
 
     logger.info("Add a specific Enrollee using ER")
@@ -1247,6 +1253,7 @@ def _test_ap_wps_er_add_enrollee(dev, apdev):
     ev = dev[0].wait_event(["WPS-SUCCESS"], timeout=15)
     if ev is None:
         raise Exception("WPS ER did not report success")
+    hapd.wait_sta(dev[2].own_addr())
 
     logger.info("Verify registrar selection behavior")
     dev[0].request("WPS_ER_PIN any " + pin + " " + dev[1].p2p_interface_addr())
@@ -2505,6 +2512,12 @@ def test_ap_wps_pin_request_file(dev, apdev):
         if uuid not in ev:
             raise Exception("UUID mismatch")
         dev[0].request("WPS_CANCEL")
+        # hostapd reports WPS-PIN-NEEDED before writing the file, so wait a bit
+        # for the file to avoid failures due to race condition.
+        for i in range(10):
+            if os.path.exists(pinfile):
+                break
+            time.sleep(0.1)
         success = False
         with open(pinfile, "r") as f:
             lines = f.readlines()

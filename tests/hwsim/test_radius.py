@@ -492,6 +492,8 @@ def test_radius_das_disconnect(dev, apdev):
     params['nas_identifier'] = "nas.example.com"
     hapd = hostapd.add_ap(apdev[0], params)
     connect(dev[0], "radius-das")
+    hapd.wait_sta(addr=dev[0].own_addr())
+
     addr = dev[0].p2p_interface_addr()
     sta = hapd.get_sta(addr)
     id = sta['dot1xAuthSessionId']
@@ -622,7 +624,9 @@ def test_radius_das_disconnect(dev, apdev):
     send_and_check_reply(srv, req, pyrad.packet.DisconnectACK)
 
     dev[0].wait_disconnected(timeout=10)
+    hapd.wait_sta_disconnect(addr=dev[0].own_addr())
     dev[0].wait_connected(timeout=10, error="Re-connection timed out")
+    hapd.wait_sta(addr=dev[0].own_addr())
 
     logger.info("Disconnect-Request with matching Acct-Multi-Session-Id")
     sta = hapd.get_sta(addr)
@@ -635,7 +639,9 @@ def test_radius_das_disconnect(dev, apdev):
     send_and_check_reply(srv, req, pyrad.packet.DisconnectACK)
 
     dev[0].wait_disconnected(timeout=10)
+    hapd.wait_sta_disconnect(addr=dev[0].own_addr())
     dev[0].wait_connected(timeout=10, error="Re-connection timed out")
+    hapd.wait_sta(addr=dev[0].own_addr())
 
     logger.info("Disconnect-Request with matching User-Name")
     req = radius_das.DisconnectPacket(dict=dict, secret=b"secret",
@@ -645,7 +651,9 @@ def test_radius_das_disconnect(dev, apdev):
     send_and_check_reply(srv, req, pyrad.packet.DisconnectACK)
 
     dev[0].wait_disconnected(timeout=10)
+    hapd.wait_sta_disconnect(addr=dev[0].own_addr())
     dev[0].wait_connected(timeout=10, error="Re-connection timed out")
+    hapd.wait_sta(addr=dev[0].own_addr())
 
     logger.info("Disconnect-Request with matching Calling-Station-Id")
     req = radius_das.DisconnectPacket(dict=dict, secret=b"secret",
@@ -655,12 +663,14 @@ def test_radius_das_disconnect(dev, apdev):
     send_and_check_reply(srv, req, pyrad.packet.DisconnectACK)
 
     dev[0].wait_disconnected(timeout=10)
+    hapd.wait_sta_disconnect(addr=dev[0].own_addr())
     ev = dev[0].wait_event(["CTRL-EVENT-EAP-STARTED", "CTRL-EVENT-CONNECTED"])
     if ev is None:
         raise Exception("Timeout while waiting for re-connection")
     if "CTRL-EVENT-EAP-STARTED" not in ev:
         raise Exception("Unexpected skipping of EAP authentication in reconnection")
     dev[0].wait_connected(timeout=10, error="Re-connection timed out")
+    hapd.wait_sta(addr=dev[0].own_addr())
 
     logger.info("Disconnect-Request with matching Calling-Station-Id and non-matching CUI")
     req = radius_das.DisconnectPacket(dict=dict, secret=b"secret",
@@ -669,24 +679,30 @@ def test_radius_das_disconnect(dev, apdev):
                                       Event_Timestamp=int(time.time()))
     send_and_check_reply(srv, req, pyrad.packet.DisconnectNAK, error_cause=503)
 
+    hapd.dump_monitor()
+
     logger.info("Disconnect-Request with matching CUI")
     dev[1].connect("radius-das", key_mgmt="WPA-EAP",
                    eap="GPSK", identity="gpsk-cui",
                    password="abcdefghijklmnop0123456789abcdef",
                    scan_freq="2412")
+    hapd.wait_sta(addr=dev[1].own_addr())
     req = radius_das.DisconnectPacket(dict=dict, secret=b"secret",
                                       Chargeable_User_Identity="gpsk-chargeable-user-identity",
                                       Event_Timestamp=int(time.time()))
     send_and_check_reply(srv, req, pyrad.packet.DisconnectACK)
 
     dev[1].wait_disconnected(timeout=10)
+    hapd.wait_sta_disconnect(addr=dev[1].own_addr())
     dev[1].wait_connected(timeout=10, error="Re-connection timed out")
+    hapd.wait_sta(addr=dev[1].own_addr())
 
     ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=1)
     if ev is not None:
         raise Exception("Unexpected disconnection")
 
     connect(dev[2], "radius-das")
+    hapd.wait_sta(addr=dev[2].own_addr())
 
     logger.info("Disconnect-Request with matching User-Name - multiple sessions matching")
     req = radius_das.DisconnectPacket(dict=dict, secret=b"secret",
@@ -704,7 +720,9 @@ def test_radius_das_disconnect(dev, apdev):
     send_and_check_reply(srv, req, pyrad.packet.DisconnectACK)
 
     dev[0].wait_disconnected(timeout=10)
+    hapd.wait_sta_disconnect(addr=dev[0].own_addr())
     dev[0].wait_connected(timeout=10, error="Re-connection timed out")
+    hapd.wait_sta(addr=dev[0].own_addr())
 
     ev = dev[2].wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=1)
     if ev is not None:
@@ -715,6 +733,7 @@ def test_radius_das_disconnect(dev, apdev):
     multi_sess_id = sta['authMultiSessionId']
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected(timeout=10)
+    hapd.wait_sta_disconnect(addr=dev[0].own_addr())
     req = radius_das.DisconnectPacket(dict=dict, secret=b"secret",
                                       NAS_IP_Address="127.0.0.1",
                                       NAS_Identifier="nas.example.com",
@@ -727,12 +746,15 @@ def test_radius_das_disconnect(dev, apdev):
     if ev is None:
         raise Exception("Timeout on EAP start")
     dev[0].wait_connected(timeout=15)
+    hapd.wait_sta(addr=dev[0].own_addr())
 
     logger.info("Disconnect-Request with matching User-Name after disassociation")
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected(timeout=10)
+    hapd.wait_sta_disconnect(addr=dev[0].own_addr())
     dev[2].request("DISCONNECT")
     dev[2].wait_disconnected(timeout=10)
+    hapd.wait_sta_disconnect(addr=dev[2].own_addr())
     req = radius_das.DisconnectPacket(dict=dict, secret=b"secret",
                                       NAS_IP_Address="127.0.0.1",
                                       NAS_Identifier="nas.example.com",
@@ -756,8 +778,10 @@ def test_radius_das_disconnect(dev, apdev):
     if ev is None:
         raise Exception("Timeout on EAP start")
     dev[0].wait_connected(timeout=15)
+    hapd.wait_sta(addr=dev[0].own_addr())
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected(timeout=10)
+    hapd.wait_sta_disconnect(addr=dev[0].own_addr())
     req = radius_das.DisconnectPacket(dict=dict, secret=b"secret",
                                       NAS_IP_Address="127.0.0.1",
                                       NAS_Identifier="nas.example.com",

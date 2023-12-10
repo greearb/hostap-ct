@@ -5699,6 +5699,12 @@ def run_sigma_dut_ap_channel(dev, apdev, params, channel, mode, scan_freq,
         sigma = start_sigma_dut(iface, hostapd_logdir=logdir)
         try:
             subprocess.call(['iw', 'reg', 'set', 'US'])
+            for i in range(5):
+                ev = dev[0].wait_event(["CTRL-EVENT-REGDOM-CHANGE"], timeout=5)
+                if ev is None:
+                    break
+                if "alpha2=US" in ev:
+                    break
             cmd = "ap_reset_default"
             if program:
                 cmd += ",program," + program

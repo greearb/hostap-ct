@@ -317,6 +317,14 @@ class Hostapd:
             raise Exception("Unexpected STA address in disconnection event: " + ev)
         return ev
 
+    def wait_4way_hs(self, addr=None, timeout=1):
+        ev = self.wait_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=timeout)
+        if ev is None:
+            raise Exception("hostapd did not report 4-way handshake completion")
+        if addr and addr not in ev:
+            raise Exception("Unexpected STA address in 4-way handshake completion event: " + ev)
+        return ev
+
     def wait_ptkinitdone(self, addr, timeout=2):
         while timeout > 0:
             sta = self.get_sta(addr)

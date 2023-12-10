@@ -94,6 +94,12 @@ def go_neg_pin_authorized_persistent(i_dev, r_dev, i_intent=None, r_intent=None,
                                   timeout=20, go_intent=i_intent,
                                   persistent=True)
     r_res = r_dev.p2p_go_neg_auth_result()
+    if i_res and r_res and \
+       i_res['result'] == 'success' and r_res['result'] == 'success':
+        if i_res['role'] == 'GO':
+            i_dev.wait_sta(addr=r_dev.p2p_interface_addr())
+        if r_res['role'] == 'GO':
+            r_dev.wait_sta(addr=i_dev.p2p_interface_addr())
     logger.debug("i_res: " + str(i_res))
     logger.debug("r_res: " + str(r_res))
     r_dev.dump_monitor()
