@@ -654,6 +654,145 @@ def test_dfs_chan_switch(dev, apdev):
         clear_regdom(hapd, dev)
 
 @long_duration_test
+def test_dfs_chan_switch_to_vht80(dev, apdev):
+    """DFS channel switch to VHT80"""
+    run_dfs_chan_switch_to_vht(dev, apdev, vht80=True)
+
+@long_duration_test
+def test_dfs_chan_switch_to_vht80p80(dev, apdev):
+    """DFS channel switch to VHT80+80"""
+    run_dfs_chan_switch_to_vht(dev, apdev, vht80p80=True)
+
+@long_duration_test
+def test_dfs_chan_switch_to_vht160(dev, apdev):
+    """DFS channel switch to VHT160"""
+    run_dfs_chan_switch_to_vht(dev, apdev, vht160=True)
+
+@long_duration_test
+def test_dfs_chan_switch_to_vht160b(dev, apdev):
+    """DFS channel switch to VHT160 from non-DFS"""
+    run_dfs_chan_switch_to_vht(dev, apdev, vht160=True, start_dfs=False)
+
+def run_dfs_chan_switch_to_vht(dev, apdev, vht80=False, vht80p80=False,
+                               vht160=False, start_dfs=True):
+    try:
+        hapd = None
+        if start_dfs:
+            hapd = start_dfs_ap(apdev[0], country="US")
+
+            ev = wait_dfs_event(hapd, "DFS-CAC-COMPLETED", 70)
+            if "success=1" not in ev:
+                raise Exception("CAC failed")
+            if "freq=5260" not in ev:
+                raise Exception("Unexpected DFS freq result")
+            ev = hapd.wait_event(["AP-ENABLED"], timeout=5)
+            if not ev:
+                raise Exception("AP setup timed out")
+            freq = hapd.get_status_field("freq")
+            if freq != "5260":
+                raise Exception("Unexpected frequency")
+
+            dev[0].connect("dfs", key_mgmt="NONE", scan_freq="5260 5180")
+        else:
+            params = {"ssid": "dfs",
+                      "country_code": "US",
+                      "ieee80211d": "1",
+                      "hw_mode": "a",
+                      "channel": "40"}
+            hapd = hostapd.add_ap(apdev[0], params)
+            dev[0].connect("dfs", key_mgmt="NONE", scan_freq="5260 5180 5200")
+        dev[0].wait_regdom(country_ie=True)
+        hwsim_utils.test_connectivity(dev[0], hapd)
+
+        if vht160:
+            if not start_dfs:
+                hapd.set("ieee80211h", "1")
+            cmd = "CHAN_SWITCH 5 5180 sec_channel_offset=1 center_freq1=5250 bandwidth=160 ht vht"
+        if vht80p80:
+            cmd = "CHAN_SWITCH 5 5180 sec_channel_offset=1 center_freq1=5210 center_freq2=5775 bandwidth=80 ht vht"
+        if vht80:
+            cmd = "CHAN_SWITCH 5 5180 sec_channel_offset=1 center_freq1=5210 bandwidth=80 ht vht"
+        if "OK" not in hapd.request(cmd):
+            raise Exception("CHAN_SWITCH command failed")
+        if vht160:
+            # This results in BSS going down before restart, so the STA is
+            # expected to report disconnection.
+            dev[0].wait_disconnected()
+            ev = wait_dfs_event(hapd, "DFS-CAC-START", 5)
+            if "freq=5180" not in ev:
+                raise Exception("Unexpected channel: " + ev)
+            ev = wait_dfs_event(hapd, "DFS-CAC-COMPLETED", 70)
+            if "success=1" not in ev:
+                raise Exception("CAC failed")
+        else:
+            ev = wait_dfs_event(hapd, "AP-CSA-FINISHED", 5)
+        if "freq=5180" not in ev:
+            raise Exception("Unexpected channel: " + ev)
+        if vht160:
+            ev = hapd.wait_event(["AP-ENABLED"], timeout=5)
+            if not ev:
+                raise Exception("AP setup timed out")
+
+        freq = hapd.get_status_field("freq")
+        if freq != "5180":
+            raise Exception("Unexpected frequency")
+
+        status = hapd.get_status()
+        logger.info("hostapd STATUS: " + str(status))
+        if status["ieee80211n"] != "1":
+            raise Exception("Unexpected STATUS ieee80211n value")
+        if status["ieee80211ac"] != "1":
+            raise Exception("Unexpected STATUS ieee80211ac value")
+        if status["secondary_channel"] != "1":
+            raise Exception("Unexpected STATUS secondary_channel value")
+        if vht80 and status["vht_oper_chwidth"] != "1":
+            raise Exception("Unexpected STATUS vht_oper_chwidth value")
+        if vht80p80 and status["vht_oper_chwidth"] != "3":
+            raise Exception("Unexpected STATUS vht_oper_chwidth value")
+        if vht160 and status["vht_oper_chwidth"] != "2":
+            raise Exception("Unexpected STATUS vht_oper_chwidth value")
+        if vht160:
+            if status["vht_oper_centr_freq_seg0_idx"] != "50":
+                raise Exception("Unexpected STATUS vht_oper_centr_freq_seg0_idx value")
+        else:
+            if status["vht_oper_centr_freq_seg0_idx"] != "42":
+                raise Exception("Unexpected STATUS vht_oper_centr_freq_seg0_idx value")
+        if vht80p80 and status["vht_oper_centr_freq_seg1_idx"] != "155":
+            raise Exception("Unexpected STATUS vht_oper_centr_freq_seg1_idx value")
+        if "vht_caps_info" not in status:
+            raise Exception("Missing vht_caps_info")
+
+        if vht160:
+            dev[0].wait_connected(timeout=30)
+        else:
+            ev = dev[0].wait_event(["CTRL-EVENT-CHANNEL-SWITCH"], timeout=10)
+            if ev is None:
+                raise Exception("Channel switch not reported")
+            if "freq=5180" not in ev:
+                raise Exception("Unexpected frequency: " + ev)
+        sig = dev[0].request("SIGNAL_POLL").splitlines()
+        logger.info("STA0: " + str(sig))
+        if "FREQUENCY=5180" not in sig:
+            raise Exception("Unexpected channel: " + str(sig))
+        if vht160 and "WIDTH=160 MHz" not in sig:
+            raise Exception("Unexpected channel[1]: " + str(sig))
+        hwsim_utils.test_connectivity(dev[0], hapd)
+
+        dev[1].connect("dfs", key_mgmt="NONE", scan_freq="5180")
+        sig = dev[1].request("SIGNAL_POLL").splitlines()
+        logger.info("STA1: " + str(sig))
+        if "FREQUENCY=5180" not in sig:
+            raise Exception("Unexpected channel[1]: " + str(sig))
+        if vht80 and "WIDTH=80 MHz" not in sig:
+            raise Exception("Unexpected channel[1]: " + str(sig))
+        if vht80p80 and "WIDTH=80+80 MHz" not in sig:
+            raise Exception("Unexpected channel[1]: " + str(sig))
+        if vht160 and "WIDTH=160 MHz" not in sig:
+            raise Exception("Unexpected channel[1]: " + str(sig))
+    finally:
+        clear_regdom(hapd, dev)
+
+@long_duration_test
 def test_dfs_no_available_channel(dev, apdev):
     """DFS and no available channel after radar detection"""
     try:
