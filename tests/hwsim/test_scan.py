@@ -20,6 +20,13 @@ from tshark import run_tshark
 from test_ap_csa import switch_channel, wait_channel_switch
 
 def check_scan(dev, params, other_started=False, test_busy=False):
+    if other_started:
+        ev = dev.wait_event(["CTRL-EVENT-SCAN-STARTED"])
+        if ev is None:
+            raise Exception("Other scan did not start")
+        if "id=" in ev:
+            raise Exception("Scan id unexpectedly included in start event")
+
     if not other_started:
         dev.dump_monitor()
     id = dev.request("SCAN " + params)
@@ -32,12 +39,6 @@ def check_scan(dev, params, other_started=False, test_busy=False):
             raise Exception("SCAN command while already scanning not rejected")
 
     if other_started:
-        ev = dev.wait_event(["CTRL-EVENT-SCAN-STARTED"])
-        if ev is None:
-            raise Exception("Other scan did not start")
-        if "id=" + str(id) in ev:
-            raise Exception("Own scan id unexpectedly included in start event")
-
         ev = dev.wait_event(["CTRL-EVENT-SCAN-RESULTS"])
         if ev is None:
             raise Exception("Other scan did not complete")
