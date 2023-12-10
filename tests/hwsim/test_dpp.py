@@ -6853,7 +6853,7 @@ def test_dpp_chirp_configurator_inits(dev, apdev):
             raise Exception("Presence Announcement not sent")
 
     dev[1].dpp_auth_init(uri=uri, conf="sta-dpp", configurator=conf_id)
-    wait_auth_success(dev[0], dev[1], dev[1], dev[0])
+    wait_auth_success(dev[0], dev[1], dev[1], dev[0], timeout=10)
 
 def test_dpp_chirp_ap(dev, apdev):
     """DPP chirp by an AP"""
