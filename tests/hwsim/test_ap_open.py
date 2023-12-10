@@ -966,6 +966,11 @@ def test_ap_no_auth_ack(dev, apdev):
     hapd = hostapd.add_ap(apdev[0], {"ssid": "open",
                                      "ap_max_inactivity": "1"})
     hapd.set("ext_mgmt_frame_handling", "1")
+
+    # Avoid race condition with TX status reporting for the broadcast
+    # Deauthentication frame.
+    hapd.wait_event(["MGMT-TX-STATUS"], timeout=0.1)
+
     bssid = hapd.own_addr()
     addr = "02:01:02:03:04:05"
     frame = "b0003a01" + bssid.replace(':', '') + addr.replace(':', '') + bssid.replace(':', '') + "1000" + "000001000000"
