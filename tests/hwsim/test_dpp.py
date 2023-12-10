@@ -5488,13 +5488,21 @@ def test_dpp_two_initiators(dev, apdev):
     id = dev[0].dpp_bootstrap_gen(chan="81/1", mac=True)
     uri = dev[0].request("DPP_BOOTSTRAP_GET_URI %d" % id)
     dev[0].dpp_listen(2412)
+    peer = dev[2].dpp_qr_code(uri)
     dev[1].dpp_auth_init(uri=uri)
     ev = dev[0].wait_event(["DPP-RX"], timeout=5)
     if ev is None:
         raise Exeption("No DPP Authentication Request seen")
-    dev[2].dpp_auth_init(uri=uri)
-    wait_dpp_fail(dev[0],
-                  "DPP-FAIL Already in DPP authentication exchange - ignore new one")
+    dev[2].dpp_auth_init(uri=uri, peer=peer)
+    ev = dev[0].wait_event(["DPP-FAIL"], timeout=5)
+    if ev is None:
+        raise Exception("Failure not reported")
+    skip = False
+    if "Configurator rejected configuration" in ev:
+        # Race condition prevented real test from being executed
+        skip = True
+    elif "DPP-FAIL Already in DPP authentication exchange - ignore new one" not in ev:
+        raise Exception("Unexpected result: " + ev)
 
     ev = dev[0].wait_event(["DPP-CONF-FAILED"], timeout=2)
     if ev is None:
@@ -5506,6 +5514,9 @@ def test_dpp_two_initiators(dev, apdev):
     dev[0].request("DPP_STOP_LISTEN")
     dev[1].request("DPP_STOP_LISTEN")
     dev[2].request("DPP_STOP_LISTEN")
+
+    if skip:
+        raise HwsimSkip("dpp_two_initiators not fully executed due to race condition")
 
 def test_dpp_conf_file_update(dev, apdev, params):
     """DPP provisioning updating wpa_supplicant configuration file"""
