@@ -1730,7 +1730,12 @@ def test_wpas_mesh_pmksa_caching_ext(dev, apdev):
         raise Exception("PMKID mismatch in PMKSA cache entries after external storage restore")
 
     res3 = dev[1].request("MESH_PMKSA_GET " + addr0)
-    if res2 != res3:
+    logger.info("MESH_PMKSA_GET: " + res3)
+    # Require other fields to be equal, but allow remaining time to be smaller.
+    r2 = res2.split()
+    r3 = res3.split()
+    if r2[0] != r3[0] or r2[1] != r3[1] or r2[2] != r3[2] or \
+       int(r3[3]) > int(r2[3]):
         raise Exception("Unexpected change in MESH_PMKSA_GET result")
 
     hwsim_utils.test_connectivity(dev[0], dev[1])
