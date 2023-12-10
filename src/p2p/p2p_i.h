@@ -389,6 +389,7 @@ struct p2p_data {
 	unsigned int pending_listen_freq;
 	unsigned int pending_listen_sec;
 	unsigned int pending_listen_usec;
+	bool pending_listen_wait_drv;
 
 	u8 dev_capab;
 
