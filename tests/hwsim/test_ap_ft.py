@@ -3209,6 +3209,12 @@ def test_ap_ft_reassoc_proto(dev, apdev):
     for t in tests:
         hapd2ap.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=" + hdr + ies1 + t)
 
+    # Do not leave dev[0] in state where it is waiting for
+    # NL80211_CMD_ASSOCIATE to complete since that might deliver
+    # an ASSOC_TIMED_OUT event to the next test case.
+    dev[0].request("DISCONNECT")
+    time.sleep(0.2)
+
 def test_ap_ft_reassoc_local_fail(dev, apdev):
     """WPA2-PSK-FT AP Reassociation Request frame and local failure"""
     ssid = "test-ft"
