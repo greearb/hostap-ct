@@ -3460,6 +3460,7 @@ static void handle_auth(struct hostapd_data *hapd,
 				  mgmt->sa, ETH_ALEN);
 			os_memcpy(sta->mld_info.links[link_id].local_addr,
 				  hapd->own_addr, ETH_ALEN);
+			os_memcpy(sta->setup_link_addr, mgmt->sa, ETH_ALEN);
 		}
 	}
 #endif /* CONFIG_IEEE80211BE */
