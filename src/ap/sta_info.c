@@ -73,6 +73,22 @@ struct sta_info * ap_get_sta(struct hostapd_data *hapd, const u8 *sta)
 	s = hapd->sta_hash[STA_HASH(sta)];
 	while (s != NULL && os_memcmp(s->addr, sta, 6) != 0)
 		s = s->hnext;
+
+	if (hapd->conf->mld_ap && !s) {
+		u8 link_id;
+
+		for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+			struct hostapd_data *h = hostapd_mld_get_link_bss(hapd, link_id);
+
+			if (!h)
+				continue;
+
+			for (s = h->sta_list; s; s = s->next)
+				if (!os_memcmp(s->setup_link_addr, sta, 6))
+					return s;
+		}
+	}
+
 	return s;
 }
 
