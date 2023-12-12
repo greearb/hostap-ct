@@ -7676,7 +7676,7 @@ u8 * hostapd_eid_rnr(struct hostapd_data *hapd, u8 *eid, u32 type)
 
 	case WLAN_FC_STYPE_ACTION:
 		if (hapd->iface->num_bss > 1 && mode == STANDALONE_6GHZ)
-			eid = hostapd_eid_rnr_iface(hapd, hapd,	eid,
+			eid = hostapd_eid_rnr_iface(hapd, hapd, eid,
 						    &current_len, NULL);
 		break;
 
