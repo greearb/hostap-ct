@@ -2036,8 +2036,6 @@ void wnm_set_coloc_intf_elems(struct wpa_supplicant *wpa_s,
 
 void wnm_clear_coloc_intf_reporting(struct wpa_supplicant *wpa_s)
 {
-#ifdef CONFIG_WNM
 	wpa_s->coloc_intf_dialog_token = 0;
 	wpa_s->coloc_intf_auto_report = 0;
-#endif /* CONFIG_WNM */
 }
