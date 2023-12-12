@@ -1456,16 +1456,16 @@ def _test_ap_wps_er_add_enrollee_pbc(dev, apdev):
     ssid = "wps-er-add-enrollee-pbc"
     ap_pin = "12345670"
     ap_uuid = "27ea801a-9e5c-4e73-bd82-f89cbcd10d7e"
-    hostapd.add_ap(apdev[0],
-                   {"ssid": ssid, "eap_server": "1", "wps_state": "2",
-                    "wpa_passphrase": "12345678", "wpa": "2",
-                    "wpa_key_mgmt": "WPA-PSK", "rsn_pairwise": "CCMP",
-                    "device_name": "Wireless AP", "manufacturer": "Company",
-                    "model_name": "WAP", "model_number": "123",
-                    "serial_number": "12345", "device_type": "6-0050F204-1",
-                    "os_version": "01020300",
-                    "config_methods": "label push_button",
-                    "ap_pin": ap_pin, "uuid": ap_uuid, "upnp_iface": "lo"})
+    params = {"ssid": ssid, "eap_server": "1", "wps_state": "2",
+              "wpa_passphrase": "12345678", "wpa": "2",
+              "wpa_key_mgmt": "WPA-PSK", "rsn_pairwise": "CCMP",
+              "device_name": "Wireless AP", "manufacturer": "Company",
+              "model_name": "WAP", "model_number": "123",
+              "serial_number": "12345", "device_type": "6-0050F204-1",
+              "os_version": "01020300",
+              "config_methods": "label push_button",
+              "ap_pin": ap_pin, "uuid": ap_uuid, "upnp_iface": "lo"}
+    hapd = hostapd.add_ap(apdev[0], params)
     logger.info("Learn AP configuration")
     dev[0].flush_scan_cache()
     dev[0].scan_for_bss(apdev[0]['bssid'], freq=2412)
@@ -1474,6 +1474,7 @@ def _test_ap_wps_er_add_enrollee_pbc(dev, apdev):
     status = dev[0].get_status()
     if status['wpa_state'] != 'COMPLETED' or status['bssid'] != apdev[0]['bssid']:
         raise Exception("Not fully connected")
+    hapd.wait_sta(addr=dev[0].own_addr())
 
     logger.info("Start ER")
     dev[0].request("WPS_ER_START ifname=lo")
@@ -1515,6 +1516,7 @@ def _test_ap_wps_er_add_enrollee_pbc(dev, apdev):
     ev = dev[0].wait_event(["WPS-SUCCESS"], timeout=15)
     if ev is None:
         raise Exception("WPS ER did not report success")
+    hapd.wait_sta(addr=dev[1].own_addr())
     hwsim_utils.test_connectivity_sta(dev[0], dev[1])
 
 def test_ap_wps_er_pbc_overlap(dev, apdev):
