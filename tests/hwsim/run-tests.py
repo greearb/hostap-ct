@@ -487,6 +487,12 @@ def main():
             log_handler.setFormatter(log_formatter)
             logger.addHandler(log_handler)
 
+        try:
+            with open('/sys/kernel/debug/clear_warn_once', 'w') as f:
+                f.write('1\n')
+        except FileNotFoundError:
+            pass
+
         reset_ok = True
         with DataCollector(args.logdir, name, args):
             count = count + 1
