@@ -351,13 +351,22 @@ def test_p2p_device_grpform_timeout_go(dev, apdev):
                 del wpas
                 raise HwsimSkip("Did not manage to cancel group formation")
         dev[0].dump_monitor()
-        ev = wpas.wait_global_event(["WPS-SUCCESS"], timeout=10)
+        # There is a race condition on WPS-SUCCESS being reported on the GO
+        # since the P2P_CANCEL command above might actually stop the WPS
+        # exchange before the WSC_Done is sent to the GO and processed there.
+        # It would be possible for the GO to receive a disconnection event
+        # first.
+        ev = wpas.wait_global_event(["WPS-SUCCESS",
+                                     "P2P-GROUP-FORMATION-FAILURE"],
+                                    timeout=30)
         if ev is None:
             raise Exception("WPS did not succeed (GO)")
         dev[0].dump_monitor()
-        ev = wpas.wait_global_event(["P2P-GROUP-FORMATION-FAILURE"], timeout=20)
-        if ev is None:
-            raise Exception("Group formation timeout not seen on GO")
+        if "P2P-GROUP-FORMATION-FAILURE" not in ev:
+            ev = wpas.wait_global_event(["P2P-GROUP-FORMATION-FAILURE"],
+                                        timeout=20)
+            if ev is None:
+                raise Exception("Group formation timeout not seen on GO")
         ev = wpas.wait_global_event(["P2P-GROUP-REMOVED"], timeout=5)
         if ev is None:
             raise Exception("Group removal not seen on GO")
