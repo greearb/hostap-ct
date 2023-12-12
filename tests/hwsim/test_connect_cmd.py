@@ -119,6 +119,7 @@ def test_connect_cmd_concurrent_grpform_while_connecting(dev, apdev):
     wpas.dump_monitor()
 
     logger.info("Confirm AP connection after P2P group removal")
+    hapd.wait_sta()
     hwsim_utils.test_connectivity(wpas, hapd)
 
     wpas.request("DISCONNECT")
