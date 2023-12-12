@@ -11,6 +11,24 @@ logger = logging.getLogger()
 
 from wpasupplicant import WpaSupplicant
 
+def _sync_carrier(dev, ifname):
+    ifname = ifname or dev.ifname
+    carrier_p2p = None
+    try:
+        with open(f'/sys/class/net/{ifname}/carrier', 'r') as f:
+            carrier_main = f.read().strip() == '1'
+    except FileNotFoundError:
+        return
+    if (isinstance(dev, WpaSupplicant) and dev.group_ifname and
+        dev.group_ifname != ifname):
+        ifname = dev.group_ifname
+        try:
+            with open(f'/sys/class/net/{ifname}/carrier', 'r') as f:
+                carrier_p2p = f.read().strip() == '1'
+        except FileNotFoundError:
+            pass
+    assert carrier_main or carrier_p2p, "sending data without carrier won't work"
+
 def config_data_test(dev1, dev2, dev1group, dev2group, ifname1, ifname2):
     cmd = "DATA_TEST_CONFIG 1"
     if ifname1:
@@ -22,6 +40,8 @@ def config_data_test(dev1, dev2, dev1group, dev2group, ifname1, ifname2):
     if "OK" not in res:
         raise Exception("Failed to enable data test functionality")
 
+    _sync_carrier(dev1, ifname1)
+
     cmd = "DATA_TEST_CONFIG 1"
     if ifname2:
         cmd = cmd + " ifname=" + ifname2
@@ -31,6 +51,8 @@ def config_data_test(dev1, dev2, dev1group, dev2group, ifname1, ifname2):
         res = dev2.request(cmd)
     if "OK" not in res:
         raise Exception("Failed to enable data test functionality")
+
+    _sync_carrier(dev2, ifname2)
 
 def run_multicast_connectivity_test(dev1, dev2, tos=None,
                                     dev1group=False, dev2group=False,
