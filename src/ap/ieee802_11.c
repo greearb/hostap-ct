@@ -7586,7 +7586,13 @@ static u8 * hostapd_eid_rnr_iface(struct hostapd_data *hapd,
 				len += RNR_TBTT_INFO_LEN;
 			} else {
 #ifdef CONFIG_IEEE80211BE
-				*eid++ = hapd->conf->mld_id;
+				if (reporting_hapd->conf->mld_ap &&
+				    bss->conf->mld_id ==
+				    reporting_hapd->conf->mld_id)
+					*eid++ = 0;
+				else
+					*eid++ = hapd->conf->mld_id;
+
 				*eid++ = hapd->mld_link_id | (1 << 4);
 				*eid++ = 0;
 				len += RNR_TBTT_INFO_MLD_LEN;
