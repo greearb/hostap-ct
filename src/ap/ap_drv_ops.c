@@ -832,15 +832,21 @@ int hostapd_drv_sta_deauth(struct hostapd_data *hapd,
 			   const u8 *addr, int reason)
 {
 	int link_id = -1;
+	const u8 *own_addr = hapd->own_addr;
 
 #ifdef CONFIG_IEEE80211BE
-	if (hapd->conf->mld_ap)
+	if (hapd->conf->mld_ap) {
+		struct sta_info *sta = ap_get_sta(hapd, addr);
+
 		link_id = hapd->mld_link_id;
+		if (sta && sta->mld_info.mld_sta)
+			own_addr = hapd->mld_addr;
+	}
 #endif /* CONFIG_IEEE80211BE */
 
 	if (!hapd->driver || !hapd->driver->sta_deauth || !hapd->drv_priv)
 		return 0;
-	return hapd->driver->sta_deauth(hapd->drv_priv, hapd->own_addr, addr,
+	return hapd->driver->sta_deauth(hapd->drv_priv, own_addr, addr,
 					reason, link_id);
 }
 
@@ -848,9 +854,20 @@ int hostapd_drv_sta_deauth(struct hostapd_data *hapd,
 int hostapd_drv_sta_disassoc(struct hostapd_data *hapd,
 			     const u8 *addr, int reason)
 {
+	const u8 *own_addr = hapd->own_addr;
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap) {
+		struct sta_info *sta = ap_get_sta(hapd, addr);
+
+		if (sta && sta->mld_info.mld_sta)
+			own_addr = hapd->mld_addr;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	if (!hapd->driver || !hapd->driver->sta_disassoc || !hapd->drv_priv)
 		return 0;
-	return hapd->driver->sta_disassoc(hapd->drv_priv, hapd->own_addr, addr,
+	return hapd->driver->sta_disassoc(hapd->drv_priv, own_addr, addr,
 					  reason);
 }
 
