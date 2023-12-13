@@ -1315,6 +1315,8 @@ int hostapd_ctrl_iface_bss_tm_req(struct hostapd_data *hapd,
 		req_mode |= WNM_BSS_TM_REQ_ABRIDGED;
 	if (os_strstr(cmd, " disassoc_imminent=1"))
 		req_mode |= WNM_BSS_TM_REQ_DISASSOC_IMMINENT;
+	if (os_strstr(cmd, " link_removal_imminent=1"))
+		req_mode |= WNM_BSS_TM_REQ_LINK_REMOVAL_IMMINENT;
 
 #ifdef CONFIG_MBO
 	pos = os_strstr(cmd, "mbo=");
