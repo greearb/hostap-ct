@@ -2304,6 +2304,7 @@ static int wpa_supplicant_need_to_roam(struct wpa_supplicant *wpa_s,
 				       struct wpa_ssid *ssid)
 {
 	struct wpa_bss *current_bss = NULL;
+	const u8 *bssid;
 
 	if (wpa_s->reassociate)
 		return 1; /* explicit request to reassociate */
@@ -2317,12 +2318,17 @@ static int wpa_supplicant_need_to_roam(struct wpa_supplicant *wpa_s,
 	if (wpas_driver_bss_selection(wpa_s))
 		return 0; /* Driver-based roaming */
 
+	if (wpa_s->valid_links)
+		bssid = wpa_s->links[wpa_s->mlo_assoc_link_id].bssid;
+	else
+		bssid = wpa_s->bssid;
+
 	if (wpa_s->current_ssid->ssid)
-		current_bss = wpa_bss_get(wpa_s, wpa_s->bssid,
+		current_bss = wpa_bss_get(wpa_s, bssid,
 					  wpa_s->current_ssid->ssid,
 					  wpa_s->current_ssid->ssid_len);
 	if (!current_bss)
-		current_bss = wpa_bss_get_bssid(wpa_s, wpa_s->bssid);
+		current_bss = wpa_bss_get_bssid(wpa_s, bssid);
 
 	if (!current_bss)
 		return 1; /* current BSS not seen in scan results */
