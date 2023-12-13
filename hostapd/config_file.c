@@ -3829,6 +3829,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->wps_independent = atoi(pos);
 	} else if (os_strcmp(buf, "ap_setup_locked") == 0) {
 		bss->ap_setup_locked = atoi(pos);
+	} else if (os_strcmp(buf, "ap_pin_lockout_time") == 0) {
+		bss->ap_pin_lockout_time = atoi(pos);
 	} else if (os_strcmp(buf, "uuid") == 0) {
 		if (uuid_str2bin(pos, bss->uuid)) {
 			wpa_printf(MSG_ERROR, "Line %d: invalid UUID", line);
