@@ -886,18 +886,18 @@ int hostapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
 			    unsigned int wait, const u8 *dst, const u8 *data,
 			    size_t len)
 {
+	const u8 *own_addr = hapd->own_addr;
 	const u8 *bssid;
 	const u8 wildcard_bssid[ETH_ALEN] = {
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 	};
+	struct sta_info *sta;
 
 	if (!hapd->driver || !hapd->driver->send_action || !hapd->drv_priv)
 		return 0;
 	bssid = hapd->own_addr;
 	if (!is_multicast_ether_addr(dst) &&
 	    len > 0 && data[0] == WLAN_ACTION_PUBLIC) {
-		struct sta_info *sta;
-
 		/*
 		 * Public Action frames to a STA that is not a member of the BSS
 		 * shall use wildcard BSSID value.
@@ -914,9 +914,19 @@ int hostapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
 		 * so have to use the wildcard BSSID value.
 		 */
 		bssid = wildcard_bssid;
+#ifdef CONFIG_IEEE80211BE
+	} else if (hapd->conf->mld_ap) {
+		sta = ap_get_sta(hapd, dst);
+
+		if (sta && sta->mld_info.mld_sta) {
+			own_addr = hapd->mld_addr;
+			bssid = own_addr;
+		}
+#endif /* CONFIG_IEEE80211BE */
 	}
+
 	return hapd->driver->send_action(hapd->drv_priv, freq, wait, dst,
-					 hapd->own_addr, bssid, data, len, 0);
+					 own_addr, bssid, data, len, 0);
 }
 
 
