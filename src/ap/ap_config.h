@@ -517,6 +517,7 @@ struct hostapd_bss_config {
 #ifdef CONFIG_WPS
 	int wps_independent;
 	int ap_setup_locked;
+	unsigned int ap_pin_lockout_time;
 	u8 uuid[16];
 	char *wps_pin_requests;
 	char *device_name;
