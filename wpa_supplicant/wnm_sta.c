@@ -1437,6 +1437,7 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 #ifdef CONFIG_MBO
 	const u8 *vendor;
 #endif /* CONFIG_MBO */
+	bool disassoc_imminent;
 
 	if (wpa_s->disable_mbo_oce || wpa_s->conf->disable_btm)
 		return;
@@ -1514,7 +1515,25 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 			wpa_s->wnm_dissoc_timer * beacon_int * 128 / 125, url);
 	}
 
-	if (wpa_s->wnm_mode & WNM_BSS_TM_REQ_DISASSOC_IMMINENT) {
+	disassoc_imminent = wpa_s->wnm_mode & WNM_BSS_TM_REQ_DISASSOC_IMMINENT;
+
+	/*
+	 * Based on IEEE P802.11be/D5.0, when a station is a non-AP MLD with
+	 * more than one affiliated link, the Link Removal Imminent field is
+	 * set to 1, and the BSS Termination Included field is set to 1, only
+	 * one of the links is removed and the other links remain associated.
+	 * Ignore the Disassociation Imminent field in such a case.
+	 */
+	if (disassoc_imminent &&
+	    (wpa_s->valid_links & (wpa_s->valid_links - 1)) != 0 &&
+	    (wpa_s->wnm_mode & WNM_BSS_TM_REQ_LINK_REMOVAL_IMMINENT) &&
+	    (wpa_s->wnm_mode & WNM_BSS_TM_REQ_BSS_TERMINATION_INCLUDED)) {
+		wpa_printf(MSG_INFO,
+			   "WNM: BTM request for a single MLO link - ignore disassociation imminent since other links remain associated");
+		disassoc_imminent = false;
+	}
+
+	if (disassoc_imminent) {
 		wpa_msg(wpa_s, MSG_INFO, "WNM: Disassociation Imminent - "
 			"Disassociation Timer %u", wpa_s->wnm_dissoc_timer);
 		if (wpa_s->wnm_dissoc_timer && !wpa_s->scanning &&

@@ -1885,6 +1885,7 @@ enum wnm_action {
 #define WNM_BSS_TM_REQ_DISASSOC_IMMINENT BIT(2)
 #define WNM_BSS_TM_REQ_BSS_TERMINATION_INCLUDED BIT(3)
 #define WNM_BSS_TM_REQ_ESS_DISASSOC_IMMINENT BIT(4)
+#define WNM_BSS_TM_REQ_LINK_REMOVAL_IMMINENT BIT(5)
 
 /* IEEE Std 802.11-2012 - Table 8-253 */
 enum bss_trans_mgmt_status_code {
