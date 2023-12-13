@@ -76,6 +76,22 @@ def test_ap_qosmap(dev, apdev):
     dev[0].request("DATA_TEST_CONFIG 0")
     hapd.request("DATA_TEST_CONFIG 0")
 
+def build_dscp_to_tid(old=False):
+    # Build initial default mapping
+    dscp_to_tid = {}
+    for dscp in [0, 7, 8, 15, 16, 23, 24, 31, 32, 39, 40, 47, 48, 55, 56, 63]:
+        dscp_to_tid[dscp] = dscp >> 3
+
+    if old:
+        return dscp_to_tid
+
+    # Update the mapping based on the recommendations in section 4 in RFC 8325
+    dscp_to_tid[16] = 0
+    dscp_to_tid[24] = 4
+    dscp_to_tid[48] = 7
+
+    return dscp_to_tid
+
 @remote_compatible
 def test_ap_qosmap_default(dev, apdev):
     """QoS mapping with default values"""
@@ -89,8 +105,21 @@ def test_ap_qosmap_default(dev, apdev):
     dev[0].request("DATA_TEST_CONFIG 1")
     hapd.request("DATA_TEST_CONFIG 1")
     Wlantest.setup(hapd)
-    for dscp in [0, 7, 8, 15, 16, 23, 24, 31, 32, 39, 40, 47, 48, 55, 56, 63]:
-        check_qos_map(apdev[0], hapd, dev[0], addr, dscp, dscp >> 3)
+
+    try:
+        dscp_to_tid = build_dscp_to_tid()
+        for dscp, tid in dscp_to_tid.items():
+            check_qos_map(apdev[0], hapd, dev[0], addr, dscp, tid)
+        logger.info("Kernel using new mapping")
+    except Exception as e:
+        if str(e) == "No STA->AP data frame using the expected TID":
+            dscp_to_tid = build_dscp_to_tid(old=True)
+            for dscp, tid in dscp_to_tid.items():
+                check_qos_map(apdev[0], hapd, dev[0], addr, dscp, tid)
+            logger.info("Kernel using old mapping")
+        else:
+            raise
+
     dev[0].request("DATA_TEST_CONFIG 0")
     hapd.request("DATA_TEST_CONFIG 0")
 
@@ -127,13 +156,30 @@ def test_ap_qosmap_default_acm(dev, apdev):
     dev[0].request("DATA_TEST_CONFIG 1")
     hapd.request("DATA_TEST_CONFIG 1")
     Wlantest.setup(hapd)
-    for dscp in [0, 7, 8, 15, 16, 23, 24, 31, 32, 39, 40, 47, 48, 55, 56, 63]:
-        ap_tid = dscp >> 3
-        tid = ap_tid
-        # downgrade VI/VO to BE
-        if tid in [4, 5, 6, 7]:
-            tid = 3
-        check_qos_map(apdev[0], hapd, dev[0], addr, dscp, tid, ap_tid)
+
+    try:
+        dscp_to_tid = build_dscp_to_tid()
+        for dscp, tid in dscp_to_tid.items():
+            ap_tid = tid
+
+            # downgrade VI/VO to BE
+            if tid in [4, 5, 6, 7]:
+                tid = 3
+            check_qos_map(apdev[0], hapd, dev[0], addr, dscp, tid, ap_tid)
+        logger.info("Kernel using new mapping")
+    except Exception as e:
+        if str(e) == "No STA->AP data frame using the expected TID":
+            dscp_to_tid = build_dscp_to_tid(old=True)
+            for dscp, tid in dscp_to_tid.items():
+                ap_tid = tid
+
+                # downgrade VI/VO to BE
+                if tid in [4, 5, 6, 7]:
+                    tid = 3
+                check_qos_map(apdev[0], hapd, dev[0], addr, dscp, tid, ap_tid)
+            logger.info("Kernel using old mapping")
+        else:
+            raise
     dev[0].request("DATA_TEST_CONFIG 0")
     hapd.request("DATA_TEST_CONFIG 0")
 
