@@ -882,3 +882,52 @@ def test_eht_mld_link_removal(dev, apdev):
 
         logger.info("Test traffic after 1st link disabled")
         traffic_test(wpas, hapd0, success=False)
+
+def test_eht_mld_bss_trans_mgmt_link_removal_imminent(dev, apdev):
+    """EHT MLD with two links. BSS transition management with link removal imminent"""
+
+    with HWSimRadio(use_mlo=True) as (hapd0_radio, hapd0_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        ssid = "mld_ap_owe_two_link"
+        params = eht_mld_ap_wpa2_params(ssid, key_mgmt="OWE", mfp="2")
+        params["bss_transition"] = "1"
+        params["mbo"] = "1"
+
+        hapd0 = eht_mld_enable_ap(hapd0_iface, params)
+
+        params['channel'] = '6'
+
+        hapd1 = eht_mld_enable_ap(hapd0_iface, params)
+
+        wpas.connect(ssid, scan_freq="2412 2437", key_mgmt="OWE",
+                     ieee80211w="2")
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
+        eht_verify_wifi_version(wpas)
+        hapd0.wait_sta()
+        hapd1.wait_sta()
+        traffic_test(wpas, hapd0)
+
+        addr = wpas.own_addr()
+        cmd = "BSS_TM_REQ " + addr + " disassoc_timer=3 disassoc_imminent=1 link_removal_imminent=1 bss_term=0,1"
+        if "OK" not in hapd0.request(cmd):
+            raise Exception("BSS_TM_REQ command failed")
+
+        # Only one link is terminate, so the STA is expected to remain
+        # associated and not start a scan.
+        ev = hapd0.wait_event(['BSS-TM-RESP'], timeout=5)
+        # For now, allow this to pass without the BSS TM response since that
+        # functionality with MLD needs a recent kernel change.
+        #if ev is None:
+        #    raise Exception("No BSS TM response received")
+        if ev and "status_code=0" not in ev:
+            raise Exception("Unexpected BSS TM response contents: " + ev)
+
+        ev = wpas.wait_event(["CTRL-EVENT-SCAN-STARTED",
+                              "CTRL-EVENT-DISCONNECTED"], timeout=10)
+        if ev is not None:
+            raise Exception("Unexpected action on STA: " + ev)
