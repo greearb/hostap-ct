@@ -386,6 +386,9 @@ void wpa_supplicant_mark_disassoc(struct wpa_supplicant *wpa_s)
 	wpas_rrm_reset(wpa_s);
 #endif /* CONFIG_NO_RRM */
 	wpa_s->wnmsleep_used = 0;
+#ifdef CONFIG_WNM
+	wpa_s->wnm_mode = 0;
+#endif /* CONFIG_WNM */
 	wnm_clear_coloc_intf_reporting(wpa_s);
 	wpa_s->disable_mbo_oce = 0;
 
@@ -1688,6 +1691,14 @@ struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 			wpa_dbg(wpa_s, MSG_DEBUG, "   skip - channel disabled");
 		return NULL;
 	}
+
+#ifdef CONFIG_WNM
+	if (wnm_is_bss_excluded(wpa_s, bss)) {
+		if (debug_print)
+			wpa_dbg(wpa_s, MSG_DEBUG, "   skip - BSSID excluded");
+		return NULL;
+	}
+#endif /* CONFIG_WNM */
 
 	for (ssid = group; ssid; ssid = only_first_ssid ? NULL : ssid->pnext) {
 		if (wpa_scan_res_ok(wpa_s, ssid, match_ssid, match_ssid_len,

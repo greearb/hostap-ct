@@ -2068,3 +2068,41 @@ void wnm_clear_coloc_intf_reporting(struct wpa_supplicant *wpa_s)
 	wpa_s->coloc_intf_dialog_token = 0;
 	wpa_s->coloc_intf_auto_report = 0;
 }
+
+
+bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
+{
+	unsigned int i;
+
+	if (!(wpa_s->wnm_mode & WNM_BSS_TM_REQ_DISASSOC_IMMINENT))
+		return false;
+
+	/*
+	 * In case disassociation imminent is set, do no try to use a BSS to
+	 * which we are connected.
+	 */
+
+	if (wpa_s->current_bss &&
+	    os_memcmp(wpa_s->current_bss->bssid, bss->bssid, ETH_ALEN) == 0) {
+		wpa_dbg(wpa_s, MSG_DEBUG,
+			"WNM: Disassociation imminent: current BSS");
+		return true;
+	}
+
+	if (!wpa_s->valid_links)
+		return false;
+
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+		if (!(wpa_s->valid_links & BIT(i)))
+			continue;
+
+		if (os_memcmp(wpa_s->links[i].bssid, bss->bssid,
+			      ETH_ALEN) == 0) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"WNM: MLD: Disassociation imminent: current link");
+			return true;
+		}
+	}
+
+	return false;
+}

@@ -2495,6 +2495,9 @@ void wpa_supplicant_associate(struct wpa_supplicant *wpa_s,
 #ifndef CONFIG_NO_WMM_AC
 	wmm_ac_clear_saved_tspecs(wpa_s);
 #endif /* CONFIG_NO_WMM_AC */
+#ifdef CONFIG_WNM
+	wpa_s->wnm_mode = 0;
+#endif /* CONFIG_WNM */
 	wpa_s->reassoc_same_bss = 0;
 	wpa_s->reassoc_same_ess = 0;
 #ifdef CONFIG_TESTING_OPTIONS
