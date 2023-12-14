@@ -1087,6 +1087,7 @@ def run_wpas_ap_lifetime_in_memory(dev, apdev, params, raw):
     dev[1].request("DISCONNECT")
     dev[1].wait_disconnected()
     dev[0].wait_sta_disconnect()
+    time.sleep(1)
 
     buf2 = read_process_memory(pid, pmk)
 
