@@ -5589,6 +5589,17 @@ static int hostapd_ctrl_iface_add(struct hapd_interfaces *interfaces,
 }
 
 
+static int hostapd_ctrl_bss_remove(struct hapd_interfaces *interfaces,
+				   char *buf)
+{
+	if (hostapd_remove_bss(interfaces, buf) < 0) {
+		wpa_printf(MSG_ERROR, "Removing interface %s failed", buf);
+		return -1;
+	}
+	return 0;
+}
+
+
 static int hostapd_ctrl_iface_remove(struct hapd_interfaces *interfaces,
 				     char *buf)
 {
@@ -6005,6 +6016,9 @@ static void hostapd_global_ctrl_iface_receive(int sock, void *eloop_ctx,
 			reply_len = -1;
 	} else if (os_strncmp(buf, "REMOVE ", 7) == 0) {
 		if (hostapd_ctrl_iface_remove(interfaces, buf + 7) < 0)
+			reply_len = -1;
+	} else if (os_strncmp(buf, "REMOVE_BSS ", 11) == 0) {
+		if (hostapd_ctrl_bss_remove(interfaces, buf + 11) < 0)
 			reply_len = -1;
 	} else if (os_strcmp(buf, "ATTACH") == 0) {
 		if (hostapd_global_ctrl_iface_attach(interfaces, &from,
