@@ -102,13 +102,17 @@ def test_ap_cipher_tkip_countermeasures_ap(dev, apdev):
     dev[0].connect("tkip-countermeasures", psk="12345678",
                    pairwise="TKIP", group="TKIP", scan_freq="2412")
 
+    hapd.wait_sta()
+    time.sleep(1)
     dev[0].dump_monitor()
+    hapd.note("Michael MIC failure to BSSID")
     dev[0].cmd_execute(["echo", "-n", apdev[0]['bssid'], ">", testfile],
                        shell=True)
     ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=1)
     if ev is not None:
         raise Exception("Unexpected disconnection on first Michael MIC failure")
 
+    hapd.note("Michael MIC failure to broadcast")
     dev[0].cmd_execute(["echo", "-n", "ff:ff:ff:ff:ff:ff", ">", testfile],
                        shell=True)
     ev = dev[0].wait_disconnected(timeout=10,
