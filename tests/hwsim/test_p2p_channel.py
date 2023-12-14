@@ -472,7 +472,8 @@ def test_go_neg_forced_freq_diff_than_bss_freq(dev, apdev):
         # GO and peer force the same freq, different than BSS freq,
         # wpas to become GO
         [i_res, r_res] = go_neg_pbc(i_dev=dev[1], i_intent=1, i_freq=5180,
-                                    r_dev=wpas, r_intent=14, r_freq=5180)
+                                    r_dev=wpas, r_intent=14, r_freq=5180,
+                                    timeout=60)
         check_grpform_results(i_res, r_res)
         if i_res['freq'] != "5180":
            raise Exception("P2P group formed on unexpected frequency: " + i_res['freq'])
@@ -486,7 +487,8 @@ def test_go_neg_forced_freq_diff_than_bss_freq(dev, apdev):
         # GO and peer force the same freq, different than BSS freq, wpas to
         # become client
         [i_res2, r_res2] = go_neg_pbc(i_dev=dev[1], i_intent=14, i_freq=2422,
-                                      r_dev=wpas, r_intent=1, r_freq=2422)
+                                      r_dev=wpas, r_intent=1, r_freq=2422,
+                                      timeout=60)
         check_grpform_results(i_res2, r_res2)
         if i_res2['freq'] != "2422":
            raise Exception("P2P group formed on unexpected frequency: " + i_res2['freq'])

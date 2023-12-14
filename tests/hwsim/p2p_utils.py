@@ -322,19 +322,20 @@ def go_neg_pin_authorized(i_dev, r_dev, i_intent=None, r_intent=None,
         hwsim_utils.test_connectivity_p2p(r_dev, i_dev)
     return [i_res, r_res]
 
-def go_neg_init_pbc(i_dev, r_dev, i_intent, res, freq, provdisc):
+def go_neg_init_pbc(i_dev, r_dev, i_intent, res, freq, provdisc, timeout=20):
     logger.debug("Initiate GO Negotiation from i_dev")
     try:
         i_res = i_dev.p2p_go_neg_init(r_dev.p2p_dev_addr(), None, "pbc",
-                                      timeout=20, go_intent=i_intent, freq=freq,
-                                      provdisc=provdisc)
+                                      timeout=timeout, go_intent=i_intent,
+                                      freq=freq, provdisc=provdisc)
         logger.debug("i_res: " + str(i_res))
     except Exception as e:
         i_res = None
         logger.info("go_neg_init_pbc thread caught an exception from p2p_go_neg_init: " + str(e))
     res.put(i_res)
 
-def go_neg_pbc(i_dev, r_dev, i_intent=None, r_intent=None, i_freq=None, r_freq=None, provdisc=False, r_listen=False):
+def go_neg_pbc(i_dev, r_dev, i_intent=None, r_intent=None, i_freq=None,
+               r_freq=None, provdisc=False, r_listen=False, timeout=20):
     if r_listen:
         r_dev.p2p_listen()
     else:
@@ -343,10 +344,12 @@ def go_neg_pbc(i_dev, r_dev, i_intent=None, r_intent=None, i_freq=None, r_freq=N
     logger.info("Start GO negotiation " + i_dev.ifname + " -> " + r_dev.ifname)
     r_dev.dump_monitor()
     res = Queue()
-    t = threading.Thread(target=go_neg_init_pbc, args=(i_dev, r_dev, i_intent, res, i_freq, provdisc))
+    t = threading.Thread(target=go_neg_init_pbc, args=(i_dev, r_dev, i_intent,
+                                                       res, i_freq, provdisc,
+                                                       timeout))
     t.start()
     logger.debug("Wait for GO Negotiation Request on r_dev")
-    ev = r_dev.wait_global_event(["P2P-GO-NEG-REQUEST"], timeout=15)
+    ev = r_dev.wait_global_event(["P2P-GO-NEG-REQUEST"], timeout=timeout - 5)
     if ev is None:
         t.join()
         raise Exception("GO Negotiation timed out")
@@ -357,7 +360,7 @@ def go_neg_pbc(i_dev, r_dev, i_intent=None, r_intent=None, i_freq=None, r_freq=N
     logger.debug("Re-initiate GO Negotiation from r_dev")
     try:
         r_res = r_dev.p2p_go_neg_init(i_dev.p2p_dev_addr(), None, "pbc",
-                                      go_intent=r_intent, timeout=20,
+                                      go_intent=r_intent, timeout=timeout,
                                       freq=r_freq)
     except Exception as e:
         logger.info("go_neg_pbc - r_dev.p2p_go_neg_init() exception: " + str(e))
