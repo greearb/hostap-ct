@@ -9189,6 +9189,48 @@ static void i802_deinit(void *priv)
 	wpa_driver_nl80211_deinit(bss);
 }
 
+static int i802_move_bss_to_first(void *priv, const char *ifname)
+{
+	struct i802_bss *bss = priv;
+	struct i802_bss *first_bss, *target_bss, *prev_bss, *tmp_bss;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+
+	if (!os_strcmp(drv->first_bss->ifname, ifname)) {
+		wpa_printf(MSG_ERROR, "nl80211: BSS is already the first one");
+		return 0;
+	}
+
+	prev_bss = drv->first_bss;
+	target_bss = drv->first_bss->next;
+	while (target_bss) {
+		if (!os_strcmp(target_bss->ifname, ifname))
+			break;
+
+		prev_bss = target_bss;
+		target_bss = target_bss->next;
+	}
+
+	if (!target_bss) {
+		wpa_printf(MSG_ERROR, "nl80211: Failed to find the target BSS");
+		return -1;
+	}
+
+	first_bss = drv->first_bss;
+	drv->first_bss = target_bss;
+	prev_bss->next = first_bss;
+
+	tmp_bss = first_bss->next;
+	first_bss->next = target_bss->next;
+	target_bss->next = tmp_bss;
+
+	memcpy(drv->perm_addr, drv->first_bss->addr, ETH_ALEN);
+	drv->ifindex = if_nametoindex(drv->first_bss->ifname);
+	drv->ctx = drv->first_bss->ctx;
+
+	first_bss->added_if = 1;
+	target_bss->added_if = 0;
+	return 0;
+}
 
 static enum nl80211_iftype wpa_driver_nl80211_if_type(
 	enum wpa_driver_if_type type)
@@ -16987,6 +17029,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.sta_set_airtime_weight = driver_nl80211_sta_set_airtime_weight,
 	.hapd_init = i802_init,
 	.hapd_deinit = i802_deinit,
+	.move_bss_to_first = i802_move_bss_to_first,
 	.set_wds_sta = i802_set_wds_sta,
 	.get_seqnum = i802_get_seqnum,
 	.flush = i802_flush,
