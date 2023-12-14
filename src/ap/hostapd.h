@@ -798,6 +798,7 @@ void hostapd_bss_deinit_no_free(struct hostapd_data *hapd);
 void hostapd_free_hapd_data(struct hostapd_data *hapd);
 void hostapd_cleanup_iface_partial(struct hostapd_iface *iface);
 int hostapd_add_iface(struct hapd_interfaces *ifaces, char *buf);
+int hostapd_remove_bss(struct hapd_interfaces *ifaces, char *buf);
 int hostapd_remove_iface(struct hapd_interfaces *ifaces, char *buf);
 void hostapd_channel_list_updated(struct hostapd_iface *iface, int initiator);
 void hostapd_set_state(struct hostapd_iface *iface, enum hostapd_iface_state s);
