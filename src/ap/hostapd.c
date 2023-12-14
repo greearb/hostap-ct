@@ -4138,7 +4138,35 @@ fail:
 }
 
 
-static int hostapd_remove_bss(struct hostapd_iface *iface, unsigned int idx)
+int hostapd_move_bss_to_first(struct hostapd_iface *iface, int idx)
+{
+	struct hostapd_data *target_hapd, *first_hapd;
+
+	if (idx == 0 || idx >= iface->num_bss)
+		return -1;
+
+	target_hapd = iface->bss[idx];
+	first_hapd = iface->bss[0];
+	if (hostapd_drv_move_bss_to_first(first_hapd, target_hapd->conf->iface))
+		return -1;
+
+	iface->bss[0] = target_hapd;
+	iface->bss[idx] = first_hapd;
+	iface->conf->bss[0] = iface->bss[0]->conf;
+	iface->conf->bss[idx] = iface->bss[idx]->conf;
+
+	first_hapd->interface_added = 1;
+	target_hapd->interface_added = 0;
+
+	if (idx == iface->num_bss - 1)
+		iface->conf->last_bss = iface->bss[idx]->conf;
+
+	return 0;
+}
+
+
+static int hostapd_remove_bss_by_idx(struct hostapd_iface *iface,
+				     unsigned int idx)
 {
 	size_t i;
 
@@ -4175,6 +4203,74 @@ static int hostapd_remove_bss(struct hostapd_iface *iface, unsigned int idx)
 }
 
 
+int hostapd_remove_bss(struct hapd_interfaces *interfaces, char *buf)
+{
+	struct hostapd_iface *hapd_iface;
+	size_t i, j, k = 0;
+	int ret;
+
+	for (i = 0; i < interfaces->count; i++) {
+		hapd_iface = interfaces->iface[i];
+		if (hapd_iface == NULL)
+			return -1;
+
+		if (!os_strcmp(hapd_iface->conf->bss[0]->iface, buf)) {
+#ifdef CONFIG_IEEE80211BE
+			if (hostapd_is_mld_ap(hapd_iface->bss[0])) {
+				wpa_printf(MSG_ERROR, "Cannot remove MLD link\n");
+				return -1;
+			}
+#endif /* CONFIG_IEEE80211BE */
+
+			if (hapd_iface->conf->num_bss == 1) {
+				wpa_printf(MSG_INFO, "Remove interface '%s'", buf);
+				hapd_iface->driver_ap_teardown =
+					!!(hapd_iface->drv_flags &
+					   WPA_DRIVER_FLAGS_AP_TEARDOWN_SUPPORT);
+
+				hostapd_interface_deinit_free(hapd_iface);
+				k = i;
+				while (k < (interfaces->count - 1)) {
+					interfaces->iface[k] =
+						interfaces->iface[k + 1];
+					k++;
+				}
+				interfaces->count--;
+				return 0;
+			} else {
+				wpa_printf(MSG_INFO, "Switch interface to %s",
+					   hapd_iface->bss[1]->conf->iface);
+
+				ret = hostapd_move_bss_to_first(hapd_iface, 1);
+				if (ret < 0) {
+					wpa_printf(MSG_ERROR,
+						   "Interface switch failed");
+					return ret;
+				}
+			}
+		}
+
+		for (j = 0; j < hapd_iface->conf->num_bss; j++) {
+			if (!os_strcmp(hapd_iface->conf->bss[j]->iface, buf)) {
+#ifdef CONFIG_IEEE80211BE
+				if (hostapd_is_mld_ap(hapd_iface->bss[j])) {
+					wpa_printf(MSG_ERROR,
+						   "Cannot remove MLD link\n");
+					return -1;
+				}
+#endif /* CONFIG_IEEE80211BE */
+
+				hapd_iface->driver_ap_teardown =
+					!(hapd_iface->drv_flags &
+					  WPA_DRIVER_FLAGS_AP_TEARDOWN_SUPPORT);
+				return hostapd_remove_bss_by_idx(hapd_iface, j);
+			}
+		}
+	}
+	return -1;
+}
+
+
 int hostapd_remove_iface(struct hapd_interfaces *interfaces, char *buf)
 {
 	struct hostapd_iface *hapd_iface;
@@ -4208,7 +4304,7 @@ int hostapd_remove_iface(struct hapd_interfaces *interfaces, char *buf)
 				hapd_iface->driver_ap_teardown =
 					!(hapd_iface->drv_flags &
 					  WPA_DRIVER_FLAGS_AP_TEARDOWN_SUPPORT);
-				return hostapd_remove_bss(hapd_iface, j);
+				return hostapd_remove_bss_by_idx(hapd_iface, j);
 			}
 		}
 	}

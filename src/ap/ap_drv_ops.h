@@ -353,6 +353,16 @@ static inline const char * hostapd_drv_get_radio_name(struct hostapd_data *hapd)
 	return hapd->driver->get_radio_name(hapd->drv_priv);
 }
 
+static inline int hostapd_drv_move_bss_to_first(struct hostapd_data *hapd,
+						const char *ifname)
+{
+	if (hapd->driver == NULL || hapd->driver->move_bss_to_first == NULL ||
+	    hapd->drv_priv == NULL)
+		return -1;
+
+	return hapd->driver->move_bss_to_first(hapd->drv_priv, ifname);
+}
+
 static inline int hostapd_drv_switch_channel(struct hostapd_data *hapd,
 					     struct csa_settings *settings)
 {
