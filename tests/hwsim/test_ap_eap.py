@@ -5960,15 +5960,19 @@ def _test_ap_wpa2_eap_in_bridge(dev, apdev):
                      password_hex="0123456789abcdef0123456789abcdef")
     wpas.dump_monitor()
     eap_reauth(wpas, "PAX")
+    hapd.wait_4way_hs()
     wpas.dump_monitor()
     # Try again as a regression test for packet socket workaround
     eap_reauth(wpas, "PAX")
+    hapd.wait_4way_hs()
     wpas.dump_monitor()
     wpas.request("DISCONNECT")
     wpas.wait_disconnected()
+    hapd.wait_sta_disconnect()
     wpas.dump_monitor()
     wpas.request("RECONNECT")
     wpas.wait_connected()
+    hapd.wait_sta()
     wpas.dump_monitor()
 
 def test_ap_wpa2_eap_session_ticket(dev, apdev):
