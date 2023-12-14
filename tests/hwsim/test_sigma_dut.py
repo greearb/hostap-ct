@@ -3595,7 +3595,8 @@ def run_sigma_dut_ap_dpp_relay(dev, apdev):
     res = sigma_dut_cmd_check("dev_exec_action,program,DPP,DPPActionType,GetLocalBootstrap,DPPCryptoIdentifier,P-256,DPPBS,QR")
 
     dev[0].dpp_auth_init(uri=uri_c, role="enrollee")
-    wait_auth_success(dev[1], dev[0], configurator=dev[1], enrollee=dev[0])
+    wait_auth_success(dev[1], dev[0], configurator=dev[1], enrollee=dev[0],
+                      timeout=10)
 
     sigma_dut_cmd_check("ap_reset_default")
 
