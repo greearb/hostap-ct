@@ -4751,6 +4751,11 @@ int wpa_supplicant_remove_all_networks(struct wpa_supplicant *wpa_s)
 {
 	struct wpa_ssid *ssid;
 
+	if (wpa_s->drv_flags2 &
+	    (WPA_DRIVER_FLAGS2_SAE_OFFLOAD_STA |
+	     WPA_DRIVER_FLAGS2_OWE_OFFLOAD_STA))
+		wpa_drv_flush_pmkid(wpa_s);
+
 	if (wpa_s->sched_scanning)
 		wpa_supplicant_cancel_sched_scan(wpa_s);
 
