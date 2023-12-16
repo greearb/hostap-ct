@@ -1029,6 +1029,26 @@ int wnm_send_bss_tm_req(struct hostapd_data *hapd, struct sta_info *sta,
 	os_free(buf);
 
 	if (disassoc_timer) {
+#ifdef CONFIG_IEEE80211BE
+		if (hapd->conf->mld_ap && sta->mld_info.mld_sta) {
+			int i;
+			unsigned int links = 0;
+
+			for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+				if (sta->mld_info.links[i].valid)
+					links++;
+			}
+
+			if (links > 1) {
+				wpa_printf(MSG_DEBUG,
+					   "WNM: Only terminating one link - other links remains associated for "
+					   MACSTR,
+					   MAC2STR(sta->mld_info.common_info.mld_addr));
+				return 0;
+			}
+		}
+#endif /* CONFIG_IEEE80211BE */
+
 		/* send disassociation frame after time-out */
 		set_disassoc_timer(hapd, sta, disassoc_timer);
 	}
