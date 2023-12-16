@@ -5582,7 +5582,9 @@ static void handle_assoc(struct hostapd_data *hapd,
 	 *    issues with processing other non-Data Class 3 frames during this
 	 *    window.
 	 */
-	hostapd_process_assoc_ml_info(hapd, sta, pos, left, reassoc, resp);
+	if (sta)
+		hostapd_process_assoc_ml_info(hapd, sta, pos, left, reassoc,
+					      resp);
 
 	if (resp == WLAN_STATUS_SUCCESS && sta &&
 	    add_associated_sta(hapd, sta, reassoc))
