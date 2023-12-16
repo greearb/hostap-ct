@@ -14,6 +14,7 @@ logger = logging.getLogger()
 import hostapd
 from p2p_utils import *
 from test_gas import anqp_adv_proto
+from test_p2ps import set_random_listen_chan
 
 def ie_ssid(ssid):
     return struct.pack("<BB", WLAN_EID_SSID, len(ssid)) + ssid.encode()
@@ -1278,6 +1279,15 @@ def check_p2p_response(hapd, dialog_token, status):
 
 def test_p2p_msg_go_neg_both_start(dev, apdev):
     """P2P protocol test for simultaneous GO Neg initiation"""
+    try:
+        dev[0].global_request("P2P_SET listen_channel 6")
+        dev[1].global_request("P2P_SET listen_channel 6")
+        run_p2p_msg_go_neg_both_start(dev)
+    finally:
+        set_random_listen_chan(dev[0])
+        set_random_listen_chan(dev[1])
+
+def run_p2p_msg_go_neg_both_start(dev):
     addr0 = dev[0].p2p_dev_addr()
     addr1 = dev[1].p2p_dev_addr()
     dev[0].p2p_listen()
