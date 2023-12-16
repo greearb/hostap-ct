@@ -6484,6 +6484,10 @@ def run_eap_ikev2_connect(dev):
     dev.request("REMOVE_NETWORK all")
     if not ev or "CTRL-EVENT-DISCONNECTED" not in ev:
         dev.wait_disconnected()
+    ev = dev.wait_event(["CTRL-EVENT-NETWORK-REMOVED"], timeout=1)
+    if ev is None:
+        raise Exception("Network removal not reported")
+    time.sleep(0.01)
     dev.dump_monitor()
 
 def test_eap_proto_ikev2_errors_server(dev, apdev):
