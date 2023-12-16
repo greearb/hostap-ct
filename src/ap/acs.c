@@ -917,7 +917,8 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 
 		/* If the AP is in the 5 GHz or 6 GHz band, lets prefer a less
 		 * crowded primary channel if one was found in the segment */
-		if (iface->current_mode->mode == HOSTAPD_MODE_IEEE80211A &&
+		if (iface->current_mode &&
+		    iface->current_mode->mode == HOSTAPD_MODE_IEEE80211A &&
 		    chan != best) {
 			wpa_printf(MSG_DEBUG,
 				   "ACS: promoting channel %d over %d (less interference %Lg/%Lg)",
