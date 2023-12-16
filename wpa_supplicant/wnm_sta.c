@@ -1091,7 +1091,7 @@ static void wnm_send_bss_transition_mgmt_resp(
 		wpabuf_put_data(buf, "\0\0\0\0\0\0", ETH_ALEN);
 	}
 
-	if (status == WNM_BSS_TM_ACCEPT)
+	if (status == WNM_BSS_TM_ACCEPT && !wpa_s->wnm_link_removal)
 		wnm_add_cand_list(wpa_s, &buf);
 
 #ifdef CONFIG_MBO
@@ -1458,6 +1458,7 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 	wpa_s->wnm_dialog_token = pos[0];
 	wpa_s->wnm_mode = pos[1];
 	wpa_s->wnm_dissoc_timer = WPA_GET_LE16(pos + 2);
+	wpa_s->wnm_link_removal = false;
 	valid_int = pos[4];
 	wpa_s->wnm_reply = reply;
 
@@ -1531,6 +1532,7 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		wpa_printf(MSG_INFO,
 			   "WNM: BTM request for a single MLO link - ignore disassociation imminent since other links remain associated");
 		disassoc_imminent = false;
+		wpa_s->wnm_link_removal = true;
 	}
 
 	if (disassoc_imminent) {
@@ -1673,7 +1675,9 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		wpa_supplicant_req_scan(wpa_s, 0, 0);
 	} else if (reply) {
 		enum bss_trans_mgmt_status_code status;
-		if (wpa_s->wnm_mode & WNM_BSS_TM_REQ_ESS_DISASSOC_IMMINENT)
+
+		if ((wpa_s->wnm_mode & WNM_BSS_TM_REQ_ESS_DISASSOC_IMMINENT) ||
+		    wpa_s->wnm_link_removal)
 			status = WNM_BSS_TM_ACCEPT;
 		else {
 			wpa_msg(wpa_s, MSG_INFO, "WNM: BSS Transition Management Request did not include candidates");

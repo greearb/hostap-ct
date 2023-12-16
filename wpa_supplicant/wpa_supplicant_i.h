@@ -1299,6 +1299,7 @@ struct wpa_supplicant {
 	u8 wnm_reply;
 	u8 wnm_num_neighbor_report;
 	u8 wnm_mode;
+	bool wnm_link_removal;
 	u16 wnm_dissoc_timer;
 	u8 wnm_bss_termination_duration[12];
 	struct neighbor_report *wnm_neighbor_report_elements;
