@@ -1269,9 +1269,11 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 
 		if (*pos != MULTI_LINK_SUB_ELEM_ID_PER_STA_PROFILE) {
 			wpa_printf(MSG_DEBUG,
-				   "MLD: Unexpected Multi-Link element subelement ID=%u",
+				   "MLD: Skip unknown Multi-Link element subelement ID=%u",
 				   *pos);
-			goto out;
+			pos += 2 + sub_elem_len;
+			ml_len -= 2 + sub_elem_len;
+			continue;
 		}
 
 		/* Skip the subelement ID and the length */
