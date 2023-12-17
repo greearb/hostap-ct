@@ -931,3 +931,147 @@ def test_eht_mld_bss_trans_mgmt_link_removal_imminent(dev, apdev):
                               "CTRL-EVENT-DISCONNECTED"], timeout=10)
         if ev is not None:
             raise Exception("Unexpected action on STA: " + ev)
+
+def send_check(hapd, frame, no_tx_status=False):
+        cmd = "MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame="
+        hapd.request(cmd + frame)
+        if no_tx_status:
+            return
+        ev = hapd.wait_event(["MGMT-TX-STATUS"], timeout=1)
+        if ev is None:
+            raise Exception("No TX status")
+
+def test_eht_ap_mld_proto(dev, apdev):
+    """AP MLD protocol testing"""
+    with HWSimRadio(use_mlo=True) as (hapd0_radio, hapd0_iface), \
+        HWSimRadio(use_mlo=True) as (hapd1_radio, hapd1_iface):
+
+        ssid = "mld_ap_owe_two_link"
+        params = eht_mld_ap_wpa2_params(ssid, key_mgmt="OWE", mfp="2")
+
+        hapd0 = eht_mld_enable_ap(hapd0_iface, params)
+
+        params['channel'] = '6'
+
+        hapd1 = eht_mld_enable_ap(hapd0_iface, params)
+
+        ap_mld_addr = hapd0.get_status_field("mld_addr[0]").replace(':', '')
+        bssid0 = hapd0.own_addr().replace(':', '')
+        bssid1 = hapd1.own_addr().replace(':', '')
+
+        time.sleep(1)
+        hapd0.set("ext_mgmt_frame_handling", "1")
+        hapd1.set("ext_mgmt_frame_handling", "1")
+
+        # Truncated EML missing MLD Capabilities And operations field
+        hapd0.note("Truncated EML missing MLD Capabilities And operations field")
+        addr0 = "021122334400"
+        addr1 = "021122334401"
+        mld_addr = "02112233440f"
+        hdr = "b0003a01" + bssid0 + addr0 + bssid0 + "1000"
+        mle = "ff0a6b000007" + mld_addr
+        auth = hdr + "0000" + "0100" + "0000" + mle
+        send_check(hapd0, auth)
+
+        hdr = "00000000" + bssid0 + mld_addr + bssid0 + "1000"
+        ssid = "00136d6c645f61705f6f77655f74776f5f6c696e6b"
+        supp_rates = "010802040b160c121824"
+        ext_supp_rates = "32043048606c"
+        rsne = "301a0100000fac040100000fac040100000fac12cc000000000fac06"
+        ht_capab = "2d1afe131bffff000000000000000000000100000000000000000000"
+        ext_capab = "7f0a04004a02014000400001"
+        he_capab = "ff16230178c81a400000bfce0000000000000000fafffaff"
+        eht_capab = "ff126c07007c0000feffff7f0100888888880000"
+        supp_op_classes = "3b155151525354737475767778797a7b7c7d7e7f808182"
+        dh_param = "ff23201300ea85e693343a079500cf4d461011a0ff90ec4de1af40165adbea94a3f36eb071"
+        wmm = "dd070050f202000100"
+        assocreq_start = "3004" + "0500" + ssid + supp_rates + ext_supp_rates + rsne + ht_capab + ext_capab + he_capab
+        assocreq_end = eht_capab + supp_op_classes + dh_param + wmm
+
+        # --> Not enough bytes for common info
+        mle = "ff0a6b000109" + mld_addr
+        send_check(hapd0, hdr + assocreq_start + mle + assocreq_end)
+
+        # Truncated Non-Inheritance element
+        hapd0.note("Truncated Non-Inheritance element")
+        addr0 = "021122334410"
+        addr1 = "021122334411"
+        mld_addr = "02112233441f"
+        hdr = "b0003a01" + bssid0 + addr0 + bssid0 + "1000"
+        mle = "ff0a6b000007" + mld_addr
+        auth = hdr + "0000" + "0100" + "0000" + mle
+        send_check(hapd0, auth)
+
+        # --> MLD: Invalid inheritance
+        mle = "ff7d6b000109" + mld_addr + "0000"
+        mle += "0067" + "3100" + "07" + addr1
+        mle += "3004" + "010802040b160c121824" + "32043048606c" + "2d1afe131bffff000000000000000000000100000000000000000000" + "ff16230178c81a400000bfce0000000000000000fafffaff" + "ff126c07007c0000feffff7f0100888888880000"
+        # Non-Inhericance element
+        mle += "ff023800"
+        # Unknown optional subelement
+        mle += "aa00"
+        # Vendor-Specific subelement
+        mle += "dd0411223344"
+        hdr = "00000000" + bssid0 + mld_addr + bssid0 + "1000"
+        send_check(hapd0, hdr + assocreq_start + mle + assocreq_end,
+                   no_tx_status=True)
+
+        # Empty Non-Inheritance element
+        hapd0.note("Empty Non-Inheritance element")
+        addr0 = "021122334420"
+        addr1 = "021122334421"
+        mld_addr = "02112233442f"
+        hdr = "b0003a01" + bssid0 + addr0 + bssid0 + "1000"
+        mle = "ff0a6b000007" + mld_addr
+        auth = hdr + "0000" + "0100" + "0000" + mle
+        send_check(hapd0, auth)
+
+        mle = "ff7e6b000109" + mld_addr + "0000"
+        mle += "0068" + "3100" + "07" + addr1
+        mle += "3004" + "010802040b160c121824" + "32043048606c" + "2d1afe131bffff000000000000000000000100000000000000000000" + "ff16230178c81a400000bfce0000000000000000fafffaff" + "ff126c07007c0000feffff7f0100888888880000"
+        # Non-Inhericance element
+        mle += "ff03380000"
+        # Unknown optional subelement
+        mle += "aa00"
+        # Vendor-Specific subelement
+        mle += "dd0411223344"
+        hdr = "00000000" + bssid0 + mld_addr + bssid0 + "1000"
+        send_check(hapd0, hdr + assocreq_start + mle + assocreq_end)
+
+        # Non-Inheritance element
+        hapd0.note("Non-Inheritance element")
+        addr0 = "021122334430"
+        addr1 = "021122334431"
+        mld_addr = "02112233443f"
+        hdr = "b0003a01" + bssid0 + addr0 + bssid0 + "1000"
+        mle = "ff0a6b000007" + mld_addr
+        auth = hdr + "0000" + "0100" + "0000" + mle
+        send_check(hapd0, auth)
+
+        mle = "ff9e6b000109" + mld_addr + "0000"
+        mle += "0088" + "3100" + "07" + addr1
+        mle += "3004" + "010802040b160c121824" + "32043048606c" + "2d1afe131bffff000000000000000000000100000000000000000000" + "ff16230178c81a400000bfce0000000000000000fafffaff" + "ff126c07007c0000feffff7f0100888888880000"
+        # Non-Inhericance element
+        mle += "ff2338" + "1010032a362137387172756b548bedeff0" + "106b01020304050607080c0d21643b3a36"
+        # Unknown optional subelement
+        mle += "aa00"
+        # Vendor-Specific subelement
+        mle += "dd0411223344"
+        hdr = "00000000" + bssid0 + mld_addr + bssid0 + "1000"
+        send_check(hapd0, hdr + assocreq_start + mle + assocreq_end)
+
+        # No Non-Inheritance element
+        hapd0.note("No Non-Inheritance element")
+        addr0 = "021122334440"
+        addr1 = "021122334441"
+        mld_addr = "02112233444f"
+        hdr = "b0003a01" + bssid0 + addr0 + bssid0 + "1000"
+        mle = "ff0a6b000007" + mld_addr
+        auth = hdr + "0000" + "0100" + "0000" + mle
+        send_check(hapd0, auth)
+
+        mle = "ff716b000109" + mld_addr + "0000"
+        mle += "0063" + "3100" + "07" + addr1
+        mle += "3004010802040b160c12182432043048606c2d1afe131bffff000000000000000000000100000000000000000000ff16230178c81a400000bfce0000000000000000fafffaffff126c07007c0000feffff7f0100888888880000"
+        hdr = "00000000" + bssid0 + mld_addr + bssid0 + "1000"
+        send_check(hapd0, hdr + assocreq_start + mle + assocreq_end)
