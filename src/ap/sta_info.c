@@ -1292,18 +1292,11 @@ const u8 * ap_sta_wpa_get_dpp_pkhash(struct hostapd_data *hapd,
 }
 
 
-void ap_sta_set_authorized(struct hostapd_data *hapd, struct sta_info *sta,
-			   int authorized)
+bool ap_sta_set_authorized_flag(struct hostapd_data *hapd, struct sta_info *sta,
+				int authorized)
 {
-	const u8 *dev_addr = NULL;
-	char buf[100];
-#ifdef CONFIG_P2P
-	u8 addr[ETH_ALEN];
-	u8 ip_addr_buf[4];
-#endif /* CONFIG_P2P */
-
 	if (!!authorized == !!(sta->flags & WLAN_STA_AUTHORIZED))
-		return;
+		return false;
 
 	if (authorized) {
 		int mld_assoc_link_id = -1;
@@ -1323,6 +1316,20 @@ void ap_sta_set_authorized(struct hostapd_data *hapd, struct sta_info *sta,
 	} else {
 		sta->flags &= ~WLAN_STA_AUTHORIZED;
 	}
+
+	return true;
+}
+
+
+void ap_sta_set_authorized_event(struct hostapd_data *hapd,
+				 struct sta_info *sta, int authorized)
+{
+	const u8 *dev_addr = NULL;
+	char buf[100];
+#ifdef CONFIG_P2P
+	u8 addr[ETH_ALEN];
+	u8 ip_addr_buf[4];
+#endif /* CONFIG_P2P */
 
 #ifdef CONFIG_P2P
 	if (hapd->p2p_group == NULL) {
@@ -1407,6 +1414,15 @@ void ap_sta_set_authorized(struct hostapd_data *hapd, struct sta_info *sta,
 						     sta->addr);
 	}
 #endif /* CONFIG_FST */
+}
+
+
+void ap_sta_set_authorized(struct hostapd_data *hapd, struct sta_info *sta,
+			   int authorized)
+{
+	if (!ap_sta_set_authorized_flag(hapd, sta, authorized))
+		return;
+	ap_sta_set_authorized_event(hapd, sta, authorized);
 }
 
 

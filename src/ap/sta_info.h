@@ -393,6 +393,10 @@ const u8 * ap_sta_wpa_get_dpp_pkhash(struct hostapd_data *hapd,
 void ap_sta_disconnect(struct hostapd_data *hapd, struct sta_info *sta,
 		       const u8 *addr, u16 reason);
 
+bool ap_sta_set_authorized_flag(struct hostapd_data *hapd, struct sta_info *sta,
+				int authorized);
+void ap_sta_set_authorized_event(struct hostapd_data *hapd,
+				 struct sta_info *sta, int authorized);
 void ap_sta_set_authorized(struct hostapd_data *hapd,
 			   struct sta_info *sta, int authorized);
 static inline int ap_sta_is_authorized(struct sta_info *sta)

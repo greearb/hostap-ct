@@ -6374,6 +6374,8 @@ static void ieee80211_ml_link_sta_assoc_cb(struct hostapd_data *hapd,
 					   struct mld_link_info *link,
 					   bool ok)
 {
+	bool updated = false;
+
 	if (!ok) {
 		hostapd_logger(hapd, link->peer_addr, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_DEBUG,
@@ -6394,9 +6396,11 @@ static void ieee80211_ml_link_sta_assoc_cb(struct hostapd_data *hapd,
 	sta->flags &= ~WLAN_STA_WNM_SLEEP_MODE;
 
 	if (!hapd->conf->ieee802_1x && !hapd->conf->wpa)
-		ap_sta_set_authorized(hapd, sta, 1);
+		updated = ap_sta_set_authorized_flag(hapd, sta, 1);
 
 	hostapd_set_sta_flags(hapd, sta);
+	if (updated)
+		ap_sta_set_authorized_event(hapd, sta, 1);
 
 	/*
 	 * TODOs:

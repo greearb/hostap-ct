@@ -52,6 +52,7 @@ void hostapd_notify_assoc_fils_finish(struct hostapd_data *hapd,
 	struct ieee802_11_elems elems;
 	u8 buf[IEEE80211_MAX_MMPDU_SIZE], *p = buf;
 	int new_assoc;
+	bool updated;
 
 	wpa_printf(MSG_DEBUG, "%s FILS: Finish association with " MACSTR,
 		   __func__, MAC2STR(sta->addr));
@@ -76,11 +77,13 @@ void hostapd_notify_assoc_fils_finish(struct hostapd_data *hapd,
 				      sta->fils_pending_assoc_is_reassoc,
 				      WLAN_STATUS_SUCCESS,
 				      buf, p - buf);
-	ap_sta_set_authorized(hapd, sta, 1);
+	updated = ap_sta_set_authorized_flag(hapd, sta, 1);
 	new_assoc = (sta->flags & WLAN_STA_ASSOC) == 0;
 	sta->flags |= WLAN_STA_AUTH | WLAN_STA_ASSOC;
 	sta->flags &= ~WLAN_STA_WNM_SLEEP_MODE;
 	hostapd_set_sta_flags(hapd, sta);
+	if (updated)
+		ap_sta_set_authorized_event(hapd, sta, 1);
 	wpa_auth_sm_event(sta->wpa_sm, WPA_ASSOC_FILS);
 	ieee802_1x_notify_port_enabled(sta->eapol_sm, 1);
 	hostapd_new_assoc_sta(hapd, sta, !new_assoc);
@@ -263,6 +266,7 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 #ifdef CONFIG_OWE
 	struct hostapd_iface *iface = hapd->iface;
 #endif /* CONFIG_OWE */
+	bool updated = false;
 
 	if (addr == NULL) {
 		/*
@@ -845,7 +849,7 @@ skip_wpa_check:
 	    sta->auth_alg == WLAN_AUTH_FILS_SK ||
 	    sta->auth_alg == WLAN_AUTH_FILS_SK_PFS ||
 	    sta->auth_alg == WLAN_AUTH_FILS_PK)
-		ap_sta_set_authorized(hapd, sta, 1);
+		updated = ap_sta_set_authorized_flag(hapd, sta, 1);
 #else /* CONFIG_IEEE80211R_AP || CONFIG_FILS */
 	/* Keep compiler silent about unused variables */
 	if (status) {
@@ -857,6 +861,8 @@ skip_wpa_check:
 	sta->flags &= ~WLAN_STA_WNM_SLEEP_MODE;
 
 	hostapd_set_sta_flags(hapd, sta);
+	if (updated)
+		ap_sta_set_authorized_event(hapd, sta, 1);
 
 	if (reassoc && (sta->auth_alg == WLAN_AUTH_FT))
 		wpa_auth_sm_event(sta->wpa_sm, WPA_ASSOC_FT);
