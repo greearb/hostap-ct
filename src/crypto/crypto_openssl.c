@@ -471,11 +471,11 @@ void * aes_encrypt_init(const u8 *key, size_t len)
 	ctx = EVP_CIPHER_CTX_new();
 	if (ctx == NULL)
 		return NULL;
-	if (EVP_EncryptInit_ex(ctx, type, NULL, key, NULL) != 1) {
+	if (EVP_EncryptInit_ex(ctx, type, NULL, key, NULL) != 1 ||
+	    EVP_CIPHER_CTX_set_padding(ctx, 0) != 1) {
 		EVP_CIPHER_CTX_free(ctx);
 		return NULL;
 	}
-	EVP_CIPHER_CTX_set_padding(ctx, 0);
 	return ctx;
 }
 
@@ -528,11 +528,11 @@ void * aes_decrypt_init(const u8 *key, size_t len)
 	ctx = EVP_CIPHER_CTX_new();
 	if (ctx == NULL)
 		return NULL;
-	if (EVP_DecryptInit_ex(ctx, type, NULL, key, NULL) != 1) {
+	if (EVP_DecryptInit_ex(ctx, type, NULL, key, NULL) != 1 ||
+	    EVP_CIPHER_CTX_set_padding(ctx, 0) != 1) {
 		EVP_CIPHER_CTX_free(ctx);
 		return NULL;
 	}
-	EVP_CIPHER_CTX_set_padding(ctx, 0);
 	return ctx;
 }
 
