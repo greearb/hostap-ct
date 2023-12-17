@@ -1024,3 +1024,65 @@ def test_pasn_noauth_0(dev, apdev):
     hapd = start_pasn_ap(apdev[0], params)
 
     check_pasn_akmp_cipher(dev[0], hapd, "PASN", "CCMP", status=1)
+
+def test_pasn_sae_driver(dev, apdev):
+    """PASN authentication using driver event as trigger"""
+    check_pasn_capab(dev[0])
+    check_sae_capab(dev[0])
+
+    params = hostapd.wpa2_params(ssid="test-pasn-sae",
+                                 passphrase="12345678")
+    params['ieee80211w'] = "2"
+    params['wpa_key_mgmt'] = 'SAE SAE-EXT-KEY PASN'
+    params['sae_pwe'] = "2"
+    hapd = start_pasn_ap(apdev[0], params)
+    bssid = hapd.own_addr()
+
+    params = hostapd.wpa2_params(ssid="test-pasn-sae",
+                                 passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE PASN'
+    params['sae_pwe'] = "0"
+    hapd2 = start_pasn_ap(apdev[1], params)
+    bssid2 = hapd2.own_addr()
+
+    dev[0].scan_for_bss(bssid, freq=2412)
+    dev[0].scan_for_bss(bssid2, freq=2412)
+
+    try:
+        dev[0].set("sae_pwe", "2")
+        cmd = f"PASN_DRIVER auth {bssid} 02:11:22:33:44:55 {bssid2}"
+        if "OK" not in dev[0].request(cmd):
+            raise Exception("PASN_DRIVER failed")
+
+        ev = dev[0].wait_event(["PASN-AUTH-STATUS"], timeout=10)
+        if ev is None:
+            raise Exception("No PASN-AUTH-STATUS event (1)")
+        if f"{bssid} akmp=PASN, status=0" not in ev:
+            raise Exception("Unexpected event 1 contents: " + ev)
+
+        ev = dev[0].wait_event(["PASN-AUTH-STATUS"], timeout=10)
+        if ev is None:
+            raise Exception("No PASN-AUTH-STATUS event (2)")
+        if f"{bssid2} akmp=PASN, status=0" not in ev:
+            raise Exception("Unexpected event 2 contents: " + ev)
+
+        hapd2.disable()
+        time.sleep(1)
+        dev[0].dump_monitor()
+
+        if "OK" not in dev[0].request(cmd):
+            raise Exception("PASN_DRIVER failed")
+
+        ev = dev[0].wait_event(["PASN-AUTH-STATUS"], timeout=10)
+        if ev is None:
+            raise Exception("No PASN-AUTH-STATUS event (1b)")
+        if f"{bssid} akmp=PASN, status=0" not in ev:
+            raise Exception("Unexpected event 1b contents: " + ev)
+
+        ev = dev[0].wait_event(["PASN-AUTH-STATUS"], timeout=10)
+        if ev is None:
+            raise Exception("No PASN-AUTH-STATUS event (2b)")
+        if f"{bssid2} akmp=PASN, status=1" not in ev:
+            raise Exception("Unexpected event 2b contents: " + ev)
+    finally:
+        dev[0].set("sae_pwe", "0")

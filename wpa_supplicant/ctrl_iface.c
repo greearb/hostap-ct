@@ -11190,6 +11190,48 @@ static int wpas_ctrl_iface_pasn_deauthenticate(struct wpa_supplicant *wpa_s,
 	return wpas_pasn_deauthenticate(wpa_s, wpa_s->own_addr, bssid);
 }
 
+
+#ifdef CONFIG_TESTING_OPTIONS
+static int wpas_ctrl_iface_pasn_driver(struct wpa_supplicant *wpa_s,
+				       const char *cmd)
+{
+	union wpa_event_data event;
+	const char *pos = cmd;
+	u8 addr[ETH_ALEN];
+
+	os_memset(&event, 0, sizeof(event));
+
+	if (os_strncmp(pos, "auth ", 5) == 0)
+		event.pasn_auth.action = PASN_ACTION_AUTH;
+	else if (os_strncmp(pos, "del ", 4) == 0)
+		event.pasn_auth.action =
+			PASN_ACTION_DELETE_SECURE_RANGING_CONTEXT;
+	else
+		return -1;
+
+	pos = os_strchr(pos, ' ');
+	pos++;
+	while (hwaddr_aton(pos, addr) == 0) {
+		struct pasn_peer *peer;
+
+		if (event.pasn_auth.num_peers == WPAS_MAX_PASN_PEERS)
+			return -1;
+		peer = &event.pasn_auth.peer[event.pasn_auth.num_peers];
+		os_memcpy(peer->own_addr, wpa_s->own_addr, ETH_ALEN);
+		os_memcpy(peer->peer_addr, addr, ETH_ALEN);
+		event.pasn_auth.num_peers++;
+
+		pos = os_strchr(pos, ' ');
+		if (!pos)
+			break;
+		pos++;
+	}
+
+	wpa_supplicant_event(wpa_s, EVENT_PASN_AUTH, &event);
+	return 0;
+}
+#endif /* CONFIG_TESTING_OPTIONS */
+
 #endif /* CONFIG_PASN */
 
 
@@ -13087,6 +13129,11 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strncmp(buf, "PASN_DEAUTH ", 12) == 0) {
 		if (wpas_ctrl_iface_pasn_deauthenticate(wpa_s, buf + 12) < 0)
 			reply_len = -1;
+#ifdef CONFIG_TESTING_OPTIONS
+	} else if (os_strncmp(buf, "PASN_DRIVER ", 12) == 0) {
+		if (wpas_ctrl_iface_pasn_driver(wpa_s, buf + 12) < 0)
+			reply_len = -1;
+#endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_PASN */
 #ifndef CONFIG_NO_ROBUST_AV
 	} else if (os_strncmp(buf, "MSCS ", 5) == 0) {
