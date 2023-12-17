@@ -99,6 +99,17 @@ def test_scs_request(dev, apdev):
     params = {"ssid": "scs",
               "ext_capa": 6*"00" + "40"}
     hapd = hostapd.add_ap(apdev[0], params)
+    run_scs_request(dev, hapd, False)
+
+def test_scs_request_wfa(dev, apdev):
+    """SCS Request (WFA capability)"""
+    params = {"ssid": "scs",
+              "ext_capa": 6*"00" + "40",
+              "vendor_elements": "dd06506f9a230104"}
+    hapd = hostapd.add_ap(apdev[0], params)
+    run_scs_request(dev, hapd, True)
+
+def run_scs_request(dev, hapd, wfa):
     register_scs_req(hapd)
 
     dev[0].connect("scs", key_mgmt="NONE", scan_freq="2412")
@@ -145,6 +156,9 @@ def test_scs_request(dev, apdev):
              "scs_up=6 classifier_type=10 prot_instance=1 prot_number=udp filter_value=11223344 filter_mask=ffffffff",
              "scs_up=6 classifier_type=4 ip_version=ipv4 src_ip=1.2.3.4 dst_ip=5.6.7.8 src_port=12345 dst_port=23456 dscp=5 protocol=udp classifier_type=4 ip_version=ipv4 src_ip=1.2.3.4 dst_ip=5.6.7.8 src_port=12345 dst_port=23456 dscp=5 protocol=tcp tclas_processing=1",
              "scs_up=6 classifier_type=4 ip_version=ipv4 src_ip=1.2.3.4 dst_ip=5.6.7.8 src_port=12345 dst_port=23456 dscp=5 protocol=udp scs_id=10 add scs_up=6 classifier_type=4 ip_version=ipv4 src_ip=1.2.3.4 dst_ip=5.6.7.8 src_port=12345 dst_port=23456 dscp=5 protocol=tcp"]
+    qos_char = "scs_up=6 classifier_type=4 ip_version=ipv4 src_ip=1.2.3.4 dst_ip=5.6.7.8 src_port=12345 dst_port=23456 dscp=5 protocol=udp qos_characteristics=direct min_si=1 max_si=9 min_data_rate=123 delay_bound=1234 max_msdu=12345 service_start_time=123456 service_start_time_link_id=0 mean_data_rate=1 burst_size=1234 msdu_lifetime=1234 msdu_delivery_info=1 medium_time=2"
+    if wfa:
+        tests.append(qos_char)
     for t in tests:
         cmd = "SCS scs_id=1 change " + t
         if "OK" not in dev[0].request(cmd):
@@ -153,6 +167,11 @@ def test_scs_request(dev, apdev):
         wait_scs_result(dev[0])
         if "scs_id=" in t:
             wait_scs_result(dev[0], expect_status="response_not_received")
+
+    if not wfa:
+        cmd = "SCS scs_id=1 change " + qos_char
+        if "OK" in dev[0].request(cmd):
+            raise Exception("SCS change with QoS characteristics accepted unexpectedly")
 
     cmd = "SCS scs_id=1 change scs_up=6 classifier_type=4 ip_version=ipv4 src_ip=1.2.3.4 dst_ip=5.6.7.8 src_port=12345 dst_port=23456 dscp=5 protocol=udp"
     if "OK" not in dev[0].request(cmd):
