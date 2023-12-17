@@ -459,6 +459,11 @@ def test_autogo_passphrase_len(dev):
                        key_mgmt='WPA-PSK', pairwise='CCMP', group='CCMP',
                        scan_freq=res['freq'])
         dev[0].wait_sta(addr=dev[2].own_addr())
+        ev = dev[0].wait_group_event(["EAPOL-4WAY-HS-COMPLETED"], timeout=5)
+        if ev is None:
+            raise Exception("4-way handshake was not completed")
+        if dev[2].own_addr() not in ev:
+            raise Exception("Unexpected 4-way handshake address: " + ev)
         hwsim_utils.test_connectivity_p2p_sta(dev[1], dev[2])
         dev[2].request("DISCONNECT")
 
