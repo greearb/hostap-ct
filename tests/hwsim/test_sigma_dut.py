@@ -1910,6 +1910,10 @@ def dpp_resp_conf_mutual(dev, conf_id, uri):
         ev = dev.wait_event(["DPP-SCAN-PEER-QR-CODE"], timeout=10)
         if ev is None:
             raise Exception("QR Code scan for mutual authentication not requested")
+        ev = dev.wait_event(["DPP-TX-STATUS"], timeout=10)
+        if ev is None:
+            raise Exception("No TX status for response-pending")
+        time.sleep(0.1)
         dev.dpp_qr_code(uri)
     ev = dev.wait_event(["DPP-CONF-SENT"], timeout=10)
     if ev is None:
