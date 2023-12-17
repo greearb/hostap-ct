@@ -1004,7 +1004,7 @@ ParseRes ieee802_11_parse_link_assoc_req(const u8 *start, size_t len,
 			continue;
 		}
 
-		if (sub_elem_len < 3) {
+		if (sub_elem_len < 5) {
 			if (show_errors)
 				wpa_printf(MSG_DEBUG,
 					   "MLD: error: sub_elem_len=%zu < 5",
@@ -1073,7 +1073,8 @@ ParseRes ieee802_11_parse_link_assoc_req(const u8 *start, size_t len,
 			non_inherit_len -= 1 + non_inherit[0];
 			non_inherit += 1 + non_inherit[0];
 
-			if (non_inherit_len < 1UL + non_inherit[0]) {
+			if (non_inherit_len < 1UL ||
+			    non_inherit_len < 1UL + non_inherit[0]) {
 				if (show_errors)
 					wpa_printf(MSG_DEBUG,
 						   "MLD: Invalid inheritance");
