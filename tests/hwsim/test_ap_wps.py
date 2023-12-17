@@ -1234,6 +1234,7 @@ def _test_ap_wps_er_add_enrollee(dev, apdev):
     if ev is None:
         raise Exception("WPS ER did not report success")
     hapd.wait_sta(dev[1].own_addr())
+    hapd.wait_4way_hs()
     hwsim_utils.test_connectivity_sta(dev[0], dev[1])
 
     logger.info("Add a specific Enrollee using ER")
@@ -1517,6 +1518,7 @@ def _test_ap_wps_er_add_enrollee_pbc(dev, apdev):
     if ev is None:
         raise Exception("WPS ER did not report success")
     hapd.wait_sta(addr=dev[1].own_addr())
+    hapd.wait_4way_hs()
     hwsim_utils.test_connectivity_sta(dev[0], dev[1])
 
 def test_ap_wps_er_pbc_overlap(dev, apdev):
