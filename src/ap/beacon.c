@@ -239,12 +239,10 @@ static u8 * hostapd_fill_subband_triplets(struct hostapd_data *hapd, u8 *pos,
 			continue; /* can use same entry */
 		}
 
-		if (start && prev) {
+		if (start && prev)
 			pos = hostapd_eid_country_add(hapd, pos, end,
 						      chan_spacing,
 						      start, prev);
-			start = NULL;
-		}
 
 		/* Start new group */
 		start = prev = chan;
