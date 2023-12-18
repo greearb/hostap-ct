@@ -626,12 +626,7 @@ static int send_and_recv_msgs_owner(struct wpa_driver_nl80211_data *drv,
 	 * attributes, but they have to be performed on the socket, which has
 	 * the connection owner property set in the kernel.
 	 */
-	if ((drv->capa.flags2 & WPA_DRIVER_FLAGS2_CONTROL_PORT_RX) &&
-	    set_owner &&
-	    (nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT_OVER_NL80211) ||
-	     nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER) ||
-	     nla_put_u16(msg, NL80211_ATTR_CONTROL_PORT_ETHERTYPE, ETH_P_PAE) ||
-	     nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT_NO_PREAUTH)))
+	if (set_owner && nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
 		return -1;
 
 	return send_and_recv(drv->global, handle,
@@ -648,6 +643,19 @@ send_and_recv_msgs_connect_handle(struct wpa_driver_nl80211_data *drv,
 	return send_and_recv_msgs_owner(drv, msg, bss->nl_connect, set_owner,
 					NULL, NULL, NULL,
 					NULL, err_info);
+}
+
+
+static int nl80211_put_control_port(struct wpa_driver_nl80211_data *drv,
+				    struct nl_msg *msg)
+{
+	if (nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT) ||
+	    nla_put_u16(msg, NL80211_ATTR_CONTROL_PORT_ETHERTYPE, ETH_P_PAE) ||
+	    ((drv->capa.flags2 & WPA_DRIVER_FLAGS2_CONTROL_PORT_RX) &&
+	     (nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT_OVER_NL80211) ||
+	      nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT_NO_PREAUTH))))
+		return -1;
+	return 0;
 }
 
 
@@ -5200,11 +5208,13 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 		    os_strlen(params->sae_password), params->sae_password))
 		goto fail;
 
+	if (nl80211_put_control_port(drv, msg) < 0)
+		goto fail;
+
 	if (params->key_mgmt_suites & WPA_KEY_MGMT_IEEE8021X_NO_WPA &&
 	    (!params->pairwise_ciphers ||
 	     params->pairwise_ciphers & (WPA_CIPHER_WEP104 | WPA_CIPHER_WEP40)) &&
-	    (nla_put_u16(msg, NL80211_ATTR_CONTROL_PORT_ETHERTYPE, ETH_P_PAE) ||
-	     nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT)))
+	    nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT))
 		goto fail;
 
 	if (drv->device_ap_sme) {
@@ -6600,7 +6610,7 @@ retry:
 	    params->key_mgmt_suite == WPA_KEY_MGMT_PSK_SHA256 ||
 	    params->key_mgmt_suite == WPA_KEY_MGMT_IEEE8021X_SHA384) {
 		wpa_printf(MSG_DEBUG, "  * control port");
-		if (nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT))
+		if (nl80211_put_control_port(drv, msg))
 			goto fail;
 	}
 
@@ -7030,15 +7040,14 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 			return -1;
 	}
 
-	if (nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT))
+	if (nl80211_put_control_port(drv, msg))
 		return -1;
 
 	if (params->key_mgmt_suite == WPA_KEY_MGMT_IEEE8021X_NO_WPA &&
 	    (params->pairwise_suite == WPA_CIPHER_NONE ||
 	     params->pairwise_suite == WPA_CIPHER_WEP104 ||
 	     params->pairwise_suite == WPA_CIPHER_WEP40) &&
-	    (nla_put_u16(msg, NL80211_ATTR_CONTROL_PORT_ETHERTYPE, ETH_P_PAE) ||
-	     nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT)))
+	    nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT))
 		return -1;
 
 	if (params->rrm_used) {
