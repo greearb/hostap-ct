@@ -1155,17 +1155,25 @@ static int hostapd_wpa_auth_set_vlan(void *ctx, const u8 *sta_addr,
 	if (!sta || !sta->wpa_sm)
 		return -1;
 
-	if (vlan->notempty &&
-	    !hostapd_vlan_valid(hapd->conf->vlan, vlan)) {
-		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
-			       HOSTAPD_LEVEL_INFO,
-			       "Invalid VLAN %d%s received from FT",
-			       vlan->untagged, vlan->tagged[0] ? "+" : "");
-		return -1;
-	}
+	if (!(hapd->iface->drv_flags & WPA_DRIVER_FLAGS_VLAN_OFFLOAD)) {
+		if (vlan->notempty &&
+		    !hostapd_vlan_valid(hapd->conf->vlan, vlan)) {
+			hostapd_logger(hapd, sta->addr,
+				       HOSTAPD_MODULE_IEEE80211,
+				       HOSTAPD_LEVEL_INFO,
+				       "Invalid VLAN %d%s received from FT",
+				       vlan->untagged, vlan->tagged[0] ?
+				       "+" : "");
+			return -1;
+		}
 
-	if (ap_sta_set_vlan(hapd, sta, vlan) < 0)
-		return -1;
+		if (ap_sta_set_vlan(hapd, sta, vlan) < 0)
+			return -1;
+
+	} else {
+		if (vlan->notempty)
+			sta->vlan_id = vlan->untagged;
+	}
 	/* Configure wpa_group for GTK but ignore error due to driver not
 	 * knowing this STA. */
 	ap_sta_bind_vlan(hapd, sta);
@@ -1188,10 +1196,15 @@ static int hostapd_wpa_auth_get_vlan(void *ctx, const u8 *sta_addr,
 	if (!sta)
 		return -1;
 
-	if (sta->vlan_desc)
+	if (sta->vlan_desc) {
 		*vlan = *sta->vlan_desc;
-	else
+	} else if ((hapd->iface->drv_flags & WPA_DRIVER_FLAGS_VLAN_OFFLOAD) &&
+		   sta->vlan_id) {
+		vlan->notempty = 1;
+		vlan->untagged = sta->vlan_id;
+	} else {
 		os_memset(vlan, 0, sizeof(*vlan));
+	}
 
 	return 0;
 }
