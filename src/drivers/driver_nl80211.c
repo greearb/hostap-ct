@@ -505,7 +505,7 @@ static int send_and_recv(struct nl80211_global *global,
 
 	err.err = -ENOMEM;
 
-	cb = nl_cb_clone(global->nl_cb);
+	cb = nl_cb_clone(nl_socket_get_cb(nl_handle));
 	if (!cb)
 		goto out;
 
@@ -649,7 +649,7 @@ send_and_recv_msgs_connect_handle(struct wpa_driver_nl80211_data *drv,
 
 	if (nl_connect)
 		return send_and_recv_msgs_owner(drv, msg, nl_connect, set_owner,
-						process_bss_event, bss, NULL,
+						NULL, NULL, NULL,
 						NULL, err_info);
 	else
 		return send_and_recv_msgs(drv, msg, NULL, NULL, NULL, NULL,
@@ -3814,7 +3814,7 @@ int wpa_driver_nl80211_mlme(struct wpa_driver_nl80211_data *drv,
 
 	if (nl_connect)
 		ret = send_and_recv(drv->global, nl_connect, msg,
-				    process_bss_event, bss, NULL, NULL, NULL);
+				    NULL, NULL, NULL, NULL, NULL);
 	else
 		ret = send_and_recv_msgs(drv, msg, NULL, NULL, NULL, NULL,
 					 NULL);
