@@ -5977,9 +5977,11 @@ def run_dpp_controller_init_through_relay(dev, apdev, params, dynamic=False,
         raise Exception("DPP network id not reported")
     network = int(ev.split(' ')[1])
     dev[0].wait_connected()
+    relay.wait_sta()
     dev[0].dump_monitor()
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected()
+    relay.wait_sta_disconnect()
     dev[0].dump_monitor()
 
     if add:
