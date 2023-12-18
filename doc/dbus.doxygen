@@ -1600,6 +1600,13 @@ Interface for performing P2P (Wi-Fi Peer-to-Peer) P2P Device operations.
 	<tr><td>persistent_group_object</td><td>o</td><td></td><td>no</td></tr>
 	<tr><td>frequency</td><td>i</td><td>Operating frequency in MHz</td><td>no</td></tr>
 	<tr><td>retry_limit</td><td>i</td><td>Optional limit on the number of scan attempts to join a group</td><td>no</td></tr>
+	<tr><td>ht40</td><td>b</td><td></td><td>no</td></tr>
+	<tr><td>vht</td><td>b</td><td></td><td>no</td></tr>
+	<tr><td>he</td><td>b</td><td></td><td>no</td></tr>
+	<tr><td>edmg</td><td>b</td><td></td><td>no</td></tr>
+	<tr><td>allow_6ghz</td><td>b</td><td></td><td>no</td></tr>
+	<tr><td>freq2</td><td>i</td><td>Center frequency in MHz for segment 2 when operating in 80 MHz + 80 MHz mode</td><td>no</td></tr>
+	<tr><td>max_oper_chwidth</td><td>i</td><td>Maximum operating channel width in MHz (20, 40, 80, 160, 320)</td><td>no</td></tr>
 	</table>
       </dd>
     </dl>

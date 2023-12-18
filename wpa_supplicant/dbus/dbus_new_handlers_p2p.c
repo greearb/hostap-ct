@@ -361,6 +361,12 @@ DBusMessage * wpas_dbus_handler_p2p_group_add(DBusMessage *message,
 	unsigned int group_id = 0;
 	struct wpa_ssid *ssid;
 	u8 go_bssid_buf[ETH_ALEN], *go_bssid = NULL;
+	bool allow_6ghz = false;
+	int vht = wpa_s->conf->p2p_go_vht;
+	int ht40 = wpa_s->conf->p2p_go_ht40 || vht;
+	int he = wpa_s->conf->p2p_go_he;
+	int edmg = wpa_s->conf->p2p_go_edmg;
+	int max_oper_chwidth, chwidth = 0, freq2 = 0;
 
 	dbus_message_iter_init(message, &iter);
 
@@ -393,12 +399,41 @@ DBusMessage * wpas_dbus_handler_p2p_group_add(DBusMessage *message,
 			if (hwaddr_aton(entry.str_value, go_bssid_buf))
 				goto inv_args_clear;
 			go_bssid = go_bssid_buf;
+		} else if (os_strcmp(entry.key, "ht40") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			ht40 = entry.bool_value;
+		} else if (os_strcmp(entry.key, "vht") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			vht = entry.bool_value;
+			ht40 |= vht;
+		} else if (os_strcmp(entry.key, "he") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			he = entry.bool_value;
+		} else if (os_strcmp(entry.key, "edmg") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			edmg = entry.bool_value;
+		} else if (os_strcmp(entry.key, "allow_6ghz") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			allow_6ghz = entry.bool_value;
+		} else if (os_strcmp(entry.key, "freq2") == 0 &&
+			   entry.type == DBUS_TYPE_INT32) {
+			freq2 = entry.int32_value;
+		} else if (os_strcmp(entry.key, "max_oper_chwidth") == 0 &&
+			   entry.type == DBUS_TYPE_INT32) {
+			chwidth = entry.int32_value;
 		} else {
 			goto inv_args_clear;
 		}
 
 		wpa_dbus_dict_entry_clear(&entry);
 	}
+
+	max_oper_chwidth = chwidth_freq2_to_ch_width(chwidth, freq2);
+	if (max_oper_chwidth < 0)
+		goto inv_args;
+
+	if (allow_6ghz && chwidth == 40)
+		max_oper_chwidth = CONF_OPER_CHWIDTH_40MHZ_6GHZ;
 
 	wpa_s = wpa_s->global->p2p_init_wpa_s;
 	if (!wpa_s) {
@@ -438,17 +473,19 @@ DBusMessage * wpas_dbus_handler_p2p_group_add(DBusMessage *message,
 		if (ssid == NULL || ssid->disabled != 2)
 			goto inv_args;
 
-		if (wpas_p2p_group_add_persistent(wpa_s, ssid, 0, freq, 0, 0, 0,
-						  0, 0, 0, 0, NULL, 0, 0,
-						  false, retry_limit,
-						  go_bssid)) {
+		if (wpas_p2p_group_add_persistent(wpa_s, ssid, 0, freq, 0,
+						  freq2, ht40, vht,
+						  max_oper_chwidth, he, edmg,
+						  NULL, 0, 0, allow_6ghz,
+						  retry_limit, go_bssid)) {
 			reply = wpas_dbus_error_unknown_error(
 				message,
 				"Failed to reinvoke a persistent group");
 			goto out;
 		}
-	} else if (wpas_p2p_group_add(wpa_s, persistent_group, freq, 0, 0, 0,
-				      0, 0, 0, false))
+	} else if (wpas_p2p_group_add(wpa_s, persistent_group, freq, freq2,
+				      ht40, vht, max_oper_chwidth, he, edmg,
+				      allow_6ghz))
 		goto inv_args;
 
 out:
