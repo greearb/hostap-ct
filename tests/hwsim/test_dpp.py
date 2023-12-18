@@ -607,6 +607,11 @@ def test_dpp_auth_resp_retries(dev, apdev):
     # DPP Authentication Response frame with Status=0
     dev[1].request("DPP_STOP_LISTEN")
 
+    ev = dev[0].wait_event(["DPP-TX-STATUS"], timeout=1)
+    if ev is None:
+        raise Exception("No TX status reported for response")
+    time.sleep(0.1)
+
     dev[1].dump_monitor()
     dev[0].dump_monitor()
 
@@ -4550,6 +4555,11 @@ def test_dpp_hostapd_auth_resp_retries(dev, apdev):
     # Stop Initiator from listening to frames to force retransmission of the
     # DPP Authentication Response frame with Status=0
     dev[0].request("DPP_STOP_LISTEN")
+
+    ev = hapd.wait_event(["DPP-TX-STATUS"], timeout=1)
+    if ev is None:
+        raise Exception("No TX status reported for response")
+    time.sleep(0.1)
 
     hapd.dump_monitor()
     dev[0].dump_monitor()
