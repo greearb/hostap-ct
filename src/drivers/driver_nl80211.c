@@ -6169,8 +6169,8 @@ static int nl80211_tx_control_port(void *priv, const u8 *dest,
 
 	os_memset(&ext_arg, 0, sizeof(struct nl80211_ack_ext_arg));
 	ext_arg.ext_data = &cookie;
-	ret = send_and_recv_msgs(bss->drv, msg, NULL, NULL,
-				 ack_handler_cookie, &ext_arg, NULL);
+	ret = send_and_recv(bss->drv->global, bss->drv->global->nl, msg,
+			    NULL, NULL, ack_handler_cookie, &ext_arg, NULL);
 	if (ret) {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: tx_control_port failed: ret=%d (%s)",

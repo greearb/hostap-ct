@@ -305,20 +305,6 @@ send_and_recv_resp(struct wpa_driver_nl80211_data *drv,
 			     valid_handler, valid_data, NULL, NULL, NULL);
 }
 
-static inline int
-send_and_recv_msgs(struct wpa_driver_nl80211_data *drv,
-		   struct nl_msg *msg,
-		   int (*valid_handler)(struct nl_msg *, void *),
-		   void *valid_data,
-		   int (*ack_handler_custom)(struct nl_msg *, void *),
-		   void *ack_data,
-		   struct nl80211_err_info *err_info)
-{
-	return send_and_recv(drv->global, drv->global->nl, msg,
-			     valid_handler, valid_data,
-			     ack_handler_custom, ack_data, err_info);
-}
-
 int nl80211_create_iface(struct wpa_driver_nl80211_data *drv,
 			 const char *ifname, enum nl80211_iftype iftype,
 			 const u8 *addr, int wds,
