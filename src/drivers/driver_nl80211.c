@@ -596,19 +596,6 @@ int send_and_recv_msgs(struct wpa_driver_nl80211_data *drv,
 }
 
 
-static int
-send_and_recv_msgs_connect_handle(struct wpa_driver_nl80211_data *drv,
-				  struct nl_msg *msg, struct i802_bss *bss,
-				  int set_owner,
-				  struct nl80211_err_info *err_info)
-{
-	if (set_owner && nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
-		return -1;
-	return send_and_recv(drv->global, bss->nl_connect, msg,	NULL, NULL,
-			     NULL, NULL, err_info);
-}
-
-
 static int nl80211_put_control_port(struct wpa_driver_nl80211_data *drv,
 				    struct nl_msg *msg)
 {
@@ -5385,7 +5372,10 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 					 int_array_len(params->allowed_freqs));
 #endif /* CONFIG_DRIVER_NL80211_QCA */
 
-	ret = send_and_recv_msgs_connect_handle(drv, msg, bss, 1, NULL);
+	if (nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
+		goto fail;
+	ret = send_and_recv(drv->global, bss->nl_connect, msg, NULL, NULL, NULL,
+			    NULL, NULL);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: Beacon set failed: %d (%s)",
 			   ret, strerror(-ret));
@@ -6442,8 +6432,8 @@ static int nl80211_leave_ibss(struct wpa_driver_nl80211_data *drv,
 	int ret;
 
 	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_LEAVE_IBSS);
-	ret = send_and_recv_msgs_connect_handle(drv, msg, drv->first_bss, 0,
-						NULL);
+	ret = send_and_recv(drv->global, drv->first_bss->nl_connect, msg, NULL,
+			    NULL, NULL, NULL, NULL);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: Leave IBSS failed: ret=%d "
 			   "(%s)", ret, strerror(-ret));
@@ -6590,8 +6580,10 @@ retry:
 	if (ret < 0)
 		goto fail;
 
-	ret = send_and_recv_msgs_connect_handle(drv, msg, drv->first_bss, 1,
-						NULL);
+	if (nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
+		goto fail;
+	ret = send_and_recv(drv->global, drv->first_bss->nl_connect, msg, NULL,
+			    NULL, NULL, NULL, NULL);
 	msg = NULL;
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: Join IBSS failed: ret=%d (%s)",
@@ -7160,7 +7152,10 @@ skip_auth_type:
 	if (ret)
 		goto fail;
 
-	ret = send_and_recv_msgs_connect_handle(drv, msg, bss, 1, NULL);
+	if (nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
+		goto fail;
+	ret = send_and_recv(drv->global, bss->nl_connect, msg, NULL, NULL, NULL,
+			    NULL, NULL);
 	msg = NULL;
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: MLME connect failed: ret=%d "
@@ -7273,9 +7268,10 @@ static int wpa_driver_nl80211_associate(
 	}
 
 	if (!TEST_FAIL_TAG("assoc")) {
-		ret = send_and_recv_msgs_connect_handle(drv, msg,
-							drv->first_bss, 1,
-							&err_info);
+		if (nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
+			goto fail;
+		ret = send_and_recv(drv->global, drv->first_bss->nl_connect,
+				    msg, NULL, NULL, NULL, NULL, &err_info);
 		msg = NULL;
 	} else {
 		int i;
@@ -11917,7 +11913,10 @@ static int nl80211_join_mesh(struct i802_bss *bss,
 	if (nl80211_put_mesh_config(msg, &params->conf) < 0)
 		goto fail;
 
-	ret = send_and_recv_msgs_connect_handle(drv, msg, bss, 1, NULL);
+	if (nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
+		return -1;
+	ret = send_and_recv(drv->global, bss->nl_connect, msg, NULL, NULL, NULL,
+			    NULL, NULL);
 	msg = NULL;
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: mesh join failed: ret=%d (%s)",
@@ -11974,7 +11973,8 @@ static int wpa_driver_nl80211_leave_mesh(void *priv)
 
 	wpa_printf(MSG_DEBUG, "nl80211: mesh leave (ifindex=%d)", drv->ifindex);
 	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_LEAVE_MESH);
-	ret = send_and_recv_msgs_connect_handle(drv, msg, bss, 0, NULL);
+	ret = send_and_recv(drv->global, bss->nl_connect, msg, NULL, NULL, NULL,
+			    NULL, NULL);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: mesh leave failed: ret=%d (%s)",
 			   ret, strerror(-ret));
