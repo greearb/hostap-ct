@@ -4835,7 +4835,7 @@ send_frame_cmd:
 	res = nl80211_send_frame_cmd(bss, freq, wait_time, data, data_len,
 				     use_cookie, no_cck, noack, offchanok,
 				     csa_offs, csa_offs_len, link_id);
-	if (!res)
+	if (!res && !noack)
 		drv->send_frame_link_id = link_id;
 
 	return res;
@@ -9714,8 +9714,8 @@ static int nl80211_send_frame_cmd(struct i802_bss *bss,
 			   "cookie 0x%llx", no_ack ? " (no ACK)" : "",
 			   (long long unsigned int) cookie);
 
-		if (save_cookie)
-			drv->send_frame_cookie = no_ack ? (u64) -1 : cookie;
+		if (save_cookie && !no_ack)
+			drv->send_frame_cookie = cookie;
 
 		if (!wait) {
 			 /* There is no need to store this cookie since there
