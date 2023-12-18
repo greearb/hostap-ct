@@ -1332,6 +1332,13 @@ static int hostapd_cli_cmd_enable(struct wpa_ctrl *ctrl, int argc,
 }
 
 
+static int hostapd_cli_cmd_enable_bss(struct wpa_ctrl *ctrl, int argc,
+				      char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "ENABLE_BSS");
+}
+
+
 static int hostapd_cli_cmd_reload(struct wpa_ctrl *ctrl, int argc,
 				  char *argv[])
 {
@@ -1357,6 +1364,13 @@ static int hostapd_cli_cmd_disable(struct wpa_ctrl *ctrl, int argc,
 				   char *argv[])
 {
 	return wpa_ctrl_command(ctrl, "DISABLE");
+}
+
+
+static int hostapd_cli_cmd_disable_bss(struct wpa_ctrl *ctrl, int argc,
+				       char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "DISABLE_BSS");
 }
 
 
@@ -1903,6 +1917,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	  "  = send vendor driver command" },
 	{ "enable", hostapd_cli_cmd_enable, NULL,
 	  "= enable hostapd on current interface" },
+	{ "enable_bss", hostapd_cli_cmd_enable_bss, NULL,
+	  "= enable hostapd on current BSS" },
 	{ "reload", hostapd_cli_cmd_reload, NULL,
 	  "= reload configuration for current interface" },
 	{ "reload_bss", hostapd_cli_cmd_reload_bss, NULL,
@@ -1911,6 +1927,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	  "= reload configuration for current interface" },
 	{ "disable", hostapd_cli_cmd_disable, NULL,
 	  "= disable hostapd on current interface" },
+	{ "disable_bss", hostapd_cli_cmd_disable_bss, NULL,
+	  "= disable hostapd on current BSS" },
 	{ "enable_mld", hostapd_cli_cmd_enable_mld, NULL,
 	  "= enable AP MLD to which the interface is affiliated" },
 #ifdef CONFIG_TESTING_OPTIONS
