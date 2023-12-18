@@ -6300,32 +6300,6 @@ static int p2p_ctrl_asp_provision(struct wpa_supplicant *wpa_s, char *cmd)
 }
 
 
-static int parse_freq(int chwidth, int freq2)
-{
-	if (freq2 < 0)
-		return -1;
-	if (freq2)
-		return CONF_OPER_CHWIDTH_80P80MHZ;
-
-	switch (chwidth) {
-	case 0:
-	case 20:
-	case 40:
-		return CONF_OPER_CHWIDTH_USE_HT;
-	case 80:
-		return CONF_OPER_CHWIDTH_80MHZ;
-	case 160:
-		return CONF_OPER_CHWIDTH_160MHZ;
-	case 320:
-		return CONF_OPER_CHWIDTH_320MHZ;
-	default:
-		wpa_printf(MSG_DEBUG, "Unknown max oper bandwidth: %d",
-			   chwidth);
-		return -1;
-	}
-}
-
-
 static int p2p_ctrl_connect(struct wpa_supplicant *wpa_s, char *cmd,
 			    char *buf, size_t buflen)
 {
@@ -6419,7 +6393,7 @@ static int p2p_ctrl_connect(struct wpa_supplicant *wpa_s, char *cmd,
 	if (pos2)
 		chwidth = atoi(pos2 + 18);
 
-	max_oper_chwidth = parse_freq(chwidth, freq2);
+	max_oper_chwidth = chwidth_freq2_to_ch_width(chwidth, freq2);
 	if (max_oper_chwidth < 0)
 		return -1;
 
@@ -7073,7 +7047,7 @@ static int p2p_ctrl_invite_persistent(struct wpa_supplicant *wpa_s, char *cmd)
 	if (pos)
 		chwidth = atoi(pos + 18);
 
-	max_oper_chwidth = parse_freq(chwidth, freq2);
+	max_oper_chwidth = chwidth_freq2_to_ch_width(chwidth, freq2);
 	if (max_oper_chwidth < 0)
 		return -1;
 
@@ -7228,7 +7202,7 @@ static int p2p_ctrl_group_add(struct wpa_supplicant *wpa_s, char *cmd)
 	}
 #endif /* CONFIG_ACS */
 
-	max_oper_chwidth = parse_freq(chwidth, freq2);
+	max_oper_chwidth = chwidth_freq2_to_ch_width(chwidth, freq2);
 	if (max_oper_chwidth < 0)
 		return -1;
 

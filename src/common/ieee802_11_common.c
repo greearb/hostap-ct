@@ -3173,6 +3173,38 @@ enum oper_chan_width op_class_to_ch_width(u8 op_class)
 }
 
 
+/**
+ * chwidth_freq2_to_ch_width - Determine channel width as enum oper_chan_width
+ * @chwidth: Channel width integer
+ * @freq2: Value for frequency 2. 0 is not used
+ * Returns: enum oper_chan_width, -1 on failure
+ */
+int chwidth_freq2_to_ch_width(int chwidth, int freq2)
+{
+	if (freq2 < 0)
+		return -1;
+	if (freq2)
+		return CONF_OPER_CHWIDTH_80P80MHZ;
+
+	switch (chwidth) {
+	case 0:
+	case 20:
+	case 40:
+		return CONF_OPER_CHWIDTH_USE_HT;
+	case 80:
+		return CONF_OPER_CHWIDTH_80MHZ;
+	case 160:
+		return CONF_OPER_CHWIDTH_160MHZ;
+	case 320:
+		return CONF_OPER_CHWIDTH_320MHZ;
+	default:
+		wpa_printf(MSG_DEBUG, "Unknown max oper bandwidth: %d",
+			   chwidth);
+		return -1;
+	}
+}
+
+
 struct wpabuf * ieee802_11_defrag(const u8 *data, size_t len, bool ext_elem)
 {
 	struct wpabuf *buf;

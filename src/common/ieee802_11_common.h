@@ -292,6 +292,7 @@ bool ieee802_11_rsnx_capab_len(const u8 *rsnxe, size_t rsnxe_len,
 bool ieee802_11_rsnx_capab(const u8 *rsnxe, unsigned int capab);
 int op_class_to_bandwidth(u8 op_class);
 enum oper_chan_width op_class_to_ch_width(u8 op_class);
+int chwidth_freq2_to_ch_width(int chwidth, int freq2);
 
 /* element iteration helpers */
 #define for_each_element(_elem, _data, _datalen)			\
