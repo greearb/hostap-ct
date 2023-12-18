@@ -311,9 +311,15 @@ def run_owe_transition_mode_ifname_acs(dev, apdev, wait_first):
     wait_acs(hapd2)
     if not wait_first:
         state = hapd.get_status_field("state")
+        logger.info("AP1 state: " + state)
         if state == "ACS-STARTED":
             time.sleep(5)
             state = hapd.get_status_field("state")
+            logger.info("AP1 state after 5 sec: " + state)
+        if state != "ENABLED":
+            time.sleep(1)
+            state = hapd.get_status_field("state")
+            logger.info("AP1 state after 1 sec: " + state)
         if state != "ENABLED":
             raise Exception("AP1 startup did not succeed")
 
