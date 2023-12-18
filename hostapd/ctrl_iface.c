@@ -1573,6 +1573,24 @@ static int hostapd_ctrl_iface_enable(struct hostapd_iface *iface)
 }
 
 
+static int hostapd_ctrl_iface_enable_bss(struct hostapd_data *hapd)
+{
+#ifdef CONFIG_IEEE80211BE
+	if (hostapd_is_mld_ap(hapd)) {
+		wpa_printf(MSG_ERROR, "Cannot enable AP MLD");
+		return -1;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
+	if (hostapd_enable_bss(hapd) < 0) {
+		wpa_printf(MSG_ERROR, "Enabling of BSS failed");
+		return -1;
+	}
+
+	return 0;
+}
+
+
 static int hostapd_ctrl_iface_reload(struct hostapd_iface *iface)
 {
 	if (hostapd_reload_iface(iface) < 0) {
@@ -1599,6 +1617,24 @@ static int hostapd_ctrl_iface_disable(struct hostapd_iface *iface)
 		wpa_printf(MSG_ERROR, "Disabling of interface failed");
 		return -1;
 	}
+	return 0;
+}
+
+
+static int hostapd_ctrl_iface_disable_bss(struct hostapd_data *hapd)
+{
+#ifdef CONFIG_IEEE80211BE
+	if (hostapd_is_mld_ap(hapd)) {
+		wpa_printf(MSG_ERROR, "Cannot disable AP MLD");
+		return -1;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
+	if (hostapd_disable_bss(hapd) < 0) {
+		wpa_printf(MSG_ERROR, "Disabling of BSS failed");
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -5802,6 +5838,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strcmp(buf, "ENABLE") == 0) {
 		if (hostapd_ctrl_iface_enable(hapd->iface))
 			reply_len = -1;
+	} else if (os_strncmp(buf, "ENABLE_BSS", 10) == 0) {
+		if (hostapd_ctrl_iface_enable_bss(hapd))
+			reply_len = -1;
 	} else if (os_strcmp(buf, "RELOAD_WPA_PSK") == 0) {
 		if (hostapd_ctrl_iface_reload_wpa_psk(hapd))
 			reply_len = -1;
@@ -5824,6 +5863,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 			reply_len = -1;
 	} else if (os_strcmp(buf, "DISABLE") == 0) {
 		if (hostapd_ctrl_iface_disable(hapd->iface))
+			reply_len = -1;
+	} else if (os_strncmp(buf, "DISABLE_BSS", 11) == 0) {
+		if (hostapd_ctrl_iface_disable_bss(hapd))
 			reply_len = -1;
 	} else if (os_strcmp(buf, "UPDATE_BEACON") == 0) {
 		if (ieee802_11_set_beacon(hapd))
