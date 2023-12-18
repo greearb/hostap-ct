@@ -596,53 +596,16 @@ int send_and_recv_msgs(struct wpa_driver_nl80211_data *drv,
 }
 
 
-/* Use this method to mark that it is necessary to own the connection/interface
- * for this operation.
- * handle may be set to NULL, to get the same behavior as send_and_recv_msgs().
- * set_owner can be used to mark this socket for receiving control port frames.
- */
-static int send_and_recv_msgs_owner(struct wpa_driver_nl80211_data *drv,
-				    struct nl_msg *msg,
-				    struct nl_sock *handle, int set_owner,
-				    int (*valid_handler)(struct nl_msg *,
-							 void *),
-				    void *valid_data,
-				    int (*ack_handler_custom)(struct nl_msg *,
-							      void *),
-				    void *ack_data,
-				    struct nl80211_err_info *err_info)
-{
-	if (!msg)
-		return -ENOMEM;
-
-	/* Control port over nl80211 needs the flags and attributes below.
-	 *
-	 * The Linux kernel has initial checks for them (in nl80211.c) like:
-	 *     validate_pae_over_nl80211(...)
-	 * or final checks like:
-	 *     dev->ieee80211_ptr->conn_owner_nlportid != info->snd_portid
-	 *
-	 * Final operations (e.g., disassociate) don't need to set these
-	 * attributes, but they have to be performed on the socket, which has
-	 * the connection owner property set in the kernel.
-	 */
-	if (set_owner && nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
-		return -1;
-
-	return send_and_recv(drv->global, handle,
-			     msg, valid_handler, valid_data,
-			     ack_handler_custom, ack_data, err_info);
-}
-
 static int
 send_and_recv_msgs_connect_handle(struct wpa_driver_nl80211_data *drv,
 				  struct nl_msg *msg, struct i802_bss *bss,
 				  int set_owner,
 				  struct nl80211_err_info *err_info)
 {
-	return send_and_recv_msgs_owner(drv, msg, bss->nl_connect, set_owner,
-					NULL, NULL, NULL,
-					NULL, err_info);
+	if (set_owner && nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
+		return -1;
+	return send_and_recv(drv->global, bss->nl_connect, msg,	NULL, NULL,
+			     NULL, NULL, err_info);
 }
 
 
@@ -11467,12 +11430,10 @@ static int nl80211_vendor_cmd(void *priv, unsigned int vendor_id,
 		    0)
 			goto fail;
 		/* This test vendor_cmd can be used with nl80211 commands that
-		 * need the connect nl_sock, so use the owner-setting variant
-		 * of send_and_recv_msgs(). */
-		ret = send_and_recv_msgs_owner(drv, msg,
-					       bss->nl_connect, 0,
-					       cmd_reply_handler, buf,
-					       NULL, NULL, NULL);
+		 * need the connect nl_sock, so use the variant that takes in
+		 * bss->nl_connect as the handle. */
+		ret = send_and_recv(drv->global, bss->nl_connect, msg,
+				    cmd_reply_handler, buf, NULL, NULL, NULL);
 		if (ret)
 			wpa_printf(MSG_DEBUG, "nl80211: command failed err=%d",
 				   ret);
