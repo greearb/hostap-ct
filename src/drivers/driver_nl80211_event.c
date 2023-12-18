@@ -1858,6 +1858,7 @@ static void mlme_event(struct i802_bss *bss,
 	size_t len;
 	int link_id = -1;
 	struct i802_link *mld_link = NULL;
+	bool beacon_set;
 
 	if (timed_out && addr) {
 		mlme_timeout_event(drv, cmd, addr);
@@ -1880,6 +1881,13 @@ static void mlme_event(struct i802_bss *bss,
 
 	if (nl80211_link_valid(bss->valid_links, link_id))
 		mld_link = nl80211_get_link(bss, link_id);
+
+	beacon_set = mld_link ? mld_link->beacon_set : bss->flink->beacon_set;
+	if (is_ap_interface(drv->nlmode) && !beacon_set) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: drop BSS Event due to disabled BSS");
+		return;
+	}
 
 	data = nla_data(frame);
 	len = nla_len(frame);

@@ -3775,6 +3775,20 @@ int hostapd_reload_bss_only(struct hostapd_data *bss)
 }
 
 
+int hostapd_enable_bss(struct hostapd_data *hapd)
+{
+	if (hapd->beacon_set_done)
+		return 0;
+
+	if (hapd->conf->bss_load_update_period && bss_load_update_init(hapd)) {
+		wpa_printf(MSG_ERROR, "BSS Load initialization failed");
+		return -1;
+	}
+
+	return ieee802_11_set_beacon_per_bss_only(hapd);
+}
+
+
 int hostapd_disable_iface(struct hostapd_iface *hapd_iface)
 {
 	size_t j;
@@ -3823,6 +3837,29 @@ int hostapd_disable_iface(struct hostapd_iface *hapd_iface)
 	hostapd_set_state(hapd_iface, HAPD_IFACE_DISABLED);
 	hostapd_refresh_all_iface_beacons(hapd_iface);
 	return 0;
+}
+
+
+int hostapd_disable_bss(struct hostapd_data *hapd)
+{
+	struct hostapd_iface *iface = hapd->iface;
+	int i, remain_bss = 0;
+
+	if (!hapd->beacon_set_done)
+		return 0;
+
+	for (i = 0; i < iface->num_bss; i++)
+		remain_bss += iface->bss[i]->beacon_set_done ? 1 : 0;
+
+	if (remain_bss == 1) {
+		wpa_printf(MSG_ERROR, "Cannot disable last BSS");
+		return -1;
+	}
+
+	hapd->beacon_set_done = 0;
+	bss_load_update_deinit(hapd);
+	hostapd_bss_deinit_no_free(hapd);
+	return hostapd_drv_stop_ap(hapd);
 }
 
 
@@ -4943,6 +4980,9 @@ int hostapd_switch_channel(struct hostapd_data *hapd,
 	struct hostapd_data *link_bss;
 #endif
 	int ret;
+
+	if (!hapd->beacon_set_done)
+		return 0;
 
 	if (!(hapd->iface->drv_flags & WPA_DRIVER_FLAGS_AP_CSA)) {
 		wpa_printf(MSG_INFO, "CSA is not supported");

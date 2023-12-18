@@ -5436,6 +5436,17 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 	wpa_printf(MSG_DEBUG, "nl80211: dtim_period=%d", params->dtim_period);
 	wpa_printf(MSG_DEBUG, "nl80211: ssid=%s",
 		   wpa_ssid_txt(params->ssid, params->ssid_len));
+
+	if (!beacon_set) {
+		/* update wdev->preset_chandef in MAC80211 */
+		ret = nl80211_set_channel(bss, params->freq, 1);
+		if (ret) {
+			wpa_printf(MSG_ERROR,
+				   "nl80211: Frequency set failed: %d (%s)",
+				   ret, strerror(-ret));
+		}
+	}
+
 	if (!(msg = nl80211_bss_msg(bss, 0, cmd)) ||
 	    nla_put(msg, NL80211_ATTR_BEACON_HEAD, params->head_len,
 		    params->head) ||
