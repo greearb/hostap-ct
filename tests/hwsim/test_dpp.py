@@ -3906,7 +3906,7 @@ def test_dpp_proto_auth_req_invalid_i_bootstrap_key(dev, apdev):
         raise Exception("DPP scan request not seen")
     ev = dev[1].wait_event(["DPP-RESPONSE-PENDING"], timeout=5)
     if ev is None:
-        raise Exception("DPP response pending indivation not seen")
+        raise Exception("DPP response pending indication not seen")
 
 def test_dpp_proto_auth_req_no_i_proto_key(dev, apdev):
     """DPP protocol testing - no I-proto key in Auth Req"""
