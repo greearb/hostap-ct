@@ -278,12 +278,37 @@ struct nl_msg * nl80211_cmd_msg(struct i802_bss *bss, int flags, uint8_t cmd);
 struct nl_msg * nl80211_drv_msg(struct wpa_driver_nl80211_data *drv, int flags,
 				uint8_t cmd);
 struct nl_msg * nl80211_bss_msg(struct i802_bss *bss, int flags, uint8_t cmd);
-int send_and_recv_msgs(struct wpa_driver_nl80211_data *drv, struct nl_msg *msg,
-		       int (*valid_handler)(struct nl_msg *, void *),
-		       void *valid_data,
-		       int (*ack_handler_custom)(struct nl_msg *, void *),
-		       void *ack_data,
-		       struct nl80211_err_info *err_info);
+
+int send_and_recv(struct nl80211_global *global,
+		  struct nl_sock *nl_handle, struct nl_msg *msg,
+		  int (*valid_handler)(struct nl_msg *, void *),
+		  void *valid_data,
+		  int (*ack_handler_custom)(struct nl_msg *, void *),
+		  void *ack_data,
+		  struct nl80211_err_info *err_info);
+
+static inline int
+send_and_recv_cmd(struct wpa_driver_nl80211_data *drv,
+		  struct nl_msg *msg)
+{
+	return send_and_recv(drv->global, drv->global->nl, msg,
+			     NULL, NULL, NULL, NULL, NULL);
+}
+
+static inline int
+send_and_recv_msgs(struct wpa_driver_nl80211_data *drv,
+		   struct nl_msg *msg,
+		   int (*valid_handler)(struct nl_msg *, void *),
+		   void *valid_data,
+		   int (*ack_handler_custom)(struct nl_msg *, void *),
+		   void *ack_data,
+		   struct nl80211_err_info *err_info)
+{
+	return send_and_recv(drv->global, drv->global->nl, msg,
+			     valid_handler, valid_data,
+			     ack_handler_custom, ack_data, err_info);
+}
+
 int nl80211_create_iface(struct wpa_driver_nl80211_data *drv,
 			 const char *ifname, enum nl80211_iftype iftype,
 			 const u8 *addr, int wds,
