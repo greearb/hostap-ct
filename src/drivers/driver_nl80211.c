@@ -627,14 +627,14 @@ static int send_and_recv_msgs_owner(struct wpa_driver_nl80211_data *drv,
 	 * the connection owner property set in the kernel.
 	 */
 	if ((drv->capa.flags2 & WPA_DRIVER_FLAGS2_CONTROL_PORT_RX) &&
-	    handle && set_owner &&
+	    set_owner &&
 	    (nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT_OVER_NL80211) ||
 	     nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER) ||
 	     nla_put_u16(msg, NL80211_ATTR_CONTROL_PORT_ETHERTYPE, ETH_P_PAE) ||
 	     nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT_NO_PREAUTH)))
 		return -1;
 
-	return send_and_recv(drv->global, handle ? handle : drv->global->nl,
+	return send_and_recv(drv->global, handle,
 			     msg, valid_handler, valid_data,
 			     ack_handler_custom, ack_data, err_info);
 }
@@ -645,25 +645,9 @@ send_and_recv_msgs_connect_handle(struct wpa_driver_nl80211_data *drv,
 				  int set_owner,
 				  struct nl80211_err_info *err_info)
 {
-	struct nl_sock *nl_connect = get_connect_handle(bss);
-
-	if (nl_connect)
-		return send_and_recv_msgs_owner(drv, msg, nl_connect, set_owner,
-						NULL, NULL, NULL,
-						NULL, err_info);
-	else
-		return send_and_recv_msgs(drv, msg, NULL, NULL, NULL, NULL,
-					  err_info);
-}
-
-
-struct nl_sock * get_connect_handle(struct i802_bss *bss)
-{
-	if ((bss->drv->capa.flags2 & WPA_DRIVER_FLAGS2_CONTROL_PORT_RX) ||
-	    bss->use_nl_connect)
-		return bss->nl_connect;
-
-	return NULL;
+	return send_and_recv_msgs_owner(drv, msg, bss->nl_connect, set_owner,
+					NULL, NULL, NULL,
+					NULL, err_info);
 }
 
 
@@ -3801,7 +3785,6 @@ int wpa_driver_nl80211_mlme(struct wpa_driver_nl80211_data *drv,
 {
 	int ret;
 	struct nl_msg *msg;
-	struct nl_sock *nl_connect = get_connect_handle(bss);
 
 	if (!(msg = nl80211_drv_msg(drv, 0, cmd)) ||
 	    nla_put_u16(msg, NL80211_ATTR_REASON_CODE, reason_code) ||
@@ -3812,12 +3795,8 @@ int wpa_driver_nl80211_mlme(struct wpa_driver_nl80211_data *drv,
 		return -1;
 	}
 
-	if (nl_connect)
-		ret = send_and_recv(drv->global, nl_connect, msg,
-				    NULL, NULL, NULL, NULL, NULL);
-	else
-		ret = send_and_recv_msgs(drv, msg, NULL, NULL, NULL, NULL,
-					 NULL);
+	ret = send_and_recv(drv->global, bss->nl_connect, msg,
+			    NULL, NULL, NULL, NULL, NULL);
 	if (ret) {
 		wpa_dbg(drv->ctx, MSG_DEBUG,
 			"nl80211: MLME command failed: reason=%u ret=%d (%s)",
@@ -7285,11 +7264,6 @@ static int wpa_driver_nl80211_associate(
 
 		if (wpa_driver_nl80211_set_mode(priv, nlmode) < 0)
 			return -1;
-		if (wpa_key_mgmt_sae(params->key_mgmt_suite) ||
-		    wpa_key_mgmt_sae(params->allowed_key_mgmts))
-			bss->use_nl_connect = 1;
-		else
-			bss->use_nl_connect = 0;
 
 		return wpa_driver_nl80211_connect(drv, params, bss);
 	}
@@ -11487,7 +11461,7 @@ static int nl80211_vendor_cmd(void *priv, unsigned int vendor_id,
 		 * need the connect nl_sock, so use the owner-setting variant
 		 * of send_and_recv_msgs(). */
 		ret = send_and_recv_msgs_owner(drv, msg,
-					       get_connect_handle(bss), 0,
+					       bss->nl_connect, 0,
 					       cmd_reply_handler, buf,
 					       NULL, NULL, NULL);
 		if (ret)

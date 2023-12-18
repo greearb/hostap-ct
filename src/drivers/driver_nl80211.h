@@ -81,7 +81,6 @@ struct i802_bss {
 	unsigned int wdev_id_set:1;
 	unsigned int added_if:1;
 	unsigned int static_ap:1;
-	unsigned int use_nl_connect:1;
 
 	u8 addr[ETH_ALEN];
 	u8 prev_addr[ETH_ALEN];
@@ -285,7 +284,6 @@ int send_and_recv_msgs(struct wpa_driver_nl80211_data *drv, struct nl_msg *msg,
 		       int (*ack_handler_custom)(struct nl_msg *, void *),
 		       void *ack_data,
 		       struct nl80211_err_info *err_info);
-struct nl_sock * get_connect_handle(struct i802_bss *bss);
 int nl80211_create_iface(struct wpa_driver_nl80211_data *drv,
 			 const char *ifname, enum nl80211_iftype iftype,
 			 const u8 *addr, int wds,
