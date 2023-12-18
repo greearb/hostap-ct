@@ -6442,7 +6442,7 @@ static int nl80211_leave_ibss(struct wpa_driver_nl80211_data *drv,
 	int ret;
 
 	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_LEAVE_IBSS);
-	ret = send_and_recv_msgs_connect_handle(drv, msg, drv->first_bss, 1,
+	ret = send_and_recv_msgs_connect_handle(drv, msg, drv->first_bss, 0,
 						NULL);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: Leave IBSS failed: ret=%d "
