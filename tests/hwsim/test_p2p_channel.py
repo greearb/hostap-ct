@@ -186,6 +186,7 @@ def test_p2p_channel_avoid(dev):
                                      timeout=10)
         if ev is None:
             raise Exception("No P2P-REMOVE-AND-REFORM-GROUP or AP-CSA-FINISHED event")
+        remove_group(dev[0], dev[1])
     finally:
         set_country("00")
         dev[0].request("DRIVER_EVENT AVOID_FREQUENCIES")
@@ -218,6 +219,7 @@ def test_p2p_channel_avoid2(dev):
         ev = dev[0].wait_group_event(["AP-CSA-FINISHED"], timeout=1)
         if ev is None:
             raise Exception("No AP-CSA-FINISHED event seen")
+        remove_group(dev[0], dev[1])
     finally:
         set_country("00")
         dev[0].request("DRIVER_EVENT AVOID_FREQUENCIES")
@@ -249,6 +251,7 @@ def test_p2p_channel_avoid3(dev):
         ev = dev[0].wait_group_event(["AP-CSA-FINISHED"], timeout=1)
         if ev is None:
             raise Exception("No AP-CSA-FINISHED event seen")
+        remove_group(dev[0], dev[1])
     finally:
         set_country("00")
         dev[0].request("DRIVER_EVENT AVOID_FREQUENCIES")
@@ -277,6 +280,7 @@ def test_p2p_channel_avoid4(dev):
         sig = dev[1].group_request("SIGNAL_POLL").splitlines()
         if "WIDTH=40 MHz" not in sig:
             raise Exception("Unexpected channel width: " + str(sig))
+        remove_group(dev[0], dev[1])
     finally:
         set_country("00")
         dev[0].request("DRIVER_EVENT AVOID_FREQUENCIES")
