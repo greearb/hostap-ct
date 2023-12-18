@@ -82,8 +82,7 @@ static int nl80211_get_noise_for_scan_results(
 
 	os_memset(info, 0, sizeof(*info));
 	msg = nl80211_drv_msg(drv, NLM_F_DUMP, NL80211_CMD_GET_SURVEY);
-	return send_and_recv_msgs(drv, msg, get_noise_for_scan_results, info,
-				  NULL, NULL, NULL);
+	return send_and_recv_resp(drv, msg, get_noise_for_scan_results, info);
 }
 
 
@@ -992,8 +991,7 @@ try_again:
 
 	arg.drv = drv;
 	arg.res = res;
-	ret = send_and_recv_msgs(drv, msg, bss_info_handler, &arg, NULL, NULL,
-				 NULL);
+	ret = send_and_recv_resp(drv, msg, bss_info_handler, &arg);
 	if (ret == -EAGAIN) {
 		count++;
 		if (count >= 10) {
@@ -1077,8 +1075,7 @@ void nl80211_dump_scan(struct wpa_driver_nl80211_data *drv)
 	ctx.idx = 0;
 	msg = nl80211_cmd_msg(drv->first_bss, NLM_F_DUMP, NL80211_CMD_GET_SCAN);
 	if (msg)
-		send_and_recv_msgs(drv, msg, nl80211_dump_scan_handler, &ctx,
-				   NULL, NULL, NULL);
+		send_and_recv_resp(drv, msg, nl80211_dump_scan_handler, &ctx);
 }
 
 
@@ -1271,8 +1268,7 @@ int wpa_driver_nl80211_vendor_scan(struct i802_bss *bss,
 
 	nla_nest_end(msg, attr);
 
-	ret = send_and_recv_msgs(drv, msg, scan_cookie_handler, &cookie,
-				 NULL, NULL, NULL);
+	ret = send_and_recv_resp(drv, msg, scan_cookie_handler, &cookie);
 	msg = NULL;
 	if (ret) {
 		wpa_printf(MSG_DEBUG,

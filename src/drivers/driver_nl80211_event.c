@@ -386,9 +386,9 @@ drv_get_connect_fail_reason_code(struct wpa_driver_nl80211_data *drv)
 		return 0;
 	}
 
-	ret = send_and_recv_msgs(drv, msg,
+	ret = send_and_recv_resp(drv, msg,
 				 qca_drv_connect_fail_reason_code_handler,
-				 &reason_code, NULL, NULL, NULL);
+				 &reason_code);
 	if (ret)
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Get connect fail reason_code failed: ret=%d (%s)",

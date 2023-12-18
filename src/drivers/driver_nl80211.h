@@ -296,6 +296,16 @@ send_and_recv_cmd(struct wpa_driver_nl80211_data *drv,
 }
 
 static inline int
+send_and_recv_resp(struct wpa_driver_nl80211_data *drv,
+		   struct nl_msg *msg,
+		   int (*valid_handler)(struct nl_msg *, void *),
+		   void *valid_data)
+{
+	return send_and_recv(drv->global, drv->global->nl, msg,
+			     valid_handler, valid_data, NULL, NULL, NULL);
+}
+
+static inline int
 send_and_recv_msgs(struct wpa_driver_nl80211_data *drv,
 		   struct nl_msg *msg,
 		   int (*valid_handler)(struct nl_msg *, void *),
