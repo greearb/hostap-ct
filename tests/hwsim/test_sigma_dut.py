@@ -2736,6 +2736,7 @@ def run_sigma_dut_dpp_pkex_responder(dev, apdev, v1=False):
         t.start()
         dppbs = "PKEXv1" if v1 else "PKEX"
         res = sigma_dut_cmd("dev_exec_action,program,DPP,DPPActionType,AutomaticDPP,DPPAuthRole,Responder,DPPProvisioningRole,Configurator,DPPConfIndex,1,DPPSigningKeyECC,P-256,DPPConfEnrolleeRole,STA,DPPBS,%s,DPPPKEXCodeIdentifier,test,DPPPKEXCode,secret,DPPTimeout,16" % dppbs, timeout=20)
+        t.join()
         if "BootstrapResult,OK,AuthResult,OK,ConfResult,OK" not in res:
             raise Exception("Unexpected result: " + res)
     finally:
