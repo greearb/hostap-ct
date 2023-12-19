@@ -593,12 +593,14 @@ def _test_p2p_service_discovery_restart(dev):
     # implementation every now and then, so run this multiple time and pass the
     # test if any attempt is fast enough.
 
-    for i in range(10):
+    for i in range(20):
+        dev[1].p2p_stop_find()
         dev[0].p2p_stop_find()
         time.sleep(0.01)
         dev[0].p2p_listen()
 
         dev[1].global_request("P2P_SERV_DISC_REQ " + addr0 + " 02000001")
+        dev[1].p2p_find(social=True)
         start = os.times()[4]
         ev = dev[1].wait_global_event(["P2P-SERV-DISC-RESP"], timeout=10)
         if ev is None:
@@ -607,6 +609,9 @@ def _test_p2p_service_discovery_restart(dev):
         logger.info("Second SD Response in " + str(end - start) + " seconds")
         if end - start < 0.8:
             break
+
+    dev[0].p2p_stop_find()
+    dev[1].p2p_stop_find()
 
     if end - start > 0.8:
         raise Exception("Unexpectedly slow second SD Response: " + str(end - start) + " seconds")
