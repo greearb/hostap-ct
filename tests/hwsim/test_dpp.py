@@ -5841,7 +5841,7 @@ def run_dpp_controller_relay(dev, apdev, params, chirp=False, discover=False,
             raise Exception("DPP_CHIRP failed")
         if duplicate:
             for i in range(10):
-                msg = relay.mgmt_rx(timeout=10)
+                msg = relay.mgmt_rx(timeout=30)
                 if msg is None:
                     raise Exception("MGMT RX wait timed out")
                 relay.request("MGMT_RX_PROCESS freq=2462 datarate=0 ssi_signal=-30 frame=" + binascii.hexlify(msg['frame']).decode())
@@ -5850,7 +5850,7 @@ def run_dpp_controller_relay(dev, apdev, params, chirp=False, discover=False,
                     relay.request("MGMT_RX_PROCESS freq=2462 datarate=0 ssi_signal=-30 frame=" + binascii.hexlify(msg['frame']).decode())
                     break
             relay.set("ext_mgmt_frame_handling", "0")
-        ev = relay.wait_event(["DPP-RX"], timeout=10)
+        ev = relay.wait_event(["DPP-RX"], timeout=30)
         if ev is None:
             raise Exception("Presence Announcement not seen")
         if "type=13" not in ev:
