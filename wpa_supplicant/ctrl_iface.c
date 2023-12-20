@@ -4962,7 +4962,7 @@ static int print_fils_indication(struct wpa_bss *bss, char *pos, char *end)
 	ie_end = ie + 2 + ie[1];
 	ie += 2;
 	if (ie_end - ie < 2)
-		return -1;
+		return 0;
 
 	info = WPA_GET_LE16(ie);
 	ie += 2;
@@ -4974,7 +4974,7 @@ static int print_fils_indication(struct wpa_bss *bss, char *pos, char *end)
 	if (info & BIT(7)) {
 		/* Cache Identifier Included */
 		if (ie_end - ie < 2)
-			return -1;
+			return 0;
 		ret = os_snprintf(pos, end - pos, "fils_cache_id=%02x%02x\n",
 				  ie[0], ie[1]);
 		if (os_snprintf_error(end - pos, ret))
@@ -4986,7 +4986,7 @@ static int print_fils_indication(struct wpa_bss *bss, char *pos, char *end)
 	if (info & BIT(8)) {
 		/* HESSID Included */
 		if (ie_end - ie < ETH_ALEN)
-			return -1;
+			return 0;
 		ret = os_snprintf(pos, end - pos, "fils_hessid=" MACSTR "\n",
 				  MAC2STR(ie));
 		if (os_snprintf_error(end - pos, ret))
@@ -4998,7 +4998,7 @@ static int print_fils_indication(struct wpa_bss *bss, char *pos, char *end)
 	realms = (info & (BIT(3) | BIT(4) | BIT(5))) >> 3;
 	if (realms) {
 		if (ie_end - ie < realms * 2)
-			return -1;
+			return 0;
 		ret = os_snprintf(pos, end - pos, "fils_realms=");
 		if (os_snprintf_error(end - pos, ret))
 			return 0;
@@ -5394,13 +5394,13 @@ static int print_bss_info(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 		if (ieee802_11_rsnx_capab(rsnxe, WLAN_RSNX_CAPAB_SAE_H2E)) {
 			ret = os_snprintf(pos, end - pos, "[SAE-H2E]");
 			if (os_snprintf_error(end - pos, ret))
-				return -1;
+				return 0;
 			pos += ret;
 		}
 		if (ieee802_11_rsnx_capab(rsnxe, WLAN_RSNX_CAPAB_SAE_PK)) {
 			ret = os_snprintf(pos, end - pos, "[SAE-PK]");
 			if (os_snprintf_error(end - pos, ret))
-				return -1;
+				return 0;
 			pos += ret;
 		}
 		osen_ie = wpa_bss_get_vendor_ie(bss, OSEN_IE_VENDOR_TYPE);
@@ -5699,8 +5699,6 @@ static int print_bss_info(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 #ifdef CONFIG_FILS
 	if (mask & WPA_BSS_MASK_FILS_INDICATION) {
 		ret = print_fils_indication(bss, pos, end);
-		if (ret < 0)
-			return 0;
 		pos += ret;
 	}
 #endif /* CONFIG_FILS */
