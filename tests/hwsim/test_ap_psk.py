@@ -1566,6 +1566,7 @@ def test_ap_wpa2_psk_ext_eapol(dev, apdev):
 
     reply_eapol("4/4", hapd, addr, msg, 0x030a, None, None, kck)
     hapd.wait_sta(timeout=15)
+    dev[0].request("DISCONNECT")
 
 @remote_compatible
 def test_ap_wpa2_psk_ext_eapol_retry1(dev, apdev):
@@ -1593,6 +1594,7 @@ def test_ap_wpa2_psk_ext_eapol_retry1(dev, apdev):
 
     reply_eapol("4/4", hapd, addr, msg, 0x030a, None, None, kck)
     hapd.wait_sta(timeout=15)
+    dev[0].request("DISCONNECT")
 
 @remote_compatible
 def test_ap_wpa2_psk_ext_eapol_retry1b(dev, apdev):
@@ -1615,6 +1617,7 @@ def test_ap_wpa2_psk_ext_eapol_retry1b(dev, apdev):
 
     reply_eapol("4/4", hapd, addr, msg, 0x030a, None, None, kck)
     hapd.wait_sta(timeout=15)
+    dev[0].request("DISCONNECT")
 
 @remote_compatible
 def test_ap_wpa2_psk_ext_eapol_retry1c(dev, apdev):
@@ -1639,6 +1642,7 @@ def test_ap_wpa2_psk_ext_eapol_retry1c(dev, apdev):
         raise Exception("ANonce changed")
     reply_eapol("4/4", hapd, addr, msg, 0x030a, None, None, kck)
     hapd.wait_sta(timeout=15)
+    dev[0].request("DISCONNECT")
 
 @remote_compatible
 def test_ap_wpa2_psk_ext_eapol_retry1d(dev, apdev):
@@ -1663,6 +1667,7 @@ def test_ap_wpa2_psk_ext_eapol_retry1d(dev, apdev):
         raise Exception("ANonce changed")
     reply_eapol("4/4", hapd, addr, msg, 0x030a, None, None, kck)
     hapd.wait_sta(timeout=15)
+    dev[0].request("DISCONNECT")
 
 @remote_compatible
 def test_ap_wpa2_psk_ext_eapol_type_diff(dev, apdev):
@@ -1694,6 +1699,7 @@ def test_ap_wpa2_psk_ext_eapol_type_diff(dev, apdev):
 
     reply_eapol("4/4", hapd, addr, msg, 0x030a, None, None, kck)
     hapd.wait_sta(timeout=15)
+    dev[0].request("DISCONNECT")
 
 @remote_compatible
 def test_ap_wpa_psk_ext_eapol(dev, apdev):
@@ -1723,6 +1729,7 @@ def test_ap_wpa_psk_ext_eapol(dev, apdev):
 
     reply_eapol("4/4", hapd, addr, msg, 0x030a, None, None, kck)
     hapd.wait_sta(timeout=15)
+    dev[0].request("DISCONNECT")
 
 @remote_compatible
 def test_ap_wpa2_psk_ext_eapol_key_info(dev, apdev):
@@ -1769,6 +1776,7 @@ def test_ap_wpa2_psk_ext_eapol_key_info(dev, apdev):
 
     reply_eapol("4/4", hapd, addr, msg, 0x030a, None, None, kck)
     hapd.wait_sta(timeout=15)
+    dev[0].request("DISCONNECT")
 
 def build_eapol_key_1_4(anonce, replay_counter=1, key_data=b'', key_len=16):
     msg = {}
@@ -2026,6 +2034,7 @@ def test_ap_wpa2_psk_supp_proto(dev, apdev):
     counter += 1
     send_eapol(dev[0], bssid, build_eapol(msg))
     dev[0].wait_disconnected(timeout=1)
+    dev[0].request("DISCONNECT")
 
 def test_ap_wpa2_psk_supp_proto_no_ie(dev, apdev):
     """WPA2-PSK supplicant protocol testing: IE not included"""
@@ -2053,6 +2062,7 @@ def test_ap_wpa2_psk_supp_proto_no_ie(dev, apdev):
     counter += 1
     send_eapol(dev[0], bssid, build_eapol(msg))
     dev[0].wait_disconnected(timeout=1)
+    dev[0].request("DISCONNECT")
 
 def test_ap_wpa2_psk_supp_proto_ie_mismatch(dev, apdev):
     """WPA2-PSK supplicant protocol testing: IE mismatch"""
@@ -2108,6 +2118,7 @@ def test_ap_wpa2_psk_supp_proto_ok(dev, apdev):
     counter += 1
     send_eapol(dev[0], bssid, build_eapol(msg))
     dev[0].wait_connected(timeout=1)
+    dev[0].request("DISCONNECT")
 
 def test_ap_wpa2_psk_supp_proto_no_gtk(dev, apdev):
     """WPA2-PSK supplicant protocol testing: no GTK"""
@@ -2138,6 +2149,7 @@ def test_ap_wpa2_psk_supp_proto_no_gtk(dev, apdev):
     ev = dev[0].wait_event(["CTRL-EVENT-CONNECTED"], timeout=0.1)
     if ev is not None:
         raise Exception("Unexpected connection completion reported")
+    dev[0].request("DISCONNECT")
 
 def test_ap_wpa2_psk_supp_proto_anonce_change(dev, apdev):
     """WPA2-PSK supplicant protocol testing: ANonce change"""
@@ -2169,6 +2181,7 @@ def test_ap_wpa2_psk_supp_proto_anonce_change(dev, apdev):
     ev = dev[0].wait_event(["WPA: ANonce from message 1 of 4-Way Handshake differs from 3 of 4-Way Handshake"])
     if ev is None:
         raise Exception("ANonce change not reported")
+    dev[0].request("DISCONNECT")
 
 def test_ap_wpa2_psk_supp_proto_unexpected_group_msg(dev, apdev):
     """WPA2-PSK supplicant protocol testing: unexpected group message"""
@@ -2200,6 +2213,7 @@ def test_ap_wpa2_psk_supp_proto_unexpected_group_msg(dev, apdev):
     if ev is None:
         raise Exception("Unexpected group key message not reported")
     dev[0].wait_disconnected(timeout=1)
+    dev[0].request("DISCONNECT")
 
 @remote_compatible
 def test_ap_wpa2_psk_supp_proto_msg_1_invalid_kde(dev, apdev):
@@ -2218,6 +2232,7 @@ def test_ap_wpa2_psk_supp_proto_msg_1_invalid_kde(dev, apdev):
     counter += 1
     send_eapol(dev[0], bssid, build_eapol(msg))
     time.sleep(0.1)
+    dev[0].request("DISCONNECT")
 
 def test_ap_wpa2_psk_supp_proto_wrong_pairwise_key_len(dev, apdev):
     """WPA2-PSK supplicant protocol testing: wrong pairwise key length"""
@@ -2250,6 +2265,7 @@ def test_ap_wpa2_psk_supp_proto_wrong_pairwise_key_len(dev, apdev):
     if ev is None:
         raise Exception("Invalid CCMP key length not reported")
     dev[0].wait_disconnected(timeout=1)
+    dev[0].request("DISCONNECT")
 
 def test_ap_wpa2_psk_supp_proto_wrong_group_key_len(dev, apdev):
     """WPA2-PSK supplicant protocol testing: wrong group key length"""
@@ -2281,6 +2297,7 @@ def test_ap_wpa2_psk_supp_proto_wrong_group_key_len(dev, apdev):
     if ev is None:
         raise Exception("Invalid CCMP key length not reported")
     dev[0].wait_disconnected(timeout=1)
+    dev[0].request("DISCONNECT")
 
 def test_ap_wpa2_psk_supp_proto_gtk_tx_bit_workaround(dev, apdev):
     """WPA2-PSK supplicant protocol testing: GTK TX bit workaround"""
@@ -2312,6 +2329,7 @@ def test_ap_wpa2_psk_supp_proto_gtk_tx_bit_workaround(dev, apdev):
     if ev is None:
         raise Exception("GTK Tx bit workaround not reported")
     dev[0].wait_connected(timeout=1)
+    dev[0].request("DISCONNECT")
 
 def test_ap_wpa2_psk_supp_proto_gtk_keyidx_0_and_3(dev, apdev):
     """WPA2-PSK supplicant protocol testing: GTK key index 0 and 3"""
@@ -2365,6 +2383,7 @@ def test_ap_wpa2_psk_supp_proto_gtk_keyidx_0_and_3(dev, apdev):
     if ev is None:
         raise Exception("Unencrypted GTK KDE not reported")
     dev[0].wait_disconnected(timeout=1)
+    dev[0].request("DISCONNECT")
 
 def test_ap_wpa2_psk_supp_proto_no_gtk_in_group_msg(dev, apdev):
     """WPA2-PSK supplicant protocol testing: GTK KDE missing from group msg"""
@@ -2406,6 +2425,7 @@ def test_ap_wpa2_psk_supp_proto_no_gtk_in_group_msg(dev, apdev):
     if ev is None:
         raise Exception("Missing GTK KDE not reported")
     dev[0].wait_disconnected(timeout=1)
+    dev[0].request("DISCONNECT")
 
 def test_ap_wpa2_psk_supp_proto_too_long_gtk_in_group_msg(dev, apdev):
     """WPA2-PSK supplicant protocol testing: too long GTK KDE in group msg"""
@@ -2448,6 +2468,7 @@ def test_ap_wpa2_psk_supp_proto_too_long_gtk_in_group_msg(dev, apdev):
     if ev is None:
         raise Exception("Too long GTK KDE not reported")
     dev[0].wait_disconnected(timeout=1)
+    dev[0].request("DISCONNECT")
 
 def test_ap_wpa2_psk_supp_proto_too_long_gtk_kde(dev, apdev):
     """WPA2-PSK supplicant protocol testing: too long GTK KDE"""
@@ -2476,6 +2497,7 @@ def test_ap_wpa2_psk_supp_proto_too_long_gtk_kde(dev, apdev):
     counter += 1
     send_eapol(dev[0], bssid, build_eapol(msg))
     dev[0].wait_disconnected(timeout=1)
+    dev[0].request("DISCONNECT")
 
 def test_ap_wpa2_psk_supp_proto_gtk_not_encrypted(dev, apdev):
     """WPA2-PSK supplicant protocol testing: GTK KDE not encrypted"""
@@ -2507,6 +2529,7 @@ def test_ap_wpa2_psk_supp_proto_gtk_not_encrypted(dev, apdev):
     if ev is None:
         raise Exception("Unencrypted GTK KDE not reported")
     dev[0].wait_disconnected(timeout=1)
+    dev[0].request("DISCONNECT")
 
 def run_psk_supp_proto_pmf2(dev, apdev, igtk_kde=None, fail=False):
     (bssid, ssid, hapd, snonce, pmk, addr, rsne) = eapol_test(apdev[0], dev[0],
@@ -2558,6 +2581,7 @@ def run_psk_supp_proto_pmf2(dev, apdev, igtk_kde=None, fail=False):
     ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=0.5)
     if ev is not None:
         raise Exception("Unexpected disconnection")
+    dev[0].request("DISCONNECT")
 
 def run_psk_supp_proto_pmf(dev, apdev, igtk_kde=None, fail=False):
     try:
