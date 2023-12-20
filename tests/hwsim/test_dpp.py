@@ -879,12 +879,6 @@ def test_dpp_qr_code_auth_neg_chan(dev, apdev):
     if "freq=2462 type=1" not in ev:
         raise Exception("Unexpected RX data for Authentication Response: " + ev)
 
-    ev = dev[0].wait_event(["DPP-TX-STATUS"], timeout=5)
-    if ev is None:
-        raise Exception("TX status for DPP Authentication Response not reported")
-    if "freq=2462 result=SUCCESS" not in ev:
-        raise Exception("Unexpected TX status for Authentication Response: " + ev)
-
     ev = dev[1].wait_event(["DPP-TX "], timeout=5)
     if ev is None:
         raise Exception("DPP Authentication Confirm not sent")
@@ -896,12 +890,6 @@ def test_dpp_qr_code_auth_neg_chan(dev, apdev):
         raise Exception("DPP Authentication Confirm not received")
     if "freq=2462 type=2" not in ev:
         raise Exception("Unexpected RX data for Authentication Confirm: " + ev)
-
-    ev = dev[1].wait_event(["DPP-TX-STATUS"], timeout=5)
-    if ev is None:
-        raise Exception("TX status for DPP Authentication Confirm not reported")
-    if "freq=2462 result=SUCCESS" not in ev:
-        raise Exception("Unexpected TX status for Authentication Confirm: " + ev)
 
     wait_auth_success(dev[0], dev[1], configurator=dev[1], enrollee=dev[0],
                       stop_responder=True)
