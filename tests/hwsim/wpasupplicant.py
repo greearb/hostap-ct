@@ -1196,8 +1196,15 @@ class WpaSupplicant:
         raise Exception("Could not find BSS " + bssid + " in scan")
 
     def flush_scan_cache(self, freq=2417):
-        self.request("BSS_FLUSH 0")
-        self.scan(freq=freq, only_new=True)
+        for i in range(3):
+            self.request("BSS_FLUSH 0")
+            try:
+                self.scan(freq=freq, only_new=True)
+            except Exception as e:
+                if i < 2:
+                    logger.info("flush_scan_cache: Failed to start scan: " + str(e))
+                    self.request("ABORT_SCAN")
+                    time.sleep(0.1)
         res = self.request("SCAN_RESULTS")
         if len(res.splitlines()) > 1:
             logger.debug("Scan results remaining after first attempt to flush the results:\n" + res)
