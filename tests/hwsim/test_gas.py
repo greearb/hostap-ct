@@ -169,11 +169,14 @@ def _test_gas_rand_ta(dev, apdev, logdir):
         raise Exception("GAS query timed out")
     get_gas_response(dev[0], bssid, ev, extra_test=True)
 
+    time.sleep(1)
     out = run_tshark(os.path.join(logdir, "hwsim0.pcapng"),
                      "wlan_mgt.fixed.category_code == 4 && (wlan_mgt.fixed.publicact == 0x0a || wlan_mgt.fixed.publicact == 0x0b)",
                      display=["wlan.ta", "wlan.ra"])
+    logger.info("tshark output:\n" + out)
     res = out.splitlines()
     if len(res) != 2:
+        logger.info("res: " + str(res))
         raise Exception("Unexpected number of GAS frames")
     req_ta = res[0].split('\t')[0]
     resp_ra = res[1].split('\t')[1]
@@ -227,7 +230,7 @@ def test_gas_concurrent_connect(dev, apdev):
     bssid = apdev[0]['bssid']
     params = hs20_ap_params()
     params['hessid'] = bssid
-    hostapd.add_ap(apdev[0], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     dev[0].scan_for_bss(bssid, freq="2412", force_scan=True)
 
@@ -256,8 +259,10 @@ def test_gas_concurrent_connect(dev, apdev):
         raise Exception("Unexpected operation order")
     get_gas_response(dev[0], bssid, ev)
 
+    hapd.wait_sta()
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected(timeout=5)
+    hapd.wait_sta_disconnect()
 
     logger.debug("Wait six seconds for expiration of connect-without-scan")
     time.sleep(6)
@@ -278,7 +283,7 @@ def test_gas_concurrent_connect(dev, apdev):
     if ev is None:
         raise Exception("No new scan results reported")
 
-    ev = dev[0].wait_connected(timeout=20, error="Operation tiemd out")
+    ev = dev[0].wait_connected(timeout=20, error="Operation timed out")
     if "CTRL-EVENT-CONNECTED" not in ev:
         raise Exception("Unexpected operation order")
 
@@ -1323,11 +1328,14 @@ def _test_gas_anqp_address3_not_assoc(dev, apdev, params):
     if "result=SUCCESS" not in ev:
         raise Exception("Unexpected result: " + ev)
 
+    time.sleep(1)
     out = run_tshark(os.path.join(params['logdir'], "hwsim0.pcapng"),
                      "wlan_mgt.fixed.category_code == 4 && (wlan_mgt.fixed.publicact == 0x0a || wlan_mgt.fixed.publicact == 0x0b)",
                      display=["wlan.bssid"])
+    logger.info("tshark output:\n" + out)
     res = out.splitlines()
     if len(res) != 2:
+        logger.info("res: " + str(res))
         raise Exception("Unexpected number of GAS frames")
     if res[0] != 'ff:ff:ff:ff:ff:ff':
         raise Exception("GAS request used unexpected Address3 field value: " + res[0])
@@ -1353,6 +1361,7 @@ def _test_gas_anqp_address3_assoc(dev, apdev, params):
                    identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="auth_serv/ca.pem", scan_freq="2412")
+    hapd.wait_sta()
 
     if "OK" not in dev[0].request("ANQP_GET " + bssid + " 258"):
         raise Exception("ANQP_GET command failed")
@@ -1375,11 +1384,14 @@ def _test_gas_anqp_address3_assoc(dev, apdev, params):
     if "result=SUCCESS" not in ev:
         raise Exception("Unexpected result: " + ev)
 
+    time.sleep(1)
     out = run_tshark(os.path.join(params['logdir'], "hwsim0.pcapng"),
                      "wlan_mgt.fixed.category_code == 4 && (wlan_mgt.fixed.publicact == 0x0a || wlan_mgt.fixed.publicact == 0x0b)",
                      display=["wlan.bssid"])
+    logger.info("tshark output:\n" + out)
     res = out.splitlines()
     if len(res) != 2:
+        logger.info("res: " + str(res))
         raise Exception("Unexpected number of GAS frames")
     if res[0] != bssid:
         raise Exception("GAS request used unexpected Address3 field value: " + res[0])
@@ -1414,11 +1426,14 @@ def test_gas_anqp_address3_ap_forced(dev, apdev, params):
     if "result=SUCCESS" not in ev:
         raise Exception("Unexpected result: " + ev)
 
+    time.sleep(1)
     out = run_tshark(os.path.join(params['logdir'], "hwsim0.pcapng"),
                      "wlan_mgt.fixed.category_code == 4 && (wlan_mgt.fixed.publicact == 0x0a || wlan_mgt.fixed.publicact == 0x0b)",
                      display=["wlan.bssid"])
+    logger.info("tshark output:\n" + out)
     res = out.splitlines()
     if len(res) != 2:
+        logger.info("res: " + str(res))
         raise Exception("Unexpected number of GAS frames")
     if res[0] != bssid:
         raise Exception("GAS request used unexpected Address3 field value: " + res[0])
@@ -1462,11 +1477,14 @@ def _test_gas_anqp_address3_ap_non_compliant(dev, apdev, params):
     if "result=SUCCESS" not in ev:
         raise Exception("Unexpected result: " + ev)
 
+    time.sleep(1)
     out = run_tshark(os.path.join(params['logdir'], "hwsim0.pcapng"),
                      "wlan_mgt.fixed.category_code == 4 && (wlan_mgt.fixed.publicact == 0x0a || wlan_mgt.fixed.publicact == 0x0b)",
                      display=["wlan.bssid"])
+    logger.info("tshark output:\n" + out)
     res = out.splitlines()
     if len(res) != 2:
+        logger.info("res: " + str(res))
         raise Exception("Unexpected number of GAS frames")
     if res[0] != 'ff:ff:ff:ff:ff:ff':
         raise Exception("GAS request used unexpected Address3 field value: " + res[0])
