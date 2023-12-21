@@ -1084,7 +1084,8 @@ def _5ghz_chanwidth_to_bw(op):
         3: "80+80",
     }.get(op, "20")
 
-def _test_eht_5ghz(dev, apdev, channel, chanwidth, ccfs1, ccfs2=0):
+def _test_eht_5ghz(dev, apdev, channel, chanwidth, ccfs1, ccfs2=0,
+                   eht_oper_puncturing_override=None):
     try:
         params = {"ssid": "eht",
                   "country_code": "US",
@@ -1117,6 +1118,9 @@ def _test_eht_5ghz(dev, apdev, channel, chanwidth, ccfs1, ccfs2=0):
                   elif chanwidth == 3:
                       params["vht_capab"] = "[VHT160-80PLUS80]"
 
+        if eht_oper_puncturing_override:
+            params['eht_oper_puncturing_override'] = eht_oper_puncturing_override
+
         freq = 5000 + channel * 5
         if chanwidth != 0 or channel != ccfs1:
             bw = _5ghz_chanwidth_to_bw(chanwidth)
@@ -1129,6 +1133,10 @@ def _test_eht_5ghz(dev, apdev, channel, chanwidth, ccfs1, ccfs2=0):
         eht_verify_wifi_version(dev[0])
         hwsim_utils.test_connectivity(dev[0], hapd)
 
+        if eht_oper_puncturing_override:
+            hapd.set("eht_oper_puncturing_override", "0x0")
+            hapd.request("UPDATE_BEACON")
+            time.sleep(1)
     finally:
         dev[0].request("DISCONNECT")
         dev[0].wait_disconnected()
@@ -1154,6 +1162,27 @@ def test_eht_5ghz_80mhz_1(dev, apdev):
 def test_eht_5ghz_80mhz_2(dev, apdev):
     """EHT with 80 MHz channel width on 5 GHz - primary=149"""
     _test_eht_5ghz(dev, apdev, 149, 1, 155, 0)
+
+def test_eht_5ghz_80mhz_puncturing_override_1(dev, apdev):
+    """EHT with 80 MHz channel width on 5 GHz - primary=36 - puncturing override (2nd)"""
+
+    # The 2nd 20 MHz is punctured
+    _test_eht_5ghz(dev, apdev, 36, 1, 42, 0,
+                   eht_oper_puncturing_override="0x0002")
+
+def test_eht_5ghz_80mhz_puncturing_override_2(dev, apdev):
+    """EHT with 80 MHz channel width on 5 GHz - primary=149 - puncturing override (3rd)"""
+
+    # The 3rd 20 MHz is punctured
+    _test_eht_5ghz(dev, apdev, 149, 1, 155, 0,
+                   eht_oper_puncturing_override="0x0004")
+
+def test_eht_5ghz_80mhz_puncturing_override_3(dev, apdev):
+    """EHT with 80 MHz channel width on 5 GHz - primary=149 - puncturing override (4th)"""
+
+    # The 4th 20 MHz is punctured
+    _test_eht_5ghz(dev, apdev, 149, 1, 155, 0,
+                   eht_oper_puncturing_override="0x0008")
 
 def test_eht_5ghz_80p80mhz(dev, apdev):
     """EHT with 80+80 MHz channel width on 5 GHz"""
