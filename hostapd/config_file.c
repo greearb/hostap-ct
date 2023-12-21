@@ -2344,6 +2344,24 @@ static int get_hex_config(u8 *buf, size_t max_len, int line,
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+static int get_u16(const char *pos, int line, u16 *ret_val)
+{
+	char *end;
+	long int val = strtol(pos, &end, 0);
+
+	if (*end || val < 0 || val > 0xffff) {
+		wpa_printf(MSG_ERROR, "Line %d: Invalid value '%s'",
+			   line, pos);
+		return -1;
+	}
+
+	*ret_val = val;
+	return 0;
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 static int hostapd_config_fill(struct hostapd_config *conf,
 			       struct hostapd_bss_config *bss,
 			       const char *buf, char *pos, int line)
@@ -4809,7 +4827,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 	} else if (os_strcmp(buf, "eht_default_pe_duration") == 0) {
 		conf->eht_default_pe_duration = atoi(pos);
 	} else if (os_strcmp(buf, "punct_bitmap") == 0) {
-		conf->punct_bitmap = atoi(pos);
+		if (get_u16(pos, line, &conf->punct_bitmap))
+			return 1;
 	} else if (os_strcmp(buf, "punct_acs_threshold") == 0) {
 		int val = atoi(pos);
 
