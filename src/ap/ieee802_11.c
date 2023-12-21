@@ -1282,7 +1282,8 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 		pos = mgmt->u.auth.variable;
 		end = ((const u8 *) mgmt) + len;
 		resp = status_code;
-		send_auth_reply(hapd, sta, mgmt->sa, mgmt->bssid, WLAN_AUTH_SAE,
+		send_auth_reply(hapd, sta, sta->addr, mgmt->bssid,
+				WLAN_AUTH_SAE,
 				auth_transaction, resp, pos, end - pos,
 				"auth-sae-reflection-attack");
 		goto remove_sta;
@@ -1290,7 +1291,8 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 
 	if (hapd->conf->sae_commit_override && auth_transaction == 1) {
 		wpa_printf(MSG_DEBUG, "SAE: TESTING - commit override");
-		send_auth_reply(hapd, sta, mgmt->sa, mgmt->bssid, WLAN_AUTH_SAE,
+		send_auth_reply(hapd, sta, sta->addr, mgmt->bssid,
+				WLAN_AUTH_SAE,
 				auth_transaction, resp,
 				wpabuf_head(hapd->conf->sae_commit_override),
 				wpabuf_len(hapd->conf->sae_commit_override),
@@ -1561,7 +1563,8 @@ reply:
 			data = wpabuf_alloc_copy(pos, 2);
 
 		sae_sme_send_external_auth_status(hapd, sta, resp);
-		send_auth_reply(hapd, sta, mgmt->sa, mgmt->bssid, WLAN_AUTH_SAE,
+		send_auth_reply(hapd, sta, sta->addr, mgmt->bssid,
+				WLAN_AUTH_SAE,
 				auth_transaction, resp,
 				data ? wpabuf_head(data) : (u8 *) "",
 				data ? wpabuf_len(data) : 0, "auth-sae");
