@@ -7908,13 +7908,14 @@ static u8 * hostapd_eid_mbssid_elem(struct hostapd_data *hapd, u8 *eid, u8 *end,
 				eid += 2 + rsnx[1];
 			}
 		}
+		/* List of Element ID values in increasing order */
 		if (!rsn && hostapd_wpa_ie(tx_bss, WLAN_EID_RSN))
 			non_inherit_ie[ie_count++] = WLAN_EID_RSN;
-		if (!rsnx && hostapd_wpa_ie(tx_bss, WLAN_EID_RSNX))
-			non_inherit_ie[ie_count++] = WLAN_EID_RSNX;
 		if (hapd->conf->xrates_supported &&
 		    !bss->conf->xrates_supported)
 			non_inherit_ie[ie_count++] = WLAN_EID_EXT_SUPP_RATES;
+		if (!rsnx && hostapd_wpa_ie(tx_bss, WLAN_EID_RSNX))
+			non_inherit_ie[ie_count++] = WLAN_EID_RSNX;
 		if (ie_count) {
 			*eid++ = WLAN_EID_EXTENSION;
 			*eid++ = 2 + ie_count + 1;
