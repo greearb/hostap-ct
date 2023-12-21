@@ -44,12 +44,13 @@ static u16 ieee80211_eht_ppet_size(u16 ppe_thres_hdr, const u8 *phy_cap_info)
 
 
 static u8 ieee80211_eht_mcs_set_size(enum hostapd_hw_mode mode, u8 opclass,
-				     u8 he_oper_chwidth, const u8 *he_phy_cap,
+				     int he_oper_chwidth, const u8 *he_phy_cap,
 				     const u8 *eht_phy_cap)
 {
 	u8 sz = EHT_PHYCAP_MCS_NSS_LEN_20MHZ_PLUS;
 	bool band24, band5, band6;
 	u8 he_phy_cap_chwidth = ~HE_PHYCAP_CHANNEL_WIDTH_MASK;
+	u8 cap_chwidth;
 
 	switch (he_oper_chwidth) {
 	case CONF_OPER_CHWIDTH_80P80MHZ:
@@ -66,7 +67,11 @@ static u8 ieee80211_eht_mcs_set_size(enum hostapd_hw_mode mode, u8 opclass,
 		break;
 	}
 
-	he_phy_cap_chwidth &= he_phy_cap[HE_PHYCAP_CHANNEL_WIDTH_SET_IDX];
+	cap_chwidth = he_phy_cap[HE_PHYCAP_CHANNEL_WIDTH_SET_IDX];
+	if (he_oper_chwidth != -1)
+		he_phy_cap_chwidth &= cap_chwidth;
+	else
+		he_phy_cap_chwidth = cap_chwidth;
 
 	band24 = mode == HOSTAPD_MODE_IEEE80211B ||
 		mode == HOSTAPD_MODE_IEEE80211G ||
@@ -352,9 +357,8 @@ static bool check_valid_eht_mcs(struct hostapd_data *hapd,
 
 
 static bool ieee80211_invalid_eht_cap_size(enum hostapd_hw_mode mode,
-					   u8 opclass, u8 he_oper_chwidth,
-					   const u8 *he_cap, const u8 *eht_cap,
-					   size_t len)
+					   u8 opclass, const u8 *he_cap,
+					   const u8 *eht_cap, size_t len)
 {
 	const struct ieee80211_he_capabilities *he_capab;
 	struct ieee80211_eht_capabilities *cap;
@@ -369,8 +373,8 @@ static bool ieee80211_invalid_eht_cap_size(enum hostapd_hw_mode mode,
 	if (len < cap_len)
 		return true;
 
-	cap_len += ieee80211_eht_mcs_set_size(mode, opclass, he_oper_chwidth,
-					      he_phy_cap, cap->phy_cap);
+	cap_len += ieee80211_eht_mcs_set_size(mode, opclass, -1, he_phy_cap,
+					      cap->phy_cap);
 	if (len < cap_len)
 		return true;
 
@@ -394,7 +398,6 @@ u16 copy_sta_eht_capab(struct hostapd_data *hapd, struct sta_info *sta,
 	    !he_capab || he_capab_len < IEEE80211_HE_CAPAB_MIN_LEN ||
 	    !eht_capab ||
 	    ieee80211_invalid_eht_cap_size(mode, hapd->iconf->op_class,
-					   hapd->iconf->he_oper_chwidth,
 					   he_capab, eht_capab,
 					   eht_capab_len) ||
 	    !check_valid_eht_mcs(hapd, eht_capab, opmode)) {
