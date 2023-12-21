@@ -13,6 +13,7 @@ logger = logging.getLogger()
 import socket
 import struct
 import subprocess
+import tempfile
 
 import hwsim_utils
 import hostapd
@@ -3053,3 +3054,34 @@ def test_sae_pref_ap_wrong_password2(dev, apdev):
     hapd = hostapd.add_ap(apdev[0], params)
 
     dev[0].wait_connected(timeout=40)
+
+def test_sae_password_file(dev, apdev):
+    """SAE and sae_password_file in hostapd configuration"""
+    check_sae_capab(dev[0])
+    check_sae_capab(dev[1])
+    check_sae_capab(dev[2])
+    fd, fn = tempfile.mkstemp()
+    try:
+        f = os.fdopen(fd, 'w')
+        f.write("pw1|id=id1\n")
+        f.write("pw2|id=id2\n")
+        f.write("pw3|id=id3\n")
+        f.close()
+
+        params = hostapd.wpa2_params(ssid="test-sae", wpa_key_mgmt="SAE")
+        params['sae_password_file'] = fn
+        hapd = hostapd.add_ap(apdev[0], params)
+
+        dev[0].set("sae_groups", "")
+        dev[0].connect("test-sae", sae_password="pw1", sae_password_id="id1",
+                       key_mgmt="SAE", scan_freq="2412")
+
+        dev[1].set("sae_groups", "")
+        dev[1].connect("test-sae", sae_password="pw2", sae_password_id="id2",
+                       key_mgmt="SAE", scan_freq="2412")
+
+        dev[2].set("sae_groups", "")
+        dev[2].connect("test-sae", sae_password="pw3", sae_password_id="id3",
+                       key_mgmt="SAE", scan_freq="2412")
+    finally:
+        os.unlink(fn)
