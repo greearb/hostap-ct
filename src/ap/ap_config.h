@@ -704,6 +704,10 @@ struct hostapd_bss_config {
 	unsigned int oci_freq_override_ft_assoc;
 	unsigned int oci_freq_override_fils_assoc;
 	unsigned int oci_freq_override_wnm_sleep;
+
+#ifdef CONFIG_IEEE80211BE
+	u16 eht_oper_puncturing_override;
+#endif /* CONFIG_IEEE80211BE */
 #endif /* CONFIG_TESTING_OPTIONS */
 
 #define MESH_ENABLED BIT(0)

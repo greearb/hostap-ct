@@ -206,9 +206,18 @@ u8 * hostapd_eid_eht_operation(struct hostapd_data *hapd, u8 *eid)
 	enum oper_chan_width chwidth;
 	size_t elen = 1 + 4;
 	bool eht_oper_info_present;
+	u16 punct_bitmap = conf->punct_bitmap;
 
 	if (!hapd->iface->current_mode)
 		return eid;
+
+#ifdef CONFIG_TESTING_OPTIONS
+	if (!punct_bitmap && hapd->conf->eht_oper_puncturing_override) {
+		wpa_printf(MSG_DEBUG, "EHT: Puncturing mask override=0x%x",
+			   hapd->conf->eht_oper_puncturing_override);
+		punct_bitmap = hapd->conf->eht_oper_puncturing_override;
+	}
+#endif /* CONFIG_TESTING_OPTIONS */
 
 	if (is_6ghz_op_class(conf->op_class))
 		chwidth = op_class_to_ch_width(conf->op_class);
@@ -216,12 +225,12 @@ u8 * hostapd_eid_eht_operation(struct hostapd_data *hapd, u8 *eid)
 		chwidth = conf->eht_oper_chwidth;
 
 	eht_oper_info_present = chwidth == CONF_OPER_CHWIDTH_320MHZ ||
-		hapd->iconf->punct_bitmap;
+		punct_bitmap;
 
 	if (eht_oper_info_present)
 		elen += 3;
 
-	if (hapd->iconf->punct_bitmap)
+	if (punct_bitmap)
 		elen += EHT_OPER_DISABLED_SUBCHAN_BITMAP_SIZE;
 
 	*pos++ = WLAN_EID_EXTENSION;
@@ -277,10 +286,10 @@ u8 * hostapd_eid_eht_operation(struct hostapd_data *hapd, u8 *eid)
 	oper->oper_info.ccfs0 = seg0 ? seg0 : hapd->iconf->channel;
 	oper->oper_info.ccfs1 = seg1;
 
-	if (hapd->iconf->punct_bitmap) {
+	if (punct_bitmap) {
 		oper->oper_params |= EHT_OPER_DISABLED_SUBCHAN_BITMAP_PRESENT;
 		oper->oper_info.disabled_chan_bitmap =
-			host_to_le16(hapd->iconf->punct_bitmap);
+			host_to_le16(punct_bitmap);
 	}
 
 	return pos + elen;
