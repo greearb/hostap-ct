@@ -8131,8 +8131,8 @@ static int i802_set_tx_queue_params(void *priv, int queue, int aifs,
 
 	res = send_and_recv_cmd(drv, msg);
 	wpa_printf(MSG_DEBUG,
-		   "nl80211: TX queue param set: queue=%d aifs=%d cw_min=%d cw_max=%d burst_time=%d --> res=%d",
-		   queue, aifs, cw_min, cw_max, burst_time, res);
+		   "nl80211: link=%d: TX queue param set: queue=%d aifs=%d cw_min=%d cw_max=%d burst_time=%d --> res=%d",
+		   link_id, queue, aifs, cw_min, cw_max, burst_time, res);
 	if (res == 0)
 		return 0;
 	msg = NULL;
