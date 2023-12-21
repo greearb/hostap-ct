@@ -10402,6 +10402,7 @@ def run_ap_wps_and_sae(dev, apdev):
     pin = dev[0].wps_read_pin()
     hapd.request("WPS_PIN any " + pin)
 
+    dev[0].flush_scan_cache()
     dev[0].set("wps_cred_add_sae", "1")
     dev[0].request("SET sae_groups ")
     dev[0].scan_for_bss(apdev[0]['bssid'], freq="2412", force_scan=True)
@@ -10413,6 +10414,7 @@ def run_ap_wps_and_sae(dev, apdev):
     if 'pmf' not in status or status['pmf'] != "1":
         raise Exception("PMF not enabled")
 
+    dev[1].flush_scan_cache()
     pin = dev[1].wps_read_pin()
     hapd.request("WPS_PIN any " + pin)
     dev[1].scan_for_bss(apdev[0]['bssid'], freq="2412", force_scan=True)
