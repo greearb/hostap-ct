@@ -2522,6 +2522,15 @@ struct ieee80211_he_mu_edca_parameter_set {
 #define RNR_BSS_PARAM_CO_LOCATED                    BIT(6)
 #define RNR_20_MHZ_PSD_MAX_TXPOWER                  255 /* dBm */
 
+/* IEEE P802.11be/D5.0, Figure 9-704c - MLD Parameters subfield format */
+/* B0..B7: AP MLD ID */
+/* B8..B11: Link ID */
+/* B12..B19: BSS Parameters Change Count */
+/* B20: All Updates Included */
+#define RNR_TBTT_INFO_MLD_PARAM2_ALL_UPDATE_INC 0x10
+/* B21: Disabled Link Indication */
+#define RNR_TBTT_INFO_MLD_PARAM2_LINK_DISABLED  0x20
+
 /* IEEE P802.11be/D2.3, 9.4.2.311 - EHT Operation element */
 
 /* Figure 9-1002b: EHT Operation Parameters field subfields */

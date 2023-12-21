@@ -1553,6 +1553,8 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 				os_memcpy(l->bssid, ap_info->data + 1,
 					  ETH_ALEN);
 				l->freq = neigh_bss->freq;
+				l->disabled = mld_params[2] &
+					RNR_TBTT_INFO_MLD_PARAM2_LINK_DISABLED;
 				bss->n_mld_links++;
 			}
 		}

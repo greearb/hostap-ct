@@ -950,6 +950,7 @@ struct wpa_driver_mld_params {
 		const u8 *ies;
 		size_t ies_len;
 		int error;
+		bool disabled;
 	} mld_links[MAX_NUM_MLD_LINKS];
 };
 

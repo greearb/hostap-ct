@@ -735,6 +735,7 @@ struct wpa_supplicant {
 		u8 bssid[ETH_ALEN];
 		unsigned int freq;
 		struct wpa_bss *bss;
+		bool disabled;
 	} links[MAX_NUM_MLD_LINKS];
 	u8 *last_con_fail_realm;
 	size_t last_con_fail_realm_len;

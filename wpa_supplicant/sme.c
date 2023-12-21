@@ -536,6 +536,7 @@ static void wpas_sme_set_mlo_links(struct wpa_supplicant *wpa_s,
 		os_memcpy(wpa_s->links[link_id].bssid, bssid, ETH_ALEN);
 		wpa_s->links[link_id].freq = bss->mld_links[i].freq;
 		wpa_s->links[link_id].bss = wpa_bss_get_bssid(wpa_s, bssid);
+		wpa_s->links[link_id].disabled = bss->mld_links[i].disabled;
 	}
 }
 
@@ -2591,9 +2592,13 @@ mscs_fail:
 				wpa_s->links[i].bssid;
 			params.mld_params.mld_links[i].freq =
 				wpa_s->links[i].freq;
+			params.mld_params.mld_links[i].disabled =
+				wpa_s->links[i].disabled;
 
-			wpa_printf(MSG_DEBUG, "MLD: id=%u, freq=%d, " MACSTR,
+			wpa_printf(MSG_DEBUG,
+				   "MLD: id=%u, freq=%d, disabled=%u, " MACSTR,
 				   i, wpa_s->links[i].freq,
+				   wpa_s->links[i].disabled,
 				   MAC2STR(wpa_s->links[i].bssid));
 		}
 	}

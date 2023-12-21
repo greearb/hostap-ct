@@ -133,6 +133,9 @@ struct wpa_bss {
 		u8 link_id;
 		u8 bssid[ETH_ALEN];
 		int freq;
+
+		/* Whether the link is valid but currently disabled */
+		bool disabled;
 	} mld_links[MAX_NUM_MLD_LINKS];
 
 	/* followed by ie_len octets of IEs */
