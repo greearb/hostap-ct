@@ -472,7 +472,7 @@ static struct wpa_bss * wpas_pasn_allowed(struct wpa_supplicant *wpa_s,
 		return NULL;
 	}
 
-	bss = wpa_bss_get_bssid(wpa_s, peer_addr);
+	bss = wpa_bss_get_bssid_latest(wpa_s, peer_addr);
 	if (!bss) {
 		wpa_printf(MSG_DEBUG, "PASN: BSS not found");
 		return NULL;
