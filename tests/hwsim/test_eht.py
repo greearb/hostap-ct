@@ -448,12 +448,22 @@ def run_eht_mld_sae_two_links(dev, apdev, beacon_prot="1"):
         hapd1 = eht_mld_enable_ap(hapd_iface, params)
 
         wpas.set("sae_pwe", "1")
+
+        # The first authentication attempt tries to use group 20 and the
+        # authentication is expected to fail. The next authentication should
+        # use group 19 and succeed.
+        wpas.set("sae_groups", "20 19")
+
         wpas.connect(ssid, sae_password=passphrase, scan_freq="2412 2437",
                      key_mgmt="SAE", ieee80211w="2", beacon_prot="1")
 
         eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
                           valid_links=3, active_links=3)
         eht_verify_wifi_version(wpas)
+
+        if wpas.get_status_field('sae_group') != '19':
+            raise Exception("Expected SAE group not used")
+
         traffic_test(wpas, hapd0)
         traffic_test(wpas, hapd1)
 
