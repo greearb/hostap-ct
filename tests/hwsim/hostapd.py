@@ -898,6 +898,40 @@ def ht40_minus_params(channel="1", ssid=None, country=None):
     params['ht_capab'] = "[HT40-]"
     return params
 
+def he_params(ssid=None):
+    params = {"ssid": "he6ghz",
+              "ieee80211n": "1",
+              "ieee80211ac": "1",
+              "wmm_enabled": "1",
+              "channel": "5",
+              "op_class": "131",
+              "ieee80211ax": "1",
+              "hw_mode": "a",
+              "he_oper_centr_freq_seg0_idx": "15",
+              "he_oper_chwidth": "2",
+              "vht_oper_chwidth": "2"}
+    if ssid:
+        params["ssid"] = ssid
+
+    return params
+
+def he_wpa2_params(ssid=None, wpa_key_mgmt="SAE", rsn_pairwise="CCMP",
+                   group_cipher="CCMP", sae_pwe="1", passphrase=None):
+    params = he_params(ssid)
+    params["wpa"] = "2"
+    params["wpa_key_mgmt"] = wpa_key_mgmt
+    params["rsn_pairwise"] = rsn_pairwise
+    params["group_cipher"] = group_cipher
+    params["ieee80211w"] = "2"
+    if "SAE" in wpa_key_mgmt:
+        params["sae_pwe"] = sae_pwe
+        params["sae_groups"] = "19"
+
+    if passphrase:
+        params["wpa_passphrase"] = passphrase
+
+    return params
+
 def cmd_execute(apdev, cmd, shell=False):
     hapd_global = HostapdGlobal(apdev)
     return hapd_global.cmd_execute(cmd, shell=shell)

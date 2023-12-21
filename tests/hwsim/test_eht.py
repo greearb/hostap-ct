@@ -1075,3 +1075,176 @@ def test_eht_ap_mld_proto(dev, apdev):
         mle += "3004010802040b160c12182432043048606c2d1afe131bffff000000000000000000000100000000000000000000ff16230178c81a400000bfce0000000000000000fafffaffff126c07007c0000feffff7f0100888888880000"
         hdr = "00000000" + bssid0 + mld_addr + bssid0 + "1000"
         send_check(hapd0, hdr + assocreq_start + mle + assocreq_end)
+
+def _5ghz_chanwidth_to_bw(op):
+    return {
+        0: "40",
+        1: "80",
+        2: "160",
+        3: "80+80",
+    }.get(op, "20")
+
+def _test_eht_5ghz(dev, apdev, channel, chanwidth, ccfs1, ccfs2=0):
+    try:
+        params = {"ssid": "eht",
+                  "country_code": "US",
+                  "hw_mode": "a",
+                  "channel": str(channel),
+                  "ieee80211n": "1",
+                  "ieee80211ac": "1",
+                  "ieee80211ax": "1",
+                  "ieee80211be": "1",
+                  "vht_oper_chwidth": str(chanwidth),
+                  "vht_oper_centr_freq_seg0_idx": str(ccfs1),
+                  "vht_oper_centr_freq_seg1_idx": str(ccfs2),
+                  "he_oper_chwidth": str(chanwidth),
+                  "he_oper_centr_freq_seg1_idx": str(ccfs2),
+                  "he_oper_centr_freq_seg0_idx": str(ccfs1),
+                  "eht_oper_centr_freq_seg0_idx": str(ccfs1),
+                  "eht_oper_chwidth": str(chanwidth)}
+
+        if chanwidth == 0:
+            if channel == ccfs1:
+                  bw = "20"
+            elif channel < ccfs1:
+                  params["ht_capab"] = "[HT40+]"
+            else:
+                  params["ht_capab"] = "[HT40-]"
+        else:
+                  params["ht_capab"] = "[HT40+]"
+                  if chanwidth == 2:
+                      params["vht_capab"] = "[VHT160]"
+                  elif chanwidth == 3:
+                      params["vht_capab"] = "[VHT160-80PLUS80]"
+
+        freq = 5000 + channel * 5
+        if chanwidth != 0 or channel != ccfs1:
+            bw = _5ghz_chanwidth_to_bw(chanwidth)
+
+        hapd = hostapd.add_ap(apdev[0], params)
+        dev[0].connect("eht", key_mgmt="NONE", scan_freq=str(freq))
+        hapd.wait_sta()
+
+        eht_verify_status(dev[0], hapd, freq, bw, is_ht=True, is_vht=True)
+        eht_verify_wifi_version(dev[0])
+        hwsim_utils.test_connectivity(dev[0], hapd)
+
+    finally:
+        dev[0].request("DISCONNECT")
+        dev[0].wait_disconnected()
+        hapd.wait_sta_disconnect()
+        set_world_reg(apdev[0], None, dev[0])
+
+def test_eht_5ghz_20mhz(dev, apdev):
+    """EHT with 20 MHz channel width on 5 GHz"""
+    _test_eht_5ghz(dev, apdev, 36, 0, 36, 0)
+
+def test_eht_5ghz_40mhz_low(dev, apdev):
+    """EHT with 40 MHz channel width on 5 GHz - secondary channel above"""
+    _test_eht_5ghz(dev, apdev, 36, 0, 38, 0)
+
+def test_eht_5ghz_40mhz_high(dev, apdev):
+    """EHT with 80 MHz channel width on 5 GHz - secondary channel below"""
+    _test_eht_5ghz(dev, apdev, 40, 0, 38, 0)
+
+def test_eht_5ghz_80mhz_1(dev, apdev):
+    """EHT with 80 MHz channel width on 5 GHz - primary=149"""
+    _test_eht_5ghz(dev, apdev, 36, 1, 42, 0)
+
+def test_eht_5ghz_80mhz_2(dev, apdev):
+    """EHT with 80 MHz channel width on 5 GHz - primary=149"""
+    _test_eht_5ghz(dev, apdev, 149, 1, 155, 0)
+
+def test_eht_5ghz_80p80mhz(dev, apdev):
+    """EHT with 80+80 MHz channel width on 5 GHz"""
+    _test_eht_5ghz(dev, apdev, 36, 3, 42, 155)
+
+def _6ghz_op_class_to_bw(op):
+    return {
+        131: "20",
+        132: "40",
+        133: "80",
+        134: "160",
+        137: "320",
+    }.get(op, "20")
+
+def _test_eht_6ghz(dev, apdev, channel, op_class, ccfs1):
+    check_sae_capab(dev[0])
+
+    # CA enables 320 MHz channels without NO-IR restriction
+    dev[0].cmd_execute(['iw', 'reg', 'set', 'CA'])
+    wait_regdom_changes(dev[0])
+
+    try:
+        ssid = "eht_6ghz_sae"
+        passphrase = "12345678"
+        params = hostapd.he_wpa2_params(ssid=ssid, passphrase=passphrase)
+        params["ieee80211be"] = "1"
+        params["channel"] = str(channel)
+        params["op_class"] = str(op_class)
+        params["he_oper_centr_freq_seg0_idx"] = str(ccfs1)
+        params["eht_oper_centr_freq_seg0_idx"] = str(ccfs1)
+        params["country_code"] = "CA"
+
+        if not he_6ghz_supported():
+            raise HwsimSkip("6 GHz frequency is not supported")
+        if op_class == 137 and not eht_320mhz_supported():
+            raise HwsimSkip("320 MHz channels are not supported")
+
+        hapd = hostapd.add_ap(apdev[0], params)
+        status = hapd.get_status()
+        logger.info("hostapd STATUS: " + str(status))
+        if hapd.get_status_field("ieee80211ax") != "1":
+            raise Exception("STATUS did not indicate ieee80211ax=1")
+
+        if hapd.get_status_field("ieee80211be") != "1":
+            raise Exception("STATUS did not indicate ieee80211be=1")
+
+        dev[0].set("sae_pwe", "1")
+
+        freq = 5950 + channel * 5
+        bw = _6ghz_op_class_to_bw(op_class)
+
+        dev[0].connect(ssid, key_mgmt="SAE", psk=passphrase, ieee80211w="2",
+                       scan_freq=str(freq))
+        hapd.wait_sta()
+
+        eht_verify_status(dev[0], hapd, freq, bw)
+        eht_verify_wifi_version(dev[0])
+        hwsim_utils.test_connectivity(dev[0], hapd)
+        dev[0].request("DISCONNECT")
+        dev[0].wait_disconnected()
+        hapd.wait_sta_disconnect()
+        hapd.disable()
+    finally:
+        dev[0].set("sae_pwe", "0")
+        dev[0].cmd_execute(['iw', 'reg', 'set', '00'])
+        wait_regdom_changes(dev[0])
+
+def test_eht_6ghz_20mhz(dev, apdev):
+    """EHT with 20 MHz channel width on 6 GHz"""
+    _test_eht_6ghz(dev, apdev, 5, 131, 5)
+
+def test_eht_6ghz_40mhz(dev, apdev):
+    """EHT with 40 MHz channel width on 6 GHz"""
+    _test_eht_6ghz(dev, apdev, 5, 132, 3)
+
+def test_eht_6ghz_80mhz(dev, apdev):
+    """EHT with 80 MHz channel width on 6 GHz"""
+    _test_eht_6ghz(dev, apdev, 5, 133, 7)
+
+def test_eht_6ghz_160mhz(dev, apdev):
+    """EHT with 160 MHz channel width on 6 GHz"""
+    _test_eht_6ghz(dev, apdev, 5, 134, 15)
+
+def test_eht_6ghz_320mhz(dev, apdev):
+    """EHT with 320 MHz channel width on 6 GHz"""
+    _test_eht_6ghz(dev, apdev, 5, 137, 31)
+
+def test_eht_6ghz_320mhz_2(dev, apdev):
+    """EHT with 320 MHz channel width on 6 GHz center 63"""
+    _test_eht_6ghz(dev, apdev, 37, 137, 63)
+
+def test_eht_6ghz_320mhz_3(dev, apdev):
+    """EHT with 320 MHz channel width on 6 GHz center 31 primary 37"""
+    _test_eht_6ghz(dev, apdev, 37, 137, 31)
