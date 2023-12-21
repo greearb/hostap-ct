@@ -4853,6 +4853,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 	} else if (os_strcmp(buf, "eht_oper_puncturing_override") == 0) {
 		if (get_u16(pos, line, &bss->eht_oper_puncturing_override))
 			return 1;
+	} else if (os_strcmp(buf, "mld_indicate_disabled") == 0) {
+		bss->mld_indicate_disabled = atoi(pos);
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
 	} else {

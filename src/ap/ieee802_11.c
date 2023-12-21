@@ -7604,7 +7604,13 @@ static u8 * hostapd_eid_rnr_iface(struct hostapd_data *hapd,
 					*eid++ = hapd->conf->mld_id;
 
 				*eid++ = hapd->mld_link_id | (1 << 4);
-				*eid++ = 0;
+				*eid = 0;
+#ifdef CONFIG_TESTING_OPTIONS
+				if (hapd->conf->mld_indicate_disabled)
+					*eid |= RNR_TBTT_INFO_MLD_PARAM2_LINK_DISABLED;
+#endif /* CONFIG_TESTING_OPTIONS */
+				eid++;
+
 				len += RNR_TBTT_INFO_MLD_LEN;
 #endif /* CONFIG_IEEE80211BE */
 			}
