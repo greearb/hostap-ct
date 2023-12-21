@@ -6695,6 +6695,9 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 				    mld_params->mld_links[link_id].bssid) ||
 			    nla_put_u32(msg, NL80211_ATTR_WIPHY_FREQ,
 					mld_params->mld_links[link_id].freq) ||
+			    (mld_params->mld_links[i].disabled &&
+			     nla_put_flag(msg,
+					  NL80211_ATTR_MLO_LINK_DISABLED)) ||
 			    (mld_params->mld_links[link_id].ies &&
 			     mld_params->mld_links[i].ies_len &&
 			     nla_put(msg, NL80211_ATTR_IE,
