@@ -42,6 +42,9 @@ def _eht_valid_links(wpas):
 def _eht_active_links(wpas):
     return _eht_get_links_bitmap(wpas, "active_links")
 
+def _eht_dormant_links(wpas):
+    return _eht_get_links_bitmap(wpas, "dormant_links")
+
 def _eht_verify_links(wpas, valid_links=0, active_links=0):
     vlinks = _eht_valid_links(wpas)
     if vlinks != valid_links:
@@ -358,6 +361,9 @@ def test_eht_mld_discovery(dev, apdev):
 
 def test_eht_mld_owe_two_links(dev, apdev):
     """EHT MLD AP with MLD client OWE connection using two links"""
+    _eht_mld_owe_two_links(dev, apdev)
+
+def _eht_mld_owe_two_links(dev, apdev, second_link_disabled=False):
     with HWSimRadio(use_mlo=True) as (hapd0_radio, hapd0_iface), \
         HWSimRadio(use_mlo=True) as (hapd1_radio, hapd1_iface), \
         HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
@@ -371,6 +377,8 @@ def test_eht_mld_owe_two_links(dev, apdev):
         hapd0 = eht_mld_enable_ap(hapd0_iface, params)
 
         params['channel'] = '6'
+        if second_link_disabled:
+            params['mld_indicate_disabled'] = '1'
 
         hapd1 = eht_mld_enable_ap(hapd0_iface, params)
         # Check legacy client connection
@@ -378,11 +386,24 @@ def test_eht_mld_owe_two_links(dev, apdev):
         wpas.connect(ssid, scan_freq="2412 2437", key_mgmt="OWE",
                      ieee80211w="2")
 
+        active_links = 3
+        if second_link_disabled:
+            dlinks = _eht_dormant_links(wpas)
+            if dlinks != 2:
+                raise Exception("Unexpected dormant links")
+            active_links = 1
+
         eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
-                          valid_links=3, active_links=3)
+                          valid_links=3, active_links=active_links)
         eht_verify_wifi_version(wpas)
         traffic_test(wpas, hapd0)
-        traffic_test(wpas, hapd1)
+
+        if not second_link_disabled:
+            traffic_test(wpas, hapd1)
+
+def test_eht_mld_owe_two_links_one_disabled(dev, apdev):
+    """AP MLD with MLD client OWE connection when one of the AP MLD links is disabled"""
+    _eht_mld_owe_two_links(dev, apdev, second_link_disabled=True)
 
 def test_eht_mld_sae_single_link(dev, apdev):
     """EHT MLD AP with MLD client SAE H2E connection using single link"""
