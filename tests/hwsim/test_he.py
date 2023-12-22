@@ -1607,3 +1607,108 @@ def test_he_cw_change_notification(dev, apdev):
         dev[1].request("DISCONNECT")
         dev[2].request("DISCONNECT")
         clear_regdom(hapd, dev)
+
+def he_verify_status(wpas, hapd, freq, bw, is_6ghz=True):
+    status = hapd.get_status()
+    logger.info("hostapd STATUS: " + str(status))
+
+    if status["ieee80211n"] != "1":
+        raise Exception("Unexpected STATUS ieee80211n value")
+    if status["ieee80211ac"] != "1":
+        raise Exception("Unexpected STATUS ieee80211ac value")
+    if status["ieee80211ax"] != "1":
+        raise Exception("Unexpected STATUS ieee80211ax value")
+
+    sta = hapd.get_sta(wpas.own_addr())
+    if "[HE]" not in sta['flags']:
+        raise Exception("Missing STA flag: HE")
+    if is_6ghz and "[6GHZ]" not in sta['flags']:
+        raise Exception("Missing STA flag: 6GHZ")
+
+    sig = wpas.request("SIGNAL_POLL").splitlines()
+    if "FREQUENCY=%s" % freq not in sig:
+        raise Exception("Unexpected SIGNAL_POLL value(1): " + str(sig))
+    if "WIDTH=%s MHz" % bw not in sig:
+        raise Exception("Unexpected SIGNAL_POLL value(2): " + str(sig))
+
+def he_verify_wifi_version(dev):
+    status = dev.get_status()
+    logger.info("station status: " + str(status))
+
+    # For now, assume this is because of missing kernel support
+    if 'wifi_generation' not in status:
+        raise HwsimSkip("Association Request IE reporting not supported")
+        #raise Exception("Missing wifi_generation information")
+
+    if status['wifi_generation'] != "6":
+        raise Exception("Unexpected wifi_generation value: " + status['wifi_generation'])
+
+def test_he_6ghz_reg(dev, apdev):
+    """TX power control on 6 GHz"""
+    try:
+        ssid = "HE_6GHz_regulatory"
+        freq = 5975
+        bw = "20"
+        hapd = None
+        params = {"ssid": ssid,
+                  "country_code": "DE",
+                  "hw_mode": "a",
+                  "ieee80211ax": "1",
+                  "wpa": "2",
+                  "rsn_pairwise": "CCMP",
+                  "wpa_key_mgmt": "SAE",
+                  "sae_pwe": "1",
+                  "sae_password": "password",
+                  "ieee80211w": "2",
+                  "channel": "5",
+                  "op_class": "131",
+                  "he_oper_centr_freq_seg0_idx": "5",
+                  "ieee80211d": "1",
+                  "ieee80211h": "1",
+                  "ieee80211n": "1",
+                  "ieee80211ac": "1",
+                  "local_pwr_constraint": "4",
+                  # Set the 6 GHz regulatory power configuration
+                  "he_6ghz_reg_pwr_type": "0",
+                  # Note: hostapd uses "Maximum Transmit Power Interpretation"
+                  # set to "Regulatory client EIRP PSD", so the values should
+                  # be set accordingly.
+                  "reg_def_cli_eirp_psd": "3",
+                  "reg_sub_cli_eirp_psd": "2"}
+
+        hapd = hostapd.add_ap(apdev[0], params, set_channel=False)
+
+        dev[0].set("sae_pwe", "1")
+        dev[0].connect(ssid, sae_password="password", key_mgmt="SAE",
+                       ieee80211w="2", scan_freq=str(freq))
+        hapd.wait_sta()
+
+        he_verify_status(dev[0], hapd, freq, bw)
+        he_verify_wifi_version(dev[0])
+        hwsim_utils.test_connectivity(dev[0], hapd)
+
+        # Configure different values related to power constraints and update
+        # the Beacon frame contents.
+        hapd.set("local_pwr_constraint", "2")
+        hapd.set("he_6ghz_reg_pwr_type", "2")
+        hapd.set("reg_def_cli_eirp_psd", "2")
+        hapd.set("reg_sub_cli_eirp_psd", "1")
+
+        # In addition, inject a Transmit Power Envelope as an vendor element
+        hapd.set("vendor_elements", "c303190202")
+
+        if "OK" not in hapd.request("UPDATE_BEACON"):
+            raise Exception("UPDATE_BEACON failed")
+
+        # Allow few more Beacon frames
+        time.sleep(0.5)
+    except Exception as e:
+        if isinstance(e, Exception) and str(e) == "AP startup failed":
+            if not he_supported():
+                raise HwsimSkip("HE 6 GHz channel not supported in regulatory information")
+        raise
+    finally:
+        dev[0].request("DISCONNECT")
+        dev[0].set("sae_pwe", "0")
+        dev[0].wait_disconnected()
+        clear_regdom(hapd, dev)
