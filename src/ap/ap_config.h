@@ -1153,6 +1153,15 @@ struct hostapd_config {
 	int reg_def_cli_eirp_psd;
 	int reg_sub_cli_eirp_psd;
 
+	/*
+	 * This value should be used when regulatory client EIRP PSD values
+	 * advertised by an AP that is an SP AP or an indoor SP AP are
+	 * insufficient to ensure that regulatory client limits on total EIRP
+	 * are always met for all transmission bandwidths within the bandwidth
+	 * of the AP’s BSS.
+	 */
+	int reg_def_cli_eirp;
+
 	bool require_he;
 #endif /* CONFIG_IEEE80211AX */
 
