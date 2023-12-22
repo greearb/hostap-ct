@@ -2137,14 +2137,15 @@ enum beacon_report_mode {
 	BEACON_REPORT_MODE_TABLE = 2,
 };
 
-/* IEEE Std 802.11-2016, Table 9-88 - Beacon Request subelement IDs */
-/* IEEE P802.11-REVmd/D2.0, Table 9-106 - Optional subelement IDs for
+/* IEEE Std 802.11-2020, Table 9-104 - Optional subelement IDs for
  * Beacon request */
 #define WLAN_BEACON_REQUEST_SUBELEM_SSID	0
 #define WLAN_BEACON_REQUEST_SUBELEM_INFO	1 /* Beacon Reporting */
 #define WLAN_BEACON_REQUEST_SUBELEM_DETAIL	2 /* Reporting Detail */
 #define WLAN_BEACON_REQUEST_SUBELEM_REQUEST	10
+#define WLAN_BEACON_REQUEST_SUBELEM_EXT_REQUEST	11
 #define WLAN_BEACON_REQUEST_SUBELEM_AP_CHANNEL	51 /* AP Channel Report */
+#define WLAN_BEACON_REQUEST_SUBELEM_WIDE_BW_CS	163
 #define WLAN_BEACON_REQUEST_SUBELEM_LAST_INDICATION	164
 #define WLAN_BEACON_REQUEST_SUBELEM_VENDOR	221
 

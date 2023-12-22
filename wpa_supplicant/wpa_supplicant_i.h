@@ -492,6 +492,7 @@ struct beacon_rep_data {
 	u8 bssid[ETH_ALEN];
 	enum beacon_report_detail report_detail;
 	struct bitfield *eids;
+	struct bitfield *ext_eids;
 };
 
 
