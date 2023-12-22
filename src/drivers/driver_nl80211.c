@@ -6135,7 +6135,8 @@ static void nl80211_teardown_ap(struct i802_bss *bss)
 		nl80211_mgmt_unsubscribe(bss, "AP teardown");
 
 	nl80211_put_wiphy_data_ap(bss);
-	bss->flink->beacon_set = 0;
+	if (bss->flink)
+		bss->flink->beacon_set = 0;
 }
 
 
