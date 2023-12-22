@@ -580,20 +580,14 @@ static size_t he_elem_len(struct hostapd_data *hapd)
 			3 + sizeof(struct ieee80211_he_6ghz_band_cap);
 		/* An additional Transmit Power Envelope element for
 		 * subordinate client */
-		if (hapd->iconf->he_6ghz_reg_pwr_type ==
-		    HE_REG_INFO_6GHZ_AP_TYPE_INDOOR ||
-		    hapd->iconf->he_6ghz_reg_pwr_type ==
-		    HE_REG_INFO_6GHZ_AP_TYPE_INDOOR_SP)
+		if (he_reg_is_sp(hapd->iconf->he_6ghz_reg_pwr_type))
 			len += 4;
 
 		/* An additional Transmit Power Envelope element for
 		 * default client with unit interpretation of regulatory
 		 * client EIRP */
 		if (hapd->iconf->reg_def_cli_eirp != -1 &&
-		    (hapd->iconf->he_6ghz_reg_pwr_type ==
-		     HE_REG_INFO_6GHZ_AP_TYPE_SP ||
-		     hapd->iconf->he_6ghz_reg_pwr_type ==
-		     HE_REG_INFO_6GHZ_AP_TYPE_INDOOR_SP))
+		    he_reg_is_sp(hapd->iconf->he_6ghz_reg_pwr_type))
 			len += 4;
 	}
 #endif /* CONFIG_IEEE80211AX */
