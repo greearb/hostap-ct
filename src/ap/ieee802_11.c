@@ -7067,7 +7067,11 @@ u8 * hostapd_eid_txpower_envelope(struct hostapd_data *hapd, u8 *eid)
 		tx_pwr_intrpn = REGULATORY_CLIENT_EIRP_PSD;
 
 		/* Default Transmit Power Envelope for Global Operating Class */
-		tx_pwr = REG_PSD_MAX_TXPOWER_FOR_DEFAULT_CLIENT * 2;
+		if (hapd->iconf->reg_def_cli_eirp_psd != -1)
+			tx_pwr = hapd->iconf->reg_def_cli_eirp_psd;
+		else
+			tx_pwr = REG_PSD_MAX_TXPOWER_FOR_DEFAULT_CLIENT * 2;
+
 		eid = hostapd_add_tpe_info(eid, tx_pwr_count, tx_pwr_intrpn,
 					   REG_DEFAULT_CLIENT, tx_pwr);
 
@@ -7076,7 +7080,10 @@ u8 * hostapd_eid_txpower_envelope(struct hostapd_data *hapd, u8 *eid)
 		if (iconf->he_6ghz_reg_pwr_type ==
 		    HE_REG_INFO_6GHZ_AP_TYPE_INDOOR) {
 			/* TODO: Extract PSD limits from channel data */
-			tx_pwr = REG_PSD_MAX_TXPOWER_FOR_SUBORDINATE_CLIENT * 2;
+			if (hapd->iconf->reg_sub_cli_eirp_psd != -1)
+				tx_pwr = hapd->iconf->reg_sub_cli_eirp_psd;
+			else
+				tx_pwr = REG_PSD_MAX_TXPOWER_FOR_SUBORDINATE_CLIENT * 2;
 			eid = hostapd_add_tpe_info(eid, tx_pwr_count,
 						   tx_pwr_intrpn,
 						   REG_SUBORDINATE_CLIENT,
