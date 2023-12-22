@@ -250,6 +250,9 @@ u8 * hostapd_eid_he_operation(struct hostapd_data *hapd, u8 *eid)
 		if (control > 3)
 			control = 3; // Don't over-flow bits when bw is 320
 
+		if (hapd->iconf->lpi_bcn_enhance)
+			control |= HE_6GHZ_OPER_INFO_CTRL_DUP_BEACON;
+
 		control |= hapd->iconf->he_6ghz_reg_pwr_type <<
 			HE_6GHZ_OPER_INFO_CTRL_REG_INFO_SHIFT;
 

@@ -191,6 +191,16 @@ static struct nla_policy csi_data_policy[NUM_MTK_VENDOR_ATTRS_CSI_DATA] = {
 	[MTK_VENDOR_ATTR_CSI_DATA_CHAIN_INFO] = { .type = NLA_U32 },
 };
 
+#if 0
+static struct nla_policy
+txpower_ctrl_policy[NUM_MTK_VENDOR_ATTRS_TXPOWER_CTRL] = {
+	[MTK_VENDOR_ATTR_TXPOWER_CTRL_LPI_PSD] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_TXPOWER_CTRL_SKU_IDX] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_TXPOWER_CTRL_LPI_BCN_ENHANCE] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_TXPOWER_CTRL_LINK_ID] = { .type = NLA_U8 },
+};
+#endif
+
 static struct nl_sock * nl_create_handle(struct nl_cb *cb, const char *dbg)
 {
 	struct nl_sock *handle;
@@ -17003,6 +17013,52 @@ fail:
 	return -ENOBUFS;
 }
 
+static int nl80211_txpower_ctrl(void *priv, u8 lpi_psd, u8 sku_idx, u8 lpi_bcn_enhance,
+				u8 link_id)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *data;
+	int ret;
+
+	if (!drv->mtk_txpower_vendor_cmd_avail) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Driver does not support setting txpower control");
+		return 0;
+	}
+
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
+	if (!msg)
+		goto fail;
+
+	if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+		nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+			    MTK_NL80211_VENDOR_SUBCMD_TXPOWER_CTRL))
+		goto fail;
+
+	data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA | NLA_F_NESTED);
+	if (!data)
+		goto fail;
+
+	nla_put_u8(msg, MTK_VENDOR_ATTR_TXPOWER_CTRL_LPI_PSD, lpi_psd);
+	nla_put_u8(msg, MTK_VENDOR_ATTR_TXPOWER_CTRL_SKU_IDX, sku_idx);
+	nla_put_u8(msg, MTK_VENDOR_ATTR_TXPOWER_CTRL_LPI_BCN_ENHANCE, lpi_bcn_enhance);
+	nla_put_u8(msg, MTK_VENDOR_ATTR_TXPOWER_CTRL_LINK_ID, link_id);
+
+	nla_nest_end(msg, data);
+	ret = send_and_recv_cmd(drv, msg);
+	if (ret)
+		wpa_printf(MSG_ERROR, "Failed to set power. ret=%d (%s)",
+			   ret, strerror(-ret));
+
+	return ret;
+
+fail:
+	nlmsg_free(msg);
+	return -ENOBUFS;
+}
+
 const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.name = "nl80211",
 	.desc = "Linux nl80211/cfg80211",
@@ -17202,4 +17258,5 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 #endif
 	.csi_set = nl80211_csi_set,
 	.csi_dump = nl80211_csi_dump,
+	.txpower_ctrl = nl80211_txpower_ctrl,
 };

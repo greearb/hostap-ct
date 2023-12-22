@@ -323,6 +323,10 @@ struct hostapd_config * hostapd_config_defaults(void)
 	conf->amsdu = 1;
 	conf->pp_mode = PP_FW_MODE;
 
+	conf->lpi_psd = 0;
+	conf->sku_idx = 0;
+	conf->lpi_bcn_enhance = 0;
+
 	hostapd_set_and_check_bw320_offset(conf, 0);
 
 	return conf;

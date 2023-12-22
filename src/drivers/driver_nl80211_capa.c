@@ -1185,6 +1185,9 @@ static int wiphy_info_handler(struct nl_msg *msg, void *arg)
 				case MTK_NL80211_VENDOR_SUBCMD_EML_CTRL:
 					drv->mtk_eml_vendor_cmd_avail = 1;
 					break;
+				case MTK_NL80211_VENDOR_SUBCMD_TXPOWER_CTRL:
+					drv->mtk_txpower_vendor_cmd_avail = 1;
+					break;
 				}
 			}
 

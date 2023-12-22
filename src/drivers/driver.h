@@ -5770,6 +5770,16 @@ struct wpa_driver_ops {
 	* @dump_buf: Dump_struct that store csi data and related info
 	*/
 	int (*csi_dump)(void *priv, u8 band_idx, void *dump_buf);
+	/**
+	* txpower_ctrl - ctrl txpower operation
+	* @priv: Private driver interface data
+	* @lpi_psd: 1 to enable lpi psd compensate, 0 to disable
+	* @lpi_bcn_enhance: 1 to enable beacon duplicate enhancement in 6G lpi mode, 0 to disable enhancement
+	* @sku_idx: index used to indicate which sku table should be used
+	* @link_id: MLD link id. -1 if this is an non-MLD AP
+	*/
+	int (*txpower_ctrl)(void *priv, u8 lpi_psd, u8 sku_idx, u8 lpi_bcn_enhance,
+			    u8 link_id);
 };
 
 /**
