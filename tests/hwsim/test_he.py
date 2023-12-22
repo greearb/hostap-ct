@@ -1702,6 +1702,20 @@ def test_he_6ghz_reg(dev, apdev):
 
         # Allow few more Beacon frames
         time.sleep(0.5)
+
+        # Modify the regulatory power type to SP and provide the client EIRP
+        # limit
+        # EIRP = PSD + 10 * log(channel width)
+        # 16 = 3 + 10 * log(20)
+        hapd.set("vendor_elements", "")
+        hapd.set("he_6ghz_reg_pwr_type", "1")
+        hapd.set("reg_def_cli_eirp", "14")
+
+        if "OK" not in hapd.request("UPDATE_BEACON"):
+            raise Exception("UPDATE_BEACON failed")
+
+        # Allow few more Beacon frames
+        time.sleep(0.5)
     except Exception as e:
         if isinstance(e, Exception) and str(e) == "AP startup failed":
             if not he_supported():
