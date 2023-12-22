@@ -5252,13 +5252,18 @@ static int print_ml(struct wpa_bss *bss, char *pos, char *end)
 		if (common_info_length < 1)
 			return 0;
 
-		ret = os_snprintf(pos, end - pos, ", MLD ID=0x%x\n", *ie);
+		ret = os_snprintf(pos, end - pos, ", MLD ID=0x%x", *ie);
 		if (os_snprintf_error(end - pos, ret))
 			return 0;
 		pos += ret;
 		ie += 1;
 		common_info_length--;
 	}
+
+	ret = os_snprintf(pos, end - pos, "\n");
+	if (os_snprintf_error(end - pos, ret))
+		return 0;
+	pos += ret;
 
 	return pos - start;
 }
