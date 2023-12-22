@@ -7503,17 +7503,96 @@ static u8 * hostapd_eid_nr_db(struct hostapd_data *hapd, u8 *eid,
 }
 
 
+static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
+				struct hostapd_data *reporting_hapd,
+				struct mbssid_ie_profiles *skip_profiles,
+				size_t i, u8 *tbtt_count, size_t *len,
+				u8 **pos)
+{
+	struct hostapd_iface *iface = hapd->iface;
+	struct hostapd_data *bss = iface->bss[i];
+	u8 bss_param = 0;
+	bool ap_mld = false;
+	u8 *eid = *pos;
+
+#ifdef CONFIG_IEEE80211BE
+	ap_mld = !!hapd->conf->mld_ap;
+#endif /* CONFIG_IEEE80211BE */
+
+	if (!bss || !bss->conf || !bss->started ||
+	    bss == reporting_hapd || bss->conf->ignore_broadcast_ssid)
+		return false;
+
+	if (skip_profiles
+	    && i >= skip_profiles->start && i < skip_profiles->end)
+		return false;
+
+	if (*len + RNR_TBTT_INFO_LEN > 255 ||
+	    *tbtt_count >= RNR_TBTT_INFO_COUNT_MAX)
+		return true;
+
+	*eid++ = RNR_NEIGHBOR_AP_OFFSET_UNKNOWN;
+	os_memcpy(eid, bss->own_addr, ETH_ALEN);
+	eid += ETH_ALEN;
+	os_memcpy(eid, &bss->conf->ssid.short_ssid, 4);
+	eid += 4;
+	if (bss->conf->ssid.short_ssid == reporting_hapd->conf->ssid.short_ssid)
+		bss_param |= RNR_BSS_PARAM_SAME_SSID;
+
+	if (iface->conf->mbssid != MBSSID_DISABLED && iface->num_bss > 1) {
+		bss_param |= RNR_BSS_PARAM_MULTIPLE_BSSID;
+		if (bss == hostapd_mbssid_get_tx_bss(hapd))
+			bss_param |= RNR_BSS_PARAM_TRANSMITTED_BSSID;
+	}
+
+	if (is_6ghz_op_class(hapd->iconf->op_class) &&
+	    bss->conf->unsol_bcast_probe_resp_interval)
+		bss_param |= RNR_BSS_PARAM_UNSOLIC_PROBE_RESP_ACTIVE;
+
+	bss_param |= RNR_BSS_PARAM_CO_LOCATED;
+
+	*eid++ = bss_param;
+	*eid++ = RNR_20_MHZ_PSD_MAX_TXPOWER - 1;
+
+	if (!ap_mld) {
+		*len += RNR_TBTT_INFO_LEN;
+	} else {
+#ifdef CONFIG_IEEE80211BE
+		if (reporting_hapd->conf->mld_ap &&
+		    bss->conf->mld_id == reporting_hapd->conf->mld_id)
+			*eid++ = 0;
+		else
+			*eid++ = hapd->conf->mld_id;
+
+		*eid++ = hapd->mld_link_id | (1 << 4);
+		*eid = 0;
+#ifdef CONFIG_TESTING_OPTIONS
+		if (hapd->conf->mld_indicate_disabled)
+			*eid |= RNR_TBTT_INFO_MLD_PARAM2_LINK_DISABLED;
+#endif /* CONFIG_TESTING_OPTIONS */
+		eid++;
+
+		*len += RNR_TBTT_INFO_MLD_LEN;
+#endif /* CONFIG_IEEE80211BE */
+	}
+
+	(*tbtt_count)++;
+	*pos = eid;
+
+	return false;
+}
+
+
 static u8 * hostapd_eid_rnr_iface(struct hostapd_data *hapd,
 				  struct hostapd_data *reporting_hapd,
 				  u8 *eid, size_t *current_len,
 				  struct mbssid_ie_profiles *skip_profiles)
 {
-	struct hostapd_data *bss;
 	struct hostapd_iface *iface = hapd->iface;
 	size_t i, start = 0;
 	size_t len = *current_len;
 	u8 *tbtt_count_pos, *eid_start = eid, *size_offset = (eid - len) + 1;
-	u8 tbtt_count = 0, op_class, channel, bss_param;
+	u8 tbtt_count = 0, op_class, channel;
 	bool ap_mld = false;
 
 #ifdef CONFIG_IEEE80211BE
@@ -7548,74 +7627,10 @@ static u8 * hostapd_eid_rnr_iface(struct hostapd_data *hapd,
 		len += RNR_TBTT_HEADER_LEN;
 
 		for (i = start; i < iface->num_bss; i++) {
-			bss_param = 0;
-			bss = iface->bss[i];
-			if (!bss || !bss->conf || !bss->started)
-				continue;
-
-			if (bss == reporting_hapd ||
-			    bss->conf->ignore_broadcast_ssid)
-				continue;
-
-			if (skip_profiles &&
-			    i >= skip_profiles->start && i < skip_profiles->end)
-				continue;
-
-			if (len + RNR_TBTT_INFO_LEN > 255 ||
-			    tbtt_count >= RNR_TBTT_INFO_COUNT_MAX)
+			if (hostapd_eid_rnr_bss(hapd, reporting_hapd,
+						skip_profiles, i,
+						&tbtt_count, &len, &eid))
 				break;
-
-			*eid++ = RNR_NEIGHBOR_AP_OFFSET_UNKNOWN;
-			os_memcpy(eid, bss->own_addr, ETH_ALEN);
-			eid += ETH_ALEN;
-			os_memcpy(eid, &bss->conf->ssid.short_ssid, 4);
-			eid += 4;
-			if (bss->conf->ssid.short_ssid ==
-			    reporting_hapd->conf->ssid.short_ssid)
-				bss_param |= RNR_BSS_PARAM_SAME_SSID;
-
-			if (iface->conf->mbssid != MBSSID_DISABLED &&
-			    iface->num_bss > 1) {
-				bss_param |= RNR_BSS_PARAM_MULTIPLE_BSSID;
-				if (bss == hostapd_mbssid_get_tx_bss(hapd))
-					bss_param |=
-						RNR_BSS_PARAM_TRANSMITTED_BSSID;
-			}
-
-			if (is_6ghz_op_class(hapd->iconf->op_class) &&
-			    bss->conf->unsol_bcast_probe_resp_interval)
-				bss_param |=
-					RNR_BSS_PARAM_UNSOLIC_PROBE_RESP_ACTIVE;
-
-			bss_param |= RNR_BSS_PARAM_CO_LOCATED;
-
-			*eid++ = bss_param;
-			*eid++ = RNR_20_MHZ_PSD_MAX_TXPOWER - 1;
-
-			if (!ap_mld) {
-				len += RNR_TBTT_INFO_LEN;
-			} else {
-#ifdef CONFIG_IEEE80211BE
-				if (reporting_hapd->conf->mld_ap &&
-				    bss->conf->mld_id ==
-				    reporting_hapd->conf->mld_id)
-					*eid++ = 0;
-				else
-					*eid++ = hapd->conf->mld_id;
-
-				*eid++ = hapd->mld_link_id | (1 << 4);
-				*eid = 0;
-#ifdef CONFIG_TESTING_OPTIONS
-				if (hapd->conf->mld_indicate_disabled)
-					*eid |= RNR_TBTT_INFO_MLD_PARAM2_LINK_DISABLED;
-#endif /* CONFIG_TESTING_OPTIONS */
-				eid++;
-
-				len += RNR_TBTT_INFO_MLD_LEN;
-#endif /* CONFIG_IEEE80211BE */
-			}
-
-			tbtt_count += 1;
 		}
 
 		start = i;
