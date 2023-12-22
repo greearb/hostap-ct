@@ -7504,7 +7504,7 @@ static u8 * hostapd_eid_nr_db(struct hostapd_data *hapd, u8 *eid,
 		/* BSS parameters */
 		*eid++ = nr->bss_parameters;
 		/* 20 MHz PSD */
-		*eid++ = RNR_20_MHZ_PSD_MAX_TXPOWER - 1;
+		*eid++ = RNR_20_MHZ_PSD_MAX_TXPOWER;
 		len += RNR_TBTT_INFO_LEN;
 		*size_offset = (eid - size_offset) - 1;
 	}
@@ -7563,7 +7563,7 @@ static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
 	bss_param |= RNR_BSS_PARAM_CO_LOCATED;
 
 	*eid++ = bss_param;
-	*eid++ = RNR_20_MHZ_PSD_MAX_TXPOWER - 1;
+	*eid++ = RNR_20_MHZ_PSD_MAX_TXPOWER;
 
 	if (!ap_mld) {
 		*len += RNR_TBTT_INFO_LEN;

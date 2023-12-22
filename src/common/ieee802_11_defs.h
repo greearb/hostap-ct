@@ -2524,7 +2524,9 @@ struct ieee80211_he_mu_edca_parameter_set {
 #define RNR_BSS_PARAM_MEMBER_CO_LOCATED_ESS         BIT(4)
 #define RNR_BSS_PARAM_UNSOLIC_PROBE_RESP_ACTIVE     BIT(5)
 #define RNR_BSS_PARAM_CO_LOCATED                    BIT(6)
-#define RNR_20_MHZ_PSD_MAX_TXPOWER                  255 /* dBm */
+/* Maximum transmit power in Y/2 dBm (-127..126); 127 indicates no maximum
+ * transmit power is specified for the corresponding 20 MHz channel. */
+#define RNR_20_MHZ_PSD_MAX_TXPOWER                  127
 
 /* IEEE P802.11be/D5.0, Figure 9-704c - MLD Parameters subfield format */
 /* B0..B7: AP MLD ID */
