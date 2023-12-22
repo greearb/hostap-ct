@@ -563,6 +563,45 @@ static u8 * hostapd_eid_mbssid_config(struct hostapd_data *hapd, u8 *eid,
 }
 
 
+static size_t he_elem_len(struct hostapd_data *hapd)
+{
+	size_t len = 0;
+
+#ifdef CONFIG_IEEE80211AX
+	if (!hapd->iconf->ieee80211ax || hapd->conf->disable_11ax)
+		return len;
+
+	len += 3 + sizeof(struct ieee80211_he_capabilities) +
+		3 + sizeof(struct ieee80211_he_operation) +
+		3 + sizeof(struct ieee80211_he_mu_edca_parameter_set) +
+		3 + sizeof(struct ieee80211_spatial_reuse);
+	if (is_6ghz_op_class(hapd->iconf->op_class)) {
+		len += sizeof(struct ieee80211_he_6ghz_oper_info) +
+			3 + sizeof(struct ieee80211_he_6ghz_band_cap);
+		/* An additional Transmit Power Envelope element for
+		 * subordinate client */
+		if (hapd->iconf->he_6ghz_reg_pwr_type ==
+		    HE_REG_INFO_6GHZ_AP_TYPE_INDOOR ||
+		    hapd->iconf->he_6ghz_reg_pwr_type ==
+		    HE_REG_INFO_6GHZ_AP_TYPE_INDOOR_SP)
+			len += 4;
+
+		/* An additional Transmit Power Envelope element for
+		 * default client with unit interpretation of regulatory
+		 * client EIRP */
+		if (hapd->iconf->reg_def_cli_eirp != -1 &&
+		    (hapd->iconf->he_6ghz_reg_pwr_type ==
+		     HE_REG_INFO_6GHZ_AP_TYPE_SP ||
+		     hapd->iconf->he_6ghz_reg_pwr_type ==
+		     HE_REG_INFO_6GHZ_AP_TYPE_INDOOR_SP))
+			len += 4;
+	}
+#endif /* CONFIG_IEEE80211AX */
+
+	return len;
+}
+
+
 struct probe_resp_params {
 	const struct ieee80211_mgmt *req;
 	bool is_p2p;
@@ -608,35 +647,7 @@ static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 			2 + sizeof(struct ieee80211_vht_operation);
 	}
 
-#ifdef CONFIG_IEEE80211AX
-	if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax) {
-		buflen += 3 + sizeof(struct ieee80211_he_capabilities) +
-			3 + sizeof(struct ieee80211_he_operation) +
-			3 + sizeof(struct ieee80211_he_mu_edca_parameter_set) +
-			3 + sizeof(struct ieee80211_spatial_reuse);
-		if (is_6ghz_op_class(hapd->iconf->op_class)) {
-			buflen += sizeof(struct ieee80211_he_6ghz_oper_info) +
-				3 + sizeof(struct ieee80211_he_6ghz_band_cap);
-			 /* An additional Transmit Power Envelope element for
-			  * subordinate client */
-			if (hapd->iconf->he_6ghz_reg_pwr_type ==
-			    HE_REG_INFO_6GHZ_AP_TYPE_INDOOR ||
-			    hapd->iconf->he_6ghz_reg_pwr_type ==
-			    HE_REG_INFO_6GHZ_AP_TYPE_INDOOR_SP)
-				buflen += 4;
-
-			/* An additional Transmit Power Envelope element for
-			 * default client with unit interpretation of regulatory
-			 * client EIRP */
-			if (hapd->iconf->reg_def_cli_eirp != -1 &&
-			    (hapd->iconf->he_6ghz_reg_pwr_type ==
-			     HE_REG_INFO_6GHZ_AP_TYPE_SP ||
-			     hapd->iconf->he_6ghz_reg_pwr_type ==
-			     HE_REG_INFO_6GHZ_AP_TYPE_INDOOR_SP))
-				buflen += 4;
-		}
-	}
-#endif /* CONFIG_IEEE80211AX */
+	buflen += he_elem_len(hapd);
 
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be) {
@@ -1938,27 +1949,9 @@ static u8 * hostapd_gen_fils_discovery(struct hostapd_data *hapd, size_t *len)
 	buf_len = pos - buf;
 	total_len += buf_len;
 
-#ifdef CONFIG_IEEE80211AX
-	/* Transmit Power Envelope element(s) */
-	if (is_6ghz_op_class(hapd->iconf->op_class)) {
-		total_len += 4;
-		if (hapd->iconf->he_6ghz_reg_pwr_type ==
-		    HE_REG_INFO_6GHZ_AP_TYPE_INDOOR ||
-		    hapd->iconf->he_6ghz_reg_pwr_type ==
-		    HE_REG_INFO_6GHZ_AP_TYPE_INDOOR_SP)
-			total_len += 4;
-
-		/* An additional Transmit Power Envelope element for
-		 * default client with unit interpretation of regulatory
-		 * client EIRP */
-		if (hapd->iconf->reg_def_cli_eirp != -1 &&
-		    (hapd->iconf->he_6ghz_reg_pwr_type ==
-		     HE_REG_INFO_6GHZ_AP_TYPE_SP ||
-		     hapd->iconf->he_6ghz_reg_pwr_type ==
-		     HE_REG_INFO_6GHZ_AP_TYPE_INDOOR_SP))
-			total_len += 4;
-	}
-#endif /* CONFIG_IEEE80211AX */
+	/* he_elem_len() may return too large a value for FD frame, but that is
+	 * fine here since this is used as the maximum length of the buffer. */
+	total_len += he_elem_len(hapd);
 
 	head = os_zalloc(total_len);
 	if (!head)
@@ -2108,35 +2101,7 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 	}
 #endif /* CONFIG_IEEE80211AC */
 
-#ifdef CONFIG_IEEE80211AX
-	if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax) {
-		tail_len += 3 + sizeof(struct ieee80211_he_capabilities) +
-			3 + sizeof(struct ieee80211_he_operation) +
-			3 + sizeof(struct ieee80211_he_mu_edca_parameter_set) +
-			3 + sizeof(struct ieee80211_spatial_reuse);
-		if (is_6ghz_op_class(hapd->iconf->op_class)) {
-			tail_len += sizeof(struct ieee80211_he_6ghz_oper_info) +
-				3 + sizeof(struct ieee80211_he_6ghz_band_cap);
-			 /* An additional Transmit Power Envelope element for
-			  * subordinate client */
-			if (hapd->iconf->he_6ghz_reg_pwr_type ==
-			    HE_REG_INFO_6GHZ_AP_TYPE_INDOOR ||
-			    hapd->iconf->he_6ghz_reg_pwr_type ==
-			    HE_REG_INFO_6GHZ_AP_TYPE_INDOOR_SP)
-				tail_len += 4;
-
-			/* An additional Transmit Power Envelope element for
-			 * default client with unit interpretation of regulatory
-			 * client EIRP */
-			if (hapd->iconf->reg_def_cli_eirp != -1 &&
-			    (hapd->iconf->he_6ghz_reg_pwr_type ==
-			     HE_REG_INFO_6GHZ_AP_TYPE_SP ||
-			     hapd->iconf->he_6ghz_reg_pwr_type ==
-			     HE_REG_INFO_6GHZ_AP_TYPE_INDOOR_SP))
-				tail_len += 4;
-		}
-	}
-#endif /* CONFIG_IEEE80211AX */
+	tail_len += he_elem_len(hapd);
 
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be) {
