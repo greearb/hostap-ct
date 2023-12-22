@@ -1525,6 +1525,22 @@ int hostapd_drv_get_aval_bss_color_bmp(struct hostapd_data *hapd, u64 *aval_colo
 	return hapd->driver->get_aval_color_bmp(hapd->drv_priv, aval_color_bmp);
 }
 
+int hostapd_drv_txpower_ctrl(struct hostapd_data *hapd)
+{
+	s8 link_id = -1;
+
+	if (!hapd->driver || !hapd->driver->txpower_ctrl)
+		return 0;
+
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+
+	return hapd->driver->txpower_ctrl(hapd->drv_priv, hapd->iconf->lpi_psd,
+					  hapd->iconf->sku_idx,
+					  hapd->iconf->lpi_bcn_enhance,
+					  link_id);
+}
+
 int hostapd_drv_ap_wireless(struct hostapd_data *hapd, u8 sub_vendor_id, int value)
 {
 	s8 link_id = -1;
