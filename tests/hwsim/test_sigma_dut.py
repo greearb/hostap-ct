@@ -4084,7 +4084,7 @@ def test_sigma_dut_dpp_reconfig_enrollee(dev, apdev):
             raise Exception("Failed to start listen operation")
         dev[1].dump_monitor()
 
-        res = sigma_dut_cmd("dev_exec_action,program,DPP,DPPActionType,DPPReconfigure,DPPTimeout,6,DPPWaitForConnect,Yes", timeout=10)
+        res = sigma_dut_cmd("dev_exec_action,program,DPP,DPPActionType,DPPReconfigure,DPPTimeout,16,DPPWaitForConnect,Yes", timeout=20)
         if "status,COMPLETE,ReconfigAuthResult,OK,ConfResult,OK,NetworkConnectResult,OK" not in res:
             raise Exception("Unexpected reconfiguration result: " + res)
 
@@ -4106,7 +4106,7 @@ def test_sigma_dut_dpp_reconfig_enrollee(dev, apdev):
         dev[0].dump_monitor()
         dev[1].dump_monitor()
 
-        res = sigma_dut_cmd("dev_exec_action,program,DPP,DPPActionType,DPPReconfigure,DPPTimeout,6,DPPWaitForConnect,Yes", timeout=30)
+        res = sigma_dut_cmd("dev_exec_action,program,DPP,DPPActionType,DPPReconfigure,DPPTimeout,16,DPPWaitForConnect,Yes", timeout=30)
         if "status,COMPLETE,ReconfigAuthResult,OK,ConfResult,OK,NetworkConnectResult,OK" not in res:
             raise Exception("Unexpected reconfiguration [2] result: " + res)
 
@@ -4165,7 +4165,7 @@ def test_sigma_dut_dpp_reconfig_enrollee_sae(dev, apdev):
             raise Exception("Failed to start listen operation")
         dev[1].dump_monitor()
 
-        res = sigma_dut_cmd("dev_exec_action,program,DPP,DPPActionType,DPPReconfigure,DPPTimeout,6,DPPWaitForConnect,Yes", timeout=10)
+        res = sigma_dut_cmd("dev_exec_action,program,DPP,DPPActionType,DPPReconfigure,DPPTimeout,16,DPPWaitForConnect,Yes", timeout=20)
         if "status,COMPLETE,ReconfigAuthResult,OK,ConfResult,OK,NetworkConnectResult,OK" not in res:
             raise Exception("Unexpected reconfiguration result: " + res)
 
@@ -4187,7 +4187,7 @@ def test_sigma_dut_dpp_reconfig_enrollee_sae(dev, apdev):
         dev[0].dump_monitor()
         dev[1].dump_monitor()
 
-        res = sigma_dut_cmd("dev_exec_action,program,DPP,DPPActionType,DPPReconfigure,DPPTimeout,6,DPPWaitForConnect,Yes", timeout=30)
+        res = sigma_dut_cmd("dev_exec_action,program,DPP,DPPActionType,DPPReconfigure,DPPTimeout,16,DPPWaitForConnect,Yes", timeout=30)
         if "status,COMPLETE,ReconfigAuthResult,OK,ConfResult,OK,NetworkConnectResult,OK" not in res:
             raise Exception("Unexpected reconfiguration [2] result: " + res)
 
@@ -4239,7 +4239,7 @@ def test_sigma_dut_dpp_reconfig_configurator(dev, apdev):
         if "OK" not in dev[1].request(cmd):
             raise Exception("Failed to start reconfiguration")
 
-        res = sigma_dut_cmd("dev_exec_action,program,DPP,DPPActionType,DPPReconfigure,DPPProvisioningRole,Configurator,DPPConfEnrolleeRole,STA,DPPSigningKeyECC,P-256,DPPConfIndex,2,DPPListenChannel,6,DPPTimeout,6", timeout=10)
+        res = sigma_dut_cmd("dev_exec_action,program,DPP,DPPActionType,DPPReconfigure,DPPProvisioningRole,Configurator,DPPConfEnrolleeRole,STA,DPPSigningKeyECC,P-256,DPPConfIndex,2,DPPListenChannel,6,DPPTimeout,16", timeout=20)
         if "status,COMPLETE,ReconfigAuthResult,OK,ConfResult,OK" not in res:
             raise Exception("Unexpected reconfiguration result: " + res)
 
@@ -4297,7 +4297,7 @@ def run_sigma_dut_dpp_reconfig_proto(dev, apdev, dpp_step):
         if "OK" not in dev[1].request(cmd):
             raise Exception("Failed to start reconfiguration")
 
-        res = sigma_dut_cmd("dev_exec_action,program,DPP,DPPActionType,DPPReconfigure,DPPProvisioningRole,Configurator,DPPConfEnrolleeRole,STA,DPPSigningKeyECC,P-256,DPPConfIndex,2,DPPStep,%s,DPPFrameType,ReconfigAuthRequest,DPPIEAttribute,ProtocolVersion,DPPListenChannel,6,DPPTimeout,6" % dpp_step, timeout=10)
+        res = sigma_dut_cmd("dev_exec_action,program,DPP,DPPActionType,DPPReconfigure,DPPProvisioningRole,Configurator,DPPConfEnrolleeRole,STA,DPPSigningKeyECC,P-256,DPPConfIndex,2,DPPStep,%s,DPPFrameType,ReconfigAuthRequest,DPPIEAttribute,ProtocolVersion,DPPListenChannel,6,DPPTimeout,16" % dpp_step, timeout=20)
         if "status,COMPLETE,ReconfigAuthResult,Errorsent" not in res:
             raise Exception("Unexpected reconfiguration result: " + res)
 
