@@ -9372,6 +9372,9 @@ static void nl80211_remove_links(struct i802_bss *bss)
 	int ret;
 	u8 link_id;
 
+	if (bss->n_links == 0)
+		return;
+
 	while (bss->links[0].link_id != NL80211_DRV_LINK_ID_NA) {
 		struct i802_link *link = &bss->links[0];
 
