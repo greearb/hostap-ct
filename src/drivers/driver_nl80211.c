@@ -5123,7 +5123,7 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 			 suites))
 		goto fail;
 
-	if ((params->key_mgmt_suites & WPA_KEY_MGMT_PSK) &&
+	if (wpa_key_mgmt_wpa_psk_no_sae(params->key_mgmt_suites) &&
 	    (drv->capa.flags2 & WPA_DRIVER_FLAGS2_4WAY_HANDSHAKE_AP_PSK) &&
 	    params->psk_len &&
 	    nla_put(msg, NL80211_ATTR_PMK, params->psk_len, params->psk))
