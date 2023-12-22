@@ -830,6 +830,17 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 		if (os_snprintf_error(buflen - len, ret))
 			return len;
 		len += ret;
+
+		if (is_6ghz_op_class(iface->conf->op_class) &&
+		    hostapd_get_oper_chwidth(iface->conf) ==
+		    CONF_OPER_CHWIDTH_320MHZ) {
+			ret = os_snprintf(buf + len, buflen - len,
+					  "eht_bw320_offset=%d\n",
+					  iface->conf->eht_bw320_offset);
+			if (os_snprintf_error(buflen - len, ret))
+				return len;
+			len += ret;
+		}
 	}
 #endif /* CONFIG_IEEE80211BE */
 

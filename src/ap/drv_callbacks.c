@@ -1170,6 +1170,8 @@ void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 	hostapd_set_oper_chwidth(hapd->iconf, chwidth);
 	hostapd_set_oper_centr_freq_seg0_idx(hapd->iconf, seg0_idx);
 	hostapd_set_oper_centr_freq_seg1_idx(hapd->iconf, seg1_idx);
+	/* Auto-detect new bw320_offset */
+	hostapd_set_and_check_bw320_offset(hapd->iconf, 0);
 #ifdef CONFIG_IEEE80211BE
 	hapd->iconf->punct_bitmap = punct_bitmap;
 #endif /* CONFIG_IEEE80211BE */

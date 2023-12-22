@@ -1199,6 +1199,7 @@ struct hostapd_config {
 	u16 punct_bitmap; /* a bitmap of disabled 20 MHz channels */
 	u8 punct_acs_threshold;
 	u8 eht_default_pe_duration;
+	u8 eht_bw320_offset;
 #endif /* CONFIG_IEEE80211BE */
 
 	/* EHT enable/disable config from CHAN_SWITCH */
@@ -1297,6 +1298,43 @@ hostapd_set_oper_centr_freq_seg1_idx(struct hostapd_config *conf,
 		conf->he_oper_centr_freq_seg1_idx = oper_centr_freq_seg1_idx;
 #endif /* CONFIG_IEEE80211AX */
 	conf->vht_oper_centr_freq_seg1_idx = oper_centr_freq_seg1_idx;
+}
+
+static inline u8
+hostapd_get_bw320_offset(struct hostapd_config *conf)
+{
+#ifdef CONFIG_IEEE80211BE
+	if (conf->ieee80211be && is_6ghz_op_class(conf->op_class) &&
+	    hostapd_get_oper_chwidth(conf) == CONF_OPER_CHWIDTH_320MHZ)
+		return conf->eht_bw320_offset;
+#endif /* CONFIG_IEEE80211BE */
+	return 0;
+}
+
+static inline void
+hostapd_set_and_check_bw320_offset(struct hostapd_config *conf,
+				   u8 bw320_offset)
+{
+#ifdef CONFIG_IEEE80211BE
+	if (conf->ieee80211be && is_6ghz_op_class(conf->op_class) &&
+	    op_class_to_ch_width(conf->op_class) == CONF_OPER_CHWIDTH_320MHZ) {
+		if (conf->channel) {
+			/* If the channel is set, then calculate bw320_offset
+			 * by center frequency segment 0.
+			 */
+			u8 seg0 = hostapd_get_oper_centr_freq_seg0_idx(conf);
+
+			conf->eht_bw320_offset = (seg0 - 31) % 64 ? 2 : 1;
+		} else {
+			/* If the channel is not set, bw320_offset indicates
+			 * preferred offset of 320 MHz.
+			 */
+			conf->eht_bw320_offset = bw320_offset;
+		}
+	} else {
+		conf->eht_bw320_offset = 0;
+	}
+#endif /* CONFIG_IEEE80211BE */
 }
 
 

@@ -299,6 +299,8 @@ struct hostapd_config * hostapd_config_defaults(void)
 	conf->airtime_update_interval = AIRTIME_DEFAULT_UPDATE_INTERVAL;
 #endif /* CONFIG_AIRTIME_POLICY */
 
+	hostapd_set_and_check_bw320_offset(conf, 0);
+
 	return conf;
 }
 
@@ -1560,6 +1562,10 @@ int hostapd_config_check(struct hostapd_config *conf, int full_config)
 			   "Cannot set ieee80211be without ieee80211ax");
 		return -1;
 	}
+
+	if (full_config)
+		hostapd_set_and_check_bw320_offset(conf,
+						   conf->eht_bw320_offset);
 #endif /* CONFIG_IEEE80211BE */
 
 	if (full_config && conf->mbssid && !conf->ieee80211ax) {
