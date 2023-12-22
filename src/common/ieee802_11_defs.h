@@ -2448,14 +2448,17 @@ struct ieee80211_spatial_reuse {
 #define HE_OPERATION_BSS_COLOR_MAX		64
 
 /**
- * enum he_6ghz_ap_type - Allowed Access Point types for 6 GHz Band
+ * enum he_reg_info_6ghz_ap_type - Allowed Access Point types for 6 GHz Band
  *
- * IEEE Std 802.11ax-2021, Table E-12 (Regulatory Info subfield encoding in the
- * United States)
+ * IEEE P802.11-REVme/D4.0, Table E-12 (Regulatory Info subfield encoding)
  */
-enum he_6ghz_ap_type {
-	HE_6GHZ_INDOOR_AP		= 0,
-	HE_6GHZ_STANDARD_POWER_AP	= 1,
+enum he_reg_info_6ghz_ap_type {
+	HE_REG_INFO_6GHZ_AP_TYPE_INDOOR         = 0,
+	HE_REG_INFO_6GHZ_AP_TYPE_SP		= 1,
+	HE_REG_INFO_6GHZ_AP_TYPE_VLP		= 2,
+	HE_REG_INFO_6GHZ_AP_TYPE_INDOOR_ENABLED	= 3,
+	HE_REG_INFO_6GHZ_AP_TYPE_INDOOR_SP	= 4,
+	HE_REG_INFO_6GHZ_AP_TYPE_MAX = HE_REG_INFO_6GHZ_AP_TYPE_INDOOR_SP,
 };
 
 /* Spatial Reuse defines */

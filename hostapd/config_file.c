@@ -3675,6 +3675,12 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		}
 	} else if (os_strcmp(buf, "he_6ghz_reg_pwr_type") == 0) {
 		conf->he_6ghz_reg_pwr_type = atoi(pos);
+		if (conf->he_6ghz_reg_pwr_type > HE_REG_INFO_6GHZ_AP_TYPE_MAX) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: invalid he_6ghz_reg_pwr_type value",
+				   line);
+			return 1;
+		}
 	} else if (os_strcmp(buf, "he_oper_chwidth") == 0) {
 		conf->he_oper_chwidth = atoi(pos);
 	} else if (os_strcmp(buf, "he_oper_centr_freq_seg0_idx") == 0) {

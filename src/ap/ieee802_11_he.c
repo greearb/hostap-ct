@@ -254,12 +254,10 @@ u8 * hostapd_eid_he_operation(struct hostapd_data *hapd, u8 *eid)
 			control = 3;
 		else
 			control = center_idx_to_bw_6ghz(seg0);
-		if (hapd->iconf->he_6ghz_reg_pwr_type == 1)
-			control |= HE_6GHZ_STANDARD_POWER_AP <<
-				HE_6GHZ_OPER_INFO_CTRL_REG_INFO_SHIFT;
-		else
-			control |= HE_6GHZ_INDOOR_AP <<
-				HE_6GHZ_OPER_INFO_CTRL_REG_INFO_SHIFT;
+
+		control |= hapd->iconf->he_6ghz_reg_pwr_type <<
+			HE_6GHZ_OPER_INFO_CTRL_REG_INFO_SHIFT;
+
 		*pos++ = control;
 
 		/* Channel Center Freq Seg0/Seg1 */

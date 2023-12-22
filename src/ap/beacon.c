@@ -620,7 +620,7 @@ static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 			 /* An additional Transmit Power Envelope element for
 			  * subordinate client */
 			if (hapd->iconf->he_6ghz_reg_pwr_type ==
-			    HE_6GHZ_INDOOR_AP)
+			    HE_REG_INFO_6GHZ_AP_TYPE_INDOOR)
 				buflen += 4;
 		}
 	}
@@ -1930,7 +1930,8 @@ static u8 * hostapd_gen_fils_discovery(struct hostapd_data *hapd, size_t *len)
 	/* Transmit Power Envelope element(s) */
 	if (is_6ghz_op_class(hapd->iconf->op_class)) {
 		total_len += 4;
-		if (hapd->iconf->he_6ghz_reg_pwr_type == HE_6GHZ_INDOOR_AP)
+		if (hapd->iconf->he_6ghz_reg_pwr_type ==
+		    HE_REG_INFO_6GHZ_AP_TYPE_INDOOR)
 			total_len += 4;
 	}
 #endif /* CONFIG_IEEE80211AX */
@@ -2095,7 +2096,7 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 			 /* An additional Transmit Power Envelope element for
 			  * subordinate client */
 			if (hapd->iconf->he_6ghz_reg_pwr_type ==
-			    HE_6GHZ_INDOOR_AP)
+			    HE_REG_INFO_6GHZ_AP_TYPE_INDOOR)
 				tail_len += 4;
 		}
 	}

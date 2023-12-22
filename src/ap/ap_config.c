@@ -281,6 +281,7 @@ struct hostapd_config * hostapd_config_defaults(void)
 	conf->he_6ghz_max_ampdu_len_exp = 7;
 	conf->he_6ghz_rx_ant_pat = 1;
 	conf->he_6ghz_tx_ant_pat = 1;
+	conf->he_6ghz_reg_pwr_type = HE_REG_INFO_6GHZ_AP_TYPE_VLP;
 #endif /* CONFIG_IEEE80211AX */
 
 	/* The third octet of the country string uses an ASCII space character
