@@ -67,15 +67,13 @@ struct osu_provider {
 void hs20_configure_frame_filters(struct wpa_supplicant *wpa_s)
 {
 	struct wpa_bss *bss = wpa_s->current_bss;
-	u8 *bssid = wpa_s->bssid;
 	const u8 *ie;
 	const u8 *ext_capa;
 	u32 filter = 0;
 
 	if (!bss || !is_hs20_network(wpa_s, wpa_s->current_ssid, bss)) {
-		wpa_printf(MSG_DEBUG,
-			   "Not configuring frame filtering - BSS " MACSTR
-			   " is not a Hotspot 2.0 network", MAC2STR(bssid));
+		/* Not configuring frame filtering - BSS is not a Hotspot 2.0
+		 * network */
 		return;
 	}
 
