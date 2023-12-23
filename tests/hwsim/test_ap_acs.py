@@ -27,6 +27,24 @@ def force_prev_ap_on_5g(ap):
     time.sleep(0.1)
     hostapd.remove_bss(ap)
 
+def force_prev_ap_on_6g(ap):
+    # For now, make sure the last operating channel was on 6 GHz band to get
+    # sufficient survey data from mac80211_hwsim.
+    ssid = "eht_6ghz_sae"
+    passphrase = "12345678"
+    params = hostapd.he_wpa2_params(ssid=ssid, passphrase=passphrase)
+    params["hw_mode"] = "a"
+    params["ieee80211ax"] = "1"
+    params["ieee80211be"] = "1"
+    params["op_class"] = "131"
+    params["channel"] = "5"
+    params["he_oper_centr_freq_seg0_idx"] = "5"
+    params["eht_oper_centr_freq_seg0_idx"] = "5"
+    params["country_code"] = "CA"
+    hostapd.add_ap(ap, params)
+    time.sleep(0.1)
+    hostapd.remove_bss(ap)
+
 def wait_acs(hapd, return_after_acs=False):
     ev = hapd.wait_event(["ACS-STARTED", "ACS-COMPLETED", "ACS-FAILED",
                           "AP-ENABLED", "AP-DISABLED"], timeout=5)
@@ -726,5 +744,73 @@ def test_ap_acs_chan14(dev, apdev):
 
         dev[0].connect("test-acs", psk="12345678", scan_freq=freq)
         dev[0].wait_regdom(country_ie=True)
+    finally:
+        clear_regdom(hapd, dev)
+
+def test_ap_acs_eht320(dev, apdev):
+    """Automatic channel selection for EHT320 (offset 0)"""
+    run_ap_acs_eht320(dev, apdev, 0)
+
+def test_ap_acs_eht320_1(dev, apdev):
+    """Automatic channel selection for EHT320 (offset 1)"""
+    run_ap_acs_eht320(dev, apdev, 1)
+
+def test_ap_acs_eht320_2(dev, apdev):
+    """Automatic channel selection for EHT320 (offset 2)"""
+    run_ap_acs_eht320(dev, apdev, 2)
+
+def run_ap_acs_eht320(dev, apdev, bw32_offset):
+    check_sae_capab(dev[0])
+    try:
+        hapd = None
+        force_prev_ap_on_6g(apdev[0])
+        params = hostapd.he_wpa2_params(ssid="test-acs", passphrase="12345678")
+        params['hw_mode'] = 'a'
+        params["ieee80211ax"] = "1"
+        params["ieee80211be"] = "1"
+        params['channel'] = '0'
+        params['op_class'] = '137'
+        params['eht_bw320_offset'] = str(bw32_offset)
+        params['ieee80211w'] = '2'
+        params['country_code'] = 'CA'
+        params['acs_num_scans'] = '1'
+        params['ieee80211w'] = '2'
+        params['wpa_key_mgmt'] = 'SAE-EXT-KEY'
+        hapd = hostapd.add_ap(apdev[0], params)
+        freq = hapd.get_status_field("freq")
+        if int(freq) < 5900:
+            raise Exception("Unexpected frequency")
+        dev[0].set("sae_groups", "")
+        dev[0].connect("test-acs", psk="12345678", key_mgmt="SAE-EXT-KEY",
+                       ieee80211w="2", scan_freq=freq)
+        hapd.wait_sta()
+        dev[0].wait_regdom(country_ie=True)
+        sig = dev[0].request("SIGNAL_POLL").splitlines()
+        logger.info("SIGNAL_POLL: " + str(sig))
+        if "WIDTH=320 MHz" not in sig:
+            raise Exception("Station did not report 320 MHz bandwidth")
+        seg0 = int(hapd.get_status_field("eht_oper_centr_freq_seg0_idx"))
+        offset = int(hapd.get_status_field("eht_bw320_offset"))
+        chan_1 = [31, 95, 159]
+        chan_2 = [63, 127, 191]
+        if bw32_offset == 0:
+            if offset != 1 and offset != 2:
+                raise Exception("Unexpected eht_bw320_offset: %d" % offset)
+            if seg0 not in chan_1 and seg0 not in chan_2:
+                raise Exception("Unexpected seg0: %d" % seg0)
+        if bw32_offset == 1:
+            if offset != 1:
+                raise Exception("Unexpected eht_bw320_offset: %d" % offset)
+            if seg0 not in chan_1:
+                raise Exception("Unexpected seg0: %d" % seg0)
+        if bw32_offset == 2:
+            if offset != 2:
+                raise Exception("Unexpected eht_bw320_offset: %d" % offset)
+            if seg0 not in chan_2:
+                raise Exception("Unexpected seg0: %d" % seg0)
+
+        dev[0].request("DISCONNECT")
+        dev[0].wait_disconnected()
+        hapd.wait_sta_disconnect()
     finally:
         clear_regdom(hapd, dev)
