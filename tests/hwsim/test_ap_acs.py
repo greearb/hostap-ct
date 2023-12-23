@@ -354,6 +354,7 @@ def test_ap_acs_vht160(dev, apdev):
         params['hw_mode'] = 'a'
         params['channel'] = '0'
         params['ht_capab'] = '[HT40+]'
+        params["vht_capab"] = "[VHT160]"
         params['country_code'] = 'ZA'
         params['ieee80211ac'] = '1'
         params['vht_oper_chwidth'] = '2'
@@ -361,18 +362,20 @@ def test_ap_acs_vht160(dev, apdev):
         params['ieee80211h'] = '1'
         params['chanlist'] = '100'
         params['acs_num_scans'] = '1'
-        hapd = hostapd.add_ap(apdev[0], params, wait_enabled=False)
-        ev = hapd.wait_event(["AP-ENABLED", "AP-DISABLED"], timeout=10)
-        if not ev:
-            raise Exception("ACS start timed out")
-        # VHT160 is not currently supported in hostapd ACS, so do not try to
-        # enforce successful AP start.
-        if "AP-ENABLED" in ev:
-            freq = hapd.get_status_field("freq")
-            if int(freq) < 5000:
-                raise Exception("Unexpected frequency")
-            dev[0].connect("test-acs", psk="12345678", scan_freq=freq)
-            dev[0].wait_regdom(country_ie=True)
+        hapd = hostapd.add_ap(apdev[0], params)
+        freq = hapd.get_status_field("freq")
+        if int(freq) < 5000:
+            raise Exception("Unexpected frequency")
+        dev[0].connect("test-acs", psk="12345678", scan_freq=freq)
+        dev[0].wait_regdom(country_ie=True)
+        hapd.wait_sta()
+        sig = dev[0].request("SIGNAL_POLL").splitlines()
+        logger.info("SIGNAL_POLL: " + str(sig))
+        if "WIDTH=160 MHz" not in sig:
+            raise Exception("Station did not report 160 MHz bandwidth")
+        dev[0].request("DISCONNECT")
+        dev[0].wait_disconnected()
+        hapd.wait_sta_disconnect()
     finally:
         clear_regdom(hapd, dev)
 
