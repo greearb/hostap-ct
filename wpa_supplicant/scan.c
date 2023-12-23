@@ -2907,6 +2907,7 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 	 * been taken into account.
 	 */
 	int adjusted_snr;
+	bool ht40 = false;
 
 	/* Limit based on estimated SNR */
 	if (rate > 1 * 2 && snr < 1)
@@ -2962,11 +2963,14 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 		}
 	}
 
+	ie = get_ie(ies, ies_len, WLAN_EID_HT_OPERATION);
+	if (ie && ie[1] >= 2 &&
+	    (ie[3] & HT_INFO_HT_PARAM_SECONDARY_CHNL_OFF_MASK))
+		ht40 = true;
+
 	if (hw_mode &&
 	    (hw_mode->ht_capab & HT_CAP_INFO_SUPP_CHANNEL_WIDTH_SET)) {
-		ie = get_ie(ies, ies_len, WLAN_EID_HT_OPERATION);
-		if (ie && ie[1] >= 2 &&
-		    (ie[3] & HT_INFO_HT_PARAM_SECONDARY_CHNL_OFF_MASK)) {
+		if (ht40) {
 			*max_cw = CHAN_WIDTH_40;
 			adjusted_snr = snr +
 				wpas_channel_width_rssi_bump(ies, ies_len,
@@ -2989,10 +2993,7 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 			if (tmp > est)
 				est = tmp;
 
-			ie = get_ie(ies, ies_len, WLAN_EID_HT_OPERATION);
-			if (ie && ie[1] >= 2 &&
-			    (ie[3] &
-			     HT_INFO_HT_PARAM_SECONDARY_CHNL_OFF_MASK)) {
+			if (ht40) {
 				*max_cw = CHAN_WIDTH_40;
 				adjusted_snr = snr +
 					wpas_channel_width_rssi_bump(
@@ -3081,9 +3082,10 @@ unsigned int wpas_get_est_tpt(const struct wpa_supplicant *wpa_s,
 
 		cw = he->he_phy_capab_info[HE_PHYCAP_CHANNEL_WIDTH_SET_IDX] &
 			own_he->phy_cap[HE_PHYCAP_CHANNEL_WIDTH_SET_IDX];
-		if (cw &
-		    (IS_2P4GHZ(freq) ? HE_PHYCAP_CHANNEL_WIDTH_SET_40MHZ_IN_2G :
-		     HE_PHYCAP_CHANNEL_WIDTH_SET_40MHZ_80MHZ_IN_5G)) {
+		if ((cw &
+		     (IS_2P4GHZ(freq) ?
+		      HE_PHYCAP_CHANNEL_WIDTH_SET_40MHZ_IN_2G :
+		      HE_PHYCAP_CHANNEL_WIDTH_SET_40MHZ_80MHZ_IN_5G)) && ht40) {
 			if (*max_cw == CHAN_WIDTH_UNKNOWN ||
 			    *max_cw < CHAN_WIDTH_40)
 				*max_cw = CHAN_WIDTH_40;
