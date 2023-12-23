@@ -1243,11 +1243,33 @@ def test_p2p_channel_vht80p80(dev):
 
 def test_p2p_channel_vht80p80_autogo(dev):
     """P2P autonomous GO and VHT 80+80 MHz channel"""
+    run_p2p_channel_vht80p80_autogo(dev)
+
+def test_p2p_channel_vht80p80_autogo_persistent(dev):
+    """P2P autonomous GO and VHT 80+80 MHz channel (persistent group)"""
+    run_p2p_channel_vht80p80_autogo(dev, persistent=True)
+
+def run_p2p_channel_vht80p80_autogo(dev, persistent=False):
     addr0 = dev[0].p2p_dev_addr()
 
     try:
         set_country("US", dev[0])
-        if "OK" not in dev[0].global_request("P2P_GROUP_ADD vht freq=5180 freq2=5775"):
+
+        if persistent:
+            res = dev[0].p2p_start_go(persistent=True)
+            dev[0].remove_group()
+
+            networks = dev[0].list_networks(p2p=True)
+            if len(networks) != 1:
+                raise Exception("Unexpected number of networks")
+            if "[P2P-PERSISTENT]" not in networks[0]['flags']:
+                raise Exception("Not the persistent group data")
+            id = networks[0]['id']
+
+        cmd = "P2P_GROUP_ADD vht freq=5180 freq2=5775"
+        if persistent:
+            cmd += " persistent=" + id
+        if "OK" not in dev[0].global_request(cmd):
             raise Exception("Could not start GO")
         ev = dev[0].wait_global_event(["P2P-GROUP-STARTED"], timeout=5)
         if ev is None:
