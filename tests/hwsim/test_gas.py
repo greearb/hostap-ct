@@ -191,7 +191,7 @@ def test_gas_concurrent_scan(dev, apdev):
     bssid = apdev[0]['bssid']
     params = hs20_ap_params()
     params['hessid'] = bssid
-    hostapd.add_ap(apdev[0], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     # get BSS entry available to allow GAS query
     dev[0].scan_for_bss(bssid, freq="2412", force_scan=True)
@@ -223,6 +223,10 @@ def test_gas_concurrent_scan(dev, apdev):
 
     if responses != 4:
         raise Exception("Unexpected number of GAS responses")
+
+    # Try to get all GAS frames into the sniffer capture of this test case.
+    hapd.disable()
+    time.sleep(0.1)
 
 def test_gas_concurrent_connect(dev, apdev):
     """Generic GAS queries with concurrent connection operation"""
