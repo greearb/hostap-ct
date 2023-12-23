@@ -187,11 +187,20 @@ def test_ap_acs_40mhz_minus(dev, apdev):
     params['acs_num_scans'] = '1'
     params['chanlist'] = '1 11'
     hapd = hostapd.add_ap(apdev[0], params, wait_enabled=False)
-    ev = hapd.wait_event(["AP-ENABLED", "AP-DISABLED"], timeout=10)
-    if not ev:
-        raise Exception("ACS start timed out")
-    # HT40- is not currently supported in hostapd ACS, so do not try to connect
-    # or verify that this operation succeeded.
+    wait_acs(hapd)
+
+    freq = hapd.get_status_field("freq")
+    if int(freq) < 2400:
+        raise Exception("Unexpected frequency")
+    sec = hapd.get_status_field("secondary_channel")
+    if int(sec) != -1:
+        raise Exception("Unexpected secondary_channel: " + sec)
+
+    dev[0].connect("test-acs", psk="12345678", scan_freq=freq)
+    sig = dev[0].request("SIGNAL_POLL").splitlines()
+    logger.info("SIGNAL_POLL: " + str(sig))
+    if "WIDTH=40 MHz" not in sig:
+        raise Exception("Station did not report 40 MHz bandwidth")
 
 def test_ap_acs_5ghz(dev, apdev):
     """Automatic channel selection on 5 GHz"""
