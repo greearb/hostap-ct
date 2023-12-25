@@ -1148,3 +1148,44 @@ u16 check_ext_capab(struct hostapd_data *hapd, struct sta_info *sta,
 
 	return WLAN_STATUS_SUCCESS;
 }
+
+
+struct sta_info * hostapd_ml_get_assoc_sta(struct hostapd_data *hapd,
+					   struct sta_info *sta,
+					   struct hostapd_data **assoc_hapd)
+{
+#ifdef CONFIG_IEEE80211BE
+	struct hostapd_data *other_hapd = NULL;
+	struct sta_info *tmp_sta;
+
+	if (!sta->mld_info.mld_sta)
+		return NULL;
+
+	*assoc_hapd = hapd;
+
+	/* The station is the one on which the association was performed */
+	if (sta->mld_assoc_link_id == hapd->mld_link_id)
+		return sta;
+
+	other_hapd = hostapd_mld_get_link_bss(hapd, sta->mld_assoc_link_id);
+	if (!other_hapd) {
+		wpa_printf(MSG_DEBUG, "MLD: No link match for link_id=%u",
+			   sta->mld_assoc_link_id);
+		return sta;
+	}
+
+	/*
+	 * Iterate over the stations and find the one with the matching link ID
+	 * and association ID.
+	 */
+	for (tmp_sta = other_hapd->sta_list; tmp_sta; tmp_sta = tmp_sta->next) {
+		if (tmp_sta->mld_assoc_link_id == sta->mld_assoc_link_id &&
+		    tmp_sta->aid == sta->aid) {
+			*assoc_hapd = other_hapd;
+			return tmp_sta;
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
+
+	return sta;
+}

@@ -255,5 +255,8 @@ const char * sae_get_password(struct hostapd_data *hapd,
 			      struct sta_info *sta, const char *rx_id,
 			      struct sae_password_entry **pw_entry,
 			      struct sae_pt **s_pt, const struct sae_pk **s_pk);
+struct sta_info * hostapd_ml_get_assoc_sta(struct hostapd_data *hapd,
+					   struct sta_info *sta,
+					   struct hostapd_data **assoc_hapd);
 
 #endif /* IEEE802_11_H */
