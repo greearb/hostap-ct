@@ -79,10 +79,8 @@ def wait_fail_trigger(dev, cmd, note="Failure not triggered", max_iter=40,
         time.sleep(timeout)
 
 def require_under_vm():
-    with open('/proc/1/cmdline', 'r') as f:
-        cmd = f.read()
-        if "inside.sh" not in cmd:
-            raise HwsimSkip("Not running under VM")
+    if os.getenv('VM') != 'VM':
+        raise HwsimSkip("Not running under VM")
 
 def iface_is_in_bridge(bridge, ifname):
     fname = "/sys/class/net/"+ifname+"/brport/bridge"
