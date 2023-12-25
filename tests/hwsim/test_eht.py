@@ -1409,3 +1409,55 @@ def test_eht_mld_dpp_responder_while_assoc(dev, apdev):
         wpas.dpp_listen(2462)
         dev[0].dpp_auth_init(uri=uri)
         wait_auth_success(dev[0], wpas)
+
+def _eht_mld_disconnect(dev, apdev, disassoc=True):
+    with HWSimRadio(use_mlo=True) as (hapd0_radio, hapd0_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        ssid = "mld_ap_owe_two_link"
+        params = eht_mld_ap_wpa2_params(ssid, key_mgmt="OWE", mfp="2")
+        hapd0 = eht_mld_enable_ap(hapd0_iface, params)
+
+        params['channel'] = '6'
+        hapd1 = eht_mld_enable_ap(hapd0_iface, params)
+
+        wpas.connect(ssid, scan_freq="2412 2437", key_mgmt="OWE",
+                     ieee80211w="2")
+        hapd0.wait_sta()
+        hapd1.wait_sta()
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
+        eht_verify_wifi_version(wpas)
+        traffic_test(wpas, hapd0)
+
+        cmd = "DISASSOCIATE " if disassoc else "DEAUTHENTICATE "
+
+        cmd += wpas.own_addr()
+        for i in range(0, 3):
+            time.sleep(1)
+
+            if "OK" not in hapd0.request(cmd):
+                raise Exception("Failed to request: " + cmd)
+            hapd0.wait_sta_disconnect()
+            hapd1.wait_sta_disconnect()
+
+            wpas.wait_disconnected(timeout=1)
+            wpas.wait_connected(timeout=5)
+            hapd0.wait_sta()
+            hapd1.wait_sta()
+
+            eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                              valid_links=3, active_links=3)
+            eht_verify_wifi_version(wpas)
+            traffic_test(wpas, hapd0)
+
+def test_eht_mld_disassociate(dev, apdev):
+    """EHT MLD with two links. Disassociate and reconnect"""
+    _eht_mld_disconnect(dev, apdev, disassoc=True)
+
+def test_eht_mld_deauthenticate(dev, apdev):
+    """EHT MLD with two links. Deauthenticate and reconnect"""
+    _eht_mld_disconnect(dev, apdev, disassoc=False)
