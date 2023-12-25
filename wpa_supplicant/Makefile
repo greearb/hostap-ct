@@ -1090,17 +1090,20 @@ endif
 
 ifdef CONFIG_PCSC
 # PC/SC interface for smartcards (USIM, GSM SIM)
-CFLAGS += -DPCSC_FUNCS -I/usr/include/PCSC
+CFLAGS += -DPCSC_FUNCS
 OBJS += ../src/utils/pcsc_funcs.o
 ifdef CONFIG_NATIVE_WINDOWS
 #Once MinGW gets support for WinScard, -lwinscard could be used instead of the
 #dynamic symbol loading that is now used in pcsc_funcs.c
 #LIBS += -lwinscard
+CFLAGS += -I/usr/include/PCSC
 else
 ifdef CONFIG_OSX
 LIBS += -framework PCSC
+CFLAGS += -I/usr/include/PCSC
 else
 LIBS += $(shell $(PKG_CONFIG) --libs libpcsclite)
+CFLAGS += $(shell $(PKG_CONFIG) --cflags libpcsclite)
 endif
 endif
 endif
