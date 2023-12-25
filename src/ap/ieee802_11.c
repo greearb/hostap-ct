@@ -5739,6 +5739,9 @@ hostapd_ml_get_assoc_sta(struct hostapd_data *hapd, struct sta_info *sta,
 	struct hostapd_data *other_hapd = NULL;
 	struct sta_info *tmp_sta;
 
+	if (!sta->mld_info.mld_sta)
+		return NULL;
+
 	*assoc_hapd = hapd;
 
 	/* The station is the one on which the association was performed */
@@ -5787,6 +5790,8 @@ static bool hostapd_ml_handle_disconnect(struct hostapd_data *hapd,
 	 * the information about all the other links.
 	 */
 	assoc_sta = hostapd_ml_get_assoc_sta(hapd, sta, &assoc_hapd);
+	if (!assoc_sta)
+		return false;
 
 	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 		for (i = 0; i < assoc_hapd->iface->interfaces->count; i++) {
