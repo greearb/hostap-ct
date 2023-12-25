@@ -2625,7 +2625,7 @@ def find_wpas_process(dev):
     raise Exception("Could not find wpa_supplicant process")
 
 def read_process_memory(pid, key=None):
-    buf = bytes()
+    buf = []
     logger.info("Reading process memory (pid=%d)" % pid)
     with open('/proc/%d/maps' % pid, 'r') as maps, \
          open('/proc/%d/mem' % pid, 'rb') as mem:
@@ -2651,11 +2651,11 @@ def read_process_memory(pid, key=None):
             except OSError as e:
                 logger.info("Could not read mem: start=%d end=%d: %s" % (start, end, str(e)))
                 continue
-            buf += data
+            buf.append(data)
             if key and key in data:
                 logger.info("Key found in " + l)
     logger.info("Total process memory read: %d bytes" % len(buf))
-    return buf
+    return b''.join(buf)
 
 def verify_not_present(buf, key, fname, keyname):
     pos = buf.find(key)
