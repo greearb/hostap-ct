@@ -93,6 +93,11 @@ tcp     6       TCP
 udp     17      UDP
 ipv6-icmp 58	IPv6-ICMP
 EOF
+# for pyrad
+cat > /etc/services <<EOF
+http            80/tcp          www www-http
+http            80/udp          www www-http
+EOF
 
 # we may need /etc/alternatives, at least on Debian-based systems
 ln -s /tmp/etc/alternatives /etc/
