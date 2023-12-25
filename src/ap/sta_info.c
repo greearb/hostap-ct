@@ -1715,6 +1715,34 @@ int ap_sta_pending_delayed_1x_auth_fail_disconnect(struct hostapd_data *hapd,
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+static void ap_sta_remove_link_sta(struct hostapd_data *hapd,
+				   struct sta_info *sta)
+{
+	struct hostapd_data *tmp_hapd;
+	unsigned int i, j;
+
+	for_each_mld_link(tmp_hapd, i, j, hapd->iface->interfaces,
+			  hapd->conf->mld_id) {
+		struct sta_info *tmp_sta;
+
+		if (hapd == tmp_hapd)
+			continue;
+
+		for (tmp_sta = tmp_hapd->sta_list; tmp_sta;
+		     tmp_sta = tmp_sta->next) {
+			if (tmp_sta == sta ||
+			    os_memcmp(tmp_sta->addr, sta->addr, ETH_ALEN) != 0)
+				continue;
+
+			ap_free_sta(tmp_hapd, tmp_sta);
+			break;
+		}
+	}
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 int ap_sta_re_add(struct hostapd_data *hapd, struct sta_info *sta)
 {
 	const u8 *mld_link_addr = NULL;
@@ -1734,6 +1762,12 @@ int ap_sta_re_add(struct hostapd_data *hapd, struct sta_info *sta)
 
 		mld_link_sta = sta->mld_assoc_link_id != mld_link_id;
 		mld_link_addr = sta->mld_info.links[mld_link_id].peer_addr;
+
+		/*
+		 * In case the AP is affiliated with an AP MLD, we need to
+		 * remove the station from all relevant links/APs.
+		 */
+		ap_sta_remove_link_sta(hapd, sta);
 	}
 #endif /* CONFIG_IEEE80211BE */
 
