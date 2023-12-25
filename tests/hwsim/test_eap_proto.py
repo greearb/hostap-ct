@@ -160,7 +160,7 @@ def start_radius_server(eap_handler):
     srv.hosts["127.0.0.1"] = pyrad.server.RemoteHost("127.0.0.1",
                                                      b"radius",
                                                      "localhost")
-    srv.BindToAddress("")
+    srv.BindToAddress("127.0.0.1")
     t_stop = threading.Event()
     t = threading.Thread(target=run_pyrad_server, args=(srv, t_stop, eap_handler))
     t.start()

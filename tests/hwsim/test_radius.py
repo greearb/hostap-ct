@@ -1132,7 +1132,7 @@ def test_radius_protocol(dev, apdev):
     srv.hosts["127.0.0.1"] = pyrad.server.RemoteHost("127.0.0.1",
                                                      b"radius",
                                                      "localhost")
-    srv.BindToAddress("")
+    srv.BindToAddress("127.0.0.1")
     t_events = {}
     t_events['stop'] = threading.Event()
     t_events['msg_auth'] = threading.Event()
@@ -1249,7 +1249,7 @@ def start_radius_psk_server(psk, invalid_code=False, acct_interim_interval=0,
     srv.hosts["127.0.0.1"] = pyrad.server.RemoteHost("127.0.0.1",
                                                      b"radius",
                                                      "localhost")
-    srv.BindToAddress("")
+    srv.BindToAddress("127.0.0.1")
     t_events = {}
     t_events['stop'] = threading.Event()
     t_events['psk'] = psk
@@ -1595,7 +1595,7 @@ def test_ap_vlan_wpa2_psk_radius_required(dev, apdev):
     srv.hosts["127.0.0.1"] = pyrad.server.RemoteHost("127.0.0.1",
                                                      b"radius",
                                                      "localhost")
-    srv.BindToAddress("")
+    srv.BindToAddress("127.0.0.1")
     t_events = {}
     t_events['stop'] = threading.Event()
     t_events['long'] = threading.Event()
