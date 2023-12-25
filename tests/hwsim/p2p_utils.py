@@ -374,6 +374,7 @@ def go_neg_pbc(i_dev, r_dev, i_intent=None, r_intent=None, i_freq=None,
         raise Exception("go_neg_init_pbc thread failed")
     logger.debug("i_res: " + str(i_res))
     logger.info("Group formed")
+    time.sleep(0.1)
     hwsim_utils.test_connectivity_p2p(r_dev, i_dev)
     i_dev.dump_monitor()
     return [i_res, r_res]
