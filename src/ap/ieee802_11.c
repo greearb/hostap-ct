@@ -7575,14 +7575,16 @@ static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
 		*len += RNR_TBTT_INFO_LEN;
 	} else {
 #ifdef CONFIG_IEEE80211BE
+		u8 param_ch = hapd->eht_mld_bss_param_change;
+
 		if (reporting_hapd->conf->mld_ap &&
 		    bss->conf->mld_id == reporting_hapd->conf->mld_id)
 			*eid++ = 0;
 		else
 			*eid++ = hapd->conf->mld_id;
 
-		*eid++ = hapd->mld_link_id | (1 << 4);
-		*eid = 0;
+		*eid++ = hapd->mld_link_id | ((param_ch & 0xF) << 4);
+		*eid = (param_ch >> 4) & 0xF;
 #ifdef CONFIG_TESTING_OPTIONS
 		if (hapd->conf->mld_indicate_disabled)
 			*eid |= RNR_TBTT_INFO_MLD_PARAM2_LINK_DISABLED;
