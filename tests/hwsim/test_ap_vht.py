@@ -347,6 +347,7 @@ def test_ap_vht_40(devs, apdevs):
                   "vht_oper_centr_freq_seg0_idx": "0"}
         hapd = hostapd.add_ap(ap, params)
         dev.connect("test-vht40", scan_freq="5180", key_mgmt="NONE")
+        time.sleep(0.1)
         hwsim_utils.test_connectivity(dev, hapd)
 
         sta = hapd.get_sta(dev.own_addr())
