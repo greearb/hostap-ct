@@ -4766,7 +4766,7 @@ def get_permanent_neighbors(ifname):
     cmd = subprocess.Popen(['ip', 'nei'], stdout=subprocess.PIPE)
     res = cmd.stdout.read().decode()
     cmd.stdout.close()
-    return [line for line in res.splitlines() if "PERMANENT" in line and ifname in line]
+    return [line.strip() for line in res.splitlines() if "PERMANENT" in line and ifname in line]
 
 def get_bridge_macs(ifname):
     cmd = subprocess.Popen(['brctl', 'showmacs', ifname],
