@@ -874,8 +874,8 @@ static void ap_sta_disconnect_common(struct hostapd_data *hapd,
 }
 
 
-void ap_sta_disassociate(struct hostapd_data *hapd, struct sta_info *sta,
-			 u16 reason)
+static void ap_sta_handle_disassociate(struct hostapd_data *hapd,
+				       struct sta_info *sta, u16 reason)
 {
 	wpa_printf(MSG_DEBUG, "%s: disassociate STA " MACSTR,
 		   hapd->conf->iface, MAC2STR(sta->addr));
@@ -914,8 +914,8 @@ static void ap_sta_deauth_cb_timeout(void *eloop_ctx, void *timeout_ctx)
 }
 
 
-void ap_sta_deauthenticate(struct hostapd_data *hapd, struct sta_info *sta,
-			   u16 reason)
+static void ap_sta_handle_deauthenticate(struct hostapd_data *hapd,
+					 struct sta_info *sta, u16 reason)
 {
 	if (hapd->iface->current_mode &&
 	    hapd->iface->current_mode->mode == HOSTAPD_MODE_IEEE80211AD) {
@@ -939,6 +939,105 @@ void ap_sta_deauthenticate(struct hostapd_data *hapd, struct sta_info *sta,
 	eloop_register_timeout(hapd->iface->drv_flags &
 			       WPA_DRIVER_FLAGS_DEAUTH_TX_STATUS ? 2 : 0, 0,
 			       ap_sta_deauth_cb_timeout, hapd, sta);
+}
+
+
+static bool ap_sta_ml_disconnect(struct hostapd_data *hapd,
+				 struct sta_info *sta, u16 reason,
+				 bool disassoc)
+{
+#ifdef CONFIG_IEEE80211BE
+	struct hostapd_data *assoc_hapd, *tmp_hapd;
+	struct sta_info *assoc_sta;
+	unsigned int i, link_id;
+	struct hapd_interfaces *interfaces;
+
+	if (!hostapd_is_mld_ap(hapd))
+		return false;
+
+	/*
+	 * Get the station on which the association was performed, as it holds
+	 * the information about all the other links.
+	 */
+	assoc_sta = hostapd_ml_get_assoc_sta(hapd, sta, &assoc_hapd);
+	if (!assoc_sta)
+		return false;
+	interfaces = assoc_hapd->iface->interfaces;
+
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+		for (i = 0; i < interfaces->count; i++) {
+			struct sta_info *tmp_sta;
+
+			if (!assoc_sta->mld_info.links[link_id].valid)
+				continue;
+
+			tmp_hapd = interfaces->iface[i]->bss[0];
+
+			if (!tmp_hapd->conf->mld_ap ||
+			    assoc_hapd->conf->mld_id != tmp_hapd->conf->mld_id)
+				continue;
+
+			for (tmp_sta = tmp_hapd->sta_list; tmp_sta;
+			     tmp_sta = tmp_sta->next) {
+				/*
+				 * Handle the station on which the association
+				 * was done only after all other link station
+				 * are removed. Since there is a only a single
+				 * station per hapd with the same association
+				 * link simply break;
+				 */
+				if (tmp_sta == assoc_sta)
+					break;
+
+				if (tmp_sta->mld_assoc_link_id !=
+				    assoc_sta->mld_assoc_link_id ||
+				    tmp_sta->aid != assoc_sta->aid)
+					continue;
+
+				if (disassoc)
+					ap_sta_handle_disassociate(tmp_hapd,
+								   tmp_sta,
+								   reason);
+				else
+					ap_sta_handle_deauthenticate(tmp_hapd,
+								     tmp_sta,
+								     reason);
+
+				break;
+			}
+		}
+	}
+
+	/* Disconnect the station on which the association was performed. */
+	if (disassoc)
+		ap_sta_handle_disassociate(assoc_hapd, assoc_sta, reason);
+	else
+		ap_sta_handle_deauthenticate(assoc_hapd, assoc_sta, reason);
+
+	return true;
+#else /* CONFIG_IEEE80211BE */
+	return false;
+#endif /* CONFIG_IEEE80211BE */
+}
+
+
+void ap_sta_disassociate(struct hostapd_data *hapd, struct sta_info *sta,
+			 u16 reason)
+{
+	if (ap_sta_ml_disconnect(hapd, sta, reason, true))
+		return;
+
+	ap_sta_handle_disassociate(hapd, sta, reason);
+}
+
+
+void ap_sta_deauthenticate(struct hostapd_data *hapd, struct sta_info *sta,
+			   u16 reason)
+{
+	if (ap_sta_ml_disconnect(hapd, sta, reason, false))
+		return;
+
+	ap_sta_handle_deauthenticate(hapd, sta, reason);
 }
 
 
