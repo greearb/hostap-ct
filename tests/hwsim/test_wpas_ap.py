@@ -795,6 +795,8 @@ def run_wpas_ap_open_vht80_us(dev, freq, center_freq, ht40):
         if "WIDTH=80 MHz" not in sig:
             raise Exception("Unexpected SIGNAL_POLL value(2): " + str(sig))
     finally:
+        dev[0].request("REMOVE_NETWORK all")
+        dev[0].wait_disconnected()
         set_country("00")
         dev[0].set("country", "00")
         dev[1].flush_scan_cache()
