@@ -123,11 +123,12 @@ def report(conn, prefill, build, commit, run, test, result, duration, logdir,
                              logdir + "/" + test + "." + log)
 
 class DataCollector(object):
-    def __init__(self, logdir, testname, args):
+    def __init__(self, logdir, testname, kmemleak, args):
         self._logdir = logdir
         self._testname = testname
         self._tracing = args.tracing
         self._dmesg = args.dmesg
+        self._kmemleak = kmemleak
         self._dbus = args.dbus
     def __enter__(self):
         if self._tracing:
@@ -159,6 +160,36 @@ class DataCollector(object):
             self._trace_cmd.stdin.write(b'DONE\n')
             self._trace_cmd.stdin.flush()
             self._trace_cmd.wait()
+
+        if self._kmemleak:
+            output = os.path.join(self._logdir, '%s.kmemleak' % (self._testname, ))
+            num = 0
+            while os.path.exists(output):
+                output = os.path.join(self._logdir, '%s.kmemleak-%d' % (self._testname, num))
+                num += 1
+
+            # Trigger kmemleak
+            with open('/sys/kernel/debug/kmemleak', 'w+') as kmemleak:
+                kmemleak.write('scan')
+                kmemleak.seek(0)
+
+                # Minimum reporting age
+                time.sleep(5)
+
+                kmemleak.write('scan')
+                kmemleak.seek(0)
+
+                leaks = []
+                while l := kmemleak.read():
+                    leaks.append(l)
+                leaks = ''.join(leaks)
+                if leaks:
+                    with open(output, 'w') as out:
+                        out.write(leaks)
+
+                kmemleak.seek(0)
+                kmemleak.write('clear')
+
         if self._dmesg:
             output = os.path.join(self._logdir, '%s.dmesg' % (self._testname, ))
             num = 0
@@ -395,6 +426,19 @@ def main():
     if args.dmesg:
         subprocess.call(['dmesg', '-c'], stdout=open('/dev/null', 'w'))
 
+    try:
+        # try to clear out any leaks that happened earlier
+        with open('/sys/kernel/debug/kmemleak', 'w') as kmemleak:
+            kmemleak.write('scan')
+            kmemleak.seek(0)
+            time.sleep(5)
+            kmemleak.write('scan')
+            kmemleak.seek(0)
+            kmemleak.write('clear')
+        have_kmemleak = True
+    except OSError:
+        have_kmemleak = False
+
     if conn and args.prefill:
         for t in tests_to_run:
             name = t.__name__.replace('test_', '', 1)
@@ -494,7 +538,7 @@ def main():
             pass
 
         reset_ok = True
-        with DataCollector(args.logdir, name, args):
+        with DataCollector(args.logdir, name, have_kmemleak, args):
             count = count + 1
             msg = "START {} {}/{}".format(name, count, num_tests)
             logger.info(msg)
@@ -649,6 +693,12 @@ def main():
         if result == 'PASS' and args.dmesg:
             if not check_kernel(os.path.join(args.logdir, name + '.dmesg')):
                 logger.info("Kernel issue found in dmesg - mark test failed")
+                result = 'FAIL'
+
+        if result == 'PASS' and have_kmemleak:
+            # The file is only created if a leak was found
+            if os.path.exists(os.path.join(args.logdir, name + '.kmemleak')):
+                logger.info("Kernel memory leak found - mark test failed")
                 result = 'FAIL'
 
         if result == 'PASS':
