@@ -740,7 +740,15 @@ void wpas_handle_robust_av_recv_action(struct wpa_supplicant *wpa_s,
 
 	dialog_token = *buf++;
 	len--;
-	if (dialog_token != wpa_s->robust_av.dialog_token) {
+
+	/* AP sets dialog token to 0 for unsolicited response */
+	if (!dialog_token && !wpa_s->mscs_setup_done) {
+		wpa_printf(MSG_INFO,
+			   "MSCS: Drop unsolicited received frame: inactive");
+		return;
+	}
+
+	if (dialog_token && dialog_token != wpa_s->robust_av.dialog_token) {
 		wpa_printf(MSG_INFO,
 			   "MSCS: Drop received frame due to dialog token mismatch: received:%u expected:%u",
 			   dialog_token, wpa_s->robust_av.dialog_token);
