@@ -4090,6 +4090,7 @@ int wpa_driver_nl80211_authenticate_retry(struct wpa_driver_nl80211_data *drv)
 {
 	struct wpa_driver_auth_params params;
 	struct i802_bss *bss = drv->first_bss;
+	u8 ap_mld_addr[ETH_ALEN];
 	int i;
 
 	wpa_printf(MSG_DEBUG, "nl80211: Try to authenticate again");
@@ -4115,8 +4116,10 @@ int wpa_driver_nl80211_authenticate_retry(struct wpa_driver_nl80211_data *drv)
 	params.auth_data_len = drv->auth_data_len;
 	params.mld = drv->auth_mld;
 	params.mld_link_id = drv->auth_mld_link_id;
-	if (drv->auth_mld)
-		params.ap_mld_addr = drv->auth_ap_mld_addr;
+	if (drv->auth_mld) {
+		os_memcpy(ap_mld_addr, drv->auth_ap_mld_addr, ETH_ALEN);
+		params.ap_mld_addr = ap_mld_addr;
+	}
 
 	for (i = 0; i < 4; i++) {
 		if (drv->auth_wep_key_len[i]) {
