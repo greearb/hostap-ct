@@ -16,7 +16,14 @@ def register_mcsc_req(hapd):
     if "OK" not in hapd.request("REGISTER_FRAME %04x %s" % (type, match)):
         raise Exception("Could not register frame reception for Robust AV Streaming")
 
-def handle_mscs_req(hapd, wrong_dialog=False, status_code=0):
+def fill_change_params(dialog_token, status_code, params):
+    req_type = params['req_type'] if 'req_type' in params else 2
+    return struct.pack('<BBBHBBBBBBI', 19, 5, dialog_token, status_code,
+                       255, 8, 88, req_type, params['up_bitmap'],
+                       params['up_limit'], params['stream_timeout'])
+
+def handle_mscs_req(hapd, wrong_dialog=False, status_code=0,
+                    change_params=None):
     msg = hapd.mgmt_rx()
     if msg['subtype'] != 13:
         logger.info("RX:" + str(msg))
@@ -30,17 +37,31 @@ def handle_mscs_req(hapd, wrong_dialog=False, status_code=0):
         dialog_token = (dialog_token + 1) % 256
     msg['da'] = msg['sa']
     msg['sa'] = hapd.own_addr()
-    msg['payload'] = struct.pack('<BBBH', 19, 5, dialog_token, status_code)
+
+    if change_params is not None:
+        msg['payload'] = fill_change_params(dialog_token, status_code,
+                                            change_params)
+    else:
+        msg['payload'] = struct.pack('<BBBH', 19, 5, dialog_token, status_code)
+
     hapd.mgmt_tx(msg)
     ev = hapd.wait_event(["MGMT-TX-STATUS"], timeout=5)
     if ev is None or "stype=13 ok=1" not in ev:
         raise Exception("No TX status reported")
 
-def wait_mscs_result(dev, expect_status=0):
+def wait_mscs_result(dev, expect_status=0, change_params=None):
     ev = dev.wait_event(["CTRL-EVENT-MSCS-RESULT"], timeout=1)
     if ev is None:
         raise Exception("No MSCS result reported")
     if "status_code=%d" % expect_status not in ev:
+        raise Exception("Unexpected MSCS result: " + ev)
+    if change_params is None and 'change' in ev:
+        raise Exception("Unexpected 'change' in MSCS result: " + ev)
+    if change_params is not None and \
+        ("change" not in ev or
+         "up_limit=%d" % change_params['up_limit'] not in ev or
+         "up_bitmap=%d" % change_params['up_bitmap'] not in ev or
+         "stream_timeout=%d" % change_params['stream_timeout'] not in ev):
         raise Exception("Unexpected MSCS result: " + ev)
 
 def add_mscs_ap(apdev, reg_mscs_req=True, mscs_supported=True,
@@ -224,3 +245,171 @@ def run_mscs_local_errors(dev, apdev):
             cmd = "MSCS add up_bitmap=F0 up_limit=7 stream_timeout=12345 frame_classifier=045F"
             if "FAIL" not in dev[0].request(cmd):
                 raise Exception("MSCS add succeeded in error case")
+
+def test_mscs_assoc_change_response(dev, apdev):
+    """MSCS configuration failure during assoc - AP response with change request"""
+    mscs_run(dev, apdev, run_mscs_assoc_change_response)
+
+def run_mscs_assoc_change_response(dev, apdev):
+    ies = "ff0c5802060701000000" + "01020001"
+    hapd = add_mscs_ap(apdev[0], assocresp_elements=ies)
+
+    cmd = "MSCS add up_bitmap=F0 up_limit=7 stream_timeout=12345 frame_classifier=045F"
+    if "OK" not in dev[0].request(cmd):
+        raise Exception("MSCS add failed")
+
+    dev[0].connect("mscs", key_mgmt="NONE", scan_freq="2412",
+                   wait_connect=False)
+
+    # Based on the Association Response elements above
+    change_params = {
+        'up_bitmap': 6,
+        'up_limit': 7,
+        'stream_timeout': 1
+    }
+    wait_mscs_result(dev[0], expect_status=256, change_params=change_params)
+    dev[0].wait_connected()
+
+    hapd.dump_monitor()
+    hapd.set("ext_mgmt_frame_handling", "1")
+
+    # Verify we're able to send a new MSCS Request frame.
+    cmd = "MSCS add up_bitmap=F0 up_limit=7 stream_timeout=12345` frame_classifier=045F"
+    if "OK" not in dev[0].request(cmd):
+        raise Exception("MSCS add failed")
+
+    handle_mscs_req(hapd)
+    wait_mscs_result(dev[0])
+
+def test_mscs_post_assoc_change_response(dev, apdev):
+    """MSCS configuration failure post assoc - AP response with MSCS Response frame change request"""
+    mscs_run(dev, apdev, run_mscs_post_assoc_change_response)
+
+def run_mscs_post_assoc_change_response(dev, apdev):
+    hapd = add_mscs_ap(apdev[0])
+    dev[0].connect("mscs", key_mgmt="NONE", scan_freq="2412")
+
+    hapd.dump_monitor()
+    hapd.set("ext_mgmt_frame_handling", "1")
+
+    cmd = "MSCS add up_bitmap=F0 up_limit=7 stream_timeout=12345 frame_classifier=045F"
+    if "OK" not in dev[0].request(cmd):
+        raise Exception("MSCS add failed")
+
+    change_params = {
+        'up_bitmap': 6,
+        'up_limit': 7,
+        'stream_timeout': 1
+    }
+
+    handle_mscs_req(hapd, status_code=256, change_params=change_params)
+    wait_mscs_result(dev[0], expect_status=256, change_params=change_params)
+
+    # Verify we're able to send new valid MSCS request
+    cmd = "MSCS add up_bitmap=F0 up_limit=7 stream_timeout=12345 frame_classifier=045F"
+    if "OK" not in dev[0].request(cmd):
+        raise Exception("MSCS add failed")
+
+    handle_mscs_req(hapd)
+    wait_mscs_result(dev[0])
+
+def test_mscs_invalid_req_type_response(dev, apdev):
+    """MSCS AP response with invalid request type"""
+    mscs_run(dev, apdev, run_mscs_invalid_req_type_response)
+
+def run_mscs_invalid_req_type_response(dev, apdev):
+    hapd = add_mscs_ap(apdev[0])
+    dev[0].connect("mscs", key_mgmt="NONE", scan_freq="2412")
+
+    hapd.dump_monitor()
+    hapd.set("ext_mgmt_frame_handling", "1")
+
+    change_params = {
+        'up_bitmap': 6,
+        'up_limit': 7,
+        'stream_timeout': 1
+    }
+
+    # Verify frames with invalid MSCS decriptor request type dropped
+    for req_type in [3, 4, 10]:
+        cmd = "MSCS add up_bitmap=F0 up_limit=7 stream_timeout=12345 frame_classifier=045F"
+        if "OK" not in dev[0].request(cmd):
+            raise Exception("MSCS add failed")
+
+        change_params['req_type'] = req_type
+        handle_mscs_req(hapd, status_code=256, change_params=change_params)
+        ev = dev[0].wait_event(["CTRL-EVENT-MSCS-RESULT"], timeout=1)
+        if ev is not None:
+            raise Exception("Unexpected MSCS result reported")
+
+def send_unsolicited_mscs_response(dev, hapd, status_code, params=None,
+                                   wrong_dialog=False):
+    dialog_token = 0 if not wrong_dialog else 10
+    if params is not None:
+        payload = fill_change_params(dialog_token, status_code, params)
+    else:
+        payload = struct.pack('<BBBH', 19, 5, dialog_token, status_code)
+
+    msg = {
+        'fc': 0xd0,
+        'sa': hapd.own_addr(),
+        'da': dev.own_addr(),
+        'bssid': hapd.own_addr(),
+        'payload': payload,
+    }
+
+    hapd.mgmt_tx(msg)
+    ev = hapd.wait_event(["MGMT-TX-STATUS"], timeout=5)
+    if ev is None or "stype=13 ok=1" not in ev:
+        raise Exception("No TX status reported")
+
+def test_mscs_unsolicited_response(dev, apdev):
+    """MSCS configured and AP sends unsolicited response to terminate / change the session"""
+    mscs_run(dev, apdev, run_mscs_unsolicited_response)
+
+def run_mscs_unsolicited_response(dev, apdev):
+    hapd = add_mscs_ap(apdev[0])
+    dev[0].connect("mscs", key_mgmt="NONE", scan_freq="2412")
+
+    hapd.dump_monitor()
+    hapd.set("ext_mgmt_frame_handling", "1")
+
+    cmd = "MSCS add up_bitmap=F0 up_limit=7 stream_timeout=12345 frame_classifier=045F"
+    if "OK" not in dev[0].request(cmd):
+        raise Exception("MSCS add failed")
+
+    handle_mscs_req(hapd)
+    wait_mscs_result(dev[0])
+
+    status_code = 256
+
+    # Verify unsolicited response with wrong dialog token (othar than 0) is
+    # dropped
+    send_unsolicited_mscs_response(dev[0], hapd, status_code=status_code,
+                                   wrong_dialog=True)
+    ev = dev[0].wait_event(["CTRL-EVENT-MSCS-RESULT"], timeout=1)
+    if ev is not None:
+        raise Exception("Unexpected MSCS result reported")
+
+    # Verify unsolicited response without change request (termination)
+    send_unsolicited_mscs_response(dev[0], hapd, status_code=status_code)
+    wait_mscs_result(dev[0], expect_status=status_code)
+
+    # Send new MSCS request
+    cmd = "MSCS add up_bitmap=F0 up_limit=7 stream_timeout=12345 frame_classifier=045F"
+    if "OK" not in dev[0].request(cmd):
+        raise Exception("MSCS add failed")
+
+    handle_mscs_req(hapd)
+    wait_mscs_result(dev[0])
+
+    params = {
+        'up_bitmap': 6,
+        'up_limit': 7,
+        'stream_timeout': 1
+    }
+
+    # Verify unsolicited response handling with change request
+    send_unsolicited_mscs_response(dev[0], hapd, status_code=status_code,
+                                   params=params)
+    wait_mscs_result(dev[0], expect_status=status_code, change_params=params)
