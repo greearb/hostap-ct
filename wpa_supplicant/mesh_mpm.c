@@ -468,6 +468,7 @@ void wpa_mesh_set_plink_state(struct wpa_supplicant *wpa_s,
 	params.plink_state = state;
 	params.peer_aid = sta->peer_aid;
 	params.set = 1;
+	params.mld_link_id = -1;
 
 	ret = wpa_drv_sta_add(wpa_s, &params);
 	if (ret) {
@@ -697,6 +698,7 @@ void mesh_mpm_auth_peer(struct wpa_supplicant *wpa_s, const u8 *addr)
 	params.addr = sta->addr;
 	params.flags = WPA_STA_AUTHENTICATED | WPA_STA_AUTHORIZED;
 	params.set = 1;
+	params.mld_link_id = -1;
 
 	wpa_msg(wpa_s, MSG_DEBUG, "MPM authenticating " MACSTR,
 		MAC2STR(sta->addr));
@@ -816,6 +818,7 @@ static struct sta_info * mesh_mpm_add_peer(struct wpa_supplicant *wpa_s,
 	params.eht_capab_len = sta->eht_capab_len;
 	params.flags |= WPA_STA_WMM;
 	params.flags_mask |= WPA_STA_AUTHENTICATED;
+	params.mld_link_id = -1;
 	if (conf->security == MESH_CONF_SEC_NONE) {
 		params.flags |= WPA_STA_AUTHORIZED;
 		params.flags |= WPA_STA_AUTHENTICATED;
