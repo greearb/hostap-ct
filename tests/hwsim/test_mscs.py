@@ -43,6 +43,25 @@ def wait_mscs_result(dev, expect_status=0):
     if "status_code=%d" % expect_status not in ev:
         raise Exception("Unexpected MSCS result: " + ev)
 
+def add_mscs_ap(apdev, reg_mscs_req=True, mscs_supported=True,
+                assocresp_elements=None):
+    params = {"ssid": "mscs"}
+
+    if mscs_supported:
+        params["ext_capa"] = 10*"00" + "20"
+    else:
+        params["ext_capa_mask"] = 10*"00" + "20"
+
+    if assocresp_elements is not None:
+        params['assocresp_elements'] = assocresp_elements
+
+    hapd = hostapd.add_ap(apdev, params)
+
+    if reg_mscs_req:
+        register_mcsc_req(hapd)
+
+    return hapd
+
 def test_mscs_invalid_params(dev, apdev):
     """MSCS command invalid parameters"""
     tests = ["",
@@ -58,17 +77,18 @@ def test_mscs_invalid_params(dev, apdev):
         if "FAIL" not in dev[0].request("MSCS " + t):
             raise Exception("Invalid MSCS parameters accepted: " + t)
 
-def test_mscs_without_ap_support(dev, apdev):
-    """MSCS without AP support"""
+def mscs_run(dev, apdev, func):
     try:
-        run_mscs_without_ap_support(dev, apdev)
+        func(dev, apdev)
     finally:
         dev[0].request("MSCS remove")
 
+def test_mscs_without_ap_support(dev, apdev):
+    """MSCS without AP support"""
+    mscs_run(dev, apdev, run_mscs_without_ap_support)
+
 def run_mscs_without_ap_support(dev, apdev):
-    params = {"ssid": "mscs",
-              "ext_capa_mask": 10*"00" + "20"}
-    hapd = hostapd.add_ap(apdev[0], params)
+    add_mscs_ap(apdev[0], reg_mscs_req=False, mscs_supported=False)
 
     cmd = "MSCS add up_bitmap=F0 up_limit=7 stream_timeout=12345 frame_classifier=045F"
     if "OK" not in dev[0].request(cmd):
@@ -86,16 +106,10 @@ def run_mscs_without_ap_support(dev, apdev):
 
 def test_mscs_post_assoc(dev, apdev):
     """MSCS configuration post-association"""
-    try:
-        run_mscs_post_assoc(dev, apdev)
-    finally:
-        dev[0].request("MSCS remove")
+    mscs_run(dev, apdev, run_mscs_post_assoc)
 
 def run_mscs_post_assoc(dev, apdev):
-    params = {"ssid": "mscs",
-              "ext_capa": 10*"00" + "20"}
-    hapd = hostapd.add_ap(apdev[0], params)
-    register_mcsc_req(hapd)
+    hapd = add_mscs_ap(apdev[0])
 
     dev[0].connect("mscs", key_mgmt="NONE", scan_freq="2412")
 
@@ -129,17 +143,11 @@ def run_mscs_post_assoc(dev, apdev):
 
 def test_mscs_pre_assoc(dev, apdev):
     """MSCS configuration pre-association"""
-    try:
-        run_mscs_pre_assoc(dev, apdev)
-    finally:
-        dev[0].request("MSCS remove")
+    mscs_run(dev, apdev, run_mscs_pre_assoc)
 
 def run_mscs_pre_assoc(dev, apdev):
-    params = {"ssid": "mscs",
-              "ext_capa": 10*"00" + "20",
-              "assocresp_elements": "ff0c5800000000000000" + "01020000"}
-    hapd = hostapd.add_ap(apdev[0], params)
-    register_mcsc_req(hapd)
+    ies = "ff0c5800000000000000" + "01020000"
+    hapd = add_mscs_ap(apdev[0], assocresp_elements=ies)
 
     cmd = "MSCS add up_bitmap=F0 up_limit=7 stream_timeout=12345 frame_classifier=045F"
     if "OK" not in dev[0].request(cmd):
@@ -171,17 +179,11 @@ def run_mscs_pre_assoc(dev, apdev):
 
 def test_mscs_assoc_failure(dev, apdev):
     """MSCS configuration failure during association exchange"""
-    try:
-        run_mscs_assoc_failure(dev, apdev)
-    finally:
-        dev[0].request("MSCS remove")
+    mscs_run(dev, apdev, run_mscs_assoc_failure)
 
 def run_mscs_assoc_failure(dev, apdev):
-    params = {"ssid": "mscs",
-              "ext_capa": 10*"00" + "20",
-              "assocresp_elements": "ff0c5800000000000000" + "01020001"}
-    hapd = hostapd.add_ap(apdev[0], params)
-    register_mcsc_req(hapd)
+    ies = "ff0c5800000000000000" + "01020001"
+    hapd = add_mscs_ap(apdev[0], assocresp_elements=ies)
 
     cmd = "MSCS add up_bitmap=F0 up_limit=7 stream_timeout=12345 frame_classifier=045F"
     if "OK" not in dev[0].request(cmd):
@@ -208,17 +210,10 @@ def run_mscs_assoc_failure(dev, apdev):
 
 def test_mscs_local_errors(dev, apdev):
     """MSCS configuration local errors"""
-    try:
-        run_mscs_local_errors(dev, apdev)
-    finally:
-        dev[0].request("MSCS remove")
+    mscs_run(dev, apdev, run_mscs_local_errors)
 
 def run_mscs_local_errors(dev, apdev):
-    params = {"ssid": "mscs",
-              "ext_capa": 10*"00" + "20"}
-    hapd = hostapd.add_ap(apdev[0], params)
-    register_mcsc_req(hapd)
-
+    hapd = add_mscs_ap(apdev[0])
     dev[0].connect("mscs", key_mgmt="NONE", scan_freq="2412")
 
     hapd.dump_monitor()
