@@ -668,16 +668,78 @@ void free_up_scs_desc(struct scs_robust_av_data *data)
  * Stream Timeout(4) */
 #define MSCS_DESCRIPTOR_FIXED_LEN 8
 
+static void wpas_parse_mscs_resp(struct wpa_supplicant *wpa_s,
+				 u16 status, const u8 *bssid,
+				 const u8 *mscs_desc_ie)
+{
+	struct robust_av_data robust_av;
+	const u8 *pos;
+
+	/* The MSCS Descriptor element is optional in the MSCS Response frame */
+	if (!mscs_desc_ie)
+		goto event_mscs_result;
+
+	if (mscs_desc_ie[1] < MSCS_DESCRIPTOR_FIXED_LEN) {
+		wpa_printf(MSG_INFO,
+			   "MSCS: Drop received frame: invalid MSCS Descriptor element length: %d",
+			   mscs_desc_ie[1]);
+		return;
+	}
+
+	os_memset(&robust_av, 0, sizeof(struct robust_av_data));
+
+	/* Skip Element ID, Length, and Element ID Extension */
+	pos = &mscs_desc_ie[3];
+
+	robust_av.request_type = *pos++;
+
+	switch (robust_av.request_type) {
+	case SCS_REQ_CHANGE:
+		/*
+		 * Inform the suggested set of parameters that could be accepted
+		 * by the AP in response to a subsequent request by the station.
+		 */
+		robust_av.up_bitmap = *pos++;
+		robust_av.up_limit = *pos++ & 0x07;
+		robust_av.stream_timeout = WPA_GET_LE32(pos);
+		wpa_msg(wpa_s, MSG_INFO, WPA_EVENT_MSCS_RESULT "bssid=" MACSTR
+			" status_code=%u change up_bitmap=%u up_limit=%u stream_timeout=%u",
+			MAC2STR(bssid), status, robust_av.up_bitmap,
+			robust_av.up_limit, robust_av.stream_timeout);
+		wpa_s->mscs_setup_done = false;
+		return;
+	case SCS_REQ_ADD:
+		/*
+		 * This type is used in (Re)Association Response frame MSCS
+		 * Descriptor element if no change is required.
+		 */
+		break;
+	default:
+		wpa_printf(MSG_INFO,
+			   "MSCS: Drop received frame with unknown Request Type: %u",
+			   robust_av.request_type);
+		return;
+	}
+
+event_mscs_result:
+	wpa_msg(wpa_s, MSG_INFO, WPA_EVENT_MSCS_RESULT "bssid=" MACSTR
+		" status_code=%u", MAC2STR(bssid), status);
+	wpa_s->mscs_setup_done = status == WLAN_STATUS_SUCCESS;
+}
+
+
 void wpas_handle_robust_av_recv_action(struct wpa_supplicant *wpa_s,
 				       const u8 *src, const u8 *buf, size_t len)
 {
 	u8 dialog_token;
 	u16 status_code;
+	const u8 *mscs_desc_ie;
 
 	if (len < 3)
 		return;
 
 	dialog_token = *buf++;
+	len--;
 	if (dialog_token != wpa_s->robust_av.dialog_token) {
 		wpa_printf(MSG_INFO,
 			   "MSCS: Drop received frame due to dialog token mismatch: received:%u expected:%u",
@@ -686,9 +748,11 @@ void wpas_handle_robust_av_recv_action(struct wpa_supplicant *wpa_s,
 	}
 
 	status_code = WPA_GET_LE16(buf);
-	wpa_msg(wpa_s, MSG_INFO, WPA_EVENT_MSCS_RESULT "bssid=" MACSTR
-		" status_code=%u", MAC2STR(src), status_code);
-	wpa_s->mscs_setup_done = status_code == WLAN_STATUS_SUCCESS;
+	buf += 2;
+	len -= 2;
+
+	mscs_desc_ie = get_ie_ext(buf, len, WLAN_EID_EXT_MSCS_DESCRIPTOR);
+	wpas_parse_mscs_resp(wpa_s, status_code, src, mscs_desc_ie);
 }
 
 
@@ -715,9 +779,8 @@ void wpas_handle_assoc_resp_mscs(struct wpa_supplicant *wpa_s, const u8 *bssid,
 		return;
 
 	status = WPA_GET_LE16(mscs_status + 2);
-	wpa_msg(wpa_s, MSG_INFO, WPA_EVENT_MSCS_RESULT "bssid=" MACSTR
-		" status_code=%u", MAC2STR(bssid), status);
-	wpa_s->mscs_setup_done = status == WLAN_STATUS_SUCCESS;
+
+	wpas_parse_mscs_resp(wpa_s, status, bssid, mscs_desc_ie);
 }
 
 
