@@ -1117,6 +1117,24 @@ static int wpas_rm_handle_beacon_req_subelem(struct wpa_supplicant *wpa_s,
 			return -1;
 		}
 
+		if (sid == WLAN_BEACON_REQUEST_SUBELEM_EXT_REQUEST) {
+			if (slen < 2) {
+				wpa_printf(MSG_DEBUG,
+					   "Invalid extended request");
+				return -1;
+			}
+			if (subelem[0] != WLAN_EID_EXTENSION) {
+				wpa_printf(MSG_DEBUG,
+					   "Skip unknown Requested Element ID %u in Extended Request subelement",
+					   subelem[0]);
+				break;
+			}
+
+			/* Skip the Requested Element ID field */
+			subelem++;
+			slen--;
+		}
+
 		if ((sid == WLAN_BEACON_REQUEST_SUBELEM_REQUEST &&
 		     data->eids) ||
 		    (sid == WLAN_BEACON_REQUEST_SUBELEM_EXT_REQUEST &&
