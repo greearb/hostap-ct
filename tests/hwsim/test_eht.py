@@ -13,6 +13,7 @@ import re
 from tshark import run_tshark
 from test_gas import hs20_ap_params
 from test_dpp import check_dpp_capab, wait_auth_success
+from test_rrm import build_beacon_request, run_req_beacon, BeaconReport
 
 def eht_verify_wifi_version(dev):
     status = dev.get_status()
@@ -1461,3 +1462,147 @@ def test_eht_mld_disassociate(dev, apdev):
 def test_eht_mld_deauthenticate(dev, apdev):
     """EHT MLD with two links. Deauthenticate and reconnect"""
     _eht_mld_disconnect(dev, apdev, disassoc=False)
+
+def test_eht_mld_non_pref_chan(dev, apdev):
+    """EHT MLD with one link. MBO non preferred channels"""
+
+    with HWSimRadio(use_mlo=True) as (hapd0_radio, hapd0_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        # Start the first AP
+        ssid = "mld_ap_one_link_mbo"
+        params = eht_mld_ap_wpa2_params(ssid, key_mgmt="OWE", mfp="2")
+        params["bss_transition"] = "1"
+        params["mbo"] = "1"
+
+        hapd0 = eht_mld_enable_ap(hapd0_iface, params)
+
+        if "OK" not in wpas.request("SET non_pref_chan 81:7:200:1 81:9:100:2"):
+            raise Exception("Failed to set non-preferred channel list")
+
+        id = wpas.connect(ssid, scan_freq="2412", key_mgmt="OWE",
+                          ieee80211w="2", owe_only="1")
+        hapd0.wait_sta()
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=1, active_links=1)
+        eht_verify_wifi_version(wpas)
+        traffic_test(wpas, hapd0)
+
+        # Validate information received from the Association Request frame
+        addr = wpas.own_addr()
+        sta = hapd0.get_sta(addr)
+        logger.debug("STA: " + str(sta))
+
+        if 'non_pref_chan[0]' not in sta:
+            raise Exception("Missing non_pref_chan[0] value (assoc)")
+        if sta['non_pref_chan[0]'] != '81:200:1:7':
+            raise Exception("Unexpected non_pref_chan[0] value (assoc)")
+        if 'non_pref_chan[1]' not in sta:
+            raise Exception("Missing non_pref_chan[1] value (assoc)")
+        if sta['non_pref_chan[1]'] != '81:100:2:9':
+            raise Exception("Unexpected non_pref_chan[1] value (assoc)")
+        if 'non_pref_chan[2]' in sta:
+            raise Exception("Unexpected non_pref_chan[2] value (assoc)")
+
+        # Verify operating class
+        if 'supp_op_classes' not in sta:
+            raise Exception("No supp_op_classes")
+        supp = bytearray(binascii.unhexlify(sta['supp_op_classes']))
+        if supp[0] != 81:
+            raise Exception("Unexpected current operating class %d" % supp[0])
+        if 115 not in supp:
+            raise Exception("Operating class 115 missing")
+
+        # Validate information from WNM action
+        if "OK" not in wpas.request("SET non_pref_chan 81:9:100:2"):
+            raise Exception("Failed to update non-preferred channel list")
+
+        time.sleep(0.1)
+        sta = hapd0.get_sta(addr)
+        logger.debug("STA: " + str(sta))
+
+        if 'non_pref_chan[0]' not in sta:
+            raise Exception("Missing non_pref_chan[0] value (update 1)")
+        if sta['non_pref_chan[0]'] != '81:100:2:9':
+            raise Exception("Unexpected non_pref_chan[0] value (update 1)")
+        if 'non_pref_chan[1]' in sta:
+            raise Exception("Unexpected non_pref_chan[1] value (update 1)")
+
+        # Validate information from WNM action with multiple entries
+        if "OK" not in wpas.request("SET non_pref_chan 81:9:100:2 81:10:100:2 81:8:100:2 81:7:100:1 81:5:100:1"):
+            raise Exception("Failed to update non-preferred channel list")
+        time.sleep(0.1)
+        sta = hapd0.get_sta(addr)
+        logger.debug("STA: " + str(sta))
+
+        if 'non_pref_chan[0]' not in sta:
+            raise Exception("Missing non_pref_chan[0] value (update 2)")
+        if sta['non_pref_chan[0]'] != '81:100:1:7,5':
+            raise Exception("Unexpected non_pref_chan[0] value (update 2)")
+        if 'non_pref_chan[1]' not in sta:
+            raise Exception("Missing non_pref_chan[1] value (update 2)")
+        if sta['non_pref_chan[1]'] != '81:100:2:9,10,8':
+            raise Exception("Unexpected non_pref_chan[1] value (update 2)")
+        if 'non_pref_chan[2]' in sta:
+            raise Exception("Unexpected non_pref_chan[2] value (update 2)")
+
+def test_eht_mld_rrm_beacon_req(dev, apdev):
+    """EHT MLD with one link. RRM beacon request"""
+
+    with HWSimRadio(use_mlo=True) as (hapd0_radio, hapd0_iface), \
+        HWSimRadio(use_mlo=True) as (hapd1_radio, hapd1_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        # Start the first AP and connect
+        ssid = "mld_ap_one_link_rrm1"
+        params = eht_mld_ap_wpa2_params(ssid, key_mgmt="OWE", mfp="2")
+        params["bss_transition"] = "1"
+        params["mbo"] = "1"
+        params["rrm_beacon_report"] = "1"
+
+        hapd0 = eht_mld_enable_ap(hapd0_iface, params)
+
+        wpas.connect(ssid, scan_freq="2412", key_mgmt="OWE", ieee80211w="2",
+                     owe_only="1")
+        hapd0.wait_sta()
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=1, active_links=1)
+        eht_verify_wifi_version(wpas)
+        traffic_test(wpas, hapd0)
+
+        # Start the second AP
+        other_ssid = "other"
+        params = eht_mld_ap_wpa2_params(other_ssid, key_mgmt="OWE", mfp="2")
+        params["channel"] = '6'
+        params["mld_id"] = '1'
+        hapd1 = eht_mld_enable_ap(hapd1_iface, params)
+
+        # Issue a beacon request for the second AP
+        addr = wpas.own_addr()
+        req = build_beacon_request(mode=1, chan=6, duration=50)
+
+        # Send the request with SSID, Detail, Last Beacon Report Indication, and
+        # Extended Request subelements. The Extended Request elements includes
+        # the Multi-Link element ID.
+        run_req_beacon(hapd0, addr,
+                       req + "0000" + "020101" + "a40101" + "0b02ff6b")
+
+        ev = hapd0.wait_event(["BEACON-RESP-RX"], timeout=3)
+        if ev is None:
+            raise Exception("Beacon report response not received")
+
+        fields = ev.split(' ')
+        report = BeaconReport(binascii.unhexlify(fields[4]))
+        logger.info("Received beacon report: " + str(report))
+        if report.bssid_str != hapd1.own_addr() or report.opclass != 81 or \
+           report.channel != 6:
+            raise Exception("Incorrect bssid/op class/channel for hapd1")
+
+        if not report.last_indication:
+            raise Exception("Last Beacon Report Indication subelement missing")
