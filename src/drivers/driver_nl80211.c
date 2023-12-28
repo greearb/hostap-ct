@@ -16,6 +16,7 @@
 #include <net/if.h>
 #include <netlink/genl/genl.h>
 #include <netlink/genl/ctrl.h>
+#include <netlink/genl/family.h>
 #ifdef CONFIG_LIBNL3_ROUTE
 #include <netlink/route/neighbour.h>
 #endif /* CONFIG_LIBNL3_ROUTE */
@@ -1938,6 +1939,8 @@ static int wpa_driver_nl80211_get_country(void *priv, char *alpha2)
 
 static int wpa_driver_nl80211_init_nl_global(struct nl80211_global *global)
 {
+	struct nl_cache *cache = NULL;
+	struct genl_family *family = NULL;
 	int ret;
 
 	global->nl_cb = nl_cb_alloc(NL_CB_DEFAULT);
@@ -2009,6 +2012,29 @@ static int wpa_driver_nl80211_init_nl_global(struct nl80211_global *global)
 		/* Continue without vendor events */
 	}
 
+	/* Resolve maxattr for kernel support checks */
+	ret = genl_ctrl_alloc_cache(global->nl, &cache);
+	if (ret < 0) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Could not allocate genl cache: %d (%s)",
+			   ret, nl_geterror(ret));
+		goto err;
+	}
+
+	family = genl_ctrl_search(cache, global->nl80211_id);
+	if (!family) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Could not get nl80211 family from cache: %d (%s)",
+			   ret, nl_geterror(ret));
+		goto err;
+	}
+
+	global->nl80211_maxattr = genl_family_get_maxattr(family);
+	wpa_printf(MSG_DEBUG, "nl80211: Maximum supported attribute ID: %u",
+		   global->nl80211_maxattr);
+	genl_family_put(family);
+	nl_cache_free(cache);
+
 	nl_cb_set(global->nl_cb, NL_CB_SEQ_CHECK, NL_CB_CUSTOM,
 		  no_seq_check, NULL);
 	nl_cb_set(global->nl_cb, NL_CB_VALID, NL_CB_CUSTOM,
@@ -2021,6 +2047,8 @@ static int wpa_driver_nl80211_init_nl_global(struct nl80211_global *global)
 	return 0;
 
 err:
+	genl_family_put(family);
+	nl_cache_free(cache);
 	nl_destroy_handles(&global->nl_event);
 	nl_destroy_handles(&global->nl);
 	nl_cb_put(global->nl_cb);
