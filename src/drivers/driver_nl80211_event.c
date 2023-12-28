@@ -4106,6 +4106,7 @@ int process_global_event(struct nl_msg *msg, void *arg)
 	u64 wdev_id = 0;
 	int wdev_id_set = 0;
 	int wiphy_idx_set = 0;
+	bool processed = false;
 
 	/* Event marker, all prior events have been processed */
 	if (gnlh->cmd == NL80211_CMD_GET_PROTOCOL_FEATURES) {
@@ -4154,15 +4155,21 @@ int process_global_event(struct nl_msg *msg, void *arg)
 			    (wiphy_idx_set && wiphy_idx == wiphy_idx_rx) ||
 			    (wdev_id_set && bss->wdev_id_set &&
 			     wdev_id == bss->wdev_id)) {
+				processed = true;
 				do_process_drv_event(bss, gnlh->cmd, tb);
-				return NL_SKIP;
+				if (!wiphy_idx_set)
+					return NL_SKIP;
 			}
 		}
-		wpa_printf(MSG_DEBUG,
-			   "nl80211: Ignored event %d (%s) for foreign interface (ifindex %d wdev 0x%llx)",
-			   gnlh->cmd, nl80211_command_to_string(gnlh->cmd),
-			   ifidx, (long long unsigned int) wdev_id);
 	}
+
+	if (processed)
+		return NL_SKIP;
+
+	wpa_printf(MSG_DEBUG,
+		   "nl80211: Ignored event %d (%s) for foreign interface (ifindex %d wdev 0x%llx wiphy %d)",
+		   gnlh->cmd, nl80211_command_to_string(gnlh->cmd),
+		   ifidx, (long long unsigned int) wdev_id, wiphy_idx_rx);
 
 	return NL_SKIP;
 }
