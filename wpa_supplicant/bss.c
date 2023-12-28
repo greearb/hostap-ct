@@ -1529,12 +1529,11 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 				   "MLD: Reported link not part of MLD");
 		} else if (!(BIT(link_id) & *seen)) {
 			struct wpa_bss *neigh_bss =
-				wpa_bss_get_bssid(wpa_s, ap_info->data + 1);
+				wpa_bss_get_bssid(wpa_s, pos + 1);
 
 			*seen |= BIT(link_id);
 			wpa_printf(MSG_DEBUG, "MLD: mld ID=%u, link ID=%u",
 				   *mld_params, link_id);
-
 
 			if (!neigh_bss) {
 				*missing |= BIT(link_id);
@@ -1549,8 +1548,7 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 
 				l = &bss->mld_links[bss->n_mld_links];
 				l->link_id = link_id;
-				os_memcpy(l->bssid, ap_info->data + 1,
-					  ETH_ALEN);
+				os_memcpy(l->bssid, pos + 1, ETH_ALEN);
 				l->freq = neigh_bss->freq;
 				l->disabled = mld_params[2] &
 					RNR_TBTT_INFO_MLD_PARAM2_LINK_DISABLED;
