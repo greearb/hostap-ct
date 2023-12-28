@@ -1512,6 +1512,29 @@ void wpas_rrm_handle_link_measurement_request(struct wpa_supplicant *wpa_s,
 }
 
 
+static bool wpas_beacon_rep_scan_match(struct wpa_supplicant *wpa_s,
+				       const u8 *bssid)
+{
+	u8 i;
+
+	if (!wpa_s->valid_links)
+		return ether_addr_equal(wpa_s->current_bss->bssid, bssid);
+
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+		if (!(wpa_s->valid_links & BIT(i)))
+			continue;
+
+		if (ether_addr_equal(wpa_s->links[i].bssid, bssid))
+			return true;
+	}
+
+	wpa_printf(MSG_DEBUG, "RRM: MLD: no match for TSF BSSID=" MACSTR,
+		   MAC2STR(bssid));
+
+	return false;
+}
+
+
 int wpas_beacon_rep_scan_process(struct wpa_supplicant *wpa_s,
 				 struct wpa_scan_results *scan_res,
 				 struct scan_info *info)
@@ -1533,8 +1556,7 @@ int wpas_beacon_rep_scan_process(struct wpa_supplicant *wpa_s,
 		   MAC2STR(info->scan_start_tsf_bssid),
 		   MAC2STR(wpa_s->current_bss->bssid));
 	if ((wpa_s->drv_rrm_flags & WPA_DRIVER_FLAGS_SUPPORT_BEACON_REPORT) &&
-	    !ether_addr_equal(info->scan_start_tsf_bssid,
-			      wpa_s->current_bss->bssid)) {
+	    !wpas_beacon_rep_scan_match(wpa_s, info->scan_start_tsf_bssid)) {
 		wpa_printf(MSG_DEBUG,
 			   "RRM: Ignore scan results due to mismatching TSF BSSID");
 		goto out;
@@ -1549,8 +1571,8 @@ int wpas_beacon_rep_scan_process(struct wpa_supplicant *wpa_s,
 
 		if ((wpa_s->drv_rrm_flags &
 		     WPA_DRIVER_FLAGS_SUPPORT_BEACON_REPORT) &&
-		    !ether_addr_equal(scan_res->res[i]->tsf_bssid,
-				      wpa_s->current_bss->bssid)) {
+		    !wpas_beacon_rep_scan_match(wpa_s,
+						scan_res->res[i]->tsf_bssid)) {
 			wpa_printf(MSG_DEBUG,
 				   "RRM: Ignore scan result for " MACSTR
 				   " due to mismatching TSF BSSID" MACSTR,
