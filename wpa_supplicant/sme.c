@@ -470,16 +470,16 @@ found:
 #endif /* CONFIG_TESTING_OPTIONS */
 
 
-static void wpas_sme_ml_auth(struct wpa_supplicant *wpa_s,
-			     union wpa_event_data *data,
-			     int ie_offset)
+static int wpas_sme_ml_auth(struct wpa_supplicant *wpa_s,
+			    union wpa_event_data *data,
+			    int ie_offset)
 {
 	struct ieee802_11_elems elems;
 	const u8 *mld_addr;
 	u16 status_code = data->auth.status_code;
 
 	if (!wpa_s->valid_links)
-		return;
+		return 0;
 
 	if (ieee802_11_parse_elems(data->auth.ies + ie_offset,
 				   data->auth.ies_len - ie_offset,
@@ -497,7 +497,7 @@ static void wpas_sme_ml_auth(struct wpa_supplicant *wpa_s,
 			goto out;
 		/* Accept missing Multi-Link element in failed authentication
 		 * cases. */
-		return;
+		return 0;
 	}
 
 	mld_addr = get_basic_mle_mld_addr(elems.basic_mle, elems.basic_mle_len);
@@ -512,10 +512,11 @@ static void wpas_sme_ml_auth(struct wpa_supplicant *wpa_s,
 		goto out;
 	}
 
-	return;
+	return 0;
 out:
 	wpa_printf(MSG_DEBUG, "MLD: Authentication - clearing MLD state");
 	wpas_reset_mlo_info(wpa_s);
+	return -1;
 }
 
 
@@ -2149,9 +2150,19 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 #endif /* CONFIG_FILS */
 
 	/* TODO: Support additional auth_type values as well */
-	if (data->auth.auth_type == WLAN_AUTH_OPEN ||
-	    data->auth.auth_type == WLAN_AUTH_SAE)
-		wpas_sme_ml_auth(wpa_s, data, ie_offset);
+	if ((data->auth.auth_type == WLAN_AUTH_OPEN ||
+	     data->auth.auth_type == WLAN_AUTH_SAE) &&
+	    wpas_sme_ml_auth(wpa_s, data, ie_offset) < 0) {
+		wpa_dbg(wpa_s, MSG_DEBUG,
+			"MLD: Failed to parse ML Authentication frame");
+		wpa_msg(wpa_s, MSG_INFO, WPA_EVENT_DISCONNECTED "bssid=" MACSTR
+			" reason=%d locally_generated=1",
+			MAC2STR(wpa_s->pending_bssid),
+			WLAN_REASON_DEAUTH_LEAVING);
+		wpas_connection_failed(wpa_s, wpa_s->pending_bssid, NULL);
+		wpa_supplicant_mark_disassoc(wpa_s);
+		return;
+	}
 
 	sme_associate(wpa_s, ssid->mode, data->auth.peer,
 		      data->auth.auth_type);
