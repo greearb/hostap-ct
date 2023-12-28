@@ -2281,6 +2281,9 @@ int wpa_supplicant_need_to_roam_within_ess(struct wpa_supplicant *wpa_s,
 		min_diff -= 2;
 	if (to_6ghz)
 		min_diff -= 2;
+	if (wpa_s->signal_threshold && cur_level <= wpa_s->signal_threshold &&
+	    sel_level > wpa_s->signal_threshold)
+		min_diff -= 2;
 	diff = sel_level - cur_level;
 	if (diff < min_diff) {
 		wpa_dbg(wpa_s, MSG_DEBUG,

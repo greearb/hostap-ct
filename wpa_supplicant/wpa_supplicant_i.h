@@ -1193,6 +1193,7 @@ struct wpa_supplicant {
 	struct wpa_ssid *bgscan_ssid;
 	const struct bgscan_ops *bgscan;
 	void *bgscan_priv;
+	int signal_threshold;
 
 	const struct autoscan_ops *autoscan;
 	struct wpa_driver_scan_params *autoscan_params;

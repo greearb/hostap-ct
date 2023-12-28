@@ -189,6 +189,7 @@ static void * bgscan_simple_init(struct wpa_supplicant *wpa_s,
 	data->scan_interval = data->short_interval;
 	data->max_short_scans = data->long_interval / data->short_interval + 1;
 	if (data->signal_threshold) {
+		wpa_s->signal_threshold = data->signal_threshold;
 		/* Poll for signal info to set initial scan interval */
 		struct wpa_signal_info siginfo;
 		if (wpa_drv_signal_poll(wpa_s, &siginfo) == 0 &&
@@ -216,8 +217,10 @@ static void bgscan_simple_deinit(void *priv)
 {
 	struct bgscan_simple_data *data = priv;
 	eloop_cancel_timeout(bgscan_simple_timeout, data, NULL);
-	if (data->signal_threshold)
+	if (data->signal_threshold) {
+		data->wpa_s->signal_threshold = 0;
 		wpa_drv_signal_monitor(data->wpa_s, 0, 0);
+	}
 	os_free(data);
 }
 
