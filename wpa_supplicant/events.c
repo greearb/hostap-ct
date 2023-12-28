@@ -2127,11 +2127,22 @@ wpas_get_est_throughput_from_bss_snr(const struct wpa_supplicant *wpa_s,
 }
 
 
+static int wpas_evaluate_band_score(int frequency)
+{
+	if (is_6ghz_freq(frequency))
+		return 2;
+	if (IS_5GHZ(frequency))
+		return 1;
+	return 0;
+}
+
+
 int wpa_supplicant_need_to_roam_within_ess(struct wpa_supplicant *wpa_s,
 					   struct wpa_bss *current_bss,
 					   struct wpa_bss *selected)
 {
 	int min_diff, diff;
+	int cur_band_score, sel_band_score;
 	int to_5ghz, to_6ghz;
 	int cur_level, sel_level;
 	unsigned int cur_est, sel_est;
@@ -2277,10 +2288,9 @@ int wpa_supplicant_need_to_roam_within_ess(struct wpa_supplicant *wpa_s,
 	else if (sel_est > cur_est)
 		min_diff--;
 
-	if (to_5ghz)
-		min_diff -= 2;
-	if (to_6ghz)
-		min_diff -= 2;
+	cur_band_score = wpas_evaluate_band_score(current_bss->freq);
+	sel_band_score = wpas_evaluate_band_score(selected->freq);
+	min_diff += (cur_band_score - sel_band_score) * 2;
 	if (wpa_s->signal_threshold && cur_level <= wpa_s->signal_threshold &&
 	    sel_level > wpa_s->signal_threshold)
 		min_diff -= 2;
