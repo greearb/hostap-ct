@@ -353,6 +353,12 @@ const char * nl80211_iftype_str(enum nl80211_iftype mode);
 void nl80211_restore_ap_mode(struct i802_bss *bss);
 struct i802_link * nl80211_get_link(struct i802_bss *bss, s8 link_id);
 
+static inline bool
+nl80211_attr_supported(struct wpa_driver_nl80211_data *drv, unsigned int attr)
+{
+	return attr <= drv->global->nl80211_maxattr;
+}
+
 #ifdef ANDROID
 int android_nl_socket_set_nonblocking(struct nl_sock *handle);
 int android_pno_start(struct i802_bss *bss,
