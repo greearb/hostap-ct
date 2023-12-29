@@ -453,8 +453,11 @@ static struct wpa_bss * wpas_ml_connect_pref(struct wpa_supplicant *wpa_s,
 	}
 
 	for_each_link(wpa_s->valid_links, i) {
-		if (wpa_s->mlo_assoc_link_id == i)
+		if (wpa_s->mlo_assoc_link_id == i) {
+			if (bss->freq >= low && bss->freq <= high)
+				return bss;
 			continue;
+		}
 
 		if (wpa_s->links[i].freq >= low && wpa_s->links[i].freq <= high)
 			goto found;
