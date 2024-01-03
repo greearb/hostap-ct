@@ -10,9 +10,11 @@ import hostapd
 import binascii
 import os, time
 import struct
+import subprocess, re
 from test_wnm import expect_ack
 from tshark import run_tshark
 from utils import clear_regdom, long_duration_test
+from utils import HwsimSkip
 
 def _test_kernel_bss_leak(dev, apdev, deauth):
     ssid = "test-bss-leak"
@@ -148,3 +150,18 @@ def test_kernel_reg_disconnect(dev, apdev):
     finally:
         dev[0].request("DISCONNECT")
         clear_regdom(hapd, dev)
+
+def test_kernel_kunit(dev, apdev):
+    """KUnit tests"""
+    modules = ('cfg80211-tests', 'mac80211-tests')
+    results = (subprocess.call(['modprobe', mod], stderr=subprocess.PIPE)
+               for mod in modules)
+
+    if all((r != 0 for r in results)):
+        raise HwsimSkip("KUnit tests not available")
+
+    dmesg = subprocess.check_output(['dmesg'])
+    fail_rx = re.compile(b'fail:[^0]')
+    for line in dmesg.split(b'\n'):
+        if fail_rx.search(line):
+            raise Exception(f'kunit test failed: {line.decode("utf-8")}')
