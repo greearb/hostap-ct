@@ -580,7 +580,7 @@ static size_t he_elem_len(struct hostapd_data *hapd)
 			3 + sizeof(struct ieee80211_he_6ghz_band_cap);
 		/* An additional Transmit Power Envelope element for
 		 * subordinate client */
-		if (he_reg_is_sp(hapd->iconf->he_6ghz_reg_pwr_type))
+		if (he_reg_is_indoor(hapd->iconf->he_6ghz_reg_pwr_type))
 			len += 4;
 
 		/* An additional Transmit Power Envelope element for

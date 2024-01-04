@@ -7077,7 +7077,7 @@ u8 * hostapd_eid_txpower_envelope(struct hostapd_data *hapd, u8 *eid)
 
 		/* Indoor Access Point must include an additional TPE for
 		 * subordinate devices */
-		if (he_reg_is_sp(iconf->he_6ghz_reg_pwr_type)) {
+		if (he_reg_is_indoor(iconf->he_6ghz_reg_pwr_type)) {
 			/* TODO: Extract PSD limits from channel data */
 			if (hapd->iconf->reg_sub_cli_eirp_psd != -1)
 				tx_pwr = hapd->iconf->reg_sub_cli_eirp_psd;
