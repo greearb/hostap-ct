@@ -1609,12 +1609,12 @@ reply:
 		    !data && end - pos >= 2)
 			data = wpabuf_alloc_copy(pos, 2);
 
-		sae_sme_send_external_auth_status(hapd, sta, resp);
 		send_auth_reply(hapd, sta, sta->addr,
 				WLAN_AUTH_SAE,
 				auth_transaction, resp,
 				data ? wpabuf_head(data) : (u8 *) "",
 				data ? wpabuf_len(data) : 0, "auth-sae");
+		sae_sme_send_external_auth_status(hapd, sta, resp);
 		if (sta->sae && sta->sae->tmp && sta->sae->tmp->pw_id &&
 		    resp == WLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER &&
 		    auth_transaction == 1) {
