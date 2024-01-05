@@ -338,6 +338,10 @@ ifdef CONFIG_MBO
 CONFIG_WNM=y
 endif
 
+ifdef CONFIG_BGSCAN_SIMPLE
+CONFIG_WNM=y
+endif
+
 ifdef CONFIG_WNM
 CFLAGS += -DCONFIG_WNM
 OBJS += wnm_sta.o
