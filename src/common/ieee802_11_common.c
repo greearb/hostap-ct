@@ -2835,6 +2835,21 @@ int get_6ghz_sec_channel(int channel)
 }
 
 
+bool is_same_band(int freq1, int freq2)
+{
+	if (IS_2P4GHZ(freq1) && IS_2P4GHZ(freq2))
+		return true;
+
+	if (IS_5GHZ(freq1) && IS_5GHZ(freq2))
+		return true;
+
+	if (is_6ghz_freq(freq1) && is_6ghz_freq(freq2))
+		return true;
+
+	return false;
+}
+
+
 int ieee802_11_parse_candidate_list(const char *pos, u8 *nei_rep,
 				    size_t nei_rep_len)
 {

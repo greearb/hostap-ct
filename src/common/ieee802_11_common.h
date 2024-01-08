@@ -283,6 +283,10 @@ bool is_6ghz_op_class(u8 op_class);
 bool is_6ghz_psc_frequency(int freq);
 int get_6ghz_sec_channel(int channel);
 
+bool is_same_band(int freq1, int freq2);
+#define IS_2P4GHZ(n) (n >= 2412 && n <= 2484)
+#define IS_5GHZ(n) (n > 4000 && n < 5895)
+
 int ieee802_11_parse_candidate_list(const char *pos, u8 *nei_rep,
 				    size_t nei_rep_len);
 

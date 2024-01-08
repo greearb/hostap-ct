@@ -38,9 +38,6 @@
  */
 #define TX_POWER_NO_CONSTRAINT 64
 
-#define IS_2P4GHZ(n) (n >= 2412 && n <= 2484)
-#define IS_5GHZ(n) (n > 4000 && n < 5895)
-
 int wpa_supplicant_enabled_networks(struct wpa_supplicant *wpa_s);
 void wpa_supplicant_req_scan(struct wpa_supplicant *wpa_s, int sec, int usec);
 int wpa_supplicant_delayed_sched_scan(struct wpa_supplicant *wpa_s,

@@ -9203,6 +9203,46 @@ static void wpa_driver_nl80211_send_action_cancel_wait(void *priv)
 }
 
 
+static int nl80211_put_any_link_id(struct nl_msg *msg,
+			       struct driver_sta_mlo_info *mlo,
+			       int freq)
+{
+	int i;
+	int link_id = -1;
+	int any_valid_link_id = -1;
+
+	if (!mlo->valid_links)
+		return 0;
+
+	/* First try to pick a link that uses the same band */
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+		if (!(mlo->valid_links & BIT(i)))
+			continue;
+
+		if (any_valid_link_id == -1)
+			any_valid_link_id = i;
+
+		if (is_same_band(freq, mlo->links[i].freq)) {
+			link_id = i;
+			break;
+		}
+	}
+
+	/* Use any valid link ID if no band match was found */
+	if (link_id == -1)
+		link_id = any_valid_link_id;
+
+	if (link_id == -1) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: No valid Link ID found for freq %u", freq);
+		return 0;
+	}
+
+	wpa_printf(MSG_DEBUG, "nl80211: Add Link ID %d", link_id);
+	return nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id);
+}
+
+
 static int wpa_driver_nl80211_remain_on_channel(void *priv, unsigned int freq,
 						unsigned int duration)
 {
@@ -9214,7 +9254,8 @@ static int wpa_driver_nl80211_remain_on_channel(void *priv, unsigned int freq,
 
 	if (!(msg = nl80211_cmd_msg(bss, 0, NL80211_CMD_REMAIN_ON_CHANNEL)) ||
 	    nla_put_u32(msg, NL80211_ATTR_WIPHY_FREQ, freq) ||
-	    nla_put_u32(msg, NL80211_ATTR_DURATION, duration)) {
+	    nla_put_u32(msg, NL80211_ATTR_DURATION, duration) ||
+	    nl80211_put_any_link_id(msg, &drv->sta_mlo_info, freq)) {
 		nlmsg_free(msg);
 		return -1;
 	}
