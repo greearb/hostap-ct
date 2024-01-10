@@ -2318,7 +2318,7 @@ static int wpa_validate_mlo_ieee80211w_kdes(struct wpa_sm *sm,
 	    (unsigned int) wpa_cipher_key_len(sm->mgmt_group_cipher)) {
 		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
 			"RSN MLO: Invalid IGTK KDE length %lu for link ID %u",
-			(unsigned long) ie->mlo_igtk_len, link_id);
+			(unsigned long) ie->mlo_igtk_len[link_id], link_id);
 		return -1;
 	}
 
@@ -2330,7 +2330,7 @@ static int wpa_validate_mlo_ieee80211w_kdes(struct wpa_sm *sm,
 	    (unsigned int) wpa_cipher_key_len(sm->mgmt_group_cipher)) {
 		wpa_msg(sm->ctx->msg_ctx, MSG_WARNING,
 			"RSN MLO: Invalid BIGTK KDE length %lu for link ID %u",
-			(unsigned long) ie->mlo_bigtk_len, link_id);
+			(unsigned long) ie->mlo_bigtk_len[link_id], link_id);
 		return -1;
 	}
 
