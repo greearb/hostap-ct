@@ -2255,7 +2255,6 @@ static int wpas_channel_width_offset(enum chan_width cw)
 static int wpas_channel_width_tx_pwr(const u8 *ies, size_t ies_len,
 				     enum chan_width cw)
 {
-#define MIN(a, b) (a < b ? a : b)
 	int offset = wpas_channel_width_offset(cw);
 	const struct element *elem;
 	int max_tx_power = TX_POWER_NO_CONSTRAINT, tx_pwr = 0;
@@ -2331,7 +2330,6 @@ static int wpas_channel_width_tx_pwr(const u8 *ies, size_t ies_len,
 	}
 
 	return max_tx_power;
-#undef MIN
 }
 
 
@@ -2373,7 +2371,6 @@ int wpas_adjust_snr_by_chanwidth(const u8 *ies, size_t ies_len,
  * better. */
 static int wpa_scan_result_compar(const void *a, const void *b)
 {
-#define MIN(a,b) a < b ? a : b
 	struct wpa_scan_res **_wa = (void *) a;
 	struct wpa_scan_res **_wb = (void *) b;
 	struct wpa_scan_res *wa = *_wa;
@@ -2477,7 +2474,6 @@ static int wpa_scan_result_compar(const void *a, const void *b)
 	if (snr_b_full == snr_a_full)
 		return wb->qual - wa->qual;
 	return snr_b_full - snr_a_full;
-#undef MIN
 }
 
 
