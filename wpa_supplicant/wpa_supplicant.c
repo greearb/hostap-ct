@@ -2014,7 +2014,7 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 		(wpa_s->connection_ht || wpa_s->connection_vht ||
 		 wpa_s->connection_he || wpa_s->connection_eht);
 	if (!wmm && bss)
-		wmm = wpa_bss_get_vendor_ie(bss, WMM_IE_VENDOR_TYPE);
+		wmm = !!wpa_bss_get_vendor_ie(bss, WMM_IE_VENDOR_TYPE);
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_WMM_ENABLED, wmm);
 
 	if (!skip_default_rsne) {
