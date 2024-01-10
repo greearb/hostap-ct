@@ -2647,8 +2647,10 @@ static void hapd_pasn_update_params(struct hostapd_data *hapd,
 	struct pasn_data *pasn = sta->pasn;
 	struct ieee802_11_elems elems;
 	struct wpa_ie_data rsn_data;
+#ifdef CONFIG_FILS
 	struct wpa_pasn_params_data pasn_params;
 	struct wpabuf *wrapped_data = NULL;
+#endif /* CONFIG_FILS */
 
 	if (ieee802_11_parse_elems(mgmt->u.auth.variable,
 				   len - offsetof(struct ieee80211_mgmt,
