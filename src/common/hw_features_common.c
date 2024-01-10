@@ -448,6 +448,7 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 		} else {
 			int freq1, freq2 = 0;
 			int bw = center_idx_to_bw_6ghz(center_segment0);
+			int opclass;
 
 			if (bw < 0) {
 				wpa_printf(MSG_ERROR,
@@ -455,7 +456,10 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 				return -1;
 			}
 
-			freq1 = ieee80211_chan_to_freq(NULL, 131,
+			/* The 6 GHz channel 2 uses a different operating class
+			 */
+			opclass = center_segment0 == 2 ? 136 : 131;
+			freq1 = ieee80211_chan_to_freq(NULL, opclass,
 						       center_segment0);
 			if (freq1 < 0) {
 				wpa_printf(MSG_ERROR,
