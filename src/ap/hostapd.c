@@ -5022,8 +5022,10 @@ int hostapd_fill_cca_settings(struct hostapd_data *hapd,
 	u8 old_disabled;
 	int ret;
 
-	if (!iface)
+	if (!iface) {
+		wpa_printf(MSG_WARNING, "fill-cca-settings, cannot enable bss-color: iface is null");
 		return -1;
+	}
 
 	settings->link_id = -1;
 #ifdef CONFIG_IEEE80211BE
@@ -5036,6 +5038,8 @@ int hostapd_fill_cca_settings(struct hostapd_data *hapd,
 
 	iface->conf->he_op.he_bss_color = hapd->cca_color;
 	iface->conf->he_op.he_bss_color_disabled = 0;
+	wpa_printf(MSG_WARNING, "fil-cca-settings, old-color: %d  hapd->cca_color: %d",
+		   old_color, hapd->cca_color);
 	ret = hostapd_build_beacon_data(hapd, &settings->beacon_after);
 
 	iface->conf->he_op.he_bss_color = old_color;
