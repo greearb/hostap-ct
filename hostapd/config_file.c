@@ -3620,6 +3620,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 	} else if (os_strcmp(buf, "he_bss_color") == 0) {
 		conf->he_op.he_bss_color = atoi(pos) & 0x3f;
 		conf->he_op.he_bss_color_disabled = 0;
+		wpa_printf(MSG_ERROR, "Line %d: set he_bss_color: %d",
+			   line, conf->he_op.he_bss_color);
 	} else if (os_strcmp(buf, "he_bss_color_partial") == 0) {
 		conf->he_op.he_bss_color_partial = atoi(pos);
 	} else if (os_strcmp(buf, "he_default_pe_duration") == 0) {
