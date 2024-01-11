@@ -906,7 +906,7 @@ static int test_vector_bip_gmac_256(void)
 
 	wpa_hexdump(MSG_INFO, "Protected MPDU (without FCS)", prot, prot_len);
 	if (prot_len != sizeof(res) || os_memcmp(res, prot, prot_len) != 0) {
-		wpa_printf(MSG_ERROR, "BIP-GMAC-128 test vector mismatch");
+		wpa_printf(MSG_ERROR, "BIP-GMAC-256 test vector mismatch");
 		err++;
 	}
 	os_free(prot);
