@@ -2692,6 +2692,8 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 	}
 #endif /* CONFIG_IEEE80211AX */
 
+	wpa_printf(MSG_ERROR, "set_beacon called, configured color: %d", hapd->iface->conf->he_op.he_bss_color);
+
 	hapd->beacon_set_done = 1;
 
 	if (ieee802_11_build_ap_params(hapd, &params) < 0)
@@ -2722,6 +2724,7 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 	params.he_bss_color_partial =
 		hapd->iface->conf->he_op.he_bss_color_partial;
 	params.he_bss_color = hapd->iface->conf->he_op.he_bss_color;
+	wpa_printf(MSG_ERROR, "beacon:  he_bss_color: %d", params.he_bss_color);
 	twt_he_responder = hostapd_get_he_twt_responder(hapd,
 							IEEE80211_MODE_AP);
 	params.ubpr.unsol_bcast_probe_resp_tmpl =
