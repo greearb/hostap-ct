@@ -353,8 +353,14 @@ u8 * wep_decrypt(struct wlantest *wt, const struct ieee80211_hdr *hdr,
 
 u8 * bip_protect(const u8 *igtk, size_t igtk_len, u8 *frame, size_t len,
 		 u8 *ipn, int keyid, size_t *prot_len);
+u8 * bip_protect_s1g_beacon(const u8 *igtk, size_t igtk_len, const u8 *frame,
+			    size_t len, const u8 *ipn, int keyid, bool bce,
+			    size_t *prot_len);
 u8 * bip_gmac_protect(const u8 *igtk, size_t igtk_len, u8 *frame, size_t len,
 		      u8 *ipn, int keyid, size_t *prot_len);
+u8 * bip_gmac_protect_s1g_beacon(const u8 *igtk, size_t igtk_len,
+				 const u8 *frame, size_t len, const u8 *ipn,
+				 int keyid, bool bce, size_t *prot_len);
 
 u8 * gcmp_decrypt(const u8 *tk, size_t tk_len, const struct ieee80211_hdr *hdr,
 		  const u8 *a1, const u8 *a2, const u8 *a3,

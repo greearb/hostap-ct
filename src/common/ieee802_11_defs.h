@@ -24,6 +24,13 @@
 #define WLAN_FC_ISWEP		0x4000
 #define WLAN_FC_HTC		0x8000
 
+#define WLAN_FC_S1G_BEACON_NEXT_TBTT	0x0100
+#define WLAN_FC_S1G_BEACON_COMP_SSID	0x0200
+#define WLAN_FC_S1G_BEACON_ANO		0x0400
+#define WLAN_FC_S1G_BEACON_BSS_BW	0x3800
+#define WLAN_FC_S1G_BEACON_SECURITY	0x4000
+#define WLAN_FC_S1G_BEACON_AP_PM	0x8000
+
 #define WLAN_FC_GET_TYPE(fc)	(((fc) & 0x000c) >> 2)
 #define WLAN_FC_GET_STYPE(fc)	(((fc) & 0x00f0) >> 4)
 
@@ -36,6 +43,7 @@
 #define WLAN_FC_TYPE_MGMT		0
 #define WLAN_FC_TYPE_CTRL		1
 #define WLAN_FC_TYPE_DATA		2
+#define WLAN_FC_TYPE_EXT		3
 
 /* management */
 #define WLAN_FC_STYPE_ASSOC_REQ		0
@@ -76,6 +84,10 @@
 #define WLAN_FC_STYPE_QOS_NULL		12
 #define WLAN_FC_STYPE_QOS_CFPOLL	14
 #define WLAN_FC_STYPE_QOS_CFACKPOLL	15
+
+/* extension */
+#define WLAN_FC_STYPE_DMG_BEACON	0
+#define WLAN_FC_STYPE_S1G_BEACON	1
 
 /* Authentication algorithms */
 #define WLAN_AUTH_OPEN			0
@@ -953,6 +965,23 @@ struct ieee80211_hdr {
 #define IEEE80211_SA_FROMDS addr3
 
 #define IEEE80211_HDRLEN (sizeof(struct ieee80211_hdr))
+
+struct ieee80211_hdr_s1g_beacon {
+	le16 frame_control;
+	le16 duration_id;
+	u8 sa[6];
+	u8 timestamp[4];
+	u8 change_seq[1];
+	/* followed by:
+	 *   'u8 next_tbtt[3];' if the Next TBTT Present field in the
+	 *			Frame Control field is 1
+	 *   'u8 compressed_ssid[4];' if the Compressed SSID Present field in
+	 *			the Frame Control is 1
+	 *   'u8 ano[1];' if the ANO field in the Frame Control field is 1
+	 */
+} STRUCT_PACKED;
+
+#define IEEE80211_HDRLEN_S1G_BEACON (sizeof(struct ieee80211_hdr_s1g_beacon))
 
 #define IEEE80211_FC(type, stype) host_to_le16((type << 2) | (stype << 4))
 
@@ -3005,6 +3034,15 @@ struct ieee80211_neighbor_ap_info {
 
 	/* Followed by the rest of the TBTT Information field contents */
 	u8 data[0];
+} STRUCT_PACKED;
+
+/* S1G Beacon Compatibility element */
+struct ieee80211_s1g_beacon_compat {
+	u8 element_id;
+	u8 length;
+	le16 compat_info;
+	le16 beacon_interval;
+	le32 tsf_completion;
 } STRUCT_PACKED;
 
 #ifdef _MSC_VER

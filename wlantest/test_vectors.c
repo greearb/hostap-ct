@@ -381,6 +381,166 @@ static void test_vector_bip(void)
 }
 
 
+static void test_vector_bip_s1g_beacon(void)
+{
+	const u8 igtk[] = {
+		0x4e, 0xa9, 0x54, 0x3e, 0x09, 0xcf, 0x2b, 0x1e,
+		0xca, 0x66, 0xff, 0xc5, 0x8b, 0xde, 0xcb, 0xcf
+	};
+	const u8 ipn[] = { 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	/* FC 2 Dur 2 SA 6 Time 4 CS 1 Next 0/3 Comp 0/4 ANO 0/1
+	 * FC: prot 2 type 2 subtype 4 next 1 comp 1 ano 1 bss bw 3 sec 1 ap
+	 *	pm 1
+	 * S1G Beacon, no extra header fields, S1G Beacon Compatibility element
+	 */
+	const u8 frame[] = {
+		0x1c, 0x40, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD5,
+		0x08, 0x80, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56,
+		0x78
+	};
+	u8 *prot;
+	size_t prot_len;
+
+	wpa_printf(MSG_INFO,
+		   "\nIEEE P802.11REVme/D4.0, J.9.2 S1G Beacon frame with BIP-CMAC-128, no optional header fields, S1G Beacon Compatibility element in body\n");
+
+	wpa_hexdump(MSG_INFO, "IGTK", igtk, sizeof(igtk));
+	wpa_hexdump(MSG_INFO, "IPN", ipn, sizeof(ipn));
+	wpa_hexdump(MSG_INFO, "Plaintext frame", frame, sizeof(frame));
+
+	prot = bip_protect_s1g_beacon(igtk, sizeof(igtk), frame, sizeof(frame),
+				      ipn, 7, false, &prot_len);
+	if (!prot) {
+		wpa_printf(MSG_ERROR,
+			   "Failed to protect S1G Beacon frame with BIP-CMAC-128");
+		return;
+	}
+
+	wpa_hexdump(MSG_INFO, "Protected MPDU (without FCS)", prot, prot_len);
+	os_free(prot);
+}
+
+
+static void test_vector_bip_s1g_beacon_ext(void)
+{
+	const u8 igtk[] = {
+		0x4e, 0xa9, 0x54, 0x3e, 0x09, 0xcf, 0x2b, 0x1e,
+		0xca, 0x66, 0xff, 0xc5, 0x8b, 0xde, 0xcb, 0xcf
+	};
+	const u8 ipn[] = { 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	/* FC 2 Dur 2 SA 6 Time 4 CS 1 Next 0/3 Comp 0/4 ANO 0/1
+	 * FC: prot 2 type 2 subtype 4 next 1 comp 1 ano 1 bss bw 3 sec 1 ap
+	 *	pm 1
+	 * S1G Beacon, all possible extra header fields, no body fields */
+	const u8 frame[] = {
+		0x1c, 0x47, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	};
+	u8 *prot;
+	size_t prot_len;
+
+	wpa_printf(MSG_INFO,
+		   "\nIEEE P802.11REVme/D4.0, J.9.2 S1G Beacon frame with BIP-CMAC-128, all optional header fields, no body elements\n");
+
+	wpa_hexdump(MSG_INFO, "IGTK", igtk, sizeof(igtk));
+	wpa_hexdump(MSG_INFO, "IPN", ipn, sizeof(ipn));
+	wpa_hexdump(MSG_INFO, "Plaintext frame", frame, sizeof(frame));
+
+	prot = bip_protect_s1g_beacon(igtk, sizeof(igtk), frame, sizeof(frame),
+				      ipn, 6, false, &prot_len);
+	if (!prot) {
+		wpa_printf(MSG_ERROR,
+			   "Failed to protect S1G Beacon frame with BIP-CMAC-128");
+		return;
+	}
+
+	wpa_hexdump(MSG_INFO, "Protected MPDU (without FCS)", prot, prot_len);
+	os_free(prot);
+}
+
+
+static void test_vector_bip_s1g_beacon_bce(void)
+{
+	const u8 igtk[] = {
+		0x4e, 0xa9, 0x54, 0x3e, 0x09, 0xcf, 0x2b, 0x1e,
+		0xca, 0x66, 0xff, 0xc5, 0x8b, 0xde, 0xcb, 0xcf
+	};
+	const u8 ipn[] = { 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	/* FC 2 Dur 2 SA 6 Time 4 CS 1 Next 0/3 Comp 0/4 ANO 0/1
+	 * FC: prot 2 type 2 subtype 4 next 1 comp 1 ano 1 bss bw 3 sec 1 ap
+	 *	pm 1
+	 * S1G Beacon, no extra header fields, S1G Beacon Compatibility element
+	 */
+	const u8 frame[] = {
+		0x1c, 0x40, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD5,
+		0x08, 0x80, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56,
+		0x78
+	};
+	u8 *prot;
+	size_t prot_len;
+
+	wpa_printf(MSG_INFO,
+		   "\nIEEE P802.11REVme/D4.0, J.9.2 S1G Beacon frame with BIP-CMAC-128 using BCE, no optional header fields, S1G Beacon Compatibility element in body\n");
+
+	wpa_hexdump(MSG_INFO, "IGTK", igtk, sizeof(igtk));
+	wpa_hexdump(MSG_INFO, "IPN", ipn, sizeof(ipn));
+	wpa_hexdump(MSG_INFO, "Plaintext frame", frame, sizeof(frame));
+
+	prot = bip_protect_s1g_beacon(igtk, sizeof(igtk), frame, sizeof(frame),
+				      ipn, 7, true, &prot_len);
+	if (!prot) {
+		wpa_printf(MSG_ERROR,
+			   "Failed to protect S1G Beacon frame with BIP using BCE-CMAC-128");
+		return;
+	}
+
+	wpa_hexdump(MSG_INFO, "Protected MPDU (without FCS)", prot, prot_len);
+	os_free(prot);
+}
+
+
+static void test_vector_bip_s1g_beacon_bce_ext(void)
+{
+	const u8 igtk[] = {
+		0x4e, 0xa9, 0x54, 0x3e, 0x09, 0xcf, 0x2b, 0x1e,
+		0xca, 0x66, 0xff, 0xc5, 0x8b, 0xde, 0xcb, 0xcf
+	};
+	const u8 ipn[] = { 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	/* FC 2 Dur 2 SA 6 Time 4 CS 1 Next 0/3 Comp 0/4 ANO 0/1
+	 * FC: prot 2 type 2 subtype 4 next 1 comp 1 ano 1 bss bw 3 sec 1 ap
+	 *	pm 1
+	 * S1G Beacon, all possible extra header fields, no body fields */
+	const u8 frame[] = {
+		0x1c, 0x47, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	};
+	u8 *prot;
+	size_t prot_len;
+
+	wpa_printf(MSG_INFO,
+		   "\nIEEE P802.11REVme/D4.0, J.9.2 S1G Beacon frame with BIP-CMAC-128 using BCE, all optional header fields, no body elements\n");
+
+	wpa_hexdump(MSG_INFO, "IGTK", igtk, sizeof(igtk));
+	wpa_hexdump(MSG_INFO, "IPN", ipn, sizeof(ipn));
+	wpa_hexdump(MSG_INFO, "Plaintext frame", frame, sizeof(frame));
+
+	prot = bip_protect_s1g_beacon(igtk, sizeof(igtk), frame, sizeof(frame),
+				      ipn, 6, true, &prot_len);
+	if (!prot) {
+		wpa_printf(MSG_ERROR,
+			   "Failed to protect S1G Beacon frame with BIP using BCE-CMAC-128");
+		return;
+	}
+
+	wpa_hexdump(MSG_INFO, "Protected MPDU (without FCS)", prot, prot_len);
+	os_free(prot);
+}
+
+
 static void test_vector_ccmp_mgmt(void)
 {
 	u8 tk[] = { 0x66, 0xed, 0x21, 0x04, 0x2f, 0x9f, 0x26, 0xd7,
@@ -863,6 +1023,218 @@ static int test_vector_bip_gmac_128(void)
 }
 
 
+static int test_vector_bip_gmac_128_s1g_beacon(void)
+{
+	const u8 igtk[] = {
+		0x4e, 0xa9, 0x54, 0x3e, 0x09, 0xcf, 0x2b, 0x1e,
+		0xca, 0x66, 0xff, 0xc5, 0x8b, 0xde, 0xcb, 0xcf
+	};
+	const u8 ipn[] = { 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	const u8 frame[] = {
+		0x1c, 0x40, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD5,
+		0x08, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56,
+		0x78
+	};
+	const u8 res[] = {
+		0x1c, 0x40, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xd5,
+		0x08, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56,
+		0x78, 0x4c, 0x18, 0x06, 0x00, 0x04, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0xa5, 0xb2, 0x42, 0xc1, 0xc1,
+		0x1e, 0xab, 0x10, 0xc5, 0xa4, 0xe8, 0xb9, 0x53,
+		0x66, 0x19, 0x38
+	};
+	u8 *prot;
+	size_t prot_len;
+	int err = 0;
+
+	wpa_printf(MSG_INFO,
+		   "\nIEEE P802.11REVme/D4.0, J.9.2 S1G Beacon frame with BIP-GMAC-128, no optional header fields, S1G Beacon Compatibility element in body\n");
+
+	wpa_hexdump(MSG_INFO, "IGTK", igtk, sizeof(igtk));
+	wpa_hexdump(MSG_INFO, "IPN", ipn, sizeof(ipn));
+	wpa_hexdump(MSG_INFO, "Plaintext frame", frame, sizeof(frame));
+
+	prot = bip_gmac_protect_s1g_beacon(igtk, sizeof(igtk), frame,
+					   sizeof(frame), ipn, 6, false,
+					   &prot_len);
+	if (!prot) {
+		wpa_printf(MSG_ERROR,
+			   "Failed to protect S1G Beacon frame with BIP-GMAC-128");
+		return 1;
+	}
+
+	wpa_hexdump(MSG_INFO, "Protected MPDU (without FCS)", prot, prot_len);
+	if (prot_len != sizeof(res) || os_memcmp(res, prot, prot_len) != 0) {
+		wpa_printf(MSG_ERROR,
+			   "S1G Beacon frame with BIP-GMAC-128 test vector mismatch");
+		err++;
+	}
+	os_free(prot);
+
+	return err;
+}
+
+
+static int test_vector_bip_gmac_128_s1g_beacon_ext(void)
+{
+	const u8 igtk[] = {
+		0x4e, 0xa9, 0x54, 0x3e, 0x09, 0xcf, 0x2b, 0x1e,
+		0xca, 0x66, 0xff, 0xc5, 0x8b, 0xde, 0xcb, 0xcf
+	};
+	const u8 ipn[] = { 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	const u8 frame[] = {
+		0x1c, 0x47, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	};
+	const u8 res[] = {
+		0x1c, 0x47, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4c,
+		0x18, 0x07, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x39, 0xd0, 0x0c, 0xc2, 0xee, 0xd7, 0x4c,
+		0x2a, 0xb7, 0x41, 0xcc, 0xf8, 0x08, 0x9b, 0x5b,
+		0x08
+	};
+	u8 *prot;
+	size_t prot_len;
+	int err = 0;
+
+	wpa_printf(MSG_INFO,
+		   "\nIEEE P802.11REVme/D4.0, J.9.2 S1G Beacon frame with BIP-GMAC-128, all optional header fields, no body elements\n");
+
+	wpa_hexdump(MSG_INFO, "IGTK", igtk, sizeof(igtk));
+	wpa_hexdump(MSG_INFO, "IPN", ipn, sizeof(ipn));
+	wpa_hexdump(MSG_INFO, "Plaintext frame", frame, sizeof(frame));
+
+	prot = bip_gmac_protect_s1g_beacon(igtk, sizeof(igtk), frame,
+					   sizeof(frame), ipn, 7, false,
+					   &prot_len);
+	if (!prot) {
+		wpa_printf(MSG_ERROR,
+			   "Failed to protect S1G Beacon frame with BIP-GMAC-128");
+		return 1;
+	}
+
+	wpa_hexdump(MSG_INFO, "Protected MPDU (without FCS)", prot, prot_len);
+	if (prot_len != sizeof(res) || os_memcmp(res, prot, prot_len) != 0) {
+		wpa_printf(MSG_ERROR,
+			   "S1G Beacon frame with BIP-GMAC-128 test vector mismatch");
+		err++;
+	}
+	os_free(prot);
+
+	return err;
+}
+
+
+static int test_vector_bip_gmac_128_s1g_beacon_bce(void)
+{
+	const u8 igtk[] = {
+		0x4e, 0xa9, 0x54, 0x3e, 0x09, 0xcf, 0x2b, 0x1e,
+		0xca, 0x66, 0xff, 0xc5, 0x8b, 0xde, 0xcb, 0xcf
+	};
+	const u8 ipn[] = { 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	const u8 frame[] = {
+		0x1c, 0x40, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD5,
+		0x08, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56,
+		0x78
+	};
+	const u8 res[] = {
+		0x1c, 0x40, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xd5,
+		0x08, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56,
+		0x78, 0x8c, 0x10, 0xa2, 0x5b, 0x7e, 0x67, 0x76,
+		0xf0, 0x11, 0x57, 0xa4, 0xfb, 0x4a, 0x2d, 0x66,
+		0xd0, 0x17, 0x66
+	};
+	u8 *prot;
+	size_t prot_len;
+	int err = 0;
+
+	wpa_printf(MSG_INFO,
+		   "\nIEEE P802.11REVme/D4.0, J.9.2 S1G Beacon frame with BIP-GMAC-128 using BCE, no optional header fields, S1G Beacon Compatibility element in body\n");
+
+	wpa_hexdump(MSG_INFO, "IGTK", igtk, sizeof(igtk));
+	wpa_hexdump(MSG_INFO, "IPN", ipn, sizeof(ipn));
+	wpa_hexdump(MSG_INFO, "Plaintext frame", frame, sizeof(frame));
+
+	prot = bip_gmac_protect_s1g_beacon(igtk, sizeof(igtk), frame,
+					   sizeof(frame), ipn, 6, true,
+					   &prot_len);
+	if (!prot) {
+		wpa_printf(MSG_ERROR,
+			   "Failed to protect S1G Beacon frame with BIP-GMAC-128 using BCE");
+		return 1;
+	}
+
+	wpa_hexdump(MSG_INFO, "Protected MPDU (without FCS)", prot, prot_len);
+	if (prot_len != sizeof(res) || os_memcmp(res, prot, prot_len) != 0) {
+		wpa_printf(MSG_ERROR,
+			   "S1G Beacon frame with BIP-GMAC-128 using BCE test vector mismatch");
+		err++;
+	}
+	os_free(prot);
+
+	return err;
+}
+
+
+static int test_vector_bip_gmac_128_s1g_beacon_bce_ext(void)
+{
+	const u8 igtk[] = {
+		0x4e, 0xa9, 0x54, 0x3e, 0x09, 0xcf, 0x2b, 0x1e,
+		0xca, 0x66, 0xff, 0xc5, 0x8b, 0xde, 0xcb, 0xcf
+	};
+	const u8 ipn[] = { 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	const u8 frame[] = {
+		0x1c, 0x47, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	};
+	const u8 res[] = {
+		0x1c, 0x47, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x8c,
+		0x10, 0x86, 0xdd, 0xb6, 0xc0, 0x56, 0x21, 0x30,
+		0x9d, 0x3e, 0xbd, 0x25, 0x96, 0x67, 0x5b, 0xdd,
+		0xc3
+	};
+	u8 *prot;
+	size_t prot_len;
+	int err = 0;
+
+	wpa_printf(MSG_INFO,
+		   "\nIEEE P802.11REVme/D4.0, J.9.2 S1G Beacon frame with BIP-GMAC-128 using BCE, all optional header fields, no body elements\n");
+
+	wpa_hexdump(MSG_INFO, "IGTK", igtk, sizeof(igtk));
+	wpa_hexdump(MSG_INFO, "IPN", ipn, sizeof(ipn));
+	wpa_hexdump(MSG_INFO, "Plaintext frame", frame, sizeof(frame));
+
+	prot = bip_gmac_protect_s1g_beacon(igtk, sizeof(igtk), frame,
+					   sizeof(frame), ipn, 7, true,
+					   &prot_len);
+	if (!prot) {
+		wpa_printf(MSG_ERROR,
+			   "Failed to protect S1G Beacon frame with BIP-GMAC-128 using BCE");
+		return 1;
+	}
+
+	wpa_hexdump(MSG_INFO, "Protected MPDU (without FCS)", prot, prot_len);
+	if (prot_len != sizeof(res) || os_memcmp(res, prot, prot_len) != 0) {
+		wpa_printf(MSG_ERROR,
+			   "S1G Beacon frame with BIP-GMAC-128 using BCE test vector mismatch");
+		err++;
+	}
+	os_free(prot);
+
+	return err;
+}
+
+
 static int test_vector_bip_gmac_256(void)
 {
 	u8 igtk[] = {
@@ -915,6 +1287,226 @@ static int test_vector_bip_gmac_256(void)
 }
 
 
+static int test_vector_bip_gmac_256_s1g_beacon(void)
+{
+	const u8 igtk[] = {
+		0x4e, 0xa9, 0x54, 0x3e, 0x09, 0xcf, 0x2b, 0x1e,
+		0xca, 0x66, 0xff, 0xc5, 0x8b, 0xde, 0xcb, 0xcf,
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+		0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+	};
+	const u8 ipn[] = { 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	const u8 frame[] = {
+		0x1c, 0x40, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD5,
+		0x08, 0x80, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56,
+		0x78
+	};
+	const u8 res[] = {
+		0x1c, 0x40, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xd5,
+		0x08, 0x80, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56,
+		0x78, 0x4c, 0x18, 0x07, 0x00, 0x04, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x33, 0xa2, 0x6f, 0xc6, 0x7e,
+		0xbf, 0xfd, 0xa0, 0xac, 0x9b, 0x29, 0xaa, 0x70,
+		0xda, 0x3f, 0x51
+	};
+	u8 *prot;
+	size_t prot_len;
+	int err = 0;
+
+	wpa_printf(MSG_INFO,
+		   "\nIEEE P802.11REVme/D4.0, J.9.2 S1G Beacon frame with BIP-GMAC-256, no optional header fields, S1G Beacon Compatibility element in body\n");
+
+	wpa_hexdump(MSG_INFO, "IGTK", igtk, sizeof(igtk));
+	wpa_hexdump(MSG_INFO, "IPN", ipn, sizeof(ipn));
+	wpa_hexdump(MSG_INFO, "Plaintext frame", frame, sizeof(frame));
+
+	prot = bip_gmac_protect_s1g_beacon(igtk, sizeof(igtk), frame,
+					   sizeof(frame), ipn, 7, false,
+					   &prot_len);
+	if (!prot) {
+		wpa_printf(MSG_ERROR,
+			   "Failed to protect S1G Beacon frame with BIP-GMAC-256");
+		return 1;
+	}
+
+	wpa_hexdump(MSG_INFO, "Protected MPDU (without FCS)", prot, prot_len);
+	if (prot_len != sizeof(res) || os_memcmp(res, prot, prot_len) != 0) {
+		wpa_printf(MSG_ERROR,
+			   "S1G Beacon frame with BIP-GMAC-256 test vector mismatch");
+		err++;
+	}
+	os_free(prot);
+
+	return err;
+}
+
+
+static int test_vector_bip_gmac_256_s1g_beacon_ext(void)
+{
+	const u8 igtk[] = {
+		0x4e, 0xa9, 0x54, 0x3e, 0x09, 0xcf, 0x2b, 0x1e,
+		0xca, 0x66, 0xff, 0xc5, 0x8b, 0xde, 0xcb, 0xcf,
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+		0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+	};
+	const u8 ipn[] = { 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	const u8 frame[] = {
+		0x1c, 0x47, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	};
+	const u8 res[] = {
+		0x1c, 0x47, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4c,
+		0x18, 0x06, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x0a, 0x5f, 0xa0, 0xf4, 0x71, 0xdf, 0x73,
+		0x9e, 0x61, 0x4d, 0xcf, 0x5d, 0xbb, 0x36, 0xf9,
+		0x65
+	};
+	u8 *prot;
+	size_t prot_len;
+	int err = 0;
+
+	wpa_printf(MSG_INFO,
+		   "\nIEEE P802.11REVme/D4.0, J.9.2 S1G Beacon frame with BIP-GMAC-256, all optional header fields, no body elements\n");
+
+	wpa_hexdump(MSG_INFO, "IGTK", igtk, sizeof(igtk));
+	wpa_hexdump(MSG_INFO, "IPN", ipn, sizeof(ipn));
+	wpa_hexdump(MSG_INFO, "Plaintext frame", frame, sizeof(frame));
+
+	prot = bip_gmac_protect_s1g_beacon(igtk, sizeof(igtk), frame,
+					   sizeof(frame), ipn, 6, false,
+					   &prot_len);
+	if (!prot) {
+		wpa_printf(MSG_ERROR,
+			   "Failed to protect S1B Beacon frame with BIP-GMAC-256");
+		return 1;
+	}
+
+	wpa_hexdump(MSG_INFO, "Protected MPDU (without FCS)", prot, prot_len);
+	if (prot_len != sizeof(res) || os_memcmp(res, prot, prot_len) != 0) {
+		wpa_printf(MSG_ERROR,
+			   "S1G Beacon frame with BIP-GMAC-256 test vector mismatch");
+		err++;
+	}
+	os_free(prot);
+
+	return err;
+}
+
+
+static int test_vector_bip_gmac_256_s1g_beacon_bce(void)
+{
+	const u8 igtk[] = {
+		0x4e, 0xa9, 0x54, 0x3e, 0x09, 0xcf, 0x2b, 0x1e,
+		0xca, 0x66, 0xff, 0xc5, 0x8b, 0xde, 0xcb, 0xcf,
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+		0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+	};
+	const u8 ipn[] = { 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	const u8 frame[] = {
+		0x1c, 0x40, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD5,
+		0x08, 0x80, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56,
+		0x78
+	};
+	const u8 res[] = {
+		0x1c, 0x40, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xd5,
+		0x08, 0x80, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56,
+		0x78, 0x8c, 0x10, 0xf8, 0x76, 0x22, 0x80, 0x3d,
+		0x9c, 0x22, 0x8a, 0xcb, 0x3c, 0x55, 0x8a, 0x33,
+		0x2e, 0x94, 0x13
+	};
+	u8 *prot;
+	size_t prot_len;
+	int err = 0;
+
+	wpa_printf(MSG_INFO,
+		   "\nIEEE P802.11REVme/D4.0, J.9.2 S1G Beacon frame with BIP-GMAC-256 using BCE, no optional header fields, S1G Beacon Compatibility element in body\n");
+
+	wpa_hexdump(MSG_INFO, "IGTK", igtk, sizeof(igtk));
+	wpa_hexdump(MSG_INFO, "IPN", ipn, sizeof(ipn));
+	wpa_hexdump(MSG_INFO, "Plaintext frame", frame, sizeof(frame));
+
+	prot = bip_gmac_protect_s1g_beacon(igtk, sizeof(igtk), frame,
+					   sizeof(frame), ipn, 7, true,
+					   &prot_len);
+	if (!prot) {
+		wpa_printf(MSG_ERROR,
+			   "Failed to protect S1G Beacon frame with BIP-GMAC-256 using BCE");
+		return 1;
+	}
+
+	wpa_hexdump(MSG_INFO, "Protected MPDU (without FCS)", prot, prot_len);
+	if (prot_len != sizeof(res) || os_memcmp(res, prot, prot_len) != 0) {
+		wpa_printf(MSG_ERROR,
+			   "S1G Beacon frame with BIP-GMAC-256 using BCE test vector mismatch");
+		err++;
+	}
+	os_free(prot);
+
+	return err;
+}
+
+
+static int test_vector_bip_gmac_256_s1g_beacon_bce_ext(void)
+{
+	const u8 igtk[] = {
+		0x4e, 0xa9, 0x54, 0x3e, 0x09, 0xcf, 0x2b, 0x1e,
+		0xca, 0x66, 0xff, 0xc5, 0x8b, 0xde, 0xcb, 0xcf,
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+		0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+	};
+	const u8 ipn[] = { 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	const u8 frame[] = {
+		0x1c, 0x47, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	};
+	const u8 res[] = {
+		0x1c, 0x47, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x8c,
+		0x10, 0x3c, 0x80, 0x49, 0xbe, 0x8c, 0x23, 0x34,
+		0x1f, 0x5c, 0x2f, 0x9c, 0xd6, 0x03, 0xe3, 0x7a,
+		0x5b
+	};
+	u8 *prot;
+	size_t prot_len;
+	int err = 0;
+
+	wpa_printf(MSG_INFO,
+		   "\nIEEE P802.11REVme/D4.0, J.9.2 S1G Beacon frame with BIP-GMAC-256 using BCE, all optional header fields, no body elements\n");
+
+	wpa_hexdump(MSG_INFO, "IGTK", igtk, sizeof(igtk));
+	wpa_hexdump(MSG_INFO, "IPN", ipn, sizeof(ipn));
+	wpa_hexdump(MSG_INFO, "Plaintext frame", frame, sizeof(frame));
+
+	prot = bip_gmac_protect_s1g_beacon(igtk, sizeof(igtk), frame,
+					   sizeof(frame), ipn, 6, true,
+					   &prot_len);
+	if (!prot) {
+		wpa_printf(MSG_ERROR,
+			   "Failed to protect S1B Beacon frame with BIP-GMAC-256 using BCE");
+		return 1;
+	}
+
+	wpa_hexdump(MSG_INFO, "Protected MPDU (without FCS)", prot, prot_len);
+	if (prot_len != sizeof(res) || os_memcmp(res, prot, prot_len) != 0) {
+		wpa_printf(MSG_ERROR,
+			   "S1G Beacon frame with BIP-GMAC-256 using BCE test vector mismatch");
+		err++;
+	}
+	os_free(prot);
+
+	return err;
+}
+
+
 int main(int argc, char *argv[])
 {
 	int errors = 0;
@@ -929,12 +1521,24 @@ int main(int argc, char *argv[])
 	test_vector_ccmp();
 	test_vector_ccmp_pv1();
 	test_vector_bip();
+	test_vector_bip_s1g_beacon();
+	test_vector_bip_s1g_beacon_ext();
+	test_vector_bip_s1g_beacon_bce();
+	test_vector_bip_s1g_beacon_bce_ext();
 	test_vector_ccmp_mgmt();
 	errors += test_vector_gcmp();
 	errors += test_vector_gcmp_256();
 	errors += test_vector_ccmp_256();
 	errors += test_vector_bip_gmac_128();
+	errors += test_vector_bip_gmac_128_s1g_beacon();
+	errors += test_vector_bip_gmac_128_s1g_beacon_ext();
+	errors += test_vector_bip_gmac_128_s1g_beacon_bce();
+	errors += test_vector_bip_gmac_128_s1g_beacon_bce_ext();
 	errors += test_vector_bip_gmac_256();
+	errors += test_vector_bip_gmac_256_s1g_beacon();
+	errors += test_vector_bip_gmac_256_s1g_beacon_ext();
+	errors += test_vector_bip_gmac_256_s1g_beacon_bce();
+	errors += test_vector_bip_gmac_256_s1g_beacon_bce_ext();
 
 	if (errors)
 		wpa_printf(MSG_INFO, "One or more test vectors failed");
