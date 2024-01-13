@@ -6440,7 +6440,7 @@ static void hostapd_ml_handle_assoc_cb(struct hostapd_data *hapd,
 			struct hostapd_data *tmp_hapd =
 				hapd->iface->interfaces->iface[i]->bss[0];
 
-			if (tmp_hapd->conf->mld_ap ||
+			if (!tmp_hapd->conf->mld_ap ||
 			    hapd->conf->mld_id != tmp_hapd->conf->mld_id)
 				continue;
 
