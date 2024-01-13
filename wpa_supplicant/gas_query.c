@@ -199,9 +199,15 @@ static struct gas_query_pending *
 gas_query_get_pending(struct gas_query *gas, const u8 *addr, u8 dialog_token)
 {
 	struct gas_query_pending *q;
+	struct wpa_supplicant *wpa_s = gas->wpa_s;
+
 	dl_list_for_each(q, &gas->pending, struct gas_query_pending, list) {
 		if (os_memcmp(q->addr, addr, ETH_ALEN) == 0 &&
 		    q->dialog_token == dialog_token)
+			return q;
+		if (wpa_s->valid_links &&
+		    os_memcmp(wpa_s->ap_mld_addr, addr, ETH_ALEN) == 0 &&
+		    wpas_ap_link_address(wpa_s, q->addr))
 			return q;
 	}
 	return NULL;
