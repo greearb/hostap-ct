@@ -882,9 +882,9 @@ int hostapd_drv_wnm_oper(struct hostapd_data *hapd, enum wnm_oper oper,
 }
 
 
-int hostapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
-			    unsigned int wait, const u8 *dst, const u8 *data,
-			    size_t len)
+static int hapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
+				unsigned int wait, const u8 *dst,
+				const u8 *data, size_t len, bool addr3_ap)
 {
 	const u8 *own_addr = hapd->own_addr;
 	const u8 *bssid;
@@ -896,7 +896,7 @@ int hostapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
 	if (!hapd->driver || !hapd->driver->send_action || !hapd->drv_priv)
 		return 0;
 	bssid = hapd->own_addr;
-	if (!is_multicast_ether_addr(dst) &&
+	if (!addr3_ap && !is_multicast_ether_addr(dst) &&
 	    len > 0 && data[0] == WLAN_ACTION_PUBLIC) {
 		/*
 		 * Public Action frames to a STA that is not a member of the BSS
@@ -905,7 +905,7 @@ int hostapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
 		sta = ap_get_sta(hapd, dst);
 		if (!sta || !(sta->flags & WLAN_STA_ASSOC))
 			bssid = wildcard_bssid;
-	} else if (is_broadcast_ether_addr(dst) &&
+	} else if (!addr3_ap && is_broadcast_ether_addr(dst) &&
 		   len > 0 && data[0] == WLAN_ACTION_PUBLIC) {
 		/*
 		 * The only current use case of Public Action frames with
@@ -930,16 +930,20 @@ int hostapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
 }
 
 
+int hostapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
+			    unsigned int wait, const u8 *dst, const u8 *data,
+			    size_t len)
+{
+	return hapd_drv_send_action(hapd, freq, wait, dst, data, len, false);
+}
+
+
 int hostapd_drv_send_action_addr3_ap(struct hostapd_data *hapd,
 				     unsigned int freq,
 				     unsigned int wait, const u8 *dst,
 				     const u8 *data, size_t len)
 {
-	if (hapd->driver == NULL || hapd->driver->send_action == NULL)
-		return 0;
-	return hapd->driver->send_action(hapd->drv_priv, freq, wait, dst,
-					 hapd->own_addr, hapd->own_addr, data,
-					 len, 0);
+	return hapd_drv_send_action(hapd, freq, wait, dst, data, len, true);
 }
 
 
