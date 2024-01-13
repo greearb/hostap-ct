@@ -12,6 +12,7 @@ from wpasupplicant import WpaSupplicant
 import re
 from tshark import run_tshark
 from test_gas import hs20_ap_params
+from test_dpp import check_dpp_capab, wait_auth_success
 
 def eht_verify_wifi_version(dev):
     status = dev.get_status()
@@ -1375,3 +1376,36 @@ def test_eht_mld_gas(dev, apdev):
         check_anqp(wpas, bssid)
         check_anqp(wpas, bssid0)
         check_anqp(wpas, bssid1)
+
+def test_eht_mld_dpp_responder_while_assoc(dev, apdev):
+    """DPP responder while ML associated"""
+    check_dpp_capab(dev[0])
+
+    with HWSimRadio(use_mlo=True) as (hapd0_radio, hapd0_iface), \
+        HWSimRadio(use_mlo=True) as (hapd1_radio, hapd1_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+        check_dpp_capab(wpas)
+
+        ssid = "owe_two_link"
+        params = eht_mld_ap_wpa2_params(ssid, key_mgmt="OWE", mfp="2")
+        hapd0 = eht_mld_enable_ap(hapd0_iface, params)
+
+        params['channel'] = '6'
+        hapd1 = eht_mld_enable_ap(hapd0_iface, params)
+
+        wpas.connect(ssid, scan_freq="2412 2437", key_mgmt="OWE",
+                     ieee80211w="2")
+        hapd0.wait_sta()
+        hapd1.wait_sta()
+
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
+
+        id = wpas.dpp_bootstrap_gen(chan="81/11", mac=True)
+        uri = wpas.request("DPP_BOOTSTRAP_GET_URI %d" % id)
+        wpas.dpp_listen(2462)
+        dev[0].dpp_auth_init(uri=uri)
+        wait_auth_success(dev[0], wpas)
