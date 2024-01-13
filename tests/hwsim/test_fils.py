@@ -2472,6 +2472,7 @@ def test_fils_offload_to_driver(dev, apdev, params):
 
 def test_fils_offload_to_driver2(dev, apdev, params):
     """FILS offload to driver"""
+    check_fils_capa(dev[0])
     wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
     wpas.interface_add("wlan5", drv_params="force_connect_cmd=1")
     run_fils_offload_to_driver(wpas, apdev, params)

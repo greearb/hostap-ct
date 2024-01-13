@@ -551,6 +551,7 @@ def test_wpas_config_file_set_global(dev):
 
 def test_wpas_config_file_key_mgmt(dev, apdev, params):
     """wpa_supplicant config file writing and key_mgmt values"""
+    check_fils_capa(dev[0])
     config = os.path.join(params['logdir'],
                           'wpas_config_file_key_mgmt.conf')
     if os.path.exists(config):
