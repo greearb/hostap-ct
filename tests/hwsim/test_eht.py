@@ -11,6 +11,7 @@ import hwsim_utils
 from wpasupplicant import WpaSupplicant
 import re
 from tshark import run_tshark
+from test_gas import hs20_ap_params
 
 def eht_verify_wifi_version(dev):
     status = dev.get_status()
@@ -1308,3 +1309,69 @@ def test_eht_6ghz_320mhz_2(dev, apdev):
 def test_eht_6ghz_320mhz_3(dev, apdev):
     """EHT with 320 MHz channel width on 6 GHz center 31 primary 37"""
     _test_eht_6ghz(dev, apdev, 37, 137, 31)
+
+def check_anqp(dev, bssid):
+    if "OK" not in dev.request("ANQP_GET " + bssid + " 258"):
+        raise Exception("ANQP_GET command failed")
+
+    ev = dev.wait_event(["GAS-QUERY-START"], timeout=5)
+    if ev is None:
+        raise Exception("GAS query start timed out")
+
+    ev = dev.wait_event(["GAS-QUERY-DONE"], timeout=10)
+    if ev is None:
+        raise Exception("GAS query timed out")
+
+    ev = dev.wait_event(["RX-ANQP"], timeout=1)
+    if ev is None or "Venue Name" not in ev:
+        raise Exception("Did not receive Venue Name")
+
+    ev = dev.wait_event(["ANQP-QUERY-DONE"], timeout=10)
+    if ev is None:
+        raise Exception("ANQP-QUERY-DONE event not seen")
+    if "result=SUCCESS" not in ev:
+        raise Exception("Unexpected result: " + ev)
+
+def test_eht_mld_gas(dev, apdev):
+    """GAS/ANQP during MLO association"""
+    params = hs20_ap_params()
+    bssid = apdev[0]['bssid']
+    params['hessid'] = bssid
+    params['channel'] = "11"
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    with HWSimRadio(use_mlo=True) as (hapd0_radio, hapd0_iface), \
+        HWSimRadio(use_mlo=True) as (hapd1_radio, hapd1_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+        wpas.scan_for_bss(bssid, freq="2462")
+
+        ssid = "owe_two_link"
+        params = eht_mld_ap_wpa2_params(ssid, key_mgmt="OWE", mfp="2")
+        params['interworking'] = "1"
+        params['venue_group'] = "7"
+        params['venue_type'] = "1"
+        params['venue_name'] = "eng:Example venue"
+        hapd0 = eht_mld_enable_ap(hapd0_iface, params)
+        bssid0 = hapd0.own_addr()
+
+        params['channel'] = '6'
+        hapd1 = eht_mld_enable_ap(hapd0_iface, params)
+        bssid1 = hapd1.own_addr()
+
+        wpas.scan_for_bss(bssid0, freq="2412")
+        wpas.scan_for_bss(bssid1, freq="2437")
+
+        wpas.connect(ssid, scan_freq="2412 2437", key_mgmt="OWE",
+                     ieee80211w="2")
+        hapd0.wait_sta()
+        hapd1.wait_sta()
+
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
+
+        check_anqp(wpas, bssid)
+        check_anqp(wpas, bssid0)
+        check_anqp(wpas, bssid1)
