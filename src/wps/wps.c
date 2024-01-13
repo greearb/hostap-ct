@@ -336,9 +336,9 @@ int wps_is_addr_authorized(const struct wpabuf *msg, const u8 *addr,
 
 	pos = attr.authorized_macs;
 	for (i = 0; i < attr.authorized_macs_len / ETH_ALEN; i++) {
-		if (os_memcmp(pos, addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(pos, addr))
 			return 2;
-		if (os_memcmp(pos, bcast, ETH_ALEN) == 0)
+		if (ether_addr_equal(pos, bcast))
 			return 1;
 		pos += ETH_ALEN;
 	}

@@ -2368,7 +2368,7 @@ static int wpa_config_parse_mac_value(const struct parse_data *data,
 	u8 mac_value[ETH_ALEN];
 
 	if (hwaddr_aton(value, mac_value) == 0) {
-		if (os_memcmp(mac_value, ssid->mac_value, ETH_ALEN) == 0)
+		if (ether_addr_equal(mac_value, ssid->mac_value))
 			return 1;
 		os_memcpy(ssid->mac_value, mac_value, ETH_ALEN);
 		return 0;

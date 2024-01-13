@@ -921,14 +921,14 @@ static void nl80211_check_bss_status(struct wpa_driver_nl80211_data *drv,
 			   "nl80211: Local state (not associated) does not match with BSS state");
 		clear_state_mismatch(drv, r->bssid);
 	} else if (is_sta_interface(drv->nlmode) &&
-		   os_memcmp(drv->bssid, r->bssid, ETH_ALEN) != 0) {
+		   !ether_addr_equal(drv->bssid, r->bssid)) {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Local state (associated with " MACSTR
 			   ") does not match with BSS state",
 			   MAC2STR(drv->bssid));
 
-		if (os_memcmp(drv->sta_mlo_info.ap_mld_addr, drv->bssid,
-			      ETH_ALEN) != 0) {
+		if (!ether_addr_equal(drv->sta_mlo_info.ap_mld_addr,
+				      drv->bssid)) {
 			clear_state_mismatch(drv, r->bssid);
 
 			if (!is_zero_ether_addr(drv->sta_mlo_info.ap_mld_addr))

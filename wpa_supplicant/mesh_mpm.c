@@ -854,7 +854,7 @@ void wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 
 	if (ssid && ssid->no_auto_peer &&
 	    (is_zero_ether_addr(data->mesh_required_peer) ||
-	     os_memcmp(data->mesh_required_peer, addr, ETH_ALEN) != 0)) {
+	     !ether_addr_equal(data->mesh_required_peer, addr))) {
 		wpa_msg(wpa_s, MSG_INFO, "will not initiate new peer link with "
 			MACSTR " because of no_auto_peer", MAC2STR(addr));
 		if (data->mesh_pending_auth) {
@@ -865,7 +865,7 @@ void wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 			mgmt = wpabuf_head(data->mesh_pending_auth);
 			os_reltime_age(&data->mesh_pending_auth_time, &age);
 			if (age.sec < 2 &&
-			    os_memcmp(mgmt->sa, addr, ETH_ALEN) == 0) {
+			    ether_addr_equal(mgmt->sa, addr)) {
 				wpa_printf(MSG_DEBUG,
 					   "mesh: Process pending Authentication frame from %u.%06u seconds ago",
 					   (unsigned int) age.sec,

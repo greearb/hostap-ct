@@ -294,7 +294,7 @@ static int wpa_tdls_tpk_send(struct wpa_sm *sm, const u8 *dest, u8 action_code,
 		return 0; /* No retries */
 
 	for (peer = sm->tdls; peer; peer = peer->next) {
-		if (os_memcmp(peer->addr, dest, ETH_ALEN) == 0)
+		if (ether_addr_equal(peer->addr, dest))
 			break;
 	}
 
@@ -791,7 +791,7 @@ static int wpa_tdls_send_teardown(struct wpa_sm *sm, const u8 *addr,
 
 	/* Find the node and free from the list */
 	for (peer = sm->tdls; peer; peer = peer->next) {
-		if (os_memcmp(peer->addr, addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(peer->addr, addr))
 			break;
 	}
 
@@ -880,7 +880,7 @@ int wpa_tdls_teardown_link(struct wpa_sm *sm, const u8 *addr, u16 reason_code)
 		return -1;
 
 	for (peer = sm->tdls; peer; peer = peer->next) {
-		if (os_memcmp(peer->addr, addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(peer->addr, addr))
 			break;
 	}
 
@@ -913,7 +913,7 @@ void wpa_tdls_disable_unreachable_link(struct wpa_sm *sm, const u8 *addr)
 	struct wpa_tdls_peer *peer;
 
 	for (peer = sm->tdls; peer; peer = peer->next) {
-		if (os_memcmp(peer->addr, addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(peer->addr, addr))
 			break;
 	}
 
@@ -949,7 +949,7 @@ const char * wpa_tdls_get_link_status(struct wpa_sm *sm, const u8 *addr)
 		return "disabled";
 
 	for (peer = sm->tdls; peer; peer = peer->next) {
-		if (os_memcmp(peer->addr, addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(peer->addr, addr))
 			break;
 	}
 
@@ -976,7 +976,7 @@ static int wpa_tdls_recv_teardown(struct wpa_sm *sm, const u8 *src_addr,
 
 	/* Find the node and free from the list */
 	for (peer = sm->tdls; peer; peer = peer->next) {
-		if (os_memcmp(peer->addr, src_addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(peer->addr, src_addr))
 			break;
 	}
 
@@ -1072,7 +1072,7 @@ wpa_tdls_add_peer(struct wpa_sm *sm, const u8 *addr, int *existing)
 	if (existing)
 		*existing = 0;
 	for (peer = sm->tdls; peer; peer = peer->next) {
-		if (os_memcmp(peer->addr, addr, ETH_ALEN) == 0) {
+		if (ether_addr_equal(peer->addr, addr)) {
 			if (existing)
 				*existing = 1;
 			return peer; /* re-use existing entry */
@@ -1564,15 +1564,15 @@ static bool wpa_tdls_is_lnkid_bss_valid(struct wpa_sm *sm,
 	*link_id = -1;
 
 	if (!sm->mlo.valid_links) {
-		if (os_memcmp(sm->bssid, lnkid->bssid, ETH_ALEN) != 0)
+		if (!ether_addr_equal(sm->bssid, lnkid->bssid))
 			return false;
 	} else {
 		int i;
 
 		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
 			if ((sm->mlo.valid_links & BIT(i)) &&
-			    os_memcmp(lnkid->bssid, sm->mlo.links[i].bssid,
-				      ETH_ALEN) == 0) {
+			    ether_addr_equal(lnkid->bssid,
+					     sm->mlo.links[i].bssid)) {
 				*link_id = i;
 				break;
 			}
@@ -2371,7 +2371,7 @@ static int wpa_tdls_process_tpk_m2(struct wpa_sm *sm, const u8 *src_addr,
 	wpa_printf(MSG_DEBUG, "TDLS: Received TDLS Setup Response / TPK M2 "
 		   "(Peer " MACSTR ")", MAC2STR(src_addr));
 	for (peer = sm->tdls; peer; peer = peer->next) {
-		if (os_memcmp(peer->addr, src_addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(peer->addr, src_addr))
 			break;
 	}
 	if (peer == NULL) {
@@ -2460,8 +2460,8 @@ static int wpa_tdls_process_tpk_m2(struct wpa_sm *sm, const u8 *src_addr,
 		    kde.lnkid, kde.lnkid_len);
 	lnkid = (struct wpa_tdls_lnkid *) kde.lnkid;
 
-	if (os_memcmp(sm->bssid, wpa_tdls_get_link_bssid(sm, peer->mld_link_id),
-		      ETH_ALEN) != 0) {
+	if (!ether_addr_equal(sm->bssid,
+			      wpa_tdls_get_link_bssid(sm, peer->mld_link_id))) {
 		wpa_printf(MSG_INFO, "TDLS: TPK M2 from different BSS");
 		status = WLAN_STATUS_NOT_IN_SAME_BSS;
 		goto error;
@@ -2668,7 +2668,7 @@ static int wpa_tdls_process_tpk_m3(struct wpa_sm *sm, const u8 *src_addr,
 	wpa_printf(MSG_DEBUG, "TDLS: Received TDLS Setup Confirm / TPK M3 "
 		   "(Peer " MACSTR ")", MAC2STR(src_addr));
 	for (peer = sm->tdls; peer; peer = peer->next) {
-		if (os_memcmp(peer->addr, src_addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(peer->addr, src_addr))
 			break;
 	}
 	if (peer == NULL) {
@@ -2713,8 +2713,8 @@ static int wpa_tdls_process_tpk_m3(struct wpa_sm *sm, const u8 *src_addr,
 		    (u8 *) kde.lnkid, kde.lnkid_len);
 	lnkid = (struct wpa_tdls_lnkid *) kde.lnkid;
 
-	if (os_memcmp(wpa_tdls_get_link_bssid(sm, peer->mld_link_id),
-		      lnkid->bssid, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(wpa_tdls_get_link_bssid(sm, peer->mld_link_id),
+			      lnkid->bssid)) {
 		wpa_printf(MSG_INFO, "TDLS: TPK M3 from diff BSS");
 		goto error;
 	}
@@ -2899,7 +2899,7 @@ void wpa_tdls_remove(struct wpa_sm *sm, const u8 *addr)
 		return;
 
 	for (peer = sm->tdls; peer; peer = peer->next) {
-		if (os_memcmp(peer->addr, addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(peer->addr, addr))
 			break;
 	}
 
@@ -2937,7 +2937,7 @@ static void wpa_supplicant_rx_tdls(void *ctx, const u8 *src_addr,
 		return;
 	}
 
-	if (os_memcmp(src_addr, sm->own_addr, ETH_ALEN) == 0) {
+	if (ether_addr_equal(src_addr, sm->own_addr)) {
 		wpa_printf(MSG_DEBUG, "TDLS: Discard copy of own message");
 		return;
 	}
@@ -3263,7 +3263,7 @@ int wpa_tdls_enable_chan_switch(struct wpa_sm *sm, const u8 *addr,
 	}
 
 	for (peer = sm->tdls; peer; peer = peer->next) {
-		if (os_memcmp(peer->addr, addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(peer->addr, addr))
 			break;
 	}
 
@@ -3297,7 +3297,7 @@ int wpa_tdls_disable_chan_switch(struct wpa_sm *sm, const u8 *addr)
 		return -1;
 
 	for (peer = sm->tdls; peer; peer = peer->next) {
-		if (os_memcmp(peer->addr, addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(peer->addr, addr))
 			break;
 	}
 

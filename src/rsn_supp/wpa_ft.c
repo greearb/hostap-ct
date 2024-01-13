@@ -607,7 +607,7 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 			goto fail;
 		}
 
-		if (os_memcmp(target_ap, sm->target_ap, ETH_ALEN) != 0) {
+		if (!ether_addr_equal(target_ap, sm->target_ap)) {
 			wpa_printf(MSG_DEBUG, "FT: No over-the-DS in progress "
 				   "with this Target AP - drop FT Action "
 				   "Response");
@@ -1330,7 +1330,7 @@ static struct pasn_ft_r1kh * wpa_ft_pasn_get_r1kh(struct wpa_sm *sm,
 	size_t i;
 
 	for (i = 0; i < sm->n_pasn_r1kh; i++)
-		if (os_memcmp(sm->pasn_r1kh[i].bssid, bssid, ETH_ALEN) == 0)
+		if (ether_addr_equal(sm->pasn_r1kh[i].bssid, bssid))
 			return &sm->pasn_r1kh[i];
 
 	return NULL;

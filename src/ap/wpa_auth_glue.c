@@ -667,7 +667,7 @@ static int hostapd_wpa_auth_ft_iter(struct hostapd_iface *iface, void *ctx)
 		hapd = iface->bss[j];
 		if (hapd == idata->src_hapd ||
 		    !hapd->wpa_auth ||
-		    os_memcmp(hapd->own_addr, idata->dst, ETH_ALEN) != 0)
+		    !ether_addr_equal(hapd->own_addr, idata->dst))
 			continue;
 
 		wpa_printf(MSG_DEBUG,
@@ -857,7 +857,7 @@ static int hostapd_wpa_auth_oui_iter(struct hostapd_iface *iface, void *ctx)
 			      MOBILITY_DOMAIN_ID_LEN) != 0)
 			continue; /* no matching FT SSID/mobility domain */
 		if (!is_multicast_ether_addr(idata->dst_addr) &&
-		    os_memcmp(hapd->own_addr, idata->dst_addr, ETH_ALEN) != 0)
+		    !ether_addr_equal(hapd->own_addr, idata->dst_addr))
 			continue; /* destination address does not match */
 
 		/* defer eth_p_oui_deliver until next eloop step as this is
@@ -1407,7 +1407,7 @@ static void hostapd_rrb_receive(void *ctx, const u8 *src_addr, const u8 *buf,
 	wpa_printf(MSG_DEBUG, "FT: RRB received packet " MACSTR " -> "
 		   MACSTR, MAC2STR(ethhdr->h_source), MAC2STR(ethhdr->h_dest));
 	if (!is_multicast_ether_addr(ethhdr->h_dest) &&
-	    os_memcmp(hapd->own_addr, ethhdr->h_dest, ETH_ALEN) != 0)
+	    !ether_addr_equal(hapd->own_addr, ethhdr->h_dest))
 		return;
 	wpa_ft_rrb_rx(hapd->wpa_auth, ethhdr->h_source, buf + sizeof(*ethhdr),
 		      len - sizeof(*ethhdr));
@@ -1423,7 +1423,7 @@ static void hostapd_rrb_oui_receive(void *ctx, const u8 *src_addr,
 	wpa_printf(MSG_DEBUG, "FT: RRB received packet " MACSTR " -> "
 		   MACSTR, MAC2STR(src_addr), MAC2STR(dst_addr));
 	if (!is_multicast_ether_addr(dst_addr) &&
-	    os_memcmp(hapd->own_addr, dst_addr, ETH_ALEN) != 0)
+	    !ether_addr_equal(hapd->own_addr, dst_addr))
 		return;
 	wpa_ft_rrb_oui_rx(hapd->wpa_auth, src_addr, dst_addr, oui_suffix, buf,
 			  len);

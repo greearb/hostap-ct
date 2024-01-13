@@ -556,7 +556,7 @@ const char * sae_get_password(struct hostapd_data *hapd,
 	for (pw = hapd->conf->sae_passwords; pw; pw = pw->next) {
 		if (!is_broadcast_ether_addr(pw->peer_addr) &&
 		    (!sta ||
-		     os_memcmp(pw->peer_addr, sta->addr, ETH_ALEN) != 0))
+		     !ether_addr_equal(pw->peer_addr, sta->addr)))
 			continue;
 		if ((rx_id && !pw->identifier) || (!rx_id && pw->identifier))
 			continue;
@@ -1671,7 +1671,7 @@ static void auth_sae_queue(struct hostapd_data *hapd,
 	dl_list_for_each(q2, &hapd->sae_commit_queue,
 			 struct hostapd_sae_commit_queue, list) {
 		mgmt2 = (const struct ieee80211_mgmt *) q2->msg;
-		if (os_memcmp(mgmt->sa, mgmt2->sa, ETH_ALEN) == 0 &&
+		if (ether_addr_equal(mgmt->sa, mgmt2->sa) &&
 		    mgmt->u.auth.auth_transaction ==
 		    mgmt2->u.auth.auth_transaction) {
 			wpa_printf(MSG_DEBUG,
@@ -1702,7 +1702,7 @@ static int auth_sae_queued_addr(struct hostapd_data *hapd, const u8 *addr)
 	dl_list_for_each(q, &hapd->sae_commit_queue,
 			 struct hostapd_sae_commit_queue, list) {
 		mgmt = (const struct ieee80211_mgmt *) q->msg;
-		if (os_memcmp(addr, mgmt->sa, ETH_ALEN) == 0)
+		if (ether_addr_equal(addr, mgmt->sa))
 			return 1;
 	}
 
@@ -2620,7 +2620,7 @@ static int pasn_set_keys_from_cache(struct hostapd_data *hapd,
 		return -1;
 	}
 
-	if (os_memcmp(entry->own_addr, own_addr, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(entry->own_addr, own_addr)) {
 		wpa_printf(MSG_DEBUG,
 			   "PASN: own addr " MACSTR " and PTKSA entry own addr "
 			   MACSTR " differ",
@@ -2916,7 +2916,7 @@ static void handle_auth(struct hostapd_data *hapd,
 		goto fail;
 	}
 
-	if (os_memcmp(mgmt->sa, hapd->own_addr, ETH_ALEN) == 0) {
+	if (ether_addr_equal(mgmt->sa, hapd->own_addr)) {
 		wpa_printf(MSG_INFO, "Station " MACSTR " not allowed to authenticate",
 			   MAC2STR(sa));
 		resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
@@ -2924,8 +2924,8 @@ static void handle_auth(struct hostapd_data *hapd,
 	}
 
 	if (mld_sta &&
-	    (os_memcmp(sa, hapd->own_addr, ETH_ALEN) == 0 ||
-	     os_memcmp(sa, hapd->mld_addr, ETH_ALEN) == 0)) {
+	    (ether_addr_equal(sa, hapd->own_addr) ||
+	     ether_addr_equal(sa, hapd->mld_addr))) {
 		wpa_printf(MSG_INFO,
 			   "Station " MACSTR " not allowed to authenticate",
 			   MAC2STR(sa));
@@ -6141,7 +6141,7 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 
 	if (is_multicast_ether_addr(mgmt->sa) ||
 	    is_zero_ether_addr(mgmt->sa) ||
-	    os_memcmp(mgmt->sa, hapd->own_addr, ETH_ALEN) == 0) {
+	    ether_addr_equal(mgmt->sa, hapd->own_addr)) {
 		/* Do not process any frames with unexpected/invalid SA so that
 		 * we do not add any state for unexpected STA addresses or end
 		 * up sending out frames to unexpected destination. */
@@ -6167,9 +6167,9 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 #endif /* CONFIG_MESH */
 #ifdef CONFIG_IEEE80211BE
 	    !(hapd->conf->mld_ap &&
-	      os_memcmp(hapd->mld_addr, mgmt->bssid, ETH_ALEN) == 0) &&
+	      ether_addr_equal(hapd->mld_addr, mgmt->bssid)) &&
 #endif /* CONFIG_IEEE80211BE */
-	    os_memcmp(mgmt->bssid, hapd->own_addr, ETH_ALEN) != 0) {
+	    !ether_addr_equal(mgmt->bssid, hapd->own_addr)) {
 		wpa_printf(MSG_INFO, "MGMT: BSSID=" MACSTR " not our address",
 			   MAC2STR(mgmt->bssid));
 		return 0;
@@ -6190,9 +6190,9 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 	     stype != WLAN_FC_STYPE_ACTION) &&
 #ifdef CONFIG_IEEE80211BE
 	    !(hapd->conf->mld_ap &&
-	      os_memcmp(hapd->mld_addr, mgmt->bssid, ETH_ALEN) == 0) &&
+	      ether_addr_equal(hapd->mld_addr, mgmt->bssid)) &&
 #endif /* CONFIG_IEEE80211BE */
-	    os_memcmp(mgmt->da, hapd->own_addr, ETH_ALEN) != 0) {
+	    !ether_addr_equal(mgmt->da, hapd->own_addr)) {
 		hostapd_logger(hapd, mgmt->sa, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_DEBUG,
 			       "MGMT: DA=" MACSTR " not our address",
@@ -6929,7 +6929,7 @@ void ieee802_11_rx_from_unknown(struct hostapd_data *hapd, const u8 *src,
 	wpa_printf(MSG_DEBUG, "Data/PS-poll frame from not associated STA "
 		   MACSTR, MAC2STR(src));
 	if (is_multicast_ether_addr(src) || is_zero_ether_addr(src) ||
-	    os_memcmp(src, hapd->own_addr, ETH_ALEN) == 0) {
+	    ether_addr_equal(src, hapd->own_addr)) {
 		/* Broadcast bit set in SA or unexpected SA?! Ignore the frame
 		 * silently. */
 		return;

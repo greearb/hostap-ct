@@ -1431,7 +1431,7 @@ hostapd_ctrl_iface_kick_mismatch_psk_sta_iter(struct hostapd_data *hapd,
 		pmk_match = PMK_LEN == pmk_len &&
 			os_memcmp(psk->psk, pmk, pmk_len) == 0;
 		sta_match = psk->group == 0 &&
-			os_memcmp(sta->addr, psk->addr, ETH_ALEN) == 0;
+			ether_addr_equal(sta->addr, psk->addr);
 		bss_match = psk->group == 1;
 
 		if (pmk_match && (sta_match || bss_match))

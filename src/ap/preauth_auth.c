@@ -58,7 +58,7 @@ static void rsn_preauth_receive(void *ctx, const u8 *src_addr,
 	ethhdr = (struct l2_ethhdr *) buf;
 	hdr = (struct ieee802_1x_hdr *) (ethhdr + 1);
 
-	if (os_memcmp(ethhdr->h_dest, hapd->own_addr, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(ethhdr->h_dest, hapd->own_addr)) {
 		wpa_printf(MSG_DEBUG, "RSN: pre-auth for foreign address "
 			   MACSTR, MAC2STR(ethhdr->h_dest));
 		return;

@@ -320,7 +320,7 @@ static int wpas_pasn_set_keys_from_cache(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
-	if (os_memcmp(entry->own_addr, own_addr, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(entry->own_addr, own_addr)) {
 		wpa_printf(MSG_DEBUG,
 			   "PASN: own addr " MACSTR " and PTKSA entry own addr "
 			   MACSTR " differ",
@@ -352,7 +352,7 @@ static void wpas_pasn_configure_next_peer(struct wpa_supplicant *wpa_s,
 	while (wpa_s->pasn_count < pasn_params->num_peers) {
 		peer = &pasn_params->peer[wpa_s->pasn_count];
 
-		if (os_memcmp(wpa_s->bssid, peer->peer_addr, ETH_ALEN) == 0) {
+		if (ether_addr_equal(wpa_s->bssid, peer->peer_addr)) {
 			wpa_printf(MSG_DEBUG,
 				   "PASN: Associated peer is not expected");
 			peer->status = PASN_STATUS_FAILURE;
@@ -468,7 +468,7 @@ static struct wpa_bss * wpas_pasn_allowed(struct wpa_supplicant *wpa_s,
 	struct wpa_ie_data rsne_data;
 	int ret;
 
-	if (os_memcmp(wpa_s->bssid, peer_addr, ETH_ALEN) == 0) {
+	if (ether_addr_equal(wpa_s->bssid, peer_addr)) {
 		wpa_printf(MSG_DEBUG,
 			   "PASN: Not doing authentication with current BSS");
 		return NULL;
@@ -925,7 +925,7 @@ int wpas_pasn_deauthenticate(struct wpa_supplicant *wpa_s, const u8 *own_addr,
 	struct ieee80211_mgmt *deauth;
 	int ret;
 
-	if (os_memcmp(wpa_s->bssid, peer_addr, ETH_ALEN) == 0) {
+	if (ether_addr_equal(wpa_s->bssid, peer_addr)) {
 		wpa_printf(MSG_DEBUG,
 			   "PASN: Cannot deauthenticate from current BSS");
 		return -1;

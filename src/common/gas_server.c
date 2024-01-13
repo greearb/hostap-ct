@@ -352,7 +352,7 @@ gas_server_rx_comeback_req(struct gas_server *gas, const u8 *da, const u8 *sa,
 	dl_list_for_each(response, &gas->responses, struct gas_server_response,
 			 list) {
 		if (response->dialog_token != dialog_token ||
-		    os_memcmp(sa, response->dst, ETH_ALEN) != 0)
+		    !ether_addr_equal(sa, response->dst))
 			continue;
 		gas_server_handle_rx_comeback_req(response);
 		return 0;
@@ -470,7 +470,7 @@ void gas_server_tx_status(struct gas_server *gas, const u8 *dst, const u8 *data,
 	dl_list_for_each(response, &gas->responses, struct gas_server_response,
 			 list) {
 		if (response->dialog_token != dialog_token ||
-		    os_memcmp(dst, response->dst, ETH_ALEN) != 0)
+		    !ether_addr_equal(dst, response->dst))
 			continue;
 		gas_server_handle_tx_status(response, ack);
 		return;

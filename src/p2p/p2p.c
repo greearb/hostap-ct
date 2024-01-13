@@ -380,7 +380,7 @@ struct p2p_device * p2p_get_device(struct p2p_data *p2p, const u8 *addr)
 {
 	struct p2p_device *dev;
 	dl_list_for_each(dev, &p2p->devices, struct p2p_device, list) {
-		if (os_memcmp(dev->info.p2p_device_addr, addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(dev->info.p2p_device_addr, addr))
 			return dev;
 	}
 	return NULL;
@@ -398,7 +398,7 @@ struct p2p_device * p2p_get_device_interface(struct p2p_data *p2p,
 {
 	struct p2p_device *dev;
 	dl_list_for_each(dev, &p2p->devices, struct p2p_device, list) {
-		if (os_memcmp(dev->interface_addr, addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(dev->interface_addr, addr))
 			return dev;
 	}
 	return NULL;
@@ -486,8 +486,8 @@ static int p2p_add_group_clients(struct p2p_data *p2p, const u8 *go_dev_addr,
 	 * group, the information will be restored in the loop following this.
 	 */
 	dl_list_for_each(dev, &p2p->devices, struct p2p_device, list) {
-		if (os_memcmp(dev->member_in_go_iface, go_interface_addr,
-			      ETH_ALEN) == 0) {
+		if (ether_addr_equal(dev->member_in_go_iface,
+				     go_interface_addr)) {
 			os_memset(dev->member_in_go_iface, 0, ETH_ALEN);
 			os_memset(dev->member_in_go_dev, 0, ETH_ALEN);
 		}
@@ -495,8 +495,7 @@ static int p2p_add_group_clients(struct p2p_data *p2p, const u8 *go_dev_addr,
 
 	for (c = 0; c < info.num_clients; c++) {
 		struct p2p_client_info *cli = &info.client[c];
-		if (os_memcmp(cli->p2p_device_addr, p2p->cfg->dev_addr,
-			      ETH_ALEN) == 0)
+		if (ether_addr_equal(cli->p2p_device_addr, p2p->cfg->dev_addr))
 			continue; /* ignore our own entry */
 		dev = p2p_get_device(p2p, cli->p2p_device_addr);
 		if (dev) {
@@ -754,7 +753,7 @@ int p2p_add_device(struct p2p_data *p2p, const u8 *addr, int freq,
 	}
 
 	if (!is_zero_ether_addr(p2p->peer_filter) &&
-	    os_memcmp(p2p_dev_addr, p2p->peer_filter, ETH_ALEN) != 0) {
+	    !ether_addr_equal(p2p_dev_addr, p2p->peer_filter)) {
 		p2p_dbg(p2p, "Do not add peer filter for " MACSTR
 			" due to peer filter", MAC2STR(p2p_dev_addr));
 		p2p_parse_free(&msg);
@@ -799,7 +798,7 @@ int p2p_add_device(struct p2p_data *p2p, const u8 *addr, int freq,
 	dev->flags &= ~(P2P_DEV_PROBE_REQ_ONLY | P2P_DEV_GROUP_CLIENT_ONLY |
 			P2P_DEV_LAST_SEEN_AS_GROUP_CLIENT);
 
-	if (os_memcmp(addr, p2p_dev_addr, ETH_ALEN) != 0)
+	if (!ether_addr_equal(addr, p2p_dev_addr))
 		os_memcpy(dev->interface_addr, addr, ETH_ALEN);
 	if (msg.ssid &&
 	    msg.ssid[1] <= sizeof(dev->oper_ssid) &&
@@ -2394,7 +2393,7 @@ p2p_reply_probe(struct p2p_data *p2p, const u8 *addr, const u8 *dst,
 	}
 
 	if (dst && !is_broadcast_ether_addr(dst) &&
-	    os_memcmp(dst, p2p->cfg->dev_addr, ETH_ALEN) != 0) {
+	    !ether_addr_equal(dst, p2p->cfg->dev_addr)) {
 		/* Not sent to the broadcast address or our P2P Device Address
 		 */
 		p2p_dbg(p2p, "Probe Req DA " MACSTR " not ours - ignore it",
@@ -2478,7 +2477,7 @@ p2p_reply_probe(struct p2p_data *p2p, const u8 *addr, const u8 *dst,
 	}
 
 	if (msg.device_id &&
-	    os_memcmp(msg.device_id, p2p->cfg->dev_addr, ETH_ALEN) != 0) {
+	    !ether_addr_equal(msg.device_id, p2p->cfg->dev_addr)) {
 		/* Device ID did not match */
 		p2p_dbg(p2p, "Probe Req requested Device ID " MACSTR " did not match - ignore it",
 			MAC2STR(msg.device_id));
@@ -2567,8 +2566,7 @@ p2p_probe_req_rx(struct p2p_data *p2p, const u8 *addr, const u8 *dst,
 	 */
 	if ((p2p->state == P2P_CONNECT || p2p->state == P2P_CONNECT_LISTEN) &&
 	    p2p->go_neg_peer &&
-	    os_memcmp(addr, p2p->go_neg_peer->info.p2p_device_addr, ETH_ALEN)
-	    == 0 &&
+	    ether_addr_equal(addr, p2p->go_neg_peer->info.p2p_device_addr) &&
 	    !(p2p->go_neg_peer->flags & P2P_DEV_WAIT_GO_NEG_CONFIRM)) {
 		/* Received a Probe Request from GO Negotiation peer */
 		p2p_dbg(p2p, "Found GO Negotiation peer - try to start GO negotiation from timeout");
@@ -2580,8 +2578,7 @@ p2p_probe_req_rx(struct p2p_data *p2p, const u8 *addr, const u8 *dst,
 	if ((p2p->state == P2P_INVITE || p2p->state == P2P_INVITE_LISTEN) &&
 	    p2p->invite_peer &&
 	    (p2p->invite_peer->flags & P2P_DEV_WAIT_INV_REQ_ACK) &&
-	    os_memcmp(addr, p2p->invite_peer->info.p2p_device_addr, ETH_ALEN)
-	    == 0) {
+	    ether_addr_equal(addr, p2p->invite_peer->info.p2p_device_addr)) {
 		/* Received a Probe Request from Invite peer */
 		p2p_dbg(p2p, "Found Invite peer - try to start Invite from timeout");
 		eloop_cancel_timeout(p2p_invite_start, p2p, NULL);
@@ -2934,8 +2931,7 @@ void p2p_wps_success_cb(struct p2p_data *p2p, const u8 *mac_addr)
 		return; /* No pending Group Formation */
 	}
 
-	if (os_memcmp(mac_addr, p2p->go_neg_peer->intended_addr, ETH_ALEN) !=
-	    0) {
+	if (!ether_addr_equal(mac_addr, p2p->go_neg_peer->intended_addr)) {
 		p2p_dbg(p2p, "Ignore WPS registration success notification for "
 			MACSTR " (GO Negotiation peer " MACSTR ")",
 			MAC2STR(mac_addr),
@@ -3400,8 +3396,8 @@ static void p2p_retry_pd(struct p2p_data *p2p)
 	 */
 
 	dl_list_for_each(dev, &p2p->devices, struct p2p_device, list) {
-		if (os_memcmp(p2p->pending_pd_devaddr,
-			      dev->info.p2p_device_addr, ETH_ALEN) != 0)
+		if (!ether_addr_equal(p2p->pending_pd_devaddr,
+				      dev->info.p2p_device_addr))
 			continue;
 		if (!dev->req_config_methods)
 			continue;
@@ -4094,8 +4090,8 @@ static void p2p_timeout_prov_disc_req(struct p2p_data *p2p)
 		int for_join = 0;
 
 		dl_list_for_each(dev, &p2p->devices, struct p2p_device, list) {
-			if (os_memcmp(p2p->pending_pd_devaddr,
-				      dev->info.p2p_device_addr, ETH_ALEN) != 0)
+			if (!ether_addr_equal(p2p->pending_pd_devaddr,
+					      dev->info.p2p_device_addr))
 				continue;
 			if (dev->req_config_methods &&
 			    (dev->flags & P2P_DEV_PD_FOR_JOIN))
@@ -4563,8 +4559,8 @@ static void p2p_process_presence_req(struct p2p_data *p2p, const u8 *da,
 	p2p_dbg(p2p, "Received P2P Action - P2P Presence Request");
 
 	for (g = 0; g < p2p->num_groups; g++) {
-		if (os_memcmp(da, p2p_group_get_interface_addr(p2p->groups[g]),
-			      ETH_ALEN) == 0) {
+		if (ether_addr_equal(
+			    da, p2p_group_get_interface_addr(p2p->groups[g]))) {
 			group = p2p->groups[g];
 			break;
 		}

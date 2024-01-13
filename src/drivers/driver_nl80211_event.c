@@ -443,7 +443,7 @@ static void qca_nl80211_link_reconfig_event(struct wpa_driver_nl80211_data *drv,
 	wpa_printf(MSG_DEBUG, "nl80211: AP MLD address " MACSTR
 		   " received in link reconfig event", MAC2STR(ap_mld));
 	if (!drv->sta_mlo_info.valid_links ||
-	    os_memcmp(drv->sta_mlo_info.ap_mld_addr, ap_mld, ETH_ALEN) != 0) {
+	    !ether_addr_equal(drv->sta_mlo_info.ap_mld_addr, ap_mld)) {
 		if (drv->pending_link_reconfig_data == data) {
 			wpa_printf(MSG_DEBUG,
 				   "nl80211: Drop pending link reconfig event since AP MLD not matched even after new connect/roam event");
@@ -812,7 +812,7 @@ qca_nl80211_tid_to_link_map_event(struct wpa_driver_nl80211_data *drv,
 	wpa_printf(MSG_DEBUG, "nl80211: AP MLD address " MACSTR
 		   " received in TID to link mapping event", MAC2STR(ap_mld));
 	if (!drv->sta_mlo_info.valid_links ||
-	    os_memcmp(drv->sta_mlo_info.ap_mld_addr, ap_mld, ETH_ALEN) != 0) {
+	    !ether_addr_equal(drv->sta_mlo_info.ap_mld_addr, ap_mld)) {
 		if (drv->pending_t2lm_data == data) {
 			wpa_printf(MSG_DEBUG,
 				   "nl80211: Drop pending TID-to-link mapping event since AP MLD not matched even after new connect/roam event");
@@ -960,9 +960,8 @@ static void mlme_event_connect(struct wpa_driver_nl80211_data *drv,
 		if (drv->ignore_next_local_disconnect) {
 			drv->ignore_next_local_disconnect = 0;
 			if (!event.assoc_reject.bssid ||
-			    (os_memcmp(event.assoc_reject.bssid,
-				       drv->auth_attempt_bssid,
-				       ETH_ALEN) != 0)) {
+			    !ether_addr_equal(event.assoc_reject.bssid,
+					      drv->auth_attempt_bssid)) {
 				/*
 				 * Ignore the event that came without a BSSID or
 				 * for the old connection since this is likely
@@ -1457,9 +1456,9 @@ static void mlme_event_deauth_disassoc(struct wpa_driver_nl80211_data *drv,
 
 		if ((drv->capa.flags & WPA_DRIVER_FLAGS_SME) &&
 		    !drv->associated &&
-		    os_memcmp(bssid, drv->auth_bssid, ETH_ALEN) != 0 &&
-		    os_memcmp(bssid, drv->auth_attempt_bssid, ETH_ALEN) != 0 &&
-		    os_memcmp(bssid, drv->prev_bssid, ETH_ALEN) == 0) {
+		    !ether_addr_equal(bssid, drv->auth_bssid) &&
+		    !ether_addr_equal(bssid, drv->auth_attempt_bssid) &&
+		    ether_addr_equal(bssid, drv->prev_bssid)) {
 			/*
 			 * Avoid issues with some roaming cases where
 			 * disconnection event for the old AP may show up after
@@ -1468,11 +1467,10 @@ static void mlme_event_deauth_disassoc(struct wpa_driver_nl80211_data *drv,
 			 * ignore_next_local_deauth as well, to avoid next local
 			 * deauth event be wrongly ignored.
 			 */
-			if (os_memcmp(mgmt->sa, drv->first_bss->addr,
-				      ETH_ALEN) == 0 ||
+			if (ether_addr_equal(mgmt->sa, drv->first_bss->addr) ||
 			    (!is_zero_ether_addr(drv->first_bss->prev_addr) &&
-			     os_memcmp(mgmt->sa, drv->first_bss->prev_addr,
-				       ETH_ALEN) == 0)) {
+			     ether_addr_equal(mgmt->sa,
+					      drv->first_bss->prev_addr))) {
 				wpa_printf(MSG_DEBUG,
 					   "nl80211: Received a locally generated deauth event. Clear ignore_next_local_deauth flag");
 				drv->ignore_next_local_deauth = 0;
@@ -1487,8 +1485,8 @@ static void mlme_event_deauth_disassoc(struct wpa_driver_nl80211_data *drv,
 
 		if (!(drv->capa.flags & WPA_DRIVER_FLAGS_SME) &&
 		    drv->connect_reassoc && drv->associated &&
-		    os_memcmp(bssid, drv->prev_bssid, ETH_ALEN) == 0 &&
-		    os_memcmp(bssid, drv->auth_attempt_bssid, ETH_ALEN) != 0) {
+		    ether_addr_equal(bssid, drv->prev_bssid) &&
+		    !ether_addr_equal(bssid, drv->auth_attempt_bssid)) {
 			/*
 			 * Avoid issues with some roaming cases where
 			 * disconnection event for the old AP may show up after
@@ -1504,8 +1502,8 @@ static void mlme_event_deauth_disassoc(struct wpa_driver_nl80211_data *drv,
 		}
 
 		if (drv->associated != 0 &&
-		    os_memcmp(bssid, drv->bssid, ETH_ALEN) != 0 &&
-		    os_memcmp(bssid, drv->auth_bssid, ETH_ALEN) != 0) {
+		    !ether_addr_equal(bssid, drv->bssid) &&
+		    !ether_addr_equal(bssid, drv->auth_bssid)) {
 			/*
 			 * We have presumably received this deauth as a
 			 * response to a clear_state_mismatch() outgoing
@@ -1527,7 +1525,7 @@ static void mlme_event_deauth_disassoc(struct wpa_driver_nl80211_data *drv,
 
 	if (type == EVENT_DISASSOC) {
 		event.disassoc_info.locally_generated =
-			!os_memcmp(mgmt->sa, drv->first_bss->addr, ETH_ALEN);
+			ether_addr_equal(mgmt->sa, drv->first_bss->addr);
 		event.disassoc_info.addr = bssid;
 		event.disassoc_info.reason_code = reason_code;
 		if (frame + len > mgmt->u.disassoc.variable) {
@@ -1537,7 +1535,7 @@ static void mlme_event_deauth_disassoc(struct wpa_driver_nl80211_data *drv,
 		}
 	} else {
 		event.deauth_info.locally_generated =
-			!os_memcmp(mgmt->sa, drv->first_bss->addr, ETH_ALEN);
+			ether_addr_equal(mgmt->sa, drv->first_bss->addr);
 		if (drv->ignore_deauth_event) {
 			wpa_printf(MSG_DEBUG, "nl80211: Ignore deauth event due to previous forced deauth-during-auth");
 			drv->ignore_deauth_event = 0;
@@ -1707,15 +1705,14 @@ static void mlme_event(struct i802_bss *bss,
 			   bss->ifname);
 	} else if (cmd != NL80211_CMD_FRAME_TX_STATUS  &&
 		   !(data[4] & 0x01) &&
-		   os_memcmp(bss->addr, data + 4, ETH_ALEN) != 0 &&
+		   !ether_addr_equal(bss->addr, data + 4) &&
 		   (is_zero_ether_addr(bss->rand_addr) ||
-		    os_memcmp(bss->rand_addr, data + 4, ETH_ALEN) != 0) &&
-		   os_memcmp(bss->addr, data + 4 + ETH_ALEN, ETH_ALEN) != 0 &&
+		    !ether_addr_equal(bss->rand_addr, data + 4)) &&
+		   !ether_addr_equal(bss->addr, data + 4 + ETH_ALEN) &&
 		   (is_zero_ether_addr(drv->first_bss->prev_addr) ||
-		    os_memcmp(bss->prev_addr, data + 4 + ETH_ALEN,
-			      ETH_ALEN) != 0) &&
+		    !ether_addr_equal(bss->prev_addr, data + 4 + ETH_ALEN)) &&
 		   (!mld_link ||
-		    os_memcmp(mld_link->addr, data + 4, ETH_ALEN) != 0)) {
+		    !ether_addr_equal(mld_link->addr, data + 4))) {
 		wpa_printf(MSG_MSGDUMP, "nl80211: %s: Ignore MLME frame event "
 			   "for foreign address", bss->ifname);
 		return;
@@ -3556,7 +3553,7 @@ static void nl80211_port_authorized(struct wpa_driver_nl80211_data *drv,
 
 		connected_addr = drv->sta_mlo_info.valid_links ?
 			drv->sta_mlo_info.ap_mld_addr : drv->bssid;
-		if (os_memcmp(addr, connected_addr, ETH_ALEN) != 0) {
+		if (!ether_addr_equal(addr, connected_addr)) {
 			wpa_printf(MSG_DEBUG,
 				   "nl80211: Ignore port authorized event for "
 				   MACSTR " (not the currently connected BSSID "

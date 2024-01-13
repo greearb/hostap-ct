@@ -452,9 +452,10 @@ static void wpa_driver_wext_event_wireless(struct wpa_driver_wext_data *drv,
 				   MAC2STR((u8 *) iwe->u.ap_addr.sa_data));
 			if (is_zero_ether_addr(
 				    (const u8 *) iwe->u.ap_addr.sa_data) ||
-			    os_memcmp(iwe->u.ap_addr.sa_data,
-				      "\x44\x44\x44\x44\x44\x44", ETH_ALEN) ==
-			    0) {
+			    ether_addr_equal((const u8 *)
+					     iwe->u.ap_addr.sa_data,
+					     (const u8 *)
+					     "\x44\x44\x44\x44\x44\x44")) {
 				os_free(drv->assoc_req_ies);
 				drv->assoc_req_ies = NULL;
 				os_free(drv->assoc_resp_ies);

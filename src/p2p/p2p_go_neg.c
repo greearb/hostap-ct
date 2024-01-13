@@ -859,7 +859,7 @@ void p2p_process_go_neg_req(struct p2p_data *p2p, const u8 *sa,
 		goto fail;
 	}
 
-	if (os_memcmp(msg.p2p_device_addr, sa, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(msg.p2p_device_addr, sa)) {
 		p2p_dbg(p2p, "Unexpected GO Negotiation Request SA=" MACSTR
 			" != dev_addr=" MACSTR,
 			MAC2STR(sa), MAC2STR(msg.p2p_device_addr));

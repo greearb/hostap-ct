@@ -3125,7 +3125,7 @@ static int ieee802_1x_kay_mkpdu_validity_check(struct ieee802_1x_kay *kay,
 		   be_to_host16(eth_hdr->ethertype));
 
 	/* the destination address shall not be an individual address */
-	if (os_memcmp(eth_hdr->dest, pae_group_addr, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(eth_hdr->dest, pae_group_addr)) {
 		wpa_printf(MSG_DEBUG,
 			   "KaY: ethernet destination address is not PAE group address");
 		return -1;

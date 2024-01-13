@@ -1147,7 +1147,7 @@ static struct hostapd_sta_info * sta_track_get(struct hostapd_iface *iface,
 	struct hostapd_sta_info *info;
 
 	dl_list_for_each(info, &iface->sta_seen, struct hostapd_sta_info, list)
-		if (os_memcmp(addr, info->addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(addr, info->addr))
 			return info;
 
 	return NULL;
@@ -1499,7 +1499,7 @@ void handle_probe_req(struct hostapd_data *hapd,
 		else
 			hessid = elems.interworking + 1 + 2;
 		if (!is_broadcast_ether_addr(hessid) &&
-		    os_memcmp(hessid, hapd->conf->hessid, ETH_ALEN) != 0) {
+		    !ether_addr_equal(hessid, hapd->conf->hessid)) {
 			wpa_printf(MSG_MSGDUMP, "Probe Request from " MACSTR
 				   " for mismatching HESSID " MACSTR
 				   " ignored",

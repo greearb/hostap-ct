@@ -588,7 +588,7 @@ static void rx_data_bss_prot(struct wlantest *wt,
 			sta->rx_tid[16]++;
 	}
 	if (tk) {
-		if (os_memcmp(hdr->addr2, tdls->init->addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(hdr->addr2, tdls->init->addr))
 			rsc = tdls->rsc_init[tid];
 		else
 			rsc = tdls->rsc_resp[tid];
@@ -641,7 +641,7 @@ skip_replay_det:
 			a2 = sta->mld_mac_addr;
 		}
 
-		if (os_memcmp(hdr->addr3, bss->bssid, ETH_ALEN) == 0)
+		if (ether_addr_equal(hdr->addr3, bss->bssid))
 			a3 = bss->mld_mac_addr;
 	}
 

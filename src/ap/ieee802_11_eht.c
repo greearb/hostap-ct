@@ -1240,8 +1240,8 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 		   info->common_info.eml_capa, info->common_info.mld_capa);
 
 	/* Check the MLD MAC Address */
-	if (os_memcmp(info->common_info.mld_addr, common_info->mld_addr,
-		      ETH_ALEN) != 0) {
+	if (!ether_addr_equal(info->common_info.mld_addr,
+			      common_info->mld_addr)) {
 		wpa_printf(MSG_DEBUG,
 			   "MLD: MLD address mismatch between authentication ("
 			   MACSTR ") and association (" MACSTR ")",

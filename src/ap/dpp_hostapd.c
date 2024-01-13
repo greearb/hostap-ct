@@ -1413,7 +1413,7 @@ static void hostapd_dpp_rx_auth_resp(struct hostapd_data *hapd, const u8 *src,
 	}
 
 	if (!is_zero_ether_addr(auth->peer_mac_addr) &&
-	    os_memcmp(src, auth->peer_mac_addr, ETH_ALEN) != 0) {
+	    !ether_addr_equal(src, auth->peer_mac_addr)) {
 		wpa_printf(MSG_DEBUG, "DPP: MAC address mismatch (expected "
 			   MACSTR ") - drop", MAC2STR(auth->peer_mac_addr));
 		return;
@@ -1463,7 +1463,7 @@ static void hostapd_dpp_rx_auth_conf(struct hostapd_data *hapd, const u8 *src,
 		return;
 	}
 
-	if (os_memcmp(src, auth->peer_mac_addr, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(src, auth->peer_mac_addr)) {
 		wpa_printf(MSG_DEBUG, "DPP: MAC address mismatch (expected "
 			   MACSTR ") - drop", MAC2STR(auth->peer_mac_addr));
 		return;
@@ -1572,7 +1572,7 @@ static void hostapd_dpp_rx_conf_result(struct hostapd_data *hapd, const u8 *src,
 		return;
 	}
 
-	if (os_memcmp(src, auth->peer_mac_addr, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(src, auth->peer_mac_addr)) {
 		wpa_printf(MSG_DEBUG, "DPP: MAC address mismatch (expected "
 			   MACSTR ") - drop", MAC2STR(auth->peer_mac_addr));
 		return;
@@ -1858,7 +1858,7 @@ hostapd_dpp_rx_reconfig_auth_resp(struct hostapd_data *hapd, const u8 *src,
 		return;
 	}
 
-	if (os_memcmp(src, auth->peer_mac_addr, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(src, auth->peer_mac_addr)) {
 		wpa_printf(MSG_DEBUG, "DPP: MAC address mismatch (expected "
 			   MACSTR ") - drop", MAC2STR(auth->peer_mac_addr));
 		return;
@@ -3073,7 +3073,7 @@ hostapd_dpp_gas_req_handler(struct hostapd_data *hapd, const u8 *sa,
 
 	wpa_printf(MSG_DEBUG, "DPP: GAS request from " MACSTR, MAC2STR(sa));
 	if (!auth || (!auth->auth_success && !auth->reconfig_success) ||
-	    os_memcmp(sa, auth->peer_mac_addr, ETH_ALEN) != 0) {
+	    !ether_addr_equal(sa, auth->peer_mac_addr)) {
 #ifdef CONFIG_DPP2
 		if (dpp_relay_rx_gas_req(hapd->iface->interfaces->dpp, sa, data,
 				     data_len) == 0) {

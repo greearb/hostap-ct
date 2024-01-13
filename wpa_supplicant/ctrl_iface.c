@@ -445,7 +445,7 @@ static int wpas_ctrl_iface_set_dso(struct wpa_supplicant *wpa_s,
 
 	dl_list_for_each(tmp, &wpa_s->drv_signal_override,
 			 struct driver_signal_override, list) {
-		if (os_memcmp(bssid, tmp->bssid, ETH_ALEN) == 0) {
+		if (ether_addr_equal(bssid, tmp->bssid)) {
 			dso = tmp;
 			break;
 		}
@@ -3691,7 +3691,7 @@ static int wpa_supplicant_ctrl_iface_set_network(
 						       value);
 	if (ret == 0 &&
 	    (ssid->bssid_set != prev_bssid_set ||
-	     os_memcmp(ssid->bssid, prev_bssid, ETH_ALEN) != 0))
+	     !ether_addr_equal(ssid->bssid, prev_bssid)))
 		wpas_notify_network_bssid_set_changed(wpa_s, ssid);
 
 	if (prev_disabled != ssid->disabled &&
@@ -7822,7 +7822,7 @@ static int ctrl_interworking_connect(struct wpa_supplicant *wpa_s, char *dst,
 
 		dl_list_for_each_reverse(bss, &wpa_s->bss, struct wpa_bss,
 					 list) {
-			if (os_memcmp(bss->bssid, bssid, ETH_ALEN) == 0 &&
+			if (ether_addr_equal(bss->bssid, bssid) &&
 			    bss->ssid_len > 0) {
 				found = 1;
 				break;
@@ -7989,11 +7989,11 @@ static int gas_response_get(struct wpa_supplicant *wpa_s, char *cmd, char *buf,
 	dialog_token = atoi(pos);
 
 	if (wpa_s->last_gas_resp &&
-	    os_memcmp(addr, wpa_s->last_gas_addr, ETH_ALEN) == 0 &&
+	    ether_addr_equal(addr, wpa_s->last_gas_addr) &&
 	    dialog_token == wpa_s->last_gas_dialog_token)
 		resp = wpa_s->last_gas_resp;
 	else if (wpa_s->prev_gas_resp &&
-		 os_memcmp(addr, wpa_s->prev_gas_addr, ETH_ALEN) == 0 &&
+		 ether_addr_equal(addr, wpa_s->prev_gas_addr) &&
 		 dialog_token == wpa_s->prev_gas_dialog_token)
 		resp = wpa_s->prev_gas_resp;
 	else

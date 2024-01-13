@@ -92,7 +92,7 @@ struct sta_info * ap_get_sta_p2p(struct hostapd_data *hapd, const u8 *addr)
 		if (p2p_dev_addr == NULL)
 			continue;
 
-		if (os_memcmp(p2p_dev_addr, addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(p2p_dev_addr, addr))
 			return sta;
 	}
 
@@ -140,7 +140,7 @@ static void ap_sta_hash_del(struct hostapd_data *hapd, struct sta_info *sta)
 	}
 
 	while (s->hnext != NULL &&
-	       os_memcmp(s->hnext->addr, sta->addr, ETH_ALEN) != 0)
+	       !ether_addr_equal(s->hnext->addr, sta->addr))
 		s = s->hnext;
 	if (s->hnext != NULL)
 		s->hnext = s->hnext->hnext;
@@ -1732,7 +1732,7 @@ static void ap_sta_remove_link_sta(struct hostapd_data *hapd,
 		for (tmp_sta = tmp_hapd->sta_list; tmp_sta;
 		     tmp_sta = tmp_sta->next) {
 			if (tmp_sta == sta ||
-			    os_memcmp(tmp_sta->addr, sta->addr, ETH_ALEN) != 0)
+			    !ether_addr_equal(tmp_sta->addr, sta->addr))
 				continue;
 
 			ap_free_sta(tmp_hapd, tmp_sta);

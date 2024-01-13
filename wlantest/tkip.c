@@ -362,8 +362,8 @@ u8 * tkip_decrypt(const u8 *tk, const struct ieee80211_hdr *hdr,
 
 		if (frag->buf && (fn || (fc & WLAN_FC_MOREFRAG)) &&
 		    sn == frag->sn && fn == frag->fn + 1 &&
-		    os_memcmp(frag->ra, hdr->addr1, ETH_ALEN) == 0 &&
-		    os_memcmp(frag->ta, hdr->addr2, ETH_ALEN) == 0) {
+		    ether_addr_equal(frag->ra, hdr->addr1) &&
+		    ether_addr_equal(frag->ta, hdr->addr2)) {
 			/* Add the next fragment */
 			if (wpabuf_resize(&frag->buf, plain_len) == 0) {
 				wpabuf_put_data(frag->buf, plain, plain_len);

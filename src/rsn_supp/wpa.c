@@ -768,7 +768,7 @@ static u8 * wpa_mlo_link_kde(struct wpa_sm *sm, u8 *pos)
 static bool is_valid_ap_mld_mac_kde(struct wpa_sm *sm, const u8 *mac_kde)
 {
 	return mac_kde &&
-		os_memcmp(mac_kde, sm->mlo.ap_mld_addr, ETH_ALEN) == 0;
+		ether_addr_equal(mac_kde, sm->mlo.ap_mld_addr);
 }
 
 
@@ -2225,9 +2225,8 @@ static int wpa_supplicant_validate_link_kde(struct wpa_sm *sm, u8 link_id,
 		return -1;
 	}
 
-	if (os_memcmp(sm->mlo.links[link_id].bssid,
-		      &link_kde[RSN_MLO_LINK_KDE_LINK_MAC_INDEX],
-		      ETH_ALEN) != 0) {
+	if (!ether_addr_equal(sm->mlo.links[link_id].bssid,
+			      &link_kde[RSN_MLO_LINK_KDE_LINK_MAC_INDEX])) {
 		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
 			"RSN: MLO Link %u MAC address (" MACSTR
 			") not matching association response (" MACSTR ")",
@@ -4110,7 +4109,7 @@ void wpa_sm_notify_assoc(struct wpa_sm *sm, const u8 *bssid)
 	os_memset(sm->rx_replay_counter, 0, WPA_REPLAY_COUNTER_LEN);
 	sm->rx_replay_counter_set = 0;
 	sm->renew_snonce = 1;
-	if (os_memcmp(sm->preauth_bssid, bssid, ETH_ALEN) == 0)
+	if (ether_addr_equal(sm->preauth_bssid, bssid))
 		rsn_preauth_deinit(sm);
 
 #ifdef CONFIG_IEEE80211R

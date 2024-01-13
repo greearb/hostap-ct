@@ -3178,7 +3178,7 @@ static int wpa_auth_validate_ml_kdes_m2(struct wpa_state_machine *sm,
 
 	/* MLD MAC address must be the same */
 	if (!kde->mac_addr ||
-	    os_memcmp(kde->mac_addr, sm->peer_mld_addr, ETH_ALEN) != 0) {
+	    !ether_addr_equal(kde->mac_addr, sm->peer_mld_addr)) {
 		wpa_printf(MSG_DEBUG, "RSN: MLD: Invalid MLD address");
 		return -1;
 	}
@@ -3205,8 +3205,8 @@ static int wpa_auth_validate_ml_kdes_m2(struct wpa_state_machine *sm,
 			return -1;
 		}
 
-		if (os_memcmp(sm->mld_links[i].peer_addr, kde->mlo_link[i] + 1,
-			      ETH_ALEN) != 0) {
+		if (!ether_addr_equal(sm->mld_links[i].peer_addr,
+				      kde->mlo_link[i] + 1)) {
 			wpa_printf(MSG_DEBUG,
 				   "RSN: MLD: invalid MAC address=" MACSTR
 				   " expected " MACSTR " (link ID %u)",
@@ -4425,7 +4425,7 @@ static int wpa_auth_validate_ml_kdes_m4(struct wpa_state_machine *sm)
 
 	/* MLD MAC address must be the same */
 	if (!kde.mac_addr ||
-	    os_memcmp(kde.mac_addr, sm->peer_mld_addr, ETH_ALEN) != 0) {
+	    !ether_addr_equal(kde.mac_addr, sm->peer_mld_addr)) {
 		wpa_printf(MSG_DEBUG,
 			   "MLD: Mismatching or missing MLD address in EAPOL-Key msg 4/4");
 		return -1;

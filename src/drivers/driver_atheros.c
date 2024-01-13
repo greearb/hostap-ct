@@ -659,7 +659,7 @@ atheros_read_sta_driver_data(void *priv, struct hostap_sta_driver_data *data,
 			 &stats, sizeof(stats))) {
 		wpa_printf(MSG_DEBUG, "%s: Failed to fetch STA stats (addr "
 			   MACSTR ")", __func__, MAC2STR(addr));
-		if (os_memcmp(addr, drv->acct_mac, ETH_ALEN) == 0) {
+		if (ether_addr_equal(addr, drv->acct_mac)) {
 			os_memcpy(data, &drv->acct_data, sizeof(*data));
 			return 0;
 		}
@@ -892,7 +892,7 @@ static void atheros_raw_receive(void *ctx, const u8 *src_addr, const u8 *buf,
 	}
 
 	if (stype == WLAN_FC_STYPE_ACTION &&
-	    (os_memcmp(drv->own_addr, mgmt->bssid, ETH_ALEN) == 0 ||
+	    (ether_addr_equal(drv->own_addr, mgmt->bssid) ||
 	     is_broadcast_ether_addr(mgmt->bssid))) {
 		os_memset(&event, 0, sizeof(event));
 		event.rx_mgmt.frame = buf;
@@ -901,7 +901,7 @@ static void atheros_raw_receive(void *ctx, const u8 *src_addr, const u8 *buf,
 		return;
 	}
 
-	if (os_memcmp(drv->own_addr, mgmt->bssid, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(drv->own_addr, mgmt->bssid)) {
 		wpa_printf(MSG_DEBUG, "%s: BSSID does not match - ignore",
 			   __func__);
 		return;
@@ -1226,7 +1226,7 @@ atheros_new_sta(struct atheros_driver_data *drv, u8 addr[IEEE80211_ADDR_LEN])
 no_ie:
 	drv_event_assoc(hapd, addr, iebuf, ielen, NULL, 0, NULL, -1, 0);
 
-	if (os_memcmp(addr, drv->acct_mac, ETH_ALEN) == 0) {
+	if (ether_addr_equal(addr, drv->acct_mac)) {
 		/* Cached accounting data is not valid anymore. */
 		os_memset(drv->acct_mac, 0, ETH_ALEN);
 		os_memset(&drv->acct_data, 0, sizeof(drv->acct_data));

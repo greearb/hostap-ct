@@ -1261,7 +1261,7 @@ static void nl80211_refresh_mac(struct wpa_driver_nl80211_data *drv,
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: %s: failed to re-read MAC address",
 			   bss->ifname);
-	} else if (bss && os_memcmp(addr, bss->addr, ETH_ALEN) != 0) {
+	} else if (bss && !ether_addr_equal(addr, bss->addr)) {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Own MAC address on ifindex %d (%s) changed from "
 			   MACSTR " to " MACSTR,
@@ -4162,7 +4162,7 @@ static int nl80211_get_link_freq(struct i802_bss *bss, const u8 *addr,
 	size_t i;
 
 	for (i = 0; i < bss->n_links; i++) {
-		if (os_memcmp(bss->links[i].addr, addr, ETH_ALEN) == 0) {
+		if (ether_addr_equal(bss->links[i].addr, addr)) {
 			wpa_printf(MSG_DEBUG,
 				   "nl80211: Use link freq=%d for address "
 				   MACSTR,
@@ -8691,7 +8691,7 @@ static int nl80211_addr_in_use(struct nl80211_global *global, const u8 *addr)
 	struct wpa_driver_nl80211_data *drv;
 	dl_list_for_each(drv, &global->interfaces,
 			 struct wpa_driver_nl80211_data, list) {
-		if (os_memcmp(addr, drv->first_bss->addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(addr, drv->first_bss->addr))
 			return 1;
 	}
 	return 0;
@@ -9112,7 +9112,7 @@ static int wpa_driver_nl80211_send_action(struct i802_bss *bss,
 	os_memcpy(hdr->addr2, src, ETH_ALEN);
 	os_memcpy(hdr->addr3, bssid, ETH_ALEN);
 
-	if (os_memcmp(bss->addr, src, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(bss->addr, src)) {
 		wpa_printf(MSG_DEBUG, "nl80211: Use random TA " MACSTR,
 			   MAC2STR(src));
 		os_memcpy(bss->rand_addr, src, ETH_ALEN);

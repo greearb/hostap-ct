@@ -79,8 +79,7 @@ struct p2p_sd_query * p2p_pending_sd_req(struct p2p_data *p2p,
 			count++;
 		}
 		if (!q->for_all_peers &&
-		    os_memcmp(q->peer, dev->info.p2p_device_addr, ETH_ALEN) ==
-		    0)
+		    ether_addr_equal(q->peer, dev->info.p2p_device_addr))
 			goto found;
 	}
 
@@ -289,8 +288,7 @@ int p2p_start_sd(struct p2p_data *p2p, struct p2p_device *dev)
 	if (query == NULL)
 		return -1;
 	if (p2p->state == P2P_SEARCH &&
-	    os_memcmp(p2p->sd_query_no_ack, dev->info.p2p_device_addr,
-		      ETH_ALEN) == 0) {
+	    ether_addr_equal(p2p->sd_query_no_ack, dev->info.p2p_device_addr)) {
 		p2p_dbg(p2p, "Do not start Service Discovery with " MACSTR
 			" due to it being the first no-ACK peer in this search iteration",
 			MAC2STR(dev->info.p2p_device_addr));
@@ -492,7 +490,7 @@ void p2p_rx_gas_initial_resp(struct p2p_data *p2p, const u8 *sa,
 	u16 update_indic;
 
 	if (p2p->state != P2P_SD_DURING_FIND || p2p->sd_peer == NULL ||
-	    os_memcmp(sa, p2p->sd_peer->info.p2p_device_addr, ETH_ALEN) != 0) {
+	    !ether_addr_equal(sa, p2p->sd_peer->info.p2p_device_addr)) {
 		p2p_dbg(p2p, "Ignore unexpected GAS Initial Response from "
 			MACSTR, MAC2STR(sa));
 		return;
@@ -642,7 +640,7 @@ void p2p_rx_gas_comeback_req(struct p2p_data *p2p, const u8 *sa,
 		p2p_dbg(p2p, "No pending SD response fragment available");
 		return;
 	}
-	if (os_memcmp(sa, p2p->sd_resp_addr, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(sa, p2p->sd_resp_addr)) {
 		p2p_dbg(p2p, "No pending SD response fragment for " MACSTR,
 			MAC2STR(sa));
 		return;
@@ -707,7 +705,7 @@ void p2p_rx_gas_comeback_resp(struct p2p_data *p2p, const u8 *sa,
 	wpa_hexdump(MSG_DEBUG, "P2P: RX GAS Comeback Response", data, len);
 
 	if (p2p->state != P2P_SD_DURING_FIND || p2p->sd_peer == NULL ||
-	    os_memcmp(sa, p2p->sd_peer->info.p2p_device_addr, ETH_ALEN) != 0) {
+	    !ether_addr_equal(sa, p2p->sd_peer->info.p2p_device_addr)) {
 		p2p_dbg(p2p, "Ignore unexpected GAS Comeback Response from "
 			MACSTR, MAC2STR(sa));
 		return;

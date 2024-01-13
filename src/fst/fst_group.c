@@ -364,8 +364,7 @@ fst_group_get_peer_other_connection_2(struct fst_iface *iface,
 				cur_mbie, this_band_id);
 			if (!this_peer_addr)
 				continue;
-			if (os_memcmp(this_peer_addr, peer_addr, ETH_ALEN) ==
-			    0) {
+			if (ether_addr_equal(this_peer_addr, peer_addr)) {
 				os_memcpy(other_peer_addr, cur_peer_addr,
 					  ETH_ALEN);
 				return other_iface;

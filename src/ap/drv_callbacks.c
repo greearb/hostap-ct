@@ -283,7 +283,7 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 
 	if (is_multicast_ether_addr(addr) ||
 	    is_zero_ether_addr(addr) ||
-	    os_memcmp(addr, hapd->own_addr, ETH_ALEN) == 0) {
+	    ether_addr_equal(addr, hapd->own_addr)) {
 		/* Do not process any frames with unexpected/invalid SA so that
 		 * we do not add any state for unexpected STA addresses or end
 		 * up sending out frames to unexpected destination. */
@@ -1636,7 +1636,7 @@ static struct hostapd_data * get_hapd_bssid(struct hostapd_iface *iface,
 		return HAPD_BROADCAST;
 
 	for (i = 0; i < iface->num_bss; i++) {
-		if (os_memcmp(bssid, iface->bss[i]->own_addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(bssid, iface->bss[i]->own_addr))
 			return iface->bss[i];
 	}
 
@@ -1690,7 +1690,7 @@ static int hostapd_mgmt_rx(struct hostapd_data *hapd, struct rx_mgmt *rx_mgmt)
 
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap &&
-	    os_memcmp(hapd->mld_addr, bssid, ETH_ALEN) == 0)
+	    ether_addr_equal(hapd->mld_addr, bssid))
 		is_mld = true;
 #endif /* CONFIG_IEEE80211BE */
 
@@ -1762,8 +1762,7 @@ static void hostapd_mgmt_tx_cb(struct hostapd_data *hapd, const u8 *buf,
 		hapd = tmp_hapd;
 #ifdef CONFIG_IEEE80211BE
 	} else if (hapd->conf->mld_ap &&
-		   os_memcmp(hapd->mld_addr, get_hdr_bssid(hdr, len),
-			     ETH_ALEN) == 0) {
+		   ether_addr_equal(hapd->mld_addr, get_hdr_bssid(hdr, len))) {
 		/* AP MLD address match - use hapd pointer as-is */
 #endif /* CONFIG_IEEE80211BE */
 	} else {

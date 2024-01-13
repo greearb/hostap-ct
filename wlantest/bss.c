@@ -21,7 +21,7 @@ struct wlantest_bss * bss_find(struct wlantest *wt, const u8 *bssid)
 	struct wlantest_bss *bss;
 
 	dl_list_for_each(bss, &wt->bss, struct wlantest_bss, list) {
-		if (os_memcmp(bss->bssid, bssid, ETH_ALEN) == 0)
+		if (ether_addr_equal(bss->bssid, bssid))
 			return bss;
 	}
 
@@ -35,7 +35,7 @@ struct wlantest_bss * bss_find_mld(struct wlantest *wt, const u8 *mld_mac_addr,
 	struct wlantest_bss *bss;
 
 	dl_list_for_each(bss, &wt->bss, struct wlantest_bss, list) {
-		if (os_memcmp(bss->mld_mac_addr, mld_mac_addr, ETH_ALEN) == 0 &&
+		if (ether_addr_equal(bss->mld_mac_addr, mld_mac_addr) &&
 		    (link_id < 0 ||
 		     (bss->link_id_set && bss->link_id == link_id)))
 			return bss;
@@ -132,7 +132,7 @@ static void bss_add_pmk(struct wlantest *wt, struct wlantest_bss *bss)
 	dl_list_for_each(p, &wt->passphrase, struct wlantest_passphrase, list)
 	{
 		if (!is_zero_ether_addr(p->bssid) &&
-		    os_memcmp(p->bssid, bss->bssid, ETH_ALEN) != 0)
+		    !ether_addr_equal(p->bssid, bss->bssid))
 			continue;
 		if (p->ssid_len &&
 		    (p->ssid_len != bss->ssid_len ||

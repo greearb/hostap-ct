@@ -30,7 +30,7 @@ static struct ibss_rsn_peer * ibss_rsn_get_peer(struct ibss_rsn *ibss_rsn,
 	struct ibss_rsn_peer *peer;
 
 	for (peer = ibss_rsn->peers; peer; peer = peer->next)
-		if (os_memcmp(addr, peer->addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(addr, peer->addr))
 			break;
 	return peer;
 }
@@ -672,7 +672,7 @@ void ibss_rsn_stop(struct ibss_rsn *ibss_rsn, const u8 *peermac)
 
 		for (prev = NULL, peer = ibss_rsn->peers; peer != NULL;
 		     prev = peer, peer = peer->next) {
-			if (os_memcmp(peermac, peer->addr, ETH_ALEN) == 0) {
+			if (ether_addr_equal(peermac, peer->addr)) {
 				if (prev == NULL)
 					ibss_rsn->peers = peer->next;
 				else

@@ -20,7 +20,7 @@ struct wlantest_sta * sta_find(struct wlantest_bss *bss, const u8 *addr)
 	struct wlantest_sta *sta;
 
 	dl_list_for_each(sta, &bss->sta, struct wlantest_sta, list) {
-		if (os_memcmp(sta->addr, addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(sta->addr, addr))
 			return sta;
 	}
 
@@ -36,9 +36,9 @@ struct wlantest_sta * sta_find_mlo(struct wlantest *wt,
 	int link_id;
 
 	dl_list_for_each(sta, &bss->sta, struct wlantest_sta, list) {
-		if (os_memcmp(sta->addr, addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(sta->addr, addr))
 			return sta;
-		if (os_memcmp(sta->mld_mac_addr, addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(sta->mld_mac_addr, addr))
 			return sta;
 	}
 
@@ -47,8 +47,7 @@ struct wlantest_sta * sta_find_mlo(struct wlantest *wt,
 
 	dl_list_for_each(sta, &bss->sta, struct wlantest_sta, list) {
 		for (link_id = 0; link_id < MAX_NUM_MLO_LINKS; link_id++) {
-			if (os_memcmp(sta->link_addr[link_id], addr,
-				      ETH_ALEN) == 0)
+			if (ether_addr_equal(sta->link_addr[link_id], addr))
 				return sta;
 		}
 	}
@@ -57,18 +56,17 @@ struct wlantest_sta * sta_find_mlo(struct wlantest *wt,
 		if (obss == bss)
 			continue;
 		if (!is_zero_ether_addr(bss->mld_mac_addr) &&
-		    os_memcmp(obss->mld_mac_addr, bss->mld_mac_addr,
-			      ETH_ALEN) != 0)
+		    !ether_addr_equal(obss->mld_mac_addr, bss->mld_mac_addr))
 			continue;
 		dl_list_for_each(sta, &obss->sta, struct wlantest_sta, list) {
-			if (os_memcmp(sta->addr, addr, ETH_ALEN) == 0)
+			if (ether_addr_equal(sta->addr, addr))
 				return sta;
-			if (os_memcmp(sta->mld_mac_addr, addr, ETH_ALEN) == 0)
+			if (ether_addr_equal(sta->mld_mac_addr, addr))
 				return sta;
 			for (link_id = 0; link_id < MAX_NUM_MLO_LINKS;
 			     link_id++) {
-				if (os_memcmp(sta->link_addr[link_id], addr,
-					      ETH_ALEN) == 0)
+				if (ether_addr_equal(sta->link_addr[link_id],
+						     addr))
 					return sta;
 			}
 		}
@@ -336,19 +334,19 @@ void sta_new_ptk(struct wlantest *wt, struct wlantest_sta *sta,
 
 			if (osta == sta)
 				continue;
-			if (os_memcmp(sta->addr, osta->addr, ETH_ALEN) == 0)
+			if (ether_addr_equal(sta->addr, osta->addr))
 				match = true;
 			for (link_id = 0; !match && link_id < MAX_NUM_MLO_LINKS;
 			     link_id++) {
-				if (os_memcmp(osta->link_addr[link_id],
-					      sta->addr, ETH_ALEN) == 0)
+				if (ether_addr_equal(osta->link_addr[link_id],
+						     sta->addr))
 					match = true;
 			}
 
 			if (!match)
 				continue;
-			if (os_memcmp(sta->bss->mld_mac_addr,
-				      osta->bss->mld_mac_addr, ETH_ALEN) != 0)
+			if (!ether_addr_equal(sta->bss->mld_mac_addr,
+					      osta->bss->mld_mac_addr))
 				continue;
 			wpa_printf(MSG_DEBUG,
 				   "Add PTK to another MLO STA entry " MACSTR

@@ -24,7 +24,7 @@ hostapd_neighbor_get(struct hostapd_data *hapd, const u8 *bssid,
 
 	dl_list_for_each(nr, &hapd->nr_db, struct hostapd_neighbor_entry,
 			 list) {
-		if (os_memcmp(bssid, nr->bssid, ETH_ALEN) == 0 &&
+		if (ether_addr_equal(bssid, nr->bssid) &&
 		    (!ssid ||
 		     (ssid->ssid_len == nr->ssid.ssid_len &&
 		      os_memcmp(ssid->ssid, nr->ssid.ssid,

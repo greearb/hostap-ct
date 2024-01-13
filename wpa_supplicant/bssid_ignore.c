@@ -37,7 +37,7 @@ struct wpa_bssid_ignore * wpa_bssid_ignore_get(struct wpa_supplicant *wpa_s,
 
 	e = wpa_s->bssid_ignore;
 	while (e) {
-		if (os_memcmp(e->bssid, bssid, ETH_ALEN) == 0)
+		if (ether_addr_equal(e->bssid, bssid))
 			return e;
 		e = e->next;
 	}
@@ -123,7 +123,7 @@ int wpa_bssid_ignore_del(struct wpa_supplicant *wpa_s, const u8 *bssid)
 
 	e = wpa_s->bssid_ignore;
 	while (e) {
-		if (os_memcmp(e->bssid, bssid, ETH_ALEN) == 0) {
+		if (ether_addr_equal(e->bssid, bssid)) {
 			if (prev == NULL) {
 				wpa_s->bssid_ignore = e->next;
 			} else {

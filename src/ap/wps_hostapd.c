@@ -288,7 +288,7 @@ static int hostapd_wps_lookup_pskfile_cb(void *ctx, const u8 *mac_addr,
 			any_psk = wpa_psk->psk;
 
 		if (mac_addr && !dev_psk &&
-		    os_memcmp(mac_addr, wpa_psk->addr, ETH_ALEN) == 0) {
+		    ether_addr_equal(mac_addr, wpa_psk->addr)) {
 			dev_psk = wpa_psk->psk;
 			break;
 		}

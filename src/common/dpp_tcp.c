@@ -563,7 +563,7 @@ dpp_relay_match_ctrl(struct dpp_relay_controller *ctrl, const u8 *src,
 	struct dpp_connection *conn;
 
 	dl_list_for_each(conn, &ctrl->conn, struct dpp_connection, list) {
-		if (os_memcmp(src, conn->mac_addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(src, conn->mac_addr))
 			return conn;
 		if ((type == DPP_PA_PKEX_EXCHANGE_RESP ||
 		     type == DPP_PA_AUTHENTICATION_RESP) &&
@@ -661,7 +661,7 @@ dpp_relay_find_conn(struct dpp_relay_controller *ctrl, const u8 *src)
 	struct dpp_connection *conn;
 
 	dl_list_for_each(conn, &ctrl->conn, struct dpp_connection, list) {
-		if (os_memcmp(src, conn->mac_addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(src, conn->mac_addr))
 			return conn;
 	}
 

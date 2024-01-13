@@ -686,9 +686,8 @@ get_mbo_transition_candidate(struct wpa_supplicant *wpa_s,
 	if (reason) {
 		for (i = 0; i < info->num; i++) {
 			if (first_candidate_bssid &&
-			    os_memcmp(first_candidate_bssid,
-				      info->candidates[i].bssid, ETH_ALEN) == 0)
-			{
+			    ether_addr_equal(first_candidate_bssid,
+					     info->candidates[i].bssid)) {
 				*reason = info->candidates[i].reject_reason;
 				break;
 			}
@@ -1194,8 +1193,8 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, int reply_on_fail)
 	}
 
 	if (!wpa_s->current_bss ||
-	    os_memcmp(wpa_s->wnm_cand_from_bss, wpa_s->current_bss->bssid,
-		      ETH_ALEN) != 0) {
+	    !ether_addr_equal(wpa_s->wnm_cand_from_bss,
+			      wpa_s->current_bss->bssid)) {
 		wpa_printf(MSG_DEBUG, "WNM: Stored BSS transition candidate list not from the current BSS - ignore it");
 		return 0;
 	}
@@ -1388,7 +1387,7 @@ static int wnm_fetch_scan_results(struct wpa_supplicant *wpa_s)
 			const u8 *ssid_ie;
 
 			res = scan_res->res[j];
-			if (os_memcmp(nei->bssid, res->bssid, ETH_ALEN) != 0 ||
+			if (!ether_addr_equal(nei->bssid, res->bssid) ||
 			    res->age > WNM_SCAN_RESULT_AGE * 1000)
 				continue;
 			bss = wpa_s->current_bss;
@@ -1581,8 +1580,7 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 				wnm_parse_neighbor_report(wpa_s, pos, len, rep);
 				if ((wpa_s->wnm_mode &
 				     WNM_BSS_TM_REQ_DISASSOC_IMMINENT) &&
-				    os_memcmp(rep->bssid, wpa_s->bssid,
-					      ETH_ALEN) == 0)
+				    ether_addr_equal(rep->bssid, wpa_s->bssid))
 					rep->disassoc_imminent = 1;
 
 				wpa_s->wnm_num_neighbor_report++;
@@ -1901,9 +1899,9 @@ static void ieee802_11_rx_wnm_notif_req(struct wpa_supplicant *wpa_s,
 		    pos, end - pos);
 
 	if (wpa_s->wpa_state != WPA_COMPLETED ||
-	    (os_memcmp(sa, wpa_s->bssid, ETH_ALEN) != 0 &&
+	    (!ether_addr_equal(sa, wpa_s->bssid) &&
 	     (!wpa_s->valid_links ||
-	      os_memcmp(sa, wpa_s->ap_mld_addr, ETH_ALEN) != 0))) {
+	      !ether_addr_equal(sa, wpa_s->ap_mld_addr)))) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "WNM: WNM-Notification frame not "
 			"from our AP - ignore it");
 		return;
@@ -1947,9 +1945,9 @@ static void ieee802_11_rx_wnm_coloc_intf_req(struct wpa_supplicant *wpa_s,
 		return; /* only nonzero values are used for request */
 
 	if (wpa_s->wpa_state != WPA_COMPLETED ||
-	    (os_memcmp(sa, wpa_s->bssid, ETH_ALEN) != 0 &&
+	    (!ether_addr_equal(sa, wpa_s->bssid) &&
 	     (!wpa_s->valid_links ||
-	      os_memcmp(sa, wpa_s->ap_mld_addr, ETH_ALEN) != 0))) {
+	      !ether_addr_equal(sa, wpa_s->ap_mld_addr)))) {
 		wpa_dbg(wpa_s, MSG_DEBUG,
 			"WNM: Collocated Interference Request frame not from current AP - ignore it");
 		return;
@@ -1979,9 +1977,9 @@ void ieee802_11_rx_wnm_action(struct wpa_supplicant *wpa_s,
 	wpa_printf(MSG_DEBUG, "WNM: RX action %u from " MACSTR,
 		   act, MAC2STR(mgmt->sa));
 	if (wpa_s->wpa_state < WPA_ASSOCIATED ||
-	    (os_memcmp(mgmt->sa, wpa_s->bssid, ETH_ALEN) != 0 &&
+	    (!ether_addr_equal(mgmt->sa, wpa_s->bssid) &&
 	     (!wpa_s->valid_links ||
-	      os_memcmp(mgmt->sa, wpa_s->ap_mld_addr, ETH_ALEN) != 0))) {
+	      !ether_addr_equal(mgmt->sa, wpa_s->ap_mld_addr)))) {
 		wpa_printf(MSG_DEBUG, "WNM: Ignore unexpected WNM Action "
 			   "frame");
 		return;
@@ -2083,7 +2081,7 @@ bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 	 */
 
 	if (wpa_s->current_bss &&
-	    os_memcmp(wpa_s->current_bss->bssid, bss->bssid, ETH_ALEN) == 0) {
+	    ether_addr_equal(wpa_s->current_bss->bssid, bss->bssid)) {
 		wpa_dbg(wpa_s, MSG_DEBUG,
 			"WNM: Disassociation imminent: current BSS");
 		return true;
@@ -2096,8 +2094,7 @@ bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 		if (!(wpa_s->valid_links & BIT(i)))
 			continue;
 
-		if (os_memcmp(wpa_s->links[i].bssid, bss->bssid,
-			      ETH_ALEN) == 0) {
+		if (ether_addr_equal(wpa_s->links[i].bssid, bss->bssid)) {
 			wpa_dbg(wpa_s, MSG_DEBUG,
 				"WNM: MLD: Disassociation imminent: current link");
 			return true;

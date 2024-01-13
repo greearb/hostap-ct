@@ -324,7 +324,7 @@ static struct icon_entry * hs20_find_icon(struct wpa_supplicant *wpa_s,
 	struct icon_entry *icon;
 
 	dl_list_for_each(icon, &wpa_s->icon_head, struct icon_entry, list) {
-		if (os_memcmp(icon->bssid, bssid, ETH_ALEN) == 0 &&
+		if (ether_addr_equal(icon->bssid, bssid) &&
 		    os_strcmp(icon->file_name, file_name) == 0 && icon->image)
 			return icon;
 	}
@@ -400,7 +400,7 @@ int hs20_del_icon(struct wpa_supplicant *wpa_s, const u8 *bssid,
 
 	dl_list_for_each_safe(icon, tmp, &wpa_s->icon_head, struct icon_entry,
 			      list) {
-		if ((!bssid || os_memcmp(icon->bssid, bssid, ETH_ALEN) == 0) &&
+		if ((!bssid || ether_addr_equal(icon->bssid, bssid)) &&
 		    (!file_name ||
 		     os_strcmp(icon->file_name, file_name) == 0)) {
 			dl_list_del(&icon->list);
@@ -446,7 +446,7 @@ static void hs20_remove_duplicate_icons(struct wpa_supplicant *wpa_s,
 			      list) {
 		if (icon == new_icon)
 			continue;
-		if (os_memcmp(icon->bssid, new_icon->bssid, ETH_ALEN) == 0 &&
+		if (ether_addr_equal(icon->bssid, new_icon->bssid) &&
 		    os_strcmp(icon->file_name, new_icon->file_name) == 0) {
 			dl_list_del(&icon->list);
 			hs20_free_icon_entry(icon);
@@ -467,7 +467,7 @@ static int hs20_process_icon_binary_file(struct wpa_supplicant *wpa_s,
 
 	dl_list_for_each(icon, &wpa_s->icon_head, struct icon_entry, list) {
 		if (icon->dialog_token == dialog_token && !icon->image &&
-		    os_memcmp(icon->bssid, sa, ETH_ALEN) == 0) {
+		    ether_addr_equal(icon->bssid, sa)) {
 			icon->image = os_memdup(pos, slen);
 			if (!icon->image)
 				return -1;

@@ -572,7 +572,7 @@ static void process_fils_auth(struct wlantest *wt, struct wlantest_bss *bss,
 		return;
 	}
 
-	if (os_memcmp(mgmt->sa, mgmt->bssid, ETH_ALEN) == 0)
+	if (ether_addr_equal(mgmt->sa, mgmt->bssid))
 		os_memcpy(sta->anonce, elems.fils_nonce, FILS_NONCE_LEN);
 	else
 		os_memcpy(sta->snonce, elems.fils_nonce, FILS_NONCE_LEN);
@@ -717,7 +717,7 @@ static void rx_mgmt_auth(struct wlantest *wt, const u8 *data, size_t len)
 	bss = bss_get(wt, mgmt->bssid);
 	if (bss == NULL)
 		return;
-	from_ap = os_memcmp(mgmt->sa, mgmt->bssid, ETH_ALEN) == 0;
+	from_ap = ether_addr_equal(mgmt->sa, mgmt->bssid);
 	if (from_ap)
 		sta = sta_get(bss, mgmt->da);
 	else
@@ -751,7 +751,7 @@ static void rx_mgmt_auth(struct wlantest *wt, const u8 *data, size_t len)
 		}
 	}
 
-	if (os_memcmp(mgmt->sa, mgmt->bssid, ETH_ALEN) == 0)
+	if (ether_addr_equal(mgmt->sa, mgmt->bssid))
 		sta->counters[WLANTEST_STA_COUNTER_AUTH_RX]++;
 	else
 		sta->counters[WLANTEST_STA_COUNTER_AUTH_TX]++;
@@ -803,7 +803,7 @@ static void rx_mgmt_deauth(struct wlantest *wt, const u8 *data, size_t len,
 	bss = bss_get(wt, mgmt->bssid);
 	if (bss == NULL)
 		return;
-	if (os_memcmp(mgmt->sa, mgmt->bssid, ETH_ALEN) == 0)
+	if (ether_addr_equal(mgmt->sa, mgmt->bssid))
 		sta = sta_get(bss, mgmt->da);
 	else
 		sta = sta_get(bss, mgmt->sa);
@@ -827,7 +827,7 @@ static void rx_mgmt_deauth(struct wlantest *wt, const u8 *data, size_t len,
 		return;
 	}
 
-	if (os_memcmp(mgmt->sa, mgmt->bssid, ETH_ALEN) == 0) {
+	if (ether_addr_equal(mgmt->sa, mgmt->bssid)) {
 		sta->counters[valid ? WLANTEST_STA_COUNTER_VALID_DEAUTH_RX :
 			      WLANTEST_STA_COUNTER_INVALID_DEAUTH_RX]++;
 		if (sta->pwrmgt && !sta->pspoll)
@@ -2375,7 +2375,7 @@ static void rx_mgmt_disassoc(struct wlantest *wt, const u8 *data, size_t len,
 	bss = bss_get(wt, mgmt->bssid);
 	if (bss == NULL)
 		return;
-	if (os_memcmp(mgmt->sa, mgmt->bssid, ETH_ALEN) == 0)
+	if (ether_addr_equal(mgmt->sa, mgmt->bssid))
 		sta = sta_get(bss, mgmt->da);
 	else
 		sta = sta_get(bss, mgmt->sa);
@@ -2399,7 +2399,7 @@ static void rx_mgmt_disassoc(struct wlantest *wt, const u8 *data, size_t len,
 		return;
 	}
 
-	if (os_memcmp(mgmt->sa, mgmt->bssid, ETH_ALEN) == 0) {
+	if (ether_addr_equal(mgmt->sa, mgmt->bssid)) {
 		sta->counters[valid ? WLANTEST_STA_COUNTER_VALID_DISASSOC_RX :
 			      WLANTEST_STA_COUNTER_INVALID_DISASSOC_RX]++;
 		if (sta->pwrmgt && !sta->pspoll)
@@ -2620,7 +2620,7 @@ static void rx_mgmt_action_sa_query_req(struct wlantest *wt,
 	u8 *id;
 
 	rx_id = (const u8 *) mgmt->u.action.u.sa_query_req.trans_id;
-	if (os_memcmp(mgmt->sa, mgmt->bssid, ETH_ALEN) == 0)
+	if (ether_addr_equal(mgmt->sa, mgmt->bssid))
 		id = sta->ap_sa_query_tr;
 	else
 		id = sta->sta_sa_query_tr;
@@ -2629,7 +2629,7 @@ static void rx_mgmt_action_sa_query_req(struct wlantest *wt,
 		 MAC2STR(mgmt->sa), MAC2STR(mgmt->da), rx_id[0], rx_id[1],
 		 valid ? "" : " (invalid protection)");
 	os_memcpy(id, mgmt->u.action.u.sa_query_req.trans_id, 2);
-	if (os_memcmp(mgmt->sa, sta->addr, ETH_ALEN) == 0)
+	if (ether_addr_equal(mgmt->sa, sta->addr))
 		sta->counters[valid ?
 			      WLANTEST_STA_COUNTER_VALID_SAQUERYREQ_TX :
 			      WLANTEST_STA_COUNTER_INVALID_SAQUERYREQ_TX]++;
@@ -2650,7 +2650,7 @@ static void rx_mgmt_action_sa_query_resp(struct wlantest *wt,
 	int match;
 
 	rx_id = (const u8 *) mgmt->u.action.u.sa_query_resp.trans_id;
-	if (os_memcmp(mgmt->sa, mgmt->bssid, ETH_ALEN) == 0)
+	if (ether_addr_equal(mgmt->sa, mgmt->bssid))
 		id = sta->sta_sa_query_tr;
 	else
 		id = sta->ap_sa_query_tr;
@@ -2660,7 +2660,7 @@ static void rx_mgmt_action_sa_query_resp(struct wlantest *wt,
 		 MAC2STR(mgmt->sa), MAC2STR(mgmt->da), rx_id[0], rx_id[1],
 		 match ? "match" : "mismatch",
 		 valid ? "" : " (invalid protection)");
-	if (os_memcmp(mgmt->sa, sta->addr, ETH_ALEN) == 0)
+	if (ether_addr_equal(mgmt->sa, sta->addr))
 		sta->counters[(valid && match) ?
 			      WLANTEST_STA_COUNTER_VALID_SAQUERYRESP_TX :
 			      WLANTEST_STA_COUNTER_INVALID_SAQUERYRESP_TX]++;
@@ -2862,7 +2862,7 @@ static void rx_mgmt_action(struct wlantest *wt, const u8 *data, size_t len,
 	bss = bss_get(wt, mgmt->bssid);
 	if (bss == NULL)
 		return;
-	if (os_memcmp(mgmt->sa, mgmt->bssid, ETH_ALEN) == 0) {
+	if (ether_addr_equal(mgmt->sa, mgmt->bssid)) {
 		sta = sta_find_mlo(wt, bss, mgmt->da);
 		if (!sta)
 			sta = sta_get(bss, mgmt->da);
@@ -3176,7 +3176,7 @@ static u8 * mgmt_decrypt(struct wlantest *wt, const u8 *data, size_t len,
 	bss = bss_get(wt, hdr->addr3);
 	if (bss == NULL)
 		return mgmt_decrypt_tk(wt, data, len, dlen);
-	if (os_memcmp(hdr->addr1, hdr->addr3, ETH_ALEN) == 0) {
+	if (ether_addr_equal(hdr->addr1, hdr->addr3)) {
 		sta = sta_find_mlo(wt, bss, hdr->addr2);
 		if (!sta)
 			sta = sta_get(bss, hdr->addr2);
@@ -3193,7 +3193,7 @@ static u8 * mgmt_decrypt(struct wlantest *wt, const u8 *data, size_t len,
 		return decrypted;
 	}
 
-	if (os_memcmp(hdr->addr1, hdr->addr3, ETH_ALEN) == 0)
+	if (ether_addr_equal(hdr->addr1, hdr->addr3))
 		rsc = sta->rsc_tods[16];
 	else
 		rsc = sta->rsc_fromds[16];
@@ -3288,7 +3288,7 @@ static int check_mgmt_ccmp_gcmp(struct wlantest *wt, const u8 *data, size_t len)
 	bss = bss_get(wt, mgmt->bssid);
 	if (bss == NULL)
 		return 0;
-	if (os_memcmp(mgmt->da, mgmt->bssid, ETH_ALEN) == 0)
+	if (ether_addr_equal(mgmt->da, mgmt->bssid))
 		sta = sta_get(bss, mgmt->sa);
 	else
 		sta = sta_get(bss, mgmt->da);
@@ -3425,7 +3425,7 @@ static void rx_mgmt_deauth_ack(struct wlantest *wt,
 	bss = bss_get(wt, mgmt->bssid);
 	if (bss == NULL)
 		return;
-	if (os_memcmp(mgmt->sa, mgmt->bssid, ETH_ALEN) == 0)
+	if (ether_addr_equal(mgmt->sa, mgmt->bssid))
 		sta = sta_get(bss, mgmt->da);
 	else
 		sta = sta_get(bss, mgmt->sa);
@@ -3434,7 +3434,7 @@ static void rx_mgmt_deauth_ack(struct wlantest *wt,
 
 	add_note(wt, MSG_DEBUG, "DEAUTH from " MACSTR " acknowledged by "
 		 MACSTR, MAC2STR(mgmt->sa), MAC2STR(mgmt->da));
-	if (os_memcmp(mgmt->sa, mgmt->bssid, ETH_ALEN) == 0) {
+	if (ether_addr_equal(mgmt->sa, mgmt->bssid)) {
 		int c;
 		c = wt->last_mgmt_valid ?
 			WLANTEST_STA_COUNTER_VALID_DEAUTH_RX_ACK :
@@ -3455,7 +3455,7 @@ static void rx_mgmt_disassoc_ack(struct wlantest *wt,
 	bss = bss_get(wt, mgmt->bssid);
 	if (bss == NULL)
 		return;
-	if (os_memcmp(mgmt->sa, mgmt->bssid, ETH_ALEN) == 0)
+	if (ether_addr_equal(mgmt->sa, mgmt->bssid))
 		sta = sta_get(bss, mgmt->da);
 	else
 		sta = sta_get(bss, mgmt->sa);
@@ -3464,7 +3464,7 @@ static void rx_mgmt_disassoc_ack(struct wlantest *wt,
 
 	add_note(wt, MSG_DEBUG, "DISASSOC from " MACSTR " acknowledged by "
 		 MACSTR, MAC2STR(mgmt->sa), MAC2STR(mgmt->da));
-	if (os_memcmp(mgmt->sa, mgmt->bssid, ETH_ALEN) == 0) {
+	if (ether_addr_equal(mgmt->sa, mgmt->bssid)) {
 		int c;
 		c = wt->last_mgmt_valid ?
 			WLANTEST_STA_COUNTER_VALID_DISASSOC_RX_ACK :

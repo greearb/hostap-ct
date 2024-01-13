@@ -141,7 +141,7 @@ struct ptksa_cache_entry * ptksa_cache_get(struct ptksa_cache *ptksa,
 		return NULL;
 
 	dl_list_for_each(e, &ptksa->ptksa, struct ptksa_cache_entry, list) {
-		if ((!addr || os_memcmp(e->addr, addr, ETH_ALEN) == 0) &&
+		if ((!addr || ether_addr_equal(e->addr, addr)) &&
 		    (cipher == WPA_CIPHER_NONE || cipher == e->cipher))
 			return e;
 	}
@@ -238,7 +238,7 @@ void ptksa_cache_flush(struct ptksa_cache *ptksa, const u8 *addr, u32 cipher)
 
 	dl_list_for_each_safe(e, next, &ptksa->ptksa, struct ptksa_cache_entry,
 			      list) {
-		if ((!addr || os_memcmp(e->addr, addr, ETH_ALEN) == 0) &&
+		if ((!addr || ether_addr_equal(e->addr, addr)) &&
 		    (cipher == WPA_CIPHER_NONE || cipher == e->cipher)) {
 			wpa_printf(MSG_DEBUG,
 				   "Flush PTKSA cache entry for " MACSTR,

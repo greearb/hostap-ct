@@ -1427,7 +1427,7 @@ static int wpa_ft_fetch_pmk_r0(struct wpa_authenticator *wpa_auth,
 
 	os_get_reltime(&now);
 	dl_list_for_each(r0, &cache->pmk_r0, struct wpa_ft_pmk_r0_sa, list) {
-		if (os_memcmp(r0->spa, spa, ETH_ALEN) == 0 &&
+		if (ether_addr_equal(r0->spa, spa) &&
 		    os_memcmp_const(r0->pmk_r0_name, pmk_r0_name,
 				    WPA_PMK_NAME_LEN) == 0) {
 			*r0_out = r0;
@@ -1522,7 +1522,7 @@ int wpa_ft_fetch_pmk_r1(struct wpa_authenticator *wpa_auth,
 	os_get_reltime(&now);
 
 	dl_list_for_each(r1, &cache->pmk_r1, struct wpa_ft_pmk_r1_sa, list) {
-		if (os_memcmp(r1->spa, spa, ETH_ALEN) == 0 &&
+		if (ether_addr_equal(r1->spa, spa) &&
 		    os_memcmp_const(r1->pmk_r1_name, pmk_r1_name,
 				    WPA_PMK_NAME_LEN) == 0) {
 			os_memcpy(pmk_r1, r1->pmk_r1, r1->pmk_r1_len);
@@ -2024,7 +2024,7 @@ static int wpa_ft_pull_pmk_r1(struct wpa_state_machine *sm,
 			    sm->r0kh_id, sm->r0kh_id_len);
 		return -1;
 	}
-	if (os_memcmp(r0kh->addr, sm->wpa_auth->addr, ETH_ALEN) == 0) {
+	if (ether_addr_equal(r0kh->addr, sm->wpa_auth->addr)) {
 		wpa_printf(MSG_DEBUG,
 			   "FT: R0KH-ID points to self - no matching key available");
 		return -1;
@@ -3766,7 +3766,7 @@ int wpa_ft_action_rx(struct wpa_state_machine *sm, const u8 *data, size_t len)
 		   " Target AP=" MACSTR " Action=%d)",
 		   MAC2STR(sta_addr), MAC2STR(target_ap), action);
 
-	if (os_memcmp(sta_addr, sm->addr, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(sta_addr, sm->addr)) {
 		wpa_printf(MSG_DEBUG, "FT: Mismatch in FT Action STA address: "
 			   "STA=" MACSTR " STA-Address=" MACSTR,
 			   MAC2STR(sm->addr), MAC2STR(sta_addr));
@@ -3779,7 +3779,7 @@ int wpa_ft_action_rx(struct wpa_state_machine *sm, const u8 *data, size_t len)
 	 * APs in the MD (if such a list were configured).
 	 */
 	if ((target_ap[0] & 0x01) ||
-	    os_memcmp(target_ap, sm->wpa_auth->addr, ETH_ALEN) == 0) {
+	    ether_addr_equal(target_ap, sm->wpa_auth->addr)) {
 		wpa_printf(MSG_DEBUG, "FT: Invalid Target AP in FT Action "
 			   "frame");
 		return -1;
@@ -4037,7 +4037,7 @@ static int wpa_ft_rrb_rx_pull(struct wpa_authenticator *wpa_auth,
 		seq_ret = wpa_ft_rrb_seq_chk(r1kh->seq, src_addr, enc, enc_len,
 					     auth, auth_len, msgtype, no_defer);
 	if (!no_defer && r1kh_wildcard &&
-	    (!r1kh || os_memcmp(r1kh->addr, src_addr, ETH_ALEN) != 0)) {
+	    (!r1kh || !ether_addr_equal(r1kh->addr, src_addr))) {
 		/* wildcard: r1kh-id unknown or changed addr -> do a seq req */
 		seq_ret = FT_RRB_SEQ_DEFER;
 	}
@@ -4204,7 +4204,7 @@ static int wpa_ft_rrb_rx_r1(struct wpa_authenticator *wpa_auth,
 					     cb ? 0 : 1);
 	}
 	if (cb && r0kh_wildcard &&
-	    (!r0kh || os_memcmp(r0kh->addr, src_addr, ETH_ALEN) != 0)) {
+	    (!r0kh || !ether_addr_equal(r0kh->addr, src_addr))) {
 		/* wildcard: r0kh-id unknown or changed addr -> do a seq req */
 		seq_ret = FT_RRB_SEQ_DEFER;
 	}
@@ -4358,7 +4358,7 @@ static int ft_get_sta_cb(struct wpa_state_machine *sm, void *ctx)
 	struct ft_get_sta_ctx *info = ctx;
 
 	if ((info->s1kh_id &&
-	     os_memcmp(info->s1kh_id, sm->addr, ETH_ALEN) != 0) ||
+	     !ether_addr_equal(info->s1kh_id, sm->addr)) ||
 	    os_memcmp(info->nonce, sm->ft_pending_pull_nonce,
 		      FT_RRB_NONCE_LEN) != 0 ||
 	    sm->ft_pending_cb == NULL || sm->ft_pending_req_ies == NULL)
@@ -4483,7 +4483,7 @@ static int wpa_ft_rrb_rx_seq(struct wpa_authenticator *wpa_auth,
 		wpa_ft_rrb_lookup_r0kh(wpa_auth, f_r0kh_id, f_r0kh_id_len,
 				       &r0kh, &r0kh_wildcard);
 		if (!r0kh_wildcard &&
-		    (!r0kh || os_memcmp(r0kh->addr, src_addr, ETH_ALEN) != 0)) {
+		    (!r0kh || !ether_addr_equal(r0kh->addr, src_addr))) {
 			wpa_hexdump(MSG_DEBUG, "FT: Did not find R0KH-ID",
 				    f_r0kh_id, f_r0kh_id_len);
 			goto out;
@@ -4501,7 +4501,7 @@ static int wpa_ft_rrb_rx_seq(struct wpa_authenticator *wpa_auth,
 		wpa_ft_rrb_lookup_r1kh(wpa_auth, f_r1kh_id, &r1kh,
 				       &r1kh_wildcard);
 		if (!r1kh_wildcard &&
-		    (!r1kh || os_memcmp(r1kh->addr, src_addr, ETH_ALEN) != 0)) {
+		    (!r1kh || !ether_addr_equal(r1kh->addr, src_addr))) {
 			wpa_hexdump(MSG_DEBUG, "FT: Did not find R1KH-ID",
 				    f_r1kh_id, FT_R1KH_ID_LEN);
 			goto out;
@@ -4807,7 +4807,7 @@ int wpa_ft_rrb_rx(struct wpa_authenticator *wpa_auth, const u8 *src_addr,
 			return -1;
 		}
 
-		if (os_memcmp(target_ap_addr, wpa_auth->addr, ETH_ALEN) != 0) {
+		if (!ether_addr_equal(target_ap_addr, wpa_auth->addr)) {
 			wpa_printf(MSG_DEBUG, "FT: Target AP address in the "
 				   "RRB Request does not match with own "
 				   "address");
@@ -4970,7 +4970,7 @@ void wpa_ft_push_pmk_r1(struct wpa_authenticator *wpa_auth, const u8 *addr)
 		return;
 
 	dl_list_for_each(r0, &cache->pmk_r0, struct wpa_ft_pmk_r0_sa, list) {
-		if (os_memcmp(r0->spa, addr, ETH_ALEN) == 0) {
+		if (ether_addr_equal(r0->spa, addr)) {
 			r0found = r0;
 			break;
 		}

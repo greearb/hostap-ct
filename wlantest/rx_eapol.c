@@ -100,7 +100,7 @@ static void rx_data_eapol_key_1_of_4(struct wlantest *wt, const u8 *dst,
 	wpa_printf(MSG_DEBUG, "EAPOL-Key 1/4 " MACSTR " -> " MACSTR " (BSSID "
 		   MACSTR ")",
 		   MAC2STR(src), MAC2STR(dst), MAC2STR(bssid));
-	if (os_memcmp(src, bssid, ETH_ALEN) == 0) {
+	if (ether_addr_equal(src, bssid)) {
 		bss = bss_get(wt, src);
 	} else {
 		bss = bss_find(wt, bssid);
@@ -162,8 +162,7 @@ static void rx_data_eapol_key_1_of_4(struct wlantest *wt, const u8 *dst,
 			wpa_printf(MSG_DEBUG,
 				   "Learned AP MLD MAC Address from EAPOL-Key 1/4: "
 				   MACSTR, MAC2STR(ie.mac_addr));
-		} else if (os_memcmp(bss->mld_mac_addr, ie.mac_addr,
-				     ETH_ALEN) != 0) {
+		} else if (!ether_addr_equal(bss->mld_mac_addr, ie.mac_addr)) {
 			wpa_printf(MSG_DEBUG,
 				   "Updated AP MLD MAC Address from EAPOL-Key 1/4: "
 				   MACSTR " --> " MACSTR,
@@ -357,7 +356,7 @@ static void rx_data_eapol_key_2_of_4(struct wlantest *wt, const u8 *dst,
 	wpa_printf(MSG_DEBUG, "EAPOL-Key 2/4 " MACSTR " -> " MACSTR " (BSSID "
 		   MACSTR ")",
 		   MAC2STR(src), MAC2STR(dst), MAC2STR(bssid));
-	if (os_memcmp(dst, bssid, ETH_ALEN) == 0) {
+	if (ether_addr_equal(dst, bssid)) {
 		bss = bss_get(wt, dst);
 	} else {
 		bss = bss_find(wt, bssid);
@@ -893,7 +892,7 @@ static void learn_kde_keys(struct wlantest *wt, struct wlantest_bss *bss,
 		if (!ie.mlo_link[link_id])
 			continue;
 		addr = &ie.mlo_link[link_id][RSN_MLO_LINK_KDE_LINK_MAC_INDEX];
-		if (os_memcmp(addr, bss->bssid, ETH_ALEN) == 0) {
+		if (ether_addr_equal(addr, bss->bssid)) {
 			wpa_printf(MSG_DEBUG,
 				   "Trying to learn keys for the current MLO link (ID %u)",
 				   link_id);
@@ -940,7 +939,7 @@ static void rx_data_eapol_key_3_of_4(struct wlantest *wt, const u8 *dst,
 	wpa_printf(MSG_DEBUG, "EAPOL-Key 3/4 " MACSTR " -> " MACSTR " (BSSID "
 		   MACSTR ")",
 		   MAC2STR(src), MAC2STR(dst), MAC2STR(bssid));
-	if (os_memcmp(src, bssid, ETH_ALEN) == 0) {
+	if (ether_addr_equal(src, bssid)) {
 		bss = bss_get(wt, src);
 	} else {
 		bss = bss_find(wt, bssid);
@@ -1106,7 +1105,7 @@ static void rx_data_eapol_key_3_of_4(struct wlantest *wt, const u8 *dst,
 		if (!ie.mlo_link[link_id])
 			continue;
 		addr = &ie.mlo_link[link_id][RSN_MLO_LINK_KDE_LINK_MAC_INDEX];
-		if (os_memcmp(addr, bss->bssid, ETH_ALEN) != 0)
+		if (!ether_addr_equal(addr, bss->bssid))
 			continue;
 		if (!(ie.mlo_link[link_id][0] & RSN_MLO_LINK_KDE_LI_RSNE_INFO))
 			continue;
@@ -1172,7 +1171,7 @@ static void rx_data_eapol_key_4_of_4(struct wlantest *wt, const u8 *dst,
 	wpa_printf(MSG_DEBUG, "EAPOL-Key 4/4 " MACSTR " -> " MACSTR " (BSSID "
 		   MACSTR ")",
 		   MAC2STR(src), MAC2STR(dst), MAC2STR(bssid));
-	if (os_memcmp(dst, bssid, ETH_ALEN) == 0) {
+	if (ether_addr_equal(dst, bssid)) {
 		bss = bss_get(wt, dst);
 	} else {
 		bss = bss_find(wt, bssid);
@@ -1243,7 +1242,7 @@ static void rx_data_eapol_key_1_of_2(struct wlantest *wt, const u8 *dst,
 	wpa_printf(MSG_DEBUG, "EAPOL-Key 1/2 " MACSTR " -> " MACSTR " (BSSID "
 		   MACSTR ")",
 		   MAC2STR(src), MAC2STR(dst), MAC2STR(bssid));
-	if (os_memcmp(src, bssid, ETH_ALEN) == 0) {
+	if (ether_addr_equal(src, bssid)) {
 		bss = bss_get(wt, src);
 	} else {
 		bss = bss_find(wt, bssid);
@@ -1380,7 +1379,7 @@ static void rx_data_eapol_key_2_of_2(struct wlantest *wt, const u8 *dst,
 	wpa_printf(MSG_DEBUG, "EAPOL-Key 2/2 " MACSTR " -> " MACSTR " (BSSID "
 		   MACSTR ")",
 		   MAC2STR(src), MAC2STR(dst), MAC2STR(bssid));
-	if (os_memcmp(dst, bssid, ETH_ALEN) == 0) {
+	if (ether_addr_equal(dst, bssid)) {
 		bss = bss_get(wt, dst);
 	} else {
 		bss = bss_find(wt, bssid);

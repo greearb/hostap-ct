@@ -69,7 +69,7 @@ static void rsn_preauth_receive(void *ctx, const u8 *src_addr,
 
 	if (sm->preauth_eapol == NULL ||
 	    is_zero_ether_addr(sm->preauth_bssid) ||
-	    os_memcmp(sm->preauth_bssid, src_addr, ETH_ALEN) != 0) {
+	    !ether_addr_equal(sm->preauth_bssid, src_addr)) {
 		wpa_printf(MSG_WARNING, "RSN pre-auth frame received from "
 			   "unexpected source " MACSTR " - dropped",
 			   MAC2STR(src_addr));
@@ -333,7 +333,7 @@ void rsn_preauth_candidate_process(struct wpa_sm *sm)
 		struct rsn_pmksa_cache_entry *p = NULL;
 		p = pmksa_cache_get(sm->pmksa, candidate->bssid, sm->own_addr,
 				    NULL, NULL, 0);
-		if (os_memcmp(sm->bssid, candidate->bssid, ETH_ALEN) != 0 &&
+		if (!ether_addr_equal(sm->bssid, candidate->bssid) &&
 		    (p == NULL || p->opportunistic)) {
 			wpa_msg(sm->ctx->msg_ctx, MSG_DEBUG, "RSN: PMKSA "
 				"candidate " MACSTR
@@ -395,7 +395,7 @@ void pmksa_candidate_add(struct wpa_sm *sm, const u8 *bssid,
 	cand = NULL;
 	dl_list_for_each(pos, &sm->pmksa_candidates,
 			 struct rsn_pmksa_candidate, list) {
-		if (os_memcmp(pos->bssid, bssid, ETH_ALEN) == 0) {
+		if (ether_addr_equal(pos->bssid, bssid)) {
 			cand = pos;
 			break;
 		}
@@ -487,7 +487,7 @@ void rsn_preauth_scan_result(struct wpa_sm *sm, const u8 *bssid,
 	    os_memcmp(ssid + 2, sm->ssid, sm->ssid_len) != 0)
 		return; /* Not for the current SSID */
 
-	if (os_memcmp(bssid, sm->bssid, ETH_ALEN) == 0)
+	if (ether_addr_equal(bssid, sm->bssid))
 		return; /* Ignore current AP */
 
 	if (wpa_parse_wpa_ie(rsn, 2 + rsn[1], &ie))

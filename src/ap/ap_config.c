@@ -1135,10 +1135,9 @@ const u8 * hostapd_get_psk(const struct hostapd_bss_config *conf,
 	for (psk = conf->ssid.wpa_psk; psk != NULL; psk = psk->next) {
 		if (next_ok &&
 		    (psk->group ||
-		     (addr && os_memcmp(psk->addr, addr, ETH_ALEN) == 0) ||
+		     (addr && ether_addr_equal(psk->addr, addr)) ||
 		     (!addr && p2p_dev_addr &&
-		      os_memcmp(psk->p2p_dev_addr, p2p_dev_addr, ETH_ALEN) ==
-		      0))) {
+		      ether_addr_equal(psk->p2p_dev_addr, p2p_dev_addr)))) {
 			if (vlan_id)
 				*vlan_id = psk->vlan_id;
 			return psk->psk;
@@ -1758,7 +1757,7 @@ void hostapd_remove_acl_mac(struct mac_acl_entry **acl, int *num,
 	int i = 0;
 
 	while (i < *num) {
-		if (os_memcmp((*acl)[i].addr, addr, ETH_ALEN) == 0) {
+		if (ether_addr_equal((*acl)[i].addr, addr)) {
 			os_remove_in_array(*acl, *num, sizeof(**acl), i);
 			(*num)--;
 		} else {

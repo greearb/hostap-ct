@@ -35,11 +35,11 @@ static struct wlantest_sta * rx_get_sta(struct wlantest *wt,
 		if (len < 24)
 			return NULL;
 		bssid = hdr->addr3;
-		if (os_memcmp(bssid, hdr->addr2, ETH_ALEN) == 0) {
+		if (ether_addr_equal(bssid, hdr->addr2)) {
 			sta_addr = hdr->addr1;
 			*to_ap = 0;
 		} else {
-			if (os_memcmp(bssid, hdr->addr1, ETH_ALEN) != 0)
+			if (!ether_addr_equal(bssid, hdr->addr1))
 				return NULL; /* Unsupported STA-to-STA frame */
 			sta_addr = hdr->addr2;
 			*to_ap = 1;
@@ -184,7 +184,7 @@ static void rx_ack(struct wlantest *wt, const struct ieee80211_hdr *hdr)
 	u16 fc;
 
 	if (wt->last_len < 24 || (last->addr1[0] & 0x01) ||
-	    os_memcmp(hdr->addr1, last->addr2, ETH_ALEN) != 0) {
+	    !ether_addr_equal(hdr->addr1, last->addr2)) {
 		add_note(wt, MSG_MSGDUMP, "Unknown Ack frame (previous frame "
 			 "not seen)");
 		return;

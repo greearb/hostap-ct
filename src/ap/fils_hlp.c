@@ -546,7 +546,7 @@ static int fils_process_hlp_req(struct hostapd_data *hapd,
 		   " src=" MACSTR " len=%u)",
 		   MAC2STR(sta->addr), MAC2STR(pos), MAC2STR(pos + ETH_ALEN),
 		   (unsigned int) len);
-	if (os_memcmp(sta->addr, pos + ETH_ALEN, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(sta->addr, pos + ETH_ALEN)) {
 		wpa_printf(MSG_DEBUG,
 			   "FILS: Ignore HLP request with unexpected source address"
 			   MACSTR, MAC2STR(pos + ETH_ALEN));

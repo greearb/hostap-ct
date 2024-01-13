@@ -166,7 +166,7 @@ static struct wpabuf * sme_auth_build_sae_commit(struct wpa_supplicant *wpa_s,
 	}
 
 	if (reuse && wpa_s->sme.sae.tmp &&
-	    os_memcmp(addr, wpa_s->sme.sae.tmp->bssid, ETH_ALEN) == 0) {
+	    ether_addr_equal(addr, wpa_s->sme.sae.tmp->bssid)) {
 		wpa_printf(MSG_DEBUG,
 			   "SAE: Reuse previously generated PWE on a retry with the same AP");
 		use_pt = wpa_s->sme.sae.h2e;
@@ -412,9 +412,9 @@ static struct wpa_bss * wpas_ml_connect_pref(struct wpa_supplicant *wpa_s,
 			if (wpa_s->mlo_assoc_link_id == i)
 				continue;
 
-			if (os_memcmp(wpa_s->links[i].bssid,
-				      wpa_s->conf->mld_connect_bssid_pref,
-				      ETH_ALEN) == 0)
+			if (ether_addr_equal(
+				    wpa_s->links[i].bssid,
+				    wpa_s->conf->mld_connect_bssid_pref))
 				goto found;
 		}
 	}
@@ -506,7 +506,7 @@ static void wpas_sme_ml_auth(struct wpa_supplicant *wpa_s,
 
 	wpa_printf(MSG_DEBUG, "MLD: mld_address=" MACSTR, MAC2STR(mld_addr));
 
-	if (os_memcmp(wpa_s->ap_mld_addr, mld_addr, ETH_ALEN) != 0) {
+	if (!ether_addr_equal(wpa_s->ap_mld_addr, mld_addr)) {
 		wpa_printf(MSG_DEBUG, "MLD: Unexpected MLD address (expected "
 			   MACSTR ")", MAC2STR(wpa_s->ap_mld_addr));
 		goto out;
@@ -1622,8 +1622,7 @@ static int sme_external_ml_auth(struct wpa_supplicant *wpa_s,
 
 	wpa_printf(MSG_DEBUG, "MLD: mld_address=" MACSTR, MAC2STR(mld_addr));
 
-	if (os_memcmp(wpa_s->sme.ext_auth_ap_mld_addr, mld_addr, ETH_ALEN) !=
-	    0) {
+	if (!ether_addr_equal(wpa_s->sme.ext_auth_ap_mld_addr, mld_addr)) {
 		wpa_printf(MSG_DEBUG, "MLD: Unexpected MLD address (expected "
 			   MACSTR ")",
 			   MAC2STR(wpa_s->sme.ext_auth_ap_mld_addr));
@@ -1978,9 +1977,9 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 		return;
 	}
 
-	if (os_memcmp(wpa_s->pending_bssid, data->auth.peer, ETH_ALEN) != 0 &&
+	if (!ether_addr_equal(wpa_s->pending_bssid, data->auth.peer) &&
 	    !(wpa_s->valid_links &&
-	      os_memcmp(wpa_s->ap_mld_addr, data->auth.peer, ETH_ALEN) == 0)) {
+	      ether_addr_equal(wpa_s->ap_mld_addr, data->auth.peer))) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "SME: Ignore authentication with "
 			"unexpected peer " MACSTR,
 			MAC2STR(data->auth.peer));
@@ -3304,7 +3303,7 @@ void sme_event_unprot_disconnect(struct wpa_supplicant *wpa_s, const u8 *sa,
 	ssid = wpa_s->current_ssid;
 	if (wpas_get_ssid_pmf(wpa_s, ssid) == NO_MGMT_FRAME_PROTECTION)
 		return;
-	if (os_memcmp(sa, wpa_s->bssid, ETH_ALEN) != 0)
+	if (!ether_addr_equal(sa, wpa_s->bssid))
 		return;
 	if (reason_code != WLAN_REASON_CLASS2_FRAME_FROM_NONAUTH_STA &&
 	    reason_code != WLAN_REASON_CLASS3_FRAME_FROM_NONASSOC_STA)
@@ -3409,7 +3408,7 @@ static void sme_process_sa_query_response(struct wpa_supplicant *wpa_s,
 	wpa_dbg(wpa_s, MSG_DEBUG, "SME: Received SA Query response from "
 		MACSTR " (trans_id %02x%02x)", MAC2STR(sa), data[1], data[2]);
 
-	if (os_memcmp(sa, wpa_s->bssid, ETH_ALEN) != 0)
+	if (!ether_addr_equal(sa, wpa_s->bssid))
 		return;
 
 	for (i = 0; i < wpa_s->sme.sa_query_count; i++) {

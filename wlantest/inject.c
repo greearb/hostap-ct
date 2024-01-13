@@ -233,11 +233,11 @@ static int wlantest_inject_prot(struct wlantest *wt, struct wlantest_bss *bss,
 		}
 	}
 	if (tk) {
-		if (os_memcmp(hdr->addr2, tdls->init->addr, ETH_ALEN) == 0)
+		if (ether_addr_equal(hdr->addr2, tdls->init->addr))
 			pn = tdls->rsc_init[tid];
 		else
 			pn = tdls->rsc_resp[tid];
-	} else if (os_memcmp(hdr->addr2, bss->bssid, ETH_ALEN) == 0)
+	} else if (ether_addr_equal(hdr->addr2, bss->bssid))
 		pn = sta->rsc_fromds[tid];
 	else
 		pn = sta->rsc_tods[tid];

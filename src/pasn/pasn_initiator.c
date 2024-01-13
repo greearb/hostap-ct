@@ -1024,15 +1024,15 @@ static bool is_pasn_auth_frame(struct pasn_data *pasn,
 		return false;
 
 	/* Not our frame; do nothing */
-	if (os_memcmp(mgmt->bssid, pasn->bssid, ETH_ALEN) != 0)
+	if (!ether_addr_equal(mgmt->bssid, pasn->bssid))
 		return false;
 
-	if (rx && (os_memcmp(mgmt->da, pasn->own_addr, ETH_ALEN) != 0 ||
-		   os_memcmp(mgmt->sa, pasn->peer_addr, ETH_ALEN) != 0))
+	if (rx && (!ether_addr_equal(mgmt->da, pasn->own_addr) ||
+		   !ether_addr_equal(mgmt->sa, pasn->peer_addr)))
 		return false;
 
-	if (!rx && (os_memcmp(mgmt->sa, pasn->own_addr, ETH_ALEN) != 0 ||
-		    os_memcmp(mgmt->da, pasn->peer_addr, ETH_ALEN) != 0))
+	if (!rx && (!ether_addr_equal(mgmt->sa, pasn->own_addr) ||
+		    !ether_addr_equal(mgmt->da, pasn->peer_addr)))
 		return false;
 
 	/* Not PASN; do nothing */

@@ -2602,8 +2602,7 @@ int wpa_supplicant_filter_bssid_match(struct wpa_supplicant *wpa_s,
 		return 1;
 
 	for (i = 0; i < wpa_s->bssid_filter_count; i++) {
-		if (os_memcmp(wpa_s->bssid_filter + i * ETH_ALEN, bssid,
-			      ETH_ALEN) == 0)
+		if (ether_addr_equal(wpa_s->bssid_filter + i * ETH_ALEN, bssid))
 			return 1;
 	}
 

@@ -295,8 +295,7 @@ static void wpas_wps_remove_dup_network(struct wpa_supplicant *wpa_s,
 		if (ssid->bssid_set || new_ssid->bssid_set) {
 			if (ssid->bssid_set != new_ssid->bssid_set)
 				continue;
-			if (os_memcmp(ssid->bssid, new_ssid->bssid, ETH_ALEN) !=
-			    0)
+			if (!ether_addr_equal(ssid->bssid, new_ssid->bssid))
 				continue;
 		}
 
@@ -1062,7 +1061,7 @@ static struct wpa_ssid * wpas_wps_add_network(struct wpa_supplicant *wpa_s,
 		 */
 #ifndef CONFIG_P2P
 		dl_list_for_each(bss, &wpa_s->bss, struct wpa_bss, list) {
-			if (os_memcmp(bssid, bss->bssid, ETH_ALEN) != 0)
+			if (!ether_addr_equal(bssid, bss->bssid))
 				continue;
 
 			os_free(ssid->ssid);
@@ -1812,7 +1811,7 @@ int wpas_wps_ssid_wildcard_ok(struct wpa_supplicant *wpa_s,
 	}
 
 	if (!ret && ssid->bssid_set &&
-	    os_memcmp(ssid->bssid, bss->bssid, ETH_ALEN) == 0) {
+	    ether_addr_equal(ssid->bssid, bss->bssid)) {
 		/* allow wildcard SSID due to hardcoded BSSID match */
 		ret = 1;
 	}
@@ -1851,11 +1850,11 @@ static bool wpas_wps_is_pbc_overlap(struct wps_ap_info *ap,
 				    const u8 *sel_uuid)
 {
 	if (!ap->pbc_active ||
-	    os_memcmp(selected->bssid, ap->bssid, ETH_ALEN) == 0)
+	    ether_addr_equal(selected->bssid, ap->bssid))
 		return false;
 
 	if (!is_zero_ether_addr(ssid->bssid) &&
-	    os_memcmp(ap->bssid, ssid->bssid, ETH_ALEN) != 0) {
+	    !ether_addr_equal(ap->bssid, ssid->bssid)) {
 		wpa_printf(MSG_DEBUG, "WPS: Ignore another BSS " MACSTR
 			   " in active PBC mode due to local BSSID limitation",
 			   MAC2STR(ap->bssid));
@@ -2943,7 +2942,7 @@ static struct wps_ap_info * wpas_wps_get_ap_info(struct wpa_supplicant *wpa_s,
 
 	for (i = 0; i < wpa_s->num_wps_ap; i++) {
 		struct wps_ap_info *ap = &wpa_s->wps_ap[i];
-		if (os_memcmp(ap->bssid, bssid, ETH_ALEN) == 0)
+		if (ether_addr_equal(ap->bssid, bssid))
 			return ap;
 	}
 
