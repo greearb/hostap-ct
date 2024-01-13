@@ -4606,7 +4606,7 @@ def test_dpp_qr_code_chan_list_no_peer_unicast(dev, apdev):
 
 def test_dpp_qr_code_no_chan_list_broadcast(dev, apdev):
     """DPP QR Code and no channel list (broadcast)"""
-    run_dpp_qr_code_chan_list(dev, apdev, False, 2412, None)
+    run_dpp_qr_code_chan_list(dev, apdev, False, 2412, None, timeout=20)
 
 def test_dpp_qr_code_chan_list_broadcast(dev, apdev):
     """DPP QR Code and some 2.4 GHz channels (broadcast)"""
