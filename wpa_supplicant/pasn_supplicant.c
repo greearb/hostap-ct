@@ -426,6 +426,7 @@ static void wpas_pasn_delete_peers(struct wpa_supplicant *wpa_s,
 }
 
 
+#ifdef CONFIG_FILS
 static void wpas_pasn_initiate_eapol(struct pasn_data *pasn,
 				     struct wpa_ssid *ssid)
 {
@@ -443,6 +444,7 @@ static void wpas_pasn_initiate_eapol(struct pasn_data *pasn,
 
 	eapol_sm_notify_config(pasn->eapol, &ssid->eap, &eapol_conf);
 }
+#endif /* CONFIG_FILS */
 
 
 static void wpas_pasn_reset(struct wpa_supplicant *wpa_s)
@@ -509,8 +511,10 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 	struct wpa_ssid *ssid;
 	struct wpa_bss *bss;
 	const u8 *rsne, *rsnxe;
+#ifdef CONFIG_FILS
 	const u8 *indic;
 	u16 fils_info;
+#endif /* CONFIG_FILS */
 	u16 capab = 0;
 	bool derive_kdk;
 	int ret;
