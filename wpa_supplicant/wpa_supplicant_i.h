@@ -1989,5 +1989,6 @@ void wpas_pasn_auth_work_done(struct wpa_supplicant *wpa_s, int status);
 bool wpas_is_6ghz_supported(struct wpa_supplicant *wpa_s, bool only_enabled);
 
 bool wpa_is_non_eht_scs_traffic_desc_supported(struct wpa_bss *bss);
+bool wpas_ap_link_address(struct wpa_supplicant *wpa_s, const u8 *addr);
 
 #endif /* WPA_SUPPLICANT_I_H */
