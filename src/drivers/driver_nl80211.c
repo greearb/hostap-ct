@@ -4195,9 +4195,11 @@ static int wpa_driver_nl80211_send_mlme(struct i802_bss *bss, const u8 *data,
 
 	mgmt = (struct ieee80211_mgmt *) data;
 	fc = le_to_host16(mgmt->frame_control);
-	wpa_printf(MSG_DEBUG, "nl80211: send_mlme - da=" MACSTR
+	wpa_printf(MSG_DEBUG, "nl80211: send_mlme - da=" MACSTR " sa=" MACSTR
+		   " bssid=" MACSTR
 		   " noack=%d freq=%u no_cck=%d offchanok=%d wait_time=%u no_encrypt=%d fc=0x%x (%s) nlmode=%d",
-		   MAC2STR(mgmt->da), noack, freq, no_cck, offchanok, wait_time,
+		   MAC2STR(mgmt->da), MAC2STR(mgmt->sa), MAC2STR(mgmt->bssid),
+		   noack, freq, no_cck, offchanok, wait_time,
 		   no_encrypt, fc, fc2str(fc), drv->nlmode);
 
 	if ((is_sta_interface(drv->nlmode) ||
@@ -9090,9 +9092,11 @@ static int wpa_driver_nl80211_send_action(struct i802_bss *bss,
 	if (!freq && is_sta_interface(drv->nlmode))
 		offchanok = 0;
 
-	wpa_printf(MSG_DEBUG, "nl80211: Send Action frame (ifindex=%d, "
-		   "freq=%u MHz wait=%d ms no_cck=%d offchanok=%d)",
-		   drv->ifindex, freq, wait_time, no_cck, offchanok);
+	wpa_printf(MSG_DEBUG,
+		   "nl80211: Send Action frame (ifindex=%d, freq=%u MHz wait=%d ms no_cck=%d offchanok=%d dst="
+		   MACSTR " src=" MACSTR " bssid=" MACSTR ")",
+		   drv->ifindex, freq, wait_time, no_cck, offchanok,
+		   MAC2STR(dst), MAC2STR(src), MAC2STR(bssid));
 
 	buf = os_zalloc(24 + data_len);
 	if (buf == NULL)
