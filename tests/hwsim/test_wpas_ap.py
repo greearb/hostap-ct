@@ -210,6 +210,7 @@ def test_wpas_ap_wps(dev):
         raise Exception("PBC mode start timeout")
     dev[1].request("WPS_PBC")
     dev[1].wait_connected(timeout=30, error="WPS PBC operation timed out")
+    dev[0].wait_sta(addr=dev[1].own_addr())
     hwsim_utils.test_connectivity(dev[0], dev[1])
 
     logger.info("Test AP PIN to learn configuration")
@@ -219,10 +220,13 @@ def test_wpas_ap_wps(dev):
     if pin not in dev[0].request("WPS_AP_PIN get"):
         raise Exception("Could not fetch current AP PIN")
     dev[2].wps_reg(bssid, pin)
+    dev[0].wait_sta(addr=dev[2].own_addr())
     hwsim_utils.test_connectivity(dev[1], dev[2])
 
     dev[1].request("REMOVE_NETWORK all")
     dev[2].request("REMOVE_NETWORK all")
+    dev[0].wait_sta_disconnect()
+    dev[0].wait_sta_disconnect()
 
     logger.info("Test AP PIN operations")
     dev[0].request("WPS_AP_PIN disable")
@@ -235,13 +239,19 @@ def test_wpas_ap_wps(dev):
     dev[0].request("WPS_PIN any " + pin)
     dev[1].request("WPS_PIN any " + pin)
     dev[1].wait_connected(timeout=30)
+    dev[0].wait_sta(addr=dev[1].own_addr())
     dev[1].request("REMOVE_NETWORK all")
+    dev[1].wait_disconnected()
+    dev[0].wait_sta_disconnect(addr=dev[1].own_addr())
     dev[1].dump_monitor()
 
     dev[0].request("WPS_PIN any " + pin + " 100")
     dev[1].request("WPS_PIN any " + pin)
     dev[1].wait_connected(timeout=30)
+    dev[0].wait_sta(addr=dev[1].own_addr())
     dev[1].request("REMOVE_NETWORK all")
+    dev[1].wait_disconnected()
+    dev[0].wait_sta_disconnect(addr=dev[1].own_addr())
     dev[1].dump_monitor()
 
     dev[0].request("WPS_AP_PIN set 12345670")
