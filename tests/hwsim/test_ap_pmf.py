@@ -236,10 +236,19 @@ def test_ap_pmf_negative(dev, apdev):
 @remote_compatible
 def test_ap_pmf_assoc_comeback(dev, apdev):
     """WPA2-PSK AP with PMF association comeback"""
+    run_ap_pmf_assoc_comeback(dev, apdev)
+
+def test_ap_pmf_assoc_comeback_10000tu(dev, apdev):
+    """WPA2-PSK AP with PMF association comeback (10000 TUs)"""
+    run_ap_pmf_assoc_comeback(dev, apdev, comeback=10000)
+
+def run_ap_pmf_assoc_comeback(dev, apdev, comeback=None):
     ssid = "assoc-comeback"
     params = hostapd.wpa2_params(ssid=ssid, passphrase="12345678")
     params["wpa_key_mgmt"] = "WPA-PSK-SHA256"
     params["ieee80211w"] = "2"
+    if comeback is not None:
+        params["assoc_sa_query_max_timeout"] = str(comeback)
     hapd = hostapd.add_ap(apdev[0], params)
     Wlantest.setup(hapd)
     wt = Wlantest()
@@ -257,7 +266,7 @@ def test_ap_pmf_assoc_comeback(dev, apdev):
         raise Exception("Deauthentication frame RX not reported")
     hapd.set("ext_mgmt_frame_handling", "0")
     dev[0].request("REASSOCIATE")
-    dev[0].wait_connected(timeout=10, error="Timeout on re-connection")
+    dev[0].wait_connected(timeout=20, error="Timeout on re-connection")
     hapd.wait_4way_hs()
     if wt.get_sta_counter("assocresp_comeback", apdev[0]['bssid'],
                           dev[0].p2p_interface_addr()) < 1:
