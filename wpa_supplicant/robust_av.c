@@ -664,6 +664,10 @@ void free_up_scs_desc(struct scs_robust_av_data *data)
 }
 
 
+/* Element ID Extension(1) + Request Type(1) + User Priority Control(2) +
+ * Stream Timeout(4) */
+#define MSCS_DESCRIPTOR_FIXED_LEN 8
+
 void wpas_handle_robust_av_recv_action(struct wpa_supplicant *wpa_s,
 				       const u8 *src, const u8 *buf, size_t len)
 {
@@ -700,13 +704,12 @@ void wpas_handle_assoc_resp_mscs(struct wpa_supplicant *wpa_s, const u8 *bssid,
 		return;
 
 	mscs_desc_ie = get_ie_ext(ies, ies_len, WLAN_EID_EXT_MSCS_DESCRIPTOR);
-	if (!mscs_desc_ie || mscs_desc_ie[1] <= 8)
+	if (!mscs_desc_ie || mscs_desc_ie[1] <= MSCS_DESCRIPTOR_FIXED_LEN)
 		return;
 
-	/* Subelements start after (ie_id(1) + ie_len(1) + ext_id(1) +
-	 * request type(1) + upc(2) + stream timeout(4) =) 10.
-	 */
-	mscs_status = get_ie(&mscs_desc_ie[10], mscs_desc_ie[1] - 8,
+	/* Subelements start after element header and fixed fields */
+	mscs_status = get_ie(&mscs_desc_ie[2 + MSCS_DESCRIPTOR_FIXED_LEN],
+			     mscs_desc_ie[1] - MSCS_DESCRIPTOR_FIXED_LEN,
 			     MCSC_SUBELEM_STATUS);
 	if (!mscs_status || mscs_status[1] < 2)
 		return;
