@@ -19,11 +19,11 @@ def force_prev_ap_on_24g(ap):
     time.sleep(0.1)
     hostapd.remove_bss(ap)
 
-def force_prev_ap_on_5g(ap):
+def force_prev_ap_on_5g(ap, country="US"):
     # For now, make sure the last operating channel was on 5 GHz band to get
     # sufficient survey data from mac80211_hwsim.
     hostapd.add_ap(ap, {"ssid": "open", "hw_mode": "a",
-                        "channel": "36", "country_code": "US"})
+                        "channel": "36", "country_code": country})
     time.sleep(0.1)
     hostapd.remove_bss(ap)
 
@@ -349,7 +349,7 @@ def test_ap_acs_vht160(dev, apdev):
     """Automatic channel selection for VHT160"""
     try:
         hapd = None
-        force_prev_ap_on_5g(apdev[0])
+        force_prev_ap_on_5g(apdev[0], country="ZA")
         params = hostapd.wpa2_params(ssid="test-acs", passphrase="12345678")
         params['hw_mode'] = 'a'
         params['channel'] = '0'
@@ -381,7 +381,7 @@ def test_ap_acs_vht160(dev, apdev):
 
 def test_ap_acs_vht160_scan_disable(dev, apdev):
     """Automatic channel selection for VHT160 and DISABLE during scan"""
-    force_prev_ap_on_5g(apdev[0])
+    force_prev_ap_on_5g(apdev[0], country="ZA")
     params = hostapd.wpa2_params(ssid="test-acs", passphrase="12345678")
     params['hw_mode'] = 'a'
     params['channel'] = '0'
