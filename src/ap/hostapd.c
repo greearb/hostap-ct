@@ -3907,10 +3907,14 @@ static int hostapd_change_config_freq(struct hostapd_data *hapd,
 	conf->ieee80211n = params->ht_enabled;
 	conf->ieee80211ac = params->vht_enabled;
 	conf->secondary_channel = params->sec_channel_offset;
-	ieee80211_freq_to_chan(params->center_freq1,
-			       &seg0);
-	ieee80211_freq_to_chan(params->center_freq2,
-			       &seg1);
+	if (params->center_freq1 &&
+	    ieee80211_freq_to_chan(params->center_freq1, &seg0) ==
+	    NUM_HOSTAPD_MODES)
+		return -1;
+	if (params->center_freq2 &&
+	    ieee80211_freq_to_chan(params->center_freq2,
+				   &seg1) == NUM_HOSTAPD_MODES)
+		return -1;
 	hostapd_set_oper_centr_freq_seg0_idx(conf, seg0);
 	hostapd_set_oper_centr_freq_seg1_idx(conf, seg1);
 
