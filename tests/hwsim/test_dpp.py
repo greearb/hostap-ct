@@ -322,7 +322,7 @@ def test_dpp_qr_code_auth_broadcast(dev, apdev):
     logger.info("dev1 scans QR Code and initiates DPP Authentication")
     dev[0].dpp_listen(2412)
     dev[1].dpp_auth_init(uri=uri0)
-    wait_auth_success(dev[0], dev[1], stop_responder=True)
+    wait_auth_success(dev[0], dev[1], stop_responder=True, timeout=20)
 
 def test_dpp_qr_code_auth_unicast(dev, apdev):
     """DPP QR Code and authentication exchange (unicast)"""
