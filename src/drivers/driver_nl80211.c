@@ -2288,6 +2288,26 @@ static void * wpa_driver_nl80211_drv_init(void *ctx, const char *ifname,
 	struct wpa_driver_nl80211_data *drv;
 	struct i802_bss *bss;
 	unsigned int i;
+	char path[128], buf[200], *pos;
+	ssize_t len;
+	int ret;
+
+	ret = os_snprintf(path, sizeof(path), "/sys/class/net/%s/device/driver",
+			  ifname);
+	if (!os_snprintf_error(sizeof(path), ret)) {
+		len = readlink(path, buf, sizeof(buf));
+		if (len > 0 && (size_t) len < sizeof(buf)) {
+			buf[len] = '\0';
+			pos = strrchr(buf, '/');
+			if (pos)
+				pos++;
+			else
+				pos = buf;
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: Initialize interface %s (driver: %s)",
+				   ifname, pos);
+		}
+	}
 
 	if (global_priv == NULL)
 		return NULL;
