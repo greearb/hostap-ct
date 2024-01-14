@@ -3094,6 +3094,13 @@ hostapd_dpp_gas_req_handler(struct hostapd_data *hapd, const u8 *sa,
 		 * exchange. */
 		dpp_notify_auth_success(hapd->dpp_auth, 1);
 		hapd->dpp_auth_ok_on_ack = 0;
+#ifdef CONFIG_TESTING_OPTIONS
+		if (dpp_test == DPP_TEST_STOP_AT_AUTH_CONF) {
+			wpa_printf(MSG_INFO,
+				   "DPP: TESTING - stop at Authentication Confirm");
+			return NULL;
+		}
+#endif /* CONFIG_TESTING_OPTIONS */
 	}
 
 	wpa_hexdump(MSG_DEBUG,

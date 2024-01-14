@@ -4131,6 +4131,13 @@ wpas_dpp_gas_req_handler(void *ctx, void *resp_ctx, const u8 *sa,
 		 * exchange. */
 		dpp_notify_auth_success(auth, 1);
 		wpa_s->dpp_auth_ok_on_ack = 0;
+#ifdef CONFIG_TESTING_OPTIONS
+		if (dpp_test == DPP_TEST_STOP_AT_AUTH_CONF) {
+			wpa_printf(MSG_INFO,
+				   "DPP: TESTING - stop at Authentication Confirm");
+			return NULL;
+		}
+#endif /* CONFIG_TESTING_OPTIONS */
 	}
 
 	wpa_hexdump(MSG_DEBUG,
