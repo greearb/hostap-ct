@@ -12,6 +12,7 @@
 
 #include "includes.h"
 #include <sys/types.h>
+#include <sys/utsname.h>
 #include <fcntl.h>
 #include <net/if.h>
 #include <netlink/genl/genl.h>
@@ -9888,6 +9889,13 @@ static void * nl80211_global_init(void *ctx)
 {
 	struct nl80211_global *global;
 	struct netlink_config *cfg;
+	struct utsname name;
+
+	if (uname(&name) == 0) {
+		wpa_printf(MSG_DEBUG, "nl80211: Kernel version: %s %s (%s; %s)",
+			   name.sysname, name.release,
+			   name.version, name.machine);
+	}
 
 	global = os_zalloc(sizeof(*global));
 	if (global == NULL)
