@@ -19,14 +19,16 @@
 #endif
 #endif
 
+#ifndef OPENSSL_NO_ENGINE
+/* OpenSSL 3.0 has moved away from the engine API */
+#define OPENSSL_SUPPRESS_DEPRECATED
+#include <openssl/engine.h>
+#endif /* OPENSSL_NO_ENGINE */
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/opensslv.h>
 #include <openssl/pkcs12.h>
 #include <openssl/x509v3.h>
-#ifndef OPENSSL_NO_ENGINE
-#include <openssl/engine.h>
-#endif /* OPENSSL_NO_ENGINE */
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
 #include <openssl/core_names.h>
 #include <openssl/decoder.h>
