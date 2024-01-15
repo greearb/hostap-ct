@@ -4880,7 +4880,8 @@ static int nl80211_mbssid(struct nl_msg *msg,
 
 #ifdef CONFIG_DRIVER_NL80211_QCA
 static void qca_set_allowed_ap_freqs(struct wpa_driver_nl80211_data *drv,
-				    const int *freqs, int num_freqs)
+				     const int *freqs, int num_freqs,
+				     int link_id)
 {
 	struct nl_msg *msg;
 	struct nlattr *params, *freqs_list;
@@ -4896,6 +4897,10 @@ static void qca_set_allowed_ap_freqs(struct wpa_driver_nl80211_data *drv,
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
 			QCA_NL80211_VENDOR_SUBCMD_SET_WIFI_CONFIGURATION) ||
 	    !(params = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA)))
+		goto err;
+
+	if (link_id != NL80211_DRV_LINK_ID_NA &&
+	    nla_put_u8(msg, QCA_WLAN_VENDOR_ATTR_CONFIG_MLO_LINK_ID, link_id))
 		goto err;
 
 	freqs_list = nla_nest_start(
@@ -5406,7 +5411,9 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 #ifdef CONFIG_DRIVER_NL80211_QCA
 	if (cmd == NL80211_CMD_NEW_BEACON && params->allowed_freqs)
 		qca_set_allowed_ap_freqs(drv, params->allowed_freqs,
-					 int_array_len(params->allowed_freqs));
+					 int_array_len(params->allowed_freqs),
+					 params->mld_ap ? params->mld_link_id :
+					 NL80211_DRV_LINK_ID_NA);
 #endif /* CONFIG_DRIVER_NL80211_QCA */
 
 	if (nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
