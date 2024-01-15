@@ -699,6 +699,31 @@ void hostapd_config_clear_wpa_psk(struct hostapd_wpa_psk **l)
 }
 
 
+#ifdef CONFIG_IEEE80211R_AP
+void hostapd_config_clear_rxkhs(struct hostapd_bss_config *conf)
+{
+	struct ft_remote_r0kh *r0kh, *r0kh_prev;
+	struct ft_remote_r1kh *r1kh, *r1kh_prev;
+
+	r0kh = conf->r0kh_list;
+	conf->r0kh_list = NULL;
+	while (r0kh) {
+		r0kh_prev = r0kh;
+		r0kh = r0kh->next;
+		os_free(r0kh_prev);
+	}
+
+	r1kh = conf->r1kh_list;
+	conf->r1kh_list = NULL;
+	while (r1kh) {
+		r1kh_prev = r1kh;
+		r1kh = r1kh->next;
+		os_free(r1kh_prev);
+	}
+}
+#endif /* CONFIG_IEEE80211R_AP */
+
+
 static void hostapd_config_free_anqp_elem(struct hostapd_bss_config *conf)
 {
 	struct anqp_element *elem;
@@ -831,26 +856,7 @@ void hostapd_config_free_bss(struct hostapd_bss_config *conf)
 	os_free(conf->time_zone);
 
 #ifdef CONFIG_IEEE80211R_AP
-	{
-		struct ft_remote_r0kh *r0kh, *r0kh_prev;
-		struct ft_remote_r1kh *r1kh, *r1kh_prev;
-
-		r0kh = conf->r0kh_list;
-		conf->r0kh_list = NULL;
-		while (r0kh) {
-			r0kh_prev = r0kh;
-			r0kh = r0kh->next;
-			os_free(r0kh_prev);
-		}
-
-		r1kh = conf->r1kh_list;
-		conf->r1kh_list = NULL;
-		while (r1kh) {
-			r1kh_prev = r1kh;
-			r1kh = r1kh->next;
-			os_free(r1kh_prev);
-		}
-	}
+	hostapd_config_clear_rxkhs(conf);
 #endif /* CONFIG_IEEE80211R_AP */
 
 #ifdef CONFIG_WPS
