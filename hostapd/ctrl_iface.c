@@ -1470,6 +1470,26 @@ static int hostapd_ctrl_iface_reload_wpa_psk(struct hostapd_data *hapd)
 }
 
 
+#ifdef CONFIG_IEEE80211R_AP
+static int hostapd_ctrl_iface_reload_rxkhs(struct hostapd_data *hapd)
+{
+	struct hostapd_bss_config *conf = hapd->conf;
+	int err;
+
+	hostapd_config_clear_rxkhs(conf);
+
+	err = hostapd_config_setup_rxkhs(conf);
+	if (err < 0) {
+		wpa_printf(MSG_ERROR, "Reloading RxKHs failed: %d",
+			   err);
+		return -1;
+	}
+
+	return 0;
+}
+#endif /* CONFIG_IEEE80211R_AP */
+
+
 #ifdef CONFIG_TESTING_OPTIONS
 
 static int hostapd_ctrl_iface_radar(struct hostapd_data *hapd, char *cmd)
@@ -3599,6 +3619,11 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strcmp(buf, "RELOAD_WPA_PSK") == 0) {
 		if (hostapd_ctrl_iface_reload_wpa_psk(hapd))
 			reply_len = -1;
+#ifdef CONFIG_IEEE80211R_AP
+	} else if (os_strcmp(buf, "RELOAD_RXKHS") == 0) {
+		if (hostapd_ctrl_iface_reload_rxkhs(hapd))
+			reply_len = -1;
+#endif /* CONFIG_IEEE80211R_AP */
 	} else if (os_strcmp(buf, "RELOAD_BSS") == 0) {
 		if (hostapd_ctrl_iface_reload_bss(hapd))
 			reply_len = -1;

@@ -1020,6 +1020,78 @@ static int add_r1kh(struct hostapd_bss_config *bss, char *value)
 
 	return 0;
 }
+
+
+int hostapd_config_read_rxkh_file(struct hostapd_bss_config *conf,
+				  const char *fname)
+{
+	FILE *f;
+	char buf[256], *pos;
+	int line = 0, errors = 0;
+
+	if (!fname)
+		return 0;
+
+	f = fopen(fname, "r");
+	if (!f) {
+		wpa_printf(MSG_ERROR, "rxkh file '%s' not found.", fname);
+		return -1;
+	}
+
+	while (fgets(buf, sizeof(buf), f)) {
+		line++;
+
+		if (buf[0] == '#')
+			continue;
+		pos = buf;
+		while (*pos != '\0') {
+			if (*pos == '\n') {
+				*pos = '\0';
+				break;
+			}
+			pos++;
+		}
+		if (buf[0] == '\0')
+			continue;
+
+		pos = os_strchr(buf, '=');
+		if (!pos) {
+			wpa_printf(MSG_ERROR, "Line %d: Invalid line '%s'",
+				   line, buf);
+			errors++;
+			continue;
+		}
+		*pos = '\0';
+		pos++;
+
+		if (os_strcmp(buf, "r0kh") == 0) {
+			if (add_r0kh(conf, pos) < 0) {
+				wpa_printf(MSG_ERROR,
+					   "Line %d: Invalid r0kh '%s'",
+					   line, pos);
+				errors++;
+			}
+		} else if (os_strcmp(buf, "r1kh") == 0) {
+			if (add_r1kh(conf, pos) < 0) {
+				wpa_printf(MSG_ERROR,
+					   "Line %d: Invalid r1kh '%s'",
+					   line, pos);
+				errors++;
+			}
+		}
+	}
+
+	fclose(f);
+
+	if (errors) {
+		wpa_printf(MSG_ERROR,
+			   "%d errors in configuring RxKHs from '%s'",
+			   errors, fname);
+		return -1;
+	}
+	return 0;
+}
+
 #endif /* CONFIG_IEEE80211R_AP */
 
 
@@ -3097,6 +3169,21 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 			wpa_printf(MSG_DEBUG, "Line %d: Invalid r1kh '%s'",
 				   line, pos);
 			return 1;
+		}
+	} else if (os_strcmp(buf, "rxkh_file") == 0) {
+		os_free(bss->rxkh_file);
+		bss->rxkh_file = os_strdup(pos);
+		if (!bss->rxkh_file) {
+			wpa_printf(MSG_ERROR, "Line %d: allocation failed",
+				   line);
+			return 1;
+		}
+		if (hostapd_config_read_rxkh_file(bss, pos)) {
+			wpa_printf(MSG_DEBUG,
+				   "Line %d: failed to read rxkh_file '%s'",
+				   line, pos);
+			/* Allow the file to be created later and read into
+			 * already operating AP context. */
 		}
 	} else if (os_strcmp(buf, "pmk_r1_push") == 0) {
 		bss->pmk_r1_push = atoi(pos);

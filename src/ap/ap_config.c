@@ -700,6 +700,13 @@ void hostapd_config_clear_wpa_psk(struct hostapd_wpa_psk **l)
 
 
 #ifdef CONFIG_IEEE80211R_AP
+
+int hostapd_config_setup_rxkhs(struct hostapd_bss_config *conf)
+{
+	return hostapd_config_read_rxkh_file(conf, conf->rxkh_file);
+}
+
+
 void hostapd_config_clear_rxkhs(struct hostapd_bss_config *conf)
 {
 	struct ft_remote_r0kh *r0kh, *r0kh_prev;
@@ -721,6 +728,7 @@ void hostapd_config_clear_rxkhs(struct hostapd_bss_config *conf)
 		os_free(r1kh_prev);
 	}
 }
+
 #endif /* CONFIG_IEEE80211R_AP */
 
 
@@ -857,6 +865,8 @@ void hostapd_config_free_bss(struct hostapd_bss_config *conf)
 
 #ifdef CONFIG_IEEE80211R_AP
 	hostapd_config_clear_rxkhs(conf);
+	os_free(conf->rxkh_file);
+	conf->rxkh_file = NULL;
 #endif /* CONFIG_IEEE80211R_AP */
 
 #ifdef CONFIG_WPS

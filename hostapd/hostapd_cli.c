@@ -1591,6 +1591,15 @@ static int hostapd_cli_cmd_reload_wpa_psk(struct wpa_ctrl *ctrl, int argc,
 }
 
 
+#ifdef CONFIG_IEEE80211R_AP
+static int hostapd_cli_cmd_reload_rxkhs(struct wpa_ctrl *ctrl, int argc,
+					char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "RELOAD_RXKHS");
+}
+#endif /* CONFIG_IEEE80211R_AP */
+
+
 #ifdef ANDROID
 static int hostapd_cli_cmd_driver(struct wpa_ctrl *ctrl, int argc, char *argv[])
 {
@@ -1804,6 +1813,10 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	  "<addr> [req_mode=] <measurement request hexdump>  = send a Beacon report request to a station" },
 	{ "reload_wpa_psk", hostapd_cli_cmd_reload_wpa_psk, NULL,
 	  "= reload wpa_psk_file only" },
+#ifdef CONFIG_IEEE80211R_AP
+	{ "reload_rxkhs", hostapd_cli_cmd_reload_rxkhs, NULL,
+	  "= reload R0KHs and R1KHs" },
+#endif /* CONFIG_IEEE80211R_AP */
 #ifdef ANDROID
 	{ "driver", hostapd_cli_cmd_driver, NULL,
 	  "<driver sub command> [<hex formatted data>] = send driver command data" },
