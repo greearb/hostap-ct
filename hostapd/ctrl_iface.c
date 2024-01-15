@@ -1471,6 +1471,58 @@ static int hostapd_ctrl_iface_reload_wpa_psk(struct hostapd_data *hapd)
 
 
 #ifdef CONFIG_IEEE80211R_AP
+
+static int hostapd_ctrl_iface_get_rxkhs(struct hostapd_data *hapd,
+					char *buf, size_t buflen)
+{
+	int ret, start_pos;
+	char *pos, *end;
+	struct ft_remote_r0kh *r0kh;
+	struct ft_remote_r1kh *r1kh;
+	struct hostapd_bss_config *conf = hapd->conf;
+
+	pos = buf;
+	end = buf + buflen;
+
+	for (r0kh = conf->r0kh_list; r0kh; r0kh=r0kh->next) {
+		start_pos = pos - buf;
+		ret = os_snprintf(pos, end - pos, "r0kh=" MACSTR " ",
+				  MAC2STR(r0kh->addr));
+		if (os_snprintf_error(end - pos, ret))
+			return start_pos;
+		pos += ret;
+		if (r0kh->id_len + 1 >= (size_t) (end - pos))
+			return start_pos;
+		os_memcpy(pos, r0kh->id, r0kh->id_len);
+		pos += r0kh->id_len;
+		*pos++ = ' ';
+		pos += wpa_snprintf_hex(pos, end - pos, r0kh->key,
+					sizeof(r0kh->key));
+		ret = os_snprintf(pos, end - pos, "\n");
+		if (os_snprintf_error(end - pos, ret))
+			return start_pos;
+		pos += ret;
+	}
+
+	for (r1kh = conf->r1kh_list; r1kh; r1kh=r1kh->next) {
+		start_pos = pos - buf;
+		ret = os_snprintf(pos, end - pos, "r1kh=" MACSTR " " MACSTR " ",
+			MAC2STR(r1kh->addr), MAC2STR(r1kh->id));
+		if (os_snprintf_error(end - pos, ret))
+			return start_pos;
+		pos += ret;
+		pos += wpa_snprintf_hex(pos, end - pos, r1kh->key,
+					sizeof(r1kh->key));
+		ret = os_snprintf(pos, end - pos, "\n");
+		if (os_snprintf_error(end - pos, ret))
+			return start_pos;
+		pos += ret;
+	}
+
+	return pos - buf;
+}
+
+
 static int hostapd_ctrl_iface_reload_rxkhs(struct hostapd_data *hapd)
 {
 	struct hostapd_bss_config *conf = hapd->conf;
@@ -1487,6 +1539,7 @@ static int hostapd_ctrl_iface_reload_rxkhs(struct hostapd_data *hapd)
 
 	return 0;
 }
+
 #endif /* CONFIG_IEEE80211R_AP */
 
 
@@ -3620,6 +3673,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		if (hostapd_ctrl_iface_reload_wpa_psk(hapd))
 			reply_len = -1;
 #ifdef CONFIG_IEEE80211R_AP
+	} else if (os_strcmp(buf, "GET_RXKHS") == 0) {
+		reply_len = hostapd_ctrl_iface_get_rxkhs(hapd, reply,
+							 reply_size);
 	} else if (os_strcmp(buf, "RELOAD_RXKHS") == 0) {
 		if (hostapd_ctrl_iface_reload_rxkhs(hapd))
 			reply_len = -1;

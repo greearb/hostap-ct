@@ -1592,11 +1592,20 @@ static int hostapd_cli_cmd_reload_wpa_psk(struct wpa_ctrl *ctrl, int argc,
 
 
 #ifdef CONFIG_IEEE80211R_AP
+
+static int hostapd_cli_cmd_get_rxkhs(struct wpa_ctrl *ctrl, int argc,
+				     char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "GET_RXKHS");
+}
+
+
 static int hostapd_cli_cmd_reload_rxkhs(struct wpa_ctrl *ctrl, int argc,
 					char *argv[])
 {
 	return wpa_ctrl_command(ctrl, "RELOAD_RXKHS");
 }
+
 #endif /* CONFIG_IEEE80211R_AP */
 
 
@@ -1816,6 +1825,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 #ifdef CONFIG_IEEE80211R_AP
 	{ "reload_rxkhs", hostapd_cli_cmd_reload_rxkhs, NULL,
 	  "= reload R0KHs and R1KHs" },
+	{ "get_rxkhs", hostapd_cli_cmd_get_rxkhs, NULL,
+	  "= get R0KHs and R1KHs" },
 #endif /* CONFIG_IEEE80211R_AP */
 #ifdef ANDROID
 	{ "driver", hostapd_cli_cmd_driver, NULL,
