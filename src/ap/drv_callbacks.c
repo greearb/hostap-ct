@@ -1895,6 +1895,7 @@ switch_link_scan(struct hostapd_data *hapd, u64 scan_cookie)
 static struct hostapd_data * get_hapd_bssid(struct hostapd_iface *iface,
 					    const u8 *bssid, int link_id)
 {
+	struct hostapd_data *ret = NULL;
 	size_t i;
 
 	if (bssid == NULL)
@@ -1922,7 +1923,7 @@ static struct hostapd_data * get_hapd_bssid(struct hostapd_iface *iface,
 		if (ether_addr_equal(bssid, hapd->own_addr) ||
 		    (hapd->conf->mld_ap &&
 		     ether_addr_equal(bssid, hapd->mld->mld_addr) &&
-		     link_id == hapd->mld_link_id))
+		     (link_id == hapd->mld_link_id || link_id == -1)))
 			return hapd;
 
 		if (!hapd->conf->mld_ap)
@@ -1934,13 +1935,13 @@ static struct hostapd_data * get_hapd_bssid(struct hostapd_iface *iface,
 
 			if (ether_addr_equal(bssid, p_hapd->own_addr) ||
 			    (ether_addr_equal(bssid, p_hapd->mld->mld_addr) &&
-			     link_id == p_hapd->mld_link_id))
+			     (link_id == p_hapd->mld_link_id || link_id == -1)))
 				return p_hapd;
 		}
 #endif /* CONFIG_IEEE80211BE */
 	}
 
-	return NULL;
+	return ret;
 }
 
 

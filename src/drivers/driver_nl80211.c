@@ -16419,6 +16419,17 @@ fail:
 	return -ENOBUFS;
 }
 
+#ifdef CONFIG_IEEE80211BE
+static int nl80211_get_mld_addr(void *priv, u8 *addr)
+{
+	struct i802_bss *bss = priv;
+
+	os_memcpy(addr, bss->addr, ETH_ALEN);
+
+	return 0;
+}
+#endif
+
 const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.name = "nl80211",
 	.desc = "Linux nl80211/cfg80211",
@@ -16611,4 +16622,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.amnt_dump = nl80211_amnt_dump,
 	.background_radar_mode = nl80211_background_radar_mode,
 	.pp_mode_set = nl80211_pp_mode_set,
+#ifdef CONFIG_IEEE80211BE
+	.get_mld_addr = nl80211_get_mld_addr,
+#endif
 };

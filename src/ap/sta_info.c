@@ -74,6 +74,7 @@ struct sta_info * ap_get_sta(struct hostapd_data *hapd, const u8 *sta)
 	while (s != NULL && os_memcmp(s->addr, sta, 6) != 0)
 		s = s->hnext;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap && !s) {
 		u8 link_id;
 
@@ -84,10 +85,13 @@ struct sta_info * ap_get_sta(struct hostapd_data *hapd, const u8 *sta)
 				continue;
 
 			for (s = h->sta_list; s; s = s->next)
-				if (!os_memcmp(s->setup_link_addr, sta, 6))
+				if ((!os_memcmp(s->setup_link_addr, sta, 6) ||
+				     !os_memcmp(s->addr, sta, 6)) &&
+				     s->flags & WLAN_STA_ASSOC)
 					return s;
 		}
 	}
+#endif
 
 	return s;
 }
