@@ -3722,3 +3722,41 @@ def test_ap_wpa2_psk_4addr(dev, apdev):
             found = True
     if not found:
         raise Exception("Station interface was not seen in the bridge")
+
+def test_rsn_eapol_m1_extra(dev, apdev):
+    """Extra element and KDE in EAPOL-Key msg 1/4"""
+    ssid = "test-rsn"
+    passphrase = 'qwertyuiop'
+    params = hostapd.wpa2_params(ssid=ssid, passphrase=passphrase)
+    # Add a reserved element and KDE into EAPOL-Key msg 1/4
+    params['eapol_m1_elements'] = '02051122334455' + 'dd05000facff11'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].connect(ssid, psk=passphrase, scan_freq="2412")
+
+def test_rsn_eapol_m3_extra(dev, apdev):
+    """Extra element and KDE in EAPOL-Key msg 3/4"""
+    ssid = "test-rsn"
+    passphrase = 'qwertyuiop'
+    params = hostapd.wpa2_params(ssid=ssid, passphrase=passphrase)
+    # Add a reserved element and KDE into EAPOL-Key msg 3/4
+    params['eapol_m3_elements'] = '02051122334455' + 'dd05000facff11'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].connect(ssid, psk=passphrase, scan_freq="2412")
+
+def test_rsn_eapol_m3_no_encrypt(dev, apdev):
+    """EAPOL-Key msg 3/4 Key Data field not encrypted"""
+    ssid = "test-rsn"
+    passphrase = 'qwertyuiop'
+    params = hostapd.wpa2_params(ssid=ssid, passphrase=passphrase)
+    # Add a reserved element and KDE into EAPOL-Key msg 3/4
+    params['eapol_m3_no_encrypt'] = '1'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].connect(ssid, psk=passphrase, scan_freq="2412", wait_connect=False)
+    ev = dev[0].wait_event(["WPA: GTK IE in unencrypted key data"], timeout=10)
+    if ev is None:
+        raise Exception("Unencrypted GTK KDE not rejected")
+    dev[0].request("DISCONNECT")
+    dev[0].wait_disconnected()
