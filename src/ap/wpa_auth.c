@@ -1107,16 +1107,11 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 	const u8 *key_data;
 	size_t keyhdrlen, mic_len;
 	u8 *mic;
-	bool is_mld = false;
 	u8 *key_data_buf = NULL;
 	size_t key_data_buf_len = 0;
 
 	if (!wpa_auth || !wpa_auth->conf.wpa || !sm)
 		return;
-
-#ifdef CONFIG_IEEE80211BE
-	is_mld = sm->mld_assoc_link_id >= 0;
-#endif /* CONFIG_IEEE80211BE */
 
 	wpa_hexdump(MSG_MSGDUMP, "WPA: RX EAPOL data", data, data_len);
 
@@ -1211,11 +1206,6 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 				key_data, key_data_length);
 	}
 
-	/* TODO: Make this more robust for distinguising EAPOL-Key msg 2/4 from
-	 * 4/4. Secure=1 is used in msg 2/4 when doing PTK rekeying, so the
-	 * MLD mechanism here does not work without the somewhat undesired check
-	 * on wpa_ptk_state.. Would likely need to decrypt Key Data first to be
-	 * able to know which message this is in MLO cases.. */
 	if (key_info & WPA_KEY_INFO_REQUEST) {
 		msg = REQUEST;
 		msgtxt = "Request";
@@ -1229,9 +1219,7 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 		    (key_info & WPA_KEY_INFO_SECURE) &&
 		    !get_ie(key_data, key_data_length, WLAN_EID_RSN)) ||
 		   (mic_len == 0 && (key_info & WPA_KEY_INFO_ENCR_KEY_DATA) &&
-		    key_data_length == AES_BLOCK_SIZE) ||
-		   (is_mld && (key_info & WPA_KEY_INFO_SECURE) &&
-		    sm->wpa_ptk_state == WPA_PTK_PTKINITNEGOTIATING)) {
+		    key_data_length == AES_BLOCK_SIZE)) {
 		msg = PAIRWISE_4;
 		msgtxt = "4/4 Pairwise";
 	} else {
