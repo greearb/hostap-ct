@@ -1197,6 +1197,10 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 		msg = GROUP_2;
 		msgtxt = "2/2 Group";
 	} else if (key_data_length == 0 ||
+		   (sm->wpa == WPA_VERSION_WPA2 &&
+		    !(key_info & WPA_KEY_INFO_ENCR_KEY_DATA) &&
+		    (key_info & WPA_KEY_INFO_SECURE) &&
+		    !get_ie(key_data, key_data_length, WLAN_EID_RSN)) ||
 		   (mic_len == 0 && (key_info & WPA_KEY_INFO_ENCR_KEY_DATA) &&
 		    key_data_length == AES_BLOCK_SIZE) ||
 		   (is_mld && (key_info & WPA_KEY_INFO_SECURE) &&
