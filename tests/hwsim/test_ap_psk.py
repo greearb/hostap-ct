@@ -3788,3 +3788,35 @@ def test_rsn_eapol_m4_extra(dev, apdev):
         raise Exception("Failed to add test elements")
     dev[0].connect(ssid, psk=passphrase, scan_freq="2412")
     hapd.wait_sta()
+
+def test_rsn_eapol_m2_encrypt(dev, apdev):
+    """Encrypted Key Data field in EAPOL-Key msg 2/4"""
+    ssid = "test-rsn"
+    passphrase = 'qwertyuiop'
+    params = hostapd.wpa2_params(ssid=ssid, passphrase=passphrase)
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    # Add a reserved element and KDE into EAPOL-Key msg 2/4 and request the
+    # Key Data field to be encrypted.
+    elems = '02051122334455' + 'dd05000facff11'
+    if "OK" not in dev[0].request("TEST_EAPOL_M2_ELEMS " + elems):
+        raise Exception("Failed to add test elements")
+    dev[0].set("encrypt_eapol_m2", "1")
+    dev[0].connect(ssid, psk=passphrase, scan_freq="2412")
+    hapd.wait_sta()
+
+def test_rsn_eapol_m4_encrypt(dev, apdev):
+    """Encrypted Key Data field in EAPOL-Key msg 4/4"""
+    ssid = "test-rsn"
+    passphrase = 'qwertyuiop'
+    params = hostapd.wpa2_params(ssid=ssid, passphrase=passphrase)
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    # Add a reserved element and KDE into EAPOL-Key msg 4/4 and request the
+    # Key Data field to be encrypted.
+    elems = '02051122334455' + 'dd05000facff11'
+    if "OK" not in dev[0].request("TEST_EAPOL_M4_ELEMS " + elems):
+        raise Exception("Failed to add test elements")
+    dev[0].set("encrypt_eapol_m4", "1")
+    dev[0].connect(ssid, psk=passphrase, scan_freq="2412")
+    hapd.wait_sta()
