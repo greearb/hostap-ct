@@ -1100,7 +1100,7 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 {
 	struct ieee802_1x_hdr *hdr;
 	struct wpa_eapol_key *key;
-	u16 key_info, key_data_length;
+	u16 key_info, ver, key_data_length;
 	enum { PAIRWISE_2, PAIRWISE_4, GROUP_2, REQUEST } msg;
 	char *msgtxt;
 	struct wpa_eapol_ie_parse kde;
@@ -1108,6 +1108,8 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 	size_t keyhdrlen, mic_len;
 	u8 *mic;
 	bool is_mld = false;
+	u8 *key_data_buf = NULL;
+	size_t key_data_buf_len = 0;
 
 	if (!wpa_auth || !wpa_auth->conf.wpa || !sm)
 		return;
@@ -1185,6 +1187,30 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 		return;
 	}
 
+	ver = key_info & WPA_KEY_INFO_TYPE_MASK;
+	if (mic_len > 0 && (key_info & WPA_KEY_INFO_ENCR_KEY_DATA) &&
+	    sm->PTK_valid &&
+	    (ver == WPA_KEY_INFO_TYPE_HMAC_SHA1_AES ||
+	     ver == WPA_KEY_INFO_TYPE_AES_128_CMAC ||
+	     wpa_use_aes_key_wrap(sm->wpa_key_mgmt)) &&
+	    key_data_length >= 8 && key_data_length % 8 == 0) {
+		key_data_length -= 8; /* AES-WRAP adds 8 bytes */
+		key_data_buf = os_malloc(key_data_length);
+		if (!key_data_buf)
+			goto out;
+		key_data_buf_len = key_data_length;
+		if (aes_unwrap(sm->PTK.kek, sm->PTK.kek_len,
+			       key_data_length / 8, key_data, key_data_buf)) {
+			bin_clear_free(key_data_buf, key_data_buf_len);
+			wpa_printf(MSG_INFO,
+				   "RSN: AES unwrap failed - could not decrypt EAPOL-Key key data");
+			goto out;
+		}
+		key_data = key_data_buf;
+		wpa_hexdump_key(MSG_DEBUG, "RSN: Decrypted EAPOL-Key Key Data",
+				key_data, key_data_length);
+	}
+
 	/* TODO: Make this more robust for distinguising EAPOL-Key msg 2/4 from
 	 * 4/4. Secure=1 is used in msg 2/4 when doing PTK rekeying, so the
 	 * MLD mechanism here does not work without the somewhat undesired check
@@ -1198,7 +1224,8 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 		msgtxt = "2/2 Group";
 	} else if (key_data_length == 0 ||
 		   (sm->wpa == WPA_VERSION_WPA2 &&
-		    !(key_info & WPA_KEY_INFO_ENCR_KEY_DATA) &&
+		    (!(key_info & WPA_KEY_INFO_ENCR_KEY_DATA) ||
+		     key_data_buf) &&
 		    (key_info & WPA_KEY_INFO_SECURE) &&
 		    !get_ie(key_data, key_data_length, WLAN_EID_RSN)) ||
 		   (mic_len == 0 && (key_info & WPA_KEY_INFO_ENCR_KEY_DATA) &&
@@ -1214,7 +1241,6 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 
 	if (msg == REQUEST || msg == PAIRWISE_2 || msg == PAIRWISE_4 ||
 	    msg == GROUP_2) {
-		u16 ver = key_info & WPA_KEY_INFO_TYPE_MASK;
 		if (sm->pairwise == WPA_CIPHER_CCMP ||
 		    sm->pairwise == WPA_CIPHER_GCMP) {
 			if (wpa_use_cmac(sm->wpa_key_mgmt) &&
@@ -1223,7 +1249,7 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 				wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
 						LOGGER_WARNING,
 						"advertised support for AES-128-CMAC, but did not use it");
-				return;
+				goto out;
 			}
 
 			if (!wpa_use_cmac(sm->wpa_key_mgmt) &&
@@ -1232,7 +1258,7 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 				wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
 						LOGGER_WARNING,
 						"did not use HMAC-SHA1-AES with CCMP/GCMP");
-				return;
+				goto out;
 			}
 		}
 
@@ -1241,7 +1267,7 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 			wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
 					LOGGER_WARNING,
 					"did not use EAPOL-Key descriptor version 0 as required for AKM-defined cases");
-			return;
+			goto out;
 		}
 	}
 
@@ -1252,7 +1278,7 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 			wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
 					LOGGER_WARNING,
 					"received EAPOL-Key request with replayed counter");
-			return;
+			goto out;
 		}
 	}
 
@@ -1323,7 +1349,7 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 		}
 		wpa_hexdump(MSG_DEBUG, "received replay counter",
 			    key->replay_counter, WPA_REPLAY_COUNTER_LEN);
-		return;
+		goto out;
 	}
 
 continue_processing:
@@ -1332,7 +1358,7 @@ continue_processing:
 	    !(key_info & WPA_KEY_INFO_ENCR_KEY_DATA)) {
 		wpa_auth_vlogger(wpa_auth, wpa_auth_get_spa(sm), LOGGER_DEBUG,
 				 "WPA: Encr Key Data bit not set even though AEAD cipher is supposed to be used - drop frame");
-		return;
+		goto out;
 	}
 #endif /* CONFIG_FILS */
 
@@ -1346,7 +1372,7 @@ continue_processing:
 					 LOGGER_INFO,
 					 "received EAPOL-Key msg 2/4 in invalid state (%d) - dropped",
 					 sm->wpa_ptk_state);
-			return;
+			goto out;
 		}
 		random_add_randomness(key->key_nonce, WPA_NONCE_LEN);
 		if (sm->group->reject_4way_hs_for_entropy) {
@@ -1364,7 +1390,7 @@ continue_processing:
 			random_mark_pool_ready();
 			wpa_sta_disconnect(wpa_auth, sm->addr,
 					   WLAN_REASON_PREV_AUTH_NOT_VALID);
-			return;
+			goto out;
 		}
 		break;
 	case PAIRWISE_4:
@@ -1374,7 +1400,7 @@ continue_processing:
 					 LOGGER_INFO,
 					 "received EAPOL-Key msg 4/4 in invalid state (%d) - dropped",
 					 sm->wpa_ptk_state);
-			return;
+			goto out;
 		}
 		break;
 	case GROUP_2:
@@ -1384,7 +1410,7 @@ continue_processing:
 					 LOGGER_INFO,
 					 "received EAPOL-Key msg 2/2 in invalid state (%d) - dropped",
 					 sm->wpa_ptk_group_state);
-			return;
+			goto out;
 		}
 		break;
 	case REQUEST:
@@ -1397,14 +1423,14 @@ continue_processing:
 	if (key_info & WPA_KEY_INFO_ACK) {
 		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm), LOGGER_INFO,
 				"received invalid EAPOL-Key: Key Ack set");
-		return;
+		goto out;
 	}
 
 	if (!wpa_key_mgmt_fils(sm->wpa_key_mgmt) &&
 	    !(key_info & WPA_KEY_INFO_MIC)) {
 		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm), LOGGER_INFO,
 				"received invalid EAPOL-Key: Key MIC not set");
-		return;
+		goto out;
 	}
 
 #ifdef CONFIG_FILS
@@ -1412,7 +1438,7 @@ continue_processing:
 	    (key_info & WPA_KEY_INFO_MIC)) {
 		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm), LOGGER_INFO,
 				"received invalid EAPOL-Key: Key MIC set");
-		return;
+		goto out;
 	}
 #endif /* CONFIG_FILS */
 
@@ -1431,7 +1457,7 @@ continue_processing:
 				   "TEST: Ignore Key MIC failure for fuzz testing");
 			goto continue_fuzz;
 #endif /* TEST_FUZZ */
-			return;
+			goto out;
 		}
 #ifdef CONFIG_FILS
 		if (!mic_len &&
@@ -1445,7 +1471,7 @@ continue_processing:
 				   "TEST: Ignore Key MIC failure for fuzz testing");
 			goto continue_fuzz;
 #endif /* TEST_FUZZ */
-			return;
+			goto out;
 		}
 #endif /* CONFIG_FILS */
 #ifdef TEST_FUZZ
@@ -1465,7 +1491,7 @@ continue_processing:
 			wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
 					LOGGER_INFO,
 					"received EAPOL-Key request with invalid MIC");
-			return;
+			goto out;
 		}
 
 		/*
@@ -1477,7 +1503,7 @@ continue_processing:
 			if (wpa_receive_error_report(
 				    wpa_auth, sm,
 				    !(key_info & WPA_KEY_INFO_KEY_TYPE)) > 0)
-				return; /* STA entry was removed */
+				goto out; /* STA entry was removed */
 		} else if (key_info & WPA_KEY_INFO_KEY_TYPE) {
 			wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
 					LOGGER_INFO,
@@ -1528,7 +1554,7 @@ continue_processing:
 	os_free(sm->last_rx_eapol_key);
 	sm->last_rx_eapol_key = os_memdup(data, data_len);
 	if (!sm->last_rx_eapol_key)
-		return;
+		goto out;
 	sm->last_rx_eapol_key_len = data_len;
 
 	sm->rx_eapol_key_secure = !!(key_info & WPA_KEY_INFO_SECURE);
@@ -1537,6 +1563,9 @@ continue_processing:
 	sm->EAPOLKeyRequest = !!(key_info & WPA_KEY_INFO_REQUEST);
 	os_memcpy(sm->SNonce, key->key_nonce, WPA_NONCE_LEN);
 	wpa_sm_step(sm);
+
+out:
+	bin_clear_free(key_data_buf, key_data_buf_len);
 }
 
 
@@ -3283,7 +3312,7 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 	size_t pmk_len;
 	int ft;
 	const u8 *eapol_key_ie, *key_data, *mic;
-	u16 key_data_length;
+	u16 key_info, ver, key_data_length;
 	size_t mic_len, eapol_key_ie_len;
 	struct ieee802_1x_hdr *hdr;
 	struct wpa_eapol_key *key;
@@ -3293,6 +3322,8 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 	u8 pmk_r0[PMK_LEN_MAX], pmk_r0_name[WPA_PMK_NAME_LEN];
 	u8 pmk_r1[PMK_LEN_MAX];
 	size_t key_len;
+	u8 *key_data_buf = NULL;
+	size_t key_data_buf_len = 0;
 
 	SM_ENTRY_MA(WPA_PTK, PTKCALCNEGOTIATING, wpa_ptk);
 	sm->EAPOLKeyReceived = false;
@@ -3400,11 +3431,45 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 	hdr = (struct ieee802_1x_hdr *) sm->last_rx_eapol_key;
 	key = (struct wpa_eapol_key *) (hdr + 1);
 	mic = (u8 *) (key + 1);
+	key_info = WPA_GET_BE16(key->key_info);
 	key_data = mic + mic_len + 2;
 	key_data_length = WPA_GET_BE16(mic + mic_len);
 	if (key_data_length > sm->last_rx_eapol_key_len - sizeof(*hdr) -
 	    sizeof(*key) - mic_len - 2)
 		goto out;
+
+	ver = key_info & WPA_KEY_INFO_TYPE_MASK;
+	if (mic_len && (key_info & WPA_KEY_INFO_ENCR_KEY_DATA)) {
+		if (ver != WPA_KEY_INFO_TYPE_HMAC_SHA1_AES &&
+		    ver != WPA_KEY_INFO_TYPE_AES_128_CMAC &&
+		    !wpa_use_aes_key_wrap(sm->wpa_key_mgmt)) {
+			wpa_printf(MSG_INFO,
+				   "Unsupported EAPOL-Key Key Data field encryption");
+			goto out;
+		}
+
+		if (key_data_length < 8 || key_data_length % 8) {
+			wpa_printf(MSG_INFO,
+				   "RSN: Unsupported AES-WRAP len %u",
+				   key_data_length);
+			goto out;
+		}
+		key_data_length -= 8; /* AES-WRAP adds 8 bytes */
+		key_data_buf = os_malloc(key_data_length);
+		if (!key_data_buf)
+			goto out;
+		key_data_buf_len = key_data_length;
+		if (aes_unwrap(PTK.kek, PTK.kek_len, key_data_length / 8,
+			       key_data, key_data_buf)) {
+			bin_clear_free(key_data_buf, key_data_buf_len);
+			wpa_printf(MSG_INFO,
+				   "RSN: AES unwrap failed - could not decrypt EAPOL-Key key data");
+			goto out;
+		}
+		key_data = key_data_buf;
+		wpa_hexdump_key(MSG_DEBUG, "RSN: Decrypted EAPOL-Key Key Data",
+				key_data, key_data_length);
+	}
 
 	if (wpa_parse_kde_ies(key_data, key_data_length, &kde) < 0) {
 		wpa_auth_vlogger(wpa_auth, wpa_auth_get_spa(sm), LOGGER_INFO,
@@ -3605,6 +3670,7 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 out:
 	forced_memzero(pmk_r0, sizeof(pmk_r0));
 	forced_memzero(pmk_r1, sizeof(pmk_r1));
+	bin_clear_free(key_data_buf, key_data_buf_len);
 }
 
 

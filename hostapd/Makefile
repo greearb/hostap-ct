@@ -276,6 +276,8 @@ CFLAGS += -DCONFIG_OCV
 OBJS += ../src/common/ocv.o
 endif
 
+NEED_AES_UNWRAP=y
+
 ifdef CONFIG_IEEE80211R
 CFLAGS += -DCONFIG_IEEE80211R -DCONFIG_IEEE80211R_AP
 OBJS += ../src/ap/wpa_auth_ft.o
