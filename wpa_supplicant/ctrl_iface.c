@@ -8852,6 +8852,8 @@ static void wpa_supplicant_ctrl_iface_flush(struct wpa_supplicant *wpa_s)
 	wpa_s->ft_rsnxe_used = 0;
 	wpa_s->reject_btm_req_reason = 0;
 	wpa_sm_set_test_assoc_ie(wpa_s->wpa, NULL);
+	wpa_sm_set_test_eapol_m2_elems(wpa_s->wpa, NULL);
+	wpa_sm_set_test_eapol_m4_elems(wpa_s->wpa, NULL);
 	os_free(wpa_s->get_pref_freq_list_override);
 	wpa_s->get_pref_freq_list_override = NULL;
 	wpabuf_free(wpa_s->sae_commit_override);
@@ -10152,13 +10154,12 @@ static int wpas_ctrl_event_test(struct wpa_supplicant *wpa_s, const char *cmd)
 }
 
 
-static int wpas_ctrl_test_assoc_ie(struct wpa_supplicant *wpa_s,
-				   const char *cmd)
+static int wpas_get_hex_buf(const char *val, struct wpabuf **ret)
 {
 	struct wpabuf *buf;
 	size_t len;
 
-	len = os_strlen(cmd);
+	len = os_strlen(val);
 	if (len & 1)
 		return -1;
 	len /= 2;
@@ -10167,16 +10168,52 @@ static int wpas_ctrl_test_assoc_ie(struct wpa_supplicant *wpa_s,
 		buf = NULL;
 	} else {
 		buf = wpabuf_alloc(len);
-		if (buf == NULL)
+		if (!buf)
 			return -1;
 
-		if (hexstr2bin(cmd, wpabuf_put(buf, len), len) < 0) {
+		if (hexstr2bin(val, wpabuf_put(buf, len), len) < 0) {
 			wpabuf_free(buf);
 			return -1;
 		}
 	}
 
+	*ret = buf;
+	return 0;
+}
+
+
+static int wpas_ctrl_test_assoc_ie(struct wpa_supplicant *wpa_s,
+				   const char *cmd)
+{
+	struct wpabuf *buf;
+
+	if (wpas_get_hex_buf(cmd, &buf) < 0)
+		return -1;
 	wpa_sm_set_test_assoc_ie(wpa_s->wpa, buf);
+	return 0;
+}
+
+
+static int wpas_ctrl_test_eapol_m2_elems(struct wpa_supplicant *wpa_s,
+					 const char *cmd)
+{
+	struct wpabuf *buf;
+
+	if (wpas_get_hex_buf(cmd, &buf) < 0)
+		return -1;
+	wpa_sm_set_test_eapol_m2_elems(wpa_s->wpa, buf);
+	return 0;
+}
+
+
+static int wpas_ctrl_test_eapol_m4_elems(struct wpa_supplicant *wpa_s,
+					 const char *cmd)
+{
+	struct wpabuf *buf;
+
+	if (wpas_get_hex_buf(cmd, &buf) < 0)
+		return -1;
+	wpa_sm_set_test_eapol_m4_elems(wpa_s->wpa, buf);
 	return 0;
 }
 
@@ -12879,6 +12916,12 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 			reply_len = -1;
 	} else if (os_strncmp(buf, "TEST_ASSOC_IE ", 14) == 0) {
 		if (wpas_ctrl_test_assoc_ie(wpa_s, buf + 14) < 0)
+			reply_len = -1;
+	} else if (os_strncmp(buf, "TEST_EAPOL_M2_ELEMS ", 20) == 0) {
+		if (wpas_ctrl_test_eapol_m2_elems(wpa_s, buf + 20) < 0)
+			reply_len = -1;
+	} else if (os_strncmp(buf, "TEST_EAPOL_M4_ELEMS ", 20) == 0) {
+		if (wpas_ctrl_test_eapol_m4_elems(wpa_s, buf + 20) < 0)
 			reply_len = -1;
 	} else if (os_strcmp(buf, "RESET_PN") == 0) {
 		if (wpas_ctrl_reset_pn(wpa_s) < 0)

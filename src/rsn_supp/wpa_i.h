@@ -182,6 +182,8 @@ struct wpa_sm {
 
 #ifdef CONFIG_TESTING_OPTIONS
 	struct wpabuf *test_assoc_ie;
+	struct wpabuf *test_eapol_m2_elems;
+	struct wpabuf *test_eapol_m4_elems;
 	int ft_rsnxe_used;
 	unsigned int oci_freq_override_eapol;
 	unsigned int oci_freq_override_eapol_g2;

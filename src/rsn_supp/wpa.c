@@ -521,7 +521,7 @@ int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 			       const u8 *wpa_ie, size_t wpa_ie_len,
 			       struct wpa_ptk *ptk)
 {
-	size_t mic_len, hdrlen, rlen;
+	size_t mic_len, hdrlen, rlen, extra_len = 0;
 	struct wpa_eapol_key *reply;
 	u8 *rbuf, *key_mic;
 	u8 *rsn_ie_buf = NULL;
@@ -573,10 +573,15 @@ int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 
 	wpa_hexdump(MSG_DEBUG, "WPA: WPA IE for msg 2/4", wpa_ie, wpa_ie_len);
 
+#ifdef CONFIG_TESTING_OPTIONS
+	if (sm->test_eapol_m2_elems)
+		extra_len = wpabuf_len(sm->test_eapol_m2_elems);
+#endif /* CONFIG_TESTING_OPTIONS */
+
 	mic_len = wpa_mic_len(sm->key_mgmt, sm->pmk_len);
 	hdrlen = sizeof(*reply) + mic_len + 2;
 	rbuf = wpa_sm_alloc_eapol(sm, IEEE802_1X_TYPE_EAPOL_KEY,
-				  NULL, hdrlen + wpa_ie_len,
+				  NULL, hdrlen + wpa_ie_len + extra_len,
 				  &rlen, (void *) &reply);
 	if (rbuf == NULL) {
 		os_free(rsn_ie_buf);
@@ -604,9 +609,17 @@ int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 		    WPA_REPLAY_COUNTER_LEN);
 
 	key_mic = (u8 *) (reply + 1);
-	WPA_PUT_BE16(key_mic + mic_len, wpa_ie_len); /* Key Data Length */
+	/* Key Data Length */
+	WPA_PUT_BE16(key_mic + mic_len, wpa_ie_len + extra_len);
 	os_memcpy(key_mic + mic_len + 2, wpa_ie, wpa_ie_len); /* Key Data */
 	os_free(rsn_ie_buf);
+#ifdef CONFIG_TESTING_OPTIONS
+	if (sm->test_eapol_m2_elems) {
+		os_memcpy(key_mic + mic_len + 2 + wpa_ie_len,
+			  wpabuf_head(sm->test_eapol_m2_elems),
+			  wpabuf_len(sm->test_eapol_m2_elems));
+	}
+#endif /* CONFIG_TESTING_OPTIONS */
 
 	os_memcpy(reply->key_nonce, nonce, WPA_NONCE_LEN);
 
@@ -2154,7 +2167,7 @@ int wpa_supplicant_send_4_of_4(struct wpa_sm *sm, const unsigned char *dst,
 	struct wpa_eapol_key *reply;
 	u8 *rbuf, *key_mic;
 	u8 *kde = NULL;
-	size_t kde_len = 0;
+	size_t kde_len = 0, extra_len = 0;
 
 	if (sm->mlo.valid_links) {
 		u8 *pos;
@@ -2171,10 +2184,16 @@ int wpa_supplicant_send_4_of_4(struct wpa_sm *sm, const unsigned char *dst,
 		kde_len = pos - kde;
 	}
 
+#ifdef CONFIG_TESTING_OPTIONS
+	if (sm->test_eapol_m4_elems)
+		extra_len = wpabuf_len(sm->test_eapol_m4_elems);
+#endif /* CONFIG_TESTING_OPTIONS */
+
 	mic_len = wpa_mic_len(sm->key_mgmt, sm->pmk_len);
 	hdrlen = sizeof(*reply) + mic_len + 2;
 	rbuf = wpa_sm_alloc_eapol(sm, IEEE802_1X_TYPE_EAPOL_KEY, NULL,
-				  hdrlen + kde_len, &rlen, (void *) &reply);
+				  hdrlen + kde_len + extra_len, &rlen,
+				  (void *) &reply);
 	if (!rbuf) {
 		os_free(kde);
 		return -1;
@@ -2198,11 +2217,20 @@ int wpa_supplicant_send_4_of_4(struct wpa_sm *sm, const unsigned char *dst,
 		  WPA_REPLAY_COUNTER_LEN);
 
 	key_mic = (u8 *) (reply + 1);
-	WPA_PUT_BE16(key_mic + mic_len, kde_len); /* Key Data length */
+	/* Key Data length */
+	WPA_PUT_BE16(key_mic + mic_len, kde_len + extra_len);
 	if (kde) {
 		os_memcpy(key_mic + mic_len + 2, kde, kde_len); /* Key Data */
 		os_free(kde);
 	}
+
+#ifdef CONFIG_TESTING_OPTIONS
+	if (sm->test_eapol_m4_elems) {
+		os_memcpy(key_mic + mic_len + 2 + kde_len,
+			  wpabuf_head(sm->test_eapol_m4_elems),
+			  wpabuf_len(sm->test_eapol_m4_elems));
+	}
+#endif /* CONFIG_TESTING_OPTIONS */
 
 	wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG, "WPA: Sending EAPOL-Key 4/4");
 	return wpa_eapol_key_send(sm, ptk, ver, dst, ETH_P_EAPOL, rbuf, rlen,
@@ -4039,6 +4067,8 @@ void wpa_sm_deinit(struct wpa_sm *sm)
 #endif /* CONFIG_IEEE80211R */
 #ifdef CONFIG_TESTING_OPTIONS
 	wpabuf_free(sm->test_assoc_ie);
+	wpabuf_free(sm->test_eapol_m2_elems);
+	wpabuf_free(sm->test_eapol_m4_elems);
 #endif /* CONFIG_TESTING_OPTIONS */
 #ifdef CONFIG_FILS_SK_PFS
 	crypto_ecdh_deinit(sm->fils_ecdh);
@@ -5201,6 +5231,20 @@ void wpa_sm_set_test_assoc_ie(struct wpa_sm *sm, struct wpabuf *buf)
 {
 	wpabuf_free(sm->test_assoc_ie);
 	sm->test_assoc_ie = buf;
+}
+
+
+void wpa_sm_set_test_eapol_m2_elems(struct wpa_sm *sm, struct wpabuf *buf)
+{
+	wpabuf_free(sm->test_eapol_m2_elems);
+	sm->test_eapol_m2_elems = buf;
+}
+
+
+void wpa_sm_set_test_eapol_m4_elems(struct wpa_sm *sm, struct wpabuf *buf)
+{
+	wpabuf_free(sm->test_eapol_m4_elems);
+	sm->test_eapol_m4_elems = buf;
 }
 
 
