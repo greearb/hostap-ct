@@ -704,6 +704,9 @@ struct hostapd_bss_config {
 	unsigned int oci_freq_override_ft_assoc;
 	unsigned int oci_freq_override_fils_assoc;
 	unsigned int oci_freq_override_wnm_sleep;
+	struct wpabuf *eapol_m1_elements;
+	struct wpabuf *eapol_m3_elements;
+	bool eapol_m3_no_encrypt;
 
 #ifdef CONFIG_IEEE80211BE
 	u16 eht_oper_puncturing_override;

@@ -623,6 +623,17 @@ int wpa_init_keys(struct wpa_authenticator *wpa_auth)
 }
 
 
+static void wpa_auth_free_conf(struct wpa_auth_config *conf)
+{
+#ifdef CONFIG_TESTING_OPTIONS
+	wpabuf_free(conf->eapol_m1_elements);
+	conf->eapol_m1_elements = NULL;
+	wpabuf_free(conf->eapol_m3_elements);
+	conf->eapol_m3_elements = NULL;
+#endif /* CONFIG_TESTING_OPTIONS */
+}
+
+
 /**
  * wpa_deinit - Deinitialize WPA authenticator
  * @wpa_auth: Pointer to WPA authenticator data from wpa_init()
@@ -656,6 +667,7 @@ void wpa_deinit(struct wpa_authenticator *wpa_auth)
 		bin_clear_free(prev, sizeof(*prev));
 	}
 
+	wpa_auth_free_conf(&wpa_auth->conf);
 	os_free(wpa_auth);
 }
 
@@ -673,6 +685,7 @@ int wpa_reconfig(struct wpa_authenticator *wpa_auth,
 	if (!wpa_auth)
 		return 0;
 
+	wpa_auth_free_conf(&wpa_auth->conf);
 	os_memcpy(&wpa_auth->conf, conf, sizeof(*conf));
 	if (wpa_auth_gen_wpa_ie(wpa_auth)) {
 		wpa_printf(MSG_ERROR, "Could not generate WPA IE.");
@@ -2332,10 +2345,14 @@ SM_STATE(WPA_PTK, INITPSK)
 
 SM_STATE(WPA_PTK, PTKSTART)
 {
-	u8 buf[2 * (2 + RSN_SELECTOR_LEN) + PMKID_LEN + ETH_ALEN];
+	u8 *buf;
+	size_t buf_len = 2 + RSN_SELECTOR_LEN + PMKID_LEN;
 	u8 *pmkid = NULL;
 	size_t kde_len = 0;
 	u16 key_info;
+#ifdef CONFIG_TESTING_OPTIONS
+	struct wpa_auth_config *conf = &sm->wpa_auth->conf;
+#endif /* CONFIG_TESTING_OPTIONS */
 
 	SM_ENTRY_MA(WPA_PTK, PTKSTART, wpa_ptk);
 	sm->PTKRequest = false;
@@ -2349,6 +2366,19 @@ SM_STATE(WPA_PTK, PTKSTART)
 		 * immediately following this. */
 		return;
 	}
+
+#ifdef CONFIG_IEEE80211BE
+	if (sm->mld_assoc_link_id >= 0)
+		buf_len += 2 + RSN_SELECTOR_LEN + ETH_ALEN;
+#endif /* CONFIG_IEEE80211BE */
+#ifdef CONFIG_TESTING_OPTIONS
+	if (conf->eapol_m1_elements)
+		buf_len += wpabuf_len(conf->eapol_m1_elements);
+#endif /* CONFIG_TESTING_OPTIONS */
+
+	buf = os_zalloc(buf_len);
+	if (!buf)
+		return;
 
 	wpa_auth_logger(sm->wpa_auth, wpa_auth_get_spa(sm), LOGGER_DEBUG,
 			"sending 1/4 msg of 4-Way Handshake");
@@ -2453,11 +2483,20 @@ SM_STATE(WPA_PTK, PTKSTART)
 	}
 #endif /* CONFIG_IEEE80211BE */
 
+#ifdef CONFIG_TESTING_OPTIONS
+	if (conf->eapol_m1_elements) {
+		os_memcpy(buf + kde_len, wpabuf_head(conf->eapol_m1_elements),
+			  wpabuf_len(conf->eapol_m1_elements));
+		kde_len += wpabuf_len(conf->eapol_m1_elements);
+	}
+#endif /* CONFIG_TESTING_OPTIONS */
+
 	key_info = WPA_KEY_INFO_ACK | WPA_KEY_INFO_KEY_TYPE;
 	if (sm->pairwise_set && sm->wpa != WPA_VERSION_WPA)
 		key_info |= WPA_KEY_INFO_SECURE;
 	wpa_send_eapol(sm->wpa_auth, sm, key_info, NULL,
 		       sm->ANonce, kde_len ? buf : NULL, kde_len, 0, 0);
+	os_free(buf);
 }
 
 
@@ -4260,6 +4299,11 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 
 	kde_len += wpa_auth_ml_kdes_len(sm);
 
+#ifdef CONFIG_TESTING_OPTIONS
+	if (conf->eapol_m3_elements)
+		kde_len += wpabuf_len(conf->eapol_m3_elements);
+#endif /* CONFIG_TESTING_OPTIONS */
+
 	kde = os_malloc(kde_len);
 	if (!kde)
 		goto done;
@@ -4373,6 +4417,17 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 #endif /* CONFIG_DPP2 */
 
 	pos = wpa_auth_ml_kdes(sm, pos);
+
+#ifdef CONFIG_TESTING_OPTIONS
+	if (conf->eapol_m3_elements) {
+		os_memcpy(pos, wpabuf_head(conf->eapol_m3_elements),
+			  wpabuf_len(conf->eapol_m3_elements));
+		pos += wpabuf_len(conf->eapol_m3_elements);
+	}
+
+	if (conf->eapol_m3_no_encrypt)
+		encr = 0;
+#endif /* CONFIG_TESTING_OPTIONS */
 
 	wpa_send_eapol(sm->wpa_auth, sm,
 		       (secure ? WPA_KEY_INFO_SECURE : 0) |

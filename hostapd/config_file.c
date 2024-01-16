@@ -4355,6 +4355,14 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->eap_skip_prot_success = atoi(pos);
 	} else if (os_strcmp(buf, "delay_eapol_tx") == 0) {
 		conf->delay_eapol_tx = atoi(pos);
+	} else if (os_strcmp(buf, "eapol_m1_elements") == 0) {
+		if (parse_wpabuf_hex(line, buf, &bss->eapol_m1_elements, pos))
+			return 1;
+	} else if (os_strcmp(buf, "eapol_m3_elements") == 0) {
+		if (parse_wpabuf_hex(line, buf, &bss->eapol_m3_elements, pos))
+			return 1;
+	} else if (os_strcmp(buf, "eapol_m3_no_encrypt") == 0) {
+		bss->eapol_m3_no_encrypt = atoi(pos);
 #endif /* CONFIG_TESTING_OPTIONS */
 #ifdef CONFIG_SAE
 	} else if (os_strcmp(buf, "sae_password") == 0) {
