@@ -739,6 +739,12 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 				wpa_s->ext_eapol_frame_io;
 		}
 #endif /* CONFIG_AP */
+	} else if (os_strcasecmp(cmd, "encrypt_eapol_m2") == 0) {
+		wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_ENCRYPT_EAPOL_M2,
+				 !!atoi(value));
+	} else if (os_strcasecmp(cmd, "encrypt_eapol_m4") == 0) {
+		wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_ENCRYPT_EAPOL_M4,
+				 !!atoi(value));
 	} else if (os_strcasecmp(cmd, "extra_roc_dur") == 0) {
 		wpa_s->extra_roc_dur = atoi(value);
 	} else if (os_strcasecmp(cmd, "test_failure") == 0) {
@@ -8854,6 +8860,8 @@ static void wpa_supplicant_ctrl_iface_flush(struct wpa_supplicant *wpa_s)
 	wpa_sm_set_test_assoc_ie(wpa_s->wpa, NULL);
 	wpa_sm_set_test_eapol_m2_elems(wpa_s->wpa, NULL);
 	wpa_sm_set_test_eapol_m4_elems(wpa_s->wpa, NULL);
+	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_ENCRYPT_EAPOL_M2, 0);
+	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_ENCRYPT_EAPOL_M4, 0);
 	os_free(wpa_s->get_pref_freq_list_override);
 	wpa_s->get_pref_freq_list_override = NULL;
 	wpabuf_free(wpa_s->sae_commit_override);

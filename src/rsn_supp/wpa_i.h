@@ -190,6 +190,8 @@ struct wpa_sm {
 	unsigned int oci_freq_override_ft_assoc;
 	unsigned int oci_freq_override_fils_assoc;
 	unsigned int disable_eapol_g2_tx;
+	bool encrypt_eapol_m2;
+	bool encrypt_eapol_m4;
 #endif /* CONFIG_TESTING_OPTIONS */
 
 #ifdef CONFIG_FILS
