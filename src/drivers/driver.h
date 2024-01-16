@@ -5700,6 +5700,9 @@ struct wpa_driver_ops {
 	 * @pp_mode: Value is defined in enum pp_mode
 	 */
 	int (*pp_mode_set)(void *priv, const u8 pp_mode);
+#ifdef CONFIG_IEEE80211BE
+	int (*get_mld_addr)(void *priv, u8 *addr);
+#endif
 };
 
 /**
