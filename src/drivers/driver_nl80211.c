@@ -6854,7 +6854,13 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 		if (params->wpa_proto & WPA_PROTO_WPA)
 			ver |= NL80211_WPA_VERSION_1;
 		if (params->wpa_proto & WPA_PROTO_RSN) {
-			if (wpa_key_mgmt_sae(params->key_mgmt_suite))
+			/*
+			 * NL80211_ATTR_SAE_PASSWORD is related and was added
+			 * at the same time as NL80211_WPA_VERSION_3.
+			 */
+			if (nl80211_attr_supported(drv,
+						   NL80211_ATTR_SAE_PASSWORD) &&
+			    wpa_key_mgmt_sae(params->key_mgmt_suite))
 				ver |= NL80211_WPA_VERSION_3;
 			else
 				ver |= NL80211_WPA_VERSION_2;
