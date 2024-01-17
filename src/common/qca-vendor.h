@@ -1043,6 +1043,11 @@ enum qca_radiotap_vendor_ids {
  *	driver to user space which is carrying firmware page fault related
  *	summary report. The attributes for this command are defined in
  *	enum qca_wlan_vendor_attr_fw_page_fault_report.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_DISASSOC_PEER: Event indication from the driver
+ *	to user space to disassociate with a peer based on the peer MAC address
+ *	provided. Specify the peer MAC address in
+ *	QCA_WLAN_VENDOR_ATTR_MAC_ADDR. For MLO, MLD MAC address is provided.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1266,6 +1271,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_REGULATORY_TPC_INFO = 237,
 	QCA_NL80211_VENDOR_SUBCMD_FW_PAGE_FAULT_REPORT = 238,
 	QCA_NL80211_VENDOR_SUBCMD_FLOW_POLICY = 239,
+	QCA_NL80211_VENDOR_SUBCMD_DISASSOC_PEER = 240,
 };
 
 /* Compatibility defines for previously used subcmd names.
