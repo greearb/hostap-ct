@@ -7607,20 +7607,15 @@ def test_ap_wpa2_eap_psk_mac_addr_change(dev, apdev):
     params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")
     hapd = hostapd.add_ap(apdev[0], params)
 
-    cmd = subprocess.Popen(['ps', '-eo', 'pid,command'], stdout=subprocess.PIPE)
-    res = cmd.stdout.read().decode()
+    cmd = subprocess.Popen(['pgrep', '-nf', 'wpa_supplicant.*' + dev[0].ifname],
+                           stdout=subprocess.PIPE)
+    res = cmd.stdout.read().decode().strip()
     cmd.stdout.close()
-    pid = 0
-    for p in res.splitlines():
-        if "wpa_supplicant" not in p:
-            continue
-        if dev[0].ifname not in p:
-            continue
-        pid = int(p.strip().split(' ')[0])
-    if pid == 0:
-        logger.info("Could not find wpa_supplicant PID")
-    else:
+    if res:
+        pid = int(res)
         logger.info("wpa_supplicant PID %d" % pid)
+    else:
+        raise Exception("Could not find wpa_supplicant PID")
 
     addr = dev[0].get_status_field("address")
     subprocess.call(['ip', 'link', 'set', 'dev', dev[0].ifname, 'down'])
