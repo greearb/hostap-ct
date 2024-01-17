@@ -3345,6 +3345,16 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_COEX_TRAFFIC_SHAPING_MODE = 105,
 
+	/* 8-bit unsigned value.
+	 *
+	 * This attribute is used to specify whether an associated peer is a QCA
+	 * device. The associated peer is specified with
+	 * QCA_WLAN_VENDOR_ATTR_CONFIG_PEER_MAC. For MLO cases, the MLD MAC
+	 * address of the peer is used.
+	 * 1 - QCA device, 0 - non-QCA device.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_QCA_PEER = 106,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
