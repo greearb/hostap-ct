@@ -279,6 +279,8 @@ void wpas_dbus_signal_interworking_ap_added(struct wpa_supplicant *wpa_s,
 					    int bh, int bss_load,
 					    int conn_capab);
 void wpas_dbus_signal_interworking_select_done(struct wpa_supplicant *wpa_s);
+void wpas_dbus_signal_hs20_t_c_acceptance(struct wpa_supplicant *wpa_s,
+					  const char *url);
 
 #else /* CONFIG_CTRL_IFACE_DBUS_NEW */
 
@@ -647,6 +649,12 @@ void wpas_dbus_signal_interworking_ap_added(struct wpa_supplicant *wpa_s,
 
 static inline
 void wpas_dbus_signal_interworking_select_done(struct wpa_supplicant *wpa_s)
+{
+}
+
+static inline
+void wpas_dbus_signal_hs20_t_c_acceptance(struct wpa_supplicant *wpa_s,
+					  const char *url)
 {
 }
 

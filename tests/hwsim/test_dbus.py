@@ -28,7 +28,7 @@ from wpasupplicant import WpaSupplicant
 from utils import *
 from p2p_utils import *
 from test_ap_tdls import connect_2sta_open
-from test_ap_eap import check_altsubject_match_support
+from test_ap_eap import check_altsubject_match_support, check_eap_capa
 from test_nfc_p2p import set_ip_addr_info
 from test_wpas_mesh import check_mesh_support, add_open_mesh_network
 
@@ -6239,6 +6239,68 @@ def test_dbus_interworking(dev, apdev):
 
         def success(self):
             return self.interworking_ap_seen and self.interworking_select_done
+
+    with TestDbusInterworking(bus) as t:
+        if not t.success():
+            raise Exception("Expected signals not seen")
+
+def test_dbus_hs20_terms_and_conditions(dev, apdev):
+    "D-Bus HS2.0 Terms and Conditions acceptance"
+    check_eap_capa(dev[0], "MSCHAPV2")
+
+    (bus, wpa_obj, path, if_obj) = prepare_dbus(dev[0])
+    iface = dbus.Interface(if_obj, WPAS_DBUS_IFACE)
+
+    bssid = apdev[0]['bssid']
+    params = {"ssid": "test-hs20", "hessid": bssid, "wpa": "2",
+              "rsn_pairwise": "CCMP", "wpa_key_mgmt": "WPA-EAP",
+              "ieee80211w": "1", "ieee8021x": "1",
+              "auth_server_addr": "127.0.0.1", "auth_server_port": "1812",
+              "auth_server_shared_secret": "radius", "interworking": "1",
+              "access_network_type": "14", "internet": "1", "asra": "0",
+              "esr": "0", "uesa": "0", "venue_group": "7", "venue_type": "1",
+              "venue_name": ["eng:Example venue", "fin:Esimerkkipaikka"],
+              "roaming_consortium": ["112233", "1020304050", "010203040506",
+              "fedcba"], "domain_name": "example.com,another.example.com",
+              "nai_realm": ["0,example.com,13[5:6],21[2:4][5:7]",
+              "0,another.example.com"], "hs20": "1",
+              "hs20_wan_metrics": "01:8000:1000:80:240:3000",
+              "hs20_conn_capab": ["1:0:2", "6:22:1", "17:5060:0"],
+              "hs20_operating_class": "5173", "anqp_3gpp_cell_net": "244,91",
+              "hs20_t_c_filename": "terms-and-conditions",
+              "hs20_t_c_timestamp": "123456789"}
+
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    class TestDbusInterworking(TestDbus):
+        def __init__(self, bus):
+            TestDbus.__init__(self, bus)
+            self.hs20_t_and_c_seen = False
+
+        def __enter__(self):
+            gobject.timeout_add(1, self.run_connect)
+            gobject.timeout_add(15000, self.timeout)
+            self.add_signal(self.hs20TermsAndConditions, WPAS_DBUS_IFACE,
+                            "HS20TermsAndConditions")
+            self.loop.run()
+            return self
+
+        def hs20TermsAndConditions(self, t_c_url):
+            logger.debug("hs20TermsAndConditions: url=%s" % (t_c_url))
+            url = "https://example.com/t_and_c?addr=%s&ap=123" % dev[0].own_addr()
+            if url in t_c_url:
+                self.hs20_t_and_c_seen = True
+
+        def run_connect(self, *args):
+            dev[0].hs20_enable()
+            dev[0].connect("test-hs20", proto="RSN", key_mgmt="WPA-EAP", eap="TTLS",
+                           identity="hs20-t-c-test", password="password",
+                           ca_cert="auth_serv/ca.pem", phase2="auth=MSCHAPV2",
+                           ieee80211w='2', scan_freq="2412")
+            return False
+
+        def success(self):
+            return self.hs20_t_and_c_seen
 
     with TestDbusInterworking(bus) as t:
         if not t.success():

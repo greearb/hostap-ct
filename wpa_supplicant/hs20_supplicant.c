@@ -26,6 +26,7 @@
 #include "interworking.h"
 #include "hs20_supplicant.h"
 #include "base64.h"
+#include "notify.h"
 
 
 #define OSU_MAX_ITEMS 10
@@ -1336,7 +1337,7 @@ void hs20_rx_t_c_acceptance(struct wpa_supplicant *wpa_s, const char *url)
 		return;
 	}
 
-	wpa_msg(wpa_s, MSG_INFO, HS20_T_C_ACCEPTANCE "%s", url);
+	wpas_notify_hs20_t_c_acceptance(wpa_s, url);
 }
 
 

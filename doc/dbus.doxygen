@@ -1336,6 +1336,15 @@ fi.w1.wpa_supplicant1.CreateInterface.
 	<h3>PskMismatch ( )</h3>
 	<p>A possible PSK mismatch is identified.</p>
       </li>
+
+      <li>
+	<h3>HS20TermsAndConditions ( s : url )</h3>
+	<p>A terms and conditions page is present. This signal is delivered when the network requires acceptance of the terms and conditions.</p>
+	<dl>
+	  <dt>s : url</dt>
+	  <dd>URL of the terms and conditions page.</dd>
+	</dl>
+      </li>
     </ul>
 
 

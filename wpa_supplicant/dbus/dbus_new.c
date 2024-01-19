@@ -4304,6 +4304,14 @@ static const struct wpa_dbus_signal_desc wpas_dbus_interface_signals[] = {
 	  }
 	},
 #endif /* CONFIG_INTERWORKING */
+#ifdef CONFIG_HS20
+	{ "HS20TermsAndConditions", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  {
+		  { "url", "s", ARG_OUT },
+		  END_ARGS
+	  }
+	},
+#endif /* CONFIG_HS20 */
 	{ NULL, NULL, { END_ARGS } }
 };
 
@@ -5142,3 +5150,39 @@ int wpas_dbus_unregister_persistent_group(struct wpa_supplicant *wpa_s,
 }
 
 #endif /* CONFIG_P2P */
+
+
+#ifdef CONFIG_HS20
+/**
+ * wpas_dbus_signal_hs20_t_c_acceptance - Signals a terms and conditions was
+ * received.
+ *
+ * @wpa_s: %wpa_supplicant network interface data
+ * @url: URL of the terms and conditions acceptance page.
+ */
+void wpas_dbus_signal_hs20_t_c_acceptance(struct wpa_supplicant *wpa_s,
+					  const char *url)
+{
+	struct wpas_dbus_priv *iface;
+	DBusMessage *msg;
+
+	iface = wpa_s->global->dbus;
+
+	/* Do nothing if the control interface is not turned on */
+	if (!iface || !wpa_s->dbus_new_path)
+		return;
+
+	msg = dbus_message_new_signal(wpa_s->dbus_new_path,
+				      WPAS_DBUS_NEW_IFACE_INTERFACE,
+				      "HS20TermsAndConditions");
+	if (!msg)
+		return;
+
+	if (dbus_message_append_args(msg, DBUS_TYPE_STRING, &url,
+				     DBUS_TYPE_INVALID))
+		dbus_connection_send(iface->con, msg, NULL);
+	else
+		wpa_printf(MSG_ERROR, "dbus: Failed to construct signal");
+	dbus_message_unref(msg);
+}
+#endif /* CONFIG_HS20 */

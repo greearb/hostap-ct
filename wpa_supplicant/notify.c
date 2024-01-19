@@ -1026,3 +1026,13 @@ void wpas_notify_signal_change(struct wpa_supplicant *wpa_s)
 {
 	wpas_dbus_signal_prop_changed(wpa_s, WPAS_DBUS_PROP_SIGNAL_CHANGE);
 }
+
+
+#ifdef CONFIG_HS20
+void wpas_notify_hs20_t_c_acceptance(struct wpa_supplicant *wpa_s,
+				     const char *url)
+{
+	wpa_msg(wpa_s, MSG_INFO, HS20_T_C_ACCEPTANCE "%s", url);
+	wpas_dbus_signal_hs20_t_c_acceptance(wpa_s, url);
+}
+#endif /* CONFIG_HS20 */
