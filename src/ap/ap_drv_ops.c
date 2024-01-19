@@ -1123,6 +1123,15 @@ int hostapd_start_dfs_cac(struct hostapd_iface *iface,
 		return -1;
 	}
 	data.radar_background = radar_background;
+	data.link_id = -1;
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap) {
+		data.link_id = hapd->mld_link_id;
+		wpa_printf(MSG_DEBUG,
+			   "hostapd_start_dfs_cac: link_id=%d", data.link_id);
+	}
+#endif /* CONFIG_IEEE80211BE */
 
 	data.link_id = -1;
 #ifdef CONFIG_IEEE80211BE
