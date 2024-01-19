@@ -11452,6 +11452,14 @@ static int nl80211_start_radar_detection(void *priv,
 			nlmsg_free(msg);
 			return -1;
 		}
+
+		if (freq->radar_background) {
+			struct i802_link *link = nl80211_get_link(bss, freq->link_id);
+
+			link->background_freq = freq->freq;
+		} else {
+			nl80211_link_set_freq(bss, freq->link_id, freq->freq);
+		}
 	}
 
 	ret = send_and_recv_cmd(drv, msg);
