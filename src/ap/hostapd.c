@@ -1429,9 +1429,18 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 	u8 if_addr[ETH_ALEN];
 	int flush_old_stations = 1;
 
-	if (!hostapd_mld_is_first_bss(hapd))
+	if (!hostapd_mld_is_first_bss(hapd)) {
+		/* Only flush old stations when setting up the first BSS for the MLD. */
+		flush_old_stations = 0;
 		wpa_printf(MSG_DEBUG,
 			   "MLD: %s: Setting non-first BSS", __func__);
+	} else if (hapd->conf->mld_ap &&
+		   hapd->iface->state == HAPD_IFACE_DFS) {
+		/* Also, avoid flushing old STA when the first BSS of the MLD requires CAC. */
+		flush_old_stations = 0;
+		wpa_printf(MSG_DEBUG,
+			   "MLD: %s: Setting first BSS after CAC complete", __func__);
+	}
 
 	wpa_printf(MSG_DEBUG, "%s(hapd=%p (%s), first=%d)",
 		   __func__, hapd, conf->iface, first);
