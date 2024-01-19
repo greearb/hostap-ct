@@ -1779,7 +1779,8 @@ nl80211_get_link_id_by_freq(struct i802_bss *bss, unsigned int freq)
 	unsigned int i;
 
 	for_each_link(bss->valid_links, i) {
-		if ((unsigned int) bss->links[i].freq == freq)
+		if ((unsigned int) bss->links[i].freq == freq ||
+		    (unsigned int) bss->links[i].background_freq == freq)
 			return i;
 	}
 
