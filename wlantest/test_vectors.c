@@ -341,8 +341,6 @@ static void test_vector_ccmp_pv1(void)
 		    enc + 16, enc_len - 16);
 	WPA_PUT_LE32(fcs, ieee80211_crc32(enc, enc_len));
 	wpa_hexdump(MSG_INFO, "Encrypted Frame FCS", fcs, sizeof(fcs));
-
-	wpa_debug_level = MSG_INFO;
 }
 
 
