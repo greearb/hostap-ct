@@ -413,7 +413,8 @@ def main():
 
     debug_level = logging.INFO
     rerun_failures = True
-    timestamp = int(time.time())
+    start_time = time.time()
+    timestamp = int(start_time)
 
     scriptsdir = os.path.dirname(os.path.realpath(sys.argv[0]))
 
@@ -693,6 +694,15 @@ def main():
                                logdir])
         print("file://%s/index.html" % logdir)
         logger.info("Code coverage report: file://%s/index.html" % logdir)
+
+    end_time = time.time()
+    try:
+        cmd = subprocess.Popen(['git', 'describe'], stdout=subprocess.PIPE)
+        ver = cmd.stdout.read().decode().strip()
+    except:
+        ver = "unknown"
+        pass
+    logger.info("Tests run: {}  Tests failed: {}  Total time: {}  Version: {}".format(total_started, total_failed, end_time - start_time, ver))
 
     if double_failed or (failed and not rerun_failures):
         logger.info("Test run complete - failures found")
