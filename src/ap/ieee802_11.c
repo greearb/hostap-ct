@@ -407,7 +407,7 @@ static int send_auth_reply(struct hostapd_data *hapd, struct sta_info *sta,
 	 * the MLD MAC address. Thus, use the MLD address instead of translating
 	 * the addresses.
 	 */
-	if (hapd->conf->mld_ap && sta && sta->mld_info.mld_sta) {
+	if (ap_sta_is_mld(hapd, sta)) {
 		sa = hapd->mld_addr;
 
 		ml_resp = hostapd_ml_auth_resp(hapd);
@@ -608,7 +608,7 @@ static struct wpabuf * auth_build_sae_commit(struct hostapd_data *hapd,
 	const u8 *own_addr = hapd->own_addr;
 
 #ifdef CONFIG_IEEE80211BE
-	if (hapd->conf->mld_ap && sta->mld_info.mld_sta)
+	if (ap_sta_is_mld(hapd, sta))
 		own_addr = hapd->mld_addr;
 #endif /* CONFIG_IEEE80211BE */
 
@@ -877,7 +877,7 @@ static void sae_sme_send_external_auth_status(struct hostapd_data *hapd,
 	params.status = status;
 
 #ifdef CONFIG_IEEE80211BE
-	if (sta->mld_info.mld_sta)
+	if (ap_sta_is_mld(hapd, sta))
 		params.bssid =
 			sta->mld_info.links[sta->mld_assoc_link_id].peer_addr;
 #endif /* CONFIG_IEEE80211BE */
@@ -3246,7 +3246,7 @@ static void handle_auth(struct hostapd_data *hapd,
 	  * the MLD MAC address. It is the responsibility of the driver to
 	  * handle the translations.
 	  */
-	if (hapd->conf->mld_ap && sta && sta->mld_info.mld_sta) {
+	if (ap_sta_is_mld(hapd, sta)) {
 		dst = sta->addr;
 		bssid = hapd->mld_addr;
 	}
@@ -3737,7 +3737,7 @@ u16 owe_process_rsn_ie(struct hostapd_data *hapd,
 		goto end;
 	}
 #ifdef CONFIG_IEEE80211BE
-	if (sta->mld_info.mld_sta)
+	if (ap_sta_is_mld(hapd, sta))
 		wpa_auth_set_ml_info(sta->wpa_sm, hapd->mld_addr,
 				     sta->mld_assoc_link_id, &sta->mld_info);
 #endif /* CONFIG_IEEE80211BE */
@@ -4019,7 +4019,7 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 			}
 
 #ifdef CONFIG_IEEE80211BE
-			if (info->mld_sta) {
+			if (ap_sta_is_mld(hapd, sta)) {
 				wpa_printf(MSG_DEBUG,
 					   "MLD: Set ML info in RSN Authenticator");
 				wpa_auth_set_ml_info(sta->wpa_sm,
@@ -4608,7 +4608,7 @@ static int add_associated_sta(struct hostapd_data *hapd,
 	bool mld_link_sta = false;
 
 #ifdef CONFIG_IEEE80211BE
-	if (hapd->conf->mld_ap && sta->mld_info.mld_sta) {
+	if (ap_sta_is_mld(hapd, sta)) {
 		u8 mld_link_id = hapd->mld_link_id;
 
 		mld_link_sta = sta->mld_assoc_link_id != mld_link_id;
@@ -4769,8 +4769,7 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 	 * Once a non-AP MLD is added to the driver, the addressing should use
 	 * MLD MAC address.
 	 */
-	if (hapd->conf->mld_ap && sta && sta->mld_info.mld_sta &&
-	    allow_mld_addr_trans)
+	if (ap_sta_is_mld(hapd, sta) && allow_mld_addr_trans)
 		sa = hapd->mld_addr;
 #endif /* CONFIG_IEEE80211BE */
 
@@ -6440,7 +6439,7 @@ static void handle_assoc_cb(struct hostapd_data *hapd,
 	}
 
 #ifdef CONFIG_IEEE80211BE
-	if (hapd->conf->mld_ap && sta->mld_info.mld_sta &&
+	if (ap_sta_is_mld(hapd, sta) &&
 	    hapd->mld_link_id != sta->mld_assoc_link_id) {
 		/* See ieee80211_ml_link_sta_assoc_cb() for the MLD case */
 		wpa_printf(MSG_DEBUG,

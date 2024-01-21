@@ -50,7 +50,7 @@ static const u8 * wnm_ap_get_own_addr(struct hostapd_data *hapd,
 	const u8 *own_addr = hapd->own_addr;
 
 #ifdef CONFIG_IEEE80211BE
-	if (hapd->conf->mld_ap && (!sta || sta->mld_info.mld_sta))
+	if (hapd->conf->mld_ap && (!sta || ap_sta_is_mld(hapd, sta)))
 		own_addr = hapd->mld_addr;
 #endif /* CONFIG_IEEE80211BE */
 
@@ -1030,7 +1030,7 @@ int wnm_send_bss_tm_req(struct hostapd_data *hapd, struct sta_info *sta,
 
 	if (disassoc_timer) {
 #ifdef CONFIG_IEEE80211BE
-		if (hapd->conf->mld_ap && sta->mld_info.mld_sta) {
+		if (ap_sta_is_mld(hapd, sta)) {
 			int i;
 			unsigned int links = 0;
 

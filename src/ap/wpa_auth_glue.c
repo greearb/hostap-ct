@@ -560,7 +560,8 @@ int hostapd_wpa_auth_send_eapol(void *ctx, const u8 *addr,
 	if (sta) {
 		flags = hostapd_sta_flags_to_drv(sta->flags);
 #ifdef CONFIG_IEEE80211BE
-		if (sta->mld_info.mld_sta && (sta->flags & WLAN_STA_AUTHORIZED))
+		if (ap_sta_is_mld(hapd, sta) &&
+		    (sta->flags & WLAN_STA_AUTHORIZED))
 			link_id = -1;
 #endif /* CONFIG_IEEE80211BE */
 	}

@@ -120,7 +120,7 @@ void ieee802_11_send_sa_query_req(struct hostapd_data *hapd,
 	}
 
 #ifdef CONFIG_IEEE80211BE
-	if (hapd->conf->mld_ap && sta && sta->mld_info.mld_sta)
+	if (ap_sta_is_mld(hapd, sta))
 		own_addr = hapd->mld_addr;
 #endif /* CONFIG_IEEE80211BE */
 
@@ -218,7 +218,7 @@ static void ieee802_11_send_sa_query_resp(struct hostapd_data *hapd,
 		   MACSTR, MAC2STR(sa));
 
 #ifdef CONFIG_IEEE80211BE
-	if (hapd->conf->mld_ap && sta->mld_info.mld_sta)
+	if (ap_sta_is_mld(hapd, sta))
 		own_addr = hapd->mld_addr;
 #endif /* CONFIG_IEEE80211BE */
 
@@ -1169,7 +1169,7 @@ struct sta_info * hostapd_ml_get_assoc_sta(struct hostapd_data *hapd,
 	struct hostapd_data *other_hapd = NULL;
 	struct sta_info *tmp_sta;
 
-	if (!sta->mld_info.mld_sta)
+	if (!ap_sta_is_mld(hapd, sta))
 		return NULL;
 
 	*assoc_hapd = hapd;

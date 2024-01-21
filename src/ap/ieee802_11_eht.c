@@ -779,7 +779,7 @@ u8 * hostapd_eid_eht_ml_beacon(struct hostapd_data *hapd,
 u8 * hostapd_eid_eht_ml_assoc(struct hostapd_data *hapd, struct sta_info *info,
 			      u8 *eid)
 {
-	if (!info || !info->mld_info.mld_sta)
+	if (!ap_sta_is_mld(hapd, info))
 		return eid;
 
 	eid = hostapd_eid_eht_basic_ml_common(hapd, eid, &info->mld_info,
@@ -1012,11 +1012,12 @@ const u8 * hostapd_process_ml_auth(struct hostapd_data *hapd,
 
 
 static int hostapd_mld_validate_assoc_info(struct hostapd_data *hapd,
-					   struct mld_info *info)
+					   struct sta_info *sta)
 {
 	u8 i, link_id;
+	struct mld_info *info = &sta->mld_info;
 
-	if (!info->mld_sta) {
+	if (!ap_sta_is_mld(hapd, sta)) {
 		wpa_printf(MSG_DEBUG, "MLD: Not a non-AP MLD");
 		return 0;
 	}
@@ -1390,7 +1391,7 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 		goto out;
 	}
 
-	ret = hostapd_mld_validate_assoc_info(hapd, info);
+	ret = hostapd_mld_validate_assoc_info(hapd, sta);
 out:
 	wpabuf_free(mlbuf);
 	if (ret) {

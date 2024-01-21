@@ -513,7 +513,7 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 			return -1;
 		}
 #ifdef CONFIG_IEEE80211BE
-		if (sta->mld_info.mld_sta) {
+		if (ap_sta_is_mld(hapd, sta)) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Set ML info in RSN Authenticator");
 			wpa_auth_set_ml_info(sta->wpa_sm, hapd->mld_addr,

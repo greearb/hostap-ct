@@ -17,6 +17,7 @@
 #include "common/sae.h"
 #include "crypto/sha384.h"
 #include "pasn/pasn_common.h"
+#include "hostapd.h"
 
 /* STA flags */
 #define WLAN_STA_AUTH BIT(0)
@@ -418,5 +419,15 @@ int ap_sta_pending_delayed_1x_auth_fail_disconnect(struct hostapd_data *hapd,
 int ap_sta_re_add(struct hostapd_data *hapd, struct sta_info *sta);
 
 void ap_free_sta_pasn(struct hostapd_data *hapd, struct sta_info *sta);
+
+static inline bool ap_sta_is_mld(struct hostapd_data *hapd,
+				 struct sta_info *sta)
+{
+#ifdef CONFIG_IEEE80211BE
+	return hapd->conf->mld_ap && sta && sta->mld_info.mld_sta;
+#else /* CONFIG_IEEE80211BE */
+	return false;
+#endif /* CONFIG_IEEE80211BE */
+}
 
 #endif /* STA_INFO_H */

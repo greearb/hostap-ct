@@ -3599,7 +3599,7 @@ void hostapd_new_assoc_sta(struct hostapd_data *hapd, struct sta_info *sta,
 	}
 
 #ifdef CONFIG_IEEE80211BE
-	if (hapd->conf->mld_ap && sta->mld_info.mld_sta &&
+	if (ap_sta_is_mld(hapd, sta) &&
 	    sta->mld_assoc_link_id != hapd->mld_link_id)
 		return;
 #endif /* CONFIG_IEEE80211BE */
