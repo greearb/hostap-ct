@@ -3010,11 +3010,15 @@ struct crypto_ec_key * crypto_ec_key_parse_priv(const u8 *der, size_t der_len)
 		NULL, NULL);
 	if (!ctx ||
 	    OSSL_DECODER_from_data(ctx, &der, &der_len) != 1) {
-		wpa_printf(MSG_INFO, "OpenSSL: Decoding EC private key (DER) failed: %s",
+		wpa_printf(MSG_INFO,
+			   "OpenSSL: Decoding EC private key (DER) failed: %s",
 			   ERR_error_string(ERR_get_error(), NULL));
+		if (ctx)
+			OSSL_DECODER_CTX_free(ctx);
 		goto fail;
 	}
 
+	OSSL_DECODER_CTX_free(ctx);
 	return (struct crypto_ec_key *) pkey;
 fail:
 	crypto_ec_key_deinit((struct crypto_ec_key *) pkey);
