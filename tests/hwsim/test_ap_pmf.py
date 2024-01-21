@@ -1,5 +1,5 @@
 # Protected management frames tests
-# Copyright (c) 2013, Jouni Malinen <j@w1.fi>
+# Copyright (c) 2013-2024, Jouni Malinen <j@w1.fi>
 #
 # This software may be distributed under the terms of the BSD license.
 # See README for more details.
@@ -271,6 +271,61 @@ def run_ap_pmf_assoc_comeback(dev, apdev, comeback=None):
     if wt.get_sta_counter("assocresp_comeback", apdev[0]['bssid'],
                           dev[0].p2p_interface_addr()) < 1:
         raise Exception("AP did not use association comeback request")
+
+def test_ap_pmf_assoc_comeback_in_wpas(dev, apdev):
+    """WPA2-PSK AP with PMF association comeback in wpa_supplicant"""
+    ssid = "assoc-comeback"
+    params = hostapd.wpa2_params(ssid=ssid, passphrase="12345678")
+    params["wpa_key_mgmt"] = "WPA-PSK-SHA256"
+    params["ieee80211w"] = "2"
+    params["test_assoc_comeback_type"] = "255"
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].set("test_assoc_comeback_type", "255")
+    dev[0].connect(ssid, psk="12345678", ieee80211w="1",
+                   key_mgmt="WPA-PSK WPA-PSK-SHA256", proto="WPA2",
+                   scan_freq="2412")
+    hapd.wait_sta(wait_4way_hs=True)
+    hapd.set("ext_mgmt_frame_handling", "1")
+    dev[0].request("DISCONNECT")
+    dev[0].wait_disconnected(timeout=10)
+    ev = hapd.wait_event(["MGMT-RX"], timeout=1)
+    if ev is None:
+        raise Exception("Deauthentication frame RX not reported")
+    hapd.set("ext_mgmt_frame_handling", "0")
+    dev[0].request("REASSOCIATE")
+    ev = dev[0].wait_event(["CTRL-EVENT-ASSOC-REJECT"], timeout=10)
+    if ev is None or "status_code=30" not in ev:
+        raise Exception("Association comeback not requested")
+    ev = dev[0].wait_event(["CTRL-EVENT-CONNECTED",
+                            "CTRL-EVENT-ASSOC-REJECT"], timeout=10)
+    if ev is None:
+        raise Exception("Association not reported")
+    if "CTRL-EVENT-ASSOC-REJECT" in ev:
+        raise Exception("Unexpected association rejection: " + ev)
+    hapd.wait_4way_hs()
+
+    hapd.set("ext_mgmt_frame_handling", "1")
+    dev[0].request("DISCONNECT")
+    dev[0].wait_disconnected(timeout=10)
+    ev = hapd.wait_event(["MGMT-RX"], timeout=1)
+    if ev is None:
+        raise Exception("Deauthentication frame RX not reported")
+    hapd.set("ext_mgmt_frame_handling", "0")
+    dev[0].set("test_assoc_comeback_type", "254")
+    dev[0].request("REASSOCIATE")
+    ev = dev[0].wait_event(["CTRL-EVENT-ASSOC-REJECT"], timeout=10)
+    if ev is None or "status_code=30" not in ev:
+        raise Exception("Association comeback not requested")
+    ev = dev[0].wait_event(["SME: Temporary assoc reject: missing association comeback time",
+                            "CTRL-EVENT-CONNECTED",
+                            "CTRL-EVENT-ASSOC-REJECT"], timeout=10)
+    if ev is None:
+        raise Exception("Association not reported")
+    if "SME: Temporary assoc reject: missing association comeback time" not in ev:
+        raise Exception("Unexpected result: " + ev)
+    dev[0].wait_connected(timeout=20, error="Timeout on re-connection with misbehaving AP")
+    hapd.wait_4way_hs()
 
 @remote_compatible
 def test_ap_pmf_assoc_comeback2(dev, apdev):

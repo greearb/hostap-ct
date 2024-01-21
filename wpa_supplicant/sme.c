@@ -1,6 +1,6 @@
 /*
  * wpa_supplicant - SME
- * Copyright (c) 2009-2014, Jouni Malinen <j@w1.fi>
+ * Copyright (c) 2009-2024, Jouni Malinen <j@w1.fi>
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -2745,6 +2745,12 @@ static bool sme_try_assoc_comeback(struct wpa_supplicant *wpa_s,
 	struct ieee802_11_elems elems;
 	u32 timeout_interval;
 	unsigned long comeback_usec;
+	u8 type = WLAN_TIMEOUT_ASSOC_COMEBACK;
+
+#ifdef CONFIG_TESTING_OPTIONS
+	if (wpa_s->test_assoc_comeback_type != -1)
+		type = wpa_s->test_assoc_comeback_type;
+#endif /* CONFIG_TESTING_OPTIONS */
 
 	if (ieee802_11_parse_elems(data->assoc_reject.resp_ies,
 				   data->assoc_reject.resp_ies_len,
@@ -2760,7 +2766,7 @@ static bool sme_try_assoc_comeback(struct wpa_supplicant *wpa_s,
 		return false;
 	}
 
-	if (elems.timeout_int[0] != WLAN_TIMEOUT_ASSOC_COMEBACK) {
+	if (elems.timeout_int[0] != type) {
 		wpa_msg(wpa_s, MSG_INFO,
 			"SME: Temporary assoc reject: missing association comeback time");
 		return false;

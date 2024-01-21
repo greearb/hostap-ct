@@ -1,6 +1,6 @@
 /*
  * hostapd / IEEE 802.11 Management
- * Copyright (c) 2002-2012, Jouni Malinen <j@w1.fi>
+ * Copyright (c) 2002-2024, Jouni Malinen <j@w1.fi>
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -21,16 +21,25 @@
 #include "ieee802_11.h"
 
 
+static u8 * hostapd_eid_timeout_interval(u8 *pos, u8 type, u32 value)
+{
+	*pos++ = WLAN_EID_TIMEOUT_INTERVAL;
+	*pos++ = 5;
+	*pos++ = type;
+	WPA_PUT_LE32(pos, value);
+	pos += 4;
+
+	return pos;
+}
+
+
 u8 * hostapd_eid_assoc_comeback_time(struct hostapd_data *hapd,
 				     struct sta_info *sta, u8 *eid)
 {
-	u8 *pos = eid;
 	u32 timeout, tu;
 	struct os_reltime now, passed;
+	u8 type = WLAN_TIMEOUT_ASSOC_COMEBACK;
 
-	*pos++ = WLAN_EID_TIMEOUT_INTERVAL;
-	*pos++ = 5;
-	*pos++ = WLAN_TIMEOUT_ASSOC_COMEBACK;
 	os_get_reltime(&now);
 	os_reltime_sub(&now, &sta->sa_query_start, &passed);
 	tu = (passed.sec * 1000000 + passed.usec) / 1024;
@@ -40,10 +49,12 @@ u8 * hostapd_eid_assoc_comeback_time(struct hostapd_data *hapd,
 		timeout = 0;
 	if (timeout < hapd->conf->assoc_sa_query_max_timeout)
 		timeout++; /* add some extra time for local timers */
-	WPA_PUT_LE32(pos, timeout);
-	pos += 4;
 
-	return pos;
+#ifdef CONFIG_TESTING_OPTIONS
+	if (hapd->conf->test_assoc_comeback_type != -1)
+		type = hapd->conf->test_assoc_comeback_type;
+#endif /* CONFIG_TESTING_OPTIONS */
+	return hostapd_eid_timeout_interval(eid, type, timeout);
 }
 
 
