@@ -362,7 +362,7 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 		int i, num_valid_links = 0;
 		u8 link_id = hapd->mld_link_id;
 
-		info->mld_sta = true;
+		ap_sta_set_mld(sta, true);
 		sta->mld_assoc_link_id = link_id;
 		os_memcpy(info->common_info.mld_addr, addr, ETH_ALEN);
 		info->links[link_id].valid = true;
@@ -2191,8 +2191,8 @@ static int hostapd_notif_update_dh_ie(struct hostapd_data *hapd,
 		struct mld_info *info = &sta->mld_info;
 		u8 link_id = hapd->mld_link_id;
 
-		info->mld_sta = true;
-		sta->mld_assoc_link_id = link_id;;
+		ap_sta_set_mld(sta, true);
+		sta->mld_assoc_link_id = link_id;
 		os_memcpy(info->common_info.mld_addr, peer, ETH_ALEN);
 		info->links[link_id].valid = true;
 		os_memcpy(info->links[link_id].local_addr, hapd->own_addr,

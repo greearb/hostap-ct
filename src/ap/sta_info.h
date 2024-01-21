@@ -430,4 +430,12 @@ static inline bool ap_sta_is_mld(struct hostapd_data *hapd,
 #endif /* CONFIG_IEEE80211BE */
 }
 
+static inline void ap_sta_set_mld(struct sta_info *sta, bool mld)
+{
+#ifdef CONFIG_IEEE80211BE
+	if (sta)
+		sta->mld_info.mld_sta = mld;
+#endif /* CONFIG_IEEE80211BE */
+}
+
 #endif /* STA_INFO_H */

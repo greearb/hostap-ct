@@ -3083,7 +3083,7 @@ static void handle_auth(struct hostapd_data *hapd,
 		if (mld_sta) {
 			u8 link_id = hapd->mld_link_id;
 
-			sta->mld_info.mld_sta = true;
+			ap_sta_set_mld(sta, true);
 			sta->mld_assoc_link_id = link_id;
 
 			/*
@@ -4431,7 +4431,7 @@ static void ieee80211_ml_process_link(struct hostapd_data *hapd,
 		goto out;
 	}
 
-	sta->mld_info.mld_sta = true;
+	ap_sta_set_mld(sta, true);
 	sta->mld_assoc_link_id = origin_sta->mld_assoc_link_id;
 
 	os_memcpy(&sta->mld_info, &origin_sta->mld_info, sizeof(sta->mld_info));
