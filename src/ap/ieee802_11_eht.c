@@ -583,6 +583,9 @@ static u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 		/* BSS Parameters Change Count */
 		wpabuf_put_u8(buf, hapd->eht_mld_bss_param_change);
 
+		if (!link->resp_sta_profile)
+			continue;
+
 		/* Fragment the sub element if needed */
 		if (total_len <= 255) {
 			wpabuf_put_data(buf, link->resp_sta_profile,
@@ -784,6 +787,7 @@ u8 * hostapd_eid_eht_ml_assoc(struct hostapd_data *hapd, struct sta_info *info,
 
 	eid = hostapd_eid_eht_basic_ml_common(hapd, eid, &info->mld_info,
 					      false);
+	ap_sta_free_sta_profile(&info->mld_info);
 	return hostapd_eid_eht_reconf_ml(hapd, eid);
 }
 

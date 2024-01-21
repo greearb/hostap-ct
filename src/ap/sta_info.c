@@ -350,6 +350,7 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 #ifdef CONFIG_INTERWORKING
 	if (sta->gas_dialog) {
 		int i;
+
 		for (i = 0; i < GAS_DIALOG_MAX; i++)
 			gas_serv_dialog_clear(&sta->gas_dialog[i]);
 		os_free(sta->gas_dialog);
@@ -419,6 +420,10 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 #endif /* CONFIG_PASN */
 
 	os_free(sta->ifname_wds);
+
+#ifdef CONFIG_IEEE80211BE
+	ap_sta_free_sta_profile(&sta->mld_info);
+#endif /* CONFIG_IEEE80211BE */
 
 #ifdef CONFIG_TESTING_OPTIONS
 	os_free(sta->sae_postponed_commit);
@@ -1791,3 +1796,19 @@ int ap_sta_re_add(struct hostapd_data *hapd, struct sta_info *sta)
 	sta->added_unassoc = 1;
 	return 0;
 }
+
+
+#ifdef CONFIG_IEEE80211BE
+void ap_sta_free_sta_profile(struct mld_info *info)
+{
+	int i;
+
+	if (!info)
+		return;
+
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+		os_free(info->links[i].resp_sta_profile);
+		info->links[i].resp_sta_profile = NULL;
+	}
+}
+#endif /* CONFIG_IEEE80211BE */

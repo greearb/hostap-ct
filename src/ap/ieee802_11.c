@@ -3078,6 +3078,7 @@ static void handle_auth(struct hostapd_data *hapd,
 
 #ifdef CONFIG_IEEE80211BE
 	if (auth_transaction == 1) {
+		ap_sta_free_sta_profile(&sta->mld_info);
 		os_memset(&sta->mld_info, 0, sizeof(sta->mld_info));
 
 		if (mld_sta) {
@@ -4319,22 +4320,23 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 
 #ifdef CONFIG_IEEE80211BE
 
-static size_t ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
-					    u16 status_code,
-					    u8 *buf, size_t buflen)
+static void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
+					  struct mld_link_info *link)
 {
+	u8 buf[EHT_ML_MAX_STA_PROF_LEN];
 	u8 *p = buf;
+	size_t buflen = sizeof(buf);
 
 	/* Capability Info */
 	WPA_PUT_LE16(p, hostapd_own_capab_info(hapd));
 	p += 2;
 
 	/* Status Code */
-	WPA_PUT_LE16(p, status_code);
+	WPA_PUT_LE16(p, link->status);
 	p += 2;
 
-	if (status_code != WLAN_STATUS_SUCCESS)
-		return p - buf;
+	if (link->status != WLAN_STATUS_SUCCESS)
+		goto out;
 
 	/* AID is not included */
 	p = hostapd_eid_supp_rates(hapd, p);
@@ -4372,7 +4374,10 @@ static size_t ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
 		p += wpabuf_len(hapd->conf->assocresp_elements);
 	}
 
-	return p - buf;
+out:
+	os_free(link->resp_sta_profile);
+	link->resp_sta_profile = os_memdup(buf, p - buf);
+	link->resp_sta_profile_len = link->resp_sta_profile ? p - buf : 0;
 }
 
 
@@ -4386,6 +4391,7 @@ static void ieee80211_ml_process_link(struct hostapd_data *hapd,
 	struct wpabuf *mlbuf = NULL;
 	struct sta_info *sta = NULL;
 	u16 status = WLAN_STATUS_SUCCESS;
+	int i;
 
 	wpa_printf(MSG_DEBUG, "MLD: link: link_id=%u, peer=" MACSTR,
 		   hapd->mld_link_id, MAC2STR(link->peer_addr));
@@ -4435,6 +4441,12 @@ static void ieee80211_ml_process_link(struct hostapd_data *hapd,
 	sta->mld_assoc_link_id = origin_sta->mld_assoc_link_id;
 
 	os_memcpy(&sta->mld_info, &origin_sta->mld_info, sizeof(sta->mld_info));
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+		struct mld_link_info *li = &sta->mld_info.links[i];
+
+		li->resp_sta_profile = NULL;
+		li->resp_sta_profile_len = 0;
+	}
 
 	/*
 	 * Get the AID from the station on which the association was performed,
@@ -4485,10 +4497,7 @@ out:
 	if (sta && status != WLAN_STATUS_SUCCESS)
 		ap_free_sta(hapd, sta);
 
-	link->resp_sta_profile_len =
-		ieee80211_ml_build_assoc_resp(hapd, link->status,
-					      link->resp_sta_profile,
-					      sizeof(link->resp_sta_profile));
+	ieee80211_ml_build_assoc_resp(hapd, link);
 }
 
 
@@ -4552,19 +4561,11 @@ static void hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 				   "MLD: No link match for link_id=%u", i);
 
 			link->status = WLAN_STATUS_UNSPECIFIED_FAILURE;
-			link->resp_sta_profile_len =
-				ieee80211_ml_build_assoc_resp(
-					hapd, link->status,
-					link->resp_sta_profile,
-					sizeof(link->resp_sta_profile));
+			ieee80211_ml_build_assoc_resp(hapd, link);
 		} else if (tx_link_status != WLAN_STATUS_SUCCESS) {
 			/* TX link rejected the connection */
 			link->status = WLAN_STATUS_DENIED_TX_LINK_NOT_ACCEPTED;
-			link->resp_sta_profile_len =
-				ieee80211_ml_build_assoc_resp(
-					hapd, link->status,
-					link->resp_sta_profile,
-					sizeof(link->resp_sta_profile));
+			ieee80211_ml_build_assoc_resp(hapd, link);
 		} else {
 			ieee80211_ml_process_link(iface->bss[0], sta, link,
 						  ies, ies_len, reassoc);

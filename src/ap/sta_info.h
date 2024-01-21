@@ -93,7 +93,7 @@ struct mld_info {
 
 		u16 status;
 		size_t resp_sta_profile_len;
-		u8 resp_sta_profile[EHT_ML_MAX_STA_PROF_LEN];
+		u8 *resp_sta_profile;
 
 		const u8 *rsne, *rsnxe;
 	} links[MAX_NUM_MLD_LINKS];
@@ -437,5 +437,7 @@ static inline void ap_sta_set_mld(struct sta_info *sta, bool mld)
 		sta->mld_info.mld_sta = mld;
 #endif /* CONFIG_IEEE80211BE */
 }
+
+void ap_sta_free_sta_profile(struct mld_info *info);
 
 #endif /* STA_INFO_H */

@@ -617,6 +617,19 @@ struct probe_resp_params {
 #endif /* CONFIG_IEEE80211AX */
 };
 
+
+static void hostapd_free_probe_resp_params(struct probe_resp_params *params)
+{
+#ifdef CONFIG_IEEE80211BE
+	if (!params)
+		return;
+	ap_sta_free_sta_profile(params->mld_info);
+	os_free(params->mld_info);
+	params->mld_info = NULL;
+#endif /* CONFIG_IEEE80211BE */
+}
+
+
 static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 					   struct probe_resp_params *params)
 {
@@ -955,6 +968,7 @@ static void hostapd_fill_probe_resp_ml_params(struct hostapd_data *hapd,
 		size_t buflen;
 		u8 mld_link_id = link->mld_link_id;
 		u8 *epos;
+		u8 buf[EHT_ML_MAX_STA_PROF_LEN];
 
 		/*
 		 * Set mld_ap iff the ML probe request explicitly
@@ -984,7 +998,7 @@ static void hostapd_fill_probe_resp_ml_params(struct hostapd_data *hapd,
 		buflen = MAX_PROBERESP_LEN;
 		buflen += hostapd_probe_resp_elems_len(link, &sta_info_params);
 
-		if (buflen > sizeof(link_info->resp_sta_profile)) {
+		if (buflen > EHT_ML_MAX_STA_PROF_LEN) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Not including link %d in ML probe response (%zu bytes is too long)",
 				   mld_link_id, buflen);
@@ -996,18 +1010,21 @@ static void hostapd_fill_probe_resp_ml_params(struct hostapd_data *hapd,
 		 * various other things.
 		 */
 		link_info->valid = true;
-		epos = link_info->resp_sta_profile;
+		epos = buf;
 
 		/* Capabilities is the only fixed parameter */
-		WPA_PUT_LE16(link_info->resp_sta_profile,
-			     hostapd_own_capab_info(hapd));
+		WPA_PUT_LE16(epos, hostapd_own_capab_info(hapd));
+		epos += 2;
 
 		epos = hostapd_probe_resp_fill_elems(
-			link, &sta_info_params,
-			link_info->resp_sta_profile + 2,
-			sizeof(link_info->resp_sta_profile) - 2);
-		link_info->resp_sta_profile_len =
-			epos - link_info->resp_sta_profile;
+			link, &sta_info_params, epos,
+			EHT_ML_MAX_STA_PROF_LEN - 2);
+		link_info->resp_sta_profile_len = epos - buf;
+		os_free(link_info->resp_sta_profile);
+		link_info->resp_sta_profile = os_memdup(
+			buf, link_info->resp_sta_profile_len);
+		if (!link_info->resp_sta_profile)
+			link_info->resp_sta_profile_len = 0;
 		os_memcpy(link_info->local_addr, link->own_addr, ETH_ALEN);
 
 		wpa_printf(MSG_DEBUG,
@@ -1026,7 +1043,7 @@ static void hostapd_fill_probe_resp_ml_params(struct hostapd_data *hapd,
 	return;
 
 fail:
-	os_free(params->mld_info);
+	hostapd_free_probe_resp_params(params);
 	params->mld_ap = NULL;
 	params->mld_info = NULL;
 }
@@ -1584,7 +1601,7 @@ void handle_probe_req(struct hostapd_data *hapd,
 
 	hostapd_gen_probe_resp(hapd, &params);
 
-	os_free(params.mld_info);
+	hostapd_free_probe_resp_params(&params);
 
 	if (!params.resp)
 		return;
