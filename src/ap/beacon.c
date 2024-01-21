@@ -889,8 +889,8 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 }
 
 
-void hostapd_gen_probe_resp(struct hostapd_data *hapd,
-			    struct probe_resp_params *params)
+static void hostapd_gen_probe_resp(struct hostapd_data *hapd,
+				   struct probe_resp_params *params)
 {
 	u8 *pos;
 	size_t buflen;
