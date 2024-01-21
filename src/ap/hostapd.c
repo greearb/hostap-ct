@@ -496,6 +496,24 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 	hostapd_acl_deinit(hapd);
 #ifndef CONFIG_NO_RADIUS
 	if (!hapd->mld_first_bss) {
+		struct hapd_interfaces *ifaces = hapd->iface->interfaces;
+		size_t i;
+
+		for (i = 0; i < ifaces->count; i++) {
+			struct hostapd_iface *iface = ifaces->iface[i];
+			size_t j;
+
+			for (j = 0; iface && j < iface->num_bss; j++) {
+				struct hostapd_data *h = iface->bss[j];
+
+				if (hapd == h)
+					continue;
+				if (h->radius == hapd->radius)
+					h->radius = NULL;
+				if (h->radius_das == hapd->radius_das)
+					h->radius_das = NULL;
+			}
+		}
 		radius_client_deinit(hapd->radius);
 		radius_das_deinit(hapd->radius_das);
 	}
