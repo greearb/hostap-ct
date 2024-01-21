@@ -1255,7 +1255,7 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 		goto out;
 	}
 
-	info->links[hapd->mld_link_id].valid = true;
+	info->links[hapd->mld_link_id].valid = 1;
 
 	/* Parse the link info field */
 	ml_len -= sizeof(*ml) + common_info_len;
@@ -1382,7 +1382,7 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 		ml_len -= sub_elem_len;
 
 		wpa_printf(MSG_DEBUG, "MLD: link ctrl=0x%x, " MACSTR
-			   ", nstr bitmap len=%lu",
+			   ", nstr bitmap len=%u",
 			   control, MAC2STR(link_info->peer_addr),
 			   link_info->nstr_bitmap_len);
 

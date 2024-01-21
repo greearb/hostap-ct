@@ -82,17 +82,17 @@ struct mld_info {
 	} common_info;
 
 	struct mld_link_info {
-		u8 valid;
+		u8 valid:1;
+		u8 nstr_bitmap_len:2;
 		u8 local_addr[ETH_ALEN];
 		u8 peer_addr[ETH_ALEN];
 
-		size_t nstr_bitmap_len;
 		u8 nstr_bitmap[2];
 
 		u16 capability;
 
 		u16 status;
-		size_t resp_sta_profile_len;
+		u16 resp_sta_profile_len;
 		u8 *resp_sta_profile;
 
 		const u8 *rsne, *rsnxe;

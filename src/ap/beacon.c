@@ -1028,7 +1028,7 @@ static void hostapd_fill_probe_resp_ml_params(struct hostapd_data *hapd,
 		os_memcpy(link_info->local_addr, link->own_addr, ETH_ALEN);
 
 		wpa_printf(MSG_DEBUG,
-			   "MLD: ML probe response includes link sta info for %d: %zu bytes (estimate %zu)",
+			   "MLD: ML probe response includes link sta info for %d: %u bytes (estimate %zu)",
 			   mld_link_id, link_info->resp_sta_profile_len,
 			   buflen);
 	}
