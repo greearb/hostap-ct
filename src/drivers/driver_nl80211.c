@@ -498,7 +498,7 @@ int send_and_recv(struct nl80211_global *global,
 		  void *ack_data,
 		  struct nl80211_err_info *err_info)
 {
-	struct nl_cb *cb;
+	struct nl_cb *cb, *s_nl_cb;
 	struct nl80211_ack_err_args err;
 	int opt;
 
@@ -507,7 +507,9 @@ int send_and_recv(struct nl80211_global *global,
 
 	err.err = -ENOMEM;
 
-	cb = nl_cb_clone(nl_socket_get_cb(nl_handle));
+	s_nl_cb = nl_socket_get_cb(nl_handle);
+	cb = nl_cb_clone(s_nl_cb);
+	nl_cb_put(s_nl_cb);
 	if (!cb)
 		goto out;
 
