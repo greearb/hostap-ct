@@ -1199,7 +1199,6 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 		key_data_buf_len = key_data_length;
 		if (aes_unwrap(sm->PTK.kek, sm->PTK.kek_len,
 			       key_data_length / 8, key_data, key_data_buf)) {
-			bin_clear_free(key_data_buf, key_data_buf_len);
 			wpa_printf(MSG_INFO,
 				   "RSN: AES unwrap failed - could not decrypt EAPOL-Key key data");
 			goto out;
