@@ -11235,6 +11235,8 @@ static int wpas_ctrl_iface_pasn_driver(struct wpa_supplicant *wpa_s,
 		return -1;
 
 	pos = os_strchr(pos, ' ');
+	if (!pos)
+		return -1;
 	pos++;
 	while (hwaddr_aton(pos, addr) == 0) {
 		struct pasn_peer *peer;
