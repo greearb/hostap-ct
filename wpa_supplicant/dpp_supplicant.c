@@ -5665,6 +5665,8 @@ void wpas_dpp_push_button_stop(struct wpa_supplicant *wpa_s)
 	if (wpa_s->dpp_pb_bi) {
 		char id[20];
 
+		if (wpa_s->dpp_pb_bi == wpa_s->dpp_pkex_bi)
+			wpa_s->dpp_pkex_bi = NULL;
 		os_snprintf(id, sizeof(id), "%u", wpa_s->dpp_pb_bi->id);
 		dpp_bootstrap_remove(wpa_s->dpp, id);
 		wpa_s->dpp_pb_bi = NULL;

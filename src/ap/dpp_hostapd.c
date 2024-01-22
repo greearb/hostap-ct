@@ -3955,11 +3955,25 @@ void hostapd_dpp_push_button_stop(struct hostapd_data *hapd)
 	ifaces->dpp_pb_time.usec = 0;
 	dpp_pkex_free(hapd->dpp_pkex);
 	hapd->dpp_pkex = NULL;
+	hapd->dpp_pkex_bi = NULL;
 	os_free(hapd->dpp_pkex_auth_cmd);
 	hapd->dpp_pkex_auth_cmd = NULL;
 
 	if (ifaces->dpp_pb_bi) {
 		char id[20];
+		size_t i;
+
+		for (i = 0; i < ifaces->count; i++) {
+			struct hostapd_iface *iface = ifaces->iface[i];
+			size_t j;
+
+			for (j = 0; iface && j < iface->num_bss; j++) {
+				struct hostapd_data *h = iface->bss[j];
+
+				if (h->dpp_pkex_bi == ifaces->dpp_pb_bi)
+					h->dpp_pkex_bi = NULL;
+			}
+		}
 
 		os_snprintf(id, sizeof(id), "%u", ifaces->dpp_pb_bi->id);
 		dpp_bootstrap_remove(ifaces->dpp, id);
