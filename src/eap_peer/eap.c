@@ -1757,11 +1757,12 @@ struct wpabuf * eap_sm_buildIdentity(struct eap_sm *sm, int id, int encrypted)
 		return NULL;
 
 	wpabuf_put_data(resp, identity, identity_len);
-	wpabuf_free(privacy_identity);
 
 	os_free(sm->identity);
 	sm->identity = os_memdup(identity, identity_len);
 	sm->identity_len = identity_len;
+
+	wpabuf_free(privacy_identity);
 
 	return resp;
 }
