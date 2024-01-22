@@ -2601,7 +2601,8 @@ bool dpp_tcp_conn_status_requested(struct dpp_global *dpp)
 }
 
 
-static void dpp_tcp_send_conn_status_msg(struct dpp_connection *conn,
+static void dpp_tcp_send_conn_status_msg(struct dpp_global *dpp,
+					 struct dpp_connection *conn,
 					 enum dpp_status_error result,
 					 const u8 *ssid, size_t ssid_len,
 					 const char *channel_list)
@@ -2609,6 +2610,7 @@ static void dpp_tcp_send_conn_status_msg(struct dpp_connection *conn,
 	struct dpp_authentication *auth = conn->auth;
 	int res;
 	struct wpabuf *msg;
+	struct dpp_connection *c;
 
 	auth->conn_status_requested = 0;
 
@@ -2627,8 +2629,16 @@ static void dpp_tcp_send_conn_status_msg(struct dpp_connection *conn,
 		return;
 	}
 
-	/* This exchange will be terminated in the TX status handler */
-	conn->on_tcp_tx_complete_remove = 1;
+	/* conn might have been removed during the dpp_tcp_send_msg() call, so
+	 * need to check that it is still present before modifying it. */
+	dl_list_for_each(c, &dpp->tcp_init, struct dpp_connection, list) {
+		if (conn == c) {
+			/* This exchange will be terminated in the TX status
+			 * handler */
+			conn->on_tcp_tx_complete_remove = 1;
+			break;
+		}
+	}
 }
 
 
@@ -2641,7 +2651,7 @@ void dpp_tcp_send_conn_status(struct dpp_global *dpp,
 
 	dl_list_for_each(conn, &dpp->tcp_init, struct dpp_connection, list) {
 		if (conn->auth && conn->auth->conn_status_requested) {
-			dpp_tcp_send_conn_status_msg(conn, result, ssid,
+			dpp_tcp_send_conn_status_msg(dpp, conn, result, ssid,
 						     ssid_len, channel_list);
 			break;
 		}
