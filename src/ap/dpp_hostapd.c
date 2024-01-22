@@ -539,8 +539,15 @@ void hostapd_dpp_tx_status(struct hostapd_data *hapd, const u8 *dst,
 		return;
 	}
 
-	if (hapd->dpp_auth_ok_on_ack)
+	if (hapd->dpp_auth_ok_on_ack) {
 		hostapd_dpp_auth_success(hapd, 1);
+		if (!hapd->dpp_auth) {
+			/* The authentication session could have been removed in
+			 * some error cases, e.g., when starting GAS client and
+			 * failing to send the initial request. */
+			return;
+		}
+	}
 
 	if (!is_broadcast_ether_addr(dst) && !ok) {
 		wpa_printf(MSG_DEBUG,
