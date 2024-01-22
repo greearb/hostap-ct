@@ -1350,10 +1350,7 @@ void hostapd_config_free_radius_attr(struct hostapd_radius_attr *attr);
 void hostapd_config_free_eap_user(struct hostapd_eap_user *user);
 void hostapd_config_free_eap_users(struct hostapd_eap_user *user);
 void hostapd_config_clear_wpa_psk(struct hostapd_wpa_psk **p);
-int hostapd_config_read_rxkh_file(struct hostapd_bss_config *conf,
-				  const char *fname);
 void hostapd_config_clear_rxkhs(struct hostapd_bss_config *conf);
-int hostapd_config_setup_rxkhs(struct hostapd_bss_config *conf);
 void hostapd_config_free_bss(struct hostapd_bss_config *conf);
 void hostapd_config_free(struct hostapd_config *conf);
 int hostapd_maclist_found(struct mac_acl_entry *list, int num_entries,

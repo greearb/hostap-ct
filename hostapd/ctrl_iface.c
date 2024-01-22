@@ -1530,7 +1530,7 @@ static int hostapd_ctrl_iface_reload_rxkhs(struct hostapd_data *hapd)
 
 	hostapd_config_clear_rxkhs(conf);
 
-	err = hostapd_config_setup_rxkhs(conf);
+	err = hostapd_config_read_rxkh_file(conf, conf->rxkh_file);
 	if (err < 0) {
 		wpa_printf(MSG_ERROR, "Reloading RxKHs failed: %d",
 			   err);

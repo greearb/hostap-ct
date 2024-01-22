@@ -702,12 +702,6 @@ void hostapd_config_clear_wpa_psk(struct hostapd_wpa_psk **l)
 
 #ifdef CONFIG_IEEE80211R_AP
 
-int hostapd_config_setup_rxkhs(struct hostapd_bss_config *conf)
-{
-	return hostapd_config_read_rxkh_file(conf, conf->rxkh_file);
-}
-
-
 void hostapd_config_clear_rxkhs(struct hostapd_bss_config *conf)
 {
 	struct ft_remote_r0kh *r0kh, *r0kh_prev;
