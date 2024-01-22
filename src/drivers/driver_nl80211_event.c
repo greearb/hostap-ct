@@ -4095,6 +4095,21 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 }
 
 
+static bool nl80211_drv_in_list(struct nl80211_global *global,
+				struct wpa_driver_nl80211_data *drv)
+{
+	struct wpa_driver_nl80211_data *tmp;
+
+	dl_list_for_each(tmp, &global->interfaces,
+			 struct wpa_driver_nl80211_data, list) {
+		if (drv == tmp)
+			return true;
+	}
+
+	return false;
+}
+
+
 int process_global_event(struct nl_msg *msg, void *arg)
 {
 	struct nl80211_global *global = arg;
@@ -4159,6 +4174,12 @@ int process_global_event(struct nl_msg *msg, void *arg)
 				do_process_drv_event(bss, gnlh->cmd, tb);
 				if (!wiphy_idx_set)
 					return NL_SKIP;
+				/* The driver instance could have been removed,
+				 * e.g., due to NL80211_CMD_RADAR_DETECT event,
+				 * so need to stop the loop if that has
+				 * happened. */
+				if (!nl80211_drv_in_list(global, drv))
+					break;
 			}
 		}
 	}
