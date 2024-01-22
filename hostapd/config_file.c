@@ -2360,10 +2360,12 @@ static int parse_sae_password_file(struct hostapd_bss_config *bss,
 			wpa_printf(MSG_ERROR,
 				   "Invalid SAE password at line %d in '%s'",
 				   line, fname);
+			fclose(f);
 			return -1;
 		}
 	}
 
+	fclose(f);
 	return 0;
 }
 
