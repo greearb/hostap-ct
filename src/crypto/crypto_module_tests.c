@@ -2446,6 +2446,7 @@ fail:
 	wpabuf_free(res_pt);
 	wpabuf_free(res_ct);
 	crypto_ec_key_deinit(own_priv);
+	crypto_ec_key_deinit(peer_pub);
 	return res;
 }
 
