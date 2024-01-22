@@ -2854,8 +2854,10 @@ struct wpabuf * crypto_ecdh_set_peerkey(struct crypto_ecdh *ecdh, int inc_y,
 
 	/* Encode using SECG SEC 1, Sec. 2.3.4 format */
 	peer = os_malloc(1 + len);
-	if (!peer)
+	if (!peer) {
+		EVP_PKEY_free(peerkey);
 		return NULL;
+	}
 	peer[0] = inc_y ? 0x04 : 0x02;
 	os_memcpy(peer + 1, key, len);
 
