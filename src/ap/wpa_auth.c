@@ -194,6 +194,9 @@ static inline int wpa_auth_get_seqnum(struct wpa_authenticator *wpa_auth,
 
 	if (!wpa_auth->cb->get_seqnum)
 		return -1;
+#ifdef CONFIG_TESTING_OPTIONS
+	os_memset(seq, 0, WPA_KEY_RSC_LEN);
+#endif /* CONFIG_TESTING_OPTIONS */
 	res = wpa_auth->cb->get_seqnum(wpa_auth->cb_ctx, addr, idx, seq);
 #ifdef CONFIG_TESTING_OPTIONS
 	if (!addr && idx < 4 && wpa_auth->conf.gtk_rsc_override_set) {
