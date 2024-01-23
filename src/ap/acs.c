@@ -603,12 +603,6 @@ static void acs_survey_mode_interference_factor(
 		    iface->conf->acs_exclude_dfs)
 			continue;
 
-		if (!is_in_chanlist(iface, chan))
-			continue;
-
-		if (!is_in_freqlist(iface, chan))
-			continue;
-
 		if (chan->max_tx_power < iface->conf->min_tx_power)
 			continue;
 
@@ -1412,12 +1406,6 @@ static int * acs_request_scan_add_freqs(struct hostapd_iface *iface,
 		if ((chan->flag & HOSTAPD_CHAN_DISABLED) ||
 		    ((chan->flag & HOSTAPD_CHAN_RADAR) &&
 		     iface->conf->acs_exclude_dfs))
-			continue;
-
-		if (!is_in_chanlist(iface, chan))
-			continue;
-
-		if (!is_in_freqlist(iface, chan))
 			continue;
 
 		if (chan->max_tx_power < iface->conf->min_tx_power)
