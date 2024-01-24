@@ -11,7 +11,7 @@ logger = logging.getLogger()
 
 from wpasupplicant import WpaSupplicant
 
-def _sync_carrier(dev, ifname):
+def sync_carrier(dev, ifname=None):
     ifname = ifname or dev.ifname
     carrier_p2p = None
     try:
@@ -40,7 +40,7 @@ def config_data_test(dev1, dev2, dev1group, dev2group, ifname1, ifname2):
     if "OK" not in res:
         raise Exception("Failed to enable data test functionality")
 
-    _sync_carrier(dev1, ifname1)
+    sync_carrier(dev1, ifname1)
 
     cmd = "DATA_TEST_CONFIG 1"
     if ifname2:
@@ -52,7 +52,7 @@ def config_data_test(dev1, dev2, dev1group, dev2group, ifname1, ifname2):
     if "OK" not in res:
         raise Exception("Failed to enable data test functionality")
 
-    _sync_carrier(dev2, ifname2)
+    sync_carrier(dev2, ifname2)
 
 def run_multicast_connectivity_test(dev1, dev2, tos=None,
                                     dev1group=False, dev2group=False,
