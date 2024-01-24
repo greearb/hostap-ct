@@ -2211,6 +2211,9 @@ def test_fst_session_oom(dev, apdev, test_params):
             res = initiator.grequest("FST-MANAGER SESSION_INITIATE " + sid)
             if not res.startswith("OK"):
                 raise Exception("Unexpected SESSION_INITIATE result")
+            # Leave some time for the frame to be transmitted, received,
+            # and processed.
+            time.sleep(0.1)
     finally:
         fst_module_aux.disconnect_two_ap_sta_pairs(ap1, ap2, sta1, sta2)
         fst_module_aux.stop_two_ap_sta_pairs(ap1, ap2, sta1, sta2)
