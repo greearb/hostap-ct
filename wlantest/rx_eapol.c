@@ -222,7 +222,7 @@ static int try_pmk(struct wlantest *wt, struct wlantest_bss *bss,
 				      sta->snonce, sta->anonce, sa,
 				      aa, sta->pmk_r1_name,
 				      &ptk, ptk_name, sta->key_mgmt,
-				      sta->pairwise_cipher, 0) < 0 ||
+				      sta->pairwise_cipher, kdk_len) < 0 ||
 		    check_mic(sta, ptk.kck, ptk.kck_len, ver, data, len) < 0)
 			return -1;
 	} else if (wpa_pmk_to_ptk(pmk->pmk, pmk->pmk_len,
