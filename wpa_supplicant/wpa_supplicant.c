@@ -4527,7 +4527,11 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit)
 		eapol_sm_invalidate_cached_session(wpa_s->eapol);
 	}
 
-	if (!wpas_driver_bss_selection(wpa_s) || ssid->bssid_set) {
+	if (!wpas_driver_bss_selection(wpa_s) ||
+#ifdef CONFIG_P2P
+	    wpa_s->p2p_in_invitation ||
+#endif /* CONFIG_P2P */
+	    ssid->bssid_set) {
 		wpa_s->current_bss = bss;
 #ifdef CONFIG_HS20
 		hs20_configure_frame_filters(wpa_s);
