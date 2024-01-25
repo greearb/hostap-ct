@@ -1747,6 +1747,34 @@ switch_link_hapd(struct hostapd_data *hapd, int link_id)
 }
 
 
+static struct hostapd_data *
+switch_link_scan(struct hostapd_data *hapd, u64 scan_cookie)
+{
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap && scan_cookie != 0) {
+		unsigned int i;
+
+		for (i = 0; i < hapd->iface->interfaces->count; i++) {
+			struct hostapd_iface *h;
+			struct hostapd_data *h_hapd;
+
+			h = hapd->iface->interfaces->iface[i];
+			h_hapd = h->bss[0];
+			if (!hostapd_is_ml_partner(hapd, h_hapd))
+				continue;
+
+			if (h_hapd->scan_cookie == scan_cookie) {
+				h_hapd->scan_cookie = 0;
+				return h_hapd;
+			}
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
+
+	return hapd;
+}
+
+
 #define HAPD_BROADCAST ((struct hostapd_data *) -1)
 
 static struct hostapd_data * get_hapd_bssid(struct hostapd_iface *iface,
@@ -2372,6 +2400,11 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		michael_mic_failure(hapd, data->michael_mic_failure.src, 1);
 		break;
 	case EVENT_SCAN_RESULTS:
+#ifdef NEED_AP_MLME
+		if (data)
+			hapd = switch_link_scan(hapd,
+						data->scan_info.scan_cookie);
+#endif /* NEED_AP_MLME */
 		if (hapd->iface->scan_cb)
 			hapd->iface->scan_cb(hapd->iface);
 #ifdef CONFIG_IEEE80211BE

@@ -2963,6 +2963,7 @@ static void send_vendor_scan_event(struct wpa_driver_nl80211_data *drv,
 	info = &event.scan_info;
 	info->aborted = aborted;
 	info->external_scan = external_scan;
+	info->scan_cookie = nla_get_u64(tb[QCA_WLAN_VENDOR_ATTR_SCAN_COOKIE]);
 
 	if (tb[QCA_WLAN_VENDOR_ATTR_SCAN_SSIDS]) {
 		nla_for_each_nested(nl,

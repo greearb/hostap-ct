@@ -521,6 +521,7 @@ static void ap_ht40_scan_retry(void *eloop_data, void *user_data)
 
 	if (ret == 0) {
 		iface->scan_cb = ieee80211n_check_scan;
+		iface->bss[0]->scan_cookie = params.scan_cookie;
 		return;
 	}
 
@@ -577,6 +578,7 @@ static int ieee80211n_check_40mhz(struct hostapd_iface *iface)
 	}
 
 	iface->scan_cb = ieee80211n_check_scan;
+	iface->bss[0]->scan_cookie = params.scan_cookie;
 	return 1;
 }
 

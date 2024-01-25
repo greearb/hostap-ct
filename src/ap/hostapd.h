@@ -482,6 +482,9 @@ struct hostapd_data {
 #ifdef CONFIG_NAN_USD
 	struct nan_de *nan_de;
 #endif /* CONFIG_NAN_USD */
+
+	u64 scan_cookie; /* Scan instance identifier for the ongoing HT40 scan
+			  */
 };
 
 
