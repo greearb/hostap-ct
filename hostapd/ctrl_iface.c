@@ -2638,6 +2638,8 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 	unsigned int i;
 	int bandwidth;
 	u8 chan;
+	unsigned int num_err = 0;
+	int err = 0;
 
 	ret = hostapd_parse_csa_settings(pos, &settings);
 	if (ret)
@@ -2721,15 +2723,14 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 		hostapd_chan_switch_config(iface->bss[i],
 					   &settings.freq_params);
 
-		ret = hostapd_switch_channel(iface->bss[i], &settings);
-		if (ret) {
-			/* FIX: What do we do if CSA fails in the middle of
-			 * submitting multi-BSS CSA requests? */
-			return ret;
+		err = hostapd_switch_channel(iface->bss[i], &settings);
+		if (err) {
+			ret = err;
+			num_err++;
 		}
 	}
 
-	return 0;
+	return (iface->num_bss == num_err) ? ret : 0;
 #else /* NEED_AP_MLME */
 	return -1;
 #endif /* NEED_AP_MLME */

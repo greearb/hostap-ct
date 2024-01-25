@@ -972,6 +972,7 @@ static int hostapd_dfs_request_channel_switch(struct hostapd_iface *iface,
 	struct csa_settings csa_settings;
 	u8 new_vht_oper_chwidth;
 	unsigned int i;
+	unsigned int num_err = 0;
 
 	wpa_printf(MSG_DEBUG, "DFS will switch to a new channel %d", channel);
 	wpa_msg(iface->bss[0]->msg_ctx, MSG_INFO, DFS_EVENT_NEW_CHANNEL
@@ -1021,10 +1022,10 @@ static int hostapd_dfs_request_channel_switch(struct hostapd_iface *iface,
 	for (i = 0; i < iface->num_bss; i++) {
 		err = hostapd_switch_channel(iface->bss[i], &csa_settings);
 		if (err)
-			break;
+			num_err++;
 	}
 
-	if (err) {
+	if (num_err == iface->num_bss) {
 		wpa_printf(MSG_WARNING,
 			   "DFS failed to schedule CSA (%d) - trying fallback",
 			   err);
