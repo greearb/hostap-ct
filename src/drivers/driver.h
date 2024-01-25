@@ -701,6 +701,14 @@ struct wpa_driver_scan_params {
 	 */
 	unsigned int min_probe_req_content:1;
 
+	/**
+	 * link_id - Specify the link that is requesting the scan on an MLD
+	 *
+	 * This is set when operating as an AP MLD and doing an OBSS scan.
+	 * -1 indicates that no particular link ID is set.
+	 */
+	s8 link_id;
+
 	/*
 	 * NOTE: Whenever adding new parameters here, please make sure
 	 * wpa_scan_clone_params() and wpa_scan_free_params() get updated with

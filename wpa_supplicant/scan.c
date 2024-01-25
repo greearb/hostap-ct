@@ -3351,6 +3351,7 @@ wpa_scan_clone_params(const struct wpa_driver_scan_params *src)
 	params->duration = src->duration;
 	params->duration_mandatory = src->duration_mandatory;
 	params->oce_scan = src->oce_scan;
+	params->link_id = src->link_id;
 
 	if (src->sched_scan_plans_num > 0) {
 		params->sched_scan_plans =

@@ -1275,6 +1275,11 @@ int wpa_driver_nl80211_vendor_scan(struct i802_bss *bss,
 			goto fail;
 	}
 
+	if (is_ap_interface(drv->nlmode) &&
+	    params->link_id != NL80211_DRV_LINK_ID_NA &&
+	    nla_put_u8(msg, QCA_WLAN_VENDOR_ATTR_SCAN_LINK_ID, params->link_id))
+		goto fail;
+
 	nla_nest_end(msg, attr);
 
 	ret = send_and_recv_resp(drv, msg, scan_cookie_handler, &cookie);
