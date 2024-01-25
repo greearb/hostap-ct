@@ -158,7 +158,7 @@ def start_eht_sae_ap(apdev, ml=False, transition_mode=False):
     params['group_cipher'] = "CCMP" if transition_mode else "GCMP-256"
     params["group_mgmt_cipher"] = "AES-128-CMAC" if transition_mode else "BIP-GMAC-256"
     params['beacon_prot'] = '1'
-    params['wpa_key_mgmt'] = "SAE SAE-EXT-KEY" if transition_mode else 'SAE-EXT-KEY'
+    params['wpa_key_mgmt'] = "SAE SAE-EXT-KEY WPA-PSK WPA-PSK-SHA256" if transition_mode else 'SAE-EXT-KEY'
     params['sae_groups'] = "19 20" if transition_mode else "20"
     params['sae_pwe'] = "2" if transition_mode else "1"
     if ml:
@@ -220,6 +220,10 @@ def test_eht_sae_mlo_tm(dev, apdev):
         dev[1].set("sae_groups", "19")
         dev[1].connect("eht", key_mgmt="SAE-EXT-KEY", psk="12345678",
                        ieee80211w="2", beacon_prot="1",
+                       pairwise="CCMP", group="CCMP",
+                       group_mgmt="AES-128-CMAC", scan_freq="2412",
+                       disable_eht="1")
+        dev[2].connect("eht", key_mgmt="WPA-PSK", psk="12345678",
                        pairwise="CCMP", group="CCMP",
                        group_mgmt="AES-128-CMAC", scan_freq="2412",
                        disable_eht="1")
