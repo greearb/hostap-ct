@@ -1026,7 +1026,10 @@ def cfg_mld_link_file(ifname, params):
     f.write("ctrl_interface=%s\n" % ctrl_iface)
     f.write("driver=nl80211\n")
     f.write("ieee80211n=1\n")
-    f.write("ieee80211ac=1\n")
+    if 'hw_mode' in params and params['hw_mode'] == 'a' and \
+       ('op_class' not in params or \
+        int(params['op_class']) not in [131, 132, 133, 134, 135, 136, 137]):
+        f.write("ieee80211ac=1\n")
     f.write("ieee80211ax=1\n")
     f.write("ieee80211be=1\n")
     f.write("interface=%s\n" % ifname)
