@@ -551,6 +551,8 @@ dfs_get_valid_channel(struct hostapd_iface *iface,
 	if (os_get_random((u8 *) &_rand, sizeof(_rand)) < 0)
 		return NULL;
 	chan_idx = _rand % num_available_chandefs;
+	wpa_printf(MSG_DEBUG, "DFS: Picked random entry from the list: %d/%d",
+		   chan_idx, num_available_chandefs);
 	dfs_find_channel(iface, &chan, chan_idx, type);
 	if (!chan) {
 		wpa_printf(MSG_DEBUG, "DFS: no random channel found");
