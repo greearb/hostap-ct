@@ -160,9 +160,16 @@ def test_dfs_etsi(dev, apdev):
         if freq != "5260":
             raise Exception("Unexpected frequency")
 
+        hapd.dump_monitor()
+        dev[0].dump_monitor()
+
         dev[0].connect("dfs", key_mgmt="NONE")
         dev[0].wait_regdom(country_ie=True)
+        time.sleep(1)
         hwsim_utils.test_connectivity(dev[0], hapd)
+
+        hapd.dump_monitor()
+        dev[0].dump_monitor()
 
         hapd.request("RADAR DETECTED freq=%s ht_enabled=1 chan_width=1" % freq)
         ev = hapd.wait_event(["DFS-RADAR-DETECTED"], timeout=5)
@@ -181,6 +188,7 @@ def test_dfs_etsi(dev, apdev):
             raise Exception("AP-CSA-FINISHED or DFS-CAC-START event not reported")
         if "DFS-CAC-START" in ev:
             # The selected new channel requires CAC
+            dev[0].wait_disconnected()
             ev = wait_dfs_event(hapd, "DFS-CAC-COMPLETED", 70)
             if "success=1" not in ev:
                 raise Exception("CAC failed")
@@ -191,11 +199,19 @@ def test_dfs_etsi(dev, apdev):
             ev = hapd.wait_event(["AP-STA-CONNECTED"], timeout=30)
             if not ev:
                 raise Exception("STA did not reconnect on new DFS channel")
+            dev[0].wait_connected()
         else:
             # The new channel did not require CAC - try again
             if "freq=%s" % freq in ev:
                 raise Exception("Channel did not change after radar was detected(2)")
+            ev = dev[0].wait_event(["CTRL-EVENT-CHANNEL-SWITCH"], timeout=10)
+            if ev is None:
+                raise Exception("Channel switch not reported on STA")
             time.sleep(1)
+
+        hapd.dump_monitor()
+        dev[0].dump_monitor()
+        time.sleep(1)
         hwsim_utils.test_connectivity(dev[0], hapd)
     finally:
         clear_regdom(hapd, dev)
