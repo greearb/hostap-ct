@@ -188,7 +188,7 @@ static int dfs_chan_range_available(struct hostapd_hw_modes *mode,
 	 * If it's not allowed to use the first channel as primary, decline the
 	 * whole channel range. */
 	if (!chan_pri_allowed(first_chan)) {
-		wpa_printf(MSG_DEBUG, "DFS: primary chanenl not allowed");
+		wpa_printf(MSG_DEBUG, "DFS: primary channel not allowed");
 		return 0;
 	}
 
