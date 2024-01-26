@@ -489,11 +489,20 @@ void p2p_rx_gas_initial_resp(struct p2p_data *p2p, const u8 *sa,
 	u16 slen;
 	u16 update_indic;
 
-	if (p2p->state != P2P_SD_DURING_FIND || p2p->sd_peer == NULL ||
+	if ((p2p->state != P2P_SD_DURING_FIND && p2p->state != P2P_SEARCH) ||
+	    !p2p->sd_peer ||
 	    !ether_addr_equal(sa, p2p->sd_peer->info.p2p_device_addr)) {
 		p2p_dbg(p2p, "Ignore unexpected GAS Initial Response from "
 			MACSTR, MAC2STR(sa));
 		return;
+	}
+	if (p2p->state == P2P_SEARCH) {
+		/* It is possible for the TX status and RX response events to be
+		 * reordered, so assume the request was ACKed if a response is
+		 * received. */
+		p2p_dbg(p2p,
+			"GAS Initial Request had not yet received TX status - process the response anyway");
+		p2p_set_state(p2p, P2P_SD_DURING_FIND);
 	}
 	p2p->cfg->send_action_done(p2p->cfg->cb_ctx);
 	p2p_clear_timeout(p2p);
