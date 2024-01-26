@@ -2579,6 +2579,8 @@ static void nl80211_dump_chan_list(struct wpa_driver_nl80211_data *drv,
 
 			if (is_6ghz_freq(chan->freq))
 				drv->uses_6ghz = true;
+			if (chan->freq >= 900 && chan->freq < 1000)
+				drv->uses_s1g = true;
 			res = os_snprintf(pos, end - pos, " %d%s%s%s",
 					  chan->freq,
 					  (chan->flag & HOSTAPD_CHAN_DISABLED) ?
