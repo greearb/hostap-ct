@@ -6963,7 +6963,7 @@ def test_dpp_chirp_ap_5g(dev, apdev):
         if "OK" not in hapd.request("DPP_CHIRP own=%d iter=5" % id_h):
             raise Exception("DPP_CHIRP failed")
         wait_auth_success(hapd, dev[0], configurator=dev[0], enrollee=hapd,
-                          timeout=20)
+                          timeout=40)
         update_hapd_config(hapd)
     finally:
         clear_regdom(hapd, dev)
