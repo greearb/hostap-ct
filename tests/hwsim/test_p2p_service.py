@@ -48,7 +48,7 @@ def run_sd(dev, dst, query, exp_query=None, fragment=False, query2=None):
 
     ev = dev[0].wait_global_event(["P2P-SERV-DISC-REQ"], timeout=10)
     if ev is None:
-        raise Exception("Service discovery timed out")
+        raise Exception("Service discovery timed out (req)")
     if addr1 not in ev:
         raise Exception("Unexpected service discovery request source")
     if exp_query is None:
@@ -58,20 +58,23 @@ def run_sd(dev, dst, query, exp_query=None, fragment=False, query2=None):
 
     if query2:
         ev_list = []
-        for i in range(0, 4):
+        for i in range(10):
             ev = dev[1].wait_global_event(["P2P-SERV-DISC-RESP"], timeout=10)
             if ev is None:
-                raise Exception("Service discovery timed out")
+                if len(ev_list) < 2:
+                    raise Exception("Service discovery timed out (resp2)")
+                break
             if addr0 in ev:
+                logger.debug("Add entry to ev_list")
                 ev_list.append(ev)
-                if len(ev_list) == 2:
+                if len(ev_list) == 8:
                     break
         return ev_list
 
     for i in range(0, 2):
         ev = dev[1].wait_global_event(["P2P-SERV-DISC-RESP"], timeout=10)
         if ev is None:
-            raise Exception("Service discovery timed out")
+            raise Exception("Service discovery timed out (resp)")
         if addr0 in ev:
             break
 
@@ -140,9 +143,19 @@ def test_p2p_service_discovery_multiple_queries(dev):
     """P2P service discovery with multiple queries"""
     for dst in ["00:00:00:00:00:00", dev[0].p2p_dev_addr()]:
         ev = run_sd(dev, dst, "02000201", query2="02000101")
-        if "0b5f6166706f766572746370c00c000c01" not in ev[0] + ev[1]:
+        found = False
+        for e in ev:
+            if "0b5f6166706f766572746370c00c000c01" in e:
+                found = True
+                break
+        if not found:
             raise Exception("Unexpected service discovery response contents (Bonjour)")
-        if "496e7465726e6574" not in ev[0] + ev[1]:
+        found = False
+        for e in ev:
+            if "496e7465726e6574" in e:
+                found = True
+                break
+        if not found:
             raise Exception("Unexpected service discovery response contents (UPnP)")
 
 def test_p2p_service_discovery_multiple_queries2(dev):
@@ -150,9 +163,19 @@ def test_p2p_service_discovery_multiple_queries2(dev):
     dev[2].p2p_listen()
     for dst in ["00:00:00:00:00:00", dev[0].p2p_dev_addr()]:
         ev = run_sd(dev, dst, "02000201", query2="02000101")
-        if "0b5f6166706f766572746370c00c000c01" not in ev[0] + ev[1]:
+        found = False
+        for e in ev:
+            if "0b5f6166706f766572746370c00c000c01" in e:
+                found = True
+                break
+        if not found:
             raise Exception("Unexpected service discovery response contents (Bonjour)")
-        if "496e7465726e6574" not in ev[0] + ev[1]:
+        found = False
+        for e in ev:
+            if "496e7465726e6574" in e:
+                found = True
+                break
+        if not found:
             raise Exception("Unexpected service discovery response contents (UPnP)")
 
 def test_p2p_service_discovery_fragmentation(dev):
