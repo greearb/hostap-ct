@@ -804,7 +804,7 @@ class WpaSupplicant:
                         persistent_id=None, freq=None, provdisc=False,
                         wait_group=True, freq2=None, max_oper_chwidth=None,
                         ht40=False, vht=False):
-        if not self.discover_peer(peer):
+        if not self.discover_peer(peer,timeout=timeout if timeout else 15):
             raise Exception("Peer " + peer + " not found")
         self.dump_monitor()
         if pin:
