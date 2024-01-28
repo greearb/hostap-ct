@@ -1097,6 +1097,47 @@ static bool wpa_auth_gtk_rekey_in_process(struct wpa_authenticator *wpa_auth)
 }
 
 
+static bool wpa_auth_valid_key_desc_ver(struct wpa_authenticator *wpa_auth,
+					struct wpa_state_machine *sm, u16 ver)
+{
+	if (ver > WPA_KEY_INFO_TYPE_AES_128_CMAC) {
+		wpa_printf(MSG_INFO, "RSN: " MACSTR
+			   " used undefined Key Descriptor Version %d",
+			   MAC2STR(wpa_auth_get_spa(sm)), ver);
+		return false;
+	}
+
+	if (!wpa_use_akm_defined(sm->wpa_key_mgmt) &&
+	    wpa_use_cmac(sm->wpa_key_mgmt) &&
+	    ver != WPA_KEY_INFO_TYPE_AES_128_CMAC) {
+		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
+				LOGGER_WARNING,
+				"advertised support for AES-128-CMAC, but did not use it");
+		return false;
+	}
+
+	if (sm->pairwise != WPA_CIPHER_TKIP &&
+	    !wpa_use_akm_defined(sm->wpa_key_mgmt) &&
+	    !wpa_use_cmac(sm->wpa_key_mgmt) &&
+	    ver != WPA_KEY_INFO_TYPE_HMAC_SHA1_AES) {
+		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
+				LOGGER_WARNING,
+				"did not use HMAC-SHA1-AES with CCMP/GCMP");
+		return false;
+	}
+
+	if (wpa_use_akm_defined(sm->wpa_key_mgmt) &&
+	    ver != WPA_KEY_INFO_TYPE_AKM_DEFINED) {
+		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
+				LOGGER_WARNING,
+				"did not use EAPOL-Key descriptor version 0 as required for AKM-defined cases");
+		return false;
+	}
+
+	return true;
+}
+
+
 void wpa_receive(struct wpa_authenticator *wpa_auth,
 		 struct wpa_state_machine *sm,
 		 u8 *data, size_t data_len)
@@ -1186,6 +1227,8 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 	}
 
 	ver = key_info & WPA_KEY_INFO_TYPE_MASK;
+	if (!wpa_auth_valid_key_desc_ver(wpa_auth, sm, ver))
+		goto out;
 	if (mic_len > 0 && (key_info & WPA_KEY_INFO_ENCR_KEY_DATA) &&
 	    sm->PTK_valid &&
 	    (ver == WPA_KEY_INFO_TYPE_HMAC_SHA1_AES ||
@@ -1227,40 +1270,6 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 	} else {
 		msg = PAIRWISE_2;
 		msgtxt = "2/4 Pairwise";
-	}
-
-	if (ver > WPA_KEY_INFO_TYPE_AES_128_CMAC) {
-		wpa_printf(MSG_INFO, "RSN: " MACSTR
-			   " used undefined Key Descriptor Version %d",
-			   MAC2STR(wpa_auth_get_spa(sm)), ver);
-		goto out;
-	}
-
-	if (!wpa_use_akm_defined(sm->wpa_key_mgmt) &&
-	    wpa_use_cmac(sm->wpa_key_mgmt) &&
-	    ver != WPA_KEY_INFO_TYPE_AES_128_CMAC) {
-		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
-				LOGGER_WARNING,
-				"advertised support for AES-128-CMAC, but did not use it");
-		goto out;
-	}
-
-	if (sm->pairwise != WPA_CIPHER_TKIP &&
-	    !wpa_use_akm_defined(sm->wpa_key_mgmt) &&
-	    !wpa_use_cmac(sm->wpa_key_mgmt) &&
-	    ver != WPA_KEY_INFO_TYPE_HMAC_SHA1_AES) {
-		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
-				LOGGER_WARNING,
-				"did not use HMAC-SHA1-AES with CCMP/GCMP");
-		goto out;
-	}
-
-	if (wpa_use_akm_defined(sm->wpa_key_mgmt) &&
-	    ver != WPA_KEY_INFO_TYPE_AKM_DEFINED) {
-		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
-				LOGGER_WARNING,
-				"did not use EAPOL-Key descriptor version 0 as required for AKM-defined cases");
-		goto out;
 	}
 
 	if (key_info & WPA_KEY_INFO_REQUEST) {
