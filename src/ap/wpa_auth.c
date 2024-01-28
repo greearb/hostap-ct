@@ -1516,6 +1516,12 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 	}
 
 	if (key_info & WPA_KEY_INFO_REQUEST) {
+		if (!(key_info & WPA_KEY_INFO_SECURE)) {
+			wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
+					LOGGER_INFO,
+					"received EAPOL-Key request without Secure=1");
+			goto out;
+		}
 		if (sm->MICVerified) {
 			sm->req_replay_counter_used = 1;
 			os_memcpy(sm->req_replay_counter, key->replay_counter,
