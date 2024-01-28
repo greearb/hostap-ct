@@ -1229,25 +1229,23 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 		msgtxt = "2/4 Pairwise";
 	}
 
-	if (sm->pairwise == WPA_CIPHER_CCMP ||
-	    sm->pairwise == WPA_CIPHER_GCMP) {
-		if (wpa_use_cmac(sm->wpa_key_mgmt) &&
-		    !wpa_use_akm_defined(sm->wpa_key_mgmt) &&
-		    ver != WPA_KEY_INFO_TYPE_AES_128_CMAC) {
-			wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
-					LOGGER_WARNING,
-					"advertised support for AES-128-CMAC, but did not use it");
-			goto out;
-		}
+	if (!wpa_use_akm_defined(sm->wpa_key_mgmt) &&
+	    wpa_use_cmac(sm->wpa_key_mgmt) &&
+	    ver != WPA_KEY_INFO_TYPE_AES_128_CMAC) {
+		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
+				LOGGER_WARNING,
+				"advertised support for AES-128-CMAC, but did not use it");
+		goto out;
+	}
 
-		if (!wpa_use_cmac(sm->wpa_key_mgmt) &&
-		    !wpa_use_akm_defined(sm->wpa_key_mgmt) &&
-		    ver != WPA_KEY_INFO_TYPE_HMAC_SHA1_AES) {
-			wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
-					LOGGER_WARNING,
-					"did not use HMAC-SHA1-AES with CCMP/GCMP");
-			goto out;
-		}
+	if (sm->pairwise != WPA_CIPHER_TKIP &&
+	    !wpa_use_akm_defined(sm->wpa_key_mgmt) &&
+	    !wpa_use_cmac(sm->wpa_key_mgmt) &&
+	    ver != WPA_KEY_INFO_TYPE_HMAC_SHA1_AES) {
+		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
+				LOGGER_WARNING,
+				"did not use HMAC-SHA1-AES with CCMP/GCMP");
+		goto out;
 	}
 
 	if (wpa_use_akm_defined(sm->wpa_key_mgmt) &&
