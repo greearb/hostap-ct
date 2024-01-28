@@ -1097,6 +1097,8 @@ static bool wpa_auth_gtk_rekey_in_process(struct wpa_authenticator *wpa_auth)
 }
 
 
+enum eapol_key_msg { PAIRWISE_2, PAIRWISE_4, GROUP_2, REQUEST };
+
 static bool wpa_auth_valid_key_desc_ver(struct wpa_authenticator *wpa_auth,
 					struct wpa_state_machine *sm, u16 ver)
 {
@@ -1138,6 +1140,105 @@ static bool wpa_auth_valid_key_desc_ver(struct wpa_authenticator *wpa_auth,
 }
 
 
+static bool wpa_auth_valid_request_counter(struct wpa_authenticator *wpa_auth,
+					   struct wpa_state_machine *sm,
+					   const u8 *replay_counter)
+{
+
+	if (sm->req_replay_counter_used &&
+	    os_memcmp(replay_counter, sm->req_replay_counter,
+		      WPA_REPLAY_COUNTER_LEN) <= 0) {
+		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
+				LOGGER_WARNING,
+				"received EAPOL-Key request with replayed counter");
+		return false;
+	}
+
+	return true;
+}
+
+
+static bool wpa_auth_valid_counter(struct wpa_authenticator *wpa_auth,
+				   struct wpa_state_machine *sm,
+				   const struct wpa_eapol_key *key,
+				   enum eapol_key_msg msg,
+				   const char *msgtxt)
+{
+	int i;
+
+	if (msg == REQUEST)
+		return wpa_auth_valid_request_counter(wpa_auth, sm,
+						      key->replay_counter);
+
+	if (wpa_replay_counter_valid(sm->key_replay, key->replay_counter))
+		return true;
+
+	if (msg == PAIRWISE_2 &&
+	    wpa_replay_counter_valid(sm->prev_key_replay,
+				     key->replay_counter) &&
+	    sm->wpa_ptk_state == WPA_PTK_PTKINITNEGOTIATING &&
+	    os_memcmp(sm->SNonce, key->key_nonce, WPA_NONCE_LEN) != 0) {
+		/*
+		 * Some supplicant implementations (e.g., Windows XP
+		 * WZC) update SNonce for each EAPOL-Key 2/4. This
+		 * breaks the workaround on accepting any of the
+		 * pending requests, so allow the SNonce to be updated
+		 * even if we have already sent out EAPOL-Key 3/4.
+		 */
+		wpa_auth_vlogger(wpa_auth, wpa_auth_get_spa(sm),
+				 LOGGER_DEBUG,
+				 "Process SNonce update from STA based on retransmitted EAPOL-Key 1/4");
+		sm->update_snonce = 1;
+		os_memcpy(sm->alt_SNonce, sm->SNonce, WPA_NONCE_LEN);
+		sm->alt_snonce_valid = true;
+		os_memcpy(sm->alt_replay_counter,
+			  sm->key_replay[0].counter,
+			  WPA_REPLAY_COUNTER_LEN);
+		return true;
+	}
+
+	if (msg == PAIRWISE_4 && sm->alt_snonce_valid &&
+	    sm->wpa_ptk_state == WPA_PTK_PTKINITNEGOTIATING &&
+	    os_memcmp(key->replay_counter, sm->alt_replay_counter,
+		      WPA_REPLAY_COUNTER_LEN) == 0) {
+		/*
+		 * Supplicant may still be using the old SNonce since
+		 * there was two EAPOL-Key 2/4 messages and they had
+		 * different SNonce values.
+		 */
+		wpa_auth_vlogger(wpa_auth, wpa_auth_get_spa(sm),
+				 LOGGER_DEBUG,
+				 "Try to process received EAPOL-Key 4/4 based on old Replay Counter and SNonce from an earlier EAPOL-Key 1/4");
+		return true;
+	}
+
+	if (msg == PAIRWISE_2 &&
+	    wpa_replay_counter_valid(sm->prev_key_replay,
+				     key->replay_counter) &&
+	    sm->wpa_ptk_state == WPA_PTK_PTKINITNEGOTIATING) {
+		wpa_auth_vlogger(wpa_auth, wpa_auth_get_spa(sm),
+				 LOGGER_DEBUG,
+				 "ignore retransmitted EAPOL-Key %s - SNonce did not change",
+				 msgtxt);
+	} else {
+		wpa_auth_vlogger(wpa_auth, wpa_auth_get_spa(sm),
+				 LOGGER_DEBUG,
+				 "received EAPOL-Key %s with unexpected replay counter",
+				 msgtxt);
+	}
+	for (i = 0; i < RSNA_MAX_EAPOL_RETRIES; i++) {
+		if (!sm->key_replay[i].valid)
+			break;
+		wpa_hexdump(MSG_DEBUG, "pending replay counter",
+			    sm->key_replay[i].counter,
+			    WPA_REPLAY_COUNTER_LEN);
+	}
+	wpa_hexdump(MSG_DEBUG, "received replay counter",
+		    key->replay_counter, WPA_REPLAY_COUNTER_LEN);
+	return false;
+}
+
+
 void wpa_receive(struct wpa_authenticator *wpa_auth,
 		 struct wpa_state_machine *sm,
 		 u8 *data, size_t data_len)
@@ -1145,8 +1246,8 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 	struct ieee802_1x_hdr *hdr;
 	struct wpa_eapol_key *key;
 	u16 key_info, ver, key_data_length;
-	enum { PAIRWISE_2, PAIRWISE_4, GROUP_2, REQUEST } msg;
-	char *msgtxt;
+	enum eapol_key_msg msg;
+	const char *msgtxt;
 	struct wpa_eapol_ie_parse kde;
 	const u8 *key_data;
 	size_t keyhdrlen, mic_len;
@@ -1272,88 +1373,9 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 		msgtxt = "2/4 Pairwise";
 	}
 
-	if (key_info & WPA_KEY_INFO_REQUEST) {
-		if (sm->req_replay_counter_used &&
-		    os_memcmp(key->replay_counter, sm->req_replay_counter,
-			      WPA_REPLAY_COUNTER_LEN) <= 0) {
-			wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
-					LOGGER_WARNING,
-					"received EAPOL-Key request with replayed counter");
-			goto out;
-		}
-	}
-
-	if (!(key_info & WPA_KEY_INFO_REQUEST) &&
-	    !wpa_replay_counter_valid(sm->key_replay, key->replay_counter)) {
-		int i;
-
-		if (msg == PAIRWISE_2 &&
-		    wpa_replay_counter_valid(sm->prev_key_replay,
-					     key->replay_counter) &&
-		    sm->wpa_ptk_state == WPA_PTK_PTKINITNEGOTIATING &&
-		    os_memcmp(sm->SNonce, key->key_nonce, WPA_NONCE_LEN) != 0)
-		{
-			/*
-			 * Some supplicant implementations (e.g., Windows XP
-			 * WZC) update SNonce for each EAPOL-Key 2/4. This
-			 * breaks the workaround on accepting any of the
-			 * pending requests, so allow the SNonce to be updated
-			 * even if we have already sent out EAPOL-Key 3/4.
-			 */
-			wpa_auth_vlogger(wpa_auth, wpa_auth_get_spa(sm),
-					 LOGGER_DEBUG,
-					 "Process SNonce update from STA based on retransmitted EAPOL-Key 1/4");
-			sm->update_snonce = 1;
-			os_memcpy(sm->alt_SNonce, sm->SNonce, WPA_NONCE_LEN);
-			sm->alt_snonce_valid = true;
-			os_memcpy(sm->alt_replay_counter,
-				  sm->key_replay[0].counter,
-				  WPA_REPLAY_COUNTER_LEN);
-			goto continue_processing;
-		}
-
-		if (msg == PAIRWISE_4 && sm->alt_snonce_valid &&
-		    sm->wpa_ptk_state == WPA_PTK_PTKINITNEGOTIATING &&
-		    os_memcmp(key->replay_counter, sm->alt_replay_counter,
-			      WPA_REPLAY_COUNTER_LEN) == 0) {
-			/*
-			 * Supplicant may still be using the old SNonce since
-			 * there was two EAPOL-Key 2/4 messages and they had
-			 * different SNonce values.
-			 */
-			wpa_auth_vlogger(wpa_auth, wpa_auth_get_spa(sm),
-					 LOGGER_DEBUG,
-					 "Try to process received EAPOL-Key 4/4 based on old Replay Counter and SNonce from an earlier EAPOL-Key 1/4");
-			goto continue_processing;
-		}
-
-		if (msg == PAIRWISE_2 &&
-		    wpa_replay_counter_valid(sm->prev_key_replay,
-					     key->replay_counter) &&
-		    sm->wpa_ptk_state == WPA_PTK_PTKINITNEGOTIATING) {
-			wpa_auth_vlogger(wpa_auth, wpa_auth_get_spa(sm),
-					 LOGGER_DEBUG,
-					 "ignore retransmitted EAPOL-Key %s - SNonce did not change",
-					 msgtxt);
-		} else {
-			wpa_auth_vlogger(wpa_auth, wpa_auth_get_spa(sm),
-					 LOGGER_DEBUG,
-					 "received EAPOL-Key %s with unexpected replay counter",
-					 msgtxt);
-		}
-		for (i = 0; i < RSNA_MAX_EAPOL_RETRIES; i++) {
-			if (!sm->key_replay[i].valid)
-				break;
-			wpa_hexdump(MSG_DEBUG, "pending replay counter",
-				    sm->key_replay[i].counter,
-				    WPA_REPLAY_COUNTER_LEN);
-		}
-		wpa_hexdump(MSG_DEBUG, "received replay counter",
-			    key->replay_counter, WPA_REPLAY_COUNTER_LEN);
+	if (!wpa_auth_valid_counter(wpa_auth, sm, key, msg, msgtxt))
 		goto out;
-	}
 
-continue_processing:
 #ifdef CONFIG_FILS
 	if (sm->wpa == WPA_VERSION_WPA2 && mic_len == 0 &&
 	    !(key_info & WPA_KEY_INFO_ENCR_KEY_DATA)) {
