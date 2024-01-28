@@ -1229,6 +1229,13 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 		msgtxt = "2/4 Pairwise";
 	}
 
+	if (ver > WPA_KEY_INFO_TYPE_AES_128_CMAC) {
+		wpa_printf(MSG_INFO, "RSN: " MACSTR
+			   " used undefined Key Descriptor Version %d",
+			   MAC2STR(wpa_auth_get_spa(sm)), ver);
+		goto out;
+	}
+
 	if (!wpa_use_akm_defined(sm->wpa_key_mgmt) &&
 	    wpa_use_cmac(sm->wpa_key_mgmt) &&
 	    ver != WPA_KEY_INFO_TYPE_AES_128_CMAC) {
