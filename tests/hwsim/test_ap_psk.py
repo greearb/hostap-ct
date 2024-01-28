@@ -1773,6 +1773,15 @@ def test_ap_wpa2_psk_ext_eapol_key_info(dev, apdev):
     rsn_eapol_key_set(msg, 0x0902, 0, snonce, rsne)
     eapol_key_mic(kck, msg)
     send_eapol(hapd, addr, build_eapol(msg))
+    # EAPOL-Key msg 4/4 with incorrectly encrypred Key Data field
+    hapd.note("RSN: AES unwrap failed - could not decrypt EAPOL-Key key data")
+    key_data = 24*b'1'
+    rsn_eapol_key_set(msg, 0x130a, 0, snonce, key_data)
+    send_eapol(hapd, addr, build_eapol(msg))
+    # EAPOL-Key msg 4/4 claimed to be encrypred with RC4
+    hapd.note("WPA: did not use HMAC-SHA1-AES with CCMP/GCMP")
+    rsn_eapol_key_set(msg, 0x1309, 0, snonce, key_data)
+    send_eapol(hapd, addr, build_eapol(msg))
 
     reply_eapol("4/4", hapd, addr, msg, 0x030a, None, None, kck)
     hapd.wait_sta(timeout=15)
