@@ -1248,7 +1248,6 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 	u16 key_info, ver, key_data_length;
 	enum eapol_key_msg msg;
 	const char *msgtxt;
-	struct wpa_eapol_ie_parse kde;
 	const u8 *key_data;
 	size_t keyhdrlen, mic_len;
 	u8 *mic;
@@ -1533,11 +1532,6 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 			goto out;
 		}
 
-		/*
-		 * TODO: should decrypt key data field if encryption was used;
-		 * even though MAC address KDE is not normally encrypted,
-		 * supplicant is allowed to encrypt it.
-		 */
 		if (key_info & WPA_KEY_INFO_ERROR) {
 			if (wpa_receive_error_report(
 				    wpa_auth, sm,
@@ -1548,10 +1542,6 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 					LOGGER_INFO,
 					"received EAPOL-Key Request for new 4-Way Handshake");
 			wpa_request_new_ptk(sm);
-		} else if (key_data_length > 0 &&
-			   wpa_parse_kde_ies(key_data, key_data_length,
-					     &kde) == 0 &&
-			   kde.mac_addr) {
 		} else {
 			wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
 					LOGGER_INFO,
