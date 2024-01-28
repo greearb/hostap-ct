@@ -232,6 +232,12 @@ void wpa_sm_key_request(struct wpa_sm *sm, int error, int pairwise)
 		return;
 	}
 
+	if (!sm->ptk_set) {
+		wpa_printf(MSG_INFO,
+			   "WPA: No PTK derived yet - cannot send EAPOL-Key Request");
+		return;
+	}
+
 	if (wpa_use_akm_defined(sm->key_mgmt))
 		ver = WPA_KEY_INFO_TYPE_AKM_DEFINED;
 	else if (wpa_key_mgmt_ft(sm->key_mgmt) ||
@@ -253,10 +259,11 @@ void wpa_sm_key_request(struct wpa_sm *sm, int error, int pairwise)
 		       sm->proto == WPA_PROTO_OSEN) ?
 		EAPOL_KEY_TYPE_RSN : EAPOL_KEY_TYPE_WPA;
 	key_info = WPA_KEY_INFO_REQUEST | ver;
-	if (sm->ptk_set)
-		key_info |= WPA_KEY_INFO_SECURE;
-	if (sm->ptk_set && mic_len)
+	key_info |= WPA_KEY_INFO_SECURE;
+	if (mic_len)
 		key_info |= WPA_KEY_INFO_MIC;
+	else
+		key_info |= WPA_KEY_INFO_ENCR_KEY_DATA;
 	if (error)
 		key_info |= WPA_KEY_INFO_ERROR;
 	if (pairwise)
