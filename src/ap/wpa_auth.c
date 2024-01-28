@@ -1437,6 +1437,16 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 		}
 		break;
 	case REQUEST:
+		if (sm->wpa_ptk_state == WPA_PTK_PTKSTART ||
+		    sm->wpa_ptk_state == WPA_PTK_PTKCALCNEGOTIATING ||
+		    sm->wpa_ptk_state == WPA_PTK_PTKCALCNEGOTIATING2 ||
+		    sm->wpa_ptk_state == WPA_PTK_PTKINITNEGOTIATING) {
+			wpa_auth_vlogger(wpa_auth, wpa_auth_get_spa(sm),
+					 LOGGER_INFO,
+					 "received EAPOL-Key Request in invalid state (%d) - dropped",
+					 sm->wpa_ptk_state);
+			goto out;
+		}
 		break;
 	}
 
