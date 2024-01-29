@@ -465,6 +465,21 @@ static int hostapd_ctrl_iface_sta_mib(struct hostapd_data *hapd,
 			len += ret;
 	}
 
+#ifdef CONFIG_IEEE80211BE
+	if (sta->mld_info.mld_sta) {
+		for (i = 0; i < MAX_NUM_MLD_LINKS; ++i) {
+			if (!sta->mld_info.links[i].valid)
+				continue;
+			ret = os_snprintf(
+				buf + len, buflen - len,
+				"peer_addr[%d]=" MACSTR "\n",
+				i, MAC2STR(sta->mld_info.links[i].peer_addr));
+			if (!os_snprintf_error(buflen - len, ret))
+				len += ret;
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	return len;
 }
 
