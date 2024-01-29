@@ -1175,7 +1175,13 @@ def _5ghz_chanwidth_to_bw(op):
     }.get(op, "20")
 
 def _test_eht_5ghz(dev, apdev, channel, chanwidth, ccfs1, ccfs2=0,
-                   eht_oper_puncturing_override=None):
+                   eht_oper_puncturing_override=None,
+                   he_ccfs1=None, he_oper_chanwidth=None):
+    if he_ccfs1 is None:
+        he_ccfs1 = ccfs1
+    if he_oper_chanwidth is None:
+        he_oper_chanwidth = chanwidth
+
     try:
         params = {"ssid": "eht",
                   "country_code": "US",
@@ -1185,33 +1191,32 @@ def _test_eht_5ghz(dev, apdev, channel, chanwidth, ccfs1, ccfs2=0,
                   "ieee80211ac": "1",
                   "ieee80211ax": "1",
                   "ieee80211be": "1",
-                  "vht_oper_chwidth": str(chanwidth),
-                  "vht_oper_centr_freq_seg0_idx": str(ccfs1),
+                  "vht_oper_chwidth": str(he_oper_chanwidth),
+                  "vht_oper_centr_freq_seg0_idx": str(he_ccfs1),
                   "vht_oper_centr_freq_seg1_idx": str(ccfs2),
-                  "he_oper_chwidth": str(chanwidth),
+                  "he_oper_chwidth": str(he_oper_chanwidth),
+                  "he_oper_centr_freq_seg0_idx": str(he_ccfs1),
                   "he_oper_centr_freq_seg1_idx": str(ccfs2),
-                  "he_oper_centr_freq_seg0_idx": str(ccfs1),
                   "eht_oper_centr_freq_seg0_idx": str(ccfs1),
                   "eht_oper_chwidth": str(chanwidth)}
 
-        if chanwidth == 0:
-            if channel == ccfs1:
-                  bw = "20"
-            elif channel < ccfs1:
+        if he_oper_chanwidth == 0:
+            if channel < he_ccfs1:
                   params["ht_capab"] = "[HT40+]"
-            else:
+            elif channel > he_ccfs1:
                   params["ht_capab"] = "[HT40-]"
         else:
-                  params["ht_capab"] = "[HT40+]"
-                  if chanwidth == 2:
-                      params["vht_capab"] = "[VHT160]"
-                  elif chanwidth == 3:
-                      params["vht_capab"] = "[VHT160-80PLUS80]"
+            params["ht_capab"] = "[HT40+]"
+            if he_oper_chanwidth == 2:
+                params["vht_capab"] = "[VHT160]"
+            elif he_oper_chanwidth == 3:
+                params["vht_capab"] = "[VHT160-80PLUS80]"
 
         if eht_oper_puncturing_override:
             params['eht_oper_puncturing_override'] = eht_oper_puncturing_override
 
         freq = 5000 + channel * 5
+        bw = "20"
         if chanwidth != 0 or channel != ccfs1:
             bw = _5ghz_chanwidth_to_bw(chanwidth)
 
@@ -1258,21 +1263,24 @@ def test_eht_5ghz_80mhz_puncturing_override_1(dev, apdev):
 
     # The 2nd 20 MHz is punctured
     _test_eht_5ghz(dev, apdev, 36, 1, 42, 0,
-                   eht_oper_puncturing_override="0x0002")
+                   eht_oper_puncturing_override="0x0002",
+                   he_ccfs1=36, he_oper_chanwidth=0)
 
 def test_eht_5ghz_80mhz_puncturing_override_2(dev, apdev):
     """EHT with 80 MHz channel width on 5 GHz - primary=149 - puncturing override (3rd)"""
 
     # The 3rd 20 MHz is punctured
     _test_eht_5ghz(dev, apdev, 149, 1, 155, 0,
-                   eht_oper_puncturing_override="0x0004")
+                   eht_oper_puncturing_override="0x0004",
+                   he_ccfs1=151, he_oper_chanwidth=0)
 
 def test_eht_5ghz_80mhz_puncturing_override_3(dev, apdev):
     """EHT with 80 MHz channel width on 5 GHz - primary=149 - puncturing override (4th)"""
 
     # The 4th 20 MHz is punctured
     _test_eht_5ghz(dev, apdev, 149, 1, 155, 0,
-                   eht_oper_puncturing_override="0x0008")
+                   eht_oper_puncturing_override="0x0008",
+                   he_ccfs1=151, he_oper_chanwidth=0)
 
 def test_eht_5ghz_80p80mhz(dev, apdev):
     """EHT with 80+80 MHz channel width on 5 GHz"""
