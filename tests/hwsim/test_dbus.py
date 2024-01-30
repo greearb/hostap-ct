@@ -3684,6 +3684,7 @@ def test_dbus_p2p_autogo(dev, apdev):
             self.exceptions = False
             self.deauthorized = False
             self.done = False
+            self.dev1 = WpaSupplicant('wlan1', '/tmp/wpas-wlan1')
 
         def __enter__(self):
             gobject.timeout_add(1, self.run_test)
@@ -3737,8 +3738,7 @@ def test_dbus_p2p_autogo(dev, apdev):
                                            WPAS_DBUS_IFACE_P2PDEVICE)
                 group_p2p.Disconnect()
             else:
-                dev1 = WpaSupplicant('wlan1', '/tmp/wpas-wlan1')
-                dev1.global_request("P2P_CONNECT " + addr0 + " 12345670 join")
+                self.dev1.global_request("P2P_CONNECT " + addr0 + " 12345670 join")
 
         def groupFinished(self, properties):
             logger.debug("groupFinished: " + str(properties))
@@ -3759,6 +3759,7 @@ def test_dbus_p2p_autogo(dev, apdev):
         def persistentGroupRemoved(self, path):
             logger.debug("persistentGroupRemoved: %s" % path)
             self.done = True
+            self.dev1 = None
             self.loop.quit()
 
         def deviceFound(self, path):
@@ -3902,6 +3903,10 @@ def test_dbus_p2p_autogo(dev, apdev):
             p2p.RemoveClient({'peer': self.peer_path})
 
             self.waiting_end = True
+
+            # wait for client to be fully connected
+            self.dev1.wait_connected()
+            # so we can cleanly disconnect it now
             group_p2p = dbus.Interface(self.g_if_obj,
                                        WPAS_DBUS_IFACE_P2PDEVICE)
             group_p2p.Disconnect()
