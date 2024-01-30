@@ -3292,7 +3292,7 @@ static u32 hostapd_get_aid_word(struct hostapd_data *hapd,
 
 	/* Do not assign an AID that is in use on any of the affiliated links
 	 * when finding an AID for a non-AP MLD. */
-	if (hapd->conf->mld_ap) {
+	if (hapd->conf->mld_ap && sta->mld_info.mld_sta) {
 		int j;
 
 		for (j = 0; j < MAX_NUM_MLD_LINKS; j++) {
