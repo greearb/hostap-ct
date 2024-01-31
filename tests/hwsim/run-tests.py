@@ -721,6 +721,10 @@ def main():
         if not reset_ok:
             print("Terminating early due to device reset failure")
             break
+
+    for d in dev:
+        d.close_ctrl()
+
     if args.stdin_ctrl:
         set_term_echo(sys.stdin.fileno(), True)
 
