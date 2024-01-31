@@ -4124,6 +4124,20 @@ int p2p_listen_end(struct p2p_data *p2p, unsigned int freq)
 }
 
 
+void p2p_listen_failed(struct p2p_data *p2p, unsigned int freq)
+{
+	if (freq != p2p->pending_listen_freq) {
+		p2p_dbg(p2p,
+			"Unexpected listen failed callback for freq=%u (pending_listen_freq=%u)",
+			freq, p2p->pending_listen_freq);
+		return;
+	}
+
+	p2p_dbg(p2p, "Listen failed on freq=%u", freq);
+	p2p->pending_listen_freq = 0;
+}
+
+
 static void p2p_timeout_connect(struct p2p_data *p2p)
 {
 	p2p->cfg->send_action_done(p2p->cfg->cb_ctx);

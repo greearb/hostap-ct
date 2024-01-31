@@ -3205,6 +3205,7 @@ static void wpas_start_listen_cb(struct wpa_radio_work *work, int deinit)
 	if (wpa_drv_probe_req_report(wpa_s, 1) < 0) {
 		wpa_printf(MSG_DEBUG, "P2P: Failed to request the driver to "
 			   "report received Probe Request frames");
+		p2p_listen_failed(wpa_s->global->p2p, lwork->freq);
 		wpas_p2p_listen_work_done(wpa_s);
 		return;
 	}
@@ -3225,6 +3226,7 @@ static void wpas_start_listen_cb(struct wpa_radio_work *work, int deinit)
 		wpa_printf(MSG_DEBUG, "P2P: Failed to request the driver "
 			   "to remain on channel (%u MHz) for Listen "
 			   "state", lwork->freq);
+		p2p_listen_failed(wpa_s->global->p2p, lwork->freq);
 		wpas_p2p_listen_work_done(wpa_s);
 		wpa_s->pending_listen_freq = 0;
 		return;
