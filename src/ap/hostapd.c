@@ -184,6 +184,8 @@ static void hostapd_reload_bss(struct hostapd_data *hapd)
 		hostapd_set_generic_elem(hapd, (u8 *) "", 0);
 	}
 
+	hostapd_neighbor_sync_own_report(hapd);
+
 	ieee802_11_set_beacon(hapd);
 	hostapd_update_wps(hapd);
 

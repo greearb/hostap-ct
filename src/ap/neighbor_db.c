@@ -325,3 +325,37 @@ void hostapd_neighbor_set_own_report(struct hostapd_data *hapd)
 	wpabuf_free(nr);
 #endif /* NEED_AP_MLME */
 }
+
+
+static struct hostapd_neighbor_entry *
+hostapd_neighbor_get_diff_short_ssid(struct hostapd_data *hapd, const u8 *bssid)
+{
+	struct hostapd_neighbor_entry *nr;
+
+	dl_list_for_each(nr, &hapd->nr_db, struct hostapd_neighbor_entry,
+			 list) {
+		if (ether_addr_equal(bssid, nr->bssid) &&
+		    nr->short_ssid != hapd->conf->ssid.short_ssid)
+			return nr;
+	}
+	return NULL;
+}
+
+
+int hostapd_neighbor_sync_own_report(struct hostapd_data *hapd)
+{
+	struct hostapd_neighbor_entry *nr;
+
+	nr = hostapd_neighbor_get_diff_short_ssid(hapd, hapd->own_addr);
+	if (!nr)
+		return -1;
+
+	/* Clear old entry due to SSID change */
+	hostapd_neighbor_clear_entry(nr);
+	dl_list_del(&nr->list);
+	os_free(nr);
+
+	hostapd_neighbor_set_own_report(hapd);
+
+	return 0;
+}
