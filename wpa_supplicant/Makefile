@@ -112,6 +112,7 @@ OBJS += ../src/utils/wpabuf.o
 OBJS += ../src/utils/bitfield.o
 OBJS += ../src/utils/ip_addr.o
 OBJS += ../src/utils/crc32.o
+OBJS += ../src/common/ptksa_cache.o
 OBJS += twt.o
 OBJS_p = wpa_passphrase.o
 OBJS_p += ../src/utils/common.o
@@ -431,7 +432,6 @@ NEED_HMAC_SHA256_KDF=y
 NEED_HMAC_SHA384_KDF=y
 NEED_SHA256=y
 NEED_SHA384=y
-OBJS += ../src/common/ptksa_cache.o
 OBJS += ../src/pasn/pasn_initiator.o
 OBJS += pasn_supplicant.o
 endif

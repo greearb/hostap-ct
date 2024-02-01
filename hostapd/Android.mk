@@ -154,6 +154,7 @@ OBJS += src/utils/crc32.c
 OBJS += src/common/ieee802_11_common.c
 OBJS += src/common/wpa_common.c
 OBJS += src/common/hw_features_common.c
+OBJS += src/common/ptksa_cache.c
 
 OBJS += src/eapol_auth/eapol_auth_sm.c
 
@@ -594,7 +595,6 @@ NEED_HMAC_SHA256_KDF=y
 NEED_HMAC_SHA384_KDF=y
 NEED_SHA256=y
 NEED_SHA384=y
-OBJS += src/common/ptksa_cache.c
 endif
 
 ifdef CONFIG_EAP_IKEV2
