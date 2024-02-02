@@ -435,7 +435,8 @@ def test_eht_mld_sae_single_link(dev, apdev):
         eht_verify_wifi_version(wpas)
         traffic_test(wpas, hapd0)
 
-def run_eht_mld_sae_two_links(dev, apdev, beacon_prot="1"):
+def run_eht_mld_sae_two_links(dev, apdev, beacon_prot="1",
+                              disable_enable=False):
     with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
         HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
 
@@ -474,6 +475,42 @@ def run_eht_mld_sae_two_links(dev, apdev, beacon_prot="1"):
         traffic_test(wpas, hapd0)
         traffic_test(wpas, hapd1)
 
+        if disable_enable:
+            if "OK" not in hapd0.request("DISABLE_MLD"):
+                raise Exception("DISABLE_MLD failed")
+            ev = hapd0.wait_event(["AP-DISABLED"], timeout=1)
+            if ev is None:
+                raise Exception("AP-DISABLED not received (0)")
+            ev = hapd1.wait_event(["AP-DISABLED"], timeout=1)
+            if ev is None:
+                raise Exception("AP-DISABLED not received (1)")
+
+            # mac80211 does not seem to detect beacon loss or deauthentication
+            # in non-AP MLD case?! For now, ignore that and just force
+            # disconnection locally on the STA.
+            wpas.request("DISCONNECT")
+            wpas.wait_disconnected()
+
+            if "OK" not in hapd0.request("ENABLE_MLD"):
+                raise Exception("ENABLE_MLD failed")
+            ev = hapd0.wait_event(["AP-ENABLED"], timeout=1)
+            if ev is None:
+                raise Exception("AP-ENABLED not received (0)")
+            ev = hapd1.wait_event(["AP-ENABLED"], timeout=1)
+            if ev is None:
+                raise Exception("AP-ENABLED not received (1)")
+
+            # TODO: Figure out why this fails without PMKSA_FLUSH. Things should
+            # fall back to full SAE from failed PMKSA caching attempt
+            # automatically.
+            wpas.request("PMKSA_FLUSH")
+            wpas.request("RECONNECT")
+            wpas.wait_connected()
+            hapd0.wait_sta()
+            hapd1.wait_sta()
+            traffic_test(wpas, hapd0)
+            traffic_test(wpas, hapd1)
+
 def test_eht_mld_sae_two_links(dev, apdev):
     """EHT MLD AP with MLD client SAE H2E connection using two links"""
     run_eht_mld_sae_two_links(dev, apdev)
@@ -481,6 +518,10 @@ def test_eht_mld_sae_two_links(dev, apdev):
 def test_eht_mld_sae_two_links_no_beacon_prot(dev, apdev):
     """EHT MLD AP with MLD client SAE H2E connection using two links and no beacon protection"""
     run_eht_mld_sae_two_links(dev, apdev, beacon_prot="0")
+
+def test_eht_mld_sae_two_links_disable_enable(dev, apdev):
+    """AP MLD with two links and disabling/enabling full AP MLD"""
+    run_eht_mld_sae_two_links(dev, apdev, disable_enable=True)
 
 def test_eht_mld_sae_ext_one_link(dev, apdev):
     """EHT MLD AP with MLD client SAE-EXT H2E connection using single link"""
