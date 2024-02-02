@@ -3666,7 +3666,7 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "GET ", 4) == 0) {
 		reply_len = hostapd_ctrl_iface_get(hapd, buf + 4, reply,
 						   reply_size);
-	} else if (os_strncmp(buf, "ENABLE", 6) == 0) {
+	} else if (os_strcmp(buf, "ENABLE") == 0) {
 		if (hostapd_ctrl_iface_enable(hapd->iface))
 			reply_len = -1;
 	} else if (os_strcmp(buf, "RELOAD_WPA_PSK") == 0) {
@@ -3686,10 +3686,10 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strcmp(buf, "RELOAD_CONFIG") == 0) {
 		if (hostapd_reload_config(hapd->iface))
 			reply_len = -1;
-	} else if (os_strncmp(buf, "RELOAD", 6) == 0) {
+	} else if (os_strcmp(buf, "RELOAD") == 0) {
 		if (hostapd_ctrl_iface_reload(hapd->iface))
 			reply_len = -1;
-	} else if (os_strncmp(buf, "DISABLE", 7) == 0) {
+	} else if (os_strcmp(buf, "DISABLE") == 0) {
 		if (hostapd_ctrl_iface_disable(hapd->iface))
 			reply_len = -1;
 	} else if (os_strcmp(buf, "UPDATE_BEACON") == 0) {
