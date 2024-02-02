@@ -1726,3 +1726,55 @@ def test_he_6ghz_reg(dev, apdev):
         dev[0].set("sae_pwe", "0")
         dev[0].wait_disconnected()
         clear_regdom(hapd, dev)
+
+def test_he_downgrade_40mhz_to_20mhz(dev, apdev):
+    """HE AP and downgrade from 40 MHz to 20 MHz due to regulatory constraints"""
+    # Try to configure 40 MHz channel when the regdb limits this frequency to
+    # 20 MHz.
+    params = {"ssid": "he",
+              "country_code": "AM",
+              "channel": "36",
+              "op_class": "116",
+              "ieee80211n": "1",
+              "ieee80211ac": "1",
+              "ieee80211ax": "1",
+              "hw_mode": "a",
+              "ht_capab": "[HT40+]",
+              "vht_oper_chwidth": "0",
+              "he_oper_chwidth": "0" }
+    run_he_downgrade_to_20_mhz(dev, apdev, params)
+
+def test_he_downgrade_80mhz_to_20mhz(dev, apdev):
+    """HE AP and downgrade from 80 MHz to 20 MHz due to regulatory constraints"""
+    # Try to configure 80 MHz channel when the regdb limits this frequency to
+    # 20 MHz.
+    params = {"ssid": "he",
+              "country_code": "AM",
+              "channel": "36",
+              "op_class": "128",
+              "ieee80211n": "1",
+              "ieee80211ac": "1",
+              "ieee80211ax": "1",
+              "hw_mode": "a",
+              "ht_capab": "[HT40+]",
+              "vht_oper_centr_freq_seg0_idx": "42",
+              "he_oper_centr_freq_seg0_idx": "42",
+              "vht_oper_chwidth": "1",
+              "he_oper_chwidth": "1" }
+    run_he_downgrade_to_20_mhz(dev, apdev, params)
+
+def run_he_downgrade_to_20_mhz(dev, apdev, params):
+    try:
+        hapd = None
+        hapd = hostapd.add_ap(apdev[0], params)
+        dev[0].connect("he", key_mgmt="NONE", scan_freq="5180")
+        sig = dev[0].request("SIGNAL_POLL").splitlines()
+        logger.info("SIGNAL_POLL: " + str(sig))
+        if "WIDTH=20 MHz" not in sig:
+            raise Exception("20 MHz channel width not reported")
+        dev[0].request("DISCONNECT")
+        dev[0].wait_disconnected()
+        hapd.wait_sta_disconnect()
+    finally:
+        dev[0].request("DISCONNECT")
+        clear_regdom(hapd, dev)
