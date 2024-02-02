@@ -1744,6 +1744,23 @@ def test_he_downgrade_40mhz_to_20mhz(dev, apdev):
               "he_oper_chwidth": "0" }
     run_he_downgrade_to_20_mhz(dev, apdev, params)
 
+def test_he_downgrade_40mhz_plus_minus_to_20mhz(dev, apdev):
+    """HE AP and downgrade from 40 MHz (+/-) to 20 MHz due to regulatory constraints"""
+    # Try to configure 40 MHz channel when the regdb limits this frequency to
+    # 20 MHz.
+    params = {"ssid": "he",
+              "country_code": "AM",
+              "channel": "36",
+              "op_class": "116",
+              "ieee80211n": "1",
+              "ieee80211ac": "1",
+              "ieee80211ax": "1",
+              "hw_mode": "a",
+              "ht_capab": "[HT40+][HT40-]",
+              "vht_oper_chwidth": "0",
+              "he_oper_chwidth": "0" }
+    run_he_downgrade_to_20_mhz(dev, apdev, params)
+
 def test_he_downgrade_80mhz_to_20mhz(dev, apdev):
     """HE AP and downgrade from 80 MHz to 20 MHz due to regulatory constraints"""
     # Try to configure 80 MHz channel when the regdb limits this frequency to
