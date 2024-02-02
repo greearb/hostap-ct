@@ -1001,7 +1001,7 @@ static int hostapd_is_usable_chans(struct hostapd_iface *iface)
 {
 	int secondary_freq;
 	struct hostapd_channel_data *pri_chan;
-	int err;
+	int err, err2;
 
 	if (!iface->current_mode)
 		return 0;
@@ -1044,15 +1044,15 @@ static int hostapd_is_usable_chans(struct hostapd_iface *iface)
 
 	/* Both HT40+ and HT40- are set, pick a valid secondary channel */
 	secondary_freq = iface->freq + 20;
-	err = hostapd_is_usable_chan(iface, secondary_freq, 0);
-	if (err > 0 && (pri_chan->allowed_bw & HOSTAPD_CHAN_WIDTH_40P)) {
+	err2 = hostapd_is_usable_chan(iface, secondary_freq, 0);
+	if (err2 > 0 && (pri_chan->allowed_bw & HOSTAPD_CHAN_WIDTH_40P)) {
 		iface->conf->secondary_channel = 1;
 		return 1;
 	}
 
 	secondary_freq = iface->freq - 20;
-	err = hostapd_is_usable_chan(iface, secondary_freq, 0);
-	if (err > 0 && (pri_chan->allowed_bw & HOSTAPD_CHAN_WIDTH_40M)) {
+	err2 = hostapd_is_usable_chan(iface, secondary_freq, 0);
+	if (err2 > 0 && (pri_chan->allowed_bw & HOSTAPD_CHAN_WIDTH_40M)) {
 		iface->conf->secondary_channel = -1;
 		return 1;
 	}
