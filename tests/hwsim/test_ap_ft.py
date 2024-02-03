@@ -1494,6 +1494,17 @@ def test_ap_ft_sae_pmksa_caching_pwe(dev, apdev):
 
 def test_ap_ft_sae_pmksa_caching_h2e(dev, apdev):
     """WPA2-FT-SAE AP and PMKSA caching for initial mobility domain association (H2E)"""
+    run_ap_ft_sae_pmksa_caching_h2e(dev, apdev)
+
+def test_ap_ft_sae_pmksa_caching_h2e_prepend_pmkid(dev, apdev):
+    """FT-SAE and PMKSA caching for initial mobility domain association (H2E, prepend PMKID)"""
+    try:
+        dev[0].set("ft_prepend_pmkid", "1")
+        run_ap_ft_sae_pmksa_caching_h2e(dev, apdev)
+    finally:
+        dev[0].set("ft_prepend_pmkid", "0")
+
+def run_ap_ft_sae_pmksa_caching_h2e(dev, apdev):
     check_sae_capab(dev[0])
     ssid = "test-ft"
     passphrase = "12345678"
