@@ -2028,7 +2028,7 @@ prepare_auth_resp_fils(struct hostapd_data *hapd,
 		}
 
 		os_memcpy(ie_buf, ie, ielen);
-		if (wpa_insert_pmkid(ie_buf, &ielen, pmksa->pmkid) < 0) {
+		if (wpa_insert_pmkid(ie_buf, &ielen, pmksa->pmkid, true) < 0) {
 			*resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
 			goto fail;
 		}

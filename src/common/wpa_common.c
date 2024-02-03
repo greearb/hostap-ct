@@ -2893,7 +2893,7 @@ int wpa_compare_rsn_ie(int ft_initial_assoc,
 }
 
 
-int wpa_insert_pmkid(u8 *ies, size_t *ies_len, const u8 *pmkid)
+int wpa_insert_pmkid(u8 *ies, size_t *ies_len, const u8 *pmkid, bool replace)
 {
 	u8 *start, *end, *rpos, *rend;
 	int added = 0;
@@ -2956,12 +2956,12 @@ int wpa_insert_pmkid(u8 *ies, size_t *ies_len, const u8 *pmkid)
 		if (rend - rpos < 2)
 			return -1;
 		num_pmkid = WPA_GET_LE16(rpos);
+		if (num_pmkid * PMKID_LEN > rend - rpos - 2)
+			return -1;
 		/* PMKID-Count was included; use it */
-		if (num_pmkid != 0) {
+		if (replace && num_pmkid != 0) {
 			u8 *after;
 
-			if (num_pmkid * PMKID_LEN > rend - rpos - 2)
-				return -1;
 			/*
 			 * PMKID may have been included in RSN IE in
 			 * (Re)Association Request frame, so remove the old
@@ -2974,8 +2974,9 @@ int wpa_insert_pmkid(u8 *ies, size_t *ies_len, const u8 *pmkid)
 			os_memmove(rpos + 2, after, end - after);
 			start[1] -= num_pmkid * PMKID_LEN;
 			added -= num_pmkid * PMKID_LEN;
+			num_pmkid = 0;
 		}
-		WPA_PUT_LE16(rpos, 1);
+		WPA_PUT_LE16(rpos, num_pmkid + 1);
 		rpos += 2;
 		os_memmove(rpos + PMKID_LEN, rpos, end + added - rpos);
 		os_memcpy(rpos, pmkid, PMKID_LEN);

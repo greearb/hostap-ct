@@ -5545,6 +5545,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT_RANGE(mld_connect_band_pref, 0, MLD_CONNECT_BAND_PREF_MAX), 0 },
 	{ FUNC(mld_connect_bssid_pref), 0 },
 #endif /* CONFIG_TESTING_OPTIONS */
+	{ INT_RANGE(ft_prepend_pmkid, 0, 1), CFG_CHANGED_FT_PREPEND_PMKID },
 	/* NOTE: When adding new parameters here, add_interface() in
 	 * wpa_supplicant/dbus_new_introspect.c may need to be modified to
 	 * increase the size of the iface->xml buffer. */

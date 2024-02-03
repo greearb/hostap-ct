@@ -227,6 +227,7 @@ struct wpa_sm {
 
 	bool wmm_enabled;
 	bool driver_bss_selection;
+	bool ft_prepend_pmkid;
 };
 
 

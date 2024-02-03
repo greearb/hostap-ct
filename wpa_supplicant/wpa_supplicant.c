@@ -7192,6 +7192,9 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
+	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_FT_PREPEND_PMKID,
+			 wpa_s->conf->ft_prepend_pmkid);
+
 	wpa_s->hw.modes = wpa_drv_get_hw_feature_data(wpa_s,
 						      &wpa_s->hw.num_modes,
 						      &wpa_s->hw.flags,
@@ -8150,6 +8153,10 @@ void wpa_supplicant_update_config(struct wpa_supplicant *wpa_s)
 
 	if (wpa_s->conf->changed_parameters & CFG_CHANGED_DISABLE_BTM)
 		wpa_supplicant_set_default_scan_ies(wpa_s);
+
+	if (wpa_s->conf->changed_parameters & CFG_CHANGED_FT_PREPEND_PMKID)
+		wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_FT_PREPEND_PMKID,
+				 wpa_s->conf->ft_prepend_pmkid);
 
 #ifdef CONFIG_BGSCAN
 	/*

@@ -134,6 +134,7 @@ enum wpa_sm_conf_params {
 	WPA_PARAM_DISABLE_EAPOL_G2_TX,
 	WPA_PARAM_ENCRYPT_EAPOL_M2,
 	WPA_PARAM_ENCRYPT_EAPOL_M4,
+	WPA_PARAM_FT_PREPEND_PMKID,
 };
 
 struct rsn_supp_config {

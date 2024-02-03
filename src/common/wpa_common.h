@@ -555,7 +555,7 @@ u32 wpa_akm_to_suite(int akm);
 int wpa_compare_rsn_ie(int ft_initial_assoc,
 		       const u8 *ie1, size_t ie1len,
 		       const u8 *ie2, size_t ie2len);
-int wpa_insert_pmkid(u8 *ies, size_t *ies_len, const u8 *pmkid);
+int wpa_insert_pmkid(u8 *ies, size_t *ies_len, const u8 *pmkid, bool replace);
 
 #define MAX_NUM_MLO_LINKS 15
 

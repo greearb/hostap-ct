@@ -4448,7 +4448,7 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 		size_t elen;
 
 		elen = pos - kde;
-		res = wpa_insert_pmkid(kde, &elen, sm->pmk_r1_name);
+		res = wpa_insert_pmkid(kde, &elen, sm->pmk_r1_name, true);
 		if (res < 0) {
 			wpa_printf(MSG_ERROR,
 				   "FT: Failed to insert PMKR1Name into RSN IE in EAPOL-Key data");
@@ -6577,7 +6577,7 @@ int wpa_auth_resend_m3(struct wpa_state_machine *sm,
 		size_t elen;
 
 		elen = pos - kde;
-		res = wpa_insert_pmkid(kde, &elen, sm->pmk_r1_name);
+		res = wpa_insert_pmkid(kde, &elen, sm->pmk_r1_name, true);
 		if (res < 0) {
 			wpa_printf(MSG_ERROR,
 				   "FT: Failed to insert PMKR1Name into RSN IE in EAPOL-Key data");

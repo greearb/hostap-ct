@@ -1901,7 +1901,7 @@ static int sme_sae_set_pmk(struct wpa_supplicant *wpa_s, const u8 *bssid)
 		}
 		if (wpa_insert_pmkid(wpa_s->sme.assoc_req_ie,
 				     &wpa_s->sme.assoc_req_ie_len,
-				     wpa_s->sme.sae.pmkid) < 0)
+				     wpa_s->sme.sae.pmkid, true) < 0)
 			return -1;
 		wpa_hexdump(MSG_DEBUG,
 			    "SME: Updated Association Request IEs",

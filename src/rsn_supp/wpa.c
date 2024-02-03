@@ -559,7 +559,7 @@ int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 			return -1;
 		os_memcpy(rsn_ie_buf, wpa_ie, wpa_ie_len);
 		res = wpa_insert_pmkid(rsn_ie_buf, &wpa_ie_len,
-				       sm->pmk_r1_name);
+				       sm->pmk_r1_name, !sm->ft_prepend_pmkid);
 		if (res < 0) {
 			os_free(rsn_ie_buf);
 			return -1;
@@ -4694,6 +4694,9 @@ int wpa_sm_set_param(struct wpa_sm *sm, enum wpa_sm_conf_params param,
 #endif /* CONFIG_DPP2 */
 	case WPA_PARAM_WMM_ENABLED:
 		sm->wmm_enabled = value;
+		break;
+	case WPA_PARAM_FT_PREPEND_PMKID:
+		sm->ft_prepend_pmkid = value;
 		break;
 	default:
 		break;

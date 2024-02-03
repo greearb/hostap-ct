@@ -439,6 +439,7 @@ struct wpa_cred {
 #define CFG_CHANGED_WOWLAN_TRIGGERS BIT(18)
 #define CFG_CHANGED_DISABLE_BTM BIT(19)
 #define CFG_CHANGED_BGSCAN BIT(20)
+#define CFG_CHANGED_FT_PREPEND_PMKID BIT(21)
 
 /**
  * struct wpa_config - wpa_supplicant configuration data
@@ -711,6 +712,14 @@ struct wpa_config {
 	 * shall take to set up (unit: seconds).
 	 */
 	unsigned int dot11RSNAConfigSATimeout;
+
+	/**
+	 * ft_prepend_pmkid - Whether to prepend PMKR1Name with PMKIDs
+	 *
+	 * This control whether PMKR1Name is prepended to the PMKID list
+	 * insread of replacing the full list when constructing RSNE for
+	 * EAPOL-Key msg 2/4 for FT cases. */
+	bool ft_prepend_pmkid;
 
 	/**
 	 * update_config - Is wpa_supplicant allowed to update configuration

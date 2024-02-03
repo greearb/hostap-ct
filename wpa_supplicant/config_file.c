@@ -1622,6 +1622,8 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 		fprintf(f, "mld_connect_bssid_pref=" MACSTR "\n",
 			MAC2STR(config->mld_connect_bssid_pref));
 #endif /* CONFIG_TESTING_OPTIONS */
+	if (config->ft_prepend_pmkid)
+		fprintf(f, "ft_prepend_pmkid=%d", config->ft_prepend_pmkid);
 }
 
 #endif /* CONFIG_NO_CONFIG_WRITE */
