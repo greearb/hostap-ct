@@ -921,19 +921,70 @@ static int ft_check_msg_2_of_4(struct wpa_authenticator *wpa_auth,
 			       struct wpa_state_machine *sm,
 			       struct wpa_eapol_ie_parse *kde)
 {
-	struct wpa_ie_data ie;
+	struct wpa_ie_data ie, assoc_ie;
 	struct rsn_mdie *mdie;
+	unsigned int i, j;
+	bool found = false;
+
+	/* Verify that PMKR1Name from EAPOL-Key message 2/4 matches the value
+	 * we derived. */
 
 	if (wpa_parse_wpa_ie_rsn(kde->rsn_ie, kde->rsn_ie_len, &ie) < 0 ||
-	    ie.num_pmkid != 1 || !ie.pmkid) {
+	    ie.num_pmkid < 1 || !ie.pmkid) {
 		wpa_printf(MSG_DEBUG,
 			   "FT: No PMKR1Name in FT 4-way handshake message 2/4");
 		return -1;
 	}
 
-	os_memcpy(sm->sup_pmk_r1_name, ie.pmkid, PMKID_LEN);
-	wpa_hexdump(MSG_DEBUG, "FT: PMKR1Name from Supplicant",
-		    sm->sup_pmk_r1_name, PMKID_LEN);
+	if (wpa_parse_wpa_ie_rsn(sm->wpa_ie, sm->wpa_ie_len, &assoc_ie) < 0) {
+		wpa_printf(MSG_DEBUG,
+			   "FT: Could not parse (Re)Association Request frame RSNE");
+		os_memset(&assoc_ie, 0, sizeof(assoc_ie));
+		/* Continue to allow PMKR1Name matching to be done to cover the
+		 * case where it is the only listed PMKID. */
+	}
+
+	for (i = 0; i < ie.num_pmkid; i++) {
+		const u8 *pmkid = ie.pmkid + i * PMKID_LEN;
+
+		if (os_memcmp_const(pmkid, sm->pmk_r1_name,
+				    WPA_PMK_NAME_LEN) == 0) {
+			wpa_printf(MSG_DEBUG,
+				   "FT: RSNE[PMKID[%u]] from supplicant matches PMKR1Name",
+				   i);
+			found = true;
+		} else {
+			for (j = 0; j < assoc_ie.num_pmkid; j++) {
+				if (os_memcmp(pmkid,
+					      assoc_ie.pmkid + j * PMKID_LEN,
+					      PMKID_LEN) == 0)
+					break;
+			}
+
+			if (j == assoc_ie.num_pmkid) {
+				wpa_printf(MSG_DEBUG,
+					   "FT: RSNE[PMKID[%u]] from supplicant is neither PMKR1Name nor included in AssocReq",
+					   i);
+				found = false;
+				break;
+			}
+			wpa_printf(MSG_DEBUG,
+				   "FT: RSNE[PMKID[%u]] from supplicant is not PMKR1Name, but matches a PMKID in AssocReq",
+				   i);
+		}
+	}
+
+	if (!found) {
+		wpa_auth_logger(sm->wpa_auth, wpa_auth_get_spa(sm),
+				LOGGER_DEBUG,
+				"PMKR1Name mismatch in FT 4-way handshake");
+		wpa_hexdump(MSG_DEBUG,
+			    "FT: PMKIDs/PMKR1Name from Supplicant",
+			    ie.pmkid, ie.num_pmkid * PMKID_LEN);
+		wpa_hexdump(MSG_DEBUG, "FT: Derived PMKR1Name",
+			    sm->pmk_r1_name, WPA_PMK_NAME_LEN);
+		return -1;
+	}
 
 	if (!kde->mdie || !kde->ftie) {
 		wpa_printf(MSG_DEBUG,
@@ -3643,27 +3694,6 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 				   WLAN_REASON_PREV_AUTH_NOT_VALID);
 		return;
 	}
-
-#ifdef CONFIG_IEEE80211R_AP
-	if (sm->wpa == WPA_VERSION_WPA2 && wpa_key_mgmt_ft(sm->wpa_key_mgmt)) {
-		/*
-		 * Verify that PMKR1Name from EAPOL-Key message 2/4 matches
-		 * with the value we derived.
-		 */
-		if (os_memcmp_const(sm->sup_pmk_r1_name, sm->pmk_r1_name,
-				    WPA_PMK_NAME_LEN) != 0) {
-			wpa_auth_logger(sm->wpa_auth, wpa_auth_get_spa(sm),
-					LOGGER_DEBUG,
-					"PMKR1Name mismatch in FT 4-way handshake");
-			wpa_hexdump(MSG_DEBUG,
-				    "FT: PMKR1Name from Supplicant",
-				    sm->sup_pmk_r1_name, WPA_PMK_NAME_LEN);
-			wpa_hexdump(MSG_DEBUG, "FT: Derived PMKR1Name",
-				    sm->pmk_r1_name, WPA_PMK_NAME_LEN);
-			goto out;
-		}
-	}
-#endif /* CONFIG_IEEE80211R_AP */
 
 	if (vlan_id && wpa_key_mgmt_wpa_psk(sm->wpa_key_mgmt) &&
 	    wpa_auth_update_vlan(wpa_auth, sm->addr, vlan_id) < 0) {

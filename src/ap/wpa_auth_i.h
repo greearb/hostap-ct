@@ -134,8 +134,6 @@ struct wpa_state_machine {
 					   * Request */
 	u8 r0kh_id[FT_R0KH_ID_MAX_LEN]; /* R0KH-ID from FT Auth Request */
 	size_t r0kh_id_len;
-	u8 sup_pmk_r1_name[WPA_PMK_NAME_LEN]; /* PMKR1Name from EAPOL-Key
-					       * message 2/4 */
 	u8 *assoc_resp_ftie;
 
 	void (*ft_pending_cb)(void *ctx, const u8 *dst, const u8 *bssid,
