@@ -851,4 +851,99 @@ void pmksa_cache_reconfig(struct rsn_pmksa_cache *pmksa)
 	}
 }
 
+#else /* IEEE8021X_EAPOL */
+
+struct rsn_pmksa_cache *
+pmksa_cache_init(void (*free_cb)(struct rsn_pmksa_cache_entry *entry,
+				 void *ctx, enum pmksa_free_reason reason),
+		 bool (*is_current_cb)(struct rsn_pmksa_cache_entry *entry,
+				       void *ctx),
+		 void (*notify_cb)(struct rsn_pmksa_cache_entry *entry,
+				   void *ctx),
+		 void *ctx, struct wpa_sm *sm)
+{
+	return (void *) -1;
+}
+
+
+void pmksa_cache_deinit(struct rsn_pmksa_cache *pmksa)
+{
+}
+
+
+struct rsn_pmksa_cache_entry *
+pmksa_cache_get(struct rsn_pmksa_cache *pmksa, const u8 *aa, const u8 *spa,
+		const u8 *pmkid, const void *network_ctx, int akmp)
+{
+	return NULL;
+}
+
+
+struct rsn_pmksa_cache_entry *
+pmksa_cache_get_current(struct wpa_sm *sm)
+{
+	return NULL;
+}
+
+
+int pmksa_cache_list(struct rsn_pmksa_cache *pmksa, char *buf, size_t len)
+{
+	return -1;
+}
+
+
+struct rsn_pmksa_cache_entry *
+pmksa_cache_head(struct rsn_pmksa_cache *pmksa)
+{
+	return NULL;
+}
+
+
+struct rsn_pmksa_cache_entry *
+pmksa_cache_add_entry(struct rsn_pmksa_cache *pmksa,
+		      struct rsn_pmksa_cache_entry *entry)
+{
+	return NULL;
+}
+
+
+struct rsn_pmksa_cache_entry *
+pmksa_cache_add(struct rsn_pmksa_cache *pmksa, const u8 *pmk, size_t pmk_len,
+		const u8 *pmkid, const u8 *kck, size_t kck_len,
+		const u8 *aa, const u8 *spa, void *network_ctx, int akmp,
+		const u8 *cache_id)
+{
+	return NULL;
+}
+
+
+void pmksa_cache_clear_current(struct wpa_sm *sm)
+{
+}
+
+
+int pmksa_cache_set_current(struct wpa_sm *sm, const u8 *pmkid, const u8 *bssid,
+			    void *network_ctx, int try_opportunistic,
+			    const u8 *fils_cache_id, int akmp, bool associated)
+{
+	return -1;
+}
+
+
+void pmksa_cache_flush(struct rsn_pmksa_cache *pmksa, void *network_ctx,
+		       const u8 *pmk, size_t pmk_len, bool external_only)
+{
+}
+
+
+void pmksa_cache_remove(struct rsn_pmksa_cache *pmksa,
+			struct rsn_pmksa_cache_entry *entry)
+{
+}
+
+
+void pmksa_cache_reconfig(struct rsn_pmksa_cache *pmksa)
+{
+}
+
 #endif /* IEEE8021X_EAPOL */

@@ -26,6 +26,7 @@ OBJS += $(SRC)/crypto/sha384-prf.o
 OBJS += $(SRC)/crypto/sha256-kdf.o
 OBJS += $(SRC)/crypto/sha384-kdf.o
 OBJS += $(SRC)/rsn_supp/wpa_ie.o
+OBJS += $(SRC)/rsn_supp/pmksa_cache.o
 OBJS += $(SRC)/pasn/pasn_initiator.o
 
 OBJS += pasn-init.o
