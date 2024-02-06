@@ -1746,6 +1746,18 @@ static int hostapd_cli_cmd_dump_amnt(struct wpa_ctrl *ctrl, int argc,
 	return hostapd_cli_cmd(ctrl, "DUMP_AMNT", 1, argc, argv);
 }
 
+static int hostapd_cli_cmd_set_csi(struct wpa_ctrl *ctrl, int argc,
+					   char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "SET_CSI", 1, argc, argv);
+}
+
+static int hostapd_cli_cmd_dump_csi(struct wpa_ctrl *ctrl, int argc,
+					   char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "DUMP_CSI", 1, argc, argv);
+}
+
 struct hostapd_cli_cmd {
 	const char *cmd;
 	int (*handler)(struct wpa_ctrl *ctrl, int argc, char *argv[]);
@@ -1996,6 +2008,10 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 		" = Set Station index and mac to monitor"},
 	{ "dump_amnt", hostapd_cli_cmd_dump_amnt, NULL,
 		" = Dump RSSI of monitoring Station"},
+	{ "set_csi", hostapd_cli_cmd_set_csi, NULL,
+		" = Set csi configuaration"},
+	{ "dump_csi", hostapd_cli_cmd_dump_csi, NULL,
+		" = Dump csi data to a json file"},
 	{ NULL, NULL, NULL, NULL }
 };
 

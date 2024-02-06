@@ -5087,6 +5087,193 @@ hostapd_ctrl_iface_disable_beacon(struct hostapd_data *hapd, char *value,
 
 }
 
+static int
+hostapd_ctrl_iface_set_csi(struct hostapd_data *hapd, char *cmd,
+					char *buf, size_t buflen)
+{
+	char *tmp;
+	u8 sta_mac[ETH_ALEN] = {0};
+	u32 csi_para[4] = {0};
+	char mac_str[18] = {0};
+	u8 csi_para_cnt = 0;
+
+	tmp = strtok_r(cmd, ",", &cmd);
+
+	while (tmp) {
+		csi_para_cnt++;
+
+		if (csi_para_cnt <= 4)
+			csi_para[csi_para_cnt - 1] = strtol(tmp, &tmp, 10);
+		else if (csi_para_cnt == 5) {
+			memcpy(mac_str, tmp, sizeof(mac_str) - 1);
+			break;
+		}
+
+		tmp = strtok_r(NULL, ",", &cmd);
+	}
+
+	if (strlen(mac_str)) {	/* user input mac string */
+		if (hwaddr_aton(mac_str, sta_mac) < 0) {
+			wpa_printf(MSG_ERROR, "station mac is not right.\n");
+			return -1;
+		}
+
+		if (hostapd_drv_csi_set(hapd, csi_para[0], csi_para[1], csi_para[2], csi_para[3], sta_mac)) {
+			wpa_printf(MSG_ERROR, "Not able to set csi, %d,%d,%d,%d,%s\n",
+					csi_para[0], csi_para[1], csi_para[2], csi_para[3], mac_str);
+			return -1;
+		}
+	} else {
+		if (hostapd_drv_csi_set(hapd, csi_para[0], csi_para[1], csi_para[2], csi_para[3], NULL)) {
+			wpa_printf(MSG_ERROR, "Not able to set csi, %d,%d,%d,%d\n",
+					csi_para[0], csi_para[1], csi_para[2], csi_para[3]);
+			return -1;
+		}
+	}
+
+	return os_snprintf(buf, buflen, "OK\n");
+}
+
+static int mt76_csi_to_json(char *fname, struct csi_resp_data *resp_buf)
+{
+#define MAX_BUF_SIZE	10000
+	FILE *f;
+	int i;
+
+	if (!fname) {
+		wpa_printf(MSG_ERROR, "csi dump file name is null!\n");
+		return -1;
+	}
+
+	f = fopen(fname, "a+");
+	if (!f) {
+		wpa_printf(MSG_ERROR, "open csi dump file %s failed\n", fname);
+		return -1;
+	}
+
+	if (fwrite("[", 1, 1, f) != 1) {
+		fclose(f);
+		return -1;
+	}
+
+	for (i = 0; i < resp_buf->buf_cnt; i++) {
+		struct csi_data *c = &resp_buf->csi_buf[i];
+		char *pos, *buf;
+		int j;
+
+		buf = malloc(MAX_BUF_SIZE);
+		if (!buf) {
+			fclose(f);
+			return -1;
+		}
+
+		pos = buf;
+		pos += snprintf(pos, MAX_BUF_SIZE, "%c", '[');
+
+		pos += snprintf(pos, MAX_BUF_SIZE, "%d,", c->ts);
+		pos += snprintf(pos, MAX_BUF_SIZE, "\"%02x%02x%02x%02x%02x%02x\",", c->ta[0], c->ta[1], c->ta[2], c->ta[3], c->ta[4], c->ta[5]);
+
+		pos += snprintf(pos, MAX_BUF_SIZE, "%d,", c->rssi);
+		pos += snprintf(pos, MAX_BUF_SIZE, "%u,", c->snr);
+		pos += snprintf(pos, MAX_BUF_SIZE, "%u,", c->data_bw);
+		pos += snprintf(pos, MAX_BUF_SIZE, "%u,", c->pri_ch_idx);
+		pos += snprintf(pos, MAX_BUF_SIZE, "%u,", c->rx_mode);
+		pos += snprintf(pos, MAX_BUF_SIZE, "%d,", c->tx_idx);
+		pos += snprintf(pos, MAX_BUF_SIZE, "%d,", c->rx_idx);
+		pos += snprintf(pos, MAX_BUF_SIZE, "%d,", c->chain_info);
+		pos += snprintf(pos, MAX_BUF_SIZE, "%d,", c->ext_info);
+
+		pos += snprintf(pos, MAX_BUF_SIZE, "%c", '[');
+		for (j = 0; j < c->data_num; j++) {
+			pos += snprintf(pos, MAX_BUF_SIZE, "%d", c->data_i[j]);
+			if (j != (c->data_num - 1))
+				pos += snprintf(pos, MAX_BUF_SIZE, ",");
+		}
+		pos += snprintf(pos, MAX_BUF_SIZE, "%c,", ']');
+
+		pos += snprintf(pos, MAX_BUF_SIZE, "%c", '[');
+		for (j = 0; j < c->data_num; j++) {
+			pos += snprintf(pos, MAX_BUF_SIZE, "%d", c->data_q[j]);
+			if (j != (c->data_num - 1))
+				pos += snprintf(pos, MAX_BUF_SIZE, ",");
+		}
+		pos += snprintf(pos, MAX_BUF_SIZE, "%c", ']');
+
+		pos += snprintf(pos, MAX_BUF_SIZE, "%c", ']');
+		if (i != resp_buf->buf_cnt - 1)
+			pos += snprintf(pos, MAX_BUF_SIZE, ",");
+
+		if (fwrite(buf, 1, pos - buf, f) != (pos - buf)) {
+			perror("fwrite");
+			free(buf);
+			fclose(f);
+			return -1;
+		}
+
+		free(buf);
+	}
+
+	if (fwrite("]", 1, 1, f) != 1) {
+		fclose(f);
+		return -1;
+	}
+
+	fclose(f);
+
+	return 0;
+}
+
+static int
+hostapd_ctrl_iface_dump_csi(struct hostapd_data *hapd, char *cmd,
+				char *buf, size_t buflen)
+{
+	char *tmp, *fname;
+	int data_cnt = 0, ret = 0;
+	struct csi_resp_data resp_buf;
+
+	tmp = strtok_r(cmd, ",", &cmd);
+
+	if (!tmp) {
+		wpa_printf(MSG_ERROR, "Error in command format\n");
+		return -1;
+	}
+
+	data_cnt = strtoul(tmp, &tmp, 0);
+
+	if (data_cnt > 3000) {
+		wpa_printf(MSG_ERROR, "Wrong input csi data cnt\n");
+		return -1;
+	}
+
+	fname = strtok_r(NULL, ",", &cmd);
+
+	if (!fname) {
+		wpa_printf(MSG_ERROR, "Error in command format, csi_filename.\n");
+		return -1;
+	}
+
+	resp_buf.csi_buf = (struct csi_data *)os_zalloc(sizeof(struct csi_data) * data_cnt);
+
+	if (resp_buf.csi_buf == NULL) {
+		wpa_printf(MSG_ERROR, "Error in memory allocation\n");
+		return -1;
+	}
+
+	resp_buf.usr_need_cnt = data_cnt;
+	resp_buf.buf_cnt = 0;
+
+	if (hostapd_drv_csi_dump(hapd, (void *)&resp_buf)) {
+		wpa_printf(MSG_ERROR, "Not able to set csi dump\n");
+		os_free(resp_buf.csi_buf);
+		return -1;
+	}
+
+	mt76_csi_to_json(fname, &resp_buf);
+
+	os_free(resp_buf.csi_buf);
+	return 0;
+}
+
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
 					      int reply_size,
@@ -5749,6 +5936,12 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "NO_BEACON ", 10) == 0) {
 		reply_len = hostapd_ctrl_iface_disable_beacon(hapd, buf + 10, reply,
 							      reply_size);
+	} else if (os_strncmp(buf, "SET_CSI ", 7) == 0) {
+		reply_len = hostapd_ctrl_iface_set_csi(hapd, buf + 8,
+							reply, reply_size);
+	} else if (os_strncmp(buf, "DUMP_CSI ", 8) == 0) {
+		reply_len = hostapd_ctrl_iface_dump_csi(hapd, buf + 9,
+							reply, reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;

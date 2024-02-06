@@ -157,6 +157,36 @@ pp_ctrl_policy[NUM_MTK_VENDOR_ATTRS_PP_CTRL] = {
 };
 #endif
 
+static struct nla_policy csi_ctrl_policy[NUM_MTK_VENDOR_ATTRS_CSI_CTRL] = {
+	[MTK_VENDOR_ATTR_CSI_CTRL_BAND_IDX] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_CSI_CTRL_CFG] = { .type = NLA_NESTED },
+	[MTK_VENDOR_ATTR_CSI_CTRL_CFG_MODE] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_CSI_CTRL_CFG_TYPE] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_CSI_CTRL_CFG_VAL1] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_CSI_CTRL_CFG_VAL2] = { .type = NLA_U32 },
+	[MTK_VENDOR_ATTR_CSI_CTRL_MAC_ADDR] = { .type = NLA_NESTED },
+	[MTK_VENDOR_ATTR_CSI_CTRL_DUMP_NUM] = { .type = NLA_U16 },
+	[MTK_VENDOR_ATTR_CSI_CTRL_DATA] = { .type = NLA_NESTED },
+};
+
+static struct nla_policy csi_data_policy[NUM_MTK_VENDOR_ATTRS_CSI_DATA] = {
+	[MTK_VENDOR_ATTR_CSI_DATA_VER] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_CSI_DATA_TS] = { .type = NLA_U32 },
+	[MTK_VENDOR_ATTR_CSI_DATA_RSSI] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_CSI_DATA_SNR] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_CSI_DATA_BW] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_CSI_DATA_CH_IDX] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_CSI_DATA_TA] = { .type = NLA_NESTED },
+	[MTK_VENDOR_ATTR_CSI_DATA_NUM] = { .type = NLA_U32 },
+	[MTK_VENDOR_ATTR_CSI_DATA_I] = { .type = NLA_NESTED },
+	[MTK_VENDOR_ATTR_CSI_DATA_Q] = { .type = NLA_NESTED },
+	[MTK_VENDOR_ATTR_CSI_DATA_INFO] = { .type = NLA_U32 },
+	[MTK_VENDOR_ATTR_CSI_DATA_TX_ANT] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_CSI_DATA_RX_ANT] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_CSI_DATA_MODE] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_CSI_DATA_CHAIN_INFO] = { .type = NLA_U32 },
+};
+
 static struct nl_sock * nl_create_handle(struct nl_cb *cb, const char *dbg)
 {
 	struct nl_sock *handle;
@@ -16458,6 +16488,213 @@ static int nl80211_get_mld_addr(void *priv, u8 *addr)
 }
 #endif
 
+static int
+nl80211_csi_set(void *priv, u8 band_idx, u8 mode, u8 cfg, u8 v1, u32 v2, u8 *mac)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *data;
+	void *tb1, *tb2;
+	int ret, i;
+
+	if (!drv->mtk_csi_vendor_cmd_avail) {
+		wpa_printf(MSG_ERROR,
+			"nl80211: Driver does not support csi");
+		return 0;
+	}
+
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
+	if (!msg)
+		goto fail;
+
+	if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+			nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+			MTK_NL80211_VENDOR_SUBCMD_CSI_CTRL))
+		goto fail;
+
+	data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA | NLA_F_NESTED);
+	if (!data)
+		goto fail;
+
+	nla_put_u8(msg, MTK_VENDOR_ATTR_CSI_CTRL_BAND_IDX, band_idx);
+
+	tb1 = nla_nest_start(msg, MTK_VENDOR_ATTR_CSI_CTRL_CFG | NLA_F_NESTED);
+	if (!tb1)
+		goto fail;
+
+	nla_put_u8(msg, MTK_VENDOR_ATTR_CSI_CTRL_CFG_MODE, mode);
+	nla_put_u8(msg, MTK_VENDOR_ATTR_CSI_CTRL_CFG_TYPE, cfg);
+	nla_put_u8(msg, MTK_VENDOR_ATTR_CSI_CTRL_CFG_VAL1, v1);
+	nla_put_u32(msg, MTK_VENDOR_ATTR_CSI_CTRL_CFG_VAL2, v2);
+
+	nla_nest_end(msg, tb1);
+
+	if (mac) {
+		tb2 = nla_nest_start(msg, MTK_VENDOR_ATTR_CSI_CTRL_MAC_ADDR | NLA_F_NESTED);
+		if (!tb2)
+			goto fail;
+
+		for (i = 0; i < ETH_ALEN; i++)
+			nla_put_u8(msg, i, mac[i]);
+
+		nla_nest_end(msg, tb2);
+	}
+
+	nla_nest_end(msg, data);
+
+	ret = send_and_recv_cmd(drv, msg);
+
+	if (ret)
+		wpa_printf(MSG_ERROR, "Failed to set csi. ret=%d (%s)",
+			ret, strerror(-ret));
+
+	return ret;
+
+fail:
+	nlmsg_free(msg);
+	return -ENOBUFS;
+
+}
+
+static int
+mt76_csi_dump_cb(struct nl_msg *msg, void *arg)
+{
+	struct nlattr *tb[NL80211_ATTR_MAX + 1];
+	struct nlattr *tb1[NUM_MTK_VENDOR_ATTRS_CSI_CTRL];
+	struct nlattr *tb2[NUM_MTK_VENDOR_ATTRS_CSI_DATA];
+	struct nlattr *attr, *cur;
+	int rem, idx;
+	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
+	struct csi_resp_data *csi_resp = (struct csi_resp_data *)arg;
+	struct csi_data *c = csi_resp->csi_buf;
+
+	c += csi_resp->buf_cnt;
+
+	nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
+		genlmsg_attrlen(gnlh, 0), NULL);
+
+	attr = tb[NL80211_ATTR_VENDOR_DATA];
+	if (!attr)
+		return NL_SKIP;
+
+	nla_parse_nested(tb1, MTK_VENDOR_ATTR_CSI_CTRL_MAX,
+			attr, csi_ctrl_policy);
+
+	if (!tb1[MTK_VENDOR_ATTR_CSI_CTRL_DATA])
+		return NL_SKIP;
+
+	nla_parse_nested(tb2, MTK_VENDOR_ATTR_CSI_DATA_MAX,
+			tb1[MTK_VENDOR_ATTR_CSI_CTRL_DATA], csi_data_policy);
+
+	if (!(tb2[MTK_VENDOR_ATTR_CSI_DATA_VER] &&
+	      tb2[MTK_VENDOR_ATTR_CSI_DATA_TS] &&
+	      tb2[MTK_VENDOR_ATTR_CSI_DATA_RSSI] &&
+	      tb2[MTK_VENDOR_ATTR_CSI_DATA_SNR] &&
+	      tb2[MTK_VENDOR_ATTR_CSI_DATA_BW] &&
+	      tb2[MTK_VENDOR_ATTR_CSI_DATA_CH_IDX] &&
+	      tb2[MTK_VENDOR_ATTR_CSI_DATA_TA] &&
+	      tb2[MTK_VENDOR_ATTR_CSI_DATA_I] &&
+	      tb2[MTK_VENDOR_ATTR_CSI_DATA_Q] &&
+	      tb2[MTK_VENDOR_ATTR_CSI_DATA_INFO] &&
+	      tb2[MTK_VENDOR_ATTR_CSI_DATA_MODE] &&
+	      tb2[MTK_VENDOR_ATTR_CSI_DATA_CHAIN_INFO])) {
+		fprintf(stderr, "Attributes error for CSI data\n");
+		return NL_SKIP;
+	}
+
+	c->rssi = nla_get_u8(tb2[MTK_VENDOR_ATTR_CSI_DATA_RSSI]);
+	c->snr = nla_get_u8(tb2[MTK_VENDOR_ATTR_CSI_DATA_SNR]);
+	c->data_bw = nla_get_u8(tb2[MTK_VENDOR_ATTR_CSI_DATA_BW]);
+	c->pri_ch_idx = nla_get_u8(tb2[MTK_VENDOR_ATTR_CSI_DATA_CH_IDX]);
+	c->rx_mode = nla_get_u8(tb2[MTK_VENDOR_ATTR_CSI_DATA_MODE]);
+
+	c->tx_idx = nla_get_u16(tb2[MTK_VENDOR_ATTR_CSI_DATA_TX_ANT]);
+	c->rx_idx = nla_get_u16(tb2[MTK_VENDOR_ATTR_CSI_DATA_RX_ANT]);
+
+	c->ext_info = nla_get_u32(tb2[MTK_VENDOR_ATTR_CSI_DATA_INFO]);
+	c->chain_info = nla_get_u32(tb2[MTK_VENDOR_ATTR_CSI_DATA_CHAIN_INFO]);
+
+	c->ts = nla_get_u32(tb2[MTK_VENDOR_ATTR_CSI_DATA_TS]);
+
+	c->data_num = nla_get_u32(tb2[MTK_VENDOR_ATTR_CSI_DATA_NUM]);
+
+	idx = 0;
+	nla_for_each_nested(cur, tb2[MTK_VENDOR_ATTR_CSI_DATA_TA], rem) {
+		if (idx < ETH_ALEN)
+			c->ta[idx++] = nla_get_u8(cur);
+	}
+
+	idx = 0;
+	nla_for_each_nested(cur, tb2[MTK_VENDOR_ATTR_CSI_DATA_I], rem) {
+		if (idx < c->data_num)
+			c->data_i[idx++] = nla_get_u16(cur);
+	}
+
+	idx = 0;
+	nla_for_each_nested(cur, tb2[MTK_VENDOR_ATTR_CSI_DATA_Q], rem) {
+		if (idx < c->data_num)
+			c->data_q[idx++] = nla_get_u16(cur);
+	}
+
+	csi_resp->buf_cnt++;
+
+	return NL_SKIP;
+}
+
+static int
+nl80211_csi_dump(void *priv, u8 band_idx, void *dump_buf)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *data;
+	int ret;
+	struct csi_resp_data *csi_resp;
+	u16 pkt_num, i;
+
+	if (!drv->mtk_csi_vendor_cmd_avail) {
+		wpa_printf(MSG_INFO,
+			"nl80211: Driver does not support csi");
+		return 0;
+	}
+
+	csi_resp = (struct csi_resp_data *)dump_buf;
+	pkt_num =  csi_resp->usr_need_cnt;
+
+	if (pkt_num > 3000)
+		return -EINVAL;
+
+#define CSI_DUMP_PER_NUM	3
+	for (i = 0; i < pkt_num / CSI_DUMP_PER_NUM; i++) {
+		msg = nl80211_bss_msg(bss, NLM_F_DUMP, NL80211_CMD_VENDOR);
+		if (!msg)
+			goto fail;
+
+		if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+				nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+				MTK_NL80211_VENDOR_SUBCMD_CSI_CTRL))
+			goto fail;
+
+		data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA | NLA_F_NESTED);
+		if (!data)
+			goto fail;
+
+		nla_put_u8(msg, MTK_VENDOR_ATTR_CSI_CTRL_BAND_IDX, band_idx);
+		nla_put_u16(msg, MTK_VENDOR_ATTR_CSI_CTRL_DUMP_NUM, CSI_DUMP_PER_NUM);
+
+		nla_nest_end(msg, data);
+
+		ret = send_and_recv_resp(drv, msg, mt76_csi_dump_cb, dump_buf);
+	}
+
+	return ret;
+
+fail:
+	nlmsg_free(msg);
+	return -ENOBUFS;
+}
+
 const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.name = "nl80211",
 	.desc = "Linux nl80211/cfg80211",
@@ -16653,4 +16890,6 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 #ifdef CONFIG_IEEE80211BE
 	.get_mld_addr = nl80211_get_mld_addr,
 #endif
+	.csi_set = nl80211_csi_set,
+	.csi_dump = nl80211_csi_dump,
 };

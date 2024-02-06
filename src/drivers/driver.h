@@ -5695,6 +5695,24 @@ struct wpa_driver_ops {
 #ifdef CONFIG_IEEE80211BE
 	int (*get_mld_addr)(void *priv, u8 *addr);
 #endif
+	/**
+	 * csi_set - Set csi related mode and parameter
+	 * @priv: Private driver interface data
+	 * @band_idx: band idx
+	 * @mode: Csi mode parameter
+	 * @cfg: Csi config parameter
+	 * @v1: Value1
+	 * @v2: Value2
+	 * @mac: Station mac for station filter
+	 */
+	int (*csi_set)(void *priv, u8 band_idx, u8 mode, u8 cfg, u8 v1, u32 v2, u8 *mac);
+	/**
+	* csi_dump - Dump csi data to json file
+	* @priv: Private driver interface data
+	* @band_idx: band idx
+	* @dump_buf: Dump_struct that store csi data and related info
+	*/
+	int (*csi_dump)(void *priv, u8 band_idx, void *dump_buf);
 };
 
 /**
