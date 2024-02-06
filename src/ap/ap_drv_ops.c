@@ -1596,3 +1596,22 @@ int hostapd_drv_beacon_ctrl(struct hostapd_data *hapd, u8 beacon_mode)
 	return hapd->driver->beacon_ctrl(hapd->drv_priv, beacon_mode);
 }
 
+int hostapd_drv_csi_set(struct hostapd_data *hapd, u8 mode, u8 cfg, u8 v1, u32 v2, u8 *mac)
+{
+	if (!hapd->driver || !hapd->driver->csi_set)
+		return 0;
+	/* TODO:  band_idx not in current code?
+	return hapd->driver->csi_set(hapd->drv_priv, hapd->iconf->band_idx, mode, cfg, v1, v2, mac);
+	*/
+	return 0;
+}
+
+int hostapd_drv_csi_dump(struct hostapd_data *hapd, void *dump_buf)
+{
+	if (!hapd->driver || !hapd->driver->csi_dump)
+		return 0;
+	/* TODO:  band_idx not in current code?
+	return hapd->driver->csi_dump(hapd->drv_priv, hapd->iconf->band_idx, dump_buf);
+	*/
+	return 0;
+}
