@@ -161,6 +161,8 @@ struct wpa_tdls_peer {
 	int chan_switch_enabled;
 
 	int mld_link_id;
+	bool disc_resp_rcvd;
+	bool setup_req_rcvd;
 };
 
 
@@ -2868,6 +2870,12 @@ int wpa_tdls_start(struct wpa_sm *sm, const u8 *addr)
 		return 0;
 	}
 
+	if (sm->mlo.valid_links && !peer->disc_resp_rcvd) {
+		wpa_printf(MSG_DEBUG,
+			   "TDLS: MLO STA connection - defer the setup request since Discovery Resp not yet received");
+		peer->setup_req_rcvd = true;
+		return 0;
+	}
 	peer->initiator = 1;
 
 	/* add the peer to the driver as a "setup in progress" peer */
@@ -3235,6 +3243,13 @@ int wpa_tdls_process_discovery_response(struct wpa_sm *sm, const u8 *addr,
 	peer->mld_link_id = link_id;
 	wpa_printf(MSG_DEBUG, "TDLS: Link identifier BSS: " MACSTR
 		   " , link id: %u", MAC2STR(lnkid->bssid), link_id);
+
+	peer->disc_resp_rcvd = true;
+	if (peer->setup_req_rcvd) {
+		peer->setup_req_rcvd = false;
+		wpa_printf(MSG_DEBUG, "TDLS: Process the deferred TDLS start");
+		return wpa_tdls_start(sm, addr);
+	}
 
 	return 0;
 }
