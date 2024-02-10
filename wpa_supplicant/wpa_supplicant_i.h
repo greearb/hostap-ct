@@ -1599,6 +1599,12 @@ struct wpa_supplicant {
 	 * owe_transition_search == 1 */
 	int *owe_trans_scan_freq;
 #endif /* CONFIG_OWE */
+
+#ifdef CONFIG_NAN_USD
+	struct nan_de *nan_de;
+	struct wpa_radio_work *nan_usd_listen_work;
+	struct wpa_radio_work *nan_usd_tx_work;
+#endif /* CONFIG_NAN_USD */
 };
 
 

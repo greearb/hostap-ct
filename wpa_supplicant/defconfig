@@ -683,3 +683,6 @@ CONFIG_DPP2=y
 
 # Disable support for WMM admission control
 #CONFIG_NO_WMM_AC=y
+
+# Wi-Fi Aware unsynchronized service discovery (NAN USD)
+#CONFIG_NAN_USD=y
