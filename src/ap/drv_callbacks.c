@@ -1606,6 +1606,7 @@ static void hostapd_action_rx(struct hostapd_data *hapd,
 #endif /* CONFIG_FST */
 #ifdef CONFIG_DPP
 	if (plen >= 2 + 4 &&
+	    mgmt->u.action.category == WLAN_ACTION_PUBLIC &&
 	    mgmt->u.action.u.vs_public_action.action ==
 	    WLAN_PA_VENDOR_SPECIFIC &&
 	    WPA_GET_BE24(mgmt->u.action.u.vs_public_action.oui) ==
