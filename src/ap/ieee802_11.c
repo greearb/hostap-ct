@@ -3078,7 +3078,12 @@ static void handle_auth(struct hostapd_data *hapd,
 	}
 
 #ifdef CONFIG_IEEE80211BE
-	if (auth_transaction == 1) {
+	/* Set the non-AP MLD information based on the initial Authentication
+	 * frame. Once the STA entry has been added to the driver, the driver
+	 * will translate addresses in the frame and we need to avoid overriding
+	 * peer_addr based on mgmt->sa which would have been translated to the
+	 * MLD MAC address. */
+	if (!sta->added_unassoc && auth_transaction == 1) {
 		ap_sta_free_sta_profile(&sta->mld_info);
 		os_memset(&sta->mld_info, 0, sizeof(sta->mld_info));
 
