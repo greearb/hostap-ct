@@ -581,6 +581,12 @@ L_CFLAGS += -DCONFIG_DPP3
 endif
 endif
 
+ifdef CONFIG_NAN_USD
+OBJS += src/common/nan_de.c
+OBJS += src/ap/nan_usd_ap.c
+L_CFLAGS += -DCONFIG_NAN_USD
+endif
+
 ifdef CONFIG_PASN
 L_CFLAGS += -DCONFIG_PASN
 L_CFLAGS += -DCONFIG_PTKSA_CACHE

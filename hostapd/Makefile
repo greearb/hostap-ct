@@ -607,6 +607,12 @@ CFLAGS += -DCONFIG_DPP3
 endif
 endif
 
+ifdef CONFIG_NAN_USD
+OBJS += ../src/common/nan_de.o
+OBJS += ../src/ap/nan_usd_ap.o
+CFLAGS += -DCONFIG_NAN_USD
+endif
+
 ifdef CONFIG_PASN
 CFLAGS += -DCONFIG_PASN
 CFLAGS += -DCONFIG_PTKSA_CACHE

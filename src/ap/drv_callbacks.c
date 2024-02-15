@@ -42,6 +42,7 @@
 #include "dpp_hostapd.h"
 #include "fils_hlp.h"
 #include "neighbor_db.h"
+#include "nan_usd_ap.h"
 
 
 #ifdef CONFIG_FILS
@@ -1622,6 +1623,23 @@ static void hostapd_action_rx(struct hostapd_data *hapd,
 		return;
 	}
 #endif /* CONFIG_DPP */
+#ifdef CONFIG_NAN_USD
+	if (mgmt->u.action.category == WLAN_ACTION_PUBLIC && plen >= 5 &&
+	    mgmt->u.action.u.vs_public_action.action ==
+	    WLAN_PA_VENDOR_SPECIFIC &&
+	    WPA_GET_BE24(mgmt->u.action.u.vs_public_action.oui) ==
+	    OUI_WFA &&
+	    mgmt->u.action.u.vs_public_action.variable[0] == NAN_OUI_TYPE) {
+		const u8 *pos, *end;
+
+		pos = mgmt->u.action.u.vs_public_action.variable;
+		end = drv_mgmt->frame + drv_mgmt->frame_len;
+		pos++;
+		hostapd_nan_usd_rx_sdf(hapd, mgmt->sa, drv_mgmt->freq,
+				       pos, end - pos);
+		return;
+	}
+#endif /* CONFIG_NAN_USD */
 }
 #endif /* NEED_AP_MLME */
 

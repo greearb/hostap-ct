@@ -35,6 +35,7 @@
 #include "wpa_auth.h"
 #include "wps_hostapd.h"
 #include "dpp_hostapd.h"
+#include "nan_usd_ap.h"
 #include "gas_query_ap.h"
 #include "hw_features.h"
 #include "wpa_auth_glue.h"
@@ -528,6 +529,9 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 	gas_query_ap_deinit(hapd->gas);
 	hapd->gas = NULL;
 #endif /* CONFIG_DPP */
+#ifdef CONFIG_NAN_USD
+	hostapd_nan_usd_deinit(hapd);
+#endif /* CONFIG_NAN_USD */
 
 	authsrv_deinit(hapd);
 
@@ -1515,6 +1519,11 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 	if (hostapd_dpp_init(hapd))
 		return -1;
 #endif /* CONFIG_DPP */
+
+#ifdef CONFIG_NAN_USD
+	if (hostapd_nan_usd_init(hapd) < 0)
+		return -1;
+#endif /* CONFIG_NAN_USD */
 
 	if (authsrv_init(hapd) < 0)
 		return -1;

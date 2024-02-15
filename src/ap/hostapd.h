@@ -475,6 +475,10 @@ struct hostapd_data {
 	u8 eht_mld_link_removal_count;
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
+
+#ifdef CONFIG_NAN_USD
+	struct nan_de *nan_de;
+#endif /* CONFIG_NAN_USD */
 };
 
 

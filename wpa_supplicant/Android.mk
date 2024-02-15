@@ -994,6 +994,9 @@ OBJS += src/ap/dpp_hostapd.c
 OBJS += src/ap/gas_query_ap.c
 NEED_AP_GAS_SERV=y
 endif
+ifdef CONFIG_NAN_USD
+OBJS += src/ap/nan_usd_ap.c
+endif
 ifdef CONFIG_INTERWORKING
 NEED_AP_GAS_SERV=y
 endif

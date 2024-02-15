@@ -39,6 +39,7 @@
 #include "common/wpa_ctrl.h"
 #include "common/ptksa_cache.h"
 #include "common/hw_features_common.h"
+#include "common/nan_de.h"
 #include "crypto/tls.h"
 #include "drivers/driver.h"
 #include "eapol_auth/eapol_auth_sm.h"
@@ -63,6 +64,7 @@
 #include "ap/rrm.h"
 #include "ap/dpp_hostapd.h"
 #include "ap/dfs.h"
+#include "ap/nan_usd_ap.h"
 #include "wps/wps_defs.h"
 #include "wps/wps.h"
 #include "fst/fst_ctrl_iface.h"
@@ -3580,6 +3582,292 @@ static int hostapd_ctrl_iface_link_remove(struct hostapd_data *hapd, char *cmd,
 #endif /* CONFIG_IEEE80211BE */
 
 
+#ifdef CONFIG_NAN_USD
+
+static int hostapd_ctrl_nan_publish(struct hostapd_data *hapd, char *cmd,
+				    char *buf, size_t buflen)
+{
+	char *token, *context = NULL;
+	int publish_id;
+	struct nan_publish_params params;
+	const char *service_name = NULL;
+	struct wpabuf *ssi = NULL;
+	int ret = -1;
+	enum nan_service_protocol_type srv_proto_type = 0;
+
+	os_memset(&params, 0, sizeof(params));
+	/* USD shall use both solicited and unsolicited transmissions */
+	params.unsolicited = true;
+	params.solicited = true;
+	/* USD shall require FSD without GAS */
+	params.fsd = true;
+
+	while ((token = str_token(cmd, " ", &context))) {
+		if (os_strncmp(token, "service_name=", 13) == 0) {
+			service_name = token + 13;
+			continue;
+		}
+
+		if (os_strncmp(token, "ttl=", 4) == 0) {
+			params.ttl = atoi(token + 4);
+			continue;
+		}
+
+		if (os_strncmp(token, "srv_proto_type=", 15) == 0) {
+			srv_proto_type = atoi(token + 15);
+			continue;
+		}
+
+		if (os_strncmp(token, "ssi=", 4) == 0) {
+			if (ssi)
+				goto fail;
+			ssi = wpabuf_parse_bin(token + 4);
+			if (!ssi)
+				goto fail;
+			continue;
+		}
+
+		if (os_strcmp(token, "solicited=0") == 0) {
+			params.solicited = false;
+			continue;
+		}
+
+		if (os_strcmp(token, "unsolicited=0") == 0) {
+			params.unsolicited = false;
+			continue;
+		}
+
+		if (os_strcmp(token, "fsd=0") == 0) {
+			params.fsd = false;
+			continue;
+		}
+
+		wpa_printf(MSG_INFO, "CTRL: Invalid NAN_PUBLISH parameter: %s",
+			   token);
+		goto fail;
+	}
+
+	publish_id = hostapd_nan_usd_publish(hapd, service_name, srv_proto_type,
+					     ssi, &params);
+	if (publish_id > 0)
+		ret = os_snprintf(buf, buflen, "%d", publish_id);
+fail:
+	wpabuf_free(ssi);
+	return ret;
+}
+
+
+static int hostapd_ctrl_nan_cancel_publish(struct hostapd_data *hapd,
+					   char *cmd)
+{
+	char *token, *context = NULL;
+	int publish_id = 0;
+
+	while ((token = str_token(cmd, " ", &context))) {
+		if (sscanf(token, "publish_id=%i", &publish_id) == 1)
+			continue;
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid NAN_CANCEL_PUBLISH parameter: %s",
+			   token);
+		return -1;
+	}
+
+	if (publish_id <= 0) {
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid or missing NAN_CANCEL_PUBLISH publish_id");
+		return -1;
+	}
+
+	hostapd_nan_usd_cancel_publish(hapd, publish_id);
+	return 0;
+}
+
+
+static int hostapd_ctrl_nan_update_publish(struct hostapd_data *hapd,
+					   char *cmd)
+{
+	char *token, *context = NULL;
+	int publish_id = 0;
+	struct wpabuf *ssi = NULL;
+	int ret = -1;
+
+	while ((token = str_token(cmd, " ", &context))) {
+		if (sscanf(token, "publish_id=%i", &publish_id) == 1)
+			continue;
+		if (os_strncmp(token, "ssi=", 4) == 0) {
+			if (ssi)
+				goto fail;
+			ssi = wpabuf_parse_bin(token + 4);
+			if (!ssi)
+				goto fail;
+			continue;
+		}
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid NAN_UPDATE_PUBLISH parameter: %s",
+			   token);
+		goto fail;
+	}
+
+	if (publish_id <= 0) {
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid or missing NAN_UPDATE_PUBLISH publish_id");
+		goto fail;
+	}
+
+	ret = hostapd_nan_usd_update_publish(hapd, publish_id, ssi);
+fail:
+	wpabuf_free(ssi);
+	return ret;
+}
+
+
+static int hostapd_ctrl_nan_subscribe(struct hostapd_data *hapd, char *cmd,
+				      char *buf, size_t buflen)
+{
+	char *token, *context = NULL;
+	int subscribe_id;
+	struct nan_subscribe_params params;
+	const char *service_name = NULL;
+	struct wpabuf *ssi = NULL;
+	int ret = -1;
+	enum nan_service_protocol_type srv_proto_type = 0;
+
+	os_memset(&params, 0, sizeof(params));
+
+	while ((token = str_token(cmd, " ", &context))) {
+		if (os_strncmp(token, "service_name=", 13) == 0) {
+			service_name = token + 13;
+			continue;
+		}
+
+		if (os_strcmp(token, "active=1") == 0) {
+			params.active = true;
+			continue;
+		}
+
+		if (os_strncmp(token, "ttl=", 4) == 0) {
+			params.ttl = atoi(token + 4);
+			continue;
+		}
+
+		if (os_strncmp(token, "srv_proto_type=", 15) == 0) {
+			srv_proto_type = atoi(token + 15);
+			continue;
+		}
+
+		if (os_strncmp(token, "ssi=", 4) == 0) {
+			if (ssi)
+				goto fail;
+			ssi = wpabuf_parse_bin(token + 4);
+			if (!ssi)
+				goto fail;
+			continue;
+		}
+
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid NAN_SUBSCRIBE parameter: %s",
+			   token);
+		goto fail;
+	}
+
+	subscribe_id = hostapd_nan_usd_subscribe(hapd, service_name,
+						 srv_proto_type, ssi,
+						 &params);
+	if (subscribe_id > 0)
+		ret = os_snprintf(buf, buflen, "%d", subscribe_id);
+fail:
+	wpabuf_free(ssi);
+	return ret;
+}
+
+
+static int hostapd_ctrl_nan_cancel_subscribe(struct hostapd_data *hapd,
+					     char *cmd)
+{
+	char *token, *context = NULL;
+	int subscribe_id = 0;
+
+	while ((token = str_token(cmd, " ", &context))) {
+		if (sscanf(token, "subscribe_id=%i", &subscribe_id) == 1)
+			continue;
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid NAN_CANCEL_SUBSCRIBE parameter: %s",
+			   token);
+		return -1;
+	}
+
+	if (subscribe_id <= 0) {
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid or missing NAN_CANCEL_SUBSCRIBE subscribe_id");
+		return -1;
+	}
+
+	hostapd_nan_usd_cancel_subscribe(hapd, subscribe_id);
+	return 0;
+}
+
+
+static int hostapd_ctrl_nan_transmit(struct hostapd_data *hapd, char *cmd)
+{
+	char *token, *context = NULL;
+	int handle = 0;
+	int req_instance_id = 0;
+	struct wpabuf *ssi = NULL;
+	u8 peer_addr[ETH_ALEN];
+	int ret = -1;
+
+	os_memset(peer_addr, 0, ETH_ALEN);
+
+	while ((token = str_token(cmd, " ", &context))) {
+		if (sscanf(token, "handle=%i", &handle) == 1)
+			continue;
+
+		if (sscanf(token, "req_instance_id=%i", &req_instance_id) == 1)
+			continue;
+
+		if (os_strncmp(token, "address=", 8) == 0) {
+			if (hwaddr_aton(token + 8, peer_addr) < 0)
+				return -1;
+			continue;
+		}
+
+		if (os_strncmp(token, "ssi=", 4) == 0) {
+			if (ssi)
+				goto fail;
+			ssi = wpabuf_parse_bin(token + 4);
+			if (!ssi)
+				goto fail;
+			continue;
+		}
+
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid NAN_TRANSMIT parameter: %s",
+			   token);
+		goto fail;
+	}
+
+	if (handle <= 0) {
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid or missing NAN_TRANSMIT handle");
+		goto fail;
+	}
+
+	if (is_zero_ether_addr(peer_addr)) {
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid or missing NAN_TRANSMIT address");
+		goto fail;
+	}
+
+	ret = hostapd_nan_usd_transmit(hapd, handle, ssi, NULL, peer_addr,
+				    req_instance_id);
+fail:
+	wpabuf_free(ssi);
+	return ret;
+}
+
+#endif /* CONFIG_NAN_USD */
+
+
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
 					      int reply_size,
@@ -4124,6 +4412,26 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 			reply_len = -1;
 #endif /* CONFIG_DPP3 */
 #endif /* CONFIG_DPP */
+#ifdef CONFIG_NAN_USD
+	} else if (os_strncmp(buf, "NAN_PUBLISH ", 12) == 0) {
+		reply_len = hostapd_ctrl_nan_publish(hapd, buf + 12, reply,
+						     reply_size);
+	} else if (os_strncmp(buf, "NAN_CANCEL_PUBLISH ", 19) == 0) {
+		if (hostapd_ctrl_nan_cancel_publish(hapd, buf + 19) < 0)
+			reply_len = -1;
+	} else if (os_strncmp(buf, "NAN_UPDATE_PUBLISH ", 19) == 0) {
+		if (hostapd_ctrl_nan_update_publish(hapd, buf + 19) < 0)
+			reply_len = -1;
+	} else if (os_strncmp(buf, "NAN_SUBSCRIBE ", 14) == 0) {
+		reply_len = hostapd_ctrl_nan_subscribe(hapd, buf + 14, reply,
+						       reply_size);
+	} else if (os_strncmp(buf, "NAN_CANCEL_SUBSCRIBE ", 21) == 0) {
+		if (hostapd_ctrl_nan_cancel_subscribe(hapd, buf + 21) < 0)
+			reply_len = -1;
+	} else if (os_strncmp(buf, "NAN_TRANSMIT ", 13) == 0) {
+		if (hostapd_ctrl_nan_transmit(hapd, buf + 13) < 0)
+			reply_len = -1;
+#endif /* CONFIG_NAN_USD */
 #ifdef RADIUS_SERVER
 	} else if (os_strncmp(buf, "DAC_REQUEST ", 12) == 0) {
 		if (radius_server_dac_request(hapd->radius_srv, buf + 12) < 0)

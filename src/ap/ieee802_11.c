@@ -56,6 +56,7 @@
 #include "dpp_hostapd.h"
 #include "gas_query_ap.h"
 #include "comeback_token.h"
+#include "nan_usd_ap.h"
 #include "pasn/pasn_common.h"
 
 
@@ -6034,6 +6035,25 @@ static int handle_action(struct hostapd_data *hapd,
 				return 1;
 		}
 #endif /* CONFIG_DPP */
+#ifdef CONFIG_NAN_USD
+		if (mgmt->u.action.category == WLAN_ACTION_PUBLIC &&
+		    len >= IEEE80211_HDRLEN + 5 &&
+		    mgmt->u.action.u.vs_public_action.action ==
+		    WLAN_PA_VENDOR_SPECIFIC &&
+		    WPA_GET_BE24(mgmt->u.action.u.vs_public_action.oui) ==
+		    OUI_WFA &&
+		    mgmt->u.action.u.vs_public_action.variable[0] ==
+		    NAN_OUI_TYPE) {
+			const u8 *pos, *end;
+
+			pos = mgmt->u.action.u.vs_public_action.variable;
+			end = ((const u8 *) mgmt) + len;
+			pos++;
+			hostapd_nan_usd_rx_sdf(hapd, mgmt->sa, freq,
+					       pos, end - pos);
+			return 1;
+		}
+#endif /* CONFIG_NAN_USD */
 		if (hapd->public_action_cb) {
 			hapd->public_action_cb(hapd->public_action_cb_ctx,
 					       (u8 *) mgmt, len, freq);
@@ -6141,6 +6161,10 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 	int ret = 0;
 	unsigned int freq;
 	int ssi_signal = fi ? fi->ssi_signal : 0;
+#ifdef CONFIG_NAN_USD
+	static const u8 nan_network_id[ETH_ALEN] =
+		{ 0x51, 0x6f, 0x9a, 0x01, 0x00, 0x00 };
+#endif /* CONFIG_NAN_USD */
 
 	if (len < 24)
 		return 0;
@@ -6207,6 +6231,9 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 	    !(hapd->conf->mld_ap &&
 	      ether_addr_equal(hapd->mld_addr, mgmt->bssid)) &&
 #endif /* CONFIG_IEEE80211BE */
+#ifdef CONFIG_NAN_USD
+	    !ether_addr_equal(mgmt->da, nan_network_id) &&
+#endif /* CONFIG_NAN_USD */
 	    !ether_addr_equal(mgmt->da, hapd->own_addr)) {
 		hostapd_logger(hapd, mgmt->sa, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_DEBUG,
