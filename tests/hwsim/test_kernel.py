@@ -150,6 +150,7 @@ def test_kernel_reg_disconnect(dev, apdev):
     finally:
         dev[0].request("DISCONNECT")
         clear_regdom(hapd, dev)
+        dev[0].set("country", "00")
 
 def test_kernel_kunit(dev, apdev):
     """KUnit tests"""
