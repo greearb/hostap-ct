@@ -1155,19 +1155,18 @@ static void owe_trans_ssid(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 
 
 static bool wpas_valid_ml_bss(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
-
 {
 	u16 removed_links;
 
 	if (wpa_bss_parse_basic_ml_element(wpa_s, bss, NULL, NULL, NULL, NULL))
 		return true;
 
-	if (bss->n_mld_links == 0)
+	if (!bss->valid_links)
 		return true;
 
 	/* Check if the current BSS is going to be removed */
 	removed_links = wpa_bss_parse_reconf_ml_element(wpa_s, bss);
-	if (BIT(bss->mld_links[0].link_id) & removed_links)
+	if (BIT(bss->mld_link_id) & removed_links)
 		return false;
 
 	return true;

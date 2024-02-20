@@ -126,11 +126,12 @@ struct wpa_bss {
 	size_t beacon_ie_len;
 	/** MLD address of the AP */
 	u8 mld_addr[ETH_ALEN];
+	/** Link ID of this affiliated AP of the AP MLD */
+	u8 mld_link_id;
 
 	/** An array of MLD links */
-	u8 n_mld_links;
+	u16 valid_links;
 	struct mld_link {
-		u8 link_id;
 		u8 bssid[ETH_ALEN];
 		int freq;
 

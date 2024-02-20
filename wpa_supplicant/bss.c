@@ -1510,9 +1510,6 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 	for (i = 0; i < count; i++) {
 		u8 bss_params;
 
-		if (bss->n_mld_links >= MAX_NUM_MLD_LINKS)
-			return;
-
 		if (end - pos < ap_info->tbtt_info_len)
 			break;
 
@@ -1520,6 +1517,8 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 		mld_params = pos + mld_params_offset;
 
 		link_id = *(mld_params + 1) & EHT_ML_LINK_ID_MSK;
+		if (link_id >= MAX_NUM_MLD_LINKS)
+			return;
 
 		if (*mld_params != mbssid_idx) {
 			wpa_printf(MSG_DEBUG,
@@ -1543,13 +1542,12 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 					   wpa_s, neigh_bss->bssid)) {
 				struct mld_link *l;
 
-				l = &bss->mld_links[bss->n_mld_links];
-				l->link_id = link_id;
+				bss->valid_links |= BIT(link_id);
+				l = &bss->mld_links[link_id];
 				os_memcpy(l->bssid, pos + 1, ETH_ALEN);
 				l->freq = neigh_bss->freq;
 				l->disabled = mld_params[2] &
 					RNR_TBTT_INFO_MLD_PARAM2_LINK_DISABLED;
-				bss->n_mld_links++;
 			}
 		}
 
@@ -1675,15 +1673,15 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 		os_memcpy(ap_mld_addr, ml_basic_common_info->mld_addr,
 			  ETH_ALEN);
 
-	bss->n_mld_links = 0;
-	l = &bss->mld_links[bss->n_mld_links];
 	link_id = ml_basic_common_info->variable[0] & EHT_ML_LINK_ID_MSK;
-	l->link_id = link_id;
+
+	bss->mld_link_id = link_id;
+	seen = bss->valid_links = BIT(link_id);
+
+	l = &bss->mld_links[link_id];
 	os_memcpy(l->bssid, bss->bssid, ETH_ALEN);
 	l->freq = bss->freq;
 
-	seen = BIT(link_id);
-	bss->n_mld_links++;
 
 	/*
 	 * The AP MLD ID in the RNR corresponds to the MBSSID index, see
@@ -1733,13 +1731,12 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 		}
 	}
 
-	wpa_printf(MSG_DEBUG, "MLD: n_mld_links=%u (unresolved: 0x%04hx)",
-		   bss->n_mld_links, missing);
+	wpa_printf(MSG_DEBUG, "MLD: valid_links=%04hx (unresolved: 0x%04hx)",
+		   bss->valid_links, missing);
 
-	for (i = 0; i < bss->n_mld_links; i++) {
+	for_each_link(bss->valid_links, i) {
 		wpa_printf(MSG_DEBUG, "MLD: link=%u, bssid=" MACSTR,
-			   bss->mld_links[i].link_id,
-			   MAC2STR(bss->mld_links[i].bssid));
+			   i, MAC2STR(bss->mld_links[i].bssid));
 	}
 
 	if (missing_links)

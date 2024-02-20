@@ -517,21 +517,23 @@ out:
 static void wpas_sme_set_mlo_links(struct wpa_supplicant *wpa_s,
 				   struct wpa_bss *bss)
 {
-	int i;
+	u8 i;
 
 	wpa_s->valid_links = 0;
+	wpa_s->mlo_assoc_link_id = bss->mld_link_id;
 
-	for (i = 0; i < bss->n_mld_links; i++) {
-		u8 link_id = bss->mld_links[i].link_id;
+	for_each_link(bss->valid_links, i) {
 		const u8 *bssid = bss->mld_links[i].bssid;
 
-		if (i == 0)
-			wpa_s->mlo_assoc_link_id = link_id;
-		wpa_s->valid_links |= BIT(link_id);
-		os_memcpy(wpa_s->links[link_id].bssid, bssid, ETH_ALEN);
-		wpa_s->links[link_id].freq = bss->mld_links[i].freq;
-		wpa_s->links[link_id].bss = wpa_bss_get_bssid(wpa_s, bssid);
-		wpa_s->links[link_id].disabled = bss->mld_links[i].disabled;
+		wpa_s->valid_links |= BIT(i);
+		os_memcpy(wpa_s->links[i].bssid, bssid, ETH_ALEN);
+		wpa_s->links[i].freq = bss->mld_links[i].freq;
+		wpa_s->links[i].disabled = bss->mld_links[i].disabled;
+
+		if (bss->mld_link_id == i)
+			wpa_s->links[i].bss = bss;
+		else
+			wpa_s->links[i].bss = wpa_bss_get_bssid(wpa_s, bssid);
 	}
 }
 
@@ -572,7 +574,7 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 	if ((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
 	    !wpa_bss_parse_basic_ml_element(wpa_s, bss, wpa_s->ap_mld_addr,
 					    NULL, ssid, NULL) &&
-	    bss->n_mld_links) {
+	    bss->valid_links) {
 		wpa_printf(MSG_DEBUG, "MLD: In authentication");
 		wpas_sme_set_mlo_links(wpa_s, bss);
 
