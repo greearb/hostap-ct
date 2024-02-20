@@ -55,7 +55,6 @@ struct nl80211_wiphy_data {
 struct i802_link {
 	unsigned int beacon_set:1;
 
-	s8 link_id;
 	int freq;
 	int bandwidth;
 	u8 addr[ETH_ALEN];
@@ -66,7 +65,7 @@ struct i802_bss {
 	struct wpa_driver_nl80211_data *drv;
 	struct i802_bss *next;
 
-	size_t n_links;
+	u16 valid_links;
 	struct i802_link links[MAX_NUM_MLD_LINKS];
 	struct i802_link *flink;
 
@@ -353,6 +352,18 @@ const char * nl80211_iftype_str(enum nl80211_iftype mode);
 
 void nl80211_restore_ap_mode(struct i802_bss *bss);
 struct i802_link * nl80211_get_link(struct i802_bss *bss, s8 link_id);
+
+static inline bool nl80211_link_valid(u16 links, s8 link_id)
+{
+	if (link_id < 0 || link_id >= MAX_NUM_MLD_LINKS)
+		return false;
+
+	if (links & BIT(link_id))
+		return true;
+
+	return false;
+}
+
 
 static inline bool
 nl80211_attr_supported(struct wpa_driver_nl80211_data *drv, unsigned int attr)

@@ -1610,18 +1610,17 @@ static void mlme_event_unprot_beacon(struct wpa_driver_nl80211_data *drv,
 }
 
 
-static struct i802_link *
-nl80211_get_mld_link_by_freq(struct i802_bss *bss, unsigned int freq)
+static s8
+nl80211_get_link_id_by_freq(struct i802_bss *bss, unsigned int freq)
 {
 	unsigned int i;
 
-	for (i = 0; i < bss->n_links; i++) {
-		if ((unsigned int) bss->links[i].freq == freq &&
-		    bss->links[i].link_id != -1)
-			return &bss->links[i];
+	for_each_link(bss->valid_links, i) {
+		if ((unsigned int) bss->links[i].freq == freq)
+			return i;
 	}
 
-	return NULL;
+	return NL80211_DRV_LINK_ID_NA;
 }
 
 
@@ -1655,12 +1654,12 @@ static void mlme_event(struct i802_bss *bss,
 	/* Determine the MLD link either by an explicitly provided link id or
 	 * finding a match based on the frequency. */
 	if (link)
-		mld_link = nl80211_get_link(bss, nla_get_u8(link));
+		link_id = nla_get_u8(link);
 	else if (freq)
-		mld_link = nl80211_get_mld_link_by_freq(bss, nla_get_u32(freq));
+		link_id = nl80211_get_link_id_by_freq(bss, nla_get_u32(freq));
 
-	if (mld_link)
-		link_id = mld_link->link_id;
+	if (nl80211_link_valid(bss->valid_links, link_id))
+		mld_link = nl80211_get_link(bss, link_id);
 
 	data = nla_data(frame);
 	len = nla_len(frame);
@@ -1912,7 +1911,7 @@ static void mlme_event_dh_event(struct wpa_driver_nl80211_data *drv,
 	os_memset(&data, 0, sizeof(data));
 	addr = nla_data(tb[NL80211_ATTR_MAC]);
 
-	if (bss->links[0].link_id == NL80211_DRV_LINK_ID_NA &&
+	if (!bss->valid_links &&
 	    (tb[NL80211_ATTR_MLO_LINK_ID] ||
 	     tb[NL80211_ATTR_MLD_ADDR])) {
 		wpa_printf(MSG_ERROR,
@@ -2176,7 +2175,7 @@ static void nl80211_new_station_event(struct wpa_driver_nl80211_data *drv,
 		u8 *req_ies = NULL, *resp_ies = NULL;
 		size_t req_ies_len = 0, resp_ies_len = 0;
 
-		if (bss->links[0].link_id == NL80211_DRV_LINK_ID_NA &&
+		if (!bss->valid_links &&
 		    (tb[NL80211_ATTR_MLO_LINK_ID] ||
 		     tb[NL80211_ATTR_MLD_ADDR])) {
 			wpa_printf(MSG_ERROR,
@@ -2444,7 +2443,6 @@ static void nl80211_radar_event(struct wpa_driver_nl80211_data *drv,
 {
 	union wpa_event_data data;
 	enum nl80211_radar_event event_type;
-	struct i802_link *mld_link = NULL;
 
 	if (!tb[NL80211_ATTR_WIPHY_FREQ] || !tb[NL80211_ATTR_RADAR_EVENT])
 		return;
@@ -2455,10 +2453,9 @@ static void nl80211_radar_event(struct wpa_driver_nl80211_data *drv,
 	event_type = nla_get_u32(tb[NL80211_ATTR_RADAR_EVENT]);
 
 	if (data.dfs_event.freq) {
-		mld_link = nl80211_get_mld_link_by_freq(drv->first_bss,
-							data.dfs_event.freq);
-		if (mld_link)
-			data.dfs_event.link_id = mld_link->link_id;
+		data.dfs_event.link_id =
+			nl80211_get_link_id_by_freq(drv->first_bss,
+						    data.dfs_event.freq);
 	}
 
 	/* Check HT params */
@@ -2824,7 +2821,6 @@ static void qca_nl80211_dfs_offload_radar_event(
 {
 	union wpa_event_data data;
 	struct nlattr *tb[NL80211_ATTR_MAX + 1];
-	struct i802_link *mld_link = NULL;
 
 	wpa_printf(MSG_DEBUG,
 		   "nl80211: DFS offload radar vendor event received");
@@ -2844,10 +2840,9 @@ static void qca_nl80211_dfs_offload_radar_event(
 	data.dfs_event.link_id = NL80211_DRV_LINK_ID_NA;
 
 	if (data.dfs_event.freq) {
-		mld_link = nl80211_get_mld_link_by_freq(drv->first_bss,
-							data.dfs_event.freq);
-		if (mld_link)
-			data.dfs_event.link_id = mld_link->link_id;
+		data.dfs_event.link_id =
+			nl80211_get_link_id_by_freq(drv->first_bss,
+						    data.dfs_event.freq);
 	}
 
 	wpa_printf(MSG_DEBUG, "nl80211: DFS event on freq %d MHz, link=%d",
