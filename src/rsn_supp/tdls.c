@@ -1571,9 +1571,8 @@ static bool wpa_tdls_is_lnkid_bss_valid(struct wpa_sm *sm,
 	} else {
 		int i;
 
-		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-			if ((sm->mlo.valid_links & BIT(i)) &&
-			    ether_addr_equal(lnkid->bssid,
+		for_each_link(sm->mlo.valid_links, i) {
+			if (ether_addr_equal(lnkid->bssid,
 					     sm->mlo.links[i].bssid)) {
 				*link_id = i;
 				break;

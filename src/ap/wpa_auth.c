@@ -3336,10 +3336,7 @@ static int wpa_auth_validate_ml_kdes_m2(struct wpa_state_machine *sm,
 	}
 
 	/* Find matching link ID and the MAC address for each link */
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(kde->valid_mlo_links & BIT(i)))
-			continue;
-
+	for_each_link(kde->valid_mlo_links, i) {
 		/*
 		 * Each entry should contain the link information and the MAC
 		 * address.

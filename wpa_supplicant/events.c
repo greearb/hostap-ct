@@ -3983,10 +3983,7 @@ static int wpa_drv_get_mlo_info(struct wpa_supplicant *wpa_s)
 		if (!mlo.valid_links)
 			return 0;
 
-		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-			if (!(mlo.valid_links & BIT(i)))
-				continue;
-
+		for_each_link(mlo.valid_links, i) {
 			if (!ether_addr_equal(wpa_s->links[i].addr,
 					      mlo.links[i].addr) ||
 			    !ether_addr_equal(wpa_s->links[i].bssid,
@@ -4004,10 +4001,7 @@ static int wpa_drv_get_mlo_info(struct wpa_supplicant *wpa_s)
 	wpa_s->valid_links = mlo.valid_links;
 	wpa_s->mlo_assoc_link_id = mlo.assoc_link_id;
 	os_memcpy(wpa_s->ap_mld_addr, mlo.ap_mld_addr, ETH_ALEN);
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(wpa_s->valid_links & BIT(i)))
-			continue;
-
+	for_each_link(wpa_s->valid_links, i) {
 		os_memcpy(wpa_s->links[i].addr, mlo.links[i].addr, ETH_ALEN);
 		os_memcpy(wpa_s->links[i].bssid, mlo.links[i].bssid, ETH_ALEN);
 		wpa_s->links[i].freq = mlo.links[i].freq;

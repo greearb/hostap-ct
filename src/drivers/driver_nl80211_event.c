@@ -477,10 +477,7 @@ static void qca_nl80211_link_reconfig_event(struct wpa_driver_nl80211_data *drv,
 	 * links when the link used for (re)association is removed.
 	 */
 	if (removed_links & BIT(drv->sta_mlo_info.assoc_link_id)) {
-		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-			if (!(drv->sta_mlo_info.valid_links & BIT(i)))
-				continue;
-
+		for_each_link(drv->sta_mlo_info.valid_links, i) {
 			os_memcpy(drv->bssid, drv->sta_mlo_info.links[i].bssid,
 				  ETH_ALEN);
 			drv->sta_mlo_info.assoc_link_id = i;
@@ -702,10 +699,7 @@ static int nl80211_update_rejected_links_info(struct driver_sta_mlo_info *mlo,
 	}
 
 	/* Get MLO links info for rejected links */
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!((mlo->req_links & ~mlo->valid_links) & BIT(i)))
-			continue;
-
+	for_each_link((mlo->req_links & ~mlo->valid_links), i) {
 		os_memcpy(mlo->links[i].bssid, resp_info.addr[i], ETH_ALEN);
 		os_memcpy(mlo->links[i].addr, req_info.addr[i], ETH_ALEN);
 	}
@@ -875,9 +869,7 @@ qca_nl80211_tid_to_link_map_event(struct wpa_driver_nl80211_data *drv,
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: TID-to-link: Received uplink %x downlink %x",
 			   uplink, downlink);
-		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-			if (!(drv->sta_mlo_info.valid_links & BIT(i)))
-				continue;
+		for_each_link(drv->sta_mlo_info.valid_links, i) {
 			if (uplink & BIT(i))
 				event.t2l_map_info.t2lmap[i].uplink |=
 					BIT(tidnum);

@@ -2090,10 +2090,7 @@ bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 	if (!wpa_s->valid_links)
 		return false;
 
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(wpa_s->valid_links & BIT(i)))
-			continue;
-
+	for_each_link(wpa_s->valid_links, i) {
 		if (ether_addr_equal(wpa_s->links[i].bssid, bss->bssid)) {
 			wpa_dbg(wpa_s, MSG_DEBUG,
 				"WNM: MLD: Disassociation imminent: current link");

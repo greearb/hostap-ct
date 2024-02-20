@@ -11995,10 +11995,7 @@ static int wpas_ctrl_iface_mlo_signal_poll(struct wpa_supplicant *wpa_s,
 	pos = buf;
 	end = buf + buflen;
 
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(mlo_si.valid_links & BIT(i)))
-			continue;
-
+	for_each_link(mlo_si.valid_links, i) {
 		ret = os_snprintf(pos, end - pos,
 				  "LINK_ID=%d\nRSSI=%d\nLINKSPEED=%lu\n"
 				  "NOISE=%d\nFREQUENCY=%u\n",
@@ -12070,10 +12067,7 @@ static int wpas_ctrl_iface_mlo_status(struct wpa_supplicant *wpa_s,
 	pos = buf;
 	end = buf + buflen;
 
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(wpa_s->valid_links & BIT(i)))
-			continue;
-
+	for_each_link(wpa_s->valid_links, i) {
 		ret = os_snprintf(pos, end - pos, "link_id=%d\nfreq=%u\n"
 				  "ap_link_addr=" MACSTR
 				  "\nsta_link_addr=" MACSTR "\n",

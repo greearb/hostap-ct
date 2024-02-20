@@ -9342,10 +9342,7 @@ bool wpas_ap_link_address(struct wpa_supplicant *wpa_s, const u8 *addr)
 	if (!wpa_s->valid_links)
 		return false;
 
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(wpa_s->valid_links & BIT(i)))
-			continue;
-
+	for_each_link(wpa_s->valid_links, i) {
 		if (ether_addr_equal(wpa_s->links[i].bssid, addr))
 			return true;
 	}

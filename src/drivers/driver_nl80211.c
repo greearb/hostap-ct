@@ -6733,10 +6733,7 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 		if (!links)
 			return -1;
 
-		for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
-			if (!(mld_params->valid_links & BIT(link_id)))
-				continue;
-
+		for_each_link(mld_params->valid_links, link_id) {
 			attr = nla_nest_start(msg, 0);
 			if (!attr)
 				return -1;
@@ -7317,10 +7314,7 @@ static int wpa_driver_nl80211_associate(
 
 		/* Error and force TEST_FAIL checking for each link */
 		ret = -EINVAL;
-		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-			if (!(params->mld_params.valid_links & BIT(i)))
-				continue;
-
+		for_each_link(params->mld_params.valid_links, i) {
 			if (TEST_FAIL_TAG("link"))
 				err_info.link_id = i;
 		}
@@ -9270,10 +9264,7 @@ static int nl80211_put_any_link_id(struct nl_msg *msg,
 		return 0;
 
 	/* First try to pick a link that uses the same band */
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(mlo->valid_links & BIT(i)))
-			continue;
-
+	for_each_link(mlo->valid_links, i) {
 		if (any_valid_link_id == -1)
 			any_valid_link_id = i;
 
@@ -9724,10 +9715,7 @@ static int get_links_noise(struct nl_msg *msg, void *arg)
 	if (!sinfo[NL80211_SURVEY_INFO_NOISE])
 		return NL_SKIP;
 
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(mlo_sig->valid_links & BIT(i)))
-			continue;
-
+	for_each_link(mlo_sig->valid_links, i) {
 		if (nla_get_u32(sinfo[NL80211_SURVEY_INFO_FREQUENCY]) !=
 		    mlo_sig->links[i].frequency)
 			continue;
@@ -9820,10 +9808,7 @@ static int nl80211_mlo_signal_poll(void *priv,
 	os_memset(mlo_si, 0, sizeof(*mlo_si));
 	mlo_si->valid_links = drv->sta_mlo_info.valid_links;
 
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(mlo_si->valid_links & BIT(i)))
-			continue;
-
+	for_each_link(mlo_si->valid_links, i) {
 		res = nl80211_get_link_signal(drv,
 					      drv->sta_mlo_info.links[i].bssid,
 					      &mlo_si->links[i].data);
@@ -11015,10 +11000,7 @@ static int wpa_driver_nl80211_status(void *priv, char *buf, size_t buflen)
 			return pos - buf;
 		pos += res;
 
-		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-			if (!(mlo->valid_links & BIT(i)))
-				continue;
-
+		for_each_link(mlo->valid_links, i) {
 			res = os_snprintf(pos, end - pos,
 					  "link_addr[%u]=" MACSTR "\n"
 					  "link_bssid[%u]=" MACSTR "\n"

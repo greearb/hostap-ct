@@ -405,10 +405,7 @@ static struct wpa_bss * wpas_ml_connect_pref(struct wpa_supplicant *wpa_s,
 		return bss;
 
 	if (!is_zero_ether_addr(wpa_s->conf->mld_connect_bssid_pref)) {
-		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-			if (!(wpa_s->valid_links & BIT(i)))
-				continue;
-
+		for_each_link(wpa_s->valid_links, i) {
 			if (wpa_s->mlo_assoc_link_id == i)
 				continue;
 
@@ -439,10 +436,7 @@ static struct wpa_bss * wpas_ml_connect_pref(struct wpa_supplicant *wpa_s,
 		return bss;
 	}
 
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(wpa_s->valid_links & BIT(i)))
-			continue;
-
+	for_each_link(wpa_s->valid_links, i) {
 		if (wpa_s->mlo_assoc_link_id == i)
 			continue;
 
@@ -2597,10 +2591,7 @@ mscs_fail:
 		params.mld_params.mld_addr = wpa_s->ap_mld_addr;
 		params.mld_params.valid_links = wpa_s->valid_links;
 		params.mld_params.assoc_link_id = wpa_s->mlo_assoc_link_id;
-		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-			if (!(wpa_s->valid_links & BIT(i)))
-				continue;
-
+		for_each_link(wpa_s->valid_links, i) {
 			params.mld_params.mld_links[i].bssid =
 				wpa_s->links[i].bssid;
 			params.mld_params.mld_links[i].freq =

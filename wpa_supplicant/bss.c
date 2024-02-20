@@ -414,10 +414,7 @@ static int wpa_bss_in_use(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 	if (!wpa_s->valid_links)
 		return 0;
 
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(wpa_s->valid_links & BIT(i)))
-			continue;
-
+	for_each_link(wpa_s->valid_links, i) {
 		if (ether_addr_equal(bss->bssid, wpa_s->links[i].bssid))
 			return 1;
 	}

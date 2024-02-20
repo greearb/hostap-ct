@@ -1520,10 +1520,7 @@ static bool wpas_beacon_rep_scan_match(struct wpa_supplicant *wpa_s,
 	if (!wpa_s->valid_links)
 		return ether_addr_equal(wpa_s->current_bss->bssid, bssid);
 
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(wpa_s->valid_links & BIT(i)))
-			continue;
-
+	for_each_link(wpa_s->valid_links, i) {
 		if (ether_addr_equal(wpa_s->links[i].bssid, bssid))
 			return true;
 	}
