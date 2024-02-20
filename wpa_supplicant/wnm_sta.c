@@ -1024,7 +1024,7 @@ static void wnm_add_cand_list(struct wpa_supplicant *wpa_s, struct wpabuf **buf)
 #define BTM_RESP_MIN_SIZE	5 + ETH_ALEN
 
 static int wnm_send_bss_transition_mgmt_resp(
-	struct wpa_supplicant *wpa_s, u8 dialog_token,
+	struct wpa_supplicant *wpa_s,
 	enum bss_trans_mgmt_status_code status,
 	enum mbo_transition_reject_reason reason,
 	u8 delay, const u8 *target_bssid)
@@ -1037,7 +1037,8 @@ static int wnm_send_bss_transition_mgmt_resp(
 	wpa_printf(MSG_DEBUG,
 		   "WNM: Send BSS Transition Management Response to " MACSTR
 		   " dialog_token=%u status=%u reason=%u delay=%d",
-		   MAC2STR(wpa_s->bssid), dialog_token, status, reason, delay);
+		   MAC2STR(wpa_s->bssid), wpa_s->wnm_dialog_token, status,
+		   reason, delay);
 	if (!wpa_s->current_bss) {
 		wpa_printf(MSG_DEBUG,
 			   "WNM: Current BSS not known - drop response");
@@ -1056,7 +1057,7 @@ static int wnm_send_bss_transition_mgmt_resp(
 
 	wpabuf_put_u8(buf, WLAN_ACTION_WNM);
 	wpabuf_put_u8(buf, WNM_BSS_TRANS_MGMT_RESP);
-	wpabuf_put_u8(buf, dialog_token);
+	wpabuf_put_u8(buf, wpa_s->wnm_dialog_token);
 	wpabuf_put_u8(buf, status);
 	wpabuf_put_u8(buf, delay);
 	if (target_bssid) {
@@ -1130,8 +1131,7 @@ static void wnm_bss_tm_connect(struct wpa_supplicant *wpa_s,
 		 * start the actual reassociation after this response has been
 		 * delivered to the current AP. */
 		if (wnm_send_bss_transition_mgmt_resp(
-			    wpa_s, wpa_s->wnm_dialog_token,
-			    WNM_BSS_TM_ACCEPT,
+			    wpa_s, WNM_BSS_TM_ACCEPT,
 			    MBO_TRANSITION_REJECT_REASON_UNSPECIFIED, 0,
 			    bss->bssid) >= 0)
 			return;
@@ -1234,9 +1234,8 @@ send_bss_resp_fail:
 	/* Send reject response for all the failures */
 
 	if (wpa_s->wnm_reply)
-		wnm_send_bss_transition_mgmt_resp(wpa_s,
-						  wpa_s->wnm_dialog_token,
-						  status, reason, 0, NULL);
+		wnm_send_bss_transition_mgmt_resp(wpa_s, status, reason,
+						  0, NULL);
 
 	wnm_deallocate_memory(wpa_s);
 
@@ -1419,8 +1418,7 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 			   "WNM: Testing - reject BSS Transition Management Request: reject_btm_req_reason=%d",
 			   wpa_s->reject_btm_req_reason);
 		wnm_send_bss_transition_mgmt_resp(
-			wpa_s, wpa_s->wnm_dialog_token,
-			wpa_s->reject_btm_req_reason,
+			wpa_s, wpa_s->reject_btm_req_reason,
 			MBO_TRANSITION_REJECT_REASON_UNSPECIFIED, 0, NULL);
 		return;
 	}
@@ -1548,8 +1546,7 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 			wpa_printf(MSG_DEBUG,
 				   "WNM: Candidate list included bit is set, but no candidates found");
 			wnm_send_bss_transition_mgmt_resp(
-				wpa_s, wpa_s->wnm_dialog_token,
-				WNM_BSS_TM_REJECT_NO_SUITABLE_CANDIDATES,
+				wpa_s, WNM_BSS_TM_REJECT_NO_SUITABLE_CANDIDATES,
 				MBO_TRANSITION_REJECT_REASON_UNSPECIFIED, 0,
 				NULL);
 			return;
@@ -1559,8 +1556,7 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 			wpa_printf(MSG_DEBUG,
 				   "WNM: Configuration prevents roaming (BSSID set)");
 			wnm_send_bss_transition_mgmt_resp(
-				wpa_s, wpa_s->wnm_dialog_token,
-				WNM_BSS_TM_REJECT_NO_SUITABLE_CANDIDATES,
+				wpa_s, WNM_BSS_TM_REJECT_NO_SUITABLE_CANDIDATES,
 				MBO_TRANSITION_REJECT_REASON_UNSPECIFIED, 0,
 				NULL);
 			return;
@@ -1615,7 +1611,7 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 			status = WNM_BSS_TM_REJECT_UNSPECIFIED;
 		}
 		wnm_send_bss_transition_mgmt_resp(
-			wpa_s, wpa_s->wnm_dialog_token, status,
+			wpa_s, status,
 			MBO_TRANSITION_REJECT_REASON_UNSPECIFIED, 0, NULL);
 	}
 }
