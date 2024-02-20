@@ -1071,7 +1071,7 @@ static int wnm_send_bss_transition_mgmt_resp(
 		wpabuf_put_data(buf, "\0\0\0\0\0\0", ETH_ALEN);
 	}
 
-	if (status == WNM_BSS_TM_ACCEPT && !wpa_s->wnm_link_removal)
+	if (status == WNM_BSS_TM_ACCEPT && target_bssid)
 		wnm_add_cand_list(wpa_s, &buf);
 
 #ifdef CONFIG_MBO
@@ -1467,15 +1467,34 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 	 * set to 1, and the BSS Termination Included field is set to 1, only
 	 * one of the links is removed and the other links remain associated.
 	 * Ignore the Disassociation Imminent field in such a case.
+	 *
+	 * TODO: We should check if the AP has more than one link.
+	 * TODO: We should pass the RX link and use that
 	 */
-	if (disassoc_imminent &&
-	    (wpa_s->valid_links & (wpa_s->valid_links - 1)) != 0 &&
+	if (disassoc_imminent && wpa_s->valid_links &&
 	    (wpa_s->wnm_mode & WNM_BSS_TM_REQ_LINK_REMOVAL_IMMINENT) &&
 	    (wpa_s->wnm_mode & WNM_BSS_TM_REQ_BSS_TERMINATION_INCLUDED)) {
-		wpa_printf(MSG_INFO,
-			   "WNM: BTM request for a single MLO link - ignore disassociation imminent since other links remain associated");
-		disassoc_imminent = false;
+		/* If we still have a link, then just accept the request */
+		if (wpa_s->valid_links & (wpa_s->valid_links - 1)) {
+			wpa_printf(MSG_INFO,
+				   "WNM: BTM request for a single MLO link - ignore disassociation imminent since other links remain associated");
+			disassoc_imminent = false;
+
+			wnm_send_bss_transition_mgmt_resp(
+				wpa_s, WNM_BSS_TM_ACCEPT, 0, 0, NULL);
+
+			return;
+		}
+
+		/* The last link is being removed (which must be the assoc link)
+		 */
 		wpa_s->wnm_link_removal = true;
+		os_memcpy(wpa_s->wnm_dissoc_addr,
+			  wpa_s->links[wpa_s->mlo_assoc_link_id].bssid,
+			  ETH_ALEN);
+	} else {
+		os_memcpy(wpa_s->wnm_dissoc_addr, wpa_s->valid_links ?
+			  wpa_s->ap_mld_addr : wpa_s->bssid, ETH_ALEN);
 	}
 
 	if (disassoc_imminent) {
@@ -2034,8 +2053,6 @@ void wnm_clear_coloc_intf_reporting(struct wpa_supplicant *wpa_s)
 
 bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 {
-	unsigned int i;
-
 	if (!(wpa_s->wnm_mode & WNM_BSS_TM_REQ_DISASSOC_IMMINENT))
 		return false;
 
@@ -2043,23 +2060,14 @@ bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 	 * In case disassociation imminent is set, do no try to use a BSS to
 	 * which we are connected.
 	 */
-
-	if (wpa_s->current_bss &&
-	    ether_addr_equal(wpa_s->current_bss->bssid, bss->bssid)) {
-		wpa_dbg(wpa_s, MSG_DEBUG,
-			"WNM: Disassociation imminent: current BSS");
-		return true;
-	}
-
-	if (!wpa_s->valid_links)
-		return false;
-
-	for_each_link(wpa_s->valid_links, i) {
-		if (ether_addr_equal(wpa_s->links[i].bssid, bss->bssid)) {
-			wpa_dbg(wpa_s, MSG_DEBUG,
-				"WNM: MLD: Disassociation imminent: current link");
+	if (wpa_s->wnm_link_removal ||
+	    !(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) ||
+	    is_zero_ether_addr(bss->mld_addr)) {
+		if (ether_addr_equal(bss->bssid, wpa_s->wnm_dissoc_addr))
 			return true;
-		}
+	} else {
+		if (ether_addr_equal(bss->mld_addr, wpa_s->wnm_dissoc_addr))
+			return true;
 	}
 
 	return false;
