@@ -4034,11 +4034,8 @@ static int wpa_sm_set_ml_info(struct wpa_supplicant *wpa_s)
 	wpa_mlo.valid_links = drv_mlo.valid_links;
 	wpa_mlo.req_links = drv_mlo.req_links;
 
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+	for_each_link(drv_mlo.req_links, i) {
 		struct wpa_bss *bss;
-
-		if (!(drv_mlo.req_links & BIT(i)))
-			continue;
 
 		bss = wpa_supplicant_get_new_bss(wpa_s, drv_mlo.links[i].bssid);
 		if (!bss) {
@@ -5863,12 +5860,9 @@ static void wpas_tid_link_map(struct wpa_supplicant *wpa_s,
 	pos += res;
 
 	if (!info->default_map) {
-		for (i = 0; i < MAX_NUM_MLD_LINKS && end > pos; i++) {
+		for_each_link(info->valid_links, i) {
 			char uplink_map_str[9];
 			char downlink_map_str[9];
-
-			if (!(info->valid_links & BIT(i)))
-				continue;
 
 			bitmap_to_str(info->t2lmap[i].uplink, uplink_map_str);
 			bitmap_to_str(info->t2lmap[i].downlink,
