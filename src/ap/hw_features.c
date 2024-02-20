@@ -107,9 +107,7 @@ int hostapd_get_hw_features(struct hostapd_iface *iface)
 		 */
 		orig_mode_valid = true;
 		mode = iface->current_mode->mode;
-		is_6ghz = mode == HOSTAPD_MODE_IEEE80211A &&
-			iface->current_mode->num_channels > 0 &&
-			is_6ghz_freq(iface->current_mode->channels[0].freq);
+		is_6ghz = iface->current_mode->is_6ghz;
 		iface->current_mode = NULL;
 	}
 	hostapd_free_hw_features(iface->hw_features, iface->num_hw_features);
@@ -1070,9 +1068,7 @@ static bool skip_mode(struct hostapd_iface *iface,
 		return true;
 
 	if (is_6ghz_op_class(iface->conf->op_class) && iface->freq == 0 &&
-	    (mode->mode != HOSTAPD_MODE_IEEE80211A ||
-	     mode->num_channels == 0 ||
-	     !is_6ghz_freq(mode->channels[0].freq)))
+	    !mode->is_6ghz)
 		return true;
 
 	return false;

@@ -9055,8 +9055,7 @@ struct hostapd_hw_modes * get_mode(struct hostapd_hw_modes *modes,
 		if (modes[i].mode != mode ||
 		    !modes[i].num_channels || !modes[i].channels)
 			continue;
-		if ((!is_6ghz && !is_6ghz_freq(modes[i].channels[0].freq)) ||
-		    (is_6ghz && is_6ghz_freq(modes[i].channels[0].freq)))
+		if (is_6ghz == modes[i].is_6ghz)
 			return &modes[i];
 	}
 

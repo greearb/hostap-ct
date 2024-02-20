@@ -247,6 +247,11 @@ struct hostapd_hw_modes {
 	enum hostapd_hw_mode mode;
 
 	/**
+	 * is_6ghz - Whether the mode information is for the 6 GHz band
+	 */
+	bool is_6ghz;
+
+	/**
 	 * num_channels - Number of entries in the channels array
 	 */
 	int num_channels;

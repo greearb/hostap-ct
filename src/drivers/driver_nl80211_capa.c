@@ -2156,6 +2156,9 @@ wpa_driver_nl80211_postprocess_modes(struct hostapd_hw_modes *modes,
 	for (m = 0; m < *num_modes; m++) {
 		if (!modes[m].num_channels)
 			continue;
+
+		modes[m].is_6ghz = false;
+
 		if (modes[m].channels[0].freq < 2000) {
 			modes[m].num_channels = 0;
 			continue;
@@ -2167,10 +2170,14 @@ wpa_driver_nl80211_postprocess_modes(struct hostapd_hw_modes *modes,
 					break;
 				}
 			}
-		} else if (modes[m].channels[0].freq > 50000)
+		} else if (modes[m].channels[0].freq > 50000) {
 			modes[m].mode = HOSTAPD_MODE_IEEE80211AD;
-		else
+		} else if (is_6ghz_freq(modes[m].channels[0].freq)) {
 			modes[m].mode = HOSTAPD_MODE_IEEE80211A;
+			modes[m].is_6ghz = true;
+		} else {
+			modes[m].mode = HOSTAPD_MODE_IEEE80211A;
+		}
 	}
 
 	/* Remove unsupported bands */
