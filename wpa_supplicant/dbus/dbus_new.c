@@ -1023,6 +1023,40 @@ void wpas_dbus_signal_interworking_select_done(struct wpa_supplicant *wpa_s)
 	dbus_message_unref(msg);
 }
 
+
+void wpas_dbus_signal_anqp_query_done(struct wpa_supplicant *wpa_s,
+				      const u8 *dst, const char *result)
+{
+	struct wpas_dbus_priv *iface;
+	DBusMessage *msg;
+	DBusMessageIter iter;
+	char addr[WPAS_DBUS_OBJECT_PATH_MAX], *bssid;
+
+	os_snprintf(addr, WPAS_DBUS_OBJECT_PATH_MAX, MACSTR, MAC2STR(dst));
+	bssid = addr;
+
+	iface = wpa_s->global->dbus;
+
+	/* Do nothing if the control interface is not turned on */
+	if (!iface || !wpa_s->dbus_new_path)
+		return;
+
+	msg = dbus_message_new_signal(wpa_s->dbus_new_path,
+				      WPAS_DBUS_NEW_IFACE_INTERFACE,
+				      "ANQPQueryDone");
+	if (!msg)
+		return;
+
+	dbus_message_iter_init_append(msg, &iter);
+
+	if (!dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING, &bssid) ||
+	    !dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING, &result))
+		wpa_printf(MSG_ERROR, "dbus: Failed to construct signal");
+	else
+		dbus_connection_send(iface->con, msg, NULL);
+	dbus_message_unref(msg);
+}
+
 #endif /* CONFIG_INTERWORKING */
 
 
@@ -4307,6 +4341,13 @@ static const struct wpa_dbus_signal_desc wpas_dbus_interface_signals[] = {
 	},
 	{ "InterworkingSelectDone", WPAS_DBUS_NEW_IFACE_INTERFACE,
 	  {
+		  END_ARGS
+	  }
+	},
+	{"ANQPQueryDone", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  {
+		  { "addr", "s", ARG_OUT },
+		  { "result", "s", ARG_OUT },
 		  END_ARGS
 	  }
 	},

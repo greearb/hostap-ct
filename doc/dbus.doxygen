@@ -1363,6 +1363,17 @@ fi.w1.wpa_supplicant1.CreateInterface.
 	  <dd>URL of the terms and conditions page.</dd>
 	</dl>
       </li>
+
+      <li>
+	<h3>ANQPQueryDone ( s : addr, s : result )</h3>
+	<p>Result of an ANQP query.</p>
+	<dl>
+	  <dt>s : addr</dt>
+	  <dd>Address of the BSS targeted by the query.</dd>
+	  <dt>s : result</dt>
+	  <dd>Determine if the request was successful. If so fields are available in BSS.</dd>
+	</dl>
+      </li>
     </ul>
 
 

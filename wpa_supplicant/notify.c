@@ -1013,6 +1013,16 @@ void wpas_notify_interworking_select_done(struct wpa_supplicant *wpa_s)
 	wpas_dbus_signal_interworking_select_done(wpa_s);
 }
 
+
+void wpas_notify_anqp_query_done(struct wpa_supplicant *wpa_s,
+				 const u8 *dst, const char *result)
+{
+	wpa_msg(wpa_s, MSG_INFO, ANQP_QUERY_DONE "addr=" MACSTR " result=%s",
+		MAC2STR(dst), result);
+
+	wpas_dbus_signal_anqp_query_done(wpa_s, dst, result);
+}
+
 #endif /* CONFIG_INTERWORKING */
 
 

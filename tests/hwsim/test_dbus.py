@@ -6308,3 +6308,48 @@ def test_dbus_anqp_get(dev, apdev):
     bss = dev[0].get_bss(bssid)
     if 'anqp_capability_list' not in bss:
         raise Exception("Capability List ANQP-element not seen")
+
+def test_dbus_anqp_query_done(dev, apdev):
+    """D-Bus ANQP get test"""
+    (bus, wpa_obj, path, if_obj) = prepare_dbus(dev[0])
+    iface = dbus.Interface(if_obj, WPAS_DBUS_IFACE)
+
+    bssid = apdev[0]['bssid']
+    params = hs20_ap_params(ssid="test-anqp")
+    params["hessid"] = bssid
+    params['mbo'] = '1'
+    params['mbo_cell_data_conn_pref'] = '1'
+    params['hs20_oper_friendly_name'] = ["eng:Example operator",
+                                         "fin:Esimerkkioperaattori"]
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    class TestDbusANQPGet(TestDbus):
+        def __init__(self, bus):
+            TestDbus.__init__(self, bus)
+            self.anqp_query_done = False
+
+        def __enter__(self):
+            gobject.timeout_add(1, self.run_query)
+            gobject.timeout_add(15000, self.timeout)
+            self.add_signal(self.anqpQueryDone, WPAS_DBUS_IFACE,
+                            "ANQPQueryDone")
+            self.loop.run()
+            return self
+
+        def anqpQueryDone(self, addr, result):
+            logger.debug("anqpQueryDone: addr=%s result=%s" % (addr, result))
+            if addr == bssid and "SUCCESS" in result:
+                self.anqp_query_done = True
+
+        def run_query(self, *args):
+            dev[0].scan_for_bss(bssid, freq="2412", force_scan=True)
+            iface.ANQPGet({"addr": bssid,
+                           "ids": dbus.Array([257], dbus.Signature("q"))})
+            return False
+
+        def success(self):
+            return self.anqp_query_done
+
+    with TestDbusANQPGet(bus) as t:
+        if not t.success():
+            raise Exception("Expected signals not seen")
