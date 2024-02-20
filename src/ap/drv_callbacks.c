@@ -2374,6 +2374,22 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 	case EVENT_SCAN_RESULTS:
 		if (hapd->iface->scan_cb)
 			hapd->iface->scan_cb(hapd->iface);
+#ifdef CONFIG_IEEE80211BE
+		if (!hapd->iface->scan_cb && hapd->conf->mld_ap) {
+			/* Other links may be waiting for HT scan result */
+			unsigned int i;
+
+			for (i = 0; i < hapd->iface->interfaces->count; i++) {
+				struct hostapd_iface *h =
+					hapd->iface->interfaces->iface[i];
+				struct hostapd_data *h_hapd = h->bss[0];
+
+				if (hostapd_is_ml_partner(hapd, h_hapd) &&
+				    h_hapd->iface->scan_cb)
+					h_hapd->iface->scan_cb(h_hapd->iface);
+			}
+		}
+#endif /* CONFIG_IEEE80211BE */
 		break;
 	case EVENT_WPS_BUTTON_PUSHED:
 		hostapd_wps_button_pushed(hapd, NULL);
