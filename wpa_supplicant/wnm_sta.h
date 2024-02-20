@@ -75,7 +75,7 @@ bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss);
 
 #ifdef CONFIG_WNM
 
-int wnm_scan_process(struct wpa_supplicant *wpa_s, int reply_on_fail);
+int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check);
 void wnm_clear_coloc_intf_reporting(struct wpa_supplicant *wpa_s);
 
 #else /* CONFIG_WNM */

@@ -1172,7 +1172,7 @@ static void wnm_bss_tm_connect(struct wpa_supplicant *wpa_s,
 }
 
 
-int wnm_scan_process(struct wpa_supplicant *wpa_s, int reply_on_fail)
+int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 {
 	struct wpa_bss *bss;
 	struct wpa_ssid *ssid = wpa_s->current_ssid;
@@ -1185,7 +1185,8 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, int reply_on_fail)
 
 	wpa_dbg(wpa_s, MSG_DEBUG,
 		"WNM: Process scan results for BSS Transition Management");
-	if (os_reltime_before(&wpa_s->wnm_cand_valid_until,
+	if (!pre_scan_check &&
+	    os_reltime_before(&wpa_s->wnm_cand_valid_until,
 			      &wpa_s->scan_trigger_time)) {
 		wpa_printf(MSG_DEBUG, "WNM: Previously stored BSS transition candidate list is not valid anymore - drop it");
 		wnm_deallocate_memory(wpa_s);
@@ -1201,6 +1202,36 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, int reply_on_fail)
 
 	/* Compare the Neighbor Report and scan results */
 	bss = compare_scan_neighbor_results(wpa_s, 0, &reason);
+
+	/*
+	 * If this is a pre-scan check, returning 0 will trigger a scan and
+	 * another call. In that case, reject "bad" candidates in the hope of
+	 * finding a better candidate after scanning.
+	 *
+	 * Use a simple heuristic to check whether the selection is reasonable
+	 * or a scan is a good idea. For that, we need to have found a
+	 * candidate BSS (which might be the current one), it is up-to-date,
+	 * and we don't want to immediately roam back again.
+	 */
+	if (pre_scan_check) {
+		struct os_reltime age;
+
+		if (!bss)
+			return 0;
+
+		os_reltime_age(&bss->last_update, &age);
+		if (age.sec >= 10)
+			return 0;
+
+#ifndef CONFIG_NO_ROAMING
+		if (bss != wpa_s->current_bss &&
+		    wpa_supplicant_need_to_roam_within_ess(wpa_s,
+							   wpa_s->current_bss,
+							   bss))
+			return 0;
+#endif /* CONFIG_NO_ROAMING */
+	}
+
 	if (!bss) {
 		wpa_printf(MSG_DEBUG, "WNM: No BSS transition candidate match found");
 		status = WNM_BSS_TM_REJECT_NO_SUITABLE_CANDIDATES;
@@ -1212,9 +1243,6 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, int reply_on_fail)
 	return 1;
 
 send_bss_resp_fail:
-	if (!reply_on_fail)
-		return 0;
-
 	/* Send reject response for all the failures */
 
 	if (wpa_s->wnm_reply) {
@@ -1351,79 +1379,6 @@ static void wnm_set_scan_freqs(struct wpa_supplicant *wpa_s)
 		   "WNM: Scan %d frequencies based on transition candidate list",
 		   num_freqs);
 	wpa_s->next_scan_freqs = freqs;
-}
-
-
-static int wnm_fetch_scan_results(struct wpa_supplicant *wpa_s)
-{
-	struct wpa_scan_results *scan_res;
-	struct wpa_bss *bss;
-	struct wpa_ssid *ssid = wpa_s->current_ssid;
-	u8 i, found = 0;
-	size_t j;
-
-	wpa_dbg(wpa_s, MSG_DEBUG,
-		"WNM: Fetch current scan results from the driver for checking transition candidates");
-	scan_res = wpa_drv_get_scan_results2(wpa_s);
-	if (!scan_res) {
-		wpa_dbg(wpa_s, MSG_DEBUG, "WNM: Failed to get scan results");
-		return 0;
-	}
-
-	if (scan_res->fetch_time.sec == 0)
-		os_get_reltime(&scan_res->fetch_time);
-
-	filter_scan_res(wpa_s, scan_res);
-
-	for (i = 0; i < wpa_s->wnm_num_neighbor_report; i++) {
-		struct neighbor_report *nei;
-
-		nei = &wpa_s->wnm_neighbor_report_elements[i];
-		if (nei->preference_present && nei->preference == 0)
-			continue;
-
-		for (j = 0; j < scan_res->num; j++) {
-			struct wpa_scan_res *res;
-			const u8 *ssid_ie;
-
-			res = scan_res->res[j];
-			if (!ether_addr_equal(nei->bssid, res->bssid) ||
-			    res->age > WNM_SCAN_RESULT_AGE * 1000)
-				continue;
-			bss = wpa_s->current_bss;
-			ssid_ie = wpa_scan_get_ie(res, WLAN_EID_SSID);
-			if (bss && ssid_ie && ssid_ie[1] &&
-			    (bss->ssid_len != ssid_ie[1] ||
-			     os_memcmp(bss->ssid, ssid_ie + 2,
-				       bss->ssid_len) != 0))
-				continue; /* Skip entries for other ESSs */
-
-			/* Potential candidate found */
-			found = 1;
-			scan_snr(res);
-			scan_est_throughput(wpa_s, res);
-			wpa_bss_update_scan_res(wpa_s, res,
-						&scan_res->fetch_time);
-		}
-	}
-
-	wpa_scan_results_free(scan_res);
-	if (!found) {
-		wpa_dbg(wpa_s, MSG_DEBUG,
-			"WNM: No transition candidate matches existing scan results");
-		return 0;
-	}
-
-	bss = compare_scan_neighbor_results(wpa_s, WNM_SCAN_RESULT_AGE, NULL);
-	if (!bss) {
-		wpa_dbg(wpa_s, MSG_DEBUG,
-			"WNM: Comparison of scan results against transition candidates did not find matches");
-		return 0;
-	}
-
-	/* Associate to the network */
-	wnm_bss_tm_connect(wpa_s, bss, ssid, 0);
-	return 1;
 }
 
 
@@ -1634,32 +1589,19 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		os_memcpy(wpa_s->wnm_cand_from_bss, wpa_s->bssid, ETH_ALEN);
 
 		/*
-		 * Fetch the latest scan results from the kernel and check for
-		 * candidates based on those results first. This can help in
-		 * finding more up-to-date information should the driver has
-		 * done some internal scanning operations after the last scan
-		 * result update in wpa_supplicant.
-		 */
-		if (wnm_fetch_scan_results(wpa_s) > 0)
+		* Try fetching the latest scan results from the kernel.
+		* This can help in finding more up-to-date information should
+		* the driver have done some internal scanning operations after
+		* the last scan result update in wpa_supplicant.
+		*
+		* It is not a new scan, this does not update the last_scan
+		* timestamp nor will it expire old BSSs.
+		*/
+		wpa_supplicant_update_scan_results(wpa_s);
+		if (wnm_scan_process(wpa_s, true) > 0)
 			return;
-
-		/*
-		 * Try to use previously received scan results, if they are
-		 * recent enough to use for a connection.
-		 */
-		if (wpa_s->last_scan_res_used > 0) {
-			struct os_reltime now;
-
-			os_get_reltime(&now);
-			if (!os_reltime_expired(&now, &wpa_s->last_scan, 10)) {
-				wpa_printf(MSG_DEBUG,
-					   "WNM: Try to use recent scan results");
-				if (wnm_scan_process(wpa_s, 0) > 0)
-					return;
-				wpa_printf(MSG_DEBUG,
-					   "WNM: No match in previous scan results - try a new scan");
-			}
-		}
+		wpa_printf(MSG_DEBUG,
+			   "WNM: No valid match in previous scan results - try a new scan");
 
 		wnm_set_scan_freqs(wpa_s);
 		if (wpa_s->wnm_num_neighbor_report == 1) {

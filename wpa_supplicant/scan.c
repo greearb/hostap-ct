@@ -2603,8 +2603,8 @@ int wpa_supplicant_filter_bssid_match(struct wpa_supplicant *wpa_s,
 }
 
 
-void filter_scan_res(struct wpa_supplicant *wpa_s,
-		     struct wpa_scan_results *res)
+static void filter_scan_res(struct wpa_supplicant *wpa_s,
+			    struct wpa_scan_results *res)
 {
 	size_t i, j;
 
