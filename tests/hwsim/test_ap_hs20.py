@@ -502,6 +502,7 @@ def test_ap_hs20_select(dev, apdev):
     params = hs20_ap_params()
     params['hessid'] = bssid
     hostapd.add_ap(apdev[0], params)
+    dev[0].flush_scan_cache()
 
     dev[0].hs20_enable()
     id = dev[0].add_cred_values({'realm': "example.com", 'username': "test",
