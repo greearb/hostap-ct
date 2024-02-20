@@ -430,9 +430,6 @@ void wnm_deallocate_memory(struct wpa_supplicant *wpa_s)
 	wpa_s->wnm_num_neighbor_report = 0;
 	os_free(wpa_s->wnm_neighbor_report_elements);
 	wpa_s->wnm_neighbor_report_elements = NULL;
-
-	wpabuf_free(wpa_s->coloc_intf_elems);
-	wpa_s->coloc_intf_elems = NULL;
 }
 
 
@@ -2009,14 +2006,14 @@ int wnm_send_coloc_intf_report(struct wpa_supplicant *wpa_s, u8 dialog_token,
 void wnm_set_coloc_intf_elems(struct wpa_supplicant *wpa_s,
 			      struct wpabuf *elems)
 {
-	wpabuf_free(wpa_s->coloc_intf_elems);
 	if (elems && wpabuf_len(elems) == 0) {
 		wpabuf_free(elems);
 		elems = NULL;
 	}
-	wpa_s->coloc_intf_elems = elems;
 
-	if (wpa_s->conf->coloc_intf_reporting && wpa_s->coloc_intf_elems &&
+	/* NOTE: The elements are not stored as they are only send out once */
+
+	if (wpa_s->conf->coloc_intf_reporting && elems &&
 	    wpa_s->coloc_intf_dialog_token &&
 	    (wpa_s->coloc_intf_auto_report == 1 ||
 	     wpa_s->coloc_intf_auto_report == 3)) {
@@ -2025,8 +2022,10 @@ void wnm_set_coloc_intf_elems(struct wpa_supplicant *wpa_s,
 		 */
 		wnm_send_coloc_intf_report(wpa_s,
 					   wpa_s->coloc_intf_dialog_token,
-					   wpa_s->coloc_intf_elems);
+					   elems);
 	}
+
+	wpabuf_free(elems);
 }
 
 

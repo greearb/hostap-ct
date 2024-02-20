@@ -1313,7 +1313,6 @@ struct wpa_supplicant {
 	struct wpa_bss *wnm_target_bss;
 	enum bss_trans_mgmt_status_code bss_tm_status;
 	bool bss_trans_mgmt_in_progress;
-	struct wpabuf *coloc_intf_elems;
 	u8 coloc_intf_dialog_token;
 	u8 coloc_intf_auto_report;
 	u8 coloc_intf_timeout;
