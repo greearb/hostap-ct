@@ -1358,6 +1358,10 @@ static void wnm_set_scan_freqs(struct wpa_supplicant *wpa_s)
 		struct neighbor_report *nei;
 
 		nei = &wpa_s->wnm_neighbor_report_elements[i];
+
+		if (nei->preference_present && nei->preference == 0)
+			continue;
+
 		if (nei->freq <= 0) {
 			wpa_printf(MSG_DEBUG,
 				   "WNM: Unknown neighbor operating frequency for "
