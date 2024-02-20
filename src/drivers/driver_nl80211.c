@@ -6718,7 +6718,6 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 	if (params->mld_params.mld_addr && params->mld_params.valid_links > 0) {
 		struct wpa_driver_mld_params *mld_params = &params->mld_params;
 		struct nlattr *links, *attr;
-		int i;
 		u8 link_id;
 
 		wpa_printf(MSG_DEBUG, "  * MLD: MLD addr=" MACSTR,
@@ -6734,31 +6733,11 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 		if (!links)
 			return -1;
 
-		attr = nla_nest_start(msg, 0);
-		if (!attr)
-			return -1;
-
-		/* First add the association link ID */
-		link_id = mld_params->assoc_link_id;
-		if (nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id) ||
-		    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN,
-			    mld_params->mld_links[link_id].bssid) ||
-		    nla_put_u32(msg, NL80211_ATTR_WIPHY_FREQ,
-				mld_params->mld_links[link_id].freq))
-			return -1;
-
-		os_memcpy(drv->sta_mlo_info.links[link_id].bssid,
-			  mld_params->mld_links[link_id].bssid, ETH_ALEN);
-
-		nla_nest_end(msg, attr);
-
-		for (i = 1, link_id = 0; link_id < MAX_NUM_MLD_LINKS;
-		     link_id++) {
-			if (!(mld_params->valid_links & BIT(link_id)) ||
-			    link_id == mld_params->assoc_link_id)
+		for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+			if (!(mld_params->valid_links & BIT(link_id)))
 				continue;
 
-			attr = nla_nest_start(msg, i);
+			attr = nla_nest_start(msg, 0);
 			if (!attr)
 				return -1;
 
@@ -6768,11 +6747,11 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 				    mld_params->mld_links[link_id].bssid) ||
 			    nla_put_u32(msg, NL80211_ATTR_WIPHY_FREQ,
 					mld_params->mld_links[link_id].freq) ||
-			    (mld_params->mld_links[i].disabled &&
+			    (mld_params->mld_links[link_id].disabled &&
 			     nla_put_flag(msg,
 					  NL80211_ATTR_MLO_LINK_DISABLED)) ||
 			    (mld_params->mld_links[link_id].ies &&
-			     mld_params->mld_links[i].ies_len &&
+			     mld_params->mld_links[link_id].ies_len &&
 			     nla_put(msg, NL80211_ATTR_IE,
 				     mld_params->mld_links[link_id].ies_len,
 				     mld_params->mld_links[link_id].ies)))
@@ -6782,7 +6761,6 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 				  mld_params->mld_links[link_id].bssid,
 				  ETH_ALEN);
 			nla_nest_end(msg, attr);
-			i++;
 		}
 
 		nla_nest_end(msg, links);
