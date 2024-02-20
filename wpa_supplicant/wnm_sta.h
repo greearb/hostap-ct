@@ -70,7 +70,6 @@ int wnm_send_coloc_intf_report(struct wpa_supplicant *wpa_s, u8 dialog_token,
 			       const struct wpabuf *elems);
 void wnm_set_coloc_intf_elems(struct wpa_supplicant *wpa_s,
 			      struct wpabuf *elems);
-bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss);
 
 int wnm_btm_resp_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
 			   size_t data_len);
@@ -79,6 +78,8 @@ int wnm_btm_resp_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
 
 int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check);
 void wnm_clear_coloc_intf_reporting(struct wpa_supplicant *wpa_s);
+
+bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss);
 
 #else /* CONFIG_WNM */
 
@@ -90,6 +91,12 @@ static inline int wnm_scan_process(struct wpa_supplicant *wpa_s,
 
 static inline void wnm_clear_coloc_intf_reporting(struct wpa_supplicant *wpa_s)
 {
+}
+
+static inline bool
+wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
+{
+	return false;
 }
 
 #endif /* CONFIG_WNM */

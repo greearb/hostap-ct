@@ -1692,13 +1692,11 @@ struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 		return NULL;
 	}
 
-#ifdef CONFIG_WNM
 	if (wnm_is_bss_excluded(wpa_s, bss)) {
 		if (debug_print)
 			wpa_dbg(wpa_s, MSG_DEBUG, "   skip - BSSID excluded");
 		return NULL;
 	}
-#endif /* CONFIG_WNM */
 
 	for (ssid = group; ssid; ssid = only_first_ssid ? NULL : ssid->pnext) {
 		if (wpa_scan_res_ok(wpa_s, ssid, match_ssid, match_ssid_len,
