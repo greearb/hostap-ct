@@ -599,6 +599,10 @@ int str_starts(const char *str, const char *start);
 u8 rssi_to_rcpi(int rssi);
 char * get_param(const char *cmd, const char *param);
 
+#define for_each_link(__links, __i)                            \
+	for ((__i) = 0; (__i) < MAX_NUM_MLD_LINKS; (__i)++)    \
+		if ((__links) & BIT(__i))
+
 void forced_memzero(void *ptr, size_t len);
 
 /*
