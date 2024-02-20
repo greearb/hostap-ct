@@ -418,7 +418,7 @@ static void ieee802_11_rx_wnmsleep_resp(struct wpa_supplicant *wpa_s,
 }
 
 
-void wnm_deallocate_memory(struct wpa_supplicant *wpa_s)
+void wnm_btm_reset(struct wpa_supplicant *wpa_s)
 {
 	int i;
 
@@ -430,6 +430,18 @@ void wnm_deallocate_memory(struct wpa_supplicant *wpa_s)
 	wpa_s->wnm_num_neighbor_report = 0;
 	os_free(wpa_s->wnm_neighbor_report_elements);
 	wpa_s->wnm_neighbor_report_elements = NULL;
+
+	wpa_s->wnm_cand_valid_until.sec = 0;
+	wpa_s->wnm_cand_valid_until.usec = 0;
+
+	wpa_s->wnm_mode = 0;
+	wpa_s->wnm_dialog_token = 0;
+	wpa_s->wnm_reply = 0;
+
+#ifdef CONFIG_MBO
+	wpa_s->wnm_mbo_trans_reason_present = 0;
+	wpa_s->wnm_mbo_transition_reason = 0;
+#endif /* CONFIG_MBO */
 }
 
 
@@ -1140,7 +1152,7 @@ static void wnm_bss_tm_connect(struct wpa_supplicant *wpa_s,
 	if (bss == wpa_s->current_bss) {
 		wpa_printf(MSG_DEBUG,
 			   "WNM: Already associated with the preferred candidate");
-		wnm_deallocate_memory(wpa_s);
+		wnm_btm_reset(wpa_s);
 		return;
 	}
 
@@ -1156,7 +1168,6 @@ static void wnm_bss_tm_connect(struct wpa_supplicant *wpa_s,
 	 */
 	if (!already_connecting && radio_work_pending(wpa_s, "sme-connect"))
 		wpa_s->bss_trans_mgmt_in_progress = true;
-	wnm_deallocate_memory(wpa_s);
 }
 
 
@@ -1168,24 +1179,17 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 	enum mbo_transition_reject_reason reason =
 		MBO_TRANSITION_REJECT_REASON_UNSPECIFIED;
 
-	if (!wpa_s->wnm_neighbor_report_elements)
+	if (!wpa_s->wnm_dialog_token)
 		return 0;
 
 	wpa_dbg(wpa_s, MSG_DEBUG,
 		"WNM: Process scan results for BSS Transition Management");
 	if (!pre_scan_check &&
+	    os_reltime_initialized(&wpa_s->wnm_cand_valid_until) &&
 	    os_reltime_before(&wpa_s->wnm_cand_valid_until,
 			      &wpa_s->scan_trigger_time)) {
 		wpa_printf(MSG_DEBUG, "WNM: Previously stored BSS transition candidate list is not valid anymore - drop it");
-		wnm_deallocate_memory(wpa_s);
-		return 0;
-	}
-
-	if (!wpa_s->current_bss ||
-	    !ether_addr_equal(wpa_s->wnm_cand_from_bss,
-			      wpa_s->current_bss->bssid)) {
-		wpa_printf(MSG_DEBUG, "WNM: Stored BSS transition candidate list not from the current BSS - ignore it");
-		return 0;
+		goto send_bss_resp_fail;
 	}
 
 	/* Compare the Neighbor Report and scan results */
@@ -1212,7 +1216,7 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 			return 0;
 
 #ifndef CONFIG_NO_ROAMING
-		if (bss != wpa_s->current_bss &&
+		if (wpa_s->current_bss && bss != wpa_s->current_bss &&
 		    wpa_supplicant_need_to_roam_within_ess(wpa_s,
 							   wpa_s->current_bss,
 							   bss))
@@ -1237,7 +1241,7 @@ send_bss_resp_fail:
 		wnm_send_bss_transition_mgmt_resp(wpa_s, status, reason,
 						  0, NULL);
 
-	wnm_deallocate_memory(wpa_s);
+	wnm_btm_reset(wpa_s);
 
 	return 0;
 }
@@ -1389,15 +1393,12 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 	if (end - pos < 5)
 		return;
 
-#ifdef CONFIG_MBO
-	wpa_s->wnm_mbo_trans_reason_present = 0;
-	wpa_s->wnm_mbo_transition_reason = 0;
-#endif /* CONFIG_MBO */
-
 	if (wpa_s->current_bss)
 		beacon_int = wpa_s->current_bss->beacon_int;
 	else
 		beacon_int = 100; /* best guess */
+
+	wnm_btm_reset(wpa_s);
 
 	wpa_s->wnm_dialog_token = pos[0];
 	wpa_s->wnm_mode = pos[1];
@@ -1517,7 +1518,6 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		unsigned int valid_ms;
 
 		wpa_msg(wpa_s, MSG_INFO, "WNM: Preferred List Available");
-		wnm_deallocate_memory(wpa_s);
 		wpa_s->wnm_neighbor_report_elements = os_calloc(
 			WNM_MAX_NEIGHBOR_REPORT,
 			sizeof(struct neighbor_report));
@@ -1592,7 +1592,6 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		wpa_s->wnm_cand_valid_until.sec +=
 			wpa_s->wnm_cand_valid_until.usec / 1000000;
 		wpa_s->wnm_cand_valid_until.usec %= 1000000;
-		os_memcpy(wpa_s->wnm_cand_from_bss, wpa_s->bssid, ETH_ALEN);
 
 		/*
 		* Try fetching the latest scan results from the kernel.

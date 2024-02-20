@@ -1802,10 +1802,12 @@ struct wpa_bss * wpa_supplicant_pick_network(struct wpa_supplicant *wpa_s,
 				break;
 		}
 
-		if (selected == NULL && wpa_s->bssid_ignore &&
+		if (!selected &&
+		    (wpa_s->bssid_ignore || wnm_active_bss_trans_mgmt(wpa_s)) &&
 		    !wpa_s->countermeasures) {
 			wpa_dbg(wpa_s, MSG_DEBUG,
 				"No APs found - clear BSSID ignore list and try again");
+			wnm_btm_reset(wpa_s);
 			wpa_bssid_ignore_clear(wpa_s);
 			wpa_s->bssid_ignore_cleared = true;
 		} else if (selected == NULL)
