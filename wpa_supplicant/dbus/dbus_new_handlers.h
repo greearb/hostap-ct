@@ -157,6 +157,9 @@ DBusMessage *
 wpas_dbus_handler_interworking_select(DBusMessage *message,
 				      struct wpa_supplicant *wpa_s);
 
+DBusMessage *
+wpas_dbus_handler_anqp_get(DBusMessage *message, struct wpa_supplicant *wpa_s);
+
 DECLARE_ACCESSOR(wpas_dbus_getter_capabilities);
 DECLARE_ACCESSOR(wpas_dbus_getter_state);
 DECLARE_ACCESSOR(wpas_dbus_getter_scanning);

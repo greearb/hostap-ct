@@ -584,6 +584,24 @@ fi.w1.wpa_supplicant1.CreateInterface.
 	<p>Perform Interworking (Hotspot 2.0) network selection.</p>
       </li>
       <li>
+	<h3>ANQPGet ( a{sv} : args) --> nothing</h3>
+	<p>Send an ANQP request.</p>
+	<h4>Arguments</h4>
+	<dl>
+	  <dt>a{sv} : args</dt>
+	  <dd>
+	    <table>
+	      <tr><th>Key</th><th>Value type</th><th>Description</th><th>Required</th>
+	      <tr><td>addr</td><td>s</td><td>Address of the BSS</td><td>Yes</td>
+	      <tr><td>freq</td><td>u</td><td>Frequency of the BSS</td><td>No</td>
+	      <tr><td>ids</td><td>aq</td><td>List of ANQP information IDs to query</td><td>No</td>
+	      <tr><td>hs20_ids</td><td>ay</td><td>List of Hotspot 2.0 ANQP information IDs to query</td><td>No</td>
+	      <tr><td>mbo_ids</td><td>ay</td><td>List of MBO ANQP information IDs to query</td><td>No</td>
+	    </table>
+	  </dd>
+	</dl>
+      </li>
+      <li>
 	<h3>EAPLogoff ( ) --> nothing</h3>
 	<p>IEEE 802.1X EAPOL state machine logoff.</p>
       </li>
