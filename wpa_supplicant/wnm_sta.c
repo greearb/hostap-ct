@@ -795,8 +795,7 @@ compare_scan_neighbor_results(struct wpa_supplicant *wpa_s, os_time_t age_secs,
 			continue;
 		}
 
-		if (wpa_s->current_ssid &&
-		    !wpa_scan_res_match(wpa_s, 0, target, wpa_s->current_ssid,
+		if (!wpa_scan_res_match(wpa_s, 0, target, wpa_s->current_ssid,
 					1, 0)) {
 			wpa_printf(MSG_DEBUG, "Candidate BSS " MACSTR
 				   " (pref %d) does not match the current network profile",
