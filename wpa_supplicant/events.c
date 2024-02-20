@@ -6140,6 +6140,13 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			" type=%d stype=%d",
 			MAC2STR(data->tx_status.dst),
 			data->tx_status.type, data->tx_status.stype);
+#ifdef CONFIG_WNM
+		if (data->tx_status.type == WLAN_FC_TYPE_MGMT &&
+		    data->tx_status.stype == WLAN_FC_STYPE_ACTION &&
+		    wnm_btm_resp_tx_status(wpa_s, data->tx_status.data,
+					   data->tx_status.data_len) == 0)
+			break;
+#endif /* CONFIG_WNM */
 #ifdef CONFIG_PASN
 		if (data->tx_status.type == WLAN_FC_TYPE_MGMT &&
 		    data->tx_status.stype == WLAN_FC_STYPE_AUTH &&

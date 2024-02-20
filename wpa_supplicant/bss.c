@@ -400,6 +400,11 @@ static int wpa_bss_in_use(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 	if (bss == wpa_s->ml_connect_probe_bss)
 		return 1;
 
+#ifdef CONFIG_WNM
+	if (bss == wpa_s->wnm_target_bss)
+		return 1;
+#endif /* CONFIG_WNM */
+
 	if (wpa_s->current_bss &&
 	    (bss->ssid_len != wpa_s->current_bss->ssid_len ||
 	     os_memcmp(bss->ssid, wpa_s->current_bss->ssid,

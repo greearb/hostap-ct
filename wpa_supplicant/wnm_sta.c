@@ -1045,7 +1045,7 @@ static void wnm_add_cand_list(struct wpa_supplicant *wpa_s, struct wpabuf **buf)
 
 #define BTM_RESP_MIN_SIZE	5 + ETH_ALEN
 
-static void wnm_send_bss_transition_mgmt_resp(
+static int wnm_send_bss_transition_mgmt_resp(
 	struct wpa_supplicant *wpa_s, u8 dialog_token,
 	enum bss_trans_mgmt_status_code status,
 	enum mbo_transition_reject_reason reason,
@@ -1061,14 +1061,14 @@ static void wnm_send_bss_transition_mgmt_resp(
 	if (!wpa_s->current_bss) {
 		wpa_printf(MSG_DEBUG,
 			   "WNM: Current BSS not known - drop response");
-		return;
+		return -1;
 	}
 
 	buf = wpabuf_alloc(BTM_RESP_MIN_SIZE);
 	if (!buf) {
 		wpa_printf(MSG_DEBUG,
 			   "WNM: Failed to allocate memory for BTM response");
-		return;
+		return -1;
 	}
 
 	wpa_s->bss_tm_status = status;
@@ -1106,7 +1106,7 @@ static void wnm_send_bss_transition_mgmt_resp(
 				wpabuf_free(buf);
 				wpa_printf(MSG_DEBUG,
 					   "WNM: Failed to allocate memory for MBO IE");
-				return;
+				return -1;
 			}
 
 			wpabuf_put_data(buf, mbo, ret);
@@ -1123,6 +1123,8 @@ static void wnm_send_bss_transition_mgmt_resp(
 	}
 
 	wpabuf_free(buf);
+
+	return res;
 }
 
 
@@ -1141,12 +1143,19 @@ static void wnm_bss_tm_connect(struct wpa_supplicant *wpa_s,
 	/* Send the BSS Management Response - Accept */
 	if (wpa_s->wnm_reply) {
 		wpa_s->wnm_reply = 0;
+		wpa_s->wnm_target_bss = bss;
 		wpa_printf(MSG_DEBUG,
 			   "WNM: Sending successful BSS Transition Management Response");
-		wnm_send_bss_transition_mgmt_resp(
-			wpa_s, wpa_s->wnm_dialog_token, WNM_BSS_TM_ACCEPT,
-			MBO_TRANSITION_REJECT_REASON_UNSPECIFIED, 0,
-			bss->bssid);
+
+		/* This function will be called again from the TX handler to
+		 * start the actual reassociation after this response has been
+		 * delivered to the current AP. */
+		if (wnm_send_bss_transition_mgmt_resp(
+			    wpa_s, wpa_s->wnm_dialog_token,
+			    WNM_BSS_TM_ACCEPT,
+			    MBO_TRANSITION_REJECT_REASON_UNSPECIFIED, 0,
+			    bss->bssid) >= 0)
+			return;
 	}
 
 	if (bss == wpa_s->current_bss) {
@@ -1631,6 +1640,39 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 			wpa_s, wpa_s->wnm_dialog_token, status,
 			MBO_TRANSITION_REJECT_REASON_UNSPECIFIED, 0, NULL);
 	}
+}
+
+
+int wnm_btm_resp_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
+			   size_t data_len)
+{
+	const struct ieee80211_mgmt *frame =
+		(const struct ieee80211_mgmt *) data;
+
+	if (data_len <
+	    IEEE80211_HDRLEN + sizeof(frame->u.action.u.bss_tm_resp) ||
+	    frame->u.action.category != WLAN_ACTION_WNM ||
+	    frame->u.action.u.bss_tm_resp.action != WNM_BSS_TRANS_MGMT_RESP ||
+	    frame->u.action.u.bss_tm_resp.status_code != WNM_BSS_TM_ACCEPT)
+		return -1;
+
+	/*
+	 * If disassoc imminent bit was set in the request, the response may
+	 * indicate accept even if no candidate was found, so bail out here.
+	 */
+	if (!wpa_s->wnm_target_bss) {
+		wpa_printf(MSG_DEBUG, "WNM: Target BSS is not set");
+		return 0;
+	}
+
+	if (!wpa_s->current_ssid)
+		return 0;
+
+	wnm_bss_tm_connect(wpa_s, wpa_s->wnm_target_bss, wpa_s->current_ssid,
+			   0);
+
+	wpa_s->wnm_target_bss = NULL;
+	return 0;
 }
 
 

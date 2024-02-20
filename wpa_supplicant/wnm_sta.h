@@ -72,6 +72,8 @@ void wnm_set_coloc_intf_elems(struct wpa_supplicant *wpa_s,
 			      struct wpabuf *elems);
 bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss);
 
+int wnm_btm_resp_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
+			   size_t data_len);
 
 #ifdef CONFIG_WNM
 
