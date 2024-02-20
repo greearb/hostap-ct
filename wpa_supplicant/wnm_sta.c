@@ -1032,6 +1032,8 @@ static int wnm_send_bss_transition_mgmt_resp(
 	struct wpabuf *buf;
 	int res;
 
+	wpa_s->wnm_reply = 0;
+
 	wpa_printf(MSG_DEBUG,
 		   "WNM: Send BSS Transition Management Response to " MACSTR
 		   " dialog_token=%u status=%u reason=%u delay=%d",
@@ -1120,7 +1122,6 @@ static void wnm_bss_tm_connect(struct wpa_supplicant *wpa_s,
 
 	/* Send the BSS Management Response - Accept */
 	if (wpa_s->wnm_reply) {
-		wpa_s->wnm_reply = 0;
 		wpa_s->wnm_target_bss = bss;
 		wpa_printf(MSG_DEBUG,
 			   "WNM: Sending successful BSS Transition Management Response");
@@ -1232,12 +1233,11 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 send_bss_resp_fail:
 	/* Send reject response for all the failures */
 
-	if (wpa_s->wnm_reply) {
-		wpa_s->wnm_reply = 0;
+	if (wpa_s->wnm_reply)
 		wnm_send_bss_transition_mgmt_resp(wpa_s,
 						  wpa_s->wnm_dialog_token,
 						  status, reason, 0, NULL);
-	}
+
 	wnm_deallocate_memory(wpa_s);
 
 	return 0;
