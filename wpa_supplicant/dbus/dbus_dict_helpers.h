@@ -139,6 +139,7 @@ struct wpa_dbus_dict_entry {
 		dbus_uint64_t uint64_value;
 		double double_value;
 		char *bytearray_value;
+		dbus_uint16_t *uint16array_value;
 		char **strarray_value;
 		struct wpabuf **binarray_value;
 	};

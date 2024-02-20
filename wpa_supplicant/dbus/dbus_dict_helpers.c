@@ -706,6 +706,59 @@ done:
 }
 
 
+#define UINT16_ARRAY_CHUNK_SIZE 18
+#define UINT16_ARRAY_ITEM_SIZE (sizeof(dbus_uint16_t))
+
+static dbus_bool_t _wpa_dbus_dict_entry_get_uint16_array(
+	DBusMessageIter *iter, struct wpa_dbus_dict_entry *entry)
+{
+	dbus_uint32_t count = 0;
+	dbus_uint16_t *buffer, *nbuffer;
+
+	entry->uint16array_value = NULL;
+	entry->array_type = DBUS_TYPE_UINT16;
+
+	buffer = os_calloc(UINT16_ARRAY_CHUNK_SIZE, UINT16_ARRAY_ITEM_SIZE);
+	if (!buffer)
+		return FALSE;
+
+	entry->array_len = 0;
+	while (dbus_message_iter_get_arg_type(iter) == DBUS_TYPE_UINT16) {
+		dbus_uint16_t value;
+
+		if ((count % UINT16_ARRAY_CHUNK_SIZE) == 0 && count != 0) {
+			nbuffer = os_realloc_array(
+				buffer, count + UINT16_ARRAY_CHUNK_SIZE,
+				UINT16_ARRAY_ITEM_SIZE);
+			if (!nbuffer) {
+				os_free(buffer);
+				wpa_printf(MSG_ERROR,
+					   "dbus: %s out of memory trying to retrieve the uint16 array",
+					   __func__);
+				return FALSE;
+			}
+			buffer = nbuffer;
+		}
+
+		dbus_message_iter_get_basic(iter, &value);
+		buffer[count] = value;
+		entry->array_len = ++count;
+		dbus_message_iter_next(iter);
+	}
+	entry->uint16array_value = buffer;
+	wpa_hexdump_key(MSG_MSGDUMP, "dbus: uint16 array contents",
+			entry->bytearray_value, entry->array_len);
+
+	/* Zero-length arrays are valid. */
+	if (entry->array_len == 0) {
+		os_free(entry->uint16array_value);
+		entry->uint16array_value = NULL;
+	}
+
+	return TRUE;
+}
+
+
 #define STR_ARRAY_CHUNK_SIZE 8
 #define STR_ARRAY_ITEM_SIZE (sizeof(char *))
 
@@ -872,6 +925,10 @@ static dbus_bool_t _wpa_dbus_dict_entry_get_array(
 	case DBUS_TYPE_BYTE:
 		success = _wpa_dbus_dict_entry_get_byte_array(&iter_array,
 							      entry);
+		break;
+	case DBUS_TYPE_UINT16:
+		success = _wpa_dbus_dict_entry_get_uint16_array(&iter_array,
+								entry);
 		break;
 	case DBUS_TYPE_STRING:
 		success = _wpa_dbus_dict_entry_get_string_array(&iter_array,
@@ -1080,6 +1137,9 @@ void wpa_dbus_dict_entry_clear(struct wpa_dbus_dict_entry *entry)
 		switch (entry->array_type) {
 		case DBUS_TYPE_BYTE:
 			os_free(entry->bytearray_value);
+			break;
+		case DBUS_TYPE_UINT16:
+			os_free(entry->uint16array_value);
 			break;
 		case DBUS_TYPE_STRING:
 			if (!entry->strarray_value)
