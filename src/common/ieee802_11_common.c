@@ -2416,6 +2416,9 @@ const struct oper_class_map global_op_class[] = {
 	{ HOSTAPD_MODE_IEEE80211A, 135, 1, 233, 16, BW80P80, NO_P2P_SUPP },
 	{ HOSTAPD_MODE_IEEE80211A, 136, 2, 2, 4, BW20, NO_P2P_SUPP },
 
+	/* IEEE P802.11be/D5.0, Table E-4 (Global operating classes) */
+	{ HOSTAPD_MODE_IEEE80211A, 137, 31, 191, 32, BW320, NO_P2P_SUPP },
+
 	/*
 	 * IEEE Std 802.11ad-2012 and P802.ay/D5.0 60 GHz operating classes.
 	 * Class 180 has the legacy channels 1-6. Classes 181-183 include
@@ -2737,6 +2740,8 @@ int oper_class_bw_to_int(const struct oper_class_map *map)
 	case BW80P80:
 	case BW160:
 		return 160;
+	case BW320:
+		return 320;
 	case BW2160:
 		return 2160;
 	default:

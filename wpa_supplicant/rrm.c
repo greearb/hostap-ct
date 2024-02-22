@@ -515,6 +515,8 @@ static int * wpas_add_channels(const struct oper_class_map *op,
 		num_primary_channels = 4;
 	else if (op->bw == BW160)
 		num_primary_channels = 8;
+	else if (op->bw == BW320)
+		num_primary_channels = 16;
 	else
 		num_primary_channels = 1;
 
@@ -561,6 +563,7 @@ static int * wpas_op_class_freqs(const struct oper_class_map *op,
 	u8 channels_80mhz_6ghz[] = { 7, 23, 39, 55, 71, 87, 103, 119, 135, 151,
 				     167, 183, 199, 215 };
 	u8 channels_160mhz_6ghz[] = { 15, 47, 79, 111, 143, 175, 207 };
+	u8 channels_320mhz_6ghz[] = { 31, 63, 95, 127, 159, 191 };
 	const u8 *channels = NULL;
 	size_t num_chan = 0;
 	bool is_6ghz = is_6ghz_op_class(op->op_class);
@@ -579,6 +582,9 @@ static int * wpas_op_class_freqs(const struct oper_class_map *op,
 			channels_160mhz_5ghz;
 		num_chan =  is_6ghz ? ARRAY_SIZE(channels_160mhz_6ghz) :
 			ARRAY_SIZE(channels_160mhz_5ghz);
+	} else if (op->bw == BW320) {
+		channels = channels_320mhz_6ghz;
+		num_chan = ARRAY_SIZE(channels_320mhz_6ghz);
 	}
 
 	return wpas_add_channels(op, mode, channels, num_chan);

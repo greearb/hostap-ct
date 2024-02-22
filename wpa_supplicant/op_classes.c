@@ -22,13 +22,12 @@ static enum chan_allowed allow_channel(struct hostapd_hw_modes *mode,
 				       unsigned int *flags)
 {
 	int i;
-	bool is_6ghz = op_class >= 131 && op_class <= 136;
+	bool is_6ghz = is_6ghz_op_class(op_class);
 
 	for (i = 0; i < mode->num_channels; i++) {
 		bool chan_is_6ghz;
 
-		chan_is_6ghz = mode->channels[i].freq >= 5935 &&
-			mode->channels[i].freq <= 7115;
+		chan_is_6ghz = is_6ghz_freq(mode->channels[i].freq);
 		if (is_6ghz == chan_is_6ghz && mode->channels[i].chan == chan)
 			break;
 	}
@@ -187,6 +186,69 @@ static enum chan_allowed verify_160mhz(struct hostapd_hw_modes *mode,
 }
 
 
+static int get_center_320mhz(struct hostapd_hw_modes *mode, u8 channel,
+			     const u8 *center_channels, size_t num_chan)
+{
+	unsigned int i;
+
+	if (mode->mode != HOSTAPD_MODE_IEEE80211A || !mode->is_6ghz)
+		return 0;
+
+	for (i = 0; i < num_chan; i++) {
+		/*
+		* In 320 MHz, the bandwidth "spans" 60 channels (e.g., 65-125),
+		* so the center channel is 30 channels away from the start/end.
+		*/
+		if (channel >= center_channels[i] - 30 &&
+		    channel <= center_channels[i] + 30)
+			return center_channels[i];
+	}
+
+	return 0;
+}
+
+
+static enum chan_allowed verify_320mhz(struct hostapd_hw_modes *mode,
+				       u8 op_class, u8 channel)
+{
+	u8 center_chan;
+	unsigned int i;
+	bool no_ir = false;
+	const u8 *center_channels;
+	size_t num_chan;
+	const u8 center_channels_6ghz[] = { 31, 63, 95, 127, 159, 191 };
+
+	center_channels = center_channels_6ghz;
+	num_chan = ARRAY_SIZE(center_channels_6ghz);
+
+	center_chan = get_center_320mhz(mode, channel, center_channels,
+					num_chan);
+	if (!center_chan)
+		return NOT_ALLOWED;
+
+	/* Check all the channels are available */
+	for (i = 0; i < 16; i++) {
+		unsigned int flags;
+		u8 adj_chan = center_chan - 30 + i * 4;
+
+		if (allow_channel(mode, op_class, adj_chan, &flags) ==
+		    NOT_ALLOWED)
+			return NOT_ALLOWED;
+
+		if (!(flags & HOSTAPD_CHAN_EHT_320MHZ_SUBCHANNEL))
+			return NOT_ALLOWED;
+
+		if (flags & HOSTAPD_CHAN_NO_IR)
+			no_ir = true;
+	}
+
+	if (no_ir)
+		return NO_IR;
+
+	return ALLOWED;
+}
+
+
 enum chan_allowed verify_channel(struct hostapd_hw_modes *mode, u8 op_class,
 				 u8 channel, u8 bw)
 {
@@ -228,6 +290,13 @@ enum chan_allowed verify_channel(struct hostapd_hw_modes *mode, u8 op_class,
 		 * result and use only the 80 MHz specific version.
 		 */
 		res2 = res = verify_80mhz(mode, op_class, channel);
+	} else if (bw == BW320) {
+		/*
+		 * channel is a center channel and as such, not necessarily a
+		 * valid 20 MHz channels. Override earlier allow_channel()
+		 * result and use only the 320 MHz specific version.
+		 */
+		res2= res = verify_320mhz(mode, op_class, channel);
 	}
 
 	if (res == NOT_ALLOWED || res2 == NOT_ALLOWED)
