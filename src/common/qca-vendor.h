@@ -14296,7 +14296,11 @@ enum qca_wlan_ratemask_params_type {
  * @QCA_WLAN_VENDOR_ATTR_RATEMASK_PARAMS_BITMAP: binary, rate mask bitmap.
  * A bit value of 1 represents rate is enabled and a value of 0
  * represents rate is disabled.
- * For HE targets, 12 bits correspond to one NSS setting.
+ * For EHT targets,
+ * b0-1  => NSS1, MCS 14-15
+ * b2-15 => NSS1, MCS 0-13
+ * b16-29 => NSS2, MCS 0-13
+ * For HE targets, 14 bits correspond to one NSS setting.
  * b0-13  => NSS1, MCS 0-13
  * b14-27 => NSS2, MCS 0-13 and so on for other NSS.
  * For VHT targets, 10 bits correspond to one NSS setting.
