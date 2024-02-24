@@ -30,6 +30,9 @@
 #include "eloop.h"
 #include "l2_packet.h"
 
+#ifndef ETHER_VLAN_ENCAP_LEN
+#define ETHER_VLAN_ENCAP_LEN 4
+#endif
 
 static const u8 pae_group_addr[ETH_ALEN] =
 { 0x01, 0x80, 0xc2, 0x00, 0x00, 0x03 };
