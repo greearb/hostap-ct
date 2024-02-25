@@ -249,7 +249,7 @@ static int
 radius_change_server(struct radius_client_data *radius,
 		     struct hostapd_radius_server *nserv,
 		     struct hostapd_radius_server *oserv,
-		     int sock, int sock6, int auth);
+		     int auth);
 static int radius_client_init_acct(struct radius_client_data *radius);
 static int radius_client_init_auth(struct radius_client_data *radius);
 static void radius_client_auth_failover(struct radius_client_data *radius);
@@ -598,9 +598,7 @@ static void radius_client_auth_failover(struct radius_client_data *radius)
 	if (next > &(conf->auth_servers[conf->num_auth_servers - 1]))
 		next = conf->auth_servers;
 	conf->auth_server = next;
-	radius_change_server(radius, next, old,
-			     radius->auth_serv_sock,
-			     radius->auth_serv_sock6, 1);
+	radius_change_server(radius, next, old, 1);
 }
 
 
@@ -628,9 +626,7 @@ static void radius_client_acct_failover(struct radius_client_data *radius)
 	if (next > &conf->acct_servers[conf->num_acct_servers - 1])
 		next = conf->acct_servers;
 	conf->acct_server = next;
-	radius_change_server(radius, next, old,
-			     radius->acct_serv_sock,
-			     radius->acct_serv_sock6, 0);
+	radius_change_server(radius, next, old, 0);
 }
 
 
@@ -1071,7 +1067,7 @@ static int
 radius_change_server(struct radius_client_data *radius,
 		     struct hostapd_radius_server *nserv,
 		     struct hostapd_radius_server *oserv,
-		     int sock, int sock6, int auth)
+		     int auth)
 {
 	struct sockaddr_in serv, claddr;
 #ifdef CONFIG_IPV6
@@ -1080,6 +1076,8 @@ radius_change_server(struct radius_client_data *radius,
 	struct sockaddr *addr, *cl_addr;
 	socklen_t addrlen, claddrlen;
 	char abuf[50];
+	int sock = auth ? radius->auth_serv_sock : radius->acct_serv_sock;
+	int sock6 = auth ? radius->auth_serv_sock6 : radius->acct_serv_sock6;
 	int sel_sock;
 	struct radius_msg_list *entry;
 	struct hostapd_radius_servers *conf = radius->conf;
@@ -1276,12 +1274,10 @@ static void radius_retry_primary_timer(void *eloop_ctx, void *timeout_ctx)
 		oserv = conf->auth_server;
 		conf->auth_server = conf->auth_servers;
 		if (radius_change_server(radius, conf->auth_server, oserv,
-					 radius->auth_serv_sock,
-					 radius->auth_serv_sock6, 1) < 0) {
+					 1) < 0) {
 			conf->auth_server = oserv;
 			radius_change_server(radius, oserv, conf->auth_server,
-					     radius->auth_serv_sock,
-					     radius->auth_serv_sock6, 1);
+					     1);
 		}
 	}
 
@@ -1290,12 +1286,10 @@ static void radius_retry_primary_timer(void *eloop_ctx, void *timeout_ctx)
 		oserv = conf->acct_server;
 		conf->acct_server = conf->acct_servers;
 		if (radius_change_server(radius, conf->acct_server, oserv,
-					 radius->acct_serv_sock,
-					 radius->acct_serv_sock6, 0) < 0) {
+					 0) < 0) {
 			conf->acct_server = oserv;
 			radius_change_server(radius, oserv, conf->acct_server,
-					     radius->acct_serv_sock,
-					     radius->acct_serv_sock6, 0);
+					     0);
 		}
 	}
 
@@ -1388,9 +1382,7 @@ static int radius_client_init_auth(struct radius_client_data *radius)
 	if (ok == 0)
 		return -1;
 
-	radius_change_server(radius, conf->auth_server, NULL,
-			     radius->auth_serv_sock, radius->auth_serv_sock6,
-			     1);
+	radius_change_server(radius, conf->auth_server, NULL, 1);
 
 	if (radius->auth_serv_sock >= 0 &&
 	    eloop_register_read_sock(radius->auth_serv_sock,
@@ -1444,9 +1436,7 @@ static int radius_client_init_acct(struct radius_client_data *radius)
 	if (ok == 0)
 		return -1;
 
-	radius_change_server(radius, conf->acct_server, NULL,
-			     radius->acct_serv_sock, radius->acct_serv_sock6,
-			     0);
+	radius_change_server(radius, conf->acct_server, NULL, 0);
 
 	if (radius->acct_serv_sock >= 0 &&
 	    eloop_register_read_sock(radius->acct_serv_sock,
