@@ -1183,6 +1183,10 @@ ifdef CONFIG_TLSV12
 CFLAGS += -DCONFIG_TLSV12
 endif
 
+ifdef CONFIG_RADIUS_TLS
+TLS_FUNCS=y
+endif
+
 ifeq ($(CONFIG_TLS), wolfssl)
 ifdef TLS_FUNCS
 CFLAGS += -DWOLFSSL_DER_LOAD
@@ -1921,6 +1925,9 @@ OBJS += wpa_supplicant.o events.o bssid_ignore.o wpas_glue.o scan.o
 OBJS_t := $(OBJS) $(OBJS_l2) eapol_test.o
 OBJS_t += ../src/radius/radius_client.o
 OBJS_t += ../src/radius/radius.o
+ifdef CONFIG_RADIUS_TLS
+CFLAGS += -DCONFIG_RADIUS_TLS
+endif
 OBJS_t2 := $(OBJS) $(OBJS_l2) preauth_test.o
 
 OBJS_nfc := $(OBJS) $(OBJS_l2) nfc_pw_token.o

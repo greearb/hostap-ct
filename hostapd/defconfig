@@ -141,6 +141,9 @@ CONFIG_PKCS12=y
 # Build IPv6 support for RADIUS operations
 CONFIG_IPV6=y
 
+# Include support fo RADIUS/TLS into the RADIUS client
+#CONFIG_RADIUS_TLS=y
+
 # IEEE Std 802.11r-2008 (Fast BSS Transition)
 #CONFIG_IEEE80211R=y
 

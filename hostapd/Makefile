@@ -682,6 +682,11 @@ ifdef CHAP
 OBJS += ../src/eap_common/chap.o
 endif
 
+ifdef CONFIG_RADIUS_TLS
+TLS_FUNCS=y
+CFLAGS += -DCONFIG_RADIUS_TLS
+endif
+
 ifdef TLS_FUNCS
 NEED_DES=y
 # Shared TLS functions (needed for EAP_TLS, EAP_PEAP, and EAP_TTLS)

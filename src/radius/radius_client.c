@@ -1,18 +1,20 @@
 /*
  * RADIUS client
- * Copyright (c) 2002-2015, Jouni Malinen <j@w1.fi>
+ * Copyright (c) 2002-2024, Jouni Malinen <j@w1.fi>
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
  */
 
 #include "includes.h"
+#include <fcntl.h>
 #include <net/if.h>
 
 #include "common.h"
+#include "eloop.h"
+#include "crypto/tls.h"
 #include "radius.h"
 #include "radius_client.h"
-#include "eloop.h"
 
 /* Defaults for RADIUS retransmit values (exponential backoff) */
 
@@ -174,9 +176,29 @@ struct radius_client_data {
 	int auth_sock;
 
 	/**
+	 * auth_tls - Whether current authentication connection uses TLS
+	 */
+	bool auth_tls;
+
+	/**
+	 * auth_tls_ready - Whether authentication TLS is ready
+	 */
+	bool auth_tls_ready;
+
+	/**
 	 * acct_sock - Currently used socket for RADIUS accounting server
 	 */
 	int acct_sock;
+
+	/**
+	 * acct_tls - Whether current accounting connection uses TLS
+	 */
+	bool acct_tls;
+
+	/**
+	 * acct_tls_ready - Whether accounting TLS is ready
+	 */
+	bool acct_tls_ready;
 
 	/**
 	 * auth_handlers - Authentication message handlers
@@ -222,6 +244,12 @@ struct radius_client_data {
 	 * interim_error_cb_ctx - interim_error_cb() context data
 	 */
 	void *interim_error_cb_ctx;
+
+#ifdef CONFIG_RADIUS_TLS
+	void *tls_ctx;
+	struct tls_connection *auth_tls_conn;
+	struct tls_connection *acct_tls_conn;
+#endif /* CONFIG_RADIUS_TLS */
 };
 
 
@@ -354,9 +382,19 @@ static int radius_client_retransmit(struct radius_client_data *radius,
 	u8 *acct_delay_time;
 	size_t acct_delay_time_len;
 	int num_servers;
+#ifdef CONFIG_RADIUS_TLS
+	struct wpabuf *out = NULL;
+	struct tls_connection *conn = NULL;
+	bool acct = false;
+#endif /* CONFIG_RADIUS_TLS */
 
 	if (entry->msg_type == RADIUS_ACCT ||
 	    entry->msg_type == RADIUS_ACCT_INTERIM) {
+#ifdef CONFIG_RADIUS_TLS
+		acct = true;
+		if (radius->acct_tls)
+			conn = radius->acct_tls_conn;
+#endif /* CONFIG_RADIUS_TLS */
 		num_servers = conf->num_acct_servers;
 		if (radius->acct_sock < 0)
 			radius_client_init_acct(radius);
@@ -374,6 +412,10 @@ static int radius_client_retransmit(struct radius_client_data *radius,
 			conf->acct_server->retransmissions++;
 		}
 	} else {
+#ifdef CONFIG_RADIUS_TLS
+		if (radius->auth_tls)
+			conn = radius->auth_tls_conn;
+#endif /* CONFIG_RADIUS_TLS */
 		num_servers = conf->num_auth_servers;
 		if (radius->auth_sock < 0)
 			radius_client_init_auth(radius);
@@ -408,6 +450,15 @@ static int radius_client_retransmit(struct radius_client_data *radius,
 			   "RADIUS: No valid socket for retransmission");
 		return 1;
 	}
+
+#ifdef CONFIG_RADIUS_TLS
+	if ((acct && radius->acct_tls && !radius->acct_tls_ready) ||
+	    (!acct && radius->auth_tls && !radius->auth_tls_ready)) {
+		wpa_printf(MSG_DEBUG,
+			   "RADIUS: TLS connection not yet ready for TX");
+		goto not_ready;
+	}
+#endif /* CONFIG_RADIUS_TLS */
 
 	if (entry->msg_type == RADIUS_ACCT &&
 	    radius_msg_get_attr_ptr(entry->msg, RADIUS_ATTR_ACCT_DELAY_TIME,
@@ -453,11 +504,37 @@ static int radius_client_retransmit(struct radius_client_data *radius,
 
 	os_get_reltime(&entry->last_attempt);
 	buf = radius_msg_get_buf(entry->msg);
+#ifdef CONFIG_RADIUS_TLS
+	if (conn) {
+		out = tls_connection_encrypt(radius->tls_ctx, conn, buf);
+		if (!out) {
+			wpa_printf(MSG_INFO,
+				   "RADIUS: Failed to encrypt RADIUS message (TLS)");
+			return -1;
+		}
+		wpa_printf(MSG_DEBUG,
+			   "RADIUS: TLS encryption of %zu bytes of plaintext to %zu bytes of ciphertext",
+			   wpabuf_len(buf), wpabuf_len(out));
+		buf = out;
+	}
+#endif /* CONFIG_RADIUS_TLS */
+
+	wpa_printf(MSG_DEBUG, "RADIUS: Send %zu bytes to the server",
+		   wpabuf_len(buf));
 	if (send(s, wpabuf_head(buf), wpabuf_len(buf), 0) < 0) {
 		if (radius_client_handle_send_error(radius, s, entry->msg_type)
-		    > 0)
+		    > 0) {
+#ifdef CONFIG_RADIUS_TLS
+			wpabuf_free(out);
+#endif /* CONFIG_RADIUS_TLS */
 			return 0;
+		}
 	}
+#ifdef CONFIG_RADIUS_TLS
+	wpabuf_free(out);
+
+not_ready:
+#endif /* CONFIG_RADIUS_TLS */
 
 	entry->next_try = now + entry->next_wait;
 	entry->next_wait *= 2;
@@ -714,6 +791,11 @@ static int radius_client_disable_pmtu_discovery(int s)
 static void radius_close_auth_socket(struct radius_client_data *radius)
 {
 	if (radius->auth_sock >= 0) {
+#ifdef CONFIG_RADIUS_TLS
+		if (radius->conf->auth_server->tls)
+			eloop_unregister_sock(radius->auth_sock,
+					      EVENT_TYPE_WRITE);
+#endif /* CONFIG_RADIUS_TLS */
 		eloop_unregister_read_sock(radius->auth_sock);
 		close(radius->auth_sock);
 		radius->auth_sock = -1;
@@ -724,6 +806,11 @@ static void radius_close_auth_socket(struct radius_client_data *radius)
 static void radius_close_acct_socket(struct radius_client_data *radius)
 {
 	if (radius->acct_sock >= 0) {
+#ifdef CONFIG_RADIUS_TLS
+		if (radius->conf->acct_server->tls)
+			eloop_unregister_sock(radius->acct_sock,
+					      EVENT_TYPE_WRITE);
+#endif /* CONFIG_RADIUS_TLS */
 		eloop_unregister_read_sock(radius->acct_sock);
 		close(radius->acct_sock);
 		radius->acct_sock = -1;
@@ -766,8 +853,18 @@ int radius_client_send(struct radius_client_data *radius,
 	char *name;
 	int s, res;
 	struct wpabuf *buf;
+#ifdef CONFIG_RADIUS_TLS
+	struct wpabuf *out = NULL;
+	struct tls_connection *conn = NULL;
+	bool acct = false;
+#endif /* CONFIG_RADIUS_TLS */
 
 	if (msg_type == RADIUS_ACCT || msg_type == RADIUS_ACCT_INTERIM) {
+#ifdef CONFIG_RADIUS_TLS
+		acct = true;
+		if (radius->acct_tls)
+			conn = radius->acct_tls_conn;
+#endif /* CONFIG_RADIUS_TLS */
 		if (conf->acct_server && radius->acct_sock < 0)
 			radius_client_init_acct(radius);
 
@@ -786,6 +883,10 @@ int radius_client_send(struct radius_client_data *radius,
 		s = radius->acct_sock;
 		conf->acct_server->requests++;
 	} else {
+#ifdef CONFIG_RADIUS_TLS
+		if (radius->auth_tls)
+			conn = radius->auth_tls_conn;
+#endif /* CONFIG_RADIUS_TLS */
 		if (conf->auth_server && radius->auth_sock < 0)
 			radius_client_init_auth(radius);
 
@@ -811,16 +912,178 @@ int radius_client_send(struct radius_client_data *radius,
 	if (conf->msg_dumps)
 		radius_msg_dump(msg);
 
+#ifdef CONFIG_RADIUS_TLS
+	if ((acct && radius->acct_tls && !radius->acct_tls_ready) ||
+	    (!acct && radius->auth_tls && !radius->auth_tls_ready)) {
+		wpa_printf(MSG_DEBUG,
+			   "RADIUS: TLS connection not yet ready for TX");
+		goto skip_send;
+	}
+#endif /* CONFIG_RADIUS_TLS */
+
 	buf = radius_msg_get_buf(msg);
+#ifdef CONFIG_RADIUS_TLS
+	if (conn) {
+		out = tls_connection_encrypt(radius->tls_ctx, conn, buf);
+		if (!out) {
+			wpa_printf(MSG_INFO,
+				   "RADIUS: Failed to encrypt RADIUS message (TLS)");
+			return -1;
+		}
+		wpa_printf(MSG_DEBUG,
+			   "RADIUS: TLS encryption of %zu bytes of plaintext to %zu bytes of ciphertext",
+			   wpabuf_len(buf), wpabuf_len(out));
+		buf = out;
+	}
+#endif /* CONFIG_RADIUS_TLS */
+	wpa_printf(MSG_DEBUG, "RADIUS: Send %zu bytes to the server",
+		   wpabuf_len(buf));
 	res = send(s, wpabuf_head(buf), wpabuf_len(buf), 0);
+#ifdef CONFIG_RADIUS_TLS
+	wpabuf_free(out);
+#endif /* CONFIG_RADIUS_TLS */
 	if (res < 0)
 		radius_client_handle_send_error(radius, s, msg_type);
 
+#ifdef CONFIG_RADIUS_TLS
+skip_send:
+#endif /* CONFIG_RADIUS_TLS */
 	radius_client_list_add(radius, msg, msg_type, shared_secret,
 			       shared_secret_len, addr);
 
 	return 0;
 }
+
+
+#ifdef CONFIG_RADIUS_TLS
+
+static void radius_client_close_tcp(struct radius_client_data *radius,
+				    int sock, RadiusType msg_type)
+{
+	wpa_printf(MSG_DEBUG, "RADIUS: Closing TCP connection (sock %d)",
+		   sock);
+	if (msg_type == RADIUS_ACCT) {
+		radius->acct_tls_ready = false;
+		radius_close_acct_socket(radius);
+	} else {
+		radius->auth_tls_ready = false;
+		radius_close_auth_socket(radius);
+	}
+}
+
+
+static void
+radius_client_process_tls_handshake(struct radius_client_data *radius,
+				    int sock, RadiusType msg_type,
+				    u8 *buf, size_t len)
+{
+	struct wpabuf *in, *out = NULL, *appl;
+	struct tls_connection *conn;
+	int res;
+	bool ready = false;
+
+	wpa_printf(MSG_DEBUG,
+		   "RADIUS: Process %zu bytes of received TLS handshake message",
+		   len);
+
+	if (msg_type == RADIUS_ACCT)
+		conn = radius->acct_tls_conn;
+	else
+		conn = radius->auth_tls_conn;
+
+	in = wpabuf_alloc_copy(buf, len);
+	if (!in)
+		return;
+
+	appl = NULL;
+	out = tls_connection_handshake(radius->tls_ctx, conn, in, &appl);
+	wpabuf_free(in);
+	if (!out) {
+		wpa_printf(MSG_DEBUG,
+			   "RADIUS: Could not generate TLS handshake data");
+		goto fail;
+	}
+
+	if (tls_connection_get_failed(radius->tls_ctx, conn)) {
+		wpa_printf(MSG_INFO, "RADIUS: TLS handshake failed");
+		goto fail;
+	}
+
+	if (tls_connection_established(radius->tls_ctx, conn)) {
+		wpa_printf(MSG_DEBUG,
+			   "RADIUS: TLS connection established (sock=%d)",
+			   sock);
+		if (msg_type == RADIUS_ACCT)
+			radius->acct_tls_ready = true;
+		else
+			radius->auth_tls_ready = true;
+		ready = true;
+	}
+
+	wpa_printf(MSG_DEBUG, "RADIUS: Sending %zu bytes of TLS handshake",
+		   wpabuf_len(out));
+	res = send(sock, wpabuf_head(out), wpabuf_len(out), 0);
+	if (res < 0) {
+		wpa_printf(MSG_INFO, "RADIUS: send: %s", strerror(errno));
+		goto fail;
+	}
+	if ((size_t) res != wpabuf_len(out)) {
+		wpa_printf(MSG_INFO,
+			   "RADIUS: Could not send all data for TLS handshake: only %d bytes sent",
+			   res);
+		goto fail;
+	}
+	wpabuf_free(out);
+
+	if (ready) {
+		struct radius_msg_list *entry, *prev, *tmp;
+		struct os_reltime now;
+
+		/* Send all pending message of matching type since the TLS
+		 * tunnel has now been established. */
+
+		os_get_reltime(&now);
+
+		entry = radius->msgs;
+		prev = NULL;
+		while (entry) {
+			if (entry->msg_type != msg_type) {
+				prev = entry;
+				entry = entry->next;
+				continue;
+			}
+
+			if (radius_client_retransmit(radius, entry, now.sec)) {
+				if (prev)
+					prev->next = entry->next;
+				else
+					radius->msgs = entry->next;
+
+				tmp = entry;
+				entry = entry->next;
+				radius_client_msg_free(tmp);
+				radius->num_msgs--;
+				continue;
+			}
+
+			prev = entry;
+			entry = entry->next;
+		}
+	}
+
+	return;
+
+fail:
+	wpabuf_free(out);
+	tls_connection_deinit(radius->tls_ctx, conn);
+	if (msg_type == RADIUS_ACCT)
+		radius->acct_tls_conn = NULL;
+	else
+		radius->auth_tls_conn = NULL;
+	radius_client_close_tcp(radius, sock, msg_type);
+}
+
+#endif /* CONFIG_RADIUS_TLS */
 
 
 static void radius_client_receive(int sock, void *eloop_ctx, void *sock_ctx)
@@ -840,12 +1103,28 @@ static void radius_client_receive(int sock, void *eloop_ctx, void *sock_ctx)
 	struct os_reltime now;
 	struct hostapd_radius_server *rconf;
 	int invalid_authenticator = 0;
+#ifdef CONFIG_RADIUS_TLS
+	struct tls_connection *conn = NULL;
+	bool tls, tls_ready;
+#endif /* CONFIG_RADIUS_TLS */
 
 	if (msg_type == RADIUS_ACCT) {
+#ifdef CONFIG_RADIUS_TLS
+		if (radius->acct_tls)
+			conn = radius->acct_tls_conn;
+		tls = radius->acct_tls;
+		tls_ready = radius->acct_tls_ready;
+#endif /* CONFIG_RADIUS_TLS */
 		handlers = radius->acct_handlers;
 		num_handlers = radius->num_acct_handlers;
 		rconf = conf->acct_server;
 	} else {
+#ifdef CONFIG_RADIUS_TLS
+		if (radius->auth_tls)
+			conn = radius->auth_tls_conn;
+		tls = radius->auth_tls;
+		tls_ready = radius->auth_tls_ready;
+#endif /* CONFIG_RADIUS_TLS */
 		handlers = radius->auth_handlers;
 		num_handlers = radius->num_auth_handlers;
 		rconf = conf->auth_server;
@@ -861,6 +1140,52 @@ static void radius_client_receive(int sock, void *eloop_ctx, void *sock_ctx)
 		wpa_printf(MSG_INFO, "recvmsg[RADIUS]: %s", strerror(errno));
 		return;
 	}
+#ifdef CONFIG_RADIUS_TLS
+	if (tls && len == 0) {
+		wpa_printf(MSG_DEBUG, "RADIUS: No TCP data available");
+		goto close_tcp;
+	}
+
+	if (tls && !tls_ready) {
+		radius_client_process_tls_handshake(radius, sock, msg_type,
+						    buf, len);
+		return;
+	}
+
+	if (conn) {
+		struct wpabuf *out, *in;
+
+		in = wpabuf_alloc_copy(buf, len);
+		if (!in)
+			return;
+		wpa_printf(MSG_DEBUG,
+			   "RADIUS: Process %d bytes of encrypted TLS data",
+			   len);
+		out = tls_connection_decrypt(radius->tls_ctx, conn, in);
+		wpabuf_free(in);
+		if (!out) {
+			wpa_printf(MSG_INFO,
+				   "RADIUS: Failed to decrypt TLS data");
+			goto close_tcp;
+		}
+		if (wpabuf_len(out) == 0) {
+			wpa_printf(MSG_DEBUG,
+				   "RADIUS: Full message not yet received - continue waiting for additional TLS data");
+			wpabuf_free(out);
+			return;
+		}
+		if (wpabuf_len(out) > RADIUS_MAX_MSG_LEN) {
+			wpa_printf(MSG_INFO,
+				   "RADIUS: Too long RADIUS message from TLS: %zu",
+				   wpabuf_len(out));
+			wpabuf_free(out);
+			goto close_tcp;
+		}
+		os_memcpy(buf, wpabuf_head(out), wpabuf_len(out));
+		len = wpabuf_len(out);
+		wpabuf_free(out);
+	}
+#endif /* CONFIG_RADIUS_TLS */
 
 	hostapd_logger(radius->ctx, NULL, HOSTAPD_MODULE_RADIUS,
 		       HOSTAPD_LEVEL_DEBUG, "Received %d bytes from RADIUS "
@@ -976,7 +1301,119 @@ static void radius_client_receive(int sock, void *eloop_ctx, void *sock_ctx)
 
  fail:
 	radius_msg_free(msg);
+	return;
+
+#ifdef CONFIG_RADIUS_TLS
+close_tcp:
+	radius_client_close_tcp(radius, sock, msg_type);
+#endif /* CONFIG_RADIUS_TLS */
 }
+
+
+#ifdef CONFIG_RADIUS_TLS
+static void radius_client_write_ready(int sock, void *eloop_ctx, void *sock_ctx)
+{
+	struct radius_client_data *radius = eloop_ctx;
+	RadiusType msg_type = (uintptr_t) sock_ctx;
+	struct tls_connection *conn = NULL;
+	struct wpabuf *in, *out = NULL, *appl;
+	int res = -1;
+	struct tls_connection_params params;
+	struct hostapd_radius_server *server;
+
+	wpa_printf(MSG_DEBUG, "RADIUS: TCP connection established - start TLS handshake (sock=%d)",
+		   sock);
+
+	if (msg_type == RADIUS_ACCT) {
+		eloop_unregister_sock(sock, EVENT_TYPE_WRITE);
+		eloop_register_read_sock(sock, radius_client_receive, radius,
+					 (void *) RADIUS_ACCT);
+		if (radius->acct_tls_conn) {
+			wpa_printf(MSG_DEBUG,
+				   "RADIUS: Deinit previously used TLS connection");
+			tls_connection_deinit(radius->tls_ctx,
+					      radius->acct_tls_conn);
+			radius->acct_tls_conn = NULL;
+		}
+		server = radius->conf->acct_server;
+	} else {
+		eloop_unregister_sock(sock, EVENT_TYPE_WRITE);
+		eloop_register_read_sock(sock, radius_client_receive, radius,
+					 (void *) RADIUS_AUTH);
+		if (radius->auth_tls_conn) {
+			wpa_printf(MSG_DEBUG,
+				   "RADIUS: Deinit previously used TLS connection");
+			tls_connection_deinit(radius->tls_ctx,
+					      radius->auth_tls_conn);
+			radius->auth_tls_conn = NULL;
+		}
+		server = radius->conf->auth_server;
+	}
+
+	if (!server)
+		goto fail;
+
+	conn = tls_connection_init(radius->tls_ctx);
+	if (!conn) {
+		wpa_printf(MSG_INFO,
+			   "RADIUS: Failed to initiate TLS connection");
+		goto fail;
+	}
+
+	os_memset(&params, 0, sizeof(params));
+	params.ca_cert = server->ca_cert;
+	params.client_cert = server->client_cert;
+	params.private_key = server->private_key;
+	params.private_key_passwd = server->private_key_passwd;
+	params.flags = TLS_CONN_DISABLE_TLSv1_0 | TLS_CONN_DISABLE_TLSv1_1;
+	if (tls_connection_set_params(radius->tls_ctx, conn, &params)) {
+		wpa_printf(MSG_INFO,
+			   "RADIUS: Failed to set TLS connection parameters");
+		goto fail;
+	}
+
+	in = NULL;
+	appl = NULL;
+	out = tls_connection_handshake(radius->tls_ctx, conn, in, &appl);
+	if (!out) {
+		wpa_printf(MSG_DEBUG,
+			   "RADIUS: Could not generate TLS handshake data");
+		goto fail;
+	}
+
+	if (tls_connection_get_failed(radius->tls_ctx, conn)) {
+		wpa_printf(MSG_INFO, "RADIUS: TLS handshake failed");
+		goto fail;
+	}
+
+	wpa_printf(MSG_DEBUG, "RADIUS: Sending %zu bytes of TLS handshake",
+		   wpabuf_len(out));
+	res = send(sock, wpabuf_head(out), wpabuf_len(out), 0);
+	if (res < 0) {
+		wpa_printf(MSG_INFO, "RADIUS: send: %s", strerror(errno));
+		goto fail;
+	}
+	if ((size_t) res != wpabuf_len(out)) {
+		wpa_printf(MSG_INFO,
+			   "RADIUS: Could not send all data for TLS handshake: only %d bytes sent",
+			   res);
+		goto fail;
+	}
+	wpabuf_free(out);
+
+	if (msg_type == RADIUS_ACCT)
+		radius->acct_tls_conn = conn;
+	else
+		radius->auth_tls_conn = conn;
+	return;
+
+fail:
+	wpa_printf(MSG_INFO, "RADIUS: Failed to perform TLS handshake");
+	tls_connection_deinit(radius->tls_ctx, conn);
+	wpabuf_free(out);
+	radius_client_close_tcp(radius, sock, msg_type);
+}
+#endif /* CONFIG_RADIUS_TLS */
 
 
 /**
@@ -1095,6 +1532,17 @@ radius_change_server(struct radius_client_data *radius,
 	int sel_sock;
 	struct radius_msg_list *entry;
 	struct hostapd_radius_servers *conf = radius->conf;
+	int type = SOCK_DGRAM;
+	bool tls = nserv->tls;
+
+	if (tls) {
+#ifdef CONFIG_RADIUS_TLS
+		type = SOCK_STREAM;
+#else /* CONFIG_RADIUS_TLS */
+		wpa_printf(MSG_ERROR, "RADIUS: TLS not supported");
+		return -1;
+#endif /* CONFIG_RADIUS_TLS */
+	}
 
 	hostapd_logger(radius->ctx, NULL, HOSTAPD_MODULE_RADIUS,
 		       HOSTAPD_LEVEL_INFO,
@@ -1153,7 +1601,7 @@ radius_change_server(struct radius_client_data *radius,
 		serv.sin_port = htons(nserv->port);
 		addr = (struct sockaddr *) &serv;
 		addrlen = sizeof(serv);
-		sel_sock = socket(PF_INET, SOCK_DGRAM, 0);
+		sel_sock = socket(PF_INET, type, 0);
 		if (sel_sock >= 0)
 			radius_client_disable_pmtu_discovery(sel_sock);
 		break;
@@ -1166,7 +1614,7 @@ radius_change_server(struct radius_client_data *radius,
 		serv6.sin6_port = htons(nserv->port);
 		addr = (struct sockaddr *) &serv6;
 		addrlen = sizeof(serv6);
-		sel_sock = socket(PF_INET6, SOCK_DGRAM, 0);
+		sel_sock = socket(PF_INET6, type, 0);
 		break;
 #endif /* CONFIG_IPV6 */
 	default:
@@ -1179,6 +1627,15 @@ radius_change_server(struct radius_client_data *radius,
 			   nserv->addr.af, auth);
 		return -1;
 	}
+
+#ifdef CONFIG_RADIUS_TLS
+	if (tls && fcntl(sel_sock, F_SETFL, O_NONBLOCK) != 0) {
+		wpa_printf(MSG_DEBUG, "RADIUS: fnctl(O_NONBLOCK) failed: %s",
+			   strerror(errno));
+		close(sel_sock);
+		return -1;
+	}
+#endif /* CONFIG_RADIUS_TLS */
 
 #ifdef __linux__
 	if (conf->force_client_dev && conf->force_client_dev[0]) {
@@ -1233,9 +1690,16 @@ radius_change_server(struct radius_client_data *radius,
 	}
 
 	if (connect(sel_sock, addr, addrlen) < 0) {
-		wpa_printf(MSG_INFO, "connect[radius]: %s", strerror(errno));
-		close(sel_sock);
-		return -2;
+		if (nserv->tls && errno == EINPROGRESS) {
+			wpa_printf(MSG_DEBUG,
+				   "RADIUS: TCP connection establishment in progress (sock %d)",
+				   sel_sock);
+		} else {
+			wpa_printf(MSG_INFO, "connect[radius]: %s",
+				   strerror(errno));
+			close(sel_sock);
+			return -2;
+		}
 	}
 
 #ifndef CONFIG_NATIVE_WINDOWS
@@ -1273,9 +1737,26 @@ radius_change_server(struct radius_client_data *radius,
 		radius->acct_sock = sel_sock;
 	}
 
-	eloop_register_read_sock(sel_sock, radius_client_receive, radius,
-				 auth ? (void *) RADIUS_AUTH :
-				 (void *) RADIUS_ACCT);
+	if (!tls)
+		eloop_register_read_sock(sel_sock, radius_client_receive,
+					 radius,
+					 auth ? (void *) RADIUS_AUTH :
+					 (void *) RADIUS_ACCT);
+#ifdef CONFIG_RADIUS_TLS
+	if (tls)
+		eloop_register_sock(sel_sock, EVENT_TYPE_WRITE,
+				    radius_client_write_ready, radius,
+				    auth ? (void *) RADIUS_AUTH :
+				    (void *) RADIUS_ACCT);
+#endif /* CONFIG_RADIUS_TLS */
+
+	if (auth) {
+		radius->auth_tls = nserv->tls;
+		radius->auth_tls_ready = false;
+	} else {
+		radius->acct_tls = nserv->tls;
+		radius->acct_tls_ready = false;
+	}
 
 	return 0;
 }
@@ -1332,6 +1813,15 @@ static int radius_client_init_acct(struct radius_client_data *radius)
 }
 
 
+#ifdef CONFIG_RADIUS_TLS
+static void radius_tls_event_cb(void *ctx, enum tls_event ev,
+				union tls_event_data *data)
+{
+	wpa_printf(MSG_DEBUG, "RADIUS: TLS event %d", ev);
+}
+#endif /* CONFIG_RADIUS_TLS */
+
+
 /**
  * radius_client_init - Initialize RADIUS client
  * @ctx: Callback context to be used in hostapd_logger() calls
@@ -1370,6 +1860,22 @@ radius_client_init(void *ctx, struct hostapd_radius_servers *conf)
 				       radius_retry_primary_timer, radius,
 				       NULL);
 
+#ifdef CONFIG_RADIUS_TLS
+	if ((conf->auth_server && conf->auth_server->tls) ||
+	    (conf->acct_server && conf->acct_server->tls)) {
+		struct tls_config tls_conf;
+
+		os_memset(&tls_conf, 0, sizeof(tls_conf));
+		tls_conf.event_cb = radius_tls_event_cb;
+		radius->tls_ctx = tls_init(&tls_conf);
+		if (!radius->tls_ctx) {
+			radius_client_deinit(radius);
+			return NULL;
+		}
+	}
+#endif /* CONFIG_RADIUS_TLS */
+
+
 	return radius;
 }
 
@@ -1391,6 +1897,13 @@ void radius_client_deinit(struct radius_client_data *radius)
 	radius_client_flush(radius, 0);
 	os_free(radius->auth_handlers);
 	os_free(radius->acct_handlers);
+#ifdef CONFIG_RADIUS_TLS
+	if (radius->tls_ctx) {
+		tls_connection_deinit(radius->tls_ctx, radius->auth_tls_conn);
+		tls_connection_deinit(radius->tls_ctx, radius->acct_tls_conn);
+		tls_deinit(radius->tls_ctx);
+	}
+#endif /* CONFIG_RADIUS_TLS */
 	os_free(radius);
 }
 

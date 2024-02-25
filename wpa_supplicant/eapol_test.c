@@ -670,6 +670,10 @@ static void test_eapol_clean(struct eapol_test_data *e,
 	wpa_s->eapol = NULL;
 	if (e->radius_conf && e->radius_conf->auth_server) {
 		os_free(e->radius_conf->auth_server->shared_secret);
+		os_free(e->radius_conf->auth_server->ca_cert);
+		os_free(e->radius_conf->auth_server->client_cert);
+		os_free(e->radius_conf->auth_server->private_key);
+		os_free(e->radius_conf->auth_server->private_key_passwd);
 		os_free(e->radius_conf->auth_server);
 	}
 	os_free(e->radius_conf);
@@ -1007,7 +1011,10 @@ struct wpa_driver_ops eapol_test_drv_ops = {
 
 static void wpa_init_conf(struct eapol_test_data *e,
 			  struct wpa_supplicant *wpa_s, const char *authsrv,
-			  int port, const char *secret,
+			  int port, bool tls, const char *secret,
+			  const char *ca_cert, const char *client_cert,
+			  const char *private_key,
+			  const char *private_key_passwd,
 			  const char *cli_addr, const char *ifname)
 {
 	struct hostapd_radius_server *as;
@@ -1045,8 +1052,17 @@ static void wpa_init_conf(struct eapol_test_data *e,
 	}
 #endif /* CONFIG_NATIVE_WINDOWS or CONFIG_ANSI_C_EXTRA */
 	as->port = port;
+	as->tls = tls;
 	as->shared_secret = (u8 *) os_strdup(secret);
 	as->shared_secret_len = os_strlen(secret);
+	if (ca_cert)
+		as->ca_cert = os_strdup(ca_cert);
+	if (client_cert)
+		as->client_cert = os_strdup(client_cert);
+	if (private_key)
+		as->private_key = os_strdup(private_key);
+	if (private_key_passwd)
+		as->private_key_passwd = os_strdup(private_key_passwd);
 	e->radius_conf->auth_server = as;
 	e->radius_conf->auth_servers = as;
 	e->radius_conf->msg_dumps = 1;
@@ -1256,11 +1272,16 @@ static void usage(void)
 {
 	printf("usage:\n"
 	       "eapol_test [-enWSv] -c<conf> [-a<AS IP>] [-p<AS port>] "
-	       "[-s<AS secret>]\\\n"
+	       "[-s<AS secret>] \\\n"
+	       "           [-X<RADIUS protocol> \\\n"
 	       "           [-r<count>] [-t<timeout>] [-C<Connect-Info>] \\\n"
 	       "           [-M<client MAC address>] [-o<server cert file] \\\n"
 	       "           [-N<attr spec>] [-R<PC/SC reader>] "
 	       "[-P<PC/SC PIN>] \\\n"
+#ifdef CONFIG_RADIUS_TLS
+	       "           [-j<CA cert>] [-J<client cert>] \\\n"
+	       "[-k<private key] [-K<private key passwd>] \\\n"
+#endif /* CONFIG_RADIUS_TLS */
 	       "           [-A<client IP>] [-i<ifname>] [-T<ctrl_iface>]\n"
 	       "eapol_test scard\n"
 	       "eapol_test sim <PIN> <num triplets> [debug]\n"
@@ -1269,10 +1290,11 @@ static void usage(void)
 	       "  -c<conf> = configuration file\n"
 	       "  -a<AS IP> = IP address of the authentication server, "
 	       "default 127.0.0.1\n"
-	       "  -p<AS port> = UDP port of the authentication server, "
-	       "default 1812\n"
-	       "  -s<AS secret> = shared secret with the authentication "
-	       "server, default 'radius'\n"
+	       "  -p<AS port> = Port of the authentication server,\n"
+	       "                default 1812 for RADIUS/UDP and 2083 for RADIUS/TLS\n"
+	       "  -s<AS secret> = shared secret with the authentication server,\n"
+	       "                  default 'radius' for RADIUS/UDP and 'radsec' for RADIUS/TLS\n"
+	       "  -X<RADIUS protocol> = RADIUS protocol to use: UDP (default) or TLS\n"
 	       "  -A<client IP> = IP address of the client, default: select "
 	       "automatically\n"
 	       "  -r<count> = number of re-authentications\n"
@@ -1310,8 +1332,11 @@ int main(int argc, char *argv[])
 	struct wpa_supplicant wpa_s;
 	int c, ret = 1, wait_for_monitor = 0, save_config = 0;
 	char *as_addr = "127.0.0.1";
-	int as_port = 1812;
-	char *as_secret = "radius";
+	int as_port = -1;
+	char *as_secret = NULL;
+	char *ca_cert = NULL, *client_cert = NULL;
+	char *private_key = NULL, *private_key_passwd = NULL;
+	bool tls = false;
 	char *cli_addr = NULL;
 	char *conf = NULL;
 	int timeout = 30;
@@ -1334,7 +1359,8 @@ int main(int argc, char *argv[])
 	wpa_debug_show_keys = 1;
 
 	for (;;) {
-		c = getopt(argc, argv, "a:A:c:C:ei:M:nN:o:p:P:r:R:s:St:T:vW");
+		c = getopt(argc, argv,
+			   "a:A:c:C:ei:j:J:k:K:M:nN:o:p:P:r:R:s:St:T:vWX:");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -1356,6 +1382,20 @@ int main(int argc, char *argv[])
 		case 'i':
 			ifname = optarg;
 			break;
+#ifdef CONFIG_RADIUS_TLS
+		case 'j':
+			ca_cert = optarg;
+			break;
+		case 'J':
+			client_cert = optarg;
+			break;
+		case 'k':
+			private_key = optarg;
+			break;
+		case 'K':
+			private_key_passwd = optarg;
+			break;
+#endif /* CONFIG_RADIUS_TLS */
 		case 'M':
 			if (hwaddr_aton(optarg, eapol_test.own_addr)) {
 				usage();
@@ -1406,6 +1446,16 @@ int main(int argc, char *argv[])
 		case 'W':
 			wait_for_monitor++;
 			break;
+		case 'X':
+			if (os_strcmp(optarg, "UDP") == 0) {
+				tls = false;
+			} else if (os_strcmp(optarg, "TLS") == 0) {
+				tls = true;
+			} else {
+				usage();
+				return -1;
+			}
+			break;
 		case 'N':
 			p1 = os_zalloc(sizeof(*p1));
 			if (p1 == NULL)
@@ -1439,6 +1489,11 @@ int main(int argc, char *argv[])
 			return -1;
 		}
 	}
+
+	if (!as_secret)
+		as_secret = tls ? "radsec" : "radius";
+	if (as_port < 0)
+		as_port = tls ? 2083 : 1812;
 
 	if (argc > optind && os_strcmp(argv[optind], "scard") == 0) {
 		return scard_test(&eapol_test);
@@ -1489,7 +1544,8 @@ int main(int argc, char *argv[])
 		wpa_s.conf->pcsc_reader = os_strdup(eapol_test.pcsc_reader);
 	}
 
-	wpa_init_conf(&eapol_test, &wpa_s, as_addr, as_port, as_secret,
+	wpa_init_conf(&eapol_test, &wpa_s, as_addr, as_port, tls, as_secret,
+		      ca_cert, client_cert, private_key, private_key_passwd,
 		      cli_addr, ifname);
 	wpa_s.ctrl_iface = wpa_supplicant_ctrl_iface_init(&wpa_s);
 	if (wpa_s.ctrl_iface == NULL) {

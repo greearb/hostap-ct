@@ -2869,6 +2869,37 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		os_free(bss->radius->auth_server->shared_secret);
 		bss->radius->auth_server->shared_secret = (u8 *) os_strdup(pos);
 		bss->radius->auth_server->shared_secret_len = len;
+	} else if (bss->radius->auth_server &&
+		   os_strcmp(buf, "auth_server_type") == 0) {
+		if (os_strcmp(pos, "UDP") == 0) {
+			bss->radius->auth_server->tls = false;
+#ifdef CONFIG_RADIUS_TLS
+		} else if (os_strcmp(pos, "TLS") == 0) {
+			bss->radius->auth_server->tls = true;
+#endif /* CONFIG_RADIUS_TLS */
+		} else {
+			wpa_printf(MSG_ERROR, "Line %d: unsupported RADIUS type '%s'",
+				   line, pos);
+			return 1;
+		}
+#ifdef CONFIG_RADIUS_TLS
+	} else if (bss->radius->auth_server &&
+		   os_strcmp(buf, "auth_server_ca_cert") == 0) {
+		os_free(bss->radius->auth_server->ca_cert);
+		bss->radius->auth_server->ca_cert = os_strdup(pos);
+	} else if (bss->radius->auth_server &&
+		   os_strcmp(buf, "auth_server_client_cert") == 0) {
+		os_free(bss->radius->auth_server->client_cert);
+		bss->radius->auth_server->client_cert = os_strdup(pos);
+	} else if (bss->radius->auth_server &&
+		   os_strcmp(buf, "auth_server_private_key") == 0) {
+		os_free(bss->radius->auth_server->private_key);
+		bss->radius->auth_server->private_key = os_strdup(pos);
+	} else if (bss->radius->auth_server &&
+		   os_strcmp(buf, "auth_server_private_key_passwd") == 0) {
+		os_free(bss->radius->auth_server->private_key_passwd);
+		bss->radius->auth_server->private_key_passwd = os_strdup(pos);
+#endif /* CONFIG_RADIUS_TLS */
 	} else if (os_strcmp(buf, "acct_server_addr") == 0) {
 		if (hostapd_config_read_radius_addr(
 			    &bss->radius->acct_servers,
@@ -2903,6 +2934,37 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		os_free(bss->radius->acct_server->shared_secret);
 		bss->radius->acct_server->shared_secret = (u8 *) os_strdup(pos);
 		bss->radius->acct_server->shared_secret_len = len;
+	} else if (bss->radius->acct_server &&
+		   os_strcmp(buf, "acct_server_type") == 0) {
+		if (os_strcmp(pos, "UDP") == 0) {
+			bss->radius->acct_server->tls = false;
+#ifdef CONFIG_RADIUS_TLS
+		} else if (os_strcmp(pos, "TLS") == 0) {
+			bss->radius->acct_server->tls = true;
+#endif /* CONFIG_RADIUS_TLS */
+		} else {
+			wpa_printf(MSG_ERROR, "Line %d: unsupported RADIUS type '%s'",
+				   line, pos);
+			return 1;
+		}
+#ifdef CONFIG_RADIUS_TLS
+	} else if (bss->radius->acct_server &&
+		   os_strcmp(buf, "acct_server_ca_cert") == 0) {
+		os_free(bss->radius->acct_server->ca_cert);
+		bss->radius->acct_server->ca_cert = os_strdup(pos);
+	} else if (bss->radius->acct_server &&
+		   os_strcmp(buf, "acct_server_client_cert") == 0) {
+		os_free(bss->radius->acct_server->client_cert);
+		bss->radius->acct_server->client_cert = os_strdup(pos);
+	} else if (bss->radius->acct_server &&
+		   os_strcmp(buf, "acct_server_private_key") == 0) {
+		os_free(bss->radius->acct_server->private_key);
+		bss->radius->acct_server->private_key = os_strdup(pos);
+	} else if (bss->radius->acct_server &&
+		   os_strcmp(buf, "acct_server_private_key_passwd") == 0) {
+		os_free(bss->radius->acct_server->private_key_passwd);
+		bss->radius->acct_server->private_key_passwd = os_strdup(pos);
+#endif /* CONFIG_RADIUS_TLS */
 	} else if (os_strcmp(buf, "radius_retry_primary_interval") == 0) {
 		bss->radius->retry_primary_interval = atoi(pos);
 	} else if (os_strcmp(buf, "radius_acct_interim_interval") == 0) {
