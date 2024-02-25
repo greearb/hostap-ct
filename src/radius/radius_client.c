@@ -169,26 +169,6 @@ struct radius_client_data {
 	struct hostapd_radius_servers *conf;
 
 	/**
-	 * auth_serv_sock - IPv4 socket for RADIUS authentication messages
-	 */
-	int auth_serv_sock;
-
-	/**
-	 * acct_serv_sock - IPv4 socket for RADIUS accounting messages
-	 */
-	int acct_serv_sock;
-
-	/**
-	 * auth_serv_sock6 - IPv6 socket for RADIUS authentication messages
-	 */
-	int auth_serv_sock6;
-
-	/**
-	 * acct_serv_sock6 - IPv6 socket for RADIUS accounting messages
-	 */
-	int acct_serv_sock6;
-
-	/**
 	 * auth_sock - Currently used socket for RADIUS authentication server
 	 */
 	int auth_sock;
@@ -715,6 +695,42 @@ static void radius_client_list_add(struct radius_client_data *radius,
 }
 
 
+static int radius_client_disable_pmtu_discovery(int s)
+{
+	int r = -1;
+#if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
+	/* Turn off Path MTU discovery on IPv4/UDP sockets. */
+	int action = IP_PMTUDISC_DONT;
+	r = setsockopt(s, IPPROTO_IP, IP_MTU_DISCOVER, &action,
+		       sizeof(action));
+	if (r == -1)
+		wpa_printf(MSG_ERROR, "RADIUS: Failed to set IP_MTU_DISCOVER: %s",
+			   strerror(errno));
+#endif
+	return r;
+}
+
+
+static void radius_close_auth_socket(struct radius_client_data *radius)
+{
+	if (radius->auth_sock >= 0) {
+		eloop_unregister_read_sock(radius->auth_sock);
+		close(radius->auth_sock);
+		radius->auth_sock = -1;
+	}
+}
+
+
+static void radius_close_acct_socket(struct radius_client_data *radius)
+{
+	if (radius->acct_sock >= 0) {
+		eloop_unregister_read_sock(radius->acct_sock);
+		close(radius->acct_sock);
+		radius->acct_sock = -1;
+	}
+}
+
+
 /**
  * radius_client_send - Send a RADIUS request
  * @radius: RADIUS client context from radius_client_init()
@@ -1076,14 +1092,9 @@ radius_change_server(struct radius_client_data *radius,
 	struct sockaddr *addr, *cl_addr;
 	socklen_t addrlen, claddrlen;
 	char abuf[50];
-	int sock = auth ? radius->auth_serv_sock : radius->acct_serv_sock;
-	int sock6 = auth ? radius->auth_serv_sock6 : radius->acct_serv_sock6;
 	int sel_sock;
 	struct radius_msg_list *entry;
 	struct hostapd_radius_servers *conf = radius->conf;
-	struct sockaddr_in disconnect_addr = {
-		.sin_family = AF_UNSPEC,
-	};
 
 	hostapd_logger(radius->ctx, NULL, HOSTAPD_MODULE_RADIUS,
 		       HOSTAPD_LEVEL_INFO,
@@ -1142,7 +1153,9 @@ radius_change_server(struct radius_client_data *radius,
 		serv.sin_port = htons(nserv->port);
 		addr = (struct sockaddr *) &serv;
 		addrlen = sizeof(serv);
-		sel_sock = sock;
+		sel_sock = socket(PF_INET, SOCK_DGRAM, 0);
+		if (sel_sock >= 0)
+			radius_client_disable_pmtu_discovery(sel_sock);
 		break;
 #ifdef CONFIG_IPV6
 	case AF_INET6:
@@ -1153,7 +1166,7 @@ radius_change_server(struct radius_client_data *radius,
 		serv6.sin6_port = htons(nserv->port);
 		addr = (struct sockaddr *) &serv6;
 		addrlen = sizeof(serv6);
-		sel_sock = sock6;
+		sel_sock = socket(PF_INET6, SOCK_DGRAM, 0);
 		break;
 #endif /* CONFIG_IPV6 */
 	default:
@@ -1162,15 +1175,10 @@ radius_change_server(struct radius_client_data *radius,
 
 	if (sel_sock < 0) {
 		wpa_printf(MSG_INFO,
-			   "RADIUS: No server socket available (af=%d sock=%d sock6=%d auth=%d",
-			   nserv->addr.af, sock, sock6, auth);
+			   "RADIUS: Failed to open server socket (af=%d auth=%d)",
+			   nserv->addr.af, auth);
 		return -1;
 	}
-
-	/* Force a reconnect by disconnecting the socket first */
-	if (connect(sel_sock, (struct sockaddr *) &disconnect_addr,
-		    sizeof(disconnect_addr)) < 0)
-		wpa_printf(MSG_INFO, "disconnect[radius]: %s", strerror(errno));
 
 #ifdef __linux__
 	if (conf->force_client_dev && conf->force_client_dev[0]) {
@@ -1212,19 +1220,22 @@ radius_change_server(struct radius_client_data *radius,
 			break;
 #endif /* CONFIG_IPV6 */
 		default:
+			close(sel_sock);
 			return -1;
 		}
 
 		if (bind(sel_sock, cl_addr, claddrlen) < 0) {
 			wpa_printf(MSG_INFO, "bind[radius]: %s",
 				   strerror(errno));
-			return -1;
+			close(sel_sock);
+			return -2;
 		}
 	}
 
 	if (connect(sel_sock, addr, addrlen) < 0) {
 		wpa_printf(MSG_INFO, "connect[radius]: %s", strerror(errno));
-		return -1;
+		close(sel_sock);
+		return -2;
 	}
 
 #ifndef CONFIG_NATIVE_WINDOWS
@@ -1254,10 +1265,17 @@ radius_change_server(struct radius_client_data *radius,
 	}
 #endif /* CONFIG_NATIVE_WINDOWS */
 
-	if (auth)
+	if (auth) {
+		radius_close_auth_socket(radius);
 		radius->auth_sock = sel_sock;
-	else
+	} else {
+		radius_close_acct_socket(radius);
 		radius->acct_sock = sel_sock;
+	}
+
+	eloop_register_read_sock(sel_sock, radius_client_receive, radius,
+				 auth ? (void *) RADIUS_AUTH :
+				 (void *) RADIUS_ACCT);
 
 	return 0;
 }
@@ -1300,165 +1318,17 @@ static void radius_retry_primary_timer(void *eloop_ctx, void *timeout_ctx)
 }
 
 
-static int radius_client_disable_pmtu_discovery(int s)
-{
-	int r = -1;
-#if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
-	/* Turn off Path MTU discovery on IPv4/UDP sockets. */
-	int action = IP_PMTUDISC_DONT;
-	r = setsockopt(s, IPPROTO_IP, IP_MTU_DISCOVER, &action,
-		       sizeof(action));
-	if (r == -1)
-		wpa_printf(MSG_ERROR, "RADIUS: Failed to set IP_MTU_DISCOVER: %s",
-			   strerror(errno));
-#endif
-	return r;
-}
-
-
-static void radius_close_auth_sockets(struct radius_client_data *radius)
-{
-	radius->auth_sock = -1;
-
-	if (radius->auth_serv_sock >= 0) {
-		eloop_unregister_read_sock(radius->auth_serv_sock);
-		close(radius->auth_serv_sock);
-		radius->auth_serv_sock = -1;
-	}
-#ifdef CONFIG_IPV6
-	if (radius->auth_serv_sock6 >= 0) {
-		eloop_unregister_read_sock(radius->auth_serv_sock6);
-		close(radius->auth_serv_sock6);
-		radius->auth_serv_sock6 = -1;
-	}
-#endif /* CONFIG_IPV6 */
-}
-
-
-static void radius_close_acct_sockets(struct radius_client_data *radius)
-{
-	radius->acct_sock = -1;
-
-	if (radius->acct_serv_sock >= 0) {
-		eloop_unregister_read_sock(radius->acct_serv_sock);
-		close(radius->acct_serv_sock);
-		radius->acct_serv_sock = -1;
-	}
-#ifdef CONFIG_IPV6
-	if (radius->acct_serv_sock6 >= 0) {
-		eloop_unregister_read_sock(radius->acct_serv_sock6);
-		close(radius->acct_serv_sock6);
-		radius->acct_serv_sock6 = -1;
-	}
-#endif /* CONFIG_IPV6 */
-}
-
-
 static int radius_client_init_auth(struct radius_client_data *radius)
 {
-	struct hostapd_radius_servers *conf = radius->conf;
-	int ok = 0;
-
-	radius_close_auth_sockets(radius);
-
-	radius->auth_serv_sock = socket(PF_INET, SOCK_DGRAM, 0);
-	if (radius->auth_serv_sock < 0)
-		wpa_printf(MSG_INFO, "RADIUS: socket[PF_INET,SOCK_DGRAM]: %s",
-			   strerror(errno));
-	else {
-		radius_client_disable_pmtu_discovery(radius->auth_serv_sock);
-		ok++;
-	}
-
-#ifdef CONFIG_IPV6
-	radius->auth_serv_sock6 = socket(PF_INET6, SOCK_DGRAM, 0);
-	if (radius->auth_serv_sock6 < 0)
-		wpa_printf(MSG_INFO, "RADIUS: socket[PF_INET6,SOCK_DGRAM]: %s",
-			   strerror(errno));
-	else
-		ok++;
-#endif /* CONFIG_IPV6 */
-
-	if (ok == 0)
-		return -1;
-
-	radius_change_server(radius, conf->auth_server, NULL, 1);
-
-	if (radius->auth_serv_sock >= 0 &&
-	    eloop_register_read_sock(radius->auth_serv_sock,
-				     radius_client_receive, radius,
-				     (void *) RADIUS_AUTH)) {
-		wpa_printf(MSG_INFO, "RADIUS: Could not register read socket for authentication server");
-		radius_close_auth_sockets(radius);
-		return -1;
-	}
-
-#ifdef CONFIG_IPV6
-	if (radius->auth_serv_sock6 >= 0 &&
-	    eloop_register_read_sock(radius->auth_serv_sock6,
-				     radius_client_receive, radius,
-				     (void *) RADIUS_AUTH)) {
-		wpa_printf(MSG_INFO, "RADIUS: Could not register read socket for authentication server");
-		radius_close_auth_sockets(radius);
-		return -1;
-	}
-#endif /* CONFIG_IPV6 */
-
-	return 0;
+	radius_close_auth_socket(radius);
+	return radius_change_server(radius, radius->conf->auth_server, NULL, 1);
 }
 
 
 static int radius_client_init_acct(struct radius_client_data *radius)
 {
-	struct hostapd_radius_servers *conf = radius->conf;
-	int ok = 0;
-
-	radius_close_acct_sockets(radius);
-
-	radius->acct_serv_sock = socket(PF_INET, SOCK_DGRAM, 0);
-	if (radius->acct_serv_sock < 0)
-		wpa_printf(MSG_INFO, "RADIUS: socket[PF_INET,SOCK_DGRAM]: %s",
-			   strerror(errno));
-	else {
-		radius_client_disable_pmtu_discovery(radius->acct_serv_sock);
-		ok++;
-	}
-
-#ifdef CONFIG_IPV6
-	radius->acct_serv_sock6 = socket(PF_INET6, SOCK_DGRAM, 0);
-	if (radius->acct_serv_sock6 < 0)
-		wpa_printf(MSG_INFO, "RADIUS: socket[PF_INET6,SOCK_DGRAM]: %s",
-			   strerror(errno));
-	else
-		ok++;
-#endif /* CONFIG_IPV6 */
-
-	if (ok == 0)
-		return -1;
-
-	radius_change_server(radius, conf->acct_server, NULL, 0);
-
-	if (radius->acct_serv_sock >= 0 &&
-	    eloop_register_read_sock(radius->acct_serv_sock,
-				     radius_client_receive, radius,
-				     (void *) RADIUS_ACCT)) {
-		wpa_printf(MSG_INFO, "RADIUS: Could not register read socket for accounting server");
-		radius_close_acct_sockets(radius);
-		return -1;
-	}
-
-#ifdef CONFIG_IPV6
-	if (radius->acct_serv_sock6 >= 0 &&
-	    eloop_register_read_sock(radius->acct_serv_sock6,
-				     radius_client_receive, radius,
-				     (void *) RADIUS_ACCT)) {
-		wpa_printf(MSG_INFO, "RADIUS: Could not register read socket for accounting server");
-		radius_close_acct_sockets(radius);
-		return -1;
-	}
-#endif /* CONFIG_IPV6 */
-
-	return 0;
+	radius_close_acct_socket(radius);
+	return radius_change_server(radius, radius->conf->acct_server, NULL, 0);
 }
 
 
@@ -1483,16 +1353,14 @@ radius_client_init(void *ctx, struct hostapd_radius_servers *conf)
 
 	radius->ctx = ctx;
 	radius->conf = conf;
-	radius->auth_serv_sock = radius->acct_serv_sock =
-		radius->auth_serv_sock6 = radius->acct_serv_sock6 =
-		radius->auth_sock = radius->acct_sock = -1;
+	radius->auth_sock = radius->acct_sock = -1;
 
-	if (conf->auth_server && radius_client_init_auth(radius)) {
+	if (conf->auth_server && radius_client_init_auth(radius) == -1) {
 		radius_client_deinit(radius);
 		return NULL;
 	}
 
-	if (conf->acct_server && radius_client_init_acct(radius)) {
+	if (conf->acct_server && radius_client_init_acct(radius) == -1) {
 		radius_client_deinit(radius);
 		return NULL;
 	}
@@ -1515,8 +1383,8 @@ void radius_client_deinit(struct radius_client_data *radius)
 	if (!radius)
 		return;
 
-	radius_close_auth_sockets(radius);
-	radius_close_acct_sockets(radius);
+	radius_close_auth_socket(radius);
+	radius_close_acct_socket(radius);
 
 	eloop_cancel_timeout(radius_retry_primary_timer, radius, NULL);
 
