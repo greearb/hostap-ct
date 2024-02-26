@@ -1208,14 +1208,19 @@ int wpas_wps_start_pbc(struct wpa_supplicant *wpa_s, const u8 *bssid,
 		}
 	}
 #endif /* CONFIG_P2P */
-	os_snprintf(phase1, sizeof(phase1), "pbc=1%s",
-		    multi_ap_backhaul_sta ? " multi_ap=1" : "");
+	if (multi_ap_backhaul_sta)
+		os_snprintf(phase1, sizeof(phase1), "pbc=1 multi_ap=%d",
+			    multi_ap_backhaul_sta);
+	else
+		os_snprintf(phase1, sizeof(phase1), "pbc=1");
 	if (wpa_config_set_quoted(ssid, "phase1", phase1) < 0)
 		return -1;
 	if (wpa_s->wps_fragment_size)
 		ssid->eap.fragment_size = wpa_s->wps_fragment_size;
-	if (multi_ap_backhaul_sta)
+	if (multi_ap_backhaul_sta) {
 		ssid->multi_ap_backhaul_sta = 1;
+		ssid->multi_ap_profile = multi_ap_backhaul_sta;
+	}
 	wpa_s->supp_pbc_active = true;
 	wpa_s->wps_overlap = false;
 	wpa_supplicant_wps_event(wpa_s, WPS_EV_PBC_ACTIVE, NULL);
