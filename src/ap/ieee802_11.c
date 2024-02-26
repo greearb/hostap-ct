@@ -3416,37 +3416,26 @@ static u16 check_wmm(struct hostapd_data *hapd, struct sta_info *sta,
 static u16 check_multi_ap(struct hostapd_data *hapd, struct sta_info *sta,
 			  const u8 *multi_ap_ie, size_t multi_ap_len)
 {
-	u8 multi_ap_value = 0;
+	struct multi_ap_params multi_ap;
+	u16 status;
 
 	sta->flags &= ~WLAN_STA_MULTI_AP;
 
 	if (!hapd->conf->multi_ap)
 		return WLAN_STATUS_SUCCESS;
 
-	if (multi_ap_ie) {
-		const u8 *multi_ap_subelem;
+	status = check_multi_ap_ie(multi_ap_ie + 4, multi_ap_len - 4,
+				   &multi_ap);
+	if (status != WLAN_STATUS_SUCCESS)
+		return status;
 
-		multi_ap_subelem = get_ie(multi_ap_ie + 4,
-					  multi_ap_len - 4,
-					  MULTI_AP_SUB_ELEM_TYPE);
-		if (multi_ap_subelem && multi_ap_subelem[1] == 1) {
-			multi_ap_value = multi_ap_subelem[2];
-		} else {
-			hostapd_logger(hapd, sta->addr,
-				       HOSTAPD_MODULE_IEEE80211,
-				       HOSTAPD_LEVEL_INFO,
-				       "Multi-AP IE has missing or invalid Multi-AP subelement");
-			return WLAN_STATUS_INVALID_IE;
-		}
-	}
-
-	if (multi_ap_value && multi_ap_value != MULTI_AP_BACKHAUL_STA)
+	if (multi_ap.capability && multi_ap.capability != MULTI_AP_BACKHAUL_STA)
 		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_INFO,
 			       "Multi-AP IE with unexpected value 0x%02x",
-			       multi_ap_value);
+			       multi_ap.capability);
 
-	if (!(multi_ap_value & MULTI_AP_BACKHAUL_STA)) {
+	if (!(multi_ap.capability & MULTI_AP_BACKHAUL_STA)) {
 		if (hapd->conf->multi_ap & FRONTHAUL_BSS)
 			return WLAN_STATUS_SUCCESS;
 

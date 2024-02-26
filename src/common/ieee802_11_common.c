@@ -2571,6 +2571,54 @@ size_t mbo_add_ie(u8 *buf, size_t len, const u8 *attr, size_t attr_len)
 }
 
 
+u16 check_multi_ap_ie(const u8 *multi_ap_ie, size_t multi_ap_len,
+		      struct multi_ap_params *multi_ap)
+{
+	const struct element *elem;
+	bool ext_present = false;
+
+	os_memset(multi_ap, 0, sizeof(*multi_ap));
+
+	for_each_element(elem, multi_ap_ie, multi_ap_len) {
+		u8 id = elem->id, elen = elem->datalen;
+		const u8 *pos = elem->data;
+
+		switch (id) {
+		case MULTI_AP_SUB_ELEM_TYPE:
+			if (elen >= 1) {
+				multi_ap->capability = *pos;
+				ext_present = true;
+			} else {
+				wpa_printf(MSG_DEBUG,
+					   "Multi-AP invalid Multi-AP subelement");
+				return WLAN_STATUS_INVALID_IE;
+			}
+			break;
+		default:
+			wpa_printf(MSG_DEBUG,
+				   "Ignore unknown subelement %u in Multi-AP IE",
+				   id);
+			break;
+		}
+	}
+
+	if (!for_each_element_completed(elem, multi_ap_ie, multi_ap_len)) {
+		wpa_printf(MSG_DEBUG, "Multi AP IE parse failed @%d",
+			   (int) (multi_ap_ie + multi_ap_len -
+				  (const u8 *) elem));
+		wpa_hexdump(MSG_MSGDUMP, "IEs", multi_ap_ie, multi_ap_len);
+	}
+
+	if (!ext_present) {
+		wpa_printf(MSG_DEBUG,
+			   "Multi-AP element without Multi-AP Extension subelement");
+		return WLAN_STATUS_INVALID_IE;
+	}
+
+	return WLAN_STATUS_SUCCESS;
+}
+
+
 size_t add_multi_ap_ie(u8 *buf, size_t len,
 		       const struct multi_ap_params *multi_ap)
 {

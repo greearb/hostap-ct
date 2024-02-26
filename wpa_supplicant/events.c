@@ -2996,25 +2996,24 @@ static void multi_ap_process_assoc_resp(struct wpa_supplicant *wpa_s,
 					const u8 *ies, size_t ies_len)
 {
 	struct ieee802_11_elems elems;
-	const u8 *map_sub_elem, *pos;
-	size_t len;
+	struct multi_ap_params multi_ap;
+	u16 status;
 
 	wpa_s->multi_ap_ie = 0;
 
 	if (!ies ||
 	    ieee802_11_parse_elems(ies, ies_len, &elems, 1) == ParseFailed ||
-	    !elems.multi_ap || elems.multi_ap_len < 7)
+	    !elems.multi_ap)
 		return;
 
-	pos = elems.multi_ap + 4;
-	len = elems.multi_ap_len - 4;
-
-	map_sub_elem = get_ie(pos, len, MULTI_AP_SUB_ELEM_TYPE);
-	if (!map_sub_elem || map_sub_elem[1] < 1)
+	status = check_multi_ap_ie(elems.multi_ap + 4, elems.multi_ap_len - 4,
+				   &multi_ap);
+	if (status != WLAN_STATUS_SUCCESS)
 		return;
 
-	wpa_s->multi_ap_backhaul = !!(map_sub_elem[2] & MULTI_AP_BACKHAUL_BSS);
-	wpa_s->multi_ap_fronthaul = !!(map_sub_elem[2] &
+	wpa_s->multi_ap_backhaul = !!(multi_ap.capability &
+				      MULTI_AP_BACKHAUL_BSS);
+	wpa_s->multi_ap_fronthaul = !!(multi_ap.capability &
 				       MULTI_AP_FRONTHAUL_BSS);
 	wpa_s->multi_ap_ie = 1;
 }
