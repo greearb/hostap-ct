@@ -30,6 +30,10 @@ struct mb_ies_info {
 	u8 nof_ies;
 };
 
+struct multi_ap_params {
+	u8 capability;
+};
+
 /* Parsed Information Elements */
 struct ieee802_11_elems {
 	const u8 *ssid;
@@ -267,7 +271,8 @@ const u8 * get_vendor_ie(const u8 *ies, size_t len, u32 vendor_type);
 
 size_t mbo_add_ie(u8 *buf, size_t len, const u8 *attr, size_t attr_len);
 
-size_t add_multi_ap_ie(u8 *buf, size_t len, u8 value);
+size_t add_multi_ap_ie(u8 *buf, size_t len,
+		       const struct multi_ap_params *multi_ap);
 
 struct country_op_class {
 	u8 country_op_class;

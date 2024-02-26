@@ -90,16 +90,17 @@ static int add_associated_sta(struct hostapd_data *hapd,
 
 u8 * hostapd_eid_multi_ap(struct hostapd_data *hapd, u8 *eid)
 {
-	u8 multi_ap_val = 0;
+	struct multi_ap_params multi_ap = { 0 };
 
 	if (!hapd->conf->multi_ap)
 		return eid;
-	if (hapd->conf->multi_ap & BACKHAUL_BSS)
-		multi_ap_val |= MULTI_AP_BACKHAUL_BSS;
-	if (hapd->conf->multi_ap & FRONTHAUL_BSS)
-		multi_ap_val |= MULTI_AP_FRONTHAUL_BSS;
 
-	return eid + add_multi_ap_ie(eid, 9, multi_ap_val);
+	if (hapd->conf->multi_ap & BACKHAUL_BSS)
+		multi_ap.capability |= MULTI_AP_BACKHAUL_BSS;
+	if (hapd->conf->multi_ap & FRONTHAUL_BSS)
+		multi_ap.capability |= MULTI_AP_FRONTHAUL_BSS;
+
+	return eid + add_multi_ap_ie(eid, 9, &multi_ap);
 }
 
 

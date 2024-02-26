@@ -2571,21 +2571,28 @@ size_t mbo_add_ie(u8 *buf, size_t len, const u8 *attr, size_t attr_len)
 }
 
 
-size_t add_multi_ap_ie(u8 *buf, size_t len, u8 value)
+size_t add_multi_ap_ie(u8 *buf, size_t len,
+		       const struct multi_ap_params *multi_ap)
 {
 	u8 *pos = buf;
+	u8 *len_ptr;
 
 	if (len < 9)
 		return 0;
 
 	*pos++ = WLAN_EID_VENDOR_SPECIFIC;
-	*pos++ = 7; /* len */
+	len_ptr = pos; /* Length field to be set at the end */
+	pos++;
 	WPA_PUT_BE24(pos, OUI_WFA);
 	pos += 3;
 	*pos++ = MULTI_AP_OUI_TYPE;
+
+	/* Multi-AP Extension subelement */
 	*pos++ = MULTI_AP_SUB_ELEM_TYPE;
 	*pos++ = 1; /* len */
-	*pos++ = value;
+	*pos++ = multi_ap->capability;
+
+	*len_ptr = pos - len_ptr - 1;
 
 	return pos - buf;
 }
