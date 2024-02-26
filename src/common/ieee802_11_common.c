@@ -2579,6 +2579,10 @@ u16 check_multi_ap_ie(const u8 *multi_ap_ie, size_t multi_ap_len,
 
 	os_memset(multi_ap, 0, sizeof(*multi_ap));
 
+	/* Default profile is 1, when Multi-AP profile subelement is not
+	 * present in the element. */
+	multi_ap->profile = 1;
+
 	for_each_element(elem, multi_ap_ie, multi_ap_len) {
 		u8 id = elem->id, elen = elem->datalen;
 		const u8 *pos = elem->data;
@@ -2592,6 +2596,21 @@ u16 check_multi_ap_ie(const u8 *multi_ap_ie, size_t multi_ap_len,
 				wpa_printf(MSG_DEBUG,
 					   "Multi-AP invalid Multi-AP subelement");
 				return WLAN_STATUS_INVALID_IE;
+			}
+			break;
+		case MULTI_AP_PROFILE_SUB_ELEM_TYPE:
+			if (elen < 1) {
+				wpa_printf(MSG_DEBUG,
+					   "Multi-AP IE invalid Multi-AP profile subelement");
+				return WLAN_STATUS_INVALID_IE;
+			}
+
+			multi_ap->profile = *pos;
+			if (multi_ap->profile > MULTI_AP_PROFILE_MAX) {
+				wpa_printf(MSG_DEBUG,
+					   "Multi-AP IE with invalid profile 0x%02x",
+					   multi_ap->profile);
+				return WLAN_STATUS_ASSOC_DENIED_UNSPEC;
 			}
 			break;
 		default:
