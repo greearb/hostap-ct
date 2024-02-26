@@ -3426,6 +3426,18 @@ static u16 check_multi_ap(struct hostapd_data *hapd, struct sta_info *sta,
 	if (!hapd->conf->multi_ap)
 		return WLAN_STATUS_SUCCESS;
 
+	if (!multi_ap_ie) {
+		if (!(hapd->conf->multi_ap & FRONTHAUL_BSS)) {
+			hostapd_logger(hapd, sta->addr,
+				       HOSTAPD_MODULE_IEEE80211,
+				       HOSTAPD_LEVEL_INFO,
+				       "Non-Multi-AP STA tries to associate with backhaul-only BSS");
+			return WLAN_STATUS_ASSOC_DENIED_UNSPEC;
+		}
+
+		return WLAN_STATUS_SUCCESS;
+	}
+
 	status = check_multi_ap_ie(multi_ap_ie + 4, multi_ap_len - 4,
 				   &multi_ap);
 	if (status != WLAN_STATUS_SUCCESS)
