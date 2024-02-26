@@ -32,6 +32,7 @@ struct mb_ies_info {
 
 struct multi_ap_params {
 	u8 capability;
+	u8 profile;
 };
 
 /* Parsed Information Elements */

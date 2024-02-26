@@ -2625,7 +2625,7 @@ size_t add_multi_ap_ie(u8 *buf, size_t len,
 	u8 *pos = buf;
 	u8 *len_ptr;
 
-	if (len < 9)
+	if (len < 6)
 		return 0;
 
 	*pos++ = WLAN_EID_VENDOR_SPECIFIC;
@@ -2636,9 +2636,20 @@ size_t add_multi_ap_ie(u8 *buf, size_t len,
 	*pos++ = MULTI_AP_OUI_TYPE;
 
 	/* Multi-AP Extension subelement */
+	if (buf + len - pos < 3)
+		return 0;
 	*pos++ = MULTI_AP_SUB_ELEM_TYPE;
 	*pos++ = 1; /* len */
 	*pos++ = multi_ap->capability;
+
+	/* Add Multi-AP Profile subelement only for R2 or newer configuration */
+	if (multi_ap->profile >= MULTI_AP_PROFILE_2) {
+		if (buf + len - pos < 3)
+			return 0;
+		*pos++ = MULTI_AP_PROFILE_SUB_ELEM_TYPE;
+		*pos++ = 1;
+		*pos++ = multi_ap->profile;
+	}
 
 	*len_ptr = pos - len_ptr - 1;
 
