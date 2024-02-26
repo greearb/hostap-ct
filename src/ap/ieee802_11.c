@@ -100,6 +100,15 @@ static u8 * hostapd_eid_multi_ap(struct hostapd_data *hapd, u8 *eid, size_t len)
 	if (hapd->conf->multi_ap & FRONTHAUL_BSS)
 		multi_ap.capability |= MULTI_AP_FRONTHAUL_BSS;
 
+	if (hapd->conf->multi_ap_client_disallow &
+	    PROFILE1_CLIENT_ASSOC_DISALLOW)
+		multi_ap.capability |=
+			MULTI_AP_PROFILE1_BACKHAUL_STA_DISALLOWED;
+	if (hapd->conf->multi_ap_client_disallow &
+	    PROFILE2_CLIENT_ASSOC_DISALLOW)
+		multi_ap.capability |=
+			MULTI_AP_PROFILE2_BACKHAUL_STA_DISALLOWED;
+
 	multi_ap.profile = hapd->conf->multi_ap_profile;
 
 	return eid + add_multi_ap_ie(eid, len, &multi_ap);
@@ -3448,6 +3457,26 @@ static u16 check_multi_ap(struct hostapd_data *hapd, struct sta_info *sta,
 			       HOSTAPD_LEVEL_INFO,
 			       "Multi-AP IE with unexpected value 0x%02x",
 			       multi_ap.capability);
+
+	if (multi_ap.profile == MULTI_AP_PROFILE_1 &&
+	    (hapd->conf->multi_ap_client_disallow &
+	     PROFILE1_CLIENT_ASSOC_DISALLOW)) {
+		hostapd_logger(hapd, sta->addr,
+			       HOSTAPD_MODULE_IEEE80211,
+			       HOSTAPD_LEVEL_INFO,
+			       "Multi-AP Profile-1 clients not allowed");
+		return WLAN_STATUS_ASSOC_DENIED_UNSPEC;
+	}
+
+	if (multi_ap.profile >= MULTI_AP_PROFILE_2 &&
+	    (hapd->conf->multi_ap_client_disallow &
+	     PROFILE2_CLIENT_ASSOC_DISALLOW)) {
+		hostapd_logger(hapd, sta->addr,
+			       HOSTAPD_MODULE_IEEE80211,
+			       HOSTAPD_LEVEL_INFO,
+			       "Multi-AP Profile-2 clients not allowed");
+		return WLAN_STATUS_ASSOC_DENIED_UNSPEC;
+	}
 
 	if (!(multi_ap.capability & MULTI_AP_BACKHAUL_STA)) {
 		if (hapd->conf->multi_ap & FRONTHAUL_BSS)

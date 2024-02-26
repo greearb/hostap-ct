@@ -801,6 +801,11 @@ struct hostapd_bss_config {
 #define FRONTHAUL_BSS 2
 	int multi_ap; /* bitmap of BACKHAUL_BSS, FRONTHAUL_BSS */
 	int multi_ap_profile;
+	/* Multi-AP Profile-1 clients not allowed to connect */
+#define PROFILE1_CLIENT_ASSOC_DISALLOW BIT(0)
+	/* Multi-AP Profile-2 clients not allowed to connect */
+#define PROFILE2_CLIENT_ASSOC_DISALLOW BIT(1)
+	unsigned int multi_ap_client_disallow;
 
 #ifdef CONFIG_AIRTIME_POLICY
 	unsigned int airtime_weight;

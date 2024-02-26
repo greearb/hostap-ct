@@ -4812,6 +4812,16 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 			return -1;
 		}
 		bss->multi_ap_profile = val;
+	} else if (os_strcmp(buf, "multi_ap_client_disallow") == 0) {
+		int val = atoi(pos);
+
+		if (val < 0 || val > 3) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: Invalid multi_ap_client_allow '%s'",
+				   line, buf);
+			return -1;
+		}
+		bss->multi_ap_client_disallow = val;
 	} else if (os_strcmp(buf, "rssi_reject_assoc_rssi") == 0) {
 		conf->rssi_reject_assoc_rssi = atoi(pos);
 	} else if (os_strcmp(buf, "rssi_reject_assoc_timeout") == 0) {
