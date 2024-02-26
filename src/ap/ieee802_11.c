@@ -100,6 +100,8 @@ static u8 * hostapd_eid_multi_ap(struct hostapd_data *hapd, u8 *eid, size_t len)
 	if (hapd->conf->multi_ap & FRONTHAUL_BSS)
 		multi_ap.capability |= MULTI_AP_FRONTHAUL_BSS;
 
+	multi_ap.profile = hapd->conf->multi_ap_profile;
+
 	return eid + add_multi_ap_ie(eid, len, &multi_ap);
 }
 

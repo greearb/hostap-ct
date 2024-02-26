@@ -850,6 +850,7 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 	INT(owe_ptk_workaround);
 	INT(multi_ap_backhaul_sta);
 	INT(ft_eap_pmksa_caching);
+	INT(multi_ap_profile);
 	INT(beacon_prot);
 	INT(transition_disable);
 	INT(sae_pk);

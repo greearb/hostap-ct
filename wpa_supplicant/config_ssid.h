@@ -1188,6 +1188,11 @@ struct wpa_ssid {
 	int ft_eap_pmksa_caching;
 
 	/**
+	 * multi_ap_profile - Supported Multi-AP profile
+	 */
+	int multi_ap_profile;
+
+	/**
 	 * beacon_prot - Whether Beacon protection is enabled
 	 *
 	 * This depends on management frame protection (ieee80211w) being
