@@ -53,6 +53,7 @@ enum wpas_dbus_bss_prop {
 	WPAS_DBUS_BSS_PROP_WPS,
 	WPAS_DBUS_BSS_PROP_IES,
 	WPAS_DBUS_BSS_PROP_AGE,
+	WPAS_DBUS_BSS_PROP_ANQP,
 };
 
 enum wpas_dbus_sta_prop {

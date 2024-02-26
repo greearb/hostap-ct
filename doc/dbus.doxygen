@@ -2214,6 +2214,30 @@ scan results.
 	<h3>Age - u - (read)</h3>
 	<p>Number of seconds since the BSS was last seen.</p>
       </li>
+      <li>
+	<h3>ANQP - a{sv} - (read)</h3>
+	<p>ANQP information of the BSS. Empty dictionary indicates no ANQP field. Named dictionary entries are:</p>
+	<table>
+	  <tr><td>CapabilityList</td><td>ay</td></tr>
+	  <tr><td>VenueName</td><td>ay</td></tr>
+	  <tr><td>NetworkAuthType</td><td>ay</td></tr>
+	  <tr><td>RoamingConsortium</td><td>ay</td></tr>
+	  <tr><td>IPAddrTypeAvailability</td><td>ay</td></tr>
+	  <tr><td>NAIRealm</td><td>ay</td></tr>
+	  <tr><td>3GPP</td><td>ay</td></tr>
+	  <tr><td>DomainName</td><td>ay</td></tr>
+	  <tr><td>FilsRealmInfo</td><td>ay</td></tr>
+	  <tr><td>HS20CapabilityList</td><td>ay</td></tr>
+	  <tr><td>HS20OperatorFriendlyName</td><td>ay</td></tr>
+	  <tr><td>HS20WanMetrics</td><td>ay</td></tr>
+	  <tr><td>HS20ConnectionCapability</td><td>ay</td></tr>
+	  <tr><td>HS20OperatingClass</td><td>ay</td></tr>
+	  <tr><td>HS20OSUProvidersList</td><td>ay</td></tr>
+	  <tr><td>HS20OperatorIconMetadata</td><td>ay</td></tr>
+	  <tr><td>HS20OSUProvidersNAIList</td><td>ay</td></tr>
+	</table>
+	<p>Unnamed ANQP elements have a generic entry name 'anqp[id]' where 'id' is the InfoID of the ANQP element as described in IEEE Std 802.11-2020, Table 9-331 (ANQP-element definitions).</p>
+      </li>
     </ul>
 
 \subsection dbus_bss_signals Signals

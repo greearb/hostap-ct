@@ -3198,6 +3198,8 @@ void anqp_resp_cb(void *ctx, const u8 *dst, u8 dialog_token,
 	}
 
 out_parse_done:
+	if (bss)
+		wpas_notify_bss_anqp_changed(wpa_s, bss->id);
 #ifdef CONFIG_HS20
 	hs20_notify_parse_done(wpa_s);
 #endif /* CONFIG_HS20 */

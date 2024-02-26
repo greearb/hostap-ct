@@ -5758,6 +5758,177 @@ dbus_bool_t wpas_dbus_getter_bss_age(
 
 
 /**
+ * wpas_dbus_getter_bss_anqp - Return all the ANQP fields of a BSS
+ * @iter: Pointer to incoming dbus message iter
+ * @error: Location to store error on failure
+ * @user_data: Function specific data
+ * Returns: TRUE on success, FALSE on failure
+ *
+ * Getter for "ANQP" property.
+ */
+dbus_bool_t wpas_dbus_getter_bss_anqp(
+	const struct wpa_dbus_property_desc *property_desc,
+	DBusMessageIter *iter, DBusError *error, void *user_data)
+{
+	DBusMessageIter iter_dict, variant_iter;
+	struct bss_handler_args *args = user_data;
+	struct wpa_bss *bss;
+	struct wpa_bss_anqp *anqp;
+	struct wpa_bss_anqp_elem *elem;
+
+	bss = get_bss_helper(args, error, __func__);
+	if (!bss)
+		return FALSE;
+
+	if (!dbus_message_iter_open_container(iter, DBUS_TYPE_VARIANT,
+					      "a{sv}", &variant_iter) ||
+	    !wpa_dbus_dict_open_write(&variant_iter, &iter_dict))
+		goto nomem;
+
+	anqp = bss->anqp;
+	if (anqp) {
+#ifdef CONFIG_INTERWORKING
+		if (anqp->capability_list &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "CapabilityList",
+			    wpabuf_head(anqp->capability_list),
+			    wpabuf_len(anqp->capability_list)))
+			goto nomem;
+		if (anqp->venue_name &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "VenueName",
+			    wpabuf_head(anqp->venue_name),
+			    wpabuf_len(anqp->venue_name)))
+			goto nomem;
+		if (anqp->network_auth_type &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "NetworkAuthType",
+			    wpabuf_head(anqp->network_auth_type),
+			    wpabuf_len(anqp->network_auth_type)))
+			goto nomem;
+		if (anqp->roaming_consortium &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "RoamingConsortium",
+			    wpabuf_head(anqp->roaming_consortium),
+			    wpabuf_len(anqp->roaming_consortium)))
+			goto nomem;
+		if (anqp->ip_addr_type_availability &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "IPAddrTypeAvailability",
+			    wpabuf_head(anqp->ip_addr_type_availability),
+			    wpabuf_len(anqp->ip_addr_type_availability)))
+			goto nomem;
+		if (anqp->nai_realm &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "NAIRealm",
+			    wpabuf_head(anqp->nai_realm),
+			    wpabuf_len(anqp->nai_realm)))
+			goto nomem;
+		if (anqp->anqp_3gpp &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "3GPP",
+			    wpabuf_head(anqp->anqp_3gpp),
+			    wpabuf_len(anqp->anqp_3gpp)))
+			goto nomem;
+		if (anqp->domain_name &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "DomainName",
+			    wpabuf_head(anqp->domain_name),
+			    wpabuf_len(anqp->domain_name)))
+			goto nomem;
+		if (anqp->fils_realm_info &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "FilsRealmInfo",
+			    wpabuf_head(anqp->fils_realm_info),
+			    wpabuf_len(anqp->fils_realm_info)))
+			goto nomem;
+
+#ifdef CONFIG_HS20
+		if (anqp->hs20_capability_list &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "HS20CapabilityList",
+			    wpabuf_head(anqp->hs20_capability_list),
+			    wpabuf_len(anqp->hs20_capability_list)))
+			goto nomem;
+		if (anqp->hs20_operator_friendly_name &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "HS20OperatorFriendlyName",
+			    wpabuf_head(anqp->hs20_operator_friendly_name),
+			    wpabuf_len(anqp->hs20_operator_friendly_name)))
+			goto nomem;
+		if (anqp->hs20_wan_metrics &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "HS20WanMetrics",
+			    wpabuf_head(anqp->hs20_wan_metrics),
+			    wpabuf_len(anqp->hs20_wan_metrics)))
+			goto nomem;
+		if (anqp->hs20_connection_capability &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "HS20ConnectionCapability",
+			    wpabuf_head(anqp->hs20_connection_capability),
+			    wpabuf_len(anqp->hs20_connection_capability)))
+			goto nomem;
+		if (anqp->hs20_operating_class &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "HS20OperatingClass",
+			    wpabuf_head(anqp->hs20_operating_class),
+			    wpabuf_len(anqp->hs20_operating_class)))
+			goto nomem;
+		if (anqp->hs20_osu_providers_list &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "HS20OSUProvidersList",
+			    wpabuf_head(anqp->hs20_osu_providers_list),
+			    wpabuf_len(anqp->hs20_osu_providers_list)))
+			goto nomem;
+		if (anqp->hs20_operator_icon_metadata &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "HS20OperatorIconMetadata",
+			    wpabuf_head(anqp->hs20_operator_icon_metadata),
+			    wpabuf_len(anqp->hs20_operator_icon_metadata)))
+			goto nomem;
+		if (anqp->hs20_osu_providers_nai_list &&
+		    !wpa_dbus_dict_append_byte_array(
+			    &iter_dict, "HS20OSUProvidersNAIList",
+			    wpabuf_head(anqp->hs20_osu_providers_nai_list),
+			    wpabuf_len(anqp->hs20_osu_providers_nai_list)))
+			goto nomem;
+#endif /* CONFIG_HS20 */
+
+		dl_list_for_each(elem, &anqp->anqp_elems,
+				 struct wpa_bss_anqp_elem, list) {
+			char title[32];
+
+			os_snprintf(title, sizeof(title), "anqp[%u]",
+				    elem->infoid);
+			if (!wpa_dbus_dict_append_byte_array(
+				    &iter_dict, title,
+				    wpabuf_head(elem->payload),
+				    wpabuf_len(elem->payload)))
+				goto nomem;
+
+			os_snprintf(title, sizeof(title),
+				    "protected-anqp-info[%u]", elem->infoid);
+			if (!wpa_dbus_dict_append_bool(
+				    &iter_dict, title,
+				    elem->protected_response))
+				goto nomem;
+		}
+#endif /* CONFIG_INTERWORKING */
+	}
+
+	if (!wpa_dbus_dict_close_write(&variant_iter, &iter_dict) ||
+	    !dbus_message_iter_close_container(iter, &variant_iter))
+		goto nomem;
+
+	return TRUE;
+
+nomem:
+	dbus_set_error(error, DBUS_ERROR_NO_MEMORY, "no memory");
+	return FALSE;
+}
+
+
+/**
  * wpas_dbus_getter_enabled - Check whether network is enabled or disabled
  * @iter: Pointer to incoming dbus message iter
  * @error: Location to store error on failure

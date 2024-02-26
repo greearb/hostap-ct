@@ -83,6 +83,8 @@ void wpas_notify_bss_ies_changed(struct wpa_supplicant *wpa_s,
 void wpas_notify_bss_rates_changed(struct wpa_supplicant *wpa_s,
 				   unsigned int id);
 void wpas_notify_bss_seen(struct wpa_supplicant *wpa_s, unsigned int id);
+void wpas_notify_bss_anqp_changed(struct wpa_supplicant *wpa_s,
+				  unsigned int id);
 void wpas_notify_blob_added(struct wpa_supplicant *wpa_s, const char *name);
 void wpas_notify_blob_removed(struct wpa_supplicant *wpa_s, const char *name);
 

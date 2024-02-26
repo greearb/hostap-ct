@@ -219,6 +219,7 @@ DECLARE_ACCESSOR(wpas_dbus_getter_bss_rsn);
 DECLARE_ACCESSOR(wpas_dbus_getter_bss_wps);
 DECLARE_ACCESSOR(wpas_dbus_getter_bss_ies);
 DECLARE_ACCESSOR(wpas_dbus_getter_bss_age);
+DECLARE_ACCESSOR(wpas_dbus_getter_bss_anqp);
 DECLARE_ACCESSOR(wpas_dbus_getter_enabled);
 DECLARE_ACCESSOR(wpas_dbus_setter_enabled);
 DECLARE_ACCESSOR(wpas_dbus_getter_network_properties);

@@ -6353,3 +6353,55 @@ def test_dbus_anqp_query_done(dev, apdev):
     with TestDbusANQPGet(bus) as t:
         if not t.success():
             raise Exception("Expected signals not seen")
+
+def test_dbus_bss_anqp_properties(dev, apdev):
+    """D-Bus ANQP BSS properties changed"""
+    (bus, wpa_obj, path, if_obj) = prepare_dbus(dev[0])
+    iface = dbus.Interface(if_obj, WPAS_DBUS_IFACE)
+
+    bssid = apdev[0]['bssid']
+    params = hs20_ap_params(ssid="test-anqp")
+    params["hessid"] = bssid
+    params['mbo'] = '1'
+    params['mbo_cell_data_conn_pref'] = '1'
+    params['hs20_oper_friendly_name'] = ["eng:Example operator",
+                                         "fin:Esimerkkioperaattori"]
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    class TestDbusANQPBSSPropertiesChanged(TestDbus):
+        def __init__(self, bus):
+            TestDbus.__init__(self, bus)
+            self.capability_list = False
+            self.venue_name = False
+            self.roaming_consortium = False
+            self.nai_realm = False
+
+        def __enter__(self):
+            gobject.timeout_add(1, self.run_query)
+            gobject.timeout_add(15000, self.timeout)
+            self.add_signal(self.propertiesChanged, WPAS_DBUS_BSS,
+                            "PropertiesChanged")
+            self.loop.run()
+            return self
+
+        def propertiesChanged(self, properties):
+            logger.debug("propertiesChanged: %s" % str(properties))
+            if 'ANQP' in properties:
+                anqp_properties = properties['ANQP']
+                self.capability_list = 'CapabilityList' in anqp_properties
+                self.venue_name = 'VenueName' in anqp_properties
+                self.roaming_consortium = 'RoamingConsortium' in anqp_properties
+                self.nai_realm = 'NAIRealm' in anqp_properties
+
+        def run_query(self, *args):
+            dev[0].scan_for_bss(bssid, freq="2412", force_scan=True)
+            iface.ANQPGet({"addr": bssid,
+                           "ids": dbus.Array([257,258,261,263], dbus.Signature("q"))})
+            return False
+
+        def success(self):
+            return self.capability_list and self.venue_name and self.roaming_consortium and self.nai_realm
+
+    with TestDbusANQPBSSPropertiesChanged(bus) as t:
+        if not t.success():
+            raise Exception("Expected signals not seen")
