@@ -2576,6 +2576,7 @@ u16 check_multi_ap_ie(const u8 *multi_ap_ie, size_t multi_ap_len,
 {
 	const struct element *elem;
 	bool ext_present = false;
+	unsigned int vlan_id;
 
 	os_memset(multi_ap, 0, sizeof(*multi_ap));
 
@@ -2612,6 +2613,27 @@ u16 check_multi_ap_ie(const u8 *multi_ap_ie, size_t multi_ap_len,
 					   multi_ap->profile);
 				return WLAN_STATUS_ASSOC_DENIED_UNSPEC;
 			}
+			break;
+		case MULTI_AP_VLAN_SUB_ELEM_TYPE:
+			if (multi_ap->profile < MULTI_AP_PROFILE_2) {
+				wpa_printf(MSG_DEBUG,
+					   "Multi-AP IE invalid profile to read VLAN IE");
+				return WLAN_STATUS_INVALID_IE;
+			}
+			if (elen < 2) {
+				wpa_printf(MSG_DEBUG,
+					   "Multi-AP IE invalid Multi-AP VLAN subelement");
+				return WLAN_STATUS_INVALID_IE;
+			}
+
+			vlan_id = WPA_GET_LE16(pos);
+			if (vlan_id < 1 || vlan_id > 4094) {
+				wpa_printf(MSG_INFO,
+					   "Multi-AP IE invalid Multi-AP VLAN ID %d",
+					   vlan_id);
+				return WLAN_STATUS_INVALID_IE;
+			}
+			multi_ap->vlanid = vlan_id;
 			break;
 		default:
 			wpa_printf(MSG_DEBUG,
@@ -2668,6 +2690,19 @@ size_t add_multi_ap_ie(u8 *buf, size_t len,
 		*pos++ = MULTI_AP_PROFILE_SUB_ELEM_TYPE;
 		*pos++ = 1;
 		*pos++ = multi_ap->profile;
+	}
+
+	/* Add Multi-AP Default 802.1Q Setting subelement only for backhaul BSS
+	 */
+	if (multi_ap->vlanid &&
+	    multi_ap->profile >= MULTI_AP_PROFILE_2 &&
+	    (multi_ap->capability & MULTI_AP_BACKHAUL_BSS)) {
+		if (buf + len - pos < 4)
+			return 0;
+		*pos++ = MULTI_AP_VLAN_SUB_ELEM_TYPE;
+		*pos++ = 2;
+		WPA_PUT_LE16(pos, multi_ap->vlanid);
+		pos += 2;
 	}
 
 	*len_ptr = pos - len_ptr - 1;

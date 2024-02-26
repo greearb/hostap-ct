@@ -110,6 +110,7 @@ static u8 * hostapd_eid_multi_ap(struct hostapd_data *hapd, u8 *eid, size_t len)
 			MULTI_AP_PROFILE2_BACKHAUL_STA_DISALLOWED;
 
 	multi_ap.profile = hapd->conf->multi_ap_profile;
+	multi_ap.vlanid = hapd->conf->multi_ap_vlanid;
 
 	return eid + add_multi_ap_ie(eid, len, &multi_ap);
 }

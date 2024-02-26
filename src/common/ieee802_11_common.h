@@ -33,6 +33,7 @@ struct mb_ies_info {
 struct multi_ap_params {
 	u8 capability;
 	u8 profile;
+	u16 vlanid;
 };
 
 /* Parsed Information Elements */

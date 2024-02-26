@@ -806,6 +806,8 @@ struct hostapd_bss_config {
 	/* Multi-AP Profile-2 clients not allowed to connect */
 #define PROFILE2_CLIENT_ASSOC_DISALLOW BIT(1)
 	unsigned int multi_ap_client_disallow;
+	/* Primary VLAN ID to use in Multi-AP */
+	int multi_ap_vlanid;
 
 #ifdef CONFIG_AIRTIME_POLICY
 	unsigned int airtime_weight;
