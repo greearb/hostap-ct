@@ -368,12 +368,50 @@ static int hostapd_ctrl_iface_sta_mib(struct hostapd_data *hapd,
 			len += ret;
 	}
 
+#ifdef CONFIG_IEEE80211AX
+	if ((sta->flags & WLAN_STA_HE) && sta->he_capab) {
+		res = os_snprintf(buf + len, buflen - len, "he_capab=");
+		if (!os_snprintf_error(buflen - len, res))
+			len += res;
+		len += wpa_snprintf_hex(buf + len, buflen - len,
+					(const u8 *) sta->he_capab,
+					sta->he_capab_len);
+		res = os_snprintf(buf + len, buflen - len, "\n");
+		if (!os_snprintf_error(buflen - len, res))
+			len += res;
+	}
+#endif /* CONFIG_IEEE80211AX */
+
+#ifdef CONFIG_IEEE80211BE
+	if ((sta->flags & WLAN_STA_EHT) && sta->eht_capab) {
+		res = os_snprintf(buf + len, buflen - len, "eht_capab=");
+		if (!os_snprintf_error(buflen - len, res))
+			len += res;
+		len += wpa_snprintf_hex(buf + len, buflen - len,
+					(const u8 *) sta->eht_capab,
+					sta->eht_capab_len);
+		res = os_snprintf(buf + len, buflen - len, "\n");
+		if (!os_snprintf_error(buflen - len, res))
+			len += res;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 #ifdef CONFIG_IEEE80211AC
 	if ((sta->flags & WLAN_STA_VHT) && sta->vht_capabilities) {
 		res = os_snprintf(buf + len, buflen - len,
 				  "vht_caps_info=0x%08x\n",
 				  le_to_host32(sta->vht_capabilities->
 					       vht_capabilities_info));
+		if (!os_snprintf_error(buflen - len, res))
+			len += res;
+
+		res = os_snprintf(buf + len, buflen - len, "vht_capab=");
+		if (!os_snprintf_error(buflen - len, res))
+			len += res;
+		len += wpa_snprintf_hex(buf + len, buflen - len,
+					(const u8 *) sta->vht_capabilities,
+					sizeof(*sta->vht_capabilities));
+		res = os_snprintf(buf + len, buflen - len, "\n");
 		if (!os_snprintf_error(buflen - len, res))
 			len += res;
 	}
