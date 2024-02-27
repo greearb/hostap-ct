@@ -1186,6 +1186,9 @@ static int hostapd_config_vht_capab(struct hostapd_config *conf,
 	if (os_strstr(capab, "[BF-ANTENNA-4]") &&
 	    (conf->vht_capab & VHT_CAP_SU_BEAMFORMEE_CAPABLE))
 		conf->vht_capab |= (3 << VHT_CAP_BEAMFORMEE_STS_OFFSET);
+	if (os_strstr(capab, "[BF-ANTENNA-5]") &&
+	    (conf->vht_capab & VHT_CAP_SU_BEAMFORMEE_CAPABLE))
+		conf->vht_capab |= (4 << VHT_CAP_BEAMFORMEE_STS_OFFSET);
 	if (os_strstr(capab, "[SOUNDING-DIMENSION-2]") &&
 	    (conf->vht_capab & VHT_CAP_SU_BEAMFORMER_CAPABLE))
 		conf->vht_capab |= (1 << VHT_CAP_SOUNDING_DIMENSION_OFFSET);
