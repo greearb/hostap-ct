@@ -914,7 +914,11 @@ int hostapd_drv_sta_deauth(struct hostapd_data *hapd,
 	if (hapd->conf->mld_ap) {
 		struct sta_info *sta = ap_get_sta(hapd, addr);
 
-		link_id = hapd->mld_link_id;
+		if (sta)
+			link_id = sta->mld_assoc_link_id;
+		else
+			link_id = hapd->mld_link_id;
+
 		if (ap_sta_is_mld(hapd, sta))
 			own_addr = hapd->mld->mld_addr;
 	}
