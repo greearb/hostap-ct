@@ -970,11 +970,11 @@ static bool ap_sta_ml_disconnect(struct hostapd_data *hapd,
 	interfaces = assoc_hapd->iface->interfaces;
 
 	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+		if (!assoc_sta->mld_info.links[link_id].valid)
+			continue;
+
 		for (i = 0; i < interfaces->count; i++) {
 			struct sta_info *tmp_sta;
-
-			if (!assoc_sta->mld_info.links[link_id].valid)
-				continue;
 
 			tmp_hapd = interfaces->iface[i]->bss[0];
 
