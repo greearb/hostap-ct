@@ -441,6 +441,8 @@ static void hostapd_ext_capab_byte(struct hostapd_data *hapd, u8 *pos, int idx,
 		if (hostapd_get_he_twt_responder(hapd, IEEE80211_MODE_AP))
 			*pos |= 0x40; /* Bit 78 - TWT responder */
 #endif /* CONFIG_IEEE80211AX */
+		if (hostapd_get_ht_vht_twt_responder(hapd))
+			*pos |= 0x40; /* Bit 78 - TWT responder */
 		break;
 	case 10: /* Bits 80-87 */
 #ifdef CONFIG_SAE
@@ -1197,4 +1199,14 @@ struct sta_info * hostapd_ml_get_assoc_sta(struct hostapd_data *hapd,
 #endif /* CONFIG_IEEE80211BE */
 
 	return sta;
+}
+
+
+bool hostapd_get_ht_vht_twt_responder(struct hostapd_data *hapd)
+{
+	return hapd->iconf->ht_vht_twt_responder &&
+		((hapd->iconf->ieee80211n && !hapd->conf->disable_11n) ||
+		 (hapd->iconf->ieee80211ac && !hapd->conf->disable_11ac)) &&
+		(hapd->iface->drv_flags2 &
+		 WPA_DRIVER_FLAGS2_HT_VHT_TWT_RESPONDER);
 }

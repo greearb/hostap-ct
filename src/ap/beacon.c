@@ -2547,6 +2547,7 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 	struct hostapd_config *iconf = iface->conf;
 	struct hostapd_hw_modes *cmode = iface->current_mode;
 	struct wpabuf *beacon, *proberesp, *assocresp;
+	bool twt_he_responder = false;
 	int res, ret = -1, i;
 	struct hostapd_hw_modes *mode;
 
@@ -2590,11 +2591,13 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 	params.he_bss_color_partial =
 		hapd->iface->conf->he_op.he_bss_color_partial;
 	params.he_bss_color = hapd->iface->conf->he_op.he_bss_color;
-	params.twt_responder = hostapd_get_he_twt_responder(hapd,
-							    IEEE80211_MODE_AP);
+	twt_he_responder = hostapd_get_he_twt_responder(hapd,
+							IEEE80211_MODE_AP);
 	params.unsol_bcast_probe_resp_tmpl =
 		hostapd_unsol_bcast_probe_resp(hapd, &params);
 #endif /* CONFIG_IEEE80211AX */
+	params.twt_responder =
+		twt_he_responder || hostapd_get_ht_vht_twt_responder(hapd);
 	hapd->reenable_beacon = 0;
 #ifdef CONFIG_SAE
 	params.sae_pwe = hapd->conf->sae_pwe;

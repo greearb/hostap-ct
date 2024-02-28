@@ -1441,6 +1441,8 @@ static void qca_nl80211_get_features(struct wpa_driver_nl80211_data *drv)
 	if (check_feature(QCA_WLAN_VENDOR_FEATURE_AP_ALLOWED_FREQ_LIST,
 			  &info))
 		drv->qca_ap_allowed_freqs = 1;
+	if (check_feature(QCA_WLAN_VENDOR_FEATURE_HT_VHT_TWT_RESPONDER, &info))
+		drv->capa.flags2 |= WPA_DRIVER_FLAGS2_HT_VHT_TWT_RESPONDER;
 	os_free(info.flags);
 }
 

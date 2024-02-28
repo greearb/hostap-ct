@@ -1226,6 +1226,9 @@ struct hostapd_config {
 		MBSSID_ENABLED = 1,
 		ENHANCED_MBSSID_ENABLED = 2,
 	} mbssid;
+
+	/* Whether to enable TWT responder in HT and VHT modes */
+	bool ht_vht_twt_responder;
 };
 
 
