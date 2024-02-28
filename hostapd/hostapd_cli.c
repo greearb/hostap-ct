@@ -1215,14 +1215,14 @@ static int hostapd_cli_cmd_notify_cw_change(struct wpa_ctrl *ctrl,
 
 
 static int hostapd_cli_cmd_enable(struct wpa_ctrl *ctrl, int argc,
-				      char *argv[])
+				  char *argv[])
 {
 	return wpa_ctrl_command(ctrl, "ENABLE");
 }
 
 
 static int hostapd_cli_cmd_reload(struct wpa_ctrl *ctrl, int argc,
-				      char *argv[])
+				  char *argv[])
 {
 	return wpa_ctrl_command(ctrl, "RELOAD");
 }
@@ -1243,7 +1243,7 @@ static int hostapd_cli_cmd_reload_config(struct wpa_ctrl *ctrl, int argc,
 
 
 static int hostapd_cli_cmd_disable(struct wpa_ctrl *ctrl, int argc,
-				      char *argv[])
+				   char *argv[])
 {
 	return wpa_ctrl_command(ctrl, "DISABLE");
 }
@@ -1257,14 +1257,14 @@ static int hostapd_cli_cmd_enable_mld(struct wpa_ctrl *ctrl, int argc,
 
 
 static int hostapd_cli_cmd_disable_mld(struct wpa_ctrl *ctrl, int argc,
-				      char *argv[])
+				       char *argv[])
 {
 	return wpa_ctrl_command(ctrl, "DISABLE_MLD");
 }
 
 
 static int hostapd_cli_cmd_update_beacon(struct wpa_ctrl *ctrl, int argc,
-				      char *argv[])
+					 char *argv[])
 {
 	return wpa_ctrl_command(ctrl, "UPDATE_BEACON");
 }
