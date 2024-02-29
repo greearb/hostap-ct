@@ -579,7 +579,11 @@ def test_ap_wpa2_gtk_rekey_fail_1_sta(dev, apdev):
             raise Exception("Unexpected disconnection [%d]" % i)
         hwsim_utils.test_connectivity(dev[i], hapd)
 
+    dev[1].set("disable_eapol_g2_tx", "0")
     dev[1].wait_connected()
+    ev = dev[1].wait_event(["RSN: Group rekeying completed"], timeout=10)
+    if ev is None:
+        raise Exception("GTK rekey timed out [1b]")
     hwsim_utils.test_connectivity(dev[1], hapd)
 
 @remote_compatible
