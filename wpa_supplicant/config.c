@@ -197,9 +197,10 @@ static char * wpa_config_write_str(const struct parse_data *data,
 #endif /* NO_CONFIG_WRITE */
 
 
-static int wpa_config_parse_int(const struct parse_data *data,
-				struct wpa_ssid *ssid,
-				int line, const char *value)
+static int wpa_config_parse_int_impl(const struct parse_data *data,
+				     struct wpa_ssid *ssid,
+				     int line, const char *value,
+				     bool check_range)
 {
 	int val, *dst;
 	char *end;
@@ -217,7 +218,7 @@ static int wpa_config_parse_int(const struct parse_data *data,
 	*dst = val;
 	wpa_printf(MSG_MSGDUMP, "%s=%d (0x%x)", data->name, *dst, *dst);
 
-	if (data->param3 && *dst < (long) data->param3) {
+	if (check_range && *dst < (long) data->param3) {
 		wpa_printf(MSG_ERROR, "Line %d: too small %s (value=%d "
 			   "min_value=%ld)", line, data->name, *dst,
 			   (long) data->param3);
@@ -225,7 +226,7 @@ static int wpa_config_parse_int(const struct parse_data *data,
 		return -1;
 	}
 
-	if (data->param4 && *dst > (long) data->param4) {
+	if (check_range && *dst > (long) data->param4) {
 		wpa_printf(MSG_ERROR, "Line %d: too large %s (value=%d "
 			   "max_value=%ld)", line, data->name, *dst,
 			   (long) data->param4);
@@ -234,6 +235,22 @@ static int wpa_config_parse_int(const struct parse_data *data,
 	}
 
 	return 0;
+}
+
+
+static int wpa_config_parse_int(const struct parse_data *data,
+				struct wpa_ssid *ssid,
+				int line, const char *value)
+{
+	return wpa_config_parse_int_impl(data, ssid, line, value, false);
+}
+
+
+static int wpa_config_parse_int_range(const struct parse_data *data,
+				      struct wpa_ssid *ssid,
+				      int line, const char *value)
+{
+	return wpa_config_parse_int_impl(data, ssid, line, value, true);
 }
 
 
@@ -2457,7 +2474,14 @@ static char * wpa_config_write_mac_value(const struct parse_data *data,
 #define INTe(f, m) _INTe(f, m), NULL, NULL, 0
 
 /* INT_RANGE: Define an integer variable with allowed value range */
-#define INT_RANGE(f, min, max) _INT(f), (void *) (min), (void *) (max), 0
+#ifdef NO_CONFIG_WRITE
+#define INT_RANGE(f, min, max) #f, wpa_config_parse_int_range, OFFSET(f), \
+	(void *) 0, (void *) (min), (void *) (max), 0
+#else /* NO_CONFIG_WRITE */
+#define INT_RANGE(f, min, max) #f, wpa_config_parse_int_range, \
+	wpa_config_write_int, OFFSET(f),	       \
+	(void *) 0, (void *) (min), (void *) (max), 0
+#endif /* NO_CONFIG_WRITE */
 
 /* FUNC: Define a configuration variable that uses a custom function for
  * parsing and writing the value. */
@@ -4733,9 +4757,10 @@ struct global_parse_data {
 };
 
 
-static int wpa_global_config_parse_int(const struct global_parse_data *data,
-				       struct wpa_config *config, int line,
-				       const char *pos)
+static int
+wpa_global_config_parse_int_impl(const struct global_parse_data *data,
+				 struct wpa_config *config, int line,
+				 const char *pos, bool check_range)
 {
 	int val, *dst;
 	char *end;
@@ -4753,7 +4778,7 @@ static int wpa_global_config_parse_int(const struct global_parse_data *data,
 
 	wpa_printf(MSG_DEBUG, "%s=%d", data->name, *dst);
 
-	if (data->param2 && *dst < (long) data->param2) {
+	if (check_range && *dst < (long) data->param2) {
 		wpa_printf(MSG_ERROR, "Line %d: too small %s (value=%d "
 			   "min_value=%ld)", line, data->name, *dst,
 			   (long) data->param2);
@@ -4761,7 +4786,7 @@ static int wpa_global_config_parse_int(const struct global_parse_data *data,
 		return -1;
 	}
 
-	if (data->param3 && *dst > (long) data->param3) {
+	if (check_range && *dst > (long) data->param3) {
 		wpa_printf(MSG_ERROR, "Line %d: too large %s (value=%d "
 			   "max_value=%ld)", line, data->name, *dst,
 			   (long) data->param3);
@@ -4770,6 +4795,23 @@ static int wpa_global_config_parse_int(const struct global_parse_data *data,
 	}
 
 	return same;
+}
+
+
+static int wpa_global_config_parse_int(const struct global_parse_data *data,
+				       struct wpa_config *config, int line,
+				       const char *pos)
+{
+	return wpa_global_config_parse_int_impl(data, config, line, pos, false);
+}
+
+
+static int
+wpa_global_config_parse_int_range(const struct global_parse_data *data,
+				  struct wpa_config *config, int line,
+				  const char *pos)
+{
+	return wpa_global_config_parse_int_impl(data, config, line, pos, true);
 }
 
 
@@ -5337,7 +5379,8 @@ static int wpa_config_process_mld_connect_bssid_pref(
 #define FUNC_NO_VAR(f) #f, wpa_config_process_ ## f, NULL, NULL, NULL, NULL
 #define _INT(f) #f, wpa_global_config_parse_int, wpa_config_get_int, OFFSET(f)
 #define INT(f) _INT(f), NULL, NULL
-#define INT_RANGE(f, min, max) _INT(f), (void *) min, (void *) max
+#define INT_RANGE(f, min, max) #f, wpa_global_config_parse_int_range, \
+	wpa_config_get_int, OFFSET(f), (void *) min, (void *) max
 #define _STR(f) #f, wpa_global_config_parse_str, wpa_config_get_str, OFFSET(f)
 #define STR(f) _STR(f), NULL, NULL
 #define STR_RANGE(f, min, max) _STR(f), (void *) min, (void *) max
