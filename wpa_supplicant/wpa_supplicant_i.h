@@ -1474,6 +1474,8 @@ struct wpa_supplicant {
 	int dpp_netrole;
 	int dpp_auth_ok_on_ack;
 	int dpp_in_response_listen;
+	bool dpp_tx_auth_resp_on_roc_stop;
+	bool dpp_tx_chan_change;
 	int dpp_gas_client;
 	int dpp_gas_server;
 	int dpp_gas_dialog_token;
