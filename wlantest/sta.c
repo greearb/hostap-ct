@@ -46,7 +46,7 @@ struct wlantest_sta * sta_find_mlo(struct wlantest *wt,
 		return NULL;
 
 	dl_list_for_each(sta, &bss->sta, struct wlantest_sta, list) {
-		for (link_id = 0; link_id < MAX_NUM_MLO_LINKS; link_id++) {
+		for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 			if (ether_addr_equal(sta->link_addr[link_id], addr))
 				return sta;
 		}
@@ -63,7 +63,7 @@ struct wlantest_sta * sta_find_mlo(struct wlantest *wt,
 				return sta;
 			if (ether_addr_equal(sta->mld_mac_addr, addr))
 				return sta;
-			for (link_id = 0; link_id < MAX_NUM_MLO_LINKS;
+			for (link_id = 0; link_id < MAX_NUM_MLD_LINKS;
 			     link_id++) {
 				if (ether_addr_equal(sta->link_addr[link_id],
 						     addr))
@@ -336,7 +336,7 @@ void sta_new_ptk(struct wlantest *wt, struct wlantest_sta *sta,
 				continue;
 			if (ether_addr_equal(sta->addr, osta->addr))
 				match = true;
-			for (link_id = 0; !match && link_id < MAX_NUM_MLO_LINKS;
+			for (link_id = 0; !match && link_id < MAX_NUM_MLD_LINKS;
 			     link_id++) {
 				if (ether_addr_equal(osta->link_addr[link_id],
 						     sta->addr))

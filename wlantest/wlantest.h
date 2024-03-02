@@ -56,7 +56,7 @@ struct wlantest_sta {
 	struct wlantest_bss *bss;
 	u8 addr[ETH_ALEN];
 	u8 mld_mac_addr[ETH_ALEN];
-	u8 link_addr[MAX_NUM_MLO_LINKS][ETH_ALEN];
+	u8 link_addr[MAX_NUM_MLD_LINKS][ETH_ALEN];
 	enum {
 		STATE1 /* not authenticated */,
 		STATE2 /* authenticated */,

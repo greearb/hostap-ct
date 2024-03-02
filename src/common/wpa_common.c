@@ -1104,7 +1104,7 @@ static int wpa_ft_parse_ftie(const u8 *ie, size_t ie_len,
 			link_id = pos[2] & 0x0f;
 			wpa_printf(MSG_DEBUG, "FT: MLO GTK (Link ID %u)",
 				   link_id);
-			if (link_id >= MAX_NUM_MLO_LINKS)
+			if (link_id >= MAX_NUM_MLD_LINKS)
 				break;
 			parse->valid_mlo_gtks |= BIT(link_id);
 			parse->mlo_gtk[link_id] = pos;
@@ -1119,7 +1119,7 @@ static int wpa_ft_parse_ftie(const u8 *ie, size_t ie_len,
 			link_id = pos[2 + 6] & 0x0f;
 			wpa_printf(MSG_DEBUG, "FT: MLO IGTK (Link ID %u)",
 				   link_id);
-			if (link_id >= MAX_NUM_MLO_LINKS)
+			if (link_id >= MAX_NUM_MLD_LINKS)
 				break;
 			parse->valid_mlo_igtks |= BIT(link_id);
 			parse->mlo_igtk[link_id] = pos;
@@ -1134,7 +1134,7 @@ static int wpa_ft_parse_ftie(const u8 *ie, size_t ie_len,
 			link_id = pos[2 + 6] & 0x0f;
 			wpa_printf(MSG_DEBUG, "FT: MLO BIGTK (Link ID %u)",
 				   link_id);
-			if (link_id >= MAX_NUM_MLO_LINKS)
+			if (link_id >= MAX_NUM_MLD_LINKS)
 				break;
 			parse->valid_mlo_bigtks |= BIT(link_id);
 			parse->mlo_bigtk[link_id] = pos;
@@ -1353,7 +1353,7 @@ int wpa_ft_parse_ies(const u8 *ies, size_t ies_len, struct wpa_ft_ies *parse,
 
 		/* TODO: This count should be done based on all _requested_,
 		 * not _accepted_ links. */
-		for (link_id = 0; link_id < MAX_NUM_MLO_LINKS; link_id++) {
+		for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 			if (parse->mlo_gtk[link_id]) {
 				if (parse->rsn)
 					prot_ie_count--;
@@ -3551,7 +3551,7 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 	    selector == RSN_KEY_DATA_MLO_GTK) {
 		link_id = (p[0] & RSN_MLO_GTK_KDE_PREFIX0_LINK_ID_MASK) >>
 			RSN_MLO_GTK_KDE_PREFIX0_LINK_ID_SHIFT;
-		if (link_id >= MAX_NUM_MLO_LINKS)
+		if (link_id >= MAX_NUM_MLD_LINKS)
 			return 2;
 
 		ie->valid_mlo_gtks |= BIT(link_id);
@@ -3569,7 +3569,7 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 	    selector == RSN_KEY_DATA_MLO_IGTK) {
 		link_id = (p[8] & RSN_MLO_IGTK_KDE_PREFIX8_LINK_ID_MASK) >>
 			  RSN_MLO_IGTK_KDE_PREFIX8_LINK_ID_SHIFT;
-		if (link_id >= MAX_NUM_MLO_LINKS)
+		if (link_id >= MAX_NUM_MLD_LINKS)
 			return 2;
 
 		ie->valid_mlo_igtks |= BIT(link_id);
@@ -3587,7 +3587,7 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 	    selector == RSN_KEY_DATA_MLO_BIGTK) {
 		link_id = (p[8] & RSN_MLO_BIGTK_KDE_PREFIX8_LINK_ID_MASK) >>
 			  RSN_MLO_BIGTK_KDE_PREFIX8_LINK_ID_SHIFT;
-		if (link_id >= MAX_NUM_MLO_LINKS)
+		if (link_id >= MAX_NUM_MLD_LINKS)
 			return 2;
 
 		ie->valid_mlo_bigtks |= BIT(link_id);
@@ -3605,7 +3605,7 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 	    selector == RSN_KEY_DATA_MLO_LINK) {
 		link_id = (p[0] & RSN_MLO_LINK_KDE_LI_LINK_ID_MASK) >>
 			  RSN_MLO_LINK_KDE_LI_LINK_ID_SHIFT;
-		if (link_id >= MAX_NUM_MLO_LINKS)
+		if (link_id >= MAX_NUM_MLD_LINKS)
 			return 2;
 
 		ie->valid_mlo_links |= BIT(link_id);

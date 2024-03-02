@@ -491,7 +491,7 @@ static void rx_data_eapol_key_2_of_4(struct wlantest *wt, const u8 *dst,
 		}
 	}
 
-	for (link_id = 0; link_id < MAX_NUM_MLO_LINKS; link_id++) {
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 		const u8 *addr;
 
 		if (!ie.mlo_link[link_id])
@@ -886,7 +886,7 @@ static void learn_kde_keys(struct wlantest *wt, struct wlantest_bss *bss,
 		}
 	}
 
-	for (link_id = 0; link_id < MAX_NUM_MLO_LINKS; link_id++) {
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 		const u8 *addr;
 
 		if (!ie.mlo_link[link_id])
@@ -1099,7 +1099,7 @@ static void rx_data_eapol_key_3_of_4(struct wlantest *wt, const u8 *dst,
 
 	rsne = ie.rsn_ie;
 	rsne_len = ie.rsn_ie_len;
-	for (link_id = 0; !rsne && link_id < MAX_NUM_MLO_LINKS; link_id++) {
+	for (link_id = 0; !rsne && link_id < MAX_NUM_MLD_LINKS; link_id++) {
 		const u8 *addr, *pos, *end;
 
 		if (!ie.mlo_link[link_id])

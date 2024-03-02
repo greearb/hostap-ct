@@ -280,7 +280,7 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
 			}
 			wpa_printf(MSG_DEBUG, "STA MAC Address: " MACSTR,
 				   MAC2STR(pos));
-			if (sta && link_id < MAX_NUM_MLO_LINKS) {
+			if (sta && link_id < MAX_NUM_MLD_LINKS) {
 				os_memcpy(sta->link_addr[link_id], pos,
 					  ETH_ALEN);
 				wpa_printf(MSG_DEBUG,
@@ -998,7 +998,7 @@ static void dump_mld_info(struct wlantest *wt, struct wlantest_sta *sta)
 
 	os_memset(zero, 0, ETH_ALEN);
 
-	for (link_id = 0; link_id < MAX_NUM_MLO_LINKS; link_id++) {
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 		bss = bss_find_mld(wt, sta->bss->mld_mac_addr, link_id);
 		if (!bss &&
 		    is_zero_ether_addr(sta->link_addr[link_id]))
@@ -1560,10 +1560,10 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 		if (elems.basic_mle) {
 			int i;
 
-			extra = wpabuf_alloc(MAX_NUM_MLO_LINKS * ETH_ALEN);
+			extra = wpabuf_alloc(MAX_NUM_MLD_LINKS * ETH_ALEN);
 			if (!extra)
 				goto out;
-			for (i = 0; i < MAX_NUM_MLO_LINKS; i++) {
+			for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
 				if (!is_zero_ether_addr(sta->link_addr[i]))
 					wpabuf_put_data(extra,
 							sta->link_addr[i],
@@ -1607,7 +1607,7 @@ static void rx_mgmt_reassoc_req(struct wlantest *wt, const u8 *data,
 			wpa_hexdump(MSG_MSGDUMP, "FT: RSNXE",
 				    parse.rsnxe ? parse.rsnxe - 2 : NULL,
 				    parse.rsnxe ? parse.rsnxe_len + 2 : 0);
-			for (link_id = 0; link_id < MAX_NUM_MLO_LINKS;
+			for (link_id = 0; link_id < MAX_NUM_MLD_LINKS;
 			     link_id++) {
 				if (is_zero_ether_addr(sta->link_addr[link_id]))
 					continue;
@@ -1889,7 +1889,7 @@ static void process_fte_group_keys_mlo(struct wlantest *wt,
 {
 	int link_id;
 
-	for (link_id = 0; link_id < MAX_NUM_MLO_LINKS; link_id++) {
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 		struct wlantest_bss *l_bss;
 		struct wlantest_sta *l_sta;
 
@@ -2169,13 +2169,13 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 			u8 rsne_buf[257];
 			size_t rsne_len;
 
-			extra = wpabuf_alloc(MAX_NUM_MLO_LINKS * ETH_ALEN);
-			rsne = wpabuf_alloc(MAX_NUM_MLO_LINKS * 256);
-			rsnxe = wpabuf_alloc(MAX_NUM_MLO_LINKS * 256);
+			extra = wpabuf_alloc(MAX_NUM_MLD_LINKS * ETH_ALEN);
+			rsne = wpabuf_alloc(MAX_NUM_MLD_LINKS * 256);
+			rsnxe = wpabuf_alloc(MAX_NUM_MLD_LINKS * 256);
 			if (!extra || !rsne || !rsnxe)
 				goto out;
 
-			for (link_id = 0; link_id < MAX_NUM_MLO_LINKS;
+			for (link_id = 0; link_id < MAX_NUM_MLD_LINKS;
 			     link_id++) {
 				struct wpa_ie_data ie_data;
 
@@ -2297,7 +2297,7 @@ static void rx_mgmt_reassoc_resp(struct wlantest *wt, const u8 *data,
 				    elems.ftie - 2, elems.fte_defrag_len + 2);
 			wpa_hexdump_buf(MSG_MSGDUMP, "FT: RSNE", rsne);
 			wpa_hexdump_buf(MSG_MSGDUMP, "FT: RSNXE", rsnxe);
-			for (link_id = 0; link_id < MAX_NUM_MLO_LINKS;
+			for (link_id = 0; link_id < MAX_NUM_MLD_LINKS;
 			     link_id++) {
 				struct wlantest_bss *l_bss;
 
