@@ -440,9 +440,14 @@ int wpa_supplicant_conf_ap_ht(struct wpa_supplicant *wpa_s,
 		}
 	}
 
-	if (wpa_s->p2p_go_no_pri_sec_switch) {
+#ifdef CONFIG_P2P
+	if (ssid->p2p_group && wpa_s->p2p_go_no_pri_sec_switch) {
 		conf->no_pri_sec_switch = 1;
-	} else if (conf->secondary_channel) {
+		return 0;
+	}
+#endif /* CONFIG_P2P */
+
+	if (conf->secondary_channel) {
 		struct wpa_supplicant *iface;
 
 		for (iface = wpa_s->global->ifaces; iface; iface = iface->next)

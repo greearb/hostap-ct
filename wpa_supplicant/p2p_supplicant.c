@@ -1100,6 +1100,8 @@ static int wpas_p2p_group_delete(struct wpa_supplicant *wpa_s,
 
 	os_memset(wpa_s->go_dev_addr, 0, ETH_ALEN);
 
+	wpa_s->p2p_go_no_pri_sec_switch = 0;
+
 	return 0;
 }
 
