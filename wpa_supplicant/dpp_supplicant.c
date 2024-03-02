@@ -483,6 +483,21 @@ static void wpas_dpp_drv_wait_timeout(void *eloop_ctx, void *timeout_ctx)
 }
 
 
+static void wpas_dpp_neg_freq_timeout(void *eloop_ctx, void *timeout_ctx)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctx;
+	struct dpp_authentication *auth = wpa_s->dpp_auth;
+
+	if (!wpa_s->dpp_listen_on_tx_expire || !auth || !auth->neg_freq)
+		return;
+
+	wpa_printf(MSG_DEBUG,
+		   "DPP: Start listen on neg_freq %u MHz based on timeout for TX wait expiration",
+		   auth->neg_freq);
+	wpas_dpp_listen_start(wpa_s, auth->neg_freq);
+}
+
+
 static void wpas_dpp_tx_status(struct wpa_supplicant *wpa_s,
 			       unsigned int freq, const u8 *dst,
 			       const u8 *src, const u8 *bssid,
@@ -598,7 +613,9 @@ static void wpas_dpp_tx_status(struct wpa_supplicant *wpa_s,
 			   wpa_s->dpp_auth->curr_freq,
 			   wpa_s->dpp_auth->neg_freq);
 		offchannel_send_action_done(wpa_s);
-		wpas_dpp_listen_start(wpa_s, wpa_s->dpp_auth->neg_freq);
+		wpa_s->dpp_listen_on_tx_expire = true;
+		eloop_register_timeout(0, 100000, wpas_dpp_neg_freq_timeout,
+				       wpa_s, NULL);
 	}
 
 	if (wpa_s->dpp_auth_ok_on_ack)
@@ -1314,6 +1331,15 @@ void wpas_dpp_tx_wait_expire(struct wpa_supplicant *wpa_s)
 {
 	struct dpp_authentication *auth = wpa_s->dpp_auth;
 	int freq;
+
+	if (wpa_s->dpp_listen_on_tx_expire && auth && auth->neg_freq) {
+		wpa_printf(MSG_DEBUG,
+			   "DPP: Start listen on neg_freq %u MHz based on TX wait expiration on the previous channel",
+			   auth->neg_freq);
+		eloop_cancel_timeout(wpas_dpp_neg_freq_timeout, wpa_s, NULL);
+		wpas_dpp_listen_start(wpa_s, auth->neg_freq);
+		return;
+	}
 
 	if (!wpa_s->dpp_gas_server || !auth) {
 		if (auth && auth->waiting_auth_resp &&
@@ -4834,6 +4860,7 @@ void wpas_dpp_deinit(struct wpa_supplicant *wpa_s)
 	eloop_cancel_timeout(wpas_dpp_gas_client_timeout, wpa_s, NULL);
 	eloop_cancel_timeout(wpas_dpp_drv_wait_timeout, wpa_s, NULL);
 	eloop_cancel_timeout(wpas_dpp_tx_auth_resp_roc_timeout, wpa_s, NULL);
+	eloop_cancel_timeout(wpas_dpp_neg_freq_timeout, wpa_s, NULL);
 #ifdef CONFIG_DPP2
 	eloop_cancel_timeout(wpas_dpp_config_result_wait_timeout, wpa_s, NULL);
 	eloop_cancel_timeout(wpas_dpp_conn_status_result_wait_timeout,
