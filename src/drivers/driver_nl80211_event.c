@@ -3736,8 +3736,11 @@ static void nl80211_frame_wait_cancel(struct wpa_driver_nl80211_data *drv,
 		   (long long unsigned int) cookie,
 		   match ? " (match)" : "",
 		   drv->send_frame_cookie == cookie ? " (match-saved)" : "");
-	if (drv->send_frame_cookie == cookie)
+	if (drv->send_frame_cookie == cookie) {
 		drv->send_frame_cookie = (u64) -1;
+		if (!match)
+			goto send_event;
+	}
 	if (!match)
 		return;
 
@@ -3747,6 +3750,7 @@ static void nl80211_frame_wait_cancel(struct wpa_driver_nl80211_data *drv,
 			   (drv->num_send_frame_cookies - i - 1) * sizeof(u64));
 	drv->num_send_frame_cookies--;
 
+send_event:
 	wpa_supplicant_event(drv->ctx, EVENT_TX_WAIT_EXPIRE, NULL);
 }
 
