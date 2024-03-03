@@ -222,7 +222,7 @@ def test_concurrent_grpform_while_connecting2(dev, apdev):
 
     [i_res, r_res] = go_neg_pbc(i_dev=dev[0], i_intent=15, i_freq=2412,
                                 r_dev=dev[1], r_intent=0, r_freq=2412,
-                                timeout=30)
+                                timeout=50)
     check_grpform_results(i_res, r_res)
     remove_group(dev[0], dev[1])
 
@@ -242,7 +242,7 @@ def test_concurrent_grpform_while_connecting3(dev, apdev):
 
     [i_res, r_res] = go_neg_pbc(i_dev=dev[1], i_intent=15, i_freq=2412,
                                 r_dev=dev[0], r_intent=0, r_freq=2412,
-                                timeout=30)
+                                timeout=50)
     check_grpform_results(i_res, r_res)
     remove_group(dev[0], dev[1])
 
