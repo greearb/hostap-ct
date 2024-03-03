@@ -2675,7 +2675,7 @@ static const struct parse_data ssid_fields[] = {
 #endif /* CONFIG_P2P */
 #ifdef CONFIG_HT_OVERRIDES
 	{ INT_RANGE(disable_ht, 0, 1) },
-	{ INT_RANGE(disable_ht40, -1, 1) },
+	{ INT_RANGE(disable_ht40, 0, 1) },
 	{ INT_RANGE(disable_sgi, 0, 1) },
 	{ INT_RANGE(disable_ldpc, 0, 1) },
 	{ INT_RANGE(ht40_intolerant, 0, 1) },
