@@ -168,6 +168,14 @@ fail:
 }
 
 
+static void hostapd_neighbor_free(struct hostapd_neighbor_entry *nr)
+{
+	hostapd_neighbor_clear_entry(nr);
+	dl_list_del(&nr->list);
+	os_free(nr);
+}
+
+
 int hostapd_neighbor_remove(struct hostapd_data *hapd, const u8 *bssid,
 			    const struct wpa_ssid_value *ssid)
 {
@@ -177,9 +185,7 @@ int hostapd_neighbor_remove(struct hostapd_data *hapd, const u8 *bssid,
 	if (!nr)
 		return -1;
 
-	hostapd_neighbor_clear_entry(nr);
-	dl_list_del(&nr->list);
-	os_free(nr);
+	hostapd_neighbor_free(nr);
 
 	return 0;
 }
@@ -191,9 +197,7 @@ void hostapd_free_neighbor_db(struct hostapd_data *hapd)
 
 	dl_list_for_each_safe(nr, prev, &hapd->nr_db,
 			      struct hostapd_neighbor_entry, list) {
-		hostapd_neighbor_clear_entry(nr);
-		dl_list_del(&nr->list);
-		os_free(nr);
+		hostapd_neighbor_free(nr);
 	}
 }
 
@@ -354,9 +358,7 @@ int hostapd_neighbor_sync_own_report(struct hostapd_data *hapd)
 		return -1;
 
 	/* Clear old entry due to SSID change */
-	hostapd_neighbor_clear_entry(nr);
-	dl_list_del(&nr->list);
-	os_free(nr);
+	hostapd_neighbor_free(nr);
 
 	hostapd_neighbor_set_own_report(hapd);
 
