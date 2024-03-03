@@ -902,9 +902,20 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 			wpa_config_process_global(wpa_s->conf, cmd, -1);
 		}
 	} else if (os_strcasecmp(cmd, "mbo_cell_capa") == 0) {
-		wpas_mbo_update_cell_capa(wpa_s, atoi(value));
+		int val = atoi(value);
+
+		if (val < MBO_CELL_CAPA_AVAILABLE ||
+		    val > MBO_CELL_CAPA_NOT_SUPPORTED)
+			return -1;
+
+		wpas_mbo_update_cell_capa(wpa_s, val);
 	} else if (os_strcasecmp(cmd, "oce") == 0) {
-		wpa_s->conf->oce = atoi(value);
+		int val = atoi(value);
+
+		if (val < 0 || val > 3)
+			return -1;
+
+		wpa_s->conf->oce = val;
 		if (wpa_s->conf->oce) {
 			if ((wpa_s->conf->oce & OCE_STA) &&
 			    (wpa_s->drv_flags & WPA_DRIVER_FLAGS_OCE_STA))
