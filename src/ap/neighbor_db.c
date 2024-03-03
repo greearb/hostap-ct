@@ -99,7 +99,10 @@ static void hostapd_neighbor_clear_entry(struct hostapd_neighbor_entry *nr)
 	nr->civic = NULL;
 	os_memset(nr->bssid, 0, sizeof(nr->bssid));
 	os_memset(&nr->ssid, 0, sizeof(nr->ssid));
+	os_memset(&nr->lci_date, 0, sizeof(nr->lci_date));
 	nr->stationary = 0;
+	nr->short_ssid = 0;
+	nr->bss_parameters = 0;
 }
 
 
