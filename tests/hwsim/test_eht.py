@@ -73,6 +73,8 @@ def eht_verify_status(wpas, hapd, freq, bw, is_ht=False, is_vht=False,
 
     sta = hapd.get_sta(wpas.own_addr())
     logger.info("hostapd STA: " + str(sta))
+    if sta['addr'] == 'FAIL':
+        raise Exception("hostapd " + hapd.ifname + " did not have a STA entry for the STA " + wpas.own_addr())
     if is_ht and "[HT]" not in sta['flags']:
         raise Exception("Missing STA flag: HT")
     if is_vht and "[VHT]" not in sta['flags']:
@@ -592,6 +594,14 @@ def test_eht_mld_sae_legacy_client(dev, apdev):
             dev[0].set("sae_pwe", "1")
             dev[0].connect(ssid, sae_password=passphrase, scan_freq="2412",
                            key_mgmt="SAE", ieee80211w="2", beacon_prot="1")
+            logger.info("wpa_supplicant STATUS:\n" + dev[0].request("STATUS"))
+            bssid = dev[0].get_status_field("bssid")
+            if hapd0.own_addr() == bssid:
+                hapd0.wait_sta();
+            elif hapd1.own_addr() == bssid:
+                hapd1.wait_sta();
+            else:
+                raise Exception("Unknown BSSID: " + bssid)
 
             eht_verify_status(dev[0], hapd0, 2412, 20, is_ht=True)
             traffic_test(dev[0], hapd0)
