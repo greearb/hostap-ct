@@ -348,11 +348,15 @@ static int hostapd_ctrl_iface_sta_mib(struct hostapd_data *hapd,
 
 	if (sta->supp_op_classes &&
 	    buflen - len > (unsigned) (17 + 2 * sta->supp_op_classes[0])) {
-		len += os_snprintf(buf + len, buflen - len, "supp_op_classes=");
+		res = os_snprintf(buf + len, buflen - len, "supp_op_classes=");
+		if (!os_snprintf_error(buflen - len, res))
+			len += res;
 		len += wpa_snprintf_hex(buf + len, buflen - len,
 					sta->supp_op_classes + 1,
 					sta->supp_op_classes[0]);
-		len += os_snprintf(buf + len, buflen - len, "\n");
+		res = os_snprintf(buf + len, buflen - len, "\n");
+		if (!os_snprintf_error(buflen - len, res))
+			len += res;
 	}
 
 	if (sta->power_capab) {
@@ -386,11 +390,15 @@ static int hostapd_ctrl_iface_sta_mib(struct hostapd_data *hapd,
 
 	if (sta->ext_capability &&
 	    buflen - len > (unsigned) (11 + 2 * sta->ext_capability[0])) {
-		len += os_snprintf(buf + len, buflen - len, "ext_capab=");
+		res = os_snprintf(buf + len, buflen - len, "ext_capab=");
+		if (!os_snprintf_error(buflen - len, res))
+			len += res;
 		len += wpa_snprintf_hex(buf + len, buflen - len,
 					sta->ext_capability + 1,
 					sta->ext_capability[0]);
-		len += os_snprintf(buf + len, buflen - len, "\n");
+		res = os_snprintf(buf + len, buflen - len, "\n");
+		if (!os_snprintf_error(buflen - len, res))
+			len += res;
 	}
 
 	if (sta->flags & WLAN_STA_WDS && sta->ifname_wds) {
