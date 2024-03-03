@@ -213,26 +213,25 @@ static int wpa_config_parse_int_impl(const struct parse_data *data,
 		return -1;
 	}
 
+	if (check_range && val < (long) data->param3) {
+		wpa_printf(MSG_ERROR, "Line %d: too small %s (value=%d "
+			   "min_value=%ld)", line, data->name, val,
+			   (long) data->param3);
+		return -1;
+	}
+
+	if (check_range && val > (long) data->param4) {
+		wpa_printf(MSG_ERROR, "Line %d: too large %s (value=%d "
+			   "max_value=%ld)", line, data->name, val,
+			   (long) data->param4);
+		return -1;
+	}
+
 	if (*dst == val)
 		return 1;
+
 	*dst = val;
 	wpa_printf(MSG_MSGDUMP, "%s=%d (0x%x)", data->name, *dst, *dst);
-
-	if (check_range && *dst < (long) data->param3) {
-		wpa_printf(MSG_ERROR, "Line %d: too small %s (value=%d "
-			   "min_value=%ld)", line, data->name, *dst,
-			   (long) data->param3);
-		*dst = (long) data->param3;
-		return -1;
-	}
-
-	if (check_range && *dst > (long) data->param4) {
-		wpa_printf(MSG_ERROR, "Line %d: too large %s (value=%d "
-			   "max_value=%ld)", line, data->name, *dst,
-			   (long) data->param4);
-		*dst = (long) data->param4;
-		return -1;
-	}
 
 	return 0;
 }
@@ -4773,26 +4772,25 @@ wpa_global_config_parse_int_impl(const struct global_parse_data *data,
 			   line, pos);
 		return -1;
 	}
+
+	if (check_range && val < (long) data->param2) {
+		wpa_printf(MSG_ERROR, "Line %d: too small %s (value=%d "
+			   "min_value=%ld)", line, data->name, val,
+			   (long) data->param2);
+		return -1;
+	}
+
+	if (check_range && val > (long) data->param3) {
+		wpa_printf(MSG_ERROR, "Line %d: too large %s (value=%d "
+			   "max_value=%ld)", line, data->name, val,
+			   (long) data->param3);
+		return -1;
+	}
+
 	same = *dst == val;
 	*dst = val;
 
 	wpa_printf(MSG_DEBUG, "%s=%d", data->name, *dst);
-
-	if (check_range && *dst < (long) data->param2) {
-		wpa_printf(MSG_ERROR, "Line %d: too small %s (value=%d "
-			   "min_value=%ld)", line, data->name, *dst,
-			   (long) data->param2);
-		*dst = (long) data->param2;
-		return -1;
-	}
-
-	if (check_range && *dst > (long) data->param3) {
-		wpa_printf(MSG_ERROR, "Line %d: too large %s (value=%d "
-			   "max_value=%ld)", line, data->name, *dst,
-			   (long) data->param3);
-		*dst = (long) data->param3;
-		return -1;
-	}
 
 	return same;
 }
