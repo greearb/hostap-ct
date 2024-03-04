@@ -3941,6 +3941,7 @@ int hostapd_dpp_push_button(struct hostapd_data *hapd, const char *cmd)
 	eloop_register_timeout(100, 0, hostapd_dpp_push_button_expire,
 			       hapd, NULL);
 
+	wpa_msg(hapd->msg_ctx, MSG_INFO, DPP_EVENT_PB_STATUS "started");
 	return 0;
 }
 

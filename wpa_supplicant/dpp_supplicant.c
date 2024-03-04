@@ -5672,6 +5672,7 @@ static int wpas_dpp_push_button_configurator(struct wpa_supplicant *wpa_s,
 	eloop_register_timeout(100, 0, wpas_dpp_push_button_expire,
 			       wpa_s, NULL);
 
+	wpa_msg(wpa_s, MSG_INFO, DPP_EVENT_PB_STATUS "started");
 	return 0;
 }
 
@@ -5733,6 +5734,7 @@ int wpas_dpp_push_button(struct wpa_supplicant *wpa_s, const char *cmd)
 	wpa_s->scan_req = MANUAL_SCAN_REQ;
 	wpa_s->scan_res_handler = wpas_dpp_pb_scan_res_handler;
 	wpa_supplicant_req_scan(wpa_s, 0, 0);
+	wpa_msg(wpa_s, MSG_INFO, DPP_EVENT_PB_STATUS "started");
 	return 0;
 }
 
