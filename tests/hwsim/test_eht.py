@@ -4,6 +4,7 @@
 # This software may be distributed under the terms of the BSD license.
 # See README for more details.
 
+import binascii
 import hostapd
 from utils import *
 from hwsim import HWSimRadio
@@ -1329,6 +1330,12 @@ def _test_eht_6ghz(dev, apdev, channel, op_class, ccfs1):
 
         eht_verify_status(dev[0], hapd, freq, bw)
         eht_verify_wifi_version(dev[0])
+        sta = hapd.get_sta(dev[0].own_addr())
+        if 'supp_op_classes' not in sta:
+            raise Exception("supp_op_classes not indicated")
+        supp_op_classes = binascii.unhexlify(sta['supp_op_classes'])
+        if op_class not in supp_op_classes:
+            raise Exception("STA did not indicate support for opclass %d" % op_class)
         hwsim_utils.test_connectivity(dev[0], hapd)
         dev[0].request("DISCONNECT")
         dev[0].wait_disconnected()
