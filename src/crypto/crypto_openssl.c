@@ -4881,7 +4881,7 @@ hpke_labeled_expand(struct hpke_context *ctx, bool kem, const u8 *prk,
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
 	hmac = EVP_MAC_fetch(NULL, "HMAC", NULL);
 	if (!hmac)
-		return -1;
+		goto fail;
 
 	params[0] = OSSL_PARAM_construct_utf8_string(
 		"digest",
@@ -4890,7 +4890,7 @@ hpke_labeled_expand(struct hpke_context *ctx, bool kem, const u8 *prk,
 #else /* OpenSSL version >= 3.0 */
 	hctx = HMAC_CTX_new();
 	if (!hctx)
-		return -1;
+		goto fail;
 #endif /* OpenSSL version >= 3.0 */
 
 	while (left > 0) {
@@ -4899,7 +4899,7 @@ hpke_labeled_expand(struct hpke_context *ctx, bool kem, const u8 *prk,
 		EVP_MAC_CTX_free(hctx);
 		hctx = EVP_MAC_CTX_new(hmac);
 		if (!hctx)
-			return -1;
+			goto fail;
 
 		if (EVP_MAC_init(hctx, prk, mdlen, params) != 1)
 			goto fail;
