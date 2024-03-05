@@ -3932,9 +3932,10 @@ static int openssl_evp_pkey_ec_prime_len(struct crypto_ec_key *key)
 	group = EC_GROUP_new_by_curve_name(nid);
 	prime = BN_new();
 	if (!group || !prime)
-		return -1;
+		goto fail;
 	if (EC_GROUP_get_curve(group, prime, NULL, NULL, NULL) == 1)
 		prime_len = BN_num_bytes(prime);
+fail:
 	EC_GROUP_free(group);
 	BN_free(prime);
 	return prime_len;
