@@ -320,6 +320,7 @@ static int wpas_op_class_supported(struct wpa_supplicant *wpa_s,
 	int z;
 	int freq2 = 0;
 	int freq5 = 0;
+	bool freq6 = false;
 
 	mode = get_mode(wpa_s->hw.modes, wpa_s->hw.num_modes, op_class->mode,
 			is_6ghz_op_class(op_class->op_class));
@@ -334,7 +335,9 @@ static int wpas_op_class_supported(struct wpa_supplicant *wpa_s,
 
 			if (f == 0)
 				break; /* end of list */
-			if (f > 4000 && f < 6000)
+			if (is_6ghz_freq(f))
+				freq6 = true;
+			else if (f > 4000 && f < 6000)
 				freq5 = 1;
 			else if (f > 2400 && f < 2500)
 				freq2 = 1;
@@ -343,8 +346,11 @@ static int wpas_op_class_supported(struct wpa_supplicant *wpa_s,
 		/* No frequencies specified, can use anything hardware supports.
 		 */
 		freq2 = freq5 = 1;
+		freq6 = true;
 	}
 
+	if (is_6ghz_op_class(op_class->op_class) && !freq6)
+		return 0;
 	if (op_class->op_class >= 115 && op_class->op_class <= 130 && !freq5)
 		return 0;
 	if (op_class->op_class >= 81 && op_class->op_class <= 84 && !freq2)
