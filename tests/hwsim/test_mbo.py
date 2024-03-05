@@ -154,24 +154,26 @@ def run_mbo_supp_oper_class(dev, apdev, country, expected, inc5,
 def test_mbo_supp_oper_classes_za(dev, apdev):
     """MBO and supported operating classes (ZA)"""
     run_mbo_supp_oper_class(dev, apdev, "ZA",
-                            "515354737475767778797a7b808182", True)
+                            "515354737475767778797a7b8081008280", True)
 
 def test_mbo_supp_oper_classes_fi(dev, apdev):
     """MBO and supported operating classes (FI)"""
     run_mbo_supp_oper_class(dev, apdev, "FI",
-                            "515354737475767778797a7b7c7d7e7f808182", True,
-                            alt_expected="515354737475767778797a7b7c7d7e7f8081838482")
+                            "515354737475767778797a7b7c7d7e7f8081008280", True,
+                            alt_expected="515354737475767778797a7b7c7d7e7f8081838485860082808785")
 
 def test_mbo_supp_oper_classes_us(dev, apdev):
     """MBO and supported operating classes (US)"""
     run_mbo_supp_oper_class(dev, apdev, "US",
-                            "515354737475767778797a7b7c7d7e7f808182", True,
-                            alt_expected="515354737475767778797a7b7c7d7e7f8081838482")
+                            "515354737475767778797a7b7c7d7e7f8081008280", True,
+                            alt_expected="515354737475767778797a7b7c7d7e7f808183848586890082808785")
 
 def test_mbo_supp_oper_classes_jp(dev, apdev):
     """MBO and supported operating classes (JP)"""
     run_mbo_supp_oper_class(dev, apdev, "JP",
-                            "51525354737475767778797a7b8081838482", True)
+                            "51525354737475767778797a7b8081008280",
+                            True,
+                            alt_expected="51525354737475767778797a7b8081838485860082808785")
 
 def test_mbo_supp_oper_classes_bd(dev, apdev):
     """MBO and supported operating classes (BD)"""
@@ -186,20 +188,19 @@ def test_mbo_supp_oper_classes_sy(dev, apdev):
 def test_mbo_supp_oper_classes_us_freq_list(dev, apdev):
     """MBO and supported operating classes (US) - freq_list"""
     run_mbo_supp_oper_class(dev, apdev, "US", "515354", False,
-                            freq_list="2412 2437 2462",
-                            alt_expected="5153548384")
+                            freq_list="2412 2437 2462")
 
 def test_mbo_supp_oper_classes_us_disable_ht(dev, apdev):
     """MBO and supported operating classes (US) - disable_ht"""
     run_mbo_supp_oper_class(dev, apdev, "US", "517376797c7d", False,
-                            disable_ht=True, alt_expected="517376797c7d8384")
+                            disable_ht=True, alt_expected="517376797c7d8384858689008785")
 
 def test_mbo_supp_oper_classes_us_disable_vht(dev, apdev):
     """MBO and supported operating classes (US) - disable_vht"""
     run_mbo_supp_oper_class(dev, apdev, "US",
                             "515354737475767778797a7b7c7d7e7f", False,
                             disable_vht=True,
-                            alt_expected="515354737475767778797a7b7c7d7e7f8384")
+                            alt_expected="515354737475767778797a7b7c7d7e7f8384858689008785")
 
 def test_mbo_assoc_disallow(dev, apdev, params):
     """MBO and association disallowed"""
