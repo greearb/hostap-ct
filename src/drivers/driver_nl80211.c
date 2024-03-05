@@ -5109,8 +5109,9 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 		     nl80211_put_freq_params(msg, params->freq) < 0))
 			goto fail;
 
-		nl80211_link_set_freq(bss, params->mld_link_id,
-				      params->freq->freq);
+		if (params->freq)
+			nl80211_link_set_freq(bss, params->mld_link_id,
+					      params->freq->freq);
 	}
 
 	if (params->proberesp && params->proberesp_len) {
