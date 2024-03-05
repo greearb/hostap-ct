@@ -60,7 +60,7 @@ static int init_wpa(struct arg_ctx *ctx)
 
 static void deinit_wpa(struct arg_ctx *ctx)
 {
-	wnm_deallocate_memory(&ctx->wpa_s);
+	wnm_btm_reset(&ctx->wpa_s);
 }
 
 
