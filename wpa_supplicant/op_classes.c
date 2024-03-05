@@ -522,6 +522,7 @@ size_t wpas_supp_op_class_ie(struct wpa_supplicant *wpa_s,
 	u8 op, current, chan;
 	u8 *ie_len;
 	size_t res;
+	bool op128 = false, op130 = false, op133 = false, op135 = false;
 
 	/*
 	 * Determine the current operating class correct mode based on
@@ -549,8 +550,50 @@ size_t wpas_supp_op_class_ie(struct wpa_supplicant *wpa_s,
 	wpabuf_put_u8(buf, current);
 
 	for (op = 0; global_op_class[op].op_class; op++) {
-		if (wpas_op_class_supported(wpa_s, ssid, &global_op_class[op]))
-			wpabuf_put_u8(buf, global_op_class[op].op_class);
+		bool supp;
+		u8 op_class = global_op_class[op].op_class;
+
+		supp = wpas_op_class_supported(wpa_s, ssid,
+					       &global_op_class[op]);
+		if (!supp)
+			continue;
+		switch (op_class) {
+		case 128:
+			op128 = true;
+			break;
+		case 130:
+			op130 = true;
+			break;
+		case 133:
+			op133 = true;
+			break;
+		case 135:
+			op135 = true;
+			break;
+		}
+		if (is_80plus_op_class(op_class))
+			continue;
+
+		/* Add a 1-octet operating class to the Operating Class field */
+		wpabuf_put_u8(buf, global_op_class[op].op_class);
+	}
+
+	/* Add the 2-octet operating classes (i.e., 80+80 MHz cases), if any */
+	if ((op128 && op130) || (op133 && op135)) {
+		/* Operating Class Duple Sequence field */
+
+		/* Zero Delimiter */
+		wpabuf_put_u8(buf, 0);
+
+		/* Operating Class Duple List */
+		if (op128 && op130) {
+			wpabuf_put_u8(buf, 130);
+			wpabuf_put_u8(buf, 128);
+		}
+		if (op133 && op135) {
+			wpabuf_put_u8(buf, 135);
+			wpabuf_put_u8(buf, 133);
+		}
 	}
 
 	*ie_len = wpabuf_len(buf) - 2;
