@@ -1818,6 +1818,8 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 #ifdef CONFIG_TESTING_OPTIONS
 	if (config->mld_force_single_link)
 		fprintf(f, "mld_force_single_link=1\n");
+	if (config->mld_allowed_phy)
+		fprintf(f, "mld_allowed_phy=%u\n", config->mld_allowed_phy);
 	if (config->mld_connect_band_pref != MLD_CONNECT_BAND_PREF_AUTO)
 		fprintf(f, "mld_connect_band_pref=%d\n",
 			config->mld_connect_band_pref);

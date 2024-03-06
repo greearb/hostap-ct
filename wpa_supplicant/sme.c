@@ -541,6 +541,16 @@ static int wpas_sme_ml_auth(struct wpa_supplicant *wpa_s,
 }
 
 
+#ifdef CONFIG_TESTING_OPTIONS
+bool check_mld_allowed_phy(struct wpa_supplicant *wpa_s, int freq)
+{
+	return ((wpa_s->conf->mld_allowed_phy & BIT(0)) && IS_2P4GHZ(freq)) ||
+	       ((wpa_s->conf->mld_allowed_phy & BIT(1)) && IS_5GHZ(freq)) ||
+	       ((wpa_s->conf->mld_allowed_phy & BIT(2)) && is_6ghz_freq(freq));
+}
+#endif /* CONFIG_TESTING_OPTIONS */
+
+
 static void wpas_sme_set_mlo_links(struct wpa_supplicant *wpa_s,
 				   struct wpa_bss *bss, struct wpa_ssid *ssid)
 {
