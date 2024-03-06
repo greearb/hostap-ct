@@ -440,4 +440,6 @@ static inline void ap_sta_set_mld(struct sta_info *sta, bool mld)
 
 void ap_sta_free_sta_profile(struct mld_info *info);
 
+void hostapd_free_link_stas(struct hostapd_data *hapd);
+
 #endif /* STA_INFO_H */

@@ -418,6 +418,7 @@ static void hostapd_link_remove_timeout_handler(void *eloop_data,
 	ieee802_11_set_beacon(hapd);
 
 	if (!hapd->eht_mld_link_removal_count) {
+		hostapd_free_link_stas(hapd);
 		hostapd_disable_iface(hapd->iface);
 		return;
 	}
