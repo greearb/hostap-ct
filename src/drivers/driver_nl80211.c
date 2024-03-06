@@ -9422,61 +9422,81 @@ fail:
 }
 
 
-static void nl80211_remove_links(struct i802_bss *bss)
+static int nl80211_remove_link(struct i802_bss *bss, int link_id)
 {
 	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct i802_link *link;
 	struct nl_msg *msg;
+	size_t i;
 	int ret;
-	u8 link_id, i;
 
-	for_each_link(bss->valid_links, link_id) {
-		struct i802_link *link = &bss->links[link_id];
+	wpa_printf(MSG_DEBUG, "nl80211: Remove link (ifindex=%d link_id=%u)",
+		   bss->ifindex, link_id);
 
-		wpa_printf(MSG_DEBUG, "nl80211: MLD: remove link_id=%u",
-			   link_id);
+	if (!(bss->valid_links & BIT(link_id))) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: MLD: remove link: Link not found");
+		return -1;
+	}
 
-		wpa_driver_nl80211_del_beacon(bss, link_id);
+	link = &bss->links[link_id];
 
-		/* First remove the link locally */
-		bss->valid_links &= ~BIT(link_id);
-		os_memset(link->addr, 0, ETH_ALEN);
+	wpa_driver_nl80211_del_beacon(bss, link_id);
 
-		/* Choose new deflink if we are removing that link */
-		if (bss->flink == link) {
-			for_each_link_default(bss->valid_links, i, 0) {
-				bss->flink = &bss->links[i];
-				break;
-			}
-		}
+	/* First remove the link locally */
+	bss->valid_links &= ~BIT(link_id);
+	os_memset(link->addr, 0, ETH_ALEN);
 
-		/* If this was the last link, reset default link */
-		if (!bss->valid_links) {
-			/* TODO: Does keeping freq/bandwidth make sense? */
-			if (bss->flink != link)
-				os_memcpy(bss->flink, link, sizeof(*link));
-
-			os_memcpy(bss->flink->addr, bss->addr, ETH_ALEN);
-		}
-
-		/* Remove the link from the kernel */
-		msg = nl80211_drv_msg(drv, 0, NL80211_CMD_REMOVE_LINK);
-		if (!msg ||
-		    nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id)) {
-			nlmsg_free(msg);
-			wpa_printf(MSG_ERROR,
-				   "nl80211: remove link (%d) failed",
-				   link_id);
-			continue;
-		}
-
-		ret = send_and_recv_cmd(drv, msg);
-		if (ret) {
-			wpa_printf(MSG_ERROR,
-				   "nl80211: remove link (%d) failed. ret=%d (%s)",
-				   link_id, ret, strerror(-ret));
-			continue;
+	/* Choose new deflink if we are removing that link */
+	if (bss->flink == link) {
+		for_each_link_default(bss->valid_links, i, 0) {
+			bss->flink = &bss->links[i];
+			break;
 		}
 	}
+
+	/* If this was the last link, reset default link */
+	if (!bss->valid_links) {
+		/* TODO: Does keeping freq/bandwidth make sense? */
+		if (bss->flink != link)
+			os_memcpy(bss->flink, link, sizeof(*link));
+
+		os_memcpy(bss->flink->addr, bss->addr, ETH_ALEN);
+	}
+
+	/* Remove the link from the kernel */
+	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_REMOVE_LINK);
+	if (!msg ||
+	    nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id)) {
+		nlmsg_free(msg);
+		wpa_printf(MSG_ERROR,
+			   "nl80211: remove link (%d) failed", link_id);
+		return -1;
+	}
+
+	ret = send_and_recv_cmd(drv, msg);
+	if (ret)
+		wpa_printf(MSG_ERROR,
+			   "nl80211: remove link (%d) failed. ret=%d (%s)",
+			   link_id, ret, strerror(-ret));
+
+	return ret;
+}
+
+
+static void nl80211_remove_links(struct i802_bss *bss)
+{
+	int ret;
+	u8 link_id;
+
+	for_each_link(bss->valid_links, link_id) {
+		ret = nl80211_remove_link(bss, link_id);
+		if (ret)
+			break;
+	}
+
+	if (bss->flink)
+		os_memcpy(bss->flink->addr, bss->addr, ETH_ALEN);
 }
 
 
