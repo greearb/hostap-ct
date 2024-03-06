@@ -21,8 +21,11 @@ def connect(dev, apdev, scan_freq="2412", **kwargs):
     dev.connect("ap-csa", key_mgmt="NONE", scan_freq=scan_freq)
     return ap
 
-def switch_channel(ap, count, freq):
-    ap.request("CHAN_SWITCH " + str(count) + " " + str(freq))
+def switch_channel(ap, count, freq, extra=None):
+    cmd = "CHAN_SWITCH " + str(count) + " " + str(freq)
+    if extra:
+        cmd += " " + extra
+    ap.request(cmd)
 
     ev = ap.wait_event(["CTRL-EVENT-STARTED-CHANNEL-SWITCH"], timeout=10)
     if ev is None:
@@ -54,6 +57,9 @@ def wait_channel_switch(dev, freq):
         raise Exception("Channel switch not reported")
     if "freq=%d" % freq not in ev:
         raise Exception("Unexpected frequency: " + ev)
+    ev = dev.wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=1)
+    if ev is not None:
+        raise Exception("Unexpected disconnection on channel switch")
 
 @remote_compatible
 def test_ap_csa_1_switch(dev, apdev):
@@ -68,7 +74,7 @@ def test_ap_csa_1_switch(dev, apdev):
         raise Exception("Unexpected driver freq=%d after association" % freq)
 
     hwsim_utils.test_connectivity(dev[0], ap)
-    switch_channel(ap, 10, 2462)
+    switch_channel(ap, 10, 2462, extra="ht")
     wait_channel_switch(dev[0], 2462)
     hwsim_utils.test_connectivity(dev[0], ap)
     freq = int(dev[0].get_driver_status_field("freq"))
@@ -87,10 +93,10 @@ def test_ap_csa_2_switches(dev, apdev):
     ap = connect(dev[0], apdev)
 
     hwsim_utils.test_connectivity(dev[0], ap)
-    switch_channel(ap, 10, 2462)
+    switch_channel(ap, 10, 2462, extra="ht")
     wait_channel_switch(dev[0], 2462)
     hwsim_utils.test_connectivity(dev[0], ap)
-    switch_channel(ap, 10, 2412)
+    switch_channel(ap, 10, 2412, extra="ht")
     wait_channel_switch(dev[0], 2412)
     hwsim_utils.test_connectivity(dev[0], ap)
 
@@ -151,7 +157,7 @@ def test_ap_csa_1_switch_count_2(dev, apdev):
     ap = connect(dev[0], apdev)
 
     hwsim_utils.test_connectivity(dev[0], ap)
-    switch_channel(ap, 2, 2462)
+    switch_channel(ap, 2, 2462, extra="ht")
     wait_channel_switch(dev[0], 2462)
     hwsim_utils.test_connectivity(dev[0], ap)
 
@@ -162,7 +168,7 @@ def test_ap_csa_ecsa_only(dev, apdev):
     ap = connect(dev[0], apdev, ecsa_ie_only="1")
 
     hwsim_utils.test_connectivity(dev[0], ap)
-    switch_channel(ap, 10, 2462)
+    switch_channel(ap, 10, 2462, extra="ht")
     wait_channel_switch(dev[0], 2462)
     hwsim_utils.test_connectivity(dev[0], ap)
 

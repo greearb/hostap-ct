@@ -113,7 +113,7 @@ def test_ocv_sa_query_csa(dev, apdev):
                    key_mgmt="WPA-PSK WPA-PSK-SHA256", proto="WPA2",
                    scan_freq="2412")
 
-    hapd.request("CHAN_SWITCH 5 2437")
+    hapd.request("CHAN_SWITCH 5 2437 ht")
     time.sleep(1)
     if wt.get_sta_counter("valid_saqueryreq_tx", apdev[0]['bssid'],
                           dev[0].own_addr()) < 1:
@@ -131,7 +131,7 @@ def test_ocv_sa_query_csa_no_resp(dev, apdev):
                    scan_freq="2412")
 
     hapd.set("ext_mgmt_frame_handling", "1")
-    hapd.request("CHAN_SWITCH 5 2437")
+    hapd.request("CHAN_SWITCH 5 2437 ht")
     ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=5)
     if ev is None:
         raise Exception("Disconnection after CSA not reported")
@@ -152,7 +152,7 @@ def test_ocv_sa_query_csa_missing(dev, apdev):
     if ev is None:
         raise Exception("Deauthentication frame RX not reported")
     hapd.set("ext_mgmt_frame_handling", "0")
-    hapd.request("CHAN_SWITCH 5 2437")
+    hapd.request("CHAN_SWITCH 5 2437 ht")
     ev = hapd.wait_event(["AP-STA-DISCONNECTED"], timeout=20)
     if ev is None:
         raise Exception("No disconnection event received from hostapd")
