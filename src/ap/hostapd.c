@@ -2915,6 +2915,16 @@ struct hostapd_iface * hostapd_alloc_iface(void)
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+static void hostapd_bss_alloc_link_id(struct hostapd_data *hapd)
+{
+	hapd->mld_link_id = hapd->mld->next_link_id++;
+	wpa_printf(MSG_DEBUG, "AP MLD: %s: Link ID %d assigned.",
+		   hapd->mld->name, hapd->mld_link_id);
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 static void hostapd_bss_setup_multi_link(struct hostapd_data *hapd,
 					 struct hapd_interfaces *interfaces)
 {
@@ -2936,6 +2946,7 @@ static void hostapd_bss_setup_multi_link(struct hostapd_data *hapd,
 			continue;
 
 		hapd->mld = mld;
+		hostapd_bss_alloc_link_id(hapd);
 		break;
 	}
 
@@ -2952,6 +2963,7 @@ static void hostapd_bss_setup_multi_link(struct hostapd_data *hapd,
 	wpa_printf(MSG_DEBUG, "AP MLD %s created", mld->name);
 
 	hapd->mld = mld;
+	hostapd_bss_alloc_link_id(hapd);
 
 	all_mld = os_realloc_array(interfaces->mld, interfaces->mld_count + 1,
 				   sizeof(struct hostapd_mld *));

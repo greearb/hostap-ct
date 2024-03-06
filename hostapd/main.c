@@ -212,7 +212,6 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 			os_memcpy(hapd->own_addr, b, ETH_ALEN);
 		}
 
-		hapd->mld_link_id = hapd->mld->next_link_id++;
 		hostapd_mld_add_link(hapd);
 
 		goto setup_mld;
@@ -297,7 +296,6 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 		else
 			os_memcpy(hapd->own_addr, b, ETH_ALEN);
 
-		hapd->mld_link_id = hapd->mld->next_link_id++;
 		hostapd_mld_add_link(hapd);
 	}
 
