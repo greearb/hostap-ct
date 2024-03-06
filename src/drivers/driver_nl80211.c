@@ -8965,6 +8965,7 @@ static int wpa_driver_nl80211_if_remove(struct i802_bss *bss,
 				tbss->next = bss->next;
 				/* Unsubscribe management frames */
 				nl80211_teardown_ap(bss);
+				nl80211_remove_links(bss);
 				nl80211_destroy_bss(bss);
 				if (!bss->added_if)
 					i802_set_iface_flags(bss, 0);
@@ -8979,6 +8980,7 @@ static int wpa_driver_nl80211_if_remove(struct i802_bss *bss,
 	} else {
 		wpa_printf(MSG_DEBUG, "nl80211: First BSS - reassign context");
 		nl80211_teardown_ap(bss);
+		nl80211_remove_links(bss);
 		if (!bss->added_if && !drv->first_bss->next)
 			wpa_driver_nl80211_del_beacon_all(bss);
 		nl80211_destroy_bss(bss);
