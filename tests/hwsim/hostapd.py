@@ -1034,7 +1034,6 @@ def cfg_mld_link_file(ifname, params):
     f.write("ieee80211be=1\n")
     f.write("interface=%s\n" % ifname)
     f.write("mld_ap=1\n")
-    f.write("mld_id=0\n")
 
     for k, v in list(params.items()):
         f.write("{}={}\n".format(k,v))

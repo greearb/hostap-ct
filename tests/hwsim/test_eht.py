@@ -1651,7 +1651,6 @@ def test_eht_mld_rrm_beacon_req(dev, apdev):
         other_ssid = "other"
         params = eht_mld_ap_wpa2_params(other_ssid, key_mgmt="OWE", mfp="2")
         params["channel"] = '6'
-        params["mld_id"] = '1'
         hapd1 = eht_mld_enable_ap(hapd1_iface, params)
 
         # Issue a beacon request for the second AP
