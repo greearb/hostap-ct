@@ -5104,9 +5104,7 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 			   params->mld_link_id);
 
 		if (nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID,
-			       params->mld_link_id) ||
-		    (params->freq &&
-		     nl80211_put_freq_params(msg, params->freq) < 0))
+			       params->mld_link_id))
 			goto fail;
 
 		if (params->freq)
