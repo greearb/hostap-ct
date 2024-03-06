@@ -5165,6 +5165,19 @@ struct wpa_driver_ops {
 	int (*link_remove)(void *priv, enum wpa_driver_if_type type,
 			   const char *ifname, u8 link_id);
 
+	/**
+	 * is_drv_shared - Check whether the driver interface is shared
+	 * @priv: Private driver interface data from init()
+	 * @bss_ctx: BSS context for %WPA_IF_AP_BSS interfaces
+	 *
+	 * Checks whether the driver interface is being used by other partner
+	 * BSS(s) or not. This is used to decide whether the driver interface
+	 * needs to be deinitilized when one interface is getting deinitialized.
+	 *
+	 * Returns: true if it is being used or else false.
+	 */
+	bool (*is_drv_shared)(void *priv, void *bss_ctx);
+
 #ifdef CONFIG_TESTING_OPTIONS
 	int (*register_frame)(void *priv, u16 type,
 			      const u8 *match, size_t match_len,

@@ -10715,6 +10715,7 @@ static int driver_nl80211_if_remove(void *priv, enum wpa_driver_if_type type,
 
 
 #ifdef CONFIG_IEEE80211BE
+
 static int driver_nl80211_link_remove(void *priv, enum wpa_driver_if_type type,
 				      const char *ifname, u8 link_id)
 {
@@ -10744,6 +10745,39 @@ static int driver_nl80211_link_remove(void *priv, enum wpa_driver_if_type type,
 
 	return 0;
 }
+
+
+static bool nl80211_is_drv_shared(void *priv, void *bss_ctx)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	unsigned int num_bss = 0;
+
+	/* If any other BSS exist, someone else is using this since at this
+	 * time, we would have removed all BSSs created by this driver and only
+	 * this BSS should be remaining if the driver is not shared by anyone.
+	 */
+	for (bss = drv->first_bss; bss; bss = bss->next) {
+		num_bss++;
+		if (num_bss > 1)
+			return true;
+	}
+
+	/* This is the only BSS present */
+	bss = priv;
+
+	/* If only one/no link is there no one is sharing */
+	if (bss->valid_links <= 1)
+		return false;
+
+	/* More than one link means someone is still using. To check if
+	 * only 1 bit is set, power of 2 condition can be checked. */
+	if (!(bss->valid_links & (bss->valid_links - 1)))
+		return false;
+
+	return true;
+}
+
 #endif /* CONFIG_IEEE80211BE */
 
 
@@ -14078,6 +14112,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.link_add = nl80211_link_add,
 #ifdef CONFIG_IEEE80211BE
 	.link_remove = driver_nl80211_link_remove,
+	.is_drv_shared = nl80211_is_drv_shared,
 #endif /* CONFIG_IEEE80211BE */
 #ifdef CONFIG_TESTING_OPTIONS
 	.register_frame = testing_nl80211_register_frame,

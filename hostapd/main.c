@@ -195,6 +195,7 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 		}
 
 		hapd->drv_priv = h_hapd->drv_priv;
+		hapd->interface_added = h_hapd->interface_added;
 
 		/*
 		 * All interfaces participating in the AP MLD would have

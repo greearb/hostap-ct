@@ -397,27 +397,6 @@ static int hostapd_broadcast_wep_set(struct hostapd_data *hapd)
 #endif /* CONFIG_WEP */
 
 
-static void hostapd_clear_drv_priv(struct hostapd_data *hapd)
-{
-#ifdef CONFIG_IEEE80211BE
-	unsigned int i;
-
-	for (i = 0; i < hapd->iface->interfaces->count; i++) {
-		struct hostapd_iface *iface = hapd->iface->interfaces->iface[i];
-
-		if (hapd->iface == iface || !iface)
-			continue;
-
-		if (iface->bss && iface->bss[0] &&
-		    hostapd_mld_get_first_bss(iface->bss[0]) == hapd)
-			iface->bss[0]->drv_priv = NULL;
-	}
-#endif /* CONFIG_IEEE80211BE */
-
-	hapd->drv_priv = NULL;
-}
-
-
 #ifdef CONFIG_IEEE80211BE
 #ifdef CONFIG_TESTING_OPTIONS
 
@@ -554,9 +533,19 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 			 * driver wrapper may have removed its internal instance
 			 * and hapd->drv_priv is not valid anymore.
 			 */
-			hostapd_clear_drv_priv(hapd);
+			hapd->drv_priv = NULL;
 		}
 	}
+
+#ifdef CONFIG_IEEE80211BE
+	/* If the interface was not added as well as it is not the first BSS,
+	 * at least the link should be removed here since deinit will take care
+	 * of only the first BSS. */
+	if (hapd->conf->mld_ap && !hapd->interface_added &&
+	    hapd->iface->bss[0] != hapd)
+		hostapd_if_link_remove(hapd, WPA_IF_AP_BSS, hapd->conf->iface,
+				       hapd->mld_link_id);
+#endif /* CONFIG_IEEE80211BE */
 
 	wpabuf_free(hapd->time_adv);
 	hapd->time_adv = NULL;
@@ -3304,6 +3293,37 @@ hostapd_interface_init_bss(struct hapd_interfaces *interfaces, const char *phy,
 }
 
 
+static void hostapd_cleanup_driver(const struct wpa_driver_ops *driver,
+				   void *drv_priv, struct hostapd_iface *iface)
+{
+#ifdef CONFIG_IEEE80211BE
+	if (!driver || !driver->hapd_deinit || !drv_priv)
+		return;
+
+	/* In case of non-ML operation, de-init. But if ML operation exist,
+	 * even if that's the last BSS in the interface, the driver (drv) could
+	 * be in use for a different AP MLD. Hence, need to check if drv is
+	 * still being used by some other BSS before de-initiallizing. */
+	if (!iface->bss[0]->conf->mld_ap) {
+		driver->hapd_deinit(drv_priv);
+	} else if (hostapd_mld_is_first_bss(iface->bss[0]) &&
+		   driver->is_drv_shared &&
+		   !driver->is_drv_shared(drv_priv, iface->bss[0])) {
+		driver->hapd_deinit(drv_priv);
+	} else if (hostapd_if_link_remove(iface->bss[0],
+					  WPA_IF_AP_BSS,
+					  iface->bss[0]->conf->iface,
+					  iface->bss[0]->mld_link_id)) {
+		wpa_printf(MSG_WARNING, "Failed to remove BSS interface %s",
+			   iface->bss[0]->conf->iface);
+	}
+#else /* CONFIG_IEEE80211BE */
+	driver->hapd_deinit(drv_priv);
+#endif /* CONFIG_IEEE80211BE */
+	iface->bss[0]->drv_priv = NULL;
+}
+
+
 void hostapd_interface_deinit_free(struct hostapd_iface *iface)
 {
 	const struct wpa_driver_ops *driver;
@@ -3320,11 +3340,7 @@ void hostapd_interface_deinit_free(struct hostapd_iface *iface)
 	hostapd_interface_deinit(iface);
 	wpa_printf(MSG_DEBUG, "%s: driver=%p drv_priv=%p -> hapd_deinit",
 		   __func__, driver, drv_priv);
-	if (driver && driver->hapd_deinit && drv_priv) {
-		if (hostapd_mld_is_first_bss(iface->bss[0]))
-			driver->hapd_deinit(drv_priv);
-		hostapd_clear_drv_priv(iface->bss[0]);
-	}
+	hostapd_cleanup_driver(driver, drv_priv, iface);
 	hostapd_interface_free(iface);
 }
 
@@ -3337,15 +3353,16 @@ static void hostapd_deinit_driver(const struct wpa_driver_ops *driver,
 
 	wpa_printf(MSG_DEBUG, "%s: driver=%p drv_priv=%p -> hapd_deinit",
 		   __func__, driver, drv_priv);
+
+	hostapd_cleanup_driver(driver, drv_priv, hapd_iface);
+
 	if (driver && driver->hapd_deinit && drv_priv) {
-		if (hostapd_mld_is_first_bss(hapd_iface->bss[0]))
-			driver->hapd_deinit(drv_priv);
 		for (j = 0; j < hapd_iface->num_bss; j++) {
 			wpa_printf(MSG_DEBUG, "%s:bss[%d]->drv_priv=%p",
 				   __func__, (int) j,
 				   hapd_iface->bss[j]->drv_priv);
 			if (hapd_iface->bss[j]->drv_priv == drv_priv) {
-				hostapd_clear_drv_priv(hapd_iface->bss[j]);
+				hapd_iface->bss[j]->drv_priv = NULL;
 				hapd_iface->extended_capa = NULL;
 				hapd_iface->extended_capa_mask = NULL;
 				hapd_iface->extended_capa_len = 0;
