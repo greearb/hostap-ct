@@ -1814,12 +1814,22 @@ u16 wpa_bss_get_usable_links(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 
 	usable_links = BIT(bss->mld_link_id);
 
+#ifdef CONFIG_TESTING_OPTIONS
+	if (!check_mld_allowed_phy(wpa_s, bss->mld_links[bss->mld_link_id].freq))
+		usable_links = 0;
+#endif /* CONFIG_TESTING_OPTIONS */
+
 	for_each_link(bss->valid_links, link_id) {
 		struct wpa_bss *neigh_bss;
 		u16 ext_mld_capa_mask;
 
 		if (link_id == bss->mld_link_id)
 			continue;
+
+#ifdef CONFIG_TESTING_OPTIONS
+		if (!check_mld_allowed_phy(wpa_s, bss->mld_links[link_id].freq))
+			continue;
+#endif /* CONFIG_TESTING_OPTIONS */
 
 		if (ssid && ssid->ssid_len)
 			neigh_bss = wpa_bss_get(wpa_s,
