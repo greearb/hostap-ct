@@ -204,20 +204,16 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 		 * is not configured, and otherwise it would be the
 		 * configured BSSID.
 		 */
-		os_memcpy(hapd->mld_addr, h_hapd->mld_addr, ETH_ALEN);
 		if (is_zero_ether_addr(b)) {
-			os_memcpy(hapd->own_addr, h_hapd->mld_addr, ETH_ALEN);
+			os_memcpy(hapd->own_addr, h_hapd->mld->mld_addr,
+				  ETH_ALEN);
 			random_mac_addr_keep_oui(hapd->own_addr);
 		} else {
 			os_memcpy(hapd->own_addr, b, ETH_ALEN);
 		}
 
-		/*
-		 * Mark the interface as a secondary interface, as this
-		 * is needed for the de-initialization flow
-		 */
-		hapd->mld_first_bss = h_hapd;
-		hapd->mld_link_id = hapd->mld_first_bss->mld_next_link_id++;
+		hapd->mld_link_id = hapd->mld->next_link_id++;
+		hostapd_mld_add_link(hapd);
 
 		goto setup_mld;
 	}
@@ -294,13 +290,15 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 	 * configured, and otherwise it would be the configured BSSID.
 	 */
 	if (hapd->conf->mld_ap) {
-		os_memcpy(hapd->mld_addr, hapd->own_addr, ETH_ALEN);
-		hapd->mld_next_link_id = 0;
-		hapd->mld_link_id = hapd->mld_next_link_id++;
+		os_memcpy(hapd->mld->mld_addr, hapd->own_addr, ETH_ALEN);
+
 		if (!b)
 			random_mac_addr_keep_oui(hapd->own_addr);
 		else
 			os_memcpy(hapd->own_addr, b, ETH_ALEN);
+
+		hapd->mld_link_id = hapd->mld->next_link_id++;
+		hostapd_mld_add_link(hapd);
 	}
 
 setup_mld:
@@ -354,7 +352,7 @@ setup_mld:
 		wpa_printf(MSG_DEBUG,
 			   "MLD: Set link_id=%u, mld_addr=" MACSTR
 			   ", own_addr=" MACSTR,
-			   hapd->mld_link_id, MAC2STR(hapd->mld_addr),
+			   hapd->mld_link_id, MAC2STR(hapd->mld->mld_addr),
 			   MAC2STR(hapd->own_addr));
 
 		hostapd_drv_link_add(hapd, hapd->mld_link_id,

@@ -399,6 +399,7 @@ static int hostapd_broadcast_wep_set(struct hostapd_data *hapd)
 
 static void hostapd_clear_drv_priv(struct hostapd_data *hapd)
 {
+#ifdef CONFIG_IEEE80211BE
 	unsigned int i;
 
 	for (i = 0; i < hapd->iface->interfaces->count; i++) {
@@ -408,9 +409,10 @@ static void hostapd_clear_drv_priv(struct hostapd_data *hapd)
 			continue;
 
 		if (iface->bss && iface->bss[0] &&
-		    iface->bss[0]->mld_first_bss == hapd)
+		    hostapd_mld_get_first_bss(iface->bss[0]) == hapd)
 			iface->bss[0]->drv_priv = NULL;
 	}
+#endif /* CONFIG_IEEE80211BE */
 
 	hapd->drv_priv = NULL;
 }
@@ -498,7 +500,8 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 	vlan_deinit(hapd);
 	hostapd_acl_deinit(hapd);
 #ifndef CONFIG_NO_RADIUS
-	if (!hapd->mld_first_bss) {
+	if (hostapd_mld_is_first_bss(hapd)) {
+#ifdef CONFIG_IEEE80211BE
 		struct hapd_interfaces *ifaces = hapd->iface->interfaces;
 		size_t i;
 
@@ -517,6 +520,7 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 					h->radius_das = NULL;
 			}
 		}
+#endif /* CONFIG_IEEE80211BE */
 		radius_client_deinit(hapd->radius);
 		radius_das_deinit(hapd->radius_das);
 	}
@@ -613,6 +617,41 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 #endif /* CONFIG_TESTING_OPTIONS */
 
 #endif /* CONFIG_IEEE80211AX */
+}
+
+
+/* hostapd_bss_link_deinit - Per-BSS ML cleanup (deinitialization)
+ * @hapd: Pointer to BSS data
+ *
+ * This function is used to unlink the BSS from the AP MLD.
+ * If the BSS being removed is the first link, the next link becomes the first
+ * link.
+ */
+static void hostapd_bss_link_deinit(struct hostapd_data *hapd)
+{
+#ifdef CONFIG_IEEE80211BE
+	if (!hapd->conf || !hapd->conf->mld_ap)
+		return;
+
+	if (!hapd->mld->num_links)
+		return;
+
+	/* If not started, not yet linked to the MLD. However, the first
+	 * BSS is always linked since it is linked during driver_init(), and
+	 * hence, need to remove it from the AP MLD.
+	 */
+	if (!hapd->started && hapd->iface->bss[0] != hapd)
+		return;
+
+	/* The first BSS can also be only linked when at least driver_init() is
+	 * executed. But if previous interface fails, it is not, and hence,
+	 * safe to skip.
+	 */
+	if (hapd->iface->bss[0] == hapd && !hapd->drv_priv)
+		return;
+
+	hostapd_mld_remove_link(hapd);
+#endif /* CONFIG_IEEE80211BE */
 }
 
 
@@ -1305,7 +1344,7 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 	u8 if_addr[ETH_ALEN];
 	int flush_old_stations = 1;
 
-	if (hapd->mld_first_bss)
+	if (!hostapd_mld_is_first_bss(hapd))
 		wpa_printf(MSG_DEBUG,
 			   "MLD: %s: Setting non-first BSS", __func__);
 
@@ -1467,7 +1506,7 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 	}
 #endif /* CONFIG_SQLITE */
 
-	if (!hapd->mld_first_bss) {
+	if (hostapd_mld_is_first_bss(hapd)) {
 		hapd->radius = radius_client_init(hapd, conf->radius);
 		if (!hapd->radius) {
 			wpa_printf(MSG_ERROR,
@@ -1500,10 +1539,17 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 			}
 		}
 	} else {
+#ifdef CONFIG_IEEE80211BE
+		struct hostapd_data *f_bss;
+
 		wpa_printf(MSG_DEBUG,
 			   "MLD: Using RADIUS client of the first BSS");
-		hapd->radius = hapd->mld_first_bss->radius;
-		hapd->radius_das = hapd->mld_first_bss->radius_das;
+		f_bss = hostapd_mld_get_first_bss(hapd);
+		if (!f_bss)
+			return -1;
+		hapd->radius = f_bss->radius;
+		hapd->radius_das = f_bss->radius_das;
+#endif /* CONFIG_IEEE80211BE */
 	}
 #endif /* CONFIG_NO_RADIUS */
 
@@ -1741,6 +1787,7 @@ static int start_ctrl_iface(struct hostapd_iface *iface)
 static void hostapd_no_ir_cleanup(struct hostapd_data *bss)
 {
 	hostapd_bss_deinit_no_free(bss);
+	hostapd_bss_link_deinit(bss);
 	hostapd_free_hapd_data(bss);
 	hostapd_cleanup_iface_partial(bss->iface);
 }
@@ -2799,6 +2846,8 @@ static void hostapd_bss_deinit(struct hostapd_data *hapd)
 		hapd->rad_attr_db = NULL;
 	}
 #endif /* CONFIG_SQLITE */
+
+	hostapd_bss_link_deinit(hapd);
 	hostapd_cleanup(hapd);
 }
 
@@ -3142,7 +3191,7 @@ void hostapd_interface_deinit_free(struct hostapd_iface *iface)
 	wpa_printf(MSG_DEBUG, "%s: driver=%p drv_priv=%p -> hapd_deinit",
 		   __func__, driver, drv_priv);
 	if (driver && driver->hapd_deinit && drv_priv) {
-		if (!iface->bss[0]->mld_first_bss)
+		if (hostapd_mld_is_first_bss(iface->bss[0]))
 			driver->hapd_deinit(drv_priv);
 		hostapd_clear_drv_priv(iface->bss[0]);
 	}
@@ -3159,7 +3208,7 @@ static void hostapd_deinit_driver(const struct wpa_driver_ops *driver,
 	wpa_printf(MSG_DEBUG, "%s: driver=%p drv_priv=%p -> hapd_deinit",
 		   __func__, driver, drv_priv);
 	if (driver && driver->hapd_deinit && drv_priv) {
-		if (!hapd_iface->bss[0]->mld_first_bss)
+		if (hostapd_mld_is_first_bss(hapd_iface->bss[0]))
 			driver->hapd_deinit(drv_priv);
 		for (j = 0; j < hapd_iface->num_bss; j++) {
 			wpa_printf(MSG_DEBUG, "%s:bss[%d]->drv_priv=%p",
@@ -3273,7 +3322,7 @@ int hostapd_disable_iface(struct hostapd_iface *hapd_iface)
 
 #ifdef CONFIG_IEEE80211BE
 	if (hapd_iface->bss[0]->conf->mld_ap &&
-	    !hapd_iface->bss[0]->mld_first_bss) {
+	    hostapd_mld_is_first_bss((hapd_iface->bss[0]))) {
 		/* Do not allow mld_first_bss disabling before other BSSs */
 		for (j = 0; j < hapd_iface->interfaces->count; ++j) {
 			struct hostapd_iface *h_iface =
@@ -3311,6 +3360,7 @@ int hostapd_disable_iface(struct hostapd_iface *hapd_iface)
 	for (j = 0; j < hapd_iface->num_bss; j++) {
 		struct hostapd_data *hapd = hapd_iface->bss[j];
 		hostapd_bss_deinit_no_free(hapd);
+		hostapd_bss_link_deinit(hapd);
 		hostapd_free_hapd_data(hapd);
 	}
 
@@ -3506,6 +3556,7 @@ int hostapd_add_iface(struct hapd_interfaces *interfaces, char *buf)
 			if (start_ctrl_iface_bss(hapd) < 0 ||
 			    (hapd_iface->state == HAPD_IFACE_ENABLED &&
 			     hostapd_setup_bss(hapd, -1, true))) {
+				hostapd_bss_link_deinit(hapd);
 				hostapd_cleanup(hapd);
 				hapd_iface->bss[hapd_iface->num_bss - 1] = NULL;
 				hapd_iface->conf->num_bss--;
@@ -3603,6 +3654,7 @@ fail:
 				wpa_printf(MSG_DEBUG, "%s: free hapd %p (%s)",
 					   __func__, hapd_iface->bss[i],
 					   hapd->conf->iface);
+				hostapd_bss_link_deinit(hapd);
 				hostapd_cleanup(hapd);
 				os_free(hapd);
 				hapd_iface->bss[i] = NULL;

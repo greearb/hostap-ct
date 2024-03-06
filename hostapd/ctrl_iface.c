@@ -1944,7 +1944,7 @@ static int hostapd_ctrl_iface_data_test_config(struct hostapd_data *hapd,
 
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
-		addr = hapd->mld_addr;
+		addr = hapd->mld->mld_addr;
 #endif /* CONFIG_IEEE80211BE */
 	hapd->l2_test = l2_packet_init(ifname, addr,
 					ETHERTYPE_IP, hostapd_data_test_rx,
@@ -3519,7 +3519,7 @@ static int hostapd_ctrl_iface_disable_mld(struct hostapd_iface *iface)
 		if (!hostapd_is_ml_partner(h_hapd, iface->bss[0]))
 			continue;
 
-		if (!h_hapd->mld_first_bss) {
+		if (hostapd_mld_is_first_bss(h_hapd)) {
 			first_iface = h_iface;
 			continue;
 		}
@@ -3536,7 +3536,7 @@ static int hostapd_ctrl_iface_disable_mld(struct hostapd_iface *iface)
 		struct hostapd_data *h_hapd = h_iface->bss[0];
 
 		if (!hostapd_is_ml_partner(h_hapd, iface->bss[0]) ||
-		    !h_hapd->mld_first_bss)
+		    hostapd_mld_is_first_bss(h_hapd))
 			continue;
 
 		if (hostapd_disable_iface(h_iface)) {

@@ -517,7 +517,7 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 		if (ap_sta_is_mld(hapd, sta)) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Set ML info in RSN Authenticator");
-			wpa_auth_set_ml_info(sta->wpa_sm, hapd->mld_addr,
+			wpa_auth_set_ml_info(sta->wpa_sm, hapd->mld->mld_addr,
 					     sta->mld_assoc_link_id,
 					     &sta->mld_info);
 		}
@@ -1815,7 +1815,7 @@ static int hostapd_mgmt_rx(struct hostapd_data *hapd, struct rx_mgmt *rx_mgmt)
 
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap &&
-	    ether_addr_equal(hapd->mld_addr, bssid))
+	    ether_addr_equal(hapd->mld->mld_addr, bssid))
 		is_mld = true;
 #endif /* CONFIG_IEEE80211BE */
 
@@ -1887,7 +1887,8 @@ static void hostapd_mgmt_tx_cb(struct hostapd_data *hapd, const u8 *buf,
 		hapd = tmp_hapd;
 #ifdef CONFIG_IEEE80211BE
 	} else if (hapd->conf->mld_ap &&
-		   ether_addr_equal(hapd->mld_addr, get_hdr_bssid(hdr, len))) {
+		   ether_addr_equal(hapd->mld->mld_addr,
+				    get_hdr_bssid(hdr, len))) {
 		/* AP MLD address match - use hapd pointer as-is */
 #endif /* CONFIG_IEEE80211BE */
 	} else {

@@ -842,7 +842,7 @@ int hostapd_drv_sta_deauth(struct hostapd_data *hapd,
 
 		link_id = hapd->mld_link_id;
 		if (ap_sta_is_mld(hapd, sta))
-			own_addr = hapd->mld_addr;
+			own_addr = hapd->mld->mld_addr;
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -863,7 +863,7 @@ int hostapd_drv_sta_disassoc(struct hostapd_data *hapd,
 		struct sta_info *sta = ap_get_sta(hapd, addr);
 
 		if (ap_sta_is_mld(hapd, sta))
-			own_addr = hapd->mld_addr;
+			own_addr = hapd->mld->mld_addr;
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -921,7 +921,7 @@ static int hapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
 		sta = ap_get_sta(hapd, dst);
 
 		if (ap_sta_is_mld(hapd, sta)) {
-			own_addr = hapd->mld_addr;
+			own_addr = hapd->mld->mld_addr;
 			bssid = own_addr;
 		}
 #endif /* CONFIG_IEEE80211BE */

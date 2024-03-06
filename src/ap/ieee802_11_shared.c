@@ -121,7 +121,7 @@ void ieee802_11_send_sa_query_req(struct hostapd_data *hapd,
 
 #ifdef CONFIG_IEEE80211BE
 	if (ap_sta_is_mld(hapd, sta))
-		own_addr = hapd->mld_addr;
+		own_addr = hapd->mld->mld_addr;
 #endif /* CONFIG_IEEE80211BE */
 
 	mgmt->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT,
@@ -219,7 +219,7 @@ static void ieee802_11_send_sa_query_resp(struct hostapd_data *hapd,
 
 #ifdef CONFIG_IEEE80211BE
 	if (ap_sta_is_mld(hapd, sta))
-		own_addr = hapd->mld_addr;
+		own_addr = hapd->mld->mld_addr;
 #endif /* CONFIG_IEEE80211BE */
 
 	resp->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT,

@@ -487,7 +487,7 @@ static u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	wpabuf_put_u8(buf, common_info_len);
 
 	/* Own MLD MAC Address */
-	wpabuf_put_data(buf, hapd->mld_addr, ETH_ALEN);
+	wpabuf_put_data(buf, hapd->mld->mld_addr, ETH_ALEN);
 
 	/* Own Link ID */
 	wpabuf_put_u8(buf, hapd->mld_link_id);
@@ -804,7 +804,7 @@ struct wpabuf * hostapd_ml_auth_resp(struct hostapd_data *hapd)
 	wpabuf_put_u8(buf, WLAN_EID_EXT_MULTI_LINK);
 	wpabuf_put_le16(buf, MULTI_LINK_CONTROL_TYPE_BASIC);
 	wpabuf_put_u8(buf, ETH_ALEN + 1);
-	wpabuf_put_data(buf, hapd->mld_addr, ETH_ALEN);
+	wpabuf_put_data(buf, hapd->mld->mld_addr, ETH_ALEN);
 
 	return buf;
 }

@@ -1012,7 +1012,7 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 					  "mld_addr[%d]=" MACSTR "\n"
 					  "mld_id[%d]=%d\n"
 					  "mld_link_id[%d]=%d\n",
-					  (int) i, MAC2STR(bss->mld_addr),
+					  (int) i, MAC2STR(bss->mld->mld_addr),
 					  (int) i, hostapd_get_mld_id(bss),
 					  (int) i, bss->mld_link_id);
 			if (os_snprintf_error(buflen - len, ret))

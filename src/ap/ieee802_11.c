@@ -422,7 +422,7 @@ static int send_auth_reply(struct hostapd_data *hapd, struct sta_info *sta,
 	 * the addresses.
 	 */
 	if (ap_sta_is_mld(hapd, sta)) {
-		sa = hapd->mld_addr;
+		sa = hapd->mld->mld_addr;
 
 		ml_resp = hostapd_ml_auth_resp(hapd);
 		if (!ml_resp)
@@ -623,7 +623,7 @@ static struct wpabuf * auth_build_sae_commit(struct hostapd_data *hapd,
 
 #ifdef CONFIG_IEEE80211BE
 	if (ap_sta_is_mld(hapd, sta))
-		own_addr = hapd->mld_addr;
+		own_addr = hapd->mld->mld_addr;
 #endif /* CONFIG_IEEE80211BE */
 
 	if (sta->sae->tmp) {
@@ -2819,7 +2819,9 @@ static void handle_auth(struct hostapd_data *hapd,
 	u16 seq_ctrl;
 	struct radius_sta rad_info;
 	const u8 *dst, *sa, *bssid;
+#ifdef CONFIG_IEEE80211BE
 	bool mld_sta = false;
+#endif /* CONFIG_IEEE80211BE */
 
 	if (len < IEEE80211_HDRLEN + sizeof(mgmt->u.auth)) {
 		wpa_printf(MSG_INFO, "handle_auth - too short payload (len=%lu)",
@@ -2937,15 +2939,17 @@ static void handle_auth(struct hostapd_data *hapd,
 		goto fail;
 	}
 
+#ifdef CONFIG_IEEE80211BE
 	if (mld_sta &&
 	    (ether_addr_equal(sa, hapd->own_addr) ||
-	     ether_addr_equal(sa, hapd->mld_addr))) {
+	     ether_addr_equal(sa, hapd->mld->mld_addr))) {
 		wpa_printf(MSG_INFO,
 			   "Station " MACSTR " not allowed to authenticate",
 			   MAC2STR(sa));
 		resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
 		goto fail;
 	}
+#endif /* CONFIG_IEEE80211BE */
 
 	if (hapd->conf->no_auth_if_seen_on) {
 		struct hostapd_data *other;
@@ -3268,7 +3272,7 @@ static void handle_auth(struct hostapd_data *hapd,
 	  */
 	if (ap_sta_is_mld(hapd, sta)) {
 		dst = sta->addr;
-		bssid = hapd->mld_addr;
+		bssid = hapd->mld->mld_addr;
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -3779,7 +3783,7 @@ u16 owe_process_rsn_ie(struct hostapd_data *hapd,
 	}
 #ifdef CONFIG_IEEE80211BE
 	if (ap_sta_is_mld(hapd, sta))
-		wpa_auth_set_ml_info(sta->wpa_sm, hapd->mld_addr,
+		wpa_auth_set_ml_info(sta->wpa_sm, hapd->mld->mld_addr,
 				     sta->mld_assoc_link_id, &sta->mld_info);
 #endif /* CONFIG_IEEE80211BE */
 	rsn_ie -= 2;
@@ -4064,7 +4068,7 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 				wpa_printf(MSG_DEBUG,
 					   "MLD: Set ML info in RSN Authenticator");
 				wpa_auth_set_ml_info(sta->wpa_sm,
-						     hapd->mld_addr,
+						     hapd->mld->mld_addr,
 						     sta->mld_assoc_link_id,
 						     info);
 			}
@@ -4825,7 +4829,7 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 	 * MLD MAC address.
 	 */
 	if (ap_sta_is_mld(hapd, sta) && allow_mld_addr_trans)
-		sa = hapd->mld_addr;
+		sa = hapd->mld->mld_addr;
 #endif /* CONFIG_IEEE80211BE */
 
 	os_memcpy(reply->da, addr, ETH_ALEN);
@@ -6243,7 +6247,7 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 #endif /* CONFIG_MESH */
 #ifdef CONFIG_IEEE80211BE
 	    !(hapd->conf->mld_ap &&
-	      ether_addr_equal(hapd->mld_addr, mgmt->bssid)) &&
+	      ether_addr_equal(hapd->mld->mld_addr, mgmt->bssid)) &&
 #endif /* CONFIG_IEEE80211BE */
 	    !ether_addr_equal(mgmt->bssid, hapd->own_addr)) {
 		wpa_printf(MSG_INFO, "MGMT: BSSID=" MACSTR " not our address",
@@ -6266,7 +6270,7 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 	     stype != WLAN_FC_STYPE_ACTION) &&
 #ifdef CONFIG_IEEE80211BE
 	    !(hapd->conf->mld_ap &&
-	      ether_addr_equal(hapd->mld_addr, mgmt->bssid)) &&
+	      ether_addr_equal(hapd->mld->mld_addr, mgmt->bssid)) &&
 #endif /* CONFIG_IEEE80211BE */
 #ifdef CONFIG_NAN_USD
 	    !ether_addr_equal(mgmt->da, nan_network_id) &&

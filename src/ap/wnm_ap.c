@@ -51,7 +51,7 @@ static const u8 * wnm_ap_get_own_addr(struct hostapd_data *hapd,
 
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap && (!sta || ap_sta_is_mld(hapd, sta)))
-		own_addr = hapd->mld_addr;
+		own_addr = hapd->mld->mld_addr;
 #endif /* CONFIG_IEEE80211BE */
 
 	return own_addr;

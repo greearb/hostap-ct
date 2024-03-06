@@ -107,13 +107,20 @@ static int hostapd_setup_radius_srv(struct hostapd_data *hapd)
 	struct radius_server_conf srv;
 	struct hostapd_bss_config *conf = hapd->conf;
 
-	if (hapd->mld_first_bss) {
+#ifdef CONFIG_IEEE80211BE
+	if (!hostapd_mld_is_first_bss(hapd)) {
+		struct hostapd_data *first;
+
 		wpa_printf(MSG_DEBUG,
 			   "MLD: Using RADIUS server of the first BSS");
 
-		hapd->radius_srv = hapd->mld_first_bss->radius_srv;
+		first = hostapd_mld_get_first_bss(hapd);
+		if (!first)
+			return -1;
+		hapd->radius_srv = first->radius_srv;
 		return 0;
 	}
+#endif /* CONFIG_IEEE80211BE */
 
 	os_memset(&srv, 0, sizeof(srv));
 	srv.client_file = conf->radius_server_clients;
@@ -249,18 +256,25 @@ static struct eap_config * authsrv_eap_config(struct hostapd_data *hapd)
 
 int authsrv_init(struct hostapd_data *hapd)
 {
-	if (hapd->mld_first_bss) {
+#ifdef CONFIG_IEEE80211BE
+	if (!hostapd_mld_is_first_bss(hapd)) {
+		struct hostapd_data *first;
+
 		wpa_printf(MSG_DEBUG, "MLD: Using auth_serv of the first BSS");
 
+		first = hostapd_mld_get_first_bss(hapd);
+		if (!first)
+			return -1;
 #ifdef EAP_TLS_FUNCS
-		hapd->ssl_ctx = hapd->mld_first_bss->ssl_ctx;
+		hapd->ssl_ctx = first->ssl_ctx;
 #endif /* EAP_TLS_FUNCS */
-		hapd->eap_cfg = hapd->mld_first_bss->eap_cfg;
+		hapd->eap_cfg = first->eap_cfg;
 #ifdef EAP_SIM_DB
-		hapd->eap_sim_db_priv = hapd->mld_first_bss->eap_sim_db_priv;
+		hapd->eap_sim_db_priv = first->eap_sim_db_priv;
 #endif /* EAP_SIM_DB */
 		return 0;
 	}
+#endif /* CONFIG_IEEE80211BE */
 
 #ifdef EAP_TLS_FUNCS
 	if (hapd->conf->eap_server &&
@@ -376,7 +390,8 @@ int authsrv_init(struct hostapd_data *hapd)
 
 void authsrv_deinit(struct hostapd_data *hapd)
 {
-	if (hapd->mld_first_bss) {
+#ifdef CONFIG_IEEE80211BE
+	if (!hostapd_mld_is_first_bss(hapd)) {
 		wpa_printf(MSG_DEBUG,
 			   "MLD: Deinit auth_serv of a non-first BSS");
 
@@ -390,6 +405,7 @@ void authsrv_deinit(struct hostapd_data *hapd)
 #endif /* EAP_TLS_FUNCS */
 		return;
 	}
+#endif /* CONFIG_IEEE80211BE */
 
 #ifdef RADIUS_SERVER
 	radius_server_deinit(hapd->radius_srv);
