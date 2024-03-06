@@ -9465,7 +9465,7 @@ static int nl80211_remove_link(struct i802_bss *bss, int link_id)
 	}
 
 	/* Remove the link from the kernel */
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_REMOVE_LINK);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_REMOVE_LINK);
 	if (!msg ||
 	    nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id)) {
 		nlmsg_free(msg);
