@@ -3486,29 +3486,6 @@ int hostapd_disable_iface(struct hostapd_iface *hapd_iface)
 		return -1;
 	}
 
-#ifdef CONFIG_IEEE80211BE
-	if (hapd_iface->bss[0]->conf->mld_ap &&
-	    hostapd_mld_is_first_bss((hapd_iface->bss[0]))) {
-		/* Do not allow mld_first_bss disabling before other BSSs */
-		for (j = 0; j < hapd_iface->interfaces->count; ++j) {
-			struct hostapd_iface *h_iface =
-				hapd_iface->interfaces->iface[j];
-			struct hostapd_data *h_hapd = h_iface->bss[0];
-
-			if (!hostapd_is_ml_partner(h_hapd,
-						   hapd_iface->bss[0]) ||
-			    h_iface == hapd_iface)
-				continue;
-
-			if (h_iface->state != HAPD_IFACE_DISABLED) {
-				wpa_printf(MSG_INFO,
-					   "Do not allow disable mld_first_bss first");
-				return -1;
-			}
-		}
-	}
-#endif /* CONFIG_IEEE80211BE */
-
 	wpa_msg(hapd_iface->bss[0]->msg_ctx, MSG_INFO, AP_EVENT_DISABLED);
 	driver = hapd_iface->bss[0]->driver;
 	drv_priv = hapd_iface->bss[0]->drv_priv;

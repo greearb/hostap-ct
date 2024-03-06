@@ -3501,7 +3501,6 @@ static void hostapd_disable_iface_bss(struct hostapd_iface *iface)
 static int hostapd_ctrl_iface_disable_mld(struct hostapd_iface *iface)
 {
 	unsigned int i;
-	struct hostapd_iface *first_iface = NULL;
 
 	if (!iface || !iface->bss[0]->conf->mld_ap) {
 		wpa_printf(MSG_ERROR,
@@ -3519,35 +3518,21 @@ static int hostapd_ctrl_iface_disable_mld(struct hostapd_iface *iface)
 		if (!hostapd_is_ml_partner(h_hapd, iface->bss[0]))
 			continue;
 
-		if (hostapd_mld_is_first_bss(h_hapd)) {
-			first_iface = h_iface;
-			continue;
-		}
 		hostapd_disable_iface_bss(iface);
 	}
 
-	if (first_iface)
-		hostapd_disable_iface_bss(first_iface);
-
 	/* Then, fully disable interfaces */
-
 	for (i = 0; i < iface->interfaces->count; ++i) {
 		struct hostapd_iface *h_iface = iface->interfaces->iface[i];
 		struct hostapd_data *h_hapd = h_iface->bss[0];
 
-		if (!hostapd_is_ml_partner(h_hapd, iface->bss[0]) ||
-		    hostapd_mld_is_first_bss(h_hapd))
+		if (!hostapd_is_ml_partner(h_hapd, iface->bss[0]))
 			continue;
 
 		if (hostapd_disable_iface(h_iface)) {
 			wpa_printf(MSG_ERROR, "Disabling AP MLD failed");
 			return -1;
 		}
-	}
-
-	if (first_iface && hostapd_disable_iface(first_iface)) {
-		wpa_printf(MSG_ERROR, "Disabling AP MLD failed");
-		return -1;
 	}
 
 	return 0;
