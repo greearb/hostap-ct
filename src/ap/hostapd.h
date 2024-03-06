@@ -504,10 +504,18 @@ struct hostapd_mld {
 	u8 mld_addr[ETH_ALEN];
 	u8 next_link_id;
 	u8 num_links;
+	/* Number of hostapd_data (hapd) referencing this. num_links cannot be
+	 * used since num_links can go to 0 even when a BSS is disabled and
+	 * when it is re-enabled, the MLD should exist and hence it cannot be
+	 * freed when num_links is 0.
+	 */
+	u8 refcount;
 
 	struct hostapd_data *fbss;
 	struct dl_list links; /* List head of all affiliated links */
 };
+
+#define HOSTAPD_MLD_MAX_REF_COUNT      0xFF
 #endif /* CONFIG_IEEE80211BE */
 
 /**

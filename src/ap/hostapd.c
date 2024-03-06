@@ -2886,6 +2886,40 @@ void hostapd_interface_deinit(struct hostapd_iface *iface)
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+
+static void hostapd_mld_ref_inc(struct hostapd_mld *mld)
+{
+	if (!mld)
+		return;
+
+	if (mld->refcount == HOSTAPD_MLD_MAX_REF_COUNT) {
+		wpa_printf(MSG_ERROR, "AP MLD %s: Ref count overflow",
+			   mld->name);
+		return;
+	}
+
+	mld->refcount++;
+}
+
+
+static void hostapd_mld_ref_dec(struct hostapd_mld *mld)
+{
+	if (!mld)
+		return;
+
+	if (!mld->refcount) {
+		wpa_printf(MSG_ERROR, "AP MLD %s: Ref count underflow",
+			   mld->name);
+		return;
+	}
+
+	mld->refcount--;
+}
+
+#endif /* CONFIG_IEEE80211BE */
+
+
 void hostapd_interface_free(struct hostapd_iface *iface)
 {
 	size_t j;
@@ -2893,6 +2927,10 @@ void hostapd_interface_free(struct hostapd_iface *iface)
 	for (j = 0; j < iface->num_bss; j++) {
 		if (!iface->bss)
 			break;
+#ifdef CONFIG_IEEE80211BE
+		if (iface->bss[j])
+			hostapd_mld_ref_dec(iface->bss[j]->mld);
+#endif /* CONFIG_IEEE80211BE */
 		wpa_printf(MSG_DEBUG, "%s: free hapd %p",
 			   __func__, iface->bss[j]);
 		os_free(iface->bss[j]);
@@ -2946,6 +2984,7 @@ static void hostapd_bss_setup_multi_link(struct hostapd_data *hapd,
 			continue;
 
 		hapd->mld = mld;
+		hostapd_mld_ref_inc(mld);
 		hostapd_bss_alloc_link_id(hapd);
 		break;
 	}
@@ -2963,6 +3002,7 @@ static void hostapd_bss_setup_multi_link(struct hostapd_data *hapd,
 	wpa_printf(MSG_DEBUG, "AP MLD %s created", mld->name);
 
 	hapd->mld = mld;
+	hostapd_mld_ref_inc(mld);
 	hostapd_bss_alloc_link_id(hapd);
 
 	all_mld = os_realloc_array(interfaces->mld, interfaces->mld_count + 1,
@@ -2982,6 +3022,84 @@ fail:
 	wpa_printf(MSG_DEBUG, "AP MLD %s: free mld %p", mld->name, mld);
 	os_free(mld);
 	hapd->mld = NULL;
+#endif /* CONFIG_IEEE80211BE */
+}
+
+
+static void hostapd_cleanup_unused_mlds(struct hapd_interfaces *interfaces)
+{
+#ifdef CONFIG_IEEE80211BE
+	struct hostapd_mld *mld, **all_mld;
+	size_t i, j, num_mlds;
+	bool forced_remove, remove;
+
+	if (!interfaces->mld)
+		return;
+
+	num_mlds = interfaces->mld_count;
+
+	for (i = 0; i < interfaces->mld_count; i++) {
+		mld = interfaces->mld[i];
+		if (!mld)
+			continue;
+
+		remove = false;
+		forced_remove = false;
+
+		if (!mld->refcount)
+			remove = true;
+
+		/* If MLD is still being referenced but the number of interfaces
+		 * is zero, it is safe to force its deletion. Normally, this
+		 * should not happen but even if it does, let us free the
+		 * memory.
+		 */
+		if (!remove && !interfaces->count)
+			forced_remove = true;
+
+		if (!remove && !forced_remove)
+			continue;
+
+		wpa_printf(MSG_DEBUG, "AP MLD %s: Freed%s", mld->name,
+			   forced_remove ? " (forced)" : "");
+		os_free(mld);
+		interfaces->mld[i] = NULL;
+		num_mlds--;
+	}
+
+	if (!num_mlds) {
+		interfaces->mld_count = 0;
+		os_free(interfaces->mld);
+		interfaces->mld = NULL;
+		return;
+	}
+
+	all_mld = os_zalloc(num_mlds * sizeof(struct hostapd_mld *));
+	if (!all_mld) {
+		wpa_printf(MSG_ERROR,
+			   "AP MLD: Failed to re-allocate the MLDs. Expect issues");
+		return;
+	}
+
+	for (i = 0, j = 0; i < interfaces->mld_count; i++) {
+		mld = interfaces->mld[i];
+		if (!mld)
+			continue;
+
+		all_mld[j++] = mld;
+	}
+
+	/* This should not happen */
+	if (j != num_mlds) {
+		wpa_printf(MSG_DEBUG,
+			   "AP MLD: Some error occurred while reallocating MLDs. Expect issues.");
+		os_free(all_mld);
+		return;
+	}
+
+	os_free(interfaces->mld);
+	interfaces->mld = all_mld;
+	interfaces->mld_count = num_mlds;
 #endif /* CONFIG_IEEE80211BE */
 }
 
@@ -3577,6 +3695,9 @@ int hostapd_add_iface(struct hapd_interfaces *interfaces, char *buf)
 					   __func__, hapd, hapd->conf->iface);
 				hostapd_config_free_bss(hapd->conf);
 				hapd->conf = NULL;
+#ifdef CONFIG_IEEE80211BE
+				hostapd_mld_ref_dec(hapd->mld);
+#endif /* CONFIG_IEEE80211BE */
 				os_free(hapd);
 				return -1;
 			}
@@ -3668,6 +3789,9 @@ fail:
 					   hapd->conf->iface);
 				hostapd_bss_link_deinit(hapd);
 				hostapd_cleanup(hapd);
+#ifdef CONFIG_IEEE80211BE
+				hostapd_mld_ref_dec(hapd->mld);
+#endif /* CONFIG_IEEE80211BE */
 				os_free(hapd);
 				hapd_iface->bss[i] = NULL;
 			}
@@ -3677,6 +3801,7 @@ fail:
 		if (new_iface) {
 			interfaces->count--;
 			interfaces->iface[interfaces->count] = NULL;
+			hostapd_cleanup_unused_mlds(interfaces);
 		}
 		hostapd_cleanup_iface(hapd_iface);
 	}
@@ -3699,6 +3824,9 @@ static int hostapd_remove_bss(struct hostapd_iface *iface, unsigned int idx)
 			   __func__, hapd, hapd->conf->iface);
 		hostapd_config_free_bss(hapd->conf);
 		hapd->conf = NULL;
+#ifdef CONFIG_IEEE80211BE
+		hostapd_mld_ref_dec(hapd->mld);
+#endif /* CONFIG_IEEE80211BE */
 		os_free(hapd);
 
 		iface->num_bss--;
@@ -3741,6 +3869,8 @@ int hostapd_remove_iface(struct hapd_interfaces *interfaces, char *buf)
 				k++;
 			}
 			interfaces->count--;
+			hostapd_cleanup_unused_mlds(interfaces);
+
 			return 0;
 		}
 
