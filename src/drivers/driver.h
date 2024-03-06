@@ -5153,6 +5153,18 @@ struct wpa_driver_ops {
 	 */
 	int (*link_add)(void *priv, u8 link_id, const u8 *addr, void *bss_ctx);
 
+	/**
+	 * link_remove - Remove a link from the AP MLD interface
+	 * @priv: Private driver interface data
+	 * @type: Interface type
+	 * @ifname: Interface name of the virtual interface from where the link
+	 *	is to be removed.
+	 * @link_id: Valid link ID to remove
+	 * Returns: 0 on success, -1 on failure
+	 */
+	int (*link_remove)(void *priv, enum wpa_driver_if_type type,
+			   const char *ifname, u8 link_id);
+
 #ifdef CONFIG_TESTING_OPTIONS
 	int (*register_frame)(void *priv, u16 type,
 			      const u8 *match, size_t match_len,

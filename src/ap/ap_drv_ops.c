@@ -572,12 +572,33 @@ int hostapd_if_add(struct hostapd_data *hapd, enum wpa_driver_if_type type,
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+int hostapd_if_link_remove(struct hostapd_data *hapd,
+			   enum wpa_driver_if_type type,
+			   const char *ifname, u8 link_id)
+{
+	if (!hapd->driver || !hapd->drv_priv || !hapd->driver->link_remove)
+		return -1;
+
+	return hapd->driver->link_remove(hapd->drv_priv, type, ifname,
+					 hapd->mld_link_id);
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 int hostapd_if_remove(struct hostapd_data *hapd, enum wpa_driver_if_type type,
 		      const char *ifname)
 {
 	if (hapd->driver == NULL || hapd->drv_priv == NULL ||
 	    hapd->driver->if_remove == NULL)
 		return -1;
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap)
+		return hostapd_if_link_remove(hapd, type, ifname,
+					      hapd->mld_link_id);
+#endif /* CONFIG_IEEE80211BE */
+
 	return hapd->driver->if_remove(hapd->drv_priv, type, ifname);
 }
 

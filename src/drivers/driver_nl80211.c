@@ -10714,6 +10714,39 @@ static int driver_nl80211_if_remove(void *priv, enum wpa_driver_if_type type,
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+static int driver_nl80211_link_remove(void *priv, enum wpa_driver_if_type type,
+				      const char *ifname, u8 link_id)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+
+	if (type != WPA_IF_AP_BSS ||
+	    !nl80211_link_valid(bss->valid_links, link_id))
+		return -1;
+
+	wpa_printf(MSG_DEBUG,
+		   "nl80211: Teardown AP(%s) link %d (type=%d ifname=%s links=0x%x)",
+		   bss->ifname, link_id, type, ifname, bss->valid_links);
+
+	nl80211_remove_link(bss, link_id);
+
+	bss->ctx = bss->flink->ctx;
+
+	if (drv->first_bss == bss && !bss->valid_links)
+		drv->ctx = bss->ctx;
+
+	if (!bss->valid_links) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: No more links remaining, so remove interface");
+		return wpa_driver_nl80211_if_remove(bss, type, ifname);
+	}
+
+	return 0;
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 static int driver_nl80211_send_mlme(void *priv, const u8 *data,
 				    size_t data_len, int noack,
 				    unsigned int freq,
@@ -14043,6 +14076,9 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 #endif /* CONFIG_DPP */
 	.get_sta_mlo_info = nl80211_get_sta_mlo_info,
 	.link_add = nl80211_link_add,
+#ifdef CONFIG_IEEE80211BE
+	.link_remove = driver_nl80211_link_remove,
+#endif /* CONFIG_IEEE80211BE */
 #ifdef CONFIG_TESTING_OPTIONS
 	.register_frame = testing_nl80211_register_frame,
 	.radio_disable = testing_nl80211_radio_disable,
