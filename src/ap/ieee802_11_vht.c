@@ -79,6 +79,9 @@ u8 * hostapd_eid_vht_operation(struct hostapd_data *hapd, u8 *eid)
 		hostapd_get_oper_chwidth(hapd->iconf);
 	u8 seg0 = hapd->iconf->vht_oper_centr_freq_seg0_idx;
 	u8 seg1 = hapd->iconf->vht_oper_centr_freq_seg1_idx;
+#ifdef CONFIG_IEEE80211BE
+	u16 punct_bitmap = hapd->iconf->punct_bitmap;
+#endif /* CONFIG_IEEE80211BE */
 
 	if (is_6ghz_op_class(hapd->iconf->op_class))
 		return eid;
@@ -90,8 +93,12 @@ u8 * hostapd_eid_vht_operation(struct hostapd_data *hapd, u8 *eid)
 	os_memset(oper, 0, sizeof(*oper));
 
 #ifdef CONFIG_IEEE80211BE
-	if (hapd->iconf->punct_bitmap) {
-		punct_update_legacy_bw(hapd->iconf->punct_bitmap,
+#ifdef CONFIG_TESTING_OPTIONS
+	if (!punct_bitmap && hapd->conf->eht_oper_puncturing_override)
+		punct_bitmap = hapd->conf->eht_oper_puncturing_override;
+#endif /* CONFIG_TESTING_OPTIONS */
+	if (punct_bitmap) {
+		punct_update_legacy_bw(punct_bitmap,
 				       hapd->iconf->channel,
 				       &oper_chwidth, &seg0, &seg1);
 	}
