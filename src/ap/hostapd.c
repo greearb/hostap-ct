@@ -3355,6 +3355,22 @@ static void hostapd_deinit_driver(const struct wpa_driver_ops *driver,
 }
 
 
+static void hostapd_refresh_all_iface_beacons(struct hostapd_iface *hapd_iface)
+{
+	size_t j;
+
+	if (!hapd_iface->interfaces || hapd_iface->interfaces->count <= 1)
+		return;
+
+	for (j = 0; j < hapd_iface->interfaces->count; j++) {
+		if (hapd_iface->interfaces->iface[j] == hapd_iface)
+			continue;
+
+		ieee802_11_update_beacons(hapd_iface->interfaces->iface[j]);
+	}
+}
+
+
 int hostapd_enable_iface(struct hostapd_iface *hapd_iface)
 {
 	size_t j;
@@ -3392,6 +3408,8 @@ int hostapd_enable_iface(struct hostapd_iface *hapd_iface)
 				      hapd_iface);
 		return -1;
 	}
+
+	hostapd_refresh_all_iface_beacons(hapd_iface);
 
 	return 0;
 }
@@ -3504,6 +3522,7 @@ int hostapd_disable_iface(struct hostapd_iface *hapd_iface)
 	wpa_printf(MSG_DEBUG, "Interface %s disabled",
 		   hapd_iface->bss[0]->conf->iface);
 	hostapd_set_state(hapd_iface, HAPD_IFACE_DISABLED);
+	hostapd_refresh_all_iface_beacons(hapd_iface);
 	return 0;
 }
 
