@@ -2866,6 +2866,65 @@ struct hostapd_iface * hostapd_alloc_iface(void)
 }
 
 
+static void hostapd_bss_setup_multi_link(struct hostapd_data *hapd,
+					 struct hapd_interfaces *interfaces)
+{
+#ifdef CONFIG_IEEE80211BE
+	struct hostapd_mld *mld, **all_mld;
+	struct hostapd_bss_config *conf;
+	size_t i;
+
+	conf = hapd->conf;
+
+	if (!hapd->iconf || !hapd->iconf->ieee80211be || !conf->mld_ap ||
+	    conf->disable_11be)
+		return;
+
+	for (i = 0; i < interfaces->mld_count; i++) {
+		mld = interfaces->mld[i];
+
+		if (!mld || os_strcmp(conf->iface, mld->name) != 0)
+			continue;
+
+		hapd->mld = mld;
+		break;
+	}
+
+	if (hapd->mld)
+		return;
+
+	mld = os_zalloc(sizeof(struct hostapd_mld));
+	if (!mld)
+		goto fail;
+
+	os_strlcpy(mld->name, conf->iface, sizeof(conf->iface));
+	dl_list_init(&mld->links);
+
+	wpa_printf(MSG_DEBUG, "AP MLD %s created", mld->name);
+
+	hapd->mld = mld;
+
+	all_mld = os_realloc_array(interfaces->mld, interfaces->mld_count + 1,
+				   sizeof(struct hostapd_mld *));
+	if (!all_mld)
+		goto fail;
+
+	interfaces->mld = all_mld;
+	interfaces->mld[interfaces->mld_count] = mld;
+	interfaces->mld_count++;
+
+	return;
+fail:
+	if (!mld)
+		return;
+
+	wpa_printf(MSG_DEBUG, "AP MLD %s: free mld %p", mld->name, mld);
+	os_free(mld);
+	hapd->mld = NULL;
+#endif /* CONFIG_IEEE80211BE */
+}
+
+
 /**
  * hostapd_init - Allocate and initialize per-interface data
  * @config_file: Path to the configuration file
@@ -2909,6 +2968,7 @@ struct hostapd_iface * hostapd_init(struct hapd_interfaces *interfaces,
 		if (hapd == NULL)
 			goto fail;
 		hapd->msg_ctx = hapd;
+		hostapd_bss_setup_multi_link(hapd, interfaces);
 	}
 
 	return hapd_iface;
@@ -3030,6 +3090,8 @@ hostapd_interface_init_bss(struct hapd_interfaces *interfaces, const char *phy,
 		iface->conf->last_bss = bss;
 		iface->bss[iface->num_bss] = hapd;
 		hapd->msg_ctx = hapd;
+		hostapd_bss_setup_multi_link(hapd, interfaces);
+
 
 		bss_idx = iface->num_bss++;
 		conf->num_bss--;
@@ -3370,6 +3432,7 @@ static int hostapd_data_alloc(struct hostapd_iface *hapd_iface,
 			return -1;
 		}
 		hapd->msg_ctx = hapd;
+		hostapd_bss_setup_multi_link(hapd, hapd_iface->interfaces);
 	}
 
 	hapd_iface->conf = conf;
@@ -4444,6 +4507,104 @@ u8 hostapd_get_mld_id(struct hostapd_data *hapd)
 	return 0;
 
 	/* TODO: MLD ID for Multiple BSS cases */
+}
+
+
+int hostapd_mld_add_link(struct hostapd_data *hapd)
+{
+	struct hostapd_mld *mld = hapd->mld;
+
+	if (!hapd->conf->mld_ap)
+		return 0;
+
+	/* Should not happen */
+	if (!mld)
+		return -1;
+
+	dl_list_add_tail(&mld->links, &hapd->link);
+	mld->num_links++;
+
+	wpa_printf(MSG_DEBUG, "AP MLD %s: Link ID %d added. num_links: %d",
+		   mld->name, hapd->mld_link_id, mld->num_links);
+
+	if (mld->fbss)
+		return 0;
+
+	mld->fbss = hapd;
+	wpa_printf(MSG_DEBUG, "AP MLD %s: First link BSS set to %p",
+		   mld->name, mld->fbss);
+	return 0;
+}
+
+
+int hostapd_mld_remove_link(struct hostapd_data *hapd)
+{
+	struct hostapd_mld *mld = hapd->mld;
+	struct hostapd_data *next_fbss;
+
+	if (!hapd->conf->mld_ap)
+		return 0;
+
+	/* Should not happen */
+	if (!mld)
+		return -1;
+
+	dl_list_del(&hapd->link);
+	mld->num_links--;
+
+	wpa_printf(MSG_DEBUG, "AP MLD %s: Link ID %d removed. num_links: %d",
+		   mld->name, hapd->mld_link_id, mld->num_links);
+
+	if (mld->fbss != hapd)
+		return 0;
+
+	/* If the list is empty, all links are removed */
+	if (dl_list_empty(&mld->links)) {
+		mld->fbss = NULL;
+	} else {
+		next_fbss = dl_list_entry(mld->links.next, struct hostapd_data,
+					  link);
+		mld->fbss = next_fbss;
+	}
+
+	wpa_printf(MSG_DEBUG, "AP MLD %s: First link BSS set to %p",
+		   mld->name, mld->fbss);
+	return 0;
+}
+
+
+bool hostapd_mld_is_first_bss(struct hostapd_data *hapd)
+{
+	struct hostapd_mld *mld = hapd->mld;
+
+	if (!hapd->conf->mld_ap)
+		return true;
+
+	/* Should not happen */
+	if (!mld)
+		return false;
+
+	/* If fbss is not set, it is safe to assume the caller is the first BSS.
+	 */
+	if (!mld->fbss)
+		return true;
+
+	return hapd == mld->fbss;
+}
+
+
+struct hostapd_data * hostapd_mld_get_first_bss(struct hostapd_data *hapd)
+{
+	struct hostapd_mld *mld = hapd->mld;
+
+	if (!hapd->conf->mld_ap)
+		return NULL;
+
+	/* Should not happen */
+	if (!mld)
+		return NULL;
+
+	return mld->fbss;
 }
 
 #endif /* CONFIG_IEEE80211BE */

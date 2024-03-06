@@ -755,6 +755,29 @@ static void hostapd_periodic(void *eloop_ctx, void *timeout_ctx)
 }
 
 
+static void hostapd_global_cleanup_mld(struct hapd_interfaces *interfaces)
+{
+#ifdef CONFIG_IEEE80211BE
+	size_t i;
+
+	if (!interfaces || !interfaces->mld)
+		return;
+
+	for (i = 0; i < interfaces->mld_count; i++) {
+		if (!interfaces->mld[i])
+			continue;
+
+		os_free(interfaces->mld[i]);
+		interfaces->mld[i] = NULL;
+	}
+
+	os_free(interfaces->mld);
+	interfaces->mld = NULL;
+	interfaces->mld_count = 0;
+#endif /* CONFIG_IEEE80211BE */
+}
+
+
 int main(int argc, char *argv[])
 {
 	struct hapd_interfaces interfaces;
@@ -1034,6 +1057,8 @@ int main(int argc, char *argv[])
 	os_free(interfaces.iface);
 	interfaces.iface = NULL;
 	interfaces.count = 0;
+
+	hostapd_global_cleanup_mld(&interfaces);
 
 #ifdef CONFIG_DPP
 	dpp_global_deinit(interfaces.dpp);

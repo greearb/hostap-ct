@@ -44,6 +44,7 @@ struct mesh_conf;
 #endif /* CONFIG_CTRL_IFACE_UDP */
 
 struct hostapd_iface;
+struct hostapd_mld;
 
 struct hapd_interfaces {
 	int (*reload_config)(struct hostapd_iface *iface);
@@ -93,6 +94,10 @@ struct hapd_interfaces {
        unsigned char ctrl_iface_cookie[CTRL_IFACE_COOKIE_LEN];
 #endif /* CONFIG_CTRL_IFACE_UDP */
 
+#ifdef CONFIG_IEEE80211BE
+	struct hostapd_mld **mld;
+	size_t mld_count;
+#endif /* CONFIG_IEEE80211BE */
 };
 
 enum hostapd_chan_status {
@@ -472,6 +477,8 @@ struct hostapd_data {
 
 #ifdef CONFIG_IEEE80211BE
 	u8 eht_mld_bss_param_change;
+	struct hostapd_mld *mld;
+	struct dl_list link;
 #ifdef CONFIG_TESTING_OPTIONS
 	u8 eht_mld_link_removal_count;
 #endif /* CONFIG_TESTING_OPTIONS */
@@ -492,6 +499,21 @@ struct hostapd_sta_info {
 	struct wpabuf *probe_ie_taxonomy;
 #endif /* CONFIG_TAXONOMY */
 };
+
+#ifdef CONFIG_IEEE80211BE
+/**
+ * struct hostapd_mld - hostapd per-mld data structure
+ */
+struct hostapd_mld {
+	char name[IFNAMSIZ + 1];
+	u8 mld_addr[ETH_ALEN];
+	u8 next_link_id;
+	u8 num_links;
+
+	struct hostapd_data *fbss;
+	struct dl_list links; /* List head of all affiliated links */
+};
+#endif /* CONFIG_IEEE80211BE */
 
 /**
  * struct hostapd_iface - hostapd per-interface data structure
@@ -784,8 +806,14 @@ int hostapd_link_remove(struct hostapd_data *hapd, u32 count);
 bool hostapd_is_ml_partner(struct hostapd_data *hapd1,
 			   struct hostapd_data *hapd2);
 u8 hostapd_get_mld_id(struct hostapd_data *hapd);
+int hostapd_mld_add_link(struct hostapd_data *hapd);
+int hostapd_mld_remove_link(struct hostapd_data *hapd);
+struct hostapd_data * hostapd_mld_get_first_bss(struct hostapd_data *hapd);
 
 #ifdef CONFIG_IEEE80211BE
+
+bool hostapd_mld_is_first_bss(struct hostapd_data *hapd);
+
 #define for_each_mld_link(_link, _bss_idx, _iface_idx, _ifaces, _mld_id) \
 	for (_iface_idx = 0;						\
 	     _iface_idx < (_ifaces)->count;				\
@@ -799,9 +827,17 @@ u8 hostapd_get_mld_id(struct hostapd_data *hapd);
 			    _link && _link->conf->mld_ap &&		\
 				hostapd_get_mld_id(_link) == _mld_id;	\
 			    _link = NULL)
+
 #else /* CONFIG_IEEE80211BE */
+
+static inline bool hostapd_mld_is_first_bss(struct hostapd_data *hapd)
+{
+	return true;
+}
+
 #define for_each_mld_link(_link, _bss_idx, _iface_idx, _ifaces, _mld_id) \
 	if (false)
+
 #endif /* CONFIG_IEEE80211BE */
 
 u16 hostapd_get_punct_bitmap(struct hostapd_data *hapd);
