@@ -454,6 +454,7 @@ hostapd_drv_register_frame(struct hostapd_data *hapd, u16 type,
 #endif /* CONFIG_TESTING_OPTIONS */
 
 #ifdef CONFIG_IEEE80211BE
+
 static inline int hostapd_drv_link_add(struct hostapd_data *hapd,
 				       u8 link_id, const u8 *addr)
 {
@@ -463,6 +464,18 @@ static inline int hostapd_drv_link_add(struct hostapd_data *hapd,
 	return hapd->driver->link_add(hapd->drv_priv, link_id, addr, hapd);
 
 }
+
+static inline int hostapd_drv_link_sta_remove(struct hostapd_data *hapd,
+					      const u8 *addr)
+{
+	if (!hapd->conf->mld_ap || !hapd->driver || !hapd->drv_priv ||
+	    !hapd->driver->link_sta_remove)
+		return -1;
+
+	return hapd->driver->link_sta_remove(hapd->drv_priv, hapd->mld_link_id,
+					     addr);
+}
+
 #endif /* CONFIG_IEEE80211BE */
 
 #endif /* AP_DRV_OPS */

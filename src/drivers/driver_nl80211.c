@@ -13916,6 +13916,36 @@ static int nl80211_link_add(void *priv, u8 link_id, const u8 *addr,
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+static int wpa_driver_nl80211_link_sta_remove(void *priv, u8 link_id,
+					      const u8 *addr)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	int ret;
+
+	if (!(bss->valid_links & BIT(link_id)))
+		return -ENOLINK;
+
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_REMOVE_LINK_STA)) ||
+	    nla_put(msg, NL80211_ATTR_MLD_ADDR, ETH_ALEN, addr) ||
+	    nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id)) {
+		nlmsg_free(msg);
+		return -ENOBUFS;
+	}
+
+	ret = send_and_recv_cmd(drv, msg);
+	wpa_printf(MSG_DEBUG,
+		   "nl80211: link_sta_remove -> REMOVE_LINK_STA on link_id %u from MLD STA "
+		   MACSTR ", from %s --> %d (%s)",
+		   link_id, MAC2STR(addr), bss->ifname, ret, strerror(-ret));
+
+	return ret;
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 #ifdef CONFIG_TESTING_OPTIONS
 
 static int testing_nl80211_register_frame(void *priv, u16 type,
@@ -14113,6 +14143,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 #ifdef CONFIG_IEEE80211BE
 	.link_remove = driver_nl80211_link_remove,
 	.is_drv_shared = nl80211_is_drv_shared,
+	.link_sta_remove = wpa_driver_nl80211_link_sta_remove,
 #endif /* CONFIG_IEEE80211BE */
 #ifdef CONFIG_TESTING_OPTIONS
 	.register_frame = testing_nl80211_register_frame,

@@ -5178,6 +5178,15 @@ struct wpa_driver_ops {
 	 */
 	bool (*is_drv_shared)(void *priv, void *bss_ctx);
 
+	/**
+	 * link_sta_remove - Remove a link STA from an MLD STA
+	 * @priv: Private driver interface data
+	 * @link_id: The link ID which the link STA is using
+	 * @addr: The MLD MAC address of the MLD STA
+	 * Returns: 0 on success, negative value on failure
+	 */
+	int (*link_sta_remove)(void *priv, u8 link_id, const u8 *addr);
+
 #ifdef CONFIG_TESTING_OPTIONS
 	int (*register_frame)(void *priv, u16 type,
 			      const u8 *match, size_t match_len,
