@@ -5996,6 +5996,7 @@ static const struct global_parse_data global_fields[] = {
 #endif /* CONFIG_PASN */
 #ifdef CONFIG_TESTING_OPTIONS
 	{ INT_RANGE(mld_force_single_link, 0, 1), 0 },
+	{ INT_RANGE(mld_allowed_phy, 0, 7), 0 },
 	{ INT_RANGE(mld_connect_band_pref, 0, MLD_CONNECT_BAND_PREF_MAX), 0 },
 	{ FUNC(mld_connect_bssid_pref), 0 },
 #endif /* CONFIG_TESTING_OPTIONS */

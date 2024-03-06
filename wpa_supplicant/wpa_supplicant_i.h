@@ -492,6 +492,9 @@ struct beacon_rep_data {
 };
 
 #ifdef CONFIG_TESTING_OPTIONS
+
+bool check_mld_allowed_phy(struct wpa_supplicant *wpa_s, int freq);
+
 struct delayed_msg {
 	struct dl_list list;
 
@@ -1852,7 +1855,6 @@ void wpas_clear_beacon_rep_data(struct wpa_supplicant *wpa_s);
 void wpas_flush_fils_hlp_req(struct wpa_supplicant *wpa_s);
 void wpas_clear_disabled_interface(void *eloop_ctx, void *timeout_ctx);
 void wpa_supplicant_reset_bgscan(struct wpa_supplicant *wpa_s);
-
 
 /* MBO functions */
 int wpas_mbo_ie(struct wpa_supplicant *wpa_s, u8 *buf, size_t len,
