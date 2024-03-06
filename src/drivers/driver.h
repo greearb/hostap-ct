@@ -5148,9 +5148,10 @@ struct wpa_driver_ops {
 	 * @priv: Private driver interface data
 	 * @link_id: The link ID
 	 * @addr: The MAC address to use for the link
+	 * @bss_ctx: BSS context for %WPA_IF_AP_BSS interfaces
 	 * Returns: 0 on success, negative value on failure
 	 */
-	int (*link_add)(void *priv, u8 link_id, const u8 *addr);
+	int (*link_add)(void *priv, u8 link_id, const u8 *addr, void *bss_ctx);
 
 #ifdef CONFIG_TESTING_OPTIONS
 	int (*register_frame)(void *priv, u16 type,

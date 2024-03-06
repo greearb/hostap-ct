@@ -58,6 +58,7 @@ struct i802_link {
 	int freq;
 	int bandwidth;
 	u8 addr[ETH_ALEN];
+	void *ctx;
 };
 
 struct i802_bss {

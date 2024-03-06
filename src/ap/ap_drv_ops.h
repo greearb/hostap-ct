@@ -455,7 +455,7 @@ static inline int hostapd_drv_link_add(struct hostapd_data *hapd,
 	if (!hapd->driver || !hapd->drv_priv || !hapd->driver->link_add)
 		return -1;
 
-	return hapd->driver->link_add(hapd->drv_priv, link_id, addr);
+	return hapd->driver->link_add(hapd->drv_priv, link_id, addr, hapd);
 
 }
 #endif /* CONFIG_IEEE80211BE */

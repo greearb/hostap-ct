@@ -13761,7 +13761,8 @@ static int nl80211_dpp_listen(void *priv, bool enable)
 #endif /* CONFIG_DPP */
 
 
-static int nl80211_link_add(void *priv, u8 link_id, const u8 *addr)
+static int nl80211_link_add(void *priv, u8 link_id, const u8 *addr,
+			    void *bss_ctx)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -13820,6 +13821,7 @@ static int nl80211_link_add(void *priv, u8 link_id, const u8 *addr)
 		bss->flink = &bss->links[link_id];
 
 	bss->valid_links |= BIT(link_id);
+	bss->links[link_id].ctx = bss_ctx;
 
 	wpa_printf(MSG_DEBUG, "nl80211: MLD: valid_links=0x%04x",
 		   bss->valid_links);
