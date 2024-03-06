@@ -533,6 +533,16 @@ static int wpas_sme_ml_auth(struct wpa_supplicant *wpa_s,
 }
 
 
+#ifdef CONFIG_TESTING_OPTIONS
+static bool check_mld_allowed_phy(struct wpa_supplicant *wpa_s, int freq)
+{
+	return ((wpa_s->conf->mld_allowed_phy & BIT(0)) && IS_2P4GHZ(freq)) ||
+	       ((wpa_s->conf->mld_allowed_phy & BIT(1)) && IS_5GHZ(freq)) ||
+	       ((wpa_s->conf->mld_allowed_phy & BIT(2)) && is_6ghz_freq(freq));
+}
+#endif /* CONFIG_TESTING_OPTIONS */
+
+
 static void wpas_sme_set_mlo_links(struct wpa_supplicant *wpa_s,
 				   struct wpa_bss *bss, struct wpa_ssid *ssid)
 {
@@ -552,6 +562,11 @@ static void wpas_sme_set_mlo_links(struct wpa_supplicant *wpa_s,
 				freq, i);
 			continue;
 		}
+
+#ifdef CONFIG_TESTING_OPTIONS
+		if (!check_mld_allowed_phy(wpa_s, bss->mld_links[i].freq))
+			continue;
+#endif /* CONFIG_TESTING_OPTIONS */
 
 		wpa_s->valid_links |= BIT(i);
 		os_memcpy(wpa_s->links[i].bssid, bssid, ETH_ALEN);
@@ -635,6 +650,9 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 	    && (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
 	    !wpa_bss_parse_basic_ml_element(wpa_s, bss, wpa_s->ap_mld_addr,
 					    NULL, ssid, NULL) &&
+#ifdef CONFIG_TESTING_OPTIONS
+	    wpa_s->conf->mld_allowed_phy &&
+#endif /* CONFIG_TESTING_OPTIONS */
 	    bss->valid_links) {
 		wpa_printf(MSG_DEBUG, "MLD: In authentication");
 		wpas_sme_set_mlo_links(wpa_s, bss, ssid);
