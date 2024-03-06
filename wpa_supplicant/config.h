@@ -2042,6 +2042,7 @@ struct wpa_config {
 	}  mld_connect_band_pref;
 
 	u8 mld_connect_bssid_pref[ETH_ALEN];
+	u8 mld_allowed_phy; /* bitmap of allowed phy for MLO connection */
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	int mld_force_single_link;

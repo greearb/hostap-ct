@@ -514,6 +514,9 @@ struct beacon_rep_data {
 };
 
 #ifdef CONFIG_TESTING_OPTIONS
+
+bool check_mld_allowed_phy(struct wpa_supplicant *wpa_s, int freq);
+
 struct delayed_msg {
 	struct dl_list list;
 
