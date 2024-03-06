@@ -265,8 +265,8 @@ int hostapd_set_ap_wps_ie(struct hostapd_data *hapd)
 }
 
 
-static bool hostapd_sta_is_link_sta(struct hostapd_data *hapd,
-				    struct sta_info *sta)
+bool hostapd_sta_is_link_sta(struct hostapd_data *hapd,
+			     struct sta_info *sta)
 {
 #ifdef CONFIG_IEEE80211BE
 	if (ap_sta_is_mld(hapd, sta) &&
