@@ -53,6 +53,8 @@ static int init_wpa(struct arg_ctx *ctx)
 	ctx->wpa_s.driver = &ctx->driver;
 	ctx->wpa_s.wpa = &ctx->wpa;
 	ctx->wpa_s.conf = &ctx->conf;
+	if (wpa_bss_init(&ctx->wpa_s) < 0)
+		return -1;
 
 	return 0;
 }
@@ -61,6 +63,7 @@ static int init_wpa(struct arg_ctx *ctx)
 static void deinit_wpa(struct arg_ctx *ctx)
 {
 	wnm_btm_reset(&ctx->wpa_s);
+	wpa_bss_flush(&ctx->wpa_s);
 }
 
 
