@@ -978,8 +978,7 @@ static bool ap_sta_ml_disconnect(struct hostapd_data *hapd,
 
 			tmp_hapd = interfaces->iface[i]->bss[0];
 
-			if (!tmp_hapd->conf->mld_ap ||
-			    assoc_hapd->conf->mld_id != tmp_hapd->conf->mld_id)
+			if (!hostapd_is_ml_partner(tmp_hapd, assoc_hapd))
 				continue;
 
 			for (tmp_sta = tmp_hapd->sta_list; tmp_sta;
@@ -1731,7 +1730,7 @@ static void ap_sta_remove_link_sta(struct hostapd_data *hapd,
 	unsigned int i, j;
 
 	for_each_mld_link(tmp_hapd, i, j, hapd->iface->interfaces,
-			  hapd->conf->mld_id) {
+			  hostapd_get_mld_id(hapd)) {
 		struct sta_info *tmp_sta;
 
 		if (hapd == tmp_hapd)

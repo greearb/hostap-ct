@@ -960,7 +960,7 @@ static void hostapd_fill_probe_resp_ml_params(struct hostapd_data *hapd,
 	 * We want to include the AP MLD ID in the response if it was
 	 * included in the request.
 	 */
-	probed_mld_id = mld_id != -1 ? mld_id : hapd->conf->mld_id;
+	probed_mld_id = mld_id != -1 ? mld_id : hostapd_get_mld_id(hapd);
 
 	for_each_mld_link(link, i, j, hapd->iface->interfaces,
 			  probed_mld_id) {
@@ -2676,8 +2676,7 @@ int ieee802_11_set_beacon(struct hostapd_data *hapd)
 			continue;
 
 #ifdef CONFIG_IEEE80211BE
-		if (hapd->conf->mld_ap && other->bss[0]->conf->mld_ap &&
-		    hapd->conf->mld_id == other->bss[0]->conf->mld_id)
+		if (hostapd_is_ml_partner(hapd, other->bss[0]))
 			mld_ap = true;
 #endif /* CONFIG_IEEE80211BE */
 

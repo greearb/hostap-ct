@@ -1962,10 +1962,8 @@ static bool search_mld_sta(struct hostapd_data **p_hapd, const u8 *src)
 		struct hostapd_iface *h =
 			hapd->iface->interfaces->iface[i];
 		struct hostapd_data *h_hapd = h->bss[0];
-		struct hostapd_bss_config *hconf = h_hapd->conf;
 
-		if (!hconf->mld_ap ||
-		    hconf->mld_id != hapd->conf->mld_id)
+		if (!hostapd_is_ml_partner(h_hapd, hapd))
 			continue;
 
 		h_hapd = hostapd_find_by_sta(h, src, false);

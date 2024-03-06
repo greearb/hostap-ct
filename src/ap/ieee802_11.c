@@ -4598,8 +4598,7 @@ int hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 			if (hapd->iface == iface)
 				continue;
 
-			if (iface->bss[0]->conf->mld_ap &&
-			    hapd->conf->mld_id == iface->bss[0]->conf->mld_id &&
+			if (hostapd_is_ml_partner(hapd, iface->bss[0]) &&
 			    i == iface->bss[0]->mld_link_id)
 				break;
 		}
@@ -5814,8 +5813,7 @@ static bool hostapd_ml_handle_disconnect(struct hostapd_data *hapd,
 			tmp_hapd =
 				assoc_hapd->iface->interfaces->iface[i]->bss[0];
 
-			if (!tmp_hapd->conf->mld_ap ||
-			    assoc_hapd->conf->mld_id != tmp_hapd->conf->mld_id)
+			if (!hostapd_is_ml_partner(assoc_hapd, tmp_hapd))
 				continue;
 
 			for (tmp_sta = tmp_hapd->sta_list; tmp_sta;
@@ -6482,8 +6480,7 @@ static void hostapd_ml_handle_assoc_cb(struct hostapd_data *hapd,
 			struct hostapd_data *tmp_hapd =
 				hapd->iface->interfaces->iface[i]->bss[0];
 
-			if (!tmp_hapd->conf->mld_ap ||
-			    hapd->conf->mld_id != tmp_hapd->conf->mld_id)
+			if (!hostapd_is_ml_partner(tmp_hapd, hapd))
 				continue;
 
 			for (tmp_sta = tmp_hapd->sta_list; tmp_sta;
@@ -7446,8 +7443,7 @@ static size_t hostapd_eid_rnr_multi_iface_len(struct hostapd_data *hapd,
 		bool ap_mld = false;
 
 #ifdef CONFIG_IEEE80211BE
-		if (hapd->conf->mld_ap && iface->bss[0]->conf->mld_ap &&
-		    hapd->conf->mld_id == iface->bss[0]->conf->mld_id)
+		if (hostapd_is_ml_partner(hapd, iface->bss[0]))
 			ap_mld = true;
 #endif /* CONFIG_IEEE80211BE */
 
@@ -7619,11 +7615,10 @@ static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
 #ifdef CONFIG_IEEE80211BE
 		u8 param_ch = hapd->eht_mld_bss_param_change;
 
-		if (reporting_hapd->conf->mld_ap &&
-		    bss->conf->mld_id == reporting_hapd->conf->mld_id)
+		if (hostapd_is_ml_partner(bss, reporting_hapd))
 			*eid++ = 0;
 		else
-			*eid++ = hapd->conf->mld_id;
+			*eid++ = hostapd_get_mld_id(hapd);
 
 		*eid++ = hapd->mld_link_id | ((param_ch & 0xF) << 4);
 		*eid = (param_ch >> 4) & 0xF;
@@ -7721,8 +7716,7 @@ static u8 * hostapd_eid_rnr_multi_iface(struct hostapd_data *hapd, u8 *eid,
 		bool ap_mld = false;
 
 #ifdef CONFIG_IEEE80211BE
-		if (hapd->conf->mld_ap && iface->bss[0]->conf->mld_ap &&
-		    hapd->conf->mld_id == iface->bss[0]->conf->mld_id)
+		if (hostapd_is_ml_partner(hapd, iface->bss[0]))
 			ap_mld = true;
 #endif /* CONFIG_IEEE80211BE */
 

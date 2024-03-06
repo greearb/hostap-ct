@@ -3476,10 +3476,8 @@ static int hostapd_ctrl_iface_enable_mld(struct hostapd_iface *iface)
 	for (i = 0; i < iface->interfaces->count; ++i) {
 		struct hostapd_iface *h_iface = iface->interfaces->iface[i];
 		struct hostapd_data *h_hapd = h_iface->bss[0];
-		struct hostapd_bss_config *h_conf = h_hapd->conf;
 
-		if (!h_conf->mld_ap ||
-		    h_conf->mld_id != iface->bss[0]->conf->mld_id)
+		if (!hostapd_is_ml_partner(h_hapd, iface->bss[0]))
 			continue;
 
 		if (hostapd_enable_iface(h_iface)) {
@@ -3517,10 +3515,8 @@ static int hostapd_ctrl_iface_disable_mld(struct hostapd_iface *iface)
 	for (i = 0; i < iface->interfaces->count; ++i) {
 		struct hostapd_iface *h_iface = iface->interfaces->iface[i];
 		struct hostapd_data *h_hapd = h_iface->bss[0];
-		struct hostapd_bss_config *h_conf = h_hapd->conf;
 
-		if (!h_conf->mld_ap ||
-		    h_conf->mld_id != iface->bss[0]->conf->mld_id)
+		if (!hostapd_is_ml_partner(h_hapd, iface->bss[0]))
 			continue;
 
 		if (!h_hapd->mld_first_bss) {
@@ -3538,10 +3534,8 @@ static int hostapd_ctrl_iface_disable_mld(struct hostapd_iface *iface)
 	for (i = 0; i < iface->interfaces->count; ++i) {
 		struct hostapd_iface *h_iface = iface->interfaces->iface[i];
 		struct hostapd_data *h_hapd = h_iface->bss[0];
-		struct hostapd_bss_config *h_conf = h_hapd->conf;
 
-		if (!h_conf->mld_ap ||
-		    h_conf->mld_id != iface->bss[0]->conf->mld_id ||
+		if (!hostapd_is_ml_partner(h_hapd, iface->bss[0]) ||
 		    !h_hapd->mld_first_bss)
 			continue;
 

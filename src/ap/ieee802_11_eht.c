@@ -505,8 +505,8 @@ static u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 
 	if (include_mld_id) {
 		wpa_printf(MSG_DEBUG, "MLD: AP MLD ID=0x%x",
-			   hapd->conf->mld_id);
-		wpabuf_put_u8(buf, hapd->conf->mld_id);
+			   hostapd_get_mld_id(hapd));
+		wpabuf_put_u8(buf, hostapd_get_mld_id(hapd));
 	}
 
 	if (!mld_info)
@@ -1039,8 +1039,7 @@ static int hostapd_mld_validate_assoc_info(struct hostapd_data *hapd,
 			if (hapd == other_hapd)
 				continue;
 
-			if (other_hapd->conf->mld_ap &&
-			    other_hapd->conf->mld_id == hapd->conf->mld_id &&
+			if (hostapd_is_ml_partner(hapd, other_hapd) &&
 			    link_id == other_hapd->mld_link_id)
 				break;
 		}

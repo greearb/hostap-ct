@@ -175,9 +175,15 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 			continue;
 		}
 
-		if (!hconf->mld_ap || hconf->mld_id != conf->mld_id) {
+		if (!hconf->mld_ap) {
 			wpa_printf(MSG_DEBUG,
-				   "MLD: Skip non matching mld_id");
+				   "MLD: Skip non-MLD");
+			continue;
+		}
+
+		if (!hostapd_is_ml_partner(hapd, h_hapd)) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Skip non matching MLD vif name");
 			continue;
 		}
 

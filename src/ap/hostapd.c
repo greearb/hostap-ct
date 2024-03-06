@@ -3217,11 +3217,9 @@ int hostapd_disable_iface(struct hostapd_iface *hapd_iface)
 			struct hostapd_iface *h_iface =
 				hapd_iface->interfaces->iface[j];
 			struct hostapd_data *h_hapd = h_iface->bss[0];
-			struct hostapd_bss_config *h_conf = h_hapd->conf;
 
-			if (!h_conf->mld_ap ||
-			    h_conf->mld_id !=
-			    hapd_iface->bss[0]->conf->mld_id ||
+			if (!hostapd_is_ml_partner(h_hapd,
+						   hapd_iface->bss[0]) ||
 			    h_iface == hapd_iface)
 				continue;
 
@@ -4406,6 +4404,7 @@ void hostapd_ocv_check_csa_sa_query(void *eloop_ctx, void *timeout_ctx)
 
 
 #ifdef CONFIG_IEEE80211BE
+
 struct hostapd_data * hostapd_mld_get_link_bss(struct hostapd_data *hapd,
 					       u8 link_id)
 {
@@ -4414,9 +4413,8 @@ struct hostapd_data * hostapd_mld_get_link_bss(struct hostapd_data *hapd,
 	for (i = 0; i < hapd->iface->interfaces->count; i++) {
 		struct hostapd_iface *h = hapd->iface->interfaces->iface[i];
 		struct hostapd_data *h_hapd = h->bss[0];
-		struct hostapd_bss_config *hconf = h_hapd->conf;
 
-		if (!hconf->mld_ap || hconf->mld_id != hapd->conf->mld_id)
+		if (!hostapd_is_ml_partner(hapd, h_hapd))
 			continue;
 
 		if (h_hapd->mld_link_id == link_id)
@@ -4425,6 +4423,29 @@ struct hostapd_data * hostapd_mld_get_link_bss(struct hostapd_data *hapd,
 
 	return NULL;
 }
+
+
+bool hostapd_is_ml_partner(struct hostapd_data *hapd1,
+			   struct hostapd_data *hapd2)
+{
+	if (!hapd1->conf->mld_ap || !hapd2->conf->mld_ap)
+		return false;
+
+	return !os_strcmp(hapd1->conf->iface, hapd2->conf->iface);
+}
+
+
+u8 hostapd_get_mld_id(struct hostapd_data *hapd)
+{
+	if (!hapd->conf->mld_ap)
+		return 255;
+
+	/* MLD ID 0 represents self */
+	return 0;
+
+	/* TODO: MLD ID for Multiple BSS cases */
+}
+
 #endif /* CONFIG_IEEE80211BE */
 
 

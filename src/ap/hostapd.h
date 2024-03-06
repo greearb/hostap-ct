@@ -781,6 +781,9 @@ int hostapd_mbssid_get_bss_index(struct hostapd_data *hapd);
 struct hostapd_data * hostapd_mld_get_link_bss(struct hostapd_data *hapd,
 					       u8 link_id);
 int hostapd_link_remove(struct hostapd_data *hapd, u32 count);
+bool hostapd_is_ml_partner(struct hostapd_data *hapd1,
+			   struct hostapd_data *hapd2);
+u8 hostapd_get_mld_id(struct hostapd_data *hapd);
 
 #ifdef CONFIG_IEEE80211BE
 #define for_each_mld_link(_link, _bss_idx, _iface_idx, _ifaces, _mld_id) \
@@ -794,7 +797,7 @@ int hostapd_link_remove(struct hostapd_data *hapd, u32 count);
 			for (_link =					\
 			     (_ifaces)->iface[_iface_idx]->bss[_bss_idx]; \
 			    _link && _link->conf->mld_ap &&		\
-				_link->conf->mld_id == _mld_id;		\
+				hostapd_get_mld_id(_link) == _mld_id;	\
 			    _link = NULL)
 #else /* CONFIG_IEEE80211BE */
 #define for_each_mld_link(_link, _bss_idx, _iface_idx, _ifaces, _mld_id) \
