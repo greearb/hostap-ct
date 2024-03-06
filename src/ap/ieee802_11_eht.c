@@ -450,6 +450,8 @@ static u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	size_t len, slice_len;
 	u8 link_id;
 	u8 common_info_len;
+	u16 mld_cap;
+	u8 max_simul_links, active_links;
 
 	/*
 	 * As the Multi-Link element can exceed the size of 255 bytes need to
@@ -499,9 +501,26 @@ static u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 		   hapd->iface->mld_eml_capa);
 	wpabuf_put_le16(buf, hapd->iface->mld_eml_capa);
 
+	mld_cap = hapd->iface->mld_mld_capa;
+	max_simul_links = mld_cap & EHT_ML_MLD_CAPA_MAX_NUM_SIM_LINKS_MASK;
+	active_links = hapd->mld->num_links - 1;
+
+	if (active_links > max_simul_links) {
+		wpa_printf(MSG_ERROR,
+			   "MLD: Error in max simultaneous links, advertised: 0x%x current: 0x%x",
+			   max_simul_links, active_links);
+		active_links = max_simul_links;
+	}
+
+	mld_cap &= ~EHT_ML_MLD_CAPA_MAX_NUM_SIM_LINKS_MASK;
+	mld_cap |= active_links & EHT_ML_MLD_CAPA_MAX_NUM_SIM_LINKS_MASK;
+
+	/* TODO: Advertise T2LM based on driver support as well */
+	mld_cap &= ~EHT_ML_MLD_CAPA_TID_TO_LINK_MAP_NEG_SUPP_MSK;
+
 	wpa_printf(MSG_DEBUG, "MLD: MLD Capabilities and Operations=0x%x",
-		   hapd->iface->mld_mld_capa);
-	wpabuf_put_le16(buf, hapd->iface->mld_mld_capa);
+		   mld_cap);
+	wpabuf_put_le16(buf, mld_cap);
 
 	if (include_mld_id) {
 		wpa_printf(MSG_DEBUG, "MLD: AP MLD ID=0x%x",
