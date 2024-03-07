@@ -3402,6 +3402,18 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_BTM_SUPPORT = 107,
 
+	/* 16-bit unsigned value to configure client's keep-alive interval in
+	 * seconds. The driver will reduce the keep-alive interval to this
+	 * configured value if the AP advertises BSS maximum idle period and if
+	 * that BSS max idle period is larger than this configured value. If the
+	 * AP does not advertise a maximum value, the configured value will be
+	 * used as a keep-alive period for unprotected frames.
+	 *
+	 * This configuration is applicable only during the STA's current
+	 * association.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_KEEP_ALIVE_INTERVAL = 108,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
