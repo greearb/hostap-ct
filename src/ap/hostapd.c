@@ -3915,7 +3915,8 @@ static int hostapd_change_config_freq(struct hostapd_data *hapd,
 				    mode ? &mode->he_capab[IEEE80211_MODE_AP] :
 				    NULL,
 				    mode ? &mode->eht_capab[IEEE80211_MODE_AP] :
-				    NULL))
+				    NULL,
+				    hostapd_get_punct_bitmap(hapd)))
 		return -1;
 
 	switch (params->bandwidth) {

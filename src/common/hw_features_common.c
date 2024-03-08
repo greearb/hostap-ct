@@ -391,7 +391,8 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 			    int center_segment0,
 			    int center_segment1, u32 vht_caps,
 			    struct he_capabilities *he_cap,
-			    struct eht_capabilities *eht_cap)
+			    struct eht_capabilities *eht_cap,
+			    u16 punct_bitmap)
 {
 	if (!he_cap || !he_cap->he_supported)
 		he_enabled = 0;

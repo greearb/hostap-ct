@@ -1010,7 +1010,8 @@ static int hostapd_dfs_request_channel_switch(struct hostapd_iface *iface,
 				      oper_centr_freq_seg1_idx,
 				      cmode->vht_capab,
 				      &cmode->he_capab[ieee80211_mode],
-				      &cmode->eht_capab[ieee80211_mode]);
+				      &cmode->eht_capab[ieee80211_mode],
+				      hostapd_get_punct_bitmap(iface->bss[0]));
 
 	if (err) {
 		wpa_printf(MSG_ERROR,

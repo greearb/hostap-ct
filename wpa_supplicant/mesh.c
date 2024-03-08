@@ -231,7 +231,7 @@ static int wpas_mesh_update_freq_params(struct wpa_supplicant *wpa_s)
 		    hostapd_get_oper_centr_freq_seg0_idx(ifmsh->conf),
 		    hostapd_get_oper_centr_freq_seg1_idx(ifmsh->conf),
 		    ifmsh->conf->vht_capab,
-		    he_capab, NULL)) {
+		    he_capab, NULL, 0)) {
 		wpa_printf(MSG_ERROR, "Error updating mesh frequency params");
 		wpa_supplicant_mesh_deinit(wpa_s, true);
 		return -1;

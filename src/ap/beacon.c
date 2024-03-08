@@ -2616,7 +2616,8 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 				    hostapd_get_oper_centr_freq_seg1_idx(iconf),
 				    cmode->vht_capab,
 				    &cmode->he_capab[IEEE80211_MODE_AP],
-				    &cmode->eht_capab[IEEE80211_MODE_AP]) == 0)
+				    &cmode->eht_capab[IEEE80211_MODE_AP],
+				    hostapd_get_punct_bitmap(hapd)) == 0)
 		params.freq = &freq;
 
 	for (i = 0; i < hapd->iface->num_hw_features; i++) {

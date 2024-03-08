@@ -3064,7 +3064,7 @@ skip_80mhz:
 				    freq->sec_channel_offset,
 				    chwidth, seg0, seg1, vht_caps,
 				    &mode->he_capab[ieee80211_mode],
-				    &mode->eht_capab[ieee80211_mode]) != 0)
+				    &mode->eht_capab[ieee80211_mode], 0) != 0)
 		return false;
 
 	*freq = vht_freq;
