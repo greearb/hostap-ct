@@ -12,6 +12,7 @@
 
 #include "utils/common.h"
 #include "common/ieee802_11_defs.h"
+#include "common/hw_features_common.h"
 #include "hostapd.h"
 #include "ap_config.h"
 #include "sta_info.h"
