@@ -356,7 +356,7 @@ def test_dpp_push_button_session_overlap_sta(dev, apdev):
         raise Exception("Failed to press push button on the AP")
     if "OK" not in dev[0].request("DPP_PUSH_BUTTON"):
         raise Exception("Failed to press push button on the station")
-    ev = dev[0].wait_event(["DPP-PB-STATUS"], timeout=30)
+    ev = dev[0].wait_event(["DPP-PB-STATUS discovered"], timeout=30)
     if ev is None:
         raise Exception("Push button status not reported on station")
     # Force bootstrap key change since both instances share the same global

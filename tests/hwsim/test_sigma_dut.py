@@ -4384,7 +4384,7 @@ def test_sigma_dut_dpp_pb_sta_first(dev, apdev):
 def dpp_ap_pb_overlap(hapd, hapd2, dev0):
     if "OK" not in hapd.request("DPP_PUSH_BUTTON"):
         raise Exception("Failed to press push button on the AP")
-    ev = dev0.wait_event(["DPP-PB-STATUS"], timeout=30)
+    ev = dev0.wait_event(["DPP-PB-STATUS discovered"], timeout=30)
     if ev is None:
         raise Exception("Push button status not reported on station")
     # Force bootstrap key change since both instances share the same global
