@@ -463,6 +463,9 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 			    struct eht_capabilities *eht_cap,
 			    u16 punct_bitmap)
 {
+	enum oper_chan_width oper_chwidth_legacy;
+	u8 seg0_legacy, seg1_legacy;
+
 	if (!he_cap || !he_cap->he_supported)
 		he_enabled = 0;
 	if (!eht_cap || !eht_cap->eht_supported)
@@ -648,6 +651,14 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 		break;
 	}
 
+	oper_chwidth_legacy = oper_chwidth;
+	seg0_legacy = center_segment0;
+	seg1_legacy = center_segment1;
+	if (punct_bitmap)
+		punct_update_legacy_bw(punct_bitmap, channel,
+				       &oper_chwidth_legacy,
+				       &seg0_legacy, &seg1_legacy);
+
 	if (data->eht_enabled || data->he_enabled ||
 	    data->vht_enabled) switch (oper_chwidth) {
 	case CONF_OPER_CHWIDTH_USE_HT:
@@ -672,7 +683,8 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 		/* fall through */
 	case CONF_OPER_CHWIDTH_80MHZ:
 		data->bandwidth = 80;
-		if (!sec_channel_offset) {
+		if (!sec_channel_offset &&
+		    oper_chwidth_legacy != CONF_OPER_CHWIDTH_USE_HT) {
 			wpa_printf(MSG_ERROR,
 				   "80/80+80 MHz: no second channel offset");
 			return -1;
@@ -730,7 +742,8 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 				   "160 MHz: center segment 1 should not be set");
 			return -1;
 		}
-		if (!sec_channel_offset) {
+		if (!sec_channel_offset &&
+		    oper_chwidth_legacy != CONF_OPER_CHWIDTH_USE_HT) {
 			wpa_printf(MSG_ERROR,
 				   "160 MHz: second channel offset not set");
 			return -1;
