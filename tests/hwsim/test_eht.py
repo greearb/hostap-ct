@@ -1747,3 +1747,78 @@ def test_eht_mld_and_mlds(dev, apdev):
         logger.info("Assigned AIDs: " + str(aid))
         if len(set(aid)) != 2:
             raise Exception("AP MLD did not assign unique AID to each non-AP MLD")
+
+def mlo_perform_csa(hapd, command, freq, dev):
+        match_str = "freq=" + str(freq)
+        hapd.request(command)
+
+        ev = hapd.wait_event(["CTRL-EVENT-STARTED-CHANNEL-SWITCH"], timeout=10)
+        if ev is None:
+            raise Exception("Channel switch start event not seen")
+        if match_str not in ev:
+            raise Exception("Unexpected channel in CS started")
+
+        ev = hapd.wait_event(["CTRL-EVENT-CHANNEL-SWITCH"], timeout=10)
+        if ev is None:
+            raise Exception("Channel switch completion event not seen")
+        if match_str not in ev:
+            raise Exception("Unexpected channel in CS completed")
+
+        ev = hapd.wait_event(["AP-CSA-FINISHED"], timeout=10)
+        if ev is None:
+            raise Exception("CSA finished event timed out")
+        if match_str not in ev:
+            raise Exception("Unexpected channel in CSA finished event")
+
+        ev = dev.wait_event(["CTRL-EVENT-LINK-CHANNEL-SWITCH"], timeout=10)
+        if ev is None:
+            raise Exception("Non-AP MLD did not report CS")
+        if match_str not in ev:
+            raise Exception("Unexpected channel in CS event from non-AP MLD")
+
+        time.sleep(0.5)
+
+def test_eht_mlo_csa(dev, apdev):
+        """EHT MLD AP connected to non-AP MLD. Seamless channel switch"""
+        csa_supported(dev[0])
+
+        with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+            HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+            wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+            wpas.interface_add(wpas_iface)
+
+            ssid = "mld_ap"
+            passphrase = 'qwertyuiop'
+
+            params = eht_mld_ap_wpa2_params(ssid, passphrase,
+                                            key_mgmt="SAE", mfp="2", pwe='1')
+            hapd0 = eht_mld_enable_ap(hapd_iface, params)
+
+            params['channel'] = '6'
+            hapd1 = eht_mld_enable_ap(hapd_iface, params)
+
+            wpas.set("sae_pwe", "1")
+            wpas.connect(ssid, sae_password=passphrase, scan_freq="2412 2437",
+                         key_mgmt="SAE", ieee80211w="2")
+
+            eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                              valid_links=3, active_links=3)
+            eht_verify_wifi_version(wpas)
+            traffic_test(wpas, hapd0)
+
+            logger.info("Perform CSA on 1st link")
+            mlo_perform_csa(hapd0, "CHAN_SWITCH 5 2462 ht he eht blocktx",
+                            2462, wpas)
+
+            logger.info("Test traffic after 1st link CSA completes")
+            traffic_test(wpas, hapd0)
+
+            logger.info("Perform CSA on 1st link and bring it back to original channel")
+            mlo_perform_csa(hapd0, "CHAN_SWITCH 5 2412 ht he eht blocktx",
+                            2412, wpas)
+
+            logger.info("Test traffic again after 1st link CSA completes")
+            traffic_test(wpas, hapd0)
+
+            #TODO: CSA on non-first link
