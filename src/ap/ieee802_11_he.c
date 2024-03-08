@@ -225,10 +225,11 @@ u8 * hostapd_eid_he_operation(struct hostapd_data *hapd, u8 *eid)
 		u8 seg0 = hapd->iconf->he_oper_centr_freq_seg0_idx;
 		u8 seg1 = hostapd_get_oper_centr_freq_seg1_idx(hapd->iconf);
 		u8 control;
-
 #ifdef CONFIG_IEEE80211BE
-		if (hapd->iconf->punct_bitmap) {
-			punct_update_legacy_bw(hapd->iconf->punct_bitmap,
+		u16 punct_bitmap = hostapd_get_punct_bitmap(hapd);
+
+		if (punct_bitmap) {
+			punct_update_legacy_bw(punct_bitmap,
 					       hapd->iconf->channel,
 					       &oper_chwidth, &seg0, &seg1);
 		}
