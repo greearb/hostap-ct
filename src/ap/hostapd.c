@@ -4425,3 +4425,19 @@ struct hostapd_data * hostapd_mld_get_link_bss(struct hostapd_data *hapd,
 	return NULL;
 }
 #endif /* CONFIG_IEEE80211BE */
+
+
+u16 hostapd_get_punct_bitmap(struct hostapd_data *hapd)
+{
+	u16 punct_bitmap = 0;
+
+#ifdef CONFIG_IEEE80211BE
+	punct_bitmap = hapd->iconf->punct_bitmap;
+#ifdef CONFIG_TESTING_OPTIONS
+	if (!punct_bitmap)
+		punct_bitmap = hapd->conf->eht_oper_puncturing_override;
+#endif /* CONFIG_TESTING_OPTIONS */
+#endif /* CONFIG_IEEE80211BE */
+
+	return punct_bitmap;
+}

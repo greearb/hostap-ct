@@ -801,4 +801,6 @@ int hostapd_link_remove(struct hostapd_data *hapd, u32 count);
 	if (false)
 #endif /* CONFIG_IEEE80211BE */
 
+u16 hostapd_get_punct_bitmap(struct hostapd_data *hapd);
+
 #endif /* HOSTAPD_H */

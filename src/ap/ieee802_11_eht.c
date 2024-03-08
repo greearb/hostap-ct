@@ -206,18 +206,10 @@ u8 * hostapd_eid_eht_operation(struct hostapd_data *hapd, u8 *eid)
 	enum oper_chan_width chwidth;
 	size_t elen = 1 + 4;
 	bool eht_oper_info_present;
-	u16 punct_bitmap = conf->punct_bitmap;
+	u16 punct_bitmap = hostapd_get_punct_bitmap(hapd);
 
 	if (!hapd->iface->current_mode)
 		return eid;
-
-#ifdef CONFIG_TESTING_OPTIONS
-	if (!punct_bitmap && hapd->conf->eht_oper_puncturing_override) {
-		wpa_printf(MSG_DEBUG, "EHT: Puncturing mask override=0x%x",
-			   hapd->conf->eht_oper_puncturing_override);
-		punct_bitmap = hapd->conf->eht_oper_puncturing_override;
-	}
-#endif /* CONFIG_TESTING_OPTIONS */
 
 	if (is_6ghz_op_class(conf->op_class))
 		chwidth = op_class_to_ch_width(conf->op_class);
