@@ -6095,7 +6095,7 @@ def test_dbus_roam(dev, apdev):
             raise Exception("Expected signals not seen")
 
 def test_dbus_creds(dev, apdev):
-    "D-Bus interworking credentials"
+    """D-Bus interworking credentials"""
     (bus, wpas_obj, path, if_obj) = prepare_dbus(dev[0])
     iface = dbus.Interface(if_obj, WPAS_DBUS_IFACE)
 
@@ -6142,7 +6142,7 @@ def test_dbus_creds(dev, apdev):
         raise Exception("Credential remove failed")
 
 def test_dbus_interworking(dev, apdev):
-    "D-Bus interworking selection"
+    """D-Bus interworking selection"""
     (bus, wpas_obj, path, if_obj) = prepare_dbus(dev[0])
     iface = dbus.Interface(if_obj, WPAS_DBUS_IFACE)
 
@@ -6208,7 +6208,7 @@ def test_dbus_interworking(dev, apdev):
             raise Exception("Expected signals not seen")
 
 def test_dbus_hs20_terms_and_conditions(dev, apdev):
-    "D-Bus HS2.0 Terms and Conditions acceptance"
+    """D-Bus HS2.0 Terms and Conditions acceptance"""
     check_eap_capa(dev[0], "MSCHAPV2")
 
     (bus, wpa_obj, path, if_obj) = prepare_dbus(dev[0])
