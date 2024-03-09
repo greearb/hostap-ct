@@ -161,8 +161,8 @@ class Host():
         if t.is_alive():
             t.join(wait)
 
-    def pending(self, s, timeout=0):
-        [r, w, e] = select.select([s], [], [], timeout)
+    def proc_pending(self, proc, timeout=0):
+        [r, w, e] = select.select([proc.stdout], [], [], timeout)
         if r:
             return True
         return False
@@ -194,7 +194,7 @@ class Host():
         start = os.times()[4]
         try:
             while True:
-                while self.pending(proc.stdout):
+                while self.proc_pending(proc):
                     line = proc.stdout.readline()
                     if not line:
                         return None
@@ -207,12 +207,25 @@ class Host():
                 remaining = start + timeout - now
                 if remaining <= 0:
                     break
-                if not self.pending(proc.stdout, timeout=remaining):
+                if not self.proc_pending(proc, timeout=remaining):
                     break
         except:
             logger.debug(traceback.format_exc())
             pass
         return None
+
+    def proc_write(self, proc, cmd):
+        return proc.stdout.write(cmd)
+
+    def proc_read(self, proc, timeout=0):
+        if not self.proc_pending(proc):
+            return None
+        res = proc.stdout.read(4094).decode()
+        try:
+            r = str(res)
+        except UnicodeDecodeError as e:
+            r = res
+        return r
 
     def proc_stop(self, proc):
         if not proc:
