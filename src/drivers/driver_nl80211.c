@@ -3078,12 +3078,12 @@ static int wpa_driver_nl80211_del_beacon(struct i802_bss *bss,
 		return 0;
 
 	wpa_printf(MSG_DEBUG, "nl80211: Remove beacon (ifindex=%d)",
-		   drv->ifindex);
+		   bss->ifindex);
 	link->beacon_set = 0;
 	link->freq = 0;
 
 	nl80211_put_wiphy_data_ap(bss);
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_DEL_BEACON);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_DEL_BEACON);
 	if (!msg)
 		return -ENOBUFS;
 
