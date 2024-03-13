@@ -7461,6 +7461,7 @@ static size_t hostapd_eid_rnr_multi_iface_len(struct hostapd_data *hapd,
 #endif /* CONFIG_IEEE80211BE */
 
 		if (iface == hapd->iface ||
+		    iface->state != HAPD_IFACE_ENABLED ||
 		    !(is_6ghz_op_class(iface->conf->op_class) || ap_mld))
 			continue;
 
@@ -7734,6 +7735,7 @@ static u8 * hostapd_eid_rnr_multi_iface(struct hostapd_data *hapd, u8 *eid,
 #endif /* CONFIG_IEEE80211BE */
 
 		if (iface == hapd->iface ||
+		    iface->state != HAPD_IFACE_ENABLED ||
 		    !(is_6ghz_op_class(iface->conf->op_class) || ap_mld))
 			continue;
 
