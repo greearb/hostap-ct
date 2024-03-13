@@ -602,6 +602,8 @@ struct hostapd_iface {
 	int *basic_rates;
 	int freq;
 
+	bool radar_detected;
+
 	/* Background radar configuration */
 	struct {
 		int channel;
