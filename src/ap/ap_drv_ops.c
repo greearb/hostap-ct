@@ -912,7 +912,7 @@ int hostapd_drv_sta_deauth(struct hostapd_data *hapd,
 		else
 			link_id = hapd->mld_link_id;
 
-		if (ap_sta_is_mld(hapd, sta))
+		if (ap_sta_is_mld(hapd, sta) || is_multicast_ether_addr(addr))
 			own_addr = hapd->mld->mld_addr;
 	}
 #endif /* CONFIG_IEEE80211BE */
@@ -934,7 +934,7 @@ int hostapd_drv_sta_disassoc(struct hostapd_data *hapd,
 	if (hapd->conf->mld_ap) {
 		struct sta_info *sta = ap_get_sta(hapd, addr);
 
-		if (ap_sta_is_mld(hapd, sta)) {
+		if (ap_sta_is_mld(hapd, sta) || is_multicast_ether_addr(addr)) {
 			own_addr = hapd->mld->mld_addr;
 			link_id = hapd->mld_link_id;
 		}
