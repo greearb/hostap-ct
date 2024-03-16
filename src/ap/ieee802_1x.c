@@ -767,6 +767,9 @@ void ieee802_1x_encapsulate_radius(struct hostapd_data *hapd,
 		goto fail;
 	}
 
+	if (!radius_msg_add_msg_auth(msg))
+		goto fail;
+
 	if (sm->identity &&
 	    !radius_msg_add_attr(msg, RADIUS_ATTR_USER_NAME,
 				 sm->identity, sm->identity_len)) {

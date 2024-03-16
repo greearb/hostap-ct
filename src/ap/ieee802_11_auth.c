@@ -128,6 +128,9 @@ static int hostapd_radius_acl_query(struct hostapd_data *hapd, const u8 *addr,
 		goto fail;
 	}
 
+	if (!radius_msg_add_msg_auth(msg))
+		goto fail;
+
 	os_snprintf(buf, sizeof(buf), RADIUS_ADDR_FORMAT, MAC2STR(addr));
 	if (!radius_msg_add_attr(msg, RADIUS_ATTR_USER_NAME, (u8 *) buf,
 				 os_strlen(buf))) {
