@@ -2042,16 +2042,7 @@ ieee802_1x_receive_auth(struct radius_msg *msg, struct radius_msg *req,
 	}
 	sta = sm->sta;
 
-	/* RFC 2869, Ch. 5.13: valid Message-Authenticator attribute MUST be
-	 * present when packet contains an EAP-Message attribute */
-	if (hdr->code == RADIUS_CODE_ACCESS_REJECT &&
-	    radius_msg_get_attr(msg, RADIUS_ATTR_MESSAGE_AUTHENTICATOR, NULL,
-				0) < 0 &&
-	    radius_msg_get_attr(msg, RADIUS_ATTR_EAP_MESSAGE, NULL, 0) < 0) {
-		wpa_printf(MSG_DEBUG,
-			   "Allowing RADIUS Access-Reject without Message-Authenticator since it does not include EAP-Message");
-	} else if (radius_msg_verify(msg, shared_secret, shared_secret_len,
-				     req, 1)) {
+	if (radius_msg_verify(msg, shared_secret, shared_secret_len, req, 1)) {
 		wpa_printf(MSG_INFO,
 			   "Incoming RADIUS packet did not have correct Message-Authenticator - dropped");
 		return RADIUS_RX_INVALID_AUTHENTICATOR;
