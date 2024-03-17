@@ -231,6 +231,7 @@ def get_test_description(t):
 def main():
     tests = []
     test_modules = []
+    names = set()
     files = os.listdir(scriptsdir)
     for t in files:
         m = re.match(r'(test_.*)\.py$', t)
@@ -240,8 +241,15 @@ def main():
             test_modules.append(mod.__name__.replace('test_', '', 1))
             for key, val in mod.__dict__.items():
                 if key.startswith("test_"):
+                    if val.__doc__ is None:
+                        print(f"Test case {val.__name__} misses __doc__")
                     tests.append(val)
-    test_names = list(set([t.__name__.replace('test_', '', 1) for t in tests]))
+
+                    name = val.__name__.replace('test_', '', 1)
+                    if name in names:
+                        print(f"Test case {name} defined multiple times")
+                    names.add(name)
+    test_names = list(names)
 
     run = None
 
