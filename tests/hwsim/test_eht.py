@@ -128,6 +128,7 @@ def test_eht_open(dev, apdev):
         raise Exception("STA STATUS did not indicate wifi_generation=7")
 
 def test_prefer_eht_20(dev, apdev):
+    """EHT AP on a 20 MHz channel"""
     params = {"ssid": "eht",
               "channel": "1",
               "ieee80211ax": "1",
