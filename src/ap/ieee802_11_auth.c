@@ -508,7 +508,9 @@ hostapd_acl_recv_radius(struct radius_msg *msg, struct radius_msg *req,
 		   "Found matching Access-Request for RADIUS message (id=%d)",
 		   query->radius_id);
 
-	if (radius_msg_verify(msg, shared_secret, shared_secret_len, req, 0)) {
+	if (radius_msg_verify(
+		    msg, shared_secret, shared_secret_len, req,
+		    hapd->conf->radius_require_message_authenticator)) {
 		wpa_printf(MSG_INFO,
 			   "Incoming RADIUS packet did not have correct authenticator - dropped");
 		return RADIUS_RX_INVALID_AUTHENTICATOR;
