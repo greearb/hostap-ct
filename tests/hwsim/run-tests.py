@@ -228,28 +228,30 @@ def get_test_description(t):
         desc += " [long]"
     return desc
 
-def main():
+def import_test_cases():
     tests = []
     test_modules = []
     names = set()
     files = os.listdir(scriptsdir)
-    for t in files:
-        m = re.match(r'(test_.*)\.py$', t)
-        if m:
-            logger.debug("Import test cases from " + t)
-            mod = __import__(m.group(1))
-            test_modules.append(mod.__name__.replace('test_', '', 1))
-            for key, val in mod.__dict__.items():
-                if key.startswith("test_"):
-                    if val.__doc__ is None:
-                        print(f"Test case {val.__name__} misses __doc__")
-                    tests.append(val)
+    re_files = (re.match(r'(test_.*)\.py$', n) for n in files)
+    test_files = (m.group(1) for m in re_files if m)
+    for t in test_files:
+        mod = __import__(t)
+        test_modules.append(mod.__name__.replace('test_', '', 1))
+        for key, val in mod.__dict__.items():
+            if key.startswith("test_"):
+                if val.__doc__ is None:
+                    print(f"Test case {val.__name__} misses __doc__")
+                tests.append(val)
 
-                    name = val.__name__.replace('test_', '', 1)
-                    if name in names:
-                        print(f"Test case {name} defined multiple times")
-                    names.add(name)
-    test_names = list(names)
+                name = val.__name__.replace('test_', '', 1)
+                if name in names:
+                    print(f"Test case {name} defined multiple times")
+                names.add(name)
+    return tests, test_modules, names
+
+def main():
+    tests, test_modules, test_names = import_test_cases()
 
     run = None
 
