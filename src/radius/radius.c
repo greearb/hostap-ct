@@ -1001,6 +1001,20 @@ int radius_msg_verify(struct radius_msg *msg, const u8 *secret,
 		return 1;
 	}
 
+	if (!auth) {
+		u8 *pos;
+		size_t alen;
+
+		if (radius_msg_get_attr_ptr(msg,
+					    RADIUS_ATTR_MESSAGE_AUTHENTICATOR,
+					    &pos, &alen, NULL) == 0) {
+			/* Check the Message-Authenticator attribute since it
+			 * was included even if we are configured to not
+			 * require it. */
+			auth = 1;
+		}
+	}
+
 	if (auth &&
 	    radius_msg_verify_msg_auth(msg, secret, secret_len,
 				       sent_msg->hdr->authenticator)) {
