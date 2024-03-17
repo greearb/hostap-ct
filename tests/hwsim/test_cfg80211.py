@@ -71,7 +71,8 @@ def test_cfg80211_tx_frame(dev, apdev, params):
 
     dev[0].p2p_start_go(freq='2412')
     go = WpaSupplicant(dev[0].group_ifname)
-    frame = binascii.unhexlify("d0000000020000000100" + go.own_addr().replace(':', '') + "02000000010000000409506f9a090001dd5e506f9a0902020025080401001f0502006414060500585804510b0906000200000000000b1000585804510b0102030405060708090a0b0d1d000200000000000108000000000000000000101100084465766963652041110500585804510bdd190050f204104a0001101012000200011049000600372a000120")
+    addr = go.own_addr()
+    frame = binascii.unhexlify("d0000000020000000100" + addr.replace(':', '') + "02000000010000000409506f9a090001dd5e506f9a0902020025080401001f0502006414060500585804510b0906000200000000000b1000585804510b0102030405060708090a0b0d1d000200000000000108000000000000000000101100084465766963652041110500585804510bdd190050f204104a0001101012000200011049000600372a000120")
     ifindex = int(go.get_driver_status_field("ifindex"))
     res = nl80211_frame(go, ifindex, frame, freq=2422, duration=500,
                         offchannel_tx_ok=True)
@@ -89,7 +90,8 @@ def test_cfg80211_tx_frame(dev, apdev, params):
     del go
 
     out = run_tshark(os.path.join(params['logdir'], "hwsim0.pcapng"),
-                     "wlan.fc.type_subtype == 13", ["radiotap.channel.freq"])
+                     "wlan.fc.type_subtype == 13 && wlan.sa == " + addr,
+                     ["radiotap.channel.freq"])
     if out is not None:
         freq = out.splitlines()
         if len(freq) != 2:
