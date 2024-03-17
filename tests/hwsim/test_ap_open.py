@@ -996,16 +996,12 @@ def test_ap_open_layer_2_update(dev, apdev, params):
     cap = os.path.join(params['logdir'], prefix + "." + ifname + ".pcap")
 
     hapd = hostapd.add_ap(apdev[0], {"ssid": "open"})
-    wt = WlantestCapture(ifname, cap)
-    time.sleep(1)
-
-    dev[0].connect("open", key_mgmt="NONE", scan_freq="2412")
-    hapd.wait_sta()
-    hwsim_utils.test_connectivity(dev[0], hapd)
-    time.sleep(1)
-    hwsim_utils.test_connectivity(dev[0], hapd)
-    time.sleep(0.5)
-    wt.close()
+    with WlantestCapture(ifname, cap):
+        dev[0].connect("open", key_mgmt="NONE", scan_freq="2412")
+        hapd.wait_sta()
+        hwsim_utils.test_connectivity(dev[0], hapd)
+        time.sleep(1)
+        hwsim_utils.test_connectivity(dev[0], hapd)
 
     # Check for Layer 2 Update frame and unexpected frames from the station
     # that did not fully complete authentication.

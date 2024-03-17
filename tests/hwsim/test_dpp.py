@@ -5781,8 +5781,12 @@ def run_dpp_controller_relay(dev, apdev, params, chirp=False, discover=False,
     check_dpp_capab(dev[1], min_ver=2)
     cap_lo = params['prefix'] + ".lo.pcap"
 
-    wt = WlantestCapture('lo', cap_lo)
+    with WlantestCapture('lo', cap_lo):
+        run_dpp_controller_relay2(dev, apdev, params, chirp, discover,
+                                  duplicate)
 
+def run_dpp_controller_relay2(dev, apdev, params, chirp=False, discover=False,
+                              duplicate=False):
     # Controller
     conf_id = dev[1].dpp_configurator_add()
     dev[1].set("dpp_configurator_params",
@@ -5892,9 +5896,6 @@ def run_dpp_controller_relay(dev, apdev, params, chirp=False, discover=False,
     dev[0].wait_connected()
     relay.wait_sta()
 
-    time.sleep(0.5)
-    wt.close()
-
 def test_dpp_controller_init_through_relay(dev, apdev, params):
     """DPP Controller initiating through Relay"""
     try:
@@ -5925,8 +5926,12 @@ def run_dpp_controller_init_through_relay(dev, apdev, params, dynamic=False,
     check_dpp_capab(dev[1], min_ver=2)
     cap_lo = os.path.join(params['prefix'], ".lo.pcap")
 
-    wt = WlantestCapture('lo', cap_lo)
+    with WlantestCapture('lo', cap_lo):
+        run_dpp_controller_init_through_relay2(dev, apdev, params, dynamic,
+                                               add)
 
+def run_dpp_controller_init_through_relay2(dev, apdev, params, dynamic=False,
+                                           add=False):
     # Controller
     conf_id = dev[1].dpp_configurator_add()
     dev[1].set("dpp_configurator_params",
@@ -6003,9 +6008,6 @@ def run_dpp_controller_init_through_relay(dev, apdev, params, dynamic=False,
         dev[0].wait_connected()
     if add:
         relay.request("DPP_RELAY_REMOVE_CONTROLLER 127.0.0.1")
-
-    time.sleep(0.5)
-    wt.close()
 
 class MyTCPServer(TCPServer):
     def __init__(self, addr, handler):
@@ -6098,9 +6100,10 @@ def run_dpp_tcp(dev0, dev1, cap_lo, port=None, mutual=False):
     check_dpp_capab(dev0)
     check_dpp_capab(dev1)
 
-    wt = WlantestCapture('lo', cap_lo)
-    time.sleep(1)
+    with WlantestCapture('lo', cap_lo):
+        run_dpp_tcp2(dev0, dev1, cap_lo, port, mutual)
 
+def run_dpp_tcp2(dev0, dev1, cap_lo, port=None, mutual=False):
     # Controller
     conf_id = dev1.dpp_configurator_add()
     dev1.set("dpp_configurator_params",
@@ -6154,8 +6157,6 @@ def run_dpp_tcp(dev0, dev1, cap_lo, port=None, mutual=False):
     wait_auth_success(dev1, dev0, configurator=dev1, enrollee=dev0,
                       allow_enrollee_failure=True,
                       allow_configurator_failure=True)
-    time.sleep(0.5)
-    wt.close()
 
 def test_dpp_tcp_conf_init(dev, apdev, params):
     """DPP over TCP (Configurator initiates)"""
@@ -6175,9 +6176,10 @@ def run_dpp_tcp_conf_init(dev0, dev1, cap_lo, port=None, conf="sta-dpp"):
     check_dpp_capab(dev0, min_ver=2)
     check_dpp_capab(dev1, min_ver=2)
 
-    wt = WlantestCapture('lo', cap_lo)
-    time.sleep(1)
+    with WlantestCapture('lo', cap_lo):
+        run_dpp_tcp_conf_init2(dev0, dev1, cap_lo, port, conf)
 
+def run_dpp_tcp_conf_init2(dev0, dev1, cap_lo, port=None, conf="sta-dpp"):
     id_c = dev1.dpp_bootstrap_gen()
     uri_c = dev1.request("DPP_BOOTSTRAP_GET_URI %d" % id_c)
     res = dev1.request("DPP_BOOTSTRAP_INFO %d" % id_c)
@@ -6194,8 +6196,6 @@ def run_dpp_tcp_conf_init(dev0, dev1, cap_lo, port=None, conf="sta-dpp"):
     wait_auth_success(dev1, dev0, configurator=dev0, enrollee=dev1,
                       allow_enrollee_failure=True,
                       allow_configurator_failure=True)
-    time.sleep(0.5)
-    wt.close()
 
 def test_dpp_tcp_controller_management_hostapd(dev, apdev, params):
     """DPP Controller management in hostapd"""
@@ -7570,9 +7570,10 @@ def run_dpp_enterprise_tcp(dev, apdev, params):
 
     cap_lo = params['prefix'] + ".lo.pcap"
 
-    wt = WlantestCapture('lo', cap_lo)
-    time.sleep(1)
+    with WlantestCapture('lo', cap_lo) as wt:
+        _run_dpp_enterprise_tcp(dev, apdev, params, wt)
 
+def _run_dpp_enterprise_tcp(dev, apdev, params, wt):
     # Controller
     conf_id = dev[1].dpp_configurator_add()
     csrattrs = "MAsGCSqGSIb3DQEJBw=="
@@ -7641,9 +7642,6 @@ def run_dpp_enterprise_tcp_end(params, dev, wt):
     if "DPP-CONF-RECEIVED" not in ev:
         raise Exception("DPP configuration did not succeed (Enrollee)")
 
-    time.sleep(0.5)
-    wt.close()
-
 def test_dpp_enterprise_tcp2(dev, apdev, params):
     """DPP over TCP for enterprise provisioning (Controller initiating)"""
     if not openssl_imported:
@@ -7660,21 +7658,11 @@ def run_dpp_enterprise_tcp2(dev, apdev, params):
     check_dpp_capab(dev[1])
 
     cap_lo = params['prefix'] + ".lo.pcap"
-    cert_file = params['prefix'] + ".cert.pem"
-    pkcs7_file = params['prefix'] + ".pkcs7.der"
 
-    with open("auth_serv/ec-ca.pem", "rb") as f:
-        res = f.read()
-        cacert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                 res)
+    with WlantestCapture('lo', cap_lo) as wt:
+        _run_dpp_enterprise_tcp2(dev, apdev, params, wt)
 
-    with open("auth_serv/ec-ca.key", "rb") as f:
-        res = f.read()
-        cakey = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, res)
-
-    wt = WlantestCapture('lo', cap_lo)
-    time.sleep(1)
-
+def _run_dpp_enterprise_tcp2(dev, apdev, params, wt):
     # Client/Enrollee/Responder
     id_e = dev[0].dpp_bootstrap_gen()
     uri_e = dev[0].request("DPP_BOOTSTRAP_GET_URI %d" % id_e)

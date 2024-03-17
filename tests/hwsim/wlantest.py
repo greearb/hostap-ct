@@ -259,12 +259,24 @@ class WlantestCapture:
         self.cmd = subprocess.Popen(args,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)
+        time.sleep(1)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        time.sleep(0.5)
+        self.close()
+        time.sleep(0.5)
 
     def __del__(self):
         if self.cmd:
+            print("WlantestCapture.__del__ needed to run close()")
             self.close()
 
     def close(self):
+        if not self.cmd:
+            return
         logger.debug("wlantest[%s] stopping" % self.ifname)
         self.cmd.terminate()
         res = self.cmd.communicate()

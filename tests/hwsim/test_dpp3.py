@@ -59,9 +59,10 @@ def run_dpp_tcp_pkex(dev0, dev1, cap_lo, sae=False, status=False):
     check_dpp_capab(dev0, min_ver=3)
     check_dpp_capab(dev1, min_ver=3)
 
-    wt = WlantestCapture('lo', cap_lo)
-    time.sleep(1)
+    with WlantestCapture('lo', cap_lo):
+        run_dpp_tcp_pkex2(dev0, dev1, cap_lo, sae, status)
 
+def run_dpp_tcp_pkex2(dev0, dev1, cap_lo, sae=False, status=False):
     # Controller
     if sae:
         ssid = binascii.hexlify("sae".encode()).decode()
@@ -98,9 +99,6 @@ def run_dpp_tcp_pkex(dev0, dev1, cap_lo, sae=False, status=False):
     if status:
         if 'wait_conn_status' not in res or not res['wait_conn_status']:
             raise Exception("wait_conn_status not reported")
-
-    time.sleep(0.5)
-    wt.close()
 
 def test_dpp_tcp_pkex(dev, apdev, params):
     """DPP/PKEXv2 over TCP"""
@@ -221,8 +219,10 @@ def run_dpp_controller_relay_pkex(dev, apdev, params):
     prefix = "dpp_controller_relay_pkex"
     cap_lo = os.path.join(params['logdir'], prefix + ".lo.pcap")
 
-    wt = WlantestCapture('lo', cap_lo)
+    with WlantestCapture('lo', cap_lo):
+        run_dpp_controller_relay_pkex2(dev, apdev, params)
 
+def run_dpp_controller_relay_pkex2(dev, apdev, params):
     # Controller
     conf_id = dev[1].dpp_configurator_add()
     dev[1].set("dpp_configurator_params",
@@ -276,9 +276,6 @@ def run_dpp_controller_relay_pkex(dev, apdev, params):
     network = int(ev.split(' ')[1])
     dev[0].wait_connected()
     dev[0].dump_monitor()
-
-    time.sleep(0.5)
-    wt.close()
 
 def dpp_pb_ap(apdev):
     params = {"ssid": "sae",

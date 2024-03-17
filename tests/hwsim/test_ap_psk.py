@@ -3437,45 +3437,41 @@ def test_ap_wpa2_psk_inject_assoc(dev, apdev, params):
     params = hostapd.wpa2_params(ssid=ssid, passphrase="12345678")
     params["wpa_key_mgmt"] = "WPA-PSK"
     hapd = hostapd.add_ap(apdev[0], params)
-    wt = WlantestCapture(ifname, cap)
-    time.sleep(1)
+    with WlantestCapture(ifname, cap):
+        bssid = hapd.own_addr().replace(':', '')
 
-    bssid = hapd.own_addr().replace(':', '')
+        hapd.request("SET ext_mgmt_frame_handling 1")
+        addr = "021122334455"
+        auth = "b0003a01" + bssid + addr + bssid + '1000000001000000'
+        res = hapd.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=%s" % auth)
+        if "OK" not in res:
+            raise Exception("MGMT_RX_PROCESS failed")
+        ev = hapd.wait_event(["MGMT-TX-STATUS"], timeout=5)
+        if ev is None:
+            raise Exception("No TX status seen")
+        ev = ev.replace("ok=0", "ok=1")
+        cmd = "MGMT_TX_STATUS_PROCESS %s" % (" ".join(ev.split(' ')[1:4]))
+        if "OK" not in hapd.request(cmd):
+            raise Exception("MGMT_TX_STATUS_PROCESS failed")
 
-    hapd.request("SET ext_mgmt_frame_handling 1")
-    addr = "021122334455"
-    auth = "b0003a01" + bssid + addr + bssid + '1000000001000000'
-    res = hapd.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=%s" % auth)
-    if "OK" not in res:
-        raise Exception("MGMT_RX_PROCESS failed")
-    ev = hapd.wait_event(["MGMT-TX-STATUS"], timeout=5)
-    if ev is None:
-        raise Exception("No TX status seen")
-    ev = ev.replace("ok=0", "ok=1")
-    cmd = "MGMT_TX_STATUS_PROCESS %s" % (" ".join(ev.split(' ')[1:4]))
-    if "OK" not in hapd.request(cmd):
-        raise Exception("MGMT_TX_STATUS_PROCESS failed")
+        assoc = "00003a01" + bssid + addr + bssid + '2000' + '31040500' + '000474657374' + '010802040b160c121824' + '30140100000fac040100000fac040100000fac020000'
+        res = hapd.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=%s" % assoc)
+        if "OK" not in res:
+            raise Exception("MGMT_RX_PROCESS failed")
+        ev = hapd.wait_event(["MGMT-TX-STATUS"], timeout=5)
+        if ev is None:
+            raise Exception("No TX status seen")
+        ev = ev.replace("ok=0", "ok=1")
+        cmd = "MGMT_TX_STATUS_PROCESS %s" % (" ".join(ev.split(' ')[1:4]))
+        if "OK" not in hapd.request(cmd):
+            raise Exception("MGMT_TX_STATUS_PROCESS failed")
+        hapd.request("SET ext_mgmt_frame_handling 0")
 
-    assoc = "00003a01" + bssid + addr + bssid + '2000' + '31040500' + '000474657374' + '010802040b160c121824' + '30140100000fac040100000fac040100000fac020000'
-    res = hapd.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=%s" % assoc)
-    if "OK" not in res:
-        raise Exception("MGMT_RX_PROCESS failed")
-    ev = hapd.wait_event(["MGMT-TX-STATUS"], timeout=5)
-    if ev is None:
-        raise Exception("No TX status seen")
-    ev = ev.replace("ok=0", "ok=1")
-    cmd = "MGMT_TX_STATUS_PROCESS %s" % (" ".join(ev.split(' ')[1:4]))
-    if "OK" not in hapd.request(cmd):
-        raise Exception("MGMT_TX_STATUS_PROCESS failed")
-    hapd.request("SET ext_mgmt_frame_handling 0")
-
-    dev[0].connect(ssid, psk="12345678", scan_freq="2412")
-    hapd.wait_sta()
-    hwsim_utils.test_connectivity(dev[0], hapd)
-    time.sleep(1)
-    hwsim_utils.test_connectivity(dev[0], hapd)
-    time.sleep(0.5)
-    wt.close()
+        dev[0].connect(ssid, psk="12345678", scan_freq="2412")
+        hapd.wait_sta()
+        hwsim_utils.test_connectivity(dev[0], hapd)
+        time.sleep(1)
+        hwsim_utils.test_connectivity(dev[0], hapd)
     time.sleep(0.5)
 
     # Check for Layer 2 Update frame and unexpected frames from the station
