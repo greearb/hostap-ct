@@ -88,7 +88,7 @@ static int add_associated_sta(struct hostapd_data *hapd,
 			      struct sta_info *sta, int reassoc);
 
 
-u8 * hostapd_eid_multi_ap(struct hostapd_data *hapd, u8 *eid)
+static u8 * hostapd_eid_multi_ap(struct hostapd_data *hapd, u8 *eid, size_t len)
 {
 	struct multi_ap_params multi_ap = { 0 };
 
@@ -100,7 +100,7 @@ u8 * hostapd_eid_multi_ap(struct hostapd_data *hapd, u8 *eid)
 	if (hapd->conf->multi_ap & FRONTHAUL_BSS)
 		multi_ap.capability |= MULTI_AP_FRONTHAUL_BSS;
 
-	return eid + add_multi_ap_ie(eid, 9, &multi_ap);
+	return eid + add_multi_ap_ie(eid, len, &multi_ap);
 }
 
 
@@ -4997,7 +4997,7 @@ rsnxe_done:
 #endif /* CONFIG_WPS */
 
 	if (sta && (sta->flags & WLAN_STA_MULTI_AP))
-		p = hostapd_eid_multi_ap(hapd, p);
+		p = hostapd_eid_multi_ap(hapd, p, buf + buflen - p);
 
 #ifdef CONFIG_P2P
 	if (sta && sta->p2p_ie && hapd->p2p_group) {
