@@ -187,7 +187,10 @@ static void wpa_priv_get_scan_results2(struct wpa_priv_interface *iface,
 	int val;
 	size_t i;
 
-	res = iface->driver->get_scan_results2(iface->drv_priv);
+	if (iface->driver->get_scan_results)
+		res = iface->driver->get_scan_results(iface->drv_priv, NULL);
+	else
+		res = iface->driver->get_scan_results2(iface->drv_priv);
 	if (res == NULL)
 		goto fail;
 
@@ -231,7 +234,7 @@ static void wpa_priv_cmd_get_scan_results(struct wpa_priv_interface *iface,
 	if (iface->drv_priv == NULL)
 		return;
 
-	if (iface->driver->get_scan_results2)
+	if (iface->driver->get_scan_results || iface->driver->get_scan_results2)
 		wpa_priv_get_scan_results2(iface, from, fromlen);
 	else
 		sendto(iface->fd, "", 0, 0, (struct sockaddr *) from, fromlen);

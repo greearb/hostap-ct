@@ -166,7 +166,7 @@ static int wpas_pasn_get_params_from_bss(struct wpa_supplicant *wpa_s,
 
 	bss = wpa_bss_get_bssid(wpa_s, peer_addr);
 	if (!bss) {
-		wpa_supplicant_update_scan_results(wpa_s);
+		wpa_supplicant_update_scan_results(wpa_s, peer_addr);
 		bss = wpa_bss_get_bssid(wpa_s, peer_addr);
 		if (!bss) {
 			wpa_printf(MSG_DEBUG, "PASN: BSS not found");

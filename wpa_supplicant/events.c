@@ -163,7 +163,7 @@ wpa_supplicant_update_current_bss(struct wpa_supplicant *wpa_s, const u8 *bssid)
 	struct wpa_bss *bss = wpa_supplicant_get_new_bss(wpa_s, bssid);
 
 	if (!bss) {
-		wpa_supplicant_update_scan_results(wpa_s);
+		wpa_supplicant_update_scan_results(wpa_s, bssid);
 
 		/* Get the BSS from the new scan results */
 		bss = wpa_supplicant_get_new_bss(wpa_s, bssid);
@@ -182,7 +182,7 @@ static void wpa_supplicant_update_link_bss(struct wpa_supplicant *wpa_s,
 	struct wpa_bss *bss = wpa_supplicant_get_new_bss(wpa_s, bssid);
 
 	if (!bss) {
-		wpa_supplicant_update_scan_results(wpa_s);
+		wpa_supplicant_update_scan_results(wpa_s, bssid);
 		bss = wpa_supplicant_get_new_bss(wpa_s, bssid);
 	}
 
@@ -2404,7 +2404,7 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 
 	scan_res = wpa_supplicant_get_scan_results(wpa_s,
 						   data ? &data->scan_info :
-						   NULL, 1);
+						   NULL, 1, NULL);
 	if (scan_res == NULL) {
 		if (wpa_s->conf->ap_scan == 2 || ap ||
 		    wpa_s->scan_res_handler == scan_only_handler)
@@ -3635,7 +3635,7 @@ no_pfs:
 			wpa_printf(MSG_DEBUG,
 				   "Operating frequency changed from %u to %u MHz",
 				   wpa_s->assoc_freq, data->assoc_info.freq);
-			wpa_supplicant_update_scan_results(wpa_s);
+			wpa_supplicant_update_scan_results(wpa_s, bssid);
 		}
 	}
 
@@ -4046,7 +4046,8 @@ static int wpa_sm_set_ml_info(struct wpa_supplicant *wpa_s)
 
 		bss = wpa_supplicant_get_new_bss(wpa_s, drv_mlo.links[i].bssid);
 		if (!bss) {
-			wpa_supplicant_update_scan_results(wpa_s);
+			wpa_supplicant_update_scan_results(
+				wpa_s, drv_mlo.links[i].bssid);
 			bss = wpa_supplicant_get_new_bss(
 				wpa_s, drv_mlo.links[i].bssid);
 		}

@@ -3367,6 +3367,17 @@ struct wpa_driver_ops {
 			     size_t ies_len);
 
 	/**
+	 * get_scan_results - Fetch the latest scan results
+	 * @priv: Private driver interface data
+	 * @bssid: Return results only for the specified BSSID, %NULL for all
+	 *
+	 * Returns: Allocated buffer of scan results (caller is responsible for
+	 * freeing the data structure) on success, NULL on failure
+	 */
+	struct wpa_scan_results * (*get_scan_results)(void *priv,
+						      const u8 *bssid);
+
+	/**
 	 * get_scan_results2 - Fetch the latest scan results
 	 * @priv: private driver interface data
 	 *

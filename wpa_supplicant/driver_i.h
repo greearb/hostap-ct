@@ -128,7 +128,7 @@ static inline int wpa_drv_stop_sched_scan(struct wpa_supplicant *wpa_s)
 }
 
 struct wpa_scan_results *
-wpa_drv_get_scan_results2(struct wpa_supplicant *wpa_s);
+wpa_drv_get_scan_results(struct wpa_supplicant *wpa_s, const u8 *bssid);
 
 static inline int wpa_drv_get_bssid(struct wpa_supplicant *wpa_s, u8 *bssid)
 {

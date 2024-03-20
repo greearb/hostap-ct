@@ -182,7 +182,7 @@ static struct wpabuf * sme_auth_build_sae_commit(struct wpa_supplicant *wpa_s,
 	if (!bss) {
 		wpa_printf(MSG_DEBUG,
 			   "SAE: BSS not available, update scan result to get BSS");
-		wpa_supplicant_update_scan_results(wpa_s);
+		wpa_supplicant_update_scan_results(wpa_s, bssid);
 		bss = wpa_bss_get_bssid_latest(wpa_s, bssid);
 	}
 	if (bss) {

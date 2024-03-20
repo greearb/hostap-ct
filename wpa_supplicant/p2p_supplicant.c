@@ -7012,7 +7012,7 @@ static int wpas_start_p2p_client(struct wpa_supplicant *wpa_s,
 	 * fetch time on the same radio so it reflects the actual time the last
 	 * scan result event occurred.
 	 */
-	wpa_supplicant_update_scan_results(wpa_s);
+	wpa_supplicant_update_scan_results(wpa_s, go_bssid);
 	dl_list_for_each(ifs, &wpa_s->radio->ifaces, struct wpa_supplicant,
 			 radio_list) {
 		if (ifs == wpa_s)
