@@ -2910,6 +2910,7 @@ def run_sae_ext_key(dev, apdev, group, cipher="CCMP", group_cipher="CCMP"):
     if key_mgmt.split(' ')[0] != "SAE-EXT-KEY":
         raise Exception("Unexpected GET_CONFIG(key_mgmt): " + key_mgmt)
 
+    dev[0].flush_scan_cache()
     dev[0].set("sae_groups", str(group))
     id = dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE-EXT-KEY",
                         pairwise=cipher, group=group_cipher,
