@@ -2461,7 +2461,10 @@ static void nl80211_radar_event(struct wpa_driver_nl80211_data *drv,
 	data.dfs_event.freq = nla_get_u32(tb[NL80211_ATTR_WIPHY_FREQ]);
 	event_type = nla_get_u32(tb[NL80211_ATTR_RADAR_EVENT]);
 
-	if (data.dfs_event.freq) {
+	if (tb[NL80211_ATTR_MLO_LINK_ID]) {
+		data.dfs_event.link_id =
+			nla_get_u8(tb[NL80211_ATTR_MLO_LINK_ID]);
+	} else if (data.dfs_event.freq) {
 		data.dfs_event.link_id =
 			nl80211_get_link_id_by_freq(drv->first_bss,
 						    data.dfs_event.freq);
@@ -2848,7 +2851,10 @@ static void qca_nl80211_dfs_offload_radar_event(
 	data.dfs_event.freq = nla_get_u32(tb[NL80211_ATTR_WIPHY_FREQ]);
 	data.dfs_event.link_id = NL80211_DRV_LINK_ID_NA;
 
-	if (data.dfs_event.freq) {
+	if (tb[NL80211_ATTR_MLO_LINK_ID]) {
+		data.dfs_event.link_id =
+			nla_get_u8(tb[NL80211_ATTR_MLO_LINK_ID]);
+	} else if (data.dfs_event.freq) {
 		data.dfs_event.link_id =
 			nl80211_get_link_id_by_freq(drv->first_bss,
 						    data.dfs_event.freq);
