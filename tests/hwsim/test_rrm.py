@@ -2397,7 +2397,7 @@ def test_rrm_reassociation(dev, apdev):
 
     hapd2 = hostapd.add_ap(apdev[1]['ifname'], params)
     bssid2 = hapd2.own_addr()
-    dev[0].scan_for_bss(bssid2, freq=2412)
+    dev[0].scan_for_bss(bssid2, freq=2412, force_scan=True)
     dev[0].roam(bssid2)
     hapd2.wait_sta()
     check_beacon_req(hapd2, addr, 2)
