@@ -1511,6 +1511,13 @@ static int hostapd_config_check_bss(struct hostapd_bss_config *bss,
 		wpa_printf(MSG_INFO,
 			   "Disabling IEEE 802.11be as IEEE 802.11ax is disabled for this BSS");
 	}
+
+	if (full_config && conf->ieee80211be && !bss->disable_11be &&
+	    !bss->beacon_prot && ap_pmf_enabled(bss)) {
+		bss->beacon_prot = 1;
+		wpa_printf(MSG_INFO,
+			   "Enabling beacon protection as IEEE 802.11be is enabled for this BSS");
+	}
 #endif /* CONFIG_IEEE80211BE */
 
 	if (full_config && bss->ignore_broadcast_ssid && conf->mbssid) {
