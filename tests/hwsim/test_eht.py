@@ -1694,6 +1694,7 @@ def test_eht_mld_legacy_stas(dev, apdev):
         hapd0 = eht_mld_enable_ap(hapd_iface, params)
 
         for i in range(3):
+            dev[i].set("sae_groups", "")
             dev[i].connect(ssid, sae_password=password, scan_freq="2412",
                            key_mgmt="SAE", ieee80211w="2", disable_eht="1")
         hapd0.wait_sta()
