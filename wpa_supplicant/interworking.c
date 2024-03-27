@@ -2812,7 +2812,7 @@ int anqp_send_req(struct wpa_supplicant *wpa_s, const u8 *dst, int freq,
 	struct wpa_bss *bss;
 	int res;
 
-	bss = wpa_bss_get_bssid(wpa_s, dst);
+	bss = wpa_bss_get_bssid_latest(wpa_s, dst);
 	if (!bss && !freq) {
 		wpa_printf(MSG_WARNING,
 			   "ANQP: Cannot send query without BSS freq info");
@@ -3167,7 +3167,7 @@ void anqp_resp_cb(void *ctx, const u8 *dst, u8 dialog_token,
 		}
 	}
 	if (bss == NULL)
-		bss = wpa_bss_get_bssid(wpa_s, dst);
+		bss = wpa_bss_get_bssid_latest(wpa_s, dst);
 
 	pos = wpabuf_head(resp);
 	end = pos + wpabuf_len(resp);
@@ -3282,7 +3282,7 @@ int gas_send_request(struct wpa_supplicant *wpa_s, const u8 *dst,
 	u8 query_resp_len_limit = 0;
 
 	freq = wpa_s->assoc_freq;
-	bss = wpa_bss_get_bssid(wpa_s, dst);
+	bss = wpa_bss_get_bssid_latest(wpa_s, dst);
 	if (bss)
 		freq = bss->freq;
 	if (freq <= 0)
