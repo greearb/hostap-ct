@@ -1190,6 +1190,7 @@ def run_ap_pmf_inject_eap(dev, apdev, pmf=True):
                 eap_start = True
             if "CTRL-EVENT-EAP-FAILURE" in ev:
                 eap_failure = True
+        dev[0].dump_monitor(mon=False)
     dev[0].dump_monitor()
     ev = hapd.wait_event(["AP-STA-DISCONNECTED"], timeout=0.1)
     if ev:
@@ -1232,6 +1233,7 @@ def run_ap_pmf_inject_eap(dev, apdev, pmf=True):
                 eap_start = True
             if "CTRL-EVENT-EAP-FAILURE" in ev:
                 eap_failure = True
+        dev[0].dump_monitor(mon=False)
     dev[0].dump_monitor()
     ev = hapd.wait_event(["AP-STA-DISCONNECTED"], timeout=0.1)
     if ev:

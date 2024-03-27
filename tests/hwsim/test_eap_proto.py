@@ -771,6 +771,7 @@ def test_eap_proto_sake(dev, apdev):
                 raise Exception("Timeout on EAP start")
             time.sleep(0.1)
             dev[0].request("REMOVE_NETWORK all")
+            dev[0].dump_monitor()
 
         logger.info("Too short password")
         dev[0].connect("eap-test", key_mgmt="WPA-EAP", scan_freq="2412",
@@ -780,7 +781,20 @@ def test_eap_proto_sake(dev, apdev):
         ev = dev[0].wait_event(["CTRL-EVENT-EAP-PROPOSED-METHOD"], timeout=15)
         if ev is None:
             raise Exception("Timeout on EAP start")
+        start = os.times()[4]
+        while True:
+            ev = dev[0].wait_event(["CTRL-EVENT-EAP-PROPOSED-METHOD"],
+                                   timeout=0.1)
+            if ev is None:
+                break
+            now = os.times()[4]
+            if now - start > 0.1:
+                break
+            dev[0].dump_monitor()
+
+        dev[0].request("REMOVE_NETWORK all")
         time.sleep(0.1)
+        dev[0].dump_monitor()
     finally:
         stop_radius_server(srv)
 

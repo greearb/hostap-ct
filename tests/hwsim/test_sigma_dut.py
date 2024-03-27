@@ -788,10 +788,13 @@ def test_sigma_dut_suite_b_rsa(dev, apdev, params):
             dut.cmd_check(cmd + extra)
             dut.cmd_check("sta_associate,interface,%s,ssid,%s,channel,1" % (ifname, "test-suite-b"),
                                 timeout=10)
+            dev[0].dump_monitor()
             dut.wait_connected()
+            dev[0].dump_monitor()
             dut.cmd_check("sta_get_ip_config,interface," + ifname)
             dut.cmd_check("sta_disconnect,interface," + ifname)
             dut.cmd_check("sta_reset_default,interface," + ifname)
+            dev[0].dump_monitor()
 
 def test_sigma_dut_ap_suite_b(dev, apdev, params):
     """sigma_dut controlled AP Suite B"""
@@ -5284,7 +5287,9 @@ def test_sigma_dut_ap_beacon_prot(dev, apdev, params):
         dev[0].connect("test-psk", key_mgmt="WPA-PSK-SHA256",
                        psk="12345678", scan_freq="2412",
                        ieee80211w="2", beacon_prot="1")
-        time.sleep(1)
+        for i in range(10):
+            dev[0].dump_monitor()
+            time.sleep(0.1)
 
     valid_bip = wt.get_bss_counter('valid_bip_mmie', bssid)
     invalid_bip = wt.get_bss_counter('invalid_bip_mmie', bssid)

@@ -325,9 +325,11 @@ def test_dpp_push_button_unsupported_ap_conf(dev, apdev):
     if ev is None or "failed" not in ev:
         raise Exception("Push button bootstrapping did not fail on AP")
     while True:
-        ev = dev[0].wait_event(["DPP-PB-RESULT", "DPP-RX"], timeout=100)
+        ev = dev[0].wait_event(["DPP-PB-RESULT", "DPP-RX", "DPP-TX"],
+                               timeout=100)
         if ev is None:
             raise Exception("Push button result not reported on station")
+        dev[0].dump_monitor(mon=False)
         if "DPP-PB-RESULT failed" in ev:
             break
         if "type=18" in ev:
