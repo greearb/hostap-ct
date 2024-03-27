@@ -1006,6 +1006,8 @@ void hostapd_notif_disassoc(struct hostapd_data *hapd, const u8 *addr)
 					break;
 				}
 			}
+		} else if (!sta->mld_info.mld_sta) {
+			goto legacy;
 		}
 		if (!sta) {
 			wpa_printf(MSG_DEBUG,
