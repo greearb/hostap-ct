@@ -1835,6 +1835,7 @@ int omac1_aes_vector(const u8 *key, size_t key_len, size_t num_elem,
 	ret = 0;
 fail:
 	EVP_MAC_CTX_free(ctx);
+	EVP_MAC_free(emac);
 	return ret;
 #else /* OpenSSL version >= 3.0 */
 	CMAC_CTX *ctx;
