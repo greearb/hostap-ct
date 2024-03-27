@@ -6283,6 +6283,7 @@ def test_dbus_anqp_get(dev, apdev):
                                          "fin:Esimerkkioperaattori"]
     hapd = hostapd.add_ap(apdev[0], params)
 
+    dev[0].flush_scan_cache()
     dev[0].scan_for_bss(bssid, freq="2412", force_scan=True)
     iface.ANQPGet({"addr": bssid,
                    "ids": dbus.Array([257], dbus.Signature("q")),
