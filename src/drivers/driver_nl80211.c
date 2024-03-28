@@ -13859,8 +13859,8 @@ static int nl80211_link_add(void *priv, u8 link_id, const u8 *addr,
 	bss->valid_links |= BIT(link_id);
 	bss->links[link_id].ctx = bss_ctx;
 
-	wpa_printf(MSG_DEBUG, "nl80211: MLD: valid_links=0x%04x",
-		   bss->valid_links);
+	wpa_printf(MSG_DEBUG, "nl80211: MLD: valid_links=0x%04x on %s",
+		   bss->valid_links, bss->ifname);
 	return 0;
 }
 
