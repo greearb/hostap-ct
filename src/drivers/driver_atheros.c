@@ -632,7 +632,7 @@ atheros_get_seqnum(const char *ifname, void *priv, const u8 *addr, int idx,
 
 
 static int
-atheros_flush(void *priv)
+atheros_flush(void *priv, int link_id)
 {
 	u8 allsta[IEEE80211_ADDR_LEN];
 	os_memset(allsta, 0xff, IEEE80211_ADDR_LEN);

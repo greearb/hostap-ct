@@ -3588,13 +3588,15 @@ struct wpa_driver_ops {
 	/**
 	 * flush - Flush all association stations (AP only)
 	 * @priv: Private driver interface data
+	 * @link_id: In case of MLO, valid link ID on which all associated
+	 *	stations will be flushed, -1 otherwise.
 	 * Returns: 0 on success, -1 on failure
 	 *
 	 * This function requests the driver to disassociate all associated
 	 * stations. This function does not need to be implemented if the
 	 * driver does not process association frames internally.
 	 */
-	int (*flush)(void *priv);
+	int (*flush)(void *priv, int link_id);
 
 	/**
 	 * set_generic_elem - Add IEs into Beacon/Probe Response frames (AP)

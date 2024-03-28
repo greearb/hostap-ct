@@ -572,7 +572,7 @@ static int hostap_set_ssid(void *priv, const u8 *buf, int len)
 }
 
 
-static int hostap_flush(void *priv)
+static int hostap_flush(void *priv, int link_id)
 {
 	struct hostap_driver_data *drv = priv;
 	struct prism2_hostapd_param param;

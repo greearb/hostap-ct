@@ -7724,25 +7724,37 @@ static int i802_set_frag(void *priv, int frag)
 }
 
 
-static int i802_flush(void *priv)
+static int i802_flush(void *priv, int link_id)
 {
 	struct i802_bss *bss = priv;
 	struct nl_msg *msg;
 	int res;
 
-	wpa_printf(MSG_DEBUG, "nl80211: flush -> DEL_STATION %s (all)",
-		   bss->ifname);
+	if (link_id == NL80211_DRV_LINK_ID_NA)
+		wpa_printf(MSG_DEBUG, "nl80211: flush -> DEL_STATION %s (all)",
+			   bss->ifname);
+	else
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: flush -> DEL_STATION %s (with link %d)",
+			   bss->ifname, link_id);
 
 	/*
 	 * XXX: FIX! this needs to flush all VLANs too
 	 */
 	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_DEL_STATION);
+	if (link_id >= 0 && (bss->valid_links & BIT(link_id)) &&
+	    nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id))
+		goto fail;
+
 	res = send_and_recv_cmd(bss->drv, msg);
 	if (res) {
 		wpa_printf(MSG_DEBUG, "nl80211: Station flush failed: ret=%d "
 			   "(%s)", res, strerror(-res));
 	}
 	return res;
+fail:
+	nlmsg_free(msg);
+	return -1;
 }
 
 

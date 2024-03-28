@@ -946,7 +946,7 @@ bsd_get_seqnum(const char *ifname, void *priv, const u8 *addr, int idx,
 
 
 static int
-bsd_flush(void *priv)
+bsd_flush(void *priv, int link_id)
 {
 	u8 allsta[IEEE80211_ADDR_LEN];
 
