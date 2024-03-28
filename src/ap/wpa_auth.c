@@ -4094,38 +4094,47 @@ static void wpa_auth_get_ml_key_info(struct wpa_authenticator *wpa_auth,
 
 static size_t wpa_auth_ml_group_kdes_len(struct wpa_state_machine *sm)
 {
-	struct wpa_authenticator *wpa_auth = sm->wpa_auth;
-	struct wpa_group *gsm = sm->group;
-	size_t gtk_len = gsm->GTK_len;
-	size_t igtk_len;
-	size_t kde_len;
-	unsigned int n_links;
+	struct wpa_authenticator *wpa_auth;
+	size_t kde_len = 0;
+	int link_id;
 
 	if (sm->mld_assoc_link_id < 0)
 		return 0;
 
-	n_links = sm->n_mld_affiliated_links + 1;
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+		if (!sm->mld_links[link_id].valid)
+			continue;
 
-	/* MLO GTK KDE for each link */
-	kde_len = n_links * (2 + RSN_SELECTOR_LEN + 1 + 6 + gtk_len);
+		wpa_auth = sm->mld_links[link_id].wpa_auth;
+		if (!wpa_auth || !wpa_auth->group)
+			continue;
 
-	if (!sm->mgmt_frame_prot)
-		return kde_len;
+		/* MLO GTK KDE
+		 * Header + Key ID + Tx + LinkID + PN + GTK */
+		kde_len += KDE_HDR_LEN + 1 + RSN_PN_LEN;
+		kde_len += wpa_auth->group->GTK_len;
 
-	/* MLO IGTK KDE for each link */
-	igtk_len = wpa_cipher_key_len(wpa_auth->conf.group_mgmt_cipher);
-	kde_len += n_links * (2 + RSN_SELECTOR_LEN + 2 + 6 + 1 + igtk_len);
+		if (!sm->mgmt_frame_prot)
+			continue;
 
-	if (wpa_auth->conf.tx_bss_auth) {
-		wpa_auth = wpa_auth->conf.tx_bss_auth;
-		igtk_len = wpa_cipher_key_len(wpa_auth->conf.group_mgmt_cipher);
+		if (wpa_auth->conf.tx_bss_auth)
+			wpa_auth = wpa_auth->conf.tx_bss_auth;
+
+		/* MLO IGTK KDE
+		 * Header + Key ID + IPN + LinkID + IGTK */
+		kde_len += KDE_HDR_LEN + WPA_IGTK_KDE_PREFIX_LEN + 1;
+		kde_len += wpa_cipher_key_len(wpa_auth->conf.group_mgmt_cipher);
+
+		if (!wpa_auth->conf.beacon_prot)
+			continue;
+
+		/* MLO BIGTK KDE
+		 * Header + Key ID + BIPN + LinkID + BIGTK */
+		kde_len += KDE_HDR_LEN + WPA_BIGTK_KDE_PREFIX_LEN + 1;
+		kde_len += wpa_cipher_key_len(wpa_auth->conf.group_mgmt_cipher);
 	}
 
-	if (!wpa_auth->conf.beacon_prot)
-		return kde_len;
-
-	/* MLO BIGTK KDE for each link */
-	kde_len += n_links * (2 + RSN_SELECTOR_LEN + 2 + 6 + 1 + igtk_len);
+	wpa_printf(MSG_DEBUG, "MLO Group KDEs len = %zu", kde_len);
 
 	return kde_len;
 }

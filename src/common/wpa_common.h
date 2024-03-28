@@ -339,6 +339,8 @@ struct rsn_ie_hdr {
 } STRUCT_PACKED;
 
 
+#define KDE_HDR_LEN (1 + 1 + RSN_SELECTOR_LEN)
+
 struct rsn_error_kde {
 	be16 mui;
 	be16 error_type;
