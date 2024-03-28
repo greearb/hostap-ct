@@ -1980,16 +1980,43 @@ static int hostapd_event_new_sta(struct hostapd_data *hapd, const u8 *addr)
 
 
 static struct hostapd_data * hostapd_find_by_sta(struct hostapd_iface *iface,
-						 const u8 *src, bool rsn)
+						 const u8 *src, bool rsn,
+						 struct sta_info **sta_ret)
 {
+	struct hostapd_data *hapd;
 	struct sta_info *sta;
 	unsigned int j;
 
+	if (sta_ret)
+		*sta_ret = NULL;
+
 	for (j = 0; j < iface->num_bss; j++) {
-		sta = ap_get_sta(iface->bss[j], src);
+		hapd = iface->bss[j];
+		sta = ap_get_sta(hapd, src);
 		if (sta && (sta->flags & WLAN_STA_ASSOC) &&
-		    (!rsn || sta->wpa_sm))
-			return iface->bss[j];
+		    (!rsn || sta->wpa_sm)) {
+			if (sta_ret)
+				*sta_ret = sta;
+			return hapd;
+		}
+#ifdef CONFIG_IEEE80211BE
+		if (hapd->conf->mld_ap) {
+			struct hostapd_data *p_hapd;
+
+			for_each_mld_link(p_hapd, hapd) {
+				if (p_hapd == hapd)
+					continue;
+
+				sta = ap_get_sta(p_hapd, src);
+				if (sta && (sta->flags & WLAN_STA_ASSOC) &&
+				    (!rsn || sta->wpa_sm)) {
+					if (sta_ret)
+						*sta_ret = sta;
+					return p_hapd;
+				}
+			}
+		}
+#endif /* CONFIG_IEEE80211BE */
 	}
 
 	return NULL;
@@ -2011,7 +2038,7 @@ static bool search_mld_sta(struct hostapd_data **p_hapd, const u8 *src)
 		if (!hostapd_is_ml_partner(h_hapd, hapd))
 			continue;
 
-		h_hapd = hostapd_find_by_sta(h, src, false);
+		h_hapd = hostapd_find_by_sta(h, src, false, NULL);
 		if (h_hapd) {
 			struct sta_info *sta = ap_get_sta(h_hapd, src);
 
@@ -2040,24 +2067,25 @@ static void hostapd_event_eapol_rx(struct hostapd_data *hapd, const u8 *src,
 		struct hostapd_data *h_hapd;
 
 		hapd = switch_link_hapd(hapd, link_id);
-		h_hapd = hostapd_find_by_sta(hapd->iface, src, true);
+		h_hapd = hostapd_find_by_sta(hapd->iface, src, true, NULL);
 		if (!h_hapd)
 			h_hapd = hostapd_find_by_sta(orig_hapd->iface, src,
-						     true);
+						     true, NULL);
 		if (!h_hapd)
-			h_hapd = hostapd_find_by_sta(hapd->iface, src, false);
+			h_hapd = hostapd_find_by_sta(hapd->iface, src, false,
+						     NULL);
 		if (!h_hapd)
 			h_hapd = hostapd_find_by_sta(orig_hapd->iface, src,
-						     false);
+						     false, NULL);
 		if (h_hapd)
 			hapd = h_hapd;
 	} else if (hapd->conf->mld_ap) {
 		search_mld_sta(&hapd, src);
 	} else {
-		hapd = hostapd_find_by_sta(hapd->iface, src, false);
+		hapd = hostapd_find_by_sta(hapd->iface, src, false, NULL);
 	}
 #else /* CONFIG_IEEE80211BE */
-	hapd = hostapd_find_by_sta(hapd->iface, src, false);
+	hapd = hostapd_find_by_sta(hapd->iface, src, false, NULL);
 #endif /* CONFIG_IEEE80211BE */
 
 	if (!hapd) {
@@ -2386,23 +2414,15 @@ err:
 
 #ifdef NEED_AP_MLME
 static void hostapd_eapol_tx_status(struct hostapd_data *hapd, const u8 *dst,
-				    const u8 *data, size_t len, int ack)
+				    const u8 *data, size_t len, int ack,
+				    int link_id)
 {
 	struct sta_info *sta;
-	struct hostapd_iface *iface = hapd->iface;
 
-	sta = ap_get_sta(hapd, dst);
-	if (!sta && iface->num_bss > 1) {
-		size_t j;
+	hapd = switch_link_hapd(hapd, link_id);
+	hapd = hostapd_find_by_sta(hapd->iface, dst, false, &sta);
 
-		for (j = 0; j < iface->num_bss; j++) {
-			hapd = iface->bss[j];
-			sta = ap_get_sta(hapd, dst);
-			if (sta)
-				break;
-		}
-	}
-	if (!sta || !(sta->flags & WLAN_STA_ASSOC)) {
+	if (!sta) {
 		wpa_printf(MSG_DEBUG, "Ignore TX status for Data frame to STA "
 			   MACSTR " that is not currently associated",
 			   MAC2STR(dst));
@@ -2492,11 +2512,11 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		}
 		break;
 	case EVENT_EAPOL_TX_STATUS:
-		hapd = switch_link_hapd(hapd, data->eapol_tx_status.link_id);
 		hostapd_eapol_tx_status(hapd, data->eapol_tx_status.dst,
 					data->eapol_tx_status.data,
 					data->eapol_tx_status.data_len,
-					data->eapol_tx_status.ack);
+					data->eapol_tx_status.ack,
+					data->eapol_tx_status.link_id);
 		break;
 	case EVENT_DRIVER_CLIENT_POLL_OK:
 		hostapd_client_poll_ok(hapd, data->client_poll.addr);
