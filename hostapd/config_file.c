@@ -4516,6 +4516,9 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->eapol_m3_no_encrypt = atoi(pos);
 	} else if (os_strcmp(buf, "test_assoc_comeback_type") == 0) {
 		bss->test_assoc_comeback_type = atoi(pos);
+	} else if (os_strcmp(buf, "presp_elements") == 0) {
+		if (parse_wpabuf_hex(line, buf, &bss->presp_elements, pos))
+			return 1;
 #endif /* CONFIG_TESTING_OPTIONS */
 #ifdef CONFIG_SAE
 	} else if (os_strcmp(buf, "sae_password") == 0) {

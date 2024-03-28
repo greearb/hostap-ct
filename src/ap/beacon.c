@@ -649,6 +649,10 @@ static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 #endif /* CONFIG_FST */
 	if (hapd->conf->vendor_elements)
 		buflen += wpabuf_len(hapd->conf->vendor_elements);
+#ifdef CONFIG_TESTING_OPTIONS
+	if (hapd->conf->presp_elements)
+		buflen += wpabuf_len(hapd->conf->presp_elements);
+#endif /* CONFIG_TESTING_OPTIONS */
 	if (hapd->conf->vendor_vht) {
 		buflen += 5 + 2 + sizeof(struct ieee80211_vht_capabilities) +
 			2 + sizeof(struct ieee80211_vht_operation);
@@ -884,6 +888,14 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 			  wpabuf_len(hapd->conf->vendor_elements));
 		pos += wpabuf_len(hapd->conf->vendor_elements);
 	}
+
+#ifdef CONFIG_TESTING_OPTIONS
+	if (hapd->conf->presp_elements) {
+		os_memcpy(pos, wpabuf_head(hapd->conf->presp_elements),
+			  wpabuf_len(hapd->conf->presp_elements));
+		pos += wpabuf_len(hapd->conf->presp_elements);
+	}
+#endif /* CONFIG_TESTING_OPTIONS */
 
 	return pos;
 }

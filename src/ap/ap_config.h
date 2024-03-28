@@ -709,6 +709,7 @@ struct hostapd_bss_config {
 	struct wpabuf *eapol_m3_elements;
 	bool eapol_m3_no_encrypt;
 	int test_assoc_comeback_type;
+	struct wpabuf *presp_elements;
 
 #ifdef CONFIG_IEEE80211BE
 	u16 eht_oper_puncturing_override;
