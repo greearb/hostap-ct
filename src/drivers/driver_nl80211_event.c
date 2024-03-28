@@ -22,7 +22,7 @@
 
 
 static void
-nl80211_control_port_frame_tx_status(struct wpa_driver_nl80211_data *drv,
+nl80211_control_port_frame_tx_status(struct i802_bss *bss,
 				     const u8 *frame, size_t len,
 				     struct nlattr *ack, struct nlattr *cookie);
 
@@ -1399,7 +1399,7 @@ static void mlme_event_mgmt_tx_status(struct i802_bss *bss,
 	    WPA_GET_BE16(frame + 2 * ETH_ALEN) == ETH_P_PAE) {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Work around misdelivered control port TX status for EAPOL");
-		nl80211_control_port_frame_tx_status(drv, frame, len, ack,
+		nl80211_control_port_frame_tx_status(bss, frame, len, ack,
 						     cookie);
 		return;
 	}
@@ -3660,8 +3660,7 @@ static void nl80211_sta_opmode_change_event(struct wpa_driver_nl80211_data *drv,
 }
 
 
-static void nl80211_control_port_frame(struct wpa_driver_nl80211_data *drv,
-				       struct nlattr **tb)
+static void nl80211_control_port_frame(struct i802_bss *bss, struct nlattr **tb)
 {
 	u8 *src_addr;
 	u16 ethertype;
@@ -3690,7 +3689,7 @@ static void nl80211_control_port_frame(struct wpa_driver_nl80211_data *drv,
 			   MAC2STR(src_addr));
 		break;
 	case ETH_P_PAE:
-		drv_event_eapol_rx2(drv->ctx, src_addr,
+		drv_event_eapol_rx2(bss->ctx, src_addr,
 				    nla_data(tb[NL80211_ATTR_FRAME]),
 				    nla_len(tb[NL80211_ATTR_FRAME]),
 				    encrypted, link_id);
@@ -3706,10 +3705,11 @@ static void nl80211_control_port_frame(struct wpa_driver_nl80211_data *drv,
 
 
 static void
-nl80211_control_port_frame_tx_status(struct wpa_driver_nl80211_data *drv,
+nl80211_control_port_frame_tx_status(struct i802_bss *bss,
 				     const u8 *frame, size_t len,
 				     struct nlattr *ack, struct nlattr *cookie)
 {
+	struct wpa_driver_nl80211_data *drv = bss->drv;
 	union wpa_event_data event;
 
 	if (!cookie || len < ETH_HLEN)
@@ -3728,7 +3728,7 @@ nl80211_control_port_frame_tx_status(struct wpa_driver_nl80211_data *drv,
 		nla_get_u64(cookie) == drv->eapol_tx_cookie ?
 		drv->eapol_tx_link_id : NL80211_DRV_LINK_ID_NA;
 
-	wpa_supplicant_event(drv->ctx, EVENT_EAPOL_TX_STATUS, &event);
+	wpa_supplicant_event(bss->ctx, EVENT_EAPOL_TX_STATUS, &event);
 }
 
 
@@ -4073,7 +4073,7 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 	case NL80211_CMD_CONTROL_PORT_FRAME_TX_STATUS:
 		if (!frame)
 			break;
-		nl80211_control_port_frame_tx_status(drv,
+		nl80211_control_port_frame_tx_status(bss,
 						     nla_data(frame),
 						     nla_len(frame),
 						     tb[NL80211_ATTR_ACK],
@@ -4246,7 +4246,7 @@ int process_bss_event(struct nl_msg *msg, void *arg)
 		nl80211_external_auth(bss->drv, tb);
 		break;
 	case NL80211_CMD_CONTROL_PORT_FRAME:
-		nl80211_control_port_frame(bss->drv, tb);
+		nl80211_control_port_frame(bss, tb);
 		break;
 	default:
 		wpa_printf(MSG_DEBUG, "nl80211: Ignored unknown event "
