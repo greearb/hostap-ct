@@ -957,7 +957,6 @@ static void hostapd_fill_probe_resp_ml_params(struct hostapd_data *hapd,
 {
 	struct probe_resp_params sta_info_params;
 	struct hostapd_data *link;
-	unsigned int probed_mld_id, i, j;
 
 	params->mld_ap = NULL;
 	params->mld_info = os_zalloc(sizeof(*params->mld_info));
@@ -968,14 +967,7 @@ static void hostapd_fill_probe_resp_ml_params(struct hostapd_data *hapd,
 		   "MLD: Got ML probe request with AP MLD ID %d for links %04x",
 		   mld_id, links);
 
-	/*
-	 * We want to include the AP MLD ID in the response if it was
-	 * included in the request.
-	 */
-	probed_mld_id = mld_id != -1 ? mld_id : hostapd_get_mld_id(hapd);
-
-	for_each_mld_link(link, i, j, hapd->iface->interfaces,
-			  probed_mld_id) {
+	for_each_mld_link(link, hapd) {
 		struct mld_link_info *link_info;
 		size_t buflen;
 		u8 mld_link_id = link->mld_link_id;

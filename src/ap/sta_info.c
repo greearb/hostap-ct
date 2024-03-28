@@ -1761,10 +1761,8 @@ static void ap_sta_remove_link_sta(struct hostapd_data *hapd,
 				   struct sta_info *sta)
 {
 	struct hostapd_data *tmp_hapd;
-	unsigned int i, j;
 
-	for_each_mld_link(tmp_hapd, i, j, hapd->iface->interfaces,
-			  hostapd_get_mld_id(hapd)) {
+	for_each_mld_link(tmp_hapd, hapd) {
 		struct sta_info *tmp_sta;
 
 		if (hapd == tmp_hapd)

@@ -827,19 +827,8 @@ struct hostapd_data * hostapd_mld_get_first_bss(struct hostapd_data *hapd);
 
 bool hostapd_mld_is_first_bss(struct hostapd_data *hapd);
 
-#define for_each_mld_link(_link, _bss_idx, _iface_idx, _ifaces, _mld_id) \
-	for (_iface_idx = 0;						\
-	     _iface_idx < (_ifaces)->count;				\
-	     _iface_idx++)						\
-		for (_bss_idx = 0;					\
-		     _bss_idx <						\
-			(_ifaces)->iface[_iface_idx]->num_bss;		\
-		     _bss_idx++)					\
-			for (_link =					\
-			     (_ifaces)->iface[_iface_idx]->bss[_bss_idx]; \
-			    _link && _link->conf->mld_ap &&		\
-				hostapd_get_mld_id(_link) == _mld_id;	\
-			    _link = NULL)
+#define for_each_mld_link(partner, self) \
+	dl_list_for_each(partner, &self->mld->links, struct hostapd_data, link)
 
 #else /* CONFIG_IEEE80211BE */
 
@@ -848,7 +837,7 @@ static inline bool hostapd_mld_is_first_bss(struct hostapd_data *hapd)
 	return true;
 }
 
-#define for_each_mld_link(_link, _bss_idx, _iface_idx, _ifaces, _mld_id) \
+#define for_each_mld_link(partner, self) \
 	if (false)
 
 #endif /* CONFIG_IEEE80211BE */
