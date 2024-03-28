@@ -1779,7 +1779,7 @@ switch_link_scan(struct hostapd_data *hapd, u64 scan_cookie)
 #define HAPD_BROADCAST ((struct hostapd_data *) -1)
 
 static struct hostapd_data * get_hapd_bssid(struct hostapd_iface *iface,
-					    const u8 *bssid)
+					    const u8 *bssid, int link_id)
 {
 	size_t i;
 
@@ -1790,8 +1790,35 @@ static struct hostapd_data * get_hapd_bssid(struct hostapd_iface *iface,
 		return HAPD_BROADCAST;
 
 	for (i = 0; i < iface->num_bss; i++) {
-		if (ether_addr_equal(bssid, iface->bss[i]->own_addr))
-			return iface->bss[i];
+		struct hostapd_data *hapd;
+#ifdef CONFIG_IEEE80211BE
+		struct hostapd_data *p_hapd;
+#endif /* CONFIG_IEEE80211BE */
+
+		hapd = iface->bss[i];
+		if (ether_addr_equal(bssid, hapd->own_addr))
+			return hapd;
+
+#ifdef CONFIG_IEEE80211BE
+		if (ether_addr_equal(bssid, hapd->own_addr) ||
+		    (hapd->conf->mld_ap &&
+		     ether_addr_equal(bssid, hapd->mld->mld_addr) &&
+		     link_id == hapd->mld_link_id))
+			return hapd;
+
+		if (!hapd->conf->mld_ap)
+			continue;
+
+		for_each_mld_link(p_hapd, hapd) {
+			if (p_hapd == hapd)
+				continue;
+
+			if (ether_addr_equal(bssid, p_hapd->own_addr) ||
+			    (ether_addr_equal(bssid, p_hapd->mld->mld_addr) &&
+			     link_id == p_hapd->mld_link_id))
+				return p_hapd;
+		}
+#endif /* CONFIG_IEEE80211BE */
 	}
 
 	return NULL;
@@ -1802,7 +1829,7 @@ static void hostapd_rx_from_unknown_sta(struct hostapd_data *hapd,
 					const u8 *bssid, const u8 *addr,
 					int wds)
 {
-	hapd = get_hapd_bssid(hapd->iface, bssid);
+	hapd = get_hapd_bssid(hapd->iface, bssid, -1);
 	if (hapd == NULL || hapd == HAPD_BROADCAST)
 		return;
 
@@ -1817,7 +1844,6 @@ static int hostapd_mgmt_rx(struct hostapd_data *hapd, struct rx_mgmt *rx_mgmt)
 	const u8 *bssid;
 	struct hostapd_frame_info fi;
 	int ret;
-	bool is_mld = false;
 
 	hapd = switch_link_hapd(hapd, rx_mgmt->link_id);
 	iface = hapd->iface;
@@ -1842,14 +1868,7 @@ static int hostapd_mgmt_rx(struct hostapd_data *hapd, struct rx_mgmt *rx_mgmt)
 	if (bssid == NULL)
 		return 0;
 
-#ifdef CONFIG_IEEE80211BE
-	if (hapd->conf->mld_ap &&
-	    ether_addr_equal(hapd->mld->mld_addr, bssid))
-		is_mld = true;
-#endif /* CONFIG_IEEE80211BE */
-
-	if (!is_mld)
-		hapd = get_hapd_bssid(iface, bssid);
+	hapd = get_hapd_bssid(iface, bssid, rx_mgmt->link_id);
 
 	if (!hapd) {
 		u16 fc = le_to_host16(hdr->frame_control);
@@ -1901,17 +1920,11 @@ static void hostapd_mgmt_tx_cb(struct hostapd_data *hapd, const u8 *buf,
 	struct ieee80211_hdr *hdr;
 	struct hostapd_data *orig_hapd, *tmp_hapd;
 
-#ifdef CONFIG_IEEE80211BE
-	if (hapd->conf->mld_ap && link_id != -1) {
-		tmp_hapd = hostapd_mld_get_link_bss(hapd, link_id);
-		if (tmp_hapd)
-			hapd = tmp_hapd;
-	}
-#endif /* CONFIG_IEEE80211BE */
 	orig_hapd = hapd;
 
 	hdr = (struct ieee80211_hdr *) buf;
-	tmp_hapd = get_hapd_bssid(hapd->iface, get_hdr_bssid(hdr, len));
+	hapd = switch_link_hapd(hapd, link_id);
+	tmp_hapd = get_hapd_bssid(hapd->iface, get_hdr_bssid(hdr, len), link_id);
 	if (tmp_hapd) {
 		hapd = tmp_hapd;
 #ifdef CONFIG_IEEE80211BE
@@ -1928,7 +1941,7 @@ static void hostapd_mgmt_tx_cb(struct hostapd_data *hapd, const u8 *buf,
 		if (stype != WLAN_FC_STYPE_ACTION || len <= 25 ||
 		    buf[24] != WLAN_ACTION_PUBLIC)
 			return;
-		hapd = get_hapd_bssid(orig_hapd->iface, hdr->addr2);
+		hapd = get_hapd_bssid(orig_hapd->iface, hdr->addr2, link_id);
 		if (!hapd || hapd == HAPD_BROADCAST)
 			return;
 		/*
