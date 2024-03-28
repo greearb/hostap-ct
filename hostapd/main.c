@@ -158,6 +158,9 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 	struct hostapd_bss_config *conf = hapd->conf;
 	u8 *b = conf->bssid;
 	struct wpa_driver_capa capa;
+#ifdef CONFIG_IEEE80211BE
+	struct hostapd_data *h_hapd = NULL;
+#endif /* CONFIG_IEEE80211BE */
 
 	if (hapd->driver == NULL || hapd->driver->hapd_init == NULL) {
 		wpa_printf(MSG_ERROR, "No hostapd driver wrapper available");
@@ -165,35 +168,10 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 	}
 
 #ifdef CONFIG_IEEE80211BE
-	for (i = 0; conf->mld_ap && i < iface->interfaces->count; i++) {
-		struct hostapd_iface *h = iface->interfaces->iface[i];
-		struct hostapd_data *h_hapd = h->bss[0];
-		struct hostapd_bss_config *hconf = h_hapd->conf;
+	if (conf->mld_ap)
+		h_hapd = hostapd_mld_get_first_bss(hapd);
 
-		if (h == iface) {
-			wpa_printf(MSG_DEBUG, "MLD: Skip own interface");
-			continue;
-		}
-
-		if (!hconf->mld_ap) {
-			wpa_printf(MSG_DEBUG,
-				   "MLD: Skip non-MLD");
-			continue;
-		}
-
-		if (!hostapd_is_ml_partner(hapd, h_hapd)) {
-			wpa_printf(MSG_DEBUG,
-				   "MLD: Skip non matching MLD vif name");
-			continue;
-		}
-
-		wpa_printf(MSG_DEBUG, "MLD: Found matching MLD interface");
-		if (!h_hapd->drv_priv) {
-			wpa_printf(MSG_DEBUG,
-				   "MLD: Matching MLD BSS not initialized yet");
-			continue;
-		}
-
+	if (h_hapd) {
 		hapd->drv_priv = h_hapd->drv_priv;
 		hapd->interface_added = h_hapd->interface_added;
 
@@ -214,6 +192,9 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 		}
 
 		hostapd_mld_add_link(hapd);
+		wpa_printf(MSG_DEBUG,
+			   "Setup of non first link (%d) BSS of MLD %s",
+			   hapd->mld_link_id, hapd->conf->iface);
 
 		goto setup_mld;
 	}
@@ -298,6 +279,8 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 			os_memcpy(hapd->own_addr, b, ETH_ALEN);
 
 		hostapd_mld_add_link(hapd);
+		wpa_printf(MSG_DEBUG, "Setup of first link (%d) BSS of MLD %s",
+			   hapd->mld_link_id, hapd->conf->iface);
 	}
 
 setup_mld:

@@ -1379,6 +1379,23 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 			} while (mac_in_conf(hapd->iconf, hapd->own_addr));
 		}
 
+#ifdef CONFIG_IEEE80211BE
+		if (conf->mld_ap) {
+			struct hostapd_data *h_hapd;
+
+			h_hapd = hostapd_mld_get_first_bss(hapd);
+			if (h_hapd) {
+				hapd->drv_priv = h_hapd->drv_priv;
+				hapd->interface_added = h_hapd->interface_added;
+				hostapd_mld_add_link(hapd);
+				wpa_printf(MSG_DEBUG,
+					   "Setup of non first link (%d) BSS of MLD %s",
+					   hapd->mld_link_id, hapd->conf->iface);
+				goto setup_mld;
+			}
+		}
+#endif /* CONFIG_IEEE80211BE */
+
 		hapd->interface_added = 1;
 		if (hostapd_if_add(hapd->iface->bss[0], WPA_IF_AP_BSS,
 				   conf->iface, addr, hapd,
@@ -1393,7 +1410,33 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 
 		if (!addr)
 			os_memcpy(hapd->own_addr, if_addr, ETH_ALEN);
+
+#ifdef CONFIG_IEEE80211BE
+		if (hapd->conf->mld_ap) {
+			wpa_printf(MSG_DEBUG,
+				   "Setup of first link (%d) BSS of MLD %s",
+				   hapd->mld_link_id, hapd->conf->iface);
+			os_memcpy(hapd->mld->mld_addr, hapd->own_addr,
+				  ETH_ALEN);
+			hostapd_mld_add_link(hapd);
+		}
+#endif /* CONFIG_IEEE80211BE */
 	}
+
+#ifdef CONFIG_IEEE80211BE
+setup_mld:
+	if (hapd->conf->mld_ap && !first) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Set link_id=%u, mld_addr=" MACSTR
+			   ", own_addr=" MACSTR,
+			   hapd->mld_link_id, MAC2STR(hapd->mld->mld_addr),
+			   MAC2STR(hapd->own_addr));
+
+		if (hostapd_drv_link_add(hapd, hapd->mld_link_id,
+					 hapd->own_addr))
+			return -1;
+	}
+#endif /* CONFIG_IEEE80211BE */
 
 	if (conf->wmm_enabled < 0)
 		conf->wmm_enabled = hapd->iconf->ieee80211n |
@@ -4681,17 +4724,28 @@ void hostapd_ocv_check_csa_sa_query(void *eloop_ctx, void *timeout_ctx)
 struct hostapd_data * hostapd_mld_get_link_bss(struct hostapd_data *hapd,
 					       u8 link_id)
 {
-	unsigned int i;
+	struct hostapd_iface *iface;
+	struct hostapd_data *bss;
+	unsigned int i, j;
 
 	for (i = 0; i < hapd->iface->interfaces->count; i++) {
-		struct hostapd_iface *h = hapd->iface->interfaces->iface[i];
-		struct hostapd_data *h_hapd = h->bss[0];
-
-		if (!hostapd_is_ml_partner(hapd, h_hapd))
+		iface = hapd->iface->interfaces->iface[i];
+		if (!iface)
 			continue;
 
-		if (h_hapd->mld_link_id == link_id)
-			return h_hapd;
+		for (j = 0; j < iface->num_bss; j++) {
+			bss = iface->bss[j];
+
+			if (!bss->conf->mld_ap ||
+			    !hostapd_is_ml_partner(hapd, bss))
+				continue;
+
+			if (!bss->drv_priv)
+				continue;
+
+			if (bss->mld_link_id == link_id)
+				return bss;
+		}
 	}
 
 	return NULL;
