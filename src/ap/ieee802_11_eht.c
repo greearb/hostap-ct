@@ -1030,7 +1030,7 @@ const u8 * hostapd_process_ml_auth(struct hostapd_data *hapd,
 static int hostapd_mld_validate_assoc_info(struct hostapd_data *hapd,
 					   struct sta_info *sta)
 {
-	u8 i, link_id;
+	u8 link_id;
 	struct mld_info *info = &sta->mld_info;
 
 	if (!ap_sta_is_mld(hapd, sta)) {
@@ -1050,31 +1050,18 @@ static int hostapd_mld_validate_assoc_info(struct hostapd_data *hapd,
 	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 		struct hostapd_data *other_hapd;
 
-		if (!info->links[link_id].valid)
+		if (!info->links[link_id].valid || link_id == hapd->mld_link_id)
 			continue;
 
-		for (i = 0; i < hapd->iface->interfaces->count; i++) {
-			other_hapd = hapd->iface->interfaces->iface[i]->bss[0];
-
-			if (hapd == other_hapd)
-				continue;
-
-			if (hostapd_is_ml_partner(hapd, other_hapd) &&
-			    link_id == other_hapd->mld_link_id)
-				break;
-		}
-
-		if (i == hapd->iface->interfaces->count &&
-		    link_id != hapd->mld_link_id) {
+		other_hapd = hostapd_mld_get_link_bss(hapd, link_id);
+		if (!other_hapd) {
 			wpa_printf(MSG_DEBUG, "MLD: Invalid link ID=%u",
 				   link_id);
 			return -1;
 		}
 
-		if (i < hapd->iface->interfaces->count)
-			os_memcpy(info->links[link_id].local_addr,
-				  other_hapd->own_addr,
-				  ETH_ALEN);
+		os_memcpy(info->links[link_id].local_addr, other_hapd->own_addr,
+			  ETH_ALEN);
 	}
 
 	return 0;

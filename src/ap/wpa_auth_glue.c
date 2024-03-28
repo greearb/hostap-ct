@@ -1537,7 +1537,7 @@ static int hostapd_wpa_auth_get_ml_rsn_info(void *ctx,
 					    struct wpa_auth_ml_rsn_info *info)
 {
 	struct hostapd_data *hapd = ctx;
-	unsigned int i, j;
+	unsigned int i;
 
 	wpa_printf(MSG_DEBUG, "WPA_AUTH: MLD: Get RSN info CB: n_mld_links=%u",
 		   info->n_mld_links);
@@ -1547,26 +1547,30 @@ static int hostapd_wpa_auth_get_ml_rsn_info(void *ctx,
 
 	for (i = 0; i < info->n_mld_links; i++) {
 		unsigned int link_id = info->links[i].link_id;
+		struct hostapd_data *bss;
+		bool link_bss_found = false;
 
 		wpa_printf(MSG_DEBUG,
 			   "WPA_AUTH: MLD: Get link RSN CB: link_id=%u",
 			   link_id);
 
-		for (j = 0; j < hapd->iface->interfaces->count; j++) {
-			struct hostapd_iface *iface =
-				hapd->iface->interfaces->iface[j];
+		if (hapd->mld_link_id == link_id) {
+			wpa_auth_ml_get_rsn_info(hapd->wpa_auth,
+						 &info->links[i]);
+			continue;
+		}
 
-			if (!hostapd_is_ml_partner(hapd, iface->bss[0]) ||
-			    link_id != iface->bss[0]->mld_link_id ||
-			    !iface->bss[0]->wpa_auth)
+		for_each_mld_link(bss, hapd) {
+			if (bss == hapd || bss->mld_link_id != link_id)
 				continue;
 
-			wpa_auth_ml_get_rsn_info(iface->bss[0]->wpa_auth,
+			wpa_auth_ml_get_rsn_info(bss->wpa_auth,
 						 &info->links[i]);
+			link_bss_found = true;
 			break;
 		}
 
-		if (j == hapd->iface->interfaces->count)
+		if (!link_bss_found)
 			wpa_printf(MSG_DEBUG,
 				   "WPA_AUTH: MLD: link=%u not found", link_id);
 	}
@@ -1579,7 +1583,7 @@ static int hostapd_wpa_auth_get_ml_key_info(void *ctx,
 					    struct wpa_auth_ml_key_info *info)
 {
 	struct hostapd_data *hapd = ctx;
-	unsigned int i, j;
+	unsigned int i;
 
 	wpa_printf(MSG_DEBUG, "WPA_AUTH: MLD: Get key info CB: n_mld_links=%u",
 		   info->n_mld_links);
@@ -1588,29 +1592,35 @@ static int hostapd_wpa_auth_get_ml_key_info(void *ctx,
 		return -1;
 
 	for (i = 0; i < info->n_mld_links; i++) {
+		struct hostapd_data *bss;
 		u8 link_id = info->links[i].link_id;
+		bool link_bss_found = false;
 
 		wpa_printf(MSG_DEBUG,
 			   "WPA_AUTH: MLD: Get link info CB: link_id=%u",
 			   link_id);
 
-		for (j = 0; j < hapd->iface->interfaces->count; j++) {
-			struct hostapd_iface *iface =
-				hapd->iface->interfaces->iface[j];
-
-			if (!hostapd_is_ml_partner(hapd, iface->bss[0]) ||
-			    link_id != iface->bss[0]->mld_link_id ||
-			    !iface->bss[0]->wpa_auth)
-				continue;
-
-			wpa_auth_ml_get_key_info(iface->bss[0]->wpa_auth,
+		if (hapd->mld_link_id == link_id) {
+			wpa_auth_ml_get_key_info(hapd->wpa_auth,
 						 &info->links[i],
 						 info->mgmt_frame_prot,
 						 info->beacon_prot);
+			continue;
+		}
+
+		for_each_mld_link(bss, hapd) {
+			if (bss == hapd || bss->mld_link_id != link_id)
+				continue;
+
+			wpa_auth_ml_get_key_info(bss->wpa_auth,
+						 &info->links[i],
+						 info->mgmt_frame_prot,
+						 info->beacon_prot);
+			link_bss_found = true;
 			break;
 		}
 
-		if (j == hapd->iface->interfaces->count)
+		if (!link_bss_found)
 			wpa_printf(MSG_DEBUG,
 				   "WPA_AUTH: MLD: link=%u not found", link_id);
 	}
