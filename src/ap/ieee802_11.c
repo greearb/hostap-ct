@@ -4024,15 +4024,15 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 
 	if (hapd->conf->wpa && wpa_ie) {
 		enum wpa_validate_result res;
+#ifdef CONFIG_IEEE80211BE
+		struct mld_info *info = &sta->mld_info;
+		bool init = !sta->wpa_sm;
+#endif /* CONFIG_IEEE80211BE */
 
 		wpa_ie -= 2;
 		wpa_ie_len += 2;
 
 		if (!sta->wpa_sm) {
-#ifdef CONFIG_IEEE80211BE
-			struct mld_info *info = &sta->mld_info;
-#endif /* CONFIG_IEEE80211BE */
-
 			sta->wpa_sm = wpa_auth_sta_init(hapd->wpa_auth,
 							sta->addr,
 							p2p_dev_addr);
@@ -4042,18 +4042,19 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 					   "Failed to initialize RSN state machine");
 				return WLAN_STATUS_UNSPECIFIED_FAILURE;
 			}
+		}
 
 #ifdef CONFIG_IEEE80211BE
-			if (ap_sta_is_mld(hapd, sta)) {
-				wpa_printf(MSG_DEBUG,
-					   "MLD: Set ML info in RSN Authenticator");
-				wpa_auth_set_ml_info(sta->wpa_sm,
-						     hapd->mld->mld_addr,
-						     sta->mld_assoc_link_id,
-						     info);
-			}
-#endif /* CONFIG_IEEE80211BE */
+		if (ap_sta_is_mld(hapd, sta)) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: %s ML info in RSN Authenticator",
+				   init ? "Set" : "Reset");
+			wpa_auth_set_ml_info(sta->wpa_sm,
+					     hapd->mld->mld_addr,
+					     sta->mld_assoc_link_id,
+					     info);
 		}
+#endif /* CONFIG_IEEE80211BE */
 
 		wpa_auth_set_auth_alg(sta->wpa_sm, sta->auth_alg);
 		res = wpa_validate_wpa_ie(hapd->wpa_auth, sta->wpa_sm,

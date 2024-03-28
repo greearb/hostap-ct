@@ -6820,6 +6820,7 @@ void wpa_auth_set_ml_info(struct wpa_state_machine *sm, const u8 *mld_addr,
 		return;
 
 	os_memset(sm->mld_links, 0, sizeof(sm->mld_links));
+	sm->n_mld_affiliated_links = 0;
 
 	wpa_auth_logger(sm->wpa_auth, wpa_auth_get_spa(sm), LOGGER_DEBUG,
 			"MLD: Initialization");
