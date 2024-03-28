@@ -4575,7 +4575,7 @@ int hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 		struct mld_link_info *link = &sta->mld_info.links[i];
 		bool link_bss_found = false;
 
-		if (!link->valid)
+		if (!link->valid || i == sta->mld_assoc_link_id)
 			continue;
 
 		for_each_mld_link(bss, hapd) {
