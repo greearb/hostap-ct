@@ -13835,7 +13835,7 @@ static int nl80211_link_add(void *priv, u8 link_id, const u8 *addr,
 		}
 	}
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_ADD_LINK);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_ADD_LINK);
 	if (!msg ||
 	    nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id) ||
 	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, addr)) {
