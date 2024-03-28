@@ -2384,6 +2384,36 @@ err:
 #endif /* CONFIG_OWE */
 
 
+#ifdef NEED_AP_MLME
+static void hostapd_eapol_tx_status(struct hostapd_data *hapd, const u8 *dst,
+				    const u8 *data, size_t len, int ack)
+{
+	struct sta_info *sta;
+	struct hostapd_iface *iface = hapd->iface;
+
+	sta = ap_get_sta(hapd, dst);
+	if (!sta && iface->num_bss > 1) {
+		size_t j;
+
+		for (j = 0; j < iface->num_bss; j++) {
+			hapd = iface->bss[j];
+			sta = ap_get_sta(hapd, dst);
+			if (sta)
+				break;
+		}
+	}
+	if (!sta || !(sta->flags & WLAN_STA_ASSOC)) {
+		wpa_printf(MSG_DEBUG, "Ignore TX status for Data frame to STA "
+			   MACSTR " that is not currently associated",
+			   MAC2STR(dst));
+		return;
+	}
+
+	ieee802_1x_eapol_tx_status(hapd, sta, data, len, ack);
+}
+#endif /* NEED_AP_MLME */
+
+
 void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			  union wpa_event_data *data)
 {
