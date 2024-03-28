@@ -5742,6 +5742,61 @@ static void wpa_group_sm_step(struct wpa_authenticator *wpa_auth,
 }
 
 
+static void wpa_clear_changed(struct wpa_state_machine *sm)
+{
+#ifdef CONFIG_IEEE80211BE
+	int link_id;
+#endif /* CONFIG_IEEE80211BE */
+
+	sm->changed = false;
+	sm->wpa_auth->group->changed = false;
+
+#ifdef CONFIG_IEEE80211BE
+	for_each_sm_auth(sm, link_id)
+		sm->mld_links[link_id].wpa_auth->group->changed = false;
+#endif /* CONFIG_IEEE80211BE */
+}
+
+
+static void wpa_group_sm_step_links(struct wpa_state_machine *sm)
+{
+#ifdef CONFIG_IEEE80211BE
+	int link_id;
+#endif /* CONFIG_IEEE80211BE */
+
+	if (!sm || !sm->wpa_auth)
+		return;
+	wpa_group_sm_step(sm->wpa_auth, sm->wpa_auth->group);
+
+#ifdef CONFIG_IEEE80211BE
+	for_each_sm_auth(sm, link_id) {
+		wpa_group_sm_step(sm->mld_links[link_id].wpa_auth,
+				  sm->mld_links[link_id].wpa_auth->group);
+	}
+#endif /* CONFIG_IEEE80211BE */
+}
+
+
+static bool wpa_group_sm_changed(struct wpa_state_machine *sm)
+{
+#ifdef CONFIG_IEEE80211BE
+	int link_id;
+#endif /* CONFIG_IEEE80211BE */
+	bool changed;
+
+	if (!sm || !sm->wpa_auth)
+		return false;
+	changed = sm->wpa_auth->group->changed;
+
+#ifdef CONFIG_IEEE80211BE
+	for_each_sm_auth(sm, link_id)
+		changed |= sm->mld_links[link_id].wpa_auth->group->changed;
+#endif /* CONFIG_IEEE80211BE */
+
+	return changed;
+}
+
+
 static int wpa_sm_step(struct wpa_state_machine *sm)
 {
 	if (!sm)
@@ -5760,8 +5815,7 @@ static int wpa_sm_step(struct wpa_state_machine *sm)
 		if (sm->pending_deinit)
 			break;
 
-		sm->changed = false;
-		sm->wpa_auth->group->changed = false;
+		wpa_clear_changed(sm);
 
 		SM_STEP_RUN(WPA_PTK);
 		if (sm->pending_deinit)
@@ -5769,8 +5823,8 @@ static int wpa_sm_step(struct wpa_state_machine *sm)
 		SM_STEP_RUN(WPA_PTK_GROUP);
 		if (sm->pending_deinit)
 			break;
-		wpa_group_sm_step(sm->wpa_auth, sm->group);
-	} while (sm->changed || sm->wpa_auth->group->changed);
+		wpa_group_sm_step_links(sm);
+	} while (sm->changed || wpa_group_sm_changed(sm));
 	sm->in_step_loop = 0;
 
 	if (sm->pending_deinit) {
