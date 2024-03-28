@@ -262,7 +262,7 @@ static int auth_init(struct wpa *wpa)
 	}
 
 	if (wpa_validate_wpa_ie(wpa->auth_group, wpa->auth, 2412, supp_ie,
-				supp_ie_len, NULL, 0, NULL, 0, NULL, 0) !=
+				supp_ie_len, NULL, 0, NULL, 0, NULL, 0, NULL) !=
 	    WPA_IE_OK) {
 		wpa_printf(MSG_DEBUG, "AUTH: wpa_validate_wpa_ie() failed");
 		return -1;

@@ -608,7 +608,8 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 		    const u8 *wpa_ie, size_t wpa_ie_len,
 		    const u8 *rsnxe, size_t rsnxe_len,
 		    const u8 *mdie, size_t mdie_len,
-		    const u8 *owe_dh, size_t owe_dh_len)
+		    const u8 *owe_dh, size_t owe_dh_len,
+		    struct wpa_state_machine *assoc_sm)
 {
 	struct wpa_auth_config *conf = &wpa_auth->conf;
 	struct wpa_ie_data data;
@@ -955,6 +956,15 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 		sm->wpa = WPA_VERSION_WPA2;
 	else
 		sm->wpa = WPA_VERSION_WPA;
+
+	if (assoc_sm) {
+		/* For ML association link STA cannot choose a different
+		 * AKM or pairwise cipher from association STA */
+		if (sm->wpa_key_mgmt != assoc_sm->wpa_key_mgmt)
+			return WPA_INVALID_AKMP;
+		if (sm->pairwise != assoc_sm->pairwise)
+			return WPA_INVALID_PAIRWISE;
+	}
 
 #if defined(CONFIG_IEEE80211R_AP) && defined(CONFIG_FILS)
 	if ((sm->wpa_key_mgmt == WPA_KEY_MGMT_FT_FILS_SHA256 ||
