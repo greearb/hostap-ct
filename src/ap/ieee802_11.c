@@ -4456,6 +4456,8 @@ static int ieee80211_ml_process_link(struct hostapd_data *hapd,
 	}
 
 	sta->flags |= origin_sta->flags | WLAN_STA_ASSOC_REQ_OK;
+	sta->mld_assoc_link_id = origin_sta->mld_assoc_link_id;
+
 	status = __check_assoc_ies(hapd, sta, NULL, 0, &elems, reassoc, true);
 	if (status != WLAN_STATUS_SUCCESS) {
 		wpa_printf(MSG_DEBUG, "MLD: link: Element check failed");
@@ -4463,7 +4465,6 @@ static int ieee80211_ml_process_link(struct hostapd_data *hapd,
 	}
 
 	ap_sta_set_mld(sta, true);
-	sta->mld_assoc_link_id = origin_sta->mld_assoc_link_id;
 
 	os_memcpy(&sta->mld_info, &origin_sta->mld_info, sizeof(sta->mld_info));
 	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
@@ -4490,9 +4491,11 @@ static int ieee80211_ml_process_link(struct hostapd_data *hapd,
 			ieee802_11_update_beacons(hapd->iface);
 	}
 
-	/* RSN Authenticator should always be the one on the original station */
+	/* Maintain state machine reference on all link STAs, this is needed
+	 * during group rekey handling.
+	 */
 	wpa_auth_sta_deinit(sta->wpa_sm);
-	sta->wpa_sm = NULL;
+	sta->wpa_sm = origin_sta->wpa_sm;
 
 	/*
 	 * Do not initialize the EAPOL state machine.

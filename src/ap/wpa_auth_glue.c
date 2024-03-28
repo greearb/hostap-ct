@@ -1747,6 +1747,27 @@ int hostapd_setup_wpa(struct hostapd_data *hapd)
 		!!(hapd->iface->drv_flags2 &
 		   WPA_DRIVER_FLAGS2_PROT_RANGE_NEG_AP);
 
+#ifdef CONFIG_IEEE80211BE
+	_conf.mld_addr = NULL;
+	_conf.link_id = -1;
+	_conf.first_link_auth = NULL;
+
+	if (hapd->conf->mld_ap) {
+		struct hostapd_data *lhapd;
+
+		_conf.mld_addr = hapd->mld->mld_addr;
+		_conf.link_id = hapd->mld_link_id;
+
+		for_each_mld_link(lhapd, hapd) {
+			if (lhapd == hapd)
+				continue;
+
+			if (lhapd->wpa_auth)
+				_conf.first_link_auth = lhapd->wpa_auth;
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	hapd->wpa_auth = wpa_init(hapd->own_addr, &_conf, &cb, hapd);
 	if (hapd->wpa_auth == NULL) {
 		wpa_printf(MSG_ERROR, "WPA initialization failed.");
