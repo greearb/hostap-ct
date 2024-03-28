@@ -257,3 +257,20 @@ def test_assoc_while_csa_diff_blocktx(dev, apdev):
 def test_assoc_while_csa_diff(dev, apdev):
     """Check we don't associate while AP is doing CSA (different channel)"""
     _assoc_while_csa(dev, apdev, 5200, False)
+
+def test_ap_stuck_ecsa(dev, apdev):
+    """ECSA element stuck in Probe Response frame"""
+
+    # Test behaving like an Asus RT-AC53, firmware 3.0.0.4.380_10760-g21a5898,
+    # which has stuck ECSA element in the Probe Response frames.
+    try:
+        ap = connect(dev[0], apdev, scan_freq=None,
+                     hw_mode='a', channel='36',
+                     country_code='FI',
+                     presp_elements="3c0401732409")
+        ap.wait_sta()
+        hwsim_utils.test_connectivity(dev[0], ap)
+    finally:
+        dev[0].request("DISCONNECT")
+        dev[0].wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=1)
+        clear_regdom(ap, dev)
