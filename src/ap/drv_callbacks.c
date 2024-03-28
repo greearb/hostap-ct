@@ -2023,38 +2023,6 @@ static struct hostapd_data * hostapd_find_by_sta(struct hostapd_iface *iface,
 }
 
 
-#ifdef CONFIG_IEEE80211BE
-static bool search_mld_sta(struct hostapd_data **p_hapd, const u8 *src)
-{
-	struct hostapd_data *hapd = *p_hapd;
-	unsigned int i;
-
-	/* Search for STA on other MLO BSSs */
-	for (i = 0; i < hapd->iface->interfaces->count; i++) {
-		struct hostapd_iface *h =
-			hapd->iface->interfaces->iface[i];
-		struct hostapd_data *h_hapd = h->bss[0];
-
-		if (!hostapd_is_ml_partner(h_hapd, hapd))
-			continue;
-
-		h_hapd = hostapd_find_by_sta(h, src, false, NULL);
-		if (h_hapd) {
-			struct sta_info *sta = ap_get_sta(h_hapd, src);
-
-			if (sta && sta->mld_info.mld_sta &&
-			    sta->mld_assoc_link_id != h_hapd->mld_link_id)
-				continue;
-			*p_hapd = h_hapd;
-			return true;
-		}
-	}
-
-	return false;
-}
-#endif /* CONFIG_IEEE80211BE */
-
-
 static void hostapd_event_eapol_rx(struct hostapd_data *hapd, const u8 *src,
 				   const u8 *data, size_t data_len,
 				   enum frame_encryption encrypted,
@@ -2063,27 +2031,8 @@ static void hostapd_event_eapol_rx(struct hostapd_data *hapd, const u8 *src,
 	struct hostapd_data *orig_hapd = hapd;
 
 #ifdef CONFIG_IEEE80211BE
-	if (link_id != -1) {
-		struct hostapd_data *h_hapd;
-
-		hapd = switch_link_hapd(hapd, link_id);
-		h_hapd = hostapd_find_by_sta(hapd->iface, src, true, NULL);
-		if (!h_hapd)
-			h_hapd = hostapd_find_by_sta(orig_hapd->iface, src,
-						     true, NULL);
-		if (!h_hapd)
-			h_hapd = hostapd_find_by_sta(hapd->iface, src, false,
-						     NULL);
-		if (!h_hapd)
-			h_hapd = hostapd_find_by_sta(orig_hapd->iface, src,
-						     false, NULL);
-		if (h_hapd)
-			hapd = h_hapd;
-	} else if (hapd->conf->mld_ap) {
-		search_mld_sta(&hapd, src);
-	} else {
-		hapd = hostapd_find_by_sta(hapd->iface, src, false, NULL);
-	}
+	hapd = switch_link_hapd(hapd, link_id);
+	hapd = hostapd_find_by_sta(hapd->iface, src, true, NULL);
 #else /* CONFIG_IEEE80211BE */
 	hapd = hostapd_find_by_sta(hapd->iface, src, false, NULL);
 #endif /* CONFIG_IEEE80211BE */
