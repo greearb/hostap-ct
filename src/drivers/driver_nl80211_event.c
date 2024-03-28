@@ -1367,6 +1367,7 @@ static void mlme_event_mgmt(struct i802_bss *bss,
 	event.rx_mgmt.frame_len = len;
 	event.rx_mgmt.ssi_signal = ssi_signal;
 	event.rx_mgmt.drv_priv = bss;
+	event.rx_mgmt.ctx = bss->ctx;
 	event.rx_mgmt.link_id = link_id;
 
 	wpa_supplicant_event(drv->ctx, EVENT_RX_MGMT, &event);

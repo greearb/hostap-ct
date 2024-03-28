@@ -1845,6 +1845,8 @@ static int hostapd_mgmt_rx(struct hostapd_data *hapd, struct rx_mgmt *rx_mgmt)
 	struct hostapd_frame_info fi;
 	int ret;
 
+	if (rx_mgmt->ctx)
+		hapd = rx_mgmt->ctx;
 	hapd = switch_link_hapd(hapd, rx_mgmt->link_id);
 	iface = hapd->iface;
 

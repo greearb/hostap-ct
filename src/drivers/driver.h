@@ -6356,6 +6356,14 @@ union wpa_event_data {
 		void *drv_priv;
 
 		/**
+		 * ctx - Pointer to store ctx of private BSS information
+		 *
+		 * If not set to NULL, this is used for forwarding the packet
+		 * to right link BSS of ML BSS.
+		 */
+		void *ctx;
+
+		/**
 		 * freq - Frequency (in MHz) on which the frame was received
 		 */
 		int freq;
