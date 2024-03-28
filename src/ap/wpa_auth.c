@@ -4129,6 +4129,7 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 {
 	struct wpa_auth_ml_key_info ml_key_info;
 	unsigned int i, link_id;
+	u8 *start = pos;
 
 	/* First fetch the key information from all the authenticators */
 	os_memset(&ml_key_info, 0, sizeof(ml_key_info));
@@ -4180,8 +4181,11 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 		i++;
 	}
 
-	if (!sm->mgmt_frame_prot)
+	if (!sm->mgmt_frame_prot) {
+		wpa_printf(MSG_DEBUG, "RSN: MLO Group KDE len = %ld",
+			   pos - start);
 		return pos;
+	}
 
 	/* Add MLO IGTK KDEs */
 	for (i = 0, link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
@@ -4220,8 +4224,11 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 		i++;
 	}
 
-	if (!sm->wpa_auth->conf.beacon_prot)
+	if (!sm->wpa_auth->conf.beacon_prot) {
+		wpa_printf(MSG_DEBUG, "RSN: MLO Group KDE len = %ld",
+			   pos - start);
 		return pos;
+	}
 
 	/* Add MLO BIGTK KDEs */
 	for (i = 0, link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
@@ -4261,6 +4268,7 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 		i++;
 	}
 
+	wpa_printf(MSG_DEBUG, "RSN: MLO Group KDE len = %ld", pos - start);
 	return pos;
 }
 
@@ -4301,6 +4309,7 @@ static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
 {
 #ifdef CONFIG_IEEE80211BE
 	u8 link_id;
+	u8 *start = pos;
 
 	if (sm->mld_assoc_link_id < 0)
 		return pos;
@@ -4351,6 +4360,7 @@ static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
 		}
 	}
 
+	wpa_printf(MSG_DEBUG, "RSN: MLO Link KDE len = %ld", pos - start);
 	pos = wpa_auth_ml_group_kdes(sm, pos);
 #endif /* CONFIG_IEEE80211BE */
 
