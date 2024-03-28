@@ -103,6 +103,16 @@ static const u8 * wpa_auth_get_spa(const struct wpa_state_machine *sm)
 }
 
 
+static void wpa_gkeydone_sta(struct wpa_state_machine *sm)
+{
+	if (!sm->wpa_auth)
+		return;
+
+	sm->wpa_auth->group->GKeyDoneStations--;
+	sm->GUpdateStationKeys = false;
+}
+
+
 #ifdef CONFIG_IEEE80211BE
 
 void wpa_release_link_auth_ref(struct wpa_state_machine *sm,
@@ -894,10 +904,8 @@ static void wpa_free_sta_sm(struct wpa_state_machine *sm)
 		bitfield_clear(sm->wpa_auth->ip_pool, sm->ip_addr_bit);
 	}
 #endif /* CONFIG_P2P */
-	if (sm->GUpdateStationKeys) {
-		sm->group->GKeyDoneStations--;
-		sm->GUpdateStationKeys = false;
-	}
+	if (sm->GUpdateStationKeys)
+		wpa_gkeydone_sta(sm);
 #ifdef CONFIG_IEEE80211R_AP
 	os_free(sm->assoc_resp_ftie);
 	wpabuf_free(sm->ft_pending_req_ies);
@@ -2234,8 +2242,7 @@ int wpa_auth_sm_event(struct wpa_state_machine *sm, enum wpa_event event)
 			 * Reauthentication cancels the pending group key
 			 * update for this STA.
 			 */
-			sm->group->GKeyDoneStations--;
-			sm->GUpdateStationKeys = false;
+			wpa_gkeydone_sta(sm);
 			sm->PtkGroupInit = true;
 		}
 		sm->ReAuthenticationRequest = true;
@@ -2311,8 +2318,7 @@ SM_STATE(WPA_PTK, INITIALIZE)
 
 	sm->keycount = 0;
 	if (sm->GUpdateStationKeys)
-		sm->group->GKeyDoneStations--;
-	sm->GUpdateStationKeys = false;
+		wpa_gkeydone_sta(sm);
 	if (sm->wpa == WPA_VERSION_WPA)
 		sm->PInitAKeys = false;
 	if (1 /* Unicast cipher supported AND (ESS OR ((IBSS or WDS) and
@@ -5143,8 +5149,7 @@ SM_STATE(WPA_PTK_GROUP, REKEYESTABLISHED)
 #endif /* CONFIG_OCV */
 
 	if (sm->GUpdateStationKeys)
-		sm->group->GKeyDoneStations--;
-	sm->GUpdateStationKeys = false;
+		wpa_gkeydone_sta(sm);
 	sm->GTimeoutCtr = 0;
 	/* FIX: MLME.SetProtection.Request(TA, Tx_Rx) */
 	wpa_auth_vlogger(wpa_auth, wpa_auth_get_spa(sm), LOGGER_INFO,
@@ -5158,8 +5163,7 @@ SM_STATE(WPA_PTK_GROUP, KEYERROR)
 {
 	SM_ENTRY_MA(WPA_PTK_GROUP, KEYERROR, wpa_ptk_group);
 	if (sm->GUpdateStationKeys)
-		sm->group->GKeyDoneStations--;
-	sm->GUpdateStationKeys = false;
+		wpa_gkeydone_sta(sm);
 	sm->Disconnect = true;
 	sm->disconnect_reason = WLAN_REASON_GROUP_KEY_UPDATE_TIMEOUT;
 	wpa_auth_vlogger(sm->wpa_auth, wpa_auth_get_spa(sm), LOGGER_INFO,
