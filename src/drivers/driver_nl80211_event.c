@@ -1374,12 +1374,13 @@ static void mlme_event_mgmt(struct i802_bss *bss,
 }
 
 
-static void mlme_event_mgmt_tx_status(struct wpa_driver_nl80211_data *drv,
+static void mlme_event_mgmt_tx_status(struct i802_bss *bss,
 				      struct nlattr *cookie, const u8 *frame,
 				      size_t len, struct nlattr *ack)
 {
 	union wpa_event_data event;
 	const struct ieee80211_hdr *hdr = (const struct ieee80211_hdr *) frame;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
 	u16 fc = le_to_host16(hdr->frame_control);
 	u64 cookie_val = 0;
 
@@ -1434,7 +1435,7 @@ static void mlme_event_mgmt_tx_status(struct wpa_driver_nl80211_data *drv,
 	event.tx_status.ack = ack != NULL;
 	event.tx_status.link_id = cookie_val == drv->send_frame_cookie ?
 		drv->send_frame_link_id : NL80211_DRV_LINK_ID_NA;
-	wpa_supplicant_event(drv->ctx, EVENT_TX_STATUS, &event);
+	wpa_supplicant_event(bss->ctx, EVENT_TX_STATUS, &event);
 }
 
 
@@ -1742,7 +1743,7 @@ static void mlme_event(struct i802_bss *bss,
 				nla_len(frame), link_id);
 		break;
 	case NL80211_CMD_FRAME_TX_STATUS:
-		mlme_event_mgmt_tx_status(drv, cookie, nla_data(frame),
+		mlme_event_mgmt_tx_status(bss, cookie, nla_data(frame),
 					  nla_len(frame), ack);
 		break;
 	case NL80211_CMD_UNPROT_DEAUTHENTICATE:
