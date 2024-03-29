@@ -25,6 +25,15 @@
 #include "ap/pmksa_cache_auth.h"
 #include "pasn_common.h"
 
+
+void pasn_set_responder_pmksa(struct pasn_data *pasn,
+			      struct rsn_pmksa_cache *pmksa)
+{
+	if (pasn)
+		pasn->pmksa = pmksa;
+}
+
+
 #ifdef CONFIG_PASN
 #ifdef CONFIG_SAE
 

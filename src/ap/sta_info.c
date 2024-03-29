@@ -180,7 +180,7 @@ void ap_free_sta_pasn(struct hostapd_data *hapd, struct sta_info *sta)
 		sta->pasn->fils.erp_resp = NULL;
 #endif /* CONFIG_FILS */
 
-		bin_clear_free(sta->pasn, sizeof(*sta->pasn));
+		pasn_data_deinit(sta->pasn);
 		sta->pasn = NULL;
 	}
 }

@@ -16,8 +16,6 @@
 extern "C" {
 #endif
 
-#ifdef CONFIG_PASN
-
 enum pasn_fils_state {
 	PASN_FILS_STATE_NONE = 0,
 	PASN_FILS_STATE_PENDING_AS,
@@ -35,19 +33,46 @@ struct pasn_fils {
 };
 
 struct pasn_data {
+	/* External modules access below variables using setter and getter
+	 * functions */
 	int akmp;
 	int cipher;
+	u8 own_addr[ETH_ALEN];
+	u8 peer_addr[ETH_ALEN];
+	u8 bssid[ETH_ALEN];
+	struct rsn_pmksa_cache *pmksa;
+	bool derive_kdk;
+	size_t kdk_len;
+	void *cb_ctx;
+
+#ifdef CONFIG_SAE
+	struct sae_pt *pt;
+#endif /* CONFIG_SAE */
+
+	/* Responder */
+	const char *password;
+	int wpa_key_mgmt;
+	int rsn_pairwise;
+	u16 rsnxe_capab;
+	const u8 *rsnxe_ie;
+	bool custom_pmkid_valid;
+	u8 custom_pmkid[PMKID_LEN];
+
+	/*
+	 * Extra elements to add into Authentication frames. These can be used,
+	 * e.g., for Wi-Fi Aware use cases.
+	 */
+	const u8 *extra_ies;
+	size_t extra_ies_len;
+
+	/* External modules do not access below variables */
 	u16 group;
 	bool secure_ltf;
 	int freq;
-	size_t kdk_len;
 
 	u8 trans_seq;
 	u8 status;
 
-	u8 own_addr[ETH_ALEN];
-	u8 peer_addr[ETH_ALEN];
-	u8 bssid[ETH_ALEN];
 	size_t pmk_len;
 	u8 pmk[PMK_LEN_MAX];
 	bool using_pmksa;
@@ -63,7 +88,6 @@ struct pasn_data {
 
 #ifdef CONFIG_SAE
 	struct sae_data sae;
-	struct sae_pt *pt;
 #endif /* CONFIG_SAE */
 
 #ifdef CONFIG_FILS
@@ -81,15 +105,12 @@ struct pasn_data {
 	 * differently for the PASN initiator (using RSN Supplicant
 	 * implementation) and PASN responser (using RSN Authenticator
 	 * implementation). Functions cannot be mixed between those cases. */
-	struct rsn_pmksa_cache *pmksa;
 	struct rsn_pmksa_cache_entry *pmksa_entry;
 	struct eapol_sm *eapol;
 	int fast_reauth;
 #ifdef CONFIG_TESTING_OPTIONS
 	int corrupt_mic;
 #endif /* CONFIG_TESTING_OPTIONS */
-	void *cb_ctx;
-	u16 rsnxe_capab;
 	int network_id;
 
 	u8 wrapped_data_format;
@@ -97,32 +118,17 @@ struct pasn_data {
 
 	/* Responder */
 	bool noauth; /* Whether PASN without mutual authentication is enabled */
-	int wpa_key_mgmt;
-	int rsn_pairwise;
-	bool derive_kdk;
-	const char *password;
 	int disable_pmksa_caching;
 	int *pasn_groups;
 	struct wpabuf *wrapped_data;
 	int use_anti_clogging;
 	const u8 *rsn_ie;
-	const u8 *rsnxe_ie;
 	size_t rsn_ie_len;
 
 	u8 *comeback_key;
 	struct os_reltime last_comeback_key_update;
 	u16 comeback_idx;
 	u16 *comeback_pending_idx;
-
-	bool custom_pmkid_valid;
-	u8 custom_pmkid[PMKID_LEN];
-
-	/**
-	 * Extra elements to add into Authentication frames. These can be used,
-	 * e.g., for Wi-Fi Aware use cases.
-	 */
-	const u8 *extra_ies;
-	size_t extra_ies_len;
 
 	/**
 	 * send_mgmt - Function handler to transmit a Management frame
@@ -147,7 +153,6 @@ struct pasn_data {
 };
 
 /* Initiator */
-
 void wpa_pasn_reset(struct pasn_data *pasn);
 int wpas_pasn_start(struct pasn_data *pasn, const u8 *own_addr,
 		    const u8 *peer_addr, const u8 *bssid,
@@ -177,7 +182,45 @@ int handle_auth_pasn_resp(struct pasn_data *pasn, const u8 *own_addr,
 			  const u8 *peer_addr,
 			  struct rsn_pmksa_cache_entry *pmksa, u16 status);
 
-#endif /* CONFIG_PASN */
+struct pasn_data * pasn_data_init(void);
+void pasn_data_deinit(struct pasn_data *pasn);
+void pasn_register_callbacks(struct pasn_data *pasn, void *cb_ctx,
+			     int (*send_mgmt)(void *ctx, const u8 *data,
+					      size_t data_len, int noack,
+					      unsigned int freq,
+					      unsigned int wait),
+			     int (*validate_custom_pmkid)(void *ctx,
+							  const u8 *addr,
+							  const u8 *pmkid));
+void pasn_enable_kdk_derivation(struct pasn_data *pasn);
+void pasn_disable_kdk_derivation(struct pasn_data *pasn);
+
+void pasn_set_akmp(struct pasn_data *pasn, int akmp);
+void pasn_set_cipher(struct pasn_data *pasn, int cipher);
+void pasn_set_own_addr(struct pasn_data *pasn, const u8 *addr);
+void pasn_set_peer_addr(struct pasn_data *pasn, const u8 *addr);
+void pasn_set_bssid(struct pasn_data *pasn, const u8 *addr);
+void pasn_set_initiator_pmksa(struct pasn_data *pasn,
+			      struct rsn_pmksa_cache *pmksa);
+void pasn_set_responder_pmksa(struct pasn_data *pasn,
+			      struct rsn_pmksa_cache *pmksa);
+int pasn_set_pt(struct pasn_data *pasn, struct sae_pt *pt);
+
+/* Responder */
+void pasn_set_password(struct pasn_data *pasn, const char *password);
+void pasn_set_wpa_key_mgmt(struct pasn_data *pasn, int key_mgmt);
+void pasn_set_rsn_pairwise(struct pasn_data *pasn, int rsn_pairwise);
+void pasn_set_rsnxe_caps(struct pasn_data *pasn, u16 rsnxe_capab);
+void pasn_set_rsnxe_ie(struct pasn_data *pasn, const u8 *rsnxe_ie);
+void pasn_set_custom_pmkid(struct pasn_data *pasn, const u8 *pmkid);
+int pasn_set_extra_ies(struct pasn_data *pasn, const u8 *extra_ies,
+		       size_t extra_ies_len);
+
+int pasn_get_akmp(struct pasn_data *pasn);
+int pasn_get_cipher(struct pasn_data *pasn);
+size_t pasn_get_pmk_len(struct pasn_data *pasn);
+u8 * pasn_get_pmk(struct pasn_data *pasn);
+struct wpa_ptk * pasn_get_ptk(struct pasn_data *pasn);
 
 #ifdef __cplusplus
 }

@@ -2403,7 +2403,7 @@ static void pasn_fils_auth_resp(struct hostapd_data *hapd,
 	wpa_hexdump(MSG_DEBUG, "RSN: Generated FILS ANonce",
 		    fils->anonce, FILS_NONCE_LEN);
 
-	ret = fils_rmsk_to_pmk(pasn->akmp, msk, msk_len, fils->nonce,
+	ret = fils_rmsk_to_pmk(pasn_get_akmp(pasn), msk, msk_len, fils->nonce,
 			       fils->anonce, NULL, 0, pmk, &pmk_len);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "FILS: Failed to derive PMK");
@@ -2413,15 +2413,16 @@ static void pasn_fils_auth_resp(struct hostapd_data *hapd,
 	ret = pasn_pmk_to_ptk(pmk, pmk_len, sta->addr, hapd->own_addr,
 			      wpabuf_head(pasn->secret),
 			      wpabuf_len(pasn->secret),
-			      &sta->pasn->ptk, sta->pasn->akmp,
-			      sta->pasn->cipher, sta->pasn->kdk_len);
+			      pasn_get_ptk(sta->pasn), pasn_get_akmp(sta->pasn),
+			      pasn_get_cipher(sta->pasn), sta->pasn->kdk_len);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "PASN: FILS: Failed to derive PTK");
 		goto fail;
 	}
 
 	if (pasn->secure_ltf) {
-		ret = wpa_ltf_keyseed(&pasn->ptk, pasn->akmp, pasn->cipher);
+		ret = wpa_ltf_keyseed(pasn_get_ptk(pasn), pasn_get_akmp(pasn),
+				      pasn_get_cipher(pasn));
 		if (ret) {
 			wpa_printf(MSG_DEBUG,
 				   "PASN: FILS: Failed to derive LTF keyseed");
@@ -2567,7 +2568,8 @@ static int pasn_wd_handle_fils(struct hostapd_data *hapd, struct sta_info *sta,
 	 * Calculate pending PMKID here so that we do not need to maintain a
 	 * copy of the EAP-Initiate/Reautt message.
 	 */
-	fils_pmkid_erp(pasn->akmp, wpabuf_head(fils_wd), wpabuf_len(fils_wd),
+	fils_pmkid_erp(pasn_get_akmp(pasn),
+		       wpabuf_head(fils_wd), wpabuf_len(fils_wd),
 		       fils->erp_pmkid);
 
 	wpabuf_free(fils_wd);
@@ -2592,32 +2594,35 @@ static void hapd_initialize_pasn(struct hostapd_data *hapd,
 {
 	struct pasn_data *pasn = sta->pasn;
 
-	pasn->cb_ctx = hapd;
-	pasn->send_mgmt = hapd_pasn_send_mlme;
+	pasn_register_callbacks(pasn, hapd, hapd_pasn_send_mlme, NULL);
+	pasn_set_bssid(pasn, hapd->own_addr);
+	pasn_set_own_addr(pasn, hapd->own_addr);
+	pasn_set_peer_addr(pasn, sta->addr);
+	pasn_set_wpa_key_mgmt(pasn, hapd->conf->wpa_key_mgmt);
+	pasn_set_rsn_pairwise(pasn, hapd->conf->rsn_pairwise);
 	pasn->pasn_groups = hapd->conf->pasn_groups;
 	pasn->noauth = hapd->conf->pasn_noauth;
-	pasn->wpa_key_mgmt = hapd->conf->wpa_key_mgmt;
-	pasn->rsn_pairwise = hapd->conf->rsn_pairwise;
-	pasn->derive_kdk = hapd->iface->drv_flags2 &
-		WPA_DRIVER_FLAGS2_SEC_LTF_AP;
+	if (hapd->iface->drv_flags2 & WPA_DRIVER_FLAGS2_SEC_LTF_AP)
+		pasn_enable_kdk_derivation(pasn);
+
 #ifdef CONFIG_TESTING_OPTIONS
 	pasn->corrupt_mic = hapd->conf->pasn_corrupt_mic;
 	if (hapd->conf->force_kdk_derivation)
-		pasn->derive_kdk = true;
+		pasn_enable_kdk_derivation(pasn);
 #endif /* CONFIG_TESTING_OPTIONS */
 	pasn->use_anti_clogging = use_anti_clogging(hapd);
-	pasn->password = sae_get_password(hapd, sta, NULL, NULL, &pasn->pt,
-					  NULL);
+	pasn_set_password(pasn, sae_get_password(hapd, sta, NULL, NULL,
+						 &pasn->pt, NULL));
 	pasn->rsn_ie = wpa_auth_get_wpa_ie(hapd->wpa_auth, &pasn->rsn_ie_len);
-	pasn->rsnxe_ie = hostapd_wpa_ie(hapd, WLAN_EID_RSNX);
+	pasn_set_rsnxe_ie(pasn, hostapd_wpa_ie(hapd, WLAN_EID_RSNX));
 	pasn->disable_pmksa_caching = hapd->conf->disable_pmksa_caching;
-	pasn->pmksa = wpa_auth_get_pmksa_cache(hapd->wpa_auth);
+	pasn_set_responder_pmksa(pasn,
+				 wpa_auth_get_pmksa_cache(hapd->wpa_auth));
 
 	pasn->comeback_after = hapd->conf->pasn_comeback_after;
 	pasn->comeback_idx = hapd->comeback_idx;
 	pasn->comeback_key =  hapd->comeback_key;
 	pasn->comeback_pending_idx = hapd->comeback_pending_idx;
-	os_memcpy(pasn->bssid, hapd->own_addr, ETH_ALEN);
 }
 
 
@@ -2665,6 +2670,7 @@ static void hapd_pasn_update_params(struct hostapd_data *hapd,
 	struct wpa_pasn_params_data pasn_params;
 	struct wpabuf *wrapped_data = NULL;
 #endif /* CONFIG_FILS */
+	int akmp;
 
 	if (ieee802_11_parse_elems(mgmt->u.auth.variable,
 				   len - offsetof(struct ieee80211_mgmt,
@@ -2688,10 +2694,12 @@ static void hapd_pasn_update_params(struct hostapd_data *hapd,
 		return;
 	}
 
-	pasn->akmp = rsn_data.key_mgmt;
-	pasn->cipher = rsn_data.pairwise_cipher;
+	pasn_set_akmp(pasn, rsn_data.key_mgmt);
+	pasn_set_cipher(pasn, rsn_data.pairwise_cipher);
 
-	if (wpa_key_mgmt_ft(pasn->akmp) && rsn_data.num_pmkid) {
+	akmp = pasn_get_akmp(pasn);
+
+	if (wpa_key_mgmt_ft(akmp) && rsn_data.num_pmkid) {
 #ifdef CONFIG_IEEE80211R_AP
 		pasn->pmk_r1_len = 0;
 		wpa_ft_fetch_pmk_r1(hapd->wpa_auth, sta->addr,
@@ -2702,8 +2710,8 @@ static void hapd_pasn_update_params(struct hostapd_data *hapd,
 #endif /* CONFIG_IEEE80211R_AP */
 	}
 #ifdef CONFIG_FILS
-	if (pasn->akmp != WPA_KEY_MGMT_FILS_SHA256 &&
-	    pasn->akmp != WPA_KEY_MGMT_FILS_SHA384)
+	if (akmp != WPA_KEY_MGMT_FILS_SHA256 &&
+	    akmp != WPA_KEY_MGMT_FILS_SHA384)
 		return;
 	if (!elems.pasn_params ||
 	    wpa_pasn_parse_parameter_ie(elems.pasn_params - 3,
@@ -2756,7 +2764,7 @@ static void handle_auth_pasn(struct hostapd_data *hapd, struct sta_info *sta,
 			return;
 		}
 
-		sta->pasn = os_zalloc(sizeof(*sta->pasn));
+		sta->pasn = pasn_data_init();
 		if (!sta->pasn) {
 			wpa_printf(MSG_DEBUG,
 				   "PASN: Failed to allocate PASN context");
@@ -2786,13 +2794,14 @@ static void handle_auth_pasn(struct hostapd_data *hapd, struct sta_info *sta,
 		if (handle_auth_pasn_3(sta->pasn, hapd->own_addr,
 				       sta->addr, mgmt, len) == 0) {
 			ptksa_cache_add(hapd->ptksa, hapd->own_addr, sta->addr,
-					sta->pasn->cipher, 43200,
-					&sta->pasn->ptk, NULL, NULL,
-					sta->pasn->akmp);
+					pasn_get_cipher(sta->pasn), 43200,
+					pasn_get_ptk(sta->pasn), NULL, NULL,
+					pasn_get_akmp(sta->pasn));
 
 			pasn_set_keys_from_cache(hapd, hapd->own_addr,
-						 sta->addr, sta->pasn->cipher,
-						 sta->pasn->akmp);
+						 sta->addr,
+						 pasn_get_cipher(sta->pasn),
+						 pasn_get_akmp(sta->pasn));
 		}
 		ap_free_sta(hapd, sta);
 	} else {

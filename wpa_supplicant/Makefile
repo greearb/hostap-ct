@@ -433,6 +433,7 @@ NEED_HMAC_SHA384_KDF=y
 NEED_SHA256=y
 NEED_SHA384=y
 OBJS += ../src/pasn/pasn_initiator.o
+OBJS += ../src/pasn/pasn_common.o
 OBJS += pasn_supplicant.o
 endif
 
@@ -2319,6 +2320,7 @@ endif
 
 LIBPASNSO += ../src/pasn/pasn_initiator.c
 LIBPASNSO += ../src/pasn/pasn_responder.c
+LIBPASNSO += ../src/pasn/pasn_common.c
 
 libpasn.so: $(LIBPASNSO)
 	@$(E) "  CC  $@ ($^)"

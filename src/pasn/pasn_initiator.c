@@ -26,6 +26,14 @@
 #include "pasn_common.h"
 
 
+void pasn_set_initiator_pmksa(struct pasn_data *pasn,
+			      struct rsn_pmksa_cache *pmksa)
+{
+	if (pasn)
+		pasn->pmksa = pmksa;
+}
+
+
 #ifdef CONFIG_SAE
 
 static struct wpabuf * wpas_pasn_wd_sae_commit(struct pasn_data *pasn)
@@ -741,6 +749,11 @@ void wpa_pasn_reset(struct pasn_data *pasn)
 	pasn->rsn_ie_len = 0;
 	pasn->rsnxe_ie = NULL;
 	pasn->custom_pmkid_valid = false;
+
+	if (pasn->extra_ies) {
+		os_free((u8 *) pasn->extra_ies);
+		pasn->extra_ies = NULL;
+	}
 }
 
 
