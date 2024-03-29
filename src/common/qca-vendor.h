@@ -1075,6 +1075,18 @@ enum qca_radiotap_vendor_ids {
  *	Userspace applications can deregister the unicast event reporting with
  *	disable configuration. The registrations will be removed automatically
  *	by the driver when the corresponding netlink socket is closed.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_AP_SUSPEND: Vendor command to put an AP interface
+ *	in suspend state. On enabling suspend, AP deauthenticates all associated
+ *	stations and stops TX/RX operations on the interface. The driver
+ *	retains the AP configuration and on resume, starts all TX/RX operations
+ *	with the same AP configuration.
+ *
+ *	This subcommand is also used as an event to notify userspace about AP
+ *	suspended/resumed state changes.
+ *
+ *	The attributes used with this command/event are defined in enum
+ *	qca_wlan_vendor_attr_ap_suspend.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1302,6 +1314,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_ADJUST_TX_POWER = 241,
 	QCA_NL80211_VENDOR_SUBCMD_SPECTRAL_SCAN_COMPLETE = 242,
 	QCA_NL80211_VENDOR_SUBCMD_ASYNC_GET_STATION = 243,
+	QCA_NL80211_VENDOR_SUBCMD_AP_SUSPEND = 244,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -17113,6 +17126,40 @@ enum qca_wlan_vendor_async_get_station_attr {
 	QCA_WLAN_VENDOR_ATTR_ASYNC_GET_STATION_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_ASYNC_GET_STATION_MAX =
 	QCA_WLAN_VENDOR_ATTR_ASYNC_GET_STATION_AFTER_LAST - 1,
+};
+
+/* enum qca_wlan_vendor_ap_suspend_state - Attribute values for
+ * QCA_WLAN_VENDOR_ATTR_AP_SUSPEND_STATE.
+ *
+ * @QCA_WLAN_VENDOR_AP_SUSPEND_STATE_DISABLE: Disable suspend state. When used
+ * with a command, the driver resumes AP with the same configuration that was
+ * applied earlier and starts all TX/RX operations. When used in an event,
+ * indicates the AP interface resumed.
+ *
+ * @QCA_WLAN_VENDOR_AP_SUSPEND_STATE_ENABLE: Enable suspend state. In this
+ * mode, all associated STAs are disconnected and TX/RX is stopped. While an AP
+ * is in this state, it allows only %QCA_WLAN_VENDOR_AP_SUSPEND_STATE_DISABLE
+ * or AP stop/teardown operations. When used in an event, indicates the AP
+ * interface suspended.
+ */
+enum qca_wlan_vendor_ap_suspend_state {
+	QCA_WLAN_VENDOR_AP_SUSPEND_STATE_DISABLE = 0,
+	QCA_WLAN_VENDOR_AP_SUSPEND_STATE_ENABLE = 1,
+};
+
+/* enum qca_wlan_vendor_attr_ap_suspend - Definition of attributes for
+ * @QCA_NL80211_VENDOR_SUBCMD_AP_SUSPEND to configure/notify the suspend state.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_AP_SUSPEND_STATE: u8 attribute to configure/notify
+ * suspend state defined in enum qca_wlan_vendor_ap_suspend_state.
+ */
+enum qca_wlan_vendor_attr_ap_suspend {
+	QCA_WLAN_VENDOR_ATTR_AP_SUSPEND_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_AP_SUSPEND_STATE = 1,
+
+	QCA_WLAN_VENDOR_ATTR_AP_SUSPEND_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_AP_SUSPEND_MAX =
+	QCA_WLAN_VENDOR_ATTR_AP_SUSPEND_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
