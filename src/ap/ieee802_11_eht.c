@@ -589,7 +589,8 @@ static u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 		wpabuf_put_le64(buf, 0);
 
 		/* DTIM Info */
-		wpabuf_put_le16(buf, link_bss->conf->dtim_period);
+		wpabuf_put_u8(buf, 0); /* DTIM Count */
+		wpabuf_put_u8(buf, link_bss->conf->dtim_period);
 
 		/* BSS Parameters Change Count */
 		wpabuf_put_u8(buf, hapd->eht_mld_bss_param_change);
