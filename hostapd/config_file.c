@@ -5069,7 +5069,7 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		if (get_u16(pos, line, &conf->punct_bitmap))
 			return 1;
 		conf->punct_bitmap = atoi(pos);
-		conf->pp_mode = PP_MANUAL_MODE;
+		conf->pp_mode = PP_USR_MODE;
 	} else if (os_strcmp(buf, "punct_acs_threshold") == 0) {
 		int val = atoi(pos);
 
@@ -5159,8 +5159,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 	} else if (os_strcmp(buf, "pp_mode") == 0) {
 		int val = atoi(pos);
 
-		if ((val != PP_MANUAL_MODE && conf->punct_bitmap) ||
-		    val < PP_DISABLE || val > PP_MANUAL_MODE) {
+		if ((val != PP_USR_MODE && conf->punct_bitmap) ||
+		    val < PP_DISABLE || val > PP_USR_MODE) {
 			wpa_printf(MSG_ERROR, "Line %d: invalid pp_mode value",
 				   line);
 			return 1;

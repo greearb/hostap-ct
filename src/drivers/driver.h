@@ -5698,8 +5698,9 @@ struct wpa_driver_ops {
 	 * pp_mode_set - Set preamble puncture operation mode
 	 * @priv: Private driver interface data
 	 * @pp_mode: Value is defined in enum pp_mode
+	 * @band_idx: chip band index
 	 */
-	int (*pp_mode_set)(void *priv, const u8 pp_mode);
+	int (*pp_mode_set)(void *priv, const u8 pp_mode, u8 band_idx);
 #ifdef CONFIG_IEEE80211BE
 	int (*get_mld_addr)(void *priv, u8 *addr);
 #endif

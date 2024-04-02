@@ -1583,10 +1583,16 @@ int hostapd_drv_background_radar_mode(struct hostapd_data *hapd)
 int hostapd_drv_pp_mode_set(struct hostapd_data *hapd)
 {
 	if (!hapd->driver || !hapd->driver->pp_mode_set ||
-	    hapd->iconf->pp_mode > PP_AUTO_MODE)
+	    hapd->iconf->pp_mode >= PP_USR_MODE ||
+	    hapd->iface->current_mode->mode != HOSTAPD_MODE_IEEE80211A)
 		return 0;
+
+	/* TODO:  band_idx
 	return hapd->driver->pp_mode_set(hapd->drv_priv,
-					 hapd->iconf->pp_mode);
+					 hapd->iconf->pp_mode,
+					 hapd->iconf->band_idx);
+	*/
+	return 0;
 }
 
 int hostapd_drv_beacon_ctrl(struct hostapd_data *hapd, u8 beacon_mode)

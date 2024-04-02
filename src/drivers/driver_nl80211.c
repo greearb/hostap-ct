@@ -154,6 +154,7 @@ amnt_dump_policy[NUM_MTK_VENDOR_ATTRS_AMNT_DUMP] = {
 static struct nla_policy
 pp_ctrl_policy[NUM_MTK_VENDOR_ATTRS_PP_CTRL] = {
 	[MTK_VENDOR_ATTR_PP_MODE] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_PP_BAND_IDX] = { .type = NLA_U8 },
 };
 #endif
 
@@ -16612,7 +16613,7 @@ static int nl80211_background_radar_mode(void *priv, const u8 background_radar_m
 	return ret;
 }
 
-static int nl80211_pp_mode_set(void *priv, const u8 pp_mode)
+static int nl80211_pp_mode_set(void *priv, const u8 pp_mode, u8 band_idx)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -16639,6 +16640,7 @@ static int nl80211_pp_mode_set(void *priv, const u8 pp_mode)
 	if (!data)
 		goto fail;
 
+	nla_put_u8(msg, MTK_VENDOR_ATTR_PP_BAND_IDX, band_idx);
 	nla_put_u8(msg, MTK_VENDOR_ATTR_PP_MODE, pp_mode);
 
 	nla_nest_end(msg, data);

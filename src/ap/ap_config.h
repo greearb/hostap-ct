@@ -1348,8 +1348,8 @@ enum mtk_vendor_attr_edcca_ctrl_mode {
 
 enum pp_mode {
 	PP_DISABLE = 0,
-	PP_AUTO_MODE,
-	PP_MANUAL_MODE,
+	PP_FW_MODE,
+	PP_USR_MODE,
 };
 
 #define EDCCA_DEFAULT_COMPENSATION -6
