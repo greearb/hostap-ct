@@ -267,6 +267,7 @@ enum mtk_vendor_attr_pp_ctrl {
 	MTK_VENDOR_ATTR_PP_CTRL_UNSPEC,
 
 	MTK_VENDOR_ATTR_PP_MODE,
+	MTK_VENDOR_ATTR_PP_BAND_IDX,
 
 	/* keep last */
 	NUM_MTK_VENDOR_ATTRS_PP_CTRL,

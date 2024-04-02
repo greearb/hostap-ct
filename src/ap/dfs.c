@@ -1653,6 +1653,8 @@ int hostapd_dfs_radar_detected(struct hostapd_iface *iface, int freq,
 			return 0;
 	}
 
+	iface->bss[0]->iconf->punct_bitmap = 0;
+
 	if (hostapd_dfs_background_start_channel_switch(iface, freq)) {
 		/* Radar detected while operating, switch the channel. */
 		return hostapd_dfs_start_channel_switch(iface);
