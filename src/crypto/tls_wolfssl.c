@@ -849,7 +849,7 @@ static struct wpabuf * get_x509_cert(WOLFSSL_X509 *cert)
 	int cert_len;
 
 	data = wolfSSL_X509_get_der(cert, &cert_len);
-	if (!data)
+	if (data)
 		buf = wpabuf_alloc_copy(data, cert_len);
 
 	return buf;
