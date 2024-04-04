@@ -685,6 +685,7 @@ static void sta_track_deinit(struct hostapd_iface *iface)
 void hostapd_cleanup_iface_partial(struct hostapd_iface *iface)
 {
 	wpa_printf(MSG_DEBUG, "%s(%p)", __func__, iface);
+	eloop_cancel_timeout(channel_list_update_timeout, iface, NULL);
 #ifdef NEED_AP_MLME
 	hostapd_stop_setup_timers(iface);
 #endif /* NEED_AP_MLME */
@@ -714,7 +715,6 @@ void hostapd_cleanup_iface_partial(struct hostapd_iface *iface)
 static void hostapd_cleanup_iface(struct hostapd_iface *iface)
 {
 	wpa_printf(MSG_DEBUG, "%s(%p)", __func__, iface);
-	eloop_cancel_timeout(channel_list_update_timeout, iface, NULL);
 	eloop_cancel_timeout(hostapd_interface_setup_failure_handler, iface,
 			     NULL);
 
