@@ -1601,19 +1601,24 @@ static int tls_connection_ca_cert(void *tls_ctx, struct tls_connection *conn,
 
 static void tls_set_conn_flags(WOLFSSL *ssl, unsigned int flags)
 {
+	long op = 0;
+
 #ifdef HAVE_SESSION_TICKET
 	if (!(flags & TLS_CONN_DISABLE_SESSION_TICKET))
 		wolfSSL_UseSessionTicket(ssl);
 #endif /* HAVE_SESSION_TICKET */
 
+	wpa_printf(MSG_DEBUG, "SSL: conn_flags: %d", flags);
+
 	if (flags & TLS_CONN_DISABLE_TLSv1_0)
-		wolfSSL_set_options(ssl, SSL_OP_NO_TLSv1);
+		op |= WOLFSSL_OP_NO_TLSv1;
 	if (flags & TLS_CONN_DISABLE_TLSv1_1)
-		wolfSSL_set_options(ssl, SSL_OP_NO_TLSv1_1);
+		op |= WOLFSSL_OP_NO_TLSv1_1;
 	if (flags & TLS_CONN_DISABLE_TLSv1_2)
-		wolfSSL_set_options(ssl, SSL_OP_NO_TLSv1_2);
+		op |= WOLFSSL_OP_NO_TLSv1_2;
 	if (flags & TLS_CONN_DISABLE_TLSv1_3)
-		wolfSSL_set_options(ssl, SSL_OP_NO_TLSv1_3);
+		op |= WOLFSSL_OP_NO_TLSv1_3;
+	wolfSSL_set_options(ssl, op);
 }
 
 
@@ -1994,6 +1999,7 @@ int tls_connection_set_verify(void *ssl_ctx, struct tls_connection *conn,
 		return -1;
 
 	wpa_printf(MSG_DEBUG, "SSL: set verify: %d", verify_peer);
+	wpa_printf(MSG_DEBUG, "SSL: flags: %d", flags);
 
 	if (verify_peer) {
 		conn->ca_cert_verify = 1;
@@ -2022,6 +2028,8 @@ int tls_connection_set_verify(void *ssl_ctx, struct tls_connection *conn,
 		wolfSSL_set_session_id_context(conn->ssl, session_ctx,
 					       session_ctx_len);
 	}
+
+	tls_set_conn_flags(conn->ssl, flags);
 
 	return 0;
 }
