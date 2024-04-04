@@ -225,11 +225,152 @@ static void wolfSSL_logging_cb(const int log_level,
 #endif /* DEBUG_WOLFSSL */
 
 
+#define SUITEB_OLDTLS_192_CIPHERS "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384"
+#define SUITEB_TLS13_192_CIPHERS "TLS13-AES256-GCM-SHA384:TLS13-CHACHA20-POLY1305-SHA256"
+#define SUITEB_TLS_192_CIPHERS SUITEB_TLS13_192_CIPHERS ":" SUITEB_OLDTLS_192_CIPHERS
+
+#define SUITEB_OLDTLS_128_CIPHERS SUITEB_OLDTLS_192_CIPHERS ":ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256"
+#define SUITEB_TLS13_128_CIPHERS SUITEB_TLS13_192_CIPHERS ":TLS13-AES128-GCM-SHA256"
+#define SUITEB_TLS_128_CIPHERS SUITEB_TLS13_128_CIPHERS ":" SUITEB_OLDTLS_128_CIPHERS
+
+#define SUITEB_TLS_192_SIGALGS "ECDSA+SHA384:RSA-PSS+SHA384:RSA+SHA384"
+#define SUITEB_TLS_128_SIGALGS SUITEB_TLS_192_SIGALGS ":ECDSA+SHA256:RSA-PSS+SHA256:RSA+SHA256"
+
+#define SUITEB_TLS_192_CURVES "P-384:P-521"
+#define SUITEB_TLS_128_CURVES "P-256:" SUITEB_TLS_192_CURVES
+
+static int handle_ciphersuites(WOLFSSL_CTX *ssl_ctx, WOLFSSL *ssl,
+			       const char *openssl_ciphers, unsigned int flags)
+{
+	const char *ciphers = "DEFAULT:!aNULL";
+	const char *sigalgs = NULL;
+	const char *curves = NULL;
+	bool tls13 = !(flags & TLS_CONN_DISABLE_TLSv1_3);
+	unsigned int tls13_only_mask = TLS_CONN_DISABLE_TLSv1_2 |
+		TLS_CONN_DISABLE_TLSv1_1 | TLS_CONN_DISABLE_TLSv1_0;
+	bool old_tls_only = ((flags & tls13_only_mask) != tls13_only_mask) &&
+		!tls13;
+	bool tls13only = ((flags & tls13_only_mask) == tls13_only_mask) &&
+		!(flags & TLS_CONN_DISABLE_TLSv1_3);
+	short key_sz = 0;
+	short ecc_key_sz = 0;
+
+	if (openssl_ciphers) {
+		if (os_strcmp(openssl_ciphers, "SUITEB128") == 0) {
+			if (tls13only)
+				ciphers = SUITEB_TLS13_128_CIPHERS;
+			else if (old_tls_only)
+				ciphers = SUITEB_OLDTLS_128_CIPHERS;
+			else
+				ciphers = SUITEB_TLS_128_CIPHERS;
+			sigalgs = SUITEB_TLS_128_SIGALGS;
+			key_sz = 2048;
+			ecc_key_sz = 224;
+			curves = SUITEB_TLS_128_CURVES;
+		} else if (os_strcmp(openssl_ciphers, "SUITEB192") == 0) {
+			if (tls13only)
+				ciphers = SUITEB_TLS13_192_CIPHERS;
+			else if (old_tls_only)
+				ciphers = SUITEB_OLDTLS_192_CIPHERS;
+			else
+				ciphers = SUITEB_TLS_192_CIPHERS;
+			sigalgs = SUITEB_TLS_192_SIGALGS;
+			key_sz = 3072;
+			ecc_key_sz = 256;
+			curves = SUITEB_TLS_192_CURVES;
+		} else {
+			ciphers = openssl_ciphers;
+		}
+	} else if (flags & TLS_CONN_SUITEB) {
+		if (tls13only)
+			ciphers = SUITEB_TLS13_192_CIPHERS;
+		else if (old_tls_only)
+			ciphers = SUITEB_OLDTLS_192_CIPHERS;
+		else
+			ciphers = SUITEB_TLS_192_CIPHERS;
+		sigalgs = SUITEB_TLS_192_SIGALGS;
+		key_sz = 3072;
+		ecc_key_sz = 256;
+		curves = SUITEB_TLS_192_CURVES;
+	}
+
+	wpa_printf(MSG_DEBUG, "wolfSSL: cipher suites for %s",
+		   ssl_ctx ? "ctx" : "ssl");
+	wpa_printf(MSG_DEBUG, "wolfSSL: openssl_ciphers: %s",
+		   openssl_ciphers ? openssl_ciphers : "N/A");
+	wpa_printf(MSG_DEBUG, "wolfSSL: cipher suites: %s",
+		   ciphers ? ciphers : "N/A");
+	wpa_printf(MSG_DEBUG, "wolfSSL: sigalgs: %s",
+		   sigalgs ? sigalgs : "N/A");
+	wpa_printf(MSG_DEBUG, "wolfSSL: key size: %d", key_sz);
+
+	if (ciphers) {
+		if ((ssl_ctx &&
+		     wolfSSL_CTX_set_cipher_list(ssl_ctx, ciphers) != 1) ||
+		    (ssl && wolfSSL_set_cipher_list(ssl, ciphers) != 1)) {
+			wpa_printf(MSG_ERROR,
+				   "wolfSSL: Failed to set cipher string '%s'",
+				   ciphers);
+			return -1;
+		}
+	}
+
+	if (sigalgs) {
+		if ((ssl_ctx &&
+		     wolfSSL_CTX_set1_sigalgs_list(ssl_ctx, sigalgs) != 1) ||
+		    (ssl && wolfSSL_set1_sigalgs_list(ssl, sigalgs) != 1)) {
+			wpa_printf(MSG_ERROR,
+				   "wolfSSL: Failed to set sigalgs '%s'",
+				   sigalgs);
+			return -1;
+		}
+	}
+
+	if (key_sz) {
+		if ((ssl_ctx &&
+		     wolfSSL_CTX_SetMinRsaKey_Sz(ssl_ctx, key_sz) != 1) ||
+		    (ssl && wolfSSL_SetMinRsaKey_Sz(ssl, key_sz) != 1) ||
+		    (ssl_ctx &&
+		     wolfSSL_CTX_SetMinDhKey_Sz(ssl_ctx, key_sz) != 1) ||
+		    (ssl && wolfSSL_SetMinDhKey_Sz(ssl, key_sz) != 1)) {
+			wpa_printf(MSG_ERROR,
+				   "wolfSSL: Failed to set min key size");
+			return -1;
+		}
+	}
+
+	if (ecc_key_sz) {
+		if ((ssl_ctx &&
+		     wolfSSL_CTX_SetMinEccKey_Sz(ssl_ctx, ecc_key_sz) != 1) ||
+		    (ssl && wolfSSL_SetMinEccKey_Sz(ssl, ecc_key_sz) != 1) ||
+		    (ssl_ctx &&
+		     wolfSSL_CTX_SetTmpEC_DHE_Sz(ssl_ctx,
+						 ecc_key_sz / 8) != 1) ||
+		    (ssl &&
+		     wolfSSL_SetTmpEC_DHE_Sz(ssl, ecc_key_sz / 8) != 1)) {
+			wpa_printf(MSG_ERROR,
+				   "wolfSSL: Failed to set min ecc key size");
+			return -1;
+		}
+	}
+
+	if (curves) {
+		if ((ssl_ctx &&
+		     wolfSSL_CTX_set1_curves_list(ssl_ctx, curves) != 1) ||
+		    (ssl && wolfSSL_set1_curves_list(ssl, curves) != 1)) {
+			wpa_printf(MSG_ERROR, "wolfSSL: Failed to set curves");
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+
 void * tls_init(const struct tls_config *conf)
 {
 	WOLFSSL_CTX *ssl_ctx;
 	struct tls_context *context;
-	const char *ciphers;
 
 #ifdef DEBUG_WOLFSSL
 	wolfSSL_SetLoggingCb(wolfSSL_logging_cb);
@@ -282,18 +423,13 @@ void * tls_init(const struct tls_config *conf)
 						   WOLFSSL_SESS_CACHE_OFF);
 	}
 
-	if (conf && conf->openssl_ciphers)
-		ciphers = conf->openssl_ciphers;
-	else
-		ciphers = "ALL";
-	wpa_printf(MSG_DEBUG, "wolfSSL: cipher suites: %s", ciphers);
-	if (wolfSSL_CTX_set_cipher_list(ssl_ctx, ciphers) != 1) {
-		wpa_printf(MSG_ERROR,
-			   "wolfSSL: Failed to set cipher string '%s'",
-			   ciphers);
+	if (handle_ciphersuites(ssl_ctx, NULL, conf->openssl_ciphers,
+				conf ? conf->tls_flags : 0) != 0) {
+		wpa_printf(MSG_INFO, "wolfssl: Error setting ciphersuites");
 		tls_deinit(ssl_ctx);
 		return NULL;
 	}
+
 
 	return ssl_ctx;
 }
@@ -823,6 +959,8 @@ static enum tls_fail_reason wolfssl_tls_fail_reason(int err)
 	case X509_V_ERR_CERT_UNTRUSTED:
 	case X509_V_ERR_CERT_REJECTED:
 		return TLS_FAIL_BAD_CERTIFICATE;
+	case RSA_KEY_SIZE_E:
+		return TLS_FAIL_INSUFFICIENT_KEY_LEN;
 	default:
 		return TLS_FAIL_UNSPECIFIED;
 	}
@@ -1360,13 +1498,9 @@ int tls_connection_set_params(void *tls_ctx, struct tls_connection *conn,
 		return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "wolfSSL: cipher suites: %s",
-		   params->openssl_ciphers ? params->openssl_ciphers : "N/A");
-	if (params->openssl_ciphers &&
-	    wolfSSL_set_cipher_list(conn->ssl, params->openssl_ciphers) != 1) {
-		wpa_printf(MSG_INFO,
-			   "wolfSSL: Failed to set cipher string '%s'",
-			   params->openssl_ciphers);
+	if (handle_ciphersuites(NULL, conn->ssl, params->openssl_ciphers,
+				params->flags) != 0) {
+		wpa_printf(MSG_INFO, "wolfssl: Error setting ciphersuites");
 		return -1;
 	}
 
@@ -1592,14 +1726,9 @@ int tls_global_set_params(void *tls_ctx,
 		return -1;
 	}
 
-	wpa_printf(MSG_DEBUG, "wolfSSL: cipher suites: %s",
-		   params->openssl_ciphers ? params->openssl_ciphers : "N/A");
-	if (params->openssl_ciphers &&
-	    wolfSSL_CTX_set_cipher_list(tls_ctx,
-					params->openssl_ciphers) != 1) {
-		wpa_printf(MSG_INFO,
-			   "wolfSSL: Failed to set cipher string '%s'",
-			   params->openssl_ciphers);
+	if (handle_ciphersuites(tls_ctx, NULL, params->openssl_ciphers,
+				params->flags) != 0) {
+		wpa_printf(MSG_INFO, "wolfssl: Error setting ciphersuites");
 		return -1;
 	}
 
@@ -1907,7 +2036,7 @@ int tls_connection_set_cipher_list(void *tls_ctx, struct tls_connection *conn,
 	if (!conn || !conn->ssl || !ciphers)
 		return -1;
 
-	buf[0] = '\0';
+	buf[0] = buf[1] = '\0';
 	pos = buf;
 	end = pos + sizeof(buf);
 
@@ -1947,10 +2076,10 @@ int tls_connection_set_cipher_list(void *tls_ctx, struct tls_connection *conn,
 		c++;
 	}
 
-	wpa_printf(MSG_DEBUG, "wolfSSL: cipher suites: %s", buf + 1);
-
-	if (wolfSSL_set_cipher_list(conn->ssl, buf + 1) != 1) {
-		wpa_printf(MSG_DEBUG, "Cipher suite configuration failed");
+	/* +1 to skip the ":" */
+	if (handle_ciphersuites(NULL, conn->ssl, buf + 1, conn->flags) != 0) {
+		wpa_printf(MSG_DEBUG,
+			   "wolfssl: Cipher suite configuration failed");
 		return -1;
 	}
 
@@ -1966,7 +2095,10 @@ int tls_get_cipher(void *tls_ctx, struct tls_connection *conn,
 	if (!conn || !conn->ssl)
 		return -1;
 
-	name = wolfSSL_get_cipher_name(conn->ssl);
+	if (wolfSSL_version(conn->ssl) == TLS1_3_VERSION)
+		name = wolfSSL_get_cipher(conn->ssl);
+	else
+		name = wolfSSL_get_cipher_name(conn->ssl);
 	if (!name)
 		return -1;
 
