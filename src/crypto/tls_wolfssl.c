@@ -881,6 +881,37 @@ static void wolfssl_tls_fail_event(struct tls_connection *conn,
 }
 
 
+static int wolfssl_cert_tod(X509 *cert)
+{
+	WOLFSSL_STACK *ext;
+	int i;
+	char *buf;
+	int tod = 0;
+
+	ext = wolfSSL_X509_get_ext_d2i(cert, CERT_POLICY_OID, NULL, NULL);
+	if (!ext)
+		return 0;
+
+	for (i = 0; i < wolfSSL_sk_num(ext); i++) {
+		WOLFSSL_ASN1_OBJECT *policy;
+
+		policy = wolfSSL_sk_value(ext, i);
+		if (!policy)
+			continue;
+
+		buf = (char*)policy->obj;
+		wpa_printf(MSG_DEBUG, "wolfSSL: Certificate Policy %s", buf);
+		if (os_strcmp(buf, "1.3.6.1.4.1.40808.1.3.1") == 0)
+			tod = 1; /* TOD-STRICT */
+		else if (os_strcmp(buf, "1.3.6.1.4.1.40808.1.3.2") == 0 && !tod)
+			tod = 2; /* TOD-TOFU */
+	}
+	wolfSSL_sk_pop_free(ext, NULL);
+
+	return tod;
+}
+
+
 static void wolfssl_tls_cert_event(struct tls_connection *conn,
 				   WOLFSSL_X509 *err_cert, int depth,
 				   const char *subject)
@@ -968,6 +999,7 @@ static void wolfssl_tls_cert_event(struct tls_connection *conn,
 	for (alt = 0; alt < num_alt_subject; alt++)
 		ev.peer_cert.altsubject[alt] = alt_subject[alt];
 	ev.peer_cert.num_altsubject = num_alt_subject;
+	ev.peer_cert.tod = wolfssl_cert_tod(err_cert);
 
 	context->event_cb(context->cb_ctx, TLS_PEER_CERTIFICATE, &ev);
 	wpabuf_free(cert);
@@ -1073,6 +1105,8 @@ static int tls_verify_cb(int preverify_ok, WOLFSSL_X509_STORE_CTX *x509_ctx)
 	}
 #endif /* CONFIG_SHA256 */
 
+	wolfssl_tls_cert_event(conn, err_cert, depth, buf);
+
 	if (!preverify_ok) {
 		wpa_printf(MSG_WARNING,
 			   "TLS: Certificate verification failed, error %d (%s) depth %d for '%s'",
@@ -1120,8 +1154,6 @@ static int tls_verify_cb(int preverify_ok, WOLFSSL_X509_STORE_CTX *x509_ctx)
 		wolfssl_tls_fail_event(conn, err_cert, err, depth, buf,
 				       "Domain mismatch",
 				       TLS_FAIL_DOMAIN_MISMATCH);
-	} else {
-		wolfssl_tls_cert_event(conn, err_cert, depth, buf);
 	}
 
 	if (conn->cert_probe && preverify_ok && depth == 0) {
