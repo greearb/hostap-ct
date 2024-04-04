@@ -1911,8 +1911,12 @@ int tls_global_set_params(void *tls_ctx,
 
 #ifdef HAVE_SESSION_TICKET
 	/* Session ticket is off by default - can't disable once on. */
-	if (!(params->flags & TLS_CONN_DISABLE_SESSION_TICKET))
-		wolfSSL_CTX_UseSessionTicket(tls_ctx);
+	if (!(params->flags & TLS_CONN_DISABLE_SESSION_TICKET) &&
+	    wolfSSL_CTX_UseSessionTicket(tls_ctx) != WOLFSSL_SUCCESS) {
+		wpa_printf(MSG_ERROR,
+			   "wolfSSL: wolfSSL_CTX_UseSessionTicket failed");
+		return -1;
+	}
 #endif /* HAVE_SESSION_TICKET */
 
 #ifdef HAVE_OCSP
