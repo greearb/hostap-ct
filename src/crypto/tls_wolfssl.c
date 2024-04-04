@@ -403,6 +403,7 @@ void * tls_init(const struct tls_config *conf)
 			os_free(tls_global);
 			tls_global = NULL;
 		}
+		return NULL;
 	}
 	wolfSSL_SetIORecv(ssl_ctx, wolfssl_receive_cb);
 	wolfSSL_SetIOSend(ssl_ctx, wolfssl_send_cb);
