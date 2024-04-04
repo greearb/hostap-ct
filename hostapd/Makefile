@@ -709,6 +709,7 @@ CFLAGS += -DCONFIG_TLSV12
 endif
 
 ifeq ($(CONFIG_TLS), wolfssl)
+CFLAGS += -DCRYPTO_RSA_OAEP_SHA256
 CONFIG_CRYPTO=wolfssl
 ifdef TLS_FUNCS
 OBJS += ../src/crypto/tls_wolfssl.o

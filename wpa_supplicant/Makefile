@@ -1190,6 +1190,7 @@ TLS_FUNCS=y
 endif
 
 ifeq ($(CONFIG_TLS), wolfssl)
+CFLAGS += -DCRYPTO_RSA_OAEP_SHA256
 ifdef TLS_FUNCS
 CFLAGS += -DWOLFSSL_DER_LOAD
 OBJS += ../src/crypto/tls_wolfssl.o
