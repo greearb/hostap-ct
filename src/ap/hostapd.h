@@ -705,6 +705,8 @@ struct hostapd_iface {
 
 	/* Configured freq of interface is NO_IR */
 	bool is_no_ir;
+
+	bool is_ch_switch_dfs; /* Channel switch from ACS to DFS */
 };
 
 /* hostapd.c */

@@ -2074,10 +2074,11 @@ static int setup_interface2(struct hostapd_iface *iface)
 	} else {
 		int ret;
 
-		if (iface->conf->acs) {
+		if (iface->conf->acs && !iface->is_ch_switch_dfs) {
 			iface->freq = 0;
 			iface->conf->channel = 0;
 		}
+		iface->is_ch_switch_dfs = false;
 
 		ret = configured_fixed_chan_to_freq(iface);
 		if (ret < 0)
@@ -3140,6 +3141,7 @@ struct hostapd_iface * hostapd_init(struct hapd_interfaces *interfaces,
 		hostapd_bss_setup_multi_link(hapd, interfaces);
 	}
 
+	hapd_iface->is_ch_switch_dfs = false;
 	return hapd_iface;
 
 fail:
