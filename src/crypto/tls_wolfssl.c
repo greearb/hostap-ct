@@ -1924,34 +1924,16 @@ int tls_connection_set_cipher_list(void *tls_ctx, struct tls_connection *conn,
 int tls_get_cipher(void *tls_ctx, struct tls_connection *conn,
 		   char *buf, size_t buflen)
 {
-	WOLFSSL_CIPHER *cipher;
 	const char *name;
 
 	if (!conn || !conn->ssl)
 		return -1;
 
-	cipher = wolfSSL_get_current_cipher(conn->ssl);
-	if (!cipher)
-		return -1;
-
-	name = wolfSSL_CIPHER_get_name(cipher);
+	name = wolfSSL_get_cipher_name(conn->ssl);
 	if (!name)
 		return -1;
 
-	if (os_strcmp(name, "SSL_RSA_WITH_RC4_128_SHA") == 0)
-		os_strlcpy(buf, "RC4-SHA", buflen);
-	else if (os_strcmp(name, "TLS_RSA_WITH_AES_128_CBC_SHA") == 0)
-		os_strlcpy(buf, "AES128-SHA", buflen);
-	else if (os_strcmp(name, "TLS_DHE_RSA_WITH_AES_128_CBC_SHA") == 0)
-		os_strlcpy(buf, "DHE-RSA-AES128-SHA", buflen);
-	else if (os_strcmp(name, "TLS_DH_anon_WITH_AES_128_CBC_SHA") == 0)
-		os_strlcpy(buf, "ADH-AES128-SHA", buflen);
-	else if (os_strcmp(name, "TLS_DHE_RSA_WITH_AES_256_CBC_SHA") == 0)
-		os_strlcpy(buf, "DHE-RSA-AES256-SHA", buflen);
-	else if (os_strcmp(name, "TLS_RSA_WITH_AES_256_CBC_SHA") == 0)
-		os_strlcpy(buf, "AES256-SHA", buflen);
-	else
-		os_strlcpy(buf, name, buflen);
+	os_strlcpy(buf, name, buflen);
 
 	return 0;
 }
