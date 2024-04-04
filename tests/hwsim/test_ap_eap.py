@@ -6406,6 +6406,11 @@ def test_ap_wpa2_eap_tls_rsa_and_ec(dev, apdev, params):
     dev[0].request("REMOVE_NETWORK all")
     dev[0].wait_disconnected()
 
+    tls = dev[1].request("GET tls_library")
+    if tls.startswith("wolfSSL"):
+        ciphers = "RSA"
+    else:
+        ciphers = "DEFAULT:-aECDH:-aECDSA"
     # TODO: Make wpa_supplicant automatically filter out cipher suites that
     # would require ECDH/ECDSA keys when those are not configured in the
     # selected client certificate. And for no-client-cert case, deprioritize
@@ -6413,7 +6418,7 @@ def test_ap_wpa2_eap_tls_rsa_and_ec(dev, apdev, params):
     # likely to work cipher suites are selected by the server. Only do these
     # when an explicit openssl_ciphers parameter is not set.
     eap_connect(dev[1], hapd, "TLS", "tls user",
-                openssl_ciphers="DEFAULT:-aECDH:-aECDSA",
+                openssl_ciphers=ciphers,
                 ca_cert="auth_serv/ca.pem",
                 client_cert="auth_serv/user.pem",
                 private_key="auth_serv/user.key")
@@ -6450,6 +6455,11 @@ def test_ap_wpa2_eap_tls_ec_and_rsa(dev, apdev, params):
     dev[0].request("REMOVE_NETWORK all")
     dev[0].wait_disconnected()
 
+    tls = dev[1].request("GET tls_library")
+    if tls.startswith("wolfSSL"):
+        ciphers = "RSA"
+    else:
+        ciphers = "DEFAULT:-aECDH:-aECDSA"
     # TODO: Make wpa_supplicant automatically filter out cipher suites that
     # would require ECDH/ECDSA keys when those are not configured in the
     # selected client certificate. And for no-client-cert case, deprioritize
@@ -6457,7 +6467,7 @@ def test_ap_wpa2_eap_tls_ec_and_rsa(dev, apdev, params):
     # likely to work cipher suites are selected by the server. Only do these
     # when an explicit openssl_ciphers parameter is not set.
     eap_connect(dev[1], hapd, "TLS", "tls user",
-                openssl_ciphers="DEFAULT:-aECDH:-aECDSA",
+                openssl_ciphers=ciphers,
                 ca_cert="auth_serv/ca.pem",
                 client_cert="auth_serv/user.pem",
                 private_key="auth_serv/user.key")
