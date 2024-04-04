@@ -1303,31 +1303,6 @@ static int tls_verify_cb(int preverify_ok, WOLFSSL_X509_STORE_CTX *x509_ctx)
 				       TLS_FAIL_SERVER_CHAIN_PROBE);
 	}
 
-#ifdef HAVE_OCSP_WOLFSSL
-	if (depth == 0 && (conn->flags & TLS_CONN_REQUEST_OCSP) &&
-	    preverify_ok) {
-		enum ocsp_result res;
-
-		res = check_ocsp_resp(conn->ssl_ctx, conn->ssl, err_cert,
-				      conn->peer_issuer,
-				      conn->peer_issuer_issuer);
-		if (res == OCSP_REVOKED) {
-			preverify_ok = 0;
-			wolfssl_tls_fail_event(conn, err_cert, err, depth, buf,
-					       "certificate revoked",
-					       TLS_FAIL_REVOKED);
-			if (err == X509_V_OK)
-				X509_STORE_CTX_set_error(
-					x509_ctx, X509_V_ERR_CERT_REVOKED);
-		} else if (res != OCSP_GOOD &&
-			   (conn->flags & TLS_CONN_REQUIRE_OCSP)) {
-			preverify_ok = 0;
-			wolfssl_tls_fail_event(conn, err_cert, err, depth, buf,
-					       "bad certificate status response",
-					       TLS_FAIL_UNSPECIFIED);
-		}
-	}
-#endif /* HAVE_OCSP_WOLFSSL */
 	if (depth == 0 && preverify_ok && context->event_cb != NULL)
 		context->event_cb(context->cb_ctx,
 				  TLS_CERT_CHAIN_SUCCESS, NULL);
