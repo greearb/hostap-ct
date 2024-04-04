@@ -1678,6 +1678,8 @@ static int parse_anqp_elem(struct hostapd_bss_config *bss, char *buf, int line)
 	return 0;
 }
 
+#endif /* CONFIG_INTERWORKING */
+
 
 static int parse_qos_map_set(struct hostapd_bss_config *bss,
 			     char *buf, int line)
@@ -1718,8 +1720,6 @@ static int parse_qos_map_set(struct hostapd_bss_config *bss,
 
 	return 0;
 }
-
-#endif /* CONFIG_INTERWORKING */
 
 
 #ifdef CONFIG_HS20
@@ -4258,10 +4258,10 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->gas_frag_limit = val;
 	} else if (os_strcmp(buf, "gas_comeback_delay") == 0) {
 		bss->gas_comeback_delay = atoi(pos);
+#endif /* CONFIG_INTERWORKING */
 	} else if (os_strcmp(buf, "qos_map_set") == 0) {
 		if (parse_qos_map_set(bss, pos, line) < 0)
 			return 1;
-#endif /* CONFIG_INTERWORKING */
 #ifdef CONFIG_RADIUS_TEST
 	} else if (os_strcmp(buf, "dump_msk_file") == 0) {
 		os_free(bss->dump_msk_file);
