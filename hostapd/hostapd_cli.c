@@ -1605,6 +1605,13 @@ static int hostapd_cli_cmd_req_beacon(struct wpa_ctrl *ctrl, int argc,
 }
 
 
+static int hostapd_cli_cmd_req_link_measurement(struct wpa_ctrl *ctrl, int argc,
+						char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "REQ_LINK_MEASUREMENT", 1, argc, argv);
+}
+
+
 static int hostapd_cli_cmd_reload_wpa_psk(struct wpa_ctrl *ctrl, int argc,
 					  char *argv[])
 {
@@ -1847,6 +1854,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	  "<addr> = poll a STA to check connectivity with a QoS null frame" },
 	{ "req_beacon", hostapd_cli_cmd_req_beacon, NULL,
 	  "<addr> [req_mode=] <measurement request hexdump>  = send a Beacon report request to a station" },
+	{ "req_link_measurement", hostapd_cli_cmd_req_link_measurement, NULL,
+	  "<addr> = send a link measurement report request to a station"},
 	{ "reload_wpa_psk", hostapd_cli_cmd_reload_wpa_psk, NULL,
 	  "= reload wpa_psk_file only" },
 #ifdef CONFIG_IEEE80211R_AP

@@ -3207,6 +3207,26 @@ static int hostapd_ctrl_iface_req_beacon(struct hostapd_data *hapd,
 }
 
 
+static int hostapd_ctrl_iface_req_link_measurement(struct hostapd_data *hapd,
+						   const char *cmd, char *reply,
+						   size_t reply_size)
+{
+	u8 addr[ETH_ALEN];
+	int ret;
+
+	if (hwaddr_aton(cmd, addr)) {
+		wpa_printf(MSG_ERROR,
+			   "CTRL: REQ_LINK_MEASUREMENT: Invalid MAC address");
+		return -1;
+	}
+
+	ret = hostapd_send_link_measurement_req(hapd, addr);
+	if (ret >= 0)
+		ret = os_snprintf(reply, reply_size, "%d", ret);
+	return ret;
+}
+
+
 static int hostapd_ctrl_iface_show_neighbor(struct hostapd_data *hapd,
 					    char *buf, size_t buflen)
 {
@@ -4185,6 +4205,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "REQ_BEACON ", 11) == 0) {
 		reply_len = hostapd_ctrl_iface_req_beacon(hapd, buf + 11,
 							  reply, reply_size);
+	} else if (os_strncmp(buf, "REQ_LINK_MEASUREMENT ", 21) == 0) {
+		reply_len = hostapd_ctrl_iface_req_link_measurement(
+			hapd, buf + 21, reply, reply_size);
 	} else if (os_strcmp(buf, "DRIVER_FLAGS") == 0) {
 		reply_len = hostapd_ctrl_driver_flags(hapd->iface, reply,
 						      reply_size);

@@ -413,6 +413,9 @@ extern "C" {
 /* parameters: <STA address> <dialog token> <report mode> <beacon report> */
 #define BEACON_RESP_RX "BEACON-RESP-RX "
 
+/* parameters: <STA address> <dialog token> <link measurement report> */
+#define LINK_MSR_RESP_RX "LINK-MSR-RESP-RX "
+
 /* PMKSA cache entry added; parameters: <BSSID> <network_id> */
 #define PMKSA_CACHE_ADDED "PMKSA-CACHE-ADDED "
 /* PMKSA cache entry removed; parameters: <BSSID> <network_id> */
