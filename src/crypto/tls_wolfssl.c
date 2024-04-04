@@ -2032,6 +2032,7 @@ int tls_connection_set_cipher_list(void *tls_ctx, struct tls_connection *conn,
 	char buf[128], *pos, *end;
 	u8 *c;
 	int ret;
+	bool set_sig_algs = false;
 
 	if (!conn || !conn->ssl || !ciphers)
 		return -1;
@@ -2056,6 +2057,7 @@ int tls_connection_set_cipher_list(void *tls_ctx, struct tls_connection *conn,
 			break;
 		case TLS_CIPHER_ANON_DH_AES128_SHA:
 			suite = "ADH-AES128-SHA";
+			set_sig_algs = true;
 			break;
 		case TLS_CIPHER_RSA_DHE_AES256_SHA:
 			suite = "DHE-RSA-AES256-SHA";
@@ -2080,6 +2082,12 @@ int tls_connection_set_cipher_list(void *tls_ctx, struct tls_connection *conn,
 	if (handle_ciphersuites(NULL, conn->ssl, buf + 1, conn->flags) != 0) {
 		wpa_printf(MSG_DEBUG,
 			   "wolfssl: Cipher suite configuration failed");
+		return -1;
+	}
+
+	if (set_sig_algs &&
+	    wolfSSL_set1_sigalgs_list(conn->ssl, SUITEB_TLS_128_SIGALGS) != 1) {
+		wpa_printf(MSG_DEBUG, "wolfssl: Sigalg configuration failed");
 		return -1;
 	}
 
