@@ -1665,6 +1665,14 @@ int tls_connection_set_params(void *tls_ctx, struct tls_connection *conn,
 		return -1;
 	}
 
+	if (params->openssl_ecdh_curves &&
+	    wolfSSL_set1_curves_list(conn->ssl, params->openssl_ecdh_curves) !=
+	    1) {
+		wpa_printf(MSG_INFO, "wolfSSL: Failed to set ECDH curves '%s'",
+			   params->openssl_ecdh_curves);
+		return -1;
+	}
+
 	tls_set_conn_flags(conn->ssl, params->flags);
 
 #ifdef HAVE_CERTIFICATE_STATUS_REQUEST
@@ -1908,9 +1916,11 @@ int tls_global_set_params(void *tls_ctx,
 		return -1;
 	}
 
-	if (params->openssl_ecdh_curves) {
-		wpa_printf(MSG_INFO,
-			   "wolfSSL: openssl_ecdh_curves not supported");
+	if (params->openssl_ecdh_curves &&
+	    wolfSSL_CTX_set1_curves_list((WOLFSSL_CTX *) tls_ctx,
+					 params->openssl_ecdh_curves) != 1) {
+		wpa_printf(MSG_INFO, "wolfSSL: Failed to set ECDH curves '%s'",
+			   params->openssl_ecdh_curves);
 		return -1;
 	}
 
