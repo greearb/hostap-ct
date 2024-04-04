@@ -1853,9 +1853,9 @@ static struct wpabuf * wolfssl_handshake(struct tls_connection *conn,
 			char msg[80];
 
 			wpa_printf(MSG_DEBUG,
-				   "SSL: %s - failed %s",
+				   "SSL: %s - failed (%d) %s",
 				   server ? "wolfSSL_accept" :
-				   "wolfSSL_connect",
+				   "wolfSSL_connect", err,
 				   wolfSSL_ERR_error_string(err, msg));
 			conn->failed++;
 		}
