@@ -1864,6 +1864,22 @@ static struct wpabuf * wolfssl_handshake(struct tls_connection *conn,
 				   wolfSSL_ERR_error_string(err, msg));
 			conn->failed++;
 		}
+
+		/* Generate extra events */
+		if (err == OCSP_CERT_REVOKED ||
+		    err == BAD_CERTIFICATE_STATUS_ERROR ||
+		    err == OCSP_CERT_REVOKED) {
+			char buf[256];
+			WOLFSSL_X509 *err_cert;
+
+			err_cert = wolfSSL_get_peer_certificate(conn->ssl);
+			wolfSSL_X509_NAME_oneline(
+				wolfSSL_X509_get_subject_name(err_cert),
+				buf, sizeof(buf));
+			wolfssl_tls_fail_event(conn, err_cert, err, 0, buf,
+					       "bad certificate status response",
+					       TLS_FAIL_UNSPECIFIED);
+		}
 	}
 
 	return conn->output.out_data;
