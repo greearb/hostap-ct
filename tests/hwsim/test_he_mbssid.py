@@ -271,6 +271,54 @@ def test_he_ap_mbssid_mixed_security3(dev, apdev, params):
         subprocess.call(['ip', 'link', 'set', 'dev', apdev[0]['ifname'],
                          'address', apdev[0]['bssid']])
 
+def test_he_ap_mbssid_mixed_security4(dev, apdev, params):
+    """HE AP MBSSID with mixed security (WPA2-Personal + WPA3-Personal+beacon prot)"""
+    f, fname, ifname = mbssid_create_cfg_file(apdev, params)
+
+    psk_params = {"wpa": "2", "wpa_passphrase": "12345678",
+                  "wpa_pairwise": "CCMP", "wpa_key_mgmt": "WPA-PSK"}
+
+    sae_params = {"wpa": "2", "wpa_passphrase": "12345678",
+                  "wpa_pairwise": "CCMP", "wpa_key_mgmt": "SAE",
+                  "sae_pwe": "1", "ieee80211w": "2",
+                  "beacon_prot": "1"}
+
+    mbssid_write_bss_params(f, ifname, 0, psk_params)
+    mbssid_write_bss_params(f, ifname, 1, sae_params)
+
+    f.close()
+
+    try:
+        hapd, pid = mbssid_start_ap(dev, apdev, params, fname, ifname, None,
+                                    only_start_ap=True)
+        dev[0].set("sae_pwe", "1")
+        dev[0].set("sae_groups", "")
+        dev[0].connect("bss-1", psk="12345678", key_mgmt="SAE", ieee80211w="2",
+                       beacon_prot="1", scan_freq="2412")
+        dev[1].connect("bss-0", psk="12345678", key_mgmt="WPA-PSK",
+                       scan_freq="2412")
+        bssid0 = dev[0].get_status_field("bssid")
+        bss0 = dev[0].get_bss(bssid0)
+        ies0 = parse_ie(bss0['ie'])
+        ext_cap0 = ies0[127]
+        bssid1 = dev[1].get_status_field("bssid")
+        bss1 = dev[0].get_bss(bssid1)
+        ies1 = parse_ie(bss1['ie'])
+        ext_cap1 = ies1[127]
+        dev[0].request("DISCONNECT")
+        dev[1].request("DISCONNECT")
+        dev[0].wait_disconnected()
+        dev[1].wait_disconnected()
+        mbssid_stop_ap(hapd, pid)
+        if not (ext_cap0[10] & 0x10):
+            raise Exception("Beacon protection not enabled in non-TX BSS")
+        if ext_cap1[10] & 0x10:
+            raise Exception("Beacon protection enabled in TX BSS")
+    finally:
+        dev[0].set("sae_pwe", "0")
+        subprocess.call(['ip', 'link', 'set', 'dev', apdev[0]['ifname'],
+                         'address', apdev[0]['bssid']])
+
 def test_he_ap_mbssid_single_ssid(dev, apdev, params):
     """HE AP MBSSID with mixed security and single SSID"""
     f, fname, ifname = mbssid_create_cfg_file(apdev, params)
