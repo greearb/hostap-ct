@@ -1411,15 +1411,9 @@ static int tls_connection_ca_cert(void *tls_ctx, struct tls_connection *conn,
 	}
 
 	if (ca_cert || ca_path) {
-		WOLFSSL_X509_STORE *cm = wolfSSL_X509_STORE_new();
-
-		if (!cm) {
-			wpa_printf(MSG_INFO,
-				   "SSL: failed to create certificate store");
-			return -1;
-		}
-		wolfSSL_CTX_set_cert_store(ctx, cm);
-
+		wpa_printf(MSG_DEBUG, "SSL: Loading CA's from '%s' and '%s'",
+			   ca_cert ? ca_cert : "N/A",
+			   ca_path ? ca_path : "N/A");
 		if (wolfSSL_CTX_load_verify_locations(ctx, ca_cert, ca_path) !=
 		    SSL_SUCCESS) {
 			wpa_printf(MSG_INFO,
@@ -1436,6 +1430,7 @@ static int tls_connection_ca_cert(void *tls_ctx, struct tls_connection *conn,
 				return -1;
 			}
 		}
+		wpa_printf(MSG_DEBUG, "SSL: Loaded ca_cert or ca_path");
 		return 0;
 	}
 
