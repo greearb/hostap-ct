@@ -7791,6 +7791,27 @@ static bool mbssid_known_bss(unsigned int i, const u8 *known_bss,
 }
 
 
+static size_t hostapd_mbssid_ext_capa(struct hostapd_data *bss,
+				      struct hostapd_data *tx_bss, u8 *buf)
+{
+	u8 ext_capa_tx[20], *ext_capa_tx_end, ext_capa[20], *ext_capa_end;
+	size_t ext_capa_len, ext_capa_tx_len;
+
+	ext_capa_tx_end = hostapd_eid_ext_capab(tx_bss, ext_capa_tx,
+						true);
+	ext_capa_tx_len = ext_capa_tx_end - ext_capa_tx;
+	ext_capa_end = hostapd_eid_ext_capab(bss, ext_capa, true);
+	ext_capa_len = ext_capa_end - ext_capa;
+	if (ext_capa_tx_len != ext_capa_len ||
+	    os_memcmp(ext_capa_tx, ext_capa, ext_capa_len) != 0) {
+		os_memcpy(buf, ext_capa, ext_capa_len);
+		return ext_capa_len;
+	}
+
+	return 0;
+}
+
+
 static size_t hostapd_eid_mbssid_elem_len(struct hostapd_data *hapd,
 					  u32 frame_type, size_t *bss_index,
 					  const u8 *known_bss,
@@ -7798,6 +7819,7 @@ static size_t hostapd_eid_mbssid_elem_len(struct hostapd_data *hapd,
 {
 	struct hostapd_data *tx_bss = hostapd_mbssid_get_tx_bss(hapd);
 	size_t len, i;
+	u8 ext_capa[20];
 
 	/* Element ID: 1 octet
 	 * Length: 1 octet
@@ -7843,6 +7865,10 @@ static size_t hostapd_eid_mbssid_elem_len(struct hostapd_data *hapd,
 			if (rsnx)
 				nontx_profile_len += 2 + rsnx[1];
 		}
+
+		nontx_profile_len += hostapd_mbssid_ext_capa(bss, tx_bss,
+							     ext_capa);
+
 		if (!rsn && hostapd_wpa_ie(tx_bss, WLAN_EID_RSN))
 			ie_count++;
 		if (!rsnx && hostapd_wpa_ie(tx_bss, WLAN_EID_RSNX))
@@ -7992,6 +8018,9 @@ static u8 * hostapd_eid_mbssid_elem(struct hostapd_data *hapd, u8 *eid, u8 *end,
 				eid += 2 + rsnx[1];
 			}
 		}
+
+		eid += hostapd_mbssid_ext_capa(bss, tx_bss, eid);
+
 		/* List of Element ID values in increasing order */
 		if (!rsn && hostapd_wpa_ie(tx_bss, WLAN_EID_RSN))
 			non_inherit_ie[ie_count++] = WLAN_EID_RSN;
