@@ -4276,6 +4276,9 @@ def test_ap_wpa2_eap_fast_prf_oom(dev, apdev):
 def test_ap_wpa2_eap_fast_server_oom(dev, apdev):
     """EAP-FAST/MSCHAPv2 and server OOM"""
     check_eap_capa(dev[0], "FAST")
+    tls = dev[0].request("GET tls_library")
+    if not tls.startswith("OpenSSL"):
+        raise HwsimSkip("TLS library is not OpenSSL: " + tls)
 
     params = int_eap_server_params()
     params['dh_file'] = 'auth_serv/dh.conf'
