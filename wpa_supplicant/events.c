@@ -2612,7 +2612,7 @@ static int wpas_trigger_6ghz_scan(struct wpa_supplicant *wpa_s,
 		params.ssids[j] = data->scan_info.ssids[j];
 	params.num_ssids = data->scan_info.num_ssids;
 	wpa_add_scan_freqs_list(wpa_s, HOSTAPD_MODE_IEEE80211A, &params,
-				true, !wpa_s->last_scan_non_coloc_6ghz, false);
+				true, false, false);
 	if (!wpa_supplicant_trigger_scan(wpa_s, &params, true, true)) {
 		os_free(params.freqs);
 		return 1;
