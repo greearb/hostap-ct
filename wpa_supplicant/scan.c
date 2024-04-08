@@ -322,6 +322,12 @@ int wpa_supplicant_trigger_scan(struct wpa_supplicant *wpa_s,
 	}
 	wpa_s->last_scan_all_chan = !params->freqs;
 	wpa_s->last_scan_non_coloc_6ghz = params->non_coloc_6ghz;
+
+	if (wpa_s->crossed_6ghz_dom) {
+		wpa_printf(MSG_DEBUG, "First scan after crossing 6 GHz domain");
+		wpa_s->crossed_6ghz_dom = false;
+	}
+
 	if (!ctx ||
 	    radio_add_work(wpa_s, 0, "scan", next, wpas_trigger_scan_cb,
 			   ctx) < 0) {

@@ -2843,6 +2843,9 @@ int wpa_supplicant_fast_associate(struct wpa_supplicant *wpa_s)
 			       wpa_s->conf->scan_res_valid_for_connect)) {
 		wpa_printf(MSG_DEBUG, "Fast associate: Old scan results");
 		return -1;
+	} else if (wpa_s->crossed_6ghz_dom) {
+		wpa_printf(MSG_DEBUG, "Fast associate: Crossed 6 GHz domain");
+		return -1;
 	}
 
 	return wpas_select_network_from_last_scan(wpa_s, 0, 1, false, NULL);
@@ -5219,11 +5222,10 @@ void wpa_supplicant_update_channel_list(struct wpa_supplicant *wpa_s,
 			wpa_dbg(ifs, MSG_DEBUG,
 				"Channel list changed - restart sched_scan");
 			wpas_scan_restart_sched_scan(ifs);
-		} else if (ifs->scanning && !was_6ghz_enabled &&
-			   ifs->is_6ghz_enabled) {
-			/* Look for APs in the 6 GHz band */
+		} else if (!was_6ghz_enabled && ifs->is_6ghz_enabled) {
 			wpa_dbg(ifs, MSG_INFO,
-				"Channel list changed - trigger 6 GHz-only scan");
+				"Channel list changed: 6 GHz was enabled");
+
 			ifs->crossed_6ghz_dom = true;
 		}
 	}
