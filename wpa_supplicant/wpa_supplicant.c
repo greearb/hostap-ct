@@ -4583,14 +4583,18 @@ void wpa_supplicant_deauthenticate(struct wpa_supplicant *wpa_s,
 	int zero_addr = 0;
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "Request to deauthenticate - bssid=" MACSTR
-		" pending_bssid=" MACSTR " reason=%d (%s) state=%s",
+		" pending_bssid=" MACSTR
+		" reason=%d (%s) state=%s valid_links=0x%x ap_mld_addr=" MACSTR,
 		MAC2STR(wpa_s->bssid), MAC2STR(wpa_s->pending_bssid),
 		reason_code, reason2str(reason_code),
-		wpa_supplicant_state_txt(wpa_s->wpa_state));
+		wpa_supplicant_state_txt(wpa_s->wpa_state), wpa_s->valid_links,
+		MAC2STR(wpa_s->ap_mld_addr));
 
-	if (!is_zero_ether_addr(wpa_s->pending_bssid) &&
-	    (wpa_s->wpa_state == WPA_AUTHENTICATING ||
-	     wpa_s->wpa_state == WPA_ASSOCIATING))
+	if (wpa_s->valid_links && !is_zero_ether_addr(wpa_s->ap_mld_addr))
+		addr = wpa_s->ap_mld_addr;
+	else if (!is_zero_ether_addr(wpa_s->pending_bssid) &&
+		 (wpa_s->wpa_state == WPA_AUTHENTICATING ||
+		  wpa_s->wpa_state == WPA_ASSOCIATING))
 		addr = wpa_s->pending_bssid;
 	else if (!is_zero_ether_addr(wpa_s->bssid))
 		addr = wpa_s->bssid;
