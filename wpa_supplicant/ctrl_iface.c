@@ -12118,7 +12118,7 @@ static int wpas_ctrl_ml_probe(struct wpa_supplicant *wpa_s, char *cmd)
 		}
 	}
 
-	if (mld_id < 0 || is_zero_ether_addr(bssid)) {
+	if (is_zero_ether_addr(bssid)) {
 		wpa_printf(MSG_DEBUG,
 			   "MLD: Failed parsing ML probe request arguments");
 		return -1;
