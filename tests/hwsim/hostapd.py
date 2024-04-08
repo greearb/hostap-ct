@@ -766,6 +766,9 @@ def remove_bss(apdev, ifname=None):
     hapd_global = HostapdGlobal(apdev)
     hapd_global.remove(ifname)
 
+    # wait little to make sure the AP stops beaconing
+    time.sleep(0.1)
+
 def terminate(apdev):
     try:
         hostname = apdev['hostname']
