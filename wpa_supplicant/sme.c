@@ -2156,7 +2156,8 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 			MAC2STR(wpa_s->pending_bssid),
 			WLAN_REASON_DEAUTH_LEAVING);
 		wpas_connection_failed(wpa_s, wpa_s->pending_bssid, NULL);
-		wpa_supplicant_mark_disassoc(wpa_s);
+		wpa_supplicant_deauthenticate(wpa_s,
+					      WLAN_REASON_DEAUTH_LEAVING);
 		return;
 	}
 
