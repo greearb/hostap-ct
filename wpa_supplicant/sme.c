@@ -479,7 +479,7 @@ static int wpas_sme_ml_auth(struct wpa_supplicant *wpa_s,
 				   data->auth.ies_len - ie_offset,
 				   &elems, 0) == ParseFailed) {
 		wpa_printf(MSG_DEBUG, "MLD: Failed parsing elements");
-		goto out;
+		return -1;
 	}
 
 	if (!elems.basic_mle || !elems.basic_mle_len) {
@@ -488,7 +488,7 @@ static int wpas_sme_ml_auth(struct wpa_supplicant *wpa_s,
 		    status_code == WLAN_STATUS_SUCCESS ||
 		    status_code == WLAN_STATUS_SAE_HASH_TO_ELEMENT ||
 		    status_code == WLAN_STATUS_SAE_PK)
-			goto out;
+			return -1;
 		/* Accept missing Multi-Link element in failed authentication
 		 * cases. */
 		return 0;
@@ -496,21 +496,17 @@ static int wpas_sme_ml_auth(struct wpa_supplicant *wpa_s,
 
 	mld_addr = get_basic_mle_mld_addr(elems.basic_mle, elems.basic_mle_len);
 	if (!mld_addr)
-		goto out;
+		return -1;
 
 	wpa_printf(MSG_DEBUG, "MLD: mld_address=" MACSTR, MAC2STR(mld_addr));
 
 	if (!ether_addr_equal(wpa_s->ap_mld_addr, mld_addr)) {
 		wpa_printf(MSG_DEBUG, "MLD: Unexpected MLD address (expected "
 			   MACSTR ")", MAC2STR(wpa_s->ap_mld_addr));
-		goto out;
+		return -1;
 	}
 
 	return 0;
-out:
-	wpa_printf(MSG_DEBUG, "MLD: Authentication - clearing MLD state");
-	wpas_reset_mlo_info(wpa_s);
-	return -1;
 }
 
 
@@ -2158,6 +2154,9 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 		wpas_connection_failed(wpa_s, wpa_s->pending_bssid, NULL);
 		wpa_supplicant_deauthenticate(wpa_s,
 					      WLAN_REASON_DEAUTH_LEAVING);
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Authentication - clearing MLD state");
+		wpas_reset_mlo_info(wpa_s);
 		return;
 	}
 
