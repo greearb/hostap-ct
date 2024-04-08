@@ -4387,6 +4387,11 @@ static int hostapd_fill_csa_settings(struct hostapd_data *hapd,
 		settings->link_id = hapd->mld_link_id;
 #endif /* CONFIG_IEEE80211BE */
 
+#ifdef CONFIG_IEEE80211AX
+	settings->ubpr.unsol_bcast_probe_resp_tmpl =
+		hostapd_unsol_bcast_probe_resp(hapd, &settings->ubpr);
+#endif /* CONFIG_IEEE80211AX */
+
 	return 0;
 }
 
@@ -4448,6 +4453,9 @@ int hostapd_switch_channel(struct hostapd_data *hapd,
 	ret = hostapd_drv_switch_channel(hapd, settings);
 	free_beacon_data(&settings->beacon_csa);
 	free_beacon_data(&settings->beacon_after);
+#ifdef CONFIG_IEEE80211AX
+	os_free(settings->ubpr.unsol_bcast_probe_resp_tmpl);
+#endif /* CONFIG_IEEE80211AX */
 
 	if (ret) {
 		/* if we failed, clean cs parameters */

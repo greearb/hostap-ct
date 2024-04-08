@@ -2732,6 +2732,7 @@ struct beacon_data {
  * @counter_offset_presp: Offset to the count field in probe resp.
  * @punct_bitmap - Preamble puncturing bitmap
  * @link_id: Link ID to determine the link for MLD; -1 for non-MLD
+ * @ubpr: Unsolicited broadcast Probe Response frame data
  */
 struct csa_settings {
 	u8 cs_count;
@@ -2746,6 +2747,8 @@ struct csa_settings {
 
 	u16 punct_bitmap;
 	int link_id;
+
+	struct unsol_bcast_probe_resp ubpr;
 };
 
 /**

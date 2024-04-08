@@ -11308,6 +11308,13 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 		goto fail;
 
 	nla_nest_end(msg, beacon_csa);
+
+#ifdef CONFIG_IEEE80211AX
+	if (settings->ubpr.unsol_bcast_probe_resp_interval &&
+	    nl80211_unsol_bcast_probe_resp(bss, msg, &settings->ubpr) < 0)
+		goto fail;
+#endif /* CONFIG_IEEE80211AX */
+
 	ret = send_and_recv_cmd(drv, msg);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: switch_channel failed err=%d (%s)",
