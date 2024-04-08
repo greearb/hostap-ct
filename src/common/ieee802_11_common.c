@@ -1487,8 +1487,6 @@ ieee80211_freq_to_channel_ext(unsigned int freq, int sec_channel,
 			*op_class = 126;
 		else if (sec_channel == -1)
 			*op_class = 127;
-		else if (freq <= 5805)
-			*op_class = 124;
 		else
 			*op_class = 125;
 
