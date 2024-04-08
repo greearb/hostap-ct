@@ -2760,6 +2760,7 @@ struct csa_settings {
  * @beacon_after: Next Beacon/Probe Response/(Re)Association Response frame info
  * @counter_offset_beacon: Offset to the count field in Beacon frame tail
  * @counter_offset_presp: Offset to the count field in Probe Response frame
+ * @ubpr: Unsolicited broadcast Probe Response frame data
  */
 struct cca_settings {
 	u8 cca_count;
@@ -2770,6 +2771,8 @@ struct cca_settings {
 
 	u16 counter_offset_beacon;
 	u16 counter_offset_presp;
+
+	struct unsol_bcast_probe_resp ubpr;
 };
 
 /* TDLS peer capabilities for send_tdls_mgmt() */

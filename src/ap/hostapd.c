@@ -4571,6 +4571,9 @@ static int hostapd_fill_cca_settings(struct hostapd_data *hapd,
 		return ret;
 	}
 
+	settings->ubpr.unsol_bcast_probe_resp_tmpl =
+		hostapd_unsol_bcast_probe_resp(hapd, &settings->ubpr);
+
 	settings->counter_offset_beacon = hapd->cca_c_off_beacon;
 	settings->counter_offset_presp = hapd->cca_c_off_proberesp;
 
@@ -4633,6 +4636,7 @@ static void hostapd_switch_color_timeout_handler(void *eloop_data,
 
 		free_beacon_data(&settings.beacon_cca);
 		free_beacon_data(&settings.beacon_after);
+		os_free(settings.ubpr.unsol_bcast_probe_resp_tmpl);
 	}
 }
 

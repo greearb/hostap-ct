@@ -11396,6 +11396,13 @@ static int nl80211_switch_color(void *priv, struct cca_settings *settings)
 	}
 
 	nla_nest_end(msg, beacon_cca);
+
+	if (settings->ubpr.unsol_bcast_probe_resp_interval &&
+	    nl80211_unsol_bcast_probe_resp(bss, msg, &settings->ubpr) < 0) {
+		ret = -ENOBUFS;
+		goto error;
+	}
+
 	ret = send_and_recv_cmd(drv, msg);
 	if (ret) {
 		wpa_printf(MSG_DEBUG,
