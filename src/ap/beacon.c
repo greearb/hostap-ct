@@ -1712,15 +1712,15 @@ static u8 * hostapd_probe_resp_offloads(struct hostapd_data *hapd,
 
 #ifdef CONFIG_IEEE80211AX
 /* Unsolicited broadcast Probe Response transmission, 6 GHz only */
-static u8 * hostapd_unsol_bcast_probe_resp(struct hostapd_data *hapd,
-					   struct wpa_driver_ap_params *params)
+u8 * hostapd_unsol_bcast_probe_resp(struct hostapd_data *hapd,
+				    struct unsol_bcast_probe_resp *ubpr)
 {
 	struct probe_resp_params probe_params;
 
 	if (!is_6ghz_op_class(hapd->iconf->op_class))
 		return NULL;
 
-	params->unsol_bcast_probe_resp_interval =
+	ubpr->unsol_bcast_probe_resp_interval =
 		hapd->conf->unsol_bcast_probe_resp_interval;
 
 	os_memset(&probe_params, 0, sizeof(probe_params));
@@ -1733,7 +1733,7 @@ static u8 * hostapd_unsol_bcast_probe_resp(struct hostapd_data *hapd,
 	probe_params.mld_info = NULL;
 
 	hostapd_gen_probe_resp(hapd, &probe_params);
-	params->unsol_bcast_probe_resp_tmpl_len = probe_params.resp_len;
+	ubpr->unsol_bcast_probe_resp_tmpl_len = probe_params.resp_len;
 	return (u8 *) probe_params.resp;
 }
 #endif /* CONFIG_IEEE80211AX */
@@ -2546,8 +2546,8 @@ void ieee802_11_free_ap_params(struct wpa_driver_ap_params *params)
 	params->fd_frame_tmpl = NULL;
 #endif /* CONFIG_FILS */
 #ifdef CONFIG_IEEE80211AX
-	os_free(params->unsol_bcast_probe_resp_tmpl);
-	params->unsol_bcast_probe_resp_tmpl = NULL;
+	os_free(params->ubpr.unsol_bcast_probe_resp_tmpl);
+	params->ubpr.unsol_bcast_probe_resp_tmpl = NULL;
 #endif /* CONFIG_IEEE80211AX */
 	os_free(params->allowed_freqs);
 	params->allowed_freqs = NULL;
@@ -2608,8 +2608,8 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 	params.he_bss_color = hapd->iface->conf->he_op.he_bss_color;
 	twt_he_responder = hostapd_get_he_twt_responder(hapd,
 							IEEE80211_MODE_AP);
-	params.unsol_bcast_probe_resp_tmpl =
-		hostapd_unsol_bcast_probe_resp(hapd, &params);
+	params.ubpr.unsol_bcast_probe_resp_tmpl =
+		hostapd_unsol_bcast_probe_resp(hapd, &params.ubpr);
 #endif /* CONFIG_IEEE80211AX */
 	params.twt_responder =
 		twt_he_responder || hostapd_get_ht_vht_twt_responder(hapd);

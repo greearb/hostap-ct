@@ -1386,6 +1386,23 @@ struct wowlan_triggers {
 	u8 rfkill_release;
 };
 
+struct unsol_bcast_probe_resp {
+	/**
+	 * Unsolicited broadcast Probe Response interval in TUs
+	 */
+	unsigned int unsol_bcast_probe_resp_interval;
+
+	/**
+	 * Unsolicited broadcast Probe Response template data
+	 */
+	u8 *unsol_bcast_probe_resp_tmpl;
+
+	/**
+	 * Unsolicited broadcast Probe Response template length
+	 */
+	size_t unsol_bcast_probe_resp_tmpl_len;
+};
+
 struct wpa_driver_ap_params {
 	/**
 	 * head - Beacon head from IEEE 802.11 header to IEs before TIM IE
@@ -1729,21 +1746,6 @@ struct wpa_driver_ap_params {
 	size_t fd_frame_tmpl_len;
 
 	/**
-	 * Unsolicited broadcast Probe Response interval in TUs
-	 */
-	unsigned int unsol_bcast_probe_resp_interval;
-
-	/**
-	 * Unsolicited broadcast Probe Response template data
-	 */
-	u8 *unsol_bcast_probe_resp_tmpl;
-
-	/**
-	 * Unsolicited broadcast Probe Response template length
-	 */
-	size_t unsol_bcast_probe_resp_tmpl_len;
-
-	/**
 	 * mbssid_tx_iface - Transmitting interface of the MBSSID set
 	 */
 	const char *mbssid_tx_iface;
@@ -1808,6 +1810,9 @@ struct wpa_driver_ap_params {
 	 * The driver will use these to include RNR elements in EMA beacons.
 	 */
 	u8 **rnr_elem_offset;
+
+	/* Unsolicited broadcast Probe Response data */
+	struct unsol_bcast_probe_resp ubpr;
 
 	/**
 	 * allowed_freqs - List of allowed 20 MHz channel center frequencies in

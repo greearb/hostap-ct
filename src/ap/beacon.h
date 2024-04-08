@@ -33,4 +33,7 @@ void sta_track_claim_taxonomy_info(struct hostapd_iface *iface, const u8 *addr,
 
 const u8 * hostapd_wpa_ie(struct hostapd_data *hapd, u8 eid);
 
+u8 * hostapd_unsol_bcast_probe_resp(struct hostapd_data *hapd,
+				    struct unsol_bcast_probe_resp *ubpr);
+
 #endif /* BEACON_H */

@@ -4768,7 +4768,7 @@ static int nl80211_fils_discovery(struct i802_bss *bss, struct nl_msg *msg,
 
 static int nl80211_unsol_bcast_probe_resp(struct i802_bss *bss,
 					  struct nl_msg *msg,
-					  struct wpa_driver_ap_params *params)
+					  struct unsol_bcast_probe_resp *ubpr)
 {
 	struct nlattr *attr;
 
@@ -4781,15 +4781,15 @@ static int nl80211_unsol_bcast_probe_resp(struct i802_bss *bss,
 
 	wpa_printf(MSG_DEBUG,
 		   "nl80211: Unsolicited broadcast Probe Response frame interval: %u",
-		   params->unsol_bcast_probe_resp_interval);
+		   ubpr->unsol_bcast_probe_resp_interval);
 	attr = nla_nest_start(msg, NL80211_ATTR_UNSOL_BCAST_PROBE_RESP);
 	if (!attr ||
 	    nla_put_u32(msg, NL80211_UNSOL_BCAST_PROBE_RESP_ATTR_INT,
-			params->unsol_bcast_probe_resp_interval) ||
-	    (params->unsol_bcast_probe_resp_tmpl &&
+			ubpr->unsol_bcast_probe_resp_interval) ||
+	    (ubpr->unsol_bcast_probe_resp_tmpl &&
 	     nla_put(msg, NL80211_UNSOL_BCAST_PROBE_RESP_ATTR_TMPL,
-		     params->unsol_bcast_probe_resp_tmpl_len,
-		     params->unsol_bcast_probe_resp_tmpl)))
+		     ubpr->unsol_bcast_probe_resp_tmpl_len,
+		     ubpr->unsol_bcast_probe_resp_tmpl)))
 		return -1;
 
 	nla_nest_end(msg, attr);
@@ -5374,8 +5374,8 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 			goto fail;
 	}
 
-	if (params->unsol_bcast_probe_resp_interval &&
-	    nl80211_unsol_bcast_probe_resp(bss, msg, params) < 0)
+	if (params->ubpr.unsol_bcast_probe_resp_interval &&
+	    nl80211_unsol_bcast_probe_resp(bss, msg, &params->ubpr) < 0)
 		goto fail;
 
 	if (nl80211_mbssid(msg, params) < 0)
