@@ -596,7 +596,8 @@ hostapd_acl_recv_radius(struct radius_msg *msg, struct radius_msg *req,
 
 	if (query->radius_psk) {
 		struct sta_info *sta;
-		bool success = cache->accepted == HOSTAPD_ACL_ACCEPT;
+		bool success = cache->accepted == HOSTAPD_ACL_ACCEPT ||
+			cache->accepted == HOSTAPD_ACL_ACCEPT_TIMEOUT;
 
 		sta = ap_get_sta(hapd, query->addr);
 		if (!sta || !sta->wpa_sm) {
