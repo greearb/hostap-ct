@@ -392,7 +392,8 @@ static void wpas_ml_handle_removed_links(struct wpa_supplicant *wpa_s,
 
 #ifdef CONFIG_TESTING_OPTIONS
 static struct wpa_bss * wpas_ml_connect_pref(struct wpa_supplicant *wpa_s,
-					     struct wpa_bss *bss)
+					     struct wpa_bss *bss,
+					     struct wpa_ssid *ssid)
 {
 	unsigned int low, high, i;
 
@@ -458,7 +459,11 @@ found:
 		   MAC2STR(wpa_s->links[i].bssid));
 
 	/* Get the BSS entry and do the switch */
-	bss = wpa_bss_get_bssid(wpa_s, wpa_s->links[i].bssid);
+	if (ssid && ssid->ssid_len)
+		bss = wpa_bss_get(wpa_s, wpa_s->links[i].bssid, ssid->ssid,
+				  ssid->ssid_len);
+	else
+		bss = wpa_bss_get_bssid(wpa_s, wpa_s->links[i].bssid);
 	wpa_s->mlo_assoc_link_id = i;
 
 	return bss;
@@ -513,7 +518,7 @@ static int wpas_sme_ml_auth(struct wpa_supplicant *wpa_s,
 
 
 static void wpas_sme_set_mlo_links(struct wpa_supplicant *wpa_s,
-				   struct wpa_bss *bss)
+				   struct wpa_bss *bss, struct wpa_ssid *ssid)
 {
 	u8 i;
 
@@ -530,6 +535,10 @@ static void wpas_sme_set_mlo_links(struct wpa_supplicant *wpa_s,
 
 		if (bss->mld_link_id == i)
 			wpa_s->links[i].bss = bss;
+		else if (ssid && ssid->ssid_len)
+			wpa_s->links[i].bss = wpa_bss_get(wpa_s, bssid,
+							  ssid->ssid,
+							  ssid->ssid_len);
 		else
 			wpa_s->links[i].bss = wpa_bss_get_bssid(wpa_s, bssid);
 	}
@@ -574,10 +583,10 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 					    NULL, ssid, NULL) &&
 	    bss->valid_links) {
 		wpa_printf(MSG_DEBUG, "MLD: In authentication");
-		wpas_sme_set_mlo_links(wpa_s, bss);
+		wpas_sme_set_mlo_links(wpa_s, bss, ssid);
 
 #ifdef CONFIG_TESTING_OPTIONS
-		bss = wpas_ml_connect_pref(wpa_s, bss);
+		bss = wpas_ml_connect_pref(wpa_s, bss, ssid);
 
 		if (wpa_s->conf->mld_force_single_link) {
 			wpa_printf(MSG_DEBUG, "MLD: Force single link");

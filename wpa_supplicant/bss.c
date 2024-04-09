@@ -1554,8 +1554,14 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Reported link not part of MLD");
 		} else if (!(BIT(link_id) & *seen)) {
-			struct wpa_bss *neigh_bss =
-				wpa_bss_get_bssid(wpa_s, pos + 1);
+			struct wpa_bss *neigh_bss;
+
+			if (ssid && ssid->ssid_len)
+				neigh_bss = wpa_bss_get(wpa_s, pos + 1,
+							ssid->ssid,
+							ssid->ssid_len);
+			else
+				neigh_bss = wpa_bss_get_bssid(wpa_s, pos + 1);
 
 			*seen |= BIT(link_id);
 			wpa_printf(MSG_DEBUG, "MLD: mld ID=%u, link ID=%u",
