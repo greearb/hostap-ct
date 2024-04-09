@@ -3151,9 +3151,6 @@ static void wpa_driver_nl80211_deinit(struct i802_bss *bss)
 				   bss->ifname, bss->brname, strerror(errno));
 	}
 
-	if (drv->rtnl_sk)
-		nl_socket_free(drv->rtnl_sk);
-
 	if (bss->added_bridge) {
 		if (linux_set_iface_flags(drv->global->ioctl_sock, bss->brname,
 					  0) < 0)
@@ -3172,6 +3169,9 @@ static void wpa_driver_nl80211_deinit(struct i802_bss *bss)
 		wpa_driver_nl80211_del_beacon_all(bss);
 		nl80211_remove_links(bss);
 	}
+
+	if (drv->rtnl_sk)
+		nl_socket_free(drv->rtnl_sk);
 
 	if (drv->eapol_sock >= 0) {
 		eloop_unregister_read_sock(drv->eapol_sock);
@@ -5881,13 +5881,15 @@ fail:
 }
 
 
-static void rtnl_neigh_delete_fdb_entry(struct i802_bss *bss, const u8 *addr)
+static void rtnl_neigh_delete_fdb_entry(struct i802_bss *bss, const u8 *addr,
+					bool is_bridge)
 {
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct ndmsg nhdr = {
 		.ndm_state = NUD_PERMANENT,
-		.ndm_ifindex = bss->ifindex,
+		.ndm_ifindex = is_bridge ? bss->br_ifindex : bss->ifindex,
 		.ndm_family = AF_BRIDGE,
+		.ndm_type = is_bridge ? NTF_SELF : 0,
 	};
 	struct nl_msg *msg;
 	int err;
@@ -5904,11 +5906,61 @@ static void rtnl_neigh_delete_fdb_entry(struct i802_bss *bss, const u8 *addr)
 	err = nl_wait_for_ack(drv->rtnl_sk);
 	if (err < 0) {
 		wpa_printf(MSG_DEBUG, "nl80211: bridge FDB entry delete for "
-			   MACSTR " ifindex=%d failed: %s", MAC2STR(addr),
-			   bss->ifindex, nl_geterror(err));
+			   MACSTR " ifindex=%d ifname %s failed: %s",
+			   MAC2STR(addr),
+			   is_bridge ? bss->br_ifindex : bss->ifindex,
+			   is_bridge ? bss->brname : bss->ifname,
+			   nl_geterror(err));
 	} else {
-		wpa_printf(MSG_DEBUG, "nl80211: deleted bridge FDB entry for "
-			   MACSTR, MAC2STR(addr));
+		wpa_printf(MSG_DEBUG, "nl80211: deleted bridge FDB entry "
+			   MACSTR " from %s",
+			   MAC2STR(addr),
+			   is_bridge ? bss->brname : bss->ifname);
+	}
+
+errout:
+	nlmsg_free(msg);
+}
+
+
+static void rtnl_neigh_add_fdb_entry(struct i802_bss *bss, const u8 *addr,
+				     bool is_bridge)
+{
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct ndmsg nhdr = {
+		.ndm_state = NUD_PERMANENT,
+		.ndm_ifindex = is_bridge ? bss->br_ifindex : bss->ifindex,
+		.ndm_family = AF_BRIDGE,
+		/* TODO: remove this check if this flag needs to be used,
+		 * for other interfaces type.
+		 */
+		.ndm_flags = is_bridge ? NTF_SELF : 0,
+	};
+	struct nl_msg *msg;
+	int err;
+
+	msg = nlmsg_alloc_simple(RTM_NEWNEIGH, NLM_F_CREATE);
+	if (!msg)
+		return;
+
+	if (nlmsg_append(msg, &nhdr, sizeof(nhdr), NLMSG_ALIGNTO) < 0 ||
+	    nla_put(msg, NDA_LLADDR, ETH_ALEN, (void *) addr) ||
+	    nl_send_auto_complete(drv->rtnl_sk, msg) < 0)
+		goto errout;
+
+	err = nl_wait_for_ack(drv->rtnl_sk);
+	if (err < 0) {
+		wpa_printf(MSG_DEBUG, "nl80211: bridge FDB entry addition for "
+			   MACSTR " ifindex=%d ifname %s failed: %s",
+			   MAC2STR(addr),
+			   is_bridge ? bss->br_ifindex : bss->ifindex,
+			   is_bridge ? bss->brname : bss->ifname,
+			   nl_geterror(err));
+	} else {
+		wpa_printf(MSG_DEBUG, "nl80211: added bridge FDB entry " MACSTR
+			   " to %s",
+			   MAC2STR(addr),
+			   is_bridge ? bss->brname : bss->ifname);
 	}
 
 errout:
@@ -5943,7 +5995,7 @@ static int wpa_driver_nl80211_sta_remove(struct i802_bss *bss, const u8 *addr,
 		   bss->ifname, MAC2STR(addr), ret, strerror(-ret));
 
 	if (drv->rtnl_sk)
-		rtnl_neigh_delete_fdb_entry(bss, addr);
+		rtnl_neigh_delete_fdb_entry(bss, addr, false);
 
 	if (ret == -ENOENT)
 		return 0;
@@ -9465,6 +9517,7 @@ int nl80211_remove_link(struct i802_bss *bss, int link_id)
 	struct nl_msg *msg;
 	size_t i;
 	int ret;
+	u8 link_addr[ETH_ALEN];
 
 	wpa_printf(MSG_DEBUG, "nl80211: Remove link (ifindex=%d link_id=%u)",
 		   bss->ifindex, link_id);
@@ -9479,6 +9532,7 @@ int nl80211_remove_link(struct i802_bss *bss, int link_id)
 
 	wpa_driver_nl80211_del_beacon(bss, link_id);
 
+	os_memcpy(link_addr, link->addr, ETH_ALEN);
 	/* First remove the link locally */
 	bss->valid_links &= ~BIT(link_id);
 	os_memset(link->addr, 0, ETH_ALEN);
@@ -9515,6 +9569,9 @@ int nl80211_remove_link(struct i802_bss *bss, int link_id)
 		wpa_printf(MSG_ERROR,
 			   "nl80211: remove link (%d) failed. ret=%d (%s)",
 			   link_id, ret, strerror(-ret));
+
+	if (drv->rtnl_sk)
+		rtnl_neigh_delete_fdb_entry(bss, link_addr, true);
 
 	return ret;
 }
@@ -13957,6 +14014,10 @@ static int nl80211_link_add(void *priv, u8 link_id, const u8 *addr,
 
 	wpa_printf(MSG_DEBUG, "nl80211: MLD: valid_links=0x%04x on %s",
 		   bss->valid_links, bss->ifname);
+
+	if (drv->rtnl_sk)
+		rtnl_neigh_add_fdb_entry(bss, addr, true);
+
 	return 0;
 }
 
