@@ -540,6 +540,7 @@ struct hostapd_mld {
 	 * freed when num_links is 0.
 	 */
 	u8 refcount;
+	bool started;
 
 	struct hostapd_data *fbss;
 	struct dl_list links; /* List head of all affiliated links */

@@ -1327,6 +1327,20 @@ static int hostapd_start_beacon(struct hostapd_data *hapd,
 	if (!conf->start_disabled && ieee802_11_set_beacon(hapd) < 0)
 		return -1;
 
+	if (hapd->conf->mld_ap && !hapd->mld->started) {
+		struct hostapd_data *p_hapd;
+		u16 valid_links = 0;
+
+		for_each_mld_link(p_hapd, hapd)
+			valid_links |= BIT(p_hapd->mld_link_id);
+
+		if (valid_links == hapd->conf->mld_allowed_links ||
+		    !hapd->conf->mld_allowed_links) {
+			hapd->mld->started = 1;
+			ieee802_11_set_beacon(hapd);
+		}
+	}
+
 	if (flush_old_stations && !conf->start_disabled &&
 	    conf->broadcast_deauth) {
 		u8 addr[ETH_ALEN];
