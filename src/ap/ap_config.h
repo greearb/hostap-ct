@@ -996,6 +996,8 @@ struct hostapd_bss_config {
 
 	/* The AP is the primary AP of an AP MLD */
 	u8 mld_primary;
+	/* Allowed link bitmap of the AP MLD to which the AP is affiliated */
+	u16 mld_allowed_links;
 
 	/* The MLD ID to which the AP MLD is affiliated with */
 	u8 mld_id;
