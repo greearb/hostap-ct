@@ -1680,6 +1680,7 @@ def test_he_6ghz_reg(dev, apdev):
         hapd = hostapd.add_ap(apdev[0], params, set_channel=False)
 
         dev[0].set("sae_pwe", "1")
+        dev[0].set("sae_groups", "")
         dev[0].connect(ssid, sae_password="password", key_mgmt="SAE",
                        ieee80211w="2", scan_freq=str(freq))
         hapd.wait_sta()
