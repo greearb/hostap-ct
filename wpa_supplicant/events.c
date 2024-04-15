@@ -137,6 +137,33 @@ void wpas_network_reenabled(void *eloop_ctx, void *timeout_ctx)
 }
 
 
+static struct wpa_bss * __wpa_supplicant_get_new_bss(
+	struct wpa_supplicant *wpa_s, const u8 *bssid, const u8 *ssid,
+	size_t ssid_len)
+{
+	if (ssid && ssid_len > 0)
+		return wpa_bss_get(wpa_s, bssid, ssid, ssid_len);
+	else
+		return wpa_bss_get_bssid(wpa_s, bssid);
+}
+
+
+static struct wpa_bss * _wpa_supplicant_get_new_bss(
+	struct wpa_supplicant *wpa_s, const u8 *bssid, const u8 *ssid,
+	size_t ssid_len, bool try_update_scan_results)
+{
+	struct wpa_bss *bss = __wpa_supplicant_get_new_bss(wpa_s, bssid, ssid,
+							   ssid_len);
+
+	if (bss || !try_update_scan_results)
+		return bss;
+
+	wpa_supplicant_update_scan_results(wpa_s, bssid);
+
+	return __wpa_supplicant_get_new_bss(wpa_s, bssid, ssid, ssid_len);
+}
+
+
 static struct wpa_bss * wpa_supplicant_get_new_bss(
 	struct wpa_supplicant *wpa_s, const u8 *bssid)
 {
@@ -144,14 +171,23 @@ static struct wpa_bss * wpa_supplicant_get_new_bss(
 	struct wpa_ssid *ssid = wpa_s->current_ssid;
 	u8 drv_ssid[SSID_MAX_LEN];
 	int res;
+	bool try_update_scan_results = true;
 
 	res = wpa_drv_get_ssid(wpa_s, drv_ssid);
-	if (res > 0)
-		bss = wpa_bss_get(wpa_s, bssid, drv_ssid, res);
-	if (!bss && ssid && ssid->ssid_len > 0)
-		bss = wpa_bss_get(wpa_s, bssid, ssid->ssid, ssid->ssid_len);
+	if (res > 0) {
+		bss = _wpa_supplicant_get_new_bss(wpa_s, bssid, drv_ssid, res,
+						  try_update_scan_results);
+		try_update_scan_results = false;
+	}
+	if (!bss && ssid && ssid->ssid_len > 0) {
+		bss = _wpa_supplicant_get_new_bss(wpa_s, bssid, ssid->ssid,
+						  ssid->ssid_len,
+						  try_update_scan_results);
+		try_update_scan_results = false;
+	}
 	if (!bss)
-		bss = wpa_bss_get_bssid(wpa_s, bssid);
+		bss = _wpa_supplicant_get_new_bss(wpa_s, bssid, NULL, 0,
+						  try_update_scan_results);
 
 	return bss;
 }
@@ -161,13 +197,6 @@ static struct wpa_bss *
 wpa_supplicant_update_current_bss(struct wpa_supplicant *wpa_s, const u8 *bssid)
 {
 	struct wpa_bss *bss = wpa_supplicant_get_new_bss(wpa_s, bssid);
-
-	if (!bss) {
-		wpa_supplicant_update_scan_results(wpa_s, bssid);
-
-		/* Get the BSS from the new scan results */
-		bss = wpa_supplicant_get_new_bss(wpa_s, bssid);
-	}
 
 	if (bss)
 		wpa_s->current_bss = bss;
@@ -180,11 +209,6 @@ static void wpa_supplicant_update_link_bss(struct wpa_supplicant *wpa_s,
 					   u8 link_id, const u8 *bssid)
 {
 	struct wpa_bss *bss = wpa_supplicant_get_new_bss(wpa_s, bssid);
-
-	if (!bss) {
-		wpa_supplicant_update_scan_results(wpa_s, bssid);
-		bss = wpa_supplicant_get_new_bss(wpa_s, bssid);
-	}
 
 	if (bss)
 		wpa_s->links[link_id].bss = bss;
@@ -4053,13 +4077,6 @@ static int wpa_sm_set_ml_info(struct wpa_supplicant *wpa_s)
 		struct wpa_bss *bss;
 
 		bss = wpa_supplicant_get_new_bss(wpa_s, drv_mlo.links[i].bssid);
-		if (!bss) {
-			wpa_supplicant_update_scan_results(
-				wpa_s, drv_mlo.links[i].bssid);
-			bss = wpa_supplicant_get_new_bss(
-				wpa_s, drv_mlo.links[i].bssid);
-		}
-
 		if (!bss) {
 			wpa_dbg(wpa_s, MSG_INFO,
 				"Failed to get MLO link %d BSS", i);
