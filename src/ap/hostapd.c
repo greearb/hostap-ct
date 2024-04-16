@@ -4464,15 +4464,15 @@ void
 hostapd_switch_channel_fallback(struct hostapd_iface *iface,
 				const struct hostapd_freq_params *freq_params)
 {
-	int seg0_idx = 0, seg1_idx = 0;
+	u8 seg0_idx = 0, seg1_idx = 0;
 	enum oper_chan_width bw = CONF_OPER_CHWIDTH_USE_HT;
 
 	wpa_printf(MSG_DEBUG, "Restarting all CSA-related BSSes");
 
 	if (freq_params->center_freq1)
-		seg0_idx = 36 + (freq_params->center_freq1 - 5180) / 5;
+		ieee80211_freq_to_chan(freq_params->center_freq1, &seg0_idx);
 	if (freq_params->center_freq2)
-		seg1_idx = 36 + (freq_params->center_freq2 - 5180) / 5;
+		ieee80211_freq_to_chan(freq_params->center_freq2, &seg1_idx);
 
 	switch (freq_params->bandwidth) {
 	case 0:
