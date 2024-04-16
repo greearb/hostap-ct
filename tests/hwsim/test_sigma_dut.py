@@ -4171,6 +4171,7 @@ def test_sigma_dut_dpp_pb_ap(dev, apdev, params):
         dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,WPA2-SAE,PSK,12345678")
         dut.cmd_check("ap_config_commit,NAME,AP")
 
+        dev[0].set("sae_groups", "")
         dev[0].set("dpp_config_processing", "2")
         if "OK" not in dev[0].request("DPP_PUSH_BUTTON"):
             raise Exception("Failed to press push button on the STA")
