@@ -3332,7 +3332,7 @@ skip_sd:
 }
 
 
-static void p2p_sd_cb(struct p2p_data *p2p, int success)
+void p2p_sd_query_cb(struct p2p_data *p2p, int success)
 {
 	p2p_dbg(p2p, "Service Discovery Query TX callback: success=%d",
 		success);
@@ -3835,7 +3835,7 @@ void p2p_send_action_cb(struct p2p_data *p2p, unsigned int freq, const u8 *dst,
 		p2p_go_neg_conf_cb(p2p, result);
 		break;
 	case P2P_PENDING_SD:
-		p2p_sd_cb(p2p, success);
+		p2p_sd_query_cb(p2p, success);
 		break;
 	case P2P_PENDING_PD:
 		p2p_prov_disc_cb(p2p, success);
