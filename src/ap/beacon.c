@@ -2626,8 +2626,14 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 				    cmode->vht_capab,
 				    &cmode->he_capab[IEEE80211_MODE_AP],
 				    &cmode->eht_capab[IEEE80211_MODE_AP],
-				    hostapd_get_punct_bitmap(hapd)) == 0)
+				    hostapd_get_punct_bitmap(hapd)) == 0) {
+		freq.link_id = -1;
+#ifdef CONFIG_IEEE80211BE
+		if (hapd->conf->mld_ap)
+			freq.link_id = hapd->mld_link_id;
+#endif /* CONFIG_IEEE80211BE */
 		params.freq = &freq;
+	}
 
 	for (i = 0; i < hapd->iface->num_hw_features; i++) {
 		mode = &hapd->iface->hw_features[i];
