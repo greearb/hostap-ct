@@ -416,14 +416,7 @@ static int send_auth_reply(struct hostapd_data *hapd, struct sta_info *sta,
 	struct wpabuf *ml_resp = NULL;
 
 #ifdef CONFIG_IEEE80211BE
-	/*
-	 * Once a non-AP MLD is added to the driver, the addressing should use
-	 * the MLD MAC address. Thus, use the MLD address instead of translating
-	 * the addresses.
-	 */
 	if (ap_sta_is_mld(hapd, sta)) {
-		sa = hapd->mld->mld_addr;
-
 		ml_resp = hostapd_ml_auth_resp(hapd);
 		if (!ml_resp)
 			return -1;
@@ -444,7 +437,7 @@ static int send_auth_reply(struct hostapd_data *hapd, struct sta_info *sta,
 					    WLAN_FC_STYPE_AUTH);
 	os_memcpy(reply->da, dst, ETH_ALEN);
 	os_memcpy(reply->sa, sa, ETH_ALEN);
-	os_memcpy(reply->bssid, bssid, ETH_ALEN);
+	os_memcpy(reply->bssid, sa, ETH_ALEN);
 
 	reply->u.auth.auth_alg = host_to_le16(auth_alg);
 	reply->u.auth.auth_transaction = host_to_le16(auth_transaction);
@@ -3265,14 +3258,9 @@ static void handle_auth(struct hostapd_data *hapd,
 	bssid = mgmt->bssid;
 
 #ifdef CONFIG_IEEE80211BE
-	 /*
-	  * Once a non-AP MLD is added to the driver, the addressing should use
-	  * the MLD MAC address. It is the responsibility of the driver to
-	  * handle the translations.
-	  */
 	if (ap_sta_is_mld(hapd, sta)) {
 		dst = sta->addr;
-		bssid = hapd->mld->mld_addr;
+		bssid = hapd->own_addr;
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -4822,15 +4810,6 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 		IEEE80211_FC(WLAN_FC_TYPE_MGMT,
 			     (reassoc ? WLAN_FC_STYPE_REASSOC_RESP :
 			      WLAN_FC_STYPE_ASSOC_RESP));
-
-#ifdef CONFIG_IEEE80211BE
-	/*
-	 * Once a non-AP MLD is added to the driver, the addressing should use
-	 * MLD MAC address.
-	 */
-	if (ap_sta_is_mld(hapd, sta) && allow_mld_addr_trans)
-		sa = hapd->mld->mld_addr;
-#endif /* CONFIG_IEEE80211BE */
 
 	os_memcpy(reply->da, addr, ETH_ALEN);
 	os_memcpy(reply->sa, sa, ETH_ALEN);
