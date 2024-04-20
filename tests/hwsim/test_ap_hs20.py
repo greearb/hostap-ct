@@ -5758,6 +5758,7 @@ def test_ap_hs20_anqp_invalid_gas_response(dev, apdev):
     params['hessid'] = bssid
     hapd = hostapd.add_ap(apdev[0], params)
 
+    dev[0].flush_scan_cache()
     dev[0].scan_for_bss(bssid, freq="2412")
     hapd.set("ext_mgmt_frame_handling", "1")
 
