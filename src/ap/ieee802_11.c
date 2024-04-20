@@ -7255,6 +7255,41 @@ struct mbssid_ie_profiles {
 	u8 end;
 };
 
+static bool hostapd_skip_rnr(size_t i, struct mbssid_ie_profiles *skip_profiles,
+			     bool ap_mld, u8 tbtt_info_len, bool mld_update,
+			     struct hostapd_data *reporting_hapd,
+			     struct hostapd_data *bss)
+{
+	if (skip_profiles &&
+	    i >= skip_profiles->start && i < skip_profiles->end)
+		return true;
+
+	/* No need to report if length is for normal TBTT and the BSS is
+	 * affiliated with an AP MLD. MLD TBTT will include this. */
+	if (tbtt_info_len == RNR_TBTT_INFO_LEN && ap_mld)
+		return true;
+
+	/* No need to report if length is for MLD TBTT and the BSS is not
+	 * affiliated with an aP MLD. Normal TBTT will include this. */
+	if (tbtt_info_len == RNR_TBTT_INFO_MLD_LEN && !ap_mld)
+		return true;
+
+#ifdef CONFIG_IEEE80211BE
+	/* If building for co-location and they are ML partners, no need to
+	 * include since the ML RNR will carry this. */
+	if (!mld_update && hostapd_is_ml_partner(reporting_hapd, bss))
+		return true;
+
+	/* If building for ML RNR and they are not ML partners, don't include.
+	 */
+	if (mld_update && !hostapd_is_ml_partner(reporting_hapd, bss))
+		return true;
+#endif /* CONFIG_IEEE80211BE */
+
+	return false;
+}
+
+
 static size_t
 hostapd_eid_rnr_iface_len(struct hostapd_data *hapd,
 			  struct hostapd_data *reporting_hapd,
@@ -7299,36 +7334,10 @@ repeat_rnr_len:
 			    bss->conf->ignore_broadcast_ssid)
 				continue;
 
-			if (skip_profiles &&
-			    i >= skip_profiles->start && i < skip_profiles->end)
+			if (hostapd_skip_rnr(i, skip_profiles, ap_mld,
+					     tbtt_info_len, mld_update,
+					     reporting_hapd, bss))
 				continue;
-
-			/* No need to report if length is for normal TBTT and
-			 * the BSS is affiliated with an AP MLD. MLD TBTT will
-			 * include this. */
-			if (tbtt_info_len == RNR_TBTT_INFO_LEN && ap_mld)
-				continue;
-
-			/* No need to report if length is for MLD TBTT and the
-			 * BSS is not affiliated with an aP MLD. Normal TBTT
-			 * will include this. */
-			if (tbtt_info_len == RNR_TBTT_INFO_MLD_LEN && !ap_mld)
-				continue;
-
-#ifdef CONFIG_IEEE80211BE
-			/* If building for co-location and they are ML partners,
-			 * no need to include since the ML RNR will carry this.
-			 */
-			if (!mld_update &&
-			    hostapd_is_ml_partner(reporting_hapd, bss))
-				continue;
-
-			/* If building for ML RNR and they are not ML partners,
-			 * don't include. */
-			if (mld_update &&
-			    !hostapd_is_ml_partner(reporting_hapd, bss))
-				continue;
-#endif /* CONFIG_IEEE80211BE */
 
 			if (len + tbtt_info_len > 255 ||
 			    tbtt_count >= RNR_TBTT_INFO_COUNT_MAX)
@@ -7590,32 +7599,9 @@ static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
 	    bss == reporting_hapd || bss->conf->ignore_broadcast_ssid)
 		return false;
 
-	if (skip_profiles
-	    && i >= skip_profiles->start && i < skip_profiles->end)
-		return false;
-
-	/* No need to report if length is for normal TBTT and the BSS is
-	 * affiliated with an AP MLD. MLD TBTT will include this. */
-	if (tbtt_info_len == RNR_TBTT_INFO_LEN && ap_mld)
-		return false;
-
-	/* No need to report if length is for MLD TBTT and the BSS is not
-	 * affiliated with an AP MLD. Normal TBTT will include this. */
-	if (tbtt_info_len == RNR_TBTT_INFO_MLD_LEN && !ap_mld)
-		return false;
-
-#ifdef CONFIG_IEEE80211BE
-	/* If building for co-location and they are ML partners, no need to
-	 * include since the ML RNR will carry this. */
-	if (!mld_update && hostapd_is_ml_partner(reporting_hapd, bss))
-		return false;
-
-	/* If building for ML RNR and they are not ML partners,
-	 * don't include.
-	 */
-	if (mld_update && !hostapd_is_ml_partner(reporting_hapd, bss))
-		return false;
-#endif /* CONFIG_IEEE80211BE */
+	if (hostapd_skip_rnr(i, skip_profiles, ap_mld, tbtt_info_len,
+			     mld_update, reporting_hapd, bss))
+	    return false;
 
 	if (*len + RNR_TBTT_INFO_LEN > 255 ||
 	    *tbtt_count >= RNR_TBTT_INFO_COUNT_MAX)
