@@ -319,7 +319,7 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	if (!ap_sta_is_mld(hapd, sta) ||
 	    hapd->mld_link_id == sta->mld_assoc_link_id)
 		wpa_auth_sta_deinit(sta->wpa_sm);
-#else
+#else /* CONFIG_IEEE80211BE */
 	wpa_auth_sta_deinit(sta->wpa_sm);
 #endif /* CONFIG_IEEE80211BE */
 
@@ -905,7 +905,7 @@ static void ap_sta_disconnect_common(struct hostapd_data *hapd,
 	if (!hapd->conf->mld_ap ||
 	    hapd->mld_link_id == sta->mld_assoc_link_id)
 		wpa_auth_sta_deinit(sta->wpa_sm);
-#else
+#else /* CONFIG_IEEE80211BE */
 	wpa_auth_sta_deinit(sta->wpa_sm);
 #endif /* CONFIG_IEEE80211BE */
 
