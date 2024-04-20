@@ -100,7 +100,7 @@ def check_pkcs5_v15_support(dev):
 def check_tls13_support(dev):
     tls = dev.request("GET tls_library")
     ok = ['run=OpenSSL 1.1.1', 'run=OpenSSL 3.0', 'run=OpenSSL 3.1',
-          'run=OpenSSL 3.2', 'wolfSSL']
+          'run=OpenSSL 3.2', 'run=OpenSSL 3.3', 'wolfSSL']
     for s in ok:
         if s in tls:
             return
