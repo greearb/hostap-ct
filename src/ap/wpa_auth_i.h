@@ -136,7 +136,7 @@ struct wpa_state_machine {
 	size_t r0kh_id_len;
 	u8 *assoc_resp_ftie;
 
-	void (*ft_pending_cb)(void *ctx, const u8 *dst, const u8 *bssid,
+	void (*ft_pending_cb)(void *ctx, const u8 *dst,
 			      u16 auth_transaction, u16 status,
 			      const u8 *ies, size_t ies_len);
 	void *ft_pending_cb_ctx;

@@ -1537,7 +1537,6 @@ int hostapd_probe_req_rx(struct hostapd_data *hapd, const u8 *sa, const u8 *da,
 
 #ifdef CONFIG_IEEE80211R_AP
 static void hostapd_notify_auth_ft_finish(void *ctx, const u8 *dst,
-					  const u8 *bssid,
 					  u16 auth_transaction, u16 status,
 					  const u8 *ies, size_t ies_len)
 {
@@ -1613,7 +1612,7 @@ static void hostapd_notif_auth(struct hostapd_data *hapd,
 			status = WLAN_STATUS_UNSPECIFIED_FAILURE;
 			goto fail;
 		}
-		wpa_ft_process_auth(sta->wpa_sm, rx_auth->bssid,
+		wpa_ft_process_auth(sta->wpa_sm,
 				    rx_auth->auth_transaction, rx_auth->ies,
 				    rx_auth->ies_len,
 				    hostapd_notify_auth_ft_finish, hapd);
