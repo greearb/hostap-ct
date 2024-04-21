@@ -1302,7 +1302,15 @@ def test_radius_psk(dev, apdev):
 
 def test_radius_psk_during_4way_hs(dev, apdev):
     """WPA2 with PSK from RADIUS during 4-way handshake"""
-    t, t_events = start_radius_psk_server("12345678")
+    run_radius_psk_during_4way_hs(dev, apdev, 0)
+
+def test_radius_psk_during_4way_hs_session_timeout(dev, apdev):
+    """WPA2 with PSK from RADIUS during 4-way handshake with Session-Timeout"""
+    run_radius_psk_during_4way_hs(dev, apdev, 10000)
+
+def run_radius_psk_during_4way_hs(dev, apdev, session_timeout):
+    t, t_events = start_radius_psk_server("12345678",
+                                          session_timeout=session_timeout)
 
     try:
         params = hostapd_radius_psk_test_params()
