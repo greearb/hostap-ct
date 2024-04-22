@@ -172,7 +172,6 @@ struct wpa_state_machine {
 #endif /* CONFIG_TESTING_OPTIONS */
 
 #ifdef CONFIG_IEEE80211BE
-	u8 own_mld_addr[ETH_ALEN];
 	u8 peer_mld_addr[ETH_ALEN];
 	s8 mld_assoc_link_id;
 	u8 n_mld_affiliated_links;

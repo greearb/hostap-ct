@@ -90,7 +90,7 @@ static const u8 * wpa_auth_get_aa(const struct wpa_state_machine *sm)
 {
 #ifdef CONFIG_IEEE80211BE
 	if (sm->mld_assoc_link_id >= 0)
-		return sm->own_mld_addr;
+		return sm->wpa_auth->mld_addr;
 #endif /* CONFIG_IEEE80211BE */
 	return sm->wpa_auth->addr;
 }
@@ -2806,7 +2806,7 @@ SM_STATE(WPA_PTK, PTKSTART)
 			   "RSN: MLD: Add MAC Address KDE: kde_len=%zu",
 			   kde_len);
 		wpa_add_kde(buf + kde_len, RSN_KEY_DATA_MAC_ADDR,
-			    sm->own_mld_addr, ETH_ALEN, NULL, 0);
+			    sm->wpa_auth->mld_addr, ETH_ALEN, NULL, 0);
 		kde_len += 2 + RSN_SELECTOR_LEN + ETH_ALEN;
 	}
 #endif /* CONFIG_IEEE80211BE */
@@ -4441,7 +4441,7 @@ static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
 
 	wpa_printf(MSG_DEBUG, "RSN: MLD: Adding MAC Address KDE");
 	pos = wpa_add_kde(pos, RSN_KEY_DATA_MAC_ADDR,
-			  sm->own_mld_addr, ETH_ALEN, NULL, 0);
+			  sm->wpa_auth->mld_addr, ETH_ALEN, NULL, 0);
 
 	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 		if (!sm->mld_links[link_id].valid)
@@ -7114,7 +7114,7 @@ void wpa_auth_sta_radius_psk_resp(struct wpa_state_machine *sm, bool success)
 }
 
 
-void wpa_auth_set_ml_info(struct wpa_state_machine *sm, const u8 *mld_addr,
+void wpa_auth_set_ml_info(struct wpa_state_machine *sm,
 			  u8 mld_assoc_link_id, struct mld_info *info)
 {
 #ifdef CONFIG_IEEE80211BE
@@ -7130,7 +7130,6 @@ void wpa_auth_set_ml_info(struct wpa_state_machine *sm, const u8 *mld_addr,
 	wpa_auth_logger(sm->wpa_auth, wpa_auth_get_spa(sm), LOGGER_DEBUG,
 			"MLD: Initialization");
 
-	os_memcpy(sm->own_mld_addr, mld_addr, ETH_ALEN);
 	os_memcpy(sm->peer_mld_addr, info->common_info.mld_addr, ETH_ALEN);
 
 	sm->mld_assoc_link_id = mld_assoc_link_id;
@@ -7176,7 +7175,7 @@ void wpa_auth_set_ml_info(struct wpa_state_machine *sm, const u8 *mld_addr,
 			wpa_printf(MSG_ERROR,
 				   "Unable to find authenticator object for ML STA "
 				   MACSTR " on link " MACSTR " link id %d",
-				   MAC2STR(sm->own_mld_addr),
+				   MAC2STR(sm->wpa_auth->mld_addr),
 				   MAC2STR(sm_link->own_addr),
 				   link_id);
 	}

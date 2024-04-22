@@ -3763,7 +3763,7 @@ u16 owe_process_rsn_ie(struct hostapd_data *hapd,
 	}
 #ifdef CONFIG_IEEE80211BE
 	if (ap_sta_is_mld(hapd, sta))
-		wpa_auth_set_ml_info(sta->wpa_sm, hapd->mld->mld_addr,
+		wpa_auth_set_ml_info(sta->wpa_sm,
 				     sta->mld_assoc_link_id, &sta->mld_info);
 #endif /* CONFIG_IEEE80211BE */
 	rsn_ie -= 2;
@@ -4056,7 +4056,6 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 				   "MLD: %s ML info in RSN Authenticator",
 				   init ? "Set" : "Reset");
 			wpa_auth_set_ml_info(sta->wpa_sm,
-					     hapd->mld->mld_addr,
 					     sta->mld_assoc_link_id,
 					     info);
 		}
