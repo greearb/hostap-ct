@@ -359,7 +359,7 @@ def test_autogo_chan_switch(dev):
 def run_autogo_chan_switch(dev):
     autogo(dev[0], freq=2417)
     connect_cli(dev[0], dev[1], freq=2417)
-    res = dev[0].group_request("CHAN_SWITCH 5 2422")
+    res = dev[0].group_request("CHAN_SWITCH 5 2422 ht")
     if "FAIL" in res:
         # for now, skip test since mac80211_hwsim support is not yet widely
         # deployed
@@ -368,7 +368,16 @@ def run_autogo_chan_switch(dev):
     if ev is None:
         raise Exception("CSA finished event timed out")
     if "freq=2422" not in ev:
-        raise Exception("Unexpected cahnnel in CSA finished event")
+        raise Exception("Unexpected channel in CSA finished event")
+    ev = dev[1].wait_event(["CTRL-EVENT-STARTED-CHANNEL-SWITCH"], timeout=10)
+    if ev is None or "freq=2422" not in ev:
+        raise Exception("Channel switch started event not received on client")
+    ev = dev[1].wait_event(["CTRL-EVENT-CHANNEL-SWITCH"], timeout=10)
+    if ev is None or "freq=2422" not in ev:
+        raise Exception("Channel switch event not received on client")
+    ev = dev[1].wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=0.1)
+    if ev is not None:
+        raise Exception("Unexpected disconnection after channel switch")
     dev[0].dump_monitor()
     dev[1].dump_monitor()
     time.sleep(0.1)
