@@ -4121,7 +4121,7 @@ int hostapd_csa_in_progress(struct hostapd_iface *iface)
 
 #ifdef NEED_AP_MLME
 
-static void free_beacon_data(struct beacon_data *beacon)
+void free_beacon_data(struct beacon_data *beacon)
 {
 	os_free(beacon->head);
 	beacon->head = NULL;
@@ -4576,8 +4576,8 @@ void hostapd_cleanup_cca_params(struct hostapd_data *hapd)
 }
 
 
-static int hostapd_fill_cca_settings(struct hostapd_data *hapd,
-				     struct cca_settings *settings)
+int hostapd_fill_cca_settings(struct hostapd_data *hapd,
+			      struct cca_settings *settings)
 {
 	struct hostapd_iface *iface = hapd->iface;
 	u8 old_color;
