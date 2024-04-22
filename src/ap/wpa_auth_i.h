@@ -179,7 +179,6 @@ struct wpa_state_machine {
 	struct mld_link {
 		bool valid;
 		u8 peer_addr[ETH_ALEN];
-		u8 own_addr[ETH_ALEN];
 
 		const u8 *rsne;
 		size_t rsne_len;

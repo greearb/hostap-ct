@@ -147,6 +147,8 @@ void wpa_release_link_auth_ref(struct wpa_state_machine *sm,
 
 struct wpa_get_link_auth_ctx {
 	const u8 *addr;
+	const u8 *mld_addr;
+	int link_id;
 	struct wpa_authenticator *wpa_auth;
 };
 
@@ -154,10 +156,35 @@ static int wpa_get_link_sta_auth(struct wpa_authenticator *wpa_auth, void *data)
 {
 	struct wpa_get_link_auth_ctx *ctx = data;
 
-	if (!ether_addr_equal(wpa_auth->addr, ctx->addr))
+	if (!wpa_auth->is_ml)
 		return 0;
-	ctx->wpa_auth = wpa_auth;
-	return 1;
+
+	if (ctx->mld_addr &&
+	    !ether_addr_equal(wpa_auth->mld_addr, ctx->mld_addr))
+		return 0;
+
+	if ((ctx->addr && ether_addr_equal(wpa_auth->addr, ctx->addr)) ||
+	    (ctx->link_id > -1 && wpa_auth->is_ml &&
+	     wpa_auth->link_id == ctx->link_id)) {
+		ctx->wpa_auth = wpa_auth;
+		return 1;
+
+	}
+	return 0;
+}
+
+
+static struct wpa_authenticator *
+wpa_get_link_auth(struct wpa_authenticator *wpa_auth, int link_id)
+{
+	struct wpa_get_link_auth_ctx ctx;
+
+	ctx.addr = NULL;
+	ctx.mld_addr = wpa_auth->mld_addr;
+	ctx.link_id = link_id;
+	ctx.wpa_auth = NULL;
+	wpa_auth_for_each_auth(wpa_auth, wpa_get_link_sta_auth, &ctx);
+	return ctx.wpa_auth;
 }
 
 
@@ -4415,7 +4442,13 @@ static size_t wpa_auth_ml_kdes_len(struct wpa_state_machine *sm)
 
 	/* MLO Link KDE for each link */
 	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+		struct wpa_authenticator *wpa_auth;
+
 		if (!sm->mld_links[link_id].valid)
+			continue;
+
+		wpa_auth = wpa_get_link_auth(sm->wpa_auth, link_id);
+		if (!wpa_auth)
 			continue;
 
 		kde_len += 2 + RSN_SELECTOR_LEN + 1 + ETH_ALEN +
@@ -4444,7 +4477,13 @@ static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
 			  sm->wpa_auth->mld_addr, ETH_ALEN, NULL, 0);
 
 	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+		struct wpa_authenticator *wpa_auth;
+
 		if (!sm->mld_links[link_id].valid)
+			continue;
+
+		wpa_auth = wpa_get_link_auth(sm->wpa_auth, link_id);
+		if (!wpa_auth)
 			continue;
 
 		wpa_printf(MSG_DEBUG,
@@ -4469,7 +4508,7 @@ static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
 			*pos |= RSN_MLO_LINK_KDE_LI_RSNXE_INFO;
 
 		pos++;
-		os_memcpy(pos, sm->mld_links[link_id].own_addr, ETH_ALEN);
+		os_memcpy(pos, wpa_auth->addr, ETH_ALEN);
 		pos += ETH_ALEN;
 
 		if (sm->mld_links[link_id].rsne_len) {
@@ -7146,12 +7185,10 @@ void wpa_auth_set_ml_info(struct wpa_state_machine *sm,
 			continue;
 
 		os_memcpy(sm_link->peer_addr, link->peer_addr, ETH_ALEN);
-		os_memcpy(sm_link->own_addr, link->local_addr, ETH_ALEN);
 
 		wpa_printf(MSG_DEBUG,
-			   "WPA_AUTH: MLD: id=%u, addr=" MACSTR " peer=" MACSTR,
+			   "WPA_AUTH: MLD: id=%u, peer=" MACSTR,
 			   link_id,
-			   MAC2STR(sm_link->own_addr),
 			   MAC2STR(sm_link->peer_addr));
 
 		ml_rsn_info.links[i++].link_id = link_id;
@@ -7159,6 +7196,8 @@ void wpa_auth_set_ml_info(struct wpa_state_machine *sm,
 		if (link_id != mld_assoc_link_id) {
 			sm->n_mld_affiliated_links++;
 			ctx.addr = link->local_addr;
+			ctx.mld_addr = NULL;
+			ctx.link_id = -1;
 			ctx.wpa_auth = NULL;
 			wpa_auth_for_each_auth(sm->wpa_auth,
 					       wpa_get_link_sta_auth, &ctx);
@@ -7174,9 +7213,8 @@ void wpa_auth_set_ml_info(struct wpa_state_machine *sm,
 		if (!sm_link->wpa_auth)
 			wpa_printf(MSG_ERROR,
 				   "Unable to find authenticator object for ML STA "
-				   MACSTR " on link " MACSTR " link id %d",
+				   MACSTR " on link id %d",
 				   MAC2STR(sm->wpa_auth->mld_addr),
-				   MAC2STR(sm_link->own_addr),
 				   link_id);
 	}
 
