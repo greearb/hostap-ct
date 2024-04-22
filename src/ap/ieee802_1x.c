@@ -2543,12 +2543,21 @@ int ieee802_1x_init(struct hostapd_data *hapd)
 	if (!hostapd_mld_is_first_bss(hapd)) {
 		struct hostapd_data *first;
 
-		wpa_printf(MSG_DEBUG,
-			   "MLD: Using IEEE 802.1X state machine of the first BSS");
-
 		first = hostapd_mld_get_first_bss(hapd);
 		if (!first)
 			return -1;
+
+		if (!first->eapol_auth) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: First BSS IEEE 802.1X state machine does not exist. Init on its behalf");
+
+			if (ieee802_1x_init(first))
+				return -1;
+		}
+
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Using IEEE 802.1X state machine of the first BSS");
+
 		hapd->eapol_auth = first->eapol_auth;
 		return 0;
 	}

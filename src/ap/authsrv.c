@@ -260,11 +260,20 @@ int authsrv_init(struct hostapd_data *hapd)
 	if (!hostapd_mld_is_first_bss(hapd)) {
 		struct hostapd_data *first;
 
-		wpa_printf(MSG_DEBUG, "MLD: Using auth_serv of the first BSS");
-
 		first = hostapd_mld_get_first_bss(hapd);
 		if (!first)
 			return -1;
+
+		if (!first->eap_cfg) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: First BSS auth_serv does not exist. Init on its behalf");
+
+			if (authsrv_init(first))
+				return -1;
+		}
+
+		wpa_printf(MSG_DEBUG, "MLD: Using auth_serv of the first BSS");
+
 #ifdef EAP_TLS_FUNCS
 		hapd->ssl_ctx = first->ssl_ctx;
 #endif /* EAP_TLS_FUNCS */
