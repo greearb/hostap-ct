@@ -2562,6 +2562,7 @@ def test_mesh_link_probe(dev, apdev, params):
         check_mesh_group_added(dev[i])
     for i in range(3):
         check_mesh_peer_connected(dev[i])
+        check_mesh_peer_connected(dev[i])
 
     res = dev[0].request("MESH_LINK_PROBE " + addr1)
     if "FAIL" in res:
