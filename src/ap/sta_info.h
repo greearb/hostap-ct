@@ -94,8 +94,6 @@ struct mld_info {
 		u16 status;
 		u16 resp_sta_profile_len;
 		u8 *resp_sta_profile;
-
-		const u8 *rsne, *rsnxe;
 	} links[MAX_NUM_MLD_LINKS];
 };
 

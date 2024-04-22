@@ -1533,52 +1533,6 @@ static int hostapd_set_ltf_keyseed(void *ctx, const u8 *peer_addr,
 
 #ifdef CONFIG_IEEE80211BE
 
-static int hostapd_wpa_auth_get_ml_rsn_info(void *ctx,
-					    struct wpa_auth_ml_rsn_info *info)
-{
-	struct hostapd_data *hapd = ctx;
-	unsigned int i;
-
-	wpa_printf(MSG_DEBUG, "WPA_AUTH: MLD: Get RSN info CB: n_mld_links=%u",
-		   info->n_mld_links);
-
-	if (!hapd->conf->mld_ap || !hapd->iface || !hapd->iface->interfaces)
-		return -1;
-
-	for (i = 0; i < info->n_mld_links; i++) {
-		unsigned int link_id = info->links[i].link_id;
-		struct hostapd_data *bss;
-		bool link_bss_found = false;
-
-		wpa_printf(MSG_DEBUG,
-			   "WPA_AUTH: MLD: Get link RSN CB: link_id=%u",
-			   link_id);
-
-		if (hapd->mld_link_id == link_id) {
-			wpa_auth_ml_get_rsn_info(hapd->wpa_auth,
-						 &info->links[i]);
-			continue;
-		}
-
-		for_each_mld_link(bss, hapd) {
-			if (bss == hapd || bss->mld_link_id != link_id)
-				continue;
-
-			wpa_auth_ml_get_rsn_info(bss->wpa_auth,
-						 &info->links[i]);
-			link_bss_found = true;
-			break;
-		}
-
-		if (!link_bss_found)
-			wpa_printf(MSG_DEBUG,
-				   "WPA_AUTH: MLD: link=%u not found", link_id);
-	}
-
-	return 0;
-}
-
-
 static int hostapd_wpa_auth_get_ml_key_info(void *ctx,
 					    struct wpa_auth_ml_key_info *info)
 {
@@ -1696,7 +1650,6 @@ int hostapd_setup_wpa(struct hostapd_data *hapd)
 		.set_ltf_keyseed = hostapd_set_ltf_keyseed,
 #endif /* CONFIG_PASN */
 #ifdef CONFIG_IEEE80211BE
-		.get_ml_rsn_info = hostapd_wpa_auth_get_ml_rsn_info,
 		.get_ml_key_info = hostapd_wpa_auth_get_ml_key_info,
 #endif /* CONFIG_IEEE80211BE */
 		.get_drv_flags = hostapd_wpa_auth_get_drv_flags,

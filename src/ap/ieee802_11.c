@@ -4512,13 +4512,6 @@ static int ieee80211_ml_process_link(struct hostapd_data *hapd,
 	wpa_printf(MSG_DEBUG, "MLD: link=%u, association OK (aid=%u)",
 		   hapd->mld_link_id, sta->aid);
 
-	/*
-	 * Get RSNE and RSNXE for the current BSS as they are required by the
-	 * Authenticator.
-	 */
-	link->rsne = hostapd_wpa_ie(hapd, WLAN_EID_RSN);
-	link->rsnxe = hostapd_wpa_ie(hapd, WLAN_EID_RSNX);
-
 	sta->flags |= WLAN_STA_AUTH | WLAN_STA_ASSOC_REQ_OK;
 
 	/* TODO: What other processing is required? */
@@ -4569,15 +4562,6 @@ int hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 
 	if (!hostapd_is_mld_ap(hapd))
 		return 0;
-
-	/*
-	 * This is not really needed, but make the interaction with the RSN
-	 * Authenticator more consistent
-	 */
-	sta->mld_info.links[hapd->mld_link_id].rsne =
-		hostapd_wpa_ie(hapd, WLAN_EID_RSN);
-	sta->mld_info.links[hapd->mld_link_id].rsnxe =
-		hostapd_wpa_ie(hapd, WLAN_EID_RSNX);
 
 	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
 		struct hostapd_data *bss = NULL;

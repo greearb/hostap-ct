@@ -180,10 +180,6 @@ struct wpa_state_machine {
 		bool valid;
 		u8 peer_addr[ETH_ALEN];
 
-		const u8 *rsne;
-		size_t rsne_len;
-		const u8 *rsnxe;
-		size_t rsnxe_len;
 		struct wpa_authenticator *wpa_auth;
 	} mld_links[MAX_NUM_MLD_LINKS];
 #endif /* CONFIG_IEEE80211BE */

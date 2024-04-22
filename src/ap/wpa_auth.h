@@ -648,8 +648,6 @@ void wpa_auth_sta_radius_psk_resp(struct wpa_state_machine *sm, bool success);
 
 void wpa_auth_set_ml_info(struct wpa_state_machine *sm,
 			  u8 mld_assoc_link_id, struct mld_info *info);
-void wpa_auth_ml_get_rsn_info(struct wpa_authenticator *a,
-			      struct wpa_auth_ml_link_rsn_info *info);
 void wpa_auth_ml_get_key_info(struct wpa_authenticator *a,
 			      struct wpa_auth_ml_link_key_info *info,
 			      bool mgmt_frame_prot, bool beacon_prot);
