@@ -1797,3 +1797,50 @@ def run_he_downgrade_to_20_mhz(dev, apdev, params):
     finally:
         dev[0].request("DISCONNECT")
         clear_regdom(hapd, dev)
+
+def test_he_bss_color_change(dev, apdev):
+    """HE AP with color change"""
+    params = {"ssid": "test_he",
+              "ieee80211ax": "1",
+              "he_bss_color": "42",
+              "he_mu_edca_ac_be_ecwmin": "7",
+              "he_mu_edca_ac_be_ecwmax": "15"}
+    hapd = hostapd.add_ap(apdev[0], params)
+    if hapd.get_status_field("ieee80211ax") != "1":
+        raise Exception("STATUS did not indicate ieee80211ax=1")
+
+    color = hapd.get_status_field("he_bss_color")
+    if color != "42":
+        raise Exception("Expected current he_bss_color to be 42; was " + color)
+
+    # Small sleep to capture Beacon frames before the change
+    time.sleep(0.5)
+
+    # Change color by doing CCA
+    if "OK" not in hapd.request("COLOR_CHANGE 20"):
+        raise Exception("COLOR_CHANGE failed")
+    time.sleep(1.5)
+
+    color = hapd.get_status_field("he_bss_color")
+    if color != "20":
+        raise Exception("Expected current he_bss_color to be 20")
+
+    # Disable color by setting value to 0
+    if "OK" not in hapd.request("COLOR_CHANGE 0"):
+        raise Exception("COLOR_CHANGE failed")
+    time.sleep(1.5)
+
+    color = hapd.get_status_field("he_bss_color")
+    if color is not None:
+        raise Exception("Expected he_bss_color to get disabled but found " + color)
+
+    # Enable color back by setting same previous color value
+    if "OK" not in hapd.request("COLOR_CHANGE 20"):
+        raise Exception("COLOR_CHANGE failed")
+    time.sleep(1.5)
+
+    color = hapd.get_status_field("he_bss_color")
+    if color != "20":
+        raise Exception("Expected current he_bss_color to be 20")
+
+    hapd.dump_monitor()
