@@ -12,6 +12,7 @@
 
 #include "utils/common.h"
 #include "utils/list.h"
+#include "utils/eloop.h"
 #include "common/ieee802_11_defs.h"
 #include "common/hw_features_common.h"
 #include "common/wpa_ctrl.h"
@@ -307,6 +308,7 @@ static const struct bw_item *bw_desc[] = {
 
 static int acs_request_scan(struct hostapd_iface *iface);
 static int acs_survey_is_sufficient(struct freq_survey *survey);
+static void acs_scan_retry(void *eloop_data, void *user_data);
 
 
 static void acs_clean_chan_surveys(struct hostapd_channel_data *chan)
@@ -352,6 +354,8 @@ void acs_cleanup(struct hostapd_iface *iface)
 
 	iface->chans_surveyed = 0;
 	iface->acs_num_completed_scans = 0;
+	iface->acs_num_retries = 0;
+	eloop_cancel_timeout(acs_scan_retry, iface, NULL);
 }
 
 
@@ -1317,6 +1321,7 @@ static void acs_scan_complete(struct hostapd_iface *iface)
 	int err;
 
 	iface->scan_cb = NULL;
+	iface->acs_num_retries = 0;
 
 	wpa_printf(MSG_DEBUG, "ACS: Using survey based algorithm (acs_num_scans=%d)",
 		   iface->conf->acs_num_scans);
@@ -1329,7 +1334,7 @@ static void acs_scan_complete(struct hostapd_iface *iface)
 
 	if (++iface->acs_num_completed_scans < iface->conf->acs_num_scans) {
 		err = acs_request_scan(iface);
-		if (err) {
+		if (err && err != -EBUSY) {
 			wpa_printf(MSG_ERROR, "ACS: Failed to request scan");
 			goto fail;
 		}
@@ -1382,7 +1387,7 @@ static int * acs_request_scan_add_freqs(struct hostapd_iface *iface,
 static int acs_request_scan(struct hostapd_iface *iface)
 {
 	struct wpa_driver_scan_params params;
-	int i, *freq;
+	int i, *freq, ret;
 	int num_channels;
 	struct hostapd_hw_modes *mode;
 
@@ -1415,21 +1420,59 @@ static int acs_request_scan(struct hostapd_iface *iface)
 		return -1;
 	}
 
-	iface->scan_cb = acs_scan_complete;
+	if (!iface->acs_num_retries)
+		wpa_printf(MSG_DEBUG, "ACS: Scanning %d / %d",
+			   iface->acs_num_completed_scans + 1,
+			   iface->conf->acs_num_scans);
+	else
+		wpa_printf(MSG_DEBUG,
+			   "ACS: Re-try scanning attempt %d (%d / %d)",
+			   iface->acs_num_retries,
+			   iface->acs_num_completed_scans + 1,
+			   iface->conf->acs_num_scans);
 
-	wpa_printf(MSG_DEBUG, "ACS: Scanning %d / %d",
-		   iface->acs_num_completed_scans + 1,
-		   iface->conf->acs_num_scans);
+	ret = hostapd_driver_scan(iface->bss[0], &params);
+	os_free(params.freqs);
 
-	if (hostapd_driver_scan(iface->bss[0], &params) < 0) {
+	if (ret == -EBUSY) {
+		iface->acs_num_retries++;
+		if (iface->acs_num_retries >= ACS_SCAN_RETRY_MAX_COUNT) {
+			wpa_printf(MSG_ERROR,
+				   "ACS: Failed to request initial scan (all re-attempts failed)");
+			acs_fail(iface);
+			return -1;
+		}
+
+		wpa_printf(MSG_INFO,
+			   "Failed to request acs scan ret=%d (%s) - try to scan after %d seconds",
+			   ret, strerror(-ret), ACS_SCAN_RETRY_INTERVAL);
+		eloop_cancel_timeout(acs_scan_retry, iface, NULL);
+		eloop_register_timeout(ACS_SCAN_RETRY_INTERVAL, 0,
+				       acs_scan_retry, iface, NULL);
+		return 0;
+	}
+
+	if (ret < 0) {
 		wpa_printf(MSG_ERROR, "ACS: Failed to request initial scan");
 		acs_cleanup(iface);
-		os_free(params.freqs);
 		return -1;
 	}
 
-	os_free(params.freqs);
+	iface->scan_cb = acs_scan_complete;
+
 	return 0;
+}
+
+
+static void acs_scan_retry(void *eloop_data, void *user_data)
+{
+	struct hostapd_iface *iface = eloop_data;
+
+	if (acs_request_scan(iface)) {
+		wpa_printf(MSG_ERROR,
+			   "ACS: Failed to request re-try of initial scan");
+		acs_fail(iface);
+	}
 }
 
 
