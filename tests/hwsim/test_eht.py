@@ -2127,3 +2127,46 @@ def test_eht_mld_cohosted_connectivity(dev, apdev, params):
         traffic_test(wpas1, hapds[2])
 
         stop_mld_devs(hapds, params['prefix'])
+
+def test_eht_mlo_color_change(dev, apdev):
+    """AP MLD and Color Change Announcement"""
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        ssid = "mld_ap"
+        passphrase = 'qwertyuiop'
+
+        params = eht_mld_ap_wpa2_params(ssid, passphrase,
+                                        key_mgmt="SAE", mfp="2", pwe='1')
+        params['he_bss_color'] = '42'
+
+        hapd0 = eht_mld_enable_ap(hapd_iface, params)
+
+        params['channel'] = '6'
+        params['he_bss_color'] = '24'
+
+        hapd1 = eht_mld_enable_ap(hapd_iface, params)
+
+        logger.info("Perform CCA on 1st link")
+        if "OK" not in hapd0.request("COLOR_CHANGE 10"):
+            raise Exception("COLOR_CHANGE failed")
+
+        time.sleep(1.5)
+
+        color = hapd0.get_status_field("he_bss_color")
+        if color != "10":
+            raise Exception("Expected current he_bss_color to be 10; was " + color)
+
+        logger.info("Perform CCA on 1st link again")
+        if "OK" not in hapd0.request("COLOR_CHANGE 60"):
+            raise Exception("COLOR_CHANGE failed")
+        time.sleep(1.5)
+
+        color = hapd0.get_status_field("he_bss_color")
+        if color != "60":
+            raise Exception("Expected current he_bss_color to be 60; was " + color)
+
+        #TODO: CCA on non-first link
+
+        hapd0.dump_monitor()
+        hapd1.dump_monitor()
