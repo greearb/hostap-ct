@@ -11403,6 +11403,20 @@ static int nl80211_switch_color(void *priv, struct cca_settings *settings)
 		goto error;
 	}
 
+#ifdef CONFIG_IEEE80211BE
+	if (nl80211_link_valid(bss->valid_links, settings->link_id)) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Color change request on link_id=%d",
+			   settings->link_id);
+
+		if (nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID,
+			       settings->link_id)) {
+			nlmsg_free(msg);
+			return -1;
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	ret = send_and_recv_cmd(drv, msg);
 	if (ret) {
 		wpa_printf(MSG_DEBUG,

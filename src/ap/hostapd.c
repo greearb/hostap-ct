@@ -4586,6 +4586,12 @@ int hostapd_fill_cca_settings(struct hostapd_data *hapd,
 	if (!iface || iface->conf->he_op.he_bss_color_disabled)
 		return -1;
 
+	settings->link_id = -1;
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap)
+		settings->link_id = hapd->mld_link_id;
+#endif /* CONFIG_IEEE80211BE */
+
 	old_color = iface->conf->he_op.he_bss_color;
 	iface->conf->he_op.he_bss_color = hapd->cca_color;
 	ret = hostapd_build_beacon_data(hapd, &settings->beacon_after);
