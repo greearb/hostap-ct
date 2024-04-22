@@ -2714,16 +2714,16 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 				     data->bss_color_collision.bitmap);
 		break;
 	case EVENT_CCA_STARTED_NOTIFY:
-		wpa_printf(MSG_DEBUG, "CCA started on on %s",
+		wpa_printf(MSG_DEBUG, "CCA started on %s",
 			   hapd->conf->iface);
 		break;
 	case EVENT_CCA_ABORTED_NOTIFY:
-		wpa_printf(MSG_DEBUG, "CCA aborted on on %s",
+		wpa_printf(MSG_DEBUG, "CCA aborted on %s",
 			   hapd->conf->iface);
 		hostapd_cleanup_cca_params(hapd);
 		break;
 	case EVENT_CCA_NOTIFY:
-		wpa_printf(MSG_DEBUG, "CCA finished on on %s",
+		wpa_printf(MSG_DEBUG, "CCA finished on %s",
 			   hapd->conf->iface);
 		if (hapd->cca_color)
 			hapd->iface->conf->he_op.he_bss_color = hapd->cca_color;
