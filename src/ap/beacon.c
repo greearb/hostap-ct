@@ -1948,6 +1948,17 @@ static u8 * hostapd_gen_fils_discovery(struct hostapd_data *hapd, size_t *len)
 		FD_FRAME_CTL_CAP_PRESENT;
 	total_len += 4 + 1 + 2;
 
+	/* Fill primary channel information for 6 GHz channels with over 20 MHz
+	 * bandwidth, if the primary channel is not a PSC */
+	if (is_6ghz_op_class(hapd->iconf->op_class) &&
+	    !is_6ghz_psc_frequency(ieee80211_chan_to_freq(
+					   NULL, hapd->iconf->op_class,
+					   hapd->iconf->channel)) &&
+	    op_class_to_bandwidth(hapd->iconf->op_class) > 20) {
+		ctl |= FD_FRAME_CTL_PRI_CHAN_PRESENT;
+		total_len += 2;
+	}
+
 	/* Check for optional subfields and calculate length */
 	if (wpa_auth_write_fd_rsn_info(hapd->wpa_auth, fd_rsn_info)) {
 		ctl |= FD_FRAME_CTL_RSN_INFO_PRESENT;
@@ -2009,9 +2020,11 @@ static u8 * hostapd_gen_fils_discovery(struct hostapd_data *hapd, size_t *len)
 	WPA_PUT_LE16(pos, hostapd_fils_discovery_cap(hapd));
 	pos += 2;
 
-	/* Operating Class - not present */
-
-	/* Primary Channel - not present */
+	/* Operating Class and Primary Channel - if a 6 GHz chan is non PSC */
+	if (ctl & FD_FRAME_CTL_PRI_CHAN_PRESENT) {
+		*pos++ = hapd->iconf->op_class;
+		*pos++ = hapd->iconf->channel;
+	}
 
 	/* AP Configuration Sequence Number - not present */
 
