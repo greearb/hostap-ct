@@ -2078,3 +2078,52 @@ def test_eht_mld_cohosted_discovery(dev, apdev, params):
 def test_eht_mld_cohosted_discovery_with_rnr(dev, apdev, params):
     """EHT 2 AP MLDs discovery (with co-location RNR)"""
     eht_mld_cohosted_discovery(dev, apdev, params, rnr=True)
+
+def test_eht_mld_cohosted_connectivity(dev, apdev, params):
+    """EHT 2 AP MLDs with 2 MLD clients connection"""
+    check_sae_capab(dev[0])
+
+    with HWSimRadio(use_mlo=True, n_channels=2) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio1, wpas_iface1):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+        check_sae_capab(wpas)
+
+        wpas1 = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas1.interface_add(wpas_iface1)
+        check_sae_capab(wpas1)
+
+        hapds = get_mld_devs(hapd_iface=hapd_iface, count=2,
+                             prefix=params['prefix'], rnr=False)
+
+        passphrase = "qwertyuiop-"
+        ssid = "mld-"
+
+        # Connect one client to first AP MLD and verify traffic on both links
+        wpas.set("sae_pwe", "1")
+        wpas.connect(ssid + "0", sae_password=passphrase+"0", scan_freq="2412",
+                     key_mgmt="SAE", ieee80211w="2")
+
+        eht_verify_status(wpas, hapds[0], 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
+        eht_verify_wifi_version(wpas)
+
+        traffic_test(wpas, hapds[0])
+        traffic_test(wpas, hapds[1])
+
+        # Connect another client to second AP MLD and verify traffic on both
+        # links
+        wpas1.set("sae_pwe", "1")
+        wpas1.connect(ssid + "1", sae_password=passphrase+"1", scan_freq="2437",
+                      key_mgmt="SAE", ieee80211w="2")
+
+        eht_verify_status(wpas1, hapds[3], 2437, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
+        eht_verify_wifi_version(wpas1)
+
+        traffic_test(wpas1, hapds[3])
+        traffic_test(wpas1, hapds[2])
+
+        stop_mld_devs(hapds, params['prefix'])
