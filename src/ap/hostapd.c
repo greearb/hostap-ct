@@ -4507,6 +4507,7 @@ hostapd_switch_channel_fallback(struct hostapd_iface *iface,
 {
 	u8 seg0_idx = 0, seg1_idx = 0;
 	enum oper_chan_width bw = CONF_OPER_CHWIDTH_USE_HT;
+	u8 op_class, chan = 0;
 
 	wpa_printf(MSG_DEBUG, "Restarting all CSA-related BSSes");
 
@@ -4546,6 +4547,15 @@ hostapd_switch_channel_fallback(struct hostapd_iface *iface,
 	iface->freq = freq_params->freq;
 	iface->conf->channel = freq_params->channel;
 	iface->conf->secondary_channel = freq_params->sec_channel_offset;
+	if (ieee80211_freq_to_channel_ext(freq_params->freq,
+					  freq_params->sec_channel_offset, bw,
+					  &op_class, &chan) ==
+	    NUM_HOSTAPD_MODES ||
+	    chan != freq_params->channel)
+		wpa_printf(MSG_INFO, "CSA: Channel mismatch: %d -> %d",
+			   freq_params->channel, chan);
+
+	iface->conf->op_class = op_class;
 	hostapd_set_oper_centr_freq_seg0_idx(iface->conf, seg0_idx);
 	hostapd_set_oper_centr_freq_seg1_idx(iface->conf, seg1_idx);
 	hostapd_set_oper_chwidth(iface->conf, bw);
