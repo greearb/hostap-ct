@@ -2181,6 +2181,63 @@ static u8 * hostapd_fils_discovery(struct hostapd_data *hapd,
 #endif /* CONFIG_FILS */
 
 
+static void hostapd_fill_bcn_sta_profile(struct hostapd_data *hapd,
+					 struct mld_info *info)
+{
+	struct hostapd_data *h;
+
+	if (!info)
+		return;
+
+	os_memset(info, 0, sizeof(*info));
+
+	for_each_mld_link(h, hapd) {
+		unsigned int link_id = h->mld_link_id;
+		struct mld_link_info *link = &info->links[link_id];
+		u8 *epos, *csa_pos, buf[EHT_ML_MAX_STA_PROF_LEN];
+
+		if (!h->started || h == hapd ||
+		    h->eht_mld_bss_critical_update != BSS_CRIT_UPDATE_ALL)
+			continue;
+
+		link->valid = true;
+		os_memcpy(link->local_addr, h->own_addr, ETH_ALEN);
+
+		/* Build per-STA profile */
+		epos = buf;
+		/* Capabilities */
+		WPA_PUT_LE16(epos, hostapd_own_capab_info(h));
+		epos += 2;
+
+		/* CSA IE */
+		csa_pos = hostapd_eid_csa(h, epos);
+		if (csa_pos != epos)
+			link->sta_prof_csa_offset = csa_pos - 1 - buf;
+		epos = csa_pos;
+
+		/* eCSA IE */
+		csa_pos = hostapd_eid_ecsa(h, epos);
+		if (csa_pos != epos)
+			link->sta_prof_ecsa_offset = csa_pos - 1 - buf;
+		epos = csa_pos;
+
+		/* channel switch wrapper */
+		epos = hostapd_eid_chsw_wrapper(h, epos);
+
+		/* max channel switch time */
+		epos = hostapd_eid_max_cs_time(h, epos);
+
+		link->resp_sta_profile_len = epos - buf;
+		link->resp_sta_profile = os_memdup(buf, link->resp_sta_profile_len);
+
+		/* TODO:
+		 * 1. add other IEs
+		 * 2. handle per-STA profile inheritance
+		 * 3. handle csa offset if fragmentation is required
+		 */
+	}
+}
+
 int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 			       struct wpa_driver_ap_params *params)
 {
@@ -2428,9 +2485,30 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be) {
-		if (hapd->conf->mld_ap)
-			tailpos = hostapd_eid_eht_ml_beacon(hapd, NULL,
+		if (hapd->conf->mld_ap) {
+			struct hostapd_data *h;
+			struct mld_info info;
+			struct mld_link_info *link;
+			u32 base;
+			u8 link_id, *ml_pos = tailpos;
+
+			hostapd_fill_bcn_sta_profile(hapd, &info);
+			tailpos = hostapd_eid_eht_ml_beacon(hapd, &info,
 							    tailpos, false);
+
+			for_each_mld_link(h, hapd) {
+				link_id = h->mld_link_id;
+				link = &info.links[link_id];
+				base = ml_pos - tail + link->sta_prof_offset;
+				if (link->sta_prof_csa_offset)
+					hapd->cs_c_off_sta_prof[link_id] =
+							base + link->sta_prof_csa_offset;
+				if (link->sta_prof_ecsa_offset)
+					hapd->cs_c_off_ecsa_sta_prof[link_id] =
+							base + link->sta_prof_ecsa_offset;
+			}
+			ap_sta_free_sta_profile(&info);
+		}
 		tailpos = hostapd_eid_eht_capab(hapd, tailpos,
 						IEEE80211_MODE_AP);
 		tailpos = hostapd_eid_eht_operation(hapd, tailpos);
@@ -3296,8 +3374,15 @@ int ieee802_11_set_beacon(struct hostapd_data *hapd)
 		return 0;
 
 	/* Generate per STA profiles for each affiliated APs */
-	for_each_mld_link(link_bss, hapd)
+	for_each_mld_link(link_bss, hapd) {
 		hostapd_gen_per_sta_profiles(link_bss);
+
+		/* clear critical update flag for UPDATE_SINGLE type, for other types,
+		 * we should get some notified events from driver
+		 */
+		if (hapd->eht_mld_bss_critical_update == BSS_CRIT_UPDATE_SINGLE)
+			hapd->eht_mld_bss_critical_update = 0;
+	}
 #endif /* CONFIG_IEEE80211BE */
 
 	return 0;
@@ -3332,6 +3417,52 @@ int ieee802_11_update_beacons(struct hostapd_iface *iface)
 	}
 
 	return ret;
+}
+
+
+int ieee802_11_set_bss_critical_update(struct hostapd_data *hapd,
+				       enum bss_crit_update_event event)
+{
+	if (!hapd->conf->mld_ap)
+		return 0;
+
+	switch (event) {
+	case BSS_CRIT_UPDATE_EVENT_CSA:
+	case BSS_CRIT_UPDATE_EVENT_ECSA:
+	case BSS_CRIT_UPDATE_EVENT_QUIET:
+	case BSS_CRIT_UPDATE_EVENT_WBCS:
+	case BSS_CRIT_UPDATE_EVENT_CS_WRAP:
+	case BSS_CRIT_UPDATE_EVENT_OP_MODE_NOTIF:
+	case BSS_CRIT_UPDATE_EVENT_QUIET_CH:
+	case BSS_CRIT_UPDATE_EVENT_CCA:
+	case BSS_CRIT_UPDATE_EVENT_BCAST_TWT:
+	case BSS_CRIT_UPDATE_EVENT_BCAST_TWT_PARAM_SET:
+	case BSS_CRIT_UPDATE_EVENT_IDX_ADJUST_FACTOR:
+	case BSS_CRIT_UPDATE_EVENT_TPE:
+		hapd->eht_mld_bss_param_change += 1;
+		hapd->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_ALL;
+		return 0;
+	case BSS_CRIT_UPDATE_EVENT_EDCA:
+	case BSS_CRIT_UPDATE_EVENT_DSSS:
+	case BSS_CRIT_UPDATE_EVENT_HT_OPERATION:
+	case BSS_CRIT_UPDATE_EVENT_VHT_OPERATION:
+	case BSS_CRIT_UPDATE_EVENT_HE_OPERATION:
+	case BSS_CRIT_UPDATE_EVENT_MU_EDCA:
+	case BSS_CRIT_UPDATE_EVENT_SR:
+	case BSS_CRIT_UPDATE_EVENT_UORA:
+	case BSS_CRIT_UPDATE_EVENT_EHT_OPERATION:
+		hapd->eht_mld_bss_param_change += 1;
+		hapd->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_SINGLE;
+		return 0;
+	case BSS_CRIT_UPDATE_EVENT_RECONFIG:
+	case BSS_CRIT_UPDATE_EVENT_ADD_LINK:
+	case BSS_CRIT_UPDATE_EVENT_ATTLM:
+		hapd->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_FLAG;
+		return 0;
+	default:
+		hapd->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_NONE;
+		return -1;
+	}
 }
 
 #endif /* CONFIG_NATIVE_WINDOWS */

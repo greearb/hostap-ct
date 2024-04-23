@@ -12090,9 +12090,10 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct nlattr *beacon_csa;
-	int ret = -ENOBUFS;
-	int csa_off_len = 0;
-	int i;
+	int i, csa_off_len = 0, ret = -ENOBUFS;
+	unsigned int cs_link_id = settings->link_id;
+	u16 *counter_offset_beacon = settings->counter_offset_beacon;
+	u16 *counter_offset_presp = settings->counter_offset_presp;
 
 	wpa_printf(MSG_DEBUG,
 		   "nl80211: Channel switch request (cs_count=%u block_tx=%u freq=%d channel=%d sec_channel_offset=%d width=%d cf1=%d cf2=%d puncturing_bitmap=0x%04x link_id=%d%s%s%s)",
@@ -12104,7 +12105,7 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 		   settings->freq_params.center_freq1,
 		   settings->freq_params.center_freq2,
 		   settings->freq_params.punct_bitmap,
-		   settings->link_id,
+		   settings->freq_params.link_id,
 		   settings->freq_params.ht_enabled ? " ht" : "",
 		   settings->freq_params.vht_enabled ? " vht" : "",
 		   settings->freq_params.he_enabled ? " he" : "");
@@ -12124,18 +12125,19 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 	 * counters match. This implementation assumes that there are only two
 	 * counters.
 	 */
-	if (settings->counter_offset_beacon[0] &&
-	    !settings->counter_offset_beacon[1]) {
+	if (cs_link_id != settings->freq_params.link_id) {
+		counter_offset_beacon = settings->counter_offset_sta_prof[cs_link_id];
+		counter_offset_presp = NULL;
+	}
+
+	if (counter_offset_beacon[0] && !counter_offset_beacon[1]) {
 		csa_off_len = 1;
-	} else if (settings->counter_offset_beacon[1] &&
-		   !settings->counter_offset_beacon[0]) {
+	} else if (counter_offset_beacon[1] && !counter_offset_beacon[0]) {
 		csa_off_len = 1;
-		settings->counter_offset_beacon[0] =
-			settings->counter_offset_beacon[1];
-		settings->counter_offset_presp[0] =
-			settings->counter_offset_presp[1];
-	} else if (settings->counter_offset_beacon[1] &&
-		   settings->counter_offset_beacon[0]) {
+		counter_offset_beacon[0] = counter_offset_beacon[1];
+		if (counter_offset_presp)
+			counter_offset_presp[0] = counter_offset_presp[1];
+	} else if (counter_offset_beacon[1] && counter_offset_beacon[0]) {
 		csa_off_len = 2;
 	} else {
 		wpa_printf(MSG_ERROR, "nl80211: No CSA counters provided");
@@ -12154,14 +12156,18 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 		return -EINVAL;
 
 	for (i = 0; i < csa_off_len; i++) {
-		u16 csa_c_off_bcn = settings->counter_offset_beacon[i];
-		u16 csa_c_off_presp = settings->counter_offset_presp[i];
+		u16 csa_c_off_bcn = counter_offset_beacon[i];
+		u16 csa_c_off_presp;
 
 		if ((settings->beacon_csa.tail_len <= csa_c_off_bcn) ||
 		    (settings->beacon_csa.tail[csa_c_off_bcn] !=
 		     settings->cs_count))
 			return -EINVAL;
 
+		if (!counter_offset_presp)
+			continue;
+
+		csa_c_off_presp = counter_offset_presp[i];
 		if (settings->beacon_csa.probe_resp &&
 		    ((settings->beacon_csa.probe_resp_len <=
 		      csa_c_off_presp) ||
@@ -12179,8 +12185,8 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 	    (settings->freq_params.punct_bitmap &&
 	     nla_put_u32(msg, NL80211_ATTR_PUNCT_BITMAP,
 			 settings->freq_params.punct_bitmap)) ||
-	    (settings->link_id != NL80211_DRV_LINK_ID_NA &&
-	     nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, settings->link_id)))
+	    (settings->freq_params.link_id != NL80211_DRV_LINK_ID_NA &&
+	     nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, settings->freq_params.link_id)))
 		goto error;
 
 	/* beacon_after params */
@@ -12197,9 +12203,14 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 	if (ret)
 		goto error;
 
-	if (nla_put(msg, NL80211_ATTR_CSA_C_OFF_BEACON,
-		    csa_off_len * sizeof(u16),
-		    settings->counter_offset_beacon) ||
+	if ((cs_link_id == settings->freq_params.link_id &&
+	     nla_put(msg, NL80211_ATTR_CSA_C_OFF_BEACON,
+		     csa_off_len * sizeof(u16),
+		     settings->counter_offset_beacon)) ||
+	    (cs_link_id != settings->freq_params.link_id &&
+	     nla_put(msg, NL80211_ATTR_CSA_C_OFF_STA_PROF,
+		     csa_off_len * sizeof(u16),
+		     settings->counter_offset_sta_prof[cs_link_id])) ||
 	    (settings->beacon_csa.probe_resp &&
 	     nla_put(msg, NL80211_ATTR_CSA_C_OFF_PRESP,
 		     csa_off_len * sizeof(u16),

@@ -4679,6 +4679,8 @@ static int hostapd_fill_csa_settings(struct hostapd_data *hapd,
 	if (ret)
 		return ret;
 
+	/* Another CU in the new channel due to OP element modification */
+	ieee802_11_set_bss_critical_update(hapd, BSS_CRIT_UPDATE_EVENT_EHT_OPERATION);
 	ret = hostapd_build_beacon_data(hapd, &settings->beacon_after);
 
 	/* change back the configuration */
@@ -4693,20 +4695,32 @@ static int hostapd_fill_csa_settings(struct hostapd_data *hapd,
 	hapd->cs_count = settings->cs_count;
 	hapd->cs_block_tx = settings->block_tx;
 
+#ifdef CONFIG_IEEE80211BE
+	/* Restore BPCC to build the CSA beacon */
+	hapd->eht_mld_bss_param_change--;
+	hapd->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_ALL;
+#endif /* CONFIG_IEEE80211BE */
+
 	ret = hostapd_build_beacon_data(hapd, &settings->beacon_csa);
 	if (ret) {
 		free_beacon_data(&settings->beacon_after);
 		return ret;
 	}
 
+	/* Change back to the final BPCC and CU flag */
+	ieee802_11_set_bss_critical_update(hapd, BSS_CRIT_UPDATE_EVENT_EHT_OPERATION);
+
 	settings->counter_offset_beacon[0] = hapd->cs_c_off_beacon;
 	settings->counter_offset_presp[0] = hapd->cs_c_off_proberesp;
 	settings->counter_offset_beacon[1] = hapd->cs_c_off_ecsa_beacon;
 	settings->counter_offset_presp[1] = hapd->cs_c_off_ecsa_proberesp;
 	settings->link_id = -1;
+	settings->freq_params.link_id = -1;
 #ifdef CONFIG_IEEE80211BE
-	if (hapd->conf->mld_ap)
+	if (hapd->conf->mld_ap) {
 		settings->link_id = hapd->mld_link_id;
+		settings->freq_params.link_id = hapd->mld_link_id;
+	}
 #endif /* CONFIG_IEEE80211BE */
 
 #ifdef CONFIG_IEEE80211AX
@@ -4768,6 +4782,8 @@ int hostapd_switch_channel(struct hostapd_data *hapd,
 		return -1;
 	}
 
+	ieee802_11_set_bss_critical_update(hapd, BSS_CRIT_UPDATE_EVENT_CSA);
+
 	ret = hostapd_fill_csa_settings(hapd, settings);
 	if (ret)
 		return ret;
@@ -4786,6 +4802,80 @@ int hostapd_switch_channel(struct hostapd_data *hapd,
 	}
 
 	hapd->csa_in_progress = 1;
+	return 0;
+}
+
+int hostapd_update_aff_link_beacon(struct hostapd_data *hapd, u8 cs_count)
+{
+	struct hostapd_data *h;
+	unsigned int cs_link_id = hapd->mld_link_id;
+	int cs_channel = hapd->cs_freq_params.channel;
+
+	/* TODO: add beacon offload driver flag */
+	for_each_mld_link(h, hapd) {
+		struct hostapd_config *conf = h->iconf;
+		struct hostapd_hw_modes *mode = h->iface->current_mode;
+		struct csa_settings settings = {};
+		struct hostapd_freq_params old_freq;
+		unsigned int link_id = h->mld_link_id;
+		int ret;
+
+		if (!h->started || h == hapd)
+			continue;
+
+		os_memset(&old_freq, 0, sizeof(old_freq));
+		ret = hostapd_change_config_freq(hapd, hapd->iconf,
+						 &hapd->cs_freq_params,
+						 &old_freq);
+		if (ret)
+			return ret;
+		hostapd_set_freq_params(&settings.freq_params, conf->hw_mode,
+					hostapd_hw_get_freq(h, conf->channel),
+					conf->channel, conf->enable_edmg,
+					conf->edmg_channel, conf->ieee80211n,
+					conf->ieee80211ac, conf->ieee80211ax,
+					conf->ieee80211be, conf->secondary_channel,
+					hostapd_get_oper_chwidth(conf),
+					hostapd_get_oper_centr_freq_seg0_idx(conf),
+					hostapd_get_oper_centr_freq_seg1_idx(conf),
+					conf->vht_capab,
+					mode ? &mode->he_capab[IEEE80211_MODE_AP] : NULL,
+					mode ? &mode->eht_capab[IEEE80211_MODE_AP] : NULL,
+					hostapd_get_punct_bitmap(h));
+		hapd->cs_freq_params.channel = 0;
+		ret = hostapd_build_beacon_data(h, &settings.beacon_after);
+		hostapd_change_config_freq(hapd, hapd->iconf,
+					   &old_freq, NULL);
+		if (ret)
+			return ret;
+
+		hapd->cs_freq_params.channel = cs_channel;
+		/* Restore BPCC to build the RNR for the CS link */
+		hapd->eht_mld_bss_param_change--;
+		hapd->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_ALL;
+		ret = hostapd_build_beacon_data(h, &settings.beacon_csa);
+		if (ret) {
+			free_beacon_data(&settings.beacon_after);
+			return ret;
+		}
+
+		/* Change back to the final BPCC and CU flag */
+		ieee802_11_set_bss_critical_update(hapd, BSS_CRIT_UPDATE_EVENT_EHT_OPERATION);
+
+		settings.counter_offset_sta_prof[cs_link_id][0] =
+						h->cs_c_off_sta_prof[cs_link_id];
+		settings.counter_offset_sta_prof[cs_link_id][1] =
+						h->cs_c_off_ecsa_sta_prof[cs_link_id];
+		settings.link_id = cs_link_id;
+		settings.freq_params.link_id = link_id;
+		settings.cs_count = cs_count;
+		ret = hostapd_drv_switch_channel(h, &settings);
+		free_beacon_data(&settings.beacon_csa);
+		free_beacon_data(&settings.beacon_after);
+		if (ret)
+			return ret;
+	}
+
 	return 0;
 }
 
