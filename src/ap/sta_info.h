@@ -72,7 +72,6 @@ struct pending_eapol_rx {
 	enum frame_encryption encrypted;
 };
 
-#define EHT_ML_MAX_STA_PROF_LEN 1024
 struct mld_info {
 	bool mld_sta;
 
