@@ -2918,6 +2918,7 @@ struct csa_settings {
 
 	u16 counter_offset_beacon[2];
 	u16 counter_offset_presp[2];
+	u16 counter_offset_sta_prof[MAX_NUM_MLD_LINKS][2];
 
 	int link_id;
 
