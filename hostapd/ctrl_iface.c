@@ -2735,6 +2735,18 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 			ret = err;
 			num_err++;
 		}
+
+#ifdef CONFIG_IEEE80211BE
+		if (iface->bss[i]->conf->mld_ap)
+			hostapd_update_aff_link_beacon(iface->bss[i], settings.cs_count);
+
+		/*
+		 * Currently, no FW notification event for clearing CU flag after DTIM period.
+		 * Also, another CU or set beacon is not allowed during CSA period.
+		 * Therefore, just clear it manually here for workaround.
+		 */
+		iface->bss[i]->eht_mld_bss_critical_update = 0;
+#endif /* CONFIG_IEEE80211BE */
 	}
 
 	return (iface->num_bss == num_err) ? ret : 0;
@@ -5109,6 +5121,79 @@ hostapd_ctrl_iface_dump_csi(struct hostapd_data *hapd, char *cmd,
 	return 0;
 }
 
+static int
+hostapd_ctrl_iface_wmm(struct hostapd_data *hapd, char *cmd, char *buf,
+		       size_t buflen)
+{
+	char *pos = cmd, *ac, *token, *context = NULL;
+	struct hostapd_wmm_ac_params *acp;
+	int num;
+
+	if (!hapd->conf->mld_ap)
+		return -1;
+
+	ac = pos;
+	pos = os_strchr(pos, ' ');
+	if (pos)
+		*pos++ = '\0';
+
+	if (os_strncmp(ac, "BE", 2) == 0) {
+		num = 0;
+	} else if (os_strncmp(ac, "BK", 2) == 0) {
+		num = 1;
+	} else if (os_strncmp(ac, "VI", 2) == 0) {
+		num = 2;
+	} else if (os_strncmp(ac, "VO", 2) == 0) {
+		num = 3;
+	} else {
+		wpa_printf(MSG_ERROR, "Unknown AC name '%s'", ac);
+		return -1;
+	}
+
+	acp = &hapd->iconf->wmm_ac_params[num];
+
+	/* if only ac is provied, show wmm params */
+	if (!pos)
+		return os_snprintf(buf, buflen,
+				   "link=%d ac=%s cwmin=%d cwmax=%d aifs=%d txop_limit=%d\n",
+				   hapd->mld_link_id, ac, acp->cwmin, acp->cwmax, acp->aifs, acp->txop_limit);
+
+	while ((token = str_token(pos, " ", &context))) {
+		if (os_strncmp(token, "cwmin=", 6) == 0) {
+			acp->cwmin = atoi(token + 6);
+			continue;
+		}
+
+		if (os_strncmp(token, "cwmax=", 6) == 0) {
+			acp->cwmax = atoi(token + 6);
+			continue;
+		}
+
+		if (os_strncmp(token, "aifs=", 5) == 0) {
+			acp->aifs = atoi(token + 5);
+			continue;
+		}
+
+		if (os_strncmp(token, "txop_limit=", 11) == 0) {
+			acp->txop_limit = atoi(token + 11);
+			continue;
+		}
+
+		wpa_printf(MSG_ERROR, "CTRL: Invalid WMM parameter: %s", token);
+		return -1;
+	}
+
+	if (acp->cwmin > acp->cwmax)
+		return -1;
+
+	ieee802_11_set_bss_critical_update(hapd, BSS_CRIT_UPDATE_EVENT_EDCA);
+
+	if (ieee802_11_set_beacon(hapd))
+		return -1;
+
+	return os_snprintf(buf, buflen, "OK\n");
+}
+
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
 					      int reply_size,
@@ -5786,6 +5871,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "DUMP_CSI ", 8) == 0) {
 		reply_len = hostapd_ctrl_iface_dump_csi(hapd, buf + 9,
 							reply, reply_size);
+	} else if (os_strncmp(buf, "WMM", 3) == 0) {
+		reply_len = hostapd_ctrl_iface_wmm(hapd, buf + 4,
+						   reply, reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;

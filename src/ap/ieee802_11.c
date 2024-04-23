@@ -220,6 +220,7 @@ u8 * hostapd_eid_rm_enabled_capab(struct hostapd_data *hapd, u8 *eid,
 
 u16 hostapd_own_capab_info(struct hostapd_data *hapd)
 {
+	struct hostapd_data *h;
 	int capab = WLAN_CAPABILITY_ESS;
 	int privacy = 0;
 	int dfs;
@@ -274,6 +275,19 @@ u16 hostapd_own_capab_info(struct hostapd_data *hapd)
 			break;
 		}
 	}
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap) {
+		for_each_mld_link(h, hapd) {
+			if (h->eht_mld_bss_critical_update) {
+				/* capab |= WLAN_CAPABILITY_PBCC; */
+				/* Seems this was deprecated. --Ben */
+				break;
+			}
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 
 	return capab;
 }
@@ -8463,6 +8477,8 @@ static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
 			(MAX_NUM_MLD_LINKS | 0xF0);
 		/* BPCC (Bit 3 to Bit 0) */
 		*eid = match_idx < 255 ? ((param_ch & 0xF0) >> 4) : 0x0F;
+		if (bss->eht_mld_bss_critical_update == BSS_CRIT_UPDATE_ALL)
+			*eid |= RNR_TBTT_INFO_MLD_PARAM2_ALL_UPDATE_INC;
 #ifdef CONFIG_TESTING_OPTIONS
 		if (bss->conf->mld_indicate_disabled)
 			*eid |= RNR_TBTT_INFO_MLD_PARAM2_LINK_DISABLED;
