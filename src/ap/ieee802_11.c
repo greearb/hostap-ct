@@ -7910,16 +7910,21 @@ repeat_rnr_len:
 		for (i = start; i < hapd->iface->num_bss; i++) {
 			struct hostapd_data *bss = hapd->iface->bss[i];
 			bool ap_mld = false;
+			bool ignore_broadcast_ssid;
 
 			if (!bss || !bss->conf || !bss->started)
 				continue;
 
+			ignore_broadcast_ssid = bss->conf->ignore_broadcast_ssid;
 #ifdef CONFIG_IEEE80211BE
 			ap_mld = bss->conf->mld_ap;
+			/* FIXME How to exclude the hidden link in beacon? */
+			ignore_broadcast_ssid &=
+				!hostapd_is_ml_partner(bss, reporting_hapd);
 #endif /* CONFIG_IEEE80211BE */
 
 			if (bss == reporting_hapd ||
-			    bss->conf->ignore_broadcast_ssid)
+			    ignore_broadcast_ssid)
 				continue;
 
 			if (hostapd_skip_rnr(i, skip_profiles, ap_mld,
@@ -8229,13 +8234,19 @@ static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
 	u8 bss_param = 0, match_idx = 255;
 	bool ap_mld = false;
 	u8 *eid = *pos;
+	bool ignore_broadcast_ssid;
 
+	if (!bss || !bss->conf || !bss->started)
+		return false;
+
+	ignore_broadcast_ssid = bss->conf->ignore_broadcast_ssid;
 #ifdef CONFIG_IEEE80211BE
 	ap_mld = !!hapd->conf->mld_ap;
+	/* FIXME How to exclude the hidden link in beacon? */
+	ignore_broadcast_ssid &= !hostapd_is_ml_partner(bss, reporting_hapd);
 #endif /* CONFIG_IEEE80211BE */
 
-	if (!bss || !bss->conf || !bss->started ||
-	    bss == reporting_hapd || bss->conf->ignore_broadcast_ssid)
+	if (bss == reporting_hapd || ignore_broadcast_ssid)
 		return false;
 
 	if (hostapd_skip_rnr(i, skip_profiles, ap_mld, tbtt_info_len,
