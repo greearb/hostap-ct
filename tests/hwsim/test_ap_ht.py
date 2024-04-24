@@ -1480,10 +1480,10 @@ def test_ap_ht_op_class_123(dev, apdev):
         run_op_class(dev, apdev, "a", "104", "ZA", "[HT40-]", "-1", "5520", 123,
                      use_op_class=o)
 
-def test_ap_ht_op_class_124(dev, apdev):
-    """HT20 on operating class 124"""
+def test_ap_ht_op_class_125_chan149(dev, apdev):
+    """HT20 on operating class 125 with channel 149"""
     for o in [False, True]:
-        run_op_class(dev, apdev, "a", "149", "US", "", "0", "5745", 124,
+        run_op_class(dev, apdev, "a", "149", "US", "", "0", "5745", 125,
                      use_op_class=o)
 
 def test_ap_ht_op_class_125(dev, apdev):
