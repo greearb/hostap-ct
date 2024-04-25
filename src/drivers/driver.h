@@ -5196,14 +5196,19 @@ struct wpa_driver_ops {
 	/**
 	 * is_drv_shared - Check whether the driver interface is shared
 	 * @priv: Private driver interface data from init()
+	 * @link_id: Link ID to match
+	 * Returns: true if it is being used or else false.
 	 *
 	 * Checks whether the driver interface is being used by other partner
 	 * BSS(s) or not. This is used to decide whether the driver interface
 	 * needs to be deinitilized when one interface is getting deinitialized.
 	 *
-	 * Returns: true if it is being used or else false.
+	 * NOTE: @link_id will be used only when there is only one BSS
+	 * present and if that single link is active. In that case, the
+	 * link ID is matched with the active link_id to decide whether the
+	 * driver interface is being used by other partner BSS(s).
 	 */
-	bool (*is_drv_shared)(void *priv);
+	bool (*is_drv_shared)(void *priv, int link_id);
 
 	/**
 	 * link_sta_remove - Remove a link STA from an MLD STA
