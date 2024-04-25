@@ -10797,7 +10797,7 @@ static int driver_nl80211_link_remove(void *priv, enum wpa_driver_if_type type,
 }
 
 
-static bool nl80211_is_drv_shared(void *priv, void *bss_ctx)
+static bool nl80211_is_drv_shared(void *priv)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;

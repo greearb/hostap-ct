@@ -5196,7 +5196,6 @@ struct wpa_driver_ops {
 	/**
 	 * is_drv_shared - Check whether the driver interface is shared
 	 * @priv: Private driver interface data from init()
-	 * @bss_ctx: BSS context for %WPA_IF_AP_BSS interfaces
 	 *
 	 * Checks whether the driver interface is being used by other partner
 	 * BSS(s) or not. This is used to decide whether the driver interface
@@ -5204,7 +5203,7 @@ struct wpa_driver_ops {
 	 *
 	 * Returns: true if it is being used or else false.
 	 */
-	bool (*is_drv_shared)(void *priv, void *bss_ctx);
+	bool (*is_drv_shared)(void *priv);
 
 	/**
 	 * link_sta_remove - Remove a link STA from an MLD STA

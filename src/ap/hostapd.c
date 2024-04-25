@@ -3400,7 +3400,7 @@ static void hostapd_cleanup_driver(const struct wpa_driver_ops *driver,
 		driver->hapd_deinit(drv_priv);
 	} else if (hostapd_mld_is_first_bss(iface->bss[0]) &&
 		   driver->is_drv_shared &&
-		   !driver->is_drv_shared(drv_priv, iface->bss[0])) {
+		   !driver->is_drv_shared(drv_priv)) {
 		driver->hapd_deinit(drv_priv);
 		hostapd_mld_interface_freed(iface->bss[0]);
 	} else if (hostapd_if_link_remove(iface->bss[0],
