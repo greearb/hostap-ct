@@ -2432,6 +2432,38 @@ static void hostapd_event_color_change(struct hostapd_data *hapd, bool success)
 #endif  /* CONFIG_IEEE80211AX */
 
 
+static void hostapd_iface_enable(struct hostapd_data *hapd)
+{
+	wpa_msg(hapd->msg_ctx, MSG_INFO, INTERFACE_ENABLED);
+	if (hapd->disabled && hapd->started) {
+		hapd->disabled = 0;
+		/*
+		 * Try to re-enable interface if the driver stopped it
+		 * when the interface got disabled.
+		 */
+		if (hapd->wpa_auth)
+			wpa_auth_reconfig_group_keys(hapd->wpa_auth);
+		else
+			hostapd_reconfig_encryption(hapd);
+		hapd->reenable_beacon = 1;
+		ieee802_11_set_beacon(hapd);
+#ifdef NEED_AP_MLME
+	} else if (hapd->disabled && hapd->iface->cac_started) {
+		wpa_printf(MSG_DEBUG, "DFS: restarting pending CAC");
+		hostapd_handle_dfs(hapd->iface);
+#endif /* NEED_AP_MLME */
+	}
+}
+
+
+static void hostapd_iface_disable(struct hostapd_data *hapd)
+{
+	hostapd_free_stas(hapd);
+	wpa_msg(hapd->msg_ctx, MSG_INFO, INTERFACE_DISABLED);
+	hapd->disabled = 1;
+}
+
+
 void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			  union wpa_event_data *data)
 {
@@ -2709,30 +2741,10 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		break;
 #endif /* NEED_AP_MLME */
 	case EVENT_INTERFACE_ENABLED:
-		wpa_msg(hapd->msg_ctx, MSG_INFO, INTERFACE_ENABLED);
-		if (hapd->disabled && hapd->started) {
-			hapd->disabled = 0;
-			/*
-			 * Try to re-enable interface if the driver stopped it
-			 * when the interface got disabled.
-			 */
-			if (hapd->wpa_auth)
-				wpa_auth_reconfig_group_keys(hapd->wpa_auth);
-			else
-				hostapd_reconfig_encryption(hapd);
-			hapd->reenable_beacon = 1;
-			ieee802_11_set_beacon(hapd);
-#ifdef NEED_AP_MLME
-		} else if (hapd->disabled && hapd->iface->cac_started) {
-			wpa_printf(MSG_DEBUG, "DFS: restarting pending CAC");
-			hostapd_handle_dfs(hapd->iface);
-#endif /* NEED_AP_MLME */
-		}
+		hostapd_iface_enable(hapd);
 		break;
 	case EVENT_INTERFACE_DISABLED:
-		hostapd_free_stas(hapd);
-		wpa_msg(hapd->msg_ctx, MSG_INFO, INTERFACE_DISABLED);
-		hapd->disabled = 1;
+		hostapd_iface_disable(hapd);
 		break;
 #ifdef CONFIG_ACS
 	case EVENT_ACS_CHANNEL_SELECTED:
