@@ -852,6 +852,7 @@ int hostapd_fill_cca_settings(struct hostapd_data *hapd,
 #ifdef CONFIG_IEEE80211BE
 
 bool hostapd_mld_is_first_bss(struct hostapd_data *hapd);
+void hostapd_mld_interface_freed(struct hostapd_data *hapd);
 
 #define for_each_mld_link(partner, self) \
 	dl_list_for_each(partner, &self->mld->links, struct hostapd_data, link)

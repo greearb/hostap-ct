@@ -10765,6 +10765,7 @@ static int driver_nl80211_link_remove(void *priv, enum wpa_driver_if_type type,
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
+	int ret;
 
 	if (type != WPA_IF_AP_BSS ||
 	    !nl80211_link_valid(bss->valid_links, link_id))
@@ -10784,7 +10785,12 @@ static int driver_nl80211_link_remove(void *priv, enum wpa_driver_if_type type,
 	if (!bss->valid_links) {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: No more links remaining, so remove interface");
-		return wpa_driver_nl80211_if_remove(bss, type, ifname);
+		ret = wpa_driver_nl80211_if_remove(bss, type, ifname);
+		if (ret)
+			return ret;
+
+		/* Notify that the MLD interface is removed */
+		wpa_supplicant_event(bss->ctx, EVENT_MLD_INTERFACE_FREED, NULL);
 	}
 
 	return 0;

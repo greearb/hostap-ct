@@ -3402,6 +3402,7 @@ static void hostapd_cleanup_driver(const struct wpa_driver_ops *driver,
 		   driver->is_drv_shared &&
 		   !driver->is_drv_shared(drv_priv, iface->bss[0])) {
 		driver->hapd_deinit(drv_priv);
+		hostapd_mld_interface_freed(iface->bss[0]);
 	} else if (hostapd_if_link_remove(iface->bss[0],
 					  WPA_IF_AP_BSS,
 					  iface->bss[0]->conf->iface,
@@ -4979,6 +4980,18 @@ struct hostapd_data * hostapd_mld_get_first_bss(struct hostapd_data *hapd)
 		return NULL;
 
 	return mld->fbss;
+}
+
+
+void hostapd_mld_interface_freed(struct hostapd_data *hapd)
+{
+	struct hostapd_data *link_bss = NULL;
+
+	if (!hapd || !hapd->conf->mld_ap)
+		return;
+
+	for_each_mld_link(link_bss, hapd)
+		link_bss->drv_priv = NULL;
 }
 
 #endif /* CONFIG_IEEE80211BE */
