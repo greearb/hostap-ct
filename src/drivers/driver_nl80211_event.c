@@ -2442,10 +2442,33 @@ static void nl80211_tdls_oper_event(struct wpa_driver_nl80211_data *drv,
 }
 
 
-static void nl80211_stop_ap(struct wpa_driver_nl80211_data *drv,
-			    struct nlattr **tb)
+static void nl80211_stop_ap(struct i802_bss *bss, struct nlattr **tb)
 {
-	wpa_supplicant_event(drv->ctx, EVENT_INTERFACE_UNAVAILABLE, NULL);
+	struct i802_link *mld_link = NULL;
+	void *ctx = bss->ctx;
+	int link_id = -1;
+
+	if (tb[NL80211_ATTR_MLO_LINK_ID]) {
+		link_id = nla_get_u8(tb[NL80211_ATTR_MLO_LINK_ID]);
+		if (!nl80211_link_valid(bss->valid_links, link_id)) {
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: Ignoring STOP_AP event for invalid link ID %d (valid: 0x%04x)",
+				   link_id, bss->valid_links);
+			return;
+		}
+
+		mld_link = nl80211_get_link(bss, link_id);
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: STOP_AP event on link %d", link_id);
+		ctx = mld_link->ctx;
+
+		/* The driver would have already deleted the link and this call
+		 * will return an error. Ignore that since nl80211_remove_link()
+		 * is called here only to update the bss->links[] state. */
+		nl80211_remove_link(bss, link_id);
+	}
+
+	wpa_supplicant_event(ctx, EVENT_INTERFACE_UNAVAILABLE, NULL);
 }
 
 
@@ -4099,7 +4122,7 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 		nl80211_radar_event(drv, tb);
 		break;
 	case NL80211_CMD_STOP_AP:
-		nl80211_stop_ap(drv, tb);
+		nl80211_stop_ap(bss, tb);
 		break;
 	case NL80211_CMD_VENDOR:
 		nl80211_vendor_event(drv, tb);
