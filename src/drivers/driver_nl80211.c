@@ -9458,7 +9458,7 @@ fail:
 }
 
 
-static int nl80211_remove_link(struct i802_bss *bss, int link_id)
+int nl80211_remove_link(struct i802_bss *bss, int link_id)
 {
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct i802_link *link;
