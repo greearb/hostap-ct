@@ -2464,6 +2464,56 @@ static void hostapd_iface_disable(struct hostapd_data *hapd)
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+
+static void hostapd_mld_iface_enable(struct hostapd_data *hapd)
+{
+	struct hostapd_data *first_link, *link_bss;
+
+	first_link = hostapd_mld_is_first_bss(hapd) ? hapd :
+		hostapd_mld_get_first_bss(hapd);
+
+	/* Links have been removed. Re-add all links and enable them, but
+	 * enable the first link BSS before doing that. */
+	if (hostapd_drv_link_add(first_link, first_link->mld_link_id,
+				 first_link->own_addr)) {
+		wpa_printf(MSG_ERROR, "MLD: Failed to re-add link %d in MLD %s",
+			   first_link->mld_link_id, first_link->conf->iface);
+		return;
+	}
+
+	hostapd_iface_enable(first_link);
+
+	/* Add other affiliated links */
+	for_each_mld_link(link_bss, first_link) {
+		if (link_bss == first_link)
+			continue;
+
+		if (hostapd_drv_link_add(link_bss, link_bss->mld_link_id,
+					 link_bss->own_addr)) {
+			wpa_printf(MSG_ERROR,
+				   "MLD: Failed to re-add link %d in MLD %s",
+				   link_bss->mld_link_id,
+				   link_bss->conf->iface);
+			continue;
+		}
+
+		hostapd_iface_enable(link_bss);
+	}
+}
+
+
+static void hostapd_mld_iface_disable(struct hostapd_data *hapd)
+{
+	struct hostapd_data *link_bss;
+
+	for_each_mld_link(link_bss, hapd)
+		hostapd_iface_disable(link_bss);
+}
+
+#endif /* CONFIG_IEEE80211BE */
+
+
 void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			  union wpa_event_data *data)
 {
@@ -2741,9 +2791,21 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		break;
 #endif /* NEED_AP_MLME */
 	case EVENT_INTERFACE_ENABLED:
+#ifdef CONFIG_IEEE80211BE
+		if (hapd->conf->mld_ap) {
+			hostapd_mld_iface_enable(hapd);
+			break;
+		}
+#endif /* CONFIG_IEEE80211BE */
 		hostapd_iface_enable(hapd);
 		break;
 	case EVENT_INTERFACE_DISABLED:
+#ifdef CONFIG_IEEE80211BE
+		if (hapd->conf->mld_ap) {
+			hostapd_mld_iface_disable(hapd);
+			break;
+		}
+#endif /* CONFIG_IEEE80211BE */
 		hostapd_iface_disable(hapd);
 		break;
 #ifdef CONFIG_ACS
