@@ -7143,8 +7143,7 @@ void wpa_auth_set_ml_info(struct wpa_state_machine *sm,
 			  u8 mld_assoc_link_id, struct mld_info *info)
 {
 #ifdef CONFIG_IEEE80211BE
-	struct wpa_auth_ml_rsn_info ml_rsn_info;
-	unsigned int link_id, i;
+	unsigned int link_id;
 
 	if (!info)
 		return;
@@ -7159,9 +7158,7 @@ void wpa_auth_set_ml_info(struct wpa_state_machine *sm,
 
 	sm->mld_assoc_link_id = mld_assoc_link_id;
 
-	os_memset(&ml_rsn_info, 0, sizeof(ml_rsn_info));
-
-	for (i = 0, link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 		struct mld_link_info *link = &info->links[link_id];
 		struct mld_link *sm_link = &sm->mld_links[link_id];
 		struct wpa_get_link_auth_ctx ctx;
@@ -7176,8 +7173,6 @@ void wpa_auth_set_ml_info(struct wpa_state_machine *sm,
 			   "WPA_AUTH: MLD: id=%u, peer=" MACSTR,
 			   link_id,
 			   MAC2STR(sm_link->peer_addr));
-
-		ml_rsn_info.links[i++].link_id = link_id;
 
 		if (link_id != mld_assoc_link_id) {
 			sm->n_mld_affiliated_links++;
@@ -7203,7 +7198,5 @@ void wpa_auth_set_ml_info(struct wpa_state_machine *sm,
 				   MAC2STR(sm->wpa_auth->mld_addr),
 				   link_id);
 	}
-
-	ml_rsn_info.n_mld_links = i;
 #endif /* CONFIG_IEEE80211BE */
 }

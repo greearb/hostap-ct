@@ -303,16 +303,6 @@ typedef enum {
 	WPA_EAPOL_keyDone, WPA_EAPOL_inc_EapolFramesTx
 } wpa_eapol_variable;
 
-struct wpa_auth_ml_rsn_info {
-	unsigned int n_mld_links;
-
-	struct wpa_auth_ml_link_rsn_info {
-		unsigned int link_id;
-		const u8 *rsn_ies;
-		size_t rsn_ies_len;
-	} links[MAX_NUM_MLD_LINKS];
-};
-
 struct wpa_auth_ml_key_info {
 	unsigned int n_mld_links;
 	bool mgmt_frame_prot;
@@ -406,7 +396,6 @@ struct wpa_auth_callbacks {
 			       size_t ltf_keyseed_len);
 #endif /* CONFIG_PASN */
 #ifdef CONFIG_IEEE80211BE
-	int (*get_ml_rsn_info)(void *ctx, struct wpa_auth_ml_rsn_info *info);
 	int (*get_ml_key_info)(void *ctx, struct wpa_auth_ml_key_info *info);
 #endif /* CONFIG_IEEE80211BE */
 	int (*get_drv_flags)(void *ctx, u64 *drv_flags, u64 *drv_flags2);
