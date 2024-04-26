@@ -2438,6 +2438,9 @@ static int wpa_supplicant_need_to_roam(struct wpa_supplicant *wpa_s,
 	if (current_bss == selected)
 		return 0;
 
+	if (wpa_s->valid_links && ether_addr_equal(selected->mld_addr, wpa_s->bssid))
+		return 0; /* same AP MLD but different links */
+
 	if (selected->last_update_idx > current_bss->last_update_idx)
 		return 1; /* current BSS not seen in the last scan */
 
