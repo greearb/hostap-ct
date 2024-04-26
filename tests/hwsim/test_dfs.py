@@ -640,7 +640,7 @@ def test_dfs_chan_switch(dev, apdev):
         if freq != "5260":
             raise Exception("Unexpected frequency")
 
-        dev[0].connect("dfs", key_mgmt="NONE", scan_freq="5260 5280")
+        dev[0].connect("dfs", key_mgmt="NONE", scan_freq="5260 5280 5180 5500")
         dev[0].wait_regdom(country_ie=True)
         hwsim_utils.test_connectivity(dev[0], hapd)
 
@@ -662,6 +662,40 @@ def test_dfs_chan_switch(dev, apdev):
             raise Exception("AP setup timed out")
         freq = hapd.get_status_field("freq")
         if freq != "5280":
+            raise Exception("Unexpected frequency")
+
+        dev[0].wait_connected(timeout=30)
+        hwsim_utils.test_connectivity(dev[0], hapd)
+
+        # Move to non DFS channel: 36, opclass 115
+        if "OK" not in hapd.request("CHAN_SWITCH 5 5180"):
+                raise Exception("CHAN_SWITCH failed")
+        ev = wait_dfs_event(hapd, "AP-CSA-FINISHED", 5)
+
+        if "freq=5180" not in ev:
+            raise Exception("Unexpected channel: " + ev)
+        time.sleep(1)
+        hwsim_utils.test_connectivity(dev[0], hapd)
+
+        # Move to channel 100, opclass 121
+        if "OK" not in hapd.request("CHAN_SWITCH 5 5500 ht"):
+            raise Exception("CHAN_SWITCH failed")
+        # This results in BSS going down before restart, so the STA is expected
+        # to report disconnection.
+        dev[0].wait_disconnected()
+        ev = wait_dfs_event(hapd, "DFS-CAC-START", 5)
+        if "freq=5500" not in ev:
+            raise Exception("Unexpected channel: " + ev)
+        ev = wait_dfs_event(hapd, "DFS-CAC-COMPLETED", 70)
+        if "success=1" not in ev:
+            raise Exception("CAC failed")
+        if "freq=5500" not in ev:
+            raise Exception("Unexpected DFS freq result")
+        ev = hapd.wait_event(["AP-ENABLED"], timeout=5)
+        if not ev:
+            raise Exception("AP setup timed out")
+        freq = hapd.get_status_field("freq")
+        if freq != "5500":
             raise Exception("Unexpected frequency")
 
         dev[0].wait_connected(timeout=30)
