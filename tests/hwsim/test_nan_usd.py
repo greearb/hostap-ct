@@ -17,6 +17,16 @@ def check_nan_usd_capab(dev):
     if "USD" not in capa:
         raise HwsimSkip("NAN USD not supported")
 
+def test_nan_usd_publish_invalid_param(dev):
+    """NAN USD Publish with invalid parameters"""
+    check_nan_usd_capab(dev[0])
+
+    # Both solicited and unsolicited disabled is invalid
+    cmd = "NAN_PUBLISH service_name=_test solicited=0 unsolicited=0"
+    id0 = dev[0].request(cmd)
+    if "FAIL" not in id0:
+        raise Exception("NAN_PUBLISH accepts both solicited=0 and unsolicited=0")
+
 def test_nan_usd_publish(dev, apdev):
     """NAN USD Publish"""
     check_nan_usd_capab(dev[0])
