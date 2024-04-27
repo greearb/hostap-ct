@@ -2476,12 +2476,20 @@ static void nl80211_mgmt_handle_register_eloop(struct i802_bss *bss)
 }
 
 
-static int nl80211_register_action_frame(struct i802_bss *bss,
-					 const u8 *match, size_t match_len)
+static int nl80211_register_action_frame2(struct i802_bss *bss,
+					  const u8 *match, size_t match_len,
+					  bool multicast)
 {
 	u16 type = (WLAN_FC_TYPE_MGMT << 2) | (WLAN_FC_STYPE_ACTION << 4);
 	return nl80211_register_frame(bss, bss->nl_mgmt,
-				      type, match, match_len, false);
+				      type, match, match_len, multicast);
+}
+
+
+static int nl80211_register_action_frame(struct i802_bss *bss,
+					 const u8 *match, size_t match_len)
+{
+	return nl80211_register_action_frame2(bss, match, match_len, false);
 }
 
 
@@ -2557,11 +2565,15 @@ static int nl80211_mgmt_subscribe_non_ap(struct i802_bss *bss)
 		ret = -1;
 #endif /* CONFIG_P2P */
 #ifdef CONFIG_NAN_USD
+#define NAN_PUB_ACTION ((u8 *) "\x04\x09\x50\x6f\x9a\x13")
 	/* NAN SDF Public Action */
-	if (nl80211_register_action_frame(bss,
-					  (u8 *) "\x04\x09\x50\x6f\x9a\x13",
-					  6) < 0)
-		ret = -1;
+	if (nl80211_register_action_frame2(bss, NAN_PUB_ACTION, 6, true) < 0) {
+		/* fallback to non-multicast */
+		if (nl80211_register_action_frame2(bss, NAN_PUB_ACTION, 6,
+						   false) < 0)
+			ret = -1;
+	}
+#undef NAN_PUB_ACTION
 #endif /* CONFIG_NAN_USD */
 #ifdef CONFIG_DPP
 	/* DPP Public Action */
