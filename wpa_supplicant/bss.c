@@ -273,6 +273,57 @@ struct wpa_bss * wpa_bss_get(struct wpa_supplicant *wpa_s, const u8 *bssid,
 	return NULL;
 }
 
+/**
+ * wpa_bss_get_connection - Fetch a BSS table entry based on BSSID and SSID.
+ * @wpa_s: Pointer to wpa_supplicant data
+ * @bssid: BSSID, or %NULL to match any BSSID
+ * @ssid: SSID
+ * @ssid_len: Length of @ssid
+ * Returns: Pointer to the BSS entry or %NULL if not found
+ *
+ * This function is similar to wpa_bss_get() but it will also return OWE
+ * transition mode encrypted networks for which transition-element matches
+ * @ssid.
+ */
+struct wpa_bss * wpa_bss_get_connection(struct wpa_supplicant *wpa_s,
+					const u8 *bssid,
+					const u8 *ssid, size_t ssid_len)
+{
+	struct wpa_bss *bss;
+#ifdef CONFIG_OWE
+	const u8 *owe, *owe_bssid, *owe_ssid;
+	size_t owe_ssid_len;
+#endif /* CONFIG_OWE */
+
+	if (bssid && !wpa_supplicant_filter_bssid_match(wpa_s, bssid))
+		return NULL;
+	dl_list_for_each(bss, &wpa_s->bss, struct wpa_bss, list) {
+		if (bssid && !ether_addr_equal(bss->bssid, bssid))
+			continue;
+
+		if (bss->ssid_len == ssid_len &&
+		    os_memcmp(bss->ssid, ssid, ssid_len) == 0)
+			return bss;
+
+#ifdef CONFIG_OWE
+		/* Check if OWE transition mode element is present and matches
+		 * the SSID */
+		owe = wpa_bss_get_vendor_ie(bss, OWE_IE_VENDOR_TYPE);
+		if (!owe)
+			continue;
+
+		if (wpas_get_owe_trans_network(owe, &owe_bssid, &owe_ssid,
+					       &owe_ssid_len))
+			continue;
+
+		if (owe_ssid_len == ssid_len &&
+		    os_memcmp(owe_ssid, ssid, ssid_len) == 0)
+			return bss;
+#endif /* CONFIG_OWE */
+	}
+	return NULL;
+}
+
 
 void calculate_update_time(const struct os_reltime *fetch_time,
 			   unsigned int age_ms,
