@@ -940,9 +940,9 @@ static void wpa_add_scan_ssid(struct wpa_supplicant *wpa_s,
 }
 
 
-static void wpa_add_owe_scan_ssid(struct wpa_supplicant *wpa_s,
-				  struct wpa_driver_scan_params *params,
-				  struct wpa_ssid *ssid, size_t max_ssids)
+void wpa_add_owe_scan_ssid(struct wpa_supplicant *wpa_s,
+			   struct wpa_driver_scan_params *params,
+			   const struct wpa_ssid *ssid, size_t max_ssids)
 {
 #ifdef CONFIG_OWE
 	struct wpa_bss *bss;
