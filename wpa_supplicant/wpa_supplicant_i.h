@@ -2017,5 +2017,7 @@ bool wpas_ap_supports_rsn_overriding(struct wpa_supplicant *wpa_s,
 				     struct wpa_bss *bss);
 bool wpas_ap_supports_rsn_overriding_2(struct wpa_supplicant *wpa_s,
 				       struct wpa_bss *bss);
+int wpas_get_owe_trans_network(const u8 *owe_ie, const u8 **bssid,
+			       const u8 **ssid, size_t *ssid_len);
 
 #endif /* WPA_SUPPLICANT_I_H */

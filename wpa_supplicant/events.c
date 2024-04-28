@@ -1139,30 +1139,20 @@ static void owe_trans_ssid(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 			   const u8 **ret_ssid, size_t *ret_ssid_len)
 {
 #ifdef CONFIG_OWE
-	const u8 *owe, *pos, *end, *bssid;
-	u8 ssid_len;
+	const u8 *owe, *bssid;
 
 	owe = wpa_bss_get_vendor_ie(bss, OWE_IE_VENDOR_TYPE);
 	if (!owe || !wpa_bss_get_rsne(wpa_s, bss, NULL, false))
 		return;
 
-	pos = owe + 6;
-	end = owe + 2 + owe[1];
-
-	if (end - pos < ETH_ALEN + 1)
-		return;
-	bssid = pos;
-	pos += ETH_ALEN;
-	ssid_len = *pos++;
-	if (end - pos < ssid_len || ssid_len > SSID_MAX_LEN)
+	if (wpas_get_owe_trans_network(owe, &bssid, ret_ssid, ret_ssid_len))
 		return;
 
 	/* Match the profile SSID against the OWE transition mode SSID on the
 	 * open network. */
 	wpa_dbg(wpa_s, MSG_DEBUG, "OWE: transition mode BSSID: " MACSTR
-		" SSID: %s", MAC2STR(bssid), wpa_ssid_txt(pos, ssid_len));
-	*ret_ssid = pos;
-	*ret_ssid_len = ssid_len;
+		" SSID: %s", MAC2STR(bssid),
+		wpa_ssid_txt(*ret_ssid, *ret_ssid_len));
 
 	if (!(bss->flags & WPA_BSS_OWE_TRANSITION)) {
 		struct wpa_ssid *ssid;
@@ -1170,8 +1160,8 @@ static void owe_trans_ssid(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 		for (ssid = wpa_s->conf->ssid; ssid; ssid = ssid->next) {
 			if (wpas_network_disabled(wpa_s, ssid))
 				continue;
-			if (ssid->ssid_len == ssid_len &&
-			    os_memcmp(ssid->ssid, pos, ssid_len) == 0) {
+			if (ssid->ssid_len == *ret_ssid_len &&
+			    os_memcmp(ssid->ssid, ret_ssid, *ret_ssid_len) == 0) {
 				/* OWE BSS in transition mode for a currently
 				 * enabled OWE network. */
 				wpa_dbg(wpa_s, MSG_DEBUG,
