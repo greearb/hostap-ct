@@ -2057,19 +2057,20 @@ void wnm_clear_coloc_intf_reporting(struct wpa_supplicant *wpa_s)
 
 bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 {
-	if (!(wpa_s->wnm_mode & WNM_BSS_TM_REQ_DISASSOC_IMMINENT))
-		return false;
-
 	/*
 	 * In case disassociation imminent is set, do no try to use a BSS to
 	 * which we are connected.
 	 */
-	if (!wpa_s->wnm_disassoc_mld) {
-		if (ether_addr_equal(bss->bssid, wpa_s->wnm_disassoc_addr))
-			return true;
-	} else {
-		if (ether_addr_equal(bss->mld_addr, wpa_s->wnm_disassoc_addr))
-			return true;
+	if (wpa_s->wnm_mode & WNM_BSS_TM_REQ_DISASSOC_IMMINENT) {
+		if (!wpa_s->wnm_disassoc_mld) {
+			if (ether_addr_equal(bss->bssid,
+					     wpa_s->wnm_disassoc_addr))
+				return true;
+		} else {
+			if (ether_addr_equal(bss->mld_addr,
+					     wpa_s->wnm_disassoc_addr))
+				return true;
+		}
 	}
 
 	return false;
