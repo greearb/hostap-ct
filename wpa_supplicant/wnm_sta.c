@@ -760,11 +760,6 @@ compare_scan_neighbor_results(struct wpa_supplicant *wpa_s,
 		struct neighbor_report *nei;
 
 		nei = &wpa_s->wnm_neighbor_report_elements[i];
-		if (nei->preference_present && nei->preference == 0) {
-			wpa_printf(MSG_DEBUG, "Skip excluded BSS " MACSTR,
-				   MAC2STR(nei->bssid));
-			continue;
-		}
 
 		target = wpa_bss_get_bssid(wpa_s, nei->bssid);
 		if (!target) {
@@ -2057,6 +2052,8 @@ void wnm_clear_coloc_intf_reporting(struct wpa_supplicant *wpa_s)
 
 bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 {
+	int i;
+
 	/*
 	 * In case disassociation imminent is set, do no try to use a BSS to
 	 * which we are connected.
@@ -2072,6 +2069,24 @@ bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 				return true;
 		}
 	}
+
+	for (i = 0; i < wpa_s->wnm_num_neighbor_report; i++) {
+		struct neighbor_report *nei;
+
+		nei = &wpa_s->wnm_neighbor_report_elements[i];
+		if (!ether_addr_equal(nei->bssid, bss->bssid))
+			continue;
+
+		if (nei->preference_present && nei->preference == 0)
+			return true;
+
+		break;
+	}
+
+	/* If the abridged bit is set, the BSS must be a known neighbor. */
+	if ((wpa_s->wnm_mode & WNM_BSS_TM_REQ_ABRIDGED) &&
+	    wpa_s->wnm_num_neighbor_report == i)
+		return true;
 
 	return false;
 }
