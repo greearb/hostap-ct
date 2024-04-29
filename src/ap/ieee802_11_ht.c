@@ -457,6 +457,7 @@ void ht40_intolerant_remove(struct hostapd_iface *iface, struct sta_info *sta)
 	iface->num_sta_ht40_intolerant--;
 
 	if (iface->num_sta_ht40_intolerant == 0 &&
+	    iface->conf->obss_interval &&
 	    (iface->conf->ht_capab & HT_CAP_INFO_SUPP_CHANNEL_WIDTH_SET) &&
 	    (iface->drv_flags & WPA_DRIVER_FLAGS_HT_2040_COEX)) {
 		unsigned int delay_time = OVERLAPPING_BSS_TRANS_DELAY_FACTOR *
