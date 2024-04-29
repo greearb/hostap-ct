@@ -4918,6 +4918,10 @@ hostapd_switch_channel_fallback(struct hostapd_iface *iface,
 	iface->conf->ieee80211ac = freq_params->vht_enabled;
 	iface->conf->ieee80211ax = freq_params->he_enabled;
 	iface->conf->ieee80211be = freq_params->eht_enabled;
+	if (ieee80211_freq_to_channel_ext(iface->freq, iface->conf->secondary_channel,
+					  hostapd_get_oper_chwidth(iface->conf),
+					  &op_class, &chan) != NUM_HOSTAPD_MODES)
+		iface->conf->op_class = op_class;
 
 	/*
 	 * cs_params must not be cleared earlier because the freq_params
