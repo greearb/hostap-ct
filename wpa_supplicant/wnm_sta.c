@@ -1496,16 +1496,16 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		 */
 		wpa_s->wnm_link_removal = true;
 		wpa_s->wnm_disassoc_mld = false;
-		os_memcpy(wpa_s->wnm_dissoc_addr,
+		os_memcpy(wpa_s->wnm_disassoc_addr,
 			  wpa_s->links[wpa_s->mlo_assoc_link_id].bssid,
 			  ETH_ALEN);
 	} else if (wpa_s->valid_links) {
 		wpa_s->wnm_disassoc_mld = true;
-		os_memcpy(wpa_s->wnm_dissoc_addr, wpa_s->ap_mld_addr,
+		os_memcpy(wpa_s->wnm_disassoc_addr, wpa_s->ap_mld_addr,
 			  ETH_ALEN);
 	} else {
 		wpa_s->wnm_disassoc_mld = false;
-		os_memcpy(wpa_s->wnm_dissoc_addr, wpa_s->bssid, ETH_ALEN);
+		os_memcpy(wpa_s->wnm_disassoc_addr, wpa_s->bssid, ETH_ALEN);
 	}
 
 	if (disassoc_imminent) {
@@ -2072,10 +2072,10 @@ bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 	 * which we are connected.
 	 */
 	if (!wpa_s->wnm_disassoc_mld) {
-		if (ether_addr_equal(bss->bssid, wpa_s->wnm_dissoc_addr))
+		if (ether_addr_equal(bss->bssid, wpa_s->wnm_disassoc_addr))
 			return true;
 	} else {
-		if (ether_addr_equal(bss->mld_addr, wpa_s->wnm_dissoc_addr))
+		if (ether_addr_equal(bss->mld_addr, wpa_s->wnm_disassoc_addr))
 			return true;
 	}
 
