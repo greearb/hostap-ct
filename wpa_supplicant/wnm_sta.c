@@ -1495,12 +1495,17 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		/* The last link is being removed (which must be the assoc link)
 		 */
 		wpa_s->wnm_link_removal = true;
+		wpa_s->wnm_disassoc_mld = false;
 		os_memcpy(wpa_s->wnm_dissoc_addr,
 			  wpa_s->links[wpa_s->mlo_assoc_link_id].bssid,
 			  ETH_ALEN);
+	} else if (wpa_s->valid_links) {
+		wpa_s->wnm_disassoc_mld = true;
+		os_memcpy(wpa_s->wnm_dissoc_addr, wpa_s->ap_mld_addr,
+			  ETH_ALEN);
 	} else {
-		os_memcpy(wpa_s->wnm_dissoc_addr, wpa_s->valid_links ?
-			  wpa_s->ap_mld_addr : wpa_s->bssid, ETH_ALEN);
+		wpa_s->wnm_disassoc_mld = false;
+		os_memcpy(wpa_s->wnm_dissoc_addr, wpa_s->bssid, ETH_ALEN);
 	}
 
 	if (disassoc_imminent) {
@@ -2066,9 +2071,7 @@ bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 	 * In case disassociation imminent is set, do no try to use a BSS to
 	 * which we are connected.
 	 */
-	if (wpa_s->wnm_link_removal ||
-	    !(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) ||
-	    is_zero_ether_addr(bss->mld_addr)) {
+	if (!wpa_s->wnm_disassoc_mld) {
 		if (ether_addr_equal(bss->bssid, wpa_s->wnm_dissoc_addr))
 			return true;
 	} else {
