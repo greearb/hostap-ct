@@ -1456,6 +1456,12 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		   wpa_s->wnm_dialog_token, wpa_s->wnm_mode,
 		   wpa_s->wnm_disassoc_timer, valid_int);
 
+	if (!wpa_s->wnm_dialog_token) {
+		wpa_printf(MSG_DEBUG, "WNM: Invalid dialog token");
+		wnm_btm_reset(wpa_s);
+		return;
+	}
+
 #if defined(CONFIG_MBO) && defined(CONFIG_TESTING_OPTIONS)
 	if (wpa_s->reject_btm_req_reason) {
 		wpa_printf(MSG_INFO,
