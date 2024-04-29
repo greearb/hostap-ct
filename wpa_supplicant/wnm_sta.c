@@ -27,7 +27,6 @@
 #define MAX_TFS_IE_LEN  1024
 #define WNM_MAX_NEIGHBOR_REPORT 10
 
-#define WNM_SCAN_RESULT_AGE 2 /* 2 seconds */
 
 /* get the TFS IE from driver */
 static int ieee80211_11_get_tfs_ie(struct wpa_supplicant *wpa_s, u8 *buf,
@@ -740,7 +739,7 @@ static struct wpa_bss * find_better_target(struct wpa_bss *a,
 }
 
 static struct wpa_bss *
-compare_scan_neighbor_results(struct wpa_supplicant *wpa_s, os_time_t age_secs,
+compare_scan_neighbor_results(struct wpa_supplicant *wpa_s,
 			      enum mbo_transition_reject_reason *reason)
 {
 	u8 i;
@@ -775,19 +774,6 @@ compare_scan_neighbor_results(struct wpa_supplicant *wpa_s, os_time_t age_secs,
 				   nei->preference_present ? nei->preference :
 				   -1);
 			continue;
-		}
-
-		if (age_secs) {
-			struct os_reltime now;
-
-			if (os_get_reltime(&now) == 0 &&
-			    os_reltime_expired(&now, &target->last_update,
-					       age_secs)) {
-				wpa_printf(MSG_DEBUG,
-					   "Candidate BSS is more than %ld seconds old",
-					   age_secs);
-				continue;
-			}
 		}
 
 		/*
@@ -1198,7 +1184,7 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 	wpa_s->wnm_transition_scan = false;
 
 	/* Compare the Neighbor Report and scan results */
-	bss = compare_scan_neighbor_results(wpa_s, 0, &reason);
+	bss = compare_scan_neighbor_results(wpa_s, &reason);
 
 	/*
 	 * If this is a pre-scan check, returning 0 will trigger a scan and
