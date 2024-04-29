@@ -1302,6 +1302,7 @@ struct wpa_supplicant {
 	u8 *mac_addr_pno;
 
 #ifdef CONFIG_WNM
+	bool wnm_transition_scan;
 	u8 wnm_dialog_token;
 	u8 wnm_reply;
 	u8 wnm_num_neighbor_report;

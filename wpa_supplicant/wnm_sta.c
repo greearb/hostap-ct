@@ -1192,6 +1192,11 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 		goto send_bss_resp_fail;
 	}
 
+	if (!pre_scan_check && !wpa_s->wnm_transition_scan)
+		return 0;
+
+	wpa_s->wnm_transition_scan = false;
+
 	/* Compare the Neighbor Report and scan results */
 	bss = compare_scan_neighbor_results(wpa_s, 0, &reason);
 
@@ -1504,6 +1509,7 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		if (wpa_s->wnm_dissoc_timer && !wpa_s->scanning &&
 		    (!wpa_s->current_ssid || !wpa_s->current_ssid->bssid_set)) {
 			wpa_printf(MSG_DEBUG, "Trying to find another BSS");
+			wpa_s->wnm_transition_scan = true;
 			wpa_supplicant_req_scan(wpa_s, 0, 0);
 		}
 	}
@@ -1617,6 +1623,7 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 				   "WNM: Scan only for a specific BSSID since there is only a single candidate "
 				   MACSTR, MAC2STR(wpa_s->next_scan_bssid));
 		}
+		wpa_s->wnm_transition_scan = true;
 		wpa_supplicant_req_scan(wpa_s, 0, 0);
 	} else if (reply) {
 		enum bss_trans_mgmt_status_code status;
