@@ -1373,12 +1373,6 @@ static void wnm_set_scan_freqs(struct wpa_supplicant *wpa_s)
 static int wnm_parse_candidate_list(struct wpa_supplicant *wpa_s,
 				    const u8 *pos, const u8 *end)
 {
-	wpa_s->wnm_neighbor_report_elements = os_calloc(
-		WNM_MAX_NEIGHBOR_REPORT,
-		sizeof(struct neighbor_report));
-	if (wpa_s->wnm_neighbor_report_elements == NULL)
-		return -1;
-
 	while (end - pos >= 2 &&
 	       wpa_s->wnm_num_neighbor_report < WNM_MAX_NEIGHBOR_REPORT) {
 		u8 tag = *pos++;
@@ -1391,6 +1385,14 @@ static int wnm_parse_candidate_list(struct wpa_supplicant *wpa_s,
 		}
 		if (tag == WLAN_EID_NEIGHBOR_REPORT) {
 			struct neighbor_report *rep;
+
+			if (!wpa_s->wnm_num_neighbor_report) {
+				wpa_s->wnm_neighbor_report_elements = os_calloc(
+					WNM_MAX_NEIGHBOR_REPORT,
+					sizeof(struct neighbor_report));
+				if (!wpa_s->wnm_neighbor_report_elements)
+					return -1;
+			}
 
 			rep = &wpa_s->wnm_neighbor_report_elements[
 				wpa_s->wnm_num_neighbor_report];
@@ -1562,14 +1564,10 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		wpas_mbo_ie_trans_req(wpa_s, vendor + 2, vendor[1]);
 #endif /* CONFIG_MBO */
 
+	if (wnm_parse_candidate_list(wpa_s, pos, end) < 0)
+		goto reset;
+
 	if (wpa_s->wnm_mode & WNM_BSS_TM_REQ_PREF_CAND_LIST_INCLUDED) {
-		unsigned int valid_ms;
-
-		wpa_msg(wpa_s, MSG_INFO, "WNM: Preferred List Available");
-
-		if (wnm_parse_candidate_list(wpa_s, pos, end) < 0)
-			goto reset;
-
 		if (!wpa_s->wnm_num_neighbor_report) {
 			wpa_printf(MSG_DEBUG,
 				   "WNM: Candidate list included bit is set, but no candidates found");
@@ -1579,6 +1577,11 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 				NULL);
 			goto reset;
 		}
+		wpa_msg(wpa_s, MSG_INFO, "WNM: Preferred List Available");
+	}
+
+	if (wpa_s->wnm_num_neighbor_report) {
+		unsigned int valid_ms;
 
 		wnm_sort_cand_list(wpa_s);
 		wnm_dump_cand_list(wpa_s);
