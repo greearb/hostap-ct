@@ -1221,11 +1221,19 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 	return 1;
 
 send_bss_resp_fail:
-	/* Send reject response for all the failures */
+	if (wpa_s->wnm_reply) {
+		/* If disassoc imminent is set, we must not reject */
+		if (wpa_s->wnm_mode &
+		    (WNM_BSS_TM_REQ_DISASSOC_IMMINENT |
+		     WNM_BSS_TM_REQ_ESS_DISASSOC_IMMINENT)) {
+			wpa_printf(MSG_DEBUG,
+				   "WNM: Accept BTM request because disassociation imminent bit is set");
+			status = WNM_BSS_TM_ACCEPT;
+		}
 
-	if (wpa_s->wnm_reply)
 		wnm_send_bss_transition_mgmt_resp(wpa_s, status, reason,
 						  0, NULL);
+	}
 
 	wnm_btm_reset(wpa_s);
 
