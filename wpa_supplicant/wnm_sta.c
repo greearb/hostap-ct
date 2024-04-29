@@ -1381,6 +1381,55 @@ static void wnm_set_scan_freqs(struct wpa_supplicant *wpa_s)
 }
 
 
+static int wnm_parse_candidate_list(struct wpa_supplicant *wpa_s,
+				    const u8 *pos, const u8 *end)
+{
+	wpa_s->wnm_neighbor_report_elements = os_calloc(
+		WNM_MAX_NEIGHBOR_REPORT,
+		sizeof(struct neighbor_report));
+	if (wpa_s->wnm_neighbor_report_elements == NULL)
+		return -1;
+
+	while (end - pos >= 2 &&
+	       wpa_s->wnm_num_neighbor_report < WNM_MAX_NEIGHBOR_REPORT) {
+		u8 tag = *pos++;
+		u8 len = *pos++;
+
+		wpa_printf(MSG_DEBUG, "WNM: Neighbor report tag %u", tag);
+		if (len > end - pos) {
+			wpa_printf(MSG_DEBUG, "WNM: Truncated request");
+			return -1;
+		}
+		if (tag == WLAN_EID_NEIGHBOR_REPORT) {
+			struct neighbor_report *rep;
+
+			rep = &wpa_s->wnm_neighbor_report_elements[
+				wpa_s->wnm_num_neighbor_report];
+			wnm_parse_neighbor_report(wpa_s, pos, len, rep);
+			if ((wpa_s->wnm_mode &
+			     WNM_BSS_TM_REQ_DISASSOC_IMMINENT) &&
+			    ether_addr_equal(rep->bssid, wpa_s->bssid))
+				rep->disassoc_imminent = 1;
+
+			wpa_s->wnm_num_neighbor_report++;
+#ifdef CONFIG_MBO
+			if (wpa_s->wnm_mbo_trans_reason_present &&
+			    wpa_s->wnm_num_neighbor_report == 1) {
+				rep->is_first = 1;
+				wpa_printf(MSG_DEBUG,
+					   "WNM: First transition candidate is "
+					   MACSTR, MAC2STR(rep->bssid));
+			}
+#endif /* CONFIG_MBO */
+		}
+
+		pos += len;
+	}
+
+	return 0;
+}
+
+
 static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 					     const u8 *pos, const u8 *end,
 					     int reply)
@@ -1530,48 +1579,9 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		unsigned int valid_ms;
 
 		wpa_msg(wpa_s, MSG_INFO, "WNM: Preferred List Available");
-		wpa_s->wnm_neighbor_report_elements = os_calloc(
-			WNM_MAX_NEIGHBOR_REPORT,
-			sizeof(struct neighbor_report));
-		if (wpa_s->wnm_neighbor_report_elements == NULL)
+
+		if (wnm_parse_candidate_list(wpa_s, pos, end) < 0)
 			return;
-
-		while (end - pos >= 2 &&
-		       wpa_s->wnm_num_neighbor_report < WNM_MAX_NEIGHBOR_REPORT)
-		{
-			u8 tag = *pos++;
-			u8 len = *pos++;
-
-			wpa_printf(MSG_DEBUG, "WNM: Neighbor report tag %u",
-				   tag);
-			if (len > end - pos) {
-				wpa_printf(MSG_DEBUG, "WNM: Truncated request");
-				return;
-			}
-			if (tag == WLAN_EID_NEIGHBOR_REPORT) {
-				struct neighbor_report *rep;
-				rep = &wpa_s->wnm_neighbor_report_elements[
-					wpa_s->wnm_num_neighbor_report];
-				wnm_parse_neighbor_report(wpa_s, pos, len, rep);
-				if ((wpa_s->wnm_mode &
-				     WNM_BSS_TM_REQ_DISASSOC_IMMINENT) &&
-				    ether_addr_equal(rep->bssid, wpa_s->bssid))
-					rep->disassoc_imminent = 1;
-
-				wpa_s->wnm_num_neighbor_report++;
-#ifdef CONFIG_MBO
-				if (wpa_s->wnm_mbo_trans_reason_present &&
-				    wpa_s->wnm_num_neighbor_report == 1) {
-					rep->is_first = 1;
-					wpa_printf(MSG_DEBUG,
-						   "WNM: First transition candidate is "
-						   MACSTR, MAC2STR(rep->bssid));
-				}
-#endif /* CONFIG_MBO */
-			}
-
-			pos += len;
-		}
 
 		if (!wpa_s->wnm_num_neighbor_report) {
 			wpa_printf(MSG_DEBUG,
