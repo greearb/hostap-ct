@@ -1371,8 +1371,11 @@ static void wnm_set_scan_freqs(struct wpa_supplicant *wpa_s)
 
 
 static int wnm_parse_candidate_list(struct wpa_supplicant *wpa_s,
-				    const u8 *pos, const u8 *end)
+				    const u8 *pos, const u8 *end,
+				    int *num_valid_candidates)
 {
+	*num_valid_candidates = 0;
+
 	while (end - pos >= 2 &&
 	       wpa_s->wnm_num_neighbor_report < WNM_MAX_NEIGHBOR_REPORT) {
 		u8 tag = *pos++;
@@ -1401,6 +1404,9 @@ static int wnm_parse_candidate_list(struct wpa_supplicant *wpa_s,
 			     WNM_BSS_TM_REQ_DISASSOC_IMMINENT) &&
 			    ether_addr_equal(rep->bssid, wpa_s->bssid))
 				rep->disassoc_imminent = 1;
+
+			if (rep->preference_present && rep->preference)
+				*num_valid_candidates += 1;
 
 			wpa_s->wnm_num_neighbor_report++;
 #ifdef CONFIG_MBO
@@ -1431,6 +1437,7 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 	const u8 *vendor;
 #endif /* CONFIG_MBO */
 	bool disassoc_imminent;
+	int num_valid_candidates;
 
 	if (wpa_s->disable_mbo_oce || wpa_s->conf->disable_btm)
 		return;
@@ -1564,7 +1571,8 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		wpas_mbo_ie_trans_req(wpa_s, vendor + 2, vendor[1]);
 #endif /* CONFIG_MBO */
 
-	if (wnm_parse_candidate_list(wpa_s, pos, end) < 0)
+	if (wnm_parse_candidate_list(wpa_s, pos, end,
+				     &num_valid_candidates) < 0)
 		goto reset;
 
 	if (wpa_s->wnm_mode & WNM_BSS_TM_REQ_PREF_CAND_LIST_INCLUDED) {
@@ -1645,7 +1653,8 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 	}
 
 	wnm_set_scan_freqs(wpa_s);
-	if (wpa_s->wnm_num_neighbor_report == 1) {
+	if (num_valid_candidates == 1) {
+		/* Any invalid candidate was sorted to the end */
 		os_memcpy(wpa_s->next_scan_bssid,
 			  wpa_s->wnm_neighbor_report_elements[0].bssid,
 			  ETH_ALEN);
