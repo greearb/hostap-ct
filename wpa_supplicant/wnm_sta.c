@@ -1599,11 +1599,7 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		wpa_printf(MSG_DEBUG, "WNM: Candidate list valid for %u ms",
 			   valid_ms);
 		os_get_reltime(&wpa_s->wnm_cand_valid_until);
-		wpa_s->wnm_cand_valid_until.sec += valid_ms / 1000;
-		wpa_s->wnm_cand_valid_until.usec += (valid_ms % 1000) * 1000;
-		wpa_s->wnm_cand_valid_until.sec +=
-			wpa_s->wnm_cand_valid_until.usec / 1000000;
-		wpa_s->wnm_cand_valid_until.usec %= 1000000;
+		os_reltime_add_ms(&wpa_s->wnm_cand_valid_until, valid_ms);
 
 		/*
 		* Try fetching the latest scan results from the kernel.
