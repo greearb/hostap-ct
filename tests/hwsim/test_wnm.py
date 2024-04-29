@@ -1001,6 +1001,29 @@ def test_wnm_bss_tm(dev, apdev):
         ev = dev[0].wait_event(["CTRL-EVENT-CONNECTED"], timeout=0.5)
         if ev is not None:
             raise Exception("Unexpected reassociation")
+
+        dev[0].flush_scan_cache()
+        logger.info("Candidate list is used even if not required by spec (pref=0, abridged=0)")
+        if "OK" not in hapd2.request("BSS_TM_REQ " + addr + " pref=0 abridged=0 valid_int=255 neighbor=" + apdev[0]['bssid'] + ",0x0000,81,1,7,0301ff" + ' neighbor=' + apdev[1]['bssid'] + ",0x0000,115,36,7,030100"):
+            raise Exception("BSS_TM_REQ command failed")
+        ev = hapd2.wait_event(['BSS-TM-RESP'], timeout=10)
+        if ev is None:
+            raise Exception("No BSS Transition Management Response")
+        if "status_code=0" not in ev:
+            raise Exception("BSS transition request was not accepted: " + ev)
+        if "target_bssid=" + apdev[0]['bssid'] not in ev:
+            raise Exception("Unexpected target BSS: " + ev)
+        # This scans only one frequency
+        scan_ev = dev[0].wait_event(["CTRL-EVENT-SCAN-STARTED"], timeout=0)
+        if scan_ev is None:
+            raise Exception("Expected scan started")
+        dev[0].wait_connected(timeout=15, error="No reassociation seen")
+        if apdev[0]['bssid'] not in ev:
+            raise Exception("Unexpected reassociation target: " + ev)
+        ev = dev[0].wait_event(["CTRL-EVENT-SCAN-STARTED"], timeout=0.1)
+        if ev is not None:
+            raise Exception("Unexpected scan started")
+
     finally:
         clear_regdom_state(dev, hapd, hapd2)
 
