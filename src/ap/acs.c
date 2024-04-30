@@ -834,6 +834,9 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 	int bw320_offset = 0, ideal_bw320_offset = 0;
 	unsigned int k;
 	int secondary_channel = 1, freq_offset;
+#ifdef CONFIG_IEEE80211BE
+	int index_primary = 0;
+#endif /* CONFIG_IEEE80211BE */
 
 	if (is_24ghz_mode(mode->mode))
 		secondary_channel = iface->conf->secondary_channel;
@@ -973,6 +976,9 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 				   best->chan, chan->chan,
 				   chan->interference_factor,
 				   best->interference_factor);
+#ifdef CONFIG_IEEE80211BE
+			index_primary = (chan->freq - best->freq) / 20;
+#endif /* CONFIG_IEEE80211BE */
 			chan = best;
 		}
 
@@ -1061,7 +1067,8 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 			if (iface->conf->ieee80211be)
 				acs_update_puncturing_bitmap(iface, mode, bw,
 							     n_chans, chan,
-							     factor, 0);
+							     factor,
+							     index_primary);
 #endif /* CONFIG_IEEE80211BE */
 		}
 
