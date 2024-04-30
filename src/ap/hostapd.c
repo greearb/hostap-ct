@@ -1442,7 +1442,6 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 			if (h_hapd) {
 				hapd->drv_priv = h_hapd->drv_priv;
 				hapd->interface_added = h_hapd->interface_added;
-				hostapd_mld_add_link(hapd);
 				wpa_printf(MSG_DEBUG,
 					   "Setup of non first link (%d) BSS of MLD %s",
 					   hapd->mld_link_id, hapd->conf->iface);
@@ -1473,7 +1472,6 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 				   hapd->mld_link_id, hapd->conf->iface);
 			os_memcpy(hapd->mld->mld_addr, hapd->own_addr,
 				  ETH_ALEN);
-			hostapd_mld_add_link(hapd);
 		}
 #endif /* CONFIG_IEEE80211BE */
 	}
@@ -1488,8 +1486,13 @@ setup_mld:
 			   MAC2STR(hapd->own_addr));
 
 		if (hostapd_drv_link_add(hapd, hapd->mld_link_id,
-					 hapd->own_addr))
+					 hapd->own_addr)) {
+			wpa_printf(MSG_ERROR,
+				   "MLD: Failed to add link %d in MLD %s",
+				   hapd->mld_link_id, hapd->conf->iface);
 			return -1;
+		}
+		hostapd_mld_add_link(hapd);
 	}
 #endif /* CONFIG_IEEE80211BE */
 
