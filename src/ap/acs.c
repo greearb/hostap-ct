@@ -511,7 +511,7 @@ static int acs_survey_list_is_sufficient(struct hostapd_channel_data *chan)
 	}
 
 	if (ret == -1)
-		ret = 1; /* no survey list entries */
+		ret = 0; /* no survey list entries */
 
 	if (!ret) {
 		wpa_printf(MSG_INFO,
