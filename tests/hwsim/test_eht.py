@@ -526,6 +526,10 @@ def run_eht_mld_sae_two_links(dev, apdev, beacon_prot="1",
             # fall back to full SAE from failed PMKSA caching attempt
             # automatically.
             wpas.request("PMKSA_FLUSH")
+
+            # flush the BSS table before reconnect as otherwise the old
+            # AP MLD BSSs would be in the BSS list
+            wpas.request("BSS_FLUSH 0")
             wpas.request("RECONNECT")
             wpas.wait_connected()
             hapd0.wait_sta()
