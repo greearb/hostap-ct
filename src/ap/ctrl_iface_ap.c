@@ -661,15 +661,18 @@ int hostapd_ctrl_iface_deauthenticate(struct hostapd_data *hapd,
 	}
 #endif /* CONFIG_P2P_MANAGER */
 
-	if (os_strstr(txtaddr, " tx=0"))
-		hostapd_drv_sta_remove(hapd, addr);
-	else
-		hostapd_drv_sta_deauth(hapd, addr, reason);
 	sta = ap_get_sta(hapd, addr);
-	if (sta)
-		ap_sta_deauthenticate(hapd, sta, reason);
-	else if (addr[0] == 0xff)
-		hostapd_free_stas(hapd);
+	if (os_strstr(txtaddr, " tx=0")) {
+		hostapd_drv_sta_remove(hapd, addr);
+		if (sta)
+			ap_free_sta(hapd, sta);
+	} else {
+		hostapd_drv_sta_deauth(hapd, addr, reason);
+		if (sta)
+			ap_sta_deauthenticate(hapd, sta, reason);
+		else if (addr[0] == 0xff)
+			hostapd_free_stas(hapd);
+	}
 
 	return 0;
 }
@@ -723,15 +726,18 @@ int hostapd_ctrl_iface_disassociate(struct hostapd_data *hapd,
 	}
 #endif /* CONFIG_P2P_MANAGER */
 
-	if (os_strstr(txtaddr, " tx=0"))
-		hostapd_drv_sta_remove(hapd, addr);
-	else
-		hostapd_drv_sta_disassoc(hapd, addr, reason);
 	sta = ap_get_sta(hapd, addr);
-	if (sta)
-		ap_sta_disassociate(hapd, sta, reason);
-	else if (addr[0] == 0xff)
-		hostapd_free_stas(hapd);
+	if (os_strstr(txtaddr, " tx=0")) {
+		hostapd_drv_sta_remove(hapd, addr);
+		if (sta)
+			ap_free_sta(hapd, sta);
+	} else {
+		hostapd_drv_sta_disassoc(hapd, addr, reason);
+		if (sta)
+			ap_sta_disassociate(hapd, sta, reason);
+		else if (addr[0] == 0xff)
+			hostapd_free_stas(hapd);
+	}
 
 	return 0;
 }
