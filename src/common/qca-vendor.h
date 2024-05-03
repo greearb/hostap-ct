@@ -2337,13 +2337,15 @@ enum qca_vendor_attr_tsf_cmd {
  * @QCA_TSF_SYNC_GET: Initiate TSF capture and return with captured value
  * @QCA_TSF_AUTO_REPORT_ENABLE: Used in STA mode only. Once set, the target
  * will automatically send TSF report to the host. To query
- * %QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_UPLINK_DELAY, this operation needs to be
- * initiated first.
+ * %QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_UPLINK_DELAY or
+ * %QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_UPLINK_DELAY_JITTER, this operation needs
+ * to be initiated first.
  * @QCA_TSF_AUTO_REPORT_DISABLE: Used in STA mode only. Once set, the target
  * will not automatically send TSF report to the host. If
  * %QCA_TSF_AUTO_REPORT_ENABLE is initiated and
- * %QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_UPLINK_DELAY is not queried anymore, this
- * operation needs to be initiated.
+ * %QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_UPLINK_DELAY or
+ * %QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_UPLINK_DELAY_JITTER is not queried
+ * anymore, this operation needs to be initiated.
  * @QCA_TSF_SYNC_START: Start periodic TSF sync feature. The driver periodically
  * fetches TSF and host time mapping from the firmware with interval configured
  * through the %QCA_WLAN_VENDOR_ATTR_TSF_SYNC_INTERVAL attribute. If the
@@ -12611,6 +12613,11 @@ enum qca_vendor_wlan_sta_guard_interval {
  *
  * @QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_PAD: Attribute used for padding for
  * 64-bit alignment.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_UPLINK_DELAY_JITTER: u32, used in STA mode
+ * only. This represents the average of the delta between successive uplink
+ * frames congestion duration in MAC queue in unit of ms. This can be queried
+ * either in connected state or disconnected state.
  */
 enum qca_wlan_vendor_attr_get_sta_info {
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_INVALID = 0,
@@ -12667,6 +12674,7 @@ enum qca_wlan_vendor_attr_get_sta_info {
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_PER_MCS_TX_PACKETS = 51,
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_PER_MCS_RX_PACKETS = 52,
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_PAD = 53,
+	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_UPLINK_DELAY_JITTER = 54,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_AFTER_LAST,
