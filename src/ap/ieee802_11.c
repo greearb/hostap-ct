@@ -6617,6 +6617,13 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 	if (len < 24)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap && !hapd->mld->started) {
+		wpa_printf(MSG_DEBUG, "MGMT: Drop the frame - MLD not ready");
+		return 1;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	if (fi && fi->freq)
 		freq = fi->freq;
 	else
