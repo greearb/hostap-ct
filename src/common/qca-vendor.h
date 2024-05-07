@@ -32,6 +32,52 @@ enum qca_radiotap_vendor_ids {
 };
 
 /**
+ * DOC: TX/RX NSS and chain configurations
+ * This document describes all of the attributes used in the vendor command
+ * QCA_NL80211_VENDOR_SUBCMD_SET_WIFI_CONFIGURATION to configure the number of
+ * spatial streams (NSS) and the number of chains used for transmitting (TX) and
+ * receiving (RX) the data.
+ *
+ * Global NSS configuration - Applies to all bands (2.4 GHz and 5/6 GHz)
+ * The following attributes are used to dynamically configure the number of
+ * spatial streams to be used for transmitting or receiving the data in the
+ * 2.4 GHz and 5/6 GHz bands. When configured in disconnected state, the
+ * updated configuration will be considered for the immediately following
+ * connection attempt. If the NSS is updated during a connection, the updated
+ * NSS value is notified to the peer using operating mode notification/spatial
+ * multiplexing power save frame. The updated NSS value after the connection
+ * shall not be greater than the one negotiated during the connection. The
+ * driver rejects any such higher value configuration with a failure.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_NSS: Only symmetric NSS configuration
+ * (such as 2X2 or 1X1) can be done using this attribute.
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_TX_NSS: Configure NSS for transmitting the data
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_RX_NSS: Configure NSS for receiving the data
+ *
+ * The QCA_WLAN_VENDOR_ATTR_CONFIG_TX_NSS and QCA_WLAN_VENDOR_ATTR_CONFIG_RX_NSS
+ * attributes must be defined together or the driver will reject the command
+ * with a failure. They can be used to configure either symmetric NSS
+ * configuration (such as 2X2 or 1X1) or asymmetric configuration (such as 1X2).
+ *
+ * Global chain configuration - Applies to all bands (2.4 GHz and 5/6 GHz)
+ * The following attributes are used to dynamically configure the number of
+ * chains to be used for transmitting or receiving the data in the 2.4 GHz and
+ * 5/6 GHz bands. This configuration is allowed only when in connected state
+ * and will be effective until disconnected. The driver rejects this
+ * configuration if the number of spatial streams being used in the current
+ * connection cannot be supported by this configuration.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_NUM_TX_CHAINS: The number of chains to be used
+ * for transmitting the data in both the 2.4 GHz and 5/6 GHz bands.
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_NUM_RX_CHAINS: The number of chains to be used
+ * for receiving the data in both the 2.4 GHz and 5/6 GHz bands.
+ *
+ * The attributes QCA_WLAN_VENDOR_ATTR_CONFIG_NUM_TX_CHAINS and
+ * QCA_WLAN_VENDOR_ATTR_CONFIG_NUM_RX_CHAINS must be defined together or the
+ * driver will reject the command with a failure.
+ */
+
+/**
  * enum qca_nl80211_vendor_subcmds - QCA nl80211 vendor command identifiers
  *
  * @QCA_NL80211_VENDOR_SUBCMD_UNSPEC: Reserved value 0
@@ -2992,21 +3038,9 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_RX_STBC = 69,
 
-	/* 8-bit unsigned value. This attribute is used to dynamically configure
-	 * the number of spatial streams. When configured in the disconnected
-	 * state, the updated configuration will be considered for the
-	 * immediately following connection attempt. If the NSS is updated after
-	 * the connection, the updated NSS value is notified to the peer using
-	 * the Operating Mode Notification/Spatial Multiplexing Power Save
-	 * frame. The updated NSS value after the connection shall not be
-	 * greater than the one negotiated during the connection. Any such
-	 * higher value configuration shall be returned with a failure.
-	 * Only symmetric NSS configuration (such as 2X2 or 1X1) can be done
-	 * using this attribute. QCA_WLAN_VENDOR_ATTR_CONFIG_TX_NSS and
-	 * QCA_WLAN_VENDOR_ATTR_CONFIG_RX_NSS attributes shall be used to
-	 * configure the asymmetric NSS configuration (such as 1X2).
-	 */
+	/* 8-bit unsigned value. Refer to TX/RX NSS and chain configurations */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_NSS = 70,
+
 	/* 8-bit unsigned value to configure Optimized Power Management mode:
 	 * Modes are defined by enum qca_wlan_vendor_opm_mode.
 	 *
@@ -3038,21 +3072,10 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_UDP_QOS_UPGRADE = 72,
 
-	/* 8-bit unsigned value. This attribute is used to dynamically configure
-	 * the number of chains to be used for transmitting data. This
-	 * configuration is allowed only when in connected state and will be
-	 * effective until disconnected. The driver rejects this configuration
-	 * if the number of spatial streams being used in the current connection
-	 * cannot be supported by this configuration.
-	 */
+	/* 8-bit unsigned value. Refer to TX/RX NSS and chain configurations */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_NUM_TX_CHAINS = 73,
-	/* 8-bit unsigned value. This attribute is used to dynamically configure
-	 * the number of chains to be used for receiving data. This
-	 * configuration is allowed only when in connected state and will be
-	 * effective until disconnected. The driver rejects this configuration
-	 * if the number of spatial streams being used in the current connection
-	 * cannot be supported by this configuration.
-	 */
+
+	/* 8-bit unsigned value. Refer to TX/RX NSS and chain configurations */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_NUM_RX_CHAINS = 74,
 
 	/* 8-bit unsigned value to configure ANI setting type.
