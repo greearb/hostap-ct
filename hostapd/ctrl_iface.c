@@ -2477,6 +2477,21 @@ static int hostapd_ctrl_check_freq_params(struct hostapd_freq_params *params,
 			    bw_idx[bw] != params->bandwidth)
 				return -1;
 		}
+	} else { /* Non-6 GHz channel */
+		/* An EHT STA is also an HE STA as defined in
+		 * IEEE P802.11be/D5.0, 4.3.16a. */
+		if (params->he_enabled || params->eht_enabled) {
+			params->he_enabled = 1;
+			/* An HE STA is also a VHT STA if operating in the 5 GHz
+			 * band and an HE STA is also an HT STA in the 2.4 GHz
+			 * band as defined in IEEE Std 802.11ax-2021, 4.3.15a.
+			 * A VHT STA is an HT STA as defined in IEEE
+			 * Std 802.11, 4.3.15. */
+			if (IS_5GHZ(params->freq))
+				params->vht_enabled = 1;
+
+			params->ht_enabled = 1;
+		}
 	}
 
 	switch (params->bandwidth) {
