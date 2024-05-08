@@ -2586,6 +2586,7 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit);
 void wpa_supplicant_associate(struct wpa_supplicant *wpa_s,
 			      struct wpa_bss *bss, struct wpa_ssid *ssid)
 {
+	bool clear_rejected = true;
 	struct wpa_connect_work *cwork;
 	enum wpas_mac_addr_style rand_style;
 
@@ -2627,14 +2628,15 @@ void wpa_supplicant_associate(struct wpa_supplicant *wpa_s,
 			wmm_ac_save_tspecs(wpa_s);
 #endif /* CONFIG_NO_WMM_AC */
 			wpa_s->reassoc_same_bss = 1;
+			clear_rejected = false;
 		} else if (wpa_s->current_bss && wpa_s->current_bss != bss) {
 			os_get_reltime(&wpa_s->roam_start);
 		}
-	} else {
-#ifdef CONFIG_SAE
-		wpa_s_clear_sae_rejected(wpa_s);
-#endif /* CONFIG_SAE */
 	}
+
+	if (clear_rejected)
+		wpa_s_clear_sae_rejected(wpa_s);
+
 #ifdef CONFIG_SAE
 	wpa_s_setup_sae_pt(wpa_s->conf, ssid, false);
 #endif /* CONFIG_SAE */
