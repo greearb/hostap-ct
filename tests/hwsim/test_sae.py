@@ -1298,7 +1298,7 @@ def test_sae_no_ffc_by_default(dev, apdev):
     params['wpa_key_mgmt'] = 'SAE'
     hapd = hostapd.add_ap(apdev[0], params)
 
-    dev[0].request("SET sae_groups 15")
+    dev[0].request("SET sae_groups 15 16")
     dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE", scan_freq="2412",
                    wait_connect=False)
     ev = dev[0].wait_event(["SME: Trying to authenticate"], timeout=3)
