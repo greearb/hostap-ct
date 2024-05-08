@@ -85,7 +85,7 @@ static void rx_data_icmp(struct wlantest *wt, const u8 *bssid,
 	if (sta_addr == NULL)
 		return; /* FromDS broadcast ping */
 
-	sta = sta_find(bss, sta_addr);
+	sta = sta_find_mlo(wt, bss, sta_addr);
 	if (sta == NULL) {
 		add_note(wt, MSG_INFO, "No STA " MACSTR
 			 " known for ICMP packet", MAC2STR(sta_addr));
@@ -93,7 +93,7 @@ static void rx_data_icmp(struct wlantest *wt, const u8 *bssid,
 	}
 
 	ping_update(wt, sta, hdr->type == ICMP_ECHO, src, dst, id, seq);
-	if (peer_addr && (sta = sta_find(bss, peer_addr)))
+	if (peer_addr && (sta = sta_find_mlo(wt, bss, peer_addr)))
 		ping_update(wt, sta, hdr->type == ICMP_ECHO, src, dst, id, seq);
 }
 
