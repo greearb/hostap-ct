@@ -990,6 +990,19 @@ void int_array_add_unique(int **res, int a)
 }
 
 
+bool int_array_includes(int *arr, int val)
+{
+	int i;
+
+	for (i = 0; arr && arr[i]; i++) {
+		if (val == arr[i])
+			return true;
+	}
+
+	return false;
+}
+
+
 void str_clear_free(char *str)
 {
 	if (str) {

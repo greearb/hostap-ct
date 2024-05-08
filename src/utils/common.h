@@ -577,6 +577,7 @@ size_t int_array_len(const int *a);
 void int_array_concat(int **res, const int *a);
 void int_array_sort_unique(int *a);
 void int_array_add_unique(int **res, int a);
+bool int_array_includes(int *arr, int val);
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
