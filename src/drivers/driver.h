@@ -5612,6 +5612,17 @@ struct wpa_driver_ops {
 	int (*beacon_ctrl)(void *priv, u8 beacon_mode);
 
 	/**
+	 * set eml omn - Send the EML Operating Mode
+	 * 		 Notification content to driver
+	 * @priv: Private driver interface data
+	 * @link_id: MLD link id
+	 * @addr: MLD STA address
+	 * @omn_ie: EML OMN content sent by the MLD STA
+	 */
+	int (*set_eml_omn)(void *priv, u8 link_id,
+			   const u8 *addr, struct eml_omn_element *omn_ie);
+
+	/**
 	 * three_wire_ctrl - set three_wire_ctrl mode
 	 * @priv: Private driver interface data
 	 * @three_wire_enable: three_wire_ctrl mode

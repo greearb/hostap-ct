@@ -3121,7 +3121,10 @@ static int nl80211_action_subscribe_ap(struct i802_bss *bss)
 #endif /* CONFIG_FST */
 #ifdef CONFIG_IEEE80211BE
 	/* Protected EHT - Link Reconfiguration Request */
-	if (nl80211_register_action_frame(bss, (u8 *) "\x25\x0b", 2) < 0)
+	// BEN:  MTK patch needs less specific match.
+	// if (nl80211_register_action_frame(bss, (u8 *) "\x25\x0b", 2) < 0)
+	/* Protected EHT */
+	if (nl80211_register_action_frame(bss, (u8 *) "\x25", 1) < 0)
 		ret = -1;
 #endif /* CONFIG_IEEE80211BE */
 	/* Vendor-specific Protected */
@@ -6341,6 +6344,14 @@ static int wpa_driver_nl80211_sta_add(void *priv,
 		}
 	} else {
 		if (nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, params->addr))
+			goto fail;
+	}
+
+	if (params->eml_cap) {
+		wpa_printf(MSG_DEBUG, "  * eml_capa=%u",
+			   params->eml_cap);
+		if (nla_put_u16(msg, NL80211_ATTR_EML_CAPABILITY,
+				params->eml_cap))
 			goto fail;
 	}
 
@@ -16677,6 +16688,47 @@ static int nl80211_get_mld_addr(void *priv, u8 *addr)
 
 	return 0;
 }
+
+static int nl80211_set_eml_omn(void *priv, u8 link_id, const u8 *addr,
+			       struct eml_omn_element *omn_ie)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *data;
+	int ret = -ENOBUFS;
+
+	if (!drv->mtk_eml_vendor_cmd_avail) {
+		wpa_printf(MSG_ERROR,
+			   "nl80211: Driver does not support setting EML control");
+		return 0;
+	}
+
+	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+			MTK_NL80211_VENDOR_SUBCMD_EML_CTRL) ||
+	    !(data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA)) ||
+	    nla_put_u8(msg, MTK_VENDOR_ATTR_EML_LINK_ID, link_id) ||
+	    nla_put(msg, MTK_VENDOR_ATTR_EML_STA_ADDR, ETH_ALEN, addr) ||
+	    nla_put(msg, MTK_VENDOR_ATTR_EML_CTRL_STRUCT,
+		    sizeof(struct eml_omn_element), omn_ie))
+		goto fail;
+
+
+	nla_nest_end(msg, data);
+	ret = send_and_recv_cmd(drv, msg);
+
+	if (ret)
+		wpa_printf(MSG_ERROR, "Failed to set EML OMN ctrl. ret = %d (%s)",
+			   ret, strerror(-ret));
+
+	return ret;
+
+fail:
+	nlmsg_free(msg);
+	return ret;
+}
 #endif
 
 static int
@@ -17044,6 +17096,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.mu_ctrl = nl80211_mu_ctrl,
 	.mu_dump = nl80211_mu_dump,
 	.beacon_ctrl = nl80211_beacon_ctrl,
+	.set_eml_omn = nl80211_set_eml_omn,
 #ifdef CONFIG_DPP
 	.dpp_listen = nl80211_dpp_listen,
 #endif /* CONFIG_DPP */
