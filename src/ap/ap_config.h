@@ -1260,6 +1260,8 @@ struct hostapd_config {
 	u8 punct_acs_threshold;
 	u8 eht_default_pe_duration;
 	u8 eht_bw320_offset;
+	u8 eml_disable;
+	u8 eml_resp;
 #endif /* CONFIG_IEEE80211BE */
 
 	/* EHT enable/disable config from CHAN_SWITCH */

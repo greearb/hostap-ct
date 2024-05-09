@@ -271,5 +271,7 @@ int hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 				  const u8 *ies, size_t ies_len,
 				  bool reassoc, int tx_link_status,
 				  bool offload);
-
+void ieee802_11_rx_prot_eht(struct hostapd_data *hapd,
+			    const struct ieee80211_mgmt *mgmt,
+			    size_t len);
 #endif /* IEEE802_11_H */

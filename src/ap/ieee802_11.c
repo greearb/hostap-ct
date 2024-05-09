@@ -6510,6 +6510,9 @@ static int handle_action(struct hostapd_data *hapd,
 		if (hapd->public_action_cb || hapd->public_action_cb2)
 			return 1;
 		break;
+	case WLAN_ACTION_PROTECTED_EHT:
+		ieee802_11_rx_prot_eht(hapd, mgmt, len);
+		return 1;
 	case WLAN_ACTION_VENDOR_SPECIFIC:
 		if (hapd->vendor_action_cb) {
 			if (hapd->vendor_action_cb(hapd->vendor_action_cb_ctx,

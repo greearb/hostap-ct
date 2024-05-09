@@ -13,7 +13,7 @@
 #include "hostapd.h"
 #include "sta_info.h"
 #include "ieee802_11.h"
-
+#include "ap_drv_ops.h"
 
 static u16 ieee80211_eht_ppet_size(u16 ppe_thres_hdr, const u8 *phy_cap_info)
 {
@@ -471,8 +471,10 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	control = MULTI_LINK_CONTROL_TYPE_BASIC |
 		BASIC_MULTI_LINK_CTRL_PRES_LINK_ID |
 		BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT |
-		BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA |
 		BASIC_MULTI_LINK_CTRL_PRES_MLD_CAPA;
+
+	if (!hapd->iconf->eml_disable)
+		control |= BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA;
 
 	/*
 	 * Set the basic Multi-Link common information. Hard code the common
@@ -482,6 +484,9 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	 * MLD Capabilities and Operations (2)
 	 */
 	common_info_len = EHT_ML_COMMON_INFO_LEN;
+
+	if (hapd->iconf->eml_disable)
+		common_info_len -= 2; /* EML Capabilities (2) */
 
 	if (include_mld_id) {
 		/* AP MLD ID */
@@ -502,9 +507,11 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	/* Currently hard code the BSS Parameters Change Count to 0x1 */
 	wpabuf_put_u8(buf, hapd->eht_mld_bss_param_change);
 
-	wpa_printf(MSG_DEBUG, "MLD: EML Capabilities=0x%x",
-		   hapd->iface->mld_eml_capa);
-	wpabuf_put_le16(buf, hapd->iface->mld_eml_capa);
+	if (!hapd->iconf->eml_disable) {
+		wpa_printf(MSG_DEBUG, "MLD: EML Capabilities=0x%x",
+			   hapd->iface->mld_eml_capa);
+		wpabuf_put_le16(buf, hapd->iface->mld_eml_capa);
+	}
 
 	mld_cap = hapd->iface->mld_mld_capa;
 	max_simul_links = mld_cap & EHT_ML_MLD_CAPA_MAX_NUM_SIM_LINKS_MASK;
@@ -819,11 +826,15 @@ static u8 * hostapd_eid_eht_reconf_ml(struct hostapd_data *hapd, u8 *eid)
 
 
 static size_t hostapd_eid_eht_ml_len(struct mld_info *info,
-				     bool include_mld_id)
+				     bool include_mld_id,
+				     u8 eml_disable)
 {
 	size_t len = 0;
 	size_t eht_ml_len = 2 + EHT_ML_COMMON_INFO_LEN;
 	u8 link_id;
+
+	if (eml_disable)
+		eht_ml_len -= 2; /* EML Capabilities (2) */
 
 	if (include_mld_id)
 		eht_ml_len++;
@@ -886,7 +897,8 @@ size_t hostapd_eid_eht_ml_beacon_len(struct hostapd_data *hapd,
 				     struct mld_info *info,
 				     bool include_mld_id)
 {
-	return hostapd_eid_eht_ml_len(info, include_mld_id);
+	return hostapd_eid_eht_ml_len(info, include_mld_id,
+				      hapd->iconf->eml_disable);
 }
 
 
@@ -1501,3 +1513,120 @@ out:
 
 	return WLAN_STATUS_SUCCESS;
 }
+
+static void ieee802_11_send_eml_omn(struct hostapd_data *hapd,
+				    const u8 *addr,
+				    struct eml_omn_element *omn_ie,
+				    size_t len)
+{
+	struct wpabuf *buf;
+
+	buf = wpabuf_alloc(2 + len);
+	if (!buf)
+		return;
+
+	wpabuf_put_u8(buf, WLAN_ACTION_PROTECTED_EHT);
+	wpabuf_put_u8(buf, WLAN_PROT_EHT_EML_OPMODE_NOTIF);
+	wpabuf_put_data(buf, omn_ie, len);
+
+	hostapd_drv_send_action(hapd, hapd->iface->freq, 0, addr,
+				wpabuf_head(buf), wpabuf_len(buf));
+
+	wpabuf_free(buf);
+}
+
+static void ieee802_11_rx_eml_omn(struct hostapd_data *hapd,
+				  const u8 *addr, const u8 *frm,
+				  size_t len)
+{
+	struct eml_omn_element *omn_ie;
+
+	if (hapd->iconf->eml_disable) {
+		wpa_printf(MSG_ERROR,
+			   "Ignore EML Operating Mode Notification from "
+			   MACSTR
+			   " since EML Capabilities is disabled",
+			   MAC2STR(addr));
+		return;
+	}
+
+	/* EML Operating Mode Notification IE */
+	omn_ie = os_zalloc(sizeof(struct eml_omn_element));
+	if (omn_ie == NULL)
+		return;
+
+	os_memcpy(omn_ie, frm, len);
+
+	if (omn_ie->control & EHT_EML_OMN_CONTROL_EMLMR_MODE) {
+		wpa_printf(MSG_ERROR,
+			   "EML: Ignore EML Operating Mode Fotification from "
+			   MACSTR
+			   " since doesn't support EMLMR",
+			   MAC2STR(addr));
+		goto out;
+	}
+
+	hostapd_drv_set_eml_omn(hapd, addr, omn_ie);
+
+	omn_ie->control &= ~(EHT_EML_OMN_CONTROL_EMLSR_PARA_UPDATE_COUNT |
+			     EHT_EML_OMN_CONTROL_INDEV_COEX_ACTIVITIES);
+
+	if (hapd->iconf->eml_resp) {
+		ieee802_11_send_eml_omn(hapd, addr, omn_ie, len);
+		wpa_printf(MSG_ERROR, "EML: AP send EML Operating Mode Fotification to "
+				       MACSTR,
+				       MAC2STR(addr));
+	}
+out:
+	os_free(omn_ie);
+	return;
+}
+
+void ieee802_11_rx_prot_eht(struct hostapd_data *hapd,
+			    const struct ieee80211_mgmt *mgmt,
+			    size_t len)
+{
+	struct sta_info *sta;
+	struct mld_info *info;
+	u8 action;
+	const u8 *payload;
+	size_t plen;
+
+	if (!hapd->conf->mld_ap)
+		return;
+
+	if (len < IEEE80211_HDRLEN + 2)
+		return;
+
+	sta = ap_get_sta(hapd, mgmt->sa);
+	if (!sta) {
+		wpa_printf(MSG_DEBUG, "EHT: Station " MACSTR
+			   " not found for received Protected EHT Action",
+			   MAC2STR(mgmt->sa));
+		return;
+	}
+
+	info = &sta->mld_info;
+
+	payload = mgmt->u.action.u.eht_prot.variable;
+	action = mgmt->u.action.u.eht_prot.action;
+	plen = len - IEEE80211_HDRLEN - 2;
+
+	switch (action) {
+	case WLAN_PROT_EHT_EML_OPMODE_NOTIF:
+		if (!info->common_info.eml_capa & EHT_ML_EML_CAPA_EMLSR_SUPP) {
+			wpa_printf(MSG_ERROR, "EHT: Fail, Station does not support EMLSR!");
+			return;
+		}
+
+		ieee802_11_rx_eml_omn(hapd, mgmt->sa, payload, plen);
+		return;
+	}
+
+	wpa_printf(MSG_ERROR, "EHT: Unsupported Protected EHT Action %u from " MACSTR,
+		   action, MAC2STR(mgmt->sa));
+
+	return;
+
+}
+
