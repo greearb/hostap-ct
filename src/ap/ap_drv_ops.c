@@ -1595,6 +1595,22 @@ int hostapd_drv_beacon_ctrl(struct hostapd_data *hapd, u8 beacon_mode)
 	return hapd->driver->beacon_ctrl(hapd->drv_priv, beacon_mode);
 }
 
+int hostapd_drv_set_eml_omn(struct hostapd_data *hapd, const u8 *mac,
+			    struct eml_omn_element *omn_ie)
+{
+	u8 link_id;
+
+	if (!hapd->driver || !hapd->driver->set_eml_omn)
+		return 0;
+
+	if (!hapd->conf->mld_ap)
+		return 0;
+
+	link_id = hapd->mld_link_id;
+
+	return hapd->driver->set_eml_omn(hapd->drv_priv, link_id, mac, omn_ie);
+}
+
 int hostapd_drv_csi_set(struct hostapd_data *hapd, u8 mode, u8 cfg, u8 v1, u32 v2, u8 *mac)
 {
 	if (!hapd->driver || !hapd->driver->csi_set)

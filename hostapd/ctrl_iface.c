@@ -5034,7 +5034,7 @@ hostapd_ctrl_iface_set_background_radar_mode(struct hostapd_data *hapd, char *cm
 struct hostapd_data *
 hostapd_get_hapd_by_band_idx(struct hostapd_data *hapd, u8 band_idx)
 {
-	struct hostapd_data *link;
+	/* struct hostapd_data *link; */
 
 	if (!hostapd_is_mld_ap(hapd))
 		return hapd;
@@ -5133,6 +5133,40 @@ hostapd_ctrl_iface_disable_beacon(struct hostapd_data *hapd, char *value,
 	else
 		return -1;
 
+}
+
+static int
+hostapd_ctrl_iface_set_eml_resp(struct hostapd_data *hapd, char *value,
+				char *buf, size_t buflen)
+{
+	struct hostapd_data *link;
+	int cnt = 0;
+	u16 *val;
+
+	if (!hostapd_is_mld_ap(hapd))
+		return -1;
+
+	cnt = hostapd_parse_argument_helper(value, &val);
+	if (cnt == -1)
+		goto fail;
+	if (cnt != 1 || val[0] < 0)
+		goto para_fail;
+
+	for_each_mld_link(link, hapd) {
+		link->iconf->eml_resp = val[0];
+		wpa_printf(MSG_ERROR, "Link:%d, Response EML:%d\n",
+			   link->mld_link_id, link->iconf->eml_resp);
+	}
+
+	os_free(val);
+
+	return os_snprintf(buf, buflen, "OK\n");
+
+para_fail:
+	os_free(val);
+	wpa_printf(MSG_ERROR, "Input number or value is incorrect\n");
+fail:
+	return os_snprintf(buf, buflen, "FAIL\n");
 }
 
 static int
@@ -6066,6 +6100,8 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "WMM", 3) == 0) {
 		reply_len = hostapd_ctrl_iface_wmm(hapd, buf + 4,
 						   reply, reply_size);
+	} else if (os_strncmp(buf, "EML_RESP ", 9) == 0) {
+		reply_len = hostapd_ctrl_iface_set_eml_resp(hapd, buf + 9, reply, reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;
