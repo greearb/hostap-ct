@@ -2701,6 +2701,14 @@ static void hapd_pasn_update_params(struct hostapd_data *hapd,
 	pasn_set_akmp(pasn, rsn_data.key_mgmt);
 	pasn_set_cipher(pasn, rsn_data.pairwise_cipher);
 
+	if (pasn->derive_kdk &&
+	    !ieee802_11_rsnx_capab_len(elems.rsnxe, elems.rsnxe_len,
+				       WLAN_RSNX_CAPAB_SECURE_LTF))
+		pasn_disable_kdk_derivation(pasn);
+#ifdef CONFIG_TESTING_OPTIONS
+	if (hapd->conf->force_kdk_derivation)
+		pasn_enable_kdk_derivation(pasn);
+#endif /* CONFIG_TESTING_OPTIONS */
 	akmp = pasn_get_akmp(pasn);
 
 	if (wpa_key_mgmt_ft(akmp) && rsn_data.num_pmkid) {
