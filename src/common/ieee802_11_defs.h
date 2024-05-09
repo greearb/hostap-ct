@@ -796,6 +796,33 @@
 #define WLAN_PROT_EHT_LINK_RECONFIG_REQUEST 11
 #define WLAN_PROT_EHT_LINK_RECONFIG_RESPONSE 12
 
+/* EML Operating Mode Notification frame */
+#define EHT_EML_OMN_CONTROL_EMLSR_MODE 0x1
+#define EHT_EML_OMN_CONTROL_EMLMR_MODE 0x2
+#define EHT_EML_OMN_CONTROL_EMLSR_PARA_UPDATE_COUNT 0x4
+#define EHT_EML_OMN_CONTROL_INDEV_COEX_ACTIVITIES 0x8
+
+/* EMLSR Parameter Update field */
+#define EHT_EML_OMN_EMLSR_PADDING_DELAY_MASK 0x07
+#define EHT_EML_OMN_EMLSR_TRANSITION_DELAY_MASK 0x38
+
+struct eml_omn_element {
+	u8 dialog_token;
+	u8 control;
+	le16 bitmap;
+	union {
+		struct {
+			u8 emlsr_para_update;
+		} STRUCT_PACKED emlsr_info;
+		struct {
+			u8 mcs_map_count_control;
+			u8 mcs_map_bw80[3];
+			u8 mcs_map_bw160[3];
+			u8 mcs_map_bw320[3];
+		} STRUCT_PACKED emlmr_info;
+	} u;
+} STRUCT_PACKED;
+
 /* Radio Measurement capabilities (from RM Enabled Capabilities element)
  * IEEE Std 802.11-2020, 9.4.2.44, Table 9-179 */
 /* byte 1 (out of 5) */
@@ -1203,6 +1230,10 @@ struct ieee80211_mgmt {
 					 * Basic Multi-Link element (optional) */
 					u8 variable[];
 				} STRUCT_PACKED link_reconf_resp;
+				struct {
+					u8 action;
+					u8 variable[];
+				} STRUCT_PACKED eht_prot;
 			} u;
 		} STRUCT_PACKED action;
 	} u;
