@@ -878,6 +878,7 @@ struct sta_info * ap_sta_add(struct hostapd_data *hapd, const u8 *addr)
 	struct sta_info *sta;
 	int i;
 	int max_inactivity = hapd->conf->ap_max_inactivity;
+	bool registered = false;
 
 	sta = ap_get_sta(hapd, addr);
 	if (sta)
@@ -914,7 +915,22 @@ struct sta_info * ap_sta_add(struct hostapd_data *hapd, const u8 *addr)
 	if (sta->max_idle_period)
 		max_inactivity = (sta->max_idle_period * 1024 + 999) / 1000;
 
-	if (!(hapd->iface->drv_flags & WPA_DRIVER_FLAGS_INACTIVITY_TIMER)) {
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap) {
+		struct hostapd_data *h;
+		struct sta_info *s;
+
+		for_each_mld_link(h, hapd) {
+			s = ap_get_sta(h, addr);
+			if (s && eloop_is_timeout_registered(ap_handle_timer, h, s)) {
+				registered = true;
+				break;
+			}
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
+
+	if (!(hapd->iface->drv_flags & WPA_DRIVER_FLAGS_INACTIVITY_TIMER) && !registered) {
 		wpa_printf(MSG_DEBUG, "%s: register ap_handle_timer timeout "
 			   "for " MACSTR " (%d seconds - ap_max_inactivity)",
 			   __func__, MAC2STR(addr),
