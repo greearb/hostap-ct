@@ -1488,6 +1488,18 @@ static int hostapd_ctrl_iface_set(struct hostapd_data *hapd, char *cmd)
 							hapd->conf->transition_disable);
 		}
 
+#ifdef CONFIG_IEEE80211BE
+		/* workaround before hostapd cli support per link configuration */
+		if (hapd->conf->mld_ap) {
+			struct hostapd_data *h;
+
+			for_each_mld_link(h, hapd) {
+				if (os_strcasecmp(cmd, "ap_max_inactivity") == 0)
+					h->conf->ap_max_inactivity = hapd->conf->ap_max_inactivity;
+			}
+		}
+#endif /* CONFIG_IEEE80211BE */
+
 #ifdef CONFIG_TESTING_OPTIONS
 		if (os_strcmp(cmd, "ft_rsnxe_used") == 0)
 			wpa_auth_set_ft_rsnxe_used(hapd->wpa_auth,
