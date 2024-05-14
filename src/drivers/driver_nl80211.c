@@ -10745,7 +10745,7 @@ static int driver_nl80211_link_remove(void *priv, enum wpa_driver_if_type type,
 
 	bss->ctx = bss->flink->ctx;
 
-	if (drv->first_bss == bss && !bss->valid_links)
+	if (drv->first_bss == bss && bss->valid_links)
 		drv->ctx = bss->ctx;
 
 	if (!bss->valid_links) {
