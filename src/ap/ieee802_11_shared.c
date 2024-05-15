@@ -527,6 +527,11 @@ u8 * hostapd_eid_ext_capab(struct hostapd_data *hapd, u8 *eid,
 			*pos &= ~0x08;
 		if (i == 2 && !hapd->iconf->mbssid)
 			*pos &= ~0x40;
+
+		/* Clear bits 62 (Operating Mode Notification)
+		 * if ieee80211ac is not enabled (mainly 2.4G and 6G) */
+		if (i == 7 && !hapd->iconf->ieee80211ac)
+			*pos &= ~0x40;
 	}
 
 	while (len > 0 && eid[1 + len] == 0) {
