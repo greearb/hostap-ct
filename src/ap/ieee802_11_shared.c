@@ -527,6 +527,11 @@ static void hostapd_clear_ext_capab_byte(struct hostapd_data *hapd,
 
 	if (idx == 2 && !hapd->iconf->mbssid)
 		*pos &= ~0x40;
+
+	/* Clear bits 62 (Operating Mode Notification)
+	 * if ieee80211ac is not enabled (mainly 2.4G and 6G) */
+	if (idx == 7 && !hapd->iconf->ieee80211ac)
+		*pos &= ~0x40;
 }
 
 
