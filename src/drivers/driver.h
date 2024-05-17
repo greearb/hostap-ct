@@ -3211,8 +3211,9 @@ struct driver_sta_mlo_info {
 	struct {
 		u8 addr[ETH_ALEN];
 		u8 bssid[ETH_ALEN];
-		unsigned int freq;
+		unsigned int freq, center_freq1, center_freq2;
 		struct t2lm_mapping t2lmap;
+		enum chan_width width;
 	} links[MAX_NUM_MLD_LINKS];
 };
 
