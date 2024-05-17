@@ -1297,6 +1297,27 @@ static int wpa_driver_nl80211_get_ssid(void *priv, u8 *ssid)
 }
 
 
+static void get_link_channel_info(struct nlattr **link_data, u8 link_id,
+				  struct driver_sta_mlo_info *info)
+{
+	info->links[link_id].freq =
+		nla_get_u32(link_data[NL80211_ATTR_WIPHY_FREQ]);
+
+	if (link_data[NL80211_ATTR_CHANNEL_WIDTH]) {
+		info->links[link_id].width =
+	       convert2width(nla_get_u32(link_data[NL80211_ATTR_CHANNEL_WIDTH]));
+
+		if (link_data[NL80211_ATTR_CENTER_FREQ1])
+			info->links[link_id].center_freq1 =
+			      nla_get_u32(link_data[NL80211_ATTR_CENTER_FREQ1]);
+
+		if (link_data[NL80211_ATTR_CENTER_FREQ2])
+			info->links[link_id].center_freq2 =
+			      nla_get_u32(link_data[NL80211_ATTR_CENTER_FREQ2]);
+	}
+}
+
+
 static int get_mlo_info(struct nl_msg *msg, void *arg)
 {
 	struct nlattr *tb[NL80211_ATTR_MAX + 1];
@@ -1334,8 +1355,7 @@ static int get_mlo_info(struct nl_msg *msg, void *arg)
 		os_memcpy(info->links[link_id].addr,
 			  nla_data(link_data[NL80211_ATTR_MAC]), ETH_ALEN);
 		if (link_data[NL80211_ATTR_WIPHY_FREQ])
-			info->links[link_id].freq =
-				nla_get_u32(link_data[NL80211_ATTR_WIPHY_FREQ]);
+			get_link_channel_info(link_data, link_id, info);
 	}
 
 	return NL_SKIP;

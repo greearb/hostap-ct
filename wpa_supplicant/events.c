@@ -4339,6 +4339,9 @@ static int wpa_drv_get_mlo_info(struct wpa_supplicant *wpa_s)
 		os_memcpy(wpa_s->links[i].addr, mlo.links[i].addr, ETH_ALEN);
 		os_memcpy(wpa_s->links[i].bssid, mlo.links[i].bssid, ETH_ALEN);
 		wpa_s->links[i].freq = mlo.links[i].freq;
+		wpa_s->links[i].center_freq1 = mlo.links[i].center_freq1;
+		wpa_s->links[i].center_freq2 = mlo.links[i].center_freq2;
+		wpa_s->links[i].width = mlo.links[i].width;
 		wpa_supplicant_update_link_bss(wpa_s, i, mlo.links[i].bssid);
 	}
 
