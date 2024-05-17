@@ -774,7 +774,8 @@ struct wpa_supplicant {
 	struct {
 		u8 addr[ETH_ALEN];
 		u8 bssid[ETH_ALEN];
-		unsigned int freq;
+		unsigned int freq, center_freq1, center_freq2;
+		enum chan_width width;
 		struct wpa_bss *bss;
 		bool disabled;
 		struct wpabuf *ies;
