@@ -17338,12 +17338,18 @@ enum qca_wlan_vendor_attr_ap_suspend {
  * @QCA_TRAFFIC_TYPE_GAMING: Traffic type is gaming
  * @QCA_TRAFFIC_TYPE_VOICE_CALL: Traffic type is a voice call
  * @QCA_TRAFFIC_TYPE_VIDEO_CALL: Traffic type is a video call
+ * @QCA_TRAFFIC_TYPE_SCREEN_SHARE: Traffic type is screen share
+ * @QCA_TRAFFIC_TYPE_UNKNOWN: Traffic type is unknown
+ * @QCA_TRAFFIC_TYPE_INVALID: Invalid traffic type
  */
 enum qca_traffic_type {
 	QCA_TRAFFIC_TYPE_STREAMING = 0,
 	QCA_TRAFFIC_TYPE_GAMING = 1,
 	QCA_TRAFFIC_TYPE_VOICE_CALL = 2,
 	QCA_TRAFFIC_TYPE_VIDEO_CALL = 3,
+	QCA_TRAFFIC_TYPE_SCREEN_SHARE = 4,
+	QCA_TRAFFIC_TYPE_UNKNOWN = 5,
+	QCA_TRAFFIC_TYPE_INVALID = 6,
 };
 
 /**
