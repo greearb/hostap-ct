@@ -2914,6 +2914,7 @@ static bool is_restricted_eid_in_sta_profile(u8 eid, bool tx_vap)
 	case WLAN_EID_MULTIPLE_BSSID:
 	case WLAN_EID_REDUCED_NEIGHBOR_REPORT:
 	case WLAN_EID_NEIGHBOR_REPORT:
+	case WLAN_EID_FILS_INDICATION:
 		return true;
 	case WLAN_EID_SSID:
 		/* SSID is not restricted for non-transmitted BSSID */
