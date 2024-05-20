@@ -131,7 +131,6 @@ size_t hostapd_eid_eht_capab_len(struct hostapd_data *hapd,
 	return len;
 }
 
-
 u8 * hostapd_eid_eht_capab(struct hostapd_data *hapd, u8 *eid,
 			   enum ieee80211_op_mode opmode)
 {
@@ -287,7 +286,74 @@ u8 * hostapd_eid_eht_operation(struct hostapd_data *hapd, u8 *eid)
 	return pos + elen;
 }
 
+u8 mlo_non_inherit_list_6ghz[] = {
+	WLAN_EID_AP_CHANNEL_REPORT,
+	WLAN_EID_HT_CAP,
+	WLAN_EID_HT_OPERATION,
+	WLAN_EID_VHT_CAP,
+	WLAN_EID_VHT_OPERATION,
+};
 
+u8 mlo_non_inherit_list_6ghz_ext[] = {
+};
+
+u8 mlo_non_inherit_list_2_5ghz[] = {
+	WLAN_EID_VHT_CAP,
+	WLAN_EID_VHT_OPERATION,
+	WLAN_EID_TRANSMIT_POWER_ENVELOPE,
+};
+
+u8 mlo_non_inherit_list_2_5ghz_ext[] = {
+	WLAN_EID_EXT_HE_6GHZ_BAND_CAP,
+};
+
+size_t hostapd_eid_non_inheritance_len(struct hostapd_data *hapd)
+{
+	size_t len = 4;
+
+	if (is_6ghz_op_class(hapd->iconf->op_class)) {
+		len += sizeof(mlo_non_inherit_list_6ghz);
+		len += sizeof(mlo_non_inherit_list_6ghz_ext);
+	} else {
+		len += sizeof(mlo_non_inherit_list_2_5ghz);
+		len += sizeof(mlo_non_inherit_list_2_5ghz_ext);
+	}
+
+	return len;
+}
+
+u8 * hostapd_eid_non_inheritance(struct hostapd_data *hapd, u8 *eid)
+{
+	u8 *pos = eid, *len_pos;
+	int i;
+
+	*pos++ = WLAN_EID_EXTENSION;
+	len_pos = pos++;
+	*pos++ = WLAN_EID_EXT_NON_INHERITANCE;
+	if (is_6ghz_op_class(hapd->iconf->op_class)) {
+		/* Element ID list */
+		*pos++ = sizeof(mlo_non_inherit_list_6ghz);
+		for (i = 0; i < sizeof(mlo_non_inherit_list_6ghz); i++)
+			*pos++ = mlo_non_inherit_list_6ghz[i];
+
+		/* Element ID Extension list */
+		*pos++ = sizeof(mlo_non_inherit_list_6ghz_ext);
+		for (i = 0; i < sizeof(mlo_non_inherit_list_6ghz_ext); i++)
+			*pos++ = mlo_non_inherit_list_6ghz_ext[i];
+	} else {
+		/* Element ID list */
+		*pos++ = sizeof(mlo_non_inherit_list_2_5ghz);
+		for (i = 0; i < sizeof(mlo_non_inherit_list_2_5ghz); i++)
+			*pos++ = mlo_non_inherit_list_2_5ghz[i];
+
+		/* Element ID Extension list */
+		*pos++ = sizeof(mlo_non_inherit_list_2_5ghz_ext);
+		for (i = 0; i < sizeof(mlo_non_inherit_list_2_5ghz_ext); i++)
+			*pos++ = mlo_non_inherit_list_2_5ghz_ext[i];
+	}
+	*len_pos = pos - (eid + 2);
+	return pos;
+}
 static bool check_valid_eht_mcs_nss(struct hostapd_data *hapd, const u8 *ap_mcs,
 				    const u8 *sta_mcs, u8 mcs_count, u8 map_len)
 {

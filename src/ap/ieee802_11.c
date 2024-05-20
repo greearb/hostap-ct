@@ -4789,6 +4789,8 @@ static void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
 	p = hostapd_eid_mbo(hapd, p, buf + buflen - p);
 	p = hostapd_eid_wmm(hapd, p);
 
+	p = hostapd_eid_non_inheritance(hapd, p);
+
 	if (hapd->conf->assocresp_elements &&
 	    (size_t) (buf + buflen - p) >=
 	    wpabuf_len(hapd->conf->assocresp_elements)) {
