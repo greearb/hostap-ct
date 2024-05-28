@@ -155,7 +155,9 @@ amnt_dump_policy[NUM_MTK_VENDOR_ATTRS_AMNT_DUMP] = {
 static struct nla_policy
 pp_ctrl_policy[NUM_MTK_VENDOR_ATTRS_PP_CTRL] = {
 	[MTK_VENDOR_ATTR_PP_MODE] = { .type = NLA_U8 },
-	[MTK_VENDOR_ATTR_PP_BAND_IDX] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_PP_LINK_ID] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_PP_BITMAP] = { .type = NLA_U16 },
+	[MTK_VENDOR_ATTR_PP_CURR_FREQ] = { .type = NLA_U32 },
 };
 #endif
 
@@ -16486,7 +16488,7 @@ static int nl80211_background_radar_mode(void *priv, const u8 background_radar_m
 	return ret;
 }
 
-static int nl80211_pp_mode_set(void *priv, const u8 pp_mode, u8 band_idx)
+static int nl80211_pp_mode_set(void *priv, const u8 pp_mode, s8 link_id, u16 punct_bitmap)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -16513,8 +16515,10 @@ static int nl80211_pp_mode_set(void *priv, const u8 pp_mode, u8 band_idx)
 	if (!data)
 		goto fail;
 
-	nla_put_u8(msg, MTK_VENDOR_ATTR_PP_BAND_IDX, band_idx);
+	if (link_id > -1)
+		nla_put_u8(msg, MTK_VENDOR_ATTR_PP_LINK_ID, link_id);
 	nla_put_u8(msg, MTK_VENDOR_ATTR_PP_MODE, pp_mode);
+	nla_put_u16(msg, MTK_VENDOR_ATTR_PP_BITMAP, punct_bitmap);
 
 	nla_nest_end(msg, data);
 	ret = send_and_recv_cmd(drv, msg);

@@ -22,6 +22,10 @@ enum mtk_nl80211_vendor_subcmds {
 	MTK_NL80211_VENDOR_SUBCMD_EML_CTRL = 0xd3,
 };
 
+enum mtk_nl80211_vendor_subevents {
+	MTK_NL80211_VENDOR_EVENT_PP_BMP_UPDATE = 0x5,
+};
+
 enum mtk_vendor_attr_edcca_ctrl {
 	MTK_VENDOR_ATTR_EDCCA_THRESHOLD_INVALID = 0,
 
@@ -270,7 +274,9 @@ enum mtk_vendor_attr_pp_ctrl {
 	MTK_VENDOR_ATTR_PP_CTRL_UNSPEC,
 
 	MTK_VENDOR_ATTR_PP_MODE,
-	MTK_VENDOR_ATTR_PP_BAND_IDX,
+	MTK_VENDOR_ATTR_PP_LINK_ID,
+	MTK_VENDOR_ATTR_PP_BITMAP,
+	MTK_VENDOR_ATTR_PP_CURR_FREQ,
 
 	/* keep last */
 	NUM_MTK_VENDOR_ATTRS_PP_CTRL,
