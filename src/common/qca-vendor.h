@@ -2180,6 +2180,34 @@ enum qca_wlan_vendor_acs_hw_mode {
  *	that the device supports enhanced audio experience over WLAN feature.
  * @QCA_WLAN_VENDOR_FEATURE_HT_VHT_TWT_RESPONDER: Flag indicates that the device
  *	in AP mode supports TWT responder mode in HT and VHT modes.
+ *
+ * @QCA_WLAN_VENDOR_FEATURE_RSN_OVERRIDE_STA: Flag indicates that the device
+ *	supports RSNE/RSNXE overriding in STA mode.
+ *
+ *	For SME offload to the driver case:
+ *	- Supplicant should enable RSNO element use only when the driver
+ *	  indicates this feature flag.
+ *	- The driver should enable RSNO element use with the supplicant selected
+ *	  BSS only when the supplicant sends an RSNO element with an empty
+ *	  payload in the connect request elements buffer in NL80211_CMD_CONNECT.
+ *
+ *	For BSS selection offload to the driver case:
+ *	- Supplicant should enable RSNO element use only when the driver
+ *	  indicates this feature flag.
+ *	- Supplicant should always send RSNO elements in the connect request
+ *	  elements buffer in NL80211_CMD_CONNECT irrespective of whether RSNO
+ *	  elements are supported by the BSS that the supplicant selected
+ *	- The driver should enable RSNO element use only when the supplicant
+ *	  sends an RSNO element with an empty payload in connect request
+ *	  elements in NL80211_CMD_CONNECT.
+ *	- The driver should remove RSNO elements from the connect request
+ *	  elements while preparing the (Re)Association Request frame elements
+ *	  if the driver selects a different BSS which is not advertising RSNO
+ *	  elements.
+ *
+ *	If both SME and BSS selection offload to the driver, BSS selection
+ *	offload to the driver case rules shall be applied.
+ *
  * @NUM_QCA_WLAN_VENDOR_FEATURES: Number of assigned feature bits
  */
 enum qca_wlan_vendor_features {
@@ -2208,6 +2236,7 @@ enum qca_wlan_vendor_features {
 	QCA_WLAN_VENDOR_FEATURE_AP_ALLOWED_FREQ_LIST = 22,
 	QCA_WLAN_VENDOR_FEATURE_ENHANCED_AUDIO_EXPERIENCE_OVER_WLAN = 23,
 	QCA_WLAN_VENDOR_FEATURE_HT_VHT_TWT_RESPONDER = 24,
+	QCA_WLAN_VENDOR_FEATURE_RSN_OVERRIDE_STA = 25,
 	NUM_QCA_WLAN_VENDOR_FEATURES /* keep last */
 };
 
