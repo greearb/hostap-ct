@@ -1766,13 +1766,13 @@ static int hostapd_cli_cmd_dump_csi(struct wpa_ctrl *ctrl, int argc,
 static int hostapd_cli_cmd_set_pp(struct wpa_ctrl *ctrl, int argc,
 					   char *argv[])
 {
-	return hostapd_cli_cmd(ctrl, "set_pp", 3, argc, argv);
+	return hostapd_cli_cmd(ctrl, "set_pp", 2, argc, argv);
 }
 
 static int hostapd_cli_cmd_get_pp(struct wpa_ctrl *ctrl, int argc,
 					   char *argv[])
 {
-	return hostapd_cli_cmd(ctrl, "get_pp", 1, argc, argv);
+	return hostapd_cli_cmd(ctrl, "get_pp", 0, argc, argv);
 }
 
 static int hostapd_cli_cmd_wmm(struct wpa_ctrl *ctrl, int argc,

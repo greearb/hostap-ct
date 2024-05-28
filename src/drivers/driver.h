@@ -5706,9 +5706,10 @@ struct wpa_driver_ops {
 	 * pp_mode_set - Set preamble puncture operation mode
 	 * @priv: Private driver interface data
 	 * @pp_mode: Value is defined in enum pp_mode
-	 * @band_idx: chip band index
+	 * @link_id: MLD link id. -1 if this is an non-MLD AP
+	 * @punct_bitmap: current puncture bitmap
 	 */
-	int (*pp_mode_set)(void *priv, const u8 pp_mode, u8 band_idx);
+	int (*pp_mode_set)(void *priv, const u8 pp_mode, s8 link_id, u16 punct_bitmap);
 #ifdef CONFIG_IEEE80211BE
 	int (*get_mld_addr)(void *priv, u8 *addr);
 #endif
@@ -6388,6 +6389,12 @@ enum wpa_event_type {
 	 * channel has been updated and operating channel should expand its width.
 	 */
 	EVENT_DFS_BACKGROUND_CHAN_EXPAND,
+
+	/**
+	 * EVENT_PP_BITMAP_UPDATE - Notification that the new puncture bitmap
+	 * has been applied and a channel switch should be triggered.
+	 */
+	EVENT_PP_BITMAP_UPDATE,
 
 	/**
 	 * EVENT_SETUP_LINK_RECONFIG - Notification that new AP links added

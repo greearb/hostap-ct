@@ -19,6 +19,7 @@
 #include "common/ieee802_11_defs.h"
 #include "common/ieee802_11_common.h"
 #include "driver_nl80211.h"
+#include "common/mtk_vendor.h"
 
 
 static void
@@ -3625,6 +3626,50 @@ static void nl80211_vendor_event_brcm(struct wpa_driver_nl80211_data *drv,
 
 #endif /* CONFIG_DRIVER_NL80211_BRCM */
 
+static void mtk_nl80211_pp_bitmap_update(struct wpa_driver_nl80211_data *drv,
+					 const u8 *data, size_t len)
+{
+	struct nlattr *tb[MTK_VENDOR_ATTR_PP_CTRL_MAX + 1];
+	union wpa_event_data event;
+
+	wpa_printf(MSG_DEBUG,
+		   "nl80211: MTK pp bitmap update vendor event received");
+
+	if (nla_parse(tb, MTK_VENDOR_ATTR_PP_CTRL_MAX,
+		      (struct nlattr *) data, len, NULL) ||
+	    !tb[MTK_VENDOR_ATTR_PP_CURR_FREQ] ||
+	    !tb[MTK_VENDOR_ATTR_PP_BITMAP])
+		return;
+
+	os_memset(&event, 0, sizeof(event));
+	event.ch_switch.freq = nla_get_u32(tb[MTK_VENDOR_ATTR_PP_CURR_FREQ]);
+
+	event.ch_switch.link_id =
+		nl80211_get_link_id_by_freq(drv->first_bss, event.ch_switch.freq);
+	event.ch_switch.punct_bitmap =
+		nla_get_u16(tb[MTK_VENDOR_ATTR_PP_BITMAP]);
+
+	wpa_printf(MSG_DEBUG,
+		   "nl80211: puncture bitmap: 0x%04x, link_id: %d",
+		   event.ch_switch.punct_bitmap, event.ch_switch.link_id);
+	wpa_supplicant_event(drv->ctx, EVENT_PP_BITMAP_UPDATE, &event);
+}
+
+static void nl80211_vendor_event_mtk(struct wpa_driver_nl80211_data *drv,
+				      u32 subcmd, u8 *data, size_t len)
+{
+	wpa_printf(MSG_DEBUG, "nl80211: Got MTK vendor event %u", subcmd);
+	switch (subcmd) {
+	case MTK_NL80211_VENDOR_EVENT_PP_BMP_UPDATE:
+		mtk_nl80211_pp_bitmap_update(drv, data, len);
+		break;
+	default:
+		wpa_printf(MSG_DEBUG,
+			   "%s: Ignore unsupported MTK vendor event %u",
+			   __func__, subcmd);
+		break;
+	}
+}
 
 static void nl80211_vendor_event(struct i802_bss *bss, struct nlattr **tb)
 {
@@ -3681,6 +3726,9 @@ static void nl80211_vendor_event(struct i802_bss *bss, struct nlattr **tb)
 		nl80211_vendor_event_brcm(drv, subcmd, data, len);
 		break;
 #endif /* CONFIG_DRIVER_NL80211_BRCM */
+	case OUI_MTK:
+		nl80211_vendor_event_mtk(drv, subcmd, data, len);
+		break;
 	default:
 		wpa_printf(MSG_DEBUG, "nl80211: Ignore unsupported vendor event");
 		break;
