@@ -1382,6 +1382,21 @@ static void hostapd_dpp_start_gas_client(struct hostapd_data *hapd)
 }
 
 
+static void hostapd_gas_req_wait(void *eloop_ctx, void *timeout_ctx)
+{
+	struct hostapd_data *hapd = eloop_ctx;
+	struct dpp_authentication *auth = hapd->dpp_auth;
+
+	if (!auth)
+		return;
+
+	wpa_printf(MSG_DEBUG, "DPP: Timeout while waiting for Config Request");
+	wpa_msg(hapd->msg_ctx, MSG_INFO, DPP_EVENT_CONF_FAILED);
+	dpp_auth_deinit(auth);
+	hapd->dpp_auth = NULL;
+}
+
+
 static void hostapd_dpp_auth_success(struct hostapd_data *hapd, int initiator)
 {
 	wpa_printf(MSG_DEBUG, "DPP: Authentication succeeded");
@@ -1400,6 +1415,9 @@ static void hostapd_dpp_auth_success(struct hostapd_data *hapd, int initiator)
 
 	if (!hapd->dpp_auth->configurator)
 		hostapd_dpp_start_gas_client(hapd);
+	else
+		eloop_register_timeout(10, 0, hostapd_gas_req_wait,
+				       hapd, NULL);
 }
 
 
@@ -3079,6 +3097,7 @@ hostapd_dpp_gas_req_handler(struct hostapd_data *hapd, const u8 *sa,
 	struct wpabuf *resp;
 
 	wpa_printf(MSG_DEBUG, "DPP: GAS request from " MACSTR, MAC2STR(sa));
+	eloop_cancel_timeout(hostapd_gas_req_wait, hapd, NULL);
 	if (!auth || (!auth->auth_success && !auth->reconfig_success) ||
 	    !ether_addr_equal(sa, auth->peer_mac_addr)) {
 #ifdef CONFIG_DPP2
@@ -3359,6 +3378,7 @@ void hostapd_dpp_stop(struct hostapd_data *hapd)
 #ifdef CONFIG_DPP3
 	hostapd_dpp_push_button_stop(hapd);
 #endif /* CONFIG_DPP3 */
+	eloop_cancel_timeout(hostapd_gas_req_wait, hapd, NULL);
 }
 
 
@@ -3512,6 +3532,7 @@ void hostapd_dpp_deinit(struct hostapd_data *hapd)
 	eloop_cancel_timeout(hostapd_dpp_auth_conf_wait_timeout, hapd, NULL);
 	eloop_cancel_timeout(hostapd_dpp_init_timeout, hapd, NULL);
 	eloop_cancel_timeout(hostapd_dpp_auth_resp_retry_timeout, hapd, NULL);
+	eloop_cancel_timeout(hostapd_gas_req_wait, hapd, NULL);
 #ifdef CONFIG_DPP2
 	eloop_cancel_timeout(hostapd_dpp_reconfig_reply_wait_timeout,
 			     hapd, NULL);
