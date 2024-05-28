@@ -44,6 +44,7 @@
 #include "fils_hlp.h"
 #include "neighbor_db.h"
 #include "nan_usd_ap.h"
+#include "ap/beacon.h"
 
 
 #ifdef CONFIG_FILS
@@ -2588,6 +2589,79 @@ static void hostapd_mld_iface_disable(struct hostapd_data *hapd)
 		hostapd_iface_disable(link_bss);
 }
 
+
+static void hostapd_event_pp_bitmap_update(struct hostapd_data *hapd,
+					   struct ch_switch *ch_switch)
+{
+	struct hostapd_iface *iface = hapd->iface;
+	struct hostapd_hw_modes *cmode = iface->current_mode;
+	int err, freq;
+	struct csa_settings csa_settings;
+	unsigned int i;
+
+	/* Check if CSA in progress */
+	if (hostapd_csa_in_progress(iface))
+		return;
+
+	if (!hw_get_channel_chan(cmode, iface->conf->channel, &freq))
+		return;
+
+	if (iface->conf->punct_bitmap == ch_switch->punct_bitmap ||
+	    freq != ch_switch->freq)
+		return;
+
+	/* Setup CSA request */
+	os_memset(&csa_settings, 0, sizeof(csa_settings));
+	csa_settings.cs_count = 5;
+	csa_settings.block_tx = 0;
+	csa_settings.link_id = ch_switch->link_id;
+
+	err = hostapd_set_freq_params(&csa_settings.freq_params,
+				      iface->conf->hw_mode,
+				      freq,
+				      iface->conf->channel,
+				      iface->conf->enable_edmg,
+				      iface->conf->edmg_channel,
+				      iface->conf->ieee80211n,
+				      iface->conf->ieee80211ac,
+				      iface->conf->ieee80211ax,
+				      iface->conf->ieee80211be,
+				      iface->conf->secondary_channel,
+				      hostapd_get_oper_chwidth(iface->conf),
+				      hostapd_get_oper_centr_freq_seg0_idx(iface->conf),
+				      hostapd_get_oper_centr_freq_seg1_idx(iface->conf),
+				      cmode->vht_capab,
+				      &cmode->he_capab[IEEE80211_MODE_AP],
+				      &cmode->eht_capab[IEEE80211_MODE_AP],
+				      ch_switch->punct_bitmap);
+
+	if (err) {
+		wpa_printf(MSG_ERROR,
+			   "Failed to calculate CSA freq params");
+		hostapd_disable_iface(iface);
+		return;
+	}
+
+	for (i = 0; i < iface->num_bss; i++) {
+		ieee802_11_set_bss_critical_update(iface->bss[i],
+						   BSS_CRIT_UPDATE_EVENT_CSA);
+
+		err = hostapd_switch_channel(iface->bss[i], &csa_settings);
+		if (err)
+			break;
+
+#ifdef CONFIG_IEEE80211BE
+		if (iface->bss[i]->conf->mld_ap)
+			hostapd_update_aff_link_beacon(iface->bss[i],
+						       csa_settings.cs_count);
+
+		/* FIXME:
+		 * CU flag should be cleared when receiving DTIM event from FW
+		 */
+		iface->bss[i]->eht_mld_bss_critical_update = 0;
+#endif /* CONFIG_IEEE80211BE */
+	}
+}
 #endif /* CONFIG_IEEE80211BE */
 
 
@@ -2895,6 +2969,12 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		hostapd_event_dfs_cac_started(hapd, &data->dfs_event);
 		break;
 #endif /* NEED_AP_MLME */
+	case EVENT_PP_BITMAP_UPDATE:
+		if (!data)
+			break;
+		hapd = switch_link_hapd(hapd, data->ch_switch.link_id);
+		hostapd_event_pp_bitmap_update(hapd, &data->ch_switch);
+		break;
 	case EVENT_INTERFACE_ENABLED:
 #ifdef CONFIG_IEEE80211BE
 		if (hapd->conf->mld_ap) {

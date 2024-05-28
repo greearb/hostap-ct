@@ -2643,6 +2643,7 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 {
 #ifdef NEED_AP_MLME
 	struct csa_settings settings;
+	struct hostapd_data *hapd;
 	int ret;
 	int dfs_range = 0;
 	unsigned int i;
@@ -2735,6 +2736,17 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 			   "CAC is in progress - switching channel without CSA");
 		return hostapd_force_channel_switch(iface, &settings);
 	}
+
+#ifdef CONFIG_IEEE80211BE
+	hapd = iface->bss[0];
+	if (hapd->iconf->punct_bitmap != settings.freq_params.punct_bitmap &&
+	    hapd->iconf->pp_mode != PP_USR_MODE) {
+		hapd->iconf->pp_mode = PP_USR_MODE;
+		ret = hostapd_drv_pp_mode_set(hapd);
+		if (ret)
+			return ret;
+	}
+#endif /* CONFIG_IEEE80211BE */
 
 	for (i = 0; i < iface->num_bss; i++) {
 
@@ -4970,8 +4982,7 @@ static int
 hostapd_ctrl_iface_set_pp(struct hostapd_data *hapd, char *cmd, char *buf,
 			  size_t buflen)
 {
-	char *band, *config, *value;
-	u8 band_idx;
+	char *config, *value;
 
 	config = cmd;
 
@@ -4980,31 +4991,26 @@ hostapd_ctrl_iface_set_pp(struct hostapd_data *hapd, char *cmd, char *buf,
 		return -1;
 	*value++ = '\0';
 
-	band = os_strchr(value, ' ');
-	if (band == NULL)
-		return -1;
-	*band++ = '\0';
-	band_idx = strtol(band, NULL, 10);
-
-	hapd = hostapd_get_hapd_by_band_idx(hapd, band_idx);
-
-	if (!hapd)
-		return -1;
-
 	if (os_strcmp(config, "mode") == 0) {
 		int val = strtol(value, NULL, 10);
 
-		if (val < PP_DISABLE || val > PP_FW_MODE) {
+		switch(val) {
+		case PP_DISABLE:
+		case PP_FW_MODE:
+			break;
+		case PP_USR_MODE:
+		default:
 			wpa_printf(MSG_ERROR, "Invalid value for SET_PP");
 			return -1;
 		}
 		hapd->iconf->pp_mode = (u8) val;
+		hapd->iconf->punct_bitmap = 0;
 		if (hostapd_drv_pp_mode_set(hapd) != 0)
 			return -1;
 	} else {
 		wpa_printf(MSG_ERROR,
 			   "Unsupported parameter %s for SET_PP"
-			   "Usage: set_pp mode <value> <band_idx>", config);
+			   "Usage: set_pp mode <value>", config);
 		return -1;
 	}
 	return os_snprintf(buf, buflen, "OK\n");
@@ -5014,15 +5020,6 @@ static int
 hostapd_ctrl_iface_get_pp(struct hostapd_data *hapd, char *cmd, char *buf,
 			  size_t buflen)
 {
-	u8 band_idx;
-
-	band_idx = strtol(cmd, NULL, 10);
-
-	hapd = hostapd_get_hapd_by_band_idx(hapd, band_idx);
-
-	if (!hapd)
-		return -1;
-
 	return os_snprintf(buf, buflen, "pp_mode: %d, punct_bitmap: 0x%04x\n",
 			   hapd->iconf->pp_mode, hapd->iconf->punct_bitmap);
 }
