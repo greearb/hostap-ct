@@ -5308,6 +5308,14 @@ SM_STATE(WPA_PTK_GROUP, KEYERROR)
 	SM_ENTRY_MA(WPA_PTK_GROUP, KEYERROR, wpa_ptk_group);
 	if (sm->GUpdateStationKeys)
 		wpa_gkeydone_sta(sm);
+	if (sm->wpa_auth->conf.no_disconnect_on_group_keyerror &&
+	    sm->wpa == WPA_VERSION_WPA2) {
+		wpa_auth_vlogger(sm->wpa_auth, wpa_auth_get_spa(sm),
+				 LOGGER_DEBUG,
+				 "group key handshake failed after %u tries - allow STA to remain connected",
+				 sm->wpa_auth->conf.wpa_group_update_count);
+		return;
+	}
 	sm->Disconnect = true;
 	sm->disconnect_reason = WLAN_REASON_GROUP_KEY_UPDATE_TIMEOUT;
 	wpa_auth_vlogger(sm->wpa_auth, wpa_auth_get_spa(sm), LOGGER_INFO,

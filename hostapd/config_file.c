@@ -2558,6 +2558,16 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 			return 1;
 		}
 		bss->bss_max_idle = val;
+	} else if (os_strcmp(buf, "no_disconnect_on_group_keyerror") == 0) {
+		int val = atoi(pos);
+
+		if (val < 0 || val > 1) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: Invalid no_disconnect_on_group_keyerror",
+				   line);
+			return 1;
+		}
+		bss->no_disconnect_on_group_keyerror = val;
 	} else if (os_strcmp(buf, "config_id") == 0) {
 		os_free(bss->config_id);
 		bss->config_id = os_strdup(pos);

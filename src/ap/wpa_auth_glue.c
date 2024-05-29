@@ -224,6 +224,9 @@ static void hostapd_wpa_auth_conf(struct hostapd_bss_config *conf,
 #endif /* CONFIG_PASN */
 
 	wconf->radius_psk = conf->wpa_psk_radius == PSK_RADIUS_DURING_4WAY_HS;
+	wconf->no_disconnect_on_group_keyerror =
+		conf->bss_max_idle && conf->ap_max_inactivity &&
+		conf->no_disconnect_on_group_keyerror;
 }
 
 

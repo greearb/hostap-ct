@@ -281,6 +281,8 @@ struct wpa_auth_config {
 
 	bool radius_psk;
 
+	bool no_disconnect_on_group_keyerror;
+
 	/* Pointer to Multi-BSSID transmitted BSS authenticator instance.
 	 * Set only in nontransmitted BSSs, i.e., is NULL for transmitted BSS
 	 * and in BSSs that are not part of a Multi-BSSID set. */
