@@ -38,7 +38,8 @@ def start_wnm_ap(apdev, bss_transition=True, time_adv=False, ssid=None,
                  ocv=False, ap_max_inactivity=0, coloc_intf_reporting=False,
                  hw_mode=None, channel=None, country_code=None, country3=None,
                  pmf=True, passphrase=None, ht=True, vht=False, mbo=False,
-                 beacon_prot=False, he=False):
+                 beacon_prot=False, he=False, bss_max_idle=None,
+                 wpa_group_rekey=None, no_disconnect_on_group_keyerror=False):
     if rsn:
         if not ssid:
             ssid = "test-wnm-rsn"
@@ -87,6 +88,12 @@ def start_wnm_ap(apdev, bss_transition=True, time_adv=False, ssid=None,
         params["he_bss_color"] = "42"
     if mbo:
         params["mbo"] = "1"
+    if bss_max_idle is not None:
+        params["bss_max_idle"] = str(bss_max_idle)
+    if wpa_group_rekey:
+        params["wpa_group_rekey"] = str(wpa_group_rekey)
+    if no_disconnect_on_group_keyerror:
+        params["no_disconnect_on_group_keyerror"] = "1"
     try:
         hapd = hostapd.add_ap(apdev, params)
     except Exception as e:
@@ -780,9 +787,18 @@ def test_wnm_bss_tm_req(dev, apdev):
 @disable_ipv6
 def test_wnm_bss_keep_alive(dev, apdev):
     """WNM keep-alive"""
-    hapd = start_wnm_ap(apdev[0], bss_transition=False, ap_max_inactivity=1)
+    run_wnm_bss_keep_alive(dev, apdev, False)
+
+def test_wnm_bss_protected_keep_alive(dev, apdev):
+    """WNM protected keep-alive"""
+    run_wnm_bss_keep_alive(dev, apdev, True)
+
+def run_wnm_bss_keep_alive(dev, apdev, protected):
+    hapd = start_wnm_ap(apdev[0], bss_transition=False, ap_max_inactivity=1,
+                        bss_max_idle=2 if protected else 1, rsn=True)
     addr = dev[0].p2p_interface_addr()
-    dev[0].connect("test-wnm", key_mgmt="NONE", scan_freq="2412")
+    dev[0].connect("test-wnm-rsn", psk="12345678", ieee80211w="2",
+                   key_mgmt="WPA-PSK-SHA256", proto="WPA2", scan_freq="2412")
     start = hapd.get_sta(addr)
     ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=2)
     if ev is not None:
@@ -806,6 +822,51 @@ def test_wnm_bss_keep_alive(dev, apdev):
         dev[0].request("SET no_keep_alive 0")
     if int(sta['tx_packets']) <= int(end['tx_packets']):
         raise Exception("No client poll packet seen")
+
+def test_wnm_bss_group_rekey(dev, apdev):
+    """WNM BSS max idle period and group rekey"""
+    hapd = start_wnm_ap(apdev[0], bss_transition=False, ap_max_inactivity=100,
+                        wpa_group_rekey=2, rsn=True)
+    addr = dev[0].own_addr()
+    dev[0].connect("test-wnm-rsn", psk="12345678", ieee80211w="2",
+                   key_mgmt="WPA-PSK-SHA256", proto="WPA2", scan_freq="2412")
+    start = hapd.get_sta(addr)
+    ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED",
+                            "RSN: Group rekeying completed"], timeout=3)
+    if ev is None:
+        raise Exception("No group rekeying")
+    if "CTRL-EVENT-DISCONNECTED" in ev:
+        raise Exception("Unexpected disconnection")
+
+    hapd.set("ext_eapol_frame_io", "1")
+    ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED",
+                            "RSN: Group rekeying completed"], timeout=20)
+    if ev is None or "CTRL-EVENT-DISCONNECTED" not in ev:
+        raise Exception("No disconnection reported on missing group rekeying")
+    dev[0].request("DISCONNECT")
+
+def test_wnm_bss_group_rekey_skip(dev, apdev):
+    """WNM BSS max idle period and group rekey skip allowed"""
+    hapd = start_wnm_ap(apdev[0], bss_transition=False, ap_max_inactivity=100,
+                        wpa_group_rekey=2, rsn=True,
+                        no_disconnect_on_group_keyerror=True)
+    addr = dev[0].own_addr()
+    dev[0].connect("test-wnm-rsn", psk="12345678", ieee80211w="2",
+                   key_mgmt="WPA-PSK-SHA256", proto="WPA2", scan_freq="2412")
+    start = hapd.get_sta(addr)
+    ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED",
+                            "RSN: Group rekeying completed"], timeout=3)
+    if ev is None:
+        raise Exception("No group rekeying")
+    if "CTRL-EVENT-DISCONNECTED" in ev:
+        raise Exception("Unexpected disconnection")
+
+    hapd.set("ext_eapol_frame_io", "1")
+    ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED",
+                            "RSN: Group rekeying completed"], timeout=20)
+    if ev:
+        raise Exception("Unexpected event reported: " + ev)
+    dev[0].request("DISCONNECT")
 
 def test_wnm_bss_tm(dev, apdev):
     """WNM BSS Transition Management"""
