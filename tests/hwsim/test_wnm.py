@@ -19,19 +19,19 @@ from wlantest import Wlantest
 from datetime import datetime
 
 def clear_regdom_state(dev, hapd, hapd2):
-        for i in range(0, 3):
-            ev = dev[0].wait_event(["CTRL-EVENT-REGDOM-CHANGE"], timeout=0.5)
-            if ev is None or "init=COUNTRY_IE" in ev:
-                break
-        if hapd:
-            hapd.request("DISABLE")
-        if hapd2:
-            hapd2.request("DISABLE")
-        subprocess.call(['iw', 'reg', 'set', '00'])
-        dev[0].disconnect_and_stop_scan()
-        subprocess.call(['iw', 'reg', 'set', '00'])
-        dev[0].wait_event(["CTRL-EVENT-REGDOM-CHANGE"], timeout=0.5)
-        dev[0].flush_scan_cache()
+    for i in range(0, 3):
+        ev = dev[0].wait_event(["CTRL-EVENT-REGDOM-CHANGE"], timeout=0.5)
+        if ev is None or "init=COUNTRY_IE" in ev:
+            break
+    if hapd:
+        hapd.request("DISABLE")
+    if hapd2:
+        hapd2.request("DISABLE")
+    subprocess.call(['iw', 'reg', 'set', '00'])
+    dev[0].disconnect_and_stop_scan()
+    subprocess.call(['iw', 'reg', 'set', '00'])
+    dev[0].wait_event(["CTRL-EVENT-REGDOM-CHANGE"], timeout=0.5)
+    dev[0].flush_scan_cache()
 
 def start_wnm_ap(apdev, bss_transition=True, time_adv=False, ssid=None,
                  wnm_sleep_mode=False, wnm_sleep_mode_no_keys=False, rsn=False,
