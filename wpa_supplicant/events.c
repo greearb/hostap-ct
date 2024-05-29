@@ -404,6 +404,10 @@ void wpa_supplicant_mark_disassoc(struct wpa_supplicant *wpa_s)
 
 	wpa_s->wps_scan_done = false;
 	wpas_reset_mlo_info(wpa_s);
+
+#ifdef CONFIG_SME
+	wpa_s->sme.bss_max_idle_period = 0;
+#endif /* CONFIG_SME */
 }
 
 
@@ -2928,6 +2932,8 @@ static void wnm_process_assoc_resp(struct wpa_supplicant *wpa_s,
 					       wnm_bss_keep_alive, wpa_s,
 					       NULL);
 		}
+	} else {
+		wpa_s->sme.bss_max_idle_period = 0;
 	}
 #endif /* CONFIG_SME */
 }

@@ -2558,6 +2558,16 @@ static int wpa_supplicant_ctrl_iface_status(struct wpa_supplicant *wpa_s,
 		pos += ret;
 	}
 
+#ifdef CONFIG_SME
+	if (wpa_s->sme.bss_max_idle_period) {
+		ret = os_snprintf(pos, end - pos, "bss_max_idle_period=%d\n",
+				  wpa_s->sme.bss_max_idle_period);
+		if (os_snprintf_error(end - pos, ret))
+			return pos - buf;
+		pos += ret;
+	}
+#endif /* CONFIG_SME */
+
 #ifdef ANDROID
 	/*
 	 * Allow using the STATUS command with default behavior, say for debug,
