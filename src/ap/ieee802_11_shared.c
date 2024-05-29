@@ -737,7 +737,8 @@ int hostapd_update_time_adv(struct hostapd_data *hapd)
 }
 
 
-u8 * hostapd_eid_bss_max_idle_period(struct hostapd_data *hapd, u8 *eid)
+u8 * hostapd_eid_bss_max_idle_period(struct hostapd_data *hapd, u8 *eid,
+				     u16 value)
 {
 	u8 *pos = eid;
 
@@ -756,6 +757,8 @@ u8 * hostapd_eid_bss_max_idle_period(struct hostapd_data *hapd, u8 *eid)
 			val = 1;
 		if (val > 65535)
 			val = 65535;
+		if (value)
+			val = value;
 		WPA_PUT_LE16(pos, val);
 		pos += 2;
 		/* Set the Protected Keep-Alive Required bit based on

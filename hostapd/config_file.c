@@ -2558,6 +2558,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 			return 1;
 		}
 		bss->bss_max_idle = val;
+	} else if (os_strcmp(buf, "max_acceptable_idle_period") == 0) {
+		bss->max_acceptable_idle_period = atoi(pos);
 	} else if (os_strcmp(buf, "no_disconnect_on_group_keyerror") == 0) {
 		int val = atoi(pos);
 

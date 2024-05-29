@@ -532,6 +532,7 @@ void ap_handle_timer(void *eloop_ctx, void *timeout_ctx)
 	struct sta_info *sta = timeout_ctx;
 	unsigned long next_time = 0;
 	int reason;
+	int max_inactivity = hapd->conf->ap_max_inactivity;
 
 	wpa_printf(MSG_DEBUG, "%s: %s: " MACSTR " flags=0x%x timeout_next=%d",
 		   hapd->conf->iface, __func__, MAC2STR(sta->addr), sta->flags,
@@ -543,6 +544,9 @@ void ap_handle_timer(void *eloop_ctx, void *timeout_ctx)
 		ap_free_sta(hapd, sta);
 		return;
 	}
+
+	if (sta->max_idle_period)
+		max_inactivity = (sta->max_idle_period * 1024 + 999) / 1000;
 
 	if ((sta->flags & WLAN_STA_ASSOC) &&
 	    (sta->timeout_next == STA_NULLFUNC ||
@@ -565,7 +569,7 @@ void ap_handle_timer(void *eloop_ctx, void *timeout_ctx)
 			 * Anyway, try again after the next inactivity timeout,
 			 * but do not disconnect the station now.
 			 */
-			next_time = hapd->conf->ap_max_inactivity + fuzz;
+			next_time = max_inactivity + fuzz;
 		} else if (inactive_sec == -ENOENT) {
 			wpa_msg(hapd->msg_ctx, MSG_DEBUG,
 				"Station " MACSTR " has lost its driver entry",
@@ -574,20 +578,19 @@ void ap_handle_timer(void *eloop_ctx, void *timeout_ctx)
 			/* Avoid sending client probe on removed client */
 			sta->timeout_next = STA_DISASSOC;
 			goto skip_poll;
-		} else if (inactive_sec < hapd->conf->ap_max_inactivity) {
+		} else if (inactive_sec < max_inactivity) {
 			/* station activity detected; reset timeout state */
 			wpa_msg(hapd->msg_ctx, MSG_DEBUG,
 				"Station " MACSTR " has been active %is ago",
 				MAC2STR(sta->addr), inactive_sec);
 			sta->timeout_next = STA_NULLFUNC;
-			next_time = hapd->conf->ap_max_inactivity + fuzz -
-				inactive_sec;
+			next_time = max_inactivity + fuzz - inactive_sec;
 		} else {
 			wpa_msg(hapd->msg_ctx, MSG_DEBUG,
 				"Station " MACSTR " has been "
 				"inactive too long: %d sec, max allowed: %d",
 				MAC2STR(sta->addr), inactive_sec,
-				hapd->conf->ap_max_inactivity);
+				max_inactivity);
 
 			if (hapd->conf->skip_inactivity_poll)
 				sta->timeout_next = STA_DISASSOC;
@@ -603,7 +606,7 @@ void ap_handle_timer(void *eloop_ctx, void *timeout_ctx)
 		/* data nullfunc frame poll did not produce TX errors; assume
 		 * station ACKed it */
 		sta->timeout_next = STA_NULLFUNC;
-		next_time = hapd->conf->ap_max_inactivity;
+		next_time = max_inactivity;
 	}
 
 skip_poll:
@@ -791,6 +794,7 @@ struct sta_info * ap_sta_add(struct hostapd_data *hapd, const u8 *addr)
 {
 	struct sta_info *sta;
 	int i;
+	int max_inactivity = hapd->conf->ap_max_inactivity;
 
 	sta = ap_get_sta(hapd, addr);
 	if (sta)
@@ -824,12 +828,15 @@ struct sta_info * ap_sta_add(struct hostapd_data *hapd, const u8 *addr)
 	}
 	sta->supported_rates_len = i;
 
+	if (sta->max_idle_period)
+		max_inactivity = (sta->max_idle_period * 1024 + 999) / 1000;
+
 	if (!(hapd->iface->drv_flags & WPA_DRIVER_FLAGS_INACTIVITY_TIMER)) {
 		wpa_printf(MSG_DEBUG, "%s: register ap_handle_timer timeout "
 			   "for " MACSTR " (%d seconds - ap_max_inactivity)",
 			   __func__, MAC2STR(addr),
-			   hapd->conf->ap_max_inactivity);
-		eloop_register_timeout(hapd->conf->ap_max_inactivity, 0,
+			   max_inactivity);
+		eloop_register_timeout(max_inactivity, 0,
 				       ap_handle_timer, hapd, sta);
 	}
 

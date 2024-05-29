@@ -277,6 +277,14 @@ static int hostapd_ctrl_iface_sta_mib(struct hostapd_data *hapd,
 		return len;
 	len += ret;
 
+	if (sta->max_idle_period) {
+		ret = os_snprintf(buf + len, buflen - len,
+				  "max_idle_period=%d\n", sta->max_idle_period);
+		if (os_snprintf_error(buflen - len, ret))
+			return len;
+		len += ret;
+	}
+
 	res = ieee802_11_get_mib_sta(hapd, sta, buf + len, buflen - len);
 	if (res >= 0)
 		len += res;

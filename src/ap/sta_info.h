@@ -332,6 +332,9 @@ struct sta_info {
 	struct mld_info mld_info;
 	u8 mld_assoc_link_id;
 #endif /* CONFIG_IEEE80211BE */
+
+	u16 max_idle_period; /* if nonzero, the granted BSS max idle period in
+			      * units of 1000 TUs */
 };
 
 

@@ -4328,6 +4328,19 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		sta->power_capab = 0;
 	}
 
+	if (elems->bss_max_idle_period &&
+	    hapd->conf->max_acceptable_idle_period) {
+		u16 req;
+
+		req = WPA_GET_LE16(elems->bss_max_idle_period);
+		if (req <= hapd->conf->max_acceptable_idle_period)
+			sta->max_idle_period = req;
+		else if (hapd->conf->max_acceptable_idle_period >
+			 hapd->conf->ap_max_inactivity)
+			sta->max_idle_period =
+				hapd->conf->max_acceptable_idle_period;
+	}
+
 	return WLAN_STATUS_SUCCESS;
 }
 
@@ -4902,7 +4915,7 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 #endif /* CONFIG_IEEE80211AX */
 
 	p = hostapd_eid_ext_capab(hapd, p, false);
-	p = hostapd_eid_bss_max_idle_period(hapd, p);
+	p = hostapd_eid_bss_max_idle_period(hapd, p, sta->max_idle_period);
 	if (sta && sta->qos_map_enabled)
 		p = hostapd_eid_qos_map_set(hapd, p);
 
