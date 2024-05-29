@@ -2549,6 +2549,15 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->ap_max_inactivity = atoi(pos);
 	} else if (os_strcmp(buf, "skip_inactivity_poll") == 0) {
 		bss->skip_inactivity_poll = atoi(pos);
+	} else if (os_strcmp(buf, "bss_max_idle") == 0) {
+		int val = atoi(pos);
+
+		if (val < 0 || val > 2) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: Invalid bss_max_idle value", line);
+			return 1;
+		}
+		bss->bss_max_idle = val;
 	} else if (os_strcmp(buf, "config_id") == 0) {
 		os_free(bss->config_id);
 		bss->config_id = os_strdup(pos);

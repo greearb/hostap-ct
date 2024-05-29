@@ -92,6 +92,7 @@ void hostapd_config_defaults_bss(struct hostapd_bss_config *bss)
 	bss->eap_sim_id = 3;
 	bss->eap_sim_aka_fast_reauth_limit = 1000;
 	bss->ap_max_inactivity = AP_MAX_INACTIVITY;
+	bss->bss_max_idle = 1;
 	bss->eapol_version = EAPOL_VERSION;
 
 	bss->max_listen_interval = 65535;

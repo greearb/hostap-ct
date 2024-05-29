@@ -465,6 +465,7 @@ struct hostapd_bss_config {
 				 */
 
 	int ap_max_inactivity;
+	int bss_max_idle;
 	int ignore_broadcast_ssid;
 	int no_probe_resp_if_max_sta;
 
