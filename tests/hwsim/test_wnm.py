@@ -39,7 +39,8 @@ def start_wnm_ap(apdev, bss_transition=True, time_adv=False, ssid=None,
                  hw_mode=None, channel=None, country_code=None, country3=None,
                  pmf=True, passphrase=None, ht=True, vht=False, mbo=False,
                  beacon_prot=False, he=False, bss_max_idle=None,
-                 wpa_group_rekey=None, no_disconnect_on_group_keyerror=False):
+                 wpa_group_rekey=None, no_disconnect_on_group_keyerror=False,
+                 max_acceptable_idle_period=None):
     if rsn:
         if not ssid:
             ssid = "test-wnm-rsn"
@@ -94,6 +95,8 @@ def start_wnm_ap(apdev, bss_transition=True, time_adv=False, ssid=None,
         params["wpa_group_rekey"] = str(wpa_group_rekey)
     if no_disconnect_on_group_keyerror:
         params["no_disconnect_on_group_keyerror"] = "1"
+    if max_acceptable_idle_period is not None:
+        params["max_acceptable_idle_period"] = str(max_acceptable_idle_period)
     try:
         hapd = hostapd.add_ap(apdev, params)
     except Exception as e:
@@ -822,6 +825,34 @@ def run_wnm_bss_keep_alive(dev, apdev, protected):
         dev[0].request("SET no_keep_alive 0")
     if int(sta['tx_packets']) <= int(end['tx_packets']):
         raise Exception("No client poll packet seen")
+
+def test_wnm_bss_max_idle_period_management(dev, apdev):
+    """WNM BSS max idle period management"""
+    hapd = start_wnm_ap(apdev[0], bss_transition=False, ap_max_inactivity=10,
+                        max_acceptable_idle_period=1000, rsn=True)
+    addr = dev[0].own_addr()
+    dev[0].connect("test-wnm-rsn", psk="12345678", ieee80211w="2",
+                   key_mgmt="WPA-PSK-SHA256", proto="WPA2", scan_freq="2412",
+                   max_idle="1500")
+    addr1 = dev[1].own_addr()
+    dev[1].connect("test-wnm-rsn", psk="12345678", ieee80211w="2",
+                   key_mgmt="WPA-PSK-SHA256", proto="WPA2", scan_freq="2412")
+
+    ap_val = hapd.get_sta(addr)['max_idle_period']
+    if ap_val != '1000':
+        raise Exception("AP reported unexpected value: " + ap_val)
+
+    sta_val = dev[0].get_status_field("bss_max_idle_period")
+    if sta_val != '1000':
+        raise Exception("STA reported unexpected value: " + sta_val)
+
+    sta = hapd.get_sta(addr1)
+    if 'max_idle_period' in sta:
+        raise Exception("AP reported unexpected value(2): " + sta['max_idle_period'])
+
+    sta_val = dev[1].get_status_field("bss_max_idle_period")
+    if sta_val != '9':
+        raise Exception("STA reported unexpected value(2): " + sta_val)
 
 def test_wnm_bss_group_rekey(dev, apdev):
     """WNM BSS max idle period and group rekey"""

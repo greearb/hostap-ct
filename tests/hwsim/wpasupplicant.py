@@ -1115,6 +1115,7 @@ class WpaSupplicant:
                       "ft_eap_pmksa_caching", "beacon_prot",
                       "mac_value",
                       "wpa_deny_ptk0_rekey",
+                      "max_idle",
                       "enable_4addr_mode"]
         for field in not_quoted:
             if field in kwargs and kwargs[field]:
