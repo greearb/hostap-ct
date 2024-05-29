@@ -1270,6 +1270,14 @@ struct wpa_ssid {
 	 * to use the interface in a bridge.
 	 */
 	int enable_4addr_mode;
+
+	/**
+	 * max_idle - BSS max idle period to request
+	 *
+	 * If nonzero, request the specified number of 1000 TU (i.e., 1.024 s)
+	 * as the maximum idle period for the STA during association.
+	 */
+	int max_idle;
 };
 
 #endif /* CONFIG_SSID_H */

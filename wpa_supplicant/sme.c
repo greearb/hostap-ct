@@ -893,6 +893,18 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		os_memcpy(pos, ext_capab, ext_capab_len);
 	}
 
+	if (ssid->max_idle && wpa_s->sme.assoc_req_ie_len + 5 <=
+	    sizeof(wpa_s->sme.assoc_req_ie)) {
+		u8 *pos = wpa_s->sme.assoc_req_ie + wpa_s->sme.assoc_req_ie_len;
+
+		*pos++ = WLAN_EID_BSS_MAX_IDLE_PERIOD;
+		*pos++ = 3;
+		WPA_PUT_LE16(pos, ssid->max_idle);
+		pos += 2;
+		*pos = 0; /* Idle Options */
+		wpa_s->sme.assoc_req_ie_len += 5;
+	}
+
 #ifdef CONFIG_TESTING_OPTIONS
 	if (wpa_s->rsnxe_override_assoc &&
 	    wpabuf_len(wpa_s->rsnxe_override_assoc) <=

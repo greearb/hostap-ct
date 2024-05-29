@@ -3576,6 +3576,17 @@ static u8 * wpas_populate_assoc_ies(
 		}
 	}
 
+	if (ssid->max_idle && wpa_ie_len + 5 <= max_wpa_ie_len) {
+		u8 *pos = wpa_ie;
+
+		*pos++ = WLAN_EID_BSS_MAX_IDLE_PERIOD;
+		*pos++ = 3;
+		WPA_PUT_LE16(pos, ssid->max_idle);
+		pos += 2;
+		*pos = 0; /* Idle Options */
+		wpa_ie_len += 5;
+	}
+
 #ifdef CONFIG_HS20
 	if (is_hs20_network(wpa_s, ssid, bss)) {
 		struct wpabuf *hs20;
