@@ -5168,10 +5168,10 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 		   params->key_mgmt_suites);
 	num_suites = wpa_key_mgmt_to_suites(params->key_mgmt_suites,
 					    suites, ARRAY_SIZE(suites));
-	if (num_suites > NL80211_MAX_NR_AKM_SUITES)
+	if ((unsigned int) num_suites > drv->capa.max_num_akms)
 		wpa_printf(MSG_DEBUG,
-			   "nl80211: Not enough room for all AKM suites (num_suites=%d > NL80211_MAX_NR_AKM_SUITES)",
-			   num_suites);
+			   "nl80211: Not enough room for all AKM suites (num_suites=%d > %d)",
+			   num_suites, drv->capa.max_num_akms);
 	else if (num_suites &&
 		 nla_put(msg, NL80211_ATTR_AKM_SUITES, num_suites * sizeof(u32),
 			 suites))
