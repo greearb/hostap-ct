@@ -15,6 +15,7 @@ import wpaspy
 import remotehost
 import utils
 import subprocess
+from remotectrl import RemoteCtrl
 
 logger = logging.getLogger()
 hapd_ctrl = '/var/run/hostapd'
@@ -28,12 +29,18 @@ class HostapdGlobal:
         try:
             hostname = apdev['hostname']
             port = apdev['port']
+            if 'remote_cli' in apdev:
+                remote_cli = apdev['remote_cli']
+            else:
+                remote_cli = False
         except:
             hostname = None
             port = 8878
+            remote_cli = False
         self.host = remotehost.Host(hostname)
         self.hostname = hostname
         self.port = port
+        self.remote_cli = remote_cli
         if hostname is None:
             global_ctrl = hapd_global
             if global_ctrl_override:
@@ -42,9 +49,17 @@ class HostapdGlobal:
             self.mon = wpaspy.Ctrl(global_ctrl)
             self.dbg = ""
         else:
-            self.ctrl = wpaspy.Ctrl(hostname, port)
-            self.mon = wpaspy.Ctrl(hostname, port)
-            self.dbg = hostname + "/" + str(port)
+            if remote_cli:
+                global_ctrl = hapd_global
+                if global_ctrl_override:
+                    global_ctrl = global_ctrl_override
+                self.ctrl = RemoteCtrl(global_ctrl, port, hostname=hostname)
+                self.mon = RemoteCtrl(global_ctrl, port, hostname=hostname)
+                self.dbg = hostname + "/global"
+            else:
+                self.ctrl = wpaspy.Ctrl(hostname, port)
+                self.mon = wpaspy.Ctrl(hostname, port)
+                self.dbg = hostname + "/" + str(port)
         self.mon.attach()
 
     def cmd_execute(self, cmd_array, shell=False):
@@ -119,6 +134,9 @@ class HostapdGlobal:
         if self.hostname is None:
             return None
 
+        if self.remote_cli:
+            return None
+
         res = self.request("INTERFACES ctrl")
         lines = res.splitlines()
         found = False
@@ -147,17 +165,24 @@ class HostapdGlobal:
 
 class Hostapd:
     def __init__(self, ifname, bssidx=0, hostname=None, ctrl=hapd_ctrl,
-                 port=8877):
+                 port=8877, remote_cli=False):
         self.hostname = hostname
         self.host = remotehost.Host(hostname, ifname)
         self.ifname = ifname
+        self.remote_cli = remote_cli
         if hostname is None:
             self.ctrl = wpaspy.Ctrl(os.path.join(ctrl, ifname))
             self.mon = wpaspy.Ctrl(os.path.join(ctrl, ifname))
             self.dbg = ifname
         else:
-            self.ctrl = wpaspy.Ctrl(hostname, port)
-            self.mon = wpaspy.Ctrl(hostname, port)
+            if remote_cli:
+                self.ctrl = RemoteCtrl(ctrl, port, hostname=hostname,
+                                       ifname=ifname)
+                self.mon = RemoteCtrl(ctrl, port, hostname=hostname,
+                                      ifname=ifname)
+            else:
+                self.ctrl = wpaspy.Ctrl(hostname, port)
+                self.mon = wpaspy.Ctrl(hostname, port)
             self.dbg = hostname + "/" + ifname
         self.mon.attach()
         self.bssid = None
@@ -638,22 +663,31 @@ def add_ap(apdev, params, wait_enabled=True, no_enable=False, timeout=30,
             try:
                 hostname = apdev['hostname']
                 port = apdev['port']
-                logger.info("Starting AP " + hostname + "/" + port + " " + ifname)
+                if 'remote_cli' in apdev:
+                    remote_cli = apdev['remote_cli']
+                else:
+                    remote_cli = False
+                if 'global_ctrl_override' in apdev:
+                    global_ctrl_override = apdev['global_ctrl_override']
+                logger.info("Starting AP " + hostname + "/" + port + " " + ifname + " remote_cli " + str(remote_cli))
             except:
                 logger.info("Starting AP " + ifname)
                 hostname = None
                 port = 8878
+                remote_cli = False
         else:
             ifname = apdev
             logger.info("Starting AP " + ifname + " (old add_ap argument type)")
             hostname = None
             port = 8878
+            remote_cli = False
         hapd_global = HostapdGlobal(apdev,
                                     global_ctrl_override=global_ctrl_override)
         hapd_global.remove(ifname)
         hapd_global.add(ifname, driver=driver)
         port = hapd_global.get_ctrl_iface_port(ifname)
-        hapd = Hostapd(ifname, hostname=hostname, port=port)
+        hapd = Hostapd(ifname, hostname=hostname, port=port,
+                       remote_cli=remote_cli)
         if not hapd.ping():
             raise Exception("Could not ping hostapd")
         hapd.set_defaults(set_channel=set_channel)
@@ -688,17 +722,22 @@ def add_bss(apdev, ifname, confname, ignore_error=False):
     try:
         hostname = apdev['hostname']
         port = apdev['port']
-        logger.info("Starting BSS " + hostname + "/" + port + " phy=" + phy + " ifname=" + ifname)
+        if 'remote_cli' in apdev:
+            remote_cli = apdev['remote_cli']
+        else:
+            remote_cli = False
+        logger.info("Starting BSS " + hostname + "/" + port + " phy=" + phy + " ifname=" + ifname + " remote_cli=" + str(remote_cli))
     except:
         logger.info("Starting BSS phy=" + phy + " ifname=" + ifname)
         hostname = None
         port = 8878
+        remote_cli = False
     hapd_global = HostapdGlobal(apdev)
     confname = cfg_file(apdev, confname, ifname)
     hapd_global.send_file(confname, confname)
     hapd_global.add_bss(phy, confname, ignore_error)
     port = hapd_global.get_ctrl_iface_port(ifname)
-    hapd = Hostapd(ifname, hostname=hostname, port=port)
+    hapd = Hostapd(ifname, hostname=hostname, port=port, remote_cli=remote_cli)
     if not hapd.ping():
         raise Exception("Could not ping hostapd")
     return hapd
@@ -708,17 +747,22 @@ def add_iface(apdev, confname):
     try:
         hostname = apdev['hostname']
         port = apdev['port']
-        logger.info("Starting interface " + hostname + "/" + port + " " + ifname)
+        if 'remote_cli' in apdev:
+            remote_cli = apdev['remote_cli']
+        else:
+            remote_cli = False
+        logger.info("Starting interface " + hostname + "/" + port + " " + ifname + "remote_cli=" + str(remote_cli))
     except:
         logger.info("Starting interface " + ifname)
         hostname = None
         port = 8878
+        remote_cli = False
     hapd_global = HostapdGlobal(apdev)
     confname = cfg_file(apdev, confname, ifname)
     hapd_global.send_file(confname, confname)
     hapd_global.add_iface(ifname, confname)
     port = hapd_global.get_ctrl_iface_port(ifname)
-    hapd = Hostapd(ifname, hostname=hostname, port=port)
+    hapd = Hostapd(ifname, hostname=hostname, port=port, remote_cli=remote_cli)
     if not hapd.ping():
         raise Exception("Could not ping hostapd")
     return hapd
