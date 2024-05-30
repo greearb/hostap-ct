@@ -2332,6 +2332,113 @@ void wpas_dbus_signal_p2p_invitation_received(struct wpa_supplicant *wpa_s,
 }
 
 
+/**
+ * wpas_dbus_signal_p2p_bootstrap_req - Signals BootstrappingRequest event
+ * @wpa_s: %wpa_supplicant network interface data
+ * @src: Source address of the message triggering this notification
+ * @bootstrap_method: Peer's bootstrap method
+ *
+ * Sends a signal to notify that a peer P2P Device is requesting bootstrapping
+ * negotiation with us.
+ */
+void wpas_dbus_signal_p2p_bootstrap_req(struct wpa_supplicant *wpa_s,
+					const u8 *src, u16 bootstrap_method)
+{
+	DBusMessage *msg;
+	DBusMessageIter iter;
+	struct wpas_dbus_priv *iface;
+	char peer_obj_path[WPAS_DBUS_OBJECT_PATH_MAX], *path;
+
+	iface = wpa_s->global->dbus;
+
+	/* Do nothing if the control interface is not turned on */
+	if (!iface)
+		return;
+
+	if (wpa_s->p2p_mgmt)
+		wpa_s = wpa_s->parent;
+	if (!wpa_s->dbus_new_path)
+		return;
+
+	os_snprintf(peer_obj_path, WPAS_DBUS_OBJECT_PATH_MAX,
+		    "%s/" WPAS_DBUS_NEW_P2P_PEERS_PART "/" COMPACT_MACSTR,
+		    wpa_s->dbus_new_path, MAC2STR(src));
+	path = peer_obj_path;
+
+	msg = dbus_message_new_signal(wpa_s->dbus_new_path,
+				      WPAS_DBUS_NEW_IFACE_P2PDEVICE,
+				      "BootstrappingRequest");
+	if (!msg)
+		return;
+
+	dbus_message_iter_init_append(msg, &iter);
+
+	if (!dbus_message_iter_append_basic(&iter, DBUS_TYPE_OBJECT_PATH,
+					    &path) ||
+	    !dbus_message_iter_append_basic(&iter, DBUS_TYPE_UINT16,
+					    &bootstrap_method))
+		wpa_printf(MSG_ERROR, "dbus: Failed to construct signal");
+	else
+		dbus_connection_send(iface->con, msg, NULL);
+
+	dbus_message_unref(msg);
+}
+
+
+/**
+ * wpas_dbus_signal_p2p_bootstrap_completed - Signals BootstrappingCompleted event
+ * event
+ * @wpa_s: %wpa_supplicant network interface data
+ * @src: Source address of the peer with which bootstrapping is done
+ * @status: Status of Bootstrapping handshake
+ *
+ * Sends a signal to notify that a peer P2P Device is requesting bootstrapping
+ * negotiation with us.
+ */
+void wpas_dbus_signal_p2p_bootstrap_completed(struct wpa_supplicant *wpa_s,
+					      const u8 *src, int status)
+{
+	DBusMessage *msg;
+	DBusMessageIter iter;
+	struct wpas_dbus_priv *iface;
+	char peer_obj_path[WPAS_DBUS_OBJECT_PATH_MAX], *path;
+
+	iface = wpa_s->global->dbus;
+
+	/* Do nothing if the control interface is not turned on */
+	if (!iface)
+		return;
+
+	if (wpa_s->p2p_mgmt)
+		wpa_s = wpa_s->parent;
+	if (!wpa_s->dbus_new_path)
+		return;
+
+	os_snprintf(peer_obj_path, WPAS_DBUS_OBJECT_PATH_MAX,
+		    "%s/" WPAS_DBUS_NEW_P2P_PEERS_PART "/" COMPACT_MACSTR,
+		    wpa_s->dbus_new_path, MAC2STR(src));
+	path = peer_obj_path;
+
+	msg = dbus_message_new_signal(wpa_s->dbus_new_path,
+				      WPAS_DBUS_NEW_IFACE_P2PDEVICE,
+				      "BootstrappingCompleted");
+	if (!msg)
+		return;
+
+	dbus_message_iter_init_append(msg, &iter);
+
+	if (!dbus_message_iter_append_basic(&iter, DBUS_TYPE_OBJECT_PATH,
+					    &path) ||
+	    !dbus_message_iter_append_basic(&iter, DBUS_TYPE_INT32,
+					    &status))
+		wpa_printf(MSG_ERROR, "dbus: Failed to construct signal");
+	else
+		dbus_connection_send(iface->con, msg, NULL);
+
+	dbus_message_unref(msg);
+}
+
+
 #endif /* CONFIG_P2P */
 
 
@@ -4316,6 +4423,20 @@ static const struct wpa_dbus_signal_desc wpas_dbus_interface_signals[] = {
 	{ "InvitationReceived", WPAS_DBUS_NEW_IFACE_P2PDEVICE,
 	  {
 		  { "properties", "a{sv}", ARG_OUT },
+		  END_ARGS
+	  }
+	},
+	{ "BootstrappingRequest", WPAS_DBUS_NEW_IFACE_P2PDEVICE,
+	  {
+		  { "path", "o", ARG_OUT },
+		  { "bootstrap_method", "q", ARG_OUT },
+		  END_ARGS
+	  }
+	},
+	{ "BootstrappingCompleted", WPAS_DBUS_NEW_IFACE_P2PDEVICE,
+	  {
+		  { "path", "o", ARG_OUT },
+		  { "status", "i", ARG_OUT },
 		  END_ARGS
 	  }
 	},

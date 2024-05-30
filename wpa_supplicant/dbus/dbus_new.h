@@ -266,6 +266,10 @@ void wpas_dbus_signal_p2p_invitation_received(struct wpa_supplicant *wpa_s,
 					      const u8 *sa, const u8 *dev_addr,
 					      const u8 *bssid, int id,
 					      int op_freq);
+void wpas_dbus_signal_p2p_bootstrap_req(struct wpa_supplicant *wpa_s,
+					const u8 *src, u16 bootstrap_method);
+void wpas_dbus_signal_p2p_bootstrap_completed(struct wpa_supplicant *wpa_s,
+					      const u8 *src, int status);
 void wpas_dbus_signal_mesh_group_started(struct wpa_supplicant *wpa_s,
 					 struct wpa_ssid *ssid);
 void wpas_dbus_signal_mesh_group_removed(struct wpa_supplicant *wpa_s,
@@ -636,6 +640,18 @@ void wpas_dbus_signal_p2p_invitation_received(struct wpa_supplicant *wpa_s,
 					      const u8 *sa, const u8 *dev_addr,
 					      const u8 *bssid, int id,
 					      int op_freq)
+{
+}
+
+static inline
+void wpas_dbus_signal_p2p_bootstrap_req(struct wpa_supplicant *wpa_s,
+					const u8 *src, u16 bootstrap_method)
+{
+}
+
+static inline
+void wpas_dbus_signal_p2p_bootstrap_completed(struct wpa_supplicant *wpa_s,
+					      const u8 *src, int status)
 {
 }
 

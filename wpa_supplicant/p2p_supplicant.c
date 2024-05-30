@@ -5191,6 +5191,8 @@ static void wpas_bootstrap_req_rx(void *ctx, const u8 *addr,
 
 	wpa_msg_global(wpa_s, MSG_INFO, P2P_EVENT_BOOTSTRAP_REQUEST MACSTR
 		       " bootstrap_method=%u", MAC2STR(addr), bootstrap_method);
+
+	wpas_notify_p2p_bootstrap_req(wpa_s, addr, bootstrap_method);
 }
 
 
@@ -5198,6 +5200,8 @@ static void wpas_bootstrap_completed(void *ctx, const u8 *addr,
 				     enum p2p_status_code status, int freq)
 {
 	struct wpa_supplicant *wpa_s = ctx;
+
+	wpas_notify_p2p_bootstrap_completed(wpa_s, addr, status);
 
 	if (status) {
 		wpa_msg_global(wpa_s, MSG_INFO,

@@ -799,6 +799,18 @@ void wpas_notify_p2p_invitation_received(struct wpa_supplicant *wpa_s,
 						 id, op_freq);
 }
 
+void wpas_notify_p2p_bootstrap_req(struct wpa_supplicant *wpa_s,
+				   const u8 *src, u16 bootstrap_method)
+{
+	wpas_dbus_signal_p2p_bootstrap_req(wpa_s, src, bootstrap_method);
+}
+
+void wpas_notify_p2p_bootstrap_completed(struct wpa_supplicant *wpa_s,
+					 const u8 *src, int status)
+{
+	wpas_dbus_signal_p2p_bootstrap_completed(wpa_s, src, status);
+}
+
 #endif /* CONFIG_P2P */
 
 
