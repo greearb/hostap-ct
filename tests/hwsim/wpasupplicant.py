@@ -13,13 +13,14 @@ import struct
 import wpaspy
 import remotehost
 import subprocess
+from remotectrl import RemoteCtrl
 
 logger = logging.getLogger()
 wpas_ctrl = '/var/run/wpa_supplicant'
 
 class WpaSupplicant:
     def __init__(self, ifname=None, global_iface=None, hostname=None,
-                 port=9877, global_port=9878, monitor=True):
+                 port=9877, global_port=9878, monitor=True, remote_cli=False):
         self.monitor = monitor
         self.hostname = hostname
         self.group_ifname = None
@@ -31,6 +32,7 @@ class WpaSupplicant:
         self.ifname = None
         self.host = remotehost.Host(hostname, ifname)
         self._group_dbg = None
+        self.remote_cli = remote_cli
         if ifname:
             self.set_ifname(ifname, hostname, port)
             res = self.get_driver_status()
@@ -41,7 +43,14 @@ class WpaSupplicant:
 
         self.global_iface = global_iface
         if global_iface:
-            if hostname != None:
+            if hostname != None and remote_cli:
+                self.global_ctrl = RemoteCtrl(global_iface, global_port,
+                                              hostname=hostname)
+                if self.monitor:
+                    self.global_mon = RemoteCtrl(global_iface, global_port,
+                                                 hostname=hostname)
+                    self.global_dbg = hostname + "/global"
+            elif hostname != None:
                 self.global_ctrl = wpaspy.Ctrl(hostname, global_port)
                 if self.monitor:
                     self.global_mon = wpaspy.Ctrl(hostname, global_port)
@@ -164,9 +173,16 @@ class WpaSupplicant:
         self.remove_ifname()
         self.ifname = ifname
         if hostname != None:
-            self.ctrl = wpaspy.Ctrl(hostname, port)
-            if self.monitor:
-                self.mon = wpaspy.Ctrl(hostname, port)
+            if self.remote_cli:
+                self.ctrl = RemoteCtrl(wpas_ctrl, port, hostname=hostname,
+                                       ifname=ifname)
+                if self.monitor:
+                    self.mon = RemoteCtrl(wpas_ctrl, port, hostname=hostname,
+                                          ifname=ifname)
+            else:
+                self.ctrl = wpaspy.Ctrl(hostname, port)
+                if self.monitor:
+                    self.mon = wpaspy.Ctrl(hostname, port)
             self.host = remotehost.Host(hostname, ifname)
             self.dbg = hostname + "/" + ifname
         else:
@@ -184,6 +200,8 @@ class WpaSupplicant:
 
     def get_ctrl_iface_port(self, ifname):
         if self.hostname is None:
+            return None
+        if self.remote_cli:
             return None
 
         res = self.global_request("INTERFACES ctrl")
