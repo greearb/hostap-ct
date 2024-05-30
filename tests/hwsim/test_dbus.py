@@ -3501,11 +3501,16 @@ def test_dbus_p2p_service_discovery(dev, apdev):
         if "InvalidArgs" not in str(e):
             raise Exception("Unexpected error message for invalid AddService(): " + str(e))
 
-    args = {'service_type': 'upnp',
-            'version': 0x10,
-            'service': 'ssdp:foo'}
-    ref = p2p.ServiceDiscoveryRequest(args)
-    p2p.ServiceDiscoveryCancelRequest(ref)
+    tests= [{'service_type': 'upnp',
+             'version': 0x10,
+             'service': 'ssdp:foo'},
+            {'service_type': 'upnp',
+             'version': 0x10,
+             'service': 'ssdp:bar',
+             'tlv': dbus.ByteArray(b"\x02\x00\x00\x01")}]
+    for args in tests:
+        ref = p2p.ServiceDiscoveryRequest(args)
+        p2p.ServiceDiscoveryCancelRequest(ref)
 
     tests = [{'service_type': 'foo'},
              {'foo': 'bar'},
