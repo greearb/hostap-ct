@@ -2886,6 +2886,7 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 					  char *pos)
 {
 #ifdef NEED_AP_MLME
+	struct hostapd_hw_modes *mode = iface->current_mode;
 	struct csa_settings settings;
 	struct hostapd_hw_modes *target_mode;
 	int ret;
@@ -2918,6 +2919,11 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 					  settings.freq_params.freq)) {
 		wpa_printf(MSG_INFO,
 			   "chanswitch: Invalid frequency settings provided for multi band phy");
+	}
+
+	if (!mode ||
+	    !is_same_band(mode->channels->freq, settings.freq_params.freq)) {
+		wpa_printf(MSG_ERROR, "Invalid band for current mode");
 		return -1;
 	}
 
