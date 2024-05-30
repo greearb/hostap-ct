@@ -1245,6 +1245,31 @@ struct p2p_config {
 	 */
 	void (*register_bootstrap_comeback)(void *ctx, const u8 *addr,
 					    u16 comeback_after);
+
+	/**
+	 * bootstrap_req_rx - Indicate bootstrap request from a P2P peer
+	 * @ctx: Callback context from cb_ctx
+	 * @addr: P2P device address from which bootstrap request was received
+	 * @bootstrap_method: Bootstrapping method request by the peer device
+	 *
+	 * This function can be used to notify that bootstrap request is
+	 * received from a P2P peer.
+	 */
+	void (*bootstrap_req_rx)(void *ctx, const u8 *addr,
+				 u16 bootstrap_method);
+
+	/**
+	 * bootstrap_completed - Indicate bootstrapping completed with P2P peer
+	 * @ctx: Callback context from cb_ctx
+	 * @addr: P2P device address with which bootstrapping is completed
+	 * @status: P2P Status Code of bootstrapping handshake
+	 * @freq: Frequency in which bootstrapping is done
+	 *
+	 * This function can be used to notify the status of bootstrapping
+	 * handshake.
+	 */
+	void (*bootstrap_completed)(void *ctx, const u8 *addr,
+				    enum p2p_status_code status, int freq);
 };
 
 

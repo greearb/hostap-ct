@@ -781,6 +781,9 @@ static void p2p_process_prov_disc_bootstrap_req(struct p2p_data *p2p,
 
 		if (!dev->req_bootstrap_method) {
 			status = P2P_SC_COMEBACK;
+			if (p2p->cfg->bootstrap_req_rx)
+				p2p->cfg->bootstrap_req_rx(p2p->cfg->cb_ctx,
+							   sa, bootstrap);
 			goto out;
 		}
 	} else {
@@ -807,6 +810,9 @@ static void p2p_process_prov_disc_bootstrap_req(struct p2p_data *p2p,
 			dev->bootstrap_params->comeback_after =
 				p2p->cfg->comeback_after;
 			status = P2P_SC_COMEBACK;
+			if (p2p->cfg->bootstrap_req_rx)
+				p2p->cfg->bootstrap_req_rx(p2p->cfg->cb_ctx,
+							   sa, bootstrap);
 			goto out;
 		}
 	}
@@ -1707,6 +1713,10 @@ static void p2p_process_prov_disc_bootstrap_resp(struct p2p_data *p2p,
 	p2p->cfg->send_action_done(p2p->cfg->cb_ctx);
 	if (dev->flags & P2P_DEV_PD_BEFORE_GO_NEG)
 		dev->flags &= ~P2P_DEV_PD_BEFORE_GO_NEG;
+
+	if (p2p->cfg->bootstrap_completed)
+		p2p->cfg->bootstrap_completed(p2p->cfg->cb_ctx, sa, status,
+					      rx_freq);
 }
 
 

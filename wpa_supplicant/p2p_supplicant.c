@@ -4859,6 +4859,33 @@ static void wpas_p2p_register_bootstrap_comeback(void *ctx, const u8 *addr,
 }
 
 
+static void wpas_bootstrap_req_rx(void *ctx, const u8 *addr,
+				  u16 bootstrap_method)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	wpa_msg_global(wpa_s, MSG_INFO, P2P_EVENT_BOOTSTRAP_REQUEST MACSTR
+		       " bootstrap_method=%u", MAC2STR(addr), bootstrap_method);
+}
+
+
+static void wpas_bootstrap_completed(void *ctx, const u8 *addr,
+				     enum p2p_status_code status, int freq)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	if (status) {
+		wpa_msg_global(wpa_s, MSG_INFO,
+			       P2P_EVENT_BOOTSTRAP_FAILURE MACSTR " status=%d",
+			       MAC2STR(addr), status);
+	} else {
+		wpa_msg_global(wpa_s, MSG_INFO,
+			       P2P_EVENT_BOOTSTRAP_SUCCESS MACSTR " status=%d",
+			       MAC2STR(addr), status);
+	}
+}
+
+
 int wpas_p2p_mac_setup(struct wpa_supplicant *wpa_s)
 {
 	u8 addr[ETH_ALEN] = {0};
@@ -4979,6 +5006,8 @@ int wpas_p2p_init(struct wpa_global *global, struct wpa_supplicant *wpa_s)
 	p2p.get_pref_freq_list = wpas_p2p_get_pref_freq_list;
 	p2p.p2p_6ghz_disable = wpa_s->conf->p2p_6ghz_disable;
 	p2p.register_bootstrap_comeback = wpas_p2p_register_bootstrap_comeback;
+	p2p.bootstrap_req_rx = wpas_bootstrap_req_rx;
+	p2p.bootstrap_completed = wpas_bootstrap_completed;
 
 	os_memcpy(wpa_s->global->p2p_dev_addr, wpa_s->own_addr, ETH_ALEN);
 	os_memcpy(p2p.dev_addr, wpa_s->global->p2p_dev_addr, ETH_ALEN);
