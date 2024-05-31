@@ -1565,6 +1565,14 @@ reply:
 				auth_transaction, resp,
 				data ? wpabuf_head(data) : (u8 *) "",
 				data ? wpabuf_len(data) : 0, "auth-sae");
+		if (sta->sae && sta->sae->tmp && sta->sae->tmp->pw_id &&
+		    resp == WLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER &&
+		    auth_transaction == 1) {
+			wpa_printf(MSG_DEBUG,
+				   "SAE: Clear stored password identifier since this SAE commit was not accepted");
+			os_free(sta->sae->tmp->pw_id);
+			sta->sae->tmp->pw_id = NULL;
+		}
 	}
 
 remove_sta:
