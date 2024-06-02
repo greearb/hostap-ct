@@ -62,7 +62,7 @@ static int wpa_derive_ptk(struct wpa_state_machine *sm, const u8 *snonce,
 			  const u8 *pmk, unsigned int pmk_len,
 			  struct wpa_ptk *ptk, int force_sha256,
 			  u8 *pmk_r0, u8 *pmk_r1, u8 *pmk_r0_name,
-			  size_t *key_len);
+			  size_t *key_len, bool no_kdk);
 static void wpa_group_free(struct wpa_authenticator *wpa_auth,
 			   struct wpa_group *group);
 static void wpa_group_get(struct wpa_authenticator *wpa_auth,
@@ -1323,7 +1323,8 @@ static int wpa_try_alt_snonce(struct wpa_state_machine *sm, u8 *data,
 		}
 
 		if (wpa_derive_ptk(sm, sm->alt_SNonce, pmk, pmk_len, &PTK, 0,
-				   pmk_r0, pmk_r1, pmk_r0_name, &key_len) < 0)
+				   pmk_r0, pmk_r1, pmk_r0_name, &key_len,
+				   false) < 0)
 			break;
 
 		if (wpa_verify_key_mic(sm->wpa_key_mgmt, pmk_len, &PTK,
@@ -2859,7 +2860,7 @@ static int wpa_derive_ptk(struct wpa_state_machine *sm, const u8 *snonce,
 			  const u8 *pmk, unsigned int pmk_len,
 			  struct wpa_ptk *ptk, int force_sha256,
 			  u8 *pmk_r0, u8 *pmk_r1, u8 *pmk_r0_name,
-			  size_t *key_len)
+			  size_t *key_len, bool no_kdk)
 {
 	const u8 *z = NULL;
 	size_t z_len = 0, kdk_len;
@@ -2867,7 +2868,7 @@ static int wpa_derive_ptk(struct wpa_state_machine *sm, const u8 *snonce,
 	int ret;
 
 	if (sm->wpa_auth->conf.force_kdk_derivation ||
-	    (sm->wpa_auth->conf.secure_ltf &&
+	    (!no_kdk && sm->wpa_auth->conf.secure_ltf &&
 	     ieee802_11_rsnx_capab(sm->rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF)))
 		kdk_len = WPA_KDK_MAX_LEN;
 	else
@@ -2896,7 +2897,7 @@ static int wpa_derive_ptk(struct wpa_state_machine *sm, const u8 *snonce,
 		}
 
 #ifdef CONFIG_PASN
-		if (sm->wpa_auth->conf.secure_ltf &&
+		if (!no_kdk && sm->wpa_auth->conf.secure_ltf &&
 		    ieee802_11_rsnx_capab(sm->rsnxe,
 					  WLAN_RSNX_CAPAB_SECURE_LTF)) {
 			ret = wpa_ltf_keyseed(ptk, sm->wpa_key_mgmt,
@@ -2932,7 +2933,7 @@ static int wpa_derive_ptk(struct wpa_state_machine *sm, const u8 *snonce,
 	}
 
 #ifdef CONFIG_PASN
-	if (sm->wpa_auth->conf.secure_ltf &&
+	if (!no_kdk && sm->wpa_auth->conf.secure_ltf &&
 	    ieee802_11_rsnx_capab(sm->rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF)) {
 		ret = wpa_ltf_keyseed(ptk, sm->wpa_key_mgmt, sm->pairwise);
 		if (ret) {
@@ -3643,6 +3644,7 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 	size_t key_len;
 	u8 *key_data_buf = NULL;
 	size_t key_data_buf_len = 0;
+	bool derive_kdk, no_kdk = false;
 
 	SM_ENTRY_MA(WPA_PTK, PTKCALCNEGOTIATING, wpa_ptk);
 	sm->EAPOLKeyReceived = false;
@@ -3650,6 +3652,9 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 	os_memset(&PTK, 0, sizeof(PTK));
 
 	mic_len = wpa_mic_len(sm->wpa_key_mgmt, sm->pmk_len);
+
+	derive_kdk = sm->wpa_auth->conf.secure_ltf &&
+		ieee802_11_rsnx_capab(sm->rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF);
 
 	/* WPA with IEEE 802.1X: use the derived PMK from EAP
 	 * WPA-PSK: iterate through possible PSKs and select the one matching
@@ -3680,9 +3685,11 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 			pmk_len = sm->pmksa->pmk_len;
 		}
 
+		no_kdk = false;
+	try_without_kdk:
 		if (wpa_derive_ptk(sm, sm->SNonce, pmk, pmk_len, &PTK,
 				   owe_ptk_workaround == 2, pmk_r0, pmk_r1,
-				   pmk_r0_name, &key_len) < 0)
+				   pmk_r0_name, &key_len, no_kdk) < 0)
 			break;
 
 		if (mic_len &&
@@ -3716,9 +3723,29 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 		}
 #endif /* CONFIG_OWE */
 
+		/* Some deployed STAs that advertise SecureLTF support in the
+		 * RSNXE in (Re)Association Request frames, do not derive KDK
+		 * during PTK generation. Try to work around this by checking if
+		 * a PTK derived without KDK would result in a matching MIC. */
+		if (!sm->wpa_auth->conf.force_kdk_derivation &&
+		    derive_kdk && !no_kdk) {
+			wpa_printf(MSG_DEBUG,
+				   "Try new PTK derivation without KDK as a workaround");
+			no_kdk = true;
+			goto try_without_kdk;
+		}
+
 		if (!wpa_key_mgmt_wpa_psk(sm->wpa_key_mgmt) ||
 		    wpa_key_mgmt_sae(sm->wpa_key_mgmt))
 			break;
+	}
+
+	if (no_kdk && ok) {
+		/* The workaround worked, so allow the 4-way handshake to be
+		 * completed with the PTK that was derived without the KDK. */
+		wpa_printf(MSG_DEBUG,
+			   "PTK without KDK worked - misbehaving STA "
+			   MACSTR, MAC2STR(sm->addr));
 	}
 
 	if (!ok && wpa_key_mgmt_wpa_psk_no_sae(sm->wpa_key_mgmt) &&
