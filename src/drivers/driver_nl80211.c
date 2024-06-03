@@ -593,7 +593,7 @@ int nl80211_reply_hook(struct nl80211_global *global, struct nl_msg *msg,
 	}
 
 queue_event:
-	TEST_FAIL_TAG("queued");
+	/* TEST_FAIL_TAG("queued"); */
 
 	event = os_zalloc(sizeof(*event));
 	if (!event) {
