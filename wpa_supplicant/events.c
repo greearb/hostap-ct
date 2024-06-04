@@ -2721,7 +2721,7 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 				wpa_supplicant_rsn_preauth_scan_results(wpa_s);
 		} else if (own_request) {
 			if (wpa_s->support_6ghz && trigger_6ghz_scan && data &&
-			    wpas_trigger_6ghz_scan(wpa_s, data) < 0)
+			    wpas_trigger_6ghz_scan(wpa_s, data) > 0)
 				return 1;
 
 			/*
