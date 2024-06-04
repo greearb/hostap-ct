@@ -64,8 +64,6 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 					      bool trigger_6ghz_scan,
 					      union wpa_event_data *data);
 #endif /* CONFIG_NO_SCAN_PROCESSING */
-static int wpas_trigger_6ghz_scan(struct wpa_supplicant *wpa_s,
-				  union wpa_event_data *data);
 
 
 int wpas_temp_disabled(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid)
@@ -2400,6 +2398,32 @@ static int wpa_supplicant_need_to_roam(struct wpa_supplicant *wpa_s,
 }
 
 
+static int wpas_trigger_6ghz_scan(struct wpa_supplicant *wpa_s,
+				  union wpa_event_data *data)
+{
+	struct wpa_driver_scan_params params;
+	unsigned int j;
+
+	wpa_dbg(wpa_s, MSG_INFO, "Triggering 6GHz-only scan");
+	os_memset(&params, 0, sizeof(params));
+	params.non_coloc_6ghz = wpa_s->last_scan_non_coloc_6ghz;
+	for (j = 0; j < data->scan_info.num_ssids; j++)
+		params.ssids[j] = data->scan_info.ssids[j];
+	params.num_ssids = data->scan_info.num_ssids;
+	wpa_add_scan_freqs_list(wpa_s, HOSTAPD_MODE_IEEE80211A, &params,
+				true, false, false);
+	if (!wpa_supplicant_trigger_scan(wpa_s, &params, true, true)) {
+		wpa_s->scan_in_progress_6ghz = true;
+		wpas_notify_scan_in_progress_6ghz(wpa_s);
+		os_free(params.freqs);
+		return 1;
+	}
+	wpa_dbg(wpa_s, MSG_INFO, "Failed to trigger 6GHz-only scan");
+	os_free(params.freqs);
+	return 0;
+}
+
+
 static bool wpas_short_ssid_match(struct wpa_supplicant *wpa_s,
 				  struct wpa_scan_results *scan_res)
 {
@@ -2661,32 +2685,6 @@ scan_work_done:
 		radio_work_done(work);
 	}
 	return ret;
-}
-
-
-static int wpas_trigger_6ghz_scan(struct wpa_supplicant *wpa_s,
-				  union wpa_event_data *data)
-{
-	struct wpa_driver_scan_params params;
-	unsigned int j;
-
-	wpa_dbg(wpa_s, MSG_INFO, "Triggering 6GHz-only scan");
-	os_memset(&params, 0, sizeof(params));
-	params.non_coloc_6ghz = wpa_s->last_scan_non_coloc_6ghz;
-	for (j = 0; j < data->scan_info.num_ssids; j++)
-		params.ssids[j] = data->scan_info.ssids[j];
-	params.num_ssids = data->scan_info.num_ssids;
-	wpa_add_scan_freqs_list(wpa_s, HOSTAPD_MODE_IEEE80211A, &params,
-				true, false, false);
-	if (!wpa_supplicant_trigger_scan(wpa_s, &params, true, true)) {
-		wpa_s->scan_in_progress_6ghz = true;
-		wpas_notify_scan_in_progress_6ghz(wpa_s);
-		os_free(params.freqs);
-		return 1;
-	}
-	wpa_dbg(wpa_s, MSG_INFO, "Failed to trigger 6GHz-only scan");
-	os_free(params.freqs);
-	return 0;
 }
 
 
