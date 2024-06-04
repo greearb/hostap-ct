@@ -1205,6 +1205,8 @@ int hostapd_determine_mode(struct hostapd_iface *iface)
 static enum hostapd_chan_status
 hostapd_check_chans(struct hostapd_iface *iface)
 {
+	int i;
+
 	if (iface->freq) {
 		int err;
 
@@ -1223,6 +1225,14 @@ hostapd_check_chans(struct hostapd_iface *iface)
 	 * The user set channel=0 or channel=acs_survey
 	 * which is used to trigger ACS.
 	 */
+
+	/*
+	 * Only allow an ACS at one time.
+	 */
+	for (i = 0; i < iface->interfaces->count; i++) {
+		if (iface->interfaces->iface[i]->state == HAPD_IFACE_ACS)
+			return HOSTAPD_CHAN_ACS;
+	}
 
 	switch (acs_init(iface)) {
 	case HOSTAPD_CHAN_ACS:

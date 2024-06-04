@@ -2904,6 +2904,24 @@ int hostapd_setup_interface_complete(struct hostapd_iface *iface, int err)
 	unsigned int i;
 	int not_ready_in_sync_ifaces = 0;
 
+	if (iface->state == HAPD_IFACE_ACS) {
+		int i;
+
+		for (i = 0; i < interfaces->count; i++) {
+			if (!interfaces->iface[i]->freq) {
+				/* FIXME problems remained
+				 * 1. the return value of acs_init() is
+				 *    not check
+				 * 2. if it fails the setup, next acs_init()
+				 *    will not be handled
+				 */
+				wpa_printf(MSG_DEBUG, "mtk: trigger acs_init for %s", interfaces->iface[i]->phy);
+				acs_init(interfaces->iface[i]);
+				break;
+			}
+		}
+	}
+
 	if (!iface->need_to_start_in_sync)
 		return hostapd_setup_interface_complete_sync(iface, err);
 
