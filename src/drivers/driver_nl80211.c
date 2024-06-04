@@ -11286,7 +11286,8 @@ static int survey_handler(struct nl_msg *msg, void *arg)
 }
 
 
-static int wpa_driver_nl80211_get_survey(void *priv, unsigned int freq)
+static int wpa_driver_nl80211_get_survey(void *priv, unsigned int freq,
+					 int link_id)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -11306,6 +11307,7 @@ static int wpa_driver_nl80211_get_survey(void *priv, unsigned int freq)
 	if (!msg)
 		return -ENOBUFS;
 
+	data.survey_results.link_id = link_id;
 	if (freq)
 		data.survey_results.freq_filter = freq;
 
