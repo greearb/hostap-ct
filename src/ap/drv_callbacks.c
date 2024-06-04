@@ -2633,10 +2633,12 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			hapd = switch_link_scan(hapd,
 						data->scan_info.scan_cookie);
 #endif /* NEED_AP_MLME */
-		if (hapd->iface->scan_cb)
+		if (hapd->iface->scan_cb) {
 			hapd->iface->scan_cb(hapd->iface);
+			break;
+		}
 #ifdef CONFIG_IEEE80211BE
-		if (!hapd->iface->scan_cb && hapd->conf->mld_ap) {
+		if (hapd->conf->mld_ap) {
 			/* Other links may be waiting for HT scan result */
 			unsigned int i;
 
@@ -2646,8 +2648,10 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 				struct hostapd_data *h_hapd = h->bss[0];
 
 				if (hostapd_is_ml_partner(hapd, h_hapd) &&
-				    h_hapd->iface->scan_cb)
+				    h_hapd->iface->scan_cb) {
 					h_hapd->iface->scan_cb(h_hapd->iface);
+					break;
+				}
 			}
 		}
 #endif /* CONFIG_IEEE80211BE */
