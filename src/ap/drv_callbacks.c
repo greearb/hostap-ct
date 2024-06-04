@@ -2825,6 +2825,7 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			data->connect_failed_reason.code);
 		break;
 	case EVENT_SURVEY:
+		hapd = switch_link_hapd(hapd, data->survey_results.link_id);
 		hostapd_event_get_survey(hapd->iface, &data->survey_results);
 		break;
 #ifdef NEED_AP_MLME
