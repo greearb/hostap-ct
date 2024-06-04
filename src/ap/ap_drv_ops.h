@@ -293,11 +293,17 @@ static inline void hostapd_drv_poll_client(struct hostapd_data *hapd,
 static inline int hostapd_drv_get_survey(struct hostapd_data *hapd,
 					 unsigned int freq)
 {
+	int link_id = -1;
+
 	if (hapd->driver == NULL)
 		return -1;
 	if (!hapd->driver->get_survey)
 		return -1;
-	return hapd->driver->get_survey(hapd->drv_priv, freq);
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+#endif /* CONFIG_IEEE80211BE */
+	return hapd->driver->get_survey(hapd->drv_priv, freq, link_id);
 }
 
 static inline int hostapd_get_country(struct hostapd_data *hapd, char *alpha2)
