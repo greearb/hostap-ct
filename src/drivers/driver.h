@@ -4860,6 +4860,7 @@ struct wpa_driver_ops {
 	 * @priv: Private driver interface data
 	 * @freq: If set, survey data for the specified frequency is only
 	 *	being requested. If not set, all survey data is requested.
+	 * @link_id: The link ID that requests the get_survey.
 	 * Returns: 0 on success, -1 on failure
 	 *
 	 * Use this to retrieve:
@@ -4878,7 +4879,7 @@ struct wpa_driver_ops {
 	 * for each survey. The min_nf of the channel is updated for each
 	 * survey.
 	 */
-	int (*get_survey)(void *priv, unsigned int freq);
+	int (*get_survey)(void *priv, unsigned int freq, int link_id);
 
 	/**
 	 * status - Get driver interface status information
@@ -7184,10 +7185,12 @@ union wpa_event_data {
 	 * @freq_filter: Requested frequency survey filter, 0 if request
 	 *	was for all survey data
 	 * @survey_list: Linked list of survey data (struct freq_survey)
+	 * @link_id: Link ID of the MLO link
 	 */
 	struct survey_results {
 		unsigned int freq_filter;
 		struct dl_list survey_list; /* struct freq_survey */
+		int link_id;
 	} survey_results;
 
 	/**
