@@ -9,6 +9,7 @@
 #include "includes.h"
 
 #include "common.h"
+#include "utils/crc32.h"
 #include "eapol_supp/eapol_supp_sm.h"
 #include "rsn_supp/wpa.h"
 #include "eloop.h"
@@ -63,6 +64,8 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 					      bool trigger_6ghz_scan,
 					      union wpa_event_data *data);
 #endif /* CONFIG_NO_SCAN_PROCESSING */
+static int wpas_trigger_6ghz_scan(struct wpa_supplicant *wpa_s,
+				  union wpa_event_data *data);
 
 
 int wpas_temp_disabled(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid)
@@ -2397,6 +2400,52 @@ static int wpa_supplicant_need_to_roam(struct wpa_supplicant *wpa_s,
 }
 
 
+static bool wpas_short_ssid_match(struct wpa_supplicant *wpa_s,
+				  struct wpa_scan_results *scan_res)
+{
+	size_t i;
+	struct wpa_ssid *ssid = wpa_s->current_ssid;
+	u32 current_ssid_short = ieee80211_crc32(ssid->ssid, ssid->ssid_len);
+
+	for (i = 0; i < scan_res->num; i++) {
+		struct wpa_scan_res *res = scan_res->res[i];
+		const u8 *rnr_ie, *ie_end;
+		const struct ieee80211_neighbor_ap_info *info;
+		size_t left;
+
+		rnr_ie = wpa_scan_get_ie(res, WLAN_EID_REDUCED_NEIGHBOR_REPORT);
+		if (!rnr_ie)
+			continue;
+
+		ie_end = rnr_ie + 2 + rnr_ie[1];
+		rnr_ie += 2;
+
+		left = ie_end - rnr_ie;
+		if (left < sizeof(struct ieee80211_neighbor_ap_info))
+			continue;
+
+		info = (const struct ieee80211_neighbor_ap_info *) rnr_ie;
+		if (info->tbtt_info_len < 11)
+			continue; /* short SSID not included */
+		left -= sizeof(struct ieee80211_neighbor_ap_info);
+		rnr_ie += sizeof(struct ieee80211_neighbor_ap_info);
+
+		while (left >= info->tbtt_info_len && rnr_ie + 11 <= ie_end) {
+			/* Skip TBTT offset and BSSID */
+			u32 short_ssid = WPA_GET_LE32(rnr_ie + 1 + ETH_ALEN);
+
+			if (short_ssid == current_ssid_short)
+				return true;
+
+			left -= info->tbtt_info_len;
+			rnr_ie += info->tbtt_info_len;
+		}
+	}
+
+	return false;
+}
+
+
 /*
  * Return a negative value if no scan results could be fetched or if scan
  * results should not be shared with other virtual interfaces.
@@ -2414,6 +2463,7 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	int ret = 0;
 	int ap = 0;
 	bool trigger_6ghz_scan;
+	bool short_ssid_match_found = false;
 #ifndef CONFIG_NO_RANDOM_POOL
 	size_t i, num;
 #endif /* CONFIG_NO_RANDOM_POOL */
@@ -2565,6 +2615,12 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	    wpa_s->wpa_state < WPA_COMPLETED)
 		goto scan_work_done;
 
+	if (wpa_s->current_ssid && trigger_6ghz_scan && own_request && data &&
+	    wpas_short_ssid_match(wpa_s, scan_res)) {
+		wpa_dbg(wpa_s, MSG_INFO, "Short SSID match in scan results");
+		short_ssid_match_found = true;
+	}
+
 	wpa_scan_results_free(scan_res);
 
 	if (own_request && wpa_s->scan_work) {
@@ -2590,6 +2646,9 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 
 	if (wpa_s->supp_pbc_active && !wpas_wps_partner_link_scan_done(wpa_s))
 		return ret;
+
+	if (short_ssid_match_found && wpas_trigger_6ghz_scan(wpa_s, data) > 0)
+		return 1;
 
 	return wpas_select_network_from_last_scan(wpa_s, 1, own_request,
 						  trigger_6ghz_scan, data);
