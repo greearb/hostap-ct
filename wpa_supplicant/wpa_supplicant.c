@@ -2424,6 +2424,7 @@ void wpa_s_setup_sae_pt(struct wpa_config *conf, struct wpa_ssid *ssid,
 		password = ssid->passphrase;
 
 	if (!password ||
+	    !wpa_key_mgmt_sae(ssid->key_mgmt) ||
 	    (conf->sae_pwe == SAE_PWE_HUNT_AND_PECK && !ssid->sae_password_id &&
 	     !wpa_key_mgmt_sae_ext_key(ssid->key_mgmt) &&
 	     !force &&
