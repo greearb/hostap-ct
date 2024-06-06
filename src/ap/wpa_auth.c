@@ -4605,6 +4605,12 @@ static size_t wpa_auth_ml_kdes_len(struct wpa_state_machine *sm)
 		struct wpa_authenticator *wpa_auth;
 		const u8 *ie;
 
+		/* FIXME: This is a temporary workaround for MTK
+		 * sta IoT issue in WiFi7 cert.
+		 */
+		if (!sm->mld_links[link_id].valid)
+			continue;
+
 		wpa_auth = wpa_get_link_auth(sm->wpa_auth, link_id);
 		if (!wpa_auth)
 			continue;
@@ -4669,6 +4675,12 @@ static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
 		const u8 *rsne, *rsnxe, *rsnoe, *rsno2e, *rsnxoe;
 		size_t rsne_len, rsnxe_len, rsnoe_len, rsno2e_len, rsnxoe_len;
 		size_t kde_len;
+
+		/* FIXME: This is a temporary workaround for MTK
+		 * sta IoT issue in WiFi7 cert.
+		 */
+		if (!sm->mld_links[link_id].valid)
+			continue;
 
 		wpa_auth = wpa_get_link_auth(sm->wpa_auth, link_id);
 		if (!wpa_auth)
