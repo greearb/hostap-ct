@@ -10846,10 +10846,13 @@ enum qca_wlan_twt_setup_state {
  *
  * @QCA_WLAN_VENDOR_ATTR_TWT_SETUP_RESPONDER_PM_MODE: Optional (u8)
  * This attribute contains the value of the Responder PM Mode subfield (0 or 1)
- * from TWT response frame.
+ * from TWT response frame. During TWT setup request, this attribute is used to
+ * configure the Responder PM Mode bit in the control field of the TWT element
+ * for broadcast TWT schedule.
  * This parameter is used for
  * 1. TWT SET Response
  * 2. TWT GET Response
+ * 3. TWT SET Request
  *
  * @QCA_WLAN_VENDOR_ATTR_TWT_SETUP_ANNOUNCE_TIMEOUT: Optional (u32)
  * This attribute is used to configure the announce timeout value (in us) in
