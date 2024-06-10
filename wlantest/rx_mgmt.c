@@ -439,6 +439,115 @@ static void rx_mgmt_beacon(struct wlantest *wt, const u8 *data, size_t len)
 	if (!bss->proberesp_seen)
 		bss_update(wt, bss, &elems, 1);
 
+	if (elems.mbssid) {
+		const u8 *pos = elems.mbssid;
+		const u8 *end = elems.mbssid + elems.mbssid_len;
+		u8 max_bss = *pos++;
+
+		while (end - pos > 2) {
+			u8 s_id, s_len, ssid_len, bssid_idx;
+			const u8 *s_data, *ssid;
+			u16 capa;
+			u8 bssid[ETH_ALEN], b;
+			struct ieee802_11_elems m_elems, merged;
+			struct wlantest_bss *m_bss;
+
+			s_id = *pos++;
+			s_len = *pos++;
+
+			if (end - pos < s_len)
+				break;
+			s_data = pos;
+			pos += s_len;
+
+			if (s_id !=
+			    WLAN_MBSSID_SUBELEMENT_NONTRANSMITTED_BSSID_PROFILE)
+				continue;
+
+			/* Nontransmitted BSSID Capability element */
+			if (pos - s_data < 4 ||
+			    s_data[0] != WLAN_EID_NONTRANSMITTED_BSSID_CAPA ||
+			    s_data[1] < 2)
+				continue;
+			capa = WPA_GET_LE16(&s_data[2]);
+			s_data += 2 + s_data[1];
+
+			/* SSID element */
+			if (pos - s_data < 2 ||
+			    s_data[0] != WLAN_EID_SSID)
+				continue;
+			ssid = &s_data[2];
+			ssid_len = s_data[1];
+			s_data += 2 + s_data[1];
+
+			/* Multiple BSSID-Index element */
+			if (pos - s_data < 3 ||
+			    s_data[0] != WLAN_EID_MULTIPLE_BSSID_INDEX)
+				continue;
+			bssid_idx = s_data[2];
+			s_data += 2 + s_data[1];
+
+			if (max_bss < 1 || max_bss > 8)
+				break;
+			os_memcpy(bssid, mgmt->bssid, ETH_ALEN);
+			b = bssid[5] % (1 << max_bss);
+			bssid[5] = bssid[5] - b +
+				(b + bssid_idx) % (1 << max_bss);
+			wpa_printf(MSG_MSGDUMP, "MBSSID: " MACSTR
+				   " Capa 0x%x idx=%u MaxBSSID Indicator=%u",
+				   MAC2STR(bssid), capa, bssid_idx, max_bss);
+
+			wpa_hexdump(MSG_MSGDUMP, "MBSSID: SSID",
+				    ssid, ssid_len);
+
+			/* Rest of the elements */
+			wpa_hexdump(MSG_MSGDUMP, "MBSSID: Elements",
+				    s_data, pos - s_data);
+			if (ieee802_11_parse_elems(s_data, pos - s_data,
+						   &m_elems,
+						   0) == ParseFailed) {
+				wpa_printf(MSG_DEBUG,
+					   "MBSSID: Failed to parse nontransmitted BSS elements");
+				continue;
+			}
+
+			/* TODO: Noninheritance and rest of elements */
+			os_memcpy(&merged, &elems, sizeof(merged));
+			merged.ssid = ssid;
+			merged.ssid_len = ssid_len;
+
+			m_bss = bss_get(wt, bssid);
+			if (!m_bss)
+				continue;
+			if (!m_bss->proberesp_seen)
+				m_bss->capab_info = capa;
+
+			if (m_elems.basic_mle) {
+				merged.basic_mle = m_elems.basic_mle;
+				merged.basic_mle_len = m_elems.basic_mle_len;
+			}
+			if (m_elems.rsn_ie) {
+				merged.rsn_ie = m_elems.rsn_ie;
+				merged.rsn_ie_len = m_elems.rsn_ie_len;
+			}
+			if (m_elems.rsnxe) {
+				merged.rsnxe = m_elems.rsnxe;
+				merged.rsnxe_len = m_elems.rsnxe_len;
+			}
+
+			if (merged.rsnxe) {
+				os_memcpy(m_bss->rsnxe, merged.rsnxe,
+					  merged.rsnxe_len);
+				m_bss->rsnxe_len = merged.rsnxe_len;
+			} else {
+				m_bss->rsnxe_len = 0;
+			}
+
+			if (!m_bss->proberesp_seen)
+				bss_update(wt, m_bss, &merged, 1);
+		}
+	}
+
 	mme = get_ie(mgmt->u.beacon.variable, len - offset, WLAN_EID_MMIE);
 	if (!mme) {
 		if (bss->bigtk_idx) {
