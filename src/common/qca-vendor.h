@@ -7512,6 +7512,9 @@ enum qca_wlan_vendor_attr_external_acs_event {
  * for EHT (IEEE 802.11be). Encoding for this attribute follows the
  * convention used in the Disabled Subchannel Bitmap field of the EHT Operation
  * element.
+ * @QCA_WLAN_VENDOR_ATTR_EXTERNAL_ACS_LINK_ID: Mandatory on AP MLD (u8).
+ * Used with command to configure external ACS operation for a specific link
+ * affiliated to an AP MLD.
  */
 enum qca_wlan_vendor_attr_external_acs_channels {
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_ACS_CHANNEL_INVALID = 0,
@@ -7548,6 +7551,7 @@ enum qca_wlan_vendor_attr_external_acs_channels {
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_ACS_FREQUENCY_CENTER_SEG0 = 12,
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_ACS_FREQUENCY_CENTER_SEG1 = 13,
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_ACS_PUNCTURE_BITMAP = 14,
+	QCA_WLAN_VENDOR_ATTR_EXTERNAL_ACS_LINK_ID = 15,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_ACS_CHANNEL_LAST,
