@@ -884,6 +884,11 @@ fi.w1.wpa_supplicant1.CreateInterface.
       </li>
 
       <li>
+	<h3>ScanInProgress6GHz - b - (read)</h3>
+	<p>Whether a 6GHz scan is currently in progress.</p>
+      </li>
+
+      <li>
 	<h3>SessionLength - u - (read)</h3>
 	<p>The most recent BSS session length in milliseconds.</p>
       </li>

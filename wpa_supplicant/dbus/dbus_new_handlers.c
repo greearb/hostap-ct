@@ -3836,6 +3836,29 @@ dbus_bool_t wpas_dbus_getter_roam_complete(
 
 
 /**
+ * wpas_dbus_getter_scan_in_progress_6ghz - Get whether a 6 GHz scan is in
+ * progress
+ * @iter: Pointer to incoming dbus message iter
+ * @error: Location to store error on failure
+ * @user_data: Function specific data
+ * Returns: TRUE on success, FALSE on failure
+ *
+ * Getter function for "ScanInProgress6GHz" property.
+ */
+dbus_bool_t wpas_dbus_getter_scan_in_progress_6ghz(
+	const struct wpa_dbus_property_desc *property_desc,
+	DBusMessageIter *iter, DBusError *error, void *user_data)
+{
+	struct wpa_supplicant *wpa_s = user_data;
+	dbus_bool_t scan_in_progress_6ghz = wpa_s->scan_in_progress_6ghz ?
+		TRUE : FALSE;
+
+	return wpas_dbus_simple_property_getter(iter, DBUS_TYPE_BOOLEAN,
+						&scan_in_progress_6ghz, error);
+}
+
+
+/**
  * wpas_dbus_getter_session_length - Get most recent BSS session length
  * @iter: Pointer to incoming dbus message iter
  * @error: Location to store error on failure

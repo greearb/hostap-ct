@@ -2396,6 +2396,10 @@ void wpas_dbus_signal_prop_changed(struct wpa_supplicant *wpa_s,
 	case WPAS_DBUS_PROP_ROAM_COMPLETE:
 		prop = "RoamComplete";
 		break;
+	case WPAS_DBUS_PROP_SCAN_IN_PROGRESS_6GHZ:
+		prop = "ScanInProgress6GHz";
+		flush = TRUE;
+		break;
 	case WPAS_DBUS_PROP_SESSION_LENGTH:
 		prop = "SessionLength";
 		break;
@@ -3980,6 +3984,12 @@ static const struct wpa_dbus_property_desc wpas_dbus_interface_properties[] = {
 	{
 	  "RoamComplete", WPAS_DBUS_NEW_IFACE_INTERFACE, "b",
 	  wpas_dbus_getter_roam_complete,
+	  NULL,
+	  NULL
+	},
+	{
+	  "ScanInProgress6GHz", WPAS_DBUS_NEW_IFACE_INTERFACE, "b",
+	  wpas_dbus_getter_scan_in_progress_6ghz,
 	  NULL,
 	  NULL
 	},

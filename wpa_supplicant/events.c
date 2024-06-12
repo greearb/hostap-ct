@@ -2433,6 +2433,12 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	scan_res = wpa_supplicant_get_scan_results(wpa_s,
 						   data ? &data->scan_info :
 						   NULL, 1, NULL);
+
+	if (wpa_s->scan_in_progress_6ghz) {
+		wpa_s->scan_in_progress_6ghz = false;
+		wpas_notify_scan_in_progress_6ghz(wpa_s);
+	}
+
 	if (scan_res == NULL) {
 		if (wpa_s->conf->ap_scan == 2 || ap ||
 		    wpa_s->scan_res_handler == scan_only_handler)
@@ -2614,6 +2620,8 @@ static int wpas_trigger_6ghz_scan(struct wpa_supplicant *wpa_s,
 	wpa_add_scan_freqs_list(wpa_s, HOSTAPD_MODE_IEEE80211A, &params,
 				true, false, false);
 	if (!wpa_supplicant_trigger_scan(wpa_s, &params, true, true)) {
+		wpa_s->scan_in_progress_6ghz = true;
+		wpas_notify_scan_in_progress_6ghz(wpa_s);
 		os_free(params.freqs);
 		return 1;
 	}
