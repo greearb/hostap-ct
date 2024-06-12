@@ -2166,7 +2166,23 @@ def test_eht_mlo_color_change(dev, apdev):
         if color != "60":
             raise Exception("Expected current he_bss_color to be 60; was " + color)
 
-        #TODO: CCA on non-first link
+        logger.info("Perform CCA on 2nd link")
+        if "OK" not in hapd1.request("COLOR_CHANGE 25"):
+            raise Exception("COLOR_CHANGE failed")
+        time.sleep(1.5)
+
+        color = hapd1.get_status_field("he_bss_color")
+        if color != "25":
+            raise Exception("Expected current he_bss_color to be 25; was " + color)
+
+        logger.info("Perform CCA on 2nd link again")
+        if "OK" not in hapd1.request("COLOR_CHANGE 5"):
+            raise Exception("COLOR_CHANGE failed")
+        time.sleep(1.5)
+
+        color = hapd1.get_status_field("he_bss_color")
+        if color != "5":
+            raise Exception("Expected current he_bss_color to be 5; was " + color)
 
         hapd0.dump_monitor()
         hapd1.dump_monitor()
