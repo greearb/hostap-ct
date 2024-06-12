@@ -3800,6 +3800,7 @@ static void nl80211_obss_color_event(struct i802_bss *bss,
 	enum wpa_event_type event_type;
 
 	os_memset(&data, 0, sizeof(data));
+	data.bss_color_collision.link_id = NL80211_DRV_LINK_ID_NA;
 
 	switch (cmd) {
 	case NL80211_CMD_OBSS_COLOR_COLLISION:
@@ -3828,6 +3829,22 @@ static void nl80211_obss_color_event(struct i802_bss *bss,
 	default:
 		wpa_printf(MSG_DEBUG, "nl80211: Unknown CCA command %d", cmd);
 		return;
+	}
+
+	if (tb[NL80211_ATTR_MLO_LINK_ID]) {
+		data.bss_color_collision.link_id =
+			nla_get_u8(tb[NL80211_ATTR_MLO_LINK_ID]);
+
+		if (!nl80211_link_valid(bss->valid_links,
+					data.bss_color_collision.link_id)) {
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: Invalid BSS color event link ID %d",
+				   data.bss_color_collision.link_id);
+			return;
+		}
+
+		wpa_printf(MSG_DEBUG, "nl80211: BSS color event - Link ID %d",
+			   data.bss_color_collision.link_id);
 	}
 
 	wpa_supplicant_event(bss->ctx, event_type, &data);

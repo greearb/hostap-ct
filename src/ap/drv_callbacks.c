@@ -2734,21 +2734,29 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		/* The BSS color is shared amongst all BBSs on a specific phy.
 		 * Therefore we always start the color change on the primary
 		 * BSS. */
+		hapd = switch_link_hapd(hapd,
+					data->bss_color_collision.link_id);
 		wpa_printf(MSG_DEBUG, "BSS color collision on %s",
 			   hapd->conf->iface);
 		hostapd_switch_color(hapd->iface->bss[0],
 				     data->bss_color_collision.bitmap);
 		break;
 	case EVENT_CCA_STARTED_NOTIFY:
+		hapd = switch_link_hapd(hapd,
+					data->bss_color_collision.link_id);
 		wpa_printf(MSG_DEBUG, "CCA started on %s",
 			   hapd->conf->iface);
 		break;
 	case EVENT_CCA_ABORTED_NOTIFY:
+		hapd = switch_link_hapd(hapd,
+					data->bss_color_collision.link_id);
 		wpa_printf(MSG_DEBUG, "CCA aborted on %s",
 			   hapd->conf->iface);
 		hostapd_event_color_change(hapd, false);
 		break;
 	case EVENT_CCA_NOTIFY:
+		hapd = switch_link_hapd(hapd,
+					data->bss_color_collision.link_id);
 		wpa_printf(MSG_DEBUG, "CCA finished on %s",
 			   hapd->conf->iface);
 		hostapd_event_color_change(hapd, true);
