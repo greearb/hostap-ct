@@ -9899,6 +9899,9 @@ static int nl80211_set_param(void *priv, const char *param)
 			WPA_DRIVER_FLAGS2_SEC_LTF_AP;
 	}
 
+	if (os_strstr(param, "rsn_override_in_driver=1"))
+		drv->capa.flags2 |= WPA_DRIVER_FLAGS2_RSN_OVERRIDE_STA;
+
 	return 0;
 }
 
