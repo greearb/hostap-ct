@@ -611,7 +611,7 @@ int testing_test_fail(const char *tag, bool is_alloc)
 			len = next - pos;
 		else
 			len = os_strlen(pos);
-		if (os_memcmp(pos, func[i], len) != 0) {
+		if (os_strncmp(pos, func[i], len) != 0) {
 			if (maybe && next) {
 				pos = next + 1;
 				continue;
