@@ -1881,8 +1881,6 @@ def test_wpas_ctrl_error(dev):
              ('WPS_NFC_TOKEN NDEF', 'FAIL',
               2, 'wpa_supplicant_ctrl_iface_wps_nfc_token'),
              ('NFC_GET_HANDOVER_REQ NDEF P2P-CR', None,
-              1, 'wpas_p2p_nfc_handover'),
-             ('NFC_GET_HANDOVER_REQ NDEF P2P-CR', None,
               1, 'wps_build_nfc_handover_req_p2p')]
     for cmd, exp, count, func in tests:
         with fail_test(dev[0], count, func):
