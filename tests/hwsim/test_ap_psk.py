@@ -3418,7 +3418,7 @@ def test_ap_wpa2_psk_local_error(dev, apdev):
         dev[0].request("REMOVE_NETWORK all")
         dev[0].dump_monitor()
 
-    with fail_test(dev[0], 1, "sha256_prf;wpa_pmk_to_ptk"):
+    with fail_test(dev[0], 1, "sha256_prf_bits;wpa_pmk_to_ptk"):
         id = dev[0].connect(ssid, key_mgmt="WPA-PSK-SHA256", psk=passphrase,
                             scan_freq="2412", wait_connect=False)
         ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=5)

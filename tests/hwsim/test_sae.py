@@ -1610,7 +1610,7 @@ def test_sae_bignum_failure(dev, apdev):
              (2, "crypto_ec_point_mul;sae_derive_k_ecc"),
              (1, "crypto_ec_point_to_bin;sae_derive_k_ecc"),
              (1, "crypto_bignum_legendre;dragonfly_get_random_qr_qnr"),
-             (1, "sha256_prf;sae_derive_keys"),
+             (1, "sha256_prf_bits;sae_derive_keys"),
              (1, "crypto_bignum_init;sae_derive_keys"),
              (1, "crypto_bignum_init_set;sae_parse_commit_scalar"),
              (1, "crypto_bignum_to_bin;sae_parse_commit_element_ecc"),
