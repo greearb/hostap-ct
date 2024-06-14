@@ -5636,6 +5636,7 @@ static void wpas_event_assoc_reject(struct wpa_supplicant *wpa_s,
 {
 	const u8 *bssid = data->assoc_reject.bssid;
 	struct ieee802_11_elems elems;
+	struct ml_sta_link_info ml_info[MAX_NUM_MLD_LINKS];
 	const u8 *link_bssids[MAX_NUM_MLD_LINKS];
 #ifdef CONFIG_MBO
 	struct wpa_bss *reject_bss;
@@ -5768,7 +5769,6 @@ static void wpas_event_assoc_reject(struct wpa_supplicant *wpa_s,
 	if (ieee802_11_parse_elems(data->assoc_reject.resp_ies,
 				   data->assoc_reject.resp_ies_len,
 				   &elems, 1) != ParseFailed) {
-		struct ml_sta_link_info ml_info[MAX_NUM_MLD_LINKS];
 		unsigned int n_links, i, idx;
 
 		idx = 0;
