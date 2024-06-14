@@ -6018,7 +6018,7 @@ def test_ap_hs20_set_profile_failures(dev, apdev):
     interworking_select(dev[0], bssid, "home", freq=2412)
     dev[0].dump_monitor()
     dev[0].request("NOTE wpa_config_set(password)")
-    with alloc_fail(dev[0], 3, "wpa_config_set;interworking_set_eap_params"):
+    with alloc_fail(dev[0], 1, "wpa_config_parse_password;interworking_set_eap_params"):
         dev[0].request("INTERWORKING_CONNECT " + bssid)
         wait_fail_trigger(dev[0], "GET_ALLOC_FAIL")
     with alloc_fail(dev[0], 1, "interworking_set_hs20_params"):
