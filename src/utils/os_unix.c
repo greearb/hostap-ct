@@ -598,6 +598,7 @@ int testing_test_fail(const char *tag, bool is_alloc)
 	while (i < res) {
 		int allow_skip = 1;
 		int maybe = 0;
+		bool prefix = false;
 
 		if (*pos == '=') {
 			allow_skip = 0;
@@ -611,7 +612,12 @@ int testing_test_fail(const char *tag, bool is_alloc)
 			len = next - pos;
 		else
 			len = os_strlen(pos);
-		if (os_strncmp(pos, func[i], len) != 0) {
+		if (len >= 1 && pos[len - 1] == '*') {
+			prefix = true;
+			len -= 1;
+		}
+		if (os_strncmp(pos, func[i], len) != 0 ||
+		    (!prefix && func[i][len] != '\0')) {
 			if (maybe && next) {
 				pos = next + 1;
 				continue;

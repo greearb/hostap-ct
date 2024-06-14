@@ -2895,7 +2895,7 @@ def test_eap_proto_eke_errors(dev, apdev):
     tests = [(1, "eap_eke_dh_init", None),
              (1, "eap_eke_prf_hmac_sha1", "dhgroup=3 encr=1 prf=1 mac=1"),
              (1, "eap_eke_prf_hmac_sha256", "dhgroup=5 encr=1 prf=2 mac=2"),
-             (1, "eap_eke_prf", None),
+             (1, "eap_eke_prf_*", None),
              (1, "os_get_random;eap_eke_dhcomp", None),
              (1, "aes_128_cbc_encrypt;eap_eke_dhcomp", None),
              (1, "aes_128_cbc_decrypt;eap_eke_shared_secret", None),
