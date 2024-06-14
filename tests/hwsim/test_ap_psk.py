@@ -2658,6 +2658,11 @@ def read_process_memory(pid, key=None):
             for name in ["[heap]", "[stack]"]:
                 if name in l:
                     logger.info("%s 0x%x-0x%x is at %d-%d" % (name, start, end, len(buf), len(buf) + (end - start)))
+
+            if end - start >= 256 * 1024 * 1024:
+                logger.info("Large memory block of >= 256MiB, assuming ASAN shadow memory")
+                continue
+
             try:
                 mem.seek(start)
                 data = mem.read(end - start)
