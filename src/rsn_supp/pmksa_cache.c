@@ -253,7 +253,8 @@ pmksa_cache_add(struct rsn_pmksa_cache *pmksa, const u8 *pmk, size_t pmk_len,
 		return NULL;
 	os_memcpy(entry->pmk, pmk, pmk_len);
 	entry->pmk_len = pmk_len;
-	os_memcpy(entry->kck, kck, kck_len);
+	if (kck_len > 0)
+		os_memcpy(entry->kck, kck, kck_len);
 	entry->kck_len = kck_len;
 	if (pmkid)
 		os_memcpy(entry->pmkid, pmkid, PMKID_LEN);
