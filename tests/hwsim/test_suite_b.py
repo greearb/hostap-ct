@@ -333,7 +333,7 @@ def test_suite_b_192_pmkid_failure(dev, apdev):
     params = suite_b_192_ap_params()
     hapd = hostapd.add_ap(apdev[0], params)
 
-    with fail_test(dev[0], 1, "rsn_pmkid_suite_b"):
+    with fail_test(dev[0], 1, "rsn_pmkid_suite_b_192"):
         dev[0].connect("test-suite-b", key_mgmt="WPA-EAP-SUITE-B-192",
                        ieee80211w="2",
                        openssl_ciphers="SUITEB192",
