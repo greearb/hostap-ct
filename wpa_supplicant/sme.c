@@ -1048,6 +1048,7 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 	old_ssid = wpa_s->current_ssid;
 	wpa_s->current_ssid = ssid;
 	wpa_supplicant_rsn_supp_set_config(wpa_s, wpa_s->current_ssid);
+	wpa_sm_set_ssid(wpa_s->wpa, bss->ssid, bss->ssid_len);
 	wpa_supplicant_initiate_eapol(wpa_s);
 
 #ifdef CONFIG_FILS

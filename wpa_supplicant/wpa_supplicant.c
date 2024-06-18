@@ -443,6 +443,7 @@ void wpa_supplicant_set_non_wpa_policy(struct wpa_supplicant *wpa_s,
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_GROUP, wpa_s->group_cipher);
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_MGMT_GROUP,
 			 wpa_s->mgmt_group_cipher);
+	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_SSID_PROTECTION, 0);
 
 	pmksa_cache_clear_current(wpa_s->wpa);
 	os_memset(&mlo, 0, sizeof(mlo));
@@ -2023,6 +2024,22 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 	if (!wmm && bss)
 		wmm = !!wpa_bss_get_vendor_ie(bss, WMM_IE_VENDOR_TYPE);
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_WMM_ENABLED, wmm);
+
+	if (ssid->ssid_protection && proto == WPA_PROTO_RSN) {
+		bool ssid_prot;
+
+		/* Enable SSID protection based on the AP advertising support
+		 * for it to avoid potential interoperability issues with
+		 * incorrect AP behavior if we were to send an "unexpected"
+		 * RSNXE with multiple octets of payload. */
+		ssid_prot = ieee802_11_rsnx_capab(
+			bss_rsnx, WLAN_RSNX_CAPAB_SSID_PROTECTION);
+		if (!skip_default_rsne)
+			wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_SSID_PROTECTION,
+					 proto == WPA_PROTO_RSN && ssid_prot);
+	} else {
+		wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_SSID_PROTECTION, false);
+	}
 
 	if (!skip_default_rsne) {
 		if (wpa_sm_set_assoc_wpa_ie_default(wpa_s->wpa, wpa_ie,
@@ -4550,6 +4567,8 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit)
 	}
 
 	wpa_supplicant_rsn_supp_set_config(wpa_s, wpa_s->current_ssid);
+	if (bss)
+		wpa_sm_set_ssid(wpa_s->wpa, bss->ssid, bss->ssid_len);
 	wpa_supplicant_initiate_eapol(wpa_s);
 	if (old_ssid != wpa_s->current_ssid)
 		wpas_notify_network_changed(wpa_s);

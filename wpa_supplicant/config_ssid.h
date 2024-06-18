@@ -1278,6 +1278,11 @@ struct wpa_ssid {
 	 * as the maximum idle period for the STA during association.
 	 */
 	int max_idle;
+
+	/**
+	 * ssid_protection - Whether to use SSID protection in 4-way handshake
+	 */
+	bool ssid_protection;
 };
 
 #endif /* CONFIG_SSID_H */

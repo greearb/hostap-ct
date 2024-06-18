@@ -135,6 +135,7 @@ enum wpa_sm_conf_params {
 	WPA_PARAM_ENCRYPT_EAPOL_M2,
 	WPA_PARAM_ENCRYPT_EAPOL_M4,
 	WPA_PARAM_FT_PREPEND_PMKID,
+	WPA_PARAM_SSID_PROTECTION,
 };
 
 struct rsn_supp_config {
@@ -188,6 +189,7 @@ void wpa_sm_set_pmk_from_pmksa(struct wpa_sm *sm);
 void wpa_sm_set_fast_reauth(struct wpa_sm *sm, int fast_reauth);
 void wpa_sm_set_scard_ctx(struct wpa_sm *sm, void *scard_ctx);
 void wpa_sm_set_config(struct wpa_sm *sm, struct rsn_supp_config *config);
+void wpa_sm_set_ssid(struct wpa_sm *sm, const u8 *ssid, size_t ssid_len);
 void wpa_sm_set_own_addr(struct wpa_sm *sm, const u8 *addr);
 void wpa_sm_set_ifname(struct wpa_sm *sm, const char *ifname,
 		       const char *bridge_ifname);

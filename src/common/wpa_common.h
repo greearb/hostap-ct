@@ -698,6 +698,8 @@ struct wpa_eapol_ie_parse {
 	size_t supp_channels_len;
 	const u8 *supp_oper_classes;
 	size_t supp_oper_classes_len;
+	const u8 *ssid;
+	size_t ssid_len;
 	u8 qosinfo;
 	u16 aid;
 	const u8 *wmm;

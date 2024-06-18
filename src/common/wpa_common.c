@@ -3743,6 +3743,11 @@ int wpa_parse_kde_ies(const u8 *buf, size_t len, struct wpa_eapol_ie_parse *ie)
 				ie->supp_oper_classes = pos + 2;
 				ie->supp_oper_classes_len = pos[1];
 			}
+		} else if (*pos == WLAN_EID_SSID) {
+			ie->ssid = pos + 2;
+			ie->ssid_len = pos[1];
+			wpa_hexdump_ascii(MSG_DEBUG, "RSN: SSID in EAPOL-Key",
+					  ie->ssid, ie->ssid_len);
 		} else if (*pos == WLAN_EID_VENDOR_SPECIFIC) {
 			ret = wpa_parse_generic(pos, ie);
 			if (ret == 1) {
