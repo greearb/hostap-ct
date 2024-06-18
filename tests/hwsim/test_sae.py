@@ -3086,3 +3086,22 @@ def test_sae_password_file(dev, apdev):
                        key_mgmt="SAE", scan_freq="2412")
     finally:
         os.unlink(fn)
+
+def test_sae_ssid_protection(dev, apdev):
+    """SAE with SSID protection in 4-way handshake"""
+    check_sae_capab(dev[0])
+    params = hostapd.wpa2_params(ssid="test-sae",
+                                 passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE'
+    params['ssid_protection'] = '1'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].set("sae_groups", "")
+    dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE",
+                   ssid_protection="1",
+                   scan_freq="2412", wait_connect=False)
+    ev = dev[0].wait_event(["RSN: SSID matched expected value"], timeout=10)
+    if ev is None:
+        raise Exception("SSID protection event not seen")
+    dev[0].wait_connected()
+    hapd.wait_sta()
