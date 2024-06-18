@@ -1097,7 +1097,7 @@ u8 * hostapd_eid_rsnxe(struct hostapd_data *hapd, u8 *eid, size_t len)
 {
 	u8 *pos = eid;
 	bool sae_pk = false;
-	u16 capab = 0;
+	u32 capab = 0, tmp;
 	size_t flen;
 
 	if (!(hapd->conf->wpa & WPA_PROTO_RSN))
@@ -1126,18 +1126,28 @@ u8 * hostapd_eid_rsnxe(struct hostapd_data *hapd, u8 *eid, size_t len)
 		capab |= BIT(WLAN_RSNX_CAPAB_SECURE_RTT);
 	if (hapd->iface->drv_flags2 & WPA_DRIVER_FLAGS2_PROT_RANGE_NEG_AP)
 		capab |= BIT(WLAN_RSNX_CAPAB_URNM_MFPR);
+	if (hapd->conf->ssid_protection)
+		capab |= BIT(WLAN_RSNX_CAPAB_SSID_PROTECTION);
 
-	flen = (capab & 0xff00) ? 2 : 1;
-	if (len < 2 + flen || !capab)
+	if (!capab)
+		return eid; /* no supported extended RSN capabilities */
+	tmp = capab;
+	flen = 0;
+	while (tmp) {
+		flen++;
+		tmp >>= 8;
+	}
+
+	if (len < 2 + flen)
 		return eid; /* no supported extended RSN capabilities */
 	capab |= flen - 1; /* bit 0-3 = Field length (n - 1) */
 
 	*pos++ = WLAN_EID_RSNX;
 	*pos++ = flen;
-	*pos++ = capab & 0x00ff;
-	capab >>= 8;
-	if (capab)
-		*pos++ = capab;
+	while (capab) {
+		*pos++ = capab & 0xff;
+		capab >>= 8;
+	}
 
 	return pos;
 }

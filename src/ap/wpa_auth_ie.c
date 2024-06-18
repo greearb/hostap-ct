@@ -409,7 +409,7 @@ int wpa_write_rsn_ie(struct wpa_auth_config *conf, u8 *buf, size_t len,
 int wpa_write_rsnxe(struct wpa_auth_config *conf, u8 *buf, size_t len)
 {
 	u8 *pos = buf;
-	u16 capab = 0;
+	u32 capab = 0, tmp;
 	size_t flen;
 
 	if (wpa_key_mgmt_sae(conf->wpa_key_mgmt) &&
@@ -429,20 +429,27 @@ int wpa_write_rsnxe(struct wpa_auth_config *conf, u8 *buf, size_t len)
 		capab |= BIT(WLAN_RSNX_CAPAB_SECURE_RTT);
 	if (conf->prot_range_neg)
 		capab |= BIT(WLAN_RSNX_CAPAB_URNM_MFPR);
+	if (conf->ssid_protection)
+		capab |= BIT(WLAN_RSNX_CAPAB_SSID_PROTECTION);
 
-	flen = (capab & 0xff00) ? 2 : 1;
 	if (!capab)
 		return 0; /* no supported extended RSN capabilities */
+	tmp = capab;
+	flen = 0;
+	while (tmp) {
+		flen++;
+		tmp >>= 8;
+	}
 	if (len < 2 + flen)
 		return -1;
 	capab |= flen - 1; /* bit 0-3 = Field length (n - 1) */
 
 	*pos++ = WLAN_EID_RSNX;
 	*pos++ = flen;
-	*pos++ = capab & 0x00ff;
-	capab >>= 8;
-	if (capab)
-		*pos++ = capab;
+	while (capab) {
+		*pos++ = capab & 0xff;
+		capab >>= 8;
+	}
 
 	return pos - buf;
 }

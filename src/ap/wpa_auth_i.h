@@ -183,6 +183,8 @@ struct wpa_state_machine {
 		struct wpa_authenticator *wpa_auth;
 	} mld_links[MAX_NUM_MLD_LINKS];
 #endif /* CONFIG_IEEE80211BE */
+
+	bool ssid_protection;
 };
 
 

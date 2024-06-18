@@ -4192,6 +4192,13 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 				       "association");
 			return WLAN_STATUS_CIPHER_REJECTED_PER_POLICY;
 		}
+
+		wpa_auth_set_ssid_protection(
+			sta->wpa_sm,
+			hapd->conf->ssid_protection &&
+			ieee802_11_rsnx_capab_len(
+				elems->rsnxe, elems->rsnxe_len,
+				WLAN_RSNX_CAPAB_SSID_PROTECTION));
 #ifdef CONFIG_HS20
 	} else if (hapd->conf->osen) {
 		if (!elems->osen) {

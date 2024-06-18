@@ -73,11 +73,12 @@ static void hostapd_wpa_auth_conf(struct hostapd_bss_config *conf,
 	wconf->beacon_prot = conf->beacon_prot;
 	wconf->group_mgmt_cipher = conf->group_mgmt_cipher;
 	wconf->sae_require_mfp = conf->sae_require_mfp;
-#ifdef CONFIG_IEEE80211R_AP
+	wconf->ssid_protection = conf->ssid_protection;
 	wconf->ssid_len = conf->ssid.ssid_len;
 	if (wconf->ssid_len > SSID_MAX_LEN)
 		wconf->ssid_len = SSID_MAX_LEN;
 	os_memcpy(wconf->ssid, conf->ssid.ssid, wconf->ssid_len);
+#ifdef CONFIG_IEEE80211R_AP
 	os_memcpy(wconf->mobility_domain, conf->mobility_domain,
 		  MOBILITY_DOMAIN_ID_LEN);
 	if (conf->nas_identifier &&
