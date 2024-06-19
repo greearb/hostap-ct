@@ -5659,8 +5659,9 @@ struct wpa_driver_ops {
 	* ap_wireless - set wireless command
 	* @priv: Private driver interface data
 	* @value: value
+	* @link_id: MLD link id. -1 if this is an non-MLD AP.
 	*/
-	int (*ap_wireless)(void *priv, u8 mode, int value);
+	int (*ap_wireless)(void *priv, u8 mode, int value, s8 link_id);
 
 	/**
 	* ap_rfeatures - set ap rf features command
@@ -5675,8 +5676,9 @@ struct wpa_driver_ops {
 	* @priv: Private driver interface data
 	* @enable: enable or disable
 	* @type: trigger type
+	* @link_id: MLD link id. -1 if this is an non-MLD AP.
 	*/
-	int (*ap_trigtype)(void *priv, u8 enable, u8 type);
+	int (*ap_trigtype)(void *priv, u8 enable, u8 type, s8 link_id);
 
 	/**
 	* amnt_set - add/delete station from monitoring
