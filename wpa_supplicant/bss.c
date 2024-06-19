@@ -1924,8 +1924,12 @@ u16 wpa_bss_get_usable_links(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 
 		if ((!ssid ||
 		     wpa_scan_res_match(wpa_s, 0, neigh_bss, ssid, 1, 0,
-					true)) &&
-		    !wpa_bssid_ignore_is_listed(wpa_s, neigh_bss->bssid)) {
+					true))
+#if 0 /* MLD parter link should not be excluded. */
+		    &&
+		    !wpa_bssid_ignore_is_listed(wpa_s, neigh_bss->bssid)
+#endif
+			) {
 			usable_links |= BIT(link_id);
 		}
 	}
