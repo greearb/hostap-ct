@@ -134,6 +134,7 @@ wireless_ctrl_policy[NUM_MTK_VENDOR_ATTRS_WIRELESS_CTRL] = {
 	[MTK_VENDOR_ATTR_WIRELESS_CTRL_BA_BUFFER_SIZE] = {.type = NLA_U16 },
 	[MTK_VENDOR_ATTR_WIRELESS_CTRL_AMSDU] = {.type = NLA_U8 },
 	[MTK_VENDOR_ATTR_WIRELESS_CTRL_CERT] = {.type = NLA_U8 },
+	[MTK_VENDOR_ATTR_WIRELESS_CTRL_LINK_ID] = {.type = NLA_U8 },
 };
 #endif
 
@@ -16120,7 +16121,7 @@ static int nl80211_get_aval_color_bmp(void *priv, u64 *aval_color_bmp)
 	return ret;
 }
 
-static int nl80211_ap_wireless(void *priv, u8 sub_vendor_id, int value)
+static int nl80211_ap_wireless(void *priv, u8 sub_vendor_id, int value, s8 link_id)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -16150,6 +16151,9 @@ static int nl80211_ap_wireless(void *priv, u8 sub_vendor_id, int value)
 		nla_put_u16(msg, sub_vendor_id, (u16) value);
 	else
 		nla_put_u8(msg, sub_vendor_id, (u8) value);
+
+	if (link_id > -1)
+		nla_put_u8(msg, MTK_VENDOR_ATTR_WIRELESS_CTRL_LINK_ID, link_id);
 
 	nla_nest_end(msg, data);
 	ret = send_and_recv_cmd(drv, msg);
@@ -16207,7 +16211,7 @@ fail:
 	return -ENOBUFS;
 }
 
-static int nl80211_ap_trigtype(void *priv, u8 enable, u8 type)
+static int nl80211_ap_trigtype(void *priv, u8 enable, u8 type, s8 link_id)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -16232,6 +16236,9 @@ static int nl80211_ap_trigtype(void *priv, u8 enable, u8 type)
 	data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA);
 	if (!data)
 		goto fail;
+
+	if (link_id > -1)
+		nla_put_u8(msg, MTK_VENDOR_ATTR_RFEATURE_CTRL_LINK_ID, link_id);
 
 	data2 = nla_nest_start(msg, MTK_VENDOR_ATTR_RFEATURE_CTRL_TRIG_TYPE_CFG);
 	if (!data2)

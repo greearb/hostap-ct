@@ -1518,9 +1518,16 @@ int hostapd_drv_get_aval_bss_color_bmp(struct hostapd_data *hapd, u64 *aval_colo
 
 int hostapd_drv_ap_wireless(struct hostapd_data *hapd, u8 sub_vendor_id, int value)
 {
+	s8 link_id = -1;
+
 	if (!hapd->driver || !hapd->driver->ap_wireless)
 		return 0;
-	return hapd->driver->ap_wireless(hapd->drv_priv, sub_vendor_id, value);
+
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+
+	return hapd->driver->ap_wireless(hapd->drv_priv, sub_vendor_id, value,
+					 link_id);
 }
 
 int hostapd_drv_ap_rfeatures(struct hostapd_data *hapd, u8 sub_vendor_id, int value)
@@ -1539,9 +1546,16 @@ int hostapd_drv_ap_rfeatures(struct hostapd_data *hapd, u8 sub_vendor_id, int va
 
 int hostapd_drv_ap_trig_type(struct hostapd_data *hapd, u8 enable, u8 type)
 {
+	s8 link_id = -1;
+
 	if (!hapd->driver || !hapd->driver->ap_trigtype)
 		return 0;
-	return hapd->driver->ap_trigtype(hapd->drv_priv, enable, type);
+
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+
+	return hapd->driver->ap_trigtype(hapd->drv_priv, enable, type,
+					 link_id);
 }
 
 int hostapd_drv_amnt_set(struct hostapd_data *hapd, u8 amnt_idx, u8 *amnt_sta_mac)
