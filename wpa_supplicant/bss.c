@@ -1694,9 +1694,12 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 				*missing |= BIT(link_id);
 			} else if ((!ssid ||
 				    wpa_scan_res_match(wpa_s, 0, neigh_bss,
-						       ssid, 1, 0, true)) &&
+						       ssid, 1, 0, true))
+#if 0 /* MLD partner link should not be excluded */
 				   !wpa_bssid_ignore_is_listed(
-					   wpa_s, neigh_bss->bssid)) {
+					   wpa_s, neigh_bss->bssid)
+#endif
+				    ) {
 				struct mld_link *l;
 
 				bss->valid_links |= BIT(link_id);
