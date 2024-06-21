@@ -416,6 +416,40 @@ int wpa_driver_nl80211_scan(struct i802_bss *bss,
 		wpa_printf(MSG_DEBUG, "nl80211: Scan trigger failed: ret=%d "
 			   "(%s)", ret, strerror(-ret));
 		if (drv->hostapd && is_ap_interface(drv->nlmode)) {
+#ifdef CONFIG_IEEE80211BE
+			/* For multi link BSS, retry scan if any other links
+			 * are busy scanning. */
+			if (ret == -EBUSY &&
+			    nl80211_link_valid(bss->valid_links,
+					       params->link_id)) {
+				struct i802_bss *link_bss;
+				u8 link_id;
+
+				wpa_printf(MSG_DEBUG,
+					   "nl80211: Scan trigger on multi link BSS failed (requested link=%d on interface %s)",
+					   params->link_id, bss->ifname);
+
+				for (link_bss = drv->first_bss; link_bss;
+				     link_bss = link_bss->next) {
+					if (link_bss->scan_link)
+						break;
+				}
+
+				if (!link_bss) {
+					wpa_printf(MSG_DEBUG,
+						   "nl80211: BSS information already running scan not available");
+					goto fail;
+				}
+
+				link_id = nl80211_get_link_id_from_link(
+					link_bss, link_bss->scan_link);
+				wpa_printf(MSG_DEBUG,
+					   "nl80211: Scan already running on interface %s link %d",
+					   link_bss->ifname, link_id);
+				goto fail;
+			}
+#endif /* CONFIG_IEEE80211BE */
+
 			/*
 			 * mac80211 does not allow scan requests in AP mode, so
 			 * try to do this in station mode.
