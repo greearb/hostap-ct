@@ -3189,7 +3189,7 @@ static void wpa_driver_nl80211_deinit(struct i802_bss *bss)
 	eloop_cancel_timeout(wpa_driver_nl80211_send_rfkill, drv, drv->ctx);
 	rfkill_deinit(drv->rfkill);
 
-	eloop_cancel_timeout(wpa_driver_nl80211_scan_timeout, drv, drv->ctx);
+	eloop_cancel_timeout(wpa_driver_nl80211_scan_timeout, drv, bss->ctx);
 
 	if (!drv->start_iface_up)
 		(void) i802_set_iface_flags(bss, 0);
@@ -4204,6 +4204,22 @@ struct i802_link * nl80211_get_link(struct i802_bss *bss, s8 link_id)
 		return &bss->links[link_id];
 
 	return bss->flink;
+}
+
+
+u8 nl80211_get_link_id_from_link(struct i802_bss *bss, struct i802_link *link)
+{
+	u8 link_id;
+
+	if (link == bss->flink)
+		return 0;
+
+	for_each_link(bss->valid_links, link_id) {
+		if (&bss->links[link_id] == link)
+			return link_id;
+	}
+
+	return 0;
 }
 
 
@@ -10252,6 +10268,8 @@ static int wpa_driver_nl80211_get_survey(void *priv, unsigned int freq)
 	int err;
 	union wpa_event_data data;
 	struct survey_results *survey_results;
+	void *ctx = (bss->scan_link && bss->scan_link->ctx) ?
+		bss->scan_link->ctx : bss->ctx;
 
 	os_memset(&data, 0, sizeof(data));
 	survey_results = &data.survey_results;
@@ -10274,7 +10292,7 @@ static int wpa_driver_nl80211_get_survey(void *priv, unsigned int freq)
 	if (err)
 		wpa_printf(MSG_ERROR, "nl80211: Failed to process survey data");
 	else
-		wpa_supplicant_event(drv->ctx, EVENT_SURVEY, &data);
+		wpa_supplicant_event(ctx, EVENT_SURVEY, &data);
 
 	clean_survey_results(survey_results);
 	return err;

@@ -153,6 +153,7 @@ fail:
 void wpa_driver_nl80211_scan_timeout(void *eloop_ctx, void *timeout_ctx)
 {
 	struct wpa_driver_nl80211_data *drv = eloop_ctx;
+	struct i802_bss *bss;
 
 	wpa_printf(MSG_DEBUG, "nl80211: Scan timeout - try to abort it");
 #ifdef CONFIG_DRIVER_NL80211_QCA
@@ -160,14 +161,27 @@ void wpa_driver_nl80211_scan_timeout(void *eloop_ctx, void *timeout_ctx)
 	    nl80211_abort_vendor_scan(drv, drv->vendor_scan_cookie) == 0)
 		return;
 #endif /* CONFIG_DRIVER_NL80211_QCA */
-	if (!drv->vendor_scan_cookie &&
-	    nl80211_abort_scan(drv->first_bss) == 0)
+
+	for (bss = drv->first_bss; bss; bss = bss->next) {
+		if (bss->scan_link)
+			break;
+	}
+
+	if (!bss) {
+		wpa_printf(MSG_DEBUG, "nl80211: Failed to find scan BSS");
 		return;
+	}
+
+	if (!drv->vendor_scan_cookie &&
+	    nl80211_abort_scan(bss) == 0) {
+		bss->scan_link = NULL;
+		return;
+	}
 
 	wpa_printf(MSG_DEBUG, "nl80211: Failed to abort scan");
 
 	if (drv->ap_scan_as_station != NL80211_IFTYPE_UNSPECIFIED)
-		nl80211_restore_ap_mode(drv->first_bss);
+		nl80211_restore_ap_mode(bss);
 
 	wpa_printf(MSG_DEBUG, "nl80211: Try to get scan results");
 	wpa_supplicant_event(timeout_ctx, EVENT_SCAN_RESULTS, NULL);
@@ -347,7 +361,7 @@ int wpa_driver_nl80211_scan(struct i802_bss *bss,
 	int ret = -1, timeout;
 	struct nl_msg *msg = NULL;
 
-	wpa_dbg(drv->ctx, MSG_DEBUG, "nl80211: scan request");
+	wpa_dbg(bss->ctx, MSG_DEBUG, "nl80211: scan request");
 	drv->scan_for_auth = 0;
 
 	if (TEST_FAIL())
@@ -435,10 +449,19 @@ int wpa_driver_nl80211_scan(struct i802_bss *bss,
 	}
 	wpa_printf(MSG_DEBUG, "Scan requested (ret=%d) - scan timeout %d "
 		   "seconds", ret, timeout);
-	eloop_cancel_timeout(wpa_driver_nl80211_scan_timeout, drv, drv->ctx);
+	eloop_cancel_timeout(wpa_driver_nl80211_scan_timeout, drv, bss->ctx);
 	eloop_register_timeout(timeout, 0, wpa_driver_nl80211_scan_timeout,
-			       drv, drv->ctx);
+			       drv, bss->ctx);
 	drv->last_scan_cmd = NL80211_CMD_TRIGGER_SCAN;
+
+	bss->scan_link = bss->flink;
+	if (is_ap_interface(drv->nlmode) &&
+	    nl80211_link_valid(bss->valid_links, params->link_id)) {
+		wpa_dbg(bss->ctx, MSG_DEBUG,
+			"nl80211: Scan requested for link %d",
+			params->link_id);
+		bss->scan_link = nl80211_get_link(bss, params->link_id);
+	}
 
 fail:
 	nlmsg_free(msg);
@@ -1294,9 +1317,9 @@ int wpa_driver_nl80211_vendor_scan(struct i802_bss *bss,
 	wpa_printf(MSG_DEBUG,
 		   "nl80211: Vendor scan requested (ret=%d) - scan timeout 30 seconds, scan cookie:0x%llx",
 		   ret, (long long unsigned int) cookie);
-	eloop_cancel_timeout(wpa_driver_nl80211_scan_timeout, drv, drv->ctx);
+	eloop_cancel_timeout(wpa_driver_nl80211_scan_timeout, drv, bss->ctx);
 	eloop_register_timeout(30, 0, wpa_driver_nl80211_scan_timeout,
-			       drv, drv->ctx);
+			       drv, bss->ctx);
 	drv->last_scan_cmd = NL80211_CMD_VENDOR;
 
 fail:

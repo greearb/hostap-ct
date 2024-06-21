@@ -67,7 +67,7 @@ struct i802_bss {
 
 	u16 valid_links;
 	struct i802_link links[MAX_NUM_MLD_LINKS];
-	struct i802_link *flink;
+	struct i802_link *flink, *scan_link;
 
 	int ifindex;
 	int br_ifindex;
@@ -352,6 +352,7 @@ const char * nl80211_iftype_str(enum nl80211_iftype mode);
 
 void nl80211_restore_ap_mode(struct i802_bss *bss);
 struct i802_link * nl80211_get_link(struct i802_bss *bss, s8 link_id);
+u8 nl80211_get_link_id_from_link(struct i802_bss *bss, struct i802_link *link);
 
 static inline bool nl80211_link_valid(u16 links, s8 link_id)
 {

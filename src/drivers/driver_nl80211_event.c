@@ -1965,9 +1965,10 @@ static void mlme_event_dh_event(struct wpa_driver_nl80211_data *drv,
 }
 
 
-static void send_scan_event(struct wpa_driver_nl80211_data *drv, int aborted,
+static void send_scan_event(struct i802_bss *bss, int aborted,
 			    struct nlattr *tb[], int external_scan)
 {
+	struct wpa_driver_nl80211_data *drv = bss->drv;
 	union wpa_event_data event;
 	struct nlattr *nl;
 	int rem;
@@ -1975,6 +1976,8 @@ static void send_scan_event(struct wpa_driver_nl80211_data *drv, int aborted,
 #define MAX_REPORT_FREQS 110
 	int freqs[MAX_REPORT_FREQS];
 	int num_freqs = 0;
+	struct i802_link *mld_link;
+	void *ctx = bss->ctx;
 
 	if (!external_scan && drv->scan_for_auth) {
 		drv->scan_for_auth = 0;
@@ -2038,7 +2041,24 @@ static void send_scan_event(struct wpa_driver_nl80211_data *drv, int aborted,
 			  ETH_ALEN);
 	}
 
-	wpa_supplicant_event(drv->ctx, EVENT_SCAN_RESULTS, &event);
+	/* Need to pass to the correct link ctx during AP MLD operation */
+	if (is_ap_interface(drv->nlmode)) {
+		mld_link = bss->scan_link;
+		if (!mld_link) {
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: Scan event on unknown link");
+		} else if (mld_link->ctx) {
+			u8 link_id = nl80211_get_link_id_from_link(bss,
+								   mld_link);
+
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: Scan event for link_id %d",
+				   link_id);
+			ctx = mld_link->ctx;
+		}
+	}
+
+	wpa_supplicant_event(ctx, EVENT_SCAN_RESULTS, &event);
 }
 
 
@@ -3055,7 +3075,7 @@ static void qca_nl80211_scan_done_event(struct wpa_driver_nl80211_data *drv,
 			drv->scan_state = SCAN_ABORTED;
 
 		eloop_cancel_timeout(wpa_driver_nl80211_scan_timeout, drv,
-				     drv->ctx);
+				     drv->first_bss->ctx);
 		drv->vendor_scan_cookie = 0;
 		drv->last_scan_cmd = 0;
 	}
@@ -3894,7 +3914,7 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 
 	switch (cmd) {
 	case NL80211_CMD_TRIGGER_SCAN:
-		wpa_dbg(drv->ctx, MSG_DEBUG, "nl80211: Scan trigger");
+		wpa_dbg(bss->ctx, MSG_DEBUG, "nl80211: Scan trigger");
 		drv->scan_state = SCAN_STARTED;
 		if (drv->scan_for_auth) {
 			/*
@@ -3906,40 +3926,40 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 			wpa_printf(MSG_DEBUG, "nl80211: Do not indicate scan-start event due to internal scan_for_auth");
 			break;
 		}
-		wpa_supplicant_event(drv->ctx, EVENT_SCAN_STARTED, NULL);
+		wpa_supplicant_event(bss->ctx, EVENT_SCAN_STARTED, NULL);
 		break;
 	case NL80211_CMD_START_SCHED_SCAN:
-		wpa_dbg(drv->ctx, MSG_DEBUG, "nl80211: Sched scan started");
+		wpa_dbg(bss->ctx, MSG_DEBUG, "nl80211: Sched scan started");
 		drv->scan_state = SCHED_SCAN_STARTED;
 		break;
 	case NL80211_CMD_SCHED_SCAN_STOPPED:
-		wpa_dbg(drv->ctx, MSG_DEBUG, "nl80211: Sched scan stopped");
+		wpa_dbg(bss->ctx, MSG_DEBUG, "nl80211: Sched scan stopped");
 		drv->scan_state = SCHED_SCAN_STOPPED;
-		wpa_supplicant_event(drv->ctx, EVENT_SCHED_SCAN_STOPPED, NULL);
+		wpa_supplicant_event(bss->ctx, EVENT_SCHED_SCAN_STOPPED, NULL);
 		break;
 	case NL80211_CMD_NEW_SCAN_RESULTS:
-		wpa_dbg(drv->ctx, MSG_DEBUG,
+		wpa_dbg(bss->ctx, MSG_DEBUG,
 			"nl80211: New scan results available");
 		if (drv->last_scan_cmd != NL80211_CMD_VENDOR)
 			drv->scan_state = SCAN_COMPLETED;
 		drv->scan_complete_events = 1;
 		if (drv->last_scan_cmd == NL80211_CMD_TRIGGER_SCAN) {
 			eloop_cancel_timeout(wpa_driver_nl80211_scan_timeout,
-					     drv, drv->ctx);
+					     drv, bss->ctx);
 			drv->last_scan_cmd = 0;
 		} else {
 			external_scan_event = 1;
 		}
-		send_scan_event(drv, 0, tb, external_scan_event);
+		send_scan_event(bss, 0, tb, external_scan_event);
 		break;
 	case NL80211_CMD_SCHED_SCAN_RESULTS:
-		wpa_dbg(drv->ctx, MSG_DEBUG,
+		wpa_dbg(bss->ctx, MSG_DEBUG,
 			"nl80211: New sched scan results available");
 		drv->scan_state = SCHED_SCAN_RESULTS;
-		send_scan_event(drv, 0, tb, 0);
+		send_scan_event(bss, 0, tb, 0);
 		break;
 	case NL80211_CMD_SCAN_ABORTED:
-		wpa_dbg(drv->ctx, MSG_DEBUG, "nl80211: Scan aborted");
+		wpa_dbg(bss->ctx, MSG_DEBUG, "nl80211: Scan aborted");
 		if (drv->last_scan_cmd != NL80211_CMD_VENDOR)
 			drv->scan_state = SCAN_ABORTED;
 		if (drv->last_scan_cmd == NL80211_CMD_TRIGGER_SCAN) {
@@ -3948,12 +3968,12 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 			 * order not to make wpa_supplicant stop its scanning.
 			 */
 			eloop_cancel_timeout(wpa_driver_nl80211_scan_timeout,
-					     drv, drv->ctx);
+					     drv, bss->ctx);
 			drv->last_scan_cmd = 0;
 		} else {
 			external_scan_event = 1;
 		}
-		send_scan_event(drv, 1, tb, external_scan_event);
+		send_scan_event(bss, 1, tb, external_scan_event);
 		break;
 	case NL80211_CMD_AUTHENTICATE:
 	case NL80211_CMD_ASSOCIATE:
