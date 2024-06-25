@@ -148,6 +148,7 @@ static int wpa_supplicant_eapol_send(void *ctx, int type, const u8 *buf,
 {
 	struct wpa_supplicant *wpa_s = ctx;
 	u8 *msg, *dst, bssid[ETH_ALEN];
+	struct driver_sta_mlo_info drv_mlo;
 	size_t msglen;
 	int res;
 
@@ -197,11 +198,16 @@ static int wpa_supplicant_eapol_send(void *ctx, int type, const u8 *buf,
 	if (is_zero_ether_addr(wpa_s->bssid)) {
 		wpa_printf(MSG_DEBUG, "BSSID not set when trying to send an "
 			   "EAPOL frame");
+		os_memset(&drv_mlo, 0, sizeof(drv_mlo));
 		if (wpa_drv_get_bssid(wpa_s, bssid) == 0 &&
+		    (!wpa_s->valid_links ||
+		     wpas_drv_get_sta_mlo_info(wpa_s, &drv_mlo) == 0) &&
 		    !is_zero_ether_addr(bssid)) {
-			dst = bssid;
-			wpa_printf(MSG_DEBUG, "Using current BSSID " MACSTR
+			dst = drv_mlo.valid_links ? drv_mlo.ap_mld_addr : bssid;
+			wpa_printf(MSG_DEBUG, "Using current %s " MACSTR
 				   " from the driver as the EAPOL destination",
+				   drv_mlo.valid_links ? "AP MLD MAC address" :
+				   "BSSID",
 				   MAC2STR(dst));
 		} else {
 			dst = wpa_s->last_eapol_src;
@@ -211,9 +217,10 @@ static int wpa_supplicant_eapol_send(void *ctx, int type, const u8 *buf,
 				   MAC2STR(dst));
 		}
 	} else {
-		/* BSSID was already set (from (Re)Assoc event, so use it as
-		 * the EAPOL destination. */
-		dst = wpa_s->bssid;
+		/* BSSID was already set (from (Re)Assoc event, so use BSSID or
+		 * AP MLD MAC address (in the case of MLO connection) as the
+		 * EAPOL destination. */
+		dst = wpa_s->valid_links ? wpa_s->ap_mld_addr : wpa_s->bssid;
 	}
 
 	msg = wpa_alloc_eapol(wpa_s, type, buf, len, &msglen, NULL);
