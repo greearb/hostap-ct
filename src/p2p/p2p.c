@@ -4919,6 +4919,95 @@ void p2p_set_managed_oper(struct p2p_data *p2p, int enabled)
 }
 
 
+#ifdef CONFIG_TESTING_OPTIONS
+
+void p2p_set_pairing_setup(struct p2p_data *p2p, int pairing_setup)
+{
+	p2p_dbg(p2p, "Pairing Setup %s",
+		pairing_setup ? "Enabled" : "Disabled");
+	if (pairing_setup) {
+		p2p->cfg->pairing_config.pairing_capable = true;
+		p2p->cfg->pairing_config.enable_pairing_setup = true;
+		if (p2p->pairing_info)
+			p2p->pairing_info->enable_pairing_setup = true;
+	} else {
+		p2p->cfg->pairing_config.pairing_capable = false;
+		p2p->cfg->pairing_config.enable_pairing_setup = false;
+		if (p2p->pairing_info)
+			p2p->pairing_info->enable_pairing_setup = false;
+	}
+}
+
+
+void p2p_set_pairing_cache(struct p2p_data *p2p, int pairing_cache)
+{
+	p2p_dbg(p2p, "Pairing Cache %s",
+		pairing_cache ? "Enabled" : "Disabled");
+	if (pairing_cache) {
+		p2p->cfg->pairing_config.enable_pairing_cache = true;
+		if (p2p->pairing_info)
+			p2p->pairing_info->enable_pairing_cache = true;
+	} else {
+		p2p->cfg->pairing_config.enable_pairing_cache = false;
+		if (p2p->pairing_info)
+			p2p->pairing_info->enable_pairing_cache = false;
+	}
+}
+
+
+void p2p_set_pairing_verification(struct p2p_data *p2p, int pairing_verification)
+{
+	p2p_dbg(p2p, "Pairing Verification %s",
+		pairing_verification ? "Enabled" : "Disabled");
+	if (pairing_verification)
+		p2p->cfg->pairing_config.enable_pairing_verification = true;
+	else
+		p2p->cfg->pairing_config.enable_pairing_verification = false;
+}
+
+
+void p2p_set_bootstrapmethods(struct p2p_data *p2p, int bootstrap_methods)
+{
+	p2p_dbg(p2p, "Bootstraping methods: 0x%x", bootstrap_methods);
+	p2p->cfg->pairing_config.bootstrap_methods = bootstrap_methods;
+	if (p2p->pairing_info)
+		p2p->pairing_info->supported_bootstrap = bootstrap_methods;
+}
+
+
+void p2p_set_pasn_type(struct p2p_data *p2p, u8 pasn_type)
+{
+	p2p_dbg(p2p, "PASN type: 0x%x", pasn_type);
+	p2p->cfg->pairing_config.pasn_type = pasn_type;
+}
+
+
+void p2p_set_comeback_after(struct p2p_data *p2p, int comeback_after)
+{
+	p2p_dbg(p2p, "Comeback after: %d", comeback_after);
+	p2p->cfg->comeback_after = comeback_after;
+}
+
+
+void p2p_set_reg_info(struct p2p_data *p2p, u8 val)
+{
+	p2p->cfg->reg_info = val;
+}
+
+
+void p2p_set_twt_power_mgmt(struct p2p_data *p2p, int val)
+{
+	p2p_dbg(p2p, "TWT-based P2P Power Mgmt: %s",
+		     val ? "Enabled" : "Disabled");
+	if (val)
+		p2p->cfg->twt_power_mgmt = true;
+	else
+		p2p->cfg->twt_power_mgmt = false;
+}
+
+#endif /* CONFIG_TESTING_OPTIONS */
+
+
 int p2p_config_get_random_social(struct p2p_config *p2p, u8 *op_class,
 				 u8 *op_channel,
 				 struct wpa_freq_range_list *avoid_list,

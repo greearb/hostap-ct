@@ -2648,6 +2648,17 @@ int p2p_channel_to_freq(int op_class, int channel);
 struct wpabuf * p2p_usd_elems(struct p2p_data *p2p);
 void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
 			   const u8 *peer_addr, unsigned int freq);
+
+void p2p_set_pairing_setup(struct p2p_data *p2p, int pairing_setup);
+void p2p_set_pairing_cache(struct p2p_data *p2p, int pairing_cache);
+void p2p_set_pairing_verification(struct p2p_data *p2p,
+				  int pairing_verification);
+void p2p_set_bootstrapmethods(struct p2p_data *p2p, int bootstrap_methods);
+void p2p_set_pasn_type(struct p2p_data *p2p, u8 pasn_type);
+void p2p_set_comeback_after(struct p2p_data *p2p, int comeback_after);
+void p2p_set_reg_info(struct p2p_data *p2p, u8 val);
+void p2p_set_twt_power_mgmt(struct p2p_data *p2p, int val);
+
 int p2p_initiate_pasn_auth(struct p2p_data *p2p, const u8 *addr, int freq);
 int p2p_pasn_auth_rx(struct p2p_data *p2p, const struct ieee80211_mgmt *mgmt,
 		     size_t len, int freq);
