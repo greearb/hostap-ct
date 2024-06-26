@@ -2483,6 +2483,8 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	}
 #endif /* CONFIG_NO_RANDOM_POOL */
 
+	wpa_s->last_scan_external = data && data->scan_info.external_scan;
+
 	if (update_only) {
 		ret = 1;
 		goto scan_work_done;

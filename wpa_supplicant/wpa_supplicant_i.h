@@ -805,6 +805,7 @@ struct wpa_supplicant {
 	size_t last_scan_res_used;
 	size_t last_scan_res_size;
 	struct os_reltime last_scan;
+	bool last_scan_external;
 
 	const struct wpa_driver_ops *driver;
 	int interface_removed; /* whether the network interface has been
