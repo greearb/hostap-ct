@@ -1104,12 +1104,18 @@ static bool skip_mode(struct hostapd_iface *iface,
 {
 	int chan;
 
-	if (iface->freq > 0 && !hw_mode_get_channel(mode, iface->freq, &chan))
+	if (iface->freq > 0 && !hw_mode_get_channel(mode, iface->freq, &chan)) {
+		wpa_printf(MSG_INFO, "Skipping mode %d, iface->freq: %d is not available.",
+			   mode->mode, iface->freq);
 		return true;
+	}
 
 	if (is_6ghz_op_class(iface->conf->op_class) && iface->freq == 0 &&
-	    !mode->is_6ghz)
+	    !mode->is_6ghz) {
+		wpa_printf(MSG_INFO, "Skipping mode %d, 6ghz op class, freq is 0, and mode is not 6Ghz.",
+			   mode->mode);
 		return true;
+	}
 
 	return false;
 }
@@ -1304,9 +1310,14 @@ int hostapd_select_hw_mode(struct hostapd_iface *iface)
 	for (i = 0; i < iface->num_hw_features; i++) {
 		struct hostapd_hw_modes *mode = &iface->hw_features[i];
 
+		wpa_printf(MSG_INFO, "Checking mode[%d]: %d  requested hw_mode: %d",
+			   i, mode->mode, iface->conf->hw_mode);
 		if (mode->mode == iface->conf->hw_mode) {
-			if (skip_mode(iface, mode))
+			if (skip_mode(iface, mode)) {
+				wpa_printf(MSG_INFO, "Skipping mode[%d]: %d",
+					   i, mode->mode);
 				continue;
+			}
 
 			iface->current_mode = mode;
 			break;
