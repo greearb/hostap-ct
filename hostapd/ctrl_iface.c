@@ -3801,6 +3801,105 @@ static int hostapd_ctrl_iface_link_remove(struct hostapd_data *hapd, char *cmd,
 
 	return ret;
 }
+
+
+static int hostapd_ctrl_iface_link_add(struct hostapd_data *hapd, char *cmd,
+				       char *buf, size_t buflen)
+{
+	struct hapd_interfaces *interfaces = hapd->iface->interfaces;
+	struct hostapd_iface *iface = NULL;
+	struct hostapd_data *h;
+	struct hostapd_config *conf;
+	const char *ifname, *conf_file, *phy;
+	u16 old_valid_links = 0;
+	bool hapd_existed = false;
+	char *pos, *tmp;
+	int i, ret = -1;
+	size_t len;
+
+	if (!hapd || !hapd->conf->mld_ap || !hapd->mld) {
+		wpa_printf(MSG_ERROR,
+			   "Trying to add link to non-MLD AP or non-existed AP");
+		return -1;
+	}
+
+	if (os_strncmp(cmd, "bss_config=", 11))
+		return -1;
+
+	len = os_strlen(cmd) + 1;
+	tmp = os_malloc(len);
+	if (!tmp)
+		return -1;
+
+	os_snprintf(tmp, len, "%s", cmd);
+	phy = tmp + 11;
+	pos = os_strchr(phy, ':');
+	if (!pos)
+		goto out;
+	*pos++ = '\0';
+	conf_file = pos;
+	if (!os_strlen(conf_file))
+		goto out;
+
+	conf = interfaces->config_read_cb(conf_file);
+	if (!conf)
+		goto out;
+
+	ifname = conf->bss[0]->iface;
+	if (ifname[0] != '\0' &&
+	    os_strncmp(ifname, hapd->conf->iface, sizeof(hapd->conf->iface))) {
+		wpa_printf(MSG_ERROR,
+			   "Interface name %s mismatch (expected %s)",
+			   ifname, hapd->conf->iface);
+		hostapd_config_free(conf);
+		goto out;
+	}
+
+	if (!conf->bss[0]->mld_ap) {
+		wpa_printf(MSG_ERROR, "The added interface is not MLD AP");
+		hostapd_config_free(conf);
+		goto out;
+	}
+
+	for (i = 0; i < interfaces->count; i++) {
+		if (os_strcmp(interfaces->iface[i]->phy, phy) == 0) {
+			iface = interfaces->iface[i];
+			break;
+		}
+	}
+	if (iface && iface->state == HAPD_IFACE_DISABLED) {
+		for (i = 0; i < iface->num_bss; i++) {
+			h = iface->bss[i];
+			if (ifname[0] != '\0' &&
+			    !os_strncmp(ifname, h->conf->iface, sizeof(h->conf->iface)))
+				hapd_existed = true;
+		}
+	}
+	hostapd_config_free(conf);
+
+	for_each_mld_link(h, hapd)
+		old_valid_links |= BIT(h->mld_link_id);
+	hapd->mld->link_reconf_in_progress = old_valid_links;
+
+	if (hapd_existed)
+		ret = hostapd_enable_iface(iface);
+	else
+		ret = hostapd_add_iface(interfaces, cmd);
+	if (ret < 0)
+		goto out;
+
+	ret = os_snprintf(buf, buflen, "%s\n", "OK");
+	if (os_snprintf_error(buflen, ret))
+		ret = -1;
+	else
+		ret = 0;
+
+out:
+	os_free(tmp);
+
+	return ret;
+}
+
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
 
@@ -5855,6 +5954,10 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		if (hostapd_ctrl_iface_link_remove(hapd, buf + 12,
 						   reply, reply_size))
 			reply_len = -1;
+	} else if (os_strncmp(buf, "LINK_ADD ", 9) == 0) {
+		if (hostapd_ctrl_iface_link_add(hapd, buf + 9,
+						reply, reply_size))
+			reply_len = -1;
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
 #ifdef CONFIG_SAE
@@ -6698,6 +6801,7 @@ void hostapd_ctrl_iface_deinit(struct hostapd_data *hapd)
 static int hostapd_ctrl_iface_add(struct hapd_interfaces *interfaces,
 				  char *buf)
 {
+	/* TODO: handle link add via global ADD command */
 	if (hostapd_add_iface(interfaces, buf) < 0) {
 		wpa_printf(MSG_ERROR, "Adding interface %s failed", buf);
 		return -1;

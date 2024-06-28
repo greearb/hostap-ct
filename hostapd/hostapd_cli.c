@@ -1788,6 +1788,12 @@ static int hostapd_cli_cmd_wmm(struct wpa_ctrl *ctrl, int argc,
 	return hostapd_cli_cmd(ctrl, "WMM", 1, argc, argv);
 }
 
+static int hostapd_cli_cmd_link_add(struct wpa_ctrl *ctrl, int argc,
+				    char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "LINK_ADD", 1, argc, argv);
+}
+
 struct hostapd_cli_cmd {
 	const char *cmd;
 	int (*handler)(struct wpa_ctrl *ctrl, int argc, char *argv[]);
@@ -2054,6 +2060,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 		" = Get preamble puncture status"},
 	{ "wmm", hostapd_cli_cmd_wmm, NULL,
 		" = <ac> [cwmin=] [cwmax=] [aifs=] [txop_limit=]"},
+	{ "link_add", hostapd_cli_cmd_link_add, NULL,
+		" = Add a new link to a MLD AP"},
 	{ NULL, NULL, NULL, NULL }
 };
 
