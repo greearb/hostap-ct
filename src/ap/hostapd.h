@@ -551,6 +551,7 @@ struct hostapd_mld {
 	u8 refcount;
 	bool started;
 	u16 link_reconf_in_progress;
+	u16 active_links;
 
 	struct hostapd_data *fbss;
 	struct dl_list links; /* List head of all affiliated links */
