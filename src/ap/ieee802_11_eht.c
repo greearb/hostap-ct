@@ -532,7 +532,13 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	u8 link_id;
 	u8 common_info_len;
 	u16 mld_cap;
-	u8 max_simul_links, active_links;
+	u8 max_simul_links, active_links = 0;
+
+	if (hapd->mld && !(hapd->mld->active_links & BIT(hapd->mld_link_id))) {
+		wpa_printf(MSG_ERROR, "MLD: Current link %d is not active for %s",
+			   hapd->mld_link_id, hapd->mld->name);
+		return pos;
+	}
 
 	/*
 	 * As the Multi-Link element can exceed the size of 255 bytes need to
