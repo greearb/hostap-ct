@@ -2791,6 +2791,14 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 		return 0;
 	}
 
+#ifdef CONFIG_IEEE80211BE
+#ifdef CONFIG_TESTING_OPTIONS
+	if (hapd->conf->mld_ap && hapd->mld &&
+	    (hapd->mld->link_reconf_in_progress & BIT(hapd->mld_link_id)))
+		ieee802_11_set_bss_critical_update(hapd, BSS_CRIT_UPDATE_EVENT_ADD_LINK);
+#endif /* CONFIG_TESTING_OPTIONS */
+#endif /* CONFIG_IEEE80211BE */
+
 	hapd->beacon_set_done = 1;
 
 	if (ieee802_11_build_ap_params(hapd, &params) < 0)
@@ -3392,11 +3400,17 @@ int ieee802_11_set_beacon(struct hostapd_data *hapd)
 	for_each_mld_link(link_bss, hapd) {
 		hostapd_gen_per_sta_profiles(link_bss);
 
-		/* clear critical update flag for UPDATE_SINGLE type, for other types,
-		 * we should get some notified events from driver
+		/* clear critical update flag for UPDATE_SINGLE type & link adding,
+		 * for other types, we should get some notified events from driver
 		 */
+		/* TODO:  Check final upstream code for 'h->' */
 		if (hapd->eht_mld_bss_critical_update == BSS_CRIT_UPDATE_SINGLE)
 			hapd->eht_mld_bss_critical_update = 0;
+		if (hapd->eht_mld_bss_critical_update == BSS_CRIT_UPDATE_FLAG &&
+		    (hapd->mld->link_reconf_in_progress & BIT(hapd->mld_link_id))) {
+			hapd->mld->link_reconf_in_progress &= ~BIT(hapd->mld_link_id);
+			hapd->eht_mld_bss_critical_update = 0;
+		}
 	}
 #endif /* CONFIG_IEEE80211BE */
 
