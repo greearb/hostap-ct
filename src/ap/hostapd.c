@@ -574,6 +574,10 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 	    hapd->iface->bss[0] != hapd)
 		hostapd_if_link_remove(hapd, WPA_IF_AP_BSS, hapd->conf->iface,
 				       hapd->mld_link_id);
+	/* Clear the link reconfiguration flag when the added link failed to setup */
+	if (hapd->conf->mld_ap && hapd->mld &&
+	    !(hapd->mld->link_reconf_in_progress & BIT(hapd->mld_link_id)))
+		hapd->mld->link_reconf_in_progress = 0;
 #endif /* CONFIG_IEEE80211BE */
 
 	wpabuf_free(hapd->time_adv);
@@ -3485,11 +3489,20 @@ hostapd_interface_init_bss(struct hapd_interfaces *interfaces, const char *phy,
 		}
 
 		ifname = conf->bss[0]->iface;
-		if (ifname[0] != '\0' && ifname_in_use(interfaces, ifname)) {
-			wpa_printf(MSG_ERROR,
-				   "Interface name %s already in use", ifname);
-			hostapd_config_free(conf);
-			return NULL;
+		if (conf->bss[0]->mld_ap) {
+			if (!iface->bss[0]->conf->mld_ap) {
+				wpa_printf(MSG_ERROR,
+					   "Cannot add a MLO BSS when the first BSS is non-MLO");
+				hostapd_config_free(conf);
+				return NULL;
+			}
+		} else {
+			if (ifname[0] != '\0' && ifname_in_use(interfaces, ifname)) {
+				wpa_printf(MSG_ERROR,
+					   "Interface name %s already in use", ifname);
+				hostapd_config_free(conf);
+				return NULL;
+			}
 		}
 
 		tmp_conf = os_realloc_array(
@@ -3520,7 +3533,6 @@ hostapd_interface_init_bss(struct hapd_interfaces *interfaces, const char *phy,
 		iface->bss[iface->num_bss] = hapd;
 		hapd->msg_ctx = hapd;
 		hostapd_bss_setup_multi_link(hapd, interfaces);
-
 
 		bss_idx = iface->num_bss++;
 		conf->num_bss--;
