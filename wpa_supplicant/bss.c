@@ -2056,7 +2056,7 @@ const u8 * wpa_bss_get_rsnxe(struct wpa_supplicant *wpa_s,
 			if (!tmp || tmp[0] == WLAN_EID_RSN) {
 				/* An acceptable RSNE override element was not
 				 * found, so need to ignore RSNXE overriding. */
-				return NULL;
+				goto out;
 			}
 
 			return ie;
@@ -2069,9 +2069,10 @@ const u8 * wpa_bss_get_rsnxe(struct wpa_supplicant *wpa_s,
 			wpa_printf(MSG_DEBUG, "BSS " MACSTR
 				   " advertises RSNXE Override element without RSNE Override 2 element - ignore RSNXE Override element for MLO",
 				   MAC2STR(bss->bssid));
-			return NULL;
+			goto out;
 		}
 	}
 
+out:
 	return wpa_bss_get_ie(bss, WLAN_EID_RSNX);
 }
