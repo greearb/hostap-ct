@@ -1731,6 +1731,7 @@ DBusMessage * wpas_dbus_handler_scan(DBusMessage *message,
 					reply = wpas_dbus_error_scan_error(
 						message,
 						"Scan request rejected");
+					goto out;
 				}
 			} else {
 				wpa_s->scan_req = MANUAL_SCAN_REQ;
@@ -1757,6 +1758,7 @@ DBusMessage * wpas_dbus_handler_scan(DBusMessage *message,
 						false)) {
 			reply = wpas_dbus_error_scan_error(
 				message, "Scan request rejected");
+			goto out;
 		}
 	} else {
 		wpa_printf(MSG_DEBUG, "%s[dbus]: Unknown scan type: %s",
