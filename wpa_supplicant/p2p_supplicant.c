@@ -6881,6 +6881,7 @@ static int wpas_p2p_init_go_params(struct wpa_supplicant *wpa_s,
 	params->max_oper_chwidth = max_oper_chwidth;
 	params->vht_center_freq2 = vht_center_freq2;
 	params->edmg = edmg;
+	params->p2p2 = wpa_s->p2p2;
 
 	freqs = os_calloc(wpa_s->num_multichan_concurrent,
 			  sizeof(struct wpa_used_freq_data));
