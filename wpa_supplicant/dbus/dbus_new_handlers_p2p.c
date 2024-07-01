@@ -477,7 +477,8 @@ DBusMessage * wpas_dbus_handler_p2p_group_add(DBusMessage *message,
 						  freq2, ht40, vht,
 						  max_oper_chwidth, he, edmg,
 						  NULL, 0, 0, allow_6ghz,
-						  retry_limit, go_bssid)) {
+						  retry_limit, go_bssid, NULL,
+						  NULL, NULL, 0)) {
 			reply = wpas_dbus_error_unknown_error(
 				message,
 				"Failed to reinvoke a persistent group");

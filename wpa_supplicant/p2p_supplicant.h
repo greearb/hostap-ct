@@ -54,7 +54,9 @@ int wpas_p2p_group_add_persistent(struct wpa_supplicant *wpa_s,
 				  const struct p2p_channels *channels,
 				  int connection_timeout, int force_scan,
 				  bool allow_6ghz, int retry_limit,
-				  const u8 *go_bssid);
+				  const u8 *go_bssid, const u8 *dev_addr,
+				  const u8 *pmkid, const u8 *pmk,
+				  size_t pmk_len);
 struct p2p_group * wpas_p2p_group_init(struct wpa_supplicant *wpa_s,
 				       struct wpa_ssid *ssid);
 enum wpas_p2p_prov_disc_use {

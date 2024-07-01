@@ -3608,7 +3608,7 @@ static void wpas_invitation_received(void *ctx, const u8 *sa, const u8 *bssid,
 				wpa_s->conf->p2p_go_edmg, NULL,
 				go ? P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE : 0,
 				1, is_p2p_allow_6ghz(wpa_s->global->p2p), 0,
-				NULL);
+				bssid, sa, pmkid, pmk, pmk_len);
 		} else if (bssid) {
 			wpa_s->user_initiated_pd = 0;
 			wpa_msg_global(wpa_s, MSG_INFO,
@@ -3840,7 +3840,7 @@ static void wpas_invitation_result(void *ctx, int status, const u8 *bssid,
 				      P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE :
 				      0, 1,
 				      is_p2p_allow_6ghz(wpa_s->global->p2p), 0,
-				      NULL);
+				      bssid, peer, pmkid, pmk, pmk_len);
 }
 
 
@@ -4907,7 +4907,8 @@ static void wpas_p2ps_prov_complete(void *ctx, enum p2p_status_code status,
 					persistent_go->mode ==
 					WPAS_MODE_P2P_GO ?
 					P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE :
-					0, 0, false, 0, NULL);
+					0, 0, false, 0, NULL, NULL, NULL, NULL,
+					0);
 			} else if (response_done) {
 				wpas_p2p_group_add(wpa_s, 1, freq,
 						   0, 0, 0, 0, 0, 0, false);
@@ -5030,7 +5031,8 @@ static int wpas_prov_disc_resp_cb(void *ctx)
 			NULL,
 			persistent_go->mode == WPAS_MODE_P2P_GO ?
 			P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE : 0, 0,
-			is_p2p_allow_6ghz(wpa_s->global->p2p), 0, NULL);
+			is_p2p_allow_6ghz(wpa_s->global->p2p), 0, NULL, NULL,
+			NULL, NULL, 0);
 	} else {
 		wpas_p2p_group_add(wpa_s, 1, freq, 0, 0, 0, 0, 0, 0,
 				   is_p2p_allow_6ghz(wpa_s->global->p2p));
@@ -7322,11 +7324,14 @@ int wpas_p2p_group_add(struct wpa_supplicant *wpa_s, int persistent_group,
 static int wpas_start_p2p_client(struct wpa_supplicant *wpa_s,
 				 struct wpa_ssid *params, int addr_allocated,
 				 int freq, int force_scan, int retry_limit,
-				 const u8 *go_bssid)
+				 const u8 *go_bssid, bool p2p2, const u8 *pmkid,
+				 const u8 *pmk, size_t pmk_len)
 {
+	struct os_reltime now;
 	struct wpa_ssid *ssid;
 	int other_iface_found = 0;
 	struct wpa_supplicant *ifs;
+	struct rsn_pmksa_cache_entry *entry;
 
 	wpa_s = wpas_p2p_get_group_iface(wpa_s, addr_allocated, 0);
 	if (wpa_s == NULL)
@@ -7380,6 +7385,34 @@ static int wpas_start_p2p_client(struct wpa_supplicant *wpa_s,
 		os_memcpy(ssid->bssid, go_bssid, ETH_ALEN);
 	}
 
+	if (p2p2) {
+		ssid->key_mgmt = WPA_KEY_MGMT_SAE;
+		ssid->auth_alg = WPA_AUTH_ALG_OPEN;
+		ssid->sae_pwe = SAE_PWE_HASH_TO_ELEMENT;
+		ssid->ieee80211w = MGMT_FRAME_PROTECTION_REQUIRED;
+		ssid->disabled = 0;
+
+		if (pmk && pmk_len && pmkid) {
+			entry = os_zalloc(sizeof(*entry));
+			if (!entry)
+				return -1;
+			os_memcpy(entry->aa, ssid->bssid, ETH_ALEN);
+			os_memcpy(entry->pmkid, pmkid, PMKID_LEN);
+			entry->pmk_len = pmk_len;
+			os_memcpy(entry->pmk, pmk, pmk_len);
+			entry->akmp = WPA_KEY_MGMT_SAE;
+			os_get_reltime(&now);
+			entry->expiration = now.sec + 43200;
+			entry->reauth_time = now.sec + 43200 * 70 / 100;
+			entry->network_ctx = ssid;
+			os_memcpy(entry->spa, wpa_s->own_addr, ETH_ALEN);
+
+			wpa_sm_pmksa_cache_add_entry(wpa_s->wpa, entry);
+			ssid->pmk_valid = true;
+		}
+		wpa_s->current_ssid = ssid;
+	}
+
 	wpa_s->show_group_started = 1;
 	wpa_s->p2p_in_invitation = 1;
 	wpa_s->p2p_retry_limit = retry_limit;
@@ -7427,7 +7460,9 @@ int wpas_p2p_group_add_persistent(struct wpa_supplicant *wpa_s,
 				  const struct p2p_channels *channels,
 				  int connection_timeout, int force_scan,
 				  bool allow_6ghz, int retry_limit,
-				  const u8 *go_bssid)
+				  const u8 *go_bssid, const u8 *dev_addr,
+				  const u8 *pmkid, const u8 *pmk,
+				  size_t pmk_len)
 {
 	struct p2p_go_neg_results params;
 	int go = 0, freq;
@@ -7496,7 +7531,8 @@ int wpas_p2p_group_add_persistent(struct wpa_supplicant *wpa_s,
 		}
 
 		return wpas_start_p2p_client(wpa_s, ssid, addr_allocated, freq,
-					     force_scan, retry_limit, go_bssid);
+					     force_scan, retry_limit, go_bssid,
+					     wpa_s->p2p2, pmkid, pmk, pmk_len);
 	} else {
 		return -1;
 	}
@@ -7522,6 +7558,15 @@ int wpas_p2p_group_add_persistent(struct wpa_supplicant *wpa_s,
 	os_memcpy(params.ssid, ssid->ssid, ssid->ssid_len);
 	params.ssid_len = ssid->ssid_len;
 	params.persistent_group = 1;
+
+	if (wpa_s->p2p2 && pmk_len && pmk && pmkid) {
+		os_memcpy(params.peer_device_addr, dev_addr, ETH_ALEN);
+		os_memcpy(params.pmkid, pmkid, PMKID_LEN);
+		os_memcpy(params.pmk, pmk, pmk_len);
+		params.pmk_len = pmk_len;
+		params.akmp = WPA_KEY_MGMT_SAE;
+		params.p2p2 = true;
+	}
 
 	wpa_s = wpas_p2p_get_group_iface(wpa_s, addr_allocated, 1);
 	if (wpa_s == NULL)
