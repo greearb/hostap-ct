@@ -7075,6 +7075,7 @@ static int p2p_ctrl_invite_persistent(struct wpa_supplicant *wpa_s, char *cmd)
 	int ht40, vht, he, max_oper_chwidth, chwidth = 0, freq2 = 0;
 	int edmg;
 	bool allow_6ghz;
+	bool p2p2;
 
 	id = atoi(cmd);
 	pos = os_strstr(cmd, " peer=");
@@ -7131,9 +7132,11 @@ static int p2p_ctrl_invite_persistent(struct wpa_supplicant *wpa_s, char *cmd)
 	if (allow_6ghz && chwidth == 40)
 		max_oper_chwidth = CONF_OPER_CHWIDTH_40MHZ_6GHZ;
 
+	p2p2 = os_strstr(cmd, " p2p2") != NULL;
+
 	return wpas_p2p_invite(wpa_s, _peer, ssid, NULL, freq, freq2, ht40, vht,
 			       max_oper_chwidth, pref_freq, he, edmg,
-			       allow_6ghz);
+			       allow_6ghz, p2p2);
 }
 
 

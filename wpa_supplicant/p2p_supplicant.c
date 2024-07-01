@@ -8060,7 +8060,7 @@ int wpas_p2p_reject(struct wpa_supplicant *wpa_s, const u8 *addr)
 int wpas_p2p_invite(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 		    struct wpa_ssid *ssid, const u8 *go_dev_addr, int freq,
 		    int vht_center_freq2, int ht40, int vht, int max_chwidth,
-		    int pref_freq, int he, int edmg, bool allow_6ghz)
+		    int pref_freq, int he, int edmg, bool allow_6ghz, bool p2p2)
 {
 	enum p2p_invite_role role;
 	u8 *bssid = NULL;
@@ -8086,6 +8086,7 @@ int wpas_p2p_invite(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 	wpa_s->p2p_go_max_oper_chwidth = max_chwidth;
 	wpa_s->p2p_go_vht_center_freq2 = vht_center_freq2;
 	wpa_s->p2p_go_edmg = !!edmg;
+	wpa_s->p2p2 = p2p2;
 	if (ssid->mode == WPAS_MODE_P2P_GO) {
 		role = P2P_INVITE_ROLE_GO;
 		if (peer_addr == NULL) {

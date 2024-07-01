@@ -122,7 +122,8 @@ int wpas_p2p_reject(struct wpa_supplicant *wpa_s, const u8 *addr);
 int wpas_p2p_invite(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 		    struct wpa_ssid *ssid, const u8 *go_dev_addr, int freq,
 		    int vht_center_freq2, int ht40, int vht, int max_chwidth,
-		    int pref_freq, int he, int edmg, bool allow_6ghz);
+		    int pref_freq, int he, int edmg, bool allow_6ghz,
+		    bool p2p2);
 int wpas_p2p_invite_group(struct wpa_supplicant *wpa_s, const char *ifname,
 			  const u8 *peer_addr, const u8 *go_dev_addr,
 			  bool allow_6ghz);
