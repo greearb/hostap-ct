@@ -8157,7 +8157,8 @@ int wpas_p2p_invite(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 			bssid = wpa_s->own_addr;
 	} else {
 		role = P2P_INVITE_ROLE_CLIENT;
-		peer_addr = ssid->bssid;
+		if (!wpa_s->p2p2)
+			peer_addr = ssid->bssid;
 	}
 	wpa_s->pending_invite_ssid_id = ssid->id;
 
