@@ -104,7 +104,7 @@ static struct wpabuf * p2p_build_invitation_req(struct p2p_data *p2p,
 	if (p2p->vendor_elem && p2p->vendor_elem[VENDOR_ELEM_P2P_INV_REQ])
 		wpabuf_put_buf(buf, p2p->vendor_elem[VENDOR_ELEM_P2P_INV_REQ]);
 
-	if (dev_pw_id >= 0) {
+	if (dev_pw_id >= 0 && !peer->p2p2) {
 		/* WSC IE in Invitation Request for NFC static handover */
 		p2p_build_wps_ie(p2p, buf, dev_pw_id, 0);
 	}
