@@ -454,6 +454,7 @@ void p2p_process_invitation_resp(struct p2p_data *p2p, const u8 *sa,
 	struct p2p_device *dev;
 	struct p2p_message msg;
 	struct p2p_channels intersection, *channels = NULL;
+	bool all_channels = false;
 
 	p2p_dbg(p2p, "Received Invitation Response from " MACSTR,
 		MAC2STR(sa));
@@ -533,14 +534,17 @@ void p2p_process_invitation_resp(struct p2p_data *p2p, const u8 *sa,
 #endif /* CONFIG_P2P_STRICT */
 		/* Try to survive without peer channel list */
 		channels = &p2p->channels;
+		all_channels = true;
 	} else if (!msg.channel_list) {
 		/* Non-success cases are not required to include Channel List */
 		channels = &p2p->channels;
+		all_channels = true;
 	} else if (p2p_peer_channels_check(p2p, &p2p->channels, dev,
 					   msg.channel_list,
 					   msg.channel_list_len) < 0) {
 		p2p_dbg(p2p, "No common channels found");
 		p2p_parse_free(&msg);
+		dev->inv_reject = true;
 		return;
 	} else {
 		p2p_channels_intersect(&p2p->channels, &dev->channels,
@@ -569,18 +573,74 @@ void p2p_process_invitation_resp(struct p2p_data *p2p, const u8 *sa,
 		 */
 		p2p_check_pref_chan(p2p, 0, dev, &msg);
 
+		if (dev->p2p2) {
+			dev->inv_freq = freq;
+			dev->inv_status = *msg.status;
+			dev->inv_all_channels = all_channels;
+			dev->inv_peer_oper_freq = peer_oper_freq;
+			if (msg.group_bssid)
+				os_memcpy(dev->inv_bssid, msg.group_bssid,
+					  ETH_ALEN);
+			goto out;
+		}
+
 		p2p->cfg->invitation_result(p2p->cfg->cb_ctx, *msg.status,
 					    msg.group_bssid, channels, sa,
 					    freq, peer_oper_freq, NULL, NULL,
 					    0);
 	}
 
+	p2p_clear_timeout(p2p);
+	p2p_set_state(p2p, P2P_IDLE);
+	p2p->invite_peer = NULL;
+
+out:
 	p2p_parse_free(&msg);
+}
+
+
+#ifdef CONFIG_PASN
+void p2p_start_invitation_connect(struct p2p_data *p2p, struct p2p_device *dev)
+{
+	size_t pmk_len = 0;
+	u8 pmkid[PMKID_LEN];
+	u8 pmk[PMK_LEN_MAX];
+	struct p2p_channels intersection;
+	const struct p2p_channels *inv_channels;
+
+	if (!p2p || !dev || dev->inv_reject || !dev->pasn)
+		return;
+
+	if (dev->inv_all_channels) {
+		inv_channels = &p2p->channels;
+	} else {
+		p2p_channels_intersect(&p2p->channels, &dev->channels,
+				       &intersection);
+		inv_channels = &intersection;
+	}
+
+	pasn_initiator_pmksa_cache_get(dev->pasn->pmksa, dev->pasn->peer_addr,
+				       pmkid, pmk, &pmk_len);
+
+	wpa_pasn_reset(dev->pasn);
+	p2p_dbg(p2p, "Invitation connect: msg status %d", dev->inv_status);
+	if (p2p->cfg->invitation_result)
+		p2p->cfg->invitation_result(p2p->cfg->cb_ctx, dev->inv_status,
+					    dev->inv_bssid, inv_channels,
+					    dev->info.p2p_device_addr,
+					    dev->inv_freq,
+					    dev->inv_peer_oper_freq, pmkid,
+					    pmk, pmk_len);
+
+	/* Reset PMK and PMKID from stack */
+	forced_memzero(pmkid, sizeof(pmkid));
+	forced_memzero(pmk, sizeof(pmk));
 
 	p2p_clear_timeout(p2p);
 	p2p_set_state(p2p, P2P_IDLE);
 	p2p->invite_peer = NULL;
 }
+#endif /* CONFIG_PASN */
 
 
 int p2p_invite_send(struct p2p_data *p2p, struct p2p_device *dev,

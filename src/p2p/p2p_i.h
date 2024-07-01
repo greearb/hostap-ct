@@ -196,6 +196,14 @@ struct p2p_device {
 
 	/* Device role */
 	enum p2p_role role;
+
+	/* Invitation parameters for P2P2 */
+	bool inv_reject;
+	u8 inv_status;
+	int inv_freq;
+	int inv_peer_oper_freq;
+	u8 inv_bssid[ETH_ALEN];
+	bool inv_all_channels;
 };
 
 struct p2p_sd_query {
@@ -994,6 +1002,7 @@ int p2p_invite_send(struct p2p_data *p2p, struct p2p_device *dev,
 		    const u8 *go_dev_addr, int dev_pw_id);
 void p2p_invitation_req_cb(struct p2p_data *p2p, int success);
 void p2p_invitation_resp_cb(struct p2p_data *p2p, const u8 *dst, int success);
+void p2p_start_invitation_connect(struct p2p_data *p2p, struct p2p_device *dev);
 
 /* p2p_dev_disc.c */
 void p2p_process_dev_disc_req(struct p2p_data *p2p, const u8 *sa,

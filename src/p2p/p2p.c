@@ -6289,6 +6289,119 @@ void p2p_pasn_initialize(struct p2p_data *p2p, struct p2p_device *dev,
 }
 
 
+int p2p_get_listen_freq(struct p2p_data *p2p, const u8 *peer_addr)
+{
+	int freq;
+	struct p2p_device *dev;
+
+	if (!peer_addr) {
+		p2p_dbg(p2p, "Peer address NULL");
+		return -1;
+	}
+
+	dev = p2p_get_device(p2p, peer_addr);
+	if (!dev) {
+		p2p_dbg(p2p, "Peer not known");
+		return -1;
+	}
+
+	freq = dev->listen_freq > 0 ? dev->listen_freq : dev->oper_freq;
+	if (freq <= 0)
+		freq = dev->oob_go_neg_freq;
+	if (freq <= 0) {
+		p2p_dbg(p2p, "No listen/operating frequency known for the peer "
+			MACSTR, MAC2STR(dev->info.p2p_device_addr));
+		return -1;
+	}
+	return freq;
+}
+
+
+int p2p_initiate_pasn_verify(struct p2p_data *p2p, const u8 *peer_addr,
+			     int freq, enum p2p_invite_role role,
+			     const u8 *bssid, const u8 *ssid, size_t ssid_len,
+			     unsigned int force_freq, const u8 *go_dev_addr,
+			     unsigned int pref_freq)
+{
+	struct pasn_data *pasn;
+	struct p2p_device *dev;
+	struct wpabuf *extra_ies, *req;
+	int ret = 0;
+	u8 *pasn_extra_ies = NULL;
+
+	if (!peer_addr) {
+		p2p_dbg(p2p, "Peer address NULL");
+		return -1;
+	}
+
+	dev = p2p_get_device(p2p, peer_addr);
+	if (!dev) {
+		p2p_dbg(p2p, "Peer not known");
+		return -1;
+	}
+
+	if (p2p_invite(p2p, peer_addr, role, bssid, ssid, ssid_len, force_freq,
+		       go_dev_addr, 1, pref_freq, -1, 1)) {
+		p2p_dbg(p2p, "p2p_invite() failed");
+		return -1;
+	}
+
+	dev->role = P2P_ROLE_PAIRING_INITIATOR;
+	p2p_pasn_initialize(p2p, dev, peer_addr, freq, true);
+	pasn = dev->pasn;
+
+	req = p2p_build_invitation_req(p2p, dev, go_dev_addr, -1);
+	if (!req)
+		return -1;
+
+	p2p_set_state(p2p, P2P_INVITE);
+	p2p->pending_action_state = P2P_PENDING_INVITATION_REQUEST;
+	p2p->invite_peer = dev;
+	dev->invitation_reqs++;
+
+	extra_ies = wpabuf_alloc(1500);
+	if (!extra_ies) {
+		wpabuf_free(req);
+		p2p_dbg(p2p, "Memory allocation failed for extra_ies");
+		return -1;
+	}
+
+	if (p2p_prepare_pasn_extra_ie(p2p, extra_ies, req)) {
+		p2p_dbg(p2p, "Prepare PASN extra IEs failed");
+		ret = -1;
+		goto out;
+	}
+
+	pasn_extra_ies = os_memdup(wpabuf_head_u8(extra_ies),
+				   wpabuf_len(extra_ies));
+	if (!pasn_extra_ies) {
+		p2p_dbg(p2p, "Memory allocation failed for PASN extra IEs");
+		ret = -1;
+		goto out;
+	}
+
+	pasn->extra_ies = pasn_extra_ies;
+	pasn->extra_ies_len = wpabuf_len(extra_ies);
+
+	/* Start PASN verify */
+	if (wpa_pasn_verify(pasn, pasn->own_addr, pasn->peer_addr, pasn->bssid,
+			    pasn->akmp, pasn->cipher, pasn->group, pasn->freq,
+			    NULL, 0, NULL, 0, NULL)) {
+		p2p_dbg(p2p, "PASN verify failed");
+		ret = -1;
+	} else {
+		dev->flags |= P2P_DEV_WAIT_INV_REQ_ACK;
+	}
+out:
+	pasn->extra_ies = NULL;
+	pasn->extra_ies_len = 0;
+	os_free(pasn_extra_ies);
+	wpabuf_free(req);
+	wpabuf_free(extra_ies);
+	return ret;
+}
+
+
 int p2p_initiate_pasn_auth(struct p2p_data *p2p, const u8 *addr, int freq)
 {
 	struct pasn_data *pasn;
@@ -6677,7 +6790,7 @@ int p2p_parse_data_element(struct p2p_data *p2p, const u8 *data, size_t len)
 
 
 int p2p_pasn_auth_tx_status(struct p2p_data *p2p, const u8 *data,
-			    size_t data_len, bool acked)
+			    size_t data_len, bool acked, bool verify)
 {
 	int ret = 0;
 	struct p2p_device *dev;
@@ -6709,7 +6822,9 @@ int p2p_pasn_auth_tx_status(struct p2p_data *p2p, const u8 *data,
 	if (ret != 1)
 		return ret;
 
-	if (dev == p2p->go_neg_peer)
+	if (verify && dev == p2p->invite_peer)
+		p2p_start_invitation_connect(p2p, dev);
+	else if (dev == p2p->go_neg_peer)
 		p2p_go_complete(p2p, dev);
 
 	return 0;

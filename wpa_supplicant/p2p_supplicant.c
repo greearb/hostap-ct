@@ -1723,11 +1723,22 @@ static void wpas_send_action_done(void *ctx)
 struct wpa_p2p_pasn_auth_work {
 	u8 peer_addr[ETH_ALEN];
 	int freq;
+	bool verify;
+	int force_freq;
+	int pref_freq;
+	enum p2p_invite_role role;
+	u8 *ssid;
+	size_t ssid_len;
+	u8 bssid[ETH_ALEN];
+	u8 go_dev_addr[ETH_ALEN];
 };
 
 
 static void wpas_p2p_pasn_free_auth_work(struct wpa_p2p_pasn_auth_work *awork)
 {
+	if (!awork)
+		return;
+	os_free(awork->ssid);
 	os_free(awork);
 }
 
@@ -1743,10 +1754,13 @@ static void wpas_p2p_pasn_cancel_auth_work(struct wpa_supplicant *wpa_s)
 
 static void wpas_p2p_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 {
+	int ret;
 	struct wpa_supplicant *wpa_s = work->wpa_s;
 	struct wpa_p2p_pasn_auth_work *awork = work->ctx;
 	struct p2p_data *p2p = wpa_s->global->p2p;
 	const u8 *peer_addr = NULL;
+	const u8 *bssid = NULL;
+	const u8 *go_dev_addr = NULL;
 
 	if (deinit) {
 		if (!work->started) {
@@ -1759,7 +1773,22 @@ static void wpas_p2p_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 
 	if (!is_zero_ether_addr(awork->peer_addr))
 		peer_addr = awork->peer_addr;
-	if (p2p_initiate_pasn_auth(p2p, peer_addr, awork->freq)) {
+	if (!is_zero_ether_addr(awork->bssid))
+		bssid = awork->bssid;
+	if (!is_zero_ether_addr(awork->go_dev_addr))
+		go_dev_addr = awork->go_dev_addr;
+
+
+	if (awork->verify)
+		ret = p2p_initiate_pasn_verify(p2p, peer_addr, awork->freq,
+					       awork->role, bssid, awork->ssid,
+					       awork->ssid_len,
+					       awork->force_freq, go_dev_addr,
+					       awork->pref_freq);
+	else
+		ret = p2p_initiate_pasn_auth(p2p, peer_addr, awork->freq);
+
+	if (ret) {
 		wpa_printf(MSG_DEBUG,
 			   "P2P PASN: Failed to start PASN authentication");
 		goto fail;
@@ -3733,6 +3762,13 @@ static void wpas_invitation_result(void *ctx, int status, const u8 *bssid,
 	struct wpa_ssid *ssid;
 	int freq;
 
+#ifdef CONFIG_PASN
+	if (wpa_s->p2p_pasn_auth_work) {
+		wpas_p2p_pasn_cancel_auth_work(wpa_s);
+		wpa_s->p2p_pasn_auth_work = NULL;
+	}
+#endif /* CONFIG_PASN */
+
 	if (bssid) {
 		wpa_msg_global(wpa_s, MSG_INFO, P2P_EVENT_INVITATION_RESULT
 			       "status=%d " MACSTR,
@@ -5122,6 +5158,60 @@ static void wpas_bootstrap_completed(void *ctx, const u8 *addr,
 
 
 #ifdef CONFIG_PASN
+
+static int wpas_p2p_initiate_pasn_verify(struct wpa_supplicant *wpa_s,
+					 const u8 *peer,
+					 enum p2p_invite_role role,
+					 const u8 *bssid, const u8 *ssid,
+					 size_t ssid_len,
+					 unsigned int force_freq,
+					 const u8 *go_dev_addr,
+					 unsigned int pref_freq)
+{
+	int freq;
+	struct wpa_p2p_pasn_auth_work *awork;
+
+	wpas_p2p_pasn_cancel_auth_work(wpa_s);
+	wpa_s->p2p_pasn_auth_work = NULL;
+
+	freq = p2p_get_listen_freq(wpa_s->global->p2p, peer);
+	if (freq == -1)
+		return -1;
+
+	awork = os_zalloc(sizeof(*awork));
+	if (!awork)
+		return -1;
+
+	awork->verify = 1;
+	awork->role = role;
+	awork->freq = freq;
+	awork->force_freq = force_freq;
+	awork->pref_freq = pref_freq;
+	os_memcpy(awork->peer_addr, peer, ETH_ALEN);
+	if (go_dev_addr)
+		os_memcpy(awork->go_dev_addr, go_dev_addr, ETH_ALEN);
+	if (bssid)
+		os_memcpy(awork->bssid, bssid, ETH_ALEN);
+	if (ssid_len) {
+		awork->ssid = os_zalloc(ssid_len);
+		if (!awork->ssid) {
+			os_free(awork);
+			return -1;
+		}
+		os_memcpy(awork->ssid, ssid, ssid_len);
+		awork->ssid_len = ssid_len;
+	}
+
+	if (radio_add_work(wpa_s, freq, "p2p-pasn-start-auth", 1,
+			   wpas_p2p_pasn_auth_start_cb, awork) < 0) {
+		wpas_p2p_pasn_free_auth_work(awork);
+		return -1;
+	}
+
+	wpa_printf(MSG_DEBUG, "P2P PASN: Auth work successfully added");
+	return 0;
+}
+
 
 static int wpas_p2p_pasn_send_mgmt(void *ctx, const u8 *data, size_t data_len,
 				   int noack, unsigned int freq,
@@ -8189,6 +8279,20 @@ int wpas_p2p_invite(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 	 */
 	wpas_p2p_stop_find_oper(wpa_s);
 
+#ifdef CONFIG_PASN
+	if (p2p2) {
+		if (wpas_p2p_initiate_pasn_verify(wpa_s, peer_addr, role, bssid,
+						  ssid->ssid, ssid->ssid_len,
+						  force_freq, go_dev_addr,
+						  pref_freq) < 0) {
+			if (wpa_s->create_p2p_iface)
+				wpas_p2p_remove_pending_group_interface(wpa_s);
+			return -1;
+		}
+		return 0;
+	}
+#endif /* CONFIG_PASN */
+
 	return p2p_invite(wpa_s->global->p2p, peer_addr, role, bssid,
 			  ssid->ssid, ssid->ssid_len, force_freq, go_dev_addr,
 			  1, pref_freq, -1, false);
@@ -10720,8 +10824,14 @@ int wpas_p2p_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
 				 size_t data_len, bool acked)
 {
 	struct p2p_data *p2p = wpa_s->global->p2p;
+	struct wpa_p2p_pasn_auth_work *awork;
 
-	return p2p_pasn_auth_tx_status(p2p, data, data_len, acked);
+	if (!wpa_s->p2p_pasn_auth_work)
+		return -1;
+	awork = wpa_s->p2p_pasn_auth_work->ctx;
+
+	return p2p_pasn_auth_tx_status(p2p, data, data_len, acked,
+				       awork->verify);
 }
 
 #endif /* CONFIG_PASN */

@@ -2664,12 +2664,18 @@ void p2p_set_comeback_after(struct p2p_data *p2p, int comeback_after);
 void p2p_set_reg_info(struct p2p_data *p2p, u8 val);
 void p2p_set_twt_power_mgmt(struct p2p_data *p2p, int val);
 
+int p2p_get_listen_freq(struct p2p_data *p2p, const u8 *peer_addr);
 int p2p_initiate_pasn_auth(struct p2p_data *p2p, const u8 *addr, int freq);
+int p2p_initiate_pasn_verify(struct p2p_data *p2p, const u8 *peer_addr,
+			     int freq, enum p2p_invite_role role,
+			     const u8 *bssid, const u8 *ssid, size_t ssid_len,
+			     unsigned int force_freq, const u8 *go_dev_addr,
+			     unsigned int pref_freq);
 int p2p_pasn_auth_rx(struct p2p_data *p2p, const struct ieee80211_mgmt *mgmt,
 		     size_t len, int freq);
 int p2p_prepare_data_element(struct p2p_data *p2p, const u8 *peer_addr);
 int p2p_parse_data_element(struct p2p_data *p2p, const u8 *data, size_t len);
 int p2p_pasn_auth_tx_status(struct p2p_data *p2p, const u8 *data,
-			    size_t data_len, bool acked);
+			    size_t data_len, bool acked, bool verify);
 
 #endif /* P2P_H */
