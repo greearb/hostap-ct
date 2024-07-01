@@ -3979,7 +3979,7 @@ void p2p_send_action_cb(struct p2p_data *p2p, unsigned int freq, const u8 *dst,
 		p2p_invitation_req_cb(p2p, success);
 		break;
 	case P2P_PENDING_INVITATION_RESPONSE:
-		p2p_invitation_resp_cb(p2p, success);
+		p2p_invitation_resp_cb(p2p, dst, success);
 		break;
 	case P2P_PENDING_DEV_DISC_REQUEST:
 		p2p_dev_disc_req_cb(p2p, success);
@@ -4279,7 +4279,7 @@ static void p2p_timeout_invite_listen(struct p2p_data *p2p)
 				p2p->cfg->invitation_result(
 					p2p->cfg->cb_ctx, -1, NULL, NULL,
 					p2p->invite_peer->info.p2p_device_addr,
-					0, 0);
+					0, 0, NULL, NULL, 0);
 		}
 		p2p_set_state(p2p, P2P_IDLE);
 	}
@@ -6459,7 +6459,8 @@ static int p2p_pasn_handle_action_wrapper(struct p2p_data *p2p,
 			p2p_handle_go_neg_conf(p2p, mgmt->sa, data + 1,
 					       data_len - 1, true);
 		else
-			p2p_invitation_resp_cb(p2p, P2P_SEND_ACTION_SUCCESS);
+			p2p_invitation_resp_cb(p2p, mgmt->sa,
+					       P2P_SEND_ACTION_SUCCESS);
 	}
 	p2p_parse_free(&msg);
 	return 0;

@@ -3567,7 +3567,8 @@ accept_inv:
 static void wpas_invitation_received(void *ctx, const u8 *sa, const u8 *bssid,
 				     const u8 *ssid, size_t ssid_len,
 				     const u8 *go_dev_addr, u8 status,
-				     int op_freq)
+				     int op_freq, const u8 *pmkid,
+				     const u8 *pmk, size_t pmk_len)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 	struct wpa_ssid *s;
@@ -3725,7 +3726,8 @@ static void wpas_remove_persistent_client(struct wpa_supplicant *wpa_s,
 static void wpas_invitation_result(void *ctx, int status, const u8 *bssid,
 				   const struct p2p_channels *channels,
 				   const u8 *peer, int neg_freq,
-				   int peer_oper_freq)
+				   int peer_oper_freq, const u8 *pmkid,
+				   const u8 *pmk, size_t pmk_len)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 	struct wpa_ssid *ssid;

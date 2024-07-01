@@ -990,7 +990,7 @@ void p2p_process_invitation_resp(struct p2p_data *p2p, const u8 *sa,
 int p2p_invite_send(struct p2p_data *p2p, struct p2p_device *dev,
 		    const u8 *go_dev_addr, int dev_pw_id);
 void p2p_invitation_req_cb(struct p2p_data *p2p, int success);
-void p2p_invitation_resp_cb(struct p2p_data *p2p, int success);
+void p2p_invitation_resp_cb(struct p2p_data *p2p, const u8 *dst, int success);
 
 /* p2p_dev_disc.c */
 void p2p_process_dev_disc_req(struct p2p_data *p2p, const u8 *sa,

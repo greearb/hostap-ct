@@ -12,7 +12,18 @@
 #include "utils/eloop.h"
 #include "common/ieee802_11_defs.h"
 #include "p2p/p2p.h"
+#include "ap/hostapd.h"
+#include "ap/ieee802_1x.h"
+#include "ap/pmksa_cache_auth.h"
 #include "../fuzzer-common.h"
+
+
+int pasn_responder_pmksa_cache_get(struct rsn_pmksa_cache *pmksa,
+				   const u8 *bssid, u8 *pmkid, u8 *pmk,
+				   size_t *pmk_len)
+{
+	return -1;
+}
 
 
 static void debug_print(void *ctx, int level, const char *msg)

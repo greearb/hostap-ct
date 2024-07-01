@@ -11,6 +11,10 @@
 #include "common.h"
 #include "common/ieee802_11_defs.h"
 #include "common/wpa_ctrl.h"
+#include "common/sae.h"
+#include "crypto/sha384.h"
+#include "common/wpa_common.h"
+#include "pasn/pasn_common.h"
 #include "p2p_i.h"
 #include "p2p.h"
 
@@ -568,7 +572,8 @@ void p2p_process_invitation_resp(struct p2p_data *p2p, const u8 *sa,
 
 		p2p->cfg->invitation_result(p2p->cfg->cb_ctx, *msg.status,
 					    msg.group_bssid, channels, sa,
-					    freq, peer_oper_freq);
+					    freq, peer_oper_freq, NULL, NULL,
+					    0);
 	}
 
 	p2p_parse_free(&msg);
@@ -647,8 +652,26 @@ void p2p_invitation_req_cb(struct p2p_data *p2p, int success)
 }
 
 
-void p2p_invitation_resp_cb(struct p2p_data *p2p, int success)
+void p2p_invitation_resp_cb(struct p2p_data *p2p, const u8 *peer, int success)
 {
+	size_t pmk_len = 0;
+	const u8 *pmkid = NULL, *pmk = NULL;
+
+#ifdef CONFIG_PASN
+	u8 _pmkid[PMKID_LEN];
+	u8 _pmk[PMK_LEN_MAX];
+	struct p2p_device *dev;
+
+	dev = p2p_get_device(p2p, peer);
+	if (dev && dev->pasn) {
+		pasn_responder_pmksa_cache_get(dev->pasn->pmksa,
+					       dev->pasn->peer_addr, _pmkid,
+					       _pmk, &pmk_len);
+		pmkid = _pmkid;
+		pmk = _pmk;
+	}
+#endif /* CONFIG_PASN */
+
 	p2p_dbg(p2p, "Invitation Response TX callback: success=%d", success);
 	p2p->cfg->send_action_done(p2p->cfg->cb_ctx);
 
@@ -662,8 +685,15 @@ void p2p_invitation_resp_cb(struct p2p_data *p2p, int success)
 					      p2p->inv_ssid, p2p->inv_ssid_len,
 					      p2p->inv_go_dev_addr,
 					      p2p->inv_status,
-					      p2p->inv_op_freq);
+					      p2p->inv_op_freq, pmkid, pmk,
+					      pmk_len);
 	}
+
+#ifdef CONFIG_PASN
+	/* Reset PMK and PMKID from stack */
+	forced_memzero(_pmkid, sizeof(_pmkid));
+	forced_memzero(_pmk, sizeof(_pmk));
+#endif /* CONFIG_PASN */
 }
 
 

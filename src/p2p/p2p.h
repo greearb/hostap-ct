@@ -1102,7 +1102,8 @@ struct p2p_config {
 	void (*invitation_received)(void *ctx, const u8 *sa, const u8 *bssid,
 				    const u8 *ssid, size_t ssid_len,
 				    const u8 *go_dev_addr, u8 status,
-				    int op_freq);
+				    int op_freq, const u8 *pmkid, const u8 *pmk,
+				    size_t pmk_len);
 
 	/**
 	 * invitation_result - Callback on Invitation result
@@ -1123,7 +1124,9 @@ struct p2p_config {
 	 */
 	void (*invitation_result)(void *ctx, int status, const u8 *bssid,
 				  const struct p2p_channels *channels,
-				  const u8 *addr, int freq, int peer_oper_freq);
+				  const u8 *addr, int freq, int peer_oper_freq,
+				  const u8 *pmkid, const u8 *pmk,
+				  size_t pmk_len);
 
 	/**
 	 * go_connected - Check whether we are connected to a GO
