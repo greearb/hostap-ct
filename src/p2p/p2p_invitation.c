@@ -19,10 +19,9 @@
 #include "p2p.h"
 
 
-static struct wpabuf * p2p_build_invitation_req(struct p2p_data *p2p,
-						struct p2p_device *peer,
-						const u8 *go_dev_addr,
-						int dev_pw_id)
+struct wpabuf * p2p_build_invitation_req(struct p2p_data *p2p,
+					 struct p2p_device *peer,
+					 const u8 *go_dev_addr, int dev_pw_id)
 {
 	struct wpabuf *buf;
 	u8 *len;

@@ -978,6 +978,9 @@ void p2p_process_pcea(struct p2p_data *p2p, struct p2p_message *msg,
 		      struct p2p_device *dev);
 
 /* p2p_invitation.c */
+struct wpabuf * p2p_build_invitation_req(struct p2p_data *p2p,
+					 struct p2p_device *peer,
+					 const u8 *go_dev_addr, int dev_pw_id);
 void p2p_handle_invitation_req(struct p2p_data *p2p, const u8 *sa,
 			       const u8 *data, size_t len, int rx_freq);
 void p2p_handle_invitation_resp(struct p2p_data *p2p, const u8 *sa,
