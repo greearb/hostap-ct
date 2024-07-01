@@ -670,7 +670,8 @@ void p2p_invitation_resp_cb(struct p2p_data *p2p, int success)
 int p2p_invite(struct p2p_data *p2p, const u8 *peer, enum p2p_invite_role role,
 	       const u8 *bssid, const u8 *ssid, size_t ssid_len,
 	       unsigned int force_freq, const u8 *go_dev_addr,
-	       int persistent_group, unsigned int pref_freq, int dev_pw_id)
+	       int persistent_group, unsigned int pref_freq, int dev_pw_id,
+	       bool p2p2)
 {
 	struct p2p_device *dev;
 
@@ -738,5 +739,8 @@ int p2p_invite(struct p2p_data *p2p, const u8 *peer, enum p2p_invite_role role,
 	os_memcpy(p2p->inv_ssid, ssid, ssid_len);
 	p2p->inv_ssid_len = ssid_len;
 	p2p->inv_persistent = persistent_group;
+	if (p2p2)
+		return 0;
+
 	return p2p_invite_send(p2p, dev, go_dev_addr, dev_pw_id);
 }

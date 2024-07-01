@@ -8142,7 +8142,7 @@ int wpas_p2p_invite(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 
 	return p2p_invite(wpa_s->global->p2p, peer_addr, role, bssid,
 			  ssid->ssid, ssid->ssid_len, force_freq, go_dev_addr,
-			  1, pref_freq, -1);
+			  1, pref_freq, -1, false);
 }
 
 
@@ -8226,7 +8226,7 @@ int wpas_p2p_invite_group(struct wpa_supplicant *wpa_s, const char *ifname,
 
 	return p2p_invite(wpa_s->global->p2p, peer_addr, role, bssid,
 			  ssid->ssid, ssid->ssid_len, force_freq,
-			  go_dev_addr, persistent, pref_freq, -1);
+			  go_dev_addr, persistent, pref_freq, -1, false);
 }
 
 
@@ -9727,7 +9727,7 @@ static int wpas_p2p_nfc_auth_join(struct wpa_supplicant *wpa_s,
 			  P2P_INVITE_ROLE_ACTIVE_GO, wpa_s->own_addr,
 			  ssid->ssid, ssid->ssid_len, ssid->frequency,
 			  wpa_s->global->p2p_dev_addr, persistent, 0,
-			  wpa_s->p2pdev->p2p_oob_dev_pw_id);
+			  wpa_s->p2pdev->p2p_oob_dev_pw_id, false);
 }
 
 

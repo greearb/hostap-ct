@@ -1671,12 +1671,14 @@ enum p2p_invite_role {
  *	force_freq == 0)
  * @dev_pw_id: Device Password ID from OOB Device Password (NFC) static handover
  *	case or -1 if not used
+ * @p2p2: Operating in P2P2 mode
  * Returns: 0 on success, -1 on failure
  */
 int p2p_invite(struct p2p_data *p2p, const u8 *peer, enum p2p_invite_role role,
 	       const u8 *bssid, const u8 *ssid, size_t ssid_len,
 	       unsigned int force_freq, const u8 *go_dev_addr,
-	       int persistent_group, unsigned int pref_freq, int dev_pw_id);
+	       int persistent_group, unsigned int pref_freq, int dev_pw_id,
+	       bool p2p2);
 
 /**
  * p2p_presence_req - Request GO presence
