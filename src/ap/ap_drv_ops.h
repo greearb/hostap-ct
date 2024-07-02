@@ -192,6 +192,11 @@ int hostapd_drv_wnm_oper(struct hostapd_data *hapd,
 int hostapd_drv_set_qos_map(struct hostapd_data *hapd, const u8 *qos_map_set,
 			    u8 qos_map_set_len);
 
+#ifdef CONFIG_IEEE80211BE
+int hostapd_drv_set_scs(struct hostapd_data *hapd,
+			struct hostapd_scs_desc_info *info);
+#endif
+
 void hostapd_get_ext_capa(struct hostapd_iface *iface);
 void hostapd_get_mld_capa(struct hostapd_iface *iface);
 

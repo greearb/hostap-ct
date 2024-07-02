@@ -1235,6 +1235,11 @@ struct ieee80211_mgmt {
 					u8 action;
 					u8 variable[];
 				} STRUCT_PACKED eht_prot;
+				struct {
+					u8 action;
+					u8 dialog_token;
+					u8 variable[];
+				} STRUCT_PACKED scs;
 			} u;
 		} STRUCT_PACKED action;
 	} u;

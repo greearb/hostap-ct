@@ -44,6 +44,10 @@
 #include "common/mtk_vendor.h"
 #include "ap/ap_config.h"
 
+#ifdef CONFIG_IEEE80211BE
+#include "ap/scs.h"
+#endif
+
 
 #ifndef NETLINK_CAP_ACK
 #define NETLINK_CAP_ACK 10
@@ -3162,6 +3166,9 @@ static int nl80211_action_subscribe_ap(struct i802_bss *bss)
 #endif /* CONFIG_IEEE80211BE */
 	/* Vendor-specific Protected */
 	if (nl80211_register_action_frame(bss, (u8 *) "\x7e", 1) < 0)
+		ret = -1;
+	/* Robust AV SCS Request */
+	if (nl80211_register_action_frame(bss, (u8 *) "\x13\x00", 2) < 0)
 		ret = -1;
 	/* Vendor-specific */
 	if (nl80211_register_action_frame(bss, (u8 *) "\x7f", 1) < 0)
@@ -16804,6 +16811,60 @@ fail:
 	nlmsg_free(msg);
 	return ret;
 }
+
+static int
+nl80211_set_scs(void *priv, struct hostapd_scs_desc_info *info, u8 link_id)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *data;
+	int ret = -ENOBUFS;
+
+	if (!drv->mtk_scs_vendor_cmd_avail) {
+		wpa_printf(MSG_ERROR,
+			   "nl80211: Driver does not support scs");
+		return 0;
+	}
+
+	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
+	if (!msg)
+		goto fail;
+
+	if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+			MTK_NL80211_VENDOR_SUBCMD_SCS_CTRL))
+		goto fail;
+
+	data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA);
+	if (!data)
+		goto fail;
+
+	if (nla_put_u8(msg, MTK_VENDOR_ATTR_SCS_ID, info->id) ||
+	    nla_put_u8(msg, MTK_VENDOR_ATTR_SCS_REQ_TYPE, info->req_type) ||
+	    nla_put(msg, MTK_VENDOR_ATTR_SCS_MAC_ADDR, ETH_ALEN, info->peer_addr) ||
+	    nla_put_u8(msg, MTK_VENDOR_ATTR_SCS_LINK_ID, link_id))
+		goto fail;
+
+	if (info->req_type == SCS_REQ_ADD ||
+	    info->req_type == SCS_REQ_CHANGE)
+		if (nla_put_u8(msg, MTK_VENDOR_ATTR_SCS_DIR, info->dir) ||
+		    nla_put(msg, MTK_VENDOR_ATTR_SCS_QOS_IE, info->qos_ie_len,
+			    info->qos_ie))
+			goto fail;
+
+	nla_nest_end(msg, data);
+	ret = send_and_recv_cmd(drv, msg);
+	if (ret)
+		wpa_printf(MSG_ERROR, "Failed to set scs. ret = %d (%s)",
+			   ret, strerror(-ret));
+
+	return ret;
+
+fail:
+	nlmsg_free(msg);
+	return ret;
+}
 #endif
 
 static int
@@ -17255,6 +17316,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.pp_mode_set = nl80211_pp_mode_set,
 #ifdef CONFIG_IEEE80211BE
 	.get_mld_addr = nl80211_get_mld_addr,
+	.set_scs = nl80211_set_scs,
 #endif
 	.csi_set = nl80211_csi_set,
 	.csi_dump = nl80211_csi_dump,
