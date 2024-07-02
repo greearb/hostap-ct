@@ -3269,7 +3269,8 @@ static int wpa_supplicant_use_own_rsne_params(struct wpa_supplicant *wpa_s,
 	if (wpa_s->wpa_proto & (WPA_PROTO_RSN | WPA_PROTO_OSEN)) {
 		const u8 *bss_rsn;
 
-		bss_rsn = wpa_bss_get_rsne(wpa_s, bss, ssid, false);
+		bss_rsn = wpa_bss_get_rsne(wpa_s, bss, ssid,
+					   wpa_s->valid_links);
 		if (bss_rsn) {
 			p = bss_rsn;
 			len = 2 + bss_rsn[1];
@@ -3743,8 +3744,10 @@ static int wpa_supplicant_assoc_update_ie(struct wpa_supplicant *wpa_s)
 
 	bss_wpa = wpa_bss_get_vendor_ie(wpa_s->current_bss,
 					WPA_IE_VENDOR_TYPE);
-	bss_rsn = wpa_bss_get_rsne(wpa_s, wpa_s->current_bss, NULL, false);
-	bss_rsnx = wpa_bss_get_rsnxe(wpa_s, wpa_s->current_bss, NULL, false);
+	bss_rsn = wpa_bss_get_rsne(wpa_s, wpa_s->current_bss, NULL,
+				   wpa_s->valid_links);
+	bss_rsnx = wpa_bss_get_rsnxe(wpa_s, wpa_s->current_bss, NULL,
+				     wpa_s->valid_links);
 
 	if (wpa_sm_set_ap_wpa_ie(wpa_s->wpa, bss_wpa,
 				 bss_wpa ? 2 + bss_wpa[1] : 0) ||
