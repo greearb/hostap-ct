@@ -60,6 +60,9 @@
 #include "nan_usd_ap.h"
 #include "pasn/pasn_common.h"
 
+#ifdef CONFIG_IEEE80211BE
+#include "scs.h"
+#endif
 
 #ifdef CONFIG_FILS
 static struct wpabuf *
@@ -6550,7 +6553,12 @@ static int handle_action(struct hostapd_data *hapd,
 		hostapd_handle_radio_measurement(hapd, (const u8 *) mgmt, len);
 		return 1;
 #endif /* CONFIG_NO_RRM */
+#ifdef CONFIG_IEEE80211BE
+	case WLAN_ACTION_ROBUST_AV_STREAMING:
+		hostapd_handle_scs(hapd, (const u8 *) mgmt, len);
+		return 1;
 	}
+#endif /* CONFIG_IEEE80211BE */
 
 	hostapd_logger(hapd, mgmt->sa, HOSTAPD_MODULE_IEEE80211,
 		       HOSTAPD_LEVEL_DEBUG,

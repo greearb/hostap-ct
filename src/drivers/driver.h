@@ -76,6 +76,25 @@ enum hostapd_chan_width_attr {
 #define HOSTAPD_DFS_REGION_JP	3
 
 /**
+ * struct hostapd_scs_desc_info - SCS Req information
+ * @id: SCSID of each SCS stream
+ * @req_type: request type in SCS Descriptor element
+ * @dir: Direction in the control info of QoS Characteristics element
+ * @peer_addr: the mac addr of SCS requester station
+ * @qos_ie: QoS Characteristics IE in SCS Descriptor element
+ * @qos_ie_len: the length of QoS Characteristics element
+ */
+#define EID_EXT_QOS_CHAR_MAX_SIZE 44
+struct hostapd_scs_desc_info {
+	u8 id;
+	u8 req_type;
+	u8 dir;
+	u8 peer_addr[ETH_ALEN];
+	u8 qos_ie[EID_EXT_QOS_CHAR_MAX_SIZE];
+	u8 qos_ie_len;
+};
+
+/**
  * enum reg_change_initiator - Regulatory change initiator
  */
 enum reg_change_initiator {
@@ -5730,6 +5749,13 @@ struct wpa_driver_ops {
 	int (*pp_mode_set)(void *priv, const u8 pp_mode, s8 link_id, u16 punct_bitmap);
 #ifdef CONFIG_IEEE80211BE
 	int (*get_mld_addr)(void *priv, u8 *addr);
+	/**
+	 * set_scs - Configure Stream Classification Service
+	 * @priv: Private driver interface data
+	 * @info: Stream classidication service configuration
+	 * @link_id: MLD link id
+	 */
+	int (*set_scs)(void *priv, struct hostapd_scs_desc_info *info, u8 link_id);
 #endif
 	/**
 	 * csi_set - Set csi related mode and parameter
