@@ -6280,6 +6280,9 @@ static int wpas_p2p_join_start(struct wpa_supplicant *wpa_s, int freq,
 	os_memcpy(res.peer_interface_addr, wpa_s->pending_join_iface_addr,
 		  ETH_ALEN);
 	res.wps_method = wpa_s->pending_join_wps_method;
+	res.p2p2 = wpa_s->p2p2;
+	res.cipher = WPA_CIPHER_CCMP;
+
 	if (freq && ssid && ssid_len) {
 		res.freq = freq;
 		res.ssid_len = ssid_len;
@@ -6314,7 +6317,10 @@ static int wpas_p2p_join_start(struct wpa_supplicant *wpa_s, int freq,
 		wpa_s->off_channel_freq = 0;
 		wpa_s->roc_waiting_drv_freq = 0;
 	}
-	wpas_start_wps_enrollee(group, &res);
+	if (res.p2p2)
+		wpas_start_gc(group, &res);
+	else
+		wpas_start_wps_enrollee(group, &res);
 
 	/*
 	 * Allow a longer timeout for join-a-running-group than normal 15
