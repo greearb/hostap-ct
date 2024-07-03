@@ -6049,7 +6049,7 @@ static void wpas_p2p_join_scan_req(struct wpa_supplicant *wpa_s, int freq,
 {
 	int ret;
 	struct wpa_driver_scan_params params;
-	struct wpabuf *wps_ie, *ies;
+	struct wpabuf *wps_ie = NULL, *ies;
 	size_t ielen;
 	int freqs[2] = { 0, 0 };
 	unsigned int bands;
@@ -6069,13 +6069,16 @@ static void wpas_p2p_join_scan_req(struct wpa_supplicant *wpa_s, int freq,
 		wpa_s->p2p_join_ssid_len = 0;
 	}
 
-	wpa_s->wps->dev.p2p = 1;
-	wps_ie = wps_build_probe_req_ie(DEV_PW_DEFAULT, &wpa_s->wps->dev,
-					wpa_s->wps->uuid, WPS_REQ_ENROLLEE, 0,
-					NULL);
-	if (wps_ie == NULL) {
-		wpas_p2p_scan_res_join(wpa_s, NULL);
-		return;
+	if (!wpa_s->p2p2) {
+		wpa_s->wps->dev.p2p = 1;
+		wps_ie = wps_build_probe_req_ie(DEV_PW_DEFAULT,
+						&wpa_s->wps->dev,
+						wpa_s->wps->uuid,
+						WPS_REQ_ENROLLEE, 0, NULL);
+		if (!wps_ie) {
+			wpas_p2p_scan_res_join(wpa_s, NULL);
+			return;
+		}
 	}
 
 	if (!freq) {
@@ -6097,14 +6100,21 @@ static void wpas_p2p_join_scan_req(struct wpa_supplicant *wpa_s, int freq,
 	}
 
 	ielen = p2p_scan_ie_buf_len(wpa_s->global->p2p);
-	ies = wpabuf_alloc(wpabuf_len(wps_ie) + ielen);
-	if (ies == NULL) {
+
+	if (wps_ie)
+		ielen += wpabuf_len(wps_ie);
+
+	ies = wpabuf_alloc(ielen);
+	if (!ies) {
 		wpabuf_free(wps_ie);
 		wpas_p2p_scan_res_join(wpa_s, NULL);
 		return;
 	}
-	wpabuf_put_buf(ies, wps_ie);
-	wpabuf_free(wps_ie);
+
+	if (wps_ie) {
+		wpabuf_put_buf(ies, wps_ie);
+		wpabuf_free(wps_ie);
+	}
 
 	bands = wpas_get_bands(wpa_s, freqs);
 	p2p_scan_ie(wpa_s->global->p2p, ies, NULL, bands);
