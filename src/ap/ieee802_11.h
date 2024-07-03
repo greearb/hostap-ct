@@ -278,6 +278,8 @@ u8 * hostapd_eid_eht_capab(struct hostapd_data *hapd, u8 *eid,
 			   enum ieee80211_op_mode opmode);
 u8 * hostapd_eid_non_inheritance(struct hostapd_data *hapd, u8 *eid);
 u8 * hostapd_eid_eht_operation(struct hostapd_data *hapd, u8 *eid);
+size_t hostapd_eid_eht_attlm_len(struct hostapd_data *hapd);
+u8 * hostapd_eid_eht_attlm(struct hostapd_data *hapd, u8 *eid);
 u16 copy_sta_eht_capab(struct hostapd_data *hapd, struct sta_info *sta,
 		       enum ieee80211_op_mode opmode,
 		       const u8 *he_capab, size_t he_capab_len,

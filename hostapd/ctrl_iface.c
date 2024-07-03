@@ -3912,6 +3912,68 @@ out:
 	return ret;
 }
 
+static int hostapd_ctrl_iface_set_attlm(struct hostapd_data *hapd, char *cmd,
+					char *buf, size_t buflen)
+{
+#define MAX_SWITCH_TIME_MS 30000
+#define MAX_DURATION_MS 16000000
+	struct attlm_settings *attlm;
+	struct hostapd_data *h;
+	char *token, *context = NULL;
+	u16 switch_time, disabled_links, valid_links = 0;
+	u32 duration;
+	int ret, i;
+
+	if (!hapd->conf->mld_ap || !hapd->mld)
+		return -1;
+
+	attlm = &hapd->mld->new_attlm;
+	if (attlm->valid) {
+		wpa_printf(MSG_ERROR, "Busy: A-TTLM is on-going");
+		return -1;
+	}
+
+	for_each_mld_link(h, hapd)
+		valid_links |= BIT(h->mld_link_id);
+
+	while ((token = str_token(cmd, " ", &context))) {
+		if (os_strncmp(token, "switch_time=", 12) == 0) {
+			switch_time = atoi(token + 12);
+			if (switch_time > 0 && switch_time <= MAX_SWITCH_TIME_MS)
+				continue;
+		}
+
+		if (os_strncmp(token, "disabled_links=", 15) == 0) {
+			disabled_links = atoi(token + 15);
+
+			if ((disabled_links & valid_links) &&
+			    !(disabled_links & ~valid_links))
+				continue;
+		}
+
+		if (os_strncmp(token, "duration=", 9) == 0) {
+			duration = atoi(token + 9);
+			if (duration > 0 && duration <= MAX_DURATION_MS)
+				continue;
+		}
+
+		wpa_printf(MSG_INFO, "CTRL: Invalid SET_ATTLM parameter: %s",
+			   token);
+		return -1;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "MLD: set A-TTLM disabled_links=%u, switch_time=%u, duration=%u",
+		   disabled_links, switch_time, duration);
+
+	attlm->valid = true;
+	attlm->direction = IEEE80211_TTLM_DIRECTION_BOTH;
+	attlm->duration = duration;
+	attlm->switch_time = switch_time;
+	attlm->disabled_links = hapd->conf->mld_allowed_links & disabled_links;
+
+	return hostapd_mld_set_attlm(hapd);
+}
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
 
@@ -5954,6 +6016,10 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "LINK_ADD ", 9) == 0) {
 		if (hostapd_ctrl_iface_link_add(hapd, buf + 9,
 						reply, reply_size))
+			reply_len = -1;
+	} else if (os_strncmp(buf, "SET_ATTLM ", 10) == 0) {
+		if (hostapd_ctrl_iface_set_attlm(hapd, buf + 10, reply,
+						 reply_size))
 			reply_len = -1;
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */

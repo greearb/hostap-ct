@@ -597,6 +597,15 @@ int hostapd_if_link_remove(struct hostapd_data *hapd,
 	return hapd->driver->link_remove(hapd->drv_priv, type, ifname,
 					 hapd->mld_link_id);
 }
+
+
+int hostapd_drv_set_attlm(struct hostapd_data *hapd)
+{
+	if (!hapd->driver || !hapd->drv_priv || !hapd->driver->set_attlm)
+		return -1;
+
+	return hapd->driver->set_attlm(hapd->drv_priv, &hapd->mld->new_attlm);
+}
 #endif /* CONFIG_IEEE80211BE */
 
 

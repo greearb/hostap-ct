@@ -474,6 +474,14 @@ int hostapd_link_remove(struct hostapd_data *hapd, u32 count)
 	return 0;
 }
 
+
+int hostapd_mld_set_attlm(struct hostapd_data *hapd)
+{
+	if (!hapd->drv_priv)
+		return -1;
+
+	return hostapd_drv_set_attlm(hapd);
+}
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
 
