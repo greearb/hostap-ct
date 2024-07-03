@@ -10533,11 +10533,16 @@ static int nl80211_send_tdls_mgmt(void *priv, const u8 *dst, u8 action_code,
 	    nl80211_tdls_set_discovery_resp_link(drv, link_id) < 0)
 		return -EOPNOTSUPP;
 
+	if (link_id < 0 && drv->sta_mlo_info.valid_links)
+		link_id = drv->sta_mlo_info.assoc_link_id;
+
 	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_TDLS_MGMT)) ||
 	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, dst) ||
 	    nla_put_u8(msg, NL80211_ATTR_TDLS_ACTION, action_code) ||
 	    nla_put_u8(msg, NL80211_ATTR_TDLS_DIALOG_TOKEN, dialog_token) ||
 	    nla_put_u16(msg, NL80211_ATTR_STATUS_CODE, status_code) ||
+	    (link_id >= 0 &&
+	     nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id)) ||
 	    nl80211_add_peer_capab(msg, peer_capab) ||
 	    (initiator && nla_put_flag(msg, NL80211_ATTR_TDLS_INITIATOR)) ||
 	    nla_put(msg, NL80211_ATTR_IE, len, buf))
