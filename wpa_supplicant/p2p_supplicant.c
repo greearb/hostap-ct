@@ -4958,7 +4958,8 @@ static void wpas_p2ps_prov_complete(void *ctx, enum p2p_status_code status,
 					0);
 			} else if (response_done) {
 				wpas_p2p_group_add(wpa_s, 1, freq,
-						   0, 0, 0, 0, 0, 0, false);
+						   0, 0, 0, 0, 0, 0, false,
+						   wpa_s->p2p2);
 			}
 
 			if (passwd_id == DEV_PW_P2PS_DEFAULT) {
@@ -5082,7 +5083,8 @@ static int wpas_prov_disc_resp_cb(void *ctx)
 			NULL, NULL, 0);
 	} else {
 		wpas_p2p_group_add(wpa_s, 1, freq, 0, 0, 0, 0, 0, 0,
-				   is_p2p_allow_6ghz(wpa_s->global->p2p));
+				   is_p2p_allow_6ghz(wpa_s->global->p2p),
+				   wpa_s->p2p2);
 	}
 
 	return 1;
@@ -7379,7 +7381,7 @@ wpas_p2p_get_group_iface(struct wpa_supplicant *wpa_s, int addr_allocated,
 int wpas_p2p_group_add(struct wpa_supplicant *wpa_s, int persistent_group,
 		       int freq, int vht_center_freq2, int ht40, int vht,
 		       int max_oper_chwidth, int he, int edmg,
-		       bool allow_6ghz)
+		       bool allow_6ghz, bool p2p2)
 {
 	struct p2p_go_neg_results params;
 	int selected_freq = 0;
@@ -7391,6 +7393,7 @@ int wpas_p2p_group_add(struct wpa_supplicant *wpa_s, int persistent_group,
 
 	os_free(wpa_s->global->add_psk);
 	wpa_s->global->add_psk = NULL;
+	wpa_s->p2p2 = p2p2;
 
 	/* Make sure we are not running find during connection establishment */
 	wpa_printf(MSG_DEBUG, "P2P: Stop any on-going P2P FIND");
