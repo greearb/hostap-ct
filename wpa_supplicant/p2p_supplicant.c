@@ -2697,6 +2697,46 @@ bool wpas_p2p_retry_limit_exceeded(struct wpa_supplicant *wpa_s)
 }
 
 
+static void wpas_set_go_security_config(void *ctx,
+					struct p2p_go_neg_results *params)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+	struct wpa_supplicant *tmp, *ifs = NULL;
+	struct hostapd_data *hapd;
+
+	if (!params->p2p2)
+		return;
+
+	dl_list_for_each(tmp, &wpa_s->radio->ifaces, struct wpa_supplicant,
+			 radio_list) {
+		struct wpa_ssid *ssid = tmp->current_ssid;
+
+		if (ssid && ssid->mode == WPAS_MODE_P2P_GO &&
+		    ssid->ssid && ssid->ssid_len == params->ssid_len &&
+		    os_memcmp(ssid->ssid, params->ssid, params->ssid_len) == 0)
+		{
+			ifs = tmp;
+			break;
+		}
+	}
+
+	if (!ifs || !ifs->ap_iface)
+		return;
+
+	hapd = ifs->ap_iface->bss[0];
+	hapd->conf->wps_state = 0;
+
+	if (params->akmp == WPA_KEY_MGMT_SAE) {
+		wpa_printf(MSG_DEBUG, "P2P: Adding PMK for peer: " MACSTR,
+			   MAC2STR(params->peer_device_addr));
+		wpa_auth_pmksa_add_sae(hapd->wpa_auth,
+				       params->peer_device_addr,
+				       params->pmk, params->pmk_len,
+				       params->pmkid, WPA_KEY_MGMT_SAE);
+	}
+}
+
+
 static void wpas_go_neg_completed(void *ctx, struct p2p_go_neg_results *res)
 {
 	struct wpa_supplicant *wpa_s = ctx;
@@ -5347,6 +5387,7 @@ int wpas_p2p_init(struct wpa_global *global, struct wpa_supplicant *wpa_s)
 	p2p.send_action = wpas_send_action;
 	p2p.send_action_done = wpas_send_action_done;
 	p2p.go_neg_completed = wpas_go_neg_completed;
+	p2p.set_go_security_config = wpas_set_go_security_config;
 	p2p.go_neg_req_rx = wpas_go_neg_req_rx;
 	p2p.dev_found = wpas_dev_found;
 	p2p.dev_lost = wpas_dev_lost;
@@ -6497,6 +6538,7 @@ int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 	os_free(wpa_s->global->add_psk);
 	wpa_s->global->add_psk = NULL;
 
+	p2p_set_go_role(wpa_s->global->p2p, false);
 	wpa_s->global->p2p_fail_on_wps_complete = 0;
 	wpa_s->global->pending_p2ps_group = 0;
 	wpa_s->global->pending_p2ps_group_freq = 0;

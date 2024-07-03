@@ -670,6 +670,14 @@ struct p2p_data {
 	 * conclusion of a successful pairing. */
 	char dev_sae_password[100];
 	char peer_sae_password[100];
+
+	/* Variable used to know the role of the device in a given instance.
+	 * go_role variable is set while authorizing a P2P Client for PASN
+	 * authentication with predefined GO intent value for GO (15 for
+	 * P2P-GO). Once the authentication is completed and security
+	 * configuration is done, this variable is reset to false.
+	 */
+	bool go_role;
 };
 
 /**

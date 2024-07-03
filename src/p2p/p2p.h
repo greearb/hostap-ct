@@ -949,6 +949,20 @@ struct p2p_config {
 	void (*go_neg_completed)(void *ctx, struct p2p_go_neg_results *res);
 
 	/**
+	 * set_go_security_config - Set security configuration for P2P GO
+	 * @ctx: Callback context from cb_ctx
+	 * @res: GO Negotiation results
+	 *
+	 * This callback is used to set PMK/passphrase derived during PASN
+	 * authentication with a P2P client. This will fetch an active P2P group
+	 * owner instance and configure PMKSA in case of password based PASN, or
+	 * configures the passphrase and derive PT in case of unauthenticated
+	 * PASN.
+	 */
+	void (*set_go_security_config)(void *ctx,
+				       struct p2p_go_neg_results *res);
+
+	/**
 	 * sd_request - Callback on Service Discovery Request
 	 * @ctx: Callback context from cb_ctx
 	 * @freq: Frequency (in MHz) of the channel
@@ -2171,6 +2185,18 @@ size_t p2p_scan_ie_buf_len(struct p2p_data *p2p);
  * Returns: 0 on success, -1 on failure
  */
 int p2p_go_params(struct p2p_data *p2p, struct p2p_go_neg_results *params);
+
+/**
+ * p2p_set_go_role - Set the current role of P2P device
+ * @p2p: P2P module context from p2p_init()
+ * @val: 1 if P2P GO, 0 to reset the role variable
+ *
+ * This role is configured as P2P GO when authorizing a P2P Client to join the
+ * group. Once PASN authentication with GO negotiation with predefined GO intent
+ * values (15 for P2P GO) is completed, the role helps to configure PMK derived
+ * during the PASN authentication.
+ */
+void p2p_set_go_role(struct p2p_data *p2p, bool val);
 
 /**
  * p2p_get_group_capab - Get Group Capability from P2P IE data

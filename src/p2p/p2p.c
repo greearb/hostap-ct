@@ -1868,6 +1868,12 @@ int p2p_go_params(struct p2p_data *p2p, struct p2p_go_neg_results *params)
 }
 
 
+void p2p_set_go_role(struct p2p_data *p2p, bool val)
+{
+	p2p->go_role = val;
+}
+
+
 void p2p_go_complete(struct p2p_data *p2p, struct p2p_device *peer)
 {
 	struct p2p_go_neg_results res;
@@ -1971,8 +1977,14 @@ void p2p_go_complete(struct p2p_data *p2p, struct p2p_device *peer)
 	}
 #endif /* CONFIG_PASN */
 
-	p2p_set_state(p2p, P2P_PROVISIONING);
-	p2p->cfg->go_neg_completed(p2p->cfg->cb_ctx, &res);
+	if (p2p->go_role && peer->p2p2) {
+		p2p->cfg->set_go_security_config(p2p->cfg->cb_ctx, &res);
+		p2p->go_role = false;
+	} else {
+		p2p_set_state(p2p, P2P_PROVISIONING);
+		p2p->cfg->go_neg_completed(p2p->cfg->cb_ctx, &res);
+	}
+
 	forced_memzero(&res, sizeof(res));
 }
 
