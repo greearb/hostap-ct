@@ -1115,6 +1115,7 @@ struct wpa_supplicant {
 	u8 pending_join_dev_addr[ETH_ALEN];
 	u8 p2p_bootstrap_dev_addr[ETH_ALEN];
 	int pending_join_wps_method;
+	char pending_join_password[100];
 	u8 p2p_join_ssid[SSID_MAX_LEN];
 	size_t p2p_join_ssid_len;
 	int p2p_join_scan_count;

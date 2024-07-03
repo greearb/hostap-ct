@@ -5950,7 +5950,8 @@ static void wpas_p2p_scan_res_join(struct wpa_supplicant *wpa_s,
 					 NULL, 0,
 					 is_p2p_allow_6ghz(wpa_s->global->p2p),
 					 wpa_s->p2p2, wpa_s->p2p_bootstrap,
-					 NULL);
+					 wpa_s->pending_join_password[0] ?
+					 wpa_s->pending_join_password : NULL);
 			return;
 		}
 
@@ -6279,6 +6280,13 @@ static int wpas_p2p_join_start(struct wpa_supplicant *wpa_s, int freq,
 	os_memcpy(res.peer_device_addr, wpa_s->pending_join_dev_addr, ETH_ALEN);
 	os_memcpy(res.peer_interface_addr, wpa_s->pending_join_iface_addr,
 		  ETH_ALEN);
+	if (wpa_s->pending_join_password[0]) {
+		res.akmp = WPA_KEY_MGMT_SAE;
+		os_strlcpy(res.sae_password, wpa_s->pending_join_password,
+			   sizeof(res.sae_password));
+		os_memset(wpa_s->pending_join_password, 0,
+			  sizeof(wpa_s->pending_join_password));
+	}
 	res.wps_method = wpa_s->pending_join_wps_method;
 	res.p2p2 = wpa_s->p2p2;
 	res.cipher = WPA_CIPHER_CCMP;
@@ -6602,6 +6610,10 @@ int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 	} else
 		wpa_s->p2p_pin[0] = '\0';
 
+	if (!password)
+		os_memset(wpa_s->pending_join_password, 0,
+			  sizeof(wpa_s->pending_join_password));
+
 	if (join || auto_join) {
 		u8 iface_addr[ETH_ALEN], dev_addr[ETH_ALEN];
 		if (auth) {
@@ -6670,6 +6682,9 @@ int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 				   wpa_s->p2p_auto_started.usec);
 		}
 		wpa_s->user_initiated_pd = 1;
+		if (password)
+			os_strlcpy(wpa_s->pending_join_password, password,
+				   sizeof(wpa_s->pending_join_password));
 		if (wpas_p2p_join(wpa_s, iface_addr, dev_addr, wps_method,
 				  auto_join, freq,
 				  group_ssid, group_ssid_len) < 0)
