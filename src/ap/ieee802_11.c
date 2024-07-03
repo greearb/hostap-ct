@@ -5352,6 +5352,7 @@ rsnxe_done:
 			p = hostapd_eid_eht_ml_assoc(hapd, sta, p);
 		p = hostapd_eid_eht_capab(hapd, p, IEEE80211_MODE_AP);
 		p = hostapd_eid_eht_operation(hapd, p);
+		p = hostapd_eid_eht_attlm(hapd, p);
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -6620,6 +6621,13 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap && !hapd->mld->started) {
 		wpa_printf(MSG_DEBUG, "MGMT: Drop the frame - MLD not ready");
+		return 1;
+	}
+
+	if (hapd->conf->mld_ap && hapd->mld->new_attlm.valid &&
+	    !hapd->mld->new_attlm.switch_time_tsf_tu &&
+	    (hapd->mld->new_attlm.disabled_links & BIT(hapd->mld_link_id))) {
+		wpa_printf(MSG_DEBUG, "MGMT: Drop the frame - Disabled link");
 		return 1;
 	}
 #endif /* CONFIG_IEEE80211BE */

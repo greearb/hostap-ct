@@ -1465,6 +1465,58 @@ void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+void hostapd_event_attlm(struct hostapd_data *hapd, struct attlm_event *attlm_event)
+{
+	struct hostapd_mld *mld = hapd->mld;
+	struct hostapd_data *p_hapd;
+	bool mld_indicate_disabled = false;
+
+	if (!hapd->conf->mld_ap || !mld)
+		return;
+
+	wpa_printf(MSG_DEBUG, "A-TTLM event");
+	/*
+	 * T0: driver notifies A-TTLM has started and reports Switch Time TSF in TUs
+	 * T1: driver notifies Switch Time Expiry of a started A-TTLM
+	 * T2: driver notifies Duration Expiry of a started A-TTLM.
+	 */
+	switch (attlm_event->event) {
+		case EVENT_ATTLM_STARTED:
+			ieee802_11_set_bss_critical_update(hapd,
+						BSS_CRIT_UPDATE_EVENT_ATTLM);
+			mld->new_attlm.switch_time_tsf_tu =
+						attlm_event->switch_time_tsf_tu;
+			break;
+		case EVENT_ATTLM_SWITCH_TIME_EXPIRED:
+			mld_indicate_disabled = true;
+			mld->new_attlm.switch_time_tsf_tu = 0;
+			os_get_reltime(&mld->new_attlm.start_time);
+			break;
+		case EVENT_ATTLM_END:
+			ieee802_11_set_bss_critical_update(hapd,
+						BSS_CRIT_UPDATE_EVENT_ATTLM);
+			mld->new_attlm.valid = false;
+			break;
+		default:
+			wpa_printf(MSG_DEBUG, "Unsupported A-TTLM event");
+			return;
+	}
+
+#ifdef CONFIG_TESTING_OPTIONS
+	for_each_mld_link(p_hapd, hapd) {
+		if (mld->new_attlm.disabled_links & BIT(p_hapd->mld_link_id))
+			p_hapd->conf->mld_indicate_disabled =
+							mld_indicate_disabled;
+	}
+#endif /* CONFIG_TESTING_OPTIONS */
+
+	ieee802_11_set_beacon(hapd);
+	hapd->eht_mld_bss_critical_update = 0;
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 void hostapd_event_connect_failed_reason(struct hostapd_data *hapd,
 					 const u8 *addr, int reason_code)
 {
@@ -2891,6 +2943,11 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 					data->ch_switch.cf2,
 					data->ch_switch.punct_bitmap,
 					event == EVENT_CH_SWITCH);
+		break;
+	case EVENT_ATTLM:
+#ifdef CONFIG_IEEE80211BE
+		hostapd_event_attlm(hapd, &data->attlm_event);
+#endif /* CONFIG_IEEE80211BE */
 		break;
 	case EVENT_CONNECT_FAILED_REASON:
 		if (!data)

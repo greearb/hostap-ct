@@ -11718,6 +11718,38 @@ static bool nl80211_is_drv_shared(void *priv, int link_id)
 	return true;
 }
 
+
+static int nl80211_set_attlm(void *priv, struct attlm_settings *attlm)
+{
+	struct nl_msg *msg;
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	int ret = -ENOBUFS;
+
+	wpa_printf(MSG_DEBUG, "nl80211: Set A-TTLM");
+
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_SET_ATTLM)) ||
+	    nla_put_u16(msg, NL80211_ATTR_MLO_LINK_DISABLED_BMP,
+			attlm->disabled_links) ||
+	    nla_put_u16(msg, NL80211_ATTR_MLO_ATTLM_SWITCH_TIME,
+			attlm->switch_time) ||
+	    nla_put_u32(msg, NL80211_ATTR_MLO_ATTLM_DURATION,
+			attlm->duration))
+		goto error;
+
+	ret = send_and_recv_cmd(drv, msg);
+	if (ret) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: disable link failed err=%d (%s)",
+			   ret, strerror(-ret));
+	}
+
+	return ret;
+error:
+	nlmsg_free(msg);
+	wpa_printf(MSG_DEBUG, "nl80211: Could not build link disabling request");
+	return ret;
+}
 #endif /* CONFIG_IEEE80211BE */
 
 
@@ -16931,6 +16963,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.link_add = nl80211_link_add,
 #ifdef CONFIG_IEEE80211BE
 	.link_remove = driver_nl80211_link_remove,
+	.set_attlm = nl80211_set_attlm,
 	.is_drv_shared = nl80211_is_drv_shared,
 	.link_sta_remove = wpa_driver_nl80211_link_sta_remove,
 	.can_share_drv = wpa_driver_nl80211_can_share_drv,
