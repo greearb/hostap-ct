@@ -1385,6 +1385,53 @@ static void mlme_event_ch_switch(struct wpa_driver_nl80211_data *drv,
 }
 
 
+static void mlme_event_attlm(struct wpa_driver_nl80211_data *drv,
+			     struct nlattr *ifindex,
+			     struct nlattr *event,
+			     struct nlattr *switch_time_tsf_tu)
+{
+	enum nl80211_attlm_event event_type;
+	union wpa_event_data data;
+	struct i802_bss *bss;
+	int ifidx;
+
+	ifidx = nla_get_u32(ifindex);
+	bss = get_bss_ifindex(drv, ifidx);
+	if (bss == NULL) {
+		wpa_printf(MSG_WARNING,
+			   "nl80211: Unknown ifindex (%d) for A-TTLM, ignoring",
+			   ifidx);
+		return;
+	}
+
+	if (!event)
+		return;
+
+	wpa_printf(MSG_DEBUG, "nl80211: %s: A-TTLM event", bss->ifname);
+
+	data.attlm_event.switch_time_tsf_tu = switch_time_tsf_tu ?
+					nla_get_u16(switch_time_tsf_tu) : 0;
+	event_type = nla_get_u32(event);
+	switch (event_type) {
+		case NL80211_ATTLM_STARTED:
+			data.attlm_event.event = EVENT_ATTLM_STARTED;
+			break;
+		case NL80211_ATTLM_SWITCH_TIME_EXPIRED:
+			data.attlm_event.event = EVENT_ATTLM_SWITCH_TIME_EXPIRED;
+			break;
+		case NL80211_ATTLM_END:
+			data.attlm_event.event = EVENT_ATTLM_END;
+			break;
+		default:
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: Unsupported A-TTLM event");
+			return;
+	}
+
+	wpa_supplicant_event(bss->ctx, EVENT_ATTLM, &data);
+}
+
+
 static void mlme_timeout_event(struct wpa_driver_nl80211_data *drv,
 			       enum nl80211_commands cmd, struct nlattr *addr)
 {
@@ -4383,6 +4430,11 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 				     tb[NL80211_ATTR_CENTER_FREQ2],
 				     tb[NL80211_ATTR_PUNCT_BITMAP],
 				     1);
+		break;
+	case NL80211_CMD_ATTLM_EVENT:
+		mlme_event_attlm(drv, tb[NL80211_ATTR_IFINDEX],
+				 tb[NL80211_ATTR_MLO_ATTLM_EVENT],
+				 tb[NL80211_ATTR_MLO_ATTLM_SWITCH_TIME_TSF_TU]);
 		break;
 	case NL80211_CMD_DISCONNECT:
 		mlme_event_disconnect(drv, tb[NL80211_ATTR_REASON_CODE],

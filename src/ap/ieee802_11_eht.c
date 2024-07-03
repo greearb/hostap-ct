@@ -609,7 +609,7 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	mld_cap |= active_links & EHT_ML_MLD_CAPA_MAX_NUM_SIM_LINKS_MASK;
 
 	/* TODO: Advertise T2LM based on driver support as well */
-	mld_cap &= ~EHT_ML_MLD_CAPA_TID_TO_LINK_MAP_NEG_SUPP_MSK;
+	mld_cap |= EHT_ML_MLD_CAPA_TID_TO_LINK_MAP_ALL_TO_ALL;
 
 	mld_cap |= EHT_ML_MLD_CAPA_LINK_RECONF_OP_SUPPORT;
 
@@ -908,6 +908,100 @@ static u8 * hostapd_eid_eht_reconf_ml(struct hostapd_data *hapd, u8 *eid)
 #else /* CONFIG_TESTING_OPTIONS */
 	return eid;
 #endif /* CONFIG_TESTING_OPTIONS */
+}
+
+
+size_t hostapd_eid_eht_attlm_len(struct hostapd_data * hapd)
+{
+	struct attlm_settings *attlm;
+	size_t len;
+
+	if (!hapd->conf->mld_ap)
+		return 0;
+
+	attlm = &hapd->mld->new_attlm;
+	if (!attlm || !attlm->valid)
+		return 0;
+
+	/* Element ID: 1 octet
+	 * Length: 1 octet
+	 * Extended Element ID: 1 octet
+	 * Control: 2 octets (Link Mapping Presence Bitmap set for all TIDs)
+	 * Mapping Switch Time: 0 or 2 octets
+	 * Expected Duration: 3 octets (must included in Adv-TTLM)
+	 * Link Mapping (size of 2) for All 8 TIDs: 2 * 8 octets
+	 */
+	len = 3 + 2 + 3 + 2 * 8;
+	if (attlm->switch_time_tsf_tu != 0)
+		len += 2;
+
+	return len;
+}
+
+
+u8 * hostapd_eid_eht_attlm(struct hostapd_data *hapd, u8 *eid)
+{
+	struct attlm_settings *attlm;
+	struct os_reltime now, res;
+	int i;
+	u16 control = 0;
+	u8 *pos = eid;
+	u16 enabled_links;
+
+	if (!hapd->conf->mld_ap)
+		return eid;
+
+	attlm = &hapd->mld->new_attlm;
+	if (!attlm || !attlm->valid)
+		return eid;
+
+	/* The length will be set at the end */
+	*pos++ = WLAN_EID_EXTENSION;
+	*pos++ = 0;
+	*pos++ = WLAN_EID_EXT_TID_TO_LINK_MAPPING;
+
+	/* Set the A-TTLM Control field */
+	control = (IEEE80211_TTLM_CONTROL_DIRECTION & attlm->direction) |
+		  IEEE80211_TTLM_CONTROL_EXPECTED_DUR_PRESENT |
+		  IEEE80211_TTLM_CONTROL_INDICATOR;
+
+	if (attlm->switch_time_tsf_tu != 0)
+		control |= IEEE80211_TTLM_CONTROL_SWITCH_TIME_PRESENT;
+
+	WPA_PUT_LE16(pos, control);
+	pos += 2;
+
+	/* switch time & expected duration */
+	if (attlm->switch_time_tsf_tu != 0) {
+		WPA_PUT_LE16(pos, attlm->switch_time_tsf_tu);
+		pos += 2;
+
+		WPA_PUT_LE24(pos, (attlm->duration * 1000) >> 10);
+		pos += 3;
+	} else {
+		u32 diff;
+
+		os_get_reltime(&now);
+		os_reltime_sub(&now, &attlm->start_time, &res);
+		diff = (u32)os_reltime_in_ms(&res);
+
+		if (attlm->duration <= diff)
+			return eid;
+
+		WPA_PUT_LE24(pos, ((attlm->duration - diff) * 1000) >> 10);
+		pos += 3;
+	}
+
+	/* Link Mapping of each TID (0 - 7) */
+	enabled_links = hapd->conf->mld_allowed_links & ~attlm->disabled_links;
+	for (i = 0; i < 8; i++) {
+		WPA_PUT_LE16(pos, enabled_links);
+		pos += 2;
+	}
+
+	eid[1] = pos - eid - 2;
+
+	return pos;
 }
 
 

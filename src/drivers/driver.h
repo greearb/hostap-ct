@@ -2952,6 +2952,29 @@ struct cca_settings {
 	int link_id;
 };
 
+#ifdef CONFIG_IEEE80211BE
+/**
+ * struct attlm_settings - Setting for Advertised Tid-to-Link Mapping
+ * @valid: whether this A-TTLM is still valid
+ * @direction: direction of this A-TTLM
+ * @disabled_links: disabled link ID bitmap
+ * @switch_time: duration in ms to establish the A-TTLM
+ * @switch_time_tsf_tu: time in TUs that the A-TTLM is established. It should be
+ * the bits 10 to 25 of the TSF
+ * @duration_tu: duration in ms that the A-TTLM lasts
+ * @start_time: the relative time that this A-TTLM is entablished
+ */
+struct attlm_settings {
+	bool valid;
+	u8 direction;
+	u16 disabled_links;
+	u16 switch_time;
+	u16 switch_time_tsf_tu;
+	u32 duration;
+	struct os_reltime start_time;
+};
+#endif /* CONFIG_IEEE80211BE */
+
 /* TDLS peer capabilities for send_tdls_mgmt() */
 enum tdls_peer_capability {
 	TDLS_PEER_HT = BIT(0),
@@ -5452,6 +5475,14 @@ struct wpa_driver_ops {
 			   const char *ifname, u8 link_id);
 
 	/**
+	 * set_attlm - Set AP MLD advertised Tid-to-Link Mapping
+	 * @priv: Private driver interface data
+	 * @attlm: setting of Tid-to-Link Mapping
+	 * Returns: 0 on success, negative value on failure
+	 */
+	int (*set_attlm)(void *priv, struct attlm_settings *attlm);
+
+	/**
 	 * is_drv_shared - Check whether the driver interface is shared
 	 * @priv: Private driver interface data from init()
 	 * @link_id: Link ID to match
@@ -6345,6 +6376,16 @@ enum wpa_event_type {
 	EVENT_LINK_CH_SWITCH_STARTED,
 
 	/**
+	 * EVENT_ATTLM - MLD AP Advertised Tid-to-Link Mapping event
+	 *
+	 * This event is used by the driver to indicate the state transition of
+	 * A-TTLM.
+	 *
+	 * Described in wpa_event_data.attlm_event
+	 */
+	EVENT_ATTLM,
+
+	/**
 	 * EVENT_TID_LINK_MAP - MLD event to set TID-to-link mapping
 	 *
 	 * This event is used by the driver to indicate the received TID-to-link
@@ -7160,6 +7201,21 @@ union wpa_event_data {
 		int link_id;
 		u16 punct_bitmap;
 	} ch_switch;
+
+	/**
+	 * struct attlm_event
+	 * @switch_time_tsf_tu: the TSF of switch time in unit of TUs
+	 * @started: the ATTLM is started or has been done.
+	 * @switch_time_expired: the switch time has expired
+	 */
+	struct attlm_event {
+		enum {
+			EVENT_ATTLM_STARTED,
+			EVENT_ATTLM_SWITCH_TIME_EXPIRED,
+			EVENT_ATTLM_END
+		} event;
+		u16 switch_time_tsf_tu;
+	} attlm_event;
 
 	/**
 	 * struct connect_failed - Data for EVENT_CONNECT_FAILED_REASON
