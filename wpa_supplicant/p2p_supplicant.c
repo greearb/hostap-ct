@@ -5699,6 +5699,20 @@ static int wpas_p2p_create_iface(struct wpa_supplicant *wpa_s)
 }
 
 
+#ifdef CONFIG_PASN
+static int wpas_p2p_config_sae_password(struct wpa_supplicant *wpa_s,
+					struct wpa_ssid *ssid)
+{
+	struct p2p_data *p2p = wpa_s->global->p2p;
+
+	if (wpa_s->global->p2p_disabled || !p2p || !ssid->sae_password)
+		return -2;
+
+	return p2p_config_sae_password(p2p, ssid->sae_password);
+}
+#endif /* CONFIG_PASN */
+
+
 static int wpas_p2p_start_go_neg(struct wpa_supplicant *wpa_s,
 				 const u8 *peer_addr,
 				 enum p2p_wps_method wps_method,
@@ -6585,11 +6599,55 @@ int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 	if (join || auto_join) {
 		u8 iface_addr[ETH_ALEN], dev_addr[ETH_ALEN];
 		if (auth) {
+#ifdef CONFIG_PASN
+			struct wpa_supplicant *ifs;
+#endif /* CONFIG_PASN */
+
 			wpa_printf(MSG_DEBUG, "P2P: Authorize invitation to "
 				   "connect a running group from " MACSTR,
 				   MAC2STR(peer_addr));
 			os_memcpy(wpa_s->p2p_auth_invite, peer_addr, ETH_ALEN);
+
+#ifdef CONFIG_PASN
+			if (!wpa_s->p2p2)
+				return ret;
+
+			wpa_s->create_p2p_iface = wpas_p2p_create_iface(wpa_s);
+			if (wpa_s->create_p2p_iface) {
+				if_addr = wpa_s->pending_interface_addr;
+			} else {
+				if (wpa_s->p2p_mgmt)
+					if_addr = wpa_s->parent->own_addr;
+				else
+					if_addr = wpa_s->own_addr;
+				os_memset(wpa_s->go_dev_addr, 0, ETH_ALEN);
+			}
+
+			dl_list_for_each(ifs, &wpa_s->radio->ifaces,
+					 struct wpa_supplicant, radio_list) {
+				if (!ifs->current_ssid ||
+				    ifs->current_ssid->mode != WPAS_MODE_P2P_GO)
+					continue;
+
+				ssid = ifs->current_ssid;
+
+				if (bootstrap == P2P_PBMA_OPPORTUNISTIC &&
+				    wpas_p2p_config_sae_password(wpa_s, ssid)) {
+					ssid = NULL;
+					continue;
+				}
+				break;
+			}
+			p2p_set_go_role(wpa_s->global->p2p, true);
+			return wpas_p2p_auth_go_neg(wpa_s, peer_addr,
+						    wps_method, 15, if_addr,
+						    force_freq,
+						    persistent_group, ssid,
+						    pref_freq, bootstrap,
+						    password);
+#else /* CONFIG_PASN */
 			return ret;
+#endif /* CONFIG_PASN */
 		}
 		os_memcpy(dev_addr, peer_addr, ETH_ALEN);
 		if (p2p_get_interface_addr(wpa_s->global->p2p, peer_addr,

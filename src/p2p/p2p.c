@@ -1864,6 +1864,14 @@ int p2p_go_params(struct p2p_data *p2p, struct p2p_go_neg_results *params)
 
 	p2p_random(params->passphrase, p2p->cfg->passphrase_len);
 	params->passphrase[p2p->cfg->passphrase_len] = '\0';
+
+	if (params->p2p2) {
+		os_strlcpy(p2p->dev_sae_password, params->passphrase,
+			   sizeof(p2p->dev_sae_password));
+		os_strlcpy(params->sae_password, p2p->dev_sae_password,
+			   sizeof(params->sae_password));
+	}
+
 	return 0;
 }
 
@@ -6116,6 +6124,17 @@ void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
 
 
 #ifdef CONFIG_PASN
+
+int p2p_config_sae_password(struct p2p_data *p2p, const char *pw)
+{
+	os_memset(p2p->dev_sae_password, 0, sizeof(p2p->dev_sae_password));
+	if (os_strlen(pw) >= sizeof(p2p->dev_sae_password))
+		return -1;
+
+	os_strlcpy(p2p->dev_sae_password, pw, sizeof(p2p->dev_sae_password));
+	return 0;
+}
+
 
 static int p2p_prepare_pasn_extra_ie(struct p2p_data *p2p,
 				     struct wpabuf *extra_ies,
