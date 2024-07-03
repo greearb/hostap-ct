@@ -5822,7 +5822,7 @@ static void wpas_p2p_scan_res_join(struct wpa_supplicant *wpa_s,
 	if (scan_res)
 		wpas_p2p_scan_res_handler(wpa_s, scan_res);
 
-	if (wpa_s->p2p_auto_pd) {
+	if (!wpa_s->p2p2 && wpa_s->p2p_auto_pd) {
 		int join = wpas_p2p_peer_go(wpa_s,
 					    wpa_s->pending_join_dev_addr);
 		if (join == 0 &&
@@ -5863,15 +5863,22 @@ static void wpas_p2p_scan_res_join(struct wpa_supplicant *wpa_s,
 		return;
 	}
 
-	if (wpa_s->p2p_auto_join) {
+	if (wpa_s->p2p2 || wpa_s->p2p_auto_join) {
 		int join = wpas_p2p_peer_go(wpa_s,
 					    wpa_s->pending_join_dev_addr);
-		if (join < 0) {
-			wpa_printf(MSG_DEBUG, "P2P: Peer was not found to be "
-				   "running a GO -> use GO Negotiation");
-			wpa_msg_global(wpa_s->p2pdev, MSG_INFO,
-				       P2P_EVENT_FALLBACK_TO_GO_NEG
-				       "reason=peer-not-running-GO");
+
+		if (wpa_s->p2p2 || join < 0) {
+			if (join < 0) {
+				wpa_printf(MSG_DEBUG,
+					   "P2P: Peer was not found to be running a GO -> use GO Negotiation");
+				wpa_msg_global(wpa_s->p2pdev, MSG_INFO,
+					       P2P_EVENT_FALLBACK_TO_GO_NEG
+					       "reason=peer-not-running-GO");
+			}
+
+			if (wpa_s->p2p2)
+				wpa_printf(MSG_DEBUG,
+					   "P2P2: Initiate GO negotiation and provisioning using PASN Authentication");
 			wpas_p2p_connect(wpa_s, wpa_s->pending_join_dev_addr,
 					 wpa_s->p2p_pin, wpa_s->p2p_wps_method,
 					 wpa_s->p2p_persistent_group, 0, 0, 0,
