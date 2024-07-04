@@ -8433,7 +8433,7 @@ static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
 		 * one TBTT info available. */
 		*tbtt_count_pos = eid++;
 		*eid++ = tbtt_info_len;
-		*eid++ = op_class;
+		*eid++ = (op_class == 137 ? 134 : op_class);
 		*eid++ = bss->iconf->channel;
 		*len += RNR_TBTT_HEADER_LEN;
 	}
