@@ -1031,9 +1031,6 @@ static int wpa_ft_parse_ftie(const u8 *ie, size_t ie_len,
 	const u8 *end, *pos;
 	u8 link_id;
 
-	parse->ftie = ie;
-	parse->ftie_len = ie_len;
-
 	pos = opt;
 	end = ie + ie_len;
 	wpa_hexdump(MSG_DEBUG, "FT: Parse FTE subelements", pos, end - pos);
@@ -1339,6 +1336,11 @@ int wpa_ft_parse_ies(const u8 *ies, size_t ies_len, struct wpa_ft_ies *parse,
 		}
 		if (res < 0)
 			goto fail;
+
+		/* FTE might be fragmented. If it is, the separate Fragment
+		 * elements are included in MIC calculation as full elements. */
+		parse->ftie = fte;
+		parse->ftie_len = fte_len;
 	}
 
 	if (prot_ie_count == 0)
