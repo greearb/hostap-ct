@@ -1893,6 +1893,7 @@ int wpas_get_ssid_pmf(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid);
 int pmf_in_use(struct wpa_supplicant *wpa_s, const u8 *addr);
 void wpa_s_setup_sae_pt(struct wpa_config *conf, struct wpa_ssid *ssid,
 			bool force);
+void wpa_s_clear_sae_rejected(struct wpa_supplicant *wpa_s);
 
 bool wpas_is_sae_avoided(struct wpa_supplicant *wpa_s,
 			struct wpa_ssid *ssid,

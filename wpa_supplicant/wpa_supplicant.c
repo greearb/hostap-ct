@@ -2444,7 +2444,7 @@ void wpa_s_setup_sae_pt(struct wpa_config *conf, struct wpa_ssid *ssid,
 }
 
 
-static void wpa_s_clear_sae_rejected(struct wpa_supplicant *wpa_s)
+void wpa_s_clear_sae_rejected(struct wpa_supplicant *wpa_s)
 {
 #if defined(CONFIG_SAE) && defined(CONFIG_SME)
 	os_free(wpa_s->sme.sae_rejected_groups);

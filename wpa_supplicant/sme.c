@@ -2015,6 +2015,12 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 					       NULL);
 			wpa_supplicant_set_state(wpa_s, WPA_DISCONNECTED);
 
+			if (wpa_s->sme.sae_rejected_groups &&
+			    ssid->disabled_until.sec) {
+				wpa_printf(MSG_DEBUG,
+					   "SME: Clear SAE state with rejected groups due to continuous failures");
+				wpa_s_clear_sae_rejected(wpa_s);
+			}
 		}
 		if (res != 1)
 			return;
