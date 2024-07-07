@@ -2320,6 +2320,41 @@ def test_sae_h2e_rejected_groups(dev, apdev):
         dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
 
+def test_sae_h2e_rejected_groups_diff_ap(dev, apdev):
+    """SAE H2E and rejected groups with different APs and different config"""
+    check_sae_capab(dev[0])
+
+    params = hostapd.wpa2_params(ssid="sae-pwe", passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE'
+    params['sae_groups'] = "19"
+    params['sae_pwe'] = "1"
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    try:
+        dev[0].set("sae_groups", "21 20 19")
+        dev[0].set("sae_pwe", "1")
+        dev[0].connect("sae-pwe", psk="12345678", key_mgmt="SAE",
+                       scan_freq="2412")
+        addr = dev[0].own_addr()
+        hapd.wait_sta(addr)
+
+        params['sae_groups'] = "20"
+        hapd2 = hostapd.add_ap(apdev[1], params)
+        bssid2 = hapd2.own_addr()
+
+        dev[0].scan_for_bss(bssid2, freq=2412)
+        dev[0].roam(bssid2)
+        hapd2.wait_sta(addr)
+        sta = hapd2.get_sta(addr)
+        if 'sae_rejected_groups' not in sta:
+            raise Exception("No sae_rejected_groups")
+        val = sta['sae_rejected_groups']
+        if val != "21":
+            raise Exception("Unexpected sae_rejected_groups value: " + val)
+    finally:
+        dev[0].set("sae_groups", "")
+        dev[0].set("sae_pwe", "0")
+
 def test_sae_h2e_rejected_groups_unexpected(dev, apdev):
     """SAE H2E and rejected groups indication (unexpected group)"""
     check_sae_capab(dev[0])
