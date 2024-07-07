@@ -1873,6 +1873,7 @@ static int sme_sae_auth(struct wpa_supplicant *wpa_s, u16 auth_transaction,
 
 		wpa_s->sme.sae.state = SAE_ACCEPTED;
 		sae_clear_temp_data(&wpa_s->sme.sae);
+		wpa_s_clear_sae_rejected(wpa_s);
 
 		if (external) {
 			/* Report success to driver */
