@@ -2345,6 +2345,96 @@ def test_sae_h2e_rejected_groups_unexpected(dev, apdev):
         dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
 
+def test_sae_h2e_rejected_groups_invalid(dev, apdev):
+    """SAE protocol testing - Invalid Rejected Groups element"""
+    check_sae_capab(dev[0])
+    params = hostapd.wpa2_params(ssid="test-sae",
+                                 passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE'
+    params['sae_groups'] = "19 20"
+    params['sae_pwe'] = "1"
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    try:
+        dev[0].set("sae_groups", "20 19")
+        dev[0].set("sae_pwe", "1")
+        run_sae_h2e_rejected_groups_invalid(dev[0], hapd)
+    finally:
+        dev[0].set("sae_groups", "")
+        dev[0].set("sae_pwe", "0")
+
+def run_sae_h2e_rejected_groups_invalid(dev, hapd):
+    addr = dev.own_addr()
+    bssid = hapd.own_addr()
+
+    dev.scan_for_bss(bssid, freq=2412)
+    hapd.set("ext_mgmt_frame_handling", "1")
+    dev.connect("test-sae", psk="12345678", key_mgmt="SAE",
+                scan_freq="2412", wait_connect=False)
+
+    logger.info("Commit (group 20)")
+    for i in range(10):
+        req = hapd.mgmt_rx()
+        if req is None:
+            raise Exception("MGMT RX wait timed out (commit)")
+        if req['subtype'] == 11:
+            break
+        req = None
+    if not req:
+        raise Exception("Authentication frame (commit) not received")
+    group, = struct.unpack('<H', req['payload'][6:8])
+    if group != 20:
+        raise Exception("Unexpected group %d in SAE Commit" % group)
+    hapd.dump_monitor()
+
+    # Discard this SAE Commit message without AP processing and instead, send
+    # an unsupported group indication to the STA.
+    resp = {}
+    resp['fc'] = 0xb0
+    resp['da'] = addr
+    resp['sa'] = bssid
+    resp['bssid'] = bssid
+    resp['payload'] = binascii.unhexlify("030001004d001400")
+    hapd.mgmt_tx(resp)
+
+    logger.info("Commit (group 19)")
+    for i in range(10):
+        req = hapd.mgmt_rx()
+        if req is None:
+            raise Exception("MGMT RX wait timed out (commit)")
+        if req['subtype'] == 11:
+            break
+        req = None
+    if not req:
+        raise Exception("Authentication frame (commit) not received")
+    group, = struct.unpack('<H', req['payload'][6:8])
+    if group != 19:
+        raise Exception("Unexpected group %d in SAE Commit" % group)
+    hapd.dump_monitor()
+
+    # Replace the Rejected Groups element with an invalid one and process the
+    # modified SAE Commit message in hostapd.
+    rej_groups = req['frame'][-5:]
+    if rej_groups != binascii.unhexlify('ff035c1400'):
+        raise Exception("No Rejected Groups element: " + binascii.hexlify(rej_groups).decode())
+    frame = req['frame'][:-5] + binascii.unhexlify('ff025c14')
+    hapd.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=" + binascii.hexlify(frame).decode())
+
+    ev = hapd.wait_event(["MGMT-TX-STATUS"], timeout=5)
+    if ev is None:
+        raise Exception("Management frame TX status not reported")
+    if "stype=11 ok=1" not in ev:
+        raise Exception("Unexpected Management frame TX status: " + ev)
+    buf = ev.split(' ')[3].split('=')[1]
+    payload = buf[48:]
+    if payload != "030001000100":
+        raise Exception("Unexpected AP response to SAE Commit with invalid Rejected Groups element: " + payload)
+
+    # Stop modifying frames and verify that connection is eventually established
+    # with automatic retries.
+    hapd.set("ext_mgmt_frame_handling", "0")
+    dev.wait_connected(timeout=60)
+
 def test_sae_h2e_password_id(dev, apdev):
     """SAE H2E and password identifier"""
     check_sae_capab(dev[0])
