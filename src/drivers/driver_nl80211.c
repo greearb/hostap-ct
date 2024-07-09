@@ -5625,8 +5625,8 @@ static int wpa_driver_nl80211_sta_add(void *priv,
 			"NL80211_CMD_NEW_STATION";
 	}
 
-	wpa_printf(MSG_DEBUG, "nl80211: %s STA " MACSTR,
-		   cmd_string, MAC2STR(params->addr));
+	wpa_printf(MSG_DEBUG, "nl80211 sta-add: %s STA " MACSTR " mld-link-id: %d",
+		   cmd_string, MAC2STR(params->addr), params->mld_link_id);
 	msg = nl80211_bss_msg(bss, 0, cmd);
 	if (!msg)
 		goto fail;
@@ -6381,7 +6381,7 @@ static int wpa_driver_nl80211_sta_set_flags(void *priv, const u8 *addr,
 	struct nl80211_sta_flag_update upd;
 
 	wpa_printf(MSG_DEBUG, "nl80211: Set STA flags - ifname=%s addr=" MACSTR
-		   " total_flags=0x%x flags_or=0x%x flags_and=0x%x authorized=%d",
+		   " total_flags=0x%x flags_or=0x%x flags_and=0x%x authorized=%d, link not specified.",
 		   bss->ifname, MAC2STR(addr), total_flags, flags_or, flags_and,
 		   !!(total_flags & WPA_STA_AUTHORIZED));
 
@@ -6431,7 +6431,7 @@ static int driver_nl80211_sta_set_airtime_weight(void *priv, const u8 *addr,
 
 	wpa_printf(MSG_DEBUG,
 		   "nl80211: Set STA airtime weight - ifname=%s addr=" MACSTR
-		   " weight=%u", bss->ifname, MAC2STR(addr), weight);
+		   " weight=%u, link not specified", bss->ifname, MAC2STR(addr), weight);
 
 	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_SET_STATION)) ||
 	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, addr) ||
@@ -7655,7 +7655,8 @@ static int wpa_driver_nl80211_set_supp_port(void *priv, int authorized)
 	}
 
 	wpa_printf(MSG_DEBUG, "nl80211: Set supplicant port %sauthorized for "
-		   MACSTR, authorized ? "" : "un", MAC2STR(connected_addr));
+		   MACSTR " link not specified.",
+		   authorized ? "" : "un", MAC2STR(connected_addr));
 
 	os_memset(&upd, 0, sizeof(upd));
 	upd.mask = BIT(NL80211_STA_FLAG_AUTHORIZED);
@@ -8258,9 +8259,9 @@ static int i802_set_sta_vlan(struct i802_bss *bss, const u8 *addr,
 	int ret;
 
 	wpa_printf(MSG_DEBUG, "nl80211: %s[%d]: set_sta_vlan(" MACSTR
-		   ", ifname=%s[%d], vlan_id=%d)",
+		   ", ifname=%s[%d], vlan_id=%d mld-link-id: %d)",
 		   bss->ifname, if_nametoindex(bss->ifname),
-		   MAC2STR(addr), ifname, if_nametoindex(ifname), vlan_id);
+		   MAC2STR(addr), ifname, if_nametoindex(ifname), vlan_id, link_id);
 	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_SET_STATION)) ||
 	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, addr) ||
 	    (vlan_id && (drv->capa.flags & WPA_DRIVER_FLAGS_VLAN_OFFLOAD) &&
