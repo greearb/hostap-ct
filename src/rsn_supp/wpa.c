@@ -1398,6 +1398,7 @@ static int wpa_supplicant_install_mlo_gtk(struct wpa_sm *sm, u8 link_id,
 					  const u8 *key_rsc, int wnm_sleep)
 {
 	const u8 *gtk = gd->gtk;
+	u8 gtk_buf[32];
 
 	/* Detect possible key reinstallation */
 	if ((sm->mlo.links[link_id].gtk.gtk_len == (size_t) gd->gtk_len &&
@@ -1420,14 +1421,23 @@ static int wpa_supplicant_install_mlo_gtk(struct wpa_sm *sm, u8 link_id,
 		link_id, gd->keyidx, gd->tx, gd->gtk_len);
 	wpa_hexdump_link(MSG_DEBUG, link_id, "RSN: RSC",
 			 key_rsc, gd->key_rsc_len);
+	if (sm->group_cipher == WPA_CIPHER_TKIP) {
+		/* Swap Tx/Rx keys for Michael MIC */
+		os_memcpy(gtk_buf, gd->gtk, 16);
+		os_memcpy(gtk_buf + 16, gd->gtk + 24, 8);
+		os_memcpy(gtk_buf + 24, gd->gtk + 16, 8);
+		gtk = gtk_buf;
+	}
 	if (wpa_sm_set_key(sm, link_id, gd->alg, broadcast_ether_addr,
 			   gd->keyidx, gd->tx, key_rsc, gd->key_rsc_len, gtk,
 			   gd->gtk_len, KEY_FLAG_GROUP_RX) < 0) {
 		wpa_msg(sm->ctx->msg_ctx, MSG_WARNING,
 			"RSN: Failed to set GTK to the driver (link_id=%d alg=%d keylen=%d keyidx=%d)",
 			link_id, gd->alg, gd->gtk_len, gd->keyidx);
+		forced_memzero(gtk_buf, sizeof(gtk_buf));
 		return -1;
 	}
+	forced_memzero(gtk_buf, sizeof(gtk_buf));
 
 	if (wnm_sleep) {
 		sm->mlo.links[link_id].gtk_wnm_sleep.gtk_len = gd->gtk_len;
