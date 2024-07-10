@@ -1514,6 +1514,9 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 					   hapd->mld_link_id, hapd->conf->iface);
 				goto setup_mld;
 			}
+
+			if (addr && !is_zero_ether_addr(hapd->conf->mld_addr))
+				os_memcpy(addr, hapd->conf->mld_addr, ETH_ALEN);
 		}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -1539,6 +1542,9 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 				   hapd->mld_link_id, hapd->conf->iface);
 			os_memcpy(hapd->mld->mld_addr, hapd->own_addr,
 				  ETH_ALEN);
+
+			if (!is_zero_ether_addr(conf->bssid))
+				os_memcpy(hapd->own_addr, conf->bssid, ETH_ALEN);
 		}
 #endif /* CONFIG_IEEE80211BE */
 	}
