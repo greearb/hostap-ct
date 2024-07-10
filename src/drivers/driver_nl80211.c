@@ -490,13 +490,14 @@ out:
 }
 
 
-int send_and_recv(struct nl80211_global *global,
-		  struct nl_sock *nl_handle, struct nl_msg *msg,
-		  int (*valid_handler)(struct nl_msg *, void *),
-		  void *valid_data,
-		  int (*ack_handler_custom)(struct nl_msg *, void *),
-		  void *ack_data,
-		  struct nl80211_err_info *err_info)
+int send_and_recv_glb(struct nl80211_global *global,
+		      struct wpa_driver_nl80211_data *drv, /* may be NULL */
+		      struct nl_sock *nl_handle, struct nl_msg *msg,
+		      int (*valid_handler)(struct nl_msg *, void *),
+		      void *valid_data,
+		      int (*ack_handler_custom)(struct nl_msg *, void *),
+		      void *ack_data,
+		      struct nl80211_err_info *err_info)
 {
 	struct nl_cb *cb, *s_nl_cb;
 	struct nl80211_ack_err_args err;
@@ -653,8 +654,8 @@ static int nl_get_multicast_id(struct nl80211_global *global,
 		return -1;
 	}
 
-	ret = send_and_recv(global, global->nl, msg, family_handler, &res,
-			    NULL, NULL, NULL);
+	ret = send_and_recv_glb(global, NULL, global->nl, msg, family_handler,
+				&res, NULL, NULL, NULL);
 	if (ret == 0)
 		ret = res.id;
 	return ret;
@@ -849,7 +850,7 @@ static int nl80211_register_beacons(struct wpa_driver_nl80211_data *drv,
 		return -1;
 	}
 
-	ret = send_and_recv(drv->global, w->nl_beacons, msg, NULL, NULL,
+	ret = send_and_recv(drv, w->nl_beacons, msg, NULL, NULL,
 			    NULL, NULL, NULL);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: Register beacons command "
@@ -2446,7 +2447,7 @@ static int nl80211_register_frame(struct i802_bss *bss,
 		return -1;
 	}
 
-	ret = send_and_recv(drv->global, nl_handle, msg, NULL, NULL,
+	ret = send_and_recv(drv, nl_handle, msg, NULL, NULL,
 			    NULL, NULL, NULL);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: Register frame command "
@@ -2726,7 +2727,7 @@ static int nl80211_register_spurious_class3(struct i802_bss *bss)
 	int ret;
 
 	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_UNEXPECTED_FRAME);
-	ret = send_and_recv(bss->drv->global, bss->nl_mgmt, msg, NULL, NULL,
+	ret = send_and_recv(bss->drv, bss->nl_mgmt, msg, NULL, NULL,
 			    NULL, NULL, NULL);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: Register spurious class3 "
@@ -3865,7 +3866,7 @@ int wpa_driver_nl80211_mlme(struct wpa_driver_nl80211_data *drv,
 		return -1;
 	}
 
-	ret = send_and_recv(drv->global, bss->nl_connect, msg,
+	ret = send_and_recv(drv, bss->nl_connect, msg,
 			    NULL, NULL, NULL, NULL, NULL);
 	if (ret) {
 		wpa_dbg(drv->ctx, MSG_DEBUG,
@@ -5512,7 +5513,7 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 
 	if (nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
 		goto fail;
-	ret = send_and_recv(drv->global, bss->nl_connect, msg, NULL, NULL, NULL,
+	ret = send_and_recv(drv, bss->nl_connect, msg, NULL, NULL, NULL,
 			    NULL, NULL);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: Beacon set failed: %d (%s)",
@@ -6368,7 +6369,7 @@ static int nl80211_tx_control_port(void *priv, const u8 *dest,
 
 	os_memset(&ext_arg, 0, sizeof(struct nl80211_ack_ext_arg));
 	ext_arg.ext_data = &cookie;
-	ret = send_and_recv(bss->drv->global, bss->drv->global->nl, msg,
+	ret = send_and_recv(bss->drv, bss->drv->global->nl, msg,
 			    NULL, NULL, ack_handler_cookie, &ext_arg, NULL);
 	if (ret) {
 		wpa_printf(MSG_DEBUG,
@@ -6609,7 +6610,7 @@ static int nl80211_leave_ibss(struct wpa_driver_nl80211_data *drv,
 	int ret;
 
 	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_LEAVE_IBSS);
-	ret = send_and_recv(drv->global, drv->first_bss->nl_connect, msg, NULL,
+	ret = send_and_recv(drv, drv->first_bss->nl_connect, msg, NULL,
 			    NULL, NULL, NULL, NULL);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: Leave IBSS failed: ret=%d "
@@ -6759,7 +6760,7 @@ retry:
 
 	if (nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
 		goto fail;
-	ret = send_and_recv(drv->global, drv->first_bss->nl_connect, msg, NULL,
+	ret = send_and_recv(drv, drv->first_bss->nl_connect, msg, NULL,
 			    NULL, NULL, NULL, NULL);
 	msg = NULL;
 	if (ret) {
@@ -7370,7 +7371,7 @@ skip_auth_type:
 
 	if (nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
 		goto fail;
-	ret = send_and_recv(drv->global, bss->nl_connect, msg, NULL, NULL, NULL,
+	ret = send_and_recv(drv, bss->nl_connect, msg, NULL, NULL, NULL,
 			    NULL, NULL);
 	msg = NULL;
 	if (ret) {
@@ -7486,7 +7487,7 @@ static int wpa_driver_nl80211_associate(
 	if (!TEST_FAIL_TAG("assoc")) {
 		if (nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
 			goto fail;
-		ret = send_and_recv(drv->global, drv->first_bss->nl_connect,
+		ret = send_and_recv(drv, drv->first_bss->nl_connect,
 				    msg, NULL, NULL, NULL, NULL, &err_info);
 		msg = NULL;
 	} else {
@@ -11863,7 +11864,7 @@ static int nl80211_vendor_cmd(void *priv, unsigned int vendor_id,
 		/* This test vendor_cmd can be used with nl80211 commands that
 		 * need the connect nl_sock, so use the variant that takes in
 		 * bss->nl_connect as the handle. */
-		ret = send_and_recv(drv->global, bss->nl_connect, msg,
+		ret = send_and_recv(drv, bss->nl_connect, msg,
 				    cmd_reply_handler, buf, NULL, NULL, NULL);
 		if (ret)
 			wpa_printf(MSG_DEBUG, "nl80211: command failed err=%d",
@@ -12338,7 +12339,7 @@ static int nl80211_join_mesh(struct i802_bss *bss,
 
 	if (nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
 		return -1;
-	ret = send_and_recv(drv->global, bss->nl_connect, msg, NULL, NULL, NULL,
+	ret = send_and_recv(drv, bss->nl_connect, msg, NULL, NULL, NULL,
 			    NULL, NULL);
 	msg = NULL;
 	if (ret) {
@@ -12396,7 +12397,7 @@ static int wpa_driver_nl80211_leave_mesh(void *priv)
 
 	wpa_printf(MSG_DEBUG, "nl80211: mesh leave (ifindex=%d)", drv->ifindex);
 	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_LEAVE_MESH);
-	ret = send_and_recv(drv->global, bss->nl_connect, msg, NULL, NULL, NULL,
+	ret = send_and_recv(drv, bss->nl_connect, msg, NULL, NULL, NULL,
 			    NULL, NULL);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: mesh leave failed: ret=%d (%s)",
