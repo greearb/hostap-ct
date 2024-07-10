@@ -348,6 +348,7 @@ struct nl80211_ack_err_args {
 	int err;
 	struct nl_msg *orig_msg;
 	struct nl80211_err_info *err_info;
+	struct wpa_driver_nl80211_data *drv;
 };
 
 static int error_handler(struct sockaddr_nl *nla, struct nlmsgerr *err,
@@ -384,8 +385,12 @@ static int error_handler(struct sockaddr_nl *nla, struct nlmsgerr *err,
 	if (tb[NLMSGERR_ATTR_MSG]) {
 		len = strnlen((char *) nla_data(tb[NLMSGERR_ATTR_MSG]),
 			      nla_len(tb[NLMSGERR_ATTR_MSG]));
-		wpa_printf(MSG_ERROR, "nl80211: kernel reports: %*s",
-			   len, (char *) nla_data(tb[NLMSGERR_ATTR_MSG]));
+		if (err_args->drv)
+			wpa_msg(err_args->drv->ctx, MSG_ERROR, "nl80211: kernel reports: %*s",
+				len, (char *) nla_data(tb[NLMSGERR_ATTR_MSG]));
+		else
+			wpa_printf(MSG_ERROR, "nl80211: kernel reports: %*s",
+				   len, (char *) nla_data(tb[NLMSGERR_ATTR_MSG]));
 	}
 
 	if (!err_args->err_info)
@@ -539,6 +544,7 @@ int send_and_recv_glb(struct nl80211_global *global,
 	err.err = 1;
 	err.orig_msg = msg;
 	err.err_info = err_info;
+	err.drv = drv;
 
 	nl_cb_err(cb, NL_CB_CUSTOM, error_handler, &err);
 	nl_cb_set(cb, NL_CB_FINISH, NL_CB_CUSTOM, finish_handler, &err.err);
