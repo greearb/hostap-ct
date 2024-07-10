@@ -5129,7 +5129,8 @@ int ieee80211_ml_process_link(struct hostapd_data *hapd,
 		}
 		hapd->sta_aid[(sta->aid - 1) / 32] |= BIT((sta->aid - 1) % 32);
 		sta->listen_interval = origin_sta->listen_interval;
-		if (update_ht_state(hapd, sta) > 0)
+		if (!is_6ghz_op_class(hapd->iconf->op_class) &&
+		    update_ht_state(hapd, sta) > 0)
 			ieee802_11_update_beacons(hapd->iface);
 	}
 
