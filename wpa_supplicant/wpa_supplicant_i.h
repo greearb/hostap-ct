@@ -1612,6 +1612,8 @@ struct wpa_supplicant {
 
 	bool ssid_verified;
 	bool bigtk_set;
+	u64 first_beacon_tsf;
+	unsigned int beacons_checked;
 };
 
 
