@@ -434,6 +434,7 @@ void wpa_supplicant_mark_disassoc(struct wpa_supplicant *wpa_s)
 #endif /* CONFIG_SME */
 
 	wpa_s->ssid_verified = false;
+	wpa_s->bigtk_set = false;
 }
 
 
@@ -3371,6 +3372,7 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "Association info event");
 	wpa_s->ssid_verified = false;
+	wpa_s->bigtk_set = false;
 #ifdef CONFIG_SAE
 #ifdef CONFIG_SME
 	/* SAE H2E binds the SSID into PT and that verifies the SSID

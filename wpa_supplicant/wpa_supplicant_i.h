@@ -1611,6 +1611,7 @@ struct wpa_supplicant {
 #endif /* CONFIG_NAN_USD */
 
 	bool ssid_verified;
+	bool bigtk_set;
 };
 
 

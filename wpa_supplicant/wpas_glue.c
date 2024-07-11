@@ -534,6 +534,8 @@ static int wpa_supplicant_set_key(void *_wpa_s, int link_id, enum wpa_alg alg,
 				  enum key_flag key_flag)
 {
 	struct wpa_supplicant *wpa_s = _wpa_s;
+	int ret;
+
 	if (alg == WPA_ALG_TKIP && key_idx == 0 && key_len == 32) {
 		/* Clear the MIC error counter when setting a new PTK. */
 		wpa_s->mic_errors_seen = 0;
@@ -556,8 +558,14 @@ static int wpa_supplicant_set_key(void *_wpa_s, int link_id, enum wpa_alg alg,
 		wpa_s->last_tk_len = key_len;
 	}
 #endif /* CONFIG_TESTING_OPTIONS */
-	return wpa_drv_set_key(wpa_s, link_id, alg, addr, key_idx, set_tx, seq,
-			       seq_len, key, key_len, key_flag);
+
+	ret = wpa_drv_set_key(wpa_s, link_id, alg, addr, key_idx, set_tx, seq,
+			      seq_len, key, key_len, key_flag);
+	if (ret == 0 && (key_idx == 6 || key_idx == 7) &&
+	    alg != WPA_ALG_NONE && key_len > 0)
+		wpa_s->bigtk_set = true;
+
+	return ret;
 }
 
 
