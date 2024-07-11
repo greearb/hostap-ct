@@ -1409,6 +1409,15 @@ wpa_supplicant_notify_pmksa_cache_entry(void *_wpa_s,
 }
 
 
+static void wpa_supplicant_ssid_verified(void *_wpa_s)
+{
+	struct wpa_supplicant *wpa_s = _wpa_s;
+
+	wpa_s->ssid_verified = true;
+	wpa_msg(wpa_s, MSG_INFO, "RSN: SSID matched expected value");
+}
+
+
 int wpa_supplicant_init_wpa(struct wpa_supplicant *wpa_s)
 {
 #ifndef CONFIG_NO_WPA
@@ -1475,6 +1484,7 @@ int wpa_supplicant_init_wpa(struct wpa_supplicant *wpa_s)
 	ctx->set_ltf_keyseed = wpa_supplicant_set_ltf_keyseed;
 #endif /* CONFIG_PASN */
 	ctx->notify_pmksa_cache_entry = wpa_supplicant_notify_pmksa_cache_entry;
+	ctx->ssid_verified = wpa_supplicant_ssid_verified;
 
 	wpa_s->wpa = wpa_sm_init(ctx);
 	if (wpa_s->wpa == NULL) {

@@ -104,6 +104,7 @@ struct wpa_sm_ctx {
 #endif /* CONFIG_PASN */
 	void (*notify_pmksa_cache_entry)(void *ctx,
 					 struct rsn_pmksa_cache_entry *entry);
+	void (*ssid_verified)(void *ctx);
 };
 
 

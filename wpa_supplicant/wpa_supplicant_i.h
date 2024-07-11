@@ -1609,6 +1609,8 @@ struct wpa_supplicant {
 	struct wpa_radio_work *nan_usd_listen_work;
 	struct wpa_radio_work *nan_usd_tx_work;
 #endif /* CONFIG_NAN_USD */
+
+	bool ssid_verified;
 };
 
 

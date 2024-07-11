@@ -518,6 +518,12 @@ wpa_sm_notify_pmksa_cache_entry(struct wpa_sm *sm,
 		sm->ctx->notify_pmksa_cache_entry(sm->ctx->ctx, entry);
 }
 
+static inline void wpa_sm_ssid_verified(struct wpa_sm *sm)
+{
+	if (sm->ctx->ssid_verified)
+		sm->ctx->ssid_verified(sm->ctx->ctx);
+}
+
 int wpa_eapol_key_send(struct wpa_sm *sm, struct wpa_ptk *ptk,
 		       int ver, const u8 *dest, u16 proto,
 		       u8 *msg, size_t msg_len, u8 *key_mic);

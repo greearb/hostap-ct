@@ -432,6 +432,8 @@ void wpa_supplicant_mark_disassoc(struct wpa_supplicant *wpa_s)
 #ifdef CONFIG_SME
 	wpa_s->sme.bss_max_idle_period = 0;
 #endif /* CONFIG_SME */
+
+	wpa_s->ssid_verified = false;
 }
 
 
@@ -3368,6 +3370,15 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 	bool bssid_known;
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "Association info event");
+	wpa_s->ssid_verified = false;
+#ifdef CONFIG_SAE
+#ifdef CONFIG_SME
+	/* SAE H2E binds the SSID into PT and that verifies the SSID
+	 * implicitly. */
+	if (wpa_s->sme.sae.state == SAE_ACCEPTED && wpa_s->sme.sae.h2e)
+		wpa_s->ssid_verified = true;
+#endif /* CONFIG_SME */
+#endif /* CONFIG_SAE */
 	bssid_known = wpa_drv_get_bssid(wpa_s, bssid) == 0;
 	if (data->assoc_info.req_ies)
 		wpa_hexdump(MSG_DEBUG, "req_ies", data->assoc_info.req_ies,
@@ -3469,14 +3480,22 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 
 #ifdef CONFIG_FILS
 #ifdef CONFIG_SME
-	if ((wpa_s->sme.auth_alg == WPA_AUTH_ALG_FILS ||
-	     wpa_s->sme.auth_alg == WPA_AUTH_ALG_FILS_SK_PFS) &&
-	    (!data->assoc_info.resp_frame ||
-	     fils_process_assoc_resp(wpa_s->wpa,
-				     data->assoc_info.resp_frame,
-				     data->assoc_info.resp_frame_len) < 0)) {
-		wpa_supplicant_deauthenticate(wpa_s, WLAN_REASON_UNSPECIFIED);
-		return -1;
+	if (wpa_s->sme.auth_alg == WPA_AUTH_ALG_FILS ||
+	    wpa_s->sme.auth_alg == WPA_AUTH_ALG_FILS_SK_PFS) {
+		if (!data->assoc_info.resp_frame ||
+		    fils_process_assoc_resp(wpa_s->wpa,
+					    data->assoc_info.resp_frame,
+					    data->assoc_info.resp_frame_len) <
+		    0) {
+			wpa_supplicant_deauthenticate(wpa_s,
+						      WLAN_REASON_UNSPECIFIED);
+			return -1;
+		}
+
+		/* FILS use of an AEAD cipher include the SSID element in
+		 * (Re)Association Request frame in the AAD and since the AP
+		 * accepted that, the SSID was verified. */
+		wpa_s->ssid_verified = true;
 	}
 #endif /* CONFIG_SME */
 
@@ -3537,6 +3556,9 @@ no_pfs:
 				wpa_s, WLAN_REASON_INVALID_IE);
 			return -1;
 		}
+		/* SSID is included in PMK-R0 derivation, so it is verified
+		 * implicitly. */
+		wpa_s->ssid_verified = true;
 	}
 
 	p = data->assoc_info.resp_ies;
@@ -3598,6 +3620,9 @@ no_pfs:
 			return -1;
 		}
 		wpa_dbg(wpa_s, MSG_DEBUG, "FT: Reassociation Response done");
+		/* SSID is included in PMK-R0 derivation, so it is verified
+		 * implicitly. */
+		wpa_s->ssid_verified = true;
 	}
 
 	wpa_sm_set_ft_params(wpa_s->wpa, data->assoc_info.resp_ies,

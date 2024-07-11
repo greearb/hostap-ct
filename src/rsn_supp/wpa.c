@@ -2560,8 +2560,7 @@ static void wpa_supplicant_process_3_of_4(struct wpa_sm *sm,
 			goto failed;
 		}
 
-		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
-			"RSN: SSID matched expected value");
+		wpa_sm_ssid_verified(sm);
 	}
 
 	if (mlo && !ie.valid_mlo_gtks) {
