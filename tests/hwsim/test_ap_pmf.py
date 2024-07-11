@@ -1449,6 +1449,11 @@ def run_ap_pmf_beacon_protection(dev, apdev, cipher):
     if ev is not None:
         raise Exception("Beacon loss detected")
 
+    # Verify that the SSID has been successfully verified from a protected
+    # Beacon frame.
+    if dev[0].get_status_field("ssid_verified") != "1":
+        raise Exception("ssid_verified=1 not in STATUS")
+
 def test_ap_pmf_beacon_protection_mismatch(dev, apdev):
     """WPA2-PSK Beacon protection MIC mismatch"""
     run_ap_pmf_beacon_protection_mismatch(dev, apdev, False)
