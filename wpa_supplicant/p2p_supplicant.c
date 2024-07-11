@@ -11246,6 +11246,19 @@ int wpas_p2p_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
 				       awork->verify);
 }
 
+
+#ifdef CONFIG_TESTING_OPTIONS
+int wpas_p2p_get_pasn_ptk(struct wpa_supplicant *wpa_s, const u8 **ptk,
+			  size_t *ptk_len)
+{
+	struct p2p_data *p2p = wpa_s->global->p2p;
+
+	if (wpa_s->global->p2p_disabled || !p2p)
+		return -2;
+	return p2p_pasn_get_ptk(p2p, ptk, ptk_len);
+}
+#endif /* CONFIG_TESTING_OPTIONS */
+
 #endif /* CONFIG_PASN */
 
 

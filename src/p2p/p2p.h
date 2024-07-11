@@ -2733,5 +2733,8 @@ int p2p_pasn_auth_tx_status(struct p2p_data *p2p, const u8 *data,
 int p2p_config_sae_password(struct p2p_data *p2p, const char *pw);
 void p2p_pasn_pmksa_set_pmk(struct p2p_data *p2p, const u8 *src, const u8 *dst,
 			    const u8 *pmk, size_t pmk_len, const u8 *pmkid);
+void p2p_set_store_pasn_ptk(struct p2p_data *p2p, u8 val);
+void p2p_pasn_store_ptk(struct p2p_data *p2p, struct wpa_ptk *ptk);
+int p2p_pasn_get_ptk(struct p2p_data *p2p, const u8 **buf, size_t *buf_len);
 
 #endif /* P2P_H */

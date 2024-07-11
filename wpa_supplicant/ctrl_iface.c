@@ -10954,6 +10954,24 @@ static void wpas_ctrl_iface_pmksa_flush(struct wpa_supplicant *wpa_s)
 #endif /* CONFIG_AP */
 }
 
+#ifdef CONFIG_P2P
+#ifdef CONFIG_PASN
+
+#ifdef CONFIG_TESTING_OPTIONS
+static int p2p_ctrl_get_pasn_ptk(struct wpa_supplicant *wpa_s, char *buf,
+				 size_t buflen)
+{
+	const u8 *ptk;
+	size_t ptk_len;
+
+	if (wpas_p2p_get_pasn_ptk(wpa_s, &ptk, &ptk_len))
+		return -1;
+	return wpa_snprintf_hex(buf, buflen, ptk, ptk_len);
+}
+#endif /* CONFIG_TESTING_OPTIONS */
+
+#endif /* CONFIG_PASN */
+#endif /* CONFIG_P2P */
 
 #ifdef CONFIG_PMKSA_CACHE_EXTERNAL
 
@@ -12968,6 +12986,12 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 			reply_len = -1;
 	} else if (os_strcmp(buf, "P2P_GET_PASSPHRASE") == 0) {
 		reply_len = p2p_get_passphrase(wpa_s, reply, reply_size);
+#ifdef CONFIG_PASN
+#ifdef CONFIG_TESTING_OPTIONS
+	} else if (os_strcmp(buf, "P2P_GET_PASNPTK") == 0) {
+		reply_len = p2p_ctrl_get_pasn_ptk(wpa_s, reply, reply_size);
+#endif /* CONFIG_TESTING_OPTIONS */
+#endif /* CONFIG_PASN */
 	} else if (os_strncmp(buf, "P2P_SERV_DISC_REQ ", 18) == 0) {
 		reply_len = p2p_ctrl_serv_disc_req(wpa_s, buf + 18, reply,
 						   reply_size);

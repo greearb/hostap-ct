@@ -582,6 +582,7 @@ int wpa_pmk_to_ptk(const u8 *pmk, size_t pmk_len, const char *label,
 	ptk->kek2_len = 0;
 	ptk->kck2_len = 0;
 
+	ptk->ptk_len = ptk_len;
 	os_memset(tmp, 0, sizeof(tmp));
 	os_memset(data, 0, data_len);
 	return 0;
@@ -1560,6 +1561,7 @@ int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 				ptk->kdk, ptk->kdk_len);
 	}
 
+	ptk->ptk_len = ptk_len;
 	forced_memzero(tmp, sizeof(tmp));
 	ret = 0;
 err:

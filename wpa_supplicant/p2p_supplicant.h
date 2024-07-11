@@ -241,6 +241,8 @@ void wpas_p2p_update_dev_addr(struct wpa_supplicant *wpa_s);
 int wpas_p2p_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 			  const struct ieee80211_mgmt *mgmt, size_t len,
 			  int freq);
+int wpas_p2p_get_pasn_ptk(struct wpa_supplicant *wpa_s, const u8 **ptk,
+			  size_t *ptk_len);
 
 #else /* CONFIG_P2P */
 
@@ -375,6 +377,14 @@ static inline struct wpabuf * wpas_p2p_usd_elems(struct wpa_supplicant *wpa_s)
 static inline void wpas_p2p_update_dev_addr(struct wpa_supplicant *wpa_s)
 {
 }
+
+#ifdef CONFIG_TESTING_OPTIONS
+static inline int wpas_p2p_get_pasn_ptk(struct wpa_supplicant *wpa_s,
+					const u8 **ptk, size_t *ptk_len)
+{
+	return 0;
+}
+#endif /* CONFIG_TESTING_OPTIONS */
 
 #endif /* CONFIG_P2P */
 

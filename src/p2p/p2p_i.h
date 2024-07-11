@@ -678,6 +678,18 @@ struct p2p_data {
 	 * configuration is done, this variable is reset to false.
 	 */
 	bool go_role;
+
+#ifdef CONFIG_TESTING_OPTIONS
+	/**
+	 * PASN PTK of recent auth
+	 */
+	u8 pasn_ptk[128];
+
+	/**
+	 * PASN PTK length
+	 */
+	size_t pasn_ptk_len;
+#endif /* CONFIG_TESTING_OPTIONS */
 };
 
 /**
