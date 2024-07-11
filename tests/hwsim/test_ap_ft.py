@@ -139,7 +139,8 @@ def run_roams(dev, apdev, hapd0, hapd1, ssid, passphrase, over_ds=False,
               sae_password_id=None, sae_and_psk=False, pmksa_caching=False,
               roam_with_reassoc=False, also_non_ft=False, only_one_way=False,
               wait_before_roam=0, return_after_initial=False, ieee80211w="1",
-              sae_transition=False, beacon_prot=False, sae_ext_key=False):
+              sae_transition=False, beacon_prot=False, sae_ext_key=False,
+              check_ssid=False):
     logger.info("Connect to first AP")
 
     copts = {}
@@ -188,6 +189,8 @@ def run_roams(dev, apdev, hapd0, hapd1, ssid, passphrase, over_ds=False,
             hapd0.wait_sta()
         else:
             hapd1.wait_sta()
+        if check_ssid and dev[0].get_status_field("ssid_verified") == "1":
+            raise Exception("Unexpected ssid_verified=1 in STATUS")
         dev.request("DISCONNECT")
         dev.wait_disconnected()
         dev.request("RECONNECT")
@@ -247,6 +250,9 @@ def run_roams(dev, apdev, hapd0, hapd1, ssid, passphrase, over_ds=False,
             return
         if dev.get_status_field('bssid') != ap2['bssid']:
             raise Exception("Did not connect to correct AP")
+        if check_ssid and dev.get_status_field("ssid_verified") != "1":
+            raise Exception("ssid_verified=1 not in STATUS")
+
         if (i == 0 or i == roams - 1) and test_connectivity:
             hapd2ap.wait_sta()
             dev.dump_monitor()
@@ -277,6 +283,8 @@ def run_roams(dev, apdev, hapd0, hapd1, ssid, passphrase, over_ds=False,
             dev.roam(ap1['bssid'])
         if dev.get_status_field('bssid') != ap1['bssid']:
             raise Exception("Did not connect to correct AP")
+        if check_ssid and dev.get_status_field("ssid_verified") != "1":
+            raise Exception("ssid_verified=1 not in STATUS")
         if (i == 0 or i == roams - 1) and test_connectivity:
             hapd1ap.wait_sta()
             dev.dump_monitor()
@@ -3758,3 +3766,9 @@ def run_ap_ft_eap_dynamic_rxkhs(dev, apdev, f1, fn1, f2, fn2):
         raise Exception("Unexpected number of RxKHs (AP1b)")
 
     run_roams(dev[0], apdev, hapd0, hapd1, ssid, passphrase, eap=True)
+
+def test_ap_ft_ssid_verified(dev, apdev):
+    """WPA2-PSK-FT and ssid_verified=1 indication"""
+    hapd0, hapd1 = start_ft(apdev)
+    run_roams(dev[0], apdev, hapd0, hapd1, "test-ft", "12345678",
+              check_ssid=True)

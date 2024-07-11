@@ -147,6 +147,9 @@ def test_fils_sk_pmksa_caching(dev, apdev, params):
     if pmksa is None:
         raise Exception("No PMKSA cache entry created")
 
+    if dev[0].get_status_field("ssid_verified") == "1":
+        raise Exception("Unexpected ssid_verified=1 in STATUS")
+
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected()
     hapd.wait_sta_disconnect()
@@ -160,6 +163,8 @@ def test_fils_sk_pmksa_caching(dev, apdev, params):
     if "CTRL-EVENT-EAP-STARTED" in ev:
         raise Exception("Unexpected EAP exchange")
     hapd.wait_sta()
+    if dev[0].get_status_field("ssid_verified") != "1":
+        raise Exception("ssid_verified=1 not in STATUS")
     hwsim_utils.test_connectivity(dev[0], hapd)
     pmksa2 = dev[0].get_pmksa(bssid)
     if pmksa2 is None:

@@ -1896,6 +1896,8 @@ def test_sae_password_id_pwe_looping(dev, apdev):
         dev[0].connect("test-sae", sae_password="secret",
                        sae_password_id="pw id",
                        key_mgmt="SAE", scan_freq="2412")
+        if dev[0].get_status_field("ssid_verified") == "1":
+            raise Exception("Unexpected ssid_verified=1 in STATUS")
     finally:
         dev[0].set("sae_pwe", "0")
 
@@ -2241,10 +2243,12 @@ def run_sae_pwe_group(dev, apdev, group):
         dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
 
-def check_sae_pwe_group(dev, group, sae_pwe):
+def check_sae_pwe_group(dev, group, sae_pwe, check_ssid=False):
     dev.set("sae_groups", str(group))
     dev.set("sae_pwe", str(sae_pwe))
     dev.connect("sae-pwe", psk="12345678", key_mgmt="SAE", scan_freq="2412")
+    if check_ssid and dev.get_status_field("ssid_verified") != "1":
+        raise Exception("ssid_verified=1 not in STATUS")
     dev.request("REMOVE_NETWORK all")
     dev.wait_disconnected()
     dev.dump_monitor()
@@ -2254,8 +2258,8 @@ def test_sae_pwe_h2e_only_ap(dev, apdev):
     check_sae_capab(dev[0])
     start_sae_pwe_ap(apdev[0], 19, 1)
     try:
-        check_sae_pwe_group(dev[0], 19, 1)
-        check_sae_pwe_group(dev[0], 19, 2)
+        check_sae_pwe_group(dev[0], 19, 1, check_ssid=True)
+        check_sae_pwe_group(dev[0], 19, 2, check_ssid=True)
     finally:
         dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
@@ -3266,3 +3270,6 @@ def test_sae_ssid_protection(dev, apdev):
         raise Exception("SSID protection event not seen")
     dev[0].wait_connected()
     hapd.wait_sta()
+
+    if dev[0].get_status_field("ssid_verified") != "1":
+        raise Exception("ssid_verified=1 not in STATUS")
