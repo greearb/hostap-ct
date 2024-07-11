@@ -1426,10 +1426,14 @@ def run_ap_pmf_beacon_protection(dev, apdev, cipher):
     # STA with Beacon protection enabled
     dev[0].connect(ssid, psk="12345678", ieee80211w="2", beacon_prot="1",
                    key_mgmt="WPA-PSK-SHA256", proto="WPA2", scan_freq="2412")
+    if dev[0].get_status_field("bigtk_set") != "1":
+        raise Exception("bigtk_set=1 not indicated")
 
     # STA with Beacon protection disabled
     dev[1].connect(ssid, psk="12345678", ieee80211w="2",
                    key_mgmt="WPA-PSK-SHA256", proto="WPA2", scan_freq="2412")
+    if dev[1].get_status_field("bigtk_set") == "1":
+        raise Exception("Unexpected bigtk_set=1 indication")
 
     time.sleep(1)
     check_mac80211_bigtk(dev[0], hapd)
