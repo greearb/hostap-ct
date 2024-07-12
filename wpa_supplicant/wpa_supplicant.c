@@ -980,9 +980,11 @@ static void wpas_verify_ssid_beacon(void *eloop_ctx, void *timeout_ctx)
 		/* TODO: Multiple BSSID element */
 	}
 
-	if (wpa_s->beacons_checked < 16)
-		eloop_register_timeout(1, 0, wpas_verify_ssid_beacon,
-				       wpa_s, NULL);
+	if (wpa_s->beacons_checked < 16) {
+		eloop_register_timeout(wpa_s->next_beacon_check, 0,
+				       wpas_verify_ssid_beacon, wpa_s, NULL);
+		wpa_s->next_beacon_check++;
+	}
 }
 
 
@@ -1006,6 +1008,7 @@ static void wpas_verify_ssid_beacon_prot(struct wpa_supplicant *wpa_s)
 		   (long long unsigned int) bss->tsf);
 	wpa_s->first_beacon_tsf = bss->tsf;
 	wpa_s->beacons_checked = 0;
+	wpa_s->next_beacon_check = 1;
 	eloop_cancel_timeout(wpas_verify_ssid_beacon, wpa_s, NULL);
 	eloop_register_timeout(1, 0, wpas_verify_ssid_beacon, wpa_s, NULL);
 }

@@ -1614,6 +1614,7 @@ struct wpa_supplicant {
 	bool bigtk_set;
 	u64 first_beacon_tsf;
 	unsigned int beacons_checked;
+	unsigned int next_beacon_check;
 };
 
 
