@@ -3189,7 +3189,7 @@ void ibss_mesh_setup_freq(struct wpa_supplicant *wpa_s,
 	int ieee80211_mode = wpas_mode_to_ieee80211_mode(ssid->mode);
 	enum hostapd_hw_mode hw_mode;
 	struct hostapd_hw_modes *mode = NULL;
-	int i, obss_scan = 1;
+	int obss_scan = 1;
 	u8 channel;
 	bool is_6ghz, is_24ghz;
 
@@ -3208,14 +3208,8 @@ void ibss_mesh_setup_freq(struct wpa_supplicant *wpa_s,
 	}
 
 	hw_mode = ieee80211_freq_to_chan(freq->freq, &channel);
-	for (i = 0; wpa_s->hw.modes && i < wpa_s->hw.num_modes; i++) {
-		if (wpa_s->hw.modes[i].mode == hw_mode &&
-		    hw_mode_get_channel(&wpa_s->hw.modes[i], freq->freq,
-					NULL) != NULL) {
-			mode = &wpa_s->hw.modes[i];
-			break;
-		}
-	}
+	mode = get_mode(wpa_s->hw.modes, wpa_s->hw.num_modes,
+			hw_mode, is_6ghz_freq(ssid->frequency));
 
 	if (!mode)
 		return;
