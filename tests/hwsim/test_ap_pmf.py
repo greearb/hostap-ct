@@ -1423,6 +1423,8 @@ def run_ap_pmf_beacon_protection(dev, apdev, cipher):
     wt.flush()
     wt.add_passphrase("12345678")
 
+    dev[0].flush_scan_cache()
+
     # STA with Beacon protection enabled
     dev[0].connect(ssid, psk="12345678", ieee80211w="2", beacon_prot="1",
                    key_mgmt="WPA-PSK-SHA256", proto="WPA2", scan_freq="2412")
@@ -1445,7 +1447,7 @@ def run_ap_pmf_beacon_protection(dev, apdev, cipher):
     if valid_bip < 0 or invalid_bip > 0 or missing_bip > 0:
         raise Exception("Unexpected wlantest BIP counters: valid=%d invalid=%d missing=%d" % (valid_bip, invalid_bip, missing_bip))
 
-    ev = dev[0].wait_event(["CTRL-EVENT-BEACON-LOSS"], timeout=5)
+    ev = dev[0].wait_event(["CTRL-EVENT-BEACON-LOSS"], timeout=10)
     if ev is not None:
         raise Exception("Beacon loss detected")
 
