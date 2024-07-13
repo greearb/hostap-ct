@@ -82,6 +82,8 @@ struct sae_temporary_data {
 	bool omit_pk_elem;
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_SAE_PK */
+
+	struct os_reltime disabled_until;
 };
 
 struct sae_pt {
