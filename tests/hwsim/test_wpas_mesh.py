@@ -2586,3 +2586,30 @@ def test_mesh_link_probe(dev, apdev, params):
                 continue
             if i + "\t" + j not in out:
                 raise Exception("Did not see probe %s --> %s" % (i, j))
+
+def test_wpas_mesh_sae_inject(dev, apdev):
+    """wpa_supplicant secure mesh and injected SAE messages"""
+    check_mesh_support(dev[0], secure=True)
+    dev[0].set("sae_groups", "")
+    add_mesh_secure_net(dev[0])
+    dev[0].mesh_group_add(id)
+
+    dev[1].set("sae_groups", "")
+    add_mesh_secure_net(dev[1])
+    dev[1].mesh_group_add(id)
+
+    check_mesh_joined_connected(dev, connectivity=True)
+
+    addr0 = binascii.unhexlify(dev[0].own_addr().replace(':', ''))
+    addr1 = binascii.unhexlify(dev[1].own_addr().replace(':', ''))
+
+    try:
+        sock = start_monitor(apdev[1]["ifname"])
+        radiotap = radiotap_build()
+
+        frame = build_sae_commit(addr1, addr0)
+        for i in range(5):
+            sock.send(radiotap + frame)
+        time.sleep(10)
+    finally:
+        stop_monitor(apdev[1]["ifname"])
