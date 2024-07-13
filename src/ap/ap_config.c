@@ -125,7 +125,7 @@ void hostapd_config_defaults_bss(struct hostapd_bss_config *bss)
 	bss->radius_require_message_authenticator = 1;
 
 	bss->anti_clogging_threshold = 5;
-	bss->sae_sync = 5;
+	bss->sae_sync = 3;
 
 	bss->gas_frag_limit = 1400;
 
