@@ -32,15 +32,19 @@ def test_multi_ap_association_shared_bss(dev, apdev):
 
 def test_multi_ap_backhaul_shared_bss(dev, apdev):
     """Multi-AP backhaul to backhaul+fronthaul BSS"""
-    hapd = run_multi_ap_association(dev, apdev, 3, wait_connect=False)
+    hapd = run_multi_ap_association(dev, apdev, 3, wait_connect=False,
+                                    wds_sta=True)
     ev = hapd.wait_event(["WDS-STA-INTERFACE-ADDED"], timeout=10)
     if ev is None:
         raise Exception("No WDS-STA-INTERFACE-ADDED event seen")
 
-def run_multi_ap_association(dev, apdev, multi_ap, wait_connect=True):
+def run_multi_ap_association(dev, apdev, multi_ap, wait_connect=True,
+                             wds_sta=False):
     params = hostapd.wpa2_params(ssid="multi-ap", passphrase="12345678")
     if multi_ap:
         params["multi_ap"] = str(multi_ap)
+    if wds_sta:
+        params["wds_sta"] = "1"
     hapd = hostapd.add_ap(apdev[0], params)
 
     dev[0].connect("multi-ap", psk="12345678", scan_freq="2412",
