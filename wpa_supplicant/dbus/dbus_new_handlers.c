@@ -12,6 +12,7 @@
 
 #include "common.h"
 #include "common/ieee802_11_defs.h"
+#include "common/nan_de.h"
 #include "eap_peer/eap_methods.h"
 #include "eapol_supp/eapol_supp_sm.h"
 #include "rsn_supp/wpa.h"
@@ -27,6 +28,7 @@
 #include "../autoscan.h"
 #include "../ap.h"
 #include "../interworking.h"
+#include "../nan_usd.h"
 #include "dbus_new_helpers.h"
 #include "dbus_new.h"
 #include "dbus_new_handlers.h"
@@ -6485,3 +6487,513 @@ dbus_bool_t wpas_dbus_getter_signal_change(
 	}
 	return TRUE;
 }
+
+
+#ifdef CONFIG_NAN_USD
+
+/*
+ * wpas_dbus_handler_nan_publish - Send out NAN publish messages
+ * @message: Pointer to incoming dbus message
+ * @wpa_s: wpa_supplicant structure for a network interface
+ * Returns: NULL indicating success or DBus error message on failure
+ *
+ * Handler function for "NANPublish" method call of network interface.
+ */
+DBusMessage * wpas_dbus_handler_nan_publish(DBusMessage *message,
+					    struct wpa_supplicant *wpa_s)
+{
+	DBusMessageIter	iter, iter_dict;
+	struct wpa_dbus_dict_entry entry;
+	DBusMessage *reply = NULL;
+	int publish_id;
+	char *srv_name = NULL;
+	enum nan_service_protocol_type srv_proto_type = 0;
+	bool p2p = false;
+	struct nan_publish_params params;
+	int *freq_list = NULL;
+	struct wpabuf *ssi = NULL;
+	dbus_uint32_t id;
+
+	wpa_printf(MSG_DEBUG, "dbus: NANPublish");
+	if (!wpa_s->nan_de)
+		return NULL;
+
+	os_memset(&params, 0, sizeof(params));
+	/* USD shall use both solicited and unsolicited transmissions */
+	params.unsolicited = true;
+	params.solicited = true;
+	/* USD shall require FSD without GAS */
+	params.fsd = true;
+	params.freq = NAN_USD_DEFAULT_FREQ;
+
+	dbus_message_iter_init(message, &iter);
+
+	if (!wpa_dbus_dict_open_read(&iter, &iter_dict, NULL))
+		goto fail;
+	while (wpa_dbus_dict_has_dict_entry(&iter_dict)) {
+		if (!wpa_dbus_dict_get_entry(&iter_dict, &entry))
+			goto fail;
+		if (os_strcmp(entry.key, "srv_name") == 0 &&
+		    entry.type == DBUS_TYPE_STRING) {
+			os_free(srv_name);
+			srv_name = os_strdup(entry.str_value);
+			wpa_dbus_dict_entry_clear(&entry);
+			if (!srv_name)
+				goto oom;
+		} else if (os_strcmp(entry.key, "srv_proto_type") == 0 &&
+			   wpa_dbus_dict_entry_is_int(&entry)) {
+			srv_proto_type = wpa_dbus_dict_entry_get_int(&entry);
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "solicited") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			params.solicited = entry.bool_value;
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "unsolicited") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			params.unsolicited = entry.bool_value;
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "solicited_multicast") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			params.solicited_multicast = entry.bool_value;
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "ttl") == 0 &&
+			   wpa_dbus_dict_entry_is_int(&entry)) {
+			params.ttl = wpa_dbus_dict_entry_get_int(&entry);
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "disable_events") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			params.disable_events = entry.bool_value;
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "fsd") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			params.fsd = entry.bool_value;
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "fsd_gas") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			params.fsd_gas = entry.bool_value;
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "p2p") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			p2p = entry.bool_value;
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "freq") == 0 &&
+			   wpa_dbus_dict_entry_is_int(&entry)) {
+			params.freq = wpa_dbus_dict_entry_get_int(&entry);
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "announcement_period") == 0 &&
+			   wpa_dbus_dict_entry_is_int(&entry)) {
+			params.announcement_period =
+				wpa_dbus_dict_entry_get_int(&entry);
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "ssi") == 0 &&
+			   entry.type == DBUS_TYPE_ARRAY &&
+			   entry.array_type == DBUS_TYPE_BYTE) {
+			wpabuf_free(ssi);
+			ssi = wpabuf_alloc_copy(entry.bytearray_value,
+						entry.array_len);
+			wpa_dbus_dict_entry_clear(&entry);
+			if (!ssi)
+				goto oom;
+		} else if (os_strcmp(entry.key, "freq_list") == 0 &&
+			   entry.type == DBUS_TYPE_ARRAY &&
+			   entry.array_type == DBUS_TYPE_UINT16) {
+			unsigned int i;
+
+			for (i = 0; i < entry.array_len; i++)
+				int_array_add_unique(
+					&freq_list, entry.uint16array_value[i]);
+		} else {
+			wpa_printf(MSG_DEBUG,
+				   "dbus: NANPublish - unsupported dict entry '%s'",
+				   entry.key);
+			reply = wpas_dbus_error_invalid_args(message,
+							     entry.key);
+			wpa_dbus_dict_entry_clear(&entry);
+			goto fail;
+		}
+	}
+
+	if (!srv_name)
+		goto fail;
+
+	publish_id = wpas_nan_usd_publish(wpa_s, srv_name, srv_proto_type, ssi,
+					  &params, p2p);
+	if (publish_id < 0) {
+		reply = wpas_dbus_error_unknown_error(
+			message, "error publishing NAN USD");
+		goto out;
+	}
+
+	id = publish_id;
+	reply = dbus_message_new_method_return(message);
+	if (!reply) {
+		reply = wpas_dbus_error_no_memory(message);
+		goto out;
+	}
+
+	dbus_message_append_args(reply, DBUS_TYPE_UINT32,
+				 &id, DBUS_TYPE_INVALID);
+
+out:
+	wpabuf_free(ssi);
+	os_free(freq_list);
+	os_free(srv_name);
+	return reply;
+fail:
+	reply = wpas_dbus_error_invalid_args(message,
+					     "failed to parse NANPublish");
+	goto out;
+oom:
+	reply = wpas_dbus_error_no_memory(message);
+	goto out;
+}
+
+
+/*
+ * wpas_dbus_handler_nan_cancel_publish - Cancel a NAN publish
+ * @message: Pointer to incoming dbus message
+ * @wpa_s: wpa_supplicant structure for a network interface
+ * Returns: NULL indicating success or DBus error message on failure
+ *
+ * Handler function for "NANCancelPublish" method call of network interface.
+ */
+DBusMessage * wpas_dbus_handler_nan_cancel_publish(DBusMessage *message,
+						   struct wpa_supplicant *wpa_s)
+{
+	dbus_uint32_t publish_id;
+
+	if (!wpa_s->nan_de)
+		return NULL;
+
+	if (!dbus_message_get_args(message, NULL,
+				   DBUS_TYPE_UINT32, &publish_id,
+				   DBUS_TYPE_INVALID)) {
+		wpa_printf(MSG_DEBUG,
+			   "dbus: NANCancelPublish failed to get args");
+		return wpas_dbus_error_invalid_args(message, NULL);
+	}
+
+	wpa_printf(MSG_DEBUG, "dbus: NANCancelPublish: id=%u", publish_id);
+	nan_de_cancel_publish(wpa_s->nan_de, publish_id);
+	return NULL;
+}
+
+
+/*
+ * wpas_dbus_handler_nan_update_publish - Update the SSI for a NAN publish
+ * @message: Pointer to incoming dbus message
+ * @wpa_s: wpa_supplicant structure for a network interface
+ * Returns: NULL indicating success or DBus error message on failure
+ *
+ * Handler function for "NANUpdatePublish" method call of network interface.
+ */
+DBusMessage * wpas_dbus_handler_nan_update_publish(DBusMessage *message,
+						   struct wpa_supplicant *wpa_s)
+{
+	DBusMessageIter	iter, iter_dict;
+	struct wpa_dbus_dict_entry entry;
+	DBusMessage *reply = NULL;
+	int publish_id = -1;
+	struct wpabuf *ssi = NULL;
+
+	wpa_printf(MSG_DEBUG, "dbus: NANUpdatePublish");
+	if (!wpa_s->nan_de)
+		return NULL;
+
+	dbus_message_iter_init(message, &iter);
+
+	if (!wpa_dbus_dict_open_read(&iter, &iter_dict, NULL))
+		goto fail;
+	while (wpa_dbus_dict_has_dict_entry(&iter_dict)) {
+		if (!wpa_dbus_dict_get_entry(&iter_dict, &entry))
+			goto fail;
+		if (os_strcmp(entry.key, "publish_id") == 0 &&
+		    entry.type == DBUS_TYPE_UINT32) {
+			publish_id = entry.uint32_value;
+			wpa_dbus_dict_entry_clear(&entry);
+			wpa_printf(MSG_DEBUG, "dbus: publish_id=%d",
+				   publish_id);
+		} else if (os_strcmp(entry.key, "ssi") == 0 &&
+			   entry.type == DBUS_TYPE_ARRAY &&
+			   entry.array_type == DBUS_TYPE_BYTE) {
+			wpabuf_free(ssi);
+			ssi = wpabuf_alloc_copy(entry.bytearray_value,
+						entry.array_len);
+			wpa_dbus_dict_entry_clear(&entry);
+			if (!ssi) {
+				reply = wpas_dbus_error_no_memory(message);
+				goto out;
+			}
+		} else {
+			wpa_printf(MSG_DEBUG,
+				   "dbus: NANTransmit - unsupported dict entry '%s'",
+				   entry.key);
+			reply = wpas_dbus_error_invalid_args(message,
+							     entry.key);
+			wpa_dbus_dict_entry_clear(&entry);
+			goto out;
+		}
+	}
+
+	if (publish_id < 0)
+		goto fail;
+
+	if (nan_de_update_publish(wpa_s->nan_de, publish_id, ssi) < 0)
+		reply = wpas_dbus_error_unknown_error(
+			message, "error updating NAN USD publish ssi");
+
+out:
+	wpabuf_free(ssi);
+	return reply;
+fail:
+	reply = wpas_dbus_error_invalid_args(
+		message,
+		"failed to parse NANUpdatePublish");
+	goto out;
+}
+
+
+/*
+ * wpas_dbus_handler_nan_subscribe - Send out NAN USD subscribe messages
+ * @message: Pointer to incoming dbus message
+ * @wpa_s: wpa_supplicant structure for a network interface
+ * Returns: NULL indicating success or DBus error message on failure
+ *
+ * Handler function for "NANSubscribe" method call of network interface.
+ */
+DBusMessage * wpas_dbus_handler_nan_subscribe(DBusMessage *message,
+					      struct wpa_supplicant *wpa_s)
+{
+	DBusMessageIter	iter, iter_dict;
+	struct wpa_dbus_dict_entry entry;
+	DBusMessage *reply = NULL;
+	int subscribe_id;
+	char *srv_name = NULL;
+	struct nan_subscribe_params params;
+	enum nan_service_protocol_type srv_proto_type = 0;
+	bool p2p = false;
+	struct wpabuf *ssi = NULL;
+	int *freq_list = NULL;
+
+	wpa_printf(MSG_DEBUG, "dbus: NANSubscribe");
+	if (!wpa_s->nan_de)
+		return NULL;
+
+	os_memset(&params, 0, sizeof(params));
+	params.freq = NAN_USD_DEFAULT_FREQ;
+
+	dbus_message_iter_init(message, &iter);
+
+	if (!wpa_dbus_dict_open_read(&iter, &iter_dict, NULL))
+		goto fail;
+	while (wpa_dbus_dict_has_dict_entry(&iter_dict)) {
+		if (!wpa_dbus_dict_get_entry(&iter_dict, &entry))
+			goto fail;
+		if (os_strcmp(entry.key, "srv_name") == 0 &&
+		    entry.type == DBUS_TYPE_STRING) {
+			os_free(srv_name);
+			srv_name = os_strdup(entry.str_value);
+			wpa_dbus_dict_entry_clear(&entry);
+			if (!srv_name)
+				goto oom;
+		} else if (os_strcmp(entry.key, "srv_proto_type") == 0 &&
+			   wpa_dbus_dict_entry_is_int(&entry)) {
+			srv_proto_type = wpa_dbus_dict_entry_get_int(&entry);
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "active") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			params.active = entry.bool_value;
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "p2p") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			p2p = entry.bool_value;
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "ttl") == 0 &&
+			   wpa_dbus_dict_entry_is_int(&entry)) {
+			params.ttl = wpa_dbus_dict_entry_get_int(&entry);
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "freq") == 0 &&
+			   wpa_dbus_dict_entry_is_int(&entry)) {
+			params.freq = wpa_dbus_dict_entry_get_int(&entry);
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "query_period") == 0 &&
+			   wpa_dbus_dict_entry_is_int(&entry)) {
+			params.query_period =
+				wpa_dbus_dict_entry_get_int(&entry);
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "ssi") == 0 &&
+			   entry.type == DBUS_TYPE_ARRAY &&
+			   entry.array_type == DBUS_TYPE_BYTE) {
+			wpabuf_free(ssi);
+			ssi = wpabuf_alloc_copy(entry.bytearray_value,
+						entry.array_len);
+			wpa_dbus_dict_entry_clear(&entry);
+			if (!ssi)
+				goto oom;
+		} else if (os_strcmp(entry.key, "freq_list") == 0 &&
+			   entry.type == DBUS_TYPE_ARRAY &&
+			   entry.array_type == DBUS_TYPE_UINT16) {
+			unsigned int i;
+
+			for (i = 0; i < entry.array_len; i++)
+				int_array_add_unique(
+					&freq_list, entry.uint16array_value[i]);
+		} else {
+			wpa_printf(MSG_DEBUG,
+				   "dbus: NANSubscribe - unsupported dict entry '%s'",
+				   entry.key);
+			reply = wpas_dbus_error_invalid_args(message,
+							     entry.key);
+			wpa_dbus_dict_entry_clear(&entry);
+			goto fail;
+		}
+	}
+
+	if (!srv_name)
+		goto fail;
+
+	subscribe_id = wpas_nan_usd_subscribe(wpa_s, srv_name, srv_proto_type,
+					      ssi, &params, p2p);
+	if (subscribe_id < 0) {
+		reply = wpas_dbus_error_unknown_error(
+			message, "error subscribing NAN USD");
+		goto out;
+	}
+
+	reply = dbus_message_new_method_return(message);
+	dbus_message_append_args(reply, DBUS_TYPE_UINT32,
+				 &subscribe_id, DBUS_TYPE_INVALID);
+out:
+	wpabuf_free(ssi);
+	os_free(freq_list);
+	os_free(srv_name);
+	return reply;
+fail:
+	reply = wpas_dbus_error_invalid_args(message,
+					     "failed to parse NANSubscribe");
+	goto out;
+oom:
+	reply = wpas_dbus_error_no_memory(message);
+	goto out;
+}
+
+
+/*
+ * wpas_dbus_handler_nan_cancel_subscribe - Cancel a NAN subscription
+ * @message: Pointer to incoming dbus message
+ * @wpa_s: wpa_supplicant structure for a network interface
+ * Returns: NULL indicating success or DBus error message on failure
+ *
+ * Handler function for "NANCancelSubscribe" method call of network interface.
+ */
+DBusMessage *
+wpas_dbus_handler_nan_cancel_subscribe(DBusMessage *message,
+				       struct wpa_supplicant *wpa_s)
+{
+	dbus_uint32_t subscribe_id;
+
+	if (!wpa_s->nan_de)
+		return NULL;
+
+	if (!dbus_message_get_args(message, NULL,
+				   DBUS_TYPE_UINT32, &subscribe_id,
+				   DBUS_TYPE_INVALID)) {
+		wpa_printf(MSG_DEBUG,
+			   "dbus: NANCancelSubscribe failed to get args");
+		return wpas_dbus_error_invalid_args(message, NULL);
+	}
+
+	wpa_printf(MSG_DEBUG, "dbus: NANCancelSubscribe: id=%u", subscribe_id);
+	nan_de_cancel_subscribe(wpa_s->nan_de, subscribe_id);
+	return NULL;
+}
+
+
+/*
+ * wpas_dbus_handler_nan_transmit - Send out NAN followup frames
+ * @message: Pointer to incoming dbus message
+ * @wpa_s: wpa_supplicant structure for a network interface
+ * Returns: NULL indicating success or DBus error message on failure
+ *
+ * Handler function for "NANTransmit" method call of network interface.
+ */
+DBusMessage * wpas_dbus_handler_nan_transmit(DBusMessage *message,
+					     struct wpa_supplicant *wpa_s)
+{
+	DBusMessageIter	iter, iter_dict;
+	struct wpa_dbus_dict_entry entry;
+	DBusMessage *reply = NULL;
+	int handle = -1;
+	int req_instance_id = -1;
+	u8 peer_addr[ETH_ALEN];
+	bool peer_addr_set = false;
+	struct wpabuf *ssi = NULL;
+
+	wpa_printf(MSG_DEBUG, "dbus: NANTransmit");
+	if (!wpa_s->nan_de)
+		return NULL;
+
+	dbus_message_iter_init(message, &iter);
+
+	if (!wpa_dbus_dict_open_read(&iter, &iter_dict, NULL))
+		goto fail;
+	while (wpa_dbus_dict_has_dict_entry(&iter_dict)) {
+		if (!wpa_dbus_dict_get_entry(&iter_dict, &entry))
+			goto fail;
+		if (os_strcmp(entry.key, "handle") == 0 &&
+		    entry.type == DBUS_TYPE_UINT32) {
+			handle = entry.uint32_value;
+			wpa_dbus_dict_entry_clear(&entry);
+			wpa_printf(MSG_DEBUG, "dbus: handle=%d", handle);
+		} else if (os_strcmp(entry.key, "req_instance_id") == 0 &&
+			   entry.type == DBUS_TYPE_UINT32) {
+			req_instance_id = entry.uint32_value;
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "peer_addr") == 0 &&
+			   entry.type == DBUS_TYPE_STRING) {
+			if (hwaddr_aton(entry.str_value, peer_addr) < 0) {
+				wpa_dbus_dict_entry_clear(&entry);
+				goto fail;
+			}
+			peer_addr_set = true;
+			wpa_dbus_dict_entry_clear(&entry);
+		} else if (os_strcmp(entry.key, "ssi") == 0 &&
+			   entry.type == DBUS_TYPE_ARRAY &&
+			   entry.array_type == DBUS_TYPE_BYTE) {
+			wpabuf_free(ssi);
+			ssi = wpabuf_alloc_copy(entry.bytearray_value,
+						entry.array_len);
+			wpa_dbus_dict_entry_clear(&entry);
+			if (!ssi) {
+				reply = wpas_dbus_error_no_memory(message);
+				goto out;
+			}
+		} else {
+			wpa_printf(MSG_DEBUG,
+				   "dbus: NANTransmit - unsupported dict entry '%s'",
+				   entry.key);
+			reply = wpas_dbus_error_invalid_args(message,
+							     entry.key);
+			wpa_dbus_dict_entry_clear(&entry);
+			goto fail;
+		}
+	}
+
+	if (handle < 0 || req_instance_id < 0 || !peer_addr_set || !ssi)
+		goto fail;
+
+	if (wpas_nan_usd_transmit(wpa_s, handle, ssi, NULL, peer_addr,
+				  req_instance_id) < 0)
+		reply = wpas_dbus_error_unknown_error(
+			message, "failed to transmit follow-up");
+out:
+	wpabuf_free(ssi);
+	return reply;
+
+fail:
+	reply = wpas_dbus_error_invalid_args(message,
+					     "failed to parse NANTransmit");
+	goto out;
+}
+
+#endif /* CONFIG_NAN_USD */

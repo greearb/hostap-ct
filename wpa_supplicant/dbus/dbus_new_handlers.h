@@ -290,4 +290,18 @@ DBusMessage * wpas_dbus_handler_subscribe_preq(
 DBusMessage * wpas_dbus_handler_unsubscribe_preq(
 	DBusMessage *message, struct wpa_supplicant *wpa_s);
 
+DBusMessage * wpas_dbus_handler_nan_publish(DBusMessage *message,
+					    struct wpa_supplicant *wpa_s);
+DBusMessage * wpas_dbus_handler_nan_cancel_publish(
+	DBusMessage *message, struct wpa_supplicant *wpa_s);
+DBusMessage * wpas_dbus_handler_nan_update_publish(
+	DBusMessage *message, struct wpa_supplicant *wpa_s);
+DBusMessage * wpas_dbus_handler_nan_subscribe(DBusMessage *message,
+					      struct wpa_supplicant *wpa_s);
+DBusMessage *
+wpas_dbus_handler_nan_cancel_subscribe(DBusMessage *message,
+				       struct wpa_supplicant *wpa_s);
+DBusMessage * wpas_dbus_handler_nan_transmit(DBusMessage *message,
+					     struct wpa_supplicant *wpa_s);
+
 #endif /* CTRL_IFACE_DBUS_HANDLERS_NEW_H */

@@ -732,6 +732,147 @@ fi.w1.wpa_supplicant1.CreateInterface.
 	  <dd>Subscription in place, but for another process.</dd>
 	</dl>
       </li>
+
+      <li>
+	<h3>NANPublish ( a{sv} : args ) --> u : publish_id</h3>
+	<p>Publish a NAN USD service.</p>
+	<h4>Arguments</h4>
+	<dl>
+	  <dt>a{sv} : args</dt>
+	  <dd>
+	    A dictionary with following parameters:
+	    <table>
+	    <tr><th>Key</th><th>Value type</th><th>Description</th><th>Required</th></tr>
+	    <tr><td>srv_name</td><td>s</td><td>Service name.</td><td>yes</td></tr>
+	    <tr><td>srv_proto_type</td><td>u</td><td>Service Protocol Type</td><td>yes</td></tr>
+	    <tr><td>solicited</td><td>b</td><td>Solicited Publish</td><td></td></tr>
+	    <tr><td>unsolicited</td><td>b</td><td>Unsolicited Publish</td><td></td></tr>
+	    <tr><td>solicited_multicast</td><td>b</td><td>Solicited transmission type multicast</td><td></td></tr>
+	    <tr><td>ttl</td><td>u</td><td>Time to live (in seconds); 0 = one TX only</td><td>yes</td></tr>
+	    <tr><td>disable_events</td><td>b</td><td>Event conditions</td><td></td></tr>
+	    <tr><td>fsd</td><td>b</td><td>Further Service Discovery flag</td><td></td></tr>
+	    <tr><td>fsd_gas</td><td>b</td><td>Further Service Discovery function GAS</td><td></td></tr>
+	    <tr><td>p2p</td><td>b</td><td>Allow P2P IE to be added into NAN SDFs</td><td></td></tr>
+	    <tr><td>freq</td><td>q</td><td>Default frequency in MHz</td><td>yes</td></tr>
+	    <tr><td>announcement_period</td><td>u</td><td>Announcement period in ms</td><td></td></tr>
+	    <tr><td>ssi</td><td>ay</td><td>Service specific information</td><td>yes</td></tr>
+	    <tr><td>freq_list</td><td>aq</td><td>frequency list</td><td></td></tr>
+	    </table>
+	  </dd>
+	</dl>
+	<h4>Possible errors</h4>
+	<dl>
+	  <dt>fi.w1.wpa_supplicant1.NoMemory</dt>
+	  <dd>Needed memory was not possible to get allocated.</dd>
+	  <dt>fi.w1.wpa_supplicant1.InvalidArgs</dt>
+	  <dd>Invalid entries were found in the passed argument.</dd>
+	</dl>
+      </li>
+      <li>
+	<h3>NANCancelPublish ( u : publish_id ) --> nothing</h3>
+	<p>Cancel a previously added NAN USD published service.</p>
+	<h4>Arguments</h4>
+	<dl>
+	  <dt>u : publish_id</dt>
+	  <dd>Publish ID from NANPublish().</dd>
+	</dl>
+	<h4>Possible errors</h4>
+	<dl>
+	  <dt>fi.w1.wpa_supplicant1.InvalidArgs</dt>
+	  <dd>Invalid entries were found in the passed argument.</dd>
+	</dl>
+      </li>
+      <li>
+	<h3>NANUpdatePublish ( a{sv} : args ) --> nothing</h3>
+	<p>Update the SSI of a previous added NAN publish for the interface.</p>
+	<h4>Arguments</h4>
+	<dl>
+	  <dt>a{sv} : args</dt>
+	  <dd>
+	    A dictionary with following parameters:
+	    <table>
+	    <tr><th>Key</th><th>Value type</th><th>Description</th><th>Required</th></tr>
+	    <tr><td>publish_id</td><td>i</td><td>Publish ID to be updated</td><td>yes</td></tr>
+	    <tr><td>ssi</td><td>ay</td><td>Service specific information</td><td></td></tr>
+	    </table>
+	  </dd>
+	</dl>
+	<h4>Possible errors</h4>
+	<dl>
+	  <dt>fi.w1.wpa_supplicant1.InvalidArgs</dt>
+	  <dd>Invalid entries were found in the passed argument.</dd>
+	  <dt>fi.w1.wpa_supplicant1.NoMemory</dt>
+	  <dd>Needed memory was not possible to get allocated.</dd>
+	</dl>
+      </li>
+      <li>
+	<h3>NANSubscribe ( a{sv} : args ) --> u : subscribe_id</h3>
+	<p>Subscribe to a NAN USD service.</p>
+	<h4>Arguments</h4>
+	<dl>
+	  <dt>a{sv} : args</dt>
+	  <dd>
+	    A dictionary with following parameters:
+	    <table>
+	    <tr><th>Key</th><th>Value type</th><th>Description</th><th>Required</th></tr>
+	    <tr><td>srv_name</td><td>s</td><td>Service name</td><td>yes</td></tr>
+	    <tr><td>srv_proto_type</td><td>u</td><td>Service Protocol Type</td><td>yes</td></tr>
+	    <tr><td>active</td><td>b</td><td>Subscribe type</td><td></td></tr>
+	    <tr><td>p2p</td><td>b</td><td>Allow P2P IE to be added into NAN SDFs</td><td></td></tr>
+	    <tr><td>ttl</td><td>u</td><td>Time to live (in seconds); 0 = one TX only</td><td></td></tr>
+	    <tr><td>freq</td><td>q</td><td>Default frequency in MHz</td><td>yes</td></tr>
+	    <tr><td>query_period</td><td>u</td><td>Query period in ms</td><td></td></tr>
+	    <tr><td>ssi</td><td>ay</td><td>Service specific information</td><td>yes</td></tr>
+	    <tr><td>freq_list</td><td>aq</td><td>frequency list</td><td></td></tr>
+	    </table>
+	  </dd>
+	</dl>
+	<h4>Possible errors</h4>
+	<dl>
+	  <dt>fi.w1.wpa_supplicant1.InvalidArgs</dt>
+	  <dd>Invalid entries were found in the passed argument.</dd>
+	</dl>
+      </li>
+      <li>
+	<h3>NANCancelSubscribe ( u : subscribe_id ) --> nothing</h3>
+	<p>Cancel a previously started NAN USD subscription.</p>
+	<h4>Arguments</h4>
+	<dl>
+	  <dt>u : subscribe_id</dt>
+	  <dd>Subscription ID from NANSubscribe().</dd>
+	</dl>
+	<h4>Possible errors</h4>
+	<dl>
+	  <dt>fi.w1.wpa_supplicant1.InvalidArgs</dt>
+	  <dd>Invalid entries were found in the passed argument.</dd>
+	</dl>
+      </li>
+      <li>
+	<h3>NANTransmit ( a{sv} : args ) --> nothing</h3>
+	<p>Send a follow-up message for NAN USD service discovery.</p>
+	<h4>Arguments</h4>
+	<dl>
+	  <dt>a{sv} : args</dt>
+	  <dd>
+	    A dictionary with following parameters:
+	    <table>
+	    <tr><th>Key</th><th>Value type</th><th>Description</th><th>Required</th></tr>
+
+	    <tr><td>handle</td><td>u</td><td>id from NANPublish or NANSubscribe.</td><td>yes</td></tr>
+	    <tr><td>req_instance_id</td><td>u</td><td>peer's id</td><td>yes</td></tr>
+	    <tr><td>peer_addr</td><td>s</td><td>peer's MAC address</td><td>yes</td></tr>
+	    <tr><td>ssi</td><td>ay</td><td>Service specific information</td><td>yes</td></tr>
+	    </table>
+	  </dd>
+	</dl>
+	<h4>Possible errors</h4>
+	<dl>
+	  <dt>fi.w1.wpa_supplicant1.InvalidArgs</dt>
+	  <dd>Invalid entries were found in the passed argument.</dd>
+	  <dt>fi.w1.wpa_supplicant1.NoMemory</dt>
+	  <dd>Needed memory was not possible to get allocated.</dd>
+	</dl>
+      </li>
     </ul>
 
 \subsection dbus_interface_properties Properties

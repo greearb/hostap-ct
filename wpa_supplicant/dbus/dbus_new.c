@@ -3771,6 +3771,52 @@ static const struct wpa_dbus_method_desc wpas_dbus_interface_methods[] = {
 	  },
 	},
 #endif /* CONFIG_INTERWORKING */
+#ifdef CONFIG_NAN_USD
+	{ "NANPublish", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  (WPADBusMethodHandler) wpas_dbus_handler_nan_publish,
+	  {
+		  { "args", "a{sv}", ARG_IN },
+		  { "publish_id", "u", ARG_OUT },
+		  END_ARGS
+	  }
+	},
+	{ "NANCancelPublish", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  (WPADBusMethodHandler) wpas_dbus_handler_nan_cancel_publish,
+	  {
+		  { "publish_id", "u", ARG_IN },
+		  END_ARGS
+	  }
+	},
+	{ "NANUpdatePublish", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  (WPADBusMethodHandler) wpas_dbus_handler_nan_update_publish,
+	  {
+		  { "args", "a{sv}", ARG_IN },
+		  END_ARGS
+	  }
+	},
+	{ "NANSubscribe", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  (WPADBusMethodHandler) wpas_dbus_handler_nan_subscribe,
+	  {
+		  { "args", "a{sv}", ARG_IN },
+		  { "subscribe_id", "u", ARG_OUT },
+		  END_ARGS
+	  }
+	},
+	{ "NANCancelSubscribe", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  (WPADBusMethodHandler) wpas_dbus_handler_nan_cancel_subscribe,
+	  {
+		  { "subscribe_id", "u", ARG_IN },
+		  END_ARGS
+	  }
+	},
+	{ "NANTransmit", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  (WPADBusMethodHandler) wpas_dbus_handler_nan_transmit,
+	  {
+		  { "args", "a{sv}", ARG_IN },
+		  END_ARGS
+	  }
+	},
+#endif /* CONFIG_NAN_USD */
 	{ NULL, NULL, NULL, { END_ARGS } }
 };
 
