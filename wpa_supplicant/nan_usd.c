@@ -13,6 +13,7 @@
 #include "wpa_supplicant_i.h"
 #include "offchannel.h"
 #include "driver_i.h"
+#include "notify.h"
 #include "p2p_supplicant.h"
 #include "nan_usd.h"
 
@@ -242,19 +243,10 @@ wpas_nan_de_discovery_result(void *ctx, int subscribe_id,
 			     const u8 *peer_addr, bool fsd, bool fsd_gas)
 {
 	struct wpa_supplicant *wpa_s = ctx;
-	char *ssi_hex;
 
-	ssi_hex = os_zalloc(2 * ssi_len + 1);
-	if (!ssi_hex)
-		return;
-	if (ssi)
-		wpa_snprintf_hex(ssi_hex, 2 * ssi_len + 1, ssi, ssi_len);
-	wpa_msg(wpa_s, MSG_INFO, NAN_DISCOVERY_RESULT
-		"subscribe_id=%d publish_id=%d address=" MACSTR
-		" fsd=%d fsd_gas=%d srv_proto_type=%u ssi=%s",
-		subscribe_id, peer_publish_id, MAC2STR(peer_addr),
-		fsd, fsd_gas, srv_proto_type, ssi_hex);
-	os_free(ssi_hex);
+	wpas_notify_nan_discovery_result(wpa_s, srv_proto_type, subscribe_id,
+					 peer_publish_id, peer_addr, fsd,
+					 fsd_gas, ssi, ssi_len);
 }
 
 
@@ -264,34 +256,9 @@ static void wpas_nan_de_replied(void *ctx, int publish_id, const u8 *peer_addr,
 				const u8 *ssi, size_t ssi_len)
 {
 	struct wpa_supplicant *wpa_s = ctx;
-	char *ssi_hex;
 
-	ssi_hex = os_zalloc(2 * ssi_len + 1);
-	if (!ssi_hex)
-		return;
-	if (ssi)
-		wpa_snprintf_hex(ssi_hex, 2 * ssi_len + 1, ssi, ssi_len);
-	wpa_msg(wpa_s, MSG_INFO, NAN_REPLIED
-		"publish_id=%d address=" MACSTR
-		" subscribe_id=%d srv_proto_type=%u ssi=%s",
-		publish_id, MAC2STR(peer_addr), peer_subscribe_id,
-		srv_proto_type, ssi_hex);
-	os_free(ssi_hex);
-}
-
-
-static const char * nan_reason_txt(enum nan_de_reason reason)
-{
-	switch (reason) {
-	case NAN_DE_REASON_TIMEOUT:
-		return "timeout";
-	case NAN_DE_REASON_USER_REQUEST:
-		return "user-request";
-	case NAN_DE_REASON_FAILURE:
-		return "failure";
-	}
-
-	return "unknown";
+	wpas_notify_nan_replied(wpa_s, srv_proto_type, publish_id,
+				peer_subscribe_id, peer_addr, ssi, ssi_len);
 }
 
 
@@ -300,9 +267,7 @@ static void wpas_nan_de_publish_terminated(void *ctx, int publish_id,
 {
 	struct wpa_supplicant *wpa_s = ctx;
 
-	wpa_msg(wpa_s, MSG_INFO, NAN_PUBLISH_TERMINATED
-		"publish_id=%d reason=%s",
-		publish_id, nan_reason_txt(reason));
+	wpas_notify_nan_publish_terminated(wpa_s, publish_id, reason);
 }
 
 
@@ -311,9 +276,7 @@ static void wpas_nan_de_subscribe_terminated(void *ctx, int subscribe_id,
 {
 	struct wpa_supplicant *wpa_s = ctx;
 
-	wpa_msg(wpa_s, MSG_INFO, NAN_SUBSCRIBE_TERMINATED
-		"subscribe_id=%d reason=%s",
-		subscribe_id, nan_reason_txt(reason));
+	wpas_notify_nan_subscribe_terminated(wpa_s, subscribe_id, reason);
 }
 
 
@@ -322,17 +285,9 @@ static void wpas_nan_de_receive(void *ctx, int id, int peer_instance_id,
 				const u8 *peer_addr)
 {
 	struct wpa_supplicant *wpa_s = ctx;
-	char *ssi_hex;
 
-	ssi_hex = os_zalloc(2 * ssi_len + 1);
-	if (!ssi_hex)
-		return;
-	if (ssi)
-		wpa_snprintf_hex(ssi_hex, 2 * ssi_len + 1, ssi, ssi_len);
-	wpa_msg(wpa_s, MSG_INFO, NAN_RECEIVE
-		"id=%d peer_instance_id=%d address=" MACSTR " ssi=%s",
-		id, peer_instance_id, MAC2STR(peer_addr), ssi_hex);
-	os_free(ssi_hex);
+	wpas_notify_nan_receive(wpa_s, id, peer_instance_id, peer_addr,
+				ssi, ssi_len);
 }
 
 
