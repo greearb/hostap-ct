@@ -1385,6 +1385,51 @@ fi.w1.wpa_supplicant1.CreateInterface.
 	  <dd>Determine if the request was successful. If so fields are available in BSS.</dd>
 	</dl>
       </li>
+
+      <li>
+	<h3>NANDiscoveryResult ( a{sv} : args )</h3>
+	<p>The DiscoveryResult event in the NAN Discovery Engine to indicate the result of an NANSubscribe.</p>
+	<dl>
+	  <dt>a{sv} : args</dt>
+	  <dd>A dictionary with pairs of field names and their values. Possible dictionary keys are: "subscribe_id", "publish_id", "peer_addr", "fsd", "fsd_gas", "srv_proto_type", "ssi"</dd>
+	</dl>
+      </li>
+      <li>
+	<h3>NANReplied ( a{sv} : args )</h3>
+	<p>The Replied event in the NAN Discovery Engine.</p>
+	<dl>
+	  <dt>a{sv} : args</dt>
+	  <dd>A dictionary with pairs of field names and their values. Possible dictionary keys are: "publish_id", "subscribe_id", "peer_addr", "srv_proto_type", "ssi"</dd>
+	</dl>
+      </li>
+      <li>
+	<h3>NANReceive ( a{sv} : args )</h3>
+	<p>The Receive event in the NAN Discovery Engine.</p>
+	<dl>
+	  <dt>a{sv} : nanrx</dt>
+	  <dd>A dictionary with pairs of field names and their values. Possible dictionary keys are: "id", "peer_id", "peer_addr", "ssi"</dd>
+	</dl>
+      </li>
+      <li>
+	<h3>NANPublishTerminated ( u : publish_id, s : reason )</h3>
+	<p>The PublishTerminated event in the NAN Discovery Engine.</p>
+	<dl>
+	  <dt>u : publish_id</dt>
+	  <dd>The terminated publish_id</dd>
+	  <dt>s : reason</dt>
+	  <dd>The reason of termination</dd>
+	</dl>
+      </li>
+      <li>
+	<h3>NANSubscribeTerminated ( u : subscribe_id, s : reason )</h3>
+	<p>The SubscribeTerminated event in the NAN Discovery Engine.</p>
+	<dl>
+	  <dt>u : subscribe_id</dt>
+	  <dd>The terminated subscribe_id</dd>
+	  <dt>s : reason</dt>
+	  <dd>The reason of termination</dd>
+	</dl>
+      </li>
     </ul>
 
 

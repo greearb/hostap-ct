@@ -4384,6 +4384,40 @@ static const struct wpa_dbus_signal_desc wpas_dbus_interface_signals[] = {
 	  }
 	},
 #endif /* CONFIG_HS20 */
+#ifdef CONFIG_NAN_USD
+	{ "NANDiscoveryResult", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  {
+		  { "args", "a{sv}", ARG_OUT },
+		  END_ARGS
+	  }
+	},
+	{ "NANReplied", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  {
+		  { "args", "a{sv}", ARG_OUT },
+		  END_ARGS
+	  }
+	},
+	{ "NANReceive", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  {
+		  { "args", "a{sv}", ARG_OUT },
+		  END_ARGS
+	  }
+	},
+	{ "NANPublishTerminated", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  {
+		  { "publish_id", "u", ARG_OUT },
+		  { "reason", "s", ARG_OUT },
+		  END_ARGS
+	  }
+	},
+	{ "NANSubscribeTerminated", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  {
+		  { "subscribe_id", "u", ARG_OUT },
+		  { "reason", "s", ARG_OUT },
+		  END_ARGS
+	  }
+	},
+#endif /* CONFIG_NAN_USD */
 	{ NULL, NULL, { END_ARGS } }
 };
 
@@ -5253,3 +5287,259 @@ void wpas_dbus_signal_hs20_t_c_acceptance(struct wpa_supplicant *wpa_s,
 	dbus_message_unref(msg);
 }
 #endif /* CONFIG_HS20 */
+
+
+#ifdef CONFIG_NAN_USD
+
+/**
+ * wpas_dbus_signal_nan_discovery_result - Send NANDiscoveryResult signal
+ * @wpa_s: %wpa_supplicant network interface data
+ * @srv_proto_type: Service Protocol Type
+ * @subscribe_id: Subscribe ID of the session
+ * @peer_publish_id: Publish ID of the sender
+ * @peer_addr: MAC address of the peer device
+ * @ssi: Service specific information payload
+ * @ssi_len: Length of the SSI field
+ *
+ * This is used to indicate the NAN DE DiscoveryResult event.
+ */
+void wpas_dbus_signal_nan_discovery_result(struct wpa_supplicant *wpa_s,
+					   enum nan_service_protocol_type
+					   srv_proto_type,
+					   int subscribe_id,
+					   int peer_publish_id,
+					   const u8 *peer_addr,
+					   bool fsd, bool fsd_gas,
+					   const u8 *ssi, size_t ssi_len)
+{
+	struct wpas_dbus_priv *iface;
+	DBusMessage *msg;
+	DBusMessageIter iter, dict_iter;
+	char addr_str[20];
+
+	iface = wpa_s->global->dbus;
+	/* Do nothing if the interface is not turned on */
+	if (!iface || !wpa_s->dbus_new_path)
+		return;
+	msg = dbus_message_new_signal(wpa_s->dbus_new_path,
+				      WPAS_DBUS_NEW_IFACE_INTERFACE,
+				      "NANDiscoveryResult");
+	if (!msg)
+		return;
+
+	snprintf(addr_str, sizeof(addr_str), MACSTR, MAC2STR(peer_addr));
+
+	dbus_message_iter_init_append(msg, &iter);
+
+	if (!wpa_dbus_dict_open_write(&iter, &dict_iter) ||
+	    !wpa_dbus_dict_append_uint32(&dict_iter, "subscribe_id",
+					 subscribe_id) ||
+	    !wpa_dbus_dict_append_uint32(&dict_iter, "publish_id",
+					 peer_publish_id) ||
+	    !wpa_dbus_dict_append_string(&dict_iter, "peer_addr", addr_str) ||
+	    !wpa_dbus_dict_append_bool(&dict_iter, "fsd", fsd) ||
+	    !wpa_dbus_dict_append_bool(&dict_iter, "fsd_gas", fsd_gas) ||
+	    !wpa_dbus_dict_append_uint32(&dict_iter, "srv_proto_type",
+					 srv_proto_type) ||
+	    (ssi &&
+	     !wpa_dbus_dict_append_byte_array(&dict_iter,
+					      "ssi",
+					      (const char *) ssi,
+					      ssi_len)) ||
+	    !wpa_dbus_dict_close_write(&iter, &dict_iter))
+		wpa_printf(MSG_ERROR, "dbus: Failed to construct signal");
+	else
+		dbus_connection_send(iface->con, msg, NULL);
+	dbus_message_unref(msg);
+}
+
+
+/**
+ * wpas_dbus_signal_nan_replied - Send NANReplied signal
+ * @wpa_s: %wpa_supplicant network interface data
+ * @srv_proto_type: Service Protocol Type
+ * @publish_id: Publish id of the session
+ * @peer_subscribe_id: Subscribe id of the sender
+ * @peer_addr: MAC address of the peer device
+ * @ssi: Service specific information payload
+ * @ssi_len: Length of the SSI field
+ *
+ * This is used to indicate the NAN DE Replied event.
+ */
+void wpas_dbus_signal_nan_replied(struct wpa_supplicant *wpa_s,
+				  enum nan_service_protocol_type srv_proto_type,
+				  int publish_id,
+				  int peer_subscribe_id,
+				  const u8 *peer_addr,
+				  const u8 *ssi, size_t ssi_len)
+{
+	struct wpas_dbus_priv *iface;
+	DBusMessage *msg;
+	DBusMessageIter iter, dict_iter;
+	char addr_str[20];
+
+	iface = wpa_s->global->dbus;
+	/* Do nothing if the interface is not turned on */
+	if (!iface || !wpa_s->dbus_new_path)
+		return;
+
+	msg = dbus_message_new_signal(wpa_s->dbus_new_path,
+				      WPAS_DBUS_NEW_IFACE_INTERFACE,
+				      "NANReplied");
+	if (!msg)
+		return;
+
+	snprintf(addr_str, sizeof(addr_str), MACSTR, MAC2STR(peer_addr));
+
+	dbus_message_iter_init_append(msg, &iter);
+
+	if (!wpa_dbus_dict_open_write(&iter, &dict_iter) ||
+	    !wpa_dbus_dict_append_uint32(&dict_iter, "publish_id",
+					 publish_id) ||
+	    !wpa_dbus_dict_append_uint32(&dict_iter, "subscribe_id",
+					 peer_subscribe_id) ||
+	    !wpa_dbus_dict_append_string(&dict_iter, "peer_addr", addr_str) ||
+	    !wpa_dbus_dict_append_uint32(&dict_iter, "srv_proto_type",
+					 srv_proto_type) ||
+	    (ssi &&
+	     !wpa_dbus_dict_append_byte_array(&dict_iter, "ssi",
+					      (const char *) ssi,
+					      ssi_len)) ||
+	    !wpa_dbus_dict_close_write(&iter, &dict_iter))
+		wpa_printf(MSG_ERROR, "dbus: Failed to construct signal");
+	else
+		dbus_connection_send(iface->con, msg, NULL);
+	dbus_message_unref(msg);
+}
+
+
+/**
+ * wpas_dbus_signal_nan_receive - Send NANReceive signal
+ * @wpa_s: %wpa_supplicant network interface data
+ * @id: The original publish_id or subscribe_id
+ * @peer_id: Peer instance identifier
+ * @peer_addr: Address of the sender
+ * @ssi: Service specific information payload
+ * @ssi_len: Length of the SSI
+ *
+ * This is used to indicate the NAN DE Receive event to notify reception of a
+ * follow-up frame.
+ */
+void wpas_dbus_signal_nan_receive(struct wpa_supplicant *wpa_s,
+				  int id, int peer_id, const u8 *peer_addr,
+				  const u8 *ssi, size_t ssi_len)
+{
+	struct wpas_dbus_priv *iface;
+	DBusMessage *msg;
+	DBusMessageIter iter, dict_iter;
+	char addr_str[20];
+
+	iface = wpa_s->global->dbus;
+	/* Do nothing if the interface is not turned on */
+	if (!iface || !wpa_s->dbus_new_path)
+		return;
+
+	msg = dbus_message_new_signal(wpa_s->dbus_new_path,
+				      WPAS_DBUS_NEW_IFACE_INTERFACE,
+				      "NANReceive");
+	if (!msg)
+		return;
+
+	snprintf(addr_str, sizeof(addr_str), MACSTR, MAC2STR(peer_addr));
+
+	dbus_message_iter_init_append(msg, &iter);
+
+	if (!wpa_dbus_dict_open_write(&iter, &dict_iter) ||
+	    !wpa_dbus_dict_append_uint32(&dict_iter, "id", id) ||
+	    !wpa_dbus_dict_append_uint32(&dict_iter, "peer_id", peer_id) ||
+	    !wpa_dbus_dict_append_string(&dict_iter, "peer_addr", addr_str) ||
+	    (ssi &&
+	     !wpa_dbus_dict_append_byte_array(&dict_iter, "ssi",
+					      (const char *) ssi,
+					      ssi_len)) ||
+	    !wpa_dbus_dict_close_write(&iter, &dict_iter))
+		wpa_printf(MSG_ERROR, "dbus: Failed to construct signal");
+	else
+		dbus_connection_send(iface->con, msg, NULL);
+	dbus_message_unref(msg);
+}
+
+
+/**
+ * wpas_dbus_signal_nan_publish_terminated - Send NANPublishTerminated signal
+ * @wpa_s: %wpa_supplicant network interface data
+ * @publish_id: The publish_id of the session
+ * @reason: The reason of the termination
+ *
+ * This is used to indicate the NAN DE PublishTerminated event to notify when
+ * the session has expired.
+ */
+void wpas_dbus_signal_nan_publish_terminated(struct wpa_supplicant *wpa_s,
+					     int publish_id,
+					     const char *reason)
+{
+	struct wpas_dbus_priv *iface;
+	DBusMessage *msg;
+	dbus_uint32_t pub_id = publish_id;
+
+	iface = wpa_s->global->dbus;
+	/* Do nothing if the interface is not turned on */
+	if (!iface || !wpa_s->dbus_new_path)
+		return;
+
+	msg = dbus_message_new_signal(wpa_s->dbus_new_path,
+				      WPAS_DBUS_NEW_IFACE_INTERFACE,
+				      "NANPublishTerminated");
+	if (!msg)
+		return;
+
+	if (!dbus_message_append_args(msg, DBUS_TYPE_UINT32, &pub_id,
+				      DBUS_TYPE_INVALID) ||
+	    !dbus_message_append_args(msg, DBUS_TYPE_STRING, &reason,
+				      DBUS_TYPE_INVALID))
+		wpa_printf(MSG_ERROR, "dbus: Failed to construct signal");
+	else
+		dbus_connection_send(iface->con, msg, NULL);
+	dbus_message_unref(msg);
+}
+
+
+/**
+ * wpas_dbus_signal_nan_subscribe_terminated - Send NANSubscribeTerminated signal
+ * @wpa_s: %wpa_supplicant network interface data
+ * @subscribe_id: The subscribe_id of the session
+ * @reason: The reason of the termination
+ *
+ * This is used to indicate the NAN DE SubscribeTerminated event to notify when
+ * the session has expired.
+ */
+void wpas_dbus_signal_nan_subscribe_terminated(struct wpa_supplicant *wpa_s,
+					       int subscribe_id,
+					       const char *reason)
+{
+	struct wpas_dbus_priv *iface;
+	DBusMessage *msg;
+	dbus_uint32_t sub_id = subscribe_id;
+
+	iface = wpa_s->global->dbus;
+	/* Do nothing if the interface is not turned on */
+	if (!iface || !wpa_s->dbus_new_path)
+		return;
+
+	msg = dbus_message_new_signal(wpa_s->dbus_new_path,
+				      WPAS_DBUS_NEW_IFACE_INTERFACE,
+				      "NANSubscribeTerminated");
+	if (!msg)
+		return;
+
+	if (!dbus_message_append_args(msg, DBUS_TYPE_UINT32, &sub_id,
+				      DBUS_TYPE_INVALID) ||
+	    !dbus_message_append_args(msg, DBUS_TYPE_STRING, &reason,
+				      DBUS_TYPE_INVALID))
+		wpa_printf(MSG_ERROR, "dbus: Failed to construct signal");
+	else
+		dbus_connection_send(iface->con, msg, NULL);
+	dbus_message_unref(msg);
+}
+
+#endif /* CONFIG_NAN_USD */
