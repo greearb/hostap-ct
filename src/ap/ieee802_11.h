@@ -63,7 +63,7 @@ u8 * hostapd_eid_ht_operation(struct hostapd_data *hapd, u8 *eid);
 u8 * hostapd_eid_vht_capabilities(struct hostapd_data *hapd, u8 *eid, u32 nsts);
 u8 * hostapd_eid_vht_operation(struct hostapd_data *hapd, u8 *eid);
 u8 * hostapd_eid_vendor_vht(struct hostapd_data *hapd, u8 *eid);
-u8 * hostapd_eid_wb_chsw_wrapper(struct hostapd_data *hapd, u8 *eid);
+u8 * hostapd_eid_chsw_wrapper(struct hostapd_data *hapd, u8 *eid);
 u8 * hostapd_eid_txpower_envelope(struct hostapd_data *hapd, u8 *eid);
 u8 * hostapd_eid_he_capab(struct hostapd_data *hapd, u8 *eid,
 			  enum ieee80211_op_mode opmode);

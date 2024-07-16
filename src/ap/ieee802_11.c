@@ -7246,16 +7246,11 @@ u8 * hostapd_eid_txpower_envelope(struct hostapd_data *hapd, u8 *eid)
 }
 
 
-u8 * hostapd_eid_wb_chsw_wrapper(struct hostapd_data *hapd, u8 *eid)
+/* Wide Bandwidth Channel Switch subelement */
+static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
+					  u8 chan1, u8 chan2)
 {
-	u8 bw, chan1 = 0, chan2 = 0;
-	int freq1;
-
-	if (!hapd->cs_freq_params.channel ||
-	    (!hapd->cs_freq_params.vht_enabled &&
-	     !hapd->cs_freq_params.he_enabled &&
-	     !hapd->cs_freq_params.eht_enabled))
-		return eid;
+	u8 bw;
 
 	/* bandwidth: 0: 40, 1: 80, 160, 80+80, 4: 320 as per
 	 * IEEE P802.11-REVme/D4.0, 9.4.2.159 and Table 9-314. */
@@ -7277,20 +7272,6 @@ u8 * hostapd_eid_wb_chsw_wrapper(struct hostapd_data *hapd, u8 *eid)
 		return eid;
 	}
 
-	freq1 = hapd->cs_freq_params.center_freq1 ?
-		hapd->cs_freq_params.center_freq1 :
-		hapd->cs_freq_params.freq;
-	if (ieee80211_freq_to_chan(freq1, &chan1) !=
-	    HOSTAPD_MODE_IEEE80211A)
-		return eid;
-
-	if (hapd->cs_freq_params.center_freq2 &&
-	    ieee80211_freq_to_chan(hapd->cs_freq_params.center_freq2,
-				   &chan2) != HOSTAPD_MODE_IEEE80211A)
-		return eid;
-
-	*eid++ = WLAN_EID_CHANNEL_SWITCH_WRAPPER;
-	*eid++ = 5; /* Length of Channel Switch Wrapper */
 	*eid++ = WLAN_EID_WIDE_BW_CHSWITCH;
 	*eid++ = 3; /* Length of Wide Bandwidth Channel Switch element */
 	*eid++ = bw; /* New Channel Width */
@@ -7312,6 +7293,40 @@ u8 * hostapd_eid_wb_chsw_wrapper(struct hostapd_data *hapd, u8 *eid)
 	*eid++ = chan1; /* New Channel Center Frequency Segment 0 */
 	*eid++ = chan2; /* New Channel Center Frequency Segment 1 */
 
+	return eid;
+}
+
+
+u8 * hostapd_eid_chsw_wrapper(struct hostapd_data *hapd, u8 *eid)
+{
+	u8 chan1 = 0, chan2 = 0;
+	u8 *eid_len_offset;
+	int freq1;
+
+	if (!hapd->cs_freq_params.channel ||
+	    (!hapd->cs_freq_params.vht_enabled &&
+	     !hapd->cs_freq_params.he_enabled &&
+	     !hapd->cs_freq_params.eht_enabled))
+		return eid;
+
+	freq1 = hapd->cs_freq_params.center_freq1 ?
+		hapd->cs_freq_params.center_freq1 :
+		hapd->cs_freq_params.freq;
+	if (ieee80211_freq_to_chan(freq1, &chan1) !=
+	    HOSTAPD_MODE_IEEE80211A)
+		return eid;
+
+	if (hapd->cs_freq_params.center_freq2 &&
+	    ieee80211_freq_to_chan(hapd->cs_freq_params.center_freq2,
+				   &chan2) != HOSTAPD_MODE_IEEE80211A)
+		return eid;
+
+	*eid++ = WLAN_EID_CHANNEL_SWITCH_WRAPPER;
+	eid_len_offset = eid++; /* Length of Channel Switch Wrapper element */
+
+	eid = hostapd_eid_wb_channel_switch(hapd, eid, chan1, chan2);
+
+	*eid_len_offset = (eid - eid_len_offset) - 1;
 	return eid;
 }
 

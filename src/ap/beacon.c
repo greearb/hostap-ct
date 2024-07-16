@@ -910,7 +910,7 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 		pos = hostapd_eid_txpower_envelope(hapd, pos);
 #endif /* CONFIG_IEEE80211AX */
 
-	pos = hostapd_eid_wb_chsw_wrapper(hapd, pos);
+	pos = hostapd_eid_chsw_wrapper(hapd, pos);
 
 	if (!params->is_ml_sta_info)
 		pos = hostapd_eid_rnr(hapd, pos, WLAN_FC_STYPE_PROBE_RESP,
@@ -2418,7 +2418,7 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 		tailpos = hostapd_eid_txpower_envelope(hapd, tailpos);
 #endif /* CONFIG_IEEE80211AX */
 
-	tailpos = hostapd_eid_wb_chsw_wrapper(hapd, tailpos);
+	tailpos = hostapd_eid_chsw_wrapper(hapd, tailpos);
 
 	tailpos = hostapd_eid_rnr(hapd, tailpos, WLAN_FC_STYPE_BEACON, true);
 	tailpos = hostapd_eid_fils_indic(hapd, tailpos, 0);
