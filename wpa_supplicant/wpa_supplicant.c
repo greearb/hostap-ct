@@ -1277,6 +1277,12 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 	}
 	wpa_s->wpa_state = state;
 
+#ifndef CONFIG_NO_ROBUST_AV
+	if (state == WPA_COMPLETED && dl_list_len(&wpa_s->active_scs_ids) &&
+	    wpa_s->scs_reconfigure)
+		wpas_scs_reconfigure(wpa_s);
+#endif /* CONFIG_NO_ROBUST_AV */
+
 #ifdef CONFIG_BGSCAN
 	if (state == WPA_COMPLETED && wpa_s->current_ssid != wpa_s->bgscan_ssid)
 		wpa_supplicant_reset_bgscan(wpa_s);
