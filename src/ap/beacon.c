@@ -514,6 +514,35 @@ static u8 * hostapd_eid_ecsa(struct hostapd_data *hapd, u8 *eid)
 }
 
 
+static u8 * hostapd_eid_max_cs_time(struct hostapd_data *hapd, u8 *eid)
+{
+#ifdef CONFIG_IEEE80211BE
+	u32 switch_time;
+
+	/* Add Max Channel Switch Time element only if this AP is affiliated
+	 * with an AP MLD and channel switch is in process. */
+	if (!hapd->conf->mld_ap || !hapd->cs_freq_params.channel)
+		return eid;
+
+	/* Switch time is basically time between CSA count 1 and CSA count
+	 * 0 (1 beacon interval) + time for interface restart + time to
+	 * send a Beacon frame in the new channel (1 beacon interval).
+	 *
+	 * TODO: Use dynamic interface restart time. For now, assume 1 sec.
+	 */
+	switch_time = USEC_TO_TU(1000 * 1000) + 2 * hapd->iconf->beacon_int;
+
+	*eid++ = WLAN_EID_EXTENSION;
+	*eid++ = 4;
+	*eid++ = WLAN_EID_EXT_MAX_CHANNEL_SWITCH_TIME;
+	WPA_PUT_LE24(eid, switch_time);
+	eid += 3;
+#endif /* CONFIG_IEEE80211BE */
+
+	return eid;
+}
+
+
 static u8 * hostapd_eid_supported_op_classes(struct hostapd_data *hapd, u8 *eid)
 {
 	u8 op_class, channel;
@@ -748,6 +777,10 @@ static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 
 			buflen += hostapd_eid_eht_ml_beacon_len(
 				ml_elem_ap, params->mld_info, !!params->mld_ap);
+
+			/* For Max Channel Switch Time element during channel
+			 * switch */
+			buflen += 6;
 		}
 	}
 #endif /* CONFIG_IEEE80211BE */
@@ -883,6 +916,14 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 		pos = hostapd_eid_rnr(hapd, pos, WLAN_FC_STYPE_PROBE_RESP,
 				      true);
 	pos = hostapd_eid_fils_indic(hapd, pos, 0);
+
+	/*
+	 * Max Channel Switch Time element
+	 * TODO: This should be included inside the ML STA profile.
+	 */
+	if (!params->is_ml_sta_info)
+		pos = hostapd_eid_max_cs_time(hapd, pos);
+
 	pos = hostapd_get_rsnxe(hapd, pos, epos - pos);
 
 #ifdef CONFIG_IEEE80211AX
@@ -2227,8 +2268,13 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 		 * long based on the common info and number of per
 		 * station profiles. For now use 256.
 		 */
-		if (hapd->conf->mld_ap)
+		if (hapd->conf->mld_ap) {
 			tail_len += 256;
+
+			/* for Max Channel Switch Time element during channel
+			 * switch */
+			tail_len += 6;
+		}
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -2376,6 +2422,10 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 
 	tailpos = hostapd_eid_rnr(hapd, tailpos, WLAN_FC_STYPE_BEACON, true);
 	tailpos = hostapd_eid_fils_indic(hapd, tailpos, 0);
+
+	/* Max Channel Switch Time element */
+	tailpos = hostapd_eid_max_cs_time(hapd, tailpos);
+
 	tailpos = hostapd_get_rsnxe(hapd, tailpos, tailend - tailpos);
 	tailpos = hostapd_eid_mbssid_config(hapd, tailpos,
 					    params->mbssid_elem_count);
