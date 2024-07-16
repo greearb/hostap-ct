@@ -525,6 +525,7 @@
 #define WLAN_EID_EXT_MULTI_LINK_TRAFFIC_INDICATION 110
 #define WLAN_EID_EXT_QOS_CHARACTERISTICS 113
 #define WLAN_EID_EXT_AKM_SUITE_SELECTOR 114
+#define WLAN_EID_EXT_BANDWIDTH_INDICATION 135
 
 /* Extended Capabilities field */
 #define WLAN_EXT_CAPAB_20_40_COEX 0
@@ -2871,6 +2872,33 @@ enum ieee80211_eht_ml_sub_elem {
 	EHT_ML_SUB_ELEM_VENDOR = 221,
 	EHT_ML_SUB_ELEM_FRAGMENT = 254,
 };
+
+/* IEEE P802.11be/D7.0, 9.4.2.329 (Bandwidth Indication element) defines the
+ * Bandwidth Indication Information field to have the same definition as the
+ * EHT Operation Information field in the EHT Operation element.
+ */
+struct ieee80211_bw_ind_info {
+	u8 control; /* B0..B2: Channel Width */
+	u8 ccfs0;
+	u8 ccfs1;
+	le16 disabled_chan_bitmap; /* 0 or 2 octets */
+} STRUCT_PACKED;
+
+/* Control subfield: Channel Width subfield; see Table 9-417e (Channel width,
+ * CCFS0, and CCFS1 subfields) in IEEE P802.11be/D7.0. */
+#define BW_IND_CHANNEL_WIDTH_20MHZ	EHT_OPER_CHANNEL_WIDTH_20MHZ
+#define BW_IND_CHANNEL_WIDTH_40MHZ	EHT_OPER_CHANNEL_WIDTH_40MHZ
+#define BW_IND_CHANNEL_WIDTH_80MHZ	EHT_OPER_CHANNEL_WIDTH_80MHZ
+#define BW_IND_CHANNEL_WIDTH_160MHZ	EHT_OPER_CHANNEL_WIDTH_160MHZ
+#define BW_IND_CHANNEL_WIDTH_320MHZ	EHT_OPER_CHANNEL_WIDTH_320MHZ
+
+/* IEEE P802.11be/D7.0, 9.4.2.329 (Bandwidth Indication element) */
+struct ieee80211_bw_ind_element {
+	u8 bw_ind_params; /* Bandwidth Indication Parameters */
+	struct ieee80211_bw_ind_info bw_ind_info; /* 3 or 5 octets */
+} STRUCT_PACKED;
+
+#define BW_IND_PARAMETER_DISABLED_SUBCHAN_BITMAP_PRESENT       BIT(1)
 
 /* IEEE P802.11ay/D4.0, 9.4.2.251 - EDMG Operation element */
 #define EDMG_BSS_OPERATING_CHANNELS_OFFSET	6
