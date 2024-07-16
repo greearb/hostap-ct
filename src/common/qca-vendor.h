@@ -7490,6 +7490,10 @@ enum qca_wlan_vendor_attr_external_acs_event {
 	 * for External ACS
 	 */
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_ACS_EVENT_AFC_CAPABILITY = 15,
+	/* Link ID attibute (u8) is used to identify a specific link affiliated
+	 * to an AP MLD.
+	 */
+	QCA_WLAN_VENDOR_ATTR_EXTERNAL_ACS_EVENT_LINK_ID = 16,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_ACS_EVENT_LAST,
