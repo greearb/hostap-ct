@@ -73,6 +73,8 @@ void hostapd_notify_assoc_fils_finish(struct hostapd_data *hapd,
 	p = hostapd_eid_assoc_fils_session(sta->wpa_sm, p,
 					   elems.fils_session,
 					   sta->fils_hlp_resp);
+	if (!p)
+		return;
 
 	reply_res = hostapd_sta_assoc(hapd, sta->addr,
 				      sta->fils_pending_assoc_is_reassoc,
@@ -777,6 +779,9 @@ skip_wpa_check:
 		p = hostapd_eid_assoc_fils_session(sta->wpa_sm, p,
 						   elems.fils_session,
 						   sta->fils_hlp_resp);
+		if (!p)
+			goto fail;
+
 		wpa_hexdump(MSG_DEBUG, "FILS Assoc Resp BUF (IEs)",
 			    buf, p - buf);
 	}
