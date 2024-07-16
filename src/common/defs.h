@@ -532,4 +532,9 @@ enum sae_pwe {
 	SAE_PWE_NOT_SET = 4,
 };
 
+#define USEC_80211_TU 1024
+
+#define USEC_TO_TU(m) ((m) / USEC_80211_TU)
+#define TU_TO_USEC(m) ((m) * USEC_80211_TU)
+
 #endif /* DEFS_H */

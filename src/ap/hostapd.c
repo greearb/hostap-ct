@@ -400,8 +400,6 @@ static int hostapd_broadcast_wep_set(struct hostapd_data *hapd)
 #ifdef CONFIG_IEEE80211BE
 #ifdef CONFIG_TESTING_OPTIONS
 
-#define TU_TO_USEC(_val) ((_val) * 1024)
-
 static void hostapd_link_remove_timeout_handler(void *eloop_data,
 						void *user_ctx)
 {
