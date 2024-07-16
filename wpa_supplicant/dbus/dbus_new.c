@@ -4023,6 +4023,11 @@ static const struct wpa_dbus_property_desc wpas_dbus_interface_properties[] = {
 	  NULL,
 	  NULL,
 	},
+	{ "SignalChange", WPAS_DBUS_NEW_IFACE_INTERFACE, "a{sv}",
+	  wpas_dbus_getter_signal_change,
+	  NULL,
+	  NULL
+	},
 	{ NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
@@ -4617,11 +4622,6 @@ static const struct wpa_dbus_property_desc wpas_dbus_p2p_peer_properties[] = {
 	},
 	{ "VSIE", WPAS_DBUS_NEW_IFACE_P2P_PEER, "ay",
 	  wpas_dbus_getter_p2p_peer_vsie,
-	  NULL,
-	  NULL
-	},
-	{ "SignalChange", WPAS_DBUS_NEW_IFACE_INTERFACE, "a{sv}",
-	  wpas_dbus_getter_signal_change,
 	  NULL,
 	  NULL
 	},
