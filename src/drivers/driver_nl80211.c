@@ -8488,6 +8488,7 @@ static int i802_set_wds_sta(void *priv, const u8 *addr, int aid, int val,
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	char name[IFNAMSIZ + 1];
 	union wpa_event_data event;
+	bool add_br = false;
 	int ret;
 
 	ret = os_snprintf(name, sizeof(name), "%s.sta%d", bss->ifname, aid);
@@ -8509,10 +8510,9 @@ static int i802_set_wds_sta(void *priv, const u8 *addr, int aid, int val,
 						 bss->addr, 1, NULL, NULL, 0) <
 			    0)
 				return -1;
-			if (bridge_ifname &&
-			    linux_br_add_if(drv->global->ioctl_sock,
-					    bridge_ifname, name) < 0)
-				return -1;
+
+			if (bridge_ifname)
+				add_br = true;
 
 			os_memset(&event, 0, sizeof(event));
 			event.wds_sta_interface.sta_addr = addr;
@@ -8526,6 +8526,12 @@ static int i802_set_wds_sta(void *priv, const u8 *addr, int aid, int val,
 			wpa_printf(MSG_ERROR, "nl80211: Failed to set WDS STA "
 				   "interface %s up", name);
 		}
+
+		if (add_br &&
+		    linux_br_add_if(drv->global->ioctl_sock,
+				    bridge_ifname, name) < 0)
+			return -1;
+
 		return i802_set_sta_vlan(priv, addr, name, 0,
 					 NL80211_DRV_LINK_ID_NA);
 	} else {
