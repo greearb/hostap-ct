@@ -7745,6 +7745,11 @@ static int p2p_ctrl_set(struct wpa_supplicant *wpa_s, char *cmd)
 		p2p_set_twt_power_mgmt(wpa_s->global->p2p, atoi(param));
 		return 0;
 	}
+
+	if (os_strcmp(cmd, "chan_switch_req_enable") == 0) {
+		p2p_set_chan_switch_req_enable(wpa_s->global->p2p, atoi(param));
+		return 0;
+	}
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	wpa_printf(MSG_DEBUG, "CTRL_IFACE: Unknown P2P_SET field value '%s'",

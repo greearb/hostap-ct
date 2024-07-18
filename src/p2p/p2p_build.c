@@ -741,6 +741,9 @@ void p2p_buf_add_pcea(struct wpabuf *buf, struct p2p_data *p2p)
 	if (p2p->cfg->dfs_owner)
 		capability_info |= P2P_PCEA_DFS_OWNER;
 
+	if (p2p->cfg->chan_switch_req_enable)
+		capability_info |= P2P_PCEA_CLI_REQ_CS;
+
 	if (p2p->cfg->pairing_config.pairing_capable)
 		capability_info |= P2P_PCEA_PAIRING_CAPABLE;
 

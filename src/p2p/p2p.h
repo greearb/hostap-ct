@@ -722,6 +722,11 @@ struct p2p_config {
 	u16 comeback_after;
 
 	/**
+	 * chan_switch_req_enable - Enable P2P client channel switch request
+	 */
+	bool chan_switch_req_enable;
+
+	/**
 	 * cb_ctx - Context to use with callback functions
 	 */
 	void *cb_ctx;
@@ -2706,6 +2711,7 @@ void p2p_set_comeback_after(struct p2p_data *p2p, int comeback_after);
 void p2p_set_reg_info(struct p2p_data *p2p, u8 val);
 void p2p_set_twt_power_mgmt(struct p2p_data *p2p, int val);
 void p2p_set_dev_addr(struct p2p_data *p2p, const u8 *addr);
+void p2p_set_chan_switch_req_enable(struct p2p_data *p2p, bool val);
 
 int p2p_get_listen_freq(struct p2p_data *p2p, const u8 *peer_addr);
 int p2p_initiate_pasn_auth(struct p2p_data *p2p, const u8 *addr, int freq);

@@ -5032,6 +5032,12 @@ void p2p_set_twt_power_mgmt(struct p2p_data *p2p, int val)
 		p2p->cfg->twt_power_mgmt = false;
 }
 
+
+void p2p_set_chan_switch_req_enable(struct p2p_data *p2p, bool val)
+{
+	p2p->cfg->chan_switch_req_enable = val;
+}
+
 #endif /* CONFIG_TESTING_OPTIONS */
 
 
