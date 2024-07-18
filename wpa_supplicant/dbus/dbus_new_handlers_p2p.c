@@ -2778,20 +2778,20 @@ DBusMessage * wpas_dbus_handler_p2p_add_service(DBusMessage *message,
 
 		if (wpas_p2p_service_add_bonjour(wpa_s, query, resp) < 0)
 			goto error;
-		query = NULL;
-		resp = NULL;
 	} else
 		goto error;
 
+out:
 	os_free(service);
+	wpabuf_free(query);
+	wpabuf_free(resp);
+
 	return reply;
 error_clear:
 	wpa_dbus_dict_entry_clear(&entry);
 error:
-	os_free(service);
-	wpabuf_free(query);
-	wpabuf_free(resp);
-	return wpas_dbus_error_invalid_args(message, NULL);
+	reply = wpas_dbus_error_invalid_args(message, NULL);
+	goto out;
 }
 
 

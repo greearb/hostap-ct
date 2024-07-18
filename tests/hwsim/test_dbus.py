@@ -3406,11 +3406,21 @@ def test_dbus_p2p_service_discovery(dev, apdev):
     bonjour_query = dbus.ByteArray(binascii.unhexlify('0b5f6166706f766572746370c00c000c01'))
     bonjour_response = dbus.ByteArray(binascii.unhexlify('074578616d706c65c027'))
 
+    tests = [{'service_type': 'bonjour',
+              'query': bonjour_query,
+              'response': bonjour_response},
+             {'service_type': 'upnp',
+              'version': 0x10,
+              'service': 'uuid:6859dede-8574-59ab-9332-123456789012::upnp:rootdevice',
+              'query': bonjour_query,
+              'response': bonjour_response}]
+    for args in tests:
+        p2p.AddService(args)
+        p2p.FlushService()
+
     args = {'service_type': 'bonjour',
             'query': bonjour_query,
             'response': bonjour_response}
-    p2p.AddService(args)
-    p2p.FlushService()
     p2p.AddService(args)
 
     try:

@@ -6740,6 +6740,7 @@ static int p2p_ctrl_service_add_bonjour(struct wpa_supplicant *wpa_s,
 	char *pos;
 	size_t len;
 	struct wpabuf *query, *resp;
+	int ret;
 
 	pos = os_strchr(cmd, ' ');
 	if (pos == NULL)
@@ -6753,34 +6754,28 @@ static int p2p_ctrl_service_add_bonjour(struct wpa_supplicant *wpa_s,
 	query = wpabuf_alloc(len);
 	if (query == NULL)
 		return -1;
-	if (hexstr2bin(cmd, wpabuf_put(query, len), len) < 0) {
-		wpabuf_free(query);
-		return -1;
-	}
-
+	ret = hexstr2bin(cmd, wpabuf_put(query, len), len);
+	if (ret < 0)
+		goto err_query;
+	ret = -1;
 	len = os_strlen(pos);
-	if (len & 1) {
-		wpabuf_free(query);
-		return -1;
-	}
+	if (len & 1)
+		goto err_query;
 	len /= 2;
 	resp = wpabuf_alloc(len);
-	if (resp == NULL) {
-		wpabuf_free(query);
-		return -1;
-	}
-	if (hexstr2bin(pos, wpabuf_put(resp, len), len) < 0) {
-		wpabuf_free(query);
-		wpabuf_free(resp);
-		return -1;
-	}
+	if (!resp)
+		goto err_query;
+	ret = hexstr2bin(pos, wpabuf_put(resp, len), len);
+	if (ret < 0)
+		goto err_resp;
 
-	if (wpas_p2p_service_add_bonjour(wpa_s, query, resp) < 0) {
-		wpabuf_free(query);
-		wpabuf_free(resp);
-		return -1;
-	}
-	return 0;
+	ret = wpas_p2p_service_add_bonjour(wpa_s, query, resp);
+
+err_resp:
+	wpabuf_free(resp);
+err_query:
+	wpabuf_free(query);
+	return ret;
 }
 
 
