@@ -3375,10 +3375,10 @@ hostapd_interface_init_bss(struct hapd_interfaces *interfaces, const char *phy,
 static void hostapd_cleanup_driver(const struct wpa_driver_ops *driver,
 				   void *drv_priv, struct hostapd_iface *iface)
 {
-#ifdef CONFIG_IEEE80211BE
 	if (!driver || !driver->hapd_deinit || !drv_priv)
 		return;
 
+#ifdef CONFIG_IEEE80211BE
 	/* In case of non-ML operation, de-init. But if ML operation exist,
 	 * even if that's the last BSS in the interface, the driver (drv) could
 	 * be in use for a different AP MLD. Hence, need to check if drv is
