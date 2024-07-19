@@ -1090,6 +1090,20 @@ legacy:
 void hostapd_event_sta_low_ack(struct hostapd_data *hapd, const u8 *addr)
 {
 	struct sta_info *sta = ap_get_sta(hapd, addr);
+#ifdef CONFIG_IEEE80211BE
+	struct hostapd_data *orig_hapd = hapd;
+
+	if (!sta && hapd->conf->mld_ap) {
+		hapd = hostapd_find_by_sta(hapd->iface, addr, true, &sta);
+		if (!hapd) {
+			wpa_printf(MSG_DEBUG,
+				   "No partner link BSS found for STA " MACSTR
+				   " - fallback to received context",
+				   MAC2STR(addr));
+			hapd = orig_hapd;
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
 
 	if (!sta || !hapd->conf->disassoc_low_ack || sta->agreed_to_steer)
 		return;

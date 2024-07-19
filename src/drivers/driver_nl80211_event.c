@@ -2062,9 +2062,9 @@ static void send_scan_event(struct i802_bss *bss, int aborted,
 }
 
 
-static void nl80211_cqm_event(struct wpa_driver_nl80211_data *drv,
-			      struct nlattr *tb[])
+static void nl80211_cqm_event(struct i802_bss *bss, struct nlattr *tb[])
 {
+	struct wpa_driver_nl80211_data *drv = bss->drv;
 	static struct nla_policy cqm_policy[NL80211_ATTR_CQM_MAX + 1] = {
 		[NL80211_ATTR_CQM_RSSI_THOLD] = { .type = NLA_U32 },
 		[NL80211_ATTR_CQM_RSSI_HYST] = { .type = NLA_U8 },
@@ -2099,7 +2099,7 @@ static void nl80211_cqm_event(struct wpa_driver_nl80211_data *drv,
 		wpa_printf(MSG_DEBUG, "nl80211: Packet loss event for " MACSTR
 			   " (num_packets %u)",
 			   MAC2STR(ed.low_ack.addr), ed.low_ack.num_packets);
-		wpa_supplicant_event(drv->ctx, EVENT_STATION_LOW_ACK, &ed);
+		wpa_supplicant_event(bss->ctx, EVENT_STATION_LOW_ACK, &ed);
 		return;
 	}
 
@@ -4051,7 +4051,7 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 		mlme_event_remain_on_channel(drv, 1, tb);
 		break;
 	case NL80211_CMD_NOTIFY_CQM:
-		nl80211_cqm_event(drv, tb);
+		nl80211_cqm_event(bss, tb);
 		break;
 	case NL80211_CMD_REG_CHANGE:
 	case NL80211_CMD_WIPHY_REG_CHANGE:
