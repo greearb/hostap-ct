@@ -214,3 +214,35 @@ def test_rsn_override_connect_cmd(dev, apdev):
     wpas.set("rsn_overriding", "1")
     wpas.connect(ssid, psk="12345678", key_mgmt="WPA-PSK-SHA256",
                  ieee80211w="2", scan_freq="2412")
+
+def test_rsn_override_omit_rsnxe(dev, apdev):
+    """RSN overriding with RSNXE explicitly omitted"""
+    check_sae_capab(dev[0])
+
+    ssid = "test-rsn-override"
+    params = hostapd.wpa2_params(ssid=ssid,
+                                 passphrase="12345678",
+                                 ieee80211w='1')
+    params['rsn_override_key_mgmt'] = 'SAE SAE-EXT-KEY'
+    params['rsn_override_pairwise'] = 'CCMP GCMP-256'
+    params['rsn_override_mfp'] = '2'
+    params['beacon_prot'] = '1'
+    params['sae_groups'] = '19 20'
+    params['sae_require_mfp'] = '1'
+    params['sae_pwe'] = '2'
+    params['ssid_protection'] = '1'
+    params['rsn_override_omit_rsnxe'] = '1'
+    hapd = hostapd.add_ap(apdev[0], params)
+    bssid = hapd.own_addr()
+
+    try:
+        dev[0].set("rsn_overriding", "1")
+        dev[0].scan_for_bss(bssid, freq=2412)
+        dev[0].set("sae_pwe", "2")
+        dev[0].set("sae_groups", "")
+        dev[0].connect(ssid, sae_password="12345678", key_mgmt="SAE",
+                       ieee80211w="2", ssid_protection="1",
+                       scan_freq="2412")
+    finally:
+        dev[0].set("sae_pwe", "0")
+        dev[0].set("rsn_overriding", "0")

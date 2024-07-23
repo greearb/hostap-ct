@@ -301,6 +301,8 @@ struct wpa_auth_config {
 #endif /* CONFIG_IEEE80211BE */
 
 	bool ssid_protection;
+
+	int rsn_override_omit_rsnxe;
 };
 
 typedef enum {

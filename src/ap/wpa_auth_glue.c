@@ -234,6 +234,8 @@ static void hostapd_wpa_auth_conf(struct hostapd_bss_config *conf,
 	wconf->no_disconnect_on_group_keyerror =
 		conf->bss_max_idle && conf->ap_max_inactivity &&
 		conf->no_disconnect_on_group_keyerror;
+
+	wconf->rsn_override_omit_rsnxe = conf->rsn_override_omit_rsnxe;
 }
 
 

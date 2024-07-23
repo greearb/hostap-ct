@@ -396,6 +396,8 @@ struct hostapd_bss_config {
 	int rsn_preauth;
 	char *rsn_preauth_interfaces;
 
+	int rsn_override_omit_rsnxe;
+
 #ifdef CONFIG_IEEE80211R_AP
 	/* IEEE 802.11r - Fast BSS Transition */
 	u8 mobility_domain[MOBILITY_DOMAIN_ID_LEN];
