@@ -2188,7 +2188,7 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 
 #ifdef NEED_AP_MLME
 #define BEACON_HEAD_BUF_SIZE 256
-#define BEACON_TAIL_BUF_SIZE 512
+#define BEACON_TAIL_BUF_SIZE 1500
 	head = os_zalloc(BEACON_HEAD_BUF_SIZE);
 	tail_len = BEACON_TAIL_BUF_SIZE;
 #ifdef CONFIG_WPS
