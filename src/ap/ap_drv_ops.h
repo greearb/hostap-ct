@@ -478,4 +478,8 @@ static inline int hostapd_drv_link_sta_remove(struct hostapd_data *hapd,
 
 #endif /* CONFIG_IEEE80211BE */
 
+struct hostapd_multi_hw_info *
+hostapd_get_multi_hw_info(struct hostapd_data *hapd,
+			  unsigned int *num_multi_hws);
+
 #endif /* AP_DRV_OPS */

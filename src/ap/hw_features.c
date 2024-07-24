@@ -76,12 +76,15 @@ int hostapd_get_hw_features(struct hostapd_iface *iface)
 {
 	struct hostapd_data *hapd = iface->bss[0];
 	int i, j;
+	unsigned int k;
 	u16 num_modes, flags;
 	struct hostapd_hw_modes *modes;
 	u8 dfs_domain;
 	enum hostapd_hw_mode mode = HOSTAPD_MODE_IEEE80211ANY;
 	bool is_6ghz = false;
 	bool orig_mode_valid = false;
+	struct hostapd_multi_hw_info *multi_hw_info;
+	unsigned int num_multi_hws;
 
 	if (hostapd_drv_none(hapd))
 		return -1;
@@ -166,6 +169,25 @@ int hostapd_get_hw_features(struct hostapd_iface *iface)
 		wpa_printf(MSG_ERROR,
 			   "%s: Could not update iface->current_mode",
 			   __func__);
+	}
+
+	multi_hw_info = hostapd_get_multi_hw_info(hapd, &num_multi_hws);
+	if (!multi_hw_info)
+		return 0;
+
+	hostapd_free_multi_hw_info(iface->multi_hw_info);
+	iface->multi_hw_info = multi_hw_info;
+	iface->num_multi_hws = num_multi_hws;
+
+	wpa_printf(MSG_DEBUG, "Multiple underlying hardwares info:");
+
+	for (k = 0; k < num_multi_hws; k++) {
+		struct hostapd_multi_hw_info *hw_info = &multi_hw_info[k];
+
+		wpa_printf(MSG_DEBUG,
+			   "  %d. hw_idx=%u, frequency range: %d-%d MHz",
+			   k + 1, hw_info->hw_idx, hw_info->start_freq,
+			   hw_info->end_freq);
 	}
 
 	return 0;
@@ -1390,4 +1412,35 @@ int hostapd_hw_skip_mode(struct hostapd_iface *iface,
 			return 1;
 	}
 	return 0;
+}
+
+
+void hostapd_free_multi_hw_info(struct hostapd_multi_hw_info *multi_hw_info)
+{
+	os_free(multi_hw_info);
+}
+
+
+int hostapd_set_current_hw_info(struct hostapd_iface *iface, int oper_freq)
+{
+	struct hostapd_multi_hw_info *hw_info;
+	unsigned int i;
+
+	if (!iface->num_multi_hws)
+		return 0;
+
+	for (i = 0; i < iface->num_multi_hws; i++) {
+		hw_info = &iface->multi_hw_info[i];
+
+		if (hw_info->start_freq <= oper_freq &&
+		    hw_info->end_freq >= oper_freq) {
+			iface->current_hw_info = hw_info;
+			wpa_printf(MSG_DEBUG,
+				   "Mode: Selected underlying hardware: hw_idx=%u",
+				   iface->current_hw_info->hw_idx);
+			return 0;
+		}
+	}
+
+	return -1;
 }

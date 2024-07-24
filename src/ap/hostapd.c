@@ -712,6 +712,9 @@ void hostapd_cleanup_iface_partial(struct hostapd_iface *iface)
 	ap_list_deinit(iface);
 	sta_track_deinit(iface);
 	airtime_policy_update_deinit(iface);
+	hostapd_free_multi_hw_info(iface->multi_hw_info);
+	iface->multi_hw_info = NULL;
+	iface->current_hw_info = NULL;
 }
 
 
@@ -2504,6 +2507,12 @@ static int hostapd_setup_interface_complete_sync(struct hostapd_iface *iface,
 			   "Frequency: %d MHz",
 			   hostapd_hw_mode_txt(iface->conf->hw_mode),
 			   iface->conf->channel, iface->freq);
+
+		if (hostapd_set_current_hw_info(iface, iface->freq)) {
+			wpa_printf(MSG_ERROR,
+				   "Failed to set current hardware info");
+			goto fail;
+		}
 
 #ifdef NEED_AP_MLME
 		/* Handle DFS only if it is not offloaded to the driver */

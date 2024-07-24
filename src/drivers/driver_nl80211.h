@@ -411,5 +411,7 @@ int wpa_driver_nl80211_abort_scan(void *priv, u64 scan_cookie);
 int wpa_driver_nl80211_vendor_scan(struct i802_bss *bss,
 				   struct wpa_driver_scan_params *params);
 int nl80211_set_default_scan_ies(void *priv, const u8 *ies, size_t ies_len);
+struct hostapd_multi_hw_info *
+nl80211_get_multi_hw_info(struct i802_bss *bss, unsigned int *num_multi_hws);
 
 #endif /* DRIVER_NL80211_H */

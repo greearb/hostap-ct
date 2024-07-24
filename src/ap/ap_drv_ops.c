@@ -1250,3 +1250,14 @@ int hostapd_drv_set_secure_ranging_ctx(struct hostapd_data *hapd,
 	return hapd->driver->set_secure_ranging_ctx(hapd->drv_priv, &params);
 }
 #endif /* CONFIG_PASN */
+
+
+struct hostapd_multi_hw_info *
+hostapd_get_multi_hw_info(struct hostapd_data *hapd,
+			  unsigned int *num_multi_hws)
+{
+	if (!hapd->driver || !hapd->driver->get_multi_hw_info)
+		return NULL;
+
+	return hapd->driver->get_multi_hw_info(hapd->drv_priv, num_multi_hws);
+}

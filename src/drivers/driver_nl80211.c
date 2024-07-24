@@ -14036,6 +14036,15 @@ static int testing_nl80211_radio_disable(void *priv, int disabled)
 #endif /* CONFIG_TESTING_OPTIONS */
 
 
+static struct hostapd_multi_hw_info *
+wpa_driver_get_multi_hw_info(void *priv, unsigned int *num_multi_hws)
+{
+	struct i802_bss *bss = priv;
+
+	return nl80211_get_multi_hw_info(bss, num_multi_hws);
+}
+
+
 const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.name = "nl80211",
 	.desc = "Linux nl80211/cfg80211",
@@ -14194,4 +14203,5 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.register_frame = testing_nl80211_register_frame,
 	.radio_disable = testing_nl80211_radio_disable,
 #endif /* CONFIG_TESTING_OPTIONS */
+	.get_multi_hw_info = wpa_driver_get_multi_hw_info,
 };
