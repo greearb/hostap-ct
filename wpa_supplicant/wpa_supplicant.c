@@ -5712,6 +5712,7 @@ void wpa_supplicant_rx_eapol(void *ctx, const u8 *src_addr,
 			MACSTR ")",
 			wpa_supplicant_state_txt(wpa_s->wpa_state),
 			MAC2STR(connected_addr));
+	delay_processing:
 		wpabuf_free(wpa_s->pending_eapol_rx);
 		wpa_s->pending_eapol_rx = wpabuf_alloc_copy(buf, len);
 		if (wpa_s->pending_eapol_rx) {
@@ -5809,9 +5810,23 @@ void wpa_supplicant_rx_eapol(void *ctx, const u8 *src_addr,
 			      encrypted) > 0)
 		return;
 	wpa_drv_poll(wpa_s);
-	if (!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_4WAY_HANDSHAKE_PSK))
-		wpa_sm_rx_eapol(wpa_s->wpa, src_addr, buf, len, encrypted);
-	else if (wpa_key_mgmt_wpa_ieee8021x(wpa_s->key_mgmt)) {
+	if (!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_4WAY_HANDSHAKE_PSK)) {
+		if (wpa_sm_rx_eapol(wpa_s->wpa, src_addr, buf, len,
+				    encrypted) == -2 &&
+#ifdef CONFIG_AP
+		    !wpa_s->ap_iface &&
+#endif /* CONFIG_AP */
+		    wpa_s->last_eapol_matches_bssid) {
+			/* Handle the case where reassociation occurs to the
+			 * current connected AP */
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"Delay processing of received EAPOL frame for reassociation to the current connected AP (state=%s connected_addr="
+				MACSTR ")",
+				wpa_supplicant_state_txt(wpa_s->wpa_state),
+				MAC2STR(connected_addr));
+			goto delay_processing;
+		}
+	} else if (wpa_key_mgmt_wpa_ieee8021x(wpa_s->key_mgmt)) {
 		/*
 		 * Set portValid = true here since we are going to skip 4-way
 		 * handshake processing which would normally set portValid. We

@@ -3817,7 +3817,8 @@ static int wpa_sm_rx_eapol_wpa(struct wpa_sm *sm, const u8 *src_addr,
  * @buf: Pointer to the beginning of the EAPOL data (EAPOL header)
  * @len: Length of the EAPOL frame
  * @encrypted: Whether the frame was encrypted
- * Returns: 1 = WPA EAPOL-Key processed, 0 = not a WPA EAPOL-Key, -1 failure
+ * Returns: 1 = WPA EAPOL-Key processed, 0 = not a WPA EAPOL-Key, -1 failure,
+ *	    -2 = reply counter did not increase.
  *
  * This function is called for each received EAPOL frame. Other than EAPOL-Key
  * frames can be skipped if filtering is done elsewhere. wpa_sm_rx_eapol() is
@@ -3926,6 +3927,7 @@ int wpa_sm_rx_eapol(struct wpa_sm *sm, const u8 *src_addr,
 		      WPA_REPLAY_COUNTER_LEN) <= 0) {
 		wpa_msg(sm->ctx->msg_ctx, MSG_WARNING,
 			"WPA: EAPOL-Key Replay Counter did not increase - dropping packet");
+		ret = -2;
 		goto out;
 	}
 
