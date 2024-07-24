@@ -440,6 +440,8 @@ int hostapd_link_remove(struct hostapd_data *hapd, u32 count)
 
 	hapd->eht_mld_link_removal_count = count;
 	hapd->eht_mld_bss_param_change++;
+	if (hapd->eht_mld_bss_param_change == 255)
+		hapd->eht_mld_bss_param_change = 0;
 
 	eloop_register_timeout(0, TU_TO_USEC(hapd->iconf->beacon_int),
 			       hostapd_link_remove_timeout_handler,
