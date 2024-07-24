@@ -253,6 +253,13 @@ static int dfs_find_channel(struct hostapd_iface *iface,
 	for (i = 0; i < mode->num_channels; i++) {
 		chan = &mode->channels[i];
 
+		if (!chan_in_current_hw_info(iface->current_hw_info, chan)) {
+			wpa_printf(MSG_DEBUG,
+				   "DFS: channel %d (%d) is not under current hardware index",
+				   chan->freq, chan->chan);
+			continue;
+		}
+
 		/* Skip HT40/VHT incompatible channels */
 		if (iface->conf->ieee80211n &&
 		    iface->conf->secondary_channel &&

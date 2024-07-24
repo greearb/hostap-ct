@@ -1033,3 +1033,18 @@ bool is_punct_bitmap_valid(u16 bw, u16 pri_ch_bit_pos, u16 punct_bitmap)
 
 	return false;
 }
+
+
+bool chan_in_current_hw_info(struct hostapd_multi_hw_info *current_hw_info,
+			     struct hostapd_channel_data *chan)
+{
+	/* Assuming that if current_hw_info is not set full
+	 * iface->current_mode->channels[] can be used to scan for channels,
+	 * hence we return true.
+	 */
+	if (!current_hw_info)
+		return true;
+
+	return current_hw_info->start_freq <= chan->freq &&
+		current_hw_info->end_freq >= chan->freq;
+}

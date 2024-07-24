@@ -2454,6 +2454,31 @@ static int hostapd_ctrl_register_frame(struct hostapd_data *hapd,
 
 
 #ifdef NEED_AP_MLME
+
+static bool
+hostapd_ctrl_is_freq_in_cmode(struct hostapd_hw_modes *mode,
+			      struct hostapd_multi_hw_info *current_hw_info,
+			      int freq)
+{
+	struct hostapd_channel_data *chan;
+	int i;
+
+	for (i = 0; i < mode->num_channels; i++) {
+		chan = &mode->channels[i];
+
+		if (chan->flag & HOSTAPD_CHAN_DISABLED)
+			continue;
+
+		if (!chan_in_current_hw_info(current_hw_info, chan))
+			continue;
+
+		if (chan->freq == freq)
+			return true;
+	}
+	return false;
+}
+
+
 static int hostapd_ctrl_check_freq_params(struct hostapd_freq_params *params,
 					  u16 punct_bitmap)
 {
@@ -2667,6 +2692,15 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 	if (iface->num_bss && iface->bss[0]->conf->mld_ap)
 		settings.link_id = iface->bss[0]->mld_link_id;
 #endif /* CONFIG_IEEE80211BE */
+
+	if (iface->num_hw_features > 1 &&
+	    !hostapd_ctrl_is_freq_in_cmode(iface->current_mode,
+					   iface->current_hw_info,
+					   settings.freq_params.freq)) {
+		wpa_printf(MSG_INFO,
+			   "chanswitch: Invalid frequency settings provided for multi band phy");
+		return -1;
+	}
 
 	ret = hostapd_ctrl_check_freq_params(&settings.freq_params,
 					     settings.punct_bitmap);
