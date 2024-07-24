@@ -3273,3 +3273,15 @@ def test_sae_ssid_protection(dev, apdev):
 
     if dev[0].get_status_field("ssid_verified") != "1":
         raise Exception("ssid_verified=1 not in STATUS")
+
+def test_sae_eapol_key_reserved_random(dev, apdev):
+    """SAE with EAPOL-Key Reserved field set to random value"""
+    check_sae_capab(dev[0])
+    params = hostapd.wpa2_params(ssid="test-sae", passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE'
+    params['eapol_key_reserved_random'] = '1'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].set("sae_groups", "")
+    dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE",
+                   scan_freq="2412")

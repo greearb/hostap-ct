@@ -2067,6 +2067,11 @@ void __wpa_send_eapol(struct wpa_authenticator *wpa_auth,
 	if (key_rsc)
 		os_memcpy(key->key_rsc, key_rsc, WPA_KEY_RSC_LEN);
 
+#ifdef CONFIG_TESTING_OPTIONS
+	if (conf->eapol_key_reserved_random)
+		random_get_bytes(key->key_id, sizeof(key->key_id));
+#endif /* CONFIG_TESTING_OPTIONS */
+
 	if (kde && !encr) {
 		os_memcpy(key_data, kde, kde_len);
 		WPA_PUT_BE16(key_mic + mic_len, kde_len);

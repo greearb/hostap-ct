@@ -236,6 +236,7 @@ static void hostapd_wpa_auth_conf(struct hostapd_bss_config *conf,
 	if (conf->eapol_m3_elements)
 		wconf->eapol_m3_elements = wpabuf_dup(conf->eapol_m3_elements);
 	wconf->eapol_m3_no_encrypt = conf->eapol_m3_no_encrypt;
+	wconf->eapol_key_reserved_random = conf->eapol_key_reserved_random;
 #endif /* CONFIG_TESTING_OPTIONS */
 #ifdef CONFIG_P2P
 	os_memcpy(wconf->ip_addr_go, conf->ip_addr_go, 4);
