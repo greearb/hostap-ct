@@ -4713,9 +4713,9 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 		wpa_ie_len = pos - wpa_ie_buf3;
 		wpa_hexdump(MSG_DEBUG, "EAPOL-Key msg 3/4 IEs after edits",
 			    wpa_ie, wpa_ie_len);
-	}
-	if ((conf->rsn_override_key_mgmt || conf->rsn_override_key_mgmt_2) &&
-	    !sm->rsn_override && !sm->rsn_override_2) {
+	} else if ((conf->rsn_override_key_mgmt ||
+		    conf->rsn_override_key_mgmt_2) &&
+		   !sm->rsn_override && !sm->rsn_override_2) {
 		u8 *ie;
 		size_t ie_len;
 		u32 ids[] = {
