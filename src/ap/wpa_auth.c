@@ -4714,6 +4714,39 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 		wpa_hexdump(MSG_DEBUG, "EAPOL-Key msg 3/4 IEs after edits",
 			    wpa_ie, wpa_ie_len);
 	}
+	if ((conf->rsn_override_key_mgmt || conf->rsn_override_key_mgmt_2) &&
+	    !sm->rsn_override && !sm->rsn_override_2) {
+		u8 *ie;
+		size_t ie_len;
+		u32 ids[] = {
+			RSNE_OVERRIDE_IE_VENDOR_TYPE,
+			RSNE_OVERRIDE_2_IE_VENDOR_TYPE,
+			RSNXE_OVERRIDE_IE_VENDOR_TYPE,
+			0
+		};
+		int i;
+
+		wpa_printf(MSG_DEBUG,
+			   "RSN: Remove RSNE/RSNXE override elements");
+		wpa_hexdump(MSG_DEBUG, "EAPOL-Key msg 3/4 IEs before edits",
+			    wpa_ie, wpa_ie_len);
+		wpa_ie_buf3 = os_memdup(wpa_ie, wpa_ie_len);
+		if (!wpa_ie_buf3)
+			goto done;
+		wpa_ie = wpa_ie_buf3;
+
+		for (i = 0; ids[i]; i++) {
+			ie = (u8 *) get_vendor_ie(wpa_ie, wpa_ie_len, ids[i]);
+			if (ie) {
+				ie_len = 2 + ie[1];
+				os_memmove(ie, ie + ie_len,
+					   wpa_ie_len - (ie + ie_len - wpa_ie));
+				wpa_ie_len -= ie_len;
+			}
+		}
+		wpa_hexdump(MSG_DEBUG, "EAPOL-Key msg 3/4 IEs after edits",
+			    wpa_ie, wpa_ie_len);
+	}
 #ifdef CONFIG_TESTING_OPTIONS
 	if (conf->rsne_override_eapol_set) {
 		wpa_ie_buf2 = replace_ie(
