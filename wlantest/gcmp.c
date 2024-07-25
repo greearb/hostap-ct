@@ -32,12 +32,8 @@ static void gcmp_aad_nonce(const struct ieee80211_hdr *hdr, const u8 *data,
 	if (WLAN_FC_GET_TYPE(fc) == WLAN_FC_TYPE_DATA) {
 		fc &= ~0x0070; /* Mask subtype bits */
 		if (stype & 0x08) {
-			const u8 *qc;
 			qos = 1;
 			fc &= ~WLAN_FC_HTC;
-			qc = (const u8 *) (hdr + 1);
-			if (addr4)
-				qc += ETH_ALEN;
 		}
 	}
 
