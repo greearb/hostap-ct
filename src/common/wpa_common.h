@@ -797,4 +797,7 @@ int wpa_pasn_parse_parameter_ie(const u8 *data, u8 len, bool from_ap,
 void wpa_pasn_add_rsnxe(struct wpabuf *buf, u16 capab);
 int wpa_pasn_add_extra_ies(struct wpabuf *buf, const u8 *extra_ies, size_t len);
 
+void rsn_set_snonce_cookie(u8 *snonce);
+bool rsn_is_snonce_cookie(const u8 *snonce);
+
 #endif /* WPA_COMMON_H */

@@ -4274,3 +4274,24 @@ int wpa_pasn_add_extra_ies(struct wpabuf *buf, const u8 *extra_ies, size_t len)
 }
 
 #endif /* CONFIG_PASN */
+
+
+void rsn_set_snonce_cookie(u8 *snonce)
+{
+	u8 *pos;
+
+	pos = snonce + WPA_NONCE_LEN - 6;
+	WPA_PUT_BE24(pos, OUI_WFA);
+	pos += 3;
+	WPA_PUT_BE24(pos, 0x000029);
+}
+
+
+bool rsn_is_snonce_cookie(const u8 *snonce)
+{
+	const u8 *pos;
+
+	pos = snonce + WPA_NONCE_LEN - 6;
+	return WPA_GET_BE24(pos) == OUI_WFA &&
+		WPA_GET_BE24(pos + 3) == 0x000029;
+}
