@@ -108,6 +108,7 @@ const char * event_to_string(enum wpa_event_type event)
 	E2S(DFS_BACKGROUND_CHAN_EXPAND);
 	E2S(PP_BITMAP_UPDATE);
 	E2S(ATTLM);
+	E2S(CRIT_UPDATE);
 	}
 
 	return "UNKNOWN";
