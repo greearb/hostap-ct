@@ -643,6 +643,14 @@ struct wpa_pasn_params_data {
 #define WPA_PASN_PUBKEY_COMPRESSED_1 0x03
 #define WPA_PASN_PUBKEY_UNCOMPRESSED 0x04
 
+/* WPA3 specification - RSN Selection element */
+enum rsn_selection_variant {
+	RSN_SELECTION_RSNE = 0,
+	RSN_SELECTION_RSNE_OVERRIDE = 1,
+	RSN_SELECTION_RSNE_OVERRIDE_2 = 2,
+};
+
+
 int wpa_ft_parse_ies(const u8 *ies, size_t ies_len, struct wpa_ft_ies *parse,
 		     int key_mgmt, bool reassoc_resp);
 void wpa_ft_parse_ies_free(struct wpa_ft_ies *parse);
@@ -704,6 +712,8 @@ struct wpa_eapol_ie_parse {
 	u16 aid;
 	const u8 *wmm;
 	size_t wmm_len;
+	const u8 *rsn_selection;
+	size_t rsn_selection_len;
 	u16 valid_mlo_gtks; /* bitmap of valid link GTK KDEs */
 	const u8 *mlo_gtk[MAX_NUM_MLD_LINKS];
 	size_t mlo_gtk_len[MAX_NUM_MLD_LINKS];

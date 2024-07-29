@@ -629,8 +629,8 @@ u8 * wpa_auth_write_assoc_resp_fils(struct wpa_state_machine *sm,
 bool wpa_auth_write_fd_rsn_info(struct wpa_authenticator *wpa_auth,
 				u8 *fd_rsn_info);
 void wpa_auth_set_auth_alg(struct wpa_state_machine *sm, u16 auth_alg);
-void wpa_auth_set_rsn_override(struct wpa_state_machine *sm, bool val);
-void wpa_auth_set_rsn_override_2(struct wpa_state_machine *sm, bool val);
+void wpa_auth_set_rsn_selection(struct wpa_state_machine *sm, const u8 *ie,
+				size_t len);
 void wpa_auth_set_dpp_z(struct wpa_state_machine *sm, const struct wpabuf *z);
 void wpa_auth_set_ssid_protection(struct wpa_state_machine *sm, bool val);
 void wpa_auth_set_transition_disable(struct wpa_authenticator *wpa_auth,

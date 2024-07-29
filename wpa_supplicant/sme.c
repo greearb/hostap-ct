@@ -2467,26 +2467,44 @@ mscs_fail:
 		wpa_s->sme.assoc_req_ie_len += multi_ap_ie_len;
 	}
 
+	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_RSN_OVERRIDE,
+			 RSN_OVERRIDE_NOT_USED);
 	if (wpas_rsn_overriding(wpa_s) &&
 	    wpas_ap_supports_rsn_overriding(wpa_s, wpa_s->current_bss) &&
 	    wpa_s->sme.assoc_req_ie_len + 2 + 4 <=
 	    sizeof(wpa_s->sme.assoc_req_ie)) {
 		u8 *pos = wpa_s->sme.assoc_req_ie + wpa_s->sme.assoc_req_ie_len;
-		u32 type = 0;
 		const u8 *ie;
+		enum rsn_selection_variant variant = RSN_SELECTION_RSNE;
 
+		wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_RSN_OVERRIDE,
+				 RSN_OVERRIDE_RSNE);
 		ie = wpa_bss_get_rsne(wpa_s, wpa_s->current_bss, ssid,
 				      wpa_s->valid_links);
-		if (ie && ie[0] == WLAN_EID_VENDOR_SPECIFIC && ie[1] >= 4)
-			type = WPA_GET_BE32(&ie[2]);
+		if (ie && ie[0] == WLAN_EID_VENDOR_SPECIFIC && ie[1] >= 4) {
+			u32 type;
 
-		if (type) {
-			/* Indicate support for RSN overriding */
-			*pos++ = WLAN_EID_VENDOR_SPECIFIC;
-			*pos++ = 4;
-			WPA_PUT_BE32(pos, type);
-			wpa_s->sme.assoc_req_ie_len += 2 + 4;
+			type = WPA_GET_BE32(&ie[2]);
+			if (type == RSNE_OVERRIDE_IE_VENDOR_TYPE) {
+				variant = RSN_SELECTION_RSNE_OVERRIDE;
+				wpa_sm_set_param(wpa_s->wpa,
+						 WPA_PARAM_RSN_OVERRIDE,
+						 RSN_OVERRIDE_RSNE_OVERRIDE);
+			} else if (type == RSNE_OVERRIDE_2_IE_VENDOR_TYPE) {
+				variant = RSN_SELECTION_RSNE_OVERRIDE_2;
+				wpa_sm_set_param(wpa_s->wpa,
+						 WPA_PARAM_RSN_OVERRIDE,
+						 RSN_OVERRIDE_RSNE_OVERRIDE_2);
+			}
 		}
+
+		/* Indicate which RSNE variant was used */
+		*pos++ = WLAN_EID_VENDOR_SPECIFIC;
+		*pos++ = 4 + 1;
+		WPA_PUT_BE32(pos, RSN_SELECTION_IE_VENDOR_TYPE);
+		pos += 4;
+		*pos = variant;
+		wpa_s->sme.assoc_req_ie_len += 2 + 4 + 1;
 	}
 
 	params.bssid = bssid;

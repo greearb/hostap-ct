@@ -1014,9 +1014,13 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 		return WPA_INVALID_GROUP;
 	}
 
-	key_mgmt = data.key_mgmt & (wpa_auth->conf.wpa_key_mgmt |
-				    wpa_auth->conf.rsn_override_key_mgmt |
-				    wpa_auth->conf.rsn_override_key_mgmt_2);
+	if (sm->rsn_override_2)
+		key_mgmt = data.key_mgmt &
+			wpa_auth->conf.rsn_override_key_mgmt_2;
+	else if (sm->rsn_override)
+		key_mgmt = data.key_mgmt & wpa_auth->conf.rsn_override_key_mgmt;
+	else
+		key_mgmt = data.key_mgmt & wpa_auth->conf.wpa_key_mgmt;
 	if (!key_mgmt) {
 		wpa_printf(MSG_DEBUG, "Invalid WPA key mgmt (0x%x) from "
 			   MACSTR, data.key_mgmt, MAC2STR(sm->addr));
@@ -1085,11 +1089,14 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 	else
 		sm->wpa_key_mgmt = WPA_KEY_MGMT_PSK;
 
-	if (version == WPA_PROTO_RSN)
+	if (version == WPA_PROTO_RSN && sm->rsn_override_2)
 		ciphers = data.pairwise_cipher &
-			(wpa_auth->conf.rsn_pairwise |
-			 wpa_auth->conf.rsn_override_pairwise |
-			 wpa_auth->conf.rsn_override_pairwise_2);
+			wpa_auth->conf.rsn_override_pairwise_2;
+	else if (version == WPA_PROTO_RSN && sm->rsn_override)
+		ciphers = data.pairwise_cipher &
+			wpa_auth->conf.rsn_override_pairwise;
+	else if (version == WPA_PROTO_RSN)
+		ciphers = data.pairwise_cipher & wpa_auth->conf.rsn_pairwise;
 	else
 		ciphers = data.pairwise_cipher & wpa_auth->conf.wpa_pairwise;
 	if (!ciphers) {

@@ -531,7 +531,7 @@ int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 	size_t mic_len, hdrlen, rlen, extra_len = 0;
 	struct wpa_eapol_key *reply;
 	u8 *rbuf, *key_mic;
-	u8 *rsn_ie_buf = NULL;
+	u8 *rsn_ie_buf = NULL, *buf2 = NULL;
 	u16 key_info;
 #ifdef CONFIG_TESTING_OPTIONS
 	size_t pad_len = 0;
@@ -581,6 +581,37 @@ int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 	}
 #endif /* CONFIG_IEEE80211R */
 
+	if (sm->rsn_override != RSN_OVERRIDE_NOT_USED) {
+		u8 *pos;
+
+		buf2 = os_malloc(wpa_ie_len + 2 + 4 + 1);
+		if (!buf2) {
+			os_free(rsn_ie_buf);
+			return -1;
+		}
+		os_memcpy(buf2, wpa_ie, wpa_ie_len);
+		pos = buf2 + wpa_ie_len;
+		*pos++ = WLAN_EID_VENDOR_SPECIFIC;
+		*pos++ = 4 + 1;
+		WPA_PUT_BE32(pos, RSN_SELECTION_IE_VENDOR_TYPE);
+		pos += 4;
+		if (sm->rsn_override == RSN_OVERRIDE_RSNE) {
+			*pos++ = RSN_SELECTION_RSNE;
+		} else if (sm->rsn_override == RSN_OVERRIDE_RSNE_OVERRIDE) {
+			*pos++ = RSN_SELECTION_RSNE_OVERRIDE;
+		} else if (sm->rsn_override == RSN_OVERRIDE_RSNE_OVERRIDE_2) {
+			*pos++ = RSN_SELECTION_RSNE_OVERRIDE_2;
+		} else {
+			os_free(rsn_ie_buf);
+			os_free(buf2);
+			return -1;
+		}
+
+		wpa_ie = buf2;
+		wpa_ie_len += 2 + 4 + 1;
+
+	}
+
 	wpa_hexdump(MSG_DEBUG, "WPA: WPA IE for msg 2/4", wpa_ie, wpa_ie_len);
 
 #ifdef CONFIG_TESTING_OPTIONS
@@ -601,6 +632,7 @@ int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 				  &rlen, (void *) &reply);
 	if (rbuf == NULL) {
 		os_free(rsn_ie_buf);
+		os_free(buf2);
 		return -1;
 	}
 
@@ -633,6 +665,7 @@ int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 	WPA_PUT_BE16(key_mic + mic_len, wpa_ie_len + extra_len);
 	os_memcpy(key_mic + mic_len + 2, wpa_ie, wpa_ie_len); /* Key Data */
 	os_free(rsn_ie_buf);
+	os_free(buf2);
 #ifdef CONFIG_TESTING_OPTIONS
 	if (sm->test_eapol_m2_elems) {
 		os_memcpy(key_mic + mic_len + 2 + wpa_ie_len,
@@ -4766,6 +4799,9 @@ int wpa_sm_set_param(struct wpa_sm *sm, enum wpa_sm_conf_params param,
 		break;
 	case WPA_PARAM_SSID_PROTECTION:
 		sm->ssid_protection = value;
+		break;
+	case WPA_PARAM_RSN_OVERRIDE:
+		sm->rsn_override = value;
 		break;
 	default:
 		break;

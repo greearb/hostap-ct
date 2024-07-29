@@ -1046,6 +1046,7 @@ static void wpa_free_sta_sm(struct wpa_state_machine *sm)
 	os_free(sm->last_rx_eapol_key);
 	os_free(sm->wpa_ie);
 	os_free(sm->rsnxe);
+	os_free(sm->rsn_selection);
 #ifdef CONFIG_IEEE80211BE
 	for_each_sm_auth(sm, link_id) {
 		wpa_group_put(sm->mld_links[link_id].wpa_auth,
@@ -3919,6 +3920,27 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 		goto out;
 	}
 #endif /* CONFIG_IEEE80211R_AP */
+
+	/* Verify RSN Selection element for RSN overriding */
+	if ((sm->rsn_selection && !kde.rsn_selection) ||
+	    (!sm->rsn_selection && kde.rsn_selection) ||
+	    (sm->rsn_selection && kde.rsn_selection &&
+	     (sm->rsn_selection_len != kde.rsn_selection_len ||
+	      os_memcmp(sm->rsn_selection, kde.rsn_selection,
+			sm->rsn_selection_len) != 0))) {
+		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm), LOGGER_INFO,
+				"RSN Selection element from (Re)AssocReq did not match the one in EAPOL-Key msg 2/4");
+		wpa_hexdump(MSG_DEBUG, "RSN Selection in AssocReq",
+			    sm->rsn_selection, sm->rsn_selection_len);
+		wpa_hexdump(MSG_DEBUG, "RSN Selection in EAPOL-Key msg 2/4",
+			    kde.rsn_selection, kde.rsn_selection_len);
+		/* MLME-DEAUTHENTICATE.request */
+		wpa_sta_disconnect(wpa_auth, sm->addr,
+				   WLAN_REASON_PREV_AUTH_NOT_VALID);
+		goto out;
+
+	}
+
 #ifdef CONFIG_P2P
 	if (kde.ip_addr_req && kde.ip_addr_req[0] &&
 	    wpa_auth->ip_pool && WPA_GET_BE32(sm->ip_addr) == 0) {
@@ -6965,17 +6987,27 @@ void wpa_auth_set_auth_alg(struct wpa_state_machine *sm, u16 auth_alg)
 }
 
 
-void wpa_auth_set_rsn_override(struct wpa_state_machine *sm, bool val)
+void wpa_auth_set_rsn_selection(struct wpa_state_machine *sm, const u8 *ie,
+				size_t len)
 {
-	if (sm)
-		sm->rsn_override = val;
-}
-
-
-void wpa_auth_set_rsn_override_2(struct wpa_state_machine *sm, bool val)
-{
-	if (sm)
-		sm->rsn_override_2 = val;
+	if (!sm)
+		return;
+	os_free(sm->rsn_selection);
+	sm->rsn_selection = NULL;
+	sm->rsn_selection_len = 0;
+	sm->rsn_override = false;
+	sm->rsn_override_2 = false;
+	if (ie) {
+		if (len >=  1) {
+			if (ie[0] == RSN_SELECTION_RSNE_OVERRIDE)
+				sm->rsn_override = true;
+			else if (ie[0] == RSN_SELECTION_RSNE_OVERRIDE_2)
+				sm->rsn_override_2 = true;
+		}
+		sm->rsn_selection = os_memdup(ie, len);
+		if (sm->rsn_selection)
+			sm->rsn_selection_len = len;
+	}
 }
 
 

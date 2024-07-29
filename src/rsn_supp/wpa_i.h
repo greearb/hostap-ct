@@ -229,6 +229,8 @@ struct wpa_sm {
 	bool wmm_enabled;
 	bool driver_bss_selection;
 	bool ft_prepend_pmkid;
+
+	enum wpa_rsn_override rsn_override;
 };
 
 

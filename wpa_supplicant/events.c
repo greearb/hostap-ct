@@ -3371,9 +3371,10 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 					  union wpa_event_data *data)
 {
 	int l, len, found = 0, found_x = 0, wpa_found, rsn_found;
-	const u8 *p;
+	const u8 *p, *ie;
 	u8 bssid[ETH_ALEN];
 	bool bssid_known;
+	enum wpa_rsn_override rsn_override;
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "Association info event");
 	wpa_s->ssid_verified = false;
@@ -3484,6 +3485,25 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 		wpa_sm_set_assoc_wpa_ie(wpa_s->wpa, NULL, 0);
 	if (!found_x && data->assoc_info.req_ies)
 		wpa_sm_set_assoc_rsnxe(wpa_s->wpa, NULL, 0);
+
+	rsn_override = RSN_OVERRIDE_NOT_USED;
+	ie = get_vendor_ie(data->assoc_info.req_ies,
+			   data->assoc_info.req_ies_len,
+			   RSN_SELECTION_IE_VENDOR_TYPE);
+	if (ie && ie[1] >= 4 + 1) {
+		switch (ie[2 + 4]) {
+		case RSN_SELECTION_RSNE:
+			rsn_override = RSN_OVERRIDE_RSNE;
+			break;
+		case RSN_SELECTION_RSNE_OVERRIDE:
+			rsn_override = RSN_OVERRIDE_RSNE_OVERRIDE;
+			break;
+		case RSN_SELECTION_RSNE_OVERRIDE_2:
+			rsn_override = RSN_OVERRIDE_RSNE_OVERRIDE_2;
+			break;
+		}
+	}
+	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_RSN_OVERRIDE, rsn_override);
 
 #ifdef CONFIG_FILS
 #ifdef CONFIG_SME

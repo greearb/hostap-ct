@@ -3943,32 +3943,51 @@ mscs_end:
 		wpa_ie_len += multi_ap_ie_len;
 	}
 
+	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_RSN_OVERRIDE,
+			 RSN_OVERRIDE_NOT_USED);
 	if (!wpas_driver_bss_selection(wpa_s) &&
 	    wpas_rsn_overriding(wpa_s) &&
 	    wpas_ap_supports_rsn_overriding(wpa_s, bss) &&
-	    wpa_ie_len + 2 + 4 <= max_wpa_ie_len) {
-		u8 *pos = wpa_ie + wpa_ie_len;
-		u32 type = 0;
+	    wpa_ie_len + 2 + 4 + 1 <= max_wpa_ie_len) {
+		u8 *pos = wpa_ie + wpa_ie_len, *start = pos;
 		const u8 *ie;
+		enum rsn_selection_variant variant = RSN_SELECTION_RSNE;
 
+		wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_RSN_OVERRIDE,
+				 RSN_OVERRIDE_RSNE);
 		ie = wpa_bss_get_rsne(wpa_s, bss, ssid, wpa_s->valid_links);
-		if (ie && ie[0] == WLAN_EID_VENDOR_SPECIFIC && ie[1] >= 4)
-			type = WPA_GET_BE32(&ie[2]);
+		if (ie && ie[0] == WLAN_EID_VENDOR_SPECIFIC && ie[1] >= 4) {
+			u32 type;
 
-		if (type) {
-			/* Indicate support for RSN overriding */
-			*pos++ = WLAN_EID_VENDOR_SPECIFIC;
-			*pos++ = 4;
-			WPA_PUT_BE32(pos, type);
-			pos += 4;
-			wpa_hexdump(MSG_MSGDUMP, "RSNE Override", wpa_ie,
-				    pos - wpa_ie);
-			wpa_ie_len += 2 + 4;
+			type = WPA_GET_BE32(&ie[2]);
+			if (type == RSNE_OVERRIDE_IE_VENDOR_TYPE) {
+				variant = RSN_SELECTION_RSNE_OVERRIDE;
+				wpa_sm_set_param(wpa_s->wpa,
+						 WPA_PARAM_RSN_OVERRIDE,
+						 RSN_OVERRIDE_RSNE_OVERRIDE);
+			} else if (type == RSNE_OVERRIDE_2_IE_VENDOR_TYPE) {
+				variant = RSN_SELECTION_RSNE_OVERRIDE_2;
+				wpa_sm_set_param(wpa_s->wpa,
+						 WPA_PARAM_RSN_OVERRIDE,
+						 RSN_OVERRIDE_RSNE_OVERRIDE_2);
+			}
 		}
+
+		/* Indicate which RSNE variant was used */
+		*pos++ = WLAN_EID_VENDOR_SPECIFIC;
+		*pos++ = 4 + 1;
+		WPA_PUT_BE32(pos, RSN_SELECTION_IE_VENDOR_TYPE);
+		pos += 4;
+		*pos++ = variant;
+		wpa_hexdump(MSG_MSGDUMP, "RSN Selection", start, pos - start);
+		wpa_ie_len += pos - start;
 	}
 
 	if (wpas_driver_bss_selection(wpa_s) &&
 	    wpas_rsn_overriding(wpa_s)) {
+		/* TODO: Replace this indication of support for RSN overriding
+		 * to the driver in driver-based BSS selection cases with
+		 * something cleaner. */
 		if (wpa_ie_len + 2 + 4 <= max_wpa_ie_len) {
 			u8 *pos = wpa_ie + wpa_ie_len;
 
