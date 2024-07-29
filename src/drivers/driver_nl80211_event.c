@@ -4225,6 +4225,51 @@ static void nl80211_obss_color_event(struct i802_bss *bss,
 #endif /* CONFIG_IEEE80211AX */
 
 
+static void nl80211_notify_crit_update(struct wpa_driver_nl80211_data *drv,
+				       struct nlattr **tb)
+{
+	struct i802_bss *bss;
+	union wpa_event_data data;
+	enum nl80211_crit_update_event event_type;
+	int ifidx;
+
+	if (!tb[NL80211_ATTR_IFINDEX] || !tb[NL80211_ATTR_MLO_LINK_ID] ||
+	    !tb[NL80211_ATTR_CRTI_UPDATE_EVENT])
+		return;
+
+	ifidx = nla_get_u32(tb[NL80211_ATTR_IFINDEX]);
+	bss = get_bss_ifindex(drv, ifidx);
+	if (!bss) {
+		wpa_printf(MSG_ERROR,
+			   "nl80211: Unknown ifindex (%d) for critical update event, ignoring",
+			   ifidx);
+		return;
+	}
+
+	data.crit_update_info.link_id = nla_get_u8(tb[NL80211_ATTR_MLO_LINK_ID]);
+	event_type = nla_get_u8(tb[NL80211_ATTR_CRTI_UPDATE_EVENT]);
+	switch (event_type) {
+	case NL80211_CRIT_UPDATE_NONE:
+		data.crit_update_info.flag = CRIT_UPDATE_NONE;
+		break;
+	case NL80211_CRIT_UPDATE_SINGLE:
+		data.crit_update_info.flag = CRIT_UPDATE_SINGLE;
+		break;
+	case NL80211_CRIT_UPDATE_ALL:
+		data.crit_update_info.flag = CRIT_UPDATE_ALL;
+		break;
+	case NL80211_CRIT_UPDATE_FLAG:
+		data.crit_update_info.flag = CRIT_UPDATE_FLAG;
+		break;
+	default:
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Unknown critical update event");
+		return;
+	}
+	wpa_supplicant_event(bss->ctx, EVENT_CRIT_UPDATE, &data);
+}
+
+
 static void do_process_drv_event(struct i802_bss *bss, int cmd,
 				 struct nlattr **tb)
 {
@@ -4496,6 +4541,9 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 		break;
 	case NL80211_CMD_ASSOC_MLO_RECONF:
 		mlme_event_link_addition(drv, nla_data(frame), nla_len(frame));
+		break;
+	case NL80211_CMD_NOTIFY_CRIT_UPDATE:
+		nl80211_notify_crit_update(drv, tb);
 		break;
 	default:
 		wpa_dbg(drv->ctx, MSG_DEBUG, "nl80211: Ignored unknown event "
