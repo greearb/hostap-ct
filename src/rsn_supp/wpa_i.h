@@ -120,6 +120,9 @@ struct wpa_sm {
 	size_t assoc_rsnxe_len;
 	u8 *ap_wpa_ie, *ap_rsn_ie, *ap_rsnxe;
 	size_t ap_wpa_ie_len, ap_rsn_ie_len, ap_rsnxe_len;
+	u8 *ap_rsne_override, *ap_rsne_override_2, *ap_rsnxe_override;
+	size_t ap_rsne_override_len, ap_rsne_override_2_len,
+		ap_rsnxe_override_len;
 
 #ifdef CONFIG_TDLS
 	struct wpa_tdls_peer *tdls;
