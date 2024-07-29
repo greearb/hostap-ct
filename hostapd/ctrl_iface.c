@@ -3026,13 +3026,6 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 #ifdef CONFIG_IEEE80211BE
 		if (iface->bss[i]->conf->mld_ap)
 			hostapd_update_aff_link_beacon(iface->bss[i], settings.cs_count);
-
-		/*
-		 * Currently, no FW notification event for clearing CU flag after DTIM period.
-		 * Also, another CU or set beacon is not allowed during CSA period.
-		 * Therefore, just clear it manually here for workaround.
-		 */
-		iface->bss[i]->eht_mld_bss_critical_update = 0;
 #endif /* CONFIG_IEEE80211BE */
 	}
 
