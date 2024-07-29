@@ -1506,8 +1506,47 @@ void hostapd_event_attlm(struct hostapd_data *hapd, struct attlm_event *attlm_ev
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	ieee802_11_set_beacon(hapd);
-	hapd->eht_mld_bss_critical_update = 0;
 }
+
+
+#ifdef HOSTAPD
+static void hostapd_event_update_crit_update_flag(struct hostapd_data *hapd, u8 flag)
+{
+	const char *type;
+
+	if (!hapd->conf->mld_ap || !hapd->mld)
+		return;
+
+	switch (flag) {
+	case CRIT_UPDATE_NONE:
+		hapd->eht_mld_bss_critical_update = 0;
+		type = "UPDATE_NONE";
+		break;
+	case CRIT_UPDATE_SINGLE:
+		hapd->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_SINGLE;
+		hapd->eht_mld_bss_param_change += 1;
+		type = "UPDATE_SINGLE";
+		break;
+	case CRIT_UPDATE_ALL:
+		hapd->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_ALL;
+		hapd->eht_mld_bss_param_change += 1;
+		type = "UPDATE_ALL";
+		break;
+	case CRIT_UPDATE_FLAG:
+		hapd->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_FLAG;
+		type = "UPDATE_FLAG";
+		break;
+	default:
+		wpa_printf(MSG_DEBUG, "Unknown critical update type");
+		return;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "MLD: set critical update flag to %s (bpcc=%d) for %s link %d",
+		   type, hapd->eht_mld_bss_param_change, hapd->mld->name,
+		   hapd->mld_link_id);
+}
+#endif /* HOSTAPD */
 #endif /* CONFIG_IEEE80211BE */
 
 
@@ -2706,16 +2745,10 @@ static void hostapd_event_pp_bitmap_update(struct hostapd_data *hapd,
 		if (iface->bss[i]->conf->mld_ap)
 			hostapd_update_aff_link_beacon(iface->bss[i],
 						       csa_settings.cs_count);
-
-		/* FIXME:
-		 * CU flag should be cleared when receiving DTIM event from FW
-		 */
-		iface->bss[i]->eht_mld_bss_critical_update = 0;
 #endif /* CONFIG_IEEE80211BE */
 	}
 }
 #endif /* CONFIG_IEEE80211BE */
-
 
 void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			  union wpa_event_data *data)
@@ -3099,6 +3132,14 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		wpa_printf(MSG_DEBUG, "CCA finished on %s",
 			   hapd->conf->iface);
 		hostapd_event_color_change(hapd, true);
+		break;
+	case EVENT_CRIT_UPDATE:
+		if (!data)
+			break;
+		hapd = switch_link_hapd(hapd, data->crit_update_info.link_id);
+#ifdef CONFIG_IEEE80211BE
+		hostapd_event_update_crit_update_flag(hapd, data->crit_update_info.flag);
+#endif /* CONFIG_IEEE80211BE */
 		break;
 #endif /* CONFIG_IEEE80211AX */
 #ifdef CONFIG_IEEE80211BE

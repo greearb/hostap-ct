@@ -6487,6 +6487,11 @@ enum wpa_event_type {
 	EVENT_PP_BITMAP_UPDATE,
 
 	/**
+	 * EVENT_CRIT_UPDATE - Notification of the status of a critical update event
+	 */
+	EVENT_CRIT_UPDATE,
+
+	/**
 	 * EVENT_SETUP_LINK_RECONFIG - Notification that new AP links added
 	 */
 	EVENT_SETUP_LINK_RECONFIG,
@@ -7506,6 +7511,19 @@ union wpa_event_data {
 		const u8 *resp_ie; /* Starting from Group Key Data */
 		size_t resp_ie_len;
 	} reconfig_info;
+
+	/**
+	 * struct crit_update_info - Data for EVENT_CRIT_UPDATE
+	 */
+	struct crit_update_info {
+		int link_id;
+		enum {
+			CRIT_UPDATE_NONE,
+			CRIT_UPDATE_SINGLE,
+			CRIT_UPDATE_ALL,
+			CRIT_UPDATE_FLAG,
+		} flag;
+	} crit_update_info;
 };
 
 /**

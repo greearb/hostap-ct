@@ -3403,14 +3403,9 @@ int ieee802_11_set_beacon(struct hostapd_data *hapd)
 		/* clear critical update flag for UPDATE_SINGLE type & link adding,
 		 * for other types, we should get some notified events from driver
 		 */
-		/* TODO:  Check final upstream code for 'h->' */
-		if (hapd->eht_mld_bss_critical_update == BSS_CRIT_UPDATE_SINGLE)
-			hapd->eht_mld_bss_critical_update = 0;
-		if (hapd->eht_mld_bss_critical_update == BSS_CRIT_UPDATE_FLAG &&
-		    (hapd->mld->link_reconf_in_progress & BIT(hapd->mld_link_id))) {
-			hapd->mld->link_reconf_in_progress &= ~BIT(hapd->mld_link_id);
-			hapd->eht_mld_bss_critical_update = 0;
-		}
+		if (link_bss->eht_mld_bss_critical_update == BSS_CRIT_UPDATE_FLAG &&
+		    (link_bss->mld->link_reconf_in_progress & BIT(link_bss->mld_link_id)))
+			link_bss->mld->link_reconf_in_progress &= ~BIT(link_bss->mld_link_id);
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -3452,6 +3447,8 @@ int ieee802_11_update_beacons(struct hostapd_iface *iface)
 int ieee802_11_set_bss_critical_update(struct hostapd_data *hapd,
 				       enum bss_crit_update_event event)
 {
+	struct hostapd_data *h;
+
 	if (!hapd->conf->mld_ap)
 		return 0;
 
@@ -3470,7 +3467,7 @@ int ieee802_11_set_bss_critical_update(struct hostapd_data *hapd,
 	case BSS_CRIT_UPDATE_EVENT_TPE:
 		hapd->eht_mld_bss_param_change += 1;
 		hapd->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_ALL;
-		return 0;
+		break;
 	case BSS_CRIT_UPDATE_EVENT_EDCA:
 	case BSS_CRIT_UPDATE_EVENT_DSSS:
 	case BSS_CRIT_UPDATE_EVENT_HT_OPERATION:
@@ -3482,16 +3479,29 @@ int ieee802_11_set_bss_critical_update(struct hostapd_data *hapd,
 	case BSS_CRIT_UPDATE_EVENT_EHT_OPERATION:
 		hapd->eht_mld_bss_param_change += 1;
 		hapd->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_SINGLE;
-		return 0;
+		break;
 	case BSS_CRIT_UPDATE_EVENT_RECONFIG:
-	case BSS_CRIT_UPDATE_EVENT_ADD_LINK:
 	case BSS_CRIT_UPDATE_EVENT_ATTLM:
+		hapd->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_FLAG;
+		break;
+	case BSS_CRIT_UPDATE_EVENT_ADD_LINK:
+		/* only set the CU flag for the links in link_reconf_in_progress */
 		hapd->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_FLAG;
 		return 0;
 	default:
 		hapd->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_NONE;
 		return -1;
 	}
+
+	/* only set the CU flag for the non-CU links */
+	for_each_mld_link(h, hapd) {
+		if (h == hapd)
+			continue;
+
+		h->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_FLAG;
+	}
+
+	return 0;
 }
 
 #endif /* CONFIG_NATIVE_WINDOWS */

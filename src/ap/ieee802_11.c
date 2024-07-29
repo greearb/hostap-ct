@@ -223,7 +223,6 @@ u8 * hostapd_eid_rm_enabled_capab(struct hostapd_data *hapd, u8 *eid,
 
 u16 hostapd_own_capab_info(struct hostapd_data *hapd)
 {
-	struct hostapd_data *h;
 	int capab = WLAN_CAPABILITY_ESS;
 	int privacy = 0;
 	int dfs;
@@ -280,15 +279,10 @@ u16 hostapd_own_capab_info(struct hostapd_data *hapd)
 	}
 
 #ifdef CONFIG_IEEE80211BE
-	if (hapd->conf->mld_ap) {
-		for_each_mld_link(h, hapd) {
-			if (h->eht_mld_bss_critical_update) {
-				/* capab |= WLAN_CAPABILITY_PBCC; */
-				/* Seems this was deprecated. --Ben */
-				break;
-			}
-		}
-	}
+	/* TODO:  PBCC capab is deprecated now. --Ben
+	if (hapd->conf->mld_ap && hapd->eht_mld_bss_critical_update)
+		capab |= WLAN_CAPABILITY_PBCC;
+	*/
 #endif /* CONFIG_IEEE80211BE */
 
 
