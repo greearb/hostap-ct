@@ -2700,6 +2700,9 @@ enum qca_wlan_vendor_scan_priority {
  *	when AP is operating as MLD to specify which link is requesting the
  *	scan or which link the scan result is for. No need of this attribute
  *	in other cases.
+ * @QCA_WLAN_VENDOR_ATTR_SCAN_SKIP_CHANNEL_RECENCY_PERIOD: Optional (u32). Skip
+ *	scanning channels which are scanned recently within configured time
+ *	(in ms).
  */
 enum qca_wlan_vendor_attr_scan {
 	QCA_WLAN_VENDOR_ATTR_SCAN_INVALID_PARAM = 0,
@@ -2718,6 +2721,7 @@ enum qca_wlan_vendor_attr_scan {
 	QCA_WLAN_VENDOR_ATTR_SCAN_PRIORITY = 13,
 	QCA_WLAN_VENDOR_ATTR_SCAN_PAD = 14,
 	QCA_WLAN_VENDOR_ATTR_SCAN_LINK_ID = 15,
+	QCA_WLAN_VENDOR_ATTR_SCAN_SKIP_CHANNEL_RECENCY_PERIOD = 16,
 	QCA_WLAN_VENDOR_ATTR_SCAN_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_SCAN_MAX =
 	QCA_WLAN_VENDOR_ATTR_SCAN_AFTER_LAST - 1
