@@ -4129,7 +4129,6 @@ static int wpa_sm_set_ml_info(struct wpa_supplicant *wpa_s)
 {
 	struct driver_sta_mlo_info drv_mlo;
 	struct wpa_sm_mlo wpa_mlo;
-	const u8 *bss_rsn = NULL, *bss_rsnx = NULL;
 	int i;
 
 	os_memset(&drv_mlo, 0, sizeof(drv_mlo));
@@ -4149,6 +4148,7 @@ static int wpa_sm_set_ml_info(struct wpa_supplicant *wpa_s)
 
 	for_each_link(drv_mlo.req_links, i) {
 		struct wpa_bss *bss;
+		const u8 *rsne, *rsnxe, *rsnoe, *rsno2e, *rsnxoe;
 
 		bss = wpa_supplicant_get_new_bss(wpa_s, drv_mlo.links[i].bssid);
 		if (!bss) {
@@ -4157,13 +4157,25 @@ static int wpa_sm_set_ml_info(struct wpa_supplicant *wpa_s)
 			return -1;
 		}
 
-		bss_rsn = wpa_bss_get_rsne(wpa_s, bss, NULL, true);
-		bss_rsnx = wpa_bss_get_rsnxe(wpa_s, bss, NULL, true);
+		rsne = wpa_bss_get_ie(bss, WLAN_EID_RSN);
+		rsnxe = wpa_bss_get_ie(bss, WLAN_EID_RSNX);
+		rsnoe = wpa_bss_get_vendor_ie(bss,
+					      RSNE_OVERRIDE_IE_VENDOR_TYPE);
+		rsno2e = wpa_bss_get_vendor_ie(bss,
+					       RSNE_OVERRIDE_2_IE_VENDOR_TYPE);
+		rsnxoe = wpa_bss_get_vendor_ie(bss,
+					       RSNXE_OVERRIDE_IE_VENDOR_TYPE);
 
-		wpa_mlo.links[i].ap_rsne = bss_rsn ? (u8 *) bss_rsn : NULL;
-		wpa_mlo.links[i].ap_rsne_len = bss_rsn ? 2 + bss_rsn[1] : 0;
-		wpa_mlo.links[i].ap_rsnxe = bss_rsnx ? (u8 *) bss_rsnx : NULL;
-		wpa_mlo.links[i].ap_rsnxe_len = bss_rsnx ? 2 + bss_rsnx[1] : 0;
+		wpa_mlo.links[i].ap_rsne = rsne ? (u8 *) rsne : NULL;
+		wpa_mlo.links[i].ap_rsne_len = rsne ? 2 + rsne[1] : 0;
+		wpa_mlo.links[i].ap_rsnxe = rsnxe ? (u8 *) rsnxe : NULL;
+		wpa_mlo.links[i].ap_rsnxe_len = rsnxe ? 2 + rsnxe[1] : 0;
+		wpa_mlo.links[i].ap_rsnoe = rsnoe ? (u8 *) rsnoe : NULL;
+		wpa_mlo.links[i].ap_rsnoe_len = rsnoe ? 2 + rsnoe[1] : 0;
+		wpa_mlo.links[i].ap_rsno2e = rsno2e ? (u8 *) rsno2e : NULL;
+		wpa_mlo.links[i].ap_rsno2e_len = rsno2e ? 2 + rsno2e[1] : 0;
+		wpa_mlo.links[i].ap_rsnxoe = rsnxoe ? (u8 *) rsnxoe : NULL;
+		wpa_mlo.links[i].ap_rsnxoe_len = rsnxoe ? 2 + rsnxoe[1] : 0;
 
 		os_memcpy(wpa_mlo.links[i].bssid, drv_mlo.links[i].bssid,
 			  ETH_ALEN);

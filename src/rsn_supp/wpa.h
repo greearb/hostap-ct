@@ -168,8 +168,9 @@ struct rsn_supp_config {
 struct wpa_sm_link {
 	u8 addr[ETH_ALEN];
 	u8 bssid[ETH_ALEN];
-	u8 *ap_rsne, *ap_rsnxe;
-	size_t ap_rsne_len, ap_rsnxe_len;
+	u8 *ap_rsne, *ap_rsnxe, *ap_rsnoe, *ap_rsno2e, *ap_rsnxoe;
+	size_t ap_rsne_len, ap_rsnxe_len, ap_rsnoe_len, ap_rsno2e_len,
+		ap_rsnxoe_len;;
 	struct wpa_gtk gtk;
 	struct wpa_gtk gtk_wnm_sleep;
 	struct wpa_igtk igtk;

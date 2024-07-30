@@ -3448,7 +3448,7 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 	const u8 *p;
 	size_t left;
 	u8 link_id;
-	char title[50];
+	char title[100];
 	int ret;
 
 	if (len == 0)
@@ -3623,6 +3623,21 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 		ie->mlo_link_len[link_id] = left;
 		ret = os_snprintf(title, sizeof(title),
 				  "RSN: Link ID %u - MLO Link KDE in EAPOL-Key",
+				  link_id);
+		if (!os_snprintf_error(sizeof(title), ret))
+			wpa_hexdump(MSG_DEBUG, title, pos, dlen);
+		return 0;
+	}
+
+	if (left >= 1 && selector == WFA_KEY_DATA_RSN_OVERRIDE_LINK) {
+		link_id = p[0];
+		if (link_id >= MAX_NUM_MLD_LINKS)
+			return 2;
+
+		ie->rsn_override_link[link_id] = p;
+		ie->rsn_override_link_len[link_id] = left;
+		ret = os_snprintf(title, sizeof(title),
+				  "RSN: Link ID %u - RSN Override Link KDE in EAPOL-Key",
 				  link_id);
 		if (!os_snprintf_error(sizeof(title), ret))
 			wpa_hexdump(MSG_DEBUG, title, pos, dlen);

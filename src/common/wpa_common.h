@@ -144,6 +144,7 @@ WPA_CIPHER_BIP_CMAC_256)
 #define WFA_KEY_DATA_IP_ADDR_ALLOC RSN_SELECTOR(0x50, 0x6f, 0x9a, 5)
 #define WFA_KEY_DATA_TRANSITION_DISABLE RSN_SELECTOR(0x50, 0x6f, 0x9a, 0x20)
 #define WFA_KEY_DATA_DPP RSN_SELECTOR(0x50, 0x6f, 0x9a, 0x21)
+#define WFA_KEY_DATA_RSN_OVERRIDE_LINK RSN_SELECTOR(0x50, 0x6f, 0x9a, 0x2d)
 
 #define WPA_OUI_TYPE RSN_SELECTOR(0x00, 0x50, 0xf2, 1)
 
@@ -732,6 +733,8 @@ struct wpa_eapol_ie_parse {
 	u16 valid_mlo_links; /* bitmap of valid MLO link KDEs */
 	const u8 *mlo_link[MAX_NUM_MLD_LINKS];
 	size_t mlo_link_len[MAX_NUM_MLD_LINKS];
+	const u8 *rsn_override_link[MAX_NUM_MLD_LINKS];
+	size_t rsn_override_link_len[MAX_NUM_MLD_LINKS];
 };
 
 int wpa_parse_kde_ies(const u8 *buf, size_t len, struct wpa_eapol_ie_parse *ie);
