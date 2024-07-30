@@ -185,12 +185,15 @@ def run_rsn_override_mld(dev, apdev, mixed):
                        scan_freq="2412 2437")
 
         status = wpas.get_status()
+        logger.debug("wpas STATUS:\n" + str(status))
         if status['key_mgmt'] != 'SAE-EXT-KEY' or \
+           'pmf' not in status or \
            status['pmf'] != '2' or \
            status['pairwise_cipher'] != 'GCMP-256':
             raise Exception("Unexpected result for new STA")
 
         status = dev[0].get_status()
+        logger.debug("dev[0] STATUS:\n" + str(status))
         if status['key_mgmt'] != 'WPA2-PSK' or \
            status['pairwise_cipher'] != 'CCMP':
             raise Exception("Unexpected result for legacy STA")
