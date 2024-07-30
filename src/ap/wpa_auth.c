@@ -885,9 +885,6 @@ void wpa_deinit(struct wpa_authenticator *wpa_auth)
 
 
 	os_free(wpa_auth->wpa_ie);
-	os_free(wpa_auth->rsne_override);
-	os_free(wpa_auth->rsne_override_2);
-	os_free(wpa_auth->rsnxe_override);
 
 	group = wpa_auth->group;
 	while (group) {
