@@ -555,7 +555,7 @@ static int wnm_nei_get_chan(struct wpa_supplicant *wpa_s, u8 op_class, u8 chan)
 	}
 
 	freq = ieee80211_chan_to_freq(country, op_class, chan);
-	if (freq <= 0 && op_class == 0) {
+	if (freq <= 0 && (op_class == 0 || op_class == 255)) {
 		/*
 		 * Some APs do not advertise correct operating class
 		 * information. Try to determine the most likely operating
