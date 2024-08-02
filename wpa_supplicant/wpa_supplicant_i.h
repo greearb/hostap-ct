@@ -1310,7 +1310,7 @@ struct wpa_supplicant {
 	bool wnm_link_removal;
 	bool wnm_disassoc_mld;
 	u8 wnm_disassoc_addr[ETH_ALEN];
-	u16 wnm_dissoc_timer;
+	u16 wnm_disassoc_timer;
 	u8 wnm_bss_termination_duration[12];
 	struct neighbor_report *wnm_neighbor_report_elements;
 	struct os_reltime wnm_cand_valid_until;

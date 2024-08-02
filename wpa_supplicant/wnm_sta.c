@@ -1407,7 +1407,7 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 
 	wpa_s->wnm_dialog_token = pos[0];
 	wpa_s->wnm_mode = pos[1];
-	wpa_s->wnm_dissoc_timer = WPA_GET_LE16(pos + 2);
+	wpa_s->wnm_disassoc_timer = WPA_GET_LE16(pos + 2);
 	wpa_s->wnm_link_removal = false;
 	valid_int = pos[4];
 	wpa_s->wnm_reply = reply;
@@ -1416,7 +1416,7 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 		   "dialog_token=%u request_mode=0x%x "
 		   "disassoc_timer=%u validity_interval=%u",
 		   wpa_s->wnm_dialog_token, wpa_s->wnm_mode,
-		   wpa_s->wnm_dissoc_timer, valid_int);
+		   wpa_s->wnm_disassoc_timer, valid_int);
 
 #if defined(CONFIG_MBO) && defined(CONFIG_TESTING_OPTIONS)
 	if (wpa_s->reject_btm_req_reason) {
@@ -1462,7 +1462,8 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 
 		wpa_msg(wpa_s, MSG_INFO, ESS_DISASSOC_IMMINENT "%d %u %s",
 			wpa_sm_pmf_enabled(wpa_s->wpa),
-			wpa_s->wnm_dissoc_timer * beacon_int * 128 / 125, url);
+			wpa_s->wnm_disassoc_timer * beacon_int * 128 / 125,
+			url);
 	}
 
 	disassoc_imminent = wpa_s->wnm_mode & WNM_BSS_TM_REQ_DISASSOC_IMMINENT;
@@ -1510,8 +1511,8 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 
 	if (disassoc_imminent) {
 		wpa_msg(wpa_s, MSG_INFO, "WNM: Disassociation Imminent - "
-			"Disassociation Timer %u", wpa_s->wnm_dissoc_timer);
-		if (wpa_s->wnm_dissoc_timer && !wpa_s->scanning &&
+			"Disassociation Timer %u", wpa_s->wnm_disassoc_timer);
+		if (wpa_s->wnm_disassoc_timer && !wpa_s->scanning &&
 		    (!wpa_s->current_ssid || !wpa_s->current_ssid->bssid_set)) {
 			wpa_printf(MSG_DEBUG, "Trying to find another BSS");
 			wpa_s->wnm_transition_scan = true;
