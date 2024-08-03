@@ -569,7 +569,7 @@ def pasn_fils_setup(wpas, apdev, params, key_mgmt):
     params['erp_domain'] = 'example.com'
     params['fils_realm'] = 'example.com'
     params['disable_pmksa_caching'] = '1'
-    hapd = hostapd.add_ap(apdev[0]['ifname'], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     id = wpas.connect("fils", key_mgmt=key_mgmt,
                       eap="PSK", identity="psk.user@example.com",

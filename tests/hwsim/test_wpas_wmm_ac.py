@@ -299,7 +299,7 @@ def test_wmm_element(dev, apdev):
 
 def run_wmm_element(dev, apdev):
     params = {"ssid": "wmm"}
-    hapd = hostapd.add_ap(apdev[0]['ifname'], params)
+    hapd = hostapd.add_ap(apdev[0], params)
     bssid = hapd.own_addr()
 
     # Too short WMM IE
@@ -381,7 +381,7 @@ def test_tspec_ap_parsing(dev, apdev):
 def test_wmm_disabled(dev, apdev):
     """WMM disabled and unexpected TSPEC"""
     params = {"ssid": "no-wmm", "ieee80211n": "0", "wmm_enabled": "0"}
-    hapd = hostapd.add_ap(apdev[0]['ifname'], params)
+    hapd = hostapd.add_ap(apdev[0], params)
     bssid = hapd.own_addr()
     dev[0].connect("no-wmm", key_mgmt="NONE", scan_freq="2412")
     addr = dev[0].own_addr()

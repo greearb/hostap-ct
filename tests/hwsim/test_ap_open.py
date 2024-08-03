@@ -131,7 +131,7 @@ def test_ap_open_assoc_timeout(dev, apdev):
 
 def test_ap_open_auth_drop_sta(dev, apdev):
     """AP dropping station after successful authentication"""
-    hapd = hostapd.add_ap(apdev[0]['ifname'], {"ssid": "open"})
+    hapd = hostapd.add_ap(apdev[0], {"ssid": "open"})
     dev[0].scan(freq="2412")
     hapd.set("ext_mgmt_frame_handling", "1")
     dev[0].connect("open", key_mgmt="NONE", scan_freq="2412",

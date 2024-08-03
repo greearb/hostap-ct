@@ -317,7 +317,7 @@ def test_wpas_config_file_wps(dev, apdev):
 
     params = {"ssid": "test-wps", "eap_server": "1", "wps_state": "2",
               "skip_cred_build": "1", "extra_cred": "wps-ctrl-cred"}
-    hapd = hostapd.add_ap(apdev[0]['ifname'], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
 
@@ -362,7 +362,7 @@ def test_wpas_config_file_wps2(dev, apdev):
 
     params = {"ssid": "test-wps", "eap_server": "1", "wps_state": "2",
               "skip_cred_build": "1", "extra_cred": "wps-ctrl-cred2"}
-    hapd = hostapd.add_ap(apdev[0]['ifname'], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
 
