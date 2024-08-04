@@ -561,6 +561,9 @@ int handle_auth_pasn_resp(struct pasn_data *pasn, const u8 *own_addr,
 	if (rsnxe_ie)
 		wpabuf_put_data(buf, rsnxe_ie, 2 + rsnxe_ie[1]);
 
+	if (pasn->prepare_data_element && pasn->cb_ctx)
+		pasn->prepare_data_element(pasn->cb_ctx, peer_addr);
+
 	wpa_pasn_add_extra_ies(buf, pasn->extra_ies, pasn->extra_ies_len);
 
 	/* Add the mic */
@@ -1084,6 +1087,11 @@ int handle_auth_pasn_3(struct pasn_data *pasn, const u8 *own_addr,
 		}
 #endif /* CONFIG_FILS */
 		wpabuf_free(wrapped_data);
+	}
+
+	if (pasn_parse_encrypted_data(pasn, (const u8 *) mgmt, len) < 0) {
+		wpa_printf(MSG_DEBUG, "PASN: Encrypted data processing failed");
+		goto fail;
 	}
 
 	wpa_printf(MSG_INFO,

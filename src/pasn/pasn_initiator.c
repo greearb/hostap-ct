@@ -716,6 +716,11 @@ static struct wpabuf * wpas_pasn_build_auth_3(struct pasn_data *pasn)
 	wpabuf_free(wrapped_data_buf);
 	wrapped_data_buf = NULL;
 
+	if (pasn->prepare_data_element && pasn->cb_ctx)
+		pasn->prepare_data_element(pasn->cb_ctx, pasn->peer_addr);
+
+	wpa_pasn_add_extra_ies(buf, pasn->extra_ies, pasn->extra_ies_len);
+
 	/* Add the MIC */
 	mic_len = pasn_mic_len(pasn->akmp, pasn->cipher);
 	wpabuf_put_u8(buf, WLAN_EID_MIC);
@@ -1385,6 +1390,11 @@ int wpa_pasn_auth_rx(struct pasn_data *pasn, const u8 *data, size_t len,
 	pasn->trans_seq++;
 
 	wpa_printf(MSG_DEBUG, "PASN: Success verifying Authentication frame");
+
+	if (pasn_parse_encrypted_data(pasn, data, len) < 0) {
+		wpa_printf(MSG_DEBUG, "PASN: Encrypted data processing failed");
+		goto fail;
+	}
 
 	frame = wpas_pasn_build_auth_3(pasn);
 	if (!frame) {

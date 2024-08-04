@@ -151,6 +151,10 @@ struct pasn_data {
 	 */
 	int (*validate_custom_pmkid)(void *ctx, const u8 *addr,
 				     const u8 *pmkid);
+
+	int (*prepare_data_element)(void *ctx, const u8 *peer_addr);
+
+	int (*parse_data_element)(void *ctx, const u8 *data, size_t len);
 };
 
 /* Initiator */
@@ -246,6 +250,10 @@ int pasn_get_cipher(struct pasn_data *pasn);
 size_t pasn_get_pmk_len(struct pasn_data *pasn);
 u8 * pasn_get_pmk(struct pasn_data *pasn);
 struct wpa_ptk * pasn_get_ptk(struct pasn_data *pasn);
+int pasn_add_encrypted_data(struct pasn_data *pasn, struct wpabuf *buf,
+			    const u8 *data, size_t data_len);
+int pasn_parse_encrypted_data(struct pasn_data *pasn, const u8 *data,
+			      size_t len);
 
 #ifdef __cplusplus
 }
