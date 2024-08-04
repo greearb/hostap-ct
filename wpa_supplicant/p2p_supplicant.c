@@ -25,6 +25,7 @@
 #include "ap/dfs.h"
 #include "eapol_supp/eapol_supp_sm.h"
 #include "rsn_supp/wpa.h"
+#include "rsn_supp/pmksa_cache.h"
 #include "wpa_supplicant_i.h"
 #include "driver_i.h"
 #include "ap.h"
@@ -1820,6 +1821,93 @@ static int wpas_copy_go_neg_results(struct wpa_supplicant *wpa_s,
 }
 
 
+static void wpas_start_gc(struct wpa_supplicant *wpa_s,
+			  struct p2p_go_neg_results *res)
+{
+	struct os_reltime now;
+	struct wpa_ssid *ssid;
+	struct rsn_pmksa_cache_entry *entry;
+
+	if (!res->ssid_len) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "P2P: SSID info not present");
+		return;
+	}
+
+	wpa_s->group_formation_reported = 0;
+	wpa_printf(MSG_DEBUG, "P2P: Start connect for peer " MACSTR
+		   " dev_addr " MACSTR,
+		   MAC2STR(res->peer_interface_addr),
+		   MAC2STR(res->peer_device_addr));
+	wpa_hexdump_ascii(MSG_DEBUG, "P2P: Start connect for SSID",
+			  res->ssid, res->ssid_len);
+	wpa_supplicant_ap_deinit(wpa_s);
+	wpas_copy_go_neg_results(wpa_s, res);
+
+	ssid = wpa_config_add_network(wpa_s->conf);
+	if (!ssid) {
+		wpa_dbg(wpa_s, MSG_DEBUG,
+			"P2P: Could not add network for client");
+		return;
+	}
+	os_memset(wpa_s->go_dev_addr, 0, ETH_ALEN);
+	wpa_config_set_network_defaults(ssid);
+	ssid->temporary = 1;
+	ssid->p2p_group = 1;
+
+	ssid->ssid = os_memdup(res->ssid, res->ssid_len);
+	if (!ssid->ssid)
+		return;
+	ssid->ssid_len = res->ssid_len;
+
+	os_memcpy(ssid->bssid, res->peer_interface_addr, ETH_ALEN);
+
+	if (res->akmp == WPA_KEY_MGMT_PASN && res->sae_password) {
+		ssid->auth_alg = WPA_AUTH_ALG_SAE;
+		ssid->sae_password = os_strdup(res->sae_password);
+		if (!ssid->sae_password)
+			return;
+	} else if (res->akmp == WPA_KEY_MGMT_SAE && res->pmk_len) {
+		ssid->auth_alg = WPA_AUTH_ALG_OPEN;
+		entry = os_zalloc(sizeof(*entry));
+		if (!entry)
+			return;
+		os_memcpy(entry->aa, res->peer_interface_addr, ETH_ALEN);
+		os_memcpy(entry->pmkid, res->pmkid, PMKID_LEN);
+		entry->pmk_len = res->pmk_len;
+		os_memcpy(entry->pmk, res->pmk, res->pmk_len);
+		entry->akmp = res->akmp;
+		os_get_reltime(&now);
+		entry->expiration = now.sec + 43200;
+		entry->reauth_time = now.sec + 43200 * 70 / 100;
+		entry->network_ctx = ssid;
+		os_memcpy(entry->spa, wpa_s->own_addr, ETH_ALEN);
+
+		wpa_sm_pmksa_cache_add_entry(wpa_s->wpa, entry);
+		ssid->pmk_valid = true;
+	}
+
+	if (res->psk_set) {
+		os_memcpy(ssid->psk, res->psk, 32);
+		ssid->psk_set = 1;
+	}
+	ssid->proto = WPA_PROTO_RSN;
+	ssid->key_mgmt = WPA_KEY_MGMT_SAE;
+	ssid->pairwise_cipher = WPA_CIPHER_CCMP;
+	ssid->group_cipher = WPA_CIPHER_CCMP;
+	ssid->sae_pwe = SAE_PWE_HASH_TO_ELEMENT;
+	ssid->ieee80211w = MGMT_FRAME_PROTECTION_REQUIRED;
+	ssid->disabled = 0;
+	wpa_s->show_group_started = 1;
+	wpa_s->p2p_in_invitation = 1;
+	wpa_s->p2p_go_group_formation_completed = 0;
+	wpa_s->global->p2p_group_formation = wpa_s;
+
+	wpa_s->current_ssid = ssid;
+	wpa_supplicant_update_scan_results(wpa_s, res->peer_interface_addr);
+	wpa_supplicant_select_network(wpa_s, ssid);
+}
+
+
 static void wpas_start_wps_enrollee(struct wpa_supplicant *wpa_s,
 				    struct p2p_go_neg_results *res)
 {
@@ -2660,7 +2748,10 @@ static void wpas_go_neg_completed(void *ctx, struct p2p_go_neg_results *res)
 		wpas_start_go(group_wpa_s, res, 1);
 	} else {
 		os_get_reltime(&group_wpa_s->scan_min_time);
-		wpas_start_wps_enrollee(group_wpa_s, res);
+		if (res->p2p2)
+			wpas_start_gc(group_wpa_s, res);
+		else
+			wpas_start_wps_enrollee(group_wpa_s, res);
 	}
 
 	wpa_s->global->p2p_long_listen = 0;

@@ -233,6 +233,11 @@ struct wpa_ssid {
 	char *passphrase;
 
 	/**
+	 * pmk_valid - Whether PMK is valid in case of P2P2 derived from PASN
+	 */
+	bool pmk_valid;
+
+	/**
 	 * sae_password - SAE password
 	 *
 	 * This parameter can be used to set a password for SAE. By default, the
