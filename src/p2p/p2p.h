@@ -1271,6 +1271,37 @@ struct p2p_config {
 	 */
 	void (*bootstrap_completed)(void *ctx, const u8 *addr,
 				    enum p2p_status_code status, int freq);
+
+	/**
+	 * pasn_send_mgmt - Function handler to transmit a Management frame
+	 * @ctx: Callback context from cb_ctx
+	 * @data: Frame to transmit
+	 * @data_len: Length of frame to transmit
+	 * @noack: No ack flag
+	 * @freq: Frequency in MHz for the channel on which to transmit
+	 * @wait: How many milliseconds to wait for a response frame
+	 * Returns: 0 on success, -1 on failure
+	 */
+	int (*pasn_send_mgmt)(void *ctx, const u8 *data, size_t data_len,
+			      int noack, unsigned int freq, unsigned int wait);
+
+	/**
+	 * prepare_data_element - Function handler to update protocol specific
+	 *	elements in PASN authentication frames
+	 * @ctx: Callback context from cb_ctx
+	 * @peer_addr: Peer MAC address
+	 * Returns: 0 on success, -1 on failure
+	 */
+	int (*prepare_data_element)(void *ctx, const u8 *peer_addr);
+
+	/**
+	 * parse_data_element - Function handler to parse P2P data element
+	 * @ctx: Callback context from cb_ctx
+	 * @data: Data to be parsed
+	 * @len: Length of data
+	 * Returns: 0 on success, -1 on failure
+	 */
+	int (*parse_data_element)(void *ctx, const u8 *data, size_t len);
 };
 
 

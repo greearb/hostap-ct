@@ -4997,6 +4997,38 @@ static void wpas_bootstrap_completed(void *ctx, const u8 *addr,
 }
 
 
+#ifdef CONFIG_PASN
+
+static int wpas_p2p_pasn_send_mgmt(void *ctx, const u8 *data, size_t data_len,
+				   int noack, unsigned int freq,
+				   unsigned int wait)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	return wpa_drv_send_mlme(wpa_s, data, data_len, noack, freq, wait);
+}
+
+
+static int wpas_p2p_prepare_data_element(void *ctx, const u8 *peer_addr)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+	struct p2p_data *p2p = wpa_s->global->p2p;
+
+	return p2p_prepare_data_element(p2p, peer_addr);
+}
+
+
+static int wpas_p2p_parse_data_element(void *ctx, const u8 *data, size_t len)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+	struct p2p_data *p2p = wpa_s->global->p2p;
+
+	return p2p_parse_data_element(p2p, data, len);
+}
+
+#endif /* CONFIG_PASN */
+
+
 int wpas_p2p_mac_setup(struct wpa_supplicant *wpa_s)
 {
 	u8 addr[ETH_ALEN] = {0};
@@ -5119,6 +5151,11 @@ int wpas_p2p_init(struct wpa_global *global, struct wpa_supplicant *wpa_s)
 	p2p.register_bootstrap_comeback = wpas_p2p_register_bootstrap_comeback;
 	p2p.bootstrap_req_rx = wpas_bootstrap_req_rx;
 	p2p.bootstrap_completed = wpas_bootstrap_completed;
+#ifdef CONFIG_PASN
+	p2p.pasn_send_mgmt = wpas_p2p_pasn_send_mgmt;
+	p2p.prepare_data_element = wpas_p2p_prepare_data_element;
+	p2p.parse_data_element = wpas_p2p_parse_data_element;
+#endif /* CONFIG_PASN */
 
 	os_memcpy(wpa_s->global->p2p_dev_addr, wpa_s->own_addr, ETH_ALEN);
 	os_memcpy(p2p.dev_addr, wpa_s->global->p2p_dev_addr, ETH_ALEN);
