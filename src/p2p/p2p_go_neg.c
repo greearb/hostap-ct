@@ -802,7 +802,8 @@ void p2p_check_pref_chan(struct p2p_data *p2p, int go,
 
 
 struct wpabuf * p2p_process_go_neg_req(struct p2p_data *p2p, const u8 *sa,
-				       const u8 *data, size_t len, int rx_freq)
+				       const u8 *data, size_t len, int rx_freq,
+				       bool p2p2)
 {
 	struct p2p_device *dev = NULL;
 	struct wpabuf *resp;
@@ -921,7 +922,7 @@ struct wpabuf * p2p_process_go_neg_req(struct p2p_data *p2p, const u8 *sa,
 		p2p_dbg(p2p, "User has rejected this peer");
 		status = P2P_SC_FAIL_REJECTED_BY_USER;
 	} else if (dev == NULL ||
-		   (dev->wps_method == WPS_NOT_READY &&
+		   (dev->wps_method == WPS_NOT_READY && !p2p2 &&
 		    (p2p->authorized_oob_dev_pw_id == 0 ||
 		     p2p->authorized_oob_dev_pw_id !=
 		     msg.dev_password_id))) {
@@ -992,6 +993,9 @@ struct wpabuf * p2p_process_go_neg_req(struct p2p_data *p2p, const u8 *sa,
 			goto fail;
 		}
 
+		if (p2p2)
+			goto skip;
+
 		switch (msg.dev_password_id) {
 		case DEV_PW_REGISTRAR_SPECIFIED:
 			p2p_dbg(p2p, "PIN from peer Display");
@@ -1059,6 +1063,7 @@ struct wpabuf * p2p_process_go_neg_req(struct p2p_data *p2p, const u8 *sa,
 			goto fail;
 		}
 
+skip:
 		if (go && p2p_go_select_channel(p2p, dev, &status) < 0)
 			goto fail;
 
@@ -1127,7 +1132,7 @@ void p2p_handle_go_neg_req(struct p2p_data *p2p, const u8 *sa, const u8 *data,
 	int freq;
 	struct wpabuf *resp;
 
-	resp = p2p_process_go_neg_req(p2p, sa, data, len, rx_freq);
+	resp = p2p_process_go_neg_req(p2p, sa, data, len, rx_freq, false);
 	if (!resp)
 		return;
 
@@ -1230,7 +1235,8 @@ static struct wpabuf * p2p_build_go_neg_conf(struct p2p_data *p2p,
 
 
 struct wpabuf * p2p_process_go_neg_resp(struct p2p_data *p2p, const u8 *sa,
-					const u8 *data, size_t len, int rx_freq)
+					const u8 *data, size_t len,
+					int rx_freq, bool p2p2)
 {
 	struct p2p_device *dev;
 	int go = -1;
@@ -1242,7 +1248,7 @@ struct wpabuf * p2p_process_go_neg_resp(struct p2p_data *p2p, const u8 *sa,
 	p2p_dbg(p2p, "Received GO Negotiation Response from " MACSTR
 		" (freq=%d)", MAC2STR(sa), rx_freq);
 	dev = p2p_get_device(p2p, sa);
-	if (dev == NULL || dev->wps_method == WPS_NOT_READY ||
+	if (dev == NULL || (!p2p2 && dev->wps_method == WPS_NOT_READY) ||
 	    dev != p2p->go_neg_peer) {
 		p2p_dbg(p2p, "Not ready for GO negotiation with " MACSTR,
 			MAC2STR(sa));
@@ -1394,6 +1400,9 @@ struct wpabuf * p2p_process_go_neg_resp(struct p2p_data *p2p, const u8 *sa,
 	} else
 		dev->oper_freq = 0;
 
+	if (p2p2)
+		goto skip;
+
 	switch (msg.dev_password_id) {
 	case DEV_PW_REGISTRAR_SPECIFIED:
 		p2p_dbg(p2p, "PIN from peer Display");
@@ -1449,6 +1458,7 @@ struct wpabuf * p2p_process_go_neg_resp(struct p2p_data *p2p, const u8 *sa,
 		goto fail;
 	}
 
+skip:
 	if (go && p2p_go_select_channel(p2p, dev, &status) < 0)
 		goto fail;
 
@@ -1506,7 +1516,7 @@ void p2p_handle_go_neg_resp(struct p2p_data *p2p, const u8 *sa, const u8 *data,
 	struct p2p_device *dev;
 	struct wpabuf *conf;
 
-	conf = p2p_process_go_neg_resp(p2p, sa, data, len, rx_freq);
+	conf = p2p_process_go_neg_resp(p2p, sa, data, len, rx_freq, false);
 	if (!conf)
 		return;
 	wpabuf_free(conf);
@@ -1537,7 +1547,7 @@ void p2p_handle_go_neg_resp(struct p2p_data *p2p, const u8 *sa, const u8 *data,
 
 
 void p2p_handle_go_neg_conf(struct p2p_data *p2p, const u8 *sa,
-			    const u8 *data, size_t len)
+			    const u8 *data, size_t len, bool p2p2)
 {
 	struct p2p_device *dev;
 	struct p2p_message msg;
@@ -1545,7 +1555,7 @@ void p2p_handle_go_neg_conf(struct p2p_data *p2p, const u8 *sa,
 	p2p_dbg(p2p, "Received GO Negotiation Confirm from " MACSTR,
 		MAC2STR(sa));
 	dev = p2p_get_device(p2p, sa);
-	if (dev == NULL || dev->wps_method == WPS_NOT_READY ||
+	if (dev == NULL || (!p2p2 && dev->wps_method == WPS_NOT_READY) ||
 	    dev != p2p->go_neg_peer) {
 		p2p_dbg(p2p, "Not ready for GO negotiation with " MACSTR,
 			MAC2STR(sa));

@@ -1925,7 +1925,7 @@ static void p2p_rx_p2p_action(struct p2p_data *p2p, const u8 *sa,
 		p2p_handle_go_neg_resp(p2p, sa, data + 1, len - 1, rx_freq);
 		break;
 	case P2P_GO_NEG_CONF:
-		p2p_handle_go_neg_conf(p2p, sa, data + 1, len - 1);
+		p2p_handle_go_neg_conf(p2p, sa, data + 1, len - 1, false);
 		break;
 	case P2P_INVITATION_REQ:
 		p2p_handle_invitation_req(p2p, sa, data + 1, len - 1, rx_freq);
