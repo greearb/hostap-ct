@@ -473,7 +473,7 @@ static void handle_auth_pasn_comeback(struct pasn_data *pasn,
 		   "PASN: comeback: STA=" MACSTR, MAC2STR(peer_addr));
 
 	ret = pasn->send_mgmt(pasn->cb_ctx, wpabuf_head_u8(buf),
-			      wpabuf_len(buf), 0, 0, 0);
+			      wpabuf_len(buf), 0, pasn->freq, 0);
 	if (ret)
 		wpa_printf(MSG_INFO, "PASN: Failed to send comeback frame 2");
 
@@ -638,7 +638,7 @@ done:
 		   MAC2STR(peer_addr));
 
 	ret = pasn->send_mgmt(pasn->cb_ctx, wpabuf_head_u8(buf),
-			      wpabuf_len(buf), 0, 0, 0);
+			      wpabuf_len(buf), 0, pasn->freq, 0);
 	if (ret)
 		wpa_printf(MSG_INFO, "send_auth_reply: Send failed");
 
