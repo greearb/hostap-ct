@@ -738,6 +738,15 @@ struct p2p_message {
 
 	const u8 *pbma_info;
 	size_t pbma_info_len;
+
+	const u8 *action_frame_wrapper;
+	size_t action_frame_wrapper_len;
+
+	const u8 *dira;
+	size_t dira_len;
+
+	const u8 *wlan_ap_info;
+	size_t wlan_ap_info_len;
 };
 
 

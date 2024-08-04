@@ -437,6 +437,40 @@ static int p2p_parse_attribute(u8 id, const u8 *data, u16 len,
 		msg->pbma_info_len = len;
 		wpa_printf(MSG_DEBUG, "P2P: * PBMA (length=%u)", len);
 		break;
+	case P2P_ATTR_ACTION_FRAME_WRAPPER:
+		if (len < 2) {
+			wpa_printf(MSG_DEBUG,
+				   "P2P: Too short Action Frame Wrapper attribute (length %d)",
+				   len);
+			return -1;
+		}
+		msg->action_frame_wrapper = data;
+		msg->action_frame_wrapper_len = len;
+		wpa_printf(MSG_DEBUG, "P2P: * Action frame wrapper (length=%u)",
+			   len);
+		break;
+	case P2P_ATTR_DEVICE_IDENTITY_RESOLUTION:
+		if (len < 1) {
+			wpa_printf(MSG_DEBUG, "P2P: Too short DIRA (length %d)",
+				   len);
+			return -1;
+		}
+		msg->dira = data;
+		msg->dira_len = len;
+		wpa_printf(MSG_DEBUG, "P2P: * DIRA (length=%u)", len);
+		break;
+	case P2P_ATTR_WLAN_AP_INFORMATION:
+		/* One or more AP Info fields (each being 12 octets) is required
+		 * to be included. */
+		if (len < 12) {
+			wpa_printf(MSG_DEBUG,
+				   "P2P: Too short WLAN AP info (length %d)",
+				   len);
+			return -1;
+		}
+		msg->wlan_ap_info = data;
+		msg->wlan_ap_info_len = len;
+		break;
 	default:
 		wpa_printf(MSG_DEBUG, "P2P: Skipped unknown attribute %d "
 			   "(length %d)", id, len);
