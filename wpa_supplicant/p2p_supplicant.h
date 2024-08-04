@@ -182,6 +182,8 @@ int wpas_p2p_try_edmg_channel(struct wpa_supplicant *wpa_s,
 void wpas_p2p_process_usd_elems(struct wpa_supplicant *wpa_s, const u8 *buf,
 				u16 buf_len, const u8 *peer_addr,
 				unsigned int freq);
+int wpas_p2p_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
+				 size_t data_len, bool acked);
 
 #ifdef CONFIG_P2P
 

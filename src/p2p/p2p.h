@@ -2580,5 +2580,7 @@ int p2p_initiate_pasn_auth(struct p2p_data *p2p, const u8 *addr, int freq);
 int p2p_pasn_auth_rx(struct p2p_data *p2p, const struct ieee80211_mgmt *mgmt,
 		     size_t len, int freq);
 int p2p_prepare_data_element(struct p2p_data *p2p, const u8 *peer_addr);
+int p2p_pasn_auth_tx_status(struct p2p_data *p2p, const u8 *data,
+			    size_t data_len, bool acked);
 
 #endif /* P2P_H */

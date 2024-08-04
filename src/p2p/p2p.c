@@ -6419,6 +6419,46 @@ out:
 }
 
 
+int p2p_pasn_auth_tx_status(struct p2p_data *p2p, const u8 *data,
+			    size_t data_len, bool acked)
+{
+	int ret = 0;
+	struct p2p_device *dev;
+	struct pasn_data *pasn;
+	const struct ieee80211_mgmt *mgmt =
+		(const struct ieee80211_mgmt *) data;
+
+	if (!p2p)
+		return -1;
+
+	dev = p2p_get_device(p2p, mgmt->da);
+	if (!dev || !dev->pasn) {
+		p2p_dbg(p2p, "P2P PASN: Peer not found " MACSTR,
+			MAC2STR(mgmt->da));
+		return -1;
+	}
+
+	pasn = dev->pasn;
+
+	ret = wpa_pasn_auth_tx_status(pasn, data, data_len, acked);
+	if (ret != 1 && !acked && pasn->frame)
+		return pasn->send_mgmt(pasn->cb_ctx, wpabuf_head(pasn->frame),
+				       wpabuf_len(pasn->frame), 0, pasn->freq,
+				       1000);
+
+	wpabuf_free(pasn->frame);
+	pasn->frame = NULL;
+
+	if (ret != 1)
+		return ret;
+
+	if (dev == p2p->go_neg_peer)
+		p2p_go_complete(p2p, dev);
+
+	return 0;
+}
+
+
 static int p2p_handle_pasn_auth(struct p2p_data *p2p, struct p2p_device *dev,
 				const struct ieee80211_mgmt *mgmt, size_t len,
 				int freq)

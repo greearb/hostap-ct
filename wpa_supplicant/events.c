@@ -6362,6 +6362,17 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			break;
 #endif /* CONFIG_WNM */
 #ifdef CONFIG_PASN
+#ifdef CONFIG_P2P
+		if (data->tx_status.type == WLAN_FC_TYPE_MGMT &&
+		    data->tx_status.stype == WLAN_FC_STYPE_AUTH &&
+		    !wpa_s->pasn_auth_work &&
+		    wpa_s->p2p_pasn_auth_work &&
+		    wpas_p2p_pasn_auth_tx_status(wpa_s,
+						 data->tx_status.data,
+						 data->tx_status.data_len,
+						 data->tx_status.ack) == 0)
+			break;
+#endif /* CONFIG_P2P */
 		if (data->tx_status.type == WLAN_FC_TYPE_MGMT &&
 		    data->tx_status.stype == WLAN_FC_STYPE_AUTH &&
 		    wpas_pasn_auth_tx_status(wpa_s, data->tx_status.data,

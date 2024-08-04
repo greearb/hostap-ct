@@ -10493,6 +10493,7 @@ void wpas_p2p_process_usd_elems(struct wpa_supplicant *wpa_s, const u8 *buf,
 
 
 #ifdef CONFIG_PASN
+
 int wpas_p2p_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 			  const struct ieee80211_mgmt *mgmt, size_t len,
 			  int freq)
@@ -10503,4 +10504,14 @@ int wpas_p2p_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 		return -2;
 	return p2p_pasn_auth_rx(p2p, mgmt, len, freq);
 }
+
+
+int wpas_p2p_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
+				 size_t data_len, bool acked)
+{
+	struct p2p_data *p2p = wpa_s->global->p2p;
+
+	return p2p_pasn_auth_tx_status(p2p, data, data_len, acked);
+}
+
 #endif /* CONFIG_PASN */
