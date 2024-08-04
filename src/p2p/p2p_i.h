@@ -655,6 +655,12 @@ struct p2p_data {
 	u8 peer_dik_data[DEVICE_IDENTITY_KEY_MAX_LEN];
 	size_t peer_dik_len;
 	unsigned int peer_dik_lifetime;
+
+	/* Password used during an ongoing group formation after opportunistic
+	 * PASN authentication or while joining an existing group. This will be
+	 * moved to a more permanent location from struct p2p_data at the
+	 * conclusion of a successful pairing. */
+	char peer_sae_password[100];
 };
 
 /**

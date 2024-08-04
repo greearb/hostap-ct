@@ -249,6 +249,7 @@ void p2p_go_neg_failed(struct p2p_data *p2p, int status)
 #ifdef CONFIG_PASN
 	if (peer->p2p2 && peer->pasn)
 		wpa_pasn_reset(peer->pasn);
+	os_memset(p2p->peer_sae_password, 0, sizeof(p2p->peer_sae_password));
 #endif /* CONFIG_PASN */
 
 	os_memset(&res, 0, sizeof(res));
@@ -6490,6 +6491,18 @@ int p2p_parse_data_element(struct p2p_data *p2p, const u8 *data, size_t len)
 				"Received peer DevIK of length %zu octets and lifetime %u",
 				p2p->peer_dik_len, p2p->peer_dik_lifetime);
 			break;
+		case P2P_ATTR_PASSWORD:
+			if (attr_len < 1 ||
+			    attr_len > sizeof(p2p->peer_sae_password) - 1) {
+				p2p_dbg(p2p,
+					"P2P: Invalid password length %d",
+					attr_len);
+				return -1;
+			}
+			os_memset(p2p->peer_sae_password, 0,
+				  sizeof(p2p->peer_sae_password));
+			os_memcpy(p2p->peer_sae_password, pos, attr_len);
+			break;
 		default:
 			p2p_dbg(p2p,
 				"Unsupported Attribute ID %u in P2P2 IE in PASN Encrypted Data element",
@@ -6620,6 +6633,8 @@ static int p2p_handle_pasn_auth(struct p2p_data *p2p, struct p2p_device *dev,
 			/* Drop keying material from a failed pairing attempt */
 			os_memset(p2p->peer_dik_data, 0,
 				  sizeof(p2p->peer_dik_data));
+			os_memset(p2p->peer_sae_password, 0,
+				  sizeof(p2p->peer_sae_password));
 			return -1;
 		}
 		forced_memzero(pasn_get_ptk(pasn), sizeof(pasn->ptk));
