@@ -823,6 +823,9 @@ void wpa_pasn_reset(struct pasn_data *pasn)
 		os_free((u8 *) pasn->extra_ies);
 		pasn->extra_ies = NULL;
 	}
+
+	wpabuf_free(pasn->frame);
+	pasn->frame = NULL;
 }
 
 
@@ -993,16 +996,20 @@ static int wpas_pasn_send_auth_1(struct pasn_data *pasn, const u8 *own_addr,
 		goto fail;
 	}
 
+	wpabuf_free(pasn->frame);
+	pasn->frame = NULL;
+
 	ret = pasn->send_mgmt(pasn->cb_ctx,
 			      wpabuf_head(frame), wpabuf_len(frame), 0,
 			      pasn->freq, 1000);
 
-	wpabuf_free(frame);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "PASN: Failed sending 1st auth frame");
+		wpabuf_free(frame);
 		goto fail;
 	}
 
+	pasn->frame = frame;
 	return 0;
 
 fail:
@@ -1403,15 +1410,19 @@ int wpa_pasn_auth_rx(struct pasn_data *pasn, const u8 *data, size_t len,
 		goto fail;
 	}
 
+	wpabuf_free(pasn->frame);
+	pasn->frame = NULL;
+
 	ret = pasn->send_mgmt(pasn->cb_ctx,
 			      wpabuf_head(frame), wpabuf_len(frame), 0,
 			      pasn->freq, 100);
-	wpabuf_free(frame);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "PASN: Failed sending 3st auth frame");
+		wpabuf_free(frame);
 		goto fail;
 	}
 
+	pasn->frame = frame;
 	wpa_printf(MSG_DEBUG, "PASN: Success sending last frame. Store PTK");
 
 	pasn->status = WLAN_STATUS_SUCCESS;

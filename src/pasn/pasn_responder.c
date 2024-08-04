@@ -639,6 +639,8 @@ done:
 	wpa_printf(MSG_DEBUG,
 		   "PASN: Building frame 2: success; resp STA=" MACSTR,
 		   MAC2STR(peer_addr));
+	wpabuf_free(pasn->frame);
+	pasn->frame = NULL;
 
 	ret = pasn->send_mgmt(pasn->cb_ctx, wpabuf_head_u8(buf),
 			      wpabuf_len(buf), 0, pasn->freq, 0);
@@ -646,7 +648,7 @@ done:
 		wpa_printf(MSG_INFO, "send_auth_reply: Send failed");
 
 	wpabuf_free(rsn_buf);
-	wpabuf_free(buf);
+	pasn->frame = buf;
 	return ret;
 fail:
 	wpabuf_free(wrapped_data_buf);

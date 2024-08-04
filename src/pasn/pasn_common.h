@@ -130,6 +130,7 @@ struct pasn_data {
 	struct os_reltime last_comeback_key_update;
 	u16 comeback_idx;
 	u16 *comeback_pending_idx;
+	struct wpabuf *frame;
 
 	/**
 	 * send_mgmt - Function handler to transmit a Management frame

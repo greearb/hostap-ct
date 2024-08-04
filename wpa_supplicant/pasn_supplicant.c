@@ -806,6 +806,9 @@ int wpas_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 	if (!wpa_s->pasn_auth_work)
 		return -2;
 
+	wpabuf_free(pasn->frame);
+	pasn->frame = NULL;
+
 	pasn_register_callbacks(pasn, wpa_s, wpas_pasn_send_mlme, NULL);
 	ret = wpa_pasn_auth_rx(pasn, (const u8 *) mgmt, len, &pasn_data);
 	if (ret == 0) {
