@@ -216,7 +216,7 @@ static struct wpabuf * p2p_build_go_neg_req(struct p2p_data *p2p,
 	pw_id = p2p_wps_method_pw_id(peer->wps_method);
 	if (peer->oob_pw_id)
 		pw_id = peer->oob_pw_id;
-	if (p2p_build_wps_ie(p2p, buf, pw_id, 0) < 0) {
+	if (!peer->p2p2 && p2p_build_wps_ie(p2p, buf, pw_id, 0) < 0) {
 		p2p_dbg(p2p, "Failed to build WPS IE for GO Negotiation Request");
 		wpabuf_free(subelems);
 		wpabuf_free(buf);
@@ -406,7 +406,7 @@ static struct wpabuf * p2p_build_go_neg_resp(struct p2p_data *p2p,
 	pw_id = p2p_wps_method_pw_id(peer ? peer->wps_method : WPS_NOT_READY);
 	if (peer && peer->oob_pw_id)
 		pw_id = peer->oob_pw_id;
-	if (p2p_build_wps_ie(p2p, buf, pw_id, 0) < 0) {
+	if (peer && !peer->p2p2 && p2p_build_wps_ie(p2p, buf, pw_id, 0) < 0) {
 		p2p_dbg(p2p, "Failed to build WPS IE for GO Negotiation Response");
 		wpabuf_free(subelems);
 		wpabuf_free(buf);
