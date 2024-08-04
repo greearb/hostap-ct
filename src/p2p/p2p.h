@@ -11,6 +11,7 @@
 
 #include "common/ieee802_11_defs.h"
 #include "wps/wps.h"
+#include "common/wpa_common.h"
 
 #define DEVICE_IDENTITY_KEY_MAX_LEN 64
 #define DEVICE_IDENTITY_KEY_LEN 16
@@ -181,6 +182,36 @@ struct p2p_go_neg_results {
 	 * peer_config_timeout - Peer configuration timeout (in 10 msec units)
 	 */
 	unsigned int peer_config_timeout;
+
+	/**
+	 * p2p2 - Whether this group uses P2P2
+	 */
+	bool p2p2;
+
+	/**
+	 * akmp - The negotiated PASN AKMP for P2P2
+	 */
+	int akmp;
+
+	/**
+	 * pmkid - PMKID for P2P2 when PMK is derived as part of pairing
+	 */
+	u8 pmkid[PMKID_LEN];
+
+	/**
+	 * pmk - PMK for P2P2 when PMK is derived as part of pairing
+	 */
+	u8 pmk[PMK_LEN_MAX];
+
+	/**
+	 * pmk_len - Length of @pmk in octets
+	 */
+	size_t pmk_len;
+
+	/**
+	 * sae_password - SAE password for the group (P2P2)
+	 */
+	char sae_password[100];
 };
 
 struct p2ps_provision {

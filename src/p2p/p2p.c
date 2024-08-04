@@ -255,6 +255,7 @@ void p2p_go_neg_failed(struct p2p_data *p2p, int status)
 
 	os_memset(&res, 0, sizeof(res));
 	res.status = status;
+	res.p2p2 = peer->p2p2;
 	os_memcpy(res.peer_device_addr, peer->info.p2p_device_addr, ETH_ALEN);
 	os_memcpy(res.peer_interface_addr, peer->intended_addr, ETH_ALEN);
 	p2p->cfg->go_neg_completed(p2p->cfg->cb_ctx, &res);
@@ -1925,8 +1926,44 @@ void p2p_go_complete(struct p2p_data *p2p, struct p2p_device *peer)
 	peer->go_neg_conf = NULL;
 
 #ifdef CONFIG_PASN
-	if (peer->p2p2 && peer->pasn)
+	if (peer->p2p2 && peer->pasn) {
+		res.p2p2 = peer->p2p2;
+		res.akmp = peer->pasn->akmp;
+
+		if (res.akmp == WPA_KEY_MGMT_PASN) {
+			if (go) {
+				os_strlcpy(res.sae_password,
+					   p2p->dev_sae_password,
+					   sizeof(res.sae_password));
+			} else {
+				if (!os_strlen(p2p->peer_sae_password)) {
+					p2p_dbg(p2p, "No password from peer GO for P2P2 group formation");
+					return;
+				}
+				os_strlcpy(res.sae_password,
+					   p2p->peer_sae_password,
+					   sizeof(res.sae_password));
+			}
+		} else if (res.akmp == WPA_KEY_MGMT_SAE) {
+			if (peer->role == P2P_ROLE_PAIRING_INITIATOR) {
+				pasn_initiator_pmksa_cache_get(
+					peer->pasn->pmksa,
+					peer->pasn->peer_addr,
+					res.pmkid, res.pmk, &res.pmk_len);
+			} else {
+				pasn_responder_pmksa_cache_get(
+					peer->pasn->pmksa,
+					peer->pasn->peer_addr,
+					res.pmkid, res.pmk, &res.pmk_len);
+			}
+		}
+
+		os_memset(p2p->dev_sae_password, 0,
+			  sizeof(p2p->dev_sae_password));
+		os_memset(p2p->peer_sae_password, 0,
+			  sizeof(p2p->peer_sae_password));
 		wpa_pasn_reset(peer->pasn);
+	}
 #endif /* CONFIG_PASN */
 
 	p2p_set_state(p2p, P2P_PROVISIONING);
