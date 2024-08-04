@@ -621,6 +621,11 @@ struct p2p_data {
 	bool allow_6ghz;
 
 	struct p2p_pairing_info *pairing_info;
+
+	/* Pairing initiator PMKSA cache */
+	struct rsn_pmksa_cache *initiator_pmksa;
+	/* Pairing responder PMKSA cache */
+	struct rsn_pmksa_cache *responder_pmksa;
 };
 
 /**

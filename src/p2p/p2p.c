@@ -13,9 +13,13 @@
 #include "common/defs.h"
 #include "common/ieee802_11_defs.h"
 #include "common/ieee802_11_common.h"
+#include "common/wpa_common.h"
 #include "common/wpa_ctrl.h"
+#include "common/sae.h"
 #include "crypto/sha256.h"
+#include "crypto/sha384.h"
 #include "crypto/crypto.h"
+#include "pasn/pasn_common.h"
 #include "wps/wps_i.h"
 #include "p2p_i.h"
 #include "p2p.h"
@@ -2980,6 +2984,10 @@ bool is_p2p_6ghz_disabled(struct p2p_data *p2p)
 
 static void p2p_pairing_info_deinit(struct p2p_data *p2p)
 {
+#ifdef CONFIG_PASN
+	pasn_initiator_pmksa_cache_deinit(p2p->initiator_pmksa);
+	pasn_responder_pmksa_cache_deinit(p2p->responder_pmksa);
+#endif /* CONFIG_PASN */
 	os_free(p2p->pairing_info);
 }
 
@@ -3011,6 +3019,10 @@ static int p2p_pairing_info_init(struct p2p_data *p2p)
 
 	p2p_pairing_info_deinit(p2p);
 	p2p->pairing_info = pairing_info;
+#ifdef CONFIG_PASN
+	p2p->initiator_pmksa = pasn_initiator_pmksa_cache_init();
+	p2p->responder_pmksa = pasn_responder_pmksa_cache_init();
+#endif /* CONFIG_PASN */
 
 	return 0;
 }
