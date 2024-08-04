@@ -23,6 +23,7 @@
 #include "ap/wps_hostapd.h"
 #include "ap/p2p_hostapd.h"
 #include "ap/dfs.h"
+#include "ap/wpa_auth.h"
 #include "eapol_supp/eapol_supp_sm.h"
 #include "rsn_supp/wpa.h"
 #include "rsn_supp/pmksa_cache.h"
@@ -2081,6 +2082,16 @@ static void p2p_go_configured(void *ctx, void *data)
 		wpa_printf(MSG_ERROR,
 			   "P2P: p2p_go_configured() called with wpa_s->go_params == NULL");
 		return;
+	}
+
+	if (wpa_s->ap_iface && params->p2p2 &&
+	    params->akmp == WPA_KEY_MGMT_SAE) {
+		struct hostapd_data *hapd = wpa_s->ap_iface->bss[0];
+
+		wpa_auth_pmksa_add_sae(hapd->wpa_auth,
+				       params->peer_device_addr,
+				       params->pmk, params->pmk_len,
+				       params->pmkid, WPA_KEY_MGMT_SAE);
 	}
 
 	p2p_go_save_group_common_freqs(wpa_s, params);
