@@ -1919,17 +1919,16 @@ static void p2p_rx_p2p_action(struct p2p_data *p2p, const u8 *sa,
 
 	switch (data[0]) {
 	case P2P_GO_NEG_REQ:
-		p2p_process_go_neg_req(p2p, sa, data + 1, len - 1, rx_freq);
+		p2p_handle_go_neg_req(p2p, sa, data + 1, len - 1, rx_freq);
 		break;
 	case P2P_GO_NEG_RESP:
-		p2p_process_go_neg_resp(p2p, sa, data + 1, len - 1, rx_freq);
+		p2p_handle_go_neg_resp(p2p, sa, data + 1, len - 1, rx_freq);
 		break;
 	case P2P_GO_NEG_CONF:
-		p2p_process_go_neg_conf(p2p, sa, data + 1, len - 1);
+		p2p_handle_go_neg_conf(p2p, sa, data + 1, len - 1);
 		break;
 	case P2P_INVITATION_REQ:
-		p2p_process_invitation_req(p2p, sa, data + 1, len - 1,
-					   rx_freq);
+		p2p_handle_invitation_req(p2p, sa, data + 1, len - 1, rx_freq);
 		break;
 	case P2P_INVITATION_RESP:
 		p2p_process_invitation_resp(p2p, sa, data + 1, len - 1);

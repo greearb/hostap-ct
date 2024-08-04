@@ -181,14 +181,14 @@ static struct wpabuf * p2p_build_invitation_resp(struct p2p_data *p2p,
 }
 
 
-void p2p_process_invitation_req(struct p2p_data *p2p, const u8 *sa,
-				const u8 *data, size_t len, int rx_freq)
+struct wpabuf * p2p_process_invitation_req(struct p2p_data *p2p, const u8 *sa,
+					   const u8 *data, size_t len,
+					   int rx_freq)
 {
 	struct p2p_device *dev;
 	struct p2p_message msg;
 	struct wpabuf *resp = NULL;
 	u8 status = P2P_SC_FAIL_INFO_CURRENTLY_UNAVAILABLE;
-	int freq;
 	int go = 0;
 	u8 group_bssid[ETH_ALEN], *bssid;
 	int op_freq = 0;
@@ -202,7 +202,7 @@ void p2p_process_invitation_req(struct p2p_data *p2p, const u8 *sa,
 		MAC2STR(sa), rx_freq);
 
 	if (p2p_parse(data, len, &msg))
-		return;
+		return NULL;
 
 	dev = p2p_get_device(p2p, sa);
 	if (dev == NULL || (dev->flags & P2P_DEV_PROBE_REQ_ONLY)) {
@@ -388,19 +388,6 @@ fail:
 	resp = p2p_build_invitation_resp(p2p, dev, msg.dialog_token, status,
 					 bssid, reg_class, channel, channels);
 
-	if (resp == NULL)
-		goto out;
-
-	if (rx_freq > 0)
-		freq = rx_freq;
-	else
-		freq = p2p_channel_to_freq(p2p->cfg->reg_class,
-					   p2p->cfg->channel);
-	if (freq < 0) {
-		p2p_dbg(p2p, "Unknown regulatory class/channel");
-		goto out;
-	}
-
 	/*
 	 * Store copy of invitation data to be used when processing TX status
 	 * callback for the Acton frame.
@@ -424,6 +411,28 @@ fail:
 	}
 	p2p->inv_status = status;
 	p2p->inv_op_freq = op_freq;
+	p2p_parse_free(&msg);
+	return resp;
+}
+
+
+void p2p_handle_invitation_req(struct p2p_data *p2p, const u8 *sa,
+			       const u8 *data, size_t len, int rx_freq)
+{
+	int freq;
+	struct wpabuf *resp;
+
+	resp = p2p_process_invitation_req(p2p, sa, data, len, rx_freq);
+	if (!resp)
+		return;
+
+	if (rx_freq > 0)
+		freq = rx_freq;
+	else
+		freq = p2p_channel_to_freq(p2p->cfg->reg_class,
+					   p2p->cfg->channel);
+	if (freq < 0)
+		p2p_dbg(p2p, "Unknown regulatory class/channel");
 
 	p2p->pending_action_state = P2P_PENDING_INVITATION_RESPONSE;
 	if (p2p_send_action(p2p, freq, sa, p2p->cfg->dev_addr,
@@ -432,9 +441,7 @@ fail:
 		p2p_dbg(p2p, "Failed to send Action frame");
 	}
 
-out:
 	wpabuf_free(resp);
-	p2p_parse_free(&msg);
 }
 
 

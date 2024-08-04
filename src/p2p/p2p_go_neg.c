@@ -801,21 +801,20 @@ void p2p_check_pref_chan(struct p2p_data *p2p, int go,
 }
 
 
-void p2p_process_go_neg_req(struct p2p_data *p2p, const u8 *sa,
-			    const u8 *data, size_t len, int rx_freq)
+struct wpabuf * p2p_process_go_neg_req(struct p2p_data *p2p, const u8 *sa,
+				       const u8 *data, size_t len, int rx_freq)
 {
 	struct p2p_device *dev = NULL;
 	struct wpabuf *resp;
 	struct p2p_message msg;
 	u8 status = P2P_SC_FAIL_INVALID_PARAMS;
 	int tie_breaker = 0;
-	int freq;
 
 	p2p_dbg(p2p, "Received GO Negotiation Request from " MACSTR "(freq=%d)",
 		MAC2STR(sa), rx_freq);
 
 	if (p2p_parse(data, len, &msg))
-		return;
+		return NULL;
 
 	if (!msg.capability) {
 		p2p_dbg(p2p, "Mandatory Capability attribute missing from GO Negotiation Request");
@@ -890,7 +889,7 @@ void p2p_process_go_neg_req(struct p2p_data *p2p, const u8 *sa,
 			p2p->cfg->send_action_done(p2p->cfg->cb_ctx);
 			p2p_go_neg_failed(p2p, *msg.status);
 			p2p_parse_free(&msg);
-			return;
+			return NULL;
 		}
 		goto fail;
 	}
@@ -968,7 +967,7 @@ void p2p_process_go_neg_req(struct p2p_data *p2p, const u8 *sa,
 		    os_memcmp(sa, p2p->cfg->dev_addr, ETH_ALEN) > 0) {
 			p2p_dbg(p2p, "Do not reply since peer has higher address and GO Neg Request already sent");
 			p2p_parse_free(&msg);
-			return;
+			return NULL;
 		}
 
 		if (dev->go_neg_req_sent &&
@@ -976,7 +975,7 @@ void p2p_process_go_neg_req(struct p2p_data *p2p, const u8 *sa,
 			p2p_dbg(p2p,
 				"Do not reply since peer is waiting for us to start a new GO Negotiation and GO Neg Request already sent");
 			p2p_parse_free(&msg);
-			return;
+			return NULL;
 		}
 
 		go = p2p_go_det(p2p->go_intent, *msg.go_intent);
@@ -1099,18 +1098,8 @@ fail:
 				     !tie_breaker);
 	p2p_parse_free(&msg);
 	if (resp == NULL)
-		return;
-	p2p_dbg(p2p, "Sending GO Negotiation Response");
-	if (rx_freq > 0)
-		freq = rx_freq;
-	else
-		freq = p2p_channel_to_freq(p2p->cfg->reg_class,
-					   p2p->cfg->channel);
-	if (freq < 0) {
-		p2p_dbg(p2p, "Unknown regulatory class/channel");
-		wpabuf_free(resp);
-		return;
-	}
+		return NULL;
+
 	if (status == P2P_SC_SUCCESS) {
 		p2p->pending_action_state = P2P_PENDING_GO_NEG_RESPONSE;
 		dev->flags |= P2P_DEV_WAIT_GO_NEG_CONFIRM;
@@ -1128,6 +1117,33 @@ fail:
 	} else
 		p2p->pending_action_state =
 			P2P_PENDING_GO_NEG_RESPONSE_FAILURE;
+	return resp;
+}
+
+
+void p2p_handle_go_neg_req(struct p2p_data *p2p, const u8 *sa, const u8 *data,
+			   size_t len, int rx_freq)
+{
+	int freq;
+	struct wpabuf *resp;
+
+	resp = p2p_process_go_neg_req(p2p, sa, data, len, rx_freq);
+	if (!resp)
+		return;
+
+	p2p_dbg(p2p, "Sending GO Negotiation Response");
+
+	if (rx_freq > 0)
+		freq = rx_freq;
+	else
+		freq = p2p_channel_to_freq(p2p->cfg->reg_class,
+					   p2p->cfg->channel);
+	if (freq < 0) {
+		p2p_dbg(p2p, "Unknown regulatory class/channel");
+		wpabuf_free(resp);
+		return;
+	}
+
 	if (p2p_send_action(p2p, freq, sa, p2p->cfg->dev_addr,
 			    p2p->cfg->dev_addr,
 			    wpabuf_head(resp), wpabuf_len(resp), 100) < 0) {
@@ -1213,14 +1229,15 @@ static struct wpabuf * p2p_build_go_neg_conf(struct p2p_data *p2p,
 }
 
 
-void p2p_process_go_neg_resp(struct p2p_data *p2p, const u8 *sa,
-			     const u8 *data, size_t len, int rx_freq)
+struct wpabuf * p2p_process_go_neg_resp(struct p2p_data *p2p, const u8 *sa,
+					const u8 *data, size_t len, int rx_freq)
 {
 	struct p2p_device *dev;
 	int go = -1;
 	struct p2p_message msg;
 	u8 status = P2P_SC_SUCCESS;
 	int freq;
+	struct wpabuf *conf = NULL;
 
 	p2p_dbg(p2p, "Received GO Negotiation Response from " MACSTR
 		" (freq=%d)", MAC2STR(sa), rx_freq);
@@ -1229,16 +1246,16 @@ void p2p_process_go_neg_resp(struct p2p_data *p2p, const u8 *sa,
 	    dev != p2p->go_neg_peer) {
 		p2p_dbg(p2p, "Not ready for GO negotiation with " MACSTR,
 			MAC2STR(sa));
-		return;
+		return NULL;
 	}
 
 	if (p2p_parse(data, len, &msg))
-		return;
+		return NULL;
 
 	if (!(dev->flags & P2P_DEV_WAIT_GO_NEG_RESPONSE)) {
 		p2p_dbg(p2p, "Was not expecting GO Negotiation Response - ignore");
 		p2p_parse_free(&msg);
-		return;
+		return NULL;
 	}
 	dev->flags &= ~P2P_DEV_WAIT_GO_NEG_RESPONSE;
 	p2p_update_peer_6ghz_capab(dev, &msg);
@@ -1247,7 +1264,7 @@ void p2p_process_go_neg_resp(struct p2p_data *p2p, const u8 *sa,
 		p2p_dbg(p2p, "Unexpected Dialog Token %u (expected %u)",
 			msg.dialog_token, dev->dialog_token);
 		p2p_parse_free(&msg);
-		return;
+		return NULL;
 	}
 
 	if (!msg.status) {
@@ -1276,7 +1293,7 @@ void p2p_process_go_neg_resp(struct p2p_data *p2p, const u8 *sa,
 		}
 		p2p->cfg->send_action_done(p2p->cfg->cb_ctx);
 		p2p_parse_free(&msg);
-		return;
+		return NULL;
 	}
 
 	if (!msg.capability) {
@@ -1456,8 +1473,10 @@ fail:
 						 go);
 	p2p_parse_free(&msg);
 	if (dev->go_neg_conf == NULL)
-		return;
-	p2p_dbg(p2p, "Sending GO Negotiation Confirm");
+		return NULL;
+
+	conf = wpabuf_dup(dev->go_neg_conf);
+
 	if (status == P2P_SC_SUCCESS) {
 		p2p->pending_action_state = P2P_PENDING_GO_NEG_CONFIRM;
 		dev->go_state = go ? LOCAL_GO : REMOTE_GO;
@@ -1471,7 +1490,39 @@ fail:
 	dev->go_neg_conf_freq = freq;
 	dev->go_neg_conf_sent = 0;
 
-	if (p2p_send_action(p2p, freq, sa, p2p->cfg->dev_addr, sa,
+	if (status != P2P_SC_SUCCESS) {
+		p2p_dbg(p2p, "GO Negotiation failed");
+		dev->status = status;
+	}
+
+	return conf;
+}
+
+
+void p2p_handle_go_neg_resp(struct p2p_data *p2p, const u8 *sa, const u8 *data,
+			    size_t len, int rx_freq)
+{
+	int freq;
+	struct p2p_device *dev;
+	struct wpabuf *conf;
+
+	conf = p2p_process_go_neg_resp(p2p, sa, data, len, rx_freq);
+	if (!conf)
+		return;
+	wpabuf_free(conf);
+
+	dev = p2p_get_device(p2p, sa);
+	if (!dev)
+		return;
+
+	p2p_dbg(p2p, "Sending GO Negotiation Confirm");
+	if (rx_freq > 0)
+		freq = rx_freq;
+	else
+		freq = dev->listen_freq;
+
+	if (dev->go_neg_conf &&
+	    p2p_send_action(p2p, freq, sa, p2p->cfg->dev_addr, sa,
 			    wpabuf_head(dev->go_neg_conf),
 			    wpabuf_len(dev->go_neg_conf), 50) < 0) {
 		p2p_dbg(p2p, "Failed to send Action frame");
@@ -1479,15 +1530,14 @@ fail:
 		p2p->cfg->send_action_done(p2p->cfg->cb_ctx);
 	} else
 		dev->go_neg_conf_sent++;
-	if (status != P2P_SC_SUCCESS) {
-		p2p_dbg(p2p, "GO Negotiation failed");
-		p2p_go_neg_failed(p2p, status);
-	}
+
+	if (dev->status != P2P_SC_SUCCESS)
+		p2p_go_neg_failed(p2p, dev->status);
 }
 
 
-void p2p_process_go_neg_conf(struct p2p_data *p2p, const u8 *sa,
-			     const u8 *data, size_t len)
+void p2p_handle_go_neg_conf(struct p2p_data *p2p, const u8 *sa,
+			    const u8 *data, size_t len)
 {
 	struct p2p_device *dev;
 	struct p2p_message msg;

@@ -891,12 +891,17 @@ int p2p_start_sd(struct p2p_data *p2p, struct p2p_device *dev);
 int p2p_peer_channels_check(struct p2p_data *p2p, struct p2p_channels *own,
 			    struct p2p_device *dev,
 			    const u8 *channel_list, size_t channel_list_len);
-void p2p_process_go_neg_req(struct p2p_data *p2p, const u8 *sa,
-			    const u8 *data, size_t len, int rx_freq);
-void p2p_process_go_neg_resp(struct p2p_data *p2p, const u8 *sa,
-			     const u8 *data, size_t len, int rx_freq);
-void p2p_process_go_neg_conf(struct p2p_data *p2p, const u8 *sa,
-			     const u8 *data, size_t len);
+void p2p_handle_go_neg_req(struct p2p_data *p2p, const u8 *sa, const u8 *data,
+			   size_t len, int rx_freq);
+void p2p_handle_go_neg_resp(struct p2p_data *p2p, const u8 *sa, const u8 *data,
+			    size_t len, int rx_freq);
+void p2p_handle_go_neg_conf(struct p2p_data *p2p, const u8 *sa, const u8 *data,
+			    size_t len);
+struct wpabuf * p2p_process_go_neg_req(struct p2p_data *p2p, const u8 *sa,
+				       const u8 *data, size_t len, int rx_freq);
+struct wpabuf * p2p_process_go_neg_resp(struct p2p_data *p2p, const u8 *sa,
+					const u8 *data, size_t len,
+					int rx_freq);
 int p2p_connect_send(struct p2p_data *p2p, struct p2p_device *dev);
 u16 p2p_wps_method_pw_id(enum p2p_wps_method wps_method);
 void p2p_reselect_channel(struct p2p_data *p2p,
@@ -917,8 +922,13 @@ void p2p_process_pcea(struct p2p_data *p2p, struct p2p_message *msg,
 		      struct p2p_device *dev);
 
 /* p2p_invitation.c */
-void p2p_process_invitation_req(struct p2p_data *p2p, const u8 *sa,
-				const u8 *data, size_t len, int rx_freq);
+void p2p_handle_invitation_req(struct p2p_data *p2p, const u8 *sa,
+			       const u8 *data, size_t len, int rx_freq);
+void p2p_handle_invitation_resp(struct p2p_data *p2p, const u8 *sa,
+				const u8 *data, size_t len);
+struct wpabuf * p2p_process_invitation_req(struct p2p_data *p2p, const u8 *sa,
+					   const u8 *data, size_t len,
+					   int rx_freq);
 void p2p_process_invitation_resp(struct p2p_data *p2p, const u8 *sa,
 				 const u8 *data, size_t len);
 int p2p_invite_send(struct p2p_data *p2p, struct p2p_device *dev,
