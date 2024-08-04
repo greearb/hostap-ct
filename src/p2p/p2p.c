@@ -6006,6 +6006,16 @@ static int p2p_derive_nonce_tag(struct p2p_data *p2p)
 }
 
 
+static void p2p_validate_dira(struct p2p_data *p2p, struct p2p_device *dev,
+			      const u8 *dira, u16 dira_len)
+{
+	if (p2p->cfg->validate_dira)
+		p2p->cfg->validate_dira(p2p->cfg->cb_ctx,
+					dev->info.p2p_device_addr,
+					dira, dira_len);
+}
+
+
 struct wpabuf * p2p_usd_elems(struct p2p_data *p2p)
 {
 	struct wpabuf *buf;
@@ -6116,6 +6126,9 @@ void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
 
 	if (!ether_addr_equal(peer_addr, p2p_dev_addr))
 		os_memcpy(dev->interface_addr, peer_addr, ETH_ALEN);
+
+	if (msg.dira && msg.dira_len)
+		p2p_validate_dira(p2p, dev, msg.dira, msg.dira_len);
 
 	p2p_dbg(p2p, "Updated device entry based on USD frame: " MACSTR
 		" dev_capab=0x%x group_capab=0x%x listen_freq=%d",
@@ -7030,6 +7043,16 @@ int p2p_pasn_auth_rx(struct p2p_data *p2p, const struct ieee80211_mgmt *mgmt,
 		ret = p2p_handle_pasn_auth(p2p, dev, mgmt, len, freq);
 	}
 	return ret;
+}
+
+
+void p2p_pasn_pmksa_set_pmk(struct p2p_data *p2p, const u8 *src, const u8 *dst,
+			    const u8 *pmk, size_t pmk_len, const u8 *pmkid)
+{
+	pasn_initiator_pmksa_cache_add(p2p->initiator_pmksa, src, dst, pmk,
+				       pmk_len, pmkid);
+	pasn_responder_pmksa_cache_add(p2p->responder_pmksa, src, dst, pmk,
+				       pmk_len, pmkid);
 }
 
 #endif /* CONFIG_PASN */

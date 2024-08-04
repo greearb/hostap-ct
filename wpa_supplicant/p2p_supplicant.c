@@ -5223,6 +5223,70 @@ static void wpas_bootstrap_completed(void *ctx, const u8 *addr,
 }
 
 
+static void wpas_validate_dira(void *ctx, const u8 *peer_addr,
+			       const u8 *dira, size_t dira_len)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+	int ret;
+	u8 tag[DEVICE_MAX_HASH_LEN];
+	struct wpa_dev_ik *ik;
+	const u8 *addr[3];
+	size_t len[3];
+	const char *label = "DIR";
+
+	if (dira_len < 1 || dira[0] != DIRA_CIPHER_VERSION_128) {
+		wpa_printf(MSG_ERROR,
+			   "P2P2: Unsupported DIRA cipher version %d", dira[0]);
+		return;
+	}
+
+	if (dira_len < 1 + DEVICE_IDENTITY_NONCE_LEN + DEVICE_IDENTITY_TAG_LEN)
+	{
+		wpa_printf(MSG_INFO, "P2P2: Truncated DIRA (length %zu)",
+			   dira_len);
+		return;
+	}
+
+	addr[0] = (const u8 *) label;
+	len[0] = DIR_STR_LEN;
+	addr[1] = peer_addr;
+	len[1] = ETH_ALEN;
+	addr[2] = &dira[1];
+	len[2] = DEVICE_IDENTITY_NONCE_LEN;
+
+	for (ik = wpa_s->conf->identity; ik; ik = ik->next) {
+		if (wpabuf_len(ik->dik) != DEVICE_IDENTITY_KEY_LEN ||
+		    ik->dik_cipher != DIRA_CIPHER_VERSION_128)
+			continue;
+
+		ret = hmac_sha256_vector(wpabuf_head(ik->dik),
+					 DEVICE_IDENTITY_KEY_LEN,
+					 3, addr, len, tag);
+		if (ret < 0) {
+			wpa_printf(MSG_ERROR,
+				   "P2P2: Failed to derive DIRA Tag");
+			return;
+		}
+
+		if (os_memcmp(tag, &dira[1 + DEVICE_IDENTITY_NONCE_LEN],
+			      DEVICE_IDENTITY_TAG_LEN) == 0) {
+			wpa_printf(MSG_DEBUG, "P2P2: DIRA Tag matched");
+			break;
+		}
+	}
+
+	if (!ik)
+		return;
+
+#ifdef CONFIG_PASN
+	p2p_pasn_pmksa_set_pmk(wpa_s->global->p2p, wpa_s->global->p2p_dev_addr,
+			       peer_addr,
+			       wpabuf_head(ik->pmk), wpabuf_len(ik->pmk),
+			       wpabuf_head(ik->pmkid));
+#endif /* CONFIG_PASN */
+}
+
+
 #ifdef CONFIG_PASN
 
 static int wpas_p2p_initiate_pasn_verify(struct wpa_supplicant *wpa_s,
@@ -5432,6 +5496,7 @@ int wpas_p2p_init(struct wpa_global *global, struct wpa_supplicant *wpa_s)
 	p2p.register_bootstrap_comeback = wpas_p2p_register_bootstrap_comeback;
 	p2p.bootstrap_req_rx = wpas_bootstrap_req_rx;
 	p2p.bootstrap_completed = wpas_bootstrap_completed;
+	p2p.validate_dira = wpas_validate_dira;
 #ifdef CONFIG_PASN
 	p2p.pasn_send_mgmt = wpas_p2p_pasn_send_mgmt;
 	p2p.prepare_data_element = wpas_p2p_prepare_data_element;

@@ -1326,6 +1326,22 @@ struct p2p_config {
 				    enum p2p_status_code status, int freq);
 
 	/**
+	 * validate_dira - Indicate reception of DIRA to be validated against a
+	 *	list of available device identity keys
+	 * @ctx: Callback context from cb_ctx
+	 * @peer_addr: P2P Device address of the peer
+	 * @dira: DIRA attribute present in the USD frames
+	 * @dira_len: Length of DIRA
+	 *
+	 * This function can be used to validate DIRA and configure PMK of a
+	 * paired/persistent peer from configuration. The handler function is
+	 * expected to call p2p_pasn_pmksa_set_pmk() to set the PMK/PMKID in
+	 * case a matching entry is found.
+	 */
+	void (*validate_dira)(void *ctx, const u8 *peer_addr,
+			      const u8 *dira, size_t dira_len);
+
+	/**
 	 * pasn_send_mgmt - Function handler to transmit a Management frame
 	 * @ctx: Callback context from cb_ctx
 	 * @data: Frame to transmit
@@ -2705,5 +2721,7 @@ int p2p_parse_data_element(struct p2p_data *p2p, const u8 *data, size_t len);
 int p2p_pasn_auth_tx_status(struct p2p_data *p2p, const u8 *data,
 			    size_t data_len, bool acked, bool verify);
 int p2p_config_sae_password(struct p2p_data *p2p, const char *pw);
+void p2p_pasn_pmksa_set_pmk(struct p2p_data *p2p, const u8 *src, const u8 *dst,
+			    const u8 *pmk, size_t pmk_len, const u8 *pmkid);
 
 #endif /* P2P_H */
