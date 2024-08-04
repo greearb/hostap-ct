@@ -2029,13 +2029,21 @@ static void p2p_go_configured(void *ctx, void *data)
 		return;
 	}
 
-	wpa_printf(MSG_DEBUG, "P2P: Setting up WPS for GO provisioning");
 	if (wpa_supplicant_ap_mac_addr_filter(wpa_s,
 					      params->peer_interface_addr)) {
 		wpa_printf(MSG_DEBUG, "P2P: Failed to setup MAC address "
 			   "filtering");
 		return;
 	}
+
+	if (params->p2p2) {
+		wpas_group_formation_completed(wpa_s, 1, 0);
+		wpa_printf(MSG_DEBUG,
+			   "P2P2: Group formation completed - first connection in progress");
+		goto out;
+	}
+
+	wpa_printf(MSG_DEBUG, "P2P: Setting up WPS for GO provisioning");
 	if (params->wps_method == WPS_PBC) {
 		wpa_supplicant_ap_wps_pbc(wpa_s, params->peer_interface_addr,
 					  params->peer_device_addr);
@@ -2056,6 +2064,7 @@ static void p2p_go_configured(void *ctx, void *data)
 	} else if (wpa_s->p2p_pin[0])
 		wpa_supplicant_ap_wps_pin(wpa_s, params->peer_interface_addr,
 					  wpa_s->p2p_pin, NULL, 0, 0);
+out:
 	os_free(wpa_s->go_params);
 	wpa_s->go_params = NULL;
 }
@@ -2138,9 +2147,9 @@ int wpas_p2p_try_edmg_channel(struct wpa_supplicant *wpa_s,
 }
 
 
-static void wpas_start_wps_go(struct wpa_supplicant *wpa_s,
-			      struct p2p_go_neg_results *params,
-			      int group_formation)
+static void wpas_start_go(struct wpa_supplicant *wpa_s,
+			  struct p2p_go_neg_results *params,
+			  int group_formation)
 {
 	struct wpa_ssid *ssid;
 
@@ -2234,6 +2243,18 @@ static void wpas_start_wps_go(struct wpa_supplicant *wpa_s,
 	else if (ssid->passphrase)
 		wpa_config_update_psk(ssid);
 	ssid->ap_max_inactivity = wpa_s->p2pdev->conf->p2p_go_max_inactivity;
+
+	if (params->p2p2) {
+		if (params->akmp == WPA_KEY_MGMT_SAE)
+			ssid->auth_alg = WPA_AUTH_ALG_OPEN;
+		else
+			ssid->auth_alg |= WPA_AUTH_ALG_SAE;
+
+		ssid->key_mgmt = WPA_KEY_MGMT_SAE;
+		ssid->sae_password = os_strdup(params->sae_password);
+		ssid->ieee80211w = MGMT_FRAME_PROTECTION_REQUIRED;
+		ssid->sae_pwe = SAE_PWE_HASH_TO_ELEMENT;
+	}
 
 	wpa_s->ap_configured_cb = p2p_go_configured;
 	wpa_s->ap_configured_cb_ctx = wpa_s;
@@ -2636,7 +2657,7 @@ static void wpas_go_neg_completed(void *ctx, struct p2p_go_neg_results *res)
 		group_wpa_s->p2p_wps_method = wpa_s->p2p_wps_method;
 	}
 	if (res->role_go) {
-		wpas_start_wps_go(group_wpa_s, res, 1);
+		wpas_start_go(group_wpa_s, res, 1);
 	} else {
 		os_get_reltime(&group_wpa_s->scan_min_time);
 		wpas_start_wps_enrollee(group_wpa_s, res);
@@ -7190,7 +7211,8 @@ int wpas_p2p_group_add(struct wpa_supplicant *wpa_s, int persistent_group,
 		return -1;
 	if (freq > 0)
 		wpa_s->p2p_go_no_pri_sec_switch = 1;
-	wpas_start_wps_go(wpa_s, &params, 0);
+	params.p2p2 = wpa_s->p2p2;
+	wpas_start_go(wpa_s, &params, 0);
 
 	return 0;
 }
@@ -7407,7 +7429,8 @@ int wpas_p2p_group_add_persistent(struct wpa_supplicant *wpa_s,
 	p2p_channels_to_freqs(channels, params.freq_list, P2P_MAX_CHANNELS);
 
 	wpa_s->p2p_first_connection_timeout = connection_timeout;
-	wpas_start_wps_go(wpa_s, &params, 0);
+	params.p2p2 = wpa_s->p2p2;
+	wpas_start_go(wpa_s, &params, 0);
 
 	return 0;
 }
