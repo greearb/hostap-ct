@@ -135,8 +135,8 @@ static const char * p2p_wps_method_str(enum p2p_wps_method wps_method)
 }
 
 
-static struct wpabuf * p2p_build_go_neg_req(struct p2p_data *p2p,
-					    struct p2p_device *peer)
+struct wpabuf * p2p_build_go_neg_req(struct p2p_data *p2p,
+				     struct p2p_device *peer)
 {
 	struct wpabuf *buf;
 	struct wpabuf *subelems;

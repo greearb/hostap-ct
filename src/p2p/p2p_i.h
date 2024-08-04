@@ -889,6 +889,8 @@ void p2p_rx_gas_comeback_resp(struct p2p_data *p2p, const u8 *sa,
 int p2p_start_sd(struct p2p_data *p2p, struct p2p_device *dev);
 
 /* p2p_go_neg.c */
+struct wpabuf * p2p_build_go_neg_req(struct p2p_data *p2p,
+				     struct p2p_device *peer);
 int p2p_peer_channels_check(struct p2p_data *p2p, struct p2p_channels *own,
 			    struct p2p_device *dev,
 			    const u8 *channel_list, size_t channel_list_len);
