@@ -642,6 +642,19 @@ struct p2p_data {
 	struct rsn_pmksa_cache *initiator_pmksa;
 	/* Pairing responder PMKSA cache */
 	struct rsn_pmksa_cache *responder_pmksa;
+
+	/* DevIK variables: Cipher version, DevIK, and its lifetime
+	 * These are fetched from the P2P2 included in the PASN Encrypted Data
+	 * element during P2P2 group negotiation with PASN Authentication
+	 * frames. These values are stored in struct p2p_data for an ongoing GO
+	 * negotiation or join-a-group operation with the assumption that these
+	 * operations cannot happen in parallel with multiple peers. After
+	 * successful group formation and connection, these are moved to
+	 * wpa_supplicant configuration if the connection is persistent. */
+	u8 dik_cipher_version;
+	u8 peer_dik_data[DEVICE_IDENTITY_KEY_MAX_LEN];
+	size_t peer_dik_len;
+	unsigned int peer_dik_lifetime;
 };
 
 /**

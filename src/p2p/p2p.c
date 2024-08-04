@@ -6419,6 +6419,90 @@ out:
 }
 
 
+int p2p_parse_data_element(struct p2p_data *p2p, const u8 *data, size_t len)
+{
+	u8 attr_id;
+	const u8 *pos, *next;
+	u16 rem_len, attr_len;
+
+	if (!p2p || !data || !len)
+		return -1;
+
+	pos = data;
+	rem_len = len;
+
+	if (rem_len < 6 ||
+	    pos[0] != WLAN_EID_VENDOR_SPECIFIC ||
+	    pos[1] < 4 ||
+	    rem_len < 2 + pos[1] ||
+	    WPA_GET_BE32(&pos[2]) != P2P2_IE_VENDOR_TYPE) {
+		p2p_dbg(p2p,
+			"P2P: P2P2 IE not present in PASN Encrypted Data element");
+		return -1;
+	}
+
+	pos += 6;
+	rem_len -= 6;
+
+	while (rem_len >= 3) {
+		attr_id = *pos++;
+		attr_len = WPA_GET_LE16(pos);
+		pos += 2;
+		rem_len -= 3;
+		if (rem_len < attr_len)
+			return -1;
+		next = pos + attr_len;
+		rem_len -= attr_len;
+
+		switch (attr_id) {
+		case P2P_ATTR_DEVICE_IDENTITY_KEY:
+			if (attr_len < 1) {
+				p2p_dbg(p2p,
+					"Too short Device Identity Key attribute");
+				return -1;
+			}
+			p2p->dik_cipher_version = *pos++;
+			attr_len--;
+			if (p2p->dik_cipher_version ==
+			    DIRA_CIPHER_VERSION_128) {
+				if (attr_len < DEVICE_IDENTITY_KEY_LEN) {
+					p2p_dbg(p2p, "Too short DevIK");
+					return -1;
+				}
+				os_memcpy(p2p->peer_dik_data, pos,
+					  DEVICE_IDENTITY_KEY_LEN);
+				p2p->peer_dik_len = DEVICE_IDENTITY_KEY_LEN;
+				pos += DEVICE_IDENTITY_KEY_LEN;
+				attr_len -= DEVICE_IDENTITY_KEY_LEN;
+			} else {
+				p2p_dbg(p2p,
+					"Unsupported cipher version %u in Device Identity Key attribute",
+					p2p->dik_cipher_version);
+				return -1;
+			}
+			if (attr_len < 4) {
+				p2p_dbg(p2p,
+					"Not enough room for DevIK lifetime");
+				return -1;
+			}
+			p2p->peer_dik_lifetime = WPA_GET_BE32(pos);
+			p2p_dbg(p2p,
+				"Received peer DevIK of length %zu octets and lifetime %u",
+				p2p->peer_dik_len, p2p->peer_dik_lifetime);
+			break;
+		default:
+			p2p_dbg(p2p,
+				"Unsupported Attribute ID %u in P2P2 IE in PASN Encrypted Data element",
+				attr_id);
+			break;
+		}
+		pos = next;
+	}
+
+	return 0;
+}
+
+
 int p2p_pasn_auth_tx_status(struct p2p_data *p2p, const u8 *data,
 			    size_t data_len, bool acked)
 {
@@ -6533,6 +6617,9 @@ static int p2p_handle_pasn_auth(struct p2p_data *p2p, struct p2p_device *dev,
 						   auth_transaction)) {
 			p2p_dbg(p2p,
 				"PASN Responder: Handle Auth 3 action wrapper failed");
+			/* Drop keying material from a failed pairing attempt */
+			os_memset(p2p->peer_dik_data, 0,
+				  sizeof(p2p->peer_dik_data));
 			return -1;
 		}
 		forced_memzero(pasn_get_ptk(pasn), sizeof(pasn->ptk));
