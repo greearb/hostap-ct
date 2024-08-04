@@ -2558,6 +2558,7 @@ wpas_p2p_init_group_interface(struct wpa_supplicant *wpa_s, int go)
 	wpa_s->global->pending_group_iface_for_p2ps = 0;
 
 	wpas_p2p_clone_config(group_wpa_s, wpa_s);
+	group_wpa_s->p2p2 = wpa_s->p2p2;
 
 	if (wpa_s->conf->p2p_interface_random_mac_addr) {
 		if (wpa_drv_set_mac_addr(group_wpa_s,
@@ -2743,7 +2744,10 @@ static void wpas_go_neg_completed(void *ctx, struct p2p_go_neg_results *res)
 		os_memcpy(group_wpa_s->p2p_pin, wpa_s->p2p_pin,
 			  sizeof(group_wpa_s->p2p_pin));
 		group_wpa_s->p2p_wps_method = wpa_s->p2p_wps_method;
+		group_wpa_s->p2p2 = res->p2p2;
+		group_wpa_s->p2p_bootstrap = wpa_s->p2p_bootstrap;
 	}
+
 	if (res->role_go) {
 		wpas_start_go(group_wpa_s, res, 1);
 	} else {
