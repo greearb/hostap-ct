@@ -849,6 +849,12 @@ static void p2p_process_prov_disc_bootstrap_req(struct p2p_data *p2p,
 
 	wpa_printf(MSG_ERROR, "Bootstrap received %d", bootstrap);
 
+	if (status == P2P_SC_SUCCESS) {
+		dev->role = P2P_ROLE_PAIRING_RESPONDER;
+#ifdef CONFIG_PASN
+		p2p_pasn_initialize(p2p, dev, sa, rx_freq, false);
+#endif /* CONFIG_PASN */
+	}
 out:
 	/* Send PD Bootstrapping Response for the PD Request */
 	resp = p2p_build_prov_disc_bootstrap_resp(p2p, dev, msg->dialog_token,

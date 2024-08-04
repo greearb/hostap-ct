@@ -36,6 +36,13 @@ enum p2p_go_state {
 	REMOTE_GO
 };
 
+/* Enumeration for P2P device current role */
+enum p2p_role {
+	P2P_ROLE_IDLE = 0,
+	P2P_ROLE_PAIRING_INITIATOR,
+	P2P_ROLE_PAIRING_RESPONDER,
+};
+
 /**
  * struct bootstrap_params - P2P Device bootstrap request parameters
  */
@@ -182,6 +189,13 @@ struct p2p_device {
 
 	/* Password for P2P2 GO negotiation */
 	char password[100];
+
+	/* PASN data structure */
+	struct pasn_data *pasn;
+	struct wpabuf *action_frame_wrapper;
+
+	/* Device role */
+	enum p2p_role role;
 };
 
 struct p2p_sd_query {
@@ -1012,6 +1026,8 @@ void p2p_pref_channel_filter(const struct p2p_channels *a,
 			     struct p2p_channels *res, bool go);
 
 void p2p_sd_query_cb(struct p2p_data *p2p, int success);
+void p2p_pasn_initialize(struct p2p_data *p2p, struct p2p_device *dev,
+			 const u8 *addr, int freq, bool verify);
 
 void p2p_dbg(struct p2p_data *p2p, const char *fmt, ...)
 PRINTF_FORMAT(2, 3);

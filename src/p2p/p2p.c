@@ -246,6 +246,11 @@ void p2p_go_neg_failed(struct p2p_data *p2p, int status)
 	peer->go_neg_conf = NULL;
 	p2p->go_neg_peer = NULL;
 
+#ifdef CONFIG_PASN
+	if (peer->p2p2 && peer->pasn)
+		wpa_pasn_reset(peer->pasn);
+#endif /* CONFIG_PASN */
+
 	os_memset(&res, 0, sizeof(res));
 	res.status = status;
 	os_memcpy(res.peer_device_addr, peer->info.p2p_device_addr, ETH_ALEN);
@@ -959,6 +964,16 @@ static void p2p_device_free(struct p2p_data *p2p, struct p2p_device *dev)
 	}
 
 	os_free(dev->bootstrap_params);
+
+	wpabuf_free(dev->action_frame_wrapper);
+
+#ifdef CONFIG_PASN
+	if (dev->pasn) {
+		wpa_pasn_reset(dev->pasn);
+		pasn_data_deinit(dev->pasn);
+	}
+#endif /* CONFIG_PASN */
+
 	wpabuf_free(dev->info.wfd_subelems);
 	wpabuf_free(dev->info.vendor_elems);
 	wpabuf_free(dev->go_neg_conf);
@@ -1906,6 +1921,11 @@ void p2p_go_complete(struct p2p_data *p2p, struct p2p_device *peer)
 	peer->oob_pw_id = 0;
 	wpabuf_free(peer->go_neg_conf);
 	peer->go_neg_conf = NULL;
+
+#ifdef CONFIG_PASN
+	if (peer->p2p2 && peer->pasn)
+		wpa_pasn_reset(peer->pasn);
+#endif /* CONFIG_PASN */
 
 	p2p_set_state(p2p, P2P_PROVISIONING);
 	p2p->cfg->go_neg_completed(p2p->cfg->cb_ctx, &res);
@@ -5949,9 +5969,585 @@ void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
 
 
 #ifdef CONFIG_PASN
+
+static int p2p_prepare_pasn_extra_ie(struct p2p_data *p2p,
+				     struct wpabuf *extra_ies,
+				     const struct wpabuf *frame)
+{
+	struct wpabuf *buf, *buf2;
+	size_t len;
+
+	len = 100;
+	if (frame)
+		len += wpabuf_len(frame);
+	buf = wpabuf_alloc(len);
+	if (!buf)
+		return -1;
+
+	/* P2P Capability Extension attribute */
+	p2p_buf_add_pcea(buf, p2p);
+
+	if (frame) {
+		p2p_dbg(p2p, "Add Action frame wrapper for PASN");
+		wpabuf_put_u8(buf, P2P_ATTR_ACTION_FRAME_WRAPPER);
+		wpabuf_put_le16(buf, wpabuf_len(frame));
+		wpabuf_put_buf(buf, frame);
+	}
+
+	buf2 = p2p_encaps_ie(buf, P2P2_IE_VENDOR_TYPE);
+	wpabuf_free(buf);
+
+	if (wpabuf_tailroom(extra_ies) < wpabuf_len(buf2)) {
+		p2p_err(p2p, "Not enough room for P2P2 IE in PASN extra IEs");
+		wpabuf_free(buf2);
+		return -1;
+	}
+	wpabuf_put_buf(extra_ies, buf2);
+	wpabuf_free(buf2);
+
+	return 0;
+}
+
+
+static struct wpabuf * p2p_pairing_generate_rsnxe(struct p2p_data *p2p,
+						  int akmp)
+{
+	u32 capab;
+	size_t flen = 0;
+	struct wpabuf *buf;
+
+	capab = BIT(WLAN_RSNX_CAPAB_KEK_IN_PASN);
+
+	if (wpa_key_mgmt_sae(akmp))
+		capab |= BIT(WLAN_RSNX_CAPAB_SAE_H2E);
+
+	while (capab >> flen * 8)
+		flen++;
+
+	buf = wpabuf_alloc(2 + flen);
+	if (!buf)
+		return NULL;
+
+	if (wpabuf_tailroom(buf) < 2 + flen) {
+		p2p_dbg(p2p, "wpabuf tail room too small");
+		wpabuf_free(buf);
+		return NULL;
+	}
+	capab |= flen - 1; /* bit 0-3 = Field length (n - 1) */
+
+	p2p_dbg(p2p, "RSNXE capabilities: %04x", capab);
+	wpabuf_put_u8(buf, WLAN_EID_RSNX);
+	wpabuf_put_u8(buf, flen);
+	while (flen--) {
+		wpabuf_put_u8(buf, (capab & 0xff));
+		capab = capab >> 8;
+	}
+	return buf;
+}
+
+
+/* SSID used for deriving SAE pt for pairing */
+#define P2P_PAIRING_SSID "516F9A020000"
+
+static void p2p_pairing_set_password(struct pasn_data *pasn, u8 pasn_type,
+				     const char *passphrase)
+{
+	int pasn_groups[4] = { 0 };
+	size_t len;
+
+	if (!passphrase)
+		return;
+
+	len = os_strlen(passphrase);
+
+	if (pasn_type & 0xc && pasn_type & 0x3) {
+		pasn_groups[0] = 20;
+		pasn_groups[1] = 19;
+	} else if (pasn_type & 0xc) {
+		pasn_groups[0] = 20;
+	} else {
+		pasn_groups[0] = 19;
+	}
+	pasn->pt = sae_derive_pt(pasn_groups, (const u8 *) P2P_PAIRING_SSID,
+				 os_strlen(P2P_PAIRING_SSID),
+				 (const u8 *) passphrase, len, NULL);
+	/* Set passphrase for pairing responder to validate PASN auth 1 frame */
+	pasn->password = passphrase;
+}
+
+
+void p2p_pasn_initialize(struct p2p_data *p2p, struct p2p_device *dev,
+			 const u8 *addr, int freq, bool verify)
+{
+	struct pasn_data *pasn;
+	struct wpabuf *rsnxe;
+
+	if (!p2p || !dev)
+		return;
+
+	if (dev->pasn) {
+		wpa_pasn_reset(dev->pasn);
+	} else {
+		dev->pasn = pasn_data_init();
+		if (!dev->pasn)
+			return;
+	}
+
+	pasn = dev->pasn;
+
+	os_memcpy(pasn->own_addr, p2p->cfg->dev_addr, ETH_ALEN);
+	os_memcpy(pasn->peer_addr, addr, ETH_ALEN);
+
+	os_memcpy(pasn->bssid, dev->role == P2P_ROLE_PAIRING_INITIATOR ?
+		  pasn->peer_addr : pasn->own_addr, ETH_ALEN);
+
+	pasn->noauth = 1;
+
+	if ((p2p->cfg->pairing_config.pasn_type & 0xc) &&
+	    (dev->info.pairing_config.pasn_type & 0xc)) {
+		pasn->group = 20;
+		pasn->cipher = WPA_CIPHER_GCMP_256;
+		pasn->kek_len = 32;
+	} else {
+		pasn->group = 19;
+		pasn->cipher = WPA_CIPHER_CCMP;
+		pasn->kek_len = 16;
+	}
+
+	if (dev->password[0]) {
+		pasn->akmp = WPA_KEY_MGMT_SAE;
+		p2p_pairing_set_password(pasn,
+					 p2p->cfg->pairing_config.pasn_type,
+					 dev->password);
+		pasn->rsnxe_capab |= BIT(WLAN_RSNX_CAPAB_SAE_H2E);
+	} else if (verify) {
+		pasn->akmp = WPA_KEY_MGMT_SAE;
+	} else {
+		pasn->akmp = WPA_KEY_MGMT_PASN;
+	}
+
+	pasn->rsn_pairwise = pasn->cipher;
+	pasn->wpa_key_mgmt = pasn->akmp;
+
+	rsnxe = p2p_pairing_generate_rsnxe(p2p, pasn->akmp);
+	if (rsnxe) {
+		os_free(pasn->rsnxe_ie);
+		pasn->rsnxe_ie = os_memdup(wpabuf_head_u8(rsnxe),
+					   wpabuf_len(rsnxe));
+		if (!pasn->rsnxe_ie) {
+			wpabuf_free(rsnxe);
+			return;
+		}
+		wpabuf_free(rsnxe);
+	}
+
+	if (dev->role == P2P_ROLE_PAIRING_INITIATOR)
+		pasn->pmksa = p2p->initiator_pmksa;
+	else
+		pasn->pmksa = p2p->responder_pmksa;
+
+	pasn->freq = freq;
+}
+
+
+int p2p_initiate_pasn_auth(struct p2p_data *p2p, const u8 *addr, int freq)
+{
+	struct pasn_data *pasn;
+	struct p2p_device *dev;
+	struct wpabuf *extra_ies, *req;
+	u8 *ies = NULL;
+	int ret = 0;
+	size_t ies_len;
+
+	if (!addr) {
+		p2p_dbg(p2p, "Peer address NULL");
+		return -1;
+	}
+
+	dev = p2p_get_device(p2p, addr);
+	if (!dev) {
+		p2p_dbg(p2p, "Peer not known");
+		return -1;
+	}
+
+	dev->role = P2P_ROLE_PAIRING_INITIATOR;
+	p2p_pasn_initialize(p2p, dev, addr, freq, false);
+	pasn = dev->pasn;
+
+	pasn_initiator_pmksa_cache_remove(pasn->pmksa, (u8 *)addr);
+
+	req = p2p_build_go_neg_req(p2p, dev);
+	if (!req)
+		return -1;
+
+	p2p->go_neg_peer = dev;
+	dev->flags |= P2P_DEV_WAIT_GO_NEG_RESPONSE;
+
+	extra_ies = wpabuf_alloc(1500);
+	if (!extra_ies) {
+		wpabuf_free(req);
+		return -1;
+	}
+
+	if (p2p_prepare_pasn_extra_ie(p2p, extra_ies, req)) {
+		p2p_dbg(p2p, "Failed to prepare PASN extra elements");
+		ret = -1;
+		goto out;
+	}
+
+	ies_len = wpabuf_len(extra_ies);
+	ies = os_memdup(wpabuf_head_u8(extra_ies), ies_len);
+	if (!ies) {
+		ret = -1;
+		goto out;
+	}
+
+	pasn->extra_ies = ies;
+	pasn->extra_ies_len = ies_len;
+
+	/* Start PASN authentication */
+	if (wpas_pasn_start(pasn, pasn->own_addr, pasn->peer_addr, pasn->bssid,
+			    pasn->akmp, pasn->cipher, pasn->group, pasn->freq,
+			    NULL, 0, NULL, 0, NULL)) {
+		p2p_dbg(p2p, "Failed to start PASN");
+		ret = -1;
+	}
+out:
+	os_free(ies);
+	pasn->extra_ies = NULL;
+	pasn->extra_ies_len = 0;
+	wpabuf_free(req);
+	wpabuf_free(extra_ies);
+	return ret;
+}
+
+
+static int p2p_pasn_handle_action_wrapper(struct p2p_data *p2p,
+					  struct p2p_device *dev,
+					  const struct ieee80211_mgmt *mgmt,
+					  size_t len, int freq, int trans_seq)
+{
+	const u8 *ies;
+	size_t ies_len;
+	size_t data_len = 0;
+	const u8 *data = NULL;
+	struct p2p_message msg;
+
+	ies = mgmt->u.auth.variable;
+	ies_len = len - offsetof(struct ieee80211_mgmt, u.auth.variable);
+
+	os_memset(&msg, 0, sizeof(msg));
+	if (p2p_parse_ies(ies, ies_len, &msg)) {
+		p2p_dbg(p2p,
+			"Failed to parse P2P IE from PASN Authentication frame");
+		p2p_parse_free(&msg);
+		return -1;
+	}
+
+	if (msg.action_frame_wrapper && msg.action_frame_wrapper_len) {
+		data = msg.action_frame_wrapper;
+		data_len = msg.action_frame_wrapper_len;
+		if (data_len >= 2 &&
+		    data[0] == WLAN_ACTION_PUBLIC &&
+		    data[1] == WLAN_PA_VENDOR_SPECIFIC) {
+			data += 2;
+			data_len -= 2;
+			if (data_len < 4 ||
+			    WPA_GET_BE32(data) != P2P_IE_VENDOR_TYPE) {
+				p2p_parse_free(&msg);
+				return -1;
+			}
+			data += 4;
+			data_len -= 4;
+		} else {
+			p2p_dbg(p2p,
+				"Invalid category in Action frame wrapper in Authentication frame seq %d",
+				trans_seq);
+			p2p_parse_free(&msg);
+			return -1;
+		}
+	}
+
+	if (trans_seq == 1) {
+		if (data && data_len >= 1 && data[0] == P2P_INVITATION_REQ) {
+			struct wpabuf *resp;
+
+			resp = p2p_process_invitation_req(p2p, mgmt->sa,
+							  data + 1,
+							  data_len - 1, freq);
+			if (!resp)
+				p2p_dbg(p2p, "No Invitation Response found");
+
+			dev->role = P2P_ROLE_PAIRING_RESPONDER;
+			p2p_pasn_initialize(p2p, dev, mgmt->sa, freq, true);
+			wpabuf_free(dev->action_frame_wrapper);
+			dev->action_frame_wrapper = resp;
+		} else if (data && data_len >= 1 && data[0] == P2P_GO_NEG_REQ) {
+			struct wpabuf *resp;
+
+			resp = p2p_process_go_neg_req(p2p, mgmt->sa, data + 1,
+						      data_len - 1, freq, true);
+			if (!resp)
+				p2p_dbg(p2p,
+					"No GO Negotiation Response found");
+			wpabuf_free(dev->action_frame_wrapper);
+			dev->action_frame_wrapper = resp;
+		} else {
+			p2p_dbg(p2p, "Invalid action frame wrapper in Auth1");
+		}
+	} else if (trans_seq == 2) {
+		if (data && data_len >= 1 && data[0] == P2P_INVITATION_RESP) {
+			p2p_process_invitation_resp(p2p, mgmt->sa, data + 1,
+						    data_len - 1);
+			wpabuf_free(dev->action_frame_wrapper);
+			dev->action_frame_wrapper = NULL;
+		} else if (data && data_len >= 1 &&
+			   data[0] == P2P_GO_NEG_RESP) {
+			struct wpabuf *conf;
+
+			conf = p2p_process_go_neg_resp(p2p, mgmt->sa, data + 1,
+						       data_len - 1, freq,
+						       true);
+			if (!conf)
+				p2p_dbg(p2p, "No GO Negotiation Confirm found");
+			wpabuf_free(dev->action_frame_wrapper);
+			dev->action_frame_wrapper = conf;
+		} else {
+			p2p_dbg(p2p, "Invalid action frame wrapper in Auth2");
+		}
+	} else if (trans_seq == 3) {
+		if (data && data_len >= 1 && data[0] == P2P_GO_NEG_CONF)
+			p2p_handle_go_neg_conf(p2p, mgmt->sa, data + 1,
+					       data_len - 1, true);
+		else
+			p2p_invitation_resp_cb(p2p, P2P_SEND_ACTION_SUCCESS);
+	}
+	p2p_parse_free(&msg);
+	return 0;
+}
+
+
+static int p2p_pasn_add_encrypted_data(struct p2p_data *p2p,
+				       struct p2p_device *dev,
+				       struct wpabuf *buf)
+{
+	struct pasn_data *pasn;
+	struct wpabuf *p2p2_ie;
+	u8 *dika_len, *p2p2_ie_len;
+	int ret;
+
+	if (!p2p || !dev || !dev->pasn)
+		return 0;
+
+	pasn = dev->pasn;
+
+	if (dev->req_bootstrap_method != P2P_PBMA_OPPORTUNISTIC &&
+	    !p2p->pairing_info->enable_pairing_cache)
+		return 0;
+
+	p2p2_ie = wpabuf_alloc(100);
+	if (!p2p2_ie)
+		return -1;
+
+	p2p2_ie_len = p2p_buf_add_p2p2_ie_hdr(p2p2_ie);
+
+	if (p2p->pairing_info->enable_pairing_cache) {
+		wpabuf_put_u8(p2p2_ie, P2P_ATTR_DEVICE_IDENTITY_KEY);
+		dika_len = wpabuf_put(p2p2_ie, 2);
+
+		wpabuf_put_u8(p2p2_ie,
+			      p2p->pairing_info->dev_ik.cipher_version);
+		wpabuf_put_data(p2p2_ie, p2p->pairing_info->dev_ik.dik_data,
+				p2p->pairing_info->dev_ik.dik_len);
+		wpabuf_put_be32(p2p2_ie, p2p->pairing_info->dev_ik.expiration);
+
+		WPA_PUT_LE16(dika_len,
+			     (u8 *) wpabuf_put(p2p2_ie, 0) - dika_len - 2);
+	}
+
+	p2p_buf_update_ie_hdr(p2p2_ie, p2p2_ie_len);
+
+	ret = pasn_add_encrypted_data(pasn, buf, wpabuf_mhead_u8(p2p2_ie),
+				      wpabuf_len(p2p2_ie));
+	wpabuf_free(p2p2_ie);
+	return ret;
+}
+
+
+int p2p_prepare_data_element(struct p2p_data *p2p, const u8 *peer_addr)
+{
+	int ret = -1;
+	struct p2p_device *dev;
+	struct pasn_data *pasn;
+	struct wpabuf *extra_ies;
+
+	if (!p2p)
+		return -1;
+
+	dev = p2p_get_device(p2p, peer_addr);
+	if (!dev || !dev->pasn) {
+		p2p_dbg(p2p, "PASN: Peer not found " MACSTR,
+			MAC2STR(peer_addr));
+		return -1;
+	}
+	pasn = dev->pasn;
+
+	extra_ies = wpabuf_alloc(1500);
+	if (!extra_ies ||
+	    p2p_prepare_pasn_extra_ie(p2p, extra_ies,
+				      dev->action_frame_wrapper)) {
+		p2p_dbg(p2p, "Failed to prepare PASN extra elements");
+		goto out;
+	}
+
+	if (p2p_pasn_add_encrypted_data(p2p, dev, extra_ies) < 0)
+		goto out;
+
+	pasn->extra_ies = os_memdup(wpabuf_head_u8(extra_ies),
+				    wpabuf_len(extra_ies));
+	if (!pasn->extra_ies)
+		goto out;
+	pasn->extra_ies_len = wpabuf_len(extra_ies);
+	ret = 0;
+
+out:
+	wpabuf_free(extra_ies);
+	wpabuf_free(dev->action_frame_wrapper);
+	dev->action_frame_wrapper = NULL;
+
+	return ret;
+}
+
+
+static int p2p_handle_pasn_auth(struct p2p_data *p2p, struct p2p_device *dev,
+				const struct ieee80211_mgmt *mgmt, size_t len,
+				int freq)
+{
+	struct pasn_data *pasn;
+	u8 pasn_type;
+	int pasn_groups[4] = { 0 };
+	u16 auth_alg, auth_transaction, status_code;
+
+	if (!p2p || !dev || !dev->pasn)
+		return -1;
+
+	if (os_memcmp(mgmt->da, p2p->cfg->dev_addr, ETH_ALEN) != 0) {
+		p2p_dbg(p2p, "PASN Responder: Not our frame");
+		return -1;
+	}
+
+	if (len < offsetof(struct ieee80211_mgmt, u.auth.variable))
+		return -1;
+
+	pasn = dev->pasn;
+	auth_alg = le_to_host16(mgmt->u.auth.auth_alg);
+	status_code = le_to_host16(mgmt->u.auth.status_code);
+
+	auth_transaction = le_to_host16(mgmt->u.auth.auth_transaction);
+
+	if (status_code != WLAN_STATUS_SUCCESS &&
+	    status_code != WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY) {
+		p2p_dbg(p2p, "PASN: Authentication rejected - status=%u",
+			status_code);
+		return -1;
+	}
+
+	if (auth_alg != WLAN_AUTH_PASN || auth_transaction == 2) {
+		p2p_dbg(p2p,
+			"PASN Responder: Not a PASN frame or unexpected Authentication frame, auth_alg=%d",
+			auth_alg);
+		return -1;
+	}
+	if (auth_transaction == 1) {
+		pasn_type = p2p->cfg->pairing_config.pasn_type;
+		if (pasn_type & 0xc && pasn_type & 0x3) {
+			pasn_groups[0] = 20;
+			pasn_groups[1] = 19;
+		} else if (pasn_type & 0xc) {
+			pasn_groups[0] = 20;
+		} else {
+			pasn_groups[0] = 19;
+		}
+		pasn->pasn_groups = pasn_groups;
+
+		if (p2p_pasn_handle_action_wrapper(p2p, dev, mgmt, len, freq,
+						   auth_transaction)) {
+			p2p_dbg(p2p,
+				"PASN Responder: Handle Auth 1 action wrapper failed");
+			return -1;
+		}
+		if (handle_auth_pasn_1(pasn, p2p->cfg->dev_addr, mgmt->sa, mgmt,
+				       len, false) < 0) {
+			p2p_dbg(p2p,
+				"PASN Responder: Handle Auth 1 failed");
+			return -1;
+		}
+	} else if (auth_transaction == 3) {
+		if (handle_auth_pasn_3(pasn, p2p->cfg->dev_addr, mgmt->sa, mgmt,
+				       len) < 0) {
+			p2p_dbg(p2p,
+				"PASN Responder: Handle Auth 3 failed");
+			return -1;
+		}
+		if (p2p_pasn_handle_action_wrapper(p2p, dev, mgmt, len, freq,
+						   auth_transaction)) {
+			p2p_dbg(p2p,
+				"PASN Responder: Handle Auth 3 action wrapper failed");
+			return -1;
+		}
+		forced_memzero(pasn_get_ptk(pasn), sizeof(pasn->ptk));
+	}
+	return 0;
+}
+
+
 int p2p_pasn_auth_rx(struct p2p_data *p2p, const struct ieee80211_mgmt *mgmt,
 		     size_t len, int freq)
 {
-	return -1; /* TODO */
+	int ret = 0;
+	u8 auth_transaction;
+	struct p2p_device *dev;
+	struct pasn_data *pasn;
+	struct wpa_pasn_params_data pasn_data;
+
+	dev = p2p_get_device(p2p, mgmt->sa);
+	if (!dev) {
+		p2p_dbg(p2p, "PASN: Peer not found " MACSTR,
+			MAC2STR(mgmt->sa));
+		return -1;
+	}
+
+	if (!dev->pasn) {
+		p2p_dbg(p2p, "PASN: Uninitialized");
+		return -1;
+	}
+
+	pasn = dev->pasn;
+
+	wpabuf_free(pasn->frame);
+	pasn->frame = NULL;
+
+	auth_transaction = le_to_host16(mgmt->u.auth.auth_transaction);
+
+	if (dev->role == P2P_ROLE_PAIRING_INITIATOR && auth_transaction == 2) {
+		if (p2p_pasn_handle_action_wrapper(p2p, dev, mgmt, len, freq,
+						   auth_transaction)) {
+			p2p_dbg(p2p,
+				"PASN Initiator: Handle Auth 2 action wrapper failed");
+			return -1;
+		}
+		ret = wpa_pasn_auth_rx(pasn, (const u8 *) mgmt, len,
+				       &pasn_data);
+		forced_memzero(pasn_get_ptk(pasn), sizeof(pasn->ptk));
+
+		if (ret < 0) {
+			p2p_dbg(p2p, "PASN: wpa_pasn_auth_rx() failed");
+			dev->role = P2P_ROLE_IDLE;
+		}
+	} else {
+		ret = p2p_handle_pasn_auth(p2p, dev, mgmt, len, freq);
+	}
+	return ret;
 }
+
 #endif /* CONFIG_PASN */
