@@ -26,6 +26,65 @@
 #include "pasn_common.h"
 
 
+struct rsn_pmksa_cache * pasn_initiator_pmksa_cache_init(void)
+{
+	return pmksa_cache_init(NULL, NULL, NULL, NULL, NULL);
+}
+
+
+void pasn_initiator_pmksa_cache_deinit(struct rsn_pmksa_cache *pmksa)
+{
+	return pmksa_cache_deinit(pmksa);
+}
+
+
+int pasn_initiator_pmksa_cache_add(struct rsn_pmksa_cache *pmksa,
+				   const u8 *own_addr, const u8 *bssid, u8 *pmk,
+				   size_t pmk_len, u8 *pmkid)
+{
+	if (pmksa_cache_add(pmksa, pmk, pmk_len, pmkid, NULL, 0, bssid,
+			    own_addr, NULL, WPA_KEY_MGMT_SAE, 0))
+		return 0;
+	return -1;
+}
+
+
+void pasn_initiator_pmksa_cache_remove(struct rsn_pmksa_cache *pmksa,
+				       const u8 *bssid)
+{
+	struct rsn_pmksa_cache_entry *entry;
+
+	entry = pmksa_cache_get(pmksa, bssid, NULL, NULL, NULL, 0);
+	if (!entry)
+		return;
+
+	pmksa_cache_remove(pmksa, entry);
+}
+
+
+int pasn_initiator_pmksa_cache_get(struct rsn_pmksa_cache *pmksa,
+				   const u8 *bssid, u8 *pmkid, u8 *pmk,
+				   size_t *pmk_len)
+{
+	struct rsn_pmksa_cache_entry *entry;
+
+	entry = pmksa_cache_get(pmksa, bssid, NULL, NULL, NULL, 0);
+	if (entry) {
+		os_memcpy(pmkid, entry->pmkid, PMKID_LEN);
+		os_memcpy(pmk, entry->pmk, entry->pmk_len);
+		*pmk_len = entry->pmk_len;
+		return 0;
+	}
+	return -1;
+}
+
+
+void pasn_initiator_pmksa_cache_flush(struct rsn_pmksa_cache *pmksa)
+{
+	return pmksa_cache_flush(pmksa, NULL, NULL, 0, false);
+}
+
+
 void pasn_set_initiator_pmksa(struct pasn_data *pasn,
 			      struct rsn_pmksa_cache *pmksa)
 {
