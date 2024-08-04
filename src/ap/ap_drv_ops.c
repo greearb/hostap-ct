@@ -1289,3 +1289,27 @@ hostapd_get_multi_hw_info(struct hostapd_data *hapd,
 
 	return hapd->driver->get_multi_hw_info(hapd->drv_priv, num_multi_hws);
 }
+
+
+int hostapd_drv_add_pmkid(struct hostapd_data *hapd,
+			  struct wpa_pmkid_params *params)
+{
+	if (!hapd->driver || !hapd->driver->add_pmkid || !hapd->drv_priv)
+		return 0;
+	return hapd->driver->add_pmkid(hapd->drv_priv, params);
+}
+
+
+int hostapd_add_pmkid(struct hostapd_data *hapd, const u8 *bssid, const u8 *pmk,
+		      size_t pmk_len, const u8 *pmkid, int akmp)
+{
+	struct wpa_pmkid_params params;
+
+	os_memset(&params, 0, sizeof(params));
+	params.bssid = bssid;
+	params.pmkid = pmkid;
+	params.pmk = pmk;
+	params.pmk_len = pmk_len;
+
+	return hostapd_drv_add_pmkid(hapd, &params);
+}

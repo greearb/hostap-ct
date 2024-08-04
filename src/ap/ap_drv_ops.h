@@ -487,4 +487,9 @@ struct hostapd_multi_hw_info *
 hostapd_get_multi_hw_info(struct hostapd_data *hapd,
 			  unsigned int *num_multi_hws);
 
+int hostapd_drv_add_pmkid(struct hostapd_data *hapd,
+			  struct wpa_pmkid_params *params);
+int hostapd_add_pmkid(struct hostapd_data *hapd, const u8 *bssid, const u8 *pmk,
+		      size_t pmk_len, const u8 *pmkid, int akmp);;
+
 #endif /* AP_DRV_OPS */
