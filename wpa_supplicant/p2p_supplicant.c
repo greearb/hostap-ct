@@ -7511,6 +7511,7 @@ struct p2p_group * wpas_p2p_group_init(struct wpa_supplicant *wpa_s,
 	cfg->idle_update = wpas_p2p_idle_update;
 	cfg->ip_addr_alloc = WPA_GET_BE32(wpa_s->p2pdev->conf->ip_addr_start)
 		!= 0;
+	cfg->p2p2 = wpa_s->p2p2;
 
 	group = p2p_group_init(wpa_s->global->p2p, cfg);
 	if (group == NULL)

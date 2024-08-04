@@ -923,6 +923,8 @@ void p2p_buf_add_pref_channel_list(struct wpabuf *buf,
 				   const struct weighted_pcl *pref_freq_list,
 				   unsigned int size);
 struct wpabuf * p2p_encaps_ie(const struct wpabuf *subelems, u32 ie_type);
+struct wpabuf * p2p_group_build_p2p2_ie(struct p2p_data *p2p,
+					struct wpabuf *p2p2_ie, int freq);
 
 /* p2p_sd.c */
 struct p2p_sd_query * p2p_pending_sd_req(struct p2p_data *p2p,
