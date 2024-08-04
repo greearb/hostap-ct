@@ -139,7 +139,7 @@ static struct wpabuf * p2p_build_go_neg_req(struct p2p_data *p2p,
 					    struct p2p_device *peer)
 {
 	struct wpabuf *buf;
-	u8 *len;
+	struct wpabuf *subelems;
 	u8 group_capab;
 	size_t extra = 0;
 	u16 pw_id;
@@ -159,7 +159,12 @@ static struct wpabuf * p2p_build_go_neg_req(struct p2p_data *p2p,
 
 	p2p_buf_add_public_action_hdr(buf, P2P_GO_NEG_REQ, peer->dialog_token);
 
-	len = p2p_buf_add_ie_hdr(buf);
+	subelems = wpabuf_alloc(500);
+	if (!subelems) {
+		wpabuf_free(buf);
+		return NULL;
+	}
+
 	group_capab = 0;
 	if (peer->flags & P2P_DEV_PREFER_PERSISTENT_GROUP) {
 		group_capab |= P2P_GROUP_CAPAB_PERSISTENT_GROUP;
@@ -170,17 +175,20 @@ static struct wpabuf * p2p_build_go_neg_req(struct p2p_data *p2p,
 		group_capab |= P2P_GROUP_CAPAB_CROSS_CONN;
 	if (p2p->cfg->p2p_intra_bss)
 		group_capab |= P2P_GROUP_CAPAB_INTRA_BSS_DIST;
-	p2p_buf_add_capability(buf, p2p->dev_capab &
+	p2p_buf_add_capability(subelems, p2p->dev_capab &
 			       ~P2P_DEV_CAPAB_CLIENT_DISCOVERABILITY,
 			       group_capab);
-	p2p_buf_add_go_intent(buf, (p2p->go_intent << 1) | peer->tie_breaker);
-	p2p_buf_add_config_timeout(buf, p2p->go_timeout, p2p->client_timeout);
-	p2p_buf_add_listen_channel(buf, p2p->cfg->country, p2p->cfg->reg_class,
+	p2p_buf_add_go_intent(subelems,
+			      (p2p->go_intent << 1) | peer->tie_breaker);
+	p2p_buf_add_config_timeout(subelems, p2p->go_timeout,
+				   p2p->client_timeout);
+	p2p_buf_add_listen_channel(subelems, p2p->cfg->country,
+				   p2p->cfg->reg_class,
 				   p2p->cfg->channel);
 	if (p2p->ext_listen_interval)
-		p2p_buf_add_ext_listen_timing(buf, p2p->ext_listen_period,
+		p2p_buf_add_ext_listen_timing(subelems, p2p->ext_listen_period,
 					      p2p->ext_listen_interval);
-	p2p_buf_add_intended_addr(buf, p2p->intended_addr);
+	p2p_buf_add_intended_addr(subelems, p2p->intended_addr);
 	is_6ghz_capab = is_p2p_6ghz_capable(p2p) &&
 		p2p_is_peer_6ghz_capab(p2p, peer->info.p2p_device_addr);
 	if (p2p->num_pref_freq) {
@@ -191,16 +199,15 @@ static struct wpabuf * p2p_build_go_neg_req(struct p2p_data *p2p,
 					p2p->num_pref_freq, &pref_chanlist, go);
 		p2p_channels_dump(p2p, "channel list after filtering",
 				  &pref_chanlist);
-		p2p_buf_add_channel_list(buf, p2p->cfg->country,
+		p2p_buf_add_channel_list(subelems, p2p->cfg->country,
 					 &pref_chanlist, is_6ghz_capab);
 	} else {
-		p2p_buf_add_channel_list(buf, p2p->cfg->country,
+		p2p_buf_add_channel_list(subelems, p2p->cfg->country,
 					 &p2p->channels, is_6ghz_capab);
 	}
-	p2p_buf_add_device_info(buf, p2p, peer);
-	p2p_buf_add_operating_channel(buf, p2p->cfg->country,
+	p2p_buf_add_device_info(subelems, p2p, peer);
+	p2p_buf_add_operating_channel(subelems, p2p->cfg->country,
 				      p2p->op_reg_class, p2p->op_channel);
-	p2p_buf_update_ie_hdr(buf, len);
 
 	p2p_buf_add_pref_channel_list(buf, p2p->pref_freq_list,
 				      p2p->num_pref_freq);
@@ -211,6 +218,7 @@ static struct wpabuf * p2p_build_go_neg_req(struct p2p_data *p2p,
 		pw_id = peer->oob_pw_id;
 	if (p2p_build_wps_ie(p2p, buf, pw_id, 0) < 0) {
 		p2p_dbg(p2p, "Failed to build WPS IE for GO Negotiation Request");
+		wpabuf_free(subelems);
 		wpabuf_free(buf);
 		return NULL;
 	}
@@ -223,6 +231,8 @@ static struct wpabuf * p2p_build_go_neg_req(struct p2p_data *p2p,
 	if (p2p->vendor_elem && p2p->vendor_elem[VENDOR_ELEM_P2P_GO_NEG_REQ])
 		wpabuf_put_buf(buf, p2p->vendor_elem[VENDOR_ELEM_P2P_GO_NEG_REQ]);
 
+	buf = wpabuf_concat(buf, p2p_encaps_ie(subelems, P2P_IE_VENDOR_TYPE));
+	wpabuf_free(subelems);
 	return buf;
 }
 
@@ -293,7 +303,7 @@ static struct wpabuf * p2p_build_go_neg_resp(struct p2p_data *p2p,
 					     u8 tie_breaker)
 {
 	struct wpabuf *buf;
-	u8 *len;
+	struct wpabuf *subelems;
 	u8 group_capab;
 	size_t extra = 0;
 	u16 pw_id;
@@ -316,8 +326,13 @@ static struct wpabuf * p2p_build_go_neg_resp(struct p2p_data *p2p,
 
 	p2p_buf_add_public_action_hdr(buf, P2P_GO_NEG_RESP, dialog_token);
 
-	len = p2p_buf_add_ie_hdr(buf);
-	p2p_buf_add_status(buf, status);
+	subelems = wpabuf_alloc(500);
+	if (!subelems) {
+		wpabuf_free(buf);
+		return NULL;
+	}
+
+	p2p_buf_add_status(subelems, status);
 	group_capab = 0;
 	if (peer && peer->go_state == LOCAL_GO) {
 		if (peer->flags & P2P_DEV_PREFER_PERSISTENT_GROUP) {
@@ -331,24 +346,26 @@ static struct wpabuf * p2p_build_go_neg_resp(struct p2p_data *p2p,
 		if (p2p->cfg->p2p_intra_bss)
 			group_capab |= P2P_GROUP_CAPAB_INTRA_BSS_DIST;
 	}
-	p2p_buf_add_capability(buf, p2p->dev_capab &
+	p2p_buf_add_capability(subelems, p2p->dev_capab &
 			       ~P2P_DEV_CAPAB_CLIENT_DISCOVERABILITY,
 			       group_capab);
-	p2p_buf_add_go_intent(buf, (p2p->go_intent << 1) | tie_breaker);
-	p2p_buf_add_config_timeout(buf, p2p->go_timeout, p2p->client_timeout);
+	p2p_buf_add_go_intent(subelems, (p2p->go_intent << 1) | tie_breaker);
+	p2p_buf_add_config_timeout(subelems, p2p->go_timeout,
+				   p2p->client_timeout);
 	if (p2p->override_pref_op_class) {
 		p2p_dbg(p2p, "Override operating channel preference");
-		p2p_buf_add_operating_channel(buf, p2p->cfg->country,
+		p2p_buf_add_operating_channel(subelems, p2p->cfg->country,
 					      p2p->override_pref_op_class,
 					      p2p->override_pref_channel);
 	} else if (peer && peer->go_state == REMOTE_GO && !p2p->num_pref_freq) {
 		p2p_dbg(p2p, "Omit Operating Channel attribute");
 	} else {
-		p2p_buf_add_operating_channel(buf, p2p->cfg->country,
+		p2p_buf_add_operating_channel(subelems, p2p->cfg->country,
 					      p2p->op_reg_class,
 					      p2p->op_channel);
 	}
-	p2p_buf_add_intended_addr(buf, p2p->intended_addr);
+	p2p_buf_add_intended_addr(subelems, p2p->intended_addr);
+
 	if (p2p->num_pref_freq) {
 		bool go = (peer && peer->go_state == LOCAL_GO) ||
 			p2p->go_intent == 15;
@@ -362,12 +379,12 @@ static struct wpabuf * p2p_build_go_neg_resp(struct p2p_data *p2p,
 				  p2p->allow_6ghz);
 	}
 	if (status || peer == NULL) {
-		p2p_buf_add_channel_list(buf, p2p->cfg->country,
+		p2p_buf_add_channel_list(subelems, p2p->cfg->country,
 					 &pref_chanlist, false);
 	} else if (peer->go_state == REMOTE_GO) {
 		is_6ghz_capab = is_p2p_6ghz_capable(p2p) &&
 			p2p_is_peer_6ghz_capab(p2p, peer->info.p2p_device_addr);
-		p2p_buf_add_channel_list(buf, p2p->cfg->country,
+		p2p_buf_add_channel_list(subelems, p2p->cfg->country,
 					 &pref_chanlist, is_6ghz_capab);
 	} else {
 		struct p2p_channels res;
@@ -376,15 +393,14 @@ static struct wpabuf * p2p_build_go_neg_resp(struct p2p_data *p2p,
 			p2p_is_peer_6ghz_capab(p2p, peer->info.p2p_device_addr);
 		p2p_channels_intersect(&pref_chanlist, &peer->channels,
 				       &res);
-		p2p_buf_add_channel_list(buf, p2p->cfg->country, &res,
-				       is_6ghz_capab);
+		p2p_buf_add_channel_list(subelems, p2p->cfg->country, &res,
+					 is_6ghz_capab);
 	}
-	p2p_buf_add_device_info(buf, p2p, peer);
+	p2p_buf_add_device_info(subelems, p2p, peer);
 	if (peer && peer->go_state == LOCAL_GO) {
-		p2p_buf_add_group_id(buf, p2p->cfg->dev_addr, p2p->ssid,
+		p2p_buf_add_group_id(subelems, p2p->cfg->dev_addr, p2p->ssid,
 				     p2p->ssid_len);
 	}
-	p2p_buf_update_ie_hdr(buf, len);
 
 	/* WPS IE with Device Password ID attribute */
 	pw_id = p2p_wps_method_pw_id(peer ? peer->wps_method : WPS_NOT_READY);
@@ -392,6 +408,7 @@ static struct wpabuf * p2p_build_go_neg_resp(struct p2p_data *p2p,
 		pw_id = peer->oob_pw_id;
 	if (p2p_build_wps_ie(p2p, buf, pw_id, 0) < 0) {
 		p2p_dbg(p2p, "Failed to build WPS IE for GO Negotiation Response");
+		wpabuf_free(subelems);
 		wpabuf_free(buf);
 		return NULL;
 	}
@@ -404,6 +421,8 @@ static struct wpabuf * p2p_build_go_neg_resp(struct p2p_data *p2p,
 	if (p2p->vendor_elem && p2p->vendor_elem[VENDOR_ELEM_P2P_GO_NEG_RESP])
 		wpabuf_put_buf(buf, p2p->vendor_elem[VENDOR_ELEM_P2P_GO_NEG_RESP]);
 
+	buf = wpabuf_concat(buf, p2p_encaps_ie(subelems, P2P_IE_VENDOR_TYPE));
+	wpabuf_free(subelems);
 	return buf;
 }
 
@@ -1165,7 +1184,7 @@ static struct wpabuf * p2p_build_go_neg_conf(struct p2p_data *p2p,
 					     const u8 *resp_chan, int go)
 {
 	struct wpabuf *buf;
-	u8 *len;
+	struct wpabuf *subelems;
 	struct p2p_channels res;
 	u8 group_capab;
 	size_t extra = 0;
@@ -1187,8 +1206,13 @@ static struct wpabuf * p2p_build_go_neg_conf(struct p2p_data *p2p,
 
 	p2p_buf_add_public_action_hdr(buf, P2P_GO_NEG_CONF, dialog_token);
 
-	len = p2p_buf_add_ie_hdr(buf);
-	p2p_buf_add_status(buf, status);
+	subelems = wpabuf_alloc(500);
+	if (!subelems) {
+		wpabuf_free(buf);
+		return NULL;
+	}
+
+	p2p_buf_add_status(subelems, status);
 	group_capab = 0;
 	if (peer->go_state == LOCAL_GO) {
 		if (peer->flags & P2P_DEV_PREFER_PERSISTENT_GROUP) {
@@ -1202,25 +1226,26 @@ static struct wpabuf * p2p_build_go_neg_conf(struct p2p_data *p2p,
 		if (p2p->cfg->p2p_intra_bss)
 			group_capab |= P2P_GROUP_CAPAB_INTRA_BSS_DIST;
 	}
-	p2p_buf_add_capability(buf, p2p->dev_capab &
+	p2p_buf_add_capability(subelems, p2p->dev_capab &
 			       ~P2P_DEV_CAPAB_CLIENT_DISCOVERABILITY,
 			       group_capab);
 	if (go || resp_chan == NULL)
-		p2p_buf_add_operating_channel(buf, p2p->cfg->country,
+		p2p_buf_add_operating_channel(subelems, p2p->cfg->country,
 					      p2p->op_reg_class,
 					      p2p->op_channel);
 	else
-		p2p_buf_add_operating_channel(buf, (const char *) resp_chan,
+		p2p_buf_add_operating_channel(subelems,
+					      (const char *) resp_chan,
 					      resp_chan[3], resp_chan[4]);
 	p2p_channels_intersect(&p2p->channels, &peer->channels, &res);
 	is_6ghz_capab = is_p2p_6ghz_capable(p2p) &&
 		p2p_is_peer_6ghz_capab(p2p, peer->info.p2p_device_addr);
-	p2p_buf_add_channel_list(buf, p2p->cfg->country, &res, is_6ghz_capab);
+	p2p_buf_add_channel_list(subelems, p2p->cfg->country, &res,
+				 is_6ghz_capab);
 	if (go) {
-		p2p_buf_add_group_id(buf, p2p->cfg->dev_addr, p2p->ssid,
+		p2p_buf_add_group_id(subelems, p2p->cfg->dev_addr, p2p->ssid,
 				     p2p->ssid_len);
 	}
-	p2p_buf_update_ie_hdr(buf, len);
 
 #ifdef CONFIG_WIFI_DISPLAY
 	if (p2p->wfd_ie_go_neg)
@@ -1230,6 +1255,8 @@ static struct wpabuf * p2p_build_go_neg_conf(struct p2p_data *p2p,
 	if (p2p->vendor_elem && p2p->vendor_elem[VENDOR_ELEM_P2P_GO_NEG_CONF])
 		wpabuf_put_buf(buf, p2p->vendor_elem[VENDOR_ELEM_P2P_GO_NEG_CONF]);
 
+	buf = wpabuf_concat(buf, p2p_encaps_ie(subelems, P2P_IE_VENDOR_TYPE));
+	wpabuf_free(subelems);
 	return buf;
 }
 

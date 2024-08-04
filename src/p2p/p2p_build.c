@@ -957,3 +957,37 @@ int p2p_build_wps_ie(struct p2p_data *p2p, struct wpabuf *buf, int pw_id,
 
 	return 0;
 }
+
+
+struct wpabuf * p2p_encaps_ie(const struct wpabuf *subelems, u32 ie_type)
+{
+	struct wpabuf *ie;
+	const u8 *pos, *end;
+	size_t len;
+
+	if (!subelems)
+		return NULL;
+
+	len = wpabuf_len(subelems) + 1000;
+
+	ie = wpabuf_alloc(len);
+	if (!ie)
+		return NULL;
+
+	pos = wpabuf_head(subelems);
+	end = pos + wpabuf_len(subelems);
+
+	while (end > pos) {
+		size_t frag_len = end - pos;
+
+		if (frag_len > 251)
+			frag_len = 251;
+		wpabuf_put_u8(ie, WLAN_EID_VENDOR_SPECIFIC);
+		wpabuf_put_u8(ie, 4 + frag_len);
+		wpabuf_put_be32(ie, ie_type);
+		wpabuf_put_data(ie, pos, frag_len);
+		pos += frag_len;
+	}
+
+	return ie;
+}
