@@ -4970,8 +4970,13 @@ int p2p_get_interface_addr(struct p2p_data *p2p, const u8 *dev_addr,
 			   u8 *iface_addr)
 {
 	struct p2p_device *dev = p2p_get_device(p2p, dev_addr);
-	if (dev == NULL || is_zero_ether_addr(dev->interface_addr))
+
+	if (!dev || is_zero_ether_addr(dev->interface_addr)) {
+		p2p_dbg(p2p,
+			"P2P: Failed to get interface address from device addr "
+			MACSTR, MAC2STR(dev_addr));
 		return -1;
+	}
 	os_memcpy(iface_addr, dev->interface_addr, ETH_ALEN);
 	return 0;
 }
@@ -4981,8 +4986,13 @@ int p2p_get_dev_addr(struct p2p_data *p2p, const u8 *iface_addr,
 			   u8 *dev_addr)
 {
 	struct p2p_device *dev = p2p_get_device_interface(p2p, iface_addr);
-	if (dev == NULL)
+
+	if (!dev) {
+		p2p_dbg(p2p,
+			"P2P: Failed to get device address from interface address "
+			MACSTR, MAC2STR(iface_addr));
 		return -1;
+	}
 	os_memcpy(dev_addr, dev->info.p2p_device_addr, ETH_ALEN);
 	return 0;
 }
