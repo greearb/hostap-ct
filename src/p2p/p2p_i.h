@@ -198,6 +198,8 @@ struct p2p_id_key {
 	int akmp;
 	/* Cipher version type */
 	int cipher_version;
+	/* DevIK expiration time in hours */
+	u32 expiration;
 	/* Buffer to hold the DevIK */
 	u8 dik_data[DEVICE_IDENTITY_KEY_MAX_LEN];
 	/* Length of DevIK */

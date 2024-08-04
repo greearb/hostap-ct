@@ -3016,8 +3016,10 @@ static int p2p_pairing_info_init(struct p2p_data *p2p)
 	os_memcpy(pairing_info->dev_ik.dik_data,
 		  p2p->cfg->pairing_config.dik_data,
 		  p2p->cfg->pairing_config.dik_len);
+	pairing_info->dev_ik.expiration = 24; /* hours */
 
 	p2p_pairing_info_deinit(p2p);
+
 	p2p->pairing_info = pairing_info;
 #ifdef CONFIG_PASN
 	p2p->initiator_pmksa = pasn_initiator_pmksa_cache_init();
