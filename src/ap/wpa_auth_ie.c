@@ -1247,6 +1247,10 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 			    &data.pmkid[i * PMKID_LEN], PMKID_LEN);
 		sm->pmksa = pmksa_cache_auth_get(wpa_auth->pmksa, sm->addr,
 						 &data.pmkid[i * PMKID_LEN]);
+		if (!sm->pmksa && !is_zero_ether_addr(sm->p2p_dev_addr))
+			sm->pmksa = pmksa_cache_auth_get(
+				wpa_auth->pmksa, sm->p2p_dev_addr,
+				&data.pmkid[i * PMKID_LEN]);
 		if (sm->pmksa) {
 			pmkid = sm->pmksa->pmkid;
 			break;
