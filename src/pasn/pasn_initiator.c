@@ -682,7 +682,8 @@ static struct wpabuf * wpas_pasn_build_auth_3(struct pasn_data *pasn)
 {
 	struct wpabuf *buf, *wrapped_data_buf = NULL;
 	u8 mic[WPA_PASN_MAX_MIC_LEN];
-	u8 mic_len, data_len;
+	u8 mic_len;
+	size_t data_len;
 	const u8 *data;
 	u8 *ptr;
 	u8 wrapped_data;
