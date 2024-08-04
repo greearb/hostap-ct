@@ -417,6 +417,47 @@ struct wpa_cred {
 	int sim_num;
 };
 
+struct wpa_dev_ik {
+	/**
+	 * next - Next device identity in the list
+	 *
+	 * This pointer can be used to iterate over all device identity keys.
+	 * The head of this list is stored in the dev_ik field of struct
+	 * wpa_config.
+	 */
+	struct wpa_dev_ik *next;
+
+	/**
+	 * id - Unique id for the identity
+	 *
+	 * This identifier is used as a unique identifier for each identity
+	 * block when using the control interface. Each identity is allocated
+	 * an id when it is being created, either when reading the
+	 * configuration file or when a new identity is added.
+	 */
+	int id;
+
+	/**
+	 * dik_cipher - Device identity key cipher version
+	 */
+	int dik_cipher;
+
+	/**
+	 * dik - Device identity key which is unique for the device
+	 */
+	struct wpabuf *dik;
+
+	/**
+	 * pmk - PMK associated with the previous connection with the device
+	 */
+	struct wpabuf *pmk;
+
+	/**
+	 * pmkid - PMKID used in the previous connection with the device
+	 */
+	struct wpabuf *pmkid;
+};
+
 
 #define CFG_CHANGED_DEVICE_NAME BIT(0)
 #define CFG_CHANGED_CONFIG_METHODS BIT(1)
@@ -1820,6 +1861,13 @@ struct wpa_config {
 
 	/* DevIK */
 	struct wpabuf *dik;
+
+	/**
+	 * identity - P2P2 peer device identities
+	 *
+	 * This is the head for the list of all the paired devices.
+	 */
+	struct wpa_dev_ik *identity;
 };
 
 
@@ -1865,6 +1913,12 @@ void wpa_config_free_cred(struct wpa_cred *cred);
 int wpa_config_set_cred(struct wpa_cred *cred, const char *var,
 			const char *value, int line);
 char * wpa_config_get_cred_no_key(struct wpa_cred *cred, const char *var);
+
+int wpa_config_set_identity(struct wpa_dev_ik *identity, const char *var,
+			    const char *value, int line);
+void wpa_config_free_identity(struct wpa_dev_ik *identity);
+struct wpa_dev_ik * wpa_config_add_identity(struct wpa_config *config);
+int wpa_config_remove_identity(struct wpa_config *config, int id);
 
 struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 					   const char *driver_param);

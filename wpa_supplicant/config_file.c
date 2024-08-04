@@ -296,6 +296,65 @@ static int wpa_config_process_blob(struct wpa_config *config, FILE *f,
 #endif /* CONFIG_NO_CONFIG_BLOBS */
 
 
+static struct wpa_dev_ik * wpa_config_read_identity(FILE *f, int *line, int id)
+{
+	struct wpa_dev_ik *identity;
+	int errors = 0, end = 0;
+	char buf[256], *pos, *pos2;
+
+	wpa_printf(MSG_MSGDUMP, "Line: %d - start of a new identity block",
+		   *line);
+	identity = os_zalloc(sizeof(*identity));
+	if (!identity)
+		return NULL;
+	identity->id = id;
+
+	while (wpa_config_get_line(buf, sizeof(buf), f, line, &pos)) {
+		if (os_strcmp(pos, "}") == 0) {
+			end = 1;
+			break;
+		}
+
+		pos2 = os_strchr(pos, '=');
+		if (!pos2) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: Invalid identity line '%s'.",
+				   *line, pos);
+			errors++;
+			continue;
+		}
+
+		*pos2++ = '\0';
+		if (*pos2 == '"') {
+			if (os_strchr(pos2 + 1, '"') == NULL) {
+				wpa_printf(MSG_ERROR,
+					   "Line %d: invalid quotation '%s'.",
+					   *line, pos2);
+				errors++;
+				continue;
+			}
+		}
+
+		if (wpa_config_set_identity(identity, pos, pos2, *line) < 0)
+			errors++;
+	}
+
+	if (!end) {
+		wpa_printf(MSG_ERROR,
+			   "Line %d: identity block was not terminated properly.",
+			   *line);
+		errors++;
+	}
+
+	if (errors) {
+		wpa_config_free_identity(identity);
+		identity = NULL;
+	}
+
+	return identity;
+}
+
+
 struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 				    bool ro)
 {
@@ -304,9 +363,11 @@ struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 	int errors = 0, line = 0;
 	struct wpa_ssid *ssid, *tail, *head;
 	struct wpa_cred *cred, *cred_tail, *cred_head;
+	struct wpa_dev_ik *identity, *identity_tail, *identity_head;
 	struct wpa_config *config;
 	static int id = 0;
 	static int cred_id = 0;
+	static int identity_id = 0;
 
 	if (name == NULL)
 		return NULL;
@@ -325,6 +386,9 @@ struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 	cred_tail = cred_head = config->cred;
 	while (cred_tail && cred_tail->next)
 		cred_tail = cred_tail->next;
+	identity_tail = identity_head = config->identity;
+	while (identity_tail && identity_tail->next)
+		identity_tail = identity_tail->next;
 
 	wpa_printf(MSG_DEBUG, "Reading configuration file '%s'", name);
 	f = fopen(name, "r");
@@ -383,6 +447,22 @@ struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 				continue;
 			}
 #endif /* CONFIG_NO_CONFIG_BLOBS */
+		} else if (os_strcmp(pos, "identity={") == 0) {
+			identity = wpa_config_read_identity(f, &line,
+							    identity_id++);
+			if (!identity) {
+				wpa_printf(MSG_ERROR,
+					   "Line %d: failed to parse identity block.",
+					   line);
+				errors++;
+				continue;
+			}
+			if (!identity_head) {
+				identity_head = identity_tail = identity;
+			} else {
+				identity_tail->next = identity;
+				identity_tail = identity;
+			}
 		} else if (wpa_config_process_global(config, pos, line) < 0) {
 			wpa_printf(MSG_ERROR, "Line %d: Invalid configuration "
 				   "line '%s'.", line, pos);
@@ -396,6 +476,7 @@ struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 	config->ssid = head;
 	wpa_config_debug_dump_networks(config);
 	config->cred = cred_head;
+	config->identity = identity_head;
 
 #ifndef WPA_IGNORE_CONFIG_ERRORS
 	if (errors) {
@@ -1635,6 +1716,20 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 	}
 }
 
+static void wpa_config_write_identity(FILE *f, struct wpa_dev_ik *dev_ik)
+{
+	fprintf(f, "\tdik_cipher=%d\n", dev_ik->dik_cipher);
+
+	if (dev_ik->dik)
+		write_global_bin(f, "\tdik", dev_ik->dik);
+
+	if (dev_ik->pmk)
+		write_global_bin(f, "\tpmk", dev_ik->pmk);
+
+	if (dev_ik->pmkid)
+		write_global_bin(f, "\tpmkid", dev_ik->pmkid);
+}
+
 #endif /* CONFIG_NO_CONFIG_WRITE */
 
 
@@ -1644,6 +1739,7 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 	FILE *f;
 	struct wpa_ssid *ssid;
 	struct wpa_cred *cred;
+	struct wpa_dev_ik *dev_ik;
 #ifndef CONFIG_NO_CONFIG_BLOBS
 	struct wpa_config_blob *blob;
 #endif /* CONFIG_NO_CONFIG_BLOBS */
@@ -1695,6 +1791,12 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 			continue; /* do not save invalid network */
 		fprintf(f, "\nnetwork={\n");
 		wpa_config_write_network(f, ssid);
+		fprintf(f, "}\n");
+	}
+
+	for (dev_ik = config->identity; dev_ik; dev_ik = dev_ik->next) {
+		fprintf(f, "\nidentity={\n");
+		wpa_config_write_identity(f, dev_ik);
 		fprintf(f, "}\n");
 	}
 
