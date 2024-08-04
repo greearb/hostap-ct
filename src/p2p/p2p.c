@@ -249,6 +249,7 @@ void p2p_go_neg_failed(struct p2p_data *p2p, int status)
 #ifdef CONFIG_PASN
 	if (peer->p2p2 && peer->pasn)
 		wpa_pasn_reset(peer->pasn);
+	os_memset(p2p->dev_sae_password, 0, sizeof(p2p->dev_sae_password));
 	os_memset(p2p->peer_sae_password, 0, sizeof(p2p->peer_sae_password));
 #endif /* CONFIG_PASN */
 
@@ -6364,6 +6365,27 @@ static int p2p_pasn_add_encrypted_data(struct p2p_data *p2p,
 
 		WPA_PUT_LE16(dika_len,
 			     (u8 *) wpabuf_put(p2p2_ie, 0) - dika_len - 2);
+	}
+
+	if (dev->req_bootstrap_method == P2P_PBMA_OPPORTUNISTIC) {
+		if (!p2p->dev_sae_password[0]) {
+			int password_len;
+
+			/* SAE password is not available as the request is not
+			 * for an existing GO. Pick a random SAE password of
+			 * length between 10 and 20. */
+			password_len = 10 + os_random() % 10;
+			if (p2p_random(p2p->dev_sae_password,
+				       password_len) < 0) {
+				wpabuf_free(p2p2_ie);
+				return -1;
+			}
+			p2p->dev_sae_password[password_len] = '\0';
+		}
+
+		wpabuf_put_u8(p2p2_ie, P2P_ATTR_PASSWORD);
+		wpabuf_put_le16(p2p2_ie, os_strlen(p2p->dev_sae_password));
+		wpabuf_put_str(p2p2_ie, p2p->dev_sae_password);
 	}
 
 	p2p_buf_update_ie_hdr(p2p2_ie, p2p2_ie_len);

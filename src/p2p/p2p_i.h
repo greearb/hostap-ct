@@ -660,6 +660,7 @@ struct p2p_data {
 	 * PASN authentication or while joining an existing group. This will be
 	 * moved to a more permanent location from struct p2p_data at the
 	 * conclusion of a successful pairing. */
+	char dev_sae_password[100];
 	char peer_sae_password[100];
 };
 
