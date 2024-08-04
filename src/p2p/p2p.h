@@ -194,6 +194,11 @@ struct p2p_go_neg_results {
 	int akmp;
 
 	/**
+	 * cipher - Pairwise cipher(s) for the group for P2P2
+	 */
+	int cipher;
+
+	/**
 	 * pmkid - PMKID for P2P2 when PMK is derived as part of pairing
 	 */
 	u8 pmkid[PMKID_LEN];

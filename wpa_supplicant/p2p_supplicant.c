@@ -1894,6 +1894,8 @@ static void wpas_start_gc(struct wpa_supplicant *wpa_s,
 	ssid->key_mgmt = WPA_KEY_MGMT_SAE;
 	ssid->pairwise_cipher = WPA_CIPHER_CCMP;
 	ssid->group_cipher = WPA_CIPHER_CCMP;
+	if (res->cipher)
+		ssid->pairwise_cipher |= res->cipher;
 	ssid->sae_pwe = SAE_PWE_HASH_TO_ELEMENT;
 	ssid->ieee80211w = MGMT_FRAME_PROTECTION_REQUIRED;
 	ssid->disabled = 0;
@@ -2342,6 +2344,8 @@ static void wpas_start_go(struct wpa_supplicant *wpa_s,
 		ssid->sae_password = os_strdup(params->sae_password);
 		ssid->ieee80211w = MGMT_FRAME_PROTECTION_REQUIRED;
 		ssid->sae_pwe = SAE_PWE_HASH_TO_ELEMENT;
+		if (params->cipher)
+			ssid->pairwise_cipher |= params->cipher;
 	}
 
 	wpa_s->ap_configured_cb = p2p_go_configured;
