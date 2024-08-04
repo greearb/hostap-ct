@@ -646,7 +646,10 @@ static struct wpabuf * wpas_pasn_build_auth_1(struct pasn_data *pasn,
 	if (wpa_pasn_add_wrapped_data(buf, wrapped_data_buf) < 0)
 		goto fail;
 
-	wpa_pasn_add_rsnxe(buf, pasn->rsnxe_capab);
+	if (pasn->rsnxe_ie)
+		wpabuf_put_data(buf, pasn->rsnxe_ie, 2 + pasn->rsnxe_ie[1]);
+	else
+		wpa_pasn_add_rsnxe(buf, pasn->rsnxe_capab);
 
 	wpa_pasn_add_extra_ies(buf, pasn->extra_ies, pasn->extra_ies_len);
 
@@ -806,6 +809,7 @@ void wpa_pasn_reset(struct pasn_data *pasn)
 	pasn->derive_kdk = false;
 	pasn->rsn_ie = NULL;
 	pasn->rsn_ie_len = 0;
+	os_free(pasn->rsnxe_ie);
 	pasn->rsnxe_ie = NULL;
 	pasn->custom_pmkid_valid = false;
 

@@ -28,6 +28,9 @@ struct pasn_data * pasn_data_init(void)
 
 void pasn_data_deinit(struct pasn_data *pasn)
 {
+	if (!pasn)
+		return;
+	os_free(pasn->rsnxe_ie);
 	bin_clear_free(pasn, sizeof(struct pasn_data));
 }
 
@@ -157,7 +160,7 @@ void pasn_set_rsnxe_ie(struct pasn_data *pasn, const u8 *rsnxe_ie)
 {
 	if (!pasn || !rsnxe_ie)
 		return;
-	pasn->rsnxe_ie = rsnxe_ie;
+	pasn->rsnxe_ie = os_memdup(rsnxe_ie, 2 + rsnxe_ie[1]);
 }
 
 

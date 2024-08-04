@@ -54,7 +54,7 @@ struct pasn_data {
 	int wpa_key_mgmt;
 	int rsn_pairwise;
 	u16 rsnxe_capab;
-	const u8 *rsnxe_ie;
+	u8 *rsnxe_ie;
 	bool custom_pmkid_valid;
 	u8 custom_pmkid[PMKID_LEN];
 
