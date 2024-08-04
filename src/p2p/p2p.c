@@ -5944,3 +5944,12 @@ void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
 
 	p2p_parse_free(&msg);
 }
+
+
+#ifdef CONFIG_PASN
+int p2p_pasn_auth_rx(struct p2p_data *p2p, const struct ieee80211_mgmt *mgmt,
+		     size_t len, int freq)
+{
+	return -1; /* TODO */
+}
+#endif /* CONFIG_PASN */

@@ -10380,3 +10380,17 @@ void wpas_p2p_process_usd_elems(struct wpa_supplicant *wpa_s, const u8 *buf,
 		return;
 	p2p_process_usd_elems(p2p, buf, buf_len, peer_addr, freq);
 }
+
+
+#ifdef CONFIG_PASN
+int wpas_p2p_pasn_auth_rx(struct wpa_supplicant *wpa_s,
+			  const struct ieee80211_mgmt *mgmt, size_t len,
+			  int freq)
+{
+	struct p2p_data *p2p = wpa_s->global->p2p;
+
+	if (wpa_s->global->p2p_disabled || !p2p)
+		return -2;
+	return p2p_pasn_auth_rx(p2p, mgmt, len, freq);
+}
+#endif /* CONFIG_PASN */
