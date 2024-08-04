@@ -413,6 +413,10 @@ static int ieee802_11_parse_extension(const u8 *pos, size_t elen,
 		elems->mbssid_known_bss = pos;
 		elems->mbssid_known_bss_len = elen;
 		break;
+	case WLAN_EID_EXT_PASN_ENCRYPTED_DATA:
+		elems->pasn_encrypted_data = pos;
+		elems->pasn_encrypted_data_len = elen;
+		break;
 	default:
 		if (show_errors) {
 			wpa_printf(MSG_MSGDUMP,
