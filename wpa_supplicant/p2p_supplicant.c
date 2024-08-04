@@ -1717,6 +1717,96 @@ static void wpas_send_action_done(void *ctx)
 }
 
 
+#ifdef CONFIG_PASN
+
+struct wpa_p2p_pasn_auth_work {
+	u8 peer_addr[ETH_ALEN];
+	int freq;
+};
+
+
+static void wpas_p2p_pasn_free_auth_work(struct wpa_p2p_pasn_auth_work *awork)
+{
+	os_free(awork);
+}
+
+
+static void wpas_p2p_pasn_cancel_auth_work(struct wpa_supplicant *wpa_s)
+{
+	wpa_printf(MSG_DEBUG, "P2P PASN: Cancel p2p-pasn-start-auth work");
+
+	/* Remove pending/started work */
+	radio_remove_works(wpa_s, "p2p-pasn-start-auth", 0);
+}
+
+
+static void wpas_p2p_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
+{
+	struct wpa_supplicant *wpa_s = work->wpa_s;
+	struct wpa_p2p_pasn_auth_work *awork = work->ctx;
+	struct p2p_data *p2p = wpa_s->global->p2p;
+	const u8 *peer_addr = NULL;
+
+	if (deinit) {
+		if (!work->started) {
+			eloop_cancel_timeout(wpas_p2p_group_formation_timeout,
+					     wpa_s->p2pdev, NULL);
+		}
+		os_free(awork);
+		return;
+	}
+
+	if (!is_zero_ether_addr(awork->peer_addr))
+		peer_addr = awork->peer_addr;
+	if (p2p_initiate_pasn_auth(p2p, peer_addr, awork->freq)) {
+		wpa_printf(MSG_DEBUG,
+			   "P2P PASN: Failed to start PASN authentication");
+		goto fail;
+	}
+	eloop_cancel_timeout(wpas_p2p_group_formation_timeout,
+			     wpa_s->p2pdev, NULL);
+	eloop_register_timeout(P2P_MAX_INITIAL_CONN_WAIT, 0,
+			       wpas_p2p_group_formation_timeout,
+			       wpa_s->p2pdev, NULL);
+	wpa_s->p2p_pasn_auth_work = work;
+	return;
+
+fail:
+	wpas_p2p_pasn_free_auth_work(awork);
+	work->ctx = NULL;
+	radio_work_done(work);
+}
+
+
+static int wpas_p2p_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
+				       const u8 *peer_addr, int freq)
+{
+	struct wpa_p2p_pasn_auth_work *awork;
+
+	wpas_p2p_pasn_cancel_auth_work(wpa_s);
+	wpa_s->p2p_pasn_auth_work = NULL;
+
+	awork = os_zalloc(sizeof(*awork));
+	if (!awork)
+		return -1;
+
+	awork->freq = freq;
+	os_memcpy(awork->peer_addr, peer_addr, ETH_ALEN);
+
+	if (radio_add_work(wpa_s, freq, "p2p-pasn-start-auth", 1,
+			   wpas_p2p_pasn_auth_start_cb, awork) < 0) {
+		wpas_p2p_pasn_free_auth_work(awork);
+		return -1;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "P2P PASN: Authentication work successfully added");
+	return 0;
+}
+
+#endif /* CONFIG_PASN */
+
+
 static int wpas_copy_go_neg_results(struct wpa_supplicant *wpa_s,
 				    struct p2p_go_neg_results *params)
 {
@@ -2391,6 +2481,14 @@ static void wpas_p2p_group_formation_timeout(void *eloop_ctx,
 					     void *timeout_ctx)
 {
 	struct wpa_supplicant *wpa_s = eloop_ctx;
+
+#ifdef CONFIG_PASN
+	if (wpa_s->p2p_pasn_auth_work) {
+		wpas_p2p_pasn_cancel_auth_work(wpa_s);
+		wpa_s->p2p_pasn_auth_work = NULL;
+	}
+#endif /* CONFIG_PASN */
+
 	wpa_printf(MSG_DEBUG, "P2P: Group Formation timed out");
 	wpas_p2p_group_formation_failed(wpa_s, 0);
 }
@@ -2455,6 +2553,13 @@ static void wpas_go_neg_completed(void *ctx, struct p2p_go_neg_results *res)
 		wpa_s->off_channel_freq = 0;
 		wpa_s->roc_waiting_drv_freq = 0;
 	}
+
+#ifdef CONFIG_PASN
+	if (wpa_s->p2p_pasn_auth_work) {
+		wpas_p2p_pasn_cancel_auth_work(wpa_s);
+		wpa_s->p2p_pasn_auth_work = NULL;
+	}
+#endif /* CONFIG_PASN */
 
 	if (res->status) {
 		wpa_msg_global(wpa_s, MSG_INFO,
@@ -4879,11 +4984,16 @@ static void wpas_bootstrap_completed(void *ctx, const u8 *addr,
 		wpa_msg_global(wpa_s, MSG_INFO,
 			       P2P_EVENT_BOOTSTRAP_FAILURE MACSTR " status=%d",
 			       MAC2STR(addr), status);
-	} else {
-		wpa_msg_global(wpa_s, MSG_INFO,
-			       P2P_EVENT_BOOTSTRAP_SUCCESS MACSTR " status=%d",
-			       MAC2STR(addr), status);
+		return;
 	}
+
+	wpa_msg_global(wpa_s, MSG_INFO,
+		       P2P_EVENT_BOOTSTRAP_SUCCESS MACSTR " status=%d",
+		       MAC2STR(addr), status);
+
+#ifdef CONFIG_PASN
+	wpas_p2p_initiate_pasn_auth(wpa_s, addr, freq);
+#endif /* CONFIG_PASN */
 }
 
 
