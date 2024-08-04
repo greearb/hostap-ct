@@ -1456,15 +1456,18 @@ bool pasn_use_sha384(int akmp, int cipher)
  * @akmp: Negotiated AKM
  * @cipher: Negotiated pairwise cipher
  * @kdk_len: the length in octets that should be derived for HTLK. Can be zero.
+ * @kek_len: The length in octets that should be derived for KEK. Can be zero.
  * Returns: 0 on success, -1 on failure
  */
 int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 		    const u8 *spa, const u8 *bssid,
 		    const u8 *dhss, size_t dhss_len,
 		    struct wpa_ptk *ptk, int akmp, int cipher,
-		    size_t kdk_len)
+		    size_t kdk_len, size_t kek_len)
 {
-	u8 tmp[WPA_KCK_MAX_LEN + WPA_TK_MAX_LEN + WPA_KDK_MAX_LEN];
+	u8 tmp[WPA_KCK_MAX_LEN + WPA_KEK_MAX_LEN + WPA_TK_MAX_LEN +
+	       WPA_KDK_MAX_LEN];
+	const u8 *pos;
 	u8 *data;
 	size_t data_len, ptk_len;
 	int ret = -1;
@@ -1499,7 +1502,7 @@ int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 	ptk->kck_len = WPA_PASN_KCK_LEN;
 	ptk->tk_len = wpa_cipher_key_len(cipher);
 	ptk->kdk_len = kdk_len;
-	ptk->kek_len = 0;
+	ptk->kek_len = kek_len;
 	ptk->kek2_len = 0;
 	ptk->kck2_len = 0;
 
@@ -1510,7 +1513,7 @@ int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 		goto err;
 	}
 
-	ptk_len = ptk->kck_len + ptk->tk_len + ptk->kdk_len;
+	ptk_len = ptk->kck_len + ptk->tk_len + ptk->kdk_len + ptk->kek_len;
 	if (ptk_len > sizeof(tmp))
 		goto err;
 
@@ -1538,13 +1541,21 @@ int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 
 	os_memcpy(ptk->kck, tmp, WPA_PASN_KCK_LEN);
 	wpa_hexdump_key(MSG_DEBUG, "PASN: KCK:", ptk->kck, WPA_PASN_KCK_LEN);
+	pos = &tmp[WPA_PASN_KCK_LEN];
 
-	os_memcpy(ptk->tk, tmp + WPA_PASN_KCK_LEN, ptk->tk_len);
+	if (kek_len) {
+		os_memcpy(ptk->kek, pos, kek_len);
+		wpa_hexdump_key(MSG_DEBUG, "PASN: KEK:",
+				ptk->kek, ptk->kek_len);
+		pos += kek_len;
+	}
+
+	os_memcpy(ptk->tk, pos, ptk->tk_len);
 	wpa_hexdump_key(MSG_DEBUG, "PASN: TK:", ptk->tk, ptk->tk_len);
+	pos += ptk->tk_len;
 
 	if (kdk_len) {
-		os_memcpy(ptk->kdk, tmp + WPA_PASN_KCK_LEN + ptk->tk_len,
-			  ptk->kdk_len);
+		os_memcpy(ptk->kdk, pos, ptk->kdk_len);
 		wpa_hexdump_key(MSG_DEBUG, "PASN: KDK:",
 				ptk->kdk, ptk->kdk_len);
 	}

@@ -651,7 +651,7 @@ static int pasn_test_pasn_auth(void)
 			      spa_addr, bssid,
 			      dhss, sizeof(dhss),
 			      &ptk, WPA_KEY_MGMT_PASN, WPA_CIPHER_CCMP,
-			      WPA_KDK_MAX_LEN);
+			      WPA_KDK_MAX_LEN, 0);
 
 	if (ret)
 		return ret;

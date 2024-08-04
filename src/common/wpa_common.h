@@ -770,7 +770,7 @@ int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 		    const u8 *spa, const u8 *bssid,
 		    const u8 *dhss, size_t dhss_len,
 		    struct wpa_ptk *ptk, int akmp, int cipher,
-		    size_t kdk_len);
+		    size_t kdk_len, size_t kek_len);
 
 u8 pasn_mic_len(int akmp, int cipher);
 

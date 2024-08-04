@@ -66,6 +66,7 @@ struct pasn_data {
 	size_t extra_ies_len;
 
 	/* External modules do not access below variables */
+	size_t kek_len;
 	u16 group;
 	bool secure_ltf;
 	int freq;

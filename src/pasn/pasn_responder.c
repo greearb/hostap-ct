@@ -349,7 +349,7 @@ pasn_derive_keys(struct pasn_data *pasn,
 	ret = pasn_pmk_to_ptk(pmk, pmk_len, peer_addr, own_addr,
 			      wpabuf_head(secret), wpabuf_len(secret),
 			      &pasn->ptk, pasn->akmp,
-			      pasn->cipher, pasn->kdk_len);
+			      pasn->cipher, pasn->kdk_len, pasn->kek_len);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "PASN: Failed to derive PTK");
 		return -1;
