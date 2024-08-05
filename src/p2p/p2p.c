@@ -2968,6 +2968,34 @@ bool is_p2p_6ghz_disabled(struct p2p_data *p2p)
 }
 
 
+static void p2p_pairing_info_deinit(struct p2p_data *p2p)
+{
+	os_free(p2p->pairing_info);
+}
+
+
+static int p2p_pairing_info_init(struct p2p_data *p2p)
+{
+	struct p2p_pairing_info *pairing_info;
+
+	pairing_info = os_zalloc(sizeof(struct p2p_pairing_info));
+	if (!pairing_info)
+		return -1;
+
+	pairing_info->enable_pairing_setup =
+		p2p->cfg->pairing_config.enable_pairing_setup;
+	pairing_info->enable_pairing_cache =
+		p2p->cfg->pairing_config.enable_pairing_cache;
+	pairing_info->supported_bootstrap =
+		p2p->cfg->pairing_config.bootstrap_methods;
+
+	p2p_pairing_info_deinit(p2p);
+	p2p->pairing_info = pairing_info;
+
+	return 0;
+}
+
+
 struct p2p_data * p2p_init(const struct p2p_config *cfg)
 {
 	struct p2p_data *p2p;
@@ -3023,6 +3051,7 @@ struct p2p_data * p2p_init(const struct p2p_config *cfg)
 	p2p->go_timeout = 100;
 	p2p->client_timeout = 20;
 	p2p->num_p2p_sd_queries = 0;
+	p2p_pairing_info_init(p2p);
 
 	p2p_dbg(p2p, "initialized");
 	p2p_channels_dump(p2p, "channels", &p2p->cfg->channels);
@@ -3066,6 +3095,7 @@ void p2p_deinit(struct p2p_data *p2p)
 	p2p_remove_wps_vendor_extensions(p2p);
 	os_free(p2p->no_go_freq.range);
 	p2p_service_flush_asp(p2p);
+	p2p_pairing_info_deinit(p2p);
 
 	os_free(p2p);
 }
@@ -5723,6 +5753,13 @@ struct wpabuf * p2p_usd_elems(struct p2p_data *p2p)
 	p2p_buf_update_ie_hdr(buf, len);
 
 	len = p2p_buf_add_p2p2_ie_hdr(buf);
+
+	/* P2P Capability Extension attribute */
+	p2p_buf_add_pcea(buf, p2p);
+
+	/* P2P Pairing Bootstrapping Method attribute */
+	p2p_buf_add_pbma(buf, p2p->cfg->pairing_config.bootstrap_methods, NULL,
+			 0, 0);
 
 	p2p_buf_update_ie_hdr(buf, len);
 

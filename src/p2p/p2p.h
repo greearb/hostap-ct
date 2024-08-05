@@ -321,6 +321,41 @@ enum p2p_scan_type {
 #define P2P_MAX_WPS_VENDOR_EXT 10
 
 /**
+ * struct p2p_pairing_config - P2P pairing configuration
+ */
+struct p2p_pairing_config {
+	/**
+	 * Pairing capable
+	 */
+	bool pairing_capable;
+
+	/**
+	 * Enable P2P pairing setup
+	 */
+	bool enable_pairing_setup;
+
+	/**
+	 * Enable pairing cache to allow verification
+	 */
+	bool enable_pairing_cache;
+
+	/**
+	 * Enable P2P pairing verification with cached NIK/NPK
+	 */
+	bool enable_pairing_verification;
+
+	/**
+	 * P2P bootstrapping methods supported
+	 */
+	u16 bootstrap_methods;
+
+	/**
+	 * Bitmap of supported PASN types
+	 */
+	u8 pasn_type;
+};
+
+/**
  * struct p2p_peer_info - P2P peer information
  */
 struct p2p_peer_info {
@@ -588,6 +623,26 @@ struct p2p_config {
 	 * generated at the GO.
 	 */
 	unsigned int passphrase_len;
+
+	/**
+	 * p2p_pairing_config - P2P pairing configuration
+	 */
+	struct p2p_pairing_config pairing_config;
+
+	/**
+	 * reg_info - Regulatory info encoding for operation in 6 GHz band
+	 */
+	u8 reg_info;
+
+	/**
+	 * dfs_owner - Enable P2P GO to act as DFS Owner
+	 */
+	bool dfs_owner;
+
+	/**
+	 * twt_power_mgmt - Enable TWT based power management for P2P
+	 */
+	bool twt_power_mgmt;
 
 	/**
 	 * cb_ctx - Context to use with callback functions

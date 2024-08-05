@@ -722,6 +722,84 @@ void p2p_buf_add_persistent_group_info(struct wpabuf *buf, const u8 *dev_addr,
 }
 
 
+void p2p_buf_add_pcea(struct wpabuf *buf, struct p2p_data *p2p)
+{
+	u8 *len;
+	u16 capability_info = 0;
+
+	/* P2P Capability Extension */
+	wpabuf_put_u8(buf, P2P_ATTR_CAPABILITY_EXTENSION);
+	/* Length to be filled */
+	len = wpabuf_put(buf, 2);
+
+	if (!p2p->cfg->p2p_6ghz_disable)
+		capability_info |= P2P_PCEA_6GHZ;
+
+	if (p2p->cfg->reg_info)
+		capability_info |= P2P_PCEA_REG_INFO;
+
+	if (p2p->cfg->dfs_owner)
+		capability_info |= P2P_PCEA_DFS_OWNER;
+
+	if (p2p->cfg->pairing_config.pairing_capable)
+		capability_info |= P2P_PCEA_PAIRING_CAPABLE;
+
+	if (p2p->cfg->pairing_config.enable_pairing_setup)
+		capability_info |= P2P_PCEA_PAIRING_SETUP_ENABLED;
+
+	if (p2p->cfg->pairing_config.enable_pairing_cache)
+		capability_info |= P2P_PCEA_PMK_CACHING;
+
+	if (p2p->cfg->pairing_config.pasn_type)
+		capability_info |= P2P_PCEA_PASN_TYPE;
+
+	if (p2p->cfg->twt_power_mgmt)
+		capability_info |= P2P_PCEA_TWT_POWER_MGMT;
+
+	/* Field length is (n-1), n in octets */
+	capability_info |= (2 - 1) & P2P_PCEA_LEN_MASK;
+	wpabuf_put_le16(buf, capability_info);
+
+	if (capability_info & P2P_PCEA_REG_INFO)
+		wpabuf_put_u8(buf, p2p->cfg->reg_info);
+
+	if (capability_info & P2P_PCEA_PASN_TYPE)
+		wpabuf_put_u8(buf, p2p->cfg->pairing_config.pasn_type);
+
+	/* Update attribute length */
+	WPA_PUT_LE16(len, (u8 *) wpabuf_put(buf, 0) - len - 2);
+
+	wpa_printf(MSG_DEBUG, "P2P: * Capability Extension info=0x%x",
+		   capability_info);
+}
+
+
+void p2p_buf_add_pbma(struct wpabuf *buf, u16 bootstrap, const u8 *cookie,
+		      size_t cookie_len, int comeback_after)
+{
+	u8 *len;
+
+	/* P2P Pairing and Bootstrapping methods */
+	wpabuf_put_u8(buf, P2P_ATTR_PAIRING_AND_BOOTSTRAPPING);
+	/* Length to be filled */
+	len = wpabuf_put(buf, 2);
+
+	if (cookie && cookie_len) {
+		if (comeback_after)
+			wpabuf_put_le16(buf, comeback_after);
+		wpabuf_put_u8(buf, cookie_len);
+		wpabuf_put_data(buf, cookie, cookie_len);
+	}
+	wpabuf_put_le16(buf, bootstrap);
+
+	/* Update attribute length */
+	WPA_PUT_LE16(len, (u8 *) wpabuf_put(buf, 0) - len - 2);
+
+	wpa_printf(MSG_DEBUG, "P2P: * Bootstrapping method=0x%x",
+		   bootstrap);
+}
+
+
 static int p2p_add_wps_string(struct wpabuf *buf, enum wps_attribute attr,
 			      const char *val)
 {

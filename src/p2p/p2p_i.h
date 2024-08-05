@@ -160,6 +160,17 @@ struct p2p_sd_query {
 	struct wpabuf *tlvs;
 };
 
+struct p2p_pairing_info {
+	/* P2P device own address */
+	u8 own_addr[ETH_ALEN];
+	/* device capability to enable pairing setup */
+	bool enable_pairing_setup;
+	/* device capability to enable pairing cache */
+	bool enable_pairing_cache;
+	/* device supported bootstrapping */
+	u16 supported_bootstrap;
+};
+
 /**
  * struct p2p_data - P2P module data (internal to P2P module)
  */
@@ -554,6 +565,8 @@ struct p2p_data {
 	bool p2p_6ghz_capable;
 	bool include_6ghz;
 	bool allow_6ghz;
+
+	struct p2p_pairing_info *pairing_info;
 };
 
 /**
@@ -789,6 +802,9 @@ void p2p_buf_add_feature_capability(struct wpabuf *buf, u16 len,
 				    const u8 *mask);
 void p2p_buf_add_persistent_group_info(struct wpabuf *buf, const u8 *dev_addr,
 				       const u8 *ssid, size_t ssid_len);
+void p2p_buf_add_pcea(struct wpabuf *buf, struct p2p_data *p2p);
+void p2p_buf_add_pbma(struct wpabuf *buf, u16 bootstrap, const u8 *cookie,
+		      size_t cookie_len, int comeback_after);
 int p2p_build_wps_ie(struct p2p_data *p2p, struct wpabuf *buf, int pw_id,
 		     int all_attr);
 void p2p_buf_add_pref_channel_list(struct wpabuf *buf,
