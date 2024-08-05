@@ -21,7 +21,7 @@ void wpas_nan_usd_flush(struct wpa_supplicant *wpa_s);
 int wpas_nan_usd_publish(struct wpa_supplicant *wpa_s, const char *service_name,
 			 enum nan_service_protocol_type srv_proto_type,
 			 const struct wpabuf *ssi,
-			 struct nan_publish_params *params);
+			 struct nan_publish_params *params, bool p2p);
 void wpas_nan_usd_cancel_publish(struct wpa_supplicant *wpa_s, int publish_id);
 int wpas_nan_usd_update_publish(struct wpa_supplicant *wpa_s, int publish_id,
 				const struct wpabuf *ssi);
@@ -29,7 +29,7 @@ int wpas_nan_usd_subscribe(struct wpa_supplicant *wpa_s,
 			   const char *service_name,
 			   enum nan_service_protocol_type srv_proto_type,
 			   const struct wpabuf *ssi,
-			   struct nan_subscribe_params *params);
+			   struct nan_subscribe_params *params, bool p2p);
 void wpas_nan_usd_cancel_subscribe(struct wpa_supplicant *wpa_s,
 				   int subscribe_id);
 int wpas_nan_usd_transmit(struct wpa_supplicant *wpa_s, int handle,

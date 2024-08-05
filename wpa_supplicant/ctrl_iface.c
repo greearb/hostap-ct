@@ -12202,6 +12202,7 @@ static int wpas_ctrl_nan_publish(struct wpa_supplicant *wpa_s, char *cmd,
 	int ret = -1;
 	enum nan_service_protocol_type srv_proto_type = 0;
 	int *freq_list = NULL;
+	bool p2p = false;
 
 	os_memset(&params, 0, sizeof(params));
 	/* USD shall use both solicited and unsolicited transmissions */
@@ -12262,6 +12263,11 @@ static int wpas_ctrl_nan_publish(struct wpa_supplicant *wpa_s, char *cmd,
 			continue;
 		}
 
+		if (os_strcmp(token, "p2p=1") == 0) {
+			p2p = true;
+			continue;
+		}
+
 		if (os_strcmp(token, "solicited=0") == 0) {
 			params.solicited = false;
 			continue;
@@ -12283,7 +12289,7 @@ static int wpas_ctrl_nan_publish(struct wpa_supplicant *wpa_s, char *cmd,
 	}
 
 	publish_id = wpas_nan_usd_publish(wpa_s, service_name, srv_proto_type,
-					  ssi, &params);
+					  ssi, &params, p2p);
 	if (publish_id > 0)
 		ret = os_snprintf(buf, buflen, "%d", publish_id);
 fail:
@@ -12367,6 +12373,7 @@ static int wpas_ctrl_nan_subscribe(struct wpa_supplicant *wpa_s, char *cmd,
 	struct wpabuf *ssi = NULL;
 	int ret = -1;
 	enum nan_service_protocol_type srv_proto_type = 0;
+	bool p2p = false;
 
 	os_memset(&params, 0, sizeof(params));
 	params.freq = NAN_USD_DEFAULT_FREQ;
@@ -12406,6 +12413,11 @@ static int wpas_ctrl_nan_subscribe(struct wpa_supplicant *wpa_s, char *cmd,
 			continue;
 		}
 
+		if (os_strcmp(token, "p2p=1") == 0) {
+			p2p = true;
+			continue;
+		}
+
 		wpa_printf(MSG_INFO,
 			   "CTRL: Invalid NAN_SUBSCRIBE parameter: %s",
 			   token);
@@ -12414,7 +12426,7 @@ static int wpas_ctrl_nan_subscribe(struct wpa_supplicant *wpa_s, char *cmd,
 
 	subscribe_id = wpas_nan_usd_subscribe(wpa_s, service_name,
 					      srv_proto_type, ssi,
-					      &params);
+					      &params, p2p);
 	if (subscribe_id > 0)
 		ret = os_snprintf(buf, buflen, "%d", subscribe_id);
 fail:

@@ -748,6 +748,7 @@ void p2p_buf_add_action_hdr(struct wpabuf *buf, u8 subtype, u8 dialog_token);
 void p2p_buf_add_public_action_hdr(struct wpabuf *buf, u8 subtype,
 				   u8 dialog_token);
 u8 * p2p_buf_add_ie_hdr(struct wpabuf *buf);
+u8 * p2p_buf_add_p2p2_ie_hdr(struct wpabuf *buf);
 void p2p_buf_add_status(struct wpabuf *buf, u8 status);
 void p2p_buf_add_device_info(struct wpabuf *buf, struct p2p_data *p2p,
 			     struct p2p_device *peer);

@@ -13,6 +13,7 @@
 #include "wpa_supplicant_i.h"
 #include "offchannel.h"
 #include "driver_i.h"
+#include "p2p_supplicant.h"
 #include "nan_usd.h"
 
 
@@ -386,20 +387,27 @@ void wpas_nan_usd_flush(struct wpa_supplicant *wpa_s)
 int wpas_nan_usd_publish(struct wpa_supplicant *wpa_s, const char *service_name,
 			 enum nan_service_protocol_type srv_proto_type,
 			 const struct wpabuf *ssi,
-			 struct nan_publish_params *params)
+			 struct nan_publish_params *params, bool p2p)
 {
 	int publish_id;
 	struct wpabuf *elems = NULL;
+	const u8 *addr;
 
 	if (!wpa_s->nan_de)
 		return -1;
 
+	if (p2p) {
+		elems = wpas_p2p_usd_elems(wpa_s);
+		addr = wpa_s->global->p2p_dev_addr;
+	} else {
+		addr = wpa_s->own_addr;
+	}
+
 	publish_id = nan_de_publish(wpa_s->nan_de, service_name, srv_proto_type,
-				    ssi, elems, params);
+				    ssi, elems, params, p2p);
 	if (publish_id >= 1 &&
 	    (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD) &&
-	    wpas_drv_nan_publish(wpa_s, wpa_s->own_addr, publish_id,
-				 service_name,
+	    wpas_drv_nan_publish(wpa_s, addr, publish_id, service_name,
 				 nan_de_get_service_id(wpa_s->nan_de,
 						       publish_id),
 				 srv_proto_type, ssi, elems, params) < 0) {
@@ -441,20 +449,28 @@ int wpas_nan_usd_subscribe(struct wpa_supplicant *wpa_s,
 			   const char *service_name,
 			   enum nan_service_protocol_type srv_proto_type,
 			   const struct wpabuf *ssi,
-			   struct nan_subscribe_params *params)
+			   struct nan_subscribe_params *params, bool p2p)
 {
 	int subscribe_id;
 	struct wpabuf *elems = NULL;
+	const u8 *addr;
 
 	if (!wpa_s->nan_de)
 		return -1;
 
+	if (p2p) {
+		elems = wpas_p2p_usd_elems(wpa_s);
+		addr = wpa_s->global->p2p_dev_addr;
+	} else {
+		addr = wpa_s->own_addr;
+	}
+
 	subscribe_id = nan_de_subscribe(wpa_s->nan_de, service_name,
-					srv_proto_type, ssi, elems, params);
+					srv_proto_type, ssi, elems, params,
+					p2p);
 	if (subscribe_id >= 1 &&
 	    (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD) &&
-	    wpas_drv_nan_subscribe(wpa_s, wpa_s->own_addr, subscribe_id,
-				   service_name,
+	    wpas_drv_nan_subscribe(wpa_s, addr, subscribe_id, service_name,
 				   nan_de_get_service_id(wpa_s->nan_de,
 							 subscribe_id),
 				   srv_proto_type, ssi, elems, params) < 0) {

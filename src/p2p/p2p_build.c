@@ -55,8 +55,21 @@ u8 * p2p_buf_add_ie_hdr(struct wpabuf *buf)
 
 void p2p_buf_update_ie_hdr(struct wpabuf *buf, u8 *len)
 {
-	/* Update P2P IE Length */
+	/* Update P2P/P2P2 IE Length */
 	*len = (u8 *) wpabuf_put(buf, 0) - len - 1;
+}
+
+
+u8 * p2p_buf_add_p2p2_ie_hdr(struct wpabuf *buf)
+{
+	u8 *len;
+
+	/* P2P2 IE header */
+	wpabuf_put_u8(buf, WLAN_EID_VENDOR_SPECIFIC);
+	len = wpabuf_put(buf, 1); /* IE length to be filled */
+	wpabuf_put_be32(buf, P2P2_IE_VENDOR_TYPE);
+	wpa_printf(MSG_DEBUG, "P2P: * P2P2 IE header");
+	return len;
 }
 
 

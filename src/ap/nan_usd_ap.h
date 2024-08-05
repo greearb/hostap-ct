@@ -21,7 +21,7 @@ void hostapd_nan_usd_flush(struct hostapd_data *hapd);
 int hostapd_nan_usd_publish(struct hostapd_data *hapd, const char *service_name,
 			    enum nan_service_protocol_type srv_proto_type,
 			    const struct wpabuf *ssi,
-			    struct nan_publish_params *params);
+			    struct nan_publish_params *params, bool p2p);
 void hostapd_nan_usd_cancel_publish(struct hostapd_data *hapd, int publish_id);
 int hostapd_nan_usd_update_publish(struct hostapd_data *hapd, int publish_id,
 				   const struct wpabuf *ssi);
@@ -29,7 +29,7 @@ int hostapd_nan_usd_subscribe(struct hostapd_data *hapd,
 			      const char *service_name,
 			      enum nan_service_protocol_type srv_proto_type,
 			      const struct wpabuf *ssi,
-			      struct nan_subscribe_params *params);
+			      struct nan_subscribe_params *params, bool p2p);
 void hostapd_nan_usd_cancel_subscribe(struct hostapd_data *hapd,
 				      int subscribe_id);
 int hostapd_nan_usd_transmit(struct hostapd_data *hapd, int handle,

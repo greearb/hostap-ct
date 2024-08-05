@@ -10242,3 +10242,13 @@ int wpas_p2p_lo_stop(struct wpa_supplicant *wpa_s)
 	wpa_s->p2p_lo_started = 0;
 	return ret;
 }
+
+
+struct wpabuf * wpas_p2p_usd_elems(struct wpa_supplicant *wpa_s)
+{
+	struct p2p_data *p2p = wpa_s->global->p2p;
+
+	if (wpa_s->global->p2p_disabled || !p2p)
+		return NULL;
+	return p2p_usd_elems(p2p);
+}

@@ -5688,3 +5688,43 @@ void set_p2p_allow_6ghz(struct p2p_data *p2p, bool value)
 {
 	p2p->allow_6ghz = value;
 }
+
+
+struct wpabuf * p2p_usd_elems(struct p2p_data *p2p)
+{
+	struct wpabuf *buf;
+	u8 *len;
+	u8 group_capab;
+
+	buf = wpabuf_alloc(1000);
+	if (!buf)
+		return NULL;
+
+	len = p2p_buf_add_ie_hdr(buf);
+
+	/* P2P Capability attribute */
+	group_capab = 0;
+	if (p2p->num_groups) {
+		group_capab |= P2P_GROUP_CAPAB_GROUP_OWNER;
+		if ((p2p->dev_capab & P2P_DEV_CAPAB_CONCURRENT_OPER) &&
+		    (p2p->dev_capab & P2P_DEV_CAPAB_INFRA_MANAGED) &&
+		    p2p->cross_connect)
+			group_capab |= P2P_GROUP_CAPAB_CROSS_CONN;
+	}
+	if (p2p->cfg->p2p_intra_bss)
+		group_capab |= P2P_GROUP_CAPAB_INTRA_BSS_DIST;
+	p2p_buf_add_capability(buf, p2p->dev_capab &
+			       ~P2P_DEV_CAPAB_CLIENT_DISCOVERABILITY,
+			       group_capab);
+
+	/* P2P Device Info attribute */
+	p2p_buf_add_device_info(buf, p2p, NULL);
+
+	p2p_buf_update_ie_hdr(buf, len);
+
+	len = p2p_buf_add_p2p2_ie_hdr(buf);
+
+	p2p_buf_update_ie_hdr(buf, len);
+
+	return buf;
+}
