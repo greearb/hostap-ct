@@ -188,6 +188,7 @@ void wpas_p2p_process_usd_elems(struct wpa_supplicant *wpa_s, const u8 *buf,
 				unsigned int freq);
 int wpas_p2p_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
 				 size_t data_len, bool acked);
+int wpas_p2p_remove_all_identity(struct wpa_supplicant *wpa_s);
 
 #ifdef CONFIG_P2P
 

@@ -13014,6 +13014,9 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strcmp(buf, "P2P_LO_STOP") == 0) {
 		if (wpas_p2p_lo_stop(wpa_s))
 			reply_len = -1;
+	} else if (os_strcmp(buf, "P2P_REMOVE_IDENTITY") == 0) {
+		if (wpas_p2p_remove_all_identity(wpa_s))
+			reply_len = -1;
 #endif /* CONFIG_P2P */
 #ifdef CONFIG_WIFI_DISPLAY
 	} else if (os_strncmp(buf, "WFD_SUBELEM_SET ", 16) == 0) {

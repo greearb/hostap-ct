@@ -1397,6 +1397,22 @@ static void wpas_p2p_group_started(struct wpa_supplicant *wpa_s,
 }
 
 
+int wpas_p2p_remove_all_identity(struct wpa_supplicant *wpa_s)
+{
+	struct wpa_dev_ik *ik;
+
+	for (ik = wpa_s->conf->identity; ik; ik = ik->next)
+		wpa_config_remove_identity(wpa_s->conf, ik->id);
+
+	if (wpa_s->conf->update_config &&
+	    wpa_config_write(wpa_s->confname, wpa_s->conf)) {
+		wpa_printf(MSG_DEBUG, "P2P: Failed to update configuration");
+		return -1;
+	}
+	return 0;
+}
+
+
 static void wpas_p2p_store_identity(struct wpa_supplicant *wpa_s, u8 cipher,
 				    const u8 *dik_data, size_t dik_len,
 				    const u8 *pmk, size_t pmk_len,
