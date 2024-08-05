@@ -9,6 +9,7 @@
 #ifndef DRIVER_I_H
 #define DRIVER_I_H
 
+#include "common/nan_de.h"
 #include "drivers/driver.h"
 
 /* driver_ops */
@@ -1173,6 +1174,77 @@ wpas_drv_get_sta_mlo_info(struct wpa_supplicant *wpa_s,
 		return 0;
 
 	return wpa_s->driver->get_sta_mlo_info(wpa_s->drv_priv, mlo_info);
+}
+
+static inline int
+wpas_drv_nan_flush(struct wpa_supplicant *wpa_s)
+{
+	if (!wpa_s->driver->nan_flush)
+		return 0;
+
+	return wpa_s->driver->nan_flush(wpa_s->drv_priv);
+}
+
+static inline int
+wpas_drv_nan_publish(struct wpa_supplicant *wpa_s, const u8 *addr,
+		     int publish_id, const char *service_name,
+		     const u8 *service_id,
+		     enum nan_service_protocol_type srv_proto_type,
+		     const struct wpabuf *ssi, const struct wpabuf *elems,
+		     struct nan_publish_params *params)
+{
+	if (!wpa_s->driver->nan_publish)
+		return 0;
+
+	return wpa_s->driver->nan_publish(wpa_s->drv_priv, addr, publish_id,
+					  service_name, service_id,
+					  srv_proto_type, ssi, elems, params);
+}
+
+static inline int
+wpas_drv_nan_cancel_publish(struct wpa_supplicant *wpa_s, int publish_id)
+{
+	if (!wpa_s->driver->nan_cancel_publish)
+		return 0;
+
+	return wpa_s->driver->nan_cancel_publish(wpa_s->drv_priv, publish_id);
+}
+
+static inline int
+wpas_drv_nan_update_publish(struct wpa_supplicant *wpa_s, int publish_id,
+			    const struct wpabuf *ssi)
+{
+	if (!wpa_s->driver->nan_update_publish)
+		return 0;
+
+	return wpa_s->driver->nan_update_publish(wpa_s->drv_priv, publish_id,
+						 ssi);
+}
+
+static inline int
+wpas_drv_nan_subscribe(struct wpa_supplicant *wpa_s, const u8 *addr,
+		       int subscribe_id, const char *service_name,
+		       const u8 *service_id,
+		       enum nan_service_protocol_type srv_proto_type,
+		       const struct wpabuf *ssi, const struct wpabuf *elems,
+		       struct nan_subscribe_params *params)
+{
+	if (!wpa_s->driver->nan_subscribe)
+		return 0;
+
+	return wpa_s->driver->nan_subscribe(wpa_s->drv_priv, addr, subscribe_id,
+					    service_name, service_id,
+					    srv_proto_type, ssi, elems, params);
+}
+
+static inline int
+wpas_drv_nan_cancel_subscribe(struct wpa_supplicant *wpa_s, int subscribe_id)
+{
+	if (!wpa_s->driver->nan_cancel_subscribe)
+		return 0;
+
+	return wpa_s->driver->nan_cancel_subscribe(wpa_s->drv_priv,
+						   subscribe_id);
 }
 
 #endif /* DRIVER_I_H */
