@@ -873,10 +873,10 @@ void p2p_check_pref_chan(struct p2p_data *p2p, int go,
 			 struct p2p_device *dev, struct p2p_message *msg);
 
 /* p2p_pd.c */
-void p2p_process_prov_disc_req(struct p2p_data *p2p, const u8 *sa,
-			       const u8 *data, size_t len, int rx_freq);
-void p2p_process_prov_disc_resp(struct p2p_data *p2p, const u8 *sa,
-				const u8 *data, size_t len);
+void p2p_handle_prov_disc_req(struct p2p_data *p2p, const u8 *sa,
+			      const u8 *data, size_t len, int rx_freq);
+void p2p_handle_prov_disc_resp(struct p2p_data *p2p, const u8 *sa,
+			       const u8 *data, size_t len);
 int p2p_send_prov_disc_req(struct p2p_data *p2p, struct p2p_device *dev,
 			   int join, int force_freq);
 void p2p_reset_pending_pd(struct p2p_data *p2p);
