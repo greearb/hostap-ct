@@ -952,6 +952,11 @@ struct hostapd_freq_params {
 	 * link_id: If >=0 indicates the link of the AP MLD to configure
 	 */
 	int link_id;
+
+	/**
+	 * op_class: Operating class of the channel
+	 */
+	u8 op_class;
 };
 
 /**
