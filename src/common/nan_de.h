@@ -53,6 +53,10 @@ struct nan_callbacks {
 	void (*receive)(void *ctx, int id, int peer_instance_id,
 			const u8 *ssi, size_t ssi_len,
 			const u8 *peer_addr);
+
+	void (*process_p2p_usd_elems)(void *ctx, const u8 *buf,
+				      u16 buf_len, const u8 *peer_addr,
+				      unsigned int freq);
 };
 
 struct nan_de * nan_de_init(const u8 *nmi, bool offload, bool ap,

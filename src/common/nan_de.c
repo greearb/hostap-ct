@@ -777,6 +777,34 @@ static void nan_de_get_sdea(const u8 *buf, size_t len, u8 instance_id,
 }
 
 
+static void nan_de_process_elem_container(struct nan_de *de, const u8 *buf,
+					  size_t len, const u8 *peer_addr,
+					  unsigned int freq, bool p2p)
+{
+	const u8 *elem;
+	u16 elem_len;
+
+	elem = nan_de_get_attr(buf, len, NAN_ATTR_ELEM_CONTAINER, 0);
+	if (!elem)
+		return;
+
+	elem++;
+	elem_len = WPA_GET_LE16(elem);
+	elem += 2;
+	/* Skip the attribute if there is not enough froom for an element. */
+	if (elem_len < 1 + 2)
+		return;
+
+	/* Skip Map ID */
+	elem++;
+	elem_len--;
+
+	if (p2p && de->cb.process_p2p_usd_elems)
+		de->cb.process_p2p_usd_elems(de->cb.ctx, elem, elem_len,
+					     peer_addr, freq);
+}
+
+
 static void nan_de_rx_publish(struct nan_de *de, struct nan_de_service *srv,
 			      const u8 *peer_addr, u8 instance_id,
 			      u8 req_instance_id, u16 sdea_control,
@@ -1101,6 +1129,8 @@ static void nan_de_rx_sda(struct nan_de *de, const u8 *peer_addr,
 				wpa_hexdump(MSG_MSGDUMP, "NAN: ssi",
 					    ssi, ssi_len);
 			}
+			nan_de_process_elem_container(de, buf, len, peer_addr,
+						      freq, srv->is_p2p);
 		}
 
 		switch (type) {

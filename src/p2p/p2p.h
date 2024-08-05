@@ -465,6 +465,21 @@ struct p2p_peer_info {
 	 * p2ps_instance - P2PS Application Service Info
 	 */
 	struct wpabuf *p2ps_instance;
+
+	/**
+	 * pcea_cap_info - Capability info in PCEA
+	 */
+	u16 pcea_cap_info;
+
+	/**
+	 * The regulatory info encoding for operation in 6 GHz band
+	 */
+	u8 reg_info;
+
+	/**
+	 * p2p_pairing_config - P2P pairing configuration
+	 */
+	struct p2p_pairing_config pairing_config;
 };
 
 enum p2p_prov_disc_status {
@@ -2504,5 +2519,7 @@ void set_p2p_allow_6ghz(struct p2p_data *p2p, bool value);
 int p2p_remove_6ghz_channels(struct weighted_pcl *pref_freq_list, int size);
 int p2p_channel_to_freq(int op_class, int channel);
 struct wpabuf * p2p_usd_elems(struct p2p_data *p2p);
+void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
+			   const u8 *peer_addr, unsigned int freq);
 
 #endif /* P2P_H */

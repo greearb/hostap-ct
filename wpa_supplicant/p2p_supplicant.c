@@ -10280,3 +10280,15 @@ struct wpabuf * wpas_p2p_usd_elems(struct wpa_supplicant *wpa_s)
 		return NULL;
 	return p2p_usd_elems(p2p);
 }
+
+
+void wpas_p2p_process_usd_elems(struct wpa_supplicant *wpa_s, const u8 *buf,
+				u16 buf_len, const u8 *peer_addr,
+				unsigned int freq)
+{
+	struct p2p_data *p2p = wpa_s->global->p2p;
+
+	if (wpa_s->global->p2p_disabled || !p2p)
+		return;
+	p2p_process_usd_elems(p2p, buf, buf_len, peer_addr, freq);
+}

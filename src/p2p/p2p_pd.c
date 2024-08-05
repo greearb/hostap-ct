@@ -563,6 +563,57 @@ do { \
 }
 
 
+void p2p_process_pcea(struct p2p_data *p2p, struct p2p_message *msg,
+		      struct p2p_device *dev)
+{
+	const u8 *pos, *end;
+	u8 cap_info_len;
+
+	if (!p2p || !dev || !msg || !msg->pcea_info)
+		return;
+
+	pos = msg->pcea_info;
+	end = pos + msg->pcea_info_len;
+	dev->info.pcea_cap_info = WPA_GET_LE16(pos);
+	cap_info_len = dev->info.pcea_cap_info & P2P_PCEA_LEN_MASK;
+
+	/* Field length is (n-1), n in octets */
+	if (end - pos < cap_info_len + 1)
+		return;
+	pos += cap_info_len + 1;
+
+	if (dev->info.pcea_cap_info & P2P_PCEA_6GHZ)
+		dev->support_6ghz = true;
+
+	if (dev->info.pcea_cap_info & P2P_PCEA_REG_INFO) {
+		if (end - pos < 1) {
+			p2p_dbg(p2p, "Truncated PCEA");
+			return;
+		}
+		dev->info.reg_info = *pos++;
+	}
+
+	if (dev->info.pcea_cap_info & P2P_PCEA_PASN_TYPE) {
+		if (end - pos < 1) {
+			p2p_dbg(p2p, "Truncated PCEA");
+			return;
+		}
+		dev->info.pairing_config.pasn_type = *pos++;
+	}
+
+	if (dev->info.pcea_cap_info & P2P_PCEA_PAIRING_CAPABLE)
+		dev->info.pairing_config.pairing_capable = true;
+
+	if (dev->info.pcea_cap_info & P2P_PCEA_PAIRING_SETUP_ENABLED)
+		dev->info.pairing_config.enable_pairing_setup = true;
+
+	if (dev->info.pcea_cap_info & P2P_PCEA_PMK_CACHING) {
+		dev->info.pairing_config.enable_pairing_cache = true;
+		dev->info.pairing_config.enable_pairing_verification = true;
+	}
+}
+
+
 void p2p_process_prov_disc_req(struct p2p_data *p2p, const u8 *sa,
 			       const u8 *data, size_t len, int rx_freq)
 {

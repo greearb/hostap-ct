@@ -178,6 +178,9 @@ int wpas_p2p_nfc_tag_enabled(struct wpa_supplicant *wpa_s, int enabled);
 void wpas_p2p_pbc_overlap_cb(void *eloop_ctx, void *timeout_ctx);
 int wpas_p2p_try_edmg_channel(struct wpa_supplicant *wpa_s,
 			      struct p2p_go_neg_results *params);
+void wpas_p2p_process_usd_elems(struct wpa_supplicant *wpa_s, const u8 *buf,
+				u16 buf_len, const u8 *peer_addr,
+				unsigned int freq);
 
 #ifdef CONFIG_P2P
 

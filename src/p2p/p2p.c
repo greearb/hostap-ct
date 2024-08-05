@@ -5841,3 +5841,70 @@ struct wpabuf * p2p_usd_elems(struct p2p_data *p2p)
 
 	return buf;
 }
+
+
+void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
+			   const u8 *peer_addr, unsigned int freq)
+{
+	struct p2p_device *dev;
+	struct p2p_message msg;
+	const u8 *p2p_dev_addr;
+
+	os_memset(&msg, 0, sizeof(msg));
+	if (p2p_parse_ies(ies, ies_len, &msg)) {
+		p2p_dbg(p2p, "Failed to parse P2P IE for a device entry");
+		p2p_parse_free(&msg);
+		return;
+	}
+	if (msg.p2p_device_addr)
+		p2p_dev_addr = msg.p2p_device_addr;
+	else
+		p2p_dev_addr = peer_addr;
+
+	dev = p2p_create_device(p2p, p2p_dev_addr);
+	if (!dev) {
+		p2p_parse_free(&msg);
+		p2p_dbg(p2p, "Failed to add a peer P2P Device");
+		return;
+	}
+
+	/* Reset info from old IEs */
+	dev->info.reg_info = 0;
+	os_memset(&dev->info.pairing_config, 0,
+		  sizeof(struct p2p_pairing_config));
+
+	os_get_reltime(&dev->last_seen);
+	dev->listen_freq = freq;
+	dev->oper_freq = freq;
+
+	if (msg.capability) {
+		/*
+		 * P2P Client Discoverability bit is reserved in all frames
+		 * that use this function, so do not change its value here.
+		 */
+		dev->info.dev_capab &= P2P_DEV_CAPAB_CLIENT_DISCOVERABILITY;
+		dev->info.dev_capab |= msg.capability[0] &
+			~P2P_DEV_CAPAB_CLIENT_DISCOVERABILITY;
+		dev->info.group_capab = msg.capability[1];
+	}
+
+	if (msg.pcea_info && msg.pcea_info_len >= 2)
+		p2p_process_pcea(p2p, &msg, dev);
+
+	if (msg.pbma_info && msg.pbma_info_len == 2)
+		dev->info.pairing_config.bootstrap_methods =
+			WPA_GET_LE16(msg.pbma_info);
+
+	if (!ether_addr_equal(peer_addr, p2p_dev_addr))
+		os_memcpy(dev->interface_addr, peer_addr, ETH_ALEN);
+
+	p2p_dbg(p2p, "Updated device entry based on USD frame: " MACSTR
+		" dev_capab=0x%x group_capab=0x%x listen_freq=%d",
+		MAC2STR(dev->info.p2p_device_addr), dev->info.dev_capab,
+		dev->info.group_capab, dev->listen_freq);
+
+	p2p->cfg->dev_found(p2p->cfg->cb_ctx, dev->info.p2p_device_addr,
+			    &dev->info, !(dev->flags & P2P_DEV_REPORTED_ONCE));
+
+	p2p_parse_free(&msg);
+}
