@@ -3603,7 +3603,7 @@ static u8 wpas_invitation_process(void *ctx, const u8 *sa, const u8 *bssid,
 				  size_t ssid_len, int *go, u8 *group_bssid,
 				  int *force_freq, int persistent_group,
 				  const struct p2p_channels *channels,
-				  int dev_pw_id)
+				  int dev_pw_id, bool p2p2)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 	struct wpa_ssid *s;
@@ -3667,7 +3667,7 @@ static u8 wpas_invitation_process(void *ctx, const u8 *sa, const u8 *bssid,
 
 	for (s = wpa_s->conf->ssid; s; s = s->next) {
 		if (s->disabled == 2 &&
-		    ether_addr_equal(s->bssid, go_dev_addr) &&
+		    (p2p2 || ether_addr_equal(s->bssid, go_dev_addr)) &&
 		    s->ssid_len == ssid_len &&
 		    os_memcmp(ssid, s->ssid, ssid_len) == 0)
 			break;

@@ -186,7 +186,7 @@ static struct wpabuf * p2p_build_invitation_resp(struct p2p_data *p2p,
 
 struct wpabuf * p2p_process_invitation_req(struct p2p_data *p2p, const u8 *sa,
 					   const u8 *data, size_t len,
-					   int rx_freq)
+					   int rx_freq, bool p2p2)
 {
 	struct p2p_device *dev;
 	struct p2p_message msg;
@@ -271,7 +271,8 @@ struct wpabuf * p2p_process_invitation_req(struct p2p_data *p2p, const u8 *sa,
 			p2p->cfg->cb_ctx, sa, msg.group_bssid, msg.group_id,
 			msg.group_id + ETH_ALEN, msg.group_id_len - ETH_ALEN,
 			&go, group_bssid, &op_freq, persistent, &intersection,
-			msg.dev_password_id_present ? msg.dev_password_id : -1);
+			msg.dev_password_id_present ? msg.dev_password_id : -1,
+			p2p2);
 	}
 
 	if (go) {
@@ -425,7 +426,7 @@ void p2p_handle_invitation_req(struct p2p_data *p2p, const u8 *sa,
 	int freq;
 	struct wpabuf *resp;
 
-	resp = p2p_process_invitation_req(p2p, sa, data, len, rx_freq);
+	resp = p2p_process_invitation_req(p2p, sa, data, len, rx_freq, false);
 	if (!resp)
 		return;
 

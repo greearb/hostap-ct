@@ -1077,6 +1077,8 @@ struct p2p_config {
 	 * @channels: Available operating channels for the group
 	 * @dev_pw_id: Device Password ID for NFC static handover or -1 if not
 	 *	used
+	 * @p2p2: Whether invitation request was wrapped in PASN authentication
+	 * received from a P2P2 device
 	 * Returns: Status code (P2P_SC_*)
 	 *
 	 * This optional callback can be used to implement persistent reconnect
@@ -1099,7 +1101,7 @@ struct p2p_config {
 				 size_t ssid_len, int *go, u8 *group_bssid,
 				 int *force_freq, int persistent_group,
 				 const struct p2p_channels *channels,
-				 int dev_pw_id);
+				 int dev_pw_id, bool p2p2);
 
 	/**
 	 * invitation_received - Callback on Invitation Request RX

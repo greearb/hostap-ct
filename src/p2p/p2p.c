@@ -6625,7 +6625,8 @@ static int p2p_pasn_handle_action_wrapper(struct p2p_data *p2p,
 
 			resp = p2p_process_invitation_req(p2p, mgmt->sa,
 							  data + 1,
-							  data_len - 1, freq);
+							  data_len - 1, freq,
+							  true);
 			if (!resp)
 				p2p_dbg(p2p, "No Invitation Response found");
 
