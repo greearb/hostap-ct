@@ -37,6 +37,26 @@ enum p2p_go_state {
 };
 
 /**
+ * struct bootstrap_params - P2P Device bootstrap request parameters
+ */
+struct p2p_bootstrap_params {
+	/* Bootstrap method */
+	u16 bootstrap_method;
+
+	/* Status code */
+	enum p2p_status_code status;
+
+	/* Cookie for comeback */
+	u8 cookie[50];
+
+	/* Cookie length */
+	size_t cookie_len;
+
+	/* Comeback time in TUs after which receiver is requested to retry */
+	int comeback_after;
+};
+
+/**
  * struct p2p_device - P2P Device data (internal to P2P module)
  */
 struct p2p_device {
@@ -150,6 +170,18 @@ struct p2p_device {
 
 	int sd_pending_bcast_queries;
 	bool support_6ghz;
+
+	/* Supports P2P2 */
+	bool p2p2;
+
+	/* Requested bootstrap method */
+	u16 req_bootstrap_method;
+
+	/* Bootstrap parameters received from peer */
+	struct p2p_bootstrap_params *bootstrap_params;
+
+	/* Password for P2P2 GO negotiation */
+	char password[100];
 };
 
 struct p2p_sd_query {
@@ -876,7 +908,7 @@ void p2p_check_pref_chan(struct p2p_data *p2p, int go,
 void p2p_handle_prov_disc_req(struct p2p_data *p2p, const u8 *sa,
 			      const u8 *data, size_t len, int rx_freq);
 void p2p_handle_prov_disc_resp(struct p2p_data *p2p, const u8 *sa,
-			       const u8 *data, size_t len);
+			       const u8 *data, size_t len, int rx_freq);
 int p2p_send_prov_disc_req(struct p2p_data *p2p, struct p2p_device *dev,
 			   int join, int force_freq);
 void p2p_reset_pending_pd(struct p2p_data *p2p);

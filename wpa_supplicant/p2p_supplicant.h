@@ -39,7 +39,8 @@ int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 		     int persistent_id, int pd, int ht40, int vht,
 		     unsigned int vht_chwidth, int he, int edmg,
 		     const u8 *group_ssid, size_t group_ssid_len,
-		     bool allow_6ghz);
+		     bool allow_6ghz, bool p2p2, u16 bootstrap,
+		     const char *password);
 int wpas_p2p_handle_frequency_conflicts(struct wpa_supplicant *wpa_s,
                                           int freq, struct wpa_ssid *ssid);
 int wpas_p2p_group_add(struct wpa_supplicant *wpa_s, int persistent_group,

@@ -954,6 +954,7 @@ static void p2p_device_free(struct p2p_data *p2p, struct p2p_device *dev)
 		dev->info.wps_vendor_ext[i] = NULL;
 	}
 
+	os_free(dev->bootstrap_params);
 	wpabuf_free(dev->info.wfd_subelems);
 	wpabuf_free(dev->info.vendor_elems);
 	wpabuf_free(dev->go_neg_conf);
@@ -1599,7 +1600,8 @@ int p2p_connect(struct p2p_data *p2p, const u8 *peer_addr,
 		int go_intent, const u8 *own_interface_addr,
 		unsigned int force_freq, int persistent_group,
 		const u8 *force_ssid, size_t force_ssid_len,
-		int pd_before_go_neg, unsigned int pref_freq, u16 oob_pw_id)
+		int pd_before_go_neg, unsigned int pref_freq, u16 oob_pw_id,
+		bool p2p2, u16 bootstrap, const char *password)
 {
 	struct p2p_device *dev;
 
@@ -1683,6 +1685,10 @@ int p2p_connect(struct p2p_data *p2p, const u8 *peer_addr,
 
 	dev->wps_method = wps_method;
 	dev->oob_pw_id = oob_pw_id;
+	dev->p2p2 = p2p2;
+	dev->req_bootstrap_method = bootstrap;
+	if (password && os_strlen(password) < sizeof(dev->password))
+		os_strlcpy(dev->password, password, sizeof(dev->password));
 	dev->status = P2P_SC_SUCCESS;
 
 	if (p2p->p2p_scan_running) {
@@ -1701,7 +1707,8 @@ int p2p_authorize(struct p2p_data *p2p, const u8 *peer_addr,
 		  int go_intent, const u8 *own_interface_addr,
 		  unsigned int force_freq, int persistent_group,
 		  const u8 *force_ssid, size_t force_ssid_len,
-		  unsigned int pref_freq, u16 oob_pw_id)
+		  unsigned int pref_freq, u16 oob_pw_id, u16 bootstrap,
+		  const char *password)
 {
 	struct p2p_device *dev;
 
@@ -1735,6 +1742,10 @@ int p2p_authorize(struct p2p_data *p2p, const u8 *peer_addr,
 	dev->flags &= ~P2P_DEV_USER_REJECTED;
 	dev->go_neg_req_sent = 0;
 	dev->go_state = UNKNOWN_GO;
+	dev->req_bootstrap_method = bootstrap;
+
+	if (password && os_strlen(password) < sizeof(dev->password))
+		os_strlcpy(dev->password, password, sizeof(dev->password));
 	p2p_set_dev_persistent(dev, persistent_group);
 	p2p->go_intent = go_intent;
 	os_memcpy(p2p->intended_addr, own_interface_addr, ETH_ALEN);
@@ -1927,7 +1938,7 @@ static void p2p_rx_p2p_action(struct p2p_data *p2p, const u8 *sa,
 		p2p_handle_prov_disc_req(p2p, sa, data + 1, len - 1, rx_freq);
 		break;
 	case P2P_PROV_DISC_RESP:
-		p2p_handle_prov_disc_resp(p2p, sa, data + 1, len - 1);
+		p2p_handle_prov_disc_resp(p2p, sa, data + 1, len - 1, rx_freq);
 		break;
 	case P2P_DEV_DISC_REQ:
 		p2p_process_dev_disc_req(p2p, sa, data + 1, len - 1, rx_freq);
@@ -3061,6 +3072,9 @@ struct p2p_data * p2p_init(const struct p2p_config *cfg)
 	p2p->go_timeout = 100;
 	p2p->client_timeout = 20;
 	p2p->num_p2p_sd_queries = 0;
+	/* Default comeback after one second */
+	if (!p2p->cfg->comeback_after)
+		p2p->cfg->comeback_after = 977; /* TUs */
 	p2p_pairing_info_init(p2p);
 
 	p2p_dbg(p2p, "initialized");
@@ -3439,7 +3453,7 @@ static void p2p_retry_pd(struct p2p_data *p2p)
 		if (!ether_addr_equal(p2p->pending_pd_devaddr,
 				      dev->info.p2p_device_addr))
 			continue;
-		if (!dev->req_config_methods)
+		if (!dev->req_config_methods && !dev->req_bootstrap_method)
 			continue;
 
 		p2p_dbg(p2p, "Send pending Provision Discovery Request to "
@@ -5868,6 +5882,7 @@ void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
 		return;
 	}
 
+	dev->p2p2 = true;
 	/* Reset info from old IEs */
 	dev->info.reg_info = 0;
 	os_memset(&dev->info.pairing_config, 0,

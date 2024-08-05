@@ -679,6 +679,13 @@ struct p2p_config {
 	bool twt_power_mgmt;
 
 	/**
+	 * comeback_after - Bootstrap request unauthorized for peer
+	 *
+	 * Ask to come back after this many TUs.
+	 */
+	u16 comeback_after;
+
+	/**
 	 * cb_ctx - Context to use with callback functions
 	 */
 	void *cb_ctx;
@@ -1225,6 +1232,19 @@ struct p2p_config {
 	int (*get_pref_freq_list)(void *ctx, int go,
 				  unsigned int *len,
 				  struct weighted_pcl *freq_list);
+
+	/**
+	 * register_bootstrap_comeback - Register timeout to initiate bootstrap
+	 *	comeback request
+	 * @ctx: Callback context from cb_ctx
+	 * @addr: P2P Device Address to which comeback request is to be sent
+	 * @comeback_after: Time in TUs after which comeback request is sent
+	 *
+	 * This function can be used to send comeback request after given
+	 * timeout.
+	 */
+	void (*register_bootstrap_comeback)(void *ctx, const u8 *addr,
+					    u16 comeback_after);
 };
 
 
@@ -1408,6 +1428,10 @@ void p2p_stop_listen(struct p2p_data *p2p);
  *	formation
  * @pref_freq: Preferred operating frequency in MHz or 0 (this is only used if
  *	force_freq == 0)
+ * @oob_pw_id: OOB password identifier
+ * @p2p2: Device supports P2P2 features
+ * @bootstrap: Bootstrapping method requested for P2P2 provision discovery
+ * @password: P2P2 pairing password or %NULL for opportunistic method
  * Returns: 0 on success, -1 on failure
  */
 int p2p_connect(struct p2p_data *p2p, const u8 *peer_addr,
@@ -1415,7 +1439,8 @@ int p2p_connect(struct p2p_data *p2p, const u8 *peer_addr,
 		int go_intent, const u8 *own_interface_addr,
 		unsigned int force_freq, int persistent_group,
 		const u8 *force_ssid, size_t force_ssid_len,
-		int pd_before_go_neg, unsigned int pref_freq, u16 oob_pw_id);
+		int pd_before_go_neg, unsigned int pref_freq, u16 oob_pw_id,
+		bool p2p2, u16 bootstrap, const char *password);
 
 /**
  * p2p_authorize - Authorize P2P group formation (GO negotiation)
@@ -1433,6 +1458,9 @@ int p2p_connect(struct p2p_data *p2p, const u8 *peer_addr,
  * @force_ssid_len: Length of $force_ssid buffer
  * @pref_freq: Preferred operating frequency in MHz or 0 (this is only used if
  *	force_freq == 0)
+ * @oob_pw_id: OOB password identifier
+ * @bootstrap: Bootstrapping method requested for P2P2 provision discovery
+ * @password: P2P2 pairing password or %NULL for opportunistic method
  * Returns: 0 on success, -1 on failure
  *
  * This is like p2p_connect(), but the actual group negotiation is not
@@ -1443,7 +1471,8 @@ int p2p_authorize(struct p2p_data *p2p, const u8 *peer_addr,
 		  int go_intent, const u8 *own_interface_addr,
 		  unsigned int force_freq, int persistent_group,
 		  const u8 *force_ssid, size_t force_ssid_len,
-		  unsigned int pref_freq, u16 oob_pw_id);
+		  unsigned int pref_freq, u16 oob_pw_id, u16 bootstrap,
+		  const char *password);
 
 /**
  * p2p_reject - Reject peer device (explicitly block connection attempts)

@@ -244,6 +244,8 @@ int p2p_connect_send(struct p2p_data *p2p, struct p2p_device *dev)
 			config_method = WPS_CONFIG_PUSHBUTTON;
 		else if (dev->wps_method == WPS_P2PS)
 			config_method = WPS_CONFIG_P2PS;
+		else if (dev->p2p2 && dev->req_bootstrap_method)
+			config_method = WPS_NOT_READY;
 		else
 			return -1;
 		return p2p_prov_disc_req(p2p, dev->info.p2p_device_addr,
