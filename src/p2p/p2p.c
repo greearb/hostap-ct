@@ -5199,6 +5199,28 @@ int p2p_get_dev_addr(struct p2p_data *p2p, const u8 *iface_addr,
 }
 
 
+int p2p_get_dev_identity_key(struct p2p_data *p2p, const u8 *dev_addr,
+			     const u8 **dik_data, size_t *dik_len, u8 *cipher)
+{
+	if (!p2p || !p2p->peer_dik_len) {
+		wpa_printf(MSG_DEBUG,
+			   "P2P2: Failed to get device identity key for "
+			   MACSTR, MAC2STR(dev_addr));
+		return -1;
+	}
+
+	*dik_data = p2p->peer_dik_data;
+	*dik_len = p2p->peer_dik_len;
+	*cipher = p2p->dik_cipher_version;
+
+	/* Reset DIK length to invalidate DIK for successive iteration of a new
+	 * peer. */
+	p2p->peer_dik_len = 0;
+
+	return 0;
+}
+
+
 void p2p_set_peer_filter(struct p2p_data *p2p, const u8 *addr)
 {
 	os_memcpy(p2p->peer_filter, addr, ETH_ALEN);

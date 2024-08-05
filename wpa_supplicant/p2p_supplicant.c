@@ -1397,6 +1397,90 @@ static void wpas_p2p_group_started(struct wpa_supplicant *wpa_s,
 }
 
 
+static void wpas_p2p_store_identity(struct wpa_supplicant *wpa_s, u8 cipher,
+				    const u8 *dik_data, size_t dik_len,
+				    const u8 *pmk, size_t pmk_len,
+				    const u8 *pmkid)
+{
+	struct wpa_dev_ik *ik;
+
+	for (ik = wpa_s->conf->identity; ik; ik = ik->next) {
+		if (dik_len == wpabuf_len(ik->dik) &&
+		    os_memcmp(dik_data, wpabuf_head(ik->dik), dik_len) == 0) {
+			wpa_printf(MSG_DEBUG,
+				   "P2P: Remove previous device identity entry for matching DIK");
+			wpa_config_remove_identity(wpa_s->conf, ik->id);
+			break;
+		}
+	}
+
+	wpa_printf(MSG_DEBUG, "P2P: Create a new device identity entry");
+	ik = wpa_config_add_identity(wpa_s->conf);
+	if (!ik)
+		return;
+
+	ik->dik = wpabuf_alloc_copy(dik_data, dik_len);
+	if (!ik->dik)
+		goto fail;
+	ik->pmk = wpabuf_alloc_copy(pmk, pmk_len);
+	if (!ik->pmk)
+		goto fail;
+	ik->pmkid = wpabuf_alloc_copy(pmkid, PMKID_LEN);
+	if (!ik->pmkid)
+		goto fail;
+
+	ik->dik_cipher = cipher;
+
+	if (wpa_s->conf->update_config &&
+	    wpa_config_write(wpa_s->confname, wpa_s->conf))
+		wpa_printf(MSG_DEBUG, "P2P: Failed to update configuration");
+	return;
+
+fail:
+	wpa_config_remove_identity(wpa_s->conf, ik->id);
+}
+
+
+static void wpas_p2p_store_go_identity(struct wpa_supplicant *wpa_s,
+				       const u8 *go_dev_addr, const u8 *bssid)
+{
+	int ret;
+	u8 cipher;
+	const u8 *dik_data, *pmk, *pmkid;
+	size_t dik_len, pmk_len;
+	u8 iface_addr[ETH_ALEN];
+	struct wpa_supplicant *p2p_wpa_s = wpa_s->global->p2p_init_wpa_s;
+
+	if (!wpa_s->p2p2)
+		return;
+
+	ret = p2p_get_dev_identity_key(p2p_wpa_s->global->p2p, go_dev_addr,
+				       &dik_data, &dik_len, &cipher);
+	if (ret)
+		return;
+
+	ret = p2p_get_interface_addr(p2p_wpa_s->global->p2p, go_dev_addr,
+				     iface_addr);
+	if (ret) {
+		wpa_printf(MSG_DEBUG,
+			   "P2P: Fetch PMK for GO BSSID " MACSTR,
+			   MAC2STR(bssid));
+		os_memcpy(iface_addr, bssid, ETH_ALEN);
+	}
+	ret = wpa_sm_pmksa_get_pmk(wpa_s->wpa, iface_addr, &pmk, &pmk_len,
+				   &pmkid);
+	if (ret)
+		return;
+
+	wpa_printf(MSG_DEBUG,
+		   "P2P: Storing Device identity of GO (Interface Addr " MACSTR
+		   ")",
+		   MAC2STR(iface_addr));
+	wpas_p2p_store_identity(p2p_wpa_s, cipher, dik_data, dik_len, pmk,
+				pmk_len, pmkid);
+}
+
+
 static void wpas_group_formation_completed(struct wpa_supplicant *wpa_s,
 					   int success, int already_deleted)
 {
@@ -8642,6 +8726,7 @@ int wpas_p2p_invite_group(struct wpa_supplicant *wpa_s, const char *ifname,
 void wpas_p2p_completed(struct wpa_supplicant *wpa_s)
 {
 	struct wpa_ssid *ssid = wpa_s->current_ssid;
+	const u8 *bssid;
 	u8 go_dev_addr[ETH_ALEN];
 	int persistent;
 	int freq;
@@ -8655,6 +8740,11 @@ void wpas_p2p_completed(struct wpa_supplicant *wpa_s)
 
 	if (!wpa_s->show_group_started || !ssid)
 		return;
+
+	if (wpa_s->go_params)
+		bssid = wpa_s->go_params->peer_interface_addr;
+	else
+		bssid = wpa_s->bssid;
 
 	wpa_s->show_group_started = 0;
 	if (!wpa_s->p2p_go_group_formation_completed &&
@@ -8702,9 +8792,11 @@ void wpas_p2p_completed(struct wpa_supplicant *wpa_s)
 			       ssid->passphrase, go_dev_addr, persistent,
 			       ip_addr);
 
-	if (persistent)
+	if (persistent) {
 		wpas_p2p_store_persistent_group(wpa_s->p2pdev,
 						ssid, go_dev_addr);
+		wpas_p2p_store_go_identity(wpa_s, go_dev_addr, bssid);
+	}
 
 	wpas_notify_p2p_group_started(wpa_s, ssid, persistent, 1, ip_ptr);
 }
@@ -9463,6 +9555,52 @@ struct wpa_ssid * wpas_p2p_get_persistent(struct wpa_supplicant *wpa_s,
 }
 
 
+static void wpas_p2p_store_client_identity(struct wpa_supplicant *wpa_s,
+					   const u8 *addr)
+{
+	u8 cipher;
+	size_t dik_len;
+	const u8 *dik_data;
+	const u8 *pmk, *pmkid;
+	size_t pmk_len;
+	u8 iface_addr[ETH_ALEN];
+	struct hostapd_data *hapd;
+	struct wpa_supplicant *p2p_wpa_s = wpa_s->global->p2p_init_wpa_s;
+
+	if (!wpa_s->p2p2 || !wpa_s->ap_iface)
+		return;
+
+	hapd = wpa_s->ap_iface->bss[0];
+	if (!hapd)
+		return;
+
+	if (p2p_get_dev_identity_key(p2p_wpa_s->global->p2p, addr,
+				     &dik_data, &dik_len, &cipher))
+		return;
+
+	wpa_printf(MSG_DEBUG, "P2P: Fetch PMK from client (Device Addr " MACSTR
+		   ")", MAC2STR(addr));
+	if (wpa_auth_pmksa_get_pmk(hapd->wpa_auth, addr, &pmk, &pmk_len,
+				   &pmkid)) {
+		if (p2p_get_interface_addr(p2p_wpa_s->global->p2p, addr,
+					   iface_addr))
+			return;
+		wpa_printf(MSG_DEBUG,
+			   "P2P: Fetch PMK from client (Interface Addr " MACSTR
+			   ")", MAC2STR(iface_addr));
+		if (wpa_auth_pmksa_get_pmk(hapd->wpa_auth, iface_addr, &pmk,
+					   &pmk_len, &pmkid))
+			return;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "P2P: Storing device identity of client (Device Addr "
+		   MACSTR ")", MAC2STR(addr));
+	wpas_p2p_store_identity(p2p_wpa_s, cipher, dik_data, dik_len, pmk,
+				pmk_len, pmkid);
+}
+
+
 void wpas_p2p_notify_ap_sta_authorized(struct wpa_supplicant *wpa_s,
 				       const u8 *addr)
 {
@@ -9504,6 +9642,8 @@ void wpas_p2p_notify_ap_sta_authorized(struct wpa_supplicant *wpa_s,
 	wpa_s->global->p2p_go_wait_client.sec = 0;
 	if (addr == NULL)
 		return;
+
+	wpas_p2p_store_client_identity(wpa_s, addr);
 	wpas_p2p_add_persistent_group_client(wpa_s, addr);
 }
 
