@@ -192,6 +192,14 @@ int pasn_set_extra_ies(struct pasn_data *pasn, const u8 *extra_ies,
 }
 
 
+void pasn_set_noauth(struct pasn_data *pasn, bool noauth)
+{
+	if (!pasn)
+		return;
+	pasn->noauth = noauth;
+}
+
+
 int pasn_get_akmp(struct pasn_data *pasn)
 {
 	if (!pasn)
