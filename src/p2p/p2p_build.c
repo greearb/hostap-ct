@@ -800,6 +800,33 @@ void p2p_buf_add_pbma(struct wpabuf *buf, u16 bootstrap, const u8 *cookie,
 }
 
 
+void p2p_buf_add_dira(struct wpabuf *buf, struct p2p_data *p2p)
+{
+	u8 *len;
+	struct p2p_id_key *dev_ik;
+
+	if (!p2p->cfg->pairing_config.pairing_capable ||
+	    !p2p->cfg->pairing_config.enable_pairing_cache ||
+	    !p2p->cfg->pairing_config.enable_pairing_verification)
+		return;
+
+	dev_ik = &p2p->pairing_info->dev_ik;
+	/* P2P DIRA */
+	wpabuf_put_u8(buf, P2P_ATTR_DEVICE_IDENTITY_RESOLUTION);
+	/* Length to be filled */
+	len = wpabuf_put(buf, 2);
+
+	wpabuf_put_u8(buf, dev_ik->cipher_version);
+	wpabuf_put_data(buf, dev_ik->dira_nonce, dev_ik->dira_nonce_len);
+	wpabuf_put_data(buf, dev_ik->dira_tag, dev_ik->dira_tag_len);
+
+	/* Update attribute length */
+	WPA_PUT_LE16(len, (u8 *) wpabuf_put(buf, 0) - len - 2);
+
+	wpa_printf(MSG_DEBUG, "P2P: * DIRA");
+}
+
+
 static int p2p_add_wps_string(struct wpabuf *buf, enum wps_attribute attr,
 			      const char *val)
 {

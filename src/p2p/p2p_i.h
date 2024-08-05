@@ -160,6 +160,26 @@ struct p2p_sd_query {
 	struct wpabuf *tlvs;
 };
 
+/* P2P Device Identity Key parameters */
+struct p2p_id_key {
+	/* AKMP used for DevIK derviation */
+	int akmp;
+	/* Cipher version type */
+	int cipher_version;
+	/* Buffer to hold the DevIK */
+	u8 dik_data[DEVICE_IDENTITY_KEY_MAX_LEN];
+	/* Length of DevIK */
+	size_t dik_len;
+	/* Nonce used in DIRA attribute */
+	u8 dira_nonce[DEVICE_IDENTITY_NONCE_LEN];
+	/* Length of nonce */
+	size_t dira_nonce_len;
+	/* Tag computed for nonce using NIK */
+	u8 dira_tag[DEVICE_IDENTITY_TAG_LEN];
+	/* Length of tag in octets */
+	size_t dira_tag_len;
+};
+
 struct p2p_pairing_info {
 	/* P2P device own address */
 	u8 own_addr[ETH_ALEN];
@@ -169,6 +189,8 @@ struct p2p_pairing_info {
 	bool enable_pairing_cache;
 	/* device supported bootstrapping */
 	u16 supported_bootstrap;
+	/* P2P Device Identity Key info */
+	struct p2p_id_key dev_ik;
 };
 
 /**
@@ -805,6 +827,7 @@ void p2p_buf_add_persistent_group_info(struct wpabuf *buf, const u8 *dev_addr,
 void p2p_buf_add_pcea(struct wpabuf *buf, struct p2p_data *p2p);
 void p2p_buf_add_pbma(struct wpabuf *buf, u16 bootstrap, const u8 *cookie,
 		      size_t cookie_len, int comeback_after);
+void p2p_buf_add_dira(struct wpabuf *buf, struct p2p_data *p2p);
 int p2p_build_wps_ie(struct p2p_data *p2p, struct wpabuf *buf, int pw_id,
 		     int all_attr);
 void p2p_buf_add_pref_channel_list(struct wpabuf *buf,

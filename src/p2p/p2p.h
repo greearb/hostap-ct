@@ -12,6 +12,16 @@
 #include "common/ieee802_11_defs.h"
 #include "wps/wps.h"
 
+#define DEVICE_IDENTITY_KEY_MAX_LEN 64
+#define DEVICE_IDENTITY_KEY_LEN 16
+#define DEVICE_IDENTITY_TAG_LEN 8
+#define DEVICE_IDENTITY_NONCE_LEN 8
+#define DEVICE_MAX_HASH_LEN 32
+#define DIR_STR_LEN 3
+
+/* DIRA Cipher versions */
+#define DIRA_CIPHER_VERSION_128 0
+
 struct weighted_pcl;
 
 /* P2P ASP Setup Capability */
@@ -353,6 +363,15 @@ struct p2p_pairing_config {
 	 * Bitmap of supported PASN types
 	 */
 	u8 pasn_type;
+
+	/* Cipher version type */
+	int dik_cipher;
+
+	/* Buffer to hold the DevIK */
+	u8 dik_data[DEVICE_IDENTITY_KEY_MAX_LEN];
+
+	/* Length of DevIK in octets */
+	size_t dik_len;
 };
 
 /**

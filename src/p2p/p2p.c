@@ -2978,6 +2978,9 @@ static int p2p_pairing_info_init(struct p2p_data *p2p)
 {
 	struct p2p_pairing_info *pairing_info;
 
+	if (p2p->cfg->pairing_config.dik_len > DEVICE_IDENTITY_KEY_MAX_LEN)
+		return -1;
+
 	pairing_info = os_zalloc(sizeof(struct p2p_pairing_info));
 	if (!pairing_info)
 		return -1;
@@ -2988,6 +2991,13 @@ static int p2p_pairing_info_init(struct p2p_data *p2p)
 		p2p->cfg->pairing_config.enable_pairing_cache;
 	pairing_info->supported_bootstrap =
 		p2p->cfg->pairing_config.bootstrap_methods;
+
+	pairing_info->dev_ik.cipher_version =
+		p2p->cfg->pairing_config.dik_cipher;
+	pairing_info->dev_ik.dik_len = p2p->cfg->pairing_config.dik_len;
+	os_memcpy(pairing_info->dev_ik.dik_data,
+		  p2p->cfg->pairing_config.dik_data,
+		  p2p->cfg->pairing_config.dik_len);
 
 	p2p_pairing_info_deinit(p2p);
 	p2p->pairing_info = pairing_info;
@@ -5720,6 +5730,64 @@ void set_p2p_allow_6ghz(struct p2p_data *p2p, bool value)
 }
 
 
+static int p2p_derive_nonce_tag(struct p2p_data *p2p)
+{
+	u8 dira_nonce[DEVICE_IDENTITY_NONCE_LEN];
+	u8 dira_tag[DEVICE_MAX_HASH_LEN];
+	u8 data[DIR_STR_LEN + DEVICE_IDENTITY_NONCE_LEN + ETH_ALEN];
+	struct p2p_id_key *dev_ik;
+
+	dev_ik = &p2p->pairing_info->dev_ik;
+
+	if (dev_ik->cipher_version != DIRA_CIPHER_VERSION_128) {
+		wpa_printf(MSG_INFO,
+			   "P2P: Unsupported DIRA Cipher version = %d",
+			   dev_ik->cipher_version);
+		return -1;
+	}
+
+	if (dev_ik->dik_len != DEVICE_IDENTITY_KEY_LEN) {
+		wpa_printf(MSG_INFO, "P2P: Invalid DIK length = %zu",
+			   dev_ik->dik_len);
+		return -1;
+	}
+
+	os_memset(data, 0, sizeof(data));
+
+	if (os_get_random(dira_nonce, DEVICE_IDENTITY_NONCE_LEN) < 0) {
+		wpa_printf(MSG_ERROR, "P2P: Failed to generate DIRA nonce");
+		return -1;
+	}
+
+	/* Tag = Truncate-64(HMAC-SHA-256(DevIK,
+	 *                                "DIR" || P2P Device Address || Nonce))
+	 */
+	os_memcpy(data, "DIR", DIR_STR_LEN);
+	os_memcpy(&data[DIR_STR_LEN], p2p->cfg->dev_addr, ETH_ALEN);
+	os_memcpy(&data[DIR_STR_LEN + ETH_ALEN], dira_nonce,
+		  DEVICE_IDENTITY_NONCE_LEN);
+
+	if (hmac_sha256(dev_ik->dik_data, dev_ik->dik_len, data, sizeof(data),
+			dira_tag) < 0) {
+		wpa_printf(MSG_ERROR, "P2P: Could not derive DIRA tag");
+		return -1;
+	}
+
+	dev_ik->dira_nonce_len = DEVICE_IDENTITY_NONCE_LEN;
+	os_memcpy(dev_ik->dira_nonce, dira_nonce, DEVICE_IDENTITY_NONCE_LEN);
+	dev_ik->dira_tag_len = DEVICE_IDENTITY_TAG_LEN;
+	os_memcpy(dev_ik->dira_tag, dira_tag, DEVICE_IDENTITY_TAG_LEN);
+
+	wpa_hexdump_key(MSG_DEBUG, "P2P: DIK", dev_ik->dik_data,
+			dev_ik->dik_len);
+	wpa_hexdump_key(MSG_DEBUG, "P2P: DIRA-NONCE", dev_ik->dira_nonce,
+			dev_ik->dira_nonce_len);
+	wpa_hexdump_key(MSG_DEBUG, "P2P: DIRA-TAG", dev_ik->dira_tag,
+			dev_ik->dira_tag_len);
+	return 0;
+}
+
+
 struct wpabuf * p2p_usd_elems(struct p2p_data *p2p)
 {
 	struct wpabuf *buf;
@@ -5760,6 +5828,14 @@ struct wpabuf * p2p_usd_elems(struct p2p_data *p2p)
 	/* P2P Pairing Bootstrapping Method attribute */
 	p2p_buf_add_pbma(buf, p2p->cfg->pairing_config.bootstrap_methods, NULL,
 			 0, 0);
+
+	/* P2P Device Identity Resolution attribute */
+	if (p2p->pairing_info &&
+	    p2p->cfg->pairing_config.pairing_capable &&
+	    p2p->cfg->pairing_config.enable_pairing_cache &&
+	    p2p->cfg->pairing_config.enable_pairing_verification &&
+	    p2p_derive_nonce_tag(p2p) == 0)
+		p2p_buf_add_dira(buf, p2p);
 
 	p2p_buf_update_ie_hdr(buf, len);
 
