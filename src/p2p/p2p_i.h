@@ -596,6 +596,7 @@ struct p2p_data {
  */
 struct p2p_message {
 	struct wpabuf *p2p_attributes;
+	struct wpabuf *p2p2_attributes;
 	struct wpabuf *wps_attributes;
 	struct wpabuf *wfd_subelems;
 
@@ -694,6 +695,12 @@ struct p2p_message {
 
 	const u8 *pref_freq_list;
 	size_t pref_freq_list_len;
+
+	const u8 *pcea_info;
+	size_t pcea_info_len;
+
+	const u8 *pbma_info;
+	size_t pbma_info_len;
 };
 
 

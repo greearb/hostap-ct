@@ -65,6 +65,7 @@ struct ieee802_11_elems {
 	const u8 *vendor_ht_cap;
 	const u8 *vendor_vht;
 	const u8 *p2p;
+	const u8 *p2p2_ie;
 	const u8 *wfd;
 	const u8 *link_id;
 	const u8 *interworking;
@@ -139,6 +140,7 @@ struct ieee802_11_elems {
 	u8 vendor_ht_cap_len;
 	u8 vendor_vht_len;
 	u8 p2p_len;
+	u8 p2p2_ie_len;
 	u8 wfd_len;
 	u8 interworking_len;
 	u8 qos_map_set_len;
