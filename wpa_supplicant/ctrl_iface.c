@@ -12373,6 +12373,7 @@ static int wpas_ctrl_nan_subscribe(struct wpa_supplicant *wpa_s, char *cmd,
 	struct wpabuf *ssi = NULL;
 	int ret = -1;
 	enum nan_service_protocol_type srv_proto_type = 0;
+	int *freq_list = NULL;
 	bool p2p = false;
 
 	os_memset(&params, 0, sizeof(params));
@@ -12396,6 +12397,27 @@ static int wpas_ctrl_nan_subscribe(struct wpa_supplicant *wpa_s, char *cmd,
 
 		if (os_strncmp(token, "freq=", 5) == 0) {
 			params.freq = atoi(token + 5);
+			continue;
+		}
+
+		if (os_strncmp(token, "freq_list=", 10) == 0) {
+			char *pos = token + 10;
+
+			if (os_strcmp(pos, "all") == 0) {
+				os_free(freq_list);
+				freq_list = wpas_nan_usd_all_freqs(wpa_s);
+				params.freq_list = freq_list;
+				continue;
+			}
+
+			while (pos && pos[0]) {
+				int_array_add_unique(&freq_list, atoi(pos));
+				pos = os_strchr(pos, ',');
+				if (pos)
+					pos++;
+			}
+
+			params.freq_list = freq_list;
 			continue;
 		}
 
@@ -12431,6 +12453,7 @@ static int wpas_ctrl_nan_subscribe(struct wpa_supplicant *wpa_s, char *cmd,
 		ret = os_snprintf(buf, buflen, "%d", subscribe_id);
 fail:
 	wpabuf_free(ssi);
+	os_free(freq_list);
 	return ret;
 }
 
