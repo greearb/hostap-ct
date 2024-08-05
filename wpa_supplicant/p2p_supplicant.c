@@ -5057,6 +5057,34 @@ int wpas_p2p_init(struct wpa_global *global, struct wpa_supplicant *wpa_s)
 	else
 		p2p.passphrase_len = 8;
 
+	if (wpa_s->conf->dik &&
+	    wpabuf_len(wpa_s->conf->dik) <= DEVICE_IDENTITY_KEY_MAX_LEN) {
+		p2p.pairing_config.dik_cipher = wpa_s->conf->dik_cipher;
+		p2p.pairing_config.dik_len = wpabuf_len(wpa_s->conf->dik);
+		os_memcpy(p2p.pairing_config.dik_data,
+			  wpabuf_head(wpa_s->conf->dik),
+			  p2p.pairing_config.dik_len);
+	} else {
+		p2p.pairing_config.dik_cipher = DIRA_CIPHER_VERSION_128;
+		p2p.pairing_config.dik_len = DEVICE_IDENTITY_KEY_LEN;
+		if (os_get_random(p2p.pairing_config.dik_data,
+				  p2p.pairing_config.dik_len) < 0)
+			return -1;
+
+		wpa_s->conf->dik =
+			wpabuf_alloc_copy(p2p.pairing_config.dik_data,
+					  p2p.pairing_config.dik_len);
+		if (!wpa_s->conf->dik)
+			return -1;
+
+		wpa_s->conf->dik_cipher = p2p.pairing_config.dik_cipher;
+
+		if (wpa_s->conf->update_config &&
+		    wpa_config_write(wpa_s->confname, wpa_s->conf))
+			wpa_printf(MSG_DEBUG,
+				   "P2P: Failed to update configuration");
+	}
+
 	global->p2p = p2p_init(&p2p);
 	if (global->p2p == NULL)
 		return -1;

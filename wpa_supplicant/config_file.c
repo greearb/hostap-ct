@@ -1629,6 +1629,10 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 #endif /* CONFIG_TESTING_OPTIONS */
 	if (config->ft_prepend_pmkid)
 		fprintf(f, "ft_prepend_pmkid=%d\n", config->ft_prepend_pmkid);
+	if (config->dik) {
+		fprintf(f, "dik_cipher=%d\n", config->dik_cipher);
+		write_global_bin(f, "dik", config->dik);
+	}
 }
 
 #endif /* CONFIG_NO_CONFIG_WRITE */
