@@ -529,6 +529,9 @@ wpa_auth_get_pmksa_cache(struct wpa_authenticator *wpa_auth);
 struct rsn_pmksa_cache_entry *
 wpa_auth_pmksa_get(struct wpa_authenticator *wpa_auth, const u8 *sta_addr,
 		   const u8 *pmkid);
+int wpa_auth_pmksa_get_pmk(struct wpa_authenticator *wpa_auth,
+			   const u8 *sta_addr, const u8 **pmk, size_t *pmk_len,
+			   const u8 **pmkid);
 struct rsn_pmksa_cache_entry *
 wpa_auth_pmksa_get_fils_cache_id(struct wpa_authenticator *wpa_auth,
 				 const u8 *sta_addr, const u8 *pmkid);

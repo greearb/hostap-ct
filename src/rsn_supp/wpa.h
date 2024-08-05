@@ -256,6 +256,8 @@ struct rsn_pmksa_cache_entry * wpa_sm_pmksa_cache_get(struct wpa_sm *sm,
 						      const u8 *pmkid,
 						      const void *network_ctx,
 						      int akmp);
+int wpa_sm_pmksa_get_pmk(struct wpa_sm *sm, const u8 *aa, const u8 **pmk,
+			 size_t *pmk_len, const u8 **pmkid);
 void wpa_sm_pmksa_cache_remove(struct wpa_sm *sm,
 			       struct rsn_pmksa_cache_entry *entry);
 bool wpa_sm_has_ft_keys(struct wpa_sm *sm, const u8 *md);
