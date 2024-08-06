@@ -3745,28 +3745,20 @@ no_pfs:
 			wpa_sm_set_ap_rsn_ie(wpa_s->wpa, p, len);
 		}
 
-		if (wpas_rsn_overriding(wpa_s) &&
-		    p[0] == WLAN_EID_VENDOR_SPECIFIC && p[1] >= 6 &&
-		    WPA_GET_BE32(&p[2]) == RSNE_OVERRIDE_2_IE_VENDOR_TYPE) {
-			rsn_found = 1;
-			wpa_sm_set_ap_rsn_ie(wpa_s->wpa, p, len);
-		}
+		if (p[0] == WLAN_EID_VENDOR_SPECIFIC && p[1] >= 6 &&
+		    WPA_GET_BE32(&p[2]) == RSNE_OVERRIDE_2_IE_VENDOR_TYPE)
+			wpa_sm_set_ap_rsne_override_2(wpa_s->wpa, p, len);
 
-		if (!rsn_found &&
-		    wpas_rsn_overriding(wpa_s) &&
-		    p[0] == WLAN_EID_VENDOR_SPECIFIC && p[1] >= 6 &&
-		    WPA_GET_BE32(&p[2]) == RSNE_OVERRIDE_IE_VENDOR_TYPE) {
-			rsn_found = 1;
-			wpa_sm_set_ap_rsn_ie(wpa_s->wpa, p, len);
-		}
+		if (p[0] == WLAN_EID_VENDOR_SPECIFIC && p[1] >= 6 &&
+		    WPA_GET_BE32(&p[2]) == RSNE_OVERRIDE_IE_VENDOR_TYPE)
+			wpa_sm_set_ap_rsne_override(wpa_s->wpa, p, len);
 
 		if (p[0] == WLAN_EID_RSNX && p[1] >= 1)
 			wpa_sm_set_ap_rsnxe(wpa_s->wpa, p, len);
 
-		if (wpas_rsn_overriding(wpa_s) &&
-		    p[0] == WLAN_EID_VENDOR_SPECIFIC && p[1] >= 6 &&
+		if (p[0] == WLAN_EID_VENDOR_SPECIFIC && p[1] >= 6 &&
 		    WPA_GET_BE32(&p[2]) == RSNXE_OVERRIDE_IE_VENDOR_TYPE)
-			wpa_sm_set_ap_rsnxe(wpa_s->wpa, p, len);
+			wpa_sm_set_ap_rsnxe_override(wpa_s->wpa, p, len);
 
 		l -= len;
 		p += len;
@@ -3777,6 +3769,9 @@ no_pfs:
 	if (!rsn_found && data->assoc_info.beacon_ies) {
 		wpa_sm_set_ap_rsn_ie(wpa_s->wpa, NULL, 0);
 		wpa_sm_set_ap_rsnxe(wpa_s->wpa, NULL, 0);
+		wpa_sm_set_ap_rsne_override(wpa_s->wpa, NULL, 0);
+		wpa_sm_set_ap_rsne_override_2(wpa_s->wpa, NULL, 0);
+		wpa_sm_set_ap_rsnxe_override(wpa_s->wpa, NULL, 0);
 	}
 	if (wpa_found || rsn_found)
 		wpa_s->ap_ies_from_associnfo = 1;
@@ -3812,6 +3807,7 @@ no_pfs:
 static int wpa_supplicant_assoc_update_ie(struct wpa_supplicant *wpa_s)
 {
 	const u8 *bss_wpa = NULL, *bss_rsn = NULL, *bss_rsnx = NULL;
+	const u8 *rsnoe, *rsno2e, *rsnxoe;
 
 	if (!wpa_s->current_bss || !wpa_s->current_ssid)
 		return -1;
@@ -3821,17 +3817,27 @@ static int wpa_supplicant_assoc_update_ie(struct wpa_supplicant *wpa_s)
 
 	bss_wpa = wpa_bss_get_vendor_ie(wpa_s->current_bss,
 					WPA_IE_VENDOR_TYPE);
-	bss_rsn = wpa_bss_get_rsne(wpa_s, wpa_s->current_bss, NULL,
-				   wpa_s->valid_links);
-	bss_rsnx = wpa_bss_get_rsnxe(wpa_s, wpa_s->current_bss, NULL,
-				     wpa_s->valid_links);
+	bss_rsn = wpa_bss_get_ie(wpa_s->current_bss, WLAN_EID_RSN);
+	bss_rsnx = wpa_bss_get_ie(wpa_s->current_bss, WLAN_EID_RSNX);
+	rsnoe = wpa_bss_get_vendor_ie(wpa_s->current_bss,
+				      RSNE_OVERRIDE_IE_VENDOR_TYPE);
+	rsno2e = wpa_bss_get_vendor_ie(wpa_s->current_bss,
+				       RSNE_OVERRIDE_2_IE_VENDOR_TYPE);
+	rsnxoe = wpa_bss_get_vendor_ie(wpa_s->current_bss,
+				       RSNXE_OVERRIDE_IE_VENDOR_TYPE);
 
 	if (wpa_sm_set_ap_wpa_ie(wpa_s->wpa, bss_wpa,
 				 bss_wpa ? 2 + bss_wpa[1] : 0) ||
 	    wpa_sm_set_ap_rsn_ie(wpa_s->wpa, bss_rsn,
 				 bss_rsn ? 2 + bss_rsn[1] : 0) ||
 	    wpa_sm_set_ap_rsnxe(wpa_s->wpa, bss_rsnx,
-				 bss_rsnx ? 2 + bss_rsnx[1] : 0))
+				 bss_rsnx ? 2 + bss_rsnx[1] : 0) ||
+	    wpa_sm_set_ap_rsne_override(wpa_s->wpa, rsnoe,
+					rsnoe ? 2 + rsnoe[1] : 0) ||
+	    wpa_sm_set_ap_rsne_override_2(wpa_s->wpa, rsno2e,
+					  rsno2e ? 2 + rsno2e[1] : 0) ||
+	    wpa_sm_set_ap_rsnxe_override(wpa_s->wpa, rsnxoe,
+					 rsnxoe ? 2 + rsnxoe[1] : 0))
 		return -1;
 
 	return 0;
