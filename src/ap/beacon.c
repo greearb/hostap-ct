@@ -2893,6 +2893,11 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 	const u8 *own_elem_data;
 	u8 *own_data;
 	bool is_ext;
+	bool ie_found;
+	u8 non_inherit_ele_ext_list[256] = { 0 };
+	u8 non_inherit_ele_ext_list_len = 0;
+	u8 non_inherit_ele_list[256] = { 0 };
+	u8 non_inherit_ele_list_len = 0;
 	/* The bitmap of parsed EIDs. There are 256 EIDs and ext EIDs, so 32
 	 * bytes to store the bitmaps. */
 	u8 parsed_eid_bmap[32] = { 0 }, parsed_ext_eid_bmap[32] = { 0 };
@@ -2918,6 +2923,7 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 	 * elements pertaining to the STA profile are appended at the end. */
 	for_each_element(own_elem, own_data, own_data_len) {
 		is_ext = false;
+		ie_found = false;
 
 		/* Pick one of own elements and get its EID and length */
 		own_elem_data = own_elem->data;
@@ -2956,6 +2962,8 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 			if (own_eid != link_eid)
 				continue;
 
+			ie_found = true;
+
 			/* Ignore if the contents is identical. */
 			if (own_ele_len == link_ele_len &&
 			    os_memcmp(own_elem->data, link_elem->data,
@@ -2982,6 +2990,21 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 				parsed_eid_bmap[own_eid / 8] |=
 					BIT(own_eid % 8);
 			break;
+		}
+
+		/* This is a unique element in the reporting profile which is
+		 * not present in the reported profile. Update the
+		 * non-inheritance list. */
+		if (!ie_found) {
+			u8 idx;
+
+			if (is_ext) {
+				idx = non_inherit_ele_ext_list_len++;
+				non_inherit_ele_ext_list[idx] = own_eid;
+			} else {
+				idx = non_inherit_ele_list_len++;
+				non_inherit_ele_list[idx] = own_eid;
+			}
 		}
 	}
 
@@ -3012,6 +3035,36 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 				  link_ele_len + extra_len);
 			sta_profile += link_ele_len + extra_len;
 		}
+	}
+
+	/* Handle non-inheritance
+	 * Non-Inheritance element:
+	 *      Element ID Ext: 1 octet
+	 *	Length: 1 octet
+	 *	Ext tag number: 1 octet
+	 *	Length of Elements ID list: 1 octet
+	 *	Elements ID list: variable
+	 *      Length of Elements ID Extension list: 1 octet
+	 *	Elements ID extensions list: variable
+	 */
+	if (non_inherit_ele_list_len || non_inherit_ele_ext_list_len)
+		sta_profile_len += 3 + 2 + non_inherit_ele_list_len +
+			non_inherit_ele_ext_list_len;
+
+	if (sta_profile &&
+	    (non_inherit_ele_list_len || non_inherit_ele_ext_list_len)) {
+		*sta_profile++ = WLAN_EID_EXTENSION;
+		*sta_profile++ = non_inherit_ele_list_len +
+			non_inherit_ele_ext_list_len + 3;
+		*sta_profile++ = WLAN_EID_EXT_NON_INHERITANCE;
+		*sta_profile++ = non_inherit_ele_list_len;
+		os_memcpy(sta_profile, non_inherit_ele_list,
+			  non_inherit_ele_list_len);
+		sta_profile += non_inherit_ele_list_len;
+		*sta_profile++ = non_inherit_ele_ext_list_len;
+		os_memcpy(sta_profile, non_inherit_ele_ext_list,
+			  non_inherit_ele_ext_list_len);
+		sta_profile += non_inherit_ele_ext_list_len;
 	}
 
 	return sta_profile_len;
