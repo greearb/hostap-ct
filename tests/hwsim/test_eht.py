@@ -1837,14 +1837,27 @@ def test_eht_mlo_csa(dev, apdev):
             logger.info("Test traffic after 1st link CSA completes")
             traffic_test(wpas, hapd0)
 
+            logger.info("Perform CSA on 2nd link")
+            mlo_perform_csa(hapd1, "CHAN_SWITCH 5 2412 ht he eht blocktx",
+                            2412, wpas)
+
+
+            logger.info("Test traffic after 2nd link CSA completes")
+            traffic_test(wpas, hapd1)
+
+            logger.info("Perform CSA on 2nd link and bring it back to original channel")
+            mlo_perform_csa(hapd1, "CHAN_SWITCH 5 2437 ht he eht blocktx",
+                            2437, wpas)
+
+            logger.info("Test traffic again after 2nd link CSA completes")
+            traffic_test(wpas, hapd1)
+
             logger.info("Perform CSA on 1st link and bring it back to original channel")
             mlo_perform_csa(hapd0, "CHAN_SWITCH 5 2412 ht he eht blocktx",
                             2412, wpas)
 
             logger.info("Test traffic again after 1st link CSA completes")
             traffic_test(wpas, hapd0)
-
-            #TODO: CSA on non-first link
 
 def create_base_conf_file(iface, channel, prefix='hostapd-', hw_mode='g',
                           op_class=None):
