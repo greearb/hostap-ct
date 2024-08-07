@@ -1204,9 +1204,6 @@ static void mlme_event_ch_switch(struct wpa_driver_nl80211_data *drv,
 	int chan_offset = 0;
 	int ifidx;
 
-	wpa_printf(MSG_DEBUG, "nl80211: Channel switch%s event",
-		   finished ? "" : " started");
-
 	if (!freq)
 		return;
 
@@ -1217,6 +1214,9 @@ static void mlme_event_ch_switch(struct wpa_driver_nl80211_data *drv,
 			   ifidx);
 		return;
 	}
+
+	wpa_printf(MSG_DEBUG, "nl80211: Channel switch%s event for %s",
+		   finished ? "" : " started", bss->ifname);
 
 	if (type) {
 		enum nl80211_channel_type ch_type = nla_get_u32(type);
@@ -1260,10 +1260,13 @@ static void mlme_event_ch_switch(struct wpa_driver_nl80211_data *drv,
 	if (cf2)
 		data.ch_switch.cf2 = nla_get_u32(cf2);
 
-	if (link)
+	if (link) {
 		data.ch_switch.link_id = nla_get_u8(link);
-	else
+		wpa_printf(MSG_DEBUG, "nl80211: Link ID: %d",
+			   data.ch_switch.link_id);
+	} else {
 		data.ch_switch.link_id = NL80211_DRV_LINK_ID_NA;
+	}
 
 	if (finished) {
 		if (data.ch_switch.link_id != NL80211_DRV_LINK_ID_NA) {
