@@ -4504,6 +4504,42 @@ int hostapd_switch_channel(struct hostapd_data *hapd,
 }
 
 
+int hostapd_force_channel_switch(struct hostapd_iface *iface,
+				 struct csa_settings settings)
+{
+	int ret = 0;
+
+	if (!settings.freq_params.channel) {
+		/* Check if the new channel is supported */
+		settings.freq_params.channel = hostapd_hw_get_channel(
+			iface->bss[0], settings.freq_params.freq);
+		if (!settings.freq_params.channel)
+			return -1;
+	}
+
+	ret = hostapd_disable_iface(iface);
+	if (ret) {
+		wpa_printf(MSG_DEBUG, "Failed to disable the interface");
+		return ret;
+	}
+
+	hostapd_chan_switch_config(iface->bss[0], &settings.freq_params);
+	ret = hostapd_change_config_freq(iface->bss[0], iface->conf,
+					 &settings.freq_params, NULL);
+	if (ret) {
+		wpa_printf(MSG_DEBUG,
+			   "Failed to set the new channel in config");
+		return ret;
+	}
+
+	ret = hostapd_enable_iface(iface);
+	if (ret)
+		wpa_printf(MSG_DEBUG, "Failed to enable the interface");
+
+	return ret;
+}
+
+
 void
 hostapd_switch_channel_fallback(struct hostapd_iface *iface,
 				const struct hostapd_freq_params *freq_params)
