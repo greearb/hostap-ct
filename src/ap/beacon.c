@@ -2870,21 +2870,32 @@ static bool is_restricted_ext_eid_in_sta_profile(u8 ext_id)
 }
 
 
-/* Create the link STA profiles.
+/* Create the link STA profiles based on inheritance from the reporting
+ * profile.
  *
  * NOTE: The same function is used for length calculation as well as filling
  * data in the given buffer. This avoids risk of not updating the length
  * function but filling function or vice versa.
  */
 static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
-				      size_t link_data_len, u8 *sta_profile,
-				      bool tx_vap)
+				      size_t link_data_len,
+				      struct ieee80211_mgmt *own_fdata,
+				      size_t own_data_len,
+				      u8 *sta_profile, bool tx_vap)
 {
 	const struct element *link_elem;
 	size_t sta_profile_len = 0;
 	const u8 *link_elem_data;
 	u8 link_ele_len;
 	u8 *link_data;
+	const struct element *own_elem;
+	u8 link_eid, own_eid, own_ele_len;
+	const u8 *own_elem_data;
+	u8 *own_data;
+	bool is_ext;
+	/* The bitmap of parsed EIDs. There are 256 EIDs and ext EIDs, so 32
+	 * bytes to store the bitmaps. */
+	u8 parsed_eid_bmap[32] = { 0 }, parsed_ext_eid_bmap[32] = { 0 };
 	/* extra len used in the logic includes the element id and len */
 	u8 extra_len = 2;
 
@@ -2896,19 +2907,102 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 		sta_profile += sizeof(le16);
 	}
 
+	own_data = own_fdata->u.probe_resp.variable;
 	link_data = link_fdata->u.probe_resp.variable;
 
+	/* The below logic takes the reporting BSS data and reported BSS data
+	 * and performs intersection to build the STA profile of the reported
+	 * BSS. Certain elements are not added to the STA profile as
+	 * recommended in standard. Matching element information in the
+	 * reporting BSS profile are ignored in the STA profile. Remaining
+	 * elements pertaining to the STA profile are appended at the end. */
+	for_each_element(own_elem, own_data, own_data_len) {
+		is_ext = false;
+
+		/* Pick one of own elements and get its EID and length */
+		own_elem_data = own_elem->data;
+		own_ele_len = own_elem->datalen;
+
+		if (own_elem->id == WLAN_EID_EXTENSION) {
+			is_ext = true;
+			own_eid = *(own_elem_data);
+			if (is_restricted_ext_eid_in_sta_profile(own_eid))
+				continue;
+		} else {
+			own_eid = own_elem->id;
+			if (is_restricted_eid_in_sta_profile(own_eid, tx_vap))
+				continue;
+		}
+
+		for_each_element(link_elem, link_data, link_data_len) {
+			/* If the element type mismatches, do not consider
+			 * this link element for comparison. */
+			if ((link_elem->id == WLAN_EID_EXTENSION &&
+			     !is_ext) ||
+			    (is_ext && link_elem->id != WLAN_EID_EXTENSION))
+				continue;
+
+			/* Comparison can be done so get the link element and
+			 * its EID and length. */
+			link_elem_data = link_elem->data;
+			link_ele_len = link_elem->datalen;
+
+			if (link_elem->id == WLAN_EID_EXTENSION)
+				link_eid = *(link_elem_data);
+			else
+				link_eid = link_elem->id;
+
+			/* Ignore if EID does not match */
+			if (own_eid != link_eid)
+				continue;
+
+			/* Ignore if the contents is identical. */
+			if (own_ele_len == link_ele_len &&
+			    os_memcmp(own_elem->data, link_elem->data,
+				      own_ele_len) == 0)
+				continue;
+
+			/* This element is present in the reported profile
+			 * as well as present in the reporting profile.
+			 * However, there is a mismatch in the contents and
+			 * hence, include this in the per STA profile. */
+			sta_profile_len += link_ele_len + extra_len;
+			if (sta_profile) {
+				os_memcpy(sta_profile,
+					  link_elem->data - extra_len,
+					  link_ele_len + extra_len);
+				sta_profile += link_ele_len + extra_len;
+			}
+
+			/* Update the parsed EIDs bitmap */
+			if (is_ext)
+				parsed_ext_eid_bmap[own_eid / 8] |=
+					BIT(own_eid % 8);
+			else
+				parsed_eid_bmap[own_eid / 8] |=
+					BIT(own_eid % 8);
+			break;
+		}
+	}
+
+	/* Parse the remaining elements in the reported profile */
 	for_each_element(link_elem, link_data, link_data_len) {
 		link_elem_data = link_elem->data;
 		link_ele_len = link_elem->datalen;
 
 		if (link_elem->id == WLAN_EID_EXTENSION) {
-			if (is_restricted_ext_eid_in_sta_profile(
-				    *link_elem_data))
+			link_eid = *(link_elem_data);
+
+			if ((parsed_ext_eid_bmap[link_eid / 8] &
+			     BIT(link_eid % 8)) ||
+			    is_restricted_ext_eid_in_sta_profile(link_eid))
 				continue;
 		} else {
-			if (is_restricted_eid_in_sta_profile(link_elem->id,
-							     tx_vap))
+			link_eid = link_elem->id;
+
+			if ((parsed_eid_bmap[link_eid / 8] &
+			     BIT(link_eid % 8)) ||
+			    is_restricted_eid_in_sta_profile(link_eid, tx_vap))
 				continue;
 		}
 
@@ -2926,12 +3020,15 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 
 static u8 * hostapd_gen_sta_profile(struct ieee80211_mgmt *link_data,
 				    size_t link_data_len,
+				    struct ieee80211_mgmt *own_data,
+				    size_t own_data_len,
 				    size_t *sta_profile_len, bool tx_vap)
 {
 	u8 *sta_profile;
 
 	/* Get the length first */
 	*sta_profile_len = hostapd_add_sta_profile(link_data, link_data_len,
+						   own_data, own_data_len,
 						   NULL, tx_vap);
 	if (!(*sta_profile_len) || *sta_profile_len > EHT_ML_MAX_STA_PROF_LEN)
 		return NULL;
@@ -2941,7 +3038,8 @@ static u8 * hostapd_gen_sta_profile(struct ieee80211_mgmt *link_data,
 		return NULL;
 
 	/* Now fill in the data */
-	hostapd_add_sta_profile(link_data, link_data_len, sta_profile, tx_vap);
+	hostapd_add_sta_profile(link_data, link_data_len, own_data,
+				own_data_len, sta_profile, tx_vap);
 
 	/* The caller takes care of freeing the returned sta_profile */
 	return sta_profile;
@@ -2952,8 +3050,11 @@ static void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
 {
 	bool tx_vap = hapd == hostapd_mbssid_get_tx_bss(hapd);
 	size_t link_data_len, sta_profile_len;
+	size_t own_data_len;
 	struct probe_resp_params link_params;
+	struct probe_resp_params own_params;
 	struct ieee80211_mgmt *link_data;
+	struct ieee80211_mgmt *own_data;
 	struct mld_link_info *link_info;
 	struct hostapd_data *link_bss;
 	u8 link_id, *sta_profile;
@@ -2965,6 +3066,19 @@ static void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
 		   hapd->conf->iface);
 
 	wpa_printf(MSG_DEBUG, "MLD: Reporting link %d", hapd->mld_link_id);
+
+	/* Generate a Probe Response template for self */
+	if (hostapd_get_probe_resp_tmpl(hapd, &own_params, false)) {
+		wpa_printf(MSG_ERROR,
+			   "MLD: Error in building per STA profiles");
+		return;
+	}
+
+	own_data = own_params.resp;
+	own_data_len = own_params.resp_len;
+
+	/* Consider the length of the variable fields */
+	own_data_len -= offsetof(struct ieee80211_mgmt, u.probe_resp.variable);
 
 	for_each_mld_link(link_bss, hapd) {
 		if (link_bss == hapd || !link_bss->started)
@@ -2993,6 +3107,7 @@ static void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
 					  u.probe_resp.variable);
 
 		sta_profile = hostapd_gen_sta_profile(link_data, link_data_len,
+						      own_data, own_data_len,
 						      &sta_profile_len, tx_vap);
 		if (!sta_profile) {
 			wpa_printf(MSG_ERROR,
@@ -3021,6 +3136,8 @@ static void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
 		os_free(sta_profile);
 		os_free(link_params.resp);
 	}
+
+	os_free(own_params.resp);
 }
 
 #endif /* CONFIG_IEEE80211BE */
