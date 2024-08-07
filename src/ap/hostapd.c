@@ -620,9 +620,19 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 static void hostapd_bss_link_deinit(struct hostapd_data *hapd)
 {
 #ifdef CONFIG_IEEE80211BE
+	int i;
+
 	if (!hapd->conf || !hapd->conf->mld_ap)
 		return;
 
+	/* Free per STA profiles */
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+		os_free(hapd->partner_links[i].resp_sta_profile);
+		os_memset(&hapd->partner_links[i], 0,
+			  sizeof(hapd->partner_links[i]));
+	}
+
+	/* Put all freeing logic above this */
 	if (!hapd->mld->num_links)
 		return;
 

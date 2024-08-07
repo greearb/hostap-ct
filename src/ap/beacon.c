@@ -2825,12 +2825,175 @@ void ieee802_11_set_beacon_per_bss_only(struct hostapd_data *hapd)
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+
+static int hostapd_get_probe_resp_tmpl(struct hostapd_data *hapd,
+				       struct probe_resp_params *params,
+				       bool is_ml_sta_info)
+{
+	os_memset(params, 0, sizeof(*params));
+	hostapd_gen_probe_resp(hapd, params);
+	if (!params->resp)
+		return -1;
+
+	/* The caller takes care of freeing params->resp. */
+	return 0;
+}
+
+
+/* Create the link STA profiles.
+ *
+ * NOTE: The same function is used for length calculation as well as filling
+ * data in the given buffer. This avoids risk of not updating the length
+ * function but filling function or vice versa.
+ */
+static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
+				      size_t link_data_len, u8 *sta_profile)
+{
+	const struct element *link_elem;
+	size_t sta_profile_len = 0;
+	const u8 *link_elem_data;
+	u8 link_ele_len;
+	u8 *link_data;
+	/* extra len used in the logic includes the element id and len */
+	u8 extra_len = 2;
+
+	/* Include len for capab info */
+	sta_profile_len += sizeof(le16);
+	if (sta_profile) {
+		os_memcpy(sta_profile, &link_fdata->u.probe_resp.capab_info,
+			  sizeof(le16));
+		sta_profile += sizeof(le16);
+	}
+
+	link_data = link_fdata->u.probe_resp.variable;
+
+	for_each_element(link_elem, link_data, link_data_len) {
+		link_elem_data = link_elem->data;
+		link_ele_len = link_elem->datalen;
+
+		sta_profile_len += link_ele_len + extra_len;
+		if (sta_profile) {
+			os_memcpy(sta_profile, link_elem_data - extra_len,
+				  link_ele_len + extra_len);
+			sta_profile += link_ele_len + extra_len;
+		}
+	}
+
+	return sta_profile_len;
+}
+
+
+static u8 * hostapd_gen_sta_profile(struct ieee80211_mgmt *link_data,
+				    size_t link_data_len,
+				    size_t *sta_profile_len)
+{
+	u8 *sta_profile;
+
+	/* Get the length first */
+	*sta_profile_len = hostapd_add_sta_profile(link_data, link_data_len,
+						   NULL);
+	if (!(*sta_profile_len) || *sta_profile_len > EHT_ML_MAX_STA_PROF_LEN)
+		return NULL;
+
+	sta_profile = os_zalloc(*sta_profile_len);
+	if (!sta_profile)
+		return NULL;
+
+	/* Now fill in the data */
+	hostapd_add_sta_profile(link_data, link_data_len, sta_profile);
+
+	/* The caller takes care of freeing the returned sta_profile */
+	return sta_profile;
+}
+
+
+static void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
+{
+	size_t link_data_len, sta_profile_len;
+	struct probe_resp_params link_params;
+	struct ieee80211_mgmt *link_data;
+	struct mld_link_info *link_info;
+	struct hostapd_data *link_bss;
+	u8 link_id, *sta_profile;
+
+	if (!hapd->conf->mld_ap)
+		return;
+
+	wpa_printf(MSG_DEBUG, "MLD: Generating per STA profiles for MLD %s",
+		   hapd->conf->iface);
+
+	wpa_printf(MSG_DEBUG, "MLD: Reporting link %d", hapd->mld_link_id);
+
+	for_each_mld_link(link_bss, hapd) {
+		if (link_bss == hapd || !link_bss->started)
+			continue;
+
+		link_id = link_bss->mld_link_id;
+		if (link_id > MAX_NUM_MLD_LINKS)
+			continue;
+
+		sta_profile = NULL;
+		sta_profile_len = 0;
+
+		/* Generate a Probe Response frame template for partner link */
+		if (hostapd_get_probe_resp_tmpl(link_bss, &link_params, true)) {
+			wpa_printf(MSG_ERROR,
+				   "MLD: Could not get link STA probe response template for link %d",
+				   link_id);
+			continue;
+		}
+
+		link_data = link_params.resp;
+		link_data_len = link_params.resp_len;
+
+		/* Consider length of the variable fields */
+		link_data_len -= offsetof(struct ieee80211_mgmt,
+					  u.probe_resp.variable);
+
+		sta_profile = hostapd_gen_sta_profile(link_data, link_data_len,
+						      &sta_profile_len);
+		if (!sta_profile) {
+			wpa_printf(MSG_ERROR,
+				   "MLD: Could not generate link STA profile for link %d",
+				   link_id);
+			continue;
+		}
+
+		link_info = &hapd->partner_links[link_id];
+		link_info->valid = true;
+
+		os_free(link_info->resp_sta_profile);
+		link_info->resp_sta_profile_len = sta_profile_len;
+
+		link_info->resp_sta_profile = os_memdup(sta_profile,
+							sta_profile_len);
+		if (!link_info->resp_sta_profile)
+			link_info->resp_sta_profile_len = 0;
+
+		os_memcpy(link_info->local_addr, link_bss->own_addr, ETH_ALEN);
+
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Reported link STA info for %d: %u bytes",
+			   link_id, link_info->resp_sta_profile_len);
+
+		os_free(sta_profile);
+		os_free(link_params.resp);
+	}
+}
+
+#endif /* CONFIG_IEEE80211BE */
+
+
 int ieee802_11_set_beacon(struct hostapd_data *hapd)
 {
 	struct hostapd_iface *iface = hapd->iface;
 	int ret;
 	size_t i, j;
 	bool is_6g, hapd_mld = false;
+#ifdef CONFIG_IEEE80211BE
+	struct hostapd_data *link_bss;
+#endif /* CONFIG_IEEE80211BE */
 
 	ret = __ieee802_11_set_beacon(hapd);
 	if (ret != 0)
@@ -2870,6 +3033,15 @@ int ieee802_11_set_beacon(struct hostapd_data *hapd)
 				__ieee802_11_set_beacon(other->bss[i]);
 		}
 	}
+
+#ifdef CONFIG_IEEE80211BE
+	if (!hapd_mld)
+		return 0;
+
+	/* Generate per STA profiles for each affiliated APs */
+	for_each_mld_link(link_bss, hapd)
+		hostapd_gen_per_sta_profiles(link_bss);
+#endif /* CONFIG_IEEE80211BE */
 
 	return 0;
 }

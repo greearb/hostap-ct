@@ -491,6 +491,10 @@ struct hostapd_data {
 	struct hostapd_mld *mld;
 	struct dl_list link;
 	u8 mld_link_id;
+
+	/* Cached partner info for ML probe response */
+	struct mld_link_info partner_links[MAX_NUM_MLD_LINKS];
+
 #ifdef CONFIG_TESTING_OPTIONS
 	u8 eht_mld_link_removal_count;
 #endif /* CONFIG_TESTING_OPTIONS */
