@@ -2841,6 +2841,35 @@ static int hostapd_get_probe_resp_tmpl(struct hostapd_data *hapd,
 }
 
 
+static bool is_restricted_eid_in_sta_profile(u8 eid, bool tx_vap)
+{
+	switch (eid) {
+	case WLAN_EID_TIM:
+	case WLAN_EID_BSS_MAX_IDLE_PERIOD:
+	case WLAN_EID_MULTIPLE_BSSID:
+	case WLAN_EID_REDUCED_NEIGHBOR_REPORT:
+	case WLAN_EID_NEIGHBOR_REPORT:
+		return true;
+	case WLAN_EID_SSID:
+		/* SSID is not restricted for non-transmitted BSSID */
+		return tx_vap;
+	default:
+		return false;
+	}
+}
+
+
+static bool is_restricted_ext_eid_in_sta_profile(u8 ext_id)
+{
+	switch (ext_id) {
+	case WLAN_EID_EXT_MULTI_LINK:
+		return true;
+	default:
+		return false;
+	}
+}
+
+
 /* Create the link STA profiles.
  *
  * NOTE: The same function is used for length calculation as well as filling
@@ -2848,7 +2877,8 @@ static int hostapd_get_probe_resp_tmpl(struct hostapd_data *hapd,
  * function but filling function or vice versa.
  */
 static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
-				      size_t link_data_len, u8 *sta_profile)
+				      size_t link_data_len, u8 *sta_profile,
+				      bool tx_vap)
 {
 	const struct element *link_elem;
 	size_t sta_profile_len = 0;
@@ -2872,6 +2902,16 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 		link_elem_data = link_elem->data;
 		link_ele_len = link_elem->datalen;
 
+		if (link_elem->id == WLAN_EID_EXTENSION) {
+			if (is_restricted_ext_eid_in_sta_profile(
+				    *link_elem_data))
+				continue;
+		} else {
+			if (is_restricted_eid_in_sta_profile(link_elem->id,
+							     tx_vap))
+				continue;
+		}
+
 		sta_profile_len += link_ele_len + extra_len;
 		if (sta_profile) {
 			os_memcpy(sta_profile, link_elem_data - extra_len,
@@ -2886,13 +2926,13 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 
 static u8 * hostapd_gen_sta_profile(struct ieee80211_mgmt *link_data,
 				    size_t link_data_len,
-				    size_t *sta_profile_len)
+				    size_t *sta_profile_len, bool tx_vap)
 {
 	u8 *sta_profile;
 
 	/* Get the length first */
 	*sta_profile_len = hostapd_add_sta_profile(link_data, link_data_len,
-						   NULL);
+						   NULL, tx_vap);
 	if (!(*sta_profile_len) || *sta_profile_len > EHT_ML_MAX_STA_PROF_LEN)
 		return NULL;
 
@@ -2901,7 +2941,7 @@ static u8 * hostapd_gen_sta_profile(struct ieee80211_mgmt *link_data,
 		return NULL;
 
 	/* Now fill in the data */
-	hostapd_add_sta_profile(link_data, link_data_len, sta_profile);
+	hostapd_add_sta_profile(link_data, link_data_len, sta_profile, tx_vap);
 
 	/* The caller takes care of freeing the returned sta_profile */
 	return sta_profile;
@@ -2910,6 +2950,7 @@ static u8 * hostapd_gen_sta_profile(struct ieee80211_mgmt *link_data,
 
 static void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
 {
+	bool tx_vap = hapd == hostapd_mbssid_get_tx_bss(hapd);
 	size_t link_data_len, sta_profile_len;
 	struct probe_resp_params link_params;
 	struct ieee80211_mgmt *link_data;
@@ -2952,7 +2993,7 @@ static void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
 					  u.probe_resp.variable);
 
 		sta_profile = hostapd_gen_sta_profile(link_data, link_data_len,
-						      &sta_profile_len);
+						      &sta_profile_len, tx_vap);
 		if (!sta_profile) {
 			wpa_printf(MSG_ERROR,
 				   "MLD: Could not generate link STA profile for link %d",
