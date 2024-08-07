@@ -2898,6 +2898,8 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 	u8 non_inherit_ele_ext_list_len = 0;
 	u8 non_inherit_ele_list[256] = { 0 };
 	u8 non_inherit_ele_list_len = 0;
+	u8 num_link_elem_vendor_ies = 0, num_own_elem_vendor_ies = 0;
+	bool add_vendor_ies = false, is_identical_vendor_ies = true;
 	/* The bitmap of parsed EIDs. There are 256 EIDs and ext EIDs, so 32
 	 * bytes to store the bitmaps. */
 	u8 parsed_eid_bmap[32] = { 0 }, parsed_ext_eid_bmap[32] = { 0 };
@@ -2967,8 +2969,20 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 			/* Ignore if the contents is identical. */
 			if (own_ele_len == link_ele_len &&
 			    os_memcmp(own_elem->data, link_elem->data,
-				      own_ele_len) == 0)
+				      own_ele_len) == 0) {
+				if (own_eid == WLAN_EID_VENDOR_SPECIFIC) {
+					is_identical_vendor_ies = true;
+					num_own_elem_vendor_ies++;
+				}
 				continue;
+			}
+
+			/* No need to include this non-matching Vendor Specific
+			 * element explicitly at this point. */
+			if (own_eid == WLAN_EID_VENDOR_SPECIFIC) {
+				is_identical_vendor_ies = false;
+				continue;
+			}
 
 			/* This element is present in the reported profile
 			 * as well as present in the reporting profile.
@@ -2992,6 +3006,13 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 			break;
 		}
 
+		/* We found at least one Vendor Specific element in reporting
+		 * link which is not same (or present) in the reported link. We
+		 * need to include all Vendor Specific elements from the
+		 * reported link. */
+		if (!is_identical_vendor_ies)
+			add_vendor_ies = true;
+
 		/* This is a unique element in the reporting profile which is
 		 * not present in the reported profile. Update the
 		 * non-inheritance list. */
@@ -3012,6 +3033,13 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 	for_each_element(link_elem, link_data, link_data_len) {
 		link_elem_data = link_elem->data;
 		link_ele_len = link_elem->datalen;
+
+		/* No need to check this Vendor Specific element at this point.
+		 * Just take the count and continue. */
+		if (link_elem->id == WLAN_EID_VENDOR_SPECIFIC) {
+			num_link_elem_vendor_ies++;
+			continue;
+		}
 
 		if (link_elem->id == WLAN_EID_EXTENSION) {
 			link_eid = *(link_elem_data);
@@ -3034,6 +3062,30 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 			os_memcpy(sta_profile, link_elem_data - extra_len,
 				  link_ele_len + extra_len);
 			sta_profile += link_ele_len + extra_len;
+		}
+	}
+
+	/* Handle Vendor Specific elements
+	 * Add all the Vendor Specific elements of the reported link if
+	 *  a. There is at least one non-matching Vendor Specific element, or
+	 *  b. The number of Vendor Specific elements in reporting and reported
+	 *     link is not same. */
+	if (add_vendor_ies ||
+	    num_own_elem_vendor_ies != num_link_elem_vendor_ies) {
+		for_each_element(link_elem, link_data, link_data_len) {
+			link_elem_data = link_elem->data;
+			link_ele_len = link_elem->datalen;
+
+			if (link_elem->id != WLAN_EID_VENDOR_SPECIFIC)
+				continue;
+
+			sta_profile_len += link_ele_len + extra_len;
+			if (sta_profile) {
+				os_memcpy(sta_profile,
+					  link_elem_data - extra_len,
+					  link_ele_len + extra_len);
+				sta_profile += link_ele_len + extra_len;
+			}
 		}
 	}
 
