@@ -2226,31 +2226,12 @@ enum qca_wlan_vendor_acs_hw_mode {
  *	in AP mode supports TWT responder mode in HT and VHT modes.
  *
  * @QCA_WLAN_VENDOR_FEATURE_RSN_OVERRIDE_STA: Flag indicates that the device
- *	supports RSNE/RSNXE overriding in STA mode.
- *
- *	For SME offload to the driver case:
- *	- Supplicant should enable RSNO element use only when the driver
- *	  indicates this feature flag.
- *	- The driver should enable RSNO element use with the supplicant selected
- *	  BSS only when the supplicant sends an RSNO element with an empty
- *	  payload in the connect request elements buffer in NL80211_CMD_CONNECT.
- *
- *	For BSS selection offload to the driver case:
- *	- Supplicant should enable RSNO element use only when the driver
- *	  indicates this feature flag.
- *	- Supplicant should always send RSNO elements in the connect request
- *	  elements buffer in NL80211_CMD_CONNECT irrespective of whether RSNO
- *	  elements are supported by the BSS that the supplicant selected
- *	- The driver should enable RSNO element use only when the supplicant
- *	  sends an RSNO element with an empty payload in connect request
- *	  elements in NL80211_CMD_CONNECT.
- *	- The driver should remove RSNO elements from the connect request
- *	  elements while preparing the (Re)Association Request frame elements
- *	  if the driver selects a different BSS which is not advertising RSNO
- *	  elements.
- *
- *	If both SME and BSS selection offload to the driver, BSS selection
- *	offload to the driver case rules shall be applied.
+ *	supports RSNE/RSNXE overriding in STA mode. Supplicant should enable
+ *	RSN overriding elements use only when the driver indicates this feature
+ *	flag. For BSS selection offload to the driver case, the driver shall
+ *	strip/modify the RSN Selection element indicated in connect request
+ *	elements or add that element if none was provided based on the BSS
+ *	selected by the driver.
  *
  * @NUM_QCA_WLAN_VENDOR_FEATURES: Number of assigned feature bits
  */
