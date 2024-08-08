@@ -7134,6 +7134,60 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 }
 
 
+#ifdef CONFIG_DRIVER_NL80211_QCA
+static void connect_ext_feature_set(u8 *features,
+				    enum qca_wlan_connect_ext_features idx)
+{
+	u8 *idx_byte = &features[idx / 8];
+
+	*idx_byte |= BIT(idx % 8);
+}
+#endif /* CONFIG_DRIVER_NL80211_QCA */
+
+
+static int nl80211_connect_ext(struct wpa_driver_nl80211_data *drv,
+			       struct wpa_driver_associate_params *params)
+{
+#ifdef CONFIG_DRIVER_NL80211_QCA
+	struct nl_msg *msg;
+	struct nlattr *attr;
+	u8 features[(NUM_QCA_CONNECT_EXT_FEATURES + 7) / 8] = {};
+
+	if (!drv->connect_ext_vendor_cmd_avail)
+		return -1;
+
+	wpa_printf(MSG_DEBUG, "nl80211: Connect_ext (ifindex=%d)",
+		   drv->ifindex);
+
+	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+			QCA_NL80211_VENDOR_SUBCMD_CONNECT_EXT))
+		goto fail;
+
+	attr = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA);
+	if (!attr)
+		goto fail;
+
+	if (params->rsn_overriding) {
+		wpa_printf(MSG_DEBUG, "- RSN overriding");
+		connect_ext_feature_set(features, QCA_CONNECT_EXT_FEATURE_RSNO);
+	}
+
+	if (nla_put(msg, QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_FEATURES,
+		    sizeof(features), features))
+		goto fail;
+
+	nla_nest_end(msg, attr);
+
+	return send_and_recv_cmd(drv, msg);
+fail:
+	nlmsg_free(msg);
+#endif /* CONFIG_DRIVER_NL80211_QCA */
+	return -1;
+}
+
+
 static int wpa_driver_nl80211_try_connect(
 	struct wpa_driver_nl80211_data *drv,
 	struct wpa_driver_associate_params *params,
@@ -7155,6 +7209,7 @@ static int wpa_driver_nl80211_try_connect(
 	}
 #endif /* CONFIG_DRIVER_NL80211_QCA */
 
+	nl80211_connect_ext(drv, params);
 	wpa_printf(MSG_DEBUG, "nl80211: Connect (ifindex=%d)", drv->ifindex);
 	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_CONNECT);
 	if (!msg)

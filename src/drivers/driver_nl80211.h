@@ -200,6 +200,7 @@ struct wpa_driver_nl80211_data {
 	unsigned int secure_ranging_ctx_vendor_cmd_avail:1;
 	unsigned int puncturing:1;
 	unsigned int qca_ap_allowed_freqs:1;
+	unsigned int connect_ext_vendor_cmd_avail:1;
 
 	u32 ignore_next_local_disconnect;
 	u32 ignore_next_local_deauth;

@@ -3967,8 +3967,7 @@ mscs_end:
 
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_RSN_OVERRIDE,
 			 RSN_OVERRIDE_NOT_USED);
-	if (!wpas_driver_bss_selection(wpa_s) &&
-	    wpas_rsn_overriding(wpa_s) &&
+	if (wpas_rsn_overriding(wpa_s) &&
 	    wpas_ap_supports_rsn_overriding(wpa_s, bss) &&
 	    wpa_ie_len + 2 + 4 + 1 <= max_wpa_ie_len) {
 		u8 *pos = wpa_ie + wpa_ie_len, *start = pos;
@@ -4005,36 +4004,7 @@ mscs_end:
 		wpa_ie_len += pos - start;
 	}
 
-	if (wpas_driver_bss_selection(wpa_s) &&
-	    wpas_rsn_overriding(wpa_s)) {
-		/* TODO: Replace this indication of support for RSN overriding
-		 * to the driver in driver-based BSS selection cases with
-		 * something cleaner. */
-		if (wpa_ie_len + 2 + 4 <= max_wpa_ie_len) {
-			u8 *pos = wpa_ie + wpa_ie_len;
-
-			*pos++ = WLAN_EID_VENDOR_SPECIFIC;
-			*pos++ = 4;
-			WPA_PUT_BE32(pos, RSNE_OVERRIDE_IE_VENDOR_TYPE);
-			pos += 4;
-			wpa_hexdump(MSG_MSGDUMP, "RSNE Override", wpa_ie,
-				    pos - wpa_ie);
-			wpa_ie_len += 2 + 4;
-		}
-
-		if (wpa_ie_len + 2 + 4 <= max_wpa_ie_len) {
-			u8 *pos = wpa_ie + wpa_ie_len;
-
-			*pos++ = WLAN_EID_VENDOR_SPECIFIC;
-			*pos++ = 4;
-			WPA_PUT_BE32(pos, RSNE_OVERRIDE_2_IE_VENDOR_TYPE);
-			pos += 4;
-			wpa_hexdump(MSG_MSGDUMP, "RSNE Override 2",
-				    wpa_ie, pos - wpa_ie);
-			wpa_ie_len += 2 + 4;
-		}
-	}
-
+	params->rsn_overriding = wpas_rsn_overriding(wpa_s);
 	params->wpa_ie = wpa_ie;
 	params->wpa_ie_len = wpa_ie_len;
 	params->auth_alg = algs;
