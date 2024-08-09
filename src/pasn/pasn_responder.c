@@ -741,6 +741,14 @@ int handle_auth_pasn_1(struct pasn_data *pasn,
 
 	wpa_printf(MSG_DEBUG, "PASN: kdk_len=%zu", pasn->kdk_len);
 
+	if (!ieee802_11_rsnx_capab_len(elems.rsnxe, elems.rsnxe_len,
+				       WLAN_RSNX_CAPAB_KEK_IN_PASN)) {
+		pasn->kek_len = 0;
+		pasn->derive_kek = false;
+	}
+
+	wpa_printf(MSG_DEBUG, "PASN: kek_len=%zu", pasn->kek_len);
+
 	if (!elems.pasn_params || !elems.pasn_params_len) {
 		wpa_printf(MSG_DEBUG,
 			   "PASN: No PASN Parameters element found");

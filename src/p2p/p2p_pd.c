@@ -852,7 +852,7 @@ static void p2p_process_prov_disc_bootstrap_req(struct p2p_data *p2p,
 	if (status == P2P_SC_SUCCESS) {
 		dev->role = P2P_ROLE_PAIRING_RESPONDER;
 #ifdef CONFIG_PASN
-		p2p_pasn_initialize(p2p, dev, sa, rx_freq, false);
+		p2p_pasn_initialize(p2p, dev, sa, rx_freq, false, true);
 #endif /* CONFIG_PASN */
 	}
 out:

@@ -1069,7 +1069,8 @@ void p2p_pref_channel_filter(const struct p2p_channels *a,
 
 void p2p_sd_query_cb(struct p2p_data *p2p, int success);
 void p2p_pasn_initialize(struct p2p_data *p2p, struct p2p_device *dev,
-			 const u8 *addr, int freq, bool verify);
+			 const u8 *addr, int freq, bool verify,
+			 bool derive_kek);
 
 void p2p_dbg(struct p2p_data *p2p, const char *fmt, ...)
 PRINTF_FORMAT(2, 3);
