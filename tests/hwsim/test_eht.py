@@ -104,8 +104,9 @@ def eht_verify_status(wpas, hapd, freq, bw, is_ht=False, is_vht=False,
     time.sleep(0.1)
     _eht_verify_links(wpas, valid_links, active_links)
 
-def traffic_test(wpas, hapd, success=True):
-    hwsim_utils.test_connectivity(wpas, hapd, success_expected=success)
+def traffic_test(wpas, hapd, success=True, ifname2=None):
+    hwsim_utils.test_connectivity(wpas, hapd, success_expected=success,
+                                  ifname2=ifname2)
 
 def test_eht_open(dev, apdev):
     """EHT AP with open mode configuration"""
@@ -251,7 +252,7 @@ def eht_mld_enable_ap(iface, params):
     return hapd
 
 def eht_mld_ap_wpa2_params(ssid, passphrase=None, key_mgmt="WPA-PSK-SHA256",
-                           mfp="2", pwe=None, beacon_prot="1"):
+                           mfp="2", pwe=None, beacon_prot="1", bridge=False):
     params = hostapd.wpa2_params(ssid=ssid, passphrase=passphrase,
                                  wpa_key_mgmt=key_mgmt, ieee80211w=mfp)
     params['ieee80211n'] = '1'
@@ -261,6 +262,8 @@ def eht_mld_ap_wpa2_params(ssid, passphrase=None, key_mgmt="WPA-PSK-SHA256",
     params['hw_mode'] = 'g'
     params['group_mgmt_cipher'] = "AES-128-CMAC"
     params['beacon_prot'] = beacon_prot
+    if bridge:
+        params['bridge'] = 'ap-br0'
 
     if pwe is not None:
         params['sae_pwe'] = pwe
@@ -458,7 +461,7 @@ def test_eht_mld_sae_single_link(dev, apdev):
         traffic_test(wpas, hapd0)
 
 def run_eht_mld_sae_two_links(dev, apdev, beacon_prot="1",
-                              disable_enable=False):
+                              disable_enable=False, bridge=False):
     with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
         HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
 
@@ -469,13 +472,18 @@ def run_eht_mld_sae_two_links(dev, apdev, beacon_prot="1",
         ssid = "mld_ap_sae_two_link"
         params = eht_mld_ap_wpa2_params(ssid, passphrase,
                                         key_mgmt="SAE", mfp="2", pwe='1',
-                                        beacon_prot=beacon_prot)
+                                        beacon_prot=beacon_prot,
+                                        bridge=bridge)
 
         hapd0 = eht_mld_enable_ap(hapd_iface, params)
 
         params['channel'] = '6'
 
         hapd1 = eht_mld_enable_ap(hapd_iface, params)
+
+        if bridge:
+            hapd0.cmd_execute(['brctl', 'setfd', 'ap-br0', '0'])
+            hapd0.cmd_execute(['ip', 'link', 'set', 'dev', 'ap-br0', 'up'])
 
         wpas.set("sae_pwe", "1")
 
@@ -494,8 +502,8 @@ def run_eht_mld_sae_two_links(dev, apdev, beacon_prot="1",
         if wpas.get_status_field('sae_group') != '19':
             raise Exception("Expected SAE group not used")
 
-        traffic_test(wpas, hapd0)
-        traffic_test(wpas, hapd1)
+        traffic_test(wpas, hapd0, ifname2='ap-br0' if bridge else None)
+        traffic_test(wpas, hapd1, ifname2='ap-br0' if bridge else None)
 
         if disable_enable:
             if "OK" not in hapd0.request("DISABLE_MLD"):
@@ -534,8 +542,8 @@ def run_eht_mld_sae_two_links(dev, apdev, beacon_prot="1",
             wpas.wait_connected()
             hapd0.wait_sta()
             hapd1.wait_sta()
-            traffic_test(wpas, hapd0)
-            traffic_test(wpas, hapd1)
+            traffic_test(wpas, hapd0, ifname2='ap-br0' if bridge else None)
+            traffic_test(wpas, hapd1, ifname2='ap-br0' if bridge else None)
 
 def test_eht_mld_sae_two_links(dev, apdev):
     """EHT MLD AP with MLD client SAE H2E connection using two links"""
@@ -548,6 +556,10 @@ def test_eht_mld_sae_two_links_no_beacon_prot(dev, apdev):
 def test_eht_mld_sae_two_links_disable_enable(dev, apdev):
     """AP MLD with two links and disabling/enabling full AP MLD"""
     run_eht_mld_sae_two_links(dev, apdev, disable_enable=True)
+
+def test_eht_mld_sae_two_links(dev, apdev):
+    """AP MLD with two links in a bridge"""
+    run_eht_mld_sae_two_links(dev, apdev, bridge=True)
 
 def test_eht_mld_sae_ext_one_link(dev, apdev):
     """EHT MLD AP with MLD client SAE-EXT H2E connection using single link"""
