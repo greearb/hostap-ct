@@ -757,10 +757,9 @@ def test_eht_mld_gtk_rekey(dev, apdev):
             if "CTRL-EVENT-DISCONNECTED" in ev:
                 raise Exception("Disconnect instead of rekey")
 
-            #TODO: Uncomment these ones GTK rekeying works for MLO
-            #time.sleep(0.1)
-            #traffic_test(wpas, hapd0)
-            #traffic_test(wpas, hapd1)
+            time.sleep(0.1)
+            traffic_test(wpas, hapd0)
+            traffic_test(wpas, hapd1)
 
 def test_eht_ml_probe_req(dev, apdev):
     """AP MLD with two links and non-AP MLD sending ML Probe Request"""
