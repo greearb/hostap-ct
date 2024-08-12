@@ -2850,7 +2850,7 @@ static void handle_auth_pasn(struct hostapd_data *hapd, struct sta_info *sta,
 
 		hapd_pasn_update_params(hapd, sta, mgmt, len);
 		if (handle_auth_pasn_1(sta->pasn, hapd->own_addr,
-				       sta->addr, mgmt, len) < 0)
+				       sta->addr, mgmt, len, false) < 0)
 			ap_free_sta(hapd, sta);
 	} else if (trans_seq == 3) {
 		if (!sta->pasn) {

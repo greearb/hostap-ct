@@ -174,7 +174,8 @@ int wpa_pasn_auth_tx_status(struct pasn_data *pasn,
 /* Responder */
 int handle_auth_pasn_1(struct pasn_data *pasn,
 		       const u8 *own_addr, const u8 *peer_addr,
-		       const struct ieee80211_mgmt *mgmt, size_t len);
+		       const struct ieee80211_mgmt *mgmt, size_t len,
+		       bool reject);
 int handle_auth_pasn_3(struct pasn_data *pasn, const u8 *own_addr,
 		       const u8 *peer_addr,
 		       const struct ieee80211_mgmt *mgmt, size_t len);
