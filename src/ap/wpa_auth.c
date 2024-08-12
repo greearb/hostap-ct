@@ -5611,11 +5611,38 @@ static void wpa_group_gtk_init(struct wpa_authenticator *wpa_auth,
 
 static int wpa_group_update_sta(struct wpa_state_machine *sm, void *ctx)
 {
-	if (ctx != NULL && ctx != sm->group)
+	struct wpa_authenticator *wpa_auth = sm->wpa_auth;
+	struct wpa_group *group = sm->group;
+#ifdef CONFIG_IEEE80211BE
+	int link_id;
+
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+		if (!sm->mld_links[link_id].valid)
+			continue;
+		if (sm->mld_links[link_id].wpa_auth &&
+		    sm->mld_links[link_id].wpa_auth->group == ctx) {
+			group = sm->mld_links[link_id].wpa_auth->group;
+			wpa_auth = sm->mld_links[link_id].wpa_auth;
+			break;
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
+
+	if (ctx && ctx != group)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
+	/* For ML STA, run rekey on the association link and send G1 with keys
+	 * for all links. This is based on assumption that MLD level
+	 * Authenticator updates group keys on all affiliated links in one shot
+	 * and not independently or concurrently for separate links. */
+	if (sm->mld_assoc_link_id >= 0 &&
+	    sm->mld_assoc_link_id != wpa_auth->link_id)
+		return 0;
+#endif /* CONFIG_IEEE80211BE */
+
 	if (sm->wpa_ptk_state != WPA_PTK_PTKINITDONE) {
-		wpa_auth_logger(sm->wpa_auth, wpa_auth_get_spa(sm),
+		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
 				LOGGER_DEBUG,
 				"Not in PTKINITDONE; skip Group Key update");
 		sm->GUpdateStationKeys = false;
@@ -5627,7 +5654,7 @@ static int wpa_group_update_sta(struct wpa_state_machine *sm, void *ctx)
 		 * Since we clear the GKeyDoneStations before the loop, the
 		 * station needs to be counted here anyway.
 		 */
-		wpa_auth_logger(sm->wpa_auth, wpa_auth_get_spa(sm),
+		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm),
 				LOGGER_DEBUG,
 				"GUpdateStationKeys was already set when marking station for GTK rekeying");
 	}
@@ -5637,6 +5664,11 @@ static int wpa_group_update_sta(struct wpa_state_machine *sm, void *ctx)
 		return 0;
 
 	sm->group->GKeyDoneStations++;
+#ifdef CONFIG_IEEE80211BE
+	for_each_sm_auth(sm, link_id)
+		sm->mld_links[link_id].wpa_auth->group->GKeyDoneStations++;
+#endif /* CONFIG_IEEE80211BE */
+
 	sm->GUpdateStationKeys = true;
 
 	wpa_sm_step(sm);
