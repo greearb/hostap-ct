@@ -13,6 +13,7 @@ from hwsim import HWSimRadio
 import hwsim_utils
 from wpasupplicant import WpaSupplicant
 import re
+import mld
 from tshark import run_tshark
 from test_gas import hs20_ap_params
 from test_dpp import check_dpp_capab, wait_auth_success
@@ -2215,3 +2216,36 @@ def test_eht_mlo_color_change(dev, apdev):
 
         hapd0.dump_monitor()
         hapd1.dump_monitor()
+
+def test_eht_mld_control_socket_connectivity(dev, apdev):
+    """AP MLD control socket connectivity"""
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        ssid = "mld_ap"
+        link0_params = {"ssid": ssid,
+                        "hw_mode": "g",
+                        "channel": "1"}
+        link1_params = {"ssid": ssid,
+                        "hw_mode": "g",
+                        "channel": "2"}
+
+        hapd0 = eht_mld_enable_ap(hapd_iface, 0, link0_params)
+        hapd1 = eht_mld_enable_ap(hapd_iface, 1, link1_params)
+
+        mld_dev = mld.get_mld_obj(hapd_iface)
+
+        # Check status of each link
+        res = str(mld_dev.request("LINKID 0 STATUS"))
+        logger.info("LINK 0 STATUS:\n" + res)
+        if "state" not in res:
+            raise Exception("Failed to get link 0 status via MLD socket")
+        if 'link_id=0' not in res.splitlines():
+            raise Exception("link_id=0 not reported for link 0")
+
+        res = mld_dev.request("LINKID 1 STATUS")
+        logger.info("LINK 1 STATUS:\n" + res)
+        if "state" not in res:
+            raise Exception("Failed to get link 1 status via MLD socket")
+        if 'link_id=1' not in res.splitlines():
+            raise Exception("link_id=0 not reported for link 1")
