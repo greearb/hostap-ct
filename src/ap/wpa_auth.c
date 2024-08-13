@@ -112,10 +112,7 @@ static void wpa_gkeydone_sta(struct wpa_state_machine *sm)
 	int link_id;
 #endif /* CONFIG_IEEE80211BE */
 
-	if (!sm->wpa_auth)
-		return;
-
-	sm->wpa_auth->group->GKeyDoneStations--;
+	sm->group->GKeyDoneStations--;
 	sm->GUpdateStationKeys = false;
 
 #ifdef CONFIG_IEEE80211BE
