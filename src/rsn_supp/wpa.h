@@ -138,6 +138,7 @@ enum wpa_sm_conf_params {
 	WPA_PARAM_FT_PREPEND_PMKID,
 	WPA_PARAM_SSID_PROTECTION,
 	WPA_PARAM_RSN_OVERRIDE,
+	WPA_PARAM_RSN_OVERRIDE_SUPPORT,
 };
 
 enum wpa_rsn_override {
