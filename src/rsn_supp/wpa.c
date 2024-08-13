@@ -2500,26 +2500,6 @@ static int wpa_supplicant_validate_link_kde(struct wpa_sm *sm, u8 link_id,
 		rsnxe_len = rsnxe[1] + 2;
 	}
 
-	if (rsn_override_link_kde) {
-		rsnoe = get_vendor_ie(rsn_override_link_kde + 1,
-				      rsn_override_link_kde_len - 1,
-				      RSNE_OVERRIDE_IE_VENDOR_TYPE);
-		if (rsnoe)
-			rsnoe_len = 2 + rsnoe[1];
-
-		rsno2e = get_vendor_ie(rsn_override_link_kde + 1,
-				       rsn_override_link_kde_len - 1,
-				       RSNE_OVERRIDE_2_IE_VENDOR_TYPE);
-		if (rsno2e)
-			rsno2e_len = 2 + rsno2e[1];
-
-		rsnxoe = get_vendor_ie(rsn_override_link_kde + 1,
-				       rsn_override_link_kde_len - 1,
-				       RSNXE_OVERRIDE_IE_VENDOR_TYPE);
-		if (rsnxoe)
-			rsnxoe_len = 2 + rsnxoe[1];
-	}
-
 	if (wpa_compare_rsn_ie(wpa_key_mgmt_ft(sm->key_mgmt),
 			       sm->mlo.links[link_id].ap_rsne,
 			       sm->mlo.links[link_id].ap_rsne_len,
@@ -2550,6 +2530,29 @@ static int wpa_supplicant_validate_link_kde(struct wpa_sm *sm, u8 link_id,
 		wpa_hexdump(MSG_INFO, "RSNXE in EAPOL-Key msg 3/4",
 			    rsnxe, rsnxe_len);
 		goto fail;
+	}
+
+	if (sm->rsn_override == RSN_OVERRIDE_NOT_USED)
+		return 0;
+
+	if (rsn_override_link_kde) {
+		rsnoe = get_vendor_ie(rsn_override_link_kde + 1,
+				      rsn_override_link_kde_len - 1,
+				      RSNE_OVERRIDE_IE_VENDOR_TYPE);
+		if (rsnoe)
+			rsnoe_len = 2 + rsnoe[1];
+
+		rsno2e = get_vendor_ie(rsn_override_link_kde + 1,
+				       rsn_override_link_kde_len - 1,
+				       RSNE_OVERRIDE_2_IE_VENDOR_TYPE);
+		if (rsno2e)
+			rsno2e_len = 2 + rsno2e[1];
+
+		rsnxoe = get_vendor_ie(rsn_override_link_kde + 1,
+				       rsn_override_link_kde_len - 1,
+				       RSNXE_OVERRIDE_IE_VENDOR_TYPE);
+		if (rsnxoe)
+			rsnxoe_len = 2 + rsnxoe[1];
 	}
 
 	if ((sm->mlo.links[link_id].ap_rsnoe && !rsnoe) ||
