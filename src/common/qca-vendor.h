@@ -230,7 +230,8 @@ enum qca_radiotap_vendor_ids {
  *
  * @QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES: Command to get the features
  *	supported by the driver. enum qca_wlan_vendor_features defines
- *	the possible features.
+ *	the possible features that are encoded in
+ *	QCA_WLAN_VENDOR_ATTR_FEATURE_FLAGS.
  *
  * @QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_STARTED: Event used by driver,
  *	which supports DFS offloading, to indicate a channel availability check
@@ -1543,7 +1544,11 @@ enum qca_wlan_vendor_attr {
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAMING_POLICY = 5,
 	QCA_WLAN_VENDOR_ATTR_MAC_ADDR = 6,
-	/* used by QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES */
+	/* Feature flags contained in a byte array. The feature flags are
+	 * identified by their bit index (see &enum qca_wlan_vendor_features)
+	 * with the first byte being the least significant one and the last one
+	 * being the most significant one. Used by
+	 * QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES. */
 	QCA_WLAN_VENDOR_ATTR_FEATURE_FLAGS = 7,
 	QCA_WLAN_VENDOR_ATTR_TEST = 8,
 	/* used by QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES */
