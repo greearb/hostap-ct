@@ -557,7 +557,7 @@ def test_eht_mld_sae_two_links_disable_enable(dev, apdev):
     """AP MLD with two links and disabling/enabling full AP MLD"""
     run_eht_mld_sae_two_links(dev, apdev, disable_enable=True)
 
-def test_eht_mld_sae_two_links(dev, apdev):
+def test_eht_mld_sae_two_links_bridge(dev, apdev):
     """AP MLD with two links in a bridge"""
     run_eht_mld_sae_two_links(dev, apdev, bridge=True)
 
