@@ -176,12 +176,12 @@ def run_rsn_override_mld(dev, apdev, mixed, only_sta=False,
             params1['rsn_override_pairwise_2'] = 'CCMP GCMP-256'
             params1['rsn_override_mfp_2'] = '2'
 
-        hapd0 = eht_mld_enable_ap(hapd_iface, params)
+        hapd0 = eht_mld_enable_ap(hapd_iface, 0, params)
 
         params1['channel'] = '6'
         if too_long_elems:
             params1['rsnoe_override'] = 'ddff506f9a29' + 251*'cc'
-        hapd1 = eht_mld_enable_ap(hapd_iface, params1)
+        hapd1 = eht_mld_enable_ap(hapd_iface, 1, params1)
 
         wpas.set("sae_pwe", "1")
         wpas.set("rsn_overriding", "1")
