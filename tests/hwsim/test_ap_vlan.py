@@ -800,17 +800,21 @@ def test_ap_vlan_psk(dev, apdev, params):
         if vlan_id != i + 1:
             raise Exception("Unexpected vlan_id %d for dev[%d]" % (vlan_id, i))
 
-def test_ap_vlan_sae(dev, apdev, params):
-    """AP VLAN based on SAE Password Identifier"""
-    for i in range(3):
-        check_sae_capab(dev[i])
+def start_ap_vlan_sae(apdev):
     params = hostapd.wpa2_params(ssid="test-sae-vlan")
     params['wpa_key_mgmt'] = 'SAE'
     params['sae_password'] = ['pw1|vlanid=1|id=id1',
                               'pw2|mac=ff:ff:ff:ff:ff:ff|vlanid=2|id=id2',
                               'pw3|vlanid=3|id=id3']
     params['dynamic_vlan'] = "1"
-    hapd = hostapd.add_ap(apdev[0], params)
+    params['wpa_group_rekey'] = '10'
+    return hostapd.add_ap(apdev, params)
+
+def test_ap_vlan_sae(dev, apdev, params):
+    """AP VLAN based on SAE Password Identifier"""
+    for i in range(3):
+        check_sae_capab(dev[i])
+    hapd = start_ap_vlan_sae(apdev[0])
 
     for i in range(3):
         dev[i].request("SET sae_groups ")
@@ -830,3 +834,42 @@ def test_ap_vlan_sae(dev, apdev, params):
         vlan_id = int(sta["vlan_id"])
         if vlan_id != i + 1:
             raise Exception("Unexpected vlan_id %d for dev[%d]" % (vlan_id, i))
+
+        ev = dev[i].wait_event(["RSN: Group rekeying completed"], timeout=11)
+        if ev is None:
+            raise Exception("GTK rekey timed out")
+
+    time.sleep(1)
+
+    hwsim_utils.test_connectivity_iface(dev[0], hapd, "brvlan1")
+    hwsim_utils.test_connectivity_iface(dev[1], hapd, "brvlan2")
+    hwsim_utils.test_connectivity_iface(dev[2], hapd, "brvlan3")
+
+def test_ap_vlan_sae_group_rekey(dev, apdev, params):
+    """AP VLAN and group rekeying"""
+    check_sae_capab(dev[0])
+    hapd = start_ap_vlan_sae(apdev[0])
+
+    dev[0].set("sae_groups", "")
+    dev[0].connect("test-sae-vlan", sae_password="pw1",
+                       sae_password_id="id1",
+                       key_mgmt="SAE", scan_freq="2412")
+    hapd.wait_sta()
+
+    hwsim_utils.test_connectivity_iface(dev[0], hapd, "brvlan1")
+
+    hapd.set("ext_eapol_frame_io", "1")
+    ev = hapd.wait_event(["EAPOL-TX"], timeout=15)
+    if ev is None:
+        raise Exception("Timeout on EAPOL-TX from hostapd")
+    time.sleep(0.1)
+
+    hwsim_utils.test_connectivity_iface(dev[0], hapd, "brvlan1")
+    hapd.set("ext_eapol_frame_io", "0")
+
+    ev = dev[0].wait_event(["RSN: Group rekeying completed"], timeout=11)
+    if ev is None:
+        raise Exception("GTK rekey timed out")
+    time.sleep(1)
+
+    hwsim_utils.test_connectivity_iface(dev[0], hapd, "brvlan1")
