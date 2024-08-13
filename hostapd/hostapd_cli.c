@@ -54,7 +54,11 @@ static void usage(void)
 	fprintf(stderr, "%s\n", hostapd_cli_version);
 	fprintf(stderr,
 		"\n"
-		"usage: hostapd_cli [-p<path>] [-i<ifname>] [-hvBr] "
+		"usage: hostapd_cli [-p<path>] [-i<ifname>] "
+#ifdef CONFIG_IEEE80211BE
+		"[-l<link_id>] "
+#endif /* CONFIG_IEEE80211BE */
+		"[-hvBr] "
 		"[-a<path>] \\\n"
 		"                   [-P<pid file>] [-G<ping interval>] [command..]\n"
 		"\n"
@@ -74,7 +78,11 @@ static void usage(void)
 		"   -B           run a daemon in the background\n"
 		"   -i<ifname>   Interface to listen on (default: first "
 		"interface found in the\n"
-		"                socket path)\n\n");
+		"                socket path)\n"
+#ifdef CONFIG_IEEE80211BE
+		"   -l<link_id>  Link ID of the interface in case of Multi-Link Operation\n"
+#endif /* CONFIG_IEEE80211BE */
+		"\n");
 	print_help(stderr, NULL);
 }
 
@@ -2212,12 +2220,15 @@ int main(int argc, char *argv[])
 	int c;
 	int daemonize = 0;
 	int reconnect = 0;
+#ifdef CONFIG_IEEE80211BE
+	int link_id = -1;
+#endif /* CONFIG_IEEE80211BE */
 
 	if (os_program_init())
 		return -1;
 
 	for (;;) {
-		c = getopt(argc, argv, "a:BhG:i:p:P:rs:v");
+		c = getopt(argc, argv, "a:BhG:i:l:p:P:rs:v");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -2252,6 +2263,11 @@ int main(int argc, char *argv[])
 		case 's':
 			client_socket_dir = optarg;
 			break;
+#ifdef CONFIG_IEEE80211BE
+		case 'l':
+			link_id = atoi(optarg);
+			break;
+#endif /* CONFIG_IEEE80211BE */
 		default:
 			usage();
 			return -1;
@@ -2285,6 +2301,24 @@ int main(int argc, char *argv[])
 				closedir(dir);
 			}
 		}
+
+#ifdef CONFIG_IEEE80211BE
+		if (link_id >= 0 && ctrl_ifname) {
+			int ret;
+			char buf[300];
+
+			ret = os_snprintf(buf, sizeof(buf), "%s_%s%d",
+					  ctrl_ifname, WPA_CTRL_IFACE_LINK_NAME,
+					  link_id);
+			if (os_snprintf_error(sizeof(buf), ret))
+				return -1;
+
+			os_free(ctrl_ifname);
+			ctrl_ifname = os_strdup(buf);
+			link_id = -1;
+		}
+#endif /* CONFIG_IEEE80211BE */
+
 		hostapd_cli_reconnect(ctrl_ifname);
 		if (ctrl_conn) {
 			if (warning_displayed)

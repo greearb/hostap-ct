@@ -495,6 +495,10 @@ struct hostapd_data {
 	/* Cached partner info for ML probe response */
 	struct mld_link_info partner_links[MAX_NUM_MLD_LINKS];
 
+	/* 5 characters for "_link", up to 2 characters for <link ID>, so in
+	 * total, additional 7 characters required. */
+	char ctrl_sock_iface[IFNAMSIZ + 7 + 1];
+
 #ifdef CONFIG_TESTING_OPTIONS
 	u8 eht_mld_link_removal_count;
 #endif /* CONFIG_TESTING_OPTIONS */

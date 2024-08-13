@@ -13,6 +13,8 @@
 extern "C" {
 #endif
 
+#define WPA_CTRL_IFACE_LINK_NAME	"link"
+
 /* wpa_supplicant control interface - fixed message prefixes */
 
 /** Interactive request for identity/password/pin */
