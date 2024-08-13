@@ -3115,8 +3115,16 @@ static void hostapd_bss_setup_multi_link(struct hostapd_data *hapd,
 
 	os_strlcpy(mld->name, conf->iface, sizeof(conf->iface));
 	dl_list_init(&mld->links);
+	mld->ctrl_sock = -1;
+	if (hapd->conf->ctrl_interface)
+		mld->ctrl_interface = os_strdup(hapd->conf->ctrl_interface);
 
 	wpa_printf(MSG_DEBUG, "AP MLD %s created", mld->name);
+
+	/* Initialize MLD control interfaces early to allow external monitoring
+	 * of link setup operations. */
+	if (interfaces->mld_ctrl_iface_init(mld))
+		goto fail;
 
 	hapd->mld = mld;
 	hostapd_mld_ref_inc(mld);
@@ -3176,6 +3184,8 @@ static void hostapd_cleanup_unused_mlds(struct hapd_interfaces *interfaces)
 
 		if (!remove && !forced_remove)
 			continue;
+
+		interfaces->mld_ctrl_iface_deinit(mld);
 
 		wpa_printf(MSG_DEBUG, "AP MLD %s: Freed%s", mld->name,
 			   forced_remove ? " (forced)" : "");

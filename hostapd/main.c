@@ -752,6 +752,7 @@ static void hostapd_global_cleanup_mld(struct hapd_interfaces *interfaces)
 		if (!interfaces->mld[i])
 			continue;
 
+		interfaces->mld_ctrl_iface_deinit(interfaces->mld[i]);
 		os_free(interfaces->mld[i]);
 		interfaces->mld[i] = NULL;
 	}
@@ -797,6 +798,10 @@ int main(int argc, char *argv[])
 	interfaces.global_iface_path = NULL;
 	interfaces.global_iface_name = NULL;
 	interfaces.global_ctrl_sock = -1;
+#ifdef CONFIG_IEEE80211BE
+	interfaces.mld_ctrl_iface_init = hostapd_mld_ctrl_iface_init;
+	interfaces.mld_ctrl_iface_deinit = hostapd_mld_ctrl_iface_deinit;
+#endif /* CONFIG_IEEE80211BE */
 	dl_list_init(&interfaces.global_ctrl_dst);
 #ifdef CONFIG_ETH_P_OUI
 	dl_list_init(&interfaces.eth_p_oui);

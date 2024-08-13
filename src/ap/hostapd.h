@@ -97,6 +97,8 @@ struct hapd_interfaces {
 #ifdef CONFIG_IEEE80211BE
 	struct hostapd_mld **mld;
 	size_t mld_count;
+	int (*mld_ctrl_iface_init)(struct hostapd_mld *mld);
+	void (*mld_ctrl_iface_deinit)(struct hostapd_mld *mld);
 #endif /* CONFIG_IEEE80211BE */
 };
 
@@ -541,6 +543,10 @@ struct hostapd_mld {
 
 	struct hostapd_data *fbss;
 	struct dl_list links; /* List head of all affiliated links */
+
+	int ctrl_sock;
+	struct dl_list ctrl_dst;
+	char *ctrl_interface; /* Directory for UNIX domain sockets */
 };
 
 #define HOSTAPD_MLD_MAX_REF_COUNT      0xFF
