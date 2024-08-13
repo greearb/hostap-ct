@@ -4207,7 +4207,8 @@ static u8 * replace_ie(const char *name, const u8 *old_buf, size_t *len, u8 eid,
 
 void wpa_auth_ml_get_key_info(struct wpa_authenticator *a,
 			      struct wpa_auth_ml_link_key_info *info,
-			      bool mgmt_frame_prot, bool beacon_prot)
+			      bool mgmt_frame_prot, bool beacon_prot,
+			      bool rekey)
 {
 	struct wpa_group *gsm = a->group;
 	u8 rsc[WPA_KEY_RSC_LEN];
@@ -4220,7 +4221,7 @@ void wpa_auth_ml_get_key_info(struct wpa_authenticator *a,
 	info->gtk = gsm->GTK[gsm->GN - 1];
 	info->gtk_len = gsm->GTK_len;
 
-	if (wpa_auth_get_seqnum(a, NULL, gsm->GN, rsc) < 0)
+	if (rekey || wpa_auth_get_seqnum(a, NULL, gsm->GN, rsc) < 0)
 		os_memset(info->pn, 0, sizeof(info->pn));
 	else
 		os_memcpy(info->pn, rsc, sizeof(info->pn));
@@ -4232,7 +4233,7 @@ void wpa_auth_ml_get_key_info(struct wpa_authenticator *a,
 	info->igtk = gsm->IGTK[gsm->GN_igtk - 4];
 	info->igtk_len = wpa_cipher_key_len(a->conf.group_mgmt_cipher);
 
-	if (wpa_auth_get_seqnum(a, NULL, gsm->GN_igtk, rsc) < 0)
+	if (rekey || wpa_auth_get_seqnum(a, NULL, gsm->GN_igtk, rsc) < 0)
 		os_memset(info->ipn, 0, sizeof(info->ipn));
 	else
 		os_memcpy(info->ipn, rsc, sizeof(info->ipn));
@@ -4248,7 +4249,7 @@ void wpa_auth_ml_get_key_info(struct wpa_authenticator *a,
 	info->bigtkidx = gsm->GN_bigtk;
 	info->bigtk = gsm->BIGTK[gsm->GN_bigtk - 6];
 
-	if (wpa_auth_get_seqnum(a, NULL, gsm->GN_bigtk, rsc) < 0)
+	if (rekey || wpa_auth_get_seqnum(a, NULL, gsm->GN_bigtk, rsc) < 0)
 		os_memset(info->bipn, 0, sizeof(info->bipn));
 	else
 		os_memcpy(info->bipn, rsc, sizeof(info->bipn));
@@ -4256,12 +4257,13 @@ void wpa_auth_ml_get_key_info(struct wpa_authenticator *a,
 
 
 static void wpa_auth_get_ml_key_info(struct wpa_authenticator *wpa_auth,
-				     struct wpa_auth_ml_key_info *info)
+				     struct wpa_auth_ml_key_info *info,
+				     bool rekey)
 {
 	if (!wpa_auth->cb->get_ml_key_info)
 		return;
 
-	wpa_auth->cb->get_ml_key_info(wpa_auth->cb_ctx, info);
+	wpa_auth->cb->get_ml_key_info(wpa_auth->cb_ctx, info, rekey);
 }
 
 
@@ -4318,6 +4320,7 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 	struct wpa_auth_ml_key_info ml_key_info;
 	unsigned int i, link_id;
 	u8 *start = pos;
+	bool rekey = sm->wpa_ptk_group_state == WPA_PTK_GROUP_REKEYNEGOTIATING;
 
 	/* First fetch the key information from all the authenticators */
 	os_memset(&ml_key_info, 0, sizeof(ml_key_info));
@@ -4337,7 +4340,7 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 		ml_key_info.links[i++].link_id = link_id;
 	}
 
-	wpa_auth_get_ml_key_info(sm->wpa_auth, &ml_key_info);
+	wpa_auth_get_ml_key_info(sm->wpa_auth, &ml_key_info, rekey);
 
 	/* Add MLO GTK KDEs */
 	for (i = 0, link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {

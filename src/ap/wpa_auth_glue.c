@@ -1587,7 +1587,8 @@ static int hostapd_set_ltf_keyseed(void *ctx, const u8 *peer_addr,
 #ifdef CONFIG_IEEE80211BE
 
 static int hostapd_wpa_auth_get_ml_key_info(void *ctx,
-					    struct wpa_auth_ml_key_info *info)
+					    struct wpa_auth_ml_key_info *info,
+					    bool rekey)
 {
 	struct hostapd_data *hapd = ctx;
 	unsigned int i;
@@ -1611,7 +1612,8 @@ static int hostapd_wpa_auth_get_ml_key_info(void *ctx,
 			wpa_auth_ml_get_key_info(hapd->wpa_auth,
 						 &info->links[i],
 						 info->mgmt_frame_prot,
-						 info->beacon_prot);
+						 info->beacon_prot,
+						 rekey);
 			continue;
 		}
 
@@ -1622,7 +1624,8 @@ static int hostapd_wpa_auth_get_ml_key_info(void *ctx,
 			wpa_auth_ml_get_key_info(bss->wpa_auth,
 						 &info->links[i],
 						 info->mgmt_frame_prot,
-						 info->beacon_prot);
+						 info->beacon_prot,
+						 rekey);
 			link_bss_found = true;
 			break;
 		}

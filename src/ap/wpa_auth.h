@@ -424,7 +424,8 @@ struct wpa_auth_callbacks {
 			       size_t ltf_keyseed_len);
 #endif /* CONFIG_PASN */
 #ifdef CONFIG_IEEE80211BE
-	int (*get_ml_key_info)(void *ctx, struct wpa_auth_ml_key_info *info);
+	int (*get_ml_key_info)(void *ctx, struct wpa_auth_ml_key_info *info,
+			       bool rekey);
 #endif /* CONFIG_IEEE80211BE */
 	int (*get_drv_flags)(void *ctx, u64 *drv_flags, u64 *drv_flags2);
 };
@@ -670,7 +671,8 @@ void wpa_auth_set_ml_info(struct wpa_state_machine *sm,
 			  u8 mld_assoc_link_id, struct mld_info *info);
 void wpa_auth_ml_get_key_info(struct wpa_authenticator *a,
 			      struct wpa_auth_ml_link_key_info *info,
-			      bool mgmt_frame_prot, bool beacon_prot);
+			      bool mgmt_frame_prot, bool beacon_prot,
+			      bool rekey);
 
 void wpa_release_link_auth_ref(struct wpa_state_machine *sm,
 			       int release_link_id);
