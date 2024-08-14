@@ -1282,6 +1282,12 @@ enum qca_radiotap_vendor_ids {
  *	vendor interfaces, driver internal logic, and BTM requests from the
  *	connected AP.
  *
+ * @QCA_NL80211_VENDOR_SUBCMD_SET_P2P_MODE: Vendor subcommand to configure
+ *	Wi-Fi Direct mode. This command sets the configuration through
+ *	the attributes defined in the enum qca_wlan_vendor_attr_set_p2p_mode.
+ *	It is applicable for P2P Group Owner only. This command is used before
+ *	starting the GO.
+ *
  *	The attributes used with this command are defined in
  *	enum qca_wlan_vendor_attr_connect_ext.
  */
@@ -1518,6 +1524,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_CLASSIFIED_FLOW_REPORT = 248,
 	QCA_NL80211_VENDOR_SUBCMD_USD = 249,
 	QCA_NL80211_VENDOR_SUBCMD_CONNECT_EXT = 250,
+	QCA_NL80211_VENDOR_SUBCMD_SET_P2P_MODE = 251,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -18224,6 +18231,41 @@ enum qca_wlan_vendor_attr_connect_ext {
 	QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_MAX =
 	QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_p2p_mode - Defines the values used with
+ * %QCA_WLAN_VENDOR_ATTR_SET_P2P_MODE_CONFIG.
+ *
+ * @QCA_P2P_MODE_WFD_R1: Wi-Fi Direct R1 only.
+ * @QCA_P2P_MODE_WFD_R2: Wi-Fi Direct R2 only.
+ * @QCA_P2P_MODE_WFD_PCC: P2P Connection Compatibility Mode which supports both
+ * Wi-Fi Direct R1 and R2.
+ */
+enum qca_wlan_vendor_p2p_mode {
+	QCA_P2P_MODE_WFD_R1	= 0,
+	QCA_P2P_MODE_WFD_R2	= 1,
+	QCA_P2P_MODE_WFD_PCC	= 2,
+};
+
+/* enum qca_wlan_vendor_attr_set_p2p_mode: Attributes used by vendor command
+ * %QCA_NL80211_VENDOR_SUBCMD_SET_P2P_MODE.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_SET_P2P_MODE_CONFIG: u8 attribute. Sets the P2P device
+ * mode. The values used are defined in enum qca_wlan_vendor_p2p_mode.
+ * This configuration is valid until the interface is brought up next time after
+ * this configuration and the driver shall use this configuration only when the
+ * interface is brought up in NL80211_IFTYPE_P2P_GO mode.
+ * When this parameter has not been set, the interface is brought up with
+ * Wi-Fi Direct R1 only configuration by default.
+ */
+enum qca_wlan_vendor_attr_set_p2p_mode {
+	QCA_WLAN_VENDOR_ATTR_SET_P2P_MODE_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_SET_P2P_MODE_CONFIG = 1,
+
+	QCA_WLAN_VENDOR_ATTR_SET_P2P_MODE_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_SET_P2P_MODE_MAX =
+	QCA_WLAN_VENDOR_ATTR_SET_P2P_MODE_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
