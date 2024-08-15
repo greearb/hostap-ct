@@ -1331,6 +1331,10 @@ static void get_link_channel_info(struct nlattr **link_data, u8 link_id,
 		if (link_data[NL80211_ATTR_CENTER_FREQ2])
 			info->links[link_id].center_freq2 =
 			      nla_get_u32(link_data[NL80211_ATTR_CENTER_FREQ2]);
+
+		if (link_data[NL80211_ATTR_PUNCT_BITMAP])
+			info->links[link_id].punct_bitmap =
+			      nla_get_u32(link_data[NL80211_ATTR_PUNCT_BITMAP]);
 	}
 }
 
@@ -2171,6 +2175,9 @@ static int get_channel_info(struct nl_msg *msg, void *arg)
 	if (tb[NL80211_ATTR_CENTER_FREQ2])
 		chan_info->center_frq2 =
 			nla_get_u32(tb[NL80211_ATTR_CENTER_FREQ2]);
+	if (tb[NL80211_ATTR_PUNCT_BITMAP])
+		chan_info->punct_bitmap =
+			nla_get_u32(tb[NL80211_ATTR_PUNCT_BITMAP]);
 
 	if (chan_info->center_frq2) {
 		u8 seg1_idx = 0;
