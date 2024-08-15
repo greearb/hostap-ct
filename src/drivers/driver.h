@@ -2883,6 +2883,7 @@ struct wpa_channel_info {
 	int sec_channel;
 	int center_frq1;
 	int center_frq2;
+	u16 punct_bitmap;
 	u8 seg1_idx;
 };
 
@@ -3272,6 +3273,7 @@ struct driver_sta_mlo_info {
 		u8 addr[ETH_ALEN];
 		u8 bssid[ETH_ALEN];
 		unsigned int freq, center_freq1, center_freq2;
+		u16 punct_bitmap;
 		struct t2lm_mapping t2lmap;
 		enum chan_width width;
 	} links[MAX_NUM_MLD_LINKS];
