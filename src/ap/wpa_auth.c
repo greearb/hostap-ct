@@ -3920,14 +3920,16 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 #endif /* CONFIG_IEEE80211R_AP */
 
 	/* Verify RSN Selection element for RSN overriding */
-	if ((rsn_is_snonce_cookie(sm->SNonce) && !kde.rsn_selection) ||
-	    (!rsn_is_snonce_cookie(sm->SNonce) && kde.rsn_selection) ||
-	    (sm->rsn_selection && !kde.rsn_selection) ||
-	    (!sm->rsn_selection && kde.rsn_selection) ||
-	    (sm->rsn_selection && kde.rsn_selection &&
-	     (sm->rsn_selection_len != kde.rsn_selection_len ||
-	      os_memcmp(sm->rsn_selection, kde.rsn_selection,
-			sm->rsn_selection_len) != 0))) {
+	if ((wpa_auth->conf.rsn_override_key_mgmt ||
+	     wpa_auth->conf.rsn_override_key_mgmt_2) &&
+	    ((rsn_is_snonce_cookie(sm->SNonce) && !kde.rsn_selection) ||
+	     (!rsn_is_snonce_cookie(sm->SNonce) && kde.rsn_selection) ||
+	     (sm->rsn_selection && !kde.rsn_selection) ||
+	     (!sm->rsn_selection && kde.rsn_selection) ||
+	     (sm->rsn_selection && kde.rsn_selection &&
+	      (sm->rsn_selection_len != kde.rsn_selection_len ||
+	       os_memcmp(sm->rsn_selection, kde.rsn_selection,
+			 sm->rsn_selection_len) != 0)))) {
 		wpa_auth_logger(wpa_auth, wpa_auth_get_spa(sm), LOGGER_INFO,
 				"RSN Selection element from (Re)AssocReq did not match the one in EAPOL-Key msg 2/4");
 		wpa_printf(MSG_DEBUG,
