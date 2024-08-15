@@ -4449,6 +4449,7 @@ static int wpa_drv_get_mlo_info(struct wpa_supplicant *wpa_s)
 		wpa_s->links[i].center_freq1 = mlo.links[i].center_freq1;
 		wpa_s->links[i].center_freq2 = mlo.links[i].center_freq2;
 		wpa_s->links[i].width = mlo.links[i].width;
+		wpa_s->links[i].punct_bitmap = mlo.links[i].punct_bitmap;
 		wpa_supplicant_update_link_bss(wpa_s, i, mlo.links[i].bssid);
 	}
 
