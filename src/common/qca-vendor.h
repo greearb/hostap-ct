@@ -1290,6 +1290,14 @@ enum qca_radiotap_vendor_ids {
  *
  *	The attributes used with this command are defined in
  *	enum qca_wlan_vendor_attr_connect_ext.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_CHAN_USAGE_REQ: Vendor subcommand to request
+ *	transmission of a channel usage request. It carries channel usage
+ *	information for BSSs that are not infrastructure BSSs or an off channel
+ *	TDLS direct link.
+ *
+ *	The attributes used with this command are defined in
+ *	enum qca_wlan_vendor_attr_chan_usage_req.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1525,6 +1533,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_USD = 249,
 	QCA_NL80211_VENDOR_SUBCMD_CONNECT_EXT = 250,
 	QCA_NL80211_VENDOR_SUBCMD_SET_P2P_MODE = 251,
+	QCA_NL80211_VENDOR_SUBCMD_CHAN_USAGE_REQ = 252,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -10778,7 +10787,8 @@ enum qca_wlan_twt_setup_state {
  * TWT (Target Wake Time) setup request. These attributes are sent as part of
  * %QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_TWT_SETUP and
  * %QCA_NL80211_VENDOR_SUBCMD_WIFI_TEST_CONFIGURATION. Also used by
- * attributes through %QCA_NL80211_VENDOR_SUBCMD_CONFIG_TWT.
+ * attributes through %QCA_NL80211_VENDOR_SUBCMD_CONFIG_TWT and
+ * %QCA_NL80211_VENDOR_SUBCMD_CHAN_USAGE_REQ.
  *
  * @QCA_WLAN_VENDOR_ATTR_TWT_SETUP_BCAST: Flag attribute.
  * Disable (flag attribute not present) - Individual TWT
@@ -18290,6 +18300,84 @@ enum qca_wlan_vendor_attr_set_p2p_mode {
 	QCA_WLAN_VENDOR_ATTR_SET_P2P_MODE_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_SET_P2P_MODE_MAX =
 	QCA_WLAN_VENDOR_ATTR_SET_P2P_MODE_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_chan_usage_req_chan_list: Attributes used inside
+ * nested attributes %QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_CHAN_LIST.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_CHAN_LIST_CHAN: u8 attribute. Indicates
+ * the channel number of the channel list entry.
+ * @QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_CHAN_LIST_OP_CLASS: u8 attribute.
+ * Indicates the operating class of the channel list entry.
+ */
+enum qca_wlan_vendor_attr_chan_usage_req_chan_list {
+	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_CHAN_LIST_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_CHAN_LIST_CHAN = 1,
+	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_CHAN_LIST_OP_CLASS = 2,
+
+	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_CHAN_LIST_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_CHAN_LIST_MAX =
+	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_CHAN_LIST_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_chan_usage_req_mode: Defines the values used
+ * with %QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_MODE.
+ *
+ * @QCA_CHAN_USAGE_MODE_UNAVAILABILITY_INDICATION: Mode set by STA to indicate
+ * the AP about its unavailability during a peer-to-peer TWT agreement.
+ *
+ * @QCA_CHAN_USAGE_MODE_CHANNEL_SWITCH_REQ: Mode set by the STA that is in a
+ * channel-usage-aidable BSS to request a channel switch. Other Channel Usage
+ * elements are not required. Optional HT/VHT/HE Capabilities are present.
+ */
+enum qca_wlan_vendor_attr_chan_usage_req_mode {
+	QCA_CHAN_USAGE_MODE_UNAVAILABILITY_INDICATION = 3,
+	QCA_CHAN_USAGE_MODE_CHANNEL_SWITCH_REQ = 4,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_chan_usage_req: Attributes used by vendor command
+ * %QCA_NL80211_VENDOR_SUBCMD_CHAN_USAGE_REQ.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_MODE: Required u8 attribute. Identifies
+ * the usage of the channel list entry provided in the channel usage request.
+ * Channel switch request and unavailability channel usage modes are
+ * configured on a STA/P2P Client.
+ * See enum qca_wlan_vendor_attr_chan_usage_req_mode for attribute values.
+ * See IEEE P802.11-REVme/D7.0, 9.4.2.84, Table 9-268 for more information.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_CHAN_LIST: Required array of nested
+ * attributes containing channel usage parameters.
+ * Required when channel usage mode is Channel-usage-aidable BSS channel
+ * switch request.
+ * See enum qca_wlan_vendor_attr_req_chan_list for nested attributes.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_UNAVAILABILITY_CONFIG_PARAMS: Nested
+ * attribute representing the parameters configured for unavailability
+ * indication. Required when channel usage mode is unavailability indication.
+ *
+ * Below attributes from enum qca_wlan_vendor_attr_twt_setup are used inside
+ * this nested attribute:
+ * %QCA_WLAN_VENDOR_ATTR_TWT_SETUP_RESPONDER_PM_MODE,
+ * %QCA_WLAN_VENDOR_ATTR_TWT_SETUP_REQ_TYPE,
+ * %QCA_WLAN_VENDOR_ATTR_TWT_SETUP_TRIGGER,
+ * %QCA_WLAN_VENDOR_ATTR_TWT_SETUP_FLOW_TYPE,
+ * %QCA_WLAN_VENDOR_ATTR_TWT_SETUP_WAKE_INTVL_EXP,
+ * %QCA_WLAN_VENDOR_ATTR_TWT_SETUP_PROTECTION,
+ * %QCA_WLAN_VENDOR_ATTR_TWT_SETUP_WAKE_DURATION,
+ * %QCA_WLAN_VENDOR_ATTR_TWT_SETUP_WAKE_INTVL_MANTISSA.
+ */
+enum qca_wlan_vendor_attr_chan_usage_req {
+	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_MODE = 1,
+	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_CHAN_LIST = 2,
+	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_UNAVAILABILITY_CONFIG_PARAMS = 3,
+
+	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_MAX =
+	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
