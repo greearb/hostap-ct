@@ -13714,6 +13714,14 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strcmp(buf, "MLO_SIGNAL_POLL") == 0) {
 		reply_len = wpas_ctrl_iface_mlo_signal_poll(wpa_s, reply,
 							    reply_size);
+	} else if (os_strcmp(buf, "NEW_RANDOM_MAC_ADDRESS") == 0) {
+		enum wpas_mac_addr_style mac_addr_style =
+			wpa_s->conf->preassoc_mac_addr;
+
+		wpa_s->conf->preassoc_mac_addr = WPAS_MAC_ADDR_STYLE_RANDOM;
+		if (wpas_update_random_addr_disassoc(wpa_s) != 1)
+			reply_len = -1;
+		wpa_s->conf->preassoc_mac_addr = mac_addr_style;
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;
