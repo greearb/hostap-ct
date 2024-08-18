@@ -236,6 +236,7 @@ int wpas_p2p_lo_start(struct wpa_supplicant *wpa_s, unsigned int freq,
 int wpas_p2p_lo_stop(struct wpa_supplicant *wpa_s);
 int wpas_p2p_mac_setup(struct wpa_supplicant *wpa_s);
 struct wpabuf * wpas_p2p_usd_elems(struct wpa_supplicant *wpa_s);
+void wpas_p2p_update_dev_addr(struct wpa_supplicant *wpa_s);
 int wpas_p2p_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 			  const struct ieee80211_mgmt *mgmt, size_t len,
 			  int freq);
@@ -368,6 +369,10 @@ static inline int wpas_p2p_group_remove(struct wpa_supplicant *wpa_s,
 static inline struct wpabuf * wpas_p2p_usd_elems(struct wpa_supplicant *wpa_s)
 {
 	return NULL;
+}
+
+static inline void wpas_p2p_update_dev_addr(struct wpa_supplicant *wpa_s)
+{
 }
 
 #endif /* CONFIG_P2P */

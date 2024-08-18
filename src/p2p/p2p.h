@@ -2689,6 +2689,7 @@ void p2p_set_pasn_type(struct p2p_data *p2p, u8 pasn_type);
 void p2p_set_comeback_after(struct p2p_data *p2p, int comeback_after);
 void p2p_set_reg_info(struct p2p_data *p2p, u8 val);
 void p2p_set_twt_power_mgmt(struct p2p_data *p2p, int val);
+void p2p_set_dev_addr(struct p2p_data *p2p, const u8 *addr);
 
 int p2p_get_listen_freq(struct p2p_data *p2p, const u8 *peer_addr);
 int p2p_initiate_pasn_auth(struct p2p_data *p2p, const u8 *addr, int freq);

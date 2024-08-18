@@ -11000,3 +11000,10 @@ int wpas_p2p_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
 }
 
 #endif /* CONFIG_PASN */
+
+
+void wpas_p2p_update_dev_addr(struct wpa_supplicant *wpa_s)
+{
+	os_memcpy(wpa_s->global->p2p_dev_addr, wpa_s->own_addr, ETH_ALEN);
+	p2p_set_dev_addr(wpa_s->global->p2p, wpa_s->own_addr);
+}

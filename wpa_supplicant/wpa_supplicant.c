@@ -2516,6 +2516,8 @@ int wpas_update_random_addr(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
+	wpas_p2p_update_dev_addr(wpa_s);
+
 	wpa_msg(wpa_s, MSG_DEBUG, "Using random MAC address " MACSTR,
 		MAC2STR(addr));
 
@@ -2610,6 +2612,9 @@ int wpas_restore_permanent_mac_addr(struct wpa_supplicant *wpa_s)
 			"Could not update MAC address information");
 		return -1;
 	}
+
+	wpas_p2p_update_dev_addr(wpa_s);
+
 	wpa_msg(wpa_s, MSG_DEBUG, "Using permanent MAC address");
 	return 0;
 }
