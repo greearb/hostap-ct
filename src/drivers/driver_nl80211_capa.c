@@ -1451,6 +1451,8 @@ static void qca_nl80211_get_features(struct wpa_driver_nl80211_data *drv)
 			   "The driver supports RSN overriding in STA mode");
 		drv->capa.flags2 |= WPA_DRIVER_FLAGS2_RSN_OVERRIDE_STA;
 	}
+	if (check_feature(QCA_WLAN_VENDOR_FEATURE_NAN_USD_OFFLOAD, &info))
+		drv->capa.flags2 |= WPA_DRIVER_FLAGS2_NAN_OFFLOAD;
 
 	os_free(info.flags);
 }
