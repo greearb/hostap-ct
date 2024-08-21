@@ -19,6 +19,7 @@
 #include <netlink/route/link.h>
 #include <netlink/route/link/macsec.h>
 #include <linux/if_macsec.h>
+#include <linux/version.h>
 #include <inttypes.h>
 
 #include "utils/common.h"
@@ -32,7 +33,8 @@
 
 #define UNUSED_SCI 0xffffffffffffffff
 
-#if LIBNL_VER_NUM >= LIBNL_VER(3, 6)
+#if (LIBNL_VER_NUM >= LIBNL_VER(3, 6) && \
+     LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
 #define LIBNL_HAS_OFFLOAD
 #endif
 
