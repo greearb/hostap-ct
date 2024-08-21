@@ -302,7 +302,6 @@ int hostapd_reload_config(struct hostapd_iface *iface)
 				   "Failed to enable interface on config reload");
 		return res;
 	}
-	iface->conf = newconf;
 
 	for (j = 0; j < iface->num_bss; j++) {
 		hapd = iface->bss[j];
@@ -330,6 +329,7 @@ int hostapd_reload_config(struct hostapd_iface *iface)
 		hostapd_reload_bss(hapd);
 	}
 
+	iface->conf = newconf;
 	hostapd_config_free(oldconf);
 
 
