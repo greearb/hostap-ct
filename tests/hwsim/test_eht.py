@@ -1362,6 +1362,7 @@ def _test_eht_6ghz(dev, apdev, channel, op_class, ccfs1):
             raise Exception("STATUS did not indicate ieee80211be=1")
 
         dev[0].set("sae_pwe", "1")
+        dev[0].set("sae_groups", "")
 
         freq = 5950 + channel * 5
         bw = _6ghz_op_class_to_bw(op_class)
