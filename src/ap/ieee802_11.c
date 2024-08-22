@@ -96,6 +96,10 @@ static struct rsn_pmksa_cache_entry *
 pmksa_cache_search(void *ctx, const u8 *spa, const u8 *pmkid, bool is_ml);
 #endif /* CONFIG_IEEE8021X_AUTH */
 
+static bool hostapd_ml_handle_disconnect(struct hostapd_data *hapd,
+					 struct sta_info *sta,
+					 const struct ieee80211_mgmt *mgmt,
+					 bool disassoc);
 
 static u8 * hostapd_eid_multi_ap(struct hostapd_data *hapd, u8 *eid, size_t len)
 {
@@ -4514,6 +4518,21 @@ static void handle_auth(struct hostapd_data *hapd,
 			return;
 		}
 #endif /* CONFIG_PASN */
+#ifdef CONFIG_IEEE80211BE
+		/* TODO: When FTO successfully roams to target FTR,
+		 * we should clean up STA entry in current FTR. */
+		if (mld_sta && auth_transaction == 1 && !sta->added_unassoc &&
+		    auth_alg != WLAN_AUTH_FT) {
+			wpa_printf(MSG_INFO,
+				   "receive AUTH from associated STA "MACSTR
+				   ", do deauthentication\n",
+				   MAC2STR(sa));
+			hostapd_ml_handle_disconnect(hapd, sta, mgmt, false);
+			hostapd_drv_sta_remove(hapd, sa);
+			resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+			goto fail;
+		}
+#endif /* CONFIG_IEEE80211BE */
 	} else {
 #ifdef CONFIG_MESH
 		if (hapd->conf->mesh & MESH_ENABLED) {
@@ -7726,9 +7745,17 @@ static void hostapd_deauth_sta(struct hostapd_data *hapd,
 			       struct sta_info *sta,
 			       const struct ieee80211_mgmt *mgmt)
 {
+
+	u16 fc, reason;
+
+	fc = le_to_host16(mgmt->frame_control);
+	reason = WLAN_FC_GET_STYPE(fc) == WLAN_FC_STYPE_DEAUTH ?
+		 le_to_host16(mgmt->u.deauth.reason_code) :
+		 WLAN_REASON_PREV_AUTH_NOT_VALID;
+
 	wpa_msg(hapd->msg_ctx, MSG_DEBUG,
 		"deauthentication: STA=" MACSTR " reason_code=%d",
-		MAC2STR(mgmt->sa), le_to_host16(mgmt->u.deauth.reason_code));
+		MAC2STR(mgmt->sa), reason);
 
 	ap_sta_set_authorized(hapd, sta, 0);
 	sta->last_seq_ctrl = WLAN_INVALID_MGMT_SEQ;
@@ -7739,7 +7766,7 @@ static void hostapd_deauth_sta(struct hostapd_data *hapd,
 	hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
 		       HOSTAPD_LEVEL_DEBUG, "deauthenticated");
 	mlme_deauthenticate_indication(
-		hapd, sta, le_to_host16(mgmt->u.deauth.reason_code));
+		hapd, sta, reason);
 	sta->acct_terminate_cause = RADIUS_ACCT_TERMINATE_CAUSE_USER_REQUEST;
 	ieee802_1x_notify_port_enabled(sta->eapol_sm, 0);
 	ap_free_sta(hapd, sta);
