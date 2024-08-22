@@ -2565,8 +2565,12 @@ static int dpp_parse_cred_legacy(struct dpp_config_obj *conf,
 
 		wpa_hexdump_ascii_key(MSG_DEBUG, "DPP: Legacy passphrase",
 				      pass->string, len);
-		if (len < 8 || len > 63)
+		if (dpp_akm_psk(conf->akm) && (len < 8 || len > 63)) {
+			wpa_printf(MSG_DEBUG,
+				   "DPP: Unexpected pass length %zu for a config object that includes PSK",
+				   len);
 			return -1;
+		}
 		os_strlcpy(conf->passphrase, pass->string,
 			   sizeof(conf->passphrase));
 	} else if (psk_hex && psk_hex->type == JSON_STRING) {

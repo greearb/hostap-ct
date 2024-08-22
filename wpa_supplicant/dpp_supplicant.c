@@ -1475,11 +1475,16 @@ static struct wpa_ssid * wpas_dpp_add_network(struct wpa_supplicant *wpa_s,
 			ssid->ieee80211w = MGMT_FRAME_PROTECTION_OPTIONAL;
 		else
 			ssid->ieee80211w = MGMT_FRAME_PROTECTION_REQUIRED;
-		if (conf->passphrase[0]) {
+		if (conf->passphrase[0] && dpp_akm_psk(conf->akm)) {
 			if (wpa_config_set_quoted(ssid, "psk",
 						  conf->passphrase) < 0)
 				goto fail;
 			wpa_config_update_psk(ssid);
+			ssid->export_keys = 1;
+		} else if (conf->passphrase[0] && dpp_akm_sae(conf->akm)) {
+			if (wpa_config_set_quoted(ssid, "sae_password",
+						  conf->passphrase) < 0)
+				goto fail;
 			ssid->export_keys = 1;
 		} else {
 			ssid->psk_set = conf->psk_set;
