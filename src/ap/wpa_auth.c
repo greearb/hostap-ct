@@ -4549,6 +4549,7 @@ static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
 		struct wpa_authenticator *wpa_auth;
 		const u8 *rsne, *rsnxe, *rsnoe, *rsno2e, *rsnxoe;
 		size_t rsne_len, rsnxe_len, rsnoe_len, rsno2e_len, rsnxoe_len;
+		size_t kde_len;
 
 		wpa_auth = wpa_get_link_auth(sm->wpa_auth, link_id);
 		if (!wpa_auth)
@@ -4618,8 +4619,15 @@ static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
 
 		/* RSN Override Link KDE */
 		*pos++ = WLAN_EID_VENDOR_SPECIFIC;
-		*pos++ = RSN_SELECTOR_LEN + 1 + rsnoe_len + rsno2e_len +
+		kde_len = RSN_SELECTOR_LEN + 1 + rsnoe_len + rsno2e_len +
 			rsnxoe_len;
+		if (kde_len > 255) {
+			wpa_printf(MSG_ERROR,
+				   "RSN: RSNOE/RSNO2E/RSNXOE too long (KDE length %zu) to fit in RSN Override Link KDE for link %u",
+				   kde_len, link_id);
+			return NULL;
+		}
+		*pos++ = kde_len;
 
 		RSN_SELECTOR_PUT(pos, WFA_KEY_DATA_RSN_OVERRIDE_LINK);
 		pos += RSN_SELECTOR_LEN;
@@ -4972,6 +4980,10 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 #endif /* CONFIG_DPP2 */
 
 	pos = wpa_auth_ml_kdes(sm, pos);
+	if (!pos) {
+		wpa_printf(MSG_ERROR, "RSN: Failed to add MLO KDEs");
+		goto done;
+	}
 
 	if (sm->ssid_protection) {
 		*pos++ = WLAN_EID_SSID;
