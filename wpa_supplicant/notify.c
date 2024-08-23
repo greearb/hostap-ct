@@ -88,6 +88,8 @@ void wpas_notify_state_changed(struct wpa_supplicant *wpa_s,
 			       enum wpa_states new_state,
 			       enum wpa_states old_state)
 {
+	struct wpa_ssid *ssid = wpa_s->current_ssid;
+
 	if (wpa_s->p2p_mgmt)
 		return;
 
@@ -104,10 +106,14 @@ void wpas_notify_state_changed(struct wpa_supplicant *wpa_s,
 	}
 #endif /* CONFIG_FST */
 
-	if (new_state == WPA_COMPLETED)
+	if (new_state == WPA_COMPLETED) {
 		wpas_p2p_notif_connected(wpa_s);
-	else if (old_state >= WPA_ASSOCIATED && new_state < WPA_ASSOCIATED)
+		if (ssid)
+			wpa_drv_roaming(wpa_s, !ssid->bssid_set,
+					ssid->bssid_set ? ssid->bssid : NULL);
+	} else if (old_state >= WPA_ASSOCIATED && new_state < WPA_ASSOCIATED) {
 		wpas_p2p_notif_disconnected(wpa_s);
+	}
 
 	sme_state_changed(wpa_s);
 
