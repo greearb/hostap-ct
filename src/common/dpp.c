@@ -1035,6 +1035,10 @@ struct wpabuf * dpp_build_conf_req_helper(struct dpp_authentication *auth,
 		json_value_sep(json);
 		json_add_string(json, "pkcs10", csr);
 	}
+#ifdef CONFIG_DPP3
+	json_value_sep(json);
+	json_add_int(json, "capabilities", DPP_ENROLLEE_CAPAB_SAE_PW_ID);
+#endif /* CONFIG_DPP3 */
 	if (extra_name && extra_value && extra_name[0] && extra_value[0]) {
 		json_value_sep(json);
 		wpabuf_printf(json, "\"%s\":%s", extra_name, extra_value);
@@ -2562,6 +2566,9 @@ static int dpp_parse_cred_legacy(struct dpp_config_obj *conf,
 
 	if (pass && pass->type == JSON_STRING) {
 		size_t len = os_strlen(pass->string);
+#ifdef CONFIG_DPP3
+		struct json_token *saepi = json_get_member(cred, "idpass");
+#endif /* CONFIG_DPP3 */
 
 		wpa_hexdump_ascii_key(MSG_DEBUG, "DPP: Legacy passphrase",
 				      pass->string, len);
@@ -2573,6 +2580,11 @@ static int dpp_parse_cred_legacy(struct dpp_config_obj *conf,
 		}
 		os_strlcpy(conf->passphrase, pass->string,
 			   sizeof(conf->passphrase));
+#ifdef CONFIG_DPP3
+		if (saepi && saepi->type == JSON_STRING)
+			os_strlcpy(conf->password_id, saepi->string,
+				   sizeof(conf->password_id));
+#endif /* CONFIG_DPP3 */
 	} else if (psk_hex && psk_hex->type == JSON_STRING) {
 		if (dpp_akm_sae(conf->akm) && !dpp_akm_psk(conf->akm)) {
 			wpa_printf(MSG_DEBUG,

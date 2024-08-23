@@ -1418,6 +1418,17 @@ static struct wpa_ssid * wpas_dpp_add_network(struct wpa_supplicant *wpa_s,
 	os_memcpy(ssid->ssid, conf->ssid, conf->ssid_len);
 	ssid->ssid_len = conf->ssid_len;
 
+#ifdef CONFIG_DPP3
+	if (conf->akm == DPP_AKM_SAE && conf->password_id[0]) {
+		size_t len = os_strlen(conf->password_id);
+
+		ssid->sae_password_id = os_zalloc(len + 1);
+		if (!ssid->sae_password_id)
+			goto fail;
+		os_memcpy(ssid->sae_password_id, conf->password_id, len);
+	}
+#endif /* CONFIG_DPP3 */
+
 	if (conf->connector) {
 		if (dpp_akm_dpp(conf->akm)) {
 			ssid->key_mgmt = WPA_KEY_MGMT_DPP;
@@ -1696,6 +1707,12 @@ static int wpas_dpp_handle_config_obj(struct wpa_supplicant *wpa_s,
 		wpa_msg(wpa_s, MSG_INFO, DPP_EVENT_CONFOBJ_PSK "%s",
 			hex);
 	}
+#ifdef CONFIG_DPP3
+	if (conf->password_id[0]) {
+		wpa_msg(wpa_s, MSG_INFO, DPP_EVENT_CONFOBJ_IDPASS "%s",
+			conf->password_id);
+	}
+#endif /* CONFIG_DPP3 */
 	if (conf->c_sign_key) {
 		char *hex;
 		size_t hexlen;
