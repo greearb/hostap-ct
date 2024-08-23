@@ -3285,3 +3285,27 @@ def test_sae_eapol_key_reserved_random(dev, apdev):
     dev[0].set("sae_groups", "")
     dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE",
                    scan_freq="2412")
+
+def test_sae_long_rsnxe(dev, apdev):
+    """RSNXE extensibility"""
+    check_sae_capab(dev[0])
+
+    rsnxe = "F4FF2F0000000000000000000000000000FF" + 239*"EE"
+
+    params = hostapd.wpa3_params(ssid="sae-pwe", password="12345678")
+    params['sae_pwe'] = "1"
+    params['rsnxe_override'] = rsnxe
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].set("sae_groups", "")
+    dev[0].set("rsnxe_override_assoc", rsnxe)
+    dev[0].set("rsnxe_override_eapol", rsnxe)
+    try:
+        dev[0].set("sae_pwe", "2")
+        dev[0].connect("sae-pwe", psk="12345678", key_mgmt="SAE",
+                       scan_freq="2412", ieee80211w="2")
+        if dev[0].get_status_field("sae_h2e") != "1":
+            raise Exception("SAE H2E was not used")
+    finally:
+        dev[0].set("sae_groups", "")
+        dev[0].set("sae_pwe", "0")
