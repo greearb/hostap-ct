@@ -17,7 +17,7 @@
 struct vlan_description;
 struct mld_info;
 
-#define MAX_OWN_IE_OVERRIDE 256
+#define MAX_OWN_IE_OVERRIDE 257
 
 #ifdef _MSC_VER
 #pragma pack(push, 1)
