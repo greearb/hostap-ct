@@ -2976,8 +2976,8 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 	bool ie_found;
 	u8 non_inherit_ele_ext_list[256] = { 0 };
 	u8 non_inherit_ele_ext_list_len = 0;
-	u8 non_inherit_ele_list[256] = { 0 };
-	u8 non_inherit_ele_list_len = 0;
+	u8 non_inherit_ele_list[256] = { WLAN_EID_VHT_CAP, WLAN_EID_VHT_OPERATION };
+	u8 non_inherit_ele_list_len = 2;
 	u8 num_link_elem_vendor_ies = 0, num_own_elem_vendor_ies = 0;
 	bool add_vendor_ies = false, is_identical_vendor_ies = true;
 	/* The bitmap of parsed EIDs. There are 256 EIDs and ext EIDs, so 32
@@ -3239,7 +3239,7 @@ static u8 * hostapd_gen_sta_profile(struct ieee80211_mgmt *link_data,
 }
 
 
-static void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
+void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
 {
 	bool tx_vap = hapd == hostapd_mbssid_get_tx_bss(hapd);
 	size_t link_data_len, sta_profile_len;
