@@ -72,5 +72,6 @@ const u8 * hostapd_wpa_ie(struct hostapd_data *hapd, u8 eid);
 
 u8 * hostapd_unsol_bcast_probe_resp(struct hostapd_data *hapd,
 				    struct unsol_bcast_probe_resp *ubpr);
+void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd);
 
 #endif /* BEACON_H */
