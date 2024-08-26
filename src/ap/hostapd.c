@@ -4830,6 +4830,7 @@ void hostapd_chan_switch_config(struct hostapd_data *hapd,
 int hostapd_switch_channel(struct hostapd_data *hapd,
 			   struct csa_settings *settings)
 {
+	struct hostapd_data *link_bss;
 	int ret;
 
 	if (!(hapd->iface->drv_flags & WPA_DRIVER_FLAGS_AP_CSA)) {
@@ -4838,6 +4839,12 @@ int hostapd_switch_channel(struct hostapd_data *hapd,
 	}
 
 	ieee802_11_set_bss_critical_update(hapd, BSS_CRIT_UPDATE_EVENT_CSA);
+
+	if (hapd->conf->mld_ap) {
+		/* Generate per STA profiles for each affiliated APs */
+		for_each_mld_link(link_bss, hapd)
+			hostapd_gen_per_sta_profiles(link_bss);
+	}
 
 	ret = hostapd_fill_csa_settings(hapd, settings);
 	if (ret)
