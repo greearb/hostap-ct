@@ -3087,6 +3087,27 @@ static void ibss_mesh_select_40mhz(struct wpa_supplicant *wpa_s,
 }
 
 
+static int ibss_get_center_320mhz(int channel)
+{
+	int seg0;
+
+	if (channel >= 1 && channel <= 45)
+		seg0 = 31;
+	else if (channel >= 49 && channel <= 77)
+		seg0 = 63;
+	else if (channel >= 81 && channel <= 109)
+		seg0 = 95;
+	else if (channel >= 113 && channel <= 141)
+		seg0 = 127;
+	else if (channel >= 145 && channel <= 173)
+		seg0 = 159;
+	else
+		seg0 = 191;
+
+	return seg0;
+}
+
+
 static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 				       const struct wpa_ssid *ssid,
 				       struct hostapd_hw_modes *mode,
@@ -3100,6 +3121,11 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 	static const int bw160[] = {
 		5955, 6115, 6275, 6435, 6595, 6755, 6915
 	};
+	static const int bw320[]= {
+		5955, 6255, 6115, 6415, 6275, 6575, 6435,
+		6735, 6595, 6895, 6755, 7055
+	};
+
 	struct hostapd_freq_params vht_freq;
 	int i;
 	unsigned int j, k;
@@ -3155,6 +3181,26 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 			if (freq->freq == bw160[j]) {
 				chwidth = CONF_OPER_CHWIDTH_160MHZ;
 				seg0 = channel + 14;
+				break;
+			}
+		}
+	}
+
+	/* In 320 MHz, the initial four 20 MHz channels were validated
+	 * above. If 320 MHz is supported, check the remaining 12 20 MHz
+	 * channels for the total of 320 MHz bandwidth for 6 GHz.
+	 */
+	if ((mode->eht_capab[ieee80211_mode].phy_cap[
+		     EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_IDX] &
+	     EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_MASK) && is_6ghz &&
+	    ibss_mesh_is_80mhz_avail(channel + 16, mode) &&
+	    ibss_mesh_is_80mhz_avail(channel + 32, mode) &&
+	    ibss_mesh_is_80mhz_avail(channel + 48, mode)) {
+		for (j = 0; j < ARRAY_SIZE(bw320); j += 2) {
+			if (freq->freq >= bw320[j] &&
+			    freq->freq <= bw320[j + 1]) {
+				chwidth = CONF_OPER_CHWIDTH_320MHZ;
+				seg0 = ibss_get_center_320mhz(freq->channel);
 				break;
 			}
 		}

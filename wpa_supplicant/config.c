@@ -2544,7 +2544,7 @@ static const struct parse_data ssid_fields[] = {
 	{ INT_RANGE(he, 0, 1) },
 	{ INT_RANGE(ht40, -1, 1) },
 	{ INT_RANGE(max_oper_chwidth, CONF_OPER_CHWIDTH_USE_HT,
-		    CONF_OPER_CHWIDTH_80P80MHZ) },
+		    CONF_OPER_CHWIDTH_320MHZ) },
 	{ INT(vht_center_freq1) },
 	{ INT(vht_center_freq2) },
 #ifdef IEEE8021X_EAPOL
