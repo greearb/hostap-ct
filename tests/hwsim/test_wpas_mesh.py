@@ -2613,3 +2613,35 @@ def test_wpas_mesh_sae_inject(dev, apdev):
         time.sleep(10)
     finally:
         stop_monitor(apdev[1]["ifname"])
+
+def test_wpas_mesh_secure_6ghz_320(dev, apdev):
+    """wpa_supplicant secure 6 GHz mesh network connectivity in 320 MHz"""
+    check_mesh_support(dev[0], secure=True)
+    check_mesh_support(dev[1], secure=True)
+
+    try:
+        # CA enables 320 MHz channels without NO-IR restriction
+        set_reg(dev, 'CA')
+
+        dev[0].set("sae_groups", "")
+        id = add_mesh_secure_net(dev[0])
+        dev[0].set_network(id, "frequency", "5975")
+        dev[0].set_network(id, "max_oper_chwidth", "9")
+        dev[0].mesh_group_add(id)
+
+        dev[1].set("sae_groups", "")
+        id = add_mesh_secure_net(dev[1])
+        dev[1].set_network(id, "frequency", "5975")
+        dev[1].set_network(id, "max_oper_chwidth", "9")
+        dev[1].mesh_group_add(id)
+
+        check_mesh_joined_connected(dev, connectivity=True)
+
+        state = dev[0].get_status_field("wpa_state")
+        if state != "COMPLETED":
+            raise Exception("Unexpected wpa_state on dev0: " + state)
+        state = dev[1].get_status_field("wpa_state")
+        if state != "COMPLETED":
+            raise Exception("Unexpected wpa_state on dev1: " + state)
+    finally:
+        clear_reg_setting(dev)

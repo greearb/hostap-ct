@@ -774,7 +774,7 @@ def test_wpas_config_range_check(dev, apdev):
              ("vht", -1, 2),
              ("he", -1, 2),
              ("ht40", -2, 2),
-             ("max_oper_chwidth", -2, 4),
+             ("max_oper_chwidth", -2, 10),
              ("mode", -1, 6),
              ("no_auto_peer", -1, 2),
              ("mesh_fwding", -1, 2),
