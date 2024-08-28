@@ -969,7 +969,7 @@ static int hapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
 	}
 
 	return hapd->driver->send_action(hapd->drv_priv, freq, wait, dst,
-					 own_addr, bssid, data, len, 0);
+					 own_addr, bssid, data, len, 0, -1);
 }
 
 

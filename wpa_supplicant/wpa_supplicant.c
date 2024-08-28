@@ -9644,7 +9644,7 @@ int wpa_drv_send_action(struct wpa_supplicant *wpa_s, unsigned int freq,
 	}
 
 	return wpa_s->driver->send_action(wpa_s->drv_priv, freq, wait, dst, src,
-					  bssid, data, data_len, no_cck);
+					  bssid, data, data_len, no_cck, -1);
 }
 
 

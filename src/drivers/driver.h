@@ -4034,7 +4034,10 @@ struct wpa_driver_ops {
 	 * @bssid: BSSID (Address 3)
 	 * @data: Frame body
 	 * @data_len: data length in octets
-	 @ @no_cck: Whether CCK rates must not be used to transmit this frame
+	 * @no_cck: Whether CCK rates must not be used to transmit this frame
+	 * @link_id: Link ID of the specified link; -1 for non-MLO cases and for
+	 *	frames that target the MLD instead of a specific link in MLO
+	 *	cases
 	 * Returns: 0 on success, -1 on failure
 	 *
 	 * This command can be used to request the driver to transmit an action
@@ -4055,7 +4058,8 @@ struct wpa_driver_ops {
 	 */
 	int (*send_action)(void *priv, unsigned int freq, unsigned int wait,
 			   const u8 *dst, const u8 *src, const u8 *bssid,
-			   const u8 *data, size_t data_len, int no_cck);
+			   const u8 *data, size_t data_len, int no_cck,
+			   int link_id);
 
 	/**
 	 * send_action_cancel_wait - Cancel action frame TX wait

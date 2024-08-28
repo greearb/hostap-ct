@@ -9240,7 +9240,7 @@ static int wpa_driver_nl80211_send_action(struct i802_bss *bss,
 					  const u8 *dst, const u8 *src,
 					  const u8 *bssid,
 					  const u8 *data, size_t data_len,
-					  int no_cck)
+					  int no_cck, int link_id)
 {
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	int ret = -1;
@@ -9257,9 +9257,9 @@ static int wpa_driver_nl80211_send_action(struct i802_bss *bss,
 
 	wpa_printf(MSG_DEBUG,
 		   "nl80211: Send Action frame (ifindex=%d, freq=%u MHz wait=%d ms no_cck=%d offchanok=%d dst="
-		   MACSTR " src=" MACSTR " bssid=" MACSTR ")",
+		   MACSTR " src=" MACSTR " bssid=" MACSTR ", link_id=%d)",
 		   drv->ifindex, freq, wait_time, no_cck, offchanok,
-		   MAC2STR(dst), MAC2STR(src), MAC2STR(bssid));
+		   MAC2STR(dst), MAC2STR(src), MAC2STR(bssid), link_id);
 
 	buf = os_zalloc(24 + data_len);
 	if (buf == NULL)
@@ -9308,12 +9308,12 @@ static int wpa_driver_nl80211_send_action(struct i802_bss *bss,
 	     !drv->use_monitor))
 		ret = wpa_driver_nl80211_send_mlme(bss, buf, 24 + data_len,
 						   0, freq, no_cck, offchanok,
-						   wait_time, NULL, 0, 0, -1);
+						   wait_time, NULL, 0, 0,
+						   link_id);
 	else
 		ret = nl80211_send_frame_cmd(bss, freq, wait_time, buf,
 					     24 + data_len, 1, no_cck, 0,
-					     offchanok, NULL, 0,
-					     NL80211_DRV_LINK_ID_NA);
+					     offchanok, NULL, 0, link_id);
 
 	os_free(buf);
 	return ret;
@@ -11023,11 +11023,12 @@ static int driver_nl80211_send_action(void *priv, unsigned int freq,
 				      const u8 *dst, const u8 *src,
 				      const u8 *bssid,
 				      const u8 *data, size_t data_len,
-				      int no_cck)
+				      int no_cck, int link_id)
 {
 	struct i802_bss *bss = priv;
 	return wpa_driver_nl80211_send_action(bss, freq, wait_time, dst, src,
-					      bssid, data, data_len, no_cck);
+					      bssid, data, data_len, no_cck,
+					      link_id);
 }
 
 
