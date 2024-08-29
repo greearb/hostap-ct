@@ -1249,6 +1249,9 @@ struct hostapd_config {
 
 	/* Whether to enable TWT responder in HT and VHT modes */
 	bool ht_vht_twt_responder;
+
+	bool channel_usage;
+	bool peer_to_peer_twt;
 };
 
 

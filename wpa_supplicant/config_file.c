@@ -1645,6 +1645,9 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 	if (config->ftm_initiator)
 		fprintf(f, "ftm_initiator=%d\n", config->ftm_initiator);
 
+	if (config->twt_requester)
+		fprintf(f, "twt_requester=%d\n", config->twt_requester);
+
 	if (config->osu_dir)
 		fprintf(f, "osu_dir=%s\n", config->osu_dir);
 

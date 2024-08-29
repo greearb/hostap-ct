@@ -476,6 +476,14 @@ static void hostapd_ext_capab_byte(struct hostapd_data *hapd, u8 *pos, int idx,
 			*pos |= 0x01; /* Bit 88 - SAE PK Exclusively */
 #endif /* CONFIG_SAE_PK */
 		break;
+	case 12: /* Bits 96-103 */
+		if (hapd->iconf->peer_to_peer_twt)
+			*pos |= 0x10; /* Bit 100 - Peer to Peer TWT */
+		break;
+	case 13: /* Bits 104-111 */
+		if (hapd->iconf->channel_usage)
+			*pos |= 0x01; /* Bit 104 - Channel Usage support */
+		break;
 	}
 }
 

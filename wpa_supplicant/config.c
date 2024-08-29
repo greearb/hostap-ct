@@ -5575,6 +5575,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(gas_address3), 0 },
 	{ INT_RANGE(ftm_responder, 0, 1), 0 },
 	{ INT_RANGE(ftm_initiator, 0, 1), 0 },
+	{ INT_RANGE(twt_requester, 0, 1), 0 },
 	{ INT(gas_rand_addr_lifetime), 0 },
 	{ INT_RANGE(gas_rand_mac_addr, 0, 2), 0 },
 #ifdef CONFIG_DPP

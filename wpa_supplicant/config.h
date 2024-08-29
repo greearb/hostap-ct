@@ -1868,6 +1868,13 @@ struct wpa_config {
 	 * This is the head for the list of all the paired devices.
 	 */
 	struct wpa_dev_ik *identity;
+
+	/**
+	 * twt_requester - Whether TWT Requester Support is enabled
+	 *
+	 * This is for setting the bit 77 of the Extended Capabilities element.
+	 */
+	bool twt_requester;
 };
 
 
