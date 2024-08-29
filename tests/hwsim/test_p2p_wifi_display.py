@@ -428,6 +428,7 @@ def _test_wifi_display_parsing(dev):
     dev[1].p2p_connect_group(dev[0].p2p_dev_addr(), pin, timeout=60,
                              social=True, freq=2412)
     bssid = dev[0].get_group_status_field('bssid')
+    dev[2].flush_scan_cache()
     dev[2].scan_for_bss(bssid, freq=2412, force_scan=True)
     bss = dev[2].get_bss(bssid)
     if 'wfd_subelems' not in bss:
