@@ -20,6 +20,7 @@
 #include "crypto/random.h"
 #include "crypto/aes.h"
 #include "crypto/aes_siv.h"
+#include "common/hw_features_common.h"
 #include "common/ieee802_11_defs.h"
 #include "common/ieee802_11_common.h"
 #include "common/wpa_ctrl.h"
@@ -7921,6 +7922,10 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 					  u8 chan1, u8 chan2)
 {
 	u8 bw;
+	enum oper_chan_width oper_chwidth = CONF_OPER_CHWIDTH_160MHZ;
+#ifdef CONFIG_IEEE80211BE
+	u16 punct_bitmap = hapd->cs_freq_params.punct_bitmap;
+#endif /* CONFIG_IEEE80211BE */
 
 	/* bandwidth: 0: 40, 1: 80, 160, 80+80, 4 to 255 reserved as per
 	 * IEEE Std 802.11-2024, 9.4.2.156 and Table 9-316 (VHT Operation
@@ -7941,6 +7946,7 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 		else
 			chan1 += 16;
 
+		oper_chwidth = CONF_OPER_CHWIDTH_320MHZ;
 		/* fallthrough */
 	case 160:
 		/* Update the CCFS0 and CCFS1 values in the element based on
@@ -7963,14 +7969,24 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 		break;
 	case 80:
 		bw = 1;
+		oper_chwidth = CONF_OPER_CHWIDTH_80MHZ;
 		break;
 	case 40:
 		bw = 0;
+		oper_chwidth = CONF_OPER_CHWIDTH_USE_HT;
 		break;
 	default:
 		/* not valid VHT bandwidth or not in CSA */
 		return eid;
 	}
+
+#ifdef CONFIG_IEEE80211BE
+	if (punct_bitmap) {
+		punct_update_legacy_bw(punct_bitmap,
+				       hapd->cs_freq_params.channel,
+				       &oper_chwidth, &chan1, &chan2);
+	}
+#endif /* CONFIG_IEEE80211BE */
 
 	*eid++ = WLAN_EID_WIDE_BW_CHSWITCH;
 	*eid++ = 3; /* Length of Wide Bandwidth Channel Switch element */
