@@ -430,6 +430,8 @@ def _test_wifi_display_parsing(dev):
     bssid = dev[0].get_group_status_field('bssid')
     dev[2].scan_for_bss(bssid, freq=2412, force_scan=True)
     bss = dev[2].get_bss(bssid)
+    if 'wfd_subelems' not in bss:
+        raise Exception("Missing WFD elements in scan results")
     if bss['wfd_subelems'] != "000006" + wfd_devinfo:
         raise Exception("Unexpected WFD elements in scan results: " + bss['wfd_subelems'])
 
