@@ -4257,7 +4257,16 @@ int process_global_event(struct nl_msg *msg, void *arg)
 			     wdev_id == bss->wdev_id)) {
 				processed = true;
 				do_process_drv_event(bss, gnlh->cmd, tb);
-				if (!wiphy_idx_set)
+				/* There are two types of events that may need
+				 * to be delivered to multiple interfaces:
+				 * 1. Events for a wiphy, as it can have
+				 * multiple interfaces.
+				 * 2. "Global" events, like
+				 * NL80211_CMD_REG_CHANGE.
+				 *
+				 * Terminate early only if the event is directed
+				 * to a specific interface or wdev. */
+				if (ifidx != -1 || wdev_id_set)
 					return NL_SKIP;
 				/* The driver instance could have been removed,
 				 * e.g., due to NL80211_CMD_RADAR_DETECT event,
