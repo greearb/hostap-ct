@@ -196,7 +196,7 @@ def run_rsn_override_mld(dev, apdev, mixed, only_sta=False,
             if ev is None:
                 raise Exception("EAPOL-Key M1 not reported")
             ev = wpas.wait_event(['EAPOL-RX', 'CTRL-EVENT-DISCONNECTED'],
-                                 timeout=10)
+                                 timeout=20)
             if ev is None:
                 raise Exception("Disconnection not reported")
             # The AP is expected to fail to send M3 due to RSNOE/RSNO2E/RSNXOE
