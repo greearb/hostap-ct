@@ -6389,7 +6389,7 @@ static int p2p_ctrl_connect(struct wpa_supplicant *wpa_s, char *cmd,
 		wpa_s = wpa_s->global->p2p_init_wpa_s;
 	}
 
-	/* <addr> <"pbc" | "pin" | PIN> [label|display|keypad|p2ps]
+	/* <addr> <"pbc" | "pin" | "pair" | PIN> [label|display|keypad|p2ps]
 	 * [persistent|persistent=<network id>]
 	 * [join] [auth] [go_intent=<0..15>] [freq=<in MHz>] [provdisc]
 	 * [ht40] [vht] [he] [edmg] [auto] [ssid=<hexdump>]
@@ -6484,7 +6484,7 @@ static int p2p_ctrl_connect(struct wpa_supplicant *wpa_s, char *cmd,
 		wps_method = WPS_PBC;
 	} else if (os_strstr(pos, "p2ps") != NULL) {
 		wps_method = WPS_P2PS;
-	} else if (p2p2) {
+	} else if (os_strncmp(pos, "pair", 4) == 0 && p2p2) {
 		wps_method = WPS_NOT_READY;
 	} else {
 		pin = pos;
