@@ -262,6 +262,7 @@ static u8 * hostapd_eid_country(struct hostapd_data *hapd, u8 *eid,
 {
 	u8 *pos = eid;
 	u8 *end = eid + max_len;
+	bool force_global;
 
 	if (!hapd->iconf->ieee80211d || max_len < 6 ||
 	    hapd->iface->current_mode == NULL)
@@ -272,11 +273,23 @@ static u8 * hostapd_eid_country(struct hostapd_data *hapd, u8 *eid,
 	os_memcpy(pos, hapd->iconf->country, 3); /* e.g., 'US ' */
 	pos += 3;
 
-	if (is_6ghz_op_class(hapd->iconf->op_class)) {
+	/* The 6 GHz band uses global operating classes */
+	force_global = is_6ghz_op_class(hapd->iconf->op_class);
+
+#ifdef CONFIG_MBO
+	/* Wi-Fi Agile Muiltiband AP is required to use a global operating
+	 * class. */
+	if (hapd->conf->mbo_enabled)
+		force_global = true;
+#endif /* CONFIG_MBO */
+
+	if (force_global) {
 		/* Force the third octet of the country string to indicate
 		 * Global Operating Class (Table E-4) */
 		eid[4] = 0x04;
+	}
 
+	if (is_6ghz_op_class(hapd->iconf->op_class)) {
 		/* Operating Triplet field */
 		/* Operating Extension Identifier (>= 201 to indicate this is
 		 * not a Subband Triplet field) */
