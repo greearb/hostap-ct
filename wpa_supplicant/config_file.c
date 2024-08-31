@@ -1376,6 +1376,30 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 	if (config->p2p_6ghz_disable)
 		fprintf(f, "p2p_6ghz_disable=%d\n", config->p2p_6ghz_disable);
 
+	if (config->p2p_pairing_setup)
+		fprintf(f, "p2p_pairing_setup=%d\n", config->p2p_pairing_setup);
+	if (config->p2p_pairing_cache)
+		fprintf(f, "p2p_pairing_cache=%d\n", config->p2p_pairing_cache);
+	if (config->p2p_pairing_verification)
+		fprintf(f, "p2p_pairing_verification=%d\n",
+			config->p2p_pairing_verification);
+	if (config->p2p_bootstrap_methods)
+		fprintf(f, "p2p_bootstrap_methods=%d\n",
+			config->p2p_bootstrap_methods);
+	if (config->p2p_pasn_type)
+		fprintf(f, "p2p_pasn_type=%d\n", config->p2p_pasn_type);
+	if (config->p2p_comeback_after)
+		fprintf(f, "p2p_comeback_after=%d\n",
+			config->p2p_comeback_after);
+	if (config->p2p_twt_power_mgmt)
+		fprintf(f, "p2p_twt_power_mgmt=%d\n",
+			config->p2p_twt_power_mgmt);
+	if (config->p2p_chan_switch_req_enable)
+		fprintf(f, "p2p_chan_switch_req_enable=%d\n",
+			config->p2p_chan_switch_req_enable);
+	if (config->p2p_reg_info)
+		fprintf(f, "p2p_reg_info=%d\n", config->p2p_reg_info);
+
 	if (WPA_GET_BE32(config->ip_addr_go))
 		fprintf(f, "ip_addr_go=%u.%u.%u.%u\n",
 			config->ip_addr_go[0], config->ip_addr_go[1],

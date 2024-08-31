@@ -899,6 +899,15 @@ struct wpa_config {
 	int p2p_optimize_listen_chan;
 
 	int p2p_6ghz_disable;
+	bool p2p_pairing_setup;
+	bool p2p_pairing_cache;
+	bool p2p_pairing_verification;
+	int p2p_bootstrap_methods;
+	int p2p_pasn_type;
+	int p2p_comeback_after;
+	bool p2p_twt_power_mgmt;
+	bool p2p_chan_switch_req_enable;
+	int p2p_reg_info;
 
 	struct wpabuf *wps_vendor_ext_m1;
 
