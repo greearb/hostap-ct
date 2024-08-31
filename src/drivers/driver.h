@@ -3493,12 +3493,15 @@ struct wpa_driver_ops {
 	 * e.g., wpa_supplicant_event()
 	 * @ifname: interface name, e.g., wlan0
 	 * @global_priv: private driver global data from global_init()
+	 * @p2p_mode: P2P mode for a GO (not applicable for other interface
+	 *	types)
 	 * Returns: Pointer to private data, %NULL on failure
 	 *
 	 * This function can be used instead of init() if the driver wrapper
 	 * uses global data.
 	 */
-	void * (*init2)(void *ctx, const char *ifname, void *global_priv);
+	void * (*init2)(void *ctx, const char *ifname, void *global_priv,
+			enum wpa_p2p_mode p2p_mode);
 
 	/**
 	 * get_interfaces - Get information about available interfaces

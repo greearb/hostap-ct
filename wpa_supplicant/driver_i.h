@@ -16,9 +16,17 @@
 static inline void * wpa_drv_init(struct wpa_supplicant *wpa_s,
 				  const char *ifname)
 {
-	if (wpa_s->driver->init2)
+	if (wpa_s->driver->init2) {
+		enum wpa_p2p_mode p2p_mode = WPA_P2P_MODE_WFD_R1;
+
+#ifdef CONFIG_P2P
+		p2p_mode = wpa_s->p2p_mode;
+#endif /* CONFIG_P2P */
+
 		return wpa_s->driver->init2(wpa_s, ifname,
-					    wpa_s->global_drv_priv);
+					    wpa_s->global_drv_priv,
+					    p2p_mode);
+	}
 	if (wpa_s->driver->init) {
 		return wpa_s->driver->init(wpa_s, ifname);
 	}

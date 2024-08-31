@@ -165,7 +165,8 @@ static int wpa_driver_nl80211_set_mode_ibss(struct i802_bss *bss,
 static int
 wpa_driver_nl80211_finish_drv_init(struct wpa_driver_nl80211_data *drv,
 				   const u8 *set_addr, int first,
-				   const char *driver_params);
+				   const char *driver_params,
+				   enum wpa_p2p_mode p2p_mode);
 static int nl80211_send_frame_cmd(struct i802_bss *bss,
 				  unsigned int freq, unsigned int wait,
 				  const u8 *buf, size_t buf_len,
@@ -1216,7 +1217,8 @@ static int wpa_driver_nl80211_own_ifindex(struct wpa_driver_nl80211_data *drv,
 		nl80211_check_global(drv->global);
 		wpa_printf(MSG_DEBUG, "nl80211: Update ifindex for a removed "
 			   "interface");
-		if (wpa_driver_nl80211_finish_drv_init(drv, NULL, 0, NULL) < 0)
+		if (wpa_driver_nl80211_finish_drv_init(drv, NULL, 0, NULL,
+						       WPA_P2P_MODE_WFD_R1) < 0)
 			return -1;
 		return 1;
 	}
@@ -2284,7 +2286,8 @@ wpa_driver_nl80211_drv_init_rfkill(struct wpa_driver_nl80211_data *drv)
 static void * wpa_driver_nl80211_drv_init(void *ctx, const char *ifname,
 					  void *global_priv, int hostapd,
 					  const u8 *set_addr,
-					  const char *driver_params)
+					  const char *driver_params,
+					  enum wpa_p2p_mode p2p_mode)
 {
 	struct wpa_driver_nl80211_data *drv;
 	struct i802_bss *bss;
@@ -2347,7 +2350,8 @@ static void * wpa_driver_nl80211_drv_init(void *ctx, const char *ifname,
 	if (nl80211_init_bss(bss))
 		goto failed;
 
-	if (wpa_driver_nl80211_finish_drv_init(drv, set_addr, 1, driver_params))
+	if (wpa_driver_nl80211_finish_drv_init(drv, set_addr, 1, driver_params,
+					       p2p_mode))
 		goto failed;
 
 	if (drv->capa.flags2 & WPA_DRIVER_FLAGS2_CONTROL_PORT_TX_STATUS) {
@@ -2410,10 +2414,11 @@ failed:
  * Returns: Pointer to private data, %NULL on failure
  */
 static void * wpa_driver_nl80211_init(void *ctx, const char *ifname,
-				      void *global_priv)
+				      void *global_priv,
+				      enum wpa_p2p_mode p2p_mode)
 {
 	return wpa_driver_nl80211_drv_init(ctx, ifname, global_priv, 0, NULL,
-					   NULL);
+					   NULL, p2p_mode);
 }
 
 
@@ -2973,10 +2978,67 @@ static void qca_vendor_test(struct wpa_driver_nl80211_data *drv)
 }
 
 
+#ifdef CONFIG_DRIVER_NL80211_QCA
+static int nl80211_set_p2p_mode(void *priv, enum wpa_p2p_mode mode)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *container;
+	int ret;
+	enum qca_wlan_vendor_p2p_mode drv_mode;
+
+	wpa_printf(MSG_DEBUG, "nl80211: Set P2P mode: %d", mode);
+
+	switch (mode) {
+	case WPA_P2P_MODE_WFD_R1:
+		drv_mode = QCA_P2P_MODE_WFD_R1;
+		break;
+	case WPA_P2P_MODE_WFD_R2:
+		drv_mode = QCA_P2P_MODE_WFD_R2;
+		break;
+	case WPA_P2P_MODE_WFD_PCC:
+		drv_mode = QCA_P2P_MODE_WFD_PCC;
+		break;
+	default:
+		return -1;
+	}
+
+	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
+	if (!msg ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+			QCA_NL80211_VENDOR_SUBCMD_SET_P2P_MODE))
+		goto fail;
+
+	container = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA);
+	if (!container)
+		goto fail;
+
+	if (nla_put_u8(msg, QCA_WLAN_VENDOR_ATTR_SET_P2P_MODE_CONFIG, drv_mode))
+		goto fail;
+
+	nla_nest_end(msg, container);
+
+	ret = send_and_recv_cmd(drv, msg);
+	if (ret)
+		wpa_printf(MSG_ERROR,
+			   "nl80211: Failed to set P2P Mode: ret=%d (%s)",
+			   ret, strerror(-ret));
+	return ret;
+
+fail:
+	nlmsg_free(msg);
+	return -1;
+}
+#endif /* CONFIG_DRIVER_NL80211_QCA */
+
+
 static int
 wpa_driver_nl80211_finish_drv_init(struct wpa_driver_nl80211_data *drv,
 				   const u8 *set_addr, int first,
-				   const char *driver_params)
+				   const char *driver_params,
+				   enum wpa_p2p_mode p2p_mode)
 {
 	struct i802_bss *bss = drv->first_bss;
 	int send_rfkill_event = 0;
@@ -3034,6 +3096,11 @@ wpa_driver_nl80211_finish_drv_init(struct wpa_driver_nl80211_data *drv,
 		nl80211_get_macaddr(bss);
 
 	wpa_driver_nl80211_drv_init_rfkill(drv);
+
+#ifdef CONFIG_DRIVER_NL80211_QCA
+	if (nlmode == NL80211_IFTYPE_P2P_GO)
+		nl80211_set_p2p_mode(bss, p2p_mode);
+#endif /* CONFIG_DRIVER_NL80211_QCA */
 
 	if (!rfkill_is_blocked(drv->rfkill)) {
 		int ret = i802_set_iface_flags(bss, 1);
@@ -8713,7 +8780,8 @@ static void *i802_init(struct hostapd_data *hapd,
 
 	bss = wpa_driver_nl80211_drv_init(hapd, params->ifname,
 					  params->global_priv, 1,
-					  params->bssid, params->driver_params);
+					  params->bssid, params->driver_params,
+					  WPA_P2P_MODE_WFD_R1);
 	if (bss == NULL)
 		return NULL;
 
