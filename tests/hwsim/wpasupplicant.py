@@ -1592,7 +1592,7 @@ class WpaSupplicant:
                       ssid=None, passphrase=None, expect_fail=False,
                       tcp_addr=None, tcp_port=None, conn_status=False,
                       ssid_charset=None, nfc_uri=None, netrole=None,
-                      csrattrs=None):
+                      csrattrs=None, password_id=None):
         cmd = "DPP_AUTH_INIT"
         if peer is None:
             if nfc_uri:
@@ -1618,6 +1618,8 @@ class WpaSupplicant:
             cmd += " ssid_charset=%d" % ssid_charset
         if passphrase:
             cmd += " pass=" + binascii.hexlify(passphrase.encode()).decode()
+        if password_id:
+            cmd += " idpass=" + binascii.hexlify(password_id.encode()).decode()
         if tcp_addr:
             cmd += " tcp_addr=" + tcp_addr
         if tcp_port:
