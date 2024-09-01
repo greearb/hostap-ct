@@ -1589,7 +1589,7 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 	end = pos + len;
 	pos += sizeof(*ap_info);
 
-	for (i = 0; i < count; i++) {
+	for (i = 0; i < count; i++, pos += ap_info->tbtt_info_len) {
 		u8 bss_params;
 
 		if (end - pos < ap_info->tbtt_info_len)
@@ -1600,7 +1600,7 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 
 		link_id = *(mld_params + 1) & EHT_ML_LINK_ID_MSK;
 		if (link_id >= MAX_NUM_MLD_LINKS)
-			return;
+			continue;
 
 		if (*mld_params != mbssid_idx) {
 			wpa_printf(MSG_DEBUG,
@@ -1638,8 +1638,6 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 					RNR_TBTT_INFO_MLD_PARAM2_LINK_DISABLED;
 			}
 		}
-
-		pos += ap_info->tbtt_info_len;
 	}
 }
 
