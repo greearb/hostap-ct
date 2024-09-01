@@ -169,8 +169,11 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 	}
 
 #ifdef CONFIG_IEEE80211BE
-	if (conf->mld_ap)
+	if (conf->mld_ap) {
+		if (!hapd->mld)
+			hostapd_bss_setup_multi_link(hapd, iface->interfaces);
 		h_hapd = hostapd_mld_get_first_bss(hapd);
+	}
 
 	if (h_hapd) {
 		hapd->drv_priv = h_hapd->drv_priv;

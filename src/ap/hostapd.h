@@ -766,6 +766,8 @@ struct hostapd_iface * hostapd_init(struct hapd_interfaces *interfaces,
 struct hostapd_iface *
 hostapd_interface_init_bss(struct hapd_interfaces *interfaces, const char *phy,
 			   const char *config_fname, int debug);
+void hostapd_bss_setup_multi_link(struct hostapd_data *hapd,
+				  struct hapd_interfaces *interfaces);
 void hostapd_new_assoc_sta(struct hostapd_data *hapd, struct sta_info *sta,
 			   int reassoc);
 void hostapd_interface_deinit_free(struct hostapd_iface *iface);

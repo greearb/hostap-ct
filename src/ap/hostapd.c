@@ -3100,8 +3100,8 @@ static void hostapd_bss_alloc_link_id(struct hostapd_data *hapd)
 #endif /* CONFIG_IEEE80211BE */
 
 
-static void hostapd_bss_setup_multi_link(struct hostapd_data *hapd,
-					 struct hapd_interfaces *interfaces)
+void hostapd_bss_setup_multi_link(struct hostapd_data *hapd,
+				  struct hapd_interfaces *interfaces)
 {
 #ifdef CONFIG_IEEE80211BE
 	struct hostapd_mld *mld, **all_mld;
