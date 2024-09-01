@@ -871,6 +871,8 @@ sae_commit_skip_fixed_fields(const struct ieee80211_mgmt *mgmt, size_t len,
 
 	wpa_printf(MSG_DEBUG, "EHT: SAE scalar length is %zu", prime_len);
 
+	if (len - 2 < prime_len * (ec ? 3 : 2))
+		goto truncated;
 	/* scalar */
 	pos += prime_len;
 
@@ -882,6 +884,7 @@ sae_commit_skip_fixed_fields(const struct ieee80211_mgmt *mgmt, size_t len,
 	}
 
 	if (pos - mgmt->u.auth.variable > (int) len) {
+	truncated:
 		wpa_printf(MSG_DEBUG,
 			   "EHT: Too short SAE commit Authentication frame");
 		return NULL;
@@ -905,6 +908,8 @@ sae_confirm_skip_fixed_fields(struct hostapd_data *hapd,
 		return pos;
 
 	/* send confirm integer */
+	if (len < 2)
+		goto truncated;
 	pos += 2;
 
 	/*
@@ -949,9 +954,12 @@ sae_confirm_skip_fixed_fields(struct hostapd_data *hapd,
 	wpa_printf(MSG_DEBUG, "SAE: confirm: kck_len=%zu",
 		   sta->sae->tmp->kck_len);
 
+	if (len - 2 < sta->sae->tmp->kck_len)
+		goto truncated;
 	pos += sta->sae->tmp->kck_len;
 
 	if (pos - mgmt->u.auth.variable > (int) len) {
+	truncated:
 		wpa_printf(MSG_DEBUG,
 			   "EHT: Too short SAE confirm Authentication frame");
 		return NULL;
