@@ -263,6 +263,7 @@ struct dpp_configuration {
 
 	/* For legacy configuration */
 	char *passphrase;
+	char *idpass;
 	u8 psk[32];
 	int psk_set;
 
@@ -399,6 +400,7 @@ struct dpp_authentication {
 	char *e_name;
 	char *e_mud_url;
 	int *e_band_support;
+	unsigned int enrollee_capabilities;
 #ifdef CONFIG_TESTING_OPTIONS
 	char *config_obj_override;
 	char *discovery_override;

@@ -1151,6 +1151,10 @@ int dpp_configuration_valid(const struct dpp_configuration *conf)
 	}
 	if (dpp_akm_sae(conf->akm) && !conf->passphrase)
 		return 0;
+#ifdef CONFIG_DPP3
+	if (conf->idpass && (!conf->passphrase || !dpp_akm_sae(conf->akm)))
+		return 0;
+#endif /* CONFIG_DPP3 */
 	return 1;
 }
 
@@ -1160,6 +1164,9 @@ void dpp_configuration_free(struct dpp_configuration *conf)
 	if (!conf)
 		return;
 	str_clear_free(conf->passphrase);
+#ifdef CONFIG_DPP3
+	os_free(conf->idpass);
+#endif /* CONFIG_DPP3 */
 	os_free(conf->group_id);
 	os_free(conf->csrattrs);
 	os_free(conf->extra_name);
@@ -1243,6 +1250,22 @@ static int dpp_configuration_parse_helper(struct dpp_authentication *auth,
 		    hexstr2bin(pos, (u8 *) conf->passphrase, pass_len) < 0)
 			goto fail;
 	}
+
+#ifdef CONFIG_DPP3
+	pos = os_strstr(cmd, " idpass=");
+	if (pos) {
+		size_t idpass_len;
+
+		pos += 8;
+		end = os_strchr(pos, ' ');
+		idpass_len = end ? (size_t) (end - pos) : os_strlen(pos);
+		idpass_len /= 2;
+		conf->idpass = os_zalloc(idpass_len + 1);
+		if (!conf->idpass ||
+		    hexstr2bin(pos, (u8 *) conf->idpass, idpass_len) < 0)
+			goto fail;
+	}
+#endif /* CONFIG_DPP3 */
 
 	pos = os_strstr(cmd, " psk=");
 	if (pos) {
@@ -1603,6 +1626,13 @@ static void dpp_build_legacy_cred_params(struct wpabuf *buf,
 	if (conf->passphrase && os_strlen(conf->passphrase) < 64) {
 		json_add_string_escape(buf, "pass", conf->passphrase,
 				       os_strlen(conf->passphrase));
+#ifdef CONFIG_DPP3
+		if (conf->idpass) {
+			json_value_sep(buf);
+			json_add_string_escape(buf, "idpass", conf->idpass,
+					       os_strlen(conf->idpass));
+		}
+#endif /* CONFIG_DPP3 */
 	} else if (conf->psk_set) {
 		char psk[2 * sizeof(conf->psk) + 1];
 
@@ -1924,6 +1954,16 @@ dpp_build_conf_obj_legacy(struct dpp_authentication *auth,
 	struct wpabuf *buf;
 	const char *akm_str;
 	size_t len = 1000;
+
+
+#ifdef CONFIG_DPP3
+	if (conf->idpass &&
+	    !(auth->enrollee_capabilities & DPP_ENROLLEE_CAPAB_SAE_PW_ID)) {
+		wpa_printf(MSG_DEBUG,
+			   "DPP: Enrollee does not support SAE Password Identifier - cannot generate config object");
+		return NULL;
+	}
+#endif /* CONFIG_DPP3 */
 
 	if (conf->extra_name && conf->extra_value)
 		len += 10 + os_strlen(conf->extra_name) +
@@ -2542,6 +2582,18 @@ dpp_conf_req_rx(struct dpp_authentication *auth, const u8 *attr_start,
 	}
 cont:
 #endif /* CONFIG_DPP2 */
+
+#ifdef CONFIG_DPP3
+	token = json_get_member(root, "capabilities");
+	if (token && token->type == JSON_NUMBER) {
+		wpa_printf(MSG_DEBUG, "DPP: capabilities = 0x%x",
+			   token->number);
+		wpa_msg(auth->msg_ctx, MSG_INFO,
+			DPP_EVENT_ENROLLEE_CAPABILITY "%d",
+			token->number);
+		auth->enrollee_capabilities = token->number;
+	}
+#endif /* CONFIG_DPP3 */
 
 	resp = dpp_build_conf_resp(auth, e_nonce, e_nonce_len, netrole,
 				   cert_req);
