@@ -1823,8 +1823,8 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 				goto out;
 
 			wpa_bss_parse_ml_rnr_ap_info(wpa_s, bss, mbssid_idx,
-						     ap_info, len, &seen,
-						     &missing, ssid);
+						     ap_info, ap_info_len,
+						     &seen, &missing, ssid);
 
 			pos += ap_info_len;
 			len -= ap_info_len;
