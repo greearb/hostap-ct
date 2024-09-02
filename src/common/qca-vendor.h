@@ -10469,6 +10469,18 @@ enum qca_wlan_vendor_attr_wifi_test_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_DISABLE_CHAN_SWITCH_INITIATION = 74,
 
+	/* 8-bit unsigned value. This indicates number of random PMKIDs to be
+	 * added in the RSNE of the (Re)Association request frames. This is
+	 * exclusively used for the scenarios where the device is used as a test
+	 * bed device with special functionality and not recommended for
+	 * production. Default value is zero. If the user space configures a
+	 * non-zero value, that remains in use until the driver is unloaded or
+	 * the user space resets the value to zero.
+	 *
+	 * This attribute is used for testing purposes.
+	 */
+	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_RSNE_ADD_RANDOM_PMKIDS = 75,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_MAX =
