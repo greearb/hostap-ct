@@ -22,6 +22,7 @@
 #include "common/defs.h"
 #include "common/ieee802_11_defs.h"
 #include "common/wpa_common.h"
+#include "common/nan.h"
 #ifdef CONFIG_MACSEC
 #include "pae/ieee802_1x_kay.h"
 #endif /* CONFIG_MACSEC */
@@ -29,7 +30,6 @@
 
 struct nan_subscribe_params;
 struct nan_publish_params;
-enum nan_service_protocol_type;
 
 #define HOSTAPD_CHAN_DISABLED 0x00000001
 #define HOSTAPD_CHAN_NO_IR 0x00000002
