@@ -242,6 +242,10 @@ static int hostapd_iface_conf_changed(struct hostapd_config *newconf,
 		if (os_strcmp(newconf->bss[i]->iface,
 			      oldconf->bss[i]->iface) != 0)
 			return 1;
+#ifdef CONFIG_IEEE80211BE
+		if (newconf->bss[i]->mld_ap != oldconf->bss[i]->mld_ap)
+			return 1;
+#endif /* CONFIG_IEEE80211BE */
 	}
 
 	return 0;
