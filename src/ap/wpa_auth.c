@@ -361,6 +361,25 @@ static inline int wpa_auth_start_ampe(struct wpa_authenticator *wpa_auth,
 #endif /* CONFIG_MESH */
 
 
+static inline int wpa_auth_get_drv_flags(struct wpa_authenticator *wpa_auth,
+					 u64 *drv_flags, u64 *drv_flags2)
+{
+	if (!wpa_auth->cb->get_drv_flags)
+		return -1;
+	return wpa_auth->cb->get_drv_flags(wpa_auth->cb_ctx, drv_flags,
+					   drv_flags2);
+}
+
+
+static bool wpa_auth_4way_handshake_offload(struct wpa_authenticator *wpa_auth)
+{
+	u64 drv_flags = 0, drv_flags2 = 0;
+
+	return wpa_auth_get_drv_flags(wpa_auth, &drv_flags, &drv_flags2) == 0 &&
+		(drv_flags2 &  WPA_DRIVER_FLAGS2_4WAY_HANDSHAKE_AP_PSK);
+}
+
+
 int wpa_auth_for_each_sta(struct wpa_authenticator *wpa_auth,
 			  int (*cb)(struct wpa_state_machine *sm, void *ctx),
 			  void *cb_ctx)
@@ -996,7 +1015,13 @@ int wpa_auth_sta_associated(struct wpa_authenticator *wpa_auth,
 	if (wpa_sm_step(sm) == 1)
 		return 1; /* should not really happen */
 	sm->Init = false;
-	sm->AuthenticationRequest = true;
+
+	if (wpa_auth_4way_handshake_offload(sm->wpa_auth))
+		wpa_auth_logger(wpa_auth, sm->addr, LOGGER_DEBUG,
+				"Skip EAPOL for 4-way handshake offload case");
+	else
+		sm->AuthenticationRequest = true;
+
 	return wpa_sm_step(sm);
 }
 
@@ -2346,7 +2371,12 @@ int wpa_auth_sm_event(struct wpa_state_machine *sm, enum wpa_event event)
 			if (wpa_sm_step(sm) == 1)
 				return 1; /* should not really happen */
 			sm->Init = false;
-			sm->AuthenticationRequest = true;
+
+			if (wpa_auth_4way_handshake_offload(sm->wpa_auth))
+				wpa_printf(MSG_DEBUG,
+					   "Skip EAPOL for 4-way handshake offload case");
+			else
+				sm->AuthenticationRequest = true;
 			break;
 		}
 
