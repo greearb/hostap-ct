@@ -1637,7 +1637,7 @@ static void p2p_process_prov_disc_bootstrap_resp(struct p2p_data *p2p,
 						 size_t len, int rx_freq)
 {
 	struct p2p_device *dev;
-	u8 status = P2P_SC_SUCCESS;
+	enum p2p_status_code status = P2P_SC_SUCCESS;
 	size_t cookie_len = 0;
 	const u8 *pos, *cookie;
 	u16 comeback_after;
@@ -1726,7 +1726,7 @@ static void p2p_process_prov_disc_resp(struct p2p_data *p2p,
 {
 	struct p2p_device *dev;
 	u16 report_config_methods = 0, req_config_methods;
-	u8 status = P2P_SC_SUCCESS;
+	enum p2p_status_code status = P2P_SC_SUCCESS;
 	u32 adv_id = 0;
 	u8 conncap = P2PS_SETUP_NEW;
 	u8 adv_mac[ETH_ALEN];

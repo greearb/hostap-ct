@@ -4465,7 +4465,8 @@ static void wpas_p2ps_get_feat_cap_str(char *buf, size_t buf_len,
 }
 
 
-static void wpas_p2ps_prov_complete(void *ctx, u8 status, const u8 *dev,
+static void wpas_p2ps_prov_complete(void *ctx, enum p2p_status_code status,
+				    const u8 *dev,
 				    const u8 *adv_mac, const u8 *ses_mac,
 				    const u8 *grp_mac, u32 adv_id, u32 ses_id,
 				    u8 conncap, int passwd_id,

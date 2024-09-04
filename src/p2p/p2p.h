@@ -1180,7 +1180,8 @@ struct p2p_config {
 	 * When P2PS provisioning completes (successfully or not) we must
 	 * transmit all of the results to the upper layers.
 	 */
-	void (*p2ps_prov_complete)(void *ctx, u8 status, const u8 *dev,
+	void (*p2ps_prov_complete)(void *ctx, enum p2p_status_code status,
+				   const u8 *dev,
 				   const u8 *adv_mac, const u8 *ses_mac,
 				   const u8 *grp_mac, u32 adv_id, u32 ses_id,
 				   u8 conncap, int passwd_id,
