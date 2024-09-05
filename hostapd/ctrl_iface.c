@@ -2772,7 +2772,7 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 	if (iface->cac_started) {
 		wpa_printf(MSG_DEBUG,
 			   "CAC is in progress - switching channel without CSA");
-		return hostapd_force_channel_switch(iface, settings);
+		return hostapd_force_channel_switch(iface, &settings);
 	}
 
 	for (i = 0; i < iface->num_bss; i++) {
