@@ -3125,7 +3125,7 @@ static void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
 			continue;
 
 		link_id = link_bss->mld_link_id;
-		if (link_id > MAX_NUM_MLD_LINKS)
+		if (link_id >= MAX_NUM_MLD_LINKS)
 			continue;
 
 		sta_profile = NULL;
