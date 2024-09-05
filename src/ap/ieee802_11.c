@@ -7429,7 +7429,7 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 static u8 * hostapd_eid_bw_indication(struct hostapd_data *hapd, u8 *eid,
 				      u8 chan1, u8 chan2)
 {
-	u16 punct_bitmap = hostapd_get_punct_bitmap(hapd);
+	u16 punct_bitmap = hapd->cs_freq_params.punct_bitmap;
 	struct ieee80211_bw_ind_element *bw_ind_elem;
 	size_t elen = 4;
 
