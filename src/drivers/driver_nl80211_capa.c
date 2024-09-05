@@ -2754,10 +2754,9 @@ static int phy_multi_hw_info_parse(struct hostapd_multi_hw_info *hw_info,
 		hw_info->hw_idx = nla_get_u32(radio_attr);
 		return NL_OK;
 	case NL80211_WIPHY_RADIO_ATTR_FREQ_RANGE:
-		nla_parse_nested(tb_freq, NL80211_WIPHY_RADIO_FREQ_ATTR_MAX,
-				 radio_attr, NULL);
-
-		if (!tb_freq[NL80211_WIPHY_RADIO_FREQ_ATTR_START] ||
+		if (nla_parse_nested(tb_freq, NL80211_WIPHY_RADIO_FREQ_ATTR_MAX,
+				     radio_attr, NULL) ||
+		    !tb_freq[NL80211_WIPHY_RADIO_FREQ_ATTR_START] ||
 		    !tb_freq[NL80211_WIPHY_RADIO_FREQ_ATTR_END])
 			return NL_STOP;
 
