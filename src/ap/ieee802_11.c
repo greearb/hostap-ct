@@ -7431,7 +7431,7 @@ static u8 * hostapd_eid_bw_indication(struct hostapd_data *hapd, u8 *eid,
 {
 	u16 punct_bitmap = hostapd_get_punct_bitmap(hapd);
 	struct ieee80211_bw_ind_element *bw_ind_elem;
-	size_t elen = 3;
+	size_t elen = 4;
 
 	if (hapd->cs_freq_params.bandwidth <= 160 && !punct_bitmap)
 		return eid;
