@@ -892,6 +892,14 @@ struct hostapd_freq_params {
 	bool eht_enabled;
 
 	/**
+	 * punct_bitmap - Preamble puncturing bitmap
+	 * Each bit corresponds to a 20 MHz subchannel, the lowest bit for the
+	 * channel with the lowest frequency. A bit set to 1 indicates that the
+	 * subchannel is punctured, otherwise active.
+	 */
+	u16 punct_bitmap;
+
+	/**
 	 * link_id: If >=0 indicates the link of the AP MLD to configure
 	 */
 	int link_id;
@@ -2766,7 +2774,6 @@ struct beacon_data {
  * @beacon_after: Next beacon/probe resp/asooc resp info
  * @counter_offset_beacon: Offset to the count field in beacon's tail
  * @counter_offset_presp: Offset to the count field in probe resp.
- * @punct_bitmap - Preamble puncturing bitmap
  * @link_id: Link ID to determine the link for MLD; -1 for non-MLD
  * @ubpr: Unsolicited broadcast Probe Response frame data
  */
@@ -2781,7 +2788,6 @@ struct csa_settings {
 	u16 counter_offset_beacon[2];
 	u16 counter_offset_presp[2];
 
-	u16 punct_bitmap;
 	int link_id;
 
 	struct unsol_bcast_probe_resp ubpr;

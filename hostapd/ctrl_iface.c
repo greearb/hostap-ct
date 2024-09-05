@@ -2703,7 +2703,7 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 	}
 
 	ret = hostapd_ctrl_check_freq_params(&settings.freq_params,
-					     settings.punct_bitmap);
+					     settings.freq_params.punct_bitmap);
 	if (ret) {
 		wpa_printf(MSG_INFO,
 			   "chanswitch: invalid frequency settings provided");

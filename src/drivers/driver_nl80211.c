@@ -11477,7 +11477,7 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 		   settings->freq_params.bandwidth,
 		   settings->freq_params.center_freq1,
 		   settings->freq_params.center_freq2,
-		   settings->punct_bitmap,
+		   settings->freq_params.punct_bitmap,
 		   settings->link_id,
 		   settings->freq_params.ht_enabled ? " ht" : "",
 		   settings->freq_params.vht_enabled ? " vht" : "",
@@ -11550,9 +11550,9 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 	    (ret = nl80211_put_freq_params(msg, &settings->freq_params)) ||
 	    (settings->block_tx &&
 	     nla_put_flag(msg, NL80211_ATTR_CH_SWITCH_BLOCK_TX)) ||
-	    (settings->punct_bitmap &&
+	    (settings->freq_params.punct_bitmap &&
 	     nla_put_u32(msg, NL80211_ATTR_PUNCT_BITMAP,
-			 settings->punct_bitmap)) ||
+			 settings->freq_params.punct_bitmap)) ||
 	    (settings->link_id != NL80211_DRV_LINK_ID_NA &&
 	     nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, settings->link_id)))
 		goto error;
