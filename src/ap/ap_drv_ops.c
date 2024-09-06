@@ -1040,6 +1040,12 @@ int hostapd_start_dfs_cac(struct hostapd_iface *iface,
 	}
 	data.radar_background = radar_background;
 
+	data.link_id = -1;
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap)
+		data.link_id = hapd->mld_link_id;
+#endif /* CONFIG_IEEE80211BE */
+
 	res = hapd->driver->start_dfs_cac(hapd->drv_priv, &data);
 	if (!res) {
 		if (radar_background)

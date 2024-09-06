@@ -10599,9 +10599,23 @@ static int nl80211_start_radar_detection(void *priv,
 		return -1;
 	}
 
+	if (nl80211_link_valid(bss->valid_links, freq->link_id)) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Radar detection (CAC) on link_id=%d",
+			   freq->link_id);
+
+		if (nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, freq->link_id)) {
+			nlmsg_free(msg);
+			return -1;
+		}
+	}
+
 	ret = send_and_recv_cmd(drv, msg);
-	if (ret == 0)
+	if (ret == 0) {
+		nl80211_link_set_freq(bss, freq->link_id, freq->freq);
 		return 0;
+	}
+
 	wpa_printf(MSG_DEBUG, "nl80211: Failed to start radar detection: "
 		   "%d (%s)", ret, strerror(-ret));
 	return -1;
