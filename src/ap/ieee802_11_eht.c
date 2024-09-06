@@ -684,7 +684,7 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 		 * TODO: Currently setting TSF offset to zero. However, this
 		 * information needs to come from the driver.
 		 */
-		wpabuf_put_le64(buf, 0);
+		wpabuf_put_le64(buf, link_bss->tsf_offset[hapd->mld_link_id]);
 
 		/* DTIM Info */
 		wpabuf_put_u8(buf, 0); /* DTIM Count */
