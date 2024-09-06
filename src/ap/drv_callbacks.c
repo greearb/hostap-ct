@@ -1413,6 +1413,20 @@ void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 	    freq == hapd->cs_freq_params.freq) {
 		hostapd_cleanup_cs_params(hapd);
 
+#ifdef CONFIG_IEEE80211BE
+		if (hapd->conf->mld_ap) {
+			struct hostapd_data *link_bss;
+
+			/* Update per STA profiles for each affiliated APs */
+			for_each_mld_link(link_bss, hapd ) {
+				if (link_bss == hapd)
+					continue;
+
+				hostapd_gen_per_sta_profiles(link_bss);
+			}
+		}
+#endif /* CONFIG_IEEE80211BE */
+
 		wpa_msg(hapd->msg_ctx, MSG_INFO, AP_CSA_FINISHED
 			"freq=%d dfs=%d", freq, is_dfs);
 	} else if (hapd->iface->drv_flags & WPA_DRIVER_FLAGS_DFS_OFFLOAD) {
