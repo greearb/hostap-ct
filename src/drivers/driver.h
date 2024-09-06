@@ -6434,6 +6434,11 @@ enum wpa_event_type {
 	EVENT_ATTLM,
 
 	/**
+	 * EVENT_TSF_OFFSET - TSF OFFSET VALUE FROM DRIVER
+	 */
+	EVENT_TSF_OFFSET,
+
+	/**
 	 * EVENT_TID_LINK_MAP - MLD event to set TID-to-link mapping
 	 *
 	 * This event is used by the driver to indicate the received TID-to-link
@@ -7269,6 +7274,11 @@ union wpa_event_data {
 		} event;
 		u16 switch_time_tsf_tu;
 	} attlm_event;
+
+	struct tsf_event {
+		s64 tsf_offset[MAX_NUM_MLD_LINKS];
+		u8 link_id;
+	} tsf_event;
 
 	/**
 	 * struct connect_failed - Data for EVENT_CONNECT_FAILED_REASON
