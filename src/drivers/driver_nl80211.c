@@ -13682,6 +13682,7 @@ static int nl80211_nan_publish(void *priv, const u8 *src, int publish_id,
 			params->freq) ||
 	    add_freq_list(msg, QCA_WLAN_VENDOR_ATTR_USD_CHAN_CONFIG_FREQ_LIST,
 			  params->freq_list))
+		goto fail;
 	nla_nest_end(msg, attr);
 
 	nla_nest_end(msg, container);
