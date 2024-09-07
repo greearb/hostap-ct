@@ -104,6 +104,8 @@ static inline int wpa_drv_mesh_link_probe(struct wpa_supplicant *wpa_s,
 static inline int wpa_drv_scan(struct wpa_supplicant *wpa_s,
 			       struct wpa_driver_scan_params *params)
 {
+	params->link_id = -1;
+
 #ifdef CONFIG_TESTING_OPTIONS
 	if (wpa_s->test_failure == WPAS_TEST_FAILURE_SCAN_TRIGGER)
 		return -EBUSY;

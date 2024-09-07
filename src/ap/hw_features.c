@@ -528,12 +528,6 @@ static void ap_ht40_scan_retry(void *eloop_data, void *user_data)
 	else
 		ieee80211n_scan_channels_5g(iface, &params);
 
-	params.link_id = -1;
-#ifdef CONFIG_IEEE80211BE
-	if (iface->bss[0]->conf->mld_ap)
-		params.link_id = iface->bss[0]->mld_link_id;
-#endif /* CONFIG_IEEE80211BE */
-
 	ret = hostapd_driver_scan(iface->bss[0], &params);
 	iface->num_ht40_scan_tries++;
 	os_free(params.freqs);
@@ -585,11 +579,6 @@ static int ieee80211n_check_40mhz(struct hostapd_iface *iface)
 	else
 		ieee80211n_scan_channels_5g(iface, &params);
 
-	params.link_id = -1;
-#ifdef CONFIG_IEEE80211BE
-	if (iface->bss[0]->conf->mld_ap)
-		params.link_id = iface->bss[0]->mld_link_id;
-#endif /* CONFIG_IEEE80211BE */
 	ret = hostapd_driver_scan(iface->bss[0], &params);
 	os_free(params.freqs);
 

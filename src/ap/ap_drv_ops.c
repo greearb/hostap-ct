@@ -781,6 +781,12 @@ bool hostapd_drv_nl80211(struct hostapd_data *hapd)
 int hostapd_driver_scan(struct hostapd_data *hapd,
 			struct wpa_driver_scan_params *params)
 {
+	params->link_id = -1;
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap)
+		params->link_id = hapd->mld_link_id;
+#endif /* CONFIG_IEEE80211BE */
+
 	if (hapd->driver && hapd->driver->scan2)
 		return hapd->driver->scan2(hapd->drv_priv, params);
 	return -1;
