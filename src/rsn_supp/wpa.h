@@ -626,6 +626,8 @@ void wpa_sm_set_test_assoc_ie(struct wpa_sm *sm, struct wpabuf *buf);
 void wpa_sm_set_test_eapol_m2_elems(struct wpa_sm *sm, struct wpabuf *buf);
 void wpa_sm_set_test_eapol_m4_elems(struct wpa_sm *sm, struct wpabuf *buf);
 const u8 * wpa_sm_get_anonce(struct wpa_sm *sm);
+int wpa_sm_set_test_rsnxe_data(struct wpa_sm *sm, struct wpabuf *data,
+			       struct wpabuf *mask);
 unsigned int wpa_sm_get_key_mgmt(struct wpa_sm *sm);
 
 struct wpabuf * fils_build_auth(struct wpa_sm *sm, int dh_group, const u8 *md);

@@ -215,7 +215,7 @@ static u8 * wpa_ft_gen_req_ies(struct wpa_sm *sm, size_t *len,
 	struct rsn_mdie *mdie;
 	struct rsn_ie_hdr *rsnie;
 	int mdie_len;
-	u8 rsnxe[10];
+	u8 rsnxe[257];
 	size_t rsnxe_len;
 	int rsnxe_used;
 	int res;

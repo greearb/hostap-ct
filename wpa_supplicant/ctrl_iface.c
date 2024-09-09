@@ -8931,6 +8931,7 @@ static void wpa_supplicant_ctrl_iface_flush(struct wpa_supplicant *wpa_s)
 	wpa_sm_set_test_assoc_ie(wpa_s->wpa, NULL);
 	wpa_sm_set_test_eapol_m2_elems(wpa_s->wpa, NULL);
 	wpa_sm_set_test_eapol_m4_elems(wpa_s->wpa, NULL);
+	wpa_sm_set_test_rsnxe_data(wpa_s->wpa, NULL, NULL);
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_ENCRYPT_EAPOL_M2, 0);
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_ENCRYPT_EAPOL_M4, 0);
 	os_free(wpa_s->get_pref_freq_list_override);
@@ -10299,6 +10300,29 @@ static int wpas_ctrl_test_eapol_m4_elems(struct wpa_supplicant *wpa_s,
 	if (wpas_get_hex_buf(cmd, &buf) < 0)
 		return -1;
 	wpa_sm_set_test_eapol_m4_elems(wpa_s->wpa, buf);
+	return 0;
+}
+
+
+static int wpas_ctrl_test_rsnxe_data(struct wpa_supplicant *wpa_s,
+				     const char *cmd)
+{
+	struct wpabuf *data = NULL, *mask = NULL;
+	char *pos;
+
+	pos = os_strchr(cmd, ' ');
+	if (!pos)
+		return -1;
+	*pos++ = '\0';
+
+	if (wpas_get_hex_buf(cmd, &data) < 0 ||
+	    wpas_get_hex_buf(pos, &mask) < 0 ||
+	    wpa_sm_set_test_rsnxe_data(wpa_s->wpa, data, mask) < 0) {
+		wpabuf_free(data);
+		wpabuf_free(mask);
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -13387,6 +13411,9 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 			reply_len = -1;
 	} else if (os_strncmp(buf, "ML_PROBE_REQ ", 13) == 0) {
 		if (wpas_ctrl_ml_probe(wpa_s, buf + 13))
+			reply_len = -1;
+	} else if (os_strncmp(buf, "TEST_RSNXE_DATA ", 16) == 0) {
+		if (wpas_ctrl_test_rsnxe_data(wpa_s, buf + 16) < 0)
 			reply_len = -1;
 #endif /* CONFIG_TESTING_OPTIONS */
 	} else if (os_strncmp(buf, "VENDOR_ELEM_ADD ", 16) == 0) {

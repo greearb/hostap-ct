@@ -827,7 +827,7 @@ struct wpa_supplicant {
 	int eapol_received; /* number of EAPOL packets received after the
 			     * previous association event */
 
-	u8 rsnxe[20];
+	u8 rsnxe[257];
 	size_t rsnxe_len;
 
 	struct scard_data *scard;

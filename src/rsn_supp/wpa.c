@@ -4375,6 +4375,8 @@ void wpa_sm_deinit(struct wpa_sm *sm)
 	wpabuf_free(sm->test_assoc_ie);
 	wpabuf_free(sm->test_eapol_m2_elems);
 	wpabuf_free(sm->test_eapol_m4_elems);
+	wpabuf_free(sm->test_rsnxe_data);
+	wpabuf_free(sm->test_rsnxe_mask);
 #endif /* CONFIG_TESTING_OPTIONS */
 #ifdef CONFIG_FILS_SK_PFS
 	crypto_ecdh_deinit(sm->fils_ecdh);
@@ -5234,6 +5236,76 @@ int wpa_sm_set_assoc_wpa_ie(struct wpa_sm *sm, const u8 *ie, size_t len)
 }
 
 
+#ifdef CONFIG_TESTING_OPTIONS
+
+int wpa_sm_set_test_rsnxe_data(struct wpa_sm *sm, struct wpabuf *data,
+			       struct wpabuf *mask)
+{
+	size_t data_len = 0, mask_len = 0;
+
+	wpabuf_free(sm->test_rsnxe_data);
+	sm->test_rsnxe_data = NULL;
+	wpabuf_free(sm->test_rsnxe_mask);
+	sm->test_rsnxe_mask = NULL;
+
+	if (!data && !mask)
+		return 0;
+
+	if (data)
+		data_len = wpabuf_len(data);
+	if (mask)
+		mask_len = wpabuf_len(mask);
+
+	if (data_len != mask_len || data_len > 255)
+		return -1;
+
+	sm->test_rsnxe_data = data;
+	sm->test_rsnxe_mask = mask;
+
+	return 0;
+}
+
+
+static int wpa_set_test_rsnxe_data(struct wpa_sm *sm, u8 *rsnxe,
+				   size_t orig_len, size_t max_len)
+{
+	const u8 *data, *mask;
+	size_t i, data_len;
+
+	if (!sm->test_rsnxe_data || !sm->test_rsnxe_mask)
+		return orig_len;
+
+	mask = wpabuf_head(sm->test_rsnxe_mask);
+	data = wpabuf_head(sm->test_rsnxe_data);
+	data_len = wpabuf_len(sm->test_rsnxe_data);
+	if (max_len < data_len + 2) {
+		wpa_printf(MSG_ERROR, "Couldn't fit RSNXE test data");
+		return -1;
+	}
+
+	/* Set data after original RSNXE to zero */
+	if (orig_len < data_len + 2)
+		os_memset(&rsnxe[orig_len], 0, data_len + 2 - orig_len);
+
+	/* Set EID and length fields */
+	*rsnxe++ = WLAN_EID_RSNX;
+	*rsnxe++ = data_len;
+
+	/* Preserve original RSNXE bit value when mask bit is zero */
+	for (i = 0; i < data_len; i++) {
+		if (!mask[i])
+			continue;
+
+		rsnxe[i] &= ~mask[i];
+		rsnxe[i] |= data[i] & mask[i];
+	}
+
+	return data_len + 2;
+}
+
+#endif /* CONFIG_TESTING_OPTIONS */
+
+
 /**
  * wpa_sm_set_assoc_rsnxe_default - Generate own RSNXE from configuration
  * @sm: Pointer to WPA state machine data from wpa_sm_init()
@@ -5252,6 +5324,11 @@ int wpa_sm_set_assoc_rsnxe_default(struct wpa_sm *sm, u8 *rsnxe,
 	res = wpa_gen_rsnxe(sm, rsnxe, *rsnxe_len);
 	if (res < 0)
 		return -1;
+#ifdef CONFIG_TESTING_OPTIONS
+	res = wpa_set_test_rsnxe_data(sm, rsnxe, res, *rsnxe_len);
+	if (res < 0)
+		return -1;
+#endif /* CONFIG_TESTING_OPTIONS */
 	*rsnxe_len = res;
 
 	wpa_hexdump(MSG_DEBUG, "RSN: Set own RSNXE default", rsnxe, *rsnxe_len);
