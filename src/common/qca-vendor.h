@@ -1282,14 +1282,14 @@ enum qca_radiotap_vendor_ids {
  *	vendor interfaces, driver internal logic, and BTM requests from the
  *	connected AP.
  *
+ *	The attributes used with this command are defined in
+ *	enum qca_wlan_vendor_attr_connect_ext.
+ *
  * @QCA_NL80211_VENDOR_SUBCMD_SET_P2P_MODE: Vendor subcommand to configure
  *	Wi-Fi Direct mode. This command sets the configuration through
  *	the attributes defined in the enum qca_wlan_vendor_attr_set_p2p_mode.
  *	It is applicable for P2P Group Owner only. This command is used before
  *	starting the GO.
- *
- *	The attributes used with this command are defined in
- *	enum qca_wlan_vendor_attr_connect_ext.
  *
  * @QCA_NL80211_VENDOR_SUBCMD_CHAN_USAGE_REQ: Vendor subcommand to request
  *	transmission of a channel usage request. It carries channel usage
