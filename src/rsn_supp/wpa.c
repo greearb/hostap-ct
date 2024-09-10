@@ -649,6 +649,8 @@ int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 #ifdef CONFIG_TESTING_OPTIONS
 	if (sm->encrypt_eapol_m2)
 		key_info |= WPA_KEY_INFO_ENCR_KEY_DATA;
+	if (sm->eapol_2_key_info_set_mask)
+		key_info |= sm->eapol_2_key_info_set_mask;
 #endif /* CONFIG_TESTING_OPTIONS */
 	WPA_PUT_BE16(reply->key_info, key_info);
 	if (sm->proto == WPA_PROTO_RSN || sm->proto == WPA_PROTO_OSEN)
@@ -4971,6 +4973,9 @@ int wpa_sm_set_param(struct wpa_sm *sm, enum wpa_sm_conf_params param,
 		break;
 	case WPA_PARAM_ENCRYPT_EAPOL_M4:
 		sm->encrypt_eapol_m4 = value;
+		break;
+	case WPA_PARAM_EAPOL_2_KEY_INFO_SET_MASK:
+		sm->eapol_2_key_info_set_mask = value;
 		break;
 #endif /* CONFIG_TESTING_OPTIONS */
 #ifdef CONFIG_DPP2

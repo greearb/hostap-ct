@@ -1374,6 +1374,7 @@ struct wpa_supplicant {
 	unsigned int oci_freq_override_fils_assoc;
 	unsigned int oci_freq_override_wnm_sleep;
 	unsigned int disable_eapol_g2_tx;
+	unsigned int eapol_2_key_info_set_mask;
 	int test_assoc_comeback_type;
 #endif /* CONFIG_TESTING_OPTIONS */
 

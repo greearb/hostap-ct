@@ -881,6 +881,8 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 	} else if (os_strcasecmp(cmd, "dpp_test") == 0) {
 		dpp_test = atoi(value);
 #endif /* CONFIG_DPP */
+	} else if (os_strcasecmp(cmd, "eapol_2_key_info_set_mask") == 0) {
+		wpa_s->eapol_2_key_info_set_mask = strtoul(value, NULL, 0x10);
 #endif /* CONFIG_TESTING_OPTIONS */
 #ifdef CONFIG_FILS
 	} else if (os_strcasecmp(cmd, "disable_fils") == 0) {
@@ -8957,6 +8959,7 @@ static void wpa_supplicant_ctrl_iface_flush(struct wpa_supplicant *wpa_s)
 	wpa_s->oci_freq_override_fils_assoc = 0;
 	wpa_s->oci_freq_override_wnm_sleep = 0;
 	wpa_s->disable_eapol_g2_tx = 0;
+	wpa_s->eapol_2_key_info_set_mask = 0;
 	wpa_s->test_assoc_comeback_type = -1;
 #ifdef CONFIG_DPP
 	os_free(wpa_s->dpp_config_obj_override);
