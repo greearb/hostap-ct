@@ -10002,6 +10002,29 @@ static int nl80211_set_legacy_rates(struct i802_bss *bss,
 		if (nla_put_flag(msg, NL80211_ATTR_WIPHY_SELF_MANAGED_REG))
 			goto fail;
 
+	/* If explicitly setting a wifi mode, use fall-through to prevent
+	 * advertising higher-level modes
+	 */
+	if (bss->adv_wifi_mode != WIFI_MODE_DEFAULT) {
+		switch (bss->adv_wifi_mode) {
+		case WIFI_MODE_LEGACY:
+			if (nla_put_flag(msg, NL80211_ATTR_DISABLE_HT))
+				goto fail;
+		case WIFI_MODE_HT:
+			if (nla_put_flag(msg, NL80211_ATTR_DISABLE_VHT))
+				goto fail;
+		case WIFI_MODE_VHT:
+			if (nla_put_flag(msg, NL80211_ATTR_DISABLE_HE))
+				goto fail;
+		case WIFI_MODE_HE:
+			if (nla_put_flag(msg, NL80211_ATTR_DISABLE_EHT))
+				goto fail;
+		case WIFI_MODE_EHT:
+		default:
+			/* Nothing to disable */
+		}
+	}
+
 	bands = nla_nest_start(msg, NL80211_ATTR_TX_RATES);
 	if (!bands)
 		goto fail;
@@ -10699,6 +10722,7 @@ static int nl80211_set_param(void *priv, const char *param)
 
 	bss->tx_legacy_rates = 0;
 	bss->adv_legacy_rates = 0;
+	bss->adv_wifi_mode = WIFI_MODE_DEFAULT;
 
 	if ((tmp = os_strstr(param, "tx_legacy_rates="))) {
 		bss->tx_legacy_rates = atoi(tmp + strlen("tx_legacy_rates="));
@@ -10731,6 +10755,9 @@ static int nl80211_set_param(void *priv, const char *param)
 			       os_strstr(param, "adv_vht_mask=") + strlen("adv_vht_mask="));
 		bss->adv_legacy_rates |= (1<<ENABLE_VHT_MASK);
 	}
+
+	if ((tmp = os_strstr(param, "adv_wifi_mode=")))
+		bss->adv_wifi_mode = atoi(tmp + strlen("adv_wifi_mode="));
 
 	return 0;
 }
