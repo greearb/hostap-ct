@@ -96,6 +96,14 @@ struct i802_bss {
 	u16 tx_vht_mask[NL80211_VHT_NSS_MAX];  /* (1<<29) in legacy rate mask enables this. */
 	u16 adv_vht_mask[NL80211_VHT_NSS_MAX];  /* (1<<29) in legacy rate mask enables this. */
 
+#define WIFI_MODE_DEFAULT 0
+#define WIFI_MODE_LEGACY 1
+#define WIFI_MODE_HT 2
+#define WIFI_MODE_VHT 3
+#define WIFI_MODE_HE 4
+#define WIFI_MODE_EHT 5
+	u8 adv_wifi_mode;
+
 	void *ctx;
 	struct nl_sock *nl_preq, *nl_mgmt, *nl_connect;
 	struct nl_cb *nl_cb;
