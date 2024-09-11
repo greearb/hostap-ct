@@ -146,7 +146,8 @@ u16 sae_group_allowed(struct sae_data *sae, int *allowed_groups, u16 group);
 const char * sae_state_txt(enum sae_state state);
 size_t sae_ecc_prime_len_2_hash_len(size_t prime_len);
 size_t sae_ffc_prime_len_2_hash_len(size_t prime_len);
-struct sae_pt * sae_derive_pt(int *groups, const u8 *ssid, size_t ssid_len,
+struct sae_pt * sae_derive_pt(const int *groups,
+			      const u8 *ssid, size_t ssid_len,
 			      const u8 *password, size_t password_len,
 			      const char *identifier);
 struct crypto_ec_point *

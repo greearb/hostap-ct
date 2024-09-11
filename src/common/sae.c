@@ -1093,12 +1093,13 @@ fail:
 }
 
 
-struct sae_pt * sae_derive_pt(int *groups, const u8 *ssid, size_t ssid_len,
+struct sae_pt * sae_derive_pt(const int *groups,
+			      const u8 *ssid, size_t ssid_len,
 			      const u8 *password, size_t password_len,
 			      const char *identifier)
 {
 	struct sae_pt *pt = NULL, *last = NULL, *tmp;
-	int default_groups[] = { 19, 0 };
+	const int default_groups[] = { 19, 0 };
 	int i;
 
 	if (!groups)
