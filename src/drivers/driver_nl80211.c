@@ -10167,7 +10167,7 @@ static int nl80211_set_legacy_rates(struct i802_bss *bss,
 				goto fail;
 		case WIFI_MODE_EHT:
 		default:
-			/* Nothing to disable */
+			/* Nothing to disable */;
 		}
 	}
 
