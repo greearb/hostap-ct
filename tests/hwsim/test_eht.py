@@ -157,7 +157,8 @@ def test_prefer_eht_20(dev, apdev):
     if est != "172103":
       raise Exception("Unexpected BSS1 est_throughput: " + est)
 
-def start_eht_sae_ap(apdev, ml=False, transition_mode=False):
+def start_eht_sae_ap(apdev, ml=False, transition_mode=False,
+                     anti_clogging_token=False):
     params = hostapd.wpa2_params(ssid="eht", passphrase="12345678")
     params["ieee80211ax"] = "1"
     params["ieee80211be"] = "1"
@@ -169,6 +170,8 @@ def start_eht_sae_ap(apdev, ml=False, transition_mode=False):
     params['wpa_key_mgmt'] = "SAE SAE-EXT-KEY WPA-PSK WPA-PSK-SHA256" if transition_mode else 'SAE-EXT-KEY'
     params['sae_groups'] = "19 20" if transition_mode else "20"
     params['sae_pwe'] = "2" if transition_mode else "1"
+    if anti_clogging_token:
+        params['sae_anti_clogging_threshold'] = '0'
     if ml:
         ml_elem = "ff0d6b" + "3001" + "0a" + "021122334455" + "01" + "00" + "00"
         params['vendor_elements'] = ml_elem
@@ -239,6 +242,22 @@ def test_eht_sae_mlo_tm(dev, apdev):
         dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
         dev[1].set("sae_groups", "")
+
+def test_eht_sae_mlo_anti_clogging_token(dev, apdev):
+    """EHT+MLO AP with SAE and anti-clogging token"""
+    check_sae_capab(dev[0])
+
+    hapd = start_eht_sae_ap(apdev[0], ml=True, anti_clogging_token=True)
+    try:
+        dev[0].set("sae_groups", "20")
+        dev[0].set("sae_pwe", "2")
+        dev[0].connect("eht", key_mgmt="SAE-EXT-KEY", psk="12345678",
+                       ieee80211w="2", beacon_prot="1",
+                       pairwise="GCMP-256", group="GCMP-256",
+                       group_mgmt="BIP-GMAC-256", scan_freq="2412")
+    finally:
+        dev[0].set("sae_groups", "")
+        dev[0].set("sae_pwe", "0")
 
 def eht_mld_enable_ap(iface, link_id, params):
     hapd = hostapd.add_mld_link(iface, link_id, params)
@@ -440,6 +459,13 @@ def test_eht_mld_owe_two_links_only_one_negotiated(dev, apdev):
 
 def test_eht_mld_sae_single_link(dev, apdev):
     """EHT MLD AP with MLD client SAE H2E connection using single link"""
+    run_eht_mld_sae_single_link(dev, apdev)
+
+def test_eht_mld_sae_single_link_anti_clogging_token(dev, apdev):
+    """EHT MLD AP with MLD client SAE H2E connection using single link and SAE anti-clogging token"""
+    run_eht_mld_sae_single_link(dev, apdev, anti_clogging_token=True)
+
+def run_eht_mld_sae_single_link(dev, apdev, anti_clogging_token=False):
     with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
             HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
         wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
@@ -449,6 +475,8 @@ def test_eht_mld_sae_single_link(dev, apdev):
         ssid = "mld_ap_sae_single_link"
         params = eht_mld_ap_wpa2_params(ssid, passphrase, key_mgmt="SAE",
                                         mfp="2", pwe='2')
+        if anti_clogging_token:
+            params['sae_anti_clogging_threshold'] = '0'
 
         hapd0 = eht_mld_enable_ap(hapd_iface, 0, params)
 
