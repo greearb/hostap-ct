@@ -701,7 +701,7 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 	const u8 *spa, *aa;
 	struct ieee802_11_elems elems;
 	const u8 *ie;
-	size_t ie_len;
+	size_t ie_len, kdk_len;
 
 	if (sta->auth_alg != WLAN_AUTH_FT ||
 	    len < IEEE80211_HDRLEN + sizeof(mgmt->u.auth))
@@ -728,6 +728,12 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 		sta->pairwise_cipher = parse.pairwise_cipher;
 		if (parse.fte_snonce)
 			os_memcpy(sta->snonce, parse.fte_snonce, WPA_NONCE_LEN);
+		if (elems.rsnxe) {
+			os_memcpy(sta->rsnxe, elems.rsnxe, elems.rsnxe_len);
+			sta->rsnxe_len = elems.rsnxe_len;
+		} else {
+			sta->rsnxe_len = 0;
+		}
 		goto out;
 	}
 
@@ -775,11 +781,19 @@ static void process_ft_auth(struct wlantest *wt, struct wlantest_bss *bss,
 		goto out;
 	sta->pmk_r1_len = sta->pmk_r0_len;
 
+	if (ieee802_11_rsnx_capab_len(bss->rsnxe, bss->rsnxe_len,
+				      WLAN_RSNX_CAPAB_SECURE_LTF) &&
+	    ieee802_11_rsnx_capab_len(sta->rsnxe, sta->rsnxe_len,
+				      WLAN_RSNX_CAPAB_SECURE_LTF))
+		kdk_len = WPA_KDK_MAX_LEN;
+	else
+		kdk_len = 0;
+
 	if (!parse.fte_anonce || !parse.fte_snonce ||
 	    wpa_pmk_r1_to_ptk(sta->pmk_r1, sta->pmk_r1_len, parse.fte_snonce,
 			      parse.fte_anonce, spa, aa,
 			      sta->pmk_r1_name, &ptk, ptk_name, sta->key_mgmt,
-			      sta->pairwise_cipher, 0) < 0)
+			      sta->pairwise_cipher, kdk_len) < 0)
 		goto out;
 
 	sta_new_ptk(wt, sta, &ptk);
@@ -2603,6 +2617,13 @@ static void rx_mgmt_action_ft_request(struct wlantest *wt,
 	sta->ft_over_ds = true;
 	sta->key_mgmt = parse.key_mgmt;
 	sta->pairwise_cipher = parse.pairwise_cipher;
+	if (parse.rsnxe) {
+		os_memcpy(sta->rsnxe, parse.rsnxe, parse.rsnxe_len);
+		sta->rsnxe_len = parse.rsnxe_len;
+	} else {
+		sta->rsnxe_len = 0;
+	}
+
 out:
 	wpa_ft_parse_ies_free(&parse);
 }
@@ -2617,7 +2638,7 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 	struct wlantest_sta *new_sta;
 	const u8 *spa, *aa;
 	const u8 *ies;
-	size_t ies_len;
+	size_t ies_len, kdk_len;
 	struct wpa_ft_ies parse;
 	struct wpa_ptk ptk;
 	u8 ptk_name[WPA_PMK_NAME_LEN];
@@ -2680,12 +2701,21 @@ static void rx_mgmt_action_ft_response(struct wlantest *wt,
 	new_sta->pmk_r1_len = sta->pmk_r1_len;
 	os_memcpy(new_sta->pmk_r1_name, sta->pmk_r1_name,
 		  sizeof(sta->pmk_r1_name));
+
+	if (ieee802_11_rsnx_capab_len(bss->rsnxe, bss->rsnxe_len,
+				      WLAN_RSNX_CAPAB_SECURE_LTF) &&
+	    ieee802_11_rsnx_capab_len(sta->rsnxe, sta->rsnxe_len,
+				      WLAN_RSNX_CAPAB_SECURE_LTF))
+		kdk_len = WPA_KDK_MAX_LEN;
+	else
+		kdk_len = 0;
+
 	if (!parse.fte_anonce || !parse.fte_snonce ||
 	    wpa_pmk_r1_to_ptk(sta->pmk_r1, sta->pmk_r1_len, parse.fte_snonce,
 			      parse.fte_anonce, spa, aa,
 			      sta->pmk_r1_name, &ptk, ptk_name,
 			      new_sta->key_mgmt, new_sta->pairwise_cipher,
-			      0) < 0)
+			      kdk_len) < 0)
 		goto out;
 
 	sta_new_ptk(wt, new_sta, &ptk);
