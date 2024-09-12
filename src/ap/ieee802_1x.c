@@ -1252,6 +1252,27 @@ void ieee802_1x_receive(struct hostapd_data *hapd, const u8 *sa, const u8 *buf,
 		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE8021X,
 			       HOSTAPD_LEVEL_DEBUG,
 			       "received EAPOL-Start from STA");
+#ifdef CONFIG_IEEE80211R_AP
+		if (hapd->conf->wpa && sta->wpa_sm &&
+		    (wpa_key_mgmt_ft(wpa_auth_sta_key_mgmt(sta->wpa_sm)) ||
+		     sta->auth_alg == WLAN_AUTH_FT)) {
+			/* When FT is used, reauthentication to generate a new
+			 * PMK-R0 would be complicated since the current AP
+			 * might not be the one with which the currently used
+			 * PMK-R0 was generated. IEEE Std 802.11-2020, 13.4.2
+			 * (FT initial mobility domain association in an RSN)
+			 * mandates STA to perform a new FT initial mobility
+			 * domain association whenever its Supplicant would
+			 * trigger sending of an EAPOL-Start frame. As such,
+			 * this EAPOL-Start frame should not have been sent.
+			 * Discard it to avoid unexpected behavior. */
+			hostapd_logger(hapd, sta->addr,
+				       HOSTAPD_MODULE_IEEE8021X,
+				       HOSTAPD_LEVEL_DEBUG,
+				       "discard unexpected EAPOL-Start from STA that uses FT");
+			break;
+		}
+#endif /* CONFIG_IEEE80211R_AP */
 		sta->eapol_sm->flags &= ~EAPOL_SM_WAIT_START;
 		pmksa = wpa_auth_sta_get_pmksa(sta->wpa_sm);
 		if (pmksa) {
