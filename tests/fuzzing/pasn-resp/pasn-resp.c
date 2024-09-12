@@ -74,7 +74,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
 	wpa_printf(MSG_DEBUG, "TESTING: Try to parse as PASN Auth 1");
 	if (handle_auth_pasn_1(&pasn, own_addr, bssid,
-			       (const struct ieee80211_mgmt *) data, size))
+			       (const struct ieee80211_mgmt *) data, size,
+			       false))
 		wpa_printf(MSG_ERROR, "handle_auth_pasn_1 failed");
 
 	wpa_printf(MSG_DEBUG, "TESTING: Try to parse as PASN Auth 3");
