@@ -13618,12 +13618,10 @@ static int nl80211_nan_flush(void *priv)
 	nla_nest_end(msg, container);
 
 	ret = send_and_recv_cmd(drv, msg);
-	if (ret) {
+	if (ret)
 		wpa_printf(MSG_ERROR,
 			   "nl80211: Failed to send NAN USD flush");
-		goto fail;
-	}
-	return 0;
+	return ret;
 
 fail:
 	nlmsg_free(msg);
@@ -13687,12 +13685,10 @@ static int nl80211_nan_publish(void *priv, const u8 *src, int publish_id,
 
 	nla_nest_end(msg, container);
 	ret = send_and_recv_cmd(drv, msg);
-	if (ret) {
+	if (ret)
 		wpa_printf(MSG_ERROR,
 			   "nl80211: Failed to send NAN USD publish");
-		goto fail;
-	}
-	return 0;
+	return ret;
 
 fail:
 	nlmsg_free(msg);
@@ -13730,12 +13726,10 @@ static int nl80211_nan_cancel_publish(void *priv, int publish_id)
 	nla_nest_end(msg, container);
 
 	ret = send_and_recv_cmd(drv, msg);
-	if (ret) {
+	if (ret)
 		wpa_printf(MSG_ERROR,
 			   "nl80211: Failed to send NAN USD cancel publish");
-		goto fail;
-	}
-	return 0;
+	return ret;
 
 fail:
 	nlmsg_free(msg);
@@ -13776,12 +13770,10 @@ static int nl80211_nan_update_publish(void *priv, int publish_id,
 
 	nla_nest_end(msg, container);
 	ret = send_and_recv_cmd(drv, msg);
-	if (ret) {
+	if (ret)
 		wpa_printf(MSG_ERROR,
 			   "nl80211: Failed to send NAN USD update publish");
-		goto fail;
-	}
-	return 0;
+	return ret;
 
 fail:
 	nlmsg_free(msg);
@@ -13845,12 +13837,10 @@ static int nl80211_nan_subscribe(void *priv, const u8 *src, int subscribe_id,
 
 	nla_nest_end(msg, container);
 	ret = send_and_recv_cmd(drv, msg);
-	if (ret) {
+	if (ret)
 		wpa_printf(MSG_ERROR,
 			   "nl80211: Failed to send NAN USD subscribe");
-		goto fail;
-	}
-	return 0;
+	return ret;
 
 fail:
 	nlmsg_free(msg);
@@ -13886,12 +13876,10 @@ static int nl80211_nan_cancel_subscribe(void *priv, int subscribe_id)
 	nla_nest_end(msg, container);
 
 	ret = send_and_recv_cmd(drv, msg);
-	if (ret) {
+	if (ret)
 		wpa_printf(MSG_ERROR,
 			   "nl80211: Failed to send NAN USD cancel subscribe");
-		goto fail;
-	}
-	return 0;
+	return ret;
 
 fail:
 	nlmsg_free(msg);
