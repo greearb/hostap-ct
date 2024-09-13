@@ -5540,7 +5540,8 @@ static void wpas_event_rx_mgmt_action(struct wpa_supplicant *wpa_s,
 	    WPA_GET_BE32(&payload[1]) == NAN_SDF_VENDOR_TYPE) {
 		payload += 5;
 		plen -= 5;
-		wpas_nan_usd_rx_sdf(wpa_s, mgmt->sa, freq, payload, plen);
+		wpas_nan_usd_rx_sdf(wpa_s, mgmt->sa, mgmt->bssid, freq,
+				    payload, plen);
 		return;
 	}
 #endif /* CONFIG_NAN_USD */

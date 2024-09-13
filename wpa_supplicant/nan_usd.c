@@ -282,11 +282,11 @@ static void wpas_nan_de_subscribe_terminated(void *ctx, int subscribe_id,
 
 static void wpas_nan_de_receive(void *ctx, int id, int peer_instance_id,
 				const u8 *ssi, size_t ssi_len,
-				const u8 *peer_addr)
+				const u8 *peer_addr, const u8 *a3)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 
-	wpas_notify_nan_receive(wpa_s, id, peer_instance_id, peer_addr,
+	wpas_notify_nan_receive(wpa_s, id, peer_instance_id, peer_addr, a3,
 				ssi, ssi_len);
 }
 
@@ -336,11 +336,12 @@ void wpas_nan_usd_deinit(struct wpa_supplicant *wpa_s)
 
 
 void wpas_nan_usd_rx_sdf(struct wpa_supplicant *wpa_s, const u8 *src,
+			 const u8 *a3,
 			 unsigned int freq, const u8 *buf, size_t len)
 {
 	if (!wpa_s->nan_de)
 		return;
-	nan_de_rx_sdf(wpa_s->nan_de, src, freq, buf, len);
+	nan_de_rx_sdf(wpa_s->nan_de, src, a3, freq, buf, len);
 }
 
 
@@ -466,11 +467,11 @@ void wpas_nan_usd_cancel_subscribe(struct wpa_supplicant *wpa_s,
 
 int wpas_nan_usd_transmit(struct wpa_supplicant *wpa_s, int handle,
 			  const struct wpabuf *ssi, const struct wpabuf *elems,
-			  const u8 *peer_addr, u8 req_instance_id)
+			  const u8 *peer_addr, const u8 *a3, u8 req_instance_id)
 {
 	if (!wpa_s->nan_de)
 		return -1;
-	return nan_de_transmit(wpa_s->nan_de, handle, ssi, elems, peer_addr,
+	return nan_de_transmit(wpa_s->nan_de, handle, ssi, elems, peer_addr, a3,
 			       req_instance_id);
 }
 

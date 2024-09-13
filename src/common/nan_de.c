@@ -18,8 +18,6 @@
 
 static const u8 nan_network_id[ETH_ALEN] =
 { 0x51, 0x6f, 0x9a, 0x01, 0x00, 0x00 };
-static const u8 wildcard_bssid[ETH_ALEN] =
-{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
 enum nan_de_service_type {
 	NAN_DE_PUBLISH,
@@ -212,7 +210,7 @@ static int nan_de_tx(struct nan_de *de, unsigned int freq,
 static void nan_de_tx_sdf(struct nan_de *de, struct nan_de_service *srv,
 			  unsigned int wait_time,
 			  enum nan_service_control_type type,
-			  const u8 *dst, u8 req_instance_id,
+			  const u8 *dst, const u8 *a3, u8 req_instance_id,
 			  const struct wpabuf *ssi)
 {
 	struct wpabuf *buf;
@@ -274,10 +272,7 @@ static void nan_de_tx_sdf(struct nan_de *de, struct nan_de_service *srv,
 		wpabuf_put_buf(buf, srv->elems);
 	}
 
-	/* Wi-Fi Aware specification v4.0 uses NAN Cluster ID as A3 for USD,
-	 * but there is no synchronization in USD as as such, no NAN Cluster
-	 * either. Use Wildcard BSSID instead. */
-	nan_de_tx(de, srv->freq, wait_time, dst, de->nmi, wildcard_bssid, buf);
+	nan_de_tx(de, srv->freq, wait_time, dst, de->nmi, a3, buf);
 	wpabuf_free(buf);
 }
 
@@ -358,7 +353,7 @@ static void nan_de_tx_multicast(struct nan_de *de, struct nan_de_service *srv,
 		return;
 	}
 
-	nan_de_tx_sdf(de, srv, wait_time, type, nan_network_id,
+	nan_de_tx_sdf(de, srv, wait_time, type, nan_network_id, nan_network_id,
 		      req_instance_id, srv->ssi);
 	os_get_reltime(&srv->last_multicast);
 }
@@ -812,7 +807,7 @@ static void nan_de_process_elem_container(struct nan_de *de, const u8 *buf,
 
 
 static void nan_de_rx_publish(struct nan_de *de, struct nan_de_service *srv,
-			      const u8 *peer_addr, u8 instance_id,
+			      const u8 *peer_addr, const u8 *a3, u8 instance_id,
 			      u8 req_instance_id, u16 sdea_control,
 			      enum nan_service_protocol_type srv_proto_type,
 			      const u8 *ssi, size_t ssi_len)
@@ -834,7 +829,7 @@ static void nan_de_rx_publish(struct nan_de *de, struct nan_de_service *srv,
 		/* Passive subscriber replies with a Follow-up message without
 		 * Service Specific Info field if it received a matching
 		 * unsolicited Publish message. */
-		nan_de_transmit(de, srv->id, NULL, NULL, peer_addr,
+		nan_de_transmit(de, srv->id, NULL, NULL, peer_addr, a3,
 				instance_id);
 	}
 
@@ -883,7 +878,8 @@ static bool nan_de_filter_match(struct nan_de_service *srv,
 
 
 static void nan_de_rx_subscribe(struct nan_de *de, struct nan_de_service *srv,
-				const u8 *peer_addr, u8 instance_id,
+				const u8 *peer_addr, const u8 *a3,
+				u8 instance_id,
 				const u8 *matching_filter,
 				size_t matching_filter_len,
 				enum nan_service_protocol_type srv_proto_type,
@@ -969,12 +965,12 @@ static void nan_de_rx_subscribe(struct nan_de *de, struct nan_de_service *srv,
 		wpabuf_put_buf(buf, srv->elems);
 	}
 
-	/* Wi-Fi Aware specification v4.0 uses NAN Cluster ID as A3 for USD,
-	 * but there is no synchronization in USD as as such, no NAN Cluster
-	 * either. Use Wildcard BSSID instead. */
+	if (srv->publish.solicited_multicast || !a3)
+		a3 = nan_network_id;
+
 	nan_de_tx(de, srv->freq, 100,
 		  srv->publish.solicited_multicast ? nan_network_id : peer_addr,
-		  de->nmi, wildcard_bssid, buf);
+		  de->nmi, a3, buf);
 	wpabuf_free(buf);
 
 	nan_de_pause_state(srv, peer_addr, instance_id);
@@ -987,8 +983,8 @@ offload:
 
 
 static void nan_de_rx_follow_up(struct nan_de *de, struct nan_de_service *srv,
-				const u8 *peer_addr, u8 instance_id,
-				const u8 *ssi, size_t ssi_len)
+				const u8 *peer_addr, const u8 *a3,
+				u8 instance_id, const u8 *ssi, size_t ssi_len)
 {
 	/* Follow-up function processing of a receive Follow-up message for a
 	 * Subscribe or Publish instance */
@@ -1010,11 +1006,11 @@ static void nan_de_rx_follow_up(struct nan_de *de, struct nan_de_service *srv,
 
 	if (de->cb.receive)
 		de->cb.receive(de->cb.ctx, srv->id, instance_id, ssi, ssi_len,
-			       peer_addr);
+			       peer_addr, a3);
 }
 
 
-static void nan_de_rx_sda(struct nan_de *de, const u8 *peer_addr,
+static void nan_de_rx_sda(struct nan_de *de, const u8 *peer_addr, const u8 *a3,
 			  unsigned int freq, const u8 *buf, size_t len,
 			  const u8 *sda, size_t sda_len)
 {
@@ -1141,20 +1137,20 @@ static void nan_de_rx_sda(struct nan_de *de, const u8 *peer_addr,
 
 		switch (type) {
 		case NAN_SRV_CTRL_PUBLISH:
-			nan_de_rx_publish(de, srv, peer_addr, instance_id,
+			nan_de_rx_publish(de, srv, peer_addr, a3, instance_id,
 					  req_instance_id,
 					  sdea_control, srv_proto_type,
 					  ssi, ssi_len);
 			break;
 		case NAN_SRV_CTRL_SUBSCRIBE:
-			nan_de_rx_subscribe(de, srv, peer_addr, instance_id,
+			nan_de_rx_subscribe(de, srv, peer_addr, a3, instance_id,
 					    matching_filter,
 					    matching_filter_len,
 					    srv_proto_type,
 					    ssi, ssi_len);
 			break;
 		case NAN_SRV_CTRL_FOLLOW_UP:
-			nan_de_rx_follow_up(de, srv, peer_addr, instance_id,
+			nan_de_rx_follow_up(de, srv, peer_addr, a3, instance_id,
 					    ssi, ssi_len);
 			break;
 		}
@@ -1162,8 +1158,8 @@ static void nan_de_rx_sda(struct nan_de *de, const u8 *peer_addr,
 }
 
 
-void nan_de_rx_sdf(struct nan_de *de, const u8 *peer_addr, unsigned int freq,
-		   const u8 *buf, size_t len)
+void nan_de_rx_sdf(struct nan_de *de, const u8 *peer_addr, const u8 *a3,
+		   unsigned int freq, const u8 *buf, size_t len)
 {
 	const u8 *sda;
 	u16 sda_len;
@@ -1185,7 +1181,7 @@ void nan_de_rx_sdf(struct nan_de *de, const u8 *peer_addr, unsigned int freq,
 		sda++;
 		sda_len = WPA_GET_LE16(sda);
 		sda += 2;
-		nan_de_rx_sda(de, peer_addr, freq, buf, len, sda, sda_len);
+		nan_de_rx_sda(de, peer_addr, a3, freq, buf, len, sda, sda_len);
 	}
 }
 
@@ -1445,7 +1441,7 @@ void nan_de_cancel_subscribe(struct nan_de *de, int subscribe_id)
 
 int nan_de_transmit(struct nan_de *de, int handle,
 		    const struct wpabuf *ssi, const struct wpabuf *elems,
-		    const u8 *peer_addr, u8 req_instance_id)
+		    const u8 *peer_addr, const u8 *a3, u8 req_instance_id)
 {
 	struct nan_de_service *srv;
 
@@ -1456,8 +1452,10 @@ int nan_de_transmit(struct nan_de *de, int handle,
 	if (!srv)
 		return -1;
 
+	if (!a3)
+		a3 = nan_network_id;
 	nan_de_tx_sdf(de, srv, 100, NAN_SRV_CTRL_FOLLOW_UP,
-		      peer_addr, req_instance_id, ssi);
+		      peer_addr, a3, req_instance_id, ssi);
 
 	os_get_reltime(&srv->last_followup);
 	return 0;

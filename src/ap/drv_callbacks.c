@@ -1788,8 +1788,8 @@ static void hostapd_action_rx(struct hostapd_data *hapd,
 		pos = mgmt->u.action.u.vs_public_action.variable;
 		end = drv_mgmt->frame + drv_mgmt->frame_len;
 		pos++;
-		hostapd_nan_usd_rx_sdf(hapd, mgmt->sa, drv_mgmt->freq,
-				       pos, end - pos);
+		hostapd_nan_usd_rx_sdf(hapd, mgmt->sa, mgmt->bssid,
+				       drv_mgmt->freq, pos, end - pos);
 		return;
 	}
 #endif /* CONFIG_NAN_USD */
