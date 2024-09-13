@@ -1725,6 +1725,28 @@ static int sme_sae_auth(struct wpa_supplicant *wpa_s, u16 auth_transaction,
 				return -1;
 			}
 			token_len = elen - 1;
+#ifdef CONFIG_IEEE80211BE
+		} else if (wpa_s->valid_links && token_len > 12 &&
+			   token_pos[token_len - 12] == WLAN_EID_EXTENSION &&
+			   token_pos[token_len - 11] == 10 &&
+			   token_pos[token_len - 10] ==
+			   WLAN_EID_EXT_MULTI_LINK) {
+			/* IEEE P802.11be requires H2E to be used whenever SAE
+			 * is used for ML association. However, some early
+			 * Wi-Fi 7 APs enable MLO without H2E. Recognize this
+			 * special case based on the fixed length Basic
+			 * Multi-Link element being at the end of the data that
+			 * would contain the unknown variable length
+			 * Anti-Clogging Token field. The Basic Multi-Link
+			 * element in Authentication frames include the MLD MAC
+			 * addreess in the Common Info field and all subfields
+			 * of the Presence Bitmap subfield of the Multi-Link
+			 * Control field of the element zero and consequently,
+			 * has a fixed length of 12 octets. */
+			wpa_printf(MSG_DEBUG,
+				   "SME: Detected Basic Multi-Link element at the end of Anti-Clogging Token field");
+			token_len -= 12;
+#endif /* CONFIG_IEEE80211BE */
 		}
 
 		*ie_offset = token_pos + token_len - data;
