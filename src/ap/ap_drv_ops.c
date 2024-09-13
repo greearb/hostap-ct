@@ -918,7 +918,8 @@ int hostapd_drv_wnm_oper(struct hostapd_data *hapd, enum wnm_oper oper,
 
 static int hapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
 				unsigned int wait, const u8 *dst,
-				const u8 *data, size_t len, bool addr3_ap)
+				const u8 *data, size_t len, bool addr3_ap,
+				const u8 *forced_a3)
 {
 	const u8 *own_addr = hapd->own_addr;
 	const u8 *bssid;
@@ -930,8 +931,10 @@ static int hapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
 	if (!hapd->driver || !hapd->driver->send_action || !hapd->drv_priv)
 		return 0;
 	bssid = hapd->own_addr;
-	if (!addr3_ap && !is_multicast_ether_addr(dst) &&
-	    len > 0 && data[0] == WLAN_ACTION_PUBLIC) {
+	if (forced_a3) {
+		bssid = forced_a3;
+	} else if (!addr3_ap && !is_multicast_ether_addr(dst) &&
+		   len > 0 && data[0] == WLAN_ACTION_PUBLIC) {
 		/*
 		 * Public Action frames to a STA that is not a member of the BSS
 		 * shall use wildcard BSSID value.
@@ -968,7 +971,8 @@ int hostapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
 			    unsigned int wait, const u8 *dst, const u8 *data,
 			    size_t len)
 {
-	return hapd_drv_send_action(hapd, freq, wait, dst, data, len, false);
+	return hapd_drv_send_action(hapd, freq, wait, dst, data, len, false,
+				    NULL);
 }
 
 
@@ -977,7 +981,19 @@ int hostapd_drv_send_action_addr3_ap(struct hostapd_data *hapd,
 				     unsigned int wait, const u8 *dst,
 				     const u8 *data, size_t len)
 {
-	return hapd_drv_send_action(hapd, freq, wait, dst, data, len, true);
+	return hapd_drv_send_action(hapd, freq, wait, dst, data, len, true,
+				    NULL);
+}
+
+
+int hostapd_drv_send_action_forced_addr3(struct hostapd_data *hapd,
+					 unsigned int freq,
+					 unsigned int wait, const u8 *dst,
+					 const u8 *a3,
+					 const u8 *data, size_t len)
+{
+	return hapd_drv_send_action(hapd, freq, wait, dst, data, len, false,
+				    a3);
 }
 
 

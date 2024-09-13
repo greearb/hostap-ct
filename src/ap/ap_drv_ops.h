@@ -116,6 +116,11 @@ int hostapd_drv_send_action_addr3_ap(struct hostapd_data *hapd,
 				     unsigned int freq,
 				     unsigned int wait, const u8 *dst,
 				     const u8 *data, size_t len);
+int hostapd_drv_send_action_forced_addr3(struct hostapd_data *hapd,
+					 unsigned int freq,
+					 unsigned int wait, const u8 *dst,
+					 const u8 *a3,
+					 const u8 *data, size_t len);
 static inline void
 hostapd_drv_send_action_cancel_wait(struct hostapd_data *hapd)
 {
