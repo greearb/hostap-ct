@@ -59,6 +59,7 @@ struct nan_callbacks {
 				      unsigned int freq);
 };
 
+bool nan_de_is_nan_network_id(const u8 *addr);
 struct nan_de * nan_de_init(const u8 *nmi, bool offload, bool ap,
 			    const struct nan_callbacks *cb);
 void nan_de_flush(struct nan_de *de);

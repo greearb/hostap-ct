@@ -26,6 +26,7 @@
 #include "common/wpa_common.h"
 #include "common/wpa_ctrl.h"
 #include "common/ptksa_cache.h"
+#include "common/nan_de.h"
 #include "radius/radius.h"
 #include "radius/radius_client.h"
 #include "p2p/p2p.h"
@@ -6295,6 +6296,9 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 	}
 
 	if (!is_broadcast_ether_addr(mgmt->bssid) &&
+#ifdef CONFIG_NAN_USD
+	    !nan_de_is_nan_network_id(mgmt->bssid) &&
+#endif /* CONFIG_NAN_USD */
 #ifdef CONFIG_P2P
 	    /* Invitation responses can be sent with the peer MAC as BSSID */
 	    !((hapd->conf->p2p & P2P_GROUP_OWNER) &&
