@@ -35,8 +35,7 @@ void wpas_nan_usd_cancel_subscribe(struct wpa_supplicant *wpa_s,
 				   int subscribe_id);
 int wpas_nan_usd_transmit(struct wpa_supplicant *wpa_s, int handle,
 			  const struct wpabuf *ssi, const struct wpabuf *elems,
-			  const u8 *peer_addr, const u8 *a3,
-			  u8 req_instance_id);
+			  const u8 *peer_addr, u8 req_instance_id);
 void wpas_nan_usd_remain_on_channel_cb(struct wpa_supplicant *wpa_s,
 				       unsigned int freq,
 				       unsigned int duration);

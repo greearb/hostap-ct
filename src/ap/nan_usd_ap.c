@@ -129,7 +129,7 @@ static void hostapd_nan_de_subscribe_terminated(void *ctx, int subscribe_id,
 
 static void hostapd_nan_de_receive(void *ctx, int id, int peer_instance_id,
 				   const u8 *ssi, size_t ssi_len,
-				   const u8 *peer_addr, const u8 *a3)
+				   const u8 *peer_addr)
 {
 	struct hostapd_data *hapd = ctx;
 	char *ssi_hex;
@@ -140,9 +140,8 @@ static void hostapd_nan_de_receive(void *ctx, int id, int peer_instance_id,
 	if (ssi)
 		wpa_snprintf_hex(ssi_hex, 2 * ssi_len + 1, ssi, ssi_len);
 	wpa_msg(hapd->msg_ctx, MSG_INFO, NAN_RECEIVE
-		"id=%d peer_instance_id=%d address=" MACSTR " a3=" MACSTR
-		" ssi=%s",
-		id, peer_instance_id, MAC2STR(peer_addr), MAC2STR(a3), ssi_hex);
+		"id=%d peer_instance_id=%d address=" MACSTR " ssi=%s",
+		id, peer_instance_id, MAC2STR(peer_addr), ssi_hex);
 	os_free(ssi_hex);
 }
 
@@ -262,11 +261,11 @@ void hostapd_nan_usd_cancel_subscribe(struct hostapd_data *hapd,
 int hostapd_nan_usd_transmit(struct hostapd_data *hapd, int handle,
 			     const struct wpabuf *ssi,
 			     const struct wpabuf *elems,
-			     const u8 *peer_addr, const u8 *a3,
+			     const u8 *peer_addr,
 			     u8 req_instance_id)
 {
 	if (!hapd->nan_de)
 		return -1;
-	return nan_de_transmit(hapd->nan_de, handle, ssi, elems, peer_addr, a3,
+	return nan_de_transmit(hapd->nan_de, handle, ssi, elems, peer_addr,
 			       req_instance_id);
 }

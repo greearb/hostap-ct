@@ -192,7 +192,6 @@ void wpas_notify_nan_replied(struct wpa_supplicant *wpa_s,
 			     const u8 *ssi, size_t ssi_len);
 void wpas_notify_nan_receive(struct wpa_supplicant *wpa_s, int id,
 			     int peer_instance_id, const u8 *peer_addr,
-			     const u8 *a3,
 			     const u8 *ssi, size_t ssi_len);
 void wpas_notify_nan_publish_terminated(struct wpa_supplicant *wpa_s,
 					int publish_id,

@@ -36,8 +36,7 @@ void hostapd_nan_usd_cancel_subscribe(struct hostapd_data *hapd,
 int hostapd_nan_usd_transmit(struct hostapd_data *hapd, int handle,
 			     const struct wpabuf *ssi,
 			     const struct wpabuf *elems,
-			     const u8 *peer_addr, const u8 *a3,
-			     u8 req_instance_id);
+			     const u8 *peer_addr, u8 req_instance_id);
 void hostapd_nan_usd_remain_on_channel_cb(struct hostapd_data *hapd,
 					  unsigned int freq,
 					  unsigned int duration);

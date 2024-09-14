@@ -52,7 +52,7 @@ struct nan_callbacks {
 
 	void (*receive)(void *ctx, int id, int peer_instance_id,
 			const u8 *ssi, size_t ssi_len,
-			const u8 *peer_addr, const u8 *a3);
+			const u8 *peer_addr);
 
 	void (*process_p2p_usd_elems)(void *ctx, const u8 *buf,
 				      u16 buf_len, const u8 *peer_addr,
@@ -149,6 +149,6 @@ void nan_de_cancel_subscribe(struct nan_de *de, int subscribe_id);
  * req_instance_id = peer publish_id or subscribe_id */
 int nan_de_transmit(struct nan_de *de, int handle,
 		    const struct wpabuf *ssi, const struct wpabuf *elems,
-		    const u8 *peer_addr, const u8 *a3, u8 req_instance_id);
+		    const u8 *peer_addr, u8 req_instance_id);
 
 #endif /* NAN_DE_H */

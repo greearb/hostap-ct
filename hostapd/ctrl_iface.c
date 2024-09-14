@@ -3976,12 +3976,10 @@ static int hostapd_ctrl_nan_transmit(struct hostapd_data *hapd, char *cmd)
 	int handle = 0;
 	int req_instance_id = 0;
 	struct wpabuf *ssi = NULL;
-	u8 peer_addr[ETH_ALEN], a3[ETH_ALEN];
+	u8 peer_addr[ETH_ALEN];
 	int ret = -1;
-	bool a3_set = false;
 
 	os_memset(peer_addr, 0, ETH_ALEN);
-	os_memset(a3, 0, ETH_ALEN);
 
 	while ((token = str_token(cmd, " ", &context))) {
 		if (sscanf(token, "handle=%i", &handle) == 1)
@@ -3993,13 +3991,6 @@ static int hostapd_ctrl_nan_transmit(struct hostapd_data *hapd, char *cmd)
 		if (os_strncmp(token, "address=", 8) == 0) {
 			if (hwaddr_aton(token + 8, peer_addr) < 0)
 				return -1;
-			continue;
-		}
-
-		if (os_strncmp(token, "a3=", 3) == 0) {
-			if (hwaddr_aton(token + 3, a3) < 0)
-				return -1;
-			a3_set = true;
 			continue;
 		}
 
@@ -4031,7 +4022,7 @@ static int hostapd_ctrl_nan_transmit(struct hostapd_data *hapd, char *cmd)
 	}
 
 	ret = hostapd_nan_usd_transmit(hapd, handle, ssi, NULL, peer_addr,
-				       a3_set ? a3 : NULL, req_instance_id);
+				       req_instance_id);
 fail:
 	wpabuf_free(ssi);
 	return ret;

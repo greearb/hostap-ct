@@ -1121,7 +1121,6 @@ void wpas_notify_nan_replied(struct wpa_supplicant *wpa_s,
 
 void wpas_notify_nan_receive(struct wpa_supplicant *wpa_s, int id,
 			     int peer_instance_id, const u8 *peer_addr,
-			     const u8 *a3,
 			     const u8 *ssi, size_t ssi_len)
 {
 	char *ssi_hex;
@@ -1132,9 +1131,8 @@ void wpas_notify_nan_receive(struct wpa_supplicant *wpa_s, int id,
 	if (ssi)
 		wpa_snprintf_hex(ssi_hex, 2 * ssi_len + 1, ssi, ssi_len);
 	wpa_msg(wpa_s, MSG_INFO, NAN_RECEIVE
-		"id=%d peer_instance_id=%d address=" MACSTR " a3=" MACSTR
-		" ssi=%s",
-		id, peer_instance_id, MAC2STR(peer_addr), MAC2STR(a3), ssi_hex);
+		"id=%d peer_instance_id=%d address=" MACSTR " ssi=%s",
+		id, peer_instance_id, MAC2STR(peer_addr), ssi_hex);
 	os_free(ssi_hex);
 }
 
