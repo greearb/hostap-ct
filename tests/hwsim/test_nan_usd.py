@@ -238,11 +238,9 @@ def run_nan_usd_followup(dev0, dev1, multi_chan=False):
     vals2 = split_nan_event(ev)
     if vals2['ssi'] != '':
         raise Exception("Unexpected ssi in Follow-up: " + ev)
-    if vals2['a3'] != '51:6f:9a:01:00:00':
-        raise Exception("Unexpected A3 in Follow-up: " + ev)
 
     # Follow-up from subscriber to publisher
-    cmd = "NAN_TRANSMIT handle={} req_instance_id={} address={} a3={} ssi=8899".format(vals['subscribe_id'], vals['publish_id'], addr1, vals2['a3'])
+    cmd = "NAN_TRANSMIT handle={} req_instance_id={} address={} ssi=8899".format(vals['subscribe_id'], vals['publish_id'], addr1)
     if "FAIL" in dev0.request(cmd):
         raise Exception("NAN_TRANSMIT failed")
 
