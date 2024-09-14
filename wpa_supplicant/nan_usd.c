@@ -410,7 +410,7 @@ int wpas_nan_usd_update_publish(struct wpa_supplicant *wpa_s, int publish_id,
 		return -1;
 	ret = nan_de_update_publish(wpa_s->nan_de, publish_id, ssi);
 	if (ret == 0 && (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD) &&
-	    wpas_drv_nan_cancel_publish(wpa_s, publish_id) < 0)
+	    wpas_drv_nan_update_publish(wpa_s, publish_id, ssi) < 0)
 		return -1;
 	return ret;
 }
