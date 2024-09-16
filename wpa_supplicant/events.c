@@ -1723,6 +1723,13 @@ struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 		return NULL;
 	}
 
+	if (wpa_s->conf->freq_list &&
+	    !int_array_includes(wpa_s->conf->freq_list, bss->freq)) {
+		if (debug_print)
+			wpa_dbg(wpa_s, MSG_DEBUG, "  skip - channel disallowed");
+		return NULL;
+	}
+
 	if (wnm_is_bss_excluded(wpa_s, bss)) {
 		if (debug_print)
 			wpa_dbg(wpa_s, MSG_DEBUG, "   skip - BSSID excluded");
