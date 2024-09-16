@@ -678,6 +678,13 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 			goto fail;
 		}
 #endif /* CONFIG_SAE */
+
+		wpa_auth_set_ssid_protection(
+			sta->wpa_sm,
+			hapd->conf->ssid_protection &&
+			ieee802_11_rsnx_capab_len(
+				elems.rsnxe, elems.rsnxe_len,
+				WLAN_RSNX_CAPAB_SSID_PROTECTION));
 	} else if (hapd->conf->wps_state) {
 #ifdef CONFIG_WPS
 		struct wpabuf *wps;
