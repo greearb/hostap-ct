@@ -1298,6 +1298,19 @@ enum qca_radiotap_vendor_ids {
  *
  *	The attributes used with this command are defined in
  *	enum qca_wlan_vendor_attr_chan_usage_req.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_GET_FW_SCAN_REPORT: Vendor subcommand that can be
+ *	used to fetch the current snapshot of scan data stored by firmware
+ *	during the offload scans such as PNO (Preferred Network Offload), RTT,
+ *	and roaming scans when the Apps or host is in suspended state. This scan
+ *	data comprises of only limited information of the scanned BSSs due to
+ *	memory limits of the firmware. The BSS information stored in the
+ *	firmware may not be pushed to the kernel (cfg80211) scan cache after
+ *	Apps or host coming out from suspended state if full Beacon or Probe
+ *	Response frame information is not available.
+ *
+ *	The attributes used with this command are defined in
+ *	enum qca_wlan_vendor_attr_fw_scan_report.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1534,6 +1547,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_CONNECT_EXT = 250,
 	QCA_NL80211_VENDOR_SUBCMD_SET_P2P_MODE = 251,
 	QCA_NL80211_VENDOR_SUBCMD_CHAN_USAGE_REQ = 252,
+	QCA_NL80211_VENDOR_SUBCMD_GET_FW_SCAN_REPORT = 253,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -18397,6 +18411,133 @@ enum qca_wlan_vendor_attr_chan_usage_req {
 	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_MAX =
 	QCA_WLAN_VENDOR_ATTR_CHAN_USAGE_REQ_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_fw_scan_bss_flags - Flags for
+ * %QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_FLAGS
+ *
+ * @QCA_WLAN_FW_SCAN_BSS_HT_OPS: This indicates HT Operation element
+ * (IEEE Std 802.11-2020, 9.4.2.56) is present in the Beacon or Probe Response
+ * frame of the BSS.
+ *
+ * @QCA_WLAN_FW_SCAN_BSS_VHT_OPS: This indicates VHT Operation element
+ * (IEEE Std 802.11-2020, 9.4.2.158) is present in the Beacon or Probe Response
+ * frame of the BSS.
+ *
+ * @QCA_WLAN_FW_SCAN_BSS_HE_OPS: This indicates HE Operation element
+ * (IEEE Std 802.11ax-2021, 9.4.2.249) is present in the Beacon or Probe
+ * Response frame of the BSS.
+ *
+ * @QCA_WLAN_FW_SCAN_BSS_EHT_OPS: This indicates EHT Operation element
+ * (IEEE P802.11be/D7.0, 9.4.2.321) is present in the Beacon or Probe Response
+ * frame of the BSS.
+ *
+ * @QCA_WLAN_FW_SCAN_BSS_FTM_RESPONDER: This indicates Fine Timing Measurement
+ * Responder bit is set to 1 in the Extended Capabilities field of the Extended
+ * Capabilities element (IEEE Std 802.11-2020, 9.4.2.26) in the Beacon or Probe
+ * Response frame of the BSS.
+ *
+ * @NUM_QCA_WLAN_FW_SCAN_BSS_FLAGS: Number of assigned feature bits.
+ */
+enum qca_wlan_fw_scan_bss_flags {
+	QCA_WLAN_FW_SCAN_BSS_HT_OPS = 0,
+	QCA_WLAN_FW_SCAN_BSS_VHT_OPS = 1,
+	QCA_WLAN_FW_SCAN_BSS_HE_OPS = 2,
+	QCA_WLAN_FW_SCAN_BSS_EHT_OPS = 3,
+	QCA_WLAN_FW_SCAN_BSS_FTM_RESPONDER = 4,
+
+	NUM_QCA_WLAN_FW_SCAN_BSS_FLAGS /* keep last */
+};
+
+/* enum qca_wlan_vendor_attr_fw_scan_bss: Attributes used inside
+ * %QCA_WLAN_VENDOR_ATTR_FW_SCAN_REPORT_BSS_LIST nested attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_MS_AGO: Required (u32). Indicates how many
+ * milliseconds ago from %QCA_WLAN_VENDOR_ATTR_FW_SCAN_REPORT_TIMESTAMP this BSS
+ * was last scanned (i.e., Beacon or Probe Response frame received).
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_BSSID: Required (6-byte MAC address). BSSID
+ * of the BSS.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_SSID: Required (binary attribute,
+ * 0..32 octets). SSID of the BSS.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_RSSI: Required (s8). RSSI of the last
+ * received Beacon or Probe Response frame.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_CAPABILITY: Required (CPU byte order, u16).
+ * The Capability Information field from the last received Beacon or Probe
+ * Response frame.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_FLAGS: BSS capability flags contained in a
+ * byte array. The flags are identified by their bit index (see &enum
+ * qca_wlan_fw_scan_bss_flags) with the first byte being the least significant
+ * one and the last one being the most significant one. This information will be
+ * populated from the last received Beacon or Probe Response frame. This is a
+ * mandatory attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_PRIMARY_FREQ: Required (u32). Indicates
+ * primary 20 MHz channel center frequency in MHz of the BSS.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_CHAN_WIDTH: Required (u8). Indicates
+ * channel width of the BSS. This uses values defined in
+ * enum nl80211_chan_width.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_CENTER_FREQ1: Required (u32). Indicates the
+ * center frequency (MHz) of the first segment.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_CENTER_FREQ2: Optional (u32). Indicates the
+ * center frequency (MHz) of the second segment. Used only for
+ * %NL80211_CHAN_WIDTH_80P80 value in
+ * %QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_CHAN_WIDTH.
+ */
+enum qca_wlan_vendor_attr_fw_scan_bss {
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_MS_AGO = 1,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_BSSID = 2,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_SSID = 3,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_RSSI = 4,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_CAPABILITY = 5,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_FLAGS = 6,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_PRIMARY_FREQ = 7,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_CHAN_WIDTH = 8,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_CENTER_FREQ1 = 9,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_CENTER_FREQ2 = 10,
+
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_MAX =
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_BSS_AFTER_LAST - 1,
+};
+
+/* enum qca_wlan_vendor_attr_fw_scan_report: Attributes used by vendor command
+ * %QCA_NL80211_VENDOR_SUBCMD_GET_FW_SCAN_REPORT.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FW_SCAN_REPORT_TIMESTAMP: 64-bit unsigned value to
+ * indicate the timestamp when this report is generated, timestamp in
+ * microseconds from system boot. A mandatory attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FW_SCAN_REPORT_FREQ_LIST: Nested attribute of u32
+ * attributes. This indicates the list of frequencies that were scanned. This is
+ * an optional attribute. If this is not specified, all frequencies allowed in
+ * the current regulatory domain were scanned.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FW_SCAN_REPORT_BSS_LIST: Nested attribute.
+ * This indicates information of the scanned BSSs by the firmware. This is an
+ * optional attribute.
+ *
+ * The attributes defined in enum qca_wlan_vendor_attr_fw_scan_bss are nested
+ * in this attribute.
+ */
+enum qca_wlan_vendor_attr_fw_scan_report {
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_REPORT_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_REPORT_TIMESTAMP = 1,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_REPORT_FREQ_LIST = 2,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_REPORT_BSS_LIST = 3,
+
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_REPORT_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_REPORT_MAX =
+	QCA_WLAN_VENDOR_ATTR_FW_SCAN_REPORT_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
