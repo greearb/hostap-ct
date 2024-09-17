@@ -653,7 +653,7 @@ fi.w1.wpa_supplicant1.CreateInterface.
       </li>
       <li>
 	<h3>SignalPoll ( ) --> a{sv} : properties</h3>
-	<p>Fetch signal properties for the current connection.</p>
+	<p>Fetch signal properties for the current connection. The dictionary of properties is stored within a variant container.</p>
 	<h4>Returns</h4>
 	<dl>
 	  <dt>a{sv} : properties</dt>
