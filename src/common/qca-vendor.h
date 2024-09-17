@@ -2110,6 +2110,15 @@ enum qca_wlan_vendor_attr_p2p_listen_offload {
  * Used with command to configure ACS operation for a specific link affiliated
  * to an AP MLD.
  *
+ * @QCA_WLAN_VENDOR_ATTR_ACS_EXCLUDE_6GHZ_NON_PSC_PRIMARY: Optional flag
+ * attribute. Used with command to indicate whether the driver is allowed to use
+ * a 6 GHz non-PSC channel as a primary channel. If this flag is indicated the
+ * driver shall not use 6 GHz non-PSC channels as a primary channel even if
+ * %QCA_WLAN_VENDOR_ATTR_ACS_FREQ_LIST includes 6 GHz non-PSC channels.
+ * However, the driver is still allowed to use 6 GHz non-PSC channels specified
+ * in %QCA_WLAN_VENDOR_ATTR_ACS_FREQ_LIST as non-primary channels. User space is
+ * allowed to specify this flag only when the driver indicates support for
+ * %QCA_WLAN_VENDOR_FEATURE_ACS_PREFER_6GHZ_PSC.
  */
 enum qca_wlan_vendor_attr_acs_offload {
 	QCA_WLAN_VENDOR_ATTR_ACS_CHANNEL_INVALID = 0,
@@ -2134,6 +2143,7 @@ enum qca_wlan_vendor_attr_acs_offload {
 	QCA_WLAN_VENDOR_ATTR_ACS_EHT_ENABLED = 19,
 	QCA_WLAN_VENDOR_ATTR_ACS_LAST_SCAN_AGEOUT_TIME = 20,
 	QCA_WLAN_VENDOR_ATTR_ACS_LINK_ID = 21,
+	QCA_WLAN_VENDOR_ATTR_ACS_EXCLUDE_6GHZ_NON_PSC_PRIMARY = 22,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_ACS_AFTER_LAST,
@@ -2271,6 +2281,10 @@ enum qca_wlan_vendor_acs_hw_mode {
  * @QCA_WLAN_VENDOR_FEATURE_NAN_USD_OFFLOAD: Flag indicates that the driver
  *	supports Unsynchronized Service Discovery to be offloaded to it.
  *
+ * @QCA_WLAN_VENDOR_FEATURE_ACS_PREFER_6GHZ_PSC: Flag indicates that the driver
+ *	supports preferring 6 GHz PSC channel as a primary channel in ACS
+ *	result.
+ *
  * @NUM_QCA_WLAN_VENDOR_FEATURES: Number of assigned feature bits
  */
 enum qca_wlan_vendor_features {
@@ -2301,6 +2315,7 @@ enum qca_wlan_vendor_features {
 	QCA_WLAN_VENDOR_FEATURE_HT_VHT_TWT_RESPONDER = 24,
 	QCA_WLAN_VENDOR_FEATURE_RSN_OVERRIDE_STA = 25,
 	QCA_WLAN_VENDOR_FEATURE_NAN_USD_OFFLOAD = 26,
+	QCA_WLAN_VENDOR_FEATURE_ACS_PREFER_6GHZ_PSC = 27,
 	NUM_QCA_WLAN_VENDOR_FEATURES /* keep last */
 };
 
