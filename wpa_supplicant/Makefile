@@ -320,6 +320,7 @@ endif
 ifdef CONFIG_NAN_USD
 OBJS += ../src/common/nan_de.o
 OBJS += nan_usd.o
+NEED_OFFCHANNEL=y
 CFLAGS += -DCONFIG_NAN_USD
 endif
 
