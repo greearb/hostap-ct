@@ -3427,7 +3427,10 @@ static int wpa_supplicant_use_own_rsne_params(struct wpa_supplicant *wpa_s,
 static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 					  union wpa_event_data *data)
 {
-	int l, len, found = 0, found_x = 0, wpa_found, rsn_found;
+	int l, len, found = 0, wpa_found, rsn_found;
+#ifndef CONFIG_NO_WPA
+	int found_x = 0;
+#endif /* CONFIG_NO_WPA */
 	const u8 *p, *ie;
 	u8 bssid[ETH_ALEN];
 	bool bssid_known;
@@ -3530,18 +3533,22 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 			wpa_find_assoc_pmkid(wpa_s,
 					     data->assoc_info.authorized);
 		}
+#ifndef CONFIG_NO_WPA
 		if (!found_x && p[0] == WLAN_EID_RSNX) {
 			if (wpa_sm_set_assoc_rsnxe(wpa_s->wpa, p, len))
 				break;
 			found_x = 1;
 		}
+#endif /* CONFIG_NO_WPA */
 		l -= len;
 		p += len;
 	}
 	if (!found && data->assoc_info.req_ies)
 		wpa_sm_set_assoc_wpa_ie(wpa_s->wpa, NULL, 0);
+#ifndef CONFIG_NO_WPA
 	if (!found_x && data->assoc_info.req_ies)
 		wpa_sm_set_assoc_rsnxe(wpa_s->wpa, NULL, 0);
+#endif /* CONFIG_NO_WPA */
 
 	rsn_override = RSN_OVERRIDE_NOT_USED;
 	ie = get_vendor_ie(data->assoc_info.req_ies,

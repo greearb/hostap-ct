@@ -420,7 +420,9 @@ void wpa_supplicant_set_non_wpa_policy(struct wpa_supplicant *wpa_s,
 	wpa_sm_set_ap_rsne_override_2(wpa_s->wpa, NULL, 0);
 	wpa_sm_set_ap_rsnxe_override(wpa_s->wpa, NULL, 0);
 	wpa_sm_set_assoc_wpa_ie(wpa_s->wpa, NULL, 0);
+#ifndef CONFIG_NO_WPA
 	wpa_sm_set_assoc_rsnxe(wpa_s->wpa, NULL, 0);
+#endif /* CONFIG_NO_WPA */
 	wpa_s->rsnxe_len = 0;
 	wpa_s->pairwise_cipher = WPA_CIPHER_NONE;
 	wpa_s->group_cipher = WPA_CIPHER_NONE;
@@ -2278,6 +2280,7 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 			return -1;
 		}
 
+#ifndef CONFIG_NO_WPA
 		wpa_s->rsnxe_len = sizeof(wpa_s->rsnxe);
 		if (wpa_sm_set_assoc_rsnxe_default(wpa_s->wpa, wpa_s->rsnxe,
 						   &wpa_s->rsnxe_len)) {
@@ -2285,6 +2288,7 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 				"RSN: Failed to generate RSNXE");
 			return -1;
 		}
+#endif /* CONFIG_NO_WPA */
 	}
 
 	if (0) {
@@ -4455,7 +4459,9 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit)
 	/* Starting new association, so clear the possibly used WPA IE from the
 	 * previous association. */
 	wpa_sm_set_assoc_wpa_ie(wpa_s->wpa, NULL, 0);
+#ifndef CONFIG_NO_WPA
 	wpa_sm_set_assoc_rsnxe(wpa_s->wpa, NULL, 0);
+#endif /* CONFIG_NO_WPA */
 	wpa_s->rsnxe_len = 0;
 #ifndef CONFIG_NO_ROBUST_AV
 	wpa_s->mscs_setup_done = false;
