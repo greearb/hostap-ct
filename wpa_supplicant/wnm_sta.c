@@ -687,117 +687,6 @@ end:
 }
 
 
-static struct wpa_bss * find_better_target(struct wpa_bss *a,
-					   struct wpa_bss *b)
-{
-	if (!a)
-		return b;
-	if (!b)
-		return a;
-
-	if (a->est_throughput > b->est_throughput) {
-		wpa_printf(MSG_DEBUG, "WNM: A is better: " MACSTR
-			   " est-tput: %d  B: " MACSTR " est-tput: %d",
-			   MAC2STR(a->bssid), a->est_throughput,
-			   MAC2STR(b->bssid), b->est_throughput);
-		return a;
-	}
-
-	wpa_printf(MSG_DEBUG, "WNM: B is better, A: " MACSTR
-		   " est-tput: %d  B: " MACSTR " est-tput: %d",
-		   MAC2STR(a->bssid), a->est_throughput,
-		   MAC2STR(b->bssid), b->est_throughput);
-	return b;
-}
-
-static struct wpa_bss *
-compare_scan_neighbor_results(struct wpa_supplicant *wpa_s,
-			      enum mbo_transition_reject_reason *reason)
-{
-	u8 i;
-	struct wpa_bss *bss = wpa_s->current_bss;
-	struct wpa_bss *target;
-	struct wpa_bss *best_target = NULL;
-	struct wpa_bss *bss_in_list = NULL;
-
-	if (!bss)
-		return NULL;
-
-	wpa_printf(MSG_DEBUG, "WNM: Current BSS " MACSTR " RSSI %d",
-		   MAC2STR(wpa_s->bssid), bss->level);
-
-	for (i = 0; i < wpa_s->wnm_num_neighbor_report; i++) {
-		struct neighbor_report *nei;
-
-		nei = &wpa_s->wnm_neighbor_report_elements[i];
-
-		target = wpa_bss_get_bssid(wpa_s, nei->bssid);
-		if (!target) {
-			wpa_printf(MSG_DEBUG, "Candidate BSS " MACSTR
-				   " (pref %d) not found in scan results",
-				   MAC2STR(nei->bssid),
-				   nei->preference_present ? nei->preference :
-				   -1);
-			continue;
-		}
-
-		/*
-		 * TODO: Could consider allowing transition to another ESS if
-		 * PMF was enabled for the association.
-		 */
-		if (!wpa_scan_res_match(wpa_s, 0, target, wpa_s->current_ssid,
-					1, 0)) {
-			wpa_printf(MSG_DEBUG, "Candidate BSS " MACSTR
-				   " (pref %d) does not match the current network profile",
-				   MAC2STR(nei->bssid),
-				   nei->preference_present ? nei->preference :
-				   -1);
-			continue;
-		}
-
-		if (target->level < bss->level && target->level < -80) {
-			wpa_printf(MSG_DEBUG, "Candidate BSS " MACSTR
-				   " (pref %d) does not have sufficient signal level (%d)",
-				   MAC2STR(nei->bssid),
-				   nei->preference_present ? nei->preference :
-				   -1,
-				   target->level);
-			continue;
-		}
-
-		best_target = find_better_target(target, best_target);
-		if (target == bss)
-			bss_in_list = bss;
-	}
-
-	target = best_target;
-
-	if (!target)
-		return NULL;
-
-	wpa_printf(MSG_DEBUG,
-		   "WNM: Found an acceptable preferred transition candidate BSS "
-		   MACSTR " (RSSI %d, tput: %d  bss-tput: %d)",
-		   MAC2STR(target->bssid), target->level,
-		   target->est_throughput, bss->est_throughput);
-
-	if (!bss_in_list)
-		return target;
-
-	if ((!target->est_throughput && !bss_in_list->est_throughput) ||
-	    (target->est_throughput > bss_in_list->est_throughput &&
-	     target->est_throughput - bss_in_list->est_throughput >
-	     bss_in_list->est_throughput >> 4)) {
-		/* It is more than 100/16 percent better, so switch. */
-		return target;
-	}
-
-	wpa_printf(MSG_DEBUG,
-		   "WNM: Stay with our current BSS, not enough change in estimated throughput to switch");
-	return bss_in_list;
-}
-
-
 static int wpa_bss_ies_eq(struct wpa_bss *a, struct wpa_bss *b, u8 eid)
 {
 	const u8 *ie_a, *ie_b;
@@ -1115,11 +1004,12 @@ static void wnm_bss_tm_connect(struct wpa_supplicant *wpa_s,
 
 int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 {
-	struct wpa_bss *bss;
+	struct wpa_bss *bss, *current_bss = wpa_s->current_bss;
 	struct wpa_ssid *ssid = wpa_s->current_ssid;
 	enum bss_trans_mgmt_status_code status = WNM_BSS_TM_REJECT_UNSPECIFIED;
 	enum mbo_transition_reject_reason reason =
 		MBO_TRANSITION_REJECT_REASON_UNSPECIFIED;
+	struct wpa_ssid *selected_ssid = NULL;
 
 	if (!wpa_s->wnm_dialog_token)
 		return 0;
@@ -1143,11 +1033,12 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 	fetch_drv_mbo_candidate_info(wpa_s, &reason);
 
 	/* Compare the Neighbor Report and scan results */
-	bss = compare_scan_neighbor_results(wpa_s, &reason);
+	bss = wpa_supplicant_select_bss(wpa_s, ssid, &selected_ssid, 1);
 #ifdef CONFIG_MBO
 	if (!bss && wpa_s->wnm_mbo_trans_reason_present &&
 	    (wpa_s->wnm_mode & WNM_BSS_TM_REQ_DISASSOC_IMMINENT)) {
 		int i;
+		bool changed = false;
 
 		/*
 		 * We didn't find any candidate, the driver had a say about
@@ -1163,11 +1054,18 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 			nei = &wpa_s->wnm_neighbor_report_elements[i];
 			bss = wpa_bss_get_bssid(wpa_s, nei->bssid);
 			if (bss && bss->level >
-			    wpa_s->conf->disassoc_imminent_rssi_threshold)
+			    wpa_s->conf->disassoc_imminent_rssi_threshold) {
 				nei->drv_mbo_reject = 0;
+				changed = true;
+			}
 		}
 
-		bss = compare_scan_neighbor_results(wpa_s, &reason);
+		if (changed) {
+			wpa_printf(MSG_DEBUG,
+				   "WNM: Ignore driver rejection due to imminent disassociation and acceptable RSSI");
+			bss = wpa_supplicant_select_bss(wpa_s, ssid,
+							&selected_ssid, 1);
+		}
 	}
 #endif /* CONFIG_MBO */
 
@@ -1192,19 +1090,34 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 			return 0;
 
 #ifndef CONFIG_NO_ROAMING
-		if (wpa_s->current_bss && bss != wpa_s->current_bss &&
+		if (current_bss && bss != current_bss &&
 		    wpa_supplicant_need_to_roam_within_ess(wpa_s, bss,
-							   wpa_s->current_bss,
-							   false))
+							   current_bss, false))
 			return 0;
 #endif /* CONFIG_NO_ROAMING */
 	}
+
+#ifndef CONFIG_NO_ROAMING
+	/* Apply normal roaming rules if we can stay with the current BSS */
+	if (current_bss && bss != current_bss &&
+	    wpa_scan_res_match(wpa_s, 0, current_bss, wpa_s->current_ssid,
+			       1, 0) &&
+	    !wpa_supplicant_need_to_roam_within_ess(wpa_s, current_bss, bss,
+						    true))
+		bss = current_bss;
+#endif /* CONFIG_NO_ROAMING */
 
 	if (!bss) {
 		wpa_printf(MSG_DEBUG, "WNM: No BSS transition candidate match found");
 		status = WNM_BSS_TM_REJECT_NO_SUITABLE_CANDIDATES;
 		goto send_bss_resp_fail;
 	}
+
+	wpa_printf(MSG_DEBUG,
+		   "WNM: Found an acceptable preferred transition candidate BSS "
+		   MACSTR " (RSSI %d, tput: %d  bss-tput: %d)",
+		   MAC2STR(bss->bssid), bss->level, bss->est_throughput,
+		   current_bss ? (int) current_bss->est_throughput : -1);
 
 	/* Associate to the network */
 	wnm_bss_tm_connect(wpa_s, bss, ssid, 1);

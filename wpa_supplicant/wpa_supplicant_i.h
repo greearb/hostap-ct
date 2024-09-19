@@ -1987,6 +1987,11 @@ struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 				     struct wpa_ssid *group,
 				     int only_first_ssid, int debug_print);
 
+struct wpa_bss * wpa_supplicant_select_bss(struct wpa_supplicant *wpa_s,
+					   struct wpa_ssid *group,
+					   struct wpa_ssid **selected_ssid,
+					   int only_first_ssid);
+
 int wpas_ctrl_iface_get_pref_freq_list_override(struct wpa_supplicant *wpa_s,
 						enum wpa_driver_if_type if_type,
 						unsigned int *num,

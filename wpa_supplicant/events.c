@@ -1743,7 +1743,7 @@ struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 }
 
 
-static struct wpa_bss *
+struct wpa_bss *
 wpa_supplicant_select_bss(struct wpa_supplicant *wpa_s,
 			  struct wpa_ssid *group,
 			  struct wpa_ssid **selected_ssid,
