@@ -2173,7 +2173,8 @@ static int wpas_evaluate_band_score(int frequency)
 
 int wpa_supplicant_need_to_roam_within_ess(struct wpa_supplicant *wpa_s,
 					   struct wpa_bss *current_bss,
-					   struct wpa_bss *selected)
+					   struct wpa_bss *selected,
+					   bool poll_current)
 {
 	int min_diff, diff;
 	int cur_band_score, sel_band_score;
@@ -2228,7 +2229,7 @@ int wpa_supplicant_need_to_roam_within_ess(struct wpa_supplicant *wpa_s,
 	 * scan results may be a bit old, since we can very quickly get fresh
 	 * information about our currently associated AP.
 	 */
-	if (wpa_drv_signal_poll(wpa_s, &si) == 0 &&
+	if (poll_current && wpa_drv_signal_poll(wpa_s, &si) == 0 &&
 	    (si.data.avg_beacon_signal || si.data.avg_signal)) {
 		/*
 		 * Normalize avg_signal to the RSSI over 20 MHz, as the
@@ -2401,7 +2402,7 @@ static int wpa_supplicant_need_to_roam(struct wpa_supplicant *wpa_s,
 
 #ifndef CONFIG_NO_ROAMING
 	return wpa_supplicant_need_to_roam_within_ess(wpa_s, current_bss,
-						      selected);
+						      selected, true);
 #else /* CONFIG_NO_ROAMING */
 	return 0;
 #endif /* CONFIG_NO_ROAMING */
