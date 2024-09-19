@@ -543,7 +543,7 @@ void * os_memdup(const void *src, size_t len)
 struct wpa_trace_test_fail {
 	unsigned int fail_after;
 	char pattern[256];
-} wpa_trace_test_fail[5][2];
+} wpa_trace_test_fail[5][4];
 
 int testing_test_fail(const char *tag, bool is_alloc)
 {

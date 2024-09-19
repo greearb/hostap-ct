@@ -1027,6 +1027,79 @@ def test_wnm_bss_tm(dev, apdev):
     finally:
         clear_regdom_state(dev, hapd, hapd2)
 
+def test_wnm_bss_tm_drv_processing(dev, apdev):
+    """WNM BSS Transition Management - driver processing of candidates"""
+    try:
+        hapd = None
+        hapd2 = None
+        hapd = start_wnm_ap(apdev[0], country_code="FI")
+        dev[0].flush_scan_cache()
+        id = dev[0].connect("test-wnm", key_mgmt="NONE", scan_freq="2412")
+        dev[0].set_network(id, "scan_freq", "")
+
+        hapd2 = start_wnm_ap(apdev[1], country_code="FI", hw_mode="a",
+                             channel="36")
+
+        addr = dev[0].own_addr()
+        dev[0].dump_monitor()
+        # The following two tests exercise the MBO target querying to the driver
+        dev[0].flush_scan_cache()
+        logger.info("BTM request with candidate list and all are valid, roams because MBO is enabled and the driver rejects current")
+        with fail_test(dev[0], 1, "simulate;nl80211_get_bss_transition_status",
+                       1, apdev[0]['bssid'] + ";nl80211_get_bss_transition_status",
+                       # Second time post-scan
+                       1, "simulate;nl80211_get_bss_transition_status",
+                       1, apdev[0]['bssid'] + ";nl80211_get_bss_transition_status"):
+            if "OK" not in hapd.request("BSS_TM_REQ " + addr + " pref=1 abridged=1 mbo=3:0:1 valid_int=255 neighbor=" + apdev[0]['bssid'] + ",0x0000,81,1,7,0301ff neighbor=" + apdev[1]['bssid'] + ",0x0000,115,36,7,0301ff"):
+                raise Exception("BSS_TM_REQ command failed")
+            ev = hapd.wait_event(['BSS-TM-RESP'], timeout=10)
+            if ev is None:
+                raise Exception("No BSS Transition Management Response")
+        if "status_code=0" not in ev:
+            raise Exception("BSS transition request was not accepted: " + ev)
+        if "target_bssid=" + apdev[1]['bssid'] not in ev:
+            raise Exception("Unexpected target BSS: " + ev)
+        # This scans only one frequency
+        scan_ev = dev[0].wait_event(["CTRL-EVENT-SCAN-STARTED"], timeout=1)
+        if scan_ev is None:
+            raise Exception("Expected scan not started")
+        dev[0].wait_connected(timeout=15, error="No reassociation seen")
+        if apdev[1]['bssid'] not in ev:
+            raise Exception("Unexpected reassociation target: " + ev)
+        ev = dev[0].wait_event(["CTRL-EVENT-SCAN-STARTED"], timeout=0.1)
+        if ev is not None:
+            raise Exception("Unexpected scan started")
+
+        dev[0].flush_scan_cache()
+        logger.info("BTM request with candidate list forcing other AP through disassoc imminent, the driver does MBO reject, but still roams")
+        with fail_test(dev[0], 1, "simulate;nl80211_get_bss_transition_status",
+                       1, apdev[0]['bssid'] + ";nl80211_get_bss_transition_status",
+                       # And a second time post-scan
+                       1, "simulate;nl80211_get_bss_transition_status",
+                       1, apdev[0]['bssid'] + ";nl80211_get_bss_transition_status"):
+            if "OK" not in hapd2.request("BSS_TM_REQ " + addr + " disassoc_imminent=1 pref=1 abridged=1 mbo=3:5:1 valid_int=255 neighbor=" + apdev[0]['bssid'] + ",0x0000,81,1,7,0301ff"):
+                raise Exception("BSS_TM_REQ command failed")
+            ev = hapd2.wait_event(['BSS-TM-RESP'], timeout=10)
+            if ev is None:
+                raise Exception("No BSS Transition Management Response")
+        if "status_code=0" not in ev:
+            raise Exception("BSS transition request was not accepted: " + ev)
+        if "target_bssid=" + apdev[0]['bssid'] not in ev:
+            raise Exception("Unexpected target BSS: " + ev)
+        # This scans only one frequency
+        scan_ev = dev[0].wait_event(["CTRL-EVENT-SCAN-STARTED"], timeout=1)
+        if scan_ev is None:
+            raise Exception("Expected scan not started")
+        dev[0].wait_connected(timeout=15, error="No reassociation seen")
+        if apdev[0]['bssid'] not in ev:
+            raise Exception("Unexpected reassociation target: " + ev)
+        ev = dev[0].wait_event(["CTRL-EVENT-SCAN-STARTED"], timeout=0.1)
+        if ev is not None:
+            raise Exception("Unexpected scan started")
+
+    finally:
+        clear_regdom_state(dev, hapd, hapd2)
+
 def test_wnm_bss_tm_steering_timeout(dev, apdev):
     """WNM BSS Transition Management and steering timeout"""
     hapd = start_wnm_ap(apdev[0])

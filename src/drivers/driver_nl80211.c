@@ -13392,7 +13392,7 @@ nl80211_get_bss_transition_status_handler(struct nl_msg *msg, void *arg)
 
 
 static struct wpa_bss_candidate_info *
-nl80211_get_bss_transition_status(void *priv, struct wpa_bss_trans_info *params)
+qca_get_bss_transition_status(void *priv, struct wpa_bss_trans_info *params)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -14070,6 +14070,60 @@ static int nl80211_do_acs(void *priv, struct drv_acs_params *params)
 
 	return -1;
 }
+
+
+#ifdef CONFIG_MBO
+static struct wpa_bss_candidate_info *
+nl80211_get_bss_transition_status(void *priv, struct wpa_bss_trans_info *params)
+{
+#if defined(WPA_TRACE_BFD) && defined(CONFIG_TESTING_OPTIONS)
+	/* This only exists for testing purposes, disable unless requested */
+	if (TEST_FAIL_TAG("simulate")) {
+		struct wpa_bss_candidate_info *info;
+		int i;
+
+		info = os_zalloc(sizeof(*info));
+		if (!info)
+			return NULL;
+
+		info->candidates = os_calloc(params->n_candidates,
+					     sizeof(*info->candidates));
+		if (!info->candidates) {
+			os_free(info);
+			return NULL;
+		}
+
+		info->num = params->n_candidates;
+		for (i = 0; i < params->n_candidates; i++) {
+			char bssid_str[ETH_ALEN * 3];
+
+			os_memcpy(info->candidates[i].bssid,
+				  &params->bssid[i * ETH_ALEN], ETH_ALEN);
+
+			os_snprintf(bssid_str, sizeof(bssid_str), MACSTR,
+				    MAC2STR(info->candidates[i].bssid));
+
+			if (TEST_FAIL_TAG(bssid_str)) {
+				info->candidates[i].is_accept = 0;
+				info->candidates[i].reject_reason =
+					MBO_TRANSITION_REJECT_REASON_FRAME_LOSS;
+			} else {
+				info->candidates[i].is_accept = 1;
+				info->candidates[i].reject_reason = 0;
+			}
+		}
+
+		return info;
+	}
+#endif /* defined(WPA_TRACE_BFD) && defined(CONFIG_TESTING_OPTIONS) */
+
+#ifdef CONFIG_DRIVER_NL80211_QCA
+	return qca_get_bss_transition_status(priv, params);
+#else /* CONFIG_DRIVER_NL80211_QCA */
+	return NULL;
+#endif /* CONFIG_DRIVER_NL80211_QCA */
+}
+#endif /* CONFIG_MBO */
 
 
 static int nl80211_write_to_file(const char *name, unsigned int val)
@@ -14820,7 +14874,6 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.set_default_scan_ies = nl80211_set_default_scan_ies,
 	.set_tdls_mode = nl80211_set_tdls_mode,
 #ifdef CONFIG_MBO
-	.get_bss_transition_status = nl80211_get_bss_transition_status,
 	.ignore_assoc_disallow = nl80211_ignore_assoc_disallow,
 #endif /* CONFIG_MBO */
 	.set_bssid_tmp_disallow = nl80211_set_bssid_tmp_disallow,
@@ -14839,6 +14892,9 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 #endif /* CONFIG_NAN_USD */
 #endif /* CONFIG_DRIVER_NL80211_QCA */
 	.do_acs = nl80211_do_acs,
+#ifdef CONFIG_MBO
+	.get_bss_transition_status = nl80211_get_bss_transition_status,
+#endif /* CONFIG_MBO */
 	.configure_data_frame_filters = nl80211_configure_data_frame_filters,
 	.get_ext_capab = nl80211_get_ext_capab,
 	.get_mld_capab = nl80211_get_mld_capab,
