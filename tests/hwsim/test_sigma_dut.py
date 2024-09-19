@@ -5832,3 +5832,24 @@ def test_sigma_dut_wpa3_inject_frame(dev, apdev):
         dut.run_cmd("dev_send_frame,interface,%s,program,WPA3,framename,ReassocReq" % ifname)
         hwsim_utils.test_connectivity(dev[0], hapd)
         dut.cmd_check("sta_reset_default,interface," + ifname)
+
+def test_sigma_dut_sae_random_rsnxe(dev, apdev):
+    """sigma_dut controlled SAE association and random RSNXE"""
+    check_sae_capab(dev[0])
+
+    ifname = dev[0].ifname
+    with SigmaDut(ifname) as dut:
+        ssid = "test-sae"
+        params = hostapd.wpa3_params(ssid=ssid, password="12345678")
+        params['sae_groups'] = '19 20 21'
+        hapd = hostapd.add_ap(apdev[0], params)
+
+        dut.cmd_check("sta_reset_default,interface,%s" % ifname)
+        dut.cmd_check("sta_set_ip_config,interface,%s,dhcp,0,ip,127.0.0.11,mask,255.255.255.0" % ifname)
+        dut.cmd_check("sta_set_security,interface,%s,ssid,%s,passphrase,%s,type,SAE,encpType,aes-ccmp,keymgmttype,wpa2" % (ifname, "test-sae", "12345678"))
+        dut.cmd_check("sta_preset_testparameters,interface,%s,RSNXE_Rand,20" % ifname)
+        dut.cmd_check("sta_associate,interface,%s,ssid,%s,channel,1" % (ifname, "test-sae"),
+                      timeout=10)
+        dut.wait_connected()
+        dut.cmd_check("sta_disconnect,interface," + ifname)
+        dut.cmd_check("sta_reset_default,interface," + ifname)
