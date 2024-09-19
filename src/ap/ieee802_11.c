@@ -4573,9 +4573,8 @@ static int ieee80211_ml_process_link(struct hostapd_data *hapd,
 	if (!mlbuf)
 		goto out;
 
-	if (ieee802_11_parse_link_assoc_req(ies, ies_len, &elems, mlbuf,
-					    hapd->mld_link_id, true) ==
-	    ParseFailed) {
+	if (ieee802_11_parse_link_assoc_req(&elems, mlbuf, hapd->mld_link_id,
+					    true) == ParseFailed) {
 		wpa_printf(MSG_DEBUG,
 			   "MLD: link: Failed to parse association request Multi-Link element");
 		status = WLAN_STATUS_UNSPECIFIED_FAILURE;

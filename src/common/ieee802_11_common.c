@@ -985,14 +985,14 @@ void ieee802_11_elems_clear_ext_ids(struct ieee802_11_elems *elems,
 }
 
 
-ParseRes ieee802_11_parse_link_assoc_req(const u8 *start, size_t len,
-					 struct ieee802_11_elems *elems,
+ParseRes ieee802_11_parse_link_assoc_req(struct ieee802_11_elems *elems,
 					 struct wpabuf *mlbuf,
 					 u8 link_id, bool show_errors)
 {
 	const struct ieee80211_eht_ml *ml;
 	const u8 *pos;
 	ParseRes res = ParseFailed;
+	size_t len;
 
 	pos = wpabuf_head(mlbuf);
 	len = wpabuf_len(mlbuf);
