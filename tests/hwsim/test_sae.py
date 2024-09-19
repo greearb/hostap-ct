@@ -3286,6 +3286,17 @@ def test_sae_eapol_key_reserved_random(dev, apdev):
     dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE",
                    scan_freq="2412")
 
+def test_sae_eapol_key_2_reserved_key_info(dev, apdev):
+    """SAE with EAPOL-Key msg 2/4 Key Info field reserved bits set"""
+    check_sae_capab(dev[0])
+    params = hostapd.wpa3_params(ssid="test-sae", password="12345678")
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].set("eapol_2_key_info_set_mask", "c000")
+    dev[0].set("sae_groups", "")
+    dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE", ieee80211w="2",
+                   scan_freq="2412")
+
 def test_sae_long_rsnxe(dev, apdev):
     """RSNXE extensibility"""
     check_sae_capab(dev[0])
