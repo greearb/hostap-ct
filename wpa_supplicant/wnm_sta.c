@@ -614,38 +614,37 @@ static void wnm_parse_neighbor_report(struct wpa_supplicant *wpa_s,
 }
 
 
-static void wnm_clear_acceptable(struct wpa_supplicant *wpa_s)
-{
-	unsigned int i;
-
-	for (i = 0; i < wpa_s->wnm_num_neighbor_report; i++)
-		wpa_s->wnm_neighbor_report_elements[i].acceptable = 0;
-}
-
-#ifdef CONFIG_MBO
-static struct wpa_bss *
-get_mbo_transition_candidate(struct wpa_supplicant *wpa_s,
+static void
+fetch_drv_mbo_candidate_info(struct wpa_supplicant *wpa_s,
 			     enum mbo_transition_reject_reason *reason)
 {
-	struct wpa_bss *target = NULL;
+#ifdef CONFIG_MBO
 	struct wpa_bss_trans_info params;
 	struct wpa_bss_candidate_info *info = NULL;
-	struct neighbor_report *nei = wpa_s->wnm_neighbor_report_elements;
-	u8 *first_candidate_bssid = NULL, *pos;
+	struct neighbor_report *nei;
+	u8 *pos;
 	unsigned int i;
+
+	if (!wpa_s->wnm_mbo_trans_reason_present)
+		return;
 
 	params.mbo_transition_reason = wpa_s->wnm_mbo_transition_reason;
 	params.n_candidates = 0;
 	params.bssid = os_calloc(wpa_s->wnm_num_neighbor_report, ETH_ALEN);
 	if (!params.bssid)
-		return NULL;
+		return;
 
 	pos = params.bssid;
-	for (i = 0; i < wpa_s->wnm_num_neighbor_report; nei++, i++) {
-		if (nei->is_first)
-			first_candidate_bssid = nei->bssid;
-		if (!nei->acceptable)
+	for (i = 0; i < wpa_s->wnm_num_neighbor_report; i++) {
+		nei = &wpa_s->wnm_neighbor_report_elements[i];
+
+		nei->drv_mbo_reject = 0;
+
+		if (nei->preference_present && nei->preference == 0)
 			continue;
+
+		/* Should we query BSSIDs that we reject for other reasons? */
+
 		os_memcpy(pos, nei->bssid, ETH_ALEN);
 		pos += ETH_ALEN;
 		params.n_candidates++;
@@ -655,54 +654,28 @@ get_mbo_transition_candidate(struct wpa_supplicant *wpa_s,
 		goto end;
 
 	info = wpa_drv_get_bss_trans_status(wpa_s, &params);
-	if (!info) {
-		/* If failed to get candidate BSS transition status from driver,
-		 * get the first acceptable candidate from wpa_supplicant.
-		 */
-		target = wpa_bss_get_bssid(wpa_s, params.bssid);
+	if (!info)
 		goto end;
-	}
 
-	/* Get the first acceptable candidate from driver */
 	for (i = 0; i < info->num; i++) {
-		if (info->candidates[i].is_accept) {
-			target = wpa_bss_get_bssid(wpa_s,
-						   info->candidates[i].bssid);
-			goto end;
-		}
-	}
+		int j;
 
-	/* If Disassociation Imminent is set and driver rejects all the
-	 * candidate select first acceptable candidate which has
-	 * rssi > disassoc_imminent_rssi_threshold
-	 */
-	if (wpa_s->wnm_mode & WNM_BSS_TM_REQ_DISASSOC_IMMINENT) {
-		for (i = 0; i < info->num; i++) {
-			target = wpa_bss_get_bssid(wpa_s,
-						   info->candidates[i].bssid);
-			if (target &&
-			    (target->level <
-			     wpa_s->conf->disassoc_imminent_rssi_threshold))
+		for (j = 0; j < wpa_s->wnm_num_neighbor_report; j++) {
+			nei = &wpa_s->wnm_neighbor_report_elements[j];
+
+			if (!ether_addr_equal(info->candidates[i].bssid,
+					      nei->bssid))
 				continue;
-			goto end;
-		}
-	}
 
-	/* While sending BTM reject use reason code of the first candidate
-	 * received in BTM request frame
-	 */
-	if (reason) {
-		for (i = 0; i < info->num; i++) {
-			if (first_candidate_bssid &&
-			    ether_addr_equal(first_candidate_bssid,
-					     info->candidates[i].bssid)) {
+			nei->drv_mbo_reject = !info->candidates[i].is_accept;
+
+			/* Use the reject reason from "first" candidate */
+			if (nei->is_first && nei->drv_mbo_reject)
 				*reason = info->candidates[i].reject_reason;
-				break;
-			}
+
+			break;
 		}
 	}
-
-	target = NULL;
 
 end:
 	os_free(params.bssid);
@@ -710,9 +683,8 @@ end:
 		os_free(info->candidates);
 		os_free(info);
 	}
-	return target;
-}
 #endif /* CONFIG_MBO */
+}
 
 
 static struct wpa_bss * find_better_target(struct wpa_bss *a,
@@ -754,8 +726,6 @@ compare_scan_neighbor_results(struct wpa_supplicant *wpa_s,
 	wpa_printf(MSG_DEBUG, "WNM: Current BSS " MACSTR " RSSI %d",
 		   MAC2STR(wpa_s->bssid), bss->level);
 
-	wnm_clear_acceptable(wpa_s);
-
 	for (i = 0; i < wpa_s->wnm_num_neighbor_report; i++) {
 		struct neighbor_report *nei;
 
@@ -795,21 +765,12 @@ compare_scan_neighbor_results(struct wpa_supplicant *wpa_s,
 			continue;
 		}
 
-		nei->acceptable = 1;
-
 		best_target = find_better_target(target, best_target);
 		if (target == bss)
 			bss_in_list = bss;
 	}
 
-#ifdef CONFIG_MBO
-	if (wpa_s->wnm_mbo_trans_reason_present)
-		target = get_mbo_transition_candidate(wpa_s, reason);
-	else
-		target = best_target;
-#else /* CONFIG_MBO */
 	target = best_target;
-#endif /* CONFIG_MBO */
 
 	if (!target)
 		return NULL;
@@ -1178,8 +1139,37 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 
 	wpa_s->wnm_transition_scan = false;
 
+	/* Fetch MBO transition candidate rejection information from driver */
+	fetch_drv_mbo_candidate_info(wpa_s, &reason);
+
 	/* Compare the Neighbor Report and scan results */
 	bss = compare_scan_neighbor_results(wpa_s, &reason);
+#ifdef CONFIG_MBO
+	if (!bss && wpa_s->wnm_mbo_trans_reason_present &&
+	    (wpa_s->wnm_mode & WNM_BSS_TM_REQ_DISASSOC_IMMINENT)) {
+		int i;
+
+		/*
+		 * We didn't find any candidate, the driver had a say about
+		 * which targets to reject and disassociation is immiment.
+		 *
+		 * We should still try to roam, so retry after ignoring the
+		 * driver reject for any BSS that has an RSSI better than
+		 * disassoc_imminent_rssi_threshold.
+		 */
+		for (i = 0; i < wpa_s->wnm_num_neighbor_report; i++) {
+			struct neighbor_report *nei;
+
+			nei = &wpa_s->wnm_neighbor_report_elements[i];
+			bss = wpa_bss_get_bssid(wpa_s, nei->bssid);
+			if (bss && bss->level >
+			    wpa_s->conf->disassoc_imminent_rssi_threshold)
+				nei->drv_mbo_reject = 0;
+		}
+
+		bss = compare_scan_neighbor_results(wpa_s, &reason);
+	}
+#endif /* CONFIG_MBO */
 
 	/*
 	 * If this is a pre-scan check, returning 0 will trigger a scan and
@@ -2117,6 +2107,11 @@ bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 
 		if (nei->preference_present && nei->preference == 0)
 			return true;
+
+#ifdef CONFIG_MBO
+		if (nei->drv_mbo_reject)
+			return true;
+#endif /* CONFIG_MBO */
 
 		break;
 	}
