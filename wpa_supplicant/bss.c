@@ -1083,6 +1083,7 @@ void wpa_bss_flush_by_age(struct wpa_supplicant *wpa_s, int age)
 		if (wpa_s->reassoc_same_ess &&
 		    wpa_s->wpa_state != WPA_COMPLETED &&
 		    wpa_s->last_ssid &&
+		    wpa_s->last_ssid->ssid &&
 		    bss->ssid_len == wpa_s->last_ssid->ssid_len &&
 		    os_memcmp(bss->ssid, wpa_s->last_ssid->ssid,
 			      bss->ssid_len) == 0)
