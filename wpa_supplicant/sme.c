@@ -1726,7 +1726,9 @@ static int sme_sae_auth(struct wpa_supplicant *wpa_s, u16 auth_transaction,
 			}
 			token_len = elen - 1;
 #ifdef CONFIG_IEEE80211BE
-		} else if (wpa_s->valid_links && token_len > 12 &&
+		} else if ((wpa_s->valid_links ||
+			    (external && wpa_s->sme.ext_ml_auth)) &&
+			   token_len > 12 &&
 			   token_pos[token_len - 12] == WLAN_EID_EXTENSION &&
 			   token_pos[token_len - 11] == 10 &&
 			   token_pos[token_len - 10] ==
