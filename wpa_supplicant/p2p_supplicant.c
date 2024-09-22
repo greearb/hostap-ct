@@ -7920,6 +7920,12 @@ static void wpas_p2p_ie_update(void *ctx, struct wpabuf *beacon_ies,
 		}
 		wpabuf_free(hapd->p2p_probe_resp_ie);
 		hapd->p2p_probe_resp_ie = proberesp_ies;
+
+		if (wpa_s->p2p2) {
+			hapd->iconf->peer_to_peer_twt = true;
+			hapd->iconf->channel_usage = true;
+		}
+
 	} else {
 		wpabuf_free(beacon_ies);
 		wpabuf_free(proberesp_ies);
