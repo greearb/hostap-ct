@@ -503,7 +503,7 @@ static u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 
 	mld_cap = hapd->iface->mld_mld_capa;
 	max_simul_links = mld_cap & EHT_ML_MLD_CAPA_MAX_NUM_SIM_LINKS_MASK;
-	active_links = hapd->mld->num_links - 1;
+	active_links = hostapd_get_active_links(hapd);
 
 	if (active_links > max_simul_links) {
 		wpa_printf(MSG_ERROR,

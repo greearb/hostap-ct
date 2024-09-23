@@ -5061,6 +5061,28 @@ void hostapd_mld_interface_freed(struct hostapd_data *hapd)
 		link_bss->drv_priv = NULL;
 }
 
+
+/* Return the number of currently active links, not counting the calling link
+ * (i.e., a value that is suitable to be used as-is in fields that use encoding
+ * of the value minus 1). */
+u8 hostapd_get_active_links(struct hostapd_data *hapd)
+{
+	struct hostapd_data *link_bss;
+	u8 active_links = 0;
+
+	if (!hapd || !hapd->conf->mld_ap)
+		return 0;
+
+	for_each_mld_link(link_bss, hapd) {
+		if (link_bss == hapd || !link_bss->started)
+			continue;
+
+		active_links++;
+	}
+
+	return active_links;
+}
+
 #endif /* CONFIG_IEEE80211BE */
 
 

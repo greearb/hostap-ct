@@ -857,6 +857,7 @@ bool hostapd_is_ml_partner(struct hostapd_data *hapd1,
 u8 hostapd_get_mld_id(struct hostapd_data *hapd);
 int hostapd_mld_add_link(struct hostapd_data *hapd);
 int hostapd_mld_remove_link(struct hostapd_data *hapd);
+u8 hostapd_get_active_links(struct hostapd_data *hapd);
 struct hostapd_data * hostapd_mld_get_first_bss(struct hostapd_data *hapd);
 
 void free_beacon_data(struct beacon_data *beacon);
