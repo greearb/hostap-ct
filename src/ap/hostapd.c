@@ -3633,8 +3633,6 @@ int hostapd_reload_bss_only(struct hostapd_data *bss)
 int hostapd_disable_iface(struct hostapd_iface *hapd_iface)
 {
 	size_t j;
-	const struct wpa_driver_ops *driver;
-	void *drv_priv;
 
 	if (hapd_iface == NULL)
 		return -1;
@@ -3649,8 +3647,6 @@ int hostapd_disable_iface(struct hostapd_iface *hapd_iface)
 	}
 
 	wpa_msg(hapd_iface->bss[0]->msg_ctx, MSG_INFO, AP_EVENT_DISABLED);
-	driver = hapd_iface->bss[0]->driver;
-	drv_priv = hapd_iface->bss[0]->drv_priv;
 
 	hapd_iface->driver_ap_teardown =
 		!!(hapd_iface->drv_flags &
@@ -3669,7 +3665,8 @@ int hostapd_disable_iface(struct hostapd_iface *hapd_iface)
 		hostapd_free_hapd_data(hapd);
 	}
 
-	hostapd_deinit_driver(driver, drv_priv, hapd_iface);
+	hostapd_deinit_driver(hapd_iface->bss[0]->driver,
+			      hapd_iface->bss[0]->drv_priv, hapd_iface);
 
 	/* From hostapd_cleanup_iface: These were initialized in
 	 * hostapd_setup_interface and hostapd_setup_interface_complete
