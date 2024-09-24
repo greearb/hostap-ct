@@ -1327,6 +1327,11 @@ struct wpa_driver_associate_params {
 	 * disable_ofdma - Disable OFDMA for this connection
 	 */
 	int disable_ofdma;
+
+	/**
+	 * ignore_edca - Ignore EDCA inof from AP beacons for this connection
+	 */
+	int ignore_edca;
 #endif /* CONFIG_HE_OVERRIDES */
 
 	/**
