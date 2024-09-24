@@ -7128,6 +7128,7 @@ void wpa_supplicant_apply_he_overrides(
 	params->disable_160 = ssid->disable_160;
 	params->disable_320 = ssid->disable_320;
 	params->disable_ofdma = ssid->disable_ofdma;
+	params->ignore_edca = ssid->ignore_edca;
 }
 #endif /* CONFIG_HE_OVERRIDES */
 
