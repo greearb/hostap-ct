@@ -1509,6 +1509,7 @@ static const char *network_fields[] = {
 #endif /* CONFIG_HE_OVERRIDES */
 	"disable_eht",
 	"disable_mlo",
+	"ignore_edca",
 	"ap_max_inactivity", "dtim_period", "beacon_int",
 #ifdef CONFIG_MACSEC
 	"macsec_policy",
