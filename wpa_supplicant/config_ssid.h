@@ -894,6 +894,13 @@ struct wpa_ssid {
 	 * to 1 to have it disabled.
 	 */
 	int disable_ofdma;
+
+	/**
+	 * ignore_edca - Ignore EDCA info from AP beacons
+	 *
+	 * Set to 1 to request station ignore EDCA settings.
+	 */
+	int ignore_edca;
 #endif /* CONFIG_HE_OVERRIDES */
 
 	/**
