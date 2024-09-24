@@ -49,6 +49,7 @@ struct ct_assoc_info {
 #define CT_DISABLE_160MHZ (1<<1)
 #define CT_DISABLE_OFDMA (1<<2)
 #define CT_DISABLE_320MHZ (1<<3)
+#define CT_IGNORE_EDCA (1<<4)
 	u32 flags;
 	u32 pad32[7]; /* room to grow */
 } __attribute__((packed));
