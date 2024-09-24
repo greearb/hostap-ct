@@ -1048,9 +1048,31 @@ static void ap_sta_handle_deauthenticate(struct hostapd_data *hapd,
 }
 
 
+static void ap_sta_handle_disconnect(struct hostapd_data *hapd,
+				     struct sta_info *sta, u16 reason)
+{
+	wpa_printf(MSG_DEBUG, "%s: disconnect STA " MACSTR,
+		   hapd->conf->iface, MAC2STR(sta->addr));
+
+	sta->flags &= ~(WLAN_STA_AUTH | WLAN_STA_ASSOC);
+	wpa_auth_sm_event(sta->wpa_sm, WPA_DEAUTH);
+	ieee802_1x_notify_port_enabled(sta->eapol_sm, 0);
+	sta->timeout_next = STA_REMOVE;
+
+	ap_sta_disconnect_common(hapd, sta, AP_MAX_INACTIVITY_AFTER_DEAUTH);
+	ap_sta_deauthenticate_common(hapd, sta, reason);
+}
+
+
+enum ap_sta_disconnect_op {
+	AP_STA_DEAUTHENTICATE,
+	AP_STA_DISASSOCIATE,
+	AP_STA_DISCONNECT
+};
+
 static bool ap_sta_ml_disconnect(struct hostapd_data *hapd,
 				 struct sta_info *sta, u16 reason,
-				 bool disassoc)
+				 enum ap_sta_disconnect_op op)
 {
 #ifdef CONFIG_IEEE80211BE
 	struct hostapd_data *assoc_hapd, *tmp_hapd;
@@ -1099,25 +1121,30 @@ static bool ap_sta_ml_disconnect(struct hostapd_data *hapd,
 				    tmp_sta->aid != assoc_sta->aid)
 					continue;
 
-				if (disassoc)
+				if (op == AP_STA_DISASSOCIATE)
 					ap_sta_handle_disassociate(tmp_hapd,
 								   tmp_sta,
 								   reason);
-				else
+				else if (op == AP_STA_DEAUTHENTICATE)
 					ap_sta_handle_deauthenticate(tmp_hapd,
 								     tmp_sta,
 								     reason);
-
+				else
+					ap_sta_handle_disconnect(tmp_hapd,
+								 tmp_sta,
+								 reason);
 				break;
 			}
 		}
 	}
 
 	/* Disconnect the station on which the association was performed. */
-	if (disassoc)
+	if (op == AP_STA_DISASSOCIATE)
 		ap_sta_handle_disassociate(assoc_hapd, assoc_sta, reason);
-	else
+	else if (op == AP_STA_DEAUTHENTICATE)
 		ap_sta_handle_deauthenticate(assoc_hapd, assoc_sta, reason);
+	else
+		ap_sta_handle_disconnect(assoc_hapd, assoc_sta, reason);
 
 	return true;
 #else /* CONFIG_IEEE80211BE */
@@ -1129,7 +1156,7 @@ static bool ap_sta_ml_disconnect(struct hostapd_data *hapd,
 void ap_sta_disassociate(struct hostapd_data *hapd, struct sta_info *sta,
 			 u16 reason)
 {
-	if (ap_sta_ml_disconnect(hapd, sta, reason, true))
+	if (ap_sta_ml_disconnect(hapd, sta, reason, AP_STA_DISASSOCIATE))
 		return;
 
 	ap_sta_handle_disassociate(hapd, sta, reason);
@@ -1147,7 +1174,7 @@ void ap_sta_deauthenticate(struct hostapd_data *hapd, struct sta_info *sta,
 		return;
 	}
 
-	if (ap_sta_ml_disconnect(hapd, sta, reason, false))
+	if (ap_sta_ml_disconnect(hapd, sta, reason, AP_STA_DEAUTHENTICATE))
 		return;
 
 	ap_sta_handle_deauthenticate(hapd, sta, reason);
@@ -1660,20 +1687,6 @@ void ap_sta_disconnect(struct hostapd_data *hapd, struct sta_info *sta,
 
 	if (sta == NULL)
 		return;
-	ap_sta_set_authorized(hapd, sta, 0);
-	sta->flags &= ~(WLAN_STA_AUTH | WLAN_STA_ASSOC);
-	hostapd_set_sta_flags(hapd, sta);
-	wpa_auth_sm_event(sta->wpa_sm, WPA_DEAUTH);
-	ieee802_1x_notify_port_enabled(sta->eapol_sm, 0);
-	wpa_printf(MSG_DEBUG, "%s: %s: reschedule ap_handle_timer timeout "
-		   "for " MACSTR " (%d seconds - "
-		   "AP_MAX_INACTIVITY_AFTER_DEAUTH)",
-		   hapd->conf->iface, __func__, MAC2STR(sta->addr),
-		   AP_MAX_INACTIVITY_AFTER_DEAUTH);
-	eloop_cancel_timeout(ap_handle_timer, hapd, sta);
-	eloop_register_timeout(AP_MAX_INACTIVITY_AFTER_DEAUTH, 0,
-			       ap_handle_timer, hapd, sta);
-	sta->timeout_next = STA_REMOVE;
 
 	if (hapd->iface->current_mode &&
 	    hapd->iface->current_mode->mode == HOSTAPD_MODE_IEEE80211AD) {
@@ -1683,7 +1696,10 @@ void ap_sta_disconnect(struct hostapd_data *hapd, struct sta_info *sta,
 		return;
 	}
 
-	ap_sta_deauthenticate_common(hapd, sta, reason);
+	if (ap_sta_ml_disconnect(hapd, sta, reason, AP_STA_DISCONNECT))
+		return;
+
+	ap_sta_handle_disconnect(hapd, sta, reason);
 }
 
 
