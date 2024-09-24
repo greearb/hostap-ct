@@ -7044,6 +7044,11 @@ static int nl80211_ht_vht_overrides(struct nl_msg *msg,
 			wpa_printf(MSG_DEBUG, "  * OFDMA disabled");
 		}
 
+		if (params->ignore_edca) {
+			cai.flags |= CT_IGNORE_EDCA;
+			wpa_printf(MSG_DEBUG, "  * EDCA ignored");
+		}
+
 		if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, CANDELA_VENDOR_ID))
 			return -1;
 
