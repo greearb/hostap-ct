@@ -3849,3 +3849,14 @@ def test_rsn_eapol_m4_encrypt(dev, apdev):
     dev[0].set("encrypt_eapol_m4", "1")
     dev[0].connect(ssid, psk=passphrase, scan_freq="2412")
     hapd.wait_sta()
+
+def test_ap_wpa2_psk_tkip_only_as_group(dev, apdev):
+    """WPA2-PSK AP and TKIP as a group cipher, but not pairwise"""
+    skip_without_tkip(dev[0])
+    params = {"ssid": "wpapsk", "wpa": "2", "wpa_key_mgmt": "WPA-PSK",
+              "rsn_pairwise": "CCMP", "group_cipher": "TKIP",
+              "wpa_passphrase": "1234567890"}
+    hapd = hostapd.add_ap(apdev[0], params)
+    dev[0].connect("wpapsk", psk="1234567890", scan_freq="2412")
+    hapd.wait_sta()
+    hwsim_utils.test_connectivity(dev[0], hapd)
