@@ -2029,7 +2029,9 @@ enum qca_wlan_vendor_attr_p2p_listen_offload {
  *
  * @QCA_WLAN_VENDOR_ATTR_ACS_CH_LIST: Required and type is NLA_UNSPEC.
  * Used with command to configure channel list using an array of
- * channel numbers (u8).
+ * channel numbers (u8). This represents the list of allowed channels for
+ * the primary and non-primary channel operation. Channels which are not present
+ * in the specified list shouldn't be used as a primary or non-primary channel.
  * Note: If both the driver and user-space application supports the 6 GHz band,
  * the driver mandates use of QCA_WLAN_VENDOR_ATTR_ACS_FREQ_LIST whereas
  * QCA_WLAN_VENDOR_ATTR_ACS_CH_LIST is optional.
@@ -2061,7 +2063,10 @@ enum qca_wlan_vendor_attr_p2p_listen_offload {
  *
  * @QCA_WLAN_VENDOR_ATTR_ACS_FREQ_LIST: Required and type is NLA_UNSPEC.
  * Used with command to configure the channel list using an array of channel
- * center frequencies in MHz (u32).
+ * center frequencies in MHz (u32). This represents the list of allowed
+ * frequencies for the primary and non-primary channel operation. Frequencies
+ * which are not present in the specified list shouldn't be used as a primary or
+ * non-primary channel.
  * Note: If both the driver and user-space application supports the 6 GHz band,
  * the driver first parses the frequency list and if it fails to get a frequency
  * list, parses the channel list specified using
