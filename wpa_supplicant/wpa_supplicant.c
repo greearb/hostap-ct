@@ -1574,6 +1574,9 @@ static void wpas_update_allowed_key_mgmt(struct wpa_supplicant *wpa_s,
 {
 	int akm_count = wpa_s->max_num_akms;
 	u8 capab = 0;
+#ifdef CONFIG_SAE
+	enum sae_pwe sae_pwe;
+#endif /* CONFIG_SAE */
 
 	if (akm_count < 2)
 		return;
@@ -1652,13 +1655,16 @@ static void wpas_update_allowed_key_mgmt(struct wpa_supplicant *wpa_s,
 		return;
 	}
 
-	if (wpa_s->conf->sae_pwe != SAE_PWE_HUNT_AND_PECK &&
-	    wpa_s->conf->sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK)
+#ifdef CONFIG_SAE
+	sae_pwe = wpas_get_ssid_sae_pwe(wpa_s, ssid);
+	if (sae_pwe != SAE_PWE_HUNT_AND_PECK &&
+	    sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK)
 		capab |= BIT(WLAN_RSNX_CAPAB_SAE_H2E);
 #ifdef CONFIG_SAE_PK
 	if (ssid->sae_pk)
 		capab |= BIT(WLAN_RSNX_CAPAB_SAE_PK);
 #endif /* CONFIG_SAE_PK */
+#endif /* CONFIG_SAE */
 
 	if (!((wpa_s->allowed_key_mgmts &
 	       (WPA_KEY_MGMT_SAE | WPA_KEY_MGMT_SAE_EXT_KEY)) && capab))
@@ -1697,7 +1703,9 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 {
 	struct wpa_ie_data ie;
 	int sel, proto;
+#ifdef CONFIG_SAE
 	enum sae_pwe sae_pwe;
+#endif /* CONFIG_SAE */
 	const u8 *bss_wpa, *bss_rsn, *bss_rsnx, *bss_osen;
 	bool wmm;
 
@@ -2056,7 +2064,8 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 	    (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_OCV))
 		wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_OCV, ssid->ocv);
 #endif /* CONFIG_OCV */
-	sae_pwe = wpa_s->conf->sae_pwe;
+#ifdef CONFIG_SAE
+	sae_pwe = wpas_get_ssid_sae_pwe(wpa_s, ssid);
 	if ((ssid->sae_password_id ||
 	     wpa_key_mgmt_sae_ext_key(wpa_s->key_mgmt)) &&
 	    sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK)
@@ -2077,6 +2086,7 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 			  (!ssid->sae_password && ssid->passphrase &&
 			   sae_pk_valid_password(ssid->passphrase))));
 #endif /* CONFIG_SAE_PK */
+#endif /* CONFIG_SAE */
 	if (bss && is_6ghz_freq(bss->freq) &&
 	    wpas_get_ssid_pmf(wpa_s, ssid) != MGMT_FRAME_PROTECTION_REQUIRED) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "RSN: Force MFPR=1 on 6 GHz");
@@ -2524,13 +2534,15 @@ int wpas_update_random_addr_disassoc(struct wpa_supplicant *wpa_s)
 }
 
 
-void wpa_s_setup_sae_pt(struct wpa_config *conf, struct wpa_ssid *ssid,
+void wpa_s_setup_sae_pt(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 			bool force)
 {
 #ifdef CONFIG_SAE
+	struct wpa_config *conf = wpa_s->conf;
 	int *groups = conf->sae_groups;
 	int default_groups[] = { 19, 20, 21, 0 };
 	const char *password;
+	enum sae_pwe sae_pwe;
 
 	if (!groups || groups[0] <= 0)
 		groups = default_groups;
@@ -2539,13 +2551,15 @@ void wpa_s_setup_sae_pt(struct wpa_config *conf, struct wpa_ssid *ssid,
 	if (!password)
 		password = ssid->passphrase;
 
+	sae_pwe = wpas_get_ssid_sae_pwe(wpa_s, ssid);
+
 	if (!password ||
 	    !wpa_key_mgmt_sae(ssid->key_mgmt) ||
-	    (conf->sae_pwe == SAE_PWE_HUNT_AND_PECK && !ssid->sae_password_id &&
+	    (sae_pwe == SAE_PWE_HUNT_AND_PECK && !ssid->sae_password_id &&
 	     !wpa_key_mgmt_sae_ext_key(ssid->key_mgmt) &&
 	     !force &&
 	     !sae_pk_valid_password(password)) ||
-	    conf->sae_pwe == SAE_PWE_FORCE_HUNT_AND_PECK) {
+	    sae_pwe == SAE_PWE_FORCE_HUNT_AND_PECK) {
 		/* PT derivation not needed */
 		sae_deinit_pt(ssid->pt);
 		ssid->pt = NULL;
@@ -2666,7 +2680,7 @@ void wpa_supplicant_associate(struct wpa_supplicant *wpa_s,
 		wpa_s_clear_sae_rejected(wpa_s);
 
 #ifdef CONFIG_SAE
-	wpa_s_setup_sae_pt(wpa_s->conf, ssid, false);
+	wpa_s_setup_sae_pt(wpa_s, ssid, false);
 #endif /* CONFIG_SAE */
 
 	if (rand_style > WPAS_MAC_ADDR_STYLE_PERMANENT) {
@@ -4637,7 +4651,7 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit)
 		params.prev_bssid = prev_bssid;
 
 #ifdef CONFIG_SAE
-	params.sae_pwe = wpa_s->conf->sae_pwe;
+	params.sae_pwe = wpas_get_ssid_sae_pwe(wpa_s, ssid);
 #endif /* CONFIG_SAE */
 
 	ret = wpa_drv_associate(wpa_s, &params);
@@ -5176,7 +5190,7 @@ void wpa_supplicant_select_network(struct wpa_supplicant *wpa_s,
 	wpa_s->last_owe_group = 0;
 	if (ssid) {
 		ssid->owe_transition_bss_select_count = 0;
-		wpa_s_setup_sae_pt(wpa_s->conf, ssid, false);
+		wpa_s_setup_sae_pt(wpa_s, ssid, false);
 	}
 
 	if (wpa_s->connect_without_scan || request_new_scan ||
@@ -8888,6 +8902,16 @@ int wpas_get_ssid_pmf(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid)
 
 
 #ifdef CONFIG_SAE
+
+enum sae_pwe wpas_get_ssid_sae_pwe(struct wpa_supplicant *wpa_s,
+				   struct wpa_ssid *ssid)
+{
+	if (!ssid || ssid->sae_pwe == DEFAULT_SAE_PWE)
+		return wpa_s->conf->sae_pwe;
+	return ssid->sae_pwe;
+}
+
+
 bool wpas_is_sae_avoided(struct wpa_supplicant *wpa_s,
 			 struct wpa_ssid *ssid,
 			 const struct wpa_ie_data *ie)
@@ -8897,6 +8921,7 @@ bool wpas_is_sae_avoided(struct wpa_supplicant *wpa_s,
 		   (WPA_CAPABILITY_MFPC | WPA_CAPABILITY_MFPR)) ||
 		 wpas_get_ssid_pmf(wpa_s, ssid) == NO_MGMT_FRAME_PROTECTION);
 }
+
 #endif /* CONFIG_SAE */
 
 

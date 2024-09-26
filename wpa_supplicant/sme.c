@@ -105,6 +105,7 @@ static struct wpabuf * sme_auth_build_sae_commit(struct wpa_supplicant *wpa_s,
 	int key_mgmt = external ? wpa_s->sme.ext_auth_key_mgmt :
 		wpa_s->key_mgmt;
 	const u8 *addr = mld_addr ? mld_addr : bssid;
+	enum sae_pwe sae_pwe;
 
 	if (ret_use_pt)
 		*ret_use_pt = 0;
@@ -198,14 +199,16 @@ static struct wpabuf * sme_auth_build_sae_commit(struct wpa_supplicant *wpa_s,
 			rsnxe_capa = rsnxe[2];
 	}
 
+	sae_pwe = wpas_get_ssid_sae_pwe(wpa_s, ssid);
+
 	if (ssid->sae_password_id &&
-	    wpa_s->conf->sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK)
+	    sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK)
 		use_pt = 1;
 	if (wpa_key_mgmt_sae_ext_key(key_mgmt) &&
-	    wpa_s->conf->sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK)
+	    sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK)
 		use_pt = 1;
 	if (bss && is_6ghz_freq(bss->freq) &&
-	    wpa_s->conf->sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK)
+	    sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK)
 		use_pt = 1;
 #ifdef CONFIG_SAE_PK
 	if ((rsnxe_capa & BIT(WLAN_RSNX_CAPAB_SAE_PK)) &&
@@ -225,14 +228,14 @@ static struct wpabuf * sme_auth_build_sae_commit(struct wpa_supplicant *wpa_s,
 	}
 #endif /* CONFIG_SAE_PK */
 
-	if (use_pt || wpa_s->conf->sae_pwe == SAE_PWE_HASH_TO_ELEMENT ||
-	    wpa_s->conf->sae_pwe == SAE_PWE_BOTH) {
+	if (use_pt || sae_pwe == SAE_PWE_HASH_TO_ELEMENT ||
+	    sae_pwe == SAE_PWE_BOTH) {
 		use_pt = !!(rsnxe_capa & BIT(WLAN_RSNX_CAPAB_SAE_H2E));
 
-		if ((wpa_s->conf->sae_pwe == SAE_PWE_HASH_TO_ELEMENT ||
+		if ((sae_pwe == SAE_PWE_HASH_TO_ELEMENT ||
 		     ssid->sae_password_id ||
 		     wpa_key_mgmt_sae_ext_key(key_mgmt)) &&
-		    wpa_s->conf->sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK &&
+		    sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK &&
 		    !use_pt) {
 			wpa_printf(MSG_DEBUG,
 				   "SAE: Cannot use H2E with the selected AP");
@@ -241,7 +244,7 @@ static struct wpabuf * sme_auth_build_sae_commit(struct wpa_supplicant *wpa_s,
 	}
 
 	if (use_pt && !ssid->pt)
-		wpa_s_setup_sae_pt(wpa_s->conf, ssid, true);
+		wpa_s_setup_sae_pt(wpa_s, ssid, true);
 	if (use_pt &&
 	    sae_prepare_commit_pt(&wpa_s->sme.sae, ssid->pt,
 				  wpa_s->own_addr, addr,
@@ -1449,7 +1452,7 @@ static int sme_handle_external_auth_start(struct wpa_supplicant *wpa_s,
 		    os_memcmp(ssid_str, ssid->ssid, ssid_str_len) == 0 &&
 		    wpa_key_mgmt_sae(ssid->key_mgmt)) {
 			/* Make sure PT is derived */
-			wpa_s_setup_sae_pt(wpa_s->conf, ssid, false);
+			wpa_s_setup_sae_pt(wpa_s, ssid, false);
 			wpa_s->sme.ext_auth_wpa_ssid = ssid;
 			break;
 		}

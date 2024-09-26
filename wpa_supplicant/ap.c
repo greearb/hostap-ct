@@ -638,10 +638,7 @@ static int wpa_supplicant_conf_ap(struct wpa_supplicant *wpa_s,
 		bss->sae_passwords = pw;
 	}
 
-	if (ssid->sae_pwe != DEFAULT_SAE_PWE)
-		bss->sae_pwe = ssid->sae_pwe;
-	else
-		bss->sae_pwe = wpa_s->conf->sae_pwe;
+	bss->sae_pwe = wpas_get_ssid_sae_pwe(wpa_s, ssid);
 #endif /* CONFIG_SAE */
 
 	if (wpa_s->conf->go_interworking) {

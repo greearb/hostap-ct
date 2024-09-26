@@ -1044,7 +1044,7 @@ static int rate_match(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 #ifdef CONFIG_SAE
 			if (flagged && ((rate_ie[j] & 0x7f) ==
 					BSS_MEMBERSHIP_SELECTOR_SAE_H2E_ONLY)) {
-				if (wpa_s->conf->sae_pwe ==
+				if (wpas_get_ssid_sae_pwe(wpa_s, ssid) ==
 				    SAE_PWE_HUNT_AND_PECK &&
 				    !ssid->sae_password_id &&
 				    !is_6ghz_freq(bss->freq) &&
@@ -1272,6 +1272,7 @@ static bool wpa_scan_res_ok(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 #endif /* CONFIG_MBO */
 #ifdef CONFIG_SAE
 	u8 rsnxe_capa = 0;
+	enum sae_pwe sae_pwe;
 #endif /* CONFIG_SAE */
 	const u8 *ie;
 
@@ -1448,9 +1449,10 @@ static bool wpa_scan_res_ok(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 #ifdef CONFIG_SAE
 	/* When using SAE Password Identifier and when operationg on the 6 GHz
 	 * band, only H2E is allowed. */
-	if ((wpa_s->conf->sae_pwe == SAE_PWE_HASH_TO_ELEMENT ||
+	sae_pwe = wpas_get_ssid_sae_pwe(wpa_s, ssid);
+	if ((sae_pwe == SAE_PWE_HASH_TO_ELEMENT ||
 	     is_6ghz_freq(bss->freq) || ssid->sae_password_id) &&
-	    wpa_s->conf->sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK &&
+	    sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK &&
 	    wpa_key_mgmt_sae(ssid->key_mgmt) &&
 	    !(rsnxe_capa & BIT(WLAN_RSNX_CAPAB_SAE_H2E))) {
 		if (debug_print)
