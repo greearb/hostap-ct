@@ -2529,6 +2529,7 @@ static const struct parse_data ssid_fields[] = {
 	{ INT(mem_only_psk) },
 	{ STR_KEY(sae_password) },
 	{ STR(sae_password_id) },
+	{ INT(sae_pwe) },
 	{ FUNC(proto) },
 	{ FUNC(key_mgmt) },
 	{ INT(bg_scan_period) },
