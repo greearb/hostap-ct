@@ -1189,6 +1189,7 @@ struct wpa_supplicant {
 	struct wpa_radio_work *p2p_scan_work;
 	struct wpa_radio_work *p2p_listen_work;
 	struct wpa_radio_work *p2p_send_action_work;
+	bool p2p_removing_listen_work;
 
 	u16 p2p_oob_dev_pw_id; /* OOB Device Password Id for group formation */
 	struct wpabuf *p2p_oob_dev_pw; /* OOB Device Password for group

@@ -3224,10 +3224,13 @@ static void wpas_stop_listen(void *ctx)
 
 	wpas_p2p_listen_work_done(wpa_s);
 
-	if (radio_work_pending(wpa_s, "p2p-listen")) {
+	if (!wpa_s->p2p_removing_listen_work &&
+	    radio_work_pending(wpa_s, "p2p-listen")) {
+		wpa_s->p2p_removing_listen_work = true;
 		wpa_printf(MSG_DEBUG,
 			   "P2P: p2p-listen is still pending - remove it");
 		radio_remove_works(wpa_s, "p2p-listen", 0);
+		wpa_s->p2p_removing_listen_work = false;
 	}
 }
 
