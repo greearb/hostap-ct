@@ -4357,6 +4357,9 @@ def _test_ap_hs20_proxyarp(dev, apdev):
     if "OK" not in dev[1].request("DATA_TEST_FRAME " + binascii.hexlify(pkt).decode()):
         raise Exception("DATA_TEST_FRAME failed")
 
+    # Wait for frames to be processed
+    time.sleep(0.1)
+
     matches = get_permanent_neighbors("ap-br0")
     logger.info("After connect: " + str(matches))
     if len(matches) != 3:
@@ -4488,6 +4491,9 @@ def _test_ap_hs20_proxyarp_dgaf(dev, apdev, disabled):
                          yiaddr="192.168.1.123", chaddr=addr0)
     if "OK" not in hapd.request("DATA_TEST_FRAME ifname=ap-br0 " + binascii.hexlify(pkt).decode()):
         raise Exception("DATA_TEST_FRAME failed")
+
+    # Wait for frames to be processed
+    time.sleep(0.1)
 
     matches = get_permanent_neighbors("ap-br0")
     logger.info("After connect: " + str(matches))
@@ -4948,6 +4954,9 @@ def _test_proxyarp_open(dev, apdev, params, ebtables=False):
                          no_dhcp=True)
     if "OK" not in hapd.request("DATA_TEST_FRAME ifname=ap-br0 " + binascii.hexlify(pkt).decode()):
         raise Exception("DATA_TEST_FRAME failed")
+
+    # Wait for frames to be processed
+    time.sleep(0.1)
 
     macs = get_bridge_macs("ap-br0")
     logger.info("After connect (showmacs): " + str(macs))

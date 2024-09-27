@@ -172,6 +172,9 @@ def test_ip4_drop_gratuitous_arp(devs, apdevs, params):
             if "OK" not in hapd.request('DATA_TEST_FRAME ' + pkt):
                 raise Exception("DATA_TEST_FRAME failed")
 
+            # Wait for frames to be processed
+            time.sleep(0.1)
+
             if hapd.own_addr() in subprocess.check_output(['ip', 'neigh', 'show']).decode():
                 raise Exception("gratuitous ARP frame updated erroneously")
         finally:
@@ -198,6 +201,9 @@ def test_ip6_drop_unsolicited_na(devs, apdevs, params):
 
             if "OK" not in hapd.request('DATA_TEST_FRAME ' + pkt):
                 raise Exception("DATA_TEST_FRAME failed")
+
+            # Wait for frames to be processed
+            time.sleep(0.1)
 
             if hapd.own_addr() in subprocess.check_output(['ip', 'neigh', 'show']).decode():
                 raise Exception("unsolicited NA frame updated erroneously")
