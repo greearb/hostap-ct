@@ -1135,6 +1135,7 @@ class WpaSupplicant:
                       "wpa_deny_ptk0_rekey",
                       "max_idle",
                       "ssid_protection",
+                      "sae_pwe",
                       "enable_4addr_mode"]
         for field in not_quoted:
             if field in kwargs and kwargs[field]:
