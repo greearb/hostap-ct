@@ -813,7 +813,6 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		wpa_dbg(wpa_s, MSG_DEBUG, "SME: FT mobility domain %02x%02x",
 			md[0], md[1]);
 
-		omit_rsnxe = !wpa_bss_get_rsnxe(wpa_s, bss, ssid, false);
 		if (wpa_s->sme.assoc_req_ie_len + 5 <
 		    sizeof(wpa_s->sme.assoc_req_ie)) {
 			struct rsn_mdie *mdie;
@@ -833,6 +832,8 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		    wpa_sm_has_ft_keys(wpa_s->wpa, md)) {
 			wpa_dbg(wpa_s, MSG_DEBUG, "SME: Trying to use FT "
 				"over-the-air");
+			omit_rsnxe = !wpa_bss_get_rsnxe(wpa_s, bss, ssid,
+							false);
 			params.auth_alg = WPA_AUTH_ALG_FT;
 			params.ie = wpa_s->sme.ft_ies;
 			params.ie_len = wpa_s->sme.ft_ies_len;
