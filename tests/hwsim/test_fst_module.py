@@ -2542,8 +2542,11 @@ def _test_fst_setup_mbie_diff(dev, apdev, test_params):
     mbie = "9e16040200010200000004000000000000000000000000ff"
     try:
         with alloc_fail(hapd, 1, "mb_ies_by_info"):
+            # If no_wait is set to True an explicit wait would need to be
+            # inserted to ensure the failure was triggered. However, as the
+            # setup succeeds (currently), we can simply do the wait here.
             fst_setup_req(wpas, hglobal, 5180, apdev[0]['bssid'], req, stie,
-                          mbie, no_wait=True)
+                          mbie, no_wait=False)
     except HwsimSkip as e:
         # Skip exception to allow proper cleanup
         pass
