@@ -440,7 +440,10 @@ def test_ieee8021x_set_conf(dev, apdev):
     dev[0].connect("ieee8021x-open", key_mgmt="IEEE8021X", eapol_flags="0",
                    eap="PSK", identity="psk.user@example.com",
                    password_hex="0123456789abcdef0123456789abcdef",
-                   scan_freq="2412")
+                   scan_freq="2412",
+                   # The workaround in eap_success_workaround can trigger a
+                   # rare failure when the EAPOL frame ID wraps.
+                   eap_workaround="0")
 
     addr0 = dev[0].own_addr()
     tests = ["EAPOL_SET 1",
