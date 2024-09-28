@@ -1377,6 +1377,8 @@ SOBJS += ../src/common/sae.o
 SOBJS += ../src/common/sae_pk.o
 SOBJS += ../src/common/dragonfly.o
 SOBJS += $(AESOBJS)
+SOBJS += ../src/crypto/sha384.o
+SOBJS += ../src/crypto/sha512.o
 SOBJS += ../src/crypto/sha256-prf.o
 SOBJS += ../src/crypto/sha384-prf.o
 SOBJS += ../src/crypto/sha512-prf.o
@@ -1384,6 +1386,10 @@ SOBJS += ../src/crypto/dh_groups.o
 SOBJS += ../src/crypto/sha256-kdf.o
 SOBJS += ../src/crypto/sha384-kdf.o
 SOBJS += ../src/crypto/sha512-kdf.o
+SOBJS += ../src/common/wpa_common.o
+SOBJS += ../src/crypto/random.o
+SOBJS += ../src/crypto/sha1-prf.o
+SOBJS += ../src/utils/eloop.o
 
 _OBJS_VAR := NOBJS
 include ../src/objs.mk
