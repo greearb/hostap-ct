@@ -3207,6 +3207,12 @@ struct hostapd_iface * hostapd_alloc_iface(void)
 static void hostapd_bss_alloc_link_id(struct hostapd_data *hapd)
 {
 	hapd->mld_link_id = hapd->mld->next_link_id++;
+
+#ifdef CONFIG_TESTING_OPTIONS
+	if (hapd->conf->mld_link_id != -1)
+		hapd->mld_link_id = hapd->conf->mld_link_id;
+#endif /* CONFIG_TESTING_OPTIONS */
+
 	wpa_printf(MSG_DEBUG, "AP MLD: %s: Link ID %d assigned.",
 		   hapd->mld->name, hapd->mld_link_id);
 }
