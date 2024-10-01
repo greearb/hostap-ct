@@ -1011,6 +1011,9 @@ struct hostapd_bss_config {
 	 * other APs in the AP MLD.
 	 */
 	bool mld_indicate_disabled;
+
+	/* Link ID of this affiliated AP of the AP MLD */
+	int mld_link_id;
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
 	int mbssid_index;
