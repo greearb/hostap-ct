@@ -294,6 +294,10 @@ u8 * hostapd_eid_mbssid(struct hostapd_data *hapd, u8 *eid, u8 *end,
 			u8 *rnr_count, u8 **rnr_offset, size_t rnr_len);
 size_t hostapd_eid_non_inheritance_len(struct hostapd_data *hapd);
 bool hostapd_is_multiple_link_mld(struct hostapd_data *hapd);
+
+/* Convenience method to make mtk patches easier to apply. */
+#define hostapd_is_mld_ap(hapd) hostapd_is_multiple_link_mld(hapd)
+
 int sae_password_bind(struct hostapd_data *hapd, const u8 *addr,
 		      const char *password);
 const char * sae_get_password(struct hostapd_data *hapd,
