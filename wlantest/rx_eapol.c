@@ -666,12 +666,7 @@ static void learn_kde_keys_mlo(struct wlantest *wt, struct wlantest_bss *bss,
 			wpa_hexdump(MSG_DEBUG, "IPN", pn, 6);
 			bss->igtk_len[key_id] = key_len;
 			os_memcpy(bss->igtk[key_id], key, key_len);
-			bss->ipn[key_id][0] = pn[5];
-			bss->ipn[key_id][1] = pn[4];
-			bss->ipn[key_id][2] = pn[3];
-			bss->ipn[key_id][3] = pn[2];
-			bss->ipn[key_id][4] = pn[1];
-			bss->ipn[key_id][5] = pn[0];
+			bss->ipn[key_id] = WPA_GET_LE48(pn);
 			bss->igtk_idx = key_id;
 		} else {
 			add_note(wt, MSG_INFO,
@@ -697,12 +692,7 @@ static void learn_kde_keys_mlo(struct wlantest *wt, struct wlantest_bss *bss,
 			wpa_hexdump(MSG_DEBUG, "BIPN", pn, 6);
 			bss->igtk_len[key_id] = key_len;
 			os_memcpy(bss->igtk[key_id], key, key_len);
-			bss->ipn[key_id][0] = pn[5];
-			bss->ipn[key_id][1] = pn[4];
-			bss->ipn[key_id][2] = pn[3];
-			bss->ipn[key_id][3] = pn[2];
-			bss->ipn[key_id][4] = pn[1];
-			bss->ipn[key_id][5] = pn[0];
+			bss->ipn[key_id] = WPA_GET_LE48(pn);
 			bss->bigtk_idx = key_id;
 		} else {
 			add_note(wt, MSG_INFO,
@@ -790,12 +780,7 @@ static void learn_kde_keys(struct wlantest *wt, struct wlantest_bss *bss,
 				os_memcpy(bss->igtk[id], ie.igtk + 8, 16);
 				bss->igtk_len[id] = 16;
 				ipn = ie.igtk + 2;
-				bss->ipn[id][0] = ipn[5];
-				bss->ipn[id][1] = ipn[4];
-				bss->ipn[id][2] = ipn[3];
-				bss->ipn[id][3] = ipn[2];
-				bss->ipn[id][4] = ipn[1];
-				bss->ipn[id][5] = ipn[0];
+				bss->ipn[id] = WPA_GET_LE48(ipn);
 				bss->igtk_idx = id;
 			}
 		} else if (ie.igtk_len == 40) {
@@ -813,12 +798,7 @@ static void learn_kde_keys(struct wlantest *wt, struct wlantest_bss *bss,
 				os_memcpy(bss->igtk[id], ie.igtk + 8, 32);
 				bss->igtk_len[id] = 32;
 				ipn = ie.igtk + 2;
-				bss->ipn[id][0] = ipn[5];
-				bss->ipn[id][1] = ipn[4];
-				bss->ipn[id][2] = ipn[3];
-				bss->ipn[id][3] = ipn[2];
-				bss->ipn[id][4] = ipn[1];
-				bss->ipn[id][5] = ipn[0];
+				bss->ipn[id] = WPA_GET_LE48(ipn);
 				bss->igtk_idx = id;
 			}
 		} else {
@@ -847,12 +827,7 @@ static void learn_kde_keys(struct wlantest *wt, struct wlantest_bss *bss,
 				os_memcpy(bss->igtk[id], ie.bigtk + 8, 16);
 				bss->igtk_len[id] = 16;
 				ipn = ie.bigtk + 2;
-				bss->ipn[id][0] = ipn[5];
-				bss->ipn[id][1] = ipn[4];
-				bss->ipn[id][2] = ipn[3];
-				bss->ipn[id][3] = ipn[2];
-				bss->ipn[id][4] = ipn[1];
-				bss->ipn[id][5] = ipn[0];
+				bss->ipn[id] = WPA_GET_LE48(ipn);
 				bss->bigtk_idx = id;
 			}
 		} else if (ie.bigtk_len == 40) {
@@ -872,12 +847,7 @@ static void learn_kde_keys(struct wlantest *wt, struct wlantest_bss *bss,
 				os_memcpy(bss->igtk[id], ie.bigtk + 8, 32);
 				bss->igtk_len[id] = 32;
 				ipn = ie.bigtk + 2;
-				bss->ipn[id][0] = ipn[5];
-				bss->ipn[id][1] = ipn[4];
-				bss->ipn[id][2] = ipn[3];
-				bss->ipn[id][3] = ipn[2];
-				bss->ipn[id][4] = ipn[1];
-				bss->ipn[id][5] = ipn[0];
+				bss->ipn[id] = WPA_GET_LE48(ipn);
 				bss->bigtk_idx = id;
 			}
 		} else {

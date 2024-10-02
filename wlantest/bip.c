@@ -15,7 +15,7 @@
 
 
 u8 * bip_protect(const u8 *igtk, size_t igtk_len, u8 *frame, size_t len,
-		 u8 *ipn, int keyid, size_t *prot_len)
+		 u64 ipn, int keyid, size_t *prot_len)
 {
 	u8 *prot, *pos, *buf;
 	u8 mic[16];
@@ -33,7 +33,7 @@ u8 * bip_protect(const u8 *igtk, size_t igtk_len, u8 *frame, size_t len,
 	*pos++ = igtk_len == 32 ? 24 : 16;
 	WPA_PUT_LE16(pos, keyid);
 	pos += 2;
-	os_memcpy(pos, ipn, 6);
+	WPA_PUT_LE48(pos, ipn);
 	pos += 6;
 	os_memset(pos, 0, igtk_len == 32 ? 16 : 8); /* MIC */
 

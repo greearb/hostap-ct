@@ -408,6 +408,7 @@ static void rx_mgmt_beacon(struct wlantest *wt, const u8 *data, size_t len)
 	const u8 *mme;
 	size_t mic_len;
 	u16 keyid;
+	u64 rx_bipn;
 
 	mgmt = (const struct ieee80211_mgmt *) data;
 	offset = mgmt->u.beacon.variable - data;
@@ -577,8 +578,10 @@ static void rx_mgmt_beacon(struct wlantest *wt, const u8 *data, size_t len)
 		return;
 	}
 
-	wpa_printf(MSG_DEBUG, "Beacon frame MME KeyID %u", keyid);
-	wpa_hexdump(MSG_MSGDUMP, "MME IPN", mme + 2, 6);
+	rx_bipn = WPA_GET_LE48(mme + 2);
+	wpa_printf(MSG_DEBUG, "Beacon frame BSSID " MACSTR
+		   " MME KeyID %u BIPN 0x%lx",
+		   MAC2STR(mgmt->bssid), keyid, rx_bipn);
 	wpa_hexdump(MSG_MSGDUMP, "MME MIC", mme + 8, mic_len);
 
 	if (!bss->igtk_len[keyid]) {
@@ -588,11 +591,10 @@ static void rx_mgmt_beacon(struct wlantest *wt, const u8 *data, size_t len)
 		return;
 	}
 
-	if (os_memcmp(mme + 2, bss->ipn[keyid], 6) <= 0) {
-		add_note(wt, MSG_INFO, "BIP replay detected: SA=" MACSTR,
-			 MAC2STR(mgmt->sa));
-		wpa_hexdump(MSG_INFO, "RX IPN", mme + 2, 6);
-		wpa_hexdump(MSG_INFO, "Last RX IPN", bss->ipn[keyid], 6);
+	if (rx_bipn <= bss->ipn[keyid]) {
+		add_note(wt, MSG_INFO, "BIP replay detected: SA=" MACSTR
+			 " RX BIPN 0x%lx <= 0x%lx",
+			 MAC2STR(mgmt->sa), rx_bipn, bss->ipn[keyid]);
 	}
 
 	if (check_mmie_mic(bss->mgmt_group_cipher, bss->igtk[keyid],
@@ -604,7 +606,7 @@ static void rx_mgmt_beacon(struct wlantest *wt, const u8 *data, size_t len)
 	}
 
 	add_note(wt, MSG_DEBUG, "Valid MME MIC in Beacon frame");
-	os_memcpy(bss->ipn[keyid], mme + 2, 6);
+	bss->ipn[keyid] = rx_bipn;
 }
 
 
@@ -1907,12 +1909,7 @@ static void process_igtk_subelem(struct wlantest *wt, struct wlantest_bss *bss,
 	os_memcpy(bss->igtk[keyidx], igtk, igtk_len);
 	bss->igtk_len[keyidx] = igtk_len;
 	ipn = igtk_elem + 2;
-	bss->ipn[keyidx][0] = ipn[5];
-	bss->ipn[keyidx][1] = ipn[4];
-	bss->ipn[keyidx][2] = ipn[3];
-	bss->ipn[keyidx][3] = ipn[2];
-	bss->ipn[keyidx][4] = ipn[1];
-	bss->ipn[keyidx][5] = ipn[0];
+	bss->ipn[keyidx] = WPA_GET_LE48(ipn);
 	bss->igtk_idx = keyidx;
 }
 
@@ -1979,12 +1976,7 @@ static void process_bigtk_subelem(struct wlantest *wt, struct wlantest_bss *bss,
 	os_memcpy(bss->igtk[keyidx], bigtk, bigtk_len);
 	bss->igtk_len[keyidx] = bigtk_len;
 	ipn = bigtk_elem + 2;
-	bss->ipn[keyidx][0] = ipn[5];
-	bss->ipn[keyidx][1] = ipn[4];
-	bss->ipn[keyidx][2] = ipn[3];
-	bss->ipn[keyidx][3] = ipn[2];
-	bss->ipn[keyidx][4] = ipn[1];
-	bss->ipn[keyidx][5] = ipn[0];
+	bss->ipn[keyidx] = WPA_GET_LE48(ipn);
 	bss->bigtk_idx = keyidx;
 }
 
@@ -3119,6 +3111,7 @@ static int check_bip(struct wlantest *wt, const u8 *data, size_t len)
 	u16 keyid;
 	struct wlantest_bss *bss;
 	size_t mic_len;
+	u64 rx_ipn;
 
 	mgmt = (const struct ieee80211_mgmt *) data;
 	fc = le_to_host16(mgmt->frame_control);
@@ -3165,8 +3158,9 @@ static int check_bip(struct wlantest *wt, const u8 *data, size_t len)
 		bss->counters[WLANTEST_BSS_COUNTER_INVALID_BIP_MMIE]++;
 		return 0;
 	}
-	wpa_printf(MSG_DEBUG, "MMIE KeyID %u", keyid);
-	wpa_hexdump(MSG_MSGDUMP, "MMIE IPN", mmie + 2, 6);
+
+	rx_ipn = WPA_GET_LE48(mmie + 2);
+	wpa_printf(MSG_DEBUG, "MME KeyID %u IPN 0x%lx", keyid, rx_ipn);
 	wpa_hexdump(MSG_MSGDUMP, "MMIE MIC", mmie + 8, mic_len);
 
 	if (!bss->igtk_len[keyid]) {
@@ -3174,11 +3168,10 @@ static int check_bip(struct wlantest *wt, const u8 *data, size_t len)
 		return 0;
 	}
 
-	if (os_memcmp(mmie + 2, bss->ipn[keyid], 6) <= 0) {
-		add_note(wt, MSG_INFO, "BIP replay detected: SA=" MACSTR,
-			 MAC2STR(mgmt->sa));
-		wpa_hexdump(MSG_INFO, "RX IPN", mmie + 2, 6);
-		wpa_hexdump(MSG_INFO, "Last RX IPN", bss->ipn[keyid], 6);
+	if (rx_ipn <= bss->ipn[keyid]) {
+		add_note(wt, MSG_INFO, "BIP replay detected: SA=" MACSTR
+			 " RX IPN 0x%lx <= 0x%lx",
+			 MAC2STR(mgmt->sa), rx_ipn, bss->ipn[keyid]);
 	}
 
 	if (check_mmie_mic(bss->mgmt_group_cipher, bss->igtk[keyid],
@@ -3190,7 +3183,7 @@ static int check_bip(struct wlantest *wt, const u8 *data, size_t len)
 	}
 
 	add_note(wt, MSG_DEBUG, "Valid MMIE MIC");
-	os_memcpy(bss->ipn[keyid], mmie + 2, 6);
+	bss->ipn[keyid] = rx_ipn;
 	bss->counters[WLANTEST_BSS_COUNTER_VALID_BIP_MMIE]++;
 
 	if (stype == WLAN_FC_STYPE_DEAUTH)

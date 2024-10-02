@@ -174,7 +174,7 @@ struct wlantest_bss {
 	u8 igtk[8][32];
 	size_t igtk_len[8];
 	int igtk_idx;
-	u8 ipn[8][6];
+	u64 ipn[8];
 	int bigtk_idx;
 	u32 counters[NUM_WLANTEST_BSS_COUNTER];
 	struct dl_list tdls; /* struct wlantest_tdls */
@@ -352,7 +352,7 @@ u8 * wep_decrypt(struct wlantest *wt, const struct ieee80211_hdr *hdr,
 		 const u8 *data, size_t data_len, size_t *decrypted_len);
 
 u8 * bip_protect(const u8 *igtk, size_t igtk_len, u8 *frame, size_t len,
-		 u8 *ipn, int keyid, size_t *prot_len);
+		 u64 ipn, int keyid, size_t *prot_len);
 u8 * bip_protect_s1g_beacon(const u8 *igtk, size_t igtk_len, const u8 *frame,
 			    size_t len, const u8 *ipn, int keyid, bool bce,
 			    size_t *prot_len);

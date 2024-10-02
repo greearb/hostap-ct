@@ -91,7 +91,7 @@ static int wlantest_inject_bip(struct wlantest *wt, struct wlantest_bss *bss,
 		return -1;
 
 	os_memset(stub, 0x11, sizeof(stub));
-	inc_byte_array(bss->ipn[bss->igtk_idx], 6);
+	bss->ipn[bss->igtk_idx]++;
 
 	prot = bip_protect(incorrect_key ? stub : bss->igtk[bss->igtk_idx],
 			   bss->igtk_len[bss->igtk_idx],
