@@ -364,7 +364,7 @@ static void test_vector_bip(void)
 		   "Deauthentication frame\n");
 
 	wpa_hexdump(MSG_INFO, "IGTK", igtk, sizeof(igtk));
-	wpa_printf(MSG_INFO, "IPN: 0x%lx", ipn);
+	wpa_printf(MSG_INFO, "IPN: 0x%llx", (long long unsigned int) ipn);
 	wpa_hexdump(MSG_INFO, "Plaintext frame", frame, sizeof(frame));
 
 	prot = bip_protect(igtk, sizeof(igtk), frame, sizeof(frame),

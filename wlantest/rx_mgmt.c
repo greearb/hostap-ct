@@ -580,8 +580,9 @@ static void rx_mgmt_beacon(struct wlantest *wt, const u8 *data, size_t len)
 
 	rx_bipn = WPA_GET_LE48(mme + 2);
 	wpa_printf(MSG_DEBUG, "Beacon frame BSSID " MACSTR
-		   " MME KeyID %u BIPN 0x%lx",
-		   MAC2STR(mgmt->bssid), keyid, rx_bipn);
+		   " MME KeyID %u BIPN 0x%llx",
+		   MAC2STR(mgmt->bssid), keyid,
+		   (long long unsigned int) rx_bipn);
 	wpa_hexdump(MSG_MSGDUMP, "MME MIC", mme + 8, mic_len);
 
 	if (!bss->igtk_len[keyid]) {
@@ -593,8 +594,9 @@ static void rx_mgmt_beacon(struct wlantest *wt, const u8 *data, size_t len)
 
 	if (rx_bipn <= bss->ipn[keyid]) {
 		add_note(wt, MSG_INFO, "BIP replay detected: SA=" MACSTR
-			 " RX BIPN 0x%lx <= 0x%lx",
-			 MAC2STR(mgmt->sa), rx_bipn, bss->ipn[keyid]);
+			 " RX BIPN 0x%llx <= 0x%llx",
+			 MAC2STR(mgmt->sa), (long long unsigned int) rx_bipn,
+			 (long long unsigned int) bss->ipn[keyid]);
 	}
 
 	if (check_mmie_mic(bss->mgmt_group_cipher, bss->igtk[keyid],
@@ -3160,7 +3162,8 @@ static int check_bip(struct wlantest *wt, const u8 *data, size_t len)
 	}
 
 	rx_ipn = WPA_GET_LE48(mmie + 2);
-	wpa_printf(MSG_DEBUG, "MME KeyID %u IPN 0x%lx", keyid, rx_ipn);
+	wpa_printf(MSG_DEBUG, "MME KeyID %u IPN 0x%llx", keyid,
+		   (long long unsigned int) rx_ipn);
 	wpa_hexdump(MSG_MSGDUMP, "MMIE MIC", mmie + 8, mic_len);
 
 	if (!bss->igtk_len[keyid]) {
@@ -3170,8 +3173,9 @@ static int check_bip(struct wlantest *wt, const u8 *data, size_t len)
 
 	if (rx_ipn <= bss->ipn[keyid]) {
 		add_note(wt, MSG_INFO, "BIP replay detected: SA=" MACSTR
-			 " RX IPN 0x%lx <= 0x%lx",
-			 MAC2STR(mgmt->sa), rx_ipn, bss->ipn[keyid]);
+			 " RX IPN 0x%llx <= 0x%llx",
+			 MAC2STR(mgmt->sa), (long long unsigned int) rx_ipn,
+			 (long long unsigned int) bss->ipn[keyid]);
 	}
 
 	if (check_mmie_mic(bss->mgmt_group_cipher, bss->igtk[keyid],
