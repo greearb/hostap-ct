@@ -50,7 +50,7 @@ enum {
 void handle_probe_req(struct hostapd_data *hapd,
 		      const struct ieee80211_mgmt *mgmt, size_t len,
 		      int ssi_signal);
-void ieee802_11_set_beacon_per_bss_only(struct hostapd_data *hapd);
+int ieee802_11_set_beacon_per_bss_only(struct hostapd_data *hapd);
 int ieee802_11_set_beacon(struct hostapd_data *hapd);
 int ieee802_11_set_beacons(struct hostapd_iface *iface);
 int ieee802_11_set_bss_critical_update(struct hostapd_data *hapd,
