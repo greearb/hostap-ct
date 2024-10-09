@@ -996,14 +996,6 @@ static void ap_sta_deauth_cb_timeout(void *eloop_ctx, void *timeout_ctx)
 static void ap_sta_handle_deauthenticate(struct hostapd_data *hapd,
 					 struct sta_info *sta, u16 reason)
 {
-	if (hapd->iface->current_mode &&
-	    hapd->iface->current_mode->mode == HOSTAPD_MODE_IEEE80211AD) {
-		/* Deauthentication is not used in DMG/IEEE 802.11ad;
-		 * disassociate the STA instead. */
-		ap_sta_disassociate(hapd, sta, reason);
-		return;
-	}
-
 	wpa_printf(MSG_DEBUG, "%s: deauthenticate STA " MACSTR,
 		   hapd->conf->iface, MAC2STR(sta->addr));
 
@@ -1112,6 +1104,14 @@ void ap_sta_disassociate(struct hostapd_data *hapd, struct sta_info *sta,
 void ap_sta_deauthenticate(struct hostapd_data *hapd, struct sta_info *sta,
 			   u16 reason)
 {
+	if (hapd->iface->current_mode &&
+	    hapd->iface->current_mode->mode == HOSTAPD_MODE_IEEE80211AD) {
+		/* Deauthentication is not used in DMG/IEEE 802.11ad;
+		 * disassociate the STA instead. */
+		ap_sta_disassociate(hapd, sta, reason);
+		return;
+	}
+
 	if (ap_sta_ml_disconnect(hapd, sta, reason, false))
 		return;
 
