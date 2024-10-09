@@ -862,6 +862,8 @@ int hostapd_mld_remove_link(struct hostapd_data *hapd);
 u8 hostapd_get_active_links(struct hostapd_data *hapd);
 struct hostapd_data * hostapd_mld_get_first_bss(struct hostapd_data *hapd);
 
+int hostapd_build_beacon_data(struct hostapd_data *hapd,
+			      struct beacon_data *beacon);
 void free_beacon_data(struct beacon_data *beacon);
 int hostapd_fill_cca_settings(struct hostapd_data *hapd,
 			      struct cca_settings *settings);

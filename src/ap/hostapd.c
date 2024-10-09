@@ -4227,8 +4227,8 @@ void free_beacon_data(struct beacon_data *beacon)
 }
 
 
-static int hostapd_build_beacon_data(struct hostapd_data *hapd,
-				     struct beacon_data *beacon)
+int hostapd_build_beacon_data(struct hostapd_data *hapd,
+			      struct beacon_data *beacon)
 {
 	struct wpabuf *beacon_extra, *proberesp_extra, *assocresp_extra;
 	struct wpa_driver_ap_params params;
