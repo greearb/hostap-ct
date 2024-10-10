@@ -2215,11 +2215,13 @@ def test_sae_pwe_group_24(dev, apdev):
     """SAE PWE derivation options with group 24"""
     run_sae_pwe_group(dev, apdev, 24)
 
-def start_sae_pwe_ap(apdev, group, sae_pwe):
+def start_sae_pwe_ap(apdev, group, sae_pwe, pmf=False):
     params = hostapd.wpa2_params(ssid="sae-pwe", passphrase="12345678")
     params['wpa_key_mgmt'] = 'SAE'
     params['sae_groups'] = str(group)
     params['sae_pwe'] = str(sae_pwe)
+    if pmf:
+        params['ieee80211w'] = '2'
     return hostapd.add_ap(apdev, params)
 
 def run_sae_pwe_group(dev, apdev, group):
@@ -2298,6 +2300,34 @@ def test_sae_pwe_loop_only_ap(dev, apdev):
     finally:
         dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
+
+def test_sae_pwe_both(dev, apdev):
+    """SAE PWE derivation with both options"""
+    check_sae_capab(dev[0])
+    check_sae_capab(dev[1])
+    hapd = start_sae_pwe_ap(apdev[0], 19, 2, pmf=True)
+    try:
+        dev[0].set("sae_groups", "")
+        dev[0].set("sae_pwe", "1")
+        dev[0].connect("sae-pwe", psk="12345678", key_mgmt="SAE",
+                       ieee80211w="2", scan_freq="2412")
+        dev[1].set("sae_groups", "")
+        dev[1].connect("sae-pwe", psk="12345678", key_mgmt="SAE",
+                       ieee80211w="2", scan_freq="2412")
+        if dev[0].get_status_field("sae_h2e") != "1":
+            raise Exception("SAE H2E was not used on dev[0]")
+        if dev[1].get_status_field("sae_h2e") != "0":
+            raise Exception("SAE H2E was used on dev[1]")
+    finally:
+        dev[0].set("sae_groups", "")
+        dev[0].set("sae_pwe", "0")
+        dev[1].set("sae_groups", "")
+
+    dev[0].connect("sae-pwe", psk="12345678", key_mgmt="SAE", scan_freq="2412",
+                   wait_connect=False)
+    ev = dev[0].wait_event(["CTRL-EVENT-NETWORK-NOT-FOUND"], timeout=10)
+    if ev is None:
+        raise Exception("No indication of mismatching network seen")
 
 def test_sae_h2e_rejected_groups(dev, apdev):
     """SAE H2E and rejected groups indication"""
