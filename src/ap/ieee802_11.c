@@ -5617,6 +5617,8 @@ static void handle_assoc(struct hostapd_data *hapd,
 	if (reassoc && sta->auth_alg == WLAN_AUTH_FT)
 		omit_rsnxe = !get_ie(pos, left, WLAN_EID_RSNX);
 #endif /* CONFIG_IEEE80211R_AP */
+	if (hapd->conf->rsn_override_omit_rsnxe)
+		omit_rsnxe = 1;
 
 	if (hostapd_get_aid(hapd, sta) < 0) {
 		hostapd_logger(hapd, mgmt->sa, HOSTAPD_MODULE_IEEE80211,
