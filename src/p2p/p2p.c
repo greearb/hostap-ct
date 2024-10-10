@@ -1931,6 +1931,7 @@ void p2p_go_complete(struct p2p_data *p2p, struct p2p_device *peer)
 
 	p2p_set_state(p2p, P2P_PROVISIONING);
 	p2p->cfg->go_neg_completed(p2p->cfg->cb_ctx, &res);
+	forced_memzero(&res, sizeof(res));
 }
 
 
