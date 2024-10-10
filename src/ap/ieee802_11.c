@@ -5613,7 +5613,10 @@ static void handle_assoc(struct hostapd_data *hapd,
 	resp = check_assoc_ies(hapd, sta, pos, left, reassoc);
 	if (resp != WLAN_STATUS_SUCCESS)
 		goto fail;
-	omit_rsnxe = !get_ie(pos, left, WLAN_EID_RSNX);
+#ifdef CONFIG_IEEE80211R_AP
+	if (reassoc && sta->auth_alg == WLAN_AUTH_FT)
+		omit_rsnxe = !get_ie(pos, left, WLAN_EID_RSNX);
+#endif /* CONFIG_IEEE80211R_AP */
 
 	if (hostapd_get_aid(hapd, sta) < 0) {
 		hostapd_logger(hapd, mgmt->sa, HOSTAPD_MODULE_IEEE80211,
