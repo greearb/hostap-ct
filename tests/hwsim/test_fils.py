@@ -123,6 +123,18 @@ def test_fils_sk_sha384_full_auth(dev, apdev, params):
 
 def test_fils_sk_pmksa_caching(dev, apdev, params):
     """FILS SK and PMKSA caching"""
+    run_fils_sk_pmksa_caching(dev, apdev, params)
+
+def test_fils_sk_pmksa_caching_rsnxe(dev, apdev, params):
+    """FILS SK and PMKSA caching with RSNXE included"""
+    run_fils_sk_pmksa_caching(dev, apdev, params, ap_rsnxe=True, sta_rsnxe=True)
+
+def test_fils_sk_pmksa_caching_ap_rsnxe(dev, apdev, params):
+    """FILS SK and PMKSA caching with AP RSNXE included"""
+    run_fils_sk_pmksa_caching(dev, apdev, params, ap_rsnxe=True)
+
+def run_fils_sk_pmksa_caching(dev, apdev, params, ap_rsnxe=False,
+                              sta_rsnxe=False):
     check_fils_capa(dev[0])
     check_erp_capa(dev[0])
 
@@ -134,6 +146,8 @@ def test_fils_sk_pmksa_caching(dev, apdev, params):
     params['auth_server_port'] = "18128"
     params['erp_domain'] = 'example.com'
     params['fils_realm'] = 'example.com'
+    if ap_rsnxe:
+        params['ssid_protection'] = '1'
     hapd = hostapd.add_ap(apdev[0], params)
 
     dev[0].scan_for_bss(bssid, freq=2412)
@@ -141,13 +155,14 @@ def test_fils_sk_pmksa_caching(dev, apdev, params):
     id = dev[0].connect("fils", key_mgmt="FILS-SHA256",
                         eap="PSK", identity="psk.user@example.com",
                         password_hex="0123456789abcdef0123456789abcdef",
+                        ssid_protection="1" if sta_rsnxe else "0",
                         erp="1", scan_freq="2412")
     hapd.wait_sta()
     pmksa = dev[0].get_pmksa(bssid)
     if pmksa is None:
         raise Exception("No PMKSA cache entry created")
 
-    if dev[0].get_status_field("ssid_verified") == "1":
+    if dev[0].get_status_field("ssid_verified") == "1" and not sta_rsnxe and not ap_rsnxe:
         raise Exception("Unexpected ssid_verified=1 in STATUS")
 
     dev[0].request("DISCONNECT")
