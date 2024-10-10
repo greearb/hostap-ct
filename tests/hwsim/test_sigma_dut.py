@@ -639,6 +639,13 @@ def test_sigma_dut_ap_psk_deauth(dev, apdev, params):
 
 def test_sigma_dut_eap_ttls(dev, apdev, params):
     """sigma_dut controlled STA and EAP-TTLS parameters"""
+    run_sigma_dut_eap_ttls(dev, apdev, params)
+
+def test_sigma_dut_eap_ttls_all_akm_suites(dev, apdev, params):
+    """sigma_dut controlled STA and EAP-TTLS parameters and all AKM suites"""
+    run_sigma_dut_eap_ttls(dev, apdev, params, all_akm_suites=True)
+
+def run_sigma_dut_eap_ttls(dev, apdev, params, all_akm_suites=False):
     check_domain_match(dev[0])
     logdir = params['logdir']
 
@@ -668,7 +675,8 @@ def test_sigma_dut_eap_ttls(dev, apdev, params):
 
     ifname = dev[0].ifname
     with SigmaDut(ifname, cert_path=logdir) as dut:
-        cmd = "sta_set_security,type,eapttls,interface,%s,ssid,%s,keymgmttype,wpa2,encType,AES-CCMP,PairwiseCipher,AES-CCMP-128,trustedRootCA,sigma_dut_eap_ttls.ca.pem,username,DOMAIN\mschapv2 user,password,password" % (ifname, ssid)
+        key_mgmt = "" if all_akm_suites else ",keymgmttype,wpa2"
+        cmd = "sta_set_security,type,eapttls,interface,%s,ssid,%s%s,encType,AES-CCMP,PairwiseCipher,AES-CCMP-128,trustedRootCA,sigma_dut_eap_ttls.ca.pem,username,DOMAIN\mschapv2 user,password,password" % (ifname, ssid, key_mgmt)
 
         tests = ["",
                  ",Domain,server.w1.fi",
