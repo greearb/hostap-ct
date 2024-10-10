@@ -6712,6 +6712,29 @@ int fils_process_assoc_resp(struct wpa_sm *sm, const u8 *resp, size_t len)
 		goto fail;
 	}
 
+	if ((sm->ap_rsnxe && !elems.rsnxe) ||
+	    (!sm->ap_rsnxe && elems.rsnxe) ||
+	    (sm->ap_rsnxe && elems.rsnxe && sm->ap_rsnxe_len >= 2 &&
+	     (sm->ap_rsnxe_len != 2U + elems.rsnxe_len ||
+	      os_memcmp(sm->ap_rsnxe + 2, elems.rsnxe, sm->ap_rsnxe_len - 2) !=
+	      0))) {
+		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+			"FILS: RSNXE mismatch between Beacon/Probe Response and (Re)Association Response");
+		wpa_hexdump(MSG_INFO, "FILS: RSNXE in Beacon/Probe Response",
+			    sm->ap_rsnxe, sm->ap_rsnxe_len);
+		wpa_hexdump(MSG_INFO, "RSNXE in (Re)Association Response",
+			    elems.rsnxe, elems.rsnxe_len);
+		/* As an interop workaround, allow this for now if we did not
+		 * include the RSNXE in (Re)Association Request frame since
+		 * IEEE Std 802.11-2020 does not say anything about verifying
+		 * the RSNXE in FILS cases and there have been hostapd releases
+		 * that might omit the RSNXE in cases where the STA did not
+		 * include it in the Association Request frame. This workaround
+		 * might eventually be removed. */
+		if (sm->assoc_rsnxe && sm->assoc_rsnxe_len)
+			goto fail;
+	}
+
 	/* TODO: FILS Public Key */
 
 	if (!elems.fils_key_confirm) {
