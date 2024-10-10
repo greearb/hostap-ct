@@ -7213,6 +7213,7 @@ static int p2p_ctrl_group_add(struct wpa_supplicant *wpa_s, char *cmd)
 {
 	int freq = 0, persistent = 0, group_id = -1;
 	bool p2p2 = false;
+	int p2pmode = WPA_P2P_MODE_WFD_R1;
 	bool allow_6ghz = false;
 	int vht = wpa_s->conf->p2p_go_vht;
 	int ht40 = wpa_s->conf->p2p_go_ht40 || vht;
@@ -7228,7 +7229,8 @@ static int p2p_ctrl_group_add(struct wpa_supplicant *wpa_s, char *cmd)
 	while ((token = str_token(cmd, " ", &context))) {
 		if (sscanf(token, "freq2=%d", &freq2) == 1 ||
 		    sscanf(token, "persistent=%d", &group_id) == 1 ||
-		    sscanf(token, "max_oper_chwidth=%d", &chwidth) == 1) {
+		    sscanf(token, "max_oper_chwidth=%d", &chwidth) == 1 ||
+		    sscanf(token, "p2pmode=%d", &p2pmode) == 1) {
 			continue;
 #ifdef CONFIG_ACS
 		} else if (os_strcmp(token, "freq=acs") == 0) {
@@ -7301,8 +7303,12 @@ static int p2p_ctrl_group_add(struct wpa_supplicant *wpa_s, char *cmd)
 						     edmg, allow_6ghz,
 						     go_bssid);
 
+	if (p2pmode < WPA_P2P_MODE_WFD_R1 || p2pmode > WPA_P2P_MODE_WFD_PCC)
+		return -1;
+
 	return wpas_p2p_group_add(wpa_s, persistent, freq, freq2, ht40, vht,
-				  max_oper_chwidth, he, edmg, allow_6ghz, p2p2);
+				  max_oper_chwidth, he, edmg, allow_6ghz, p2p2,
+				  (enum wpa_p2p_mode) p2pmode);
 }
 
 

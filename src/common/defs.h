@@ -532,6 +532,12 @@ enum sae_pwe {
 	SAE_PWE_NOT_SET = 4,
 };
 
+enum wpa_p2p_mode {
+	WPA_P2P_MODE_WFD_R1	= 0,
+	WPA_P2P_MODE_WFD_R2	= 1,
+	WPA_P2P_MODE_WFD_PCC	= 2,
+};
+
 #define USEC_80211_TU 1024
 
 #define USEC_TO_TU(m) ((m) / USEC_80211_TU)

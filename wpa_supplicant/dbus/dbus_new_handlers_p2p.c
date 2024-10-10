@@ -486,7 +486,7 @@ DBusMessage * wpas_dbus_handler_p2p_group_add(DBusMessage *message,
 		}
 	} else if (wpas_p2p_group_add(wpa_s, persistent_group, freq, freq2,
 				      ht40, vht, max_oper_chwidth, he, edmg,
-				      allow_6ghz, wpa_s->p2p2))
+				      allow_6ghz, wpa_s->p2p2, wpa_s->p2p_mode))
 		goto inv_args;
 
 out:

@@ -582,6 +582,18 @@ static int wpa_supplicant_conf_ap(struct wpa_supplicant *wpa_s,
 	else
 		bss->wpa_key_mgmt = ssid->key_mgmt;
 	bss->wpa_pairwise = ssid->pairwise_cipher;
+
+#ifdef CONFIG_P2P
+	if (ssid->p2p_mode == WPA_P2P_MODE_WFD_PCC) {
+		bss->wpa_key_mgmt = WPA_KEY_MGMT_PSK;
+		bss->rsn_override_key_mgmt = WPA_KEY_MGMT_SAE |
+			WPA_KEY_MGMT_PASN;
+		bss->wpa_pairwise = WPA_CIPHER_CCMP;
+		bss->rsn_override_pairwise = WPA_CIPHER_CCMP;
+		bss->rsn_override_mfp = 2;
+	}
+#endif /* CONFIG_P2P */
+
 	if (wpa_key_mgmt_sae(bss->wpa_key_mgmt) && ssid->passphrase) {
 		bss->ssid.wpa_passphrase = os_strdup(ssid->passphrase);
 	} else if (ssid->psk_set) {

@@ -6262,6 +6262,10 @@ wpa_supplicant_alloc(struct wpa_supplicant *parent)
 	wpa_s->new_connection = 1;
 	wpa_s->parent = parent ? parent : wpa_s;
 	wpa_s->p2pdev = wpa_s->parent;
+#ifdef CONFIG_P2P
+	if (parent)
+		wpa_s->p2p_mode = parent->p2p_mode;
+#endif /* CONFIG_P2P */
 	wpa_s->sched_scanning = 0;
 	wpa_s->setband_mask = WPA_SETBAND_AUTO;
 

@@ -1179,6 +1179,7 @@ struct wpa_supplicant {
 	unsigned int p2p2:1;
 	u16 p2p_bootstrap;
 	enum hostapd_hw_mode p2p_go_acs_band;
+	enum wpa_p2p_mode p2p_mode;
 	int p2p_persistent_go_freq;
 	int p2p_persistent_id;
 	int p2p_go_intent;

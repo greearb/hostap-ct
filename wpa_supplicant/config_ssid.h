@@ -1308,6 +1308,11 @@ struct wpa_ssid {
 	 *	parameter with the same name)
 	 */
 	enum wpas_rsn_overriding rsn_overriding;
+
+	/**
+	 * p2p_mode - P2P R1 only, P2P R2 only, or PCC mode
+	 */
+	enum wpa_p2p_mode p2p_mode;
 };
 
 #endif /* CONFIG_SSID_H */
