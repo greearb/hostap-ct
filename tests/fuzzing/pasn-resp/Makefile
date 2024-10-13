@@ -26,6 +26,7 @@ OBJS += $(SRC)/crypto/sha384-prf.o
 OBJS += $(SRC)/crypto/sha256-kdf.o
 OBJS += $(SRC)/crypto/sha384-kdf.o
 OBJS += $(SRC)/ap/comeback_token.o
+OBJS += $(SRC)/pasn/pasn_common.o
 OBJS += $(SRC)/pasn/pasn_responder.o
 
 OBJS += pasn-resp.o
