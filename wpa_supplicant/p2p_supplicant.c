@@ -5769,8 +5769,6 @@ int wpas_p2p_init(struct wpa_global *global, struct wpa_supplicant *wpa_s)
 		wpa_s->conf->p2p_pairing_setup;
 	p2p.pairing_config.enable_pairing_cache =
 		wpa_s->conf->p2p_pairing_cache;
-	p2p.pairing_config.enable_pairing_verification =
-		wpa_s->conf->p2p_pairing_verification;
 	p2p.pairing_config.bootstrap_methods =
 		wpa_s->conf->p2p_bootstrap_methods;
 	p2p.pairing_config.pasn_type = wpa_s->conf->p2p_pasn_type;

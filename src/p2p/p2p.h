@@ -386,11 +386,6 @@ struct p2p_pairing_config {
 	bool enable_pairing_cache;
 
 	/**
-	 * Enable P2P pairing verification with cached NIK/NPK
-	 */
-	bool enable_pairing_verification;
-
-	/**
 	 * P2P bootstrapping methods supported
 	 */
 	u16 bootstrap_methods;
@@ -2719,8 +2714,6 @@ void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
 
 void p2p_set_pairing_setup(struct p2p_data *p2p, int pairing_setup);
 void p2p_set_pairing_cache(struct p2p_data *p2p, int pairing_cache);
-void p2p_set_pairing_verification(struct p2p_data *p2p,
-				  int pairing_verification);
 void p2p_set_bootstrapmethods(struct p2p_data *p2p, int bootstrap_methods);
 void p2p_set_pasn_type(struct p2p_data *p2p, u8 pasn_type);
 void p2p_set_comeback_after(struct p2p_data *p2p, int comeback_after);

@@ -7723,11 +7723,6 @@ static int p2p_ctrl_set(struct wpa_supplicant *wpa_s, char *cmd)
 		return 0;
 	}
 
-	if (os_strcmp(cmd, "pairing_verification") == 0) {
-		p2p_set_pairing_verification(wpa_s->global->p2p, atoi(param));
-		return 0;
-	}
-
 	if (os_strcmp(cmd, "supported_bootstrapmethods") == 0) {
 		p2p_set_bootstrapmethods(wpa_s->global->p2p, atoi(param));
 		return 0;

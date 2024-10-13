@@ -809,8 +809,7 @@ void p2p_buf_add_dira(struct wpabuf *buf, struct p2p_data *p2p)
 	struct p2p_id_key *dev_ik;
 
 	if (!p2p->cfg->pairing_config.pairing_capable ||
-	    !p2p->cfg->pairing_config.enable_pairing_cache ||
-	    !p2p->cfg->pairing_config.enable_pairing_verification)
+	    !p2p->cfg->pairing_config.enable_pairing_cache)
 		return;
 
 	dev_ik = &p2p->pairing_info->dev_ik;

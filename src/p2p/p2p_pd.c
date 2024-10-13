@@ -703,7 +703,6 @@ void p2p_process_pcea(struct p2p_data *p2p, struct p2p_message *msg,
 
 	if (dev->info.pcea_cap_info & P2P_PCEA_PMK_CACHING) {
 		dev->info.pairing_config.enable_pairing_cache = true;
-		dev->info.pairing_config.enable_pairing_verification = true;
 	}
 }
 

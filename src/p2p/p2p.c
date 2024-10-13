@@ -4982,17 +4982,6 @@ void p2p_set_pairing_cache(struct p2p_data *p2p, int pairing_cache)
 }
 
 
-void p2p_set_pairing_verification(struct p2p_data *p2p, int pairing_verification)
-{
-	p2p_dbg(p2p, "Pairing Verification %s",
-		pairing_verification ? "Enabled" : "Disabled");
-	if (pairing_verification)
-		p2p->cfg->pairing_config.enable_pairing_verification = true;
-	else
-		p2p->cfg->pairing_config.enable_pairing_verification = false;
-}
-
-
 void p2p_set_bootstrapmethods(struct p2p_data *p2p, int bootstrap_methods)
 {
 	p2p_dbg(p2p, "Bootstraping methods: 0x%x", bootstrap_methods);
@@ -6107,7 +6096,6 @@ struct wpabuf * p2p_usd_elems(struct p2p_data *p2p)
 	if (p2p->pairing_info &&
 	    p2p->cfg->pairing_config.pairing_capable &&
 	    p2p->cfg->pairing_config.enable_pairing_cache &&
-	    p2p->cfg->pairing_config.enable_pairing_verification &&
 	    p2p_derive_nonce_tag(p2p) == 0)
 		p2p_buf_add_dira(buf, p2p);
 

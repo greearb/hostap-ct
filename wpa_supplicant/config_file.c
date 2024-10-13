@@ -1381,9 +1381,6 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 		fprintf(f, "p2p_pairing_setup=%d\n", config->p2p_pairing_setup);
 	if (config->p2p_pairing_cache)
 		fprintf(f, "p2p_pairing_cache=%d\n", config->p2p_pairing_cache);
-	if (config->p2p_pairing_verification)
-		fprintf(f, "p2p_pairing_verification=%d\n",
-			config->p2p_pairing_verification);
 	if (config->p2p_bootstrap_methods)
 		fprintf(f, "p2p_bootstrap_methods=%d\n",
 			config->p2p_bootstrap_methods);
