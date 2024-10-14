@@ -922,6 +922,46 @@ int hostapd_drv_wnm_oper(struct hostapd_data *hapd, enum wnm_oper oper,
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+static bool hostapd_is_action_frame_link_agnostic(u8 category, u8 sub_category)
+{
+	/* As per IEEE P802.11be/D7.0, 35.3.14 (MLD individually addressed
+	 * Management frame delivery), between an AP MLD and a non-AP MLD, the
+	 * following individually addressed MMPDUs shall be intended for an MLD.
+	 */
+	switch (category) {
+	case WLAN_ACTION_BLOCK_ACK:
+	case WLAN_ACTION_FT:
+	case WLAN_ACTION_SA_QUERY:
+	case WLAN_ACTION_WNM:
+		switch (sub_category) {
+		case WNM_BSS_TRANS_MGMT_REQ:
+		case WNM_BSS_TRANS_MGMT_RESP:
+		case WNM_SLEEP_MODE_REQ:
+		case WNM_SLEEP_MODE_RESP:
+			return true;
+		default:
+			return false;
+		}
+	case WLAN_ACTION_ROBUST_AV_STREAMING:
+		switch (sub_category) {
+		case ROBUST_AV_SCS_REQ:
+		case ROBUST_AV_SCS_RESP:
+		case ROBUST_AV_MSCS_REQ:
+		case ROBUST_AV_MSCS_RESP:
+			return true;
+		default:
+			return false;
+		}
+	/* TODO: Handle EHT/EPCS related action frames once the support is
+	 * added. */
+	default:
+		return false;
+	}
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 static int hapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
 				unsigned int wait, const u8 *dst,
 				const u8 *data, size_t len, bool addr3_ap,
@@ -933,6 +973,7 @@ static int hapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 	};
 	struct sta_info *sta;
+	int link_id = -1;
 
 	if (!hapd->driver || !hapd->driver->send_action || !hapd->drv_priv)
 		return 0;
@@ -965,11 +1006,15 @@ static int hapd_drv_send_action(struct hostapd_data *hapd, unsigned int freq,
 			own_addr = hapd->mld->mld_addr;
 			bssid = own_addr;
 		}
+
+		if (!hostapd_is_action_frame_link_agnostic(data[0], data[1]))
+			link_id = hapd->mld_link_id;
 #endif /* CONFIG_IEEE80211BE */
 	}
 
 	return hapd->driver->send_action(hapd->drv_priv, freq, wait, dst,
-					 own_addr, bssid, data, len, 0, -1);
+					 own_addr, bssid, data, len, 0,
+					 link_id);
 }
 
 
