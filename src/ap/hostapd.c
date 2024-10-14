@@ -4768,6 +4768,7 @@ static void hostapd_switch_color_timeout_handler(void *eloop_data,
 		struct cca_settings settings;
 		int ret;
 
+		os_memset(&settings, 0, sizeof(settings));
 		hostapd_cleanup_cca_params(bss);
 		bss->cca_color = r;
 		bss->cca_count = 10;
