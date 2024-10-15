@@ -1890,7 +1890,7 @@ static void wpas_start_gc(struct wpa_supplicant *wpa_s,
 
 	os_memcpy(ssid->bssid, res->peer_interface_addr, ETH_ALEN);
 
-	if (res->akmp == WPA_KEY_MGMT_PASN && res->sae_password) {
+	if (res->akmp == WPA_KEY_MGMT_PASN && res->sae_password[0]) {
 		ssid->auth_alg = WPA_AUTH_ALG_SAE;
 		ssid->sae_password = os_strdup(res->sae_password);
 		if (!ssid->sae_password)
