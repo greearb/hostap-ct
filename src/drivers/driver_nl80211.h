@@ -104,6 +104,14 @@ struct i802_bss {
 #define WIFI_MODE_EHT 5
 	u8 adv_wifi_mode;
 
+#define WIFI_BW_DEFAULT 0
+#define WIFI_BW_20 20
+#define WIFI_BW_40 40
+#define WIFI_BW_80 80
+#define WIFI_BW_160 160
+#define WIFI_BW_320 320
+	u32 adv_bw;
+
 	void *ctx;
 	struct nl_sock *nl_preq, *nl_mgmt, *nl_connect;
 	struct nl_cb *nl_cb;
