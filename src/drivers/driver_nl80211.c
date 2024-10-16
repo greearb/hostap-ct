@@ -9849,27 +9849,33 @@ static int nl80211_set_legacy_rates(struct i802_bss *bss,
 		if (nla_put_flag(msg, NL80211_ATTR_WIPHY_SELF_MANAGED_REG))
 			goto fail;
 
-	/* If explicitly setting a wifi mode, use fall-through to prevent
-	 * advertising higher-level modes
-	 */
-	if (bss->adv_wifi_mode != WIFI_MODE_DEFAULT) {
-		switch (bss->adv_wifi_mode) {
-		case WIFI_MODE_LEGACY:
-			if (nla_put_flag(msg, NL80211_ATTR_DISABLE_HT))
-				goto fail;
-		case WIFI_MODE_HT:
-			if (nla_put_flag(msg, NL80211_ATTR_DISABLE_VHT))
-				goto fail;
-		case WIFI_MODE_VHT:
-			if (nla_put_flag(msg, NL80211_ATTR_DISABLE_HE))
-				goto fail;
-		case WIFI_MODE_HE:
-			if (nla_put_flag(msg, NL80211_ATTR_DISABLE_EHT))
-				goto fail;
-		case WIFI_MODE_EHT:
-		default:
-			/* Nothing to disable */;
+	{
+		struct ct_preq_info cpi = { 0 };
+
+		/* If explicitly setting a wifi mode, use fall-through to prevent
+		 * advertising higher-level modes
+		 */
+		if (bss->adv_wifi_mode != WIFI_MODE_DEFAULT) {
+			switch (bss->adv_wifi_mode) {
+			case WIFI_MODE_LEGACY:
+				cpi.flags |= CT_PREQ_DISABLE_HT;
+			case WIFI_MODE_HT:
+				cpi.flags |= CT_PREQ_DISABLE_VHT;
+			case WIFI_MODE_VHT:
+				cpi.flags |= CT_PREQ_DISABLE_HE;
+			case WIFI_MODE_HE:
+				cpi.flags |= CT_PREQ_DISABLE_EHT;
+			case WIFI_MODE_EHT:
+			default:
+				/* Nothing to disable */;
+			}
 		}
+
+		if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, CANDELA_VENDOR_ID))
+			goto fail;
+
+		if (nla_put(msg, NL80211_ATTR_VENDOR_DATA, sizeof(cpi), &cpi))
+			goto fail;
 	}
 
 	bands = nla_nest_start(msg, NL80211_ATTR_TX_RATES);
