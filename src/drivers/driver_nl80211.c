@@ -10029,6 +10029,22 @@ static int nl80211_set_legacy_rates(struct i802_bss *bss,
 			}
 		}
 
+		if (bss->adv_bw != WIFI_BW_DEFAULT) {
+			switch (bss->adv_bw) {
+			case WIFI_BW_20:
+				cpi.flags |= CT_PREQ_DISABLE_40;
+			case WIFI_BW_40:
+				cpi.flags |= CT_PREQ_DISABLE_80;
+			case WIFI_BW_80:
+				cpi.flags |= CT_PREQ_DISABLE_160;
+			case WIFI_BW_160:
+				cpi.flags |= CT_PREQ_DISABLE_320;
+			case WIFI_BW_320:
+			default:
+				/* Nothing to disable */;
+			}
+		}
+
 		if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, CANDELA_VENDOR_ID))
 			goto fail;
 
@@ -10734,6 +10750,7 @@ static int nl80211_set_param(void *priv, const char *param)
 	bss->tx_legacy_rates = 0;
 	bss->adv_legacy_rates = 0;
 	bss->adv_wifi_mode = WIFI_MODE_DEFAULT;
+	bss->adv_bw = WIFI_BW_DEFAULT;
 
 	if ((tmp = os_strstr(param, "tx_legacy_rates="))) {
 		bss->tx_legacy_rates = atoi(tmp + strlen("tx_legacy_rates="));
@@ -10769,6 +10786,9 @@ static int nl80211_set_param(void *priv, const char *param)
 
 	if ((tmp = os_strstr(param, "adv_wifi_mode=")))
 		bss->adv_wifi_mode = atoi(tmp + strlen("adv_wifi_mode="));
+
+	if ((tmp = os_strstr(param, "adv_bw=")))
+		bss->adv_bw = atoi(tmp + strlen("adv_bw="));
 
 	return 0;
 }
