@@ -6731,7 +6731,7 @@ int p2p_prepare_data_element(struct p2p_data *p2p, const u8 *peer_addr)
 	}
 
 	if (p2p_pasn_add_encrypted_data(p2p, dev, extra_ies) < 0)
-		goto out;
+		p2p_dbg(p2p, "Failed to add PASN encrypted elements");
 
 	pasn->extra_ies = os_memdup(wpabuf_head_u8(extra_ies),
 				    wpabuf_len(extra_ies));

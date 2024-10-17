@@ -254,6 +254,11 @@ int pasn_add_encrypted_data(struct pasn_data *pasn, struct wpabuf *buf,
 	u8 *len;
 	size_t pad_len = 0;
 
+	if (!pasn->ptk.kek_len) {
+		wpa_printf(MSG_DEBUG, "PASN: KEK not available");
+		return -2;
+	}
+
 	pad_len = data_len % 8;
 	if (pad_len) {
 		pad_len = 8 - pad_len;
