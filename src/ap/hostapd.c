@@ -4327,6 +4327,99 @@ int hostapd_remove_iface(struct hapd_interfaces *interfaces, char *buf)
 }
 
 
+static int hostapd_remove_mld_link_by_idx(struct hostapd_iface *iface, int idx)
+{
+	size_t j;
+	int ret;
+
+	if (iface->num_bss == 1) {
+		hostapd_remove_iface(iface->interfaces, iface->phy);
+		return 0;
+	}
+
+	if (idx == 0) {
+		for (j = 1; j < iface->num_bss; j++) {
+			if (iface->bss[j]->conf->mld_ap)
+				break;
+		}
+
+		if (j == iface->num_bss)
+			return -1;
+
+		ret = hostapd_move_bss_to_first(iface, j);
+		if (ret) {
+			wpa_printf(MSG_ERROR, "Interface switch failed");
+			return ret;
+		}
+
+		idx = j;
+	}
+
+	return hostapd_remove_bss_by_idx(iface, idx);
+}
+
+int hostapd_remove_mld(struct hapd_interfaces *interfaces, char *buf)
+{
+	struct hostapd_iface *iface;
+	struct hostapd_data *first_hapd;
+	struct hostapd_mld *mld = NULL;
+	int i, j, num_mld, first_hapd_idx;
+
+	for (i = 0; i < interfaces->mld_count; i++) {
+		if (interfaces->mld[i] &&
+		    os_strcmp(interfaces->mld[i]->name, buf) == 0) {
+			mld = interfaces->mld[i];
+			break;
+		}
+	}
+
+	if (!mld) {
+		wpa_printf(MSG_ERROR, "MLD not found");
+		return -1;
+	}
+
+	for (i = 0; i < interfaces->count; i++) {
+		iface = interfaces->iface[i];
+		if (!iface)
+			continue;
+
+		num_mld = 0;
+		for (j = 0; j < iface->num_bss; j++) {
+			if (hostapd_is_mld_ap(iface->bss[j]))
+				num_mld++;
+		}
+
+		if (num_mld == 1 && iface->num_bss > 1) {
+			wpa_printf(MSG_ERROR,
+				   "Cannot remove the last AP MLD while there are remaining legacy BSSes");
+			return -1;
+		}
+	}
+
+	for (i = interfaces->count - 1; i >= 0; i--) {
+		iface = interfaces->iface[i];
+		if (!iface)
+			continue;
+
+		for (j = 0; j < iface->num_bss; j++) {
+			if (os_strcmp(iface->bss[j]->conf->iface, mld->name) == 0) {
+				if (hostapd_mld_is_first_bss(iface->bss[j])) {
+					first_hapd = iface->bss[j];
+					first_hapd_idx = j;
+					break;
+				}
+
+				hostapd_remove_mld_link_by_idx(iface, j);
+			}
+		}
+	}
+
+	hostapd_remove_mld_link_by_idx(first_hapd->iface, first_hapd_idx);
+	hostapd_cleanup_unused_mlds(interfaces);
+	return 0;
+}
+
+
 /**
  * hostapd_new_assoc_sta - Notify that a new station associated with the AP
  * @hapd: Pointer to BSS data
