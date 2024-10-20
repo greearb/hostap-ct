@@ -20,6 +20,7 @@
 #include "ap/wpa_auth.h"
 #include "mbo_ap.h"
 #include "wnm_ap.h"
+#include "rrm.h"
 
 #define MAX_TFS_IE_LEN  1024
 
