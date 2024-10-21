@@ -3811,6 +3811,47 @@ int hostapd_enable_bss(struct hostapd_data *hapd)
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+int hostapd_enable_mld(struct hostapd_data *hapd)
+{
+	struct hostapd_mld *mld;
+	struct hostapd_data *h;
+	int ret = 0;
+
+	if (!hapd || !hostapd_is_mld_ap(hapd)) {
+		wpa_printf(MSG_ERROR,
+			   "Trying to enable AP MLD on an interface that is not affiliated with an AP MLD");
+		return -1;
+	}
+
+	mld = hapd->mld;
+	if (!mld) {
+		wpa_printf(MSG_ERROR, "No AP MLD information found");
+		return -1;
+	}
+
+	if (mld->started) {
+		wpa_printf(MSG_DEBUG, "AP MLD is already enabled");
+		return 0;
+	}
+
+	mld->started = true;
+	for_each_mld_link(h, hapd) {
+		ret = hostapd_enable_bss(h);
+
+		if (ret) {
+			wpa_printf(MSG_ERROR, "Enabling link id %d fails",
+				   h->mld_link_id);
+			hostapd_disable_mld(hapd);
+			return ret;
+		}
+	}
+
+	return 0;
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 int hostapd_disable_iface(struct hostapd_iface *hapd_iface)
 {
 	size_t j;
@@ -3883,6 +3924,50 @@ int hostapd_disable_bss(struct hostapd_data *hapd)
 	hostapd_bss_deinit_no_free(hapd);
 	return hostapd_drv_stop_ap(hapd);
 }
+
+
+#ifdef CONFIG_IEEE80211BE
+int hostapd_disable_mld(struct hostapd_data *hapd)
+{
+	struct hapd_interfaces *interfaces;
+	struct hostapd_mld *mld;
+	struct hostapd_data *h;
+	int remain_mld = 0, i;
+
+	if (!hostapd_is_mld_ap(hapd)) {
+		wpa_printf(MSG_ERROR,
+			   "Trying to disable AP MLD on an interface that is not affiliated with an AP MLD.");
+		return -1;
+	}
+
+	mld = hapd->mld;
+	if (!mld) {
+		wpa_printf(MSG_ERROR, "No AP MLD information found");
+		return -1;
+	}
+
+	if (!mld->started) {
+		wpa_printf(MSG_DEBUG, "AP MLD is already disabled");
+		return 0;
+	}
+
+	interfaces = hapd->iface->interfaces;
+	for (i = 0; i < interfaces->mld_count; i++)
+		remain_mld += interfaces->mld[i]->started ? 1 : 0;
+
+	if (remain_mld == 1) {
+		wpa_printf(MSG_ERROR, "Cannot disable last AP MLD");
+		return -1;
+	}
+
+	for_each_mld_link(h, hapd)
+		hostapd_disable_bss(h);
+
+	mld->started = false;
+
+	return 0;
+}
+#endif /* CONFIG_IEEE80211BE */
 
 
 static struct hostapd_iface *
