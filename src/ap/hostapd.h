@@ -898,6 +898,8 @@ void hostapd_event_attlm(struct hostapd_data *hapd, struct attlm_event *attlm_ev
 void hostapd_event_tsf_offset(struct hostapd_data *hapd, s64 *tsf_offset);
 bool hostapd_mld_is_first_bss(struct hostapd_data *hapd);
 void hostapd_mld_interface_freed(struct hostapd_data *hapd);
+int hostapd_enable_mld(struct hostapd_data *hapd);
+int hostapd_disable_mld(struct hostapd_data *hapd);
 
 #define for_each_mld_link(partner, self) \
 	dl_list_for_each(partner, &self->mld->links, struct hostapd_data, link)
