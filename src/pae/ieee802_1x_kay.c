@@ -3125,9 +3125,9 @@ static int ieee802_1x_kay_mkpdu_validity_check(struct ieee802_1x_kay *kay,
 		   be_to_host16(eth_hdr->ethertype));
 
 	/* the destination address shall not be an individual address */
-	if (!ether_addr_equal(eth_hdr->dest, pae_group_addr)) {
+	if (!is_multicast_ether_addr(eth_hdr->dest)) {
 		wpa_printf(MSG_DEBUG,
-			   "KaY: ethernet destination address is not PAE group address");
+			   "KaY: ethernet destination address is not a multicast adddress");
 		return -1;
 	}
 
