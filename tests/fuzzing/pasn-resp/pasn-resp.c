@@ -74,7 +74,7 @@ static int pasn_send_mgmt(void *ctx, const u8 *data, size_t data_len,
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-	struct pasn_data pasn;
+	struct pasn_data *pasn;
 	u8 own_addr[ETH_ALEN], bssid[ETH_ALEN];
 
 	wpa_fuzzer_set_debug_level();
@@ -87,31 +87,36 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 		return 0;
 	}
 
-	os_memset(&pasn, 0, sizeof(pasn));
-	pasn.send_mgmt = pasn_send_mgmt;
+	pasn = pasn_data_init();
+	if (!pasn)
+		goto fail;
+
+	pasn->send_mgmt = pasn_send_mgmt;
 	hwaddr_aton("02:00:00:00:03:00", own_addr);
 	hwaddr_aton("02:00:00:00:00:00", bssid);
-	os_memcpy(pasn.own_addr, own_addr, ETH_ALEN);
-	os_memcpy(pasn.bssid, bssid, ETH_ALEN);
-	pasn.wpa_key_mgmt = WPA_KEY_MGMT_PASN;
-	pasn.rsn_pairwise = WPA_CIPHER_CCMP;
+	os_memcpy(pasn->own_addr, own_addr, ETH_ALEN);
+	os_memcpy(pasn->bssid, bssid, ETH_ALEN);
+	pasn->wpa_key_mgmt = WPA_KEY_MGMT_PASN;
+	pasn->rsn_pairwise = WPA_CIPHER_CCMP;
 
 	wpa_printf(MSG_DEBUG, "TESTING: Try to parse as PASN Auth 1");
-	if (handle_auth_pasn_1(&pasn, own_addr, bssid,
+	if (handle_auth_pasn_1(pasn, own_addr, bssid,
 			       (const struct ieee80211_mgmt *) data, size,
 			       false))
 		wpa_printf(MSG_ERROR, "handle_auth_pasn_1 failed");
 
 	wpa_printf(MSG_DEBUG, "TESTING: Try to parse as PASN Auth 3");
-	if (handle_auth_pasn_3(&pasn, own_addr, bssid,
+	if (handle_auth_pasn_3(pasn, own_addr, bssid,
 			       (const struct ieee80211_mgmt *) data, size))
 		wpa_printf(MSG_ERROR, "handle_auth_pasn_3 failed");
 
-	if (pasn.ecdh) {
-		crypto_ecdh_deinit(pasn.ecdh);
-		pasn.ecdh = NULL;
+	if (pasn->ecdh) {
+		crypto_ecdh_deinit(pasn->ecdh);
+		pasn->ecdh = NULL;
 	}
 
+fail:
+	pasn_data_deinit(pasn);
 	eloop_destroy();
 	os_program_deinit();
 
