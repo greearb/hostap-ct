@@ -11511,11 +11511,31 @@ enum qca_wlan_vendor_twt_setup_resp_type {
  * which the STA may accept.
  * @QCA_WLAN_VENDOR_TWT_SETUP_DEMAND: STA is not willing to accept any
  * alternate parameters than the requested ones.
+ * @QCA_WLAN_VENDOR_TWT_SETUP_TWT_GROUPING: TWT responding STA suggests TWT
+ * group parameters that are different from the suggested or demanded TWT
+ * parameters of the TWT requesting STA.
+ * @QCA_WLAN_VENDOR_TWT_SETUP_ACCEPT_TWT: TWT responding STA or TWT scheduling
+ * AP accepts the TWT request with the TWT parameters indicated in the TWT
+ * element transmitted by the TWT requesting STA or TWT scheduled STA.
+ * @QCA_WLAN_VENDOR_TWT_SETUP_ALTERNATE_TWT: TWT responding STA or TWT
+ * scheduling AP suggests TWT parameters that are different from those suggested
+ * by the TWT requesting STA or TWT scheduled STA.
+ * @QCA_WLAN_VENDOR_TWT_SETUP_DICTATE_TWT: TWT responding STA or TWT scheduling
+ * dictates TWT parameters that are different from those suggested by the
+ * TWT requesting STA or TWT scheduled STA.
+ * @QCA_WLAN_VENDOR_TWT_SETUP_REJECT_TWT: A TWT responding STA or TWT scheduling
+ * AP rejects setup or terminates an existing broadcast TWT, or a TWT scheduled
+ * STA terminates its membership in a broadcast TWT.
  */
 enum qca_wlan_vendor_twt_setup_req_type {
 	QCA_WLAN_VENDOR_TWT_SETUP_REQUEST = 1,
 	QCA_WLAN_VENDOR_TWT_SETUP_SUGGEST = 2,
 	QCA_WLAN_VENDOR_TWT_SETUP_DEMAND = 3,
+	QCA_WLAN_VENDOR_TWT_SETUP_TWT_GROUPING = 4,
+	QCA_WLAN_VENDOR_TWT_SETUP_ACCEPT_TWT = 5,
+	QCA_WLAN_VENDOR_TWT_SETUP_ALTERNATE_TWT = 6,
+	QCA_WLAN_VENDOR_TWT_SETUP_DICTATE_TWT = 7,
+	QCA_WLAN_VENDOR_TWT_SETUP_REJECT_TWT = 8,
 };
 
 /**
