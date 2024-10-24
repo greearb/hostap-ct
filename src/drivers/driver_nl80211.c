@@ -11838,6 +11838,32 @@ static bool nl80211_is_drv_shared(void *priv, int link_id)
 }
 
 
+static int nl80211_set_sta_ttlm(void *priv, const u8 *addr,
+				struct ieee80211_neg_ttlm *neg_ttlm)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_SET_STA_TTLM)) ||
+	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, addr))
+		goto fail;
+
+	if (neg_ttlm &&
+	    (nla_put(msg, NL80211_ATTR_MLO_TTLM_DLINK,
+		     sizeof(neg_ttlm->dlink), neg_ttlm->dlink) ||
+	    nla_put(msg, NL80211_ATTR_MLO_TTLM_ULINK,
+		    sizeof(neg_ttlm->ulink), neg_ttlm->ulink)))
+		goto fail;
+
+	return send_and_recv_cmd(drv, msg);
+fail:
+	nl80211_nlmsg_clear(msg);
+	nlmsg_free(msg);
+	return -1;
+}
+
+
 static int nl80211_set_attlm(void *priv, struct attlm_settings *attlm)
 {
 	struct nl_msg *msg;
@@ -17227,6 +17253,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 #ifdef CONFIG_IEEE80211BE
 	.set_eml_omn = nl80211_set_eml_omn,
 	.link_remove = driver_nl80211_link_remove,
+	.set_sta_ttlm = nl80211_set_sta_ttlm,
 	.set_attlm = nl80211_set_attlm,
 	.is_drv_shared = nl80211_is_drv_shared,
 	.link_sta_remove = wpa_driver_nl80211_link_sta_remove,

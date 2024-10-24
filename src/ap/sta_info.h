@@ -324,6 +324,7 @@ struct sta_info {
 	u8 mld_assoc_link_id;
 	struct sta_info *mld_assoc_sta;
 	struct scs_session_status scs_session[SCS_MAX_CFG_CNT];
+	struct ieee80211_neg_ttlm neg_ttlm;
 #endif /* CONFIG_IEEE80211BE */
 
 	u16 max_idle_period; /* if nonzero, the granted BSS max idle period in

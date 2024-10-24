@@ -416,6 +416,13 @@ static int ieee802_11_parse_extension(const u8 *pos, size_t elen,
 					 show_errors))
 			return -1;
 		break;
+	case WLAN_EID_EXT_TID_TO_LINK_MAPPING:
+		if (elen < 2 || elems->ttlm_num == IEEE80211_TTLM_MAX_CNT)
+			break;
+		elems->ttlm[elems->ttlm_num] = pos;
+		elems->ttlm_len[elems->ttlm_num] = elen;
+		elems->ttlm_num++;
+		break;
 	case WLAN_EID_EXT_KNOWN_BSSID:
 		elems->mbssid_known_bss = pos;
 		elems->mbssid_known_bss_len = elen;

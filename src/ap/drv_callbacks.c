@@ -1480,6 +1480,18 @@ void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 
 
 #ifdef CONFIG_IEEE80211BE
+static int teardown_sta_ttlm(struct hostapd_data *hapd, struct sta_info *sta,
+			     void *ctx)
+{
+	if (!sta->mld_info.mld_sta || sta->mld_assoc_sta != sta ||
+	    !sta->neg_ttlm.valid)
+		return 0;
+
+	ieee802_11_send_neg_ttlm_teardown(hapd, sta->addr);
+	hostapd_teardown_neg_ttlm(hapd, sta);
+	return 0;
+}
+
 void hostapd_event_attlm(struct hostapd_data *hapd, struct attlm_event *attlm_event)
 {
 	struct hostapd_mld *mld = hapd->mld;
@@ -1501,6 +1513,13 @@ void hostapd_event_attlm(struct hostapd_data *hapd, struct attlm_event *attlm_ev
 						BSS_CRIT_UPDATE_EVENT_ATTLM);
 			mld->new_attlm.switch_time_tsf_tu =
 						attlm_event->switch_time_tsf_tu;
+
+			/* FIXME do Neg-TTLM teardown to prevent overlap
+			 * with Adv-TTLM
+			 */
+			for_each_mld_link(p_hapd, hapd)
+				ap_for_each_sta(p_hapd, teardown_sta_ttlm,
+						NULL);
 			break;
 		case EVENT_ATTLM_SWITCH_TIME_EXPIRED:
 			mld_indicate_disabled = true;

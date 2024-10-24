@@ -6416,7 +6416,7 @@ static int handle_action(struct hostapd_data *hapd,
 	struct sta_info *sta;
 	u8 *action __maybe_unused;
 
-	if (len < IEEE80211_HDRLEN + 2 + 1) {
+	if (len < IEEE80211_HDRLEN + 2) {
 		hostapd_logger(hapd, mgmt->sa, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_DEBUG,
 			       "handle_action - too short payload (len=%lu)",
