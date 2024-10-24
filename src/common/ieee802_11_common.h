@@ -114,6 +114,7 @@ struct ieee802_11_elems {
 	const u8 *basic_mle;
 	const u8 *probe_req_mle;
 	const u8 *reconf_mle;
+	const u8 *ttlm[IEEE80211_TTLM_MAX_CNT];
 	const u8 *tdls_mle;
 	const u8 *prior_access_mle;
 	const u8 *mbssid_known_bss;
@@ -183,6 +184,8 @@ struct ieee802_11_elems {
 	size_t basic_mle_len;
 	size_t probe_req_mle_len;
 	size_t reconf_mle_len;
+	size_t ttlm_len[IEEE80211_TTLM_MAX_CNT];
+	u8 ttlm_num;
 	size_t tdls_mle_len;
 	size_t prior_access_mle_len;
 	u8 mbssid_known_bss_len;

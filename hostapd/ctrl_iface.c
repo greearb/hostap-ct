@@ -4204,6 +4204,39 @@ static int hostapd_ctrl_iface_set_attlm(struct hostapd_data *hapd, char *cmd,
 
 	return hostapd_mld_set_attlm(hapd);
 }
+
+static int hostapd_ctrl_iface_neg_ttlm_teardown(struct hostapd_data *hapd,
+						char *cmd)
+{
+	u8 addr[ETH_ALEN] = {};
+	struct hostapd_data *assoc_hapd;
+	struct sta_info *sta;
+
+	if (hwaddr_aton(cmd, addr)) {
+		wpa_printf(MSG_DEBUG, "Invalid STA MAC address");
+		return -1;
+	}
+
+	sta = ap_get_sta(hapd, addr);
+	if (!sta) {
+		wpa_printf(MSG_DEBUG, "STA " MACSTR " not found.", MAC2STR(addr));
+		return -1;
+	}
+
+	sta = hostapd_ml_get_assoc_sta(hapd, sta, &assoc_hapd);
+	if (!sta || !sta->mld_info.mld_sta || !sta->neg_ttlm.valid) {
+		wpa_printf(MSG_DEBUG, "Invalid STA\n");
+		return -1;
+	}
+
+	if (ieee802_11_send_neg_ttlm_teardown(hapd, sta->addr)) {
+		wpa_printf(MSG_DEBUG, "Failed sending Negotiated TTLM teardown");
+		return -1;
+	}
+
+	hostapd_teardown_neg_ttlm(assoc_hapd, sta);
+	return 0;
+}
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
 
@@ -6463,6 +6496,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "SET_ATTLM ", 10) == 0) {
 		if (hostapd_ctrl_iface_set_attlm(hapd, buf + 10, reply,
 						 reply_size))
+			reply_len = -1;
+	} else if (os_strncmp(buf, "NEG_TTLM_TEARDOWN ", 18) == 0) {
+		if (hostapd_ctrl_iface_neg_ttlm_teardown(hapd, buf + 18))
 			reply_len = -1;
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */

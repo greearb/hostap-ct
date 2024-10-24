@@ -607,6 +607,15 @@ int hostapd_if_link_remove(struct hostapd_data *hapd,
 }
 
 
+int hostapd_drv_set_sta_ttlm(struct hostapd_data *hapd, const u8 *addr,
+			     struct ieee80211_neg_ttlm *neg_ttlm)
+{
+	if (!hapd->driver || !hapd->drv_priv || !hapd->driver->set_sta_ttlm)
+		return -1;
+	return hapd->driver->set_sta_ttlm(hapd->drv_priv, addr, neg_ttlm);
+}
+
+
 int hostapd_drv_set_attlm(struct hostapd_data *hapd)
 {
 	if (!hapd->driver || !hapd->drv_priv || !hapd->driver->set_attlm)
