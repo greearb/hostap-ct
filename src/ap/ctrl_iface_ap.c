@@ -960,6 +960,15 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 					return len;
 				len += ret;
 			}
+
+			ret = os_snprintf(buf + len, buflen - len,
+					  "ap_mld_type=%s\n",
+					  (hapd->iface->mld_mld_capa &
+					   EHT_ML_MLD_CAPA_AP_MLD_TYPE_IND_MASK)
+					  ? "NSTR" : "STR");
+			if (os_snprintf_error(buflen - len, ret))
+				return len;
+			len += ret;
 		}
 	}
 #endif /* CONFIG_IEEE80211BE */

@@ -2831,6 +2831,7 @@ struct eht_ml_basic_common_info {
 #define EHT_ML_MLD_CAPA_TID_TO_LINK_MAP_ALL_TO_ALL    0x0020
 #define EHT_ML_MLD_CAPA_TID_TO_LINK_MAP_ALL_TO_ONE    0x0040
 #define EHT_ML_MLD_CAPA_TID_TO_LINK_MAP_NEG_SUPP_MSK  0x0060
+#define EHT_ML_MLD_CAPA_AP_MLD_TYPE_IND_MASK          0x0080
 #define EHT_ML_MLD_CAPA_FREQ_SEP_FOR_STR_MASK         0x0f80
 #define EHT_ML_MLD_CAPA_AAR_SUPP                      0x1000
 
