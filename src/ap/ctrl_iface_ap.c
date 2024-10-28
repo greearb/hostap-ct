@@ -475,6 +475,10 @@ static int hostapd_ctrl_iface_sta_mib(struct hostapd_data *hapd,
 
 #ifdef CONFIG_IEEE80211BE
 	if (sta->mld_info.mld_sta) {
+		u16 mld_sta_capa = sta->mld_info.common_info.mld_capa;
+		u8 max_simul_links = mld_sta_capa &
+			EHT_ML_MLD_CAPA_MAX_NUM_SIM_LINKS_MASK;
+
 		for (i = 0; i < MAX_NUM_MLD_LINKS; ++i) {
 			if (!sta->mld_info.links[i].valid)
 				continue;
@@ -485,6 +489,11 @@ static int hostapd_ctrl_iface_sta_mib(struct hostapd_data *hapd,
 			if (!os_snprintf_error(buflen - len, ret))
 				len += ret;
 		}
+
+		ret = os_snprintf(buf + len, buflen - len,
+				  "max_simul_links=%d\n", max_simul_links);
+		if (!os_snprintf_error(buflen - len, ret))
+			len += ret;
 	}
 #endif /* CONFIG_IEEE80211BE */
 
