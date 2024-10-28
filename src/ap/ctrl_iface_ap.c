@@ -917,6 +917,15 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 			len += ret;
 		}
 
+		if (hapd->iconf->punct_bitmap) {
+			ret = os_snprintf(buf + len, buflen - len,
+					  "punct_bitmap=0x%x\n",
+					  hapd->iconf->punct_bitmap);
+			if (os_snprintf_error(buflen - len, ret))
+				return len;
+			len += ret;
+		}
+
 		if (hapd->conf->mld_ap) {
 			struct hostapd_data *link_bss;
 
