@@ -2380,7 +2380,7 @@ static void wpas_start_go(struct wpa_supplicant *wpa_s,
 		else
 			ssid->auth_alg |= WPA_AUTH_ALG_SAE;
 
-		ssid->key_mgmt = WPA_KEY_MGMT_SAE;
+		ssid->key_mgmt = WPA_KEY_MGMT_SAE | WPA_KEY_MGMT_PASN;
 		ssid->sae_password = os_strdup(params->sae_password);
 		ssid->ieee80211w = MGMT_FRAME_PROTECTION_REQUIRED;
 		ssid->sae_pwe = SAE_PWE_HASH_TO_ELEMENT;
@@ -7629,7 +7629,7 @@ static int wpas_start_p2p_client(struct wpa_supplicant *wpa_s,
 	}
 
 	if (p2p2) {
-		ssid->key_mgmt = WPA_KEY_MGMT_SAE;
+		ssid->key_mgmt = WPA_KEY_MGMT_SAE | WPA_KEY_MGMT_PASN;
 		ssid->auth_alg = WPA_AUTH_ALG_OPEN;
 		ssid->sae_pwe = SAE_PWE_HASH_TO_ELEMENT;
 		ssid->ieee80211w = MGMT_FRAME_PROTECTION_REQUIRED;
