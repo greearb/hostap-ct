@@ -39,8 +39,9 @@ void pasn_initiator_pmksa_cache_deinit(struct rsn_pmksa_cache *pmksa)
 
 
 int pasn_initiator_pmksa_cache_add(struct rsn_pmksa_cache *pmksa,
-				   const u8 *own_addr, const u8 *bssid, u8 *pmk,
-				   size_t pmk_len, u8 *pmkid)
+				   const u8 *own_addr, const u8 *bssid,
+				   const u8 *pmk,
+				   size_t pmk_len, const u8 *pmkid)
 {
 	if (pmksa_cache_add(pmksa, pmk, pmk_len, pmkid, NULL, 0, bssid,
 			    own_addr, NULL, WPA_KEY_MGMT_SAE, 0))
