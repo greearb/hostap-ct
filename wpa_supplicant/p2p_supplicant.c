@@ -6455,7 +6455,7 @@ static int wpas_p2p_check_6ghz(struct wpa_supplicant *wpa_s,
  * @allow_6ghz: Allow P2P connection on 6 GHz channels
  * @p2p2: Whether device is in P2P R2 mode
  * @bootstrap: Requested bootstrap method for pairing in P2P2
- * @password: Password for pairing setup or NULL for oppurtunistic method
+ * @password: Password for pairing setup or NULL for opportunistic method
  *	in P2P2
  * Returns: 0 or new PIN (if pin was %NULL) on success, -1 on unspecified
  *	failure, -2 on failure due to channel not currently available,
