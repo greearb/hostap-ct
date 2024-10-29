@@ -12412,6 +12412,72 @@ wpa_supplicant_ctrl_iface_setup_link_reconfig(struct wpa_supplicant *wpa_s,
 }
 
 
+static int wpas_ctrl_iface_neg_ttlm_setup(struct wpa_supplicant *wpa_s,
+					  const char *cmd)
+{
+	int dir, i = 0, ret;
+	u16 tid_bitmap[IEEE80211_TTLM_NUM_TIDS];
+	char *pos;
+	struct wpa_neg_ttlm_info neg_ttlm;
+
+	if (!wpa_s->valid_links)
+		return -1;
+
+	/*
+	 * Format:
+	 * <uplink/downlink/bidi> <tid0_bitmap> <tid1_bitmap> ... <tid7_bitmap>
+	 */
+	pos = os_strchr(cmd, ' ');
+	if (pos == NULL)
+		return -1;
+	*pos++ = '\0';
+
+	if (os_strcmp(cmd, "downlink") == 0) {
+		dir = 0;
+	} else if (os_strcmp(cmd, "uplink") == 0) {
+		dir = 1;
+	} else if (os_strcmp(cmd, "bidi") == 0) {
+		dir = 2;
+	} else {
+		wpa_printf(MSG_ERROR, "Wrong TTLM direction: %s\n", cmd);
+		return -1;
+	}
+
+	/* TODO add support to setup different link set in UL/DL direction */
+	if (dir != 2) {
+		wpa_printf(MSG_ERROR, "Only support bi-direction Neg-TTLM\n");
+		return -1;
+	}
+
+	ret = sscanf(pos, "%hu %hu %hu %hu %hu %hu %hu %hu", &tid_bitmap[0],
+		     &tid_bitmap[1], &tid_bitmap[2], &tid_bitmap[3],
+		     &tid_bitmap[4], &tid_bitmap[5], &tid_bitmap[6],
+		     &tid_bitmap[7]);
+
+	if (ret != 8) {
+		wpa_printf(MSG_ERROR, "Wrong TID mapping %s\n", pos);
+		return -1;
+	}
+
+	wpa_printf(MSG_DEBUG, "Negotiated Tid-To-Link Mapping: Setup request: ");
+	wpa_printf(MSG_DEBUG, "  * direction: %s", cmd);
+	for (i = 0; i < IEEE80211_TTLM_NUM_TIDS; i++) {
+		neg_ttlm.dlink[i] = dir != 1 ? tid_bitmap[i] : 0xffff;
+		neg_ttlm.ulink[i] = dir != 0 ? tid_bitmap[i] : 0xffff;
+		wpa_printf(MSG_DEBUG, "TID %d: downlink=%d, uplink=%d\n",
+			   i, neg_ttlm.dlink[i], neg_ttlm.ulink[i]);
+	}
+
+	return wpa_drv_neg_ttlm_setup(wpa_s, &neg_ttlm);
+}
+
+
+static int wpas_ctrl_iface_neg_ttlm_teardown(struct wpa_supplicant *wpa_s)
+{
+	return wpa_drv_neg_ttlm_teardown(wpa_s);
+}
+
+
 static int wpas_ctrl_iface_mlo_status(struct wpa_supplicant *wpa_s,
 				      char *buf, size_t buflen)
 {
@@ -13996,6 +14062,12 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 		if (wpas_update_random_addr_disassoc(wpa_s) != 1)
 			reply_len = -1;
 		wpa_s->conf->preassoc_mac_addr = mac_addr_style;
+	} else if (os_strncmp(buf, "NEG_TTLM_SETUP ", 15) == 0) {
+		if(wpas_ctrl_iface_neg_ttlm_setup(wpa_s, buf + 15))
+			reply_len = -1;
+	} else if (os_strcmp(buf, "NEG_TTLM_TEARDOWN") == 0) {
+		if(wpas_ctrl_iface_neg_ttlm_teardown(wpa_s))
+			reply_len = -1;
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;

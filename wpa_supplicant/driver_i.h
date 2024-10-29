@@ -566,6 +566,21 @@ wpa_drv_setup_link_reconfig(struct wpa_supplicant *wpa_s,
 	return -1;
 }
 
+static inline int wpa_drv_neg_ttlm_setup(struct wpa_supplicant *wpa_s,
+					 struct wpa_neg_ttlm_info *neg_ttlm)
+{
+	if (wpa_s->driver->neg_ttlm_setup)
+		return wpa_s->driver->neg_ttlm_setup(wpa_s->drv_priv, neg_ttlm);
+	return -1;
+}
+
+static inline int wpa_drv_neg_ttlm_teardown(struct wpa_supplicant *wpa_s)
+{
+	if (wpa_s->driver->neg_ttlm_teardown)
+		return wpa_s->driver->neg_ttlm_teardown(wpa_s->drv_priv);
+	return -1;
+}
+
 static inline int wpa_drv_channel_info(struct wpa_supplicant *wpa_s,
 				       struct wpa_channel_info *ci)
 {

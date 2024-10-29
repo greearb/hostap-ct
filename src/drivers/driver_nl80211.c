@@ -10352,6 +10352,45 @@ static void nl80211_remove_links(struct i802_bss *bss)
 }
 
 
+static int nl80211_neg_ttlm_setup(void *priv,
+				  struct wpa_neg_ttlm_info *neg_ttlm)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+
+	if (!(msg = nl80211_bss_msg(bss, 0,
+	    NL80211_CMD_SET_TID_TO_LINK_MAPPING)) ||
+	    nla_put(msg, NL80211_ATTR_MLO_TTLM_DLINK,
+		    sizeof(neg_ttlm->dlink), neg_ttlm->dlink) ||
+	    nla_put(msg, NL80211_ATTR_MLO_TTLM_ULINK,
+		    sizeof(neg_ttlm->ulink), neg_ttlm->ulink)) {
+		nl80211_nlmsg_clear(msg);
+		nlmsg_free(msg);
+		return -1;
+	}
+
+	return send_and_recv_cmd(drv, msg);
+}
+
+
+static int nl80211_neg_ttlm_teardown(void *priv)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+
+	if (!(msg = nl80211_bss_msg(bss, 0,
+	    NL80211_CMD_SET_TID_TO_LINK_MAPPING))) {
+		nl80211_nlmsg_clear(msg);
+		nlmsg_free(msg);
+		return -1;
+	}
+
+	return send_and_recv_cmd(drv, msg);
+}
+
+
 static int wpa_driver_nl80211_deinit_ap(void *priv)
 {
 	struct i802_bss *bss = priv;
@@ -17083,6 +17122,8 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.signal_monitor = nl80211_signal_monitor,
 	.signal_poll = nl80211_signal_poll,
 	.mlo_signal_poll = nl80211_mlo_signal_poll,
+	.neg_ttlm_setup = nl80211_neg_ttlm_setup,
+	.neg_ttlm_teardown = nl80211_neg_ttlm_teardown,
 	.channel_info = nl80211_channel_info,
 	.set_param = nl80211_set_param,
 	.get_radio_name = nl80211_get_radio_name,
