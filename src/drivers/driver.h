@@ -2977,29 +2977,6 @@ struct cca_settings {
 	int link_id;
 };
 
-#ifdef CONFIG_IEEE80211BE
-/**
- * struct attlm_settings - Setting for Advertised Tid-to-Link Mapping
- * @valid: whether this A-TTLM is still valid
- * @direction: direction of this A-TTLM
- * @disabled_links: disabled link ID bitmap
- * @switch_time: duration in ms to establish the A-TTLM
- * @switch_time_tsf_tu: time in TUs that the A-TTLM is established. It should be
- * the bits 10 to 25 of the TSF
- * @duration_tu: duration in ms that the A-TTLM lasts
- * @start_time: the relative time that this A-TTLM is entablished
- */
-struct attlm_settings {
-	bool valid;
-	u8 direction;
-	u16 disabled_links;
-	u16 switch_time;
-	u16 switch_time_tsf_tu;
-	u32 duration;
-	struct os_reltime start_time;
-};
-#endif /* CONFIG_IEEE80211BE */
-
 /* TDLS peer capabilities for send_tdls_mgmt() */
 enum tdls_peer_capability {
 	TDLS_PEER_HT = BIT(0),
