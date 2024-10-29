@@ -2874,6 +2874,11 @@ struct wpa_mlo_reconfig_info {
 	u16 delete_links;
 };
 
+struct wpa_neg_ttlm_info {
+	u16 dlink[IEEE80211_TTLM_NUM_TIDS];
+	u16 ulink[IEEE80211_TTLM_NUM_TIDS];
+};
+
 /**
  * struct wpa_channel_info - Information about the current channel
  * @frequency: Center frequency of the primary 20 MHz channel
@@ -4597,6 +4602,20 @@ struct wpa_driver_ops {
 	 */
 	int (*mlo_signal_poll)(void *priv,
 			       struct wpa_mlo_signal_info *mlo_signal_info);
+
+	/**
+	 * neg_ttlm_setup - set up a negotiated TTLM to AP MLD
+	 * @priv: Private driver interface data
+	 * @neg_ttlm: Neg-TTLM info structure
+	 */
+	int (*neg_ttlm_setup)(void *priv,
+			      struct wpa_neg_ttlm_info *neg_ttlm);
+
+	/**
+	 * neg_ttlm_teardown - tear down a negotiated TTLM
+	 * @priv: Private driver interface data
+	 */
+	int (*neg_ttlm_teardown)(void *priv);
 
 	/**
 	 * setup_link_reconfig - Used to initiate Link Reconfiguration request

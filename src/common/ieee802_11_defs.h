@@ -807,6 +807,20 @@
 #define EHT_EML_OMN_EMLSR_PADDING_DELAY_MASK 0x07
 #define EHT_EML_OMN_EMLSR_TRANSITION_DELAY_MASK 0x38
 
+#define IEEE80211_TTLM_MAX_CNT 2
+#define IEEE80211_TTLM_NUM_TIDS 8
+
+struct ieee80211_neg_ttlm {
+	u16 dlink[IEEE80211_TTLM_NUM_TIDS];
+	u16 ulink[IEEE80211_TTLM_NUM_TIDS];
+	bool valid;
+};
+
+struct neg_ttlm_req {
+	u8 dialog_token;
+	u8 variable[];
+};
+
 /**
  * struct attlm_settings - Setting for Advertised Tid-to-Link Mapping
  * @valid: whether this A-TTLM is still valid
