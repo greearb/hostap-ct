@@ -6097,6 +6097,7 @@ void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
 
 	p2p->cfg->dev_found(p2p->cfg->cb_ctx, dev->info.p2p_device_addr,
 			    &dev->info, !(dev->flags & P2P_DEV_REPORTED_ONCE));
+	dev->flags |= P2P_DEV_REPORTED | P2P_DEV_REPORTED_ONCE;
 
 	p2p_parse_free(&msg);
 }
