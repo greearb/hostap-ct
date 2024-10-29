@@ -806,6 +806,27 @@
 #define EHT_EML_OMN_EMLSR_PADDING_DELAY_MASK 0x07
 #define EHT_EML_OMN_EMLSR_TRANSITION_DELAY_MASK 0x38
 
+/**
+ * struct attlm_settings - Setting for Advertised Tid-to-Link Mapping
+ * @valid: whether this A-TTLM is still valid
+ * @direction: direction of this A-TTLM
+ * @disabled_links: disabled link ID bitmap
+ * @switch_time: duration in ms to establish the A-TTLM
+ * @switch_time_tsf_tu: time in TUs that the A-TTLM is established. It should be
+ * the bits 10 to 25 of the TSF
+ * @duration_tu: duration in ms that the A-TTLM lasts
+ * @start_time: the relative time that this A-TTLM is entablished
+ */
+struct attlm_settings {
+	bool valid;
+	u8 direction;
+	u16 disabled_links;
+	u16 switch_time;
+	u16 switch_time_tsf_tu;
+	u32 duration;
+	struct os_reltime start_time;
+};
+
 struct eml_omn_element {
 	u8 dialog_token;
 	u8 control;
