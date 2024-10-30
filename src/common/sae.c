@@ -114,6 +114,7 @@ void sae_clear_temp_data(struct sae_data *sae)
 	wpabuf_free(tmp->own_rejected_groups);
 	wpabuf_free(tmp->peer_rejected_groups);
 	os_free(tmp->pw_id);
+	os_free(tmp->parsed_pw_id);
 	bin_clear_free(tmp, sizeof(*tmp));
 	sae->tmp = NULL;
 }
@@ -2061,8 +2062,8 @@ static int sae_parse_password_identifier(struct sae_data *sae,
 				   sae->tmp->pw_id);
 			return WLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER;
 		}
-		os_free(sae->tmp->pw_id);
-		sae->tmp->pw_id = NULL;
+		os_free(sae->tmp->parsed_pw_id);
+		sae->tmp->parsed_pw_id = NULL;
 		return WLAN_STATUS_SUCCESS; /* No Password Identifier */
 	}
 
@@ -2089,14 +2090,14 @@ static int sae_parse_password_identifier(struct sae_data *sae,
 		return WLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER;
 	}
 
-	os_free(sae->tmp->pw_id);
-	sae->tmp->pw_id = os_malloc(len + 1);
-	if (!sae->tmp->pw_id)
+	os_free(sae->tmp->parsed_pw_id);
+	sae->tmp->parsed_pw_id = os_malloc(len + 1);
+	if (!sae->tmp->parsed_pw_id)
 		return WLAN_STATUS_UNSPECIFIED_FAILURE;
-	os_memcpy(sae->tmp->pw_id, epos, len);
-	sae->tmp->pw_id[len] = '\0';
+	os_memcpy(sae->tmp->parsed_pw_id, epos, len);
+	sae->tmp->parsed_pw_id[len] = '\0';
 	wpa_hexdump_ascii(MSG_DEBUG, "SAE: Received Password Identifier",
-			  sae->tmp->pw_id, len);
+			  sae->tmp->parsed_pw_id, len);
 	*pos = epos + len;
 	return WLAN_STATUS_SUCCESS;
 }

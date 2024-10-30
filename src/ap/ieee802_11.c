@@ -621,7 +621,8 @@ static struct wpabuf * auth_build_sae_commit(struct hostapd_data *hapd,
 #endif /* CONFIG_IEEE80211BE */
 
 	if (sta->sae->tmp) {
-		rx_id = sta->sae->tmp->pw_id;
+		rx_id = sta->sae->tmp->parsed_pw_id ?
+			sta->sae->tmp->parsed_pw_id : sta->sae->tmp->pw_id;
 		use_pt = sta->sae->h2e;
 #ifdef CONFIG_SAE_PK
 		os_memcpy(sta->sae->tmp->own_addr, own_addr, ETH_ALEN);
@@ -713,7 +714,8 @@ static int auth_sae_send_commit(struct hostapd_data *hapd,
 	u16 status;
 
 	data = auth_build_sae_commit(hapd, sta, update, status_code);
-	if (!data && sta->sae->tmp && sta->sae->tmp->pw_id)
+	if (!data && sta->sae->tmp &&
+	    (sta->sae->tmp->pw_id || sta->sae->tmp->parsed_pw_id))
 		return WLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER;
 	if (data == NULL)
 		return WLAN_STATUS_UNSPECIFIED_FAILURE;
@@ -1002,7 +1004,9 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 	switch (sta->sae->state) {
 	case SAE_NOTHING:
 		if (auth_transaction == 1) {
-			if (sta->sae->tmp) {
+			struct sae_temporary_data *tmp = sta->sae->tmp;
+
+			if (tmp) {
 				sta->sae->h2e =
 					(status_code ==
 					 WLAN_STATUS_SAE_HASH_TO_ELEMENT ||
@@ -1012,8 +1016,21 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 			}
 			ret = auth_sae_send_commit(hapd, sta,
 						   !allow_reuse, status_code);
+			if (ret == WLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER)
+				wpa_msg(hapd->msg_ctx, MSG_INFO,
+					WPA_EVENT_SAE_UNKNOWN_PASSWORD_IDENTIFIER
+					MACSTR, MAC2STR(sta->addr));
 			if (ret)
 				return ret;
+
+			if (tmp && tmp->parsed_pw_id && !tmp->pw_id) {
+				tmp->pw_id = tmp->parsed_pw_id;
+				tmp->parsed_pw_id = NULL;
+				wpa_printf(MSG_DEBUG,
+					   "SAE: Known Password Identifier bound to this STA: '%s'",
+					   tmp->pw_id);
+			}
+
 			sae_set_state(sta, SAE_COMMITTED, "Sent Commit");
 
 			if (sae_process_commit(sta->sae) < 0)
@@ -1637,14 +1654,6 @@ reply:
 				data ? wpabuf_head(data) : (u8 *) "",
 				data ? wpabuf_len(data) : 0, "auth-sae");
 		sae_sme_send_external_auth_status(hapd, sta, resp);
-		if (sta->sae && sta->sae->tmp && sta->sae->tmp->pw_id &&
-		    resp == WLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER &&
-		    auth_transaction == 1) {
-			wpa_printf(MSG_DEBUG,
-				   "SAE: Clear stored password identifier since this SAE commit was not accepted");
-			os_free(sta->sae->tmp->pw_id);
-			sta->sae->tmp->pw_id = NULL;
-		}
 	}
 
 remove_sta:
