@@ -13669,6 +13669,8 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strncmp(buf, "NAN_TRANSMIT ", 13) == 0) {
 		if (wpas_ctrl_nan_transmit(wpa_s, buf + 13) < 0)
 			reply_len = -1;
+	} else if (os_strcmp(buf, "NAN_FLUSH") == 0) {
+		wpas_nan_usd_flush(wpa_s);
 #endif /* CONFIG_NAN_USD */
 #ifdef CONFIG_PASN
 	} else if (os_strncmp(buf, "PASN_START ", 11) == 0) {
