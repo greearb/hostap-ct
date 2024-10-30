@@ -1878,8 +1878,6 @@ static void sae_parse_token_container(struct sae_data *sae,
 				      const u8 *pos, const u8 *end,
 				      const u8 **token, size_t *token_len)
 {
-	wpa_hexdump(MSG_DEBUG, "SAE: Possible elements at the end of the frame",
-		    pos, end - pos);
 	if (!sae_is_token_container_elem(pos, end))
 		return;
 	*token = pos + 3;
@@ -2052,8 +2050,6 @@ static int sae_parse_password_identifier(struct sae_data *sae,
 	const u8 *epos;
 	u8 len;
 
-	wpa_hexdump(MSG_DEBUG, "SAE: Possible elements at the end of the frame",
-		    *pos, end - *pos);
 	if (!sae_is_password_id_elem(*pos, end)) {
 		if (sae->tmp->pw_id) {
 			wpa_printf(MSG_DEBUG,
@@ -2102,8 +2098,6 @@ static int sae_parse_rejected_groups(struct sae_data *sae,
 	const u8 *epos;
 	u8 len;
 
-	wpa_hexdump(MSG_DEBUG, "SAE: Possible elements at the end of the frame",
-		    *pos, end - *pos);
 	if (!sae_is_rejected_groups_elem(*pos, end)) {
 		wpabuf_free(sae->tmp->peer_rejected_groups);
 		sae->tmp->peer_rejected_groups = NULL;
@@ -2142,8 +2136,6 @@ static int sae_parse_akm_suite_selector(struct sae_data *sae,
 	const u8 *epos;
 	u8 len;
 
-	wpa_hexdump(MSG_DEBUG, "SAE: Possible elements at the end of the frame",
-		    *pos, end - *pos);
 	if (!sae_is_akm_suite_selector_elem(*pos, end))
 		return WLAN_STATUS_SUCCESS;
 
@@ -2195,6 +2187,11 @@ u16 sae_parse_commit(struct sae_data *sae, const u8 *data, size_t len,
 
 	if (ie_offset)
 		*ie_offset = pos - data;
+
+	if (end > pos)
+		wpa_hexdump(MSG_DEBUG,
+			    "SAE: Possible elements at the end of the frame",
+			    pos, end - pos);
 
 	/* Optional Password Identifier element */
 	res = sae_parse_password_identifier(sae, &pos, end);
