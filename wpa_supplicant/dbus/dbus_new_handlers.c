@@ -6602,6 +6602,7 @@ DBusMessage * wpas_dbus_handler_nan_publish(DBusMessage *message,
 			for (i = 0; i < entry.array_len; i++)
 				int_array_add_unique(
 					&freq_list, entry.uint16array_value[i]);
+			params.freq_list = freq_list;
 		} else {
 			wpa_printf(MSG_DEBUG,
 				   "dbus: NANPublish - unsupported dict entry '%s'",
