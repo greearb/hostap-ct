@@ -121,12 +121,16 @@ void sae_clear_temp_data(struct sae_data *sae)
 
 void sae_clear_data(struct sae_data *sae)
 {
+	unsigned int no_pw_id;
+
 	if (sae == NULL)
 		return;
 	sae_clear_temp_data(sae);
 	crypto_bignum_deinit(sae->peer_commit_scalar, 0);
 	crypto_bignum_deinit(sae->peer_commit_scalar_accepted, 0);
+	no_pw_id = sae->no_pw_id;
 	os_memset(sae, 0, sizeof(*sae));
+	sae->no_pw_id = no_pw_id;
 }
 
 
@@ -2069,6 +2073,12 @@ static int sae_parse_password_identifier(struct sae_data *sae,
 		return WLAN_STATUS_UNSPECIFIED_FAILURE;
 	epos++; /* skip ext ID */
 	len--;
+
+	if (sae->no_pw_id) {
+		wpa_printf(MSG_DEBUG,
+			   "SAE: Password Identifier included, but none has been enabled");
+		return WLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER;
+	}
 
 	if (sae->tmp->pw_id &&
 	    (len != os_strlen(sae->tmp->pw_id) ||

@@ -120,6 +120,7 @@ struct sae_data {
 	u16 rc; /* protocol instance variable: Rc (received send-confirm) */
 	unsigned int h2e:1;
 	unsigned int pk:1;
+	unsigned int no_pw_id:1;
 	struct sae_temporary_data *tmp;
 };
 

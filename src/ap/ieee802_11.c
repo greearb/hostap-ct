@@ -1375,6 +1375,8 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 			resp = -1;
 			goto remove_sta;
 		}
+		if (!hostapd_sae_pw_id_in_use(hapd->conf))
+			sta->sae->no_pw_id = 1;
 		sae_set_state(sta, SAE_NOTHING, "Init");
 		sta->sae->sync = 0;
 	}
