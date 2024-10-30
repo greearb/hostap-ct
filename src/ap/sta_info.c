@@ -334,6 +334,7 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	eloop_cancel_timeout(ap_handle_session_timer, hapd, sta);
 	eloop_cancel_timeout(ap_handle_session_warning_timer, hapd, sta);
 	ap_sta_clear_disconnect_timeouts(hapd, sta);
+	ap_sta_clear_assoc_timeout(hapd, sta);
 	sae_clear_retransmit_timer(hapd, sta);
 
 	ieee802_1x_free_station(hapd, sta);
@@ -791,6 +792,25 @@ void ap_sta_session_warning_timeout(struct hostapd_data *hapd,
 }
 
 
+static void ap_sta_assoc_timeout(void *eloop_ctx, void *timeout_ctx)
+{
+	struct hostapd_data *hapd = eloop_ctx;
+	struct sta_info *sta = timeout_ctx;
+
+	if (sta->flags & WLAN_STA_ASSOC)
+		return;
+
+	wpa_printf(MSG_DEBUG, "STA " MACSTR
+		   " did not complete association in time - remove it",
+		   MAC2STR(sta->addr));
+	if (sta->flags & WLAN_STA_AUTH)
+		ap_sta_deauthenticate(hapd, sta,
+				      WLAN_REASON_PREV_AUTH_NOT_VALID);
+	else
+		ap_free_sta(hapd, sta);
+}
+
+
 struct sta_info * ap_sta_add(struct hostapd_data *hapd, const u8 *addr)
 {
 	struct sta_info *sta;
@@ -855,6 +875,9 @@ struct sta_info * ap_sta_add(struct hostapd_data *hapd, const u8 *addr)
 	sta_track_claim_taxonomy_info(hapd->iface, addr,
 				      &sta->probe_ie_taxonomy);
 #endif /* CONFIG_TAXONOMY */
+
+	if (!(hapd->conf->mesh & MESH_ENABLED))
+		eloop_register_timeout(60, 0, ap_sta_assoc_timeout, hapd, sta);
 
 	return sta;
 }
@@ -1710,6 +1733,13 @@ void ap_sta_clear_disconnect_timeouts(struct hostapd_data *hapd,
 		if (sta->flags & WLAN_STA_WPS)
 			hostapd_wps_eap_completed(hapd);
 	}
+}
+
+
+void ap_sta_clear_assoc_timeout(struct hostapd_data *hapd,
+				struct sta_info *sta)
+{
+	eloop_cancel_timeout(ap_sta_assoc_timeout, hapd, sta);
 }
 
 
