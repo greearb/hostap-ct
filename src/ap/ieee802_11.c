@@ -577,12 +577,12 @@ const char * sae_get_password(struct hostapd_data *hapd,
 			pk = pw->pk;
 		break;
 	}
-	if (!password) {
+	if (!password && !rx_id) {
 		password = hapd->conf->ssid.wpa_passphrase;
 		pt = hapd->conf->ssid.pt;
 	}
 
-	if (!password && sta) {
+	if (!password && sta && !rx_id) {
 		for (psk = sta->psk; psk; psk = psk->next) {
 			if (psk->is_passphrase) {
 				password = psk->passphrase;
