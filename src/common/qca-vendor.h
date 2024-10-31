@@ -1563,6 +1563,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_CHAN_USAGE_REQ = 252,
 	QCA_NL80211_VENDOR_SUBCMD_GET_FW_SCAN_REPORT = 253,
 	QCA_NL80211_VENDOR_SUBCMD_IDLE_SHUTDOWN = 254,
+	/* 255 - reserved for QCA */
 };
 
 /* Compatibility defines for previously used subcmd names.
