@@ -1256,7 +1256,8 @@ def test_sae_proto_hostapd_status_127(dev, apdev):
 
 def test_sae_proto_hostapd_valid_commit_after_fail(dev, apdev):
     """SAE protocol testing with hostapd and valid commit after failed one"""
-    params = hostapd.wpa2_params(ssid="test-sae", passphrase="foofoofoo")
+    params = hostapd.wpa2_params(ssid="test-sae")
+    params['sae_password'] = ["foofoofoo", "another|id=pw id"]
     params['wpa_key_mgmt'] = 'SAE'
     params['sae_groups'] = "19"
     hapd = hostapd.add_ap(apdev[0], params)
