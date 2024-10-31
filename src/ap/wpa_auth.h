@@ -729,4 +729,6 @@ void wpa_auth_set_sae_pw_id(struct wpa_state_machine *sm,
 			    const struct wpabuf *pw_id,
 			    unsigned int counter);
 
+const u8 * wpa_auth_get_aa(const struct wpa_state_machine *sm);
+const u8 * wpa_auth_get_spa(const struct wpa_state_machine *sm);
 #endif /* WPA_AUTH_H */
