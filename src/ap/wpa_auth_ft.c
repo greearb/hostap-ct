@@ -2151,17 +2151,17 @@ int wpa_auth_derive_ptk_ft(struct wpa_state_machine *sm, struct wpa_ptk *ptk,
 	}
 
 	if (wpa_derive_pmk_r0(mpmk, mpmk_len, ssid, ssid_len, mdid,
-			      r0kh, r0kh_len, sm->addr,
+			      r0kh, r0kh_len, wpa_auth_get_spa(sm),
 			      pmk_r0, pmk_r0_name,
 			      sm->wpa_key_mgmt) < 0 ||
-	    wpa_derive_pmk_r1(pmk_r0, pmk_r0_len, pmk_r0_name, r1kh, sm->addr,
-			      pmk_r1, sm->pmk_r1_name) < 0)
+	    wpa_derive_pmk_r1(pmk_r0, pmk_r0_len, pmk_r0_name, r1kh,
+			      wpa_auth_get_spa(sm), pmk_r1, sm->pmk_r1_name) < 0)
 		return -1;
 
 	return wpa_pmk_r1_to_ptk(pmk_r1, pmk_r1_len, sm->SNonce, sm->ANonce,
-				 sm->addr, sm->wpa_auth->addr, sm->pmk_r1_name,
-				 ptk, ptk_name, sm->wpa_key_mgmt, sm->pairwise,
-				 kdk_len);
+				 wpa_auth_get_spa(sm), wpa_auth_get_aa(sm),
+				 sm->pmk_r1_name, ptk, ptk_name,
+				 sm->wpa_key_mgmt, sm->pairwise, kdk_len);
 }
 
 
