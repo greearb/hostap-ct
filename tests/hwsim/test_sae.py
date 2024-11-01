@@ -1896,9 +1896,12 @@ def test_sae_password_id_pwe_looping(dev, apdev):
         dev[0].set("sae_pwe", "3")
         dev[0].connect("test-sae", sae_password="secret",
                        sae_password_id="pw id",
-                       key_mgmt="SAE", scan_freq="2412")
-        if dev[0].get_status_field("ssid_verified") == "1":
-            raise Exception("Unexpected ssid_verified=1 in STATUS")
+                       key_mgmt="SAE", scan_freq="2412", wait_connect=False)
+        ev = dev[0].wait_event(["CTRL-EVENT-SAE-UNKNOWN-PASSWORD-IDENTIFIER"],
+                               timeout=10)
+        dev[0].request("DISCONNECT")
+        if ev is None:
+            raise Exception("Unknown password identifier not reported")
     finally:
         dev[0].set("sae_pwe", "0")
 
