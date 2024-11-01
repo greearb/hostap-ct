@@ -2049,7 +2049,7 @@ static u16 sae_parse_commit_element(struct sae_data *sae, const u8 **pos,
 }
 
 
-static int sae_parse_password_identifier(struct sae_data *sae,
+static int sae_parse_password_identifier(struct sae_data *sae, bool h2e,
 					 const u8 **pos, const u8 *end)
 {
 	const u8 *epos;
@@ -2074,6 +2074,12 @@ static int sae_parse_password_identifier(struct sae_data *sae,
 		return WLAN_STATUS_UNSPECIFIED_FAILURE;
 	epos++; /* skip ext ID */
 	len--;
+
+	if (!h2e) {
+		wpa_printf(MSG_DEBUG,
+			   "SAE: Password Identifier included, but H2E is not used");
+		return WLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER;
+	}
 
 	if (sae->no_pw_id) {
 		wpa_printf(MSG_DEBUG,
@@ -2205,7 +2211,7 @@ u16 sae_parse_commit(struct sae_data *sae, const u8 *data, size_t len,
 			    pos, end - pos);
 
 	/* Optional Password Identifier element */
-	res = sae_parse_password_identifier(sae, &pos, end);
+	res = sae_parse_password_identifier(sae, h2e, &pos, end);
 	if (res != WLAN_STATUS_SUCCESS)
 		return res;
 
