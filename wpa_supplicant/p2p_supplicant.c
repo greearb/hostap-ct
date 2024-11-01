@@ -1687,8 +1687,11 @@ static int wpas_send_action(void *ctx, unsigned int freq, const u8 *dst,
 	if (listen_freq != (int) freq && send_freq != (int) freq) {
 		int res;
 
-		wpa_printf(MSG_DEBUG, "P2P: Schedule new radio work for Action frame TX (listen_freq=%d send_freq=%d freq=%u)",
-			   listen_freq, send_freq, freq);
+		wpa_printf(MSG_DEBUG,
+			   "P2P: Schedule new radio work for Action frame TX (listen_freq=%d send_freq=%d freq=%u dst="
+			   MACSTR " src=" MACSTR " bssid=" MACSTR,
+			   listen_freq, send_freq, freq, MAC2STR(dst),
+			   MAC2STR(src), MAC2STR(bssid));
 		res = wpas_send_action_work(wpa_s, freq, dst, src, bssid, buf,
 					    len, wait_time);
 		if (res == 0 && scheduled)
