@@ -1532,6 +1532,8 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 			sae_clear_retransmit_timer(hapd, sta);
 			sae_set_state(sta, SAE_NOTHING,
 				      "Unknown Password Identifier");
+			if (sta->sae->state == SAE_NOTHING)
+				goto reply;
 			goto remove_sta;
 		}
 
