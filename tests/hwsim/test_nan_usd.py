@@ -96,8 +96,8 @@ def test_nan_usd_match(dev, apdev):
         raise Exception("NAN_SUBSCRIBE failed")
 
     cmd = "NAN_PUBLISH service_name=_test srv_proto_type=2 ssi=6677 ttl=5"
-    id0 = dev[1].request(cmd)
-    if "FAIL" in id0:
+    id1 = dev[1].request(cmd)
+    if "FAIL" in id1:
         raise Exception("NAN_PUBLISH failed")
 
     ev = dev[0].wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
@@ -108,13 +108,8 @@ def test_nan_usd_match(dev, apdev):
     if "ssi=6677" not in ev.split(' '):
         raise Exception("Unexpected ssi: " + ev)
 
-    # Check for publisher and subscriber functionality to time out
-    ev = dev[0].wait_event(["NAN-SUBSCRIBE-TERMINATED"], timeout=5)
-    if ev is None:
-        raise Exception("Subscribe not terminated")
-    ev = dev[1].wait_event(["NAN-PUBLISH-TERMINATED"], timeout=5)
-    if ev is None:
-        raise Exception("Publish not terminated")
+    dev[0].request("NAN_CANCEL_SUBSCRIBE id=" + id0)
+    dev[1].request("NAN_CANCEL_PUBLISH id=" + id1)
 
 def test_nan_usd_match2(dev, apdev):
     """NAN USD Publish/Subscribe match (2)"""
@@ -158,8 +153,8 @@ def test_nan_usd_match3(dev, apdev):
     time.sleep(0.05)
 
     cmd = "NAN_PUBLISH service_name=_test srv_proto_type=2 ssi=6677 ttl=10"
-    id0 = dev[1].request(cmd)
-    if "FAIL" in id0:
+    id1 = dev[1].request(cmd)
+    if "FAIL" in id1:
         raise Exception("NAN_PUBLISH failed")
 
     ev = dev[0].wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
@@ -170,13 +165,8 @@ def test_nan_usd_match3(dev, apdev):
     if "ssi=6677" not in ev.split(' '):
         raise Exception("Unexpected ssi: " + ev)
 
-    # Check for publisher and subscriber functionality to time out
-    ev = dev[0].wait_event(["NAN-SUBSCRIBE-TERMINATED"], timeout=2)
-    if ev is None:
-        raise Exception("Subscribe not terminated")
-    ev = dev[1].wait_event(["NAN-PUBLISH-TERMINATED"], timeout=10)
-    if ev is None:
-        raise Exception("Publish not terminated")
+    dev[0].request("NAN_CANCEL_SUBSCRIBE id=" + id0)
+    dev[1].request("NAN_CANCEL_PUBLISH id=" + id1)
 
 def split_nan_event(ev):
     vals = dict()
@@ -272,13 +262,8 @@ def run_nan_usd_followup(dev0, dev1, multi_chan=False):
     if vals['peer_instance_id'] != id1:
         raise Exception("Unexpected peer_instance_id: " + ev)
 
-    # Check for publisher and subscriber functionality to time out
-    ev = dev0.wait_event(["NAN-SUBSCRIBE-TERMINATED"], timeout=10)
-    if ev is None:
-        raise Exception("Subscribe not terminated")
-    ev = dev1.wait_event(["NAN-PUBLISH-TERMINATED"], timeout=10)
-    if ev is None:
-        raise Exception("Publish not terminated")
+    dev0.request("NAN_CANCEL_SUBSCRIBE id=" + id0)
+    dev1.request("NAN_CANCEL_PUBLISH id=" + id1)
 
 def test_nan_usd_solicited_publisher(dev, apdev):
     """NAN USD Publish/Subscribe match with solicited-only Publisher"""

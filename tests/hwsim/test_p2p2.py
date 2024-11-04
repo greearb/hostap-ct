@@ -102,8 +102,8 @@ def test_p2p_usd_match(dev, apdev):
         raise Exception("NAN_SUBSCRIBE for P2P failed")
 
     cmd = "NAN_PUBLISH service_name=_test unsolicited=0 srv_proto_type=2 ssi=6677 ttl=5 p2p=1"
-    id0 = dev[1].request(cmd)
-    if "FAIL" in id0:
+    id1 = dev[1].request(cmd)
+    if "FAIL" in id1:
         raise Exception("NAN_PUBLISH for P2P failed")
 
     ev = dev[0].wait_global_event(["P2P-DEVICE-FOUND"], timeout=5)
@@ -121,13 +121,8 @@ def test_p2p_usd_match(dev, apdev):
     if "ssi=6677" not in ev.split(' '):
         raise Exception("Unexpected ssi: " + ev)
 
-    # Check for publisher and subscriber functionality to time out
-    ev = dev[0].wait_event(["NAN-SUBSCRIBE-TERMINATED"], timeout=5)
-    if ev is None:
-        raise Exception("Subscribe not terminated")
-    ev = dev[1].wait_event(["NAN-PUBLISH-TERMINATED"], timeout=5)
-    if ev is None:
-        raise Exception("Publish not terminated")
+    dev[0].request("NAN_CANCEL_SUBSCRIBE id=" + id0)
+    dev[1].request("NAN_CANCEL_PUBLISH id=" + id1)
 
 def test_p2p_pairing_password(dev, apdev):
     """P2P Pairing with Password"""

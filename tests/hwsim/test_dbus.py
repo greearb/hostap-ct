@@ -6562,6 +6562,7 @@ def test_dbus_nan_usd_subscribe_followup(dev, apdev):
                 if "ssi=666f6c6c6f777570" not in ev.split(' '):
                     raise Exception("Expected SSI not seen in Follow-up")
                 self.followup = True
+                iface.NANCancelSubscribe(self.subscribe_id)
             else:
                 logger.info("nanDiscoveryResult values did not match")
 
@@ -6634,6 +6635,7 @@ def test_dbus_nan_usd_publish_followup(dev, apdev):
                                    'req_instance_id': args['peer_id'],
                                    'peer_addr': args['peer_addr'],
                                    'ssi': dbus.ByteArray(b'followup')})
+                iface.NANCancelPublish(self.publish_id)
 
         def start_publish(self, *args):
             cmd = "NAN_SUBSCRIBE service_name=_test srv_proto_type=3 ssi=1122334455"
