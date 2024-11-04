@@ -321,7 +321,8 @@ int wpas_nan_usd_init(struct wpa_supplicant *wpa_s)
 	cb.process_p2p_usd_elems = wpas_nan_process_p2p_usd_elems;
 #endif /* CONFIG_P2P */
 
-	wpa_s->nan_de = nan_de_init(wpa_s->own_addr, offload, false, &cb);
+	wpa_s->nan_de = nan_de_init(wpa_s->own_addr, offload, false,
+				    wpa_s->max_remain_on_chan, &cb);
 	if (!wpa_s->nan_de)
 		return -1;
 	return 0;

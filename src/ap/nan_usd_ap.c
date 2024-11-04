@@ -160,7 +160,7 @@ int hostapd_nan_usd_init(struct hostapd_data *hapd)
 	cb.subscribe_terminated = hostapd_nan_de_subscribe_terminated;
 	cb.receive = hostapd_nan_de_receive;
 
-	hapd->nan_de = nan_de_init(hapd->own_addr, false, true, &cb);
+	hapd->nan_de = nan_de_init(hapd->own_addr, false, true, 0, &cb);
 	if (!hapd->nan_de)
 		return -1;
 	return 0;
