@@ -230,6 +230,7 @@ def run_nan_usd_followup(dev0, dev1, multi_chan=False):
         raise Exception("Unexpected ssi in Follow-up: " + ev)
 
     # Follow-up from subscriber to publisher
+    time.sleep(0.2)
     cmd = "NAN_TRANSMIT handle={} req_instance_id={} address={} ssi=8899".format(vals['subscribe_id'], vals['publish_id'], addr1)
     if "FAIL" in dev0.request(cmd):
         raise Exception("NAN_TRANSMIT failed")
@@ -256,6 +257,40 @@ def run_nan_usd_followup(dev0, dev1, multi_chan=False):
         raise Exception("Receive event not seen")
     vals = split_nan_event(ev)
     if vals['ssi'] != 'aabbccdd':
+        raise Exception("Unexpected ssi in Follow-up: " + ev)
+    if vals['id'] != id0:
+        raise Exception("Unexpected id: " + ev)
+    if vals['peer_instance_id'] != id1:
+        raise Exception("Unexpected peer_instance_id: " + ev)
+
+    # Another Follow-up message from publisher to subscriber
+    cmd = "NAN_TRANSMIT handle={} req_instance_id={} address={} ssi=eeff".format(id1, vals['peer_instance_id'], addr0)
+    if "FAIL" in dev1.request(cmd):
+        raise Exception("NAN_TRANSMIT failed")
+
+    ev = dev0.wait_event(["NAN-RECEIVE"], timeout=5)
+    if ev is None:
+        raise Exception("Receive event not seen")
+    vals = split_nan_event(ev)
+    if vals['ssi'] != 'eeff':
+        raise Exception("Unexpected ssi in Follow-up: " + ev)
+    if vals['id'] != id0:
+        raise Exception("Unexpected id: " + ev)
+    if vals['peer_instance_id'] != id1:
+        raise Exception("Unexpected peer_instance_id: " + ev)
+
+    # And one more Follow-up message from publisher to subscriber after some
+    # delay.
+    time.sleep(0.5)
+    cmd = "NAN_TRANSMIT handle={} req_instance_id={} address={} ssi=22334455".format(id1, vals['peer_instance_id'], addr0)
+    if "FAIL" in dev1.request(cmd):
+        raise Exception("NAN_TRANSMIT failed")
+
+    ev = dev0.wait_event(["NAN-RECEIVE"], timeout=5)
+    if ev is None:
+        raise Exception("Receive event not seen")
+    vals = split_nan_event(ev)
+    if vals['ssi'] != '22334455':
         raise Exception("Unexpected ssi in Follow-up: " + ev)
     if vals['id'] != id0:
         raise Exception("Unexpected id: " + ev)
