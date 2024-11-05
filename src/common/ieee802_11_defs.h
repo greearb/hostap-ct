@@ -3114,6 +3114,15 @@ enum dscp_policy_request_type {
 #define WFA_CAPA_QM_UNSOLIC_DSCP BIT(1)
 #define WFA_CAPA_QM_NON_EHT_SCS_TRAFFIC_DESC BIT(2)
 
+/* Wi-Fi Alliance Capabilities attributes */
+enum wfa_capa_attr_id {
+	WFA_CAPA_ATTR_GENERATIONAL_CAPAB = 1,
+	WFA_CAPA_ATTR_VENDOR_SPECIFIC = 221,
+};
+
+/* Wi-Fi Alliance Capabilities frame */
+#define WFA_CAPAB_VENDOR_TYPE 0x506f9a1b
+
 struct ieee80211_neighbor_ap_info {
 	u8 tbtt_info_hdr;
 	u8 tbtt_info_len;
