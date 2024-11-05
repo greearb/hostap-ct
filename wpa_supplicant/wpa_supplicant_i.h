@@ -676,6 +676,11 @@ enum local_hw_capab {
 	CAPAB_EHT,
 };
 
+struct last_scan_ssid {
+	u8 ssid[SSID_MAX_LEN];
+	size_t ssid_len;
+};
+
 /**
  * struct wpa_supplicant - Internal data for wpa_supplicant interface
  *
@@ -813,6 +818,8 @@ struct wpa_supplicant {
 	size_t last_scan_res_size;
 	struct os_reltime last_scan;
 	bool last_scan_external;
+	struct last_scan_ssid last_scan_ssids[WPAS_MAX_SCAN_SSIDS];
+	size_t last_scan_num_ssids;
 
 	const struct wpa_driver_ops *driver;
 	int interface_removed; /* whether the network interface has been

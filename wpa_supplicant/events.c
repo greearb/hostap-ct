@@ -2560,7 +2560,27 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	}
 #endif /* CONFIG_NO_RANDOM_POOL */
 
-	wpa_s->last_scan_external = data && data->scan_info.external_scan;
+	if (data) {
+		size_t idx;
+
+		wpa_s->last_scan_external = data->scan_info.external_scan;
+		wpa_s->last_scan_num_ssids = data->scan_info.num_ssids;
+		for (idx = 0; idx < wpa_s->last_scan_num_ssids; idx++) {
+			/* Copy the SSID and its length */
+			if (idx >= WPAS_MAX_SCAN_SSIDS ||
+			    data->scan_info.ssids[idx].ssid_len > SSID_MAX_LEN)
+				continue;
+
+			os_memcpy(wpa_s->last_scan_ssids[idx].ssid,
+				  data->scan_info.ssids[idx].ssid,
+				  data->scan_info.ssids[idx].ssid_len);
+			wpa_s->last_scan_ssids[idx].ssid_len =
+				data->scan_info.ssids[idx].ssid_len;
+		}
+	} else {
+		wpa_s->last_scan_external = false;
+		wpa_s->last_scan_num_ssids = 0;
+	}
 
 	if (update_only) {
 		ret = 1;

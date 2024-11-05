@@ -5278,6 +5278,51 @@ void wpa_supplicant_disable_network(struct wpa_supplicant *wpa_s,
 }
 
 
+static bool ssid_in_last_scan(struct wpa_supplicant *wpa_s,
+			      struct wpa_ssid *ssid)
+{
+	size_t i;
+
+	/* Check if the previous scan included the selected network */
+	if (wpa_s->last_scan_num_ssids <= 1 ||
+	    !ssid->ssid || ssid->ssid_len == 0)
+		return false;
+
+	/* Iterate through the previous scan SSIDs */
+	for (i = 0; i < wpa_s->last_scan_num_ssids;  i++) {
+		if (os_memcmp(wpa_s->last_scan_ssids[i].ssid, ssid->ssid,
+			      ssid->ssid_len) == 0)
+			return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * Checks whether an SSID was discovered in the last scan.
+ * @wpa_s: wpa_supplicant structure for a network interface.
+ * @ssid: wpa_ssid structure for a configured network.
+ * Returns: true if ssid found, false otherwise.
+ */
+static bool ssid_in_last_scan_res(struct wpa_supplicant *wpa_s,
+				  struct wpa_ssid *ssid)
+{
+	size_t i;
+
+	if (!wpa_s->last_scan_res || !ssid->ssid || ssid->ssid_len == 0)
+		return false;
+
+	for (i = 0; i < wpa_s->last_scan_res_used; i++) {
+		if (os_memcmp(wpa_s->last_scan_res[i]->ssid,
+			      ssid->ssid, ssid->ssid_len) == 0)
+			return true;
+	}
+
+	return false;
+}
+
+
 /**
  * wpa_supplicant_select_network - Attempt association with a network
  * @wpa_s: wpa_supplicant structure for a network interface
@@ -5335,13 +5380,22 @@ void wpa_supplicant_select_network(struct wpa_supplicant *wpa_s,
 			(ssid->mode == WPAS_MODE_MESH ||
 			 ssid->mode == WPAS_MODE_AP) ? ssid : NULL;
 
-		if (ssid->scan_ssid &&
-		    (wpa_s->no_suitable_network || wpa_s->last_scan_external)) {
-			wpa_printf(MSG_DEBUG,
-				   "Request a new scan for hidden network");
-			request_new_scan = true;
-		} else if ((ssid->key_mgmt & WPA_KEY_MGMT_OWE) &&
-			   !ssid->owe_only) {
+		if (ssid->scan_ssid) {
+			if (ssid_in_last_scan(wpa_s, ssid)) {
+				wpa_printf(MSG_DEBUG,
+					   "Hidden network was scanned for in last scan");
+			} else if (ssid_in_last_scan_res(wpa_s, ssid)) {
+				wpa_printf(MSG_DEBUG,
+					   "Hidden network was found in last scan results");
+			} else {
+				request_new_scan = true;
+				wpa_printf(MSG_DEBUG,
+					   "Request a new scan for hidden network");
+			}
+		}
+
+		if (!request_new_scan && (ssid->key_mgmt & WPA_KEY_MGMT_OWE) &&
+		    !ssid->owe_only) {
 			wpa_printf(MSG_DEBUG,
 				   "Request a new scan for OWE transition SSID");
 			request_new_scan = true;
