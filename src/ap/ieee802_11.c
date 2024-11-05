@@ -6050,7 +6050,15 @@ static void handle_beacon(struct hostapd_data *hapd,
 static int robust_action_frame(u8 category)
 {
 	return category != WLAN_ACTION_PUBLIC &&
-		category != WLAN_ACTION_HT;
+		category != WLAN_ACTION_HT &&
+		category != WLAN_ACTION_UNPROTECTED_WNM &&
+		category != WLAN_ACTION_SELF_PROTECTED &&
+		category != WLAN_ACTION_UNPROTECTED_DMG &&
+		category != WLAN_ACTION_VHT &&
+		category != WLAN_ACTION_UNPROTECTED_S1G &&
+		category != WLAN_ACTION_HE &&
+		category != WLAN_ACTION_EHT &&
+		category != WLAN_ACTION_VENDOR_SPECIFIC;
 }
 
 
