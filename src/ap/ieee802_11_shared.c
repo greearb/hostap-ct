@@ -1234,3 +1234,47 @@ bool hostapd_get_ht_vht_twt_responder(struct hostapd_data *hapd)
 		(hapd->iface->drv_flags2 &
 		 WPA_DRIVER_FLAGS2_HT_VHT_TWT_RESPONDER);
 }
+
+
+static void hostapd_wfa_gen_capab(struct hostapd_data *hapd,
+				  struct sta_info *sta,
+				  const u8 *capab, size_t len)
+{
+	char *hex;
+	size_t buflen;
+
+	wpa_printf(MSG_DEBUG,
+		   "WFA: Received indication of generational capabilities from "
+		   MACSTR, MAC2STR(sta->addr));
+	wpa_hexdump(MSG_DEBUG, "WFA: Generational Capabilities", capab, len);
+
+	buflen = 2 * len + 1;
+	hex = os_zalloc(buflen);
+	if (!hex)
+		return;
+	wpa_snprintf_hex(hex, buflen, capab, len);
+	wpa_msg(hapd->msg_ctx, MSG_INFO, WFA_GEN_CAPAB_RX MACSTR " %s",
+		MAC2STR(sta->addr), hex);
+	os_free(hex);
+}
+
+
+void hostapd_wfa_capab(struct hostapd_data *hapd, struct sta_info *sta,
+		       const u8 *pos, const u8 *end)
+{
+	u8 capab_len;
+	const u8 *gen_capa;
+
+	if (end - pos < 1)
+		return;
+	capab_len = *pos++;
+	if (capab_len > end - pos)
+		return;
+	pos += capab_len; /* skip the Capabilities field */
+
+	/* Wi-Fi Alliance Capabilities attributes use a header that is similar
+	 * to the one used in Information Elements. */
+	gen_capa = get_ie(pos, end - pos, WFA_CAPA_ATTR_GENERATIONAL_CAPAB);
+	if (gen_capa)
+		hostapd_wfa_gen_capab(hapd, sta, gen_capa + 2, gen_capa[1]);
+}

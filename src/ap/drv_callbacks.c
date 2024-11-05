@@ -958,6 +958,10 @@ skip_wpa_check:
 	}
 #endif /* CONFIG_P2P */
 
+	if (elems.wfa_capab)
+		hostapd_wfa_capab(hapd, sta, elems.wfa_capab,
+				  elems.wfa_capab + elems.wfa_capab_len);
+
 	return 0;
 
 fail:

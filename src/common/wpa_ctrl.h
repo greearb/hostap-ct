@@ -456,6 +456,11 @@ extern "C" {
 /* Event triggered for received management frame */
 #define AP_MGMT_FRAME_RECEIVED "AP-MGMT-FRAME-RECEIVED "
 
+/* Event triggerred on AP receiving Wi-Fi Alliance Generational Capabilities
+ * indication.
+ * Parameters: <STA addr> <Generational Capabilities Indication body> */
+#define WFA_GEN_CAPAB_RX "WFA-GEN-CAPAB "
+
 #ifndef BIT
 #define BIT(x) (1U << (x))
 #endif

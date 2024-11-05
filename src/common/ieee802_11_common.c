@@ -140,6 +140,10 @@ static int ieee802_11_parse_vendor_specific(const u8 *pos, size_t elen,
 			elems->sae_pk = pos + 4;
 			elems->sae_pk_len = elen - 4;
 			break;
+		case WFA_CAPA_OUI_TYPE:
+			elems->wfa_capab = pos + 4;
+			elems->wfa_capab_len = elen - 4;
+			break;
 		case WFA_RSNE_OVERRIDE_OUI_TYPE:
 			elems->rsne_override = pos;
 			elems->rsne_override_len = elen;

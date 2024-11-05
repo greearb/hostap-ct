@@ -4486,6 +4486,10 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 				hapd->conf->max_acceptable_idle_period;
 	}
 
+	if (elems->wfa_capab)
+		hostapd_wfa_capab(hapd, sta, elems->wfa_capab,
+				  elems->wfa_capab + elems->wfa_capab_len);
+
 	return WLAN_STATUS_SUCCESS;
 }
 
@@ -6047,6 +6051,39 @@ static void handle_beacon(struct hostapd_data *hapd,
 }
 
 
+static int hostapd_action_vs(struct hostapd_data *hapd,
+			     struct sta_info *sta,
+			     const struct ieee80211_mgmt *mgmt, size_t len,
+			     unsigned int freq, bool protected)
+{
+	const u8 *pos, *end;
+	u32 oui_type;
+
+	pos = &mgmt->u.action.category;
+	end = ((const u8 *) mgmt) + len;
+
+	if (end - pos < 1 + 4)
+		return -1;
+	pos++;
+
+	oui_type = WPA_GET_BE32(pos);
+	pos += 4;
+
+	switch (oui_type) {
+	case WFA_CAPAB_VENDOR_TYPE:
+		hostapd_wfa_capab(hapd, sta, pos, end);
+		return 0;
+	default:
+		wpa_printf(MSG_DEBUG,
+			   "Ignore unknown Vendor Specific Action frame OUI/type %08x%s",
+			   oui_type, protected ? " (protected)" : "");
+		break;
+	}
+
+	return -1;
+}
+
+
 static int robust_action_frame(u8 category)
 {
 	return category != WLAN_ACTION_PUBLIC &&
@@ -6227,6 +6264,14 @@ static int handle_action(struct hostapd_data *hapd,
 						   (u8 *) mgmt, len, freq) == 0)
 				return 1;
 		}
+		if (sta &&
+		    hostapd_action_vs(hapd, sta, mgmt, len, freq, false) == 0)
+			return 1;
+		break;
+	case WLAN_ACTION_VENDOR_SPECIFIC_PROTECTED:
+		if (sta &&
+		    hostapd_action_vs(hapd, sta, mgmt, len, freq, true) == 0)
+			return 1;
 		break;
 #ifndef CONFIG_NO_RRM
 	case WLAN_ACTION_RADIO_MEASUREMENT:
