@@ -1752,6 +1752,9 @@ void wpas_request_connection(struct wpa_supplicant *wpa_s);
 void wpas_request_disconnection(struct wpa_supplicant *wpa_s);
 int wpas_build_ext_capab(struct wpa_supplicant *wpa_s, u8 *buf, size_t buflen,
 			 struct wpa_bss *bss);
+int wpas_populate_wfa_capa(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
+			   u8 *wpa_ie, size_t wpa_ie_len,
+			   size_t max_wpa_ie_len);
 int wpas_update_random_addr(struct wpa_supplicant *wpa_s,
 			    enum wpas_mac_addr_style style,
 			    struct wpa_ssid *ssid);

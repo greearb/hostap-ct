@@ -1884,6 +1884,41 @@ struct wpa_config {
 	 * This is for setting the bit 77 of the Extended Capabilities element.
 	 */
 	bool twt_requester;
+
+	/**
+	 * wfa_gen_capa: Whether to indicate Wi-Fi generational capability to
+	 *	the AP
+	 *
+	 * 0 = do not indicate (default)
+	 * 1 = indicate in protected Action frame
+	 * 2 = indicate in unprotected (Re)Association Request frame
+	 */
+	enum {
+		WFA_GEN_CAPA_DISABLED = 0,
+		WFA_GEN_CAPA_PROTECTED = 1,
+		WFA_GEN_CAPA_UNPROTECTED = 2,
+	} wfa_gen_capa;
+
+	/**
+	 * wfa_gen_capa_supp: Supported Generations (hexdump of a bit field)
+	 *
+	 * A bit field of supported Wi-Fi generations. This is encoded as an
+	 * little endian octt string.
+	 * bit 0: Wi-Fi 4
+	 * bit 1: Wi-Fi 5
+	 * bit 2: Wi-Fi 6
+	 * bit 3: Wi-Fi 7
+	 */
+	struct wpabuf *wfa_gen_capa_supp;
+
+	/**
+	 * wfa_gen_capa_cert: Certified Generations (hexdump of a bit field)
+	 *
+	 * This has the same format as wfa_gen_capa_supp. This is an optional
+	 * field, but if included, shall have the same length as
+	 * wfa_gen_capa_supp.
+	 */
+	struct wpabuf *wfa_gen_capa_cert;
 };
 
 

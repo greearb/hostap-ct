@@ -2475,6 +2475,12 @@ pfs_fail:
 mscs_fail:
 #endif /* CONFIG_NO_ROBUST_AV */
 
+	wpa_s->sme.assoc_req_ie_len =
+		wpas_populate_wfa_capa(wpa_s, wpa_s->current_bss,
+				       wpa_s->sme.assoc_req_ie,
+				       wpa_s->sme.assoc_req_ie_len,
+				       sizeof(wpa_s->sme.assoc_req_ie));
+
 	if (ssid && ssid->multi_ap_backhaul_sta) {
 		size_t multi_ap_ie_len;
 		struct multi_ap_params multi_ap = { 0 };

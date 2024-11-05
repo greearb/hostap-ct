@@ -503,6 +503,87 @@ void wpas_flush_fils_hlp_req(struct wpa_supplicant *wpa_s)
 }
 
 
+static struct wpabuf * wpas_wfa_gen_capab_attr(struct wpa_supplicant *wpa_s)
+{
+	struct wpabuf *attr;
+	size_t gen_len;
+	bool add_cert;
+
+	if (wpa_s->conf->wfa_gen_capa == WFA_GEN_CAPA_DISABLED ||
+	    !wpa_s->conf->wfa_gen_capa_supp ||
+	    wpabuf_len(wpa_s->conf->wfa_gen_capa_supp) == 0)
+		return NULL;
+
+	add_cert = wpa_s->conf->wfa_gen_capa_cert &&
+		wpabuf_len(wpa_s->conf->wfa_gen_capa_cert) ==
+		wpabuf_len(wpa_s->conf->wfa_gen_capa_supp);
+
+	gen_len = 1 + wpabuf_len(wpa_s->conf->wfa_gen_capa_supp);
+	if (add_cert) {
+		gen_len++;
+		gen_len += wpabuf_len(wpa_s->conf->wfa_gen_capa_cert);
+	}
+
+	attr = wpabuf_alloc(2 + gen_len);
+	if (!attr)
+		return NULL;
+
+	wpabuf_put_u8(attr, WFA_CAPA_ATTR_GENERATIONAL_CAPAB);
+	wpabuf_put_u8(attr, gen_len);
+	wpabuf_put_u8(attr, wpabuf_len(wpa_s->conf->wfa_gen_capa_supp));
+	wpabuf_put_buf(attr, wpa_s->conf->wfa_gen_capa_supp);
+	if (add_cert) {
+		wpabuf_put_u8(attr,
+			      wpabuf_len(wpa_s->conf->wfa_gen_capa_cert));
+		wpabuf_put_buf(attr, wpa_s->conf->wfa_gen_capa_cert);
+	}
+
+	return attr;
+}
+
+
+
+static void wpas_wfa_capab_tx(void *eloop_ctx, void *timeout_ctx)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctx;
+	struct wpabuf *attr, *buf;
+	size_t buf_len;
+
+	if (wpa_s->conf->wfa_gen_capa != WFA_GEN_CAPA_PROTECTED ||
+	    !wpa_s->conf->wfa_gen_capa_supp ||
+	    wpabuf_len(wpa_s->conf->wfa_gen_capa_supp) == 0 ||
+	    wpa_s->wpa_state != WPA_COMPLETED ||
+	    !pmf_in_use(wpa_s, wpa_s->bssid))
+		return;
+
+	attr = wpas_wfa_gen_capab_attr(wpa_s);
+	if (!attr)
+		return;
+
+	buf_len = 1 + 3 + 1 + 1 + wpabuf_len(attr);
+	buf = wpabuf_alloc(buf_len);
+	if (!buf) {
+		wpabuf_free(attr);
+		return;
+	}
+
+	wpabuf_put_u8(buf, WLAN_ACTION_VENDOR_SPECIFIC_PROTECTED);
+	wpabuf_put_be32(buf, WFA_CAPAB_VENDOR_TYPE);
+	wpabuf_put_u8(buf, 0); /* Capabilities Length */
+	wpabuf_put_buf(buf, attr);
+	wpabuf_free(attr);
+
+	wpa_printf(MSG_DEBUG, "WFA: Send WFA Capabilities frame");
+	if (wpa_drv_send_action(wpa_s, wpa_s->assoc_freq, 0, wpa_s->bssid,
+				wpa_s->own_addr, wpa_s->bssid,
+				wpabuf_head(buf), wpabuf_len(buf), 0) < 0)
+		wpa_printf(MSG_DEBUG,
+			   "WFA: Failed to send WFA Capabilities frame");
+
+	wpabuf_free(buf);
+}
+
+
 void wpas_clear_disabled_interface(void *eloop_ctx, void *timeout_ctx)
 {
 	struct wpa_supplicant *wpa_s = eloop_ctx;
@@ -616,6 +697,7 @@ static void wpa_supplicant_cleanup(struct wpa_supplicant *wpa_s)
 	eloop_cancel_timeout(wpas_network_reenabled, wpa_s, NULL);
 	eloop_cancel_timeout(wpas_clear_disabled_interface, wpa_s, NULL);
 	eloop_cancel_timeout(wpas_verify_ssid_beacon, wpa_s, NULL);
+	eloop_cancel_timeout(wpas_wfa_capab_tx, wpa_s, NULL);
 
 	wpas_wps_deinit(wpa_s);
 
@@ -1141,6 +1223,14 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 		if (ssid && (ssid->key_mgmt & WPA_KEY_MGMT_OWE))
 			wpas_update_owe_connect_params(wpa_s);
 #endif /* CONFIG_OWE */
+		if (wpa_s->conf->wfa_gen_capa == WFA_GEN_CAPA_PROTECTED &&
+		    wpa_s->conf->wfa_gen_capa_supp &&
+		    wpabuf_len(wpa_s->conf->wfa_gen_capa_supp) > 0 &&
+		    pmf_in_use(wpa_s, wpa_s->bssid)) {
+			eloop_cancel_timeout(wpas_wfa_capab_tx, wpa_s, NULL);
+			eloop_register_timeout(0, 100000, wpas_wfa_capab_tx,
+					       wpa_s, NULL);
+		}
 	} else if (state == WPA_DISCONNECTED || state == WPA_ASSOCIATING ||
 		   state == WPA_ASSOCIATED) {
 		wpa_s->new_connection = 1;
@@ -3457,13 +3547,12 @@ bool wpa_is_non_eht_scs_traffic_desc_supported(struct wpa_bss *bss)
 }
 
 
-static int wpas_populate_wfa_capa(struct wpa_supplicant *wpa_s,
-				  struct wpa_bss *bss,
-				  u8 *wpa_ie, size_t wpa_ie_len,
-				  size_t max_wpa_ie_len)
+int wpas_populate_wfa_capa(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
+			   u8 *wpa_ie, size_t wpa_ie_len, size_t max_wpa_ie_len)
 {
-	struct wpabuf *wfa_ie = NULL;
+	struct wpabuf *wfa_ie = NULL, *attr = NULL;
 	u8 wfa_capa[1];
+	u8 capab_len = 0;
 	size_t wfa_ie_len, buf_len;
 
 	os_memset(wfa_capa, 0, sizeof(wfa_capa));
@@ -3475,7 +3564,13 @@ static int wpas_populate_wfa_capa(struct wpa_supplicant *wpa_s,
 	if (wpa_is_non_eht_scs_traffic_desc_supported(bss))
 		wfa_capa[0] |= WFA_CAPA_QM_NON_EHT_SCS_TRAFFIC_DESC;
 
-	if (!wfa_capa[0])
+	if (wfa_capa[0])
+		capab_len = 1;
+
+	if (wpa_s->conf->wfa_gen_capa == WFA_GEN_CAPA_UNPROTECTED)
+		attr = wpas_wfa_gen_capab_attr(wpa_s);
+
+	if (capab_len == 0 && !attr)
 		return wpa_ie_len;
 
 	/* Wi-Fi Alliance element */
@@ -3484,17 +3579,23 @@ static int wpas_populate_wfa_capa(struct wpa_supplicant *wpa_s,
 		  3 +	/* OUI */
 		  1 +	/* OUI Type */
 		  1 +	/* Capabilities Length */
-		  sizeof(wfa_capa);	/* Capabilities */
+		  capab_len +	/* Capabilities */
+		  (attr ? wpabuf_len(attr) : 0) /* Attributes */;
 	wfa_ie = wpabuf_alloc(buf_len);
-	if (!wfa_ie)
+	if (!wfa_ie) {
+		wpabuf_free(attr);
 		return wpa_ie_len;
+	}
 
 	wpabuf_put_u8(wfa_ie, WLAN_EID_VENDOR_SPECIFIC);
 	wpabuf_put_u8(wfa_ie, buf_len - 2);
 	wpabuf_put_be24(wfa_ie, OUI_WFA);
 	wpabuf_put_u8(wfa_ie, WFA_CAPA_OUI_TYPE);
-	wpabuf_put_u8(wfa_ie, sizeof(wfa_capa));
-	wpabuf_put_data(wfa_ie, wfa_capa, sizeof(wfa_capa));
+	wpabuf_put_u8(wfa_ie, capab_len);
+	wpabuf_put_data(wfa_ie, wfa_capa, capab_len);
+	if (attr)
+		wpabuf_put_buf(wfa_ie, attr);
+	wpabuf_free(attr);
 
 	wfa_ie_len = wpabuf_len(wfa_ie);
 	if (wpa_ie_len + wfa_ie_len <= max_wpa_ie_len) {

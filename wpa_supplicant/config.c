@@ -3105,6 +3105,8 @@ void wpa_config_free(struct wpa_config *config)
 	os_free(config->dpp_extra_conf_req_name);
 	os_free(config->dpp_extra_conf_req_value);
 	wpabuf_free(config->dik);
+	wpabuf_free(config->wfa_gen_capa_supp);
+	wpabuf_free(config->wfa_gen_capa_cert);
 
 	os_free(config);
 }
@@ -5614,6 +5616,9 @@ static const struct global_parse_data global_fields[] = {
 	{ FUNC(mld_connect_bssid_pref), 0 },
 #endif /* CONFIG_TESTING_OPTIONS */
 	{ INT_RANGE(ft_prepend_pmkid, 0, 1), CFG_CHANGED_FT_PREPEND_PMKID },
+	{ INT_RANGE(wfa_gen_capa, 0, 2), 0},
+	{ BIN(wfa_gen_capa_supp), 0 },
+	{ BIN(wfa_gen_capa_cert), 0 },
 	/* NOTE: When adding new parameters here, add_interface() in
 	 * wpa_supplicant/dbus_new_introspect.c may need to be modified to
 	 * increase the size of the iface->xml buffer. */
