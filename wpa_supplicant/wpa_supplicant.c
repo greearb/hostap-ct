@@ -506,19 +506,36 @@ void wpas_flush_fils_hlp_req(struct wpa_supplicant *wpa_s)
 static struct wpabuf * wpas_wfa_gen_capab_attr(struct wpa_supplicant *wpa_s)
 {
 	struct wpabuf *attr;
-	size_t gen_len;
+	size_t gen_len, supp_len;
+	const u8 *supp;
+	u8 supp_buf[1];
 	bool add_cert;
 
-	if (wpa_s->conf->wfa_gen_capa == WFA_GEN_CAPA_DISABLED ||
-	    !wpa_s->conf->wfa_gen_capa_supp ||
-	    wpabuf_len(wpa_s->conf->wfa_gen_capa_supp) == 0)
+	if (wpa_s->conf->wfa_gen_capa == WFA_GEN_CAPA_DISABLED)
 		return NULL;
 
-	add_cert = wpa_s->conf->wfa_gen_capa_cert &&
-		wpabuf_len(wpa_s->conf->wfa_gen_capa_cert) ==
-		wpabuf_len(wpa_s->conf->wfa_gen_capa_supp);
+	if (!wpa_s->conf->wfa_gen_capa_supp ||
+	    wpabuf_len(wpa_s->conf->wfa_gen_capa_supp) == 0) {
+		supp_len = 1;
+		supp_buf[0] = 0;
+		if (wpa_s->hw_capab & BIT(CAPAB_HT))
+			supp_buf[0] |= BIT(0); /* Wi-Fi 4 */
+		if (wpa_s->hw_capab & BIT(CAPAB_VHT))
+			supp_buf[0] |= BIT(1); /* Wi-Fi 5 */
+		if (wpa_s->hw_capab & BIT(CAPAB_HE))
+			supp_buf[0] |= BIT(2); /* Wi-Fi 6 */
+		if (wpa_s->hw_capab & BIT(CAPAB_EHT))
+			supp_buf[0] |= BIT(3); /* Wi-Fi 7 */
+		supp = supp_buf;
+	} else {
+		supp_len = wpabuf_len(wpa_s->conf->wfa_gen_capa_supp);
+		supp = wpabuf_head(wpa_s->conf->wfa_gen_capa_supp);
+	}
 
-	gen_len = 1 + wpabuf_len(wpa_s->conf->wfa_gen_capa_supp);
+	add_cert = wpa_s->conf->wfa_gen_capa_cert &&
+		wpabuf_len(wpa_s->conf->wfa_gen_capa_cert) == supp_len;
+
+	gen_len = 1 + supp_len;
 	if (add_cert) {
 		gen_len++;
 		gen_len += wpabuf_len(wpa_s->conf->wfa_gen_capa_cert);
@@ -530,8 +547,8 @@ static struct wpabuf * wpas_wfa_gen_capab_attr(struct wpa_supplicant *wpa_s)
 
 	wpabuf_put_u8(attr, WFA_CAPA_ATTR_GENERATIONAL_CAPAB);
 	wpabuf_put_u8(attr, gen_len);
-	wpabuf_put_u8(attr, wpabuf_len(wpa_s->conf->wfa_gen_capa_supp));
-	wpabuf_put_buf(attr, wpa_s->conf->wfa_gen_capa_supp);
+	wpabuf_put_u8(attr, supp_len);
+	wpabuf_put_data(attr, supp, supp_len);
 	if (add_cert) {
 		wpabuf_put_u8(attr,
 			      wpabuf_len(wpa_s->conf->wfa_gen_capa_cert));
@@ -550,8 +567,6 @@ static void wpas_wfa_capab_tx(void *eloop_ctx, void *timeout_ctx)
 	size_t buf_len;
 
 	if (wpa_s->conf->wfa_gen_capa != WFA_GEN_CAPA_PROTECTED ||
-	    !wpa_s->conf->wfa_gen_capa_supp ||
-	    wpabuf_len(wpa_s->conf->wfa_gen_capa_supp) == 0 ||
 	    wpa_s->wpa_state != WPA_COMPLETED ||
 	    !pmf_in_use(wpa_s, wpa_s->bssid))
 		return;
@@ -1224,8 +1239,6 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 			wpas_update_owe_connect_params(wpa_s);
 #endif /* CONFIG_OWE */
 		if (wpa_s->conf->wfa_gen_capa == WFA_GEN_CAPA_PROTECTED &&
-		    wpa_s->conf->wfa_gen_capa_supp &&
-		    wpabuf_len(wpa_s->conf->wfa_gen_capa_supp) > 0 &&
 		    pmf_in_use(wpa_s, wpa_s->bssid)) {
 			eloop_cancel_timeout(wpas_wfa_capab_tx, wpa_s, NULL);
 			eloop_register_timeout(0, 100000, wpas_wfa_capab_tx,
