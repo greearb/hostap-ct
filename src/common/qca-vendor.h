@@ -10833,6 +10833,18 @@ enum qca_wlan_twt_setup_state {
 };
 
 /**
+ * enum qca_wlan_twt_session_suspendable: The values used with
+ * %QCA_WLAN_VENDOR_ATTR_TWT_SETUP_SUSPENDABLE.
+ *
+ * @QCA_WLAN_TWT_SESSION_NOT_SUSPENDABLE: TWT session cannot be suspended.
+ * @QCA_WLAN_TWT_SESSION_SUSPENDABLE: TWT session can be suspended.
+ */
+enum qca_wlan_twt_session_suspendable {
+	QCA_WLAN_TWT_SESSION_NOT_SUSPENDABLE = 0,
+	QCA_WLAN_TWT_SESSION_SUSPENDABLE = 1,
+};
+
+/**
  * enum qca_wlan_vendor_attr_twt_setup: Represents attributes for
  * TWT (Target Wake Time) setup request. These attributes are sent as part of
  * %QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_TWT_SETUP and
@@ -11061,7 +11073,15 @@ enum qca_wlan_twt_setup_state {
  *
  * @QCA_WLAN_VENDOR_ATTR_TWT_SETUP_PAD: Attribute used for padding for 64-bit
  * alignment.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TWT_SETUP_SUSPENDABLE: Optional (u8)
+ * This attribute indicates whether the TWT session being negotiated can be
+ * suspended.
+ * Refers the enum qca_wlan_twt_session_suspendable.
+ * This parameter is used for
+ * 1. TWT SET Response
  */
+
 enum qca_wlan_vendor_attr_twt_setup {
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_INVALID = 0,
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_BCAST = 1,
@@ -11098,6 +11118,7 @@ enum qca_wlan_vendor_attr_twt_setup {
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_ANNOUNCE_TIMEOUT = 26,
 
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_PAD = 27,
+	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_SUSPENDABLE = 28,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_AFTER_LAST,
