@@ -3461,7 +3461,7 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_WNM */
 		interworking_process_assoc_resp(wpa_s, data->assoc_info.resp_ies,
 						data->assoc_info.resp_ies_len);
-		if (wpa_s->hw_capab == CAPAB_VHT &&
+		if ((wpa_s->hw_capab & BIT(CAPAB_VHT)) &&
 		    get_ie(data->assoc_info.resp_ies,
 			   data->assoc_info.resp_ies_len, WLAN_EID_VHT_CAP))
 			wpa_s->ieee80211ac = 1;

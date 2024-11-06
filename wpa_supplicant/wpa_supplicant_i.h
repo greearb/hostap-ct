@@ -669,6 +669,13 @@ struct ml_sta_link_info {
 };
 
 
+enum local_hw_capab {
+	CAPAB_HT,
+	CAPAB_VHT,
+	CAPAB_HE,
+	CAPAB_EHT,
+};
+
 /**
  * struct wpa_supplicant - Internal data for wpa_supplicant interface
  *
@@ -1253,12 +1260,7 @@ struct wpa_supplicant {
 		u16 num_modes;
 		u16 flags;
 	} hw;
-	enum local_hw_capab {
-		CAPAB_NO_HT_VHT,
-		CAPAB_HT,
-		CAPAB_HT40,
-		CAPAB_VHT,
-	} hw_capab;
+	unsigned int hw_capab; /* bitmap of enum local_hw_capab bits */
 #ifdef CONFIG_MACSEC
 	struct ieee802_1x_kay *kay;
 #endif /* CONFIG_MACSEC */

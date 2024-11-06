@@ -7600,17 +7600,16 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 		u16 i;
 
 		for (i = 0; i < wpa_s->hw.num_modes; i++) {
-			if (wpa_s->hw.modes[i].vht_capab) {
-				wpa_s->hw_capab = CAPAB_VHT;
-				break;
-			}
-
-			if (wpa_s->hw.modes[i].ht_capab &
-			    HT_CAP_INFO_SUPP_CHANNEL_WIDTH_SET)
-				wpa_s->hw_capab = CAPAB_HT40;
-			else if (wpa_s->hw.modes[i].ht_capab &&
-				 wpa_s->hw_capab == CAPAB_NO_HT_VHT)
-				wpa_s->hw_capab = CAPAB_HT;
+			if (wpa_s->hw.modes[i].eht_capab[IEEE80211_MODE_INFRA].
+			    eht_supported)
+				wpa_s->hw_capab |= BIT(CAPAB_EHT);
+			if (wpa_s->hw.modes[i].he_capab[IEEE80211_MODE_INFRA].
+			    he_supported)
+				wpa_s->hw_capab |= BIT(CAPAB_HE);
+			if (wpa_s->hw.modes[i].vht_capab)
+				wpa_s->hw_capab |= BIT(CAPAB_VHT);
+			if (wpa_s->hw.modes[i].ht_capab)
+				wpa_s->hw_capab |= BIT(CAPAB_HT);
 		}
 		wpa_s->support_6ghz = wpas_is_6ghz_supported(wpa_s, false);
 	}
