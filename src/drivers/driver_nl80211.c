@@ -7882,6 +7882,8 @@ static int i802_flush(void *priv, int link_id)
 	 * XXX: FIX! this needs to flush all VLANs too
 	 */
 	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_DEL_STATION);
+	if (!msg)
+		goto fail;
 	if (link_id >= 0 && (bss->valid_links & BIT(link_id)) &&
 	    nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id))
 		goto fail;
