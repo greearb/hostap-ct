@@ -14640,6 +14640,22 @@ enum qca_wlan_vendor_monitor_ctrl_frame_type {
 	QCA_WLAN_VENDOR_MONITOR_CTRL_TRIGGER_FRAME = BIT(1),
 };
 
+/*
+ * enum qca_wlan_vendor_monitor_operating_type: Attributes used by vendor
+ * attribute %QCA_WLAN_VENDOR_ATTR_SET_MONITOR_MODE_OPERATING_TYPE
+ *
+ * @QCA_WLAN_VENDOR_MONITOR_OPERATING_TYPE_LPC: Local packet capture.
+ * Capture frames sent and received by the current client interface from the
+ * BSS.
+ *
+ * @QCA_WLAN_VENDOR_MONITOR_OPERATING_TYPE_OCC: Operating channel capture.
+ * Capture all frames on the current operating channel of client interface.
+ */
+enum qca_wlan_vendor_monitor_operating_type {
+	QCA_WLAN_VENDOR_MONITOR_OPERATING_TYPE_LPC = 0,
+	QCA_WLAN_VENDOR_MONITOR_OPERATING_TYPE_OCC = 1,
+};
+
 /**
  * enum qca_wlan_vendor_attr_set_monitor_mode - Used by the
  * vendor command QCA_NL80211_VENDOR_SUBCMD_SET_MONITOR_MODE to set the
@@ -14676,6 +14692,12 @@ enum qca_wlan_vendor_monitor_ctrl_frame_type {
  * Represents the interval in milliseconds only for the connected Beacon frames,
  * expecting the connected BSS's Beacon frames to be sent on the monitor
  * interface at this specific interval.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_SET_MONITOR_MODE_OPERATING_TYPE: u32 attribute.
+ * Represents the monitor operating type (u32). These operating types are
+ * defined in enum qca_wlan_vendor_monitor_operating_type.
+ * If this attribute is not included, default operating type LPC ("local
+ * packet capture") used.
  */
 enum qca_wlan_vendor_attr_set_monitor_mode {
 	QCA_WLAN_VENDOR_ATTR_SET_MONITOR_MODE_INVALID = 0,
@@ -14686,6 +14708,7 @@ enum qca_wlan_vendor_attr_set_monitor_mode {
 	QCA_WLAN_VENDOR_ATTR_SET_MONITOR_MODE_CTRL_TX_FRAME_TYPE = 5,
 	QCA_WLAN_VENDOR_ATTR_SET_MONITOR_MODE_CTRL_RX_FRAME_TYPE = 6,
 	QCA_WLAN_VENDOR_ATTR_SET_MONITOR_MODE_CONNECTED_BEACON_INTERVAL = 7,
+	QCA_WLAN_VENDOR_ATTR_SET_MONITOR_MODE_OPERATING_TYPE = 8,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_SET_MONITOR_MODE_AFTER_LAST,
