@@ -4120,6 +4120,7 @@ int hostapd_add_iface(struct hapd_interfaces *interfaces, char *buf)
 			}
 
 			if (hostapd_setup_interface(hapd_iface)) {
+				hostapd_bss_link_deinit(hapd_iface->bss[0]);
 				hostapd_deinit_driver(
 					hapd_iface->bss[0]->driver,
 					hapd_iface->bss[0]->drv_priv,
@@ -5676,6 +5677,9 @@ int hostapd_mld_remove_link(struct hostapd_data *hapd)
 	/* Should not happen */
 	if (!mld)
 		return -1;
+
+	if (!(mld->active_links & BIT(hapd->mld_link_id)))
+		return 0;
 
 	dl_list_del(&hapd->link);
 	mld->num_links--;
