@@ -2909,7 +2909,15 @@ static size_t hostapd_add_sta_profile(struct ieee80211_mgmt *link_fdata,
 					is_identical_vendor_ies = true;
 					num_own_elem_vendor_ies++;
 				}
-				continue;
+
+				/* Update the parsed EIDs bitmap */
+				if (is_ext)
+					parsed_ext_eid_bmap[own_eid / 8] |=
+						BIT(own_eid % 8);
+				else
+					parsed_eid_bmap[own_eid / 8] |=
+						BIT(own_eid % 8);
+				break;
 			}
 
 			/* No need to include this non-matching Vendor Specific
