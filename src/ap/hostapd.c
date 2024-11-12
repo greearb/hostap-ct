@@ -1455,6 +1455,7 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, bool first,
 	char force_ifname[IFNAMSIZ];
 	u8 if_addr[ETH_ALEN];
 	int flush_old_stations = 1;
+	u32 radio_mask = 0;
 
 	if (!hostapd_mld_is_first_bss(hapd))
 		wpa_printf(MSG_DEBUG,
@@ -1528,6 +1529,13 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, bool first,
 			if (addr && !is_zero_ether_addr(hapd->conf->mld_addr))
 				os_memcpy(addr, hapd->conf->mld_addr, ETH_ALEN);
 		}
+
+		if (hapd->iface->current_hw_info) {
+			if (hapd->conf->mld_ap)
+				radio_mask = hapd->conf->mld_radio_mask;
+			else
+				radio_mask = 1 << hapd->iface->current_hw_info->hw_idx;
+		}
 #endif /* CONFIG_IEEE80211BE */
 
 		hapd->interface_added = 1;
@@ -1535,7 +1543,7 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, bool first,
 				   conf->iface, addr, hapd,
 				   &hapd->drv_priv, force_ifname, if_addr,
 				   conf->bridge[0] ? conf->bridge : NULL,
-				   1)) {
+				   1, radio_mask)) {
 			wpa_printf(MSG_ERROR, "Failed to add BSS (BSSID="
 				   MACSTR ")", MAC2STR(hapd->own_addr));
 			hapd->interface_added = 0;
