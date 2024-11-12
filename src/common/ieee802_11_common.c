@@ -2537,7 +2537,8 @@ const struct oper_class_map global_op_class[] = {
 	{ HOSTAPD_MODE_IEEE80211A, 136, 2, 2, 4, BW20, NO_P2P_SUPP },
 
 	/* IEEE Std 802.11be-2024, Table E-4 (Global operating classes) */
-	{ HOSTAPD_MODE_IEEE80211A, 137, 31, 191, 32, BW320, NO_P2P_SUPP },
+	/*{ HOSTAPD_MODE_IEEE80211A, 137, 31, 191, 32, BW320, NO_P2P_SUPP }, TODO:  apply feedback from mailing list */
+	{ HOSTAPD_MODE_IEEE80211A, 137, 1, 233, 64, BW320, NO_P2P_SUPP },
 
 	/*
 	 * IEEE Std 802.11ad-2012 and P802.ay/D5.0 60 GHz operating classes.
