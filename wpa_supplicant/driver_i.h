@@ -469,7 +469,7 @@ static inline int wpa_drv_if_add(struct wpa_supplicant *wpa_s,
 	if (wpa_s->driver->if_add)
 		return wpa_s->driver->if_add(wpa_s->drv_priv, type, ifname,
 					     addr, bss_ctx, NULL, force_ifname,
-					     if_addr, bridge, 0, 0, -1);
+					     if_addr, bridge, 0, 0, -1, 0);
 	return -1;
 }
 

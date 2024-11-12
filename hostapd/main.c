@@ -279,7 +279,7 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 				   &hapd->drv_priv, force_ifname, if_addr,
 				   params.num_bridge && params.bridge[0] ?
 				   params.bridge[0] : NULL,
-				   1, hapd->iface->freq)) {
+				   1, hapd->iface->freq, 0)) {
 			wpa_printf(MSG_ERROR, "Failed to add BSS (BSSID="
 				   MACSTR ")", MAC2STR(hapd->own_addr));
 			os_free(params.bridge);
