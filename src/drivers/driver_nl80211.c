@@ -6897,7 +6897,7 @@ static int nl80211_create_iface_once(struct wpa_driver_nl80211_data *drv,
 				     enum nl80211_iftype iftype,
 				     const u8 *addr, int wds,
 				     int (*handler)(struct nl_msg *, void *),
-				     void *arg)
+				     void *arg, u32 radio_mask)
 {
 	struct nl_msg *msg;
 	int ifidx;
@@ -6909,7 +6909,8 @@ static int nl80211_create_iface_once(struct wpa_driver_nl80211_data *drv,
 	msg = nl80211_cmd_msg(drv->first_bss, 0, NL80211_CMD_NEW_INTERFACE);
 	if (!msg ||
 	    nla_put_string(msg, NL80211_ATTR_IFNAME, ifname) ||
-	    nla_put_u32(msg, NL80211_ATTR_IFTYPE, iftype))
+	    nla_put_u32(msg, NL80211_ATTR_IFTYPE, iftype) ||
+	    nla_put_u32(msg, NL80211_ATTR_VIF_RADIO_MASK, radio_mask))
 		goto fail;
 
 	if (wds && nla_put_u8(msg, NL80211_ATTR_4ADDR, wds))
@@ -7028,7 +7029,7 @@ int nl80211_create_iface(struct i802_bss *bss, struct wpa_driver_nl80211_data *d
 			 const char *ifname, enum nl80211_iftype iftype,
 			 const u8 *addr, int wds,
 			 int (*handler)(struct nl_msg *, void *),
-			 void *arg, int use_existing)
+			 void *arg, int use_existing, u32 radio_mask)
 {
 	int ret;
 
@@ -7036,7 +7037,7 @@ int nl80211_create_iface(struct i802_bss *bss, struct wpa_driver_nl80211_data *d
 		return nl80211_use_existing_iface(drv, ifname, iftype, addr);
 
 	ret = nl80211_create_iface_once(drv, ifname, iftype, addr, wds, handler,
-					arg);
+					arg, radio_mask);
 
 	/* if error occurred and interface exists already */
 	if (ret < 0 && if_nametoindex(ifname)) {
@@ -7051,7 +7052,7 @@ int nl80211_create_iface(struct i802_bss *bss, struct wpa_driver_nl80211_data *d
 
 		/* Try to create the interface again */
 		ret = nl80211_create_iface_once(drv, ifname, iftype, addr,
-						wds, handler, arg);
+						wds, handler, arg, radio_mask);
 	}
 
 	if (ret >= 0 && is_p2p_net_interface(iftype)) {
@@ -9478,7 +9479,7 @@ static int i802_set_wds_sta(void *priv, const u8 *addr, int aid, int val,
 		if (!if_nametoindex(name)) {
 			if (nl80211_create_iface(bss, drv, name,
 						 NL80211_IFTYPE_AP_VLAN,
-						 bss->addr, 1, NULL, NULL, 0) <
+						 bss->addr, 1, NULL, NULL, 0, 0) <
 			    0)
 				return -1;
 
@@ -9882,7 +9883,7 @@ static int wpa_driver_nl80211_if_add(void *priv, enum wpa_driver_if_type type,
 				     void *bss_ctx, void **drv_priv,
 				     char *force_ifname, u8 *if_addr,
 				     const char *bridge, int use_existing,
-				     int setup_ap)
+				     int setup_ap, u32 radio_mask)
 {
 	enum nl80211_iftype nlmode;
 	struct i802_bss *bss = priv;
@@ -9899,7 +9900,7 @@ static int wpa_driver_nl80211_if_add(void *priv, enum wpa_driver_if_type type,
 		os_memset(&nonnetdev_info, 0, sizeof(nonnetdev_info));
 		ifidx = nl80211_create_iface(bss, drv, ifname, nlmode, addr,
 					     0, nl80211_wdev_handler,
-					     &nonnetdev_info, use_existing);
+					     &nonnetdev_info, use_existing, radio_mask);
 		if (!nonnetdev_info.wdev_id_set || ifidx != 0) {
 			wpa_printf(MSG_ERROR,
 				   "nl80211: Failed to create a P2P/NAN Device interface %s",
@@ -9917,7 +9918,7 @@ static int wpa_driver_nl80211_if_add(void *priv, enum wpa_driver_if_type type,
 			   (long long unsigned int) nonnetdev_info.wdev_id);
 	} else {
 		ifidx = nl80211_create_iface(bss, drv, ifname, nlmode, addr,
-					     0, NULL, NULL, use_existing);
+					     0, NULL, NULL, use_existing, radio_mask);
 		if (use_existing && ifidx == -ENFILE) {
 			added = 0;
 			ifidx = if_nametoindex(ifname);
