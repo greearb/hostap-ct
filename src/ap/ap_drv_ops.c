@@ -374,8 +374,19 @@ int hostapd_vlan_if_add(struct hostapd_data *hapd, const char *ifname)
 {
 	char force_ifname[IFNAMSIZ];
 	u8 if_addr[ETH_ALEN];
+	u32 radio_mask = 0;
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->iface->current_hw_info) {
+		if (hapd->conf->mld_ap)
+			radio_mask = hapd->conf->mld_radio_mask;
+		else
+			radio_mask = 1 << hapd->iface->current_hw_info->hw_idx;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	return hostapd_if_add(hapd, WPA_IF_AP_VLAN, ifname, hapd->own_addr,
-			      NULL, NULL, force_ifname, if_addr, NULL, 0, hapd->iface->freq);
+			      NULL, NULL, force_ifname, if_addr, NULL, 0, hapd->iface->freq, radio_mask);
 }
 
 
@@ -573,13 +584,13 @@ int hostapd_set_ssid(struct hostapd_data *hapd, const u8 *buf, size_t len)
 int hostapd_if_add(struct hostapd_data *hapd, enum wpa_driver_if_type type,
 		   const char *ifname, const u8 *addr, void *bss_ctx,
 		   void **drv_priv, char *force_ifname, u8 *if_addr,
-		   const char *bridge, int use_existing, int freq)
+		   const char *bridge, int use_existing, int freq, u32 radio_mask)
 {
 	if (hapd->driver == NULL || hapd->driver->if_add == NULL)
 		return -1;
 	return hapd->driver->if_add(hapd->drv_priv, type, ifname, addr,
 				    bss_ctx, drv_priv, force_ifname, if_addr,
-				    bridge, use_existing, 1, freq);
+				    bridge, use_existing, 1, freq, radio_mask);
 }
 
 
