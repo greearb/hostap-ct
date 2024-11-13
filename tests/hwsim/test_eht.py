@@ -5,6 +5,7 @@
 # See README for more details.
 
 import binascii
+import subprocess
 import tempfile
 
 import hostapd
@@ -1940,11 +1941,12 @@ def dump_config(fname):
         logger.debug("hostapd config: " + str(fname) + "\n" + cfg)
 
 def get_config(iface, count, ssid, passphrase, channel, bssid_regex,
-               rnr=False, debug=False):
+               rnr=False, debug=False, start_idx=0):
     f, fname = create_base_conf_file(iface, channel=channel)
     hapds = []
 
-    for i in range(count):
+    i = start_idx
+    while count:
         if i == 0:
             ifname = iface
         else:
@@ -1963,9 +1965,11 @@ def get_config(iface, count, ssid, passphrase, channel, bssid_regex,
         if rnr:
             params["rnr"] = "1"
 
-        append_bss_conf_to_file(f, ifname, params, first=(i == 0))
+        append_bss_conf_to_file(f, ifname, params, first=(i == start_idx))
 
         hapds.append([ifname, i])
+        count = count - 1
+        i = i + 1
 
     f.close()
 
@@ -2277,3 +2281,107 @@ def test_eht_mld_control_socket_connectivity(dev, apdev):
             raise Exception("Failed to get link 1 status via MLD socket")
         if 'link_id=1' not in res.splitlines():
             raise Exception("link_id=0 not reported for link 1")
+
+def test_eht_mlo_single_drv(dev, apdev, params):
+    "EHT MLO AP simple test but having single drv object"
+    with HWSimRadio(use_mlo=True, n_channels=2) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio1, wpas_iface1):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+        check_sae_capab(wpas)
+
+        wpas1 = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas1.interface_add(wpas_iface1)
+        check_sae_capab(wpas1)
+
+        fname1, hapds1 = get_config(hapd_iface, count=1, ssid="mld-",
+                                    passphrase="qwertyuiop-", channel=1,
+                                    bssid_regex="02:00:00:00:07:%02x",
+                                    rnr=False, debug=True, start_idx=1)
+        fname2, hapds2 = get_config(hapd_iface, count=2, ssid="mld-",
+                                    passphrase="qwertyuiop-", channel=6,
+                                    bssid_regex="02:00:00:00:08:%02x",
+                                    rnr=False, debug=True)
+
+        # Configs will be in this form:
+        #
+        #   +--------------------+     +------------------+
+        #   |     config 2       |     |      config 1    |
+        #   |                    |     |                  |
+        #   |                    |     |                  |
+        #   | +----------------+ |     |                  |
+        #   | |     BSS 1      | |     |                  |
+        #   | | ssid: mld-0    | |     |                  |
+        #   | +----------------+ |     |                  |
+        #   |                    |     |                  |
+        # +---------------------------------------------------------------+
+        # | | +----------------+ |     | +--------------+ |               |
+        # | | |     BSS 2      | |     | |     BSS 1    | |               |
+        # | | | ssid: mld-1    | |     | | ssid: mld-1  | | 2 Link MLO AP |
+        # | | +----------------+ |     | +--------------+ |               |
+        # | +--------------------+     +------------------+               |
+        # +---------------------------------------------------------------+
+
+        # Since config 1 will be passed first, it will expect an interface
+        # to be created already. Hence, create the interface for it
+        cmd = ['iw', 'phy' + str(hapd_radio), 'interface', 'add', 'wlan7-1',
+               'type', '__ap']
+        proc = subprocess.Popen(cmd, stderr=subprocess.STDOUT,
+                                stdout=subprocess.PIPE, shell=False)
+
+        # Start hostapd
+        start_ap(params['prefix'], fname1 + " " + fname2)
+
+        hapd_mld1_link0 = hostapd.Hostapd(ifname=hapds1[0][0],
+                                          bssidx=hapds1[0][1],
+                                          link=0)
+        hapd_mld1_link1 = hostapd.Hostapd(ifname=hapds2[1][0],
+                                          bssidx=hapds2[1][1],
+                                          link=1)
+
+        hapd_mld2_link0 = hostapd.Hostapd(ifname=hapds2[0][0],
+                                          bssidx=hapds2[0][1],
+                                          link=0)
+
+        hapds = [hapd_mld1_link0, hapd_mld1_link1, hapd_mld2_link0]
+
+        if not hapd_mld1_link0.ping():
+            raise Exception("Could not ping hostapd")
+
+        if not hapd_mld2_link0.ping():
+            raise Exception("Could not ping hostapd")
+
+        if not hapd_mld1_link1.ping():
+            raise Exception("Could not ping hostapd")
+
+        os.remove(fname1)
+        os.remove(fname2)
+
+        passphrase = "qwertyuiop-"
+        ssid = "mld-"
+
+        # Connect one client to the first AP MLD 1 and verify traffic
+        wpas.set("sae_pwe", "1")
+        wpas.connect(ssid + "1", sae_password=passphrase + "1",
+                     scan_freq="2412", key_mgmt="SAE", ieee80211w="2")
+
+        eht_verify_status(wpas, hapds[0], 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
+        eht_verify_wifi_version(wpas)
+
+        traffic_test(wpas, hapds[1])
+
+        # Connect another client to the second AP MLD 2 and verify traffic
+        wpas1.set("sae_pwe", "1")
+        wpas1.connect(ssid + "0", sae_password=passphrase + "0",
+                      scan_freq="2437", key_mgmt="SAE", ieee80211w="2")
+
+        eht_verify_status(wpas1, hapds[2], 2437, 20, is_ht=True, mld=True,
+                          valid_links=1, active_links=1)
+        eht_verify_wifi_version(wpas1)
+
+        traffic_test(wpas1, hapds[2])
+
+        stop_mld_devs(hapds, params['prefix'])
