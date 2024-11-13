@@ -4150,10 +4150,10 @@ mscs_end:
 	}
 
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_RSN_OVERRIDE_SUPPORT,
-			 wpas_rsn_overriding(wpa_s));
+			 wpas_rsn_overriding(wpa_s, ssid));
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_RSN_OVERRIDE,
 			 RSN_OVERRIDE_NOT_USED);
-	if (wpas_rsn_overriding(wpa_s) &&
+	if (wpas_rsn_overriding(wpa_s, ssid) &&
 	    wpas_ap_supports_rsn_overriding(wpa_s, bss) &&
 	    wpa_ie_len + 2 + 4 + 1 <= max_wpa_ie_len) {
 		u8 *pos = wpa_ie + wpa_ie_len, *start = pos;
@@ -4190,7 +4190,7 @@ mscs_end:
 		wpa_ie_len += pos - start;
 	}
 
-	params->rsn_overriding = wpas_rsn_overriding(wpa_s);
+	params->rsn_overriding = wpas_rsn_overriding(wpa_s, ssid);
 	params->wpa_ie = wpa_ie;
 	params->wpa_ie_len = wpa_ie_len;
 	params->auth_alg = algs;
@@ -8833,12 +8833,19 @@ static bool wpas_driver_rsn_override(struct wpa_supplicant *wpa_s)
 }
 
 
-bool wpas_rsn_overriding(struct wpa_supplicant *wpa_s)
+bool wpas_rsn_overriding(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid)
 {
-	if (wpa_s->conf->rsn_overriding == RSN_OVERRIDING_DISABLED)
+	enum wpas_rsn_overriding rsno;
+
+	if (ssid && ssid->rsn_overriding != RSN_OVERRIDING_NOT_SET)
+		rsno = ssid->rsn_overriding;
+	else
+		rsno = wpa_s->conf->rsn_overriding;
+
+	if (rsno == RSN_OVERRIDING_DISABLED)
 		return false;
 
-	if (wpa_s->conf->rsn_overriding == RSN_OVERRIDING_ENABLED)
+	if (rsno == RSN_OVERRIDING_ENABLED)
 		return true;
 
 	if (!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME) ||

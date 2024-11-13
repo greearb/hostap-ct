@@ -2757,6 +2757,7 @@ static const struct parse_data ssid_fields[] = {
 	{ INT_RANGE(enable_4addr_mode, 0, 1)},
 	{ INT_RANGE(max_idle, 0, 65535)},
 	{ INT_RANGE(ssid_protection, 0, 1)},
+	{ INT_RANGE(rsn_overriding, 0, 2)},
 };
 
 #undef OFFSET
@@ -3292,6 +3293,7 @@ void wpa_config_set_network_defaults(struct wpa_ssid *ssid)
 #endif /* CONFIG_MACSEC */
 	ssid->mac_addr = WPAS_MAC_ADDR_STYLE_NOT_SET;
 	ssid->max_oper_chwidth = DEFAULT_MAX_OPER_CHWIDTH;
+	ssid->rsn_overriding = RSN_OVERRIDING_NOT_SET;
 }
 
 

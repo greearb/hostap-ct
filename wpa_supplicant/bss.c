@@ -1712,11 +1712,11 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 		const u8 *rsne;
 		size_t rsne_len;
 
-		if (elems.rsne_override_2 && wpas_rsn_overriding(wpa_s)) {
+		if (elems.rsne_override_2 && wpas_rsn_overriding(wpa_s, ssid)) {
 			rsne = elems.rsne_override_2;
 			rsne_len = elems.rsne_override_2_len;
 		} else if (elems.rsne_override &&
-			   wpas_rsn_overriding(wpa_s)) {
+			   wpas_rsn_overriding(wpa_s, ssid)) {
 			rsne = elems.rsne_override;
 			rsne_len = elems.rsne_override_len;
 		} else {
@@ -2064,7 +2064,7 @@ const u8 * wpa_bss_get_rsne(struct wpa_supplicant *wpa_s,
 {
 	const u8 *ie;
 
-	if (wpas_rsn_overriding(wpa_s)) {
+	if (wpas_rsn_overriding(wpa_s, ssid)) {
 		if (!ssid)
 			ssid = wpa_s->current_ssid;
 
@@ -2099,7 +2099,7 @@ const u8 * wpa_bss_get_rsnxe(struct wpa_supplicant *wpa_s,
 {
 	const u8 *ie;
 
-	if (wpas_rsn_overriding(wpa_s)) {
+	if (wpas_rsn_overriding(wpa_s, ssid)) {
 		ie = wpa_bss_get_vendor_ie(bss, RSNXE_OVERRIDE_IE_VENDOR_TYPE);
 		if (ie) {
 			const u8 *tmp;

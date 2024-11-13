@@ -1741,7 +1741,7 @@ void wpas_connection_failed(struct wpa_supplicant *wpa_s, const u8 *bssid,
 void fils_connection_failure(struct wpa_supplicant *wpa_s);
 void fils_pmksa_cache_flush(struct wpa_supplicant *wpa_s);
 int wpas_driver_bss_selection(struct wpa_supplicant *wpa_s);
-bool wpas_rsn_overriding(struct wpa_supplicant *wpa_s);
+bool wpas_rsn_overriding(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid);
 int wpas_is_p2p_prioritized(struct wpa_supplicant *wpa_s);
 void wpas_auth_failed(struct wpa_supplicant *wpa_s, const char *reason,
 		      const u8 *bssid);

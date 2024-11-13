@@ -1825,17 +1825,9 @@ struct wpa_config {
 	int wowlan_disconnect_on_deinit;
 
 	/**
-	 * rsn_overriding - RSN overriding
-	 *
-	 * 0 = Disabled
-	 * 1 = Enabled automatically if the driver indicates support
-	 * 2 = Forced to be enabled even without driver capability indication
+	 * rsn_overriding - RSN overriding (default behavior)
 	 */
-	enum rsn_overriding {
-		RSN_OVERRIDING_DISABLED = 0,
-		RSN_OVERRIDING_AUTO = 1,
-		RSN_OVERRIDING_ENABLED = 2,
-	} rsn_overriding;
+	enum wpas_rsn_overriding rsn_overriding;
 
 #ifdef CONFIG_PASN
 #ifdef CONFIG_TESTING_OPTIONS

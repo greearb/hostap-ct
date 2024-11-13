@@ -2502,10 +2502,10 @@ mscs_fail:
 	}
 
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_RSN_OVERRIDE_SUPPORT,
-			 wpas_rsn_overriding(wpa_s));
+			 wpas_rsn_overriding(wpa_s, ssid));
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_RSN_OVERRIDE,
 			 RSN_OVERRIDE_NOT_USED);
-	if (wpas_rsn_overriding(wpa_s) &&
+	if (wpas_rsn_overriding(wpa_s, ssid) &&
 	    wpas_ap_supports_rsn_overriding(wpa_s, wpa_s->current_bss) &&
 	    wpa_s->sme.assoc_req_ie_len + 2 + 4 <=
 	    sizeof(wpa_s->sme.assoc_req_ie)) {
