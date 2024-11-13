@@ -414,5 +414,6 @@ int wpa_driver_nl80211_vendor_scan(struct i802_bss *bss,
 int nl80211_set_default_scan_ies(void *priv, const u8 *ies, size_t ies_len);
 struct hostapd_multi_hw_info *
 nl80211_get_multi_hw_info(struct i802_bss *bss, unsigned int *num_multi_hws);
+u32 get_nl80211_protocol_features(struct wpa_driver_nl80211_data *drv);
 
 #endif /* DRIVER_NL80211_H */

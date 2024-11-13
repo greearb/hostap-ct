@@ -5331,6 +5331,25 @@ struct wpa_driver_ops {
 	 */
 	int (*nan_cancel_subscribe)(void *priv, int subscribe_id);
 
+	/**
+	 * can_share_drv - Check whether driver interface can be shared
+	 * @ctx: Pointer to hostapd context
+	 * @params: Configuration for the driver wrapper
+	 * @hapd: Pointer for overwriting the hapd context or %NULL
+	 * 	if can't find a shared drv
+	 *
+	 * Checks whether the driver interface with same phy name is
+	 * already present under the global driver which can be shared
+	 * instead of creating a new driver interface instance. If present,
+	 * @hapd will be overwritten with the hapd pointer which this shared
+	 * drv's first BSS is using. This will help the caller to later call
+	 * if_add().
+	 *
+	 * Returns: true if it can be shared or else false.
+	 */
+	bool (*can_share_drv)(void *ctx, struct wpa_init_params *params,
+			      void **hapd);
+
 #ifdef CONFIG_TESTING_OPTIONS
 	int (*register_frame)(void *priv, u16 type,
 			      const u8 *match, size_t match_len,

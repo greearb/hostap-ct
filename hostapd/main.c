@@ -160,6 +160,7 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 	struct wpa_driver_capa capa;
 #ifdef CONFIG_IEEE80211BE
 	struct hostapd_data *h_hapd = NULL;
+	void *shared_hapd = NULL;
 #endif /* CONFIG_IEEE80211BE */
 
 	if (hapd->driver == NULL || hapd->driver->hapd_init == NULL) {
@@ -253,6 +254,42 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 
 	params.own_addr = hapd->own_addr;
 
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->driver->can_share_drv &&
+	    hapd->driver->can_share_drv(hapd, &params, &shared_hapd)) {
+		char force_ifname[IFNAMSIZ];
+		const u8 *addr = params.bssid;
+		u8 if_addr[ETH_ALEN];
+
+		if (!shared_hapd) {
+			wpa_printf(MSG_ERROR, "Failed to get the shared drv");
+			os_free(params.bridge);
+			return -1;
+		}
+
+		/* Share an already initialized driver interface instance
+		 * using an AP mode BSS in it instead of adding a new driver
+		 * interface instance for the same driver. */
+		if (hostapd_if_add(shared_hapd, WPA_IF_AP_BSS,
+				   params.ifname, addr, hapd,
+				   &hapd->drv_priv, force_ifname, if_addr,
+				   params.num_bridge && params.bridge[0] ?
+				   params.bridge[0] : NULL,
+				   0)) {
+			wpa_printf(MSG_ERROR, "Failed to add BSS (BSSID="
+				   MACSTR ")", MAC2STR(hapd->own_addr));
+			os_free(params.bridge);
+			return -1;
+		}
+		os_free(params.bridge);
+
+		hapd->interface_added = 1;
+		os_memcpy(params.own_addr, addr ? addr : if_addr, ETH_ALEN);
+
+		goto pre_setup_mld;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	hapd->drv_priv = hapd->driver->hapd_init(hapd, &params);
 	os_free(params.bridge);
 	if (hapd->drv_priv == NULL) {
@@ -263,6 +300,7 @@ static int hostapd_driver_init(struct hostapd_iface *iface)
 	}
 
 #ifdef CONFIG_IEEE80211BE
+pre_setup_mld:
 	/*
 	 * This is the first interface added to the AP MLD, so have the
 	 * interface hardware address be the MLD address, while the link address

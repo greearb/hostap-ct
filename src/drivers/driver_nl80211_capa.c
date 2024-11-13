@@ -36,7 +36,7 @@ static int protocol_feature_handler(struct nl_msg *msg, void *arg)
 }
 
 
-static u32 get_nl80211_protocol_features(struct wpa_driver_nl80211_data *drv)
+u32 get_nl80211_protocol_features(struct wpa_driver_nl80211_data *drv)
 {
 	u32 feat = 0;
 	struct nl_msg *msg;

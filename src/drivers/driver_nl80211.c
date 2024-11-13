@@ -14481,6 +14481,7 @@ static int nl80211_link_add(void *priv, u8 link_id, const u8 *addr,
 
 
 #ifdef CONFIG_IEEE80211BE
+
 static int wpa_driver_nl80211_link_sta_remove(void *priv, u8 link_id,
 					      const u8 *addr)
 {
@@ -14507,6 +14508,124 @@ static int wpa_driver_nl80211_link_sta_remove(void *priv, u8 link_id,
 
 	return ret;
 }
+
+
+static int wpa_driver_get_wiphy_name_handler(struct nl_msg *msg, void *arg)
+{
+	struct nlattr *tb[NL80211_ATTR_MAX + 1];
+	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
+	struct wpa_driver_nl80211_data *drv = arg;
+
+	nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
+		  genlmsg_attrlen(gnlh, 0), NULL);
+
+	if (!tb[NL80211_ATTR_WIPHY_NAME])
+		return NL_SKIP;
+
+	os_strlcpy(drv->phyname, nla_get_string(tb[NL80211_ATTR_WIPHY_NAME]),
+		   sizeof(drv->phyname));
+
+	return NL_SKIP;
+}
+
+
+static int wpa_driver_get_phyname(struct wpa_driver_nl80211_data *drv)
+{
+	struct nl_msg *msg;
+	u32 feat, nl_flags;
+
+	feat = get_nl80211_protocol_features(drv);
+	if (feat & NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP)
+		nl_flags = NLM_F_DUMP;
+
+	if (!(msg = nl80211_cmd_msg(drv->first_bss, nl_flags,
+				    NL80211_CMD_GET_WIPHY)) ||
+	    nla_put_flag(msg, NL80211_ATTR_SPLIT_WIPHY_DUMP)) {
+		nlmsg_free(msg);
+		return -1;
+	}
+
+	if (send_and_recv_resp(drv, msg, wpa_driver_get_wiphy_name_handler,
+			       drv))
+		return -1;
+
+	return 0;
+}
+
+
+static bool
+wpa_driver_nl80211_name_match(struct wpa_driver_nl80211_data *drv,
+			      struct wpa_driver_nl80211_data **match_drv)
+{
+	struct wpa_driver_nl80211_data *drv2;
+
+	dl_list_for_each(drv2, &drv->global->interfaces,
+			 struct wpa_driver_nl80211_data, list) {
+		if (os_strcmp(drv2->phyname, drv->phyname) == 0) {
+			if (match_drv)
+				*match_drv = drv2;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+static bool wpa_driver_nl80211_can_share_drv(void *ctx,
+					     struct wpa_init_params *params,
+					     void **hapd)
+{
+	struct wpa_driver_nl80211_data *drv, *match_drv = NULL;
+	struct i802_bss *bss;
+	bool ret = false;
+
+	if (!params->global_priv)
+		return false;
+
+	/* Create a temporary drv to read the phyname */
+	drv = os_zalloc(sizeof(*drv));
+	if (!drv)
+		return false;
+	drv->global = params->global_priv;
+	drv->ctx = ctx;
+
+	drv->first_bss = os_zalloc(sizeof(*drv->first_bss));
+	if (!drv->first_bss) {
+		os_free(drv);
+		return false;
+	}
+
+	bss = drv->first_bss;
+	bss->drv = drv;
+	bss->ctx = ctx;
+
+	os_strlcpy(bss->ifname, params->ifname, sizeof(bss->ifname));
+
+	if (nl80211_init_bss(bss))
+		goto free_all;
+
+	drv->ifindex = if_nametoindex(bss->ifname);
+	bss->ifindex = drv->ifindex;
+
+	if (wpa_driver_get_phyname(drv) ||
+	    !wpa_driver_nl80211_name_match(drv, &match_drv) ||
+	    !match_drv)
+		goto free_all;
+
+	wpa_printf(MSG_DEBUG, "nl80211: Driver for phy %s already exist",
+		   match_drv->phyname);
+
+	*hapd = match_drv->first_bss->ctx;
+	ret = true;
+
+free_all:
+	nl80211_destroy_bss(bss);
+	os_free(bss);
+	os_free(drv);
+	return ret;
+}
+
 #endif /* CONFIG_IEEE80211BE */
 
 
@@ -14725,6 +14844,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.link_remove = driver_nl80211_link_remove,
 	.is_drv_shared = nl80211_is_drv_shared,
 	.link_sta_remove = wpa_driver_nl80211_link_sta_remove,
+	.can_share_drv = wpa_driver_nl80211_can_share_drv,
 #endif /* CONFIG_IEEE80211BE */
 #ifdef CONFIG_TESTING_OPTIONS
 	.register_frame = testing_nl80211_register_frame,
