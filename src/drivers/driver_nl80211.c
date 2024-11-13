@@ -1106,7 +1106,7 @@ static int nl80211_get_sta_mlo_info(void *priv,
 	if (drv->capa.flags & WPA_DRIVER_FLAGS_SME) {
 		struct nl_msg *msg;
 
-		msg = nl80211_drv_msg(drv, 0, NL80211_CMD_GET_INTERFACE);
+		msg = nl80211_bss_msg(bss, 0, NL80211_CMD_GET_INTERFACE);
 		if (send_and_recv_resp(drv, msg, get_mlo_info,
 				       &drv->sta_mlo_info))
 			return -1;
@@ -1837,7 +1837,7 @@ static int nl80211_channel_info(void *priv, struct wpa_channel_info *ci)
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct nl_msg *msg;
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_GET_INTERFACE);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_GET_INTERFACE);
 	return send_and_recv_resp(drv, msg, get_channel_info, ci);
 }
 
@@ -4067,7 +4067,7 @@ retry:
 	wpa_printf(MSG_DEBUG, "nl80211: Authenticate (ifindex=%d)",
 		   drv->ifindex);
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_AUTHENTICATE);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_AUTHENTICATE);
 	if (!msg)
 		goto fail;
 
@@ -4572,7 +4572,7 @@ static int wpa_driver_nl80211_set_acl(void *priv,
 		nla_total_size(acl_nla_sz);
 	nlmsg_sz = nlmsg_total_size(nla_sz);
 	if (!(msg = nl80211_ifindex_msg_build(drv, nlmsg_alloc_size(nlmsg_sz),
-					      drv->ifindex, 0,
+					      bss->ifindex, 0,
 					      NL80211_CMD_SET_MAC_ACL)) ||
 	    nla_put_u32(msg, NL80211_ATTR_ACL_POLICY, params->acl_policy ?
 			NL80211_ACL_POLICY_DENY_UNLESS_LISTED :
@@ -4626,7 +4626,7 @@ static int nl80211_set_mesh_config(void *priv,
 	struct nl_msg *msg;
 	int ret;
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_SET_MESH_CONFIG);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_SET_MESH_CONFIG);
 	if (!msg)
 		return -1;
 
@@ -5582,7 +5582,7 @@ static int nl80211_set_channel(struct i802_bss *bss,
 		   freq->he_enabled, freq->eht_enabled, freq->bandwidth,
 		   freq->center_freq1, freq->center_freq2);
 
-	msg = nl80211_drv_msg(drv, 0, set_chan ? NL80211_CMD_SET_CHANNEL :
+	msg = nl80211_bss_msg(bss, 0, set_chan ? NL80211_CMD_SET_CHANNEL :
 			      NL80211_CMD_SET_WIPHY);
 	if (!msg || nl80211_put_freq_params(msg, freq) < 0) {
 		nlmsg_free(msg);
@@ -7292,7 +7292,7 @@ static int wpa_driver_nl80211_try_connect(
 
 	nl80211_connect_ext(drv, params);
 	wpa_printf(MSG_DEBUG, "nl80211: Connect (ifindex=%d)", drv->ifindex);
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_CONNECT);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_CONNECT);
 	if (!msg)
 		return -1;
 
@@ -7454,7 +7454,7 @@ static int wpa_driver_nl80211_associate(
 
 	wpa_printf(MSG_DEBUG, "nl80211: Associate (ifindex=%d)",
 		   drv->ifindex);
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_ASSOCIATE);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_ASSOCIATE);
 	if (!msg)
 		return -1;
 
@@ -7897,7 +7897,7 @@ static int i802_set_rts(void *priv, int rts)
 	else
 		val = rts;
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_SET_WIPHY)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_SET_WIPHY)) ||
 	    nla_put_u32(msg, NL80211_ATTR_WIPHY_RTS_THRESHOLD, val)) {
 		nlmsg_free(msg);
 		return -ENOBUFS;
@@ -7925,7 +7925,7 @@ static int i802_set_frag(void *priv, int frag)
 	else
 		val = frag;
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_SET_WIPHY)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_SET_WIPHY)) ||
 	    nla_put_u32(msg, NL80211_ATTR_WIPHY_FRAG_THRESHOLD, val)) {
 		nlmsg_free(msg);
 		return -ENOBUFS;
@@ -10478,7 +10478,7 @@ static int wpa_driver_nl80211_get_survey(void *priv, unsigned int freq)
 
 	dl_list_init(&survey_results->survey_list);
 
-	msg = nl80211_drv_msg(drv, NLM_F_DUMP, NL80211_CMD_GET_SURVEY);
+	msg = nl80211_bss_msg(bss, NLM_F_DUMP, NL80211_CMD_GET_SURVEY);
 	if (!msg)
 		return -ENOBUFS;
 
@@ -10675,7 +10675,7 @@ static int nl80211_start_radar_detection(void *priv,
 		return -1;
 	}
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_RADAR_DETECT)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_RADAR_DETECT)) ||
 	    nl80211_put_freq_params(msg, freq) < 0) {
 		nlmsg_free(msg);
 		return -1;
@@ -10785,7 +10785,7 @@ static int nl80211_send_tdls_mgmt(void *priv, const u8 *dst, u8 action_code,
 	if (link_id < 0 && drv->sta_mlo_info.valid_links)
 		link_id = drv->sta_mlo_info.assoc_link_id;
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_TDLS_MGMT)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_TDLS_MGMT)) ||
 	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, dst) ||
 	    nla_put_u8(msg, NL80211_ATTR_TDLS_ACTION, action_code) ||
 	    nla_put_u8(msg, NL80211_ATTR_TDLS_DIALOG_TOKEN, dialog_token) ||
@@ -10840,7 +10840,7 @@ static int nl80211_tdls_oper(void *priv, enum tdls_oper oper, const u8 *peer)
 		return -EINVAL;
 	}
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_TDLS_OPER)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_TDLS_OPER)) ||
 	    nla_put_u8(msg, NL80211_ATTR_TDLS_OPERATION, nl80211_oper) ||
 	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, peer)) {
 		nlmsg_free(msg);
@@ -11131,7 +11131,7 @@ static int wpa_driver_nl80211_update_ft_ies(void *priv, const u8 *md,
 	u16 mdid = WPA_GET_LE16(md);
 
 	wpa_printf(MSG_DEBUG, "nl80211: Updating FT IEs");
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_UPDATE_FT_IES)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_UPDATE_FT_IES)) ||
 	    nla_put(msg, NL80211_ATTR_IE, ies_len, ies) ||
 	    nla_put_u16(msg, NL80211_ATTR_MDID, mdid)) {
 		nlmsg_free(msg);
@@ -11949,7 +11949,7 @@ static int nl80211_get_wowlan(void *priv)
 
 	wpa_printf(MSG_DEBUG, "nl80211: Getting wowlan status");
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_GET_WOWLAN);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_GET_WOWLAN);
 
 	ret = send_and_recv_resp(drv, msg, get_wowlan_handler, &wowlan_enabled);
 	if (ret) {
@@ -12022,7 +12022,7 @@ static int nl80211_roaming(void *priv, int allowed, const u8 *bssid)
 		return -1;
 	}
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
 			QCA_NL80211_VENDOR_SUBCMD_ROAMING) ||
@@ -12053,7 +12053,7 @@ static int nl80211_disable_fils(void *priv, int disable)
 	if (!drv->set_wifi_conf_vendor_cmd_avail)
 		return -1;
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
 			QCA_NL80211_VENDOR_SUBCMD_SET_WIFI_CONFIGURATION) ||
@@ -12088,7 +12088,7 @@ static int nl80211_set_bssid_tmp_disallow(void *priv, unsigned int num_bssid,
 	if (!drv->roam_vendor_cmd_avail)
 		return -1;
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
 			QCA_NL80211_VENDOR_SUBCMD_ROAM) ||
@@ -12142,7 +12142,7 @@ static int nl80211_add_sta_node(void *priv, const u8 *addr, u16 auth_alg)
 
 	wpa_printf(MSG_DEBUG, "nl80211: Add STA node");
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
 			QCA_NL80211_VENDOR_SUBCMD_ADD_STA_NODE) ||
@@ -12291,7 +12291,7 @@ static int nl80211_join_mesh(struct i802_bss *bss,
 	int ret = -1;
 
 	wpa_printf(MSG_DEBUG, "nl80211: mesh join (ifindex=%d)", drv->ifindex);
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_JOIN_MESH);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_JOIN_MESH);
 	if (!msg ||
 	    nl80211_put_freq_params(msg, &params->freq) ||
 	    nl80211_put_basic_rates(msg, params->basic_rates) ||
@@ -12394,7 +12394,7 @@ static int wpa_driver_nl80211_leave_mesh(void *priv)
 	int ret;
 
 	wpa_printf(MSG_DEBUG, "nl80211: mesh leave (ifindex=%d)", drv->ifindex);
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_LEAVE_MESH);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_LEAVE_MESH);
 	ret = send_and_recv(drv->global, bss->nl_connect, msg, NULL, NULL, NULL,
 			    NULL, NULL);
 	if (ret) {
@@ -12424,7 +12424,7 @@ static int nl80211_probe_mesh_link(void *priv, const u8 *addr, const u8 *eth,
 	struct nl_msg *msg;
 	int ret;
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_PROBE_MESH_LINK);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_PROBE_MESH_LINK);
 	if (!msg ||
 	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, addr) ||
 	    nla_put(msg, NL80211_ATTR_FRAME, len, eth)) {
@@ -12861,7 +12861,7 @@ static int nl80211_set_band(void *priv, u32 band_mask)
 		   "nl80211: QCA_BAND_MASK = 0x%x, QCA_BAND_VALUE = %d",
 		   qca_band_mask, qca_band_value);
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
 			QCA_NL80211_VENDOR_SUBCMD_SETBAND) ||
@@ -13058,7 +13058,7 @@ static int nl80211_get_pref_freq_list(void *priv,
 	param.num = *num;
 	param.freq_list = freq_list;
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_IFINDEX, drv->ifindex) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
@@ -13112,7 +13112,7 @@ static int nl80211_set_prob_oper_freq(void *priv, unsigned int freq)
 		   "nl80211: Set P2P probable operating freq %u for ifindex %d",
 		   freq, bss->ifindex);
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
 			QCA_NL80211_VENDOR_SUBCMD_SET_PROBABLE_OPER_CHANNEL) ||
@@ -13162,7 +13162,7 @@ static int nl80211_p2p_lo_start(void *priv, unsigned int freq,
 	if (!(drv->capa.flags & WPA_DRIVER_FLAGS_P2P_LISTEN_OFFLOAD))
 		return -1;
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
 			QCA_NL80211_VENDOR_SUBCMD_P2P_LISTEN_OFFLOAD_START))
@@ -13214,7 +13214,7 @@ static int nl80211_p2p_lo_stop(void *priv)
 	if (!(drv->capa.flags & WPA_DRIVER_FLAGS_P2P_LISTEN_OFFLOAD))
 		return -1;
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
 			QCA_NL80211_VENDOR_SUBCMD_P2P_LISTEN_OFFLOAD_STOP)) {
@@ -13245,7 +13245,7 @@ static int nl80211_set_tdls_mode(void *priv, int tdls_external_control)
 	else
 		tdls_mode = QCA_WLAN_VENDOR_TDLS_TRIGGER_MODE_EXPLICIT;
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
 			QCA_NL80211_VENDOR_SUBCMD_CONFIGURE_TDLS))
@@ -13415,7 +13415,7 @@ nl80211_get_bss_transition_status(void *priv, struct wpa_bss_trans_info *params)
 	 */
 	info->num = params->n_candidates;
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
 			QCA_NL80211_VENDOR_SUBCMD_FETCH_BSS_TRANSITION_STATUS))
@@ -13489,7 +13489,7 @@ static int nl80211_ignore_assoc_disallow(void *priv, int ignore_disallow)
 	if (!drv->set_wifi_conf_vendor_cmd_avail)
 		return -1;
 
-	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
 			QCA_NL80211_VENDOR_SUBCMD_SET_WIFI_CONFIGURATION))
@@ -13537,7 +13537,7 @@ static int nl80211_send_pasn_resp(void *priv, struct pasn_auth *params)
 	wpa_dbg(drv->ctx, MSG_DEBUG,
 		"nl80211: PASN authentication response for %d entries",
 		params->num_peers);
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
 	if (!msg ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
@@ -13620,7 +13620,7 @@ static int nl80211_set_secure_ranging_ctx(void *priv,
 		"nl80211: Secure ranging context for " MACSTR,
 		MAC2STR(params->peer_addr));
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
 	if (!msg ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
@@ -13699,7 +13699,7 @@ static int nl80211_nan_flush(void *priv)
 
 	wpa_printf(MSG_DEBUG, "nl80211: NAN USD flush");
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
 	if (!msg ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
@@ -13744,7 +13744,7 @@ static int nl80211_nan_publish(void *priv, const u8 *src, int publish_id,
 		   params->freq, params->ttl);
 	wpa_hexdump_buf(MSG_MSGDUMP, "nl80211: USD elements", elems);
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
 	if (!msg ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
@@ -13803,7 +13803,7 @@ static int nl80211_nan_cancel_publish(void *priv, int publish_id)
 
 	wpa_printf(MSG_DEBUG, "nl80211: NAN USD cancel publish");
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
 	if (!msg ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
@@ -13846,7 +13846,7 @@ static int nl80211_nan_update_publish(void *priv, int publish_id,
 	wpa_printf(MSG_DEBUG, "nl80211: NAN USD update publish: id=%d",
 		   publish_id);
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
 	if (!msg ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
@@ -13896,7 +13896,7 @@ static int nl80211_nan_subscribe(void *priv, const u8 *src, int subscribe_id,
 		   params->freq, params->ttl);
 	wpa_hexdump_buf(MSG_MSGDUMP, "nl80211: USD elements", elems);
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
 	if (!msg ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
@@ -13955,7 +13955,7 @@ static int nl80211_nan_cancel_subscribe(void *priv, int subscribe_id)
 
 	wpa_printf(MSG_DEBUG, "nl80211: NAN USD cancel subscribe");
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
 	if (!msg ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_QCA) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
@@ -14001,7 +14001,7 @@ static int wpa_driver_do_broadcom_acs(struct wpa_driver_nl80211_data *drv,
 	wpa_printf(MSG_DEBUG, "%s: freq_list_len=%d",
 		   __func__, freq_list_len);
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
 	if (!msg ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_BRCM) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
@@ -14254,7 +14254,7 @@ static int nl80211_update_connection_params(
 	if (drv->capa.flags & WPA_DRIVER_FLAGS_SME)
 		return 0;
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_UPDATE_CONNECT_PARAMS);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_UPDATE_CONNECT_PARAMS);
 	if (!msg)
 		goto fail;
 
@@ -14314,7 +14314,7 @@ static int nl80211_send_external_auth_status(void *priv,
 	wpa_dbg(drv->ctx, MSG_DEBUG,
 		"nl80211: External auth status: %u", params->status);
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_EXTERNAL_AUTH);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_EXTERNAL_AUTH);
 	if (!msg ||
 	    nla_put_u16(msg, NL80211_ATTR_STATUS_CODE, params->status) ||
 	    (params->ssid && params->ssid_len &&
