@@ -1301,7 +1301,21 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 				!!(drv_flags2 &
 				   WPA_DRIVER_FLAGS2_SAE_OFFLOAD_AP);
 
-		if (!ap_sae_offload && data.num_pmkid && !sm->pmksa) {
+		/* Authenticator needs to have a PMKSA corresponding to a
+		 * PMKID (if present) included by the STA in (Re)Association
+		 * Request frame if PMKSA caching is attempted to be used. In
+		 * case of SAE, this follows Open System authentication. IEEE
+		 * Std 802.11 mandates the AP to reject (re)association trying
+		 * to use PMKSA caching for SAE authentication. While the
+		 * PMKID (if any) in the RSNE in (Re)Association Request frame
+		 * following SAE authentication (i.e., in the case of no PMKSA
+		 * caching) is not really supposed to include an unknown PMKID,
+		 * the standard does not require the AP to reject association.
+		 * The PMKSA that was just derived using SAE authentication
+		 * can be used regardless of which PMKID(s) are indicated in the
+		 * (Re)Association Request frame. */
+		if (!ap_sae_offload && data.num_pmkid && !sm->pmksa &&
+		    sm->auth_alg == WLAN_AUTH_OPEN) {
 			wpa_auth_vlogger(wpa_auth, sm->addr, LOGGER_DEBUG,
 					 "No PMKSA cache entry found for SAE");
 			return WPA_INVALID_PMKID;
