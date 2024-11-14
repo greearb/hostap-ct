@@ -1026,7 +1026,8 @@ static void nan_de_rx_subscribe(struct nan_de *de, struct nan_de_service *srv,
 		  de->nmi, a3, buf);
 	wpabuf_free(buf);
 
-	nan_de_pause_state(srv, peer_addr, instance_id);
+	if (!srv->is_p2p)
+		nan_de_pause_state(srv, peer_addr, instance_id);
 
 offload:
 	if (!srv->publish.disable_events && de->cb.replied)
