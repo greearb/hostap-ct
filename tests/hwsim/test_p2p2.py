@@ -7,7 +7,9 @@
 
 import logging
 logger = logging.getLogger()
+import os
 
+from wpasupplicant import WpaSupplicant
 from test_nan_usd import check_nan_usd_capab
 from test_pasn import check_pasn_capab
 
@@ -396,3 +398,146 @@ def test_p2p_auto_go_and_client_join_sae(dev, apdev):
     dev[1].remove_group()
     dev[0].wait_go_ending_session()
     dev[0].dump_monitor()
+
+def test_p2p_pairing_verification(dev, apdev):
+    """P2P Pairing with Verification"""
+
+    """wpa_supplicant config file for pairing verification"""
+    config = "/tmp/test_p2p.conf"
+    if os.path.exists(config):
+        os.remove(config)
+
+    wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+
+    with open(config, "w") as f:
+         f.write("update_config=1\n")
+
+    wpas.interface_add("wlan5", config=config)
+
+    check_p2p2_capab(wpas)
+    check_p2p2_capab(dev[1])
+
+    set_p2p2_configs(wpas)
+    set_p2p2_configs(dev[1])
+
+    wpas.global_request("SET update_config 1")
+    wpas.global_request("SAVE_CONFIG")
+
+    cmd = "NAN_SUBSCRIBE service_name=_test active=1 srv_proto_type=2 ssi=1122334455 ttl=10 p2p=1"
+    id0 = wpas.request(cmd)
+    if "FAIL" in id0:
+        raise Exception("NAN_SUBSCRIBE for P2P failed")
+
+    cmd = "NAN_PUBLISH service_name=_test unsolicited=0 srv_proto_type=2 ssi=6677 ttl=10 p2p=1"
+    id1 = dev[1].request(cmd)
+    if "FAIL" in id1:
+        raise Exception("NAN_PUBLISH for P2P failed")
+
+    ev = wpas.wait_global_event(["P2P-DEVICE-FOUND"], timeout=5)
+    if ev is None:
+        raise Exception("Peer not found")
+    ev = dev[1].wait_global_event(["P2P-DEVICE-FOUND"], timeout=5)
+    if ev is None:
+        raise Exception("Peer not found")
+
+    ev = wpas.wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+    if ev is None:
+        raise Exception("DiscoveryResult event not seen")
+    if "srv_proto_type=2" not in ev.split(' '):
+        raise Exception("Unexpected srv_proto_type: " + ev)
+    if "ssi=6677" not in ev.split(' '):
+        raise Exception("Unexpected ssi: " + ev)
+
+    cmd = "NAN_CANCEL_SUBSCRIBE subscribe_id=" + id0
+    if "FAIL" in wpas.request(cmd):
+        raise Exception("NAN_CANCEL_SUBSCRIBE for P2P failed")
+    cmd = "NAN_CANCEL_PUBLISH publish_id=" + id1
+    if "FAIL" in dev[1].request(cmd):
+        raise Exception("NAN_CANCEL_PUBLISH for P2P failed")
+
+    cmd = "P2P_CONNECT " + wpas.p2p_dev_addr() + " pair he go_intent=15 p2p2 bstrapmethod=2 auth password=975310123 freq=2437 persistent"
+    id0 = dev[1].request(cmd)
+    if "FAIL" in id0:
+        raise Exception("P2P_CONNECT auth Failed")
+
+    cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair he go_intent=5 p2p2 bstrapmethod=32 password=975310123 persistent"
+    id0 = wpas.request(cmd)
+    if "FAIL" in id0:
+        raise Exception("P2P_CONNECT Failed")
+
+    ev = dev[1].wait_global_event(["P2P-GROUP-STARTED"], timeout=30)
+    if ev is None:
+        raise Exception("Group formation timed out")
+    dev[1].group_form_result(ev)
+
+    ev = wpas.wait_global_event(["P2P-GROUP-STARTED",
+                                   "WPA: 4-Way Handshake failed"], timeout=30)
+    if ev is None:
+        raise Exception("Group formation timed out (2)")
+    wpas.dump_monitor()
+
+    dev[1].remove_group()
+    wpas.wait_go_ending_session()
+    wpas.dump_monitor()
+
+    wpas.interface_remove("wlan5")
+    wpas.interface_add("wlan5", config=config)
+
+    cmd = "NAN_SUBSCRIBE service_name=_test active=1 srv_proto_type=2 ssi=1122334455 ttl=10 p2p=1"
+    id0 = wpas.request(cmd)
+    if "FAIL" in id0:
+        raise Exception("NAN_SUBSCRIBE for P2P failed (2)")
+
+    cmd = "NAN_PUBLISH service_name=_test unsolicited=0 srv_proto_type=2 ssi=6677 ttl=10 p2p=1"
+    id1 = dev[1].request(cmd)
+    if "FAIL" in id1:
+        raise Exception("NAN_PUBLISH for P2P failed (2)")
+
+    ev = wpas.wait_global_event(["P2P-DEVICE-FOUND"], timeout=5)
+    if ev is None:
+        raise Exception("Peer not found")
+    ev = dev[1].wait_global_event(["P2P-DEVICE-FOUND"], timeout=5)
+    if ev is None:
+        raise Exception("Peer not found")
+
+    ev = wpas.wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+    if ev is None:
+        raise Exception("DiscoveryResult event not seen")
+    if "srv_proto_type=2" not in ev.split(' '):
+        raise Exception("Unexpected srv_proto_type: " + ev)
+    if "ssi=6677" not in ev.split(' '):
+        raise Exception("Unexpected ssi: " + ev)
+
+    cmd = "NAN_CANCEL_SUBSCRIBE subscribe_id=" + id0
+    if "FAIL" in wpas.request(cmd):
+        raise Exception("NAN_CANCEL_SUBSCRIBE for P2P failed (2)")
+    cmd = "NAN_CANCEL_PUBLISH publish_id=" + id1
+    if "FAIL" in dev[1].request(cmd):
+        raise Exception("NAN_CANCEL_PUBLISH for P2P failed (2)")
+
+    wpas.global_request("SET persistent_reconnect 1")
+    dev[1].global_request("SET persistent_reconnect 1")
+    peer = wpas.get_peer(dev[1].p2p_dev_addr())
+    if 'persistent' not in peer:
+        raise Exception("Missing information on persistent group for the peer")
+    cmd = "P2P_INVITE persistent=" + peer['persistent'] + " peer=" + dev[1].p2p_dev_addr() + " p2p2"
+    id0 = wpas.request(cmd)
+    if "FAIL" in id0:
+        raise Exception("P2P_INVITE Failed")
+
+    ev = dev[1].wait_global_event(["P2P-GROUP-STARTED"], timeout=30)
+    if ev is None:
+        raise Exception("Group re-invoke failed")
+    dev[1].group_form_result(ev)
+
+    ev = wpas.wait_global_event(["P2P-GROUP-STARTED",
+                                 "WPA: 4-Way Handshake failed"], timeout=30)
+    if ev is None:
+        raise Exception("Group re-invoke failed (2)")
+    if "P2P-GROUP-STARTED" not in ev:
+        raise Exception("Failed to complete group start on reinvocation")
+    wpas.dump_monitor()
+
+    dev[1].remove_group()
+    wpas.wait_go_ending_session()
+    wpas.dump_monitor()
