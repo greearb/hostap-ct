@@ -1818,7 +1818,8 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 		    !ssid->psk_set && !ssid->passphrase)
 			continue; /* do not save invalid network */
 		if (wpa_key_mgmt_sae(ssid->key_mgmt) &&
-		    !ssid->passphrase && !ssid->sae_password)
+		    !ssid->passphrase && !ssid->sae_password &&
+		    !ssid->pmk_valid)
 			continue; /* do not save invalid network */
 		fprintf(f, "\nnetwork={\n");
 		wpa_config_write_network(f, ssid);

@@ -1228,12 +1228,18 @@ static int wpas_p2p_store_persistent_group(struct wpa_supplicant *wpa_s,
 	s->bssid_set = 1;
 	os_memcpy(s->bssid, go_dev_addr, ETH_ALEN);
 	s->mode = ssid->mode;
-	s->auth_alg = WPA_AUTH_ALG_OPEN;
-	s->key_mgmt = WPA_KEY_MGMT_PSK;
-	s->proto = WPA_PROTO_RSN;
+	s->auth_alg = ssid->auth_alg;
+	s->key_mgmt = ssid->key_mgmt;
+	s->proto = ssid->proto;
 	s->pbss = ssid->pbss;
+	s->pmk_valid = ssid->pmk_valid;
 	s->pairwise_cipher = ssid->pbss ? WPA_CIPHER_GCMP : WPA_CIPHER_CCMP;
 	s->export_keys = 1;
+
+	if (ssid->sae_password) {
+		os_free(s->sae_password);
+		s->sae_password = os_strdup(ssid->sae_password);
+	}
 	if (ssid->passphrase) {
 		os_free(s->passphrase);
 		s->passphrase = os_strdup(ssid->passphrase);
