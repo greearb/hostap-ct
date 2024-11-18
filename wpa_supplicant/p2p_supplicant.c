@@ -1771,7 +1771,7 @@ static void wpas_p2p_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 			eloop_cancel_timeout(wpas_p2p_group_formation_timeout,
 					     wpa_s->p2pdev, NULL);
 		}
-		os_free(awork);
+		wpas_p2p_pasn_free_auth_work(awork);
 		return;
 	}
 
