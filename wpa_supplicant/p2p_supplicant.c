@@ -10157,6 +10157,8 @@ struct wpabuf * wpas_p2p_nfc_handover_req(struct wpa_supplicant *wpa_s,
 		return NULL;
 	}
 
+	wpa_s->p2p2 = false;
+
 	if (cli_freq == 0) {
 		wsc = wps_build_nfc_handover_req_p2p(
 			wpa_s->parent->wps, wpa_s->conf->wps_nfc_dh_pubkey);
@@ -10185,6 +10187,8 @@ struct wpabuf * wpas_p2p_nfc_handover_sel(struct wpa_supplicant *wpa_s,
 	    wps_nfc_gen_dh(&wpa_s->conf->wps_nfc_dh_pubkey,
 			   &wpa_s->conf->wps_nfc_dh_privkey) < 0)
 		return NULL;
+
+	wpa_s->p2p2 = false;
 
 	if (cli_freq == 0) {
 		wsc = wps_build_nfc_handover_sel_p2p(
@@ -10453,6 +10457,8 @@ static int wpas_p2p_nfc_connection_handover(struct wpa_supplicant *wpa_s,
 	os_memcpy(wpa_s->p2p_peer_oob_pubkey_hash,
 		  params.oob_dev_pw, WPS_OOB_PUBKEY_HASH_LEN);
 	wpa_s->p2p_peer_oob_pk_hash_known = 1;
+
+	wpa_s->p2p2 = false;
 
 	if (tag) {
 		if (id < 0x10) {

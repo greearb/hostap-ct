@@ -7773,6 +7773,8 @@ static void p2p_ctrl_flush(struct wpa_supplicant *wpa_s)
 	wpa_s->parent->p2ps_method_config_any = 0;
 	if (wpa_s->global->p2p)
 		p2p_flush(wpa_s->global->p2p);
+
+	wpa_s->p2p2 = false;
 }
 
 
