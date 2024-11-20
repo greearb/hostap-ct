@@ -152,6 +152,10 @@ static int ieee802_11_parse_vendor_specific(const u8 *pos, size_t elen,
 			elems->rsne_override_2 = pos;
 			elems->rsne_override_2_len = elen;
 			break;
+		case WFA_RSNXE_OVERRIDE_OUI_TYPE:
+			elems->rsnxe_override = pos;
+			elems->rsnxe_override_len = elen;
+			break;
 		case WFA_RSN_SELECTION_OUI_TYPE:
 			if (elen < 4 + 1) {
 				wpa_printf(MSG_DEBUG,

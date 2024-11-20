@@ -183,13 +183,24 @@ static int try_pmk(struct wlantest *wt, struct wlantest_bss *bss,
 	const u8 *sa, *aa;
 	bool mlo;
 	size_t kdk_len;
+	const u8 *rsnxe;
+	size_t rsnxe_len;
 
 	mlo = !is_zero_ether_addr(sta->mld_mac_addr) &&
 		!is_zero_ether_addr(bss->mld_mac_addr);
 	sa = mlo ? sta->mld_mac_addr : sta->addr;
 	aa = mlo ? bss->mld_mac_addr : bss->bssid;
 
-	if (ieee802_11_rsnx_capab_len(bss->rsnxe, bss->rsnxe_len,
+	if ((sta->rsn_selection == RSN_SELECTION_RSNE_OVERRIDE ||
+	     sta->rsn_selection == RSN_SELECTION_RSNE_OVERRIDE_2) &&
+	    bss->rsnxoe_len) {
+		rsnxe = bss->rsnxoe;
+		rsnxe_len = bss->rsnxoe_len;
+	} else {
+		rsnxe = bss->rsnxe;
+		rsnxe_len = bss->rsnxe_len;
+	}
+	if (ieee802_11_rsnx_capab_len(rsnxe, rsnxe_len,
 				      WLAN_RSNX_CAPAB_SECURE_LTF) &&
 	    ieee802_11_rsnx_capab_len(sta->rsnxe, sta->rsnxe_len,
 				      WLAN_RSNX_CAPAB_SECURE_LTF))

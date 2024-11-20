@@ -120,6 +120,7 @@ struct ieee802_11_elems {
 	const u8 *mbssid;
 	const u8 *rsne_override;
 	const u8 *rsne_override_2;
+	const u8 *rsnxe_override;
 	const u8 *rsn_selection;
 	const u8 *wfa_capab;
 
@@ -189,6 +190,7 @@ struct ieee802_11_elems {
 	u8 mbssid_len;
 	size_t rsne_override_len;
 	size_t rsne_override_2_len;
+	size_t rsnxe_override_len;
 	size_t rsn_selection_len;
 	u8 wfa_capab_len;
 
