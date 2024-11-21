@@ -149,7 +149,7 @@ static void ieee802_1x_ml_set_sta_authorized(struct hostapd_data *hapd,
 					     bool authorized)
 {
 #ifdef CONFIG_IEEE80211BE
-	unsigned int i, link_id;
+	unsigned int i;
 
 	if (!hostapd_is_mld_ap(hapd))
 		return;
@@ -161,32 +161,30 @@ static void ieee802_1x_ml_set_sta_authorized(struct hostapd_data *hapd,
 	if (authorized && hapd->mld_link_id != sta->mld_assoc_link_id)
 		return;
 
-	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
-		struct mld_link_info *link = &sta->mld_info.links[link_id];
+	for (i = 0; i < hapd->iface->interfaces->count; i++) {
+		struct sta_info *tmp_sta;
+		struct mld_link_info *link;
+		struct hostapd_data *tmp_hapd =
+			hapd->iface->interfaces->iface[i]->bss[0];
 
+		if (!hostapd_is_ml_partner(hapd, tmp_hapd))
+			continue;
+
+		link = &sta->mld_info.links[tmp_hapd->mld_link_id];
 		if (!link->valid)
 			continue;
 
-		for (i = 0; i < hapd->iface->interfaces->count; i++) {
-			struct sta_info *tmp_sta;
-			struct hostapd_data *tmp_hapd =
-				hapd->iface->interfaces->iface[i]->bss[0];
-
-			if (!hostapd_is_ml_partner(hapd, tmp_hapd))
+		for (tmp_sta = tmp_hapd->sta_list; tmp_sta;
+		     tmp_sta = tmp_sta->next) {
+			if (tmp_sta == sta ||
+			    tmp_sta->mld_assoc_link_id !=
+			    sta->mld_assoc_link_id ||
+			    tmp_sta->aid != sta->aid)
 				continue;
 
-			for (tmp_sta = tmp_hapd->sta_list; tmp_sta;
-			     tmp_sta = tmp_sta->next) {
-				if (tmp_sta == sta ||
-				    tmp_sta->mld_assoc_link_id !=
-				    sta->mld_assoc_link_id ||
-				    tmp_sta->aid != sta->aid)
-					continue;
-
-				ieee802_1x_set_authorized(tmp_hapd, tmp_sta,
-							  authorized, true);
-				break;
-			}
+			ieee802_1x_set_authorized(tmp_hapd, tmp_sta,
+						  authorized, true);
+			break;
 		}
 	}
 #endif /* CONFIG_IEEE80211BE */
