@@ -8,6 +8,7 @@
 import logging
 logger = logging.getLogger()
 import os
+import hwsim_utils
 
 from wpasupplicant import WpaSupplicant
 from test_nan_usd import check_nan_usd_capab
@@ -541,3 +542,58 @@ def test_p2p_pairing_verification(dev, apdev):
     dev[1].remove_group()
     wpas.wait_go_ending_session()
     wpas.dump_monitor()
+
+def test_p2p_auto_go_pcc_with_two_cli(dev, apdev):
+    """P2P autonomous GO in PCC mode with PSK and SAE clients"""
+    check_p2p2_capab(dev[0])
+    set_p2p2_configs(dev[0])
+
+    cmd = "P2P_GROUP_ADD p2p2 p2pmode=2 freq=2462"
+    res = dev[0].request(cmd)
+    if "FAIL" in res:
+        raise Exception("P2P_GROUP_ADD failed")
+    ev = dev[0].wait_global_event(["P2P-GROUP-STARTED"], timeout=10)
+    if ev is None:
+        raise Exception("Group formation timed out")
+
+    res = dev[0].group_form_result(ev)
+    if dev[0].get_group_status_field("passphrase", extra="WPS") != res['passphrase']:
+        raise Exception("passphrase mismatch")
+    if dev[0].group_request("P2P_GET_PASSPHRASE") != res['passphrase']:
+        raise Exception("passphrase mismatch(2)")
+
+    logger.info("Connect legacy non-WPS P2P client")
+    dev[1].request("P2P_SET disabled 1")
+    dev[0].dump_monitor()
+    dev[1].connect(ssid=res['ssid'], psk=res['passphrase'], proto='RSN',
+                   key_mgmt='WPA-PSK', pairwise='CCMP',
+                   group='CCMP', scan_freq=res['freq'])
+    dev[0].wait_sta(addr=dev[1].own_addr(), wait_4way_hs=True)
+
+    try:
+        logger.info("Connect P2P2 client")
+        dev[2].request("P2P_SET disabled 1")
+        dev[0].dump_monitor()
+        dev[2].set("rsn_overriding", "1")
+        dev[2].set("sae_pwe", "2")
+        dev[2].set("sae_groups", "")
+        dev[2].connect(ssid=res['ssid'], sae_password=res['passphrase'],
+                       proto='WPA2', key_mgmt='SAE', ieee80211w='2',
+                       pairwise='GCMP-256 CCMP', group='GCMP-256 CCMP',
+                       scan_freq=res['freq'])
+        dev[0].wait_sta(addr=dev[2].own_addr(), wait_4way_hs=True)
+
+        hwsim_utils.test_connectivity_p2p_sta(dev[1], dev[2])
+
+        dev[2].request("DISCONNECT")
+        dev[2].wait_disconnected()
+        dev[0].wait_sta_disconnect(addr=dev[2].own_addr())
+    finally:
+        dev[2].set("sae_pwe", "0")
+        dev[2].set("rsn_overriding", "0")
+
+    dev[1].request("DISCONNECT")
+    dev[1].wait_disconnected()
+    dev[0].wait_sta_disconnect(addr=dev[1].own_addr())
+
+    dev[0].remove_group()
