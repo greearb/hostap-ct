@@ -133,11 +133,8 @@ void wpa_release_link_auth_ref(struct wpa_state_machine *sm,
 		return;
 
 	for_each_sm_auth(sm, link_id) {
-		if (link_id == release_link_id) {
-			wpa_group_put(sm->mld_links[link_id].wpa_auth,
-				      sm->mld_links[link_id].wpa_auth->group);
+		if (link_id == release_link_id)
 			sm->mld_links[link_id].wpa_auth = NULL;
-		}
 	}
 }
 
@@ -1045,11 +1042,8 @@ static void wpa_free_sta_sm(struct wpa_state_machine *sm)
 	os_free(sm->rsnxe);
 	os_free(sm->rsn_selection);
 #ifdef CONFIG_IEEE80211BE
-	for_each_sm_auth(sm, link_id) {
-		wpa_group_put(sm->mld_links[link_id].wpa_auth,
-			      sm->mld_links[link_id].wpa_auth->group);
+	for_each_sm_auth(sm, link_id)
 		sm->mld_links[link_id].wpa_auth = NULL;
-	}
 #endif /* CONFIG_IEEE80211BE */
 	wpa_group_put(sm->wpa_auth, sm->group);
 #ifdef CONFIG_DPP2
@@ -7462,11 +7456,8 @@ void wpa_auth_set_ml_info(struct wpa_state_machine *sm,
 			ctx.wpa_auth = NULL;
 			wpa_auth_for_each_auth(sm->wpa_auth,
 					       wpa_get_link_sta_auth, &ctx);
-			if (ctx.wpa_auth) {
+			if (ctx.wpa_auth)
 				sm_link->wpa_auth = ctx.wpa_auth;
-				wpa_group_get(sm_link->wpa_auth,
-					      sm_link->wpa_auth->group);
-			}
 		} else {
 			sm_link->wpa_auth = sm->wpa_auth;
 		}
