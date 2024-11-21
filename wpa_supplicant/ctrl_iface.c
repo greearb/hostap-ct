@@ -7756,6 +7756,11 @@ static int p2p_ctrl_set(struct wpa_supplicant *wpa_s, char *cmd)
 		p2p_set_chan_switch_req_enable(wpa_s->global->p2p, atoi(param));
 		return 0;
 	}
+
+	if (os_strcmp(cmd, "inv_oper_freq") == 0) {
+		p2p_set_invitation_op_freq(wpa_s->global->p2p, atoi(param));
+		return 0;
+	}
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	wpa_printf(MSG_DEBUG, "CTRL_IFACE: Unknown P2P_SET field value '%s'",
@@ -7773,6 +7778,7 @@ static void p2p_ctrl_flush(struct wpa_supplicant *wpa_s)
 #ifdef CONFIG_TESTING_OPTIONS
 	os_free(wpa_s->get_pref_freq_list_override);
 	wpa_s->get_pref_freq_list_override = NULL;
+	p2p_set_invitation_op_freq(wpa_s->global->p2p, -1);
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	wpas_p2p_stop_find(wpa_s);

@@ -315,6 +315,17 @@ struct wpabuf * p2p_process_invitation_req(struct p2p_data *p2p, const u8 *sa,
 		p2p_dbg(p2p, "Own default op_class %d channel %d",
 			p2p->op_reg_class, p2p->op_channel);
 
+#ifdef CONFIG_TESTING_OPTIONS
+		if (p2p->cfg->inv_op_class) {
+			/* Override configuration as a starting point */
+			p2p->op_reg_class = p2p->cfg->inv_op_class;
+			p2p->op_channel = p2p->cfg->inv_op_channel;
+			p2p_dbg(p2p,
+				"Override Invitation op_class %d channel %d",
+				p2p->op_reg_class, p2p->op_channel);
+		}
+#endif /* CONFIG_TESTING_OPTIONS */
+
 		/* Use peer preference if specified and compatible */
 		if (msg.operating_channel) {
 			int req_freq;

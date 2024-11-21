@@ -726,6 +726,18 @@ struct p2p_config {
 	 */
 	bool chan_switch_req_enable;
 
+#ifdef CONFIG_TESTING_OPTIONS
+	/**
+	 * Operating class for own operational channel in Invitation Response
+	 */
+	u8 inv_op_class;
+
+	/**
+	 * inv_op_channel - Own operational channel in Invitation Response
+	 */
+	u8 inv_op_channel;
+#endif /* CONFIG_TESTING_OPTIONS */
+
 	/**
 	 * cb_ctx - Context to use with callback functions
 	 */
@@ -2716,6 +2728,7 @@ void p2p_set_reg_info(struct p2p_data *p2p, u8 val);
 void p2p_set_twt_power_mgmt(struct p2p_data *p2p, int val);
 void p2p_set_dev_addr(struct p2p_data *p2p, const u8 *addr);
 void p2p_set_chan_switch_req_enable(struct p2p_data *p2p, bool val);
+void p2p_set_invitation_op_freq(struct p2p_data *p2p, int freq);
 
 int p2p_get_listen_freq(struct p2p_data *p2p, const u8 *peer_addr);
 int p2p_initiate_pasn_auth(struct p2p_data *p2p, const u8 *addr, int freq);

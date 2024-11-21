@@ -5038,6 +5038,24 @@ void p2p_set_chan_switch_req_enable(struct p2p_data *p2p, bool val)
 	p2p->cfg->chan_switch_req_enable = val;
 }
 
+
+void p2p_set_invitation_op_freq(struct p2p_data *p2p, int freq)
+{
+	u8 op_class, channel;
+
+	if (freq == -1) {
+		p2p->cfg->inv_op_class = 0;
+		p2p->cfg->inv_op_channel = 0;
+		return;
+	}
+
+	if (p2p_freq_to_channel(freq, &op_class, &channel) < 0)
+		return;
+
+	p2p->cfg->inv_op_class = op_class;
+	p2p->cfg->inv_op_channel = channel;
+}
+
 #endif /* CONFIG_TESTING_OPTIONS */
 
 
