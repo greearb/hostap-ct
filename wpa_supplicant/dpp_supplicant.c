@@ -58,6 +58,9 @@ static int wpas_dpp_process_conf_obj(void *ctx,
 				     struct dpp_authentication *auth);
 static bool wpas_dpp_tcp_msg_sent(void *ctx, struct dpp_authentication *auth);
 #endif /* CONFIG_DPP2 */
+#ifdef CONFIG_DPP3
+static void wpas_dpp_pb_next(void *eloop_ctx, void *timeout_ctx);
+#endif /* CONFIG_DPP3 */
 
 static const u8 broadcast[ETH_ALEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
@@ -1331,6 +1334,16 @@ void wpas_dpp_tx_wait_expire(struct wpa_supplicant *wpa_s)
 {
 	struct dpp_authentication *auth = wpa_s->dpp_auth;
 	int freq;
+
+#ifdef CONFIG_DPP3
+	if (wpa_s->dpp_pb_announcement && wpa_s->dpp_pb_discovery_done) {
+		wpa_printf(MSG_DEBUG,
+			   "DPP: Failed to send push button announcement");
+		if (eloop_register_timeout(0, 0, wpas_dpp_pb_next,
+					   wpa_s, NULL) < 0)
+			wpas_dpp_push_button_stop(wpa_s);
+	}
+#endif /* CONFIG_DPP3 */
 
 	if (wpa_s->dpp_listen_on_tx_expire && auth && auth->neg_freq) {
 		wpa_printf(MSG_DEBUG,
@@ -5507,7 +5520,6 @@ int wpas_dpp_ca_set(struct wpa_supplicant *wpa_s, const char *cmd)
 #define DPP_PB_ANNOUNCE_PER_CHAN 3
 
 static int wpas_dpp_pb_announce(struct wpa_supplicant *wpa_s, int freq);
-static void wpas_dpp_pb_next(void *eloop_ctx, void *timeout_ctx);
 
 
 static void wpas_dpp_pb_tx_status(struct wpa_supplicant *wpa_s,
