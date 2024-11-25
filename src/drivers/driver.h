@@ -2591,6 +2591,7 @@ struct hostapd_sta_add_params {
 	bool mld_link_sta;
 	s8 mld_link_id;
 	const u8 *mld_link_addr;
+	u16 eml_cap;
 };
 
 struct mac_address {

@@ -5768,6 +5768,15 @@ static int wpa_driver_nl80211_sta_add(void *priv,
 				goto fail;
 		}
 
+		/* Set EML capabilities of ML STA */
+		if (params->mld_link_addr && params->eml_cap) {
+			wpa_printf(MSG_DEBUG, "  * eml_cap =%u",
+				   params->eml_cap);
+			if (nla_put_u16(msg, NL80211_ATTR_EML_CAPABILITY,
+					params->eml_cap))
+				goto fail;
+		}
+
 		if (is_ap_interface(drv->nlmode) &&
 		    nla_put_u8(msg, NL80211_ATTR_STA_SUPPORT_P2P_PS,
 			       params->support_p2p_ps ?

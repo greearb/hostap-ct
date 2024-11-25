@@ -4800,6 +4800,7 @@ static int add_associated_sta(struct hostapd_data *hapd,
 	int set = 1;
 	const u8 *mld_link_addr = NULL;
 	bool mld_link_sta = false;
+	u16 eml_cap = 0;
 
 #ifdef CONFIG_IEEE80211BE
 	if (ap_sta_is_mld(hapd, sta)) {
@@ -4810,6 +4811,7 @@ static int add_associated_sta(struct hostapd_data *hapd,
 
 		if (hapd->mld_link_id != sta->mld_assoc_link_id)
 			set = 0;
+		eml_cap = sta->mld_info.common_info.eml_capa;
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -4890,7 +4892,7 @@ static int add_associated_sta(struct hostapd_data *hapd,
 			    sta->he_6ghz_capab,
 			    sta->flags | WLAN_STA_ASSOC, sta->qosinfo,
 			    sta->vht_opmode, sta->p2p_ie ? 1 : 0,
-			    set, mld_link_addr, mld_link_sta)) {
+			    set, mld_link_addr, mld_link_sta, eml_cap)) {
 		hostapd_logger(hapd, sta->addr,
 			       HOSTAPD_MODULE_IEEE80211, HOSTAPD_LEVEL_NOTICE,
 			       "Could not %s STA to kernel driver",

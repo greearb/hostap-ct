@@ -472,7 +472,8 @@ int hostapd_sta_add(struct hostapd_data *hapd,
 		    size_t eht_capab_len,
 		    const struct ieee80211_he_6ghz_band_cap *he_6ghz_capab,
 		    u32 flags, u8 qosinfo, u8 vht_opmode, int supp_p2p_ps,
-		    int set, const u8 *link_addr, bool mld_link_sta)
+		    int set, const u8 *link_addr, bool mld_link_sta,
+		    u16 eml_cap)
 {
 	struct hostapd_sta_add_params params;
 
@@ -512,6 +513,9 @@ int hostapd_sta_add(struct hostapd_data *hapd,
 		params.mld_link_id = hapd->mld_link_id;
 		params.mld_link_addr = link_addr;
 		params.mld_link_sta = mld_link_sta;
+		/* Copy EML capabilities of ML STA */
+		if (link_addr)
+			params.eml_cap = eml_cap;
 	}
 #endif /* CONFIG_IEEE80211BE */
 

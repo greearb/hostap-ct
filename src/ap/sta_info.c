@@ -1857,6 +1857,7 @@ int ap_sta_re_add(struct hostapd_data *hapd, struct sta_info *sta)
 {
 	const u8 *mld_link_addr = NULL;
 	bool mld_link_sta = false;
+	u16 eml_cap = 0;
 
 	/*
 	 * If a station that is already associated to the AP, is trying to
@@ -1872,6 +1873,7 @@ int ap_sta_re_add(struct hostapd_data *hapd, struct sta_info *sta)
 
 		mld_link_sta = sta->mld_assoc_link_id != mld_link_id;
 		mld_link_addr = sta->mld_info.links[mld_link_id].peer_addr;
+		eml_cap = sta->mld_info.common_info.eml_capa;
 
 		/*
 		 * In case the AP is affiliated with an AP MLD, we need to
@@ -1890,7 +1892,7 @@ int ap_sta_re_add(struct hostapd_data *hapd, struct sta_info *sta)
 			    sta->supported_rates_len,
 			    0, NULL, NULL, NULL, 0, NULL, 0, NULL,
 			    sta->flags, 0, 0, 0, 0,
-			    mld_link_addr, mld_link_sta)) {
+			    mld_link_addr, mld_link_sta, eml_cap)) {
 		hostapd_logger(hapd, sta->addr,
 			       HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_NOTICE,
