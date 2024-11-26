@@ -6873,6 +6873,8 @@ int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 					ssid = NULL;
 					continue;
 				}
+
+				force_freq = ifs->ap_iface->freq;
 				break;
 			}
 			p2p_set_go_role(wpa_s->global->p2p, true);
