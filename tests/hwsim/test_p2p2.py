@@ -7,6 +7,9 @@
 
 import binascii
 import logging
+
+from hwsim import HWSimRadio
+
 logger = logging.getLogger()
 import os
 import hwsim_utils
@@ -127,8 +130,7 @@ def test_p2p_usd_match(dev, apdev):
     dev[0].global_request("NAN_CANCEL_SUBSCRIBE subscribe_id=" + id0)
     dev[1].global_request("NAN_CANCEL_PUBLISH publish_id=" + id1)
 
-def test_p2p_pairing_password(dev, apdev):
-    """P2P Pairing with Password"""
+def run_p2p_pairing_password(dev):
     check_p2p2_capab(dev[0])
     check_p2p2_capab(dev[1])
 
@@ -191,6 +193,25 @@ def test_p2p_pairing_password(dev, apdev):
     dev[1].remove_group()
     dev[0].wait_go_ending_session()
     dev[0].dump_monitor()
+
+def test_p2p_pairing_password(dev, apdev):
+    """P2P Pairing with Password"""
+    run_p2p_pairing_password(dev)
+
+def test_p2p_pairing_password_dev(dev, apdev):
+    """P2P Pairing with Password with dedicated P2P device"""
+    with HWSimRadio(use_p2p_device=True) as (radio, iface):
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(iface)
+        run_p2p_pairing_password([dev[0], wpas])
+
+def test_p2p_pairing_password_dev2(dev, apdev):
+    """P2P Pairing with Password with dedicated P2P device (reversed) and no group interface"""
+    with HWSimRadio(use_p2p_device=True) as (radio, iface):
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(iface)
+        wpas.global_request("SET p2p_no_group_iface 1")
+        run_p2p_pairing_password([wpas, dev[0]])
 
 def test_p2p_pairing_opportunistic(dev, apdev):
     """P2P Pairing with Opportunistic"""
