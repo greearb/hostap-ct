@@ -124,8 +124,8 @@ def test_p2p_usd_match(dev, apdev):
     if "ssi=6677" not in ev.split(' '):
         raise Exception("Unexpected ssi: " + ev)
 
-    dev[0].global_request("NAN_CANCEL_SUBSCRIBE id=" + id0)
-    dev[1].global_request("NAN_CANCEL_PUBLISH id=" + id1)
+    dev[0].global_request("NAN_CANCEL_SUBSCRIBE subscribe_id=" + id0)
+    dev[1].global_request("NAN_CANCEL_PUBLISH publish_id=" + id1)
 
 def test_p2p_pairing_password(dev, apdev):
     """P2P Pairing with Password"""
