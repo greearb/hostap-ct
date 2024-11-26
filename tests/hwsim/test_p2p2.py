@@ -20,10 +20,10 @@ def check_p2p2_capab(dev):
     check_pasn_capab(dev)
 
 def set_p2p2_configs(dev):
-    dev.request("P2P_SET pasn_type 3")
-    dev.request("P2P_SET supported_bootstrapmethods 6")
-    dev.request("P2P_SET pairing_setup 1")
-    dev.request("P2P_SET pairing_cache 1")
+    dev.global_request("P2P_SET pasn_type 3")
+    dev.global_request("P2P_SET supported_bootstrapmethods 6")
+    dev.global_request("P2P_SET pairing_setup 1")
+    dev.global_request("P2P_SET pairing_cache 1")
 
 def test_p2p_usd_publish_invalid_param(dev):
     """P2P USD Publish with invalid parameters"""
@@ -31,7 +31,7 @@ def test_p2p_usd_publish_invalid_param(dev):
 
     # Both solicited and unsolicited disabled is invalid
     cmd = "NAN_PUBLISH service_name=_test solicited=0 unsolicited=0 p2p=1"
-    id0 = dev[0].request(cmd)
+    id0 = dev[0].global_request(cmd)
     if "FAIL" not in id0:
         raise Exception("NAN_PUBLISH accepts both solicited=0 and unsolicited=0 with p2p=1")
 
@@ -39,19 +39,19 @@ def test_p2p_usd_publish(dev, apdev):
     """P2P USD Publish"""
     check_p2p2_capab(dev[0])
     cmd = "NAN_PUBLISH service_name=_test unsolicited=0 srv_proto_type=2 ssi=6677 p2p=1"
-    id0 = dev[0].request(cmd)
+    id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("NAN_PUBLISH for P2P failed")
 
     cmd = "NAN_UPDATE_PUBLISH publish_id=" + id0 + " ssi=1122334455"
-    if "FAIL" in dev[0].request(cmd):
+    if "FAIL" in dev[0].global_request(cmd):
         raise Exception("NAN_UPDATE_PUBLISH for P2P failed")
 
     cmd = "NAN_CANCEL_PUBLISH publish_id=" + id0
-    if "FAIL" in dev[0].request(cmd):
+    if "FAIL" in dev[0].global_request(cmd):
         raise Exception("NAN_CANCEL_PUBLISH for P2P failed")
 
-    ev = dev[0].wait_event(["NAN-PUBLISH-TERMINATED"], timeout=1)
+    ev = dev[0].wait_global_event(["NAN-PUBLISH-TERMINATED"], timeout=1)
     if ev is None:
         raise Exception("PublishTerminated event not seen")
     if "publish_id=" + id0 not in ev:
@@ -62,16 +62,16 @@ def test_p2p_usd_publish(dev, apdev):
     cmd = "NAN_PUBLISH service_name=_test p2p=1"
     count = 0
     for i in range(256):
-        if "FAIL" in dev[0].request(cmd):
+        if "FAIL" in dev[0].global_request(cmd):
             break
         count += 1
     logger.info("Maximum services: %d" % count)
     for i in range(count):
         cmd = "NAN_CANCEL_PUBLISH publish_id=%s" % (i + 1)
-        if "FAIL" in dev[0].request(cmd):
+        if "FAIL" in dev[0].global_request(cmd):
             raise Exception("NAN_CANCEL_PUBLISH failed")
 
-        ev = dev[0].wait_event(["NAN-PUBLISH-TERMINATED"], timeout=1)
+        ev = dev[0].wait_global_event(["NAN-PUBLISH-TERMINATED"], timeout=1)
         if ev is None:
             raise Exception("PublishTerminated event not seen")
 
@@ -79,15 +79,15 @@ def test_p2p_usd_subscribe(dev, apdev):
     """P2P USD Subscribe"""
     check_p2p2_capab(dev[0])
     cmd = "NAN_SUBSCRIBE service_name=_test active=1 srv_proto_type=2 ssi=1122334455 p2p=1"
-    id0 = dev[0].request(cmd)
+    id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("NAN_SUBSCRIBE for P2P failed")
 
     cmd = "NAN_CANCEL_SUBSCRIBE subscribe_id=" + id0
-    if "FAIL" in dev[0].request(cmd):
+    if "FAIL" in dev[0].global_request(cmd):
         raise Exception("NAN_CANCEL_SUBSCRIBE for P2P failed")
 
-    ev = dev[0].wait_event(["NAN-SUBSCRIBE-TERMINATED"], timeout=1)
+    ev = dev[0].wait_global_event(["NAN-SUBSCRIBE-TERMINATED"], timeout=1)
     if ev is None:
         raise Exception("SubscribeTerminated event not seen")
     if "subscribe_id=" + id0 not in ev:
@@ -100,12 +100,12 @@ def test_p2p_usd_match(dev, apdev):
     check_p2p2_capab(dev[0])
     check_p2p2_capab(dev[1])
     cmd = "NAN_SUBSCRIBE service_name=_test active=1 srv_proto_type=2 ssi=1122334455 p2p=1"
-    id0 = dev[0].request(cmd)
+    id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("NAN_SUBSCRIBE for P2P failed")
 
     cmd = "NAN_PUBLISH service_name=_test unsolicited=0 srv_proto_type=2 ssi=6677 ttl=5 p2p=1"
-    id1 = dev[1].request(cmd)
+    id1 = dev[1].global_request(cmd)
     if "FAIL" in id1:
         raise Exception("NAN_PUBLISH for P2P failed")
 
@@ -116,7 +116,7 @@ def test_p2p_usd_match(dev, apdev):
     if ev is None:
         raise Exception("Peer not found")
 
-    ev = dev[0].wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+    ev = dev[0].wait_global_event(["NAN-DISCOVERY-RESULT"], timeout=5)
     if ev is None:
         raise Exception("DiscoveryResult event not seen")
     if "srv_proto_type=2" not in ev.split(' '):
@@ -124,8 +124,8 @@ def test_p2p_usd_match(dev, apdev):
     if "ssi=6677" not in ev.split(' '):
         raise Exception("Unexpected ssi: " + ev)
 
-    dev[0].request("NAN_CANCEL_SUBSCRIBE id=" + id0)
-    dev[1].request("NAN_CANCEL_PUBLISH id=" + id1)
+    dev[0].global_request("NAN_CANCEL_SUBSCRIBE id=" + id0)
+    dev[1].global_request("NAN_CANCEL_PUBLISH id=" + id1)
 
 def test_p2p_pairing_password(dev, apdev):
     """P2P Pairing with Password"""
@@ -136,12 +136,12 @@ def test_p2p_pairing_password(dev, apdev):
     set_p2p2_configs(dev[1])
 
     cmd = "NAN_SUBSCRIBE service_name=_test active=1 srv_proto_type=2 ssi=1122334455 ttl=10 p2p=1"
-    id0 = dev[0].request(cmd)
+    id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("NAN_SUBSCRIBE for P2P failed")
 
     cmd = "NAN_PUBLISH service_name=_test unsolicited=0 srv_proto_type=2 ssi=6677 ttl=10 p2p=1"
-    id1 = dev[1].request(cmd)
+    id1 = dev[1].global_request(cmd)
     if "FAIL" in id1:
         raise Exception("NAN_PUBLISH for P2P failed")
 
@@ -152,7 +152,7 @@ def test_p2p_pairing_password(dev, apdev):
     if ev is None:
         raise Exception("Peer not found")
 
-    ev = dev[0].wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+    ev = dev[0].wait_global_event(["NAN-DISCOVERY-RESULT"], timeout=5)
     if ev is None:
         raise Exception("DiscoveryResult event not seen")
     if "srv_proto_type=2" not in ev.split(' '):
@@ -161,19 +161,19 @@ def test_p2p_pairing_password(dev, apdev):
         raise Exception("Unexpected ssi: " + ev)
 
     cmd = "NAN_CANCEL_SUBSCRIBE subscribe_id=" + id0
-    if "FAIL" in dev[0].request(cmd):
+    if "FAIL" in dev[0].global_request(cmd):
         raise Exception("NAN_CANCEL_SUBSCRIBE for P2P failed")
     cmd = "NAN_CANCEL_PUBLISH publish_id=" + id1
-    if "FAIL" in dev[1].request(cmd):
+    if "FAIL" in dev[1].global_request(cmd):
         raise Exception("NAN_CANCEL_PUBLISH for P2P failed")
 
     cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair he go_intent=15 p2p2 bstrapmethod=2 auth password=975310123 freq=2437"
-    id0 = dev[1].request(cmd)
+    id0 = dev[1].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT auth Failed")
 
     cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair he go_intent=5 p2p2 bstrapmethod=32 password=975310123"
-    id0 = dev[0].request(cmd)
+    id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT Failed")
 
@@ -201,12 +201,12 @@ def test_p2p_pairing_opportunistic(dev, apdev):
     set_p2p2_configs(dev[1])
 
     cmd = "NAN_SUBSCRIBE service_name=_test active=1 srv_proto_type=2 ssi=1122334455 ttl=10 p2p=1"
-    id0 = dev[0].request(cmd)
+    id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("NAN_SUBSCRIBE for P2P failed")
 
     cmd = "NAN_PUBLISH service_name=_test unsolicited=0 srv_proto_type=2 ssi=6677 ttl=10 p2p=1"
-    id1 = dev[1].request(cmd)
+    id1 = dev[1].global_request(cmd)
     if "FAIL" in id1:
         raise Exception("NAN_PUBLISH for P2P failed")
 
@@ -217,7 +217,7 @@ def test_p2p_pairing_opportunistic(dev, apdev):
     if ev is None:
         raise Exception("Peer not found")
 
-    ev = dev[0].wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+    ev = dev[0].wait_global_event(["NAN-DISCOVERY-RESULT"], timeout=5)
     if ev is None:
         raise Exception("DiscoveryResult event not seen")
     if "srv_proto_type=2" not in ev.split(' '):
@@ -226,19 +226,19 @@ def test_p2p_pairing_opportunistic(dev, apdev):
         raise Exception("Unexpected ssi: " + ev)
 
     cmd = "NAN_CANCEL_SUBSCRIBE subscribe_id=" + id0
-    if "FAIL" in dev[0].request(cmd):
+    if "FAIL" in dev[0].global_request(cmd):
         raise Exception("NAN_CANCEL_SUBSCRIBE for P2P failed")
     cmd = "NAN_CANCEL_PUBLISH publish_id=" + id1
-    if "FAIL" in dev[1].request(cmd):
+    if "FAIL" in dev[1].global_request(cmd):
         raise Exception("NAN_CANCEL_PUBLISH for P2P failed")
 
     cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair he go_intent=15 p2p2 bstrapmethod=1 auth freq=2437"
-    id0 = dev[1].request(cmd)
+    id0 = dev[1].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT auth Failed")
 
     cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair he go_intent=5 p2p2 bstrapmethod=1"
-    id0 = dev[0].request(cmd)
+    id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT Failed")
 
@@ -267,12 +267,12 @@ def test_p2p_auto_go_and_client_join(dev, apdev):
     set_p2p2_configs(dev[1])
 
     cmd = "NAN_SUBSCRIBE service_name=_test active=1 srv_proto_type=2 ssi=1122334455 ttl=10 p2p=1"
-    id0 = dev[0].request(cmd)
+    id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("NAN_SUBSCRIBE for P2P failed")
 
     cmd = "NAN_PUBLISH service_name=_test unsolicited=0 srv_proto_type=2 ssi=6677 ttl=10 p2p=1"
-    id1 = dev[1].request(cmd)
+    id1 = dev[1].global_request(cmd)
     if "FAIL" in id1:
         raise Exception("NAN_PUBLISH for P2P failed")
 
@@ -283,7 +283,7 @@ def test_p2p_auto_go_and_client_join(dev, apdev):
     if ev is None:
         raise Exception("Peer not found")
 
-    ev = dev[0].wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+    ev = dev[0].wait_global_event(["NAN-DISCOVERY-RESULT"], timeout=5)
     if ev is None:
         raise Exception("DiscoveryResult event not seen")
     if "srv_proto_type=2" not in ev.split(' '):
@@ -292,14 +292,14 @@ def test_p2p_auto_go_and_client_join(dev, apdev):
         raise Exception("Unexpected ssi: " + ev)
 
     cmd = "NAN_CANCEL_SUBSCRIBE subscribe_id=" + id0
-    if "FAIL" in dev[0].request(cmd):
+    if "FAIL" in dev[0].global_request(cmd):
         raise Exception("NAN_CANCEL_SUBSCRIBE for P2P failed")
     cmd = "NAN_CANCEL_PUBLISH publish_id=" + id1
-    if "FAIL" in dev[1].request(cmd):
+    if "FAIL" in dev[1].global_request(cmd):
         raise Exception("NAN_CANCEL_PUBLISH for P2P failed")
 
     cmd = "P2P_GROUP_ADD p2p2"
-    res = dev[1].request(cmd)
+    res = dev[1].global_request(cmd)
     if "FAIL" in res:
         raise Exception("P2P_GROUP_ADD failed")
 
@@ -308,12 +308,12 @@ def test_p2p_auto_go_and_client_join(dev, apdev):
         raise Exception("Group formation timed out(2)")
 
     cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair he go_intent=15 p2p2 bstrapmethod=1 join auth"
-    id0 = dev[1].request(cmd)
+    id0 = dev[1].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT auth failed")
 
     cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair p2p2 join bstrapmethod=1"
-    id0 = dev[0].request(cmd)
+    id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT failed")
 
@@ -338,12 +338,12 @@ def test_p2p_auto_go_and_client_join_sae(dev, apdev):
     set_p2p2_configs(dev[1])
 
     cmd = "NAN_SUBSCRIBE service_name=_test active=1 srv_proto_type=2 ssi=1122334455 ttl=10 p2p=1"
-    id0 = dev[0].request(cmd)
+    id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("NAN_SUBSCRIBE for P2P failed")
 
     cmd = "NAN_PUBLISH service_name=_test unsolicited=0 srv_proto_type=2 ssi=6677 ttl=10 p2p=1"
-    id1 = dev[1].request(cmd)
+    id1 = dev[1].global_request(cmd)
     if "FAIL" in id1:
         raise Exception("NAN_PUBLISH for P2P failed")
 
@@ -354,7 +354,7 @@ def test_p2p_auto_go_and_client_join_sae(dev, apdev):
     if ev is None:
         raise Exception("Peer not found")
 
-    ev = dev[0].wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+    ev = dev[0].wait_global_event(["NAN-DISCOVERY-RESULT"], timeout=5)
     if ev is None:
         raise Exception("DiscoveryResult event not seen")
     if "srv_proto_type=2" not in ev.split(' '):
@@ -363,14 +363,14 @@ def test_p2p_auto_go_and_client_join_sae(dev, apdev):
         raise Exception("Unexpected ssi: " + ev)
 
     cmd = "NAN_CANCEL_SUBSCRIBE subscribe_id=" + id0
-    if "FAIL" in dev[0].request(cmd):
+    if "FAIL" in dev[0].global_request(cmd):
         raise Exception("NAN_CANCEL_SUBSCRIBE for P2P failed")
     cmd = "NAN_CANCEL_PUBLISH publish_id=" + id1
-    if "FAIL" in dev[1].request(cmd):
+    if "FAIL" in dev[1].global_request(cmd):
         raise Exception("NAN_CANCEL_PUBLISH for P2P failed")
 
     cmd = "P2P_GROUP_ADD p2p2"
-    res = dev[1].request(cmd)
+    res = dev[1].global_request(cmd)
     if "FAIL" in res:
         raise Exception("P2P_GROUP_ADD failed")
 
@@ -379,12 +379,12 @@ def test_p2p_auto_go_and_client_join_sae(dev, apdev):
         raise Exception("Group formation timed out(2)")
 
     cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair he go_intent=15 p2p2 bstrapmethod=2 join auth password=975310123"
-    id0 = dev[1].request(cmd)
+    id0 = dev[1].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT auth failed")
 
     cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair p2p2 join bstrapmethod=32 password=975310123"
-    id0 = dev[0].request(cmd)
+    id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT failed")
 
@@ -425,12 +425,12 @@ def test_p2p_pairing_verification(dev, apdev):
     wpas.global_request("SAVE_CONFIG")
 
     cmd = "NAN_SUBSCRIBE service_name=_test active=1 srv_proto_type=2 ssi=1122334455 ttl=10 p2p=1"
-    id0 = wpas.request(cmd)
+    id0 = wpas.global_request(cmd)
     if "FAIL" in id0:
         raise Exception("NAN_SUBSCRIBE for P2P failed")
 
     cmd = "NAN_PUBLISH service_name=_test unsolicited=0 srv_proto_type=2 ssi=6677 ttl=10 p2p=1"
-    id1 = dev[1].request(cmd)
+    id1 = dev[1].global_request(cmd)
     if "FAIL" in id1:
         raise Exception("NAN_PUBLISH for P2P failed")
 
@@ -441,7 +441,7 @@ def test_p2p_pairing_verification(dev, apdev):
     if ev is None:
         raise Exception("Peer not found")
 
-    ev = wpas.wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+    ev = wpas.wait_global_event(["NAN-DISCOVERY-RESULT"], timeout=5)
     if ev is None:
         raise Exception("DiscoveryResult event not seen")
     if "srv_proto_type=2" not in ev.split(' '):
@@ -450,19 +450,19 @@ def test_p2p_pairing_verification(dev, apdev):
         raise Exception("Unexpected ssi: " + ev)
 
     cmd = "NAN_CANCEL_SUBSCRIBE subscribe_id=" + id0
-    if "FAIL" in wpas.request(cmd):
+    if "FAIL" in wpas.global_request(cmd):
         raise Exception("NAN_CANCEL_SUBSCRIBE for P2P failed")
     cmd = "NAN_CANCEL_PUBLISH publish_id=" + id1
-    if "FAIL" in dev[1].request(cmd):
+    if "FAIL" in dev[1].global_request(cmd):
         raise Exception("NAN_CANCEL_PUBLISH for P2P failed")
 
     cmd = "P2P_CONNECT " + wpas.p2p_dev_addr() + " pair he go_intent=15 p2p2 bstrapmethod=2 auth password=975310123 freq=2437 persistent"
-    id0 = dev[1].request(cmd)
+    id0 = dev[1].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT auth Failed")
 
     cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair he go_intent=5 p2p2 bstrapmethod=32 password=975310123 persistent"
-    id0 = wpas.request(cmd)
+    id0 = wpas.global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT Failed")
 
@@ -485,12 +485,12 @@ def test_p2p_pairing_verification(dev, apdev):
     wpas.interface_add("wlan5", config=config)
 
     cmd = "NAN_SUBSCRIBE service_name=_test active=1 srv_proto_type=2 ssi=1122334455 ttl=10 p2p=1"
-    id0 = wpas.request(cmd)
+    id0 = wpas.global_request(cmd)
     if "FAIL" in id0:
         raise Exception("NAN_SUBSCRIBE for P2P failed (2)")
 
     cmd = "NAN_PUBLISH service_name=_test unsolicited=0 srv_proto_type=2 ssi=6677 ttl=10 p2p=1"
-    id1 = dev[1].request(cmd)
+    id1 = dev[1].global_request(cmd)
     if "FAIL" in id1:
         raise Exception("NAN_PUBLISH for P2P failed (2)")
 
@@ -501,7 +501,7 @@ def test_p2p_pairing_verification(dev, apdev):
     if ev is None:
         raise Exception("Peer not found")
 
-    ev = wpas.wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+    ev = wpas.wait_global_event(["NAN-DISCOVERY-RESULT"], timeout=5)
     if ev is None:
         raise Exception("DiscoveryResult event not seen")
     if "srv_proto_type=2" not in ev.split(' '):
@@ -510,10 +510,10 @@ def test_p2p_pairing_verification(dev, apdev):
         raise Exception("Unexpected ssi: " + ev)
 
     cmd = "NAN_CANCEL_SUBSCRIBE subscribe_id=" + id0
-    if "FAIL" in wpas.request(cmd):
+    if "FAIL" in wpas.global_request(cmd):
         raise Exception("NAN_CANCEL_SUBSCRIBE for P2P failed (2)")
     cmd = "NAN_CANCEL_PUBLISH publish_id=" + id1
-    if "FAIL" in dev[1].request(cmd):
+    if "FAIL" in dev[1].global_request(cmd):
         raise Exception("NAN_CANCEL_PUBLISH for P2P failed (2)")
 
     wpas.global_request("SET persistent_reconnect 1")
@@ -522,7 +522,7 @@ def test_p2p_pairing_verification(dev, apdev):
     if 'persistent' not in peer:
         raise Exception("Missing information on persistent group for the peer")
     cmd = "P2P_INVITE persistent=" + peer['persistent'] + " peer=" + dev[1].p2p_dev_addr() + " p2p2"
-    id0 = wpas.request(cmd)
+    id0 = wpas.global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_INVITE Failed")
 
@@ -549,7 +549,7 @@ def test_p2p_auto_go_pcc_with_two_cli(dev, apdev):
     set_p2p2_configs(dev[0])
 
     cmd = "P2P_GROUP_ADD p2p2 p2pmode=2 freq=2462"
-    res = dev[0].request(cmd)
+    res = dev[0].global_request(cmd)
     if "FAIL" in res:
         raise Exception("P2P_GROUP_ADD failed")
     ev = dev[0].wait_global_event(["P2P-GROUP-STARTED"], timeout=10)
@@ -563,7 +563,7 @@ def test_p2p_auto_go_pcc_with_two_cli(dev, apdev):
         raise Exception("passphrase mismatch(2)")
 
     logger.info("Connect legacy non-WPS P2P client")
-    dev[1].request("P2P_SET disabled 1")
+    dev[1].global_request("P2P_SET disabled 1")
     dev[0].dump_monitor()
     dev[1].connect(ssid=res['ssid'], psk=res['passphrase'], proto='RSN',
                    key_mgmt='WPA-PSK', pairwise='CCMP',
@@ -572,7 +572,7 @@ def test_p2p_auto_go_pcc_with_two_cli(dev, apdev):
 
     try:
         logger.info("Connect P2P2 client")
-        dev[2].request("P2P_SET disabled 1")
+        dev[2].global_request("P2P_SET disabled 1")
         dev[0].dump_monitor()
         dev[2].set("rsn_overriding", "1")
         dev[2].set("sae_pwe", "2")
@@ -605,7 +605,7 @@ def test_p2p_auto_go_pcc_with_p2p2_cli(dev, apdev):
     set_p2p2_configs(dev[0])
 
     cmd = "P2P_GROUP_ADD p2p2 p2pmode=2 freq=2462"
-    res = dev[0].request(cmd)
+    res = dev[0].global_request(cmd)
     if "FAIL" in res:
         raise Exception("P2P_GROUP_ADD failed")
     ev = dev[0].wait_global_event(["P2P-GROUP-STARTED"], timeout=10)
@@ -620,7 +620,7 @@ def test_p2p_auto_go_pcc_with_p2p2_cli(dev, apdev):
 
     ssidhex =  binascii.hexlify(res['ssid'].encode()).decode()
     cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair p2p2 skip_prov join password=" + res['passphrase'] + " ssid=" + ssidhex
-    id0 = dev[1].request(cmd)
+    id0 = dev[1].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT failed")
 
