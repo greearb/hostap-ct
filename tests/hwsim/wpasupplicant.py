@@ -699,7 +699,8 @@ class WpaSupplicant:
                 vals[name] = value
         return vals
 
-    def group_form_result(self, ev, expect_failure=False, go_neg_res=None):
+    def group_form_result(self, ev, expect_failure=False, go_neg_res=None,
+                          no_pwd=False):
         if expect_failure:
             if "P2P-GROUP-STARTED" in ev:
                 raise Exception("Group formation succeeded when expecting failure")
@@ -715,13 +716,17 @@ class WpaSupplicant:
         if "P2P-GROUP-STARTED" not in ev:
             raise Exception("No P2P-GROUP-STARTED event seen")
 
-        exp = r'<.>(P2P-GROUP-STARTED) ([^ ]*) ([^ ]*) ssid="(.*)" freq=([0-9]*) ((?:psk=.*)|(?:passphrase=".*")) go_dev_addr=([0-9a-f:]*) ip_addr=([0-9.]*) ip_mask=([0-9.]*) go_ip_addr=([0-9.]*)'
+        pwd = '' if no_pwd else r'((?:psk=.*)|(?:passphrase=".*")) '
+        offset = 0 if no_pwd else 1
+        exp = r'<.>(P2P-GROUP-STARTED) ([^ ]*) ([^ ]*) ssid="(.*)" freq=([0-9]*) ' + pwd + \
+              r'go_dev_addr=([0-9a-f:]*) ip_addr=([0-9.]*) ip_mask=([0-9.]*) go_ip_addr=([0-9.]*)'
         s = re.split(exp, ev)
-        if len(s) < 11:
-            exp = r'<.>(P2P-GROUP-STARTED) ([^ ]*) ([^ ]*) ssid="(.*)" freq=([0-9]*) ((?:psk=.*)|(?:passphrase=".*")) go_dev_addr=([0-9a-f:]*)'
+        if len(s) < 10 + offset:
+            exp = r'<.>(P2P-GROUP-STARTED) ([^ ]*) ([^ ]*) ssid="(.*)" freq=([0-9]*) ' + pwd + \
+                  r'go_dev_addr=([0-9a-f:]*)'
             s = re.split(exp, ev)
-            if len(s) < 8:
-                raise Exception("Could not parse P2P-GROUP-STARTED")
+            if len(s) < 7 + offset:
+                raise Exception("Could not parse P2P-GROUP-STARTED %d" % len(s))
         res = {}
         res['result'] = 'success'
         res['ifname'] = s[2]
@@ -751,14 +756,16 @@ class WpaSupplicant:
         p = re.match(r'passphrase="(.*)"', s[6])
         if p:
             res['passphrase'] = p.group(1)
-        res['go_dev_addr'] = s[7]
 
-        if len(s) > 8 and len(s[8]) > 0 and "[PERSISTENT]" not in s[8]:
-            res['ip_addr'] = s[8]
-        if len(s) > 9:
-            res['ip_mask'] = s[9]
-        if len(s) > 10:
-            res['go_ip_addr'] = s[10]
+        res['go_dev_addr'] = s[6 + offset]
+
+        if len(s) > 7 + offset and len(s[7 + offset]) > 0 and \
+           "[PERSISTENT]" not in s[7 + offset]:
+            res['ip_addr'] = s[7 + offset]
+        if len(s) > 8 + offset:
+            res['ip_mask'] = s[8 + offset]
+        if len(s) > 9 + offset:
+            res['go_ip_addr'] = s[9 + offset]
 
         if go_neg_res:
             exp = r'<.>(P2P-GO-NEG-SUCCESS) role=(GO|client) freq=([0-9]*)'

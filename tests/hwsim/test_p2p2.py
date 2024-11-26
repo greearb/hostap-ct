@@ -180,13 +180,13 @@ def test_p2p_pairing_password(dev, apdev):
     ev = dev[0].wait_global_event(["P2P-GROUP-STARTED"], timeout=10)
     if ev is None:
         raise Exception("Group formation timed out")
-    #dev[0].group_form_result(ev)
+    dev[0].group_form_result(ev, no_pwd=True)
     dev[0].dump_monitor()
 
     ev = dev[1].wait_global_event(["P2P-GROUP-STARTED"], timeout=10)
     if ev is None:
         raise Exception("Group formation timed out(2)")
-    #dev[1].group_form_result(ev)
+    dev[1].group_form_result(ev)
 
     dev[1].remove_group()
     dev[0].wait_go_ending_session()
@@ -251,7 +251,7 @@ def test_p2p_pairing_opportunistic(dev, apdev):
     ev = dev[1].wait_global_event(["P2P-GROUP-STARTED"], timeout=10)
     if ev is None:
         raise Exception("Group formation timed out(2)")
-    #dev[1].group_form_result(ev)
+    dev[1].group_form_result(ev)
     dev[1].wait_sta()
 
     dev[1].remove_group()
