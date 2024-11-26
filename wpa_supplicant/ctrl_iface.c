@@ -6356,6 +6356,29 @@ static int p2p_ctrl_asp_provision(struct wpa_supplicant *wpa_s, char *cmd)
 }
 
 
+static bool bootstrap_pwd_required(u16 bootstrap)
+{
+	switch (bootstrap) {
+	case P2P_PBMA_OPPORTUNISTIC:
+		return false;
+	case P2P_PBMA_PIN_CODE_DISPLAY:
+	case P2P_PBMA_PASSPHRASE_DISPLAY:
+	case P2P_PBMA_QR_DISPLAY:
+	case P2P_PBMA_NFC_TAG:
+	case P2P_PBMA_PIN_CODE_KEYPAD:
+	case P2P_PBMA_PASSPHRASE_KEYPAD:
+	case P2P_PBMA_QR_SCAN:
+	case P2P_PBMA_NFC_READER:
+		return true;
+	case P2P_PBMA_SERVICE_MANAGED:
+	case P2P_PBMA_HANDSHAKE_SKIP:
+		return false;
+	}
+
+	return false;
+}
+
+
 static int p2p_ctrl_connect(struct wpa_supplicant *wpa_s, char *cmd,
 			    char *buf, size_t buflen)
 {
@@ -6516,6 +6539,12 @@ static int p2p_ctrl_connect(struct wpa_supplicant *wpa_s, char *cmd,
 			password = token + 9;
 			continue;
 		}
+	}
+
+	if (bootstrap_pwd_required(bootstrap) && !password) {
+		wpa_printf(MSG_DEBUG,
+			   "CTRL_IFACE: This P2P2 bootstrap method requires password");
+		return -1;
 	}
 
 	new_pin = wpas_p2p_connect(wpa_s, addr, pin, wps_method,
