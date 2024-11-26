@@ -4400,7 +4400,8 @@ static int wpa_driver_nl80211_send_mlme(struct i802_bss *bss, const u8 *data,
 			encrypt = 0;
 	}
 
-	if (is_sta_interface(drv->nlmode) &&
+	if ((is_sta_interface(drv->nlmode) ||
+	     drv->nlmode == NL80211_IFTYPE_P2P_DEVICE) &&
 	    WLAN_FC_GET_TYPE(fc) == WLAN_FC_TYPE_MGMT &&
 	    WLAN_FC_GET_STYPE(fc) == WLAN_FC_STYPE_AUTH) {
 		if (freq == 0 &&
