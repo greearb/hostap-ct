@@ -1106,11 +1106,11 @@ void wpas_notify_nan_discovery_result(struct wpa_supplicant *wpa_s,
 		return;
 	if (ssi)
 		wpa_snprintf_hex(ssi_hex, 2 * ssi_len + 1, ssi, ssi_len);
-	wpa_msg(wpa_s, MSG_INFO, NAN_DISCOVERY_RESULT
-		"subscribe_id=%d publish_id=%d address=" MACSTR
-		" fsd=%d fsd_gas=%d srv_proto_type=%u ssi=%s",
-		subscribe_id, peer_publish_id, MAC2STR(peer_addr),
-		fsd, fsd_gas, srv_proto_type, ssi_hex);
+	wpa_msg_global(wpa_s, MSG_INFO, NAN_DISCOVERY_RESULT
+		       "subscribe_id=%d publish_id=%d address=" MACSTR
+		       " fsd=%d fsd_gas=%d srv_proto_type=%u ssi=%s",
+		       subscribe_id, peer_publish_id, MAC2STR(peer_addr),
+		       fsd, fsd_gas, srv_proto_type, ssi_hex);
 	os_free(ssi_hex);
 
 	wpas_dbus_signal_nan_discovery_result(wpa_s, srv_proto_type,
@@ -1133,11 +1133,11 @@ void wpas_notify_nan_replied(struct wpa_supplicant *wpa_s,
 		return;
 	if (ssi)
 		wpa_snprintf_hex(ssi_hex, 2 * ssi_len + 1, ssi, ssi_len);
-	wpa_msg(wpa_s, MSG_INFO, NAN_REPLIED
-		"publish_id=%d address=" MACSTR
-		" subscribe_id=%d srv_proto_type=%u ssi=%s",
-		publish_id, MAC2STR(peer_addr), peer_subscribe_id,
-		srv_proto_type, ssi_hex);
+	wpa_msg_global(wpa_s, MSG_INFO, NAN_REPLIED
+		       "publish_id=%d address=" MACSTR
+		       " subscribe_id=%d srv_proto_type=%u ssi=%s",
+		       publish_id, MAC2STR(peer_addr), peer_subscribe_id,
+		       srv_proto_type, ssi_hex);
 	os_free(ssi_hex);
 
 	wpas_dbus_signal_nan_replied(wpa_s, srv_proto_type, publish_id,
@@ -1157,9 +1157,9 @@ void wpas_notify_nan_receive(struct wpa_supplicant *wpa_s, int id,
 		return;
 	if (ssi)
 		wpa_snprintf_hex(ssi_hex, 2 * ssi_len + 1, ssi, ssi_len);
-	wpa_msg(wpa_s, MSG_INFO, NAN_RECEIVE
-		"id=%d peer_instance_id=%d address=" MACSTR " ssi=%s",
-		id, peer_instance_id, MAC2STR(peer_addr), ssi_hex);
+	wpa_msg_global(wpa_s, MSG_INFO, NAN_RECEIVE
+		       "id=%d peer_instance_id=%d address=" MACSTR " ssi=%s",
+		       id, peer_instance_id, MAC2STR(peer_addr), ssi_hex);
 	os_free(ssi_hex);
 
 	wpas_dbus_signal_nan_receive(wpa_s, id, peer_instance_id, peer_addr,
@@ -1186,10 +1186,9 @@ void wpas_notify_nan_publish_terminated(struct wpa_supplicant *wpa_s,
 					int publish_id,
 					enum nan_de_reason reason)
 {
-	wpa_msg(wpa_s, MSG_INFO, NAN_PUBLISH_TERMINATED
-		"publish_id=%d reason=%s",
-		publish_id, nan_reason_txt(reason));
-
+	wpa_msg_global(wpa_s, MSG_INFO, NAN_PUBLISH_TERMINATED
+		       "publish_id=%d reason=%s",
+		       publish_id, nan_reason_txt(reason));
 	wpas_dbus_signal_nan_publish_terminated(wpa_s, publish_id,
 						nan_reason_txt(reason));
 }
@@ -1199,10 +1198,9 @@ void wpas_notify_nan_subscribe_terminated(struct wpa_supplicant *wpa_s,
 					  int subscribe_id,
 					  enum nan_de_reason reason)
 {
-	wpa_msg(wpa_s, MSG_INFO, NAN_SUBSCRIBE_TERMINATED
-		"subscribe_id=%d reason=%s",
-		subscribe_id, nan_reason_txt(reason));
-
+	wpa_msg_global(wpa_s, MSG_INFO, NAN_SUBSCRIBE_TERMINATED
+		       "subscribe_id=%d reason=%s",
+		       subscribe_id, nan_reason_txt(reason));
 	wpas_dbus_signal_nan_subscribe_terminated(wpa_s, subscribe_id,
 						  nan_reason_txt(reason));
 }

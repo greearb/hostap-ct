@@ -14169,6 +14169,7 @@ static char * wpas_global_ctrl_iface_redir_p2p(struct wpa_global *global,
 		"NFC_REPORT_HANDOVER ",
 		"P2P_ASP_PROVISION ",
 		"P2P_ASP_PROVISION_RESP ",
+		"NAN_",
 #ifdef CONFIG_AP
 		"STA ",
 		"STA-NEXT ",
