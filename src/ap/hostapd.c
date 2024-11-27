@@ -633,7 +633,7 @@ static void hostapd_bss_link_deinit(struct hostapd_data *hapd)
 	}
 
 	/* Put all freeing logic above this */
-	if (!hapd->mld->num_links)
+	if (!hapd->mld || !hapd->mld->num_links)
 		return;
 
 	/* If not started, not yet linked to the MLD. However, the first
