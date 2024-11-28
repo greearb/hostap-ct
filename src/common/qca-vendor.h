@@ -10845,6 +10845,30 @@ enum qca_wlan_twt_session_suspendable {
 };
 
 /**
+ * enum qca_wlan_twt_session_updatable: Define the values used with
+ * %QCA_WLAN_VENDOR_ATTR_TWT_SETUP_UPDATABLE.
+ *
+ * @QCA_WLAN_TWT_SESSION_NOT_UPDATABLE: TWT session cannot be updated.
+ * @QCA_WLAN_TWT_SESSION_UPDATABLE: TWT session can be updated.
+ */
+enum qca_wlan_twt_session_updatable {
+	QCA_WLAN_TWT_SESSION_NOT_UPDATABLE = 0,
+	QCA_WLAN_TWT_SESSION_UPDATABLE = 1,
+};
+
+/**
+ * enum qca_wlan_twt_session_implicit: Define the values used with
+ * %QCA_WLAN_VENDOR_ATTR_TWT_SETUP_IMPLICIT.
+ *
+ * @QCA_WLAN_TWT_SESSION_NOT_IMPLICIT: TWT session cannot be implicit.
+ * @QCA_WLAN_TWT_SESSION_IMPLICIT: TWT session can be implicit.
+ */
+enum qca_wlan_twt_session_implicit {
+	QCA_WLAN_TWT_SESSION_NOT_IMPLICIT = 0,
+	QCA_WLAN_TWT_SESSION_IMPLICIT = 1,
+};
+
+/**
  * enum qca_wlan_vendor_attr_twt_setup: Represents attributes for
  * TWT (Target Wake Time) setup request. These attributes are sent as part of
  * %QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_TWT_SETUP and
@@ -11089,6 +11113,23 @@ enum qca_wlan_twt_session_suspendable {
  * @QCA_WLAN_VENDOR_ATTR_TWT_SETUP_RTWT_UPLINK_TID_BITMAP: Optional (u32)
  * This attribute is used to configure uplink TIDs for R-TWT scheduling.
  * This attribute only applicable when requesting R-TWT schedules.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TWT_SETUP_UPDATABLE: Optional (u8)
+ * This attribute indicates whether the parameters of the TWT session being
+ * negotiated (like wake interval, wake duration, etc.) can be updated after
+ * session setup.
+ * Refers the enum qca_wlan_twt_session_updatable.
+ * This parameter is used for
+ * 1. TWT SET Response
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TWT_SETUP_IMPLICIT: Optional (u8)
+ * This attribute indicates whether the TWT session being negotiated is
+ * an implicit TWT, where the requesting STA calculates the start time of the
+ * next TWT service period, or an explicit TWT, where the responding STA
+ * calculates the start time of the next TWT service period.
+ * Refers the enum qca_wlan_twt_session_implicit.
+ * This parameter is used for
+ * 1. TWT SET Response
  */
 
 enum qca_wlan_vendor_attr_twt_setup {
@@ -11130,6 +11171,8 @@ enum qca_wlan_vendor_attr_twt_setup {
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_SUSPENDABLE = 28,
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_RTWT_DOWNLINK_TID_BITMAP = 29,
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_RTWT_UPLINK_TID_BITMAP = 30,
+	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_UPDATABLE = 31,
+	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_IMPLICIT = 32,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_AFTER_LAST,
