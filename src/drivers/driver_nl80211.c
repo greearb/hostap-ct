@@ -11231,6 +11231,7 @@ static int wpa_driver_nl80211_get_survey(void *priv, unsigned int freq,
 		wpa_supplicant_event(ctx, EVENT_SURVEY, &data);
 
 	clean_survey_results(survey_results);
+	bss->scan_link = NULL;
 	return err;
 }
 
