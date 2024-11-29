@@ -7883,3 +7883,39 @@ def test_dpp_discard_public_action(dev, apdev):
         raise Exception("Failure not reported")
     if "No Auth Confirm received" not in ev:
         raise Exception("Unexpected failure reason: " + ev)
+
+def test_dpp_proto_stop_after_auth_hostapd(dev, apdev):
+    """DPP protocol testing - stop after authentication exchange - hostapd Configurator behavior"""
+    check_dpp_capab(dev[0])
+
+    params = {"ssid": "dpp",
+              "wpa": "2",
+              "wpa_key_mgmt": "DPP",
+              "ieee80211w": "2",
+              "rsn_pairwise": "CCMP",
+              "dpp_connector": params1_ap_connector,
+              "dpp_csign": params1_csign,
+              "dpp_netaccesskey": params1_ap_netaccesskey}
+    try:
+        hapd = hostapd.add_ap(apdev[0], params)
+    except:
+        raise HwsimSkip("DPP not supported")
+
+    conf_id = hapd.dpp_configurator_add()
+    hapd.set("dpp_configurator_params",
+             " conf=sta-dpp configurator=%d" % conf_id)
+
+    dev[0].set("dpp_test", "89")
+    id0 = dev[0].dpp_bootstrap_gen(chan="81/1", mac=True)
+    uri0 = dev[0].request("DPP_BOOTSTRAP_GET_URI %d" % id0)
+    dev[0].dpp_listen(2412)
+
+    hapd.dpp_auth_init(uri=uri0, role="configurator", configurator=conf_id,
+                       conf="sta-dpp")
+    ev = hapd.wait_event(["DPP-AUTH-SUCCESS"], timeout=10)
+    if ev is None:
+        raise Exception("DPP authentication did not succeed")
+
+    ev = hapd.wait_event(["DPP-CONF-FAILED"], timeout=11)
+    if ev is None:
+        raise Exception("DPP config failure not reported")
