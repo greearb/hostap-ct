@@ -942,6 +942,7 @@ def run_autogo_interworking(dev):
     dev[0].global_request("SET go_venue_type 3")
     res = autogo(dev[0])
     bssid = dev[0].p2p_interface_addr()
+    dev[1].flush_scan_cache()
     dev[1].scan_for_bss(bssid, freq=res['freq'])
     bss = dev[1].get_bss(bssid)
     dev[0].remove_group()
