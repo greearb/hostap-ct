@@ -345,7 +345,10 @@ static void wpa_supplicant_eapol_cb(struct eapol_sm *eapol,
 			   "driver-based 4-way hs and FT");
 		res = eapol_sm_get_key(eapol, buf, 2 * PMK_LEN);
 		if (res == 0) {
-			os_memcpy(pmk, buf + PMK_LEN, PMK_LEN);
+			if (wpa_key_mgmt_sha384(wpa_s->key_mgmt))
+				os_memcpy(pmk, buf, pmk_len);
+			else
+				os_memcpy(pmk, buf + PMK_LEN, PMK_LEN);
 			os_memset(buf, 0, sizeof(buf));
 		}
 #else /* CONFIG_IEEE80211R */
