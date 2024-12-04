@@ -3046,8 +3046,12 @@ static void handle_auth_pasn(struct hostapd_data *hapd, struct sta_info *sta,
 					 mgmt, len, false);
 		wpabuf_free(sta->pasn->frame);
 		sta->pasn->frame = NULL;
-		if (ret < 0)
+		if (ret < 0) {
+			hostapd_drv_set_secure_ranging_ctx(hapd, hapd->own_addr,
+							   sta->addr, 0, 0,
+							   NULL, 0, NULL, 1);
 			ap_free_sta(hapd, sta);
+		}
 	} else if (trans_seq == 3) {
 		if (!sta->pasn) {
 			wpa_printf(MSG_DEBUG,
