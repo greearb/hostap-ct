@@ -11131,7 +11131,6 @@ enum qca_wlan_twt_session_implicit {
  * This parameter is used for
  * 1. TWT SET Response
  */
-
 enum qca_wlan_vendor_attr_twt_setup {
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_INVALID = 0,
 	QCA_WLAN_VENDOR_ATTR_TWT_SETUP_BCAST = 1,
