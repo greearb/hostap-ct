@@ -8760,6 +8760,7 @@ static int wpa_supplicant_driver_cmd(struct wpa_supplicant *wpa_s, char *cmd,
 
 	ret = wpa_drv_driver_cmd(wpa_s, cmd, buf, buflen);
 	if (ret == 0) {
+#ifdef CONFIG_P2P
 		if (os_strncasecmp(cmd, "COUNTRY", 7) == 0) {
 			struct p2p_data *p2p = wpa_s->global->p2p;
 			if (p2p) {
@@ -8770,6 +8771,7 @@ static int wpa_supplicant_driver_cmd(struct wpa_supplicant *wpa_s, char *cmd,
 				p2p_set_country(p2p, country);
 			}
 		}
+#endif /* CONFIG_P2P */
 		ret = os_snprintf(buf, buflen, "%s\n", "OK");
 		if (os_snprintf_error(buflen, ret))
 			ret = -1;
