@@ -7365,32 +7365,29 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 {
 	u8 bw;
 
-	/* bandwidth: 0: 40, 1: 80, 160, 80+80, 4: 320 as per
-	 * IEEE P802.11-REVme/D4.0, 9.4.2.159 and Table 9-314. */
+	/* bandwidth: 0: 40, 1: 80, 160, 80+80, 4 to 255 reserved as per
+	 * IEEE P802.11-REVme/D7.0, 9.4.2.159 and Table 9-316.
+	 */
 	switch (hapd->cs_freq_params.bandwidth) {
-	case 40:
-		bw = 0;
-		break;
-	case 80:
-		bw = 1;
-		break;
-	case 160:
-		bw = 1;
-		break;
 	case 320:
-		bw = 4;
-		break;
-	default:
-		/* not valid VHT bandwidth or not in CSA */
-		return eid;
-	}
+		/* As per IEEE P802.11be/D7.0, 35.15.3,
+		 * For EHT BSS operating channel width wider than 160 MHz,
+		 * the announced BSS bandwidth in the Wide Bandwidth
+		 * Channel Switch element is less than the BSS bandwidth
+		 * in the Bandwidth Indication element
+		 */
 
-	*eid++ = WLAN_EID_WIDE_BW_CHSWITCH;
-	*eid++ = 3; /* Length of Wide Bandwidth Channel Switch element */
-	*eid++ = bw; /* New Channel Width */
-	if (hapd->cs_freq_params.bandwidth == 160) {
+		/* Modifying the center frequency to 160 MHz */
+		if (hapd->cs_freq_params.channel < chan1)
+			chan1 -= 16;
+		else
+			chan1 += 16;
+
+		/* fallthrough */
+	case 160:
 		/* Update the CCFS0 and CCFS1 values in the element based on
-		 * IEEE P802.11-REVme/D4.0, Table 9-314 */
+		 * IEEE P802.11-REVme/D7.0, Table 9-316
+		 */
 
 		/* CCFS1 - The channel center frequency index of the 160 MHz
 		 * channel. */
@@ -7402,7 +7399,23 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 			chan1 -= 8;
 		else
 			chan1 += 8;
+
+		bw = 1;
+		break;
+	case 80:
+		bw = 1;
+		break;
+	case 40:
+		bw = 0;
+		break;
+	default:
+		/* not valid VHT bandwidth or not in CSA */
+		return eid;
 	}
+
+	*eid++ = WLAN_EID_WIDE_BW_CHSWITCH;
+	*eid++ = 3; /* Length of Wide Bandwidth Channel Switch element */
+	*eid++ = bw; /* New Channel Width */
 	*eid++ = chan1; /* New Channel Center Frequency Segment 0 */
 	*eid++ = chan2; /* New Channel Center Frequency Segment 1 */
 
