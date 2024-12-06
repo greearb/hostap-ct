@@ -1726,6 +1726,8 @@ static void phy_info_freq(struct hostapd_hw_modes *mode,
 		chan->allowed_bw &= ~HOSTAPD_CHAN_WIDTH_80;
 	if (tb_freq[NL80211_FREQUENCY_ATTR_NO_160MHZ])
 		chan->allowed_bw &= ~HOSTAPD_CHAN_WIDTH_160;
+	if (tb_freq[NL80211_FREQUENCY_ATTR_NO_320MHZ])
+		chan->allowed_bw &= ~HOSTAPD_CHAN_WIDTH_320;
 
 	if (tb_freq[NL80211_FREQUENCY_ATTR_DFS_STATE]) {
 		enum nl80211_dfs_state state =
@@ -1827,6 +1829,8 @@ static int phy_info_freqs(struct phy_info_arg *phy_info,
 		[NL80211_FREQUENCY_ATTR_NO_HT40_MINUS] = { .type = NLA_FLAG },
 		[NL80211_FREQUENCY_ATTR_NO_80MHZ] = { .type = NLA_FLAG },
 		[NL80211_FREQUENCY_ATTR_NO_160MHZ] = { .type = NLA_FLAG },
+		[NL80211_FREQUENCY_ATTR_NO_320MHZ] = { .type = NLA_FLAG },
+
 	};
 	int new_channels = 0;
 	struct hostapd_channel_data *channel;
