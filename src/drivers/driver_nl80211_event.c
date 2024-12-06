@@ -2596,19 +2596,6 @@ static void nl80211_radar_event(struct i802_bss *bss, struct nlattr **tb)
 	if (tb[NL80211_ATTR_CENTER_FREQ2])
 		data.dfs_event.cf2 = nla_get_u32(tb[NL80211_ATTR_CENTER_FREQ2]);
 
-	/* Find a link match based on the frequency. If NL80211_DRV_LINK_ID_NA
-	 * is returned, either a match was not found or the BSS could be
-	 * operating as a non-MLO. */
-	data.dfs_event.link_id = nl80211_get_link_id_by_freq(
-		bss, data.dfs_event.freq);
-	if (data.dfs_event.link_id == NL80211_DRV_LINK_ID_NA) {
-		/* For non-MLO operation, frequency should still match */
-		if (!bss->valid_links &&
-		    bss->links[0].freq == data.dfs_event.freq)
-			return nl80211_process_radar_event(bss, &data,
-							   event_type);
-	}
-
 	wpa_printf(MSG_DEBUG,
 		   "nl80211: Checking suitable BSS for the DFS event");
 
@@ -2616,8 +2603,16 @@ static void nl80211_radar_event(struct i802_bss *bss, struct nlattr **tb)
 	 * with NL80211_RADAR_NOP_FINISHED and NL80211_RADAR_PRE_CAC_EXPIRED.
 	 * Hence need to check on all BSSs. */
 	for (bss_iter = drv->first_bss; bss_iter; bss_iter = bss_iter->next) {
+		/* Find a link match based on the frequency. If
+		 * NL80211_DRV_LINK_ID_NA is returned, either a match was not
+		 * found or the BSS could be operating as a non-MLO. */
 		data.dfs_event.link_id = nl80211_get_link_id_by_freq(
 			bss_iter, data.dfs_event.freq);
+		/* If a link match is found, exit the loop after the handler is
+		 * called */
+		if (data.dfs_event.link_id != NL80211_DRV_LINK_ID_NA)
+			return nl80211_process_radar_event(bss_iter, &data,
+							   event_type);
 		if (data.dfs_event.link_id == NL80211_DRV_LINK_ID_NA) {
 			/* For non-MLO operation, frequency should still match
 			 */
