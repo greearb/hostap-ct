@@ -432,6 +432,27 @@ static void punct_update_legacy_bw_160(u8 bitmap, u8 pri,
 }
 
 
+static void punct_update_legacy_bw_320(u16 bitmap, u8 pri,
+				       enum oper_chan_width *width, u8 *seg0)
+{
+	if (pri < *seg0) {
+		*seg0 -= 16;
+		if (bitmap & 0x00FF) {
+			*width = 1;
+			punct_update_legacy_bw_160(bitmap & 0xFF, pri, width,
+						   seg0);
+		}
+	} else {
+		*seg0 += 16;
+		if (bitmap & 0xFF00) {
+			*width = 1;
+			punct_update_legacy_bw_160((bitmap & 0xFF00) >> 8,
+						   pri, width, seg0);
+		}
+	}
+}
+
+
 void punct_update_legacy_bw(u16 bitmap, u8 pri, enum oper_chan_width *width,
 			    u8 *seg0, u8 *seg1)
 {
@@ -446,7 +467,10 @@ void punct_update_legacy_bw(u16 bitmap, u8 pri, enum oper_chan_width *width,
 		punct_update_legacy_bw_160(bitmap & 0xFF, pri, width, seg0);
 	}
 
-	/* TODO: 320 MHz */
+	if (*width == CONF_OPER_CHWIDTH_320MHZ && (bitmap & 0xFFFF)) {
+		*width = CONF_OPER_CHWIDTH_160MHZ;
+		punct_update_legacy_bw_320(bitmap & 0xFFFF, pri, width, seg0);
+	}
 }
 
 
