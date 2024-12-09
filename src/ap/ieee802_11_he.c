@@ -221,7 +221,7 @@ u8 * hostapd_eid_he_operation(struct hostapd_data *hapd, u8 *eid)
 
 	if (is_6ghz_op_class(hapd->iconf->op_class)) {
 		enum oper_chan_width oper_chwidth =
-			hostapd_get_oper_chwidth(hapd->iconf);
+			hapd->iconf->he_oper_chwidth;
 		u8 seg0 = hapd->iconf->he_oper_centr_freq_seg0_idx;
 		u8 seg1 = hostapd_get_oper_centr_freq_seg1_idx(hapd->iconf);
 		u8 control;
