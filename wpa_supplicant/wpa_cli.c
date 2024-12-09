@@ -3335,6 +3335,59 @@ static int wpa_cli_cmd_dscp_query(struct wpa_ctrl *ctrl, int argc, char *argv[])
 }
 
 
+#ifdef CONFIG_NAN_USD
+
+static int wpa_cli_cmd_nan_publish(struct wpa_ctrl *ctrl, int argc,
+				   char *argv[])
+{
+	return wpa_cli_cmd(ctrl, "NAN_PUBLISH", 1, argc, argv);
+}
+
+
+static int wpa_cli_cmd_nan_cancel_publish(struct wpa_ctrl *ctrl, int argc,
+					  char *argv[])
+{
+	return wpa_cli_cmd(ctrl, "NAN_CANCEL_PUBLISH", 1, argc, argv);
+}
+
+
+static int wpa_cli_cmd_nan_update_publish(struct wpa_ctrl *ctrl, int argc,
+					  char *argv[])
+{
+	return wpa_cli_cmd(ctrl, "NAN_UPDATE_PUBLISH", 1, argc, argv);
+}
+
+
+static int wpa_cli_cmd_nan_subscribe(struct wpa_ctrl *ctrl, int argc,
+				     char *argv[])
+{
+	return wpa_cli_cmd(ctrl, "NAN_SUBSCRIBE", 1, argc, argv);
+}
+
+
+static int wpa_cli_cmd_nan_cancel_subscribe(struct wpa_ctrl *ctrl, int argc,
+					    char *argv[])
+{
+	return wpa_cli_cmd(ctrl, "NAN_CANCEL_SUBSCRIBE", 1, argc, argv);
+}
+
+
+static int wpa_cli_cmd_nan_transmit(struct wpa_ctrl *ctrl, int argc,
+				    char *argv[])
+{
+	return wpa_cli_cmd(ctrl, "NAN_TRANSMIT", 3, argc, argv);
+}
+
+
+static int wpa_cli_cmd_nan_flush(struct wpa_ctrl *ctrl, int argc,
+				 char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "NAN_FLUSH");
+}
+
+#endif /* CONFIG_NAN_USD */
+
+
 enum wpa_cli_cmd_flags {
 	cli_cmd_flag_none		= 0x00,
 	cli_cmd_flag_sensitive		= 0x01
@@ -4084,6 +4137,24 @@ static const struct wpa_cli_cmd wpa_cli_commands[] = {
 	{ "mlo_signal_poll", wpa_cli_cmd_mlo_signal_poll, NULL,
 	  cli_cmd_flag_none,
 	  "= get mlo signal parameters" },
+#ifdef CONFIG_NAN_USD
+	{ "nan_publish", wpa_cli_cmd_nan_publish, NULL,
+	  cli_cmd_flag_none,
+	  "service_name=<name> [ttl=<time-to-live-in-sec>] [freq=<in MHz>] [freq_list=<comma separate list of MHz>] [srv_proto_type=<type>] [ssi=<service specific information (hexdump)>] [solicited=0] [unsolicited=0] [fsd=0] [p2p=1] = Publish NAN service" },
+	{ "nan_cancel_publish", wpa_cli_cmd_nan_cancel_publish, NULL,
+	  cli_cmd_flag_none, "publish_id=<id from NAN_PUBLISH> = Cancel NAN USD publish instance" },
+	{ "nan_update_publish", wpa_cli_cmd_nan_update_publish, NULL,
+	  cli_cmd_flag_none, "publish_id=<id from NAN_PUBLISH> [ssi=<service specific information (hexdump)> = Update publish" },
+	{ "nan_subscribe", wpa_cli_cmd_nan_subscribe, NULL,
+	  cli_cmd_flag_none,
+	  "service_name=<name> [active=1] [ttl=<time-to-live-in-sec>] [freq=<in MHz>] [srv_proto_type=<type>] [ssi=<service specific information (hexdump)>] [p2p=1] = Subscribe to NAN service" },
+	{ "nan_cancel_subscribe", wpa_cli_cmd_nan_cancel_subscribe, NULL,
+	  cli_cmd_flag_none, "subscribe_id=<id from NAN_PUBLISH> = Cancel NAN USD subscribe instance" },
+	{ "nan_transmit", wpa_cli_cmd_nan_transmit, NULL,
+	  cli_cmd_flag_none, "handle=<id from NAN_PUBLISH or NAN_SUBSCRIBE> req_instance_id=<peer's id> address=<peer's MAC address> [ssi=<service specific information (hexdump)>] = Transmit NAN follow up" },
+	{ "nan_flush", wpa_cli_cmd_nan_flush, NULL,
+	  cli_cmd_flag_none, "= Flush all NAN USD services" },
+#endif /* CONFIG_NAN_USD */
 	{ NULL, NULL, NULL, cli_cmd_flag_none, NULL }
 };
 
