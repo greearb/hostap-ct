@@ -1223,9 +1223,10 @@ int hostapd_init_wps(struct hostapd_data *hapd,
 		wps->auth_types |= WPS_AUTH_OPEN;
 	}
 
-	if (conf->ssid.wpa_psk_file) {
-		/* Use per-device PSKs */
-	} else if (conf->ssid.wpa_passphrase) {
+	if (conf->ssid.wpa_psk_file)
+		wpa_printf(MSG_DEBUG, "WPS: allow using per-device PSKs");
+
+	if (conf->ssid.wpa_passphrase) {
 		wps->network_key = (u8 *) os_strdup(conf->ssid.wpa_passphrase);
 		wps->network_key_len = os_strlen(conf->ssid.wpa_passphrase);
 	} else if (conf->ssid.wpa_psk) {
