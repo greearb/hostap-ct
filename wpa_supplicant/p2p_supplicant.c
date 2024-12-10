@@ -7246,6 +7246,10 @@ static int wpas_p2p_supported_freq_go(struct wpa_supplicant *wpa_s,
 				      const struct p2p_channels *channels,
 				      int freq)
 {
+	if (is_6ghz_freq(freq) &&
+	    !is_p2p_6ghz_capable(wpa_s->global->p2p))
+		return 0;
+
 	if (!wpas_p2p_disallowed_freq(wpa_s->global, freq) &&
 	    p2p_supported_freq_go(wpa_s->global->p2p, freq) &&
 	    freq_included(wpa_s, channels, freq))
