@@ -2023,6 +2023,11 @@ static void wpas_start_gc(struct wpa_supplicant *wpa_s,
 
 		wpa_sm_pmksa_cache_add_entry(wpa_s->wpa, entry);
 		ssid->pmk_valid = true;
+	} else if (res->akmp == WPA_KEY_MGMT_SAE && res->sae_password[0]) {
+		ssid->auth_alg = WPA_AUTH_ALG_SAE;
+		ssid->sae_password = os_strdup(res->sae_password);
+		if (!ssid->sae_password)
+			return;
 	}
 
 	if (res->psk_set) {
@@ -5283,7 +5288,7 @@ static void wpas_p2p_send_bootstrap_comeback(void *eloop_ctx, void *timeout_ctx)
 			 wpa_s->p2p_go_he,
 			 wpa_s->p2p_go_edmg,
 			 NULL, 0, is_p2p_allow_6ghz(wpa_s->global->p2p),
-			 wpa_s->p2p2, wpa_s->p2p_bootstrap, NULL);
+			 wpa_s->p2p2, wpa_s->p2p_bootstrap, NULL, false);
 }
 
 
@@ -6158,7 +6163,8 @@ static void wpas_p2p_scan_res_join(struct wpa_supplicant *wpa_s,
 					 is_p2p_allow_6ghz(wpa_s->global->p2p),
 					 wpa_s->p2p2, wpa_s->p2p_bootstrap,
 					 wpa_s->pending_join_password[0] ?
-					 wpa_s->pending_join_password : NULL);
+					 wpa_s->pending_join_password : NULL,
+					 false);
 			return;
 		}
 
@@ -6517,6 +6523,8 @@ static int wpas_p2p_join_start(struct wpa_supplicant *wpa_s, int freq,
 			res.freq = bss->freq;
 			res.ssid_len = bss->ssid_len;
 			os_memcpy(res.ssid, bss->ssid, bss->ssid_len);
+			os_memcpy(res.peer_interface_addr, bss->bssid,
+				  ETH_ALEN);
 			wpa_printf(MSG_DEBUG, "P2P: Join target GO operating frequency from BSS table: %d MHz (SSID %s)",
 				   bss->freq,
 				   wpa_ssid_txt(bss->ssid, bss->ssid_len));
@@ -6736,6 +6744,7 @@ static int wpas_p2p_check_6ghz(struct wpa_supplicant *wpa_s,
  * @bootstrap: Requested bootstrap method for pairing in P2P2
  * @password: Password for pairing setup or NULL for opportunistic method
  *	in P2P2
+ * @skip_prov: Connect without provisioning
  * Returns: 0 or new PIN (if pin was %NULL) on success, -1 on unspecified
  *	failure, -2 on failure due to channel not currently available,
  *	-3 if forced channel is not supported
@@ -6748,7 +6757,7 @@ int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 		     unsigned int vht_chwidth, int he, int edmg,
 		     const u8 *group_ssid, size_t group_ssid_len,
 		     bool allow_6ghz, bool p2p2, u16 bootstrap,
-		     const char *password)
+		     const char *password, bool skip_prov)
 {
 	int force_freq = 0, pref_freq = 0;
 	int ret = 0, res;
@@ -6896,6 +6905,17 @@ int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 		if (password)
 			os_strlcpy(wpa_s->pending_join_password, password,
 				   sizeof(wpa_s->pending_join_password));
+
+		if (skip_prov) {
+			if (!wpa_s->p2p2) {
+				wpa_printf(MSG_DEBUG,
+					   "P2P: Join without provisioning not supported");
+				return -1;
+			}
+			/* Start join operation immediately */
+			return wpas_p2p_join_start(wpa_s, 0, group_ssid,
+						   group_ssid_len);
+		}
 		if (wpas_p2p_join(wpa_s, iface_addr, dev_addr, wps_method,
 				  auto_join, freq,
 				  group_ssid, group_ssid_len) < 0)
@@ -9704,7 +9724,7 @@ static int wpas_p2p_fallback_to_go_neg(struct wpa_supplicant *wpa_s,
 			 wpa_s->p2p_go_he,
 			 wpa_s->p2p_go_edmg,
 			 NULL, 0, is_p2p_allow_6ghz(wpa_s->global->p2p),
-			 wpa_s->p2p2, wpa_s->p2p_bootstrap, NULL);
+			 wpa_s->p2p2, wpa_s->p2p_bootstrap, NULL, false);
 	return ret;
 }
 
@@ -10247,7 +10267,7 @@ static int wpas_p2p_nfc_join_group(struct wpa_supplicant *wpa_s,
 				wpa_s->p2p_go_he, wpa_s->p2p_go_edmg,
 				params->go_ssid_len ? params->go_ssid : NULL,
 				params->go_ssid_len, false, wpa_s->p2p2,
-				wpa_s->p2p_bootstrap, NULL);
+				wpa_s->p2p_bootstrap, NULL, false);
 }
 
 
@@ -10327,7 +10347,7 @@ static int wpas_p2p_nfc_init_go_neg(struct wpa_supplicant *wpa_s,
 				-1, 0, 1, 1, wpa_s->p2p_go_max_oper_chwidth,
 				wpa_s->p2p_go_he, wpa_s->p2p_go_edmg,
 				NULL, 0, false, wpa_s->p2p2,
-				wpa_s->p2p_bootstrap, NULL);
+				wpa_s->p2p_bootstrap, NULL, false);
 }
 
 
@@ -10345,7 +10365,7 @@ static int wpas_p2p_nfc_resp_go_neg(struct wpa_supplicant *wpa_s,
 			       -1, 0, 1, 1, wpa_s->p2p_go_max_oper_chwidth,
 			       wpa_s->p2p_go_he, wpa_s->p2p_go_edmg,
 			       NULL, 0, false, wpa_s->p2p2,
-			       wpa_s->p2p_bootstrap, NULL);
+			       wpa_s->p2p_bootstrap, NULL, false);
 	if (res)
 		return res;
 

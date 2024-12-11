@@ -6378,7 +6378,7 @@ static int p2p_ctrl_connect(struct wpa_supplicant *wpa_s, char *cmd,
 	size_t group_ssid_len = 0;
 	int he;
 	bool allow_6ghz;
-	bool p2p2;
+	bool p2p2, skip_prov;
 	u16 bootstrap = 0;
 	const char *password = NULL;
 	char *token, *context = NULL;
@@ -6395,7 +6395,7 @@ static int p2p_ctrl_connect(struct wpa_supplicant *wpa_s, char *cmd,
 	 * [persistent|persistent=<network id>]
 	 * [join] [auth] [go_intent=<0..15>] [freq=<in MHz>] [provdisc]
 	 * [ht40] [vht] [he] [edmg] [auto] [ssid=<hexdump>]
-	 * [p2p2] [bstrapmethod=<value>] [password=<string>]
+	 * [p2p2] [skip_prov] [bstrapmethod=<value>] [password=<string>]
 	 */
 
 	if (hwaddr_aton(cmd, addr))
@@ -6431,6 +6431,7 @@ static int p2p_ctrl_connect(struct wpa_supplicant *wpa_s, char *cmd,
 	he = (os_strstr(cmd, " he") != NULL) || wpa_s->conf->p2p_go_he;
 	edmg = (os_strstr(cmd, " edmg") != NULL) || wpa_s->conf->p2p_go_edmg;
 	p2p2 = os_strstr(pos, " p2p2") != NULL;
+	skip_prov = os_strstr(pos, " skip_prov") != NULL;
 
 	pos2 = os_strstr(pos, " go_intent=");
 	if (pos2) {
@@ -6522,7 +6523,7 @@ static int p2p_ctrl_connect(struct wpa_supplicant *wpa_s, char *cmd,
 				   auth, go_intent, freq, freq2, persistent_id,
 				   pd, ht40, vht, max_oper_chwidth, he, edmg,
 				   group_ssid, group_ssid_len, allow_6ghz, p2p2,
-				   bootstrap, password);
+				   bootstrap, password, skip_prov);
 	if (new_pin == -2) {
 		os_memcpy(buf, "FAIL-CHANNEL-UNAVAILABLE\n", 25);
 		return 25;
