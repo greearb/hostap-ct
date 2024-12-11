@@ -3414,7 +3414,10 @@ static u8 hostapd_max_bssid_indicator(struct hostapd_data *hapd)
 	if (!hapd->iconf->mbssid || hapd->iface->num_bss <= 1)
 		return 0;
 
-	num_bss_nontx = hapd->iface->num_bss - 1;
+	if (hapd->iface->conf->mbssid_max > 0)
+		num_bss_nontx = hapd->iface->conf->mbssid_max - 1;
+	else
+		num_bss_nontx = hapd->iface->conf->num_bss - 1;
 	while (num_bss_nontx > 0) {
 		max_bssid_ind++;
 		num_bss_nontx >>= 1;
@@ -8345,11 +8348,13 @@ static u8 * hostapd_eid_mbssid_elem(struct hostapd_data *hapd, u8 *eid, u8 *end,
 	for (i = *bss_index; i < hapd->iface->num_bss; i++) {
 		struct hostapd_data *bss = hapd->iface->bss[i];
 		struct hostapd_bss_config *conf;
+		struct hostapd_bss_config *tx_conf = tx_bss->conf;
 		u8 *eid_len_pos, *nontx_bss_start = eid;
 		const u8 *auth, *rsn = NULL, *rsnx = NULL;
 		u8 ie_count = 0, non_inherit_ie[3];
 		size_t auth_len = 0;
 		u16 capab_info;
+		u8 mbssindex = i;
 
 		if (!bss || !bss->conf || !bss->started ||
 		    mbssid_known_bss(i, known_bss, known_bss_len))
@@ -8370,10 +8375,14 @@ static u8 * hostapd_eid_mbssid_elem(struct hostapd_data *hapd, u8 *eid, u8 *end,
 		os_memcpy(eid, conf->ssid.ssid, conf->ssid.ssid_len);
 		eid += conf->ssid.ssid_len;
 
+		if (conf->mbssid_index &&
+		    conf->mbssid_index > tx_conf->mbssid_index)
+			mbssindex = conf->mbssid_index - tx_conf->mbssid_index;
+
 		*eid++ = WLAN_EID_MULTIPLE_BSSID_INDEX;
 		if (frame_type == WLAN_FC_STYPE_BEACON) {
 			*eid++ = 3;
-			*eid++ = i; /* BSSID Index */
+			*eid++ = mbssindex; /* BSSID Index */
 			if (hapd->iconf->mbssid == ENHANCED_MBSSID_ENABLED &&
 			    (conf->dtim_period % elem_count))
 				conf->dtim_period = elem_count;
@@ -8389,7 +8398,7 @@ static u8 * hostapd_eid_mbssid_elem(struct hostapd_data *hapd, u8 *eid, u8 *end,
 			/* Probe Request frame does not include DTIM Period and
 			 * DTIM Count fields. */
 			*eid++ = 1;
-			*eid++ = i; /* BSSID Index */
+			*eid++ = mbssindex; /* BSSID Index */
 		}
 
 		auth = wpa_auth_get_wpa_ie(bss->wpa_auth, &auth_len);

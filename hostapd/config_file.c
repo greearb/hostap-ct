@@ -3964,6 +3964,10 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 			return 1;
 		}
 		conf->mbssid = mbssid;
+	} else if (os_strcmp(buf, "mbssid_index") == 0) {
+		bss->mbssid_index = atoi(pos);
+	} else if (os_strcmp(buf, "mbssid_max") == 0) {
+		conf->mbssid_max = atoi(pos);
 #endif /* CONFIG_IEEE80211AX */
 	} else if (os_strcmp(buf, "max_listen_interval") == 0) {
 		bss->max_listen_interval = atoi(pos);
