@@ -6460,6 +6460,7 @@ static int wpas_p2p_join_start(struct wpa_supplicant *wpa_s, int freq,
 	struct wpa_supplicant *group;
 	struct p2p_go_neg_results res;
 	struct wpa_bss *bss;
+	const u8 *iface_addr = NULL;
 
 	group = wpas_p2p_get_group_iface(wpa_s, 0, 0);
 	if (group == NULL)
@@ -6487,6 +6488,9 @@ static int wpas_p2p_join_start(struct wpa_supplicant *wpa_s, int freq,
 	os_memcpy(res.peer_device_addr, wpa_s->pending_join_dev_addr, ETH_ALEN);
 	os_memcpy(res.peer_interface_addr, wpa_s->pending_join_iface_addr,
 		  ETH_ALEN);
+	if (!is_zero_ether_addr(wpa_s->pending_join_iface_addr))
+		iface_addr = wpa_s->pending_join_iface_addr;
+
 	if (wpa_s->pending_join_password[0]) {
 		res.akmp = WPA_KEY_MGMT_SAE;
 		os_strlcpy(res.sae_password, wpa_s->pending_join_password,
@@ -6504,8 +6508,7 @@ static int wpas_p2p_join_start(struct wpa_supplicant *wpa_s, int freq,
 		os_memcpy(res.ssid, ssid, ssid_len);
 	} else {
 		if (ssid && ssid_len) {
-			bss = wpa_bss_get(wpa_s, wpa_s->pending_join_iface_addr,
-					  ssid, ssid_len);
+			bss = wpa_bss_get(wpa_s, iface_addr, ssid, ssid_len);
 		} else {
 			bss = wpa_bss_get_bssid_latest(
 				wpa_s, wpa_s->pending_join_iface_addr);
