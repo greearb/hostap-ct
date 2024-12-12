@@ -5,6 +5,7 @@
 # This software may be distributed under the terms of the BSD license.
 # See README for more details.
 
+import binascii
 import logging
 logger = logging.getLogger()
 import os
@@ -597,3 +598,39 @@ def test_p2p_auto_go_pcc_with_two_cli(dev, apdev):
     dev[0].wait_sta_disconnect(addr=dev[1].own_addr())
 
     dev[0].remove_group()
+
+def test_p2p_auto_go_pcc_with_p2p2_cli(dev, apdev):
+    """P2P autonomous GO in PCC mode with P2P2 clients"""
+    check_p2p2_capab(dev[0])
+    check_p2p2_capab(dev[1])
+    set_p2p2_configs(dev[0])
+
+    cmd = "P2P_GROUP_ADD p2p2 p2pmode=2 freq=2462"
+    res = dev[0].request(cmd)
+    if "FAIL" in res:
+        raise Exception("P2P_GROUP_ADD failed")
+    ev = dev[0].wait_global_event(["P2P-GROUP-STARTED"], timeout=10)
+    if ev is None:
+        raise Exception("Group formation timed out")
+
+    res = dev[0].group_form_result(ev)
+    if dev[0].get_group_status_field("passphrase", extra="WPS") != res['passphrase']:
+        raise Exception("passphrase mismatch")
+    if dev[0].group_request("P2P_GET_PASSPHRASE") != res['passphrase']:
+        raise Exception("passphrase mismatch(2)")
+
+    ssidhex =  binascii.hexlify(res['ssid'].encode()).decode()
+    cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair p2p2 skip_prov join password=" + res['passphrase'] + " ssid=" + ssidhex
+    id0 = dev[1].request(cmd)
+    if "FAIL" in id0:
+        raise Exception("P2P_CONNECT failed")
+
+    ev = dev[1].wait_global_event(["CTRL-EVENT-CONNECTED"], timeout=10)
+    if ev is None:
+        raise Exception("Group formation timed out")
+    dev[1].dump_monitor()
+
+    dev[0].wait_sta()
+
+    dev[0].remove_group()
+    dev[1].dump_monitor()
