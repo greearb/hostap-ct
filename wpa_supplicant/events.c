@@ -1162,7 +1162,8 @@ static void owe_trans_ssid(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 			if (wpas_network_disabled(wpa_s, ssid))
 				continue;
 			if (ssid->ssid_len == *ret_ssid_len &&
-			    os_memcmp(ssid->ssid, ret_ssid, *ret_ssid_len) == 0) {
+			    os_memcmp(ssid->ssid, *ret_ssid, *ret_ssid_len) ==
+			    0) {
 				/* OWE BSS in transition mode for a currently
 				 * enabled OWE network. */
 				wpa_dbg(wpa_s, MSG_DEBUG,
