@@ -2639,6 +2639,7 @@ def find_wpas_process(dev):
 
 def read_process_memory(pid, key=None):
     buf = []
+    buflen = 0
     logger.info("Reading process memory (pid=%d)" % pid)
     with open('/proc/%d/maps' % pid, 'r') as maps, \
          open('/proc/%d/mem' % pid, 'rb') as mem:
@@ -2657,7 +2658,7 @@ def read_process_memory(pid, key=None):
                 continue
             for name in ["[heap]", "[stack]"]:
                 if name in l:
-                    logger.info("%s 0x%x-0x%x is at %d-%d" % (name, start, end, len(buf), len(buf) + (end - start)))
+                    logger.info("%s 0x%x-0x%x is at %d-%d" % (name, start, end, buflen, buflen + (end - start)))
 
             if end - start >= 256 * 1024 * 1024:
                 logger.info("Large memory block of >= 256MiB, assuming ASAN shadow memory")
@@ -2670,9 +2671,10 @@ def read_process_memory(pid, key=None):
                 logger.info("Could not read mem: start=%d end=%d: %s" % (start, end, str(e)))
                 continue
             buf.append(data)
+            buflen += len(data)
             if key and key in data:
                 logger.info("Key found in " + l)
-    logger.info("Total process memory read: %d bytes" % len(buf))
+    logger.info("Total process memory read: %d bytes" % buflen)
     return b''.join(buf)
 
 def verify_not_present(buf, key, fname, keyname):
