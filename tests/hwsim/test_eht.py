@@ -856,10 +856,15 @@ def test_eht_mld_connect_probes(dev, apdev, params):
                      key_mgmt="SAE", scan_freq="2412")
 
         out = run_tshark(os.path.join(params['logdir'], 'hwsim0.pcapng'),
-                         'wlan.fc.type_subtype == 0x0004 && wlan.ext_tag.number == 107 && wlan.ext_tag.data == 11:00:02:00:00:02:11:00',
+                         'wlan.fc.type_subtype == 0x0004 && wlan.ext_tag.length == 8 && wlan.ext_tag.number == 107 && wlan.eht.multi_link_control == 0x0011 && wlan.eht.multi_link.common_info.length == 2 && wlan.eht.multi_link.common_info.mld_id == 0 && wlan.eht.multi_link.sta_profile.subelt_id == 0 && wlan.eht.multi_link.sta_profile.subelt_len == 2 && wlan.eht.multi_link.type_1.sta_profile_count == 1 && wlan.eht.multi_link.sta_profile_id_list == 1',
                          display=['frame.number'])
         if not out.splitlines():
-            raise Exception('ML probe request not found')
+            # Fall back to older tshark version without support for EHT dissecting
+            out = run_tshark(os.path.join(params['logdir'], 'hwsim0.pcapng'),
+                             'wlan.fc.type_subtype == 0x0004 && wlan.ext_tag.number == 107 && wlan.ext_tag.data == 11:00:02:00:00:02:11:00',
+                             display=['frame.number'])
+            if not out.splitlines():
+                raise Exception('ML probe request not found')
 
         # Probe Response frame has the ML element, which will be fragmented
         out = run_tshark(os.path.join(params['logdir'], "hwsim0.pcapng"),
@@ -981,6 +986,13 @@ def test_eht_connect_invalid_link(dev, apdev, params):
         eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
                           valid_links=1, active_links=1)
 
+        out = run_tshark(os.path.join(params['logdir'], 'hwsim0.pcapng'),
+                         'wlan.fc.type_subtype == 0x0000 && wlan.ext_tag.length == 11 && wlan.ext_tag.number == 107 && wlan.eht.multi_link_control == 0x0100 && wlan.eht.multi_link.common_info.length == 9 && wlan.eht.multi_link.common_info.mld_mac_address == %s && wlan.eht.multi_link.common_info.mld_capabilities == 0x0000' % wpas.own_addr(),
+                         display=['frame.number'])
+        if out.splitlines():
+            return
+
+        # Fall back to older tshark version without support for EHT dissecting
         out = run_tshark(os.path.join(params['logdir'], 'hwsim0.pcapng'),
                          'wlan.fc.type_subtype == 0x0000 && wlan.ext_tag.data == 00:01:09:%s:00:00' % wpas.own_addr(),
                          display=['frame.number'])
