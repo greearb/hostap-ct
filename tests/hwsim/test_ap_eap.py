@@ -1888,7 +1888,7 @@ def test_ap_wpa2_eap_ttls_mschapv2(dev, apdev):
     check_eap_capa(dev[0], "MSCHAPV2")
     params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")
     hapd = hostapd.add_ap(apdev[0], params)
-    eap_connect(dev[0], hapd, "TTLS", "DOMAIN\mschapv2 user",
+    eap_connect(dev[0], hapd, "TTLS", "DOMAIN\\mschapv2 user",
                 anonymous_identity="ttls", password="password",
                 ca_cert="auth_serv/ca.pem", phase2="auth=MSCHAPV2",
                 domain_suffix_match="server.w1.fi")
@@ -1907,7 +1907,7 @@ def test_ap_wpa2_eap_ttls_mschapv2(dev, apdev):
 
     logger.info("Password as hash value")
     dev[0].request("REMOVE_NETWORK all")
-    eap_connect(dev[0], hapd, "TTLS", "DOMAIN\mschapv2 user",
+    eap_connect(dev[0], hapd, "TTLS", "DOMAIN\\mschapv2 user",
                 anonymous_identity="ttls",
                 password_hex="hash:8846f7eaee8fb117ad06bdd830b7586c",
                 ca_cert="auth_serv/ca.pem", phase2="auth=MSCHAPV2")
@@ -1921,7 +1921,7 @@ def test_ap_wpa2_eap_ttls_invalid_phase2(dev, apdev):
              "autheap=MD5 autheap=FOO autheap=MSCHAPV2"]
     for t in tests:
         dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP", eap="TTLS",
-                       identity="DOMAIN\mschapv2 user",
+                       identity="DOMAIN\\mschapv2 user",
                        anonymous_identity="ttls", password="password",
                        ca_cert="auth_serv/ca.pem", phase2=t,
                        wait_connect=False, scan_freq="2412")
@@ -1942,7 +1942,7 @@ def test_ap_wpa2_eap_ttls_mschapv2_suffix_match(dev, apdev):
     skip_with_fips(dev[0])
     params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")
     hapd = hostapd.add_ap(apdev[0], params)
-    eap_connect(dev[0], hapd, "TTLS", "DOMAIN\mschapv2 user",
+    eap_connect(dev[0], hapd, "TTLS", "DOMAIN\\mschapv2 user",
                 anonymous_identity="ttls", password="password",
                 ca_cert="auth_serv/ca.pem", phase2="auth=MSCHAPV2",
                 domain_suffix_match="w1.fi")
@@ -1955,7 +1955,7 @@ def test_ap_wpa2_eap_ttls_mschapv2_domain_match(dev, apdev):
     skip_with_fips(dev[0])
     params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")
     hapd = hostapd.add_ap(apdev[0], params)
-    eap_connect(dev[0], hapd, "TTLS", "DOMAIN\mschapv2 user",
+    eap_connect(dev[0], hapd, "TTLS", "DOMAIN\\mschapv2 user",
                 anonymous_identity="ttls", password="password",
                 ca_cert="auth_serv/ca.pem", phase2="auth=MSCHAPV2",
                 domain_match="Server.w1.fi")
@@ -1967,7 +1967,7 @@ def test_ap_wpa2_eap_ttls_mschapv2_incorrect_password(dev, apdev):
     skip_with_fips(dev[0])
     params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")
     hapd = hostapd.add_ap(apdev[0], params)
-    eap_connect(dev[0], hapd, "TTLS", "DOMAIN\mschapv2 user",
+    eap_connect(dev[0], hapd, "TTLS", "DOMAIN\\mschapv2 user",
                 anonymous_identity="ttls", password="password1",
                 ca_cert="auth_serv/ca.pem", phase2="auth=MSCHAPV2",
                 expect_failure=True)
@@ -2737,12 +2737,12 @@ def test_ap_wpa2_eap_tls_neg_incorrect_trust_root(dev, apdev):
     if "OK" not in dev[0].request("SET blob cacert " + binascii.hexlify(cert).decode()):
         raise Exception("Could not set cacert blob")
     dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP", eap="TTLS",
-                   identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
+                   identity="DOMAIN\\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="blob://cacert",
                    wait_connect=False, scan_freq="2412")
     dev[1].connect("test-wpa2-eap", key_mgmt="WPA-EAP", eap="TTLS",
-                   identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
+                   identity="DOMAIN\\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="auth_serv/ca-incorrect.pem",
                    wait_connect=False, scan_freq="2412")
@@ -2872,7 +2872,7 @@ def test_ap_wpa2_eap_tls_neg_suffix_match(dev, apdev):
     params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")
     hostapd.add_ap(apdev[0], params)
     dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP", eap="TTLS",
-                   identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
+                   identity="DOMAIN\\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="auth_serv/ca.pem",
                    domain_suffix_match="incorrect.example.com",
@@ -2926,7 +2926,7 @@ def test_ap_wpa2_eap_tls_neg_domain_match(dev, apdev):
     params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")
     hostapd.add_ap(apdev[0], params)
     dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP", eap="TTLS",
-                   identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
+                   identity="DOMAIN\\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="auth_serv/ca.pem",
                    domain_match="w1.fi",
@@ -2979,7 +2979,7 @@ def test_ap_wpa2_eap_tls_neg_subject_match(dev, apdev):
     params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")
     hostapd.add_ap(apdev[0], params)
     dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP", eap="TTLS",
-                   identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
+                   identity="DOMAIN\\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="auth_serv/ca.pem",
                    subject_match="/C=FI/O=w1.fi/CN=example.com",
@@ -3048,7 +3048,7 @@ def test_ap_wpa2_eap_tls_neg_altsubject_match(dev, apdev):
 
 def _test_ap_wpa2_eap_tls_neg_altsubject_match(dev, apdev, match):
     dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP", eap="TTLS",
-                   identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
+                   identity="DOMAIN\\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="auth_serv/ca.pem",
                    altsubject_match=match,
@@ -3140,7 +3140,7 @@ def test_ap_wpa2_eap_ttls_server_cert_hash(dev, apdev):
     dev[0].request("REMOVE_NETWORK all")
 
     dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP", eap="TTLS",
-                   identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
+                   identity="DOMAIN\\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="hash://server/sha256/5a1bc1296205e6fdbe3979728efe3920798885c1c4590b5f90f43222d239ca6a",
                    wait_connect=False, scan_freq="2412")
@@ -3155,7 +3155,7 @@ def test_ap_wpa2_eap_ttls_server_cert_hash(dev, apdev):
     dev[0].wait_disconnected(timeout=10)
     dev[0].request("REMOVE_NETWORK all")
 
-    eap_connect(dev[0], hapd, "TTLS", "DOMAIN\mschapv2 user",
+    eap_connect(dev[0], hapd, "TTLS", "DOMAIN\\mschapv2 user",
                 anonymous_identity="ttls", password="password",
                 ca_cert="hash://server/sha256/" + srv_cert_hash,
                 phase2="auth=MSCHAPV2")
@@ -3165,17 +3165,17 @@ def test_ap_wpa2_eap_ttls_server_cert_hash_invalid(dev, apdev):
     params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")
     hostapd.add_ap(apdev[0], params)
     dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP", eap="TTLS",
-                   identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
+                   identity="DOMAIN\\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="hash://server/md5/5a1bc1296205e6fdbe3979728efe3920798885c1c4590b5f90f43222d239ca6a",
                    wait_connect=False, scan_freq="2412")
     dev[1].connect("test-wpa2-eap", key_mgmt="WPA-EAP", eap="TTLS",
-                   identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
+                   identity="DOMAIN\\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="hash://server/sha256/5a1bc1296205e6fdbe3979728efe3920798885c1c4590b5f90f43222d239ca",
                    wait_connect=False, scan_freq="2412")
     dev[2].connect("test-wpa2-eap", key_mgmt="WPA-EAP", eap="TTLS",
-                   identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
+                   identity="DOMAIN\\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="hash://server/sha256/5a1bc1296205e6fdbe3979728efe3920798885c1c4590b5f90f43222d239ca6Q",
                    wait_connect=False, scan_freq="2412")
@@ -3726,11 +3726,11 @@ def test_ap_wpa2_eap_interactive(dev, apdev):
     hapd = hostapd.add_ap(apdev[0], params)
 
     tests = [("Connection with dynamic TTLS/MSCHAPv2 password entry",
-              "TTLS", "ttls", "DOMAIN\mschapv2 user", "auth=MSCHAPV2",
+              "TTLS", "ttls", "DOMAIN\\mschapv2 user", "auth=MSCHAPV2",
               None, "password"),
              ("Connection with dynamic TTLS/MSCHAPv2 identity and password entry",
               "TTLS", "ttls", None, "auth=MSCHAPV2",
-              "DOMAIN\mschapv2 user", "password"),
+              "DOMAIN\\mschapv2 user", "password"),
              ("Connection with dynamic TTLS/EAP-MSCHAPv2 password entry",
               "TTLS", "ttls", "user", "autheap=MSCHAPV2", None, "password"),
              ("Connection with dynamic TTLS/EAP-MD5 password entry",
@@ -3769,7 +3769,7 @@ def test_ap_wpa2_eap_ext_enable_network_while_connected(dev, apdev):
     id_other = dev[0].connect("other", key_mgmt="NONE", scan_freq="2412",
                               only_add_network=True)
 
-    req_id = "DOMAIN\mschapv2 user"
+    req_id = "DOMAIN\\mschapv2 user"
     dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP", eap="TTLS",
                    anonymous_identity="ttls", identity=None,
                    password="password",
@@ -6596,7 +6596,7 @@ def test_eap_ttls_mschapv2_session_resumption(dev, apdev):
     params['tls_session_lifetime'] = '60'
     hapd = hostapd.add_ap(apdev[0], params)
     check_tls_session_resumption_capa(dev[0], hapd)
-    eap_connect(dev[0], hapd, "TTLS", "DOMAIN\mschapv2 user",
+    eap_connect(dev[0], hapd, "TTLS", "DOMAIN\\mschapv2 user",
                 anonymous_identity="ttls", password="password",
                 ca_cert="auth_serv/ca.pem", phase2="auth=MSCHAPV2",
                 domain_suffix_match="server.w1.fi")

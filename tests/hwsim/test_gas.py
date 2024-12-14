@@ -240,7 +240,7 @@ def test_gas_concurrent_connect(dev, apdev):
 
     logger.debug("Start concurrent connect and GAS request")
     dev[0].connect("test-gas", key_mgmt="WPA-EAP", eap="TTLS",
-                   identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
+                   identity="DOMAIN\\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="auth_serv/ca.pem", wait_connect=False,
                    scan_freq="2412")
@@ -1362,7 +1362,7 @@ def _test_gas_anqp_address3_assoc(dev, apdev, params):
 
     dev[0].scan_for_bss(bssid, freq="2412")
     dev[0].connect("test-gas", key_mgmt="WPA-EAP", eap="TTLS",
-                   identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
+                   identity="DOMAIN\\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="auth_serv/ca.pem", scan_freq="2412")
     hapd.wait_sta()
@@ -1513,7 +1513,7 @@ def _test_gas_anqp_address3_pmf(dev, apdev):
 
     dev[0].scan_for_bss(bssid, freq="2412")
     dev[0].connect("test-gas", key_mgmt="WPA-EAP", eap="TTLS",
-                   identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
+                   identity="DOMAIN\\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="auth_serv/ca.pem", scan_freq="2412",
                    ieee80211w="2")
@@ -1552,7 +1552,7 @@ def test_gas_prot_vs_not_prot(dev, apdev, params):
 
     dev[0].scan_for_bss(bssid, freq="2412")
     dev[0].connect("test-gas", key_mgmt="WPA-EAP", eap="TTLS",
-                   identity="DOMAIN\mschapv2 user", anonymous_identity="ttls",
+                   identity="DOMAIN\\mschapv2 user", anonymous_identity="ttls",
                    password="password", phase2="auth=MSCHAPV2",
                    ca_cert="auth_serv/ca.pem", scan_freq="2412",
                    ieee80211w="2")

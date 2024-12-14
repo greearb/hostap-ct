@@ -33,10 +33,10 @@ def parse_fst_iface_event(ev):
         event['event_type'] = 'detached'
     else:
         return None
-    f = re.search("ifname=(\S+)", ev)
+    f = re.search(r"ifname=(\S+)", ev)
     if f is not None:
         event['ifname'] = f.group(1)
-    f = re.search("group=(\S+)", ev)
+    f = re.search(r"group=(\S+)", ev)
     if f is not None:
         event['group'] = f.group(1)
     return event
@@ -50,20 +50,20 @@ def parse_fst_session_event(ev):
     if ev.find("FST-EVENT-SESSION") == -1:
         return None
     event['new_state'] = '' # The field always exists in the dictionary
-    f = re.search("event_type=(\S+)", ev)
+    f = re.search(r"event_type=(\S+)", ev)
     if f is None:
         return None
     event['type'] = f.group(1)
-    f = re.search("session_id=(\d+)", ev)
+    f = re.search(r"session_id=(\d+)", ev)
     if f is not None:
         event['id'] = f.group(1)
-    f = re.search("old_state=(\S+)", ev)
+    f = re.search(r"old_state=(\S+)", ev)
     if f is not None:
         event['old_state'] = f.group(1)
-    f = re.search("new_state=(\S+)", ev)
+    f = re.search(r"new_state=(\S+)", ev)
     if f is not None:
         event['new_state'] = f.group(1)
-    f = re.search("reason=(\S+)", ev)
+    f = re.search(r"reason=(\S+)", ev)
     if f is not None:
         event['reason'] = f.group(1)
     return event

@@ -83,7 +83,7 @@ def test_tnc_ttls(dev, apdev):
         raise HwsimSkip("No IMC installed")
 
     dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP",
-                   eap="TTLS", identity="DOMAIN\mschapv2 user",
+                   eap="TTLS", identity="DOMAIN\\mschapv2 user",
                    anonymous_identity="ttls", password="password",
                    phase2="auth=MSCHAPV2",
                    ca_cert="auth_serv/ca.pem",
@@ -102,7 +102,7 @@ def test_tnc_ttls_fragmentation(dev, apdev):
         raise HwsimSkip("No IMC installed")
 
     dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP",
-                   eap="TTLS", identity="DOMAIN\mschapv2 user",
+                   eap="TTLS", identity="DOMAIN\\mschapv2 user",
                    anonymous_identity="ttls", password="password",
                    phase2="auth=MSCHAPV2",
                    ca_cert="auth_serv/ca.pem",
@@ -122,7 +122,7 @@ def test_tnc_ttls_errors(dev, apdev):
     hostapd.add_ap(apdev[0], params)
 
     tests = [(1, "eap_ttls_process_phase2_eap;eap_ttls_process_tnc_start",
-              "DOMAIN\mschapv2 user", "auth=MSCHAPV2"),
+              "DOMAIN\\mschapv2 user", "auth=MSCHAPV2"),
              (1, "eap_ttls_process_phase2_eap;eap_ttls_process_tnc_start",
               "mschap user", "auth=MSCHAP"),
              (1, "=eap_tnc_init", "chap user", "auth=CHAP"),

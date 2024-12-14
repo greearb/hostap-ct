@@ -676,7 +676,7 @@ def run_sigma_dut_eap_ttls(dev, apdev, params, all_akm_suites=False):
     ifname = dev[0].ifname
     with SigmaDut(ifname, cert_path=logdir) as dut:
         key_mgmt = "" if all_akm_suites else ",keymgmttype,wpa2"
-        cmd = "sta_set_security,type,eapttls,interface,%s,ssid,%s%s,encType,AES-CCMP,PairwiseCipher,AES-CCMP-128,trustedRootCA,sigma_dut_eap_ttls.ca.pem,username,DOMAIN\mschapv2 user,password,password" % (ifname, ssid, key_mgmt)
+        cmd = "sta_set_security,type,eapttls,interface,%s,ssid,%s%s,encType,AES-CCMP,PairwiseCipher,AES-CCMP-128,trustedRootCA,sigma_dut_eap_ttls.ca.pem,username,DOMAIN\\mschapv2 user,password,password" % (ifname, ssid, key_mgmt)
 
         tests = ["",
                  ",Domain,server.w1.fi",
@@ -4637,7 +4637,7 @@ def test_sigma_dut_eap_ttls_uosc(dev, apdev, params):
 
     ifname = dev[0].ifname
     with SigmaDut(dev=dev[0], cert_path=logdir) as dut:
-        cmd = "sta_set_security,type,eapttls,interface,%s,ssid,%s,keymgmttype,wpa2,encType,AES-CCMP,PairwiseCipher,AES-CCMP-128,username,DOMAIN\mschapv2 user,password,password,ServerCert,sigma_dut_eap_ttls_uosc.incorrect.pem" % (ifname, ssid)
+        cmd = "sta_set_security,type,eapttls,interface,%s,ssid,%s,keymgmttype,wpa2,encType,AES-CCMP,PairwiseCipher,AES-CCMP-128,username,DOMAIN\\mschapv2 user,password,password,ServerCert,sigma_dut_eap_ttls_uosc.incorrect.pem" % (ifname, ssid)
 
         dut.cmd_check("sta_reset_default,interface,%s,prog,WPA3" % ifname)
         dut.cmd_check("sta_set_ip_config,interface,%s,dhcp,0,ip,127.0.0.11,mask,255.255.255.0" % ifname)
@@ -4703,7 +4703,7 @@ def run_sigma_dut_eap_ttls_uosc_tod(dev, apdev, params, tofu):
 
     ifname = dev[0].ifname
     with SigmaDut(dev=dev[0], cert_path=logdir) as dut:
-        cmd = ("sta_set_security,type,eapttls,interface,%s,ssid,%s,keymgmttype,wpa2,encType,AES-CCMP,PairwiseCipher,AES-CCMP-128,trustedRootCA," + name + ".ca.pem,username,DOMAIN\mschapv2 user,password,password,ServerCert," + name + ".server.pem") % (ifname, ssid)
+        cmd = ("sta_set_security,type,eapttls,interface,%s,ssid,%s,keymgmttype,wpa2,encType,AES-CCMP,PairwiseCipher,AES-CCMP-128,trustedRootCA," + name + ".ca.pem,username,DOMAIN\\mschapv2 user,password,password,ServerCert," + name + ".server.pem") % (ifname, ssid)
         dut.cmd_check("sta_reset_default,interface,%s,prog,WPA3" % ifname)
         dut.cmd_check("sta_set_ip_config,interface,%s,dhcp,0,ip,127.0.0.11,mask,255.255.255.0" % ifname)
         dut.cmd_check(cmd)
@@ -4775,7 +4775,7 @@ def run_sigma_dut_eap_ttls_uosc_initial_tod(dev, apdev, params, tofu):
 
     ifname = dev[0].ifname
     with SigmaDut(dev=dev[0], cert_path=logdir) as dut:
-        cmd = ("sta_set_security,type,eapttls,interface,%s,ssid,%s,keymgmttype,wpa2,encType,AES-CCMP,PairwiseCipher,AES-CCMP-128,trustedRootCA," + name + ".ca.pem,username,DOMAIN\mschapv2 user,password,password") % (ifname, ssid)
+        cmd = ("sta_set_security,type,eapttls,interface,%s,ssid,%s,keymgmttype,wpa2,encType,AES-CCMP,PairwiseCipher,AES-CCMP-128,trustedRootCA," + name + ".ca.pem,username,DOMAIN\\mschapv2 user,password,password") % (ifname, ssid)
         dut.cmd_check("sta_reset_default,interface,%s,prog,WPA3" % ifname)
         dut.cmd_check("sta_set_ip_config,interface,%s,dhcp,0,ip,127.0.0.11,mask,255.255.255.0" % ifname)
         dut.cmd_check(cmd)
@@ -4814,7 +4814,7 @@ def test_sigma_dut_eap_ttls_uosc_ca_mistrust(dev, apdev, params):
 
     ifname = dev[0].ifname
     with SigmaDut(dev=dev[0], cert_path=logdir) as dut:
-        cmd = "sta_set_security,type,eapttls,interface,%s,ssid,%s,keymgmttype,wpa2,encType,AES-CCMP,PairwiseCipher,AES-CCMP-128,trustedRootCA,sigma_dut_eap_ttls_uosc_ca_mistrust.ca.pem,username,DOMAIN\mschapv2 user,password,password,domainSuffix,w1.fi" % (ifname, ssid)
+        cmd = "sta_set_security,type,eapttls,interface,%s,ssid,%s,keymgmttype,wpa2,encType,AES-CCMP,PairwiseCipher,AES-CCMP-128,trustedRootCA,sigma_dut_eap_ttls_uosc_ca_mistrust.ca.pem,username,DOMAIN\\mschapv2 user,password,password,domainSuffix,w1.fi" % (ifname, ssid)
         dut.cmd_check("sta_reset_default,interface,%s,prog,WPA3" % ifname)
         dut.cmd_check("sta_set_ip_config,interface,%s,dhcp,0,ip,127.0.0.11,mask,255.255.255.0" % ifname)
         dut.cmd_check(cmd)

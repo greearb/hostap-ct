@@ -178,7 +178,7 @@ def set_mka_eap_config(dev, mka_priority=None, integ_only=False, port=None,
         dev.set_network_quoted(id, "ca_cert", "auth_serv/ca.pem")
         dev.set_network_quoted(id, "phase2", "auth=MSCHAPV2")
         dev.set_network_quoted(id, "anonymous_identity", "ttls")
-        dev.set_network_quoted(id, "identity", "DOMAIN\mschapv2 user")
+        dev.set_network_quoted(id, "identity", "DOMAIN\\mschapv2 user")
         dev.set_network_quoted(id, "password", "password")
 
     dev.select_network(id)

@@ -132,7 +132,7 @@ def p2ps_nonexact_seek(i_dev, r_dev, svc_name, srv_info=None, adv_num=None):
 def p2ps_parse_event(ev, *args):
     ret = ()
     for arg in args:
-        m = re.search("\s+" + arg + r"=(\S+)", ev)
+        m = re.search(r"\s+" + arg + r"=(\S+)", ev)
         ret += (m.group(1) if m is not None else None,)
     return ret
 

@@ -2414,7 +2414,7 @@ def _test_fst_test_setup(dev, apdev, test_params):
         if ev is None:
             raise Exception("No FST-EVENT-SESSION (AP)")
         if "new_state=SETUP_COMPLETION" in ev:
-            f = re.search("session_id=(\d+)", ev)
+            f = re.search(r"session_id=(\d+)", ev)
             if f is None:
                 raise Exception("No session_id in FST-EVENT-SESSION")
             sid_ap = f.group(1)
@@ -2587,7 +2587,7 @@ def _test_fst_many_setup(dev, apdev, test_params):
             if ev is None:
                 raise Exception("No FST-EVENT-SESSION (AP)")
             if "new_state=SETUP_COMPLETION" in ev:
-                f = re.search("session_id=(\d+)", ev)
+                f = re.search(r"session_id=(\d+)", ev)
                 if f is None:
                     raise Exception("No session_id in FST-EVENT-SESSION")
                 sid_ap = f.group(1)
@@ -2751,7 +2751,7 @@ def _test_fst_session_initiate_errors(dev, apdev, test_params):
         if ev is None:
             raise Exception("No FST-EVENT-SESSION (AP)")
         if "new_state=SETUP_COMPLETION" in ev:
-            f = re.search("session_id=(\d+)", ev)
+            f = re.search(r"session_id=(\d+)", ev)
             if f is None:
                 raise Exception("No session_id in FST-EVENT-SESSION")
             sid_ap = f.group(1)
@@ -2793,7 +2793,7 @@ def _test_fst_session_respond_errors(dev, apdev, test_params):
         if ev is None:
             raise Exception("No FST-EVENT-SESSION (AP)")
         if "new_state=SETUP_COMPLETION" in ev:
-            f = re.search("session_id=(\d+)", ev)
+            f = re.search(r"session_id=(\d+)", ev)
             if f is None:
                 raise Exception("No session_id in FST-EVENT-SESSION")
             sid_ap = f.group(1)
