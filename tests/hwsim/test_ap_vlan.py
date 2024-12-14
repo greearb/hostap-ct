@@ -644,7 +644,12 @@ def test_ap_vlan_without_station(dev, apdev, p):
                 raise Exception("second frame not observed")
             state = 1
             for l in lines:
-                is_protected = int(l, 16)
+                if l == "True":
+                    is_protected = 1
+                elif l == "False":
+                    is_protected = 0
+                else:
+                    is_protected = int(l, 16)
                 if is_protected != 1:
                     state = 0
             if state != 1:

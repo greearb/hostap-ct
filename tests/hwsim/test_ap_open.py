@@ -555,7 +555,12 @@ def test_ap_open_ps_mc_buf(dev, apdev, params):
                              "wlan.fc.type_subtype == 0x0008",
                              ["wlan.tim.bmapctl.multicast"])
             for line in out.splitlines():
-                buffered_mcast = int(line)
+                if line == "True":
+                    buffered_mcast = 1
+                elif line == "False":
+                    buffered_mcast = 0
+                else:
+                    buffered_mcast = int(line)
                 if buffered_mcast == 1:
                     break
             if buffered_mcast == 1:
