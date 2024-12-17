@@ -86,6 +86,21 @@ long_tests = ["ap_roam_open",
               "p2p_go_move_scm_peer_does_not_support",
               "p2p_go_move_scm_multi"]
 
+# Test cases that depend on dumping full process memory
+memory_read_tests = ["ap_wpa2_eap_fast_pac_lifetime",
+                     "wpa2_eap_ttls_pap_key_lifetime_in_memory",
+                     "wpa2_eap_peap_gtc_key_lifetime_in_memory",
+                     "ft_psk_key_lifetime_in_memory",
+                     "wpa2_psk_key_lifetime_in_memory",
+                     "ap_wpa2_tdls_long_lifetime",
+                     "ap_wpa2_tdls_wrong_lifetime_resp",
+                     "erp_key_lifetime_in_memory",
+                     "sae_key_lifetime_in_memory",
+                     "sae_okc_pmk_lifetime",
+                     "sae_pmk_lifetime",
+                     "wpas_ap_lifetime_in_memory",
+                     "wpas_ap_lifetime_in_memory2"]
+
 def get_failed(vm):
     failed = []
     for i in range(num_servers):
@@ -501,6 +516,15 @@ def main():
         # duration test case on a single VM while all other VMs have already
         # completed their work.
         for l in long_tests:
+            if l in tests:
+                tests.remove(l)
+                tests.insert(0, l)
+
+        # Test cases that read full wpa_supplicant or hostapd process memory
+        # can apparently cause resources issues at least with newer python3
+        # versions, so run them first before possible memory fragmentation has
+        # made this need more resources.
+        for l in memory_read_tests:
             if l in tests:
                 tests.remove(l)
                 tests.insert(0, l)
