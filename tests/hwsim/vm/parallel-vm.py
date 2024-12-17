@@ -140,6 +140,7 @@ def vm_read_stdout(vm, test_queue):
         elif line.startswith("PASS"):
             ready = True
             total_passed += 1
+            vm['current_name'] = None
         elif line.startswith("FAIL"):
             ready = True
             total_failed += 1
@@ -156,6 +157,7 @@ def vm_read_stdout(vm, test_queue):
             if name != vm['current_name']:
                 logger.info("VM[%d] test result mismatch: %s (expected %s)" % (vm['idx'], name, vm['current_name']))
             else:
+                vm['current_name'] = None
                 count = vm['current_count']
                 if count == 0:
                     first_run_failures.append(name)
@@ -169,6 +171,7 @@ def vm_read_stdout(vm, test_queue):
         elif line.startswith("SKIP"):
             ready = True
             total_skipped += 1
+            vm['current_name'] = None
         elif line.startswith("REASON"):
             vm['skip_reason'].append(line[7:])
         elif line.startswith("START"):
@@ -267,6 +270,7 @@ def check_vm_start(scr, sel, test_queue):
     return running, False
 
 def vm_terminated(_vm, scr, sel, test_queue):
+    logger.debug("VM[%s] terminated" % _vm['idx'])
     updated = False
     for stream in [_vm['proc'].stdout, _vm['proc'].stderr]:
         sel.unregister(stream)
@@ -295,6 +299,27 @@ def vm_terminated(_vm, scr, sel, test_queue):
                 scr.addstr("unexpected exit")
             logger.info("VM[%d] unexpected exit" % _vm['idx'])
             updated = True
+
+    if _vm['current_name']:
+        global total_failed, all_failed, first_run_failures, rerun_failures
+        name = _vm['current_name']
+        if _vm['idx'] + 1 < status_line:
+            if updated:
+                scr.addstr(" - ")
+            scr.addstr(name + " - did not complete")
+        logger.info("VM[%d] did not complete test %s" % (_vm['idx'], name))
+        total_failed += 1
+        _vm['failed'].append(name)
+        all_failed.append(name)
+
+        count = _vm['current_count']
+        if count == 0:
+            first_run_failures.append(name)
+        if rerun_failures and count < 1:
+            logger.debug("Requeue test case %s" % name)
+            test_queue.append((name, count + 1))
+        updated = True
+
     return updated
 
 def update_screen(scr, total_tests):
@@ -369,8 +394,8 @@ def show_progress(scr):
                 updated = True
             vm_read_stderr(_vm)
             if _vm['proc'].poll() is not None:
-                if vm_terminated(_vm, scr, sel, test_queue):
-                    updated = True
+                vm_terminated(_vm, scr, sel, test_queue)
+                updated = True
 
         running, run_update = check_vm_start(scr, sel, test_queue)
         if updated or run_update:
@@ -563,6 +588,7 @@ def main():
         vm[i]['failed'] = []
         vm[i]['fail_seq'] = []
         vm[i]['skip_reason'] = []
+        vm[i]['current_name'] = None
     print('')
 
     if not args.nocurses:
