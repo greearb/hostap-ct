@@ -827,7 +827,8 @@ def test_eap_proto_sake_errors(dev, apdev):
              (1, "eap_sake_compute_mic;eap_sake_process_challenge"),
              (1, "eap_sake_build_msg;eap_sake_process_confirm"),
              (1, "eap_sake_compute_mic;eap_sake_process_confirm"),
-             (2, "eap_sake_compute_mic;=eap_sake_process_confirm"),
+             (2, "eap_sake_compute_mic"),
+             (3, "eap_sake_compute_mic"),
              (1, "eap_sake_getKey"),
              (1, "eap_sake_get_emsk"),
              (1, "eap_sake_get_session_id")]
@@ -5550,7 +5551,7 @@ def test_eap_proto_sim_errors(dev, apdev):
         dev[0].request("REMOVE_NETWORK all")
         dev[0].dump_monitor()
 
-    tests = [(1, "eap_sim_verify_mac;eap_sim_process_challenge"),
+    tests = [(1, "eap_sim_verify_mac"),
              (1, "eap_sim_parse_encr;eap_sim_process_challenge"),
              (1, "eap_sim_msg_init;eap_sim_response_start"),
              (1, "wpabuf_alloc;eap_sim_msg_init;eap_sim_response_start"),
