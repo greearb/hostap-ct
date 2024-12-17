@@ -464,6 +464,9 @@ static int wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		case 160:
 			conf->op_class = 134;
 			break;
+		case 320:
+			conf->op_class = 137;
+			break;
 		default:
 			conf->op_class = 131;
 			break;
