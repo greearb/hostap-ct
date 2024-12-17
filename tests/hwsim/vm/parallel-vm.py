@@ -288,12 +288,12 @@ def vm_terminated(_vm, scr, sel, test_queue):
     if test_queue:
         num_vm = 0
         for i in range(num_servers):
-            if _vm['proc']:
+            if vm[i]['proc']:
                 num_vm += 1
         if len(test_queue) > num_vm:
             if _vm['idx'] + 1 < status_line:
                 scr.addstr("unexpected exit")
-            logger.info("VM[%d] unexpected exit" % i)
+            logger.info("VM[%d] unexpected exit" % _vm['idx'])
             updated = True
     return updated
 
