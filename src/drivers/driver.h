@@ -5664,8 +5664,8 @@ struct wpa_driver_ops {
 	 * @priv: Private driver interface data
 	 *
 	 */
-	 int (*mu_ctrl)(void *priv, u8 mode, void *config);
-	 int (*mu_dump)(void *priv, u8 *mu_onoff);
+	 int (*mu_ctrl)(void *priv, u8 mode, s8 link_id);
+	 int (*mu_dump)(void *priv, u8 *mu_onoff, s8 link_id);
 
 	/**
 	 * beacon_ctrl - ctrl on off for beacon
@@ -5795,21 +5795,21 @@ struct wpa_driver_ops {
 	/**
 	 * csi_set - Set csi related mode and parameter
 	 * @priv: Private driver interface data
-	 * @band_idx: band idx
+	 * @link_id: MLD link id. -1 if this is an non-MLD AP
 	 * @mode: Csi mode parameter
 	 * @cfg: Csi config parameter
 	 * @v1: Value1
 	 * @v2: Value2
 	 * @mac: Station mac for station filter
 	 */
-	int (*csi_set)(void *priv, u8 band_idx, u8 mode, u8 cfg, u8 v1, u32 v2, u8 *mac);
+	int (*csi_set)(void *priv, s8 link_id, u8 mode, u8 cfg, u8 v1, u32 v2, u8 *mac);
 	/**
 	* csi_dump - Dump csi data to json file
 	* @priv: Private driver interface data
-	* @band_idx: band idx
+	* @link_id: MLD link id. -1 if this is an non-MLD AP
 	* @dump_buf: Dump_struct that store csi data and related info
 	*/
-	int (*csi_dump)(void *priv, u8 band_idx, void *dump_buf);
+	int (*csi_dump)(void *priv, s8 link_id, void *dump_buf);
 	/**
 	* txpower_ctrl - ctrl txpower operation
 	* @priv: Private driver interface data
