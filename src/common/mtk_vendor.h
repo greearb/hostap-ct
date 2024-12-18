@@ -85,7 +85,7 @@ enum mtk_vendor_attr_csi_ctrl {
 
 	MTK_VENDOR_ATTR_CSI_CTRL_DATA,
 
-        MTK_VENDOR_ATTR_CSI_CTRL_BAND_IDX,
+	MTK_VENDOR_ATTR_CSI_CTRL_RADIO_IDX,
 
 	/* keep last */
 	NUM_MTK_VENDOR_ATTRS_CSI_CTRL,
@@ -221,6 +221,7 @@ enum mtk_vendor_attr_mu_ctrl {
 	 * above data structure.
 	 */
 	MTK_VENDOR_ATTR_MU_CTRL_STRUCT,
+	MTK_VENDOR_ATTR_MU_CTRL_RADIO_IDX,
 
 	/* keep last */
 	NUM_MTK_VENDOR_ATTRS_MU_CTRL,
