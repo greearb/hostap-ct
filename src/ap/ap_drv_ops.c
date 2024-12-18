@@ -1481,16 +1481,28 @@ int hostapd_drv_get_edcca(struct hostapd_data *hapd, const u8 mode, u8 *value)
 
 int hostapd_drv_mu_ctrl(struct hostapd_data *hapd, u8 mode)
 {
+	s8 link_id = -1;
+
 	if (!hapd->driver || !hapd->driver->mu_ctrl)
 		return 0;
-	return hapd->driver->mu_ctrl(hapd->drv_priv, mode, hapd->iconf);
+
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+
+	return hapd->driver->mu_ctrl(hapd->drv_priv, mode, link_id);
 }
 
 int hostapd_drv_mu_dump(struct hostapd_data *hapd, u8 *mu_onoff)
 {
+	s8 link_id = -1;
+
 	if (!hapd->driver || !hapd->driver->mu_dump)
 		return 0;
-	return hapd->driver->mu_dump(hapd->drv_priv, mu_onoff);
+
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+
+	return hapd->driver->mu_dump(hapd->drv_priv, mu_onoff, link_id);
 }
 
 int hostapd_drv_three_wire_ctrl(struct hostapd_data *hapd)
@@ -1685,22 +1697,28 @@ int hostapd_drv_set_eml_omn(struct hostapd_data *hapd, const u8 *mac,
 
 int hostapd_drv_csi_set(struct hostapd_data *hapd, u8 mode, u8 cfg, u8 v1, u32 v2, u8 *mac)
 {
+	s8 link_id = -1;
+
 	if (!hapd->driver || !hapd->driver->csi_set)
 		return 0;
-	/* TODO:  band_idx not in current code?
-	return hapd->driver->csi_set(hapd->drv_priv, hapd->iconf->band_idx, mode, cfg, v1, v2, mac);
-	*/
-	return 0;
+
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+
+	return hapd->driver->csi_set(hapd->drv_priv, link_id, mode, cfg, v1, v2, mac);
 }
 
 int hostapd_drv_csi_dump(struct hostapd_data *hapd, void *dump_buf)
 {
+	s8 link_id = -1;
+
 	if (!hapd->driver || !hapd->driver->csi_dump)
 		return 0;
-	/* TODO:  band_idx not in current code?
-	return hapd->driver->csi_dump(hapd->drv_priv, hapd->iconf->band_idx, dump_buf);
-	*/
-	return 0;
+
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+
+	return hapd->driver->csi_dump(hapd->drv_priv, link_id, dump_buf);
 }
 
 #ifdef CONFIG_IEEE80211BE
