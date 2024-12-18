@@ -13,6 +13,7 @@ import logging
 import multiprocessing
 import os
 import selectors
+import shutil
 import subprocess
 import sys
 import time
@@ -123,6 +124,7 @@ def vm_read_stdout(vm, test_queue):
         if e.errno == errno.EAGAIN:
             return False
         raise
+    vm['last_stdout'] = time.time()
     logger.debug("VM[%d] stdout.read[%s]" % (vm['idx'], out.rstrip()))
     pending = vm['pending'] + out
     lines = []
@@ -350,6 +352,12 @@ def update_screen(scr, total_tests):
             scr.clrtoeol()
     scr.refresh()
 
+def has_uml_mconsole(_vm):
+    if not shutil.which('uml_mconsole'):
+        return False
+    dir = os.path.join(os.path.expanduser('~/.uml'), 'hwsim-' + _vm['DATE'])
+    return os.path.exists(dir)
+
 def show_progress(scr):
     global num_servers
     global vm
@@ -401,6 +409,39 @@ def show_progress(scr):
             update_screen(scr, total_tests)
         if not running:
             break
+
+        status_line = num_servers
+        if status_line >= max_y:
+            status_line = max_y - 1
+        max_y, max_x = scr.getmaxyx()
+        updated = False
+
+        now = time.time()
+        for i in range(num_servers):
+            _vm = vm[i]
+            if not _vm['proc']:
+                continue
+            last = _vm['last_stdout']
+            if last and now - last > 10:
+                if _vm['idx'] < status_line:
+                    scr.move(_vm['idx'], max_x - 25)
+                    scr.clrtoeol()
+                    scr.addstr("(no update in %d s)" % (now - last))
+                    updated = True
+            if has_uml_mconsole(_vm) and last and now - last > 120:
+                if _vm['idx'] < status_line:
+                    scr.move(_vm['idx'], 10)
+                    scr.clrtoeol()
+                    scr.addstr("terminating due to no updates received")
+                logger.info("Kill hung VM[%d]" % _vm['idx'])
+                subprocess.call(['uml_mconsole', 'hwsim-' + _vm['DATE'],
+                                 'log', 'Halting due to no progress'],
+                                stdout=open('/dev/null', 'w'))
+                subprocess.call(['uml_mconsole', 'hwsim-' + _vm['DATE'],
+                                 'halt'], stdout=open('/dev/null', 'w'))
+        if updated:
+            scr.refresh()
+
     sel.close()
 
     for i in range(num_servers):
@@ -577,6 +618,7 @@ def main():
             cmd += ['--telnet', str(args.telnet + i)]
         vm[i] = {}
         vm[i]['idx'] = i
+        vm[i]['DATE'] = str(timestamp) + '.srv.' + str(i + 1)
         vm[i]['starting'] = False
         vm[i]['started'] = False
         vm[i]['cmd'] = cmd
@@ -588,6 +630,7 @@ def main():
         vm[i]['fail_seq'] = []
         vm[i]['skip_reason'] = []
         vm[i]['current_name'] = None
+        vm[i]['last_stdout'] = None
     print('')
 
     if not args.nocurses:

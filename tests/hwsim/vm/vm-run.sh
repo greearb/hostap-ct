@@ -168,6 +168,7 @@ A+="ro"
 if [ -z $KVM ]; then
 	UML_ARGS="mem=${MEMORY}M \
 	     LOGDIR=$LOGDIR \
+	     umid=hwsim-$DATE \
 	     time-travel=inf-cpu \
 	     $A \
 	     root=none hostfs=/ rootfstype=hostfs rootflags=/ \
