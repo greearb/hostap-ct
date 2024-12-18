@@ -23,6 +23,12 @@ logger = logging.getLogger()
 
 # Test cases that take significantly longer time to execute than average.
 long_tests = ["ap_roam_open",
+              "gas_anqp_address3_ap_forced",
+              "gas_anqp_address3_ap_non_compliant",
+              "hostapd_oom_wpa2_eap_connect",
+              "ap_wpa2_eap_eke_many",
+              "p2p_channel_random_social_with_op_class_change",
+              "ap_open_ps_mc_buf",
               "wpas_mesh_password_mismatch_retry",
               "wpas_mesh_password_mismatch",
               "hostapd_oom_wpa2_psk_connect",
