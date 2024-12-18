@@ -710,6 +710,7 @@ void hostapd_cleanup_iface_partial(struct hostapd_iface *iface)
 		acs_cleanup(iface);
 	hostapd_free_hw_features(iface->hw_features, iface->num_hw_features);
 	iface->hw_features = NULL;
+	iface->num_hw_features = 0;
 	iface->current_mode = NULL;
 	os_free(iface->current_rates);
 	iface->current_rates = NULL;
