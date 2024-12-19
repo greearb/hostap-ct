@@ -1231,17 +1231,26 @@ def test_prefer_ht20(dev, apdev):
 
 def test_prefer_ht40(dev, apdev):
     """Preference on HT40 over HT20"""
+    hostapd.cmd_execute(apdev[1], ['ifconfig', apdev[1]['ifname'], 'up'])
+    hostapd.cmd_execute(apdev[1], ['iw', apdev[1]['ifname'], 'scan',
+                                   'flush', 'freq', '2417'])
+    time.sleep(1)
+    hostapd.cmd_execute(apdev[1], ['ifconfig', apdev[1]['ifname'], 'down'])
+
     params = {"ssid": "test",
               "channel": "1",
               "ieee80211n": "1"}
     hapd = hostapd.add_ap(apdev[0], params)
     bssid = apdev[0]['bssid']
+
     params = {"ssid": "test",
               "channel": "1",
               "ieee80211n": "1",
               "ht_capab": "[HT40+]"}
     hapd2 = hostapd.add_ap(apdev[1], params)
     bssid2 = apdev[1]['bssid']
+    if hapd2.get_status_field("secondary_channel") != "1":
+        raise Exception("AP2 did not enable HT40+")
 
     dev[0].scan_for_bss(bssid, freq=2412)
     dev[0].scan_for_bss(bssid2, freq=2412)
