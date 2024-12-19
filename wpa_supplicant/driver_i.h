@@ -1291,4 +1291,15 @@ wpas_drv_nan_cancel_subscribe(struct wpa_supplicant *wpa_s, int subscribe_id)
 						   subscribe_id);
 }
 
+static inline struct hostapd_multi_hw_info *
+wpas_drv_get_multi_hw_info(struct wpa_supplicant *wpa_s,
+			   unsigned int *num_multi_hws)
+{
+	if (!wpa_s->driver->get_multi_hw_info)
+		return NULL;
+
+	return wpa_s->driver->get_multi_hw_info(wpa_s->drv_priv,
+						num_multi_hws);
+}
+
 #endif /* DRIVER_I_H */
