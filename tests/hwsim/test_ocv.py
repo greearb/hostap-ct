@@ -448,6 +448,10 @@ def test_wpa2_ocv_ap_mismatch(dev, apdev):
     conn.test_bad_oci("invalid operating class", 0, 0, 0)
     conn.confirm_valid_oci(81, 1, 0)
 
+    dev[0].dump_monitor()
+    dev[0].request("DISCONNECT")
+    dev[0].wait_disconnected()
+
 @remote_compatible
 def test_wpa2_ocv_ap_ht_mismatch(dev, apdev):
     """OCV AP mismatch (HT)"""
@@ -461,6 +465,10 @@ def test_wpa2_ocv_ap_ht_mismatch(dev, apdev):
     conn.test_bad_oci("lower bandwidth than negotiated", 81, 6, 0)
     conn.test_bad_oci("bad upper/lower channel", 83, 6, 0)
     conn.confirm_valid_oci(84, 6, 0)
+
+    dev[0].dump_monitor()
+    dev[0].request("DISCONNECT")
+    dev[0].wait_disconnected()
 
 @remote_compatible
 def test_wpa2_ocv_ap_vht80_mismatch(dev, apdev):
@@ -575,6 +583,10 @@ def test_wpa2_ocv_ap_unexpected1(dev, apdev):
     logger.debug("Client will send OCI KDE even if it was not negotiated")
     conn.confirm_valid_oci(81, 1, 0)
 
+    dev[0].dump_monitor()
+    dev[0].request("DISCONNECT")
+    dev[0].wait_disconnected()
+
 @remote_compatible
 def test_wpa2_ocv_ap_unexpected2(dev, apdev):
     """OCV and unexpected OCI KDE from station"""
@@ -586,6 +598,10 @@ def test_wpa2_ocv_ap_unexpected2(dev, apdev):
     conn = APConnection(apdev[0], dev[0], params)
     logger.debug("Client will send OCI KDE even if it was not negotiated")
     conn.confirm_valid_oci(81, 1, 0)
+
+    dev[0].dump_monitor()
+    dev[0].request("DISCONNECT")
+    dev[0].wait_disconnected()
 
 @remote_compatible
 def test_wpa2_ocv_ap_retransmit_msg3(dev, apdev):
