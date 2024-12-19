@@ -707,7 +707,7 @@ struct probe_resp_params {
 	bool is_p2p;
 
 	/* Generated IEs will be included inside an ML element */
-	struct hostapd_data *mld_ap;
+	struct hostapd_data *requested_mld_ap;
 	struct mld_info *mld_info;
 
 	struct ieee80211_mgmt *resp;
@@ -773,7 +773,7 @@ static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be) {
 		struct hostapd_data *ml_elem_ap =
-			params->mld_ap ? params->mld_ap : hapd;
+			params->requested_mld_ap ? params->requested_mld_ap : hapd;
 
 		buflen += hostapd_eid_eht_capab_len(hapd, IEEE80211_MODE_AP);
 		buflen += 3 + sizeof(struct ieee80211_eht_operation);
@@ -782,7 +782,8 @@ static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 
 		if (ml_elem_ap->conf->mld_ap) {
 			buflen += hostapd_eid_eht_ml_beacon_len(
-				ml_elem_ap, params->mld_info, !!params->mld_ap);
+				ml_elem_ap, params->mld_info,
+				!!params->requested_mld_ap);
 
 			/* For Max Channel Switch Time element during channel
 			 * switch */
@@ -944,12 +945,12 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be) {
 		struct hostapd_data *ml_elem_ap =
-			params->mld_ap ? params->mld_ap : hapd;
+			params->requested_mld_ap ? params->requested_mld_ap : hapd;
 
 		if (ml_elem_ap->conf->mld_ap)
 			pos = hostapd_eid_eht_ml_beacon(
 				ml_elem_ap, params->mld_info,
-				pos, !!params->mld_ap);
+				pos, !!params->requested_mld_ap);
 
 		pos = hostapd_eid_eht_capab(hapd, pos, IEEE80211_MODE_AP);
 		pos = hostapd_eid_eht_operation(hapd, pos);
@@ -1082,7 +1083,7 @@ static void hostapd_fill_probe_resp_ml_params(struct hostapd_data *hapd,
 {
 	struct hostapd_data *link;
 
-	params->mld_ap = NULL;
+	params->requested_mld_ap = NULL;
 	params->mld_info = os_zalloc(sizeof(*params->mld_info));
 	if (!params->mld_info)
 		return;
@@ -1102,7 +1103,7 @@ static void hostapd_fill_probe_resp_ml_params(struct hostapd_data *hapd,
 		 * interface.
 		 */
 		if (mld_id != -1 && link->iface == hapd->iface)
-			params->mld_ap = link;
+			params->requested_mld_ap = link;
 
 		/* Never duplicate main Probe Response frame body */
 		if (link == hapd)
@@ -1121,7 +1122,7 @@ static void hostapd_fill_probe_resp_ml_params(struct hostapd_data *hapd,
 			   mld_link_id, link_info->resp_sta_profile_len);
 	}
 
-	if (mld_id != -1 && !params->mld_ap) {
+	if (mld_id != -1 && !params->requested_mld_ap) {
 		wpa_printf(MSG_DEBUG,
 			   "MLD: No nontransmitted BSSID for MLD ID %d",
 			   mld_id);
@@ -1132,7 +1133,7 @@ static void hostapd_fill_probe_resp_ml_params(struct hostapd_data *hapd,
 
 fail:
 	hostapd_free_probe_resp_params(params);
-	params->mld_ap = NULL;
+	params->requested_mld_ap = NULL;
 	params->mld_info = NULL;
 }
 #endif /* CONFIG_IEEE80211BE */
@@ -1778,7 +1779,7 @@ static u8 * hostapd_probe_resp_offloads(struct hostapd_data *hapd,
 	params.is_p2p = false;
 	params.known_bss = NULL;
 	params.known_bss_len = 0;
-	params.mld_ap = NULL;
+	params.requested_mld_ap = NULL;
 	params.mld_info = NULL;
 
 	hostapd_gen_probe_resp(hapd, &params);
@@ -1821,7 +1822,7 @@ u8 * hostapd_unsol_bcast_probe_resp(struct hostapd_data *hapd,
 	probe_params.is_p2p = false;
 	probe_params.known_bss = NULL;
 	probe_params.known_bss_len = 0;
-	probe_params.mld_ap = NULL;
+	probe_params.requested_mld_ap = NULL;
 	probe_params.mld_info = NULL;
 
 	hostapd_gen_probe_resp(hapd, &probe_params);
