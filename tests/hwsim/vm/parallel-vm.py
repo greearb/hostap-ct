@@ -24,15 +24,8 @@ logger = logging.getLogger()
 
 # Test cases that take significantly longer time to execute than average.
 long_tests = ["ap_roam_open",
-              "gas_anqp_address3_ap_forced",
-              "gas_anqp_address3_ap_non_compliant",
-              "gas_anqp_address3_not_assoc",
-              "gas_anqp_address3_assoc",
-              "ieee8021x_reauth_wep",
               "hostapd_oom_wpa2_eap_connect",
               "ap_wpa2_eap_eke_many",
-              "p2p_channel_random_social_with_op_class_change",
-              "ap_open_ps_mc_buf",
               "wpas_mesh_password_mismatch_retry",
               "wpas_mesh_password_mismatch",
               "hostapd_oom_wpa2_psk_connect",
@@ -96,6 +89,17 @@ long_tests = ["ap_roam_open",
               "p2p_go_move_scm_peer_supports",
               "p2p_go_move_scm_peer_does_not_support",
               "p2p_go_move_scm_multi"]
+
+# Test cases that have common, but random, issues with UML.
+uml_issue_tests = ["eht_connect_invalid_link",
+                   "eht_mld_connect_probes",
+                   "gas_anqp_address3_ap_forced",
+                   "gas_anqp_address3_ap_non_compliant",
+                   "gas_anqp_address3_not_assoc",
+                   "gas_anqp_address3_assoc",
+                   "p2p_channel_random_social_with_op_class_change",
+                   "ap_open_ps_mc_buf",
+                   "ieee8021x_reauth_wep"]
 
 # Test cases that depend on dumping full process memory
 memory_read_tests = ["ap_wpa2_eap_fast_pac_lifetime",
@@ -605,6 +609,13 @@ def main():
         # duration test case on a single VM while all other VMs have already
         # completed their work.
         for l in long_tests:
+            if l in tests:
+                tests.remove(l)
+                tests.insert(0, l)
+
+        # Move test cases that have shown frequent, but random, issues UML
+        # to the beginning of the run to minimize risk of false failures.
+        for l in uml_issue_tests:
             if l in tests:
                 tests.remove(l)
                 tests.insert(0, l)
