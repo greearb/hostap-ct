@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 # Parallel VM test case executor
-# Copyright (c) 2014-2019, Jouni Malinen <j@w1.fi>
+# Copyright (c) 2014-2024, Jouni Malinen <j@w1.fi>
 #
 # This software may be distributed under the terms of the BSD license.
 # See README for more details.
@@ -14,6 +14,7 @@ import multiprocessing
 import os
 import selectors
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -367,6 +368,23 @@ def has_uml_mconsole(_vm):
     dir = os.path.join(os.path.expanduser('~/.uml'), 'hwsim-' + _vm['DATE'])
     return os.path.exists(dir)
 
+def kill_uml_vm(_vm):
+    fname = os.path.join(os.path.expanduser('~/.uml'), 'hwsim-' + _vm['DATE'],
+                         'pid')
+    with open(fname, 'r') as f:
+        pid = int(f.read())
+    logger.info("Kill hung VM[%d] PID[%d]" % (_vm['idx'] + 1, pid))
+    try:
+        subprocess.call(['uml_mconsole', 'hwsim-' + _vm['DATE'],
+                         'halt'], stdout=open('/dev/null', 'w'),
+                        timeout=5)
+    except subprocess.TimeoutExpired:
+        logger.info("uml_console timed out - kill UML process")
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except Exception as e:
+            logger.info("os.kill() failed: " + str(e))
+
 def show_progress(scr):
     global num_servers
     global vm
@@ -437,17 +455,14 @@ def show_progress(scr):
                     scr.clrtoeol()
                     scr.addstr("(no update in %d s)" % (now - last))
                     updated = True
-            if has_uml_mconsole(_vm) and last and now - last > 120:
+            if (not _vm['killed']) and has_uml_mconsole(_vm) and \
+               last and now - last > 120:
                 if _vm['idx'] < status_line:
                     scr.move(_vm['idx'], 10)
                     scr.clrtoeol()
                     scr.addstr("terminating due to no updates received")
-                logger.info("Kill hung VM[%d]" % _vm['idx'])
-                subprocess.call(['uml_mconsole', 'hwsim-' + _vm['DATE'],
-                                 'log', 'Halting due to no progress'],
-                                stdout=open('/dev/null', 'w'))
-                subprocess.call(['uml_mconsole', 'hwsim-' + _vm['DATE'],
-                                 'halt'], stdout=open('/dev/null', 'w'))
+                _vm['killed'] = True
+                kill_uml_vm(_vm)
         if updated:
             scr.refresh()
 
@@ -640,6 +655,7 @@ def main():
         vm[i]['skip_reason'] = []
         vm[i]['current_name'] = None
         vm[i]['last_stdout'] = None
+        vm[i]['killed'] = False
     print('')
 
     if not args.nocurses:
