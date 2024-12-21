@@ -205,6 +205,9 @@ static void * eap_teap_init(struct eap_sm *sm)
 		return NULL;
 	}
 
+	if (!data->provisioning_allowed && !config->pac_file)
+		return data;
+
 	if (!config->pac_file) {
 		wpa_printf(MSG_INFO, "EAP-TEAP: No PAC file configured");
 		eap_teap_deinit(sm, data);
