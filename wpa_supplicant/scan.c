@@ -2368,7 +2368,9 @@ static int wpa_scan_result_compar(const void *a, const void *b)
 	int wpa_a, wpa_b;
 	int snr_a, snr_b, snr_a_full, snr_b_full;
 	size_t ies_len;
+#ifndef CONFIG_NO_WPA
 	const u8 *rsne_a, *rsne_b;
+#endif /* CONFIG_NO_WPA */
 
 	/* WPA/WPA2 support preferred */
 	wpa_a = wpa_scan_get_vendor_ie(wa, WPA_IE_VENDOR_TYPE) != NULL ||
@@ -2412,6 +2414,7 @@ static int wpa_scan_result_compar(const void *a, const void *b)
 		snr_b = snr_b_full = wb->level;
 	}
 
+#ifndef CONFIG_NO_WPA
 	/* If SNR of a SAE BSS is good or at least as high as the PSK BSS,
 	 * prefer SAE over PSK for mixed WPA3-Personal transition mode and
 	 * WPA2-Personal deployments */
@@ -2437,6 +2440,7 @@ static int wpa_scan_result_compar(const void *a, const void *b)
 		    (snr_b >= GREAT_SNR || snr_b >= snr_a))
 			return 1;
 	}
+#endif /* CONFIG_NO_WPA */
 
 	/* If SNR is close, decide by max rate or frequency band. For cases
 	 * involving the 6 GHz band, use the throughput estimate irrespective

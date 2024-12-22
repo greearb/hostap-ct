@@ -1930,6 +1930,8 @@ out:
 }
 
 
+#ifndef CONFIG_NO_WPA
+
 static bool wpa_bss_supported_cipher(struct wpa_supplicant *wpa_s,
 				     int pairwise_cipher)
 {
@@ -2055,11 +2057,14 @@ static bool wpa_bss_supported_rsne(struct wpa_supplicant *wpa_s,
 	return true;
 }
 
+#endif /* CONFIG_NO_WPA */
+
 
 const u8 * wpa_bss_get_rsne(struct wpa_supplicant *wpa_s,
 			    const struct wpa_bss *bss, struct wpa_ssid *ssid,
 			    bool mlo)
 {
+#ifndef CONFIG_NO_WPA
 	const u8 *ie;
 
 	if (wpas_rsn_overriding(wpa_s, ssid)) {
@@ -2086,6 +2091,7 @@ const u8 * wpa_bss_get_rsne(struct wpa_supplicant *wpa_s,
 				return ie;
 		}
 	}
+#endif /* CONFIG_NO_WPA */
 
 	return wpa_bss_get_ie(bss, WLAN_EID_RSN);
 }

@@ -1266,7 +1266,9 @@ static bool wpa_scan_res_ok(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 {
 	int res;
 	bool wpa, check_ssid, osen, rsn_osen = false;
+#ifndef CONFIG_NO_WPA
 	struct wpa_ie_data data;
+#endif /* CONFIG_NO_WPA */
 #ifdef CONFIG_MBO
 	const u8 *assoc_disallow;
 #endif /* CONFIG_MBO */
@@ -1280,9 +1282,11 @@ static bool wpa_scan_res_ok(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 	wpa = ie && ie[1];
 	ie = wpa_bss_get_rsne(wpa_s, bss, ssid, false);
 	wpa |= ie && ie[1];
+#ifndef CONFIG_NO_WPA
 	if (ie && wpa_parse_wpa_ie_rsn(ie, 2 + ie[1], &data) == 0 &&
 	    (data.key_mgmt & WPA_KEY_MGMT_OSEN))
 		rsn_osen = true;
+#endif /* CONFIG_NO_WPA */
 	ie = wpa_bss_get_vendor_ie(bss, OSEN_IE_VENDOR_TYPE);
 	osen = ie != NULL;
 
