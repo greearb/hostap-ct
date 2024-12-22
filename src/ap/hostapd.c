@@ -3108,6 +3108,9 @@ void hostapd_bss_setup_multi_link(struct hostapd_data *hapd,
 	struct hostapd_bss_config *conf;
 	size_t i;
 
+	if (hapd->mld)
+		return;
+
 	conf = hapd->conf;
 
 	if (!hapd->iconf || !hapd->iconf->ieee80211be || !conf->mld_ap ||
