@@ -299,6 +299,7 @@ OBJS += ../src/common/sae.o
 ifdef CONFIG_SAE_PK
 CFLAGS += -DCONFIG_SAE_PK
 NEED_AES_SIV=y
+NEED_BASE64=y
 OBJS += ../src/common/sae_pk.o
 endif
 NEED_ECC=y
