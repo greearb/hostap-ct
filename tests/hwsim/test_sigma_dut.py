@@ -90,6 +90,8 @@ class SigmaDut:
     def run_cmd(self, cmd, port=9000, timeout=2, dump_dev=None):
         if cmd.startswith('ap_config_commit'):
             self.ap = True
+        if cmd.startswith('ap_reset_default'):
+            self.ap = True
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM,
                              socket.IPPROTO_TCP)
         sock.settimeout(1 if dump_dev else timeout)
