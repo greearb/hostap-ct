@@ -806,9 +806,9 @@ def main():
             if not known_output(tests, line):
                 unknown += line + "\n"
         if unknown:
-            print("\nVM %d - unexpected stdout output:\n%s" % (i, unknown))
+            print("\nVM %d - unexpected stdout output:\n%s" % (i + 1, unknown))
         if vm[i]['err']:
-            print("\nVM %d - unexpected stderr output:\n%s\n" % (i, vm[i]['err']))
+            print("\nVM %d - unexpected stderr output:\n%s\n" % (i + 1, vm[i]['err']))
 
     if codecov:
         print("Code coverage - preparing report")
