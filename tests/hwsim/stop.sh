@@ -18,6 +18,12 @@ if grep -q hwsim0 /proc/net/dev; then
     sudo ip link set hwsim0 down
 fi
 
+if [ -e /tmp/hlr_auc_gw.sock ]; then
+    if which -s socat; then
+	echo TERMINATE | socat - UNIX-SENDTO:/tmp/hlr_auc_gw.sock
+	sleep 0.1
+    fi
+fi
 sudo killall -q hlr_auc_gw
 
 if [ "$RUNNING" = "yes" ]; then
