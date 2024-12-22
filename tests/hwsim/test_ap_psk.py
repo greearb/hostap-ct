@@ -3725,7 +3725,8 @@ def test_ap_wpa2_psk_4addr(dev, apdev):
         subprocess.check_call(['ip', 'link', 'set', 'dev', br_ifname, 'up'])
         subprocess.check_call(['brctl', 'addif', br_ifname, ifname])
         cmd = subprocess.Popen(['brctl', 'show'], stdout=subprocess.PIPE)
-        res = cmd.stdout.read().decode()
+        out, err = cmd.communicate()
+        res = out.decode()
     finally:
         subprocess.call(['brctl', 'delif', br_ifname, ifname])
         subprocess.call(['ip', 'link', 'set', 'dev', br_ifname, 'down'])

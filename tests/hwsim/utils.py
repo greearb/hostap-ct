@@ -150,16 +150,16 @@ def check_tls_tod(dev):
 
 def vht_supported():
     cmd = subprocess.Popen(["iw", "reg", "get"], stdout=subprocess.PIPE)
-    reg = cmd.stdout.read().decode()
+    out, err = cmd.communicate()
+    reg = out.decode()
     if "@ 80)" in reg or "@ 160)" in reg:
         return True
     return False
 
 def eht_320mhz_supported():
-    cmd = subprocess.Popen(["iw", "reg", "get"],
-                           stdout=subprocess.PIPE)
     cmd = subprocess.Popen(["iw", "reg", "get"], stdout=subprocess.PIPE)
-    reg = cmd.stdout.read().decode()
+    out, err = cmd.communicate()
+    reg = out.decode()
     if "@ 320)" in reg:
         return True
     return False
@@ -167,7 +167,8 @@ def eht_320mhz_supported():
 def he_6ghz_supported(freq=5975):
     cmd = subprocess.Popen(["iw", "reg", "get"],
                            stdout=subprocess.PIPE)
-    reg_rules = cmd.stdout.read().decode().splitlines()
+    out, err = cmd.communicate()
+    reg_rules = out.decode().splitlines()
     for rule in reg_rules:
         m = re.search(r"\s*\(\d+\s*-\s*\d+", rule)
         if not m:

@@ -4771,16 +4771,15 @@ def send_arp(dev, dst_ll="ff:ff:ff:ff:ff:ff", src_ll=None, opcode=1,
 
 def get_permanent_neighbors(ifname):
     cmd = subprocess.Popen(['ip', 'nei'], stdout=subprocess.PIPE)
-    res = cmd.stdout.read().decode()
-    cmd.stdout.close()
+    out, err = cmd.communicate()
+    res = out.decode()
     return [line.strip() for line in res.splitlines() if "PERMANENT" in line and ifname in line]
 
 def get_bridge_macs(ifname):
     cmd = subprocess.Popen(['brctl', 'showmacs', ifname],
                            stdout=subprocess.PIPE)
-    res = cmd.stdout.read()
-    cmd.stdout.close()
-    return res.decode()
+    out, err = cmd.communicate()
+    return out.decode()
 
 def tshark_get_arp(cap, filter):
     res = run_tshark(cap, filter,
@@ -4874,15 +4873,13 @@ def _test_proxyarp_open(dev, apdev, params, ebtables=False):
     time.sleep(1.1)
 
     brcmd = subprocess.Popen(['brctl', 'show'], stdout=subprocess.PIPE)
-    res = brcmd.stdout.read().decode()
-    brcmd.stdout.close()
-    logger.info("Bridge setup: " + res)
+    out, err = brcmd.communicate()
+    logger.info("Bridge setup: " + out.decode())
 
     brcmd = subprocess.Popen(['brctl', 'showstp', 'ap-br0'],
                              stdout=subprocess.PIPE)
-    res = brcmd.stdout.read().decode()
-    brcmd.stdout.close()
-    logger.info("Bridge showstp: " + res)
+    out, err = brcmd.communicate()
+    logger.info("Bridge showstp: " + out.decode())
 
     addr0 = dev[0].p2p_interface_addr()
     addr1 = dev[1].p2p_interface_addr()
@@ -5073,9 +5070,8 @@ def _test_proxyarp_open(dev, apdev, params, ebtables=False):
     if ebtables:
         cmd = subprocess.Popen(['ebtables', '-L', '--Lc'],
                                stdout=subprocess.PIPE)
-        res = cmd.stdout.read().decode()
-        cmd.stdout.close()
-        logger.info("ebtables results:\n" + res)
+        out, err = cmd.communicate()
+        logger.info("ebtables results:\n" + out.decode())
 
     # Verify that expected ARP messages were seen and no unexpected
     # ARP messages were seen.
@@ -5215,15 +5211,13 @@ def _test_proxyarp_open_ipv6(dev, apdev, params, ebtables=False):
     time.sleep(0.1)
 
     brcmd = subprocess.Popen(['brctl', 'show'], stdout=subprocess.PIPE)
-    res = brcmd.stdout.read().decode()
-    brcmd.stdout.close()
-    logger.info("Bridge setup: " + res)
+    out, err = brcmd.communicate()
+    logger.info("Bridge setup: " + out.decode())
 
     brcmd = subprocess.Popen(['brctl', 'showstp', 'ap-br0'],
                              stdout=subprocess.PIPE)
-    res = brcmd.stdout.read().decode()
-    brcmd.stdout.close()
-    logger.info("Bridge showstp: " + res)
+    out, err = brcmd.communicate()
+    logger.info("Bridge showstp: " + out.decode())
 
     addr0 = dev[0].p2p_interface_addr()
     addr1 = dev[1].p2p_interface_addr()
@@ -5321,9 +5315,8 @@ def _test_proxyarp_open_ipv6(dev, apdev, params, ebtables=False):
     if ebtables:
         cmd = subprocess.Popen(['ebtables', '-L', '--Lc'],
                                stdout=subprocess.PIPE)
-        res = cmd.stdout.read().decode()
-        cmd.stdout.close()
-        logger.info("ebtables results:\n" + res)
+        out, err = cmd.communicate()
+        logger.info("ebtables results:\n" + out.decode())
 
     ns = tshark_get_ns(cap_dev0)
     logger.info("dev0 seen NS: " + str(ns))

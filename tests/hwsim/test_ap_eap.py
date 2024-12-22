@@ -7100,8 +7100,8 @@ def test_ap_wpa2_eap_sim_db(dev, apdev, params):
             cmd = subprocess.Popen(['../../hostapd/hlr_auc_gw',
                                     '-m', fname, data],
                                    stdout=subprocess.PIPE)
-            res = cmd.stdout.read().decode().strip()
-            cmd.stdout.close()
+            out, err = cmd.communicate()
+            res = out.decode().strip()
             logger.debug("hlr_auc_gw response: " + res)
             socket.sendto(res.encode(), self.client_address)
 
@@ -7128,8 +7128,8 @@ def test_ap_wpa2_eap_sim_db_sqlite(dev, apdev, params):
     cmd = subprocess.Popen(['../../hostapd/hlr_auc_gw',
                             '-D', fname, "FOO"],
                            stdout=subprocess.PIPE)
-    res = cmd.stdout.read().decode().strip()
-    cmd.stdout.close()
+    out, err = cmd.communicate()
+    res = out.decode().strip()
     logger.debug("hlr_auc_gw response: " + res)
 
     try:
@@ -7152,8 +7152,8 @@ def test_ap_wpa2_eap_sim_db_sqlite(dev, apdev, params):
             cmd = subprocess.Popen(['../../hostapd/hlr_auc_gw',
                                     '-D', fname, data],
                                    stdout=subprocess.PIPE)
-            res = cmd.stdout.read().decode().strip()
-            cmd.stdout.close()
+            out, err = cmd.communicate()
+            res = out.decode().strip()
             logger.debug("hlr_auc_gw response: " + res)
             socket.sendto(res.encode(), self.client_address)
 
@@ -7609,8 +7609,8 @@ def test_ap_wpa2_eap_psk_mac_addr_change(dev, apdev):
 
     cmd = subprocess.Popen(['pgrep', '-nf', 'wpa_supplicant.*' + dev[0].ifname],
                            stdout=subprocess.PIPE)
-    res = cmd.stdout.read().decode().strip()
-    cmd.stdout.close()
+    out, err = cmd.communicate()
+    res = out.decode().strip()
     if res:
         pid = int(res)
         logger.info("wpa_supplicant PID %d" % pid)

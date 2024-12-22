@@ -187,16 +187,14 @@ def log_ip_macsec():
     cmd = subprocess.Popen(["ip", "macsec", "show"],
                            stdout=subprocess.PIPE,
                            stderr=open('/dev/null', 'w'))
-    res = cmd.stdout.read().decode()
-    cmd.stdout.close()
-    logger.info("ip macsec:\n" + res)
+    out, err = cmd.communicate()
+    logger.info("ip macsec:\n" + out.decode())
 
 def log_ip_link():
     cmd = subprocess.Popen(["ip", "link", "show"],
                            stdout=subprocess.PIPE)
-    res = cmd.stdout.read().decode()
-    cmd.stdout.close()
-    logger.info("ip link:\n" + res)
+    out, err = cmd.communicate()
+    logger.info("ip link:\n" + out.decode())
 
 def add_veth():
     try:
@@ -509,48 +507,42 @@ def log_ip_macsec_ns():
     cmd = subprocess.Popen(["ip", "macsec", "show"],
                            stdout=subprocess.PIPE,
                            stderr=open('/dev/null', 'w'))
-    res = cmd.stdout.read().decode()
-    cmd.stdout.close()
-    logger.info("ip macsec show:\n" + res)
+    out, err = cmd.communicate()
+    logger.info("ip macsec show:\n" + out.decode())
 
     cmd = subprocess.Popen(["ip", "netns", "exec", "ns0",
                             "ip", "macsec", "show"],
                            stdout=subprocess.PIPE,
                            stderr=open('/dev/null', 'w'))
-    res = cmd.stdout.read().decode()
-    cmd.stdout.close()
-    logger.info("ip macsec show (ns0):\n" + res)
+    out, err = cmd.communicate()
+    logger.info("ip macsec show (ns0):\n" + out.decode())
 
     cmd = subprocess.Popen(["ip", "netns", "exec", "ns1",
                             "ip", "macsec", "show"],
                            stdout=subprocess.PIPE,
                            stderr=open('/dev/null', 'w'))
-    res = cmd.stdout.read().decode()
-    cmd.stdout.close()
-    logger.info("ip macsec show (ns1):\n" + res)
+    out, err = cmd.communicate()
+    logger.info("ip macsec show (ns1):\n" + out.decode())
 
 def log_ip_link_ns():
     cmd = subprocess.Popen(["ip", "link", "show"],
                            stdout=subprocess.PIPE)
-    res = cmd.stdout.read().decode()
-    cmd.stdout.close()
-    logger.info("ip link:\n" + res)
+    out, err = cmd.communicate()
+    logger.info("ip link:\n" + out.decode())
 
     cmd = subprocess.Popen(["ip", "netns", "exec", "ns0",
                             "ip", "link", "show"],
                            stdout=subprocess.PIPE,
                            stderr=open('/dev/null', 'w'))
-    res = cmd.stdout.read().decode()
-    cmd.stdout.close()
-    logger.info("ip link show (ns0):\n" + res)
+    out, err = cmd.communicate()
+    logger.info("ip link show (ns0):\n" + out.decode())
 
     cmd = subprocess.Popen(["ip", "netns", "exec", "ns1",
                             "ip", "link", "show"],
                            stdout=subprocess.PIPE,
                            stderr=open('/dev/null', 'w'))
-    res = cmd.stdout.read().decode()
-    cmd.stdout.close()
-    logger.info("ip link show (ns1):\n" + res)
+    out, err = cmd.communicate()
+    logger.info("ip link show (ns1):\n" + out.decode())
 
 def write_conf(conffile, mka_priority=None):
     with open(conffile, 'w') as f:
@@ -681,8 +673,8 @@ def run_macsec_psk_ns(dev, apdev, params):
     c = subprocess.Popen(['ip', 'netns', 'exec', 'ns0',
                           'ping', '-c', '2', '192.168.248.18'],
                          stdout=subprocess.PIPE)
-    res = c.stdout.read().decode()
-    c.stdout.close()
+    out, err = c.communicate()
+    res = out.decode()
     logger.info("ping:\n" + res)
     if "2 packets transmitted, 2 received" not in res:
         raise Exception("ping did not work")

@@ -443,9 +443,8 @@ def test_ap_open_tdls_vht80(dev, apdev):
         for i in range(2):
             cmd = subprocess.Popen(['iw', dev[0].ifname, 'station', 'dump'],
                                    stdout=subprocess.PIPE)
-            res = cmd.stdout.read()
-            cmd.stdout.close()
-            logger.info("Station dump on dev[%d]:\n%s" % (i, res.decode()))
+            out, err = cmd.communicate()
+            logger.info("Station dump on dev[%d]:\n%s" % (i, out.decode()))
     except Exception as e:
         if isinstance(e, Exception) and str(e) == "AP startup failed":
             if not vht_supported():
@@ -488,9 +487,8 @@ def test_ap_open_tdls_vht80plus80(dev, apdev):
         for i in range(2):
             cmd = subprocess.Popen(['iw', dev[0].ifname, 'station', 'dump'],
                                    stdout=subprocess.PIPE)
-            res = cmd.stdout.read()
-            cmd.stdout.close()
-            logger.info("Station dump on dev[%d]:\n%s" % (i, res.decode()))
+            out, err = cmd.communicate()
+            logger.info("Station dump on dev[%d]:\n%s" % (i, out.decode()))
     except Exception as e:
         if isinstance(e, Exception) and str(e) == "AP startup failed":
             if not vht_supported():
@@ -517,7 +515,8 @@ def test_ap_open_tdls_vht160(dev, apdev):
         ev = hapd.wait_event(["AP-ENABLED"], timeout=2)
         if not ev:
             cmd = subprocess.Popen(["iw", "reg", "get"], stdout=subprocess.PIPE)
-            reg = cmd.stdout.readlines()
+            out, err = cmd.communicate()
+            reg = out.splitlines()
             for r in reg:
                 if "5490" in r and "DFS" in r:
                     raise HwsimSkip("ZA regulatory rule did not have DFS requirement removed")
@@ -533,9 +532,8 @@ def test_ap_open_tdls_vht160(dev, apdev):
         for i in range(2):
             cmd = subprocess.Popen(['iw', dev[0].ifname, 'station', 'dump'],
                                    stdout=subprocess.PIPE)
-            res = cmd.stdout.read()
-            cmd.stdout.close()
-            logger.info("Station dump on dev[%d]:\n%s" % (i, res.decode()))
+            out, err = cmd.communicate()
+            logger.info("Station dump on dev[%d]:\n%s" % (i, out.decode()))
     except Exception as e:
         if isinstance(e, Exception) and str(e) == "AP startup failed":
             if not vht_supported():

@@ -85,8 +85,7 @@ class HapdRegCtrl:
 
 def fst_clear_regdom():
     cmd = subprocess.Popen(["iw", "reg", "get"], stdout=subprocess.PIPE)
-    res = cmd.stdout.read().decode()
-    cmd.stdout.close()
-    if "country 00:" not in res:
+    out, err = cmd.communicate()
+    if "country 00:" not in out.decode():
         subprocess.call(['iw', 'reg', 'set', '00'])
         time.sleep(0.1)

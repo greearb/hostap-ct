@@ -118,7 +118,8 @@ def test_he_spr_params(dev, apdev):
 
 def he_supported():
     cmd = subprocess.Popen(["iw", "reg", "get"], stdout=subprocess.PIPE)
-    reg = cmd.stdout.read().decode()
+    out, err = cmd.communicate()
+    reg = out.decode()
     if "@ 80)" in reg or "@ 160)" in reg:
         return True
     return False
@@ -690,7 +691,8 @@ def run_ap_he160_no_dfs(dev, apdev, channel, ht_capab):
         ev = hapd.wait_event(["AP-ENABLED"], timeout=2)
         if not ev:
             cmd = subprocess.Popen(["iw", "reg", "get"], stdout=subprocess.PIPE)
-            reg = cmd.stdout.readlines()
+            out, err = cmd.communicate()
+            reg = out.splitlines()
             for r in reg:
                 if b"5490" in r and b"DFS" in r:
                     raise HwsimSkip("ZA regulatory rule did not have DFS requirement removed")
@@ -735,7 +737,8 @@ def test_he160_no_ht40(dev, apdev):
         ev = hapd.wait_event(["AP-ENABLED", "AP-DISABLED"], timeout=2)
         if not ev:
             cmd = subprocess.Popen(["iw", "reg", "get"], stdout=subprocess.PIPE)
-            reg = cmd.stdout.readlines()
+            out, err = cmd.communicate()
+            reg = out.splitlines()
             for r in reg:
                 if "5490" in r and "DFS" in r:
                     raise HwsimSkip("ZA regulatory rule did not have DFS requirement removed")

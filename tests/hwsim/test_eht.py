@@ -2388,6 +2388,8 @@ def test_eht_mlo_single_drv(dev, apdev, params):
                'type', '__ap']
         proc = subprocess.Popen(cmd, stderr=subprocess.STDOUT,
                                 stdout=subprocess.PIPE, shell=False)
+        out, err = proc.communicate()
+        logger.debug("iw output: " + out.decode())
 
         # Start hostapd
         start_ap(params['prefix'], fname1 + " " + fname2)

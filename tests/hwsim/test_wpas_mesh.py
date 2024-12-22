@@ -353,7 +353,8 @@ def _test_mesh_open_rssi_threshold(dev, apdev, value, expected):
 
     cmd = subprocess.Popen(["iw", "dev", dev[0].ifname, "get", "mesh_param",
                             "mesh_rssi_threshold"], stdout=subprocess.PIPE)
-    mesh_rssi_threshold = int(cmd.stdout.read().decode().split(" ")[0])
+    out, err = cmd.communicate()
+    mesh_rssi_threshold = int(out.decode().split(" ")[0])
 
     dev[0].mesh_group_remove()
     check_mesh_group_removed(dev[0])
@@ -1226,9 +1227,9 @@ def _test_mesh_open_vht_160(dev, apdev):
                 break
 
         cmd = subprocess.Popen(["iw", "reg", "get"], stdout=subprocess.PIPE)
-        reg = cmd.stdout.read()
+        out, err = cmd.communicate()
         found = False
-        for entry in reg.splitlines():
+        for entry in out.splitlines():
             entry = entry.decode()
             if "@ 160)" in entry and "DFS" not in entry:
                 found = True
