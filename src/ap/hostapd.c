@@ -4108,7 +4108,13 @@ void hostapd_new_assoc_sta(struct hostapd_data *hapd, struct sta_info *sta,
 	 * IEEE 802.1X/WPA code will start accounting after the station has
 	 * been authorized. */
 	if (!hapd->conf->ieee802_1x && !hapd->conf->wpa && !hapd->conf->osen) {
-		ap_sta_set_authorized(hapd, sta, 1);
+		if (ap_sta_set_authorized(hapd, sta, 1)) {
+			/* Update driver authorized flag for the STA to cover
+			 * the case where AP SME is in the driver and there is
+			 * no separate event for handling TX status event for
+			 * the (Re)Association Response frame. */
+			hostapd_set_sta_flags(hapd, sta);
+		}
 		os_get_reltime(&sta->connected_time);
 		accounting_sta_start(hapd, sta);
 	}

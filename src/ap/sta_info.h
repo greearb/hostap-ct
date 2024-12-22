@@ -386,7 +386,7 @@ bool ap_sta_set_authorized_flag(struct hostapd_data *hapd, struct sta_info *sta,
 				int authorized);
 void ap_sta_set_authorized_event(struct hostapd_data *hapd,
 				 struct sta_info *sta, int authorized);
-void ap_sta_set_authorized(struct hostapd_data *hapd,
+bool ap_sta_set_authorized(struct hostapd_data *hapd,
 			   struct sta_info *sta, int authorized);
 static inline int ap_sta_is_authorized(struct sta_info *sta)
 {

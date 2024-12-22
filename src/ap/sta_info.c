@@ -1658,12 +1658,13 @@ void ap_sta_set_authorized_event(struct hostapd_data *hapd,
 }
 
 
-void ap_sta_set_authorized(struct hostapd_data *hapd, struct sta_info *sta,
+bool ap_sta_set_authorized(struct hostapd_data *hapd, struct sta_info *sta,
 			   int authorized)
 {
 	if (!ap_sta_set_authorized_flag(hapd, sta, authorized))
-		return;
+		return false;
 	ap_sta_set_authorized_event(hapd, sta, authorized);
+	return true;
 }
 
 
