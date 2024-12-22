@@ -277,6 +277,8 @@ void wpa_sm_set_ptk_kck_kek(struct wpa_sm *sm,
 int wpa_fils_is_completed(struct wpa_sm *sm);
 void wpa_sm_pmksa_cache_reconfig(struct wpa_sm *sm);
 int wpa_sm_set_mlo_params(struct wpa_sm *sm, const struct wpa_sm_mlo *mlo);
+void wpa_sm_set_driver_bss_selection(struct wpa_sm *sm,
+				     bool driver_bss_selection);
 
 #else /* CONFIG_NO_WPA */
 
@@ -317,6 +319,11 @@ static inline void wpa_sm_set_scard_ctx(struct wpa_sm *sm, void *scard_ctx)
 
 static inline void wpa_sm_set_config(struct wpa_sm *sm,
 				     struct rsn_supp_config *config)
+{
+}
+
+static inline void wpa_sm_set_ssid(struct wpa_sm *sm, const u8 *ssid,
+				   size_t ssid_len)
 {
 }
 
@@ -515,6 +522,11 @@ static inline int wpa_sm_set_mlo_params(struct wpa_sm *sm,
 	return 0;
 }
 
+static inline void wpa_sm_set_driver_bss_selection(struct wpa_sm *sm,
+						   bool driver_bss_selection)
+{
+}
+
 #endif /* CONFIG_NO_WPA */
 
 #ifdef CONFIG_IEEE80211R
@@ -655,7 +667,5 @@ struct rsn_pmksa_cache * wpa_sm_get_pmksa_cache(struct wpa_sm *sm);
 void wpa_sm_set_cur_pmksa(struct wpa_sm *sm,
 			  struct rsn_pmksa_cache_entry *entry);
 const u8 * wpa_sm_get_auth_addr(struct wpa_sm *sm);
-void wpa_sm_set_driver_bss_selection(struct wpa_sm *sm,
-				     bool driver_bss_selection);
 
 #endif /* WPA_H */
