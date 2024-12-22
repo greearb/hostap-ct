@@ -138,6 +138,9 @@ ${SUDO} env VM=$VM ./run-tests.py -D --logdir "$LOGDIR" $TRACE_ARGS -q $DB $RUN_
 
 ./stop.sh
 
+ps ax > $LOGDIR/after-stop-ps-ax
+netstat -tnlu > $LOGDIR/after-stop-netstat
+
 if [ ! -z "$VALGRIND" ] ; then
     failures=`grep "ERROR SUMMARY" $LOGDIR/valgrind-* | grep -v " 0 errors" | wc -l`
     if [ $failures -gt 0 ]; then
