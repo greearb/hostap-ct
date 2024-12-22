@@ -24,7 +24,6 @@ def set_p2p2_configs(dev):
     dev.request("P2P_SET supported_bootstrapmethods 6")
     dev.request("P2P_SET pairing_setup 1")
     dev.request("P2P_SET pairing_cache 1")
-    dev.request("P2P_SET pairing_verification 1")
 
 def test_p2p_usd_publish_invalid_param(dev):
     """P2P USD Publish with invalid parameters"""
