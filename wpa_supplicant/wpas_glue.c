@@ -1412,8 +1412,6 @@ static void wpa_supplicant_store_ptk(void *ctx, const u8 *addr, int cipher,
 			ptk, NULL, NULL, 0);
 }
 
-#endif /* CONFIG_NO_WPA */
-
 
 #ifdef CONFIG_PASN
 static int wpa_supplicant_set_ltf_keyseed(void *_wpa_s, const u8 *own_addr,
@@ -1447,6 +1445,8 @@ static void wpa_supplicant_ssid_verified(void *_wpa_s)
 	wpa_s->ssid_verified = true;
 	wpa_msg(wpa_s, MSG_INFO, "RSN: SSID matched expected value");
 }
+
+#endif /* CONFIG_NO_WPA */
 
 
 int wpa_supplicant_init_wpa(struct wpa_supplicant *wpa_s)
