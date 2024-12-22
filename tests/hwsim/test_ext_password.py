@@ -111,6 +111,18 @@ def test_ext_password_file_psk(dev, apdev):
         if "CTRL-EVENT-CONNECTED" in ev:
             raise Exception("Unexpected connection")
 
+def test_ext_password_file_psk_with_hash(dev, apdev):
+    """External password (file) storage for PSK with hash"""
+    params = hostapd.wpa2_params(ssid="ext-pw-psk", passphrase="12345678#foo")
+    hostapd.add_ap(apdev[0], params)
+    fd, fn = tempfile.mkstemp()
+    with open(fn, "w") as f:
+        f.write("# comment\n\n")
+        f.write("psk1=12345678#foo\n")
+    os.close(fd)
+    dev[0].request("SET ext_password_backend file:%s" % fn)
+    dev[0].connect("ext-pw-psk", raw_psk="ext:psk1", scan_freq="2412")
+
 @remote_compatible
 def test_ext_password_sae(dev, apdev):
     """External password storage for SAE"""
