@@ -2006,7 +2006,10 @@ def build_sae_commit(bssid, addr, group=21, token=None):
     return frame
 
 def sae_rx_commit_token_req(sock, radiotap, send_two=False):
-    msg = sock.recv(1500)
+    try:
+        msg = sock.recv(1500)
+    except TimeoutError:
+        return False
     ver, pad, length, present = struct.unpack('<BBHL', msg[0:8])
     frame = msg[length:]
     if len(frame) < 4:
@@ -2035,6 +2038,13 @@ def sae_rx_commit_token_req(sock, radiotap, send_two=False):
 
 def run_sae_anti_clogging_during_attack(dev, apdev):
     check_sae_capab(dev[0])
+
+    # Reset apdev[1] into known state before using it as monitor interface.
+    # Issues were seen when the previous test case used it as a 5 GHz AP.
+    params = {"ssid": "monitor"}
+    hapd2 = hostapd.add_ap(apdev[1], params)
+    hapd2.disable()
+
     params = hostapd.wpa2_params(ssid="test-sae", passphrase="12345678")
     params['wpa_key_mgmt'] = 'SAE'
     params['sae_groups'] = '21'
