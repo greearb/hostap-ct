@@ -504,6 +504,7 @@ def test_p2p_pairing_verification(dev, apdev):
 
     wpas.interface_remove("wlan5")
     wpas.interface_add("wlan5", config=config)
+    set_p2p2_configs(wpas)
 
     cmd = "NAN_SUBSCRIBE service_name=_test active=1 srv_proto_type=2 ssi=1122334455 ttl=10 p2p=1"
     id0 = wpas.global_request(cmd)
