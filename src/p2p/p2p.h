@@ -1386,6 +1386,15 @@ struct p2p_config {
 	 * Returns: 0 on success, -1 on failure
 	 */
 	int (*parse_data_element)(void *ctx, const u8 *data, size_t len);
+
+	/**
+	 * pasn_validate_pmkid - Function handler to validate RSN PMKID
+	 * @ctx: Callback context from cb_ctx
+	 * @addr: Peer MAC address
+	 * @pmkid: PMKID in the PASN frame
+	 * Returns: 0 on success, -1 on failure
+	 */
+	int (*pasn_validate_pmkid)(void *ctx, const u8 *addr, const u8 *pmkid);
 };
 
 
@@ -2735,6 +2744,8 @@ int p2p_pasn_auth_rx(struct p2p_data *p2p, const struct ieee80211_mgmt *mgmt,
 		     size_t len, int freq);
 int p2p_prepare_data_element(struct p2p_data *p2p, const u8 *peer_addr);
 int p2p_parse_data_element(struct p2p_data *p2p, const u8 *data, size_t len);
+int p2p_pasn_validate_and_update_pmkid(struct p2p_data *p2p, const u8 *addr,
+				       const u8 *pmkid);
 int p2p_pasn_auth_tx_status(struct p2p_data *p2p, const u8 *data,
 			    size_t data_len, bool acked, bool verify);
 int p2p_config_sae_password(struct p2p_data *p2p, const char *pw);

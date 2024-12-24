@@ -5493,6 +5493,16 @@ static int wpas_p2p_parse_data_element(void *ctx, const u8 *data, size_t len)
 	return p2p_parse_data_element(p2p, data, len);
 }
 
+
+static int wpas_p2p_pasn_validate_pmkid(void *ctx, const u8 *addr,
+					const u8 *rsn_pmkid)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	return p2p_pasn_validate_and_update_pmkid(wpa_s->global->p2p, addr,
+						  rsn_pmkid);
+}
+
 #endif /* CONFIG_PASN */
 
 
@@ -5624,6 +5634,7 @@ int wpas_p2p_init(struct wpa_global *global, struct wpa_supplicant *wpa_s)
 	p2p.pasn_send_mgmt = wpas_p2p_pasn_send_mgmt;
 	p2p.prepare_data_element = wpas_p2p_prepare_data_element;
 	p2p.parse_data_element = wpas_p2p_parse_data_element;
+	p2p.pasn_validate_pmkid = wpas_p2p_pasn_validate_pmkid;
 #endif /* CONFIG_PASN */
 
 	os_memcpy(wpa_s->global->p2p_dev_addr, wpa_s->own_addr, ETH_ALEN);
