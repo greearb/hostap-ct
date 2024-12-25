@@ -937,7 +937,8 @@ def test_ap_ht_40mhz_intolerant_sta(dev, apdev):
     clear_scan_cache(apdev[0])
     params = {"ssid": "intolerant",
               "channel": "6",
-              "ht_capab": "[HT40-]"}
+              "ht_capab": "[HT40-]",
+              "obss_interval": "2"}
     hapd = hostapd.add_ap(apdev[0], params)
     if hapd.get_status_field("num_sta_ht40_intolerant") != "0":
         raise Exception("Unexpected num_sta_ht40_intolerant value")
@@ -959,7 +960,7 @@ def test_ap_ht_40mhz_intolerant_sta(dev, apdev):
         raise Exception("Unexpected secondary_channel (did not disable 40 MHz)")
 
     dev[2].request("DISCONNECT")
-    time.sleep(1)
+    time.sleep(12)
     if hapd.get_status_field("num_sta_ht40_intolerant") != "0":
         raise Exception("Unexpected num_sta_ht40_intolerant value (expected 0)")
     if hapd.get_status_field("secondary_channel") != "-1":
