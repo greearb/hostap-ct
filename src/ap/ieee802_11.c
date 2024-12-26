@@ -8591,7 +8591,7 @@ static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
 	u8 *eid = *pos;
 
 #ifdef CONFIG_IEEE80211BE
-	ap_mld = !!hapd->conf->mld_ap;
+	ap_mld = !!bss->conf->mld_ap;
 #endif /* CONFIG_IEEE80211BE */
 
 	/* MLD RNR has to be included for the parameter change count */
