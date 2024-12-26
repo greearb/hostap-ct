@@ -316,7 +316,8 @@ struct wpa_bss * wpa_bss_get_connection(struct wpa_supplicant *wpa_s,
 					       &owe_ssid_len))
 			continue;
 
-		if (owe_ssid_len == ssid_len &&
+		if (bss->ssid_len &&
+		    owe_ssid_len == ssid_len &&
 		    os_memcmp(owe_ssid, ssid, ssid_len) == 0)
 			return bss;
 #endif /* CONFIG_OWE */
