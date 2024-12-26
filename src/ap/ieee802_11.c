@@ -286,6 +286,19 @@ u16 hostapd_own_capab_info(struct hostapd_data *hapd)
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap && hapd->eht_mld_bss_critical_update)
 		capab |= WLAN_CAPABILITY_PBCC;
+
+	if (hapd->iconf->mbssid && hapd == hostapd_mbssid_get_tx_bss(hapd)) {
+		for (i = 1; i < hapd->iface->num_bss; i++) {
+			struct hostapd_data *h;
+
+			h = hapd->iface->bss[i];
+			if (hostapd_is_mld_ap(h) &&
+			    h->eht_mld_bss_critical_update) {
+				capab |= WLAN_CAPABILITY_NON_TX_BSSID_CU;
+				break;
+			}
+		}
+	}
 #endif /* CONFIG_IEEE80211BE */
 
 
