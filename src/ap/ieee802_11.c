@@ -8471,7 +8471,7 @@ static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
 
 	ignore_broadcast_ssid = bss->conf->ignore_broadcast_ssid;
 #ifdef CONFIG_IEEE80211BE
-	ap_mld = !!hapd->conf->mld_ap;
+	ap_mld = !!bss->conf->mld_ap;
 	/* FIXME How to exclude the hidden link in beacon? */
 	ignore_broadcast_ssid &= !hostapd_is_ml_partner(bss, reporting_hapd);
 #endif /* CONFIG_IEEE80211BE */
