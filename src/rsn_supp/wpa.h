@@ -476,7 +476,7 @@ wpa_sm_pmksa_cache_get(struct wpa_sm *sm, const u8 *aa, const u8 *pmkid,
 	return NULL;
 }
 
-static inline int wpa_sm_has_ptk(struct wpa_sm *sm)
+static inline int wpa_sm_has_ptk_installed(struct wpa_sm *sm)
 {
 	return 0;
 }
