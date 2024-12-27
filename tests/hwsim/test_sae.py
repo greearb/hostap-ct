@@ -3364,3 +3364,21 @@ def test_sae_long_rsnxe(dev, apdev):
     finally:
         dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
+
+def test_sae_dump_beacon(dev, apdev):
+    """SAE and DUMP_BEACON"""
+    check_sae_capab(dev[0])
+    params = hostapd.wpa3_params(ssid="test-sae", password="12345678")
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].set("sae_groups", "")
+    dev[0].connect("test-sae", sae_password="12345678", key_mgmt="SAE",
+                   ieee80211w="2", scan_freq="2412")
+    hapd.wait_sta()
+    res = hapd.request("DUMP_BEACON")
+    if "FAIL" in res:
+        raise Exception("DUMP_BEACON failed")
+    logger.info("DUMP_BEACON: " + res)
+
+    # Make sure there is enough time to capture at least one Beacon frame
+    time.sleep(0.2)
