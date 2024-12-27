@@ -1802,26 +1802,26 @@ static int hostapd_set_acl_list(struct hostapd_data *hapd,
 
 int hostapd_set_acl(struct hostapd_data *hapd)
 {
-	struct hostapd_config *conf = hapd->iconf;
+	struct hostapd_bss_config *conf = hapd->conf;
 	int err = 0;
 	u8 accept_acl;
 
 	if (hapd->iface->drv_max_acl_mac_addrs == 0)
 		return 0;
 
-	if (conf->bss[0]->macaddr_acl == DENY_UNLESS_ACCEPTED) {
+	if (conf->macaddr_acl == DENY_UNLESS_ACCEPTED) {
 		accept_acl = 1;
-		err = hostapd_set_acl_list(hapd, conf->bss[0]->accept_mac,
-					   conf->bss[0]->num_accept_mac,
+		err = hostapd_set_acl_list(hapd, conf->accept_mac,
+					   conf->num_accept_mac,
 					   accept_acl);
 		if (err) {
 			wpa_printf(MSG_DEBUG, "Failed to set accept acl");
 			return -1;
 		}
-	} else if (conf->bss[0]->macaddr_acl == ACCEPT_UNLESS_DENIED) {
+	} else if (conf->macaddr_acl == ACCEPT_UNLESS_DENIED) {
 		accept_acl = 0;
-		err = hostapd_set_acl_list(hapd, conf->bss[0]->deny_mac,
-					   conf->bss[0]->num_deny_mac,
+		err = hostapd_set_acl_list(hapd, conf->deny_mac,
+					   conf->num_deny_mac,
 					   accept_acl);
 		if (err) {
 			wpa_printf(MSG_DEBUG, "Failed to set deny acl");
