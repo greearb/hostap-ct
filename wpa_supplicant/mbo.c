@@ -460,6 +460,10 @@ void wpas_mbo_scan_ie(struct wpa_supplicant *wpa_s, struct wpabuf *ie)
 {
 	u8 *len;
 
+	if (wpa_s->drv_max_probe_req_ie_len <
+	    9 + ((wpa_s->enable_oce & OCE_STA) ? 3 : 0))
+		return;
+
 	wpabuf_put_u8(ie, WLAN_EID_VENDOR_SPECIFIC);
 	len = wpabuf_put(ie, 1);
 
