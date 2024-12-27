@@ -436,6 +436,9 @@ void wpa_supplicant_mark_disassoc(struct wpa_supplicant *wpa_s)
 
 	wpa_s->ssid_verified = false;
 	wpa_s->bigtk_set = false;
+
+	wpabuf_free(wpa_s->pending_eapol_rx);
+	wpa_s->pending_eapol_rx = NULL;
 }
 
 
