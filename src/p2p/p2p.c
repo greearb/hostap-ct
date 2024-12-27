@@ -6192,7 +6192,7 @@ int p2p_config_sae_password(struct p2p_data *p2p, const char *pw)
 
 static int p2p_prepare_pasn_extra_ie(struct p2p_data *p2p,
 				     struct wpabuf *extra_ies,
-				     const struct wpabuf *frame)
+				     const struct wpabuf *frame, bool add_dira)
 {
 	struct wpabuf *buf, *buf2;
 	size_t len;
@@ -6206,6 +6206,11 @@ static int p2p_prepare_pasn_extra_ie(struct p2p_data *p2p,
 
 	/* P2P Capability Extension attribute */
 	p2p_buf_add_pcea(buf, p2p);
+
+	if (add_dira) {
+		/* Device Identity Resolution attribute */
+		p2p_buf_add_dira(buf, p2p);
+	}
 
 	if (frame) {
 		p2p_dbg(p2p, "Add Action frame wrapper for PASN");
@@ -6458,7 +6463,7 @@ int p2p_initiate_pasn_verify(struct p2p_data *p2p, const u8 *peer_addr,
 		return -1;
 	}
 
-	if (p2p_prepare_pasn_extra_ie(p2p, extra_ies, req)) {
+	if (p2p_prepare_pasn_extra_ie(p2p, extra_ies, req, true)) {
 		p2p_dbg(p2p, "Prepare PASN extra IEs failed");
 		ret = -1;
 		goto out;
@@ -6533,7 +6538,7 @@ int p2p_initiate_pasn_auth(struct p2p_data *p2p, const u8 *addr, int freq)
 		return -1;
 	}
 
-	if (p2p_prepare_pasn_extra_ie(p2p, extra_ies, req)) {
+	if (p2p_prepare_pasn_extra_ie(p2p, extra_ies, req, false)) {
 		p2p_dbg(p2p, "Failed to prepare PASN extra elements");
 		ret = -1;
 		goto out;
@@ -6780,7 +6785,7 @@ int p2p_prepare_data_element(struct p2p_data *p2p, const u8 *peer_addr)
 	extra_ies = wpabuf_alloc(1500);
 	if (!extra_ies ||
 	    p2p_prepare_pasn_extra_ie(p2p, extra_ies,
-				      dev->action_frame_wrapper)) {
+				      dev->action_frame_wrapper, false)) {
 		p2p_dbg(p2p, "Failed to prepare PASN extra elements");
 		goto out;
 	}
