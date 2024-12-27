@@ -2493,6 +2493,10 @@ struct wpa_driver_capa {
 	unsigned int mbssid_max_interfaces;
 	/* Maximum profile periodicity for enhanced MBSSID advertisement */
 	unsigned int ema_max_periodicity;
+
+	/* Maximum number of bytes of extra IE(s) that can be added to Probe
+	 * Request frames */
+	size_t max_probe_req_ie_len;
 };
 
 

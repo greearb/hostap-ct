@@ -7728,12 +7728,15 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 		    capa.mac_addr_rand_sched_scan_supported)
 			wpa_s->mac_addr_rand_supported |=
 				(MAC_ADDR_RAND_SCHED_SCAN | MAC_ADDR_RAND_PNO);
+		wpa_s->drv_max_probe_req_ie_len = capa.max_probe_req_ie_len;
 
 		wpa_drv_get_ext_capa(wpa_s, WPA_IF_STATION);
 		if (wpa_s->extended_capa &&
 		    wpa_s->extended_capa_len >= 3 &&
 		    wpa_s->extended_capa[2] & 0x40)
 			wpa_s->multi_bss_support = 1;
+	} else {
+		wpa_s->drv_max_probe_req_ie_len = 1500;
 	}
 #ifdef CONFIG_PASN
 	wpa_pasn_sm_set_caps(wpa_s->wpa, wpa_s->drv_flags2);

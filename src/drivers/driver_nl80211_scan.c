@@ -238,6 +238,11 @@ nl80211_scan_common(struct i802_bss *bss, u8 cmd,
 	if (params->extra_ies) {
 		wpa_hexdump(MSG_MSGDUMP, "nl80211: Scan extra IEs",
 			    params->extra_ies, params->extra_ies_len);
+		if (params->extra_ies_len > drv->capa.max_probe_req_ie_len)
+			wpa_printf(MSG_INFO,
+				   "nl80211: Extra IEs for scan do not fit driver limit (%zu > %zu) - this is likely to fail",
+				   params->extra_ies_len,
+				   drv->capa.max_probe_req_ie_len);
 		if (nla_put(msg, NL80211_ATTR_IE, params->extra_ies_len,
 			    params->extra_ies))
 			goto fail;

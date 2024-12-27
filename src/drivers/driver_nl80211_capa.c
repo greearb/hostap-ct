@@ -959,6 +959,10 @@ static int wiphy_info_handler(struct nl_msg *msg, void *arg)
 		capa->max_scan_ssids =
 			nla_get_u8(tb[NL80211_ATTR_MAX_NUM_SCAN_SSIDS]);
 
+	if (tb[NL80211_ATTR_MAX_SCAN_IE_LEN])
+		capa->max_probe_req_ie_len =
+			nla_get_u16(tb[NL80211_ATTR_MAX_SCAN_IE_LEN]);
+
 	if (tb[NL80211_ATTR_MAX_NUM_SCHED_SCAN_SSIDS])
 		capa->max_sched_scan_ssids =
 			nla_get_u8(tb[NL80211_ATTR_MAX_NUM_SCHED_SCAN_SSIDS]);
@@ -1198,6 +1202,10 @@ static int wpa_driver_nl80211_get_info(struct wpa_driver_nl80211_data *drv,
 	os_memset(info, 0, sizeof(*info));
 	info->capa = &drv->capa;
 	info->drv = drv;
+
+	/* Default to large buffer of extra IE(s) to maintain previous behavior
+	 * if the driver does not support reporting an accurate limit. */
+	info->capa->max_probe_req_ie_len = 1500;
 
 	feat = get_nl80211_protocol_features(drv);
 	if (feat & NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP)
