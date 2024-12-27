@@ -1375,7 +1375,7 @@ int wpas_wps_cancel(struct wpa_supplicant *wpa_s)
 		wpa_printf(MSG_DEBUG, "WPS: Cancel operation - cancel scan");
 		wpa_supplicant_cancel_scan(wpa_s);
 		wpas_clear_wps(wpa_s);
-	} else if (wpa_s->wpa_state >= WPA_ASSOCIATED) {
+	} else if (wpa_s->wpa_state >= WPA_ASSOCIATING) {
 		wpa_printf(MSG_DEBUG, "WPS: Cancel operation - "
 			   "deauthenticate");
 		wpa_s->own_disconnect_req = 1;
