@@ -5861,7 +5861,7 @@ struct wpa_dev_ik * wpa_config_add_identity(struct wpa_config *config)
 	int id;
 	struct wpa_dev_ik *identity, *last = NULL;
 
-	id = -1;
+	id = 0;
 	identity = config->identity;
 	while (identity) {
 		if (identity->id > id)

@@ -6041,13 +6041,14 @@ static int p2p_derive_nonce_tag(struct p2p_data *p2p)
 }
 
 
-static void p2p_validate_dira(struct p2p_data *p2p, struct p2p_device *dev,
-			      const u8 *dira, u16 dira_len)
+static int p2p_validate_dira(struct p2p_data *p2p, struct p2p_device *dev,
+			     const u8 *dira, u16 dira_len)
 {
 	if (p2p->cfg->validate_dira)
-		p2p->cfg->validate_dira(p2p->cfg->cb_ctx,
-					dev->info.p2p_device_addr,
-					dira, dira_len);
+		return p2p->cfg->validate_dira(p2p->cfg->cb_ctx,
+					       dev->info.p2p_device_addr,
+					       dira, dira_len);
+	return 0;
 }
 
 

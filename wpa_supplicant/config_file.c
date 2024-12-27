@@ -367,7 +367,7 @@ struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 	struct wpa_config *config;
 	static int id = 0;
 	static int cred_id = 0;
-	static int identity_id = 0;
+	static int identity_id = 1;
 
 	if (name == NULL)
 		return NULL;
