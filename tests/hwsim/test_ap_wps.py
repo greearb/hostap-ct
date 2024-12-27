@@ -5586,6 +5586,8 @@ def wps_ext_eap_wsc(dst, src, src_addr, msg):
         raise Exception("EAPOL_RX failed")
 
 def wps_start_ext(apdev, dev, pbc=False, pin=None):
+    dev.flush_scan_cache()
+
     addr = dev.own_addr()
     bssid = apdev['bssid']
     ssid = "test-wps-conf"
