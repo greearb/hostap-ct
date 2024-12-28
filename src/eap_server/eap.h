@@ -199,7 +199,6 @@ struct eap_config {
 	 */
 	int pac_key_refresh_time;
 	int eap_teap_auth;
-	int eap_teap_pac_no_inner;
 	int eap_teap_separate_result;
 	enum eap_teap_id {
 		EAP_TEAP_ID_ALLOW_ANY = 0,

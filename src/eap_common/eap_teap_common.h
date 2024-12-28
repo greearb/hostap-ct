@@ -224,7 +224,5 @@ struct wpabuf * eap_teap_tlv_result(int status, int intermediate);
 struct wpabuf * eap_teap_tlv_error(enum teap_error_codes error);
 struct wpabuf * eap_teap_tlv_identity_type(enum teap_identity_types id);
 enum eap_type;
-int eap_teap_allowed_anon_prov_phase2_method(int vendor, enum eap_type type);
-int eap_teap_allowed_anon_prov_cipher_suite(u16 cs);
 
 #endif /* EAP_TEAP_H */

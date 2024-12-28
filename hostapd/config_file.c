@@ -2756,8 +2756,6 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 			return 1;
 		}
 		bss->eap_teap_auth = val;
-	} else if (os_strcmp(buf, "eap_teap_pac_no_inner") == 0) {
-		bss->eap_teap_pac_no_inner = atoi(pos);
 	} else if (os_strcmp(buf, "eap_teap_separate_result") == 0) {
 		bss->eap_teap_separate_result = atoi(pos);
 	} else if (os_strcmp(buf, "eap_teap_id") == 0) {

@@ -184,8 +184,6 @@ static int eap_tls_params_from_conf(struct eap_sm *sm,
 		/* RFC 7170 requires TLS v1.2 or newer to be used with TEAP */
 		params->flags |= TLS_CONN_DISABLE_TLSv1_0 |
 			TLS_CONN_DISABLE_TLSv1_1;
-		if (config->teap_anon_dh)
-			params->flags |= TLS_CONN_TEAP_ANON_DH;
 	}
 	if (data->eap_type == EAP_TYPE_FAST ||
 	    data->eap_type == EAP_TYPE_TEAP ||

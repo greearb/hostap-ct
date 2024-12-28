@@ -760,7 +760,7 @@ endif
 
 ifdef CONFIG_EAP_TEAP
 # EAP-TEAP
-SRC_EAP_TEAP = ../src/eap_peer/eap_teap.c ../src/eap_peer/eap_teap_pac.c
+SRC_EAP_TEAP = ../src/eap_peer/eap_teap.c
 SRC_EAP_TEAP += ../src/eap_common/eap_teap_common.c
 ifeq ($(CONFIG_EAP_TEAP), dyn)
 CFLAGS += -DEAP_TEAP_DYNAMIC

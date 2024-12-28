@@ -224,7 +224,6 @@ static struct eap_config * authsrv_eap_config(struct hostapd_data *hapd)
 	cfg->pac_key_lifetime = hapd->conf->pac_key_lifetime;
 	cfg->pac_key_refresh_time = hapd->conf->pac_key_refresh_time;
 	cfg->eap_teap_auth = hapd->conf->eap_teap_auth;
-	cfg->eap_teap_pac_no_inner = hapd->conf->eap_teap_pac_no_inner;
 	cfg->eap_teap_separate_result = hapd->conf->eap_teap_separate_result;
 	cfg->eap_teap_id = hapd->conf->eap_teap_id;
 	cfg->eap_teap_method_sequence = hapd->conf->eap_teap_method_sequence;

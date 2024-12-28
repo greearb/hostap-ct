@@ -1,6 +1,6 @@
 /*
  * EAP peer method: EAP-TEAP (RFC 7170)
- * Copyright (c) 2004-2019, Jouni Malinen <j@w1.fi>
+ * Copyright (c) 2004-2024, Jouni Malinen <j@w1.fi>
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -14,11 +14,6 @@
 #include "eap_i.h"
 #include "eap_tls_common.h"
 #include "eap_config.h"
-#include "eap_teap_pac.h"
-
-#ifdef EAP_TEAP_DYNAMIC
-#include "eap_teap_pac.c"
-#endif /* EAP_TEAP_DYNAMIC */
 
 
 static void eap_teap_deinit(struct eap_sm *sm, void *priv);
@@ -43,13 +38,6 @@ struct eap_teap_data {
 	struct eap_method_type *phase2_types;
 	size_t num_phase2_types;
 	int resuming; /* starting a resumed session */
-#define EAP_TEAP_PROV_UNAUTH 1
-#define EAP_TEAP_PROV_AUTH 2
-	int provisioning_allowed; /* Allowed PAC provisioning modes */
-	int provisioning; /* doing PAC provisioning (not the normal auth) */
-	int anon_provisioning; /* doing anonymous (unauthenticated)
-				* provisioning */
-	int session_ticket_used;
 	int test_outer_tlvs;
 
 	u8 key_data[EAP_TEAP_KEY_LEN];
@@ -57,11 +45,6 @@ struct eap_teap_data {
 	size_t id_len;
 	u8 emsk[EAP_EMSK_LEN];
 	int success;
-
-	struct eap_teap_pac *pac;
-	struct eap_teap_pac *current_pac;
-	size_t max_pac_list_len;
-	int use_pac_binary_format;
 
 	u8 simck_msk[EAP_TEAP_SIMCK_LEN];
 	u8 simck_emsk[EAP_TEAP_SIMCK_LEN];
@@ -75,75 +58,9 @@ struct eap_teap_data {
 };
 
 
-static int eap_teap_session_ticket_cb(void *ctx, const u8 *ticket, size_t len,
-				      const u8 *client_random,
-				      const u8 *server_random,
-				      u8 *master_secret)
-{
-	struct eap_teap_data *data = ctx;
-
-	wpa_printf(MSG_DEBUG, "EAP-TEAP: SessionTicket callback");
-
-	if (!master_secret) {
-		wpa_printf(MSG_DEBUG,
-			   "EAP-TEAP: SessionTicket failed - fall back to full TLS handshake");
-		data->session_ticket_used = 0;
-		if (data->provisioning_allowed) {
-			wpa_printf(MSG_DEBUG,
-				   "EAP-TEAP: Try to provision a new PAC-Key");
-			data->provisioning = 1;
-			data->current_pac = NULL;
-		}
-		return 0;
-	}
-
-	wpa_hexdump(MSG_DEBUG, "EAP-TEAP: SessionTicket", ticket, len);
-
-	if (!data->current_pac) {
-		wpa_printf(MSG_DEBUG,
-			   "EAP-TEAP: No PAC-Key available for using SessionTicket");
-		data->session_ticket_used = 0;
-		return 0;
-	}
-
-	/* EAP-TEAP uses PAC-Key as the TLS master_secret */
-	os_memcpy(master_secret, data->current_pac->pac_key,
-		  EAP_TEAP_PAC_KEY_LEN);
-
-	data->session_ticket_used = 1;
-
-	return 1;
-}
-
-
 static void eap_teap_parse_phase1(struct eap_teap_data *data,
 				  const char *phase1)
 {
-	const char *pos;
-
-	pos = os_strstr(phase1, "teap_provisioning=");
-	if (pos) {
-		data->provisioning_allowed = atoi(pos + 18);
-		wpa_printf(MSG_DEBUG,
-			   "EAP-TEAP: Automatic PAC provisioning mode: %d",
-			   data->provisioning_allowed);
-	}
-
-	pos = os_strstr(phase1, "teap_max_pac_list_len=");
-	if (pos) {
-		data->max_pac_list_len = atoi(pos + 22);
-		if (data->max_pac_list_len == 0)
-			data->max_pac_list_len = 1;
-		wpa_printf(MSG_DEBUG, "EAP-TEAP: Maximum PAC list length: %lu",
-			   (unsigned long) data->max_pac_list_len);
-	}
-
-	if (os_strstr(phase1, "teap_pac_format=binary")) {
-		data->use_pac_binary_format = 1;
-		wpa_printf(MSG_DEBUG,
-			   "EAP-TEAP: Using binary format for PAC list");
-	}
-
 #ifdef CONFIG_TESTING_OPTIONS
 	if (os_strstr(phase1, "teap_test_outer_tlvs=1"))
 		data->test_outer_tlvs = 1;
@@ -163,20 +80,9 @@ static void * eap_teap_init(struct eap_sm *sm)
 	if (!data)
 		return NULL;
 	data->teap_version = EAP_TEAP_VERSION;
-	data->max_pac_list_len = 10;
 
 	if (config->phase1)
 		eap_teap_parse_phase1(data, config->phase1);
-
-	if ((data->provisioning_allowed & EAP_TEAP_PROV_AUTH) &&
-	    !config->cert.ca_cert && !config->cert.ca_path) {
-		/* Prevent PAC provisioning without mutual authentication
-		 * (either by validating server certificate or by suitable
-		 * inner EAP method). */
-		wpa_printf(MSG_INFO,
-			   "EAP-TEAP: Disable authenticated provisioning due to no ca_cert/ca_path");
-		data->provisioning_allowed &= ~EAP_TEAP_PROV_AUTH;
-	}
 
 	if (eap_peer_select_phase2_methods(config, "auth=",
 					   &data->phase2_types,
@@ -188,46 +94,11 @@ static void * eap_teap_init(struct eap_sm *sm)
 	data->phase2_type.vendor = EAP_VENDOR_IETF;
 	data->phase2_type.method = EAP_TYPE_NONE;
 
-	config->teap_anon_dh = !!(data->provisioning_allowed &
-				  EAP_TEAP_PROV_UNAUTH);
 	if (eap_peer_tls_ssl_init(sm, &data->ssl, config, EAP_TYPE_TEAP)) {
 		wpa_printf(MSG_INFO, "EAP-TEAP: Failed to initialize SSL");
 		eap_teap_deinit(sm, data);
 		return NULL;
 	}
-
-	if (tls_connection_set_session_ticket_cb(sm->ssl_ctx, data->ssl.conn,
-						 eap_teap_session_ticket_cb,
-						 data) < 0) {
-		wpa_printf(MSG_INFO,
-			   "EAP-TEAP: Failed to set SessionTicket callback");
-		eap_teap_deinit(sm, data);
-		return NULL;
-	}
-
-	if (!data->provisioning_allowed && !config->pac_file)
-		return data;
-
-	if (!config->pac_file) {
-		wpa_printf(MSG_INFO, "EAP-TEAP: No PAC file configured");
-		eap_teap_deinit(sm, data);
-		return NULL;
-	}
-
-	if (data->use_pac_binary_format &&
-	    eap_teap_load_pac_bin(sm, &data->pac, config->pac_file) < 0) {
-		wpa_printf(MSG_INFO, "EAP-TEAP: Failed to load PAC file");
-		eap_teap_deinit(sm, data);
-		return NULL;
-	}
-
-	if (!data->use_pac_binary_format &&
-	    eap_teap_load_pac(sm, &data->pac, config->pac_file) < 0) {
-		wpa_printf(MSG_INFO, "EAP-TEAP: Failed to load PAC file");
-		eap_teap_deinit(sm, data);
-		return NULL;
-	}
-	eap_teap_pac_list_truncate(data->pac, data->max_pac_list_len);
 
 	return data;
 }
@@ -255,7 +126,6 @@ static void eap_teap_clear(struct eap_teap_data *data)
 static void eap_teap_deinit(struct eap_sm *sm, void *priv)
 {
 	struct eap_teap_data *data = priv;
-	struct eap_teap_pac *pac, *prev;
 
 	if (!data)
 		return;
@@ -264,14 +134,6 @@ static void eap_teap_deinit(struct eap_sm *sm, void *priv)
 	eap_teap_clear(data);
 	os_free(data->phase2_types);
 	eap_peer_tls_ssl_deinit(sm, &data->ssl);
-
-	pac = data->pac;
-	prev = NULL;
-	while (pac) {
-		prev = pac;
-		pac = pac->next;
-		eap_teap_free_pac(prev);
-	}
 
 	os_free(data);
 }
@@ -341,17 +203,6 @@ static int eap_teap_select_phase2_method(struct eap_teap_data *data,
 					 int vendor, enum eap_type type)
 {
 	size_t i;
-
-	/* TODO: TNC with anonymous provisioning; need to require both
-	 * completed inner EAP authentication (EAP-pwd or EAP-EKE) and TNC */
-
-	if (data->anon_provisioning &&
-	    !eap_teap_allowed_anon_prov_phase2_method(vendor, type)) {
-		wpa_printf(MSG_INFO,
-			   "EAP-TEAP: EAP type %u:%u not allowed during unauthenticated provisioning",
-			   vendor, type);
-		return -1;
-	}
 
 #ifdef EAP_TNC
 	if (vendor == EAP_VENDOR_IETF && type == EAP_TYPE_TNC) {
@@ -517,28 +368,6 @@ static struct wpabuf * eap_teap_tlv_nak(int vendor_id, int tlv_type)
 	nak->length = host_to_be16(6);
 	nak->vendor_id = host_to_be32(vendor_id);
 	nak->nak_type = host_to_be16(tlv_type);
-	return buf;
-}
-
-
-static struct wpabuf * eap_teap_tlv_pac_ack(void)
-{
-	struct wpabuf *buf;
-	struct teap_tlv_result *res;
-	struct teap_tlv_pac_ack *ack;
-
-	buf = wpabuf_alloc(sizeof(*res) + sizeof(*ack));
-	if (!buf)
-		return NULL;
-
-	wpa_printf(MSG_DEBUG, "EAP-TEAP: Add PAC TLV (ack)");
-	ack = wpabuf_put(buf, sizeof(*ack));
-	ack->tlv_type = host_to_be16(TEAP_TLV_PAC | TEAP_TLV_MANDATORY);
-	ack->length = host_to_be16(sizeof(*ack) - sizeof(struct teap_tlv_hdr));
-	ack->pac_type = host_to_be16(PAC_TYPE_PAC_ACKNOWLEDGEMENT);
-	ack->pac_len = host_to_be16(2);
-	ack->result = host_to_be16(TEAP_STATUS_SUCCESS);
-
 	return buf;
 }
 
@@ -932,231 +761,6 @@ static struct wpabuf * eap_teap_process_crypto_binding(
 }
 
 
-static void eap_teap_parse_pac_tlv(struct eap_teap_pac *entry, int type,
-				   u8 *pos, size_t len, int *pac_key_found)
-{
-	switch (type & 0x7fff) {
-	case PAC_TYPE_PAC_KEY:
-		wpa_hexdump_key(MSG_DEBUG, "EAP-TEAP: PAC-Key", pos, len);
-		if (len != EAP_TEAP_PAC_KEY_LEN) {
-			wpa_printf(MSG_DEBUG,
-				   "EAP-TEAP: Invalid PAC-Key length %lu",
-				   (unsigned long) len);
-			break;
-		}
-		*pac_key_found = 1;
-		os_memcpy(entry->pac_key, pos, len);
-		break;
-	case PAC_TYPE_PAC_OPAQUE:
-		wpa_hexdump(MSG_DEBUG, "EAP-TEAP: PAC-Opaque", pos, len);
-		entry->pac_opaque = pos;
-		entry->pac_opaque_len = len;
-		break;
-	case PAC_TYPE_PAC_INFO:
-		wpa_hexdump(MSG_DEBUG, "EAP-TEAP: PAC-Info", pos, len);
-		entry->pac_info = pos;
-		entry->pac_info_len = len;
-		break;
-	default:
-		wpa_printf(MSG_DEBUG, "EAP-TEAP: Ignored unknown PAC type %d",
-			   type);
-		break;
-	}
-}
-
-
-static int eap_teap_process_pac_tlv(struct eap_teap_pac *entry,
-				    u8 *pac, size_t pac_len)
-{
-	struct pac_attr_hdr *hdr;
-	u8 *pos;
-	size_t left, len;
-	int type, pac_key_found = 0;
-
-	pos = pac;
-	left = pac_len;
-
-	while (left > sizeof(*hdr)) {
-		hdr = (struct pac_attr_hdr *) pos;
-		type = be_to_host16(hdr->type);
-		len = be_to_host16(hdr->len);
-		pos += sizeof(*hdr);
-		left -= sizeof(*hdr);
-		if (len > left) {
-			wpa_printf(MSG_DEBUG,
-				   "EAP-TEAP: PAC TLV overrun (type=%d len=%lu left=%lu)",
-				   type, (unsigned long) len,
-				   (unsigned long) left);
-			return -1;
-		}
-
-		eap_teap_parse_pac_tlv(entry, type, pos, len, &pac_key_found);
-
-		pos += len;
-		left -= len;
-	}
-
-	if (!pac_key_found || !entry->pac_opaque || !entry->pac_info) {
-		wpa_printf(MSG_DEBUG,
-			   "EAP-TEAP: PAC TLV does not include all the required fields");
-		return -1;
-	}
-
-	return 0;
-}
-
-
-static int eap_teap_parse_pac_info(struct eap_teap_pac *entry, int type,
-				   u8 *pos, size_t len)
-{
-	u16 pac_type;
-	u32 lifetime;
-	struct os_time now;
-
-	switch (type & 0x7fff) {
-	case PAC_TYPE_CRED_LIFETIME:
-		if (len != 4) {
-			wpa_hexdump(MSG_DEBUG,
-				    "EAP-TEAP: PAC-Info - Invalid CRED_LIFETIME length - ignored",
-				    pos, len);
-			return 0;
-		}
-
-		/*
-		 * This is not currently saved separately in PAC files since
-		 * the server can automatically initiate PAC update when
-		 * needed. Anyway, the information is available from PAC-Info
-		 * dump if it is needed for something in the future.
-		 */
-		lifetime = WPA_GET_BE32(pos);
-		os_get_time(&now);
-		wpa_printf(MSG_DEBUG,
-			   "EAP-TEAP: PAC-Info - CRED_LIFETIME %d (%d days)",
-			   lifetime, (lifetime - (u32) now.sec) / 86400);
-		break;
-	case PAC_TYPE_A_ID:
-		wpa_hexdump_ascii(MSG_DEBUG, "EAP-TEAP: PAC-Info - A-ID",
-				  pos, len);
-		entry->a_id = pos;
-		entry->a_id_len = len;
-		break;
-	case PAC_TYPE_I_ID:
-		wpa_hexdump_ascii(MSG_DEBUG, "EAP-TEAP: PAC-Info - I-ID",
-				  pos, len);
-		entry->i_id = pos;
-		entry->i_id_len = len;
-		break;
-	case PAC_TYPE_A_ID_INFO:
-		wpa_hexdump_ascii(MSG_DEBUG, "EAP-TEAP: PAC-Info - A-ID-Info",
-				  pos, len);
-		entry->a_id_info = pos;
-		entry->a_id_info_len = len;
-		break;
-	case PAC_TYPE_PAC_TYPE:
-		/* RFC 7170, Section 4.2.12.6 - PAC-Type TLV */
-		if (len != 2) {
-			wpa_printf(MSG_INFO,
-				   "EAP-TEAP: Invalid PAC-Type length %lu (expected 2)",
-				   (unsigned long) len);
-			wpa_hexdump_ascii(MSG_DEBUG,
-					  "EAP-TEAP: PAC-Info - PAC-Type",
-					  pos, len);
-			return -1;
-		}
-		pac_type = WPA_GET_BE16(pos);
-		if (pac_type != PAC_TYPE_TUNNEL_PAC) {
-			wpa_printf(MSG_INFO,
-				   "EAP-TEAP: Unsupported PAC Type %d",
-				   pac_type);
-			return -1;
-		}
-
-		wpa_printf(MSG_DEBUG, "EAP-TEAP: PAC-Info - PAC-Type %d",
-			   pac_type);
-		entry->pac_type = pac_type;
-		break;
-	default:
-		wpa_printf(MSG_DEBUG,
-			   "EAP-TEAP: Ignored unknown PAC-Info type %d", type);
-		break;
-	}
-
-	return 0;
-}
-
-
-static int eap_teap_process_pac_info(struct eap_teap_pac *entry)
-{
-	struct pac_attr_hdr *hdr;
-	u8 *pos;
-	size_t left, len;
-	int type;
-
-	/* RFC 7170, Section 4.2.12.4 */
-
-	/* PAC-Type defaults to Tunnel PAC (Type 1) */
-	entry->pac_type = PAC_TYPE_TUNNEL_PAC;
-
-	pos = entry->pac_info;
-	left = entry->pac_info_len;
-	while (left > sizeof(*hdr)) {
-		hdr = (struct pac_attr_hdr *) pos;
-		type = be_to_host16(hdr->type);
-		len = be_to_host16(hdr->len);
-		pos += sizeof(*hdr);
-		left -= sizeof(*hdr);
-		if (len > left) {
-			wpa_printf(MSG_DEBUG,
-				   "EAP-TEAP: PAC-Info overrun (type=%d len=%lu left=%lu)",
-				   type, (unsigned long) len,
-				   (unsigned long) left);
-			return -1;
-		}
-
-		if (eap_teap_parse_pac_info(entry, type, pos, len) < 0)
-			return -1;
-
-		pos += len;
-		left -= len;
-	}
-
-	if (!entry->a_id || !entry->a_id_info) {
-		wpa_printf(MSG_DEBUG,
-			   "EAP-TEAP: PAC-Info does not include all the required fields");
-		return -1;
-	}
-
-	return 0;
-}
-
-
-static struct wpabuf * eap_teap_process_pac(struct eap_sm *sm,
-					    struct eap_teap_data *data,
-					    struct eap_method_ret *ret,
-					    u8 *pac, size_t pac_len)
-{
-	struct eap_peer_config *config = eap_get_config(sm);
-	struct eap_teap_pac entry;
-
-	os_memset(&entry, 0, sizeof(entry));
-	if (eap_teap_process_pac_tlv(&entry, pac, pac_len) ||
-	    eap_teap_process_pac_info(&entry))
-		return NULL;
-
-	eap_teap_add_pac(&data->pac, &data->current_pac, &entry);
-	eap_teap_pac_list_truncate(data->pac, data->max_pac_list_len);
-	if (data->use_pac_binary_format)
-		eap_teap_save_pac_bin(sm, data->pac, config->pac_file);
-	else
-		eap_teap_save_pac(sm, data->pac, config->pac_file);
-
-	wpa_printf(MSG_DEBUG,
-		   "EAP-TEAP: Send PAC-Acknowledgement - %s initiated provisioning completed successfully",
-		   data->provisioning ? "peer" : "server");
-	return eap_teap_tlv_pac_ack();
-}
-
-
 static int eap_teap_parse_decrypted(struct wpabuf *decrypted,
 				    struct eap_teap_tlv_parse *tlv,
 				    struct wpabuf **resp)
@@ -1208,38 +812,6 @@ static int eap_teap_parse_decrypted(struct wpabuf *decrypted,
 	}
 
 	return 0;
-}
-
-
-static struct wpabuf * eap_teap_pac_request(void)
-{
-	struct wpabuf *req;
-	struct teap_tlv_request_action *act;
-	struct teap_tlv_hdr *pac;
-	struct teap_attr_pac_type *type;
-
-	req = wpabuf_alloc(sizeof(*act) + sizeof(*pac) + sizeof(*type));
-	if (!req)
-		return NULL;
-
-	wpa_printf(MSG_DEBUG, "EAP-TEAP: Add Request Action TLV (Process TLV)");
-	act = wpabuf_put(req, sizeof(*act));
-	act->tlv_type = host_to_be16(TEAP_TLV_REQUEST_ACTION);
-	act->length = host_to_be16(2);
-	act->status = TEAP_STATUS_SUCCESS;
-	act->action = TEAP_REQUEST_ACTION_PROCESS_TLV;
-
-	wpa_printf(MSG_DEBUG, "EAP-TEAP: Add PAC TLV (PAC-Type = Tunnel)");
-	pac = wpabuf_put(req, sizeof(*pac));
-	pac->tlv_type = host_to_be16(TEAP_TLV_PAC);
-	pac->length = host_to_be16(sizeof(*type));
-
-	type = wpabuf_put(req, sizeof(*type));
-	type->type = host_to_be16(PAC_TYPE_PAC_TYPE);
-	type->length = host_to_be16(2);
-	type->pac_type = host_to_be16(PAC_TYPE_TUNNEL_PAC);
-
-	return req;
 }
 
 
@@ -1390,56 +962,15 @@ static int eap_teap_process_decrypted(struct eap_sm *sm,
 		}
 	}
 
-	if (data->result_success_done && data->session_ticket_used &&
+	if (data->result_success_done &&
+	    tls_connection_get_own_cert_used(data->ssl.conn) &&
 	    eap_teap_derive_msk(data) == 0) {
-		/* Assume the server might accept authentication without going
-		 * through inner authentication. */
-		wpa_printf(MSG_DEBUG,
-			   "EAP-TEAP: PAC used - server may decide to skip inner authentication");
-		ret->methodState = METHOD_MAY_CONT;
-		ret->decision = DECISION_COND_SUCC;
-	} else if (data->result_success_done &&
-		   tls_connection_get_own_cert_used(data->ssl.conn) &&
-		   eap_teap_derive_msk(data) == 0) {
 		/* Assume the server might accept authentication without going
 		 * through inner authentication. */
 		wpa_printf(MSG_DEBUG,
 			   "EAP-TEAP: Client certificate used - server may decide to skip inner authentication");
 		ret->methodState = METHOD_MAY_CONT;
 		ret->decision = DECISION_COND_SUCC;
-	}
-
-	if (tlv.pac) {
-		if (tlv.result == TEAP_STATUS_SUCCESS) {
-			tmp = eap_teap_process_pac(sm, data, ret,
-						   tlv.pac, tlv.pac_len);
-			resp = wpabuf_concat(resp, tmp);
-		} else {
-			wpa_printf(MSG_DEBUG,
-				   "EAP-TEAP: PAC TLV without Result TLV acknowledging success");
-			failed = 1;
-			error = TEAP_ERROR_UNEXPECTED_TLVS_EXCHANGED;
-		}
-	}
-
-	if (!data->current_pac && data->provisioning && !failed && !tlv.pac &&
-	    tlv.crypto_binding &&
-	    (!data->anon_provisioning ||
-	     (data->phase2_success && data->phase2_method &&
-	      data->phase2_method->vendor == 0 &&
-	      eap_teap_allowed_anon_prov_cipher_suite(data->tls_cs) &&
-	      eap_teap_allowed_anon_prov_phase2_method(
-		      data->phase2_method->vendor,
-		      data->phase2_method->method))) &&
-	    (tlv.iresult == TEAP_STATUS_SUCCESS ||
-	     tlv.result == TEAP_STATUS_SUCCESS)) {
-		/*
-		 * Need to request Tunnel PAC when using authenticated
-		 * provisioning.
-		 */
-		wpa_printf(MSG_DEBUG, "EAP-TEAP: Request Tunnel PAC");
-		tmp = eap_teap_pac_request();
-		resp = wpabuf_concat(resp, tmp);
 	}
 
 done:
@@ -1473,8 +1004,7 @@ done:
 		wpa_printf(MSG_DEBUG,
 			   "EAP-TEAP: Authentication completed successfully");
 		ret->methodState = METHOD_MAY_CONT;
-		data->on_tx_completion = data->provisioning ?
-			METHOD_MAY_CONT : METHOD_DONE;
+		data->on_tx_completion = METHOD_DONE;
 		ret->decision = DECISION_UNCOND_SUCC;
 	}
 
@@ -1565,76 +1095,11 @@ continue_req:
 }
 
 
-static void eap_teap_select_pac(struct eap_teap_data *data,
-				const u8 *a_id, size_t a_id_len)
-{
-	if (!a_id)
-		return;
-	data->current_pac = eap_teap_get_pac(data->pac, a_id, a_id_len,
-					     PAC_TYPE_TUNNEL_PAC);
-	if (data->current_pac) {
-		wpa_printf(MSG_DEBUG,
-			   "EAP-TEAP: PAC found for this A-ID (PAC-Type %d)",
-			   data->current_pac->pac_type);
-		wpa_hexdump_ascii(MSG_MSGDUMP, "EAP-TEAP: A-ID-Info",
-				  data->current_pac->a_id_info,
-				  data->current_pac->a_id_info_len);
-	}
-}
-
-
-static int eap_teap_use_pac_opaque(struct eap_sm *sm,
-				   struct eap_teap_data *data,
-				   struct eap_teap_pac *pac)
-{
-	u8 *tlv;
-	size_t tlv_len, olen;
-	struct teap_tlv_hdr *ehdr;
-
-	wpa_printf(MSG_DEBUG, "EAP-TEAP: Add PAC-Opaque TLS extension");
-	olen = pac->pac_opaque_len;
-	tlv_len = sizeof(*ehdr) + olen;
-	tlv = os_malloc(tlv_len);
-	if (tlv) {
-		ehdr = (struct teap_tlv_hdr *) tlv;
-		ehdr->tlv_type = host_to_be16(PAC_TYPE_PAC_OPAQUE);
-		ehdr->length = host_to_be16(olen);
-		os_memcpy(ehdr + 1, pac->pac_opaque, olen);
-	}
-	if (!tlv ||
-	    tls_connection_client_hello_ext(sm->ssl_ctx, data->ssl.conn,
-					    TLS_EXT_PAC_OPAQUE,
-					    tlv, tlv_len) < 0) {
-		wpa_printf(MSG_DEBUG,
-			   "EAP-TEAP: Failed to add PAC-Opaque TLS extension");
-		os_free(tlv);
-		return -1;
-	}
-	os_free(tlv);
-
-	return 0;
-}
-
-
-static int eap_teap_clear_pac_opaque_ext(struct eap_sm *sm,
-					 struct eap_teap_data *data)
-{
-	if (tls_connection_client_hello_ext(sm->ssl_ctx, data->ssl.conn,
-					    TLS_EXT_PAC_OPAQUE, NULL, 0) < 0) {
-		wpa_printf(MSG_DEBUG,
-			   "EAP-TEAP: Failed to remove PAC-Opaque TLS extension");
-		return -1;
-	}
-	return 0;
-}
-
-
 static int eap_teap_process_start(struct eap_sm *sm,
 				  struct eap_teap_data *data, u8 flags,
 				  const u8 *pos, size_t left)
 {
 	const u8 *a_id = NULL;
-	size_t a_id_len = 0;
 
 	/* TODO: Support (mostly theoretical) case of TEAP/Start request being
 	 * fragmented */
@@ -1728,7 +1193,6 @@ static int eap_teap_process_start(struct eap_sm *sm,
 					return -1;
 				}
 				a_id = outer_pos;
-				a_id_len = tlv_len;
 			} else {
 				wpa_printf(MSG_DEBUG,
 					   "EAP-TEAP: Ignore unknown Outer TLV (Type %u)",
@@ -1741,28 +1205,6 @@ static int eap_teap_process_start(struct eap_sm *sm,
 			    "EAP-TEAP: Unexpected TLS Data in Start message",
 			    pos, left);
 		return -1;
-	}
-
-	eap_teap_select_pac(data, a_id, a_id_len);
-
-	if (data->resuming && data->current_pac) {
-		wpa_printf(MSG_DEBUG,
-			   "EAP-TEAP: Trying to resume session - do not add PAC-Opaque to TLS ClientHello");
-		if (eap_teap_clear_pac_opaque_ext(sm, data) < 0)
-			return -1;
-	} else if (data->current_pac) {
-		/*
-		 * PAC found for the A-ID and we are not resuming an old
-		 * session, so add PAC-Opaque extension to ClientHello.
-		 */
-		if (eap_teap_use_pac_opaque(sm, data, data->current_pac) < 0)
-			return -1;
-	} else if (data->provisioning_allowed) {
-		wpa_printf(MSG_DEBUG,
-			   "EAP-TEAP: No PAC found - starting provisioning");
-		if (eap_teap_clear_pac_opaque_ext(sm, data) < 0)
-			return -1;
-		data->provisioning = 1;
 	}
 
 	return 0;
@@ -1942,8 +1384,6 @@ static struct wpabuf * eap_teap_process(struct eap_sm *sm, void *priv,
 		}
 
 		if (tls_connection_established(sm->ssl_ctx, data->ssl.conn)) {
-			char cipher[80];
-
 			wpa_printf(MSG_DEBUG,
 				   "EAP-TEAP: TLS done, proceed to Phase 2");
 			data->tls_cs =
@@ -1952,19 +1392,6 @@ static struct wpabuf * eap_teap_process(struct eap_sm *sm, void *priv,
 				   "EAP-TEAP: TLS cipher suite 0x%04x",
 				   data->tls_cs);
 
-			if (data->provisioning &&
-			    (!(data->provisioning_allowed &
-			       EAP_TEAP_PROV_AUTH) ||
-			     tls_get_cipher(sm->ssl_ctx, data->ssl.conn,
-					    cipher, sizeof(cipher)) < 0 ||
-			     os_strstr(cipher, "ADH-") ||
-			     os_strstr(cipher, "anon"))) {
-				wpa_printf(MSG_DEBUG,
-					   "EAP-TEAP: Using anonymous (unauthenticated) provisioning");
-				data->anon_provisioning = 1;
-			} else {
-				data->anon_provisioning = 0;
-			}
 			data->resuming = 0;
 			if (eap_teap_derive_key_auth(sm, data) < 0) {
 				wpa_printf(MSG_DEBUG,
@@ -2040,8 +1467,6 @@ static void * eap_teap_init_for_reauth(struct eap_sm *sm, void *priv)
 	data->iresult_verified = 0;
 	data->done_on_tx_completion = 0;
 	data->resuming = 1;
-	data->provisioning = 0;
-	data->anon_provisioning = 0;
 	data->simck_idx = 0;
 	return priv;
 }

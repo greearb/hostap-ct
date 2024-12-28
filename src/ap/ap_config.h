@@ -451,7 +451,6 @@ struct hostapd_bss_config {
 	int pac_key_lifetime;
 	int pac_key_refresh_time;
 	int eap_teap_auth;
-	int eap_teap_pac_no_inner;
 	int eap_teap_separate_result;
 	int eap_teap_id;
 	int eap_teap_method_sequence;
