@@ -669,8 +669,8 @@ fetch_drv_mbo_candidate_info(struct wpa_supplicant *wpa_s,
 
 			nei->drv_mbo_reject = !info->candidates[i].is_accept;
 
-			/* Use the reject reason from "first" candidate */
-			if (nei->is_first && nei->drv_mbo_reject)
+			/* Use the reject reason from the first candidate */
+			if (i == 0 && nei->drv_mbo_reject)
 				*reason = info->candidates[i].reject_reason;
 
 			break;
@@ -1312,15 +1312,6 @@ static int wnm_parse_candidate_list(struct wpa_supplicant *wpa_s,
 				*num_valid_candidates += 1;
 
 			wpa_s->wnm_num_neighbor_report++;
-#ifdef CONFIG_MBO
-			if (wpa_s->wnm_mbo_trans_reason_present &&
-			    wpa_s->wnm_num_neighbor_report == 1) {
-				rep->is_first = 1;
-				wpa_printf(MSG_DEBUG,
-					   "WNM: First transition candidate is "
-					   MACSTR, MAC2STR(rep->bssid));
-			}
-#endif /* CONFIG_MBO */
 		}
 
 		pos += len;
