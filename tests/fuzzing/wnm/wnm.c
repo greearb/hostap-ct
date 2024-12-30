@@ -28,6 +28,7 @@ struct arg_ctx {
 	struct wpa_driver_ops driver;
 	struct wpa_sm wpa;
 	struct wpa_config conf;
+	struct wpa_ssid ssid;
 };
 
 
@@ -50,6 +51,7 @@ static int init_wpa(struct arg_ctx *ctx)
 	ctx->wpa_s.wpa_state = WPA_COMPLETED;
 	os_memcpy(ctx->wpa_s.bssid, "\x02\x00\x00\x00\x03\x00", ETH_ALEN);
 	ctx->wpa_s.current_bss = &ctx->bss;
+	ctx->wpa_s.current_ssid = &ctx->ssid;
 	ctx->wpa_s.driver = &ctx->driver;
 	ctx->wpa_s.wpa = &ctx->wpa;
 	ctx->wpa_s.conf = &ctx->conf;
