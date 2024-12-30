@@ -19,7 +19,7 @@ if grep -q hwsim0 /proc/net/dev; then
 fi
 
 if [ -e /tmp/hlr_auc_gw.sock ]; then
-    if which -s socat; then
+    if which socat > /dev/null; then
 	echo TERMINATE | socat - UNIX-SENDTO:/tmp/hlr_auc_gw.sock
 	sleep 0.1
     fi
