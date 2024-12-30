@@ -1011,7 +1011,7 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 		MBO_TRANSITION_REJECT_REASON_UNSPECIFIED;
 	struct wpa_ssid *selected_ssid = NULL;
 
-	if (!wpa_s->wnm_dialog_token)
+	if (!ssid || !wpa_s->wnm_dialog_token)
 		return 0;
 
 	wpa_dbg(wpa_s, MSG_DEBUG,
