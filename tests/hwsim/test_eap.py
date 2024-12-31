@@ -424,7 +424,7 @@ def test_eap_teap_errors2(dev, apdev):
                            wait_connect=False)
             wait_eap_proposed(dev[0], wait_trigger="GET_ALLOC_FAIL")
 
-    tests = [(1, "eap_teap_derive_cmk_basic_pw_auth")]
+    tests = [(1, "eap_teap_derive_imck")]
     for count, func in tests:
         with fail_test(dev[0], count, func):
             dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP",

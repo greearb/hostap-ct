@@ -205,10 +205,7 @@ void eap_teap_put_tlv_buf(struct wpabuf *buf, u16 type,
 struct wpabuf * eap_teap_tlv_eap_payload(struct wpabuf *buf);
 int eap_teap_derive_eap_msk(u16 tls_cs, const u8 *simck, u8 *msk);
 int eap_teap_derive_eap_emsk(u16 tls_cs, const u8 *simck, u8 *emsk);
-int eap_teap_derive_cmk_basic_pw_auth(u16 tls_cs, const u8 *s_imck_msk,
-				      u8 *cmk);
-int eap_teap_derive_imck(u16 tls_cs,
-			 const u8 *prev_s_imck_msk, const u8 *prev_s_imck_emsk,
+int eap_teap_derive_imck(u16 tls_cs, const u8 *prev_s_imck,
 			 const u8 *msk, size_t msk_len,
 			 const u8 *emsk, size_t emsk_len,
 			 u8 *s_imck_msk, u8 *cmk_msk,

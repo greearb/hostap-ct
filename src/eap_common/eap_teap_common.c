@@ -118,32 +118,7 @@ int eap_teap_derive_eap_emsk(u16 tls_cs, const u8 *simck, u8 *emsk)
 }
 
 
-int eap_teap_derive_cmk_basic_pw_auth(u16 tls_cs, const u8 *s_imck_msk, u8 *cmk)
-{
-	u8 imsk[32], imck[EAP_TEAP_IMCK_LEN];
-	int res;
-
-	/* FIX: The Basic-Password-Auth (i.e., no inner EAP) case is
-	 * not fully defined in RFC 7170, so this CMK derivation may
-	 * need to be changed if a fixed definition is eventually
-	 * published. For now, derive CMK[0] based on S-IMCK[0] and
-	 * IMSK of 32 octets of zeros. */
-	os_memset(imsk, 0, 32);
-	res = eap_teap_tls_prf(tls_cs, s_imck_msk, EAP_TEAP_SIMCK_LEN,
-			       "Inner Methods Compound Keys",
-			       imsk, 32, imck, sizeof(imck));
-	if (res < 0)
-		return -1;
-	os_memcpy(cmk, &imck[EAP_TEAP_SIMCK_LEN], EAP_TEAP_CMK_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-TEAP: CMK[no-inner-EAP]",
-			cmk, EAP_TEAP_CMK_LEN);
-	forced_memzero(imck, sizeof(imck));
-	return 0;
-}
-
-
-int eap_teap_derive_imck(u16 tls_cs,
-			 const u8 *prev_s_imck_msk, const u8 *prev_s_imck_emsk,
+int eap_teap_derive_imck(u16 tls_cs, const u8 *prev_s_imck,
 			 const u8 *msk, size_t msk_len,
 			 const u8 *emsk, size_t emsk_len,
 			 u8 *s_imck_msk, u8 *cmk_msk,
@@ -186,7 +161,7 @@ int eap_teap_derive_imck(u16 tls_cs,
 				imsk, 32);
 
 		res = eap_teap_tls_prf(tls_cs,
-				       prev_s_imck_emsk, EAP_TEAP_SIMCK_LEN,
+				       prev_s_imck, EAP_TEAP_SIMCK_LEN,
 				       "Inner Methods Compound Keys",
 				       imsk, 32, imck, EAP_TEAP_IMCK_LEN);
 		forced_memzero(imsk, sizeof(imsk));
@@ -216,7 +191,7 @@ int eap_teap_derive_imck(u16 tls_cs,
 		wpa_hexdump_key(MSG_DEBUG, "EAP-TEAP: Zero IMSK", imsk, 32);
 	}
 
-	res = eap_teap_tls_prf(tls_cs, prev_s_imck_msk, EAP_TEAP_SIMCK_LEN,
+	res = eap_teap_tls_prf(tls_cs, prev_s_imck, EAP_TEAP_SIMCK_LEN,
 			       "Inner Methods Compound Keys",
 			       imsk, 32, imck, EAP_TEAP_IMCK_LEN);
 	forced_memzero(imsk, sizeof(imsk));
@@ -342,10 +317,6 @@ static int eap_teap_tls_mac(u16 tls_cs, const u8 *cmk, size_t cmk_len,
 	if (res < 0)
 		return res;
 
-	/* FIX: RFC 7170 does not describe how to handle truncation of the
-	 * Compound MAC or if the fields are supposed to be of variable length
-	 * based on the negotiated TLS cipher suite (they are defined as having
-	 * fixed size of 20 octets in the TLV description) */
 	if (mac_len > sizeof(tmp))
 		mac_len = sizeof(tmp);
 	os_memcpy(mac, tmp, mac_len);

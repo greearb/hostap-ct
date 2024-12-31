@@ -46,10 +46,11 @@ struct eap_teap_data {
 	u8 emsk[EAP_EMSK_LEN];
 	int success;
 
+	u8 simck[EAP_TEAP_SIMCK_LEN];
 	u8 simck_msk[EAP_TEAP_SIMCK_LEN];
 	u8 simck_emsk[EAP_TEAP_SIMCK_LEN];
 	int simck_idx;
-	int cmk_emsk_available;
+	bool cmk_emsk_available;
 
 	struct wpabuf *pending_phase2_req;
 	struct wpabuf *pending_resp;
@@ -118,6 +119,7 @@ static void eap_teap_clear(struct eap_teap_data *data)
 	data->server_outer_tlvs = NULL;
 	wpabuf_free(data->peer_outer_tlvs);
 	data->peer_outer_tlvs = NULL;
+	forced_memzero(data->simck, EAP_TEAP_SIMCK_LEN);
 	forced_memzero(data->simck_msk, EAP_TEAP_SIMCK_LEN);
 	forced_memzero(data->simck_emsk, EAP_TEAP_SIMCK_LEN);
 }
@@ -141,11 +143,14 @@ static void eap_teap_deinit(struct eap_sm *sm, void *priv)
 
 static int eap_teap_derive_msk(struct eap_teap_data *data)
 {
-	/* FIX: RFC 7170 does not describe whether MSK or EMSK based S-IMCK[j]
-	 * is used in this derivation */
-	if (eap_teap_derive_eap_msk(data->tls_cs, data->simck_msk,
+	wpa_printf(MSG_DEBUG, "EAP-TEAP: Derive MSK/EMSK (n=%d)",
+		   data->simck_idx);
+	wpa_hexdump(MSG_DEBUG, "EAP-TEAP: S-IMCK[n]", data->simck,
+		    EAP_TEAP_SIMCK_LEN);
+
+	if (eap_teap_derive_eap_msk(data->tls_cs, data->simck,
 				    data->key_data) < 0 ||
-	    eap_teap_derive_eap_emsk(data->tls_cs, data->simck_msk,
+	    eap_teap_derive_eap_emsk(data->tls_cs, data->simck,
 				     data->emsk) < 0)
 		return -1;
 	data->success = 1;
@@ -161,13 +166,14 @@ static int eap_teap_derive_key_auth(struct eap_sm *sm,
 	/* RFC 7170, Section 5.1 */
 	res = tls_connection_export_key(sm->ssl_ctx, data->ssl.conn,
 					TEAP_TLS_EXPORTER_LABEL_SKS, NULL, 0,
-					data->simck_msk, EAP_TEAP_SIMCK_LEN);
+					data->simck, EAP_TEAP_SIMCK_LEN);
 	if (res)
 		return res;
 	wpa_hexdump_key(MSG_DEBUG,
 			"EAP-TEAP: session_key_seed (S-IMCK[0])",
-			data->simck_msk, EAP_TEAP_SIMCK_LEN);
-	os_memcpy(data->simck_emsk, data->simck_msk, EAP_TEAP_SIMCK_LEN);
+			data->simck, EAP_TEAP_SIMCK_LEN);
+	os_memcpy(data->simck_msk, data->simck, EAP_TEAP_SIMCK_LEN);
+	os_memcpy(data->simck_emsk, data->simck, EAP_TEAP_SIMCK_LEN);
 	data->simck_idx = 0;
 	return 0;
 }
@@ -525,18 +531,21 @@ static int eap_teap_write_crypto_binding(
 				     sizeof(struct teap_tlv_hdr));
 	rbind->version = EAP_TEAP_VERSION;
 	rbind->received_version = data->received_version;
-	/* FIX: RFC 7170 is not clear on which Flags value to use when
-	 * Crypto-Binding TLV is used with Basic-Password-Auth */
-	flags = cmk_emsk ? TEAP_CRYPTO_BINDING_EMSK_AND_MSK_CMAC :
-		TEAP_CRYPTO_BINDING_MSK_CMAC;
 	subtype = TEAP_CRYPTO_BINDING_SUBTYPE_RESPONSE;
+	if (cmk_emsk)
+		flags = TEAP_CRYPTO_BINDING_EMSK_CMAC;
+	else if (cmk_msk)
+		flags = TEAP_CRYPTO_BINDING_MSK_CMAC;
+	else
+		return -1;
 	rbind->subtype = (flags << 4) | subtype;
 	os_memcpy(rbind->nonce, cb->nonce, sizeof(cb->nonce));
 	inc_byte_array(rbind->nonce, sizeof(rbind->nonce));
 	os_memset(rbind->emsk_compound_mac, 0, EAP_TEAP_COMPOUND_MAC_LEN);
 	os_memset(rbind->msk_compound_mac, 0, EAP_TEAP_COMPOUND_MAC_LEN);
 
-	if (eap_teap_compound_mac(data->tls_cs, rbind, data->server_outer_tlvs,
+	if (cmk_msk &&
+	    eap_teap_compound_mac(data->tls_cs, rbind, data->server_outer_tlvs,
 				  data->peer_outer_tlvs, cmk_msk,
 				  rbind->msk_compound_mac) < 0)
 		return -1;
@@ -572,9 +581,7 @@ static int eap_teap_get_cmk(struct eap_sm *sm, struct eap_teap_data *data,
 		   data->simck_idx + 1);
 
 	if (!data->phase2_method)
-		return eap_teap_derive_cmk_basic_pw_auth(data->tls_cs,
-							 data->simck_msk,
-							 cmk_msk);
+		goto out; /* no MSK derived in Basic-Password-Auth */
 
 	if (!data->phase2_method || !data->phase2_priv) {
 		wpa_printf(MSG_INFO, "EAP-TEAP: Phase 2 method not available");
@@ -605,8 +612,8 @@ static int eap_teap_get_cmk(struct eap_sm *sm, struct eap_teap_data *data,
 						     &emsk_len);
 	}
 
-	res = eap_teap_derive_imck(data->tls_cs,
-				   data->simck_msk, data->simck_emsk,
+out:
+	res = eap_teap_derive_imck(data->tls_cs, data->simck,
 				   msk, msk_len, emsk, emsk_len,
 				   data->simck_msk, cmk_msk,
 				   data->simck_emsk, cmk_emsk);
@@ -614,8 +621,7 @@ static int eap_teap_get_cmk(struct eap_sm *sm, struct eap_teap_data *data,
 	bin_clear_free(emsk, emsk_len);
 	if (res == 0) {
 		data->simck_idx++;
-		if (emsk)
-			data->cmk_emsk_available = 1;
+		data->cmk_emsk_available = emsk != NULL;
 	}
 	return res;
 }
@@ -657,10 +663,12 @@ static struct wpabuf * eap_teap_process_crypto_binding(
 	u8 *pos;
 	u8 cmk_msk[EAP_TEAP_CMK_LEN];
 	u8 cmk_emsk[EAP_TEAP_CMK_LEN];
+	const u8 *cmk_msk_ptr = NULL;
 	const u8 *cmk_emsk_ptr = NULL;
 	int res;
 	size_t len;
 	u8 flags;
+	bool server_msk, server_emsk;
 
 	if (eap_teap_validate_crypto_binding(data, cb) < 0 ||
 	    eap_teap_get_cmk(sm, data, cmk_msk, cmk_emsk) < 0)
@@ -668,9 +676,12 @@ static struct wpabuf * eap_teap_process_crypto_binding(
 
 	/* Validate received MSK/EMSK Compound MAC */
 	flags = cb->subtype >> 4;
+	server_msk = flags == TEAP_CRYPTO_BINDING_MSK_CMAC ||
+		flags == TEAP_CRYPTO_BINDING_EMSK_AND_MSK_CMAC;
+	server_emsk = flags == TEAP_CRYPTO_BINDING_EMSK_CMAC ||
+		flags == TEAP_CRYPTO_BINDING_EMSK_AND_MSK_CMAC;
 
-	if (flags == TEAP_CRYPTO_BINDING_MSK_CMAC ||
-	    flags == TEAP_CRYPTO_BINDING_EMSK_AND_MSK_CMAC) {
+	if (server_msk) {
 		u8 msk_compound_mac[EAP_TEAP_COMPOUND_MAC_LEN];
 
 		if (eap_teap_compound_mac(data->tls_cs, cb,
@@ -692,9 +703,7 @@ static struct wpabuf * eap_teap_process_crypto_binding(
 		}
 	}
 
-	if ((flags == TEAP_CRYPTO_BINDING_EMSK_CMAC ||
-	     flags == TEAP_CRYPTO_BINDING_EMSK_AND_MSK_CMAC) &&
-	    data->cmk_emsk_available) {
+	if (server_emsk && data->cmk_emsk_available) {
 		u8 emsk_compound_mac[EAP_TEAP_COMPOUND_MAC_LEN];
 
 		if (eap_teap_compound_mac(data->tls_cs, cb,
@@ -714,8 +723,6 @@ static struct wpabuf * eap_teap_process_crypto_binding(
 				   "EAP-TEAP: EMSK Compound MAC did not match");
 			return NULL;
 		}
-
-		cmk_emsk_ptr = cmk_emsk;
 	}
 
 	if (flags == TEAP_CRYPTO_BINDING_EMSK_CMAC &&
@@ -729,6 +736,20 @@ static struct wpabuf * eap_teap_process_crypto_binding(
 	 * Compound MAC was valid, so authentication succeeded. Reply with
 	 * crypto binding to allow server to complete authentication.
 	 */
+
+	if (server_emsk && data->cmk_emsk_available) {
+		wpa_printf(MSG_DEBUG, "EAP-TEAP: Selected S-IMCK_EMSK");
+		os_memcpy(data->simck, data->simck_emsk, EAP_TEAP_SIMCK_LEN);
+		cmk_emsk_ptr = cmk_emsk;
+	} else if (server_msk) {
+		wpa_printf(MSG_DEBUG, "EAP-TEAP: Selected S-IMCK_MSK");
+		os_memcpy(data->simck, data->simck_msk, EAP_TEAP_SIMCK_LEN);
+		cmk_msk_ptr = cmk_msk;
+	} else {
+		return NULL;
+	}
+	wpa_hexdump_key(MSG_DEBUG, "EAP-TEAP: Selected S-IMCK[j]",
+			data->simck, EAP_TEAP_SIMCK_LEN);
 
 	len = sizeof(struct teap_tlv_crypto_binding);
 	resp = wpabuf_alloc(len);
@@ -752,7 +773,7 @@ static struct wpabuf * eap_teap_process_crypto_binding(
 	pos = wpabuf_put(resp, sizeof(struct teap_tlv_crypto_binding));
 	if (eap_teap_write_crypto_binding(
 		    data, (struct teap_tlv_crypto_binding *) pos,
-		    cb, cmk_msk, cmk_emsk_ptr) < 0) {
+		    cb, cmk_msk_ptr, cmk_emsk_ptr) < 0) {
 		wpabuf_free(resp);
 		return NULL;
 	}
