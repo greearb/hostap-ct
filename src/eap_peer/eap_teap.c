@@ -56,6 +56,11 @@ struct eap_teap_data {
 	struct wpabuf *pending_resp;
 	struct wpabuf *server_outer_tlvs;
 	struct wpabuf *peer_outer_tlvs;
+
+	enum teap_compat {
+		TEAP_DEFAULT,
+		TEAP_FREERADIUS,
+	} teap_compat;
 };
 
 
@@ -66,6 +71,9 @@ static void eap_teap_parse_phase1(struct eap_teap_data *data,
 	if (os_strstr(phase1, "teap_test_outer_tlvs=1"))
 		data->test_outer_tlvs = 1;
 #endif /* CONFIG_TESTING_OPTIONS */
+
+	if (os_strstr(phase1, "teap_compat=freeradius"))
+		data->teap_compat = TEAP_FREERADIUS;
 }
 
 
@@ -613,10 +621,28 @@ static int eap_teap_get_cmk(struct eap_sm *sm, struct eap_teap_data *data,
 	}
 
 out:
-	res = eap_teap_derive_imck(data->tls_cs, data->simck,
-				   msk, msk_len, emsk, emsk_len,
-				   data->simck_msk, cmk_msk,
-				   data->simck_emsk, cmk_emsk);
+	if (data->teap_compat == TEAP_FREERADIUS) {
+		u8 tmp_simck[EAP_TEAP_SIMCK_LEN];
+		u8 tmp_cmk[EAP_TEAP_CMK_LEN];
+
+		wpa_printf(MSG_DEBUG,
+			   "EAP-TEAP: FreeRADIUS compatibility: use S-IMCK_MSK[j-1] and S-IMCK_EMSK[j-1] based on MSK/EMSK derivations instead of a single selected S-IMCK[j-1]");
+		res = eap_teap_derive_imck(data->tls_cs, data->simck_msk,
+					   msk, msk_len, emsk, emsk_len,
+					   data->simck_msk, cmk_msk,
+					   tmp_simck, tmp_cmk);
+		if (emsk)
+			res = eap_teap_derive_imck(data->tls_cs,
+						   data->simck_emsk,
+						   msk, msk_len, emsk, emsk_len,
+						   tmp_simck, tmp_cmk,
+						   data->simck_emsk, cmk_emsk);
+	} else {
+		res = eap_teap_derive_imck(data->tls_cs, data->simck,
+					   msk, msk_len, emsk, emsk_len,
+					   data->simck_msk, cmk_msk,
+					   data->simck_emsk, cmk_emsk);
+	}
 	bin_clear_free(msk, msk_len);
 	bin_clear_free(emsk, emsk_len);
 	if (res == 0) {
