@@ -3357,8 +3357,11 @@ int ieee802_11_set_beacon(struct hostapd_data *hapd)
 		return 0;
 
 	/* Generate per STA profiles for each affiliated APs */
-	for_each_mld_link(link_bss, hapd)
+	for_each_mld_link(link_bss, hapd) {
+		if (!link_bss->started)
+			continue;
 		hostapd_gen_per_sta_profiles(link_bss);
+	}
 #endif /* CONFIG_IEEE80211BE */
 
 	return 0;
