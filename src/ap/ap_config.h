@@ -1271,6 +1271,7 @@ struct hostapd_config {
 	u8 eht_bw320_offset;
 	u8 eml_disable;
 	u8 eml_resp;
+	u8 neg_ttlm_support_mode; /* Used for Wi-Fi 7 CERT 4.50 */
 #endif /* CONFIG_IEEE80211BE */
 
 	/* EHT enable/disable config from CHAN_SWITCH */

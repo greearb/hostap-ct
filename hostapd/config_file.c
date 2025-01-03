@@ -5101,6 +5101,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		conf->eml_disable = atoi(pos);
 	} else if (os_strcmp(buf, "eml_resp") == 0) {
 		conf->eml_resp = atoi(pos);
+	} else if (os_strcmp(buf, "neg_ttlm_support_mode") == 0) {
+		conf->neg_ttlm_support_mode = atoi(pos);
 #ifdef CONFIG_TESTING_OPTIONS
 	} else if (os_strcmp(buf, "eht_oper_puncturing_override") == 0) {
 		if (get_u16(pos, line, &bss->eht_oper_puncturing_override))
