@@ -686,4 +686,11 @@ void wpa_release_link_auth_ref(struct wpa_state_machine *sm,
 		    sm->mld_links[link_id].wpa_auth &&			\
 		    sm->wpa_auth != sm->mld_links[link_id].wpa_auth)
 
+static inline bool wpa_auth_pmf_enabled(struct wpa_auth_config *conf)
+{
+	return conf->ieee80211w != NO_MGMT_FRAME_PROTECTION ||
+		conf->rsn_override_mfp != NO_MGMT_FRAME_PROTECTION ||
+		conf->rsn_override_mfp_2 != NO_MGMT_FRAME_PROTECTION;
+}
+
 #endif /* WPA_AUTH_H */

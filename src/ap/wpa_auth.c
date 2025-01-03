@@ -5587,7 +5587,7 @@ static int wpa_gtk_update(struct wpa_authenticator *wpa_auth,
 	wpa_hexdump_key(MSG_DEBUG, "GTK",
 			group->GTK[group->GN - 1], group->GTK_len);
 
-	if (conf->ieee80211w != NO_MGMT_FRAME_PROTECTION) {
+	if (wpa_auth_pmf_enabled(conf)) {
 		len = wpa_cipher_key_len(conf->group_mgmt_cipher);
 		os_memcpy(group->GNonce, group->Counter, WPA_NONCE_LEN);
 		inc_byte_array(group->Counter, WPA_NONCE_LEN);
@@ -5600,7 +5600,7 @@ static int wpa_gtk_update(struct wpa_authenticator *wpa_auth,
 	}
 
 	if (!wpa_auth->non_tx_beacon_prot &&
-	    conf->ieee80211w == NO_MGMT_FRAME_PROTECTION)
+	     !wpa_auth_pmf_enabled(conf))
 		return ret;
 	if (!conf->beacon_prot)
 		return ret;
@@ -5921,7 +5921,7 @@ static int wpa_group_config_group_keys(struct wpa_authenticator *wpa_auth,
 			     KEY_FLAG_GROUP_TX_DEFAULT) < 0)
 		ret = -1;
 
-	if (conf->ieee80211w != NO_MGMT_FRAME_PROTECTION) {
+	if (wpa_auth_pmf_enabled(conf)) {
 		enum wpa_alg alg;
 		size_t len;
 

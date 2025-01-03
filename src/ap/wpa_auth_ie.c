@@ -1156,7 +1156,7 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 	}
 #endif /* CONFIG_OCV */
 
-	if (wpa_auth->conf.ieee80211w == NO_MGMT_FRAME_PROTECTION ||
+	if (!wpa_auth_pmf_enabled(conf) ||
 	    !(data.capabilities & WPA_CAPABILITY_MFPC))
 		sm->mgmt_frame_prot = 0;
 	else
