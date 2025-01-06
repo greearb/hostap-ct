@@ -1711,6 +1711,31 @@ int hostapd_drv_set_eml_omn(struct hostapd_data *hapd, const u8 *mac,
 #endif
 }
 
+int hostapd_drv_set_epcs(struct hostapd_data *hapd, struct epcs_entry *entry,
+			 struct mld_info *mld)
+{
+	struct hapd_interfaces *ifaces = hapd->iface->interfaces;
+	int i, ret;
+
+	if (!hapd->driver || !hapd->driver->set_epcs || !hapd->conf->mld_ap)
+		return -EOPNOTSUPP;
+
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+		u16 wmm_idx = entry->wmm_idx[i];
+
+		if (!mld->links[i].valid)
+			continue;
+
+		ret = hapd->driver->set_epcs(hapd->drv_priv, entry->addr, i,
+					     mld->epcs.enabled, wmm_idx,
+					     ifaces->epcs.wmm_tbl[wmm_idx]);
+		if (ret)
+			return ret;
+	}
+
+	return ret;
+}
+
 int hostapd_drv_csi_set(struct hostapd_data *hapd, u8 mode, u8 cfg, u8 v1, u32 v2, u8 *mac)
 {
 	s8 link_id = -1;

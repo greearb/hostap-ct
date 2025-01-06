@@ -2793,6 +2793,7 @@ struct ieee80211_eht_operation {
 #define EHT_MACCAP_MAX_MPDU_LEN_7991		BIT(6)
 #define EHT_MACCAP_MAX_MPDU_LEN_11454		BIT(7)
 #define EHT_MACCAP_MAX_AMPDU_LEN_EXP_EXT	BIT(8)
+#define EHT_MACCAP_UNSOL_EPCS_PARAM_UPDATE	BIT(14)
 
 /* Figure 9-1002ag: EHT PHY Capabilities Information field format
  * _IDX indicates the octet index within the field */
@@ -3058,6 +3059,13 @@ enum ieee80211_eht_ml_sub_elem {
 	EHT_ML_SUB_ELEM_VENDOR = 221,
 	EHT_ML_SUB_ELEM_FRAGMENT = 254,
 };
+
+/* IEEE P802.11be/D7.0, 9.4.2.322.6 - Common Info field of EPCS Priority Access
+ * Multi-Link element */
+struct eht_ml_epcs_common_info {
+	u8 len;
+	u8 addr[ETH_ALEN];
+} STRUCT_PACKED;
 
 /* IEEE P802.11be/D7.0, 9.4.2.329 (Bandwidth Indication element) defines the
  * Bandwidth Indication Information field to have the same definition as the

@@ -87,6 +87,11 @@ struct mld_info {
 	} common_info;
 
 	struct mld_link_info links[MAX_NUM_MLD_LINKS];
+
+	struct {
+		bool enabled;
+		u8 dialog_token;
+	} epcs;
 };
 
 struct sta_info {

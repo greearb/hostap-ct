@@ -31,6 +31,7 @@
 #include "utils/common.h"
 #include "utils/eloop.h"
 #include "utils/module_tests.h"
+#include "utils/bitfield.h"
 #include "common/version.h"
 #include "common/ieee802_11_defs.h"
 #include "common/ctrl_iface_common.h"
@@ -5610,6 +5611,306 @@ fail:
 }
 
 static int
+hostapd_epcs_set_wmm_params(struct hapd_interfaces *ifaces,
+			    struct epcs_entry *entry, char *arg)
+{
+	while (arg) {
+		size_t len = sizeof(struct hostapd_wmm_ac_params) * WMM_AC_NUM;
+		struct hostapd_wmm_ac_params params[WMM_AC_NUM] = {0};
+		char *pos, *endptr, *tok, *saveptr;
+		unsigned long link_id;
+		bool dup = false;
+		int i, j;
+
+		/* Parse link ID */
+		pos = os_strchr(arg, '=');
+		if (!pos)
+			return -EINVAL;
+		*pos++ = '\0';
+
+		if (os_strcmp(arg, "link") != 0)
+			return -EINVAL;
+
+		arg = pos;
+		pos = os_strchr(arg, ' ');
+		if (!pos)
+			return -EINVAL;
+
+		link_id = strtoul(arg, &endptr, 0);
+		if (endptr != pos || link_id >= MAX_NUM_MLD_LINKS)
+			return -EINVAL;
+
+		/* Parse WMM parameters */
+		arg = pos + 1;
+		pos = os_strchr(arg, '=');
+		if (!pos)
+			return -EINVAL;
+		*pos++ = '\0';
+
+		if (os_strcmp(arg, "params") != 0)
+			return -EINVAL;
+
+		arg = pos;
+		pos = os_strchr(arg, ' ');
+		if (pos)
+			*pos++ = '\0';
+
+		tok = strtok_r(arg, ",", &saveptr);
+		for (i = WMM_AC_BE; i < WMM_AC_NUM; ++i) {
+			for (j = 0; j < 4; ++j) {
+				unsigned long val;
+
+				if (!tok)
+					return -EINVAL;
+
+				val = strtoul(tok, &endptr, 0);
+				if (*endptr != '\0')
+					return -EINVAL;
+
+				if (j == 0)
+					params[i].aifs = val;
+				else if (j == 1)
+					params[i].cwmin = val;
+				else if (j == 2)
+					params[i].cwmax = val;
+				else
+					params[i].txop_limit = val;
+
+				tok = strtok_r(NULL, ",", &saveptr);
+			}
+		}
+		arg = pos;
+
+		/* Update WMM parameters */
+		for (i = 0; i < EPCS_MAX_WMM_PARAMS; ++i) {
+			if (os_memcmp(params, ifaces->epcs.wmm_tbl[i], len) == 0) {
+				entry->wmm_idx[link_id] = i;
+				dup = true;
+				break;
+			}
+		}
+
+		if (!dup) {
+			struct bitfield *bf = bitfield_alloc(EPCS_MAX_WMM_PARAMS);
+			struct epcs_entry *iter;
+
+			if (!bf)
+				return -ENOMEM;
+
+			/* Default WMM parameter set will not be overwritten */
+			bitfield_set(bf, 0);
+
+			dl_list_for_each(iter, &ifaces->epcs.list,
+					 struct epcs_entry, list) {
+				for (i = 0; i < MAX_NUM_MLD_LINKS; ++i)
+					bitfield_set(bf, iter->wmm_idx[i]);
+			}
+
+			i = bitfield_get_first_zero(bf);
+			bitfield_free(bf);
+			if (i == -1)
+				return -ENOBUFS;
+
+			os_memcpy(ifaces->epcs.wmm_tbl[i], params, len);
+			entry->wmm_idx[link_id] = i;
+		}
+	}
+
+	return 0;
+}
+
+static int
+hostapd_epcs_teardown(struct hostapd_data *hapd, struct epcs_entry *entry,
+		      struct mld_info *mld, char *buf, size_t len)
+{
+	mld->epcs.enabled = false;
+
+	if (hostapd_drv_set_epcs(hapd, entry, mld))
+		return os_snprintf(buf, len, "Fail to set EPCS in driver\n");
+
+	if (ieee802_11_send_epcs_teardown(hapd, mld))
+		return os_snprintf(buf, len, "Fail to send EPCS teardown\n");
+
+	return 0;
+}
+
+static int
+hostapd_ctrl_iface_epcs(struct hostapd_data *hapd, char *cmd, char *buf, size_t len)
+{
+	struct hapd_interfaces *ifaces = hapd->iface->interfaces;
+	struct epcs_entry *entry = NULL;
+	char *pos, *addr_str = NULL;
+	struct sta_info *sta;
+	struct mld_info *mld;
+	u8 addr[ETH_ALEN];
+	int ret;
+
+	if (!hapd->conf->mld_ap)
+		return os_snprintf(buf, len, "%s: not AP MLD\n", hapd->conf->iface);
+
+	pos = os_strchr(cmd, ' ');
+	if (pos) {
+		*pos++ = '\0';
+		addr_str = pos;
+		pos = os_strchr(pos, ' ');
+		if (pos)
+			*pos++ = '\0';
+
+		if (hwaddr_aton(addr_str, addr))
+			return os_snprintf(buf, len, "Invalid MAC address: %s\n", addr_str);
+
+		entry = hostapd_epcs_get_entry(ifaces, addr);
+	}
+
+	if (os_strcmp(cmd, "show")) {
+		if (!addr_str)
+			return os_snprintf(buf, len, "No MAC address\n");
+
+		if (!entry) {
+			if (os_strcmp(cmd, "send_request") == 0 ||
+			    os_strcmp(cmd, "send_update") == 0 ||
+			    os_strcmp(cmd, "send_teardown") == 0)
+				return os_snprintf(buf, len, "%s: unauthorized\n", addr_str);
+			else if (os_strcmp(cmd, "deauthorize") == 0)
+				return os_snprintf(buf, len, "%s: already unauthorized\n", addr_str);
+		}
+	}
+
+	if (os_strcmp(cmd, "authorize") == 0) {
+		if (!entry) {
+			if (dl_list_len(&ifaces->epcs.list) > EPCS_MAX_AUTH_STAS)
+				return os_snprintf(buf, len, "# authorized STAs > %u\n",
+						   EPCS_MAX_AUTH_STAS);
+
+			entry = os_zalloc(sizeof(struct epcs_entry));
+			if (!entry)
+				return os_snprintf(buf, len, "Fail to allocate EPCS entry\n");
+
+			os_memcpy(entry->addr, addr, ETH_ALEN);
+			dl_list_add(&ifaces->epcs.list, &entry->list);
+		}
+
+		if (hostapd_epcs_set_wmm_params(ifaces, entry, pos))
+			return os_snprintf(buf, len, "Fail to set EPCS WMM parameters\n");
+	} else if (os_strcmp(cmd, "deauthorize") == 0) {
+		sta = ap_get_sta(hapd, addr);
+		if (sta && sta->mld_assoc_sta) {
+			sta = sta->mld_assoc_sta;
+			hapd = hostapd_mld_get_link_bss(hapd, sta->mld_assoc_link_id);
+			mld = &sta->mld_info;
+			if (mld->epcs.enabled) {
+				ret = hostapd_epcs_teardown(hapd, entry, mld, buf, len);
+				if (ret)
+					return ret;
+			}
+		}
+
+		dl_list_del(&entry->list);
+		os_free(entry);
+	} else if (os_strcmp(cmd, "send_request") == 0) {
+		sta = ap_get_sta(hapd, addr);
+		if (!sta)
+			return os_snprintf(buf, len, "%s: not connected to %s\n",
+					   addr_str, hapd->conf->iface);
+
+		sta = sta->mld_assoc_sta;
+		if (!sta)
+			return os_snprintf(buf, len, "%s: not STA MLD\n", addr_str);
+
+		if (!(le_to_host16(sta->eht_capab->mac_cap) & EHT_MACCAP_EPCS_PRIO))
+			return os_snprintf(buf, len, "%s: not support EPCS\n", addr_str);
+
+		hapd = hostapd_mld_get_link_bss(hapd, sta->mld_assoc_link_id);
+		mld = &sta->mld_info;
+		if (mld->epcs.enabled)
+			return os_snprintf(buf, len, "%s: EPCS already enabled\n", addr_str);
+
+		if (ieee802_11_send_epcs_req(hapd, mld, entry->wmm_idx))
+			return os_snprintf(buf, len, "Fail to send EPCS request\n");
+	} else if (os_strcmp(cmd, "send_update") == 0) {
+		sta = ap_get_sta(hapd, addr);
+		if (!sta)
+			return os_snprintf(buf, len, "%s: not connected to %s\n",
+					   addr_str, hapd->conf->iface);
+
+		sta = sta->mld_assoc_sta;
+		if (!sta)
+			return os_snprintf(buf, len, "%s: not STA MLD\n", addr_str);
+
+		if (!(le_to_host16(sta->eht_capab->mac_cap) & EHT_MACCAP_UNSOL_EPCS_PARAM_UPDATE))
+			return os_snprintf(buf, len, "%s: not support unsolicited EPCS update\n", addr_str);
+
+		hapd = hostapd_mld_get_link_bss(hapd, sta->mld_assoc_link_id);
+		mld = &sta->mld_info;
+		if (!mld->epcs.enabled)
+			return os_snprintf(buf, len, "%s: EPCS not enabled\n", addr_str);
+
+		if (hostapd_drv_set_epcs(hapd, entry, mld))
+			return os_snprintf(buf, len, "Fail to set EPCS in driver\n");
+
+		if (ieee802_11_send_epcs_resp(hapd, mld, 0, WLAN_STATUS_SUCCESS, entry->wmm_idx))
+			return os_snprintf(buf, len, "Fail to send unsolicited EPCS response\n");
+	} else if (os_strcmp(cmd, "send_teardown") == 0) {
+		sta = ap_get_sta(hapd, addr);
+		if (!sta)
+			return os_snprintf(buf, len, "%s: not connected to %s\n",
+					   addr_str, hapd->conf->iface);
+
+		sta = sta->mld_assoc_sta;
+		if (!sta)
+			return os_snprintf(buf, len, "%s: not STA MLD\n", addr_str);
+
+		hapd = hostapd_mld_get_link_bss(hapd, sta->mld_assoc_link_id);
+		mld = &sta->mld_info;
+		if (!mld->epcs.enabled)
+			return os_snprintf(buf, len, "%s: EPCS not enabled\n", addr_str);
+
+		ret = hostapd_epcs_teardown(hapd, entry, mld, buf, len);
+		if (ret)
+			return ret;
+	} else if (os_strcmp(cmd, "show") == 0) {
+		wpa_printf(MSG_INFO, "EPCS authorized-STA list:");
+		dl_list_for_each(entry, &ifaces->epcs.list, struct epcs_entry, list) {
+			int i, j;
+
+			wpa_printf(MSG_INFO, "\tSTA " MACSTR, MAC2STR(entry->addr));
+
+			sta = ap_get_sta(hapd, entry->addr);
+			if (!sta || !sta->mld_assoc_sta) {
+				wpa_printf(MSG_INFO, "\t\tNot MLD connected to %s",
+					   hapd->conf->iface);
+				continue;
+			}
+
+			mld = &sta->mld_assoc_sta->mld_info;
+
+			wpa_printf(MSG_INFO, "\t\tState: %s",
+				   mld->epcs.enabled ? "enabled" : "torn down");
+			wpa_printf(MSG_INFO, "\t\tDialog token: %hhu", mld->epcs.dialog_token);
+			wpa_printf(MSG_INFO, "\t\tEDCA parameters:");
+			for (i = 0; i < MAX_NUM_MLD_LINKS; ++i) {
+				u16 idx = entry->wmm_idx[i];
+				struct hostapd_wmm_ac_params *params = ifaces->epcs.wmm_tbl[idx];
+
+				if (!mld->links[i].valid)
+					continue;
+
+				wpa_printf(MSG_INFO, "\t\t\tLink %hhu:", i);
+				wpa_printf(MSG_INFO, "\t\t\t\tWMM index: %hu", idx);
+				wpa_printf(MSG_INFO, "\t\t\t\tAC\tAIFSN\tECWmin\tECWmax\tTXOP");
+				for (j = WMM_AC_BE; j < WMM_AC_NUM; ++j)
+					wpa_printf(MSG_INFO, "\t\t\t\t%d\t%d\t%d\t%d\t%d", j,
+						   params[j].aifs, params[j].cwmin,
+						   params[j].cwmax, params[j].txop_limit);
+			}
+		}
+	} else
+		return os_snprintf(buf, len, "Unknown command: %s\n", cmd);
+
+	return os_snprintf(buf, len, "OK\n");
+}
+
+static int
 hostapd_ctrl_iface_set_csi(struct hostapd_data *hapd, char *cmd,
 			   char *buf, size_t buflen)
 {
@@ -6568,6 +6869,8 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 						   reply, reply_size);
 	} else if (os_strncmp(buf, "EML_RESP ", 9) == 0) {
 		reply_len = hostapd_ctrl_iface_set_eml_resp(hapd, buf + 9, reply, reply_size);
+	} else if (os_strncmp(buf, "EPCS ", 5) == 0) {
+		reply_len = hostapd_ctrl_iface_epcs(hapd, buf + 5, reply, reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;
