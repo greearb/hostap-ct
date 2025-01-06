@@ -383,3 +383,79 @@ void hostapd_wmm_action(struct hostapd_data *hapd,
 		       "hostapd_wmm_action - unknown action code %d",
 		       action_code);
 }
+
+size_t hostapd_eid_eht_epcs_ml_len(struct mld_info *mld)
+{
+	size_t len = 3 + sizeof(struct ieee80211_eht_ml) +
+		     sizeof(struct eht_ml_epcs_common_info);
+	int link_id;
+
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; ++link_id) {
+		if (!mld->links[link_id].valid)
+			continue;
+
+		/* Subelement ID + Length + STA Control + STA Profile
+		 * STA Profile: Contains only one WMM Parameter Element
+		 */
+		len += 2 + sizeof(struct ieee80211_eht_per_sta_profile) +
+		       2 + sizeof(struct wmm_parameter_element);
+	}
+
+	return len;
+}
+
+int hostapd_eid_eht_epcs_ml(struct hostapd_data *hapd, struct wpabuf *buf,
+			    struct mld_info *mld, u16 *wmm_idx_tbl)
+{
+	struct hapd_interfaces *ifaces = hapd->iface->interfaces;
+	int link_id;
+
+	wpabuf_put_u8(buf, WLAN_EID_EXTENSION);
+	wpabuf_put_u8(buf, hostapd_eid_eht_epcs_ml_len(mld) - 2);
+	wpabuf_put_u8(buf, WLAN_EID_EXT_MULTI_LINK);
+	wpabuf_put_le16(buf, MULTI_LINK_CONTROL_TYPE_PRIOR_ACCESS);
+
+	/* Common Info */
+	wpabuf_put_u8(buf, sizeof(struct eht_ml_epcs_common_info));
+	wpabuf_put_data(buf, hapd->mld->mld_addr, ETH_ALEN);
+
+	/* Link Info */
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; ++link_id) {
+		struct wmm_parameter_element *elem;
+		u16 idx = wmm_idx_tbl[link_id];
+		u8 *pos, ac;
+
+		if (!mld->links[link_id].valid)
+			continue;
+
+		/* Per-STA Profile subelement */
+		wpabuf_put_u8(buf, EHT_ML_SUB_ELEM_PER_STA_PROFILE);
+		wpabuf_put_u8(buf, sizeof(struct ieee80211_eht_per_sta_profile) +
+				   2 + sizeof(struct wmm_parameter_element));
+		wpabuf_put_le16(buf, link_id);
+
+		/* WMM Parameter Element */
+		pos = wpabuf_put(buf, 2 + sizeof(struct wmm_parameter_element));
+		if (!pos)
+			return -ENOBUFS;
+
+		if (hostapd_eid_wmm(hapd, pos) == pos)
+			return -EPERM;
+
+		/* Overwrite AC parameters with EPCS ones */
+		elem = (struct wmm_parameter_element *)(pos + 2);
+		for (ac = WMM_AC_BE; ac < WMM_AC_NUM; ++ac) {
+			struct hostapd_wmm_ac_params *epcs = &ifaces->epcs.wmm_tbl[idx][ac];
+			struct wmm_ac_parameter *params = &elem->ac[ac];
+
+			params->aci_aifsn = wmm_aci_aifsn(epcs->aifs,
+							  epcs->admission_control_mandatory,
+							  ac);
+			params->cw = wmm_ecw(epcs->cwmin, epcs->cwmax);
+			params->txop_limit = host_to_le16(epcs->txop_limit);
+		}
+	}
+
+	return 0;
+}
+

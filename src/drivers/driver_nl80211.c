@@ -16792,6 +16792,49 @@ fail:
 }
 
 static int
+nl80211_set_epcs(void *priv, u8 *addr, u8 link_id, bool enable, u16 wmm_idx,
+		 struct hostapd_wmm_ac_params *params)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nlattr *data;
+	struct nl_msg *msg;
+	int ret;
+
+	if (!drv->mtk_epcs_vendor_cmd_avail) {
+		wpa_printf(MSG_ERROR, "nl80211: Driver does not support setting EPCS");
+		return -EOPNOTSUPP;
+	}
+
+	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+			MTK_NL80211_VENDOR_SUBCMD_EPCS_CTRL) ||
+	    !(data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA)) ||
+	    nla_put(msg, MTK_VENDOR_ATTR_EPCS_ADDR, ETH_ALEN, addr) ||
+	    nla_put_u8(msg, MTK_VENDOR_ATTR_EPCS_LINK_ID, link_id) ||
+	    nla_put_u8(msg, MTK_VENDOR_ATTR_EPCS_ENABLE, enable) ||
+	    nla_put_u16(msg, MTK_VENDOR_ATTR_EPCS_WMM_IDX, wmm_idx) ||
+	    nla_put(msg, MTK_VENDOR_ATTR_EPCS_WMM_PARAMS,
+		    sizeof(struct hostapd_wmm_ac_params) * WMM_AC_NUM,
+		    params)) {
+		nlmsg_free(msg);
+		return -ENOBUFS;
+	}
+	nla_nest_end(msg, data);
+
+	wpa_printf(MSG_DEBUG, "nl80211: EPCS: addr=" MACSTR
+			      " link_id=%d enable=%hhu wmm_idx=%hu",
+			      MAC2STR(addr), link_id, enable, wmm_idx);
+
+	ret = send_and_recv_cmd(drv, msg);
+	if (ret)
+		wpa_printf(MSG_ERROR, "Fail to set EPCS. ret=%d (%s)",
+			   ret, strerror(-ret));
+	return ret;
+}
+
+static int
 nl80211_set_scs(void *priv, struct hostapd_scs_desc_info *info, u8 link_id)
 {
 	struct i802_bss *bss = priv;
@@ -17278,6 +17321,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.mu_ctrl = nl80211_mu_ctrl,
 	.mu_dump = nl80211_mu_dump,
 	.beacon_ctrl = nl80211_beacon_ctrl,
+	.set_epcs = nl80211_set_epcs,
 #ifdef CONFIG_DPP
 	.dpp_listen = nl80211_dpp_listen,
 #endif /* CONFIG_DPP */

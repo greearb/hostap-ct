@@ -3216,6 +3216,271 @@ static void ieee802_11_rx_neg_ttlm_teardown(struct hostapd_data *hapd, const u8 
 	return;
 }
 
+
+int ieee802_11_send_epcs_req(struct hostapd_data *hapd, struct mld_info *mld,
+			     u16 *wmm_idx_tbl)
+{
+	struct wpabuf *buf = wpabuf_alloc(3 + hostapd_eid_eht_epcs_ml_len(mld));
+	int ret;
+
+	if (!buf)
+		return -ENOMEM;
+
+	mld->epcs.dialog_token++;
+	if (mld->epcs.dialog_token == 0)
+		mld->epcs.dialog_token++;
+
+	wpabuf_put_u8(buf, WLAN_ACTION_PROTECTED_EHT);
+	wpabuf_put_u8(buf, WLAN_PROT_EHT_EPCS_ENABLE_REQUEST);
+	wpabuf_put_u8(buf, mld->epcs.dialog_token);
+
+	ret = hostapd_eid_eht_epcs_ml(hapd, buf, mld, wmm_idx_tbl);
+	if (ret)
+		goto free;
+
+	ret = hostapd_drv_send_action(hapd, hapd->iface->freq, 0,
+				      mld->common_info.mld_addr,
+				      wpabuf_head(buf), wpabuf_len(buf));
+free:
+	wpabuf_free(buf);
+
+	return ret;
+}
+
+int ieee802_11_send_epcs_resp(struct hostapd_data *hapd, struct mld_info *mld,
+			      u8 dialog_token, u16 status, u16 *wmm_idx_tbl)
+{
+	struct wpabuf *buf = wpabuf_alloc(5 + hostapd_eid_eht_epcs_ml_len(mld));
+	int ret;
+
+	if (!buf)
+		return -ENOMEM;
+
+	wpabuf_put_u8(buf, WLAN_ACTION_PROTECTED_EHT);
+	wpabuf_put_u8(buf, WLAN_PROT_EHT_EPCS_ENABLE_RESPONSE);
+	wpabuf_put_u8(buf, dialog_token);
+	wpabuf_put_le16(buf, status);
+
+	ret = hostapd_eid_eht_epcs_ml(hapd, buf, mld, wmm_idx_tbl);
+	if (ret)
+		goto free;
+
+	ret = hostapd_drv_send_action(hapd, hapd->iface->freq, 0,
+				      mld->common_info.mld_addr,
+				      wpabuf_head(buf), wpabuf_len(buf));
+free:
+	wpabuf_free(buf);
+
+	return ret;
+}
+
+int ieee802_11_send_epcs_teardown(struct hostapd_data *hapd, struct mld_info *mld)
+{
+	struct wpabuf *buf = wpabuf_alloc(2);
+	int ret;
+
+	if (!buf)
+		return -ENOMEM;
+
+	wpabuf_put_u8(buf, WLAN_ACTION_PROTECTED_EHT);
+	wpabuf_put_u8(buf, WLAN_PROT_EHT_EPCS_ENABLE_TEARDOWN);
+
+	ret = hostapd_drv_send_action(hapd, hapd->iface->freq, 0,
+				      mld->common_info.mld_addr,
+				      wpabuf_head(buf), wpabuf_len(buf));
+	wpabuf_free(buf);
+
+	return ret;
+}
+
+static void
+ieee802_11_rx_epcs_req(struct hostapd_data *hapd, const u8 *addr,
+		       const u8 *frm, size_t len)
+{
+	struct hapd_interfaces *ifaces = hapd->iface->interfaces;
+	struct epcs_entry *entry = hostapd_epcs_get_entry(ifaces, addr);
+	u16 status = WLAN_STATUS_SUCCESS;
+	struct sta_info *sta;
+	struct mld_info *mld;
+
+	wpa_printf(MSG_INFO, "Receive EPCS request from " MACSTR, MAC2STR(addr));
+
+	if (!hapd->conf->mld_ap) {
+		wpa_printf(MSG_ERROR, "%s: not AP MLD", hapd->conf->iface);
+		status = WLAN_STATUS_EPCS_DENIED;
+		goto send;
+	}
+
+	if (len != 1) {
+		wpa_printf(MSG_ERROR, "Malformed request");
+		status = WLAN_STATUS_EPCS_DENIED;
+		goto send;
+	}
+
+	if (!entry) {
+		wpa_printf(MSG_ERROR, MACSTR ": unauthorized", MAC2STR(addr));
+		status = WLAN_STATUS_EPCS_DENIED_UNAUTHORIZED;
+		goto send;
+	}
+
+	sta = ap_get_sta(hapd, addr);
+	if (!sta) {
+		wpa_printf(MSG_ERROR, "Fail to get STA info");
+		status = WLAN_STATUS_EPCS_DENIED;
+		goto send;
+	}
+
+	sta = sta->mld_assoc_sta;
+	if (!sta) {
+		wpa_printf(MSG_ERROR, MACSTR ": not STA MLD", MAC2STR(addr));
+		status = WLAN_STATUS_EPCS_DENIED;
+		goto send;
+	}
+
+	if (!(le_to_host16(sta->eht_capab->mac_cap) & EHT_MACCAP_EPCS_PRIO)) {
+		wpa_printf(MSG_ERROR, MACSTR ": not support EPCS", MAC2STR(addr));
+		status = WLAN_STATUS_EPCS_DENIED;
+		goto send;
+	}
+
+	mld = &sta->mld_info;
+	if (mld->epcs.enabled) {
+		wpa_printf(MSG_ERROR, MACSTR ": EPCS already enabled", MAC2STR(addr));
+		goto send;
+	}
+
+	mld->epcs.enabled = true;
+	if (hostapd_drv_set_epcs(hapd, entry, mld)) {
+		wpa_printf(MSG_ERROR, "Fail to set EPCS in driver");
+		mld->epcs.enabled = false;
+		status = WLAN_STATUS_EPCS_DENIED;
+	}
+send:
+	if (ieee802_11_send_epcs_resp(hapd, mld, *frm, status, entry->wmm_idx))
+		wpa_printf(MSG_ERROR, "Fail to send EPCS response");
+
+	return;
+}
+
+static void
+ieee802_11_rx_epcs_resp(struct hostapd_data *hapd, const u8 *addr,
+			const u8 *frm, size_t len)
+{
+	struct hapd_interfaces *ifaces = hapd->iface->interfaces;
+	struct epcs_entry *entry = hostapd_epcs_get_entry(ifaces, addr);
+	le16 *status = (le16 *)(frm + 1);
+	struct sta_info *sta;
+	struct mld_info *mld;
+
+	wpa_printf(MSG_INFO, "Receive EPCS response from " MACSTR, MAC2STR(addr));
+
+	if (!hapd->conf->mld_ap) {
+		wpa_printf(MSG_ERROR, "%s: not AP MLD", hapd->conf->iface);
+		return;
+	}
+
+	if (len != 3) {
+		wpa_printf(MSG_ERROR, "Malformed response");
+		return;
+	}
+
+	if (!entry) {
+		wpa_printf(MSG_ERROR, MACSTR ": unauthorized", MAC2STR(addr));
+		return;
+	}
+
+	sta = ap_get_sta(hapd, addr);
+	if (!sta) {
+		wpa_printf(MSG_ERROR, "Fail to get STA info");
+		return;
+	}
+
+	sta = sta->mld_assoc_sta;
+	if (!sta) {
+		wpa_printf(MSG_ERROR, MACSTR ": not STA MLD", MAC2STR(addr));
+		return;
+	}
+
+	if (!(le_to_host16(sta->eht_capab->mac_cap) & EHT_MACCAP_EPCS_PRIO)) {
+		wpa_printf(MSG_ERROR, MACSTR ": not support EPCS", MAC2STR(addr));
+		return;
+	}
+
+	mld = &sta->mld_info;
+	if (*frm != mld->epcs.dialog_token) {
+		wpa_printf(MSG_ERROR, "Mismatched dialog token");
+		return;
+	}
+
+	if (le_to_host16(*status) != WLAN_STATUS_SUCCESS) {
+		wpa_printf(MSG_ERROR, "Previous request denied (status: %u)",
+			   le_to_host16(*status));
+		return;
+	}
+
+	if (mld->epcs.enabled) {
+		wpa_printf(MSG_ERROR, MACSTR ": EPCS already enabled", MAC2STR(addr));
+		return;
+	}
+
+	mld->epcs.enabled = true;
+	if (hostapd_drv_set_epcs(hapd, entry, mld)) {
+		wpa_printf(MSG_ERROR, "Fail to set EPCS in driver");
+		mld->epcs.enabled = false;
+	}
+
+	return;
+}
+
+static void
+ieee802_11_rx_epcs_teardown(struct hostapd_data *hapd, const u8 *addr,
+			    const u8 *frm, size_t len)
+{
+	struct hapd_interfaces *ifaces = hapd->iface->interfaces;
+	struct epcs_entry *entry = hostapd_epcs_get_entry(ifaces, addr);
+	struct sta_info *sta;
+	struct mld_info *mld;
+
+	wpa_printf(MSG_INFO, "Receive EPCS teardown from " MACSTR, MAC2STR(addr));
+
+	if (!hapd->conf->mld_ap) {
+		wpa_printf(MSG_ERROR, "%s: not AP MLD", hapd->conf->iface);
+		return;
+	}
+
+	if (len != 0) {
+		wpa_printf(MSG_ERROR, "Malformed teardown");
+		return;
+	}
+
+	if (!entry) {
+		wpa_printf(MSG_ERROR, MACSTR ": unauthorized", MAC2STR(addr));
+		return;
+	}
+
+	sta = ap_get_sta(hapd, addr);
+	if (!sta) {
+		wpa_printf(MSG_ERROR, "Fail to get STA info");
+		return;
+	} else if (!sta->mld_assoc_sta) {
+		wpa_printf(MSG_ERROR, MACSTR ": not STA MLD", MAC2STR(addr));
+		return;
+	}
+
+	mld = &sta->mld_assoc_sta->mld_info;
+	if (!mld->epcs.enabled) {
+		wpa_printf(MSG_ERROR, MACSTR ": EPCS not enabled", MAC2STR(addr));
+		return;
+	}
+
+	mld->epcs.enabled = false;
+	if (hostapd_drv_set_epcs(hapd, entry, mld))
+		wpa_printf(MSG_ERROR, "Fail to set EPCS in driver");
+
+	return;
+}
+
+
 int ieee802_11_send_neg_ttlm_teardown(struct hostapd_data *hapd, const u8 *addr)
 {
 	struct wpabuf *buf;
@@ -3328,6 +3593,15 @@ void ieee802_11_rx_protected_eht_action(struct hostapd_data *hapd,
 	case WLAN_PROT_EHT_T2L_MAPPING_TEARDOWN:
 		wpa_printf(MSG_INFO, "EHT: TTLM teardown");
 		ieee802_11_rx_neg_ttlm_teardown(hapd, mgmt->sa);
+		return;
+	case WLAN_PROT_EHT_EPCS_ENABLE_REQUEST:
+		ieee802_11_rx_epcs_req(hapd, mgmt->sa, payload, plen);
+		return;
+	case WLAN_PROT_EHT_EPCS_ENABLE_RESPONSE:
+		ieee802_11_rx_epcs_resp(hapd, mgmt->sa, payload, plen);
+		return;
+	case WLAN_PROT_EHT_EPCS_ENABLE_TEARDOWN:
+		ieee802_11_rx_epcs_teardown(hapd, mgmt->sa, payload, plen);
 		return;
 	}
 

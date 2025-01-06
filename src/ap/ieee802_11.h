@@ -326,4 +326,12 @@ void hostapd_link_reconf_resp_tx_status(struct hostapd_data *hapd,
 
 int ieee802_11_send_neg_ttlm_teardown(struct hostapd_data *hapd, const u8 *addr);
 void hostapd_teardown_neg_ttlm(struct hostapd_data *hapd, struct sta_info *sta);
+size_t hostapd_eid_eht_epcs_ml_len(struct mld_info *mld);
+int hostapd_eid_eht_epcs_ml(struct hostapd_data *hapd, struct wpabuf *buf,
+			    struct mld_info *mld, u16 *wmm_idx_tbl);
+int ieee802_11_send_epcs_req(struct hostapd_data *hapd, struct mld_info *mld,
+			     u16 *wmm_idx_tbl);
+int ieee802_11_send_epcs_resp(struct hostapd_data *hapd, struct mld_info *mld,
+			      u8 dialog_token, u16 status, u16 *wmm_idx_tbl);
+int ieee802_11_send_epcs_teardown(struct hostapd_data *hapd, struct mld_info *mld);
 #endif /* IEEE802_11_H */

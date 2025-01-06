@@ -84,6 +84,7 @@ OBJS += ../src/ap/beacon.o
 OBJS += ../src/ap/bss_load.o
 OBJS += ../src/ap/neighbor_db.o
 OBJS += ../src/ap/rrm.o
+OBJS += ../src/utils/bitfield.o
 OBJS += ../src/common/ptksa_cache.o
 
 OBJS_c = hostapd_cli.o

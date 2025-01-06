@@ -805,6 +805,36 @@ static void hostapd_global_cleanup_mld(struct hapd_interfaces *interfaces)
 }
 
 
+static void hostapd_epcs_init(struct hapd_interfaces *ifaces)
+{
+	struct hostapd_wmm_ac_params default_params[WMM_AC_NUM] = {
+		{4, 9, 3, 0, 0},
+		{4, 9, 7, 0, 0},
+		{3, 4, 2, 188, 0},
+		{2, 3, 2, 102, 0}
+	};
+
+	dl_list_init(&ifaces->epcs.list);
+	os_memcpy(ifaces->epcs.wmm_tbl[0], default_params,
+		  sizeof(struct hostapd_wmm_ac_params) * WMM_AC_NUM);
+}
+
+
+static void hostapd_epcs_free(struct hapd_interfaces *ifaces)
+{
+	struct epcs_entry *entry, *n;
+
+	if (!ifaces->epcs.list.prev || !ifaces->epcs.list.next)
+		return;
+
+	dl_list_for_each_safe(entry, n, &ifaces->epcs.list,
+			      struct epcs_entry, list) {
+		dl_list_del(&entry->list);
+		os_free(entry);
+	}
+}
+
+
 int main(int argc, char *argv[])
 {
 	struct hapd_interfaces interfaces;
@@ -1066,6 +1096,8 @@ int main(int argc, char *argv[])
 
 	hostapd_global_ctrl_iface_init(&interfaces);
 
+	hostapd_epcs_init(&interfaces);
+
 	if (hostapd_global_run(&interfaces, daemonize, pid_file)) {
 		wpa_printf(MSG_ERROR, "Failed to start eloop");
 		goto out;
@@ -1074,6 +1106,7 @@ int main(int argc, char *argv[])
 	ret = 0;
 
  out:
+	hostapd_epcs_free(&interfaces);
 	hostapd_global_ctrl_iface_deinit(&interfaces);
 	/* Deinitialize all interfaces */
 	for (i = 0; i < interfaces.count; i++) {
