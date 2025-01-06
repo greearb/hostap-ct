@@ -21,6 +21,7 @@
 
 #include "common/defs.h"
 #include "common/ieee802_11_defs.h"
+#include "common/ieee802_11_common.h"
 #include "common/wpa_common.h"
 #include "common/nan.h"
 #ifdef CONFIG_MACSEC
@@ -5664,6 +5665,18 @@ struct wpa_driver_ops {
 	 */
 	int (*set_eml_omn)(void *priv, u8 link_id,
 			   const u8 *addr, struct eml_omn_element *omn_ie);
+
+	/**
+	 * set_epcs - Set EPCS state and WMM parameters for peer MLD in driver
+	 * @priv: Private driver interface data
+	 * @addr: Peer's MLD address
+	 * @link_id: Link ID to set state and parameters on
+	 * @enable: Enable/disable EPCS for peer MLD
+	 * @wmm_idx: Index of WMM parameters to set
+	 * @params: WMM parameters to set
+	 */
+	int (*set_epcs)(void *priv, u8 *addr, u8 link_id, bool enable,
+			u16 wmm_idx, struct hostapd_wmm_ac_params *params);
 
 	/**
 	 * three_wire_ctrl - set three_wire_ctrl mode

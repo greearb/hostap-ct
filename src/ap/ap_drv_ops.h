@@ -15,6 +15,7 @@ struct wpa_driver_scan_params;
 struct ieee80211_ht_capabilities;
 struct ieee80211_vht_capabilities;
 struct hostapd_freq_params;
+struct mld_info;
 
 u32 hostapd_sta_flags_to_drv(u32 flags);
 int hostapd_build_ap_extra_ies(struct hostapd_data *hapd,
@@ -182,6 +183,8 @@ int hostapd_drv_background_radar_mode(struct hostapd_data *hapd);
 int hostapd_drv_pp_mode_set(struct hostapd_data *hapd);
 int hostapd_drv_beacon_ctrl(struct hostapd_data *hapd, u8 beacon_mode);
 int hostapd_drv_set_eml_omn(struct hostapd_data *hapd, const u8 *mac, struct eml_omn_element *omn_ie);
+int hostapd_drv_set_epcs(struct hostapd_data *hapd, struct epcs_entry *entry,
+			 struct mld_info *mld);
 int hostapd_drv_csi_set(struct hostapd_data *hapd, u8 mode, u8 cfg, u8 v1, u32 v2, u8 *mac);
 int hostapd_drv_csi_dump(struct hostapd_data *hapd, void *dump_buf);
 

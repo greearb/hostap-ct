@@ -239,6 +239,7 @@ struct wpa_driver_nl80211_data {
 	unsigned int mtk_beacon_ctrl_vendor_cmd_avail:1;
 	unsigned int mtk_csi_vendor_cmd_avail:1;
 	unsigned int mtk_eml_vendor_cmd_avail:1;
+	unsigned int mtk_epcs_vendor_cmd_avail:1;
 	unsigned int mtk_txpower_vendor_cmd_avail:1;
 	unsigned int mtk_scs_vendor_cmd_avail:1;
 
