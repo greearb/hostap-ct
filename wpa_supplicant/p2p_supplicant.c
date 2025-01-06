@@ -11255,12 +11255,14 @@ int wpas_p2p_lo_stop(struct wpa_supplicant *wpa_s)
 }
 
 
-struct wpabuf * wpas_p2p_usd_elems(struct wpa_supplicant *wpa_s)
+struct wpabuf * wpas_p2p_usd_elems(struct wpa_supplicant *wpa_s,
+				   const char *service_name)
 {
 	struct p2p_data *p2p = wpa_s->global->p2p;
 
 	if (wpa_s->global->p2p_disabled || !p2p)
 		return NULL;
+	p2p_usd_service_hash(p2p, service_name);
 	return p2p_usd_elems(p2p);
 }
 

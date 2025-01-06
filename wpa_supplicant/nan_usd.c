@@ -369,7 +369,7 @@ int wpas_nan_usd_publish(struct wpa_supplicant *wpa_s, const char *service_name,
 		return -1;
 
 	if (p2p) {
-		elems = wpas_p2p_usd_elems(wpa_s);
+		elems = wpas_p2p_usd_elems(wpa_s, service_name);
 		addr = wpa_s->global->p2p_dev_addr;
 	} else {
 		addr = wpa_s->own_addr;
@@ -431,7 +431,7 @@ int wpas_nan_usd_subscribe(struct wpa_supplicant *wpa_s,
 		return -1;
 
 	if (p2p) {
-		elems = wpas_p2p_usd_elems(wpa_s);
+		elems = wpas_p2p_usd_elems(wpa_s, service_name);
 		addr = wpa_s->global->p2p_dev_addr;
 	} else {
 		addr = wpa_s->own_addr;

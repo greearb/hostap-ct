@@ -690,6 +690,9 @@ struct p2p_data {
 	 */
 	size_t pasn_ptk_len;
 #endif /* CONFIG_TESTING_OPTIONS */
+
+	bool usd_service;
+	u8 p2p_service_hash[P2PS_HASH_LEN];
 };
 
 /**
@@ -1083,6 +1086,7 @@ void p2p_sd_query_cb(struct p2p_data *p2p, int success);
 void p2p_pasn_initialize(struct p2p_data *p2p, struct p2p_device *dev,
 			 const u8 *addr, int freq, bool verify,
 			 bool derive_kek);
+void p2p_buf_add_usd_service_hash(struct wpabuf *buf, struct p2p_data *p2p);
 
 void p2p_dbg(struct p2p_data *p2p, const char *fmt, ...)
 PRINTF_FORMAT(2, 3);

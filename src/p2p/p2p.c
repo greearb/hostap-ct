@@ -6052,6 +6052,24 @@ static int p2p_validate_dira(struct p2p_data *p2p, struct p2p_device *dev,
 }
 
 
+void p2p_usd_service_hash(struct p2p_data *p2p, const char *service_name)
+{
+	u8 buf[P2PS_HASH_LEN];
+
+	p2p->usd_service = false;
+
+	if (!service_name)
+		return;
+
+	if (!p2ps_gen_hash(p2p, service_name, buf))
+		return;
+	p2p_dbg(p2p, "USD service %s hash " MACSTR,
+		service_name, MAC2STR(buf));
+	p2p->usd_service = true;
+	os_memcpy(&p2p->p2p_service_hash, buf, P2PS_HASH_LEN);
+}
+
+
 struct wpabuf * p2p_usd_elems(struct p2p_data *p2p)
 {
 	struct wpabuf *buf;
@@ -6232,6 +6250,30 @@ static int p2p_prepare_pasn_extra_ie(struct p2p_data *p2p,
 	wpabuf_free(buf2);
 
 	return 0;
+}
+
+
+static struct wpabuf * p2p_pasn_service_hash(struct p2p_data *p2p,
+					     struct wpabuf *extra_ies)
+{
+	struct wpabuf *buf;
+	u8 *ie_len = NULL;
+
+	if (!p2p->usd_service)
+		return extra_ies;
+
+	p2p_dbg(p2p, "Add P2P2 USD service hash in extra IE");
+	buf = wpabuf_alloc(100);
+	if (!buf) {
+		wpabuf_free(extra_ies);
+		return NULL;
+	}
+
+	ie_len = p2p_buf_add_ie_hdr(buf);
+	p2p_buf_add_usd_service_hash(buf, p2p);
+	p2p_buf_update_ie_hdr(buf, ie_len);
+
+	return wpabuf_concat(buf, extra_ies);
 }
 
 
@@ -6482,6 +6524,10 @@ int p2p_initiate_pasn_verify(struct p2p_data *p2p, const u8 *peer_addr,
 		goto out;
 	}
 
+	extra_ies = p2p_pasn_service_hash(p2p, extra_ies);
+	if (!extra_ies)
+		goto out;
+
 	pasn_extra_ies = os_memdup(wpabuf_head_u8(extra_ies),
 				   wpabuf_len(extra_ies));
 	if (!pasn_extra_ies) {
@@ -6556,6 +6602,10 @@ int p2p_initiate_pasn_auth(struct p2p_data *p2p, const u8 *addr, int freq)
 		ret = -1;
 		goto out;
 	}
+
+	extra_ies = p2p_pasn_service_hash(p2p, extra_ies);
+	if (!extra_ies)
+		goto out;
 
 	ies_len = wpabuf_len(extra_ies);
 	ies = os_memdup(wpabuf_head_u8(extra_ies), ies_len);
