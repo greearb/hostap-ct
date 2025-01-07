@@ -7221,6 +7221,12 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 	    nla_put_flag(msg, NL80211_ATTR_MLO_SUPPORT))
 		return -1;
 
+	if (params->spp_amsdu) {
+		wpa_printf(MSG_DEBUG, "  * SPP A-MSDU");
+		if (nla_put_flag(msg, NL80211_ATTR_ASSOC_SPP_AMSDU))
+			return -1;
+	}
+
 	return 0;
 }
 

@@ -1397,11 +1397,15 @@ struct wpa_driver_associate_params {
 	 */
 	struct wpa_driver_mld_params mld_params;
 
-
 	/**
 	 * rsn_overriding - wpa_supplicant RSN overriding support
 	 */
 	bool rsn_overriding;
+
+	/**
+	 * spp_amsdu - SPP A-MSDU used on this connection
+	 */
+	bool spp_amsdu;
 };
 
 enum hide_ssid {
