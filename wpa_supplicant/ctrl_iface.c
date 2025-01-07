@@ -10549,6 +10549,7 @@ static int wpas_ctrl_resend_assoc(struct wpa_supplicant *wpa_s)
 	params.key_mgmt_suite = wpa_s->key_mgmt;
 	params.wpa_proto = wpa_s->wpa_proto;
 	params.mgmt_frame_protection = wpa_s->sme.mfp;
+	params.spp_amsdu = wpa_s->sme.spp_amsdu;
 	params.rrm_used = wpa_s->rrm.rrm_used;
 	if (wpa_s->sme.prev_bssid_set)
 		params.prev_bssid = wpa_s->sme.prev_bssid;

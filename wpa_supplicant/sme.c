@@ -854,6 +854,8 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		}
 	}
 
+	wpa_s->sme.spp_amsdu = wpa_sm_uses_spp_amsdu(wpa_s->wpa);
+
 #ifdef CONFIG_P2P
 	if (wpa_s->global->p2p) {
 		u8 *pos;
@@ -2685,6 +2687,7 @@ mscs_fail:
 #endif /* CONFIG_IEEE80211R */
 	params.mode = mode;
 	params.mgmt_frame_protection = wpa_s->sme.mfp;
+	params.spp_amsdu = wpa_s->sme.spp_amsdu;
 	params.rrm_used = wpa_s->rrm.rrm_used;
 	if (wpa_s->sme.prev_bssid_set)
 		params.prev_bssid = wpa_s->sme.prev_bssid;

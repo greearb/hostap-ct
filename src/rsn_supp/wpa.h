@@ -140,6 +140,7 @@ enum wpa_sm_conf_params {
 	WPA_PARAM_RSN_OVERRIDE,
 	WPA_PARAM_RSN_OVERRIDE_SUPPORT,
 	WPA_PARAM_EAPOL_2_KEY_INFO_SET_MASK,
+	WPA_PARAM_SPP_AMSDU,
 };
 
 enum wpa_rsn_override {
@@ -279,6 +280,7 @@ void wpa_sm_pmksa_cache_reconfig(struct wpa_sm *sm);
 int wpa_sm_set_mlo_params(struct wpa_sm *sm, const struct wpa_sm_mlo *mlo);
 void wpa_sm_set_driver_bss_selection(struct wpa_sm *sm,
 				     bool driver_bss_selection);
+bool wpa_sm_uses_spp_amsdu(struct wpa_sm *sm);
 
 #else /* CONFIG_NO_WPA */
 
@@ -525,6 +527,11 @@ static inline int wpa_sm_set_mlo_params(struct wpa_sm *sm,
 static inline void wpa_sm_set_driver_bss_selection(struct wpa_sm *sm,
 						   bool driver_bss_selection)
 {
+}
+
+static inline bool wpa_sm_uses_spp_amsdu(struct wpa_sm *sm)
+{
+	return false;
 }
 
 #endif /* CONFIG_NO_WPA */

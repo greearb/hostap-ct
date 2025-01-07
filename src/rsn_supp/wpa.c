@@ -4971,6 +4971,9 @@ int wpa_sm_set_param(struct wpa_sm *sm, enum wpa_sm_conf_params param,
 	case WPA_PARAM_USE_EXT_KEY_ID:
 		sm->use_ext_key_id = value;
 		break;
+	case WPA_PARAM_SPP_AMSDU:
+		sm->spp_amsdu = !!value;
+		break;
 #ifdef CONFIG_TESTING_OPTIONS
 	case WPA_PARAM_FT_RSNXE_USED:
 		sm->ft_rsnxe_used = value;
@@ -7199,6 +7202,12 @@ void wpa_sm_pmksa_cache_reconfig(struct wpa_sm *sm)
 {
 	if (sm)
 		pmksa_cache_reconfig(sm->pmksa);
+}
+
+
+bool wpa_sm_uses_spp_amsdu(struct wpa_sm *sm)
+{
+	return sm ? sm->spp_amsdu : false;
 }
 
 
