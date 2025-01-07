@@ -1526,6 +1526,13 @@ static int hostapd_config_check_bss(struct hostapd_bss_config *bss,
 		return -1;
 	}
 
+	/* Do not advertise SPP A-MSDU support if not using CCMP/GCMP */
+	if (full_config && bss->spp_amsdu &&
+	    !(bss->wpa &&
+	      bss->rsn_pairwise & (WPA_CIPHER_CCMP_256 | WPA_CIPHER_CCMP |
+				   WPA_CIPHER_GCMP_256 | WPA_CIPHER_GCMP)))
+		bss->spp_amsdu = false;
+
 	return 0;
 }
 

@@ -996,6 +996,8 @@ struct hostapd_bss_config {
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
 	int mbssid_index;
+
+	bool spp_amsdu;
 };
 
 /**

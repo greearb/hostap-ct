@@ -3707,6 +3707,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->rsn_override_mfp = atoi(pos);
 	} else if (os_strcmp(buf, "rsn_override_mfp_2") == 0) {
 		bss->rsn_override_mfp_2 = atoi(pos);
+	} else if (os_strcmp(buf, "spp_amsdu") == 0) {
+		bss->spp_amsdu = !!atoi(pos);
 	} else if (os_strcmp(buf, "group_mgmt_cipher") == 0) {
 		if (os_strcmp(pos, "AES-128-CMAC") == 0) {
 			bss->group_mgmt_cipher = WPA_CIPHER_AES_128_CMAC;
