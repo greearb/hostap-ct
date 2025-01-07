@@ -507,6 +507,8 @@ static u32 rsnxe_capab(struct wpa_auth_config *conf, int key_mgmt)
 		capab |= BIT(WLAN_RSNX_CAPAB_URNM_MFPR);
 	if (conf->ssid_protection)
 		capab |= BIT(WLAN_RSNX_CAPAB_SSID_PROTECTION);
+	if (conf->spp_amsdu)
+		capab |= BIT(WLAN_RSNX_CAPAB_SPP_A_MSDU);
 
 	return capab;
 }
@@ -1169,6 +1171,14 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 		    return WPA_MGMT_FRAME_PROTECTION_VIOLATION;
 	}
 
+	if (wpa_auth->conf.spp_amsdu &&
+	    ieee802_11_rsnx_capab(rsnxe, WLAN_RSNX_CAPAB_SPP_A_MSDU) &&
+	    (ciphers & (WPA_CIPHER_CCMP_256 | WPA_CIPHER_CCMP |
+			WPA_CIPHER_GCMP_256 | WPA_CIPHER_GCMP)))
+		sm->spp_amsdu = 1;
+	else
+		sm->spp_amsdu = 0;
+
 #ifdef CONFIG_IEEE80211R_AP
 	if (wpa_key_mgmt_ft(sm->wpa_key_mgmt)) {
 		if (mdie == NULL || mdie_len < MOBILITY_DOMAIN_ID_LEN + 1) {
@@ -1411,6 +1421,11 @@ int wpa_auth_uses_mfp(struct wpa_state_machine *sm)
 	return sm ? sm->mgmt_frame_prot : 0;
 }
 
+
+int wpa_auth_uses_spp_amsdu(struct wpa_state_machine *sm)
+{
+	return sm ? sm->spp_amsdu : 0;
+}
 
 #ifdef CONFIG_OCV
 

@@ -319,6 +319,8 @@ struct wpa_auth_config {
 	bool ssid_protection;
 
 	int rsn_override_omit_rsnxe;
+
+	bool spp_amsdu;
 };
 
 typedef enum {
@@ -459,6 +461,7 @@ int wpa_validate_osen(struct wpa_authenticator *wpa_auth,
 		      struct wpa_state_machine *sm,
 		      const u8 *osen_ie, size_t osen_ie_len);
 int wpa_auth_uses_mfp(struct wpa_state_machine *sm);
+int wpa_auth_uses_spp_amsdu(struct wpa_state_machine *sm);
 void wpa_auth_set_ocv(struct wpa_state_machine *sm, int ocv);
 int wpa_auth_uses_ocv(struct wpa_state_machine *sm);
 struct wpa_state_machine *
