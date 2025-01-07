@@ -5636,6 +5636,8 @@ static u32 sta_flags_nl80211(int flags)
 		f |= BIT(NL80211_STA_FLAG_AUTHENTICATED);
 	if (flags & WPA_STA_ASSOCIATED)
 		f |= BIT(NL80211_STA_FLAG_ASSOCIATED);
+	if (flags & WPA_STA_SPP_AMSDU)
+		f |= BIT(NL80211_STA_FLAG_SPP_AMSDU);
 
 	return f;
 }
@@ -10080,6 +10082,11 @@ static int nl80211_set_param(void *priv, const char *param)
 	if (os_strstr(param, "force_connect_cmd=1")) {
 		drv->capa.flags &= ~WPA_DRIVER_FLAGS_SME;
 		drv->force_connect_cmd = 1;
+		/*
+		 * mac80211_hwsim does not implement SPP A-MSDU in
+		 * offload mode.
+		 */
+		drv->capa.flags2 &= ~WPA_DRIVER_FLAGS2_SPP_AMSDU;
 	}
 
 	if (os_strstr(param, "force_bss_selection=1"))
