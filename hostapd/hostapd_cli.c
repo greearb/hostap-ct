@@ -1755,6 +1755,20 @@ static int hostapd_cli_cmd_get_ibf(struct wpa_ctrl *ctrl, int argc,
 }
 
 
+static int hostapd_cli_cmd_set_offchain(struct wpa_ctrl *ctrl, int argc,
+					char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "SET_OFFCHAIN", 0, argc, argv);
+}
+
+
+static int hostapd_cli_cmd_get_offchain(struct wpa_ctrl *ctrl, int argc,
+					char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "GET_OFFCHAIN", 0, NULL, NULL);
+}
+
+
 static int hostapd_cli_cmd_get_amsdu(struct wpa_ctrl *ctrl, int argc,
 					   char *argv[])
 {
@@ -2068,6 +2082,10 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
           "<tx type(0/1/2)> <interval> = runtime set inband discovery" },
 	{ "get_ibf", hostapd_cli_cmd_get_ibf, NULL,
 	  " = show iBF state (enabled/disabled)"},
+	{ "set_offchain", hostapd_cli_cmd_set_offchain, NULL,
+	  "chan=<control chan> [bandwidth=] [is_temp_ch=] [expand=] = set background radar chan"},
+	{ "get_offchain", hostapd_cli_cmd_get_offchain, NULL,
+	  " = show background radar status"},
 	{ "get_amsdu", hostapd_cli_cmd_get_amsdu, NULL,
 		" = show AMSDU state"},
 	{ "set_amnt", hostapd_cli_cmd_set_amnt, NULL,

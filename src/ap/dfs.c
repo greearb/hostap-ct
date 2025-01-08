@@ -20,12 +20,6 @@
 #include "dfs.h"
 
 
-enum dfs_channel_type {
-	DFS_ANY_CHANNEL,
-	DFS_AVAILABLE, /* non-radar or radar-available */
-	DFS_NO_CAC_YET, /* radar-not-yet-available */
-};
-
 static struct hostapd_channel_data *
 dfs_downgrade_bandwidth(struct hostapd_iface *iface, int *secondary_channel,
 			u8 *oper_centr_freq_seg0_idx,
@@ -246,16 +240,17 @@ static int is_in_chanlist(struct hostapd_iface *iface,
  *  - hapd->vht/he_oper_centr_freq_seg0_idx
  *  - hapd->vht/he_oper_centr_freq_seg1_idx
  */
-static int dfs_find_channel(struct hostapd_iface *iface,
-			    struct hostapd_channel_data **ret_chan,
-			    int idx, enum dfs_channel_type type)
+int dfs_find_channel(struct hostapd_iface *iface,
+		     struct hostapd_channel_data **ret_chan,
+		     int n_chans, int idx, enum dfs_channel_type type)
 {
 	struct hostapd_hw_modes *mode;
 	struct hostapd_channel_data *chan;
-	int i, channel_idx = 0, n_chans, n_chans1;
+	int i, channel_idx = 0, n_chans1;
 
 	mode = iface->current_mode;
-	n_chans = dfs_get_used_n_chans(iface, &n_chans1);
+	if (!n_chans)
+		n_chans = dfs_get_used_n_chans(iface, &n_chans1);
 
 	wpa_printf(MSG_DEBUG, "DFS new chan checking %d channels", n_chans);
 	for (i = 0; i < mode->num_channels; i++) {
@@ -558,7 +553,7 @@ dfs_get_valid_channel(struct hostapd_iface *iface,
 		return NULL;
 
 	/* Get the count first */
-	num_available_chandefs = dfs_find_channel(iface, NULL, 0, type);
+	num_available_chandefs = dfs_find_channel(iface, NULL, 0, 0, type);
 	wpa_printf(MSG_DEBUG, "DFS: num_available_chandefs=%d",
 		   num_available_chandefs);
 	if (num_available_chandefs == 0)
@@ -569,7 +564,7 @@ dfs_get_valid_channel(struct hostapd_iface *iface,
 	chan_idx = _rand % num_available_chandefs;
 	wpa_printf(MSG_DEBUG, "DFS: Picked random entry from the list: %d/%d",
 		   chan_idx, num_available_chandefs);
-	dfs_find_channel(iface, &chan, chan_idx, type);
+	dfs_find_channel(iface, &chan, 0, chan_idx, type);
 	if (!chan) {
 		wpa_printf(MSG_DEBUG, "DFS: no random channel found");
 		return NULL;
@@ -599,7 +594,7 @@ dfs_get_valid_channel(struct hostapd_iface *iface,
 		for (i = 0; i < num_available_chandefs - 1; i++) {
 			/* start from chan_idx + 1, end when chan_idx - 1 */
 			chan_idx2 = (chan_idx + 1 + i) % num_available_chandefs;
-			dfs_find_channel(iface, &chan2, chan_idx2, type);
+			dfs_find_channel(iface, &chan2, 0, chan_idx2, type);
 			if (chan2 && abs(chan2->chan - chan->chan) > 12) {
 				/* two channels are not adjacent */
 				sec_chan_idx_80p80 = chan2->chan;

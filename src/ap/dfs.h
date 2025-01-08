@@ -9,6 +9,16 @@
 #ifndef DFS_H
 #define DFS_H
 
+enum dfs_channel_type {
+	DFS_ANY_CHANNEL,
+	DFS_AVAILABLE, /* non-radar or radar-available */
+	DFS_NO_CAC_YET, /* radar-not-yet-available */
+};
+
+int dfs_find_channel(struct hostapd_iface *iface,
+		     struct hostapd_channel_data **ret_chan,
+		     int n_chans, int idx, enum dfs_channel_type type);
+
 int hostapd_handle_dfs(struct hostapd_iface *iface);
 
 int hostapd_dfs_complete_cac(struct hostapd_iface *iface, int success, int freq,
