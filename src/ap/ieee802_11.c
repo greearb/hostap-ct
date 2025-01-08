@@ -4365,7 +4365,8 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		wpa_auth_sta_no_wpa(sta->wpa_sm);
 
 #ifdef CONFIG_P2P
-	p2p_group_notif_assoc(hapd->p2p_group, sta->addr, ies, ies_len);
+	if (ies && ies_len)
+		p2p_group_notif_assoc(hapd->p2p_group, sta->addr, ies, ies_len);
 #endif /* CONFIG_P2P */
 
 #ifdef CONFIG_HS20
