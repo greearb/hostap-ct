@@ -778,11 +778,13 @@ def test_owe_assoc_reject(dev, apdev):
     bssid = hapd.own_addr()
 
     # First, reject two associations with HT-required (i.e., not OWE related)
-    dev[0].scan_for_bss(bssid, freq="2412")
-    dev[0].connect("owe", key_mgmt="OWE", ieee80211w="2",
-                   disable_ht="1", scan_freq="2412", wait_connect=False)
+    wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+    wpas.interface_add("wlan5", drv_params="extra_bss_membership_selectors=127")
+    wpas.scan_for_bss(bssid, freq="2412")
+    wpas.connect("owe", key_mgmt="OWE", ieee80211w="2",
+                 disable_ht="1", scan_freq="2412", wait_connect=False)
     for i in range(0, 2):
-        ev = dev[0].wait_event(["CTRL-EVENT-ASSOC-REJECT"], timeout=10)
+        ev = wpas.wait_event(["CTRL-EVENT-ASSOC-REJECT"], timeout=10)
         if ev is None:
             raise Exception("Association rejection not reported")
 
@@ -790,8 +792,8 @@ def test_owe_assoc_reject(dev, apdev):
     # attempt instead of having moved to testing another group.
     hapd.set("require_ht", "0")
     for i in range(0, 2):
-        ev = dev[0].wait_event(["CTRL-EVENT-ASSOC-REJECT",
-                                "CTRL-EVENT-CONNECTED"], timeout=10)
+        ev = wpas.wait_event(["CTRL-EVENT-ASSOC-REJECT",
+                             "CTRL-EVENT-CONNECTED"], timeout=10)
         if ev is None:
             raise Exception("Association result not reported")
         if "CTRL-EVENT-CONNECTED" in ev:
