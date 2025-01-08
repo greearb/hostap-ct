@@ -14011,7 +14011,7 @@ static int wpa_driver_do_broadcom_acs(struct wpa_driver_nl80211_data *drv,
 	wpa_printf(MSG_DEBUG, "%s: freq_list_len=%d",
 		   __func__, freq_list_len);
 
-	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
+	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
 	if (!msg ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_BRCM) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
