@@ -4912,6 +4912,230 @@ hostapd_ctrl_iface_set_dfs_detect_mode(struct hostapd_data *hapd, char *value,
 
 
 static int
+hostapd_ctrl_iface_set_offchain(struct hostapd_data *hapd, char *cmd,
+				char *buf, size_t buflen)
+{
+	struct hostapd_iface *iface = hapd->iface;
+	struct hostapd_channel_data *chan;
+	enum oper_chan_width chwidth;
+	int freq, channel = 0, width = 0, n_chans = 0, secondary_chan = 0;
+	int i, num_available_chandefs;
+	u8 seg0, seg1 = 0; /* 80p80 is not supported in offchain */
+	unsigned int temp_ch = 0, expand_ch = 0;
+	char *token, *context = NULL;
+	bool chan_found = false;
+
+	if (!iface->current_mode ||
+	    iface->current_mode->mode != HOSTAPD_MODE_IEEE80211A ||
+	    iface->current_mode->is_6ghz)
+		return -1;
+
+	if (!(iface->drv_flags2 & WPA_DRIVER_FLAGS2_RADAR_BACKGROUND))
+		return os_snprintf(buf, buflen, "No background radar capability\n");
+
+	if (!iface->conf->enable_background_radar)
+		return os_snprintf(buf, buflen, "Background radar is disabled\n");
+
+	while ((token = str_token(cmd, " ", &context))) {
+		if (os_strncmp(token, "chan=", 5) == 0) {
+			channel = strtol(token + 5, NULL, 10);
+			continue;
+		}
+
+		if (os_strncmp(token, "bandwidth=", 10) == 0) {
+			width = strtol(token + 10, NULL, 10);
+			continue;
+		}
+
+		if (os_strncmp(token, "is_temp_ch=", 11) == 0) {
+			temp_ch = strtol(token + 11, NULL, 2);
+			continue;
+		}
+
+		if (os_strncmp(token, "expand=", 7) == 0) {
+			expand_ch = strtol(token + 7, NULL, 2);
+			temp_ch = expand_ch;
+			continue;
+		}
+
+		wpa_printf(MSG_ERROR, "CTRL: Invalid SET_OFFCHAIN parameter: %s", token);
+		return -1;
+	}
+
+	if (!channel) {
+		wpa_printf(MSG_ERROR, "Background radar channel unspecified\n");
+		return -1;
+	}
+
+	switch (width) {
+	case 20:
+		chwidth = CONF_OPER_CHWIDTH_USE_HT;
+		n_chans = 1;
+		break;
+	case 40:
+		chwidth = CONF_OPER_CHWIDTH_USE_HT;
+		n_chans = 2;
+		break;
+	case 80:
+		chwidth = CONF_OPER_CHWIDTH_80MHZ;
+		n_chans = 4;
+		break;
+	case 160:
+		chwidth = CONF_OPER_CHWIDTH_160MHZ;
+		n_chans = 8;
+		break;
+	default:
+		chwidth = hostapd_get_oper_chwidth(iface->conf);
+		if (chwidth == CONF_OPER_CHWIDTH_USE_HT &&
+		    iface->conf->secondary_channel)
+			n_chans = 2;
+		else if (chwidth == CONF_OPER_CHWIDTH_80MHZ)
+			n_chans = 4;
+		else if (chwidth == CONF_OPER_CHWIDTH_160MHZ)
+			n_chans = 8;
+		else
+			n_chans = 1;
+		break;
+	}
+
+	num_available_chandefs = dfs_find_channel(iface, NULL, n_chans, 0, DFS_NO_CAC_YET);
+	for (i = 0; i < num_available_chandefs; i++) {
+		dfs_find_channel(iface, &chan, n_chans, i, DFS_NO_CAC_YET);
+		if (chan->chan <= channel && channel <= chan->chan + (n_chans - 1) * 4) {
+			chan_found = true;
+			break;
+		}
+	}
+
+	if (!chan_found) {
+		wpa_printf(MSG_ERROR, "Failed to find usable DFS channel %d\n", channel);
+		return -1;
+	}
+
+	freq = chan->freq + (channel - chan->chan) * 5;
+	seg0 = chan->chan + (n_chans - 1) * 2;
+	if (n_chans > 1)
+		secondary_chan = ((channel - chan->chan) / 4) % 2 ? -1 : 1;
+
+	if (hostapd_start_dfs_cac(iface, iface->conf->hw_mode,
+				  freq, channel,
+				  iface->conf->ieee80211n,
+				  iface->conf->ieee80211ac,
+				  iface->conf->ieee80211ax,
+				  iface->conf->ieee80211be,
+				  secondary_chan, chwidth,
+				  seg0, seg1, true)) {
+		wpa_printf(MSG_ERROR, "DFS failed to start CAC offchannel");
+		iface->radar_background.channel = -1;
+		return -1;
+	}
+
+	iface->radar_background.channel = channel;
+	iface->radar_background.freq = freq;
+	iface->radar_background.secondary_channel = secondary_chan;
+	iface->radar_background.centr_freq_seg0_idx = seg0;
+	iface->radar_background.centr_freq_seg1_idx = seg1;
+	if (chwidth != hostapd_get_oper_chwidth(iface->conf))
+		iface->radar_background.new_chwidth = chwidth;
+	else
+		iface->radar_background.new_chwidth = -1;
+	iface->radar_background.temp_ch = temp_ch;
+	iface->radar_background.expand_ch = expand_ch;
+
+	return os_snprintf(buf, buflen, "OK\n");
+}
+
+
+static int
+hostapd_ctrl_iface_get_offchain(struct hostapd_data *hapd, char *buf, size_t buflen)
+{
+	struct hostapd_iface *iface = hapd->iface;
+	int chan, freq, seg0, seg1, sec, ret = 0;
+	enum oper_chan_width oper_width;
+	enum chan_width width;
+	char *pos, *end;
+
+	if (!iface->current_mode ||
+	    iface->current_mode->mode != HOSTAPD_MODE_IEEE80211A ||
+	    iface->current_mode->is_6ghz)
+		return -1;
+
+	if (!(iface->drv_flags2 & WPA_DRIVER_FLAGS2_RADAR_BACKGROUND))
+		return os_snprintf(buf, buflen, "No background radar capability\n");
+
+	if (!iface->conf->enable_background_radar)
+		return os_snprintf(buf, buflen, "Background radar is disabled\n");
+
+	if (iface->radar_background.channel == -1)
+		return os_snprintf(buf, buflen, "Background radar is temporary inactive\n");
+
+	chan = iface->radar_background.channel;
+	freq = iface->radar_background.freq;
+	seg0 = iface->radar_background.centr_freq_seg0_idx;
+	seg1 = iface->radar_background.centr_freq_seg1_idx;
+	sec = iface->radar_background.secondary_channel;
+	if (iface->radar_background.new_chwidth < 0)
+		oper_width = hostapd_get_oper_chwidth(iface->conf);
+	else
+		oper_width = iface->radar_background.new_chwidth;
+
+	switch (oper_width) {
+	case CONF_OPER_CHWIDTH_USE_HT:
+		if (sec)
+			width = CHAN_WIDTH_40;
+		else
+			width = CHAN_WIDTH_20;
+		break;
+	case CONF_OPER_CHWIDTH_80MHZ:
+		width = CHAN_WIDTH_80;
+		break;
+	case CONF_OPER_CHWIDTH_80P80MHZ:
+		width = CHAN_WIDTH_80P80;
+		break;
+	case CONF_OPER_CHWIDTH_160MHZ:
+		width = CHAN_WIDTH_160;
+		break;
+	case CONF_OPER_CHWIDTH_320MHZ:
+		width = CHAN_WIDTH_320;
+		break;
+	default:
+		wpa_printf(MSG_ERROR, "Unknown oper bandwidth: %d",
+			   oper_width);
+		return -1;
+	}
+
+	pos = buf;
+	end = buf + buflen;
+
+	ret = os_snprintf(pos, end - pos, "channel: %d (%d MHz) width: %s\n",
+			  chan, freq, channel_width_to_string(width));
+	if (os_snprintf_error(end - pos, ret))
+		return pos - buf;
+	pos += ret;
+	ret = os_snprintf(pos, end - pos,
+			  "center channel 1: %d center channel 2: %d\n",
+			  seg0, seg1);
+	if (os_snprintf_error(end - pos, ret))
+		return pos - buf;
+	pos += ret;
+	ret = os_snprintf(pos, end - pos, "secondary offset: %d\n", sec);
+	if (os_snprintf_error(end - pos, ret))
+		return pos - buf;
+	pos += ret;
+	ret = os_snprintf(pos, end - pos,
+			  "temporary ch: %u cac started: %u expand ch: %u\n",
+			  iface->radar_background.temp_ch,
+			  iface->radar_background.cac_started,
+			  iface->radar_background.expand_ch);
+	if (os_snprintf_error(end - pos, ret))
+		return pos - buf;
+	pos += ret;
+
+	return pos - buf;
+}
+
+
+static int
 hostapd_ctrl_iface_get_amsdu(struct hostapd_data *hapd, char *buf,
 					 size_t buflen)
 {
@@ -6246,6 +6470,10 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "DFS_DETECT_MODE ", 16) == 0) {
 		reply_len = hostapd_ctrl_iface_set_dfs_detect_mode(hapd, buf + 16,
 								   reply, reply_size);
+	} else if (os_strncmp(buf, "SET_OFFCHAIN", 12) == 0) {
+		reply_len = hostapd_ctrl_iface_set_offchain(hapd, buf + 12, reply, reply_size);
+	} else if (os_strncmp(buf, "GET_OFFCHAIN", 12) == 0) {
+		reply_len = hostapd_ctrl_iface_get_offchain(hapd, reply, reply_size);
 	} else if (os_strncmp(buf, "GET_AMSDU", 9) == 0) {
 		reply_len = hostapd_ctrl_iface_get_amsdu(hapd, reply, reply_size);
 	} else if (os_strncmp(buf, "GET_BSS_COLOR", 13) == 0) {
