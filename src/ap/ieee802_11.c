@@ -139,7 +139,7 @@ u8 * hostapd_eid_supp_rates(struct hostapd_data *hapd, u8 *eid)
 	h2e_required = (hapd->conf->sae_pwe == SAE_PWE_HASH_TO_ELEMENT ||
 			hostapd_sae_pw_id_in_use(hapd->conf) == 2) &&
 		hapd->conf->sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK &&
-		wpa_key_mgmt_sae(hapd->conf->wpa_key_mgmt);
+		wpa_key_mgmt_only_sae(hapd->conf->wpa_key_mgmt);
 	if (h2e_required)
 		num++;
 	if (num > 8) {
@@ -206,7 +206,7 @@ u8 * hostapd_eid_ext_supp_rates(struct hostapd_data *hapd, u8 *eid)
 	h2e_required = (hapd->conf->sae_pwe == SAE_PWE_HASH_TO_ELEMENT ||
 			hostapd_sae_pw_id_in_use(hapd->conf) == 2) &&
 		hapd->conf->sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK &&
-		wpa_key_mgmt_sae(hapd->conf->wpa_key_mgmt);
+		wpa_key_mgmt_only_sae(hapd->conf->wpa_key_mgmt);
 	if (h2e_required)
 		num++;
 	if (num <= 8)
