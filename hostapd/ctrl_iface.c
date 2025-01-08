@@ -5046,8 +5046,10 @@ hostapd_ctrl_iface_set_offchain(struct hostapd_data *hapd, char *cmd,
 		iface->radar_background.new_chwidth = chwidth;
 	else
 		iface->radar_background.new_chwidth = -1;
-	iface->radar_background.temp_ch = temp_ch;
-	iface->radar_background.expand_ch = expand_ch;
+	if (iface->conf->background_auto_ctrl) {
+		iface->radar_background.temp_ch = temp_ch;
+		iface->radar_background.expand_ch = expand_ch;
+	}
 
 	return os_snprintf(buf, buflen, "OK\n");
 }
@@ -5130,10 +5132,11 @@ hostapd_ctrl_iface_get_offchain(struct hostapd_data *hapd, char *buf, size_t buf
 		return pos - buf;
 	pos += ret;
 	ret = os_snprintf(pos, end - pos,
-			  "temporary ch: %u cac started: %u expand ch: %u\n",
+			  "temporary ch: %u cac started: %u expand ch: %u auto ctrl: %u\n",
 			  iface->radar_background.temp_ch,
 			  iface->radar_background.cac_started,
-			  iface->radar_background.expand_ch);
+			  iface->radar_background.expand_ch,
+			  iface->conf->background_auto_ctrl);
 	if (os_snprintf_error(end - pos, ret))
 		return pos - buf;
 	pos += ret;

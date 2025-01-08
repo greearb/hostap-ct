@@ -1081,6 +1081,7 @@ struct hostapd_config {
 	bool hw_mode_set;
 	int acs_exclude_6ghz_non_psc;
 	int enable_background_radar;
+	bool background_auto_ctrl;
 	int background_radar_mode;
 	enum {
 		LONG_PREAMBLE = 0,
