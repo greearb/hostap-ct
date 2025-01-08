@@ -7483,7 +7483,7 @@ static int wpa_driver_nl80211_associate(
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
-	struct nl80211_err_info err_info;
+	struct nl80211_err_info err_info = { -1 };
 	int ret = -1;
 	struct nl_msg *msg;
 
