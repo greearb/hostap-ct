@@ -30,7 +30,8 @@ dfs_downgrade_bandwidth(struct hostapd_iface *iface, int *secondary_channel,
 static bool dfs_use_radar_background(struct hostapd_iface *iface)
 {
 	return (iface->drv_flags2 & WPA_DRIVER_FLAGS2_RADAR_BACKGROUND) &&
-		iface->conf->enable_background_radar;
+		iface->conf->enable_background_radar &&
+		iface->conf->background_auto_ctrl;
 }
 
 
@@ -1172,6 +1173,9 @@ static void hostapd_dfs_update_background_chain(struct hostapd_iface *iface)
 	u8 oper_centr_freq_seg0_idx = 0;
 	u8 oper_centr_freq_seg1_idx = 0;
 
+	if (!iface->conf->background_auto_ctrl)
+		return;
+
 	/*
 	 * Allow selection of DFS channel in ETSI to comply with
 	 * uniform spreading.
@@ -1243,7 +1247,8 @@ hostapd_is_freq_in_current_hw_info(struct hostapd_iface *iface, int freq)
 static bool
 hostapd_dfs_is_background_event(struct hostapd_iface *iface, int freq)
 {
-	return dfs_use_radar_background(iface) &&
+	return (iface->drv_flags2 & WPA_DRIVER_FLAGS2_RADAR_BACKGROUND) &&
+		iface->conf->enable_background_radar &&
 		iface->radar_background.channel != -1 &&
 		iface->radar_background.freq == freq;
 }
@@ -1373,7 +1378,8 @@ int hostapd_dfs_complete_cac(struct hostapd_iface *iface, int success, int freq,
 			 */
 			if (hostapd_dfs_is_background_event(iface, freq)) {
 				iface->radar_background.cac_started = 0;
-				if (!iface->radar_background.temp_ch)
+				if (!iface->conf->background_auto_ctrl ||
+				    !iface->radar_background.temp_ch)
 					return 0;
 
 				iface->radar_background.temp_ch = 0;
@@ -1548,8 +1554,14 @@ static int
 hostapd_dfs_background_start_channel_switch(struct hostapd_iface *iface,
 					    int freq)
 {
-	if (!dfs_use_radar_background(iface))
-		return -1; /* Background radar chain not supported. */
+	if (!dfs_use_radar_background(iface)) {
+		/* Deactivate background radar upon receiving
+		 * background radar detection in non-auto mode.
+		 */
+		if (hostapd_dfs_is_background_event(iface, freq))
+			iface->radar_background.channel = -1;
+		return -1;
+	}
 
 	wpa_printf(MSG_DEBUG,
 		   "%s called (background CAC active: %s, CSA active: %s)",
