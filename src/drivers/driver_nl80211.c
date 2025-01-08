@@ -4039,6 +4039,33 @@ static enum nl80211_auth_type get_nl_auth_type(int wpa_auth_alg)
 }
 
 
+static int
+nl80211_put_bss_membership_selectors(struct wpa_driver_nl80211_data *drv,
+				     struct nl_msg *msg)
+{
+	u8 selectors[ARRAY_SIZE(drv->extra_bss_membership_selectors) + 1];
+	size_t selectors_len;
+
+	if (!nl80211_attr_supported(drv, NL80211_ATTR_SUPPORTED_SELECTORS))
+		return 0;
+
+	for (selectors_len = 0;
+	     drv->extra_bss_membership_selectors[selectors_len];
+	     selectors_len++) {
+		selectors[selectors_len] =
+			drv->extra_bss_membership_selectors[selectors_len];
+	}
+
+#ifdef CONFIG_SAE
+	/* Always add the SAE H2E selector as it is handled by wpa_supplicant */
+	selectors[selectors_len++] = BSS_MEMBERSHIP_SELECTOR_SAE_H2E_ONLY;
+#endif /* CONFIG_SAE */
+
+	return nla_put(msg, NL80211_ATTR_SUPPORTED_SELECTORS,
+		       selectors_len, selectors);
+}
+
+
 static int wpa_driver_nl80211_authenticate(
 	struct i802_bss *bss, struct wpa_driver_auth_params *params)
 {
@@ -4139,6 +4166,10 @@ retry:
 		if (nla_put_flag(msg, NL80211_ATTR_LOCAL_STATE_CHANGE))
 			goto fail;
 	}
+
+	ret = nl80211_put_bss_membership_selectors(drv, msg);
+	if (ret)
+		goto fail;
 
 	if (params->mld && params->ap_mld_addr) {
 		wpa_printf(MSG_DEBUG, "  * MLD: link_id=%u, MLD addr=" MACSTR,
@@ -7478,6 +7509,10 @@ static int wpa_driver_nl80211_associate(
 	if (ret)
 		goto fail;
 
+	ret = nl80211_put_bss_membership_selectors(drv, msg);
+	if (ret)
+		goto fail;
+
 	if (params->mgmt_frame_protection == MGMT_FRAME_PROTECTION_REQUIRED &&
 	    nla_put_u32(msg, NL80211_ATTR_USE_MFP, NL80211_MFP_REQUIRED))
 		goto fail;
@@ -10068,6 +10103,7 @@ static int nl80211_set_param(void *priv, const char *param)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
+	const char *pos;
 
 	if (param == NULL)
 		return 0;
@@ -10140,6 +10176,33 @@ static int nl80211_set_param(void *priv, const char *param)
 
 	if (os_strstr(param, "rsn_override_in_driver=1"))
 		drv->capa.flags2 |= WPA_DRIVER_FLAGS2_RSN_OVERRIDE_STA;
+
+	pos = os_strstr(param, "extra_bss_membership_selectors=");
+	if (pos) {
+		int i = 0;
+
+		pos += 31;
+
+		while (*pos) {
+			char *end;
+			int sel;
+
+			sel = strtol(pos, &end, 10);
+			if (pos == end)
+				return -EINVAL;
+
+			if (sel > 127 || sel < 0)
+				return -EINVAL;
+			if (i ==
+			    ARRAY_SIZE(drv->extra_bss_membership_selectors))
+				return -EINVAL;
+			drv->extra_bss_membership_selectors[i++] = sel;
+
+			pos = end;
+			if (*pos == ',')
+				pos++;
+		}
+	}
 
 	return 0;
 }
