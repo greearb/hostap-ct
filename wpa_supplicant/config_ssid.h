@@ -696,6 +696,15 @@ struct wpa_ssid {
 	 */
 	size_t num_p2p_clients;
 
+	/**
+	 * p2p2_client_list - Array of P2P2 Clients in a persistent group (GO)
+	 *
+	 * This is an int_array of P2P2 Clients (ID of device Identity block)
+	 * that have joined the persistent group. This is maintained on the GO
+	 *for persistent group entries (disabled == 2).
+	 */
+	int *p2p2_client_list;
+
 #ifndef P2P_MAX_STORED_CLIENTS
 #define P2P_MAX_STORED_CLIENTS 100
 #endif /* P2P_MAX_STORED_CLIENTS */
@@ -1313,6 +1322,12 @@ struct wpa_ssid {
 	 * p2p_mode - P2P R1 only, P2P R2 only, or PCC mode
 	 */
 	enum wpa_p2p_mode p2p_mode;
+
+	/**
+	 * go_dik_id - ID of Device Identity block of group owner
+	 */
+	int go_dik_id;
+
 };
 
 #endif /* CONFIG_SSID_H */

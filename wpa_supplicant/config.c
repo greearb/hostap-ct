@@ -2138,7 +2138,27 @@ static int wpa_config_parse_p2p_client_list(const struct parse_data *data,
 }
 
 
+static int wpa_config_parse_p2p2_client_list(const struct parse_data *data,
+					     struct wpa_ssid *ssid, int line,
+					     const char *value)
+{
+	int *ids = wpa_config_parse_int_array(value);
+
+	if (!ids) {
+		wpa_printf(MSG_ERROR, "Line %d: Invalid p2p2_client_list '%s'",
+			   line, value);
+		return -1;
+	}
+
+	os_free(ssid->p2p2_client_list);
+	ssid->p2p2_client_list = ids;
+
+	return 0;
+}
+
+
 #ifndef NO_CONFIG_WRITE
+
 static char * wpa_config_write_p2p_client_list(const struct parse_data *data,
 					       struct wpa_ssid *ssid)
 {
@@ -2146,6 +2166,14 @@ static char * wpa_config_write_p2p_client_list(const struct parse_data *data,
 					  ssid->num_p2p_clients,
 					  "p2p_client_list");
 }
+
+
+static char * wpa_config_write_p2p2_client_list(const struct parse_data *data,
+						struct wpa_ssid *ssid)
+{
+	return wpa_config_write_freqs(data, ssid->p2p2_client_list);
+}
+
 #endif /* NO_CONFIG_WRITE */
 
 
@@ -2671,7 +2699,9 @@ static const struct parse_data ssid_fields[] = {
 #ifdef CONFIG_P2P
 	{ FUNC(go_p2p_dev_addr) },
 	{ FUNC(p2p_client_list) },
+	{ FUNC(p2p2_client_list) },
 	{ FUNC(psk_list) },
+	{ INT(go_dik_id) },
 #endif /* CONFIG_P2P */
 #ifdef CONFIG_HT_OVERRIDES
 	{ INT_RANGE(disable_ht, 0, 1) },
@@ -2938,6 +2968,7 @@ void wpa_config_free_ssid(struct wpa_ssid *ssid)
 	os_free(ssid->freq_list);
 	os_free(ssid->bgscan);
 	os_free(ssid->p2p_client_list);
+	os_free(ssid->p2p2_client_list);
 	os_free(ssid->bssid_ignore);
 	os_free(ssid->bssid_accept);
 #ifdef CONFIG_HT_OVERRIDES

@@ -6181,7 +6181,8 @@ void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
 		os_memcpy(dev->interface_addr, peer_addr, ETH_ALEN);
 
 	if (msg.dira && msg.dira_len)
-		p2p_validate_dira(p2p, dev, msg.dira, msg.dira_len);
+		dev->info.dik_id = p2p_validate_dira(p2p, dev, msg.dira,
+						     msg.dira_len);
 
 	p2p_dbg(p2p, "Updated device entry based on USD frame: " MACSTR
 		" dev_capab=0x%x group_capab=0x%x listen_freq=%d",

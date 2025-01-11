@@ -511,6 +511,11 @@ struct p2p_peer_info {
 	 * p2p_pairing_config - P2P pairing configuration
 	 */
 	struct p2p_pairing_config pairing_config;
+
+	/**
+	 * dik_id - For paired peers Identity block ID with PMK
+	 */
+	int dik_id;
 };
 
 enum p2p_prov_disc_status {

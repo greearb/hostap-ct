@@ -698,6 +698,17 @@ static void write_p2p_client_list(FILE *f, struct wpa_ssid *ssid)
 }
 
 
+static void write_p2p2_client_list(FILE *f, struct wpa_ssid *ssid)
+{
+	char *value = wpa_config_get(ssid, "p2p2_client_list");
+
+	if (!value)
+		return;
+	fprintf(f, "\tp2p2_client_list=%s\n", value);
+	os_free(value);
+}
+
+
 static void write_psk_list(FILE *f, struct wpa_ssid *ssid)
 {
 	struct psk_list_entry *psk;
@@ -883,7 +894,9 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 #ifdef CONFIG_P2P
 	write_go_p2p_dev_addr(f, ssid);
 	write_p2p_client_list(f, ssid);
+	write_p2p2_client_list(f, ssid);
 	write_psk_list(f, ssid);
+	INT(go_dik_id);
 #endif /* CONFIG_P2P */
 	INT(ap_max_inactivity);
 	INT(dtim_period);
