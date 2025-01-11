@@ -3665,7 +3665,8 @@ static u8 wpas_invitation_process(void *ctx, const u8 *sa, const u8 *bssid,
 				  size_t ssid_len, int *go, u8 *group_bssid,
 				  int *force_freq, int persistent_group,
 				  const struct p2p_channels *channels,
-				  int dev_pw_id, bool p2p2)
+				  int dev_pw_id, bool p2p2, const u8 **new_ssid,
+				  size_t *new_ssid_len)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 	struct wpa_ssid *s;
@@ -3735,7 +3736,41 @@ static u8 wpas_invitation_process(void *ctx, const u8 *sa, const u8 *bssid,
 			break;
 	}
 
-	if (!s) {
+	if (p2p2) {
+		int dik_id;
+		u8 go_ssid[SSID_MAX_LEN];
+
+		dik_id = p2p_get_dik_id(wpa_s->global->p2p, sa);
+		s = wpa_config_get_network_with_dik_id(wpa_s->conf, dik_id);
+		if (!s) {
+			wpa_printf(MSG_DEBUG, "P2P2: Invitation from " MACSTR
+				   " requested reinvocation of an unknown group",
+				   MAC2STR(sa));
+			return P2P_SC_FAIL_UNKNOWN_GROUP;
+		}
+		os_free(s->ssid);
+		if (s->mode == WPAS_MODE_P2P_GO) {
+			p2p_build_ssid(wpa_s->global->p2p, go_ssid,
+				       &s->ssid_len);
+			s->ssid = os_memdup(go_ssid, s->ssid_len);
+			if (!s->ssid) {
+				s->ssid_len = 0;
+				return P2P_SC_FAIL_UNABLE_TO_ACCOMMODATE;
+			}
+			wpa_printf(MSG_DEBUG,
+				   "P2P: New random SSID for the group: %s",
+				   wpa_ssid_txt(s->ssid, s->ssid_len));
+			*new_ssid = s->ssid;
+			*new_ssid_len = s->ssid_len;
+		} else {
+			s->ssid_len = ssid_len;
+			s->ssid = os_memdup(ssid, ssid_len);
+			if (!s->ssid) {
+				s->ssid_len = 0;
+				return P2P_SC_FAIL_UNABLE_TO_ACCOMMODATE;
+			}
+		}
+	} else if (!s) {
 		wpa_printf(MSG_DEBUG, "P2P: Invitation from " MACSTR
 			   " requested reinvocation of an unknown group",
 			   MAC2STR(sa));
@@ -3980,7 +4015,8 @@ static void wpas_remove_persistent_client(struct wpa_supplicant *wpa_s,
 }
 
 
-static void wpas_invitation_result(void *ctx, int status, const u8 *bssid,
+static void wpas_invitation_result(void *ctx, int status, const u8 *new_ssid,
+				   size_t new_ssid_len, const u8 *bssid,
 				   const struct p2p_channels *channels,
 				   const u8 *peer, int neg_freq,
 				   int peer_oper_freq, const u8 *pmkid,
@@ -4065,6 +4101,16 @@ static void wpas_invitation_result(void *ctx, int status, const u8 *bssid,
 		wpa_printf(MSG_ERROR, "P2P: Could not find persistent group "
 			   "data matching with invitation");
 		return;
+	}
+
+	if (new_ssid && new_ssid_len) {
+		os_free(ssid->ssid);
+		ssid->ssid = os_memdup(new_ssid, new_ssid_len);
+		if (!ssid->ssid) {
+			ssid->ssid_len = 0;
+			return;
+		}
+		ssid->ssid_len = new_ssid_len;
 	}
 
 	/*
@@ -8673,6 +8719,19 @@ int wpas_p2p_invite(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 		os_memcpy(wpa_s->p2p_auth_invite, peer_addr, ETH_ALEN);
 	else
 		os_memset(wpa_s->p2p_auth_invite, 0, ETH_ALEN);
+
+	if (wpa_s->global->p2p && p2p2 && !ssid && peer_addr) {
+		int dik_id;
+
+		dik_id = p2p_get_dik_id(wpa_s->global->p2p, peer_addr);
+		ssid = wpa_config_get_network_with_dik_id(wpa_s->conf, dik_id);
+		if (!ssid) {
+			wpa_printf(MSG_DEBUG,
+				   "P2P: Could not find SSID for P2P2 peer "
+				   MACSTR, MAC2STR(peer_addr));
+			return -1;
+		}
+	}
 
 	wpa_s->p2p_persistent_go_freq = freq;
 	wpa_s->p2p_go_ht40 = !!ht40;

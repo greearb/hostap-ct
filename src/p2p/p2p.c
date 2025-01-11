@@ -4304,7 +4304,8 @@ static void p2p_timeout_invite_listen(struct p2p_data *p2p)
 			p2p_dbg(p2p, "Invitation Request retry limit reached");
 			if (p2p->cfg->invitation_result)
 				p2p->cfg->invitation_result(
-					p2p->cfg->cb_ctx, -1, NULL, NULL,
+					p2p->cfg->cb_ctx, -1, NULL, 0, NULL,
+					NULL,
 					p2p->invite_peer->info.p2p_device_addr,
 					0, 0, NULL, NULL, 0);
 		}
@@ -6194,6 +6195,18 @@ void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
 	dev->flags |= P2P_DEV_REPORTED | P2P_DEV_REPORTED_ONCE;
 
 	p2p_parse_free(&msg);
+}
+
+
+int p2p_get_dik_id(struct p2p_data *p2p, const u8 *peer)
+{
+	struct p2p_device *dev;
+
+	dev = p2p_get_device(p2p, peer);
+	if (!dev)
+		return 0;
+
+	return dev->info.dik_id;
 }
 
 

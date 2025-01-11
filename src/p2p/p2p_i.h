@@ -203,6 +203,8 @@ struct p2p_device {
 	int inv_freq;
 	int inv_peer_oper_freq;
 	u8 inv_bssid[ETH_ALEN];
+	u8 inv_ssid[SSID_MAX_LEN];
+	size_t inv_ssid_len;
 	bool inv_all_channels;
 };
 

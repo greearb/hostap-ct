@@ -3190,6 +3190,35 @@ struct wpa_ssid * wpa_config_get_network(struct wpa_config *config, int id)
 }
 
 
+#ifdef CONFIG_P2P
+/**
+ * wpa_config_get_network_with_dik_id - Get configured network based on ID of
+ *	device identity block
+ * @config: Configuration data from wpa_config_read()
+ * @dik_id: DIK ID to search for
+ * Returns: Network configuration or %NULL if not found
+ */
+struct wpa_ssid * wpa_config_get_network_with_dik_id(struct wpa_config *config,
+						     int dik_id)
+{
+	struct wpa_ssid *ssid;
+
+	for (ssid = config->ssid; ssid; ssid = ssid->next) {
+		if (ssid->disabled != 2)
+			continue;
+
+		if (ssid->go_dik_id == dik_id)
+			return ssid;
+
+		if (int_array_includes(ssid->p2p2_client_list, dik_id))
+			return ssid;
+	}
+
+	return NULL;
+}
+#endif /* CONFIG_P2P */
+
+
 /**
  * wpa_config_add_network - Add a new network with empty configuration
  * @config: Configuration data from wpa_config_read()

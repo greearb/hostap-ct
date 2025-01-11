@@ -1091,6 +1091,8 @@ struct p2p_config {
 	 *	used
 	 * @p2p2: Whether invitation request was wrapped in PASN authentication
 	 * received from a P2P2 device
+	 * @new_ssid: Pointer to hold new SSID
+	 * @new_ssid_len: Length of new SSID buffer in octets
 	 * Returns: Status code (P2P_SC_*)
 	 *
 	 * This optional callback can be used to implement persistent reconnect
@@ -1113,7 +1115,8 @@ struct p2p_config {
 				 size_t ssid_len, int *go, u8 *group_bssid,
 				 int *force_freq, int persistent_group,
 				 const struct p2p_channels *channels,
-				 int dev_pw_id, bool p2p2);
+				 int dev_pw_id, bool p2p2, const u8 **new_ssid,
+				 size_t *new_ssid_len);
 
 	/**
 	 * invitation_received - Callback on Invitation Request RX
@@ -1142,6 +1145,8 @@ struct p2p_config {
 	 * invitation_result - Callback on Invitation result
 	 * @ctx: Callback context from cb_ctx
 	 * @status: Negotiation result (Status Code)
+	 * @new_ssid: New SSID received in invitation response
+	 * @new_ssid_len: Length of new SSID received
 	 * @bssid: P2P Group BSSID or %NULL if not received
 	 * @channels: Available operating channels for the group
 	 * @addr: Peer address
@@ -1155,7 +1160,8 @@ struct p2p_config {
 	 * (P2P_SC_SUCCESS) indicating success or -1 to indicate a timeout or a
 	 * local failure in transmitting the Invitation Request.
 	 */
-	void (*invitation_result)(void *ctx, int status, const u8 *bssid,
+	void (*invitation_result)(void *ctx, int status, const u8 *new_ssid,
+				  size_t new_ssid_len, const u8 *bssid,
 				  const struct p2p_channels *channels,
 				  const u8 *addr, int freq, int peer_oper_freq,
 				  const u8 *pmkid, const u8 *pmk,
@@ -2734,6 +2740,7 @@ int p2p_channel_to_freq(int op_class, int channel);
 struct wpabuf * p2p_usd_elems(struct p2p_data *p2p);
 void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
 			   const u8 *peer_addr, unsigned int freq);
+int p2p_get_dik_id(struct p2p_data *p2p, const u8 *peer);
 
 void p2p_set_pairing_setup(struct p2p_data *p2p, int pairing_setup);
 void p2p_set_pairing_cache(struct p2p_data *p2p, int pairing_cache);
