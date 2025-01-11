@@ -2224,6 +2224,14 @@ void p2p_scan_ie(struct p2p_data *p2p, struct wpabuf *ies, const u8 *dev_id,
 size_t p2p_scan_ie_buf_len(struct p2p_data *p2p);
 
 /**
+ * p2p_build_ssid - Generate a random P2P SSID
+ * @p2p: P2P module context from p2p_init()
+ * @ssid: Buffer for SSID
+ * @ssid_len: Pointer to hold SSID length
+ */
+void p2p_build_ssid(struct p2p_data *p2p, u8 *ssid, size_t *ssid_len);
+
+/**
  * p2p_go_params - Generate random P2P group parameters
  * @p2p: P2P module context from p2p_init()
  * @params: Buffer for parameters

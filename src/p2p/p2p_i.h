@@ -1066,7 +1066,6 @@ int dev_type_list_match(const u8 *dev_type, const u8 *req_dev_type[],
 struct wpabuf * p2p_build_probe_resp_ies(struct p2p_data *p2p,
 					 const u8 *query_hash,
 					 u8 query_count);
-void p2p_build_ssid(struct p2p_data *p2p, u8 *ssid, size_t *ssid_len);
 int p2p_send_action(struct p2p_data *p2p, unsigned int freq, const u8 *dst,
 		    const u8 *src, const u8 *bssid, const u8 *buf,
 		    size_t len, unsigned int wait_time);
