@@ -7099,7 +7099,7 @@ static int p2p_ctrl_invite_persistent(struct wpa_supplicant *wpa_s, char *cmd)
 {
 	char *pos;
 	int id;
-	struct wpa_ssid *ssid;
+	struct wpa_ssid *ssid = NULL;
 	u8 *_peer = NULL, peer[ETH_ALEN];
 	int freq = 0, pref_freq = 0;
 	int ht40, vht, he, max_oper_chwidth, chwidth = 0, freq2 = 0;
@@ -7107,7 +7107,8 @@ static int p2p_ctrl_invite_persistent(struct wpa_supplicant *wpa_s, char *cmd)
 	bool allow_6ghz;
 	bool p2p2;
 
-	id = atoi(cmd);
+	p2p2 = os_strstr(cmd, " p2p2") != NULL;
+
 	pos = os_strstr(cmd, " peer=");
 	if (pos) {
 		pos += 6;
@@ -7115,11 +7116,19 @@ static int p2p_ctrl_invite_persistent(struct wpa_supplicant *wpa_s, char *cmd)
 			return -1;
 		_peer = peer;
 	}
-	ssid = wpa_config_get_network(wpa_s->conf, id);
-	if (ssid == NULL || ssid->disabled != 2) {
-		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find SSID id=%d "
-			   "for persistent P2P group",
-			   id);
+
+	if (os_strncmp(cmd, "persistent=", 11) == 0) {
+		id = atoi(cmd + 11);
+		ssid = wpa_config_get_network(wpa_s->conf, id);
+		if (!ssid || ssid->disabled != 2) {
+			wpa_printf(MSG_DEBUG,
+				   "CTRL_IFACE: Could not find SSID id=%d for persistent P2P group",
+				   id);
+			return -1;
+		}
+	} else if (p2p2 && !_peer) {
+		wpa_printf(MSG_DEBUG,
+			   "CTRL_IFACE: Could not find peer for persistent P2P group");
 		return -1;
 	}
 
@@ -7161,8 +7170,6 @@ static int p2p_ctrl_invite_persistent(struct wpa_supplicant *wpa_s, char *cmd)
 
 	if (allow_6ghz && chwidth == 40)
 		max_oper_chwidth = CONF_OPER_CHWIDTH_40MHZ_6GHZ;
-
-	p2p2 = os_strstr(cmd, " p2p2") != NULL;
 
 	return wpas_p2p_invite(wpa_s, _peer, ssid, NULL, freq, freq2, ht40, vht,
 			       max_oper_chwidth, pref_freq, he, edmg,
@@ -7206,8 +7213,8 @@ static int p2p_ctrl_invite_group(struct wpa_supplicant *wpa_s, char *cmd)
 
 static int p2p_ctrl_invite(struct wpa_supplicant *wpa_s, char *cmd)
 {
-	if (os_strncmp(cmd, "persistent=", 11) == 0)
-		return p2p_ctrl_invite_persistent(wpa_s, cmd + 11);
+	if (os_strncmp(cmd, "persistent", 10) == 0)
+		return p2p_ctrl_invite_persistent(wpa_s, cmd);
 	if (os_strncmp(cmd, "group=", 6) == 0)
 		return p2p_ctrl_invite_group(wpa_s, cmd + 6);
 
