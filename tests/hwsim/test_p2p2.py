@@ -543,7 +543,7 @@ def test_p2p_pairing_verification(dev, apdev):
     peer = wpas.get_peer(dev[1].p2p_dev_addr())
     if 'persistent' not in peer:
         raise Exception("Missing information on persistent group for the peer")
-    cmd = "P2P_INVITE persistent=" + peer['persistent'] + " peer=" + dev[1].p2p_dev_addr() + " p2p2"
+    cmd = "P2P_INVITE persistent peer=" + dev[1].p2p_dev_addr() + " p2p2"
     id0 = wpas.global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_INVITE Failed")
