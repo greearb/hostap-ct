@@ -516,6 +516,11 @@ static u8 * hostapd_eid_ecsa(struct hostapd_data *hapd, u8 *eid)
 	if (!hapd->cs_freq_params.channel || !hapd->iface->cs_oper_class)
 		return eid;
 
+#ifdef CONFIG_TESTING_OPTIONS
+	if (hapd->iconf->csa_ie_only)
+		return eid;
+#endif /* CONFIG_TESTING_OPTIONS */
+
 	*eid++ = WLAN_EID_EXT_CHANSWITCH_ANN;
 	*eid++ = 4;
 	*eid++ = hapd->cs_block_tx;
