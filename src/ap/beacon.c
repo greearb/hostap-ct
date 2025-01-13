@@ -3248,7 +3248,8 @@ int ieee802_11_set_beacon(struct hostapd_data *hapd)
 				continue;
 #endif /* CONFIG_IEEE80211BE */
 
-			if (other->bss[i] && other->bss[i]->started)
+			if (other->bss[i] && other->bss[i]->started &&
+			    other->bss[i]->beacon_set_done)
 				__ieee802_11_set_beacon(other->bss[i]);
 		}
 	}
