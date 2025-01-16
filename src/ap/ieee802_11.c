@@ -5197,7 +5197,7 @@ static int add_associated_sta(struct hostapd_data *hapd,
 static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 			   const u8 *addr, u16 status_code, int reassoc,
 			   const u8 *ies, size_t ies_len, int rssi,
-			   int omit_rsnxe, bool allow_mld_addr_trans)
+			   int omit_rsnxe)
 {
 	int send_len;
 	u8 *buf;
@@ -5606,8 +5606,7 @@ void fils_hlp_finish_assoc(struct hostapd_data *hapd, struct sta_info *sta)
 	reply_res = send_assoc_resp(hapd, sta, sta->addr, WLAN_STATUS_SUCCESS,
 				    sta->fils_pending_assoc_is_reassoc,
 				    sta->fils_pending_assoc_req,
-				    sta->fils_pending_assoc_req_len, 0, 0,
-				    true);
+				    sta->fils_pending_assoc_req_len, 0, 0);
 	os_free(sta->fils_pending_assoc_req);
 	sta->fils_pending_assoc_req = NULL;
 	sta->fils_pending_assoc_req_len = 0;
@@ -5709,7 +5708,6 @@ static void handle_assoc(struct hostapd_data *hapd,
 #endif /* CONFIG_FILS */
 	int omit_rsnxe = 0;
 	bool set_beacon = false;
-	bool mld_addrs_not_translated = false;
 	bool sae_pk = false;
 
 	if (len < IEEE80211_HDRLEN + (reassoc ? sizeof(mgmt->u.reassoc_req) :
@@ -5785,7 +5783,6 @@ static void handle_assoc(struct hostapd_data *hapd,
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Switching to assoc hapd/station");
 			hapd = assoc_hapd;
-			mld_addrs_not_translated = true;
 		}
 	}
 #endif /* CONFIG_IEEE80211BE */
@@ -6156,11 +6153,9 @@ static void handle_assoc(struct hostapd_data *hapd,
 
 	if (resp >= 0)
 		reply_res = send_assoc_resp(hapd,
-					    mld_addrs_not_translated ?
-					    NULL : sta,
-					    mgmt->sa, resp, reassoc,
-					    pos, left, rssi, omit_rsnxe,
-					    !mld_addrs_not_translated);
+					    sta, sta ? sta->addr : mgmt->sa,
+					    resp, reassoc, pos, left, rssi,
+					    omit_rsnxe);
 	os_free(tmp);
 
 	/*
