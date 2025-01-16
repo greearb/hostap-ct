@@ -28,6 +28,7 @@
 #include "wpa_auth.h"
 #include "wpa_auth_i.h"
 #include "pmksa_cache_auth.h"
+#include "hostapd.h"
 
 
 #ifdef CONFIG_IEEE80211R_AP
@@ -3159,9 +3160,11 @@ static int wpa_ft_local_derive_pmk_r1(struct wpa_authenticator *wpa_auth,
 }
 
 
+#define BASIC_MLE_LEN 10
 static int wpa_ft_process_auth_req(struct wpa_state_machine *sm,
 				   const u8 *ies, size_t ies_len,
-				   u8 **resp_ies, size_t *resp_ies_len)
+				   u8 **resp_ies, size_t *resp_ies_len,
+				   int link_id)
 {
 	struct rsn_mdie *mdie;
 	u8 pmk_r1[PMK_LEN_MAX], pmk_r1_name[WPA_PMK_NAME_LEN];
@@ -3228,6 +3231,11 @@ static int wpa_ft_process_auth_req(struct wpa_state_machine *sm,
 	if (wpa_ft_set_key_mgmt(sm, &parse) < 0)
 		goto out;
 
+#ifdef CONFIG_IEEE80211BE
+	sm->mld_assoc_link_id = -1;
+	if (parse.basic_ml && link_id >= 0)
+		sm->mld_assoc_link_id = link_id;
+#endif
 	wpa_hexdump(MSG_DEBUG, "FT: Requested PMKR0Name",
 		    parse.rsn_pmkid, WPA_PMK_NAME_LEN);
 
@@ -3364,8 +3372,8 @@ pmk_r1_derived:
 		kdk_len = 0;
 
 	if (wpa_pmk_r1_to_ptk(pmk_r1, pmk_r1_len, sm->SNonce, sm->ANonce,
-			      sm->addr, sm->wpa_auth->addr, pmk_r1_name,
-			      &sm->PTK, ptk_name, parse.key_mgmt,
+			      sm->addr, wpa_auth_get_aa(sm),
+			      pmk_r1_name, &sm->PTK, ptk_name, parse.key_mgmt,
 			      pairwise, kdk_len) < 0)
 		goto out;
 
@@ -3398,6 +3406,10 @@ pmk_r1_derived:
 
 	buflen = 2 + sizeof(struct rsn_mdie) + 2 + sizeof(struct rsn_ftie) +
 		2 + FT_R1KH_ID_LEN + 200;
+#ifdef CONFIG_IEEE80211BE
+	if (sm->mld_assoc_link_id >= 0)
+		buflen += 2 + BASIC_MLE_LEN;
+#endif
 	*resp_ies = os_zalloc(buflen);
 	if (*resp_ies == NULL)
 		goto fail;
@@ -3423,6 +3435,30 @@ pmk_r1_derived:
 		goto fail;
 	pos += ret;
 
+	/* RSNXE is not needed in the 2nd msg of FT authentication sequence
+	 * but since WPA3 T/C 8.5 would check H2E cap, we added it to pass the item */
+	ret = wpa_write_rsnxe(conf, pos, end - pos);
+	if (ret < 0)
+		goto fail;
+	pos += ret;
+
+#ifdef CONFIG_IEEE80211BE
+	if (sm->mld_assoc_link_id >= 0) {
+		*pos++ = WLAN_EID_EXTENSION;
+		*pos++ = BASIC_MLE_LEN;
+		*pos++ = WLAN_EID_EXT_MULTI_LINK;
+
+		/* Basic Multi-Link element Control field */
+		*pos++ = 0x0;
+		*pos++ = 0x0;
+
+		/* Common Info */
+		*pos++ = 0x7; /* length = Length field + MLD MAC address */
+		os_memcpy(pos, sm->wpa_auth->mld_addr, ETH_ALEN);
+		pos += ETH_ALEN;
+	}
+#endif
+
 	*resp_ies_len = pos - *resp_ies;
 
 	retval = WLAN_STATUS_SUCCESS;
@@ -3447,6 +3483,8 @@ void wpa_ft_process_auth(struct wpa_state_machine *sm,
 	u8 *resp_ies;
 	size_t resp_ies_len;
 	int res;
+	struct hostapd_data *hapd = ctx;
+	int link_id = -1;
 
 	if (sm == NULL) {
 		wpa_printf(MSG_DEBUG, "FT: Received authentication frame, but "
@@ -3462,8 +3500,12 @@ void wpa_ft_process_auth(struct wpa_state_machine *sm,
 	sm->ft_pending_cb_ctx = ctx;
 	sm->ft_pending_auth_transaction = auth_transaction;
 	sm->ft_pending_pull_left_retries = sm->wpa_auth->conf.rkh_pull_retries;
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+#endif
 	res = wpa_ft_process_auth_req(sm, ies, ies_len, &resp_ies,
-				      &resp_ies_len);
+				      &resp_ies_len, link_id);
 	if (res < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Callback postponed until response is available");
 		return;
@@ -3639,7 +3681,7 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 		kck_len = sm->PTK.kck_len;
 	}
 	if (wpa_ft_mic(sm->wpa_key_mgmt, kck, kck_len,
-		       sm->addr, sm->wpa_auth->addr, 5,
+		       wpa_auth_get_spa(sm), wpa_auth_get_aa(sm), 5,
 		       parse.mdie - 2, parse.mdie_len + 2,
 		       parse.ftie - 2, parse.ftie_len + 2,
 		       parse.rsn - 2, parse.rsn_len + 2,
@@ -3825,6 +3867,7 @@ static int wpa_ft_rrb_rx_request(struct wpa_authenticator *wpa_auth,
 	u8 *resp_ies;
 	size_t resp_ies_len;
 	int res;
+	int link_id = -1;
 
 	sm = wpa_ft_add_sta(wpa_auth, sta_addr);
 	if (sm == NULL) {
@@ -3835,12 +3878,16 @@ static int wpa_ft_rrb_rx_request(struct wpa_authenticator *wpa_auth,
 
 	wpa_hexdump(MSG_MSGDUMP, "FT: RRB Request Frame body", body, len);
 
+#ifdef CONFIG_IEEE80211BE
+	if (wpa_auth->is_ml)
+		link_id = wpa_auth->link_id;
+#endif
 	sm->ft_pending_cb = wpa_ft_rrb_rx_request_cb;
 	sm->ft_pending_cb_ctx = sm;
 	os_memcpy(sm->ft_pending_current_ap, current_ap, ETH_ALEN);
 	sm->ft_pending_pull_left_retries = sm->wpa_auth->conf.rkh_pull_retries;
 	res = wpa_ft_process_auth_req(sm, body, len, &resp_ies,
-				      &resp_ies_len);
+				      &resp_ies_len, link_id);
 	if (res < 0) {
 		wpa_printf(MSG_DEBUG, "FT: No immediate response available - wait for pull response");
 		return 0;
@@ -3862,7 +3909,7 @@ static int wpa_ft_send_rrb_auth_resp(struct wpa_state_machine *sm,
 	struct wpa_authenticator *wpa_auth = sm->wpa_auth;
 	size_t rlen;
 	struct ft_rrb_frame *frame;
-	u8 *pos;
+	u8 *pos, target_addr[ETH_ALEN];
 
 	wpa_printf(MSG_DEBUG, "FT: RRB authentication response: STA=" MACSTR
 		   " CurrentAP=" MACSTR " status=%u (%s)",
@@ -3884,13 +3931,19 @@ static int wpa_ft_send_rrb_auth_resp(struct wpa_state_machine *sm,
 	frame->frame_type = RSN_REMOTE_FRAME_TYPE_FT_RRB;
 	frame->packet_type = FT_PACKET_RESPONSE;
 	frame->action_length = host_to_le16(rlen);
-	os_memcpy(frame->ap_address, wpa_auth->addr, ETH_ALEN);
+#ifdef CONFIG_IEEE80211BE
+	if (wpa_auth->is_ml)
+		os_memcpy(target_addr, wpa_auth->mld_addr, ETH_ALEN);
+	else
+#endif
+		os_memcpy(target_addr, wpa_auth->addr, ETH_ALEN);
+	os_memcpy(frame->ap_address, target_addr, ETH_ALEN);
 	pos = (u8 *) (frame + 1);
 	*pos++ = WLAN_ACTION_FT;
 	*pos++ = 2; /* Action: Response */
 	os_memcpy(pos, sta_addr, ETH_ALEN);
 	pos += ETH_ALEN;
-	os_memcpy(pos, wpa_auth->addr, ETH_ALEN);
+	os_memcpy(pos, target_addr, ETH_ALEN);
 	pos += ETH_ALEN;
 	WPA_PUT_LE16(pos, status);
 	pos += 2;
@@ -4314,13 +4367,18 @@ static void ft_finish_pull(struct wpa_state_machine *sm)
 	u8 *resp_ies;
 	size_t resp_ies_len;
 	u16 status;
+	int link_id = -1;
 
 	if (!sm->ft_pending_cb || !sm->ft_pending_req_ies)
 		return;
 
+#ifdef CONFIG_IEEE80211BE
+	link_id = sm->mld_assoc_link_id;
+#endif
+
 	res = wpa_ft_process_auth_req(sm, wpabuf_head(sm->ft_pending_req_ies),
 				      wpabuf_len(sm->ft_pending_req_ies),
-				      &resp_ies, &resp_ies_len);
+				      &resp_ies, &resp_ies_len, link_id);
 	if (res < 0) {
 		/* this loop is broken by ft_pending_pull_left_retries */
 		wpa_printf(MSG_DEBUG,
@@ -4801,7 +4859,11 @@ int wpa_ft_rrb_rx(struct wpa_authenticator *wpa_auth, const u8 *src_addr,
 			return -1;
 		}
 
-		if (!ether_addr_equal(target_ap_addr, wpa_auth->addr)) {
+		if (!ether_addr_equal(target_ap_addr, wpa_auth->addr)
+#ifdef CONFIG_IEEE80211BE
+		     && !ether_addr_equal(target_ap_addr, wpa_auth->mld_addr)
+#endif
+		     ) {
 			wpa_printf(MSG_DEBUG, "FT: Target AP address in the "
 				   "RRB Request does not match with own "
 				   "address");

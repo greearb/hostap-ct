@@ -1611,6 +1611,11 @@ setup_mld:
 			hapd->iconf->ieee80211ax;
 
 #ifdef CONFIG_IEEE80211R_AP
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap && is_zero_ether_addr(conf->r1_key_holder))
+		os_memcpy(conf->r1_key_holder, hapd->mld->mld_addr, ETH_ALEN);
+	else
+#endif /* CONFIG_IEEE80211BE */
 	if (is_zero_ether_addr(conf->r1_key_holder))
 		os_memcpy(conf->r1_key_holder, hapd->own_addr, ETH_ALEN);
 #endif /* CONFIG_IEEE80211R_AP */
