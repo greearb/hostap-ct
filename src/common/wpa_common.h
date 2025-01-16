@@ -616,6 +616,7 @@ struct wpa_ft_ies {
 	u16 valid_mlo_bigtks; /* bitmap of valid link BIGTK subelements */
 	const u8 *mlo_bigtk[MAX_NUM_MLD_LINKS];
 	size_t mlo_bigtk_len[MAX_NUM_MLD_LINKS];
+	const u8 *basic_ml;
 
 	struct wpabuf *fte_buf;
 };
