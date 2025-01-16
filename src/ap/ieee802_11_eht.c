@@ -1260,8 +1260,11 @@ static const u8 * auth_skip_fixed_fields(struct hostapd_data *hapd,
 
 		return pos;
 #endif /* CONFIG_SAE */
-	/* TODO: Support additional algorithms that can be used for MLO */
 	case WLAN_AUTH_FT:
+		if (auth_transaction > 4)
+			break;
+		return pos;
+	/* TODO: Support additional algorithms that can be used for MLO */
 	case WLAN_AUTH_FILS_SK:
 	case WLAN_AUTH_FILS_SK_PFS:
 	case WLAN_AUTH_FILS_PK:

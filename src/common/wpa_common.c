@@ -1335,6 +1335,9 @@ int wpa_ft_parse_ies(const u8 *ies, size_t ies_len, struct wpa_ft_ies *parse,
 		parse->ftie_len = fte_len;
 	}
 
+	if (elems.basic_mle)
+		parse->basic_ml = elems.basic_mle;
+
 	if (prot_ie_count == 0)
 		return 0; /* no MIC */
 
