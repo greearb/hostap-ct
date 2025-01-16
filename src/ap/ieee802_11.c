@@ -5509,7 +5509,8 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 						buf + buflen - p,
 						sta->auth_alg, ies, ies_len,
 						omit_rsnxe, reassoc,
-						sta->vlan_id);
+						sta->vlan_id,
+						ap_sta_is_mld(hapd, sta));
 		if (!p) {
 			wpa_printf(MSG_DEBUG,
 				   "FT: Failed to write AssocResp IEs");
