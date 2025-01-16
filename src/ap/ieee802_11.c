@@ -5705,6 +5705,15 @@ static struct sta_info * handle_mlo_translate(struct hostapd_data *hapd,
 	wpa_printf(MSG_DEBUG, "MLD: assoc: mld=" MACSTR ", link=" MACSTR,
 		   MAC2STR(mld_addr), MAC2STR(mgmt->sa));
 
+#ifdef CONFIG_IEEE80211R_AP
+	/* Reassoc is the first direct frame sent by FTR to target AP via OTD,
+	 * thus AP MLD doesn't need to do MLO translate for the non-AP MLD. */
+	if (reassoc && sta->ft_over_ds) {
+		ap_sta_set_mld(sta, true);
+		*assoc_hapd = hapd;
+		return sta;
+	}
+#endif
 	return hostapd_ml_get_assoc_sta(hapd, sta, assoc_hapd);
 }
 #endif /* CONFIG_IEEE80211BE */
@@ -5819,6 +5828,29 @@ static void handle_assoc(struct hostapd_data *hapd,
 		 * entry in the driver as associated and not authenticated
 		 */
 		sta->flags |= WLAN_STA_AUTH;
+
+#ifdef CONFIG_IEEE80211BE
+		/*
+		 * Since there is no auth processing in FT-OTD,
+		 * the STA MLD info should be filled when receiving reassoc.
+		 */
+		if (sta->ft_over_ds && ap_sta_is_mld(hapd, sta)) {
+			sta->mld_assoc_link_id = hapd->mld_link_id;
+			sta->mld_assoc_sta = sta;
+
+			/*
+			 * Set the MLD address as the station address and the
+			 * station addresses.
+			 */
+			os_memcpy(sta->mld_info.common_info.mld_addr, sta->addr,
+				  ETH_ALEN);
+			os_memcpy(sta->mld_info.links[hapd->mld_link_id].peer_addr,
+				  mgmt->sa, ETH_ALEN);
+			os_memcpy(sta->mld_info.links[hapd->mld_link_id].local_addr,
+				  hapd->own_addr, ETH_ALEN);
+			os_memcpy(sta->setup_link_addr, mgmt->sa, ETH_ALEN);
+		}
+#endif /* CONFIG_IEEE80211BE */
 	} else
 #endif /* CONFIG_IEEE80211R_AP */
 	if (sta == NULL || (sta->flags & WLAN_STA_AUTH) == 0) {
