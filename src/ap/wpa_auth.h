@@ -560,7 +560,7 @@ void wpa_auth_eapol_key_tx_status(struct wpa_authenticator *wpa_auth,
 u8 * wpa_sm_write_assoc_resp_ies(struct wpa_state_machine *sm, u8 *pos,
 				 size_t max_len, int auth_alg,
 				 const u8 *req_ies, size_t req_ies_len,
-				 int omit_rsnxe);
+				 int omit_rsnxe, bool mld_sta);
 void wpa_ft_process_auth(struct wpa_state_machine *sm,
 			 u16 auth_transaction, const u8 *ies, size_t ies_len,
 			 void (*cb)(void *ctx, const u8 *dst,
