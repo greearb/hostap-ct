@@ -896,6 +896,7 @@ int hostapd_fill_cca_settings(struct hostapd_data *hapd,
 
 #ifdef CONFIG_IEEE80211BE
 
+bool hostapd_is_attlm_active(struct hostapd_data *hapd);
 void hostapd_event_attlm(struct hostapd_data *hapd, struct attlm_event *attlm_event);
 void hostapd_event_tsf_offset(struct hostapd_data *hapd, s64 *tsf_offset);
 bool hostapd_mld_is_first_bss(struct hostapd_data *hapd);
