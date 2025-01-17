@@ -1629,16 +1629,30 @@ int hostapd_drv_ap_trig_type(struct hostapd_data *hapd, u8 enable, u8 type)
 
 int hostapd_drv_amnt_set(struct hostapd_data *hapd, u8 amnt_idx, u8 *amnt_sta_mac)
 {
+	s8 link_id = -1;
+
 	if (!hapd->driver || !hapd->driver->amnt_set)
 		return 0;
-	return hapd->driver->amnt_set(hapd->drv_priv, amnt_idx, amnt_sta_mac);
+
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+
+	return hapd->driver->amnt_set(hapd->drv_priv, amnt_idx, amnt_sta_mac,
+				      link_id);
 }
 
 int hostapd_drv_amnt_dump(struct hostapd_data *hapd, u8 amnt_idx, u8 *amnt_dump_buf)
 {
+	s8 link_id = -1;
+
 	if (!hapd->driver || !hapd->driver->amnt_dump)
 		return 0;
-	return hapd->driver->amnt_dump(hapd->drv_priv, amnt_idx, amnt_dump_buf);
+
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+
+	return hapd->driver->amnt_dump(hapd->drv_priv, amnt_idx, amnt_dump_buf,
+				       link_id);
 }
 
 int hostapd_drv_background_radar_mode(struct hostapd_data *hapd)
