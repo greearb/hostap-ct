@@ -147,6 +147,7 @@ static struct nla_policy
 amnt_ctrl_policy[NUM_MTK_VENDOR_ATTRS_AMNT_CTRL] = {
 	[MTK_VENDOR_ATTR_AMNT_CTRL_SET] = {.type = NLA_NESTED },
 	[MTK_VENDOR_ATTR_AMNT_CTRL_DUMP] = { .type = NLA_NESTED },
+	[MTK_VENDOR_ATTR_AMNT_CTRL_LINK_ID] = { .type = NLA_U8 },
 };
 
 static struct nla_policy
@@ -16233,7 +16234,7 @@ static int nl80211_ibf_enable(void *priv, u8 ibf_enable)
 		return 0;
 	}
 
-	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_VENDOR);
 	if (!msg)
 		goto fail;
 
@@ -16645,7 +16646,7 @@ fail:
 }
 
 static int
-nl80211_amnt_set(void *priv, u8 amnt_idx, u8 *amnt_sta_mac)
+nl80211_amnt_set(void *priv, u8 amnt_idx, u8 *amnt_sta_mac, s8 link_id)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -16673,13 +16674,16 @@ nl80211_amnt_set(void *priv, u8 amnt_idx, u8 *amnt_sta_mac)
 	if (!data)
 		goto fail;
 
+	if (nla_put_u8(msg, MTK_VENDOR_ATTR_AMNT_CTRL_LINK_ID, link_id))
+		goto fail;
+
 	tb1 = nla_nest_start(msg, MTK_VENDOR_ATTR_AMNT_CTRL_SET);
 	if (!tb1)
 		goto fail;
 
-	nla_put_u8(msg, MTK_VENDOR_ATTR_AMNT_SET_INDEX, amnt_idx);
-
-	nla_put(msg, MTK_VENDOR_ATTR_AMNT_SET_MACADDR, ETH_ALEN, amnt_sta_mac);
+	if (nla_put_u8(msg, MTK_VENDOR_ATTR_AMNT_SET_INDEX, amnt_idx) ||
+	    nla_put(msg, MTK_VENDOR_ATTR_AMNT_SET_MACADDR, ETH_ALEN, amnt_sta_mac))
+		goto fail;
 
 	nla_nest_end(msg, tb1);
 	nla_nest_end(msg, data);
@@ -16757,7 +16761,7 @@ mt76_amnt_dump_cb(struct nl_msg *msg, void *arg)
 }
 
 static int
-nl80211_amnt_dump(void *priv, u8 amnt_idx, u8 *dump_buf)
+nl80211_amnt_dump(void *priv, u8 amnt_idx, u8 *dump_buf, s8 link_id)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -16772,7 +16776,7 @@ nl80211_amnt_dump(void *priv, u8 amnt_idx, u8 *dump_buf)
 		return 0;
 	}
 
-	msg = nl80211_drv_msg(drv, NLM_F_DUMP, NL80211_CMD_VENDOR);
+	msg = nl80211_bss_msg(bss, NLM_F_DUMP, NL80211_CMD_VENDOR);
 	if (!msg)
 		goto fail;
 
@@ -16785,8 +16789,8 @@ nl80211_amnt_dump(void *priv, u8 amnt_idx, u8 *dump_buf)
 	if (!data)
 		goto fail;
 
-	tb1 = nla_nest_start(msg, MTK_VENDOR_ATTR_AMNT_CTRL_DUMP
-			| NLA_F_NESTED);
+	nla_put_u8(msg, MTK_VENDOR_ATTR_AMNT_CTRL_LINK_ID, link_id);
+	tb1 = nla_nest_start(msg, MTK_VENDOR_ATTR_AMNT_CTRL_DUMP | NLA_F_NESTED);
 	if (!tb1)
 		goto fail;
 
@@ -16798,8 +16802,8 @@ nl80211_amnt_dump(void *priv, u8 amnt_idx, u8 *dump_buf)
 	ret = send_and_recv_resp(drv, msg, mt76_amnt_dump_cb, dump_buf);
 
 	if (ret)
-		wpa_printf(MSG_ERROR, "Failed to Dump air monitor. ret=%d (%s)"
-			, ret, strerror(-ret));
+		wpa_printf(MSG_ERROR, "Failed to Dump air monitor. ret=%d (%s)",
+			   ret, strerror(-ret));
 
 	return ret;
 

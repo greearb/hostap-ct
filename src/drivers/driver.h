@@ -5751,7 +5751,7 @@ struct wpa_driver_ops {
 	* @amnt_idx: Monitor Index
 	* @amnt_sta_mac: station mac address
 	*/
-	int (*amnt_set)(void *priv, u8 amnt_idx, u8 *amnt_sta_mac);
+	int (*amnt_set)(void *priv, u8 amnt_idx, u8 *amnt_sta_mac, s8 link_id);
 
 	/**
 	* amnt_dump - Dump particular/ all station
@@ -5759,7 +5759,7 @@ struct wpa_driver_ops {
 	* @amnt_idx: Monitor Index
 	* @amnt_dump_buf: Buffer to print
 	*/
-	int (*amnt_dump)(void *priv, u8 amnt_idx, u8 *amnt_dump_buf);
+	int (*amnt_dump)(void *priv, u8 amnt_idx, u8 *amnt_dump_buf, s8 link_id);
 
 	/**
 	 * background_radar_mode - set background radar mode
