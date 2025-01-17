@@ -913,14 +913,9 @@ static u8 * hostapd_eid_eht_reconf_ml(struct hostapd_data *hapd, u8 *eid)
 
 size_t hostapd_eid_eht_attlm_len(struct hostapd_data * hapd)
 {
-	struct attlm_settings *attlm;
 	size_t len;
 
-	if (!hapd->conf->mld_ap)
-		return 0;
-
-	attlm = &hapd->mld->new_attlm;
-	if (!attlm || !attlm->valid)
+	if (!hostapd_is_attlm_active(hapd))
 		return 0;
 
 	/* Element ID: 1 octet
@@ -932,7 +927,7 @@ size_t hostapd_eid_eht_attlm_len(struct hostapd_data * hapd)
 	 * Link Mapping (size of 2) for All 8 TIDs: 2 * 8 octets
 	 */
 	len = 3 + 2 + 3 + 2 * 8;
-	if (attlm->switch_time_tsf_tu != 0)
+	if (hapd->mld->new_attlm.switch_time_tsf_tu != 0)
 		len += 2;
 
 	return len;
@@ -948,12 +943,10 @@ u8 * hostapd_eid_eht_attlm(struct hostapd_data *hapd, u8 *eid)
 	u8 *pos = eid;
 	u16 enabled_links;
 
-	if (!hapd->conf->mld_ap)
+	if (!hostapd_is_attlm_active(hapd))
 		return eid;
 
 	attlm = &hapd->mld->new_attlm;
-	if (!attlm || !attlm->valid)
-		return eid;
 
 	/* The length will be set at the end */
 	*pos++ = WLAN_EID_EXTENSION;

@@ -475,6 +475,15 @@ int hostapd_link_remove(struct hostapd_data *hapd, u32 count)
 }
 
 
+bool hostapd_is_attlm_active(struct hostapd_data *hapd)
+{
+	if (!hostapd_is_mld_ap(hapd) || !hapd->mld)
+		return false;
+
+	return hapd->mld->new_attlm.valid;
+}
+
+
 int hostapd_mld_set_attlm(struct hostapd_data *hapd)
 {
 	if (!hapd->drv_priv)

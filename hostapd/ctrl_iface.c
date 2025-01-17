@@ -4156,11 +4156,12 @@ static int hostapd_ctrl_iface_set_attlm(struct hostapd_data *hapd, char *cmd,
 	if (!hapd->conf->mld_ap || !hapd->mld)
 		return -1;
 
-	attlm = &hapd->mld->new_attlm;
-	if (attlm->valid) {
+	if (hostapd_is_attlm_active(hapd)) {
 		wpa_printf(MSG_ERROR, "Busy: A-TTLM is on-going");
 		return -1;
 	}
+
+	attlm = &hapd->mld->new_attlm;
 
 	for_each_mld_link(h, hapd)
 		valid_links |= BIT(h->mld_link_id);
