@@ -6773,7 +6773,7 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 		return 1;
 	}
 
-	if (hapd->conf->mld_ap && hapd->mld->new_attlm.valid &&
+	if (hostapd_is_attlm_active(hapd) &&
 	    !hapd->mld->new_attlm.switch_time_tsf_tu &&
 	    (hapd->mld->new_attlm.disabled_links & BIT(hapd->mld_link_id))) {
 		wpa_printf(MSG_DEBUG, "MGMT: Drop the frame - Disabled link");
