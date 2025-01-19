@@ -1463,6 +1463,12 @@ static void qca_nl80211_get_features(struct wpa_driver_nl80211_data *drv)
 	if (check_feature(QCA_WLAN_VENDOR_FEATURE_NAN_USD_OFFLOAD, &info))
 		drv->capa.flags2 |= WPA_DRIVER_FLAGS2_NAN_OFFLOAD;
 
+	if (!check_feature(QCA_WLAN_VENDOR_FEATURE_P2P_V2, &info))
+		drv->capa.flags2 &= ~WPA_DRIVER_FLAGS2_P2P_FEATURE_V2;
+
+	if (!check_feature(QCA_WLAN_VENDOR_FEATURE_PCC_MODE, &info))
+		drv->capa.flags2 &= ~WPA_DRIVER_FLAGS2_P2P_FEATURE_PCC_MODE;
+
 	os_free(info.flags);
 }
 
@@ -1582,6 +1588,12 @@ int wpa_driver_nl80211_capa(struct wpa_driver_nl80211_data *drv)
 	 */
 	if (!info.data_tx_status)
 		drv->capa.flags &= ~WPA_DRIVER_FLAGS_EAPOL_TX_STATUS;
+
+	/* Enable P2P2 and PCC mode capabilities by default for the drivers
+	 * which can't explicitly indicate whether these capabilities are
+	 * supported. */
+	drv->capa.flags2 |= WPA_DRIVER_FLAGS2_P2P_FEATURE_V2;
+	drv->capa.flags2 |= WPA_DRIVER_FLAGS2_P2P_FEATURE_PCC_MODE;
 
 #ifdef CONFIG_DRIVER_NL80211_QCA
 	if (!(info.capa->flags & WPA_DRIVER_FLAGS_DFS_OFFLOAD))
