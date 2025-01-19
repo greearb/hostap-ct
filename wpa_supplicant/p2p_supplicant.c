@@ -11432,6 +11432,16 @@ int wpas_p2p_get_pasn_ptk(struct wpa_supplicant *wpa_s, const u8 **ptk,
 #endif /* CONFIG_PASN */
 
 
+int wpas_p2p_get_dira(struct wpa_supplicant *wpa_s, char *buf, size_t buf_len)
+{
+	struct p2p_data *p2p = wpa_s->global->p2p;
+
+	if (wpa_s->global->p2p_disabled || !p2p)
+		return 0;
+	return p2p_get_dira_info(p2p, buf, buf_len);
+}
+
+
 void wpas_p2p_update_dev_addr(struct wpa_supplicant *wpa_s)
 {
 	os_memcpy(wpa_s->global->p2p_dev_addr, wpa_s->own_addr, ETH_ALEN);

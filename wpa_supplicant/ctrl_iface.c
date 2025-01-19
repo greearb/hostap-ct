@@ -13034,6 +13034,8 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 			reply_len = -1;
 	} else if (os_strcmp(buf, "P2P_GET_PASSPHRASE") == 0) {
 		reply_len = p2p_get_passphrase(wpa_s, reply, reply_size);
+	} else if (os_strcmp(buf, "P2P_GET_DIRA") == 0) {
+		reply_len = wpas_p2p_get_dira(wpa_s, reply, reply_size);
 #ifdef CONFIG_PASN
 #ifdef CONFIG_TESTING_OPTIONS
 	} else if (os_strcmp(buf, "P2P_GET_PASNPTK") == 0) {
@@ -14138,6 +14140,7 @@ static char * wpas_global_ctrl_iface_redir_p2p(struct wpa_global *global,
 #ifdef CONFIG_AP
 		"STA-FIRST",
 #endif /* CONFIG_AP */
+		"P2P_GET_DIRA",
 		NULL
 	};
 	static const char * prefix[] = {

@@ -2790,5 +2790,6 @@ void p2p_set_store_pasn_ptk(struct p2p_data *p2p, u8 val);
 void p2p_pasn_store_ptk(struct p2p_data *p2p, struct wpa_ptk *ptk);
 int p2p_pasn_get_ptk(struct p2p_data *p2p, const u8 **buf, size_t *buf_len);
 void p2p_usd_service_hash(struct p2p_data *p2p, const char *service_name);
+int p2p_get_dira_info(struct p2p_data *p2p, char *buf, size_t buflen);
 
 #endif /* P2P_H */

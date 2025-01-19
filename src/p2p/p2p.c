@@ -7313,3 +7313,52 @@ int p2p_pasn_get_ptk(struct p2p_data *p2p, const u8 **buf, size_t *buf_len)
 #endif /* CONFIG_TESTING_OPTIONS */
 
 #endif /* CONFIG_PASN */
+
+
+int p2p_get_dira_info(struct p2p_data *p2p, char *buf, size_t buflen)
+{
+	int res;
+	char *pos, *end;
+	struct p2p_id_key *dev_ik;
+
+	if (!p2p->pairing_info ||
+	    !p2p->cfg->pairing_config.pairing_capable ||
+	    !p2p->cfg->pairing_config.enable_pairing_cache)
+		return 0;
+
+	if (p2p_derive_nonce_tag(p2p))
+		return 0;
+
+	pos = buf;
+	end = buf + buflen;
+	dev_ik = &p2p->pairing_info->dev_ik;
+
+	res = os_snprintf(pos, end - pos, MACSTR,
+			  MAC2STR(p2p->cfg->dev_addr));
+	if (os_snprintf_error(end - pos, res))
+		return pos - buf;
+	pos += res;
+
+	res = os_snprintf(pos, end - pos, " ");
+	if (os_snprintf_error(end - pos, res))
+		return pos - buf;
+	pos += res;
+
+	pos += wpa_snprintf_hex(pos, end - pos, dev_ik->dira_nonce,
+				dev_ik->dira_nonce_len);
+
+	res = os_snprintf(pos, end - pos, " ");
+	if (os_snprintf_error(end - pos, res))
+		return pos - buf;
+	pos += res;
+
+	pos += wpa_snprintf_hex(pos, end - pos, dev_ik->dira_tag,
+				dev_ik->dira_tag_len);
+
+	res = os_snprintf(pos, end - pos, "\n");
+	if (os_snprintf_error(end - pos, res))
+		return pos - buf;
+	pos += res;
+
+	return pos - buf;
+}
