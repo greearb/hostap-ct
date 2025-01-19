@@ -2343,6 +2343,13 @@ enum qca_wlan_vendor_acs_hw_mode {
  *	supports preferring 6 GHz PSC channel as a primary channel in ACS
  *	result.
  *
+ * @QCA_WLAN_VENDOR_FEATURE_P2P_V2: Flag indicates that the driver supports
+ *	P2P R2 functionality (P2P R2 Discovery, Pairing, TWT power save, etc).
+ *
+ * @QCA_WLAN_VENDOR_FEATURE_PCC_MODE: Flag indicates that the driver supports
+ *	P2P Connection Compatibility mode in which GO allows connection
+ *	with both P2P R1 and R2 clients.
+ *
  * @NUM_QCA_WLAN_VENDOR_FEATURES: Number of assigned feature bits
  */
 enum qca_wlan_vendor_features {
@@ -2374,6 +2381,8 @@ enum qca_wlan_vendor_features {
 	QCA_WLAN_VENDOR_FEATURE_RSN_OVERRIDE_STA = 25,
 	QCA_WLAN_VENDOR_FEATURE_NAN_USD_OFFLOAD = 26,
 	QCA_WLAN_VENDOR_FEATURE_ACS_PREFER_6GHZ_PSC = 27,
+	QCA_WLAN_VENDOR_FEATURE_P2P_V2 = 28,
+	QCA_WLAN_VENDOR_FEATURE_PCC_MODE = 29,
 	NUM_QCA_WLAN_VENDOR_FEATURES /* keep last */
 };
 
