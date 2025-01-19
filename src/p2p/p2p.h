@@ -516,6 +516,21 @@ struct p2p_peer_info {
 	 * dik_id - For paired peers Identity block ID with PMK
 	 */
 	int dik_id;
+
+	/**
+	 * nonce_tag_valid - Whether nonce and tag are valid
+	 */
+	bool nonce_tag_valid;
+
+	/**
+	 * nonce - Valid nonce received in a recent discovery frame
+	 */
+	u8 nonce[DEVICE_IDENTITY_NONCE_LEN];
+
+	/**
+	 * tag - Valid tag received in a recent discovery frame
+	 */
+	u8 tag[DEVICE_IDENTITY_TAG_LEN];
 };
 
 enum p2p_prov_disc_status {

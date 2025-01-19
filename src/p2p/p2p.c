@@ -6181,9 +6181,20 @@ void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
 	if (!ether_addr_equal(peer_addr, p2p_dev_addr))
 		os_memcpy(dev->interface_addr, peer_addr, ETH_ALEN);
 
-	if (msg.dira && msg.dira_len)
+	if (msg.dira && msg.dira_len) {
+		dev->info.nonce_tag_valid = false;
 		dev->info.dik_id = p2p_validate_dira(p2p, dev, msg.dira,
 						     msg.dira_len);
+		if (dev->info.dik_id) {
+			os_memcpy(dev->info.nonce, &msg.dira[1],
+				  DEVICE_IDENTITY_NONCE_LEN);
+			os_memcpy(dev->info.tag,
+				  &msg.dira[1 + DEVICE_IDENTITY_NONCE_LEN],
+				  DEVICE_IDENTITY_TAG_LEN);
+			dev->info.pairing_config.dik_cipher = msg.dira[0];
+			dev->info.nonce_tag_valid = true;
+		}
+	}
 
 	p2p_dbg(p2p, "Updated device entry based on USD frame: " MACSTR
 		" dev_capab=0x%x group_capab=0x%x listen_freq=%d",
