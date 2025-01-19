@@ -245,6 +245,8 @@ int wpas_p2p_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 int wpas_p2p_get_pasn_ptk(struct wpa_supplicant *wpa_s, const u8 **ptk,
 			  size_t *ptk_len);
 int wpas_p2p_get_dira(struct wpa_supplicant *wpa_s, char *buf, size_t buf_len);
+int wpas_p2p_validate_dira(struct wpa_supplicant *wpa_s, const u8 *addr,
+			   u8 cipher, const u8 *nonce, const u8 *tag);
 
 #else /* CONFIG_P2P */
 

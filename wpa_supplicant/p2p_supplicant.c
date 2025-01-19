@@ -5439,7 +5439,7 @@ static void wpas_bootstrap_completed(void *ctx, const u8 *addr,
 
 
 static int wpas_validate_dira(void *ctx, const u8 *peer_addr,
-			      const u8 *dira, size_t dira_len)
+			      const u8 *dira_nonce, const u8 *dira_tag)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 	int ret;
@@ -5449,24 +5449,11 @@ static int wpas_validate_dira(void *ctx, const u8 *peer_addr,
 	size_t len[3];
 	const char *label = "DIR";
 
-	if (dira_len < 1 || dira[0] != DIRA_CIPHER_VERSION_128) {
-		wpa_printf(MSG_ERROR,
-			   "P2P2: Unsupported DIRA cipher version %d", dira[0]);
-		return 0;
-	}
-
-	if (dira_len < 1 + DEVICE_IDENTITY_NONCE_LEN + DEVICE_IDENTITY_TAG_LEN)
-	{
-		wpa_printf(MSG_INFO, "P2P2: Truncated DIRA (length %zu)",
-			   dira_len);
-		return 0;
-	}
-
 	addr[0] = (const u8 *) label;
 	len[0] = DIR_STR_LEN;
 	addr[1] = peer_addr;
 	len[1] = ETH_ALEN;
-	addr[2] = &dira[1];
+	addr[2] = dira_nonce;
 	len[2] = DEVICE_IDENTITY_NONCE_LEN;
 
 	for (ik = wpa_s->conf->identity; ik; ik = ik->next) {
@@ -5483,8 +5470,7 @@ static int wpas_validate_dira(void *ctx, const u8 *peer_addr,
 			return 0;
 		}
 
-		if (os_memcmp(tag, &dira[1 + DEVICE_IDENTITY_NONCE_LEN],
-			      DEVICE_IDENTITY_TAG_LEN) == 0) {
+		if (os_memcmp(tag, dira_tag, DEVICE_IDENTITY_TAG_LEN) == 0) {
 			wpa_printf(MSG_DEBUG, "P2P2: DIRA Tag matched");
 			break;
 		}
@@ -11439,6 +11425,22 @@ int wpas_p2p_get_dira(struct wpa_supplicant *wpa_s, char *buf, size_t buf_len)
 	if (wpa_s->global->p2p_disabled || !p2p)
 		return 0;
 	return p2p_get_dira_info(p2p, buf, buf_len);
+}
+
+
+int wpas_p2p_validate_dira(struct wpa_supplicant *wpa_s, const u8 *addr,
+			   u8 cipher, const u8 *nonce, const u8 *tag)
+{
+	if (cipher != DIRA_CIPHER_VERSION_128) {
+		wpa_printf(MSG_INFO, "P2P2: Unsupported DIRA cipher version %d",
+			   cipher);
+		return -1;
+	}
+
+	if (wpas_validate_dira(wpa_s, addr, nonce, tag) > 0)
+		return 0;
+
+	return -1;
 }
 
 

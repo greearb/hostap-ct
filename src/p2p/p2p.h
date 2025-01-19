@@ -1370,8 +1370,8 @@ struct p2p_config {
 	 *	list of available device identity keys
 	 * @ctx: Callback context from cb_ctx
 	 * @peer_addr: P2P Device address of the peer
-	 * @dira: DIRA attribute present in the USD frames
-	 * @dira_len: Length of DIRA
+	 * @dira_nonce: DIRA Nonce
+	 * @dira_tag: DIRA Tag
 	 * Returns: Identity block ID on success, 0 on failure
 	 *
 	 * This function can be used to validate DIRA and configure PMK of a
@@ -1380,7 +1380,7 @@ struct p2p_config {
 	 * case a matching entry is found.
 	 */
 	int (*validate_dira)(void *ctx, const u8 *peer_addr,
-			     const u8 *dira, size_t dira_len);
+			     const u8 *dira_nonce, const u8 *dira_tag);
 
 	/**
 	 * pasn_send_mgmt - Function handler to transmit a Management frame

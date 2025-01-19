@@ -6045,10 +6045,27 @@ static int p2p_derive_nonce_tag(struct p2p_data *p2p)
 static int p2p_validate_dira(struct p2p_data *p2p, struct p2p_device *dev,
 			     const u8 *dira, u16 dira_len)
 {
-	if (p2p->cfg->validate_dira)
+	if (dira_len < 1 || dira[0] != DIRA_CIPHER_VERSION_128) {
+		p2p_dbg(p2p, "Unsupported DIRA cipher version %d",
+			dira[0]);
+		return 0;
+	}
+
+	if (dira_len < 1 + DEVICE_IDENTITY_NONCE_LEN + DEVICE_IDENTITY_TAG_LEN)
+	{
+		p2p_dbg(p2p, "Truncated DIRA (length %u)", dira_len);
+		return 0;
+	}
+
+	if (p2p->cfg->validate_dira) {
+		const u8 *nonce = &dira[1];;
+		const u8 *tag = &dira[1 + DEVICE_IDENTITY_NONCE_LEN];
+
 		return p2p->cfg->validate_dira(p2p->cfg->cb_ctx,
 					       dev->info.p2p_device_addr,
-					       dira, dira_len);
+					       nonce, tag);
+	}
+
 	return 0;
 }
 
