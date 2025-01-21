@@ -374,16 +374,7 @@ int hostapd_vlan_if_add(struct hostapd_data *hapd, const char *ifname)
 {
 	char force_ifname[IFNAMSIZ];
 	u8 if_addr[ETH_ALEN];
-	u32 radio_mask = 0;
-
-#ifdef CONFIG_IEEE80211BE
-	if (hapd->iface->current_hw_info) {
-		if (hapd->conf->mld_ap)
-			radio_mask = hapd->conf->mld_radio_mask;
-		else
-			radio_mask = 1 << hapd->iface->current_hw_info->hw_idx;
-	}
-#endif /* CONFIG_IEEE80211BE */
+	u32 radio_mask = hostapd_get_radio_mask(hapd);
 
 	return hostapd_if_add(hapd, WPA_IF_AP_VLAN, ifname, hapd->own_addr,
 			      NULL, NULL, force_ifname, if_addr, NULL, 0, hapd->iface->freq, radio_mask);
@@ -400,6 +391,7 @@ int hostapd_set_wds_sta(struct hostapd_data *hapd, char *ifname_wds,
 			const u8 *addr, int aid, int val)
 {
 	const char *bridge = NULL;
+	u32 radio_mask = hostapd_get_radio_mask(hapd);
 
 	if (hapd->driver == NULL || hapd->driver->set_wds_sta == NULL)
 		return -1;
@@ -408,7 +400,7 @@ int hostapd_set_wds_sta(struct hostapd_data *hapd, char *ifname_wds,
 	else if (hapd->conf->bridge[0])
 		bridge = hapd->conf->bridge;
 	return hapd->driver->set_wds_sta(hapd->drv_priv, addr, aid, val,
-					 bridge, ifname_wds);
+					 bridge, ifname_wds, radio_mask);
 }
 
 

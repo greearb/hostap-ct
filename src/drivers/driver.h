@@ -4256,10 +4256,12 @@ struct wpa_driver_ops {
 	 *	to indicate that bridge is not to be used
 	 * @ifname_wds: Buffer to return the interface name for the new WDS
 	 *	station or %NULL to indicate name is not returned.
+	 * @radio_mask: radio mask of WDS interface
 	 * Returns: 0 on success, -1 on failure
 	 */
 	int (*set_wds_sta)(void *priv, const u8 *addr, int aid, int val,
-			   const char *bridge_ifname, char *ifname_wds);
+			   const char *bridge_ifname, char *ifname_wds,
+			   u32 radio_mask);
 
 	/**
 	 * send_action - Transmit an Action frame
