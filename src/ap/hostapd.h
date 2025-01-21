@@ -936,4 +936,17 @@ static inline bool ap_pmf_enabled(struct hostapd_bss_config *conf)
 enum oper_chan_width
 hostapd_chan_width_from_freq_params(struct hostapd_freq_params *freq_params);
 
+static inline u32 hostapd_get_radio_mask(struct hostapd_data *hapd)
+{
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->iface->current_hw_info) {
+		if (hapd->conf->mld_ap)
+			return hapd->conf->mld_radio_mask;
+		else
+			return 1 << hapd->iface->current_hw_info->hw_idx;
+	}
+#endif /* CONFIG_IEEE80211BE */
+	return 0;
+}
+
 #endif /* HOSTAPD_H */
