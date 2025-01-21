@@ -486,6 +486,7 @@ static int wpa_bss_remove_oldest_unknown(struct wpa_supplicant *wpa_s)
 
 	dl_list_for_each(bss, &wpa_s->bss, struct wpa_bss, list) {
 		if (!wpa_bss_known(wpa_s, bss) &&
+		    !wpa_bss_in_use(wpa_s, bss) &&
 		    !wpa_bss_is_wps_candidate(wpa_s, bss)) {
 			wpa_bss_remove(wpa_s, bss, __func__);
 			return 0;
