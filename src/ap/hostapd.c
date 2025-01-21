@@ -1465,7 +1465,7 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 	char force_ifname[IFNAMSIZ];
 	u8 if_addr[ETH_ALEN];
 	int flush_old_stations = 1;
-	u32 radio_mask = 0;
+	u32 radio_mask = hostapd_get_radio_mask(hapd);
 
 	if (!hostapd_mld_is_first_bss(hapd)) {
 		/* Only flush old stations when setting up the first BSS for the MLD. */
@@ -1539,13 +1539,6 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 
 			if (addr && !is_zero_ether_addr(hapd->conf->mld_addr))
 				os_memcpy(addr, hapd->conf->mld_addr, ETH_ALEN);
-		}
-
-		if (hapd->iface->current_hw_info) {
-			if (hapd->conf->mld_ap)
-				radio_mask = hapd->conf->mld_radio_mask;
-			else
-				radio_mask = 1 << hapd->iface->current_hw_info->hw_idx;
 		}
 #endif /* CONFIG_IEEE80211BE */
 

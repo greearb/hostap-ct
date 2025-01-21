@@ -8913,7 +8913,8 @@ static int have_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx,
 
 
 static int i802_set_wds_sta(void *priv, const u8 *addr, int aid, int val,
-			    const char *bridge_ifname, char *ifname_wds)
+			    const char *bridge_ifname, char *ifname_wds,
+			    u32 radio_mask)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -8938,8 +8939,8 @@ static int i802_set_wds_sta(void *priv, const u8 *addr, int aid, int val,
 		if (!if_nametoindex(name)) {
 			if (nl80211_create_iface(bss, drv, name,
 						 NL80211_IFTYPE_AP_VLAN,
-						 bss->addr, 1, NULL, NULL, 0, 0) <
-			    0)
+						 bss->addr, 1, NULL, NULL, 0,
+						 radio_mask) < 0)
 				return -1;
 
 			if (bridge_ifname)
