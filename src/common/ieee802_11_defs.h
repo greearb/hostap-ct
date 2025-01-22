@@ -2766,15 +2766,16 @@ struct ieee80211_eht_capabilities {
 #define MULTI_LINK_SUB_ELEM_ID_VENDOR			221
 #define MULTI_LINK_SUB_ELEM_ID_FRAGMENT			254
 
-/* IEEE P802.11be/D2.2, 9.4.2.312.2 - Basic Multi-Link element */
+/* IEEE P802.11be/D7.0, 9.4.2.322.2 - Basic Multi-Link element */
 
-/* Figure 9-1002g: Presence Bitmap subfield of the Basic Multi-Link element */
+/* Figure 9-1074o: Presence Bitmap subfield of the Basic Multi-Link element */
 #define BASIC_MULTI_LINK_CTRL_PRES_LINK_ID		0x0010
 #define BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT	0x0020
 #define BASIC_MULTI_LINK_CTRL_PRES_MSD_INFO		0x0040
 #define BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA		0x0080
 #define BASIC_MULTI_LINK_CTRL_PRES_MLD_CAPA		0x0100
 #define BASIC_MULTI_LINK_CTRL_PRES_AP_MLD_ID		0x0200
+#define BASIC_MULTI_LINK_CTRL_PRES_EXT_MLD_CAP		0x0400
 
 /*
  * STA Control field definitions of Per-STA Profile subelement in Basic
