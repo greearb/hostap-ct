@@ -663,3 +663,82 @@ def test_p2p_auto_go_pcc_with_p2p2_cli(dev, apdev):
 
     dev[0].remove_group()
     dev[1].dump_monitor()
+
+def test_p2p_bootstrapping_comeback_pairing(dev, apdev):
+    """P2P bootstrapping with comeback and pairing"""
+    check_p2p2_capab(dev[0])
+    check_p2p2_capab(dev[1])
+
+    set_p2p2_configs(dev[0])
+    set_p2p2_configs(dev[1])
+
+    cmd = "NAN_SUBSCRIBE service_name=_test active=1 srv_proto_type=2 ssi=1122334455 ttl=10 p2p=1"
+    sub_id = dev[0].global_request(cmd)
+    if "FAIL" in sub_id:
+        raise Exception("NAN_SUBSCRIBE for P2P failed")
+
+    cmd = "NAN_PUBLISH service_name=_test unsolicited=0 srv_proto_type=2 ssi=6677 ttl=10 p2p=1"
+    pub_id = dev[1].global_request(cmd)
+    if "FAIL" in pub_id:
+        raise Exception("NAN_PUBLISH for P2P failed")
+
+    ev = dev[0].wait_global_event(["P2P-DEVICE-FOUND"], timeout=5)
+    if ev is None:
+        raise Exception("Peer not found")
+    ev = dev[1].wait_global_event(["P2P-DEVICE-FOUND"], timeout=5)
+    if ev is None:
+        raise Exception("Peer not found")
+
+    ev = dev[0].wait_global_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+    if ev is None:
+        raise Exception("DiscoveryResult event not seen")
+    if "srv_proto_type=2" not in ev.split(' '):
+        raise Exception("Unexpected srv_proto_type: " + ev)
+    if "ssi=6677" not in ev.split(' '):
+        raise Exception("Unexpected ssi: " + ev)
+
+    cmd = "P2P_PROV_DISC " + dev[1].p2p_dev_addr() + " bstrapmethod=1"
+    id0 = dev[0].global_request(cmd)
+    if "FAIL" in id0:
+        raise Exception("Bootstrapping failed")
+
+    ev = dev[1].wait_global_event(["P2P-BOOTSTRAP-REQUEST"], timeout=10)
+    if ev is None:
+        raise Exception("Bootstrap request event not received")
+
+    cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair he go_intent=15 p2p2 bstrapmethod=1 auth freq=2437"
+    id0 = dev[1].global_request(cmd)
+    if "FAIL" in id0:
+        raise Exception("P2P_CONNECT auth failed")
+
+    ev = dev[0].wait_global_event(["P2P-BOOTSTRAP-SUCCESS"], timeout=10)
+    if ev is None:
+        raise Exception("Bootstrap success not received")
+
+    cmd = "NAN_CANCEL_SUBSCRIBE subscribe_id=" + sub_id
+    if "FAIL" in dev[0].global_request(cmd):
+        raise Exception("NAN_CANCEL_SUBSCRIBE for P2P failed")
+    cmd = "NAN_CANCEL_PUBLISH publish_id=" + pub_id
+    if "FAIL" in dev[1].global_request(cmd):
+        raise Exception("NAN_CANCEL_PUBLISH for P2P failed")
+
+    cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair he go_intent=5 p2p2 bstrapmethod=1"
+    id0 = dev[0].global_request(cmd)
+    if "FAIL" in id0:
+        raise Exception("P2P_CONNECT failed")
+
+    ev = dev[0].wait_global_event(["P2P-GROUP-STARTED"], timeout=10)
+    if ev is None:
+        raise Exception("Group formation timed out")
+    #dev[0].group_form_result(ev)
+    dev[0].dump_monitor()
+
+    ev = dev[1].wait_global_event(["P2P-GROUP-STARTED"], timeout=10)
+    if ev is None:
+        raise Exception("Group formation timed out(2)")
+    dev[1].group_form_result(ev)
+    dev[1].wait_sta()
+
+    dev[1].remove_group()
+    dev[0].wait_go_ending_session()
+    dev[0].dump_monitor()
