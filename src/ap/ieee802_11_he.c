@@ -229,6 +229,9 @@ u8 * hostapd_eid_he_operation(struct hostapd_data *hapd, u8 *eid)
 		u16 punct_bitmap = hostapd_get_punct_bitmap(hapd);
 
 		if (punct_bitmap) {
+			oper_chwidth = hostapd_get_oper_chwidth(hapd->iconf);
+			seg0 = hostapd_get_oper_centr_freq_seg0_idx(
+				hapd->iconf);
 			punct_update_legacy_bw(punct_bitmap,
 					       hapd->iconf->channel,
 					       &oper_chwidth, &seg0, &seg1);
