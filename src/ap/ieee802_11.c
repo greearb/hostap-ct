@@ -5003,10 +5003,6 @@ bool hostapd_is_mld_ap(struct hostapd_data *hapd)
 	if (!hapd->conf->mld_ap)
 		return false;
 
-	if (!hapd->iface || !hapd->iface->interfaces ||
-	    hapd->iface->interfaces->count <= 1)
-		return false;
-
 	return true;
 }
 
