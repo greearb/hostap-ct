@@ -67,7 +67,7 @@ enum wpas_p2p_prov_disc_use {
 	WPAS_P2P_PD_FOR_ASP
 };
 int wpas_p2p_prov_disc(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
-		       const char *config_method,
+		       const char *config_method, u16 bootstrap,
 		       enum wpas_p2p_prov_disc_use use,
 		       struct p2ps_provision *p2ps_prov);
 void wpas_send_action_tx_status(struct wpa_supplicant *wpa_s, const u8 *dst,

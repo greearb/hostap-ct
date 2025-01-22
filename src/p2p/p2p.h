@@ -1659,6 +1659,17 @@ int p2p_authorize(struct p2p_data *p2p, const u8 *peer_addr,
 int p2p_reject(struct p2p_data *p2p, const u8 *peer_addr);
 
 /**
+ * p2p_set_req_bootstrap_method - Send Provision Discovery Request to initiate
+ *	 bootstrapping
+ * @p2p: P2P module context from p2p_init()
+ * @peer_addr: MAC address of the peer P2P client
+ * @boostrap: Bootstrapping method
+ * Returns: 0 on success, -1 on failure
+ */
+int p2p_set_req_bootstrap_method(struct p2p_data *p2p, const u8 *peer_addr,
+				 u16 bootstrap);
+
+/**
  * p2p_prov_disc_req - Send Provision Discovery Request
  * @p2p: P2P module context from p2p_init()
  * @peer_addr: MAC address of the peer P2P client

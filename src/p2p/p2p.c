@@ -6620,6 +6620,9 @@ int p2p_initiate_pasn_auth(struct p2p_data *p2p, const u8 *addr, int freq)
 		return -1;
 	}
 
+	if (freq == 0)
+		freq = dev->listen_freq > 0 ? dev->listen_freq : dev->oper_freq;
+
 	dev->role = P2P_ROLE_PAIRING_INITIATOR;
 	p2p_pasn_initialize(p2p, dev, addr, freq, false, true);
 	pasn = dev->pasn;

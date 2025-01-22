@@ -5371,19 +5371,27 @@ static void wpas_p2p_send_bootstrap_comeback(void *eloop_ctx, void *timeout_ctx)
 	struct wpa_supplicant *wpa_s = eloop_ctx;
 
 	wpa_printf(MSG_DEBUG, "P2P2: Send bootstrapping comeback PD Request");
-	wpas_p2p_connect(wpa_s, wpa_s->p2p_bootstrap_dev_addr, wpa_s->p2p_pin,
-			 wpa_s->p2p_wps_method, wpa_s->p2p_persistent_group, 0,
-			 0, 0, wpa_s->p2p_go_intent, wpa_s->p2p_connect_freq,
-			 wpa_s->p2p_go_vht_center_freq2,
-			 wpa_s->p2p_persistent_id,
-			 wpa_s->p2p_pd_before_go_neg,
-			 wpa_s->p2p_go_ht40,
-			 wpa_s->p2p_go_vht,
-			 wpa_s->p2p_go_max_oper_chwidth,
-			 wpa_s->p2p_go_he,
-			 wpa_s->p2p_go_edmg,
-			 NULL, 0, is_p2p_allow_6ghz(wpa_s->global->p2p),
-			 wpa_s->p2p2, wpa_s->p2p_bootstrap, NULL, false);
+
+	if (wpa_s->p2p_pd_before_go_neg) {
+		wpas_p2p_connect(wpa_s, wpa_s->p2p_bootstrap_dev_addr,
+				 wpa_s->p2p_pin, wpa_s->p2p_wps_method,
+				 wpa_s->p2p_persistent_group, 0, 0, 0,
+				 wpa_s->p2p_go_intent, wpa_s->p2p_connect_freq,
+				 wpa_s->p2p_go_vht_center_freq2,
+				 wpa_s->p2p_persistent_id, 1,
+				 wpa_s->p2p_go_ht40,
+				 wpa_s->p2p_go_vht,
+				 wpa_s->p2p_go_max_oper_chwidth,
+				 wpa_s->p2p_go_he,
+				 wpa_s->p2p_go_edmg,
+				 NULL, 0, is_p2p_allow_6ghz(wpa_s->global->p2p),
+				 wpa_s->p2p2, wpa_s->p2p_bootstrap, NULL,
+				 false);
+	} else {
+		p2p_prov_disc_req(wpa_s->global->p2p,
+				  wpa_s->p2p_bootstrap_dev_addr, NULL,
+				  0, 0, 0, 1);
+	}
 }
 
 
@@ -5433,7 +5441,8 @@ static void wpas_bootstrap_completed(void *ctx, const u8 *addr,
 		       MAC2STR(addr), status);
 
 #ifdef CONFIG_PASN
-	wpas_p2p_initiate_pasn_auth(wpa_s, addr, freq);
+	if (wpa_s->p2p_pd_before_go_neg)
+		wpas_p2p_initiate_pasn_auth(wpa_s, addr, freq);
 #endif /* CONFIG_PASN */
 }
 
@@ -7066,6 +7075,12 @@ int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 			wpas_p2p_remove_pending_group_interface(wpa_s);
 		return -1;
 	}
+
+#ifdef CONFIG_PASN
+	if (wpa_s->p2p2 && !wpa_s->p2p_pd_before_go_neg)
+		wpas_p2p_initiate_pasn_auth(wpa_s, peer_addr, force_freq);
+#endif /* CONFIG_PASN */
+
 	return ret;
 }
 
@@ -8355,7 +8370,7 @@ int wpas_p2p_wps_eapol_cb(struct wpa_supplicant *wpa_s)
 
 
 int wpas_p2p_prov_disc(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
-		       const char *config_method,
+		       const char *config_method, u16 bootstrap,
 		       enum wpas_p2p_prov_disc_use use,
 		       struct p2ps_provision *p2ps_prov)
 {
@@ -8377,6 +8392,12 @@ int wpas_p2p_prov_disc(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 			   p2ps_prov->status, p2ps_prov->info);
 
 		config_methods = 0;
+	} else if (bootstrap) {
+		wpa_s->p2p2 = true;
+		config_methods = 0;
+		wpa_s->p2p_bootstrap = bootstrap;
+		p2p_set_req_bootstrap_method(wpa_s->global->p2p, peer_addr,
+					     bootstrap);
 	} else if (os_strncmp(config_method, "display", 7) == 0)
 		config_methods = WPS_CONFIG_DISPLAY;
 	else if (os_strncmp(config_method, "keypad", 6) == 0)

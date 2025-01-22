@@ -6322,7 +6322,7 @@ static int p2p_ctrl_asp_provision_resp(struct wpa_supplicant *wpa_s, char *cmd)
 		return -1;
 	}
 
-	return wpas_p2p_prov_disc(wpa_s, addr, NULL, WPAS_P2P_PD_FOR_ASP,
+	return wpas_p2p_prov_disc(wpa_s, addr, NULL, 0, WPAS_P2P_PD_FOR_ASP,
 				  p2ps_prov);
 }
 
@@ -6351,7 +6351,7 @@ static int p2p_ctrl_asp_provision(struct wpa_supplicant *wpa_s, char *cmd)
 
 	p2ps_prov->pd_seeker = 1;
 
-	return wpas_p2p_prov_disc(wpa_s, addr, NULL, WPAS_P2P_PD_FOR_ASP,
+	return wpas_p2p_prov_disc(wpa_s, addr, NULL, 0, WPAS_P2P_PD_FOR_ASP,
 				  p2ps_prov);
 }
 
@@ -6531,7 +6531,6 @@ static int p2p_ctrl_connect(struct wpa_supplicant *wpa_s, char *cmd,
 	if (pos2) {
 		pos2 += 13;
 		bootstrap = atoi(pos2);
-		pd = true;
 	}
 
 	while ((token = str_token(pos, " ", &context))) {
@@ -6590,10 +6589,11 @@ static int p2p_ctrl_listen(struct wpa_supplicant *wpa_s, char *cmd)
 static int p2p_ctrl_prov_disc(struct wpa_supplicant *wpa_s, char *cmd)
 {
 	u8 addr[ETH_ALEN];
-	char *pos;
+	char *pos, *pos2;
 	enum wpas_p2p_prov_disc_use use = WPAS_P2P_PD_FOR_GO_NEG;
+	u16 bootstrap = 0;
 
-	/* <addr> <config method> [join|auto] */
+	/* <addr> <config method> [join|auto] [bstrapmethod=<value>] */
 
 	if (hwaddr_aton(cmd, addr))
 		return -1;
@@ -6608,7 +6608,13 @@ static int p2p_ctrl_prov_disc(struct wpa_supplicant *wpa_s, char *cmd)
 	else if (os_strstr(pos, " auto") != NULL)
 		use = WPAS_P2P_PD_AUTO;
 
-	return wpas_p2p_prov_disc(wpa_s, addr, pos, use, NULL);
+	pos2 = os_strstr(pos, "bstrapmethod=");
+	if (pos2) {
+		pos2 += 13;
+		bootstrap = atoi(pos2);
+	}
+
+	return wpas_p2p_prov_disc(wpa_s, addr, pos, bootstrap, use, NULL);
 }
 
 
