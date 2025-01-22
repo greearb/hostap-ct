@@ -169,12 +169,12 @@ def run_p2p_pairing_password(dev):
     if "FAIL" in dev[1].global_request(cmd):
         raise Exception("NAN_CANCEL_PUBLISH for P2P failed")
 
-    cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair he go_intent=15 p2p2 bstrapmethod=2 auth password=975310123 freq=2437"
+    cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair provdisc he go_intent=15 p2p2 bstrapmethod=2 auth password=975310123 freq=2437"
     id0 = dev[1].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT auth Failed")
 
-    cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair he go_intent=5 p2p2 bstrapmethod=32 password=975310123"
+    cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair provdisc he go_intent=5 p2p2 bstrapmethod=32 password=975310123"
     id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT Failed")
@@ -253,12 +253,12 @@ def test_p2p_pairing_opportunistic(dev, apdev):
     if "FAIL" in dev[1].global_request(cmd):
         raise Exception("NAN_CANCEL_PUBLISH for P2P failed")
 
-    cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair he go_intent=15 p2p2 bstrapmethod=1 auth freq=2437"
+    cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair provdisc he go_intent=15 p2p2 bstrapmethod=1 auth freq=2437"
     id0 = dev[1].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT auth Failed")
 
-    cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair he go_intent=5 p2p2 bstrapmethod=1"
+    cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair provdisc he go_intent=5 p2p2 bstrapmethod=1"
     id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT Failed")
@@ -328,12 +328,12 @@ def test_p2p_auto_go_and_client_join(dev, apdev):
     if ev is None:
         raise Exception("Group formation timed out(2)")
 
-    cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair he go_intent=15 p2p2 bstrapmethod=1 join auth"
+    cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair provdisc he go_intent=15 p2p2 bstrapmethod=1 join auth"
     id0 = dev[1].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT auth failed")
 
-    cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair p2p2 join bstrapmethod=1"
+    cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair provdisc p2p2 join bstrapmethod=1"
     id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT failed")
@@ -399,12 +399,12 @@ def test_p2p_auto_go_and_client_join_sae(dev, apdev):
     if ev is None:
         raise Exception("Group formation timed out(2)")
 
-    cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair he go_intent=15 p2p2 bstrapmethod=2 join auth password=975310123"
+    cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair provdisc he go_intent=15 p2p2 bstrapmethod=2 join auth password=975310123"
     id0 = dev[1].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT auth failed")
 
-    cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair p2p2 join bstrapmethod=32 password=975310123"
+    cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair provdisc p2p2 join bstrapmethod=32 password=975310123"
     id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT failed")
@@ -477,12 +477,12 @@ def test_p2p_pairing_verification(dev, apdev):
     if "FAIL" in dev[1].global_request(cmd):
         raise Exception("NAN_CANCEL_PUBLISH for P2P failed")
 
-    cmd = "P2P_CONNECT " + wpas.p2p_dev_addr() + " pair he go_intent=15 p2p2 bstrapmethod=2 auth password=975310123 freq=2437 persistent"
+    cmd = "P2P_CONNECT " + wpas.p2p_dev_addr() + " pair provdisc he go_intent=15 p2p2 bstrapmethod=2 auth password=975310123 freq=2437 persistent"
     id0 = dev[1].global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT auth Failed")
 
-    cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair he go_intent=5 p2p2 bstrapmethod=32 password=975310123 persistent"
+    cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair provdisc he go_intent=5 p2p2 bstrapmethod=32 password=975310123 persistent"
     id0 = wpas.global_request(cmd)
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT Failed")
