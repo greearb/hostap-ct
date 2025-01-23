@@ -17911,6 +17911,8 @@ enum qca_wlan_vendor_attr_ap_suspend {
  * @QCA_TRAFFIC_TYPE_SCREEN_SHARE: Traffic type is screen share
  * @QCA_TRAFFIC_TYPE_UNKNOWN: Traffic type is unknown
  * @QCA_TRAFFIC_TYPE_INVALID: Invalid traffic type
+ * @QCA_TRAFFIC_TYPE_BROWSING: Traffic type is browsing website
+ * @QCA_TRAFFIC_TYPE_APERIODIC_BURSTS: Traffic type is aperiodic bursts
  */
 enum qca_traffic_type {
 	QCA_TRAFFIC_TYPE_STREAMING = 0,
@@ -17920,6 +17922,8 @@ enum qca_traffic_type {
 	QCA_TRAFFIC_TYPE_SCREEN_SHARE = 4,
 	QCA_TRAFFIC_TYPE_UNKNOWN = 5,
 	QCA_TRAFFIC_TYPE_INVALID = 6,
+	QCA_TRAFFIC_TYPE_BROWSING = 7,
+	QCA_TRAFFIC_TYPE_APERIODIC_BURSTS = 8,
 };
 
 /**
