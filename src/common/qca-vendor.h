@@ -10632,6 +10632,13 @@ enum qca_wlan_vendor_attr_wifi_test_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_BTM_REQ_REJECT = 78,
 
+	/* Nested attribute to control the response of the driver upon receiving
+	 * a BTM request from the AP.
+	 * Uses the enum qca_wlan_vendor_attr_btm_req_resp attributes.
+	 * This attribute is used to configure the STA.
+	 */
+	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_BTM_REQ_RESP = 79,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_MAX =
@@ -18919,6 +18926,78 @@ enum qca_wlan_vendor_attr_pri_link_migrate {
 	QCA_WLAN_VENDOR_ATTR_PRI_LINK_MIGR_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_PRI_LINK_MIGR_MAX =
 	QCA_WLAN_VENDOR_ATTR_PRI_LINK_MIGR_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_btm_req_resp_type: Represents response types to follow
+ * upon receiving BTM request from AP.
+ *
+ * @QCA_WLAN_BTM_REQ_RESP_DEFAULT: Reset to default behavior.
+ * @QCA_WLAN_BTM_REQ_RESP_RECONFIG_FRAME: Send link reconfiguration request
+ * frames with specified info.
+ * @QCA_WLAN_BTM_REQ_RESP_TTLM_FRAME: Send TTLM request frame.
+ * @QCA_WLAN_BTM_REQ_RESP_REASSOC_FRAME: Send Reassociation Request frame.
+ */
+enum qca_wlan_vendor_btm_req_resp_type {
+	QCA_WLAN_BTM_REQ_RESP_DEFAULT = 0,
+	QCA_WLAN_BTM_REQ_RESP_RECONFIG_FRAME = 1,
+	QCA_WLAN_BTM_REQ_RESP_TTLM_FRAME = 2,
+	QCA_WLAN_BTM_REQ_RESP_REASSOC_FRAME = 3,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_reconfig_frame_info - Attribute used by
+ * %QCA_WLAN_VENDOR_ATTR_BTM_REQ_RESP_RECONFIG_FRAME_INFO.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_RECONFIG_ADD_LINKS_BITMASK: u16 attribute. Bitmask of
+ * link IDs to be added.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_RECONFIG_DELETE_LINKS_BITMASK: u16 attribute bitmask of
+ * link IDs to be removed.
+ */
+enum qca_wlan_vendor_attr_reconfig_frame_info {
+	QCA_WLAN_VENDOR_ATTR_RECONFIG_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_RECONFIG_ADD_LINKS_BITMASK = 1,
+	QCA_WLAN_VENDOR_ATTR_RECONFIG_DELETE_LINKS_BITMASK = 2,
+
+	QCA_WLAN_VENDOR_ATTR_RECONFIG_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_RECONFIG_MAX =
+	QCA_WLAN_VENDOR_ATTR_RECONFIG_AFTER_LAST - 1
+};
+
+/**
+ * enum qca_wlan_vendor_attr_btm_req_resp - Attribute used by
+ * %QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_BTM_REQ_RESP.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_BTM_REQ_RESP_TYPE: u8 attribute. Indicates type of
+ * response to send. Possible values for this attribute are defined in
+ * enum qca_wlan_vendor_btm_req_resp_type. This is a mandatory attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_BTM_REQ_RESP_RECONFIG_FRAME_INFO: Array of nested
+ * attributes containing information about one or more setup link
+ * reconfiguration request frames, each set represents one link reconfiguration
+ * frame information. The driver shall send a separate link reconfiguration
+ * frame for each nested attribute set. It takes attributes as defined in enum
+ * qca_wlan_vendor_attr_reconfig_frame_info. This attribute must be present
+ * when %QCA_WLAN_BTM_REQ_RESP_RECONFIG_FRAME specified in
+ * %QCA_WLAN_VENDOR_ATTR_BTM_REQ_RESP_TYPE attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_BTM_REQ_RESP_TTLM_MAP: TID to Link Mapping to
+ * be used in TTLM request frame. This nested attribute with
+ * %NL80211_ATTR_MLO_TTLM_DLINK and %NL80211_ATTR_MLO_TTLM_ULINK is used to
+ * specify the TID to Link mapping for downlink/uplink traffic. This attribute
+ * must be present when %QCA_WLAN_BTM_REQ_RESP_TTLM_FRAME specified in
+ * %QCA_WLAN_VENDOR_ATTR_BTM_REQ_RESP_TYPE attribute.
+ */
+enum qca_wlan_vendor_attr_btm_req_resp {
+	QCA_WLAN_VENDOR_ATTR_BTM_REQ_RESP_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_BTM_REQ_RESP_TYPE = 1,
+	QCA_WLAN_VENDOR_ATTR_BTM_REQ_RESP_RECONFIG_FRAME_INFO = 2,
+	QCA_WLAN_VENDOR_ATTR_BTM_REQ_RESP_TTLM_MAP = 3,
+
+	QCA_WLAN_VENDOR_ATTR_BTM_REQ_RESP_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_BTM_REQ_RESP_MAX =
+	QCA_WLAN_VENDOR_ATTR_BTM_REQ_RESP_AFTER_LAST - 1
 };
 
 #endif /* QCA_VENDOR_H */
