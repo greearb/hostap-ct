@@ -4718,10 +4718,6 @@ static void wpa_supplicant_event_disassoc_finish(struct wpa_supplicant *wpa_s,
 			return; /* P2P group removed */
 		wpas_auth_failed(wpa_s, "WRONG_KEY", wpa_s->pending_bssid);
 		wpas_notify_psk_mismatch(wpa_s);
-#ifdef CONFIG_DPP2
-		wpas_dpp_send_conn_status_result(wpa_s,
-						 DPP_STATUS_AUTH_FAILURE);
-#endif /* CONFIG_DPP2 */
 	}
 	if (!wpa_s->disconnected &&
 	    (!wpa_s->auto_reconnect_disabled ||
@@ -4776,6 +4772,9 @@ static void wpa_supplicant_event_disassoc_finish(struct wpa_supplicant *wpa_s,
 	else
 		wpa_s->disconnect_reason = reason_code;
 	wpas_notify_disconnect_reason(wpa_s);
+#ifdef CONFIG_DPP2
+	wpas_dpp_send_conn_status_result(wpa_s, DPP_STATUS_AUTH_FAILURE);
+#endif /* CONFIG_DPP2 */
 	if (wpa_supplicant_dynamic_keys(wpa_s)) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "Disconnect event - remove keys");
 		wpa_clear_keys(wpa_s, wpa_s->bssid);
