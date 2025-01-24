@@ -561,6 +561,14 @@ def test_p2p_pairing_verification(dev, apdev):
         raise Exception("Failed to complete group start on reinvocation")
     wpas.dump_monitor()
 
+    res = dev[1].group_request("P2P_GET_DIRA")
+    addr, nonce, tag = res.split()
+
+    cmd = "P2P_VALIDATE_DIRA " + addr + " nonce=" + nonce + " tag=" + tag
+    res = wpas.group_request(cmd)
+    if "OK" not in res:
+        raise Exception("DIRA validation failed")
+
     dev[1].remove_group()
     wpas.wait_go_ending_session()
     wpas.dump_monitor()
