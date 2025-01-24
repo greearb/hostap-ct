@@ -197,6 +197,18 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
 		pos++;
 	}
 
+	if (ctrl & BASIC_MULTI_LINK_CTRL_PRES_EXT_MLD_CAP) {
+		if (ci_end - pos < 2) {
+			wpa_printf(MSG_INFO,
+				   "No room for Extended MLD Capabilities And Operations in Multi-Link Common Info");
+			return;
+		}
+		wpa_printf(MSG_DEBUG,
+			   "Extended MLD Capabilities And Operations: 0x%x",
+			   WPA_GET_LE16(pos));
+		pos += 2;
+	}
+
 	if (pos < ci_end) {
 		wpa_hexdump(MSG_INFO,
 			    "Extra information at the end of Common Info",
