@@ -944,6 +944,31 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		wpa_s->sme.assoc_req_ie_len += wpa_s->rsnxe_len;
 	}
 
+	if (wpa_s->sme.mfp != NO_MGMT_FRAME_PROTECTION &&
+	    wpa_bss_ext_capab(bss, WLAN_EXT_CAPAB_KNOWN_STA_IDENTIFICATION)) {
+		struct wpabuf *e;
+
+		e = wpa_sm_known_sta_identification(
+			wpa_s->wpa,
+			params.mld ? params.ap_mld_addr : bss->bssid,
+			bss->tsf);
+		if (e) {
+			size_t len;
+
+			len = sizeof(wpa_s->sme.assoc_req_ie) -
+				wpa_s->sme.assoc_req_ie_len;
+			if (wpabuf_len(e) <= len) {
+				wpa_printf(MSG_DEBUG,
+					   "SME: Add Known STA Identification element");
+				os_memcpy(wpa_s->sme.assoc_req_ie +
+					  wpa_s->sme.assoc_req_ie_len,
+					  wpabuf_head(e), wpabuf_len(e));
+				wpa_s->sme.assoc_req_ie_len += wpabuf_len(e);
+			}
+			wpabuf_free(e);
+		}
+	}
+
 #ifdef CONFIG_HS20
 	if (is_hs20_network(wpa_s, ssid, bss)) {
 		struct wpabuf *hs20;

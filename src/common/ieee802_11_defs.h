@@ -610,6 +610,7 @@
 #define WLAN_EXT_CAPAB_BEACON_PROTECTION 84
 #define WLAN_EXT_CAPAB_MSCS 85
 #define WLAN_EXT_CAPAB_SAE_PK_EXCLUSIVELY 88
+#define WLAN_EXT_CAPAB_KNOWN_STA_IDENTIFICATION 102
 
 /* Extended RSN Capabilities */
 /* bits 0-3: Field length (n-1) */
