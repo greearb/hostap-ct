@@ -479,6 +479,9 @@ static void hostapd_ext_capab_byte(struct hostapd_data *hapd, u8 *pos, int idx,
 	case 12: /* Bits 96-103 */
 		if (hapd->iconf->peer_to_peer_twt)
 			*pos |= 0x10; /* Bit 100 - Peer to Peer TWT */
+		if (hapd->conf->known_sta_identification)
+			*pos |= 0x40; /* Bit 102 - Known STA Identification
+				       * Enabled */
 		break;
 	case 13: /* Bits 104-111 */
 		if (hapd->iconf->channel_usage)

@@ -5130,6 +5130,12 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		if (val < 0 || val > 1)
 			return 1;
 		bss->ssid_protection = val;
+	} else if (os_strcmp(buf, "known_sta_identification") == 0) {
+		int val = atoi(pos);
+
+		if (val < 0 || val > 1)
+			return 1;
+		bss->known_sta_identification = val;
 	} else if (os_strcmp(buf, "channel_usage") == 0) {
 		conf->channel_usage = atoi(pos);
 	} else if (os_strcmp(buf, "peer_to_peer_twt") == 0) {

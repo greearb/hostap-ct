@@ -322,6 +322,8 @@ struct sta_info {
 
 	u16 max_idle_period; /* if nonzero, the granted BSS max idle period in
 			      * units of 1000 TUs */
+
+	u64 last_known_sta_id_timestamp;
 };
 
 

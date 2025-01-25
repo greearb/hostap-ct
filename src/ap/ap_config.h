@@ -975,6 +975,7 @@ struct hostapd_bss_config {
 	bool xrates_supported;
 
 	bool ssid_protection;
+	bool known_sta_identification;
 
 #ifdef CONFIG_IEEE80211BE
 	/* The AP is part of an AP MLD */

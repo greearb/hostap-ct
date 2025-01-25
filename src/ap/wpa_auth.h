@@ -693,4 +693,8 @@ static inline bool wpa_auth_pmf_enabled(struct wpa_auth_config *conf)
 		conf->rsn_override_mfp_2 != NO_MGMT_FRAME_PROTECTION;
 }
 
+bool wpa_auth_sm_known_sta_identification(struct wpa_state_machine *sm,
+					  const u8 *timestamp,
+					  const u8 *mic, size_t mic_len);
+
 #endif /* WPA_AUTH_H */
