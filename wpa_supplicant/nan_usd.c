@@ -417,6 +417,16 @@ int wpas_nan_usd_update_publish(struct wpa_supplicant *wpa_s, int publish_id,
 }
 
 
+int wpas_nan_usd_unpause_publish(struct wpa_supplicant *wpa_s, int publish_id,
+				 u8 peer_instance_id, const u8 *peer_addr)
+{
+	if (!wpa_s->nan_de)
+		return -1;
+	return nan_de_unpause_publish(wpa_s->nan_de, publish_id,
+				      peer_instance_id, peer_addr);
+}
+
+
 int wpas_nan_usd_subscribe(struct wpa_supplicant *wpa_s,
 			   const char *service_name,
 			   enum nan_service_protocol_type srv_proto_type,

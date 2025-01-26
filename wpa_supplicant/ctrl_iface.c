@@ -12770,6 +12770,53 @@ fail:
 	return ret;
 }
 
+
+static int wpas_ctrl_nan_unpause_publish(struct wpa_supplicant *wpa_s,
+					 char *cmd)
+{
+	char *token, *context = NULL;
+	int publish_id = 0;
+	int peer_instance_id = 0;
+	u8 peer_addr[ETH_ALEN];
+
+	os_memset(peer_addr, 0, ETH_ALEN);
+
+	while ((token = str_token(cmd, " ", &context))) {
+		if (sscanf(token, "publish_id=%i", &publish_id) == 1)
+			continue;
+
+		if (sscanf(token, "peer_instance_id=%i",
+			   &peer_instance_id) == 1)
+			continue;
+
+		if (os_strncmp(token, "peer=", 5) == 0) {
+			if (hwaddr_aton(token + 5, peer_addr) < 0)
+				return -1;
+			continue;
+		}
+
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid NAN_UNPAUSE_PUBLISH parameter: %s",
+			   token);
+		return -1;
+	}
+
+	if (publish_id <= 0) {
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid or missing NAN_UNPAUSE_PUBLIH publish_id");
+		return -1;
+	}
+
+	if (is_zero_ether_addr(peer_addr)) {
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid or missing NAN_UNPAUSE_PUBLISH address");
+		return -1;
+	}
+
+	return wpas_nan_usd_unpause_publish(wpa_s, publish_id, peer_instance_id,
+					    peer_addr);
+}
+
 #endif /* CONFIG_NAN_USD */
 
 
@@ -13815,6 +13862,9 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 			reply_len = -1;
 	} else if (os_strncmp(buf, "NAN_TRANSMIT ", 13) == 0) {
 		if (wpas_ctrl_nan_transmit(wpa_s, buf + 13) < 0)
+			reply_len = -1;
+	} else if (os_strncmp(buf, "NAN_UNPAUSE_PUBLISH ", 20) == 0) {
+		if (wpas_ctrl_nan_unpause_publish(wpa_s, buf + 20) < 0)
 			reply_len = -1;
 	} else if (os_strcmp(buf, "NAN_FLUSH") == 0) {
 		wpas_nan_usd_flush(wpa_s);
