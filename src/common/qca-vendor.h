@@ -9193,6 +9193,22 @@ enum qca_wlan_vendor_attr_ndp_params {
 	 * frames from each other.
 	 */
 	QCA_WLAN_VENDOR_ATTR_NDP_GTK_REQUIRED = 33,
+	/* Unsigned 32-bit attribute. Indicates the maximum latency of the NAN
+	 * data packets to be transmitted/received in milliseconds.
+	 * This attribute is optional, and it is configured for active NDP
+	 * session of a given NDP instance ID
+	 * %QCA_WLAN_VENDOR_ATTR_NDP_INSTANCE_ID using the command
+	 * %QCA_WLAN_VENDOR_NDP_SUB_CMD_UPDATE_CONFIG.
+	 */
+	QCA_WLAN_VENDOR_ATTR_NDP_MAX_LATENCY_MS = 34,
+	/* 32-bit unsigned value to indicate throughput in Mbps for the NDP
+	 * data of a given NDP session.
+	 * This attribute is optional, and it is configured for active NDP
+	 * session of a given NDP instance ID
+	 * %QCA_WLAN_VENDOR_ATTR_NDP_INSTANCE_ID using the command
+	 * %QCA_WLAN_VENDOR_NDP_SUB_CMD_UPDATE_CONFIG.
+	 */
+	QCA_WLAN_VENDOR_ATTR_NDP_TPUT = 35,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_NDP_PARAMS_AFTER_LAST,
@@ -9240,7 +9256,14 @@ enum qca_wlan_ndp_sub_cmd {
 	/* Command to indicate the peer about the end request being received */
 	QCA_WLAN_VENDOR_ATTR_NDP_END_IND = 11,
 	/* Command to indicate the peer of schedule update */
-	QCA_WLAN_VENDOR_ATTR_NDP_SCHEDULE_UPDATE_IND = 12
+	QCA_WLAN_VENDOR_ATTR_NDP_SCHEDULE_UPDATE_IND = 12,
+	/* Command to update dynamic configurations of active NDP sessions.
+	 * %QCA_WLAN_VENDOR_ATTR_NDP_INSTANCE_ID is a mandatory attribute and
+	 * at least one of the attributes
+	 * %QCA_WLAN_VENDOR_ATTR_NDP_MAX_LATENCY_MS and
+	 * %QCA_WLAN_VENDOR_ATTR_NDP_TPUT must be configured in this command.
+	 */
+	QCA_WLAN_VENDOR_NDP_SUB_CMD_UPDATE_CONFIG = 13,
 };
 
 /**
