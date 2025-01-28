@@ -4307,7 +4307,8 @@ static void p2p_timeout_invite_listen(struct p2p_data *p2p)
 					p2p->cfg->cb_ctx, -1, NULL, 0, NULL,
 					NULL,
 					p2p->invite_peer->info.p2p_device_addr,
-					0, 0, NULL, NULL, 0);
+					0, 0, NULL, NULL, 0,
+					p2p->invite_go_dev_addr);
 		}
 		p2p_set_state(p2p, P2P_IDLE);
 	}

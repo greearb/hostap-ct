@@ -489,6 +489,7 @@ void p2p_process_invitation_resp(struct p2p_data *p2p, const u8 *sa,
 	struct p2p_message msg;
 	struct p2p_channels intersection, *channels = NULL;
 	bool all_channels = false;
+	const u8 *go_dev_addr = NULL;
 
 	p2p_dbg(p2p, "Received Invitation Response from " MACSTR,
 		MAC2STR(sa));
@@ -620,6 +621,12 @@ void p2p_process_invitation_resp(struct p2p_data *p2p, const u8 *sa,
 				os_memcpy(dev->inv_ssid,
 					  msg.group_id + ETH_ALEN,
 					  dev->inv_ssid_len);
+
+				os_memcpy(p2p->invite_go_dev_addr_buf,
+					  msg.group_id, ETH_ALEN);
+				p2p->invite_go_dev_addr =
+					p2p->invite_go_dev_addr_buf;
+				go_dev_addr = p2p->invite_go_dev_addr;
 			}
 			goto out;
 		}
@@ -628,7 +635,7 @@ void p2p_process_invitation_resp(struct p2p_data *p2p, const u8 *sa,
 					    NULL, 0,
 					    msg.group_bssid, channels, sa,
 					    freq, peer_oper_freq, NULL, NULL,
-					    0);
+					    0, go_dev_addr);
 	}
 
 	p2p_clear_timeout(p2p);
@@ -672,7 +679,8 @@ void p2p_start_invitation_connect(struct p2p_data *p2p, struct p2p_device *dev)
 					    dev->info.p2p_device_addr,
 					    dev->inv_freq,
 					    dev->inv_peer_oper_freq, pmkid,
-					    pmk, pmk_len);
+					    pmk, pmk_len,
+					    p2p->invite_go_dev_addr);
 
 	/* Reset PMK and PMKID from stack */
 	forced_memzero(pmkid, sizeof(pmkid));

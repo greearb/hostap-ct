@@ -1168,6 +1168,10 @@ struct p2p_config {
 	 * @freq: Frequency (in MHz) indicated during invitation or 0
 	 * @peer_oper_freq: Operating frequency (in MHz) advertized by the peer
 	 * during invitation or 0
+	 * @pmkid: PMKID used during invitation handshake
+	 * @pmk: The derived PMK
+	 * @pmk_len: PMK length in octets
+	 * @go_dev_addr: The P2P Device Address of the GO
 	 *
 	 * This callback is used to indicate result of an Invitation procedure
 	 * started with a call to p2p_invite(). The indicated status code is
@@ -1180,7 +1184,7 @@ struct p2p_config {
 				  const struct p2p_channels *channels,
 				  const u8 *addr, int freq, int peer_oper_freq,
 				  const u8 *pmkid, const u8 *pmk,
-				  size_t pmk_len);
+				  size_t pmk_len, const u8 *go_dev_addr);
 
 	/**
 	 * go_connected - Check whether we are connected to a GO

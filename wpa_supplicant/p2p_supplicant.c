@@ -3887,19 +3887,25 @@ static void wpas_invitation_received(void *ctx, const u8 *sa, const u8 *bssid,
 			   " was accepted; op_freq=%d MHz, SSID=%s",
 			   MAC2STR(sa), op_freq, wpa_ssid_txt(ssid, ssid_len));
 		if (s) {
+			const char *ssid_txt;
+
+			ssid_txt = wpa_ssid_txt(s->ssid, s->ssid_len);
 			int go = s->mode == WPAS_MODE_P2P_GO;
 			if (go) {
 				wpa_msg_global(wpa_s, MSG_INFO,
 					       P2P_EVENT_INVITATION_ACCEPTED
 					       "sa=" MACSTR
-					       " persistent=%d freq=%d",
-					       MAC2STR(sa), s->id, op_freq);
+					       " persistent=%d freq=%d ssid=\"%s\" go_dev_addr="
+					       MACSTR, MAC2STR(sa), s->id,
+					       op_freq, ssid_txt,
+					       MAC2STR(go_dev_addr));
 			} else {
 				wpa_msg_global(wpa_s, MSG_INFO,
 					       P2P_EVENT_INVITATION_ACCEPTED
 					       "sa=" MACSTR
-					       " persistent=%d",
-					       MAC2STR(sa), s->id);
+					       " persistent=%d ssid=\"%s\" go_dev_addr=" MACSTR,
+					       MAC2STR(sa), s->id, ssid_txt,
+					       MAC2STR(go_dev_addr));
 			}
 			wpas_p2p_group_add_persistent(
 				wpa_s, s, go, 0, op_freq, 0,
@@ -4025,12 +4031,73 @@ static void wpas_remove_persistent_client(struct wpa_supplicant *wpa_s,
 }
 
 
+static void wpas_msg_p2p_invitation_result(struct wpa_supplicant *wpa_s,
+					   int status, const u8 *new_ssid,
+					   size_t new_ssid_len, const u8 *bssid,
+					   const u8 *go_dev_addr)
+{
+	int res;
+	char buf[500];
+	char *pos, *end;
+	const char *ssid_txt = NULL;
+
+	pos = buf;
+	end = buf + sizeof(buf);
+
+	if (go_dev_addr && new_ssid && new_ssid_len) {
+		ssid_txt = wpa_ssid_txt(new_ssid, new_ssid_len);
+	} else if (go_dev_addr) {
+		struct wpa_ssid *ssid;
+
+		ssid = wpa_config_get_network(wpa_s->conf,
+					      wpa_s->pending_invite_ssid_id);
+		if (ssid)
+			ssid_txt = wpa_ssid_txt(ssid->ssid, ssid->ssid_len);
+	}
+
+	res = os_snprintf(pos, end - pos, "status=%d", status);
+	if (os_snprintf_error(end - pos, res))
+		goto fail;
+	pos += res;
+
+	if (bssid) {
+		res = os_snprintf(pos, end - pos, " " MACSTR, MAC2STR(bssid));
+		if (os_snprintf_error(end - pos, res))
+			goto fail;
+		pos += res;
+	}
+
+	if (ssid_txt) {
+		res = os_snprintf(pos, end - pos, " ssid=\"%s\"", ssid_txt);
+		if (os_snprintf_error(end - pos, res))
+			goto fail;
+		pos += res;
+	}
+
+	if (go_dev_addr) {
+		res = os_snprintf(pos, end - pos, " go_dev_addr=" MACSTR,
+				  MAC2STR(go_dev_addr));
+		if (os_snprintf_error(end - pos, res))
+			goto fail;
+		pos += res;
+	}
+
+	wpa_msg_global(wpa_s, MSG_INFO, P2P_EVENT_INVITATION_RESULT "%s", buf);
+	return;
+
+fail:
+	wpa_printf(MSG_DEBUG,
+		   "P2P: Failed to send P2P-INVITATION-RESULT message");
+}
+
+
 static void wpas_invitation_result(void *ctx, int status, const u8 *new_ssid,
 				   size_t new_ssid_len, const u8 *bssid,
 				   const struct p2p_channels *channels,
 				   const u8 *peer, int neg_freq,
 				   int peer_oper_freq, const u8 *pmkid,
-				   const u8 *pmk, size_t pmk_len)
+				   const u8 *pmk, size_t pmk_len,
+				   const u8 *go_dev_addr)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 	struct wpa_ssid *ssid;
@@ -4043,14 +4110,8 @@ static void wpas_invitation_result(void *ctx, int status, const u8 *new_ssid,
 	}
 #endif /* CONFIG_PASN */
 
-	if (bssid) {
-		wpa_msg_global(wpa_s, MSG_INFO, P2P_EVENT_INVITATION_RESULT
-			       "status=%d " MACSTR,
-			       status, MAC2STR(bssid));
-	} else {
-		wpa_msg_global(wpa_s, MSG_INFO, P2P_EVENT_INVITATION_RESULT
-			       "status=%d ", status);
-	}
+	wpas_msg_p2p_invitation_result(wpa_s, status, new_ssid, new_ssid_len,
+				       bssid, go_dev_addr);
 	wpas_notify_p2p_invitation_result(wpa_s, status, bssid);
 
 	wpa_printf(MSG_DEBUG, "P2P: Invitation result - status=%d peer=" MACSTR,
