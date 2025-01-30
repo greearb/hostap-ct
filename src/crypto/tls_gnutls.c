@@ -410,15 +410,18 @@ int tls_connection_set_params(void *tls_ctx, struct tls_connection *conn,
 
 	if (params->flags & (TLS_CONN_DISABLE_TLSv1_0 |
 			     TLS_CONN_DISABLE_TLSv1_1 |
-			     TLS_CONN_DISABLE_TLSv1_2)) {
+			     TLS_CONN_DISABLE_TLSv1_2 |
+			     TLS_CONN_DISABLE_TLSv1_3)) {
 		os_snprintf(prio_buf, sizeof(prio_buf),
-			    "NORMAL:-VERS-SSL3.0%s%s%s",
+			    "NORMAL:-VERS-SSL3.0%s%s%s%s",
 			    params->flags & TLS_CONN_DISABLE_TLSv1_0 ?
 			    ":-VERS-TLS1.0" : "",
 			    params->flags & TLS_CONN_DISABLE_TLSv1_1 ?
 			    ":-VERS-TLS1.1" : "",
 			    params->flags & TLS_CONN_DISABLE_TLSv1_2 ?
-			    ":-VERS-TLS1.2" : "");
+			    ":-VERS-TLS1.2" : "",
+			    params->flags & TLS_CONN_DISABLE_TLSv1_3 ?
+			    ":-VERS-TLS1.3" : "");
 		prio = prio_buf;
 	}
 
