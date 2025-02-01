@@ -1516,7 +1516,7 @@ struct wpabuf * tls_connection_handshake(void *tls_ctx,
 				conn->global->event_cb(conn->global->cb_ctx,
 						       TLS_ALERT, &ev);
 			}
-			/* continue */
+			/* fallthrough */
 		default:
 			wpa_printf(MSG_DEBUG, "%s - gnutls_handshake failed "
 				   "-> %s", __func__, gnutls_strerror(ret));
