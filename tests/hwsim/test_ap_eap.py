@@ -7902,3 +7902,39 @@ def test_ap_wpa2_eap_sha384_psk(dev, apdev):
         raise Exception("Could not get BSS flags from BSS table")
     if "[WPA2-EAP-SHA384-CCMP]" not in bss['flags']:
         raise Exception("Unexpected BSS flags: " + bss['flags'])
+
+@long_duration_test
+def test_ap_wpa2_eap_timeout(dev, apdev):
+    """hostapd internal EAP server and timeout triggering disconnection"""
+    params = int_eap_server_params()
+    params['disable_pmksa_caching'] = '1'
+    hapd = hostapd.add_ap(apdev[0], params)
+    dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP WPA-EAP-SHA256",
+                   eap="TTLS", identity="user",
+                   anonymous_identity="ttls", password="password",
+                   ca_cert="auth_serv/ca.pem", phase2="autheap=GTC",
+                   scan_freq="2412")
+
+    # Start a new connection and EAP authentication, but force a timeout during
+    # EAP exchange so that hostapd will go through the special case of EAP
+    # state machine triggering disconnection of the STA.
+    hapd.set("ext_eapol_frame_io", "1")
+    dev[0].set("ext_eapol_frame_io", "1")
+    dev[0].request("REASSOCIATE")
+    from test_eap_proto import proxy_msg
+    proxy_msg(hapd, dev[0]) # EAP-Identity/Request
+    proxy_msg(dev[0], hapd) # EAP-Identity/Response
+    time.sleep(1)
+    dev[0].set("radio_disabled", "1")
+    time.sleep(1)
+    dev[0].request("DISCONNECT")
+    ev = hapd.wait_event(["CTRL-EVENT-EAP-TIMEOUT-FAILURE"], timeout=120)
+    hapd.set("ext_eapol_frame_io", "0")
+    dev[0].set("ext_eapol_frame_io", "0")
+    if ev is None:
+        raise Exception("EAP timeout not reported")
+    time.sleep(1)
+
+    # Verify that connection can still be established
+    dev[0].request("RECONNECT")
+    dev[0].wait_connected()
