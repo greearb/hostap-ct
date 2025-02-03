@@ -520,7 +520,7 @@ def run_ap_pmf_valid(dev, apdev, disassociate, broadcast):
 
 def start_wpas_ap(ssid):
     wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
-    wpas.interface_add("wlan5", drv_params="use_monitor=1")
+    wpas.interface_add("wlan5")
     id = wpas.add_network()
     wpas.set_network(id, "mode", "2")
     wpas.set_network_quoted(id, "ssid", ssid)
