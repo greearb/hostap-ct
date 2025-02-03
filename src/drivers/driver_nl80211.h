@@ -151,10 +151,6 @@ struct wpa_driver_nl80211_data {
 	enum nl80211_iftype ap_scan_as_station;
 	unsigned int assoc_freq;
 
-	int monitor_sock;
-	int monitor_ifidx;
-	int monitor_refcount;
-
 	unsigned int disabled_11b_rates:1;
 	unsigned int pending_remain_on_chan:1;
 	unsigned int in_interface_list:1;
@@ -163,7 +159,6 @@ struct wpa_driver_nl80211_data {
 	unsigned int data_tx_status:1;
 	unsigned int scan_for_auth:1;
 	unsigned int retry_auth:1;
-	unsigned int use_monitor:1;
 	unsigned int hostapd:1;
 	unsigned int start_mode_sta:1;
 	unsigned int start_iface_up:1;
@@ -352,8 +347,6 @@ int wpa_driver_nl80211_mlme(struct wpa_driver_nl80211_data *drv,
 			    int local_state_change,
 			    struct i802_bss *bss);
 
-int nl80211_create_monitor_interface(struct wpa_driver_nl80211_data *drv);
-void nl80211_remove_monitor_interface(struct wpa_driver_nl80211_data *drv);
 int nl80211_send_monitor(struct wpa_driver_nl80211_data *drv,
 			 const void *data, size_t len,
 			 int encrypt, int noack);

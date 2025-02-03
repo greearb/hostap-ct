@@ -1580,18 +1580,10 @@ int wpa_driver_nl80211_capa(struct wpa_driver_nl80211_data *drv)
 	drv->have_low_prio_scan = info.have_low_prio_scan;
 
 	/*
-	 * If poll command and tx status are supported, mac80211 is new enough
-	 * to have everything we need to not need monitor interfaces.
-	 */
-	drv->use_monitor = !info.device_ap_sme &&
-		(!info.poll_command_supported || !info.data_tx_status);
-
-	/*
-	 * If we aren't going to use monitor interfaces, but the
-	 * driver doesn't support data TX status, we won't get TX
+	 * If the driver doesn't support data TX status, we won't get TX
 	 * status for EAPOL frames.
 	 */
-	if (!drv->use_monitor && !info.data_tx_status)
+	if (!info.data_tx_status)
 		drv->capa.flags &= ~WPA_DRIVER_FLAGS_EAPOL_TX_STATUS;
 
 #ifdef CONFIG_DRIVER_NL80211_QCA
