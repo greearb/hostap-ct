@@ -14672,9 +14672,9 @@ static int wpa_driver_get_wiphy_name_handler(struct nl_msg *msg, void *arg)
 static int wpa_driver_get_phyname(struct wpa_driver_nl80211_data *drv)
 {
 	struct nl_msg *msg;
-	u32 feat, nl_flags;
+	u32 nl_flags = 0;
+	u32 feat = get_nl80211_protocol_features(drv);
 
-	feat = get_nl80211_protocol_features(drv);
 	if (feat & NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP)
 		nl_flags = NLM_F_DUMP;
 
