@@ -3190,7 +3190,7 @@ static void wpas_start_listen_cb(struct wpa_radio_work *work, int deinit)
 	unsigned int duration;
 
 	if (deinit) {
-		if (work->started) {
+		if (work->started && !wpa_s->p2p_removing_listen_work) {
 			wpa_s->p2p_listen_work = NULL;
 			wpas_stop_listen(wpa_s);
 		}
