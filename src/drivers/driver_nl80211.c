@@ -3032,6 +3032,9 @@ static int nl80211_action_subscribe_ap(struct i802_bss *bss)
 	/* Robust AV SCS Request */
 	if (nl80211_register_action_frame(bss, (u8 *) "\x13\x00", 2) < 0)
 		ret = -1;
+	/* Robust AV MSCS Request */
+	if (nl80211_register_action_frame(bss, (u8 *) "\x13\x04", 2) < 0)
+		ret = -1;
 	/* Vendor-specific */
 	if (nl80211_register_action_frame(bss, (u8 *) "\x7f", 1) < 0)
 		ret = -1;

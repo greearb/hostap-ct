@@ -184,6 +184,26 @@ u8 * hostapd_eid_supp_rates(struct hostapd_data *hapd, u8 *eid)
 	return pos;
 }
 
+u8 * hostapd_eid_mscs_desc(u8 *eid, u16 status)
+{
+	u8 *pos = eid;
+
+	*pos++ = WLAN_EID_EXTENSION; /* Element ID */
+	*pos++ = MSCS_DESCRIPTOR_FIXED_LEN + 4; /* With one subelement MSCS Status */
+	*pos++ = WLAN_EID_EXT_MSCS_DESCRIPTOR;
+	*pos++ = SCS_REQ_ADD;
+
+	os_memset(pos, 0, 6);
+	pos += 6;
+
+	/* Optional subelement */
+	*pos++ = MCSC_SUBELEM_STATUS;
+	*pos++ = 2; /* MSCS Status Subelement Length */
+	WPA_PUT_LE16(pos, status);
+	pos += 2;
+
+	return pos;
+}
 
 u8 * hostapd_eid_ext_supp_rates(struct hostapd_data *hapd, u8 *eid)
 {
@@ -3777,6 +3797,18 @@ static u16 check_wmm(struct hostapd_data *hapd, struct sta_info *sta,
 	return WLAN_STATUS_SUCCESS;
 }
 
+static void check_mscs_desc_elem(struct hostapd_data *hapd, struct sta_info *sta,
+				 struct ieee802_11_elems *elems)
+{
+	if (!sta || !elems->mscs_desc)
+		return;
+
+	sta->mscs_assoc_setup_status =
+		hostapd_set_mscs(hapd, sta->addr, elems->mscs_desc,
+				 elems->mscs_desc_len);
+	sta->mscs_assoc_included = 1;
+}
+
 static u16 check_multi_ap(struct hostapd_data *hapd, struct sta_info *sta,
 			  const u8 *multi_ap_ie, size_t multi_ap_len)
 {
@@ -4372,6 +4404,8 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 	}
 #endif /* CONFIG_IEEE80211AX */
 #ifdef CONFIG_IEEE80211BE
+	check_mscs_desc_elem(hapd, sta, elems);
+
 	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be) {
 		resp = copy_sta_eht_capab(hapd, sta, IEEE80211_MODE_AP,
 					  elems->he_capabilities,
@@ -5373,6 +5407,11 @@ rsnxe_done:
 #endif /* CONFIG_TESTING_OPTIONS */
 
 #ifdef CONFIG_IEEE80211BE
+	if (sta && sta->mscs_assoc_included) {
+		p = hostapd_eid_mscs_desc(p, sta->mscs_assoc_setup_status);
+		sta->mscs_assoc_included = 0;
+	}
+
 	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be) {
 		if (hapd->conf->mld_ap)
 			p = hostapd_eid_eht_ml_assoc(hapd, sta, p);
@@ -6615,7 +6654,7 @@ static int handle_action(struct hostapd_data *hapd,
 #endif /* CONFIG_NO_RRM */
 #ifdef CONFIG_IEEE80211BE
 	case WLAN_ACTION_ROBUST_AV_STREAMING:
-		hostapd_handle_scs(hapd, (const u8 *) mgmt, len);
+		hostapd_handle_robust_av_streaming(hapd, (const u8 *) mgmt, len);
 		return 1;
 #endif /* CONFIG_IEEE80211BE */
 	}
