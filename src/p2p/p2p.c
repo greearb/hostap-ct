@@ -6058,7 +6058,7 @@ static int p2p_validate_dira(struct p2p_data *p2p, struct p2p_device *dev,
 	}
 
 	if (p2p->cfg->validate_dira) {
-		const u8 *nonce = &dira[1];;
+		const u8 *nonce = &dira[1];
 		const u8 *tag = &dira[1 + DEVICE_IDENTITY_NONCE_LEN];
 
 		return p2p->cfg->validate_dira(p2p->cfg->cb_ctx,

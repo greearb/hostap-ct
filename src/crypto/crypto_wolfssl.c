@@ -3415,7 +3415,7 @@ const u8 * crypto_csr_get_attribute(struct crypto_csr *csr,
 {
 	if (!csr || !len || !type) {
 		LOG_INVALID_PARAMETERS();
-		return NULL;;
+		return NULL;
 	}
 
 	switch (attr) {
