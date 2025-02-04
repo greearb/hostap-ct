@@ -16,5 +16,23 @@ struct scs_session_status {
 	bool alive;
 };
 
-void hostapd_handle_scs(struct hostapd_data *hapd, const u8 *buf, size_t len);
+struct qos_netlink_msg {
+    u8 type;
+    u8 rsv;
+    u16 len;
+    u8 variable[];
+};
+
+enum qos_netlink_type {
+	MSCS_POLICY,
+};
+
+#define NETLINK_QOS_CTRL 27
+
+void hostapd_handle_robust_av_streaming(struct hostapd_data *hapd,
+					const u8 *buf, size_t len);
+u16 hostapd_set_mscs(struct hostapd_data *hapd, const u8 *addr,
+		     const u8 *pos, size_t len);
+int hostapd_mtk_mscs_daemon_init(struct hapd_interfaces *ifaces);
+void hostapd_mtk_mscs_daemon_deinit(struct hapd_interfaces *ifaces);
 #endif

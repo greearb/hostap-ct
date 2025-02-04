@@ -99,6 +99,8 @@ struct hapd_interfaces {
 	size_t mld_count;
 	int (*mld_ctrl_iface_init)(struct hostapd_mld *mld);
 	void (*mld_ctrl_iface_deinit)(struct hostapd_mld *mld);
+	int mtk_mscs_sock;
+	int mtk_mscs_pid;
 #endif /* CONFIG_IEEE80211BE */
 };
 

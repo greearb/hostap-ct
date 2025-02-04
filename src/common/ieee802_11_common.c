@@ -409,6 +409,10 @@ static int ieee802_11_parse_extension(const u8 *pos, size_t elen,
 		elems->eht_operation = pos;
 		elems->eht_operation_len = elen;
 		break;
+	case WLAN_EID_EXT_MSCS_DESCRIPTOR:
+		elems->mscs_desc = pos;
+		elems->mscs_desc_len = elen;
+		break;
 	case WLAN_EID_EXT_MULTI_LINK:
 		if (elen < 2)
 			break;

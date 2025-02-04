@@ -1275,6 +1275,11 @@ struct ieee80211_mgmt {
 					u8 dialog_token;
 					u8 variable[];
 				} STRUCT_PACKED scs;
+				struct {
+					u8 action;
+					u8 dialog_token;
+					u8 variable[];
+				} STRUCT_PACKED mscs;
 			} u;
 		} STRUCT_PACKED action;
 	} u;
@@ -3206,6 +3211,13 @@ enum scs_direction {
 enum mscs_description_subelem {
 	MCSC_SUBELEM_STATUS = 1,
 };
+
+/*
+ * MSCS Descriptor element fixed field
+ * Element ID Extension(1) + Request Type(1) + User Priority Control(2) +
+ * Stream Timeout(4)
+ */
+#define MSCS_DESCRIPTOR_FIXED_LEN 8
 
 /*
  * IEEE Std 802.11-2020, 9.6.7.36 FILS Discovery frame format,

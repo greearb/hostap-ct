@@ -95,6 +95,19 @@ struct hostapd_scs_desc_info {
 };
 
 /**
+ * struct hostapd_mscs_desc_info - MSCS Req information
+ */
+struct hostapd_mscs_desc_info {
+	u8 peer_addr[ETH_ALEN];
+	u8 req_type;
+	u8 up_bitmap;
+	u32 stream_timeout;
+	u8 up_limit;
+	u8 classifier_type;
+	u8 classifier_mask;
+};
+
+/**
  * enum reg_change_initiator - Regulatory change initiator
  */
 enum reg_change_initiator {
