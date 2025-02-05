@@ -1099,7 +1099,7 @@ static void radius_client_receive(int sock, void *eloop_ctx, void *sock_ctx)
 	struct radius_hdr *hdr;
 	struct radius_rx_handler *handlers;
 	size_t num_handlers, i;
-	struct radius_msg_list *req, *prev_req;
+	struct radius_msg_list *req, *prev_req, *r;
 	struct os_reltime now;
 	struct hostapd_radius_server *rconf;
 	int invalid_authenticator = 0;
@@ -1224,7 +1224,6 @@ static void radius_client_receive(int sock, void *eloop_ctx, void *sock_ctx)
 		break;
 	}
 
-	prev_req = NULL;
 	req = radius->msgs;
 	while (req) {
 		/* TODO: also match by src addr:port of the packet when using
@@ -1236,7 +1235,6 @@ static void radius_client_receive(int sock, void *eloop_ctx, void *sock_ctx)
 		    hdr->identifier)
 			break;
 
-		prev_req = req;
 		req = req->next;
 	}
 
@@ -1270,6 +1268,12 @@ static void radius_client_receive(int sock, void *eloop_ctx, void *sock_ctx)
 			/* fall through */
 		case RADIUS_RX_QUEUED:
 			/* Remove ACKed RADIUS packet from retransmit list */
+			prev_req = NULL;
+			for (r = radius->msgs; r; r = r->next) {
+				if (r == req)
+					break;
+				prev_req = r;
+			}
 			if (prev_req)
 				prev_req->next = req->next;
 			else
