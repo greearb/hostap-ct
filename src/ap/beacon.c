@@ -2908,6 +2908,21 @@ int ieee802_11_set_beacon_per_bss_only(struct hostapd_data *hapd)
 }
 
 
+int ieee802_11_set_beacon_per_iface_only(struct hostapd_iface *iface)
+{
+	size_t i;
+	int ret = 0;
+
+	for (i = 0; i < iface->num_bss; i++) {
+		if (iface->bss[i]->started &&
+		    __ieee802_11_set_beacon(iface->bss[i]) < 0)
+			ret = -1;
+	}
+
+	return ret;
+}
+
+
 #ifdef CONFIG_IEEE80211BE
 
 static int hostapd_get_probe_resp_tmpl(struct hostapd_data *hapd,
