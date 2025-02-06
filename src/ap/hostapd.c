@@ -2637,6 +2637,7 @@ static int hostapd_setup_interface_complete_sync(struct hostapd_iface *iface,
 						 int err)
 {
 	struct hostapd_data *hapd = iface->bss[0];
+	struct hapd_interfaces *ifaces = iface->interfaces;
 	size_t j;
 	u8 *prev_addr;
 	int delay_apply_cfg = 0;
@@ -2848,13 +2849,13 @@ dfs_offload:
 
 	wpa_printf(MSG_DEBUG, "%s: Setup of interface done.",
 		   iface->bss[0]->conf->iface);
-	if (iface->interfaces && iface->interfaces->terminate_on_error > 0)
-		iface->interfaces->terminate_on_error--;
+	if (ifaces && ifaces->terminate_on_error > 0)
+		ifaces->terminate_on_error--;
 
 	for (j = 0; j < iface->num_bss; j++)
 		hostapd_neighbor_set_own_report(iface->bss[j]);
 
-	if (iface->interfaces && iface->interfaces->count > 1)
+	if (ifaces && ifaces->count > 1)
 		ieee802_11_update_beacons(iface);
 
 	return 0;
@@ -2877,7 +2878,7 @@ fail:
 	}
 #endif /* CONFIG_FST */
 
-	if (iface->interfaces && iface->interfaces->terminate_on_error) {
+	if (ifaces && ifaces->terminate_on_error) {
 		eloop_terminate();
 	} else if (hapd->setup_complete_cb) {
 		/*
