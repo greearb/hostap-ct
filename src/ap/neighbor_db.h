@@ -28,8 +28,8 @@ void hostapd_free_neighbor_db(struct hostapd_data *hapd);
 int hostapd_neighbor_count(struct hostapd_data *hapd);
 int hostapd_neighbor_insert_buffer(struct hostapd_data *hapd, char *buf,
         size_t buflen);
-void hostapd_neighbor_set_own_report_pref(struct hostapd_data *hapd, char *nei_buf,
-			 size_t buflen, const int pref);
+void hostapd_neighbor_set_own_report_pref(struct hostapd_data *hapd, u8 *nei_buf,
+					  size_t buflen, const u8 pref);
 #ifdef CONFIG_MBO
 void hostapd_neighbor_set_pref_by_non_pref_chan(struct hostapd_data *hapd,
 			 struct sta_info* sta, char *nei_buf, size_t buflen);
