@@ -3326,4 +3326,17 @@ struct ieee80211_s1g_beacon_compat {
 #pragma pack(pop)
 #endif /* _MSC_VER */
 
+
+/* IEEE Std 802.11-2020, 9.4.2.36 - Neighbor Report element */
+struct neighbor_report_element {
+	u8 eid;
+	u8 len;
+	u8 bssid[ETH_ALEN];
+	le32 bssid_info;
+	u8 op_class;
+	u8 channel;
+	u8 phy_type;
+	u8 variable[0]; /* Optional Subelements */
+} STRUCT_PACKED;
+
 #endif /* IEEE802_11_DEFS_H */
