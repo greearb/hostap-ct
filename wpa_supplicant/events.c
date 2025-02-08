@@ -3991,7 +3991,7 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 	}
 
 	common_info = (struct eht_ml_basic_common_info *) ml->variable;
-	if (common_info->len != expected_common_info_len) {
+	if (common_info->len < expected_common_info_len) {
 		wpa_printf(MSG_DEBUG,
 			   "MLD: Invalid common info len=%u. expected=%u",
 			   common_info->len, expected_common_info_len);
@@ -4132,12 +4132,13 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 		sta_info_len = 1 + ETH_ALEN + 8 + 2 + 2 + 1 + nstr_bitmap_len;
 		if (sta_info_len > ml_len || sta_info_len > end - pos ||
 		    sta_info_len + 2 > sub_elem_len ||
-		    sta_info_len != *pos) {
+		    sta_info_len > *pos) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Invalid STA info len=%u, len=%u",
 				   sta_info_len, *pos);
 			goto out;
 		}
+		sta_info_len = *pos;
 
 		/* Get the link address */
 		wpa_printf(MSG_DEBUG,
