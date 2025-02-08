@@ -1127,29 +1127,7 @@ int hostapd_process_ml_assoc_req_addr(struct hostapd_data *hapd,
 
 	/* Common Info Length and MLD MAC Address must always be present */
 	common_info_len = 1 + ETH_ALEN;
-
-	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_LINK_ID) {
-		wpa_printf(MSG_DEBUG, "MLD: Link ID Info not expected");
-		goto out;
-	}
-
-	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT) {
-		wpa_printf(MSG_DEBUG,
-			   "MLD: BSS Parameters Change Count not expected");
-		goto out;
-	}
-
-	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_MSD_INFO) {
-		wpa_printf(MSG_DEBUG,
-			   "MLD: Medium Synchronization Delay Information not expected");
-		goto out;
-	}
-
-	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA)
-		common_info_len += 2;
-
-	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_MLD_CAPA)
-		common_info_len += 2;
+	/* Ignore optional fields */
 
 	if (sizeof(*ml) + common_info_len > ml_len) {
 		wpa_printf(MSG_DEBUG, "MLD: Not enough bytes for common info");
