@@ -325,6 +325,9 @@ bsd_set_key(void *priv, struct wpa_driver_set_key_params *params)
 	const u8 *key = params->key;
 	size_t key_len = params->key_len;
 
+	if (params->key_flag & KEY_FLAG_NEXT)
+		return -1;
+
 	wpa_printf(MSG_DEBUG, "%s: alg=%d addr=%p key_idx=%d set_tx=%d "
 		   "seq_len=%zu key_len=%zu", __func__, alg, addr, key_idx,
 		   set_tx, seq_len, key_len);

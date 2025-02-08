@@ -411,6 +411,9 @@ static int wpa_driver_hostap_set_key(void *priv,
 	const u8 *key = params->key;
 	size_t key_len = params->key_len;
 
+	if (params->key_flag & KEY_FLAG_NEXT)
+		return -1;
+
 	blen = sizeof(*param) + key_len;
 	buf = os_zalloc(blen);
 	if (buf == NULL)

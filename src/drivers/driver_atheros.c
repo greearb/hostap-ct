@@ -504,6 +504,9 @@ atheros_set_key(void *priv, struct wpa_driver_set_key_params *params)
 	const u8 *key = params->key;
 	size_t key_len = params->key_len;
 
+	if (params->key_flag & KEY_FLAG_NEXT)
+		return -1;
+
 	if (alg == WPA_ALG_NONE)
 		return atheros_del_key(drv, addr, key_idx);
 

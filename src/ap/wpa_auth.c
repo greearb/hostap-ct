@@ -4799,6 +4799,20 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 			return;
 		}
 
+		if (!sm->use_ext_key_id && sm->TimeoutCtr == 1 &&
+		    wpa_auth_set_key(sm->wpa_auth, 0,
+				     wpa_cipher_to_alg(sm->pairwise),
+				     sm->addr, 0, sm->PTK.tk,
+				     wpa_cipher_key_len(sm->pairwise),
+				     KEY_FLAG_PAIRWISE_NEXT)) {
+			/* Continue anyway since the many drivers do not support
+			 * configuration of the TK for RX-only purposes for
+			 * cases where multiple keys might be in use in parallel
+			 * and this being an optional optimization to avoid race
+			 * condition during TK changes that could result in some
+			 * protected frames getting discarded. */
+		}
+
 #ifdef CONFIG_PASN
 		if (sm->wpa_auth->conf.secure_ltf &&
 		    ieee802_11_rsnx_capab(sm->rsnxe,

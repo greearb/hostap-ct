@@ -271,6 +271,8 @@ struct wpa_ptk {
 	size_t ptk_len;
 	size_t ltf_keyseed_len;
 	int installed; /* 1 if key has already been installed to driver */
+	bool installed_rx; /* whether TK has been installed as the next TK
+			    * for temporary RX-only use in the driver */
 };
 
 struct wpa_gtk {

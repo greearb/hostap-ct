@@ -150,6 +150,12 @@ static int supp_set_key(void *ctx, int link_id, enum wpa_alg alg,
 {
 	struct ibss_rsn_peer *peer = ctx;
 
+	if (key_flag & KEY_FLAG_NEXT) {
+		wpa_printf(MSG_DEBUG,
+			   "SUPP: Ignore set_key with KEY_FLAG_NEXT");
+		return 0;
+	}
+
 	wpa_printf(MSG_DEBUG, "SUPP: %s(alg=%d addr=" MACSTR " key_idx=%d "
 		   "set_tx=%d)",
 		   __func__, alg, MAC2STR(addr), key_idx, set_tx);
@@ -319,6 +325,12 @@ static int auth_set_key(void *ctx, int vlan_id, enum wpa_alg alg,
 {
 	struct ibss_rsn *ibss_rsn = ctx;
 	u8 seq[6];
+
+	if (key_flag & KEY_FLAG_NEXT) {
+		wpa_printf(MSG_DEBUG,
+			   "AUTH: Ignore set_key with KEY_FLAG_NEXT");
+		return 0;
+	}
 
 	os_memset(seq, 0, sizeof(seq));
 

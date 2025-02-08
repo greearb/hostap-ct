@@ -3572,6 +3572,14 @@ static int wpa_driver_nl80211_set_key(struct i802_bss *bss,
 		return 0;
 	}
 
+	if (key_flag & KEY_FLAG_NEXT) {
+		/* For now, ignore these since this needs support from the
+		 * driver to handle the special cases of two active RX keys. */
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: set_key for the next TK for RX-only - ignored");
+		return -EOPNOTSUPP;
+	}
+
 	ret = -ENOBUFS;
 	key_msg = nlmsg_alloc();
 	if (!key_msg)

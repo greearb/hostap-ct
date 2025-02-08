@@ -1227,14 +1227,16 @@ static int wpa_supplicant_install_ptk(struct wpa_sm *sm,
 	enum wpa_alg alg;
 	const u8 *key_rsc;
 
-	if (sm->ptk.installed) {
+	if (sm->ptk.installed ||
+	    (sm->ptk.installed_rx && (key_flag & KEY_FLAG_NEXT))) {
 		wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG,
 			"WPA: Do not re-install same PTK to the driver");
 		return 0;
 	}
 
 	wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG,
-		"WPA: Installing PTK to the driver");
+		"WPA: Installing %sTK to the driver",
+		(key_flag & KEY_FLAG_NEXT) ? "next " : "");
 
 	if (sm->pairwise_cipher == WPA_CIPHER_NONE) {
 		wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG, "WPA: Pairwise Cipher "
@@ -1268,6 +1270,9 @@ static int wpa_supplicant_install_ptk(struct wpa_sm *sm,
 	if (wpa_sm_set_key(sm, -1, alg, wpa_sm_get_auth_addr(sm),
 			   sm->keyidx_active, 1, key_rsc, rsclen, sm->ptk.tk,
 			   keylen, KEY_FLAG_PAIRWISE | key_flag) < 0) {
+		if (key_flag & KEY_FLAG_NEXT)
+			return 0; /* Not all drivers support this, so do not
+				   * report failures on the RX-only set_key */
 		wpa_msg(sm->ctx->msg_ctx, MSG_WARNING,
 			"WPA: Failed to set PTK to the driver (alg=%d keylen=%d auth_addr="
 			MACSTR " idx=%d key_flag=0x%x)",
@@ -1293,11 +1298,15 @@ static int wpa_supplicant_install_ptk(struct wpa_sm *sm,
 	wpa_sm_store_ptk(sm, sm->bssid, sm->pairwise_cipher,
 			 sm->dot11RSNAConfigPMKLifetime, &sm->ptk);
 
-	/* TK is not needed anymore in supplicant */
-	os_memset(sm->ptk.tk, 0, WPA_TK_MAX_LEN);
-	sm->ptk.tk_len = 0;
-	sm->ptk.installed = 1;
-	sm->tk_set = true;
+	if (key_flag & KEY_FLAG_NEXT) {
+		sm->ptk.installed_rx = true;
+	} else {
+		/* TK is not needed anymore in supplicant */
+		os_memset(sm->ptk.tk, 0, WPA_TK_MAX_LEN);
+		sm->ptk.tk_len = 0;
+		sm->ptk.installed = 1;
+		sm->tk_set = true;
+	}
 
 	if (sm->wpa_ptk_rekey) {
 		eloop_cancel_timeout(wpa_sm_rekey_ptk, sm, NULL);
@@ -2898,6 +2907,16 @@ static void wpa_supplicant_process_3_of_4(struct wpa_sm *sm,
 	if (sm->use_ext_key_id &&
 	    wpa_supplicant_install_ptk(sm, key, KEY_FLAG_RX))
 		goto failed;
+
+	if (!sm->use_ext_key_id &&
+	    wpa_supplicant_install_ptk(sm, key, KEY_FLAG_RX | KEY_FLAG_NEXT)) {
+		/* Continue anyway since the many drivers do not support
+		 * configuration of the TK for RX-only purposes for cases where
+		 * multiple keys might be in use in parallel and this being an
+		 * optional optimization to avoid race condition during TK
+		 * changes that could result in some protected frames getting
+		 * discarded. */
+	}
 
 	if (wpa_supplicant_send_4_of_4(sm, wpa_sm_get_auth_addr(sm), key, ver,
 				       key_info, &sm->ptk) < 0)
