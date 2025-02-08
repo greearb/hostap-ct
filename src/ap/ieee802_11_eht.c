@@ -1159,7 +1159,7 @@ int hostapd_process_ml_assoc_req_addr(struct hostapd_data *hapd,
 	common_info = (struct eht_ml_basic_common_info *) ml->variable;
 
 	/* Common information length includes the length octet */
-	if (common_info->len != common_info_len) {
+	if (common_info->len < common_info_len) {
 		wpa_printf(MSG_DEBUG,
 			   "MLD: Invalid common info len=%u", common_info->len);
 		goto out;
@@ -1185,7 +1185,7 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 	size_t ml_len, common_info_len;
 	struct mld_link_info *link_info;
 	struct mld_info *info = &sta->mld_info;
-	const u8 *pos;
+	const u8 *pos, *end;
 	int ret = -1;
 	u16 ml_control;
 
@@ -1253,7 +1253,7 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 	common_info = (const struct eht_ml_basic_common_info *) ml->variable;
 
 	/* Common information length includes the length octet */
-	if (common_info->len != common_info_len) {
+	if (common_info->len < common_info_len) {
 		wpa_printf(MSG_DEBUG,
 			   "MLD: Invalid common info len=%u (expected %zu)",
 			   common_info->len, common_info_len);
@@ -1261,6 +1261,7 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 	}
 
 	pos = common_info->variable;
+	end = ((const u8 *) common_info) + common_info->len;
 
 	if (ml_control & BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA) {
 		info->common_info.eml_capa = WPA_GET_LE16(pos);
@@ -1293,9 +1294,10 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 
 	info->links[hapd->mld_link_id].valid = 1;
 
-	/* Parse the link info field */
-	ml_len -= sizeof(*ml) + common_info_len;
-
+	/* Parse the Link Info field that starts after the end of the variable
+	 * length Common Info field. */
+	pos = end;
+	ml_len -= sizeof(*ml) + common_info->len;
 	while (ml_len > 2) {
 		size_t sub_elem_len = *(pos + 1);
 		size_t sta_info_len;
