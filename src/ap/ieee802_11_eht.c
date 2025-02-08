@@ -1166,6 +1166,7 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 	const u8 *pos, *end;
 	int ret = -1;
 	u16 ml_control;
+	const u8 *ml_end;
 
 	mlbuf = ieee802_11_defrag(elems->basic_mle, elems->basic_mle_len, true);
 	if (!mlbuf)
@@ -1173,6 +1174,7 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 
 	ml = wpabuf_head(mlbuf);
 	ml_len = wpabuf_len(mlbuf);
+	ml_end = ((const u8 *) ml) + ml_len;
 
 	ml_control = le_to_host16(ml->ml_control);
 	if ((ml_control & MULTI_LINK_CONTROL_TYPE_MASK) !=
@@ -1275,19 +1277,19 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 	/* Parse the Link Info field that starts after the end of the variable
 	 * length Common Info field. */
 	pos = end;
-	ml_len -= sizeof(*ml) + common_info->len;
-	while (ml_len > 2) {
+	while (ml_end - pos > 2) {
 		size_t sub_elem_len = *(pos + 1);
 		size_t sta_info_len;
 		u16 control;
+		const u8 *sub_elem_end;
 
 		wpa_printf(MSG_DEBUG, "MLD: sub element len=%zu",
 			   sub_elem_len);
 
-		if (2 + sub_elem_len > ml_len) {
+		if (2 + sub_elem_len > (size_t) (ml_end - pos)) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Invalid link info len: %zu %zu",
-				   2 + sub_elem_len, ml_len);
+				   2 + sub_elem_len, ml_end - pos);
 			goto out;
 		}
 
@@ -1296,7 +1298,6 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 				   "MLD: Skip vendor specific subelement");
 
 			pos += 2 + sub_elem_len;
-			ml_len -= 2 + sub_elem_len;
 			continue;
 		}
 
@@ -1305,16 +1306,15 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 				   "MLD: Skip unknown Multi-Link element subelement ID=%u",
 				   *pos);
 			pos += 2 + sub_elem_len;
-			ml_len -= 2 + sub_elem_len;
 			continue;
 		}
 
 		/* Skip the subelement ID and the length */
 		pos += 2;
-		ml_len -= 2;
+		sub_elem_end = pos + sub_elem_len;
 
 		/* Get the station control field */
-		if (sub_elem_len < 2) {
+		if (sub_elem_end - pos < 2) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Too short Per-STA Profile subelement");
 			goto out;
@@ -1323,8 +1323,6 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 		link_info = &info->links[control &
 					 EHT_PER_STA_CTRL_LINK_ID_MSK];
 		pos += 2;
-		ml_len -= 2;
-		sub_elem_len -= 2;
 
 		if (!(control & EHT_PER_STA_CTRL_COMPLETE_PROFILE_MSK)) {
 			wpa_printf(MSG_DEBUG,
@@ -1357,15 +1355,19 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 
 		sta_info_len += link_info->nstr_bitmap_len;
 
-		if (sta_info_len > ml_len || sta_info_len != *pos ||
-		    sta_info_len > sub_elem_len) {
+		if (sta_info_len > (size_t) (sub_elem_end - pos) ||
+		    sta_info_len > *pos ||
+		    *pos > sub_elem_end - pos ||
+		    sta_info_len > (size_t) (sub_elem_end - pos)) {
 			wpa_printf(MSG_DEBUG, "MLD: Invalid STA Info length");
 			goto out;
 		}
 
+		sta_info_len = *pos;
+		end = pos + sta_info_len;
+
 		/* skip the length */
 		pos++;
-		ml_len--;
 
 		/* get the link address */
 		os_memcpy(link_info->peer_addr, pos, ETH_ALEN);
@@ -1375,27 +1377,20 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 			   MAC2STR(link_info->peer_addr));
 
 		pos += ETH_ALEN;
-		ml_len -= ETH_ALEN;
 
 		/* Get the NSTR bitmap */
 		if (link_info->nstr_bitmap_len) {
 			os_memcpy(link_info->nstr_bitmap, pos,
 				  link_info->nstr_bitmap_len);
 			pos += link_info->nstr_bitmap_len;
-			ml_len -= link_info->nstr_bitmap_len;
 		}
 
-		sub_elem_len -= sta_info_len;
+		pos = end;
 
-		wpa_printf(MSG_DEBUG, "MLD: STA Profile len=%zu", sub_elem_len);
-		if (sub_elem_len > ml_len)
-			goto out;
-
-		if (sub_elem_len > 2)
+		if (sub_elem_end - pos >= 2)
 			link_info->capability = WPA_GET_LE16(pos);
 
-		pos += sub_elem_len;
-		ml_len -= sub_elem_len;
+		pos = sub_elem_end;
 
 		wpa_printf(MSG_DEBUG, "MLD: link ctrl=0x%x, " MACSTR
 			   ", nstr bitmap len=%u",
@@ -1403,12 +1398,6 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 			   link_info->nstr_bitmap_len);
 
 		link_info->valid = true;
-	}
-
-	if (ml_len) {
-		wpa_printf(MSG_DEBUG, "MLD: %zu bytes left after parsing. fail",
-			   ml_len);
-		goto out;
 	}
 
 	ret = hostapd_mld_validate_assoc_info(hapd, sta);
