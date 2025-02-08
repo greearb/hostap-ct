@@ -370,7 +370,7 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
 		if (info_end > pos) {
 			wpa_hexdump(MSG_INFO,
 				    "Extra information at the end of STA Info",
-				    pos, ci_end - pos);
+				    pos, info_end - pos);
 			pos = info_end;
 		}
 
@@ -645,7 +645,7 @@ static void parse_reconfig_ml(const u8 *ie, size_t len,
 		if (info_end > pos) {
 			wpa_hexdump(MSG_INFO,
 				    "Extra information at the end of STA Info",
-				    pos, ci_end - pos);
+				    pos, info_end - pos);
 			pos = info_end;
 		}
 
