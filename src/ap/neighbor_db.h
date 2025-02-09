@@ -31,7 +31,7 @@ int hostapd_neighbor_insert_buffer(struct hostapd_data *hapd, char *buf,
 void hostapd_neighbor_set_own_report_pref(struct hostapd_data *hapd, u8 *nei_buf,
 					  size_t buflen, const u8 pref);
 #ifdef CONFIG_MBO
-void hostapd_neighbor_set_pref_by_non_pref_chan(struct hostapd_data *hapd,
-			 struct sta_info* sta, char *nei_buf, size_t buflen);
+void hostapd_neighbor_set_pref_by_non_pref_chan(struct hostapd_data *hapd, struct sta_info* sta,
+						u8 *nei_buf, size_t buflen);
 #endif
 #endif /* NEIGHBOR_DB_H */
