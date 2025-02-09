@@ -6651,6 +6651,8 @@ static int p2p_ctrl_validate_dira(struct wpa_supplicant *wpa_s, char *cmd)
 		pos2 += 6;
 		if (hexstr2bin(pos2, nonce, sizeof(nonce)) < 0)
 			return -1;
+	} else {
+		return -1;
 	}
 
 	pos2 = os_strstr(pos, "tag=");
@@ -6658,6 +6660,8 @@ static int p2p_ctrl_validate_dira(struct wpa_supplicant *wpa_s, char *cmd)
 		pos2 += 4;
 		if (hexstr2bin(pos2, tag, sizeof(tag)) < 0)
 			return -1;
+	} else {
+		return -1;
 	}
 
 	return wpas_p2p_validate_dira(wpa_s, addr, 0, nonce, tag);
