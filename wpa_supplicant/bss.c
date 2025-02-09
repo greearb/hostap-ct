@@ -220,6 +220,7 @@ void wpa_bss_remove(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 		    const char *reason)
 {
 	struct wpa_connect_work *cwork;
+	unsigned int j;
 
 	if (wpa_s->last_scan_res) {
 		unsigned int i;
@@ -245,6 +246,45 @@ void wpa_bss_remove(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 		wpa_ssid_txt(bss->ssid, bss->ssid_len), reason);
 	wpas_notify_bss_removed(wpa_s, bss->bssid, bss->id);
 	wpa_bss_anqp_free(bss->anqp);
+
+	if (wpa_s->current_bss == bss) {
+		wpa_printf(MSG_DEBUG,
+			   "BSS: Clear current_bss due to bss removal");
+		wpa_s->current_bss = NULL;
+	}
+
+#ifdef CONFIG_INTERWORKING
+	if (wpa_s->interworking_gas_bss == bss) {
+		wpa_printf(MSG_DEBUG,
+			   "BSS: Clear interworking_gas_bss due to bss removal");
+		wpa_s->interworking_gas_bss = NULL;
+	}
+#endif /* CONFIG_INTERWORKING */
+
+#ifdef CONFIG_WNM
+	if (wpa_s->wnm_target_bss == bss) {
+		wpa_printf(MSG_DEBUG,
+			   "BSS: Clear wnm_target_bss due to bss removal");
+		wpa_s->wnm_target_bss = NULL;
+	}
+#endif /* CONFIG_WNM */
+
+	if (wpa_s->ml_connect_probe_bss == bss) {
+		wpa_printf(MSG_DEBUG,
+			   "BSS: Clear ml_connect_probe_bss due to bss removal");
+		wpa_s->ml_connect_probe_bss = NULL;
+	}
+
+	for (j = 0; j < MAX_NUM_MLD_LINKS; j++) {
+		if (wpa_s->links[j].bss == bss) {
+			wpa_printf(MSG_DEBUG,
+				   "BSS: Clear links[%d].bss due to bss removal",
+				   j);
+			wpa_s->valid_links &= ~BIT(j);
+			wpa_s->links[j].bss = NULL;
+		}
+	}
+
 	os_free(bss);
 }
 
