@@ -1412,6 +1412,7 @@ void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 	if (hapd->csa_in_progress &&
 	    freq == hapd->cs_freq_params.freq) {
 		hostapd_cleanup_cs_params(hapd);
+		ieee802_11_set_beacon_for_colocat(hapd);
 
 #ifdef CONFIG_IEEE80211BE
 		if (hapd->conf->mld_ap) {
