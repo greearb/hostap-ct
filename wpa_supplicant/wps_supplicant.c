@@ -169,7 +169,7 @@ int wpas_wps_eapol_cb(struct wpa_supplicant *wpa_s)
 		 */
 		wpa_printf(MSG_DEBUG, "WPS: Continue association from timeout");
 		wpas_wps_assoc_with_cred_cancel(wpa_s);
-		eloop_register_timeout(0, 10000,
+		eloop_register_timeout(0, 100000,
 				       wpas_wps_assoc_with_cred, wpa_s,
 				       use_fast_assoc ? (void *) 1 :
 				       (void *) 0);
