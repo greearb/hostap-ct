@@ -3444,6 +3444,60 @@ int ieee802_11_set_beacon(struct hostapd_data *hapd)
 }
 
 
+int ieee802_11_set_beacon_for_colocat(struct hostapd_data *hapd)
+{
+	struct hostapd_iface *iface = hapd->iface;
+	size_t i, j;
+
+	/* Avoid duplicate beacon updates triggered by
+	 * the channel switch event of each 6G bss
+	 */
+	if (!is_6ghz_op_class(iface->conf->op_class) ||
+	    hapd != iface->bss[0])
+		return 0;
+
+	for (i = 0; i < iface->interfaces->count; i++) {
+		struct hostapd_data *bss, *tmp;
+		struct hostapd_iface *other;
+
+		other = iface->interfaces->iface[i];
+		if (other == iface || !other || !other->conf ||
+		    is_6ghz_op_class(other->conf->op_class))
+			continue;
+
+		for (j = 0; j < other->num_bss; j++) {
+			bss = other->bss[j];
+#ifdef CONFIG_IEEE80211BE
+			/* Update beacon frames for colocated AP MLDs without a 6G link.
+			 * For an AP-MLD with a 6G link, the 6G colocation info in the
+			 * beacon of the affiliated 2/5G link will be updated by the
+			 * CSA procedure (csa after beacon).
+			 */
+			if (bss->conf->mld_ap) {
+				bool skip = false;
+
+				for_each_mld_link(tmp, bss) {
+					if (tmp != bss && tmp->started &&
+					    is_6ghz_op_class(tmp->iconf->op_class)) {
+						skip = true;
+						break;
+					}
+				}
+
+				if (skip)
+					continue;
+			}
+#endif /* CONFIG_IEEE80211BE */
+
+			if (bss && bss->started)
+				__ieee802_11_set_beacon(bss);
+		}
+	}
+
+	return 0;
+}
+
+
 int ieee802_11_set_beacons(struct hostapd_iface *iface)
 {
 	size_t i;
