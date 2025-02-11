@@ -8322,7 +8322,7 @@ static size_t hostapd_eid_mbssid_elem_len(struct hostapd_data *hapd,
 		else if (hapd->conf->xrates_supported)
 			ie_count++;
 		if (ie_count)
-			nontx_profile_len += 4 + ie_count;
+			nontx_profile_len += 4 + ie_count + 1;
 
 		if (len + nontx_profile_len > 255)
 			break;
