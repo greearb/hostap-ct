@@ -147,6 +147,10 @@ static void gas_query_free(struct gas_query_pending *query, int del_list)
 		gas->work = NULL;
 	}
 
+	eloop_cancel_timeout(gas_query_tx_comeback_timeout, gas, query);
+	eloop_cancel_timeout(gas_query_timeout, gas, query);
+	eloop_cancel_timeout(gas_query_rx_comeback_timeout, gas, query);
+
 	wpabuf_free(query->req);
 	wpabuf_free(query->adv_proto);
 	wpabuf_free(query->resp);
@@ -166,9 +170,6 @@ static void gas_query_done(struct gas_query *gas,
 		gas->current = NULL;
 	if (query->offchannel_tx_started)
 		offchannel_send_action_done(gas->wpa_s);
-	eloop_cancel_timeout(gas_query_tx_comeback_timeout, gas, query);
-	eloop_cancel_timeout(gas_query_timeout, gas, query);
-	eloop_cancel_timeout(gas_query_rx_comeback_timeout, gas, query);
 	dl_list_del(&query->list);
 	query->cb(query->ctx, query->addr, query->dialog_token, result,
 		  query->adv_proto, query->resp, query->status_code);
