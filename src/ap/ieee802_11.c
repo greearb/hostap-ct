@@ -7373,7 +7373,7 @@ static void handle_assoc_cb(struct hostapd_data *hapd,
 
 	if (sta->auth_alg == WLAN_AUTH_FT)
 		wpa_auth_sm_event(sta->wpa_sm, WPA_ASSOC_FT);
-	else
+	else if (new_assoc)
 		wpa_auth_sm_event(sta->wpa_sm, WPA_ASSOC);
 	hapd->new_assoc_sta_cb(hapd, sta, !new_assoc);
 	ieee802_1x_notify_port_enabled(sta->eapol_sm, 1);
