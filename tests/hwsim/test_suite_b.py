@@ -488,7 +488,16 @@ def test_suite_b_192_rsa_insufficient_key(dev, apdev):
     params["ca_cert"] = "auth_serv/ca.pem"
     params["server_cert"] = "auth_serv/server.pem"
     params["private_key"] = "auth_serv/server.key"
-    hapd = hostapd.add_ap(apdev[0], params)
+
+    try:
+        hapd = hostapd.add_ap(apdev[0], params)
+    except Exception as e:
+        hapd = hostapd.add_ap(apdev[0], suite_b_192_rsa_ap_params())
+        tls = hapd.request("GET tls_library")
+        if tls.startswith("wolfSSL"):
+            # wolfSSL fails immediately during key loading with too short key
+            raise HwsimSkip("Suite B 192-bit too short RSA key testing not supported with wolfSSL")
+        raise
 
     dev[0].connect("test-suite-b", key_mgmt="WPA-EAP-SUITE-B-192",
                    ieee80211w="2",
@@ -505,6 +514,8 @@ def test_suite_b_192_rsa_insufficient_key(dev, apdev):
         raise Exception("Certificate error not reported")
     if "reason=11" in ev and "err='Insufficient RSA modulus size'" in ev:
         return
+    if "reason=11" in ev and "err='RSA key too small'" in ev:
+        return
     if "reason=7" in ev and "err='certificate uses insecure algorithm'" in ev:
         return
     raise Exception("Unexpected error reason: " + ev)
@@ -516,7 +527,15 @@ def test_suite_b_192_rsa_insufficient_dh(dev, apdev):
     params = suite_b_192_rsa_ap_params()
     params["tls_flags"] = "[SUITEB-NO-ECDH]"
     params["dh_file"] = "auth_serv/dh.conf"
-    hapd = hostapd.add_ap(apdev[0], params)
+    try:
+        hapd = hostapd.add_ap(apdev[0], params)
+    except:
+        hapd = hostapd.add_ap(apdev[0], suite_b_192_rsa_ap_params())
+        tls = hapd.request("GET tls_library")
+        if tls.startswith("wolfSSL"):
+            # wolfSSL fails immediately during key loading with too short key
+            raise HwsimSkip("Suite B 192-bit too short RSA key testing not supported with wolfSSL")
+        raise
 
     dev[0].connect("test-suite-b", key_mgmt="WPA-EAP-SUITE-B-192",
                    ieee80211w="2",
@@ -528,14 +547,15 @@ def test_suite_b_192_rsa_insufficient_dh(dev, apdev):
                    pairwise="GCMP-256", group="GCMP-256", scan_freq="2412",
                    wait_connect=False)
     ev = dev[0].wait_event(["CTRL-EVENT-EAP-STATUS status='local TLS alert'",
-                            "CTRL-EVENT-CONNECTED"],
+                            "CTRL-EVENT-CONNECTED", "CTRL-EVENT-EAP-FAILURE"],
                            timeout=10)
     dev[0].request("DISCONNECT")
     if ev is None:
         raise Exception("DH error not reported")
     if "CTRL-EVENT-CONNECTED" in ev:
         raise Exception("Unexpected connection")
-    if "insufficient security" not in ev and "internal error" not in ev:
+    if "insufficient security" not in ev and "internal error" not in ev \
+        and "authentication failed" not in ev:
         raise Exception("Unexpected error reason: " + ev)
 
 def test_suite_b_192_rsa_radius(dev, apdev):
