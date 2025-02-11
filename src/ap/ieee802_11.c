@@ -190,7 +190,6 @@ u8 * hostapd_eid_ext_supp_rates(struct hostapd_data *hapd, u8 *eid)
 	int i, num, count;
 	int h2e_required;
 
-	hapd->conf->xrates_supported = false;
 	if (hapd->iface->current_rates == NULL)
 		return eid;
 
@@ -252,7 +251,6 @@ u8 * hostapd_eid_ext_supp_rates(struct hostapd_data *hapd, u8 *eid)
 			*pos++ = 0x80 | BSS_MEMBERSHIP_SELECTOR_SAE_H2E_ONLY;
 	}
 
-	hapd->conf->xrates_supported = true;
 	return pos;
 }
 

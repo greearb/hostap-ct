@@ -972,7 +972,6 @@ struct hostapd_bss_config {
 
 	u8 rnr;
 	char *config_id;
-	bool xrates_supported;
 
 	bool ssid_protection;
 	bool known_sta_identification;
