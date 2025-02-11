@@ -8401,12 +8401,15 @@ static u8 * hostapd_eid_mbssid_elem(struct hostapd_data *hapd, u8 *eid, u8 *end,
 				    const u8 *known_bss, size_t known_bss_len)
 {
 	struct hostapd_data *tx_bss = hostapd_mbssid_get_tx_bss(hapd);
-	size_t i;
+	size_t i, tx_xrate_len;
 	u8 *eid_len_offset, *max_bssid_indicator_offset;
+	u8 buf[100];
 
 	*eid++ = WLAN_EID_MULTIPLE_BSSID;
 	eid_len_offset = eid++;
 	max_bssid_indicator_offset = eid++;
+
+	tx_xrate_len = hostapd_eid_ext_supp_rates(tx_bss, buf) - buf;
 
 	for (i = *bss_index; i < hapd->iface->num_bss; i++) {
 		struct hostapd_data *bss = hapd->iface->bss[i];
@@ -8415,7 +8418,7 @@ static u8 * hostapd_eid_mbssid_elem(struct hostapd_data *hapd, u8 *eid, u8 *end,
 		u8 *eid_len_pos, *nontx_bss_start = eid;
 		const u8 *auth, *rsn = NULL, *rsnx = NULL;
 		u8 ie_count = 0, non_inherit_ie[3];
-		size_t auth_len = 0;
+		size_t auth_len = 0, xrate_len;
 		u16 capab_info;
 		u8 mbssindex = i;
 
@@ -8480,12 +8483,13 @@ static u8 * hostapd_eid_mbssid_elem(struct hostapd_data *hapd, u8 *eid, u8 *end,
 		}
 
 		eid += hostapd_mbssid_ext_capa(bss, tx_bss, eid);
+		xrate_len = hostapd_eid_ext_supp_rates(bss, eid) - eid;
+		eid += xrate_len;
 
 		/* List of Element ID values in increasing order */
 		if (!rsn && hostapd_wpa_ie(tx_bss, WLAN_EID_RSN))
 			non_inherit_ie[ie_count++] = WLAN_EID_RSN;
-		if (hapd->conf->xrates_supported &&
-		    !bss->conf->xrates_supported)
+		if (tx_xrate_len && !xrate_len)
 			non_inherit_ie[ie_count++] = WLAN_EID_EXT_SUPP_RATES;
 		if (!rsnx && hostapd_wpa_ie(tx_bss, WLAN_EID_RSNX))
 			non_inherit_ie[ie_count++] = WLAN_EID_RSNX;
