@@ -117,68 +117,61 @@ static u8 * hostapd_eid_multi_ap(struct hostapd_data *hapd, u8 *eid, size_t len)
 }
 
 
-u8 * hostapd_eid_supp_rates(struct hostapd_data *hapd, u8 *eid)
+static size_t hostapd_supp_rates(struct hostapd_data *hapd, u8 *buf)
 {
-	u8 *pos = eid;
-	int i, num, count;
-	int h2e_required;
+	u8 *pos = buf;
+	int i;
 
-	if (hapd->iface->current_rates == NULL)
-		return eid;
+	if (!hapd->iface->current_rates)
+		return 0;
 
-	*pos++ = WLAN_EID_SUPP_RATES;
-	num = hapd->iface->num_rates;
-	if (hapd->iconf->ieee80211n && hapd->iconf->require_ht)
-		num++;
-	if (hapd->iconf->ieee80211ac && hapd->iconf->require_vht)
-		num++;
-#ifdef CONFIG_IEEE80211AX
-	if (hapd->iconf->ieee80211ax && hapd->iconf->require_he)
-		num++;
-#endif /* CONFIG_IEEE80211AX */
-	h2e_required = (hapd->conf->sae_pwe == SAE_PWE_HASH_TO_ELEMENT ||
-			hostapd_sae_pw_id_in_use(hapd->conf) == 2) &&
-		hapd->conf->sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK &&
-		wpa_key_mgmt_only_sae(hapd->conf->wpa_key_mgmt);
-	if (h2e_required)
-		num++;
-	if (num > 8) {
-		/* rest of the rates are encoded in Extended supported
-		 * rates element */
-		num = 8;
-	}
-
-	*pos++ = num;
-	for (i = 0, count = 0; i < hapd->iface->num_rates && count < num;
-	     i++) {
-		count++;
+	for (i = 0; i < hapd->iface->num_rates; i++) {
 		*pos = hapd->iface->current_rates[i].rate / 5;
 		if (hapd->iface->current_rates[i].flags & HOSTAPD_RATE_BASIC)
 			*pos |= 0x80;
 		pos++;
 	}
 
-	if (hapd->iconf->ieee80211n && hapd->iconf->require_ht && count < 8) {
-		count++;
+	if (hapd->iconf->ieee80211n && hapd->iconf->require_ht)
 		*pos++ = 0x80 | BSS_MEMBERSHIP_SELECTOR_HT_PHY;
-	}
 
-	if (hapd->iconf->ieee80211ac && hapd->iconf->require_vht && count < 8) {
-		count++;
+	if (hapd->iconf->ieee80211ac && hapd->iconf->require_vht)
 		*pos++ = 0x80 | BSS_MEMBERSHIP_SELECTOR_VHT_PHY;
-	}
 
 #ifdef CONFIG_IEEE80211AX
-	if (hapd->iconf->ieee80211ax && hapd->iconf->require_he && count < 8) {
-		count++;
+	if (hapd->iconf->ieee80211ax && hapd->iconf->require_he)
 		*pos++ = 0x80 | BSS_MEMBERSHIP_SELECTOR_HE_PHY;
-	}
 #endif /* CONFIG_IEEE80211AX */
 
-	if (h2e_required && count < 8) {
-		count++;
+#ifdef CONFIG_SAE
+	if ((hapd->conf->sae_pwe == SAE_PWE_HASH_TO_ELEMENT ||
+	     hostapd_sae_pw_id_in_use(hapd->conf) == 2) &&
+	    hapd->conf->sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK &&
+	    wpa_key_mgmt_only_sae(hapd->conf->wpa_key_mgmt))
 		*pos++ = 0x80 | BSS_MEMBERSHIP_SELECTOR_SAE_H2E_ONLY;
-	}
+#endif /* CONFIG_SAE */
+
+	return pos - buf;
+}
+
+
+u8 * hostapd_eid_supp_rates(struct hostapd_data *hapd, u8 *eid)
+{
+	u8 *pos = eid;
+	u8 buf[100];
+	size_t len;
+
+	len = hostapd_supp_rates(hapd, buf);
+	if (len == 0)
+		return eid;
+	/* Only up to first eight values in this element */
+	if (len > 8)
+		len = 8;
+
+	*pos++ = WLAN_EID_SUPP_RATES;
+	*pos++ = len;
+	os_memcpy(pos, buf, len);
+	pos += len;
 
 	return pos;
 }
@@ -187,69 +180,18 @@ u8 * hostapd_eid_supp_rates(struct hostapd_data *hapd, u8 *eid)
 u8 * hostapd_eid_ext_supp_rates(struct hostapd_data *hapd, u8 *eid)
 {
 	u8 *pos = eid;
-	int i, num, count;
-	int h2e_required;
+	u8 buf[100];
+	size_t len;
 
-	if (hapd->iface->current_rates == NULL)
+	len = hostapd_supp_rates(hapd, buf);
+	/* Starting from the 9th value for this element */
+	if (len <= 8)
 		return eid;
-
-	num = hapd->iface->num_rates;
-	if (hapd->iconf->ieee80211n && hapd->iconf->require_ht)
-		num++;
-	if (hapd->iconf->ieee80211ac && hapd->iconf->require_vht)
-		num++;
-#ifdef CONFIG_IEEE80211AX
-	if (hapd->iconf->ieee80211ax && hapd->iconf->require_he)
-		num++;
-#endif /* CONFIG_IEEE80211AX */
-	h2e_required = (hapd->conf->sae_pwe == SAE_PWE_HASH_TO_ELEMENT ||
-			hostapd_sae_pw_id_in_use(hapd->conf) == 2) &&
-		hapd->conf->sae_pwe != SAE_PWE_FORCE_HUNT_AND_PECK &&
-		wpa_key_mgmt_only_sae(hapd->conf->wpa_key_mgmt);
-	if (h2e_required)
-		num++;
-	if (num <= 8)
-		return eid;
-	num -= 8;
 
 	*pos++ = WLAN_EID_EXT_SUPP_RATES;
-	*pos++ = num;
-	for (i = 0, count = 0; i < hapd->iface->num_rates && count < num + 8;
-	     i++) {
-		count++;
-		if (count <= 8)
-			continue; /* already in SuppRates IE */
-		*pos = hapd->iface->current_rates[i].rate / 5;
-		if (hapd->iface->current_rates[i].flags & HOSTAPD_RATE_BASIC)
-			*pos |= 0x80;
-		pos++;
-	}
-
-	if (hapd->iconf->ieee80211n && hapd->iconf->require_ht) {
-		count++;
-		if (count > 8)
-			*pos++ = 0x80 | BSS_MEMBERSHIP_SELECTOR_HT_PHY;
-	}
-
-	if (hapd->iconf->ieee80211ac && hapd->iconf->require_vht) {
-		count++;
-		if (count > 8)
-			*pos++ = 0x80 | BSS_MEMBERSHIP_SELECTOR_VHT_PHY;
-	}
-
-#ifdef CONFIG_IEEE80211AX
-	if (hapd->iconf->ieee80211ax && hapd->iconf->require_he) {
-		count++;
-		if (count > 8)
-			*pos++ = 0x80 | BSS_MEMBERSHIP_SELECTOR_HE_PHY;
-	}
-#endif /* CONFIG_IEEE80211AX */
-
-	if (h2e_required) {
-		count++;
-		if (count > 8)
-			*pos++ = 0x80 | BSS_MEMBERSHIP_SELECTOR_SAE_H2E_ONLY;
-	}
+	*pos++ = len - 8;
+	os_memcpy(pos, &buf[8], len - 8);
+	pos += len - 8;
 
 	return pos;
 }
