@@ -38,6 +38,7 @@
 #define STATE_MACHINE_DATA struct wpa_state_machine
 #define STATE_MACHINE_DEBUG_PREFIX "WPA"
 #define STATE_MACHINE_ADDR wpa_auth_get_spa(sm)
+#define KDE_ALL_LINKS 0xffff
 
 
 static void wpa_send_eapol_timeout(void *eloop_ctx, void *timeout_ctx);
@@ -4292,7 +4293,8 @@ static void wpa_auth_get_ml_key_info(struct wpa_authenticator *wpa_auth,
 }
 
 
-static size_t wpa_auth_ml_group_kdes_len(struct wpa_state_machine *sm)
+static size_t wpa_auth_ml_group_kdes_len(struct wpa_state_machine *sm,
+					 u16 req_links)
 {
 	struct wpa_authenticator *wpa_auth;
 	size_t kde_len = 0;
@@ -4303,6 +4305,9 @@ static size_t wpa_auth_ml_group_kdes_len(struct wpa_state_machine *sm)
 
 	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 		if (!sm->mld_links[link_id].valid)
+			continue;
+
+		if (!(req_links & BIT(link_id)))
 			continue;
 
 		wpa_auth = sm->mld_links[link_id].wpa_auth;
@@ -4340,7 +4345,8 @@ static size_t wpa_auth_ml_group_kdes_len(struct wpa_state_machine *sm)
 }
 
 
-static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
+static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos,
+				   u16 req_links)
 {
 	struct wpa_auth_ml_key_info ml_key_info;
 	unsigned int i, link_id;
@@ -4349,7 +4355,6 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 
 	/* First fetch the key information from all the authenticators */
 	os_memset(&ml_key_info, 0, sizeof(ml_key_info));
-	ml_key_info.n_mld_links = sm->n_mld_affiliated_links + 1;
 
 	/*
 	 * Assume that management frame protection and beacon protection are the
@@ -4362,13 +4367,19 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 		if (!sm->mld_links[link_id].valid)
 			continue;
 
+		if (!(req_links & BIT(link_id)))
+			continue;
+
 		ml_key_info.links[i++].link_id = link_id;
 	}
+	ml_key_info.n_mld_links = i;
 
 	wpa_auth_get_ml_key_info(sm->wpa_auth, &ml_key_info, rekey);
 
 	/* Add MLO GTK KDEs */
-	for (i = 0, link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+	for (i = 0; i < ml_key_info.n_mld_links; i++) {
+		link_id = ml_key_info.links[i].link_id;
+
 		if (!sm->mld_links[link_id].valid ||
 		    !ml_key_info.links[i].gtk_len)
 			continue;
@@ -4393,8 +4404,6 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 		os_memcpy(pos, ml_key_info.links[i].gtk,
 			  ml_key_info.links[i].gtk_len);
 		pos += ml_key_info.links[i].gtk_len;
-
-		i++;
 	}
 
 	if (!sm->mgmt_frame_prot) {
@@ -4404,7 +4413,9 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 	}
 
 	/* Add MLO IGTK KDEs */
-	for (i = 0, link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+	for (i = 0; i < ml_key_info.n_mld_links; i++) {
+		link_id = ml_key_info.links[i].link_id;
+
 		if (!sm->mld_links[link_id].valid ||
 		    !ml_key_info.links[i].igtk_len)
 			continue;
@@ -4436,8 +4447,6 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 		os_memcpy(pos, ml_key_info.links[i].igtk,
 			  ml_key_info.links[i].igtk_len);
 		pos += ml_key_info.links[i].igtk_len;
-
-		i++;
 	}
 
 	if (!sm->wpa_auth->conf.beacon_prot) {
@@ -4447,7 +4456,9 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 	}
 
 	/* Add MLO BIGTK KDEs */
-	for (i = 0, link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+	for (i = 0; i < ml_key_info.n_mld_links; i++) {
+		link_id = ml_key_info.links[i].link_id;
+
 		if (!sm->mld_links[link_id].valid ||
 		    !ml_key_info.links[i].bigtk ||
 		    !ml_key_info.links[i].igtk_len)
@@ -4480,8 +4491,6 @@ static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos)
 		os_memcpy(pos, ml_key_info.links[i].bigtk,
 			  ml_key_info.links[i].igtk_len);
 		pos += ml_key_info.links[i].igtk_len;
-
-		i++;
 	}
 
 	wpa_printf(MSG_DEBUG, "RSN: MLO Group KDE len = %ld", pos - start);
@@ -4548,7 +4557,7 @@ static size_t wpa_auth_ml_kdes_len(struct wpa_state_machine *sm)
 			kde_len += 2 + ie[1];
 	}
 
-	kde_len += wpa_auth_ml_group_kdes_len(sm);
+	kde_len += wpa_auth_ml_group_kdes_len(sm, KDE_ALL_LINKS);
 #endif /* CONFIG_IEEE80211BE */
 
 	return kde_len;
@@ -4676,7 +4685,7 @@ static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
 	wpa_printf(MSG_DEBUG,
 		   "RSN: MLO Link KDEs and RSN Override Link KDEs len = %ld",
 		   pos - start);
-	pos = wpa_auth_ml_group_kdes(sm, pos);
+	pos = wpa_auth_ml_group_kdes(sm, pos, KDE_ALL_LINKS);
 #endif /* CONFIG_IEEE80211BE */
 
 	return pos;
@@ -5419,14 +5428,14 @@ SM_STATE(WPA_PTK_GROUP, REKEYNEGOTIATING)
 		kde_len = pos - kde;
 #ifdef CONFIG_IEEE80211BE
 	} else if (sm->wpa == WPA_VERSION_WPA2 && is_mld) {
-		kde_len = wpa_auth_ml_group_kdes_len(sm);
+		kde_len = wpa_auth_ml_group_kdes_len(sm, KDE_ALL_LINKS);
 		if (kde_len) {
 			kde_buf = os_malloc(kde_len);
 			if (!kde_buf)
 				return;
 
 			kde = pos = kde_buf;
-			pos = wpa_auth_ml_group_kdes(sm, pos);
+			pos = wpa_auth_ml_group_kdes(sm, pos, KDE_ALL_LINKS);
 			kde_len = pos - kde_buf;
 		}
 #endif /* CONFIG_IEEE80211BE */
