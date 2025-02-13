@@ -22,7 +22,7 @@ int wnm_send_bss_tm_req(struct hostapd_data *hapd, struct sta_info *sta,
 			u8 req_mode, int disassoc_timer, u8 valid_int,
 			const u8 *bss_term_dur, u8 dialog_token,
 			const char *url, const u8 *nei_rep, size_t nei_rep_len,
-			const u8 *mbo_attrs, size_t mbo_len);
+			const u8 *mbo_attrs, size_t mbo_len, bool mbo_cert);
 void ap_sta_reset_steer_flag_timer(void *eloop_ctx, void *timeout_ctx);
 int wnm_send_coloc_intf_req(struct hostapd_data *hapd, struct sta_info *sta,
 			    unsigned int auto_report, unsigned int timeout);
