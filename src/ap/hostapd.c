@@ -4089,6 +4089,22 @@ void hostapd_new_assoc_sta(struct hostapd_data *hapd, struct sta_info *sta,
 
 	ap_sta_clear_disconnect_timeouts(hapd, sta);
 	ap_sta_clear_assoc_timeout(hapd, sta);
+
+#ifdef CONFIG_IEEE80211BE
+	if (ap_sta_is_mld(hapd, sta)) {
+		struct hostapd_data *bss;
+		struct sta_info *lsta;
+
+		for_each_mld_link(bss, hapd) {
+			if (bss == hapd)
+				continue;
+			lsta = ap_get_sta(bss, sta->addr);
+			if (lsta)
+				ap_sta_clear_assoc_timeout(bss, lsta);
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	sta->post_csa_sa_query = 0;
 
 #ifdef CONFIG_P2P
