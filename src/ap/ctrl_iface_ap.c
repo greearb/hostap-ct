@@ -1736,7 +1736,7 @@ int hostapd_ctrl_iface_bss_tm_req(struct hostapd_data *hapd,
 	ret = wnm_send_bss_tm_req(hapd, sta, req_mode, disassoc_timer,
 				  valid_int, bss_term_dur, dialog_token, url,
 				  nei_len ? nei_rep : NULL, nei_len,
-				  mbo_len ? mbo : NULL, mbo_len);
+				  mbo_len ? mbo : NULL, mbo_len, mbo_cert);
 #ifdef CONFIG_MBO
 fail:
 #endif /* CONFIG_MBO */
