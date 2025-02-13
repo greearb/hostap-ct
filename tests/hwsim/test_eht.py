@@ -404,8 +404,14 @@ def test_eht_mld_owe_two_links_scan_second(dev, apdev):
     """EHT MLD AP with MLD client OWE connection using two links; scan only second"""
     _eht_mld_owe_two_links(dev, apdev, scan_only_second_link=True)
 
+@long_duration_test
+def test_eht_mld_owe_two_links_no_assoc_timeout(dev, apdev):
+    """Verify that AP MLD does not time out two link association"""
+    _eht_mld_owe_two_links(dev, apdev, wait_for_timeout=True)
+
 def _eht_mld_owe_two_links(dev, apdev, second_link_disabled=False,
-                           only_one_link=False, scan_only_second_link=False):
+                           only_one_link=False, scan_only_second_link=False,
+                           wait_for_timeout=False):
     with HWSimRadio(use_mlo=True) as (hapd0_radio, hapd0_iface), \
         HWSimRadio(use_mlo=True) as (hapd1_radio, hapd1_iface), \
         HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
@@ -455,6 +461,11 @@ def _eht_mld_owe_two_links(dev, apdev, second_link_disabled=False,
 
         if only_one_link:
             wpas.set("bssid_filter", "")
+
+        if wait_for_timeout:
+            ev = wpas.wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=65)
+            if ev is not None:
+                raise Exception("Unexpected disconnection")
 
 def test_eht_mld_owe_two_links_one_disabled(dev, apdev):
     """AP MLD with MLD client OWE connection when one of the AP MLD links is disabled"""
