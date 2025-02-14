@@ -923,6 +923,12 @@ skip_wpa_check:
 	}
 #endif /* CONFIG_IEEE80211R_AP || CONFIG_FILS */
 
+	new_assoc = (sta->flags & WLAN_STA_ASSOC) == 0;
+	sta->flags |= WLAN_STA_AUTH | WLAN_STA_ASSOC;
+	sta->flags &= ~WLAN_STA_WNM_SLEEP_MODE;
+
+	hostapd_set_sta_flags(hapd, sta);
+
 #ifdef CONFIG_IEEE80211BE
 	if (hostapd_process_assoc_ml_info(hapd, sta, req_ies, req_ies_len,
 					  !!reassoc, WLAN_STATUS_SUCCESS,
@@ -933,11 +939,6 @@ skip_wpa_check:
 	}
 #endif /* CONFIG_IEEE80211BE */
 
-	new_assoc = (sta->flags & WLAN_STA_ASSOC) == 0;
-	sta->flags |= WLAN_STA_AUTH | WLAN_STA_ASSOC;
-	sta->flags &= ~WLAN_STA_WNM_SLEEP_MODE;
-
-	hostapd_set_sta_flags(hapd, sta);
 	if (updated)
 		ap_sta_set_authorized_event(hapd, sta, 1);
 
