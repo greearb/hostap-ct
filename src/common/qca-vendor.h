@@ -1353,6 +1353,14 @@ enum qca_radiotap_vendor_ids {
  *	%QCA_NL80211_VENDOR_SUBCMD_FLOW_CLASSIFY_RESULT.
  *	The attributes for this event are defined in
  *	enum qca_wlan_vendor_attr_flow_status.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_RX_MCS_MAP_CONFIG: Subcommand to update the
+ *	RX MCS MAP capability. This configuration is only applicable to
+ *	non-AP STA or non-AP MLD and allowed only in associated state and
+ *	valid until disconnection. This command results in the driver triggering
+ *	re-association to re-negotiate the updated RX MCS capability with the
+ *	peer. The attributes used with this command are defined in
+ *	enum qca_wlan_vendor_attr_rx_mcs_map_params.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1595,6 +1603,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_PRI_LINK_MIGRATE = 256,
 	QCA_NL80211_VENDOR_SUBCMD_PERIODIC_PROBE_RSP_CFG = 257,
 	QCA_NL80211_VENDOR_SUBCMD_CLASSIFIED_FLOW_STATUS = 258,
+	QCA_NL80211_VENDOR_SUBCMD_RX_MCS_MAP_CONFIG = 259,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -15199,6 +15208,105 @@ enum qca_wlan_vendor_attr_ratemask_params {
 	QCA_WLAN_VENDOR_ATTR_RATEMASK_PARAMS_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_RATEMASK_PARAMS_MAX =
 	QCA_WLAN_VENDOR_ATTR_RATEMASK_PARAMS_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_rx_mcs_map_params_phy_type - RX MCS map config PHY type
+ *
+ * @QCA_WLAN_RX_MCS_MAP_PARAMS_PHY_TYPE_VHT: VHT PHY type
+ * @QCA_WLAN_RX_MCS_MAP_PARAMS_PHY_TYPE_HE: HE PHY type
+ * @QCA_WLAN_RX_MCS_MAP_PARAMS_PHY_TYPE_EHT: EHT PHY type
+ */
+enum qca_wlan_rx_mcs_map_params_phy_type {
+	QCA_WLAN_RX_MCS_MAP_PARAMS_PHY_TYPE_VHT = 0,
+	QCA_WLAN_RX_MCS_MAP_PARAMS_PHY_TYPE_HE = 1,
+	QCA_WLAN_RX_MCS_MAP_PARAMS_PHY_TYPE_EHT = 2,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_rx_mcs_map_params - Used by the vendor command
+ * QCA_NL80211_VENDOR_SUBCMD_RX_MCS_MAP_CONFIG.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_LIST:
+ * Array of nested attributes containing
+ * QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_PHY_TYPE and
+ * QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_BITMAP and optionally
+ * QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_LINK_ID.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_PHY_TYPE: u8, represents
+ * the PHY type to which RX MCS Map config is to be applied.
+ * The values for this attribute are referred from enum
+ * qca_wlan_rx_mcs_map_params_phy_type.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_BITMAP: binary, RX MCS map bitmap.
+ *
+ * For EHT targets 3 bit correspond to one NSS setting.
+ * b0-2 => NSS1
+ * b3-5 => NSS2
+ * b6-8 => NSS3
+ * b9-11 => NSS4
+ * b12-14 => NSS5
+ * b15-17 => NSS6
+ * b18-20 => NSS7
+ * b21-23 => NSS8
+ *
+ * Below are the possible values
+ * 000 - Disabled/Not supported
+ * 001 - MCS 0-7
+ * 010 - MCS 0-9
+ * 011 - MCS 0-11
+ * 100 - MCS 0-13
+ * 110 - MCS 0-14
+ * 111 - MCS 0-15
+ *
+ * For HE targets, 2 bits correspond to one NSS setting
+ * b0-1 => NSS1
+ * b2-3 => NSS2
+ * b4-5 => NSS3
+ * b6-7 => NSS4
+ * b8-9 => NSS5
+ * b10-11 => NSS6
+ * b12-13 => NSS7
+ * b14-15 => NSS8
+ *
+ * Below are the possible values
+ * 00 - Disabled/Not supported
+ * 01 - MCS 0-7
+ * 10 - MCS 0-9
+ * 11 - MCS 0-11
+ *
+ * for VHT targets, 2 bits correspond to one NSS setting.
+ * b0-1 => NSS1
+ * b2-3 => NSS2
+ * b4-5 => NSS3
+ * b6-7 => NSS4
+ * b8-9 => NSS5
+ * b10-11 => NSS6
+ * b12-13 => NSS7
+ * b14-15 => NSS8
+ *
+ * Below are the possible values
+ * 00 - Disabled/Not supported
+ * 01 - MCS 0-7
+ * 10 - MCS 0-8
+ * 11 - MCS 0-9
+ *
+ * @QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_LINK_ID: u8, used to specify the
+ * MLO link ID of a link to be configured. Optional attribute.
+ * No need of this attribute in non-MLO cases. If the attribute is
+ * not provided, MCS map will be applied for the association link.
+ */
+enum qca_wlan_vendor_attr_rx_mcs_map_params {
+	QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_LIST = 1,
+	QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_PHY_TYPE = 2,
+	QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_BITMAP = 3,
+	QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_LINK_ID = 4,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_MAX =
+	QCA_WLAN_VENDOR_ATTR_RX_MCS_MAP_PARAMS_AFTER_LAST - 1,
 };
 
 /**
