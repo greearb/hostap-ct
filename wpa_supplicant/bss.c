@@ -858,9 +858,17 @@ wpa_bss_update(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 		struct wpa_bss *nbss;
 		struct dl_list *prev = bss->list_id.prev;
 		struct wpa_connect_work *cwork;
-		unsigned int i;
+		unsigned int i, j;
 		bool update_current_bss = wpa_s->current_bss == bss;
 		bool update_ml_probe_bss = wpa_s->ml_connect_probe_bss == bss;
+		int update_link_bss = -1;
+
+		for (j = 0; j < MAX_NUM_MLD_LINKS; j++) {
+			if (wpa_s->links[j].bss == bss) {
+				update_link_bss = j;
+				break;
+			}
+		}
 
 		cwork = wpa_bss_check_pending_connect(wpa_s, bss);
 
@@ -881,6 +889,9 @@ wpa_bss_update(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 
 			if (update_ml_probe_bss)
 				wpa_s->ml_connect_probe_bss = nbss;
+
+			if (update_link_bss >= 0)
+				wpa_s->links[update_link_bss].bss = nbss;
 
 			if (cwork)
 				wpa_bss_update_pending_connect(cwork, nbss);
