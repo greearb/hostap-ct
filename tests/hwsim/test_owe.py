@@ -890,6 +890,7 @@ def test_owe_invalid_assoc_resp(dev, apdev):
     """Opportunistic Wireless Encryption - invalid Association Response frame"""
     check_owe_capab(dev[0])
     params = {"ssid": "owe",
+              "ieee80211n": "0",
               "wpa": "2",
               "ieee80211w": "2",
               "wpa_key_mgmt": "OWE",
