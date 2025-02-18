@@ -5948,6 +5948,11 @@ enum qca_roam_scan_scheme {
  * @QCA_ROAM_TRIGGER_REASON_EXTERNAL_SCAN: Set if the roam has to be triggered
  *	based on the scan results obtained from an external scan (not triggered
  *	to aim roaming).
+ * @QCA_ROAM_TRIGGER_REASON_WTC: Set if the roam has to be triggered
+ *	due to Wireless to Cellular BSS Transition Management (BTM) request.
+ * @QCA_ROAM_TRIGGER_REASON_BT_ACTIVITY: Set if the roam has to be triggered
+ *	due to Bluetooth connection is established when the station is connected
+ *	in the 2.4 GHz band.
  *
  * Set the corresponding roam trigger reason bit to consider it for roam
  * trigger.
@@ -5968,6 +5973,8 @@ enum qca_vendor_roam_triggers {
 	QCA_ROAM_TRIGGER_REASON_IDLE		= 1 << 10,
 	QCA_ROAM_TRIGGER_REASON_TX_FAILURES	= 1 << 11,
 	QCA_ROAM_TRIGGER_REASON_EXTERNAL_SCAN	= 1 << 12,
+	QCA_ROAM_TRIGGER_REASON_WTC	        = 1 << 13,
+	QCA_ROAM_TRIGGER_REASON_BT_ACTIVITY	= 1 << 14,
 };
 
 /*
