@@ -10958,8 +10958,7 @@ static int driver_nl80211_link_remove(void *priv, enum wpa_driver_if_type type,
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	int ret;
 
-	if (type != WPA_IF_AP_BSS ||
-	    !nl80211_link_valid(bss->valid_links, link_id))
+	if (type != WPA_IF_AP_BSS)
 		return -1;
 
 	wpa_printf(MSG_DEBUG,
