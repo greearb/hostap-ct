@@ -6483,6 +6483,54 @@ enum qca_vendor_attr_roam_candidate_selection_criteria {
  *	better Wi-Fi bands. E.g., STA would initially connect to a 2.4 GHz BSSID
  *	and would migrate to 5/6 GHz when it comes closer to the AP (high RSSI
  *	for 2.4 GHz BSS).
+ *
+ * @QCA_ATTR_ROAM_CONTROL_CANDIDATE_SCORE_WEIGHTAGE_2P4GHZ: Unsigned 8-bit
+ *	value.
+ *	Represents the weightage in percentage (%) of the total score that is
+ *	given for the roam scan candidates present on the 2.4 GHz band. The
+ *	configuration is valid until next disconnection. If this attribute is
+ *	not present, the existing configuration shall be used.
+ *
+ * @QCA_ATTR_ROAM_CONTROL_CANDIDATE_SCORE_WEIGHTAGE_5GHZ: Unsigned 8-bit
+ *	value.
+ *	Represents the weightage in percentage (%) of the total score that is
+ *	given for the roam scan candidates present on the 5 GHz band.
+ *	The configuration is valid until next disconnection. If this attribute
+ *	is not present, the existing configuration shall be used.
+ *
+ * @QCA_ATTR_ROAM_CONTROL_CANDIDATE_SCORE_WEIGHTAGE_6GHZ: Unsigned 8-bit
+ *	value.
+ *	Represents the weightage in percentage (%) of the total score that is
+ *	given for the roam scan candidates present on the 6 GHz band.
+ *	The configuration is valid until next disconnection. If this attribute
+ *	is not present, the existing configuration shall be used.
+ *
+ * @QCA_ATTR_ROAM_CONTROL_CANDIDATE_SCORE_THRESHOLD_PERCENTAGE: Unsigned 8-bit
+ *	value.
+ *	This attribute indicates the minimum roam score difference in
+ *	percentage (%). The roam candidate AP will be ignored if the score
+ *	difference percentage between the roam candidate AP and the current
+ *	connected AP is less than current connected AP score roam score delta.
+ *	The configuration is valid until next disconnection.
+ *	If this attribute is not present, the existing configuration shall be
+ *	used.
+ *
+ * @QCA_ATTR_ROAM_CONTROL_CONNECTED_LOW_RSSI_THRESHOLD_DECREMENT: Unsigned 8-bit
+ *	value in dB.
+ *	This attribute indicates the RSSI decrement value from the current low
+ *	RSSI threshold for the next low RSSI roam trigger when no candidate is
+ *	found during the current low RSSI roam trigger. This value is applicable
+ *	only for low RSSI roam triggers. This configuration is valid until next
+ *	disconnection. If this attribute is not present, the existing
+ *	configuration shall be used.
+ *
+ * @QCA_ATTR_ROAM_CONTROL_PERIODIC_ROAM_SCAN_INTERVAL: Unsigned 32-bit
+ *	value in seconds.
+ *	This attribute defines the interval after which the next roam scan will
+ *	start if the current scan finds no candidates. The scan repeats at this
+ *	interval until a candidate is found.
+ *	This configuration is valid until next disconnection. If this attribute
+ *	is not present, the existing configuration shall be used.
  */
 enum qca_vendor_attr_roam_control {
 	QCA_ATTR_ROAM_CONTROL_ENABLE = 1,
@@ -6516,6 +6564,12 @@ enum qca_vendor_attr_roam_control {
 	QCA_ATTR_ROAM_CONTROL_CANDIDATE_ROAM_RSSI_DIFF = 29,
 	QCA_ATTR_ROAM_CONTROL_6GHZ_CANDIDATE_ROAM_RSSI_DIFF = 30,
 	QCA_ATTR_ROAM_CONTROL_CONNECTED_HIGH_RSSI_OFFSET = 31,
+	QCA_ATTR_ROAM_CONTROL_CANDIDATE_SCORE_WEIGHTAGE_2P4GHZ = 32,
+	QCA_ATTR_ROAM_CONTROL_CANDIDATE_SCORE_WEIGHTAGE_5GHZ = 33,
+	QCA_ATTR_ROAM_CONTROL_CANDIDATE_SCORE_WEIGHTAGE_6GHZ = 34,
+	QCA_ATTR_ROAM_CONTROL_CANDIDATE_SCORE_THRESHOLD_PERCENTAGE = 35,
+	QCA_ATTR_ROAM_CONTROL_CONNECTED_LOW_RSSI_THRESHOLD_DECREMENT = 36,
+	QCA_ATTR_ROAM_CONTROL_PERIODIC_ROAM_SCAN_INTERVAL = 37,
 
 	/* keep last */
 	QCA_ATTR_ROAM_CONTROL_AFTER_LAST,
