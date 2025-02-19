@@ -540,7 +540,7 @@ int wpas_send_scs_req(struct wpa_supplicant *wpa_s)
 	if (wpa_s->connection_eht && eht_ie &&
 	    eht_ie[1] >= 1 + IEEE80211_EHT_CAPAB_MIN_LEN) {
 		eht = (const struct ieee80211_eht_capabilities *) &eht_ie[3];
-		if (eht->mac_cap & EHT_MACCAP_SCS_TRAFFIC_DESC)
+		if (le_to_host16(eht->mac_cap) & EHT_MACCAP_SCS_TRAFFIC_DESC)
 			allow_scs_traffic_desc = true;
 	}
 
