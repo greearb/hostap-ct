@@ -1643,6 +1643,7 @@ static void p2p_process_prov_disc_bootstrap_resp(struct p2p_data *p2p,
 	size_t cookie_len = 0;
 	const u8 *pos, *cookie;
 	u16 comeback_after;
+	u16 bootstrap = 0;
 
 	/* Parse the P2P status present */
 	if (msg->status)
@@ -1709,16 +1710,24 @@ static void p2p_process_prov_disc_bootstrap_resp(struct p2p_data *p2p,
 		p2p->cfg->register_bootstrap_comeback(p2p->cfg->cb_ctx, sa,
 						      comeback_after);
 		p2p->cfg->send_action_done(p2p->cfg->cb_ctx);
+
+		if (p2p->cfg->bootstrap_rsp_rx)
+			p2p->cfg->bootstrap_rsp_rx(p2p->cfg->cb_ctx, sa, status,
+						   rx_freq, bootstrap);
 		return;
 	}
+
+	/* PBMA response */
+	if (msg->pbma_info_len >= 2)
+		bootstrap = WPA_GET_LE16(msg->pbma_info);
 
 	p2p->cfg->send_action_done(p2p->cfg->cb_ctx);
 	if (dev->flags & P2P_DEV_PD_BEFORE_GO_NEG)
 		dev->flags &= ~P2P_DEV_PD_BEFORE_GO_NEG;
 
-	if (p2p->cfg->bootstrap_completed)
-		p2p->cfg->bootstrap_completed(p2p->cfg->cb_ctx, sa, status,
-					      rx_freq);
+	if (p2p->cfg->bootstrap_rsp_rx)
+		p2p->cfg->bootstrap_rsp_rx(p2p->cfg->cb_ctx, sa, status,
+					   rx_freq, bootstrap);
 }
 
 

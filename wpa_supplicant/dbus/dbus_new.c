@@ -2386,17 +2386,18 @@ void wpas_dbus_signal_p2p_bootstrap_req(struct wpa_supplicant *wpa_s,
 
 
 /**
- * wpas_dbus_signal_p2p_bootstrap_completed - Signals BootstrappingCompleted event
- * event
+ * wpas_dbus_signal_p2p_bootstrap_rsp - Signals BootstrappingResponse event
  * @wpa_s: %wpa_supplicant network interface data
  * @src: Source address of the peer with which bootstrapping is done
  * @status: Status of Bootstrapping handshake
+ * @bootstrap_method: Peer's bootstrap method if status is success
  *
  * Sends a signal to notify that a peer P2P Device is requesting bootstrapping
  * negotiation with us.
  */
-void wpas_dbus_signal_p2p_bootstrap_completed(struct wpa_supplicant *wpa_s,
-					      const u8 *src, int status)
+void wpas_dbus_signal_p2p_bootstrap_rsp(struct wpa_supplicant *wpa_s,
+					const u8 *src, int status,
+					u16 bootstrap_method)
 {
 	DBusMessage *msg;
 	DBusMessageIter iter;
@@ -2430,7 +2431,9 @@ void wpas_dbus_signal_p2p_bootstrap_completed(struct wpa_supplicant *wpa_s,
 	if (!dbus_message_iter_append_basic(&iter, DBUS_TYPE_OBJECT_PATH,
 					    &path) ||
 	    !dbus_message_iter_append_basic(&iter, DBUS_TYPE_INT32,
-					    &status))
+					    &status) ||
+	    !dbus_message_iter_append_basic(&iter, DBUS_TYPE_UINT16,
+					    &bootstrap_method))
 		wpa_printf(MSG_ERROR, "dbus: Failed to construct signal");
 	else
 		dbus_connection_send(iface->con, msg, NULL);

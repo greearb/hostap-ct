@@ -1357,17 +1357,19 @@ struct p2p_config {
 				 u16 bootstrap_method);
 
 	/**
-	 * bootstrap_completed - Indicate bootstrapping completed with P2P peer
+	 * bootstrap_rsp_rx - Indicate bootstrapping response from a P2P peer
 	 * @ctx: Callback context from cb_ctx
 	 * @addr: P2P device address with which bootstrapping is completed
 	 * @status: P2P Status Code of bootstrapping handshake
 	 * @freq: Frequency in which bootstrapping is done
+	 * @bootstrap_method: Bootstrapping method by the peer device
 	 *
 	 * This function can be used to notify the status of bootstrapping
 	 * handshake.
 	 */
-	void (*bootstrap_completed)(void *ctx, const u8 *addr,
-				    enum p2p_status_code status, int freq);
+	void (*bootstrap_rsp_rx)(void *ctx, const u8 *addr,
+				 enum p2p_status_code status, int freq,
+				 u16 bootstrap_method);
 
 	/**
 	 * validate_dira - Indicate reception of DIRA to be validated against a

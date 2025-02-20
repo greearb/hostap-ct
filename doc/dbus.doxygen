@@ -2340,7 +2340,7 @@ Interface for performing P2P (Wi-Fi Peer-to-Peer) P2P Device operations.
   </li>
 
   <li>
-    <h3>BootstrappingCompleted ( o : path, i : status )</h3>
+    <h3>BootstrappingResponse ( o : path, i : status, q : bootstrap_method )</h3>
   </li>
 
 \section dbus_bss fi.w1.wpa_supplicant1.BSS

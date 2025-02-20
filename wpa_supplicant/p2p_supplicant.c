@@ -5499,12 +5499,13 @@ static void wpas_bootstrap_req_rx(void *ctx, const u8 *addr,
 }
 
 
-static void wpas_bootstrap_completed(void *ctx, const u8 *addr,
-				     enum p2p_status_code status, int freq)
+static void wpas_bootstrap_rsp_rx(void *ctx, const u8 *addr,
+				  enum p2p_status_code status, int freq,
+				  u16 bootstrap_method)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 
-	wpas_notify_p2p_bootstrap_completed(wpa_s, addr, status);
+	wpas_notify_p2p_bootstrap_rsp(wpa_s, addr, status, bootstrap_method);
 
 	if (status) {
 		wpa_msg_global(wpa_s, MSG_INFO,
@@ -5794,7 +5795,7 @@ int wpas_p2p_init(struct wpa_global *global, struct wpa_supplicant *wpa_s)
 	p2p.p2p_6ghz_disable = wpa_s->conf->p2p_6ghz_disable;
 	p2p.register_bootstrap_comeback = wpas_p2p_register_bootstrap_comeback;
 	p2p.bootstrap_req_rx = wpas_bootstrap_req_rx;
-	p2p.bootstrap_completed = wpas_bootstrap_completed;
+	p2p.bootstrap_rsp_rx = wpas_bootstrap_rsp_rx;
 	p2p.validate_dira = wpas_validate_dira;
 #ifdef CONFIG_PASN
 	p2p.pasn_send_mgmt = wpas_p2p_pasn_send_mgmt;
