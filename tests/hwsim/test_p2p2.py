@@ -21,6 +21,12 @@ from test_pasn import check_pasn_capab
 def check_p2p2_capab(dev):
     check_nan_usd_capab(dev)
     check_pasn_capab(dev)
+    res = dev.request("GET_CAPABILITY p2p2")
+    if res is None or "not supported" in res:
+        raise HwsimSkip("P2P2 not supported")
+    res = dev.request("GET_CAPABILITY pcc_mode")
+    if res is None or "not supported" in res:
+        raise HwsimSkip("PCC mode not supported")
 
 def set_p2p2_configs(dev):
     dev.global_request("P2P_SET pasn_type 3")
