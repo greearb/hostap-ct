@@ -4573,6 +4573,9 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit)
 		params.pbss = (ssid->pbss != 2) ? ssid->pbss : 0;
 	}
 
+	params.bssid_filter = wpa_s->bssid_filter;
+	params.bssid_filter_count = wpa_s->bssid_filter_count;
+
 	if (ssid->mode == WPAS_MODE_IBSS && ssid->bssid_set &&
 	    wpa_s->conf->ap_scan == 2) {
 		params.bssid = ssid->bssid;

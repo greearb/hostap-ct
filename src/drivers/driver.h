@@ -1412,6 +1412,16 @@ struct wpa_driver_associate_params {
 	 * spp_amsdu - SPP A-MSDU used on this connection
 	 */
 	bool spp_amsdu;
+
+	/**
+	 * bssid_filter - Allowed BSSIDs for the current association
+	 * This can be %NULL to indicate no constraint. */
+	const u8 *bssid_filter;
+
+	/**
+	 * bssid_filter_count - Number of allowed BSSIDs
+	 */
+	unsigned int bssid_filter_count;
 };
 
 enum hide_ssid {

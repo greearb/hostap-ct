@@ -7205,6 +7205,26 @@ static int nl80211_connect_ext(struct wpa_driver_nl80211_data *drv,
 		    sizeof(features), features))
 		goto fail;
 
+	if (params->bssid_filter && params->bssid_filter_count) {
+		struct nlattr *bssid_list;
+		unsigned int i;
+
+		bssid_list = nla_nest_start(
+			msg, QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_ALLOWED_BSSIDS);
+		if (!bssid_list)
+			goto fail;
+
+		for (i = 0; i < params->bssid_filter_count; i++) {
+			wpa_printf(MSG_DEBUG, "- bssid_filter[%d]=" MACSTR, i,
+				   MAC2STR(&params->bssid_filter[i * ETH_ALEN]));
+			if (nla_put(msg, i + 1, ETH_ALEN,
+				    &params->bssid_filter[i * ETH_ALEN]))
+				goto fail;
+		}
+
+		nla_nest_end(msg, bssid_list);
+	}
+
 	nla_nest_end(msg, attr);
 
 	return send_and_recv_cmd(drv, msg);
