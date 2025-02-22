@@ -540,7 +540,7 @@ void * os_memdup(const void *src, size_t len)
 #ifdef WPA_TRACE
 
 #if defined(WPA_TRACE_BFD) && defined(CONFIG_TESTING_OPTIONS)
-struct wpa_trace_test_fail {
+static struct wpa_trace_test_fail {
 	unsigned int fail_after;
 	char pattern[256];
 } wpa_trace_test_fail[5][4];
