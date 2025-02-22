@@ -3252,6 +3252,7 @@ def test_sigma_dut_ap_dpp_self_config_connector_privacy(dev, apdev, params):
          SigmaDut(iface, hostapd_logdir=logdir) as dut:
         dev[0].set("dpp_connector_privacy_default", "1")
         run_sigma_dut_ap_dpp_self_config(dut, dev, apdev)
+        dev[0].set("dpp_connector_privacy_default", "0")
 
 def run_sigma_dut_ap_dpp_self_config(dut, dev, apdev):
     check_dpp_capab(dev[0])
