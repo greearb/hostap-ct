@@ -154,15 +154,6 @@ void sta_update_assoc(struct wlantest_sta *sta, struct ieee802_11_elems *elems)
 		elems->rsn_ie = NULL;
 	}
 
-	if (elems->osen && !bss->osenie[0] &&
-	    (bss->beacon_seen || bss->proberesp_seen)) {
-		wpa_printf(MSG_INFO, "OSEN IE included in Association Request "
-			   "frame from " MACSTR " even though BSS does not "
-			   "use OSEN - ignore IE",
-			   MAC2STR(sta->addr));
-		elems->osen = NULL;
-	}
-
 	if (elems->wpa_ie && elems->rsn_ie) {
 		wpa_printf(MSG_INFO, "Both WPA IE and RSN IE included in "
 			   "Association Request frame from " MACSTR,
@@ -189,15 +180,6 @@ void sta_update_assoc(struct wlantest_sta *sta, struct ieee802_11_elems *elems)
 			wpa_printf(MSG_INFO, "Failed to parse WPA IE from "
 				   MACSTR, MAC2STR(sta->addr));
 		}
-	} else if (elems->osen) {
-		wpa_hexdump(MSG_DEBUG, "OSEN IE", elems->osen - 2,
-			    elems->osen_len + 2);
-		os_memcpy(sta->osenie, elems->osen - 2, elems->osen_len + 2);
-		sta->proto = WPA_PROTO_OSEN;
-		sta->pairwise_cipher = WPA_CIPHER_CCMP;
-		sta->key_mgmt = WPA_KEY_MGMT_OSEN;
-		sta->rsn_capab = 0;
-		goto skip_rsn_wpa;
 	} else {
 		sta->rsnie[0] = 0;
 		sta->proto = 0;
@@ -248,15 +230,14 @@ void sta_update_assoc(struct wlantest_sta *sta, struct ieee802_11_elems *elems)
 
 skip_rsn_wpa:
 	wpa_printf(MSG_INFO, "STA " MACSTR
-		   " proto=%s%s%s%s"
+		   " proto=%s%s%s"
 		   "pairwise=%s%s%s%s%s%s%s"
-		   "key_mgmt=%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
+		   "key_mgmt=%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
 		   "rsn_capab=%s%s%s%s%s%s%s%s%s%s",
 		   MAC2STR(sta->addr),
 		   sta->proto == 0 ? "OPEN " : "",
 		   sta->proto & WPA_PROTO_WPA ? "WPA " : "",
 		   sta->proto & WPA_PROTO_RSN ? "WPA2 " : "",
-		   sta->proto & WPA_PROTO_OSEN ? "OSEN " : "",
 		   sta->pairwise_cipher == 0 ? "N/A " : "",
 		   sta->pairwise_cipher & WPA_CIPHER_NONE ? "NONE " : "",
 		   sta->pairwise_cipher & WPA_CIPHER_TKIP ? "TKIP " : "",
@@ -278,7 +259,6 @@ skip_rsn_wpa:
 		   "PSK-SHA256 " : "",
 		   sta->key_mgmt & WPA_KEY_MGMT_OWE ? "OWE " : "",
 		   sta->key_mgmt & WPA_KEY_MGMT_PASN ? "PASN " : "",
-		   sta->key_mgmt & WPA_KEY_MGMT_OSEN ? "OSEN " : "",
 		   sta->key_mgmt & WPA_KEY_MGMT_DPP ? "DPP " : "",
 		   sta->key_mgmt & WPA_KEY_MGMT_IEEE8021X_SUITE_B ?
 		   "EAP-SUITE-B " : "",

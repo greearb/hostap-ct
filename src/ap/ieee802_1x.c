@@ -451,8 +451,7 @@ static int add_common_radius_sta_attr_rsn(struct hostapd_data *hapd,
 		return -1;
 	}
 
-	suite = wpa_cipher_to_suite(((hapd->conf->wpa & 0x2) ||
-				     hapd->conf->osen) ?
+	suite = wpa_cipher_to_suite(((hapd->conf->wpa & 0x2)) ?
 				    WPA_PROTO_RSN : WPA_PROTO_WPA,
 				    hapd->conf->wpa_group);
 	if (!hostapd_config_get_radius_attr(req_attr,
@@ -581,7 +580,7 @@ static int add_common_radius_sta_attr(struct hostapd_data *hapd,
 	}
 #endif /* CONFIG_IEEE80211R_AP */
 
-	if ((hapd->conf->wpa || hapd->conf->osen) && sta->wpa_sm &&
+	if (hapd->conf->wpa && sta->wpa_sm &&
 	    add_common_radius_sta_attr_rsn(hapd, req_attr, sta, msg) < 0)
 		return -1;
 
@@ -1123,7 +1122,7 @@ void ieee802_1x_receive(struct hostapd_data *hapd, const u8 *sa, const u8 *buf,
 	struct rsn_pmksa_cache_entry *pmksa;
 	int key_mgmt;
 
-	if (!hapd->conf->ieee802_1x && !hapd->conf->wpa && !hapd->conf->osen &&
+	if (!hapd->conf->ieee802_1x && !hapd->conf->wpa &&
 	    !hapd->conf->wps_state)
 		return;
 
@@ -1183,7 +1182,7 @@ void ieee802_1x_receive(struct hostapd_data *hapd, const u8 *sa, const u8 *buf,
 		return;
 	}
 
-	if (!hapd->conf->ieee802_1x && !hapd->conf->osen &&
+	if (!hapd->conf->ieee802_1x &&
 	    !(sta->flags & (WLAN_STA_WPS | WLAN_STA_MAYBE_WPS))) {
 		wpa_printf(MSG_DEBUG,
 			   "IEEE 802.1X: Ignore EAPOL message - 802.1X not enabled and WPS not used");
@@ -1356,7 +1355,7 @@ void ieee802_1x_new_station(struct hostapd_data *hapd, struct sta_info *sta)
 	}
 #endif /* CONFIG_WPS */
 
-	if (!force_1x && !hapd->conf->ieee802_1x && !hapd->conf->osen) {
+	if (!force_1x && !hapd->conf->ieee802_1x) {
 		wpa_printf(MSG_DEBUG,
 			   "IEEE 802.1X: Ignore STA - 802.1X not enabled or forced for WPS");
 		/*

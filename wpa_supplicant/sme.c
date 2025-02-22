@@ -719,21 +719,6 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 			wpas_connect_work_done(wpa_s);
 			return;
 		}
-#ifdef CONFIG_HS20
-	} else if (wpa_bss_get_vendor_ie(bss, OSEN_IE_VENDOR_TYPE) &&
-		   (ssid->key_mgmt & WPA_KEY_MGMT_OSEN)) {
-		/* No PMKSA caching, but otherwise similar to RSN/WPA */
-		wpa_s->sme.assoc_req_ie_len = sizeof(wpa_s->sme.assoc_req_ie);
-		if (wpa_supplicant_set_suites(wpa_s, bss, ssid,
-					      wpa_s->sme.assoc_req_ie,
-					      &wpa_s->sme.assoc_req_ie_len,
-					      false)) {
-			wpa_msg(wpa_s, MSG_WARNING, "SME: Failed to set WPA "
-				"key management and encryption suites");
-			wpas_connect_work_done(wpa_s);
-			return;
-		}
-#endif /* CONFIG_HS20 */
 	} else if ((ssid->key_mgmt & WPA_KEY_MGMT_IEEE8021X_NO_WPA) &&
 		   wpa_key_mgmt_wpa_ieee8021x(ssid->key_mgmt)) {
 		/*
@@ -2713,10 +2698,6 @@ mscs_fail:
 		params.wpa_proto = WPA_PROTO_WPA;
 		wpa_sm_set_assoc_wpa_ie(wpa_s->wpa, elems.wpa_ie - 2,
 					elems.wpa_ie_len + 2);
-	} else if (elems.osen) {
-		params.wpa_proto = WPA_PROTO_OSEN;
-		wpa_sm_set_assoc_wpa_ie(wpa_s->wpa, elems.osen - 2,
-					elems.osen_len + 2);
 	} else
 		wpa_sm_set_assoc_wpa_ie(wpa_s->wpa, NULL, 0);
 	if (elems.rsnxe)

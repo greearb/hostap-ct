@@ -343,10 +343,6 @@ static void elems_from_eapol_ie(struct ieee802_11_elems *elems,
 		elems->rsn_ie = ie->rsn_ie + 2;
 		elems->rsn_ie_len = ie->rsn_ie_len - 2;
 	}
-	if (ie->osen) {
-		elems->osen = ie->osen + 2;
-		elems->osen_len = ie->osen_len - 2;
-	}
 }
 
 
@@ -601,7 +597,6 @@ static u8 * decrypt_eapol_key_data(struct wlantest *wt,
 		return decrypt_eapol_key_data_aes(wt, kek, kek_len, hdr,
 						  keydata, keydatalen, len);
 	case WPA_KEY_INFO_TYPE_AKM_DEFINED:
-		/* For now, assume this is OSEN */
 		return decrypt_eapol_key_data_aes(wt, kek, kek_len, hdr,
 						  keydata, keydatalen, len);
 	default:

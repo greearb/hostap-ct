@@ -713,10 +713,6 @@ static int hostapd_config_parse_key_mgmt(int line, const char *value)
 		else if (os_strcmp(start, "DPP") == 0)
 			val |= WPA_KEY_MGMT_DPP;
 #endif /* CONFIG_DPP */
-#ifdef CONFIG_HS20
-		else if (os_strcmp(start, "OSEN") == 0)
-			val |= WPA_KEY_MGMT_OSEN;
-#endif /* CONFIG_HS20 */
 #ifdef CONFIG_PASN
 		else if (os_strcmp(start, "PASN") == 0)
 			val |= WPA_KEY_MGMT_PASN;
@@ -4385,8 +4381,6 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->disable_dgaf = atoi(pos);
 	} else if (os_strcmp(buf, "na_mcast_to_ucast") == 0) {
 		bss->na_mcast_to_ucast = atoi(pos);
-	} else if (os_strcmp(buf, "osen") == 0) {
-		bss->osen = atoi(pos);
 	} else if (os_strcmp(buf, "anqp_domain_id") == 0) {
 		bss->anqp_domain_id = atoi(pos);
 	} else if (os_strcmp(buf, "hs20_deauth_req_timeout") == 0) {

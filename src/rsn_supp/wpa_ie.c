@@ -31,9 +31,6 @@ int wpa_parse_wpa_ie(const u8 *wpa_ie, size_t wpa_ie_len,
 	if (wpa_ie_len >= 1 && wpa_ie[0] == WLAN_EID_RSN)
 		return wpa_parse_wpa_ie_rsn(wpa_ie, wpa_ie_len, data);
 	if (wpa_ie_len >= 6 && wpa_ie[0] == WLAN_EID_VENDOR_SPECIFIC &&
-	    wpa_ie[1] >= 4 && WPA_GET_BE32(&wpa_ie[2]) == OSEN_IE_VENDOR_TYPE)
-		return wpa_parse_wpa_ie_rsn(wpa_ie, wpa_ie_len, data);
-	if (wpa_ie_len >= 6 && wpa_ie[0] == WLAN_EID_VENDOR_SPECIFIC &&
 	    wpa_ie[1] >= 4 &&
 	    WPA_GET_BE32(&wpa_ie[2]) == RSNE_OVERRIDE_IE_VENDOR_TYPE)
 		return wpa_parse_wpa_ie_rsn(wpa_ie, wpa_ie_len, data);
@@ -233,10 +230,6 @@ static int wpa_gen_wpa_ie_rsn(u8 *rsn_ie, size_t rsn_ie_len,
 	} else if (key_mgmt & WPA_KEY_MGMT_DPP) {
 		RSN_SELECTOR_PUT(pos, RSN_AUTH_KEY_MGMT_DPP);
 #endif /* CONFIG_DPP */
-#ifdef CONFIG_HS20
-	} else if (key_mgmt & WPA_KEY_MGMT_OSEN) {
-		RSN_SELECTOR_PUT(pos, RSN_AUTH_KEY_MGMT_OSEN);
-#endif /* CONFIG_HS20 */
 #ifdef CONFIG_SHA384
 	} else if (key_mgmt == WPA_KEY_MGMT_IEEE8021X_SHA384) {
 		RSN_SELECTOR_PUT(pos, RSN_AUTH_KEY_MGMT_802_1X_SHA384);
@@ -282,64 +275,6 @@ static int wpa_gen_wpa_ie_rsn(u8 *rsn_ie, size_t rsn_ie_len,
 }
 
 
-#ifdef CONFIG_HS20
-static int wpa_gen_wpa_ie_osen(u8 *wpa_ie, size_t wpa_ie_len,
-			       int pairwise_cipher, int group_cipher,
-			       int key_mgmt)
-{
-	u8 *pos, *len;
-	u32 suite;
-
-	if (wpa_ie_len < 2 + 4 + RSN_SELECTOR_LEN +
-	    2 + RSN_SELECTOR_LEN + 2 + RSN_SELECTOR_LEN)
-		return -1;
-
-	pos = wpa_ie;
-	*pos++ = WLAN_EID_VENDOR_SPECIFIC;
-	len = pos++; /* to be filled */
-	WPA_PUT_BE24(pos, OUI_WFA);
-	pos += 3;
-	*pos++ = HS20_OSEN_OUI_TYPE;
-
-	/* Group Data Cipher Suite */
-	suite = wpa_cipher_to_suite(WPA_PROTO_RSN, group_cipher);
-	if (suite == 0) {
-		wpa_printf(MSG_WARNING, "Invalid group cipher (%d).",
-			   group_cipher);
-		return -1;
-	}
-	RSN_SELECTOR_PUT(pos, suite);
-	pos += RSN_SELECTOR_LEN;
-
-	/* Pairwise Cipher Suite Count and List */
-	WPA_PUT_LE16(pos, 1);
-	pos += 2;
-	suite = wpa_cipher_to_suite(WPA_PROTO_RSN, pairwise_cipher);
-	if (suite == 0 ||
-	    (!wpa_cipher_valid_pairwise(pairwise_cipher) &&
-	     pairwise_cipher != WPA_CIPHER_NONE)) {
-		wpa_printf(MSG_WARNING, "Invalid pairwise cipher (%d).",
-			   pairwise_cipher);
-		return -1;
-	}
-	RSN_SELECTOR_PUT(pos, suite);
-	pos += RSN_SELECTOR_LEN;
-
-	/* AKM Suite Count and List */
-	WPA_PUT_LE16(pos, 1);
-	pos += 2;
-	RSN_SELECTOR_PUT(pos, RSN_AUTH_KEY_MGMT_OSEN);
-	pos += RSN_SELECTOR_LEN;
-
-	*len = pos - len - 1;
-
-	WPA_ASSERT((size_t) (pos - wpa_ie) <= wpa_ie_len);
-
-	return pos - wpa_ie;
-}
-#endif /* CONFIG_HS20 */
-
-
 /**
  * wpa_gen_wpa_ie - Generate WPA/RSN IE based on current security policy
  * @sm: Pointer to WPA state machine data from wpa_sm_init()
@@ -355,13 +290,6 @@ int wpa_gen_wpa_ie(struct wpa_sm *sm, u8 *wpa_ie, size_t wpa_ie_len)
 					  sm->group_cipher,
 					  sm->key_mgmt, sm->mgmt_group_cipher,
 					  sm);
-#ifdef CONFIG_HS20
-	else if (sm->proto == WPA_PROTO_OSEN)
-		return wpa_gen_wpa_ie_osen(wpa_ie, wpa_ie_len,
-					   sm->pairwise_cipher,
-					   sm->group_cipher,
-					   sm->key_mgmt);
-#endif /* CONFIG_HS20 */
 	else
 		return wpa_gen_wpa_ie_wpa(wpa_ie, wpa_ie_len,
 					  sm->pairwise_cipher,

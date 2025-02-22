@@ -255,8 +255,7 @@ void wpa_sm_key_request(struct wpa_sm *sm, int error, int pairwise)
 	if (rbuf == NULL)
 		return;
 
-	reply->type = (sm->proto == WPA_PROTO_RSN ||
-		       sm->proto == WPA_PROTO_OSEN) ?
+	reply->type = (sm->proto == WPA_PROTO_RSN) ?
 		EAPOL_KEY_TYPE_RSN : EAPOL_KEY_TYPE_WPA;
 	key_info = WPA_KEY_INFO_REQUEST | ver;
 	key_info |= WPA_KEY_INFO_SECURE;
@@ -481,8 +480,7 @@ static int wpa_supplicant_get_pmk(struct wpa_sm *sm,
 
 	if (abort_cached && wpa_key_mgmt_wpa_ieee8021x(sm->key_mgmt) &&
 	    !wpa_key_mgmt_suite_b(sm->key_mgmt) &&
-	    !wpa_key_mgmt_ft(sm->key_mgmt) && sm->key_mgmt != WPA_KEY_MGMT_OSEN)
-	{
+	    !wpa_key_mgmt_ft(sm->key_mgmt)) {
 		/* Send EAPOL-Start to trigger full EAP authentication. */
 		u8 *buf;
 		size_t buflen;
@@ -636,8 +634,7 @@ int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 		return -1;
 	}
 
-	reply->type = (sm->proto == WPA_PROTO_RSN ||
-		       sm->proto == WPA_PROTO_OSEN) ?
+	reply->type = (sm->proto == WPA_PROTO_RSN) ?
 		EAPOL_KEY_TYPE_RSN : EAPOL_KEY_TYPE_WPA;
 	key_info = ver | WPA_KEY_INFO_KEY_TYPE;
 	if (sm->ptk_set && sm->proto != WPA_PROTO_WPA)
@@ -653,7 +650,7 @@ int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 		key_info |= sm->eapol_2_key_info_set_mask;
 #endif /* CONFIG_TESTING_OPTIONS */
 	WPA_PUT_BE16(reply->key_info, key_info);
-	if (sm->proto == WPA_PROTO_RSN || sm->proto == WPA_PROTO_OSEN)
+	if (sm->proto == WPA_PROTO_RSN)
 		WPA_PUT_BE16(reply->key_length, 0);
 	else
 		os_memcpy(reply->key_length, key->key_length, 2);
@@ -1260,7 +1257,7 @@ static int wpa_supplicant_install_ptk(struct wpa_sm *sm,
 	}
 	rsclen = wpa_cipher_rsc_len(sm->pairwise_cipher);
 
-	if (sm->proto == WPA_PROTO_RSN || sm->proto == WPA_PROTO_OSEN) {
+	if (sm->proto == WPA_PROTO_RSN) {
 		key_rsc = null_rsc;
 	} else {
 		key_rsc = key->key_rsc;
@@ -2371,8 +2368,7 @@ int wpa_supplicant_send_4_of_4(struct wpa_sm *sm, const unsigned char *dst,
 		return -1;
 	}
 
-	reply->type = (sm->proto == WPA_PROTO_RSN ||
-		       sm->proto == WPA_PROTO_OSEN) ?
+	reply->type = (sm->proto == WPA_PROTO_RSN) ?
 		EAPOL_KEY_TYPE_RSN : EAPOL_KEY_TYPE_WPA;
 	key_info &= WPA_KEY_INFO_SECURE;
 	key_info |= ver | WPA_KEY_INFO_KEY_TYPE;
@@ -2385,7 +2381,7 @@ int wpa_supplicant_send_4_of_4(struct wpa_sm *sm, const unsigned char *dst,
 		key_info |= WPA_KEY_INFO_ENCR_KEY_DATA;
 #endif /* CONFIG_TESTING_OPTIONS */
 	WPA_PUT_BE16(reply->key_info, key_info);
-	if (sm->proto == WPA_PROTO_RSN || sm->proto == WPA_PROTO_OSEN)
+	if (sm->proto == WPA_PROTO_RSN)
 		WPA_PUT_BE16(reply->key_length, 0);
 	else
 		os_memcpy(reply->key_length, key->key_length, 2);
@@ -3037,8 +3033,7 @@ static int wpa_supplicant_send_2_of_2(struct wpa_sm *sm,
 	if (rbuf == NULL)
 		return -1;
 
-	reply->type = (sm->proto == WPA_PROTO_RSN ||
-		       sm->proto == WPA_PROTO_OSEN) ?
+	reply->type = (sm->proto == WPA_PROTO_RSN) ?
 		EAPOL_KEY_TYPE_RSN : EAPOL_KEY_TYPE_WPA;
 	key_info &= WPA_KEY_INFO_KEY_INDEX_MASK;
 	key_info |= ver | WPA_KEY_INFO_SECURE;
@@ -3047,7 +3042,7 @@ static int wpa_supplicant_send_2_of_2(struct wpa_sm *sm,
 	else
 		key_info |= WPA_KEY_INFO_ENCR_KEY_DATA;
 	WPA_PUT_BE16(reply->key_info, key_info);
-	if (sm->proto == WPA_PROTO_RSN || sm->proto == WPA_PROTO_OSEN)
+	if (sm->proto == WPA_PROTO_RSN)
 		WPA_PUT_BE16(reply->key_length, 0);
 	else
 		os_memcpy(reply->key_length, key->key_length, 2);
@@ -4089,7 +4084,7 @@ int wpa_sm_rx_eapol(struct wpa_sm *sm, const u8 *src_addr,
 	}
 #endif /* CONFIG_FILS */
 
-	if ((sm->proto == WPA_PROTO_RSN || sm->proto == WPA_PROTO_OSEN) &&
+	if (sm->proto == WPA_PROTO_RSN &&
 	    (key_info & WPA_KEY_INFO_ENCR_KEY_DATA) && mic_len) {
 		/*
 		 * Only decrypt the Key Data field if the frame's authenticity
@@ -4159,8 +4154,7 @@ static u32 wpa_key_mgmt_suite(struct wpa_sm *sm)
 {
 	switch (sm->key_mgmt) {
 	case WPA_KEY_MGMT_IEEE8021X:
-		return ((sm->proto == WPA_PROTO_RSN ||
-			 sm->proto == WPA_PROTO_OSEN) ?
+		return ((sm->proto == WPA_PROTO_RSN) ?
 			RSN_AUTH_KEY_MGMT_UNSPEC_802_1X :
 			WPA_AUTH_KEY_MGMT_UNSPEC_802_1X);
 	case WPA_KEY_MGMT_PSK:

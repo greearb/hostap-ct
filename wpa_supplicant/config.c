@@ -693,8 +693,6 @@ static int wpa_config_parse_proto(const struct parse_data *data,
 		else if (os_strcmp(start, "RSN") == 0 ||
 			 os_strcmp(start, "WPA2") == 0)
 			val |= WPA_PROTO_RSN;
-		else if (os_strcmp(start, "OSEN") == 0)
-			val |= WPA_PROTO_OSEN;
 		else {
 			wpa_printf(MSG_ERROR, "Line %d: invalid proto '%s'",
 				   line, start);
@@ -743,14 +741,6 @@ static char * wpa_config_write_proto(const struct parse_data *data,
 
 	if (ssid->proto & WPA_PROTO_RSN) {
 		ret = os_snprintf(pos, end - pos, "%sRSN",
-				  pos == buf ? "" : " ");
-		if (os_snprintf_error(end - pos, ret))
-			return buf;
-		pos += ret;
-	}
-
-	if (ssid->proto & WPA_PROTO_OSEN) {
-		ret = os_snprintf(pos, end - pos, "%sOSEN",
 				  pos == buf ? "" : " ");
 		if (os_snprintf_error(end - pos, ret))
 			return buf;
@@ -831,10 +821,6 @@ static int wpa_config_parse_key_mgmt(const struct parse_data *data,
 		else if (os_strcmp(start, "FT-SAE-EXT-KEY") == 0)
 			val |= WPA_KEY_MGMT_FT_SAE_EXT_KEY;
 #endif /* CONFIG_SAE */
-#ifdef CONFIG_HS20
-		else if (os_strcmp(start, "OSEN") == 0)
-			val |= WPA_KEY_MGMT_OSEN;
-#endif /* CONFIG_HS20 */
 #ifdef CONFIG_SUITEB
 		else if (os_strcmp(start, "WPA-EAP-SUITE-B") == 0)
 			val |= WPA_KEY_MGMT_IEEE8021X_SUITE_B;
@@ -1070,18 +1056,6 @@ static char * wpa_config_write_key_mgmt(const struct parse_data *data,
 		pos += ret;
 	}
 #endif /* CONFIG_SAE */
-
-#ifdef CONFIG_HS20
-	if (ssid->key_mgmt & WPA_KEY_MGMT_OSEN) {
-		ret = os_snprintf(pos, end - pos, "%sOSEN",
-				  pos == buf ? "" : " ");
-		if (os_snprintf_error(end - pos, ret)) {
-			end[-1] = '\0';
-			return buf;
-		}
-		pos += ret;
-	}
-#endif /* CONFIG_HS20 */
 
 #ifdef CONFIG_SUITEB
 	if (ssid->key_mgmt & WPA_KEY_MGMT_IEEE8021X_SUITE_B) {

@@ -403,19 +403,6 @@ static u8 * hostapd_get_wpa_ie(struct hostapd_data *hapd, u8 *pos, size_t len)
 }
 
 
-static u8 * hostapd_get_osen_ie(struct hostapd_data *hapd, u8 *pos, size_t len)
-{
-	const u8 *ie;
-
-	ie = hostapd_vendor_wpa_ie(hapd, OSEN_IE_VENDOR_TYPE);
-	if (!ie || 2U + ie[1] > len)
-		return pos;
-
-	os_memcpy(pos, ie, 2 + ie[1]);
-	return pos + 2 + ie[1];
-}
-
-
 static u8 * hostapd_get_rsne_override(struct hostapd_data *hapd, u8 *pos,
 				      size_t len)
 {
@@ -955,9 +942,8 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 		pos = hostapd_eid_vendor_vht(hapd, pos);
 #endif /* CONFIG_IEEE80211AC */
 
-	/* WPA / OSEN */
+	/* WPA */
 	pos = hostapd_get_wpa_ie(hapd, pos, epos - pos);
-	pos = hostapd_get_osen_ie(hapd, pos, epos - pos);
 
 	/* Wi-Fi Alliance WMM */
 	pos = hostapd_eid_wmm(hapd, pos);
@@ -2423,9 +2409,8 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 		tailpos = hostapd_eid_vendor_vht(hapd, tailpos);
 #endif /* CONFIG_IEEE80211AC */
 
-	/* WPA / OSEN */
+	/* WPA */
 	tailpos = hostapd_get_wpa_ie(hapd, tailpos, tailend - tailpos);
-	tailpos = hostapd_get_osen_ie(hapd, tailpos, tailend - tailpos);
 
 	/* Wi-Fi Alliance WMM */
 	tailpos = hostapd_eid_wmm(hapd, tailpos);
@@ -2597,10 +2582,6 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 #endif /* CONFIG_P2P */
 #ifdef CONFIG_HS20
 	params->disable_dgaf = hapd->conf->disable_dgaf;
-	if (hapd->conf->osen) {
-		params->privacy = 1;
-		params->osen = 1;
-	}
 #endif /* CONFIG_HS20 */
 	params->multicast_to_unicast = hapd->conf->multicast_to_unicast;
 	params->pbss = hapd->conf->pbss;

@@ -68,7 +68,6 @@ struct wlantest_sta {
 	u8 rsnie[257]; /* WPA/RSN IE */
 	u8 rsnxe[254]; /* RSNXE data */
 	size_t rsnxe_len;
-	u8 osenie[257]; /* OSEN IE */
 	int proto;
 	int pairwise_cipher;
 	int group_cipher;

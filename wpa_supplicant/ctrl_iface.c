@@ -3014,14 +3014,6 @@ static char * wpa_supplicant_ie_txt(char *pos, char *end, const char *proto,
 	}
 #endif /* CONFIG_DPP */
 
-	if (data.key_mgmt & WPA_KEY_MGMT_OSEN) {
-		ret = os_snprintf(pos, end - pos, "%sOSEN",
-				  pos == start ? "" : "+");
-		if (os_snprintf_error(end - pos, ret))
-			return pos;
-		pos += ret;
-	}
-
 #ifdef CONFIG_SHA384
 	if (data.key_mgmt & WPA_KEY_MGMT_IEEE8021X_SHA384) {
 		ret = os_snprintf(pos, end - pos, "%sEAP-SHA384",
@@ -3099,7 +3091,7 @@ static int wpa_supplicant_ctrl_iface_scan_result(
 {
 	char *pos, *end;
 	int ret;
-	const u8 *ie, *ie2, *osen_ie, *p2p, *mesh, *owe, *rsnxe;
+	const u8 *ie, *ie2, *p2p, *mesh, *owe, *rsnxe;
 
 	mesh = wpa_bss_get_ie(bss, WLAN_EID_MESH_ID);
 	p2p = wpa_bss_get_vendor_ie(bss, P2P_IE_VENDOR_TYPE);
@@ -3139,10 +3131,6 @@ static int wpa_supplicant_ctrl_iface_scan_result(
 			return -1;
 		pos += ret;
 	}
-	osen_ie = wpa_bss_get_vendor_ie(bss, OSEN_IE_VENDOR_TYPE);
-	if (osen_ie)
-		pos = wpa_supplicant_ie_txt(pos, end, "OSEN",
-					    osen_ie, 2 + osen_ie[1]);
 	owe = wpa_bss_get_vendor_ie(bss, OWE_IE_VENDOR_TYPE);
 	if (owe) {
 		ret = os_snprintf(pos, end - pos,
@@ -3152,7 +3140,7 @@ static int wpa_supplicant_ctrl_iface_scan_result(
 		pos += ret;
 	}
 	pos = wpa_supplicant_wps_ie_txt(wpa_s, pos, end, bss);
-	if (!ie && !ie2 && !osen_ie && (bss->caps & IEEE80211_CAP_PRIVACY)) {
+	if (!ie && !ie2 && (bss->caps & IEEE80211_CAP_PRIVACY)) {
 		ret = os_snprintf(pos, end - pos, "[WEP]");
 		if (os_snprintf_error(end - pos, ret))
 			return -1;
@@ -4462,14 +4450,6 @@ static int ctrl_iface_get_capability_key_mgmt(int res, bool strict,
 		pos += ret;
 	}
 #endif /* CONFIG_SHA256 */
-#ifdef CONFIG_HS20
-	if (key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_OSEN) {
-		ret = os_snprintf(pos, end - pos, " OSEN");
-		if (os_snprintf_error(end - pos, ret))
-			return pos - buf;
-		pos += ret;
-	}
-#endif /* CONFIG_HS20 */
 
 	return pos - buf;
 }
@@ -5331,7 +5311,7 @@ static int print_bss_info(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 	size_t i;
 	int ret;
 	char *pos, *end;
-	const u8 *ie, *ie2, *osen_ie, *mesh, *owe, *rsnxe;
+	const u8 *ie, *ie2, *mesh, *owe, *rsnxe;
 
 	pos = buf;
 	end = buf + buflen;
@@ -5464,10 +5444,6 @@ static int print_bss_info(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 				return 0;
 			pos += ret;
 		}
-		osen_ie = wpa_bss_get_vendor_ie(bss, OSEN_IE_VENDOR_TYPE);
-		if (osen_ie)
-			pos = wpa_supplicant_ie_txt(pos, end, "OSEN",
-						    osen_ie, 2 + osen_ie[1]);
 		owe = wpa_bss_get_vendor_ie(bss, OWE_IE_VENDOR_TYPE);
 		if (owe) {
 			ret = os_snprintf(
@@ -5478,7 +5454,7 @@ static int print_bss_info(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 			pos += ret;
 		}
 		pos = wpa_supplicant_wps_ie_txt(wpa_s, pos, end, bss);
-		if (!ie && !ie2 && !osen_ie &&
+		if (!ie && !ie2 &&
 		    (bss->caps & IEEE80211_CAP_PRIVACY)) {
 			ret = os_snprintf(pos, end - pos, "[WEP]");
 			if (os_snprintf_error(end - pos, ret))

@@ -2784,8 +2784,7 @@ SM_STATE(WPA_PTK, PTKSTART)
 	if (sm->wpa == WPA_VERSION_WPA2 &&
 	    (wpa_key_mgmt_wpa_ieee8021x(sm->wpa_key_mgmt) ||
 	     (sm->wpa_key_mgmt == WPA_KEY_MGMT_OWE && sm->pmksa) ||
-	     wpa_key_mgmt_sae(sm->wpa_key_mgmt)) &&
-	    sm->wpa_key_mgmt != WPA_KEY_MGMT_OSEN) {
+	     wpa_key_mgmt_sae(sm->wpa_key_mgmt))) {
 		pmkid = buf;
 		kde_len = 2 + RSN_SELECTOR_LEN + PMKID_LEN;
 		pmkid[0] = WLAN_EID_VENDOR_SPECIFIC;
@@ -3432,7 +3431,7 @@ static struct wpabuf * fils_prepare_plainbuf(struct wpa_state_machine *sm,
 	/* GTK KDE */
 	gtk = gsm->GTK[gsm->GN - 1];
 	gtk_len = gsm->GTK_len;
-	if (conf->disable_gtk || sm->wpa_key_mgmt == WPA_KEY_MGMT_OSEN) {
+	if (conf->disable_gtk) {
 		/*
 		 * Provide unique random GTK to each STA to prevent use
 		 * of GTK in the BSS.
@@ -3853,9 +3852,6 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 	if (kde.rsn_ie) {
 		eapol_key_ie = kde.rsn_ie;
 		eapol_key_ie_len = kde.rsn_ie_len;
-	} else if (kde.osen) {
-		eapol_key_ie = kde.osen;
-		eapol_key_ie_len = kde.osen_len;
 	} else {
 		eapol_key_ie = kde.wpa_ie;
 		eapol_key_ie_len = kde.wpa_ie_len;
@@ -4109,7 +4105,7 @@ static u8 * ieee80211w_kde_add(struct wpa_state_machine *sm, u8 *pos)
 	else
 		os_memcpy(igtk.pn, rsc, sizeof(igtk.pn));
 	os_memcpy(igtk.igtk, gsm->IGTK[gsm->GN_igtk - 4], len);
-	if (conf->disable_gtk || sm->wpa_key_mgmt == WPA_KEY_MGMT_OSEN) {
+	if (conf->disable_gtk) {
 		/*
 		 * Provide unique random IGTK to each STA to prevent use of
 		 * IGTK in the BSS.
@@ -4140,14 +4136,6 @@ static u8 * ieee80211w_kde_add(struct wpa_state_machine *sm, u8 *pos)
 	else
 		os_memcpy(bigtk.pn, rsc, sizeof(bigtk.pn));
 	os_memcpy(bigtk.bigtk, gsm->BIGTK[gsm->GN_bigtk - 6], len);
-	if (sm->wpa_key_mgmt == WPA_KEY_MGMT_OSEN) {
-		/*
-		 * Provide unique random BIGTK to each OSEN STA to prevent use
-		 * of BIGTK in the BSS.
-		 */
-		if (random_get_bytes(bigtk.bigtk, len) < 0)
-			return pos;
-	}
 	pos = wpa_add_kde(pos, RSN_KEY_DATA_BIGTK,
 			  (const u8 *) &bigtk, WPA_BIGTK_KDE_PREFIX_LEN + len,
 			  NULL, 0);
@@ -4841,8 +4829,7 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 		secure = 1;
 		gtk = gsm->GTK[gsm->GN - 1];
 		gtk_len = gsm->GTK_len;
-		if (conf->disable_gtk ||
-		    sm->wpa_key_mgmt == WPA_KEY_MGMT_OSEN) {
+		if (conf->disable_gtk) {
 			/*
 			 * Provide unique random GTK to each STA to prevent use
 			 * of GTK in the BSS.
@@ -5397,7 +5384,7 @@ SM_STATE(WPA_PTK_GROUP, REKEYNEGOTIATING)
 			"sending 1/2 msg of Group Key Handshake");
 
 	gtk = gsm->GTK[gsm->GN - 1];
-	if (conf->disable_gtk || sm->wpa_key_mgmt == WPA_KEY_MGMT_OSEN) {
+	if (conf->disable_gtk) {
 		/*
 		 * Provide unique random GTK to each STA to prevent use
 		 * of GTK in the BSS.
@@ -5778,7 +5765,7 @@ int wpa_wnmsleep_gtk_subelem(struct wpa_state_machine *sm, u8 *pos)
 		return 0;
 	pos += 8;
 	os_memcpy(pos, gsm->GTK[gsm->GN - 1], gsm->GTK_len);
-	if (conf->disable_gtk || sm->wpa_key_mgmt == WPA_KEY_MGMT_OSEN) {
+	if (conf->disable_gtk) {
 		/*
 		 * Provide unique random GTK to each STA to prevent use
 		 * of GTK in the BSS.
@@ -5817,7 +5804,7 @@ int wpa_wnmsleep_igtk_subelem(struct wpa_state_machine *sm, u8 *pos)
 	pos += 6;
 
 	os_memcpy(pos, gsm->IGTK[gsm->GN_igtk - 4], len);
-	if (conf->disable_gtk || sm->wpa_key_mgmt == WPA_KEY_MGMT_OSEN) {
+	if (conf->disable_gtk) {
 		/*
 		 * Provide unique random IGTK to each STA to prevent use
 		 * of IGTK in the BSS.
@@ -5856,14 +5843,6 @@ int wpa_wnmsleep_bigtk_subelem(struct wpa_state_machine *sm, u8 *pos)
 	pos += 6;
 
 	os_memcpy(pos, gsm->BIGTK[gsm->GN_bigtk - 6], len);
-	if (sm->wpa_key_mgmt == WPA_KEY_MGMT_OSEN) {
-		/*
-		 * Provide unique random BIGTK to each STA to prevent use
-		 * of BIGTK in the BSS.
-		 */
-		if (random_get_bytes(pos, len) < 0)
-			return 0;
-	}
 	pos += len;
 
 	wpa_printf(MSG_DEBUG, "WNM: BIGTK Key ID %u in WNM-Sleep Mode exit",

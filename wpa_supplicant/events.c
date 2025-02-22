@@ -639,9 +639,6 @@ static int wpa_supplicant_match_privacy(struct wpa_bss *bss,
 	if (wpa_key_mgmt_wpa(ssid->key_mgmt))
 		privacy = 1;
 
-	if (ssid->key_mgmt & WPA_KEY_MGMT_OSEN)
-		privacy = 1;
-
 	if (bss->caps & IEEE80211_CAP_PRIVACY)
 		return privacy;
 	return !privacy;
@@ -681,7 +678,7 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 		return 0;
 	}
 
-	while ((ssid->proto & (WPA_PROTO_RSN | WPA_PROTO_OSEN)) && rsn_ie) {
+	while ((ssid->proto & WPA_PROTO_RSN) && rsn_ie) {
 		proto_match++;
 
 		if (wpa_parse_wpa_ie(rsn_ie, 2 + rsn_ie[1], &ie)) {
@@ -716,8 +713,7 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 		}
 #endif /* CONFIG_WEP */
 
-		if (!(ie.proto & ssid->proto) &&
-		    !(ssid->proto & WPA_PROTO_OSEN)) {
+		if (!(ie.proto & ssid->proto)) {
 			if (debug_print)
 				wpa_dbg(wpa_s, MSG_DEBUG,
 					"   skip RSN IE - proto mismatch");
@@ -917,13 +913,6 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 			wpa_dbg(wpa_s, MSG_DEBUG,
 				"   skip - no WPA/RSN proto match");
 		return 0;
-	}
-
-	if ((ssid->key_mgmt & WPA_KEY_MGMT_OSEN) &&
-	    wpa_bss_get_vendor_ie(bss, OSEN_IE_VENDOR_TYPE)) {
-		if (debug_print)
-			wpa_dbg(wpa_s, MSG_DEBUG, "   allow in OSEN");
-		return 1;
 	}
 
 	if (!wpa_key_mgmt_wpa(ssid->key_mgmt)) {
@@ -1268,10 +1257,7 @@ static bool wpa_scan_res_ok(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 			    bool debug_print)
 {
 	int res;
-	bool wpa, check_ssid, osen, rsn_osen = false;
-#ifndef CONFIG_NO_WPA
-	struct wpa_ie_data data;
-#endif /* CONFIG_NO_WPA */
+	bool wpa, check_ssid = false;
 #ifdef CONFIG_MBO
 	const u8 *assoc_disallow;
 #endif /* CONFIG_MBO */
@@ -1285,13 +1271,6 @@ static bool wpa_scan_res_ok(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 	wpa = ie && ie[1];
 	ie = wpa_bss_get_rsne(wpa_s, bss, ssid, false);
 	wpa |= ie && ie[1];
-#ifndef CONFIG_NO_WPA
-	if (ie && wpa_parse_wpa_ie_rsn(ie, 2 + ie[1], &data) == 0 &&
-	    (data.key_mgmt & WPA_KEY_MGMT_OSEN))
-		rsn_osen = true;
-#endif /* CONFIG_NO_WPA */
-	ie = wpa_bss_get_vendor_ie(bss, OSEN_IE_VENDOR_TYPE);
-	osen = ie != NULL;
 
 #ifdef CONFIG_SAE
 	ie = wpa_bss_get_rsnxe(wpa_s, bss, ssid, false);
@@ -1380,7 +1359,7 @@ static bool wpa_scan_res_ok(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 	if (!wpa_supplicant_ssid_bss_match(wpa_s, ssid, bss, debug_print))
 		return false;
 
-	if (!osen && !wpa &&
+	if (!wpa &&
 	    !(ssid->key_mgmt & WPA_KEY_MGMT_NONE) &&
 	    !(ssid->key_mgmt & WPA_KEY_MGMT_WPS) &&
 	    !(ssid->key_mgmt & WPA_KEY_MGMT_OWE) &&
@@ -1399,13 +1378,6 @@ static bool wpa_scan_res_ok(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 		return false;
 	}
 #endif /* CONFIG_WEP */
-
-	if ((ssid->key_mgmt & WPA_KEY_MGMT_OSEN) && !osen && !rsn_osen) {
-		if (debug_print)
-			wpa_dbg(wpa_s, MSG_DEBUG,
-				"   skip - non-OSEN network not allowed");
-		return false;
-	}
 
 	if (!wpa_supplicant_match_privacy(bss, ssid)) {
 		if (debug_print)
@@ -1644,7 +1616,6 @@ struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 	u8 wpa_ie_len, rsn_ie_len;
 	const u8 *ie;
 	struct wpa_ssid *ssid;
-	int osen;
 	const u8 *match_ssid;
 	size_t match_ssid_len;
 	int bssid_ignore_count;
@@ -1655,12 +1626,9 @@ struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 	ie = wpa_bss_get_rsne(wpa_s, bss, NULL, false);
 	rsn_ie_len = ie ? ie[1] : 0;
 
-	ie = wpa_bss_get_vendor_ie(bss, OSEN_IE_VENDOR_TYPE);
-	osen = ie != NULL;
-
 	if (debug_print) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "%d: " MACSTR
-			" ssid='%s' wpa_ie_len=%u rsn_ie_len=%u caps=0x%x level=%d freq=%d %s%s%s",
+			" ssid='%s' wpa_ie_len=%u rsn_ie_len=%u caps=0x%x level=%d freq=%d %s%s",
 			i, MAC2STR(bss->bssid),
 			wpa_ssid_txt(bss->ssid, bss->ssid_len),
 			wpa_ie_len, rsn_ie_len, bss->caps, bss->level,
@@ -1669,8 +1637,7 @@ struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 			" wps" : "",
 			(wpa_bss_get_vendor_ie(bss, P2P_IE_VENDOR_TYPE) ||
 			 wpa_bss_get_vendor_ie_beacon(bss, P2P_IE_VENDOR_TYPE))
-			? " p2p" : "",
-			osen ? " osen=1" : "");
+			? " p2p" : "");
 	}
 
 	bssid_ignore_count = wpa_bssid_ignore_is_listed(wpa_s, bss->bssid);
@@ -3271,8 +3238,7 @@ static int wpa_supplicant_use_own_rsne_params(struct wpa_supplicant *wpa_s,
 	wpa_s->wpa_proto = ie.proto;
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_PROTO, wpa_s->wpa_proto);
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_RSN_ENABLED,
-			 !!(wpa_s->wpa_proto &
-			    (WPA_PROTO_RSN | WPA_PROTO_OSEN)));
+			 !!(wpa_s->wpa_proto & WPA_PROTO_RSN));
 
 	/* Update AKMP suite from (Re)Association Request frame info */
 	sel = ie.key_mgmt;
@@ -3353,7 +3319,7 @@ static int wpa_supplicant_use_own_rsne_params(struct wpa_supplicant *wpa_s,
 	/* Update GTK and IGTK from AP's RSNE */
 	found = false;
 
-	if (wpa_s->wpa_proto & (WPA_PROTO_RSN | WPA_PROTO_OSEN)) {
+	if (wpa_s->wpa_proto & WPA_PROTO_RSN) {
 		const u8 *bss_rsn;
 
 		bss_rsn = wpa_bss_get_rsne(wpa_s, bss, ssid,

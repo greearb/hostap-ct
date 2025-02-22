@@ -303,9 +303,6 @@ static unsigned int get_akm_suites_info(struct nlattr *tb)
 		case RSN_AUTH_KEY_MGMT_CCKM:
 			key_mgmt |= WPA_DRIVER_CAPA_KEY_MGMT_CCKM;
 			break;
-		case RSN_AUTH_KEY_MGMT_OSEN:
-			key_mgmt |= WPA_DRIVER_CAPA_KEY_MGMT_OSEN;
-			break;
 		case RSN_AUTH_KEY_MGMT_802_1X_SUITE_B:
 			key_mgmt |= WPA_DRIVER_CAPA_KEY_MGMT_SUITE_B;
 			break;

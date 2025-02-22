@@ -185,11 +185,6 @@ int hostapd_build_ap_extra_ies(struct hostapd_data *hapd,
 	if (add_buf_data(&beacon, buf, pos - buf) < 0 ||
 	    add_buf_data(&proberesp, buf, pos - buf) < 0)
 		goto fail;
-
-	pos = hostapd_eid_osen(hapd, buf);
-	if (add_buf_data(&beacon, buf, pos - buf) < 0 ||
-	    add_buf_data(&proberesp, buf, pos - buf) < 0)
-		goto fail;
 #endif /* CONFIG_HS20 */
 
 #ifdef CONFIG_MBO

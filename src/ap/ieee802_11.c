@@ -249,11 +249,6 @@ u16 hostapd_own_capab_info(struct hostapd_data *hapd)
 	if (hapd->conf->wpa)
 		privacy = 1;
 
-#ifdef CONFIG_HS20
-	if (hapd->conf->osen)
-		privacy = 1;
-#endif /* CONFIG_HS20 */
-
 	if (privacy)
 		capab |= WLAN_CAPABILITY_PRIVACY;
 
@@ -4551,29 +4546,6 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 			ieee802_11_rsnx_capab_len(
 				elems->rsnxe, elems->rsnxe_len,
 				WLAN_RSNX_CAPAB_SSID_PROTECTION));
-#ifdef CONFIG_HS20
-	} else if (hapd->conf->osen) {
-		if (!elems->osen) {
-			hostapd_logger(
-				hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
-				HOSTAPD_LEVEL_INFO,
-				"No HS 2.0 OSEN element in association request");
-			return WLAN_STATUS_INVALID_IE;
-		}
-
-		wpa_printf(MSG_DEBUG, "HS 2.0: OSEN association");
-		if (sta->wpa_sm == NULL)
-			sta->wpa_sm = wpa_auth_sta_init(hapd->wpa_auth,
-							sta->addr, NULL);
-		if (sta->wpa_sm == NULL) {
-			wpa_printf(MSG_WARNING, "Failed to initialize WPA "
-				   "state machine");
-			return WLAN_STATUS_UNSPECIFIED_FAILURE;
-		}
-		if (wpa_validate_osen(hapd->wpa_auth, sta->wpa_sm,
-				      elems->osen - 2, elems->osen_len + 2) < 0)
-			return WLAN_STATUS_INVALID_IE;
-#endif /* CONFIG_HS20 */
 	} else
 		wpa_auth_sta_no_wpa(sta->wpa_sm);
 
@@ -6953,8 +6925,7 @@ static void handle_assoc_cb(struct hostapd_data *hapd,
 		new_assoc = 0;
 	sta->flags |= WLAN_STA_ASSOC;
 	sta->flags &= ~WLAN_STA_WNM_SLEEP_MODE;
-	if ((!hapd->conf->ieee802_1x && !hapd->conf->wpa &&
-	     !hapd->conf->osen) ||
+	if ((!hapd->conf->ieee802_1x && !hapd->conf->wpa) ||
 	    sta->auth_alg == WLAN_AUTH_FILS_SK ||
 	    sta->auth_alg == WLAN_AUTH_FILS_SK_PFS ||
 	    sta->auth_alg == WLAN_AUTH_FILS_PK ||

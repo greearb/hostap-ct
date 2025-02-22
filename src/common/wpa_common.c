@@ -134,8 +134,7 @@ unsigned int wpa_mic_len(int akmp, size_t pmk_len)
  */
 int wpa_use_akm_defined(int akmp)
 {
-	return akmp == WPA_KEY_MGMT_OSEN ||
-		akmp == WPA_KEY_MGMT_OWE ||
+	return akmp == WPA_KEY_MGMT_OWE ||
 		akmp == WPA_KEY_MGMT_DPP ||
 		akmp == WPA_KEY_MGMT_FT_IEEE8021X_SHA384 ||
 		akmp == WPA_KEY_MGMT_IEEE8021X_SHA384 ||
@@ -152,8 +151,7 @@ int wpa_use_akm_defined(int akmp)
  */
 int wpa_use_cmac(int akmp)
 {
-	return akmp == WPA_KEY_MGMT_OSEN ||
-		akmp == WPA_KEY_MGMT_OWE ||
+	return akmp == WPA_KEY_MGMT_OWE ||
 		akmp == WPA_KEY_MGMT_DPP ||
 		wpa_key_mgmt_ft(akmp) ||
 		wpa_key_mgmt_sha256(akmp) ||
@@ -174,8 +172,7 @@ int wpa_use_cmac(int akmp)
  */
 int wpa_use_aes_key_wrap(int akmp)
 {
-	return akmp == WPA_KEY_MGMT_OSEN ||
-		akmp == WPA_KEY_MGMT_OWE ||
+	return akmp == WPA_KEY_MGMT_OWE ||
 		akmp == WPA_KEY_MGMT_DPP ||
 		akmp == WPA_KEY_MGMT_IEEE8021X_SHA384 ||
 		wpa_key_mgmt_ft(akmp) ||
@@ -266,12 +263,6 @@ int wpa_eapol_key_mic(const u8 *key, size_t key_len, int akmp, int ver,
 			os_memcpy(mic, hash, key_len);
 			break;
 #endif /* CONFIG_SAE */
-#ifdef CONFIG_HS20
-		case WPA_KEY_MGMT_OSEN:
-			wpa_printf(MSG_DEBUG,
-				   "WPA: EAPOL-Key MIC using AES-CMAC (AKM-defined - OSEN)");
-			return omac1_aes_128(key, buf, len, mic);
-#endif /* CONFIG_HS20 */
 #ifdef CONFIG_SUITEB
 		case WPA_KEY_MGMT_IEEE8021X_SUITE_B:
 			wpa_printf(MSG_DEBUG,
@@ -1831,8 +1822,6 @@ static int rsn_key_mgmt_to_bitfield(const u8 *s)
 	if (RSN_SELECTOR_GET(s) == RSN_AUTH_KEY_MGMT_DPP)
 		return WPA_KEY_MGMT_DPP;
 #endif /* CONFIG_DPP */
-	if (RSN_SELECTOR_GET(s) == RSN_AUTH_KEY_MGMT_OSEN)
-		return WPA_KEY_MGMT_OSEN;
 #ifdef CONFIG_PASN
 	if (RSN_SELECTOR_GET(s) == RSN_AUTH_KEY_MGMT_PASN)
 		return WPA_KEY_MGMT_PASN;
@@ -1893,17 +1882,7 @@ int wpa_parse_wpa_ie_rsn(const u8 *rsn_ie, size_t rsn_ie_len,
 		return -1;
 	}
 
-	if (rsn_ie_len >= 6 && rsn_ie[1] >= 4 &&
-	    rsn_ie[1] == rsn_ie_len - 2 &&
-	    WPA_GET_BE32(&rsn_ie[2]) == OSEN_IE_VENDOR_TYPE) {
-		pos = rsn_ie + 6;
-		left = rsn_ie_len - 6;
-
-		data->group_cipher = WPA_CIPHER_GTK_NOT_USED;
-		data->has_group = 1;
-		data->key_mgmt = WPA_KEY_MGMT_OSEN;
-		data->proto = WPA_PROTO_OSEN;
-	} else if (rsn_ie_len >= 2 + 4 + 2 && rsn_ie[1] >= 4 + 2 &&
+	if (rsn_ie_len >= 2 + 4 + 2 && rsn_ie[1] >= 4 + 2 &&
 		   rsn_ie[1] == rsn_ie_len - 2 &&
 		   (WPA_GET_BE32(&rsn_ie[2]) == RSNE_OVERRIDE_IE_VENDOR_TYPE ||
 		    WPA_GET_BE32(&rsn_ie[2]) ==
@@ -2801,8 +2780,6 @@ const char * wpa_key_mgmt_txt(int key_mgmt, int proto)
 		return "FT-SAE";
 	case WPA_KEY_MGMT_FT_SAE_EXT_KEY:
 		return "FT-SAE-EXT-KEY";
-	case WPA_KEY_MGMT_OSEN:
-		return "OSEN";
 	case WPA_KEY_MGMT_IEEE8021X_SUITE_B:
 		return "WPA2-EAP-SUITE-B";
 	case WPA_KEY_MGMT_IEEE8021X_SUITE_B_192:
@@ -2849,8 +2826,6 @@ u32 wpa_akm_to_suite(int akm)
 		return RSN_AUTH_KEY_MGMT_PSK_OVER_802_1X;
 	if (akm & WPA_KEY_MGMT_CCKM)
 		return RSN_AUTH_KEY_MGMT_CCKM;
-	if (akm & WPA_KEY_MGMT_OSEN)
-		return RSN_AUTH_KEY_MGMT_OSEN;
 	if (akm & WPA_KEY_MGMT_IEEE8021X_SUITE_B)
 		return RSN_AUTH_KEY_MGMT_802_1X_SUITE_B;
 	if (akm & WPA_KEY_MGMT_IEEE8021X_SUITE_B_192)
@@ -3480,12 +3455,6 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 		ie->wpa_ie_len = dlen;
 		wpa_hexdump(MSG_DEBUG, "WPA: WPA IE in EAPOL-Key",
 			    ie->wpa_ie, ie->wpa_ie_len);
-		return 0;
-	}
-
-	if (selector == OSEN_IE_VENDOR_TYPE) {
-		ie->osen = pos;
-		ie->osen_len = dlen;
 		return 0;
 	}
 

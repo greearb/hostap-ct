@@ -3424,7 +3424,6 @@ static int wpa_key_mgmt_to_suites(unsigned int key_mgmt_suites, u32 suites[],
 	__AKM(FT_SAE, FT_SAE);
 	__AKM(FT_SAE_EXT_KEY, FT_SAE_EXT_KEY);
 	__AKM(CCKM, CCKM);
-	__AKM(OSEN, OSEN);
 	__AKM(IEEE8021X_SUITE_B, 802_1X_SUITE_B);
 	__AKM(IEEE8021X_SUITE_B_192, 802_1X_SUITE_B_192);
 	__AKM(FILS_SHA256, FILS_SHA256);
@@ -6950,7 +6949,6 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 	    params->key_mgmt_suite == WPA_KEY_MGMT_FT_IEEE8021X ||
 	    params->key_mgmt_suite == WPA_KEY_MGMT_FT_PSK ||
 	    params->key_mgmt_suite == WPA_KEY_MGMT_CCKM ||
-	    params->key_mgmt_suite == WPA_KEY_MGMT_OSEN ||
 	    params->key_mgmt_suite == WPA_KEY_MGMT_IEEE8021X_SHA256 ||
 	    params->key_mgmt_suite == WPA_KEY_MGMT_PSK_SHA256 ||
 	    params->key_mgmt_suite == WPA_KEY_MGMT_SAE ||
@@ -7007,9 +7005,6 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 			break;
 		case WPA_KEY_MGMT_PSK_SHA256:
 			mgmt[0] = RSN_AUTH_KEY_MGMT_PSK_SHA256;
-			break;
-		case WPA_KEY_MGMT_OSEN:
-			mgmt[0] = RSN_AUTH_KEY_MGMT_OSEN;
 			break;
 		case WPA_KEY_MGMT_SAE:
 			mgmt[0] = RSN_AUTH_KEY_MGMT_SAE;

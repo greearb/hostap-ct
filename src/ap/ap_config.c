@@ -1701,11 +1701,6 @@ void hostapd_set_security_params(struct hostapd_bss_config *bss,
 		if (full_config)
 			bss->wpa_key_mgmt = WPA_KEY_MGMT_NONE;
 #endif /* CONFIG_WEP */
-	} else if (bss->osen) {
-		bss->ssid.security_policy = SECURITY_OSEN;
-		bss->wpa_group = WPA_CIPHER_CCMP;
-		bss->wpa_pairwise = 0;
-		bss->rsn_pairwise = WPA_CIPHER_CCMP;
 	} else {
 		bss->ssid.security_policy = SECURITY_PLAINTEXT;
 		if (full_config) {

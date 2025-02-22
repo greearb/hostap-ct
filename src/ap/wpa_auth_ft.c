@@ -2247,8 +2247,7 @@ static u8 * wpa_ft_gtk_subelem(struct wpa_state_machine *sm, size_t *len)
 		pad_len += 8;
 	if (pad_len && key_len < sizeof(keybuf)) {
 		os_memcpy(keybuf, gsm->GTK[gsm->GN - 1], key_len);
-		if (conf->disable_gtk ||
-		    sm->wpa_key_mgmt == WPA_KEY_MGMT_OSEN) {
+		if (conf->disable_gtk) {
 			/*
 			 * Provide unique random GTK to each STA to prevent use
 			 * of GTK in the BSS.
@@ -2260,7 +2259,7 @@ static u8 * wpa_ft_gtk_subelem(struct wpa_state_machine *sm, size_t *len)
 		keybuf[key_len] = 0xdd;
 		key_len += pad_len;
 		key = keybuf;
-	} else if (conf->disable_gtk || sm->wpa_key_mgmt == WPA_KEY_MGMT_OSEN) {
+	} else if (conf->disable_gtk) {
 		/*
 		 * Provide unique random GTK to each STA to prevent use of GTK
 		 * in the BSS.
@@ -2339,7 +2338,7 @@ static u8 * wpa_ft_igtk_subelem(struct wpa_state_machine *sm, size_t *len)
 	pos += 6;
 	*pos++ = igtk_len;
 	igtk = gsm->IGTK[gsm->GN_igtk - 4];
-	if (conf->disable_gtk || sm->wpa_key_mgmt == WPA_KEY_MGMT_OSEN) {
+	if (conf->disable_gtk) {
 		/*
 		 * Provide unique random IGTK to each STA to prevent use of
 		 * IGTK in the BSS.
@@ -2372,7 +2371,6 @@ static u8 * wpa_ft_bigtk_subelem(struct wpa_state_machine *sm, size_t *len)
 	const u8 *kek, *bigtk;
 	size_t kek_len;
 	size_t bigtk_len;
-	u8 stub_bigtk[WPA_IGTK_MAX_LEN];
 
 	if (wpa_key_mgmt_fils(sm->wpa_key_mgmt)) {
 		kek = sm->PTK.kek2;
@@ -2400,17 +2398,6 @@ static u8 * wpa_ft_bigtk_subelem(struct wpa_state_machine *sm, size_t *len)
 	pos += 6;
 	*pos++ = bigtk_len;
 	bigtk = gsm->BIGTK[gsm->GN_bigtk - 6];
-	if (sm->wpa_key_mgmt == WPA_KEY_MGMT_OSEN) {
-		/*
-		 * Provide unique random BIGTK to each OSEN STA to prevent use
-		 * of BIGTK in the BSS.
-		 */
-		if (random_get_bytes(stub_bigtk, bigtk_len / 8) < 0) {
-			os_free(subelem);
-			return NULL;
-		}
-		bigtk = stub_bigtk;
-	}
 	if (aes_wrap(kek, kek_len, bigtk_len / 8, bigtk, pos)) {
 		wpa_printf(MSG_DEBUG,
 			   "FT: BIGTK subelem encryption failed: kek_len=%d",

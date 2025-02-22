@@ -162,7 +162,7 @@ static void hostapd_reload_bss(struct hostapd_data *hapd)
 	else
 		hostapd_set_drv_ieee8021x(hapd, hapd->conf->iface, 0);
 
-	if ((hapd->conf->wpa || hapd->conf->osen) && hapd->wpa_auth == NULL) {
+	if (hapd->conf->wpa && hapd->wpa_auth == NULL) {
 		hostapd_setup_wpa(hapd);
 		if (hapd->wpa_auth)
 			wpa_init_keys(hapd->wpa_auth);
@@ -1671,7 +1671,7 @@ setup_mld:
 		return -1;
 	}
 
-	if ((conf->wpa || conf->osen) && hostapd_setup_wpa(hapd))
+	if (conf->wpa && hostapd_setup_wpa(hapd))
 		return -1;
 
 	if (accounting_init(hapd)) {
@@ -4133,7 +4133,7 @@ void hostapd_new_assoc_sta(struct hostapd_data *hapd, struct sta_info *sta,
 	/* Start accounting here, if IEEE 802.1X and WPA are not used.
 	 * IEEE 802.1X/WPA code will start accounting after the station has
 	 * been authorized. */
-	if (!hapd->conf->ieee802_1x && !hapd->conf->wpa && !hapd->conf->osen) {
+	if (!hapd->conf->ieee802_1x && !hapd->conf->wpa) {
 		if (ap_sta_set_authorized(hapd, sta, 1)) {
 			/* Update driver authorized flag for the STA to cover
 			 * the case where AP SME is in the driver and there is
