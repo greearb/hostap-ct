@@ -214,17 +214,6 @@ def test_hapd_ctrl_unknown(dev, apdev):
         raise Exception("Unexpected response")
 
 @remote_compatible
-def test_hapd_ctrl_hs20_wnm_notif(dev, apdev):
-    """hostapd and HS20_WNM_NOTIF ctrl_iface command"""
-    ssid = "hapd-ctrl"
-    params = {"ssid": ssid}
-    hapd = hostapd.add_ap(apdev[0], params)
-    if "FAIL" not in hapd.request("HS20_WNM_NOTIF 00:11:22:33:44 http://example.com/"):
-        raise Exception("Unexpected HS20_WNM_NOTIF success")
-    if "FAIL" not in hapd.request("HS20_WNM_NOTIF 00:11:22:33:44:55http://example.com/"):
-        raise Exception("Unexpected HS20_WNM_NOTIF success")
-
-@remote_compatible
 def test_hapd_ctrl_hs20_deauth_req(dev, apdev):
     """hostapd and HS20_DEAUTH_REQ ctrl_iface command"""
     ssid = "hapd-ctrl"
@@ -403,16 +392,6 @@ def test_hapd_ctrl_set_error_cases(dev, apdev):
               "hs20_icon 32:32:eng:image/png:icon32",
               "hs20_icon 32:32:eng:image/png:123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890:/tmp/icon32.png",
               "hs20_icon 32:32:eng:image/png:name:/tmp/123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890.png",
-              "osu_ssid ",
-              "osu_ssid P",
-              'osu_ssid P"abc',
-              'osu_ssid "1234567890123456789012345678901234567890"',
-              "osu_friendly_name eng:Example",
-              "osu_nai anonymous@example.com",
-              "osu_nai2 anonymous@example.com",
-              "osu_method_list 1 0",
-              "osu_icon foo",
-              "osu_service_desc eng:Example services",
               "ssid 1234567890123456789012345678901234567890",
               "pac_opaque_encr_key 123456",
               "eap_fast_a_id 12345",
@@ -507,17 +486,6 @@ def test_hapd_ctrl_set_error_cases(dev, apdev):
               "tx_queue_data3_cwmax 4",
               "tx_queue_data3_aifs -4",
               "tx_queue_data3_foo 1"]
-    for e in errors:
-        if "FAIL" not in hapd.request("SET " + e):
-            raise Exception("Unexpected SET success: '%s'" % e)
-
-    if "OK" not in hapd.request("SET osu_server_uri https://example.com/"):
-        raise Exception("Unexpected SET osu_server_uri failure")
-    if "OK" not in hapd.request("SET osu_friendly_name eng:Example"):
-        raise Exception("Unexpected SET osu_friendly_name failure")
-
-    errors = ["osu_friendly_name eng1:Example",
-              "osu_service_desc eng1:Example services"]
     for e in errors:
         if "FAIL" not in hapd.request("SET " + e):
             raise Exception("Unexpected SET success: '%s'" % e)

@@ -530,34 +530,6 @@ def test_gas_anqp_get_oom(dev, apdev):
     with alloc_fail(dev[0], 1, "gas_query_req;hs20_anqp_send_req"):
         if "FAIL" not in dev[0].request("HS20_ANQP_GET " + bssid + " 1"):
             raise Exception("HS20_ANQP_GET command accepted during OOM")
-    with alloc_fail(dev[0], 1, "=hs20_anqp_send_req"):
-        if "FAIL" not in dev[0].request("REQ_HS20_ICON " + bssid + " w1fi_logo"):
-            raise Exception("REQ_HS20_ICON command accepted during OOM")
-    with alloc_fail(dev[0], 2, "=hs20_anqp_send_req"):
-        if "FAIL" not in dev[0].request("REQ_HS20_ICON " + bssid + " w1fi_logo"):
-            raise Exception("REQ_HS20_ICON command accepted during OOM")
-
-def test_gas_anqp_icon_binary_proto(dev, apdev):
-    """GAS/ANQP and icon binary protocol testing"""
-    hapd = start_ap(apdev[0])
-    bssid = apdev[0]['bssid']
-
-    dev[0].scan_for_bss(bssid, freq="2412", force_scan=True)
-    hapd.set("ext_mgmt_frame_handling", "1")
-
-    tests = ['010000', '01000000', '00000000', '00030000', '00020000',
-             '00000100', '0001ff0100ee', '0001ff0200ee']
-    for test in tests:
-        dev[0].request("HS20_ICON_REQUEST " + bssid + " w1fi_logo")
-        query = gas_rx(hapd)
-        gas = parse_gas(query['payload'])
-        resp = action_response(query)
-        data = binascii.unhexlify(test)
-        data = binascii.unhexlify('506f9a110b00') + data
-        data = struct.pack('<HHH', len(data) + 4, 0xdddd, len(data)) + data
-        resp['payload'] = anqp_initial_resp(gas['dialog_token'], 0) + data
-        send_gas_resp(hapd, resp)
-        expect_gas_result(dev[0], "SUCCESS")
 
 def test_gas_anqp_hs20_proto(dev, apdev):
     """GAS/ANQP and Hotspot 2.0 element protocol testing"""
@@ -2008,8 +1980,6 @@ def test_gas_vendor_spec_errors(dev, apdev):
     bssid = apdev[0]['bssid']
     params = hs20_ap_params()
     params['hessid'] = bssid
-    params['osu_server_uri'] = "uri"
-    params['hs20_icon'] = "32:32:eng:image/png:icon32:/tmp/icon32.png"
     del params['nai_realm']
     hapd = hostapd.add_ap(apdev[0], params)
 

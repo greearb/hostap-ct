@@ -117,7 +117,6 @@ config_checks = [("ap_scan", "0"),
                  ("dot11RSNAConfigSATimeout", "61"),
                  ("sec_device_type", "12345-0050F204-54321"),
                  ("autoscan", "exponential:3:300"),
-                 ("osu_dir", "/tmp/osu"),
                  ("fst_group_id", "bond0"),
                  ("fst_priority", "5"),
                  ("fst_llt", "7"),
@@ -524,7 +523,7 @@ def test_wpas_config_file_set_global(dev):
                   "pcsc_pin", "driver_param", "manufacturer", "model_name",
                   "model_number", "serial_number", "config_methods",
                   "p2p_ssid_postfix", "autoscan", "ext_password_backend",
-                  "osu_dir", "wowlan_triggers", "fst_group_id",
+                  "wowlan_triggers", "fst_group_id",
                   "sched_scan_plans", "non_pref_chan"]
         for field in fields:
             if "FAIL" not in wpas.request('SET %s hello\nmodel_name=foobar' % field):
@@ -605,7 +604,7 @@ def test_wpas_config_file_key_mgmt(dev, apdev, params):
 
     tests = ["WPA-PSK", "WPA-EAP", "IEEE8021X", "NONE", "WPA-NONE", "FT-PSK",
              "FT-EAP", "FT-EAP-SHA384", "WPA-PSK-SHA256", "WPA-EAP-SHA256",
-             "SAE", "FT-SAE", "OSEN", "WPA-EAP-SUITE-B",
+             "SAE", "FT-SAE", "WPA-EAP-SUITE-B",
              "WPA-EAP-SUITE-B-192", "FILS-SHA256", "FILS-SHA384",
              "FT-FILS-SHA256", "FT-FILS-SHA384", "OWE", "DPP"]
     supported_key_mgmts = dev[0].get_capability("key_mgmt")

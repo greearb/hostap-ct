@@ -7514,24 +7514,6 @@ def test_eap_tls_errors(dev, apdev):
         dev[0].request("REMOVE_NETWORK all")
         dev[0].wait_disconnected()
 
-    with alloc_fail(dev[0], 1, "eap_wfa_unauth_tls_init"):
-        dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP",
-                       eap="WFA-UNAUTH-TLS",
-                       identity="osen@example.com", ca_cert="auth_serv/ca.pem",
-                       wait_connect=False, scan_freq="2412")
-        wait_fail_trigger(dev[0], "GET_ALLOC_FAIL")
-        dev[0].request("REMOVE_NETWORK all")
-        dev[0].wait_disconnected()
-
-    with alloc_fail(dev[0], 1, "eap_peer_tls_ssl_init;eap_wfa_unauth_tls_init"):
-        dev[0].connect("test-wpa2-eap", key_mgmt="WPA-EAP",
-                       eap="WFA-UNAUTH-TLS",
-                       identity="osen@example.com", ca_cert="auth_serv/ca.pem",
-                       wait_connect=False, scan_freq="2412")
-        wait_fail_trigger(dev[0], "GET_ALLOC_FAIL")
-        dev[0].request("REMOVE_NETWORK all")
-        dev[0].wait_disconnected()
-
 def test_ap_wpa2_eap_status(dev, apdev):
     """EAP state machine status information"""
     params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")

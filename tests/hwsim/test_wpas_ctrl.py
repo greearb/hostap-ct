@@ -74,14 +74,14 @@ def test_wpas_ctrl_network(dev):
              ("freq_list", "2412 2417"),
              ("scan_ssid", "1"),
              ("bssid", "00:11:22:33:44:55"),
-             ("proto", "WPA RSN OSEN"),
+             ("proto", "WPA RSN"),
              ("eap", "TLS"),
              ("go_p2p_dev_addr", "22:33:44:55:66:aa"),
              ("p2p_client_list", "22:33:44:55:66:bb 02:11:22:33:44:55")]
     if "SAE" not in dev[0].get_capability("auth_alg"):
-        tests.append(("key_mgmt", "WPS OSEN"))
+        tests.append(("key_mgmt", "WPS"))
     else:
-        tests.append(("key_mgmt", "WPS SAE FT-SAE OSEN"))
+        tests.append(("key_mgmt", "WPS SAE FT-SAE"))
 
     dev[0].set_network_quoted(id, "ssid", "test")
     for field, value in tests:

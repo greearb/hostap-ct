@@ -490,15 +490,9 @@ def test_ap_config_set_oom(dev, apdev):
              (1, "parse_anqp_elem", "SET anqp_elem 265:0000"),
              (2, "parse_anqp_elem", "SET anqp_elem 266:000000"),
              (1, "parse_venue_url", "SET venue_url 1:http://example.com/"),
-             (1, "hs20_parse_operator_icon", "SET operator_icon icon"),
-             (2, "hs20_parse_operator_icon", "SET operator_icon icon"),
              (1, "hs20_parse_conn_capab", "SET hs20_conn_capab 1:0:2"),
              (1, "hs20_parse_wan_metrics",
               "SET hs20_wan_metrics 01:8000:1000:80:240:3000"),
-             (1, "hs20_parse_icon",
-              "SET hs20_icon 32:32:eng:image/png:icon32:/tmp/icon32.png"),
-             (1, "hs20_parse_osu_server_uri",
-              "SET osu_server_uri https://example.com/osu/"),
              (1, "hostapd_config_parse_acs_chan_bias",
               "SET acs_chan_bias 1:0.8 6:0.8 11:0.8"),
              (2, "hostapd_config_parse_acs_chan_bias",
@@ -536,12 +530,10 @@ def test_ap_config_set_oom(dev, apdev):
             if "FAIL" not in hapd.request(cmd):
                 raise Exception("Command accepted during OOM: " + cmd)
 
-    hapd.set("hs20_icon", "32:32:eng:image/png:icon32:/tmp/icon32.png")
     hapd.set("hs20_conn_capab", "1:0:2")
     hapd.set("nai_realm", "0,example.com;example.net")
     hapd.set("venue_name", "eng:Example venue")
     hapd.set("roaming_consortium", "021122")
-    hapd.set("osu_server_uri", "https://example.com/osu/")
     hapd.set("vendor_elements", "01020304")
     hapd.set("vendor_elements", "01020304")
     hapd.set("vendor_elements", "")
@@ -550,19 +542,9 @@ def test_ap_config_set_oom(dev, apdev):
     hapd.set("lci", "")
     hapd.set("civic", "")
 
-    tests = [(1, "hs20_parse_icon",
-              "SET hs20_icon 32:32:eng:image/png:icon32:/tmp/icon32.png"),
-             (1, "parse_roaming_consortium", "SET roaming_consortium 021122"),
+    tests = [(1, "parse_roaming_consortium", "SET roaming_consortium 021122"),
              (2, "parse_nai_realm", "SET nai_realm 0,example.com;example.net"),
              (1, "parse_lang_string", "SET venue_name eng:Example venue"),
-             (1, "hs20_parse_osu_server_uri",
-              "SET osu_server_uri https://example.com/osu/"),
-             (1, "hs20_parse_osu_nai", "SET osu_nai anonymous@example.com"),
-             (1, "hs20_parse_osu_nai2", "SET osu_nai2 anonymous@example.com"),
-             (1, "hostapd_parse_intlist", "SET osu_method_list 1 0"),
-             (1, "hs20_parse_osu_icon", "SET osu_icon icon32"),
-             (2, "hs20_parse_osu_icon", "SET osu_icon icon32"),
-             (2, "hs20_parse_osu_icon", "SET osu_icon icon32"),
              (1, "hs20_parse_conn_capab", "SET hs20_conn_capab 1:0:2")]
     for count, func, cmd in tests:
         with alloc_fail(hapd, count, func):
