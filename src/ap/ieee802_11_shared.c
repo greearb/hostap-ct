@@ -1045,7 +1045,8 @@ int get_tx_parameters(struct sta_info *sta, int ap_max_chanwidth,
 	int requested_bw;
 
 	if (sta->ht_capabilities)
-		ht_40mhz = !!(sta->ht_capabilities->ht_capabilities_info &
+		ht_40mhz = !!(le_to_host16(sta->ht_capabilities->
+					   ht_capabilities_info) &
 			      HT_CAP_INFO_SUPP_CHANNEL_WIDTH_SET);
 
 	if (sta->vht_operation) {
@@ -1081,9 +1082,9 @@ int get_tx_parameters(struct sta_info *sta, int ap_max_chanwidth,
 		 * normal clients), use it to determine the supported channel
 		 * bandwidth.
 		 */
-		vht_chanwidth = capab->vht_capabilities_info &
+		vht_chanwidth = le_to_host32(capab->vht_capabilities_info) &
 			VHT_CAP_SUPP_CHAN_WIDTH_MASK;
-		vht_80p80 = capab->vht_capabilities_info &
+		vht_80p80 = le_to_host32(capab->vht_capabilities_info) &
 			VHT_CAP_SUPP_CHAN_WIDTH_160_80PLUS80MHZ;
 
 		/* TODO: Also take into account Extended NSS BW Support field */
