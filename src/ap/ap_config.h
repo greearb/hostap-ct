@@ -638,33 +638,6 @@ struct hostapd_bss_config {
 	size_t hs20_connection_capability_len;
 	u8 *hs20_operating_class;
 	u8 hs20_operating_class_len;
-	struct hs20_icon {
-		u16 width;
-		u16 height;
-		char language[3];
-		char type[256];
-		char name[256];
-		char file[256];
-	} *hs20_icons;
-	size_t hs20_icons_count;
-	u8 osu_ssid[SSID_MAX_LEN];
-	size_t osu_ssid_len;
-	struct hs20_osu_provider {
-		unsigned int friendly_name_count;
-		struct hostapd_lang_string *friendly_name;
-		char *server_uri;
-		int *method_list;
-		char **icons;
-		size_t icons_count;
-		char *osu_nai;
-		char *osu_nai2;
-		unsigned int service_desc_count;
-		struct hostapd_lang_string *service_desc;
-	} *hs20_osu_providers, *last_osu;
-	size_t hs20_osu_providers_count;
-	size_t hs20_osu_providers_nai_count;
-	char **hs20_operator_icon;
-	size_t hs20_operator_icon_count;
 	unsigned int hs20_deauth_req_timeout;
 	char *subscr_remediation_url;
 	u8 subscr_remediation_method;

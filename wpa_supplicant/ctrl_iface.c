@@ -5642,12 +5642,6 @@ static int print_bss_info(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 				   anqp->hs20_connection_capability);
 		pos = anqp_add_hex(pos, end, "hs20_operating_class",
 				   anqp->hs20_operating_class);
-		pos = anqp_add_hex(pos, end, "hs20_osu_providers_list",
-				   anqp->hs20_osu_providers_list);
-		pos = anqp_add_hex(pos, end, "hs20_operator_icon_metadata",
-				   anqp->hs20_operator_icon_metadata);
-		pos = anqp_add_hex(pos, end, "hs20_osu_providers_nai_list",
-				   anqp->hs20_osu_providers_nai_list);
 #endif /* CONFIG_HS20 */
 
 		dl_list_for_each(elem, &anqp->anqp_elems,
@@ -8283,7 +8277,7 @@ static int get_hs20_anqp(struct wpa_supplicant *wpa_s, char *dst)
 	if (subtypes == 0)
 		return -1;
 
-	return hs20_anqp_send_req(wpa_s, dst_addr, subtypes, NULL, 0, 0);
+	return hs20_anqp_send_req(wpa_s, dst_addr, subtypes, NULL, 0);
 }
 
 
@@ -8306,7 +8300,7 @@ static int hs20_nai_home_realm_list(struct wpa_supplicant *wpa_s,
 
 	ret = hs20_anqp_send_req(wpa_s, addr,
 				 BIT(HS20_STYPE_NAI_HOME_REALM_QUERY),
-				 buf, len, 0);
+				 buf, len);
 
 	os_free(buf);
 
@@ -8352,75 +8346,10 @@ static int hs20_get_nai_home_realm_list(struct wpa_supplicant *wpa_s,
 
 	ret = hs20_anqp_send_req(wpa_s, dst_addr,
 				 BIT(HS20_STYPE_NAI_HOME_REALM_QUERY),
-				 buf, len, 0);
+				 buf, len);
 	os_free(buf);
 
 	return ret;
-}
-
-
-static int get_hs20_icon(struct wpa_supplicant *wpa_s, char *cmd, char *reply,
-			 int buflen)
-{
-	u8 dst_addr[ETH_ALEN];
-	int used;
-	char *ctx = NULL, *icon, *poffset, *psize;
-
-	used = hwaddr_aton2(cmd, dst_addr);
-	if (used < 0)
-		return -1;
-	cmd += used;
-
-	icon = str_token(cmd, " ", &ctx);
-	poffset = str_token(cmd, " ", &ctx);
-	psize = str_token(cmd, " ", &ctx);
-	if (!icon || !poffset || !psize)
-		return -1;
-
-	wpa_s->fetch_osu_icon_in_progress = 0;
-	return hs20_get_icon(wpa_s, dst_addr, icon, atoi(poffset), atoi(psize),
-			     reply, buflen);
-}
-
-
-static int del_hs20_icon(struct wpa_supplicant *wpa_s, char *cmd)
-{
-	u8 dst_addr[ETH_ALEN];
-	int used;
-	char *icon;
-
-	if (!cmd[0])
-		return hs20_del_icon(wpa_s, NULL, NULL);
-
-	used = hwaddr_aton2(cmd, dst_addr);
-	if (used < 0)
-		return -1;
-
-	while (cmd[used] == ' ')
-		used++;
-	icon = cmd[used] ? &cmd[used] : NULL;
-
-	return hs20_del_icon(wpa_s, dst_addr, icon);
-}
-
-
-static int hs20_icon_request(struct wpa_supplicant *wpa_s, char *cmd, int inmem)
-{
-	u8 dst_addr[ETH_ALEN];
-	int used;
-	char *icon;
-
-	used = hwaddr_aton2(cmd, dst_addr);
-	if (used < 0)
-		return -1;
-
-	while (cmd[used] == ' ')
-		used++;
-	icon = &cmd[used];
-
-	wpa_s->fetch_osu_icon_in_progress = 0;
-	return hs20_anqp_send_req(wpa_s, dst_addr, BIT(HS20_STYPE_ICON_REQUEST),
-				  (u8 *) icon, os_strlen(icon), inmem);
 }
 
 #endif /* CONFIG_HS20 */
@@ -9046,13 +8975,6 @@ static void wpa_supplicant_ctrl_iface_flush(struct wpa_supplicant *wpa_s)
 	wpa_s->next_ssid = NULL;
 
 	wnm_btm_reset(wpa_s);
-
-#ifdef CONFIG_INTERWORKING
-#ifdef CONFIG_HS20
-	hs20_cancel_fetch_osu(wpa_s);
-	hs20_del_icon(wpa_s, NULL, NULL);
-#endif /* CONFIG_HS20 */
-#endif /* CONFIG_INTERWORKING */
 
 	wpa_s->ext_mgmt_frame_handling = 0;
 	wpa_s->ext_eapol_frame_io = 0;
@@ -13236,25 +13158,6 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strncmp(buf, "HS20_GET_NAI_HOME_REALM_LIST ", 29) == 0) {
 		if (hs20_get_nai_home_realm_list(wpa_s, buf + 29) < 0)
 			reply_len = -1;
-	} else if (os_strncmp(buf, "HS20_ICON_REQUEST ", 18) == 0) {
-		if (hs20_icon_request(wpa_s, buf + 18, 0) < 0)
-			reply_len = -1;
-	} else if (os_strncmp(buf, "REQ_HS20_ICON ", 14) == 0) {
-		if (hs20_icon_request(wpa_s, buf + 14, 1) < 0)
-			reply_len = -1;
-	} else if (os_strncmp(buf, "GET_HS20_ICON ", 14) == 0) {
-		reply_len = get_hs20_icon(wpa_s, buf + 14, reply, reply_size);
-	} else if (os_strncmp(buf, "DEL_HS20_ICON ", 14) == 0) {
-		if (del_hs20_icon(wpa_s, buf + 14) < 0)
-			reply_len = -1;
-	} else if (os_strcmp(buf, "FETCH_OSU") == 0) {
-		if (hs20_fetch_osu(wpa_s, 0) < 0)
-			reply_len = -1;
-	} else if (os_strcmp(buf, "FETCH_OSU no-scan") == 0) {
-		if (hs20_fetch_osu(wpa_s, 1) < 0)
-			reply_len = -1;
-	} else if (os_strcmp(buf, "CANCEL_FETCH_OSU") == 0) {
-		hs20_cancel_fetch_osu(wpa_s);
 #endif /* CONFIG_HS20 */
 	} else if (os_strncmp(buf, WPA_CTRL_RSP, os_strlen(WPA_CTRL_RSP)) == 0)
 	{

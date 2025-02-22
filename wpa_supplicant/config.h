@@ -1436,15 +1436,6 @@ struct wpa_config {
 	u8 ip_addr_end[4];
 
 	/**
-	 * osu_dir - OSU provider information directory
-	 *
-	 * If set, allow FETCH_OSU control interface command to be used to fetch
-	 * OSU provider information into all APs and store the results in this
-	 * directory.
-	 */
-	char *osu_dir;
-
-	/**
 	 * wowlan_triggers - Wake-on-WLAN triggers
 	 *
 	 * If set, these wowlan triggers will be configured.

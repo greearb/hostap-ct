@@ -797,7 +797,6 @@ static void wpa_supplicant_cleanup(struct wpa_supplicant *wpa_s)
 #ifdef CONFIG_HS20
 	if (wpa_s->drv_priv)
 		wpa_drv_configure_frame_filters(wpa_s, 0);
-	hs20_deinit(wpa_s);
 #endif /* CONFIG_HS20 */
 
 	for (i = 0; i < NUM_VENDOR_ELEM_FRAMES; i++) {
@@ -7864,9 +7863,6 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 
 	wpas_sched_scan_plans_set(wpa_s, wpa_s->conf->sched_scan_plans);
 
-#ifdef CONFIG_HS20
-	hs20_init(wpa_s);
-#endif /* CONFIG_HS20 */
 #ifdef CONFIG_MBO
 	if (!wpa_s->disable_mbo_oce && wpa_s->conf->oce) {
 		if ((wpa_s->conf->oce & OCE_STA) &&

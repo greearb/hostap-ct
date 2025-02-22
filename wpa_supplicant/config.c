@@ -3098,7 +3098,6 @@ void wpa_config_free(struct wpa_config *config)
 	os_free(config->sae_groups);
 	wpabuf_free(config->ap_vendor_elements);
 	wpabuf_free(config->ap_assocresp_elements);
-	os_free(config->osu_dir);
 	os_free(config->bgscan);
 	os_free(config->wowlan_triggers);
 	os_free(config->fst_group_id);
@@ -5593,7 +5592,6 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(sched_scan_interval), 0 },
 	{ INT(sched_scan_start_delay), 0 },
 	{ INT(tdls_external_control), 0},
-	{ STR(osu_dir), 0 },
 	{ STR(wowlan_triggers), CFG_CHANGED_WOWLAN_TRIGGERS },
 	{ INT(p2p_search_delay), 0},
 	{ INT_RANGE(mac_addr, 0, 2), 0 },

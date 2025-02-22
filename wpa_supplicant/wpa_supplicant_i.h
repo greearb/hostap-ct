@@ -468,15 +468,6 @@ enum wpa_supplicant_test_failure {
 	WPAS_TEST_FAILURE_SCAN_TRIGGER,
 };
 
-struct icon_entry {
-	struct dl_list list;
-	u8 bssid[ETH_ALEN];
-	u8 dialog_token;
-	char *file_name;
-	u8 *image;
-	size_t image_len;
-};
-
 struct wpa_bss_tmp_disallowed {
 	struct dl_list list;
 	u8 bssid[ETH_ALEN];
@@ -1252,17 +1243,7 @@ struct wpa_supplicant {
 	unsigned int auto_network_select:1;
 	unsigned int interworking_fast_assoc_tried:1;
 	unsigned int fetch_all_anqp:1;
-	unsigned int fetch_osu_info:1;
-	unsigned int fetch_osu_waiting_scan:1;
-	unsigned int fetch_osu_icon_in_progress:1;
 	struct wpa_bss *interworking_gas_bss;
-	unsigned int osu_icon_id;
-	struct dl_list icon_head; /* struct icon_entry */
-	struct osu_provider *osu_prov;
-	size_t osu_prov_count;
-	struct os_reltime osu_icon_fetch_start;
-	unsigned int num_osu_scans;
-	unsigned int num_prov_found;
 #endif /* CONFIG_INTERWORKING */
 	unsigned int drv_capa_known;
 

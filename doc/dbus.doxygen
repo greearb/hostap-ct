@@ -1235,11 +1235,6 @@ fi.w1.wpa_supplicant1.CreateInterface.
       </li>
 
       <li>
-	<h3>OsuDir - s - (read/write)</h3>
-	<p>OSU provider information directory</p>
-      </li>
-
-      <li>
 	<h3>WowlanTriggers - s - (read/write)</h3>
 	<p>Wake-on-WLAN triggers</p>
       </li>
@@ -2436,9 +2431,6 @@ scan results.
 	  <tr><td>HS20WanMetrics</td><td>ay</td></tr>
 	  <tr><td>HS20ConnectionCapability</td><td>ay</td></tr>
 	  <tr><td>HS20OperatingClass</td><td>ay</td></tr>
-	  <tr><td>HS20OSUProvidersList</td><td>ay</td></tr>
-	  <tr><td>HS20OperatorIconMetadata</td><td>ay</td></tr>
-	  <tr><td>HS20OSUProvidersNAIList</td><td>ay</td></tr>
 	</table>
 	<p>Unnamed ANQP elements have a generic entry name 'anqp[id]' where 'id' is the InfoID of the ANQP element as described in IEEE Std 802.11-2020, Table 9-331 (ANQP-element definitions).</p>
       </li>

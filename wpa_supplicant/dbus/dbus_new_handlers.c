@@ -5901,24 +5901,6 @@ dbus_bool_t wpas_dbus_getter_bss_anqp(
 			    wpabuf_head(anqp->hs20_operating_class),
 			    wpabuf_len(anqp->hs20_operating_class)))
 			goto nomem;
-		if (anqp->hs20_osu_providers_list &&
-		    !wpa_dbus_dict_append_byte_array(
-			    &iter_dict, "HS20OSUProvidersList",
-			    wpabuf_head(anqp->hs20_osu_providers_list),
-			    wpabuf_len(anqp->hs20_osu_providers_list)))
-			goto nomem;
-		if (anqp->hs20_operator_icon_metadata &&
-		    !wpa_dbus_dict_append_byte_array(
-			    &iter_dict, "HS20OperatorIconMetadata",
-			    wpabuf_head(anqp->hs20_operator_icon_metadata),
-			    wpabuf_len(anqp->hs20_operator_icon_metadata)))
-			goto nomem;
-		if (anqp->hs20_osu_providers_nai_list &&
-		    !wpa_dbus_dict_append_byte_array(
-			    &iter_dict, "HS20OSUProvidersNAIList",
-			    wpabuf_head(anqp->hs20_osu_providers_nai_list),
-			    wpabuf_len(anqp->hs20_osu_providers_nai_list)))
-			goto nomem;
 #endif /* CONFIG_HS20 */
 
 		dl_list_for_each(elem, &anqp->anqp_elems,

@@ -1683,9 +1683,6 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 	if (config->twt_requester)
 		fprintf(f, "twt_requester=%d\n", config->twt_requester);
 
-	if (config->osu_dir)
-		fprintf(f, "osu_dir=%s\n", config->osu_dir);
-
 	if (config->fst_group_id)
 		fprintf(f, "fst_group_id=%s\n", config->fst_group_id);
 	if (config->fst_priority)
