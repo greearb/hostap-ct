@@ -1496,18 +1496,18 @@ static int interworking_set_eap_params(struct wpa_ssid *ssid,
 		char *anon;
 		/* Use anonymous NAI in Phase 1 */
 		pos = os_strchr(cred->username, '@');
-		if (pos) {
-			size_t buflen = 9 + os_strlen(pos) + 1;
-			anon = os_malloc(buflen);
-			if (anon == NULL)
-				return -1;
-			os_snprintf(anon, buflen, "anonymous%s", pos);
-		} else if (cred->realm) {
+		if (cred->realm) {
 			size_t buflen = 10 + os_strlen(cred->realm) + 1;
 			anon = os_malloc(buflen);
 			if (anon == NULL)
 				return -1;
 			os_snprintf(anon, buflen, "anonymous@%s", cred->realm);
+		} else if (pos) {
+			size_t buflen = 9 + os_strlen(pos) + 1;
+			anon = os_malloc(buflen);
+			if (anon == NULL)
+				return -1;
+			os_snprintf(anon, buflen, "anonymous%s", pos);
 		} else {
 			anon = os_strdup("anonymous");
 			if (anon == NULL)
