@@ -6565,7 +6565,7 @@ static int wpa_set_tx_stbc(struct wpa_supplicant *wpa_s,
 
 	htcaps_mask->ht_capabilities_info |= msk;
 	htcaps->ht_capabilities_info &= ~msk;
-	htcaps->ht_capabilities_info |= (tx_stbc << 7) & msk;
+	htcaps->ht_capabilities_info |= host_to_le16(tx_stbc << 7) & msk;
 
 	return 0;
 }
@@ -6591,7 +6591,7 @@ static int wpa_set_rx_stbc(struct wpa_supplicant *wpa_s,
 
 	htcaps_mask->ht_capabilities_info |= msk;
 	htcaps->ht_capabilities_info &= ~msk;
-	htcaps->ht_capabilities_info |= (rx_stbc << 8) & msk;
+	htcaps->ht_capabilities_info |= host_to_le16(rx_stbc << 8) & msk;
 
 	return 0;
 }
