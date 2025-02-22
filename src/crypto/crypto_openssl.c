@@ -4248,7 +4248,7 @@ fail:
 }
 
 
-struct crypto_csr * crypto_csr_init()
+struct crypto_csr * crypto_csr_init(void)
 {
 	return (struct crypto_csr *)X509_REQ_new();
 }
