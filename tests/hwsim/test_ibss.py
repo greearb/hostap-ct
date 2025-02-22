@@ -355,9 +355,13 @@ def test_ibss_open_fixed_bssid(dev):
             raise Exception("STA0 BSSID " + bssid0 + " differs from fixed BSSID " + bssid)
         if bssid1 != bssid:
             raise Exception("STA0 BSSID " + bssid0 + " differs from fixed BSSID " + bssid)
+        dev[0].request("DISCONNECT")
+        dev[1].request("DISCONNECT")
     finally:
         dev[0].request("AP_SCAN 1")
         dev[1].request("AP_SCAN 1")
+        dev[0].flush_scan_cache()
+        dev[1].flush_scan_cache()
 
 def test_ibss_open_retry(dev):
     """IBSS open (no security) with cfg80211 retry workaround"""
