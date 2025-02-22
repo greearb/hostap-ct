@@ -96,10 +96,6 @@ struct radius_server_conf {
 	const char *dump_msk_file;
 #endif /* CONFIG_RADIUS_TEST */
 
-	char *subscr_remediation_url;
-	u8 subscr_remediation_method;
-	char *hs20_sim_provisioning_url;
-
 	char *t_c_server_url;
 
 	struct eap_config *eap_cfg;

@@ -188,7 +188,6 @@ struct hostapd_eap_user {
 	unsigned int wildcard_prefix:1;
 	unsigned int password_hash:1; /* whether password is hashed with
 				       * nt_password_hash() */
-	unsigned int remediation:1;
 	unsigned int macacl:1;
 	int ttls_auth; /* EAP_TTLS_AUTH_* bitfield */
 	struct hostapd_radius_attr *accept_attr;
@@ -639,9 +638,6 @@ struct hostapd_bss_config {
 	u8 *hs20_operating_class;
 	u8 hs20_operating_class_len;
 	unsigned int hs20_deauth_req_timeout;
-	char *subscr_remediation_url;
-	u8 subscr_remediation_method;
-	char *hs20_sim_provisioning_url;
 	char *t_c_filename;
 	u32 t_c_timestamp;
 	char *t_c_server_url;

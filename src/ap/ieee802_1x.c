@@ -45,7 +45,7 @@ static void ieee802_1x_wnm_notif_send(void *eloop_ctx, void *timeout_ctx);
 #endif /* CONFIG_HS20 */
 static bool ieee802_1x_finished(struct hostapd_data *hapd,
 				struct sta_info *sta, int success,
-				int remediation, bool logoff);
+				bool logoff);
 
 
 static void ieee802_1x_send(struct hostapd_data *hapd, struct sta_info *sta,
@@ -1489,10 +1489,6 @@ void ieee802_1x_free_station(struct hostapd_data *hapd, struct sta_info *sta)
 {
 	struct eapol_state_machine *sm = sta->eapol_sm;
 
-#ifdef CONFIG_HS20
-	eloop_cancel_timeout(ieee802_1x_wnm_notif_send, hapd, sta);
-#endif /* CONFIG_HS20 */
-
 	if (sta->pending_eapol_rx) {
 		wpabuf_free(sta->pending_eapol_rx->buf);
 		os_free(sta->pending_eapol_rx);
@@ -1768,32 +1764,6 @@ static void ieee802_1x_update_sta_cui(struct hostapd_data *hapd,
 
 #ifdef CONFIG_HS20
 
-static void ieee802_1x_hs20_sub_rem(struct sta_info *sta, u8 *pos, size_t len)
-{
-	sta->remediation = 1;
-	os_free(sta->remediation_url);
-	if (len > 2) {
-		sta->remediation_url = os_malloc(len);
-		if (!sta->remediation_url)
-			return;
-		sta->remediation_method = pos[0];
-		os_memcpy(sta->remediation_url, pos + 1, len - 1);
-		sta->remediation_url[len - 1] = '\0';
-		wpa_printf(MSG_DEBUG,
-			   "HS 2.0: Subscription remediation needed for "
-			   MACSTR " - server method %u URL %s",
-			   MAC2STR(sta->addr), sta->remediation_method,
-			   sta->remediation_url);
-	} else {
-		sta->remediation_url = NULL;
-		wpa_printf(MSG_DEBUG,
-			   "HS 2.0: Subscription remediation needed for "
-			   MACSTR, MAC2STR(sta->addr));
-	}
-	/* TODO: assign the STA into remediation VLAN or add filtering */
-}
-
-
 static void ieee802_1x_hs20_deauth_req(struct hostapd_data *hapd,
 				       struct sta_info *sta, const u8 *pos,
 				       size_t len)
@@ -1909,7 +1879,6 @@ static void ieee802_1x_check_hs20(struct hostapd_data *hapd,
 	size_t len;
 
 	buf = NULL;
-	sta->remediation = 0;
 	sta->hs20_deauth_requested = 0;
 	sta->hs20_deauth_on_ack = 0;
 
@@ -1934,9 +1903,6 @@ static void ieee802_1x_check_hs20(struct hostapd_data *hapd,
 			continue; /* invalid WFA VSA */
 
 		switch (type) {
-		case RADIUS_VENDOR_ATTR_WFA_HS20_SUBSCR_REMEDIATION:
-			ieee802_1x_hs20_sub_rem(sta, pos, sublen);
-			break;
 		case RADIUS_VENDOR_ATTR_WFA_HS20_DEAUTH_REQ:
 			ieee802_1x_hs20_deauth_req(hapd, sta, pos, sublen);
 			break;
@@ -2365,7 +2331,7 @@ static void ieee802_1x_aaa_send(void *ctx, void *sta_ctx,
 
 
 static bool _ieee802_1x_finished(void *ctx, void *sta_ctx, int success,
-				 int preauth, int remediation, bool logoff)
+				 int preauth, bool logoff)
 {
 	struct hostapd_data *hapd = ctx;
 	struct sta_info *sta = sta_ctx;
@@ -2375,7 +2341,7 @@ static bool _ieee802_1x_finished(void *ctx, void *sta_ctx, int success,
 		return false;
 	}
 
-	return ieee802_1x_finished(hapd, sta, success, remediation, logoff);
+	return ieee802_1x_finished(hapd, sta, success, logoff);
 }
 
 
@@ -2417,7 +2383,6 @@ static int ieee802_1x_get_eap_user(void *ctx, const u8 *identity,
 	user->force_version = eap_user->force_version;
 	user->macacl = eap_user->macacl;
 	user->ttls_auth = eap_user->ttls_auth;
-	user->remediation = eap_user->remediation;
 	rv = 0;
 
 out:
@@ -3059,17 +3024,6 @@ static void ieee802_1x_wnm_notif_send(void *eloop_ctx, void *timeout_ctx)
 	struct hostapd_data *hapd = eloop_ctx;
 	struct sta_info *sta = timeout_ctx;
 
-	if (sta->remediation) {
-		wpa_printf(MSG_DEBUG, "HS 2.0: Send WNM-Notification to "
-			   MACSTR " to indicate Subscription Remediation",
-			   MAC2STR(sta->addr));
-		hs20_send_wnm_notification(hapd, sta->addr,
-					   sta->remediation_method,
-					   sta->remediation_url);
-		os_free(sta->remediation_url);
-		sta->remediation_url = NULL;
-	}
-
 	if (sta->hs20_deauth_req) {
 		wpa_printf(MSG_DEBUG, "HS 2.0: Send WNM-Notification to "
 			   MACSTR " to indicate imminent deauthentication",
@@ -3092,7 +3046,7 @@ static void ieee802_1x_wnm_notif_send(void *eloop_ctx, void *timeout_ctx)
 
 static bool ieee802_1x_finished(struct hostapd_data *hapd,
 				struct sta_info *sta, int success,
-				int remediation, bool logoff)
+				bool logoff)
 {
 	const u8 *key;
 	size_t len;
@@ -3102,16 +3056,7 @@ static bool ieee802_1x_finished(struct hostapd_data *hapd,
 	struct os_reltime now, remaining;
 
 #ifdef CONFIG_HS20
-	if (remediation && !sta->remediation) {
-		sta->remediation = 1;
-		os_free(sta->remediation_url);
-		sta->remediation_url =
-			os_strdup(hapd->conf->subscr_remediation_url);
-		sta->remediation_method = 1; /* SOAP-XML SPP */
-	}
-
-	if (success && (sta->remediation || sta->hs20_deauth_req ||
-			sta->hs20_t_c_filtering)) {
+	if (success && (sta->hs20_deauth_req || sta->hs20_t_c_filtering)) {
 		wpa_printf(MSG_DEBUG, "HS 2.0: Schedule WNM-Notification to "
 			   MACSTR " in 100 ms", MAC2STR(sta->addr));
 		eloop_cancel_timeout(ieee802_1x_wnm_notif_send, hapd, sta);
@@ -3132,7 +3077,7 @@ static bool ieee802_1x_finished(struct hostapd_data *hapd,
 	} else {
 		session_timeout = dot11RSNAConfigPMKLifetime;
 	}
-	if (success && key && len >= PMK_LEN && !sta->remediation &&
+	if (success && key && len >= PMK_LEN &&
 	    !sta->hs20_deauth_requested &&
 	    wpa_auth_pmksa_add(sta->wpa_sm, key, len, session_timeout,
 			       sta->eapol_sm) == 0) {

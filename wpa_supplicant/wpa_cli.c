@@ -4456,8 +4456,6 @@ static void wpa_cli_action_process(const char *msg)
 		wpa_cli_exec(action_file, ifname, pos);
 	} else if (str_starts(pos, ESS_DISASSOC_IMMINENT)) {
 		wpa_cli_exec(action_file, ifname, pos);
-	} else if (str_starts(pos, HS20_SUBSCRIPTION_REMEDIATION)) {
-		wpa_cli_exec(action_file, ifname, pos);
 	} else if (str_starts(pos, HS20_DEAUTH_IMMINENT_NOTICE)) {
 		wpa_cli_exec(action_file, ifname, pos);
 	} else if (str_starts(pos, HS20_T_C_ACCEPTANCE)) {

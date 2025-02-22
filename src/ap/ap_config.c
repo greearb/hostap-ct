@@ -931,8 +931,6 @@ void hostapd_config_free_bss(struct hostapd_bss_config *conf)
 	os_free(conf->hs20_wan_metrics);
 	os_free(conf->hs20_connection_capability);
 	os_free(conf->hs20_operating_class);
-	os_free(conf->subscr_remediation_url);
-	os_free(conf->hs20_sim_provisioning_url);
 	os_free(conf->t_c_filename);
 	os_free(conf->t_c_server_url);
 #endif /* CONFIG_HS20 */

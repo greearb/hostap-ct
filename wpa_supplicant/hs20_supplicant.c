@@ -343,17 +343,6 @@ void hs20_parse_rx_hs20_anqp_resp(struct wpa_supplicant *wpa_s,
 }
 
 
-void hs20_rx_subscription_remediation(struct wpa_supplicant *wpa_s,
-				      const char *url, u8 osu_method)
-{
-	if (url)
-		wpa_msg(wpa_s, MSG_INFO, HS20_SUBSCRIPTION_REMEDIATION "%u %s",
-			osu_method, url);
-	else
-		wpa_msg(wpa_s, MSG_INFO, HS20_SUBSCRIPTION_REMEDIATION);
-}
-
-
 void hs20_rx_deauth_imminent_notice(struct wpa_supplicant *wpa_s, u8 code,
 				    u16 reauth_delay, const char *url)
 {

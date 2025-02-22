@@ -35,7 +35,6 @@ struct eap_user {
 	size_t salt_len;
 	int phase2;
 	int force_version;
-	unsigned int remediation:1;
 	unsigned int macacl:1;
 	int ttls_auth; /* bitfield of
 			* EAP_TTLS_AUTH_{PAP,CHAP,MSCHAP,MSCHAPV2} */

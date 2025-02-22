@@ -4192,11 +4192,6 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		os_free(bss->hs20_operating_class);
 		bss->hs20_operating_class = oper_class;
 		bss->hs20_operating_class_len = oper_class_len;
-	} else if (os_strcmp(buf, "subscr_remediation_url") == 0) {
-		os_free(bss->subscr_remediation_url);
-		bss->subscr_remediation_url = os_strdup(pos);
-	} else if (os_strcmp(buf, "subscr_remediation_method") == 0) {
-		bss->subscr_remediation_method = atoi(pos);
 	} else if (os_strcmp(buf, "hs20_t_c_filename") == 0) {
 		os_free(bss->t_c_filename);
 		bss->t_c_filename = os_strdup(pos);
@@ -4205,9 +4200,6 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 	} else if (os_strcmp(buf, "hs20_t_c_server_url") == 0) {
 		os_free(bss->t_c_server_url);
 		bss->t_c_server_url = os_strdup(pos);
-	} else if (os_strcmp(buf, "hs20_sim_provisioning_url") == 0) {
-		os_free(bss->hs20_sim_provisioning_url);
-		bss->hs20_sim_provisioning_url = os_strdup(pos);
 #endif /* CONFIG_HS20 */
 #ifdef CONFIG_MBO
 	} else if (os_strcmp(buf, "mbo") == 0) {

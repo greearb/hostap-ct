@@ -132,7 +132,6 @@ struct sta_info {
 	unsigned int ht_20mhz_set:1;
 	unsigned int no_p2p_set:1;
 	unsigned int qos_map_enabled:1;
-	unsigned int remediation:1;
 	unsigned int hs20_deauth_requested:1;
 	unsigned int hs20_deauth_on_ack:1;
 	unsigned int session_timeout_set:1;
@@ -218,8 +217,6 @@ struct sta_info {
 	struct wpabuf *hs20_ie; /* HS 2.0 IE from (Re)Association Request */
 	/* Hotspot 2.0 Roaming Consortium from (Re)Association Request */
 	struct wpabuf *roaming_consortium;
-	u8 remediation_method;
-	char *remediation_url; /* HS 2.0 Subscription Remediation Server URL */
 	char *t_c_url; /* HS 2.0 Terms and Conditions Server URL */
 	struct wpabuf *hs20_deauth_req;
 	char *hs20_session_info_url;

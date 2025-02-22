@@ -86,7 +86,6 @@ struct radius_session {
 	struct radius_msg *last_reply;
 	u8 last_authenticator[16];
 
-	unsigned int remediation:1;
 	unsigned int macacl:1;
 	unsigned int t_c_filtering:1;
 
@@ -215,10 +214,6 @@ struct radius_server_data {
 	char *dump_msk_file;
 #endif /* CONFIG_RADIUS_TEST */
 
-	char *subscr_remediation_url;
-	u8 subscr_remediation_method;
-	char *hs20_sim_provisioning_url;
-
 	char *t_c_server_url;
 
 #ifdef CONFIG_SQLITE
@@ -242,44 +237,6 @@ wpa_hexdump_ascii(MSG_MSGDUMP, "RADIUS SRV: " args)
 static void radius_server_session_timeout(void *eloop_ctx, void *timeout_ctx);
 static void radius_server_session_remove_timeout(void *eloop_ctx,
 						 void *timeout_ctx);
-
-#ifdef CONFIG_SQLITE
-#ifdef CONFIG_HS20
-
-static int db_table_exists(sqlite3 *db, const char *name)
-{
-	char cmd[128];
-
-	os_snprintf(cmd, sizeof(cmd), "SELECT 1 FROM %s;", name);
-	return sqlite3_exec(db, cmd, NULL, NULL, NULL) == SQLITE_OK;
-}
-
-
-static int db_table_create_sim_provisioning(sqlite3 *db)
-{
-	char *err = NULL;
-	const char *sql =
-		"CREATE TABLE sim_provisioning("
-		" mobile_identifier_hash TEXT PRIMARY KEY,"
-		" imsi TEXT,"
-		" mac_addr TEXT,"
-		" eap_method TEXT,"
-		" timestamp TEXT"
-		");";
-
-	RADIUS_DEBUG("Adding database table for SIM provisioning information");
-	if (sqlite3_exec(db, sql, NULL, NULL, &err) != SQLITE_OK) {
-		RADIUS_ERROR("SQLite error: %s", err);
-		sqlite3_free(err);
-		return -1;
-	}
-
-	return 0;
-}
-
-#endif /* CONFIG_HS20 */
-#endif /* CONFIG_SQLITE */
-
 
 void srv_log(struct radius_session *sess, const char *fmt, ...)
 PRINTF_FORMAT(2, 3);
@@ -780,117 +737,6 @@ static void db_update_last_msk(struct radius_session *sess, const char *msk)
 }
 
 
-#ifdef CONFIG_HS20
-
-static int radius_server_is_sim_method(struct radius_session *sess)
-{
-	const char *name;
-
-	name = eap_get_method(sess->eap);
-	return name &&
-		(os_strcmp(name, "SIM") == 0 ||
-		 os_strcmp(name, "AKA") == 0 ||
-		 os_strcmp(name, "AKA'") == 0);
-}
-
-
-static int radius_server_hs20_missing_sim_pps(struct radius_msg *request)
-{
-	u8 *buf, *pos, *end, type, sublen;
-	size_t len;
-
-	buf = NULL;
-	for (;;) {
-		if (radius_msg_get_attr_ptr(request,
-					    RADIUS_ATTR_VENDOR_SPECIFIC,
-					    &buf, &len, buf) < 0)
-			return 0;
-		if (len < 6)
-			continue;
-		pos = buf;
-		end = buf + len;
-		if (WPA_GET_BE32(pos) != RADIUS_VENDOR_ID_WFA)
-			continue;
-		pos += 4;
-
-		type = *pos++;
-		sublen = *pos++;
-		if (sublen < 2)
-			continue; /* invalid length */
-		sublen -= 2; /* skip header */
-		if (pos + sublen > end)
-			continue; /* invalid WFA VSA */
-
-		if (type != RADIUS_VENDOR_ATTR_WFA_HS20_STA_VERSION)
-			continue;
-
-		RADIUS_DUMP("HS2.0 mobile device version", pos, sublen);
-		if (sublen < 1 + 2)
-			continue;
-		if (pos[0] == 0)
-			continue; /* Release 1 STA does not support provisioning
-
-				   */
-		/* UpdateIdentifier 0 indicates no PPS MO */
-		return WPA_GET_BE16(pos + 1) == 0;
-	}
-}
-
-
-#define HS20_MOBILE_ID_HASH_LEN 16
-
-static int radius_server_sim_provisioning_session(struct radius_session *sess,
-						  const u8 *hash)
-{
-#ifdef CONFIG_SQLITE
-	char *sql;
-	char addr_txt[ETH_ALEN * 3];
-	char hash_txt[2 * HS20_MOBILE_ID_HASH_LEN + 1];
-	struct os_time now;
-	int res;
-	const char *imsi, *eap_method;
-
-	if (!sess->server->db ||
-	    (!db_table_exists(sess->server->db, "sim_provisioning") &&
-	     db_table_create_sim_provisioning(sess->server->db) < 0))
-		return -1;
-
-	imsi = eap_get_imsi(sess->eap);
-	if (!imsi)
-		return -1;
-
-	eap_method = eap_get_method(sess->eap);
-	if (!eap_method)
-		return -1;
-
-	os_snprintf(addr_txt, sizeof(addr_txt), MACSTR,
-		    MAC2STR(sess->mac_addr));
-	wpa_snprintf_hex(hash_txt, sizeof(hash_txt), hash,
-			 HS20_MOBILE_ID_HASH_LEN);
-
-	os_get_time(&now);
-	sql = sqlite3_mprintf("INSERT INTO sim_provisioning(mobile_identifier_hash,imsi,mac_addr,eap_method,timestamp) VALUES (%Q,%Q,%Q,%Q,%u)",
-			      hash_txt, imsi, addr_txt, eap_method, now.sec);
-	if (!sql)
-		return -1;
-
-	if (sqlite3_exec(sess->server->db, sql, NULL, NULL, NULL) !=
-	    SQLITE_OK) {
-		RADIUS_ERROR("Failed to add SIM provisioning entry into sqlite database: %s",
-			     sqlite3_errmsg(sess->server->db));
-		res = -1;
-	} else {
-		res = 0;
-	}
-	sqlite3_free(sql);
-	return res;
-#endif /* CONFIG_SQLITE */
-	return -1;
-}
-
-#endif /* CONFIG_HS20 */
-
-
 static struct radius_msg *
 radius_server_encapsulate_eap(struct radius_server_data *data,
 			      struct radius_client *client,
@@ -992,74 +838,6 @@ radius_server_encapsulate_eap(struct radius_server_data *data,
 	}
 
 #ifdef CONFIG_HS20
-	if (code == RADIUS_CODE_ACCESS_ACCEPT && sess->remediation &&
-	    data->subscr_remediation_url) {
-		u8 *buf;
-		size_t url_len = os_strlen(data->subscr_remediation_url);
-		buf = os_malloc(1 + url_len);
-		if (buf == NULL) {
-			radius_msg_free(msg);
-			return NULL;
-		}
-		buf[0] = data->subscr_remediation_method;
-		os_memcpy(&buf[1], data->subscr_remediation_url, url_len);
-		if (!radius_msg_add_wfa(
-			    msg, RADIUS_VENDOR_ATTR_WFA_HS20_SUBSCR_REMEDIATION,
-			    buf, 1 + url_len)) {
-			RADIUS_DEBUG("Failed to add WFA-HS20-SubscrRem");
-		}
-		os_free(buf);
-	} else if (code == RADIUS_CODE_ACCESS_ACCEPT && sess->remediation) {
-		u8 buf[1];
-		if (!radius_msg_add_wfa(
-			    msg, RADIUS_VENDOR_ATTR_WFA_HS20_SUBSCR_REMEDIATION,
-			    buf, 0)) {
-			RADIUS_DEBUG("Failed to add WFA-HS20-SubscrRem");
-		}
-	} else if (code == RADIUS_CODE_ACCESS_ACCEPT &&
-		   data->hs20_sim_provisioning_url &&
-		   radius_server_is_sim_method(sess) &&
-		   radius_server_hs20_missing_sim_pps(request)) {
-		u8 *buf, *pos, hash[HS20_MOBILE_ID_HASH_LEN];
-		size_t prefix_len, url_len;
-
-		RADIUS_DEBUG("Device needs HS 2.0 SIM provisioning");
-
-		if (os_get_random(hash, HS20_MOBILE_ID_HASH_LEN) < 0) {
-			radius_msg_free(msg);
-			return NULL;
-		}
-		RADIUS_DUMP("hotspot2dot0-mobile-identifier-hash",
-			    hash, HS20_MOBILE_ID_HASH_LEN);
-
-		if (radius_server_sim_provisioning_session(sess, hash) < 0) {
-			radius_msg_free(msg);
-			return NULL;
-		}
-
-		prefix_len = os_strlen(data->hs20_sim_provisioning_url);
-		url_len = prefix_len + 2 * HS20_MOBILE_ID_HASH_LEN;
-		buf = os_malloc(1 + url_len + 1);
-		if (!buf) {
-			radius_msg_free(msg);
-			return NULL;
-		}
-		pos = buf;
-		*pos++ = data->subscr_remediation_method;
-		os_memcpy(pos, data->hs20_sim_provisioning_url, prefix_len);
-		pos += prefix_len;
-		wpa_snprintf_hex((char *) pos, 2 * HS20_MOBILE_ID_HASH_LEN + 1,
-				 hash, HS20_MOBILE_ID_HASH_LEN);
-		RADIUS_DEBUG("HS 2.0 subscription remediation URL: %s",
-			     (char *) &buf[1]);
-		if (!radius_msg_add_wfa(
-			    msg, RADIUS_VENDOR_ATTR_WFA_HS20_SUBSCR_REMEDIATION,
-			    buf, 1 + url_len)) {
-			RADIUS_DEBUG("Failed to add WFA-HS20-SubscrRem");
-		}
-		os_free(buf);
-	}
-
 	if (code == RADIUS_CODE_ACCESS_ACCEPT && sess->t_c_filtering) {
 		u8 buf[4] = { 0x01, 0x00, 0x00, 0x00 }; /* E=1 */
 		const char *url = data->t_c_server_url, *pos;
@@ -2231,20 +2009,6 @@ radius_server_init(struct radius_server_conf *conf)
 	}
 	data->erp_domain = conf->erp_domain;
 
-	if (conf->subscr_remediation_url) {
-		data->subscr_remediation_url =
-			os_strdup(conf->subscr_remediation_url);
-		if (!data->subscr_remediation_url)
-			goto fail;
-	}
-	data->subscr_remediation_method = conf->subscr_remediation_method;
-	if (conf->hs20_sim_provisioning_url) {
-		data->hs20_sim_provisioning_url =
-			os_strdup(conf->hs20_sim_provisioning_url);
-		if (!data->hs20_sim_provisioning_url)
-			goto fail;
-	}
-
 	if (conf->t_c_server_url) {
 		data->t_c_server_url = os_strdup(conf->t_c_server_url);
 		if (!data->t_c_server_url)
@@ -2359,8 +2123,6 @@ void radius_server_deinit(struct radius_server_data *data)
 #ifdef CONFIG_RADIUS_TEST
 	os_free(data->dump_msk_file);
 #endif /* CONFIG_RADIUS_TEST */
-	os_free(data->subscr_remediation_url);
-	os_free(data->hs20_sim_provisioning_url);
 	os_free(data->t_c_server_url);
 
 #ifdef CONFIG_SQLITE
@@ -2528,7 +2290,6 @@ static int radius_server_get_eap_user(void *ctx, const u8 *identity,
 				 phase2, user);
 	if (ret == 0 && user) {
 		sess->accept_attr = user->accept_attr;
-		sess->remediation = user->remediation;
 		sess->macacl = user->macacl;
 		sess->t_c_timestamp = user->t_c_timestamp;
 	}

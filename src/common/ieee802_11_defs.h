@@ -1626,7 +1626,6 @@ enum wmm_ac {
 #endif /* HS20_VERSION */
 
 /* WNM-Notification WFA vendors specific subtypes */
-#define HS20_WNM_SUB_REM_NEEDED 0
 #define HS20_WNM_DEAUTH_IMMINENT_NOTICE 1
 #define WFA_WNM_NOTIF_SUBELEM_NON_PREF_CHAN_REPORT 2
 #define WFA_WNM_NOTIF_SUBELEM_CELL_DATA_CAPA 3
