@@ -684,7 +684,7 @@ def test_ap_hs20_username(dev, apdev):
     params = hs20_ap_params()
     params['hessid'] = bssid
     params['disable_dgaf'] = '1'
-    hostapd.add_ap(apdev[0], params)
+    hapd = hostapd.add_ap(apdev[0], params)
 
     dev[0].hs20_enable()
     id = dev[0].add_cred_values({'realm': "example.com",
@@ -701,11 +701,38 @@ def test_ap_hs20_username(dev, apdev):
         raise Exception("Unexpected pairwise cipher")
     if status['hs20'] != "3":
         raise Exception("Unexpected HS 2.0 support indication")
+    hapd.wait_sta()
+    sta = hapd.get_sta(dev[0].own_addr())
+    if sta['dot1xAuthSessionUserName'] != "anonymous@example.com":
+        raise Exception("Unexpected anonymous identity: " + sta['dot1xAuthSessionUserName'])
 
     dev[1].connect("test-hs20", key_mgmt="WPA-EAP", eap="TTLS",
                    identity="hs20-test", password="password",
                    ca_cert="auth_serv/ca.pem", phase2="auth=MSCHAPV2",
                    scan_freq="2412")
+
+def test_ap_hs20_username_with_realm(dev, apdev):
+    """Hotspot 2.0 connection in username-with-realm/password credential"""
+    check_eap_capa(dev[0], "MSCHAPV2")
+    bssid = apdev[0]['bssid']
+    params = hs20_ap_params()
+    params['hessid'] = bssid
+    params['disable_dgaf'] = '1'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].hs20_enable()
+    id = dev[0].add_cred_values({'realm': "example.com",
+                                 'username': "hs20-test@inner.com",
+                                 'password': "password2",
+                                 'ca_cert': "auth_serv/ca.pem",
+                                 'domain': "example.com"})
+    interworking_select(dev[0], bssid, "home", freq="2412")
+    interworking_connect(dev[0], bssid, "TTLS")
+    check_sp_type(dev[0], "home")
+    hapd.wait_sta()
+    sta = hapd.get_sta(dev[0].own_addr())
+    if sta['dot1xAuthSessionUserName'] != "anonymous@example.com":
+        raise Exception("Unexpected anonymous identity: " + sta['dot1xAuthSessionUserName'])
 
 def test_ap_hs20_connect_api(dev, apdev):
     """Hotspot 2.0 connection with connect API"""
