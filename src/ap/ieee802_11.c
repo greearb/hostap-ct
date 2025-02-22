@@ -8066,8 +8066,8 @@ repeat_rnr:
 }
 
 
-u8 * hostapd_eid_rnr_colocation(struct hostapd_data *hapd, u8 *eid,
-				size_t *current_len)
+static u8 * hostapd_eid_rnr_colocation(struct hostapd_data *hapd, u8 *eid,
+				       size_t *current_len)
 {
 	struct hostapd_iface *iface;
 	size_t i;
@@ -8091,8 +8091,8 @@ u8 * hostapd_eid_rnr_colocation(struct hostapd_data *hapd, u8 *eid,
 }
 
 
-u8 * hostapd_eid_rnr_mlo(struct hostapd_data *hapd, u32 type,
-			 u8 *eid, size_t *current_len)
+static u8 * hostapd_eid_rnr_mlo(struct hostapd_data *hapd, u32 type,
+				u8 *eid, size_t *current_len)
 {
 #ifdef CONFIG_IEEE80211BE
 	struct hostapd_iface *iface;
