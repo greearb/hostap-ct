@@ -3929,10 +3929,9 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 	struct eht_ml_basic_common_info *common_info;
 	const u8 *pos;
 	u16 eml_capa = 0, mld_capa = 0;
-	const u16 control =
-		host_to_le16(MULTI_LINK_CONTROL_TYPE_BASIC |
-			     BASIC_MULTI_LINK_CTRL_PRES_LINK_ID |
-			     BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT);
+	const u16 control = MULTI_LINK_CONTROL_TYPE_BASIC |
+		BASIC_MULTI_LINK_CTRL_PRES_LINK_ID |
+		BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT;
 	u8 expected_common_info_len = 9;
 	unsigned int i = 0;
 	u16 ml_control;
