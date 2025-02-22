@@ -69,7 +69,7 @@ struct wpa_sm {
 	u8 ssid[32];
 	size_t ssid_len;
 	int wpa_ptk_rekey;
-	int wpa_deny_ptk0_rekey:1;
+	unsigned int wpa_deny_ptk0_rekey:1;
 	int p2p;
 	int wpa_rsc_relaxation;
 	int owe_ptk_workaround;
