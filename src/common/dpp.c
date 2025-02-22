@@ -299,7 +299,8 @@ int dpp_parse_uri_info(struct dpp_bootstrap_info *bi, const char *info)
 }
 
 
-int dpp_parse_uri_version(struct dpp_bootstrap_info *bi, const char *version)
+static int dpp_parse_uri_version(struct dpp_bootstrap_info *bi,
+				 const char *version)
 {
 #ifdef CONFIG_DPP2
 	if (!version || DPP_VERSION < 2)
