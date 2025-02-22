@@ -1993,12 +1993,9 @@ static void phy_info_iftype_copy(struct hostapd_hw_modes *mode,
 			  len);
 	}
 
-	if (tb[NL80211_BAND_IFTYPE_ATTR_HE_6GHZ_CAPA]) {
-		u16 capa;
-
-		capa = nla_get_u16(tb[NL80211_BAND_IFTYPE_ATTR_HE_6GHZ_CAPA]);
-		he_capab->he_6ghz_capa = le_to_host16(capa);
-	}
+	if (tb[NL80211_BAND_IFTYPE_ATTR_HE_6GHZ_CAPA])
+		he_capab->he_6ghz_capa =
+			nla_get_u16(tb[NL80211_BAND_IFTYPE_ATTR_HE_6GHZ_CAPA]);
 
 	if (!tb[NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MAC] ||
 	    !tb[NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PHY])
