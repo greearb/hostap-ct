@@ -2604,41 +2604,6 @@ void wpas_dbus_bss_signal_prop_changed(struct wpa_supplicant *wpa_s,
 
 
 /**
- * wpas_dbus_sta_signal_prop_changed - Signals change of STA property
- * @wpa_s: %wpa_supplicant network interface data
- * @property: indicates which property has changed
- * @address: unique BSS identifier
- *
- * Sends PropertyChanged signals with path, interface, and arguments depending
- * on which property has changed.
- */
-void wpas_dbus_sta_signal_prop_changed(struct wpa_supplicant *wpa_s,
-				       enum wpas_dbus_bss_prop property,
-				       u8 address[ETH_ALEN])
-{
-	char path[WPAS_DBUS_OBJECT_PATH_MAX];
-	char *prop;
-
-	switch (property) {
-	case WPAS_DBUS_STA_PROP_ADDRESS:
-		prop = "Address";
-		break;
-	default:
-		wpa_printf(MSG_ERROR, "dbus: %s: Unknown Property value %d",
-			   __func__, property);
-		return;
-	}
-
-	os_snprintf(path, WPAS_DBUS_OBJECT_PATH_MAX,
-		    "%s/" WPAS_DBUS_NEW_STAS_PART "/" COMPACT_MACSTR,
-		    wpa_s->dbus_new_path, MAC2STR(address));
-
-	wpa_dbus_mark_property_changed(wpa_s->global->dbus, path,
-				       WPAS_DBUS_NEW_IFACE_STA, prop);
-}
-
-
-/**
  * wpas_dbus_signal_debug_level_changed - Signals change of debug param
  * @global: wpa_global structure
  *
