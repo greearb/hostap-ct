@@ -153,7 +153,7 @@ static int pasn_wd_handle_sae_commit(struct pasn_data *pasn,
 		return -1;
 	}
 
-	res = sae_parse_commit(&pasn->sae, data + 6, buf_len - 6, NULL, 0,
+	res = sae_parse_commit(&pasn->sae, data + 6, buf_len - 6, NULL, NULL,
 			       groups, 0, NULL);
 	if (res != WLAN_STATUS_SUCCESS) {
 		wpa_printf(MSG_DEBUG, "PASN: Failed parsing SAE commit");
@@ -252,7 +252,7 @@ static struct wpabuf * pasn_get_sae_wd(struct pasn_data *pasn)
 	wpabuf_put_le16(buf, WLAN_STATUS_SAE_HASH_TO_ELEMENT);
 
 	/* Write the actual commit and update the length accordingly */
-	sae_write_commit(&pasn->sae, buf, NULL, 0);
+	sae_write_commit(&pasn->sae, buf, NULL, NULL);
 	len = wpabuf_len(buf);
 	WPA_PUT_LE16(len_ptr, len - 2);
 
