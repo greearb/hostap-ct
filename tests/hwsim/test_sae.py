@@ -1802,6 +1802,29 @@ def test_sae_password_long(dev, apdev):
     dev[0].connect("test-sae", sae_password=100*"A", key_mgmt="SAE",
                    scan_freq="2412")
 
+def test_sae_password_multiple(dev, apdev):
+    """SAE with multiple default password entries"""
+    check_sae_capab(dev[0])
+    check_sae_capab(dev[1])
+    check_sae_capab(dev[2])
+    params = hostapd.wpa3_params(ssid="test-sae",
+                                 password=["owner", "iot", "guest"])
+    params['sae_track_password'] = "10"
+    params['sae_confirm_immediate'] = '1'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].set("sae_groups", "")
+    dev[0].connect("test-sae", sae_password="owner", key_mgmt="SAE",
+                   ieee80211w="2", scan_freq="2412")
+
+    dev[1].set("sae_groups", "")
+    dev[1].connect("test-sae", sae_password="iot", key_mgmt="SAE",
+                   ieee80211w="2", scan_freq="2412")
+
+    dev[2].set("sae_groups", "")
+    dev[2].connect("test-sae", sae_password="guest", key_mgmt="SAE",
+                   ieee80211w="2", scan_freq="2412")
+
 def test_sae_connect_cmd(dev, apdev):
     """SAE with connect command"""
     wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
