@@ -65,6 +65,7 @@ struct sae_temporary_data {
 	struct wpabuf *own_rejected_groups;
 	struct wpabuf *peer_rejected_groups;
 	unsigned int own_addr_higher:1;
+	unsigned int try_other_password:1;
 
 #ifdef CONFIG_SAE_PK
 	u8 kek[SAE_MAX_HASH_LEN];
@@ -85,6 +86,8 @@ struct sae_temporary_data {
 #endif /* CONFIG_SAE_PK */
 
 	struct os_reltime disabled_until;
+
+	const void *used_pw;
 };
 
 struct sae_pt {

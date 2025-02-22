@@ -260,6 +260,10 @@ struct sae_password_entry {
 	int vlan_id;
 	struct sae_pt *pt;
 	struct sae_pk *pk;
+	u8 *success_mac;
+	unsigned int num_success_mac, next_success_mac;
+	u8 *fail_mac;
+	unsigned int num_fail_mac, next_fail_mac;
 };
 
 struct dpp_controller_conf {
@@ -688,6 +692,7 @@ struct hostapd_bss_config {
 	enum sae_pwe sae_pwe;
 	int *sae_groups;
 	struct sae_password_entry *sae_passwords;
+	int sae_track_password;
 
 	char *wowlan_triggers; /* Wake-on-WLAN triggers */
 

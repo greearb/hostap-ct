@@ -791,6 +791,8 @@ static void hostapd_config_free_sae_passwords(struct hostapd_bss_config *conf)
 #ifdef CONFIG_SAE_PK
 		sae_deinit_pk(tmp->pk);
 #endif /* CONFIG_SAE_PK */
+		os_free(tmp->success_mac);
+		os_free(tmp->fail_mac);
 		os_free(tmp);
 	}
 }

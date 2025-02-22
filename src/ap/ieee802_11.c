@@ -488,6 +488,147 @@ static void sae_set_state(struct sta_info *sta, enum sae_state state,
 }
 
 
+static bool in_mac_addr_list(const u8 *list, unsigned int num, const u8 *addr)
+{
+	unsigned int i;
+
+	for (i = 0; list && i < num; i++) {
+		if (ether_addr_equal(&list[i * ETH_ALEN], addr))
+			return true;
+	}
+
+	return false;
+}
+
+
+static struct sae_password_entry *
+sae_password_find_pw(struct hostapd_data *hapd, struct sta_info *sta)
+{
+	struct sae_password_entry *pw = NULL;
+
+	if (!sta->sae || !sta->sae->tmp || !sta->sae->tmp->used_pw)
+		return NULL;
+
+
+	for (pw = hapd->conf->sae_passwords; pw; pw = pw->next) {
+		if (pw == sta->sae->tmp->used_pw)
+			return pw;
+	}
+
+	return NULL;
+}
+
+
+static bool is_other_sae_password(struct hostapd_data *hapd,
+				  struct sta_info *sta,
+				  struct sae_password_entry *used_pw)
+{
+	struct sae_password_entry *pw;
+
+	for (pw = hapd->conf->sae_passwords; pw; pw = pw->next) {
+		if (pw == used_pw ||
+		    pw->identifier ||
+		    !is_broadcast_ether_addr(pw->peer_addr))
+			continue;
+
+		if (in_mac_addr_list(pw->success_mac,
+				     pw->num_success_mac,
+				     sta->addr))
+			return true;
+
+		if (!in_mac_addr_list(pw->fail_mac, pw->num_fail_mac,
+				      sta->addr))
+			return true;
+	}
+
+	return false;
+}
+
+
+static bool has_sae_success_seen(struct hostapd_data *hapd,
+				 struct sta_info *sta)
+{
+	struct sae_password_entry *pw;
+
+	for (pw = hapd->conf->sae_passwords; pw; pw = pw->next) {
+		if (pw->identifier ||
+		    !is_broadcast_ether_addr(pw->peer_addr))
+			continue;
+
+		if (in_mac_addr_list(pw->success_mac,
+				     pw->num_success_mac,
+				     sta->addr))
+			return true;
+	}
+
+	return false;
+}
+
+
+static void sae_password_track_success(struct hostapd_data *hapd,
+				       struct sta_info *sta)
+{
+	struct sae_password_entry *pw;
+
+	if (!hapd->conf->sae_track_password)
+		return;
+
+	pw = sae_password_find_pw(hapd, sta);
+	if (!pw)
+		return;
+
+	if (in_mac_addr_list(pw->success_mac,
+			     pw->num_success_mac,
+			     sta->addr))
+		return;
+
+	if (!pw->success_mac) {
+		pw->success_mac = os_zalloc(hapd->conf->sae_track_password *
+					    ETH_ALEN);
+		if (!pw->success_mac)
+			return;
+		pw->num_success_mac = hapd->conf->sae_track_password;
+	}
+
+	os_memcpy(&pw->success_mac[pw->next_success_mac * ETH_ALEN], sta->addr,
+		  ETH_ALEN);
+	pw->next_success_mac = (pw->next_success_mac + 1) % pw->num_success_mac;
+}
+
+
+static bool sae_password_track_fail(struct hostapd_data *hapd,
+				    struct sta_info *sta)
+{
+	struct sae_password_entry *pw;
+
+	if (!hapd->conf->sae_track_password)
+		return false;
+
+	pw = sae_password_find_pw(hapd, sta);
+	if (!pw)
+		return false;
+
+	if (in_mac_addr_list(pw->fail_mac,
+			     pw->num_fail_mac,
+			     sta->addr))
+		return is_other_sae_password(hapd, sta, pw);
+
+	if (!pw->fail_mac) {
+		pw->fail_mac = os_zalloc(hapd->conf->sae_track_password *
+					 ETH_ALEN);
+		if (!pw->fail_mac)
+			return false;
+		pw->num_fail_mac = hapd->conf->sae_track_password;
+	}
+
+	os_memcpy(&pw->fail_mac[pw->next_fail_mac * ETH_ALEN], sta->addr,
+		  ETH_ALEN);
+	pw->next_fail_mac = (pw->next_fail_mac + 1) % pw->num_fail_mac;
+
+	return is_other_sae_password(hapd, sta, pw);
+}
+
+
 const char * sae_get_password(struct hostapd_data *hapd,
 			      struct sta_info *sta,
 			      const char *rx_id,
@@ -501,6 +642,45 @@ const char * sae_get_password(struct hostapd_data *hapd,
 	const struct sae_pk *pk = NULL;
 	struct hostapd_sta_wpa_psk_short *psk = NULL;
 
+	/* With sae_track_password functionality enabled, try to first find the
+	 * next viable wildcard-address password if a password identifier was
+	 * not used. Select an wildcard-addr entry if the STA is known to have
+	 * used it successfully before. If no such entry exists, pick a
+	 * wildcard-addr entry that does not have a failed entry tracked for the
+	 * STA. */
+	if (!rx_id && sta && hapd->conf->sae_track_password) {
+		struct sae_password_entry *success = NULL, *no_fail = NULL;
+
+		for (pw = hapd->conf->sae_passwords; pw; pw = pw->next) {
+			if (pw->identifier ||
+			    !is_broadcast_ether_addr(pw->peer_addr))
+				continue;
+			if (in_mac_addr_list(pw->success_mac,
+					     pw->num_success_mac,
+					     sta->addr)) {
+				success = pw;
+				break;
+			}
+
+			if (!no_fail &&
+			    !in_mac_addr_list(pw->fail_mac, pw->num_fail_mac,
+					      sta->addr))
+				no_fail = pw;
+		}
+
+		pw = success ? success : no_fail;
+		if (pw) {
+			password = pw->password;
+			pt = pw->pt;
+			if (!(hapd->conf->mesh & MESH_ENABLED))
+				pk = pw->pk;
+			goto found;
+		}
+	}
+
+	/* If sae_track_password functionality is not enabled or no suitable
+	 * password entry was found with it, pick the first entry that matches
+	 * the STA MAC address and password identifier (if used). */
 	for (pw = hapd->conf->sae_passwords; pw; pw = pw->next) {
 		if (!is_broadcast_ether_addr(pw->peer_addr) &&
 		    (!sta ||
@@ -531,6 +711,7 @@ const char * sae_get_password(struct hostapd_data *hapd,
 		}
 	}
 
+found:
 	if (pw_entry)
 		*pw_entry = pw;
 	if (s_pt)
@@ -596,6 +777,9 @@ static struct wpabuf * auth_build_sae_commit(struct hostapd_data *hapd,
 		wpa_printf(MSG_DEBUG, "SAE: Could not pick PWE");
 		return NULL;
 	}
+
+	if (pw && sta->sae->tmp)
+		sta->sae->tmp->used_pw = pw;
 
 	if (pw && pw->vlan_id) {
 		if (!sta->sae->tmp) {
@@ -945,6 +1129,7 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 	case SAE_NOTHING:
 		if (auth_transaction == 1) {
 			struct sae_temporary_data *tmp = sta->sae->tmp;
+			bool immediate_confirm;
 
 			if (tmp) {
 				sta->sae->h2e =
@@ -986,8 +1171,22 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 			 * overridden with explicit configuration so that the
 			 * infrastructure BSS case sends both frames together.
 			 */
-			if ((hapd->conf->mesh & MESH_ENABLED) ||
-			    hapd->conf->sae_confirm_immediate) {
+			immediate_confirm = (hapd->conf->mesh & MESH_ENABLED) ||
+				hapd->conf->sae_confirm_immediate;
+
+			/* If sae_track_password is enabled and the STA has not
+			 * yet been tracked to having successfully completed
+			 * SAE authentication with the password that the AP
+			 * tries to use, do not send Confirm immediately to
+			 * avoid an explicit indication on the STA side on
+			 * password mismatch. */
+			if (immediate_confirm &&
+			    hapd->conf->sae_track_password &&
+			    (!sta->sae->tmp || !sta->sae->tmp->parsed_pw_id) &&
+			    !has_sae_success_seen(hapd, sta))
+				immediate_confirm = false;
+
+			if (immediate_confirm) {
 				/*
 				 * Send both Commit and Confirm immediately
 				 * based on SAE finite state machine
@@ -1435,7 +1634,9 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 			 * previously set parameters. */
 			pos = mgmt->u.auth.variable;
 			end = ((const u8 *) mgmt) + len;
-			if (end - pos >= (int) sizeof(le16) &&
+			if ((!sta->sae->tmp ||
+			     !sta->sae->tmp->try_other_password) &&
+			    end - pos >= (int) sizeof(le16) &&
 			    sae_group_allowed(sta->sae, groups,
 					      WPA_GET_LE16(pos)) ==
 			    WLAN_STATUS_SUCCESS) {
@@ -1561,9 +1762,21 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 
 			if (sae_check_confirm(sta->sae, var, var_len,
 					      NULL) < 0) {
+				if (sae_password_track_fail(hapd, sta)) {
+					wpa_printf(MSG_DEBUG,
+						   "SAE: Reject mismatching Confirm so that another password can be attempted by "
+						   MACSTR,
+						   MAC2STR(sta->addr));
+					if (sta->sae->tmp)
+						sta->sae->tmp->
+							try_other_password = 1;
+					resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+					goto reply;
+				}
 				resp = WLAN_STATUS_CHALLENGE_FAIL;
 				goto reply;
 			}
+			sae_password_track_success(hapd, sta);
 			sta->sae->rc = peer_send_confirm;
 		}
 		resp = sae_sm_step(hapd, sta, auth_transaction,
