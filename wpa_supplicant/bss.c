@@ -1953,7 +1953,8 @@ u16 wpa_bss_parse_reconf_ml_element(struct wpa_supplicant *wpa_s,
 		goto out;
 
 	ml_common_len = 1;
-	if (ml->ml_control & RECONF_MULTI_LINK_CTRL_PRES_MLD_MAC_ADDR)
+	if (le_to_host16(ml->ml_control) &
+	    RECONF_MULTI_LINK_CTRL_PRES_MLD_MAC_ADDR)
 		ml_common_len += ETH_ALEN;
 
 	if (len < sizeof(*ml) + ml_common_len) {
