@@ -251,13 +251,13 @@ static int wpas_pasn_get_params_from_bss(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_SHA384 */
 #endif /* CONFIG_IEEE80211R */
 #ifdef CONFIG_SAE
-	} else if ((sel & WPA_KEY_MGMT_SAE_EXT_KEY) &&
+	} else if ((sel & WPA_KEY_MGMT_SAE_EXT_KEY) && ssid &&
 		   (ieee802_11_rsnx_capab(rsnxe,
 					   WLAN_RSNX_CAPAB_SAE_H2E)) &&
 		   (wpas_pasn_sae_setup_pt(ssid, group) == 0)) {
 		key_mgmt = WPA_KEY_MGMT_SAE_EXT_KEY;
 		wpa_printf(MSG_DEBUG, "PASN: using KEY_MGMT SAE (ext key)");
-	} else if ((sel & WPA_KEY_MGMT_SAE) &&
+	} else if ((sel & WPA_KEY_MGMT_SAE) && ssid &&
 		   (ieee802_11_rsnx_capab(rsnxe,
 					   WLAN_RSNX_CAPAB_SAE_H2E)) &&
 		   (wpas_pasn_sae_setup_pt(ssid, group) == 0)) {
