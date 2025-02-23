@@ -4003,7 +4003,7 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 	ml_len -= sizeof(*ml) + common_info->len;
 	while (ml_len > 2 && i < MAX_NUM_MLD_LINKS) {
 		u8 sub_elem_len = pos[1];
-		u8 sta_info_len;
+		u8 sta_info_len, sta_info_len_min;
 		u8 nstr_bitmap_len = 0;
 		u16 ctrl;
 		const u8 *end;
@@ -4092,16 +4092,21 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 			goto out;
 		}
 
-		sta_info_len = 1 + ETH_ALEN + 8 + 2 + 2 + 1 + nstr_bitmap_len;
-		if (sta_info_len > ml_len || sta_info_len > end - pos ||
-		    sta_info_len + 2 > sub_elem_len ||
-		    sta_info_len > *pos) {
+		sta_info_len_min = 1 + ETH_ALEN + 8 + 2 + 2 + 1 +
+			nstr_bitmap_len;
+		if (sta_info_len_min > ml_len || sta_info_len_min > end - pos ||
+		    sta_info_len_min + 2 > sub_elem_len ||
+		    sta_info_len_min > *pos) {
 			wpa_printf(MSG_DEBUG,
-				   "MLD: Invalid STA info len=%u, len=%u",
-				   sta_info_len, *pos);
+				   "MLD: Invalid STA info min len=%u, len=%u",
+				   sta_info_len_min, *pos);
 			goto out;
 		}
 		sta_info_len = *pos;
+		/* Make static analyzers happier with an explicit check even
+		 * though this was already checked above with *pos.. */
+		if (sta_info_len < sta_info_len_min)
+			goto out;
 
 		/* Get the link address */
 		wpa_printf(MSG_DEBUG,
