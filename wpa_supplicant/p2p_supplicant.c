@@ -1602,11 +1602,13 @@ static void wpas_group_formation_completed(struct wpa_supplicant *wpa_s,
 			persistent = ssid->p2p_persistent_group;
 			os_memcpy(go_dev_addr, wpa_s->global->p2p_dev_addr,
 				  ETH_ALEN);
-		} else
+		} else {
+			os_memset(go_dev_addr, 0, ETH_ALEN);
 			persistent = wpas_p2p_persistent_group(wpa_s,
 							       go_dev_addr,
 							       ssid->ssid,
 							       ssid->ssid_len);
+		}
 	} else {
 		client = wpa_s->p2p_group_interface ==
 			P2P_GROUP_INTERFACE_CLIENT;
