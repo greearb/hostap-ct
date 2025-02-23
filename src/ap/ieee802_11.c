@@ -6248,7 +6248,7 @@ static int hostapd_action_vs(struct hostapd_data *hapd,
 	const u8 *pos, *end;
 	u32 oui_type;
 
-	pos = &mgmt->u.action.category;
+	pos = (const u8 *) &mgmt->u.action;
 	end = ((const u8 *) mgmt) + len;
 
 	if (end - pos < 1 + 4)
