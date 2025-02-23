@@ -8815,6 +8815,9 @@ int wpas_p2p_invite(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 		}
 	}
 
+	if (!ssid)
+		return -1;
+
 	wpa_s->p2p_persistent_go_freq = freq;
 	wpa_s->p2p_go_ht40 = !!ht40;
 	wpa_s->p2p_go_vht = !!vht;
