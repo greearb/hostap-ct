@@ -594,7 +594,8 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 
 	if (data->eht_enabled) switch (oper_chwidth) {
 	case CONF_OPER_CHWIDTH_320MHZ:
-		if (!(eht_cap->phy_cap[EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_IDX] &
+		if (eht_cap &&
+		    !(eht_cap->phy_cap[EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_IDX] &
 		      EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_MASK)) {
 			wpa_printf(MSG_ERROR,
 				   "320 MHz channel width is not supported in 5 or 6 GHz");
