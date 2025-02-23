@@ -666,7 +666,7 @@ static int eap_teap_session_id(struct eap_teap_data *data)
 	data->session_id[0] = EAP_TYPE_TEAP;
 	res = tls_get_tls_unique(data->ssl.conn, data->session_id + 1,
 				 max_id_len - 1);
-	if (res < 0) {
+	if (res < 0 || (size_t) res >= max_id_len) {
 		os_free(data->session_id);
 		data->session_id = NULL;
 		wpa_printf(MSG_ERROR, "EAP-TEAP: Failed to derive Session-Id");
