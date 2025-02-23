@@ -521,13 +521,19 @@ int send_and_recv_glb(struct nl80211_global *global,
 
 	/* try to set NETLINK_EXT_ACK to 1, ignoring errors */
 	opt = 1;
-	setsockopt(nl_socket_get_fd(nl_handle), SOL_NETLINK,
-		   NETLINK_EXT_ACK, &opt, sizeof(opt));
+	if (setsockopt(nl_socket_get_fd(nl_handle), SOL_NETLINK,
+		       NETLINK_EXT_ACK, &opt, sizeof(opt)) < 0)
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: setsockopt(NETLINK_EXT_ACK) failed: %s (ignored)",
+			   strerror(errno));
 
 	/* try to set NETLINK_CAP_ACK to 1, ignoring errors */
 	opt = 1;
-	setsockopt(nl_socket_get_fd(nl_handle), SOL_NETLINK,
-		   NETLINK_CAP_ACK, &opt, sizeof(opt));
+	if (setsockopt(nl_socket_get_fd(nl_handle), SOL_NETLINK,
+		       NETLINK_CAP_ACK, &opt, sizeof(opt)) < 0)
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: setsockopt(NETLINK_CAP_ACK) failed: %s (ignored)",
+			   strerror(errno));
 
 	err.err = nl_send_auto_complete(nl_handle, msg);
 	if (err.err < 0) {
