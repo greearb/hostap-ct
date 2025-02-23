@@ -210,7 +210,7 @@ struct wpabuf * p2p_process_invitation_req(struct p2p_data *p2p, const u8 *sa,
 	u8 group_bssid[ETH_ALEN], *bssid;
 	int op_freq = 0;
 	u8 reg_class = 0, channel = 0;
-	const u8 *new_ssid;
+	const u8 *new_ssid = NULL;
 	size_t new_ssid_len = 0;
 	struct p2p_channels all_channels, intersection, *channels = NULL;
 	int persistent;
