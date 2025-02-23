@@ -146,7 +146,8 @@ struct radius_server_data {
 	/**
 	 * conf_ctx - Context pointer for callbacks
 	 *
-	 * This is used as the ctx argument in get_eap_user() calls.
+	 * This is used as the ctx argument in get_eap_user() and acct_req_cb()
+	 * calls.
 	 */
 	void *conf_ctx;
 
@@ -192,6 +193,27 @@ struct radius_server_data {
 	 */
 	int (*get_eap_user)(void *ctx, const u8 *identity, size_t identity_len,
 			    int phase2, struct eap_user *user);
+
+	/**
+	 * acct_req_cb - Callback for processing received RADIUS accounting
+	 * requests
+	 * @ctx: Context data from conf_ctx
+	 * @msg: Received RADIUS accounting request
+	 * @status_type: Status type from the message (parsed Acct-Status-Type
+	 * attribute)
+	 * Returns: 0 on success, -1 on failure
+	 *
+	 * This can be used to log accounting information into file, database,
+	 * syslog server, etc.
+	 * Callback should not modify the message.
+	 * If 0 is returned, response is automatically created. Otherwise,
+	 * no response is created.
+	 *
+	 * acct_req_cb can be set to null to omit any custom processing of
+	 * account requests. Statistics counters will be incremented in any
+	 * case.
+	 */
+	int (*acct_req_cb)(void *ctx, struct radius_msg *msg, u32 status_type);
 
 	/**
 	 * eap_req_id_text - Optional data for EAP-Request/Identity
@@ -1599,6 +1621,7 @@ static void radius_server_receive_acct(int sock, void *eloop_ctx,
 	int from_port = 0;
 	struct radius_hdr *hdr;
 	struct wpabuf *rbuf;
+	u32 status_type;
 
 	buf = os_malloc(RADIUS_MAX_MSG_LEN);
 	if (buf == NULL) {
@@ -1680,7 +1703,20 @@ static void radius_server_receive_acct(int sock, void *eloop_ctx,
 		goto fail;
 	}
 
-	/* TODO: Write accounting information to a file or database */
+	/* Parse Acct-Status-Type from Accounting-Request */
+	if (radius_msg_get_attr_int32(msg, RADIUS_ATTR_ACCT_STATUS_TYPE,
+				      &status_type) != 0) {
+		RADIUS_DEBUG("Unable to parse Acct-Status-Type from %s", abuf);
+		goto fail;
+	}
+
+	/* Process accounting information by configured callback */
+	if (data->acct_req_cb &&
+	    data->acct_req_cb(data->conf_ctx, msg, status_type) != 0) {
+		RADIUS_DEBUG("Accounting request callback returned non-zero code indicating processing failure (from %s)",
+			     abuf);
+		goto fail;
+	}
 
 	hdr = radius_msg_get_hdr(msg);
 
@@ -2008,6 +2044,7 @@ radius_server_init(struct radius_server_conf *conf)
 	conf->eap_cfg->eap_server = 1;
 	data->ipv6 = conf->ipv6;
 	data->get_eap_user = conf->get_eap_user;
+	data->acct_req_cb = conf->acct_req_cb;
 	if (conf->eap_req_id_text) {
 		data->eap_req_id_text = os_malloc(conf->eap_req_id_text_len);
 		if (!data->eap_req_id_text)
