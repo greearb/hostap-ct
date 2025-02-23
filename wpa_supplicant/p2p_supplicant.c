@@ -8877,7 +8877,8 @@ int wpas_p2p_invite(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 
 #ifdef CONFIG_PASN
 	if (p2p2) {
-		if (wpas_p2p_initiate_pasn_verify(wpa_s, peer_addr, role, bssid,
+		if (peer_addr &&
+		    wpas_p2p_initiate_pasn_verify(wpa_s, peer_addr, role, bssid,
 						  ssid->ssid, ssid->ssid_len,
 						  force_freq, go_dev_addr,
 						  pref_freq) < 0) {
