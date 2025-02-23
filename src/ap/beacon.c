@@ -3101,7 +3101,7 @@ static void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
 {
 	bool tx_vap = hapd == hostapd_mbssid_get_tx_bss(hapd);
 	size_t link_data_len, sta_profile_len;
-	size_t own_data_len;
+	size_t own_data_len, fixed;
 	struct probe_resp_params link_params;
 	struct probe_resp_params own_params;
 	struct ieee80211_mgmt *link_data;
@@ -3129,7 +3129,10 @@ static void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
 	own_data_len = own_params.resp_len;
 
 	/* Consider the length of the variable fields */
-	own_data_len -= offsetof(struct ieee80211_mgmt, u.probe_resp.variable);
+	fixed = offsetof(struct ieee80211_mgmt, u.probe_resp.variable);
+	if (own_data_len < fixed)
+		goto fail;
+	own_data_len -= fixed;
 
 	for_each_mld_link(link_bss, hapd) {
 		if (link_bss == hapd || !link_bss->started)
@@ -3154,8 +3157,10 @@ static void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
 		link_data_len = link_params.resp_len;
 
 		/* Consider length of the variable fields */
-		link_data_len -= offsetof(struct ieee80211_mgmt,
-					  u.probe_resp.variable);
+		fixed = offsetof(struct ieee80211_mgmt, u.probe_resp.variable);
+		if (link_data_len < fixed)
+			continue;
+		link_data_len -= fixed;
 
 		sta_profile = hostapd_gen_sta_profile(link_data, link_data_len,
 						      own_data, own_data_len,
@@ -3188,6 +3193,7 @@ static void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
 		os_free(link_params.resp);
 	}
 
+fail:
 	os_free(own_params.resp);
 }
 
