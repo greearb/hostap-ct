@@ -3149,6 +3149,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->radius_server_auth_port = atoi(pos);
 	} else if (os_strcmp(buf, "radius_server_acct_port") == 0) {
 		bss->radius_server_acct_port = atoi(pos);
+	} else if (os_strcmp(buf, "radius_server_acct_log") == 0) {
+		bss->radius_server_acct_log = atoi(pos);
 	} else if (os_strcmp(buf, "radius_server_ipv6") == 0) {
 		bss->radius_server_ipv6 = atoi(pos);
 #endif /* RADIUS_SERVER */

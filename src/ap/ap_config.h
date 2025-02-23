@@ -467,6 +467,7 @@ struct hostapd_bss_config {
 	char *radius_server_clients;
 	int radius_server_auth_port;
 	int radius_server_acct_port;
+	int radius_server_acct_log;
 	int radius_server_ipv6;
 
 	int use_pae_group_addr; /* Whether to send EAPOL frames to PAE group
