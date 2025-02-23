@@ -7861,7 +7861,8 @@ repeat_rnr_len:
 
 		/* If no TBTT was found, adjust the len and total_len since it
 		 * would have incremented before we checked all BSSs. */
-		if (!tbtt_count) {
+		if (!tbtt_count && len >= RNR_TBTT_HEADER_LEN &&
+		    total_len >= RNR_TBTT_HEADER_LEN) {
 			len -= RNR_TBTT_HEADER_LEN;
 			total_len -= RNR_TBTT_HEADER_LEN;
 		}
@@ -7871,7 +7872,8 @@ repeat_rnr_len:
 
 	/* This is possible when in the re-built case and no suitable TBTT was
 	 * found. Adjust the length accordingly. */
-	if (!tbtt_count && total_tbtt_count) {
+	if (!tbtt_count && total_tbtt_count && len >= RNR_TBTT_HEADER_LEN &&
+	    total_len >= RNR_TBTT_HEADER_LEN) {
 		len -= RNR_TBTT_HEADER_LEN;
 		total_len -= RNR_TBTT_HEADER_LEN;
 	}
