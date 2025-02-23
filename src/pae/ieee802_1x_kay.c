@@ -3858,33 +3858,28 @@ ieee802_1x_kay_delete_mka(struct ieee802_1x_kay *kay, struct mka_key_name *ckn)
 	dl_list_del(&participant->list);
 
 	/* remove live peer */
-	while (!dl_list_empty(&participant->live_peers)) {
-		peer = dl_list_entry(participant->live_peers.next,
-				     struct ieee802_1x_kay_peer, list);
+	while ((peer = dl_list_first(&participant->live_peers,
+				     struct ieee802_1x_kay_peer, list))) {
 		dl_list_del(&peer->list);
 		os_free(peer);
 	}
 
 	/* remove potential peer */
-	while (!dl_list_empty(&participant->potential_peers)) {
-		peer = dl_list_entry(participant->potential_peers.next,
-				     struct ieee802_1x_kay_peer, list);
+	while ((peer = dl_list_first(&participant->potential_peers,
+				     struct ieee802_1x_kay_peer, list))) {
 		dl_list_del(&peer->list);
 		os_free(peer);
 	}
 
 	/* remove sak */
-	while (!dl_list_empty(&participant->sak_list)) {
-		sak = dl_list_entry(participant->sak_list.next,
-				    struct data_key, list);
+	while ((sak = dl_list_first(&participant->sak_list,
+				    struct data_key, list))) {
 		dl_list_del(&sak->list);
 		ieee802_1x_kay_deinit_data_key(sak);
 	}
-	while (!dl_list_empty(&participant->rxsc_list)) {
-		rxsc = dl_list_entry(participant->rxsc_list.next,
-				     struct receive_sc, list);
+	while ((rxsc = dl_list_first(&participant->rxsc_list,
+				     struct receive_sc, list)))
 		ieee802_1x_kay_deinit_receive_sc(participant, rxsc);
-	}
 	ieee802_1x_kay_deinit_transmit_sc(participant, participant->txsc);
 
 	os_memset(&participant->cak, 0, sizeof(participant->cak));
