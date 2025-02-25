@@ -1871,7 +1871,7 @@ ieee802_1x_mka_get_icv_length(struct ieee802_1x_mka_participant *participant)
 
 	/* Determine if we need space for the ICV Indicator */
 	if (mka_alg_tbl[participant->kay->mka_algindex].icv_len !=
-	    DEFAULT_ICV_LEN)
+	    DEFAULT_ICV_LEN || participant->kay->include_icv_indicator)
 		length = sizeof(struct ieee802_1x_mka_icv_body);
 	else
 		length = 0;
@@ -1894,7 +1894,7 @@ ieee802_1x_mka_encode_icv_body(struct ieee802_1x_mka_participant *participant,
 
 	length = ieee802_1x_mka_get_icv_length(participant);
 	if (mka_alg_tbl[participant->kay->mka_algindex].icv_len !=
-	    DEFAULT_ICV_LEN)  {
+	    DEFAULT_ICV_LEN || participant->kay->include_icv_indicator)  {
 		wpa_printf(MSG_DEBUG, "KaY: ICV Indicator");
 		body = wpabuf_put(buf, MKA_HDR_LEN);
 		body->type = MKA_ICV_INDICATOR;
@@ -3495,7 +3495,8 @@ struct ieee802_1x_kay *
 ieee802_1x_kay_init(struct ieee802_1x_kay_ctx *ctx, enum macsec_policy policy,
 		    bool macsec_replay_protect, u32 macsec_replay_window,
 		    u8 macsec_offload, u16 port, u8 priority,
-		    u32 macsec_csindex, const char *ifname, const u8 *addr)
+		    u32 macsec_csindex, bool include_icv_indicator,
+		    const char *ifname, const u8 *addr)
 {
 	struct ieee802_1x_kay *kay;
 
@@ -3533,6 +3534,7 @@ ieee802_1x_kay_init(struct ieee802_1x_kay_ctx *ctx, enum macsec_policy policy,
 
 	kay->pn_exhaustion = PENDING_PN_EXHAUSTION;
 	kay->macsec_csindex = macsec_csindex;
+	kay->include_icv_indicator = include_icv_indicator;
 	kay->mka_algindex = DEFAULT_MKA_ALG_INDEX;
 	kay->mka_version = MKA_VERSION_ID;
 

@@ -331,6 +331,7 @@ int ieee802_1x_alloc_kay_sm_hapd(struct hostapd_data *hapd,
 				  hapd->conf->macsec_port,
 				  hapd->conf->mka_priority,
 				  hapd->conf->macsec_csindex,
+				  hapd->conf->macsec_icv_indicator,
 				  hapd->conf->iface,
 				  hapd->own_addr);
 	/* ieee802_1x_kay_init() frees kay_ctx on failure */

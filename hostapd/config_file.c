@@ -4791,6 +4791,16 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 			return 1;
 		}
 		bss->macsec_csindex = macsec_csindex;
+	} else if (os_strcmp(buf, "macsec_icv_indicator") == 0) {
+		int macsec_icv_indicator = atoi(pos);
+
+		if (macsec_icv_indicator < 0 || macsec_icv_indicator > 1) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: invalid macsec_icv_indicator (%d): '%s'.",
+				   line, macsec_icv_indicator, pos);
+			return 1;
+		}
+		bss->macsec_icv_indicator = macsec_icv_indicator;
 	} else if (os_strcmp(buf, "mka_cak") == 0) {
 		size_t len = os_strlen(pos);
 
