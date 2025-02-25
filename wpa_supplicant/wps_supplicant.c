@@ -550,7 +550,8 @@ static int wpa_supplicant_wps_cred(void *ctx,
 #endif /* CONFIG_P2P */
 		if (add_sae && cred->key_len != 2 * PMK_LEN) {
 			ssid->auth_alg = 0;
-			ssid->key_mgmt |= WPA_KEY_MGMT_SAE;
+			ssid->key_mgmt |= WPA_KEY_MGMT_SAE |
+					  WPA_KEY_MGMT_SAE_EXT_KEY;
 			ssid->ieee80211w = MGMT_FRAME_PROTECTION_OPTIONAL;
 		}
 		ssid->proto = WPA_PROTO_RSN;
