@@ -4864,6 +4864,46 @@ wpa_global_config_parse_int_range(const struct global_parse_data *data,
 }
 
 
+static int wpa_global_config_parse_bool(const struct global_parse_data *data,
+					struct wpa_config *config, int line,
+					const char *pos)
+{
+	int val;
+	bool *dst;
+	char *end;
+	bool same;
+
+	dst = (bool *) (((u8 *) config) + (long) data->param1);
+	val = strtol(pos, &end, 0);
+	if (*end) {
+		wpa_printf(MSG_ERROR, "Line %d: invalid number \"%s\"",
+			   line, pos);
+		return -1;
+	}
+
+	if (val < 0) {
+		wpa_printf(MSG_ERROR,
+			   "Line %d: too small %s (value=%d min_value=0)",
+			   line, data->name, val);
+		return -1;
+	}
+
+	if (val > 1) {
+		wpa_printf(MSG_ERROR,
+			   "Line %d: too large %s (value=%d max_value=1)",
+			   line, data->name, val);
+		return -1;
+	}
+
+	same = *dst == val;
+	*dst = val;
+
+	wpa_printf(MSG_DEBUG, "%s=%d", data->name, *dst);
+
+	return same;
+}
+
+
 static int wpa_global_config_parse_str(const struct global_parse_data *data,
 				       struct wpa_config *config, int line,
 				       const char *pos)
@@ -5355,6 +5395,18 @@ static int wpa_config_get_int(const char *name, struct wpa_config *config,
 }
 
 
+static int wpa_config_get_bool(const char *name, struct wpa_config *config,
+			       long offset, char *buf, size_t buflen,
+			       int pretty_print)
+{
+	bool *val = (bool*) (((u8 *) config) + (long) offset);
+
+	if (pretty_print)
+		return os_snprintf(buf, buflen, "%s=%d\n", name, *val);
+	return os_snprintf(buf, buflen, "%d", *val);
+}
+
+
 static int wpa_config_get_str(const char *name, struct wpa_config *config,
 			      long offset, char *buf, size_t buflen,
 			      int pretty_print)
@@ -5430,6 +5482,8 @@ static int wpa_config_process_mld_connect_bssid_pref(
 #define INT(f) _INT(f), NULL, NULL
 #define INT_RANGE(f, min, max) #f, wpa_global_config_parse_int_range, \
 	wpa_config_get_int, OFFSET(f), (void *) min, (void *) max
+#define BOOL(f) #f, wpa_global_config_parse_bool, wpa_config_get_bool, \
+		OFFSET(f), NULL, NULL
 #define _STR(f) #f, wpa_global_config_parse_str, wpa_config_get_str, OFFSET(f)
 #define STR(f) _STR(f), NULL, NULL
 #define STR_RANGE(f, min, max) _STR(f), (void *) min, (void *) max
@@ -5533,13 +5587,13 @@ static const struct global_parse_data global_fields[] = {
 	{ FUNC(p2p_device_persistent_mac_addr), 0 },
 	{ INT(p2p_interface_random_mac_addr), 0 },
 	{ INT(p2p_6ghz_disable), 0 },
-	{ INT_RANGE(p2p_pairing_setup, 0, 1), 0 },
-	{ INT_RANGE(p2p_pairing_cache, 0, 1), 0 },
+	{ BOOL(p2p_pairing_setup), 0 },
+	{ BOOL(p2p_pairing_cache), 0 },
 	{ INT(p2p_bootstrap_methods), 0 },
 	{ INT(p2p_pasn_type), 0 },
 	{ INT(p2p_comeback_after), 0 },
-	{ INT_RANGE(p2p_twt_power_mgmt, 0, 1), 0 },
-	{ INT_RANGE(p2p_chan_switch_req_enable, 0, 1), 0 },
+	{ BOOL(p2p_twt_power_mgmt), 0 },
+	{ BOOL(p2p_chan_switch_req_enable), 0 },
 	{ INT(p2p_reg_info), 0 },
 	{ INT(dik_cipher), 0},
 	{ BIN(dik), 0 },
@@ -5619,7 +5673,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(gas_address3), 0 },
 	{ INT_RANGE(ftm_responder, 0, 1), 0 },
 	{ INT_RANGE(ftm_initiator, 0, 1), 0 },
-	{ INT_RANGE(twt_requester, 0, 1), 0 },
+	{ BOOL(twt_requester), 0 },
 	{ INT(gas_rand_addr_lifetime), 0 },
 	{ INT_RANGE(gas_rand_mac_addr, 0, 2), 0 },
 #ifdef CONFIG_DPP
@@ -5648,7 +5702,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT_RANGE(mld_connect_band_pref, 0, MLD_CONNECT_BAND_PREF_MAX), 0 },
 	{ FUNC(mld_connect_bssid_pref), 0 },
 #endif /* CONFIG_TESTING_OPTIONS */
-	{ INT_RANGE(ft_prepend_pmkid, 0, 1), CFG_CHANGED_FT_PREPEND_PMKID },
+	{ BOOL(ft_prepend_pmkid), CFG_CHANGED_FT_PREPEND_PMKID },
 	{ INT_RANGE(wfa_gen_capa, 0, 2), 0},
 	{ BIN(wfa_gen_capa_supp), 0 },
 	{ BIN(wfa_gen_capa_cert), 0 },
@@ -5658,9 +5712,11 @@ static const struct global_parse_data global_fields[] = {
 };
 
 #undef FUNC
+#undef FUNC_NO_VAR
 #undef _INT
 #undef INT
 #undef INT_RANGE
+#undef BOOL
 #undef _STR
 #undef STR
 #undef STR_RANGE
