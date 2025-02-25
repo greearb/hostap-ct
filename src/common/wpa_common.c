@@ -986,11 +986,12 @@ int wpa_ft_mic(int key_mgmt, const u8 *kck, size_t kck_len, const u8 *sta_addr,
 	       const u8 *rsnie, size_t rsnie_len,
 	       const u8 *ric, size_t ric_len,
 	       const u8 *rsnxe, size_t rsnxe_len,
+	       struct ft_links *ft_links_data,
 	       const struct wpabuf *extra,
 	       u8 *mic)
 {
-	const u8 *addr[11];
-	size_t len[11];
+	const u8 *addr[18];
+	size_t len[18];
 	size_t i, num_elem = 0;
 	u8 zero_mic[32];
 	size_t mic_len, fte_fixed_len;
@@ -1026,7 +1027,19 @@ int wpa_ft_mic(int key_mgmt, const u8 *kck, size_t kck_len, const u8 *sta_addr,
 	len[num_elem] = 1;
 	num_elem++;
 
-	if (rsnie) {
+	if (ft_links_data && ft_links_data->is_assoc_resp) {
+		for (i = 0; i < ft_links_data->link_count; i++) {
+			struct ft_link_data *link_data;
+
+			link_data = &ft_links_data->links[i];
+			if (link_data->rsne_len == 0)
+				continue;
+
+			addr[num_elem] = link_data->rsne;
+			len[num_elem] = link_data->rsne_len;
+			num_elem++;
+		}
+	} else if (rsnie) {
 		addr[num_elem] = rsnie;
 		len[num_elem] = rsnie_len;
 		num_elem++;
@@ -1062,7 +1075,19 @@ int wpa_ft_mic(int key_mgmt, const u8 *kck, size_t kck_len, const u8 *sta_addr,
 		num_elem++;
 	}
 
-	if (rsnxe) {
+	if (ft_links_data && ft_links_data->is_assoc_resp) {
+		for (i = 0; i < ft_links_data->link_count; i++) {
+			struct ft_link_data *link_data;
+
+			link_data = &ft_links_data->links[i];
+			if (link_data->rsnxe_len == 0)
+				continue;
+
+			addr[num_elem] = link_data->rsnxe;
+			len[num_elem] = link_data->rsnxe_len;
+			num_elem++;
+		}
+	} else if (rsnxe) {
 		addr[num_elem] = rsnxe;
 		len[num_elem] = rsnxe_len;
 		num_elem++;
@@ -1072,6 +1097,14 @@ int wpa_ft_mic(int key_mgmt, const u8 *kck, size_t kck_len, const u8 *sta_addr,
 		addr[num_elem] = wpabuf_head(extra);
 		len[num_elem] = wpabuf_len(extra);
 		num_elem++;
+	}
+
+	if (ft_links_data) {
+		for (i = 0; i < ft_links_data->link_count; i++) {
+			addr[num_elem] = ft_links_data->links[i].link_addr;
+			len[num_elem] = ETH_ALEN;
+			num_elem++;
+		}
 	}
 
 	for (i = 0; i < num_elem; i++)
