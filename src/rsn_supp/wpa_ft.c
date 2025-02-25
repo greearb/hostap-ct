@@ -469,13 +469,14 @@ static u8 * wpa_ft_gen_req_ies(struct wpa_sm *sm, size_t *len,
 		*elem_count = 3 + ieee802_11_ie_count(ric_ies, ric_ies_len);
 		if (rsnxe_len)
 			*elem_count += 1;
+		/* TODO: fix mld STA FT mic */
 		if (wpa_ft_mic(sm->key_mgmt, kck, kck_len,
 			       sm->own_addr, target_ap, 5,
 			       ((u8 *) mdie) - 2, 2 + sizeof(*mdie),
 			       ftie_pos, 2 + *ftie_len,
 			       (u8 *) rsnie, 2 + rsnie->len, ric_ies,
 			       ric_ies_len, rsnxe_len ? rsnxe : NULL, rsnxe_len,
-			       NULL,
+			       NULL, NULL,
 			       fte_mic) < 0) {
 			wpa_printf(MSG_INFO, "FT: Failed to calculate MIC");
 			os_free(buf);
@@ -1151,6 +1152,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 		kck_len = sm->ptk.kck_len;
 	}
 
+	/* TODO: fix mld STA FT mic */
 	if (wpa_ft_mic(sm->key_mgmt, kck, kck_len, sm->own_addr, src_addr, 6,
 		       parse.mdie - 2, parse.mdie_len + 2,
 		       parse.ftie - 2, parse.ftie_len + 2,
@@ -1158,7 +1160,7 @@ int wpa_ft_validate_reassoc_resp(struct wpa_sm *sm, const u8 *ies,
 		       parse.ric, parse.ric_len,
 		       parse.rsnxe ? parse.rsnxe - 2 : NULL,
 		       parse.rsnxe ? parse.rsnxe_len + 2 : 0,
-		       NULL,
+		       NULL, NULL,
 		       mic) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: Failed to calculate MIC");
 		goto fail;
