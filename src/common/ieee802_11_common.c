@@ -3395,7 +3395,7 @@ int chwidth_freq2_to_ch_width(int chwidth, int freq2)
 struct wpabuf * ieee802_11_defrag(const u8 *data, size_t len, bool ext_elem)
 {
 	struct wpabuf *buf;
-	const u8 *pos, *end = data + len;
+	const u8 *pos, *end;
 	size_t min_defrag_len = ext_elem ? 255 : 256;
 
 	if (!data || !len)
@@ -3409,6 +3409,7 @@ struct wpabuf * ieee802_11_defrag(const u8 *data, size_t len, bool ext_elem)
 		return NULL;
 
 	pos = &data[min_defrag_len - 1];
+	end = data + len;
 	len -= min_defrag_len - 1;
 	while (len > 2 && pos[0] == WLAN_EID_FRAGMENT && pos[1]) {
 		int ret;
