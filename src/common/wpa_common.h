@@ -477,6 +477,21 @@ struct rsn_rdie {
 #pragma pack(pop)
 #endif /* _MSC_VER */
 
+struct ft_link_data {
+	u8 link_addr[ETH_ALEN];
+	u8 rsne[100];
+	size_t rsne_len;
+	u8 rsnxe[10];
+	size_t rsnxe_len;
+};
+
+struct ft_links {
+	bool is_assoc_resp;
+	u8 elem_count;
+	u8 link_count;
+	u16 valid_links;
+	struct ft_link_data *links;
+};
 
 int wpa_eapol_key_mic(const u8 *key, size_t key_len, int akmp,
 		      enum rsn_hash_alg hash, int ver,
@@ -511,6 +526,7 @@ int wpa_ft_mic(int key_mgmt, const u8 *kck, size_t kck_len, const u8 *sta_addr,
 	       const u8 *rsnie, size_t rsnie_len,
 	       const u8 *ric, size_t ric_len,
 	       const u8 *rsnxe, size_t rsnxe_len,
+	       struct ft_links *ft_links_data,
 	       const struct wpabuf *extra,
 	       u8 *mic);
 int wpa_derive_pmk_r0(const u8 *xxkey, size_t xxkey_len,
