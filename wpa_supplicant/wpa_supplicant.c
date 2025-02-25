@@ -6312,6 +6312,12 @@ wpa_supplicant_alloc(struct wpa_supplicant *parent)
 #endif /* CONFIG_NO_ROBUST_AV */
 	wpa_s->ml_probe_mld_id = -1;
 
+#ifdef CONFIG_PMKSA_CACHE_EXTERNAL
+#ifdef CONFIG_MESH
+	dl_list_init(&wpa_s->mesh_external_pmksa_cache);
+#endif /* CONFIG_MESH */
+#endif /* CONFIG_PMKSA_CACHE_EXTERNAL */
+
 	return wpa_s;
 }
 
@@ -7822,12 +7828,6 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 
 	if (wpa_bss_init(wpa_s) < 0)
 		return -1;
-
-#ifdef CONFIG_PMKSA_CACHE_EXTERNAL
-#ifdef CONFIG_MESH
-	dl_list_init(&wpa_s->mesh_external_pmksa_cache);
-#endif /* CONFIG_MESH */
-#endif /* CONFIG_PMKSA_CACHE_EXTERNAL */
 
 	/*
 	 * Set Wake-on-WLAN triggers, if configured.
