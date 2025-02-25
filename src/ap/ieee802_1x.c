@@ -2542,8 +2542,6 @@ int ieee802_1x_init(struct hostapd_data *hapd)
 	}
 #endif /* CONFIG_IEEE80211BE */
 
-	dl_list_init(&hapd->erp_keys);
-
 	os_memset(&conf, 0, sizeof(conf));
 	conf.eap_cfg = hapd->eap_cfg;
 	conf.ctx = hapd;
