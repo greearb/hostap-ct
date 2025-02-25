@@ -2056,6 +2056,8 @@ static int tls_match_altsubject(X509 *cert, const char *match)
 			len = os_strlen(pos);
 		if (tls_match_altsubject_component(cert, type, pos, len) > 0)
 			return 1;
+		if (!end)
+			break;
 		pos = end + 1;
 	} while (end);
 
