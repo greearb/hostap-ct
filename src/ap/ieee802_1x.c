@@ -1250,8 +1250,10 @@ void ieee802_1x_receive(struct hostapd_data *hapd, const u8 *sa, const u8 *buf,
 			       HOSTAPD_LEVEL_DEBUG,
 			       "received EAPOL-Start from STA");
 #ifdef CONFIG_IEEE80211R_AP
-		if (hapd->conf->wpa && sta->wpa_sm &&
-		    (wpa_key_mgmt_ft(wpa_auth_sta_key_mgmt(sta->wpa_sm)) ||
+		if (hapd->conf->wpa &&
+		    wpa_key_mgmt_ft(hapd->conf->wpa_key_mgmt) && sta->wpa_sm &&
+		    ((wpa_key_mgmt_ft(wpa_auth_sta_key_mgmt(sta->wpa_sm)) &&
+		      (sta->flags & WLAN_STA_AUTHORIZED)) ||
 		     sta->auth_alg == WLAN_AUTH_FT)) {
 			/* When FT is used, reauthentication to generate a new
 			 * PMK-R0 would be complicated since the current AP
