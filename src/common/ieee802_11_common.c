@@ -2570,6 +2570,9 @@ const u8 * get_vendor_ie(const u8 *ies, size_t len, u32 vendor_type)
 {
 	const struct element *elem;
 
+	if (!ies)
+		return NULL;
+
 	for_each_element_id(elem, WLAN_EID_VENDOR_SPECIFIC, ies, len) {
 		if (elem->datalen >= 4 &&
 		    vendor_type == WPA_GET_BE32(elem->data))
