@@ -781,6 +781,7 @@ struct wpa_authenticator * wpa_init(const u8 *addr,
 		return NULL;
 	}
 
+	/* Per-link PMKSA cache */
 	wpa_auth->pmksa = pmksa_cache_auth_init(wpa_auth_pmksa_free_cb,
 						wpa_auth);
 	if (!wpa_auth->pmksa) {
@@ -791,12 +792,46 @@ struct wpa_authenticator * wpa_init(const u8 *addr,
 		return NULL;
 	}
 
+#ifdef CONFIG_IEEE80211BE
+	/* MLD-level PMKSA cache */
+	if (wpa_auth->is_ml && wpa_auth->primary_auth) {
+		wpa_auth->ml_pmksa = pmksa_cache_auth_init(
+			wpa_auth_pmksa_free_cb, wpa_auth);
+		if (!wpa_auth->ml_pmksa) {
+			wpa_printf(MSG_ERROR,
+				   "MLD-level PMKSA cache initialization failed.");
+			os_free(wpa_auth->group);
+			os_free(wpa_auth->wpa_ie);
+			pmksa_cache_auth_deinit(wpa_auth->pmksa);
+			os_free(wpa_auth);
+			return NULL;
+		}
+	} else if (wpa_auth->is_ml) {
+		struct wpa_authenticator *pa = wpa_get_primary_auth(wpa_auth);
+
+		if (!pa) {
+			wpa_printf(MSG_ERROR,
+				   "Could not find primary authenticator.");
+			os_free(wpa_auth->group);
+			os_free(wpa_auth->wpa_ie);
+			pmksa_cache_auth_deinit(wpa_auth->pmksa);
+			os_free(wpa_auth);
+			return NULL;
+		}
+		wpa_auth->ml_pmksa = pa->ml_pmksa;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 #ifdef CONFIG_IEEE80211R_AP
 	wpa_auth->ft_pmk_cache = wpa_ft_pmk_cache_init();
 	if (!wpa_auth->ft_pmk_cache) {
 		wpa_printf(MSG_ERROR, "FT PMK cache initialization failed.");
 		os_free(wpa_auth->group);
 		os_free(wpa_auth->wpa_ie);
+#ifdef CONFIG_IEEE80211BE
+		if (wpa_auth->primary_auth)
+			pmksa_cache_auth_deinit(wpa_auth->ml_pmksa);
+#endif /* CONFIG_IEEE80211BE */
 		pmksa_cache_auth_deinit(wpa_auth->pmksa);
 		os_free(wpa_auth);
 		return NULL;
@@ -878,14 +913,34 @@ static void wpa_auth_free_conf(struct wpa_auth_config *conf)
 void wpa_deinit(struct wpa_authenticator *wpa_auth)
 {
 	struct wpa_group *group, *prev;
+#ifdef CONFIG_IEEE80211BE
+	struct wpa_authenticator *next_pa;
+#endif /* CONFIG_IEEE80211BE */
 
 	eloop_cancel_timeout(wpa_rekey_gmk, wpa_auth, NULL);
-
-	/* TODO: Assign ML primary authenticator to next link authenticator and
-	 * start rekey timer. */
 	eloop_cancel_timeout(wpa_rekey_gtk, wpa_auth, NULL);
 
 	pmksa_cache_auth_deinit(wpa_auth->pmksa);
+
+#ifdef CONFIG_IEEE80211BE
+	if (wpa_auth->is_ml && wpa_auth->primary_auth) {
+		next_pa = wpa_auth->cb->next_primary_auth(wpa_auth->cb_ctx);
+
+		if (!next_pa) {
+			/* Deinit PMKSA entry list if last link */
+			pmksa_cache_auth_deinit(wpa_auth->ml_pmksa);
+		} else {
+			/* Assign ML primary authenticator to the next link
+			 * authenticator and start rekey timer.
+			 */
+			next_pa->primary_auth = true;
+			if (next_pa->conf.wpa_group_rekey)
+				eloop_register_timeout(
+					next_pa->conf.wpa_group_rekey,
+					0, wpa_rekey_gtk, next_pa, NULL);
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
 
 #ifdef CONFIG_IEEE80211R_AP
 	wpa_ft_pmk_cache_deinit(wpa_auth->ft_pmk_cache);

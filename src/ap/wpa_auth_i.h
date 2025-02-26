@@ -267,6 +267,8 @@ struct wpa_authenticator {
 #endif /* CONFIG_P2P */
 
 #ifdef CONFIG_IEEE80211BE
+	/* MLD-level PMKSA cache for non-AP MLD entries only. */
+	struct rsn_pmksa_cache *ml_pmksa;
 	bool is_ml;
 	u8 mld_addr[ETH_ALEN];
 	u8 link_id;

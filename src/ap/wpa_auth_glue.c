@@ -1631,6 +1631,21 @@ static int hostapd_wpa_auth_get_ml_key_info(void *ctx,
 	return 0;
 }
 
+
+static struct wpa_authenticator * hostapd_next_primary_auth(void *cb_ctx)
+{
+	struct hostapd_data *hapd = cb_ctx, *bss;
+
+	for_each_mld_link(bss, hapd) {
+		if (bss == hapd)
+			continue;
+		if (bss->wpa_auth)
+			return bss->wpa_auth;
+	}
+
+	return NULL;
+}
+
 #endif /* CONFIG_IEEE80211BE */
 
 
@@ -1700,6 +1715,7 @@ int hostapd_setup_wpa(struct hostapd_data *hapd)
 #endif /* CONFIG_PASN */
 #ifdef CONFIG_IEEE80211BE
 		.get_ml_key_info = hostapd_wpa_auth_get_ml_key_info,
+		.next_primary_auth = hostapd_next_primary_auth,
 #endif /* CONFIG_IEEE80211BE */
 		.get_drv_flags = hostapd_wpa_auth_get_drv_flags,
 	};

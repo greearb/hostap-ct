@@ -428,6 +428,7 @@ struct wpa_auth_callbacks {
 #ifdef CONFIG_IEEE80211BE
 	int (*get_ml_key_info)(void *ctx, struct wpa_auth_ml_key_info *info,
 			       bool rekey);
+	struct wpa_authenticator * (*next_primary_auth)(void *ctx);
 #endif /* CONFIG_IEEE80211BE */
 	int (*get_drv_flags)(void *ctx, u64 *drv_flags, u64 *drv_flags2);
 };
