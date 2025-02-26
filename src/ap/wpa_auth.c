@@ -6599,12 +6599,27 @@ void wpa_auth_pmksa_remove(struct wpa_authenticator *wpa_auth,
 
 	if (!wpa_auth || !wpa_auth->pmksa)
 		return;
+
 	pmksa = pmksa_cache_auth_get(wpa_auth->pmksa, sta_addr, NULL);
 	if (pmksa) {
 		wpa_printf(MSG_DEBUG, "WPA: Remove PMKSA cache entry for "
 			   MACSTR " based on request", MAC2STR(sta_addr));
 		pmksa_cache_free_entry(wpa_auth->pmksa, pmksa);
 	}
+
+#ifdef CONFIG_IEEE80211BE
+	if (wpa_auth->ml_pmksa) {
+		pmksa = pmksa_cache_auth_get(wpa_auth->ml_pmksa,
+					     sta_addr, NULL);
+		if (pmksa) {
+			wpa_printf(MSG_DEBUG,
+				   "WPA: Remove PMKSA cache entry for " MACSTR
+				   " based on request (MLD)",
+				   MAC2STR(sta_addr));
+			pmksa_cache_free_entry(wpa_auth->ml_pmksa, pmksa);
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
 }
 
 
@@ -6619,8 +6634,13 @@ int wpa_auth_pmksa_list(struct wpa_authenticator *wpa_auth, char *buf,
 
 void wpa_auth_pmksa_flush(struct wpa_authenticator *wpa_auth)
 {
-	if (wpa_auth && wpa_auth->pmksa)
+	if (wpa_auth && wpa_auth->pmksa) {
 		pmksa_cache_auth_flush(wpa_auth->pmksa);
+#ifdef CONFIG_IEEE80211BE
+		if (wpa_auth->ml_pmksa && wpa_auth->primary_auth)
+			pmksa_cache_auth_flush(wpa_auth->ml_pmksa);
+#endif /* CONFIG_IEEE80211BE */
+	}
 }
 
 
