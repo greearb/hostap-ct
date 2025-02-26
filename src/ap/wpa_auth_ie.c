@@ -798,7 +798,7 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 		    const u8 *rsnxe, size_t rsnxe_len,
 		    const u8 *mdie, size_t mdie_len,
 		    const u8 *owe_dh, size_t owe_dh_len,
-		    struct wpa_state_machine *assoc_sm)
+		    struct wpa_state_machine *assoc_sm, bool is_ml)
 {
 	struct wpa_auth_config *conf = &wpa_auth->conf;
 	struct wpa_ie_data data;
@@ -1184,9 +1184,15 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 
 	sm->pmksa = NULL;
 	for (i = 0; i < data.num_pmkid; i++) {
+		struct rsn_pmksa_cache *pmksa = wpa_auth->pmksa;
+
 		wpa_hexdump(MSG_DEBUG, "RSN IE: STA PMKID",
 			    &data.pmkid[i * PMKID_LEN], PMKID_LEN);
-		sm->pmksa = pmksa_cache_auth_get(wpa_auth->pmksa, sm->addr,
+#ifdef CONFIG_IEEE80211BE
+		if (is_ml)
+			pmksa = wpa_auth->ml_pmksa;
+#endif /* CONFIG_IEEE80211BE */
+		sm->pmksa = pmksa_cache_auth_get(pmksa, sm->addr,
 						 &data.pmkid[i * PMKID_LEN]);
 		if (!sm->pmksa && !is_zero_ether_addr(sm->p2p_dev_addr))
 			sm->pmksa = pmksa_cache_auth_get(

@@ -6535,16 +6535,27 @@ int wpa_auth_pmksa_add_preauth(struct wpa_authenticator *wpa_auth,
 
 int wpa_auth_pmksa_add_sae(struct wpa_authenticator *wpa_auth, const u8 *addr,
 			   const u8 *pmk, size_t pmk_len, const u8 *pmkid,
-			   int akmp)
+			   int akmp, bool is_ml)
 {
+	struct rsn_pmksa_cache *pmksa = wpa_auth->pmksa;
+	const u8 *aa = wpa_auth->addr;
+
 	if (wpa_auth->conf.disable_pmksa_caching)
 		return -1;
 
 	wpa_hexdump_key(MSG_DEBUG, "RSN: Cache PMK from SAE", pmk, pmk_len);
 	if (!akmp)
 		akmp = WPA_KEY_MGMT_SAE;
-	if (pmksa_cache_auth_add(wpa_auth->pmksa, pmk, pmk_len, pmkid,
-				 NULL, 0, wpa_auth->addr, addr, 0, NULL, akmp))
+
+#ifdef CONFIG_IEEE80211BE
+	if (is_ml) {
+		pmksa = wpa_auth->ml_pmksa;
+		aa = wpa_auth->mld_addr;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
+	if (pmksa_cache_auth_add(pmksa, pmk, pmk_len, pmkid, NULL, 0, aa, addr,
+				 0, NULL, akmp))
 		return 0;
 
 	return -1;

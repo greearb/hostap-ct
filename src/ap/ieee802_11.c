@@ -1094,7 +1094,8 @@ void sae_accept_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	sta->sae->peer_commit_scalar = NULL;
 	wpa_auth_pmksa_add_sae(hapd->wpa_auth, sta->addr,
 			       sta->sae->pmk, sta->sae->pmk_len,
-			       sta->sae->pmkid, sta->sae->akmp);
+			       sta->sae->pmkid, sta->sae->akmp,
+			       ap_sta_is_mld(hapd, sta));
 	sae_sme_send_external_auth_status(hapd, sta, WLAN_STATUS_SUCCESS);
 }
 
@@ -2123,7 +2124,8 @@ void handle_auth_fils(struct hostapd_data *hapd, struct sta_info *sta,
 				  elems.rsn_ie - 2, elems.rsn_ie_len + 2,
 				  elems.rsnxe ? elems.rsnxe - 2 : NULL,
 				  elems.rsnxe ? elems.rsnxe_len + 2 : 0,
-				  elems.mdie, elems.mdie_len, NULL, 0, NULL);
+				  elems.mdie, elems.mdie_len, NULL, 0, NULL,
+				  ap_sta_is_mld(hapd, sta));
 	resp = wpa_res_to_status_code(res);
 	if (resp != WLAN_STATUS_SUCCESS)
 		goto fail;
@@ -4057,7 +4059,8 @@ u16 owe_process_rsn_ie(struct hostapd_data *hapd,
 	rsn_ie_len += 2;
 	res = wpa_validate_wpa_ie(hapd->wpa_auth, sta->wpa_sm,
 				  hapd->iface->freq, rsn_ie, rsn_ie_len,
-				  NULL, 0, NULL, 0, owe_dh, owe_dh_len, NULL);
+				  NULL, 0, NULL, 0, owe_dh, owe_dh_len, NULL,
+				  ap_sta_is_mld(hapd, sta));
 	status = wpa_res_to_status_code(res);
 	if (status != WLAN_STATUS_SUCCESS)
 		goto end;
@@ -4413,7 +4416,8 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 					  0,
 					  elems->mdie, elems->mdie_len,
 					  elems->owe_dh, elems->owe_dh_len,
-					  assoc_sta ? assoc_sta->wpa_sm : NULL);
+					  assoc_sta ? assoc_sta->wpa_sm : NULL,
+					  ap_sta_is_mld(hapd, sta));
 		resp = wpa_res_to_status_code(res);
 		if (resp != WLAN_STATUS_SUCCESS)
 			return resp;
