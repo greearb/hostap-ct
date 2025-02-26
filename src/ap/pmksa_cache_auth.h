@@ -75,7 +75,8 @@ void pmksa_cache_free_entry(struct rsn_pmksa_cache *pmksa,
 			    struct rsn_pmksa_cache_entry *entry);
 int pmksa_cache_auth_radius_das_disconnect(struct rsn_pmksa_cache *pmksa,
 					   struct radius_das_attrs *attr);
-int pmksa_cache_auth_list(struct rsn_pmksa_cache *pmksa, char *buf, size_t len);
+int pmksa_cache_auth_list(struct rsn_pmksa_cache *pmksa, char *buf, size_t len,
+			  int *index);
 void pmksa_cache_auth_flush(struct rsn_pmksa_cache *pmksa);
 int pmksa_cache_auth_list_mesh(struct rsn_pmksa_cache *pmksa, const u8 *addr,
 			       char *buf, size_t len);

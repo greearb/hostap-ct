@@ -6636,9 +6636,27 @@ void wpa_auth_pmksa_remove(struct wpa_authenticator *wpa_auth,
 int wpa_auth_pmksa_list(struct wpa_authenticator *wpa_auth, char *buf,
 			size_t len)
 {
+	int ret, index;
+	char *pos = buf, *end = buf + len;
+
 	if (!wpa_auth || !wpa_auth->pmksa)
 		return 0;
-	return pmksa_cache_auth_list(wpa_auth->pmksa, buf, len);
+
+	ret = os_snprintf(pos, len,
+			  "Index / SPA / PMKID / expiration (in seconds) / opportunistic\n");
+	if (os_snprintf_error(end - pos, ret))
+		return pos - buf;
+	pos += ret;
+
+	index = 0;
+	pos += pmksa_cache_auth_list(wpa_auth->pmksa, pos, end - pos, &index);
+#ifdef CONFIG_IEEE80211BE
+	if (wpa_auth->ml_pmksa)
+		pos += pmksa_cache_auth_list(wpa_auth->ml_pmksa,
+					     pos, end - pos, &index);
+#endif /* CONFIG_IEEE80211BE */
+
+	return pos - buf;
 }
 
 
