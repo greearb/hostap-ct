@@ -1198,6 +1198,7 @@ int hostapd_ctrl_iface_pmksa_add(struct hostapd_data *hapd, char *cmd)
 	size_t pmk_len;
 	char *pos, *pos2;
 	int akmp = 0, expiration = 0;
+	int ret;
 
 	/*
 	 * Entry format:
@@ -1233,8 +1234,18 @@ int hostapd_ctrl_iface_pmksa_add(struct hostapd_data *hapd, char *cmd)
 	if (sscanf(pos, "%d %d", &expiration, &akmp) != 2)
 		return -1;
 
-	return wpa_auth_pmksa_add2(hapd->wpa_auth, spa, pmk, pmk_len,
-				   pmkid, expiration, akmp, NULL, false);
+	ret = wpa_auth_pmksa_add2(hapd->wpa_auth, spa, pmk, pmk_len,
+				  pmkid, expiration, akmp, NULL, false);
+	if (ret)
+		return ret;
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap)
+		ret = wpa_auth_pmksa_add2(hapd->wpa_auth, spa, pmk, pmk_len,
+					  pmkid, expiration, akmp, NULL, true);
+#endif /* CONFIG_IEEE80211BE */
+
+	return ret;
 }
 
 
