@@ -4816,14 +4816,13 @@ static int ieee80211_ml_process_link(struct hostapd_data *hapd,
 
 	sta->flags |= origin_sta->flags | WLAN_STA_ASSOC_REQ_OK;
 	sta->mld_assoc_link_id = origin_sta->mld_assoc_link_id;
+	ap_sta_set_mld(sta, true);
 
 	status = __check_assoc_ies(hapd, sta, NULL, 0, &elems, reassoc, true);
 	if (status != WLAN_STATUS_SUCCESS) {
 		wpa_printf(MSG_DEBUG, "MLD: link: Element check failed");
 		goto out;
 	}
-
-	ap_sta_set_mld(sta, true);
 
 	os_memcpy(&sta->mld_info, &origin_sta->mld_info, sizeof(sta->mld_info));
 	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
