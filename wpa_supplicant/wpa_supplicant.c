@@ -1057,6 +1057,13 @@ static void wpas_verify_ssid_beacon(void *eloop_ctx, void *timeout_ctx)
 	if (wpa_supplicant_update_scan_results(wpa_s, wpa_s->bssid) < 0)
 		return;
 
+	/* wpa->current_bss might have changed due to memory reallocation, so
+	 * need to update ssid/ssid_len */
+	if (!wpa_s->current_bss)
+		return;
+	ssid = wpa_s->current_bss->ssid;
+	ssid_len = wpa_s->current_bss->ssid_len;
+
 	bss = wpa_bss_get_bssid_latest(wpa_s, wpa_s->bssid);
 	if (!bss)
 		return;
