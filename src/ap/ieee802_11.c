@@ -2402,7 +2402,7 @@ prepare_auth_resp_fils(struct hostapd_data *hapd,
 				    sta->fils_erp_pmkid,
 				    session_timeout,
 				    wpa_auth_sta_key_mgmt(sta->wpa_sm),
-				    NULL) < 0) {
+				    NULL, ap_sta_is_mld(hapd, sta)) < 0) {
 				wpa_printf(MSG_ERROR,
 					   "FILS: Failed to add PMKSA cache entry based on ERP");
 			}
@@ -3979,7 +3979,8 @@ static u16 owe_process_assoc_req(struct hostapd_data *hapd,
 	wpa_hexdump_key(MSG_DEBUG, "OWE: PMK", sta->owe_pmk, sta->owe_pmk_len);
 	wpa_hexdump(MSG_DEBUG, "OWE: PMKID", pmkid, PMKID_LEN);
 	wpa_auth_pmksa_add2(hapd->wpa_auth, sta->addr, sta->owe_pmk,
-			    sta->owe_pmk_len, pmkid, 0, WPA_KEY_MGMT_OWE, NULL);
+			    sta->owe_pmk_len, pmkid, 0, WPA_KEY_MGMT_OWE,
+			    NULL, ap_sta_is_mld(hapd, sta));
 
 	return WLAN_STATUS_SUCCESS;
 }

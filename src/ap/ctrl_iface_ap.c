@@ -1234,7 +1234,7 @@ int hostapd_ctrl_iface_pmksa_add(struct hostapd_data *hapd, char *cmd)
 		return -1;
 
 	return wpa_auth_pmksa_add2(hapd->wpa_auth, spa, pmk, pmk_len,
-				   pmkid, expiration, akmp, NULL);
+				   pmkid, expiration, akmp, NULL, false);
 }
 
 
