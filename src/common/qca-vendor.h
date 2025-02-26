@@ -16453,12 +16453,37 @@ enum qca_wlan_vendor_attr_sr_params {
  * This attribute is used in response from the driver to a command in which
  * %QCA_WLAN_VENDOR_ATTR_SR_OPERATION is set to
  * %QCA_WLAN_SR_OPERATION_GET_STATS.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_SR_MLO_LINKS: Array of nested links each identified
+ * by %QCA_WLAN_VENDOR_ATTR_SR_MLO_LINK_ID.
+ * This attribute enables user to configure a single or multiple links by
+ * nesting %QCA_WLAN_VENDOR_ATTR_SR_MLO_LINK_ID and corresponding SR
+ * configuration attributes defined in enum qca_wlan_vendor_attr_sr.
+ * In %QCA_WLAN_SR_OPERATION_GET_PARAMS or %QCA_WLAN_SR_OPERATION_GET_STATS
+ * in enum qca_wlan_sr_operation, %QCA_WLAN_VENDOR_ATTR_SR_MLO_LINK_ID shall
+ * be used to pack the per link configuration that are currently in use.
+ * For STA interface, this attribute is applicable only in connected state
+ * when the current connection is MLO capable. The valid values of
+ * %QCA_WLAN_VENDOR_ATTR_SR_MLO_LINK_ID are the link IDs of the connected AP
+ * MLD links.
+ * For AP interface, this attribute is applicable only after adding MLO
+ * links to the AP interface with %NL80211_CMD_ADD_LINK and the valid values
+ * of %QCA_WLAN_VENDOR_ATTR_SR_MLO_LINK_ID are the link IDs specified in
+ * %NL80211_CMD_ADD_LINK while adding the MLO links to the AP interface.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_SR_MLO_LINK_ID: 8-bit unsigned value. Used to specify
+ * the MLO link ID of a link that is being configured. This attribute must be
+ * included in each record nested under %QCA_WLAN_VENDOR_ATTR_SR_MLO_LINKS and
+ * may be included without nesting to indicate the target link for
+ * configuration attributes.
  */
 enum qca_wlan_vendor_attr_sr {
 	QCA_WLAN_VENDOR_ATTR_SR_INVALID = 0,
 	QCA_WLAN_VENDOR_ATTR_SR_OPERATION = 1,
 	QCA_WLAN_VENDOR_ATTR_SR_PARAMS = 2,
 	QCA_WLAN_VENDOR_ATTR_SR_STATS = 3,
+	QCA_WLAN_VENDOR_ATTR_SR_MLO_LINKS = 4,
+	QCA_WLAN_VENDOR_ATTR_SR_MLO_LINK_ID = 5,
 
 	/* Keep last */
 	QCA_WLAN_VENDOR_ATTR_SR_AFTER_LAST,
