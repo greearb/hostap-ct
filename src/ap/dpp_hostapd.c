@@ -2165,6 +2165,17 @@ static void hostapd_dpp_rx_peer_disc_req(struct hostapd_data *hapd,
 		goto done;
 	}
 
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap &&
+	    wpa_auth_pmksa_add2(hapd->wpa_auth, src, intro.pmk, intro.pmk_len,
+				intro.pmkid, expiration,
+				WPA_KEY_MGMT_DPP, pkhash, true) < 0) {
+		wpa_printf(MSG_ERROR,
+			   "DPP: Failed to add PMKSA cache entry (MLD)");
+		goto done;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	hostapd_dpp_send_peer_disc_resp(hapd, src, freq, trans_id[0],
 					DPP_STATUS_OK);
 done:
@@ -2938,6 +2949,17 @@ hostapd_dpp_rx_priv_peer_intro_update(struct hostapd_data *hapd, const u8 *src,
 		wpa_printf(MSG_ERROR, "DPP: Failed to add PMKSA cache entry");
 		goto done;
 	}
+
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap &&
+	    wpa_auth_pmksa_add2(hapd->wpa_auth, src, intro.pmk, intro.pmk_len,
+				intro.pmkid, expiration,
+				WPA_KEY_MGMT_DPP, pkhash, true) < 0) {
+		wpa_printf(MSG_ERROR,
+			   "DPP: Failed to add PMKSA cache entry (MLD)");
+		goto done;
+	}
+#endif /* CONFIG_IEEE80211BE */
 
 	wpa_printf(MSG_DEBUG, "DPP: Private Peer Introduction completed with "
 		   MACSTR, MAC2STR(src));
