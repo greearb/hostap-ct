@@ -735,6 +735,19 @@ static struct wpa_group * wpa_group_init(struct wpa_authenticator *wpa_auth,
 }
 
 
+static void wpa_deinit_groups(struct wpa_authenticator *wpa_auth)
+{
+	struct wpa_group *group, *prev;
+
+	group = wpa_auth->group;
+	while (group) {
+		prev = group;
+		group = group->next;
+		bin_clear_free(prev, sizeof(*prev));
+	}
+}
+
+
 /**
  * wpa_init - Initialize WPA authenticator
  * @addr: Authenticator address
@@ -770,26 +783,19 @@ struct wpa_authenticator * wpa_init(const u8 *addr,
 
 	if (wpa_auth_gen_wpa_ie(wpa_auth)) {
 		wpa_printf(MSG_ERROR, "Could not generate WPA IE.");
-		os_free(wpa_auth);
-		return NULL;
+		goto fail;
 	}
 
 	wpa_auth->group = wpa_group_init(wpa_auth, 0, 1);
-	if (!wpa_auth->group) {
-		os_free(wpa_auth->wpa_ie);
-		os_free(wpa_auth);
-		return NULL;
-	}
+	if (!wpa_auth->group)
+		goto fail;
 
 	/* Per-link PMKSA cache */
 	wpa_auth->pmksa = pmksa_cache_auth_init(wpa_auth_pmksa_free_cb,
 						wpa_auth);
 	if (!wpa_auth->pmksa) {
 		wpa_printf(MSG_ERROR, "PMKSA cache initialization failed.");
-		os_free(wpa_auth->group);
-		os_free(wpa_auth->wpa_ie);
-		os_free(wpa_auth);
-		return NULL;
+		goto fail;
 	}
 
 #ifdef CONFIG_IEEE80211BE
@@ -800,11 +806,7 @@ struct wpa_authenticator * wpa_init(const u8 *addr,
 		if (!wpa_auth->ml_pmksa) {
 			wpa_printf(MSG_ERROR,
 				   "MLD-level PMKSA cache initialization failed.");
-			os_free(wpa_auth->group);
-			os_free(wpa_auth->wpa_ie);
-			pmksa_cache_auth_deinit(wpa_auth->pmksa);
-			os_free(wpa_auth);
-			return NULL;
+			goto fail;
 		}
 	} else if (wpa_auth->is_ml) {
 		struct wpa_authenticator *pa = wpa_get_primary_auth(wpa_auth);
@@ -812,11 +814,7 @@ struct wpa_authenticator * wpa_init(const u8 *addr,
 		if (!pa) {
 			wpa_printf(MSG_ERROR,
 				   "Could not find primary authenticator.");
-			os_free(wpa_auth->group);
-			os_free(wpa_auth->wpa_ie);
-			pmksa_cache_auth_deinit(wpa_auth->pmksa);
-			os_free(wpa_auth);
-			return NULL;
+			goto fail;
 		}
 		wpa_auth->ml_pmksa = pa->ml_pmksa;
 	}
@@ -826,15 +824,7 @@ struct wpa_authenticator * wpa_init(const u8 *addr,
 	wpa_auth->ft_pmk_cache = wpa_ft_pmk_cache_init();
 	if (!wpa_auth->ft_pmk_cache) {
 		wpa_printf(MSG_ERROR, "FT PMK cache initialization failed.");
-		os_free(wpa_auth->group);
-		os_free(wpa_auth->wpa_ie);
-#ifdef CONFIG_IEEE80211BE
-		if (wpa_auth->primary_auth)
-			pmksa_cache_auth_deinit(wpa_auth->ml_pmksa);
-#endif /* CONFIG_IEEE80211BE */
-		pmksa_cache_auth_deinit(wpa_auth->pmksa);
-		os_free(wpa_auth);
-		return NULL;
+		goto fail;
 	}
 #endif /* CONFIG_IEEE80211R_AP */
 
@@ -877,6 +867,17 @@ struct wpa_authenticator * wpa_init(const u8 *addr,
 	}
 
 	return wpa_auth;
+
+fail:
+	wpa_deinit_groups(wpa_auth);
+	os_free(wpa_auth->wpa_ie);
+	pmksa_cache_auth_deinit(wpa_auth->pmksa);
+#ifdef CONFIG_IEEE80211BE
+	if (wpa_auth->primary_auth)
+		pmksa_cache_auth_deinit(wpa_auth->ml_pmksa);
+#endif /* CONFIG_IEEE80211BE */
+	os_free(wpa_auth);
+	return NULL;
 }
 
 
@@ -912,7 +913,6 @@ static void wpa_auth_free_conf(struct wpa_auth_config *conf)
  */
 void wpa_deinit(struct wpa_authenticator *wpa_auth)
 {
-	struct wpa_group *group, *prev;
 #ifdef CONFIG_IEEE80211BE
 	struct wpa_authenticator *next_pa;
 #endif /* CONFIG_IEEE80211BE */
@@ -952,16 +952,8 @@ void wpa_deinit(struct wpa_authenticator *wpa_auth)
 	bitfield_free(wpa_auth->ip_pool);
 #endif /* CONFIG_P2P */
 
-
 	os_free(wpa_auth->wpa_ie);
-
-	group = wpa_auth->group;
-	while (group) {
-		prev = group;
-		group = group->next;
-		bin_clear_free(prev, sizeof(*prev));
-	}
-
+	wpa_deinit_groups(wpa_auth);
 	wpa_auth_free_conf(&wpa_auth->conf);
 	os_free(wpa_auth);
 }
