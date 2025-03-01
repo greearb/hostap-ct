@@ -211,6 +211,7 @@ static void openssl_disable_fips(void)
 
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
 static OSSL_PROVIDER *openssl_legacy_provider = NULL;
+static OSSL_PROVIDER *openssl_default_provider = NULL;
 #endif /* OpenSSL version >= 3.0 */
 
 void openssl_load_legacy_provider(void)
@@ -230,6 +231,36 @@ static void openssl_unload_legacy_provider(void)
 	if (openssl_legacy_provider) {
 		OSSL_PROVIDER_unload(openssl_legacy_provider);
 		openssl_legacy_provider = NULL;
+	}
+#endif /* OpenSSL version >= 3.0 */
+}
+
+
+static void openssl_load_default_provider_if_fips(void)
+{
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	if (openssl_default_provider)
+		return;
+
+	if (!OSSL_PROVIDER_available(NULL, "fips"))
+		return;
+
+	wpa_printf(MSG_DEBUG,
+		   "OpenSSL: Load default provider to replace fips provider when needed");
+	openssl_default_provider = OSSL_PROVIDER_try_load(NULL, "default", 1);
+	if (!openssl_default_provider)
+		wpa_printf(MSG_DEBUG,
+			   "OpenSSL: Failed to load default provider");
+#endif /* OpenSSL version >= 3.0 */
+}
+
+
+static void openssl_unload_default_provider(void)
+{
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	if (openssl_default_provider) {
+		OSSL_PROVIDER_unload(openssl_default_provider);
+		openssl_default_provider = NULL;
 	}
 #endif /* OpenSSL version >= 3.0 */
 }
@@ -342,6 +373,13 @@ static int openssl_digest_vector(const EVP_MD *type, size_t num_elem,
 
 #ifndef CONFIG_FIPS
 
+static void openssl_need_md5(void)
+{
+	openssl_disable_fips();
+	openssl_load_default_provider_if_fips();
+}
+
+
 int md4_vector(size_t num_elem, const u8 *addr[], const size_t *len, u8 *mac)
 {
 	openssl_disable_fips();
@@ -428,6 +466,7 @@ out:
 
 int md5_vector(size_t num_elem, const u8 *addr[], const size_t *len, u8 *mac)
 {
+	openssl_need_md5();
 	return openssl_digest_vector(EVP_md5(), num_elem, addr, len, mac);
 }
 
@@ -1554,11 +1593,18 @@ static int openssl_hmac_vector(char *digest, const u8 *key,
 	EVP_MAC_CTX *ctx;
 	size_t i, mlen;
 	int res;
+	const char *property_query = NULL;
 
 	if (TEST_FAIL())
 		return -1;
 
-	hmac = EVP_MAC_fetch(NULL, "HMAC", NULL);
+#ifndef CONFIG_FIPS
+	if (os_strcmp(digest, "MD5") == 0) {
+		openssl_need_md5();
+		property_query = "provider!=fips";
+	}
+#endif /* CONFIG_FIPS */
+	hmac = EVP_MAC_fetch(NULL, "HMAC", property_query);
 	if (!hmac) {
 		wpa_printf(MSG_INFO, "OpenSSL: EVP_MAC_fetch(HMAC) failed: %s",
 			   ERR_error_string(ERR_get_error(), NULL));
@@ -5634,4 +5680,5 @@ struct wpabuf * hpke_base_open(enum hpke_kem_id kem_id,
 void crypto_unload(void)
 {
 	openssl_unload_legacy_provider();
+	openssl_unload_default_provider();
 }
