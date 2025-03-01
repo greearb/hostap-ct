@@ -9052,7 +9052,7 @@ int wpas_network_disabled(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid)
 	if (wpa_key_mgmt_wpa_psk(ssid->key_mgmt) && !ssid->psk_set &&
 	    (!ssid->passphrase || ssid->ssid_len != 0) && !ssid->ext_psk &&
 	    !(wpa_key_mgmt_sae(ssid->key_mgmt) &&
-	      (ssid->sae_password || ssid->pmk_valid)) &&
+	      (ssid->passphrase || ssid->sae_password || ssid->pmk_valid)) &&
 	    !ssid->mem_only_psk)
 		return 1;
 
