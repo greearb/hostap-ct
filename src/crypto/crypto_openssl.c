@@ -1086,16 +1086,23 @@ err:
 	struct wpabuf *pubkey = NULL, *privkey = NULL;
 	BIGNUM *priv_bn = NULL;
 	EVP_PKEY_CTX *gctx;
+	const char *propquery = NULL;
 
 	*priv = NULL;
 	wpabuf_free(*publ);
 	*publ = NULL;
 
+	if (OSSL_PROVIDER_available(NULL, "fips")) {
+		openssl_disable_fips();
+		openssl_load_default_provider_if_fips();
+		propquery = "provider!=fips";
+	}
+
 	params[0] = OSSL_PARAM_construct_utf8_string(OSSL_PKEY_PARAM_GROUP_NAME,
 						     "modp_1536", 0);
 	params[1] = OSSL_PARAM_construct_end();
 
-	gctx = EVP_PKEY_CTX_new_from_name(NULL, "DH", NULL);
+	gctx = EVP_PKEY_CTX_new_from_name(NULL, "DH", propquery);
 	if (!gctx ||
 	    EVP_PKEY_keygen_init(gctx) != 1 ||
 	    EVP_PKEY_CTX_set_params(gctx, params) != 1 ||
