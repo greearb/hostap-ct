@@ -773,7 +773,9 @@ OBJS += src/eap_peer/eap_pwd.c src/eap_common/eap_pwd_common.c
 CONFIG_IEEE8021X_EAPOL=y
 NEED_ECC=y
 NEED_DRAGONFLY=y
+ifndef CONFIG_FIPS
 MS_FUNCS=y
+endif
 endif
 
 ifdef CONFIG_EAP_EKE
