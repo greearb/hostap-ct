@@ -1371,6 +1371,9 @@ struct crypto_hash * crypto_hash_init(enum crypto_hash_alg alg, const u8 *key,
 	}
 
 	if (EVP_MAC_init(ctx->ctx, key, key_len, params) != 1) {
+		wpa_printf(MSG_INFO,
+			   "OpenSSL: EVP_MAC_init(hmac,digest=%s) failed: %s",
+			   a, ERR_error_string(ERR_get_error(), NULL));
 		EVP_MAC_CTX_free(ctx->ctx);
 		bin_clear_free(ctx, sizeof(*ctx));
 		ctx = NULL;
@@ -1532,8 +1535,11 @@ static int openssl_hmac_vector(char *digest, const u8 *key,
 		return -1;
 
 	hmac = EVP_MAC_fetch(NULL, "HMAC", NULL);
-	if (!hmac)
+	if (!hmac) {
+		wpa_printf(MSG_INFO, "OpenSSL: EVP_MAC_fetch(HMAC) failed: %s",
+			   ERR_error_string(ERR_get_error(), NULL));
 		return -1;
+	}
 
 	params[0] = OSSL_PARAM_construct_utf8_string("digest", digest, 0);
 	params[1] = OSSL_PARAM_construct_end();
@@ -1543,8 +1549,13 @@ static int openssl_hmac_vector(char *digest, const u8 *key,
 	if (!ctx)
 		return -1;
 
-	if (EVP_MAC_init(ctx, key, key_len, params) != 1)
+	if (EVP_MAC_init(ctx, key, key_len, params) != 1) {
+		wpa_printf(MSG_INFO,
+			   "OpenSSL: EVP_MAC_init(hmac,digest=%s,key_len=%zu) failed: %s",
+			   digest, key_len,
+			   ERR_error_string(ERR_get_error(), NULL));
 		goto fail;
+	}
 
 	for (i = 0; i < num_elem; i++) {
 		if (EVP_MAC_update(ctx, addr[i], len[i]) != 1)
@@ -1822,8 +1833,12 @@ int omac1_aes_vector(const u8 *key, size_t key_len, size_t num_elem,
 
 	if (!emac || !cipher ||
 	    !(ctx = EVP_MAC_CTX_new(emac)) ||
-	    EVP_MAC_init(ctx, key, key_len, params) != 1)
+	    EVP_MAC_init(ctx, key, key_len, params) != 1) {
+		wpa_printf(MSG_INFO,
+			   "OpenSSL: EVP_MAC_init(cmac,cipher=%s) failed: %s",
+			   cipher, ERR_error_string(ERR_get_error(), NULL));
 		goto fail;
+	}
 
 	for (i = 0; i < num_elem; i++) {
 		if (!EVP_MAC_update(ctx, addr[i], len[i]))
@@ -4793,8 +4808,12 @@ static int hpke_labeled_extract(struct hpke_context *ctx, bool kem,
 	if (!hctx)
 		return -1;
 
-	if (EVP_MAC_init(hctx, salt, salt_len, params) != 1)
+	if (EVP_MAC_init(hctx, salt, salt_len, params) != 1) {
+		wpa_printf(MSG_INFO,
+			   "OpenSSL: EVP_MAC_init(hmac,digest/HPKE) failed: %s",
+			   ERR_error_string(ERR_get_error(), NULL));
 		goto fail;
+	}
 
 	if (EVP_MAC_update(hctx, (const unsigned char *) "HPKE-v1", 7) != 1 ||
 	    EVP_MAC_update(hctx, suite_id, suite_id_len) != 1 ||
@@ -4902,8 +4921,12 @@ hpke_labeled_expand(struct hpke_context *ctx, bool kem, const u8 *prk,
 		if (!hctx)
 			goto fail;
 
-		if (EVP_MAC_init(hctx, prk, mdlen, params) != 1)
+		if (EVP_MAC_init(hctx, prk, mdlen, params) != 1) {
+			wpa_printf(MSG_INFO,
+				   "OpenSSL: EVP_MAC_init(hmac,digest/HPKE) failed: %s",
+				   ERR_error_string(ERR_get_error(), NULL));
 			goto fail;
+		}
 
 		if (iter > 0 && EVP_MAC_update(hctx, hash, mdlen) != 1)
 			goto fail;
