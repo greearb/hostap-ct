@@ -366,8 +366,11 @@ static int sae_derive_pwe_ecc(struct sae_data *sae, const u8 *addr1,
 		const_time_select_bin(found, stub_password, password,
 				      password_len, tmp_password);
 		if (hmac_sha256_vector(addrs, sizeof(addrs), 2,
-				       addr, len, pwd_seed) < 0)
+				       addr, len, pwd_seed) < 0) {
+			wpa_printf(MSG_INFO,
+				   "SAE: hmac_sha256_vector() failed - cannot derive PWE");
 			break;
+		}
 
 		res = sae_test_pwd_seed_ecc(sae, pwd_seed,
 					    prime, qr_bin, qnr_bin, x_cand_bin);
