@@ -515,6 +515,7 @@ out:
 	wpabuf_free(enc_cont_info);
 	return env;
 fail:
+	wpa_printf(MSG_INFO, "DPP: Failed to build DPPEnvelopedData");
 	wpabuf_free(env);
 	env = NULL;
 	goto out;
