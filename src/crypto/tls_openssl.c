@@ -1236,6 +1236,7 @@ void * tls_init(const struct tls_config *conf)
 	else
 		ssl = NULL;
 	if (ssl == NULL) {
+		tls_show_errors(MSG_INFO, "SSL_CTX_new", "init");
 		tls_openssl_ref_count--;
 		if (context != tls_global)
 			os_free(context);
