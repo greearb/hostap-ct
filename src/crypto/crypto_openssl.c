@@ -2665,8 +2665,12 @@ struct crypto_ecdh * crypto_ecdh_init(int group)
 		goto fail;
 
 	ecdh->pkey = EVP_EC_gen(name);
-	if (!ecdh->pkey)
+	if (!ecdh->pkey) {
+		wpa_printf(MSG_INFO,
+			   "OpenSSL: EVP_EC_gen(group=%d) failed: %s",
+			   group, ERR_error_string(ERR_get_error(), NULL));
 		goto fail;
+	}
 
 done:
 	return ecdh;
@@ -3431,8 +3435,8 @@ struct crypto_ec_key * crypto_ec_key_gen(int group)
 	    EVP_PKEY_CTX_set_params(ctx, params) != 1 ||
 	    EVP_PKEY_generate(ctx, &pkey) != 1) {
 		wpa_printf(MSG_INFO,
-			   "OpenSSL: failed to generate EC keypair: %s",
-			   ERR_error_string(ERR_get_error(), NULL));
+			   "OpenSSL: Failed to generate EC keypair (group=%d): %s",
+			   group, ERR_error_string(ERR_get_error(), NULL));
 		pkey = NULL;
 	}
 
@@ -3695,6 +3699,8 @@ struct wpabuf * crypto_ec_key_get_ecprivate_key(struct crypto_ec_key *key,
 	ctx = OSSL_ENCODER_CTX_new_for_pkey(pkey, selection, "DER",
 					    "type-specific", NULL);
 	if (!ctx || OSSL_ENCODER_to_data(ctx, &pdata, &pdata_len) != 1) {
+		wpa_printf(MSG_INFO, "OpenSSL: OSSL_ENCODER failed: %s",
+			   ERR_error_string(ERR_get_error(), NULL));
 		OSSL_ENCODER_CTX_free(ctx);
 		EVP_PKEY_free(copy);
 		return NULL;
