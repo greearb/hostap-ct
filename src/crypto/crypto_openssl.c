@@ -1609,6 +1609,13 @@ static int openssl_hmac_vector(char *digest, const u8 *key,
 	if (os_strcmp(digest, "MD5") == 0) {
 		openssl_need_md5();
 		property_query = "provider!=fips";
+	} else if (key_len < 14 && OSSL_PROVIDER_available(NULL, "fips")) {
+		/* Need to use non-FIPS provider in OpenSSL to handle cases
+		 * where HMAC is used with salt that is less than 112 bits
+		 * instead of the HMAC uses with an actual key. */
+		openssl_disable_fips();
+		openssl_load_default_provider_if_fips();
+		property_query = "provider!=fips";
 	}
 #endif /* CONFIG_FIPS */
 	hmac = EVP_MAC_fetch(NULL, "HMAC", property_query);
