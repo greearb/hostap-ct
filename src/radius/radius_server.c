@@ -926,6 +926,8 @@ radius_server_encapsulate_eap(struct radius_server_data *data,
 				  client->shared_secret_len,
 				  hdr->authenticator) < 0) {
 		RADIUS_DEBUG("Failed to add Message-Authenticator attribute");
+		radius_msg_free(msg);
+		return NULL;
 	}
 
 	if (code == RADIUS_CODE_ACCESS_ACCEPT)
@@ -1015,6 +1017,8 @@ radius_server_macacl(struct radius_server_data *data,
 				  client->shared_secret_len,
 				  hdr->authenticator) < 0) {
 		RADIUS_DEBUG("Failed to add Message-Authenticator attribute");
+		radius_msg_free(msg);
+		return NULL;
 	}
 
 	return msg;
@@ -1066,6 +1070,8 @@ static int radius_server_reject(struct radius_server_data *data,
 				  hdr->authenticator) <
 	    0) {
 		RADIUS_DEBUG("Failed to add Message-Authenticator attribute");
+		radius_msg_free(msg);
+		return -1;
 	}
 
 	if (wpa_debug_level <= MSG_MSGDUMP) {
@@ -1682,9 +1688,12 @@ static void radius_server_receive_acct(int sock, void *eloop_ctx,
 	if (resp == NULL)
 		goto fail;
 
-	radius_msg_finish_acct_resp(resp, (u8 *) client->shared_secret,
-				    client->shared_secret_len,
-				    hdr->authenticator);
+	if (radius_msg_finish_acct_resp(resp, (u8 *) client->shared_secret,
+					client->shared_secret_len,
+					hdr->authenticator) < 0) {
+		RADIUS_ERROR("Failed to add Message-Authenticator attribute");
+		goto fail;
+	}
 
 	RADIUS_DEBUG("Reply to %s:%d", abuf, from_port);
 	if (wpa_debug_level <= MSG_MSGDUMP) {
@@ -2588,8 +2597,12 @@ int radius_server_dac_request(struct radius_server_data *data, const char *req)
 		return -1;
 	}
 
-	radius_msg_finish_acct(msg, (u8 *) client->shared_secret,
-			       client->shared_secret_len);
+	if (radius_msg_finish_acct(msg, (u8 *) client->shared_secret,
+				   client->shared_secret_len) < 0) {
+		RADIUS_ERROR("Failed to add Message-Authenticator attribute");
+		radius_msg_free(msg);
+		return -1;
+	}
 
 	if (wpa_debug_level <= MSG_MSGDUMP)
 		radius_msg_dump(msg);

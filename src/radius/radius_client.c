@@ -482,8 +482,11 @@ static int radius_client_retransmit(struct radius_client_data *radius,
 		wpa_printf(MSG_DEBUG,
 			   "RADIUS: Updated Acct-Delay-Time to %u for retransmission",
 			   delay_time);
-		radius_msg_finish_acct(entry->msg, entry->shared_secret,
-				       entry->shared_secret_len);
+		if (radius_msg_finish_acct(entry->msg, entry->shared_secret,
+					   entry->shared_secret_len) < 0) {
+			wpa_printf(MSG_INFO, "Failed to build RADIUS message");
+			return -1;
+		}
 		if (radius->conf->msg_dumps)
 			radius_msg_dump(entry->msg);
 	}
@@ -878,7 +881,14 @@ int radius_client_send(struct radius_client_data *radius,
 		}
 		shared_secret = conf->acct_server->shared_secret;
 		shared_secret_len = conf->acct_server->shared_secret_len;
-		radius_msg_finish_acct(msg, shared_secret, shared_secret_len);
+		if (radius_msg_finish_acct(msg, shared_secret,
+					   shared_secret_len) < 0) {
+			hostapd_logger(radius->ctx, NULL,
+				       HOSTAPD_MODULE_RADIUS,
+				       HOSTAPD_LEVEL_INFO,
+				       "Failed to build RADIUS accounting message");
+			return -1;
+		}
 		name = "accounting";
 		s = radius->acct_sock;
 		conf->acct_server->requests++;
@@ -900,7 +910,14 @@ int radius_client_send(struct radius_client_data *radius,
 		}
 		shared_secret = conf->auth_server->shared_secret;
 		shared_secret_len = conf->auth_server->shared_secret_len;
-		radius_msg_finish(msg, shared_secret, shared_secret_len);
+		if (radius_msg_finish(msg, shared_secret, shared_secret_len) <
+		    0) {
+			hostapd_logger(radius->ctx, NULL,
+				       HOSTAPD_MODULE_RADIUS,
+				       HOSTAPD_LEVEL_INFO,
+				       "Failed to build RADIUS authentication message");
+			return -1;
+		}
 		name = "authentication";
 		s = radius->auth_sock;
 		conf->auth_server->requests++;
@@ -1512,8 +1529,10 @@ static void radius_client_update_acct_msgs(struct radius_client_data *radius,
 		if (entry->msg_type == RADIUS_ACCT) {
 			entry->shared_secret = shared_secret;
 			entry->shared_secret_len = shared_secret_len;
-			radius_msg_finish_acct(entry->msg, shared_secret,
-					       shared_secret_len);
+			if (radius_msg_finish_acct(entry->msg, shared_secret,
+						   shared_secret_len) < 0)
+				wpa_printf(MSG_INFO,
+					   "RADIUS: Failed to update accounting message");
 		}
 	}
 }

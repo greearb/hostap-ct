@@ -275,11 +275,10 @@ int radius_msg_finish_srv(struct radius_msg *msg, const u8 *secret,
 int radius_msg_finish_das_resp(struct radius_msg *msg, const u8 *secret,
 			       size_t secret_len,
 			       const struct radius_hdr *req_hdr);
-void radius_msg_finish_acct(struct radius_msg *msg, const u8 *secret,
-			    size_t secret_len);
-void radius_msg_finish_acct_resp(struct radius_msg *msg, const u8 *secret,
-				 size_t secret_len,
-				 const u8 *req_authenticator);
+int radius_msg_finish_acct(struct radius_msg *msg, const u8 *secret,
+			   size_t secret_len);
+int radius_msg_finish_acct_resp(struct radius_msg *msg, const u8 *secret,
+				size_t secret_len, const u8 *req_authenticator);
 int radius_msg_verify_acct_req(struct radius_msg *msg, const u8 *secret,
 			       size_t secret_len);
 int radius_msg_verify_das_req(struct radius_msg *msg, const u8 *secret,
