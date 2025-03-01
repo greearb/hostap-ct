@@ -2909,6 +2909,24 @@ struct eht_ml_probe_req_common_info {
 #define EHT_PER_STA_RECONF_CTRL_NSTR_BITMAP_SIZE   0x1000
 #define EHT_PER_STA_RECONF_CTRL_NSTR_INDICATION    0x2000
 
+/* IEEE P802.11be/D7.0, Figure 9-1074ad - Common Info field format of the
+ * Reconfiguration Multi-Link element */
+struct eht_ml_reconf_common_info {
+	u8 len;
+
+	/*
+	 * Followed by optional fields based on the multi link reconf presence
+	 * bitmap
+	 *
+	 * MLD MAC Address: 6 octets
+	 * EML Capabilities: 2 octets
+	 * MLD Capabilities and Operations: 2 octets
+	 * Extended MLD Capabilities and Operations: 2 octets
+	 */
+	u8 variable[];
+} STRUCT_PACKED;
+
+
 /* IEEE P802.11be/D2.0, 9.4.2.312.1 - Multi-Link element / General */
 
 struct ieee80211_eht_ml {

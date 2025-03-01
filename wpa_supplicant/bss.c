@@ -1938,8 +1938,9 @@ u16 wpa_bss_parse_reconf_ml_element(struct wpa_supplicant *wpa_s,
 	const u8 *pos = wpa_bss_ie_ptr(bss);
 	size_t len = bss->ie_len ? bss->ie_len : bss->beacon_ie_len;
 	const struct ieee80211_eht_ml *ml;
+	const struct eht_ml_reconf_common_info *common_info;
 	u16 removed_links = 0;
-	u8 ml_common_len;
+	u8 expected_ml_common_len;
 
 	if (ieee802_11_parse_elems(pos, len, &elems, 1) == ParseFailed)
 		return 0;
@@ -1954,23 +1955,33 @@ u16 wpa_bss_parse_reconf_ml_element(struct wpa_supplicant *wpa_s,
 	ml = (const struct ieee80211_eht_ml *) wpabuf_head(mlbuf);
 	len = wpabuf_len(mlbuf);
 
-	if (len < sizeof(*ml))
+	/* There must be at least one octet for the Common Info Length subfield
+	 */
+	if (len < sizeof(*ml) + 1UL)
 		goto out;
 
-	ml_common_len = 1;
+	expected_ml_common_len = 1;
 	if (le_to_host16(ml->ml_control) &
 	    RECONF_MULTI_LINK_CTRL_PRES_MLD_MAC_ADDR)
-		ml_common_len += ETH_ALEN;
+		expected_ml_common_len += ETH_ALEN;
 
-	if (len < sizeof(*ml) + ml_common_len) {
+	common_info = (const struct eht_ml_reconf_common_info *) ml->variable;
+	if (len < sizeof(*ml) + common_info->len) {
 		wpa_printf(MSG_DEBUG,
 			   "MLD: Unexpected Reconfiguration ML element length: (%zu < %zu)",
-			   len, sizeof(*ml) + ml_common_len);
+			   len, sizeof(*ml) + common_info->len);
 		goto out;
 	}
 
-	pos = ml->variable + ml_common_len;
-	len -= sizeof(*ml) + ml_common_len;
+	if (common_info->len < expected_ml_common_len) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Invalid common info len=%u; min expected=%u",
+			   common_info->len, expected_ml_common_len);
+		goto out;
+	}
+
+	pos = ml->variable + common_info->len;
+	len -= sizeof(*ml) + common_info->len;
 
 	while (len >= 2 + sizeof(struct ieee80211_eht_per_sta_profile)) {
 		size_t sub_elem_len = *(pos + 1);
