@@ -186,6 +186,29 @@ static int EC_GROUP_get_curve(const EC_GROUP *group, BIGNUM *p, BIGNUM *a,
 #endif /* OpenSSL version < 1.1.1 */
 
 
+static void openssl_disable_fips(void)
+{
+#ifndef CONFIG_FIPS
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	static bool done = false;
+
+	if (done)
+		return;
+	done = true;
+
+	if (!EVP_default_properties_is_fips_enabled(NULL))
+		return; /* FIPS mode is not enabled */
+
+	if (!EVP_default_properties_enable_fips(NULL, 0))
+		wpa_printf(MSG_INFO,
+			   "OpenSSL: Failed to disable FIPS mode");
+	else
+		wpa_printf(MSG_DEBUG,
+			   "OpenSSL: Disabled FIPS mode to enable non-FIPS-compliant algorithms and parameters");
+#endif /* OpenSSL version >= 3.0 */
+#endif /* !CONFIG_FIPS */
+}
+
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
 static OSSL_PROVIDER *openssl_legacy_provider = NULL;
 #endif /* OpenSSL version >= 3.0 */
@@ -321,6 +344,7 @@ static int openssl_digest_vector(const EVP_MD *type, size_t num_elem,
 
 int md4_vector(size_t num_elem, const u8 *addr[], const size_t *len, u8 *mac)
 {
+	openssl_disable_fips();
 	openssl_load_legacy_provider();
 	return openssl_digest_vector(EVP_md4(), num_elem, addr, len, mac);
 }
