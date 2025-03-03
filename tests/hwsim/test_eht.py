@@ -409,9 +409,32 @@ def test_eht_mld_owe_two_links_no_assoc_timeout(dev, apdev):
     """Verify that AP MLD does not time out two link association"""
     _eht_mld_owe_two_links(dev, apdev, wait_for_timeout=True)
 
+def test_eht_mld_owe_two_links_reconf_remove_extra_link(dev, apdev):
+    """AP MLD with MLD client OWE connection with one not-advertised link removed in reconf"""
+    reconf_mle = "ff0b6b" + "0200" + "01" + "0005420003ffff"
+    _eht_mld_owe_two_links(dev, apdev, reconf_mle=reconf_mle)
+
+def test_eht_mld_owe_two_links_reconf_remove_link(dev, apdev):
+    """AP MLD with MLD client OWE connection with one link removed in reconf"""
+    reconf_mle = "ff0b6b" + "0200" + "01" + "0005400003ffff"
+    _eht_mld_owe_two_links(dev, apdev, reconf_mle=reconf_mle,
+                           only_second=True, scan_only_second_link=True)
+
+def test_eht_mld_owe_two_links_reconf_mle_ext(dev, apdev):
+    """AP MLD with MLD client OWE connection and reconf MLE extensibility"""
+    reconf_mle = "ff106b" + "0200" + "05aaaaaaaa" + "0006420004ffffaa"
+    _eht_mld_owe_two_links(dev, apdev, reconf_mle=reconf_mle)
+
+def test_eht_mld_owe_two_links_reconf_mle_ext_only_second(dev, apdev):
+    """AP MLD with MLD client OWE connection and reconf MLE extensibility"""
+    reconf_mle = "ff106b" + "0200" + "05aaaaaaaa" + "0006400004ffffaa"
+    _eht_mld_owe_two_links(dev, apdev, reconf_mle=reconf_mle,
+                           only_second=True, scan_only_second_link=True)
+
 def _eht_mld_owe_two_links(dev, apdev, second_link_disabled=False,
                            only_one_link=False, scan_only_second_link=False,
-                           wait_for_timeout=False):
+                           wait_for_timeout=False, reconf_mle=None,
+                           only_second=False):
     with HWSimRadio(use_mlo=True) as (hapd0_radio, hapd0_iface), \
         HWSimRadio(use_mlo=True) as (hapd1_radio, hapd1_iface), \
         HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
@@ -422,6 +445,8 @@ def _eht_mld_owe_two_links(dev, apdev, second_link_disabled=False,
 
         ssid = "mld_ap_owe_two_link"
         params = eht_mld_ap_wpa2_params(ssid, key_mgmt="OWE", mfp="2")
+        if reconf_mle:
+            params['vendor_elements'] = reconf_mle
 
         hapd0 = eht_mld_enable_ap(hapd0_iface, 0, params)
 
@@ -451,8 +476,14 @@ def _eht_mld_owe_two_links(dev, apdev, second_link_disabled=False,
             active_links = 1
             valid_links = 1
 
-        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
-                          valid_links=valid_links, active_links=active_links)
+        if only_second:
+            eht_verify_status(wpas, hapd1, 2437, 20, is_ht=True, mld=True,
+                              valid_links=2,
+                              active_links=2)
+        else:
+            eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                              valid_links=valid_links,
+                              active_links=active_links)
         eht_verify_wifi_version(wpas)
         traffic_test(wpas, hapd0)
 
