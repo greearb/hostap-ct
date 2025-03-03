@@ -1,6 +1,7 @@
 /*
  * Control interface for shared AP commands
  * Copyright (c) 2004-2019, Jouni Malinen <j@w1.fi>
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -27,6 +28,7 @@
 #include "taxonomy.h"
 #include "wnm_ap.h"
 #include "neighbor_db.h"
+#include "morse.h"
 
 
 static size_t hostapd_write_ht_mcs_bitmask(char *buf, size_t buflen,
@@ -978,6 +980,27 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 	struct hostapd_config *iconf = hapd->iconf;
 	int len = 0, ret, j;
 	size_t i;
+#ifdef CONFIG_IEEE80211AH
+	if (iface->conf->ieee80211ah) {
+		int ht_chan = morse_ht_chan_to_ht_chan_center(iface->conf, iface->conf->channel);
+		int s1g_freq = morse_s1g_op_class_ht_chan_to_s1g_freq(iface->conf->s1g_op_class, ht_chan);
+		int s1g_bw = morse_s1g_op_class_to_ch_width(iface->conf->s1g_op_class);
+
+		ret = os_snprintf(buf + len, buflen - len,
+				  "s1g_freq=%d\n"
+				  "s1g_bw=%d\n"
+				  "s1g_prim_chwidth=%d\n"
+				  "s1g_prim_1mhz_chan_index=%u\n",
+				  s1g_freq,
+				  s1g_bw,
+				  iface->conf->s1g_prim_chwidth == S1G_PRIM_CHWIDTH_1 ? 1 :
+					iface->conf->s1g_prim_chwidth == S1G_PRIM_CHWIDTH_2 ? 2 : -1,
+				  iface->conf->s1g_prim_1mhz_chan_index);
+		if (os_snprintf_error(buflen - len, ret))
+			return len;
+		len += ret;
+	}
+#endif /* CONFIG_IEEE80211AH */
 
 	ret = os_snprintf(buf + len, buflen - len,
 			  "state=%s\n"
@@ -1694,7 +1717,7 @@ int hostapd_parse_csa_settings(struct hostapd_iface *iface,
 int hostapd_ctrl_iface_stop_ap(struct hostapd_data *hapd)
 {
 	struct hostapd_iface *iface = hapd->iface;
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < iface->num_bss; i++)
 		hostapd_drv_stop_ap(iface->bss[i]);

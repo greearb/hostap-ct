@@ -260,6 +260,12 @@ CFLAGS += -DCONFIG_IEEE80211R
 OBJS += ../src/rsn_supp/wpa_ft.o
 endif
 
+ifdef CONFIG_IEEE80211AH
+CFLAGS += -DCONFIG_IEEE80211AH
+OBJS += ../src/utils/morse.o
+OBJS += ../src/utils/morse_cli.o
+endif
+
 ifdef CONFIG_MESH
 NEED_80211_COMMON=y
 NEED_AES_SIV=y

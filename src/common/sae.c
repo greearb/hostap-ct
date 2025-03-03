@@ -2139,6 +2139,8 @@ static int sae_parse_rejected_groups(struct sae_data *sae,
 	const u8 *epos;
 	u8 len;
 
+	wpa_hexdump(MSG_DEBUG, "SAE: Possible elements at the end of the frame",
+		    *pos, end - *pos);
 	if (!sae_is_rejected_groups_elem(*pos, end)) {
 		wpabuf_free(sae->tmp->peer_rejected_groups);
 		sae->tmp->peer_rejected_groups = NULL;

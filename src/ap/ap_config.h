@@ -1,6 +1,7 @@
 /*
  * hostapd / Configuration definitions and helpers functions
  * Copyright (c) 2003-2024, Jouni Malinen <j@w1.fi>
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -277,6 +278,26 @@ struct airtime_sta_weight {
 };
 
 #define EXT_CAPA_MAX_LEN 15
+
+#ifdef CONFIG_IEEE80211AH
+struct raw_conf {
+	bool enabled;
+	u32 start_time_us;
+	u32 duration_us;
+	u16 slots;
+	bool cross_slot;
+	struct {
+		u16 max_spread;
+		u16 nominal_stas_per_bcn;
+	} bcn_spread;
+	struct {
+		u8 validity;
+		u8 period;
+		u8 start_offset;
+	} periodic;
+
+};
+#endif
 
 /**
  * struct hostapd_bss_config - Per-BSS configuration
@@ -981,9 +1002,16 @@ struct hostapd_bss_config {
 
 	u8 rnr;
 	char *config_id;
+	bool xrates_supported;
 
 	bool ssid_protection;
 	bool known_sta_identification;
+
+#if CONFIG_IEEE80211AH
+#define MORSE_MAX_RAWS	(8)
+	bool raw_enabled;
+	struct raw_conf raw[MORSE_MAX_RAWS];
+#endif
 
 #ifdef CONFIG_IEEE80211BE
 	/* The AP is part of an AP MLD */
@@ -1119,7 +1147,18 @@ struct hostapd_config {
 			  * 0x00..0x31: identifying IEEE 802.11 standard
 			  *	Annex E table (0x04 = global table)
 			  */
-
+#ifdef CONFIG_IEEE80211AH
+	char op_country[3]; /* first two octets: backup of country code
+			  * from country parameter as described in
+			  * ISO/IEC 3166-1. Third octet:
+			  * ' ' (ascii 32): all environments
+			  * 'O': Outdoor environemnt only
+			  * 'I': Indoor environment only
+			  * 'X': Used with noncountry entity ("XXX")
+			  * 0x00..0x31: identifying IEEE 802.11 standard
+			  *	Annex E table (0x04 = global table)
+			  */
+#endif /* CONFIG_IEEE80211AH */
 	int ieee80211d;
 
 	int ieee80211h; /* DFS */
@@ -1161,6 +1200,11 @@ struct hostapd_config {
 	u8 vht_oper_centr_freq_seg0_idx;
 	u8 vht_oper_centr_freq_seg1_idx;
 	u8 ht40_plus_minus_allowed;
+
+	int ieee80211ah;
+	u8 s1g_prim_chwidth;
+	u8 s1g_op_class;
+	u8 s1g_prim_1mhz_chan_index;
 
 	/* Use driver-generated interface addresses when adding multiple BSSs */
 	u8 use_driver_iface_addr;
@@ -1262,6 +1306,11 @@ struct hostapd_config {
 	unsigned int airtime_update_interval;
 #define AIRTIME_MODE_MAX (__AIRTIME_MODE_MAX - 1)
 #endif /* CONFIG_AIRTIME_POLICY */
+	char *config_id;
+
+#ifdef CONFIG_IEEE80211AH
+	u32 s1g_capab;
+#endif /* CONFIG_IEEE80211AH */
 
 	int ieee80211be;
 #ifdef CONFIG_IEEE80211BE

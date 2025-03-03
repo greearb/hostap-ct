@@ -2,6 +2,7 @@
  * IEEE 802.11 Frame type definitions
  * Copyright (c) 2002-2019, Jouni Malinen <j@w1.fi>
  * Copyright (c) 2007-2008 Intel Corporation
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -487,10 +488,12 @@
 #define WLAN_EID_DEVICE_LOCATION 204
 #define WLAN_EID_WHITE_SPACE_MAP 205
 #define WLAN_EID_FTM_PARAMETERS 206
+#define WLAN_EID_AID_RESPONSE 211
 #define WLAN_EID_S1G_BCN_COMPAT 213
 #define WLAN_EID_TWT 216
 #define WLAN_EID_S1G_CAPABILITIES 217
 #define WLAN_EID_VENDOR_SPECIFIC 221
+#define WLAN_EID_S1G_CAC 222
 #define WLAN_EID_S1G_OPERATION 232
 #define WLAN_EID_CAG_NUMBER 237
 #define WLAN_EID_AP_CSN 239
@@ -1506,6 +1509,28 @@ struct ieee80211_ampe_ie {
 #define CHANWIDTH_80MHZ		1
 #define CHANWIDTH_160MHZ	2
 #define CHANWIDTH_80P80MHZ	3
+
+/* S1G Defines */
+#define S1G_CAP0_S1G_LONG	((u8) BIT(0))
+#define S1G_CAP0_SGI_1MHZ	((u8) BIT(1))
+#define S1G_CAP0_SGI_2MHZ	((u8) BIT(2))
+#define S1G_CAP0_SGI_4MHZ	((u8) BIT(3))
+#define S1G_CAP0_SGI_8MHZ	((u8) BIT(4))
+#define S1G_CAP0_SGI_16MHZ	((u8) BIT(5))
+#define S1G_CAP0_SGI_ALL	((u8) (S1G_CAP0_SGI_1MHZ | S1G_CAP0_SGI_2MHZ | \
+					S1G_CAP0_SGI_4MHZ | S1G_CAP0_SGI_8MHZ | \
+					S1G_CAP0_SGI_16MHZ))
+
+/** Centralized Authentication Control (CAC) parameters */
+#define S1G_CAC_CONTROL			((u16) BIT(0))	/* 0 CAC, 1 DAC */
+#define S1G_CAC_DEFERRAL		((u16) BIT(1))	/* 0 threshold, 1 deferral */
+#define S1G_CAC_RESERVED		((u16) (BIT(2) | BIT(3) | BIT(4) | BIT(5)))
+#define S1G_CAC_THRESHOLD_MASK		(0xFFC0)	/* CAC threshold */
+#define S1G_CAC_THRESHOLD_SHIFT		(6)
+#define S1G_CAC_THRESHOLD_NOT_SET	(UINT16_MAX)
+#define S1G_CAC_THRESHOLD_MAX		(1023)
+#define S1G_CAC_RANDOM_MAX		(1022)
+#define S1G_CAC_RESCAN_DELAY_MAX_SECS	(10)
 
 #define HE_NSS_MAX_STREAMS			    8
 

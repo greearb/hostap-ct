@@ -611,6 +611,10 @@ def run_eht_mld_sae_two_links(dev, apdev, beacon_prot="1",
             hapd0.cmd_execute(['brctl', 'setfd', 'ap-br0', '0'])
             hapd0.cmd_execute(['ip', 'link', 'set', 'dev', 'ap-br0', 'up'])
 
+        if bridge:
+            hapd0.cmd_execute(['brctl', 'setfd', 'ap-br0', '0'])
+            hapd0.cmd_execute(['ip', 'link', 'set', 'dev', 'ap-br0', 'up'])
+
         wpas.set("sae_pwe", "1")
 
         # The first authentication attempt tries to use group 20 and the

@@ -1,6 +1,7 @@
 /*
  * WPA Supplicant - Driver event processing
  * Copyright (c) 2003-2019, Jouni Malinen <j@w1.fi>
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -54,6 +55,7 @@
 #include "dpp_supplicant.h"
 #include "pr_supplicant.h"
 #include "nan_supplicant.h"
+#include "morse.h"
 
 
 #define MAX_OWE_TRANSITION_BSS_SELECT_COUNT 5
@@ -1696,17 +1698,35 @@ struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 	rsn_ie_len = ie ? ie[1] : 0;
 
 	if (debug_print) {
-		wpa_dbg(wpa_s, MSG_DEBUG, "%d: " MACSTR
-			" ssid='%s' wpa_ie_len=%u rsn_ie_len=%u caps=0x%x level=%d freq=%d %s%s",
-			i, MAC2STR(bss->bssid),
-			wpa_ssid_txt(bss->ssid, bss->ssid_len),
-			wpa_ie_len, rsn_ie_len, bss->caps, bss->level,
-			bss->freq,
-			wpa_bss_get_vendor_ie(bss, WPS_IE_VENDOR_TYPE) ?
-			" wps" : "",
-			(wpa_bss_get_vendor_ie(bss, P2P_IE_VENDOR_TYPE) ||
-			 wpa_bss_get_vendor_ie_beacon(bss, P2P_IE_VENDOR_TYPE))
-			? " p2p" : "");
+#ifdef CONFIG_IEEE80211AH
+		if (wpa_s->conf->enable_halow) {
+			wpa_dbg(wpa_s, MSG_DEBUG, "%d: " MACSTR
+				" ssid='%s' wpa_ie_len=%u rsn_ie_len=%u caps=0x%x level=%d %s=%d %s%s",
+				i, MAC2STR(bss->bssid),
+				wpa_ssid_txt(bss->ssid, bss->ssid_len),
+				wpa_ie_len, rsn_ie_len, bss->caps, bss->level,
+				"chan", morse_ht_freq_to_s1g_chan(bss->freq),
+				wpa_bss_get_vendor_ie(bss, WPS_IE_VENDOR_TYPE) ?
+				" wps" : "",
+				(wpa_bss_get_vendor_ie(bss, P2P_IE_VENDOR_TYPE) ||
+				 wpa_bss_get_vendor_ie_beacon(bss, P2P_IE_VENDOR_TYPE))
+				? " p2p" : "");
+		}
+		else
+#endif
+		{
+			wpa_dbg(wpa_s, MSG_DEBUG, "%d: " MACSTR
+				" ssid='%s' wpa_ie_len=%u rsn_ie_len=%u caps=0x%x level=%d %s=%d %s%s",
+				i, MAC2STR(bss->bssid),
+				wpa_ssid_txt(bss->ssid, bss->ssid_len),
+				wpa_ie_len, rsn_ie_len, bss->caps, bss->level,
+				"freq", bss->freq,
+				wpa_bss_get_vendor_ie(bss, WPS_IE_VENDOR_TYPE) ?
+				" wps" : "",
+				(wpa_bss_get_vendor_ie(bss, P2P_IE_VENDOR_TYPE) ||
+				 wpa_bss_get_vendor_ie_beacon(bss, P2P_IE_VENDOR_TYPE))
+				? " p2p" : "");
+		}
 	}
 
 	bssid_ignore_count = wpa_bssid_ignore_is_listed(wpa_s, bss->bssid);
@@ -2827,6 +2847,12 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 		short_ssid_match_found = true;
 	}
 
+	if (wpa_s->current_ssid && trigger_6ghz_scan && own_request && data &&
+	    wpas_short_ssid_match(wpa_s, scan_res)) {
+		wpa_dbg(wpa_s, MSG_INFO, "Short SSID match in scan results");
+		short_ssid_match_found = true;
+	}
+
 	wpa_scan_results_free(scan_res);
 
 	wpa_remove_scan_work(wpa_s, "scan-results", own_request);
@@ -2855,6 +2881,9 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 		wpa_dbg(wpa_s, MSG_DEBUG, "short-match-found, trigger 6ghz, done with scan work.");
 		return 1;
 	}
+
+	if (short_ssid_match_found && wpas_trigger_6ghz_scan(wpa_s, data) > 0)
+		return 1;
 
 	return wpas_select_network_from_last_scan(wpa_s, 1, own_request,
 						  trigger_6ghz_scan, data);
@@ -3244,6 +3273,26 @@ static void wnm_process_assoc_resp(struct wpa_supplicant *wpa_s,
 			   " (protected keep-live required)" : "");
 		if (wpa_s->sme.bss_max_idle_period == 0)
 			wpa_s->sme.bss_max_idle_period = 1;
+
+#ifdef CONFIG_MORSE_KEEP_ALIVE_OFFLOAD
+		if (wpa_s->conf->vendor_keep_alive_offload) {
+			if (morse_set_keep_alive(wpa_s->ifname, wpa_s->sme.bss_max_idle_period, false) == 0) {
+				/* Successful in offloading... wpa supplicant does not need to offload */
+				wpa_s->no_keep_alive = 1;
+				wpa_printf(MSG_DEBUG, "morse: Keep-alive offload to firmware enabled (%s)",
+					wpa_s->ifname);
+			}
+		}
+
+		if (wpa_s->no_keep_alive) {
+			/* Nothing else to do, do not start timer */
+			return;
+		} else {
+			wpa_printf(MSG_DEBUG, "morse: Keep-alive offload to firmware disabled (%s)",
+				wpa_s->ifname);
+		}
+#endif
+
 		if (wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME) {
 			eloop_cancel_timeout(wnm_bss_keep_alive, wpa_s, NULL);
 			 /* msec times 1000 */
@@ -3966,9 +4015,21 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 		wpa_hexdump(MSG_DEBUG, "beacon_ies",
 			    data->assoc_info.beacon_ies,
 			    data->assoc_info.beacon_ies_len);
-	if (data->assoc_info.freq)
-		wpa_dbg(wpa_s, MSG_DEBUG, "freq=%u MHz",
-			data->assoc_info.freq);
+	if (data->assoc_info.freq) {
+#ifdef CONFIG_IEEE80211AH
+		if (wpa_s->conf->enable_halow) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"chan=%d",
+				morse_ht_freq_to_s1g_chan(data->assoc_info.freq));
+		}
+		else
+#endif
+		{
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"freq=%u MHz",
+				data->assoc_info.freq);
+		}
+	}
 
 	wpas_parse_connection_info(wpa_s, data->assoc_info.freq,
 				   data->assoc_info.req_ies,
@@ -4014,6 +4075,25 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 	if (!found_x && data->assoc_info.req_ies)
 		wpa_sm_set_assoc_rsnxe(wpa_s->wpa, NULL, 0);
 #endif /* CONFIG_NO_WPA */
+
+	rsn_override = RSN_OVERRIDE_NOT_USED;
+	ie = get_vendor_ie(data->assoc_info.req_ies,
+			   data->assoc_info.req_ies_len,
+			   RSN_SELECTION_IE_VENDOR_TYPE);
+	if (ie && ie[1] >= 4 + 1) {
+		switch (ie[2 + 4]) {
+		case RSN_SELECTION_RSNE:
+			rsn_override = RSN_OVERRIDE_RSNE;
+			break;
+		case RSN_SELECTION_RSNE_OVERRIDE:
+			rsn_override = RSN_OVERRIDE_RSNE_OVERRIDE;
+			break;
+		case RSN_SELECTION_RSNE_OVERRIDE_2:
+			rsn_override = RSN_OVERRIDE_RSNE_OVERRIDE_2;
+			break;
+		}
+	}
+	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_RSN_OVERRIDE, rsn_override);
 
 	rsn_override = RSN_OVERRIDE_NOT_USED;
 	ie = get_vendor_ie(data->assoc_info.req_ies,
@@ -6280,6 +6360,7 @@ static void wpas_event_rx_mgmt_action(struct wpa_supplicant *wpa_s,
 						  payload + 1, plen - 1);
 		return;
 	}
+#endif /* CONFIG_NO_ROBUST_AV */
 
 	if (category == WLAN_ACTION_VENDOR_SPECIFIC_PROTECTED && plen > 4 &&
 	    WPA_GET_BE32(payload) == QM_ACTION_VENDOR_TYPE) {
@@ -6287,7 +6368,6 @@ static void wpas_event_rx_mgmt_action(struct wpa_supplicant *wpa_s,
 						 payload + 4, plen - 4);
 		return;
 	}
-#endif /* CONFIG_NO_ROBUST_AV */
 
 	wpas_p2p_rx_action(wpa_s, mgmt->da, mgmt->sa, mgmt->bssid,
 			   category, payload, plen, freq);

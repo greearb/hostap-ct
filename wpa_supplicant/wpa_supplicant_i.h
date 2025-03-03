@@ -1,6 +1,7 @@
 /*
  * wpa_supplicant - Internal definitions
  * Copyright (c) 2003-2024, Jouni Malinen <j@w1.fi>
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -333,6 +334,9 @@ struct wpa_global {
 	unsigned int p2p_24ghz_social_channels:1;
 	unsigned int pending_p2ps_group:1;
 	unsigned int pending_group_iface_for_p2ps:1;
+#ifdef CONFIG_MORSE_KEEP_ALIVE_OFFLOAD
+	unsigned int vendor_keep_alive_offload:1;
+#endif
 	unsigned int pending_p2ps_group_freq;
 
 #ifdef CONFIG_WIFI_DISPLAY
@@ -346,6 +350,9 @@ struct wpa_global {
 #ifdef CONFIG_PROCESS_COORDINATION
 	struct proc_coord *pc;
 #endif /* CONFIG_PROCESS_COORDINATION */
+#ifdef CONFIG_MORSE_STANDBY_MODE
+	char *standby_session_dir;
+#endif
 };
 
 
@@ -998,6 +1005,7 @@ struct wpa_supplicant {
 	 * pending vendor scan request.
 	 */
 	u64 curr_scan_cookie;
+	u16 next_scan_dwell_duration;
 #define MAX_SCAN_ID 16
 	int scan_id[MAX_SCAN_ID];
 	unsigned int scan_id_count;
@@ -1757,6 +1765,10 @@ struct wpa_supplicant {
 
 	struct wpa_signal_info last_signal_info;
 
+#ifdef CONFIG_IEEE80211AH
+	u8 s1g_rrm_op_class;
+#endif /* CONFIG_IEEE80211AH */
+
 	struct wpa_ssid *ml_connect_probe_ssid;
 	struct wpa_bss *ml_connect_probe_bss;
 
@@ -2050,6 +2062,11 @@ enum chan_allowed {
 
 enum chan_allowed verify_channel(struct hostapd_hw_modes *mode, u8 op_class,
 				 u8 channel, u8 bw);
+#ifdef CONFIG_IEEE80211AH
+size_t wpas_supp_s1g_op_class_ie(struct wpa_supplicant *wpa_s,
+				struct wpa_ssid *ssid,
+				struct wpa_bss *bss, u8 *pos, size_t len);
+#endif
 size_t wpas_supp_op_class_ie(struct wpa_supplicant *wpa_s,
 			     struct wpa_ssid *ssid,
 			     struct wpa_bss *bss, u8 *pos, size_t len);
@@ -2079,6 +2096,14 @@ int wpa_supplicant_ctrl_iface_ctrl_rsp_handle(struct wpa_supplicant *wpa_s,
 void ibss_mesh_setup_freq(struct wpa_supplicant *wpa_s,
 			  const struct wpa_ssid *ssid,
 			  struct hostapd_freq_params *freq);
+
+#ifdef CONFIG_IEEE80211AH
+/* Set frequency parameters for IBSS / MESH */
+void morse_ibss_mesh_setup_freq(struct wpa_supplicant *wpa_s,
+				struct wpa_ssid *ssid,
+				struct hostapd_freq_params *freq,
+				struct hostapd_config *conf);
+#endif
 
 /* events.c */
 void wpa_supplicant_mark_disassoc(struct wpa_supplicant *wpa_s);
@@ -2138,6 +2163,9 @@ int wpas_network_disabled(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid);
 int wpas_get_ssid_pmf(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid);
 enum sae_pwe wpas_get_ssid_sae_pwe(struct wpa_supplicant *wpa_s,
 				   struct wpa_ssid *ssid);
+#ifdef CONFIG_IEEE80211AH
+int wpas_get_ssid_cac(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid);
+#endif
 int pmf_in_use(struct wpa_supplicant *wpa_s, const u8 *addr);
 void wpa_s_setup_sae_pt(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 			bool force);

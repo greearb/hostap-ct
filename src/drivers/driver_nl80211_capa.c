@@ -3,6 +3,7 @@
  * Copyright (c) 2002-2015, Jouni Malinen <j@w1.fi>
  * Copyright (c) 2007, Johannes Berg <johannes@sipsolutions.net>
  * Copyright (c) 2009-2010, Atheros Communications
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -19,6 +20,7 @@
 #include "common/qca-vendor-attr.h"
 #include "common/brcm_vendor.h"
 #include "driver_nl80211.h"
+#include "utils/morse.h"
 
 
 static int protocol_feature_handler(struct nl_msg *msg, void *arg)
@@ -2827,6 +2829,7 @@ wpa_driver_nl80211_postprocess_modes(struct hostapd_hw_modes *modes,
 }
 
 
+#ifndef CONFIG_IEEE80211AH
 static void nl80211_set_ht40_mode(struct hostapd_hw_modes *mode, int start,
 				  int end)
 {
@@ -2973,6 +2976,7 @@ static void nl80211_reg_rule_vht(struct nlattr *tb[],
 				     max_bw, flags);
 	}
 }
+#endif /* CONFIG_IEEE80211AH */
 
 
 static void nl80211_set_6ghz_mode(struct hostapd_hw_modes *mode, int start,
@@ -3026,6 +3030,7 @@ static void nl80211_reg_rule_6ghz(struct nlattr *tb[],
 }
 
 
+#ifndef CONFIG_IEEE80211AH
 static void nl80211_set_dfs_domain(enum nl80211_dfs_regions region,
 				   u8 *dfs_domain)
 {
@@ -3055,6 +3060,7 @@ static const char * dfs_domain_name(enum nl80211_dfs_regions region)
 		return "DFS-invalid";
 	}
 }
+#endif /* CONFIG_IEEE80211AH */
 
 
 static int nl80211_get_reg(struct nl_msg *msg, void *arg)
@@ -3083,6 +3089,7 @@ static int nl80211_get_reg(struct nl_msg *msg, void *arg)
 		return NL_SKIP;
 	}
 
+#ifndef CONFIG_IEEE80211AH
 	if (tb_msg[NL80211_ATTR_DFS_REGION]) {
 		enum nl80211_dfs_regions dfs_domain;
 		dfs_domain = nla_get_u8(tb_msg[NL80211_ATTR_DFS_REGION]);
@@ -3143,6 +3150,7 @@ static int nl80211_get_reg(struct nl_msg *msg, void *arg)
 			  nla_data(nl_rule), nla_len(nl_rule), reg_policy);
 		nl80211_reg_rule_vht(tb_rule, results);
 	}
+#endif /* CONFIG_IEEE80211AH */
 
 	nla_for_each_nested(nl_rule, tb_msg[NL80211_ATTR_REG_RULES], rem_rule)
 	{
@@ -3192,10 +3200,15 @@ static const char * modestr(enum hostapd_hw_mode mode)
 	}
 }
 
-
+#ifdef CONFIG_IEEE80211AH
+static void nl80211_dump_chan_list(struct wpa_driver_nl80211_data *drv,
+				   struct hostapd_hw_modes *modes,
+				   u16 num_modes, char *alpha2)
+#else
 static void nl80211_dump_chan_list(struct wpa_driver_nl80211_data *drv,
 				   struct hostapd_hw_modes *modes,
 				   u16 num_modes)
+#endif
 {
 	int i;
 
@@ -3204,10 +3217,10 @@ static void nl80211_dump_chan_list(struct wpa_driver_nl80211_data *drv,
 
 	for (i = 0; i < num_modes; i++) {
 		struct hostapd_hw_modes *mode = &modes[i];
-		char str[1000];
+		char str[1024];
 		char *pos = str;
 		char *end = pos + sizeof(str);
-		int j, res;
+		int j, res, chan_freq;
 
 		for (j = 0; j < mode->num_channels; j++) {
 			struct hostapd_channel_data *chan = &mode->channels[j];
@@ -3216,8 +3229,19 @@ static void nl80211_dump_chan_list(struct wpa_driver_nl80211_data *drv,
 				drv->uses_6ghz = true;
 			if (chan->freq >= 900 && chan->freq < 1000)
 				drv->uses_s1g = true;
+
+#ifdef CONFIG_IEEE80211AH
+			if (drv->uses_s1g) {
+				chan_freq = morse_ht_chan_to_s1g_chan(chan->chan);
+			}
+			else
+#endif /* CONFIG_IEEE80211AH */
+			{
+				chan_freq = chan->chan;
+			}
+
 			res = os_snprintf(pos, end - pos, " %d%s%s%s",
-					  chan->freq,
+					  chan_freq,
 					  (chan->flag & HOSTAPD_CHAN_DISABLED) ?
 					  "[DISABLED]" : "",
 					  (chan->flag & HOSTAPD_CHAN_NO_IR) ?
@@ -3230,8 +3254,17 @@ static void nl80211_dump_chan_list(struct wpa_driver_nl80211_data *drv,
 		}
 
 		*pos = '\0';
-		wpa_printf(MSG_DEBUG, "nl80211: Mode IEEE %s:%s",
-			   modestr(mode->mode), str);
+#ifdef CONFIG_IEEE80211AH
+		if (drv->uses_s1g) {
+			wpa_printf(MSG_DEBUG, "nl80211: Mode IEEE 802.11ah:%s",
+				str);
+		}
+		else
+#endif /* CONFIG_IEEE80211AH */
+		{
+			wpa_printf(MSG_DEBUG, "nl80211: Mode IEEE %s:%s",
+				   modestr(mode->mode), str);
+		}
 	}
 }
 
@@ -3288,7 +3321,11 @@ nl80211_get_hw_feature_data(void *priv, u16 *num_modes, u16 *flags,
 
 		modes = wpa_driver_nl80211_postprocess_modes(result.modes,
 							     num_modes);
+#if CONFIG_IEEE80211AH
+		nl80211_dump_chan_list(drv, modes, *num_modes, drv->alpha2);
+#else
 		nl80211_dump_chan_list(drv, modes, *num_modes);
+#endif
 		return modes;
 	}
 

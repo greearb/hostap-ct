@@ -1,6 +1,7 @@
 /*
  * hostapd - Driver operations
  * Copyright (c) 2009-2010, Jouni Malinen <j@w1.fi>
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -24,6 +25,7 @@
 #include "hw_features.h"
 #include "robust_av.h"
 #include "ap_drv_ops.h"
+#include "utils/morse.h"
 
 
 u32 hostapd_sta_flags_to_drv(u32 flags)
@@ -702,6 +704,14 @@ int hostapd_set_freq(struct hostapd_data *hapd, enum hostapd_hw_mode mode,
 	if (hapd->driver->set_freq == NULL)
 		return 0;
 
+#ifdef CONFIG_IEEE80211AH
+	if (hapd->iface->conf->ieee80211ah) {
+		/* Need to get the correct center channel and freq */
+		int ht_center_chan = morse_ht_chan_to_ht_chan_center(hapd->iface->conf, data.channel);
+		data.center_freq1 = ieee80211_channel_to_frequency(ht_center_chan, NL80211_BAND_5GHZ);
+	}
+#endif
+
 	data.link_id = -1;
 
 #ifdef CONFIG_IEEE80211BE
@@ -790,6 +800,12 @@ hostapd_get_hw_feature_data(struct hostapd_data *hapd, u16 *num_modes,
 						 flags, dfs_domain);
 }
 
+int hostapd_driver_commit(struct hostapd_data *hapd)
+{
+	if (hapd->driver == NULL || hapd->driver->commit == NULL)
+		return 0;
+	return hapd->driver->commit(hapd->drv_priv);
+}
 
 int hostapd_drv_none(struct hostapd_data *hapd)
 {

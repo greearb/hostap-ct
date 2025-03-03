@@ -2,6 +2,7 @@
  * Common hostapd/wpa_supplicant HW features
  * Copyright (c) 2002-2013, Jouni Malinen <j@w1.fi>
  * Copyright (c) 2015, Qualcomm Atheros, Inc.
+ * Copyright 2021 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -14,6 +15,7 @@
 #include "ieee802_11_defs.h"
 #include "ieee802_11_common.h"
 #include "hw_features_common.h"
+#include "../ap/hostapd.h"
 
 
 struct hostapd_channel_data * hw_get_channel_chan(struct hostapd_hw_modes *mode,
@@ -108,20 +110,45 @@ int hw_get_chan(enum hostapd_hw_mode mode, int freq,
 }
 
 
-int allowed_ht40_channel_pair(enum hostapd_hw_mode mode,
+int allowed_ht40_channel_pair(struct hostapd_iface *iface,
 			      struct hostapd_channel_data *p_chan,
 			      struct hostapd_channel_data *s_chan)
 {
 	int ok, first;
-	int allowed[] = { 36, 44, 52, 60, 100, 108, 116, 124, 132, 140,
-			  149, 157, 165, 173, 184, 192 };
+	int *allowed;
+	size_t allowed_size;
+
+	int allowed_std[] = { 36, 44, 52, 60, 100, 108, 116, 124, 132, 140, 149, 157, 165, 173,
+				184, 192 };
+
+#ifdef CONFIG_IEEE80211AH
+	/* SW-3238/SW-4135: Expand the list to allow the rest of channels to use 40MHz band */
+	int allowed_s1g[] = { 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64,
+				100, 102, 104, 106, 108, 110, 112, 114, 116, 118, 120, 122, 124,
+				126, 128, 132, 134, 136, 138, 140, 142, 144, 149, 151, 153, 155,
+				157, 159, 161, 165, 169, 173, 177, 184, 192 };
+#endif
 	size_t k;
+	enum hostapd_hw_mode mode;
 	int ht40_plus, pri_chan, sec_chan;
+
+#ifdef CONFIG_IEEE80211AH
+	if (iface->conf->ieee80211ah) {
+		allowed = allowed_s1g;
+		allowed_size = ARRAY_SIZE(allowed_s1g);
+	}
+	else
+#endif
+	{
+		allowed = allowed_std;
+		allowed_size = ARRAY_SIZE(allowed_std);
+	}
 
 	if (!p_chan || !s_chan)
 		return 0;
 	pri_chan = p_chan->chan;
 	sec_chan = s_chan->chan;
+	mode = iface->current_mode->mode;
 
 	ht40_plus = pri_chan < sec_chan;
 
@@ -160,7 +187,7 @@ int allowed_ht40_channel_pair(enum hostapd_hw_mode mode,
 	first = pri_chan < sec_chan ? pri_chan : sec_chan;
 
 	ok = 0;
-	for (k = 0; k < ARRAY_SIZE(allowed); k++) {
+	for (k = 0; k < allowed_size; k++) {
 		if (first == allowed[k]) {
 			ok = 1;
 			break;

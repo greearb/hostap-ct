@@ -3915,6 +3915,9 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 	derive_kdk = sm->wpa_auth->conf.secure_ltf &&
 		ieee802_11_rsnx_capab(sm->rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF);
 
+	derive_kdk = sm->wpa_auth->conf.secure_ltf &&
+		ieee802_11_rsnx_capab(sm->rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF);
+
 	/* WPA with IEEE 802.1X: use the derived PMK from EAP
 	 * WPA-PSK: iterate through possible PSKs and select the one matching
 	 * the packet */
@@ -5439,6 +5442,13 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 		}
 	}
 #endif /* CONFIG_SAE */
+
+	if (sm->ssid_protection) {
+		*pos++ = WLAN_EID_SSID;
+		*pos++ = conf->ssid_len;
+		os_memcpy(pos, conf->ssid, conf->ssid_len);
+		pos += conf->ssid_len;
+	}
 
 #ifdef CONFIG_TESTING_OPTIONS
 	if (conf->eapol_m3_elements) {

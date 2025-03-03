@@ -1,6 +1,7 @@
 /*
  * WPA Supplicant / Configuration parser and common functions
  * Copyright (c) 2003-2019, Jouni Malinen <j@w1.fi>
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -19,7 +20,9 @@
 #include "p2p/p2p.h"
 #include "fst/fst.h"
 #include "config.h"
+#include "morse.h"
 
+#include "utils/morse.h"
 
 #if !defined(CONFIG_CTRL_IFACE) && defined(CONFIG_NO_CONFIG_WRITE)
 #define NO_CONFIG_WRITE
@@ -2560,6 +2563,31 @@ static char * wpa_config_write_mac_value(const struct parse_data *data,
 }
 #endif /* NO_CONFIG_WRITE */
 
+#ifdef CONFIG_IEEE80211AH
+static int wpa_config_parse_backoffs(const struct parse_data *data,
+				     struct wpa_ssid *ssid, int line,
+				     const char *value)
+{
+	ssid->backoffs = wpa_config_parse_int_array(value);
+	if (!ssid->backoffs)
+		return -1;
+	if (ssid->backoffs[0] == 0) {
+		free(ssid->backoffs);
+		ssid->backoffs = NULL;
+		return -1;
+	}
+
+	return 0;
+}
+
+#ifndef NO_CONFIG_WRITE
+static char *wpa_config_write_backoffs(const struct parse_data *data,
+					 struct wpa_ssid *ssid)
+{
+	return wpa_config_write_freqs(data, ssid->backoffs);
+}
+#endif
+#endif /* CONFIG_IEEEE80211AH */
 
 #ifdef CONFIG_PASN
 static int wpa_config_parse_pasn_groups(const struct parse_data *data,
@@ -2590,8 +2618,6 @@ static char * wpa_config_write_pasn_groups(const struct parse_data *data,
 }
 #endif /* NO_CONFIG_WRITE */
 #endif /* CONFIG_PASN */
-
-
 /* Helper macros for network block parser */
 
 #ifdef OFFSET
@@ -2823,6 +2849,14 @@ static const struct parse_data ssid_fields[] = {
 	{ INT_RANGE(no_auto_peer, 0, 1) },
 	{ INT_RANGE(mesh_fwding, 0, 1) },
 	{ INT_RANGE(mesh_rssi_threshold, -255, 1) },
+#ifdef CONFIG_IEEE80211AH
+	{ INT_RANGE(mbca_config, 0, 3)},
+	{ INT_RANGE(mbca_min_beacon_gap_ms, MIN_BCN_GAP_MIN, MIN_BCN_GAP_MAX)},
+	{ INT_RANGE(mbca_tbtt_adj_interval_sec, TBTT_ADJ_INT_MIN, TBTT_ADJ_INT_MAX)},
+	{ INT_RANGE(dot11MeshBeaconTimingReportInterval, BCN_TIMING_REP_INT_MIN,
+		BCN_TIMING_REP_INT_MAX)},
+	{ INT_RANGE(mbss_start_scan_duration_ms, MBSS_SCAN_DURATION_MIN, MBSS_SCAN_DURATION_MAX)},
+#endif
 #else /* CONFIG_MESH */
 	{ INT_RANGE(mode, 0, 4) },
 #endif /* CONFIG_MESH */
@@ -2974,6 +3008,23 @@ static const struct parse_data ssid_fields[] = {
 #ifdef CONFIG_PASN
 	{ FUNC(pasn_groups) },
 #endif /* CONFIG_PASN */
+#ifdef CONFIG_IEEE80211AH
+	{ INT_RANGE(raw_sta_priority, 0, 7) },
+	{ INT_RANGE(cac, 0, 1) },
+	{ INT_RANGE(channel, 0, 60) },
+	{ STR(country) },
+	{ INT_RANGE(op_class, 0, 80) },
+	{ INT_RANGE(s1g_prim_chwidth, 0, 2) },
+	{ INT_RANGE(s1g_prim_1mhz_chan_index, 0, 8) },
+	{ INT_RANGE(disable_s1g_sgi, 0, 1) },
+	{ FUNC(backoffs) },
+#ifdef CONFIG_MESH
+	{ INT_RANGE(mesh_beaconless_mode, 0, 1) },
+	{ INT_RANGE(mesh_dynamic_peering, 0, 1) },
+	{ INT_RANGE(mesh_rssi_margin, 3, 30) },
+	{ INT_RANGE(mesh_blacklist_timeout, 10, 600) },
+#endif /* CONFIG_MESH */
+#endif /* CONFIG_IEEE80211AH */
 };
 
 #undef OFFSET
@@ -3336,6 +3387,9 @@ void wpa_config_free(struct wpa_config *config)
 	os_free(config->dpp_extra_conf_req_value);
 	wpabuf_free(config->dik);
 	wpabuf_free(config->wfa_gen_capa_supp);
+#ifdef CONFIG_MORSE_STANDBY_MODE
+	os_free(config->standby_session_dir);
+#endif
 
 	os_free(config);
 }
@@ -3583,6 +3637,13 @@ void wpa_config_set_network_defaults(struct wpa_ssid *ssid)
 	ssid->dot11MeshHoldingTimeout = DEFAULT_MESH_HOLDING_TIMEOUT;
 	ssid->mesh_fwding = DEFAULT_MESH_FWDING;
 	ssid->mesh_rssi_threshold = DEFAULT_MESH_RSSI_THRESHOLD;
+#ifdef CONFIG_IEEE80211AH
+	ssid->mbca_config = DEFAULT_MBCA_CFG;
+	ssid->mbca_min_beacon_gap_ms = DEFAULT_MBCA_MIN_BCN_GAP_MS;
+	ssid->mbca_tbtt_adj_interval_sec = DEFAULT_TBTT_ADJ_INTERVAL_SEC;
+	ssid->dot11MeshBeaconTimingReportInterval = DEFAULT_MESH_BCN_TIMING_REPORT_INT;
+	ssid->mbss_start_scan_duration_ms = DEFAULT_MBSS_START_SCAN_DURATION_MS;
+#endif
 #endif /* CONFIG_MESH */
 #ifdef CONFIG_HT_OVERRIDES
 	ssid->disable_ht = DEFAULT_DISABLE_HT;
@@ -3625,6 +3686,20 @@ void wpa_config_set_network_defaults(struct wpa_ssid *ssid)
 	ssid->rsn_overriding = RSN_OVERRIDING_NOT_SET;
 	ssid->drop_unicast_ip_in_l2_multicast = true;
 	ssid->interworking_defaults = DEFAULT_INTERWORKING_DEFAULTS;
+#ifdef CONFIG_IEEE80211AH
+	ssid->raw_sta_priority = -1;
+	ssid->cac = 0;
+	ssid->channel = DEFAULT_MORSE_IBSS_CHANNEL;
+	ssid->op_class = DEFAULT_MORSE_IBSS_OP_CLASS;
+	ssid->s1g_prim_1mhz_chan_index = DEFAULT_MORSE_S1G_PRIM_1M_CH_IDX;
+	ssid->disable_s1g_sgi = DEFAULT_DISABLE_SGI;
+#ifdef CONFIG_MESH
+	ssid->mesh_beaconless_mode = DEFAULT_MESH_BEACONLESS_MODE;
+	ssid->mesh_dynamic_peering = DEFAULT_MESH_DYNAMIC_PEERING;
+	ssid->mesh_rssi_margin = DEFAULT_MESH_RSSI_MARGIN;
+	ssid->mesh_blacklist_timeout = DEFAULT_MESH_BLACKLIST_TIMEOUT;
+#endif /* CONFIG_MESH */
+#endif /* CONFIG_IEEE80211AH */
 }
 
 
@@ -5039,6 +5114,10 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	config->min_scan_gap = DEFAULT_MIN_SCAN_GAP;
 	config->max_assoc_per_scan = DEFAULT_MAX_ASSOC_PER_SCAN;
 
+#ifdef CONFIG_MORSE_KEEP_ALIVE_OFFLOAD
+	config->vendor_keep_alive_offload = DEFAULT_VENDOR_KEEP_ALIVE_OFFLOAD;
+#endif
+
 #ifdef CONFIG_MBO
 	config->mbo_cell_capa = DEFAULT_MBO_CELL_CAPA;
 	config->disassoc_imminent_rssi_threshold =
@@ -5428,6 +5507,10 @@ static int wpa_config_process_country(const struct global_parse_data *data,
 	config->country[1] = pos[1];
 	wpa_printf(MSG_DEBUG, "country='%c%c'",
 		   config->country[0], config->country[1]);
+	if (config->enable_halow) {
+		morse_set_s1g_ht_chan_pairs(config->country);
+	}
+
 	return 0;
 }
 
@@ -5980,7 +6063,11 @@ static const struct global_parse_data global_fields[] = {
 	{ FUNC_WITH_GET(bgscan), CFG_CHANGED_BGSCAN },
 #ifdef CONFIG_MESH
 	{ INT(user_mpm), 0 },
+#ifdef CONFIG_IEEE80211AH
+	{ INT_RANGE(max_peer_links, 0, 10), 0 },
+#else /* CONFIG_IEEE80211AH */
 	{ INT_RANGE(max_peer_links, 0, 255), 0 },
+#endif
 	{ INT(mesh_max_inactivity), 0 },
 	{ INT_RANGE(mesh_fwding, 0, 1), 0 },
 	{ INT(dot11RSNASAERetransPeriod), 0 },
@@ -6107,6 +6194,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(okc), 0 },
 	{ INT(no_oper_classes_ie), 0 },
 	{ INT(pmf), 0 },
+	{ INT(op_class), 0 },
 	{ INT_RANGE(sae_check_mfp, 0, 1), 0 },
 	{ FUNC(sae_groups), 0 },
 	{ INT_RANGE(sae_pwe, 0, 3), 0 },
@@ -6218,6 +6306,12 @@ static const struct global_parse_data global_fields[] = {
 #endif /* CONFIG_WNM */
 	{ INT_RANGE(wowlan_disconnect_on_deinit, 0, 1), 0},
 	{ INT_RANGE(rsn_overriding, 0, 2), 0},
+#ifdef CONFIG_MORSE_STANDBY_MODE
+	{ STR(standby_session_dir), 0 },
+#endif
+#ifdef CONFIG_MORSE_KEEP_ALIVE_OFFLOAD
+	{ INT_RANGE(vendor_keep_alive_offload, 0, 1), 0},
+#endif
 #ifdef CONFIG_PASN
 	{ FUNC(pasn_groups), 0 },
 #ifdef CONFIG_TESTING_OPTIONS
@@ -6239,6 +6333,9 @@ static const struct global_parse_data global_fields[] = {
 	{ BOOL(disable_op_classes_80_80_mhz), 0 },
 	{ INT(pr_pasn_type), 0 },
 	{ INT_RANGE(pr_preferred_role, 0, 1), 0},
+#ifdef CONFIG_IEEE80211AH
+	{ INT_RANGE(enable_halow, 0, 1), 0 },
+#endif
 	/* NOTE: When adding new parameters here, add_interface() in
 	 * wpa_supplicant/dbus_new_introspect.c may need to be modified to
 	 * increase the size of the iface->xml buffer. */

@@ -1,6 +1,7 @@
 /*
  * hostapd - command line interface for hostapd daemon
  * Copyright (c) 2004-2022, Jouni Malinen <j@w1.fi>
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -1311,6 +1312,49 @@ static int hostapd_cli_cmd_chan_switch(struct wpa_ctrl *ctrl,
 }
 
 
+#ifdef CONFIG_IEEE80211AH
+static int hostapd_cli_cmd_chan_switch_s1g(struct wpa_ctrl *ctrl,
+				       int argc, char *argv[])
+{
+	char cmd[256];
+	int res;
+	int i;
+	char *tmp;
+	int total;
+
+	if (argc < 2) {
+
+		printf("Invalid chan_switch command: needs at least five arguments "
+		       "(count, freq, prim_bandwidth, center_freq1 and bandwidth) for S1G "
+		       "frequency and at least two arguments (count and freq) for ht frequency\n"
+		       "usage: <cs_count> <freq> [prim_bandwidth=] [sec_channel_offset=] "
+		       "[center_freq1=] [center_freq2=] [bandwidth=] "
+		       "[blocktx] [ht|vht]\n");
+		return -1;
+	}
+
+	res = os_snprintf(cmd, sizeof(cmd), "CHAN_SWITCH %s %s",
+			  argv[0], argv[1]);
+	if (os_snprintf_error(sizeof(cmd), res)) {
+		printf("Too long CHAN_SWITCH command.\n");
+		return -1;
+	}
+
+	total = res;
+	for (i = 2; i < argc; i++) {
+		tmp = cmd + total;
+		res = os_snprintf(tmp, sizeof(cmd) - total, " %s", argv[i]);
+		if (os_snprintf_error(sizeof(cmd) - total, res)) {
+			printf("Too long CHAN_SWITCH command.\n");
+			return -1;
+		}
+		total += res;
+	}
+	return wpa_ctrl_command(ctrl, cmd);
+}
+#endif
+
+
 static int hostapd_cli_cmd_notify_cw_change(struct wpa_ctrl *ctrl,
 					    int argc, char *argv[])
 {
@@ -1891,6 +1935,12 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	{ "send_qos_map_conf", hostapd_cli_cmd_send_qos_map_conf,
 	  hostapd_complete_stations,
 	  "<addr> = send QoS Map Configure frame" },
+#ifdef CONFIG_IEEE80211AH
+	{ "chan_switch_s1g", hostapd_cli_cmd_chan_switch_s1g, NULL,
+	  "<cs_count> <freq> [prim_bandwidth=] [sec_channel_offset=] [center_freq1=]\n"
+	  "  [center_freq2=] [bandwidth=] [blocktx] [ht|vht]\n"
+	  "  = initiate channel switch announcement" },
+#endif
 	{ "chan_switch", hostapd_cli_cmd_chan_switch, NULL,
 	  "<cs_count> <freq> [sec_channel_offset=] [center_freq1=]\n"
 	  "  [center_freq2=] [bandwidth=] [blocktx] [ht|vht]\n"

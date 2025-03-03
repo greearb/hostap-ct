@@ -4,12 +4,14 @@
  * Copyright (c) 2005-2006, Devicescape Software, Inc.
  * Copyright (c) 2008-2012, Jouni Malinen <j@w1.fi>
  * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * Copyright 2023 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
  */
 
 #include "utils/includes.h"
+#include "utils/morse.h"
 
 #ifndef CONFIG_NATIVE_WINDOWS
 
@@ -588,6 +590,11 @@ ieee802_11_build_ap_params_mbssid(struct hostapd_data *hapd,
 	size_t len, rnr_len = 0;
 	u8 elem_count = 0, *elem = NULL, **elem_offset = NULL, *end;
 	u8 rnr_elem_count = 0, *rnr_elem = NULL, **rnr_elem_offset = NULL;
+
+#ifdef CONFIG_IEEE80211AH
+	if (!iface->mbssid_max_interfaces)
+		iface->mbssid_max_interfaces = MBSSID_MAX_INTERFACES;
+#endif /* CONFIG_IEEE80211AH */
 
 	if (!iface->mbssid_max_interfaces ||
 	    iface->num_bss > iface->mbssid_max_interfaces ||

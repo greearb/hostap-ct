@@ -1,6 +1,7 @@
 /*
  * IEEE 802.11 Common routines
  * Copyright (c) 2002-2019, Jouni Malinen <j@w1.fi>
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -642,6 +643,10 @@ static ParseRes __ieee802_11_parse_elems(const u8 *start, size_t len,
 			elems->ext_capab = pos;
 			elems->ext_capab_len = elen;
 			break;
+		case WLAN_EID_QOS_TRAFFIC_CAPABILITY:
+			elems->qos_traffic_cap = pos;
+			elems->qos_traffic_cap_len = elen;
+			break;
 		case WLAN_EID_BSS_MAX_IDLE_PERIOD:
 			if (elen < 3)
 				break;
@@ -715,6 +720,11 @@ static ParseRes __ieee802_11_parse_elems(const u8 *start, size_t len,
 			if (elen < 15)
 				break;
 			elems->s1g_capab = pos;
+			break;
+		case WLAN_EID_AID_RESPONSE:
+			if (elen < 5)
+				break;
+			elems->aid = pos;
 			break;
 		case WLAN_EID_FRAGMENT:
 			wpa_printf(MSG_MSGDUMP,
@@ -4350,4 +4360,11 @@ int ieee80211_get_center_freq(int ctrl_freq, u32 bw)
 	default:
 		return -1;
 	}
+}
+
+bool is_s1g_freq(int freq)
+{
+	if (freq >= 900 && freq < 1000)
+		return true;
+	return false;
 }

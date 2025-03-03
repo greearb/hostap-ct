@@ -809,6 +809,116 @@ end:
 }
 
 
+static struct wpa_bss * find_better_target(struct wpa_bss *a,
+					   struct wpa_bss *b)
+{
+	if (!a)
+		return b;
+	if (!b)
+		return a;
+
+	if (a->est_throughput > b->est_throughput) {
+		wpa_printf(MSG_DEBUG, "WNM: A is better: " MACSTR
+			   " est-tput: %d  B: " MACSTR " est-tput: %d",
+			   MAC2STR(a->bssid), a->est_throughput,
+			   MAC2STR(b->bssid), b->est_throughput);
+		return a;
+	}
+
+	wpa_printf(MSG_DEBUG, "WNM: B is better, A: " MACSTR
+		   " est-tput: %d  B: " MACSTR " est-tput: %d",
+		   MAC2STR(a->bssid), a->est_throughput,
+		   MAC2STR(b->bssid), b->est_throughput);
+	return b;
+}
+
+static struct wpa_bss *
+compare_scan_neighbor_results(struct wpa_supplicant *wpa_s,
+			      enum mbo_transition_reject_reason *reason)
+{
+	u8 i;
+	struct wpa_bss *bss = wpa_s->current_bss;
+	struct wpa_bss *target;
+	struct wpa_bss *best_target = NULL;
+	struct wpa_bss *bss_in_list = NULL;
+
+	if (!bss)
+		return NULL;
+
+	wpa_printf(MSG_DEBUG, "WNM: Current BSS " MACSTR " RSSI %d",
+		   MAC2STR(wpa_s->bssid), bss->level);
+
+	for (i = 0; i < wpa_s->wnm_num_neighbor_report; i++) {
+		struct neighbor_report *nei;
+
+		nei = &wpa_s->wnm_neighbor_report_elements[i];
+
+		target = wpa_bss_get_bssid(wpa_s, nei->bssid);
+		if (!target) {
+			wpa_printf(MSG_DEBUG, "Candidate BSS " MACSTR
+				   " (pref %d) not found in scan results",
+				   MAC2STR(nei->bssid),
+				   nei->preference_present ? nei->preference :
+				   -1);
+			continue;
+		}
+
+		/*
+		 * TODO: Could consider allowing transition to another ESS if
+		 * PMF was enabled for the association.
+		 */
+		if (!wpa_scan_res_match(wpa_s, 0, target, wpa_s->current_ssid,
+					1, 0, false)) {
+			wpa_printf(MSG_DEBUG, "Candidate BSS " MACSTR
+				   " (pref %d) does not match the current network profile",
+				   MAC2STR(nei->bssid),
+				   nei->preference_present ? nei->preference :
+				   -1);
+			continue;
+		}
+
+		if (target->level < bss->level && target->level < -80) {
+			wpa_printf(MSG_DEBUG, "Candidate BSS " MACSTR
+				   " (pref %d) does not have sufficient signal level (%d)",
+				   MAC2STR(nei->bssid),
+				   nei->preference_present ? nei->preference :
+				   -1,
+				   target->level);
+			continue;
+		}
+
+		best_target = find_better_target(target, best_target);
+		if (target == bss)
+			bss_in_list = bss;
+	}
+
+	target = best_target;
+
+	if (!target)
+		return NULL;
+
+	wpa_printf(MSG_DEBUG,
+		   "WNM: Found an acceptable preferred transition candidate BSS "
+		   MACSTR " (RSSI %d, tput: %d  bss-tput: %d)",
+		   MAC2STR(target->bssid), target->level,
+		   target->est_throughput, bss->est_throughput);
+
+	if (!bss_in_list)
+		return target;
+
+	if ((!target->est_throughput && !bss_in_list->est_throughput) ||
+	    (target->est_throughput > bss_in_list->est_throughput &&
+	     target->est_throughput - bss_in_list->est_throughput >
+	     bss_in_list->est_throughput >> 4)) {
+		/* It is more than 100/16 percent better, so switch. */
+		return target;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "WNM: Stay with our current BSS, not enough change in estimated throughput to switch");
+	return bss_in_list;
+}
+
 static int wpa_bss_ies_eq(struct wpa_bss *a, struct wpa_bss *b, u8 eid)
 {
 	const u8 *ie_a, *ie_b;
@@ -1147,6 +1257,9 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 		return 0;
 
 	wpa_s->wnm_transition_scan = false;
+
+	/* Compare the Neighbor Report and scan results */
+	bss = compare_scan_neighbor_results(wpa_s, &reason);
 
 	/* Fetch MBO transition candidate rejection information from driver */
 	fetch_drv_mbo_candidate_info(wpa_s, &reason);
@@ -1497,6 +1610,15 @@ static int wnm_parse_candidate_list(struct wpa_supplicant *wpa_s,
 				*num_valid_candidates += 1;
 
 			wpa_s->wnm_num_neighbor_report++;
+#ifdef CONFIG_MBO
+						if (wpa_s->wnm_mbo_trans_reason_present &&
+						    wpa_s->wnm_num_neighbor_report == 1) {
+							rep->is_first = 1;
+							wpa_printf(MSG_DEBUG,
+								   "WNM: First transition candidate is "
+								   MACSTR, MAC2STR(rep->bssid));
+										}
+#endif
 		}
 
 		pos += len;

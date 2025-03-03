@@ -1,6 +1,7 @@
 /*
  * hostapd / UNIX domain socket -based control interface
  * Copyright (c) 2004-2018, Jouni Malinen <j@w1.fi>
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -39,6 +40,7 @@
 #endif /* CONFIG_DPP */
 #include "common/wpa_ctrl.h"
 #include "common/ptksa_cache.h"
+#include "common/hw_features_common.h"
 #include "common/nan_de.h"
 #include "common/proc_coord.h"
 #include "crypto/tls.h"
@@ -73,6 +75,7 @@
 #include "config_file.h"
 #include "ctrl_iface.h"
 #include "config_file.h"
+#include "utils/morse.h"
 
 
 #define HOSTAPD_CLI_DUP_VALUE_MAX_LEN 256
@@ -191,7 +194,7 @@ static int hostapd_ctrl_iface_update(struct hostapd_data *hapd, char *txt)
 	iface->interfaces->config_read_cb = hostapd_ctrl_iface_config_read;
 	reload_opts = txt;
 
-	hostapd_reload_config(iface);
+	hostapd_reload_config(iface, 1);
 
 	iface->interfaces->config_read_cb = config_read_cb;
 }
@@ -2821,6 +2824,223 @@ static int hostapd_ctrl_register_frame(struct hostapd_data *hapd,
 #endif /* CONFIG_TESTING_OPTIONS */
 
 
+#ifdef NEED_AP_MLME
+
+static bool
+hostapd_ctrl_is_freq_in_cmode(struct hostapd_hw_modes *mode,
+			      struct hostapd_multi_hw_info *current_hw_info,
+			      int freq)
+{
+	struct hostapd_channel_data *chan;
+	int i;
+
+	for (i = 0; i < mode->num_channels; i++) {
+		chan = &mode->channels[i];
+
+		if (chan->flag & HOSTAPD_CHAN_DISABLED)
+			continue;
+
+		if (!chan_in_current_hw_info(current_hw_info, chan))
+			continue;
+
+		if (chan->freq == freq)
+			return true;
+	}
+	return false;
+}
+
+
+static int hostapd_ctrl_check_freq_params(struct hostapd_freq_params *params,
+					  u16 punct_bitmap)
+{
+	u32 start_freq;
+
+	if (is_6ghz_freq(params->freq)) {
+		const int bw_idx[] = { 20, 40, 80, 160, 320 };
+		int idx, bw;
+
+		/* The 6 GHz band requires HE to be enabled. */
+		params->he_enabled = 1;
+
+		if (params->center_freq1) {
+			if (params->freq == 5935)
+				idx = (params->center_freq1 - 5925) / 5;
+			else
+				idx = (params->center_freq1 - 5950) / 5;
+
+			bw = center_idx_to_bw_6ghz(idx);
+			if (bw < 0 || bw > (int) ARRAY_SIZE(bw_idx) ||
+			    bw_idx[bw] != params->bandwidth)
+				return -1;
+		}
+	} else { /* Non-6 GHz channel */
+		/* An EHT STA is also an HE STA as defined in
+		 * IEEE P802.11be/D5.0, 4.3.16a. */
+		if (params->he_enabled || params->eht_enabled) {
+			params->he_enabled = 1;
+			/* An HE STA is also a VHT STA if operating in the 5 GHz
+			 * band and an HE STA is also an HT STA in the 2.4 GHz
+			 * band as defined in IEEE Std 802.11ax-2021, 4.3.15a.
+			 * A VHT STA is an HT STA as defined in IEEE
+			 * Std 802.11, 4.3.15. */
+			if (IS_5GHZ(params->freq))
+				params->vht_enabled = 1;
+
+			params->ht_enabled = 1;
+		}
+	}
+
+	switch (params->bandwidth) {
+	case 0:
+		/* bandwidth not specified: use 20 MHz by default */
+		/* fall-through */
+	case 20:
+		if (params->center_freq1 &&
+		    params->center_freq1 != params->freq)
+			return -1;
+
+		if (params->center_freq2 || params->sec_channel_offset)
+			return -1;
+
+		if (punct_bitmap)
+			return -1;
+		break;
+	case 40:
+		if (params->center_freq2 || !params->sec_channel_offset)
+			return -1;
+
+		if (punct_bitmap)
+			return -1;
+
+		if (!params->center_freq1)
+			break;
+		switch (params->sec_channel_offset) {
+		case 1:
+			if (params->freq + 10 != params->center_freq1)
+				return -1;
+			break;
+		case -1:
+			if (params->freq - 10 != params->center_freq1)
+				return -1;
+			break;
+		default:
+			return -1;
+		}
+		break;
+	case 80:
+		if (!params->center_freq1 || !params->sec_channel_offset)
+			return 1;
+
+		switch (params->sec_channel_offset) {
+		case 1:
+			if (params->freq - 10 != params->center_freq1 &&
+			    params->freq + 30 != params->center_freq1)
+				return 1;
+			break;
+		case -1:
+			if (params->freq + 10 != params->center_freq1 &&
+			    params->freq - 30 != params->center_freq1)
+				return -1;
+			break;
+		default:
+			return -1;
+		}
+
+		if (params->center_freq2 && punct_bitmap)
+			return -1;
+
+		/* Adjacent and overlapped are not allowed for 80+80 */
+		if (params->center_freq2 &&
+		    params->center_freq1 - params->center_freq2 <= 80 &&
+		    params->center_freq2 - params->center_freq1 <= 80)
+			return 1;
+		break;
+	case 160:
+		if (!params->center_freq1 || params->center_freq2 ||
+		    !params->sec_channel_offset)
+			return -1;
+
+		switch (params->sec_channel_offset) {
+		case 1:
+			if (params->freq + 70 != params->center_freq1 &&
+			    params->freq + 30 != params->center_freq1 &&
+			    params->freq - 10 != params->center_freq1 &&
+			    params->freq - 50 != params->center_freq1)
+				return -1;
+			break;
+		case -1:
+			if (params->freq + 50 != params->center_freq1 &&
+			    params->freq + 10 != params->center_freq1 &&
+			    params->freq - 30 != params->center_freq1 &&
+			    params->freq - 70 != params->center_freq1)
+				return -1;
+			break;
+		default:
+			return -1;
+		}
+		break;
+	case 320:
+		if (!params->center_freq1 || params->center_freq2 ||
+		    !params->sec_channel_offset)
+			return -1;
+
+		switch (params->sec_channel_offset) {
+		case 1:
+			if (params->freq + 150 != params->center_freq1 &&
+			    params->freq + 110 != params->center_freq1 &&
+			    params->freq + 70 != params->center_freq1 &&
+			    params->freq + 30 != params->center_freq1 &&
+			    params->freq - 10 != params->center_freq1 &&
+			    params->freq - 50 != params->center_freq1 &&
+			    params->freq - 90 != params->center_freq1 &&
+			    params->freq - 130 != params->center_freq1)
+				return -1;
+			break;
+		case -1:
+			if (params->freq + 130 != params->center_freq1 &&
+			    params->freq + 90 != params->center_freq1 &&
+			    params->freq + 50 != params->center_freq1 &&
+			    params->freq + 10 != params->center_freq1 &&
+			    params->freq - 30 != params->center_freq1 &&
+			    params->freq - 70 != params->center_freq1 &&
+			    params->freq - 110 != params->center_freq1 &&
+			    params->freq - 150 != params->center_freq1)
+				return -1;
+			break;
+		}
+		break;
+	default:
+		return -1;
+	}
+
+	if (!punct_bitmap)
+		return 0;
+
+	if (!params->eht_enabled) {
+		wpa_printf(MSG_ERROR,
+			   "Preamble puncturing supported only in EHT");
+		return -1;
+	}
+
+	if (params->freq >= 2412 && params->freq <= 2484) {
+		wpa_printf(MSG_ERROR,
+			   "Preamble puncturing is not supported in 2.4 GHz");
+		return -1;
+	}
+
+	start_freq = params->center_freq1 - (params->bandwidth / 2);
+	if (!is_punct_bitmap_valid(params->bandwidth,
+				   (params->freq - start_freq) / 20,
+				   punct_bitmap)) {
+		wpa_printf(MSG_ERROR, "Invalid preamble puncturing bitmap");
+		return -1;
+	}
+
+	return 0;
+}
+#endif /* NEED_AP_MLME */
+
+
 static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 					  char *pos)
 {
@@ -2831,6 +3051,7 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 	unsigned int i;
 	int bandwidth;
 	u8 chan;
+	u8 is_s1g_freq = 0;
 	unsigned int num_err = 0;
 	int err = 0;
 
@@ -2856,6 +3077,44 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 	if (iface->num_bss && iface->bss[0]->conf->mld_ap)
 		settings.link_id = iface->bss[0]->mld_link_id;
 #endif /* CONFIG_IEEE80211BE */
+
+	/* Check if input frequency is s1g_frequency.
+	 * This check is necessary for interoperability with
+	 * ht frequencies as input. If the input is S1G frequency
+	 * then we do S1G to ht frequency conversions later
+	 */
+	if (settings.freq_params.center_freq1 >  MIN_S1G_FREQ_KHZ &&
+		settings.freq_params.center_freq1 < MAX_S1G_FREQ_KHZ &&
+		settings.freq_params.freq >  MIN_S1G_FREQ_KHZ &&
+		settings.freq_params.freq < MAX_S1G_FREQ_KHZ)
+	{
+		is_s1g_freq = 1;
+	}
+#ifdef CONFIG_IEEE80211AH
+	if (is_s1g_freq)
+	{
+		ret = morse_s1g_validate_csa_params(iface, &settings);
+		if (ret)
+			return ret;
+	}
+#endif /* CONFIG_IEEE80211AH */
+
+	if (iface->num_hw_features > 1 &&
+	    !hostapd_ctrl_is_freq_in_cmode(iface->current_mode,
+					   iface->current_hw_info,
+					   settings.freq_params.freq)) {
+		wpa_printf(MSG_INFO,
+			   "chanswitch: Invalid frequency settings provided for multi band phy");
+		return -1;
+	}
+
+	ret = hostapd_ctrl_check_freq_params(&settings.freq_params,
+					     settings.freq_params.punct_bitmap);
+	if (ret) {
+		wpa_printf(MSG_INFO,
+			   "chanswitch: invalid frequency settings provided");
+		return ret;
+	}
 
 	switch (settings.freq_params.bandwidth) {
 	case 40:
@@ -2927,6 +3186,24 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 		/* Save CHAN_SWITCH VHT, HE, and EHT config */
 		hostapd_chan_switch_config(iface->bss[i],
 					   &settings.freq_params);
+
+#ifdef CONFIG_IEEE80211AH
+		/* Enable VHT caps based on the new channel width and S1G config */
+		if (settings.freq_params.bandwidth > 80) {
+			iface->conf->vht_capab |= VHT_CAP_SUPP_CHAN_WIDTH_160MHZ;
+			if (iface->conf->s1g_capab & S1G_CAP0_SGI_8MHZ)
+				iface->conf->vht_capab |= VHT_CAP_SHORT_GI_160;
+		}
+		if (is_s1g_freq)
+			morse_set_ecsa_params(iface->conf->bss[i]->iface,
+					settings.s1g_freq_params.s1g_global_op_class,
+					settings.s1g_freq_params.s1g_prim_bw,
+					settings.s1g_freq_params.s1g_oper_bw,
+					settings.s1g_freq_params.s1g_oper_freq,
+					settings.s1g_freq_params.s1g_prim_channel_index_1MHz,
+					settings.s1g_freq_params.s1g_prim_ch_global_op_class,
+					iface->conf->s1g_capab);
+#endif /* CONFIG_IEEE80211AH */
 
 		err = hostapd_switch_channel(iface->bss[i], &settings);
 		if (err) {
@@ -4523,7 +4800,7 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		if (hostapd_ctrl_iface_reload_bss(hapd))
 			reply_len = -1;
 	} else if (os_strcmp(buf, "RELOAD_CONFIG") == 0) {
-		if (hostapd_reload_config(hapd->iface))
+		if (hostapd_reload_config(hapd->iface, 1))
 			reply_len = -1;
 	} else if (os_strcmp(buf, "RELOAD") == 0) {
 		if (hostapd_ctrl_iface_reload(hapd->iface))
