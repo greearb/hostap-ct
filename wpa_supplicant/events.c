@@ -1212,7 +1212,7 @@ int disabled_freq(struct wpa_supplicant *wpa_s, int freq)
 static bool wpa_scan_res_ok(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 			    const u8 *match_ssid, size_t match_ssid_len,
 			    struct wpa_bss *bss, int bssid_ignore_count,
-			    bool debug_print);
+			    bool debug_print, bool link);
 
 
 #ifdef CONFIG_SAE_PK
@@ -1242,7 +1242,7 @@ static bool sae_pk_acceptable_bss_with_pk(struct wpa_supplicant *wpa_s,
 
 		count = wpa_bssid_ignore_is_listed(wpa_s, bss->bssid);
 		if (wpa_scan_res_ok(wpa_s, ssid, match_ssid, match_ssid_len,
-				    bss, count, 0))
+				    bss, count, false, false))
 			return true;
 	}
 
@@ -1254,7 +1254,7 @@ static bool sae_pk_acceptable_bss_with_pk(struct wpa_supplicant *wpa_s,
 static bool wpa_scan_res_ok(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 			    const u8 *match_ssid, size_t match_ssid_len,
 			    struct wpa_bss *bss, int bssid_ignore_count,
-			    bool debug_print)
+			    bool debug_print, bool link)
 {
 	int res;
 	bool wpa, check_ssid = false;
@@ -1329,7 +1329,7 @@ static bool wpa_scan_res_ok(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 		return false;
 	}
 
-	if (ssid->bssid_set &&
+	if (!link && ssid->bssid_set &&
 	    !ether_addr_equal(bss->bssid, ssid->bssid)) {
 		if (debug_print)
 			wpa_dbg(wpa_s, MSG_DEBUG, "   skip - BSSID mismatch");
@@ -1596,7 +1596,7 @@ skip_assoc_disallow:
 		return false;
 	}
 
-	if (!wpas_valid_ml_bss(wpa_s, bss)) {
+	if (!link && !wpas_valid_ml_bss(wpa_s, bss)) {
 		if (debug_print)
 			wpa_dbg(wpa_s, MSG_DEBUG,
 				"   skip - ML BSS going to be removed");
@@ -1611,7 +1611,8 @@ skip_assoc_disallow:
 struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 				     int i, struct wpa_bss *bss,
 				     struct wpa_ssid *group,
-				     int only_first_ssid, int debug_print)
+				     int only_first_ssid, int debug_print,
+				     bool link)
 {
 	u8 wpa_ie_len, rsn_ie_len;
 	const u8 *ie;
@@ -1700,7 +1701,7 @@ struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 
 	for (ssid = group; ssid; ssid = only_first_ssid ? NULL : ssid->pnext) {
 		if (wpa_scan_res_ok(wpa_s, ssid, match_ssid, match_ssid_len,
-				    bss, bssid_ignore_count, debug_print))
+				    bss, bssid_ignore_count, debug_print, link))
 			return ssid;
 	}
 
@@ -1726,7 +1727,7 @@ wpa_supplicant_select_bss(struct wpa_supplicant *wpa_s,
 			struct wpa_bss *bss = wpa_s->last_scan_res[i];
 
 			ssid = wpa_scan_res_match(wpa_s, i, bss, group,
-						  only_first_ssid, 0);
+						  only_first_ssid, 0, false);
 			if (ssid != wpa_s->current_ssid)
 				continue;
 			wpa_dbg(wpa_s, MSG_DEBUG, "%u: " MACSTR
@@ -1748,7 +1749,7 @@ wpa_supplicant_select_bss(struct wpa_supplicant *wpa_s,
 
 		wpa_s->owe_transition_select = 1;
 		*selected_ssid = wpa_scan_res_match(wpa_s, i, bss, group,
-						    only_first_ssid, 1);
+						    only_first_ssid, 1, false);
 		wpa_s->owe_transition_select = 0;
 		if (!*selected_ssid)
 			continue;
