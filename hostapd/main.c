@@ -1,6 +1,7 @@
 /*
  * hostapd / main()
  * Copyright (c) 2002-2022, Jouni Malinen <j@w1.fi>
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -456,7 +457,7 @@ static void handle_term(int sig, void *signal_ctx)
 
 static int handle_reload_iface(struct hostapd_iface *iface, void *ctx)
 {
-	if (hostapd_reload_config(iface) < 0) {
+	if (hostapd_reload_config(iface, 0) < 0) {
 		wpa_printf(MSG_WARNING, "Failed to read new configuration "
 			   "file - continuing with old.");
 	}

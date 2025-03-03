@@ -1,6 +1,7 @@
 /*
  * WPA Supplicant - command line interface for wpa_supplicant daemon
  * Copyright (c) 2004-2022, Jouni Malinen <j@w1.fi>
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -1541,6 +1542,16 @@ static const char *network_fields[] = {
 	"ft_over_ds",
 #endif /* CONFIG_IEEE80211R */
 	"mac_addr", "pbss", "wps_disabled"
+#ifdef CONFIG_IEEE80211AH
+	"cac",
+	"backoffs",
+#endif
+#ifdef CONFIG_MORSE_STANDBY_MODE
+	"standby_session_dir",
+#endif
+#ifdef CONFIG_MORSE_KEEP_ALIVE_OFFLOAD
+	"vendor_keep_alive_offload",
+#endif
 };
 
 
