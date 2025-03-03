@@ -5817,7 +5817,7 @@ struct wpa_driver_ops {
 	* @link_id: MLD link id. -1 if this is an non-MLD AP
 	*/
 	int (*txpower_ctrl)(void *priv, u8 lpi_psd, u8 sku_idx, u8 lpi_bcn_enhance,
-			    u8 link_id);
+			    s8 link_id);
 };
 
 /**
