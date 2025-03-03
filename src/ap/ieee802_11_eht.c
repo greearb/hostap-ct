@@ -310,7 +310,7 @@ size_t hostapd_eid_non_inheritance_len(struct hostapd_data *hapd)
 u8 * hostapd_eid_non_inheritance(struct hostapd_data *hapd, u8 *eid)
 {
 	u8 *pos = eid, *len_pos;
-	int i;
+	size_t i;
 
 	*pos++ = WLAN_EID_EXTENSION;
 	len_pos = pos++;

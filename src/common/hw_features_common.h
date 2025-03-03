@@ -11,6 +11,7 @@
 #define HW_FEATURES_COMMON_H
 
 #include "drivers/driver.h"
+#include "../ap/hostapd.h"
 
 struct hostapd_channel_data * hw_get_channel_chan(struct hostapd_hw_modes *mode,
 						  int chan, int *freq);
@@ -25,7 +26,7 @@ int hw_get_freq(struct hostapd_hw_modes *mode, int chan);
 int hw_get_chan(enum hostapd_hw_mode mode, int freq,
 		struct hostapd_hw_modes *hw_features, int num_hw_features);
 
-int allowed_ht40_channel_pair(enum hostapd_hw_mode mode,
+int allowed_ht40_channel_pair(struct hostapd_iface *iface,
 			      struct hostapd_channel_data *p_chan,
 			      struct hostapd_channel_data *s_chan);
 void get_pri_sec_chan(struct wpa_scan_res *bss, int *pri_chan, int *sec_chan);

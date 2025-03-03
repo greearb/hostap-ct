@@ -709,12 +709,17 @@ static inline int testing_test_fail(const char *tag, bool is_alloc)
 
 static inline int testing_set_fail_pattern(bool is_alloc, char *patterns)
 {
+	(void)is_alloc;
+	(void)patterns;
 	return -1;
 }
 
 static inline int testing_get_fail_pattern(bool is_alloc, char *buf,
 					   size_t buflen)
 {
+	(void)is_alloc;
+	(void)buf;
+	(void)buflen;
 	return -1;
 }
 #endif

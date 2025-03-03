@@ -1,6 +1,7 @@
 /*
  * BSS table
  * Copyright (c) 2009-2019, Jouni Malinen <j@w1.fi>
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -11,6 +12,7 @@
 #include "utils/common.h"
 #include "utils/eloop.h"
 #include "common/ieee802_11_defs.h"
+#include "common/ieee802_11_common.h"
 #include "drivers/driver.h"
 #include "eap_peer/eap.h"
 #include "rsn_supp/wpa.h"
@@ -20,6 +22,7 @@
 #include "scan.h"
 #include "bssid_ignore.h"
 #include "bss.h"
+#include "morse.h"
 
 static void wpa_bss_set_hessid(struct wpa_bss *bss)
 {
@@ -583,6 +586,52 @@ static int wpa_bss_remove_oldest(struct wpa_supplicant *wpa_s)
 }
 
 
+#ifdef CONFIG_IEEE80211AH
+static void  wpa_bss_cac_get_threshold(struct wpa_bss *bss, struct wpa_supplicant *wpa_s,
+	struct wpa_scan_res *res)
+{
+	const u8 *cac_ie;
+	u16 control_params;
+	u16 threshold;
+	u16 prev_threshold = bss->cac_threshold;
+
+	cac_ie = wpa_scan_get_ie(res, WLAN_EID_S1G_CAC);
+	if (!cac_ie)
+		return;
+
+	cac_ie += 2;
+	control_params = WPA_GET_LE16(cac_ie);
+
+	if (control_params & (S1G_CAC_CONTROL |
+				S1G_CAC_DEFERRAL |
+				S1G_CAC_RESERVED)) {
+		wpa_printf(MSG_DEBUG,
+			"CAC ignoring unsupported control params 0x%04x for " MACSTR,
+			control_params, MAC2STR(bss->bssid));
+		return;
+	}
+
+	threshold = ((control_params & S1G_CAC_THRESHOLD_MASK)
+			>> S1G_CAC_THRESHOLD_SHIFT);
+
+	if (threshold == bss->cac_threshold)
+		return;	/* no change */
+
+	bss->cac_threshold = threshold;
+
+	wpa_printf(MSG_DEBUG, "CAC change threshold for " MACSTR " from %u to %u",
+		MAC2STR(bss->bssid), prev_threshold, bss->cac_threshold);
+}
+
+void wpa_bss_cac_set_random_value(struct wpa_bss *bss)
+{
+	bss->cac_random = (os_random() % S1G_CAC_RANDOM_MAX);
+
+	wpa_printf(MSG_DEBUG, "CAC random for " MACSTR " set to %u",
+		MAC2STR(bss->bssid), bss->cac_random);
+}
+#endif /* CONFIG_IEEE80211AH */
+
 static struct wpa_bss * wpa_bss_add(struct wpa_supplicant *wpa_s,
 				    const u8 *ssid, size_t ssid_len,
 				    struct wpa_scan_res *res,
@@ -633,11 +682,27 @@ static struct wpa_bss * wpa_bss_add(struct wpa_supplicant *wpa_s,
 		ret = os_snprintf(pos, end - pos, " MLD ADDR " MACSTR,
 				  MAC2STR(bss->mld_addr));
 	}
+#ifdef CONFIG_IEEE80211AH
+	if (wpa_s->conf->enable_halow) {
+		wpa_bss_cac_set_random_value(bss);
+		bss->cac_threshold = S1G_CAC_THRESHOLD_NOT_SET;
+		wpa_bss_cac_get_threshold(bss, wpa_s, res);
 
-	wpa_dbg(wpa_s, MSG_DEBUG, "BSS: Add new id %u BSSID " MACSTR
-		" SSID '%s' freq %d%s",
-		bss->id, MAC2STR(bss->bssid), wpa_ssid_txt(ssid, ssid_len),
-		bss->freq, extra);
+		wpa_dbg(wpa_s, MSG_DEBUG, "BSS: Add new id %u BSSID " MACSTR
+			" SSID '%s' %s %d%s",
+			bss->id, MAC2STR(bss->bssid), wpa_ssid_txt(ssid, ssid_len),
+			"chan ", morse_ht_freq_to_s1g_chan(bss->freq),
+			extra);
+	}
+	else
+#endif /* CONFIG_IEEE80211AH */
+	{
+		wpa_dbg(wpa_s, MSG_DEBUG, "BSS: Add new id %u BSSID " MACSTR
+			" SSID '%s' %s %d%s",
+			bss->id, MAC2STR(bss->bssid), wpa_ssid_txt(ssid, ssid_len),
+			"freq ", bss->freq,
+			extra);
+	}
 	wpas_notify_bss_added(wpa_s, bss->bssid, bss->id);
 	return bss;
 }
@@ -902,6 +967,10 @@ wpa_bss_update(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 		wpa_bss_parse_basic_ml_element(wpa_s, bss);
 	}
 	dl_list_add_tail(&wpa_s->bss, &bss->list);
+
+#ifdef CONFIG_IEEE80211AH
+	wpa_bss_cac_get_threshold(bss, wpa_s, res);
+#endif
 
 	notify_bss_changes(wpa_s, changes, bss);
 

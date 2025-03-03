@@ -1,6 +1,7 @@
 /*
  * WPA Supplicant / Configuration backend: Windows registry
  * Copyright (c) 2003-2019, Jouni Malinen <j@w1.fi>
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -961,6 +962,10 @@ static int wpa_config_write_network(HKEY hk, struct wpa_ssid *ssid, int id)
 #endif /* CONFIG_HS20 */
 	INT(group_rekey);
 	INT(ft_eap_pmksa_caching);
+#ifdef CONFIG_IEEE80211AH
+	INT(cac);
+	FUNC(backoffs);
+#endif
 
 #undef STR
 #undef INT

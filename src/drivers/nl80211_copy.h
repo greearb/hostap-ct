@@ -56,8 +56,8 @@ struct ct_assoc_info {
 #define CT_ASSOC_DISABLE_VHT    (1<<8)
 #define CT_ASSOC_DISABLE_HE     (1<<9)
 #define CT_ASSOC_DISABLE_EHT    (1<<10)
-	u32 flags;
-	u32 pad32[7]; /* room to grow */
+	__u32 flags;
+	__u32 pad32[7]; /* room to grow */
 } __attribute__((packed));
 
  #define CT_PREQ_DISABLE_HT (1<<0)
