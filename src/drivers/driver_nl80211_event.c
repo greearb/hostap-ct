@@ -3,6 +3,7 @@
  * Copyright (c) 2002-2017, Jouni Malinen <j@w1.fi>
  * Copyright (c) 2007, Johannes Berg <johannes@sipsolutions.net>
  * Copyright (c) 2009-2010, Atheros Communications
+ * Copyright 2022 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -20,6 +21,7 @@
 #include "common/ieee802_11_common.h"
 #include "driver_nl80211.h"
 
+#include "utils/morse.h"
 
 static void
 nl80211_control_port_frame_tx_status(struct i802_bss *bss,
@@ -2253,8 +2255,17 @@ static void send_scan_event(struct i802_bss *bss, int aborted,
 		info->freqs = freqs;
 		info->num_freqs = num_freqs;
 		msg[sizeof(msg) - 1] = '\0';
-		wpa_printf(MSG_DEBUG, "nl80211: Scan included frequencies:%s",
-			   msg);
+#ifdef CONFIG_IEEE80211AH
+		if (drv->uses_s1g) {
+			wpa_printf(MSG_DEBUG, "nl80211: Scan included (5 GHz mapped) frequencies:%s",
+				msg);
+		}
+		else
+#endif /* CONFIG_IEEE80211AH */
+		{
+			wpa_printf(MSG_DEBUG, "nl80211: Scan included frequencies:%s",
+				msg);
+		}
 	}
 
 	if (tb[NL80211_ATTR_SCAN_START_TIME_TSF] &&

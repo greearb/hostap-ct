@@ -3,6 +3,7 @@
  * Copyright 2002-2003, Instant802 Networks, Inc.
  * Copyright 2005-2006, Devicescape Software, Inc.
  * Copyright (c) 2008-2012, Jouni Malinen <j@w1.fi>
+ * Copyright 2021 Morse Micro
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -12,6 +13,7 @@
 
 #include "utils/common.h"
 #include "utils/eloop.h"
+#include "utils/morse.h"
 #include "common/ieee802_11_defs.h"
 #include "common/ieee802_11_common.h"
 #include "common/wpa_ctrl.h"
@@ -196,13 +198,29 @@ int hostapd_get_hw_features(struct hostapd_iface *iface)
 			if (feature->channels[j].flag & HOSTAPD_CHAN_DISABLED)
 				continue;
 
-			wpa_printf(MSG_MSGDUMP, "Allowed channel: mode=%d "
-				   "chan=%d freq=%d MHz max_tx_power=%d dBm%s",
-				   feature->mode,
-				   feature->channels[j].chan,
-				   feature->channels[j].freq,
-				   feature->channels[j].max_tx_power,
-				   dfs ? dfs_info(&feature->channels[j]) : "");
+#ifdef CONFIG_IEEE80211AH
+			if (hapd->iconf->ieee80211ah) {
+				wpa_printf(MSG_MSGDUMP, "Allowed channel: mode=%d chan=%d "
+					"5g_chan=%d "
+					"freq=%d MHz max_tx_power=%d dBm%s",
+					feature->mode,
+					morse_ht_chan_to_s1g_chan(feature->channels[j].chan),
+					feature->channels[j].chan,
+					feature->channels[j].freq,
+					feature->channels[j].max_tx_power,
+					dfs ? dfs_info(&feature->channels[j]) : "");
+			}
+			else
+#endif
+			{
+				wpa_printf(MSG_MSGDUMP, "Allowed channel: mode=%d chan=%d "
+					"freq=%d MHz max_tx_power=%d dBm%s",
+					feature->mode,
+					feature->channels[j].chan,
+					feature->channels[j].freq,
+					feature->channels[j].max_tx_power,
+					dfs ? dfs_info(&feature->channels[j]) : "");
+			}
 		}
 
 		/* Move any old data that should be kept */
@@ -341,10 +359,23 @@ static int ieee80211n_allowed_ht40_channel_pair(struct hostapd_iface *iface)
 				     iface->hw_features,
 				     iface->num_hw_features);
 
-	return allowed_ht40_channel_pair(iface->current_mode->mode,
-					 p_chan, s_chan);
+#ifdef CONFIG_IEEE80211AH
+	/* S1G channels with 1MHz S1G Primary need only validate HT40 primary, not secondary */
+	if (iface->conf->ieee80211ah && iface->conf->s1g_prim_chwidth == S1G_PRIM_CHWIDTH_1) {
+		if (chan_pri_allowed(p_chan))
+			return 1;
+
+		wpa_printf(MSG_ERROR, "Channel %d is not allowed as primary", p_chan->chan);
+		return 0;
+	}
+#endif
+
+	return allowed_ht40_channel_pair(iface, p_chan, s_chan);
 }
 
+
+/* SW-4065: hostapd suggests to switch pri/sec. Ignore it! */
+#define MORSE_IGNORE_PRI_SEC_SWITCH
 
 static void ieee80211n_switch_pri_sec(struct hostapd_iface *iface)
 {
@@ -386,7 +417,15 @@ static int ieee80211n_check_40mhz_5g(struct hostapd_iface *iface,
 			wpa_printf(MSG_DEBUG,
 				   "Cannot switch PRI/SEC channels due to local constraint");
 		} else {
-			ieee80211n_switch_pri_sec(iface);
+#ifdef CONFIG_IEEE80211AH
+			if (iface->conf->ieee80211ah) {
+				wpa_printf(MSG_DEBUG, "Switch PRI/SEC channels ignored");
+			}
+			else
+#endif
+			{
+				ieee80211n_switch_pri_sec(iface);
+			}
 		}
 	}
 
@@ -870,6 +909,10 @@ int hostapd_check_ht_capab(struct hostapd_iface *iface)
 	    !ieee80211ac_supported_vht_capab(iface))
 		return -1;
 #endif /* CONFIG_IEEE80211AC */
+#ifdef CONFIG_IEEE80211AH
+	if (iface->conf->ieee80211ah)
+		iface->conf->no_pri_sec_switch = 1;
+#endif /* CONFIG_IEEE80211AH */
 	if (!iface->conf->disable_40mhz_scan) {
 		ret = ieee80211n_check_40mhz(iface);
 		if (ret)
@@ -979,10 +1022,11 @@ static int hostapd_is_usable_chan(struct hostapd_iface *iface,
 		return 1;
 
 	wpa_printf(MSG_INFO,
-		   "Frequency %d (%s) not allowed for AP mode, flags: 0x%x%s%s",
+		   "Frequency %d (%s) not allowed for AP mode, flags: 0x%x%s%s%s",
 		   frequency, primary ? "primary" : "secondary",
 		   chan->flag,
 		   chan->flag & HOSTAPD_CHAN_NO_IR ? " NO-IR" : "",
+		   chan->flag & HOSTAPD_CHAN_DISABLED ? " DISABLED" : "",
 		   chan->flag & HOSTAPD_CHAN_RADAR ? " RADAR" : "");
 
 	if (is_6ghz_freq(chan->freq) && (chan->flag & HOSTAPD_CHAN_NO_IR))
@@ -1257,7 +1301,7 @@ int hostapd_determine_mode(struct hostapd_iface *iface)
 static enum hostapd_chan_status
 hostapd_check_chans(struct hostapd_iface *iface)
 {
-	int i;
+	size_t i;
 
 	if (iface->freq) {
 		int err;
@@ -1331,9 +1375,23 @@ int hostapd_acs_completed(struct hostapd_iface *iface, int err)
 	switch (hostapd_check_chans(iface)) {
 	case HOSTAPD_CHAN_VALID:
 		iface->is_no_ir = false;
+#ifdef CONFIG_IEEE80211AH
+	if (iface->conf->ieee80211ah) {
 		wpa_msg(iface->bss[0]->msg_ctx, MSG_INFO,
 			ACS_EVENT_COMPLETED "freq=%d channel=%d",
-			iface->freq, iface->conf->channel);
+			morse_s1g_op_class_ht_chan_to_s1g_freq(iface->conf->s1g_op_class,
+				morse_ht_chan_to_ht_chan_center(iface->conf, iface->conf->channel)),
+			morse_ht_chan_to_s1g_chan(
+				morse_ht_chan_to_ht_chan_center(
+					iface->conf, iface->conf->channel)));
+      }
+      else
+#endif
+	   {
+			wpa_msg(iface->bss[0]->msg_ctx, MSG_INFO,
+				ACS_EVENT_COMPLETED "freq=%d channel=%d",
+				iface->freq, iface->conf->channel);
+		}
 		break;
 	case HOSTAPD_CHAN_ACS:
 		wpa_printf(MSG_ERROR, "ACS error - reported complete, but no result available");

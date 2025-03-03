@@ -3234,7 +3234,7 @@ u32 wpa_akm_to_suite(int akm)
 static void wpa_fixup_wpa_ie_rsn(u8 *assoc_ie, const u8 *wpa_msg_ie,
 				 size_t rsn_ie_len)
 {
-	int pos, count;
+	size_t pos, count;
 
 	pos = sizeof(struct rsn_ie_hdr) + RSN_SELECTOR_LEN;
 	if (rsn_ie_len < pos + 2)

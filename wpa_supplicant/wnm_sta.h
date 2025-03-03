@@ -48,6 +48,7 @@ struct neighbor_report {
 	unsigned int bss_term_present:1;
 #ifdef CONFIG_MBO
 	unsigned int drv_mbo_reject:1;
+	unsigned int is_first:1;
 #endif /* CONFIG_MBO */
 	struct measurement_pilot *meas_pilot;
 	struct multiple_bssid *mul_bssid;

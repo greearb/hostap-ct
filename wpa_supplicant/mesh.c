@@ -575,6 +575,39 @@ static int wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
+#ifdef CONFIG_IEEE80211AH
+	if (wpa_s->conf->enable_halow) {
+		/* MBCA configuration should be set before mesh config cmd as mesh interface is started
+		 * immediately after sending mesh config command.
+		 */
+		if (ssid->mbca_config && !(ssid->mbca_config & MESH_MBCA_CFG_TBTT_SEL_ENABLE)) {
+			wpa_printf(MSG_ERROR,
+				"Invalid MBCA configuration 0x%02x - enabling TBTT selection\n",
+				ssid->mbca_config);
+			ssid->mbca_config |= MESH_MBCA_CFG_TBTT_SEL_ENABLE;
+		}
+
+		/* Verify min beacon gap is less than beacon interval */
+		if (ssid->mbca_min_beacon_gap_ms >= ssid->beacon_int) {
+			wpa_printf(MSG_ERROR, "Min beacon gap %u must be less than beacon interval %u\n",
+				ssid->mbca_min_beacon_gap_ms, ssid->beacon_int);
+			return -1;
+		}
+
+		morse_mbca_conf(wpa_s->ifname, ssid->mbca_config, ssid->mbca_min_beacon_gap_ms,
+			ssid->mbca_tbtt_adj_interval_sec, ssid->dot11MeshBeaconTimingReportInterval,
+			ssid->mbss_start_scan_duration_ms);
+
+		/* configure dynamic peering */
+		morse_set_mesh_dynamic_peering(wpa_s->ifname, ssid->mesh_dynamic_peering,
+			ssid->mesh_rssi_margin, ssid->mesh_blacklist_timeout);
+
+		/* Start the Mesh Interface */
+		morse_set_mesh_config(wpa_s->ifname, ssid->ssid, ssid->ssid_len,
+			ssid->mesh_beaconless_mode, wpa_s->conf->max_peer_links);
+	}
+#endif
+
 	return 0;
 out_free:
 	wpa_supplicant_mesh_deinit(wpa_s, true);
@@ -617,10 +650,17 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 			     struct wpa_ssid *ssid)
 {
 	struct wpa_driver_mesh_join_params *params = os_zalloc(sizeof(*params));
+	struct hostapd_config *conf = NULL;
 	int ret = 0;
+	int channel_or_frequency = ssid->frequency;
 
-	if (!ssid || !ssid->ssid || !ssid->ssid_len || !ssid->frequency ||
-	    !params) {
+#ifdef CONFIG_IEEE80211AH
+	if (wpa_s->conf->enable_halow) {
+		conf = hostapd_config_defaults();
+		channel_or_frequency = ssid->channel;
+	}
+#endif
+	if (!ssid || !ssid->ssid || !ssid->ssid_len || !channel_or_frequency || !params) {
 		ret = -ENOENT;
 		os_free(params);
 		goto out;
@@ -634,7 +674,24 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 
 	params->meshid = ssid->ssid;
 	params->meshid_len = ssid->ssid_len;
-	ibss_mesh_setup_freq(wpa_s, ssid, &params->freq);
+
+#ifdef CONFIG_IEEE80211AH
+	if (wpa_s->conf->enable_halow) {
+		if (conf) {
+			morse_ibss_mesh_setup_freq(wpa_s, ssid, &params->freq, conf);
+			hostapd_config_free(conf);
+		} else {
+			ret = -1;
+			goto out;
+		}
+	}
+	else
+#else
+	{
+		ibss_mesh_setup_freq(wpa_s, ssid, &params->freq);
+	}
+#endif /* CONFIG_IEEE80211AH */
+
 	wpa_s->mesh_ht_enabled = !!params->freq.ht_enabled;
 	wpa_s->mesh_vht_enabled = !!params->freq.vht_enabled;
 	wpa_s->mesh_he_enabled = !!params->freq.he_enabled;
