@@ -54,7 +54,7 @@
  * Todo / Ideas
  * ------------
  * - implement other interference computation methods
- *   - BSS/RSSI based
+ *   - RSSI based
  *   - spectral scan based
  *   (should be possibly to hook this up with current ACS scans)
  * - add wpa_supplicant support (for P2P)
@@ -557,6 +557,9 @@ static int acs_surveys_are_sufficient(struct hostapd_iface *iface)
 
 static int acs_usable_chan(struct hostapd_channel_data *chan)
 {
+	if (chan->interference_bss_based)
+		return 1;
+
 	return !dl_list_empty(&chan->survey_list) &&
 		!(chan->flag & HOSTAPD_CHAN_DISABLED) &&
 		acs_survey_list_is_sufficient(chan);
@@ -1254,13 +1257,53 @@ static int acs_study_survey_based(struct hostapd_iface *iface)
 }
 
 
+static int acs_study_bss_based(struct hostapd_iface *iface)
+{
+	struct wpa_scan_results *scan_res;
+	int j;
+
+	wpa_printf(MSG_DEBUG, "ACS: Trying BSS-based ACS");
+
+	scan_res = hostapd_driver_get_scan_results(iface->bss[0]);
+	if (!scan_res) {
+		wpa_printf(MSG_INFO, "ACS: Scan request failed");
+		hostapd_setup_interface_complete(iface, 1);
+		return -1;
+	}
+
+	for (j = 0; j < iface->current_mode->num_channels; j++) {
+		struct hostapd_channel_data *chan;
+		unsigned int bss_on_ch = 0;
+		size_t i;
+
+		chan = &iface->current_mode->channels[j];
+		for (i = 0; i < scan_res->num; i++) {
+			struct wpa_scan_res *bss = scan_res->res[i];
+
+			if (bss->freq == chan->freq)
+				bss_on_ch++;
+		}
+
+		wpa_printf(MSG_MSGDUMP,
+			   "ACS: Interference on ch %d (%d MHz): %d",
+			   chan->chan, chan->freq, bss_on_ch);
+		chan->interference_factor = bss_on_ch;
+		chan->interference_bss_based = true;
+	}
+
+	wpa_scan_results_free(scan_res);
+	return 0;
+}
+
+
 static int acs_study_options(struct hostapd_iface *iface)
 {
 	if (acs_study_survey_based(iface) == 0)
 		return 0;
 
-	/* TODO: If no surveys are available/sufficient this is a good
-	 * place to fallback to BSS-based ACS */
+	wpa_printf(MSG_INFO, "ACS: Survey based ACS failed");
+	if (acs_study_bss_based(iface) == 0)
+		return 0;
 
 	return -1;
 }

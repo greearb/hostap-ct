@@ -159,6 +159,12 @@ struct hostapd_channel_data {
 	 * need to set this)
 	 */
 	long double interference_factor;
+
+	/**
+	 * interference_bss_based - Indicates whether the interference was
+	 * calculated from number of BSSs
+	 */
+	bool interference_bss_based;
 #endif /* CONFIG_ACS */
 
 	/**
