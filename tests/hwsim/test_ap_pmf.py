@@ -1626,6 +1626,8 @@ def run_ap_pmf_beacon_protection_unicast(dev, apdev):
     h += "2d1a0c001bffff000000000000000000000100000000000000000000"
     h += "3d1601000000000000000000000000000000000000000000"
     h += "7f0b0400000200000040000010"
+    h += "2503000b01" # CSA
+    h += "3c0400510b01" # ECSA
     h += "dd180050f2020101010003a4000027a4000042435e0062322f00"
 
     frame = binascii.unhexlify(h)
@@ -1633,19 +1635,23 @@ def run_ap_pmf_beacon_protection_unicast(dev, apdev):
     frame2 = binascii.unhexlify(h)
 
     sock.send(radiotap + frame)
-    ev = dev[0].wait_event(["CTRL-EVENT-UNPROT-BEACON"], timeout=5)
-    if ev is None:
-        raise Exception("Unprotected beacon was not reported")
-    if hapd.own_addr() not in ev:
-        raise Exception("Unexpected BSSID in unproted beacon indication")
+    ev = dev[0].wait_event(["CTRL-EVENT-UNPROT-BEACON",
+                            "CTRL-EVENT-STARTED-CHANNEL-SWITCH"], timeout=5)
+    if ev:
+        if "CTRL-EVENT-STARTED-CHANNEL-SWITCH" in ev:
+            raise Exception("Unexpected channel switch reported")
+        if hapd.own_addr() not in ev:
+            raise Exception("Unexpected BSSID in unprotected beacon indication")
 
     time.sleep(10.1)
     sock.send(radiotap + frame2)
-    ev = dev[0].wait_event(["CTRL-EVENT-UNPROT-BEACON"], timeout=5)
-    if ev is None:
-        raise Exception("Unprotected beacon was not reported")
-    if hapd.own_addr() not in ev:
-        raise Exception("Unexpected BSSID in unproted beacon indication")
+    ev = dev[0].wait_event(["CTRL-EVENT-UNPROT-BEACON",
+                            "CTRL-EVENT-STARTED-CHANNEL-SWITCH"], timeout=5)
+    if ev:
+        if "CTRL-EVENT-STARTED-CHANNEL-SWITCH" in ev:
+            raise Exception("Unexpected channel switch reported")
+        if hapd.own_addr() not in ev:
+            raise Exception("Unexpected BSSID in unprotected beacon indication")
 
 def test_ap_pmf_sta_global_require(dev, apdev):
     """WPA2-PSK AP with PMF optional and wpa_supplicant pmf=2"""
