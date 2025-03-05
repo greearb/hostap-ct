@@ -11538,13 +11538,10 @@ int wpas_p2p_validate_dira(struct wpa_supplicant *wpa_s, const u8 *addr,
 	if (cipher != DIRA_CIPHER_VERSION_128) {
 		wpa_printf(MSG_INFO, "P2P2: Unsupported DIRA cipher version %d",
 			   cipher);
-		return -1;
+		return 0;
 	}
 
-	if (wpas_validate_dira(wpa_s, addr, nonce, tag) > 0)
-		return 0;
-
-	return -1;
+	return wpas_validate_dira(wpa_s, addr, nonce, tag);
 }
 
 

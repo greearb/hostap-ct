@@ -6624,12 +6624,15 @@ static int p2p_get_passphrase(struct wpa_supplicant *wpa_s, char *buf,
 }
 
 
-static int p2p_ctrl_validate_dira(struct wpa_supplicant *wpa_s, char *cmd)
+static int p2p_ctrl_validate_dira(struct wpa_supplicant *wpa_s, char *cmd,
+				  char *buf, size_t buflen)
 {
 	char *pos, *pos2;
 	u8 addr[ETH_ALEN];
 	u8 nonce[DEVICE_IDENTITY_NONCE_LEN];
 	u8 tag[DEVICE_IDENTITY_TAG_LEN];
+	int id;
+	int res;
 
 	if (hwaddr_aton(cmd, addr))
 		return -1;
@@ -6656,7 +6659,14 @@ static int p2p_ctrl_validate_dira(struct wpa_supplicant *wpa_s, char *cmd)
 		return -1;
 	}
 
-	return wpas_p2p_validate_dira(wpa_s, addr, 0, nonce, tag);
+	id = wpas_p2p_validate_dira(wpa_s, addr, 0, nonce, tag);
+	if (id <= 0)
+		return -1;
+
+	res = os_snprintf(buf, buflen, "%u", id);
+	if (os_snprintf_error(buflen, res))
+		return -1;
+	return res;
 }
 
 
@@ -13047,8 +13057,8 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strcmp(buf, "P2P_GET_DIRA") == 0) {
 		reply_len = wpas_p2p_get_dira(wpa_s, reply, reply_size);
 	} else if (os_strncmp(buf, "P2P_VALIDATE_DIRA ", 18) == 0) {
-		if (p2p_ctrl_validate_dira(wpa_s, buf + 18) < 0)
-			reply_len = -1;
+		reply_len = p2p_ctrl_validate_dira(wpa_s, buf + 18,
+						   reply, reply_size);
 #ifdef CONFIG_PASN
 #ifdef CONFIG_TESTING_OPTIONS
 	} else if (os_strcmp(buf, "P2P_GET_PASNPTK") == 0) {
