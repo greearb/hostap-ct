@@ -4834,7 +4834,7 @@ static int nl80211_put_sae_pwe(struct nl_msg *msg, enum sae_pwe pwe)
 {
 	u8 sae_pwe;
 
-	wpa_printf(MSG_DEBUG, "nl802111: sae_pwe=%d", pwe);
+	wpa_printf(MSG_DEBUG, "nl80211: sae_pwe=%d", pwe);
 	if (pwe == SAE_PWE_HUNT_AND_PECK)
 		sae_pwe = NL80211_SAE_PWE_HUNT_AND_PECK;
 	else if (pwe == SAE_PWE_HASH_TO_ELEMENT)
