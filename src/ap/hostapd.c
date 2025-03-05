@@ -3476,21 +3476,24 @@ static void hostapd_cleanup_driver(const struct wpa_driver_ops *driver,
 		return;
 
 #ifdef CONFIG_IEEE80211BE
-	/* In case of non-ML operation, de-init. But if ML operation exist,
-	 * even if that's the last BSS in the interface, the driver (drv) could
-	 * be in use for a different AP MLD. Hence, need to check if drv is
-	 * still being used by some other BSS before de-initiallizing. */
-	if (!iface->bss[0]->conf->mld_ap) {
-		driver->hapd_deinit(drv_priv);
-	} else if (driver->is_drv_shared &&
-		   !driver->is_drv_shared(drv_priv,
-					  iface->bss[0]->mld_link_id)) {
+	if (!driver->is_drv_shared ||
+	    !driver->is_drv_shared(drv_priv, iface->bss[0]->mld_link_id)) {
 		driver->hapd_deinit(drv_priv);
 		hostapd_mld_interface_freed(iface->bss[0]);
-	} else if (hostapd_if_link_remove(iface->bss[0],
-					  WPA_IF_AP_BSS,
-					  iface->bss[0]->conf->iface,
-					  iface->bss[0]->mld_link_id)) {
+		iface->bss[0]->drv_priv = NULL;
+		return;
+	}
+
+	if (iface->bss[0]->conf->mld_ap) {
+		if (hostapd_if_link_remove(iface->bss[0],
+					WPA_IF_AP_BSS,
+					iface->bss[0]->conf->iface,
+					iface->bss[0]->mld_link_id))
+			wpa_printf(MSG_WARNING,
+				   "Failed to remove link BSS interface %s",
+				   iface->bss[0]->conf->iface);
+	} else if (hostapd_if_remove(iface->bss[0], WPA_IF_AP_BSS,
+				     iface->bss[0]->conf->iface)) {
 		wpa_printf(MSG_WARNING, "Failed to remove BSS interface %s",
 			   iface->bss[0]->conf->iface);
 	}
