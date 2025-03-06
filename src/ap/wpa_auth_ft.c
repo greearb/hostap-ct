@@ -54,6 +54,14 @@ struct tlv_list {
 	const u8 *data;
 };
 
+static const u8 * wpa_ft_rrb_get_aa(const struct wpa_authenticator *wpa_auth)
+{
+#ifdef CONFIG_IEEE80211BE
+	if (wpa_auth->is_ml)
+		return wpa_auth->mld_addr;
+#endif /* CONFIG_IEEE80211BE */
+	return wpa_auth->addr;
+}
 
 /**
  * wpa_ft_rrb_decrypt - Decrypt FT RRB message
@@ -1011,7 +1019,7 @@ wpa_ft_rrb_seq_req(struct wpa_authenticator *wpa_auth,
 
 	wpa_printf(MSG_DEBUG, "FT: Send sequence number request from " MACSTR
 		   " to " MACSTR,
-		   MAC2STR(wpa_auth->addr), MAC2STR(src_addr));
+		   MAC2STR(wpa_ft_rrb_get_aa(wpa_auth)), MAC2STR(src_addr));
 	item = os_zalloc(sizeof(*item));
 	if (!item)
 		goto err;
@@ -1047,7 +1055,7 @@ wpa_ft_rrb_seq_req(struct wpa_authenticator *wpa_auth,
 	seq_req_auth[0].data = item->nonce;
 
 	if (wpa_ft_rrb_build(key, key_len, NULL, NULL, seq_req_auth, NULL,
-			     wpa_auth->addr, FT_PACKET_R0KH_R1KH_SEQ_REQ,
+			     wpa_ft_rrb_get_aa(wpa_auth), FT_PACKET_R0KH_R1KH_SEQ_REQ,
 			     &packet, &packet_len) < 0) {
 		item = NULL; /* some other seq resp might still accept this */
 		goto err;
@@ -2047,7 +2055,7 @@ static int wpa_ft_pull_pmk_r1(struct wpa_state_machine *sm,
 			    sm->r0kh_id, sm->r0kh_id_len);
 		return -1;
 	}
-	if (ether_addr_equal(r0kh->addr, sm->wpa_auth->addr)) {
+	if (ether_addr_equal(r0kh->addr, wpa_auth_get_aa(sm))) {
 		wpa_printf(MSG_DEBUG,
 			   "FT: R0KH-ID points to self - no matching key available");
 		return -1;
@@ -2066,7 +2074,7 @@ static int wpa_ft_pull_pmk_r1(struct wpa_state_machine *sm,
 
 	wpa_printf(MSG_DEBUG, "FT: Send PMK-R1 pull request from " MACSTR
 		   " to remote R0KH address " MACSTR,
-		   MAC2STR(sm->wpa_auth->addr), MAC2STR(r0kh->addr));
+		   wpa_auth_get_aa(sm), MAC2STR(r0kh->addr));
 
 	if (first &&
 	    random_get_bytes(sm->ft_pending_pull_nonce, FT_RRB_NONCE_LEN) < 0) {
@@ -2081,7 +2089,7 @@ static int wpa_ft_pull_pmk_r1(struct wpa_state_machine *sm,
 	}
 
 	if (wpa_ft_rrb_build(key, key_len, req_enc, NULL, req_auth, NULL,
-			     sm->wpa_auth->addr, FT_PACKET_R0KH_R1KH_PULL,
+			     wpa_auth_get_aa(sm), FT_PACKET_R0KH_R1KH_PULL,
 			     &packet, &packet_len) < 0)
 		return -1;
 
@@ -4374,7 +4382,7 @@ static int wpa_ft_rrb_rx_pull(struct wpa_authenticator *wpa_auth,
 
 	wpa_printf(MSG_DEBUG, "FT: Send PMK-R1 pull response from " MACSTR
 		   " to " MACSTR,
-		   MAC2STR(wpa_auth->addr), MAC2STR(src_addr));
+		   MAC2STR(wpa_ft_rrb_get_aa(wpa_auth)), MAC2STR(src_addr));
 
 	resp[0].type = FT_RRB_S1KH_ID;
 	resp[0].len = f_s1kh_id_len;
@@ -4402,12 +4410,12 @@ static int wpa_ft_rrb_rx_pull(struct wpa_authenticator *wpa_auth,
 	if (wpa_ft_fetch_pmk_r0(wpa_auth, f_s1kh_id, f_pmk_r0_name, &r0) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: No matching PMK-R0-Name found");
 		ret = wpa_ft_rrb_build(key, key_len, resp, NULL, resp_auth,
-				       NULL, wpa_auth->addr,
+				       NULL, wpa_ft_rrb_get_aa(wpa_auth),
 				       FT_PACKET_R0KH_R1KH_RESP,
 				       &packet, &packet_len);
 	} else {
 		ret = wpa_ft_rrb_build_r0(key, key_len, resp, r0, f_r1kh_id,
-					  f_s1kh_id, resp_auth, wpa_auth->addr,
+					  f_s1kh_id, resp_auth, wpa_ft_rrb_get_aa(wpa_auth),
 					  FT_PACKET_R0KH_R1KH_RESP,
 					  &packet, &packet_len);
 	}
@@ -4890,7 +4898,7 @@ static int wpa_ft_rrb_rx_seq_req(struct wpa_authenticator *wpa_auth,
 
 	wpa_printf(MSG_DEBUG, "FT: Send sequence number response from " MACSTR
 		   " to " MACSTR,
-		   MAC2STR(wpa_auth->addr), MAC2STR(src_addr));
+		   MAC2STR(wpa_ft_rrb_get_aa(wpa_auth)), MAC2STR(src_addr));
 
 	seq_resp_auth[0].type = FT_RRB_NONCE;
 	seq_resp_auth[0].len = f_nonce_len;
@@ -4909,7 +4917,7 @@ static int wpa_ft_rrb_rx_seq_req(struct wpa_authenticator *wpa_auth,
 	seq_resp_auth[4].data = NULL;
 
 	if (wpa_ft_rrb_build(key, key_len, NULL, NULL, seq_resp_auth, NULL,
-			     wpa_auth->addr, FT_PACKET_R0KH_R1KH_SEQ_RESP,
+			     wpa_ft_rrb_get_aa(wpa_auth), FT_PACKET_R0KH_R1KH_SEQ_RESP,
 			     &packet, &packet_len) < 0)
 		goto out;
 
@@ -5241,10 +5249,10 @@ static int wpa_ft_generate_pmk_r1(struct wpa_authenticator *wpa_auth,
 
 	wpa_printf(MSG_DEBUG, "FT: Send PMK-R1 push from " MACSTR
 		   " to remote R0KH address " MACSTR,
-		   MAC2STR(wpa_auth->addr), MAC2STR(r1kh->addr));
+		   MAC2STR(wpa_ft_rrb_get_aa(wpa_auth)), MAC2STR(r1kh->addr));
 
 	if (wpa_ft_rrb_build_r0(r1kh->key, sizeof(r1kh->key), push, pmk_r0,
-				r1kh->id, s1kh_id, push_auth, wpa_auth->addr,
+				r1kh->id, s1kh_id, push_auth, wpa_ft_rrb_get_aa(wpa_auth),
 				FT_PACKET_R0KH_R1KH_PUSH,
 				&packet, &packet_len) < 0)
 		return -1;
