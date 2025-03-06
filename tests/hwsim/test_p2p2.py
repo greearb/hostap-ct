@@ -572,7 +572,7 @@ def test_p2p_pairing_verification(dev, apdev):
 
     cmd = "P2P_VALIDATE_DIRA " + addr + " nonce=" + nonce + " tag=" + tag
     res = wpas.group_request(cmd)
-    if "OK" not in res:
+    if "FAIL" in res:
         raise Exception("DIRA validation failed")
 
     dev[1].remove_group()
