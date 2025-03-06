@@ -3667,22 +3667,15 @@ static u32 hostapd_get_aid_word(struct hostapd_data *hapd,
 
 	/* Do not assign an AID that is in use on any of the affiliated links
 	 * when finding an AID for a non-AP MLD. */
-	if (hapd->conf->mld_ap && sta->mld_info.mld_sta) {
+	if (hapd->conf->mld_ap) {
 		int j;
 
 		for (j = 0; j < MAX_NUM_MLD_LINKS; j++) {
 			struct hostapd_data *link_bss;
 
-			if (!sta->mld_info.links[j].valid)
-				continue;
-
 			link_bss = hostapd_mld_get_link_bss(hapd, j);
-			if (!link_bss) {
-				/* This shouldn't happen, just skip */
-				wpa_printf(MSG_ERROR,
-					   "MLD: Failed to get link BSS for AID");
+			if (!link_bss)
 				continue;
-			}
 
 			aid_word |= link_bss->sta_aid[i];
 		}
@@ -3727,7 +3720,10 @@ int hostapd_get_aid(struct hostapd_data *hapd, struct sta_info *sta)
 	}
 	if (j == 32)
 		return -1;
-	aid = i * 32 + j + (1 << hostapd_max_bssid_indicator(hapd));
+
+	/* Allocate aid starting from 65 */
+	/* Reserve 16 mbss + 3 * 16 mld affiliated links */
+	aid = i * 32 + j + 65;
 	if (aid > 2007)
 		return -1;
 
