@@ -1088,7 +1088,10 @@ static int hostapd_wpa_auth_send_oui(void *ctx, const u8 *dst, u8 oui_suffix,
 	if (!oui_ctx)
 		return -1;
 
-	return eth_p_oui_send(oui_ctx, hapd->own_addr, dst, data, data_len);
+	/* TODO handle non-mld sta roaming with mld ap */
+	return eth_p_oui_send(oui_ctx,
+			      hapd->conf->mld_ap ? hapd->mld->mld_addr : hapd->own_addr,
+			      dst, data, data_len);
 #else /* CONFIG_ETH_P_OUI */
 	return -1;
 #endif /* CONFIG_ETH_P_OUI */
