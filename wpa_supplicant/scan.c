@@ -925,14 +925,49 @@ int wpa_add_scan_freqs_list(struct wpa_supplicant *wpa_s,
 	return 0;
 }
 
+static int has_freqs(struct wpa_supplicant *wpa_s,
+		     struct wpa_driver_scan_params *params,
+		     int min_freq, int max_freq) {
+	int i = 0;
+
+	if (!params->freqs)
+		return 0;
+
+	while (params->freqs[i]) {
+		int f = params->freqs[i];
+
+		if (f >= min_freq && f <= max_freq)
+			return 1;
+		i++;
+	}
+	return 0;
+}
 
 static void wpa_setband_scan_freqs(struct wpa_supplicant *wpa_s,
 				   struct wpa_driver_scan_params *params)
 {
 	if (wpa_s->hw.modes == NULL)
 		return; /* unknown what channels the driver supports */
-	if (params->freqs)
+	if (params->freqs) {
+		if (wpa_s->conf->phy_bands) {
+			/* Deal with sub-phy bands: scan all of a band if nothing
+			 * is currently using a frequency on that particular band.
+			 */
+			if (wpa_s->conf->phy_bands & 0x1 &&
+			    !has_freqs(wpa_s, params, 0, 3000))
+				wpa_add_scan_freqs_list(wpa_s, HOSTAPD_MODE_IEEE80211G, params,
+							false, false, false);
+			if (wpa_s->conf->phy_bands & 0x2 &&
+			    !has_freqs(wpa_s, params, 3000, 5950))
+				wpa_add_scan_freqs_list(wpa_s, HOSTAPD_MODE_IEEE80211A, params,
+							false, false, false);
+			if (wpa_s->conf->phy_bands & 0x4 &&
+			    !has_freqs(wpa_s, params, 5955, 8000))
+				wpa_add_scan_freqs_list(wpa_s, HOSTAPD_MODE_IEEE80211A, params,
+							true, false, false);
+		}
 		return; /* already using a limited channel set */
+	}
 
 	if (wpa_s->setband_mask & WPA_SETBAND_5G)
 		wpa_add_scan_freqs_list(wpa_s, HOSTAPD_MODE_IEEE80211A, params,
@@ -1433,6 +1468,9 @@ ssid_list_set:
 	/* Use current associated channel? */
 	if (wpa_s->conf->scan_cur_freq && !params.freqs) {
 		unsigned int num = wpa_s->num_multichan_concurrent;
+		/* Hack for mtk7996 combined phy */
+		if (wpa_s->conf->phy_bands)
+			num = 3; /* Look for frequency in all 3 bands */
 
 		params.freqs = os_calloc(num + 1, sizeof(int));
 		if (params.freqs) {
@@ -1441,7 +1479,8 @@ ssid_list_set:
 			if (num > 0) {
 				wpa_dbg(wpa_s, MSG_DEBUG, "Scan only the "
 					"current operating channels since "
-					"scan_cur_freq is enabled");
+					"scan_cur_freq is enabled, num: %d multichan-concurrent: %d",
+					num, wpa_s->num_multichan_concurrent);
 				scan_on_channel = 1;
 			} else {
 				os_free(params.freqs);
