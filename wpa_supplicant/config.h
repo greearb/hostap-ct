@@ -1073,6 +1073,14 @@ struct wpa_config {
 	*/
 	int initial_band_pref;
 
+	/* Bitmap of phy-bands used by this station.
+	   (1<<0): 2.4Ghz
+	   (1<<1): 5Ghz
+	   (1<<2): 6Ghz
+	   0x0 means any/all (default behaviour)
+	 */
+	int phy_bands;
+
 	/**
 	 * scan_cur_freq - Whether to scan only the current channel
 	 *

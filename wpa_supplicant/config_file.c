@@ -1610,6 +1610,9 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 	if (config->initial_band_pref)
 		fprintf(f, "initial_band_pref=%d\n",
 			config->initial_band_pref);
+	if (config->phy_bands)
+		fprintf(f, "phy_bands=%d\n",
+			config->phy_bands);
 
 	if (config->scan_cur_freq != DEFAULT_SCAN_CUR_FREQ)
 		fprintf(f, "scan_cur_freq=%d\n", config->scan_cur_freq);

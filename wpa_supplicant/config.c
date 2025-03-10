@@ -5805,6 +5805,7 @@ static const struct global_parse_data global_fields[] = {
 	{ FUNC(freq_list), 0 },
 	{ FUNC(initial_freq_list), 0},
 	{ INT(initial_band_pref), 0},
+	{ INT(phy_bands), 0},
 	{ INT(scan_cur_freq), 0 },
 	{ INT(scan_res_valid_for_connect), 0},
 	{ INT(sched_scan_interval), 0 },
