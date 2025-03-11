@@ -6174,6 +6174,28 @@ hostapd_ctrl_iface_wmm(struct hostapd_data *hapd, char *cmd, char *buf,
 #endif
 }
 
+static int
+hostapd_ctrl_iface_del_mscs(struct hostapd_data *hapd, char *cmd,
+			    char *buf, size_t buflen)
+{
+	u8 addr[ETH_ALEN];
+	struct sta_info *sta;
+
+	if (hwaddr_aton(cmd, addr))
+		goto fail;
+
+	sta = ap_get_sta(hapd, addr);
+	if (!sta)
+		goto fail;
+
+	hostapd_del_mscs(hapd, addr);
+
+	return os_snprintf(buf, buflen, "OK\n");
+
+fail:
+	return os_snprintf(buf, buflen, "FAIL\n");
+}
+
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
 					      int reply_size,
@@ -6870,6 +6892,8 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		reply_len = hostapd_ctrl_iface_set_eml_resp(hapd, buf + 9, reply, reply_size);
 	} else if (os_strncmp(buf, "EPCS ", 5) == 0) {
 		reply_len = hostapd_ctrl_iface_epcs(hapd, buf + 5, reply, reply_size);
+	} else if (os_strncmp(buf, "DEL_MSCS ", 9) == 0) {
+		reply_len = hostapd_ctrl_iface_del_mscs(hapd, buf + 9, reply, reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;

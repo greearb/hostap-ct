@@ -253,6 +253,19 @@ static void hostapd_handle_mscs_req(struct hostapd_data *hapd,
 			   sta->mscs_assoc_setup_status);
 }
 
+void hostapd_del_mscs(struct hostapd_data *hapd, u8 *mac)
+{
+	struct hostapd_mscs_desc_info info;
+
+	os_memset(&info, 0, sizeof(info));
+	os_memcpy(info.peer_addr, mac, ETH_ALEN);
+	info.req_type = SCS_REQ_REMOVE;
+
+	send_mtk_mscs_nl_msg(hapd, &info);
+
+	send_mscs_response(hapd, mac, 0, WLAN_STATUS_TCLAS_PROCESSING_TERMINATED);
+}
+
 static bool hostapd_find_scs_session(struct sta_info *sta, u8 scsid,
 				     int *session_idx)
 {

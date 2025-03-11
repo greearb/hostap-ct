@@ -35,4 +35,5 @@ u16 hostapd_set_mscs(struct hostapd_data *hapd, const u8 *addr,
 		     const u8 *pos, size_t len);
 int hostapd_mtk_mscs_daemon_init(struct hapd_interfaces *ifaces);
 void hostapd_mtk_mscs_daemon_deinit(struct hapd_interfaces *ifaces);
+void hostapd_del_mscs(struct hostapd_data *hapd, u8 *mac);
 #endif
