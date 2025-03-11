@@ -5594,6 +5594,9 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 				   "nl80211: Frequency set failed: %d (%s)",
 				   ret, strerror(-ret));
 		}
+
+		/* reset ret to the original error value */
+		ret = -ENOBUFS;
 	}
 
 	if (!(msg = nl80211_bss_msg(bss, 0, cmd)) ||
