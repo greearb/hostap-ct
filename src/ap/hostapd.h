@@ -765,6 +765,7 @@ struct hostapd_iface {
 	struct hostapd_multi_hw_info *multi_hw_info;
 	unsigned int num_multi_hws;
 	struct hostapd_multi_hw_info *current_hw_info;
+	u8 radio_mask;
 };
 
 /* hostapd.c */
@@ -943,7 +944,7 @@ static inline u32 hostapd_get_radio_mask(struct hostapd_data *hapd)
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->iface->current_hw_info) {
 		if (hapd->conf->mld_ap)
-			return hapd->conf->mld_radio_mask;
+			return hapd->iface->radio_mask;
 		else
 			return 1 << hapd->iface->current_hw_info->hw_idx;
 	}

@@ -181,6 +181,9 @@ void hostapd_config_defaults_bss(struct hostapd_bss_config *bss)
 	bss->urnm_mfpr_x20 = -1;
 	bss->urnm_mfpr = -1;
 	bss->bss_termination_tsf = 0;
+#ifdef CONFIG_IEEE80211BE
+	bss->mld_allowed_links = 255;
+#endif /* CONFIG_IEEE80211BE */
 }
 
 

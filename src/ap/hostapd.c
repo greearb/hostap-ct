@@ -1364,7 +1364,8 @@ static int hostapd_start_beacon(struct hostapd_data *hapd,
 		return -1;
 
 #ifdef CONFIG_IEEE80211BE
-	if (hapd->conf->mld_ap && !hapd->mld->started) {
+	if (hapd->conf->mld_ap && (!hapd->mld->started ||
+				   hapd->conf->mld_allowed_links == 255)) {
 		struct hostapd_data *p_hapd;
 		u16 valid_links = 0;
 
@@ -1372,12 +1373,13 @@ static int hostapd_start_beacon(struct hostapd_data *hapd,
 			valid_links |= BIT(p_hapd->mld_link_id);
 
 		if (valid_links == hapd->conf->mld_allowed_links ||
+		    hapd->conf->mld_allowed_links == 255 ||
 		    !hapd->conf->mld_allowed_links) {
 			hapd->mld->started = 1;
 			ieee802_11_set_beacon(hapd);
 		}
 	}
-#endif
+#endif /* CONFIG_IEEE80211BE */
 
 	if (flush_old_stations && !conf->start_disabled &&
 	    conf->broadcast_deauth) {
