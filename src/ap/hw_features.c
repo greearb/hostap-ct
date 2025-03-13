@@ -178,12 +178,14 @@ int hostapd_get_hw_features(struct hostapd_iface *iface)
 	hostapd_free_multi_hw_info(iface->multi_hw_info);
 	iface->multi_hw_info = multi_hw_info;
 	iface->num_multi_hws = num_multi_hws;
+	iface->radio_mask = 0;
 
 	wpa_printf(MSG_DEBUG, "Multiple underlying hardwares info:");
 
 	for (k = 0; k < num_multi_hws; k++) {
 		struct hostapd_multi_hw_info *hw_info = &multi_hw_info[k];
 
+		iface->radio_mask |= BIT(hw_info->hw_idx);
 		wpa_printf(MSG_DEBUG,
 			   "  %d. hw_idx=%u, frequency range: %d-%d MHz",
 			   k + 1, hw_info->hw_idx, hw_info->start_freq,
