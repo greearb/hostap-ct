@@ -5077,12 +5077,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		conf->punct_acs_threshold = val;
 	} else if (os_strcmp(buf, "mld_ap") == 0) {
 		bss->mld_ap = !!atoi(pos);
-	} else if (os_strcmp(buf, "mld_primary") == 0) {
-		bss->mld_primary = !!atoi(pos);
 	} else if (os_strcmp(buf, "mld_allowed_links") == 0) {
 		bss->mld_allowed_links = atoi(pos);
-	} else if (os_strcmp(buf, "mld_radio_mask") == 0) {
-		bss->mld_radio_mask = atoi(pos);
 	} else if (os_strcmp(buf, "mld_addr") == 0) {
 		if (hwaddr_aton(pos, bss->mld_addr)) {
 			wpa_printf(MSG_ERROR, "Line %d: Invalid mld_addr",

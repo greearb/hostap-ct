@@ -57,6 +57,7 @@
 #define DEFAULT_MLD_CONNECT_BAND_PREF MLD_CONNECT_BAND_PREF_AUTO
 #define DEFAULT_IGNORE_AUTH_RESP 0
 #define DEFAULT_IGNORE_RRM_BEACON_REQ 0
+#define DEFAULT_MLD_ALLOWED_PHY 7
 
 #include "config_ssid.h"
 #include "wps/wps.h"
