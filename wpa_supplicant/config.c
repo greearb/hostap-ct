@@ -4838,6 +4838,7 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 
 #ifdef CONFIG_TESTING_OPTIONS
 	config->mld_connect_band_pref = DEFAULT_MLD_CONNECT_BAND_PREF;
+	config->mld_allowed_phy = DEFAULT_MLD_ALLOWED_PHY;
 #endif /* CONFIG_TESTING_OPTIONS */
 
 #ifndef CONFIG_NO_ROAMING
