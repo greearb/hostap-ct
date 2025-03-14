@@ -16270,10 +16270,14 @@ enum qca_wlan_vendor_attr_sr_stats {
  *
  * @QCA_WLAN_SR_REASON_CODE_CONCURRENCY: The SR feature is disabled/enabled due
  * to change in concurrent interfaces that are supported by the driver.
+ *
+ * @QCA_WLAN_SR_REASON_CODE_BCN_IE_CHANGE: The SR feature is disabled/enabled
+ * on non-AP STA, due to BSS SR parameter(s) update.
  */
 enum qca_wlan_sr_reason_code {
 	QCA_WLAN_SR_REASON_CODE_ROAMING = 0,
 	QCA_WLAN_SR_REASON_CODE_CONCURRENCY = 1,
+	QCA_WLAN_SR_REASON_CODE_BCN_IE_CHANGE = 2,
 };
 
 /**
