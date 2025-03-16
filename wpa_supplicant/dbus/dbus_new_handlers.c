@@ -5801,7 +5801,6 @@ dbus_bool_t wpas_dbus_getter_bss_anqp(
 	struct bss_handler_args *args = user_data;
 	struct wpa_bss *bss;
 	struct wpa_bss_anqp *anqp;
-	struct wpa_bss_anqp_elem *elem;
 
 	bss = get_bss_helper(args, error, __func__);
 	if (!bss)
@@ -5815,6 +5814,8 @@ dbus_bool_t wpas_dbus_getter_bss_anqp(
 	anqp = bss->anqp;
 	if (anqp) {
 #ifdef CONFIG_INTERWORKING
+		struct wpa_bss_anqp_elem *elem;
+
 		if (anqp->capability_list &&
 		    !wpa_dbus_dict_append_byte_array(
 			    &iter_dict, "CapabilityList",
