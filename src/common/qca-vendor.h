@@ -1346,6 +1346,13 @@ enum qca_radiotap_vendor_ids {
  *
  *	The attributes used with this command are defined in
  * 	enum qca_wlan_vendor_attr_periodic_probe_rsp_cfg.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_CLASSIFIED_FLOW_STATUS: Vendor subcommand that can
+ *	be used to notify userspace about status updates of a classified flow
+ *	learned by the driver with
+ *	%QCA_NL80211_VENDOR_SUBCMD_FLOW_CLASSIFY_RESULT.
+ *	The attributes for this event are defined in
+ *	enum qca_wlan_vendor_attr_flow_status.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1587,6 +1594,7 @@ enum qca_nl80211_vendor_subcmds {
 	/* 255 - reserved for QCA */
 	QCA_NL80211_VENDOR_SUBCMD_PRI_LINK_MIGRATE = 256,
 	QCA_NL80211_VENDOR_SUBCMD_PERIODIC_PROBE_RSP_CFG = 257,
+	QCA_NL80211_VENDOR_SUBCMD_CLASSIFIED_FLOW_STATUS = 258,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -19092,6 +19100,47 @@ enum qca_wlan_vendor_attr_periodic_probe_rsp_cfg {
 	QCA_WLAN_VENDOR_ATTR_PROBE_RESP_CFG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_PROBE_RESP_CFG_MAX =
 	QCA_WLAN_VENDOR_ATTR_PROBE_RESP_CFG_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_flow_status_update_type - Attribute values for
+ * %QCA_WLAN_VENDOR_ATTR_FLOW_STATUS_UPDATE_TYPE.
+ * @QCA_FLOW_STATUS_UPDATE_PAUSE: Flow paused.
+ * @QCA_FLOW_STATUS_UPDATE_RESUME: Flow resumed.
+ * @QCA_FLOW_STATUS_UPDATE_DELETE: Flow deleted.
+ */
+enum qca_flow_status_update_type {
+	QCA_FLOW_STATUS_UPDATE_PAUSE = 0,
+	QCA_FLOW_STATUS_UPDATE_RESUME = 1,
+	QCA_FLOW_STATUS_UPDATE_DELETE = 2,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_flow_status - Definition of attributes to
+ * specify status updates of a classified flow. This enum is used by
+ * @QCA_NL80211_VENDOR_SUBCMD_CLASSIFIED_FLOW_STATUS.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FLOW_STATUS_TUPLE: Mandatory nested attribute
+ * containing attributes defined by enum qca_wlan_vendor_attr_flow_tuple.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FLOW_STATUS_TRAFFIC_TYPE: Mandatory u8 attribute
+ * indicates the traffic type of this flow tuple. Uses the
+ * enum qca_traffic_type values.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FLOW_STATUS_UPDATE_TYPE: Mandatory u8 attribute
+ * indicates the flow status update type.
+ * Uses the enum qca_flow_status_update_type values.
+ */
+enum qca_wlan_vendor_attr_flow_status {
+	QCA_WLAN_VENDOR_ATTR_FLOW_STATUS_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_FLOW_STATUS_TUPLE = 1,
+	QCA_WLAN_VENDOR_ATTR_FLOW_STATUS_TRAFFIC_TYPE = 2,
+	QCA_WLAN_VENDOR_ATTR_FLOW_STATUS_UPDATE_TYPE = 3,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_FLOW_STATUS_LAST,
+	QCA_WLAN_VENDOR_ATTR_FLOW_STATUS_MAX =
+	QCA_WLAN_VENDOR_ATTR_FLOW_STATUS_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
