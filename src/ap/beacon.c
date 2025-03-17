@@ -403,8 +403,7 @@ static u8 * hostapd_get_wpa_ie(struct hostapd_data *hapd, u8 *pos, size_t len)
 }
 
 
-static u8 * hostapd_get_rsne_override(struct hostapd_data *hapd, u8 *pos,
-				      size_t len)
+u8 * hostapd_get_rsne_override(struct hostapd_data *hapd, u8 *pos, size_t len)
 {
 	const u8 *ie;
 
@@ -417,8 +416,7 @@ static u8 * hostapd_get_rsne_override(struct hostapd_data *hapd, u8 *pos,
 }
 
 
-static u8 * hostapd_get_rsne_override_2(struct hostapd_data *hapd, u8 *pos,
-					size_t len)
+u8 * hostapd_get_rsne_override_2(struct hostapd_data *hapd, u8 *pos, size_t len)
 {
 	const u8 *ie;
 
@@ -431,8 +429,7 @@ static u8 * hostapd_get_rsne_override_2(struct hostapd_data *hapd, u8 *pos,
 }
 
 
-static u8 * hostapd_get_rsnxe_override(struct hostapd_data *hapd, u8 *pos,
-				       size_t len)
+u8 * hostapd_get_rsnxe_override(struct hostapd_data *hapd, u8 *pos, size_t len)
 {
 	const u8 *ie;
 
@@ -445,7 +442,7 @@ static u8 * hostapd_get_rsnxe_override(struct hostapd_data *hapd, u8 *pos,
 }
 
 
-static size_t hostapd_get_rsne_override_len(struct hostapd_data *hapd)
+size_t hostapd_get_rsne_override_len(struct hostapd_data *hapd)
 {
 	const u8 *ie;
 
@@ -456,7 +453,7 @@ static size_t hostapd_get_rsne_override_len(struct hostapd_data *hapd)
 }
 
 
-static size_t hostapd_get_rsne_override_2_len(struct hostapd_data *hapd)
+size_t hostapd_get_rsne_override_2_len(struct hostapd_data *hapd)
 {
 	const u8 *ie;
 
@@ -467,7 +464,7 @@ static size_t hostapd_get_rsne_override_2_len(struct hostapd_data *hapd)
 }
 
 
-static size_t hostapd_get_rsnxe_override_len(struct hostapd_data *hapd)
+size_t hostapd_get_rsnxe_override_len(struct hostapd_data *hapd)
 {
 	const u8 *ie;
 
