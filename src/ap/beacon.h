@@ -38,4 +38,10 @@ u8 * hostapd_unsol_bcast_probe_resp(struct hostapd_data *hapd,
 				    struct unsol_bcast_probe_resp *ubpr);
 void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd);
 
+u8 * hostapd_get_rsne_override(struct hostapd_data *hapd, u8 *pos, size_t len);
+u8 * hostapd_get_rsne_override_2(struct hostapd_data *hapd, u8 *pos, size_t len);
+u8 * hostapd_get_rsnxe_override(struct hostapd_data *hapd, u8 *pos, size_t len);
+size_t hostapd_get_rsne_override_len(struct hostapd_data *hapd);
+size_t hostapd_get_rsne_override_2_len(struct hostapd_data *hapd);
+size_t hostapd_get_rsnxe_override_len(struct hostapd_data *hapd);
 #endif /* BEACON_H */
