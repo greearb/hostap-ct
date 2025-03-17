@@ -14,6 +14,7 @@ struct ieee80211_mgmt;
 struct wmm_tspec_element;
 
 u8 * hostapd_eid_wmm(struct hostapd_data *hapd, u8 *eid);
+size_t hostapd_eid_wmm_len(struct hostapd_data *hapd);
 int hostapd_eid_wmm_valid(struct hostapd_data *hapd, const u8 *eid,
 			  size_t len);
 void hostapd_wmm_action(struct hostapd_data *hapd,
