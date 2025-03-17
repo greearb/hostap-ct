@@ -363,8 +363,8 @@ int crypto_hash_finish(struct crypto_hash *ctx, u8 *mac, size_t *len)
 	}
 
 	if (*len < ctx->mac_len) {
-		crypto_hash_deinit(ctx);
 		*len = ctx->mac_len;
+		crypto_hash_deinit(ctx);
 		return -1;
 	}
 	*len = ctx->mac_len;
