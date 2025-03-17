@@ -823,6 +823,7 @@ static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 	}
 #endif /* CONFIG_IEEE80211BN */
 
+	buflen += hostapd_eid_wmm_len(hapd);
 	buflen += hostapd_mbo_ie_len(hapd);
 	buflen += hostapd_eid_owe_trans_len(hapd);
 	buflen += hostapd_eid_dpp_cc_len(hapd);
@@ -2334,6 +2335,7 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 		tail_len += 3 + sizeof(struct ieee80211_uhr_operation);
 #endif /* CONFIG_IEEE80211BN */
 
+	tail_len += hostapd_eid_wmm_len(hapd);
 	tail_len += hostapd_mbo_ie_len(hapd);
 	tail_len += hostapd_eid_owe_trans_len(hapd);
 	tail_len += hostapd_eid_dpp_cc_len(hapd);
