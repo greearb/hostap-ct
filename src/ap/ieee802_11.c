@@ -9008,6 +9008,16 @@ static size_t hostapd_eid_mbssid_elem_len(struct hostapd_data *hapd,
 				bss, NULL, true, false);
 #endif /* CONFIG_IEEE80211BE */
 
+		/* WFA vendor elements which cannot be inherited if one of them
+		 * is different from that of TxBSS.
+		 * TODO: Check if any vendor elem is different or should not be inherited at all
+		 */
+		nontx_profile_len += hostapd_eid_wmm_len(bss);
+		nontx_profile_len += hostapd_mbo_ie_len(bss);
+		nontx_profile_len += hostapd_get_rsne_override_len(bss);
+		nontx_profile_len += hostapd_get_rsne_override_2_len(bss);
+		nontx_profile_len += hostapd_get_rsnxe_override_len(bss);
+
 		if (ie_count)
 			nontx_profile_len += 4 + ie_count + 1;
 
@@ -9167,6 +9177,16 @@ static u8 * hostapd_eid_mbssid_elem(struct hostapd_data *hapd, u8 *eid, u8 *end,
 		eid += hostapd_mbssid_ext_capa(bss, tx_bss, eid);
 		xrate_len = hostapd_eid_ext_supp_rates(bss, eid) - eid;
 		eid += xrate_len;
+
+		/* WFA vendor elements which cannot be inherited if one of them
+		 * is different from that of TxBSS.
+		 * TODO: Check if any vendor elem is different or should not be inherited at all
+		 */
+		eid = hostapd_eid_wmm(bss, eid);
+		eid = hostapd_eid_mbo(bss, eid, end - eid);
+		eid = hostapd_get_rsne_override(bss, eid, end - eid);
+		eid = hostapd_get_rsne_override_2(bss, eid, end - eid);
+		eid = hostapd_get_rsnxe_override(bss, eid, end - eid);
 
 		/* List of Element ID values in increasing order */
 		if (!rsn && hostapd_wpa_ie(tx_bss, WLAN_EID_RSN))
