@@ -190,117 +190,116 @@ def test_eap_proto(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: MD5 challenge")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_MD5,
                                1, 0xaa, ord('n'))
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Success - id off by 2")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'] + 1, 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id + 1, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: MD5 challenge")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_MD5,
                                1, 0xaa, ord('n'))
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Success - id off by 3")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'] + 2, 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id + 2, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: MD5 challenge")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_MD5,
                                1, 0xaa, ord('n'))
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Notification/Request")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_NOTIFICATION,
                                ord('A'))
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Success")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'] - 1, 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Notification/Request")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_NOTIFICATION,
                                ord('B'))
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: MD5 challenge")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_MD5,
                                1, 0xaa, ord('n'))
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Success")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'] - 1, 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Notification/Request")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_NOTIFICATION,
                                ord('C'))
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: MD5 challenge")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_MD5,
                                1, 0xaa, ord('n'))
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Notification/Request")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_NOTIFICATION,
                                ord('D'))
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Success")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'] - 1, 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Notification/Request")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_NOTIFICATION,
                                ord('E'))
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Notification/Request (same id)")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'] - 1,
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id_prev,
                                4 + 1 + 1,
                                EAP_TYPE_NOTIFICATION,
                                ord('F'))
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected EAP-Success")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'] - 2, 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id_prev, 4)
 
         return None
 
@@ -412,22 +411,21 @@ def test_eap_proto_notification_errors(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: MD5 challenge")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_MD5,
                                1, 0xaa, ord('n'))
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Notification/Request")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_NOTIFICATION,
                                ord('A'))
@@ -435,14 +433,14 @@ def test_eap_proto_notification_errors(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: MD5 challenge")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_MD5,
                                1, 0xaa, ord('n'))
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Notification/Request")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_NOTIFICATION,
                                ord('A'))
@@ -501,9 +499,9 @@ def test_eap_proto_sake(dev, apdev):
     global eap_proto_sake_test_done
     eap_proto_sake_test_done = False
 
-    def sake_challenge(ctx):
+    def sake_challenge(ctx, id):
         logger.info("Test: Challenge subtype")
-        return struct.pack(">BBHBBBBBBLLLL", EAP_CODE_REQUEST, ctx['id'],
+        return struct.pack(">BBHBBBBBBLLLL", EAP_CODE_REQUEST, id,
                            4 + 1 + 3 + 18,
                            EAP_TYPE_SAKE,
                            EAP_SAKE_VERSION, 0, EAP_SAKE_SUBTYPE_CHALLENGE,
@@ -514,21 +512,20 @@ def test_eap_proto_sake(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] += 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing payload")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'], 4 + 1,
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id, 4 + 1,
                                EAP_TYPE_SAKE)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity subtype without any attributes")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 0, EAP_SAKE_SUBTYPE_IDENTITY)
@@ -536,7 +533,7 @@ def test_eap_proto_sake(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity subtype")
-            return struct.pack(">BBHBBBBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 0, EAP_SAKE_SUBTYPE_IDENTITY,
@@ -544,7 +541,7 @@ def test_eap_proto_sake(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity subtype (different session id)")
-            return struct.pack(">BBHBBBBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 1, EAP_SAKE_SUBTYPE_IDENTITY,
@@ -553,7 +550,7 @@ def test_eap_proto_sake(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity subtype with too short attribute")
-            return struct.pack(">BBHBBBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 2,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 0, EAP_SAKE_SUBTYPE_IDENTITY,
@@ -562,7 +559,7 @@ def test_eap_proto_sake(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity subtype with truncated attribute")
-            return struct.pack(">BBHBBBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 2,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 0, EAP_SAKE_SUBTYPE_IDENTITY,
@@ -572,7 +569,7 @@ def test_eap_proto_sake(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Identity subtype with too short attribute header")
             payload = struct.pack("B", EAP_SAKE_AT_ANY_ID_REQ)
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + len(payload),
                                EAP_TYPE_SAKE, EAP_SAKE_VERSION, 0,
                                EAP_SAKE_SUBTYPE_IDENTITY) + payload
@@ -581,7 +578,7 @@ def test_eap_proto_sake(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Identity subtype with AT_IV but not AT_ENCR_DATA")
             payload = struct.pack("BB", EAP_SAKE_AT_IV, 2)
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + len(payload),
                                EAP_TYPE_SAKE, EAP_SAKE_VERSION, 0,
                                EAP_SAKE_SUBTYPE_IDENTITY) + payload
@@ -590,7 +587,7 @@ def test_eap_proto_sake(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Identity subtype with skippable and non-skippable unknown attribute")
             payload = struct.pack("BBBB", 255, 2, 127, 2)
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + len(payload),
                                EAP_TYPE_SAKE, EAP_SAKE_VERSION, 0,
                                EAP_SAKE_SUBTYPE_IDENTITY) + payload
@@ -599,7 +596,7 @@ def test_eap_proto_sake(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Identity subtype: AT_RAND_P with invalid payload length")
             payload = struct.pack("BB", EAP_SAKE_AT_RAND_P, 2)
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + len(payload),
                                EAP_TYPE_SAKE, EAP_SAKE_VERSION, 0,
                                EAP_SAKE_SUBTYPE_IDENTITY) + payload
@@ -608,7 +605,7 @@ def test_eap_proto_sake(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Identity subtype: AT_MIC_P with invalid payload length")
             payload = struct.pack("BB", EAP_SAKE_AT_MIC_P, 2)
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + len(payload),
                                EAP_TYPE_SAKE, EAP_SAKE_VERSION, 0,
                                EAP_SAKE_SUBTYPE_IDENTITY) + payload
@@ -623,7 +620,7 @@ def test_eap_proto_sake(dev, apdev):
                                   EAP_SAKE_AT_NEXT_TMPID, 2,
                                   EAP_SAKE_AT_PERM_ID_REQ, 4, 0, 0,
                                   EAP_SAKE_AT_PERM_ID_REQ, 2)
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + len(payload),
                                EAP_TYPE_SAKE, EAP_SAKE_VERSION, 0,
                                EAP_SAKE_SUBTYPE_IDENTITY) + payload
@@ -634,7 +631,7 @@ def test_eap_proto_sake(dev, apdev):
             payload = struct.pack("BBBBBB",
                                   EAP_SAKE_AT_PADDING, 3, 0,
                                   EAP_SAKE_AT_PADDING, 3, 1)
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + len(payload),
                                EAP_TYPE_SAKE, EAP_SAKE_VERSION, 0,
                                EAP_SAKE_SUBTYPE_IDENTITY) + payload
@@ -645,7 +642,7 @@ def test_eap_proto_sake(dev, apdev):
             payload = struct.pack(">BBLBBH",
                                   EAP_SAKE_AT_MSK_LIFE, 6, 0,
                                   EAP_SAKE_AT_MSK_LIFE, 4, 0)
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + len(payload),
                                EAP_TYPE_SAKE, EAP_SAKE_VERSION, 0,
                                EAP_SAKE_SUBTYPE_IDENTITY) + payload
@@ -654,7 +651,7 @@ def test_eap_proto_sake(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Identity subtype with invalid attribute length")
             payload = struct.pack("BB", EAP_SAKE_AT_ANY_ID_REQ, 0)
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + len(payload),
                                EAP_TYPE_SAKE, EAP_SAKE_VERSION, 0,
                                EAP_SAKE_SUBTYPE_IDENTITY) + payload
@@ -662,7 +659,7 @@ def test_eap_proto_sake(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unknown subtype")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 0, 123)
@@ -670,7 +667,7 @@ def test_eap_proto_sake(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge subtype without any attributes")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 0, EAP_SAKE_SUBTYPE_CHALLENGE)
@@ -678,7 +675,7 @@ def test_eap_proto_sake(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge subtype with too short AT_RAND_S")
-            return struct.pack(">BBHBBBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 2,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 0, EAP_SAKE_SUBTYPE_CHALLENGE,
@@ -686,11 +683,11 @@ def test_eap_proto_sake(dev, apdev):
 
         idx += 1
         if ctx['num'] == idx:
-            return sake_challenge(ctx)
+            return sake_challenge(ctx, id)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected Identity subtype")
-            return struct.pack(">BBHBBBBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 0, EAP_SAKE_SUBTYPE_IDENTITY,
@@ -698,11 +695,11 @@ def test_eap_proto_sake(dev, apdev):
 
         idx += 1
         if ctx['num'] == idx:
-            return sake_challenge(ctx)
+            return sake_challenge(ctx, id)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected Challenge subtype")
-            return struct.pack(">BBHBBBBBBLLLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBLLLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 18,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 0, EAP_SAKE_SUBTYPE_CHALLENGE,
@@ -710,22 +707,22 @@ def test_eap_proto_sake(dev, apdev):
 
         idx += 1
         if ctx['num'] == idx:
-            return sake_challenge(ctx)
+            return sake_challenge(ctx, id)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Confirm subtype without any attributes")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 0, EAP_SAKE_SUBTYPE_CONFIRM)
 
         idx += 1
         if ctx['num'] == idx:
-            return sake_challenge(ctx)
+            return sake_challenge(ctx, id)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Confirm subtype with too short AT_MIC_S")
-            return struct.pack(">BBHBBBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 2,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 0, EAP_SAKE_SUBTYPE_CONFIRM,
@@ -734,7 +731,7 @@ def test_eap_proto_sake(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected Confirm subtype")
-            return struct.pack(">BBHBBBBBBLLLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBLLLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 18,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 0, EAP_SAKE_SUBTYPE_CONFIRM,
@@ -742,11 +739,11 @@ def test_eap_proto_sake(dev, apdev):
 
         idx += 1
         if ctx['num'] == idx:
-            return sake_challenge(ctx)
+            return sake_challenge(ctx, id)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Confirm subtype with incorrect AT_MIC_S")
-            return struct.pack(">BBHBBBBBBLLLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBLLLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 18,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 0, EAP_SAKE_SUBTYPE_CONFIRM,
@@ -754,11 +751,11 @@ def test_eap_proto_sake(dev, apdev):
 
         global eap_proto_sake_test_done
         if eap_proto_sake_test_done:
-            return sake_challenge(ctx)
+            return sake_challenge(ctx, id)
 
         logger.info("No more test responses available - test case completed")
         eap_proto_sake_test_done = True
-        return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+        return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(sake_handler)
 
@@ -878,15 +875,14 @@ def test_eap_proto_sake_errors2(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] += 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity subtype")
-            return struct.pack(">BBHBBBBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_SAKE,
                                EAP_SAKE_VERSION, 0, EAP_SAKE_SUBTYPE_IDENTITY,
@@ -1075,97 +1071,96 @@ def test_eap_proto_leap(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
 
         if ctx['num'] == 1:
             logger.info("Test: Missing payload")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_LEAP)
 
         if ctx['num'] == 2:
             logger.info("Test: Unexpected version")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_LEAP,
                                0, 0, 0)
 
         if ctx['num'] == 3:
             logger.info("Test: Invalid challenge length")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_LEAP,
                                1, 0, 0)
 
         if ctx['num'] == 4:
             logger.info("Test: Truncated challenge")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_LEAP,
                                1, 0, 8)
 
         if ctx['num'] == 5:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         if ctx['num'] == 6:
             logger.info("Test: Missing payload in Response")
-            return struct.pack(">BBHB", EAP_CODE_RESPONSE, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_RESPONSE, id,
                                4 + 1,
                                EAP_TYPE_LEAP)
 
         if ctx['num'] == 7:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         if ctx['num'] == 8:
             logger.info("Test: Unexpected version in Response")
-            return struct.pack(">BBHBBBB", EAP_CODE_RESPONSE, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_RESPONSE, id,
                                4 + 1 + 3,
                                EAP_TYPE_LEAP,
                                0, 0, 8)
 
         if ctx['num'] == 9:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         if ctx['num'] == 10:
             logger.info("Test: Invalid challenge length in Response")
-            return struct.pack(">BBHBBBB", EAP_CODE_RESPONSE, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_RESPONSE, id,
                                4 + 1 + 3,
                                EAP_TYPE_LEAP,
                                1, 0, 0)
 
         if ctx['num'] == 11:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         if ctx['num'] == 12:
             logger.info("Test: Truncated challenge in Response")
-            return struct.pack(">BBHBBBB", EAP_CODE_RESPONSE, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_RESPONSE, id,
                                4 + 1 + 3,
                                EAP_TYPE_LEAP,
                                1, 0, 24)
 
         if ctx['num'] == 13:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         if ctx['num'] == 14:
             logger.info("Test: Invalid challange value in Response")
-            return struct.pack(">BBHBBBB6L", EAP_CODE_RESPONSE, ctx['id'],
+            return struct.pack(">BBHBBBB6L", EAP_CODE_RESPONSE, id,
                                4 + 1 + 3 + 24,
                                EAP_TYPE_LEAP,
                                1, 0, 24,
@@ -1173,13 +1168,13 @@ def test_eap_proto_leap(dev, apdev):
 
         if ctx['num'] == 15:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         if ctx['num'] == 16:
             logger.info("Test: Valid challange value in Response")
-            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, ctx['id'],
+            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, id,
                                4 + 1 + 3 + 24,
                                EAP_TYPE_LEAP,
                                1, 0, 24,
@@ -1189,26 +1184,26 @@ def test_eap_proto_leap(dev, apdev):
 
         if ctx['num'] == 17:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         if ctx['num'] == 18:
             logger.info("Test: Success")
-            return struct.pack(">BBHB", EAP_CODE_SUCCESS, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_SUCCESS, id_prev,
                                4 + 1,
                                EAP_TYPE_LEAP)
         # hostapd will drop the next frame in the sequence
 
         if ctx['num'] == 19:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         if ctx['num'] == 20:
             logger.info("Test: Failure")
-            return struct.pack(">BBHB", EAP_CODE_FAILURE, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_FAILURE, id_prev,
                                4 + 1,
                                EAP_TYPE_LEAP)
 
@@ -1244,26 +1239,25 @@ def test_eap_proto_leap_errors(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
@@ -1271,38 +1265,38 @@ def test_eap_proto_leap_errors(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Success")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Success")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challange value in Response")
-            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, ctx['id'],
+            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, id,
                                4 + 1 + 3 + 24,
                                EAP_TYPE_LEAP,
                                1, 0, 24,
@@ -1313,14 +1307,14 @@ def test_eap_proto_leap_errors(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challange value in Response")
-            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, ctx['id'],
+            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, id,
                                4 + 1 + 3 + 24,
                                EAP_TYPE_LEAP,
                                1, 0, 24,
@@ -1331,14 +1325,14 @@ def test_eap_proto_leap_errors(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challange value in Response")
-            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, ctx['id'],
+            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, id,
                                4 + 1 + 3 + 24,
                                EAP_TYPE_LEAP,
                                1, 0, 24,
@@ -1349,14 +1343,14 @@ def test_eap_proto_leap_errors(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challange value in Response")
-            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, ctx['id'],
+            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, id,
                                4 + 1 + 3 + 24,
                                EAP_TYPE_LEAP,
                                1, 0, 24,
@@ -1367,14 +1361,14 @@ def test_eap_proto_leap_errors(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challange value in Response")
-            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, ctx['id'],
+            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, id,
                                4 + 1 + 3 + 24,
                                EAP_TYPE_LEAP,
                                1, 0, 24,
@@ -1385,14 +1379,14 @@ def test_eap_proto_leap_errors(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challange value in Response")
-            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, ctx['id'],
+            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, id,
                                4 + 1 + 3 + 24,
                                EAP_TYPE_LEAP,
                                1, 0, 24,
@@ -1403,14 +1397,14 @@ def test_eap_proto_leap_errors(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challange value in Response")
-            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, ctx['id'],
+            return struct.pack(">BBHBBBB24B", EAP_CODE_RESPONSE, id,
                                4 + 1 + 3 + 24,
                                EAP_TYPE_LEAP,
                                1, 0, 24,
@@ -1421,12 +1415,12 @@ def test_eap_proto_leap_errors(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid challenge")
-            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_LEAP,
                                1, 0, 8, 0, 0)
 
-        return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+        return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(leap_handler2)
 
@@ -1546,33 +1540,32 @@ def test_eap_proto_md5(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
 
         if ctx['num'] == 1:
             logger.info("Test: Missing payload")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_MD5)
 
         if ctx['num'] == 2:
             logger.info("Test: Zero-length challenge")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_MD5,
                                0)
 
         if ctx['num'] == 3:
             logger.info("Test: Truncated challenge")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_MD5,
                                1)
 
         if ctx['num'] == 4:
             logger.info("Test: Shortest possible challenge and name")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_MD5,
                                1, 0xaa, ord('n'))
@@ -1716,29 +1709,28 @@ def test_eap_proto_otp(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
 
         if ctx['num'] == 1:
             logger.info("Test: Empty payload")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_OTP)
         if ctx['num'] == 2:
             logger.info("Test: Success")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'],
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id_prev,
                                4)
 
         if ctx['num'] == 3:
             logger.info("Test: Challenge included")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_OTP,
                                ord('A'))
         if ctx['num'] == 4:
             logger.info("Test: Success")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'],
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id_prev,
                                4)
 
         return None
@@ -1780,20 +1772,19 @@ def test_eap_proto_otp_errors(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge included")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_OTP,
                                ord('A'))
 
-        return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+        return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(otp_handler2)
 
@@ -1825,23 +1816,22 @@ def test_eap_proto_gpsk(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
 
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing payload")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_GPSK)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unknown opcode")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_GPSK,
                                255)
@@ -1849,7 +1839,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected GPSK-3")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_3)
@@ -1857,7 +1847,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Too short GPSK-1")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1)
@@ -1865,7 +1855,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Truncated ID_Server")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 1)
@@ -1873,7 +1863,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Missing RAND_Server")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0)
@@ -1881,7 +1871,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Missing CSuite_List")
-            return struct.pack(">BBHBBH8L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8L", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -1890,7 +1880,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Truncated CSuite_List")
-            return struct.pack(">BBHBBH8LH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -1900,7 +1890,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Empty CSuite_List")
-            return struct.pack(">BBHBBH8LH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -1910,7 +1900,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Invalid CSuite_List")
-            return struct.pack(">BBHBBH8LHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 1,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -1920,7 +1910,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 No supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -1930,7 +1920,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -1939,7 +1929,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected GPSK-1")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -1949,7 +1939,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite but too short key")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -1959,7 +1949,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -1968,7 +1958,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too short GPSK-3")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_3)
@@ -1976,7 +1966,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -1985,7 +1975,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-3 Mismatch in RAND_Peer")
-            return struct.pack(">BBHBB8L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB8L", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 32,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_3,
@@ -1994,7 +1984,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -2003,7 +1993,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-3 Missing RAND_Server")
-            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                               4 + 1 + 1 + 32,
                               EAP_TYPE_GPSK,
                               EAP_GPSK_OPCODE_GPSK_3)
@@ -2013,7 +2003,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -2022,7 +2012,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-3 Mismatch in RAND_Server")
-            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                               4 + 1 + 1 + 32 + 32,
                               EAP_TYPE_GPSK,
                               EAP_GPSK_OPCODE_GPSK_3)
@@ -2033,7 +2023,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -2042,7 +2032,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-3 Missing ID_Server")
-            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                               4 + 1 + 1 + 32 + 32,
                               EAP_TYPE_GPSK,
                               EAP_GPSK_OPCODE_GPSK_3)
@@ -2053,7 +2043,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -2062,7 +2052,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-3 Truncated ID_Server")
-            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                               4 + 1 + 1 + 32 + 32 + 2,
                               EAP_TYPE_GPSK,
                               EAP_GPSK_OPCODE_GPSK_3)
@@ -2073,7 +2063,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -2082,7 +2072,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-3 Mismatch in ID_Server")
-            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                               4 + 1 + 1 + 32 + 32 + 3,
                               EAP_TYPE_GPSK,
                               EAP_GPSK_OPCODE_GPSK_3)
@@ -2093,7 +2083,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBHB8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHB8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 3 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 1, ord('A'),
@@ -2102,7 +2092,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-3 Mismatch in ID_Server (same length)")
-            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                               4 + 1 + 1 + 32 + 32 + 3,
                               EAP_TYPE_GPSK,
                               EAP_GPSK_OPCODE_GPSK_3)
@@ -2113,7 +2103,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -2122,7 +2112,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-3 Missing CSuite_Sel")
-            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                               4 + 1 + 1 + 32 + 32 + 2,
                               EAP_TYPE_GPSK,
                               EAP_GPSK_OPCODE_GPSK_3)
@@ -2133,7 +2123,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -2142,7 +2132,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-3 Mismatch in CSuite_Sel")
-            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                               4 + 1 + 1 + 32 + 32 + 2 + 6,
                               EAP_TYPE_GPSK,
                               EAP_GPSK_OPCODE_GPSK_3)
@@ -2153,7 +2143,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -2162,7 +2152,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-3 Missing len(PD_Payload_Block)")
-            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                               4 + 1 + 1 + 32 + 32 + 2 + 6,
                               EAP_TYPE_GPSK,
                               EAP_GPSK_OPCODE_GPSK_3)
@@ -2173,7 +2163,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -2182,7 +2172,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-3 Truncated PD_Payload_Block")
-            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                               4 + 1 + 1 + 32 + 32 + 2 + 6 + 2,
                               EAP_TYPE_GPSK,
                               EAP_GPSK_OPCODE_GPSK_3)
@@ -2193,7 +2183,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -2202,7 +2192,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-3 Missing MAC")
-            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                               4 + 1 + 1 + 32 + 32 + 2 + 6 + 3,
                               EAP_TYPE_GPSK,
                               EAP_GPSK_OPCODE_GPSK_3)
@@ -2214,7 +2204,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-1 Supported CSuite")
-            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH8LHLH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 32 + 2 + 6,
                                EAP_TYPE_GPSK,
                                EAP_GPSK_OPCODE_GPSK_1, 0,
@@ -2223,7 +2213,7 @@ def test_eap_proto_gpsk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: GPSK-3 Incorrect MAC")
-            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            msg = struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                               4 + 1 + 1 + 32 + 32 + 2 + 6 + 3 + 16,
                               EAP_TYPE_GPSK,
                               EAP_GPSK_OPCODE_GPSK_3)
@@ -2565,23 +2555,22 @@ def test_eap_proto_eke(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
 
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing payload")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_EKE)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unknown exchange")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_EKE,
                                255)
@@ -2589,19 +2578,19 @@ def test_eap_proto_eke(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: No NumProposals in EAP-EKE-ID/Request")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_EKE,
                                EAP_EKE_ID)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: NumProposals=0 in EAP-EKE-ID/Request")
-            return struct.pack(">BBHBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 1,
                                EAP_TYPE_EKE,
                                EAP_EKE_ID,
@@ -2609,12 +2598,12 @@ def test_eap_proto_eke(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Truncated Proposals list in EAP-EKE-ID/Request")
-            return struct.pack(">BBHBBBB4B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB4B", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 4,
                                EAP_TYPE_EKE,
                                EAP_EKE_ID,
@@ -2622,12 +2611,12 @@ def test_eap_proto_eke(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unsupported proposals in EAP-EKE-ID/Request")
-            return struct.pack(">BBHBBBB4B4B4B4B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB4B4B4B4B", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 4 * 4,
                                EAP_TYPE_EKE,
                                EAP_EKE_ID,
@@ -2639,13 +2628,13 @@ def test_eap_proto_eke(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing IDType/Identity in EAP-EKE-ID/Request")
             return struct.pack(">BBHBBBB4B4B4B4B4B",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 5 * 4,
                                EAP_TYPE_EKE,
                                EAP_EKE_ID,
@@ -2658,13 +2647,13 @@ def test_eap_proto_eke(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid EAP-EKE-ID/Request")
             return struct.pack(">BBHBBBB4BB",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 4 + 1,
                                EAP_TYPE_EKE,
                                EAP_EKE_ID,
@@ -2675,7 +2664,7 @@ def test_eap_proto_eke(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Unexpected EAP-EKE-ID/Request")
             return struct.pack(">BBHBBBB4BB",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 4 + 1,
                                EAP_TYPE_EKE,
                                EAP_EKE_ID,
@@ -2685,13 +2674,13 @@ def test_eap_proto_eke(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid EAP-EKE-ID/Request")
             return struct.pack(">BBHBBBB4BB",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 4 + 1,
                                EAP_TYPE_EKE,
                                EAP_EKE_ID,
@@ -2702,46 +2691,46 @@ def test_eap_proto_eke(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Unexpected EAP-EKE-Confirm/Request")
             return struct.pack(">BBHBB",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_EKE,
                                EAP_EKE_CONFIRM)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too short EAP-EKE-Failure/Request")
             return struct.pack(">BBHBB",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_EKE,
                                EAP_EKE_FAILURE)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected EAP-EKE-Commit/Request")
             return struct.pack(">BBHBB",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_EKE,
                                EAP_EKE_COMMIT)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid EAP-EKE-ID/Request")
             return struct.pack(">BBHBBBB4BB",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 4 + 1,
                                EAP_TYPE_EKE,
                                EAP_EKE_ID,
@@ -2752,20 +2741,20 @@ def test_eap_proto_eke(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Too short EAP-EKE-Commit/Request")
             return struct.pack(">BBHBB",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_EKE,
                                EAP_EKE_COMMIT)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid EAP-EKE-ID/Request")
             return struct.pack(">BBHBBBB4BB",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 4 + 1,
                                EAP_TYPE_EKE,
                                EAP_EKE_ID,
@@ -2776,7 +2765,7 @@ def test_eap_proto_eke(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: All zeroes DHComponent_S and empty CBvalue in EAP-EKE-Commit/Request")
             return struct.pack(">BBHBB4L32L",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 16 + 128,
                                EAP_TYPE_EKE,
                                EAP_EKE_COMMIT,
@@ -2787,20 +2776,20 @@ def test_eap_proto_eke(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Too short EAP-EKE-Confirm/Request")
             return struct.pack(">BBHBB",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_EKE,
                                EAP_EKE_CONFIRM)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid EAP-EKE-ID/Request")
             return struct.pack(">BBHBBBB4BB",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2 + 4 + 1,
                                EAP_TYPE_EKE,
                                EAP_EKE_ID,
@@ -2811,7 +2800,7 @@ def test_eap_proto_eke(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: All zeroes DHComponent_S and empty CBvalue in EAP-EKE-Commit/Request")
             return struct.pack(">BBHBB4L32L",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 16 + 128,
                                EAP_TYPE_EKE,
                                EAP_EKE_COMMIT,
@@ -2822,7 +2811,7 @@ def test_eap_proto_eke(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Invalid PNonce_PS and Auth_S values in EAP-EKE-Confirm/Request")
             return struct.pack(">BBHBB4L8L5L5L",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 16 + 2 * 16 + 20 + 20,
                                EAP_TYPE_EKE,
                                EAP_EKE_CONFIRM,
@@ -2833,7 +2822,7 @@ def test_eap_proto_eke(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         return None
 
@@ -2983,10 +2972,9 @@ EAP_PAX_ADE_SERVER_CHANNEL_BINDING = 0x03
 
 def test_eap_proto_pax(dev, apdev):
     """EAP-PAX protocol tests"""
-    def pax_std_1(ctx):
+    def pax_std_1(ctx, id):
             logger.info("Test: STD-1")
-            ctx['id'] = 10
-            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 2 + 32 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, 0, EAP_PAX_MAC_HMAC_SHA1_128,
@@ -3000,23 +2988,22 @@ def test_eap_proto_pax(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
 
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing payload")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_PAX)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Minimum length payload")
-            return struct.pack(">BBHB4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 16,
                                EAP_TYPE_PAX,
                                0, 0, 0, 0)
@@ -3024,7 +3011,7 @@ def test_eap_proto_pax(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unsupported MAC ID")
-            return struct.pack(">BBHBBBBBB4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBB4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, 0, 255, EAP_PAX_DH_GROUP_NONE,
@@ -3034,7 +3021,7 @@ def test_eap_proto_pax(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unsupported DH Group ID")
-            return struct.pack(">BBHBBBBBB4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBB4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, 0, EAP_PAX_MAC_HMAC_SHA1_128,
@@ -3044,7 +3031,7 @@ def test_eap_proto_pax(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unsupported Public Key ID")
-            return struct.pack(">BBHBBBBBB4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBB4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, 0, EAP_PAX_MAC_HMAC_SHA1_128,
@@ -3054,7 +3041,7 @@ def test_eap_proto_pax(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: More fragments")
-            return struct.pack(">BBHBBBBBB4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBB4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, EAP_PAX_FLAGS_MF,
@@ -3065,7 +3052,7 @@ def test_eap_proto_pax(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid ICV")
-            return struct.pack(">BBHBBBBBB4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBB4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, 0, EAP_PAX_MAC_HMAC_SHA1_128,
@@ -3075,7 +3062,7 @@ def test_eap_proto_pax(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid ICV in short frame")
-            return struct.pack(">BBHBBBBBB3L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBB3L", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 12,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, 0, EAP_PAX_MAC_HMAC_SHA1_128,
@@ -3085,8 +3072,7 @@ def test_eap_proto_pax(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Correct ICV - unsupported op_code")
-            ctx['id'] = 10
-            return struct.pack(">BBHBBBBBB16B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBB16B", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 16,
                                EAP_TYPE_PAX,
                                255, 0, EAP_PAX_MAC_HMAC_SHA1_128,
@@ -3097,8 +3083,7 @@ def test_eap_proto_pax(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Correct ICV - CE flag in STD-1")
-            ctx['id'] = 10
-            return struct.pack(">BBHBBBBBB16B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBB16B", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, EAP_PAX_FLAGS_CE,
@@ -3110,8 +3095,7 @@ def test_eap_proto_pax(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Correct ICV - too short STD-1 payload")
-            ctx['id'] = 10
-            return struct.pack(">BBHBBBBBB16B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBB16B", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, 0, EAP_PAX_MAC_HMAC_SHA1_128,
@@ -3122,8 +3106,7 @@ def test_eap_proto_pax(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Correct ICV - incorrect A length in STD-1")
-            ctx['id'] = 10
-            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 2 + 32 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, 0, EAP_PAX_MAC_HMAC_SHA1_128,
@@ -3135,8 +3118,7 @@ def test_eap_proto_pax(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Correct ICV - extra data in STD-1")
-            ctx['id'] = 10
-            return struct.pack(">BBHBBBBBBH8LB16B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBH8LB16B", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 2 + 32 + 1 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, 0, EAP_PAX_MAC_HMAC_SHA1_128,
@@ -3148,7 +3130,7 @@ def test_eap_proto_pax(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected STD-1")
-            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 2 + 32 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, 0, EAP_PAX_MAC_HMAC_SHA1_128,
@@ -3159,11 +3141,11 @@ def test_eap_proto_pax(dev, apdev):
 
         idx += 1
         if ctx['num'] == idx:
-            return pax_std_1(ctx)
+            return pax_std_1(ctx, id)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: MAC ID changed during session")
-            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 2 + 32 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, 0, EAP_PAX_HMAC_SHA256_128,
@@ -3174,11 +3156,11 @@ def test_eap_proto_pax(dev, apdev):
 
         idx += 1
         if ctx['num'] == idx:
-            return pax_std_1(ctx)
+            return pax_std_1(ctx, id)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: DH Group ID changed during session")
-            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 2 + 32 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, 0, EAP_PAX_MAC_HMAC_SHA1_128,
@@ -3190,11 +3172,11 @@ def test_eap_proto_pax(dev, apdev):
 
         idx += 1
         if ctx['num'] == idx:
-            return pax_std_1(ctx)
+            return pax_std_1(ctx, id)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Public Key ID changed during session")
-            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 2 + 32 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_1, 0, EAP_PAX_MAC_HMAC_SHA1_128,
@@ -3207,8 +3189,7 @@ def test_eap_proto_pax(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected STD-3")
-            ctx['id'] = 10
-            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 2 + 32 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_3, 0, EAP_PAX_MAC_HMAC_SHA1_128,
@@ -3219,13 +3200,13 @@ def test_eap_proto_pax(dev, apdev):
 
         idx += 1
         if ctx['num'] == idx:
-            return pax_std_1(ctx)
+            return pax_std_1(ctx, id)
         idx += 1
         if ctx['num'] == idx:
             # TODO: MAC calculation; for now, this gets dropped due to incorrect
             # ICV
             logger.info("Test: STD-3 with CE flag")
-            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBBBBH8L16B", EAP_CODE_REQUEST, id,
                                4 + 1 + 5 + 2 + 32 + 16,
                                EAP_TYPE_PAX,
                                EAP_PAX_OP_STD_3, EAP_PAX_FLAGS_CE,
@@ -3238,12 +3219,12 @@ def test_eap_proto_pax(dev, apdev):
         idx += 1
         if ctx['num'] & 0x1 == idx & 0x1:
             logger.info("Test: Default request")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_PAX)
         else:
             logger.info("Test: Default EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(pax_handler)
 
@@ -3537,75 +3518,74 @@ def test_eap_proto_psk(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
 
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing payload")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_PSK)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Non-zero T in first message")
-            return struct.pack(">BBHBB4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 16,
                                EAP_TYPE_PSK, 0xc0, 0, 0, 0, 0)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid first message")
-            return struct.pack(">BBHBB4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 16,
                                EAP_TYPE_PSK, 0, 0, 0, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too short third message")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_PSK)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid first message")
-            return struct.pack(">BBHBB4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 16,
                                EAP_TYPE_PSK, 0, 0, 0, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Incorrect T in third message")
-            return struct.pack(">BBHBB4L4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB4L4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 16 + 16,
                                EAP_TYPE_PSK, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid first message")
-            return struct.pack(">BBHBB4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 16,
                                EAP_TYPE_PSK, 0, 0, 0, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing PCHANNEL in third message")
-            return struct.pack(">BBHBB4L4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB4L4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 16 + 16,
                                EAP_TYPE_PSK, 0x80, 0, 0, 0, 0, 0, 0, 0, 0)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid first message")
-            return struct.pack(">BBHBB4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 16,
                                EAP_TYPE_PSK, 0, 0, 0, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalic MAC_S in third message")
-            return struct.pack(">BBHBB4L4L5LB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB4L4L5LB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 16 + 16 + 21,
                                EAP_TYPE_PSK, 0x80, 0, 0, 0, 0, 0, 0, 0, 0,
                                0, 0, 0, 0, 0, 0)
@@ -3613,13 +3593,13 @@ def test_eap_proto_psk(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid first message")
-            return struct.pack(">BBHBB4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 16,
                                EAP_TYPE_PSK, 0, 0, 0, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         return None
 
@@ -3948,222 +3928,221 @@ def test_eap_proto_aka(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
 
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing payload")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_AKA)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unknown subtype")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_AKA, 255, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Client Error")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_CLIENT_ERROR, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too short attribute header")
-            return struct.pack(">BBHBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 3,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0, 255)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Truncated attribute")
-            return struct.pack(">BBHBBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0, 255,
                                255)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too short attribute data")
-            return struct.pack(">BBHBBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0, 255,
                                0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Skippable/non-skippable unrecognzized attribute")
-            return struct.pack(">BBHBBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 10,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                255, 1, 0, 127, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request without ID type")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request ANY_ID")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_ANY_ID_REQ, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request ANY_ID (duplicate)")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_ANY_ID_REQ, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request ANY_ID")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_ANY_ID_REQ, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request FULLAUTH_ID")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_FULLAUTH_ID_REQ, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request FULLAUTH_ID (duplicate)")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_FULLAUTH_ID_REQ, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request ANY_ID")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_ANY_ID_REQ, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request FULLAUTH_ID")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_FULLAUTH_ID_REQ, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request PERMANENT_ID")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_PERMANENT_ID_REQ, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request PERMANENT_ID (duplicate)")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_PERMANENT_ID_REQ, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge with no attributes")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_CHALLENGE, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: AKA Challenge with BIDDING")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_BIDDING, 1, 0x8000)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification with no attributes")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_NOTIFICATION, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification indicating success, but no MAC")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_NOTIFICATION, 0,
                                EAP_SIM_AT_NOTIFICATION, 1, 32768)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification indicating success, but invalid MAC value")
-            return struct.pack(">BBHBBHBBHBBH4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHBBH4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 20,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_NOTIFICATION, 0,
                                EAP_SIM_AT_NOTIFICATION, 1, 32768,
@@ -4171,13 +4150,13 @@ def test_eap_proto_aka(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification indicating success with zero-key MAC")
             return struct.pack(">BBHBBHBBHBBH16B", EAP_CODE_REQUEST,
-                               ctx['id'] - 2,
+                               id,
                                4 + 1 + 3 + 4 + 20,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_NOTIFICATION, 0,
                                EAP_SIM_AT_NOTIFICATION, 1, 32768,
@@ -4187,117 +4166,117 @@ def test_eap_proto_aka(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Success")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification before auth")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_NOTIFICATION, 0,
                                EAP_SIM_AT_NOTIFICATION, 1, 16384)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification before auth")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_NOTIFICATION, 0,
                                EAP_SIM_AT_NOTIFICATION, 1, 16385)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification with unrecognized non-failure")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_NOTIFICATION, 0,
                                EAP_SIM_AT_NOTIFICATION, 1, 0xc000)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification before auth (duplicate)")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_NOTIFICATION, 0,
                                EAP_SIM_AT_NOTIFICATION, 1, 0xc000)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Re-authentication (unexpected) with no attributes")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_REAUTHENTICATION,
                                0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: AKA Challenge with Checkcode claiming identity round was used")
-            return struct.pack(">BBHBBHBBH5L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH5L", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 24,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_CHECKCODE, 6, 0, 0, 0, 0, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request ANY_ID")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_ANY_ID_REQ, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: AKA Challenge with Checkcode claiming no identity round was used")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_CHECKCODE, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request ANY_ID")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_ANY_ID_REQ, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: AKA Challenge with mismatching Checkcode value")
-            return struct.pack(">BBHBBHBBH5L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH5L", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 24,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_CHECKCODE, 6, 0, 0, 0, 0, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Re-authentication (unexpected) with Checkcode claimin identity round was used")
-            return struct.pack(">BBHBBHBBH5L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH5L", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 24,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_REAUTHENTICATION,
                                0,
@@ -4305,307 +4284,307 @@ def test_eap_proto_aka(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_RAND length")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_RAND, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_AUTN length")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_AUTN, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unencrypted AT_PADDING")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_PADDING, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_NONCE_MT length")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_NONCE_MT, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_MAC length")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_MAC, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_NOTIFICATION length")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_NOTIFICATION, 2, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: AT_IDENTITY overflow")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_IDENTITY, 1, 0xffff)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected AT_VERSION_LIST")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_VERSION_LIST, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_SELECTED_VERSION length")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_SELECTED_VERSION, 2, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unencrypted AT_COUNTER")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_COUNTER, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unencrypted AT_COUNTER_TOO_SMALL")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_COUNTER_TOO_SMALL, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unencrypted AT_NONCE_S")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_NONCE_S, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_CLIENT_ERROR_CODE length")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_CLIENT_ERROR_CODE, 2, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_IV length")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_IV, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_ENCR_DATA length")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_ENCR_DATA, 2, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unencrypted AT_NEXT_PSEUDONYM")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_NEXT_PSEUDONYM, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unencrypted AT_NEXT_REAUTH_ID")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_NEXT_REAUTH_ID, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_RES length")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_RES, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_RES length")
-            return struct.pack(">BBHBBHBBH5L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH5L", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 24,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_RES, 6, 0xffff, 0, 0, 0, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_AUTS length")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_AUTS, 2, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_CHECKCODE length")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_CHECKCODE, 2, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_RESULT_IND length")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_RESULT_IND, 2, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected AT_KDF_INPUT")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected AT_KDF")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_KDF, 2, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_BIDDING length")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_AKA, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_BIDDING, 2, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         return None
 
@@ -4644,9 +4623,8 @@ def test_eap_proto_aka_prime(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
 
         idx = 0
 
@@ -4654,7 +4632,7 @@ def test_eap_proto_aka_prime(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Missing payload")
             dev[0].note("Missing payload")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_AKA_PRIME)
 
@@ -4662,32 +4640,32 @@ def test_eap_proto_aka_prime(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Challenge with no attributes")
             dev[0].note("Challenge with no attributes")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge with empty AT_KDF_INPUT")
             dev[0].note("Challenge with empty AT_KDF_INPUT")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge with AT_KDF_INPUT")
             dev[0].note("Test: Challenge with AT_KDF_INPUT")
-            return struct.pack(">BBHBBHBBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4695,14 +4673,14 @@ def test_eap_proto_aka_prime(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge with duplicated KDF")
             dev[0].note("Challenge with duplicated KDF")
             return struct.pack(">BBHBBHBBHBBBBBBHBBHBBH",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 3 * 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4713,14 +4691,14 @@ def test_eap_proto_aka_prime(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge with multiple KDF proposals")
             dev[0].note("Challenge with multiple KDF proposals (preparation)")
             return struct.pack(">BBHBBHBBHBBBBBBHBBHBBH",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 3 * 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4733,7 +4711,7 @@ def test_eap_proto_aka_prime(dev, apdev):
             logger.info("Test: Challenge with incorrect KDF selected")
             dev[0].note("Challenge with incorrect KDF selected")
             return struct.pack(">BBHBBHBBHBBBBBBHBBHBBHBBH",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4 * 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4745,14 +4723,14 @@ def test_eap_proto_aka_prime(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge with multiple KDF proposals")
             dev[0].note("Challenge with multiple KDF proposals (preparation)")
             return struct.pack(">BBHBBHBBHBBBBBBHBBHBBH",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 3 * 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4765,7 +4743,7 @@ def test_eap_proto_aka_prime(dev, apdev):
             logger.info("Test: Challenge with selected KDF not duplicated")
             dev[0].note("Challenge with selected KDF not duplicated")
             return struct.pack(">BBHBBHBBHBBBBBBHBBHBBH",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 3 * 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4776,14 +4754,14 @@ def test_eap_proto_aka_prime(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge with multiple KDF proposals")
             dev[0].note("Challenge with multiple KDF proposals (preparation)")
             return struct.pack(">BBHBBHBBHBBBBBBHBBHBBH",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 3 * 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4796,7 +4774,7 @@ def test_eap_proto_aka_prime(dev, apdev):
             logger.info("Test: Challenge with selected KDF duplicated (missing MAC, RAND, AUTN)")
             dev[0].note("Challenge with selected KDF duplicated (missing MAC, RAND, AUTN)")
             return struct.pack(">BBHBBHBBHBBBBBBHBBHBBHBBH",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4 * 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4808,14 +4786,14 @@ def test_eap_proto_aka_prime(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge with multiple unsupported KDF proposals")
             dev[0].note("Challenge with multiple unsupported KDF proposals")
             return struct.pack(">BBHBBHBBHBBBBBBHBBH",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 2 * 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4825,14 +4803,14 @@ def test_eap_proto_aka_prime(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge with multiple KDF proposals")
             dev[0].note("Challenge with multiple KDF proposals (preparation)")
             return struct.pack(">BBHBBHBBHBBBBBBHBBHBBH",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 3 * 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4845,7 +4823,7 @@ def test_eap_proto_aka_prime(dev, apdev):
             logger.info("Test: Challenge with invalid MAC, RAND, AUTN values)")
             dev[0].note("Challenge with invalid MAC, RAND, AUTN values)")
             return struct.pack(">BBHBBHBBHBBBBBBHBBHBBHBBHBBH4LBBH4LBBH4L",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4 * 4 + 20 + 20 + 20,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4860,14 +4838,14 @@ def test_eap_proto_aka_prime(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge - AMF separation bit not set)")
             dev[0].note("Challenge - AMF separation bit not set)")
             return struct.pack(">BBHBBHBBHBBBBBBHBBH4LBBH4LBBH4L",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4 + 20 + 20 + 20,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4880,14 +4858,14 @@ def test_eap_proto_aka_prime(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge - Invalid MAC")
             dev[0].note("Challenge - Invalid MAC")
             return struct.pack(">BBHBBHBBHBBBBBBHBBH4LBBH4LBBH4L",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4 + 20 + 20 + 20,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4900,14 +4878,14 @@ def test_eap_proto_aka_prime(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge - Valid MAC")
             dev[0].note("Challenge - Valid MAC")
             return struct.pack(">BBHBBHBBHBBBBBBHBBH4LBBH4LBBH4L",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4 + 20 + 20 + 20,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4921,40 +4899,40 @@ def test_eap_proto_aka_prime(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_KDF_INPUT length")
             dev[0].note("Invalid AT_KDF_INPUT length")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 0xffff, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid AT_KDF length")
             dev[0].note("Invalid AT_KDF length")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_IDENTITY, 0,
                                EAP_SIM_AT_KDF, 2, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge with large number of KDF proposals")
             dev[0].note("Challenge with large number of KDF proposals")
             return struct.pack(">BBHBBHBBHBBHBBHBBHBBHBBHBBHBBHBBHBBHBBHBBH",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 12 * 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF, 1, 255,
@@ -4972,14 +4950,14 @@ def test_eap_proto_aka_prime(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge with multiple KDF proposals")
             dev[0].note("Challenge with multiple KDF proposals (preparation)")
             return struct.pack(">BBHBBHBBHBBBBBBHBBH",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 2 * 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -4991,7 +4969,7 @@ def test_eap_proto_aka_prime(dev, apdev):
             logger.info("Test: Challenge with an extra KDF appended")
             dev[0].note("Challenge with an extra KDF appended")
             return struct.pack(">BBHBBHBBHBBBBBBHBBHBBHBBH",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4 * 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -5003,14 +4981,14 @@ def test_eap_proto_aka_prime(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge with multiple KDF proposals")
             dev[0].note("Challenge with multiple KDF proposals (preparation)")
             return struct.pack(">BBHBBHBBHBBBBBBHBBH",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 2 * 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -5022,7 +5000,7 @@ def test_eap_proto_aka_prime(dev, apdev):
             logger.info("Test: Challenge with a modified KDF")
             dev[0].note("Challenge with a modified KDF")
             return struct.pack(">BBHBBHBBHBBBBBBHBBHBBH",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 3 * 4,
                                EAP_TYPE_AKA_PRIME, EAP_AKA_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_KDF_INPUT, 2, 1, ord('a'), ord('b'),
@@ -5033,7 +5011,7 @@ def test_eap_proto_aka_prime(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         return None
 
@@ -5071,114 +5049,113 @@ def test_eap_proto_sim(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
 
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing payload")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_SIM)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected AT_AUTN")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_AUTN, 2, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too short AT_VERSION_LIST")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_VERSION_LIST, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: AT_VERSION_LIST overflow")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_VERSION_LIST, 1, 0xffff)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected AT_AUTS")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_AUTS, 2, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected AT_CHECKCODE")
-            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_CHECKCODE, 2, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: No AT_VERSION_LIST in Start")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: No support version in AT_VERSION_LIST")
-            return struct.pack(">BBHBBHBBH4B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH4B", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_VERSION_LIST, 2, 3, 2, 3, 4, 5)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request without ID type")
-            return struct.pack(">BBHBBHBBH2H", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH2H", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_VERSION_LIST, 2, 2, 1, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request ANY_ID")
-            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_VERSION_LIST, 2, 2, 1, 0,
@@ -5186,7 +5163,7 @@ def test_eap_proto_sim(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request ANY_ID (duplicate)")
-            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_VERSION_LIST, 2, 2, 1, 0,
@@ -5194,12 +5171,12 @@ def test_eap_proto_sim(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request ANY_ID")
-            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_VERSION_LIST, 2, 2, 1, 0,
@@ -5207,7 +5184,7 @@ def test_eap_proto_sim(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request FULLAUTH_ID")
-            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_VERSION_LIST, 2, 2, 1, 0,
@@ -5215,7 +5192,7 @@ def test_eap_proto_sim(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request FULLAUTH_ID (duplicate)")
-            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_VERSION_LIST, 2, 2, 1, 0,
@@ -5223,12 +5200,12 @@ def test_eap_proto_sim(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request ANY_ID")
-            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_VERSION_LIST, 2, 2, 1, 0,
@@ -5236,7 +5213,7 @@ def test_eap_proto_sim(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request FULLAUTH_ID")
-            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_VERSION_LIST, 2, 2, 1, 0,
@@ -5244,7 +5221,7 @@ def test_eap_proto_sim(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request PERMANENT_ID")
-            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_VERSION_LIST, 2, 2, 1, 0,
@@ -5252,7 +5229,7 @@ def test_eap_proto_sim(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Identity request PERMANENT_ID (duplicate)")
-            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH2HBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 8 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_START, 0,
                                EAP_SIM_AT_VERSION_LIST, 2, 2, 1, 0,
@@ -5260,35 +5237,35 @@ def test_eap_proto_sim(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: No AT_MAC and AT_RAND in Challenge")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_CHALLENGE, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: No AT_RAND in Challenge")
-            return struct.pack(">BBHBBHBBH4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 20,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_MAC, 5, 0, 0, 0, 0, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Insufficient number of challenges in Challenge")
-            return struct.pack(">BBHBBHBBH4LBBH4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH4LBBH4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 20 + 20,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_RAND, 5, 0, 0, 0, 0, 0,
@@ -5296,13 +5273,13 @@ def test_eap_proto_sim(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too many challenges in Challenge")
             return struct.pack(">BBHBBHBBH4L4L4L4LBBH4L", EAP_CODE_REQUEST,
-                               ctx['id'],
+                               id,
                                4 + 1 + 3 + 4 + 4 * 16 + 20,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_RAND, 17, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -5311,13 +5288,13 @@ def test_eap_proto_sim(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Same RAND multiple times in Challenge")
             return struct.pack(">BBHBBHBBH4L4L4LBBH4L", EAP_CODE_REQUEST,
-                               ctx['id'],
+                               id,
                                4 + 1 + 3 + 4 + 3 * 16 + 20,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_CHALLENGE, 0,
                                EAP_SIM_AT_RAND, 13, 0, 0, 0, 0, 0, 0, 0, 0, 1,
@@ -5326,35 +5303,35 @@ def test_eap_proto_sim(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification with no attributes")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_NOTIFICATION, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification indicating success, but no MAC")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_NOTIFICATION, 0,
                                EAP_SIM_AT_NOTIFICATION, 1, 32768)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification indicating success, but invalid MAC value")
-            return struct.pack(">BBHBBHBBHBBH4L", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBHBBH4L", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 20,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_NOTIFICATION, 0,
                                EAP_SIM_AT_NOTIFICATION, 1, 32768,
@@ -5362,84 +5339,84 @@ def test_eap_proto_sim(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification before auth")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_NOTIFICATION, 0,
                                EAP_SIM_AT_NOTIFICATION, 1, 16384)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification before auth")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_NOTIFICATION, 0,
                                EAP_SIM_AT_NOTIFICATION, 1, 16385)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification with unrecognized non-failure")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_NOTIFICATION, 0,
                                EAP_SIM_AT_NOTIFICATION, 1, 0xc000)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Notification before auth (duplicate)")
-            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_NOTIFICATION, 0,
                                EAP_SIM_AT_NOTIFICATION, 1, 0xc000)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Re-authentication (unexpected) with no attributes")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_REAUTHENTICATION,
                                0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Client Error")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_SIM, EAP_SIM_SUBTYPE_CLIENT_ERROR, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unknown subtype")
-            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3,
                                EAP_TYPE_SIM, 255, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         return None
 
@@ -5830,93 +5807,92 @@ def test_eap_proto_ikev2(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
 
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing payload")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_IKEV2)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Truncated Message Length field")
-            return struct.pack(">BBHBB3B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB3B", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 3,
                                EAP_TYPE_IKEV2, 0x80, 0, 0, 0)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too short Message Length value")
-            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4 + 1,
                                EAP_TYPE_IKEV2, 0x80, 0, 1)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Truncated message")
-            return struct.pack(">BBHBBL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBL", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4,
                                EAP_TYPE_IKEV2, 0x80, 1)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Truncated message(2)")
-            return struct.pack(">BBHBBL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBL", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4,
                                EAP_TYPE_IKEV2, 0x80, 0xffffffff)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Truncated message(3)")
-            return struct.pack(">BBHBBL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBL", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4,
                                EAP_TYPE_IKEV2, 0xc0, 0xffffffff)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Truncated message(4)")
-            return struct.pack(">BBHBBL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBL", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4,
                                EAP_TYPE_IKEV2, 0xc0, 10000000)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too long fragments (first fragment)")
-            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4 + 1,
                                EAP_TYPE_IKEV2, 0xc0, 2, 1)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too long fragments (second fragment)")
-            return struct.pack(">BBHBB2B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB2B", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2,
                                EAP_TYPE_IKEV2, 0x00, 2, 3)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: No Message Length field in first fragment")
-            return struct.pack(">BBHBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 1,
                                EAP_TYPE_IKEV2, 0x40, 1)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: ICV before keys")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_IKEV2, 0x20)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unsupported IKEv2 header version")
-            return struct.pack(">BBHBB2L2LBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB2L2LBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 28,
                                EAP_TYPE_IKEV2, 0x00,
                                0, 0, 0, 0,
@@ -5925,7 +5901,7 @@ def test_eap_proto_ikev2(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Incorrect IKEv2 header Length")
-            return struct.pack(">BBHBB2L2LBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB2L2LBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 28,
                                EAP_TYPE_IKEV2, 0x00,
                                0, 0, 0, 0,
@@ -5934,7 +5910,7 @@ def test_eap_proto_ikev2(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected IKEv2 Exchange Type in SA_INIT state")
-            return struct.pack(">BBHBB2L2LBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB2L2LBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 28,
                                EAP_TYPE_IKEV2, 0x00,
                                0, 0, 0, 0,
@@ -5943,7 +5919,7 @@ def test_eap_proto_ikev2(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected IKEv2 Message ID in SA_INIT state")
-            return struct.pack(">BBHBB2L2LBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB2L2LBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 28,
                                EAP_TYPE_IKEV2, 0x00,
                                0, 0, 0, 0,
@@ -5952,7 +5928,7 @@ def test_eap_proto_ikev2(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected IKEv2 Flags value")
-            return struct.pack(">BBHBB2L2LBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB2L2LBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 28,
                                EAP_TYPE_IKEV2, 0x00,
                                0, 0, 0, 0,
@@ -5961,7 +5937,7 @@ def test_eap_proto_ikev2(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected IKEv2 Flags value(2)")
-            return struct.pack(">BBHBB2L2LBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB2L2LBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 28,
                                EAP_TYPE_IKEV2, 0x00,
                                0, 0, 0, 0,
@@ -5970,7 +5946,7 @@ def test_eap_proto_ikev2(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: No SAi1 in SA_INIT")
-            return struct.pack(">BBHBB2L2LBBBBLL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB2L2LBBBBLL", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 28,
                                EAP_TYPE_IKEV2, 0x00,
                                0, 0, 0, 0,
@@ -5987,106 +5963,106 @@ def test_eap_proto_ikev2(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected extra data after payloads")
-            return build_ike(ctx['id'], ike=struct.pack(">B", 1))
+            return build_ike(id, ike=struct.pack(">B", 1))
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Truncated payload header")
-            return build_ike(ctx['id'], next=128, ike=struct.pack(">B", 1))
+            return build_ike(id, next=128, ike=struct.pack(">B", 1))
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too small payload header length")
             ike = struct.pack(">BBH", 0, 0, 3)
-            return build_ike(ctx['id'], next=128, ike=ike)
+            return build_ike(id, next=128, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too large payload header length")
             ike = struct.pack(">BBH", 0, 0, 5)
-            return build_ike(ctx['id'], next=128, ike=ike)
+            return build_ike(id, next=128, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unsupported payload (non-critical and critical)")
             ike = struct.pack(">BBHBBH", 129, 0, 4, 0, 0x01, 4)
-            return build_ike(ctx['id'], next=128, ike=ike)
+            return build_ike(id, next=128, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Certificate and empty SAi1")
             ike = struct.pack(">BBHBBH", 33, 0, 4, 0, 0, 4)
-            return build_ike(ctx['id'], next=37, ike=ike)
+            return build_ike(id, next=37, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too short proposal")
             ike = struct.pack(">BBHBBHBBB", 0, 0, 4 + 7,
                               0, 0, 7, 0, 0, 0)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too small proposal length in SAi1")
             ike = struct.pack(">BBHBBHBBBB", 0, 0, 4 + 8,
                               0, 0, 7, 0, 0, 0, 0)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too large proposal length in SAi1")
             ike = struct.pack(">BBHBBHBBBB", 0, 0, 4 + 8,
                               0, 0, 9, 0, 0, 0, 0)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected proposal type in SAi1")
             ike = struct.pack(">BBHBBHBBBB", 0, 0, 4 + 8,
                               1, 0, 8, 0, 0, 0, 0)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected Protocol ID in SAi1")
             ike = struct.pack(">BBHBBHBBBB", 0, 0, 4 + 8,
                               0, 0, 8, 0, 0, 0, 0)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected proposal number in SAi1")
             ike = struct.pack(">BBHBBHBBBB", 0, 0, 4 + 8,
                               0, 0, 8, 0, 1, 0, 0)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Not enough room for SPI in SAi1")
             ike = struct.pack(">BBHBBHBBBB", 0, 0, 4 + 8,
                               0, 0, 8, 1, 1, 1, 0)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected SPI in SAi1")
             ike = struct.pack(">BBHBBHBBBBB", 0, 0, 4 + 9,
                               0, 0, 9, 1, 1, 1, 0, 1)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: No transforms in SAi1")
             ike = struct.pack(">BBHBBHBBBB", 0, 0, 4 + 8,
                               0, 0, 8, 1, 1, 0, 0)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too short transform in SAi1")
             ike = struct.pack(">BBHBBHBBBB", 0, 0, 4 + 8,
                               0, 0, 8, 1, 1, 0, 1)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
@@ -6094,7 +6070,7 @@ def test_eap_proto_ikev2(dev, apdev):
             ike = struct.pack(">BBHBBHBBBBBBHBBH", 0, 0, 4 + 8 + 8,
                               0, 0, 8 + 8, 1, 1, 0, 1,
                               0, 0, 7, 0, 0, 0)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
@@ -6102,7 +6078,7 @@ def test_eap_proto_ikev2(dev, apdev):
             ike = struct.pack(">BBHBBHBBBBBBHBBH", 0, 0, 4 + 8 + 8,
                               0, 0, 8 + 8, 1, 1, 0, 1,
                               0, 0, 9, 0, 0, 0)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
@@ -6110,7 +6086,7 @@ def test_eap_proto_ikev2(dev, apdev):
             ike = struct.pack(">BBHBBHBBBBBBHBBH", 0, 0, 4 + 8 + 8,
                               0, 0, 8 + 8, 1, 1, 0, 1,
                               1, 0, 8, 0, 0, 0)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
@@ -6118,7 +6094,7 @@ def test_eap_proto_ikev2(dev, apdev):
             ike = struct.pack(">BBHBBHBBBBBBHBBH", 0, 0, 4 + 8 + 8,
                               0, 0, 8 + 8, 1, 1, 0, 1,
                               0, 0, 8, 0, 0, 0)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
@@ -6134,7 +6110,7 @@ def test_eap_proto_ikev2(dev, apdev):
                               3, 0, tlen2, 1, 0, 12, 0, 128,
                               0, 0, tlen3, 1, 0, 12, 0x8000 | 14, 127,
                               1)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         def build_sa(next=0):
             tlen = 5 * 8
@@ -6151,13 +6127,13 @@ def test_eap_proto_ikev2(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Valid proposal, but no KEi in SAi1")
             ike = build_sa()
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Empty KEi in SAi1")
             ike = build_sa(next=34) + struct.pack(">BBH", 0, 0, 4)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
@@ -6165,11 +6141,11 @@ def test_eap_proto_ikev2(dev, apdev):
             ike = build_sa(next=34)
             ike += struct.pack(">BBHHH", 0, 0, 4 + 4 + 96, 12345, 0)
             ike += 96*b'\x00'
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
@@ -6177,7 +6153,7 @@ def test_eap_proto_ikev2(dev, apdev):
             ike = build_sa(next=34)
             ike += struct.pack(">BBHHH", 0, 0, 4 + 4 + 96, 5, 0)
             ike += 96*b'\x00'
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         def build_ke(next=0):
             ke = struct.pack(">BBHHH", next, 0, 4 + 4 + 192, 5, 0)
@@ -6189,7 +6165,7 @@ def test_eap_proto_ikev2(dev, apdev):
             logger.info("Test: Valid proposal and KEi, but no Ni in SAi1")
             ike = build_sa(next=34)
             ike += build_ke()
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
@@ -6197,7 +6173,7 @@ def test_eap_proto_ikev2(dev, apdev):
             ike = build_sa(next=34)
             ike += build_ke(next=40)
             ike += struct.pack(">BBH", 0, 0, 4)
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
@@ -6205,7 +6181,7 @@ def test_eap_proto_ikev2(dev, apdev):
             ike = build_sa(next=34)
             ike += build_ke(next=40)
             ike += struct.pack(">BBH", 0, 0, 4 + 257) + 257*b'\x00'
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         def build_ni(next=0):
             return struct.pack(">BBH", next, 0, 4 + 256) + 256*b'\x00'
@@ -6214,58 +6190,58 @@ def test_eap_proto_ikev2(dev, apdev):
             ike = build_sa(next=34)
             ike += build_ke(next=40)
             ike += build_ni()
-            return build_ike(ctx['id'], next=33, ike=ike)
+            return build_ike(id, next=33, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid proposal, KEi, and Ni in SAi1")
-            return build_sai1(ctx['id'])
+            return build_sai1(id)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid proposal, KEi, and Ni in SAi1")
-            return build_sai1(ctx['id'])
+            return build_sai1(id)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: No integrity checksum")
             ike = b''
-            return build_ike(ctx['id'], next=37, ike=ike)
+            return build_ike(id, next=37, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid proposal, KEi, and Ni in SAi1")
-            return build_sai1(ctx['id'])
+            return build_sai1(id)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Truncated integrity checksum")
             return struct.pack(">BBHBB",
-                               EAP_CODE_REQUEST, ctx['id'],
+                               EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_IKEV2, 0x20)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid proposal, KEi, and Ni in SAi1")
-            return build_sai1(ctx['id'])
+            return build_sai1(id)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid integrity checksum")
             ike = b''
-            return build_ike(ctx['id'], next=37, flags=0x20, ike=ike)
+            return build_ike(id, next=37, flags=0x20, ike=ike)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("No more test responses available - test case completed")
             global eap_proto_ikev2_test_done
             eap_proto_ikev2_test_done = True
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_IKEV2)
-        return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+        return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(ikev2_handler)
 
@@ -6718,22 +6694,21 @@ def test_eap_proto_mschapv2(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing payload")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_MSCHAPV2)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unknown MSCHAPv2 op_code")
-            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + 1,
                                EAP_TYPE_MSCHAPV2,
                                0, 0, 5, 0)
@@ -6741,7 +6716,7 @@ def test_eap_proto_mschapv2(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid ms_len and unknown MSCHAPv2 op_code")
-            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + 1,
                                EAP_TYPE_MSCHAPV2,
                                255, 0, 0, 0)
@@ -6749,7 +6724,7 @@ def test_eap_proto_mschapv2(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Success before challenge")
-            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + 1,
                                EAP_TYPE_MSCHAPV2,
                                3, 0, 5, 0)
@@ -6757,59 +6732,59 @@ def test_eap_proto_mschapv2(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Failure before challenge - required challenge field not present")
-            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + 1,
                                EAP_TYPE_MSCHAPV2,
                                4, 0, 5, 0)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Failure before challenge - invalid failure challenge len")
             payload = b'C=12'
-            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + len(payload),
                                EAP_TYPE_MSCHAPV2,
                                4, 0, 4 + len(payload)) + payload
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Failure before challenge - invalid failure challenge len")
             payload = b'C=12 V=3'
-            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + len(payload),
                                EAP_TYPE_MSCHAPV2,
                                4, 0, 4 + len(payload)) + payload
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Failure before challenge - invalid failure challenge")
             payload = b'C=00112233445566778899aabbccddeefQ '
-            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + len(payload),
                                EAP_TYPE_MSCHAPV2,
                                4, 0, 4 + len(payload)) + payload
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Failure before challenge - password expired")
             payload = b'E=648 R=1 C=00112233445566778899aabbccddeeff V=3 M=Password expired'
-            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + len(payload),
                                EAP_TYPE_MSCHAPV2,
                                4, 0, 4 + len(payload)) + payload
@@ -6817,7 +6792,7 @@ def test_eap_proto_mschapv2(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Success after password change")
             payload = b"S=1122334455667788990011223344556677889900"
-            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + len(payload),
                                EAP_TYPE_MSCHAPV2,
                                3, 0, 4 + len(payload)) + payload
@@ -6825,7 +6800,7 @@ def test_eap_proto_mschapv2(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid challenge length")
-            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + 1,
                                EAP_TYPE_MSCHAPV2,
                                1, 0, 4 + 1, 0)
@@ -6833,7 +6808,7 @@ def test_eap_proto_mschapv2(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too short challenge packet")
-            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + 1,
                                EAP_TYPE_MSCHAPV2,
                                1, 0, 4 + 1, 16)
@@ -6841,7 +6816,7 @@ def test_eap_proto_mschapv2(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge")
-            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + 1 + 16 + 6,
                                EAP_TYPE_MSCHAPV2,
                                1, 0, 4 + 1 + 16 + 6, 16) + 16*b'A' + b'foobar'
@@ -6849,7 +6824,7 @@ def test_eap_proto_mschapv2(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Failure - password expired")
             payload = b'E=648 R=1 C=00112233445566778899aabbccddeeff V=3 M=Password expired'
-            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + len(payload),
                                EAP_TYPE_MSCHAPV2,
                                4, 0, 4 + len(payload)) + payload
@@ -6884,20 +6859,20 @@ def test_eap_proto_mschapv2(dev, apdev):
                                                       auth_challenge, "user")
             payload = b"S=" + binascii.hexlify(auth_resp).decode().upper().encode()
             logger.info("Success message payload: " + payload.decode())
-            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + len(payload),
                                EAP_TYPE_MSCHAPV2,
                                3, 0, 4 + len(payload)) + payload
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Success")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Failure - password expired")
             payload = b'E=648 R=1 C=00112233445566778899aabbccddeeff V=3 M=Password expired'
-            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + len(payload),
                                EAP_TYPE_MSCHAPV2,
                                4, 0, 4 + len(payload)) + payload
@@ -6932,19 +6907,19 @@ def test_eap_proto_mschapv2(dev, apdev):
                                                       auth_challenge, "user")
             payload = b"S=" + binascii.hexlify(auth_resp).decode().upper().encode()
             logger.info("Success message payload: " + payload.decode())
-            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + len(payload),
                                EAP_TYPE_MSCHAPV2,
                                3, 0, 4 + len(payload)) + payload
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Success")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge")
-            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + 1 + 16 + 6,
                                EAP_TYPE_MSCHAPV2,
                                1, 0, 4 + 1 + 16 + 6, 16) + 16*b'A' + b'foobar'
@@ -6952,7 +6927,7 @@ def test_eap_proto_mschapv2(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Failure - authentication failure")
             payload = b'E=691 R=1 C=00112233445566778899aabbccddeeff V=3 M=Authentication failed'
-            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + len(payload),
                                EAP_TYPE_MSCHAPV2,
                                4, 0, 4 + len(payload)) + payload
@@ -6960,7 +6935,7 @@ def test_eap_proto_mschapv2(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge")
-            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + 1 + 16 + 6,
                                EAP_TYPE_MSCHAPV2,
                                1, 0, 4 + 1 + 16 + 6, 16) + 16*b'A' + b'foobar'
@@ -6968,19 +6943,19 @@ def test_eap_proto_mschapv2(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Failure - authentication failure")
             payload = b'E=691 R=1 C=00112233445566778899aabbccddeeff V=3 M=Authentication failed (2)'
-            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + len(payload),
                                EAP_TYPE_MSCHAPV2,
                                4, 0, 4 + len(payload)) + payload
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Challenge - invalid ms_len and workaround disabled")
-            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + 1 + 16 + 6,
                                EAP_TYPE_MSCHAPV2,
                                1, 0, 4 + 1 + 16 + 6 + 1, 16) + 16*b'A' + b'foobar'
@@ -7078,15 +7053,15 @@ def test_eap_proto_mschapv2_errors(dev, apdev):
     """EAP-MSCHAPv2 protocol tests (error paths)"""
     check_eap_capa(dev[0], "MSCHAPV2")
 
-    def mschapv2_fail_password_expired(ctx):
+    def mschapv2_fail_password_expired(id):
         logger.info("Test: Failure before challenge - password expired")
         payload = b'E=648 R=1 C=00112233445566778899aabbccddeeff V=3 M=Password expired'
-        return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, ctx['id'],
+        return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, id,
                            4 + 1 + 4 + len(payload),
                            EAP_TYPE_MSCHAPV2,
                            4, 0, 4 + len(payload)) + payload
 
-    def mschapv2_success_after_password_change(ctx, req=None):
+    def mschapv2_success_after_password_change(id, req=None):
         logger.info("Test: Success after password change")
         if req is None or len(req) != 591:
             payload = b"S=1122334455667788990011223344556677889900"
@@ -7115,7 +7090,7 @@ def test_eap_proto_mschapv2_errors(dev, apdev):
                                                       peer_challenge,
                                                       auth_challenge, "user")
             payload = b"S=" + binascii.hexlify(auth_resp).decode().upper().encode()
-        return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, ctx['id'],
+        return struct.pack(">BBHBBBH", EAP_CODE_REQUEST, id,
                            4 + 1 + 4 + len(payload),
                            EAP_TYPE_MSCHAPV2,
                            3, 0, 4 + len(payload)) + payload
@@ -7125,100 +7100,99 @@ def test_eap_proto_mschapv2_errors(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_fail_password_expired(ctx)
+            return mschapv2_fail_password_expired(id)
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_success_after_password_change(ctx, req)
+            return mschapv2_success_after_password_change(id, req)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_fail_password_expired(ctx)
+            return mschapv2_fail_password_expired(id)
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_success_after_password_change(ctx, req)
+            return mschapv2_success_after_password_change(id, req)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_fail_password_expired(ctx)
+            return mschapv2_fail_password_expired(id)
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_success_after_password_change(ctx, req)
+            return mschapv2_success_after_password_change(id, req)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_fail_password_expired(ctx)
+            return mschapv2_fail_password_expired(id)
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_success_after_password_change(ctx, req)
+            return mschapv2_success_after_password_change(id, req)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_fail_password_expired(ctx)
+            return mschapv2_fail_password_expired(id)
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_success_after_password_change(ctx, req)
+            return mschapv2_success_after_password_change(id, req)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_fail_password_expired(ctx)
+            return mschapv2_fail_password_expired(id)
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_success_after_password_change(ctx, req)
+            return mschapv2_success_after_password_change(id, req)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_fail_password_expired(ctx)
+            return mschapv2_fail_password_expired(id)
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_success_after_password_change(ctx, req)
+            return mschapv2_success_after_password_change(id, req)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_fail_password_expired(ctx)
+            return mschapv2_fail_password_expired(id)
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_success_after_password_change(ctx, req)
+            return mschapv2_success_after_password_change(id, req)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_fail_password_expired(ctx)
+            return mschapv2_fail_password_expired(id)
         idx += 1
         if ctx['num'] == idx:
-            return mschapv2_success_after_password_change(ctx, req)
+            return mschapv2_success_after_password_change(id, req)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         return None
 
@@ -7298,9 +7272,8 @@ def test_eap_proto_pwd(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         global eap_proto_pwd_test_wait
@@ -7310,7 +7283,7 @@ def test_eap_proto_pwd(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Missing payload")
             # EAP-pwd: Got a frame but pos is not NULL and len is 0
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'], 4 + 1,
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id, 4 + 1,
                                EAP_TYPE_PWD)
 
         idx += 1
@@ -7318,7 +7291,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Missing Total-Length field")
             # EAP-pwd: Frame too short to contain Total-Length field
             payload = struct.pack("B", 0x80)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7326,7 +7299,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Too large Total-Length")
             # EAP-pwd: Incoming fragments whose total length = 65535
             payload = struct.pack(">BH", 0x80, 65535)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7336,7 +7309,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd: Incoming fragments whose total length = 10
             # EAP-pwd: ACKing a 0 byte fragment
             payload = struct.pack(">BH", 0xc0, 10)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7344,7 +7317,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd: Incoming fragments whose total length = 0
             # EAP-pwd: Unexpected new fragment start when previous fragment is still in use
             payload = struct.pack(">BH", 0x80, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7354,7 +7327,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd: processing frame: exch 0, len 0
             # EAP-pwd: Ignoring message with unknown opcode 128
             payload = struct.pack(">BH", 0x80, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7364,7 +7337,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd: processing frame: exch 0, len 1
             # EAP-pwd: Ignoring message with unknown opcode 128
             payload = struct.pack(">BHB", 0x80, 0, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7374,14 +7347,14 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd: Incoming fragments whose total length = 2
             # EAP-pwd: ACKing a 1 byte fragment
             payload = struct.pack(">BHB", 0xc0, 2, 1)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Extra data in the second fragment")
             # EAP-pwd: Buffer overflow attack detected (3 vs. 1)!
             payload = struct.pack(">BBB", 0x0, 2, 3)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7390,7 +7363,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd: processing frame: exch 1, len 0
             # EAP-PWD: PWD-ID-Req -> FAILURE
             payload = struct.pack(">B", 0x01)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7399,7 +7372,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-PWD: Server EAP-pwd-ID proposal: group=0 random=0 prf=0 prep=0
             # EAP-PWD: PWD-ID-Req -> FAILURE
             payload = struct.pack(">BHBBLB", 0x01, 0, 0, 0, 0, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7408,7 +7381,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=0 prep=0
             # EAP-PWD: PWD-ID-Req -> FAILURE
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 0, 0, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7418,7 +7391,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-PWD: Unsupported password pre-processing technique (Prep=255)
             # EAP-PWD: PWD-ID-Req -> FAILURE
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 255)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7427,7 +7400,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=0
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7435,7 +7408,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd: processing frame: exch 1, len 9
             # EAP-PWD: PWD-Commit-Req -> FAILURE
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7444,7 +7417,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd: processing frame: exch 2, len 0
             # EAP-PWD: PWD-ID-Req -> FAILURE
             payload = struct.pack(">B", 0x02)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7453,7 +7426,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=0
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7461,7 +7434,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd commit request, password prep is NONE
             # EAP-pwd: Unexpected Commit payload length 0 (expected 96)
             payload = struct.pack(">B", 0x02)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7470,14 +7443,14 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=0
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Commit payload with all zeros values --> Shared key at infinity")
             # EAP-pwd: Invalid coordinate in element
             payload = struct.pack(">B", 0x02) + 96*b'\0'
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7486,7 +7459,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=0
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7496,14 +7469,14 @@ def test_eap_proto_pwd(dev, apdev):
             element = binascii.unhexlify("8dcab2862c5396839a6bac0c689ff03d962863108e7c275bbf1d6eedf634ee832a214db99f0d0a1a6317733eecdd97f0fc4cda19f57e1bb9bb9c8dcf8c60ba6f")
             scalar = binascii.unhexlify("450f31e058cf2ac2636a5d6e2b3c70b1fcc301957f0716e77f13aa69f9a2e5bd")
             payload = struct.pack(">B", 0x02) + element + scalar
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected Confirm payload length 0")
             # EAP-pwd: Unexpected Confirm payload length 0 (expected 32)
             payload = struct.pack(">B", 0x03)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7512,7 +7485,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=0
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7522,14 +7495,14 @@ def test_eap_proto_pwd(dev, apdev):
             element = binascii.unhexlify("8dcab2862c5396839a6bac0c689ff03d962863108e7c275bbf1d6eedf634ee832a214db99f0d0a1a6317733eecdd97f0fc4cda19f57e1bb9bb9c8dcf8c60ba6f")
             scalar = binascii.unhexlify("450f31e058cf2ac2636a5d6e2b3c70b1fcc301957f0716e77f13aa69f9a2e5bd")
             payload = struct.pack(">B", 0x02) + element + scalar
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Confirm payload with incorrect value")
             # EAP-PWD (peer): confirm did not verify
             payload = struct.pack(">B", 0x03) + 32*b'\0'
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7538,7 +7511,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd: processing frame: exch 3, len 0
             # EAP-PWD: PWD-ID-Req -> FAILURE
             payload = struct.pack(">B", 0x03)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7548,7 +7521,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-PWD: Unsupported password pre-processing technique (Prep=2)
             # EAP-PWD: PWD-ID-Req -> FAILURE
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 2)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7557,7 +7530,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=1
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 1)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7565,7 +7538,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd commit request, password prep is MS
             # EAP-pwd: Unexpected Commit payload length 0 (expected 96)
             payload = struct.pack(">B", 0x02)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7574,7 +7547,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=3
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 3)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7582,7 +7555,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd commit request, password prep is salted sha1
             # EAP-pwd: Invalid Salt-len
             payload = struct.pack(">B", 0x02)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7591,7 +7564,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=3
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 3)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7599,7 +7572,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd commit request, password prep is salted sha1
             # EAP-pwd: Invalid Salt-len
             payload = struct.pack(">BB", 0x02, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7608,7 +7581,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=3
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 3)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7616,7 +7589,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd commit request, password prep is salted sha1
             # EAP-pwd: Unexpected Commit payload length 1 (expected 98)
             payload = struct.pack(">BB", 0x02, 1)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7625,7 +7598,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=4
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 4)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7633,7 +7606,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd commit request, password prep is salted sha256
             # EAP-pwd: Invalid Salt-len
             payload = struct.pack(">B", 0x02)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7642,7 +7615,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=4
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 4)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7650,7 +7623,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd commit request, password prep is salted sha256
             # EAP-pwd: Invalid Salt-len
             payload = struct.pack(">BB", 0x02, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7659,7 +7632,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=4
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 4)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7667,7 +7640,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd commit request, password prep is salted sha256
             # EAP-pwd: Unexpected Commit payload length 1 (expected 98)
             payload = struct.pack(">BB", 0x02, 1)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7676,7 +7649,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=5
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 5)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7684,7 +7657,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd commit request, password prep is salted sha512
             # EAP-pwd: Invalid Salt-len
             payload = struct.pack(">B", 0x02)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7693,7 +7666,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=5
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 5)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7701,7 +7674,7 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd commit request, password prep is salted sha512
             # EAP-pwd: Invalid Salt-len
             payload = struct.pack(">BB", 0x02, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         idx += 1
@@ -7710,7 +7683,7 @@ def test_eap_proto_pwd(dev, apdev):
             logger.info("Test: Valid id exchange")
             # EAP-PWD: Server EAP-pwd-ID proposal: group=19 random=1 prf=1 prep=5
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 5)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7718,13 +7691,13 @@ def test_eap_proto_pwd(dev, apdev):
             # EAP-pwd commit request, password prep is salted sha512
             # EAP-pwd: Unexpected Commit payload length 1 (expected 98)
             payload = struct.pack(">BB", 0x02, 1)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         logger.info("No more test responses available - test case completed")
         global eap_proto_pwd_test_done
         eap_proto_pwd_test_done = True
-        return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+        return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(pwd_handler)
 
@@ -7789,22 +7762,21 @@ def run_eap_proto_pwd_invalid_scalar(dev, apdev, scalar, valid_scalar=False):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid id exchange")
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Commit payload with invalid scalar")
             payload = struct.pack(">B", 0x02) + binascii.unhexlify("67feb2b46d59e6dd3af3a429ec9c04a949337564615d3a2c19bdf6826eb6f5efa303aed86af3a072ed819d518d620adb2659f0e84c4f8b739629db8c93088cfc") + scalar
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7812,11 +7784,11 @@ def run_eap_proto_pwd_invalid_scalar(dev, apdev, scalar, valid_scalar=False):
             global eap_proto_pwd_invalid_scalar_fail
             eap_proto_pwd_invalid_scalar_fail = True
             payload = struct.pack(">B", 0x03) + 32*b'\0'
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         logger.info("No more test responses available - test case completed")
-        return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+        return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(pwd_handler)
 
@@ -7864,22 +7836,21 @@ def run_eap_proto_pwd_invalid_element(dev, apdev, element):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid id exchange")
             payload = struct.pack(">BHBBLB", 0x01, 19, 1, 1, 0, 0)
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Commit payload with invalid element")
             payload = struct.pack(">B", 0x02) + element + 31*b'\0' + b'\x02'
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
         idx += 1
         if ctx['num'] == idx:
@@ -7887,11 +7858,11 @@ def run_eap_proto_pwd_invalid_element(dev, apdev, element):
             global eap_proto_pwd_invalid_element_fail
             eap_proto_pwd_invalid_element_fail = True
             payload = struct.pack(">B", 0x03) + 32*b'\0'
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + len(payload), EAP_TYPE_PWD) + payload
 
         logger.info("No more test responses available - test case completed")
-        return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+        return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(pwd_handler)
 
@@ -8494,33 +8465,32 @@ def test_eap_proto_erp(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] += 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing type")
-            return struct.pack(">BBH", EAP_CODE_INITIATE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_INITIATE, id, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected type")
-            return struct.pack(">BBHB", EAP_CODE_INITIATE, ctx['id'], 4 + 1,
+            return struct.pack(">BBHB", EAP_CODE_INITIATE, id, 4 + 1,
                                255)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing Reserved field")
-            return struct.pack(">BBHB", EAP_CODE_INITIATE, ctx['id'], 4 + 1,
+            return struct.pack(">BBHB", EAP_CODE_INITIATE, id, 4 + 1,
                                EAP_ERP_TYPE_REAUTH_START)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Zero-length TVs/TLVs")
             payload = b""
-            return struct.pack(">BBHBB", EAP_CODE_INITIATE, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_INITIATE, id,
                                4 + 1 + 1 + len(payload),
                                EAP_ERP_TYPE_REAUTH_START, 0) + payload
 
@@ -8528,7 +8498,7 @@ def test_eap_proto_erp(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Too short TLV")
             payload = struct.pack("B", 191)
-            return struct.pack(">BBHBB", EAP_CODE_INITIATE, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_INITIATE, id,
                                4 + 1 + 1 + len(payload),
                                EAP_ERP_TYPE_REAUTH_START, 0) + payload
 
@@ -8536,7 +8506,7 @@ def test_eap_proto_erp(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Truncated TLV")
             payload = struct.pack("BB", 191, 1)
-            return struct.pack(">BBHBB", EAP_CODE_INITIATE, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_INITIATE, id,
                                4 + 1 + 1 + len(payload),
                                EAP_ERP_TYPE_REAUTH_START, 0) + payload
 
@@ -8544,7 +8514,7 @@ def test_eap_proto_erp(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Ignored unknown TLV and unknown TV/TLV terminating parsing")
             payload = struct.pack("BBB", 191, 0, 192)
-            return struct.pack(">BBHBB", EAP_CODE_INITIATE, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_INITIATE, id,
                                4 + 1 + 1 + len(payload),
                                EAP_ERP_TYPE_REAUTH_START, 0) + payload
 
@@ -8553,7 +8523,7 @@ def test_eap_proto_erp(dev, apdev):
             logger.info("Test: More than one keyName-NAI")
             payload = struct.pack("BBBB", EAP_ERP_TLV_KEYNAME_NAI, 0,
                                   EAP_ERP_TLV_KEYNAME_NAI, 0)
-            return struct.pack(">BBHBB", EAP_CODE_INITIATE, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_INITIATE, id,
                                4 + 1 + 1 + len(payload),
                                EAP_ERP_TYPE_REAUTH_START, 0) + payload
 
@@ -8561,7 +8531,7 @@ def test_eap_proto_erp(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Too short TLV keyName-NAI")
             payload = struct.pack("B", EAP_ERP_TLV_KEYNAME_NAI)
-            return struct.pack(">BBHBB", EAP_CODE_INITIATE, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_INITIATE, id,
                                4 + 1 + 1 + len(payload),
                                EAP_ERP_TYPE_REAUTH_START, 0) + payload
 
@@ -8569,7 +8539,7 @@ def test_eap_proto_erp(dev, apdev):
         if ctx['num'] == idx:
             logger.info("Test: Truncated TLV keyName-NAI")
             payload = struct.pack("BB", EAP_ERP_TLV_KEYNAME_NAI, 1)
-            return struct.pack(">BBHBB", EAP_CODE_INITIATE, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_INITIATE, id,
                                4 + 1 + 1 + len(payload),
                                EAP_ERP_TYPE_REAUTH_START, 0) + payload
 
@@ -8578,38 +8548,38 @@ def test_eap_proto_erp(dev, apdev):
             logger.info("Test: Valid rRK lifetime TV followed by too short rMSK lifetime TV")
             payload = struct.pack(">BLBH", EAP_ERP_TV_RRK_LIFETIME, 0,
                                   EAP_ERP_TV_RMSK_LIFETIME, 0)
-            return struct.pack(">BBHBB", EAP_CODE_INITIATE, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_INITIATE, id,
                                4 + 1 + 1 + len(payload),
                                EAP_ERP_TYPE_REAUTH_START, 0) + payload
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing type (Finish)")
-            return struct.pack(">BBH", EAP_CODE_FINISH, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FINISH, id, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected type (Finish)")
-            return struct.pack(">BBHB", EAP_CODE_FINISH, ctx['id'], 4 + 1,
+            return struct.pack(">BBHB", EAP_CODE_FINISH, id, 4 + 1,
                                255)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing fields (Finish)")
-            return struct.pack(">BBHB", EAP_CODE_FINISH, ctx['id'], 4 + 1,
+            return struct.pack(">BBHB", EAP_CODE_FINISH, id, 4 + 1,
                                EAP_ERP_TYPE_REAUTH)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected SEQ (Finish)")
-            return struct.pack(">BBHBBHB", EAP_CODE_FINISH, ctx['id'],
+            return struct.pack(">BBHBBHB", EAP_CODE_FINISH, id,
                                4 + 1 + 4,
                                EAP_ERP_TYPE_REAUTH, 0, 0xffff, 0)
 
         logger.info("No more test responses available - test case completed")
         global eap_proto_erp_test_done
         eap_proto_erp_test_done = True
-        return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+        return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(erp_handler)
 
@@ -9064,60 +9034,59 @@ def test_eap_proto_expanded(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] += 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: MD5 challenge in expanded header")
-            return struct.pack(">BBHB3BLBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 3,
                                EAP_TYPE_EXPANDED, 0, 0, 0, EAP_TYPE_MD5,
                                1, 0xaa, ord('n'))
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid expanded EAP length")
-            return struct.pack(">BBHB3BH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 2,
                                EAP_TYPE_EXPANDED, 0, 0, 0, EAP_TYPE_MD5)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid expanded frame type")
-            return struct.pack(">BBHB3BL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_EXPANDED, 0, 0, 1, EAP_TYPE_MD5)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: MSCHAPv2 Challenge")
-            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 4 + 1 + 16 + 6,
                                EAP_TYPE_MSCHAPV2,
                                1, 0, 4 + 1 + 16 + 6, 16) + 16*b'A' + b'foobar'
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid expanded frame type")
-            return struct.pack(">BBHB3BL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BL", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4,
                                EAP_TYPE_EXPANDED, 0, 0, 1, EAP_TYPE_MSCHAPV2)
 
         logger.info("No more test responses available - test case completed")
         global eap_proto_expanded_test_done
         eap_proto_expanded_test_done = True
-        return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+        return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(expanded_handler)
 
@@ -9176,9 +9145,8 @@ def test_eap_proto_tls(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] += 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         global eap_proto_tls_test_wait
@@ -9186,93 +9154,93 @@ def test_eap_proto_tls(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too much payload in TLS/Start: TLS Message Length (0 bytes) smaller than this fragment (1 bytes)")
-            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4 + 1,
                                EAP_TYPE_TLS, 0xa0, 0, 1)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Fragmented TLS/Start")
-            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4 + 1,
                                EAP_TYPE_TLS, 0xe0, 2, 1)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too long fragment of TLS/Start: Invalid reassembly state: tls_in_left=2 tls_in_len=0 in_len=0")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2,
                                EAP_TYPE_TLS, 0x00, 2, 3)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: TLS/Start")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TLS, 0x20)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Fragmented TLS message")
-            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4 + 1,
                                EAP_TYPE_TLS, 0xc0, 2, 1)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid TLS message: no Flags octet included + workaround")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_TLS)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Too long fragment of TLS message: more data than TLS message length indicated")
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2,
                                EAP_TYPE_TLS, 0x00, 2, 3)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Fragmented TLS/Start and truncated Message Length field")
-            return struct.pack(">BBHBB3B", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB3B", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 3,
                                EAP_TYPE_TLS, 0xe0, 1, 2, 3)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: TLS/Start")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TLS, 0x20)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Fragmented TLS message")
-            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4 + 1,
                                EAP_TYPE_TLS, 0xc0, 2, 1)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid TLS message: no Flags octet included + workaround disabled")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_TLS)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: TLS/Start")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TLS, 0x20)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Fragmented TLS message (long; first)")
             payload = 1450*b'A'
-            return struct.pack(">BBHBBL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBL", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4 + len(payload),
                                EAP_TYPE_TLS, 0xc0, 65536) + payload
         # "Too long TLS fragment (size over 64 kB)" on the last one
@@ -9282,36 +9250,36 @@ def test_eap_proto_tls(dev, apdev):
                 logger.info("Test: Fragmented TLS message (long; cont %d)" % i)
                 eap_proto_tls_test_wait = True
                 payload = 1470*b'A'
-                return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+                return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                    4 + 1 + 1 + len(payload),
                                    EAP_TYPE_TLS, 0x40) + payload
         eap_proto_tls_test_wait = False
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: TLS/Start")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TLS, 0x20)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Non-ACK to more-fragment message")
-            return struct.pack(">BBHBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 1,
                                EAP_TYPE_TLS, 0x00, 255)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Failure")
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         logger.info("No more test responses available - test case completed")
         global eap_proto_tls_test_done
         eap_proto_tls_test_done = True
-        return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+        return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(tls_handler)
 
@@ -9364,334 +9332,333 @@ def test_eap_proto_tnc(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] += 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: TNC start with unsupported version")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x20)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: TNC without Flags field")
-            return struct.pack(">BBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB", EAP_CODE_REQUEST, id,
                                4 + 1,
                                EAP_TYPE_TNC)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Message underflow due to missing Message Length")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0xa1)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid Message Length")
-            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4 + 1,
                                EAP_TYPE_TNC, 0xa1, 0, 0)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid Message Length")
-            return struct.pack(">BBHBBL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBL", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4,
                                EAP_TYPE_TNC, 0xe1, 75001)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Start with Message Length")
-            return struct.pack(">BBHBBL", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBL", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4,
                                EAP_TYPE_TNC, 0xa1, 1)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Server used start flag again")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Fragmentation and unexpected payload in ack")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x01)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBHBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 1,
                                EAP_TYPE_TNC, 0x01, 0)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Server fragmenting and fragment overflow")
-            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBLB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 4 + 1,
                                EAP_TYPE_TNC, 0xe1, 2, 1)
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 2,
                                EAP_TYPE_TNC, 0x01, 2, 3)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Server fragmenting and no message length in a fragment")
-            return struct.pack(">BBHBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + 1,
                                EAP_TYPE_TNC, 0x61, 2)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: TNC start followed by invalid TNCCS-Batch")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Received TNCCS-Batch: " + binascii.hexlify(req[6:]).decode())
             resp = b"FOO"
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(resp),
                                EAP_TYPE_TNC, 0x01) + resp
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: TNC start followed by invalid TNCCS-Batch (2)")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Received TNCCS-Batch: " + binascii.hexlify(req[6:]).decode())
             resp = b"</TNCCS-Batch><TNCCS-Batch>"
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(resp),
                                EAP_TYPE_TNC, 0x01) + resp
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: TNCCS-Batch missing BatchId attribute")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Received TNCCS-Batch: " + binascii.hexlify(req[6:]).decode())
             resp = b"<TNCCS-Batch    foo=3></TNCCS-Batch>"
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(resp),
                                EAP_TYPE_TNC, 0x01) + resp
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected IF-TNCCS BatchId")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Received TNCCS-Batch: " + binascii.hexlify(req[6:]).decode())
             resp = b"<TNCCS-Batch    BatchId=123456789></TNCCS-Batch>"
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(resp),
                                EAP_TYPE_TNC, 0x01) + resp
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing IMC-IMV-Message and TNCC-TNCS-Message end tags")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Received TNCCS-Batch: " + binascii.hexlify(req[6:]).decode())
             resp = b"<TNCCS-Batch BatchId=2><IMC-IMV-Message><TNCC-TNCS-Message></TNCCS-Batch>"
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(resp),
                                EAP_TYPE_TNC, 0x01) + resp
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing IMC-IMV-Message and TNCC-TNCS-Message Type")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Received TNCCS-Batch: " + binascii.hexlify(req[6:]).decode())
             resp = b"<TNCCS-Batch BatchId=2><IMC-IMV-Message></IMC-IMV-Message><TNCC-TNCS-Message></TNCC-TNCS-Message></TNCCS-Batch>"
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(resp),
                                EAP_TYPE_TNC, 0x01) + resp
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing TNCC-TNCS-Message XML end tag")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Received TNCCS-Batch: " + binascii.hexlify(req[6:]).decode())
             resp = b"<TNCCS-Batch BatchId=2><TNCC-TNCS-Message><Type>00000001</Type><XML></TNCC-TNCS-Message></TNCCS-Batch>"
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(resp),
                                EAP_TYPE_TNC, 0x01) + resp
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing TNCC-TNCS-Message Base64 start tag")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Received TNCCS-Batch: " + binascii.hexlify(req[6:]).decode())
             resp = b"<TNCCS-Batch BatchId=2><TNCC-TNCS-Message><Type>00000001</Type></TNCC-TNCS-Message></TNCCS-Batch>"
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(resp),
                                EAP_TYPE_TNC, 0x01) + resp
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing TNCC-TNCS-Message Base64 end tag")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Received TNCCS-Batch: " + binascii.hexlify(req[6:]).decode())
             resp = b"<TNCCS-Batch BatchId=2><TNCC-TNCS-Message><Type>00000001</Type><Base64>abc</TNCC-TNCS-Message></TNCCS-Batch>"
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(resp),
                                EAP_TYPE_TNC, 0x01) + resp
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: TNCC-TNCS-Message Base64 message")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Received TNCCS-Batch: " + binascii.hexlify(req[6:]).decode())
             resp = b"<TNCCS-Batch BatchId=2><TNCC-TNCS-Message><Type>00000001</Type><Base64>aGVsbG8=</Base64></TNCC-TNCS-Message></TNCCS-Batch>"
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(resp),
                                EAP_TYPE_TNC, 0x01) + resp
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid TNCC-TNCS-Message XML message")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Received TNCCS-Batch: " + binascii.hexlify(req[6:]).decode())
             resp = b"<TNCCS-Batch BatchId=2><TNCC-TNCS-Message><Type>00000001</Type><XML>hello</XML></TNCC-TNCS-Message></TNCCS-Batch>"
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(resp),
                                EAP_TYPE_TNC, 0x01) + resp
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing TNCCS-Recommendation type")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Received TNCCS-Batch: " + binascii.hexlify(req[6:]).decode())
             resp = b'<TNCCS-Batch BatchId=2><TNCC-TNCS-Message><Type>00000001</Type><XML><TNCCS-Recommendation foo=1></TNCCS-Recommendation></XML></TNCC-TNCS-Message></TNCCS-Batch>'
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(resp),
                                EAP_TYPE_TNC, 0x01) + resp
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: TNCCS-Recommendation type=none")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Received TNCCS-Batch: " + binascii.hexlify(req[6:]).decode())
             resp = b'<TNCCS-Batch BatchId=2><TNCC-TNCS-Message><Type>00000001</Type><XML><TNCCS-Recommendation type="none"></TNCCS-Recommendation></XML></TNCC-TNCS-Message></TNCCS-Batch>'
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(resp),
                                EAP_TYPE_TNC, 0x01) + resp
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: TNCCS-Recommendation type=isolate")
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1,
                                EAP_TYPE_TNC, 0x21)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Received TNCCS-Batch: " + binascii.hexlify(req[6:]).decode())
             resp = b'<TNCCS-Batch BatchId=2><TNCC-TNCS-Message><Type>00000001</Type><XML><TNCCS-Recommendation type="isolate"></TNCCS-Recommendation></XML></TNCC-TNCS-Message></TNCCS-Batch>'
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(resp),
                                EAP_TYPE_TNC, 0x01) + resp
         idx += 1
         if ctx['num'] == idx:
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         logger.info("No more test responses available - test case completed")
         global eap_proto_tnc_test_done
         eap_proto_tnc_test_done = True
-        return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+        return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(tnc_handler)
 
@@ -9731,20 +9698,19 @@ def test_eap_canned_success_after_identity(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Success")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id_prev, 4)
 
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Success")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, id_prev, 4)
 
         return None
 
@@ -9788,9 +9754,8 @@ def test_eap_proto_wsc(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] += 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         global eap_proto_wsc_wait_failure
@@ -9799,7 +9764,7 @@ def test_eap_proto_wsc(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Missing Flags field")
-            return struct.pack(">BBHB3BLB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 1,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                1)
@@ -9807,7 +9772,7 @@ def test_eap_proto_wsc(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Message underflow (missing Message Length field)")
-            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 2,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                1, 0x02)
@@ -9815,7 +9780,7 @@ def test_eap_proto_wsc(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid Message Length (> 50000)")
-            return struct.pack(">BBHB3BLBBH", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBBH", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 4,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                1, 0x02, 65535)
@@ -9823,7 +9788,7 @@ def test_eap_proto_wsc(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Invalid Message Length (< current payload)")
-            return struct.pack(">BBHB3BLBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 5,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                1, 0x02, 0, 0xff)
@@ -9831,7 +9796,7 @@ def test_eap_proto_wsc(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected Op-Code 5 in WAIT_START state")
-            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 2,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                5, 0x00)
@@ -9839,14 +9804,14 @@ def test_eap_proto_wsc(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid WSC Start to start the sequence")
-            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 2,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                1, 0x00)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: No Message Length field in a fragmented packet")
-            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 2,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                4, 0x01)
@@ -9854,21 +9819,21 @@ def test_eap_proto_wsc(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid WSC Start to start the sequence")
-            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 2,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                1, 0x00)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid first fragmented packet")
-            return struct.pack(">BBHB3BLBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 5,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                4, 0x03, 10, 1)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected Op-Code 5 in fragment (expected 4)")
-            return struct.pack(">BBHB3BLBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 3,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                5, 0x01, 2)
@@ -9876,21 +9841,21 @@ def test_eap_proto_wsc(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid WSC Start to start the sequence")
-            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 2,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                1, 0x00)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid first fragmented packet")
-            return struct.pack(">BBHB3BLBBHB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBBHB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 5,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                4, 0x03, 2, 1)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Fragment overflow")
-            return struct.pack(">BBHB3BLBBBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBBBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 4,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                4, 0x01, 2, 3)
@@ -9898,14 +9863,14 @@ def test_eap_proto_wsc(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid WSC Start to start the sequence")
-            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 2,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                1, 0x00)
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Unexpected Op-Code 5 in WAIT_FRAG_ACK state")
-            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 2,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                5, 0x00)
@@ -9913,7 +9878,7 @@ def test_eap_proto_wsc(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: Valid WSC Start")
-            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHB3BLBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 3 + 4 + 2,
                                EAP_TYPE_EXPANDED, 0x00, 0x37, 0x2a, 1,
                                1, 0x00)
@@ -9923,9 +9888,9 @@ def test_eap_proto_wsc(dev, apdev):
             global eap_proto_wsc_test_done
             eap_proto_wsc_test_done = True
             eap_proto_wsc_wait_failure = True
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
-        return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+        return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(wsc_handler)
 
@@ -10082,9 +10047,9 @@ PAC_TYPE_PAC_ACKNOWLEDGEMENT = 8
 PAC_TYPE_PAC_INFO = 9
 PAC_TYPE_PAC_TYPE = 10
 
-def eap_fast_start(ctx):
+def eap_fast_start(id):
     logger.info("Send EAP-FAST/Start")
-    return struct.pack(">BBHBBHH", EAP_CODE_REQUEST, ctx['id'],
+    return struct.pack(">BBHBBHH", EAP_CODE_REQUEST, id,
                        4 + 1 + 1 + 4 + 16,
                        EAP_TYPE_FAST, 0x21, 4, 16) + 16*b'A'
 
@@ -10099,9 +10064,8 @@ def test_eap_fast_proto(dev, apdev):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         global eap_fast_proto_ctx
@@ -10110,21 +10074,21 @@ def test_eap_fast_proto(dev, apdev):
 
         idx += 1
         if ctx['num'] == idx:
-            return eap_fast_start(ctx)
+            return eap_fast_start(id)
         idx += 1
         if ctx['num'] == idx:
             logger.info("EAP-FAST: TLS processing failed")
             data = b'ABCDEFGHIK'
-            return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+            return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                                4 + 1 + 1 + len(data),
                                EAP_TYPE_FAST, 0x01) + data
         idx += 1
         if ctx['num'] == idx:
             ctx['test_done'] = True
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         logger.info("Past last test case")
-        return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+        return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(eap_handler)
     try:
@@ -10167,7 +10131,7 @@ def run_eap_fast_phase2(dev, test_payload, test_failure=True):
         if state:
             logger.info("State: " + str(state))
 
-    def process_clienthello(ctx, payload):
+    def process_clienthello(ctx, id, payload):
         logger.info("Process ClientHello")
         ctx['sslctx'] = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
         ctx['sslctx'].set_info_callback(ssl_info_callback)
@@ -10187,11 +10151,11 @@ def run_eap_fast_phase2(dev, test_payload, test_failure=True):
         log_conn_state(ctx['conn'])
         data = ctx['conn'].bio_read(4096)
         log_conn_state(ctx['conn'])
-        return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+        return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                            4 + 1 + 1 + len(data),
                            EAP_TYPE_FAST, 0x01) + data
 
-    def process_clientkeyexchange(ctx, payload, appl_data):
+    def process_clientkeyexchange(ctx, id, payload, appl_data):
         logger.info("Process ClientKeyExchange")
         log_conn_state(ctx['conn'])
         ctx['conn'].bio_write(payload)
@@ -10203,7 +10167,7 @@ def run_eap_fast_phase2(dev, test_payload, test_failure=True):
         log_conn_state(ctx['conn'])
         data = ctx['conn'].bio_read(4096)
         log_conn_state(ctx['conn'])
-        return struct.pack(">BBHBB", EAP_CODE_REQUEST, ctx['id'],
+        return struct.pack(">BBHBB", EAP_CODE_REQUEST, id,
                            4 + 1 + 1 + len(data),
                            EAP_TYPE_FAST, 0x01) + data
 
@@ -10212,9 +10176,8 @@ def run_eap_fast_phase2(dev, test_payload, test_failure=True):
         if 'num' not in ctx:
             ctx['num'] = 0
         ctx['num'] = ctx['num'] + 1
-        if 'id' not in ctx:
-            ctx['id'] = 1
-        ctx['id'] = (ctx['id'] + 1) % 256
+        id_prev = req[1]
+        id = (id_prev + 1) % 256
         idx = 0
 
         global eap_fast_proto_ctx
@@ -10224,22 +10187,22 @@ def run_eap_fast_phase2(dev, test_payload, test_failure=True):
 
         idx += 1
         if ctx['num'] == idx:
-            return eap_fast_start(ctx)
+            return eap_fast_start(id)
         idx += 1
         if ctx['num'] == idx:
-            return process_clienthello(ctx, req[6:])
+            return process_clienthello(ctx, id, req[6:])
         idx += 1
         if ctx['num'] == idx:
             if not test_failure:
                 ctx['test_done'] = True
-            return process_clientkeyexchange(ctx, req[6:], test_payload)
+            return process_clientkeyexchange(ctx, id, req[6:], test_payload)
         idx += 1
         if ctx['num'] == idx:
             ctx['test_done'] = True
-            return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+            return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
         logger.info("Past last test case")
-        return struct.pack(">BBH", EAP_CODE_FAILURE, ctx['id'], 4)
+        return struct.pack(">BBH", EAP_CODE_FAILURE, id_prev, 4)
 
     srv = start_radius_server(eap_handler)
     try:
