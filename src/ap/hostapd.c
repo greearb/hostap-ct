@@ -778,6 +778,7 @@ void hostapd_cleanup_iface_partial(struct hostapd_iface *iface)
 	sta_track_deinit(iface);
 	airtime_policy_update_deinit(iface);
 	hostapd_free_multi_hw_info(iface->multi_hw_info);
+	iface->num_multi_hws = 0;
 	iface->multi_hw_info = NULL;
 	iface->current_hw_info = NULL;
 }
@@ -3462,6 +3463,7 @@ struct hostapd_iface * hostapd_init(struct hapd_interfaces *interfaces,
 	}
 
 	hapd_iface->is_ch_switch_dfs = false;
+	hapd_iface->hw_idx = 255;
 	return hapd_iface;
 
 fail:
