@@ -630,7 +630,7 @@ void wpa_auth_set_ptk_rekey_timer(struct wpa_state_machine *sm)
 			   MACSTR " (%d seconds)",
 			   MAC2STR(wpa_auth_get_spa(sm)),
 			   sm->wpa_auth->conf.wpa_ptk_rekey);
-		eloop_cancel_timeout(wpa_rekey_ptk, sm->wpa_auth, sm);
+		eloop_cancel_timeout(wpa_rekey_ptk, ELOOP_ALL_CTX, sm);
 		eloop_register_timeout(sm->wpa_auth->conf.wpa_ptk_rekey, 0,
 				       wpa_rekey_ptk, sm->wpa_auth, sm);
 	}
@@ -1151,10 +1151,10 @@ void wpa_auth_sta_deinit(struct wpa_state_machine *sm)
 					       primary_auth, NULL);
 	}
 
-	eloop_cancel_timeout(wpa_send_eapol_timeout, wpa_auth, sm);
+	eloop_cancel_timeout(wpa_send_eapol_timeout, ELOOP_ALL_CTX, sm);
 	sm->pending_1_of_4_timeout = 0;
 	eloop_cancel_timeout(wpa_sm_call_step, sm, NULL);
-	eloop_cancel_timeout(wpa_rekey_ptk, wpa_auth, sm);
+	eloop_cancel_timeout(wpa_rekey_ptk, ELOOP_ALL_CTX, sm);
 #ifdef CONFIG_IEEE80211R_AP
 	wpa_ft_sta_deinit(sm);
 #endif /* CONFIG_IEEE80211R_AP */
@@ -1867,7 +1867,7 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 	continue_fuzz:
 #endif /* TEST_FUZZ */
 		sm->MICVerified = true;
-		eloop_cancel_timeout(wpa_send_eapol_timeout, wpa_auth, sm);
+		eloop_cancel_timeout(wpa_send_eapol_timeout, ELOOP_ALL_CTX, sm);
 		sm->pending_1_of_4_timeout = 0;
 	}
 
@@ -2365,7 +2365,7 @@ void wpa_remove_ptk(struct wpa_state_machine *sm)
 		wpa_printf(MSG_DEBUG,
 			   "RSN: PTK Key ID 1 removal from the driver failed");
 	sm->pairwise_set = false;
-	eloop_cancel_timeout(wpa_rekey_ptk, sm->wpa_auth, sm);
+	eloop_cancel_timeout(wpa_rekey_ptk, ELOOP_ALL_CTX, sm);
 }
 
 
@@ -4069,7 +4069,7 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 	}
 
 	sm->pending_1_of_4_timeout = 0;
-	eloop_cancel_timeout(wpa_send_eapol_timeout, sm->wpa_auth, sm);
+	eloop_cancel_timeout(wpa_send_eapol_timeout, ELOOP_ALL_CTX, sm);
 
 	if (wpa_key_mgmt_wpa_psk(sm->wpa_key_mgmt) && sm->PMK != pmk) {
 		/* PSK may have changed from the previous choice, so update
@@ -7002,7 +7002,7 @@ void wpa_auth_eapol_key_tx_status(struct wpa_authenticator *wpa_auth,
 		wpa_printf(MSG_DEBUG,
 			   "WPA: Increase initial EAPOL-Key 1/4 timeout by %u ms because of acknowledged frame",
 			   timeout_ms);
-		eloop_cancel_timeout(wpa_send_eapol_timeout, wpa_auth, sm);
+		eloop_cancel_timeout(wpa_send_eapol_timeout, ELOOP_ALL_CTX, sm);
 		eloop_register_timeout(timeout_ms / 1000,
 				       (timeout_ms % 1000) * 1000,
 				       wpa_send_eapol_timeout, wpa_auth, sm);
