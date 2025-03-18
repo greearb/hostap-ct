@@ -1489,6 +1489,7 @@ int hostapd_set_current_hw_info(struct hostapd_iface *iface, int oper_freq)
 		if (hw_info->start_freq <= oper_freq &&
 		    hw_info->end_freq >= oper_freq) {
 			iface->current_hw_info = hw_info;
+			iface->hw_idx = hw_info->hw_idx;
 			wpa_printf(MSG_DEBUG,
 				   "Mode: Selected underlying hardware: hw_idx=%u",
 				   iface->current_hw_info->hw_idx);
