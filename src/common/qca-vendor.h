@@ -3896,6 +3896,18 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_SETUP_LINK_RECONFIG_SUPPORT = 130,
 
+	/* 8-bit unsigned value to enable/disable DFS No Wait feature support
+	 * in AP mode.
+	 * 1 - Enable
+	 * 0 - Disable.
+	 *
+	 * DFS No Wait allows AP to be started within the subset of channel
+	 * bandwidth that does not require DFS while waiting for CAC to
+	 * complete on the subset that requires DFS. If no radar was detected,
+	 * switch to the full configured channel bandwidth.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_DFS_NO_WAIT_SUPPORT = 131,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
