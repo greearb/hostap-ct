@@ -1670,12 +1670,17 @@ fail:
 int sae_process_commit(struct sae_data *sae)
 {
 	u8 k[SAE_MAX_PRIME_LEN];
+	int ret = 0;
+
 	if (sae->tmp == NULL ||
 	    (sae->tmp->ec && sae_derive_k_ecc(sae, k) < 0) ||
 	    (sae->tmp->dh && sae_derive_k_ffc(sae, k) < 0) ||
 	    sae_derive_keys(sae, k) < 0)
-		return -1;
-	return 0;
+		ret = -1;
+
+	forced_memzero(k, SAE_MAX_PRIME_LEN);
+
+	return ret;
 }
 
 
