@@ -21,6 +21,7 @@
 #include "p2p_hostapd.h"
 #include "hs20.h"
 #include "wpa_auth.h"
+#include "hw_features.h"
 #include "ap_drv_ops.h"
 
 
@@ -788,6 +789,31 @@ int hostapd_driver_scan(struct hostapd_data *hapd,
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		params->link_id = hapd->mld_link_id;
+
+	if (!hapd->iface->scan_cb && hapd->conf->mld_ap &&
+	    hapd->iface->interfaces) {
+		/* Other links may be waiting for scan results */
+		unsigned int i;
+
+		for (i = 0; i < hapd->iface->interfaces->count; i++) {
+			struct hostapd_iface *h_iface =
+				hapd->iface->interfaces->iface[i];
+			struct hostapd_data *h_hapd;
+
+			if (!h_iface || h_iface == hapd->iface ||
+			    h_iface->num_bss == 0)
+				continue;
+
+			h_hapd = h_iface->bss[0];
+
+			if (hostapd_is_ml_partner(hapd, h_hapd) &&
+			    h_hapd->iface->state == HAPD_IFACE_ACS) {
+				wpa_printf(MSG_INFO,
+					   "ACS in progress in a partner link - try to scan later");
+				return -EBUSY;
+			}
+		}
+	}
 #endif /* CONFIG_IEEE80211BE */
 
 	if (hapd->driver && hapd->driver->scan2)
