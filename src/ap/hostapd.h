@@ -780,6 +780,7 @@ struct hostapd_iface {
 	struct hostapd_multi_hw_info *multi_hw_info;
 	unsigned int num_multi_hws;
 	struct hostapd_multi_hw_info *current_hw_info;
+	u8 hw_idx;
 	u8 radio_mask;
 };
 
