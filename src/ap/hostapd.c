@@ -5703,8 +5703,10 @@ int hostapd_mld_add_link(struct hostapd_data *hapd)
 {
 	struct hostapd_mld *mld = hapd->mld;
 
-	if (!hapd->conf->mld_ap)
+	/* TODO:
+	if (!hapd->conf->mld_ap || (mld->valid_links & BIT(hapd->mld_link_id)))
 		return 0;
+	*/
 
 	/* Should not happen */
 	if (!mld)
