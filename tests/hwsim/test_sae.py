@@ -2048,6 +2048,8 @@ def sae_rx_commit_token_req(sock, radiotap, send_two=False):
     bssid = frame[12:18]
     body = frame[20:]
 
+    if len(body) < 8:
+        return False
     alg, seq, status, group = struct.unpack('<HHHH', body[0:8])
     if alg != 3 or seq != 1 or status != 76:
         return False
@@ -2118,18 +2120,28 @@ def run_sae_anti_clogging_during_attack(dev, apdev):
     count = 0
     connected0 = False
     connected1 = False
-    for i in range(1000):
+    i = 0
+    start = os.times()[4]
+    now = os.times()[4]
+    while i < 1000 or (i < 10000 and (now - start < 30)):
+        i += 1
+        if i % 1000 == 0:
+            logger.info("i=%d count=%d" % (i, count))
         if sae_rx_commit_token_req(sock, radiotap):
             count += 1
             addr = binascii.unhexlify("f202%08x" % i)
             frame = build_sae_commit(bssid, addr)
             sock.send(radiotap + frame)
         while dev[0].mon.pending():
+            if start is None:
+                start = os.times()[4]
             ev = dev[0].mon.recv()
             logger.debug("EV0: " + ev)
             if "CTRL-EVENT-CONNECTED" in ev:
                 connected0 = True
         while dev[1].mon.pending():
+            if start is None:
+                start = os.times()[4]
             ev = dev[1].mon.recv()
             logger.debug("EV1: " + ev)
             if "CTRL-EVENT-CONNECTED" in ev:
@@ -2137,6 +2149,8 @@ def run_sae_anti_clogging_during_attack(dev, apdev):
         if connected0 and connected1:
             break
         time.sleep(0.00000001)
+        now = os.times()[4]
+    logger.info("Total number of iterations: %d" % i)
     if not connected0:
         raise Exception("Real station(0) did not get connected")
     if not connected1:
