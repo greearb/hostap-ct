@@ -3473,6 +3473,8 @@ def test_ap_wpa2_eap_eke_server_oom(dev, apdev):
             eap_connect(dev[0], hapd, "EKE", "eke user", password="hello",
                         expect_failure=True)
             dev[0].request("REMOVE_NETWORK all")
+            dev[0].dump_monitor()
+            hapd.dump_monitor()
 
     for count, func, pw in [(1, "eap_eke_init", "hello"),
                             (1, "eap_eke_get_session_id", "hello"),
@@ -3492,9 +3494,13 @@ def test_ap_wpa2_eap_eke_server_oom(dev, apdev):
                 if hapd.request("GET_ALLOC_FAIL").startswith('0'):
                     break
             dev[0].request("REMOVE_NETWORK all")
+            dev[0].dump_monitor()
+            hapd.dump_monitor()
 
     for count in range(1, 1000):
         # Fail on allocation number "count"
+        dev[0].dump_monitor()
+        hapd.dump_monitor()
         hapd.request("TEST_ALLOC_FAIL %d:eap_server_sm_step" % count)
 
         dev[0].connect("test-wpa2-eap",
@@ -3506,6 +3512,7 @@ def test_ap_wpa2_eap_eke_server_oom(dev, apdev):
         for i in range(10):
             time.sleep(0.1)
             if hapd.request("GET_ALLOC_FAIL").startswith('0'):
+                dev[0].request("REMOVE_NETWORK all")
                 break
         else:
             # Last iteration had no failure
