@@ -39,6 +39,7 @@
 #include "sta_info.h"
 #include "ieee802_1x.h"
 #include "wpa_auth.h"
+#include "wpa_auth_i.h"
 #include "pmksa_cache_auth.h"
 #include "wmm.h"
 #include "ap_list.h"
@@ -5823,6 +5824,28 @@ static struct sta_info * handle_mlo_translate(struct hostapd_data *hapd,
 }
 #endif /* CONFIG_IEEE80211BE */
 
+#ifdef CONFIG_IEEE80211R_AP
+#ifdef CONFIG_IEEE80211BE
+static void hostapd_deinit_ft_ds_link_sta(struct hostapd_data *hapd, const u8 *sta_addr)
+{
+	struct sta_info *sta;
+	struct hostapd_data *link;
+
+	for_each_mld_link(link, hapd) {
+		if (link == hapd)
+			continue;
+
+		sta = ap_get_sta(link, sta_addr);
+		if (sta) {
+			/* do not deinit assoc sm */
+			sta->wpa_sm = NULL;
+			ap_free_sta(link, sta);
+		}
+	}
+}
+#endif /* CONFIG_IEEE80211BE */
+#endif
+
 
 static void handle_assoc(struct hostapd_data *hapd,
 			 const struct ieee80211_mgmt *mgmt, size_t len,
@@ -5946,6 +5969,8 @@ static void handle_assoc(struct hostapd_data *hapd,
 		 */
 		sta->flags |= WLAN_STA_AUTH;
 
+		if (sta->wpa_sm)
+			sta->wpa_sm->ft_ds_req_state = FT_OTD_IDLE;
 #ifdef CONFIG_IEEE80211BE
 		/*
 		 * Since there is no auth processing in FT-OTD,
@@ -5966,6 +5991,28 @@ static void handle_assoc(struct hostapd_data *hapd,
 			os_memcpy(sta->mld_info.links[hapd->mld_link_id].local_addr,
 				  hapd->own_addr, ETH_ALEN);
 			os_memcpy(sta->setup_link_addr, mgmt->sa, ETH_ALEN);
+
+			wpa_assign_wpa_auth_group(sta->wpa_sm, hapd->wpa_auth);
+			/* To align OTA, we should remove every (except current setup
+			 * link) sta added when receiving RRB frames for each link via
+			 * OTD.
+			 */
+			hostapd_deinit_ft_ds_link_sta(hapd, sta->addr);
+			/* To align ap_sta_re_add in handle_auth and WLAN_STA_AUTH flag
+			 * in handle_auth_cb, we should add a sta entry to mac80211.
+			 * That's for the following MAC address translation to work and
+			 * set auth state prepareing for the following assoc state.
+			 */
+			if (hostapd_sta_add(hapd, sta->addr, 0, 0,
+					    sta->supported_rates,
+					    sta->supported_rates_len,
+					    0, NULL, NULL, NULL, 0, NULL, 0, NULL,
+					    sta->flags, 0, 0, 0, 0,
+					    sta->setup_link_addr, false,
+					    sta->mld_info.common_info.eml_capa)) {
+				resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+				goto fail;
+			}
 		}
 #endif /* CONFIG_IEEE80211BE */
 	} else

@@ -151,6 +151,14 @@ struct wpa_state_machine {
 	u8 ft_pending_auth_transaction;
 	u8 ft_pending_current_ap[ETH_ALEN];
 	int ft_pending_pull_left_retries;
+	u8 ft_ds_req_state;
+
+	enum {
+		FT_OTD_IDLE,
+		FT_OTD_WAIT_PMKR1_RESP,
+		FT_OTD_WAIT_REASSOC,
+	} ft_ds_request_state;
+
 #endif /* CONFIG_IEEE80211R_AP */
 
 	int pending_1_of_4_timeout;

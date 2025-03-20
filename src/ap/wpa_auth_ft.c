@@ -4138,10 +4138,16 @@ static void wpa_ft_rrb_rx_request_cb(void *ctx, const u8 *dst,
 				     const u8 *ies, size_t ies_len)
 {
 	struct wpa_state_machine *sm = ctx;
+	int ret;
+
 	wpa_printf(MSG_DEBUG, "FT: Over-the-DS RX request cb for " MACSTR,
 		   MAC2STR(sm->addr));
-	wpa_ft_send_rrb_auth_resp(sm, sm->ft_pending_current_ap, sm->addr,
-				  WLAN_STATUS_SUCCESS, ies, ies_len);
+	ret = wpa_ft_send_rrb_auth_resp(sm, sm->ft_pending_current_ap, sm->addr,
+					resp, ies, ies_len);
+	if (resp == WLAN_STATUS_SUCCESS && !ret)
+		sm->ft_ds_req_state = FT_OTD_WAIT_REASSOC;
+	else
+		sm->ft_ds_req_state = FT_OTD_IDLE;
 }
 
 
@@ -4162,6 +4168,18 @@ static int wpa_ft_rrb_rx_request(struct wpa_authenticator *wpa_auth,
 			   "RRB Request");
 		return -1;
 	}
+	switch (sm->ft_ds_req_state) {
+	case FT_OTD_WAIT_PMKR1_RESP:
+		wpa_printf(MSG_DEBUG, "FT: Wait for pmk-r1 from remote r0kh");
+		return 0;
+	case FT_OTD_WAIT_REASSOC:
+		wpa_printf(MSG_DEBUG, "FT: Action auth req has been handled");
+		return 0;
+	default:
+		wpa_printf(MSG_ERROR, "FT: Invalid OTD request state");
+	case FT_OTD_IDLE:
+		break;
+	}
 
 	wpa_hexdump(MSG_MSGDUMP, "FT: RRB Request Frame body", body, len);
 
@@ -4176,6 +4194,7 @@ static int wpa_ft_rrb_rx_request(struct wpa_authenticator *wpa_auth,
 	res = wpa_ft_process_auth_req(sm, body, len, &resp_ies,
 				      &resp_ies_len, link_id);
 	if (res < 0) {
+		sm->ft_ds_req_state = FT_OTD_WAIT_PMKR1_RESP;
 		wpa_printf(MSG_DEBUG, "FT: No immediate response available - wait for pull response");
 		return 0;
 	}
@@ -4183,6 +4202,12 @@ static int wpa_ft_rrb_rx_request(struct wpa_authenticator *wpa_auth,
 
 	res = wpa_ft_send_rrb_auth_resp(sm, current_ap, sta_addr, status,
 					resp_ies, resp_ies_len);
+
+	if (status == WLAN_STATUS_SUCCESS && !res)
+		sm->ft_ds_req_state = FT_OTD_WAIT_REASSOC;
+	else
+		sm->ft_ds_req_state = FT_OTD_IDLE;
+
 	os_free(resp_ies);
 	return res;
 }
