@@ -204,7 +204,7 @@ def test_eap_proto(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Success - id off by 2")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, id + 1, 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, (id + 1) % 256, 4)
 
         idx += 1
         if ctx['num'] == idx:
@@ -216,7 +216,7 @@ def test_eap_proto(dev, apdev):
         idx += 1
         if ctx['num'] == idx:
             logger.info("Test: EAP-Success - id off by 3")
-            return struct.pack(">BBH", EAP_CODE_SUCCESS, id + 2, 4)
+            return struct.pack(">BBH", EAP_CODE_SUCCESS, (id + 2) % 256, 4)
 
         idx += 1
         if ctx['num'] == idx:
