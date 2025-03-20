@@ -11606,7 +11606,10 @@ static int nl80211_start_radar_detection(void *priv,
 			nlmsg_free(msg);
 			return -1;
 		}
+	}
 
+	ret = send_and_recv_cmd(drv, msg);
+	if (ret == 0) {
 		if (freq->radar_background) {
 			struct i802_link *link = nl80211_get_link(bss, freq->link_id);
 
@@ -11614,11 +11617,6 @@ static int nl80211_start_radar_detection(void *priv,
 		} else {
 			nl80211_link_set_freq(bss, freq->link_id, freq->freq);
 		}
-	}
-
-	ret = send_and_recv_cmd(drv, msg);
-	if (ret == 0) {
-		nl80211_link_set_freq(bss, freq->link_id, freq->freq);
 		return 0;
 	}
 
