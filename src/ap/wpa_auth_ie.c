@@ -832,6 +832,7 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 	u32 selector;
 	size_t i;
 	const u8 *pmkid = NULL;
+	bool ap_pmf_enabled;
 
 	if (wpa_auth == NULL || sm == NULL)
 		return WPA_NOT_ENABLED;
@@ -1114,8 +1115,16 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 				 wpa_auth->conf.ocv : 0);
 	}
 #endif /* CONFIG_OCV */
+	if (sm->rsn_override_2)
+		ap_pmf_enabled = conf->rsn_override_mfp_2 !=
+			NO_MGMT_FRAME_PROTECTION;
+	else if (sm->rsn_override)
+		ap_pmf_enabled = conf->rsn_override_mfp !=
+			NO_MGMT_FRAME_PROTECTION;
+	else
+		ap_pmf_enabled = conf->ieee80211w != NO_MGMT_FRAME_PROTECTION;
 
-	if (!wpa_auth_pmf_enabled(conf) ||
+	if (!ap_pmf_enabled ||
 	    !(data.capabilities & WPA_CAPABILITY_MFPC))
 		sm->mgmt_frame_prot = 0;
 	else
