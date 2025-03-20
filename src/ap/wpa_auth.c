@@ -7782,3 +7782,15 @@ void wpa_reset_assoc_sm_info(struct wpa_state_machine *assoc_sm,
 	assoc_sm->mld_assoc_link_id = mld_assoc_link_id;
 #endif /* CONFIG_IEEE80211BE */
 }
+
+void wpa_assign_wpa_auth_group(struct wpa_state_machine *sm,
+				  struct wpa_authenticator *wpa_auth)
+{
+	if (!sm || !sm->group || !wpa_auth || !wpa_auth->group)
+		return;
+
+	wpa_group_put(sm->wpa_auth, sm->group);
+	sm->wpa_auth = wpa_auth;
+	sm->group = wpa_auth->group;
+	wpa_group_get(sm->wpa_auth, sm->group);
+}
