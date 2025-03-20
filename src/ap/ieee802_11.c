@@ -4909,6 +4909,7 @@ int hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 				  bool reassoc, int tx_link_status,
 				  bool offload)
 {
+	int ret = 0;
 #ifdef CONFIG_IEEE80211BE
 	unsigned int i;
 
@@ -4950,12 +4951,12 @@ int hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 			if (ieee80211_ml_process_link(bss, sta, link,
 						      ies, ies_len, reassoc,
 						      offload))
-				return -1;
+				ret = -1;
 		}
 	}
 #endif /* CONFIG_IEEE80211BE */
 
-	return 0;
+	return ret;
 }
 
 
