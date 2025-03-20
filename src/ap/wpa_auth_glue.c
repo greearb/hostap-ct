@@ -32,6 +32,7 @@
 #include "ieee802_11_auth.h"
 #include "pmksa_cache_auth.h"
 #include "wpa_auth.h"
+#include "wpa_auth_i.h"
 #include "wpa_auth_glue.h"
 
 
@@ -1162,25 +1163,53 @@ hostapd_wpa_auth_add_sta(void *ctx, const u8 *sta_addr)
 	if (ret < 0 && ret != -EOPNOTSUPP)
 		return NULL;
 
+	/* Since RRB would be duplicated and sent to all links in case of OTD, every link
+	 * hapd would run ap_sta_add separately. This is for the following FT reassoc
+	 * since we don't know which link would be chosen by the roaming STA. Also,
+	 * corresponding wpa_sm should be prepared.
+	 */
 	sta = ap_sta_add(hapd, sta_addr);
 	if (sta == NULL)
 		return NULL;
 	if (ret == 0)
 		sta->added_unassoc = 1;
 
+	/* Use the same wpa_sm to handle duplicated otd action frames */
+	if (sta->ft_over_ds && sta->wpa_sm)
+		goto out;
+
 	sta->ft_over_ds = 1;
-	if (sta->wpa_sm) {
-		sta->auth_alg = WLAN_AUTH_FT;
-		return sta->wpa_sm;
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap) {
+		struct hostapd_data *link;
+		for_each_mld_link(link, hapd) {
+			struct sta_info *s;
+
+			if (link == hapd)
+				continue;
+			for (s = link->sta_list; s; s = s->next) {
+				if (!os_memcmp(s->addr, sta_addr, 6) &&
+				    s->ft_over_ds && s->wpa_sm &&
+				    s->wpa_sm->ft_ds_req_state) {
+					wpa_auth_sta_deinit(sta->wpa_sm);
+					sta->wpa_sm = s->wpa_sm;
+					goto out;
+				}
+			}
+		}
 	}
+#endif
+	if (sta->wpa_sm)
+		goto out;
 
 	sta->wpa_sm = wpa_auth_sta_init(hapd->wpa_auth, sta->addr, NULL);
 	if (sta->wpa_sm == NULL) {
 		ap_free_sta(hapd, sta);
 		return NULL;
 	}
-	sta->auth_alg = WLAN_AUTH_FT;
 
+out:
+	sta->auth_alg = WLAN_AUTH_FT;
 	return sta->wpa_sm;
 }
 
