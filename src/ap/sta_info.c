@@ -191,9 +191,10 @@ void ap_free_sta_pasn(struct hostapd_data *hapd, struct sta_info *sta)
 static void __ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 {
 #ifdef CONFIG_IEEE80211BE
-	if (hostapd_sta_is_link_sta(hapd, sta) &&
-	    !hostapd_drv_link_sta_remove(hapd, sta->addr))
+	if (hostapd_sta_is_link_sta(hapd, sta)) {
+		hostapd_drv_link_sta_remove(hapd, sta->addr);
 		return;
+	}
 #endif /* CONFIG_IEEE80211BE */
 
 	hostapd_drv_sta_remove(hapd, sta->addr);
