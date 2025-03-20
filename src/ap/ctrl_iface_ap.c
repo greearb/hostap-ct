@@ -611,10 +611,17 @@ static int hostapd_ctrl_iface_sta_mib(struct hostapd_data *hapd,
 #ifdef CONFIG_IEEE80211BE
 	if (sta->mld_info.mld_sta) {
 		u16 mld_sta_capa = sta->mld_info.common_info.mld_capa;
+		u16 mld_sta_eml_capa = sta->mld_info.common_info.eml_capa;
 		u8 max_simul_links = mld_sta_capa &
 			EHT_ML_MLD_CAPA_MAX_NUM_SIM_LINKS_MASK;
+		u8 emlsr_support = mld_sta_eml_capa &
+			EHT_ML_EML_CAPA_EMLSR_SUPP;
+		u8 emlmr_support = mld_sta_eml_capa &
+			EHT_ML_EML_CAPA_EMLMR_SUPP;
 
 		for (i = 0; i < MAX_NUM_MLD_LINKS; ++i) {
+			int j;
+
 			if (!sta->mld_info.links[i].valid)
 				continue;
 			ret = os_snprintf(
@@ -623,10 +630,29 @@ static int hostapd_ctrl_iface_sta_mib(struct hostapd_data *hapd,
 				i, MAC2STR(sta->mld_info.links[i].peer_addr));
 			if (!os_snprintf_error(buflen - len, ret))
 				len += ret;
+
+			for (j = 0; j < sta->mld_info.links[i].nstr_bitmap_len; j++) {
+				ret = os_snprintf(buf + len, buflen - len,
+						  "nstr_bitmap=0x%02x\n",
+						  sta->mld_info.links[i].nstr_bitmap[j]);
+				if (!os_snprintf_error(buflen - len, ret))
+					len += ret;
+			}
+
 		}
 
 		ret = os_snprintf(buf + len, buflen - len,
 				  "max_simul_links=%d\n", max_simul_links);
+		if (!os_snprintf_error(buflen - len, ret))
+			len += ret;
+
+		ret = os_snprintf(buf + len, buflen - len,
+				  "emlsr_support=%d\n", emlsr_support);
+		if (!os_snprintf_error(buflen - len, ret))
+			len += ret;
+
+		ret = os_snprintf(buf + len, buflen - len,
+				  "emlmr_support=%d\n", emlmr_support);
 		if (!os_snprintf_error(buflen - len, ret))
 			len += ret;
 	}
