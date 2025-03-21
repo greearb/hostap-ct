@@ -359,6 +359,7 @@ static X509_STORE * tls_crl_cert_reload(const char *ca_cert, int check_crl)
 }
 
 
+#ifndef ANDROID
 #ifdef OPENSSL_NO_ENGINE
 
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
@@ -500,6 +501,7 @@ err_cert:
 }
 
 #endif /* OPENSSL_NO_ENGINE */
+#endif /* !ANDROID */
 
 
 #ifdef CONFIG_NATIVE_WINDOWS
@@ -1165,9 +1167,9 @@ void * tls_init(const struct tls_config *conf)
 		void openssl_load_legacy_provider(void);
 
 		openssl_load_legacy_provider();
-#ifdef OPENSSL_NO_ENGINE
+#if !defined(ANDROID) && defined(OPENSSL_NO_ENGINE)
 		openssl_load_pkcs11_provider();
-#endif /* OPENSSL_NO_ENGINE */
+#endif /* !ANDROID && OPENSSL_NO_ENGINE */
 
 		tls_global = context = tls_context_new(conf);
 		if (context == NULL)
@@ -1360,9 +1362,9 @@ void tls_deinit(void *ssl_ctx)
 
 	tls_openssl_ref_count--;
 	if (tls_openssl_ref_count == 0) {
-#ifdef OPENSSL_NO_ENGINE
+#if !defined(ANDROID) && defined(OPENSSL_NO_ENGINE)
 		openssl_unload_pkcs11_provider();
-#endif /* OPENSSL_NO_ENGINE */
+#endif /* !ANDROID && OPENSSL_NO_ENGINE */
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #ifndef OPENSSL_NO_ENGINE
 		ENGINE_cleanup();
@@ -1521,9 +1523,11 @@ err:
 
 	return ret;
 #else /* OPENSSL_NO_ENGINE */
+#ifndef ANDROID
 	conn->private_key = provider_load_key(key_id);
 	if (!conn->private_key)
 		return -1;
+#endif /* !ANDROID */
 
 	return 0;
 #endif /* OPENSSL_NO_ENGINE */
@@ -3957,6 +3961,7 @@ static int tls_engine_get_cert(struct tls_connection *conn,
 static int tls_connection_engine_client_cert(struct tls_connection *conn,
 					     const char *cert_id)
 {
+#ifndef ANDROID
 	X509 *cert;
 
 #ifndef OPENSSL_NO_ENGINE
@@ -3978,6 +3983,9 @@ static int tls_connection_engine_client_cert(struct tls_connection *conn,
 	wpa_printf(MSG_DEBUG, "ENGINE/provider: SSL_use_certificate --> "
 		   "OK");
 	return 0;
+#else /* ANDROID */
+	return -1;
+#endif /* ANDROID */
 }
 
 
@@ -3985,6 +3993,7 @@ static int tls_connection_engine_ca_cert(struct tls_data *data,
 					 struct tls_connection *conn,
 					 const char *ca_cert_id)
 {
+#ifndef ANDROID
 	X509 *cert;
 	SSL_CTX *ssl_ctx = data->ssl;
 	X509_STORE *store;
@@ -4030,6 +4039,9 @@ static int tls_connection_engine_ca_cert(struct tls_data *data,
 	conn->ca_cert_verify = 1;
 
 	return 0;
+#else /* ANDROID */
+	return -1;
+#endif /* ANDROID */
 }
 
 
@@ -5592,10 +5604,10 @@ int tls_connection_set_params(void *tls_ctx, struct tls_connection *conn,
 		return -1;
 
 	if (engine_id && ca_cert_id) {
-#ifdef OPENSSL_NO_ENGINE
+#if !defined(ANDROID) && defined(OPENSSL_NO_ENGINE)
 		if (!openssl_can_use_provider(engine_id, ca_cert_id))
 			return TLS_SET_PARAMS_ENGINE_PRV_INIT_FAILED;
-#endif /* OPENSSL_NO_ENGINE */
+#endif /* !ANDROID && OPENSSL_NO_ENGINE */
 		if (tls_connection_engine_ca_cert(data, conn, ca_cert_id))
 			return TLS_SET_PARAMS_ENGINE_PRV_VERIFY_FAILED;
 	} else if (tls_connection_ca_cert(data, conn, params->ca_cert,
@@ -5605,10 +5617,10 @@ int tls_connection_set_params(void *tls_ctx, struct tls_connection *conn,
 		return -1;
 
 	if (engine_id && cert_id) {
-#ifdef OPENSSL_NO_ENGINE
+#if !defined(ANDROID) && defined(OPENSSL_NO_ENGINE)
 		if (!openssl_can_use_provider(engine_id, cert_id))
 			return TLS_SET_PARAMS_ENGINE_PRV_INIT_FAILED;
-#endif /* OPENSSL_NO_ENGINE */
+#endif /* !ANDROID && OPENSSL_NO_ENGINE */
 		if (tls_connection_engine_client_cert(conn, cert_id))
 			return TLS_SET_PARAMS_ENGINE_PRV_VERIFY_FAILED;
 	} else if (tls_connection_client_cert(conn, params->client_cert,
@@ -5617,10 +5629,10 @@ int tls_connection_set_params(void *tls_ctx, struct tls_connection *conn,
 		return -1;
 
 	if (engine_id && key_id) {
-#ifdef OPENSSL_NO_ENGINE
+#if !defined(ANDROID) && defined(OPENSSL_NO_ENGINE)
 		if (!openssl_can_use_provider(engine_id, key_id))
 			return TLS_SET_PARAMS_ENGINE_PRV_INIT_FAILED;
-#endif /* OPENSSL_NO_ENGINE */
+#endif /* !ANDROID && OPENSSL_NO_ENGINE */
 		wpa_printf(MSG_DEBUG,
 			   "TLS: Using private key from engine/provider");
 		if (tls_connection_engine_private_key(conn))
