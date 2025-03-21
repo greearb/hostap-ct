@@ -2866,6 +2866,20 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 }
 
 
+static bool equal_scan_freq_list(struct wpa_supplicant *self,
+				 struct wpa_supplicant *other)
+{
+	const int *list1, *list2;
+
+	list1 = self->conf->freq_list ? self->conf->freq_list :
+		self->last_scan_freqs;
+	list2 = other->conf->freq_list ? other->conf->freq_list :
+		other->last_scan_freqs;
+
+	return int_array_equal(list1, list2);
+}
+
+
 static int wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 					     union wpa_event_data *data)
 {
@@ -2893,12 +2907,19 @@ static int wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	}
 
 	/*
-	 * Check other interfaces to see if they share the same radio. If
-	 * so, they get updated with this same scan info.
+	 * Manual scan requests are more specific to a use case than the
+	 * normal scan requests; hence, skip updating sibling radios.
+	 */
+	if (wpa_s->last_scan_req == MANUAL_SCAN_REQ)
+		return 0;
+
+	/*
+	 * Check other interfaces to see if they share the same radio and
+	 * frequency list. If so, they get updated with this same scan info.
 	 */
 	dl_list_for_each(ifs, &wpa_s->radio->ifaces, struct wpa_supplicant,
 			 radio_list) {
-		if (ifs != wpa_s) {
+		if (ifs != wpa_s && equal_scan_freq_list(wpa_s, ifs)) {
 			wpa_printf(MSG_DEBUG, "%s: Updating scan results from "
 				   "sibling", ifs->ifname);
 			res = _wpa_supplicant_event_scan_results(ifs, data, 0,
