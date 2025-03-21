@@ -3110,7 +3110,7 @@ static void hostapd_gen_per_sta_profiles(struct hostapd_data *hapd)
 	struct hostapd_data *link_bss;
 	u8 link_id, *sta_profile;
 
-	if (!hapd->conf->mld_ap)
+	if (!hapd->conf->mld_ap || !hapd->started)
 		return;
 
 	wpa_printf(MSG_DEBUG, "MLD: Generating per STA profiles for MLD %s",
