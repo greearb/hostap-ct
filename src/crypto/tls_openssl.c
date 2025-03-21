@@ -389,6 +389,8 @@ static void openssl_unload_pkcs11_provider(void)
 }
 
 
+#ifndef ANDROID
+
 static bool openssl_can_use_provider(const char *engine_id, const char *req)
 {
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
@@ -458,6 +460,8 @@ err_key:
 	return NULL;
 #endif /* OpenSSL version >= 3.0 */
 }
+
+#endif /* !ANDROID */
 
 
 static X509 * provider_load_cert(const char *cert_id)
@@ -1521,9 +1525,11 @@ err:
 
 	return ret;
 #else /* OPENSSL_NO_ENGINE */
+#ifndef ANDROID
 	conn->private_key = provider_load_key(key_id);
 	if (!conn->private_key)
 		return -1;
+#endif /* !ANDROID */
 
 	return 0;
 #endif /* OPENSSL_NO_ENGINE */
@@ -5592,10 +5598,10 @@ int tls_connection_set_params(void *tls_ctx, struct tls_connection *conn,
 		return -1;
 
 	if (engine_id && ca_cert_id) {
-#ifdef OPENSSL_NO_ENGINE
+#if !defined(ANDROID) && defined(OPENSSL_NO_ENGINE)
 		if (!openssl_can_use_provider(engine_id, ca_cert_id))
 			return TLS_SET_PARAMS_ENGINE_PRV_INIT_FAILED;
-#endif /* OPENSSL_NO_ENGINE */
+#endif /* !ANDROID && OPENSSL_NO_ENGINE */
 		if (tls_connection_engine_ca_cert(data, conn, ca_cert_id))
 			return TLS_SET_PARAMS_ENGINE_PRV_VERIFY_FAILED;
 	} else if (tls_connection_ca_cert(data, conn, params->ca_cert,
@@ -5605,10 +5611,10 @@ int tls_connection_set_params(void *tls_ctx, struct tls_connection *conn,
 		return -1;
 
 	if (engine_id && cert_id) {
-#ifdef OPENSSL_NO_ENGINE
+#if !defined(ANDROID) && defined(OPENSSL_NO_ENGINE)
 		if (!openssl_can_use_provider(engine_id, cert_id))
 			return TLS_SET_PARAMS_ENGINE_PRV_INIT_FAILED;
-#endif /* OPENSSL_NO_ENGINE */
+#endif /* !ANDROID && OPENSSL_NO_ENGINE */
 		if (tls_connection_engine_client_cert(conn, cert_id))
 			return TLS_SET_PARAMS_ENGINE_PRV_VERIFY_FAILED;
 	} else if (tls_connection_client_cert(conn, params->client_cert,
@@ -5617,10 +5623,10 @@ int tls_connection_set_params(void *tls_ctx, struct tls_connection *conn,
 		return -1;
 
 	if (engine_id && key_id) {
-#ifdef OPENSSL_NO_ENGINE
+#if !defined(ANDROID) && defined(OPENSSL_NO_ENGINE)
 		if (!openssl_can_use_provider(engine_id, key_id))
 			return TLS_SET_PARAMS_ENGINE_PRV_INIT_FAILED;
-#endif /* OPENSSL_NO_ENGINE */
+#endif /* !ANDROID && OPENSSL_NO_ENGINE */
 		wpa_printf(MSG_DEBUG,
 			   "TLS: Using private key from engine/provider");
 		if (tls_connection_engine_private_key(conn))
