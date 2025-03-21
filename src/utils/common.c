@@ -1003,6 +1003,28 @@ bool int_array_includes(const int *arr, int val)
 }
 
 
+bool int_array_equal(const int *a, const int *b)
+{
+	size_t alen, blen, i;
+
+	if (!a || !b)
+		return false;
+
+	alen = int_array_len(a);
+	blen = int_array_len(b);
+
+	if (alen != blen)
+		return false;
+
+	for (i = 0; i <= alen; i++) {
+		if (!int_array_includes(b, a[i]))
+			return false;
+	}
+
+	return true;
+}
+
+
 void str_clear_free(char *str)
 {
 	if (str) {
