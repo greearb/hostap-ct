@@ -866,8 +866,10 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 	INT_DEFe(sim_num, sim_num, DEFAULT_USER_SELECTED_SIM);
 #endif /* IEEE8021X_EAPOL */
 	INT(mode);
+#ifdef CONFIG_MESH
 	INT(no_auto_peer);
 	INT_DEF(mesh_fwding, DEFAULT_MESH_FWDING);
+#endif /* CONFIG_MESH */
 	INT(frequency);
 	INT(enable_edmg);
 	INT(edmg_channel);
