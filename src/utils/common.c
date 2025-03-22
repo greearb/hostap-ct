@@ -990,7 +990,7 @@ void int_array_add_unique(int **res, int a)
 }
 
 
-bool int_array_includes(int *arr, int val)
+bool int_array_includes(const int *arr, int val)
 {
 	int i;
 
