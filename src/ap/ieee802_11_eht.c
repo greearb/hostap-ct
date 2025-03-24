@@ -534,8 +534,8 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	u16 mld_cap;
 	u8 max_simul_links, active_links = 0;
 
-	if (hapd->mld && !(hapd->mld->active_links & BIT(hapd->mld_link_id))) {
-		wpa_printf(MSG_ERROR, "MLD: Current link %d is not active for %s",
+	if (hapd->mld && !(hapd->mld->valid_links & BIT(hapd->mld_link_id))) {
+		wpa_printf(MSG_ERROR, "MLD: Current link %d is not valid for %s",
 			   hapd->mld_link_id, hapd->mld->name);
 		return pos;
 	}
@@ -3029,8 +3029,8 @@ static int ieee802_11_parse_neg_ttlm(struct hostapd_data *hapd,
 
 	if (control & IEEE80211_TTLM_CONTROL_DEF_LINK_MAP) {
 		for (tid = 0; tid < IEEE80211_TTLM_NUM_TIDS; tid++) {
-			neg_ttlm->dlink[tid] = hapd->mld->active_links;
-			neg_ttlm->ulink[tid] = hapd->mld->active_links;
+			neg_ttlm->dlink[tid] = hapd->mld->valid_links;
+			neg_ttlm->ulink[tid] = hapd->mld->valid_links;
 		}
 		*direction = IEEE80211_TTLM_DIRECTION_BOTH;
 		neg_ttlm->valid = true;
@@ -3523,7 +3523,7 @@ void hostapd_teardown_neg_ttlm(struct hostapd_data *hapd, struct sta_info *sta)
 
 		ttlm.valid = true;
 		for (tid = 0; tid < IEEE80211_TTLM_NUM_TIDS; tid++) {
-			map = ~attlm->disabled_links & hapd->mld->active_links;
+			map = ~attlm->disabled_links & hapd->mld->valid_links;
 			ttlm.dlink[tid] = map;
 			ttlm.ulink[tid] = map;
 		}
