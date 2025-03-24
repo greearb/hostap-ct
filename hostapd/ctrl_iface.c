@@ -4150,7 +4150,7 @@ static int hostapd_ctrl_iface_set_attlm(struct hostapd_data *hapd, char *cmd,
 	struct attlm_settings *attlm;
 	struct hostapd_data *h;
 	char *token, *context = NULL;
-	u16 switch_time, disabled_links, valid_links = 0;
+	u16 switch_time, disabled_links, valid_links;
 	u32 duration;
 	int ret, i;
 
@@ -4164,8 +4164,7 @@ static int hostapd_ctrl_iface_set_attlm(struct hostapd_data *hapd, char *cmd,
 
 	attlm = &hapd->mld->new_attlm;
 
-	for_each_mld_link(h, hapd)
-		valid_links |= BIT(h->mld_link_id);
+	valid_links = hapd->mld->valid_links;
 
 	while ((token = str_token(cmd, " ", &context))) {
 		if (os_strncmp(token, "switch_time=", 12) == 0) {
