@@ -1144,7 +1144,7 @@ void sae_accept_sta(struct hostapd_data *hapd, struct sta_info *sta)
 		struct hostapd_data *link = NULL;
 
 		for_each_mld_link(link, hapd) {
-			if (!(hapd->mld->active_links & BIT(link->mld_link_id)))
+			if (!link->started)
 				continue;
 			wpa_auth_pmksa_add_sae(link->wpa_auth, sta->addr,
 					sta->sae->pmk, sta->sae->pmk_len,
@@ -8714,8 +8714,7 @@ static u8 * hostapd_eid_rnr_mlo(struct hostapd_data *hapd, u32 type,
 		iface = hapd->iface->interfaces->iface[i];
 
 		if (!iface || iface == hapd->iface ||
-		    hapd->iface->freq == iface->freq ||
-		    !(hapd->mld->active_links & BIT(hapd->mld_link_id)))
+		    hapd->iface->freq == iface->freq)
 			continue;
 
 		eid = hostapd_eid_rnr_iface(iface->bss[0], hapd, eid,

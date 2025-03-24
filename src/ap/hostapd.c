@@ -1351,11 +1351,7 @@ static int hostapd_start_beacon(struct hostapd_data *hapd,
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap && (!hapd->mld->started ||
 				   hapd->conf->mld_allowed_links == 255)) {
-		struct hostapd_data *p_hapd;
-		u16 valid_links = 0;
-
-		for_each_mld_link(p_hapd, hapd)
-			valid_links |= BIT(p_hapd->mld_link_id);
+		u16 valid_links = hapd->mld->valid_links;
 
 		if (valid_links == hapd->conf->mld_allowed_links ||
 		    hapd->conf->mld_allowed_links == 255 ||
@@ -5665,7 +5661,7 @@ int hostapd_mld_add_link(struct hostapd_data *hapd)
 
 	dl_list_add_tail(&mld->links, &hapd->link);
 	mld->num_links++;
-	mld->active_links |= BIT(hapd->mld_link_id);
+	mld->valid_links |= BIT(hapd->mld_link_id);
 
 	wpa_printf(MSG_DEBUG, "AP MLD %s: Link ID %d added. num_links: %d",
 		   mld->name, hapd->mld_link_id, mld->num_links);
@@ -5692,12 +5688,12 @@ int hostapd_mld_remove_link(struct hostapd_data *hapd)
 	if (!mld)
 		return -1;
 
-	if (!(mld->active_links & BIT(hapd->mld_link_id)))
+	if (!(mld->valid_links & BIT(hapd->mld_link_id)))
 		return 0;
 
 	dl_list_del(&hapd->link);
 	mld->num_links--;
-	mld->active_links &= ~BIT(hapd->mld_link_id);
+	mld->valid_links &= ~BIT(hapd->mld_link_id);
 
 	wpa_printf(MSG_DEBUG, "AP MLD %s: Link ID %d removed. num_links: %d",
 		   mld->name, hapd->mld_link_id, mld->num_links);

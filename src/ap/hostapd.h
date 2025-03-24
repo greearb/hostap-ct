@@ -569,7 +569,7 @@ struct hostapd_mld {
 	u8 refcount;
 	bool started;
 	u16 link_reconf_in_progress;
-	u16 active_links;
+	u16 valid_links;
 
 	struct attlm_settings new_attlm;
 	struct hostapd_data *fbss;
