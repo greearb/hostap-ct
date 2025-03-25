@@ -26,6 +26,7 @@
 #include "beacon.h"
 #include "sta_info.h"
 #include "wps_hostapd.h"
+#include "ieee802_11.h"
 
 
 #ifdef CONFIG_WPS_UPNP
@@ -61,6 +62,7 @@ static int wps_for_each(struct hostapd_iface *iface, void *ctx)
 		struct hostapd_data *hapd = iface->bss[j];
 		int ret;
 
+		/* TODO: wps_independent=0 under MLO is not supported yet */
 		if (hapd != data->calling_hapd &&
 		    (hapd->conf->wps_independent ||
 		     data->calling_hapd->conf->wps_independent))
@@ -333,6 +335,19 @@ void hostapd_wps_eap_completed(struct hostapd_data *hapd)
 	if (eloop_deplete_timeout(0, 0, wps_reload_config, hapd->iface, NULL) ==
 	    1)
 		wpa_printf(MSG_DEBUG, "WPS: Reschedule immediate configuration reload");
+
+#ifdef CONFIG_IEEE80211BE
+	if (hostapd_is_mld_ap(hapd)) {
+		struct hostapd_data *h;
+
+		for_each_mld_link(h, hapd) {
+			if (h == hapd || !h->wps)
+				continue;
+
+			hostapd_wps_cancel(h);
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
 }
 
 
@@ -1105,14 +1120,19 @@ int hostapd_init_wps(struct hostapd_data *hapd,
 	wps->wps_state = hapd->conf->wps_state;
 	wps->ap_setup_locked = hapd->conf->ap_setup_locked;
 	if (is_nil_uuid(hapd->conf->uuid)) {
-		const u8 *uuid;
+		const u8 *uuid, *mac_addr;
 		uuid = get_own_uuid(hapd->iface);
 		if (uuid && !conf->wps_independent) {
 			os_memcpy(wps->uuid, uuid, UUID_LEN);
 			wpa_hexdump(MSG_DEBUG, "WPS: Clone UUID from another "
 				    "interface", wps->uuid, UUID_LEN);
 		} else {
-			uuid_gen_mac_addr(hapd->own_addr, wps->uuid);
+			mac_addr = hapd->own_addr;
+#ifdef CONFIG_IEEE80211BE
+			if (hostapd_is_mld_ap(hapd))
+				mac_addr = hapd->mld->mld_addr;
+#endif /* CONFIG_IEEE80211BE */
+			uuid_gen_mac_addr(mac_addr, wps->uuid);
 			wpa_hexdump(MSG_DEBUG, "WPS: UUID based on MAC "
 				    "address", wps->uuid, UUID_LEN);
 		}
@@ -1531,11 +1551,38 @@ static int wps_add_pin(struct hostapd_data *hapd, void *ctx)
 
 	if (hapd->wps == NULL)
 		return 0;
+
 	ret = wps_registrar_add_pin(hapd->wps->registrar, data->addr,
 				    data->uuid, data->pin, data->pin_len,
 				    data->timeout);
-	if (ret == 0)
-		data->added++;
+	if (ret)
+		return ret;
+
+#ifdef CONFIG_IEEE80211BE
+	if (hostapd_is_mld_ap(hapd)) {
+		struct hostapd_data *h;
+		int num_links = 1;
+
+		for_each_mld_link(h, hapd) {
+			if (h == hapd || !h->wps)
+				continue;
+
+			/* TODO: error recovery if one of the link returns failure */
+			ret = wps_registrar_add_pin(h->wps->registrar, data->addr,
+						    data->uuid, data->pin,
+						    data->pin_len, data->timeout);
+			if (ret)
+				return ret;
+
+			num_links++;
+		}
+
+		wpa_printf(MSG_DEBUG,
+			   "WPS PIN: %d link(s) of AP MLD are enabled", num_links);
+	}
+#endif /* CONFIG_IEEE80211BE */
+
+	data->added++;
 	return ret;
 }
 
@@ -1574,14 +1621,41 @@ struct wps_button_pushed_ctx {
 static int wps_button_pushed(struct hostapd_data *hapd, void *ctx)
 {
 	struct wps_button_pushed_ctx *data = ctx;
+	int ret = 0;
 
-	if (hapd->wps) {
-		data->count++;
-		return wps_registrar_button_pushed(hapd->wps->registrar,
-						   data->p2p_dev_addr);
+	if (hapd->wps == NULL)
+		return 0;
+
+	ret = wps_registrar_button_pushed(hapd->wps->registrar,
+					  data->p2p_dev_addr);
+	if (ret)
+		return ret;
+
+#ifdef CONFIG_IEEE80211BE
+	if (hostapd_is_mld_ap(hapd)) {
+		struct hostapd_data *h;
+		int num_links = 1;
+
+		for_each_mld_link(h, hapd) {
+			if (h == hapd || !h->wps)
+				continue;
+
+			/* TODO: error recovery if one of the link returns failure */
+			ret = wps_registrar_button_pushed(h->wps->registrar,
+							  data->p2p_dev_addr);
+			if (ret)
+				return ret;
+
+			num_links++;
+		}
+
+		wpa_printf(MSG_DEBUG,
+			   "WPS PBC: %d link(s) of AP MLD are enabled", num_links);
 	}
+#endif /* CONFIG_IEEE80211BE */
 
-	return 0;
+	data->count++;
+	return ret;
 }
 
 

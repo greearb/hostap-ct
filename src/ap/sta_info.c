@@ -1991,3 +1991,13 @@ void ap_sta_free_sta_profile(struct mld_info *info)
 	}
 }
 #endif /* CONFIG_IEEE80211BE */
+
+bool ap_sta_in_list(struct hostapd_data *hapd, struct sta_info *sta) {
+	struct sta_info *tmp_sta;
+
+	for (tmp_sta = hapd->sta_list; tmp_sta; tmp_sta = tmp_sta->next)
+		if (tmp_sta == sta)
+			return true;
+
+	return false;
+}
