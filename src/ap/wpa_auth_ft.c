@@ -2196,41 +2196,69 @@ int wpa_auth_derive_ptk_ft(struct wpa_state_machine *sm, struct wpa_ptk *ptk,
 }
 
 
-void wpa_auth_ft_store_keys(struct wpa_state_machine *sm, const u8 *pmk_r0,
-			    const u8 *pmk_r1, const u8 *pmk_r0_name,
-			    size_t key_len)
+static void wpa_auth_ft_store_pmks(struct wpa_state_machine *sm, const u8 *pmk_r0,
+				   const u8 *pmk_r0_name, const u8 *pmk_r1,
+				   size_t key_len, int link_id)
 {
-	int psk_local = sm->wpa_auth->conf.ft_psk_generate_local;
-	int expires_in = sm->wpa_auth->conf.r0_key_lifetime;
+	struct wpa_authenticator *wpa_auth;
+	int psk_local, expires_in;
 	struct vlan_description vlan;
 	const u8 *identity, *radius_cui;
 	size_t identity_len, radius_cui_len;
 	int session_timeout;
 
+	if (link_id >= 0)
+		wpa_auth = wpa_get_link_auth(sm->wpa_auth, link_id);
+	else
+		wpa_auth = sm->wpa_auth;
+
+	if (!wpa_auth)
+		return;
+
+	psk_local = wpa_auth->conf.ft_psk_generate_local;
 	if (psk_local && wpa_key_mgmt_ft_psk(sm->wpa_key_mgmt))
 		return;
 
-	if (wpa_ft_get_vlan(sm->wpa_auth, sm->addr, &vlan) < 0) {
+	if (wpa_ft_get_vlan(wpa_auth, sm->addr, &vlan) < 0) {
 		wpa_printf(MSG_DEBUG, "FT: vlan not available for STA " MACSTR,
 			   MAC2STR(sm->addr));
 		return;
 	}
-
-	identity_len = wpa_ft_get_identity(sm->wpa_auth, sm->addr, &identity);
-	radius_cui_len = wpa_ft_get_radius_cui(sm->wpa_auth, sm->addr,
-					       &radius_cui);
-	session_timeout = wpa_ft_get_session_timeout(sm->wpa_auth, sm->addr);
-
-
-	wpa_ft_store_pmk_r0(sm->wpa_auth, sm->addr, pmk_r0, key_len,
+	expires_in = wpa_auth->conf.r0_key_lifetime;
+	identity_len = wpa_ft_get_identity(wpa_auth, sm->addr, &identity);
+	radius_cui_len = wpa_ft_get_radius_cui(wpa_auth, sm->addr,
+						&radius_cui);
+	session_timeout = wpa_ft_get_session_timeout(wpa_auth, sm->addr);
+	wpa_ft_store_pmk_r0(wpa_auth, sm->addr, pmk_r0, key_len,
 			    pmk_r0_name,
 			    sm->pairwise, &vlan, expires_in,
 			    session_timeout, identity, identity_len,
 			    radius_cui, radius_cui_len);
-	wpa_ft_store_pmk_r1(sm->wpa_auth, sm->addr, pmk_r1, key_len,
+	wpa_ft_store_pmk_r1(wpa_auth, sm->addr, pmk_r1, key_len,
 			    sm->pmk_r1_name, sm->pairwise, &vlan,
 			    expires_in, session_timeout, identity,
 			    identity_len, radius_cui, radius_cui_len);
+}
+
+
+void wpa_auth_ft_store_keys(struct wpa_state_machine *sm, const u8 *pmk_r0,
+			    const u8 *pmk_r1, const u8 *pmk_r0_name,
+			    size_t key_len)
+{
+	int link_id;
+
+	if (sm->mld_assoc_link_id == -1) {
+		wpa_auth_ft_store_pmks(sm, pmk_r0, pmk_r0_name, pmk_r1, key_len, -1);
+		return;
+	}
+
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+		if (!sm->mld_links[link_id].valid)
+			continue;
+
+		wpa_auth_ft_store_pmks(sm, pmk_r0, pmk_r0_name, pmk_r1, key_len, link_id);
+	}
+	return;
 }
 
 
@@ -4596,12 +4624,32 @@ static int wpa_ft_rrb_rx_r1(struct wpa_authenticator *wpa_auth,
 		session_timeout = 0;
 	wpa_printf(MSG_DEBUG, "FT: session_timeout %d", session_timeout);
 
-	if (wpa_ft_store_pmk_r1(wpa_auth, f_s1kh_id, f_pmk_r1, pmk_r1_len,
-				f_pmk_r1_name,
-				pairwise, &vlan, expires_in, session_timeout,
-				f_identity, f_identity_len, f_radius_cui,
-				f_radius_cui_len) < 0)
-		goto out;
+	if (wpa_auth->is_ml) {
+		struct wpa_authenticator *link_auth;
+		for (int link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+			link_auth = wpa_get_link_auth(wpa_auth, link_id);
+
+			if (!link_auth)
+				continue;
+
+			ret = wpa_ft_store_pmk_r1(link_auth, f_s1kh_id, f_pmk_r1,
+						  pmk_r1_len, f_pmk_r1_name, pairwise,
+						  &vlan, expires_in, session_timeout,
+						  f_identity, f_identity_len,
+						  f_radius_cui, f_radius_cui_len);
+			if (ret < 0)
+				goto out;
+
+		}
+	} else {
+		ret = wpa_ft_store_pmk_r1(wpa_auth, f_s1kh_id, f_pmk_r1, pmk_r1_len,
+					  f_pmk_r1_name,
+					  pairwise, &vlan, expires_in, session_timeout,
+					  f_identity, f_identity_len, f_radius_cui,
+					  f_radius_cui_len);
+		if (ret < 0)
+			goto out;
+	}
 
 	ret = 0;
 out:
@@ -5182,6 +5230,12 @@ void wpa_ft_rrb_oui_rx(struct wpa_authenticator *wpa_auth, const u8 *src_addr,
 	alen = WPA_GET_LE16(data);
 	if (data_len < sizeof(u16) + alen) {
 		wpa_printf(MSG_DEBUG, "FT: RRB-OUI frame too short");
+		return;
+	}
+
+	if (ether_addr_equal(wpa_auth->mld_addr, dst_addr) && wpa_auth->is_ml &&
+	    !wpa_auth->primary_auth) {
+		wpa_printf(MSG_DEBUG, "MLD: FT: RRB frame handled by primary auth");
 		return;
 	}
 
