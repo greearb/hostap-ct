@@ -95,14 +95,9 @@ static void ieee802_1x_send(struct hostapd_data *hapd, struct sta_info *sta,
 	if (sta->flags & WLAN_STA_PREAUTH) {
 		rsn_preauth_send(hapd, sta, buf, len);
 	} else {
-		int link_id = -1;
-
-#ifdef CONFIG_IEEE80211BE
-		link_id = hapd->conf->mld_ap ? hapd->mld_link_id : -1;
-#endif /* CONFIG_IEEE80211BE */
 		hostapd_drv_hapd_send_eapol(
 			hapd, sta->addr, buf, len,
-			encrypt, hostapd_sta_flags_to_drv(sta->flags), link_id);
+			encrypt, hostapd_sta_flags_to_drv(sta->flags), -1);
 	}
 
 	os_free(buf);
@@ -200,6 +195,20 @@ static void ieee802_1x_ml_set_sta_authorized(struct hostapd_data *hapd,
 void ieee802_1x_set_sta_authorized(struct hostapd_data *hapd,
 				   struct sta_info *sta, int authorized)
 {
+#ifdef CONFIG_IEEE80211BE
+	struct hostapd_data *assoc_hapd;
+	struct sta_info *assoc_sta;
+
+	if (hostapd_is_mld_ap(hapd)) {
+		assoc_sta = hostapd_ml_get_assoc_sta(hapd, sta, &assoc_hapd);
+
+		if (assoc_sta) {
+			sta = assoc_sta;
+			hapd = assoc_hapd;
+		}
+	}
+
+#endif /* CONFIG_IEEE80211BE */
 	ieee802_1x_set_authorized(hapd, sta, authorized, false);
 	ieee802_1x_ml_set_sta_authorized(hapd, sta, !!authorized);
 }
@@ -1959,6 +1968,22 @@ ieee802_1x_search_radius_identifier(struct hostapd_data *hapd, u8 identifier)
 	id_search.identifier = identifier;
 	id_search.sm = NULL;
 	ap_for_each_sta(hapd, ieee802_1x_select_radius_identifier, &id_search);
+#ifdef CONFIG_IEEE80211BE
+	if (!id_search.sm && hostapd_is_mld_ap(hapd)) {
+		struct hostapd_data *h;
+
+		for_each_mld_link(h, hapd) {
+			if (h == hapd)
+				continue;
+
+			ap_for_each_sta(h,
+					ieee802_1x_select_radius_identifier,
+					&id_search);
+			if (id_search.sm)
+				break;
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
 	return id_search.sm;
 }
 
@@ -2343,6 +2368,22 @@ static bool _ieee802_1x_finished(void *ctx, void *sta_ctx, int success,
 	struct hostapd_data *hapd = ctx;
 	struct sta_info *sta = sta_ctx;
 
+#ifdef CONFIG_IEEE80211BE
+	if (hostapd_is_mld_ap(hapd)) {
+		struct hostapd_data *link_bss, *assoc_hapd = NULL;
+
+		for_each_mld_link(link_bss, hapd) {
+			if (ap_sta_in_list(link_bss, sta)) {
+				assoc_hapd = link_bss;
+				break;
+			}
+		}
+
+		if (assoc_hapd)
+			hapd = assoc_hapd;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	if (preauth) {
 		rsn_preauth_finished(hapd, sta, success);
 		return false;
@@ -2406,6 +2447,25 @@ static int ieee802_1x_sta_entry_alive(void *ctx, const u8 *addr)
 	struct sta_info *sta;
 
 	sta = ap_get_sta(hapd, addr);
+#ifdef CONFIG_IEEE80211BE
+	if ((!sta || hostapd_sta_is_link_sta(hapd, sta)) &&
+	    hostapd_is_mld_ap(hapd)) {
+		struct hostapd_data *h;
+
+		for_each_mld_link(h, hapd) {
+			if (h == hapd)
+				continue;
+
+			/* For STA MLD, finding the sta_info instance of
+			 * the setup link.
+			 * For Legacy STA, only ensure there is a sta_info
+			 * instance on one of the MLD links*/
+			sta = ap_get_sta(h, addr);
+			if (sta && !hostapd_sta_is_link_sta(h, sta))
+				break;
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
 	if (!sta || !sta->eapol_sm)
 		return 0;
 	return 1;
