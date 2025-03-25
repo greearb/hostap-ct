@@ -2240,11 +2240,10 @@ static void hostapd_event_eapol_rx(struct hostapd_data *hapd, const u8 *src,
 				   enum frame_encryption encrypted,
 				   int link_id)
 {
-	struct hostapd_data *orig_hapd = hapd;
+	struct hostapd_data *link_hapd = switch_link_hapd(hapd, link_id);
 
 #ifdef CONFIG_IEEE80211BE
-	hapd = switch_link_hapd(hapd, link_id);
-	hapd = hostapd_find_by_sta(hapd->iface, src, true, NULL);
+	hapd = hostapd_find_by_sta(link_hapd->iface, src, true, NULL);
 #else /* CONFIG_IEEE80211BE */
 	hapd = hostapd_find_by_sta(hapd->iface, src, false, NULL);
 #endif /* CONFIG_IEEE80211BE */
@@ -2257,7 +2256,7 @@ static void hostapd_event_eapol_rx(struct hostapd_data *hapd, const u8 *src,
 		 * hostapd_find_by_sta(). */
 		wpa_printf(MSG_DEBUG,
 			   "No STA-specific hostapd instance for EAPOL RX found - fall back to initial context");
-		hapd = orig_hapd;
+		hapd = link_hapd;
 	}
 
 	ieee802_1x_receive(hapd, src, data, data_len, encrypted);
