@@ -184,7 +184,7 @@ static int wpa_get_link_sta_auth(struct wpa_authenticator *wpa_auth, void *data)
 }
 
 
-static struct wpa_authenticator *
+struct wpa_authenticator *
 wpa_get_link_auth(struct wpa_authenticator *wpa_auth, int link_id)
 {
 	struct wpa_get_link_auth_ctx ctx;
@@ -5533,7 +5533,7 @@ SM_STATE(WPA_PTK, PTKINITDONE)
 		MACSTR, MAC2STR(sm->addr));
 
 #ifdef CONFIG_IEEE80211R_AP
-	wpa_ft_push_pmk_r1(sm->wpa_auth, wpa_auth_get_spa(sm));
+	wpa_ft_push_pmk_r1(wpa_get_primary_auth(sm->wpa_auth), wpa_auth_get_spa(sm));
 #endif /* CONFIG_IEEE80211R_AP */
 
 	sm->ptkstart_without_success = 0;
