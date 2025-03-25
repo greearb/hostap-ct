@@ -2474,7 +2474,7 @@ static int hostapd_ctrl_check_freq_params(struct hostapd_freq_params *params,
 				idx = (params->center_freq1 - 5950) / 5;
 
 			bw = center_idx_to_bw_6ghz(idx);
-			if (bw < 0 || bw > (int) ARRAY_SIZE(bw_idx) ||
+			if (bw < 0 || bw >= (int) ARRAY_SIZE(bw_idx) ||
 			    bw_idx[bw] != params->bandwidth)
 				return -1;
 		}
