@@ -156,6 +156,7 @@ struct sta_info {
 	unsigned int external_dh_updated:1;
 	unsigned int post_csa_sa_query:1;
 	unsigned int mscs_assoc_included:1;
+	unsigned int sending_assoc:1;
 
 	u16 auth_alg;
 
