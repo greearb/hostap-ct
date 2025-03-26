@@ -1198,7 +1198,7 @@ static bool hostapd_sae_pk_password_without_pk(struct hostapd_bss_config *bss)
 #endif /* CONFIG_SAE_PK */
 
 
-static bool hostapd_config_check_bss_6g(struct hostapd_bss_config *bss)
+bool hostapd_config_check_bss_6g(struct hostapd_bss_config *bss)
 {
 	if (bss->wpa != WPA_PROTO_RSN) {
 		wpa_printf(MSG_ERROR,
