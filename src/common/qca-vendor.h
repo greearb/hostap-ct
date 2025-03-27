@@ -3917,6 +3917,14 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_DFS_NO_WAIT_SUPPORT = 131,
 
+	/* Nested attribute to configure the EHT EMLSR operation and EHT MLO
+	 * links for the EMLSR operation to the driver in STA mode. This is
+	 * runtime configuration on STA after association and the configuration
+	 * is valid only for the current association.
+	 * Uses enum qca_wlan_vendor_attr_emlsr_info for values.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_EHT_EMLSR_LINKS = 132,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
@@ -17857,6 +17865,30 @@ enum qca_wlan_vendor_attr_tpc_links {
 	QCA_WLAN_VENDOR_ATTR_TPC_LINKS_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_TPC_LINKS_MAX =
 	QCA_WLAN_VENDOR_ATTR_TPC_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_emlsr_info: Represent attributes to configure
+ * the EHT MLO links for EHT EMLSR operation and the EMLSR operation in STA
+ * mode. These attributes are used inside nested attribute
+ * %QCA_WLAN_VENDOR_ATTR_CONFIG_EMLSR_LINKS.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_EMLSR_OPERATION: Required attribute, u8.
+ * 0 - Enter, 1 - Exit
+ *
+ * @QCA_WLAN_VENDOR_ATTR_EMLSR_LINKS_BITMAP: Required, u16 attribute. This
+ * indicates the bitmap of the link IDs to specify the links corresponding
+ * to the bit set to be used for the EHT EMLSR operation.
+ */
+enum qca_wlan_vendor_attr_emlsr_info {
+	QCA_WLAN_VENDOR_ATTR_EMLSR_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_EMLSR_OPERATION = 1,
+	QCA_WLAN_VENDOR_ATTR_EMLSR_LINKS_BITMAP = 2,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_EMLSR_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_EMLSR_MAX =
+	QCA_WLAN_VENDOR_ATTR_EMLSR_AFTER_LAST - 1,
 };
 
 /**
