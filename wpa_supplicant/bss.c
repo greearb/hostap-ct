@@ -1712,6 +1712,63 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 
 
 /**
+ * wpa_bss_validate_rsne_ml - Validate RSN IEs (RSNE/RSNOE/RSNO2E) of a BSS
+ * @wpa_s: Pointer to wpa_supplicant data
+ * @ssid: Network config
+ * @bss: BSS table entry
+ * Returns: true if the BSS configuration matches local profile and the elements
+ * meet MLO requirements, false otherwise
+ */
+static bool
+wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
+			 struct wpa_bss *bss)
+{
+	struct ieee802_11_elems elems;
+	struct wpa_ie_data wpa_ie;
+	const u8 *rsne;
+	size_t rsne_len;
+	const u8 *ies_pos = wpa_bss_ie_ptr(bss);
+	size_t ies_len = bss->ie_len ? bss->ie_len : bss->beacon_ie_len;
+
+	if (ieee802_11_parse_elems(ies_pos, ies_len, &elems, 0) ==
+	    ParseFailed) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: Failed to parse elements");
+		return false;
+	}
+
+	if (elems.rsne_override_2 && wpas_rsn_overriding(wpa_s, ssid)) {
+		rsne = elems.rsne_override_2;
+		rsne_len = elems.rsne_override_2_len;
+	} else if (elems.rsne_override && wpas_rsn_overriding(wpa_s, ssid)) {
+		rsne = elems.rsne_override;
+		rsne_len = elems.rsne_override_len;
+	} else {
+		rsne = elems.rsn_ie;
+		rsne_len = elems.rsn_ie_len;
+	}
+
+	if (!rsne ||
+	    wpa_parse_wpa_ie(rsne - 2, 2 + rsne_len, &wpa_ie)) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No RSN element");
+		return false;
+	}
+
+	if (!(wpa_ie.capabilities & WPA_CAPABILITY_MFPC) ||
+	    wpas_get_ssid_pmf(wpa_s, ssid) == NO_MGMT_FRAME_PROTECTION) {
+		wpa_dbg(wpa_s, MSG_DEBUG,
+			"MLD: No management frame protection");
+		return false;
+	}
+
+	wpa_ie.key_mgmt &= ~(WPA_KEY_MGMT_PSK | WPA_KEY_MGMT_FT_PSK |
+			     WPA_KEY_MGMT_PSK_SHA256);
+	wpa_dbg(wpa_s, MSG_DEBUG, "MLD: key_mgmt=0x%x", wpa_ie.key_mgmt);
+
+	return !!(wpa_ie.key_mgmt & ssid->key_mgmt);
+}
+
+
+/**
  * wpa_bss_parse_basic_ml_element - Parse the Basic Multi-Link element
  * @wpa_s: Pointer to wpa_supplicant data
  * @bss: BSS table entry
@@ -1774,42 +1831,9 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 
 	ml_ie_len = wpabuf_len(mlbuf);
 
-	if (ssid) {
-		struct wpa_ie_data ie;
-		const u8 *rsne;
-		size_t rsne_len;
-
-		if (elems.rsne_override_2 && wpas_rsn_overriding(wpa_s, ssid)) {
-			rsne = elems.rsne_override_2;
-			rsne_len = elems.rsne_override_2_len;
-		} else if (elems.rsne_override &&
-			   wpas_rsn_overriding(wpa_s, ssid)) {
-			rsne = elems.rsne_override;
-			rsne_len = elems.rsne_override_len;
-		} else {
-			rsne = elems.rsn_ie;
-			rsne_len = elems.rsn_ie_len;
-		}
-		if (!rsne ||
-		    wpa_parse_wpa_ie(rsne - 2, 2 + rsne_len, &ie)) {
-			wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No RSN element");
-			goto out;
-		}
-
-		if (!(ie.capabilities & WPA_CAPABILITY_MFPC) ||
-		    wpas_get_ssid_pmf(wpa_s, ssid) == NO_MGMT_FRAME_PROTECTION) {
-			wpa_dbg(wpa_s, MSG_DEBUG,
-				"MLD: No management frame protection");
-			goto out;
-		}
-
-		ie.key_mgmt &= ~(WPA_KEY_MGMT_PSK | WPA_KEY_MGMT_FT_PSK |
-				 WPA_KEY_MGMT_PSK_SHA256);
-		if (!(ie.key_mgmt & ssid->key_mgmt)) {
-			wpa_dbg(wpa_s, MSG_DEBUG,
-				"MLD: No valid key management");
-			goto out;
-		}
+	if (ssid && !wpa_bss_validate_rsne_ml(wpa_s, ssid, bss)) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No valid key management");
+		goto out;
 	}
 
 	/*
