@@ -2505,3 +2505,59 @@ def test_eht_mlo_single_drv(dev, apdev, params):
         traffic_test(wpas1, hapds[2])
 
         stop_mld_devs(hapds, params['prefix'])
+
+def test_eht_mld_no_common_key_mgmt(dev, apdev):
+    """EHT MLD 2-link AP of different AKM with mixed client connectivity"""
+    with HWSimRadio(use_mlo=True, n_channels=2) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+        BIT = lambda n: 1 << n
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        check_sae_capab(wpas)
+
+        ssid = "mld_ap_no_cmn_key_mgmt"
+        passphrase = "1234567890"
+
+        params = eht_mld_ap_wpa2_params(ssid, key_mgmt="SAE", mfp='2',
+                                        passphrase=passphrase)
+        params['sae_pwe'] = '1'
+        params['sae_groups'] = '19'
+
+        hapd0 = eht_mld_enable_ap(hapd_iface, 0, params)
+
+        params['wpa_key_mgmt'] = 'SAE-EXT-KEY'
+        params['channel'] = '6'
+        hapd1 = eht_mld_enable_ap(hapd_iface, 1, params)
+
+        scan_freq = "2412 2437"
+        wpas.set("sae_groups", "")
+        wpas.connect(ssid, psk=passphrase, scan_freq=scan_freq,
+                     key_mgmt="SAE SAE-EXT-KEY", sae_pwe='1', ieee80211w='2')
+
+        hapd_selected = None
+        valid_links = 0
+
+        try:
+            hapd0.wait_sta()
+            hapd_selected = hapd0
+            valid_links |= BIT(0)
+        except Exception:
+            pass
+
+        try:
+            hapd1.wait_sta()
+            hapd_selected = hapd1
+            valid_links |= BIT(1)
+        except Exception:
+            pass
+
+        if valid_links == 3:
+            raise Exception("Connected to both links")
+
+        eht_verify_status(wpas, hapd_selected, None, None, is_ht=True, mld=True,
+                          valid_links=valid_links, active_links=valid_links)
+
+        eht_verify_wifi_version(wpas)
+        traffic_test(wpas, hapd_selected)
