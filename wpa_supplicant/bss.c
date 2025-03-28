@@ -1718,15 +1718,20 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
  * @bss: BSS table entry
  * Returns: true if the BSS configuration matches local profile and the elements
  * meet MLO requirements, false otherwise
+ * @key_mgmt: Pointer to store key management
+ * @rsne_type_p: Type of RSNE to validate. If -1 is given, choose as per the
+ *	presence of RSN elements (association link); otherwise, validate
+ *	against the requested type (other affiliated links).
  */
 static bool
 wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
-			 struct wpa_bss *bss)
+			 struct wpa_bss *bss, int *key_mgmt, int *rsne_type_p)
 {
 	struct ieee802_11_elems elems;
 	struct wpa_ie_data wpa_ie;
 	const u8 *rsne;
 	size_t rsne_len;
+	int rsne_type;
 	const u8 *ies_pos = wpa_bss_ie_ptr(bss);
 	size_t ies_len = bss->ie_len ? bss->ie_len : bss->beacon_ie_len;
 
@@ -1739,17 +1744,26 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 	if (elems.rsne_override_2 && wpas_rsn_overriding(wpa_s, ssid)) {
 		rsne = elems.rsne_override_2;
 		rsne_len = elems.rsne_override_2_len;
+		rsne_type = 2;
 	} else if (elems.rsne_override && wpas_rsn_overriding(wpa_s, ssid)) {
 		rsne = elems.rsne_override;
 		rsne_len = elems.rsne_override_len;
+		rsne_type = 1;
 	} else {
 		rsne = elems.rsn_ie;
 		rsne_len = elems.rsn_ie_len;
+		rsne_type = 0;
 	}
 
 	if (!rsne ||
 	    wpa_parse_wpa_ie(rsne - 2, 2 + rsne_len, &wpa_ie)) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No RSN element");
+		return false;
+	}
+
+	if (*rsne_type_p != -1 && *rsne_type_p != rsne_type) {
+		wpa_dbg(wpa_s, MSG_DEBUG,
+			"MLD: No matching RSN element (RSNO mismatch)");
 		return false;
 	}
 
@@ -1763,6 +1777,11 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 	wpa_ie.key_mgmt &= ~(WPA_KEY_MGMT_PSK | WPA_KEY_MGMT_FT_PSK |
 			     WPA_KEY_MGMT_PSK_SHA256);
 	wpa_dbg(wpa_s, MSG_DEBUG, "MLD: key_mgmt=0x%x", wpa_ie.key_mgmt);
+
+	if (key_mgmt)
+		*key_mgmt = wpa_ie.key_mgmt;
+
+	*rsne_type_p = rsne_type;
 
 	return !!(wpa_ie.key_mgmt & ssid->key_mgmt);
 }
@@ -1814,8 +1833,9 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 	u16 seen;
 	const u8 *ies_pos = wpa_bss_ie_ptr(bss);
 	size_t ies_len = bss->ie_len ? bss->ie_len : bss->beacon_ie_len;
-	int ret = -1;
+	int ret = -1, rsne_type, key_mgmt;
 	struct mld_link *l;
+	u16 valid_links;
 
 	if (ieee802_11_parse_elems(ies_pos, ies_len, &elems, 1) ==
 	    ParseFailed) {
@@ -1831,7 +1851,10 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 
 	ml_ie_len = wpabuf_len(mlbuf);
 
-	if (ssid && !wpa_bss_validate_rsne_ml(wpa_s, ssid, bss)) {
+	rsne_type = -1;
+	if (ssid &&
+	    !wpa_bss_validate_rsne_ml(wpa_s, ssid, bss, &key_mgmt,
+				      &rsne_type)) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No valid key management");
 		goto out;
 	}
@@ -1924,6 +1947,44 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 
 	wpa_printf(MSG_DEBUG, "MLD: valid_links=%04hx (unresolved: 0x%04hx)",
 		   bss->valid_links, missing);
+
+	valid_links = bss->valid_links;
+	for_each_link(bss->valid_links, i) {
+		struct wpa_bss *neigh_bss;
+		int neigh_key_mgmt;
+
+		if (!ssid)
+			break;
+
+		if (i == link_id)
+			continue;
+
+		neigh_bss = wpa_bss_get_bssid(wpa_s, bss->mld_links[i].bssid);
+		if (!neigh_bss) /* cannot be NULL at this point */
+			continue;
+
+		/* As per IEEE P802.11be/D7.0, 12.6.2 (RSNA selection), all APs
+		 * affiliated with an AP MLD shall advertise at least one common
+		 * AKM suite selector in the AKM Suite List field of an RSNE or
+		 * RSNXE. Discard links that do not have compatibility
+		 * configuration with the association link.
+		 */
+		if (!wpa_bss_validate_rsne_ml(wpa_s, ssid, neigh_bss,
+					      &neigh_key_mgmt, &rsne_type) ||
+		    !(key_mgmt & neigh_key_mgmt)) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Discard link %u due to RSN parameter mismatch",
+				   i);
+			valid_links &= ~BIT(i);
+			continue;
+		}
+	}
+
+	if (valid_links != bss->valid_links) {
+		wpa_printf(MSG_DEBUG, "MLD: Updated valid links=%04hx",
+			   valid_links);
+		bss->valid_links = valid_links;
+	}
 
 	for_each_link(bss->valid_links, i) {
 		wpa_printf(MSG_DEBUG, "MLD: link=%u, bssid=" MACSTR,
