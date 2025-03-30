@@ -1835,7 +1835,10 @@ setup_mld:
 		return -1;
 	}
 
-	if (start_beacon && hostapd_start_beacon(hapd, flush_old_stations) < 0)
+	if (!start_beacon)
+		return 0;
+
+	if (hostapd_start_beacon(hapd, flush_old_stations) < 0)
 		return -1;
 
 	if (hapd->wpa_auth && wpa_init_keys(hapd->wpa_auth) < 0)
@@ -2769,7 +2772,8 @@ static int hostapd_setup_interface_complete_sync(struct hostapd_iface *iface,
 	if (hapd->iconf->mbssid) {
 		for (j = 0; hapd->iconf->mbssid && j < iface->num_bss; j++) {
 			hapd = iface->bss[j];
-			if (hostapd_start_beacon(hapd, true)) {
+			if (hostapd_start_beacon(hapd, true) ||
+			    (hapd->wpa_auth && wpa_init_keys(hapd->wpa_auth) < 0)) {
 				for (;;) {
 					hapd = iface->bss[j];
 					hostapd_bss_deinit_no_free(hapd);
