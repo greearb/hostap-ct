@@ -4986,8 +4986,12 @@ int ieee80211_ml_process_link(struct hostapd_data *hapd,
 		hapd->sta_aid[(sta->aid - 1) / 32] |= BIT((sta->aid - 1) % 32);
 		sta->listen_interval = origin_sta->listen_interval;
 		if (!is_6ghz_op_class(hapd->iconf->op_class) &&
-		    update_ht_state(hapd, sta) > 0)
-			ieee802_11_update_beacons(hapd->iface);
+		    update_ht_state(hapd, sta) > 0) {
+			struct hapd_interfaces *ifaces = hapd->iface->interfaces;
+
+			for (i = 0; i < ifaces->count; i++)
+				ieee802_11_set_beacon_per_iface_only(ifaces->iface[i]);
+		}
 	}
 
 	/* Maintain state machine reference on all link STAs, this is needed
@@ -6142,8 +6146,13 @@ static void handle_assoc(struct hostapd_data *hapd,
 	}
 #endif /* CONFIG_FILS */
 
-	if (set_beacon)
-		ieee802_11_update_beacons(hapd->iface);
+	if (set_beacon) {
+		struct hapd_interfaces *ifaces = hapd->iface->interfaces;
+		int j;
+
+		for (j = 0; j < ifaces->count; j++)
+			ieee802_11_set_beacon_per_iface_only(ifaces->iface[j]);
+	}
 
  fail:
 
