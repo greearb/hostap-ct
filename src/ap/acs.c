@@ -889,10 +889,9 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 
 		/* HT40 on 5 GHz has a limited set of primary channels as per
 		 * 11n Annex J */
-		if (mode->mode == HOSTAPD_MODE_IEEE80211A &&
-		    ((iface->conf->ieee80211n &&
-		      iface->conf->secondary_channel) ||
-		     is_6ghz_freq(chan->freq)) &&
+		if (bw == 40 &&
+		    mode->mode == HOSTAPD_MODE_IEEE80211A &&
+		    iface->conf->ieee80211n &&
 		    !acs_usable_bw_chan(chan, ACS_BW40)) {
 			wpa_printf(MSG_DEBUG,
 				   "ACS: Channel %d: not allowed as primary channel for 40 MHz bandwidth",
@@ -903,18 +902,14 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 		if (mode->mode == HOSTAPD_MODE_IEEE80211A &&
 		    (iface->conf->ieee80211ac || iface->conf->ieee80211ax ||
 		     iface->conf->ieee80211be)) {
-			if (hostapd_get_oper_chwidth(iface->conf) ==
-			    CONF_OPER_CHWIDTH_80MHZ &&
-			    !acs_usable_bw_chan(chan, ACS_BW80)) {
+			if (bw == 80 && !acs_usable_bw_chan(chan, ACS_BW80)) {
 				wpa_printf(MSG_DEBUG,
 					   "ACS: Channel %d: not allowed as primary channel for 80 MHz bandwidth",
 					   chan->chan);
 				continue;
 			}
 
-			if (hostapd_get_oper_chwidth(iface->conf) ==
-			    CONF_OPER_CHWIDTH_160MHZ &&
-			    !acs_usable_bw_chan(chan, ACS_BW160)) {
+			if (bw == 160 && !acs_usable_bw_chan(chan, ACS_BW160)) {
 				wpa_printf(MSG_DEBUG,
 					   "ACS: Channel %d: not allowed as primary channel for 160 MHz bandwidth",
 					   chan->chan);
@@ -924,10 +919,14 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 
 		if (mode->mode == HOSTAPD_MODE_IEEE80211A &&
 		    iface->conf->ieee80211be) {
-			if (hostapd_get_oper_chwidth(iface->conf) ==
-			    CONF_OPER_CHWIDTH_320MHZ &&
-			    !acs_usable_bw320_chan(iface, chan, &bw320_offset))
+			if (bw == 320 &&
+			    !acs_usable_bw320_chan(iface, chan,
+						   &bw320_offset)) {
+				wpa_printf(MSG_DEBUG,
+					   "ACS: Channel %d: not allowed as primary channel for 320 MHz bandwidth",
+					   chan->chan);
 				continue;
+			}
 		}
 
 		factor = 0;
