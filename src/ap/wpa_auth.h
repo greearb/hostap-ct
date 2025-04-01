@@ -683,8 +683,7 @@ void wpa_auth_ml_get_key_info(struct wpa_authenticator *a,
 			      bool mgmt_frame_prot, bool beacon_prot,
 			      bool rekey);
 
-void wpa_release_link_auth_ref(struct wpa_state_machine *sm,
-			       int release_link_id);
+void wpa_release_link_auth_ref(struct wpa_state_machine *sm, u8 link_id);
 
 #define for_each_sm_auth(sm, link_id) \
 	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++)	\

@@ -125,17 +125,23 @@ static void wpa_gkeydone_sta(struct wpa_state_machine *sm)
 
 #ifdef CONFIG_IEEE80211BE
 
-void wpa_release_link_auth_ref(struct wpa_state_machine *sm,
-			       int release_link_id)
+void wpa_release_link_auth_ref(struct wpa_state_machine *sm, u8 link_id)
 {
-	int link_id;
+	struct wpa_authenticator *wpa_auth;
+	struct mld_link *link;
 
-	if (!sm || release_link_id >= MAX_NUM_MLD_LINKS)
+	if (!sm || link_id >= MAX_NUM_MLD_LINKS)
 		return;
 
-	for_each_sm_auth(sm, link_id) {
-		if (link_id == release_link_id)
-			sm->mld_links[link_id].wpa_auth = NULL;
+	link = &sm->mld_links[link_id];
+	if (link->valid) {
+		link->valid = false;
+		wpa_auth = link->wpa_auth;
+		if (wpa_auth) {
+			link->wpa_auth = NULL;
+			wpa_group_put(wpa_auth, wpa_auth->group);
+		}
+		sm->n_mld_affiliated_links--;
 	}
 }
 
