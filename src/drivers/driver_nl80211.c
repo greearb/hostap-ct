@@ -2403,6 +2403,7 @@ skip_wifi_status:
 	 * Use link ID 0 for the single "link" of a non-MLD.
 	 */
 	bss->valid_links = 0;
+	bss->active_links = 0;
 	bss->flink = &bss->links[0];
 	os_memcpy(bss->flink->addr, bss->addr, ETH_ALEN);
 
@@ -9622,7 +9623,8 @@ fail:
 }
 
 
-int nl80211_remove_link(struct i802_bss *bss, int link_id)
+int nl80211_remove_link(struct i802_bss *bss, int link_id,
+			bool skip_link_removal)
 {
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct i802_link *link;
@@ -9630,6 +9632,7 @@ int nl80211_remove_link(struct i802_bss *bss, int link_id)
 	size_t i;
 	int ret;
 	u8 link_addr[ETH_ALEN];
+	u16 links;
 
 	wpa_printf(MSG_DEBUG, "nl80211: Remove link (ifindex=%d link_id=%u)",
 		   bss->ifindex, link_id);
@@ -9645,26 +9648,45 @@ int nl80211_remove_link(struct i802_bss *bss, int link_id)
 	wpa_driver_nl80211_del_beacon(bss, link_id);
 
 	os_memcpy(link_addr, link->addr, ETH_ALEN);
-	/* First remove the link locally */
-	bss->valid_links &= ~BIT(link_id);
+	/* First remove the link locally if !skip_link_removal */
+	if (!skip_link_removal) {
+		bss->valid_links &= ~BIT(link_id);
+		bss->active_links &= ~BIT(link_id);
+		links = bss->valid_links;
+	} else {
+		/* active_links are cleared when the link goes to down state */
+		bss->active_links &= ~BIT(link_id);
+		links = bss->active_links;
+	}
+
 	os_memset(link->addr, 0, ETH_ALEN);
 
 	/* Choose new deflink if we are removing that link */
 	if (bss->flink == link) {
-		for_each_link_default(bss->valid_links, i, 0) {
+		for_each_link_default(links, i, 0) {
+			/* The link should be present else check for another
+			 * link */
+			if (!(bss->valid_links & BIT(i)))
+				continue;
 			bss->flink = &bss->links[i];
 			break;
 		}
 	}
 
 	/* If this was the last link, reset default link */
-	if (!bss->valid_links) {
+	if (!skip_link_removal && !links) {
 		/* TODO: Does keeping freq/bandwidth make sense? */
 		if (bss->flink != link)
 			os_memcpy(bss->flink, link, sizeof(*link));
 
 		os_memcpy(bss->flink->addr, bss->addr, ETH_ALEN);
 	}
+
+	/* Link should not be removed if nl80211_stop_ap() was received from the
+	 * driver since this doesn't physically remove the link and maintain the
+	 * interfaces in down state. */
+	if (skip_link_removal)
+		return 0;
 
 	/* Remove the link from the kernel */
 	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_REMOVE_LINK);
@@ -9695,7 +9717,7 @@ static void nl80211_remove_links(struct i802_bss *bss)
 	u8 link_id;
 
 	for_each_link(bss->valid_links, link_id) {
-		ret = nl80211_remove_link(bss, link_id);
+		ret = nl80211_remove_link(bss, link_id, false);
 		if (ret)
 			break;
 	}
@@ -10987,7 +11009,7 @@ static int driver_nl80211_link_remove(void *priv, enum wpa_driver_if_type type,
 		   "nl80211: Teardown AP(%s) link %d (type=%d ifname=%s links=0x%x)",
 		   bss->ifname, link_id, type, ifname, bss->valid_links);
 
-	nl80211_remove_link(bss, link_id);
+	nl80211_remove_link(bss, link_id, false);
 
 	bss->ctx = bss->flink->ctx;
 
@@ -14479,7 +14501,8 @@ static int nl80211_link_add(void *priv, u8 link_id, const u8 *addr,
 		return -EINVAL;
 	}
 
-	if (bss->valid_links & BIT(link_id)) {
+	if ((bss->valid_links & BIT(link_id)) &&
+	    (bss->active_links & BIT(link_id))) {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: MLD: Link %u already set", link_id);
 		return -EINVAL;
@@ -14511,14 +14534,16 @@ static int nl80211_link_add(void *priv, u8 link_id, const u8 *addr,
 	os_memcpy(bss->links[link_id].addr, addr, ETH_ALEN);
 
 	/* The new link is the first one, make it the default */
-	if (!bss->valid_links)
+	if (!bss->valid_links || !bss->active_links)
 		bss->flink = &bss->links[link_id];
 
 	bss->valid_links |= BIT(link_id);
+	bss->active_links |= BIT(link_id);
 	bss->links[link_id].ctx = bss_ctx;
 
-	wpa_printf(MSG_DEBUG, "nl80211: MLD: valid_links=0x%04x on %s",
-		   bss->valid_links, bss->ifname);
+	wpa_printf(MSG_DEBUG,
+		   "nl80211: MLD: valid_links=0x%04x active_links=0x%04x on %s",
+		   bss->valid_links, bss->active_links, bss->ifname);
 
 	if (drv->rtnl_sk)
 		rtnl_neigh_add_fdb_entry(bss, addr, true);
