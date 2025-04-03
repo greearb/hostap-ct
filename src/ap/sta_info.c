@@ -202,8 +202,8 @@ static void __ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 
 
 #ifdef CONFIG_IEEE80211BE
-static void clear_wpa_sm_for_each_partner_link(struct hostapd_data *hapd,
-					       struct sta_info *psta)
+void clear_wpa_sm_for_each_partner_link(struct hostapd_data *hapd,
+					struct sta_info *psta)
 {
 	struct sta_info *lsta;
 	struct hostapd_data *lhapd;

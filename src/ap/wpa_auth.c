@@ -1115,8 +1115,14 @@ static void wpa_free_sta_sm(struct wpa_state_machine *sm)
 	os_free(sm->rsnxe);
 	os_free(sm->rsn_selection);
 #ifdef CONFIG_IEEE80211BE
-	for_each_sm_auth(sm, link_id)
+	for_each_sm_auth(sm, link_id) {
+		struct wpa_authenticator *wpa_auth;
+
+		wpa_auth = sm->mld_links[link_id].wpa_auth;
 		sm->mld_links[link_id].wpa_auth = NULL;
+		sm->mld_links[link_id].valid = false;
+		wpa_group_put(wpa_auth, wpa_auth->group);
+	}
 #endif /* CONFIG_IEEE80211BE */
 	wpa_group_put(sm->wpa_auth, sm->group);
 #ifdef CONFIG_DPP2
