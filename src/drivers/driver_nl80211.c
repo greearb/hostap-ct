@@ -2403,6 +2403,7 @@ skip_wifi_status:
 	 * Use link ID 0 for the single "link" of a non-MLD.
 	 */
 	bss->valid_links = 0;
+	bss->active_links = 0;
 	bss->flink = &bss->links[0];
 	os_memcpy(bss->flink->addr, bss->addr, ETH_ALEN);
 
@@ -9622,12 +9623,39 @@ fail:
 }
 
 
+void nl80211_update_active_links(struct i802_bss *bss, int link_id)
+{
+	struct i802_link *link = &bss->links[link_id];
+	size_t i;
+
+	wpa_printf(MSG_DEBUG, "nl80211: Update link (ifindex=%d link_id=%u)",
+		   bss->ifindex, link_id);
+
+	if (!(bss->active_links & BIT(link_id))) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: MLD: Update link: Link not found");
+		return;
+	}
+
+	wpa_driver_nl80211_del_beacon(bss, link_id);
+
+	bss->active_links &= ~BIT(link_id);
+
+	/* Choose new deflink if we are removing that link */
+	if (bss->flink == link) {
+		for_each_link(bss->active_links, i) {
+			bss->flink = &bss->links[i];
+			break;
+		}
+	}
+}
+
+
 int nl80211_remove_link(struct i802_bss *bss, int link_id)
 {
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct i802_link *link;
 	struct nl_msg *msg;
-	size_t i;
 	int ret;
 	u8 link_addr[ETH_ALEN];
 
@@ -9642,20 +9670,13 @@ int nl80211_remove_link(struct i802_bss *bss, int link_id)
 
 	link = &bss->links[link_id];
 
-	wpa_driver_nl80211_del_beacon(bss, link_id);
-
 	os_memcpy(link_addr, link->addr, ETH_ALEN);
+
 	/* First remove the link locally */
 	bss->valid_links &= ~BIT(link_id);
 	os_memset(link->addr, 0, ETH_ALEN);
-
-	/* Choose new deflink if we are removing that link */
-	if (bss->flink == link) {
-		for_each_link_default(bss->valid_links, i, 0) {
-			bss->flink = &bss->links[i];
-			break;
-		}
-	}
+	/* Clear the active links and set the flink */
+	nl80211_update_active_links(bss, link_id);
 
 	/* If this was the last link, reset default link */
 	if (!bss->valid_links) {
@@ -14479,7 +14500,7 @@ static int nl80211_link_add(void *priv, u8 link_id, const u8 *addr,
 		return -EINVAL;
 	}
 
-	if (bss->valid_links & BIT(link_id)) {
+	if (bss->active_links & BIT(link_id)) {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: MLD: Link %u already set", link_id);
 		return -EINVAL;
@@ -14511,14 +14532,16 @@ static int nl80211_link_add(void *priv, u8 link_id, const u8 *addr,
 	os_memcpy(bss->links[link_id].addr, addr, ETH_ALEN);
 
 	/* The new link is the first one, make it the default */
-	if (!bss->valid_links)
+	if (!bss->active_links)
 		bss->flink = &bss->links[link_id];
 
 	bss->valid_links |= BIT(link_id);
+	bss->active_links |= BIT(link_id);
 	bss->links[link_id].ctx = bss_ctx;
 
-	wpa_printf(MSG_DEBUG, "nl80211: MLD: valid_links=0x%04x on %s",
-		   bss->valid_links, bss->ifname);
+	wpa_printf(MSG_DEBUG,
+		   "nl80211: MLD: valid_links=0x%04x active_links=0x%04x on %s",
+		   bss->valid_links, bss->active_links, bss->ifname);
 
 	if (drv->rtnl_sk)
 		rtnl_neigh_add_fdb_entry(bss, addr, true);

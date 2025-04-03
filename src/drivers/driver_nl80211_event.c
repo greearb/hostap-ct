@@ -2467,10 +2467,8 @@ static void nl80211_stop_ap(struct i802_bss *bss, struct nlattr **tb)
 			   "nl80211: STOP_AP event on link %d", link_id);
 		ctx = mld_link->ctx;
 
-		/* The driver would have already deleted the link and this call
-		 * will return an error. Ignore that since nl80211_remove_link()
-		 * is called here only to update the bss->links[] state. */
-		nl80211_remove_link(bss, link_id);
+		/* Bring down the active link */
+		nl80211_update_active_links(bss, link_id);
 	}
 
 	wpa_supplicant_event(ctx, EVENT_INTERFACE_UNAVAILABLE, NULL);
