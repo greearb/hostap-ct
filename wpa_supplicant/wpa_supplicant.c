@@ -3225,7 +3225,8 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 		6515, 6595, 6675, 6755, 6835, 6915, 6995
 	};
 	static const int bw160[] = {
-		5955, 6115, 6275, 6435, 6595, 6755, 6915
+		5180, 5500, 5745, 5955, 6115, 6275, 6435,
+		6595, 6755, 6915
 	};
 	static const int bw320[]= {
 		5955, 6255, 6115, 6415, 6275, 6575, 6435,
@@ -3277,16 +3278,22 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 
 	/* In 160 MHz, the initial four 20 MHz channels were validated
 	 * above. If 160 MHz is supported, check the remaining four 20 MHz
-	 * channels for the total of 160 MHz bandwidth for 6 GHz.
+	 * channels for the total of 160 MHz bandwidth.
 	 */
 	if ((mode->he_capab[ieee80211_mode].phy_cap[
 		     HE_PHYCAP_CHANNEL_WIDTH_SET_IDX] &
-	     HE_PHYCAP_CHANNEL_WIDTH_SET_160MHZ_IN_5G) && is_6ghz &&
+	     HE_PHYCAP_CHANNEL_WIDTH_SET_160MHZ_IN_5G) &&
+	    (ssid->max_oper_chwidth == CONF_OPER_CHWIDTH_160MHZ ||
+	     ssid->max_oper_chwidth == CONF_OPER_CHWIDTH_320MHZ) &&
 	    ibss_mesh_is_80mhz_avail(channel + 16, mode)) {
 		for (j = 0; j < ARRAY_SIZE(bw160); j++) {
-			if (freq->freq == bw160[j]) {
+			u8 start_chan;
+
+			if (freq->freq >= bw160[j] &&
+			    freq->freq < bw160[j] + 160) {
 				chwidth = CONF_OPER_CHWIDTH_160MHZ;
-				seg0 = channel + 14;
+				ieee80211_freq_to_chan(bw160[j], &start_chan);
+				seg0 = start_chan + 14;
 				break;
 			}
 		}
