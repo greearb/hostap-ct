@@ -65,11 +65,7 @@ struct i802_bss {
 	struct wpa_driver_nl80211_data *drv;
 	struct i802_bss *next;
 
-	/* The links which are physically present */
 	u16 valid_links;
-	/* The links which are in down state updated via nl80211_stop_ap() from
-	 * the driver. */
-	u16 active_links;
 	struct i802_link links[MAX_NUM_MLD_LINKS];
 	struct i802_link *flink, *scan_link;
 
@@ -368,8 +364,7 @@ const char * nl80211_iftype_str(enum nl80211_iftype mode);
 void nl80211_restore_ap_mode(struct i802_bss *bss);
 struct i802_link * nl80211_get_link(struct i802_bss *bss, s8 link_id);
 u8 nl80211_get_link_id_from_link(struct i802_bss *bss, struct i802_link *link);
-int nl80211_remove_link(struct i802_bss *bss, int link_id,
-			bool skip_link_removal);
+int nl80211_remove_link(struct i802_bss *bss, int link_id);
 
 static inline bool nl80211_link_valid(u16 links, s8 link_id)
 {
