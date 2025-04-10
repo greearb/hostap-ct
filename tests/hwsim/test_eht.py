@@ -1055,6 +1055,44 @@ def test_eht_all_links_rejected(dev, apdev, params):
             # connects.
             wpas.wait_connected(timeout=15)
 
+def test_eht_non_assoc_links_rejected(dev, apdev, params):
+    """EHT MLD AP with all non assoc links rejected in association"""
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+        check_sae_capab(wpas)
+
+        ssid = "mld_ap"
+        passphrase = 'qwertyuiop'
+        link_params = eht_mld_ap_wpa2_params(ssid, passphrase, mfp="2",
+                                             key_mgmt="SAE", pwe='2')
+        link_params['channel'] = '1'
+        link_params['bssid'] = '00:11:22:33:44:01'
+        hapd0 = eht_mld_enable_ap(hapd_iface, 0, link_params)
+        link_params['channel'] = '6'
+        link_params['bssid'] = '00:11:22:33:44:02'
+        hapd1 = eht_mld_enable_ap(hapd_iface, 1, link_params)
+        wpas.set("mld_connect_bssid_pref", "00:11:22:33:44:01")
+        wpas.set("sae_pwe", "1")
+
+        connected = False
+        with fail_test(hapd0, 1, "ieee80211_ml_process_link"):
+            wpas.connect(ssid, sae_password=passphrase, ieee80211w="2",
+                         key_mgmt="SAE", scan_freq="2412", wait_connect=False)
+            ev = wpas.wait_event(['CTRL-EVENT-CONNECTED',
+                                  'CTRL-EVENT-DISCONNECTED'])
+            if ev and 'CTRL-EVENT-CONNECTED' in ev:
+                connected = True
+        if not connected:
+            raise Exception('Connection failure')
+
+        eht_verify_wifi_version(wpas)
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=1, active_links=1)
+        traffic_test(wpas, hapd0)
+
 def test_eht_connect_invalid_link(dev, apdev, params):
     """EHT MLD AP where one link is incorrectly configured and rejected by mac80211"""
     with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \

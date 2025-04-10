@@ -4794,7 +4794,7 @@ static int ieee80211_ml_process_link(struct hostapd_data *hapd,
 	}
 
 	sta = ap_get_sta(hapd, origin_sta->addr);
-	if (sta) {
+	if (sta || TEST_FAIL()) {
 		wpa_printf(MSG_INFO, "MLD: link: Station already exists");
 		status = WLAN_STATUS_UNSPECIFIED_FAILURE;
 		sta = NULL;
