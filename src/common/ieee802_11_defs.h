@@ -808,6 +808,7 @@
 #define WLAN_RRM_CAPS_LCI_MEASUREMENT BIT(4)
 /* byte 5 (out of 5) */
 #define WLAN_RRM_CAPS_FTM_RANGE_REPORT BIT(2)
+#define WLAN_RRM_CAPS_CIVIC_LOCATION_MEASUREMENT BIT(3)
 
 /*
  * IEEE Std 802.11-2020, 9.4.2.20.19 (Fine Timing Measurement Range

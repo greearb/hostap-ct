@@ -4485,12 +4485,30 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 			wpabuf_free(conf->lci);
 			conf->lci = NULL;
 		}
+		if (conf->lci) {
+			/* Enable LCI capability in RM Enabled Capabilities
+			 * element */
+			bss->radio_measurements[1] |=
+				WLAN_RRM_CAPS_LCI_MEASUREMENT;
+		} else {
+			bss->radio_measurements[1] &=
+				~WLAN_RRM_CAPS_LCI_MEASUREMENT;
+		}
 	} else if (os_strcmp(buf, "civic") == 0) {
 		wpabuf_free(conf->civic);
 		conf->civic = wpabuf_parse_bin(pos);
 		if (conf->civic && wpabuf_len(conf->civic) == 0) {
 			wpabuf_free(conf->civic);
 			conf->civic = NULL;
+		}
+		if (conf->civic) {
+			/* Enable civic location capability in RM Enabled
+			 * Capabilities element */
+			bss->radio_measurements[4] |=
+				WLAN_RRM_CAPS_CIVIC_LOCATION_MEASUREMENT;
+		} else {
+			bss->radio_measurements[4] &=
+				~WLAN_RRM_CAPS_CIVIC_LOCATION_MEASUREMENT;
 		}
 	} else if (os_strcmp(buf, "rrm_neighbor_report") == 0) {
 		if (atoi(pos))

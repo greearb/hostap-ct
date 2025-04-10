@@ -381,6 +381,10 @@ static void hostapd_ext_capab_byte(struct hostapd_data *hapd, u8 *pos, int idx,
 			/* Bit 13 - Collocated Interference Reporting */
 			*pos |= 0x20;
 		}
+		if (hapd->iface->conf->civic)
+			*pos |= 0x40; /* Bit 14 - Civic Location */
+		if (hapd->iface->conf->lci)
+			*pos |= 0x80; /* Bit 15 - Geospatial Location */
 		break;
 	case 2: /* Bits 16-23 */
 		if (hapd->conf->wnm_sleep_mode)
