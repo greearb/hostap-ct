@@ -3306,6 +3306,7 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 	if ((mode->eht_capab[ieee80211_mode].phy_cap[
 		     EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_IDX] &
 	     EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_MASK) && is_6ghz &&
+	    ssid->max_oper_chwidth == CONF_OPER_CHWIDTH_320MHZ &&
 	    ibss_mesh_is_80mhz_avail(channel + 16, mode) &&
 	    ibss_mesh_is_80mhz_avail(channel + 32, mode) &&
 	    ibss_mesh_is_80mhz_avail(channel + 48, mode)) {
