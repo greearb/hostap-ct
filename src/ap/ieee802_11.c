@@ -4886,7 +4886,7 @@ out:
 	wpa_printf(MSG_DEBUG, "MLD: link: status=%u", status);
 	if (status != WLAN_STATUS_SUCCESS) {
 		wpa_release_link_auth_ref(origin_sta->wpa_sm,
-					  hapd->mld_link_id);
+					  hapd->mld_link_id, true);
 		if (sta)
 			ap_free_sta(hapd, sta);
 		return -1;

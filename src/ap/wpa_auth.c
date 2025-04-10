@@ -125,7 +125,8 @@ static void wpa_gkeydone_sta(struct wpa_state_machine *sm)
 
 #ifdef CONFIG_IEEE80211BE
 
-void wpa_release_link_auth_ref(struct wpa_state_machine *sm, u8 link_id)
+void wpa_release_link_auth_ref(struct wpa_state_machine *sm, u8 link_id,
+			       bool rejected)
 {
 	struct wpa_authenticator *wpa_auth;
 	struct mld_link *link;
@@ -136,12 +137,12 @@ void wpa_release_link_auth_ref(struct wpa_state_machine *sm, u8 link_id)
 	link = &sm->mld_links[link_id];
 	if (link->valid) {
 		link->valid = false;
+		link->rejected = rejected;
 		wpa_auth = link->wpa_auth;
 		if (wpa_auth) {
 			link->wpa_auth = NULL;
 			wpa_group_put(wpa_auth, wpa_auth->group);
 		}
-		sm->n_mld_affiliated_links--;
 	}
 }
 
@@ -3679,6 +3680,12 @@ static int wpa_auth_validate_ml_kdes_m2(struct wpa_state_machine *sm,
 			return -1;
 		}
 
+		/* Skip rejected links although the non-AP MLD will send them in
+		 * M2 of the initial 4-way handshake. */
+		if (sm->mld_links[i].rejected) {
+			n_links++;
+			continue;
+		}
 		if (!sm->mld_links[i].valid || i == sm->mld_assoc_link_id) {
 			wpa_printf(MSG_DEBUG,
 				   "RSN: MLD: Invalid link ID=%u", i);
@@ -7589,6 +7596,7 @@ void wpa_auth_set_ml_info(struct wpa_state_machine *sm,
 		struct wpa_get_link_auth_ctx ctx;
 
 		sm_link->valid = link->valid;
+		sm_link->rejected = false;
 		if (!link->valid)
 			continue;
 

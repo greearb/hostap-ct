@@ -184,6 +184,7 @@ struct wpa_state_machine {
 
 	struct mld_link {
 		bool valid;
+		bool rejected;
 		u8 peer_addr[ETH_ALEN];
 
 		struct wpa_authenticator *wpa_auth;

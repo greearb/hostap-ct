@@ -351,7 +351,8 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	/* Release group references in case non-association link STA is removed
 	 * before association link STA */
 	if (hostapd_sta_is_link_sta(hapd, sta))
-		wpa_release_link_auth_ref(sta->wpa_sm, hapd->mld_link_id);
+		wpa_release_link_auth_ref(sta->wpa_sm, hapd->mld_link_id,
+					  false);
 #else /* CONFIG_IEEE80211BE */
 	wpa_auth_sta_deinit(sta->wpa_sm);
 #endif /* CONFIG_IEEE80211BE */
