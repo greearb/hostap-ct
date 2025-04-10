@@ -3237,6 +3237,8 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 	int i;
 	unsigned int j, k;
 	int chwidth, seg0, seg1;
+	int offset_in_160 = 1;
+	int offset_in_320 = 0;
 	u32 vht_caps = 0;
 	u8 channel = freq->channel;
 
@@ -3276,6 +3278,32 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 	seg0 = channel + 6;
 	seg1 = 0;
 
+	for (k = 0; k < ARRAY_SIZE(bw160); k++) {
+		if (bw80[j] >= bw160[k] &&
+		    bw80[j] < bw160[k] + 160) {
+			if (bw80[j] == bw160[k])
+				offset_in_160 = 1;
+			else
+				offset_in_160 = -1;
+			break;
+		}
+	}
+
+	for (k = 0; k < ARRAY_SIZE(bw320); k++) {
+		if (bw80[j] >= bw320[k] &&
+		    bw80[j] < bw320[k] + 320) {
+			if (bw80[j] == bw320[k])
+				offset_in_320 = 0;
+			else if (bw80[j] == bw320[k] + 80)
+				offset_in_320 = 1;
+			else if (bw80[j] == bw320[k] + 160)
+				offset_in_320 = 2;
+			else
+				offset_in_320 = 3;
+			break;
+		}
+	}
+
 	/* In 160 MHz, the initial four 20 MHz channels were validated
 	 * above. If 160 MHz is supported, check the remaining four 20 MHz
 	 * channels for the total of 160 MHz bandwidth.
@@ -3285,7 +3313,7 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 	     HE_PHYCAP_CHANNEL_WIDTH_SET_160MHZ_IN_5G) &&
 	    (ssid->max_oper_chwidth == CONF_OPER_CHWIDTH_160MHZ ||
 	     ssid->max_oper_chwidth == CONF_OPER_CHWIDTH_320MHZ) &&
-	    ibss_mesh_is_80mhz_avail(channel + 16, mode)) {
+	    ibss_mesh_is_80mhz_avail(channel + 16 * offset_in_160, mode)) {
 		for (j = 0; j < ARRAY_SIZE(bw160); j++) {
 			u8 start_chan;
 
@@ -3307,9 +3335,12 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 		     EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_IDX] &
 	     EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_MASK) && is_6ghz &&
 	    ssid->max_oper_chwidth == CONF_OPER_CHWIDTH_320MHZ &&
-	    ibss_mesh_is_80mhz_avail(channel + 16, mode) &&
-	    ibss_mesh_is_80mhz_avail(channel + 32, mode) &&
-	    ibss_mesh_is_80mhz_avail(channel + 48, mode)) {
+	    ibss_mesh_is_80mhz_avail(channel + 16 -
+				     64 * ((offset_in_320 + 1) / 4), mode) &&
+	    ibss_mesh_is_80mhz_avail(channel + 32 -
+				     64 * ((offset_in_320 + 2) / 4), mode) &&
+	    ibss_mesh_is_80mhz_avail(channel + 48 -
+				     64 * ((offset_in_320 + 3) / 4), mode)) {
 		for (j = 0; j < ARRAY_SIZE(bw320); j += 2) {
 			if (freq->freq >= bw320[j] &&
 			    freq->freq <= bw320[j + 1]) {
