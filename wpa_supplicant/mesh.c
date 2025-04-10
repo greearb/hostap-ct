@@ -389,6 +389,7 @@ static int wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	int basic_rates_erp[] = { 10, 20, 55, 60, 110, 120, 240, -1 };
 	int rate_len;
 	int frequency;
+	bool is_dfs;
 	u8 chan;
 
 	if (!wpa_s->conf->user_mpm) {
@@ -499,8 +500,16 @@ static int wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	}
 #endif /* CONFIG_IEEE80211AX */
 
-	if (ieee80211_is_dfs(ssid->frequency, wpa_s->hw.modes,
-			     wpa_s->hw.num_modes) && wpa_s->conf->country[0]) {
+	is_dfs = ieee80211_is_dfs(ssid->frequency, wpa_s->hw.modes,
+				  wpa_s->hw.num_modes);
+
+	/* Check if secondary 80 MHz of 160 MHz has DFS channels */
+	if (!is_dfs && freq->bandwidth == 160)
+		is_dfs = ieee80211_is_dfs(ssid->frequency + 80,
+					  wpa_s->hw.modes,
+					  wpa_s->hw.num_modes);
+
+	if (is_dfs && wpa_s->conf->country[0]) {
 		conf->ieee80211h = 1;
 		conf->ieee80211d = 1;
 		conf->country[0] = wpa_s->conf->country[0];
