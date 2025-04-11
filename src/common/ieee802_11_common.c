@@ -1016,14 +1016,25 @@ ParseRes ieee802_11_parse_link_assoc_req(struct ieee802_11_elems *elems,
 	pos += sizeof(*ml) + pos[sizeof(*ml)];
 
 	while (len > 2) {
-		size_t sub_elem_len = *(pos + 1);
-		size_t sta_info_len;
+		size_t sub_elem_len, sta_info_len;
 		u16 link_info_control;
 		const u8 *non_inherit;
+		int num_frag_subelems;
+
+		num_frag_subelems =
+			ieee802_11_defrag_mle_subelem(mlbuf, pos,
+						      &sub_elem_len);
+		if (num_frag_subelems < 0) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Failed to parse MLE subelem");
+			goto out;
+		}
+
+		len -= num_frag_subelems * 2;
 
 		wpa_printf(MSG_DEBUG,
-			   "MLD: sub element: len=%zu, sub_elem_len=%zu",
-			   len, sub_elem_len);
+			   "MLD: sub element: len=%zu, sub_elem_len=%zu, Fragment subelems=%u",
+			   len, sub_elem_len, num_frag_subelems);
 
 		if (2 + sub_elem_len > len) {
 			if (show_errors)

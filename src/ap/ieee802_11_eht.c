@@ -1278,13 +1278,26 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 	 * length Common Info field. */
 	pos = end;
 	while (ml_end - pos > 2) {
-		size_t sub_elem_len = *(pos + 1);
-		size_t sta_info_len;
+		size_t sub_elem_len, sta_info_len;
 		u16 control;
 		const u8 *sub_elem_end;
+		int num_frag_subelems;
 
-		wpa_printf(MSG_DEBUG, "MLD: sub element len=%zu",
-			   sub_elem_len);
+		num_frag_subelems =
+			ieee802_11_defrag_mle_subelem(mlbuf, pos,
+						      &sub_elem_len);
+		if (num_frag_subelems < 0) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Failed to parse MLE subelem");
+			goto out;
+		}
+
+		ml_len -= num_frag_subelems * 2;
+		ml_end = ((const u8 *) ml) + ml_len;
+
+		wpa_printf(MSG_DEBUG,
+			   "MLD: sub element len=%zu, Fragment subelems=%u",
+			   sub_elem_len, num_frag_subelems);
 
 		if (2 + sub_elem_len > (size_t) (ml_end - pos)) {
 			wpa_printf(MSG_DEBUG,
