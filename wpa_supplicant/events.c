@@ -4024,17 +4024,28 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 	pos = ((u8 *) common_info) + common_info->len;
 	ml_len -= sizeof(*ml) + common_info->len;
 	while (ml_len > 2 && i < MAX_NUM_MLD_LINKS) {
-		u8 sub_elem_len = pos[1];
-		u8 sta_info_len, sta_info_len_min;
+		size_t sub_elem_len, sta_info_len, sta_info_len_min;
 		u8 nstr_bitmap_len = 0;
 		u16 ctrl;
 		const u8 *end;
+		int num_frag_subelems;
 
-		wpa_printf(MSG_DEBUG, "MLD: Subelement len=%u", sub_elem_len);
+		num_frag_subelems =
+			ieee802_11_defrag_mle_subelem(mlbuf, pos,
+						      &sub_elem_len);
+		if (num_frag_subelems < 0) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Failed to parse MLE subelem");
+			goto out;
+		}
+
+		ml_len -= num_frag_subelems * 2;
+
+		wpa_printf(MSG_DEBUG, "MLD: Subelement len=%zu", sub_elem_len);
 
 		if (sub_elem_len > ml_len - 2) {
 			wpa_printf(MSG_DEBUG,
-				   "MLD: Invalid link info len: %u > %zu",
+				   "MLD: Invalid link info len: %zu > %zu",
 				   2 + sub_elem_len, ml_len);
 			goto out;
 		}
@@ -4045,7 +4056,7 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 		case EHT_ML_SUB_ELEM_FRAGMENT:
 		case EHT_ML_SUB_ELEM_VENDOR:
 			wpa_printf(MSG_DEBUG,
-				   "MLD: Skip subelement id=%u, len=%u",
+				   "MLD: Skip subelement id=%u, len=%zu",
 				   *pos, sub_elem_len);
 			pos += 2 + sub_elem_len;
 			ml_len -= 2 + sub_elem_len;
@@ -4116,11 +4127,12 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 
 		sta_info_len_min = 1 + ETH_ALEN + 8 + 2 + 2 + 1 +
 			nstr_bitmap_len;
-		if (sta_info_len_min > ml_len || sta_info_len_min > end - pos ||
+		if (sta_info_len_min > ml_len ||
+		    sta_info_len_min > (size_t) (end - pos) ||
 		    sta_info_len_min + 2 > sub_elem_len ||
 		    sta_info_len_min > *pos) {
 			wpa_printf(MSG_DEBUG,
-				   "MLD: Invalid STA info min len=%u, len=%u",
+				   "MLD: Invalid STA info min len=%zu, len=%u",
 				   sta_info_len_min, *pos);
 			goto out;
 		}
@@ -4141,7 +4153,7 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 		pos += sta_info_len;
 		ml_len -= sta_info_len;
 
-		wpa_printf(MSG_DEBUG, "MLD: sub_elem_len=%u, sta_info_len=%u",
+		wpa_printf(MSG_DEBUG, "MLD: sub_elem_len=%zu, sta_info_len=%zu",
 			   sub_elem_len, sta_info_len);
 
 		sub_elem_len -= sta_info_len + 2;
