@@ -3436,6 +3436,70 @@ struct wpabuf * ieee802_11_defrag(const u8 *data, size_t len, bool ext_elem)
 }
 
 
+/**
+ * ieee802_11_defrag_mle_subelem - Defragment Multi-Link element subelements
+ * @mlbuf: Defragmented mlbuf (defragmented using ieee802_11_defrag())
+ * @parent_subelem: Pointer to the subelement which may be fragmented
+ * @defrag_len: Defragmented length of the subelement
+ * Returns: Number of Fragment subelements parsed on success, -1 otherwise
+ *
+ * This function defragments a subelement present inside an Multi-Link element.
+ * It should be called individually for each subelement.
+ *
+ * Subelements can use the Fragment subelement if they pack more than 255 bytes
+ * of data, see IEEE P802.11be/D7.0 Figure 35-4 - Per-STA Profile subelement
+ * fragmentation within a fragmented Multi-Link element.
+ */
+size_t ieee802_11_defrag_mle_subelem(struct wpabuf *mlbuf,
+				     const u8 *parent_subelem,
+				     size_t *defrag_len)
+{
+	u8 *buf, *pos, *end;
+	size_t len, subelem_len;
+	const size_t min_defrag_len = 255;
+	int num_frag_subelems = 0;
+
+	if (!mlbuf || !parent_subelem)
+		return -1;
+
+	buf = wpabuf_mhead_u8(mlbuf);
+	len = wpabuf_len(mlbuf);
+	end = buf + len;
+
+	*defrag_len = parent_subelem[1];
+	if (parent_subelem[1] < min_defrag_len)
+		return 0;
+
+	pos = (u8 *) parent_subelem;
+	if (2 + parent_subelem[1] > end - pos)
+		return -1;
+	pos += 2 + parent_subelem[1];
+	subelem_len = parent_subelem[1];
+
+	while (end - pos > 2 &&
+	       pos[0] == MULTI_LINK_SUB_ELEM_ID_FRAGMENT && pos[1]) {
+		size_t elen = 2 + pos[1];
+
+		/* This Multi-Link parent subelement has more data and is
+		 * fragmented. */
+		num_frag_subelems++;
+
+		if (elen > (size_t) (end - pos))
+			return -1;
+
+		os_memmove(pos, pos + 2, end - (pos + 2));
+		pos += elen - 2;
+		subelem_len += elen - 2;
+
+		/* Deduct Fragment subelement header */
+		len -= 2;
+	}
+
+	*defrag_len = subelem_len;
+	return num_frag_subelems;
+}
+
+
 const u8 * get_ml_ie(const u8 *ies, size_t len, u8 type)
 {
 	const struct element *elem;
