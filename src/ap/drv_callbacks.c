@@ -189,7 +189,20 @@ static int hostapd_update_sta_links_status(struct hostapd_data *hapd,
 
 	/* Parse Subelements */
 	while (rem_len > 2) {
-		size_t ie_len = 2 + pos[1];
+		size_t ie_len, subelem_defrag_len;
+		int num_frag_subelems;
+
+		num_frag_subelems =
+			ieee802_11_defrag_mle_subelem(mlebuf, pos,
+						      &subelem_defrag_len);
+		if (num_frag_subelems < 0) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Failed to parse MLE subelem");
+			break;
+		}
+
+		ie_len = 2 + subelem_defrag_len;
+		rem_len -= num_frag_subelems * 2;
 
 		if (rem_len < ie_len)
 			break;
@@ -200,13 +213,13 @@ static int hostapd_update_sta_links_status(struct hostapd_data *hapd,
 			size_t sta_profile_len;
 			u16 sta_ctrl;
 
-			if (pos[1] < BASIC_MLE_STA_CTRL_LEN + 1) {
+			if (subelem_defrag_len < BASIC_MLE_STA_CTRL_LEN + 1) {
 				wpa_printf(MSG_DEBUG,
 					   "MLO: Invalid per-STA profile IE");
 				goto next_subelem;
 			}
 
-			sta_profile_len = pos[1];
+			sta_profile_len = subelem_defrag_len;
 			sta_profile = &pos[2];
 			sta_ctrl = WPA_GET_LE16(sta_profile);
 			link_id = sta_ctrl & BASIC_MLE_STA_CTRL_LINK_ID_MASK;
