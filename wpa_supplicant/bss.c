@@ -2064,7 +2064,19 @@ u16 wpa_bss_parse_reconf_ml_element(struct wpa_supplicant *wpa_s,
 	len -= sizeof(*ml) + common_info->len;
 
 	while (len >= 2 + sizeof(struct ieee80211_eht_per_sta_profile)) {
-		size_t sub_elem_len = *(pos + 1);
+		size_t sub_elem_len;
+		int num_frag_subelems;
+
+		num_frag_subelems =
+			ieee802_11_defrag_mle_subelem(mlbuf, pos,
+						      &sub_elem_len);
+		if (num_frag_subelems < 0) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Failed to parse MLE subelem");
+			break;
+		}
+
+		len -= num_frag_subelems * 2;
 
 		if (2 + sub_elem_len > len) {
 			wpa_printf(MSG_DEBUG,
