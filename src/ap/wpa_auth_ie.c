@@ -346,9 +346,6 @@ static u8 * rsne_write_data(u8 *buf, size_t len, u8 *pos, int group,
 
 		/* Management Group Cipher Suite */
 		switch (group_mgmt_cipher) {
-		case WPA_CIPHER_AES_128_CMAC:
-			RSN_SELECTOR_PUT(pos, RSN_CIPHER_SUITE_AES_128_CMAC);
-			break;
 		case WPA_CIPHER_BIP_GMAC_128:
 			RSN_SELECTOR_PUT(pos, RSN_CIPHER_SUITE_BIP_GMAC_128);
 			break;
