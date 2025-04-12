@@ -431,10 +431,14 @@ def test_eht_mld_owe_two_links_reconf_mle_ext_only_second(dev, apdev):
     _eht_mld_owe_two_links(dev, apdev, reconf_mle=reconf_mle,
                            only_second=True, scan_only_second_link=True)
 
+def test_eht_mld_owe_two_links_frag_subelem(dev, apdev):
+    """AP MLD and fragmented MLE subelements"""
+    _eht_mld_owe_two_links(dev, apdev, frag_subelem=True)
+
 def _eht_mld_owe_two_links(dev, apdev, second_link_disabled=False,
                            only_one_link=False, scan_only_second_link=False,
                            wait_for_timeout=False, reconf_mle=None,
-                           only_second=False):
+                           only_second=False, frag_subelem=False):
     with HWSimRadio(use_mlo=True) as (hapd0_radio, hapd0_iface), \
         HWSimRadio(use_mlo=True) as (hapd1_radio, hapd1_iface), \
         HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
@@ -458,6 +462,8 @@ def _eht_mld_owe_two_links(dev, apdev, second_link_disabled=False,
         # Check legacy client connection
         dev[0].connect(ssid, scan_freq="2437", key_mgmt="OWE", ieee80211w="2")
 
+        if frag_subelem:
+            wpas.set("link_ies", "1:DDFF" + 255*"EE")
         if only_one_link:
             link0 = hapd0.get_status_field("link_addr")
             wpas.set("bssid_filter", link0)
