@@ -538,6 +538,12 @@ static void wpas_sme_set_mlo_links(struct wpa_supplicant *wpa_s,
 		os_memcpy(wpa_s->links[i].bssid, bssid, ETH_ALEN);
 		wpa_s->links[i].freq = bss->mld_links[i].freq;
 		wpa_s->links[i].disabled = bss->mld_links[i].disabled;
+		wpabuf_free(wpa_s->links[i].ies);
+		wpa_s->links[i].ies = NULL;
+#ifdef CONFIG_TESTING_OPTIONS
+		if (wpa_s->link_ies[i])
+			wpa_s->links[i].ies = wpabuf_dup(wpa_s->link_ies[i]);
+#endif /* CONFIG_TESTING_OPTIONS */
 
 		if (bss->mld_link_id == i)
 			wpa_s->links[i].bss = bss;
@@ -2702,11 +2708,19 @@ mscs_fail:
 				wpa_s->links[i].freq;
 			params.mld_params.mld_links[i].disabled =
 				wpa_s->links[i].disabled;
+			if (wpa_s->links[i].ies) {
+				params.mld_params.mld_links[i].ies =
+					wpabuf_head(wpa_s->links[i].ies);
+				params.mld_params.mld_links[i].ies_len =
+					wpabuf_len(wpa_s->links[i].ies);
+			}
 
 			wpa_printf(MSG_DEBUG,
-				   "MLD: id=%u, freq=%d, disabled=%u, " MACSTR,
+				   "MLD: id=%u, freq=%d, disabled=%u, ies_len=%zu, "
+				   MACSTR,
 				   i, wpa_s->links[i].freq,
 				   wpa_s->links[i].disabled,
+				   params.mld_params.mld_links[i].ies_len,
 				   MAC2STR(wpa_s->links[i].bssid));
 		}
 	}

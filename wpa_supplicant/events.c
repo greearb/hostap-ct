@@ -344,12 +344,16 @@ void wpa_supplicant_stop_countermeasures(void *eloop_ctx, void *sock_ctx)
 
 void wpas_reset_mlo_info(struct wpa_supplicant *wpa_s)
 {
+	int i;
+
 	if (!wpa_s->valid_links)
 		return;
 
 	wpa_s->valid_links = 0;
 	wpa_s->mlo_assoc_link_id = 0;
 	os_memset(wpa_s->ap_mld_addr, 0, ETH_ALEN);
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++)
+		wpabuf_free(wpa_s->links[i].ies);
 	os_memset(wpa_s->links, 0, sizeof(wpa_s->links));
 }
 

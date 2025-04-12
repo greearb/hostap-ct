@@ -825,6 +825,23 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 			wpa_s->rsnxe_override_eapol = NULL;
 		else
 			wpa_s->rsnxe_override_eapol = wpabuf_parse_bin(value);
+	} else if (os_strcasecmp(cmd, "link_ies") == 0) {
+		int link_id = atoi(value);
+		char *pos;
+
+		if (link_id < 0 || link_id >= MAX_NUM_MLD_LINKS)
+			return -1;
+
+		pos = os_strchr(value, ':');
+		if (!pos)
+			return -1;
+		pos++;
+
+		wpabuf_free(wpa_s->link_ies[link_id]);
+		if (os_strcmp(value, "NULL") == 0)
+			wpa_s->link_ies[link_id] = NULL;
+		else
+			wpa_s->link_ies[link_id] = wpabuf_parse_bin(pos);
 	} else if (os_strcasecmp(cmd, "reject_btm_req_reason") == 0) {
 		wpa_s->reject_btm_req_reason = atoi(value);
 	} else if (os_strcasecmp(cmd, "get_pref_freq_list_override") == 0) {
@@ -9040,6 +9057,14 @@ static void wpa_supplicant_ctrl_iface_flush(struct wpa_supplicant *wpa_s)
 	wpabuf_free(wpa_s->rsnxe_override_eapol);
 	wpa_s->rsnxe_override_eapol = NULL;
 	wpas_clear_driver_signal_override(wpa_s);
+	{
+		int i;
+
+		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+			wpabuf_free(wpa_s->link_ies[i]);
+			wpa_s->link_ies[i] = NULL;
+		}
+	}
 #ifndef CONFIG_NO_ROBUST_AV
 	wpa_s->disable_scs_support = 0;
 	wpa_s->disable_mscs_support = 0;

@@ -658,6 +658,10 @@ static void wpa_supplicant_cleanup(struct wpa_supplicant *wpa_s)
 	wpabuf_free(wpa_s->rsnxe_override_eapol);
 	wpa_s->rsnxe_override_eapol = NULL;
 	wpas_clear_driver_signal_override(wpa_s);
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+		wpabuf_free(wpa_s->link_ies[i]);
+		wpa_s->link_ies[i] = NULL;
+	}
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	if (wpa_s->conf != NULL) {
@@ -869,6 +873,11 @@ static void wpa_supplicant_cleanup(struct wpa_supplicant *wpa_s)
 	os_free(wpa_s->owe_trans_scan_freq);
 	wpa_s->owe_trans_scan_freq = NULL;
 #endif /* CONFIG_OWE */
+
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+		wpabuf_free(wpa_s->links[i].ies);
+		wpa_s->links[i].ies = NULL;
+	}
 }
 
 
