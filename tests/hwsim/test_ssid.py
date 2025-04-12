@@ -55,6 +55,7 @@ def test_ssid_32_octets_nul_term(dev, apdev):
 @remote_compatible
 def test_ssid_utf8(dev, apdev):
     """SSID with UTF8 encoding"""
+    dev[0].flush_scan_cache()
     hapd = hostapd.add_ap(apdev[0], {"ssid": 'testi-åäöÅÄÖ-testi',
                                      "utf8_ssid": "1"})
     dev[0].connect("testi-åäöÅÄÖ-testi", key_mgmt="NONE", scan_freq="2412")

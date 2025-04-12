@@ -1291,6 +1291,11 @@ def test_scan_chan_switch(dev, apdev):
     run_scan(dev[0], bssid, 2412)
     dev[0].dump_monitor()
 
+    dev[0].request("DISCONNECT")
+    dev[0].wait_disconnected()
+    hapd.disable()
+    dev[0].flush_scan_cache()
+
 def test_scan_new_only(dev, apdev):
     """Scan and only_new=1 multiple times"""
     dev[0].flush_scan_cache()
