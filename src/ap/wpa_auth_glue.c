@@ -932,6 +932,8 @@ static struct eth_p_oui_ctx * hostapd_wpa_get_oui(struct hostapd_data *hapd,
 		return hapd->oui_sreq;
 	case FT_PACKET_R0KH_R1KH_SEQ_RESP:
 		return hapd->oui_sresp;
+	case FT_PACKET_R1KH_STA_ROAMED_NOTIFY:
+		return hapd->oui_notify;
 #endif /* CONFIG_IEEE80211R_AP */
 	default:
 		return NULL;
@@ -1327,6 +1329,21 @@ static int hostapd_wpa_auth_add_sta_ft(void *ctx, const u8 *sta_addr)
 }
 
 
+static void hostapd_wpa_auth_remove_roamed_fto(void *ctx, const u8 *sta_addr)
+{
+	struct hostapd_data *hapd = ctx;
+	struct sta_info *sta;
+	int reason = WLAN_REASON_DEAUTH_LEAVING;
+
+	hostapd_drv_sta_deauth(hapd, sta_addr, reason);
+	sta = ap_get_sta(hapd, sta_addr);
+	if (sta)
+		ap_sta_deauthenticate(hapd, sta, reason);
+	else
+		hostapd_drv_sta_remove(hapd, sta_addr);
+}
+
+
 static int hostapd_wpa_auth_set_vlan(void *ctx, const u8 *sta_addr,
 				     struct vlan_description *vlan)
 {
@@ -1656,6 +1673,12 @@ static int hostapd_wpa_register_ft_oui(struct hostapd_data *hapd,
 	if (!hapd->oui_sresp)
 		return -1;
 
+	hapd->oui_notify = eth_p_oui_register(hapd, ft_iface,
+					     FT_PACKET_R1KH_STA_ROAMED_NOTIFY,
+					     hostapd_rrb_oui_receive, hapd);
+	if (!hapd->oui_notify)
+		return -1;
+
 	return 0;
 }
 
@@ -1672,6 +1695,8 @@ static void hostapd_wpa_unregister_ft_oui(struct hostapd_data *hapd)
 	hapd->oui_sreq = NULL;
 	eth_p_oui_unregister(hapd->oui_sresp);
 	hapd->oui_sresp = NULL;
+	eth_p_oui_unregister(hapd->oui_notify);
+	hapd->oui_notify = NULL;
 }
 #endif /* CONFIG_IEEE80211R_AP */
 
@@ -1846,6 +1871,7 @@ int hostapd_setup_wpa(struct hostapd_data *hapd)
 		.get_radius_cui = hostapd_wpa_auth_get_radius_cui,
 		.set_session_timeout = hostapd_wpa_auth_set_session_timeout,
 		.get_session_timeout = hostapd_wpa_auth_get_session_timeout,
+		.remove_roamed_fto = hostapd_wpa_auth_remove_roamed_fto,
 #endif /* CONFIG_IEEE80211R_AP */
 #ifndef CONFIG_NO_RADIUS
 		.request_radius_psk = hostapd_request_radius_psk,
