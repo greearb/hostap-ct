@@ -5741,7 +5741,7 @@ struct wpa_driver_ops {
 	 * @aval_color_bmp: available bss color bitmap
 	 *
 	 */
-	int (*get_aval_color_bmp)(void *priv, u64 *aval_color_bmp);
+	int (*get_aval_color_bmp)(void *priv, u64 *aval_color_bmp, u8 link_id);
 
 	/**
 	* ap_wireless - set wireless command

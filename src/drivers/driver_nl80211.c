@@ -16321,7 +16321,7 @@ static int nl80211_get_aval_color_bmp_handler(struct nl_msg *msg, void *arg)
 	return 0;
 }
 
-static int nl80211_get_aval_color_bmp(void *priv, u64 *aval_color_bmp)
+static int nl80211_get_aval_color_bmp(void *priv, u64 *aval_color_bmp, u8 link_id)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -16335,7 +16335,7 @@ static int nl80211_get_aval_color_bmp(void *priv, u64 *aval_color_bmp)
 		return 0;
 	}
 
-	if (!(msg = nl80211_drv_msg(drv, NLM_F_DUMP, NL80211_CMD_VENDOR)) ||
+	if (!(msg = nl80211_bss_msg(bss, NLM_F_DUMP, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
 			MTK_NL80211_VENDOR_SUBCMD_BSS_COLOR_CTRL))
@@ -16346,6 +16346,9 @@ static int nl80211_get_aval_color_bmp(void *priv, u64 *aval_color_bmp)
 		nlmsg_free(msg);
 		return -1;
 	}
+
+	if (nla_put_u8(msg, MTK_VENDOR_ATTR_AVAL_BSS_COLOR_LINK_ID, link_id))
+		return -ENOBUFS;
 
 	nla_nest_end(msg, attr);
 
