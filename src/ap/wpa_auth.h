@@ -49,6 +49,8 @@ struct ft_rrb_frame {
 #define FT_PACKET_R0KH_R1KH_SEQ_REQ 0x04
 #define FT_PACKET_R0KH_R1KH_SEQ_RESP 0x05
 
+#define FT_PACKET_R1KH_STA_ROAMED_NOTIFY 0x10
+
 /* packet layout
  *  IEEE 802 extended OUI ethertype frame header
  *  u16 authlen (little endian)
@@ -88,6 +90,9 @@ struct ft_rrb_frame {
 #define FT_RRB_IDENTITY      15
 #define FT_RRB_RADIUS_CUI    16
 #define FT_RRB_SESSION_TIMEOUT  17 /* le32 seconds */
+
+#define FT_RRB_NOTIFIER_R1KH_ID	18 /* FT_R1KH_ID_LEN */
+#define FT_RRB_STA_ADDR 	19 /* ETH_ALEN */
 
 struct ft_rrb_tlv {
 	le16 type;
@@ -132,6 +137,12 @@ struct ft_rrb_seq {
  * sequence number response frame TLVs:
  *   auth:
  *     required: SEQ, NONCE, R0KH_ID, R1KH_ID
+ *
+ * station roamed notify frame TLVs:
+ *   auth:
+ *     required: SEQ, R1KH_ID (notifier), R1KH_ID (notifyee)
+ *   encrypted:
+ *     required: STA_ADDR
  */
 
 #ifdef _MSC_VER
@@ -423,6 +434,7 @@ struct wpa_auth_callbacks {
 			      const u8 *data, size_t data_len);
 	int (*add_tspec)(void *ctx, const u8 *sta_addr, u8 *tspec_ie,
 			 size_t tspec_ielen);
+	void (*remove_roamed_fto)(void *ctx, const u8 *sta_addr);
 #endif /* CONFIG_IEEE80211R_AP */
 #ifdef CONFIG_MESH
 	int (*start_ampe)(void *ctx, const u8 *sta_addr);
@@ -576,6 +588,9 @@ void wpa_ft_rrb_oui_rx(struct wpa_authenticator *wpa_auth, const u8 *src_addr,
 		       const u8 *dst_addr, u8 oui_suffix, const u8 *data,
 		       size_t data_len);
 void wpa_ft_push_pmk_r1(struct wpa_authenticator *wpa_auth, const u8 *addr);
+void wpa_ft_sta_roamed_notify(struct wpa_state_machine *sm,
+			      struct wpa_authenticator *wpa_auth,
+			      const u8 *sta_addr);
 void wpa_ft_deinit(struct wpa_authenticator *wpa_auth);
 void wpa_ft_sta_deinit(struct wpa_state_machine *sm);
 int wpa_ft_fetch_pmk_r1(struct wpa_authenticator *wpa_auth,
@@ -714,6 +729,8 @@ const u8 * wpa_auth_get_aa(const struct wpa_state_machine *sm);
 const u8 * wpa_auth_get_spa(const struct wpa_state_machine *sm);
 struct wpa_authenticator * wpa_get_link_auth(struct wpa_authenticator *wpa_auth,
 					     int link_id);
+struct wpa_authenticator * wpa_get_primary_auth(struct wpa_authenticator *wpa_auth);
+
 void wpa_assign_wpa_auth_group(struct wpa_state_machine *sm,
 				  struct wpa_authenticator *wpa_auth);
 #endif /* WPA_AUTH_H */

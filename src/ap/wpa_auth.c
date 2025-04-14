@@ -207,7 +207,7 @@ static int wpa_get_primary_auth_cb(struct wpa_authenticator *wpa_auth,
 #endif /* CONFIG_IEEE80211BE */
 
 
-static struct wpa_authenticator *
+struct wpa_authenticator *
 wpa_get_primary_auth(struct wpa_authenticator *wpa_auth)
 {
 #ifdef CONFIG_IEEE80211BE
