@@ -2887,14 +2887,16 @@ static int hostapd_ctrl_iface_color_change(struct hostapd_iface *iface,
 
 		wpa_printf(MSG_DEBUG, "Setting user selected color: %d", color);
 		ret = hostapd_drv_switch_color(bss, &settings);
-		if (ret)
+		if (ret) {
 			hostapd_cleanup_cca_params(bss);
+			break;
+		}
 
 		free_beacon_data(&settings.beacon_cca);
 		free_beacon_data(&settings.beacon_after);
 	}
 
-	return 0;
+	return ret;
 #else /* NEED_AP_MLME */
 	return -1;
 #endif /* NEED_AP_MLME */
@@ -4972,8 +4974,18 @@ hostapd_ctrl_iface_get_aval_color_bmp(struct hostapd_data *hapd, char *buf,
 	char *pos, *end;
 	int i;
 	u64 aval_color_bmp = 0;
+	u8 link_id = 0;
 
-	hostapd_drv_get_aval_bss_color_bmp(hapd, &aval_color_bmp);
+#ifdef CONFIG_IEEE80211BE
+	if (hostapd_is_mld_ap(hapd))
+		link_id = hapd->mld_link_id;
+#endif /* CONFIG_IEEE80211BE */
+
+	ret = hostapd_drv_get_aval_bss_color_bmp(hapd, &aval_color_bmp, link_id);
+
+	if (ret)
+		return ret;
+
 	hapd->color_collision_bitmap = ~aval_color_bmp;
 
 	pos = buf;

@@ -168,7 +168,7 @@ int hostapd_drv_ibf_dump(struct hostapd_data *hapd, u8 *ibf_enable);
 int hostapd_drv_amsdu_ctrl(struct hostapd_data *hapd);
 int hostapd_drv_amsdu_dump(struct hostapd_data *hapd, u8 *amsdu);
 int hostapd_drv_get_aval_bss_color_bmp(struct hostapd_data *hapd,
-				       u64 *aval_color_bmp);
+				       u64 *aval_color_bmp, u8 link_id);
 int hostapd_drv_txpower_ctrl(struct hostapd_data *hapd);
 int hostapd_drv_ap_wireless(struct hostapd_data *hapd, u8 sub_vendor_id, int value);
 int hostapd_drv_ap_rfeatures(struct hostapd_data *hapd, u8 sub_vendor_id, int value);
