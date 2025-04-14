@@ -7303,6 +7303,12 @@ static void handle_assoc_cb(struct hostapd_data *hapd,
 		sta->pending_eapol_rx = NULL;
 	}
 
+
+#ifdef CONFIG_IEEE80211R_AP
+	if (sta->auth_alg == WLAN_AUTH_FT)
+		wpa_ft_sta_roamed_notify(sta->wpa_sm, hapd->wpa_auth, sta->addr);
+#endif
+
 handle_ml:
 	hostapd_ml_handle_assoc_cb(hapd, sta, ok);
 	sta->sending_assoc = 0;
