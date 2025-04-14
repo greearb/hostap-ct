@@ -1546,12 +1546,14 @@ int hostapd_drv_amsdu_dump(struct hostapd_data *hapd, u8 *amsdu)
 	return hapd->driver->amsdu_dump(hapd->drv_priv, amsdu);
 }
 
-int hostapd_drv_get_aval_bss_color_bmp(struct hostapd_data *hapd, u64 *aval_color_bmp)
+int hostapd_drv_get_aval_bss_color_bmp(struct hostapd_data *hapd,
+				       u64 *aval_color_bmp, u8 link_id)
 {
 	if (!hapd->driver || !hapd->driver->get_aval_color_bmp ||
 	    hapd->iface->conf->he_op.he_bss_color_disabled)
 		return 0;
-	return hapd->driver->get_aval_color_bmp(hapd->drv_priv, aval_color_bmp);
+	return hapd->driver->get_aval_color_bmp(hapd->drv_priv, aval_color_bmp,
+						link_id);
 }
 
 int hostapd_drv_txpower_ctrl(struct hostapd_data *hapd)
