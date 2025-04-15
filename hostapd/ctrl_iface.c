@@ -4207,23 +4207,34 @@ static int hostapd_ctrl_iface_set_attlm(struct hostapd_data *hapd, char *cmd,
 	return hostapd_mld_set_attlm(hapd);
 }
 
-static int hostapd_ctrl_iface_neg_ttlm_teardown(struct hostapd_data *hapd,
-						char *cmd)
+static struct sta_info *hostapd_ctrl_read_sta(struct hostapd_data *hapd,
+					      char *cmd)
 {
 	u8 addr[ETH_ALEN] = {};
-	struct hostapd_data *assoc_hapd;
 	struct sta_info *sta;
 
 	if (hwaddr_aton(cmd, addr)) {
 		wpa_printf(MSG_DEBUG, "Invalid STA MAC address");
-		return -1;
+		return NULL;
 	}
 
 	sta = ap_get_sta(hapd, addr);
 	if (!sta) {
 		wpa_printf(MSG_DEBUG, "STA " MACSTR " not found.", MAC2STR(addr));
-		return -1;
+		return NULL;
 	}
+
+	return sta;
+}
+
+static int hostapd_ctrl_iface_neg_ttlm_teardown(struct hostapd_data *hapd,
+						char *cmd)
+{
+	struct hostapd_data *assoc_hapd;
+	struct sta_info *sta = hostapd_ctrl_read_sta(hapd, cmd);
+
+	if (!sta)
+		return -1;
 
 	sta = hostapd_ml_get_assoc_sta(hapd, sta, &assoc_hapd);
 	if (!sta || !sta->mld_info.mld_sta || !sta->neg_ttlm.valid) {
@@ -4238,6 +4249,50 @@ static int hostapd_ctrl_iface_neg_ttlm_teardown(struct hostapd_data *hapd,
 
 	hostapd_teardown_neg_ttlm(assoc_hapd, sta);
 	return 0;
+}
+
+static int hostapd_ctrl_iface_get_neg_ttlm(struct hostapd_data *hapd, char *cmd,
+					   char *buf, size_t buflen)
+{
+	struct sta_info *sta = hostapd_ctrl_read_sta(hapd, cmd);
+	struct hostapd_data *assoc_hapd;
+	char *pos, *end;
+	int ret, i;
+
+	if (!sta)
+		return -1;
+
+	sta = hostapd_ml_get_assoc_sta(hapd, sta, &assoc_hapd);
+	if (!sta || !sta->mld_info.mld_sta) {
+		wpa_printf(MSG_DEBUG, "Invalid STA\n");
+		return -1;
+	}
+
+	pos = buf;
+	end = buf + buflen;
+
+	if (!sta->neg_ttlm.valid) {
+		ret = os_snprintf(pos, end - pos, "Neg-TTLM is inactive\n");
+		if (os_snprintf_error(end - pos, ret))
+			return pos - end;
+
+		return ret;
+	}
+
+	ret = os_snprintf(pos, end - pos, "Link Mapping:\tuplink\tdownlink\n");
+	if (os_snprintf_error(end - pos, ret))
+		return pos - end;
+	pos += ret;
+
+	for (i = 0; i < IEEE80211_TTLM_NUM_TIDS; i++) {
+		ret = os_snprintf(pos, end - pos, "TID %d:\t\t0x%04x\t0x%04x\n",
+				i, sta->neg_ttlm.ulink[i], sta->neg_ttlm.dlink[i]);
+		if (os_snprintf_error(end - pos, ret))
+			return pos - end;
+		pos += ret;
+	}
+
+	return pos - buf;
 }
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
@@ -6835,6 +6890,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "NEG_TTLM_TEARDOWN ", 18) == 0) {
 		if (hostapd_ctrl_iface_neg_ttlm_teardown(hapd, buf + 18))
 			reply_len = -1;
+	} else if (os_strncmp(buf, "GET_NEG_TTLM ", 13) == 0) {
+		reply_len = hostapd_ctrl_iface_get_neg_ttlm(hapd, buf + 13,
+							    reply, reply_size);
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
 	} else if (os_strncmp(buf, "SET_EDCCA ", 10) == 0) {
