@@ -3965,7 +3965,7 @@ static int hostapd_ctrl_iface_set_attlm(struct hostapd_data *hapd, char *cmd,
 
 static int
 hostapd_ctrl_iface_set_edcca(struct hostapd_data *hapd, char *cmd,
-					 char *buf, size_t buflen)
+			     char *buf, size_t buflen)
 {
 	char *pos, *config, *value;
 
@@ -3999,6 +3999,7 @@ hostapd_ctrl_iface_set_edcca(struct hostapd_data *hapd, char *cmd,
 		char *thres_value;
 		int bw_idx;
 		int threshold;
+		int threshold_arr[EDCCA_MAX_BW_NUM];
 
 		thres_value = os_strchr(value, ':');
 		if (thres_value == NULL)
@@ -4022,7 +4023,6 @@ hostapd_ctrl_iface_set_edcca(struct hostapd_data *hapd, char *cmd,
 			return -1;
 		}
 
-		int threshold_arr[EDCCA_MAX_BW_NUM];
 		/* 0x7f means keep the origival value in firmware */
 		os_memset(threshold_arr, 0x7f, sizeof(threshold_arr));
 		threshold_arr[bw_idx] = threshold;
@@ -4031,7 +4031,7 @@ hostapd_ctrl_iface_set_edcca(struct hostapd_data *hapd, char *cmd,
 			return -1;
 	} else {
 		wpa_printf(MSG_ERROR,
-			"Unsupported parameter %s for SET_EDCCA", config);
+			   "Unsupported parameter %s for SET_EDCCA", config);
 		return -1;
 	}
 	return os_snprintf(buf, buflen, "OK\n");
@@ -4046,15 +4046,16 @@ hostapd_ctrl_iface_get_edcca(struct hostapd_data *hapd, char *cmd, char *buf,
 
 	pos = buf;
 	end = buf + buflen;
-	u8 value[EDCCA_MAX_BW_NUM] = {0};
 
 	if (os_strcmp(cmd, "enable") == 0) {
 		return os_snprintf(pos, end - pos, "Enable: %s\n",
 				   edcca_mode_str(hapd->iconf->edcca_enable));
 	} else if (os_strcmp(cmd, "compensation") == 0) {
 		return os_snprintf(pos, end - pos, "Compensation: %d\n",
-				  hapd->iconf->edcca_compensation);
+				   hapd->iconf->edcca_compensation);
 	} else if (os_strcmp(cmd, "threshold") == 0) {
+		u8 value[EDCCA_MAX_BW_NUM] = {0};
+
 		if (hostapd_drv_get_edcca(hapd, EDCCA_CTRL_GET_THRES, value) != 0)
 			return -1;
 		return os_snprintf(pos, end - pos,
@@ -6285,10 +6286,10 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 #endif /* CONFIG_SAE */
 	} else if (os_strncmp(buf, "SET_EDCCA ", 10) == 0) {
 		reply_len = hostapd_ctrl_iface_set_edcca(hapd, buf+10, reply,
-							  reply_size);
+							 reply_size);
 	} else if (os_strncmp(buf, "GET_EDCCA ", 10) == 0) {
 		reply_len = hostapd_ctrl_iface_get_edcca(hapd, buf+10, reply,
-							  reply_size);
+							 reply_size);
 	} else if (os_strncmp(buf, "SET_MU ", 7) == 0) {
 		reply_len = hostapd_ctrl_iface_set_mu(hapd, buf + 7, reply, reply_size);
 	} else if (os_strncmp(buf, "GET_MU ", 7) == 0) {

@@ -106,8 +106,9 @@ static struct nla_policy edcca_ctrl_policy[NUM_MTK_VENDOR_ATTRS_EDCCA_CTRL] = {
 	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC20_VAL] = { .type = NLA_U8 },
 	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC40_VAL] = { .type = NLA_U8 },
 	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC80_VAL] = { .type = NLA_U8 },
-	[MTK_VENDOR_ATTR_EDCCA_CTRL_COMPENSATE] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_EDCCA_CTRL_COMPENSATE] = { .type = NLA_S8 },
 	[MTK_VENDOR_ATTR_EDCCA_CTRL_SEC160_VAL] = { .type = NLA_U8 },
+	[MTK_VENDOR_ATTR_EDCCA_CTRL_RADIO_IDX] = { .type = NLA_U8 },
 };
 
 static const struct nla_policy
@@ -16014,14 +16015,17 @@ static int testing_nl80211_radio_disable(void *priv, int disabled)
 
 #endif /* CONFIG_TESTING_OPTIONS */
 
-static int nl80211_configure_edcca_enable(void *priv,
+static int nl80211_configure_edcca_enable(void *priv, s8 link_id,
 					  const u8 edcca_enable,
 					  const s8 edcca_compensation)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct i802_link *link = nl80211_get_link(bss, link_id);
+	struct hostapd_data *hapd = bss->ctx;
 	struct nl_msg *msg;
 	struct nlattr *data;
+	u8 radio_idx = 0;
 	int ret;
 
 	if (!drv->mtk_edcca_vendor_cmd_avail) {
@@ -16030,6 +16034,12 @@ static int nl80211_configure_edcca_enable(void *priv,
 		return 0;
 	}
 
+	if (link && link->ctx)
+		hapd = link->ctx;
+
+	if (hapd->iface->current_hw_info)
+		radio_idx = hapd->iface->current_hw_info->hw_idx;
+
 	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
@@ -16037,8 +16047,8 @@ static int nl80211_configure_edcca_enable(void *priv,
 	    !(data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA)) ||
 	    nla_put_u8(msg, MTK_VENDOR_ATTR_EDCCA_CTRL_MODE, EDCCA_CTRL_SET_EN) ||
 	    nla_put_u8(msg, MTK_VENDOR_ATTR_EDCCA_CTRL_PRI20_VAL, edcca_enable) ||
-	    nla_put_u8(msg, MTK_VENDOR_ATTR_EDCCA_CTRL_COMPENSATE,
-		edcca_compensation)) {
+	    nla_put_s8(msg, MTK_VENDOR_ATTR_EDCCA_CTRL_COMPENSATE, edcca_compensation) ||
+	    nla_put_u8(msg, MTK_VENDOR_ATTR_EDCCA_CTRL_RADIO_IDX, radio_idx)) {
 		wpa_printf (MSG_ERROR, "Prepare nl80211 msg fail");
 		nlmsg_free(msg);
 		return -ENOBUFS;
@@ -16054,12 +16064,15 @@ static int nl80211_configure_edcca_enable(void *priv,
 	return ret;
 }
 
-static int nl80211_configure_edcca_threshold(void *priv, const int *threshold)
+static int nl80211_configure_edcca_threshold(void *priv, s8 link_id, const int *threshold)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct i802_link *link = nl80211_get_link(bss, link_id);
+	struct hostapd_data *hapd = bss->ctx;
 	struct nl_msg *msg;
 	struct nlattr *data;
+	u8 radio_idx = 0;
 	int ret;
 
 	if (!drv->mtk_edcca_vendor_cmd_avail) {
@@ -16074,6 +16087,12 @@ static int nl80211_configure_edcca_threshold(void *priv, const int *threshold)
 		return 0;
 	}
 
+	if (link && link->ctx)
+		hapd = link->ctx;
+
+	if (hapd->iface->current_hw_info)
+		radio_idx = hapd->iface->current_hw_info->hw_idx;
+
 	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
@@ -16083,7 +16102,8 @@ static int nl80211_configure_edcca_threshold(void *priv, const int *threshold)
 	    nla_put_u8(msg, MTK_VENDOR_ATTR_EDCCA_CTRL_PRI20_VAL, threshold[0] & 0xff) ||
 	    nla_put_u8(msg, MTK_VENDOR_ATTR_EDCCA_CTRL_SEC40_VAL, threshold[1] & 0xff) ||
 	    nla_put_u8(msg, MTK_VENDOR_ATTR_EDCCA_CTRL_SEC80_VAL, threshold[2] & 0xff) ||
-	    nla_put_u8(msg, MTK_VENDOR_ATTR_EDCCA_CTRL_SEC160_VAL, threshold[3] & 0xff)) {
+	    nla_put_u8(msg, MTK_VENDOR_ATTR_EDCCA_CTRL_SEC160_VAL, threshold[3] & 0xff) ||
+	    nla_put_u8(msg, MTK_VENDOR_ATTR_EDCCA_CTRL_RADIO_IDX, radio_idx)) {
 		wpa_printf (MSG_ERROR, "Prepare nl80211 msg fail");
 		nlmsg_free(msg);
 		return -ENOBUFS;
@@ -16151,12 +16171,15 @@ static int edcca_info_handler(struct nl_msg *msg, void *arg)
 }
 
 
-static int nl80211_get_edcca(void *priv, const u8 mode, u8 *value)
+static int nl80211_get_edcca(void *priv, s8 link_id, const u8 mode, u8 *value)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct i802_link *link = nl80211_get_link(bss, link_id);
+	struct hostapd_data *hapd = bss->ctx;
 	struct nl_msg *msg;
 	struct nlattr *data;
+	u8 radio_idx = 0;
 	int ret;
 
 	if (!drv->mtk_edcca_vendor_cmd_avail) {
@@ -16165,12 +16188,19 @@ static int nl80211_get_edcca(void *priv, const u8 mode, u8 *value)
 		return 0;
 	}
 
+	if (link && link->ctx)
+		hapd = link->ctx;
+
+	if (hapd->iface->current_hw_info)
+		radio_idx = hapd->iface->current_hw_info->hw_idx;
+
 	if (!(msg = nl80211_drv_msg(drv, NLM_F_DUMP, NL80211_CMD_VENDOR)) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
 	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
 			MTK_NL80211_VENDOR_SUBCMD_EDCCA_CTRL) ||
 	    !(data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA | NLA_F_NESTED)) ||
-	    nla_put_u8(msg, MTK_VENDOR_ATTR_EDCCA_CTRL_MODE, mode)) {
+	    nla_put_u8(msg, MTK_VENDOR_ATTR_EDCCA_CTRL_MODE, mode) ||
+	    nla_put_u8(msg, MTK_VENDOR_ATTR_EDCCA_CTRL_RADIO_IDX, radio_idx)) {
 		wpa_printf (MSG_ERROR, "Prepare nl80211 msg fail");
 		nlmsg_free(msg);
 		return -ENOBUFS;
