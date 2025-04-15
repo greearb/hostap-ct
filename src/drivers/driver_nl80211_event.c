@@ -2692,7 +2692,7 @@ static void nl80211_spurious_frame(struct i802_bss *bss, struct nlattr **tb,
 
 #ifdef CONFIG_DRIVER_NL80211_QCA
 
-static void qca_nl80211_avoid_freq(struct wpa_driver_nl80211_data *drv,
+static void qca_nl80211_avoid_freq(struct i802_bss *bss,
 				   const u8 *data, size_t len)
 {
 	u32 i, count;
@@ -2733,7 +2733,7 @@ static void qca_nl80211_avoid_freq(struct wpa_driver_nl80211_data *drv,
 	}
 	event.freq_range.range = range;
 
-	wpa_supplicant_event(drv->ctx, EVENT_AVOID_FREQUENCIES, &event);
+	wpa_supplicant_event(bss->ctx, EVENT_AVOID_FREQUENCIES, &event);
 
 	os_free(range);
 }
@@ -2804,12 +2804,13 @@ try_2_4_or_5:
 }
 
 
-static void qca_nl80211_acs_select_ch(struct wpa_driver_nl80211_data *drv,
+static void qca_nl80211_acs_select_ch(struct i802_bss *bss,
 				   const u8 *data, size_t len)
 {
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_ACS_MAX + 1];
 	union wpa_event_data event;
 	u8 chan;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
 
 	wpa_printf(MSG_DEBUG,
 		   "nl80211: ACS channel selection vendor event received");
@@ -2895,7 +2896,7 @@ static void qca_nl80211_acs_select_ch(struct wpa_driver_nl80211_data *drv,
 
 	/* Ignore ACS channel list check for backwards compatibility */
 
-	wpa_supplicant_event(drv->ctx, EVENT_ACS_CHANNEL_SELECTED, &event);
+	wpa_supplicant_event(bss->ctx, EVENT_ACS_CHANNEL_SELECTED, &event);
 }
 
 
@@ -2965,8 +2966,9 @@ qca_nl80211_key_mgmt_auth_handler(struct wpa_driver_nl80211_data *drv,
 }
 
 
-static void qca_nl80211_dfs_offload_radar_event(
-	struct wpa_driver_nl80211_data *drv, u32 subcmd, u8 *msg, int length)
+static void
+qca_nl80211_dfs_offload_radar_event(struct i802_bss *bss, u32 subcmd, u8 *msg,
+				    int length)
 {
 	union wpa_event_data data;
 	struct nlattr *tb[NL80211_ATTR_MAX + 1];
@@ -2993,8 +2995,7 @@ static void qca_nl80211_dfs_offload_radar_event(
 			nla_get_u8(tb[NL80211_ATTR_MLO_LINK_ID]);
 	} else if (data.dfs_event.freq) {
 		data.dfs_event.link_id =
-			nl80211_get_link_id_by_freq(drv->first_bss,
-						    data.dfs_event.freq);
+			nl80211_get_link_id_by_freq(bss, data.dfs_event.freq);
 	}
 
 	wpa_printf(MSG_DEBUG, "nl80211: DFS event on freq %d MHz, link=%d",
@@ -3038,19 +3039,19 @@ static void qca_nl80211_dfs_offload_radar_event(
 
 	switch (subcmd) {
 	case QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_RADAR_DETECTED:
-		wpa_supplicant_event(drv->ctx, EVENT_DFS_RADAR_DETECTED, &data);
+		wpa_supplicant_event(bss->ctx, EVENT_DFS_RADAR_DETECTED, &data);
 		break;
 	case QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_STARTED:
-		wpa_supplicant_event(drv->ctx, EVENT_DFS_CAC_STARTED, &data);
+		wpa_supplicant_event(bss->ctx, EVENT_DFS_CAC_STARTED, &data);
 		break;
 	case QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_FINISHED:
-		wpa_supplicant_event(drv->ctx, EVENT_DFS_CAC_FINISHED, &data);
+		wpa_supplicant_event(bss->ctx, EVENT_DFS_CAC_FINISHED, &data);
 		break;
 	case QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_ABORTED:
-		wpa_supplicant_event(drv->ctx, EVENT_DFS_CAC_ABORTED, &data);
+		wpa_supplicant_event(bss->ctx, EVENT_DFS_CAC_ABORTED, &data);
 		break;
 	case QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_NOP_FINISHED:
-		wpa_supplicant_event(drv->ctx, EVENT_DFS_NOP_FINISHED, &data);
+		wpa_supplicant_event(bss->ctx, EVENT_DFS_NOP_FINISHED, &data);
 		break;
 	default:
 		wpa_printf(MSG_DEBUG,
@@ -3061,13 +3062,14 @@ static void qca_nl80211_dfs_offload_radar_event(
 }
 
 
-static void qca_nl80211_scan_trigger_event(struct wpa_driver_nl80211_data *drv,
-					   u8 *data, size_t len)
+static void qca_nl80211_scan_trigger_event(struct i802_bss *bss, u8 *data,
+					   size_t len)
 {
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_SCAN_MAX + 1];
 	u64 cookie = 0;
 	union wpa_event_data event;
 	struct scan_info *info;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
 
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_SCAN_MAX,
 		      (struct nlattr *) data, len, NULL) ||
@@ -3087,13 +3089,12 @@ static void qca_nl80211_scan_trigger_event(struct wpa_driver_nl80211_data *drv,
 	info->nl_scan_event = 0;
 
 	drv->scan_state = SCAN_STARTED;
-	wpa_supplicant_event(drv->ctx, EVENT_SCAN_STARTED, &event);
+	wpa_supplicant_event(bss->ctx, EVENT_SCAN_STARTED, &event);
 }
 
 
-static void send_vendor_scan_event(struct wpa_driver_nl80211_data *drv,
-				   int aborted, struct nlattr *tb[],
-				   int external_scan)
+static void send_vendor_scan_event(struct i802_bss *bss, int aborted,
+				   struct nlattr *tb[], int external_scan)
 {
 	union wpa_event_data event;
 	struct nlattr *nl;
@@ -3150,17 +3151,18 @@ static void send_vendor_scan_event(struct wpa_driver_nl80211_data *drv,
 		wpa_printf(MSG_DEBUG, "nl80211: Scan included frequencies:%s",
 			   msg);
 	}
-	wpa_supplicant_event(drv->ctx, EVENT_SCAN_RESULTS, &event);
+	wpa_supplicant_event(bss->ctx, EVENT_SCAN_RESULTS, &event);
 }
 
 
-static void qca_nl80211_scan_done_event(struct wpa_driver_nl80211_data *drv,
-					u8 *data, size_t len)
+static void qca_nl80211_scan_done_event(struct i802_bss *bss, u8 *data,
+					size_t len)
 {
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_SCAN_MAX + 1];
 	u64 cookie = 0;
 	enum scan_status status;
 	int external_scan;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
 
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_SCAN_MAX,
 		      (struct nlattr *) data, len, NULL) ||
@@ -3189,7 +3191,7 @@ static void qca_nl80211_scan_done_event(struct wpa_driver_nl80211_data *drv,
 		drv->last_scan_cmd = 0;
 	}
 
-	send_vendor_scan_event(drv, (status == VENDOR_SCAN_STATUS_ABORTED), tb,
+	send_vendor_scan_event(bss, (status == VENDOR_SCAN_STATUS_ABORTED), tb,
 			       external_scan);
 }
 
@@ -3221,8 +3223,7 @@ static void qca_nl80211_p2p_lo_stop_event(struct wpa_driver_nl80211_data *drv,
 
 #ifdef CONFIG_PASN
 
-static void qca_nl80211_pasn_auth(struct wpa_driver_nl80211_data *drv,
-				  u8 *data, size_t len)
+static void qca_nl80211_pasn_auth(struct i802_bss *bss, u8 *data, size_t len)
 {
 	int ret = -EINVAL;
 	struct nlattr *attr;
@@ -3289,7 +3290,7 @@ static void qca_nl80211_pasn_auth(struct wpa_driver_nl80211_data *drv,
 		   "nl80211: PASN auth action: %u, num_bssids: %d",
 		   event.pasn_auth.action,
 		   event.pasn_auth.num_peers);
-	wpa_supplicant_event(drv->ctx, EVENT_PASN_AUTH, &event);
+	wpa_supplicant_event(bss->ctx, EVENT_PASN_AUTH, &event);
 }
 
 #endif /* CONFIG_PASN */
@@ -3297,7 +3298,7 @@ static void qca_nl80211_pasn_auth(struct wpa_driver_nl80211_data *drv,
 #endif /* CONFIG_DRIVER_NL80211_QCA */
 
 
-static void nl80211_vendor_event_qca(struct wpa_driver_nl80211_data *drv,
+static void nl80211_vendor_event_qca(struct i802_bss *bss,
 				     u32 subcmd, u8 *data, size_t len)
 {
 	switch (subcmd) {
@@ -3306,40 +3307,40 @@ static void nl80211_vendor_event_qca(struct wpa_driver_nl80211_data *drv,
 		break;
 #ifdef CONFIG_DRIVER_NL80211_QCA
 	case QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY:
-		qca_nl80211_avoid_freq(drv, data, len);
+		qca_nl80211_avoid_freq(bss, data, len);
 		break;
 	case QCA_NL80211_VENDOR_SUBCMD_KEY_MGMT_ROAM_AUTH:
-		qca_nl80211_key_mgmt_auth_handler(drv, data, len);
+		qca_nl80211_key_mgmt_auth_handler(bss->drv, data, len);
 		break;
 	case QCA_NL80211_VENDOR_SUBCMD_DO_ACS:
-		qca_nl80211_acs_select_ch(drv, data, len);
+		qca_nl80211_acs_select_ch(bss, data, len);
 		break;
 	case QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_STARTED:
 	case QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_FINISHED:
 	case QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_ABORTED:
 	case QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_NOP_FINISHED:
 	case QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_RADAR_DETECTED:
-		qca_nl80211_dfs_offload_radar_event(drv, subcmd, data, len);
+		qca_nl80211_dfs_offload_radar_event(bss, subcmd, data, len);
 		break;
 	case QCA_NL80211_VENDOR_SUBCMD_TRIGGER_SCAN:
-		qca_nl80211_scan_trigger_event(drv, data, len);
+		qca_nl80211_scan_trigger_event(bss, data, len);
 		break;
 	case QCA_NL80211_VENDOR_SUBCMD_SCAN_DONE:
-		qca_nl80211_scan_done_event(drv, data, len);
+		qca_nl80211_scan_done_event(bss, data, len);
 		break;
 	case QCA_NL80211_VENDOR_SUBCMD_P2P_LISTEN_OFFLOAD_STOP:
-		qca_nl80211_p2p_lo_stop_event(drv, data, len);
+		qca_nl80211_p2p_lo_stop_event(bss->drv, data, len);
 		break;
 #ifdef CONFIG_PASN
 	case QCA_NL80211_VENDOR_SUBCMD_PASN:
-		qca_nl80211_pasn_auth(drv, data, len);
+		qca_nl80211_pasn_auth(bss, data, len);
 		break;
 #endif /* CONFIG_PASN */
 	case QCA_NL80211_VENDOR_SUBCMD_TID_TO_LINK_MAP:
-		qca_nl80211_tid_to_link_map_event(drv, data, len);
+		qca_nl80211_tid_to_link_map_event(bss->drv, data, len);
 		break;
 	case QCA_NL80211_VENDOR_SUBCMD_LINK_RECONFIG:
-		qca_nl80211_link_reconfig_event(drv, data, len);
+		qca_nl80211_link_reconfig_event(bss->drv, data, len);
 		break;
 #endif /* CONFIG_DRIVER_NL80211_QCA */
 	default:
@@ -3432,13 +3433,13 @@ static void nl80211_vendor_event_brcm(struct wpa_driver_nl80211_data *drv,
 #endif /* CONFIG_DRIVER_NL80211_BRCM */
 
 
-static void nl80211_vendor_event(struct wpa_driver_nl80211_data *drv,
-				 struct nlattr **tb)
+static void nl80211_vendor_event(struct i802_bss *bss, struct nlattr **tb)
 {
 	u32 vendor_id, subcmd, wiphy = 0;
 	int wiphy_idx;
 	u8 *data = NULL;
 	size_t len = 0;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
 
 	if (!tb[NL80211_ATTR_VENDOR_ID] ||
 	    !tb[NL80211_ATTR_VENDOR_SUBCMD])
@@ -3480,7 +3481,7 @@ static void nl80211_vendor_event(struct wpa_driver_nl80211_data *drv,
 
 	switch (vendor_id) {
 	case OUI_QCA:
-		nl80211_vendor_event_qca(drv, subcmd, data, len);
+		nl80211_vendor_event_qca(bss, subcmd, data, len);
 		break;
 #ifdef CONFIG_DRIVER_NL80211_BRCM
 	case OUI_BRCM:
@@ -4200,7 +4201,7 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 		nl80211_stop_ap(bss, tb);
 		break;
 	case NL80211_CMD_VENDOR:
-		nl80211_vendor_event(drv, tb);
+		nl80211_vendor_event(bss, tb);
 		break;
 	case NL80211_CMD_NEW_PEER_CANDIDATE:
 		nl80211_new_peer_candidate(drv, tb);
