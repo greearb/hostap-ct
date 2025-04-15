@@ -1843,6 +1843,16 @@ static int hostapd_cli_cmd_del_mscs(struct wpa_ctrl *ctrl, int argc, char *argv[
 	return hostapd_cli_cmd(ctrl, "DEL_MSCS", 1, argc, argv);
 }
 
+static int hostapd_cli_cmd_set_edcca(struct wpa_ctrl *ctrl, int argc, char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "SET_EDCCA", 1, argc, argv);
+}
+
+static int hostapd_cli_cmd_get_edcca(struct wpa_ctrl *ctrl, int argc, char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "GET_EDCCA", 1, argc, argv);
+}
+
 struct hostapd_cli_cmd {
 	const char *cmd;
 	int (*handler)(struct wpa_ctrl *ctrl, int argc, char *argv[]);
@@ -2123,6 +2133,10 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 		" = Control EPCS priority access" },
 	{ "del_mscs", hostapd_cli_cmd_del_mscs, NULL,
 		" = Delete MSCS for the specific STA" },
+	{ "set_edcca", hostapd_cli_cmd_set_edcca, NULL,
+		" = Configure EDCCA mode or threshold" },
+	{ "get_edcca", hostapd_cli_cmd_get_edcca, NULL,
+		" = Get EDCCA threshold from driver" },
 	{ NULL, NULL, NULL, NULL }
 };
 
