@@ -8667,6 +8667,7 @@ static int i802_set_wds_sta(void *priv, const u8 *addr, int aid, int val,
 static void handle_eapol(int sock, void *eloop_ctx, void *sock_ctx)
 {
 	struct wpa_driver_nl80211_data *drv = eloop_ctx;
+	struct i802_bss *bss;
 	struct sockaddr_ll lladdr;
 	unsigned char buf[3000];
 	int len;
@@ -8680,8 +8681,10 @@ static void handle_eapol(int sock, void *eloop_ctx, void *sock_ctx)
 		return;
 	}
 
-	if (have_ifidx(drv, lladdr.sll_ifindex, IFIDX_ANY))
-		drv_event_eapol_rx(drv->ctx, lladdr.sll_addr, buf, len);
+	if (have_ifidx(drv, lladdr.sll_ifindex, IFIDX_ANY)) {
+		for (bss = drv->first_bss; bss; bss = bss->next)
+			drv_event_eapol_rx(bss->ctx, lladdr.sll_addr, buf, len);
+	}
 }
 
 
