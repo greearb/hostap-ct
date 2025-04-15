@@ -1423,6 +1423,21 @@ static struct wpa_ssid * wpas_dpp_add_network(struct wpa_supplicant *wpa_s,
 		return NULL;
 	wpas_notify_network_added(wpa_s, ssid);
 	wpa_config_set_network_defaults(ssid);
+	if (wpa_s->drv_capa_known &&
+	    (wpa_s->drv_enc & WPA_DRIVER_CAPA_ENC_GCMP)) {
+		ssid->pairwise_cipher |= WPA_CIPHER_GCMP;
+		ssid->group_cipher |= WPA_CIPHER_GCMP;
+	}
+	if (wpa_s->drv_capa_known &&
+	    (wpa_s->drv_enc & WPA_DRIVER_CAPA_ENC_GCMP_256)) {
+		ssid->pairwise_cipher |= WPA_CIPHER_GCMP_256;
+		ssid->group_cipher |= WPA_CIPHER_GCMP_256;
+	}
+	if (wpa_s->drv_capa_known &&
+	    (wpa_s->drv_enc & WPA_DRIVER_CAPA_ENC_CCMP_256)) {
+		ssid->pairwise_cipher |= WPA_CIPHER_CCMP_256;
+		ssid->group_cipher |= WPA_CIPHER_CCMP_256;
+	}
 	ssid->disabled = 1;
 
 	ssid->ssid = os_malloc(conf->ssid_len);
