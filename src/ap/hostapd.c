@@ -3604,8 +3604,12 @@ int hostapd_enable_iface(struct hostapd_iface *hapd_iface)
 
 	if (hapd_iface->interfaces == NULL ||
 	    hapd_iface->interfaces->driver_init == NULL ||
-	    hapd_iface->interfaces->driver_init(hapd_iface))
+	    hapd_iface->interfaces->driver_init(hapd_iface)) {
+		hostapd_deinit_driver(hapd_iface->bss[0]->driver,
+				      hapd_iface->bss[0]->drv_priv,
+				      hapd_iface);
 		return -1;
+	}
 
 	if (hostapd_setup_interface(hapd_iface)) {
 		hostapd_deinit_driver(hapd_iface->bss[0]->driver,
@@ -3863,8 +3867,13 @@ int hostapd_add_iface(struct hapd_interfaces *interfaces, char *buf)
 		}
 
 		if (new_iface) {
-			if (interfaces->driver_init(hapd_iface))
+			if (interfaces->driver_init(hapd_iface)) {
+				hostapd_deinit_driver(
+					hapd_iface->bss[0]->driver,
+					hapd_iface->bss[0]->drv_priv,
+					hapd_iface);
 				goto fail;
+			}
 
 			if (hostapd_setup_interface(hapd_iface)) {
 				hostapd_deinit_driver(
