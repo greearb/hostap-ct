@@ -6251,7 +6251,7 @@ int nl80211_create_iface(struct wpa_driver_nl80211_data *drv,
 					arg);
 
 	/* if error occurred and interface exists already */
-	if (ret == -ENFILE && if_nametoindex(ifname)) {
+	if (ret < 0 && if_nametoindex(ifname)) {
 		if (use_existing) {
 			wpa_printf(MSG_DEBUG, "nl80211: Continue using existing interface %s",
 				   ifname);
@@ -9096,6 +9096,10 @@ static int wpa_driver_nl80211_if_add(void *priv, enum wpa_driver_if_type type,
 		if (drv_priv)
 			*drv_priv = new_bss;
 		nl80211_init_bss(new_bss);
+
+		/* Set interface mode to NL80211_IFTYPE_AP */
+		if (nl80211_set_mode(drv, ifidx, nlmode))
+			return -1;
 
 		/* Subscribe management frames for this WPA_IF_AP_BSS */
 		if (nl80211_setup_ap(new_bss))
