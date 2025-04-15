@@ -1456,28 +1456,46 @@ int hostapd_remove_pmkid(struct hostapd_data *hapd, const u8 *sta_addr,
 
 int hostapd_drv_configure_edcca_enable(struct hostapd_data *hapd)
 {
+	s8 link_id = -1;
+
 	if (!hapd->driver || !hapd->driver->configure_edcca_enable)
 		return 0;
-	return hapd->driver->configure_edcca_enable(hapd->drv_priv,
-			hapd->iconf->edcca_enable,
-				hapd->iconf->edcca_compensation);
+
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+
+	return hapd->driver->configure_edcca_enable(hapd->drv_priv, link_id,
+						    hapd->iconf->edcca_enable,
+						    hapd->iconf->edcca_compensation);
 }
 
 
 int hostapd_drv_configure_edcca_threshold(struct hostapd_data *hapd,
 					  const int *threshold)
 {
+	s8 link_id = -1;
+
 	if (!hapd->driver || !hapd->driver->configure_edcca_threshold)
 		return 0;
-	return hapd->driver->configure_edcca_threshold(hapd->drv_priv, threshold);
+
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+
+	return hapd->driver->configure_edcca_threshold(hapd->drv_priv, link_id, threshold);
 }
 
 
 int hostapd_drv_get_edcca(struct hostapd_data *hapd, const u8 mode, u8 *value)
 {
+	s8 link_id = -1;
+
 	if (!hapd->driver || !hapd->driver->get_edcca)
 		return 0;
-	return hapd->driver->get_edcca(hapd->drv_priv, mode, value);
+
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+
+	return hapd->driver->get_edcca(hapd->drv_priv, link_id, mode, value);
 }
 
 int hostapd_drv_mu_ctrl(struct hostapd_data *hapd, u8 mode)
