@@ -2073,7 +2073,12 @@ static void wpas_start_gc(struct wpa_supplicant *wpa_s,
 		entry->network_ctx = ssid;
 		os_memcpy(entry->spa, wpa_s->own_addr, ETH_ALEN);
 
-		wpa_sm_pmksa_cache_add_entry(wpa_s->wpa, entry);
+		if (wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME) {
+			wpa_sm_pmksa_cache_add_entry(wpa_s->wpa, entry);
+		} else {
+			os_free(wpa_s->p2p_pmksa_entry);
+			wpa_s->p2p_pmksa_entry = entry;
+		}
 		ssid->pmk_valid = true;
 	} else if (res->akmp == WPA_KEY_MGMT_SAE && res->sae_password[0]) {
 		ssid->auth_alg = WPA_AUTH_ALG_SAE;
@@ -8169,7 +8174,12 @@ static int wpas_start_p2p_client(struct wpa_supplicant *wpa_s,
 			entry->network_ctx = ssid;
 			os_memcpy(entry->spa, wpa_s->own_addr, ETH_ALEN);
 
-			wpa_sm_pmksa_cache_add_entry(wpa_s->wpa, entry);
+			if (wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME) {
+				wpa_sm_pmksa_cache_add_entry(wpa_s->wpa, entry);
+			} else {
+				os_free(wpa_s->p2p_pmksa_entry);
+				wpa_s->p2p_pmksa_entry = entry;
+			}
 			ssid->pmk_valid = true;
 		}
 		wpa_s->current_ssid = ssid;
