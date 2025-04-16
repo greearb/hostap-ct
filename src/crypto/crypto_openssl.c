@@ -431,7 +431,7 @@ int rc4_skip(const u8 *key, size_t keylen, size_t skip,
 	EVP_CIPHER_CTX *ctx;
 	int outl;
 	int res = -1;
-	unsigned char skip_buf[16];
+	unsigned char skip_buf[16] = { 0 };
 
 	openssl_load_legacy_provider();
 
