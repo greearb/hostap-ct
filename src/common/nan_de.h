@@ -50,6 +50,9 @@ struct nan_callbacks {
 	void (*subscribe_terminated)(void *ctx, int subscribe_id,
 				     enum nan_de_reason reason);
 
+	void (*offload_cancel_publish)(void *ctx, int publish_id);
+	void (*offload_cancel_subscribe)(void *ctx, int subscribe_id);
+
 	void (*receive)(void *ctx, int id, int peer_instance_id,
 			const u8 *ssi, size_t ssi_len,
 			const u8 *peer_addr);

@@ -271,12 +271,30 @@ static void wpas_nan_de_publish_terminated(void *ctx, int publish_id,
 }
 
 
+static void wpas_nan_usd_offload_cancel_publish(void *ctx, int publish_id)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD)
+		wpas_drv_nan_cancel_publish(wpa_s, publish_id);
+}
+
+
 static void wpas_nan_de_subscribe_terminated(void *ctx, int subscribe_id,
 					     enum nan_de_reason reason)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 
 	wpas_notify_nan_subscribe_terminated(wpa_s, subscribe_id, reason);
+}
+
+
+static void wpas_nan_usd_offload_cancel_subscribe(void *ctx, int subscribe_id)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD)
+		wpas_drv_nan_cancel_subscribe(wpa_s, subscribe_id);
 }
 
 
@@ -316,6 +334,8 @@ int wpas_nan_usd_init(struct wpa_supplicant *wpa_s)
 	cb.replied = wpas_nan_de_replied;
 	cb.publish_terminated = wpas_nan_de_publish_terminated;
 	cb.subscribe_terminated = wpas_nan_de_subscribe_terminated;
+	cb.offload_cancel_publish = wpas_nan_usd_offload_cancel_publish;
+	cb.offload_cancel_subscribe = wpas_nan_usd_offload_cancel_subscribe;
 	cb.receive = wpas_nan_de_receive;
 #ifdef CONFIG_P2P
 	cb.process_p2p_usd_elems = wpas_nan_process_p2p_usd_elems;
