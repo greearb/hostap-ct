@@ -7265,8 +7265,11 @@ int p2p_pasn_auth_rx(struct p2p_data *p2p, const struct ieee80211_mgmt *mgmt,
 	}
 
 	if (!dev->pasn) {
-		p2p_dbg(p2p, "PASN: Uninitialized");
-		return -1;
+		dev->pasn = pasn_data_init();
+		if (!dev->pasn) {
+			p2p_dbg(p2p, "PASN: Uninitialized");
+			return -1;
+		}
 	}
 
 	pasn = dev->pasn;

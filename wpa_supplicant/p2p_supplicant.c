@@ -11505,6 +11505,8 @@ int wpas_p2p_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 
 	if (wpa_s->global->p2p_disabled || !p2p)
 		return -2;
+
+	wpa_s->p2p2 = true;
 	return p2p_pasn_auth_rx(p2p, mgmt, len, freq);
 }
 
