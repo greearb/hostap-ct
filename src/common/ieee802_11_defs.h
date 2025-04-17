@@ -2681,6 +2681,8 @@ struct ieee80211_eht_operation {
 	struct ieee80211_eht_oper_info oper_info; /* 0 or 3 or 5 octets */
 } STRUCT_PACKED;
 
+#define IEEE80211_EHT_OP_MIN_LEN (1 + 4)
+
 /* IEEE P802.11be/D1.5, 9.4.2.313 - EHT Capabilities element */
 
 /* Figure 9-1002af: EHT MAC Capabilities Information field */
