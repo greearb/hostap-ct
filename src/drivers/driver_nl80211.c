@@ -2302,6 +2302,7 @@ static void * wpa_driver_nl80211_drv_init(void *ctx, const char *ifname,
 					  const char *driver_params,
 					  enum wpa_p2p_mode p2p_mode)
 {
+	static unsigned int next_unique_drv_id = 0;
 	struct wpa_driver_nl80211_data *drv;
 	struct i802_bss *bss;
 	char path[128], buf[200], *pos;
@@ -2334,6 +2335,7 @@ static void * wpa_driver_nl80211_drv_init(void *ctx, const char *ifname,
 	drv->ctx = ctx;
 	drv->hostapd = !!hostapd;
 	drv->eapol_sock = -1;
+	drv->unique_drv_id = next_unique_drv_id++;
 
 	/*
 	 * There is no driver capability flag for this, so assume it is
