@@ -531,10 +531,13 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 			struct hostapd_iface *iface = ifaces->iface[i];
 			size_t j;
 
+			if (hapd->iface == iface)
+				continue;
+
 			for (j = 0; iface && j < iface->num_bss; j++) {
 				struct hostapd_data *h = iface->bss[j];
 
-				if (hapd == h)
+				if (!h)
 					continue;
 				if (h->radius == hapd->radius)
 					h->radius = NULL;
