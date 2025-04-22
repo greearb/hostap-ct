@@ -19452,8 +19452,19 @@ enum qca_wlan_vendor_attr_flow_status {
  * passed back to the driver as part of the command
  * @QCA_NL80211_VENDOR_SUBCMD_IQ_DATA_INFERENCE
  * to maintain synchronization between commands and asynchronous events.
+ *
  * @QCA_WLAN_VENDOR_ATTR_IQ_DATA_INFERENCE_PAD: Attribute used for padding for
  * 64-bit alignment.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_IQ_DATA_INFERENCE_TX_POWER: s32 attribute represents
+ * the TX power of an inferencing packet (in dBm).
+ * This is sent from the driver to user space as part of event
+ * @QCA_NL80211_VENDOR_SUBCMD_IQ_DATA_INFERENCE.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_IQ_DATA_INFERENCE_TX_CHAIN_IDX: u32 attribute
+ * represents the TX chain index on which inferencing is requested for.
+ * This is sent from the driver to user space as part of event
+ * @QCA_NL80211_VENDOR_SUBCMD_IQ_DATA_INFERENCE.
  */
 enum qca_wlan_vendor_attr_iq_data_inference {
 	QCA_WLAN_VENDOR_ATTR_IQ_DATA_INFERENCE_INVALID = 0,
@@ -19472,6 +19483,8 @@ enum qca_wlan_vendor_attr_iq_data_inference {
 	QCA_WLAN_VENDOR_ATTR_IQ_DATA_INFERENCE_STATUS = 13,
 	QCA_WLAN_VENDOR_ATTR_IQ_DATA_INFERENCE_COOKIE = 14,
 	QCA_WLAN_VENDOR_ATTR_IQ_DATA_INFERENCE_PAD = 15,
+	QCA_WLAN_VENDOR_ATTR_IQ_DATA_INFERENCE_TX_POWER = 16,
+	QCA_WLAN_VENDOR_ATTR_IQ_DATA_INFERENCE_TX_CHAIN_IDX = 17,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_IQ_DATA_INFERENCE_AFTER_LAST,
