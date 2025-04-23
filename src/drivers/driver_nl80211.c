@@ -9679,10 +9679,10 @@ int nl80211_remove_link(struct i802_bss *bss, int link_id)
 	os_memcpy(link_addr, link->addr, ETH_ALEN);
 
 	/* First remove the link locally */
-	bss->valid_links &= ~BIT(link_id);
 	os_memset(link->addr, 0, ETH_ALEN);
 	/* Clear the active links and set the flink */
 	nl80211_update_active_links(bss, link_id);
+	bss->valid_links &= ~BIT(link_id);
 
 	/* If this was the last link, reset default link */
 	if (!bss->valid_links) {
