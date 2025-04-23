@@ -5525,6 +5525,27 @@ static void wpas_bootstrap_rsp_rx(void *ctx, const u8 *addr,
 }
 
 
+static int wpas_set_pmksa(void *ctx, const u8 *peer_addr, int dik_id)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+	struct wpa_dev_ik *ik;
+
+	for (ik = wpa_s->conf->identity; ik; ik = ik->next) {
+		if (ik->id == dik_id)
+			break;
+	}
+	if (!ik)
+		return -1;
+#ifdef CONFIG_PASN
+	p2p_pasn_pmksa_set_pmk(wpa_s->global->p2p, wpa_s->global->p2p_dev_addr,
+			       peer_addr,
+			       wpabuf_head(ik->pmk), wpabuf_len(ik->pmk),
+			       wpabuf_head(ik->pmkid));
+#endif /* CONFIG_PASN */
+	return 0;
+}
+
+
 static int wpas_validate_dira(void *ctx, const u8 *peer_addr,
 			      const u8 *dira_nonce, const u8 *dira_tag)
 {
@@ -5565,13 +5586,6 @@ static int wpas_validate_dira(void *ctx, const u8 *peer_addr,
 
 	if (!ik)
 		return 0;
-
-#ifdef CONFIG_PASN
-	p2p_pasn_pmksa_set_pmk(wpa_s->global->p2p, wpa_s->global->p2p_dev_addr,
-			       peer_addr,
-			       wpabuf_head(ik->pmk), wpabuf_len(ik->pmk),
-			       wpabuf_head(ik->pmkid));
-#endif /* CONFIG_PASN */
 
 	return ik->id;
 }
@@ -5797,6 +5811,7 @@ int wpas_p2p_init(struct wpa_global *global, struct wpa_supplicant *wpa_s)
 	p2p.bootstrap_req_rx = wpas_bootstrap_req_rx;
 	p2p.bootstrap_rsp_rx = wpas_bootstrap_rsp_rx;
 	p2p.validate_dira = wpas_validate_dira;
+	p2p.set_pmksa = wpas_set_pmksa;
 #ifdef CONFIG_PASN
 	p2p.pasn_send_mgmt = wpas_p2p_pasn_send_mgmt;
 	p2p.prepare_data_element = wpas_p2p_prepare_data_element;

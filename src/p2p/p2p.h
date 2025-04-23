@@ -1380,13 +1380,23 @@ struct p2p_config {
 	 * @dira_tag: DIRA Tag
 	 * Returns: Identity block ID on success, 0 on failure
 	 *
-	 * This function can be used to validate DIRA and configure PMK of a
-	 * paired/persistent peer from configuration. The handler function is
-	 * expected to call p2p_pasn_pmksa_set_pmk() to set the PMK/PMKID in
-	 * case a matching entry is found.
+	 * This function can be used to validate DIRA.
 	 */
 	int (*validate_dira)(void *ctx, const u8 *peer_addr,
 			     const u8 *dira_nonce, const u8 *dira_tag);
+
+	/**
+	 * set_pmksa - Configure PMK of a paired/persistent peer from
+	 *	configuration
+	 * @ctx: Callback context from cb_ctx
+	 * @peer_addr: P2P Device address of the peer
+	 * @dik_id: Identity block ID
+	 * Returns: 0 on success
+	 *
+	 * It is expected to call p2p_pasn_pmksa_set_pmk() to set the PMK/PMKID
+	 * for given dik_id.
+	 */
+	int (*set_pmksa)(void *ctx, const u8 *peer_addr, int dik_id);
 
 	/**
 	 * pasn_send_mgmt - Function handler to transmit a Management frame
