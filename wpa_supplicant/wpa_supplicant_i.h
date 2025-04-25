@@ -293,9 +293,11 @@ struct wpa_global {
 	size_t drv_count;
 	struct os_time suspend_time;
 	struct p2p_data *p2p;
+	struct pr_data *pr;
 	struct wpa_supplicant *p2p_init_wpa_s;
 	struct wpa_supplicant *p2p_group_formation;
 	struct wpa_supplicant *p2p_invite_group;
+	struct wpa_supplicant *pr_init_wpa_s;
 	u8 p2p_dev_addr[ETH_ALEN];
 	struct os_reltime p2p_go_wait_client;
 	struct dl_list p2p_srv_bonjour; /* struct p2p_srv_bonjour */

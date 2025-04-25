@@ -290,6 +290,12 @@ NEED_OFFCHANNEL=y
 L_CFLAGS += -DCONFIG_NAN_USD
 endif
 
+ifdef CONFIG_PR
+OBJS += src/common/proximity_ranging.c
+OBJS += pr_supplicant.c
+L_CFLAGS += -DCONFIG_PR
+endif
+
 ifdef CONFIG_OWE
 L_CFLAGS += -DCONFIG_OWE
 NEED_ECC=y

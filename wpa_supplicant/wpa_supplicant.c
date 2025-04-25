@@ -66,6 +66,7 @@
 #include "mesh.h"
 #include "dpp_supplicant.h"
 #include "nan_usd.h"
+#include "pr_supplicant.h"
 #ifdef CONFIG_MESH
 #include "ap/ap_config.h"
 #include "ap/hostapd.h"
@@ -739,6 +740,8 @@ static void wpa_supplicant_cleanup(struct wpa_supplicant *wpa_s)
 #endif /* CONFIG_AP */
 
 	wpas_p2p_deinit(wpa_s);
+
+	wpas_pr_deinit(wpa_s);
 
 #ifdef CONFIG_OFFCHANNEL
 	offchannel_deinit(wpa_s);
@@ -7968,6 +7971,9 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 		wpa_msg(wpa_s, MSG_ERROR, "Failed to init P2P");
 		return -1;
 	}
+
+	if (wpas_pr_init(wpa_s->global, wpa_s) < 0)
+		return -1;
 
 	if (wpa_bss_init(wpa_s) < 0)
 		return -1;
