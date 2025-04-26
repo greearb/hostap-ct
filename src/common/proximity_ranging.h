@@ -444,6 +444,18 @@ struct pr_dira {
 	size_t tag_len;
 };
 
+struct operation_mode {
+	/* Bitmap for Ranging Protocol type */
+	u8 protocol_type;
+
+	/* Bitmap for Role-ISTA/RSTA */
+	u8 role;
+
+	char country[3];
+
+	struct pr_channels channels;
+};
+
 struct pr_data * pr_init(const struct pr_config *cfg);
 void pr_deinit(struct pr_data *pr);
 void pr_clear_dev_iks(struct pr_data *pr);

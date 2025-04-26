@@ -450,6 +450,29 @@ static int pr_validate_dira(struct pr_data *pr, struct pr_device *dev,
 }
 
 
+#ifdef CONFIG_PASN
+static void pr_copy_channels(struct pr_channels *dst,
+			     const struct pr_channels *src, bool allow_6ghz)
+{
+	size_t i, j;
+
+	if (allow_6ghz) {
+		os_memcpy(dst, src, sizeof(struct pr_channels));
+		return;
+	}
+
+	for (i = 0, j = 0; i < src->op_classes; i++) {
+		if (is_6ghz_op_class(src->op_class[i].op_class))
+			continue;
+		os_memcpy(&dst->op_class[j], &src->op_class[i],
+			  sizeof(struct pr_op_class));
+		j++;
+	}
+	dst->op_classes = j;
+}
+#endif /* CONFIG_PASN */
+
+
 static void pr_buf_add_channel_list(struct wpabuf *buf, const char *country,
 				    const struct pr_channels *chan)
 {
@@ -1050,6 +1073,111 @@ void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 
 #ifdef CONFIG_PASN
 
+static void pr_buf_add_operation_mode(struct wpabuf *buf,
+				      struct operation_mode *mode)
+{
+	u8 *len;
+	size_t _len;
+
+	/* Proximity Ranging Operation Mode Attribute */
+	wpabuf_put_u8(buf, PR_ATTR_OPERATION_MODE);
+	/* Length to be filled */
+	len = wpabuf_put(buf, 2);
+
+	/* Ranging Protocol Type */
+	wpabuf_put_u8(buf, mode->protocol_type);
+
+	/* Ranging Role */
+	wpabuf_put_u8(buf, mode->role);
+
+	pr_buf_add_channel_list(buf, mode->country, &mode->channels);
+
+	/* Update attribute length */
+	_len = (u8 *) wpabuf_put(buf, 0) - len - 2;
+	WPA_PUT_LE16(len, _len);
+	wpa_hexdump(MSG_DEBUG, "PR: * Operation Mode", len + 2, _len);
+}
+
+
+static int pr_prepare_pasn_pr_elem(struct pr_data *pr, struct wpabuf *extra_ies,
+				   bool add_dira, u8 ranging_role,
+				   u8 ranging_type, int forced_pr_freq)
+{
+	u32 ie_type;
+	struct wpabuf *buf, *buf2;
+	struct pr_dira dira;
+	struct pr_capabilities pr_caps;
+	struct edca_capabilities edca_caps;
+	struct ntb_capabilities ntb_caps;
+	struct operation_mode op_mode;
+	struct pr_channels op_channels;
+	u8 forced_op_class = 0, forced_op_channel = 0;
+	enum hostapd_hw_mode hw_mode;
+
+	buf = wpabuf_alloc(1000);
+	if (!buf)
+		return -1;
+
+	pr_get_ranging_capabilities(pr, &pr_caps);
+	pr_buf_add_ranging_capa_info(buf, &pr_caps);
+
+	if (ranging_type & PR_EDCA_BASED_RANGING) {
+		pr_get_edca_capabilities(pr, &edca_caps);
+		pr_buf_add_edca_capa_info(buf, &edca_caps);
+		pr_copy_channels(&op_channels, &edca_caps.channels, false);
+	} else if (ranging_type & PR_NTB_OPEN_BASED_RANGING ||
+		   ranging_type & PR_NTB_SECURE_LTF_BASED_RANGING) {
+		pr_get_ntb_capabilities(pr, &ntb_caps);
+		pr_buf_add_ntb_capa_info(buf, &ntb_caps);
+		pr_copy_channels(&op_channels, &ntb_caps.channels, false);
+	}
+
+	os_memset(&op_mode, 0, sizeof(struct operation_mode));
+	op_mode.role = ranging_role;
+	op_mode.protocol_type = ranging_type;
+	os_memcpy(op_mode.country, pr->cfg->country, 3);
+
+	if (forced_pr_freq) {
+		hw_mode = ieee80211_freq_to_channel_ext(forced_pr_freq, 0, 0,
+							&forced_op_class,
+							&forced_op_channel);
+		if (hw_mode == NUM_HOSTAPD_MODES) {
+			wpa_printf(MSG_INFO, "PR: Invalid forced_pr_freq");
+			wpabuf_free(buf);
+			return -1;
+		}
+
+		op_mode.channels.op_classes = 1;
+		op_mode.channels.op_class[0].channels = 1;
+		op_mode.channels.op_class[0].channel[0] = forced_op_channel;
+		op_mode.channels.op_class[0].op_class = forced_op_class;
+	} else {
+		pr_copy_channels(&op_mode.channels, &op_channels, false);
+	}
+
+	pr_buf_add_operation_mode(buf, &op_mode);
+
+	/* PR Device Identity Resolution attribute */
+	if (!pr_derive_dira(pr, &dira))
+		pr_buf_add_dira(buf, &dira);
+
+	ie_type = (OUI_WFA << 8) | PR_OUI_TYPE;
+	buf2 = pr_encaps_elem(buf, ie_type);
+	wpabuf_free(buf);
+
+	if (wpabuf_tailroom(extra_ies) < wpabuf_len(buf2)) {
+		wpa_printf(MSG_INFO,
+			   "PR: Not enough room for PR element in PASN Frame");
+		wpabuf_free(buf2);
+		return -1;
+	}
+	wpabuf_put_buf(extra_ies, buf2);
+	wpabuf_free(buf2);
+
+	return 0;
+}
+
+
 static struct wpabuf * pr_pasn_generate_rsnxe(struct pr_data *pr, int akmp)
 {
 	u32 capab;
@@ -1240,6 +1368,7 @@ int pr_initiate_pasn_auth(struct pr_data *pr, const u8 *addr, int freq,
 	struct pasn_data *pasn;
 	struct pr_device *dev;
 	u8 pmkid[PMKID_LEN];
+	struct wpabuf *extra_ies;
 
 	if (!addr) {
 		wpa_printf(MSG_DEBUG, "PR PASN: Peer address NULL");
@@ -1268,6 +1397,21 @@ int pr_initiate_pasn_auth(struct pr_data *pr, const u8 *addr, int freq,
 	}
 	pasn = dev->pasn;
 
+	extra_ies = wpabuf_alloc(1500);
+	if (!extra_ies)
+		return -1;
+
+	if (pr_prepare_pasn_pr_elem(pr, extra_ies, false, ranging_role,
+				    ranging_type, forced_pr_freq)) {
+		wpa_printf(MSG_INFO,
+			   "PR PASN: Failed to prepare extra elements");
+		ret = -1;
+		goto out;
+	}
+
+	pasn_set_extra_ies(dev->pasn, wpabuf_head_u8(extra_ies),
+			   wpabuf_len(extra_ies));
+
 	if (auth_mode == PR_PASN_AUTH_MODE_PMK) {
 		ret = wpa_pasn_verify(pasn, pasn->own_addr, pasn->peer_addr,
 				      pasn->bssid, pasn->akmp, pasn->cipher,
@@ -1282,6 +1426,8 @@ int pr_initiate_pasn_auth(struct pr_data *pr, const u8 *addr, int freq,
 	if (ret)
 		wpa_printf(MSG_INFO, "PR PASN: Failed to start PASN");
 
+out:
+	wpabuf_free(extra_ies);
 	return ret;
 }
 
