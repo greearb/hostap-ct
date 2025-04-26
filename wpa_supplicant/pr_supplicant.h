@@ -27,6 +27,9 @@ int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 			       int forced_pr_freq);
 int wpas_pr_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
 				size_t data_len, bool acked);
+int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
+			 const struct ieee80211_mgmt *mgmt, size_t len,
+			 int freq);
 
 #else /* CONFIG_PR */
 
@@ -68,6 +71,13 @@ static inline int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 static inline int wpas_pr_pasn_auth_tx_status(struct wpa_supplicant *wpa_s,
 					      const u8 *data, size_t data_len,
 					      bool acked)
+{
+	return 0;
+}
+
+static inline int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
+				       const struct ieee80211_mgmt *mgmt,
+				       size_t len, int freq)
 {
 	return 0;
 }

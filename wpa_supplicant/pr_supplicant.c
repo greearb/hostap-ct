@@ -10,6 +10,7 @@
 
 #include "utils/common.h"
 #include "utils/eloop.h"
+#include "common/ieee802_11_defs.h"
 #include "common/proximity_ranging.h"
 #include "p2p/p2p.h"
 #include "wpa_supplicant_i.h"
@@ -536,6 +537,18 @@ int wpas_pr_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
 		return -1;
 
 	return pr_pasn_auth_tx_status(pr, data, data_len, acked);
+}
+
+
+int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
+			 const struct ieee80211_mgmt *mgmt, size_t len,
+			 int freq)
+{
+	struct pr_data *pr = wpa_s->global->pr;
+
+	if (!pr)
+		return -2;
+	return pr_pasn_auth_rx(pr, mgmt, len, freq);
 }
 
 #endif /* CONFIG_PASN */

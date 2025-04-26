@@ -1570,4 +1570,37 @@ int pr_pasn_auth_tx_status(struct pr_data *pr, const u8 *data, size_t data_len,
 	return ret;
 }
 
+
+int pr_pasn_auth_rx(struct pr_data *pr, const struct ieee80211_mgmt *mgmt,
+		    size_t len, int freq)
+{
+	struct pr_device *dev;
+	u16 auth_alg;
+
+	dev = pr_get_device(pr, mgmt->sa);
+	if (!dev) {
+		wpa_printf(MSG_INFO, "PR: Peer not found " MACSTR,
+			   MAC2STR(mgmt->sa));
+		return -1;
+	}
+
+	if (!ether_addr_equal(mgmt->da, pr->cfg->dev_addr)) {
+		wpa_printf(MSG_INFO, "PR PASN: Not our frame");
+		return -1;
+	}
+
+	if (len < offsetof(struct ieee80211_mgmt, u.auth.variable))
+		return -1;
+
+	auth_alg = le_to_host16(mgmt->u.auth.auth_alg);
+	if (auth_alg != WLAN_AUTH_PASN) {
+		wpa_printf(MSG_INFO,
+			   "PR: Unexpected Authentication frame, auth_alg=%d",
+			   auth_alg);
+		return -1;
+	}
+
+	return 0;
+}
+
 #endif /* CONFIG_PASN */

@@ -6205,7 +6205,6 @@ static int wpas_pasn_auth(struct wpa_supplicant *wpa_s,
 			  const struct ieee80211_mgmt *mgmt, size_t len,
 			  int freq)
 {
-#ifdef CONFIG_P2P
 	struct ieee802_11_elems elems;
 	size_t auth_length;
 
@@ -6231,9 +6230,14 @@ static int wpas_pasn_auth(struct wpa_supplicant *wpa_s,
 		return -2;
 	}
 
+#ifdef CONFIG_P2P
 	if (elems.p2p2_ie && elems.p2p2_ie_len)
 		return wpas_p2p_pasn_auth_rx(wpa_s, mgmt, len, freq);
 #endif /* CONFIG_P2P */
+#ifdef CONFIG_PR
+	if (elems.proximity_ranging && elems.proximity_ranging_len)
+		return wpas_pr_pasn_auth_rx(wpa_s, mgmt, len, freq);
+#endif /* CONFIG_PR */
 
 	return wpas_pasn_auth_rx(wpa_s, mgmt, len);
 }

@@ -165,6 +165,11 @@ static int ieee802_11_parse_vendor_specific(const u8 *pos, size_t elen,
 			elems->p2p2_ie = pos;
 			elems->p2p2_ie_len = elen;
 			break;
+		case PR_OUI_TYPE:
+			/* Wi-Fi Alliance - Proximity Ranging element */
+			elems->proximity_ranging = pos;
+			elems->proximity_ranging_len = elen;
+			break;
 		default:
 			wpa_printf(MSG_MSGDUMP, "Unknown WFA "
 				   "information element ignored "

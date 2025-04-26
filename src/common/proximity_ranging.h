@@ -469,5 +469,7 @@ int pr_initiate_pasn_auth(struct pr_data *pr, const u8 *addr, int freq,
 			  int forced_pr_freq);
 int pr_pasn_auth_tx_status(struct pr_data *pr, const u8 *data, size_t data_len,
 			   bool acked);
+int pr_pasn_auth_rx(struct pr_data *pr, const struct ieee80211_mgmt *mgmt,
+		    size_t len, int freq);
 
 #endif /* PROXIMITY_RANGING_H */
