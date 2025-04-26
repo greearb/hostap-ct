@@ -2323,6 +2323,10 @@ static int pr_pasn_handle_auth_1(struct pr_data *pr, struct pr_device *dev,
 		goto fail;
 	}
 
+	if (pr->cfg->set_keys)
+		pr->cfg->set_keys(pr->cfg->cb_ctx, pr->cfg->dev_addr,
+				  dev->pr_device_addr, dev->pasn->cipher,
+				  dev->pasn->akmp, &dev->pasn->ptk);
 	ret = 0;
 
 fail:
@@ -2362,6 +2366,10 @@ static int pr_pasn_handle_auth_2(struct pr_data *pr, struct pr_device *dev,
 		goto fail;
 	}
 
+	if (pr->cfg->set_keys)
+		pr->cfg->set_keys(pr->cfg->cb_ctx, pr->cfg->dev_addr,
+				  dev->pr_device_addr, dev->pasn->cipher,
+				  dev->pasn->akmp, &dev->pasn->ptk);
 	ret = 0;
 
 fail:
@@ -2386,15 +2394,22 @@ static int pr_pasn_handle_auth_3(struct pr_data *pr, struct pr_device *dev,
 	if (pr_process_pasn_ranging_wrapper_result(pr, dev, mgmt, len)) {
 		wpa_printf(MSG_INFO,
 			   "PR PASN: Failed to handle Auth3 action wrapper");
-		return -1;
+		goto fail;
 	}
 
 	if (handle_auth_pasn_3(dev->pasn, pr->cfg->dev_addr, mgmt->sa, mgmt,
 			       len) < 0) {
 		wpa_printf(MSG_INFO, "PR PASN: Failed to handle Auth3");
-		return -1;
+		goto fail;
 	}
 	return 0;
+
+fail:
+	/* Clear the keys as M3 processing failed */
+	if (pr->cfg->clear_keys)
+		pr->cfg->clear_keys(pr->cfg->cb_ctx, pr->cfg->dev_addr,
+				    dev->pr_device_addr);
+	return -1;
 }
 
 

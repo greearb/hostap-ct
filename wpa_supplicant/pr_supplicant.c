@@ -256,6 +256,33 @@ static int wpas_pr_pasn_send_mgmt(void *ctx, const u8 *data, size_t data_len,
 }
 
 
+static void wpas_pr_pasn_set_keys(void *ctx, const u8 *own_addr,
+				  const u8 *peer_addr, int cipher, int akmp,
+				  struct wpa_ptk *ptk)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	wpa_printf(MSG_DEBUG, "PR PASN: Set secure ranging context for " MACSTR,
+		   MAC2STR(peer_addr));
+	wpa_drv_set_secure_ranging_ctx(wpa_s, own_addr, peer_addr, cipher,
+				       ptk->tk_len, ptk->tk,
+				       ptk->ltf_keyseed_len,
+				       ptk->ltf_keyseed, 0);
+}
+
+
+static void wpas_pr_pasn_clear_keys(void *ctx, const u8 *own_addr,
+				    const u8 *peer_addr)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	wpa_printf(MSG_DEBUG, "PR PASN: Clear secure ranging context for "
+		   MACSTR, MAC2STR(peer_addr));
+	wpa_drv_set_secure_ranging_ctx(wpa_s, own_addr, peer_addr, 0, 0, NULL,
+				       0, NULL, 1);
+}
+
+
 struct wpabuf * wpas_pr_usd_elems(struct wpa_supplicant *wpa_s)
 {
 	return pr_prepare_usd_elems(wpa_s->global->pr);
@@ -318,6 +345,8 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 	pr.support_6ghz = wpas_is_6ghz_supported(wpa_s, true);
 
 	pr.pasn_send_mgmt = wpas_pr_pasn_send_mgmt;
+	pr.set_keys = wpas_pr_pasn_set_keys;
+	pr.clear_keys = wpas_pr_pasn_clear_keys;
 
 	pr.secure_he_ltf = wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_SEC_LTF_STA;
 
