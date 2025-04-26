@@ -24,6 +24,7 @@
 #endif /* CONFIG_DPP */
 #include "common/nan_de.h"
 #include "common/ptksa_cache.h"
+#include "common/proximity_ranging.h"
 #include "crypto/tls.h"
 #include "ap/hostapd.h"
 #include "eap_peer/eap.h"
@@ -60,6 +61,7 @@
 #include "dpp_supplicant.h"
 #include "sme.h"
 #include "nan_usd.h"
+#include "pr_supplicant.h"
 
 #ifdef __NetBSD__
 #include <net/if_ether.h>
@@ -11485,6 +11487,60 @@ static int wpas_ctrl_iface_pasn_deauthenticate(struct wpa_supplicant *wpa_s,
 }
 
 
+#ifdef CONFIG_PR
+static int wpas_ctrl_iface_pr_pasn_start(struct wpa_supplicant *wpa_s,
+					 char *cmd)
+{
+	char *token, *context = NULL;
+	u8 addr[ETH_ALEN];
+	int freq = 0, forced_pr_freq = 0;
+	u8 ranging_type = 0, role = 0, auth_mode = 0;
+	bool got_addr = false;
+
+	while ((token = str_token(cmd, " ", &context))) {
+		if (os_strncmp(token, "addr=", 5) == 0) {
+			if (hwaddr_aton(token + 5, addr))
+				return -1;
+			got_addr = true;
+		} else if (os_strcmp(token, "role=ISTA") == 0) {
+			role |= PR_ISTA_SUPPORT;
+		} else if (os_strcmp(token, "role=RSTA") == 0) {
+			role |= PR_RSTA_SUPPORT;
+		} else if (os_strcmp(token, "ranging_type=EDCA") == 0) {
+			ranging_type |= PR_EDCA_BASED_RANGING;
+		} else if (os_strcmp(token, "ranging_type=NTB-OPEN-PHY") == 0) {
+			ranging_type |= PR_NTB_OPEN_BASED_RANGING;
+		} else if (os_strcmp(token, "ranging_type=NTB-SEC-PHY") == 0) {
+			ranging_type |= PR_NTB_SECURE_LTF_BASED_RANGING;
+		} else if (os_strncmp(token, "freq=", 5) == 0) {
+			freq = atoi(token + 5);
+		} else if (os_strncmp(token, "auth=", 5) == 0) {
+			auth_mode = atoi(token + 5);
+		} else if (os_strncmp(token, "forced_pr_freq=", 15) == 0) {
+			forced_pr_freq = atoi(token + 15);
+		} else {
+			wpa_printf(MSG_DEBUG,
+				   "CTRL: PASN invalid parameter: '%s'",
+				   token);
+			return -1;
+		}
+	}
+
+	if (!got_addr || ranging_type == 0 || role == 0 || freq == 0) {
+		wpa_printf(MSG_DEBUG,
+			   "CTRL: Proximity Ranging PASN missing parameter");
+		return -1;
+	}
+	wpa_printf(MSG_DEBUG,
+		   "CTRL: PR PASN params: ranging type=0x%x, role=0x%x, auth_mode=%d, forced pr freq=%d, addr=" MACSTR,
+		   ranging_type, role, auth_mode, forced_pr_freq,
+		   MAC2STR(addr));
+	return wpas_pr_initiate_pasn_auth(wpa_s, addr, freq, auth_mode, role,
+					  ranging_type, forced_pr_freq);
+}
+#endif /* CONFIG_PR */
+
+
 #ifdef CONFIG_TESTING_OPTIONS
 static int wpas_ctrl_iface_pasn_driver(struct wpa_supplicant *wpa_s, char *cmd)
 {
@@ -14017,6 +14073,11 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strncmp(buf, "PASN_DEAUTH ", 12) == 0) {
 		if (wpas_ctrl_iface_pasn_deauthenticate(wpa_s, buf + 12) < 0)
 			reply_len = -1;
+#ifdef CONFIG_PR
+	} else if (os_strncmp(buf, "PR_PASN_START ", 14) == 0) {
+		if (wpas_ctrl_iface_pr_pasn_start(wpa_s, buf + 14) < 0)
+			reply_len = -1;
+#endif /* CONFIG_PR */
 #ifdef CONFIG_TESTING_OPTIONS
 	} else if (os_strncmp(buf, "PASN_DRIVER ", 12) == 0) {
 		if (wpas_ctrl_iface_pasn_driver(wpa_s, buf + 12) < 0)
