@@ -10,6 +10,7 @@
 
 #include "utils/common.h"
 #include "common/ieee802_11_defs.h"
+#include "common/ieee802_11_common.h"
 #include "crypto/sha256.h"
 #include "proximity_ranging.h"
 
@@ -537,17 +538,207 @@ struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr)
 }
 
 
+static int pr_parse_attribute(u8 id, const u8 *data, u16 len,
+			      struct pr_message *msg)
+{
+	switch (id) {
+	case PR_ATTR_STATUS:
+		if (len < 1) {
+			wpa_printf(MSG_INFO,
+				   "PR: Invalid Proximity Ranging Status Attribute (length %d)",
+				   len);
+			return -1;
+		}
+		msg->status_ie = data;
+		msg->status_ie_len = len;
+		wpa_printf(MSG_DEBUG, "PR: Status Code %u", data[0]);
+		break;
+	case PR_ATTR_RANGING_CAPABILITY:
+		if (len < 35) {
+			wpa_printf(MSG_INFO,
+				   "PR: Too short Proximity Ranging Capability Attribute (length %d)",
+				   len);
+			return -1;
+		}
+		msg->pr_capability = data;
+		msg->pr_capability_len = len;
+		wpa_printf(MSG_DEBUG,
+			   "PR: Ranging Protocol Type: %02x PASN Type: %02x",
+			   data[0], data[1]);
+		break;
+	case PR_ATTR_EDCA_CAPABILITY:
+		if (len < 10) {
+			wpa_printf(MSG_INFO,
+				   "PR: Too short Proximity Ranging EDCA Capability Attribute (length %d)",
+				   len);
+			return -1;
+		}
+		msg->edca_capability = data;
+		msg->edca_capability_len = len;
+		wpa_printf(MSG_DEBUG,
+			   "PR: EDCA Ranging Role %02x, Ranging Parameters %04x",
+			   data[0], WPA_GET_LE16(data + 1));
+		break;
+	case PR_ATTR_NTB_CAPABILITY:
+		if (len < 12) {
+			wpa_printf(MSG_INFO,
+				   "PR: Too short Proximity Ranging 11az NTB Capability Attribute (length %d)",
+				   len);
+			return -1;
+		}
+		msg->ntb_capability = data;
+		msg->ntb_capability_len = len;
+		wpa_printf(MSG_DEBUG,
+			   "PR: NTB Ranging Role %02x, Ranging Parameter %04x",
+			   data[0], WPA_GET_LE32(data + 1));
+		break;
+	case PR_ATTR_OPERATION_MODE:
+		if (len < 9) {
+			wpa_printf(MSG_INFO,
+				   "PR: Invalid Proximity Ranging Operation Mode Attribute (length %d)",
+				   len);
+			return -1;
+		}
+		msg->op_mode = data;
+		msg->op_mode_len = len;
+		break;
+	case PR_ATTR_DEVICE_IDENTITY_RESOLUTION:
+		if (len < 1 + DEVICE_IDENTITY_NONCE_LEN +
+		    DEVICE_IDENTITY_TAG_LEN) {
+			wpa_printf(MSG_INFO, "PR: Too short DIRA (length %d)",
+				   len);
+			return -1;
+		}
+		msg->dira = data;
+		msg->dira_len = len;
+		wpa_printf(MSG_DEBUG, "PR: DIRA cipher version %u", data[0]);
+		break;
+	default:
+		wpa_printf(MSG_DEBUG,
+			   "PR: Skipped unknown attribute %d (length %d)",
+			   id, len);
+		break;
+	}
+
+	return 0;
+}
+
+
+/**
+ * pr_parse_proximity_ranging_element - Parse Proximity Ranging element
+ * @buf: Concatenated PR element(s) payload
+ * @msg: Buffer for returning parsed attributes
+ * Returns: 0 on success, -1 on failure
+ *
+ * Note: The caller is responsible for clearing the msg data structure before
+ * calling this function.
+ */
+static int pr_parse_proximity_ranging_element(const struct wpabuf *buf,
+					      struct pr_message *msg)
+{
+	const u8 *pos = wpabuf_head_u8(buf);
+	const u8 *end = pos + wpabuf_len(buf);
+
+	wpa_printf(MSG_DEBUG, "PR: Parsing Proximity Ranging element");
+
+	while (pos < end) {
+		u16 attr_len;
+		u8 id;
+
+		if (end - pos < 3) {
+			wpa_printf(MSG_DEBUG, "PR: Invalid PR attribute");
+			return -1;
+		}
+		id = *pos++;
+		attr_len = WPA_GET_LE16(pos);
+		pos += 2;
+		wpa_printf(MSG_DEBUG, "PR: Attribute %d length %u",
+			   id, attr_len);
+		if (attr_len > end - pos) {
+			wpa_printf(MSG_DEBUG,
+				   "PR: Attribute underflow (len=%u left=%d)",
+				   attr_len, (int) (end - pos));
+			wpa_hexdump(MSG_MSGDUMP, "PR: Data", pos, end - pos);
+			return -1;
+		}
+		if (pr_parse_attribute(id, pos, attr_len, msg))
+			return -1;
+		pos += attr_len;
+	}
+
+	return 0;
+}
+
+
+static void pr_parse_free(struct pr_message *msg)
+{
+	wpabuf_free(msg->pr_attributes);
+	msg->pr_attributes = NULL;
+}
+
+
+/**
+ * pr_parse_elements - Parse Proximity Ranging element(s)
+ * @data: Elements from the message
+ * @len: Length of data buffer in octets
+ * @msg: Buffer for returning parsed attributes
+ * Returns: 0 on success, -1 on failure
+ *
+ * Note: The caller is responsible for clearing the msg data structure before
+ * calling this function.
+ *
+ * Note: The caller must free temporary memory allocations by calling
+ * pr_parse_free() when the parsed data is not needed anymore.
+ */
+static int pr_parse_elements(const u8 *data, size_t len, struct pr_message *msg)
+{
+	struct ieee802_11_elems elems;
+
+	if (ieee802_11_parse_elems(data, len, &elems, true) == ParseFailed)
+		return -1;
+
+	msg->pr_attributes = ieee802_11_vendor_ie_concat(data, len,
+							 PR_IE_VENDOR_TYPE);
+	if (msg->pr_attributes &&
+	    pr_parse_proximity_ranging_element(msg->pr_attributes, msg)) {
+		wpa_printf(MSG_INFO,
+			   "PR: Failed to parse Proximity Ranging element data");
+		if (msg->pr_attributes)
+			wpa_hexdump_buf(MSG_MSGDUMP,
+					"PR: Proximity Ranging element payload",
+					msg->pr_attributes);
+		pr_parse_free(msg);
+		return -1;
+	}
+	return 0;
+}
+
+
 void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 			  const u8 *peer_addr, unsigned int freq)
 {
 	struct pr_device *dev;
+	struct pr_message msg;
+
+	os_memset(&msg, 0, sizeof(msg));
+	os_memcpy(msg.pr_device_addr, peer_addr, ETH_ALEN);
+
+	if (pr_parse_elements(ies, ies_len, &msg)) {
+		wpa_printf(MSG_INFO,
+			   "PR: Failed to parse Proximity Ranging element(s)");
+		pr_parse_free(&msg);
+		return;
+	}
 
 	dev = pr_create_device(pr, peer_addr);
 	if (!dev) {
+		pr_parse_free(&msg);
 		wpa_printf(MSG_INFO, "PR: Failed to create a device");
 		return;
 	}
 
 	os_get_reltime(&dev->last_seen);
 	dev->listen_freq = freq;
+
+	pr_parse_free(&msg);
 }

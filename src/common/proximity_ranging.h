@@ -262,6 +262,34 @@ struct pr_device {
 };
 
 
+/**
+ * struct pr_message - Proximity ranging peer information
+ */
+struct pr_message {
+	struct wpabuf *pr_attributes;
+
+	u8 pr_device_addr[ETH_ALEN];
+
+	const u8 *pr_capability;
+	size_t pr_capability_len;
+
+	const u8 *edca_capability;
+	size_t edca_capability_len;
+
+	const u8 *ntb_capability;
+	size_t ntb_capability_len;
+
+	const u8 *dira;
+	size_t dira_len;
+
+	const u8 *status_ie;
+	size_t status_ie_len;
+
+	const u8 *op_mode;
+	size_t op_mode_len;
+};
+
+
 struct pr_config {
 	u8 pasn_type;
 
