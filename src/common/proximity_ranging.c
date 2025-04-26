@@ -1976,6 +1976,10 @@ int pr_pasn_auth_tx_status(struct pr_data *pr, const u8 *data, size_t data_len,
 		   MAC2STR(mgmt->da), acked);
 
 	ret = wpa_pasn_auth_tx_status(pasn, data, data_len, acked);
+	if (ret == 1 && acked && pr->cfg->pasn_result)
+		pr->cfg->pasn_result(pr->cfg->cb_ctx, dev->ranging_role,
+				     dev->protocol_type, dev->final_op_class,
+				     dev->final_op_channel, pr->cfg->country);
 	wpabuf_free(pasn->frame);
 	pasn->frame = NULL;
 
@@ -2402,6 +2406,11 @@ static int pr_pasn_handle_auth_3(struct pr_data *pr, struct pr_device *dev,
 		wpa_printf(MSG_INFO, "PR PASN: Failed to handle Auth3");
 		goto fail;
 	}
+
+	if (pr->cfg->pasn_result)
+		pr->cfg->pasn_result(pr->cfg->cb_ctx, dev->ranging_role,
+				     dev->protocol_type, dev->final_op_class,
+				     dev->final_op_channel, pr->cfg->country);
 	return 0;
 
 fail:

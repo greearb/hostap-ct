@@ -1208,3 +1208,14 @@ void wpas_notify_nan_subscribe_terminated(struct wpa_supplicant *wpa_s,
 }
 
 #endif /* CONFIG_NAN_USD */
+
+
+void wpas_notify_pr_pasn_result(struct wpa_supplicant *wpa_s, u8 role,
+				u8 protocol_type, u8 op_class, u8 op_channel,
+				const char *country)
+{
+	wpa_msg_global(wpa_s, MSG_INFO, PR_PASN_RESULT
+		       "SUCCESS role=%u protocol=%u opclass=%u channel=%u cc=%c%c",
+		       role, protocol_type, op_class, op_channel,
+		       country[0], country[1]);
+}

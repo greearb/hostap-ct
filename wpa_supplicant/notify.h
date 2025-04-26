@@ -204,5 +204,8 @@ void wpas_notify_nan_publish_terminated(struct wpa_supplicant *wpa_s,
 void wpas_notify_nan_subscribe_terminated(struct wpa_supplicant *wpa_s,
 					  int subscribe_id,
 					  enum nan_de_reason reason);
+void wpas_notify_pr_pasn_result(struct wpa_supplicant *wpa_s, u8 role,
+				u8 protocol_type, u8 op_class, u8 op_channel,
+				const char *country);
 
 #endif /* NOTIFY_H */

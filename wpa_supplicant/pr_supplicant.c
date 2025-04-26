@@ -15,6 +15,7 @@
 #include "p2p/p2p.h"
 #include "wpa_supplicant_i.h"
 #include "config.h"
+#include "notify.h"
 #include "driver_i.h"
 #include "pr_supplicant.h"
 
@@ -256,6 +257,16 @@ static int wpas_pr_pasn_send_mgmt(void *ctx, const u8 *data, size_t data_len,
 }
 
 
+static void wpas_pr_pasn_result(void *ctx, u8 role, u8 protocol_type,
+				u8 op_class, u8 op_channel, const char *country)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	wpas_notify_pr_pasn_result(wpa_s, role, protocol_type, op_class,
+				   op_channel, country);
+}
+
+
 static void wpas_pr_pasn_set_keys(void *ctx, const u8 *own_addr,
 				  const u8 *peer_addr, int cipher, int akmp,
 				  struct wpa_ptk *ptk)
@@ -345,6 +356,7 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 	pr.support_6ghz = wpas_is_6ghz_supported(wpa_s, true);
 
 	pr.pasn_send_mgmt = wpas_pr_pasn_send_mgmt;
+	pr.pasn_result = wpas_pr_pasn_result;
 	pr.set_keys = wpas_pr_pasn_set_keys;
 	pr.clear_keys = wpas_pr_pasn_clear_keys;
 

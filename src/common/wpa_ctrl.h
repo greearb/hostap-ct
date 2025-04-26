@@ -471,6 +471,11 @@ extern "C" {
 /* PASN authentication status */
 #define PASN_AUTH_STATUS "PASN-AUTH-STATUS "
 
+/* Result of PASN performed for Proximity Ranging
+ * <result> role=<role> protocol=<protocol type> opclass=<op class> channel=<op channel> cc=<country>
+ */
+#define PR_PASN_RESULT "PR-PASN-RESULT "
+
 /* BSS command information masks */
 
 #define WPA_BSS_MASK_ALL		0xFFFDFFFF

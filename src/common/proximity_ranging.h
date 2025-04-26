@@ -425,6 +425,8 @@ struct pr_config {
 	int (*pasn_send_mgmt)(void *ctx, const u8 *data, size_t data_len,
 			      int noack, unsigned int freq, unsigned int wait);
 
+	void (*pasn_result)(void *ctx, u8 role, u8 protocol_type, u8 op_class,
+			    u8 op_channel, const char *country);
 
 	void (*set_keys)(void *ctx, const u8 *own_addr, const u8 *peer_addr,
 			 int cipher, int akmp, struct wpa_ptk *ptk);
