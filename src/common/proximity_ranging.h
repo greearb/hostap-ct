@@ -10,6 +10,7 @@
 #define PROXIMITY_RANGING_H
 
 #include "utils/list.h"
+#include "wps/wps_defs.h"
 
 /**
  * PR_MAX_OP_CLASSES - Maximum number of operating classes
@@ -89,6 +90,45 @@ enum ntb_format_and_bw_value {
 	NTB_FORMAT_AND_BW_HE160_DUAL_LO = 4,
 	NTB_FORMAT_AND_BW_HE160_SINGLE_LO = 5,
 };
+
+struct pr_capabilities {
+	u8 pasn_type;
+
+	char device_name[WPS_DEV_NAME_MAX_LEN + 1];
+
+	bool edca_support;
+
+	bool ntb_support;
+
+	bool secure_he_ltf;
+
+	bool support_6ghz;
+};
+
+/*
+ * Proximity Ranging Attribute IDs
+ * Proximity Ranging Implementation Considerations for P2P Operation Draft 1.8,
+ * Table 4 (Proximity Ranging Attribute ID list).
+ */
+enum pr_attr_id {
+	PR_ATTR_STATUS = 0,
+	PR_ATTR_RANGING_CAPABILITY = 1,
+	PR_ATTR_EDCA_CAPABILITY = 2,
+	PR_ATTR_NTB_CAPABILITY = 3,
+	PR_ATTR_OPERATION_MODE = 4,
+	PR_ATTR_WLAN_AP_INFO = 5,
+	PR_ATTR_DEVICE_IDENTITY_RESOLUTION = 6,
+	PR_ATTR_VENDOR_SPECIFIC = 221,
+};
+
+/*
+ * Proximity Ranging capabilities in Ranging Protocol Type field,
+ * Proximity Ranging Implementation Considerations for P2P Operation Draft 1.8,
+ * Table 7 (Proximity Ranging Capability Attribute format).
+ */
+#define PR_EDCA_BASED_RANGING BIT(0)
+#define PR_NTB_SECURE_LTF_BASED_RANGING BIT(1)
+#define PR_NTB_OPEN_BASED_RANGING BIT(2)
 
 /**
  * struct pr_device_info - Proximity ranging peer information

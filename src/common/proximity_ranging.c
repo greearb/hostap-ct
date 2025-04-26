@@ -140,14 +140,79 @@ static struct wpabuf * pr_encaps_elem(const struct wpabuf *subelems,
 }
 
 
+static void pr_get_ranging_capabilities(struct pr_data *pr,
+					struct pr_capabilities *capab)
+{
+	os_memset(capab, 0, sizeof(struct pr_capabilities));
+
+	if (pr->cfg->dev_name)
+		os_strlcpy(capab->device_name, pr->cfg->dev_name,
+			   sizeof(capab->device_name));
+
+	if (pr->cfg->edca_ista_support || pr->cfg->edca_rsta_support)
+		capab->edca_support = true;
+
+	if (pr->cfg->ntb_ista_support || pr->cfg->ntb_rsta_support)
+		capab->ntb_support = true;
+
+	capab->secure_he_ltf = pr->cfg->secure_he_ltf;
+	capab->pasn_type = pr->cfg->pasn_type;
+	capab->support_6ghz = pr->cfg->support_6ghz;
+}
+
+
+static void pr_buf_add_ranging_capa_info(struct wpabuf *buf,
+					 const struct pr_capabilities *capab)
+{
+	u8 *len;
+	u8 capa_6g = 0;
+	u8 protocol_type = 0;
+	size_t _len;
+
+	/* Proximity Ranging Capability Attribute */
+	wpabuf_put_u8(buf, PR_ATTR_RANGING_CAPABILITY);
+	len = wpabuf_put(buf, 2); /* Attribute length to be filled */
+
+	/* Ranging Protocol Type */
+	if (capab->edca_support)
+		protocol_type |= PR_EDCA_BASED_RANGING;
+	if (capab->ntb_support && capab->secure_he_ltf)
+		protocol_type |= PR_NTB_SECURE_LTF_BASED_RANGING;
+	if (capab->ntb_support)
+		protocol_type |= PR_NTB_OPEN_BASED_RANGING;
+	wpabuf_put_u8(buf, protocol_type);
+
+	/* PASN Type */
+	wpabuf_put_u8(buf, capab->pasn_type);
+
+	/* 6GHz band */
+	if (capab->support_6ghz)
+		capa_6g |= BIT(0);
+
+	wpabuf_put_u8(buf, capa_6g);
+
+	/* Device Name */
+	wpabuf_put_data(buf, capab->device_name, WPS_DEV_NAME_MAX_LEN);
+	wpa_printf(MSG_DEBUG, "PR: Device name: %s", capab->device_name);
+
+	_len = (u8 *) wpabuf_put(buf, 0) - len - 2;
+	WPA_PUT_LE16(len, _len);
+	wpa_hexdump(MSG_DEBUG, "PR: * Capability Attribute", len + 2, _len);
+}
+
+
 struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr)
 {
 	u32 ie_type;
 	struct wpabuf *buf, *buf2;
+	struct pr_capabilities pr_caps;
 
 	buf = wpabuf_alloc(1000);
 	if (!buf)
 		return NULL;
+
+	pr_get_ranging_capabilities(pr, &pr_caps);
+	pr_buf_add_ranging_capa_info(buf, &pr_caps);
 
 	ie_type = (OUI_WFA << 8) | PR_OUI_TYPE;
 	buf2 = pr_encaps_elem(buf, ie_type);
