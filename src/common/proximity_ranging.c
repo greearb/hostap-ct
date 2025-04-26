@@ -714,6 +714,50 @@ static int pr_parse_elements(const u8 *data, size_t len, struct pr_message *msg)
 }
 
 
+static void pr_process_ranging_capabilities(const u8 *caps, size_t caps_len,
+					    struct pr_capabilities *pr_caps)
+{
+	const u8 *pos;
+
+	if (!caps || caps_len < 3 + WPS_DEV_NAME_MAX_LEN) {
+		wpa_printf(MSG_INFO,
+			   "PR: Invalid Proximity Ranging Capability Attribute");
+		return;
+	}
+
+	pos = caps;
+
+	/* Ranging Protocol Type */
+	if (*pos & PR_EDCA_BASED_RANGING)
+		pr_caps->edca_support = true;
+	if (*pos & PR_NTB_SECURE_LTF_BASED_RANGING) {
+		pr_caps->secure_he_ltf = true;
+		pr_caps->ntb_support = true;
+	}
+	if (*pos & PR_NTB_OPEN_BASED_RANGING)
+		pr_caps->ntb_support = true;
+
+	pos++;
+	/* PASN Type */
+	pr_caps->pasn_type = *pos;
+
+	pos++;
+	/* 6GHz band */
+	pr_caps->support_6ghz = *pos & BIT(0);
+
+	pos++;
+	/* Device Name */
+	os_memset(pr_caps->device_name, 0, WPS_DEV_NAME_MAX_LEN + 1);
+	os_memcpy(pr_caps->device_name, pos, WPS_DEV_NAME_MAX_LEN);
+
+	wpa_printf(MSG_DEBUG,
+		   "PR: Device name=%s, edca capability=%x, ntb capability=%x, secure LTF capability=%u, 6GHz=%u",
+		   pr_caps->device_name, pr_caps->edca_support,
+		   pr_caps->ntb_support, pr_caps->secure_he_ltf,
+		   pr_caps->support_6ghz);
+}
+
+
 void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 			  const u8 *peer_addr, unsigned int freq)
 {
@@ -730,6 +774,14 @@ void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 		return;
 	}
 
+	if (!msg.pr_capability) {
+		wpa_printf(MSG_DEBUG,
+			   "PR: Ranging caps not present, ignoring proximity device "
+			   MACSTR, MAC2STR(peer_addr));
+		pr_parse_free(&msg);
+		return;
+	}
+
 	dev = pr_create_device(pr, peer_addr);
 	if (!dev) {
 		pr_parse_free(&msg);
@@ -739,6 +791,9 @@ void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 
 	os_get_reltime(&dev->last_seen);
 	dev->listen_freq = freq;
+
+	pr_process_ranging_capabilities(msg.pr_capability,
+					msg.pr_capability_len, &dev->pr_caps);
 
 	pr_parse_free(&msg);
 }

@@ -248,6 +248,8 @@ struct pr_device {
 	 */
 	u8 pr_device_addr[ETH_ALEN];
 
+	struct pr_capabilities pr_caps;
+
 	/* Password to be used in PASN-SAE by the Seeker.
 	 * This is updated with valid password if DIRA matches for the peer.
 	 */
