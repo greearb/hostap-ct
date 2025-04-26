@@ -178,5 +178,6 @@ struct pr_data {
 
 struct pr_data * pr_init(const struct pr_config *cfg);
 void pr_deinit(struct pr_data *pr);
+struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr);
 
 #endif /* PROXIMITY_RANGING_H */

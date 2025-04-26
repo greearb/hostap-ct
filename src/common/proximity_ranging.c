@@ -9,6 +9,7 @@
 #include "includes.h"
 
 #include "utils/common.h"
+#include "common/ieee802_11_defs.h"
 #include "proximity_ranging.h"
 
 
@@ -47,4 +48,54 @@ void pr_deinit(struct pr_data *pr)
 
 	os_free(pr);
 	wpa_printf(MSG_DEBUG, "PR: Deinit done");
+}
+
+
+static struct wpabuf * pr_encaps_elem(const struct wpabuf *subelems,
+				      u32 ie_type)
+{
+	struct wpabuf *ie = NULL;
+	const u8 *pos, *end;
+	size_t len = 0;
+
+	if (!subelems)
+		return NULL;
+
+	len = wpabuf_len(subelems) + 1000;
+	ie = wpabuf_alloc(len);
+	if (!ie)
+		return NULL;
+
+	pos = wpabuf_head(subelems);
+	end = pos + wpabuf_len(subelems);
+
+	while (end > pos) {
+		size_t frag_len = end - pos;
+
+		if (frag_len > 251)
+			frag_len = 251;
+		wpabuf_put_u8(ie, WLAN_EID_VENDOR_SPECIFIC);
+		wpabuf_put_u8(ie, 4 + frag_len);
+		wpabuf_put_be32(ie, ie_type);
+		wpabuf_put_data(ie, pos, frag_len);
+		pos += frag_len;
+	}
+	return ie;
+}
+
+
+struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr)
+{
+	u32 ie_type;
+	struct wpabuf *buf, *buf2;
+
+	buf = wpabuf_alloc(1000);
+	if (!buf)
+		return NULL;
+
+	ie_type = (OUI_WFA << 8) | PR_OUI_TYPE;
+	buf2 = pr_encaps_elem(buf, ie_type);
+	wpabuf_free(buf);
+
+	return buf2;
 }
