@@ -2113,6 +2113,105 @@ end:
 }
 
 
+static int
+pr_process_pasn_ranging_wrapper_result(struct pr_data *pr,
+				       struct pr_device *dev,
+				       const struct ieee80211_mgmt *mgmt,
+				       size_t len)
+{
+	int ret = -1;
+	const u8 *ies;
+	size_t ies_len;
+	struct pr_message msg;
+	struct operation_mode op_mode;
+	struct pr_channels common_chan;
+
+	os_memset(&msg, 0, sizeof(msg));
+	ies = mgmt->u.auth.variable;
+	ies_len = len - offsetof(struct ieee80211_mgmt, u.auth.variable);
+
+	if (pr_parse_elements(ies, ies_len, &msg) || !msg.op_mode) {
+		wpa_printf(MSG_INFO,
+			   "PR PASN: Failed to parse PR element in Auth3");
+		goto fail;
+	}
+
+	if (!msg.status_ie || !msg.status_ie_len) {
+		wpa_printf(MSG_INFO, "PR PASN: * No status attribute");
+		goto fail;
+	}
+
+	if (*msg.status_ie == PR_NEGOTIATION_FAIL) {
+		wpa_printf(MSG_INFO,
+			   "PR PASN: * Ranging Negotiation status fail");
+		goto fail;
+	}
+
+	if (!msg.op_mode || !msg.op_mode_len)
+		goto fail;
+
+	pr_process_op_mode(msg.op_mode, msg.op_mode_len, &op_mode);
+	if (op_mode.channels.op_classes != 1) {
+		wpa_printf(MSG_INFO, "PR: PASN received invalid channel list");
+		goto fail;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "PR PASN: Frame 3: Operating mode data: Role=%u, protocol type=%u, operating class=%u, channel= %u",
+		   op_mode.role, op_mode.protocol_type,
+		   op_mode.channels.op_class[0].op_class,
+		   op_mode.channels.op_class[0].channel[0]);
+
+	if (op_mode.protocol_type &
+	    (PR_NTB_SECURE_LTF_BASED_RANGING | PR_NTB_OPEN_BASED_RANGING)) {
+		if ((op_mode.role & PR_ISTA_SUPPORT) &&
+		    !pr->cfg->ntb_rsta_support)
+			goto fail;
+
+		if ((op_mode.role & PR_RSTA_SUPPORT) &&
+		    !pr->cfg->ntb_ista_support)
+			goto fail;
+
+		if ((op_mode.protocol_type & PR_NTB_SECURE_LTF_BASED_RANGING) &&
+		    !pr->cfg->secure_he_ltf)
+			goto fail;
+
+		pr_channels_intersect(&pr->cfg->ntb_channels, &op_mode.channels,
+				      &common_chan);
+		if (common_chan.op_classes == 0) {
+			wpa_printf(MSG_INFO, "PR PASN: No common channel");
+			goto fail;
+		}
+	} else if (op_mode.protocol_type & PR_EDCA_BASED_RANGING) {
+		if ((op_mode.role & PR_ISTA_SUPPORT) &&
+		    !pr->cfg->edca_rsta_support)
+			goto fail;
+
+		if ((op_mode.role & PR_RSTA_SUPPORT) &&
+		    !pr->cfg->edca_ista_support)
+			goto fail;
+
+		pr_channels_intersect(&pr->cfg->edca_channels,
+				      &op_mode.channels, &common_chan);
+		if (common_chan.op_classes == 0)
+			goto fail;
+	}
+
+	if (op_mode.role & PR_RSTA_SUPPORT)
+		dev->ranging_role = PR_ISTA_SUPPORT;
+	else
+		dev->ranging_role = PR_RSTA_SUPPORT;
+	dev->protocol_type = op_mode.protocol_type;
+	dev->final_op_channel = op_mode.channels.op_class[0].channel[0];
+	dev->final_op_class = op_mode.channels.op_class[0].op_class;
+	ret = 0;
+
+fail:
+	pr_parse_free(&msg);
+	return ret;
+}
+
+
 static int pr_pasn_handle_auth_1(struct pr_data *pr, struct pr_device *dev,
 				 const struct ieee80211_mgmt *mgmt, size_t len,
 				 int freq)
@@ -2225,6 +2324,33 @@ fail:
 }
 
 
+static int pr_pasn_handle_auth_3(struct pr_data *pr, struct pr_device *dev,
+				 const struct ieee80211_mgmt *mgmt, size_t len)
+{
+	if (dev->pasn_role != PR_ROLE_PASN_RESPONDER) {
+		wpa_printf(MSG_INFO,
+			   "PR PASN: Auth3 not expected on initiator");
+		return -1;
+	}
+
+	if (!dev->pasn)
+		return -1;
+
+	if (pr_process_pasn_ranging_wrapper_result(pr, dev, mgmt, len)) {
+		wpa_printf(MSG_INFO,
+			   "PR PASN: Failed to handle Auth3 action wrapper");
+		return -1;
+	}
+
+	if (handle_auth_pasn_3(dev->pasn, pr->cfg->dev_addr, mgmt->sa, mgmt,
+			       len) < 0) {
+		wpa_printf(MSG_INFO, "PR PASN: Failed to handle Auth3");
+		return -1;
+	}
+	return 0;
+}
+
+
 int pr_pasn_auth_rx(struct pr_data *pr, const struct ieee80211_mgmt *mgmt,
 		    size_t len, int freq)
 {
@@ -2259,6 +2385,8 @@ int pr_pasn_auth_rx(struct pr_data *pr, const struct ieee80211_mgmt *mgmt,
 		return pr_pasn_handle_auth_1(pr, dev, mgmt, len, freq);
 	if (auth_transaction == 2)
 		return pr_pasn_handle_auth_2(pr, dev, mgmt, len);
+	if (auth_transaction == 3)
+		return pr_pasn_handle_auth_3(pr, dev, mgmt, len);
 
 	return -1;
 }
