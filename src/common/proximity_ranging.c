@@ -15,6 +15,12 @@
 #include "proximity_ranging.h"
 
 
+static bool valid_country_ch(char c)
+{
+	return c >= 'A' && c <= 'Z';
+}
+
+
 static void pr_device_free(struct pr_data *pr, struct pr_device *dev)
 {
 	os_free(dev);
@@ -714,6 +720,59 @@ static int pr_parse_elements(const u8 *data, size_t len, struct pr_message *msg)
 }
 
 
+static int pr_process_channels(const u8 *channel_list, size_t channel_list_len,
+			       struct pr_channels *ch)
+{
+	u8 channels;
+	const u8 *pos, *end;
+	u8 op_class_count;
+
+	if (channel_list_len < 1)
+		return -1;
+
+	pos = channel_list;
+	end = channel_list + channel_list_len;
+
+	/* Number of Channel Entries */
+	/* Get total count of the operational classes */
+	op_class_count = pos[0];
+	wpa_printf(MSG_DEBUG, "PR: Total operational classes: %u",
+		   op_class_count);
+	pos++;
+
+	/* Channel Entry List */
+	ch->op_classes = 0;
+	while (end - pos > 2 && (ch->op_classes <= op_class_count)) {
+		struct pr_op_class *cl = &ch->op_class[ch->op_classes];
+
+		cl->op_class = *pos++; /* Operating Class */
+		channels = *pos++; /* Number of Channels */
+
+		/* Channel List */
+		if (channels > end - pos) {
+			wpa_printf(MSG_INFO,
+				   "PR: Invalid channel list channel %d, size: %ld",
+				   channels, end - pos);
+			return -1;
+		}
+		cl->channels = channels > PR_MAX_OP_CLASS_CHANNELS ?
+			PR_MAX_OP_CLASS_CHANNELS : channels;
+		os_memcpy(cl->channel, pos, cl->channels);
+		pos += channels;
+		ch->op_classes++;
+	}
+
+	if (ch->op_classes != op_class_count) {
+		wpa_printf(MSG_INFO,
+			   "PR: Channel list count mismatch %lu != %d",
+			   ch->op_classes, op_class_count);
+		return -1;
+	}
+
+	return 0;
+}
+
+
 static void pr_process_ranging_capabilities(const u8 *caps, size_t caps_len,
 					    struct pr_capabilities *pr_caps)
 {
@@ -758,6 +817,45 @@ static void pr_process_ranging_capabilities(const u8 *caps, size_t caps_len,
 }
 
 
+static void pr_process_edca_capabilities(const u8 *caps, size_t caps_len,
+					 struct edca_capabilities *edca_caps)
+{
+	const u8 *pos, *end;
+
+	if (caps_len < 7)
+		return;
+
+	pos = caps;
+	end = caps + caps_len;
+
+	/* Ranging Role */
+	if (*pos & PR_ISTA_SUPPORT)
+		edca_caps->ista_support = true;
+	if (*pos & PR_RSTA_SUPPORT)
+		edca_caps->rsta_support = true;
+	pos++;
+
+	/* Ranging Parameters */
+	edca_caps->edca_hw_caps = WPA_GET_LE16(pos);
+	pos += 2;
+
+	/* Country String */
+	os_memcpy(edca_caps->country, pos, 3);
+	pos += 3;
+
+	pr_process_channels(pos, end - pos, &edca_caps->channels);
+
+	wpa_printf(MSG_DEBUG,
+		   "PR: EDCA ISTA support=%u, EDCA RSTA support=%u, op classes count=%lu, country=%c%c",
+		   edca_caps->ista_support, edca_caps->rsta_support,
+		   edca_caps->channels.op_classes,
+		   valid_country_ch(edca_caps->country[0]) ?
+		   edca_caps->country[0] : '_',
+		   valid_country_ch(edca_caps->country[1]) ?
+		   edca_caps->country[1] : '_');
+}
+
+
 void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 			  const u8 *peer_addr, unsigned int freq)
 {
@@ -794,6 +892,11 @@ void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 
 	pr_process_ranging_capabilities(msg.pr_capability,
 					msg.pr_capability_len, &dev->pr_caps);
+
+	if (dev->pr_caps.edca_support && msg.edca_capability)
+		pr_process_edca_capabilities(msg.edca_capability,
+					     msg.edca_capability_len,
+					     &dev->edca_caps);
 
 	pr_parse_free(&msg);
 }
