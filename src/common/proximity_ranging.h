@@ -13,6 +13,13 @@
 #include "wps/wps_defs.h"
 
 #define DEVICE_IDENTITY_KEY_LEN 16
+#define DEVICE_IDENTITY_TAG_LEN 8
+#define DEVICE_IDENTITY_NONCE_LEN 8
+#define DIR_STR_LEN 3
+#define DEVICE_MAX_HASH_LEN 32
+
+/* DIRA Cipher versions */
+#define DIRA_CIPHER_VERSION_128 0
 
 /**
  * PR_MAX_OP_CLASSES - Maximum number of operating classes
@@ -315,6 +322,20 @@ struct pr_data {
 	struct pr_config *cfg;
 
 	struct dl_list devices;
+};
+
+/* PR Device Identity Resolution Attribute parameters */
+struct pr_dira {
+	/* Cipher version type */
+	int cipher_version;
+	/* Nonce used in DIRA attribute */
+	u8 nonce[DEVICE_IDENTITY_NONCE_LEN];
+	/* Length of nonce */
+	size_t nonce_len;
+	/* Tag computed for nonce using NIK */
+	u8 tag[DEVICE_IDENTITY_TAG_LEN];
+	/* Length of tag in octets */
+	size_t tag_len;
 };
 
 struct pr_data * pr_init(const struct pr_config *cfg);

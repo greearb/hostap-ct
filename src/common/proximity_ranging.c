@@ -10,6 +10,7 @@
 
 #include "utils/common.h"
 #include "common/ieee802_11_defs.h"
+#include "crypto/sha256.h"
 #include "proximity_ranging.h"
 
 
@@ -223,6 +224,61 @@ static void pr_get_ntb_capabilities(struct pr_data *pr,
 }
 
 
+static int pr_derive_dira(struct pr_data *pr, struct pr_dira *dira)
+{
+	u8 nonce[DEVICE_IDENTITY_NONCE_LEN];
+	u8 tag[DEVICE_MAX_HASH_LEN];
+	u8 data[DIR_STR_LEN + ETH_ALEN + DEVICE_IDENTITY_NONCE_LEN];
+
+	if (pr->cfg->dik_cipher != DIRA_CIPHER_VERSION_128) {
+		wpa_printf(MSG_INFO, "PR: Unsupported DIRA Cipher version %d",
+			   pr->cfg->dik_cipher);
+		return -1;
+	}
+
+	if (pr->cfg->dik_len != DEVICE_IDENTITY_KEY_LEN) {
+		wpa_printf(MSG_INFO, "PR: Invalid DIK length %zu",
+			   pr->cfg->dik_len);
+		return -1;
+	}
+
+	os_memset(data, 0, sizeof(data));
+
+	if (os_get_random(nonce, DEVICE_IDENTITY_NONCE_LEN) < 0) {
+		wpa_printf(MSG_INFO, "PR: Failed to generate DIRA nonce");
+		return -1;
+	}
+
+	/* Tag = Truncate-64(HMAC-SHA-256(DevIK, "DIR" || PR Device Address ||
+	 *                                Nonce))
+	 */
+	os_memcpy(data, "DIR", DIR_STR_LEN);
+	os_memcpy(&data[DIR_STR_LEN], pr->cfg->dev_addr, ETH_ALEN);
+	os_memcpy(&data[DIR_STR_LEN + ETH_ALEN], nonce,
+		  DEVICE_IDENTITY_NONCE_LEN);
+
+	if (hmac_sha256(pr->cfg->dik_data, pr->cfg->dik_len, data, sizeof(data),
+			tag) < 0) {
+		wpa_printf(MSG_ERROR, "PR: Could not derive DIRA tag");
+		return -1;
+	}
+
+	os_memset(dira, 0, sizeof(struct pr_dira));
+	dira->cipher_version = pr->cfg->dik_cipher;
+	dira->nonce_len = DEVICE_IDENTITY_NONCE_LEN;
+	os_memcpy(dira->nonce, nonce, DEVICE_IDENTITY_NONCE_LEN);
+	dira->tag_len = DEVICE_IDENTITY_TAG_LEN;
+	os_memcpy(dira->tag, tag, DEVICE_IDENTITY_TAG_LEN);
+
+	wpa_hexdump_key(MSG_DEBUG, "PR: DIK", pr->cfg->dik_data,
+			pr->cfg->dik_len);
+	wpa_hexdump(MSG_DEBUG, "PR: DIRA-NONCE", dira->nonce, dira->nonce_len);
+	wpa_hexdump(MSG_DEBUG, "PR: DIRA-TAG", dira->tag, dira->tag_len);
+
+	return 0;
+}
+
+
 static void pr_buf_add_channel_list(struct wpabuf *buf, const char *country,
 				    const struct pr_channels *chan)
 {
@@ -341,11 +397,35 @@ static void pr_buf_add_ntb_capa_info(struct wpabuf *buf,
 }
 
 
+static void pr_buf_add_dira(struct wpabuf *buf, const struct pr_dira *dira)
+{
+	u8 *len;
+	size_t _len;
+
+	/* Proximity Ranging Device Identity Resolution attribute */
+	wpabuf_put_u8(buf, PR_ATTR_DEVICE_IDENTITY_RESOLUTION);
+
+	/* Length to be filled */
+	len = wpabuf_put(buf, 2);
+
+	wpabuf_put_u8(buf, dira->cipher_version);
+	wpabuf_put_data(buf, dira->nonce, dira->nonce_len);
+	wpabuf_put_data(buf, dira->tag, dira->tag_len);
+
+	/* Update attribute length */
+	_len = (u8 *) wpabuf_put(buf, 0) - len - 2;
+	WPA_PUT_LE16(len, _len);
+
+	wpa_printf(MSG_DEBUG, "PR: * DIRA");
+}
+
+
 struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr)
 {
 	u32 ie_type;
 	struct wpabuf *buf, *buf2;
 	struct pr_capabilities pr_caps;
+	struct pr_dira dira;
 
 	buf = wpabuf_alloc(1000);
 	if (!buf)
@@ -367,6 +447,9 @@ struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr)
 		pr_get_ntb_capabilities(pr, &ntb_caps);
 		pr_buf_add_ntb_capa_info(buf, &ntb_caps);
 	}
+
+	if (!pr_derive_dira(pr, &dira))
+		pr_buf_add_dira(buf, &dira);
 
 	ie_type = (OUI_WFA << 8) | PR_OUI_TYPE;
 	buf2 = pr_encaps_elem(buf, ie_type);
