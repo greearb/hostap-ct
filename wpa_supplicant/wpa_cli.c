@@ -3391,6 +3391,13 @@ static int wpa_cli_cmd_nan_flush(struct wpa_ctrl *ctrl, int argc,
 #endif /* CONFIG_NAN_USD */
 
 
+static int wpa_cli_cmd_generate_new_mac(struct wpa_ctrl *ctrl, int argc,
+					char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "NEW_RANDOM_MAC_ADDRESS");
+}
+
+
 enum wpa_cli_cmd_flags {
 	cli_cmd_flag_none		= 0x00,
 	cli_cmd_flag_sensitive		= 0x01
@@ -4163,6 +4170,8 @@ static const struct wpa_cli_cmd wpa_cli_commands[] = {
 	{ "nan_flush", wpa_cli_cmd_nan_flush, NULL,
 	  cli_cmd_flag_none, "= Flush all NAN USD services" },
 #endif /* CONFIG_NAN_USD */
+	{ "new_random_mac_address", wpa_cli_cmd_generate_new_mac, NULL,
+	  cli_cmd_flag_none, "= Generate new random MAC address" },
 	{ NULL, NULL, NULL, cli_cmd_flag_none, NULL }
 };
 
