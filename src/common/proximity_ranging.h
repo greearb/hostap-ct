@@ -424,6 +424,10 @@ struct pr_data {
 	struct dl_list devices;
 
 	struct dl_list dev_iks;
+
+	/* PMKSA cache for PASN-PMK authentication */
+	struct rsn_pmksa_cache *initiator_pmksa;
+	struct rsn_pmksa_cache *responder_pmksa;
 };
 
 /* PR Device Identity Resolution Attribute parameters */

@@ -100,6 +100,11 @@ struct pr_data * pr_init(const struct pr_config *cfg)
 	dl_list_init(&pr->devices);
 	dl_list_init(&pr->dev_iks);
 
+#ifdef CONFIG_PASN
+	pr->initiator_pmksa = pasn_initiator_pmksa_cache_init();
+	pr->responder_pmksa = pasn_responder_pmksa_cache_init();
+#endif /* CONFIG_PASN */
+
 	return pr;
 }
 
@@ -131,6 +136,11 @@ void pr_deinit(struct pr_data *pr)
 	}
 
 	pr_deinit_dev_iks(pr);
+
+#ifdef CONFIG_PASN
+	pasn_initiator_pmksa_cache_deinit(pr->initiator_pmksa);
+	pasn_responder_pmksa_cache_deinit(pr->responder_pmksa);
+#endif /* CONFIG_PASN */
 
 	os_free(pr);
 	wpa_printf(MSG_DEBUG, "PR: Deinit done");
@@ -1040,10 +1050,76 @@ void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 
 #ifdef CONFIG_PASN
 
+static struct wpabuf * pr_pasn_generate_rsnxe(struct pr_data *pr, int akmp)
+{
+	u32 capab;
+	size_t flen = 0;
+	struct wpabuf *buf;
+
+	capab = BIT(WLAN_RSNX_CAPAB_KEK_IN_PASN);
+
+	if (wpa_key_mgmt_sae(akmp))
+		capab |= BIT(WLAN_RSNX_CAPAB_SAE_H2E);
+	if (pr->cfg->secure_he_ltf)
+		capab |= BIT(WLAN_RSNX_CAPAB_SECURE_LTF);
+
+	while (capab >> flen * 8)
+		flen++;
+
+	buf = wpabuf_alloc(2 + flen);
+	if (!buf)
+		return NULL;
+
+	capab |= flen - 1; /* bit 0-3 = Field length (n - 1) */
+
+	wpa_printf(MSG_DEBUG, "PR: RSNXE capabilities: %04x", capab);
+	wpabuf_put_u8(buf, WLAN_EID_RSNX);
+	wpabuf_put_u8(buf, flen);
+	while (flen--) {
+		wpabuf_put_u8(buf, capab & 0xff);
+		capab = capab >> 8;
+	}
+
+	return buf;
+}
+
+
+/* SSID used for deriving SAE pt for PR security */
+#define PR_PASN_SSID "516F9A010000"
+
+static void pr_pasn_set_password(struct pasn_data *pasn, u8 pasn_type,
+				 const char *passphrase)
+{
+	int pasn_groups[4] = { 0, 0, 0, 0 };
+	size_t len;
+
+	if (!passphrase)
+		return;
+
+	len = os_strlen(passphrase);
+
+	if ((pasn_type & (PR_PASN_DH20_UNAUTH | PR_PASN_DH20_AUTH)) &&
+	    (pasn_type & (PR_PASN_DH19_UNAUTH | PR_PASN_DH19_AUTH))) {
+		pasn_groups[0] = 20;
+		pasn_groups[1] = 19;
+	} else if (pasn_type & (PR_PASN_DH20_UNAUTH | PR_PASN_DH20_AUTH)) {
+		pasn_groups[0] = 20;
+	} else {
+		pasn_groups[0] = 19;
+	}
+	pasn->pt = sae_derive_pt(pasn_groups, (const u8 *) PR_PASN_SSID,
+				 os_strlen(PR_PASN_SSID),
+				 (const u8 *) passphrase, len, NULL);
+	/* Set passphrase for PASN responder to validate Auth 1 frame */
+	pasn->password = passphrase;
+}
+
+
 static int pr_pasn_initialize(struct pr_data *pr, struct pr_device *dev,
 			      const u8 *addr, u8 auth_mode, int freq,
-			      u8 ranging_type)
+			      u8 ranging_type, const u8 *pmkid)
 {
+	struct wpabuf *rsnxe;
 	struct pasn_data *pasn;
 
 	if (dev->pasn) {
@@ -1058,10 +1134,13 @@ static int pr_pasn_initialize(struct pr_data *pr, struct pr_device *dev,
 	os_memcpy(pasn->own_addr, pr->cfg->dev_addr, ETH_ALEN);
 	os_memcpy(pasn->peer_addr, addr, ETH_ALEN);
 
-	if (dev->pasn_role == PR_ROLE_PASN_INITIATOR)
+	if (dev->pasn_role == PR_ROLE_PASN_INITIATOR) {
+		pasn->pmksa = pr->initiator_pmksa;
 		os_memcpy(pasn->bssid, pasn->peer_addr, ETH_ALEN);
-	else
+	} else {
+		pasn->pmksa = pr->responder_pmksa;
 		os_memcpy(pasn->bssid, pasn->own_addr, ETH_ALEN);
+	}
 
 	pasn->noauth = 1;
 
@@ -1097,15 +1176,54 @@ static int pr_pasn_initialize(struct pr_data *pr, struct pr_device *dev,
 	}
 	wpa_printf(MSG_DEBUG, "PASN: kdk_len=%zu", pasn->kdk_len);
 
-	if (auth_mode == PR_PASN_AUTH_MODE_SAE)
+	if (auth_mode == PR_PASN_AUTH_MODE_SAE) {
 		pasn->akmp = WPA_KEY_MGMT_SAE;
-	else if (auth_mode == PR_PASN_AUTH_MODE_PMK)
+		if (dev->password_valid) {
+			pr_pasn_set_password(pasn, pr->cfg->pasn_type,
+					     dev->password);
+		} else if (pr->cfg->global_password_valid) {
+			pr_pasn_set_password(pasn, pr->cfg->pasn_type,
+					     pr->cfg->global_password);
+		} else {
+			wpa_printf(MSG_INFO, "PR PASN: Password not available");
+			return -1;
+		}
+	} else if (auth_mode == PR_PASN_AUTH_MODE_PMK && dev->pmk_valid) {
+		if (!dev->pmk_valid) {
+			wpa_printf(MSG_INFO, "PR PASN: PMK not available");
+			return -1;
+		}
+		if (dev->pasn_role == PR_ROLE_PASN_INITIATOR)
+			pasn_initiator_pmksa_cache_add(pr->initiator_pmksa,
+						       pasn->own_addr,
+						       pasn->peer_addr,
+						       dev->pmk,
+						       WPA_PASN_PMK_LEN,
+						       pmkid);
+		else
+			pasn_responder_pmksa_cache_add(pr->responder_pmksa,
+						       pasn->own_addr,
+						       pasn->peer_addr,
+						       dev->pmk,
+						       WPA_PASN_PMK_LEN,
+						       pmkid);
 		pasn->akmp = WPA_KEY_MGMT_SAE;
-	else
+	} else {
 		pasn->akmp = WPA_KEY_MGMT_PASN;
+	}
 
 	pasn->rsn_pairwise = pasn->cipher;
 	pasn->wpa_key_mgmt = pasn->akmp;
+
+	rsnxe = pr_pasn_generate_rsnxe(pr, pasn->akmp);
+	if (rsnxe) {
+		os_free(pasn->rsnxe_ie);
+		pasn->rsnxe_ie = os_memdup(wpabuf_head_u8(rsnxe),
+					   wpabuf_len(rsnxe));
+		wpabuf_free(rsnxe);
+		if (!pasn->rsnxe_ie)
+			return -1;
+	}
 
 	pasn->cb_ctx = pr->cfg->cb_ctx;
 	pasn->send_mgmt = pr->cfg->pasn_send_mgmt;
@@ -1121,6 +1239,7 @@ int pr_initiate_pasn_auth(struct pr_data *pr, const u8 *addr, int freq,
 	int ret = 0;
 	struct pasn_data *pasn;
 	struct pr_device *dev;
+	u8 pmkid[PMKID_LEN];
 
 	if (!addr) {
 		wpa_printf(MSG_DEBUG, "PR PASN: Peer address NULL");
@@ -1138,7 +1257,12 @@ int pr_initiate_pasn_auth(struct pr_data *pr, const u8 *addr, int freq,
 
 	dev->pasn_role = PR_ROLE_PASN_INITIATOR;
 
-	if (pr_pasn_initialize(pr, dev, addr, auth_mode, freq, ranging_type)) {
+	if (auth_mode == PR_PASN_AUTH_MODE_PMK && dev->pmk_valid &&
+	    os_get_random(pmkid, PMKID_LEN) < 0)
+		return -1;
+
+	if (pr_pasn_initialize(pr, dev, addr, auth_mode, freq, ranging_type,
+			       pmkid)) {
 		wpa_printf(MSG_INFO, "PR PASN: Initialization failed");
 		return -1;
 	}
