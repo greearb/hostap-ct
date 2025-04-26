@@ -1360,6 +1360,107 @@ static int pr_pasn_initialize(struct pr_data *pr, struct pr_device *dev,
 }
 
 
+static int pr_validate_pasn_request(struct pr_data *pr, struct pr_device *dev,
+				    u8 auth_mode, u8 ranging_role,
+				    u8 ranging_type)
+{
+	if (!ranging_role || !ranging_type)
+		return -1;
+
+	if (auth_mode == PR_PASN_AUTH_MODE_PASN) {
+		if (!(pr->cfg->pasn_type &
+		      (PR_PASN_DH19_UNAUTH | PR_PASN_DH20_UNAUTH)) ||
+		    !(dev->pr_caps.pasn_type &
+		      (PR_PASN_DH19_UNAUTH | PR_PASN_DH20_UNAUTH))) {
+			wpa_printf(MSG_INFO,
+				   "PR: Dev/Peer doesn't support PASN-UNAUTH");
+			return -1;
+		}
+	} else if (auth_mode == PR_PASN_AUTH_MODE_PMK ||
+		   auth_mode == PR_PASN_AUTH_MODE_SAE) {
+		if (!(pr->cfg->pasn_type &
+		      (PR_PASN_DH19_AUTH | PR_PASN_DH20_AUTH)) ||
+		    !(dev->pr_caps.pasn_type &
+		      (PR_PASN_DH19_AUTH | PR_PASN_DH20_AUTH))) {
+			wpa_printf(MSG_INFO, "PR: Dev/Peer doesn't support PASN-SAE/PMK");
+			return -1;
+		}
+	}
+
+	if (ranging_type == PR_NTB_SECURE_LTF_BASED_RANGING ||
+	    ranging_type == PR_NTB_OPEN_BASED_RANGING) {
+		if (ranging_type == PR_NTB_SECURE_LTF_BASED_RANGING &&
+		    (!pr->cfg->secure_he_ltf || !dev->ntb_caps.secure_he_ltf)) {
+			wpa_printf(MSG_INFO,
+				   "PR: Dev/Peer doesn't support HE-LTF");
+			return -1;
+		}
+
+		if (ranging_role == PR_ISTA_SUPPORT &&
+		    !pr->cfg->ntb_ista_support) {
+			wpa_printf(MSG_INFO,
+				   "PR: Device doesn't support NTB ISTA role");
+			return -1;
+		}
+
+		if (ranging_role == PR_RSTA_SUPPORT &&
+		    !pr->cfg->ntb_rsta_support) {
+			wpa_printf(MSG_INFO,
+				   "PR: Device doesn't support NTB RSTA role");
+			return -1;
+		}
+
+		if (ranging_role == PR_ISTA_SUPPORT &&
+		    !dev->ntb_caps.rsta_support &&
+		    !pr->cfg->ntb_rsta_support) {
+			wpa_printf(MSG_INFO,
+				   "PR: Device and Peer doesn't support NTB RSTA role, no possiblity for negotiation update");
+			return -1;
+		}
+
+		if (ranging_role == PR_RSTA_SUPPORT &&
+		    !dev->ntb_caps.ista_support &&
+		    !pr->cfg->ntb_ista_support) {
+			wpa_printf(MSG_INFO,
+				   "PR: Device and Peer doesn't support NTB ISTA role, no possiblity for negotiation update");
+			return -1;
+		}
+	} else if (ranging_type == PR_EDCA_BASED_RANGING) {
+		if (ranging_role == PR_ISTA_SUPPORT &&
+		    !pr->cfg->edca_ista_support) {
+			wpa_printf(MSG_INFO,
+				   "PR: Device doesn't support EDCA ISTA role");
+			return -1;
+		}
+
+		if (ranging_role == PR_RSTA_SUPPORT &&
+		    !pr->cfg->edca_rsta_support) {
+			wpa_printf(MSG_INFO,
+				   "PR: Device doesn't support EDCA RSTA role");
+			return -1;
+		}
+
+		if (ranging_role == PR_ISTA_SUPPORT &&
+		    !dev->edca_caps.rsta_support &&
+		    !pr->cfg->edca_rsta_support) {
+			wpa_printf(MSG_INFO,
+				   "PR: Device and Peer doesn't support EDCA RSTA role, no possiblity for negotiation update");
+			return -1;
+		}
+
+		if (ranging_role == PR_RSTA_SUPPORT &&
+		    !dev->edca_caps.ista_support &&
+		    !pr->cfg->edca_ista_support) {
+			wpa_printf(MSG_INFO,
+				   "PR: Device and Peer doesn't support EDCA ISTA role, no possiblity for negotiation update");
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+
 int pr_initiate_pasn_auth(struct pr_data *pr, const u8 *addr, int freq,
 			  u8 auth_mode, u8 ranging_role, u8 ranging_type,
 			  int forced_pr_freq)
@@ -1378,6 +1479,13 @@ int pr_initiate_pasn_auth(struct pr_data *pr, const u8 *addr, int freq,
 	dev = pr_get_device(pr, addr);
 	if (!dev) {
 		wpa_printf(MSG_DEBUG, "PR PASN: Peer not known");
+		return -1;
+	}
+
+	if (pr_validate_pasn_request(pr, dev, auth_mode, ranging_role,
+				     ranging_type) < 0) {
+		wpa_printf(MSG_INFO,
+			   "PR PASN: Invalid parameters to initiate authentication");
 		return -1;
 	}
 
