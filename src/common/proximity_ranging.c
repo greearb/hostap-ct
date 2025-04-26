@@ -184,6 +184,45 @@ static void pr_get_edca_capabilities(struct pr_data *pr,
 }
 
 
+static void pr_get_ntb_capabilities(struct pr_data *pr,
+				    struct ntb_capabilities *capab)
+{
+	u32 ntb_hw_caps = 0;
+
+	os_memset(capab, 0, sizeof(struct ntb_capabilities));
+	capab->ista_support = pr->cfg->ntb_ista_support;
+	capab->rsta_support = pr->cfg->ntb_rsta_support;
+	os_memcpy(capab->country, pr->cfg->country, 3);
+	capab->secure_he_ltf = pr->cfg->secure_he_ltf;
+
+	ntb_hw_caps |= (pr->cfg->ntb_format_and_bw & NTB_FORMAT_AND_BW_MASK) <<
+		NTB_FORMAT_AND_BW;
+	ntb_hw_caps |= (pr->cfg->max_tx_ltf_repetations &
+			MAX_TX_LTF_REPETATIONS_MASK) << MAX_TX_LTF_REPETATIONS;
+	ntb_hw_caps |= (pr->cfg->max_rx_ltf_repetations &
+			MAX_RX_LTF_REPETATIONS_MASK) << MAX_RX_LTF_REPETATIONS;
+
+	ntb_hw_caps |= (pr->cfg->max_rx_ltf_total & MAX_RX_LTF_TOTAL_MASK) <<
+		MAX_RX_LTF_TOTAL;
+	ntb_hw_caps |= (pr->cfg->max_tx_ltf_total & MAX_TX_LTF_TOTAL_MASK) <<
+		MAX_TX_LTF_TOTAL;
+
+	ntb_hw_caps |= (pr->cfg->max_rx_sts_le_80 & MAX_RX_STS_LE_80_MASK) <<
+		MAX_RX_STS_LE_80;
+	ntb_hw_caps |= (pr->cfg->max_rx_sts_gt_80 & MAX_RX_STS_GT_80_MASK) <<
+		MAX_RX_STS_GT_80;
+
+	ntb_hw_caps |= (pr->cfg->max_tx_sts_le_80 & MAX_TX_STS_LE_80_MASK) <<
+		MAX_TX_STS_LE_80;
+	ntb_hw_caps |= (pr->cfg->max_tx_sts_gt_80 & MAX_TX_STS_GT_80_MASK) <<
+		MAX_TX_STS_GT_80;
+
+	capab->ntb_hw_caps = ntb_hw_caps;
+	os_memcpy(&capab->channels, &pr->cfg->edca_channels,
+		  sizeof(struct pr_channels));
+}
+
+
 static void pr_buf_add_channel_list(struct wpabuf *buf, const char *country,
 				    const struct pr_channels *chan)
 {
@@ -273,6 +312,35 @@ static void pr_buf_add_edca_capa_info(struct wpabuf *buf,
 }
 
 
+static void pr_buf_add_ntb_capa_info(struct wpabuf *buf,
+				     const struct ntb_capabilities *ntb_data)
+{
+	u8 *len;
+	u8 ranging_role = 0;
+	size_t _len;
+
+	/* Proximity Ranging 11az NTB Capability Attribute */
+	wpabuf_put_u8(buf, PR_ATTR_NTB_CAPABILITY);
+	len = wpabuf_put(buf, 2);
+
+	/* Ranging Role */
+	if (ntb_data->ista_support)
+		ranging_role |= PR_ISTA_SUPPORT;
+	if (ntb_data->rsta_support)
+		ranging_role |= PR_RSTA_SUPPORT;
+	wpabuf_put_u8(buf, ranging_role);
+
+	/* Ranging Parameter */
+	wpabuf_put_le32(buf, ntb_data->ntb_hw_caps);
+
+	pr_buf_add_channel_list(buf, ntb_data->country, &ntb_data->channels);
+
+	_len = (u8 *) wpabuf_put(buf, 0) - len - 2;
+	WPA_PUT_LE16(len, _len);
+	wpa_hexdump(MSG_DEBUG, "PR: * NTB Capability Attribute", len + 2, _len);
+}
+
+
 struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr)
 {
 	u32 ie_type;
@@ -291,6 +359,13 @@ struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr)
 
 		pr_get_edca_capabilities(pr, &edca_caps);
 		pr_buf_add_edca_capa_info(buf, &edca_caps);
+	}
+
+	if (pr->cfg->ntb_ista_support || pr->cfg->ntb_rsta_support) {
+		struct ntb_capabilities ntb_caps;
+
+		pr_get_ntb_capabilities(pr, &ntb_caps);
+		pr_buf_add_ntb_capa_info(buf, &ntb_caps);
 	}
 
 	ie_type = (OUI_WFA << 8) | PR_OUI_TYPE;

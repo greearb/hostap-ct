@@ -129,6 +129,60 @@ struct edca_capabilities {
 	struct pr_channels channels;
 };
 
+struct ntb_capabilities {
+	bool ista_support;
+
+	bool rsta_support;
+
+	bool secure_he_ltf;
+
+/**
+ * Ranging Parameter field for NTB capabilities
+ * Proximity Ranging Implementation Considerations for P2P Operation Draft 1.8,
+ * Table 9 (Proximity Ranging 11az NTB Capability Attribute format).
+ */
+#define NTB_FORMAT_AND_BW	0
+#define MAX_TX_LTF_REPETATIONS	3
+#define MAX_RX_LTF_REPETATIONS	6
+#define MAX_RX_LTF_TOTAL	9
+#define MAX_TX_LTF_TOTAL	11
+#define MAX_RX_STS_LE_80	13
+#define MAX_RX_STS_GT_80	16
+#define MAX_TX_STS_LE_80	19
+#define MAX_TX_STS_GT_80	22
+
+#define NTB_FORMAT_AND_BW_MASK  0x00000007
+
+/* Max TX LTF repetations supported for non trigger based ranging */
+#define MAX_TX_LTF_REPETATIONS_MASK	0x00000007
+
+/* Max RX LTF repetations supported for non trigger based ranging */
+#define MAX_RX_LTF_REPETATIONS_MASK	0x00000007
+
+/* Max RX LTF total supported for non trigger based ranging */
+#define MAX_RX_LTF_TOTAL_MASK		0x00000003
+
+/* Max TX LTF total supported for non trigger based ranging */
+#define MAX_TX_LTF_TOTAL_MASK		0x00000003
+
+/* To configure max R2I STS for Bandwidth less than or equal to 80 MHz */
+#define MAX_RX_STS_LE_80_MASK		0x00000007
+
+/* To configure max R2I STS for Bandwidth greater than 80Mz */
+#define MAX_RX_STS_GT_80_MASK		0x00000007
+
+/* To configure max I2R STS for Bandwidth less than or equal to 80 MHz */
+#define MAX_TX_STS_LE_80_MASK		0x00000007
+
+/* To configure max I2R STS for Bandwidth greater than 80 MHz */
+#define MAX_TX_STS_GT_80_MASK		0x00000007
+	u32 ntb_hw_caps;
+
+	char country[3];
+
+	struct pr_channels channels;
+};
+
 /*
  * Proximity Ranging Attribute IDs
  * Proximity Ranging Implementation Considerations for P2P Operation Draft 1.8,
