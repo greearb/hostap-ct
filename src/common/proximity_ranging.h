@@ -12,6 +12,8 @@
 #include "utils/list.h"
 #include "wps/wps_defs.h"
 
+#define DEVICE_IDENTITY_KEY_LEN 16
+
 /**
  * PR_MAX_OP_CLASSES - Maximum number of operating classes
  */
@@ -284,6 +286,18 @@ struct pr_config {
 	struct pr_channels ntb_channels;
 
 	bool support_6ghz;
+
+	/* Cipher version type */
+	int dik_cipher;
+
+	/* Buffer to hold the DevIK */
+	u8 dik_data[DEVICE_IDENTITY_KEY_LEN];
+
+	/* Length of DevIK in octets */
+	size_t dik_len;
+
+	/* DevIK expiration */
+	int expiration;
 
 	/**
 	 * cb_ctx - Context to use with callback functions

@@ -10,6 +10,7 @@
 
 #include "utils/common.h"
 #include "common/proximity_ranging.h"
+#include "p2p/p2p.h"
 #include "wpa_supplicant_i.h"
 #include "config.h"
 #include "pr_supplicant.h"
@@ -310,6 +311,35 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 		pr.country[2] = 0x04;
 	} else {
 		os_memcpy(pr.country, "XX\x04", 3);
+	}
+
+	if (wpa_s->conf->dik &&
+	    wpabuf_len(wpa_s->conf->dik) <= DEVICE_IDENTITY_KEY_LEN) {
+		pr.dik_cipher = wpa_s->conf->dik_cipher;
+		pr.dik_len = wpabuf_len(wpa_s->conf->dik);
+		os_memcpy(pr.dik_data, wpabuf_head(wpa_s->conf->dik),
+			  pr.dik_len);
+		pr.expiration = 24; /* hours */
+	} else {
+		pr.dik_cipher = DIRA_CIPHER_VERSION_128;
+		pr.dik_len = DEVICE_IDENTITY_KEY_LEN;
+		pr.expiration = 24; /* hours */
+		if (os_get_random(pr.dik_data, pr.dik_len) < 0)
+			return -1;
+
+		wpa_s->conf->dik =
+			wpabuf_alloc_copy(pr.dik_data, pr.dik_len);
+		if (!wpa_s->conf->dik)
+			return -1;
+
+		wpa_s->conf->dik_cipher = pr.dik_cipher;
+
+		wpa_printf(MSG_DEBUG, "PR: PR init new DIRA set");
+
+		if (wpa_s->conf->update_config &&
+		    wpa_config_write(wpa_s->confname, wpa_s->conf))
+			wpa_printf(MSG_DEBUG,
+				   "PR: Failed to update configuration");
 	}
 
 	global->pr = pr_init(&pr);
