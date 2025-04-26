@@ -11542,6 +11542,59 @@ static int wpas_ctrl_iface_pr_pasn_start(struct wpa_supplicant *wpa_s,
 
 
 #ifdef CONFIG_TESTING_OPTIONS
+
+#ifdef CONFIG_PR
+static int wpas_ctrl_iface_pr_set_dik_ctx(struct wpa_supplicant *wpa_s,
+					  char *cmd)
+{
+	int ret = -1;
+	bool own = false;
+	char *token, *context = NULL;
+	const char *password = NULL;
+	const u8 *pmk = NULL, *dik = NULL;
+	struct wpabuf *pmk_buf = NULL, *dik_buf = NULL;
+
+	while ((token = str_token(cmd, " ", &context))) {
+		if (os_strcmp(token, "self") == 0) {
+			own = true;
+			continue;
+		}
+
+		if (os_strncmp(token, "dik=", 4) == 0) {
+			dik_buf = wpabuf_parse_bin(token + 4);
+			if (!dik_buf)
+				goto fail;
+			dik = wpabuf_head_u8(dik_buf);
+			continue;
+		}
+
+		if (os_strncmp(token, "password=", 9) == 0) {
+			password = token + 9;
+			continue;
+		}
+
+		if (os_strncmp(token, "pmk=", 4) == 0) {
+			pmk_buf = wpabuf_parse_bin(token + 4);
+			if (!pmk_buf)
+				goto fail;
+			pmk = wpabuf_head_u8(pmk_buf);
+			continue;
+		}
+	}
+
+	if (!dik)
+		goto fail;
+
+	wpas_pr_set_dev_ik(wpa_s, dik, password, pmk, own);
+	ret = 0;
+fail:
+	wpabuf_clear_free(dik_buf);
+	wpabuf_clear_free(pmk_buf);
+	return ret;
+}
+#endif /* CONFIG_PR */
+
+
 static int wpas_ctrl_iface_pasn_driver(struct wpa_supplicant *wpa_s, char *cmd)
 {
 	char *token, *context = NULL;
@@ -11655,6 +11708,7 @@ out:
 
 	return ret;
 }
+
 #endif /* CONFIG_TESTING_OPTIONS */
 
 #endif /* CONFIG_PASN */
@@ -14079,6 +14133,13 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 			reply_len = -1;
 #endif /* CONFIG_PR */
 #ifdef CONFIG_TESTING_OPTIONS
+#ifdef CONFIG_PR
+	} else if (os_strncmp(buf, "PR_SET_DIK_CONTEXT ", 19) == 0) {
+		if (wpas_ctrl_iface_pr_set_dik_ctx(wpa_s, buf + 19) < 0)
+			reply_len = -1;
+	} else if (os_strcmp(buf, "PR_CLEAR_DIK_CONTEXT") == 0) {
+		wpas_pr_clear_dev_iks(wpa_s);
+#endif /* CONFIG_PR */
 	} else if (os_strncmp(buf, "PASN_DRIVER ", 12) == 0) {
 		if (wpas_ctrl_iface_pasn_driver(wpa_s, buf + 12) < 0)
 			reply_len = -1;
