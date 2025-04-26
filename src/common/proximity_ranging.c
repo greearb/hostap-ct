@@ -1136,6 +1136,38 @@ void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 
 #ifdef CONFIG_PASN
 
+static bool pr_eq_ranging_capa_params(const struct pr_device *dev,
+				     const struct pr_capabilities *caps)
+{
+	return dev->pr_caps.edca_support == caps->edca_support &&
+		dev->pr_caps.ntb_support == caps->ntb_support &&
+		dev->pr_caps.pasn_type == caps->pasn_type &&
+		dev->pr_caps.secure_he_ltf == caps->secure_he_ltf &&
+		dev->pr_caps.support_6ghz == caps->support_6ghz &&
+		os_strcmp(dev->pr_caps.device_name, caps->device_name) == 0;
+}
+
+
+static bool pr_eq_edca_params(const struct pr_device *dev,
+			      const struct edca_capabilities *edca_caps)
+{
+	return dev->edca_caps.ista_support == edca_caps->ista_support &&
+		dev->edca_caps.rsta_support == edca_caps->rsta_support &&
+		dev->edca_caps.edca_hw_caps == edca_caps->edca_hw_caps &&
+		os_memcmp(dev->edca_caps.country, edca_caps->country, 3) == 0;
+}
+
+
+static bool pr_eq_ntb_params(const struct pr_device *dev,
+			     const struct ntb_capabilities *ntb_caps)
+{
+	return dev->ntb_caps.ista_support == ntb_caps->ista_support &&
+		dev->ntb_caps.rsta_support == ntb_caps->rsta_support &&
+		dev->ntb_caps.ntb_hw_caps == ntb_caps->ntb_hw_caps &&
+		os_memcmp(dev->ntb_caps.country, ntb_caps->country, 3) == 0;
+}
+
+
 static void pr_buf_add_operation_mode(struct wpabuf *buf,
 				      struct operation_mode *mode)
 {
@@ -2023,6 +2055,10 @@ static int pr_process_pasn_ranging_wrapper(struct pr_data *pr,
 	os_memset(&caps, 0, sizeof(struct pr_capabilities));
 	pr_process_ranging_capabilities(msg.pr_capability,
 					msg.pr_capability_len, &caps);
+	if (!pr_eq_ranging_capa_params(dev, &caps)) {
+		wpa_printf(MSG_INFO, "PR: Ranging capabilities not matching");
+		goto end;
+	}
 
 	pr_get_ranging_capabilities(pr, &caps);
 
@@ -2042,6 +2078,12 @@ static int pr_process_pasn_ranging_wrapper(struct pr_data *pr,
 					    msg.ntb_capability_len, &ntb,
 					    caps.secure_he_ltf);
 
+		if (!pr_eq_ntb_params(dev, &ntb)) {
+			wpa_printf(MSG_INFO,
+				   "PR: NTB capabilities not matching");
+			goto end;
+		}
+
 		if (dev->ntb_caps.ista_support)
 			supp_ranging_role |= PR_ISTA_SUPPORT;
 		if (dev->ntb_caps.rsta_support)
@@ -2052,6 +2094,11 @@ static int pr_process_pasn_ranging_wrapper(struct pr_data *pr,
 	} else if (op_mode.protocol_type & PR_EDCA_BASED_RANGING) {
 		pr_process_edca_capabilities(msg.edca_capability,
 					     msg.edca_capability_len, &edca);
+		if (!pr_eq_edca_params(dev, &edca)) {
+			wpa_printf(MSG_INFO,
+				   "PR: EDCA capabilities not matching");
+			goto end;
+		}
 
 		if (dev->edca_caps.ista_support)
 			supp_ranging_role |= PR_ISTA_SUPPORT;
