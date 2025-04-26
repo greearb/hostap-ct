@@ -161,6 +161,48 @@ static void pr_get_ranging_capabilities(struct pr_data *pr,
 }
 
 
+static void pr_get_edca_capabilities(struct pr_data *pr,
+				     struct edca_capabilities *capab)
+{
+	u16 edca_hw_caps = 0;
+
+	os_memset(capab, 0, sizeof(struct edca_capabilities));
+	capab->ista_support = pr->cfg->edca_ista_support;
+	capab->rsta_support = pr->cfg->edca_rsta_support;
+	os_memcpy(capab->country, pr->cfg->country, 3);
+
+	edca_hw_caps |= (pr->cfg->edca_format_and_bw & EDCA_FORMAT_AND_BW_MASK)
+		<< EDCA_FORMAT_AND_BW;
+	edca_hw_caps |= (pr->cfg->max_tx_antenna & EDCA_MAX_TX_ANTENNA_MASK) <<
+		EDCA_MAX_TX_ANTENNA;
+	edca_hw_caps |= (pr->cfg->max_rx_antenna & EDCA_MAX_RX_ANTENNA_MASK) <<
+		EDCA_MAX_RX_ANTENNA;
+
+	capab->edca_hw_caps = edca_hw_caps;
+	os_memcpy(&capab->channels, &pr->cfg->edca_channels,
+		  sizeof(struct pr_channels));
+}
+
+
+static void pr_buf_add_channel_list(struct wpabuf *buf, const char *country,
+				    const struct pr_channels *chan)
+{
+	size_t i;
+
+	wpabuf_put_data(buf, country, 3); /* Country String */
+	wpabuf_put(buf, chan->op_classes); /* Number of Channel Entries */
+
+	/* Channel Entry List */
+	for (i = 0; i < chan->op_classes; i++) {
+		const struct pr_op_class *c = &chan->op_class[i];
+
+		wpabuf_put_u8(buf, c->op_class);
+		wpabuf_put_u8(buf, c->channels);
+		wpabuf_put_data(buf, c->channel, c->channels);
+	}
+}
+
+
 static void pr_buf_add_ranging_capa_info(struct wpabuf *buf,
 					 const struct pr_capabilities *capab)
 {
@@ -201,6 +243,36 @@ static void pr_buf_add_ranging_capa_info(struct wpabuf *buf,
 }
 
 
+static void pr_buf_add_edca_capa_info(struct wpabuf *buf,
+				      const struct edca_capabilities *edca_data)
+{
+	u8 *len;
+	u8 ranging_role = 0;
+	size_t _len;
+
+	/* Proximity Ranging EDCA Capability Attribute */
+	wpabuf_put_u8(buf, PR_ATTR_EDCA_CAPABILITY);
+	len = wpabuf_put(buf, 2); /* Attribute length to be filled */
+
+	/* Ranging Role */
+	if (edca_data->ista_support)
+		ranging_role |= PR_ISTA_SUPPORT;
+	if (edca_data->rsta_support)
+		ranging_role |= PR_RSTA_SUPPORT;
+	wpabuf_put_u8(buf, ranging_role);
+
+	/* Ranging Parameters */
+	wpabuf_put_le16(buf, edca_data->edca_hw_caps);
+
+	pr_buf_add_channel_list(buf, edca_data->country, &edca_data->channels);
+
+	_len = (u8 *) wpabuf_put(buf, 0) - len - 2;
+	WPA_PUT_LE16(len, _len);
+	wpa_hexdump(MSG_DEBUG, "PR: * EDCA Capability Attribute",
+		    len + 2, _len);
+}
+
+
 struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr)
 {
 	u32 ie_type;
@@ -213,6 +285,13 @@ struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr)
 
 	pr_get_ranging_capabilities(pr, &pr_caps);
 	pr_buf_add_ranging_capa_info(buf, &pr_caps);
+
+	if (pr->cfg->edca_ista_support || pr->cfg->edca_rsta_support) {
+		struct edca_capabilities edca_caps;
+
+		pr_get_edca_capabilities(pr, &edca_caps);
+		pr_buf_add_edca_capa_info(buf, &edca_caps);
+	}
 
 	ie_type = (OUI_WFA << 8) | PR_OUI_TYPE;
 	buf2 = pr_encaps_elem(buf, ie_type);

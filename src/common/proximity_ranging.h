@@ -105,6 +105,30 @@ struct pr_capabilities {
 	bool support_6ghz;
 };
 
+struct edca_capabilities {
+	bool ista_support;
+
+	bool rsta_support;
+
+/**
+ * Ranging Parameters field for device specific EDCA capabilities
+ * Proximity Ranging Implementation Considerations for P2P Operation Draft 1.8,
+ * Table 8 (Proximity Ranging EDCA Capability Attribute format).
+ */
+#define EDCA_FORMAT_AND_BW  0
+#define EDCA_MAX_TX_ANTENNA 4
+#define EDCA_MAX_RX_ANTENNA 7
+
+#define EDCA_FORMAT_AND_BW_MASK  0x000F
+#define EDCA_MAX_TX_ANTENNA_MASK 0x0007
+#define EDCA_MAX_RX_ANTENNA_MASK 0x0007
+	u16 edca_hw_caps;
+
+	char country[3];
+
+	struct pr_channels channels;
+};
+
 /*
  * Proximity Ranging Attribute IDs
  * Proximity Ranging Implementation Considerations for P2P Operation Draft 1.8,
@@ -129,6 +153,14 @@ enum pr_attr_id {
 #define PR_EDCA_BASED_RANGING BIT(0)
 #define PR_NTB_SECURE_LTF_BASED_RANGING BIT(1)
 #define PR_NTB_OPEN_BASED_RANGING BIT(2)
+
+/**
+ * Ranging Role field in EDCA capabilities
+ * Proximity Ranging Implementation Considerations for P2P Operation Draft 1.8,
+ * Table 8 (Proximity Ranging EDCA Capability Attribute format).
+ */
+#define PR_ISTA_SUPPORT BIT(0)
+#define PR_RSTA_SUPPORT BIT(1)
 
 /**
  * struct pr_device_info - Proximity ranging peer information
