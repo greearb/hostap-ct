@@ -250,6 +250,7 @@ struct pr_device {
 
 	struct pr_capabilities pr_caps;
 	struct edca_capabilities edca_caps;
+	struct ntb_capabilities ntb_caps;
 
 	/* Password to be used in PASN-SAE by the Seeker.
 	 * This is updated with valid password if DIRA matches for the peer.

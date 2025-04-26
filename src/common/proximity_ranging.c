@@ -856,6 +856,49 @@ static void pr_process_edca_capabilities(const u8 *caps, size_t caps_len,
 }
 
 
+static void pr_process_ntb_capabilities(const u8 *caps, size_t caps_len,
+					struct ntb_capabilities *ntb_caps,
+					bool secure_ltf)
+{
+	const u8 *pos, *end;
+
+	if (caps_len < 9)
+		return;
+
+	pos = caps;
+	end = caps + caps_len;
+
+	/* Ranging Role */
+	if (*pos & PR_ISTA_SUPPORT)
+		ntb_caps->ista_support = true;
+	if (*pos & PR_RSTA_SUPPORT)
+		ntb_caps->rsta_support = true;
+	if (secure_ltf)
+		ntb_caps->secure_he_ltf = true;
+	pos++;
+
+	/* Ranging Parameter */
+	ntb_caps->ntb_hw_caps = WPA_GET_LE32(pos);
+	pos += 4;
+
+	/* Country String */
+	os_memcpy(ntb_caps->country, pos, 3);
+	pos += 3;
+
+	pr_process_channels(pos, end - pos, &ntb_caps->channels);
+
+	wpa_printf(MSG_DEBUG,
+		   "PR: NTB ISTA support=%u, NTB RSTA support=%u, op classes count=%lu, secure HE-LTF=%u, country=%c%c",
+		   ntb_caps->ista_support, ntb_caps->rsta_support,
+		   ntb_caps->channels.op_classes,
+		   ntb_caps->secure_he_ltf,
+		   valid_country_ch(ntb_caps->country[0]) ?
+		   ntb_caps->country[0] : '_',
+		   valid_country_ch(ntb_caps->country[1]) ?
+		   ntb_caps->country[1] : '_');
+}
+
+
 void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 			  const u8 *peer_addr, unsigned int freq)
 {
@@ -880,6 +923,14 @@ void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 		return;
 	}
 
+	if (!msg.edca_capability && !msg.ntb_capability) {
+		wpa_printf(MSG_DEBUG,
+			   "PR: Neither EDCA nor NTB capabilities are present, ignoring proximity device "
+			   MACSTR, MAC2STR(peer_addr));
+		pr_parse_free(&msg);
+		return;
+	}
+
 	dev = pr_create_device(pr, peer_addr);
 	if (!dev) {
 		pr_parse_free(&msg);
@@ -897,6 +948,12 @@ void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 		pr_process_edca_capabilities(msg.edca_capability,
 					     msg.edca_capability_len,
 					     &dev->edca_caps);
+
+	if (dev->pr_caps.ntb_support && msg.ntb_capability)
+		pr_process_ntb_capabilities(msg.ntb_capability,
+					    msg.ntb_capability_len,
+					    &dev->ntb_caps,
+					    dev->pr_caps.secure_he_ltf);
 
 	pr_parse_free(&msg);
 }
