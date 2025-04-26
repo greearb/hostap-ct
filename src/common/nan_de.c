@@ -64,6 +64,7 @@ struct nan_de_service {
 	struct os_reltime next_publish_chan;
 	unsigned int next_publish_duration;
 	bool is_p2p;
+	bool is_pr;
 };
 
 struct nan_de {
@@ -1335,7 +1336,7 @@ int nan_de_publish(struct nan_de *de, const char *service_name,
 	int publish_id;
 	struct nan_de_service *srv;
 
-	if (!service_name) {
+	if (!service_name && !params->proximity_ranging) {
 		wpa_printf(MSG_DEBUG, "NAN: Publish() - no service_name");
 		return -1;
 	}
@@ -1343,6 +1344,12 @@ int nan_de_publish(struct nan_de *de, const char *service_name,
 	if (!params->unsolicited && !params->solicited) {
 		wpa_printf(MSG_INFO,
 			   "NAN: Publish() - both unsolicited and solicited disabled is invalid");
+		return -1;
+	}
+
+	if (params->proximity_ranging && params->solicited && !elems) {
+		wpa_printf(MSG_INFO,
+			   "NAN: Unable to fetch proximity ranging params");
 		return -1;
 	}
 
@@ -1355,11 +1362,18 @@ int nan_de_publish(struct nan_de *de, const char *service_name,
 		return -1;
 	srv->type = NAN_DE_PUBLISH;
 	srv->freq = srv->default_freq = params->freq;
-	srv->service_name = os_strdup(service_name);
-	if (!srv->service_name)
+
+	if (service_name) {
+		srv->service_name = os_strdup(service_name);
+		if (!srv->service_name)
+			goto fail;
+	}
+
+	if (params->proximity_ranging && !service_name)
+		os_memset(srv->service_id, 0, NAN_SERVICE_ID_LEN);
+	else if (nan_de_derive_service_id(srv) < 0)
 		goto fail;
-	if (nan_de_derive_service_id(srv) < 0)
-		goto fail;
+
 	os_memcpy(&srv->publish, params, sizeof(*params));
 
 	if (params->freq_list) {
@@ -1390,9 +1404,10 @@ int nan_de_publish(struct nan_de *de, const char *service_name,
 	nan_de_start_new_publish_state(srv, true);
 
 	wpa_printf(MSG_DEBUG, "NAN: Assigned new publish handle %d for %s",
-		   publish_id, service_name);
+		   publish_id, service_name ? service_name : "Ranging");
 	srv->id = publish_id;
 	srv->is_p2p = p2p;
+	srv->is_pr = params->proximity_ranging && params->solicited;
 	nan_de_add_srv(de, srv);
 	nan_de_run_timer(de);
 	return publish_id;
@@ -1475,8 +1490,14 @@ int nan_de_subscribe(struct nan_de *de, const char *service_name,
 	int subscribe_id;
 	struct nan_de_service *srv;
 
-	if (!service_name) {
+	if (!service_name && !params->proximity_ranging) {
 		wpa_printf(MSG_DEBUG, "NAN: Subscribe() - no service_name");
+		return -1;
+	}
+
+	if (params->proximity_ranging && params->active && !elems) {
+		wpa_printf(MSG_INFO,
+			   "NAN: Unable to fetch proximity ranging params");
 		return -1;
 	}
 
@@ -1489,11 +1510,18 @@ int nan_de_subscribe(struct nan_de *de, const char *service_name,
 		return -1;
 	srv->type = NAN_DE_SUBSCRIBE;
 	srv->freq = params->freq;
-	srv->service_name = os_strdup(service_name);
-	if (!srv->service_name)
+
+	if (service_name) {
+		srv->service_name = os_strdup(service_name);
+		if (!srv->service_name)
+			goto fail;
+	}
+
+	if (params->proximity_ranging && !service_name)
+		os_memset(srv->service_id, 0, NAN_SERVICE_ID_LEN);
+	else if (nan_de_derive_service_id(srv) < 0)
 		goto fail;
-	if (nan_de_derive_service_id(srv) < 0)
-		goto fail;
+
 	os_memcpy(&srv->subscribe, params, sizeof(*params));
 
 	if (params->freq_list) {
@@ -1519,9 +1547,10 @@ int nan_de_subscribe(struct nan_de *de, const char *service_name,
 	}
 
 	wpa_printf(MSG_DEBUG, "NAN: Assigned new subscribe handle %d for %s",
-		   subscribe_id, service_name);
+		   subscribe_id, service_name ? service_name : "Ranging");
 	srv->id = subscribe_id;
 	srv->is_p2p = p2p;
+	srv->is_pr = params->proximity_ranging && params->active;
 	nan_de_add_srv(de, srv);
 	nan_de_run_timer(de);
 	return subscribe_id;

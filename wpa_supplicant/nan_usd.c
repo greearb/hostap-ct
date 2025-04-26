@@ -17,6 +17,7 @@
 #include "notify.h"
 #include "p2p_supplicant.h"
 #include "nan_usd.h"
+#include "pr_supplicant.h"
 
 
 static const char *
@@ -407,11 +408,19 @@ int wpas_nan_usd_publish(struct wpa_supplicant *wpa_s, const char *service_name,
 	if (!wpa_s->nan_de)
 		return -1;
 
+	if (params->proximity_ranging && !params->solicited) {
+		wpa_printf(MSG_INFO,
+			   "PR unsolicited publish service discovery not allowed");
+		return -1;
+	}
+
+	addr = wpa_s->own_addr;
+
 	if (p2p) {
 		elems = wpas_p2p_usd_elems(wpa_s, service_name);
 		addr = wpa_s->global->p2p_dev_addr;
-	} else {
-		addr = wpa_s->own_addr;
+	} else if (params->proximity_ranging) {
+		elems = wpas_pr_usd_elems(wpa_s);
 	}
 
 	publish_id = nan_de_publish(wpa_s->nan_de, service_name, srv_proto_type,
@@ -479,11 +488,19 @@ int wpas_nan_usd_subscribe(struct wpa_supplicant *wpa_s,
 	if (!wpa_s->nan_de)
 		return -1;
 
+	if (params->proximity_ranging && !params->active) {
+		wpa_printf(MSG_INFO,
+			   "PR passive subscriber service discovery not allowed");
+		return -1;
+	}
+
+	addr = wpa_s->own_addr;
+
 	if (p2p) {
 		elems = wpas_p2p_usd_elems(wpa_s, service_name);
 		addr = wpa_s->global->p2p_dev_addr;
-	} else {
-		addr = wpa_s->own_addr;
+	} else if (params->proximity_ranging) {
+		elems = wpas_pr_usd_elems(wpa_s);
 	}
 
 	subscribe_id = nan_de_subscribe(wpa_s->nan_de, service_name,

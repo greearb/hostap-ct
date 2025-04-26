@@ -238,6 +238,12 @@ wpas_pr_setup_ntb_channels(struct wpa_supplicant *wpa_s,
 }
 
 
+struct wpabuf * wpas_pr_usd_elems(struct wpa_supplicant *wpa_s)
+{
+	return pr_prepare_usd_elems(wpa_s->global->pr);
+}
+
+
 int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 		 const struct wpa_driver_capa *capa)
 {

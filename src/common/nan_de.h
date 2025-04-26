@@ -111,6 +111,9 @@ struct nan_publish_params {
 
 	/* Announcement period in ms; 0 = use default */
 	unsigned int announcement_period;
+
+	/* Proximity ranging flag */
+	bool proximity_ranging;
 };
 
 /* Returns -1 on failure or >0 publish_id */
@@ -144,6 +147,9 @@ struct nan_subscribe_params {
 
 	/* Query period in ms; 0 = use default */
 	unsigned int query_period;
+
+	/* Proximity ranging flag */
+	bool proximity_ranging;
 };
 
 /* Returns -1 on failure or >0 subscribe_id */
