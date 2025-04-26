@@ -53,6 +53,7 @@
 #include "wmm_ac.h"
 #include "nan_usd.h"
 #include "dpp_supplicant.h"
+#include "pr_supplicant.h"
 
 
 #define MAX_OWE_TRANSITION_BSS_SELECT_COUNT 5
@@ -6486,6 +6487,17 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 						 data->tx_status.ack) == 0)
 			break;
 #endif /* CONFIG_P2P */
+#ifdef CONFIG_PR
+		if (data->tx_status.type == WLAN_FC_TYPE_MGMT &&
+		    data->tx_status.stype == WLAN_FC_STYPE_AUTH &&
+		    !wpa_s->pasn_auth_work &&
+		    wpa_s->pr_pasn_auth_work &&
+		    wpas_pr_pasn_auth_tx_status(wpa_s,
+						data->tx_status.data,
+						data->tx_status.data_len,
+						data->tx_status.ack) == 0)
+			break;
+#endif /* CONFIG_PR */
 		if (data->tx_status.type == WLAN_FC_TYPE_MGMT &&
 		    data->tx_status.stype == WLAN_FC_STYPE_AUTH &&
 		    wpas_pasn_auth_tx_status(wpa_s, data->tx_status.data,

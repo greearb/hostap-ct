@@ -25,6 +25,8 @@ int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 			       const u8 *peer_addr, int freq, u8 auth_mode,
 			       u8 ranging_role, u8 ranging_type,
 			       int forced_pr_freq);
+int wpas_pr_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
+				size_t data_len, bool acked);
 
 #else /* CONFIG_PR */
 
@@ -59,6 +61,13 @@ static inline int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 					     u8 auth_mode, u8 ranging_role,
 					     u8 ranging_type,
 					     int forced_pr_freq)
+{
+	return 0;
+}
+
+static inline int wpas_pr_pasn_auth_tx_status(struct wpa_supplicant *wpa_s,
+					      const u8 *data, size_t data_len,
+					      bool acked)
 {
 	return 0;
 }

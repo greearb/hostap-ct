@@ -467,5 +467,7 @@ void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 int pr_initiate_pasn_auth(struct pr_data *pr, const u8 *addr, int freq,
 			  u8 auth_mode, u8 ranging_role, u8 ranging_type,
 			  int forced_pr_freq);
+int pr_pasn_auth_tx_status(struct pr_data *pr, const u8 *data, size_t data_len,
+			   bool acked);
 
 #endif /* PROXIMITY_RANGING_H */

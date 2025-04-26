@@ -1539,4 +1539,35 @@ out:
 	return ret;
 }
 
+
+int pr_pasn_auth_tx_status(struct pr_data *pr, const u8 *data, size_t data_len,
+			   bool acked)
+{
+	int ret = 0;
+	struct pr_device *dev;
+	struct pasn_data *pasn;
+	const struct ieee80211_mgmt *mgmt =
+		(const struct ieee80211_mgmt *) data;
+
+	if (!pr)
+		return -1;
+
+	dev = pr_get_device(pr, mgmt->da);
+	if (!dev || !dev->pasn) {
+		wpa_printf(MSG_INFO, "PR PASN: Peer not found " MACSTR,
+			   MAC2STR(mgmt->da));
+		return -1;
+	}
+
+	pasn = dev->pasn;
+	wpa_printf(MSG_DEBUG, "PR PASN: TX status from " MACSTR " ack=%d",
+		   MAC2STR(mgmt->da), acked);
+
+	ret = wpa_pasn_auth_tx_status(pasn, data, data_len, acked);
+	wpabuf_free(pasn->frame);
+	pasn->frame = NULL;
+
+	return ret;
+}
+
 #endif /* CONFIG_PASN */

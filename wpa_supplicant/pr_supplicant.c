@@ -526,4 +526,16 @@ int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 	return 0;
 }
 
+
+int wpas_pr_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
+				size_t data_len, bool acked)
+{
+	struct pr_data *pr = wpa_s->global->pr;
+
+	if (!wpa_s->pr_pasn_auth_work)
+		return -1;
+
+	return pr_pasn_auth_tx_status(pr, data, data_len, acked);
+}
+
 #endif /* CONFIG_PASN */
