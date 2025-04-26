@@ -31,12 +31,54 @@ struct pr_device {
 
 
 struct pr_config {
+	u8 pasn_type;
+
+	int preferred_ranging_role;
+
+	char country[3];
+
 	u8 dev_addr[ETH_ALEN];
 
 	/**
 	 * dev_name - Device Name
 	 */
 	char *dev_name;
+
+	bool edca_ista_support;
+
+	bool edca_rsta_support;
+
+	u8 edca_format_and_bw;
+
+	u8 max_tx_antenna;
+
+	u8 max_rx_antenna;
+
+	bool ntb_ista_support;
+
+	bool ntb_rsta_support;
+
+	bool secure_he_ltf;
+
+	u8 max_tx_ltf_repetations;
+
+	u8 max_rx_ltf_repetations;
+
+	u8 max_tx_ltf_total;
+
+	u8 max_rx_ltf_total;
+
+	u8 max_rx_sts_le_80;
+
+	u8 max_rx_sts_gt_80;
+
+	u8 max_tx_sts_le_80;
+
+	u8 max_tx_sts_gt_80;
+
+	u8 ntb_format_and_bw;
+
+	bool support_6ghz;
 
 	/**
 	 * cb_ctx - Context to use with callback functions

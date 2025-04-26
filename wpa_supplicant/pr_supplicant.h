@@ -11,13 +11,15 @@
 
 #ifdef CONFIG_PR
 
-int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s);
+int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
+		 const struct wpa_driver_capa *capa);
 void wpas_pr_deinit(struct wpa_supplicant *wpa_s);
 
 #else /* CONFIG_PR */
 
 static inline int wpas_pr_init(struct wpa_global *global,
-			       struct wpa_supplicant *wpa_s)
+			       struct wpa_supplicant *wpa_s,
+			       const struct wpa_driver_capa *capa)
 {
 	return -1;
 }

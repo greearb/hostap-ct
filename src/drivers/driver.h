@@ -2424,6 +2424,12 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_FLAGS2_P2P_FEATURE_PCC_MODE	0x0000000004000000ULL
 /** Driver supports arbitrary channel width changes in AP mode */
 #define WPA_DRIVER_FLAGS2_AP_CHANWIDTH_CHANGE	0x0000000008000000ULL
+/** Driver supports FTM initiator functionality */
+#define WPA_DRIVER_FLAGS2_FTM_INITIATOR		0x0000000010000000ULL
+/** Driver supports non-trigger based ranging responder functionality */
+#define WPA_DRIVER_FLAGS2_NON_TRIGGER_BASED_RESPONDER   0x0000000020000000ULL
+/** Driver supports non-trigger based ranging initiator functionality */
+#define WPA_DRIVER_FLAGS2_NON_TRIGGER_BASED_INITIATOR	0x0000000040000000ULL
 
 	u64 flags2;
 
@@ -2549,6 +2555,22 @@ struct wpa_driver_capa {
 	/* Maximum number of bytes of extra IE(s) that can be added to Probe
 	 * Request frames */
 	size_t max_probe_req_ie_len;
+
+	/* EDCA based ranging capabilities */
+	u8 edca_format_and_bw;
+	u8 max_tx_antenna;
+	u8 max_rx_antenna;
+
+	/* NTB based ranging capabilities */
+	u8 ntb_format_and_bw;
+	u8 max_tx_ltf_repetations;
+	u8 max_rx_ltf_repetations;
+	u8 max_tx_ltf_total;
+	u8 max_rx_ltf_total;
+	u8 max_rx_sts_le_80;
+	u8 max_rx_sts_gt_80;
+	u8 max_tx_sts_le_80;
+	u8 max_tx_sts_gt_80;
 };
 
 

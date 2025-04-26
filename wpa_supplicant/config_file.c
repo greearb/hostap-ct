@@ -1766,6 +1766,10 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 	if (config->disable_op_classes_80_80_mhz)
 		fprintf(f, "disable_op_classes_80_80_mhz=%d\n",
 			config->disable_op_classes_80_80_mhz);
+	if (config->pr_pasn_type)
+		fprintf(f, "pr_pasn_type=%d\n", config->pr_pasn_type);
+	if (config->pr_preferred_role)
+		fprintf(f, "pr_preferred_role=%d\n", config->pr_preferred_role);
 }
 
 static void wpa_config_write_identity(FILE *f, struct wpa_dev_ik *dev_ik)

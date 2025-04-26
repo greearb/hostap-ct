@@ -1909,6 +1909,15 @@ struct wpa_config {
 	 * supports this.
 	*/
 	bool disable_op_classes_80_80_mhz;
+
+	/* Indicates the types of PASN supported for Proximity Ranging */
+	int pr_pasn_type;
+
+	/* Indicates the preferred Proximity Ranging Role
+	 * 0: Prefer ranging initiator role (default)
+	 * 1: Prefer ranging responder role
+	 */
+	int pr_preferred_role;
 };
 
 
