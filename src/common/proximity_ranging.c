@@ -364,6 +364,75 @@ static int pr_derive_dira(struct pr_data *pr, struct pr_dira *dira)
 }
 
 
+static int pr_validate_dira(struct pr_data *pr, struct pr_device *dev,
+			    const u8 *dira, u16 dira_len)
+{
+	int ret;
+	size_t len[3];
+	const u8 *addr[3];
+	struct pr_dev_ik *dev_ik;
+	u8 tag[DEVICE_MAX_HASH_LEN];
+	const char *label = "DIR";
+	const u8 *dira_nonce, *dira_tag;
+
+	if (dira_len < 1 + DEVICE_IDENTITY_NONCE_LEN + DEVICE_IDENTITY_TAG_LEN)
+	{
+		wpa_printf(MSG_DEBUG, "PR: Truncated DIRA (length %u)",
+			   dira_len);
+		return -1;
+	}
+
+	/* Cipher Version */
+	if (dira[0] != DIRA_CIPHER_VERSION_128) {
+		wpa_printf(MSG_DEBUG, "PR: Unsupported DIRA cipher version %d",
+			   dira[0]);
+		return -1;
+	}
+
+	/* Nonce */
+	dira_nonce = &dira[1];
+
+	/* Tag */
+	dira_tag = &dira[1 + DEVICE_IDENTITY_NONCE_LEN];
+
+	/* Tag = Truncate-64(HMAC-SHA-256(DevIK, "DIR" || Device Address ||
+	 *                                Nonce)) */
+	addr[0] = (const u8 *) label;
+	len[0] = DIR_STR_LEN;
+	addr[1] = dev->pr_device_addr;
+	len[1] = ETH_ALEN;
+	addr[2] = dira_nonce;
+	len[2] = DEVICE_IDENTITY_NONCE_LEN;
+
+	dl_list_for_each(dev_ik, &pr->dev_iks, struct pr_dev_ik, list) {
+		ret = hmac_sha256_vector(dev_ik->dik, DEVICE_IDENTITY_KEY_LEN,
+					 3, addr, len, tag);
+		if (ret < 0) {
+			wpa_printf(MSG_INFO,
+				   "PR: Failed to derive DIRA Tag");
+			return -1;
+		}
+
+		if (os_memcmp(tag, dira_tag, DEVICE_IDENTITY_TAG_LEN) == 0) {
+			wpa_printf(MSG_DEBUG, "PR: DIRA Tag matched");
+			if (dev_ik->password_valid) {
+				os_strlcpy(dev->password, dev_ik->password,
+					   sizeof(dev->password));
+				dev->password_valid = true;
+			}
+			if (dev_ik->pmk_valid) {
+				os_memcpy(dev->pmk, dev_ik->pmk,
+					  WPA_PASN_PMK_LEN);
+				dev->pmk_valid = true;
+			}
+			return 0;
+		}
+	}
+
+	return -1;
+}
+
+
 static void pr_buf_add_channel_list(struct wpabuf *buf, const char *country,
 				    const struct pr_channels *chan)
 {
@@ -954,6 +1023,9 @@ void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 					    msg.ntb_capability_len,
 					    &dev->ntb_caps,
 					    dev->pr_caps.secure_he_ltf);
+
+	if (msg.dira && msg.dira_len)
+		pr_validate_dira(pr, dev, msg.dira, msg.dira_len);
 
 	pr_parse_free(&msg);
 }
