@@ -1387,6 +1387,98 @@ static u8 pr_pasn_get_best_op_mode(struct pr_data *pr, u8 peer_supp_roles,
 }
 
 
+static u8 pr_pasn_get_final_op_mode(struct pr_data *pr, u8 supp_roles,
+				    struct operation_mode *op_mode,
+				    struct operation_mode *res_op_mode)
+{
+	u8 ranging_type = 0;
+	struct pr_channels common_chan;
+	struct pr_channels *own_channels = NULL;
+	int status = PR_NEGOTIATION_FAIL;
+	u8 op_class = 0, op_channel = 0;
+	bool own_ista_support = false, own_rsta_support = false;
+
+	if (op_mode->protocol_type &
+	    (PR_NTB_SECURE_LTF_BASED_RANGING | PR_NTB_OPEN_BASED_RANGING)) {
+		if (op_mode->protocol_type == PR_NTB_SECURE_LTF_BASED_RANGING &&
+		    !pr->cfg->secure_he_ltf) {
+			wpa_printf(MSG_INFO,
+				   "PR PASN: Secure HE-LTF not supported");
+			return PR_NEGOTIATION_FAIL;
+		}
+
+		if ((op_mode->protocol_type &
+		     PR_NTB_SECURE_LTF_BASED_RANGING) && pr->cfg->secure_he_ltf)
+			ranging_type = PR_NTB_SECURE_LTF_BASED_RANGING;
+		else
+			ranging_type = PR_NTB_OPEN_BASED_RANGING;
+
+		own_ista_support = pr->cfg->ntb_ista_support;
+		own_rsta_support = pr->cfg->ntb_rsta_support;
+		own_channels = &pr->cfg->ntb_channels;
+		wpa_printf(MSG_DEBUG, "PR PASN: Choose NTB Ranging Protocol");
+	} else if (op_mode->protocol_type & PR_EDCA_BASED_RANGING) {
+		ranging_type = PR_EDCA_BASED_RANGING;
+
+		own_ista_support = pr->cfg->edca_ista_support;
+		own_rsta_support = pr->cfg->edca_rsta_support;
+		own_channels = &pr->cfg->edca_channels;
+		wpa_printf(MSG_DEBUG, "PR PASN: Choose EDCA Ranging Protocol");
+	} else {
+		wpa_printf(MSG_INFO,
+			   "PR PASN: Invalid Ranging Protocol, proposed type 0x%x",
+			   op_mode->protocol_type);
+		return PR_NEGOTIATION_FAIL;
+	}
+
+	if (op_mode->role == PR_ISTA_SUPPORT && !own_rsta_support) {
+		wpa_printf(MSG_INFO, "PR: Device cannot act as RSTA");
+		return PR_NEGOTIATION_FAIL;
+	}
+
+	if (op_mode->role == PR_RSTA_SUPPORT && !own_ista_support) {
+		wpa_printf(MSG_INFO, "PR: Device cannot act as ISTA");
+		return PR_NEGOTIATION_FAIL;
+	}
+
+	if (op_mode->role == PR_ISTA_SUPPORT) {
+		res_op_mode->role = PR_RSTA_SUPPORT;
+		status = PR_NEGOTIATION_SUCCESS;
+	} else if (op_mode->role == PR_RSTA_SUPPORT) {
+		res_op_mode->role = PR_ISTA_SUPPORT;
+		status = PR_NEGOTIATION_SUCCESS;
+	} else {
+		wpa_printf(MSG_INFO, "PR: Invalid Ranging Role proposed");
+		return PR_NEGOTIATION_FAIL;
+	}
+
+	pr_channels_intersect(own_channels, &op_mode->channels, &common_chan);
+	if (!common_chan.op_classes) {
+		wpa_printf(MSG_INFO,
+			   "PR: No common channels to perform ranging");
+		return PR_NEGOTIATION_FAIL;
+	}
+
+	pr_choose_best_channel(&common_chan, &op_class, &op_channel);
+	if (!op_class || !op_channel) {
+		wpa_printf(MSG_INFO,
+			   "PR: Couldn't choose a common channel for ranging");
+		return PR_NEGOTIATION_FAIL;
+	}
+
+	res_op_mode->protocol_type = ranging_type;
+	os_memcpy(res_op_mode->country, pr->cfg->country, 3);
+	res_op_mode->channels.op_classes = 1;
+	res_op_mode->channels.op_class[0].channels = 1;
+	res_op_mode->channels.op_class[0].channel[0] = op_channel;
+	res_op_mode->channels.op_class[0].op_class = op_class;
+	wpa_printf(MSG_DEBUG, "PR: Choose operating class %u, channel %u",
+		   op_class, op_channel);
+
+	return status;
+}
+
+
 static int pr_prepare_pasn_pr_elem(struct pr_data *pr, struct wpabuf *extra_ies,
 				   bool add_dira, u8 ranging_role,
 				   u8 ranging_type, int forced_pr_freq)
@@ -1897,6 +1989,22 @@ static int pr_process_pasn_ranging_wrapper(struct pr_data *pr,
 		goto end;
 	}
 
+	if (trans_seq == 2) {
+		if (!msg.status_ie || !msg.status_ie_len) {
+			wpa_printf(MSG_DEBUG, "PR INFO: * No status attribute");
+			wpabuf_free(buf);
+			pr_parse_free(&msg);
+			return -1;
+		}
+		if (*msg.status_ie == PR_NEGOTIATION_FAIL) {
+			wpa_printf(MSG_INFO,
+				   "PR PASN: * Ranging Negotiation status fail");
+			wpabuf_free(buf);
+			pr_parse_free(&msg);
+			return -1;
+		}
+	}
+
 	if (!msg.op_mode || !msg.op_mode_len ||
 	    !msg.pr_capability || !msg.pr_capability_len ||
 	    ((!msg.edca_capability || !msg.edca_capability_len) &&
@@ -1957,6 +2065,9 @@ static int pr_process_pasn_ranging_wrapper(struct pr_data *pr,
 	if (trans_seq == 1)
 		status = pr_pasn_get_best_op_mode(pr, supp_ranging_role,
 						  &op_mode, &res_op_mode);
+	else if (trans_seq == 2)
+		status = pr_pasn_get_final_op_mode(pr, supp_ranging_role,
+						   &op_mode, &res_op_mode);
 
 	if (status != PR_NEGOTIATION_SUCCESS &&
 	    status != PR_NEGOTIATION_UPDATE) {
@@ -1978,6 +2089,12 @@ static int pr_process_pasn_ranging_wrapper(struct pr_data *pr,
 
 	dev->ranging_role = res_op_mode.role;
 	dev->protocol_type = res_op_mode.protocol_type;
+
+	if (trans_seq == 2) {
+		dev->final_op_channel =
+			res_op_mode.channels.op_class[0].channel[0];
+		dev->final_op_class = res_op_mode.channels.op_class[0].op_class;
+	}
 
 	success = true;
 end:
@@ -2069,6 +2186,45 @@ fail:
 }
 
 
+static int pr_pasn_handle_auth_2(struct pr_data *pr, struct pr_device *dev,
+				 const struct ieee80211_mgmt *mgmt, size_t len)
+{
+	int ret = -1;
+	struct wpa_pasn_params_data pasn_data;
+
+	if (dev->pasn_role != PR_ROLE_PASN_INITIATOR) {
+		wpa_printf(MSG_INFO,
+			   "PR PASN: Auth2 not expected on responder");
+		return -1;
+	}
+
+	if (!dev->pasn)
+		return -1;
+
+	if (pr_process_pasn_ranging_wrapper(pr, dev, mgmt, len, 2)) {
+		wpa_printf(MSG_INFO,
+			   "PR PASN: Failed to handle Auth2 action wrapper");
+		return -1;
+	}
+	pasn_set_extra_ies(dev->pasn, wpabuf_head_u8(dev->ranging_wrapper),
+			   wpabuf_len(dev->ranging_wrapper));
+
+	if (wpa_pasn_auth_rx(dev->pasn, (const u8 *) mgmt, len,
+			     &pasn_data) < 0) {
+		wpa_printf(MSG_INFO, "PR PASN: wpa_pasn_auth_rx() failed");
+		dev->pasn_role = PR_ROLE_IDLE;
+		goto fail;
+	}
+
+	ret = 0;
+
+fail:
+	wpabuf_free(dev->ranging_wrapper);
+	dev->ranging_wrapper = NULL;
+	return ret;
+}
+
+
 int pr_pasn_auth_rx(struct pr_data *pr, const struct ieee80211_mgmt *mgmt,
 		    size_t len, int freq)
 {
@@ -2101,6 +2257,8 @@ int pr_pasn_auth_rx(struct pr_data *pr, const struct ieee80211_mgmt *mgmt,
 	auth_transaction = le_to_host16(mgmt->u.auth.auth_transaction);
 	if (auth_transaction == 1)
 		return pr_pasn_handle_auth_1(pr, dev, mgmt, len, freq);
+	if (auth_transaction == 2)
+		return pr_pasn_handle_auth_2(pr, dev, mgmt, len);
 
 	return -1;
 }
