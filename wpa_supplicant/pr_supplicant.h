@@ -14,6 +14,9 @@
 int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 		 const struct wpa_driver_capa *capa);
 void wpas_pr_deinit(struct wpa_supplicant *wpa_s);
+void wpas_pr_clear_dev_iks(struct wpa_supplicant *wpa_s);
+void wpas_pr_set_dev_ik(struct wpa_supplicant *wpa_s, const u8 *dik,
+			const char *password, const u8 *pmk, bool own);
 struct wpabuf * wpas_pr_usd_elems(struct wpa_supplicant *wpa_s);
 void wpas_pr_process_usd_elems(struct wpa_supplicant *wpa_s, const u8 *buf,
 			       u16 buf_len, const u8 *peer_addr,
@@ -29,6 +32,16 @@ static inline int wpas_pr_init(struct wpa_global *global,
 }
 
 static inline void wpas_pr_deinit(struct wpa_supplicant *wpa_s)
+{
+}
+
+static inline void wpas_pr_clear_dev_iks(struct wpa_supplicant *wpa_s)
+{
+}
+
+static inline void wpas_pr_set_dev_ik(struct wpa_supplicant *wpa_s,
+				      const u8 *dik, const char *password,
+				      const u8 *pmk, bool own)
 {
 }
 

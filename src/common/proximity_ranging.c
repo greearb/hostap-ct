@@ -84,8 +84,21 @@ struct pr_data * pr_init(const struct pr_config *cfg)
 		pr->cfg->dev_name = NULL;
 
 	dl_list_init(&pr->devices);
+	dl_list_init(&pr->dev_iks);
 
 	return pr;
+}
+
+
+static void pr_deinit_dev_iks(struct pr_data *pr)
+{
+	struct pr_dev_ik *dev_ik, *prev_dev_ik;
+
+	dl_list_for_each_safe(dev_ik, prev_dev_ik, &pr->dev_iks,
+			      struct pr_dev_ik, list) {
+		dl_list_del(&dev_ik->list);
+		os_free(dev_ik);
+	}
 }
 
 
@@ -103,8 +116,73 @@ void pr_deinit(struct pr_data *pr)
 		pr_device_free(pr, dev);
 	}
 
+	pr_deinit_dev_iks(pr);
+
 	os_free(pr);
 	wpa_printf(MSG_DEBUG, "PR: Deinit done");
+}
+
+
+void pr_clear_dev_iks(struct pr_data *pr)
+{
+	struct pr_device *dev;
+
+	pr->cfg->dik_len = 0;
+	os_memset(pr->cfg->dik_data, 0, DEVICE_IDENTITY_KEY_LEN);
+	pr->cfg->global_password_valid = false;
+	os_memset(pr->cfg->global_password, 0,
+		  sizeof(pr->cfg->global_password));
+
+	dl_list_for_each(dev, &pr->devices, struct pr_device, list) {
+		dev->password_valid = false;
+		os_memset(dev->password, 0, sizeof(dev->password));
+	}
+
+	pr_deinit_dev_iks(pr);
+}
+
+
+void pr_add_dev_ik(struct pr_data *pr, const u8 *dik, const char *password,
+		   const u8 *pmk, bool own)
+{
+	struct pr_dev_ik *dev_ik;
+
+	if (own) {
+		os_memcpy(pr->cfg->dik_data, dik, DEVICE_IDENTITY_KEY_LEN);
+		pr->cfg->dik_len = DEVICE_IDENTITY_KEY_LEN;
+		if (password) {
+			os_strlcpy(pr->cfg->global_password, password,
+				   sizeof(pr->cfg->global_password));
+			pr->cfg->global_password_valid = true;
+		}
+		return;
+	}
+
+	dl_list_for_each(dev_ik, &pr->dev_iks, struct pr_dev_ik, list) {
+		if (os_memcmp(dik, dev_ik->dik, DEVICE_IDENTITY_KEY_LEN) == 0) {
+			dl_list_del(&dev_ik->list);
+			os_free(dev_ik);
+			break;
+		}
+	}
+
+	dev_ik = os_zalloc(sizeof(*dev_ik));
+	if (!dev_ik)
+		return;
+
+	dl_list_add(&pr->dev_iks, &dev_ik->list);
+	os_memcpy(dev_ik->dik, dik, DEVICE_IDENTITY_KEY_LEN);
+	if (password) {
+		os_strlcpy(dev_ik->password, password,
+			   sizeof(dev_ik->password));
+		dev_ik->password_valid = true;
+	}
+	if (pmk) {
+		os_memcpy(dev_ik->pmk, pmk, WPA_PASN_PMK_LEN);
+		dev_ik->pmk_valid = true;
+	}
+
+	wpa_printf(MSG_DEBUG, "PR: New Device Identity added to list");
 }
 
 

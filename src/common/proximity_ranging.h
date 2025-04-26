@@ -9,6 +9,7 @@
 #ifndef PROXIMITY_RANGING_H
 #define PROXIMITY_RANGING_H
 
+#include "wpa_common.h"
 #include "utils/list.h"
 #include "wps/wps_defs.h"
 
@@ -225,6 +226,15 @@ enum pr_attr_id {
 #define PR_ISTA_SUPPORT BIT(0)
 #define PR_RSTA_SUPPORT BIT(1)
 
+struct pr_dev_ik {
+	struct dl_list list;
+	u8 dik[DEVICE_IDENTITY_KEY_LEN];
+	char password[100];
+	bool password_valid;
+	u8 pmk[WPA_PASN_PMK_LEN];
+	bool pmk_valid;
+};
+
 /**
  * struct pr_device_info - Proximity ranging peer information
  */
@@ -237,6 +247,18 @@ struct pr_device {
 	 * pr_device_addr - PR Device Address of the peer
 	 */
 	u8 pr_device_addr[ETH_ALEN];
+
+	/* Password to be used in PASN-SAE by the Seeker.
+	 * This is updated with valid password if DIRA matches for the peer.
+	 */
+	char password[100];
+	bool password_valid;
+
+	/* PMK to be used in PASN-PMK by the Seeker.
+	 * This is updated with valid PMK if DIRA matches for the peer.
+	 */
+	u8 pmk[PMK_LEN_MAX];
+	bool pmk_valid;
 };
 
 
@@ -306,6 +328,11 @@ struct pr_config {
 	/* DevIK expiration */
 	int expiration;
 
+	/* Global password to be used in PASN-SAE for Advertiser */
+	char global_password[100];
+
+	bool global_password_valid;
+
 	/**
 	 * cb_ctx - Context to use with callback functions
 	 */
@@ -322,6 +349,8 @@ struct pr_data {
 	struct pr_config *cfg;
 
 	struct dl_list devices;
+
+	struct dl_list dev_iks;
 };
 
 /* PR Device Identity Resolution Attribute parameters */
@@ -340,6 +369,9 @@ struct pr_dira {
 
 struct pr_data * pr_init(const struct pr_config *cfg);
 void pr_deinit(struct pr_data *pr);
+void pr_clear_dev_iks(struct pr_data *pr);
+void pr_add_dev_ik(struct pr_data *pr, const u8 *dik, const char *password,
+		   const u8 *pmk, bool own);
 struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr);
 void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 			  const u8 *peer_addr, unsigned int freq);

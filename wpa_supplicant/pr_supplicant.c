@@ -361,3 +361,26 @@ void wpas_pr_deinit(struct wpa_supplicant *wpa_s)
 		wpa_s->global->pr_init_wpa_s = NULL;
 	}
 }
+
+
+void wpas_pr_clear_dev_iks(struct wpa_supplicant *wpa_s)
+{
+	struct pr_data *pr = wpa_s->global->pr;
+
+	if (!pr)
+		return;
+
+	pr_clear_dev_iks(pr);
+}
+
+
+void wpas_pr_set_dev_ik(struct wpa_supplicant *wpa_s, const u8 *dik,
+			const char *password, const u8 *pmk, bool own)
+{
+	struct pr_data *pr = wpa_s->global->pr;
+
+	if (!pr || !dik)
+		return;
+
+	pr_add_dev_ik(pr, dik, password, pmk, own);
+}
