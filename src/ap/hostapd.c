@@ -159,7 +159,7 @@ static void hostapd_reload_bss(struct hostapd_data *hapd)
 			 hostapd_get_oper_centr_freq_seg1_idx(hapd->iconf));
 
 	if (hapd->iface->current_mode) {
-		if (hostapd_prepare_rates(hapd->iface, hapd->iface->current_mode)) {
+		if (hostapd_prepare_rates(hapd, hapd->iface->current_mode)) {
 			wpa_printf(MSG_ERROR, "Failed to prepare rates table.");
 			hostapd_logger(hapd, NULL, HOSTAPD_MODULE_IEEE80211,
 				       HOSTAPD_LEVEL_WARNING,
