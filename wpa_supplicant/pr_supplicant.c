@@ -9,11 +9,17 @@
 #include "includes.h"
 
 #include "utils/common.h"
+#include "utils/eloop.h"
 #include "common/proximity_ranging.h"
 #include "p2p/p2p.h"
 #include "wpa_supplicant_i.h"
 #include "config.h"
+#include "driver_i.h"
 #include "pr_supplicant.h"
+
+#ifdef CONFIG_PASN
+static void wpas_pr_pasn_timeout(void *eloop_ctx, void *timeout_ctx);
+#endif /* CONFIG_PASN */
 
 
 static int wpas_pr_edca_get_bw(enum edca_format_and_bw_value format_and_bw)
@@ -239,6 +245,16 @@ wpas_pr_setup_ntb_channels(struct wpa_supplicant *wpa_s,
 }
 
 
+static int wpas_pr_pasn_send_mgmt(void *ctx, const u8 *data, size_t data_len,
+				  int noack, unsigned int freq,
+				  unsigned int wait)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	return wpa_drv_send_mlme(wpa_s, data, data_len, noack, freq, wait);
+}
+
+
 struct wpabuf * wpas_pr_usd_elems(struct wpa_supplicant *wpa_s)
 {
 	return pr_prepare_usd_elems(wpa_s->global->pr);
@@ -300,6 +316,8 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 
 	pr.support_6ghz = wpas_is_6ghz_supported(wpa_s, true);
 
+	pr.pasn_send_mgmt = wpas_pr_pasn_send_mgmt;
+
 	pr.secure_he_ltf = wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_SEC_LTF_STA;
 
 	wpas_pr_setup_ntb_channels(wpa_s, &pr.ntb_channels,
@@ -360,6 +378,10 @@ void wpas_pr_deinit(struct wpa_supplicant *wpa_s)
 		wpa_s->global->pr = NULL;
 		wpa_s->global->pr_init_wpa_s = NULL;
 	}
+
+#ifdef CONFIG_PASN
+	eloop_cancel_timeout(wpas_pr_pasn_timeout, wpa_s, NULL);
+#endif /* CONFIG_PASN */
 }
 
 
@@ -384,3 +406,124 @@ void wpas_pr_set_dev_ik(struct wpa_supplicant *wpa_s, const u8 *dik,
 
 	pr_add_dev_ik(pr, dik, password, pmk, own);
 }
+
+
+#ifdef CONFIG_PASN
+
+struct wpa_pr_pasn_auth_work {
+	u8 peer_addr[ETH_ALEN];
+	u8 auth_mode;
+	int freq;
+	enum pr_pasn_role role;
+	u8 ranging_role;
+	u8 ranging_type;
+	u8 *ssid;
+	size_t ssid_len;
+	u8 bssid[ETH_ALEN];
+	int forced_pr_freq;
+};
+
+
+static void wpas_pr_pasn_free_auth_work(struct wpa_pr_pasn_auth_work *awork)
+{
+	if (!awork)
+		return;
+	os_free(awork->ssid);
+	os_free(awork);
+}
+
+
+static void wpas_pr_pasn_cancel_auth_work(struct wpa_supplicant *wpa_s)
+{
+	wpa_printf(MSG_DEBUG, "PR PASN: Cancel pr-pasn-start-auth work");
+
+	/* Remove pending/started work */
+	radio_remove_works(wpa_s, "pr-pasn-start-auth", 0);
+}
+
+
+static void wpas_pr_pasn_timeout(void *eloop_ctx, void *timeout_ctx)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctx;
+
+	if (wpa_s->pr_pasn_auth_work) {
+		wpas_pr_pasn_cancel_auth_work(wpa_s);
+		wpa_s->pr_pasn_auth_work = NULL;
+	}
+	wpa_printf(MSG_DEBUG, "PR: PASN timed out");
+}
+
+
+static void wpas_pr_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
+{
+	int ret;
+	struct wpa_supplicant *wpa_s = work->wpa_s;
+	struct wpa_pr_pasn_auth_work *awork = work->ctx;
+	struct pr_data *pr = wpa_s->global->pr;
+	const u8 *peer_addr = NULL;
+
+	if (deinit) {
+		if (!work->started)
+			eloop_cancel_timeout(wpas_pr_pasn_timeout, wpa_s, NULL);
+
+		wpas_pr_pasn_free_auth_work(awork);
+		return;
+	}
+
+	if (!is_zero_ether_addr(awork->peer_addr))
+		peer_addr = awork->peer_addr;
+
+	ret = pr_initiate_pasn_auth(pr, peer_addr, awork->freq,
+				    awork->auth_mode, awork->ranging_role,
+				    awork->ranging_type, awork->forced_pr_freq);
+	if (ret) {
+		wpa_printf(MSG_DEBUG,
+			   "PR PASN: Failed to start PASN authentication");
+		goto fail;
+	}
+
+	eloop_cancel_timeout(wpas_pr_pasn_timeout, wpa_s, NULL);
+	eloop_register_timeout(2, 0, wpas_pr_pasn_timeout, wpa_s, NULL);
+	wpa_s->pr_pasn_auth_work = work;
+	return;
+
+fail:
+	wpas_pr_pasn_free_auth_work(awork);
+	work->ctx = NULL;
+	radio_work_done(work);
+}
+
+
+int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
+			       const u8 *peer_addr, int freq, u8 auth_mode,
+			       u8 ranging_role, u8 ranging_type,
+			       int forced_pr_freq)
+{
+	struct wpa_pr_pasn_auth_work *awork;
+
+	wpas_pr_pasn_cancel_auth_work(wpa_s);
+	wpa_s->pr_pasn_auth_work = NULL;
+
+	awork = os_zalloc(sizeof(*awork));
+	if (!awork)
+		return -1;
+
+	awork->freq = freq;
+	os_memcpy(awork->peer_addr, peer_addr, ETH_ALEN);
+	awork->ranging_role = ranging_role;
+	awork->ranging_type = ranging_type;
+	awork->auth_mode = auth_mode;
+	awork->forced_pr_freq = forced_pr_freq;
+
+	if (radio_add_work(wpa_s, freq, "pr-pasn-start-auth", 1,
+			   wpas_pr_pasn_auth_start_cb, awork) < 0) {
+		wpas_pr_pasn_free_auth_work(awork);
+		return -1;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "PR PASN: Authentication work successfully added");
+	return 0;
+}
+
+#endif /* CONFIG_PASN */

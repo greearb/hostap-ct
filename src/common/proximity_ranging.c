@@ -12,6 +12,7 @@
 #include "common/ieee802_11_defs.h"
 #include "common/ieee802_11_common.h"
 #include "crypto/sha256.h"
+#include "pasn/pasn_common.h"
 #include "proximity_ranging.h"
 
 
@@ -23,6 +24,12 @@ static bool valid_country_ch(char c)
 
 static void pr_device_free(struct pr_data *pr, struct pr_device *dev)
 {
+#ifdef CONFIG_PASN
+	if (dev->pasn) {
+		wpa_pasn_reset(dev->pasn);
+		pasn_data_deinit(dev->pasn);
+	}
+#endif /* CONFIG_PASN */
 	os_free(dev);
 }
 
@@ -1029,3 +1036,129 @@ void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 
 	pr_parse_free(&msg);
 }
+
+
+#ifdef CONFIG_PASN
+
+static int pr_pasn_initialize(struct pr_data *pr, struct pr_device *dev,
+			      const u8 *addr, u8 auth_mode, int freq,
+			      u8 ranging_type)
+{
+	struct pasn_data *pasn;
+
+	if (dev->pasn) {
+		wpa_pasn_reset(dev->pasn);
+	} else {
+		dev->pasn = pasn_data_init();
+		if (!dev->pasn)
+			return -1;
+	}
+
+	pasn = dev->pasn;
+	os_memcpy(pasn->own_addr, pr->cfg->dev_addr, ETH_ALEN);
+	os_memcpy(pasn->peer_addr, addr, ETH_ALEN);
+
+	if (dev->pasn_role == PR_ROLE_PASN_INITIATOR)
+		os_memcpy(pasn->bssid, pasn->peer_addr, ETH_ALEN);
+	else
+		os_memcpy(pasn->bssid, pasn->own_addr, ETH_ALEN);
+
+	pasn->noauth = 1;
+
+	/* As specified in Proximity Ranging Implementation Considerations for
+	 * P2P Operation D1.8, unauthenticated mode PASN with DH group 19
+	 * should be supported by all P2P proximity ranging devices. */
+	if (!(pr->cfg->pasn_type & BIT(0)) ||
+	    !(dev->pr_caps.pasn_type & BIT(0))) {
+		wpa_printf(MSG_DEBUG,
+			   "PR PASN: Unauthenticated DH group 19 NOT supported, PASN type of self 0x%x, peer 0x%x",
+			   pr->cfg->pasn_type, dev->pr_caps.pasn_type);
+		return -1;
+	}
+
+	/* As specified in Proximity Ranging Implementation Considerations for
+	 * P2P Operation D1.8, EDCA based ranging is only supported with
+	 * unauthenticated mode PASN with DH group 19. */
+	if (((pr->cfg->pasn_type & 0xc) && (dev->pr_caps.pasn_type & 0xc)) &&
+	    ranging_type != PR_EDCA_BASED_RANGING) {
+		pasn->group = 20;
+		pasn->cipher = WPA_CIPHER_GCMP_256;
+	} else {
+		pasn->group = 19;
+		pasn->cipher = WPA_CIPHER_CCMP;
+	}
+
+	if (pr->cfg->secure_he_ltf &&
+	    ranging_type == PR_NTB_SECURE_LTF_BASED_RANGING) {
+		pasn->secure_ltf = true;
+		pasn_enable_kdk_derivation(pasn);
+	} else {
+		pasn_disable_kdk_derivation(pasn);
+	}
+	wpa_printf(MSG_DEBUG, "PASN: kdk_len=%zu", pasn->kdk_len);
+
+	if (auth_mode == PR_PASN_AUTH_MODE_SAE)
+		pasn->akmp = WPA_KEY_MGMT_SAE;
+	else if (auth_mode == PR_PASN_AUTH_MODE_PMK)
+		pasn->akmp = WPA_KEY_MGMT_SAE;
+	else
+		pasn->akmp = WPA_KEY_MGMT_PASN;
+
+	pasn->rsn_pairwise = pasn->cipher;
+	pasn->wpa_key_mgmt = pasn->akmp;
+
+	pasn->cb_ctx = pr->cfg->cb_ctx;
+	pasn->send_mgmt = pr->cfg->pasn_send_mgmt;
+	pasn->freq = freq;
+	return 0;
+}
+
+
+int pr_initiate_pasn_auth(struct pr_data *pr, const u8 *addr, int freq,
+			  u8 auth_mode, u8 ranging_role, u8 ranging_type,
+			  int forced_pr_freq)
+{
+	int ret = 0;
+	struct pasn_data *pasn;
+	struct pr_device *dev;
+
+	if (!addr) {
+		wpa_printf(MSG_DEBUG, "PR PASN: Peer address NULL");
+		return -1;
+	}
+
+	dev = pr_get_device(pr, addr);
+	if (!dev) {
+		wpa_printf(MSG_DEBUG, "PR PASN: Peer not known");
+		return -1;
+	}
+
+	if (freq == 0)
+		freq = dev->listen_freq;
+
+	dev->pasn_role = PR_ROLE_PASN_INITIATOR;
+
+	if (pr_pasn_initialize(pr, dev, addr, auth_mode, freq, ranging_type)) {
+		wpa_printf(MSG_INFO, "PR PASN: Initialization failed");
+		return -1;
+	}
+	pasn = dev->pasn;
+
+	if (auth_mode == PR_PASN_AUTH_MODE_PMK) {
+		ret = wpa_pasn_verify(pasn, pasn->own_addr, pasn->peer_addr,
+				      pasn->bssid, pasn->akmp, pasn->cipher,
+				      pasn->group, pasn->freq, NULL, 0, NULL, 0,
+				      NULL);
+	} else {
+		ret = wpas_pasn_start(pasn, pasn->own_addr, pasn->peer_addr,
+				      pasn->bssid, pasn->akmp, pasn->cipher,
+				      pasn->group, pasn->freq, NULL, 0, NULL, 0,
+				      NULL);
+	}
+	if (ret)
+		wpa_printf(MSG_INFO, "PR PASN: Failed to start PASN");
+
+	return ret;
+}
+
+#endif /* CONFIG_PASN */

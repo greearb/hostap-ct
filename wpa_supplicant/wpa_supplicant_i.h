@@ -1608,6 +1608,7 @@ struct wpa_supplicant {
 #ifdef CONFIG_P2P
 	struct wpa_radio_work *p2p_pasn_auth_work;
 #endif /* CONFIG_P2P */
+	struct wpa_radio_work *pr_pasn_auth_work;
 #endif /* CONFIG_PASN */
 
 	bool is_6ghz_enabled;

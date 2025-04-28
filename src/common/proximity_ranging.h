@@ -37,6 +37,12 @@
  */
 #define PR_MAX_PEER 100
 
+enum pr_pasn_role {
+	PR_ROLE_IDLE = 0,
+	PR_ROLE_PASN_INITIATOR,
+	PR_ROLE_PASN_RESPONDER,
+};
+
 /**
  * struct pr_channels - List of supported channels
  */
@@ -226,6 +232,21 @@ enum pr_attr_id {
 #define PR_ISTA_SUPPORT BIT(0)
 #define PR_RSTA_SUPPORT BIT(1)
 
+/*
+ * PASN capabilities in PASN Type field
+ * Proximity Ranging Implementation Considerations for P2P Operation D1.8,
+ * Table 7 (Proximity Ranging Capability Attribute).
+ */
+#define PR_PASN_DH19_UNAUTH BIT(0)
+#define PR_PASN_DH19_AUTH BIT(1)
+#define PR_PASN_DH20_UNAUTH BIT(2)
+#define PR_PASN_DH20_AUTH BIT(3)
+
+/* Authentication Mode */
+#define PR_PASN_AUTH_MODE_PASN   0
+#define PR_PASN_AUTH_MODE_SAE    1
+#define PR_PASN_AUTH_MODE_PMK    2
+
 struct pr_dev_ik {
 	struct dl_list list;
 	u8 dik[DEVICE_IDENTITY_KEY_LEN];
@@ -263,6 +284,12 @@ struct pr_device {
 	 */
 	u8 pmk[PMK_LEN_MAX];
 	bool pmk_valid;
+
+#ifdef CONFIG_PASN
+	/* PASN data structure */
+	struct pasn_data *pasn;
+	enum pr_pasn_role pasn_role;
+#endif /* CONFIG_PASN */
 };
 
 
@@ -369,6 +396,20 @@ struct pr_config {
 	 * cb_ctx - Context to use with callback functions
 	 */
 	void *cb_ctx;
+
+	/**
+	 * pasn_send_mgmt - Function handler to transmit a Management frame
+	 * @ctx: Callback context from cb_ctx
+	 * @data: Frame to transmit
+	 * @data_len: Length of frame to transmit
+	 * @noack: No ack flag
+	 * @freq: Frequency in MHz for the channel on which to transmit
+	 * @wait: How many milliseconds to wait for a response frame
+	 * Returns: 0 on success, -1 on failure
+	 */
+	int (*pasn_send_mgmt)(void *ctx, const u8 *data, size_t data_len,
+			      int noack, unsigned int freq, unsigned int wait);
+
 };
 
 struct pr_data {
@@ -407,5 +448,8 @@ void pr_add_dev_ik(struct pr_data *pr, const u8 *dik, const char *password,
 struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr);
 void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 			  const u8 *peer_addr, unsigned int freq);
+int pr_initiate_pasn_auth(struct pr_data *pr, const u8 *addr, int freq,
+			  u8 auth_mode, u8 ranging_role, u8 ranging_type,
+			  int forced_pr_freq);
 
 #endif /* PROXIMITY_RANGING_H */
