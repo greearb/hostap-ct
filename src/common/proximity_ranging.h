@@ -37,6 +37,15 @@
  */
 #define PR_MAX_PEER 100
 
+/*
+ * Proximity Ranging negotiation status
+ * Proximity Ranging Implementation Considerations for P2P Operation D1.8,
+ * Table 5 (Proximity Ranging Status Attribute format).
+ */
+#define PR_NEGOTIATION_SUCCESS 0
+#define PR_NEGOTIATION_UPDATE 1
+#define PR_NEGOTIATION_FAIL 2
+
 enum pr_pasn_role {
 	PR_ROLE_IDLE = 0,
 	PR_ROLE_PASN_INITIATOR,
@@ -288,8 +297,14 @@ struct pr_device {
 #ifdef CONFIG_PASN
 	/* PASN data structure */
 	struct pasn_data *pasn;
+	struct wpabuf *ranging_wrapper;
 	enum pr_pasn_role pasn_role;
 #endif /* CONFIG_PASN */
+
+	u8 ranging_role;
+	u8 protocol_type;
+	u8 final_op_class;
+	u8 final_op_channel;
 };
 
 
