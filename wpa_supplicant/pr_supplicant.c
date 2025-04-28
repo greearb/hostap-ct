@@ -244,6 +244,18 @@ struct wpabuf * wpas_pr_usd_elems(struct wpa_supplicant *wpa_s)
 }
 
 
+void wpas_pr_process_usd_elems(struct wpa_supplicant *wpa_s, const u8 *buf,
+			       u16 buf_len, const u8 *peer_addr,
+			       unsigned int freq)
+{
+	struct pr_data *pr = wpa_s->global->pr;
+
+	if (!pr)
+		return;
+	pr_process_usd_elems(pr, buf, buf_len, peer_addr, freq);
+}
+
+
 int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 		 const struct wpa_driver_capa *capa)
 {

@@ -96,6 +96,7 @@ enum ntb_format_and_bw_value {
 struct pr_device {
 	struct dl_list list;
 	struct os_reltime last_seen;
+	int listen_freq;
 
 	/**
 	 * pr_device_addr - PR Device Address of the peer
@@ -179,5 +180,7 @@ struct pr_data {
 struct pr_data * pr_init(const struct pr_config *cfg);
 void pr_deinit(struct pr_data *pr);
 struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr);
+void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
+			  const u8 *peer_addr, unsigned int freq);
 
 #endif /* PROXIMITY_RANGING_H */

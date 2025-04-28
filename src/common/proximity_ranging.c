@@ -13,6 +13,60 @@
 #include "proximity_ranging.h"
 
 
+static void pr_device_free(struct pr_data *pr, struct pr_device *dev)
+{
+	os_free(dev);
+}
+
+
+static struct pr_device * pr_get_device(struct pr_data *pr, const u8 *addr)
+{
+	struct pr_device *dev;
+
+	dl_list_for_each(dev, &pr->devices, struct pr_device, list) {
+		if (ether_addr_equal(dev->pr_device_addr, addr))
+			return dev;
+	}
+	return NULL;
+}
+
+
+static struct pr_device * pr_create_device(struct pr_data *pr, const u8 *addr)
+{
+	struct pr_device *dev, *oldest = NULL;
+	size_t count = 0;
+
+	dev = pr_get_device(pr, addr);
+	if (dev)
+		return dev;
+
+	dl_list_for_each(dev, &pr->devices, struct pr_device, list) {
+		count++;
+		if (!oldest ||
+		    os_reltime_before(&dev->last_seen, &oldest->last_seen))
+			oldest = dev;
+	}
+	if (count + 1 > PR_MAX_PEER && oldest) {
+		wpa_printf(MSG_DEBUG,
+			   "PR: Remove oldest peer entry to make room for a new peer "
+			   MACSTR, MAC2STR(oldest->pr_device_addr));
+		dl_list_del(&oldest->list);
+		pr_device_free(pr, oldest);
+	}
+
+	dev = os_zalloc(sizeof(*dev));
+	if (!dev)
+		return NULL;
+
+	dl_list_add(&pr->devices, &dev->list);
+	os_memcpy(dev->pr_device_addr, addr, ETH_ALEN);
+	wpa_printf(MSG_DEBUG, "PR: New Proximity Ranging device " MACSTR
+		   " added to list", MAC2STR(addr));
+
+	return dev;
+}
+
+
 struct pr_data * pr_init(const struct pr_config *cfg)
 {
 	struct pr_data *pr;
@@ -43,8 +97,10 @@ void pr_deinit(struct pr_data *pr)
 
 	os_free(pr->cfg->dev_name);
 
-	dl_list_for_each_safe(dev, prev, &pr->devices, struct pr_device, list)
+	dl_list_for_each_safe(dev, prev, &pr->devices, struct pr_device, list) {
 		dl_list_del(&dev->list);
+		pr_device_free(pr, dev);
+	}
 
 	os_free(pr);
 	wpa_printf(MSG_DEBUG, "PR: Deinit done");
@@ -98,4 +154,20 @@ struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr)
 	wpabuf_free(buf);
 
 	return buf2;
+}
+
+
+void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
+			  const u8 *peer_addr, unsigned int freq)
+{
+	struct pr_device *dev;
+
+	dev = pr_create_device(pr, peer_addr);
+	if (!dev) {
+		wpa_printf(MSG_INFO, "PR: Failed to create a device");
+		return;
+	}
+
+	os_get_reltime(&dev->last_seen);
+	dev->listen_freq = freq;
 }

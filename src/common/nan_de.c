@@ -850,7 +850,7 @@ static void nan_de_get_sdea(const u8 *buf, size_t len, u8 instance_id,
 
 static void nan_de_process_elem_container(struct nan_de *de, const u8 *buf,
 					  size_t len, const u8 *peer_addr,
-					  unsigned int freq, bool p2p)
+					  unsigned int freq, bool p2p, bool pr)
 {
 	const u8 *elem;
 	u16 elem_len;
@@ -872,6 +872,9 @@ static void nan_de_process_elem_container(struct nan_de *de, const u8 *buf,
 
 	if (p2p && de->cb.process_p2p_usd_elems)
 		de->cb.process_p2p_usd_elems(de->cb.ctx, elem, elem_len,
+					     peer_addr, freq);
+	if (pr && de->cb.process_pr_usd_elems)
+		de->cb.process_pr_usd_elems(de->cb.ctx, elem, elem_len,
 					     peer_addr, freq);
 }
 
@@ -1212,7 +1215,8 @@ static void nan_de_rx_sda(struct nan_de *de, const u8 *peer_addr, const u8 *a3,
 					    ssi, ssi_len);
 			}
 			nan_de_process_elem_container(de, buf, len, peer_addr,
-						      freq, srv->is_p2p);
+						      freq, srv->is_p2p,
+						      srv->is_pr);
 		}
 
 		switch (type) {

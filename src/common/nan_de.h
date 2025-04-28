@@ -60,6 +60,10 @@ struct nan_callbacks {
 	void (*process_p2p_usd_elems)(void *ctx, const u8 *buf,
 				      u16 buf_len, const u8 *peer_addr,
 				      unsigned int freq);
+
+	void (*process_pr_usd_elems)(void *ctx, const u8 *buf,
+				     u16 buf_len, const u8 *peer_addr,
+				     unsigned int freq);
 };
 
 bool nan_de_is_nan_network_id(const u8 *addr);

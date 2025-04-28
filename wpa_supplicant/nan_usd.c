@@ -339,6 +339,18 @@ static void wpas_nan_process_p2p_usd_elems(void *ctx, const u8 *buf,
 #endif /* CONFIG_P2P */
 
 
+#ifdef CONFIG_PR
+static void wpas_nan_process_pr_usd_elems(void *ctx, const u8 *buf, u16 buf_len,
+					  const u8 *peer_addr,
+					  unsigned int freq)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	wpas_pr_process_usd_elems(wpa_s, buf, buf_len, peer_addr, freq);
+}
+#endif /* CONFIG_PR */
+
+
 int wpas_nan_usd_init(struct wpa_supplicant *wpa_s)
 {
 	struct nan_callbacks cb;
@@ -358,6 +370,9 @@ int wpas_nan_usd_init(struct wpa_supplicant *wpa_s)
 #ifdef CONFIG_P2P
 	cb.process_p2p_usd_elems = wpas_nan_process_p2p_usd_elems;
 #endif /* CONFIG_P2P */
+#ifdef CONFIG_PR
+	cb.process_pr_usd_elems = wpas_nan_process_pr_usd_elems;
+#endif /* CONFIG_PR */
 
 	wpa_s->nan_de = nan_de_init(wpa_s->own_addr, offload, false,
 				    wpa_s->max_remain_on_chan, &cb);
