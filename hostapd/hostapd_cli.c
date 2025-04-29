@@ -1751,7 +1751,7 @@ static int hostapd_cli_cmd_driver(struct wpa_ctrl *ctrl, int argc, char *argv[])
 static int hostapd_cli_cmd_get_ibf(struct wpa_ctrl *ctrl, int argc,
 					   char *argv[])
 {
-	return hostapd_cli_cmd(ctrl, "GET_IBF", 0, NULL, NULL);
+	return hostapd_cli_cmd(ctrl, "GET_IBF", 0, 0, NULL);
 }
 
 
@@ -1765,14 +1765,14 @@ static int hostapd_cli_cmd_set_offchain(struct wpa_ctrl *ctrl, int argc,
 static int hostapd_cli_cmd_get_offchain(struct wpa_ctrl *ctrl, int argc,
 					char *argv[])
 {
-	return hostapd_cli_cmd(ctrl, "GET_OFFCHAIN", 0, NULL, NULL);
+	return hostapd_cli_cmd(ctrl, "GET_OFFCHAIN", 0, 0, NULL);
 }
 
 
 static int hostapd_cli_cmd_get_amsdu(struct wpa_ctrl *ctrl, int argc,
 					   char *argv[])
 {
-	return hostapd_cli_cmd(ctrl, "GET_AMSDU", 0, NULL, NULL);
+	return hostapd_cli_cmd(ctrl, "GET_AMSDU", 0, 0, NULL);
 }
 
 static int hostapd_cli_cmd_set_amnt(struct wpa_ctrl *ctrl, int argc,
