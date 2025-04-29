@@ -8129,6 +8129,12 @@ u8 * hostapd_eid_chsw_wrapper(struct hostapd_data *hapd, u8 *eid)
 #endif /* CONFIG_IEEE80211BE */
 
 	*eid_len_offset = (eid - eid_len_offset) - 1;
+	/* channel switch wrapper is empty, clear its tag */
+	if (!(*eid_len_offset)) {
+		eid -= 2;
+		*eid = 0;
+	}
+
 	return eid;
 }
 
