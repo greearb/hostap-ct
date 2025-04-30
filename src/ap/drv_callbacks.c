@@ -1392,7 +1392,6 @@ void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 	hapd->iconf->punct_bitmap = punct_bitmap;
 #endif /* CONFIG_IEEE80211BE */
 	if (hapd->iconf->ieee80211ac) {
-		hapd->iconf->vht_capab &= ~VHT_CAP_SUPP_CHAN_WIDTH_MASK;
 		if (chwidth == CONF_OPER_CHWIDTH_160MHZ)
 			hapd->iconf->vht_capab |=
 				VHT_CAP_SUPP_CHAN_WIDTH_160MHZ;
