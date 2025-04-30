@@ -1349,7 +1349,7 @@ static int hostapd_start_beacon(struct hostapd_data *hapd,
 {
 	struct hostapd_bss_config *conf = hapd->conf;
 
-	if (!conf->start_disabled && ieee802_11_set_beacon(hapd) < 0)
+	if (ieee802_11_set_beacon(hapd) < 0)
 		return -1;
 
 #ifdef CONFIG_IEEE80211BE
@@ -1364,10 +1364,9 @@ static int hostapd_start_beacon(struct hostapd_data *hapd,
 			ieee802_11_set_beacon(hapd);
 		}
 	}
-#endif /* CONFIG_IEEE80211BE */
 
-	if (flush_old_stations && !conf->start_disabled &&
-	    conf->broadcast_deauth) {
+	if (flush_old_stations &&
+	    conf->broadcast_deauth && (hapd->conf->mld_ap && !hapd->mld->started)) {
 		u8 addr[ETH_ALEN];
 
 		/* Should any previously associated STA not have noticed that
@@ -1380,9 +1379,13 @@ static int hostapd_start_beacon(struct hostapd_data *hapd,
 		hostapd_drv_sta_deauth(hapd, addr,
 				       WLAN_REASON_PREV_AUTH_NOT_VALID);
 	}
+#endif /* CONFIG_IEEE80211BE */
 
 	if (hapd->driver && hapd->driver->set_operstate)
 		hapd->driver->set_operstate(hapd->drv_priv, 1);
+
+	if (conf->start_disabled)
+		hostapd_drv_beacon_ctrl(hapd, false);
 
 	return 0;
 }
