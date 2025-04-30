@@ -1140,26 +1140,12 @@ void sae_accept_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	crypto_bignum_deinit(sta->sae->peer_commit_scalar_accepted, 0);
 	sta->sae->peer_commit_scalar_accepted = sta->sae->peer_commit_scalar;
 	sta->sae->peer_commit_scalar = NULL;
-#ifdef CONFIG_IEEE80211BE
-	if (hostapd_is_mld_ap(hapd)) {
-		struct hostapd_data *link = NULL;
 
-		for_each_mld_link(link, hapd) {
-			if (!link->started)
-				continue;
-			wpa_auth_pmksa_add_sae(link->wpa_auth, sta->addr,
-					sta->sae->pmk, sta->sae->pmk_len,
-					sta->sae->pmkid, sta->sae->akmp,
-					ap_sta_is_mld(hapd, sta));
-		}
-	} else
-#endif
-	{
-		wpa_auth_pmksa_add_sae(hapd->wpa_auth, sta->addr,
-				sta->sae->pmk, sta->sae->pmk_len,
-				sta->sae->pmkid, sta->sae->akmp,
-				ap_sta_is_mld(hapd, sta));
-	}
+	wpa_auth_pmksa_add_sae(hapd->wpa_auth, sta->addr,
+			       sta->sae->pmk, sta->sae->pmk_len,
+			       sta->sae->pmkid, sta->sae->akmp,
+			       ap_sta_is_mld(hapd, sta));
+
 	sae_sme_send_external_auth_status(hapd, sta, WLAN_STATUS_SUCCESS);
 }
 
