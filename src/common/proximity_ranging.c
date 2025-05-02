@@ -148,6 +148,13 @@ void pr_deinit(struct pr_data *pr)
 }
 
 
+void pr_set_dev_addr(struct pr_data *pr, const u8 *addr)
+{
+	if (pr && addr)
+		os_memcpy(pr->cfg->dev_addr, addr, ETH_ALEN);
+}
+
+
 void pr_clear_dev_iks(struct pr_data *pr)
 {
 	struct pr_device *dev;

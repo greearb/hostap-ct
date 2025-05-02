@@ -2645,6 +2645,7 @@ int wpas_update_random_addr(struct wpa_supplicant *wpa_s,
 	}
 
 	wpas_p2p_update_dev_addr(wpa_s);
+	wpas_pr_update_dev_addr(wpa_s);
 
 	wpa_msg(wpa_s, MSG_DEBUG, "Using random MAC address " MACSTR,
 		MAC2STR(addr));

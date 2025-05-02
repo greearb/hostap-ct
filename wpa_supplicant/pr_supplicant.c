@@ -427,6 +427,12 @@ void wpas_pr_deinit(struct wpa_supplicant *wpa_s)
 }
 
 
+void wpas_pr_update_dev_addr(struct wpa_supplicant *wpa_s)
+{
+	pr_set_dev_addr(wpa_s->global->pr, wpa_s->own_addr);
+}
+
+
 void wpas_pr_clear_dev_iks(struct wpa_supplicant *wpa_s)
 {
 	struct pr_data *pr = wpa_s->global->pr;
