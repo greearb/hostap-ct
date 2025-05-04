@@ -7358,7 +7358,7 @@ static int wpas_p2p_select_go_freq(struct wpa_supplicant *wpa_s, int freq)
 		}
 	}
 
-	if (freq == 2 || freq == 5) {
+	if (freq == 2 || freq == 5 || freq == 6) {
 		res = wpa_drv_get_pref_freq_list(wpa_s, WPA_IF_P2P_GO,
 						 &size, pref_freq_list);
 		if (!res && size > 0 && !is_p2p_allow_6ghz(wpa_s->global->p2p))
@@ -7468,6 +7468,36 @@ static int wpas_p2p_select_go_freq(struct wpa_supplicant *wpa_s, int freq)
 			}
 			wpa_printf(MSG_DEBUG, "P2P: Use random 5 GHz band "
 				   "channel: %d MHz", freq);
+		}
+	}
+
+	if (freq == 6) {
+		wpa_printf(MSG_DEBUG, "P2P: Request to start GO on 6 GHz band");
+		if (!res && size > 0) {
+			for (i = 0; i < size; i++) {
+				freq = pref_freq_list[i].freq;
+				if (is_6ghz_freq(freq) &&
+				    p2p_supported_freq(wpa_s->global->p2p,
+						       freq) &&
+				    !wpas_p2p_disallowed_freq(wpa_s->global,
+							      freq) &&
+				    p2p_pref_freq_allowed(&pref_freq_list[i],
+							  true))
+					break;
+			}
+
+			if (i >= size) {
+				wpa_printf(MSG_DEBUG,
+					   "P2P: Could not select 6 GHz channel for P2P group");
+				return -1;
+			}
+
+			wpa_printf(MSG_DEBUG,
+				   "P2P: Use preferred 6 GHz band channel: %d MHz",
+				   freq);
+		} else {
+			wpa_printf(MSG_DEBUG,
+				   "P2P: No preferred 6 GHz channel available");
 		}
 	}
 
