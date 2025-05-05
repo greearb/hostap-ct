@@ -847,7 +847,7 @@ static void wnm_add_cand_list(struct wpa_supplicant *wpa_s, struct wpabuf **buf)
 		struct wpa_bss *bss = wpa_s->last_scan_res[i];
 		int res;
 
-		if (wpa_scan_res_match(wpa_s, i, bss, ssid, 1, 0, false)) {
+		if (wpa_scan_res_match(wpa_s, i, bss, ssid, 1, 0)) {
 			res = wnm_nei_rep_add_bss(wpa_s, bss, buf, pref--);
 			if (res == -2)
 				continue; /* could not build entry for BSS */
@@ -1102,7 +1102,7 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
 	/* Apply normal roaming rules if we can stay with the current BSS */
 	if (current_bss && bss != current_bss &&
 	    wpa_scan_res_match(wpa_s, 0, current_bss, wpa_s->current_ssid,
-			       1, 0, false) &&
+			       1, 0) &&
 	    !wpa_supplicant_need_to_roam_within_ess(wpa_s, current_bss, bss,
 						    true))
 		bss = current_bss;
