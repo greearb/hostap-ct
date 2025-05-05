@@ -1664,9 +1664,12 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 	pos += sizeof(*ap_info);
 
 	for (i = 0; i < count; i++, pos += ap_info->tbtt_info_len) {
+		u8 bss_params;
+
 		if (end - pos < ap_info->tbtt_info_len)
 			break;
 
+		bss_params = pos[1 + ETH_ALEN + 4];
 		mld_params = pos + mld_params_offset;
 
 		link_id = *(mld_params + 1) & EHT_ML_LINK_ID_MSK;
@@ -1693,8 +1696,10 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 			if (!neigh_bss) {
 				*missing |= BIT(link_id);
 			} else if ((!ssid ||
+				    (bss_params & (RNR_BSS_PARAM_SAME_SSID |
+						   RNR_BSS_PARAM_CO_LOCATED)) ||
 				    wpa_scan_res_match(wpa_s, 0, neigh_bss,
-						       ssid, 1, 0, true))
+						       ssid, 1, 0))
 #if 0 /* MLD partner link should not be excluded */
 				   !wpa_bssid_ignore_is_listed(
 					   wpa_s, neigh_bss->bssid)

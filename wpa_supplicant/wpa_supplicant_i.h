@@ -2025,8 +2025,7 @@ void free_bss_tmp_disallowed(struct wpa_supplicant *wpa_s);
 struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 				     int i, struct wpa_bss *bss,
 				     struct wpa_ssid *group,
-				     int only_first_ssid, int debug_print,
-				     bool link);
+				     int only_first_ssid, int debug_print);
 
 struct wpa_bss * wpa_supplicant_select_bss(struct wpa_supplicant *wpa_s,
 					   struct wpa_ssid *group,
