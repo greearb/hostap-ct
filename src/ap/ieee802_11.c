@@ -7764,6 +7764,44 @@ static size_t hostapd_eid_nr_db_len(struct hostapd_data *hapd,
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+static bool hostapd_mbssid_mld_match(struct hostapd_data *tx_hapd,
+				     struct hostapd_data *ml_hapd,
+				     u8 *match_idx)
+{
+	size_t bss_idx;
+
+	if (!ml_hapd->conf->mld_ap)
+		return false;
+
+	if (!tx_hapd->iconf->mbssid || tx_hapd->iface->num_bss <= 1) {
+		if (hostapd_is_ml_partner(tx_hapd, ml_hapd)) {
+			if (match_idx)
+				*match_idx = 0;
+			return true;
+		}
+
+		return false;
+	}
+
+	for (bss_idx = 0; bss_idx < tx_hapd->iface->num_bss; bss_idx++) {
+		struct hostapd_data *bss = tx_hapd->iface->bss[bss_idx];
+
+		if (!bss)
+			continue;
+
+		if (hostapd_is_ml_partner(bss, ml_hapd)) {
+			if (match_idx)
+				*match_idx = bss_idx;
+			return true;
+		}
+	}
+
+	return false;
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 struct mbssid_ie_profiles {
 	u8 start;
 	u8 end;
@@ -7772,9 +7810,9 @@ struct mbssid_ie_profiles {
 static bool hostapd_skip_rnr(size_t i, struct mbssid_ie_profiles *skip_profiles,
 			     bool ap_mld, u8 tbtt_info_len, bool mld_update,
 			     struct hostapd_data *reporting_hapd,
-			     struct hostapd_data *bss)
+			     struct hostapd_data *bss, u8 *match_idx)
 {
-	if (skip_profiles &&
+	if (!mld_update && skip_profiles &&
 	    i >= skip_profiles->start && i < skip_profiles->end)
 		return true;
 
@@ -7796,7 +7834,17 @@ static bool hostapd_skip_rnr(size_t i, struct mbssid_ie_profiles *skip_profiles,
 
 	/* If building for ML RNR and they are not ML partners, don't include.
 	 */
-	if (mld_update && !hostapd_is_ml_partner(reporting_hapd, bss))
+	if (mld_update &&
+	    !hostapd_mbssid_mld_match(reporting_hapd, bss, match_idx))
+		return true;
+
+	/* When MLD parameters are added to beacon RNR and in case of EMA
+	 * beacons we report only affiliated APs belonging to the reported
+	 * non Tx profiles and TX profile will be reported in every EMA beacon.
+	 */
+	if (mld_update && skip_profiles && match_idx &&
+	    (*match_idx < skip_profiles->start ||
+	     *match_idx >= skip_profiles->end))
 		return true;
 #endif /* CONFIG_IEEE80211BE */
 
@@ -7850,7 +7898,7 @@ repeat_rnr_len:
 
 			if (hostapd_skip_rnr(i, skip_profiles, ap_mld,
 					     tbtt_info_len, mld_update,
-					     reporting_hapd, bss))
+					     reporting_hapd, bss, NULL))
 				continue;
 
 			if (len + tbtt_info_len > 255 ||
@@ -7967,6 +8015,7 @@ static size_t hostapd_eid_rnr_colocation_len(struct hostapd_data *hapd,
 
 
 static size_t hostapd_eid_rnr_mlo_len(struct hostapd_data *hapd, u32 type,
+				      struct mbssid_ie_profiles *skip_profiles,
 				      size_t *current_len)
 {
 	size_t len = 0;
@@ -7974,7 +8023,7 @@ static size_t hostapd_eid_rnr_mlo_len(struct hostapd_data *hapd, u32 type,
 	struct hostapd_iface *iface;
 	size_t i;
 
-	if (!hapd->iface || !hapd->iface->interfaces || !hapd->conf->mld_ap)
+	if (!hapd->iface || !hapd->iface->interfaces)
 		return 0;
 
 	/* TODO: Allow for FILS/Action as well */
@@ -7989,7 +8038,8 @@ static size_t hostapd_eid_rnr_mlo_len(struct hostapd_data *hapd, u32 type,
 			continue;
 
 		len += hostapd_eid_rnr_iface_len(iface->bss[0], hapd,
-						 current_len, NULL, true);
+						 current_len, skip_profiles,
+						 true);
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -8033,7 +8083,8 @@ size_t hostapd_eid_rnr_len(struct hostapd_data *hapd, u32 type,
 	if (include_mld_params &&
 	    (type != WLAN_FC_STYPE_BEACON ||
 	     hapd->iconf->mbssid != ENHANCED_MBSSID_ENABLED))
-		total_len += hostapd_eid_rnr_mlo_len(hapd, type, &current_len);
+		total_len += hostapd_eid_rnr_mlo_len(hapd, type, NULL,
+						     &current_len);
 
 	return total_len;
 }
@@ -8103,7 +8154,7 @@ static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
 {
 	struct hostapd_iface *iface = hapd->iface;
 	struct hostapd_data *bss = iface->bss[i];
-	u8 bss_param = 0;
+	u8 bss_param = 0, match_idx = 255;
 	bool ap_mld = false;
 	u8 *eid = *pos;
 
@@ -8116,7 +8167,7 @@ static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
 		return false;
 
 	if (hostapd_skip_rnr(i, skip_profiles, ap_mld, tbtt_info_len,
-			     mld_update, reporting_hapd, bss))
+			     mld_update, reporting_hapd, bss, &match_idx))
 	    return false;
 
 	if (*len + RNR_TBTT_INFO_LEN > 255 ||
@@ -8159,22 +8210,21 @@ static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
 #ifdef CONFIG_IEEE80211BE
 	if (ap_mld) {
 		u8 param_ch = bss->eht_mld_bss_param_change;
-		bool is_partner;
 
-		/* If BSS is not a partner of the reporting_hapd
+		/* If BSS is not a partner of the reporting_hapd or
+		 * it is one of the nontransmitted hapd,
 		 *  a) MLD ID advertised shall be 255.
 		 *  b) Link ID advertised shall be 15.
 		 *  c) BPCC advertised shall be 255 */
-		is_partner = hostapd_is_ml_partner(bss, reporting_hapd);
 		/* MLD ID */
-		*eid++ = is_partner ? hostapd_get_mld_id(bss) : 0xFF;
+		*eid++ = match_idx;
 		/* Link ID (Bit 3 to Bit 0)
 		 * BPCC (Bit 4 to Bit 7) */
-		*eid++ = is_partner ?
+		*eid++ = match_idx < 255 ?
 			bss->mld_link_id | ((param_ch & 0xF) << 4) :
 			(MAX_NUM_MLD_LINKS | 0xF0);
 		/* BPCC (Bit 3 to Bit 0) */
-		*eid = is_partner ? ((param_ch & 0xF0) >> 4) : 0x0F;
+		*eid = match_idx < 255 ? ((param_ch & 0xF0) >> 4) : 0x0F;
 #ifdef CONFIG_TESTING_OPTIONS
 		if (bss->conf->mld_indicate_disabled)
 			*eid |= RNR_TBTT_INFO_MLD_PARAM2_LINK_DISABLED;
@@ -8291,13 +8341,15 @@ static u8 * hostapd_eid_rnr_colocation(struct hostapd_data *hapd, u8 *eid,
 
 
 static u8 * hostapd_eid_rnr_mlo(struct hostapd_data *hapd, u32 type,
-				u8 *eid, size_t *current_len)
+				u8 *eid,
+				struct mbssid_ie_profiles *skip_profiles,
+				size_t *current_len)
 {
 #ifdef CONFIG_IEEE80211BE
 	struct hostapd_iface *iface;
 	size_t i;
 
-	if (!hapd->iface || !hapd->iface->interfaces || !hapd->conf->mld_ap)
+	if (!hapd->iface || !hapd->iface->interfaces)
 		return eid;
 
 	/* TODO: Allow for FILS/Action as well */
@@ -8312,7 +8364,7 @@ static u8 * hostapd_eid_rnr_mlo(struct hostapd_data *hapd, u32 type,
 			continue;
 
 		eid = hostapd_eid_rnr_iface(iface->bss[0], hapd, eid,
-					    current_len, NULL, true);
+					    current_len, skip_profiles, true);
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -8356,7 +8408,7 @@ u8 * hostapd_eid_rnr(struct hostapd_data *hapd, u8 *eid, u32 type,
 	if (include_mld_params &&
 	    (type != WLAN_FC_STYPE_BEACON ||
 	     hapd->iconf->mbssid != ENHANCED_MBSSID_ENABLED))
-		eid = hostapd_eid_rnr_mlo(hapd, type, eid, &current_len);
+		eid = hostapd_eid_rnr_mlo(hapd, type, eid, NULL, &current_len);
 
 	if (eid == eid_start + 2)
 		return eid_start;
@@ -8498,11 +8550,6 @@ size_t hostapd_eid_mbssid_len(struct hostapd_data *hapd, u32 frame_type,
 			      size_t known_bss_len, size_t *rnr_len)
 {
 	size_t len = 0, bss_index = 1;
-	bool ap_mld = false;
-
-#ifdef CONFIG_IEEE80211BE
-	ap_mld = hapd->conf->mld_ap;
-#endif /* CONFIG_IEEE80211BE */
 
 	if (!hapd->iconf->mbssid || hapd->iface->num_bss <= 1 ||
 	    (frame_type != WLAN_FC_STYPE_BEACON &&
@@ -8535,7 +8582,11 @@ size_t hostapd_eid_mbssid_len(struct hostapd_data *hapd, u32 frame_type,
 
 			*rnr_len += hostapd_eid_rnr_iface_len(
 				hapd, hostapd_mbssid_get_tx_bss(hapd),
-				&rnr_cur_len, &skip_profiles, ap_mld);
+				&rnr_cur_len, &skip_profiles, false);
+
+			*rnr_len += hostapd_eid_rnr_mlo_len(
+				hostapd_mbssid_get_tx_bss(hapd), frame_type,
+				&skip_profiles, &rnr_cur_len);
 		}
 	}
 
@@ -8687,11 +8738,7 @@ u8 * hostapd_eid_mbssid(struct hostapd_data *hapd, u8 *eid, u8 *end,
 {
 	size_t bss_index = 1, cur_len = 0;
 	u8 elem_index = 0, *rnr_start_eid = rnr_eid;
-	bool add_rnr, ap_mld = false;
-
-#ifdef CONFIG_IEEE80211BE
-	ap_mld = hapd->conf->mld_ap;
-#endif /* CONFIG_IEEE80211BE */
+	bool add_rnr;
 
 	if (!hapd->iconf->mbssid || hapd->iface->num_bss <= 1 ||
 	    (frame_stype != WLAN_FC_STYPE_BEACON &&
@@ -8736,7 +8783,10 @@ u8 * hostapd_eid_mbssid(struct hostapd_data *hapd, u8 *eid, u8 *end,
 			cur_len = 0;
 			rnr_eid = hostapd_eid_rnr_iface(
 				hapd, hostapd_mbssid_get_tx_bss(hapd),
-				rnr_eid, &cur_len, &skip_profiles, ap_mld);
+				rnr_eid, &cur_len, &skip_profiles, false);
+			rnr_eid = hostapd_eid_rnr_mlo(
+				hostapd_mbssid_get_tx_bss(hapd), frame_stype,
+				rnr_eid, &skip_profiles, &cur_len);
 		}
 	}
 
