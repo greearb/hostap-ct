@@ -738,7 +738,10 @@ static void hostapd_free_probe_resp_params(struct probe_resp_params *params)
 static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 					   struct probe_resp_params *params)
 {
+	struct hostapd_data *hapd_probed = hapd;
 	size_t buflen = 0;
+
+	hapd = hostapd_mbssid_get_tx_bss(hapd);
 
 #ifdef CONFIG_WPS
 	if (hapd->wps_probe_resp_ie)
@@ -783,6 +786,10 @@ static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 			 * switch */
 			buflen += 6;
 		}
+
+		if (hapd_probed != hapd && hapd_probed->conf->mld_ap)
+			buflen += hostapd_eid_eht_basic_ml_len(hapd_probed,
+							       NULL, true);
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -805,9 +812,11 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 					  struct probe_resp_params *params,
 					  u8 *pos, size_t len)
 {
+	struct hostapd_data *hapd_probed = hapd;
 	u8 *csa_pos;
 	u8 *epos;
 
+	hapd = hostapd_mbssid_get_tx_bss(hapd);
 	epos = pos + len;
 
 	*pos++ = WLAN_EID_SSID;
@@ -941,6 +950,10 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 		pos = hostapd_eid_eht_capab(hapd, pos, IEEE80211_MODE_AP);
 		pos = hostapd_eid_eht_operation(hapd, pos);
 	}
+
+	if (hapd_probed != hapd && hapd_probed->conf->mld_ap)
+		pos = hostapd_eid_eht_basic_ml_common(hapd_probed, pos, NULL,
+						      true);
 #endif /* CONFIG_IEEE80211BE */
 
 #ifdef CONFIG_IEEE80211AC
@@ -1009,6 +1022,7 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 static void hostapd_gen_probe_resp(struct hostapd_data *hapd,
 				   struct probe_resp_params *params)
 {
+	struct hostapd_data *hapd_probed = hapd;
 	u8 *pos;
 	size_t buflen;
 
@@ -1016,7 +1030,7 @@ static void hostapd_gen_probe_resp(struct hostapd_data *hapd,
 
 #define MAX_PROBERESP_LEN 768
 	buflen = MAX_PROBERESP_LEN;
-	buflen += hostapd_probe_resp_elems_len(hapd, params);
+	buflen += hostapd_probe_resp_elems_len(hapd_probed, params);
 	params->resp = os_zalloc(buflen);
 	if (!params->resp) {
 		params->resp_len = 0;
@@ -1046,7 +1060,7 @@ static void hostapd_gen_probe_resp(struct hostapd_data *hapd,
 	params->resp->u.probe_resp.capab_info =
 		host_to_le16(hostapd_own_capab_info(hapd));
 
-	pos = hostapd_probe_resp_fill_elems(hapd, params,
+	pos = hostapd_probe_resp_fill_elems(hapd_probed, params,
 					    params->resp->u.probe_resp.variable,
 					    buflen);
 
