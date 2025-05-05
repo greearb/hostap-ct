@@ -439,9 +439,15 @@ void hostapd_get_eht_capab(struct hostapd_data *hapd,
 }
 
 
-static u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
-					    u8 *eid, struct mld_info *mld_info,
-					    bool include_mld_id)
+/* Beacon or a non ML Probe Response frame should include
+ * Common Info Length(1) + MLD MAC Address(6) +
+ * Link ID Info(1) + BSS Parameters Change count(1) +
+ * EML Capabilities (2) + MLD Capabilities (2)
+ */
+#define EHT_ML_COMMON_INFO_LEN 13
+u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
+				     u8 *eid, struct mld_info *mld_info,
+				     bool include_mld_id)
 {
 	struct wpabuf *buf;
 	u16 control;
@@ -475,7 +481,6 @@ static u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	 * BSS Parameters Change Count (1) + EML Capabilities (2) +
 	 * MLD Capabilities and Operations (2)
 	 */
-#define EHT_ML_COMMON_INFO_LEN 13
 	common_info_len = EHT_ML_COMMON_INFO_LEN;
 
 	if (include_mld_id) {
@@ -664,6 +669,76 @@ out:
 
 	wpabuf_free(buf);
 	return pos;
+}
+
+
+/*
+ * control (2) + station info length (1) + MAC address (6) +
+ * beacon interval (2) + TSF offset (8) + DTIM info (2) + BSS
+ * parameters change counter (1)
+ */
+#define EHT_ML_STA_INFO_LENGTH 22
+size_t hostapd_eid_eht_basic_ml_len(struct hostapd_data *hapd,
+				    struct sta_info *info,
+				    bool include_mld_id)
+{
+	int link_id;
+	size_t len, num_frags;
+
+	if (!hapd->conf->mld_ap)
+		return 0;
+
+	/* Include WLAN_EID_EXT_MULTI_LINK (1) */
+	len = 1;
+	/* control field */
+	len += 2;
+	/* Common info len for Basic MLE */
+	len += EHT_ML_COMMON_INFO_LEN;
+	if (include_mld_id)
+		len++;
+
+	if (!info)
+		goto out;
+
+	/* Add link info for the other links */
+	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+		struct mld_link_info *link = &info->mld_info.links[link_id];
+		struct hostapd_data *link_bss;
+		size_t sta_prof_len = EHT_ML_STA_INFO_LENGTH +
+			link->resp_sta_profile_len;
+
+		/* Skip the local one */
+		if (link_id == hapd->mld_link_id || !link->valid)
+			continue;
+
+		link_bss = hostapd_mld_get_link_bss(hapd, link_id);
+		if (!link_bss) {
+			wpa_printf(MSG_ERROR,
+				   "MLD: Couldn't find link BSS - skip it");
+			continue;
+		}
+
+		/* Per-STA Profile Subelement(1), Length (1) */
+		len += 2;
+		len += sta_prof_len;
+		/* Consider Fragment EID(1) and Length (1) for each subelement
+		 * fragment. */
+		if (sta_prof_len > 255) {
+			num_frags = (sta_prof_len / 255 - 1) +
+				!!(sta_prof_len % 255);
+			len += num_frags * 2;
+		}
+
+	}
+
+out:
+	if (len > 255) {
+		num_frags = (len / 255 - 1) + !!(len % 255);
+		len += num_frags * 2;
+	}
+
+	/* WLAN_EID_EXTENSION (1) + length (1) */
+	return len + 2;
 }
 
 
