@@ -1805,6 +1805,12 @@ struct wpa_driver_ap_params {
 	const char *mbssid_tx_iface;
 
 	/**
+	 * mbssid_tx_iface_linkid - Link ID of the transmitting interface if
+	 * it is part of an MLD. Otherwise, -1.
+	 */
+	int mbssid_tx_iface_linkid;
+
+	/**
 	 * mbssid_index - The index of this BSS in the MBSSID set
 	 */
 	unsigned int mbssid_index;

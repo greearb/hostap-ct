@@ -634,6 +634,12 @@ ieee802_11_build_ap_params_mbssid(struct hostapd_data *hapd,
 	if (iface->conf->mbssid == ENHANCED_MBSSID_ENABLED)
 		params->ema = true;
 
+	params->mbssid_tx_iface_linkid = -1;
+#ifdef CONFIG_IEEE80211BE
+	if (tx_bss->conf->mld_ap)
+		params->mbssid_tx_iface_linkid = tx_bss->mld_link_id;
+#endif /* CONFIG_IEEE80211BE */
+
 	return 0;
 
 fail:

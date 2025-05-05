@@ -4940,6 +4940,10 @@ static int nl80211_mbssid(struct nl_msg *msg,
 		    nla_put_u32(msg, NL80211_MBSSID_CONFIG_ATTR_TX_IFINDEX,
 				ifidx))
 			return -1;
+		if (params->mbssid_tx_iface_linkid >= 0 &&
+		    nla_put_u8(msg, NL80211_MBSSID_CONFIG_ATTR_TX_LINK_ID,
+			       params->mbssid_tx_iface_linkid))
+			return -1;
 	}
 
 	if (params->ema && nla_put_flag(msg, NL80211_MBSSID_CONFIG_ATTR_EMA))
