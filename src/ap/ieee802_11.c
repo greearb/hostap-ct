@@ -7801,17 +7801,52 @@ u8 * hostapd_eid_txpower_envelope(struct hostapd_data *hapd, u8 *eid)
 static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 					  u8 chan1, u8 chan2)
 {
+	int bandwidth = hapd->cs_freq_params.bandwidth;
 	u8 bw;
 #ifdef CONFIG_IEEE80211BE
-	enum oper_chan_width oper_chwidth = CONF_OPER_CHWIDTH_160MHZ;
 	u16 punct_bitmap = hapd->cs_freq_params.punct_bitmap;
+
+	if (punct_bitmap) {
+		enum oper_chan_width oper_chwidth;
+
+		switch (bandwidth) {
+		case 320:
+			oper_chwidth = CONF_OPER_CHWIDTH_320MHZ;
+			break;
+		case 160:
+			oper_chwidth = CONF_OPER_CHWIDTH_160MHZ;
+			break;
+		case 80:
+			oper_chwidth = CONF_OPER_CHWIDTH_80MHZ;
+			break;
+		default:
+			/* not valid punctured bitmap */
+			return eid;
+		}
+
+		punct_update_legacy_bw(punct_bitmap,
+				       hapd->cs_freq_params.channel,
+				       &oper_chwidth, &chan1, &chan2);
+		switch (oper_chwidth) {
+		case CONF_OPER_CHWIDTH_160MHZ:
+			bandwidth = 160;
+			break;
+		case CONF_OPER_CHWIDTH_80MHZ:
+			bandwidth = 80;
+			break;
+		case CONF_OPER_CHWIDTH_USE_HT:
+		default:
+			bandwidth = chan1 ? 40 : 20;
+			break;
+		}
+	}
 #endif /* CONFIG_IEEE80211BE */
 
 	/* bandwidth: 0: 40, 1: 80, 160, 80+80, 4 to 255 reserved as per
 	 * IEEE Std 802.11-2024, 9.4.2.156 and Table 9-316 (VHT Operation
 	 * Information subfields).
 	 */
-	switch (hapd->cs_freq_params.bandwidth) {
+	switch (bandwidth) {
 	case 320:
 		/* As per IEEE P802.11be/D7.0, 35.15.3,
 		 * For EHT BSS operating channel width wider than 160 MHz,
@@ -7825,10 +7860,6 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 			chan1 -= 16;
 		else
 			chan1 += 16;
-
-#ifdef CONFIG_IEEE80211BE
-		oper_chwidth = CONF_OPER_CHWIDTH_320MHZ;
-#endif
 		/* fallthrough */
 	case 160:
 		/* Update the CCFS0 and CCFS1 values in the element based on
@@ -7851,28 +7882,14 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 		break;
 	case 80:
 		bw = 1;
-#ifdef CONFIG_IEEE80211BE
-		oper_chwidth = CONF_OPER_CHWIDTH_80MHZ;
-#endif
 		break;
 	case 40:
 		bw = 0;
-#ifdef CONFIG_IEEE80211BE
-		oper_chwidth = CONF_OPER_CHWIDTH_USE_HT;
-#endif
 		break;
 	default:
 		/* not valid VHT bandwidth or not in CSA */
 		return eid;
 	}
-
-#ifdef CONFIG_IEEE80211BE
-	if (punct_bitmap) {
-		punct_update_legacy_bw(punct_bitmap,
-				       hapd->cs_freq_params.channel,
-				       &oper_chwidth, &chan1, &chan2);
-	}
-#endif /* CONFIG_IEEE80211BE */
 
 	*eid++ = WLAN_EID_WIDE_BW_CHSWITCH;
 	*eid++ = 3; /* Length of Wide Bandwidth Channel Switch element */
