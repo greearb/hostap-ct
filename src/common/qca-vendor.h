@@ -11640,7 +11640,7 @@ enum qca_wlan_vendor_attr_twt_resume {
  * @QCA_WLAN_VENDOR_ATTR_TWT_NUDGE_NEXT_TWT_SIZE: Required (u32)
  * This attribute represents the next TWT subfield size.
  * Value 0 represents 0 bits, 1 represents 32 bits, 2 for 48 bits,
- * and 4 for 64 bits.
+ * and 3 for 64 bits.
  *
  * @QCA_WLAN_VENDOR_ATTR_TWT_NUDGE_MAC_ADDR: 6-byte MAC address
  * Represents the MAC address of the peer to which TWT Suspend and Resume is
