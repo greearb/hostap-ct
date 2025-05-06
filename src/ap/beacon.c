@@ -738,7 +738,9 @@ static void hostapd_free_probe_resp_params(struct probe_resp_params *params)
 static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 					   struct probe_resp_params *params)
 {
+#ifdef CONFIG_IEEE80211BE
 	struct hostapd_data *hapd_probed = hapd;
+#endif /* CONFIG_IEEE80211BE */
 	size_t buflen = 0;
 
 	hapd = hostapd_mbssid_get_tx_bss(hapd);
@@ -812,7 +814,9 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 					  struct probe_resp_params *params,
 					  u8 *pos, size_t len)
 {
+#ifdef CONFIG_IEEE80211BE
 	struct hostapd_data *hapd_probed = hapd;
+#endif /* CONFIG_IEEE80211BE */
 	u8 *csa_pos;
 	u8 *epos;
 
