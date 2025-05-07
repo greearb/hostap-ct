@@ -232,7 +232,7 @@ skip_rsn_wpa:
 	wpa_printf(MSG_INFO, "STA " MACSTR
 		   " proto=%s%s%s"
 		   "pairwise=%s%s%s%s%s%s%s"
-		   "key_mgmt=%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
+		   "key_mgmt=%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
 		   "rsn_capab=%s%s%s%s%s%s%s%s%s%s",
 		   MAC2STR(sta->addr),
 		   sta->proto == 0 ? "OPEN " : "",
@@ -257,6 +257,16 @@ skip_rsn_wpa:
 		   "EAP-SHA256 " : "",
 		   sta->key_mgmt & WPA_KEY_MGMT_PSK_SHA256 ?
 		   "PSK-SHA256 " : "",
+		   sta->key_mgmt & WPA_KEY_MGMT_SAE ? "SAE " : "",
+		   sta->key_mgmt & WPA_KEY_MGMT_FT_SAE ? "FT-SAE " : "",
+		   sta->key_mgmt & WPA_KEY_MGMT_FILS_SHA256 ? "FILS-SHA256 " :
+		   "",
+		   sta->key_mgmt & WPA_KEY_MGMT_FILS_SHA384 ? "FILS-SHA384 " :
+		   "",
+		   sta->key_mgmt & WPA_KEY_MGMT_FT_FILS_SHA256 ?
+		   "FILS-FT-SHA256 " : "",
+		   sta->key_mgmt & WPA_KEY_MGMT_FT_FILS_SHA384 ?
+		   "FILS-FT-SHA384 " : "",
 		   sta->key_mgmt & WPA_KEY_MGMT_OWE ? "OWE " : "",
 		   sta->key_mgmt & WPA_KEY_MGMT_PASN ? "PASN " : "",
 		   sta->key_mgmt & WPA_KEY_MGMT_DPP ? "DPP " : "",
@@ -266,6 +276,12 @@ skip_rsn_wpa:
 		   "EAP-SUITE-B-192 " : "",
 		   sta->key_mgmt & WPA_KEY_MGMT_IEEE8021X_SHA384 ?
 		   "EAP-SHA384 " : "",
+		   sta->key_mgmt & WPA_KEY_MGMT_FT_IEEE8021X_SHA384 ?
+		   "FT-EAP-SHA384 " : "",
+		   sta->key_mgmt & WPA_KEY_MGMT_SAE_EXT_KEY ? "SAE-EXT-KEY " :
+		   "",
+		   sta->key_mgmt & WPA_KEY_MGMT_FT_SAE_EXT_KEY ?
+		   "FT-SAE-EXT-KEY " : "",
 		   sta->rsn_capab & WPA_CAPABILITY_PREAUTH ? "PREAUTH " : "",
 		   sta->rsn_capab & WPA_CAPABILITY_NO_PAIRWISE ?
 		   "NO_PAIRWISE " : "",
