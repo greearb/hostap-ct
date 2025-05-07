@@ -2390,7 +2390,7 @@ void wpas_dbus_signal_p2p_bootstrap_req(struct wpa_supplicant *wpa_s,
  * @wpa_s: %wpa_supplicant network interface data
  * @src: Source address of the peer with which bootstrapping is done
  * @status: Status of Bootstrapping handshake
- * @bootstrap_method: Peer's bootstrap method if status is success
+ * @bootstrap_method: Local device requested bootstrap method
  *
  * Sends a signal to notify that a peer P2P Device is requesting bootstrapping
  * negotiation with us.
