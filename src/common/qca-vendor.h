@@ -6566,6 +6566,36 @@ enum qca_vendor_attr_roam_candidate_selection_criteria {
  *	interval until a candidate is found.
  *	This configuration is valid until next disconnection. If this attribute
  *	is not present, the existing configuration shall be used.
+ *
+ * @QCA_ATTR_ROAM_CONTROL_CANDIDATE_SCORE_MIN_DELTA_THRESHOLD: Unsigned 32-bit
+ *	value.
+ *	This attribute indicates the minimum roam score difference for an AP to
+ *	be considered as a candidate. A roam candidate AP will be ignored if
+ *	the score difference between the roam candidate AP and the current
+ *	connected AP is less than the sum of the current connected AP score and
+ *	the roam score delta.
+ *
+ *	The configuration is valid until next disconnection. If this attribute
+ *	is not present, the existing configuration shall be used.
+ *
+ * @QCA_ATTR_ROAM_CONTROL_CONNECTED_BSS_RECONNECT_DISALLOW_PERIOD: Unsigned
+ *	32-bit value.
+ *	This attribute specifies the duration (in seconds) of the current BSS
+ *	connection from the last successful association, after which the
+ *	connected BSS can be considered as a roaming candidate upon receiving
+ *	a Deauthentication or Disassociation frame from the BSS, provided no
+ *	alternative candidate is available. The connection timer to monitor the
+ *	disallow period should start after each successful connection.
+ *
+ *	This configuration is valid until next disconnection. If this attribute
+ *	is not present, the existing configuration shall be used.
+ *	0 - Always disallow roaming to the current connected BSS when a
+ *	Deauthentication or Disassociation frame is received from the connected
+ *	BSS.
+ *	Other values - Disallow roaming to the current connected BSS for the
+ *	specified duration from the last successful connection time when a
+ *	Deauthentication or Disassociation frame is received from the connected
+ *	BSS.
  */
 enum qca_vendor_attr_roam_control {
 	QCA_ATTR_ROAM_CONTROL_ENABLE = 1,
@@ -6605,6 +6635,8 @@ enum qca_vendor_attr_roam_control {
 	QCA_ATTR_ROAM_CONTROL_CANDIDATE_SCORE_THRESHOLD_PERCENTAGE = 35,
 	QCA_ATTR_ROAM_CONTROL_CONNECTED_LOW_RSSI_THRESHOLD_DECREMENT = 36,
 	QCA_ATTR_ROAM_CONTROL_PERIODIC_ROAM_SCAN_INTERVAL = 37,
+	QCA_ATTR_ROAM_CONTROL_CANDIDATE_SCORE_MIN_DELTA_THRESHOLD = 38,
+	QCA_ATTR_ROAM_CONTROL_CONNECTED_BSS_RECONNECT_DISALLOW_PERIOD = 39,
 
 	/* keep last */
 	QCA_ATTR_ROAM_CONTROL_AFTER_LAST,
