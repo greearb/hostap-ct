@@ -7318,13 +7318,11 @@ int wpas_p2p_group_remove(struct wpa_supplicant *wpa_s, const char *ifname)
 
 static int wpas_p2p_select_go_freq(struct wpa_supplicant *wpa_s, int freq)
 {
-	unsigned int r;
+	unsigned int r, i, size = P2P_MAX_PREF_CHANNELS;
+	struct weighted_pcl pref_freq_list[P2P_MAX_PREF_CHANNELS];
+	int res = -1;
 
 	if (!wpa_s->conf->num_p2p_pref_chan && !freq) {
-		unsigned int i, size = P2P_MAX_PREF_CHANNELS;
-		struct weighted_pcl pref_freq_list[P2P_MAX_PREF_CHANNELS];
-		int res;
-
 		res = wpa_drv_get_pref_freq_list(wpa_s, WPA_IF_P2P_GO,
 						 &size, pref_freq_list);
 		if (!res && size > 0 && !is_p2p_allow_6ghz(wpa_s->global->p2p))
@@ -7360,6 +7358,13 @@ static int wpas_p2p_select_go_freq(struct wpa_supplicant *wpa_s, int freq)
 		}
 	}
 
+	if (freq == 2 || freq == 5) {
+		res = wpa_drv_get_pref_freq_list(wpa_s, WPA_IF_P2P_GO,
+						 &size, pref_freq_list);
+		if (!res && size > 0 && !is_p2p_allow_6ghz(wpa_s->global->p2p))
+			size = p2p_remove_6ghz_channels(pref_freq_list, size);
+	}
+
 	if (freq == 2) {
 		wpa_printf(MSG_DEBUG, "P2P: Request to start GO on 2.4 GHz "
 			   "band");
@@ -7369,6 +7374,28 @@ static int wpas_p2p_select_go_freq(struct wpa_supplicant *wpa_s, int freq)
 			freq = wpa_s->best_24_freq;
 			wpa_printf(MSG_DEBUG, "P2P: Use best 2.4 GHz band "
 				   "channel: %d MHz", freq);
+		} else if (!res && size > 0) {
+			for (i = 0; i < size; i++) {
+				freq = pref_freq_list[i].freq;
+				if (is_24ghz_freq(freq) &&
+				    p2p_supported_freq(wpa_s->global->p2p,
+						       freq) &&
+				    !wpas_p2p_disallowed_freq(wpa_s->global,
+							      freq) &&
+				    p2p_pref_freq_allowed(&pref_freq_list[i],
+							  true))
+					break;
+			}
+
+			if (i >= size) {
+				wpa_printf(MSG_DEBUG,
+					   "P2P: Could not select 2.4 GHz channel for P2P group");
+				return -1;
+			}
+
+			wpa_printf(MSG_DEBUG,
+				   "P2P: Use preferred 2.4 GHz band channel: %d MHz",
+				   freq);
 		} else {
 			if (os_get_random((u8 *) &r, sizeof(r)) < 0)
 				return -1;
@@ -7387,6 +7414,27 @@ static int wpas_p2p_select_go_freq(struct wpa_supplicant *wpa_s, int freq)
 			freq = wpa_s->best_5_freq;
 			wpa_printf(MSG_DEBUG, "P2P: Use best 5 GHz band "
 				   "channel: %d MHz", freq);
+		} else if (!res && size > 0) {
+			for (i = 0; i < size; i++) {
+				freq = pref_freq_list[i].freq;
+				if (is_5ghz_freq(freq) &&
+				    p2p_supported_freq(wpa_s->global->p2p,
+						       freq) &&
+				    !wpas_p2p_disallowed_freq(wpa_s->global,
+							      freq) &&
+				    p2p_pref_freq_allowed(&pref_freq_list[i],
+							  true))
+					break;
+			}
+
+			if (i >= size) {
+				wpa_printf(MSG_DEBUG,
+					   "P2P: Could not select 5 GHz channel for P2P group");
+				return -1;
+			}
+			wpa_printf(MSG_DEBUG,
+				   "P2P: Use preferred 5 GHz band channel: %d MHz",
+				   freq);
 		} else {
 			const int freqs[] = {
 				/* operating class 115 */
@@ -7394,7 +7442,7 @@ static int wpas_p2p_select_go_freq(struct wpa_supplicant *wpa_s, int freq)
 				/* operating class 124 */
 				5745, 5765, 5785, 5805,
 			};
-			unsigned int i, num_freqs = ARRAY_SIZE(freqs);
+			unsigned int num_freqs = ARRAY_SIZE(freqs);
 
 			if (os_get_random((u8 *) &r, sizeof(r)) < 0)
 				return -1;

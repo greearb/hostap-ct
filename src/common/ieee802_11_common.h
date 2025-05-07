@@ -300,6 +300,8 @@ u8 country_to_global_op_class(const char *country, u8 op_class);
 
 const struct oper_class_map * get_oper_class(const char *country, u8 op_class);
 int oper_class_bw_to_int(const struct oper_class_map *map);
+bool is_24ghz_freq(int freq);
+bool is_5ghz_freq(int freq);
 int center_idx_to_bw_6ghz(u8 idx);
 bool is_6ghz_freq(int freq);
 bool is_6ghz_op_class(u8 op_class);

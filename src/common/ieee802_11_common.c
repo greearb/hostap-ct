@@ -2927,6 +2927,18 @@ int oper_class_bw_to_int(const struct oper_class_map *map)
 }
 
 
+bool is_24ghz_freq(int freq)
+{
+	return freq >= 2400 && freq <= 2484;
+}
+
+
+bool is_5ghz_freq(int freq)
+{
+	return freq >= 5150 && freq <= 5885;
+}
+
+
 int center_idx_to_bw_6ghz(u8 idx)
 {
 	/* Channel: 2 */
