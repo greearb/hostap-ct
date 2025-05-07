@@ -1683,9 +1683,9 @@ void rx_data_eapol(struct wlantest *wt, const u8 *bssid, const u8 *sta_addr,
 	hdr = (const struct ieee802_1x_hdr *) data;
 	length = be_to_host16(hdr->length);
 	wpa_printf(MSG_DEBUG, "RX EAPOL: " MACSTR " -> " MACSTR "%s ver=%u "
-		   "type=%u len=%u",
+		   "type=%u len=%u #%u",
 		   MAC2STR(src), MAC2STR(dst), prot ? " Prot" : "",
-		   hdr->version, hdr->type, length);
+		   hdr->version, hdr->type, length, wt->frame_num);
 	if (hdr->version < 1 || hdr->version > 3) {
 		wpa_printf(MSG_INFO, "Unexpected EAPOL version %u from "
 			   MACSTR, hdr->version, MAC2STR(src));

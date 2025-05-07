@@ -3950,12 +3950,13 @@ void rx_mgmt(struct wlantest *wt, const u8 *data, size_t len)
 		    stype == WLAN_FC_STYPE_PROBE_RESP ||
 		    stype == WLAN_FC_STYPE_PROBE_REQ) ?
 		   MSG_EXCESSIVE : MSG_MSGDUMP,
-		   "MGMT %s%s%s DA=" MACSTR " SA=" MACSTR " BSSID=" MACSTR,
+		   "MGMT %s%s%s DA=" MACSTR " SA=" MACSTR " BSSID=" MACSTR
+		   " #%u",
 		   mgmt_stype(stype),
 		   fc & WLAN_FC_PWRMGT ? " PwrMgt" : "",
 		   fc & WLAN_FC_ISWEP ? " Prot" : "",
 		   MAC2STR(hdr->addr1), MAC2STR(hdr->addr2),
-		   MAC2STR(hdr->addr3));
+		   MAC2STR(hdr->addr3), wt->frame_num);
 
 	if ((fc & WLAN_FC_ISWEP) &&
 	    !(hdr->addr1[0] & 0x01) &&
