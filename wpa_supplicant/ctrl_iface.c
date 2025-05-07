@@ -7365,7 +7365,18 @@ static int p2p_ctrl_group_add(struct wpa_supplicant *wpa_s, char *cmd)
 
 #ifdef CONFIG_ACS
 	if ((wpa_s->drv_flags & WPA_DRIVER_FLAGS_ACS_OFFLOAD) &&
-	    (acs || freq == 2 || freq == 5)) {
+	    (freq == 2 || freq == 5)) {
+		unsigned int res, size = P2P_MAX_PREF_CHANNELS;
+		struct weighted_pcl pref_freq_list[P2P_MAX_PREF_CHANNELS];
+
+		acs = 1;
+		res = wpa_drv_get_pref_freq_list(wpa_s, WPA_IF_P2P_GO,
+						 &size, pref_freq_list);
+		if (!res && size > 0)
+			acs = 0;
+	}
+
+	if ((wpa_s->drv_flags & WPA_DRIVER_FLAGS_ACS_OFFLOAD) && acs) {
 		if (freq == 2 && wpa_s->best_24_freq <= 0) {
 			wpa_s->p2p_go_acs_band = HOSTAPD_MODE_IEEE80211G;
 			wpa_s->p2p_go_do_acs = 1;
