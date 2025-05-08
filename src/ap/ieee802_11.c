@@ -4884,14 +4884,51 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 }
 
 
+static bool is_rsne_present_in_assoc_resp(struct wpa_state_machine *sm,
+					  struct hostapd_data *hapd,
+					  u8 **pmkid)
+{
+	switch (sm->auth_alg) {
+	case WLAN_AUTH_FT:
+#ifdef CONFIG_IEEE80211R_AP
+		*pmkid = sm->pmk_r1_name;
+#endif
+		return true;
+	case WLAN_AUTH_FILS_SK:
+	case WLAN_AUTH_FILS_SK_PFS:
+	case WLAN_AUTH_FILS_PK:
+#ifdef CONFIG_IEEE80211R_AP
+		if (sm->wpa_key_mgmt & (WPA_KEY_MGMT_FT_FILS_SHA256 |
+					WPA_KEY_MGMT_FT_FILS_SHA384))
+			*pmkid = sm->pmk_r1_name;
+		else
+#endif
+			*pmkid = NULL;
+
+		return true;
+	default:
+		break;
+	}
+
+	if (hapd->conf->wpa_key_mgmt & WPA_KEY_MGMT_OWE) {
+		*pmkid = sm->pmksa ? sm->pmksa->pmkid: NULL;
+		return true;
+	}
+
+	return false;
+}
+
+
 #ifdef CONFIG_IEEE80211BE
 
 void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
-				   struct mld_link_info *link)
+				   struct mld_link_info *link,
+				   struct wpa_state_machine *sm)
 {
 	u8 buf[EHT_ML_MAX_STA_PROF_LEN];
 	u8 *p = buf;
 	size_t buflen = sizeof(buf);
+	u8 *pmkid = NULL;
 
 	/* Capability Info */
 	WPA_PUT_LE16(p, hostapd_own_capab_info(hapd));
@@ -4908,6 +4945,17 @@ void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
 	p = hostapd_eid_supp_rates(hapd, p);
 	p = hostapd_eid_ext_supp_rates(hapd, p);
 	p = hostapd_eid_rm_enabled_capab(hapd, p, buf + buflen - p);
+
+	if (sm && is_rsne_present_in_assoc_resp(sm, hapd, &pmkid)) {
+		int res = 0;
+
+		/* TODO: check the necessity of RSNE inheritance */
+		res = wpa_write_rsn_ie(&hapd->wpa_auth->conf, p, buf + buflen - p,
+				       pmkid);
+		if (res < 0)
+			goto out;
+		p += res;
+	}
 	p = hostapd_eid_ht_capabilities(hapd, p);
 	p = hostapd_eid_ht_operation(hapd, p);
 
@@ -4988,8 +5036,10 @@ int ieee80211_ml_process_link(struct hostapd_data *hapd,
 	if (type != LINK_PARSE_RECONF) {
 		mlbuf = ieee802_11_defrag(elems.basic_mle, elems.basic_mle_len,
 					  true);
-		if (!mlbuf)
+		if (!mlbuf) {
+			status = WLAN_STATUS_UNSPECIFIED_FAILURE;
 			goto out;
+		}
 
 		if (ieee802_11_parse_link_assoc_req(&elems, mlbuf,
 						    hapd->mld_link_id, true) ==
@@ -5070,7 +5120,7 @@ out:
 	link->status = status;
 
 	if (!offload && type != LINK_PARSE_RECONF)
-		ieee80211_ml_build_assoc_resp(hapd, link);
+		ieee80211_ml_build_assoc_resp(hapd, link, origin_sta->wpa_sm);
 
 	wpa_printf(MSG_DEBUG, "MLD: link: status=%u", status);
 	if (status != WLAN_STATUS_SUCCESS) {
@@ -5151,12 +5201,12 @@ int hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 
 			link->status = WLAN_STATUS_UNSPECIFIED_FAILURE;
 			if (!offload)
-				ieee80211_ml_build_assoc_resp(hapd, link);
+				ieee80211_ml_build_assoc_resp(hapd, link, NULL);
 		} else if (tx_link_status != WLAN_STATUS_SUCCESS) {
 			/* TX link rejected the connection */
 			link->status = WLAN_STATUS_DENIED_TX_LINK_NOT_ACCEPTED;
 			if (!offload)
-				ieee80211_ml_build_assoc_resp(hapd, link);
+				ieee80211_ml_build_assoc_resp(hapd, link, NULL);
 		} else {
 			if (ieee80211_ml_process_link(
 				    bss, sta, link, ies, ies_len,
