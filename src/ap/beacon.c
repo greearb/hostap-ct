@@ -621,23 +621,23 @@ ieee802_11_build_ap_params_mbssid(struct hostapd_data *hapd,
 				 elem_count, elem_offset, NULL, 0, rnr_elem,
 				 &rnr_elem_count, rnr_elem_offset, rnr_len);
 
-	params->mbssid_tx_iface = tx_bss->conf->iface;
-	params->mbssid_index = hostapd_mbssid_get_bss_index(hapd);
-	params->mbssid_elem = elem;
-	params->mbssid_elem_len = end - elem;
-	params->mbssid_elem_count = elem_count;
-	params->mbssid_elem_offset = elem_offset;
-	params->rnr_elem = rnr_elem;
-	params->rnr_elem_len = rnr_len;
-	params->rnr_elem_count = rnr_elem_count;
-	params->rnr_elem_offset = rnr_elem_offset;
+	params->mbssid.mbssid_tx_iface = tx_bss->conf->iface;
+	params->mbssid.mbssid_index = hostapd_mbssid_get_bss_index(hapd);
+	params->mbssid.mbssid_elem = elem;
+	params->mbssid.mbssid_elem_len = end - elem;
+	params->mbssid.mbssid_elem_count = elem_count;
+	params->mbssid.mbssid_elem_offset = elem_offset;
+	params->mbssid.rnr_elem = rnr_elem;
+	params->mbssid.rnr_elem_len = rnr_len;
+	params->mbssid.rnr_elem_count = rnr_elem_count;
+	params->mbssid.rnr_elem_offset = rnr_elem_offset;
 	if (iface->conf->mbssid == ENHANCED_MBSSID_ENABLED)
-		params->ema = true;
+		params->mbssid.ema = true;
 
-	params->mbssid_tx_iface_linkid = -1;
+	params->mbssid.mbssid_tx_iface_linkid = -1;
 #ifdef CONFIG_IEEE80211BE
 	if (tx_bss->conf->mld_ap)
-		params->mbssid_tx_iface_linkid = tx_bss->mld_link_id;
+		params->mbssid.mbssid_tx_iface_linkid = tx_bss->mld_link_id;
 #endif /* CONFIG_IEEE80211BE */
 
 	return 0;
@@ -2347,7 +2347,7 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 		}
 		complete = hapd->iconf->mbssid == MBSSID_ENABLED ||
 			(hapd->iconf->mbssid == ENHANCED_MBSSID_ENABLED &&
-			 params->mbssid_elem_count == 1);
+			 params->mbssid.mbssid_elem_count == 1);
 	}
 
 	tailpos = hostapd_eid_ext_capab(hapd, tailpos, complete);
@@ -2395,7 +2395,7 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 
 	tailpos = hostapd_get_rsnxe(hapd, tailpos, tailend - tailpos);
 	tailpos = hostapd_eid_mbssid_config(hapd, tailpos,
-					    params->mbssid_elem_count);
+					    params->mbssid.mbssid_elem_count);
 
 #ifdef CONFIG_IEEE80211AX
 	if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax) {
@@ -2641,14 +2641,14 @@ void ieee802_11_free_ap_params(struct wpa_driver_ap_params *params)
 	params->head = NULL;
 	os_free(params->proberesp);
 	params->proberesp = NULL;
-	os_free(params->mbssid_elem);
-	params->mbssid_elem = NULL;
-	os_free(params->mbssid_elem_offset);
-	params->mbssid_elem_offset = NULL;
-	os_free(params->rnr_elem);
-	params->rnr_elem = NULL;
-	os_free(params->rnr_elem_offset);
-	params->rnr_elem_offset = NULL;
+	os_free(params->mbssid.mbssid_elem);
+	params->mbssid.mbssid_elem = NULL;
+	os_free(params->mbssid.mbssid_elem_offset);
+	params->mbssid.mbssid_elem_offset = NULL;
+	os_free(params->mbssid.rnr_elem);
+	params->mbssid.rnr_elem = NULL;
+	os_free(params->mbssid.rnr_elem_offset);
+	params->mbssid.rnr_elem_offset = NULL;
 #ifdef CONFIG_FILS
 	os_free(params->fd_frame_tmpl);
 	params->fd_frame_tmpl = NULL;

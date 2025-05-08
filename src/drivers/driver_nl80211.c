@@ -4919,8 +4919,7 @@ static int nl80211_unsol_bcast_probe_resp(struct i802_bss *bss,
 }
 
 
-static int nl80211_mbssid(struct nl_msg *msg,
-			 struct wpa_driver_ap_params *params)
+static int nl80211_mbssid(struct nl_msg *msg, struct mbssid_data *params)
 {
 	struct nlattr *config, *elems;
 	int ifidx;
@@ -5505,7 +5504,7 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 	    nl80211_unsol_bcast_probe_resp(bss, msg, &params->ubpr) < 0)
 		goto fail;
 
-	if (nl80211_mbssid(msg, params) < 0)
+	if (nl80211_mbssid(msg, &params->mbssid) < 0)
 		goto fail;
 #endif /* CONFIG_IEEE80211AX */
 

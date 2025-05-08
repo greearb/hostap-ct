@@ -1462,6 +1462,72 @@ struct unsol_bcast_probe_resp {
 	size_t unsol_bcast_probe_resp_tmpl_len;
 };
 
+struct mbssid_data {
+	/**
+	 * mbssid_tx_iface - Transmitting interface of the MBSSID set
+	 */
+	const char *mbssid_tx_iface;
+
+	/**
+	 * mbssid_tx_iface_linkid - Link ID of the transmitting interface if
+	 * it is part of an MLD. Otherwise, -1.
+	 */
+	int mbssid_tx_iface_linkid;
+
+	/**
+	 * mbssid_index - The index of this BSS in the MBSSID set
+	 */
+	unsigned int mbssid_index;
+
+	/**
+	 * mbssid_elem - Buffer containing all MBSSID elements
+	 */
+	u8 *mbssid_elem;
+
+	/**
+	 * mbssid_elem_len - Total length of all MBSSID elements
+	 */
+	size_t mbssid_elem_len;
+
+	/**
+	 * mbssid_elem_count - The number of MBSSID elements
+	 */
+	u8 mbssid_elem_count;
+
+	/**
+	 * mbssid_elem_offset - Offsets to elements in mbssid_elem.
+	 * Kernel will use these offsets to generate multiple BSSID beacons.
+	 */
+	u8 **mbssid_elem_offset;
+
+	/**
+	 * ema - Enhanced MBSSID advertisements support.
+	 */
+	bool ema;
+
+	/**
+	 * rnr_elem - This buffer contains all of reduced neighbor report (RNR)
+	 * elements
+	 */
+	u8 *rnr_elem;
+
+	/**
+	 * rnr_elem_len - Length of rnr_elem buffer
+	 */
+	size_t rnr_elem_len;
+
+	/**
+	 * rnr_elem_count - Number of RNR elements
+	 */
+	u8 rnr_elem_count;
+
+	/**
+	 * rnr_elem_offset - The offsets to the elements in rnr_elem.
+	 * The driver will use these to include RNR elements in EMA beacons.
+	 */
+	u8 **rnr_elem_offset;
+};
+
 struct wpa_driver_ap_params {
 	/**
 	 * head - Beacon head from IEEE 802.11 header to IEs before TIM IE
@@ -1800,46 +1866,11 @@ struct wpa_driver_ap_params {
 	size_t fd_frame_tmpl_len;
 
 	/**
-	 * mbssid_tx_iface - Transmitting interface of the MBSSID set
+	 * mbssid - MBSSID element related params for Beacon frames
+	 *
+	 * This is used to add MBSSID element in beacon data.
 	 */
-	const char *mbssid_tx_iface;
-
-	/**
-	 * mbssid_tx_iface_linkid - Link ID of the transmitting interface if
-	 * it is part of an MLD. Otherwise, -1.
-	 */
-	int mbssid_tx_iface_linkid;
-
-	/**
-	 * mbssid_index - The index of this BSS in the MBSSID set
-	 */
-	unsigned int mbssid_index;
-
-	/**
-	 * mbssid_elem - Buffer containing all MBSSID elements
-	 */
-	u8 *mbssid_elem;
-
-	/**
-	 * mbssid_elem_len - Total length of all MBSSID elements
-	 */
-	size_t mbssid_elem_len;
-
-	/**
-	 * mbssid_elem_count - The number of MBSSID elements
-	 */
-	u8 mbssid_elem_count;
-
-	/**
-	 * mbssid_elem_offset - Offsets to elements in mbssid_elem.
-	 * Kernel will use these offsets to generate multiple BSSID beacons.
-	 */
-	u8 **mbssid_elem_offset;
-
-	/**
-	 * ema - Enhanced MBSSID advertisements support.
-	 */
-	bool ema;
+	struct mbssid_data mbssid;
 
 	/**
 	 * punct_bitmap - Preamble puncturing bitmap
@@ -1849,27 +1880,6 @@ struct wpa_driver_ap_params {
 	 */
 	u16 punct_bitmap;
 
-	/**
-	 * rnr_elem - This buffer contains all of reduced neighbor report (RNR)
-	 * elements
-	 */
-	u8 *rnr_elem;
-
-	/**
-	 * rnr_elem_len - Length of rnr_elem buffer
-	 */
-	size_t rnr_elem_len;
-
-	/**
-	 * rnr_elem_count - Number of RNR elements
-	 */
-	unsigned int rnr_elem_count;
-
-	/**
-	 * rnr_elem_offset - The offsets to the elements in rnr_elem.
-	 * The driver will use these to include RNR elements in EMA beacons.
-	 */
-	u8 **rnr_elem_offset;
 
 	/* Unsolicited broadcast Probe Response data */
 	struct unsol_bcast_probe_resp ubpr;
