@@ -3191,16 +3191,15 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			   hapd->conf->iface);
 		hostapd_event_color_change(hapd, true);
 		break;
+#endif /* CONFIG_IEEE80211AX */
+
+#ifdef CONFIG_IEEE80211BE
 	case EVENT_CRIT_UPDATE:
 		if (!data)
 			break;
 		hapd = switch_link_hapd(hapd, data->crit_update_info.link_id);
-#ifdef CONFIG_IEEE80211BE
 		hostapd_event_update_crit_update_flag(hapd, data->crit_update_info.flag);
-#endif /* CONFIG_IEEE80211BE */
 		break;
-#endif /* CONFIG_IEEE80211AX */
-#ifdef CONFIG_IEEE80211BE
 	case EVENT_MLD_INTERFACE_FREED:
 		wpa_printf(MSG_DEBUG, "MLD: Interface %s freed",
 			   hapd->conf->iface);
