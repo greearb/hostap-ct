@@ -11456,8 +11456,8 @@ static int wpa_driver_nl80211_status(void *priv, char *buf, size_t buflen)
 	return pos - buf;
 }
 
-
-static int set_beacon_data(struct nl_msg *msg, struct beacon_data *settings)
+static int set_beacon_data(struct nl_msg *msg, struct beacon_data *settings,
+			   bool skip_mbssid)
 {
 	if ((settings->head &&
 	     nla_put(msg, NL80211_ATTR_BEACON_HEAD,
@@ -11478,6 +11478,11 @@ static int set_beacon_data(struct nl_msg *msg, struct beacon_data *settings)
 	     nla_put(msg, NL80211_ATTR_PROBE_RESP,
 		     settings->probe_resp_len, settings->probe_resp)))
 		return -ENOBUFS;
+
+#ifdef CONFIG_IEEE80211AX
+	if (!skip_mbssid && nl80211_mbssid(msg, &settings->mbssid) < 0)
+		return -ENOBUFS;
+#endif /* CONFIG_IEEE80211AX */
 
 	return 0;
 }
@@ -11583,7 +11588,7 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 		goto error;
 
 	/* beacon_after params */
-	ret = set_beacon_data(msg, &settings->beacon_after);
+	ret = set_beacon_data(msg, &settings->beacon_after, false);
 	if (ret)
 		goto error;
 
@@ -11592,7 +11597,7 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 	if (!beacon_csa)
 		goto fail;
 
-	ret = set_beacon_data(msg, &settings->beacon_csa);
+	ret = set_beacon_data(msg, &settings->beacon_csa, true);
 	if (ret)
 		goto error;
 
@@ -11669,7 +11674,7 @@ static int nl80211_switch_color(void *priv, struct cca_settings *settings)
 		goto error;
 
 	/* beacon_after params */
-	ret = set_beacon_data(msg, &settings->beacon_after);
+	ret = set_beacon_data(msg, &settings->beacon_after, false);
 	if (ret)
 		goto error;
 
@@ -11680,7 +11685,7 @@ static int nl80211_switch_color(void *priv, struct cca_settings *settings)
 		goto error;
 	}
 
-	ret = set_beacon_data(msg, &settings->beacon_cca);
+	ret = set_beacon_data(msg, &settings->beacon_cca, true);
 	if (ret)
 		goto error;
 

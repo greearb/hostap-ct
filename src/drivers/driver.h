@@ -2798,6 +2798,7 @@ struct wpa_channel_info {
  * @proberesp_ies_len: Length of proberesp_ies in octets
  * @proberesp_ies_len: Length of proberesp_ies in octets
  * @probe_resp_len: Length of probe response template (@probe_resp)
+ * @mbssid: MBSSID element(s) to add into Beacon frames
  */
 struct beacon_data {
 	u8 *head, *tail;
@@ -2811,6 +2812,8 @@ struct beacon_data {
 	size_t proberesp_ies_len;
 	size_t assocresp_ies_len;
 	size_t probe_resp_len;
+
+	struct mbssid_data mbssid;
 };
 
 /**

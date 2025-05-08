@@ -4256,6 +4256,14 @@ void free_beacon_data(struct beacon_data *beacon)
 	beacon->proberesp_ies = NULL;
 	os_free(beacon->assocresp_ies);
 	beacon->assocresp_ies = NULL;
+	os_free(beacon->mbssid.mbssid_elem);
+	beacon->mbssid.mbssid_elem = NULL;
+	os_free(beacon->mbssid.mbssid_elem_offset);
+	beacon->mbssid.mbssid_elem_offset = NULL;
+	os_free(beacon->mbssid.rnr_elem);
+	beacon->mbssid.rnr_elem = NULL;
+	os_free(beacon->mbssid.rnr_elem_offset);
+	beacon->mbssid.rnr_elem_offset = NULL;
 }
 
 
@@ -4264,6 +4272,10 @@ int hostapd_build_beacon_data(struct hostapd_data *hapd,
 {
 	struct wpabuf *beacon_extra, *proberesp_extra, *assocresp_extra;
 	struct wpa_driver_ap_params params;
+	struct hostapd_data *tx_bss;
+	u8 *mbssid_start_eid, *rnr_start_eid;
+	size_t size = 0;
+	int i;
 	int ret;
 
 	os_memset(beacon, 0, sizeof(*beacon));
@@ -4327,6 +4339,76 @@ int hostapd_build_beacon_data(struct hostapd_data *hapd,
 		beacon->assocresp_ies_len = wpabuf_len(assocresp_extra);
 	}
 
+	/* MBSSID element */
+	if (!params.mbssid.mbssid_elem_len)
+		goto done;
+
+	tx_bss = hostapd_mbssid_get_tx_bss(hapd);
+	beacon->mbssid.mbssid_tx_iface = tx_bss->conf->iface;
+	beacon->mbssid.mbssid_tx_iface_linkid =
+		params.mbssid.mbssid_tx_iface_linkid;
+	beacon->mbssid.mbssid_index = params.mbssid.mbssid_index;
+
+	beacon->mbssid.mbssid_elem_len = params.mbssid.mbssid_elem_len;
+	beacon->mbssid.mbssid_elem_count = params.mbssid.mbssid_elem_count;
+	if (params.mbssid.mbssid_elem) {
+		beacon->mbssid.mbssid_elem =
+			os_memdup(params.mbssid.mbssid_elem,
+				  params.mbssid.mbssid_elem_len);
+		if (!beacon->mbssid.mbssid_elem)
+			goto free_beacon;
+	}
+	beacon->mbssid.ema = params.mbssid.ema;
+
+	if (params.mbssid.mbssid_elem_offset) {
+		beacon->mbssid.mbssid_elem_offset =
+			os_calloc(beacon->mbssid.mbssid_elem_count,
+				  sizeof(u8 *));
+		if (!beacon->mbssid.mbssid_elem_offset)
+			goto free_beacon;
+
+		mbssid_start_eid = beacon->mbssid.mbssid_elem;
+		beacon->mbssid.mbssid_elem_offset[0] = mbssid_start_eid;
+		for (i = 0; i < beacon->mbssid.mbssid_elem_count - 1; i++) {
+			size = params.mbssid.mbssid_elem_offset[i + 1] -
+				params.mbssid.mbssid_elem_offset[i];
+			mbssid_start_eid = mbssid_start_eid + size;
+			beacon->mbssid.mbssid_elem_offset[i + 1] =
+				mbssid_start_eid;
+		}
+	}
+
+	/* RNR element */
+	if (!params.mbssid.rnr_elem_len)
+		goto done;
+
+	if (params.mbssid.rnr_elem) {
+		beacon->mbssid.rnr_elem = os_memdup(params.mbssid.rnr_elem,
+						    params.mbssid.rnr_elem_len);
+		if (!beacon->mbssid.rnr_elem)
+			goto free_beacon;
+	}
+
+	beacon->mbssid.rnr_elem_len = params.mbssid.rnr_elem_len;
+	beacon->mbssid.rnr_elem_count = params.mbssid.rnr_elem_count;
+	if (params.mbssid.rnr_elem_offset) {
+		beacon->mbssid.rnr_elem_offset =
+			os_calloc(beacon->mbssid.rnr_elem_count + 1,
+				  sizeof(u8 *));
+		if (!beacon->mbssid.rnr_elem_offset)
+			goto free_beacon;
+
+		rnr_start_eid = beacon->mbssid.rnr_elem;
+		beacon->mbssid.rnr_elem_offset[0] = rnr_start_eid;
+		for (i = 0; i < beacon->mbssid.rnr_elem_count - 1; i++) {
+			size = params.mbssid.rnr_elem_offset[i + 1] -
+				params.mbssid.rnr_elem_offset[i];
+			rnr_start_eid = rnr_start_eid + size;
+			beacon->mbssid.rnr_elem_offset[i + 1] = rnr_start_eid;
+		}
+	}
+
+done:
 	ret = 0;
 free_beacon:
 	/* if the function fails, the caller should not free beacon data */
