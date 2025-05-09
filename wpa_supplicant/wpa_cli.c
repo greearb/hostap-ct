@@ -425,6 +425,13 @@ static int wpa_cli_cmd_mlo_signal_poll(struct wpa_ctrl *ctrl, int argc, char *ar
 }
 
 
+static int wpa_cli_cmd_setup_link_reconfig(struct wpa_ctrl *ctrl, int argc,
+					   char *argv[])
+{
+	return wpa_cli_cmd(ctrl, "SETUP_LINK_RECONFIG", 1, argc, argv);
+}
+
+
 static int wpa_cli_cmd_set(struct wpa_ctrl *ctrl, int argc, char *argv[])
 {
 	char cmd[256];
@@ -4092,6 +4099,9 @@ static const struct wpa_cli_cmd wpa_cli_commands[] = {
 	{ "dscp_query", wpa_cli_cmd_dscp_query, NULL,
 	  cli_cmd_flag_none,
 	  "wildcard/domain_name=<string> = Send DSCP Query" },
+	{ "setup_link_reconfig", wpa_cli_cmd_setup_link_reconfig, NULL,
+	  cli_cmd_flag_none,
+	  "<<add=/delete=><ID1> [ID2]...> = Add new setup links and/or remove existing ones for the current MLO connection in STA mode" },
 	{ "mlo_status", wpa_cli_cmd_mlo_status, NULL,
 	  cli_cmd_flag_none,
 	  "= get MLO status" },

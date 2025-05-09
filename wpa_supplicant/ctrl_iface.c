@@ -12286,6 +12286,85 @@ static int wpas_ctrl_iface_mlo_signal_poll(struct wpa_supplicant *wpa_s,
 }
 
 
+static int
+wpa_supplicant_ctrl_iface_setup_link_reconfig(struct wpa_supplicant *wpa_s,
+					      const char *cmd)
+{
+	const char *pos, *add_pos, *dlt_pos;
+	struct wpa_mlo_reconfig_info info;
+	int link_id;
+
+	add_pos = os_strstr(cmd, "add=");
+	dlt_pos = os_strstr(cmd, "delete=");
+
+	if (!add_pos && !dlt_pos) {
+		wpa_printf(MSG_INFO, "No add or delete links info");
+		return -1;
+	}
+
+	if (!wpa_s->current_bss) {
+		wpa_printf(MSG_INFO, "%s: Not connected", __func__);
+		return -1;
+	}
+
+	info.add_links = 0;
+	info.delete_links = 0;
+
+	if (add_pos) {
+		pos = add_pos + 4;
+
+		do {
+			link_id = atoi(pos);
+			if (link_id < 0 || link_id >=  MAX_NUM_MLD_LINKS)
+				return -1;
+
+			if (wpa_s->current_bss->valid_links & BIT(link_id)) {
+				info.add_links |= BIT(link_id);
+				os_memcpy(info.add_link_bssid[link_id],
+					  wpa_s->current_bss->mld_links[link_id].bssid,
+					  ETH_ALEN);
+				info.add_link_freq[link_id] =
+					wpa_s->current_bss->mld_links[link_id].freq;
+			} else {
+				wpa_printf(MSG_INFO,
+					   "%s: add link info not present",
+					   __func__);
+				return -1;
+			}
+
+			pos = os_strchr(pos, ' ');
+			if (pos)
+				pos++;
+		} while (pos && pos != dlt_pos);
+	}
+
+	if (dlt_pos) {
+		pos = dlt_pos + 7;
+
+		do {
+			link_id = atoi(pos);
+			if (link_id < 0 || link_id >=  MAX_NUM_MLD_LINKS)
+				return -1;
+
+			if (wpa_s->valid_links & BIT(link_id))
+				info.delete_links |= BIT(link_id);
+			else {
+				wpa_printf(MSG_INFO,
+					   "%s: not a valid delete link",
+					   __func__);
+				return -1;
+			}
+
+			pos = os_strchr(pos, ' ');
+			if (pos)
+				pos++;
+		} while (pos && pos != add_pos);
+	}
+
+	return wpa_drv_setup_link_reconfig(wpa_s, &info);
+}
+
+
 static int wpas_ctrl_iface_mlo_status(struct wpa_supplicant *wpa_s,
 				      char *buf, size_t buflen)
 {
@@ -13852,6 +13931,10 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 		if (wpas_ctrl_iface_send_dscp_query(wpa_s, buf + 11))
 			reply_len = -1;
 #endif /* CONFIG_NO_ROBUST_AV */
+	} else if (os_strncmp(buf, "SETUP_LINK_RECONFIG", 19) == 0) {
+		if (wpa_supplicant_ctrl_iface_setup_link_reconfig(wpa_s,
+								  buf + 19) < 0)
+			reply_len = -1;
 	} else if (os_strcmp(buf, "MLO_STATUS") == 0) {
 		reply_len = wpas_ctrl_iface_mlo_status(wpa_s, reply,
 						       reply_size);

@@ -532,6 +532,16 @@ static inline int wpa_drv_mlo_signal_poll(struct wpa_supplicant *wpa_s,
 	return -1;
 }
 
+static inline int
+wpa_drv_setup_link_reconfig(struct wpa_supplicant *wpa_s,
+			    struct wpa_mlo_reconfig_info *info)
+{
+	if (wpa_s->driver->setup_link_reconfig)
+		return wpa_s->driver->setup_link_reconfig(wpa_s->drv_priv,
+							  info);
+	return -1;
+}
+
 static inline int wpa_drv_channel_info(struct wpa_supplicant *wpa_s,
 				       struct wpa_channel_info *ci)
 {

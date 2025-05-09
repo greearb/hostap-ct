@@ -14713,6 +14713,77 @@ free_all:
 	return ret;
 }
 
+
+static int
+nl80211_send_link_reconfig_request(void *priv,
+				   struct wpa_mlo_reconfig_info *info)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *add_links, *attr;
+	int ret = -1;
+	u8 link_id;
+
+	if (!drv->sta_mlo_info.valid_links)
+		return -1;
+
+	wpa_printf(MSG_DEBUG, "nl80211: Send ML Link Reconfiguration Request");
+
+	if (info->add_links)
+		wpa_printf(MSG_DEBUG, "Add Setup Links Bitmask: 0x%x",
+			   info->add_links);
+
+	if (info->delete_links)
+		wpa_printf(MSG_DEBUG, "Remove Setup Links Bitmask: 0x%x",
+			   info->delete_links);
+
+	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_ASSOC_MLO_RECONF);
+	if (!msg)
+		goto error;
+
+	add_links = nla_nest_start(msg, NL80211_ATTR_MLO_LINKS);
+	if (!add_links)
+		goto error;
+
+	for_each_link(info->add_links, link_id) {
+		attr = nla_nest_start(msg, 0);
+		if (!attr)
+			goto error;
+
+		if (nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id) ||
+		    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN,
+			    info->add_link_bssid[link_id]) ||
+		    nla_put_u32(msg, NL80211_ATTR_WIPHY_FREQ,
+				info->add_link_freq[link_id]))
+			goto error;
+
+		nla_nest_end(msg, attr);
+	}
+
+	nla_nest_end(msg, add_links);
+
+	if (nla_put_u16(msg, NL80211_ATTR_MLO_RECONF_REM_LINKS,
+			info->delete_links))
+		goto error;
+
+	ret = send_and_recv(drv, bss->nl_connect, msg, NULL, NULL, NULL, NULL,
+			    NULL);
+	if (ret) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Failed to send Link Reconfiguration Request err=%d (%s)",
+			   ret, strerror(-ret));
+		return ret;
+	}
+	return 0;
+
+error:
+	nlmsg_free(msg);
+	wpa_printf(MSG_ERROR,
+		   "nl80211: Could not build Link Reconfiguration Request");
+	return ret;
+}
+
 #endif /* CONFIG_IEEE80211BE */
 
 
@@ -14934,6 +15005,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.is_drv_shared = nl80211_is_drv_shared,
 	.link_sta_remove = wpa_driver_nl80211_link_sta_remove,
 	.can_share_drv = wpa_driver_nl80211_can_share_drv,
+	.setup_link_reconfig = nl80211_send_link_reconfig_request,
 #endif /* CONFIG_IEEE80211BE */
 #ifdef CONFIG_TESTING_OPTIONS
 	.register_frame = testing_nl80211_register_frame,
