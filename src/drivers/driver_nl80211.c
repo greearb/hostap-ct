@@ -182,8 +182,6 @@ static void add_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx,
 		      int ifidx_reason);
 static void del_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx,
 		      int ifidx_reason);
-static int have_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx,
-		      int ifidx_reason);
 
 static int nl80211_set_channel(struct i802_bss *bss,
 			       struct hostapd_freq_params *freq, int set_chan);
@@ -1272,7 +1270,7 @@ nl80211_find_drv(struct nl80211_global *global, int idx, u8 *buf, size_t len,
 				*init_failed = 1;
 			return drv;
 		}
-		if (res > 0 || have_ifidx(drv, idx, IFIDX_ANY))
+		if (res > 0 || nl80211_has_ifidx(drv, idx, IFIDX_ANY))
 			return drv;
 	}
 	return NULL;
@@ -8585,7 +8583,7 @@ static void add_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx,
 	wpa_printf(MSG_DEBUG,
 		   "nl80211: Add own interface ifindex %d (ifidx_reason %d)",
 		   ifidx, ifidx_reason);
-	if (have_ifidx(drv, ifidx, ifidx_reason)) {
+	if (nl80211_has_ifidx(drv, ifidx, ifidx_reason)) {
 		wpa_printf(MSG_DEBUG, "nl80211: ifindex %d already in the list",
 			   ifidx);
 		return;
@@ -8645,7 +8643,7 @@ static void del_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx,
 }
 
 
-static int have_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx,
+int nl80211_has_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx,
 		      int ifidx_reason)
 {
 	int i;
@@ -8752,7 +8750,7 @@ static void handle_eapol(int sock, void *eloop_ctx, void *sock_ctx)
 		return;
 	}
 
-	if (have_ifidx(drv, lladdr.sll_ifindex, IFIDX_ANY)) {
+	if (nl80211_has_ifidx(drv, lladdr.sll_ifindex, IFIDX_ANY)) {
 		for (bss = drv->first_bss; bss; bss = bss->next)
 			drv_event_eapol_rx(bss->ctx, lladdr.sll_addr, buf, len);
 	}

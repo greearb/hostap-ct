@@ -371,6 +371,8 @@ struct i802_link * nl80211_get_link(struct i802_bss *bss, s8 link_id);
 u8 nl80211_get_link_id_from_link(struct i802_bss *bss, struct i802_link *link);
 int nl80211_remove_link(struct i802_bss *bss, int link_id);
 void nl80211_update_active_links(struct i802_bss *bss, int link_id);
+int nl80211_has_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx,
+		      int ifidx_reason);
 
 static inline bool nl80211_link_valid(u16 links, s8 link_id)
 {
