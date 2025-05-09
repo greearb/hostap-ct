@@ -1130,6 +1130,19 @@ static int nl80211_get_sta_mlo_info(void *priv,
 }
 
 
+int get_sta_mlo_interface_info(struct wpa_driver_nl80211_data *drv)
+{
+	struct nl_msg *msg;
+
+	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_GET_INTERFACE);
+	if (!msg ||
+	    send_and_recv_resp(drv, msg, get_mlo_info, &drv->sta_mlo_info))
+		return -1;
+
+	return 0;
+}
+
+
 static void wpa_driver_nl80211_event_newlink(
 	struct nl80211_global *global, struct wpa_driver_nl80211_data *drv,
 	int ifindex, const char *ifname)
@@ -1731,6 +1744,53 @@ try_again:
 	wpa_printf(MSG_DEBUG, "nl80211: Scan result fetch failed: ret=%d "
 		   "(%s)", ret, strerror(-ret));
 	return drv->assoc_freq;
+}
+
+
+const u8 * nl80211_get_assoc_bssid(struct wpa_driver_nl80211_data *drv)
+{
+	struct nl_msg *msg;
+	int ret;
+	struct nl80211_get_assoc_freq_arg arg;
+	int count = 0;
+
+try_again:
+	msg = nl80211_drv_msg(drv, NLM_F_DUMP, NL80211_CMD_GET_SCAN);
+	if (!msg)
+		return NULL;
+	os_memset(&arg, 0, sizeof(arg));
+	arg.drv = drv;
+	ret = send_and_recv_resp(drv, msg, nl80211_get_assoc_freq_handler,
+				 &arg);
+	if (ret == -EAGAIN) {
+		count++;
+		if (count >= 10) {
+			wpa_printf(MSG_INFO,
+				   "nl80211: Failed to receive consistent scan result dump for get_assoc_bssid");
+		} else {
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: Failed to receive consistent scan result dump for get_assoc_bssid - try again");
+			goto try_again;
+		}
+	}
+	if (ret == 0) {
+		os_memcpy(drv->bssid, arg.assoc_bssid, ETH_ALEN);
+
+		if (drv->sta_mlo_info.valid_links) {
+			int i;
+
+			for (i = 0; i < MAX_NUM_MLD_LINKS; i++)
+				os_memcpy(drv->sta_mlo_info.links[i].bssid,
+					  arg.bssid[i], ETH_ALEN);
+		}
+
+		return drv->bssid;
+	}
+
+	wpa_printf(MSG_DEBUG, "nl80211: Scan result fetch failed: ret=%d (%s)",
+		   ret, strerror(-ret));
+
+	return NULL;
 }
 
 

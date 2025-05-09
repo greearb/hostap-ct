@@ -1657,6 +1657,69 @@ static void mlme_event_unprot_beacon(struct wpa_driver_nl80211_data *drv,
 }
 
 
+static void mlme_event_link_addition(struct wpa_driver_nl80211_data *drv,
+				     const u8 *frame, size_t len)
+{
+	const struct ieee80211_mgmt *mgmt;
+	union wpa_event_data event;
+	u16 curr_valid_links, added_links;
+	u8 count;
+	const u8 *resp_ie;
+	const u8 *end;
+
+	if (!frame) {
+		wpa_printf(MSG_DEBUG,
+			   "Link Reconfiguration Response frame is NULL - unspecified reason");
+		return;
+	}
+	wpa_hexdump(MSG_DEBUG, "JKM", frame, len);
+	end = frame + len;
+
+	os_memset(&event, 0, sizeof(event));
+
+	mgmt = (const struct ieee80211_mgmt *) frame;
+
+	if (len < 24 + 1 + sizeof(mgmt->u.action.u.link_reconf_resp)) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Too short Link Reconfig Response frame");
+		return;
+	}
+
+	count = mgmt->u.action.u.link_reconf_resp.count;
+	event.reconfig_info.count = count;
+	resp_ie = mgmt->u.action.u.link_reconf_resp.variable;
+	if (end - resp_ie < 3 * count) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Truncated Link Reconfig Response frame");
+		return;
+	}
+	event.reconfig_info.status_list = resp_ie;
+	resp_ie += 3 * count;
+	curr_valid_links = drv->sta_mlo_info.valid_links;
+
+	if (get_sta_mlo_interface_info(drv) < 0) {
+		wpa_printf(MSG_INFO, "nl80211: Failed to get STA MLO info");
+		return;
+	}
+
+	if (!nl80211_get_assoc_bssid(drv)) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Failed to get BSSID info for newly added links");
+		return;
+	}
+
+	added_links = ~curr_valid_links & drv->sta_mlo_info.valid_links;
+
+	event.reconfig_info.resp_ie = resp_ie;
+	event.reconfig_info.resp_ie_len = end - resp_ie;
+	event.reconfig_info.added_links = added_links;
+
+	drv->sta_mlo_info.req_links = drv->sta_mlo_info.valid_links;
+
+	wpa_supplicant_event(drv->ctx, EVENT_SETUP_LINK_RECONFIG, &event);
+}
+
+
 static s8
 nl80211_get_link_id_by_freq(struct i802_bss *bss, unsigned int freq)
 {
@@ -4246,6 +4309,9 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 #endif /* CONFIG_IEEE80211AX */
 	case NL80211_CMD_LINKS_REMOVED:
 		wpa_supplicant_event(drv->ctx, EVENT_LINK_RECONFIG, NULL);
+		break;
+	case NL80211_CMD_ASSOC_MLO_RECONF:
+		mlme_event_link_addition(drv, nla_data(frame), nla_len(frame));
 		break;
 	default:
 		wpa_dbg(drv->ctx, MSG_DEBUG, "nl80211: Ignored unknown event "

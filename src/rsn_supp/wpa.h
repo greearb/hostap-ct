@@ -676,5 +676,7 @@ void wpa_sm_set_cur_pmksa(struct wpa_sm *sm,
 const u8 * wpa_sm_get_auth_addr(struct wpa_sm *sm);
 struct wpabuf * wpa_sm_known_sta_identification(struct wpa_sm *sm, const u8 *aa,
 						u64 timestamp);
+int wpa_sm_install_mlo_group_keys(struct wpa_sm *sm, const u8 *key_data,
+				  size_t key_data_len, u16 added_links_bitmap);
 
 #endif /* WPA_H */

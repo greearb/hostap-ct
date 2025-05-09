@@ -6106,6 +6106,76 @@ static void wpas_tid_link_map(struct wpa_supplicant *wpa_s,
 }
 
 
+static void wpas_setup_link_reconfig(struct wpa_supplicant *wpa_s,
+				     struct reconfig_info *info)
+{
+	const u8 *key_data = info->resp_ie;
+	size_t key_data_len = 0;
+	const u8 *ies, *end;
+	bool success = false;
+	int i;
+
+	if (!info->added_links) {
+		wpa_printf(MSG_INFO, "No links to be added");
+		return;
+	}
+
+	if (wpa_drv_get_mlo_info(wpa_s) < 0) {
+		wpa_printf(MSG_INFO,
+			   "SETUP_LINK_RECONFIG: Failed to set reconfig info to wpa_s");
+		return;
+	}
+
+	if (wpa_sm_set_ml_info(wpa_s)) {
+		wpa_printf(MSG_ERROR,
+			   "SETUP_LINK_RECONFIG: Failed to set reconfig info to wpa_sm");
+		return;
+	}
+
+	wpa_hexdump(MSG_DEBUG, "MLD: Reconfiguration Status List",
+		    info->status_list, info->count * 3);
+	for (i = 0; i < info->count; i++) {
+		if (WPA_GET_LE16(info->status_list + i * 3 + 1) ==
+		    WLAN_STATUS_SUCCESS)
+			success = true;
+	}
+
+	if (!key_data || info->resp_ie_len == 0)
+		return;
+
+	if (success) {
+		/* Starting with Group Key Data subfield, Key Data Length
+		 * field */
+		if (info->resp_ie_len < 1U + key_data[0]) {
+			wpa_printf(MSG_INFO,
+				   "MLD: Invalid keys in the link setup response");
+			return;
+		}
+
+		key_data_len = key_data[0];
+		key_data++;
+		wpa_hexdump_key(MSG_DEBUG,
+				"MLD: Link reconfig resp - Group Key Data",
+				key_data, key_data_len);
+
+		if (wpa_sm_install_mlo_group_keys(wpa_s->wpa, key_data,
+						  key_data_len,
+						  info->added_links)) {
+			wpa_printf(MSG_ERROR,
+				   "SETUP_LINK_RECONFIG: Failed to install group keys for added links");
+			return;
+		}
+	}
+
+	ies = key_data + key_data_len;
+	end = info->resp_ie + info->resp_ie_len;
+	wpa_hexdump(MSG_DEBUG, "MLD: Link reconfig resp - IEs", ies, end - ies);
+
+	wpa_msg(wpa_s, MSG_INFO, WPA_EVENT_LINK_RECONFIG "valid_links=0x%x",
+		wpa_s->valid_links);
+}
+
+
 static void wpas_link_reconfig(struct wpa_supplicant *wpa_s)
 {
 	u8 bssid[ETH_ALEN];
@@ -7131,6 +7201,10 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 	case EVENT_TID_LINK_MAP:
 		if (data)
 			wpas_tid_link_map(wpa_s, &data->t2l_map_info);
+		break;
+	case EVENT_SETUP_LINK_RECONFIG:
+		if (data)
+			wpas_setup_link_reconfig(wpa_s, &data->reconfig_info);
 		break;
 	default:
 		wpa_msg(wpa_s, MSG_INFO, "Unknown event %d", event);

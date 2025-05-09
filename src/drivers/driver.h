@@ -6128,6 +6128,11 @@ enum wpa_event_type {
 	 * EVENT_MLD_INTERFACE_FREED - Notification of AP MLD interface removal
 	 */
 	EVENT_MLD_INTERFACE_FREED,
+
+	/**
+	 * EVENT_SETUP_LINK_RECONFIG - Notification that new AP links added
+	 */
+	EVENT_SETUP_LINK_RECONFIG,
 };
 
 
@@ -7115,6 +7120,17 @@ union wpa_event_data {
 		u8 valid_links;
 		struct t2lm_mapping t2lmap[MAX_NUM_MLD_LINKS];
 	} t2l_map_info;
+
+	/**
+	 * struct reconfig_info - Data for EVENT_SETUP_LINK_RECONFIG
+	 */
+	struct reconfig_info {
+		u16 added_links;
+		u8 count;
+		const u8 *status_list;
+		const u8 *resp_ie; /* Starting from Group Key Data */
+		size_t resp_ie_len;
+	} reconfig_info;
 };
 
 /**

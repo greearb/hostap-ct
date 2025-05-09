@@ -330,6 +330,7 @@ int nl80211_create_iface(struct wpa_driver_nl80211_data *drv,
 			 void *arg, int use_existing);
 void nl80211_remove_iface(struct wpa_driver_nl80211_data *drv, int ifidx);
 unsigned int nl80211_get_assoc_freq(struct wpa_driver_nl80211_data *drv);
+const u8 * nl80211_get_assoc_bssid(struct wpa_driver_nl80211_data *drv);
 int nl80211_get_assoc_ssid(struct wpa_driver_nl80211_data *drv, u8 *ssid);
 enum chan_width convert2width(int width);
 void nl80211_mark_disconnected(struct wpa_driver_nl80211_data *drv);
@@ -430,5 +431,7 @@ int nl80211_set_default_scan_ies(void *priv, const u8 *ies, size_t ies_len);
 struct hostapd_multi_hw_info *
 nl80211_get_multi_hw_info(struct i802_bss *bss, unsigned int *num_multi_hws);
 u32 get_nl80211_protocol_features(struct wpa_driver_nl80211_data *drv);
+
+int get_sta_mlo_interface_info(struct wpa_driver_nl80211_data *drv);
 
 #endif /* DRIVER_NL80211_H */

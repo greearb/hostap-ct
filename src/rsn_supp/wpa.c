@@ -7282,3 +7282,70 @@ struct wpabuf * wpa_sm_known_sta_identification(struct wpa_sm *sm, const u8 *aa,
 
 	return ie;
 }
+
+
+static int mlo_ieee80211w_set_keys_for_new_links(struct wpa_sm *sm,
+						 struct wpa_eapol_ie_parse *ie,
+						 u16 added_links_bitmap)
+{
+	int i;
+
+	if (!wpa_cipher_valid_mgmt_group(sm->mgmt_group_cipher) ||
+	    sm->mgmt_group_cipher == WPA_CIPHER_GTK_NOT_USED)
+		return 0;
+
+	for_each_link(added_links_bitmap, i) {
+		if (_mlo_ieee80211w_set_keys(sm, i, ie))
+			return -1;
+	}
+
+	return 0;
+}
+
+
+static int wpa_supplicant_install_mlo_gtk_keys(struct wpa_sm *sm,
+					       struct wpa_eapol_ie_parse *ie,
+					       u16 added_links_bitmap)
+{
+	int i;
+
+	for_each_link(added_links_bitmap, i) {
+		if (!ie->mlo_gtk[i]) {
+			wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+				"MLO RSN: GTK not found for link ID %u", i);
+			return -1;
+		}
+
+		if (wpa_supplicant_mlo_gtk(sm, i, ie->mlo_gtk[i],
+					   ie->mlo_gtk_len[i], 0))
+			return -1;
+	}
+
+	return 0;
+}
+
+
+int wpa_sm_install_mlo_group_keys(struct wpa_sm *sm, const u8 *key_data,
+				  size_t key_data_len, u16 added_links_bitmap)
+{
+	struct wpa_eapol_ie_parse ie;
+
+	if (!sm)
+		return -1;
+
+	wpa_hexdump_key(MSG_DEBUG, "RSN: IE KeyData for MLO link reconfig",
+			key_data, key_data_len);
+
+	if (wpa_supplicant_parse_ies(key_data, key_data_len, &ie) < 0)
+		return -1;
+
+	if (wpa_supplicant_install_mlo_gtk_keys(
+		    sm, &ie, added_links_bitmap) < 0)
+		return -1;
+
+	if (mlo_ieee80211w_set_keys_for_new_links(sm, &ie,
+						  added_links_bitmap) < 0)
+		return -1;
+
+	return 0;
+}
