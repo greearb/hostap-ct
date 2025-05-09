@@ -4729,14 +4729,36 @@ void wpa_sm_set_ssid(struct wpa_sm *sm, const u8 *ssid, size_t ssid_len)
 }
 
 
+static void wpa_sm_clear_mlo_group_keys(struct wpa_sm *sm, int link_id)
+{
+	if (!sm)
+		return;
+
+	os_memset(&sm->mlo.links[link_id].gtk, 0,
+		  sizeof(sm->mlo.links[link_id].gtk));
+	os_memset(&sm->mlo.links[link_id].gtk_wnm_sleep, 0,
+		  sizeof(sm->mlo.links[link_id].gtk_wnm_sleep));
+	os_memset(&sm->mlo.links[link_id].igtk, 0,
+		  sizeof(sm->mlo.links[link_id].igtk));
+	os_memset(&sm->mlo.links[link_id].igtk_wnm_sleep, 0,
+		  sizeof(sm->mlo.links[link_id].igtk_wnm_sleep));
+	os_memset(&sm->mlo.links[link_id].bigtk, 0,
+		  sizeof(sm->mlo.links[link_id].bigtk));
+	os_memset(&sm->mlo.links[link_id].bigtk_wnm_sleep, 0,
+		  sizeof(sm->mlo.links[link_id].bigtk_wnm_sleep));
+}
+
+
 int wpa_sm_set_mlo_params(struct wpa_sm *sm, const struct wpa_sm_mlo *mlo)
 {
 	int i;
+	u16 removed_links;
 
 	if (!sm)
 		return -1;
 
 	os_memcpy(sm->mlo.ap_mld_addr, mlo->ap_mld_addr, ETH_ALEN);
+	removed_links = ~mlo->valid_links & sm->mlo.valid_links;
 	sm->mlo.assoc_link_id =  mlo->assoc_link_id;
 	sm->mlo.valid_links = mlo->valid_links;
 	sm->mlo.req_links = mlo->req_links;
@@ -4864,6 +4886,13 @@ int wpa_sm_set_mlo_params(struct wpa_sm *sm, const struct wpa_sm_mlo *mlo)
 				return -1;
 			}
 			sm->mlo.links[i].ap_rsnxoe_len = len;
+		}
+
+		if (removed_links & BIT(i)) {
+			wpa_printf(MSG_DEBUG,
+				   "RSN: Clearing MLO group keys for link[%u]",
+				   i);
+			wpa_sm_clear_mlo_group_keys(sm, i);
 		}
 	}
 
