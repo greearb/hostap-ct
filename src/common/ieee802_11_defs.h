@@ -1183,6 +1183,23 @@ struct ieee80211_mgmt {
 					u8 dialog_token;
 					u8 variable[];
 				} STRUCT_PACKED rrm;
+				struct {
+					u8 action; /* Protected EHT - 11 */
+					u8 dialog_token;
+					/* Reconfiguration Multi-Link element,
+					* OCI element (optional) */
+					u8 variable[];
+				} STRUCT_PACKED link_reconf_req;
+				struct {
+					u8 action; /* Protected EHT - 12 */
+					u8 dialog_token;
+					u8 count;
+					/* Reconfiguration status list,
+					 * Group Key Data (optional),
+					 * OCI element (optional),
+					 * Basic Multi-Link element (optional) */
+					u8 variable[];
+				} STRUCT_PACKED link_reconf_resp;
 			} u;
 		} STRUCT_PACKED action;
 	} u;
@@ -2849,6 +2866,7 @@ struct eht_ml_basic_common_info {
 #define EHT_ML_MLD_CAPA_AP_MLD_TYPE_IND_MASK          0x0080
 #define EHT_ML_MLD_CAPA_FREQ_SEP_FOR_STR_MASK         0x0f80
 #define EHT_ML_MLD_CAPA_AAR_SUPP                      0x1000
+#define EHT_ML_MLD_CAPA_LINK_RECONF_OP_SUPPORT        0x2000
 
 #define EHT_PER_STA_CTRL_LINK_ID_MSK                  0x000f
 #define EHT_PER_STA_CTRL_COMPLETE_PROFILE_MSK         0x0010
@@ -2902,6 +2920,8 @@ struct eht_ml_probe_req_common_info {
 #define EHT_PER_STA_RECONF_CTRL_NSTR_BITMAP_SIZE   0x1000
 #define EHT_PER_STA_RECONF_CTRL_NSTR_INDICATION    0x2000
 
+#define EHT_PER_STA_RECONF_CTRL_OP_UPDATE_TYPE_VAL(x) ((x) >> 7)
+
 /* IEEE P802.11be/D7.0, Figure 9-1074ad - Common Info field format of the
  * Reconfiguration Multi-Link element */
 struct eht_ml_reconf_common_info {
@@ -2919,6 +2939,31 @@ struct eht_ml_reconf_common_info {
 	u8 variable[];
 } STRUCT_PACKED;
 
+
+/* IEEE P802.11be/D7.0, Table 9-417p - Reconfiguration Operation Type subfield
+ * encoding */
+enum ieee80211_eht_reconf_mle_op_type {
+	EHT_RECONF_TYPE_AP_REMOVAL = 0,
+	EHT_RECONF_TYPE_OP_PARAM_UPDATE = 1,
+	EHT_RECONF_TYPE_ADD_LINK = 2,
+	EHT_RECONF_TYPE_DELETE_LINK = 3,
+	EHT_RECONF_TYPE_NSTR_STATUS_UPDATE = 4,
+};
+
+/* IEEE P802.11be/D7.0, Figure 9-1074ag — STA Info field format for the
+ * Reconfiguration Multi-Link element */
+struct eht_ml_reconf_sta_info {
+	u8 len;
+
+	/* Followed by optional fields based on STA control presence bitmap.
+	 *
+	 * STA MAC Address: 6 octets
+	 * AP Removal Timer: 2 octets
+	 * Operation Parameters: 3 octets
+	 * NSTR Indication Bitmap: 1 or 2 octets
+	 */
+	u8 variable[];
+} STRUCT_PACKED;
 
 /* IEEE P802.11be/D2.0, 9.4.2.312.1 - Multi-Link element / General */
 
