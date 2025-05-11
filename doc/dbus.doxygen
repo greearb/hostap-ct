@@ -1806,6 +1806,7 @@ Interface for performing P2P (Wi-Fi Peer-to-Peer) P2P Device operations.
 	<tr><td>peer</td><td>o</td><td></td><td>yes</td></tr>
 	<tr><td>persistent</td><td>b</td><td>Whether to form a persistent group.</td><td>no</td></tr>
 	<tr><td>join</td><td>b</td><td>Whether to join an already operating group instead of forming a new group.</td><td>no</td></tr>
+	<tr><td>auto_join</td><td>b</td><td>Automatically choose between joining an already operating group or forming a new group.</td><td>no</td></tr>
 	<tr><td>authorize_only</td><td>b</td><td>Whether to authorize a peer to initiate GO Negotiation instead of initiating immediately.</td><td>no</td></tr>
 	<tr><td>frequency</td><td>i</td><td>Operating frequency in MHz</td><td>no</td></tr>
 	<tr><td>go_intent</td><td>i</td><td>GO intent 0-15</td><td>no</td></tr>

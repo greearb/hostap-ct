@@ -624,6 +624,7 @@ DBusMessage * wpas_dbus_handler_p2p_connect(DBusMessage *message,
 	struct wpa_dbus_dict_entry entry;
 	char *peer_object_path = NULL;
 	int persistent_group = 0;
+	int auto_join = 0;
 	int join = 0;
 	int authorize_only = 0;
 	int go_intent = -1;
@@ -657,6 +658,9 @@ DBusMessage * wpas_dbus_handler_p2p_connect(DBusMessage *message,
 		} else if (os_strcmp(entry.key, "join") == 0 &&
 			   entry.type == DBUS_TYPE_BOOLEAN) {
 			join = entry.bool_value;
+		} else if (os_strcmp(entry.key, "auto_join") == 0 &&
+			   entry.type == DBUS_TYPE_BOOLEAN) {
+			auto_join = entry.bool_value;
 		} else if (os_strcmp(entry.key, "authorize_only") == 0 &&
 			   entry.type == DBUS_TYPE_BOOLEAN) {
 			authorize_only = entry.bool_value;
@@ -705,7 +709,8 @@ DBusMessage * wpas_dbus_handler_p2p_connect(DBusMessage *message,
 	wpa_s = wpa_s->global->p2p_init_wpa_s;
 
 	new_pin = wpas_p2p_connect(wpa_s, addr, pin, wps_method,
-				   persistent_group, 0, join, authorize_only,
+				   persistent_group, auto_join, join,
+				   authorize_only,
 				   go_intent, freq, 0, -1, 0, 0, 0, 0, 0, 0,
 				   NULL, 0, false, 0, 0, NULL, false);
 
