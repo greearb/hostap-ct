@@ -4055,6 +4055,11 @@ static const struct wpa_dbus_property_desc wpas_dbus_interface_properties[] = {
 	  wpas_dbus_setter_p2p_device_config,
 	  NULL
 	},
+	{ "DeviceAddress", WPAS_DBUS_NEW_IFACE_P2PDEVICE, "ay",
+	  wpas_dbus_getter_p2p_device_address,
+	  NULL,
+	  NULL
+	},
 	{ "Peers", WPAS_DBUS_NEW_IFACE_P2PDEVICE, "ao",
 	  wpas_dbus_getter_p2p_peers,
 	  NULL,

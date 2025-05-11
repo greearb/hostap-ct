@@ -1460,6 +1460,21 @@ dbus_bool_t wpas_dbus_getter_p2p_peergo(
 						&path, error);
 }
 
+dbus_bool_t wpas_dbus_getter_p2p_device_address(
+	const struct wpa_dbus_property_desc *property_desc,
+	DBusMessageIter *iter, DBusError *error, void *user_data)
+{
+	struct wpa_supplicant *wpa_s = user_data;
+
+	if (!wpa_dbus_p2p_check_enabled(wpa_s, NULL, NULL, error))
+		return FALSE;
+
+	wpa_s = wpa_s->global->p2p_init_wpa_s;
+
+	return wpas_dbus_simple_array_property_getter(
+		iter, DBUS_TYPE_BYTE, (char *) wpa_s->own_addr,
+		ETH_ALEN, error);
+}
 
 /*
  * Peer object properties accessor methods

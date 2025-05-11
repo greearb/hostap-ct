@@ -2070,6 +2070,10 @@ Interface for performing P2P (Wi-Fi Peer-to-Peer) P2P Device operations.
   <li>
     <h3>PersistentGroups - ao - (read)</h3>
   </li>
+
+  <li>
+    <h3>DeviceAddress - ay - (read)</h3>
+  </li>
 </ul>
 
 \subsection dbus_p2pdevice_signals Signals

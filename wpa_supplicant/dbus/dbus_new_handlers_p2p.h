@@ -95,6 +95,7 @@ DECLARE_ACCESSOR(wpas_dbus_getter_p2p_peers);
 DECLARE_ACCESSOR(wpas_dbus_getter_p2p_role);
 DECLARE_ACCESSOR(wpas_dbus_getter_p2p_group);
 DECLARE_ACCESSOR(wpas_dbus_getter_p2p_peergo);
+DECLARE_ACCESSOR(wpas_dbus_getter_p2p_device_address);
 
 /*
  * P2P Peer properties.

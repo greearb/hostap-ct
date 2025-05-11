@@ -62,6 +62,18 @@ def prepare_dbus(dev):
     except Exception as e:
         raise HwsimSkip("Could not connect to D-Bus: %s" % e)
 
+def assert_dev_addr(p2p, expected):
+    property = p2p.Get(WPAS_DBUS_IFACE_P2PDEVICE, "DeviceAddress",
+                     dbus_interface=dbus.PROPERTIES_IFACE)
+    dev_addr_str = ''
+    for item in property:
+        if len(dev_addr_str) > 0:
+            dev_addr_str += ':'
+        dev_addr_str += '%02x' % item
+
+    if expected  != dev_addr_str:
+        raise Exception("Expected device addr to be %s, got %s" % (expected, dev_addr_str))
+
 class TestDbus(object):
     def __init__(self, bus):
         self.loop = gobject.MainLoop()
@@ -3218,6 +3230,7 @@ def run_dbus_p2p_discovery(dev, apdev):
     p2p = dbus.Interface(if_obj, WPAS_DBUS_IFACE_P2PDEVICE)
 
     addr0 = dev[0].p2p_dev_addr()
+    assert_dev_addr(p2p, addr0);
 
     dev[1].request("SET sec_device_type 1-0050F204-2")
     dev[1].request("VENDOR_ELEM_ADD 1 dd0c0050f2041049000411223344")
@@ -5115,6 +5128,7 @@ def test_dbus_p2p_wps_failure(dev, apdev):
     (bus, wpas_obj, path, if_obj) = prepare_dbus(dev[0])
     p2p = dbus.Interface(if_obj, WPAS_DBUS_IFACE_P2PDEVICE)
     addr0 = dev[0].p2p_dev_addr()
+    assert_dev_addr(p2p, addr0);
 
     class TestDbusP2p(TestDbus):
         def __init__(self, bus):
@@ -5195,6 +5209,8 @@ def test_dbus_p2p_two_groups(dev, apdev):
     addr1 = dev[1].p2p_dev_addr()
     addr2 = dev[2].p2p_dev_addr()
     dev[1].p2p_start_go(freq=2412)
+
+    assert_dev_addr(p2p, addr0);
 
     class TestDbusP2p(TestDbus):
         def __init__(self, bus):
@@ -5381,6 +5397,8 @@ def test_dbus_p2p_cancel(dev, apdev):
         pass
 
     addr0 = dev[0].p2p_dev_addr()
+    assert_dev_addr(p2p, addr0);
+
     dev[1].p2p_listen()
 
     class TestDbusP2p(TestDbus):
