@@ -10000,7 +10000,7 @@ static int nl80211_set_legacy_rates(struct i802_bss *bss,
 
 	nla_nest_end(msg, bands);
 
-	wpa_printf(MSG_DEBUG, "nl80211: set-bitrates, sending netlink message...");
+	/* wpa_printf(MSG_DEBUG, "nl80211: set-bitrates, sending netlink message..."); */
 	ret = send_and_recv_cmd(drv, msg);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "nl80211: Set Legacy TX rates failed: ret=%d "
