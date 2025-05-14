@@ -1931,6 +1931,24 @@ enum qca_wlan_vendor_attr {
 	 */
 	QCA_WLAN_VENDOR_ATTR_MLO_CAPABILITY_MAX_STR_LINK_COUNT = 45,
 
+	/* An array of unsigned 32-bit values used by
+	 * QCA_NL80211_VENDOR_SUBCMD_GET_CHAIN_RSSI command to report the switch
+	 * count for each antenna.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ANT_SWITCH_COUNT = 46,
+
+	/* An array of unsigned 32-bit values used by
+	 * QCA_NL80211_VENDOR_SUBCMD_GET_CHAIN_RSSI command to report the active
+	 * duration (in seconds) of each antenna.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ANT_DURATION = 47,
+
+	 /* An array of unsigned 32-bit values used by
+	  * QCA_NL80211_VENDOR_SUBCMD_GET_CHAIN_RSSI command to report the
+	  * current RSSI of each antenna.
+	  */
+	QCA_WLAN_VENDOR_ATTR_ANT_RSSI = 48,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_MAX	= QCA_WLAN_VENDOR_ATTR_AFTER_LAST - 1,
