@@ -1347,6 +1347,16 @@ struct wpa_ssid {
 	int disable_mlo;
 
 	/**
+	 * disable_link_2g - Disable MLO 2GHz link for this network
+	 *
+	 * By default, use it if it is available, but this can be configured
+	 * to 1 to have it disabled.
+	 */
+	int disable_link_2g;
+	int disable_link_5g;
+	int disable_link_6g;
+
+	/**
 	 * enable_4addr_mode - Set 4addr mode after association
 	 * 0 = Do not attempt to set 4addr mode
 	 * 1 = Try to set 4addr mode after association
