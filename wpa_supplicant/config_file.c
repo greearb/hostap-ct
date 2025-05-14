@@ -1026,6 +1026,9 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid,
 	INT(disable_eht);
 	INT(disable_uhr);
 	INT(disable_mlo);
+	INT(disable_link_2g);
+	INT(disable_link_5g);
+	INT(disable_link_6g);
 	INT(enable_4addr_mode);
 	INT(max_idle);
 	INT(ssid_protection);
