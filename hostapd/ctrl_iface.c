@@ -2431,10 +2431,36 @@ static int hostapd_ctrl_register_frame(struct hostapd_data *hapd,
 
 #ifdef NEED_AP_MLME
 
+static struct hostapd_hw_modes * get_target_hw_mode(struct hostapd_iface *iface,
+						    int freq)
+{
+	int i;
+	enum hostapd_hw_mode target_mode;
+	bool is_6ghz = is_6ghz_freq(freq);
+
+	if (freq < 4000)
+		target_mode = HOSTAPD_MODE_IEEE80211G;
+	else if (freq > 50000)
+		target_mode = HOSTAPD_MODE_IEEE80211AD;
+	else
+		target_mode = HOSTAPD_MODE_IEEE80211A;
+
+	for (i = 0; i < iface->num_hw_features; i++) {
+		struct hostapd_hw_modes *mode;
+
+		mode = &iface->hw_features[i];
+		if (mode->mode == target_mode && mode->is_6ghz == is_6ghz)
+			return mode;
+	}
+
+	return NULL;
+}
+
+
 static bool
-hostapd_ctrl_is_freq_in_cmode(struct hostapd_hw_modes *mode,
-			      struct hostapd_multi_hw_info *current_hw_info,
-			      int freq)
+hostapd_ctrl_is_freq_in_mode(struct hostapd_hw_modes *mode,
+			     struct hostapd_multi_hw_info *current_hw_info,
+			     int freq)
 {
 	struct hostapd_channel_data *chan;
 	int i;
@@ -2651,6 +2677,7 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 {
 #ifdef NEED_AP_MLME
 	struct csa_settings settings;
+	struct hostapd_hw_modes *target_mode;
 	int ret;
 	int dfs_range = 0;
 	unsigned int i;
@@ -2669,10 +2696,16 @@ static int hostapd_ctrl_iface_chan_switch(struct hostapd_iface *iface,
 		settings.link_id = iface->bss[0]->mld_link_id;
 #endif /* CONFIG_IEEE80211BE */
 
+	target_mode = get_target_hw_mode(iface, settings.freq_params.freq);
+	if (!target_mode) {
+		wpa_printf(MSG_DEBUG,
+			   "chanswitch: Invalid frequency settings provided for hw mode");
+		return -1;
+	}
+
 	if (iface->num_hw_features > 1 &&
-	    !hostapd_ctrl_is_freq_in_cmode(iface->current_mode,
-					   iface->current_hw_info,
-					   settings.freq_params.freq)) {
+	    !hostapd_ctrl_is_freq_in_mode(target_mode, iface->current_hw_info,
+					  settings.freq_params.freq)) {
 		wpa_printf(MSG_INFO,
 			   "chanswitch: Invalid frequency settings provided for multi band phy");
 		return -1;
