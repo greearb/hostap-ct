@@ -172,7 +172,8 @@ static enum chan_allowed verify_160mhz(struct hostapd_hw_modes *mode,
 			return NOT_ALLOWED;
 
 		if (!(flags & HOSTAPD_CHAN_VHT_80MHZ_SUBCHANNEL) ||
-		    !(flags & HOSTAPD_CHAN_VHT_160MHZ_SUBCHANNEL))
+		    (!(flags & HOSTAPD_CHAN_VHT_160MHZ_SUBCHANNEL) &&
+		     !(flags & HOSTAPD_CHAN_AUTO_BW)))
 			return NOT_ALLOWED;
 
 		if (flags & HOSTAPD_CHAN_NO_IR)

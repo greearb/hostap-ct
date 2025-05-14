@@ -4490,7 +4490,8 @@ static enum chan_allowed wpas_p2p_verify_160mhz(struct wpa_supplicant *wpa_s,
 
 		if (!is_6ghz_op_class(op_class)) {
 			if (!(flags & HOSTAPD_CHAN_VHT_80MHZ_SUBCHANNEL) ||
-			    !(flags & HOSTAPD_CHAN_VHT_160MHZ_SUBCHANNEL))
+			    (!(flags & HOSTAPD_CHAN_VHT_160MHZ_SUBCHANNEL) &&
+			     !(flags & HOSTAPD_CHAN_AUTO_BW)))
 				return NOT_ALLOWED;
 		} else if (is_6ghz_op_class(op_class) &&
 			   (!(wpas_get_6ghz_he_chwidth_capab(mode) &

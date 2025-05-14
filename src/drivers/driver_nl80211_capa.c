@@ -2390,7 +2390,7 @@ static void nl80211_reg_rule_sec(struct nlattr *tb[],
 
 
 static void nl80211_set_vht_mode(struct hostapd_hw_modes *mode, int start,
-				 int end, int max_bw)
+				 int end, int max_bw, u32 flags)
 {
 	int c;
 
@@ -2405,6 +2405,9 @@ static void nl80211_set_vht_mode(struct hostapd_hw_modes *mode, int start,
 
 		if (max_bw >= 160)
 			chan->flag |= HOSTAPD_CHAN_VHT_160MHZ_SUBCHANNEL;
+
+		if (flags & NL80211_RRF_AUTO_BW)
+			chan->flag |= HOSTAPD_CHAN_AUTO_BW;
 	}
 }
 
@@ -2412,7 +2415,7 @@ static void nl80211_set_vht_mode(struct hostapd_hw_modes *mode, int start,
 static void nl80211_reg_rule_vht(struct nlattr *tb[],
 				 struct phy_info_arg *results)
 {
-	u32 start, end, max_bw;
+	u32 start, end, max_bw, flags = 0;
 	u16 m;
 
 	if (tb[NL80211_ATTR_FREQ_RANGE_START] == NULL ||
@@ -2423,6 +2426,9 @@ static void nl80211_reg_rule_vht(struct nlattr *tb[],
 	start = nla_get_u32(tb[NL80211_ATTR_FREQ_RANGE_START]) / 1000;
 	end = nla_get_u32(tb[NL80211_ATTR_FREQ_RANGE_END]) / 1000;
 	max_bw = nla_get_u32(tb[NL80211_ATTR_FREQ_RANGE_MAX_BW]) / 1000;
+
+	if (tb[NL80211_ATTR_REG_RULE_FLAGS])
+		flags = nla_get_u32(tb[NL80211_ATTR_REG_RULE_FLAGS]);
 
 	if (max_bw < 80)
 		return;
@@ -2435,7 +2441,8 @@ static void nl80211_reg_rule_vht(struct nlattr *tb[],
 		if (!results->modes[m].vht_capab)
 			continue;
 
-		nl80211_set_vht_mode(&results->modes[m], start, end, max_bw);
+		nl80211_set_vht_mode(&results->modes[m], start, end,
+				     max_bw, flags);
 	}
 }
 

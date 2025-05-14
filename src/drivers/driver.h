@@ -51,6 +51,7 @@ struct nan_publish_params;
 
 #define HOSTAPD_CHAN_INDOOR_ONLY 0x00010000
 #define HOSTAPD_CHAN_GO_CONCURRENT 0x00020000
+#define HOSTAPD_CHAN_AUTO_BW 0x00040000
 
 /* Allowed bandwidth mask */
 enum hostapd_chan_width_attr {
