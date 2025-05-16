@@ -1809,6 +1809,14 @@ int hostapd_set_acl(struct hostapd_data *hapd)
 	if (hapd->iface->drv_max_acl_mac_addrs == 0)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap) {
+		wpa_printf(MSG_DEBUG,
+			   "Kernel doesn't support offloaded ACL for AP MLD. Use hostapd based ACL instead.");
+		return 0;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 	if (conf->macaddr_acl == DENY_UNLESS_ACCEPTED) {
 		accept_acl = 1;
 		err = hostapd_set_acl_list(hapd, conf->accept_mac,

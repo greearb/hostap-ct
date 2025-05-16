@@ -1644,6 +1644,11 @@ int hostapd_disassoc_deny_mac(struct hostapd_data *hapd)
 	struct vlan_description vlan_id;
 
 	for (sta = hapd->sta_list; sta; sta = sta->next) {
+#ifdef CONFIG_IEEE80211BE
+		int link_id;
+		struct mld_link_info *info;
+#endif /* CONFIG_IEEE80211BE */
+
 		if (hostapd_maclist_found(hapd->conf->deny_mac,
 					  hapd->conf->num_deny_mac, sta->addr,
 					  &vlan_id) &&
@@ -1651,6 +1656,24 @@ int hostapd_disassoc_deny_mac(struct hostapd_data *hapd)
 		     !vlan_compare(&vlan_id, sta->vlan_desc)))
 			ap_sta_disconnect(hapd, sta, sta->addr,
 					  WLAN_REASON_UNSPECIFIED);
+#ifdef CONFIG_IEEE80211BE
+		for (link_id = 0; hapd->conf->mld_ap &&
+			     link_id < MAX_NUM_MLD_LINKS &&
+			     sta->mld_info.mld_sta; link_id++) {
+			info = &sta->mld_info.links[link_id];
+			if (!info->valid || link_id != hapd->mld_link_id)
+				continue;
+
+			if (hostapd_maclist_found(hapd->conf->deny_mac,
+						  hapd->conf->num_deny_mac,
+						  info->peer_addr,
+						  &vlan_id) &&
+			    (!vlan_id.notempty ||
+			     !vlan_compare(&vlan_id, sta->vlan_desc)))
+				ap_sta_disconnect(hapd, sta, sta->addr,
+						  WLAN_REASON_UNSPECIFIED);
+		}
+#endif /* CONFIG_IEEE80211BE */
 	}
 
 	return 0;

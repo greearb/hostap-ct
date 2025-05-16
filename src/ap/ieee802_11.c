@@ -3301,6 +3301,23 @@ static void handle_auth(struct hostapd_data *hapd,
 	if (res == HOSTAPD_ACL_PENDING)
 		return;
 
+#ifdef CONFIG_IEEE80211BE
+	if (mld_sta) {
+		res = ieee802_11_allowed_address(hapd, mgmt->sa,
+						 (const u8 *) mgmt, len,
+						 &rad_info);
+		if (res == HOSTAPD_ACL_REJECT) {
+			wpa_msg(hapd->msg_ctx, MSG_DEBUG,
+				"Ignore Authentication frame from " MACSTR
+				" due to ACL reject", MAC2STR(mgmt->sa));
+			resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+			goto fail;
+		}
+		if (res == HOSTAPD_ACL_PENDING)
+			return;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 #ifdef CONFIG_SAE
 	if (auth_alg == WLAN_AUTH_SAE && !from_queue &&
 	    (auth_transaction == 1 ||
