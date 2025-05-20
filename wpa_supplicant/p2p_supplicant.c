@@ -11595,6 +11595,8 @@ int wpas_p2p_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 		return -2;
 
 	wpa_s->p2p2 = true;
+	if (wpa_s->p2p_mode == WPA_P2P_MODE_WFD_R1)
+		wpa_s->p2p_mode = WPA_P2P_MODE_WFD_R2;
 	return p2p_pasn_auth_rx(p2p, mgmt, len, freq);
 }
 
