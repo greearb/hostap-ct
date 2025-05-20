@@ -11188,6 +11188,32 @@ static int nl80211_get_links_channel_width(struct i802_bss *bss,
 				  mlo_sig);
 }
 
+static int get_vif_radio_mask(struct nl_msg *msg, void *arg)
+{
+	struct nlattr *tb[NL80211_ATTR_MAX + 1];
+	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
+	u32 *vif_radio_mask = arg;
+
+	nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
+		  genlmsg_attrlen(gnlh, 0), NULL);
+
+	*vif_radio_mask = 0;
+	if (tb[NL80211_ATTR_VIF_RADIO_MASK])
+		*vif_radio_mask = nla_get_u32(tb[NL80211_ATTR_VIF_RADIO_MASK]);
+
+	return NL_SKIP;
+}
+
+
+static int nl80211_get_vif_radio_mask(void *priv, u32 *vif_radio_mask)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+
+	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_GET_INTERFACE);
+	return send_and_recv_resp(drv, msg, get_vif_radio_mask, vif_radio_mask);
+}
 
 static int nl80211_mlo_signal_poll(void *priv,
 				   struct wpa_mlo_signal_info *mlo_si)
@@ -17340,6 +17366,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.nan_config_schedule = wpa_driver_nl80211_nan_config_schedule,
 	.nan_config_peer_schedule = wpa_driver_nl80211_nan_config_peer_schedule,
 #endif /* CONFIG_NAN */
+	.get_vif_radio_mask = nl80211_get_vif_radio_mask,
 #ifdef CONFIG_PR
 	.pd_start = nl80211_pd_start,
 	.pd_stop = nl80211_pd_stop,
