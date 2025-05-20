@@ -5826,6 +5826,12 @@ struct wpa_driver_ops {
 	*/
 	int (*txpower_ctrl)(void *priv, u8 lpi_psd, u8 sku_idx, u8 lpi_bcn_enhance,
 			    s8 link_id);
+	/**
+	* get_vif_radio_mask - get the radio mask of the interface
+	* @priv: Private driver interface data
+	* @vif_radio_mask: radio mask of the interface
+	*/
+	int (*get_vif_radio_mask)(void *priv, u32 *vif_radio_mask);
 };
 
 /**
