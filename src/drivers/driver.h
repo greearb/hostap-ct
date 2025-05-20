@@ -5660,6 +5660,13 @@ struct wpa_driver_ops {
 	 */
 	void (*nan_stop)(void *priv);
 #endif /* CONFIG_NAN */
+
+	/**
+	 * get_vif_radio_mask - get the radio mask of the interface
+	 * @priv: Private driver interface data
+	 * @vif_radio_mask: radio mask of the interface
+	 */
+	int (*get_vif_radio_mask)(void *priv, u32 *vif_radio_mask);
 };
 
 /**
