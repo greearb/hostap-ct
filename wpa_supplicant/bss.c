@@ -1967,7 +1967,11 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 		if (i == link_id)
 			continue;
 
-		neigh_bss = wpa_bss_get_bssid(wpa_s, bss->mld_links[i].bssid);
+		if (ssid && ssid->ssid_len)
+			neigh_bss = wpa_bss_get(wpa_s, bss->mld_links[i].bssid,
+						ssid->ssid, ssid->ssid_len);
+		else
+			neigh_bss = wpa_bss_get_bssid(wpa_s, bss->mld_links[i].bssid);
 		if (!neigh_bss) /* cannot be NULL at this point */
 			continue;
 
