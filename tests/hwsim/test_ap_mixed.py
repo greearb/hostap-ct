@@ -100,3 +100,23 @@ def test_ap_mixed_security(dev, apdev):
         raise Exception("Unexpected key_mgmt(2c)")
     if sae and dev[2].get_status_field("key_mgmt") != "FT-SAE":
         raise Exception("Unexpected key_mgmt(3c)")
+
+def test_ap_mixed_security_wpa_sae(dev, apdev):
+    """WPAv1(PSK-CCMP) and WPA3(SAE-CCMP) in a single BSS"""
+    check_sae_capab(dev[0])
+    ssid = "test-mixed"
+    passphrase = 'qwertyuiop'
+    params = hostapd.wpa_mixed_params(ssid=ssid, passphrase=passphrase)
+    params['wpa_key_mgmt'] = "WPA-PSK SAE"
+    params['wpa_pairwise'] = "CCMP"
+    params['rsn_pairwise'] = "CCMP"
+    # Remove WPA-PSK from RSNE
+    rsne = "30140100000fac040100000fac040100000fac080c00"
+    wpaie = "dd160050f20101000050f20401000050f20401000050f202"
+    params['own_ie_override'] = rsne + wpaie
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].set("sae_groups", "")
+    dev[0].connect(ssid, psk=passphrase, key_mgmt="SAE", scan_freq="2412")
+    dev[1].connect(ssid, key_mgmt="WPA-PSK", proto="WPA",
+                   psk=passphrase, scan_freq="2412")
