@@ -1241,6 +1241,7 @@ static int wpa_driver_nl80211_own_ifindex(struct wpa_driver_nl80211_data *drv,
 		nl80211_check_global(drv->global);
 		wpa_printf(MSG_DEBUG, "nl80211: Update ifindex for a removed "
 			   "interface");
+		del_ifidx(drv, drv->ifindex, IFIDX_ANY);
 		if (wpa_driver_nl80211_finish_drv_init(drv, NULL, 0, NULL,
 						       WPA_P2P_MODE_WFD_R1) < 0)
 			return -1;
