@@ -1499,10 +1499,15 @@ static bool is_sae_key_mgmt_suite(struct wpa_supplicant *wpa_s, u32 suite)
 	 * match that initial implementation so that already deployed use cases
 	 * remain functional. */
 	if (RSN_SELECTOR_GET(&suite) == RSN_AUTH_KEY_MGMT_SAE) {
-		/* Old drivers which follow initial implementation send SAE AKM
-		 * for both SAE and FT-SAE connections. In that case, determine
-		 * the actual AKM from wpa_s->key_mgmt. */
-		wpa_s->sme.ext_auth_key_mgmt = wpa_s->key_mgmt;
+		/* This will be true in following cases
+		 * 1. Old drivers which follow the initial implementation send
+		 *    RSN_AUTH_KEY_MGMT_SAE with swapped byte order for both SAE
+		 *    and FT-SAE connections.
+		 * 2. The driver sending RSN_AUTH_KEY_MGMT_SAE in host byte
+		 *    order but kernel swapped that byte order to follow initial
+		 *    implementation.
+		 * In these cases, update the AKM as WPA_KEY_MGMT_SAE. */
+		wpa_s->sme.ext_auth_key_mgmt = WPA_KEY_MGMT_SAE;
 		return true;
 	}
 
