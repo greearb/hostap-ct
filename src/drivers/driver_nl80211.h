@@ -73,7 +73,10 @@ struct i802_bss {
 	struct i802_link *flink, *scan_link;
 
 	int ifindex;
+	int ignore_if_down_event;
 	int br_ifindex;
+	int if_removed;
+	int if_disabled;
 	u64 wdev_id;
 	char ifname[IFNAMSIZ + 1];
 	char brname[IFNAMSIZ];
@@ -89,6 +92,7 @@ struct i802_bss {
 	u8 prev_addr[ETH_ALEN];
 
 	int if_dynamic;
+	int operstate;
 
 	void *ctx;
 	struct nl_sock *nl_preq, *nl_mgmt, *nl_connect;
@@ -97,6 +101,8 @@ struct i802_bss {
 	struct nl80211_wiphy_data *wiphy_data;
 	struct dl_list wiphy_list;
 	u8 rand_addr[ETH_ALEN];
+
+	unsigned int start_iface_up:1;
 };
 
 struct drv_nl80211_if_info {
@@ -114,9 +120,6 @@ struct wpa_driver_nl80211_data {
 	u8 perm_addr[ETH_ALEN];
 	void *ctx;
 	int ifindex;
-	int if_removed;
-	int if_disabled;
-	int ignore_if_down_event;
 	struct rfkill_data *rfkill;
 	struct wpa_driver_capa capa;
 	u8 *extended_capa, *extended_capa_mask;
@@ -133,9 +136,6 @@ struct wpa_driver_nl80211_data {
 
 	int has_capability;
 	int has_driver_key_mgmt;
-
-	int operstate;
-
 	int scan_complete_events;
 	enum scan_states {
 		NO_SCAN, SCAN_REQUESTED, SCAN_STARTED, SCAN_COMPLETED,
@@ -165,7 +165,6 @@ struct wpa_driver_nl80211_data {
 	unsigned int retry_auth:1;
 	unsigned int hostapd:1;
 	unsigned int start_mode_sta:1;
-	unsigned int start_iface_up:1;
 	unsigned int test_use_roc_tx:1;
 	unsigned int ignore_deauth_event:1;
 	unsigned int vendor_cmd_test_avail:1;
