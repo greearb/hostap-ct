@@ -266,8 +266,6 @@ void hostapd_neighbor_set_own_report(struct hostapd_data *hapd)
 	if (ht) {
 		bssid_info |= NEI_REP_BSSID_INFO_HT |
 			NEI_REP_BSSID_INFO_DELAYED_BA;
-
-		/* VHT bit added in IEEE P802.11-REVmc/D4.3 */
 		if (vht)
 			bssid_info |= NEI_REP_BSSID_INFO_VHT;
 	}
@@ -317,8 +315,8 @@ void hostapd_neighbor_set_own_report(struct hostapd_data *hapd)
 
 	/*
 	 * Wide Bandwidth Channel subelement may be needed to allow the
-	 * receiving STA to send packets to the AP. See IEEE P802.11-REVmc/D5.0
-	 * Figure 9-301.
+	 * receiving STA to send packets to the AP. See IEEE Std 802.11-2024,
+	 * Figure 9-423 (Wide Bandwidth Channel subelement format).
 	 */
 	wpabuf_put_u8(nr, WNM_NEIGHBOR_WIDE_BW_CHAN);
 	wpabuf_put_u8(nr, 3);

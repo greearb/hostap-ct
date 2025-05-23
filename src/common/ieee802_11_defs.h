@@ -707,7 +707,7 @@
 #define WLAN_PA_FILS_DISCOVERY 34
 #define WLAN_PA_LOCATION_MEASUREMENT_REPORT 47
 
-/* HT Action field values (IEEE P802.11-REVme/D4.0, 9.6.11.1, Table 9-491) */
+/* HT Action field values (IEEE Std 802.11-2024, 9.6.11.1, Table 9-517) */
 #define WLAN_HT_ACTION_NOTIFY_CHANWIDTH 0
 #define WLAN_HT_ACTION_SMPS 1
 #define WLAN_HT_ACTION_CSI 4
@@ -715,7 +715,7 @@
 #define WLAN_HT_ACTION_COMPRESSED_BF 6
 #define WLAN_HT_ACTION_ASEL_IDX_FEEDBACK 7
 
-/* VHT Action field values (IEEE P802.11-REVme/D4.0, 9.6.22.1, Table 9-579) */
+/* VHT Action field values (IEEE Std 802.11-2024, 9.6.22.1, Table 9-605) */
 #define WLAN_VHT_ACTION_COMPRESSED_BF 0
 #define WLAN_VHT_ACTION_GROUP_ID_MGMT 1
 #define WLAN_VHT_ACTION_OPMODE_NOTIF 2
@@ -2550,7 +2550,8 @@ struct ieee80211_spatial_reuse {
 /**
  * enum he_reg_info_6ghz_ap_type - Allowed Access Point types for 6 GHz Band
  *
- * IEEE P802.11-REVme/D4.0, Table E-12 (Regulatory Info subfield encoding)
+ * IEEE Std 802.11-2024, Table E-12 (Regulatory Info subfield interpretation by
+ * non-AP STAs with dot11ExtendedRegInfoSupport not set to true)
  */
 enum he_reg_info_6ghz_ap_type {
 	HE_REG_INFO_6GHZ_AP_TYPE_INDOOR         = 0,

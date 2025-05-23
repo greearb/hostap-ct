@@ -907,9 +907,10 @@ static int wnm_send_bss_transition_mgmt_resp(
 		wpabuf_put_data(buf, target_bssid, ETH_ALEN);
 	} else if (status == WNM_BSS_TM_ACCEPT) {
 		/*
-		 * P802.11-REVmc clarifies that the Target BSSID field is always
-		 * present when status code is zero, so use a fake value here if
-		 * no BSSID is yet known.
+		 * IEEE Std 802.11-2024, 9.6.13.10 (BSS Transition Management
+		 * Response frame format) clarifies that the Target BSSID field
+		 * is always present when status code is zero, so use a fake
+		 * value here if no BSSID is yet known.
 		 */
 		wpabuf_put_data(buf, "\0\0\0\0\0\0", ETH_ALEN);
 	}

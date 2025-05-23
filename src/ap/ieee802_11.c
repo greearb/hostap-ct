@@ -6493,7 +6493,8 @@ static int handle_action(struct hostapd_data *hapd,
 		struct ieee80211_mgmt *resp;
 
 		/*
-		 * IEEE 802.11-REVma/D9.0 - 7.3.1.11
+		 * IEEE Std 802.11-2020, 10.28.4 (Response to an invalid Action
+		 * and Action No Ack frame)
 		 * Return the Action frame to the source without change
 		 * except that MSB of the Category set to 1.
 		 */
@@ -7565,7 +7566,8 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 	u8 bw;
 
 	/* bandwidth: 0: 40, 1: 80, 160, 80+80, 4 to 255 reserved as per
-	 * IEEE P802.11-REVme/D7.0, 9.4.2.159 and Table 9-316.
+	 * IEEE Std 802.11-2024, 9.4.2.156 and Table 9-316 (VHT Operation
+	 * Information subfields).
 	 */
 	switch (hapd->cs_freq_params.bandwidth) {
 	case 320:
@@ -7585,7 +7587,8 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 		/* fallthrough */
 	case 160:
 		/* Update the CCFS0 and CCFS1 values in the element based on
-		 * IEEE P802.11-REVme/D7.0, Table 9-316
+		 * IEEE Std 802.11-2024, Table 9-316 (VHT Operation
+		 * Information subfields).
 		 */
 
 		/* CCFS1 - The channel center frequency index of the 160 MHz

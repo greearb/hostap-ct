@@ -1570,7 +1570,7 @@ setup_mld:
 
 	/*
 	 * Short SSID calculation is identical to FCS and it is defined in
-	 * IEEE P802.11-REVmd/D3.0, 9.4.2.170.3 (Calculating the Short-SSID).
+	 * IEEE Std 802.11-2024, 9.4.2.169.3 (Calculating the Short-SSID).
 	 */
 	conf->ssid.short_ssid = ieee80211_crc32(conf->ssid.ssid,
 						conf->ssid.ssid_len);

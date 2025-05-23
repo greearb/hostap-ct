@@ -198,7 +198,8 @@ int wpas_rrm_send_neighbor_rep_request(struct wpa_supplicant *wpa_s,
 	}
 
 	if (lci) {
-		/* IEEE P802.11-REVmc/D5.0 9.4.2.21 */
+		/* IEEE Std 802.11-2024, 9.4.2.19 (Measurement Request element)
+		 */
 		wpabuf_put_u8(buf, WLAN_EID_MEASURE_REQUEST);
 		wpabuf_put_u8(buf, MEASURE_REQUEST_LCI_LEN);
 
@@ -215,13 +216,14 @@ int wpas_rrm_send_neighbor_rep_request(struct wpa_supplicant *wpa_s,
 		wpabuf_put_u8(buf, 0); /* Measurement Request Mode */
 		wpabuf_put_u8(buf, MEASURE_TYPE_LCI); /* Measurement Type */
 
-		/* IEEE P802.11-REVmc/D5.0 9.4.2.21.10 - LCI request */
+		/* IEEE Std 802.11-2024, 9.4.2.19.10 (LCI request) */
 		/* Location Subject */
 		wpabuf_put_u8(buf, LOCATION_SUBJECT_REMOTE);
 
 		/* Optional Subelements */
 		/*
-		 * IEEE P802.11-REVmc/D5.0 Figure 9-170
+		 * IEEE Std 802.11-2024, Figure 9-265 (Maximum Age subelement
+		 * format)
 		 * The Maximum Age subelement is required, otherwise the AP can
 		 * send only data that was determined after receiving the
 		 * request. Setting it here to unlimited age.
@@ -232,7 +234,8 @@ int wpas_rrm_send_neighbor_rep_request(struct wpa_supplicant *wpa_s,
 	}
 
 	if (civic) {
-		/* IEEE P802.11-REVmc/D5.0 9.4.2.21 */
+		/* IEEE Std 802.11-2024, 9.4.2.19 (Measurement Request element)
+		 */
 		wpabuf_put_u8(buf, WLAN_EID_MEASURE_REQUEST);
 		wpabuf_put_u8(buf, MEASURE_REQUEST_CIVIC_LEN);
 
@@ -250,8 +253,7 @@ int wpas_rrm_send_neighbor_rep_request(struct wpa_supplicant *wpa_s,
 		/* Measurement Type */
 		wpabuf_put_u8(buf, MEASURE_TYPE_LOCATION_CIVIC);
 
-		/* IEEE P802.11-REVmc/D5.0 9.4.2.21.14:
-		 * Location Civic request */
+		/* IEEE Std 802.11-2024, 9.4.2.19.14 (Location Civic request) */
 		/* Location Subject */
 		wpabuf_put_u8(buf, LOCATION_SUBJECT_REMOTE);
 		wpabuf_put_u8(buf, 0); /* Civic Location Type: IETF RFC 4776 */

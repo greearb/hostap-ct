@@ -1057,7 +1057,7 @@ static const u8 * auth_skip_fixed_fields(struct hostapd_data *hapd,
 #endif /* CONFIG_SAE */
 	const u8 *pos = mgmt->u.auth.variable;
 
-	/* Skip fixed fields as based on IEE P802.11-REVme/D3.0, Table 9-69
+	/* Skip fixed fields as based on IEEE Std 802.11-2024, Table 9-71
 	 * (Presence of fields and elements in Authentications frames) */
 	switch (auth_alg) {
 	case WLAN_AUTH_OPEN:

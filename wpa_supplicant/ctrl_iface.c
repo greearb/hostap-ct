@@ -10781,7 +10781,7 @@ static void wpas_ctrl_neighbor_rep_cb(void *ctx, struct wpabuf *neighbor_rep)
 	const u8 *data;
 
 	/*
-	 * Neighbor Report element (IEEE P802.11-REVmc/D5.0)
+	 * Neighbor Report element (IEEE Std 802.11-2024, 9.4.2.35)
 	 * BSSID[6]
 	 * BSSID Information[4]
 	 * Operating Class[1]

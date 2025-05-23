@@ -608,7 +608,8 @@ static int sae_pk_tests(void)
 
 static int pasn_test_pasn_auth(void)
 {
-	/* Test vector taken from IEEE P802.11az/D2.6, J.12 */
+	/* Test vector taken from IEEE Std 802.11-2024,
+	 * J.12 (PASN Test Vectors) */
 	const u8 pmk[] = {
 		0xde, 0xf4, 0x3e, 0x55, 0x67, 0xe0, 0x1c, 0xa6,
 		0x64, 0x92, 0x65, 0xf1, 0x9a, 0x29, 0x0e, 0xef,
@@ -680,7 +681,8 @@ static int pasn_test_pasn_auth(void)
 
 static int pasn_test_no_pasn_auth(void)
 {
-	/* Test vector taken from IEEE P802.11az/D2.6, J.13 */
+	/* Test vector taken from IEEE Std 802.11-2024,
+	 * J.13 (KDK Test Vectors when PASN authentication is not used) */
 	const u8 pmk[] = {
 		0xde, 0xf4, 0x3e, 0x55, 0x67, 0xe0, 0x1c, 0xa6,
 		0x64, 0x92, 0x65, 0xf1, 0x9a, 0x29, 0x0e, 0xef,

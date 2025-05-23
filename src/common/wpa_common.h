@@ -614,7 +614,7 @@ struct wpa_ft_ies {
 	struct wpabuf *fte_buf;
 };
 
-/* IEEE P802.11az/D2.6 - 9.4.2.303 PASN Parameters element */
+/* IEEE Std 802.11-2024 - 9.4.2.305 PASN Parameters element */
 #define WPA_PASN_CTRL_COMEBACK_INFO_PRESENT BIT(0)
 #define WPA_PASN_CTRL_GROUP_AND_KEY_PRESENT BIT(1)
 

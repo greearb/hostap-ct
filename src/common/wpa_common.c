@@ -1420,8 +1420,9 @@ void wpa_ft_parse_ies_free(struct wpa_ft_ies *parse)
  * @akmp: Authentication and key management protocol
  * @cipher: The cipher suite
  *
- * According to IEEE P802.11az/D2.7, 12.12.7, the hash algorithm to use is the
- * hash algorithm defined for the Base AKM (see Table 9-151 (AKM suite
+ * According to IEEE Std 802.11-2024, 12.13.8 (PTKSA derivation with PASN
+ * authentication), the hash algorithm to use is the
+ * hash algorithm defined for the Base AKM (see Table 9-190 (AKM suite
  * selectors)). When there is no Base AKM, the hash algorithm is selected based
  * on the pairwise cipher suite provided in the RSNE by the AP in the second
  * PASN frame. SHA-256 is used as the hash algorithm, except for the ciphers
