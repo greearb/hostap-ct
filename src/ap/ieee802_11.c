@@ -6487,33 +6487,6 @@ static int handle_action(struct hostapd_data *hapd,
 		       "handle_action - unknown action category %d or invalid "
 		       "frame",
 		       mgmt->u.action.category);
-	if (!is_multicast_ether_addr(mgmt->da) &&
-	    !(mgmt->u.action.category & 0x80) &&
-	    !is_multicast_ether_addr(mgmt->sa)) {
-		struct ieee80211_mgmt *resp;
-
-		/*
-		 * IEEE Std 802.11-2020, 10.28.4 (Response to an invalid Action
-		 * and Action No Ack frame)
-		 * Return the Action frame to the source without change
-		 * except that MSB of the Category set to 1.
-		 */
-		wpa_printf(MSG_DEBUG, "IEEE 802.11: Return unknown Action "
-			   "frame back to sender");
-		resp = os_memdup(mgmt, len);
-		if (resp == NULL)
-			return 0;
-		os_memcpy(resp->da, resp->sa, ETH_ALEN);
-		os_memcpy(resp->sa, hapd->own_addr, ETH_ALEN);
-		os_memcpy(resp->bssid, hapd->own_addr, ETH_ALEN);
-		resp->u.action.category |= 0x80;
-
-		if (hostapd_drv_send_mlme(hapd, resp, len, 0, NULL, 0, 0) < 0) {
-			wpa_printf(MSG_ERROR, "IEEE 802.11: Failed to send "
-				   "Action frame");
-		}
-		os_free(resp);
-	}
 
 	return 1;
 }
