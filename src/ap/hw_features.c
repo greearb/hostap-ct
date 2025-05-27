@@ -730,7 +730,7 @@ static int ieee80211ac_supported_vht_capab(struct hostapd_iface *iface)
 #ifdef CONFIG_IEEE80211AX
 static int ieee80211ax_supported_he_capab(struct hostapd_iface *iface)
 {
-	return 1;
+	return iface->current_mode->he_capab[IEEE80211_MODE_AP].he_supported;
 }
 #endif /* CONFIG_IEEE80211AX */
 
@@ -756,8 +756,10 @@ int hostapd_check_ht_capab(struct hostapd_iface *iface)
 		return -1;
 #ifdef CONFIG_IEEE80211AX
 	if (iface->conf->ieee80211ax &&
-	    !ieee80211ax_supported_he_capab(iface))
+	    !ieee80211ax_supported_he_capab(iface)) {
+		wpa_printf(MSG_ERROR, "Driver does not support HE");
 		return -1;
+	}
 #endif /* CONFIG_IEEE80211AX */
 #ifdef CONFIG_IEEE80211AC
 	if (iface->conf->ieee80211ac &&
