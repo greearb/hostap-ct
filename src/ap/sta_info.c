@@ -394,7 +394,7 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	p2p_group_notif_disassoc(hapd->p2p_group, sta->addr);
 #endif /* CONFIG_P2P */
 
-#ifdef CONFIG_INTERWORKING
+#if defined(CONFIG_INTERWORKING) || defined(CONFIG_DPP)
 	if (sta->gas_dialog) {
 		int i;
 
@@ -402,7 +402,7 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 			gas_serv_dialog_clear(&sta->gas_dialog[i]);
 		os_free(sta->gas_dialog);
 	}
-#endif /* CONFIG_INTERWORKING */
+#endif /* CONFIG_INTERWORKING || CONFIG_DPP */
 
 	wpabuf_free(sta->wps_ie);
 	wpabuf_free(sta->p2p_ie);

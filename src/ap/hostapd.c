@@ -558,9 +558,9 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 	wpabuf_free(hapd->time_adv);
 	hapd->time_adv = NULL;
 
-#ifdef CONFIG_INTERWORKING
+#if defined(CONFIG_INTERWORKING) || defined(CONFIG_DPP)
 	gas_serv_deinit(hapd);
-#endif /* CONFIG_INTERWORKING */
+#endif /* CONFIG_INTERWORKING || CONFIG_DPP */
 
 	bss_load_update_deinit(hapd);
 	ndisc_snoop_deinit(hapd);
@@ -1679,12 +1679,12 @@ setup_mld:
 		return -1;
 	}
 
-#ifdef CONFIG_INTERWORKING
+#if defined(CONFIG_INTERWORKING) || defined(CONFIG_DPP)
 	if (gas_serv_init(hapd)) {
 		wpa_printf(MSG_ERROR, "GAS server initialization failed");
 		return -1;
 	}
-#endif /* CONFIG_INTERWORKING */
+#endif /* CONFIG_INTERWORKING || CONFIG_DPP */
 
 	if (conf->qos_map_set_len &&
 	    hostapd_drv_set_qos_map(hapd, conf->qos_map_set,
