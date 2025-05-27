@@ -727,6 +727,14 @@ static int ieee80211ac_supported_vht_capab(struct hostapd_iface *iface)
 #endif /* CONFIG_IEEE80211AC */
 
 
+#ifdef CONFIG_IEEE80211BE
+static int ieee80211be_supported_eht_capab(struct hostapd_iface *iface)
+{
+	return iface->current_mode->eht_capab[IEEE80211_MODE_AP].eht_supported;
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 #ifdef CONFIG_IEEE80211AX
 static int ieee80211ax_supported_he_capab(struct hostapd_iface *iface)
 {
@@ -754,6 +762,13 @@ int hostapd_check_ht_capab(struct hostapd_iface *iface)
 
 	if (!ieee80211n_supported_ht_capab(iface))
 		return -1;
+#ifdef CONFIG_IEEE80211BE
+	if (iface->conf->ieee80211be &&
+	    !ieee80211be_supported_eht_capab(iface)) {
+		wpa_printf(MSG_ERROR, "Driver does not support EHT");
+		return -1;
+	}
+#endif /* CONFIG_IEEE80211BE */
 #ifdef CONFIG_IEEE80211AX
 	if (iface->conf->ieee80211ax &&
 	    !ieee80211ax_supported_he_capab(iface)) {
