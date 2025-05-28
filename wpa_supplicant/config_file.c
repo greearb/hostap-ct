@@ -1393,10 +1393,6 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 	if (config->p2p_6ghz_disable)
 		fprintf(f, "p2p_6ghz_disable=%d\n", config->p2p_6ghz_disable);
 
-	if (config->p2p_pairing_setup)
-		fprintf(f, "p2p_pairing_setup=%d\n", config->p2p_pairing_setup);
-	if (config->p2p_pairing_cache)
-		fprintf(f, "p2p_pairing_cache=%d\n", config->p2p_pairing_cache);
 	if (config->p2p_bootstrap_methods)
 		fprintf(f, "p2p_bootstrap_methods=%d\n",
 			config->p2p_bootstrap_methods);
