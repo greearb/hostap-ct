@@ -5967,12 +5967,9 @@ int wpas_p2p_init(struct wpa_global *global, struct wpa_supplicant *wpa_s)
 				   "P2P: Failed to update configuration");
 	}
 
-	p2p.pairing_config.enable_pairing_setup =
-		wpa_s->conf->p2p_pairing_setup;
-	p2p.pairing_config.pairing_capable =
-		wpa_s->conf->p2p_pairing_setup;
-	p2p.pairing_config.enable_pairing_cache =
-		wpa_s->conf->p2p_pairing_cache;
+	p2p.pairing_config.enable_pairing_setup = wpa_s->p2p_pairing_setup;
+	p2p.pairing_config.pairing_capable = wpa_s->p2p_pairing_setup;
+	p2p.pairing_config.enable_pairing_cache = wpa_s->p2p_pairing_cache;
 	p2p.pairing_config.bootstrap_methods =
 		wpa_s->conf->p2p_bootstrap_methods;
 	p2p.pairing_config.pasn_type = wpa_s->conf->p2p_pasn_type;

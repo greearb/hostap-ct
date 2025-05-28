@@ -7910,6 +7910,14 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
+#ifdef CONFIG_P2P
+	if (wpa_s->drv_flags2 & (WPA_DRIVER_FLAGS2_P2P_FEATURE_V2 |
+				 WPA_DRIVER_FLAGS2_P2P_FEATURE_PCC_MODE)) {
+		wpa_s->p2p_pairing_setup = true;
+		wpa_s->p2p_pairing_cache = true;
+	}
+#endif /* CONFIG_P2P */
+
 	if ((!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_DEDICATED_P2P_DEVICE) ||
 	     wpa_s->p2p_mgmt) &&
 	    wpas_p2p_init(wpa_s->global, wpa_s) < 0) {
