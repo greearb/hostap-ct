@@ -7675,6 +7675,11 @@ u8 * hostapd_eid_chsw_wrapper(struct hostapd_data *hapd, u8 *eid)
 	u8 *eid_len_offset;
 	int freq1;
 
+	if (!(hapd->iconf->ieee80211ac && !hapd->conf->disable_11ac) &&
+	    !(hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax) &&
+	    !(hapd->iconf->ieee80211be && !hapd->conf->disable_11be))
+		return eid;
+
 	if (!hapd->cs_freq_params.channel ||
 	    (!hapd->cs_freq_params.vht_enabled &&
 	     !hapd->cs_freq_params.he_enabled &&
