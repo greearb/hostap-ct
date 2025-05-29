@@ -987,7 +987,7 @@ bsd_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, u16 reason_code,
 
 static int
 bsd_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr,
-		 u16 reason_code)
+		 u16 reason_code, int link_id)
 {
 	return bsd_send_mlme_param(priv, IEEE80211_MLME_DISASSOC, reason_code,
 				   addr);

@@ -201,7 +201,7 @@ static int nl80211_put_mesh_config(struct nl_msg *msg,
 				   struct wpa_driver_mesh_bss_params *params);
 #endif /* CONFIG_MESH */
 static int i802_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr,
-			     u16 reason);
+			     u16 reason, int link_id);
 
 
 /* Converts nl80211_chan_width to a common format */
@@ -8495,7 +8495,8 @@ static int i802_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr,
 	    HOSTAPD_MODE_IEEE80211AD) {
 		/* Deauthentication is not used in DMG/IEEE 802.11ad;
 		 * disassociate the STA instead. */
-		return i802_sta_disassoc(priv, own_addr, addr, reason);
+		return i802_sta_disassoc(priv, own_addr, addr, reason,
+					 link_id);
 	}
 
 	if (is_mesh_interface(drv->nlmode))
@@ -8519,7 +8520,7 @@ static int i802_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr,
 
 
 static int i802_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr,
-			     u16 reason)
+			     u16 reason, int link_id)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -8541,7 +8542,7 @@ static int i802_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr,
 	return wpa_driver_nl80211_send_mlme(bss, (u8 *) &mgmt,
 					    IEEE80211_HDRLEN +
 					    sizeof(mgmt.u.disassoc), 0, 0, 0, 0,
-					    0, NULL, 0, 0, -1);
+					    0, NULL, 0, 0, link_id);
 }
 
 

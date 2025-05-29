@@ -3863,13 +3863,14 @@ struct wpa_driver_ops {
 	 * @own_addr: Source address and BSSID for the Disassociation frame
 	 * @addr: MAC address of the station to disassociate
 	 * @reason: Reason code for the Disassociation frame
+	 * @link_id: Link ID to use for Disassociation frame, or -1 if not set
 	 * Returns: 0 on success, -1 on failure
 	 *
 	 * This function requests a specific station to be disassociated and
 	 * a Disassociation frame to be sent to it.
 	 */
 	int (*sta_disassoc)(void *priv, const u8 *own_addr, const u8 *addr,
-			    u16 reason);
+			    u16 reason, int link_id);
 
 	/**
 	 * sta_remove - Remove a station entry (AP only)

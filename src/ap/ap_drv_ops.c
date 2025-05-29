@@ -924,20 +924,23 @@ int hostapd_drv_sta_disassoc(struct hostapd_data *hapd,
 			     const u8 *addr, int reason)
 {
 	const u8 *own_addr = hapd->own_addr;
+	int link_id = -1;
 
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap) {
 		struct sta_info *sta = ap_get_sta(hapd, addr);
 
-		if (ap_sta_is_mld(hapd, sta))
+		if (ap_sta_is_mld(hapd, sta)) {
 			own_addr = hapd->mld->mld_addr;
+			link_id = hapd->mld_link_id;
+		}
 	}
 #endif /* CONFIG_IEEE80211BE */
 
 	if (!hapd->driver || !hapd->driver->sta_disassoc || !hapd->drv_priv)
 		return 0;
 	return hapd->driver->sta_disassoc(hapd->drv_priv, own_addr, addr,
-					  reason);
+					  reason, link_id);
 }
 
 

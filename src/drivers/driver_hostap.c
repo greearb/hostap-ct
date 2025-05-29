@@ -1083,7 +1083,7 @@ static int hostap_set_freq(void *priv, struct hostapd_freq_params *freq)
 
 
 static int hostap_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr,
-			       u16 reason)
+			       u16 reason, int link_id)
 {
 	struct hostap_driver_data *drv = priv;
 	struct ieee80211_mgmt mgmt;
