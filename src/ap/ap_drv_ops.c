@@ -1392,3 +1392,25 @@ int hostapd_add_pmkid(struct hostapd_data *hapd, const u8 *bssid, const u8 *pmk,
 
 	return hostapd_drv_add_pmkid(hapd, &params);
 }
+
+
+static int hostapd_drv_remove_pmkid(struct hostapd_data *hapd,
+				    struct wpa_pmkid_params *params)
+{
+	if (!hapd->driver || !hapd->driver->remove_pmkid || !hapd->drv_priv)
+		return 0;
+	return hapd->driver->remove_pmkid(hapd->drv_priv, params);
+}
+
+
+int hostapd_remove_pmkid(struct hostapd_data *hapd, const u8 *sta_addr,
+			 const u8 *pmkid)
+{
+	struct wpa_pmkid_params params;
+
+	os_memset(&params, 0, sizeof(params));
+	params.bssid = sta_addr;
+	params.pmkid = pmkid;
+
+	return hostapd_drv_remove_pmkid(hapd, &params);
+}

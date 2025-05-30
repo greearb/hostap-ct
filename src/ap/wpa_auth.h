@@ -431,6 +431,7 @@ struct wpa_auth_callbacks {
 	struct wpa_authenticator * (*next_primary_auth)(void *ctx);
 #endif /* CONFIG_IEEE80211BE */
 	int (*get_drv_flags)(void *ctx, u64 *drv_flags, u64 *drv_flags2);
+	int (*remove_pmkid)(void *ctx, const u8 *sta_addr, const u8 *pmkid);
 };
 
 struct wpa_authenticator * wpa_init(const u8 *addr,

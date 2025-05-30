@@ -657,6 +657,12 @@ static void wpa_auth_pmksa_free_cb(struct rsn_pmksa_cache_entry *entry,
 {
 	struct wpa_authenticator *wpa_auth = ctx;
 	wpa_auth_for_each_sta(wpa_auth, wpa_auth_pmksa_clear_cb, entry);
+
+	/* Remove matching PMKID from the driver, if it had been added, e.g.,
+	 * by external SAE authentication */
+	if (wpa_auth->cb->remove_pmkid)
+		wpa_auth->cb->remove_pmkid(wpa_auth->cb_ctx, entry->spa,
+					   entry->pmkid);
 }
 
 

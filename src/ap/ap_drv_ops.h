@@ -492,5 +492,7 @@ int hostapd_drv_add_pmkid(struct hostapd_data *hapd,
 			  struct wpa_pmkid_params *params);
 int hostapd_add_pmkid(struct hostapd_data *hapd, const u8 *bssid, const u8 *pmk,
 		      size_t pmk_len, const u8 *pmkid, int akmp);
+int hostapd_remove_pmkid(struct hostapd_data *hapd, const u8 *sta_addr,
+			 const u8 *pmkid);
 
 #endif /* AP_DRV_OPS */
