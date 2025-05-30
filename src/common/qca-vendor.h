@@ -3335,6 +3335,11 @@ enum qca_wlan_vendor_attr_config {
 	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_ITO and
 	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_SPEC_WAKE_INTERVAL attributes
 	 * when its value is set to %QCA_WLAN_VENDOR_OPM_MODE_USER_DEFINED.
+	 *
+	 * This attribute shall be configured along with
+	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_LEVEL and
+	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_LATENCY_TOLERANCE attributes
+	 * when its value is set to %QCA_WLAN_VENDOR_OPM_MODE_LATENCY_BASED.
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_OPTIMIZED_POWER_MANAGEMENT = 71,
 
@@ -3948,6 +3953,34 @@ enum qca_wlan_vendor_attr_config {
 	 * Uses enum qca_wlan_vendor_attr_emlsr_info for values.
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_EHT_EMLSR_LINKS = 132,
+
+	/* 8-bit unsigned value
+	 *
+	 * This setting determines the intensity of the power-saving mode.
+	 * The level ranges from 1 to 5, where:
+	 * 	1 represents the most aggressive (maximum power saving), and
+	 * 	5 represents the least aggressive (minimal power saving).
+	 *
+	 * This attribute shall be configured along with
+	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_LATENCY_TOLERANCE and
+	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPTIMIZED_POWER_MANAGEMENT
+	 * to %QCA_WLAN_VENDOR_OPM_MODE_LATENCY_BASED mode.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_LEVEL = 133,
+
+	/* 16-bit unsigned value to configure latency tolerance value in
+	 * milliseconds.
+	 *
+	 * This attribute configures latency tolerance value for
+	 * STA and P2P Client mode. This is used by the firmware to achieve
+	 * optimal power consumption within latency constraints.
+	 *
+	 * This attribute shall be configured along with
+	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_LEVEL and
+	 * %QCA_WLAN_VENDOR_ATTR_CONFIG_OPTIMIZED_POWER_MANAGEMENT
+	 * to %QCA_WLAN_VENDOR_OPM_MODE_LATENCY_BASED mode.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_LATENCY_TOLERANCE = 134,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
@@ -17573,12 +17606,17 @@ enum qca_wlan_vendor_attr_tdls_state {
  *	to configure power save inactivity timeout and speculative wake up
  *	interval through %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_ITO and
  *	%QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_SPEC_WAKE_INTERVAL attributes.
+ * @QCA_WLAN_VENDOR_OPM_MODE_LATENCY_BASED: Enable optimized power-save mode
+ *      based on interface level latency tolerance value which is configured
+ *      through %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_LATENCY_TOLERANCE and
+ *      %QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_LEVEL.
  */
 
 enum qca_wlan_vendor_opm_mode {
 	QCA_WLAN_VENDOR_OPM_MODE_DISABLE = 0,
 	QCA_WLAN_VENDOR_OPM_MODE_ENABLE = 1,
 	QCA_WLAN_VENDOR_OPM_MODE_USER_DEFINED = 2,
+	QCA_WLAN_VENDOR_OPM_MODE_LATENCY_BASED = 3,
 };
 
 /*
