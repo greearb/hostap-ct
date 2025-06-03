@@ -1865,6 +1865,12 @@ static int hostapd_cli_cmd_get_edcca(struct wpa_ctrl *ctrl, int argc, char *argv
 	return hostapd_cli_cmd(ctrl, "GET_EDCCA", 1, argc, argv);
 }
 
+static int hostapd_cli_cmd_dfs_detect_mode(struct wpa_ctrl *ctrl, int argc,
+					   char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "DFS_DETECT_MODE", 1, argc, argv);
+}
+
 struct hostapd_cli_cmd {
 	const char *cmd;
 	int (*handler)(struct wpa_ctrl *ctrl, int argc, char *argv[]);
@@ -2151,6 +2157,8 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 		" = Configure EDCCA mode or threshold" },
 	{ "get_edcca", hostapd_cli_cmd_get_edcca, NULL,
 		" = Get EDCCA threshold from driver" },
+	{ "dfs_detect_mode", hostapd_cli_cmd_dfs_detect_mode, NULL,
+		" = Set DFS detection mode" },
 	{ NULL, NULL, NULL, NULL }
 };
 
