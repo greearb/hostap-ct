@@ -5845,6 +5845,14 @@ struct wpa_driver_ops {
 	* @vif_radio_mask: radio mask of the interface
 	*/
 	int (*get_vif_radio_mask)(void *priv, u32 *vif_radio_mask);
+
+	/**
+	 * dfs_tx_mode - set dfs tx mode
+	 * @priv: Private driver interface data
+	 * @link_id: MLD link id. -1 if this is an non-MLD AP
+	 * @dfs_tx_mode: dfs tx mode
+	 */
+	int (*dfs_tx_mode)(void *priv, s8 link_id, u8 dfs_tx_mode);
 };
 
 /**

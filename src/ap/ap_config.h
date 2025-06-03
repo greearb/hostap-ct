@@ -1316,7 +1316,7 @@ enum background_radar_mode {
 	BACKGROUND_RADAR_CERT_MODE,
 };
 
-enum dfs_mode {
+enum dfs_detect_mode {
 	DFS_DETECT_MODE_DISABLE,
 	DFS_DETECT_MODE_AP_ENABLE,
 	DFS_DETECT_MODE_BACKGROUND_ENABLE,
@@ -1354,6 +1354,12 @@ enum pp_mode {
 	PP_FW_MODE,
 	PP_USR_MODE,
 };
+
+enum dfs_tx_mode {
+	DFS_TX_NORMAL_MODE,
+	DFS_TX_CERT_MODE,
+};
+
 
 #define EDCCA_DEFAULT_COMPENSATION -6
 #define EDCCA_MIN_COMPENSATION -126
