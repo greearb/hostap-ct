@@ -17335,6 +17335,59 @@ fail:
 	return -ENOBUFS;
 }
 
+static int nl80211_dfs_tx_mode(void *priv, s8 link_id, const u8 dfs_tx_mode)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct i802_link *link = nl80211_get_link(bss, link_id);
+	struct hostapd_data *hapd = bss->ctx;
+	struct nl_msg *msg;
+	struct nlattr *data;
+	u8 radio_idx = 0;
+	int ret;
+
+	if (!drv->mtk_dfs_tx_vendor_cmd_avail) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Driver does not support setting dfs tx mode");
+		return 0;
+	}
+
+	msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR);
+	if (!msg)
+		goto fail;
+
+	if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_MTK) ||
+	    nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
+			MTK_NL80211_VENDOR_SUBCMD_DFS_TX_CTRL))
+		goto fail;
+
+	data = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA);
+	if (!data)
+		goto fail;
+
+	if (link && link->ctx)
+		hapd = link->ctx;
+
+	if (hapd->iface->current_hw_info)
+		radio_idx = hapd->iface->current_hw_info->hw_idx;
+
+	if (nla_put_u8(msg, MTK_VENDOR_ATTR_DFS_TX_CTRL_MODE, dfs_tx_mode) ||
+	    nla_put_u8(msg, MTK_VENDOR_ATTR_DFS_TX_CTRL_RADIO_IDX, radio_idx))
+		goto fail;
+
+	nla_nest_end(msg, data);
+
+	ret = send_and_recv_cmd(drv, msg);
+	if (ret)
+		wpa_printf(MSG_ERROR, "Failed to set dfs tx mode. ret=%d (%s) ",
+			   ret, strerror(-ret));
+	return ret;
+
+fail:
+	nlmsg_free(msg);
+	return -ENOBUFS;
+}
+
 const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.name = "nl80211",
 	.desc = "Linux nl80211/cfg80211",
@@ -17540,4 +17593,5 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.csi_dump = nl80211_csi_dump,
 	.txpower_ctrl = nl80211_txpower_ctrl,
 	.get_vif_radio_mask = nl80211_get_vif_radio_mask,
+	.dfs_tx_mode = nl80211_dfs_tx_mode,
 };

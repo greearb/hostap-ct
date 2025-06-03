@@ -1763,3 +1763,17 @@ int hostapd_drv_set_scs(struct hostapd_data *hapd, struct hostapd_scs_desc_info 
 	return hapd->driver->set_scs(hapd->drv_priv, info, hapd->mld_link_id);
 }
 #endif
+
+int hostapd_drv_dfs_tx_mode(struct hostapd_data *hapd, u8 dfs_tx_mode)
+{
+	s8 link_id = -1;
+
+	if (!hapd->driver || !hapd->driver->dfs_tx_mode)
+		return 0;
+
+	if (hapd->conf->mld_ap)
+		link_id = hapd->mld_link_id;
+
+	return hapd->driver->dfs_tx_mode(hapd->drv_priv, link_id,
+					 dfs_tx_mode);
+}
