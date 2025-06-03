@@ -4994,7 +4994,7 @@ static int
 hostapd_ctrl_iface_set_dfs_detect_mode(struct hostapd_data *hapd, char *value,
 				       char *buf, size_t buflen)
 {
-	u8 dfs_detect_mode;
+	u8 dfs_detect_mode, dfs_tx_mode;
 
 	if (!value)
 		return -1;
@@ -5006,6 +5006,15 @@ hostapd_ctrl_iface_set_dfs_detect_mode(struct hostapd_data *hapd, char *value,
 	}
 	hapd->iconf->dfs_detect_mode = dfs_detect_mode;
 
+	/* avoid stopping tx when radar is detected in cert mode */
+	if (dfs_detect_mode == DFS_DETECT_MODE_AP_ENABLE ||
+	    dfs_detect_mode == DFS_DETECT_MODE_ALL_ENABLE)
+		dfs_tx_mode = DFS_TX_CERT_MODE;
+	else
+		dfs_tx_mode = DFS_TX_NORMAL_MODE;
+
+	if (hostapd_drv_dfs_tx_mode(hapd, dfs_tx_mode))
+		return -1;
 	return os_snprintf(buf, buflen, "OK\n");
 }
 

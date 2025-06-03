@@ -202,6 +202,8 @@ int hostapd_drv_set_scs(struct hostapd_data *hapd,
 			struct hostapd_scs_desc_info *info);
 #endif
 
+int hostapd_drv_dfs_tx_mode(struct hostapd_data *hapd, u8 dfs_tx_mode);
+
 void hostapd_get_ext_capa(struct hostapd_iface *iface);
 void hostapd_get_mld_capa(struct hostapd_iface *iface);
 
