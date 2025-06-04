@@ -62,7 +62,8 @@ const char* eapol_i_msg_type_str(enum i_eapol_msg_type t)
 
 void wpa_apply_corruptions(struct wpa_sm *sm, u16 corrupt_eapol_2_of_4,
 			   u16 corrupt_eapol_4_of_4, u16 corrupt_eapol_2_of_2,
-			   u16 dup_eapol_2_of_4, u16 dup_eapol_4_of_4, u16 dup_eapol_2_of_2)
+			   u16 dup_eapol_2_of_4, u16 dup_eapol_4_of_4, u16 dup_eapol_2_of_2,
+			   const u8 *pmkid_override, u16 corrupt_pmkid)
 {
 	//wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
 	//	"WPA: apply-corruptions, corrupt-eapol-2/4: %d  4/4: %d  2/2: %d  dup-eapol-2/4: %d  4/4: %d  2/2: %d sm: %p\n",
@@ -76,6 +77,8 @@ void wpa_apply_corruptions(struct wpa_sm *sm, u16 corrupt_eapol_2_of_4,
 	sm->dup_eapol_2_of_4 = dup_eapol_2_of_4;
 	sm->dup_eapol_4_of_4 = dup_eapol_4_of_4;
 	sm->dup_eapol_2_of_2 = dup_eapol_2_of_2;
+	sm->pmkid_override = pmkid_override;
+	sm->corrupt_pmkid = corrupt_pmkid;
 }
 
 #endif
