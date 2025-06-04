@@ -9130,6 +9130,20 @@ static int wpa_driver_nl80211_if_add(void *priv, enum wpa_driver_if_type type,
 			return -1;
 		}
 
+		new_bss->ifindex = ifidx;
+		new_bss->drv = drv;
+		new_bss->next = drv->first_bss->next;
+		new_bss->flink = &new_bss->links[0];
+		new_bss->valid_links = 0;
+
+		new_bss->flink->freq = drv->first_bss->flink->freq;
+		new_bss->ctx = bss_ctx;
+		new_bss->added_if = added;
+
+		/* Set interface mode to NL80211_IFTYPE_AP */
+		if (nl80211_set_mode(new_bss, nlmode))
+			return -1;
+
 		if (bridge &&
 		    i802_check_bridge(drv, new_bss, bridge, ifname) < 0) {
 			wpa_printf(MSG_ERROR, "nl80211: Failed to add the new "
@@ -9150,24 +9164,12 @@ static int wpa_driver_nl80211_if_add(void *priv, enum wpa_driver_if_type type,
 		}
 		os_strlcpy(new_bss->ifname, ifname, IFNAMSIZ);
 		os_memcpy(new_bss->addr, if_addr, ETH_ALEN);
-		new_bss->ifindex = ifidx;
-		new_bss->drv = drv;
-		new_bss->next = drv->first_bss->next;
-		new_bss->flink = &new_bss->links[0];
-		new_bss->valid_links = 0;
 		os_memcpy(new_bss->flink->addr, new_bss->addr, ETH_ALEN);
 
-		new_bss->flink->freq = drv->first_bss->flink->freq;
-		new_bss->ctx = bss_ctx;
-		new_bss->added_if = added;
 		drv->first_bss->next = new_bss;
 		if (drv_priv)
 			*drv_priv = new_bss;
 		nl80211_init_bss(new_bss);
-
-		/* Set interface mode to NL80211_IFTYPE_AP */
-		if (nl80211_set_mode(new_bss, nlmode))
-			return -1;
 
 		/* Subscribe management frames for this WPA_IF_AP_BSS */
 		if (nl80211_setup_ap(new_bss))
