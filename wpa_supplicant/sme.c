@@ -2695,6 +2695,21 @@ mscs_fail:
 			    params.wpa_ie, params.wpa_ie_len);
 	}
 #endif /* CONFIG_IEEE80211R */
+#ifdef CONFIG_TESTING_OPTIONS
+	if ((wpa_s->conf->identity && wpa_s->conf->identity->pmkid) ||
+	    wpa_s->conf->corrupt_pmkid) {
+		struct rsn_pmksa_cache_entry *entry = pmksa_cache_get_current(wpa_s->wpa);
+
+		if (entry) {
+			wpa_sm_pmksa_cache_add(wpa_s->wpa, entry->pmk, entry->pmk_len,
+					       entry->orig_pmkid, bssid,
+					       (entry->fils_cache_id_set
+						  ? entry->fils_cache_id
+						  : NULL));
+		}
+	}
+#endif /* CONFIG_TESTING_OPTIONS */
+
 	params.mode = mode;
 	params.mgmt_frame_protection = wpa_s->sme.mfp;
 	params.spp_amsdu = wpa_s->sme.spp_amsdu;
