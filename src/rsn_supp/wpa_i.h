@@ -210,6 +210,9 @@ struct wpa_sm {
 	u16 dup_eapol_2_of_4;
 	u16 dup_eapol_4_of_4;
 	u16 dup_eapol_2_of_2;
+
+	const u8 *pmkid_override;
+	u16 corrupt_pmkid;
 #endif /* CONFIG_TESTING_OPTIONS */
 
 #ifdef CONFIG_FILS

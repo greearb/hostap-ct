@@ -1177,6 +1177,8 @@ struct wpa_config {
 	unsigned short delay_eapol_id_req_max;
 	unsigned short delay_eapol_other_req_min;
 	unsigned short delay_eapol_other_req_max;
+
+	unsigned short corrupt_pmkid;
 #endif
 
 	/**

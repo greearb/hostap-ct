@@ -4938,6 +4938,8 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	config->delay_eapol_1_of_2_max = DEFAULT_IGNORE_AUTH_RESP;
 	config->delay_eapol_key_req_min = DEFAULT_IGNORE_AUTH_RESP;
 	config->delay_eapol_key_req_max = DEFAULT_IGNORE_AUTH_RESP;
+
+	config->corrupt_pmkid = 0;
 #endif
 
 	return config;
@@ -5977,6 +5979,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(delay_eapol_id_req_max), 0 },
 	{ INT(delay_eapol_other_req_min), 0 },
 	{ INT(delay_eapol_other_req_max), 0 },
+	{ INT(corrupt_pmkid), 0 },
 #endif
 	{ INT(accept_external_scan_results), 0 },
 	{ INT(p2p_search_delay), 0},
