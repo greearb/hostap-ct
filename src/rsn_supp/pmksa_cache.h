@@ -14,6 +14,7 @@
  */
 struct rsn_pmksa_cache_entry {
 	struct rsn_pmksa_cache_entry *next;
+	u8 orig_pmkid[PMKID_LEN]; /* For CT Corruption */
 	u8 pmkid[PMKID_LEN];
 	u8 pmk[PMK_LEN_MAX];
 	size_t pmk_len;

@@ -4666,6 +4666,20 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit)
 #ifdef CONFIG_IEEE80211R
 		const u8 *ie, *md = NULL;
 #endif /* CONFIG_IEEE80211R */
+#ifdef CONFIG_TESTING_OPTIONS
+	if ((wpa_s->conf->identity && wpa_s->conf->identity->pmkid) ||
+	    wpa_s->conf->corrupt_pmkid) {
+		struct rsn_pmksa_cache_entry *entry = pmksa_cache_get_current(wpa_s->wpa);
+
+		if (entry) {
+			wpa_sm_pmksa_cache_add(wpa_s->wpa, entry->pmk, entry->pmk_len,
+					       entry->orig_pmkid, bss->bssid,
+					       (entry->fils_cache_id_set
+						  ? entry->fils_cache_id
+						  : NULL));
+		}
+	}
+#endif /* CONFIG_TESTING_OPTIONS */
 		wpa_msg(wpa_s, MSG_INFO, "Trying to associate with " MACSTR
 			" (SSID='%s' freq=%d MHz)", MAC2STR(bss->bssid),
 			wpa_ssid_txt(bss->ssid, bss->ssid_len), bss->freq);
@@ -9128,13 +9142,19 @@ void wpa_supplicant_update_config(struct wpa_supplicant *wpa_s)
 	//	wpa_s->conf->dup_eapol_2_of_2);
 
 	if (wpa_s->wpa) {
+		const u8 *pmkid_override = (wpa_s->conf->identity && wpa_s->conf->identity->pmkid)
+				           ? wpabuf_head(wpa_s->conf->identity->pmkid)
+				           : NULL;
+
 		wpa_apply_corruptions(wpa_s->wpa,
 				      wpa_s->conf->corrupt_eapol_2_of_4,
 				      wpa_s->conf->corrupt_eapol_4_of_4,
 				      wpa_s->conf->corrupt_eapol_2_of_2,
 				      wpa_s->conf->dup_eapol_2_of_4,
 				      wpa_s->conf->dup_eapol_4_of_4,
-				      wpa_s->conf->dup_eapol_2_of_2);
+				      wpa_s->conf->dup_eapol_2_of_2,
+				      pmkid_override,
+				      wpa_s->conf->corrupt_pmkid);
 	}
 
 	if (wpa_s->eapol) {
