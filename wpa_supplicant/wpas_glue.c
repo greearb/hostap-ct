@@ -1540,13 +1540,19 @@ int wpa_supplicant_init_wpa(struct wpa_supplicant *wpa_s)
 	}
 
 #ifdef CONFIG_TESTING_OPTIONS
+	const u8 *pmkid_override = (wpa_s->conf->identity && wpa_s->conf->identity->pmkid)
+			           ? wpabuf_head(wpa_s->conf->identity->pmkid)
+			           : NULL;
+
 	wpa_apply_corruptions(wpa_s->wpa,
 			      wpa_s->conf->corrupt_eapol_2_of_4,
 			      wpa_s->conf->corrupt_eapol_4_of_4,
 			      wpa_s->conf->corrupt_eapol_2_of_2,
 			      wpa_s->conf->dup_eapol_2_of_4,
 			      wpa_s->conf->dup_eapol_4_of_4,
-			      wpa_s->conf->dup_eapol_2_of_2);
+			      wpa_s->conf->dup_eapol_2_of_2,
+			      pmkid_override,
+			      wpa_s->conf->corrupt_pmkid);
 #endif
 
 #endif /* CONFIG_NO_WPA */

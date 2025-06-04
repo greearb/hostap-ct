@@ -228,7 +228,8 @@ enum eapol_key_msg_type wpa_eapol_key_type(struct wpa_sm *sm, const u8 *buf, siz
 const char* eapol_key_msg_type_str(enum eapol_key_msg_type t);
 void wpa_apply_corruptions(struct wpa_sm* wpa_sm, u16 corrupt_eapol_2_of_4,
 			   u16 corrupt_eapol_4_of_4, u16 corrupt_eapol_2_of_2,
-			   u16 dup_eapol_2_of_4, u16 dup_eapol_4_of_4, u16 dup_eapol_2_of_2);
+			   u16 dup_eapol_2_of_4, u16 dup_eapol_4_of_4, u16 dup_eapol_2_of_2,
+			   const u8 *pmkid_override, u16 corrupt_pmkid);
 #endif
 
 
