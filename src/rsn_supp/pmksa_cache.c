@@ -256,8 +256,40 @@ pmksa_cache_add(struct rsn_pmksa_cache *pmksa, const u8 *pmk, size_t pmk_len,
 	if (kck_len > 0)
 		os_memcpy(entry->kck, kck, kck_len);
 	entry->kck_len = kck_len;
-	if (pmkid)
-		os_memcpy(entry->pmkid, pmkid, PMKID_LEN);
+	if (pmkid) {
+		u8 cached_pmkid[PMKID_LEN];
+
+		os_memcpy(cached_pmkid, pmkid, PMKID_LEN);
+
+		/* Override PMKID */
+		if (pmksa->sm->pmkid_override) {
+			wpa_printf(MSG_WARNING,
+				   "PMKID OVERRIDDEN! THIS IS REQUESTED BY USER!");
+			wpa_hexdump(MSG_WARNING, "Original  PMKID",
+				   cached_pmkid, PMKID_LEN);
+
+			os_memcpy(cached_pmkid, pmksa->sm->pmkid_override, PMKID_LEN);
+
+			wpa_hexdump(MSG_WARNING, "Overriden PMKID",
+				    cached_pmkid, PMKID_LEN);
+
+		/* Corrupt a byte of PMKID a percentage of the time */
+		} else if (pmksa->sm->corrupt_pmkid &&
+			   ((os_random() % 65535) < pmksa->sm->corrupt_pmkid)) {
+			wpa_printf(MSG_WARNING,
+				   "PMKID CORRUPTED! THIS IS REQUESTED BY USER!");
+			wpa_hexdump(MSG_WARNING, "Original  PMKID",
+				    cached_pmkid, PMKID_LEN);
+
+			cached_pmkid[os_random() % PMKID_LEN] ^= 0xff;
+
+			wpa_hexdump(MSG_WARNING, "Corrupted PMKID",
+				    cached_pmkid, PMKID_LEN);
+		}
+
+		os_memcpy(entry->orig_pmkid, pmkid, PMKID_LEN);
+		os_memcpy(entry->pmkid, cached_pmkid, PMKID_LEN);
+	}
 	else if (akmp == WPA_KEY_MGMT_IEEE8021X_SUITE_B_192)
 		rsn_pmkid_suite_b_192(kck, kck_len, aa, spa, entry->pmkid);
 	else if (wpa_key_mgmt_suite_b(akmp))
