@@ -1072,6 +1072,9 @@ struct wpa_config {
 	*/
 	int initial_band_pref;
 
+#define CFG_PHY_BAND_2G BIT(0)
+#define CFG_PHY_BAND_5G BIT(1)
+#define CFG_PHY_BAND_6G BIT(2)
 	/* Bitmap of phy-bands used by this station.
 	   (1<<0): 2.4Ghz
 	   (1<<1): 5Ghz
