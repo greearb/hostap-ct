@@ -10046,6 +10046,7 @@ int get_shared_radio_freqs_data(struct wpa_supplicant *wpa_s,
 {
 	struct wpa_supplicant *ifs;
 	u8 bssid[ETH_ALEN];
+	int freq = -1;
 	unsigned int idx = 0, i;
 
 	wpa_dbg(wpa_s, MSG_DEBUG,
@@ -10071,6 +10072,7 @@ int get_shared_radio_freqs_data(struct wpa_supplicant *wpa_s,
 		    ifs->current_ssid->mode == WPAS_MODE_P2P_GO ||
 		    ifs->current_ssid->mode == WPAS_MODE_MESH) {
 			freqs[n_freqs++] = ifs->current_ssid->frequency;
+			freq = ifs->current_ssid->frequency;
 		} else if (ifs->valid_links) {
 			struct driver_sta_mlo_info drv_mlo;
 
@@ -10090,11 +10092,25 @@ int get_shared_radio_freqs_data(struct wpa_supplicant *wpa_s,
 					continue;
 
 				freqs[n_freqs++] = drv_mlo.links[j].freq;
+				freq = drv_mlo.links[j].freq;
 			}
 		} else if (wpa_drv_get_bssid(ifs, bssid) == 0) {
 			freqs[n_freqs++] = ifs->assoc_freq;
+			freq = ifs->assoc_freq;
 		} else {
 			continue;
+		}
+
+		if (wpa_s->conf->phy_bands) {
+			if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_2G) &&
+			    !(freq >= 0 && freq <= 3000))
+				continue;
+			if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_5G) &&
+			    !(freq >= 3000 && freq <= 5950))
+				continue;
+			if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_6G) &&
+			    !(freq >= 5955 && freq <= 8000))
+				continue;
 		}
 
 		/* Hold only distinct freqs */
