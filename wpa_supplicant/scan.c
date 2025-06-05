@@ -953,15 +953,15 @@ static void wpa_setband_scan_freqs(struct wpa_supplicant *wpa_s,
 			/* Deal with sub-phy bands: scan all of a band if nothing
 			 * is currently using a frequency on that particular band.
 			 */
-			if (wpa_s->conf->phy_bands & 0x1 &&
+			if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_2G) &&
 			    !has_freqs(wpa_s, params, 0, 3000))
 				wpa_add_scan_freqs_list(wpa_s, HOSTAPD_MODE_IEEE80211G, params,
 							false, false, false);
-			if (wpa_s->conf->phy_bands & 0x2 &&
+			if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_5G) &&
 			    !has_freqs(wpa_s, params, 3000, 5950))
 				wpa_add_scan_freqs_list(wpa_s, HOSTAPD_MODE_IEEE80211A, params,
 							false, false, false);
-			if (wpa_s->conf->phy_bands & 0x4 &&
+			if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_6G) &&
 			    !has_freqs(wpa_s, params, 5955, 8000))
 				wpa_add_scan_freqs_list(wpa_s, HOSTAPD_MODE_IEEE80211A, params,
 							true, false, false);
