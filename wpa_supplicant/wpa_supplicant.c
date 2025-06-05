@@ -10009,6 +10009,18 @@ int get_shared_radio_freqs_data(struct wpa_supplicant *wpa_s,
 			continue;
 		}
 
+		if (wpa_s->conf->phy_bands) {
+			if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_2G) &&
+			    !(freq >= 0 && freq <= 3000))
+				continue;
+			if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_5G) &&
+			    !(freq >= 3000 && freq <= 5950))
+				continue;
+			if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_6G) &&
+			    !(freq >= 5955 && freq <= 8000))
+				continue;
+		}
+
 		/* Hold only distinct freqs */
 		for (j = 0; j < n_freqs && idx < len; j++) {
 			for (i = 0; i < idx; i++)
