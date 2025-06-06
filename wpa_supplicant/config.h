@@ -1144,44 +1144,47 @@ struct wpa_config {
 #if CONFIG_TESTING_OPTIONS
 	/* Allow users to configure supplicant to drop a percentage of management frames.
 	 * 0 == never, 65535 == always
+	 *
+	 * NOTE: These values always need to be ints due to how the parser
+	 * casts values in offsets. Anything longer or shorter will cause
+	 * the cast values to be lost or misparsed.
 	 */
-	unsigned short ignore_auth_resp;
-	unsigned short ignore_assoc;
-	unsigned short ignore_deauth;
-	unsigned short ignore_eapol_1_of_4;
-	unsigned short ignore_eapol_3_of_4;
-	unsigned short ignore_eapol_1_of_2;
-	unsigned short ignore_eapol_key_req;
-	unsigned short ignore_eapol_id_req;
-	unsigned short ignore_eapol_other_req;
+	unsigned int ignore_auth_resp;
+	unsigned int ignore_assoc;
+	unsigned int ignore_deauth;
+	unsigned int ignore_eapol_1_of_4;
+	unsigned int ignore_eapol_3_of_4;
+	unsigned int ignore_eapol_1_of_2;
+	unsigned int ignore_eapol_key_req;
+	unsigned int ignore_eapol_id_req;
+	unsigned int ignore_eapol_other_req;
 
-	unsigned short corrupt_eapol_2_of_4;
-	unsigned short corrupt_eapol_4_of_4;
-	unsigned short corrupt_eapol_2_of_2;
-	unsigned short corrupt_eapol_key_req;
-	unsigned short corrupt_eapol_id_resp;
-	unsigned short corrupt_eapol_other_resp;
+	unsigned int corrupt_eapol_2_of_4;
+	unsigned int corrupt_eapol_4_of_4;
+	unsigned int corrupt_eapol_2_of_2;
+	unsigned int corrupt_eapol_key_req;
+	unsigned int corrupt_eapol_id_resp;
+	unsigned int corrupt_eapol_other_resp;
+	unsigned int corrupt_pmkid;
 
-	unsigned short dup_eapol_2_of_4;
-	unsigned short dup_eapol_4_of_4;
-	unsigned short dup_eapol_2_of_2;
-	unsigned short dup_eapol_id_resp;
-	unsigned short dup_eapol_other_resp;
+	unsigned int dup_eapol_2_of_4;
+	unsigned int dup_eapol_4_of_4;
+	unsigned int dup_eapol_2_of_2;
+	unsigned int dup_eapol_id_resp;
+	unsigned int dup_eapol_other_resp;
 
-	unsigned short delay_eapol_1_of_4_min;
-	unsigned short delay_eapol_1_of_4_max;
-	unsigned short delay_eapol_3_of_4_min;
-	unsigned short delay_eapol_3_of_4_max;
-	unsigned short delay_eapol_1_of_2_min;
-	unsigned short delay_eapol_1_of_2_max;
-	unsigned short delay_eapol_key_req_min;
-	unsigned short delay_eapol_key_req_max;
-	unsigned short delay_eapol_id_req_min;
-	unsigned short delay_eapol_id_req_max;
-	unsigned short delay_eapol_other_req_min;
-	unsigned short delay_eapol_other_req_max;
-
-	unsigned short corrupt_pmkid;
+	unsigned int delay_eapol_1_of_4_min;
+	unsigned int delay_eapol_1_of_4_max;
+	unsigned int delay_eapol_3_of_4_min;
+	unsigned int delay_eapol_3_of_4_max;
+	unsigned int delay_eapol_1_of_2_min;
+	unsigned int delay_eapol_1_of_2_max;
+	unsigned int delay_eapol_key_req_min;
+	unsigned int delay_eapol_key_req_max;
+	unsigned int delay_eapol_id_req_min;
+	unsigned int delay_eapol_id_req_max;
+	unsigned int delay_eapol_other_req_min;
+	unsigned int delay_eapol_other_req_max;
 #endif
 
 	/**
