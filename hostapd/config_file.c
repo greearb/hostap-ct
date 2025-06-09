@@ -4954,6 +4954,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->mld_indicate_disabled = atoi(pos);
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
+	} else if (os_strcmp(buf, "i2r_lmr_policy") == 0) {
+		conf->i2r_lmr_policy = atoi(pos);
 	} else {
 		wpa_printf(MSG_ERROR,
 			   "Line %d: unknown configuration item '%s'",

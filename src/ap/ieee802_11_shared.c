@@ -481,6 +481,8 @@ static void hostapd_ext_capab_byte(struct hostapd_data *hapd, u8 *pos, int idx,
 #endif /* CONFIG_SAE_PK */
 		break;
 	case 12: /* Bits 96-103 */
+		if (hapd->iconf->i2r_lmr_policy)
+			*pos |= 0x02; /* Bit 97 - I2R LMR Feedback Policy */
 		if (hapd->iconf->peer_to_peer_twt)
 			*pos |= 0x10; /* Bit 100 - Peer to Peer TWT */
 		if (hapd->conf->known_sta_identification)

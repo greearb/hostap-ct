@@ -1241,6 +1241,9 @@ struct hostapd_config {
 
 	bool channel_usage;
 	bool peer_to_peer_twt;
+
+	/* Set I2R LMR policy to allow LMR response from ISTA */
+	bool i2r_lmr_policy;
 };
 
 
