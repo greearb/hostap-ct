@@ -284,6 +284,8 @@ struct wpa_auth_config {
 #endif /* CONFIG_FILS */
 	enum sae_pwe sae_pwe;
 	bool sae_pk;
+	bool urnm_mfpr_x20;
+	bool urnm_mfpr;
 
 	unsigned int secure_ltf:1;
 	unsigned int secure_rtt:1;

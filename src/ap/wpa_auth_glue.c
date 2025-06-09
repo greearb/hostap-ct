@@ -261,6 +261,10 @@ static void hostapd_wpa_auth_conf(struct hostapd_iface *iface,
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_PASN */
 
+	if (conf->urnm_mfpr_x20 == 1)
+		wconf->urnm_mfpr_x20 = true;
+	if (conf->urnm_mfpr != 0)
+		wconf->urnm_mfpr = true;
 	wconf->radius_psk = conf->wpa_psk_radius == PSK_RADIUS_DURING_4WAY_HS;
 	wconf->no_disconnect_on_group_keyerror =
 		conf->bss_max_idle && conf->ap_max_inactivity &&
