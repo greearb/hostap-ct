@@ -508,11 +508,20 @@ static int hostapd_wpa_auth_set_key(void *ctx, int vlan_id, enum wpa_alg alg,
 				    size_t key_len, enum key_flag key_flag)
 {
 	struct hostapd_data *hapd = ctx;
+	struct hostapd_data *link_bss = hapd;
 	const char *ifname = hapd->conf->iface;
 	int set_tx = !(key_flag & KEY_FLAG_NEXT);
 
+#ifdef CONFIG_IEEE80211BE
+	if (hapd->conf->mld_ap) {
+		link_bss = hostapd_mld_get_first_bss(hapd);
+		if (!link_bss)
+			link_bss = hapd;
+	}
+#endif /* CONFIG_IEEE80211BE */
 	if (vlan_id > 0) {
-		ifname = hostapd_get_vlan_id_ifname(hapd->conf->vlan, vlan_id);
+		ifname = hostapd_get_vlan_id_ifname(link_bss->conf->vlan,
+						    vlan_id);
 		if (!ifname) {
 			if (!(hapd->iface->drv_flags &
 			      WPA_DRIVER_FLAGS_VLAN_OFFLOAD))
