@@ -4986,6 +4986,7 @@ int ieee80211_ml_process_link(struct hostapd_data *hapd,
 		   hapd->mld_link_id, sta->aid);
 
 	sta->flags |= WLAN_STA_AUTH | WLAN_STA_ASSOC_REQ_OK;
+	sta->vlan_id = origin_sta->vlan_id;
 
 	/* TODO: What other processing is required? */
 
