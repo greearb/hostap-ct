@@ -617,6 +617,21 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+/* hostapd_mld_move_vlan_list - Move the VLAN list to the new first bss
+ *
+ * This function is used to copy the reference to the VLAN list from the old
+ * first BSS to the new first BSS when the first BSS is removed.
+ */
+static void hostapd_mld_move_vlan_list(struct hostapd_data *old_fbss,
+				       struct hostapd_data *new_fbss)
+{
+	new_fbss->conf->vlan = old_fbss->conf->vlan;
+	old_fbss->conf->vlan = NULL;
+
+}
+#endif /* CONFIG_IEEE80211BE */
+
 /* hostapd_bss_link_deinit - Per-BSS ML cleanup (deinitialization)
  * @hapd: Pointer to BSS data
  *
@@ -5143,8 +5158,16 @@ int hostapd_mld_remove_link(struct hostapd_data *hapd)
 	if (dl_list_empty(&mld->links)) {
 		mld->fbss = NULL;
 	} else {
+		struct hostapd_data *last_link_bss;
+
 		next_fbss = dl_list_entry(mld->links.next, struct hostapd_data,
 					  link);
+		last_link_bss = dl_list_last(&mld->links, struct hostapd_data,
+					     link);
+
+		if (next_fbss != last_link_bss)
+			hostapd_mld_move_vlan_list(hapd, next_fbss);
+
 		mld->fbss = next_fbss;
 	}
 
