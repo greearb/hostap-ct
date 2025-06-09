@@ -979,6 +979,12 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 	} else if (os_strcasecmp(cmd, "enable_dscp_policy_capa") == 0) {
 		wpa_s->enable_dscp_policy_capa = !!atoi(value);
 #endif /* CONFIG_NO_ROBUST_AV */
+#ifdef CONFIG_PASN
+	} else if (os_strcasecmp(cmd, "urnm_mfpr") == 0) {
+		wpa_s->disable_urnm_mfpr = !atoi(value);
+	} else if (os_strcasecmp(cmd, "urnm_mfpr_x20") == 0) {
+		wpa_s->urnm_mfpr_x20 = !!atoi(value);
+#endif /* CONFIG_PASN */
 	} else {
 		value[-1] = '=';
 		ret = wpa_config_process_global(wpa_s->conf, cmd, -1);

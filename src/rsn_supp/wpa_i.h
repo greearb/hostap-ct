@@ -112,6 +112,7 @@ struct wpa_sm {
 	unsigned int secure_ltf:1;
 	unsigned int secure_rtt:1;
 	unsigned int prot_range_neg:1;
+	unsigned int prot_range_neg_x20:1;
 	unsigned int ssid_protection:1;
 	unsigned int spp_amsdu:1;
 

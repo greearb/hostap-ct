@@ -5045,6 +5045,12 @@ int wpa_sm_set_param(struct wpa_sm *sm, enum wpa_sm_conf_params param,
 		sm->eapol_2_key_info_set_mask = value;
 		break;
 #endif /* CONFIG_TESTING_OPTIONS */
+	case WPA_PARAM_URNM_MFPR:
+		sm->prot_range_neg = value;
+		break;
+	case WPA_PARAM_URNM_MFPR_X20:
+		sm->prot_range_neg_x20 = value;
+		break;
 #ifdef CONFIG_DPP2
 	case WPA_PARAM_DPP_PFS:
 		sm->dpp_pfs = value;
