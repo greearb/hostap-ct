@@ -11085,6 +11085,9 @@ static int driver_nl80211_link_remove(void *priv, enum wpa_driver_if_type type,
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	int ret;
 
+	if (type == WPA_IF_AP_VLAN)
+		return wpa_driver_nl80211_if_remove(bss, type, ifname);
+
 	if (type != WPA_IF_AP_BSS)
 		return -1;
 
