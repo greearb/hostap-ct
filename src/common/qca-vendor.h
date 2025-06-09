@@ -1418,6 +1418,11 @@ enum qca_radiotap_vendor_ids {
  *
  *	The attributes used with this command are defined in
  *	enum qca_wlan_vendor_attr_dar.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_FEATURE_CONFIG: Vendor subcommand used to control
+ *	a specific feature enablement based on the OUI data and capabilities of
+ *	the AP. The attributes used with this command are defined in
+ *	enum qca_wlan_vendor_attr_feature_config.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1667,6 +1672,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_WLAN_TELEMETRY_WDEV = 263,
 	QCA_NL80211_VENDOR_SUBCMD_LINK_STATE_CHANGE = 264,
 	QCA_NL80211_VENDOR_SUBCMD_DAR = 265,
+	QCA_NL80211_VENDOR_SUBCMD_FEATURE_CONFIG = 266,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -20617,6 +20623,219 @@ enum qca_wlan_vendor_attr_dar {
 	QCA_WLAN_VENDOR_ATTR_DAR_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_DAR_MAX =
 	QCA_WLAN_VENDOR_ATTR_DAR_AFTER_LAST - 1,
+};
+
+/*
+ * enum qca_vendor_attr_feature_config_capability - Represents the attributes
+ * sent nested under the attribute
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_CAPABILITY.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_NSS_MASK - Optional u8
+ * attribute. Represents the bit mask of allowed NSS capabilities for the AP.
+ * Bit index starts from the least significant bit and Nth bit in the bitmask
+ * represents the (N + 1) NSS capability.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_HT - Flag attribute. The AP
+ * must advertise HT Capability in its Beacon and Probe Response frames.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_VHT - Flag attribute. The AP
+ * must advertise VHT Capability in its Beacon and Probe Response frames.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_HE - Flag attribute. The AP
+ * must advertise HE Capability in its Beacon and Probe Response frames.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_EHT - Flag attribute. The AP
+ * must advertise EHT Capability in its Beacon and Probe Response frames.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_BAND_MASK - Optional u32
+ * attribute. Carries bitmask value of bits from enum qca_set_band. This
+ * represents the allowed operating bands for the AP.
+ */
+enum qca_vendor_attr_feature_config_capability {
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_NSS_MASK = 1,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_HT = 2,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_VHT = 3,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_HE = 4,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_EHT = 5,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_BAND_MASK = 6,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_MAX =
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_CAPABILITY_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_feature_config_data - This enum is used by
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST. The attributes in this enum
+ * can be used to represent a configuration data entry to be matched against the
+ * contents advertised by the AP in its Beacon and Probe Response frames. All
+ * the specified attributes in the configuration data entry must be matched to
+ * perform the action specified in %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_ACTION.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_VENDOR_OUI: Optional attribute
+ * of u8 array. The length of this attribute can be 3 or 5 bytes. Represents
+ * the vendor OUI to be matched against the OUI field in the Vendor Specific
+ * elements advertised by the AP in its Beacon and Probe Response frames.
+ * Userspace can optionally configure
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_VENDOR_DATA and
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_VENDOR_DATA_MASK along with
+ * this attribute to match the Vendor Specific element data after the OUI field.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_VENDOR_DATA: Optional attribute
+ * of u8 array. Represents Vendor Specific element data to be matched after the
+ * OUI field in Vendor Specific elements when the OUI field matched the OUI
+ * specified in %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_VENDOR_OUI. If this
+ * is present, userspace must configure the data mask also using
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_VENDOR_DATA_MASK.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_VENDOR_DATA_MASK: Optional
+ * attribute of u8 array. Represents the data mask buffer for the data specified
+ * in %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_VENDOR_DATA. This is mandatory
+ * when %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_VENDOR_DATA is present. The
+ * length of this attribute must be same as the length of
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_VENDOR_DATA.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_BSSID: Optional attribute.
+ * Represents the 6-byte MAC address to be matched with AP's BSSID. If this
+ * is present, userspace must configure the BSSID mask also using
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_BSSID_MASK.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_BSSID_MASK: Optional attribute.
+ * Represents the 6-byte MAC address mask for the BSSID specified with
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_BSSID. This is mandatory when
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_BSSID is present.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_CAPABILITY: Optional nested
+ * attribute. Represents AP capabilities to be matched. The AP must support all
+ * the nested capabilities specified in this attribute to perform the action
+ * specified in %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_ACTION. The attributes
+ * used with this are defined in enum qca_vendor_attr_feature_config_capability.
+ */
+enum qca_wlan_vendor_attr_feature_config_data {
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_VENDOR_OUI = 1,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_VENDOR_DATA = 2,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_VENDOR_DATA_MASK = 3,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_BSSID = 4,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_BSSID_MASK = 5,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_CAPABILITY = 6,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_MAX =
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_feature_config_action - Represents the values of the
+ * attribute %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_ACTION.
+ *
+ * @QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ENABLE_DSMPS - Enable dynamic SMPS
+ * (Spatial Multiplex Power Save) only when contents advertised by AP in its
+ * Beacon and Probe Response frames matches with at least one of the
+ * configuration data entry from the array of configuration data entries
+ * specified in %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST. Otherwise, the
+ * driver must disable DSMPS for the AP. When this action specified in the
+ * subcommand request, existing configuration data of the previous subcommand
+ * requests with %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISABLE_DSMPS will be
+ * cleared since the driver anyway needs to disable DSMPS for all the APs which
+ * do not meet enable criteria. If the default driver configuration itself
+ * enables DSMPS already and the subcommand request issued to add configuration
+ * data entries with this action the driver will enable the DSMPS only for the
+ * APs which meet the enable criteria and disable DSMPS for all other APs after
+ * the configuration.
+ *
+ * @QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISABLE_DSMPS - Disable dynamic SMPS
+ * only when contents advertised by the AP in its Beacon and Probe Response
+ * frames matches at least one of the configuration data entry from the array of
+ * the configuration data entries specified in
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST. Otherwise, the driver must
+ * enable DSMPS for the AP. When this action specified in the subcommand
+ * request, existing configuration data entries of the previous subcommand
+ * requests with %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ENABLE_DSMPS will be
+ * cleared since the driver anyway needs to enable DSMPS for all the APs which
+ * do not meet disable criteria. If the default driver configuration itself
+ * disables DSMPS already and the subcommand request issued to add configuration
+ * data entries with this action the driver will disable the DSMPS only for
+ * the APs which meet the disable criteria and enable DSMPS for all other APs
+ * after the configuration.
+ */
+enum qca_wlan_vendor_feature_config_action {
+	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ENABLE_DSMPS = 0,
+	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISABLE_DSMPS = 1,
+};
+
+/**
+ * enum qca_wlan_vendor_feature_config_data_op - Represents values of the
+ * attribute %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_OP.
+ *
+ * @QCA_WLAN_VENDOR_FEATURE_CONFIG_DATA_ADD - This operation appends the
+ * configuration data entries specified in
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST to the existing configuration
+ * data entries for the action specified in
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_ACTION.
+ * The existing configuration data entries may have been set through previous
+ * subcommand requests for the action specified in
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_ACTION.
+ *
+ * @QCA_WLAN_VENDOR_FEATURE_CONFIG_DATA_CLEAR - This operation clears the
+ * existing configuration data entries of the action specified in
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_ACTION. The existing configuration data
+ * entries may have been set through previous subcommand requests for the action
+ * specified in %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_ACTION.
+ */
+enum qca_wlan_vendor_feature_config_data_op {
+	QCA_WLAN_VENDOR_FEATURE_CONFIG_DATA_ADD = 0,
+	QCA_WLAN_VENDOR_FEATURE_CONFIG_DATA_CLEAR = 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_feature_config - This enum is used by
+ * %QCA_NL80211_VENDOR_SUBCMD_FEATURE_CONFIG.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_ACTION: Mandatory u32 attribute.
+ * Possible values for this attribute are defined in the
+ * enum qca_wlan_vendor_feature_config_action. This represents the action to be
+ * performed by the driver when the contents advertised by the AP in its Beacon
+ * and Probe Response frames matches at least one of the configuration data
+ * entries from the list of the configuration data entries specified in
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST: Array of nested attributes.
+ * Each nested attribute set in the array represents a configuration data entry
+ * to be matched against the contents advertised by the AP in its Beacon and
+ * Probe Response frames. The driver needs to perform the action indicated in
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_ACTION when the AP matches at least one
+ * of the configuration data entries specified in the list of configuration data
+ * entries. The attributes in enum qca_wlan_vendor_attr_feature_config_data can
+ * be used to represent a configuration data entry to be matched against the
+ * contents advertised by the AP in its Beacon and Probe Response frames. All
+ * the specified attributes in a single configuration data entry must be matched
+ * to perform the action specified in
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_ACTION.
+ * This is a mandatory attribute when %QCA_WLAN_VENDOR_FEATURE_CONFIG_INFO_ADD
+ * is indicated in %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_INFO_OP. This attribute
+ * shall not be present when %QCA_WLAN_VENDOR_FEATURE_CONFIG_INFO_CLEAR is
+ * indicated in %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_INFO_OP.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_OP: Mandatory u8 attribute. This
+ * indicates the operation to be performed on the configuration data entries
+ * specified in %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST for the action
+ * indicated in %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_ACTION. Possible values for
+ * this attribute is defined in enum qca_wlan_vendor_feature_config_data_op.
+ */
+enum qca_wlan_vendor_attr_feature_config {
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_ACTION = 1,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST = 2,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_OP = 3,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_MAX =
+	QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
