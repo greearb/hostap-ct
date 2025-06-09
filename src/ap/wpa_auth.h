@@ -429,7 +429,7 @@ struct wpa_auth_callbacks {
 #endif /* CONFIG_PASN */
 #ifdef CONFIG_IEEE80211BE
 	int (*get_ml_key_info)(void *ctx, struct wpa_auth_ml_key_info *info,
-			       bool rekey);
+			       bool rekey, int vlan_id);
 	struct wpa_authenticator * (*next_primary_auth)(void *ctx);
 #endif /* CONFIG_IEEE80211BE */
 	int (*get_drv_flags)(void *ctx, u64 *drv_flags, u64 *drv_flags2);
@@ -556,7 +556,7 @@ void wpa_auth_eapol_key_tx_status(struct wpa_authenticator *wpa_auth,
 u8 * wpa_sm_write_assoc_resp_ies(struct wpa_state_machine *sm, u8 *pos,
 				 size_t max_len, int auth_alg,
 				 const u8 *req_ies, size_t req_ies_len,
-				 int omit_rsnxe);
+				 int omit_rsnxe, bool reassoc, int vlan_id);
 void wpa_ft_process_auth(struct wpa_state_machine *sm,
 			 u16 auth_transaction, const u8 *ies, size_t ies_len,
 			 void (*cb)(void *ctx, const u8 *dst,
@@ -684,7 +684,7 @@ void wpa_auth_set_ml_info(struct wpa_state_machine *sm,
 void wpa_auth_ml_get_key_info(struct wpa_authenticator *a,
 			      struct wpa_auth_ml_link_key_info *info,
 			      bool mgmt_frame_prot, bool beacon_prot,
-			      bool rekey);
+			      bool rekey, int vlan_id);
 
 void wpa_release_link_auth_ref(struct wpa_state_machine *sm, u8 link_id,
 			       bool rejected);
@@ -712,5 +712,7 @@ static inline bool wpa_auth_pmf_enabled(struct wpa_auth_config *conf)
 bool wpa_auth_sm_known_sta_identification(struct wpa_state_machine *sm,
 					  const u8 *timestamp,
 					  const u8 *mic, size_t mic_len);
+struct wpa_group * wpa_select_vlan_wpa_group(struct wpa_group *gsm,
+					     int vlan_id);
 
 #endif /* WPA_AUTH_H */

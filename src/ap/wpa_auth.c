@@ -4296,7 +4296,7 @@ static u8 * replace_ie(const char *name, const u8 *old_buf, size_t *len, u8 eid,
 void wpa_auth_ml_get_key_info(struct wpa_authenticator *a,
 			      struct wpa_auth_ml_link_key_info *info,
 			      bool mgmt_frame_prot, bool beacon_prot,
-			      bool rekey)
+			      bool rekey, int vlan_id)
 {
 	struct wpa_group *gsm = a->group;
 	u8 rsc[WPA_KEY_RSC_LEN];
@@ -4304,6 +4304,9 @@ void wpa_auth_ml_get_key_info(struct wpa_authenticator *a,
 	wpa_printf(MSG_DEBUG,
 		   "MLD: Get group key info: link_id=%u, IGTK=%u, BIGTK=%u",
 		   info->link_id, mgmt_frame_prot, beacon_prot);
+
+	if (vlan_id)
+		gsm = wpa_select_vlan_wpa_group(gsm, vlan_id);
 
 	info->gtkidx = gsm->GN & 0x03;
 	info->gtk = gsm->GTK[gsm->GN - 1];
@@ -4346,12 +4349,12 @@ void wpa_auth_ml_get_key_info(struct wpa_authenticator *a,
 
 static void wpa_auth_get_ml_key_info(struct wpa_authenticator *wpa_auth,
 				     struct wpa_auth_ml_key_info *info,
-				     bool rekey)
+				     bool rekey, int vlan_id)
 {
 	if (!wpa_auth->cb->get_ml_key_info)
 		return;
 
-	wpa_auth->cb->get_ml_key_info(wpa_auth->cb_ctx, info, rekey);
+	wpa_auth->cb->get_ml_key_info(wpa_auth->cb_ctx, info, rekey, vlan_id);
 }
 
 
@@ -4435,7 +4438,8 @@ u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos,
 	}
 	ml_key_info.n_mld_links = i;
 
-	wpa_auth_get_ml_key_info(sm->wpa_auth, &ml_key_info, rekey);
+	wpa_auth_get_ml_key_info(sm->wpa_auth, &ml_key_info, rekey,
+				 sm->group->vlan_id);
 
 	/* Add MLO GTK KDEs */
 	for (i = 0; i < ml_key_info.n_mld_links; i++) {
@@ -7697,3 +7701,34 @@ void wpa_reset_assoc_sm_info(struct wpa_state_machine *assoc_sm,
 	assoc_sm->mld_assoc_link_id = mld_assoc_link_id;
 #endif /* CONFIG_IEEE80211BE */
 }
+
+
+#ifdef CONFIG_IEEE80211BE
+/* wpa_select_vlan_wpa_group - Traverse through the wpa_group list and select
+ * the one that matches the vlan_id.
+ *
+ * @gsm: Head of wpa_group list
+ * @vlan_id: vlan_id used to search the group key state machine data that
+ *	     corresponds to the specified VLAN group
+ * Returns: Pointer to wpa_group that corresponds to the VLAN group on success,
+ *	    or pointer to the head of wpa_group list that was passed in.
+ */
+struct wpa_group * wpa_select_vlan_wpa_group(struct wpa_group *gsm, int vlan_id)
+{
+	struct wpa_group *vlan_gsm = gsm;
+
+	while (vlan_gsm) {
+		if (vlan_gsm->vlan_id == vlan_id)
+			break;
+
+		vlan_gsm = vlan_gsm->next;
+	}
+
+	if (!vlan_gsm) {
+		wpa_printf(MSG_DEBUG, "%s: VLAN group not found", __func__);
+		vlan_gsm = gsm;
+	}
+
+	return vlan_gsm;
+}
+#endif /* CONFIG_IEEE80211BE */
