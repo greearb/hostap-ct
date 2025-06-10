@@ -5,6 +5,7 @@
 # This software may be distributed under the terms of the BSD license.
 # See README for more details.
 
+import time
 import binascii
 import logging
 
@@ -348,6 +349,83 @@ def test_p2p_auto_go_and_client_join(dev, apdev):
     if ev is None:
         raise Exception("Group formation timed out")
     #dev[0].group_form_result(ev)
+    dev[0].dump_monitor()
+
+    dev[1].wait_sta()
+
+    dev[1].remove_group()
+    dev[0].wait_go_ending_session()
+    dev[0].dump_monitor()
+
+def test_p2p_pcc_auto_go_and_pcc_client_join(dev, apdev):
+    """A PCC client joining a PCC Auto GO using P2P join"""
+    check_p2p2_capab(dev[0])
+    check_p2p2_capab(dev[1])
+
+    set_p2p2_configs(dev[0])
+    set_p2p2_configs(dev[1])
+
+    cmd = "NAN_SUBSCRIBE service_name=_test active=1 srv_proto_type=2 ssi=1122334455 ttl=10 p2p=1"
+    id0 = dev[0].global_request(cmd)
+    if "FAIL" in id0:
+        raise Exception("NAN_SUBSCRIBE for P2P failed")
+
+    cmd = "NAN_PUBLISH service_name=_test unsolicited=0 srv_proto_type=2 ssi=6677 ttl=10 p2p=1"
+    id1 = dev[1].global_request(cmd)
+    if "FAIL" in id1:
+        raise Exception("NAN_PUBLISH for P2P failed")
+
+    ev = dev[0].wait_global_event(["P2P-DEVICE-FOUND"], timeout=5)
+    if ev is None:
+        raise Exception("Peer not found")
+    ev = dev[1].wait_global_event(["P2P-DEVICE-FOUND"], timeout=5)
+    if ev is None:
+        raise Exception("Peer not found")
+    ev = dev[0].wait_global_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+    if ev is None:
+        raise Exception("DiscoveryResult event not seen")
+    if "srv_proto_type=2" not in ev.split(' '):
+        raise Exception("Unexpected srv_proto_type: " + ev)
+    if "ssi=6677" not in ev.split(' '):
+        raise Exception("Unexpected ssi: " + ev)
+
+    cmd = "NAN_CANCEL_SUBSCRIBE subscribe_id=" + id0
+    if "FAIL" in dev[0].global_request(cmd):
+        raise Exception("NAN_CANCEL_SUBSCRIBE for P2P failed")
+    cmd = "NAN_CANCEL_PUBLISH publish_id=" + id1
+    if "FAIL" in dev[1].global_request(cmd):
+        raise Exception("NAN_CANCEL_PUBLISH for P2P failed")
+
+    cmd = "P2P_GROUP_ADD p2p2 p2pmode=2 freq=2437"
+    res = dev[1].global_request(cmd)
+    if "FAIL" in res:
+        raise Exception("P2P_GROUP_ADD failed")
+    ev = dev[1].wait_global_event(["P2P-GROUP-STARTED"], timeout=10)
+    if ev is None:
+        raise Exception("Group formation timed out")
+
+    res = dev[1].group_form_result(ev)
+    if dev[1].get_group_status_field("passphrase", extra="WPS") != res['passphrase']:
+        raise Exception("passphrase mismatch")
+    if dev[1].group_request("P2P_GET_PASSPHRASE") != res['passphrase']:
+        raise Exception("passphrase mismatch(2)")
+
+    time.sleep(2)
+
+    cli = dev[0]
+    id2 = cli.add_network()
+    cli.set_network_quoted(id2, "ssid", res['ssid'])
+    cli.set_network_quoted(id2, "psk", res['passphrase'])
+    cli.set_network(id2, "mode", "0")
+    cli.set_network(id2, "disabled", "2")
+    cmd = "P2P_GROUP_ADD persistent=" + str(id2) + " p2p2 p2pmode=2 freq=2437"
+    id0 = dev[0].global_request(cmd)
+    if "FAIL" in id0:
+        raise Exception("P2P_GROUP_ADD join on client failed")
+
+    ev = dev[0].wait_global_event(["P2P-GROUP-STARTED"], timeout=10)
+    if ev is None:
+        raise Exception("Group formation timed out")
     dev[0].dump_monitor()
 
     dev[1].wait_sta()
