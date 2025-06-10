@@ -330,9 +330,13 @@ def test_eht_mld_discovery(dev, apdev):
         link1_params = {"ssid": ssid,
                         "hw_mode": "g",
                         "channel": "2"}
+        link2_params = {"ssid": ssid,
+                        "hw_mode": "g",
+                        "channel": "3"}
 
         hapd0 = eht_mld_enable_ap(hapd_iface, 0, link0_params)
         hapd1 = eht_mld_enable_ap(hapd_iface, 1, link1_params)
+        hapd2 = eht_mld_enable_ap(hapd_iface, 2, link2_params)
 
         # Only scan link 0
         res = wpas.request("SCAN freq=2412")
@@ -349,15 +353,16 @@ def test_eht_mld_discovery(dev, apdev):
 
         logger.info("Scan done")
 
-        rnr_pattern = re.compile(".*ap_info.*, mld ID=0, link ID=",
+        rnr_pattern = re.compile("^.*ap_info.*, bssid=(.*?),.*mld ID=0, link ID=([0-9]*).*$",
                                  re.MULTILINE)
         ml_pattern = re.compile(".*multi-link:.*, MLD addr=.*", re.MULTILINE)
 
         bss = wpas.request("BSS " + hapd0.own_addr())
         logger.info("BSS 0: " + str(bss))
 
-        if rnr_pattern.search(bss) is None:
-            raise Exception("RNR element not found for first link")
+        rnr_entries = rnr_pattern.findall(bss)
+        if (hapd1.own_addr(), '1') not in rnr_entries or (hapd2.own_addr(), '2') not in rnr_entries:
+            raise Exception("RNR entries for other links not found on first link, found: " + str(rnr_pattern.findall(bss)))
 
         if ml_pattern.search(bss) is None:
             raise Exception("ML element not found for first link")
@@ -379,8 +384,9 @@ def test_eht_mld_discovery(dev, apdev):
         bss = wpas.request("BSS " + hapd1.own_addr())
         logger.info("BSS 1: " + str(bss))
 
-        if rnr_pattern.search(bss) is None:
-            raise Exception("RNR element not found for second link")
+        rnr_entries = rnr_pattern.findall(bss)
+        if (hapd0.own_addr(), '0') not in rnr_entries or (hapd2.own_addr(), '2') not in rnr_entries:
+            raise Exception("RNR entries for other links not found on second link, found: " + str(rnr_entries))
 
         if ml_pattern.search(bss) is None:
             raise Exception("ML element not found for second link")
