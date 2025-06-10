@@ -5095,16 +5095,12 @@ static int print_fils_indication(struct wpa_bss *bss, char *pos, char *end)
 #endif /* CONFIG_FILS */
 
 
-static int print_rnr(struct wpa_bss *bss, char *pos, char *end)
+static int print_rnr(const u8 *ie, char *pos, char *end)
 {
 	char *start = pos;
-	const u8 *ie, *ie_end;
+	const u8 *ie_end;
 	unsigned int n = 0;
 	int ret;
-
-	ie = wpa_bss_get_ie(bss, WLAN_EID_REDUCED_NEIGHBOR_REPORT);
-	if (!ie)
-		return 0;
 
 	ie_end = ie + 2 + ie[1];
 	ie += 2;
@@ -5114,93 +5110,102 @@ static int print_rnr(struct wpa_bss *bss, char *pos, char *end)
 			(const struct ieee80211_neighbor_ap_info *) ie;
 		const u8 *tbtt_start;
 		size_t left = ie_end - ie;
+		unsigned int count;
+		unsigned int i;
 
 		if (left < sizeof(struct ieee80211_neighbor_ap_info))
 			return 0;
 
 		left -= sizeof(struct ieee80211_neighbor_ap_info);
-		if (left < info->tbtt_info_len)
+		count = RNR_TBTT_INFO_COUNT_VAL(info->tbtt_info_hdr) + 1;
+		if (left < count * info->tbtt_info_len)
 			return 0;
-
-		ret = os_snprintf(pos, end - pos,
-				  "ap_info[%u]: tbtt_info: hdr=0x%x, len=%u, op_c=%u, channel=%u, ",
-				  n, *ie, info->tbtt_info_len,
-				  info->op_class, info->channel);
-		if (os_snprintf_error(end - pos, ret))
-			return 0;
-		pos += ret;
 
 		ie += sizeof(struct ieee80211_neighbor_ap_info);
 		tbtt_start = ie;
-		if (info->tbtt_info_len >= 1) {
+
+		for (i = 0; i < count; i++) {
+			ie = tbtt_start + i * info->tbtt_info_len;
+
 			ret = os_snprintf(pos, end - pos,
-					  "tbtt_offset=%u, ", *ie);
+					  "ap_info[%u]: tbtt_info[%u]: hdr=0x%x, len=%u, op_c=%u, channel=%u, ",
+					  n, i, info->tbtt_info_hdr,
+					  info->tbtt_info_len,
+					  info->op_class, info->channel);
 			if (os_snprintf_error(end - pos, ret))
 				return 0;
+			pos += ret;
 
-			ie++;
+			if (info->tbtt_info_len >= 1) {
+				ret = os_snprintf(pos, end - pos,
+						  "tbtt_offset=%u, ", *ie);
+				if (os_snprintf_error(end - pos, ret))
+					return 0;
+
+				ie++;
+				pos += ret;
+			}
+
+			if (info->tbtt_info_len >= 7) {
+				ret = os_snprintf(pos, end - pos,
+						  "bssid=" MACSTR ", ",
+						  MAC2STR(ie));
+				if (os_snprintf_error(end - pos, ret))
+					return 0;
+
+				ie += ETH_ALEN;
+				pos += ret;
+			}
+
+			if (info->tbtt_info_len >= 11) {
+				ret = os_snprintf(pos, end - pos,
+						  "short SSID=0x%x, ",
+						  WPA_GET_LE32(ie));
+				if (os_snprintf_error(end - pos, ret))
+					return 0;
+
+				ie += 4;
+				pos += ret;
+			}
+
+			if (info->tbtt_info_len >= 12) {
+				ret = os_snprintf(pos, end - pos,
+						  "bss_params=0x%x, ", *ie);
+				if (os_snprintf_error(end - pos, ret))
+					return 0;
+
+				ie++;
+				pos += ret;
+			}
+
+			if (info->tbtt_info_len >= 13) {
+				ret = os_snprintf(pos, end - pos,
+						  "PSD=0x%x, ", *ie);
+				if (os_snprintf_error(end - pos, ret))
+					return 0;
+
+				ie++;
+				pos += ret;
+			}
+
+			if (info->tbtt_info_len >= 16) {
+				ret = os_snprintf(pos, end - pos,
+						  "mld ID=%u, link ID=%u",
+						  *ie, *(ie + 1) & 0xF);
+				if (os_snprintf_error(end - pos, ret))
+					return 0;
+
+				ie += 3;
+				pos += ret;
+			}
+
+			ret = os_snprintf(pos, end - pos, "\n");
+			if (os_snprintf_error(end - pos, ret))
+				return 0;
 			pos += ret;
 		}
 
-		if (info->tbtt_info_len >= 7) {
-			ret = os_snprintf(pos, end - pos,
-					  "bssid=" MACSTR ", ",
-					  MAC2STR(ie));
-			if (os_snprintf_error(end - pos, ret))
-				return 0;
-
-			ie += ETH_ALEN;
-			pos += ret;
-		}
-
-		if (info->tbtt_info_len >= 11) {
-			ret = os_snprintf(pos, end - pos,
-					  "short SSID=0x%x, ",
-					  WPA_GET_LE32(ie));
-			if (os_snprintf_error(end - pos, ret))
-				return 0;
-
-			ie += 4;
-			pos += ret;
-		}
-
-		if (info->tbtt_info_len >= 12) {
-			ret = os_snprintf(pos, end - pos,
-					  "bss_params=0x%x, ", *ie);
-			if (os_snprintf_error(end - pos, ret))
-				return 0;
-
-			ie++;
-			pos += ret;
-		}
-
-		if (info->tbtt_info_len >= 13) {
-			ret = os_snprintf(pos, end - pos,
-					  "PSD=0x%x, ", *ie);
-			if (os_snprintf_error(end - pos, ret))
-				return 0;
-
-			ie++;
-			pos += ret;
-		}
-
-		if (info->tbtt_info_len >= 16) {
-			ret = os_snprintf(pos, end - pos,
-					  "mld ID=%u, link ID=%u",
-					  *ie, *(ie + 1) & 0xF);
-			if (os_snprintf_error(end - pos, ret))
-				return 0;
-
-			ie += 3;
-			pos += ret;
-		}
-
-		ie = tbtt_start + info->tbtt_info_len;
-
-		ret = os_snprintf(pos, end - pos, "\n");
-		if (os_snprintf_error(end - pos, ret))
-			return 0;
-		pos += ret;
+		ie = tbtt_start + count * info->tbtt_info_len;
 
 		n++;
 	}
@@ -5783,8 +5788,14 @@ static int print_bss_info(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 		pos += ret;
 	}
 
-	if (mask & WPA_BSS_MASK_RNR)
-		pos += print_rnr(bss, pos, end);
+	if (mask & WPA_BSS_MASK_RNR) {
+		size_t ies_len = bss->ie_len ? bss->ie_len : bss->beacon_ie_len;
+		const struct element *elem;
+
+		for_each_element_id(elem, WLAN_EID_REDUCED_NEIGHBOR_REPORT,
+				    wpa_bss_ie_ptr(bss), ies_len)
+			pos += print_rnr((const u8 *) elem, pos, end);
+	}
 
 	if (mask & WPA_BSS_MASK_ML)
 		pos += print_ml(bss, pos, end);
