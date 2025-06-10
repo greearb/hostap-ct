@@ -111,8 +111,12 @@ def run_tshark(filename, filters, display=None, wait=True):
                     all_wlan_mgt = False
                     break
             if not all_wlan_mgt:
-                raise
-            return _run_tshark(filename, filter, display, wait)
+                last_exception = e
+                continue
+            try:
+                return _run_tshark(filename, filter, display, wait)
+            except Exception as e:
+                last_exception = e
 
         except AssertionError as e:
             # Catch the error (and try the next provided filter)
