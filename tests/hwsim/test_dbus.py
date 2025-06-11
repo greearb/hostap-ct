@@ -6598,6 +6598,9 @@ def test_dbus_nan_usd_subscribe_followup(dev, apdev):
                                                     'srv_proto_type': 3,
                                                     'ssi': dbus.ByteArray(b'test')})
 
+            # Setting up the RoC takes a little bit of time. Avoid racing with
+            # the TX here by sleeping a little bit.
+            time.sleep(0.01)
             cmd = "NAN_PUBLISH service_name=_test srv_proto_type=3 ssi=6677 ttl=10"
             self.id1 = dev[1].request(cmd)
             if "FAIL" in self.id1:
@@ -6664,6 +6667,9 @@ def test_dbus_nan_usd_publish_followup(dev, apdev):
             if "FAIL" in id1:
                 raise Exception("NAN_SUBSCRIBE failed")
 
+            # Setting up the RoC takes a little bit of time. Avoid racing with
+            # the TX here by sleeping a little bit.
+            time.sleep(0.01)
             self.publish_id = iface.NANPublish({'srv_name': '_test',
                                                 'srv_proto_type': 2,
                                                 'ssi': dbus.ByteArray(b'test')})
