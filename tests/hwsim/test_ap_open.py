@@ -539,7 +539,7 @@ def test_ap_open_ps_mc_buf(dev, apdev, params):
                    bg_scan_period="0")
     hapd.wait_sta()
 
-    buffered_mcast = 0
+    buffered_mcast = False
     try:
         dev[0].cmd_execute(['iw', 'dev', dev[0].ifname,
                             'set', 'power_save', 'on'])
@@ -555,21 +555,16 @@ def test_ap_open_ps_mc_buf(dev, apdev, params):
                              "wlan.fc.type_subtype == 0x0008",
                              ["wlan.tim.bmapctl.multicast"])
             for line in out.splitlines():
-                if line == "True":
-                    buffered_mcast = 1
-                elif line == "False":
-                    buffered_mcast = 0
-                else:
-                    buffered_mcast = int(line)
-                if buffered_mcast == 1:
+                buffered_mcast = parse_bool(line)
+                if buffered_mcast:
                     break
-            if buffered_mcast == 1:
+            if buffered_mcast:
                 break
     finally:
         dev[0].cmd_execute(['iw', 'dev', dev[0].ifname,
                             'set', 'power_save', 'off'])
 
-    if buffered_mcast != 1:
+    if not buffered_mcast:
         raise Exception("AP did not buffer multicast frames")
 
 @remote_compatible

@@ -344,3 +344,17 @@ def disable_ipv6(fn):
             sysctl_write('net.ipv6.conf.all.disable_ipv6=0')
             sysctl_write('net.ipv6.conf.default.disable_ipv6=0')
     return cloned_wrapper(wrapper, fn)
+
+def parse_bool(s):
+    # Try parsing as integer of any base (expected 10 or 16),
+    # if that fails, try "True"/"False" literals
+    s = s.strip()
+    try:
+        return bool(int(s, 0))
+    except ValueError as e:
+        if s == 'True':
+            return True
+        elif s == 'False':
+            return False
+        else:
+            raise e
