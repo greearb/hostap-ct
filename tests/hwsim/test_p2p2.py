@@ -32,8 +32,6 @@ def check_p2p2_capab(dev):
 def set_p2p2_configs(dev):
     dev.global_request("P2P_SET pasn_type 3")
     dev.global_request("P2P_SET supported_bootstrapmethods 6")
-    dev.global_request("P2P_SET pairing_setup 1")
-    dev.global_request("P2P_SET pairing_cache 1")
 
 def test_p2p_usd_publish_invalid_param(dev):
     """P2P USD Publish with invalid parameters"""
