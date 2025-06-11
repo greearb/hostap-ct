@@ -73,7 +73,13 @@ class TestDbus(object):
             s.remove()
 
     def add_signal(self, handler, interface, name, byte_arrays=False):
-        s = self.bus.add_signal_receiver(handler, dbus_interface=interface,
+        # Insert sleep to ensure WPA_DBUS_SEND_PROP_CHANGED_TIMEOUT passes
+        def int_handler(*args):
+            nonlocal handler
+            time.sleep(0.005)
+            handler(*args)
+
+        s = self.bus.add_signal_receiver(int_handler, dbus_interface=interface,
                                          signal_name=name,
                                          byte_arrays=byte_arrays)
         self.signals.append(s)
