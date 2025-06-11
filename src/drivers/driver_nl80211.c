@@ -15405,8 +15405,10 @@ nl80211_send_link_reconfig_request(void *priv,
 	int ret = -1;
 	u8 link_id;
 
-	if (!drv->sta_mlo_info.valid_links)
+	if (!drv->sta_mlo_info.valid_links) {
+		wpa_printf(MSG_INFO, "ERROR: Link Reconfig Request, no valid links.\n");
 		return -1;
+	}
 
 	wpa_printf(MSG_DEBUG, "nl80211: Send ML Link Reconfiguration Request");
 
