@@ -63,6 +63,7 @@ def check_group_mgmt_cipher(dev, ap, cipher, sta_req_cipher=None):
     hwsim_utils.test_connectivity(dev, hapd)
     hapd.request("DEAUTHENTICATE ff:ff:ff:ff:ff:ff")
     dev.wait_disconnected()
+    time.sleep(0.1)
     if wt.get_bss_counter('valid_bip_mmie', ap['bssid']) < 1:
         raise Exception("No valid BIP MMIE seen")
     if wt.get_bss_counter('bip_deauth', ap['bssid']) < 1:
