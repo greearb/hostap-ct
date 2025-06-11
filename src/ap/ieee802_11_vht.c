@@ -216,7 +216,7 @@ u16 copy_sta_vht_capab(struct hostapd_data *hapd, struct sta_info *sta,
 u16 copy_sta_vht_oper(struct hostapd_data *hapd, struct sta_info *sta,
 		      const u8 *vht_oper)
 {
-	if (!vht_oper) {
+	if (!vht_oper || !(sta->flags & WLAN_STA_VHT)) {
 		os_free(sta->vht_operation);
 		sta->vht_operation = NULL;
 		return WLAN_STATUS_SUCCESS;
