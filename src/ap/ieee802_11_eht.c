@@ -382,7 +382,8 @@ u16 copy_sta_eht_capab(struct hostapd_data *hapd, struct sta_info *sta,
 	    ieee80211_invalid_eht_cap_size(mode, hapd->iconf->op_class,
 					   he_capab, eht_capab,
 					   eht_capab_len) ||
-	    !check_valid_eht_mcs(hapd, eht_capab, opmode)) {
+	    !check_valid_eht_mcs(hapd, eht_capab, opmode) ||
+	    !(sta->flags & WLAN_STA_HE)) {
 		sta->flags &= ~WLAN_STA_EHT;
 		os_free(sta->eht_capab);
 		sta->eht_capab = NULL;

@@ -500,7 +500,8 @@ u16 copy_sta_he_6ghz_capab(struct hostapd_data *hapd, struct sta_info *sta,
 {
 	if (!he_6ghz_capab || !hapd->iconf->ieee80211ax ||
 	    hapd->conf->disable_11ax ||
-	    !is_6ghz_op_class(hapd->iconf->op_class)) {
+	    !is_6ghz_op_class(hapd->iconf->op_class) ||
+	    !(sta->flags & WLAN_STA_HE)) {
 		sta->flags &= ~WLAN_STA_6GHZ;
 		os_free(sta->he_6ghz_capab);
 		sta->he_6ghz_capab = NULL;
