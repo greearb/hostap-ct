@@ -46,41 +46,41 @@ LLIBS = -Wl,--start-group $(DLIBS) -Wl,--end-group $(SLIBS)
 # glibc < 2.17 needs -lrt for clock_gettime()
 LLIBS += -lrt
 
-test-aes: $(call BUILDOBJ,test-aes.o) $(LIBS)
-	$(LDO) $(LDFLAGS) -o $@ $^ $(LLIBS)
+TEST=test-aes
+include test.mk
 
-test-base64: $(call BUILDOBJ,test-base64.o) $(LIBS)
-	$(LDO) $(LDFLAGS) -o $@ $^ $(LLIBS)
+TEST=test-base64
+include test.mk
 
-test-https: $(call BUILDOBJ,test-https.o) $(LIBS)
-	$(LDO) $(LDFLAGS) -o $@ $< $(LLIBS)
+TEST=test-https
+include test.mk
 
-test-https_server: $(call BUILDOBJ,test-https_server.o) $(LIBS)
-	$(LDO) $(LDFLAGS) -o $@ $< $(LLIBS)
+TEST=test-https_server
+include test.mk
 
-test-list: $(call BUILDOBJ,test-list.o) $(LIBS)
-	$(LDO) $(LDFLAGS) -o $@ $^ $(LLIBS)
+TEST=test-list
+include test.mk
 
-test-md4: $(call BUILDOBJ,test-md4.o) $(LIBS)
-	$(LDO) $(LDFLAGS) -o $@ $^ $(LLIBS)
+TEST=test-md4
+include test.mk
 
-test-milenage: $(call BUILDOBJ,test-milenage.o) $(LIBS)
-	$(LDO) $(LDFLAGS) -o $@ $^ $(LLIBS)
+TEST=test-milenage
+include test.mk
 
-test-rc4: $(call BUILDOBJ,test-rc4.o) $(LIBS)
-	$(LDO) $(LDFLAGS) -o $@ $^ $(LLIBS)
+TEST=test-rc4
+include test.mk
 
-test-rsa-sig-ver: $(call BUILDOBJ,test-rsa-sig-ver.o) $(LIBS)
-	$(LDO) $(LDFLAGS) -o $@ $< $(LLIBS)
+TEST=test-rsa-sig-ver
+include test.mk
 
-test-sha1: $(call BUILDOBJ,test-sha1.o) $(LIBS)
-	$(LDO) $(LDFLAGS) -o $@ $^ $(LLIBS)
+TEST=test-sha1
+include test.mk
 
-test-sha256: $(call BUILDOBJ,test-sha256.o) $(LIBS)
-	$(LDO) $(LDFLAGS) -o $@ $^ $(LLIBS)
+TEST=test-sha256
+include test.mk
 
-test-x509v3: $(call BUILDOBJ,test-x509v3.o) $(LIBS)
-	$(LDO) $(LDFLAGS) -o $@ $< $(LLIBS)
+TEST=test-x509v3
+include test.mk
 
 
 # We could cut this down more by enabling fewer options (above)
@@ -137,8 +137,10 @@ include ../src/objs.mk
 
 LIBS=$(SLIBS) $(DLIBS) $(WPA_LIBS) $(ELIBS)
 
-test-bss: $(call BUILDOBJ,test-bss.o) $(WPA_OBJS) $(LIBS)
-	$(LDO) $(LDFLAGS) -o $@ $< $(LLIBS) $(WPA_CFLAGS) $(WPA_OBJS) $(LIBS)
+TEST=test-bss
+CFLAGS_test-bss=$(WPA_CFLAGS)
+OBJS_test-bss=$(WPA_OBJS)
+include test.mk
 
 run-tests: $(ALL)
 	./test-aes
