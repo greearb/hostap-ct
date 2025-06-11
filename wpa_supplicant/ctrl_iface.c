@@ -12440,8 +12440,11 @@ wpa_supplicant_ctrl_iface_setup_link_reconfig(struct wpa_supplicant *wpa_s,
 
 		do {
 			link_id = atoi(pos);
-			if (link_id < 0 || link_id >=  MAX_NUM_MLD_LINKS)
+			if (link_id < 0 || link_id >=  MAX_NUM_MLD_LINKS) {
+				wpa_printf(MSG_DEBUG, "ERROR: Link Reconfig Request, add link_id out of range: %d\n",
+					link_id);
 				return -1;
+			}
 
 			if (wpa_s->current_bss->valid_links & BIT(link_id)) {
 				info.add_links |= BIT(link_id);
@@ -12452,8 +12455,8 @@ wpa_supplicant_ctrl_iface_setup_link_reconfig(struct wpa_supplicant *wpa_s,
 					wpa_s->current_bss->mld_links[link_id].freq;
 			} else {
 				wpa_printf(MSG_INFO,
-					   "%s: add link info not present",
-					   __func__);
+					   "%s: add link info not present: %d",
+					   __func__, link_id);
 				return -1;
 			}
 
@@ -12468,8 +12471,11 @@ wpa_supplicant_ctrl_iface_setup_link_reconfig(struct wpa_supplicant *wpa_s,
 
 		do {
 			link_id = atoi(pos);
-			if (link_id < 0 || link_id >=  MAX_NUM_MLD_LINKS)
+			if (link_id < 0 || link_id >=  MAX_NUM_MLD_LINKS) {
+				wpa_printf(MSG_DEBUG, "ERROR: Link Reconfig Request, delete link_id out of range: %d\n",
+					link_id);
 				return -1;
+			}
 
 			if (wpa_s->valid_links & BIT(link_id))
 				info.delete_links |= BIT(link_id);
