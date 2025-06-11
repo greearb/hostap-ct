@@ -5042,7 +5042,7 @@ def _test_dbus_p2p_group_idle_timeout(dev, apdev):
             # Force disassociation with different reason code so that the
             # P2P Client using D-Bus does not get normal group termination event
             # from the GO.
-            dev[1].group_request("DEAUTHENTICATE " + ifaddr + " reason=0 test=0")
+            dev[1].group_request("DEAUTHENTICATE " + ifaddr + " reason=0 test=1")
             dev[1].remove_group()
 
         def groupFinished(self, properties):
