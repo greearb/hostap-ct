@@ -7844,16 +7844,6 @@ static int p2p_ctrl_set(struct wpa_supplicant *wpa_s, char *cmd)
 	}
 
 #ifdef CONFIG_TESTING_OPTIONS
-	if (os_strcmp(cmd, "pairing_setup") == 0) {
-		p2p_set_pairing_setup(wpa_s->global->p2p, atoi(param));
-		return 0;
-	}
-
-	if (os_strcmp(cmd, "pairing_cache") == 0) {
-		p2p_set_pairing_cache(wpa_s->global->p2p, atoi(param));
-		return 0;
-	}
-
 	if (os_strcmp(cmd, "supported_bootstrapmethods") == 0) {
 		p2p_set_bootstrapmethods(wpa_s->global->p2p, atoi(param));
 		return 0;

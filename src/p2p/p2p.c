@@ -4964,40 +4964,6 @@ void p2p_set_managed_oper(struct p2p_data *p2p, int enabled)
 
 #ifdef CONFIG_TESTING_OPTIONS
 
-void p2p_set_pairing_setup(struct p2p_data *p2p, int pairing_setup)
-{
-	p2p_dbg(p2p, "Pairing Setup %s",
-		pairing_setup ? "Enabled" : "Disabled");
-	if (pairing_setup) {
-		p2p->cfg->pairing_config.pairing_capable = true;
-		p2p->cfg->pairing_config.enable_pairing_setup = true;
-		if (p2p->pairing_info)
-			p2p->pairing_info->enable_pairing_setup = true;
-	} else {
-		p2p->cfg->pairing_config.pairing_capable = false;
-		p2p->cfg->pairing_config.enable_pairing_setup = false;
-		if (p2p->pairing_info)
-			p2p->pairing_info->enable_pairing_setup = false;
-	}
-}
-
-
-void p2p_set_pairing_cache(struct p2p_data *p2p, int pairing_cache)
-{
-	p2p_dbg(p2p, "Pairing Cache %s",
-		pairing_cache ? "Enabled" : "Disabled");
-	if (pairing_cache) {
-		p2p->cfg->pairing_config.enable_pairing_cache = true;
-		if (p2p->pairing_info)
-			p2p->pairing_info->enable_pairing_cache = true;
-	} else {
-		p2p->cfg->pairing_config.enable_pairing_cache = false;
-		if (p2p->pairing_info)
-			p2p->pairing_info->enable_pairing_cache = false;
-	}
-}
-
-
 void p2p_set_bootstrapmethods(struct p2p_data *p2p, int bootstrap_methods)
 {
 	p2p_dbg(p2p, "Bootstraping methods: 0x%x", bootstrap_methods);
