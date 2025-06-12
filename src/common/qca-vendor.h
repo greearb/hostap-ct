@@ -4039,6 +4039,15 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_TX_POWER_LIMIT_ENABLE = 135,
 
+	/* 8-bit unsigned integer to configure the driver to enable or disable
+	 * the A-MSDU address check validation.
+	 * 	1 - Enables A-MSDU address check for the
+	 *	    QCA_WLAN_VENDOR_ATTR_CONFIG_PEER_MAC address.
+	 * 	0 - Disables A-MSDU address check for the
+	 *	    QCA_WLAN_VENDOR_ATTR_CONFIG_PEER_MAC address
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_AMSDU_ADDR_CHECK_VALIDATION = 136,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
