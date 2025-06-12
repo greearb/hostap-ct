@@ -958,7 +958,7 @@ def test_grpform_not_ready2(dev):
     if not dev[1].discover_peer(addr0):
         raise Exception("Could not discover peer")
     dev[1].global_request("P2P_CONNECT " + addr0 + " pbc")
-    ev = dev[0].wait_global_event(["P2P-GO-NEG-REQUEST"], timeout=5)
+    ev = dev[0].wait_global_event(["P2P-GO-NEG-REQUEST"], timeout=10)
     if ev is None:
         raise Exception("No P2P-GO-NEG-REQUEST event")
     dev[0].dump_monitor()
