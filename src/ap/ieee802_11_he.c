@@ -91,7 +91,7 @@ u8 * hostapd_eid_he_capab(struct hostapd_data *hapd, u8 *eid,
 {
 	struct ieee80211_he_capabilities *cap;
 	struct hostapd_hw_modes *mode = hapd->iface->current_mode;
-	u8 he_oper_chwidth = ~HE_PHYCAP_CHANNEL_WIDTH_MASK;
+	u8 he_oper_chwidth = 0;
 	u8 *pos = eid;
 	u8 ie_size = 0, mcs_nss_size = 4, ppet_size = 0;
 
@@ -102,23 +102,35 @@ u8 * hostapd_eid_he_capab(struct hostapd_data *hapd, u8 *eid,
 	ppet_size = ieee80211_he_ppet_size(mode->he_capab[opmode].ppet[0],
 					   mode->he_capab[opmode].phy_cap);
 
-	switch (hapd->iface->conf->he_oper_chwidth) {
-	case CONF_OPER_CHWIDTH_80P80MHZ:
-		he_oper_chwidth |=
-			HE_PHYCAP_CHANNEL_WIDTH_SET_80PLUS80MHZ_IN_5G;
-		mcs_nss_size += 4;
-		/* fall through */
-	case CONF_OPER_CHWIDTH_160MHZ:
-		he_oper_chwidth |= HE_PHYCAP_CHANNEL_WIDTH_SET_160MHZ_IN_5G;
-		mcs_nss_size += 4;
-		/* fall through */
-	case CONF_OPER_CHWIDTH_80MHZ:
-	case CONF_OPER_CHWIDTH_USE_HT:
-		he_oper_chwidth |= HE_PHYCAP_CHANNEL_WIDTH_SET_40MHZ_IN_2G |
-			HE_PHYCAP_CHANNEL_WIDTH_SET_40MHZ_80MHZ_IN_5G;
-		break;
-	default:
-		break;
+	if (mode->mode == HOSTAPD_MODE_IEEE80211A) {
+		switch (hapd->iface->conf->he_oper_chwidth) {
+		case CONF_OPER_CHWIDTH_80P80MHZ:
+			he_oper_chwidth |=
+				HE_PHYCAP_CHANNEL_WIDTH_SET_80PLUS80MHZ_IN_5G;
+			mcs_nss_size += 4;
+			/* fall through */
+		case CONF_OPER_CHWIDTH_160MHZ:
+			he_oper_chwidth |= HE_PHYCAP_CHANNEL_WIDTH_SET_160MHZ_IN_5G;
+			mcs_nss_size += 4;
+			/* fall through */
+		case CONF_OPER_CHWIDTH_80MHZ:
+		case CONF_OPER_CHWIDTH_USE_HT:
+			he_oper_chwidth |= HE_PHYCAP_CHANNEL_WIDTH_SET_40MHZ_80MHZ_IN_5G;
+			break;
+		default:
+			break;
+		}
+	} else  {
+		switch (hapd->iface->conf->he_oper_chwidth) {
+		case CONF_OPER_CHWIDTH_80P80MHZ:
+		case CONF_OPER_CHWIDTH_160MHZ:
+		case CONF_OPER_CHWIDTH_80MHZ:
+		case CONF_OPER_CHWIDTH_USE_HT:
+			he_oper_chwidth |= HE_PHYCAP_CHANNEL_WIDTH_SET_40MHZ_IN_2G;
+			break;
+		default:
+			break;
+		}
 	}
 
 	ie_size += mcs_nss_size + ppet_size;
