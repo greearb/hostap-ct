@@ -2723,6 +2723,49 @@ mscs_fail:
 		params.wpa_proto = WPA_PROTO_RSN;
 		wpa_sm_set_assoc_wpa_ie(wpa_s->wpa, elems.rsn_ie - 2,
 					elems.rsn_ie_len + 2);
+
+#ifdef CONFIG_TESTING_OPTIONS
+		/* CT PMKID Corruption */
+		if (params.prev_bssid && /* This tells us that we're roaming */
+		    ((wpa_s->conf->identity && wpa_s->conf->identity->pmkid) ||
+		     wpa_s->conf->corrupt_pmkid)) {
+			struct wpa_ie_data rsn_ie_data;
+			u8 orig_pmkid[PMKID_LEN];
+
+			wpa_parse_wpa_ie_rsn(elems.rsn_ie - 2,
+					     elems.rsn_ie_len + 2,
+					     &rsn_ie_data);
+
+			os_memcpy(orig_pmkid, rsn_ie_data.pmkid, PMKID_LEN);
+
+			if (wpa_s->conf->identity && wpa_s->conf->identity->pmkid) {
+				wpa_msg(wpa_s, MSG_WARNING,
+					"ASSOC PMKID OVERRIDDEN! THIS IS REQUESTED BY USER!");
+				wpa_hexdump(MSG_WARNING, "Original PMKID",
+					    orig_pmkid, PMKID_LEN);
+				wpa_insert_pmkid(wpa_s->sme.assoc_req_ie,
+						 &wpa_s->sme.assoc_req_ie_len,
+						 wpabuf_head(wpa_s->conf->identity->pmkid),
+						 true);
+				wpa_hexdump(MSG_WARNING, "Overridden PMKID",
+					    wpabuf_head(wpa_s->conf->identity->pmkid),
+					    PMKID_LEN);
+			} else if ((os_random() % 65535) < wpa_s->conf->corrupt_pmkid) {
+				wpa_msg(wpa_s, MSG_WARNING,
+					"ASSOC PMKID OVERRIDDEN! THIS IS REQUESTED BY USER!");
+				wpa_hexdump(MSG_WARNING, "Original PMKID",
+					    orig_pmkid, PMKID_LEN);
+				orig_pmkid[os_random() % PMKID_LEN] ^= 0xff;
+				wpa_insert_pmkid(wpa_s->sme.assoc_req_ie,
+						 &wpa_s->sme.assoc_req_ie_len,
+						 orig_pmkid,
+						 true);
+				wpa_hexdump(MSG_WARNING, "Corrupted PMKID",
+					    orig_pmkid, PMKID_LEN);
+			}
+		}
+#endif /* CONFIG_TESTING_OPTIONS */
+
 	} else if (elems.wpa_ie) {
 		params.wpa_proto = WPA_PROTO_WPA;
 		wpa_sm_set_assoc_wpa_ie(wpa_s->wpa, elems.wpa_ie - 2,
