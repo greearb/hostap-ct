@@ -1555,7 +1555,7 @@ int wpas_beacon_rep_scan_process(struct wpa_supplicant *wpa_s,
 
 	/* If the measurement was aborted, don't report partial results */
 	if (info->aborted)
-		goto out;
+		goto out_refuse;
 
 	wpa_printf(MSG_DEBUG, "RRM: TSF BSSID: " MACSTR " current BSS: " MACSTR,
 		   MAC2STR(info->scan_start_tsf_bssid),
@@ -1564,7 +1564,7 @@ int wpas_beacon_rep_scan_process(struct wpa_supplicant *wpa_s,
 	    !wpas_beacon_rep_scan_match(wpa_s, info->scan_start_tsf_bssid)) {
 		wpa_printf(MSG_DEBUG,
 			   "RRM: Ignore scan results due to mismatching TSF BSSID");
-		goto out;
+		goto out_refuse;
 	}
 
 	for (i = 0; i < scan_res->num; i++) {
@@ -1634,6 +1634,10 @@ int wpas_beacon_rep_scan_process(struct wpa_supplicant *wpa_s,
 	wpas_rrm_send_msr_report(wpa_s, buf);
 	wpabuf_free(buf);
 
+	goto out;
+
+out_refuse:
+	wpas_rrm_refuse_request(wpa_s);
 out:
 	wpas_clear_beacon_rep_data(wpa_s);
 	return 1;
