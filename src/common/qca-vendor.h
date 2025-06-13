@@ -1403,6 +1403,13 @@ enum qca_radiotap_vendor_ids {
  *
  *	The attributes used for the event reply are defined in
  *	enum qca_wlan_vendor_attr_wlan_telemetry_event_reply.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_LINK_STATE_CHANGE: Vendor subcommand used to
+ *	notify the userspace about the current active and inactive links
+ *	among the affiliated MLO links, whenever there is a change in the
+ *	state of any of the links along with the reason.
+ *	The attributes used in this event are defined in the
+ *	enum qca_wlan_vendor_attr_link_state_change.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1650,6 +1657,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_P2P_SET_NOA = 261,
 	QCA_NL80211_VENDOR_SUBCMD_WLAN_TELEMETRY_WIPHY = 262,
 	QCA_NL80211_VENDOR_SUBCMD_WLAN_TELEMETRY_WDEV = 263,
+	QCA_NL80211_VENDOR_SUBCMD_LINK_STATE_CHANGE = 264,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -20053,6 +20061,78 @@ enum qca_wlan_vendor_attr_wlan_telemetry_reo_error_types {
 	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_MAX =
 	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_link_state_change_Reason - Defines the different types
+ * of reasons for the link state change. Will be used with
+ * QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_REASON attribute.
+ *
+ * @QCA_WLAN_VENDOR_STATE_CHANGE_REASON_VDEV_UP: The link state change reported
+ * first time after the STA connection/interface up.
+ * @QCA_WLAN_VENDOR_STATE_CHANGE_REASON_LOW_RSSI: The link state change is due
+ * to low RSSI.
+ * @QCA_WLAN_VENDOR_STATE_CHANGE_REASON_BMISS: The link state change is due to
+ * beacon miss.
+ * @QCA_WLAN_VENDOR_STATE_CHANGE_REASON_LOW_QUALITY: The link state change is
+ * due to low link quality.
+ * @QCA_WLAN_VENDOR_STATE_CHANGE_REASON_CAPACITY: The link state change is due
+ * to congestion of the links.
+ * @QCA_WLAN_VENDOR_STATE_CHANGE_REASON_ULL_MODE: The link state change is due
+ * to ultra low latency mode.
+ * @QCA_WLAN_VENDOR_STATE_CHANGE_REASON_T2LM: The link state change is due to
+ * TID_TO_LINK mapping change.
+ * @QCA_WLAN_VENDOR_STATE_CHANGE_REASON_FORCED: The link state change is due to
+ * user forced enable/disable.
+ * @QCA_WLAN_VENDOR_STATE_CHANGE_REASON_BT_STATUS: The link state change is due
+ * to BT status.
+ * @QCA_WLAN_VENDOR_STATE_CHANGE_REASON_UNKNOWN: The link state change is due
+ * to unknown reason.
+ */
+enum qca_wlan_vendor_link_state_change_reason {
+	QCA_WLAN_VENDOR_STATE_CHANGE_REASON_VDEV_UP = 0,
+	QCA_WLAN_VENDOR_STATE_CHANGE_REASON_LOW_RSSI = 1,
+	QCA_WLAN_VENDOR_STATE_CHANGE_REASON_BMISS = 2,
+	QCA_WLAN_VENDOR_STATE_CHANGE_REASON_LOW_QUALITY = 3,
+	QCA_WLAN_VENDOR_STATE_CHANGE_REASON_CAPACITY = 4,
+	QCA_WLAN_VENDOR_STATE_CHANGE_REASON_ULL_MODE = 5,
+	QCA_WLAN_VENDOR_STATE_CHANGE_REASON_T2LM = 6,
+	QCA_WLAN_VENDOR_STATE_CHANGE_REASON_FORCED = 7,
+	QCA_WLAN_VENDOR_STATE_CHANGE_REASON_BT_STATUS = 8,
+	QCA_WLAN_VENDOR_STATE_CHANGE_REASON_UNKNOWN = 9,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_link_state_change - Attributes used by
+ * QCA_NL80211_VENDOR_SUBCMD_LINK_STATE_CHANGE vendor command.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_PEER_MLD_MAC: 6 byte MAC address.
+ * Indicates the associated AP MLD MAC address for the non-AP MLD interface.
+ * Indicates the peer MLD MAC address for the AP MLD interface
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_REASON: u32 attribute. Indicates the
+ * reason for the link state change triggering the event.
+ * See enum qca_wlan_vendor_link_state_change_reason for the possible
+ * reasons.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_ACTIVE_LINK_BITMAP: u32 attribute.
+ * Indicates the link ID bitmap of the current active links among the affliated
+ * MLO links.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_INACTIVE_LINK_BITMAP: u32 attribute.
+ * Indicates the link ID bitmap of the current inactive links among the
+ * affiliated MLO links.
+ */
+enum qca_wlan_vendor_attr_link_state_change {
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_PEER_MLD_MAC = 1,
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_REASON = 2,
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_ACTIVE_LINK_BITMAP = 3,
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_INACTIVE_LINK_BITMAP = 4,
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_MAX =
+	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
