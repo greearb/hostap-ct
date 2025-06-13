@@ -1068,6 +1068,10 @@ def test_pasn_sae_driver(dev, apdev):
         time.sleep(1)
         dev[0].dump_monitor()
 
+        cmd2 = f"PASN_DRIVER del {bssid} {bssid2}"
+        if "OK" not in dev[0].request(cmd2):
+            raise Exception("PASN_DRIVER failed")
+
         if "OK" not in dev[0].request(cmd):
             raise Exception("PASN_DRIVER failed")
 
