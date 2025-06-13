@@ -360,17 +360,17 @@ static void wpas_pasn_configure_next_peer(struct wpa_supplicant *wpa_s,
 			continue;
 		}
 
+		if (wpas_pasn_get_params_from_bss(wpa_s, peer)) {
+			peer->status = PASN_STATUS_FAILURE;
+			wpa_s->pasn_count++;
+			continue;
+		}
+
 		if (wpas_pasn_set_keys_from_cache(wpa_s, peer->own_addr,
 						  peer->peer_addr,
 						  peer->cipher,
 						  peer->akmp) == 0) {
 			peer->status = PASN_STATUS_SUCCESS;
-			wpa_s->pasn_count++;
-			continue;
-		}
-
-		if (wpas_pasn_get_params_from_bss(wpa_s, peer)) {
-			peer->status = PASN_STATUS_FAILURE;
 			wpa_s->pasn_count++;
 			continue;
 		}
