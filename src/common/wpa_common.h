@@ -811,4 +811,7 @@ int wpa_pasn_add_extra_ies(struct wpabuf *buf, const u8 *extra_ies, size_t len);
 void rsn_set_snonce_cookie(u8 *snonce);
 bool rsn_is_snonce_cookie(const u8 *snonce);
 
+int rsn_cipher_suite_to_wpa_cipher(u32 cipher);
+int rsn_key_mgmt_to_wpa_akm(u32 akm_suite);
+
 #endif /* WPA_COMMON_H */
