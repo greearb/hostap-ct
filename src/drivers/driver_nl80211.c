@@ -13673,6 +13673,17 @@ static int nl80211_send_pasn_resp(void *priv, struct pasn_auth *params)
 				wpa_cipher_to_cipher_suite(cipher)))
 			goto fail;
 
+		if (params->peer[i].comeback_after &&
+		    params->peer[i].comeback_len &&
+		    params->peer[i].comeback &&
+		    (nla_put_u16(msg,
+				 QCA_WLAN_VENDOR_ATTR_PASN_PEER_COMEBACK_AFTER,
+				 params->peer[i].comeback_after) ||
+		     nla_put(msg, QCA_WLAN_VENDOR_ATTR_PASN_PEER_COOKIE,
+			     params->peer[i].comeback_len,
+			     params->peer[i].comeback)))
+			goto fail;
+
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Own address[%u]: " MACSTR
 			   " Peer address[%u]: " MACSTR

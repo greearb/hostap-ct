@@ -390,8 +390,6 @@ static void wpas_pasn_configure_next_peer(struct wpa_supplicant *wpa_s,
 					  struct pasn_auth *pasn_params)
 {
 	struct pasn_peer *peer;
-	u8 comeback_len = 0;
-	const u8 *comeback = NULL;
 	struct wpa_ssid *ssid;
 
 	if (!pasn_params)
@@ -456,7 +454,7 @@ static void wpas_pasn_configure_next_peer(struct wpa_supplicant *wpa_s,
 					 peer->peer_addr, peer->akmp,
 					 peer->cipher, peer->group,
 					 peer->network_id,
-					 comeback, comeback_len)) {
+					 peer->comeback, peer->comeback_len)) {
 			peer->status = PASN_STATUS_FAILURE;
 			wpa_msg(wpa_s, MSG_INFO, PASN_AUTH_STATUS MACSTR
 				" akmp=%s, status=%u",
@@ -465,7 +463,9 @@ static void wpas_pasn_configure_next_peer(struct wpa_supplicant *wpa_s,
 				peer->status);
 			wpa_s->pasn_count++;
 			str_clear_free(peer->password);
+			os_free(peer->comeback);
 			peer->password = NULL;
+			peer->comeback = NULL;
 			continue;
 		}
 		wpa_printf(MSG_DEBUG, "PASN: Sent PASN auth start for " MACSTR,
@@ -481,6 +481,7 @@ static void wpas_pasn_configure_next_peer(struct wpa_supplicant *wpa_s,
 		for (i = 0; i < pasn_params->num_peers; i++) {
 			peer = &pasn_params->peer[i];
 			str_clear_free(peer->password);
+			os_free(peer->comeback);
 
 			if (peer->temporary_network) {
 				ssid = wpa_config_get_network(wpa_s->conf,
@@ -910,6 +911,33 @@ static void wpas_pasn_deauth_cb(struct ptksa_cache_entry *entry)
 }
 
 
+static void wpas_pasn_store_comeback_data(struct wpa_supplicant *wpa_s,
+					  const struct wpabuf *comeback,
+					  u16 comeback_after)
+{
+	struct pasn_peer *peer;
+
+	if (!wpa_s->pasn_params)
+		return;
+
+	peer = &wpa_s->pasn_params->peer[wpa_s->pasn_count];
+	if (!peer)
+		return;
+
+	os_free(peer->comeback);
+	peer->comeback = os_zalloc(wpabuf_len(comeback));
+	if (!peer->comeback) {
+		wpa_printf(MSG_ERROR,
+			   "PASN: Mem alloc failed for comeback data");
+		return;
+	}
+
+	peer->comeback_len = wpabuf_len(comeback);
+	os_memcpy(peer->comeback, wpabuf_head_u8(comeback), peer->comeback_len);
+	peer->comeback_after = comeback_after;
+}
+
+
 int wpas_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 		      const struct ieee80211_mgmt *mgmt, size_t len)
 {
@@ -941,6 +969,10 @@ int wpas_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 	forced_memzero(pasn_get_ptk(pasn), sizeof(pasn->ptk));
 
 	if (ret == -1) {
+		if (pasn->status == WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY &&
+		    pasn->comeback && wpabuf_len(pasn->comeback))
+			wpas_pasn_store_comeback_data(wpa_s, pasn->comeback,
+						      pasn->comeback_after);
 		wpas_pasn_auth_stop(wpa_s);
 		wpas_pasn_auth_work_done(wpa_s, PASN_STATUS_FAILURE);
 	}
@@ -996,6 +1028,16 @@ void wpas_pasn_auth_trigger(struct wpa_supplicant *wpa_s,
 					   "PASN: Mem alloc failed for password");
 				return;
 			}
+		}
+		if (src->comeback_len && src->comeback) {
+			dst->comeback = os_memdup(src->comeback,
+						  src->comeback_len);
+			if (!dst->comeback) {
+				wpa_printf(MSG_DEBUG,
+					   "PASN: Mem alloc failed for comeback cookie");
+				return;
+			}
+			dst->comeback_len = src->comeback_len;
 		}
 
 		if (!is_zero_ether_addr(src->own_addr)) {

@@ -3415,6 +3415,12 @@ static void qca_nl80211_pasn_auth(struct i802_bss *bss, u8 *data, size_t len)
 			os_memcpy(pw[idx], password, password_len);
 			event.pasn_auth.peer[idx].password = pw[idx];
 		}
+		if (cfg[QCA_WLAN_VENDOR_ATTR_PASN_PEER_COOKIE]) {
+			event.pasn_auth.peer[idx].comeback_len =
+				nla_len(cfg[QCA_WLAN_VENDOR_ATTR_PASN_PEER_COOKIE]);
+			event.pasn_auth.peer[idx].comeback =
+				nla_data(cfg[QCA_WLAN_VENDOR_ATTR_PASN_PEER_COOKIE]);
+		}
 
 		wpa_printf(MSG_DEBUG, "nl80211: PASN auth action: peer addr "
 			   MACSTR " AKMP 0x%x cipher 0x%x",
