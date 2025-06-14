@@ -3332,10 +3332,11 @@ static void qca_nl80211_pasn_auth(struct i802_bss *bss, u8 *data, size_t len)
 	struct nlattr *attr;
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_MAX + 1];
 	struct nlattr *cfg[QCA_WLAN_VENDOR_ATTR_PASN_PEER_MAX + 1];
-	unsigned int n_peers = 0, idx = 0;
+	unsigned int n_peers = 0, idx = 0, i;
 	int rem_conf;
 	enum qca_wlan_vendor_pasn_action action;
 	union wpa_event_data event;
+	char *pw[WPAS_MAX_PASN_PEERS];
 
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_PASN_MAX,
 		      (struct nlattr *) data, len, NULL) ||
@@ -3344,6 +3345,7 @@ static void qca_nl80211_pasn_auth(struct i802_bss *bss, u8 *data, size_t len)
 		return;
 	}
 
+	os_memset(&pw, 0, sizeof(pw));
 	os_memset(&event, 0, sizeof(event));
 	action = nla_get_u32(tb[QCA_WLAN_VENDOR_ATTR_PASN_ACTION]);
 	switch (action) {
@@ -3385,7 +3387,43 @@ static void qca_nl80211_pasn_auth(struct i802_bss *bss, u8 *data, size_t len)
 				  nla_data(nl_peer), ETH_ALEN);
 		if (cfg[QCA_WLAN_VENDOR_ATTR_PASN_PEER_LTF_KEYSEED_REQUIRED])
 			event.pasn_auth.peer[idx].ltf_keyseed_required = true;
+		if (cfg[QCA_WLAN_VENDOR_ATTR_PASN_PEER_AKM]) {
+			u32 akmp = nla_get_u32(
+				cfg[QCA_WLAN_VENDOR_ATTR_PASN_PEER_AKM]);
+
+			event.pasn_auth.peer[idx].akmp =
+				rsn_key_mgmt_to_wpa_akm(akmp);
+		}
+		if (cfg[QCA_WLAN_VENDOR_ATTR_PASN_PEER_CIPHER]) {
+			u32 cipher = nla_get_u32(
+				cfg[QCA_WLAN_VENDOR_ATTR_PASN_PEER_CIPHER]);
+
+			event.pasn_auth.peer[idx].cipher =
+				rsn_cipher_suite_to_wpa_cipher(cipher);
+		}
+		if (cfg[QCA_WLAN_VENDOR_ATTR_PASN_PEER_PASSWORD]) {
+			const char *password;
+			size_t password_len;
+
+			password_len = nla_len(
+				cfg[QCA_WLAN_VENDOR_ATTR_PASN_PEER_PASSWORD]);
+			password = nla_data(
+				cfg[QCA_WLAN_VENDOR_ATTR_PASN_PEER_PASSWORD]);
+			pw[idx] = os_zalloc(password_len + 1);
+			if (!pw[idx])
+				goto fail;
+			os_memcpy(pw[idx], password, password_len);
+			event.pasn_auth.peer[idx].password = pw[idx];
+		}
+
+		wpa_printf(MSG_DEBUG, "nl80211: PASN auth action: peer addr "
+			   MACSTR " AKMP 0x%x cipher 0x%x",
+			   MAC2STR(event.pasn_auth.peer[idx].peer_addr),
+			   event.pasn_auth.peer[idx].akmp,
+			   event.pasn_auth.peer[idx].cipher);
 		idx++;
+		if (idx == WPAS_MAX_PASN_PEERS)
+			break;
 	}
 	event.pasn_auth.num_peers = n_peers;
 
@@ -3394,6 +3432,9 @@ static void qca_nl80211_pasn_auth(struct i802_bss *bss, u8 *data, size_t len)
 		   event.pasn_auth.action,
 		   event.pasn_auth.num_peers);
 	wpa_supplicant_event(bss->ctx, EVENT_PASN_AUTH, &event);
+fail:
+	for (i = 0; i < idx; i++)
+		str_clear_free(pw[i]);
 }
 
 #endif /* CONFIG_PASN */
