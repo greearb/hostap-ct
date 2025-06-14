@@ -2851,6 +2851,10 @@ u32 wpa_akm_to_suite(int akm)
 		return RSN_AUTH_KEY_MGMT_OWE;
 	if (akm & WPA_KEY_MGMT_DPP)
 		return RSN_AUTH_KEY_MGMT_DPP;
+#ifdef CONFIG_PASN
+	if (akm & WPA_KEY_MGMT_PASN)
+		return RSN_AUTH_KEY_MGMT_PASN;
+#endif /* CONFIG_PASN */
 	return 0;
 }
 

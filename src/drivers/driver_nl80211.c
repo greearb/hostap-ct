@@ -13650,6 +13650,8 @@ static int nl80211_send_pasn_resp(void *priv, struct pasn_auth *params)
 		goto fail;
 
 	for (i = 0; i < params->num_peers; i++) {
+		int akmp, cipher;
+
 		attr1 = nla_nest_start(msg, i);
 		if (!attr1 ||
 		    nla_put(msg, QCA_WLAN_VENDOR_ATTR_PASN_PEER_SRC_ADDR,
@@ -13663,12 +13665,22 @@ static int nl80211_send_pasn_resp(void *priv, struct pasn_auth *params)
 				 QCA_WLAN_VENDOR_ATTR_PASN_PEER_STATUS_SUCCESS))
 			goto fail;
 
+		akmp = params->peer[i].akmp;
+		cipher = params->peer[i].cipher;
+		if (nla_put_u32(msg, QCA_WLAN_VENDOR_ATTR_PASN_PEER_AKM,
+				wpa_akm_to_suite(akmp)) ||
+		    nla_put_u32(msg, QCA_WLAN_VENDOR_ATTR_PASN_PEER_CIPHER,
+				wpa_cipher_to_cipher_suite(cipher)))
+			goto fail;
+
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Own address[%u]: " MACSTR
-			   " Peer address[%u]: " MACSTR " Status: %s",
+			   " Peer address[%u]: " MACSTR
+			   " Status: %s AKMP: 0x%x cipher: 0x%x",
 			   i, MAC2STR(params->peer[i].own_addr), i,
 			   MAC2STR(params->peer[i].peer_addr),
-			   params->peer[i].status ? "Fail" : "Success");
+			   params->peer[i].status ? "Fail" : "Success",
+			   akmp, cipher);
 		nla_nest_end(msg, attr1);
 	}
 
