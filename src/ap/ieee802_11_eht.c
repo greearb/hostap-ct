@@ -526,6 +526,8 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	/* TODO: Advertise T2LM based on driver support as well */
 	mld_cap &= ~EHT_ML_MLD_CAPA_TID_TO_LINK_MAP_NEG_SUPP_MSK;
 
+	mld_cap |= EHT_ML_MLD_CAPA_LINK_RECONF_OP_SUPPORT;
+
 	wpa_printf(MSG_DEBUG, "MLD: MLD Capabilities and Operations=0x%x",
 		   mld_cap);
 	wpabuf_put_le16(buf, mld_cap);
