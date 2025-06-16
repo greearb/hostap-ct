@@ -1532,6 +1532,182 @@ void ml_deinit_link_reconf_req(struct link_reconf_req_list **req_list_ptr)
 }
 
 
+void hostapd_link_reconf_resp_tx_status(struct hostapd_data *hapd,
+					struct sta_info *sta,
+					const struct ieee80211_mgmt *mgmt,
+					size_t len, int ok)
+{
+	u8 dialog_token = mgmt->u.action.u.link_reconf_resp.dialog_token;
+	struct hostapd_data *assoc_hapd, *lhapd, *other_hapd;
+	struct sta_info *assoc_sta, *lsta, *other_sta;
+	struct link_reconf_req_list *req_list;
+	struct link_reconf_req_info *info;
+	uint8_t link_id;
+
+	wpa_printf(MSG_DEBUG,
+		   "MLD: Link Reconf Response TX status - dialog token=%u ok=%d",
+		   dialog_token, ok);
+
+	assoc_sta = hostapd_ml_get_assoc_sta(hapd, sta, &assoc_hapd);
+	if (!assoc_sta) {
+		wpa_printf(MSG_INFO, "MLD: Assoc STA not found for " MACSTR,
+			   MAC2STR(mgmt->da));
+		return;
+	}
+
+	if (!assoc_sta->reconf_req) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Unexpected Link Reconf Request TX status");
+		return;
+	}
+
+	req_list = assoc_sta->reconf_req;
+
+	if (!ether_addr_equal(mgmt->da, req_list->sta_mld_addr)) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Link Reconfiguration Response TX status from wrong STA");
+		return;
+	}
+
+	if (dialog_token != req_list->dialog_token) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Link Reconfiguration session expired for %u",
+			   dialog_token);
+		return;
+	}
+
+	if (!ok) {
+		wpa_printf(MSG_INFO,
+			   "MLD: Link Reconf Response ack failed for " MACSTR
+			   "; revert link additions",
+			   MAC2STR(mgmt->da));
+
+		dl_list_for_each(info, &req_list->del_req,
+				 struct link_reconf_req_info, list) {
+			if (info->status != WLAN_STATUS_SUCCESS)
+				continue;
+
+			lhapd = NULL;
+			lsta = NULL;
+			lhapd = hostapd_mld_get_link_bss(hapd, info->link_id);
+			if (lhapd)
+				lsta = ap_get_sta(lhapd,
+						  req_list->sta_mld_addr);
+
+			if (lsta)
+				ap_free_sta(lhapd, lsta);
+		}
+		goto exit;
+	}
+
+	if (dl_list_empty(&req_list->del_req))
+		goto exit;
+
+	dl_list_for_each(info, &req_list->del_req, struct link_reconf_req_info,
+			 list) {
+		if (info->status != WLAN_STATUS_SUCCESS)
+			continue;
+
+		link_id = info->link_id;
+		lhapd = hostapd_mld_get_link_bss(hapd, link_id);
+		if (!lhapd) {
+			wpa_printf(MSG_INFO,
+				   "MLD: Link (%u) hapd cannot be NULL",
+				   link_id);
+			continue;
+		}
+
+		lsta = ap_get_sta(lhapd, mgmt->da);
+		if (!lsta) {
+			wpa_printf(MSG_INFO,
+				   "MLD: Link (%u) STA cannot be NULL",
+				   link_id);
+			continue;
+		}
+
+		/* Reassign assoc_sta to the link with lowest link ID */
+		if (!hostapd_sta_is_link_sta(lhapd, lsta) &&
+		    lsta == assoc_sta) {
+			struct mld_info *mld_info = &assoc_sta->mld_info;
+			int i;
+
+			for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+				if (i == assoc_sta->mld_assoc_link_id ||
+				    !mld_info->links[i].valid ||
+				    req_list->links_del_ok & BIT(i)) {
+					continue;
+				}
+				break;
+			}
+
+			if (i == MAX_NUM_MLD_LINKS) {
+				wpa_printf(MSG_INFO,
+					   "MLD: No new assoc STA could be found; disconnect STA");
+				hostapd_notif_disassoc_mld(assoc_hapd, sta,
+							   sta->addr);
+				goto exit;
+			}
+			wpa_printf(MSG_DEBUG, "MLD: New assoc link=%d", i);
+
+			/* Reset wpa_auth and assoc link ID */
+			for_each_mld_link(other_hapd, lhapd) {
+				other_sta = ap_get_sta(other_hapd, mgmt->da);
+				if (other_sta)
+					other_sta->mld_assoc_link_id = i;
+			}
+
+			/* Reset reconfig request queue which will be freed
+			 * at the end */
+			assoc_sta->reconf_req = NULL;
+
+			/* assoc_sta switched */
+			assoc_sta = hostapd_ml_get_assoc_sta(lhapd, lsta,
+							     &assoc_hapd);
+
+			/* assoc_sta cannot be NULL since both AP and STA are
+			 * MLD and new valid assoc_sta is already found */
+			if (!assoc_sta)
+				goto exit;
+
+			if (assoc_hapd == lhapd) {
+				wpa_printf(MSG_ERROR,
+					   "MLD: assoc_hapd is not updated; please check");
+				goto exit;
+			}
+
+			assoc_sta->reconf_req = req_list;
+			wpa_reset_assoc_sm_info(assoc_sta->wpa_sm,
+						assoc_hapd->wpa_auth, i);
+		}
+
+		/* Free as a link STA */
+		ap_free_sta(lhapd, lsta);
+
+		for_each_mld_link(other_hapd, lhapd) {
+			struct mld_link_info *link;
+
+			other_sta = ap_get_sta(other_hapd, mgmt->da);
+			if (!other_sta)
+				continue;
+
+			link = &other_sta->mld_info.links[link_id];
+			os_free(link->resp_sta_profile);
+			link->resp_sta_profile = NULL;
+			link->resp_sta_profile_len = 0;
+			link->valid = false;
+		}
+		wpa_auth_set_ml_info(assoc_sta->wpa_sm,
+				     assoc_sta->mld_assoc_link_id,
+				     &assoc_sta->mld_info);
+	}
+
+exit:
+	ml_deinit_link_reconf_req(&req_list);
+	if (assoc_sta && assoc_sta->reconf_req)
+		assoc_sta->reconf_req = NULL;
+}
+
+
 static bool recover_from_zero_links(u16 *links_del_ok, u8 *recovery_link)
 {
 	u8 pos = 0;

@@ -690,6 +690,9 @@ void wpa_release_link_auth_ref(struct wpa_state_machine *sm, u8 link_id,
 size_t wpa_auth_ml_group_kdes_len(struct wpa_state_machine *sm, u16 req_links);
 u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos,
 			    u16 req_links);
+void wpa_reset_assoc_sm_info(struct wpa_state_machine *assoc_sm,
+			     struct wpa_authenticator *wpa_auth,
+			     u8 mld_assoc_link_id);
 
 #define for_each_sm_auth(sm, link_id) \
 	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++)	\

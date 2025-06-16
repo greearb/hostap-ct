@@ -7681,3 +7681,14 @@ bool wpa_auth_sm_known_sta_identification(struct wpa_state_machine *sm,
 
 	return true;
 }
+
+
+void wpa_reset_assoc_sm_info(struct wpa_state_machine *assoc_sm,
+			     struct wpa_authenticator *wpa_auth,
+			     u8 mld_assoc_link_id)
+{
+#ifdef CONFIG_IEEE80211BE
+	assoc_sm->wpa_auth = wpa_auth;
+	assoc_sm->mld_assoc_link_id = mld_assoc_link_id;
+#endif /* CONFIG_IEEE80211BE */
+}

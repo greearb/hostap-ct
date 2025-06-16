@@ -7175,6 +7175,19 @@ static void handle_action_cb(struct hostapd_data *hapd,
 	}
 #endif /* CONFIG_HS20 */
 
+#ifdef CONFIG_IEEE80211BE
+	/* Frame header (24B) + Category (1B) + Action code (1B) +
+	 * Dialog token (1B) + Count (1B) + Status list (count * 3B)
+	 */
+	if (len >= IEEE80211_HDRLEN + 3 + 1 + 3 &&
+	    mgmt->u.action.category == WLAN_ACTION_PROTECTED_EHT &&
+	    mgmt->u.action.u.link_reconf_resp.action ==
+	    WLAN_PROT_EHT_LINK_RECONFIG_RESPONSE) {
+		hostapd_link_reconf_resp_tx_status(hapd, sta, mgmt, len, ok);
+		return;
+	}
+#endif /* CONFIG_IEEE80211BE */
+
 #ifndef CONFIG_NO_RRM
 	if (len < 24 + 5 + sizeof(*report))
 		return;

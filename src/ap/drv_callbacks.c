@@ -1023,9 +1023,8 @@ static void hostapd_remove_sta(struct hostapd_data *hapd, struct sta_info *sta)
 
 
 #ifdef CONFIG_IEEE80211BE
-static void hostapd_notif_disassoc_mld(struct hostapd_data *assoc_hapd,
-				       struct sta_info *sta,
-				       const u8 *addr)
+void hostapd_notif_disassoc_mld(struct hostapd_data *assoc_hapd,
+				struct sta_info *sta, const u8 *addr)
 {
 	unsigned int link_id, i;
 	struct hostapd_data *tmp_hapd;
