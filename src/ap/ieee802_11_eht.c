@@ -2033,6 +2033,39 @@ send_resp:
 }
 
 
+static int
+hostapd_ml_check_sta_entry_by_link_addr_iter(struct hostapd_data *hapd,
+					     struct sta_info *sta, void *ctx)
+{
+	const u8 *link_addr = ctx;
+	struct mld_link_info li;
+
+	if (!link_addr)
+		return 0;
+
+	if (sta->mld_info.mld_sta) {
+		li = sta->mld_info.links[hapd->mld_link_id];
+		if (!li.valid || !ether_addr_equal(li.peer_addr, link_addr))
+			return 0;
+
+		wpa_printf(MSG_DEBUG, "MLD: STA with address " MACSTR
+			   " exists for AP (link_id=%u) as a non-AP STA affiliated with non-AP MLD "
+			   MACSTR, MAC2STR(link_addr),
+			   hapd->mld_link_id, MAC2STR(sta->addr));
+		return 1;
+	}
+
+	if (ether_addr_equal(sta->addr, link_addr)) {
+		wpa_printf(MSG_DEBUG, "MLD: STA with address " MACSTR
+			   " exists for AP (link_id=%u) as a legacy STA",
+			   MAC2STR(link_addr), hapd->mld_link_id);
+		return 1;
+	}
+
+	return 0;
+}
+
+
 /* Returns:
  * 0 = successful parsing
  * 1 = per-STA profile (subelement) skipped or rejected
@@ -2216,6 +2249,15 @@ hostapd_parse_link_reconf_req_sta_profile(struct hostapd_data *hapd,
 			   "MLD: STA exists for link id=%u MLD addr=" MACSTR,
 			   link_id, MAC2STR(req->sta_mld_addr));
 		ret = 1; /* reject this per-STA profile */
+		goto add_to_list;
+	}
+
+	/* Check if link address is already used by any connected legacy
+	 * non-AP STA or non-AP STA affiliated with a non-AP MLD.
+	 */
+	if (ap_for_each_sta(lhapd, hostapd_ml_check_sta_entry_by_link_addr_iter,
+			    sta_addr)) {
+		ret = 1; /* Reject this per-STA profile */
 		goto add_to_list;
 	}
 
