@@ -4743,8 +4743,8 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 
 #ifdef CONFIG_IEEE80211BE
 
-static void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
-					  struct mld_link_info *link)
+void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
+				   struct mld_link_info *link)
 {
 	u8 buf[EHT_ML_MAX_STA_PROF_LEN];
 	u8 *p = buf;

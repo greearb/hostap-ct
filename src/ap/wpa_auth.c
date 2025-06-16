@@ -4405,8 +4405,8 @@ size_t wpa_auth_ml_group_kdes_len(struct wpa_state_machine *sm, u16 req_links)
 }
 
 
-static u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos,
-				   u16 req_links)
+u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos,
+			    u16 req_links)
 {
 	struct wpa_auth_ml_key_info ml_key_info;
 	unsigned int i, link_id;

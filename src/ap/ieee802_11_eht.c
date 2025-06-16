@@ -1611,6 +1611,252 @@ hostapd_ml_process_reconf_link(struct hostapd_data *hapd,
 }
 
 
+static int
+hostapd_reject_all_reconf_req(struct hostapd_data *hapd, u8 *pos,
+			      struct link_reconf_req_list *req_list)
+{
+	struct link_reconf_req_info *info;
+	struct hostapd_data *lhapd;
+	struct sta_info *lsta;
+	u16 status;
+	u8 *buf = pos;
+
+	dl_list_for_each(info, &req_list->add_req, struct link_reconf_req_info,
+			 list) {
+		lhapd = NULL;
+		lsta = NULL;
+		*pos++ = info->link_id;
+		status = info->status != WLAN_STATUS_SUCCESS ? info->status :
+			WLAN_STATUS_UNSPECIFIED_FAILURE;
+		WPA_PUT_LE16(pos, status);
+
+		if (info->status == WLAN_STATUS_SUCCESS) {
+			lhapd = hostapd_mld_get_link_bss(hapd, info->link_id);
+			if (lhapd)
+				lsta = ap_get_sta(lhapd,
+						  req_list->sta_mld_addr);
+
+			if (lsta)
+				ap_free_sta(lhapd, lsta);
+
+			info->status = WLAN_STATUS_UNSPECIFIED_FAILURE;
+		}
+		wpa_printf(MSG_DEBUG, "MLD: Reject add-link=%u with status=%u",
+			   info->link_id, status);
+		pos += 2;
+	}
+
+	dl_list_for_each(info, &req_list->del_req, struct link_reconf_req_info,
+			 list) {
+		*pos++ = info->link_id;
+		status = info->status != WLAN_STATUS_SUCCESS ? info->status :
+			WLAN_STATUS_UNSPECIFIED_FAILURE;
+		WPA_PUT_LE16(pos, status);
+
+		if (info->status == WLAN_STATUS_SUCCESS)
+			info->status = WLAN_STATUS_UNSPECIFIED_FAILURE;
+
+		wpa_printf(MSG_DEBUG, "MLD: Reject del-link=%u with status=%u",
+			   info->link_id, status);
+		pos += 2;
+	}
+
+	return pos - buf;
+}
+
+
+static int
+hostapd_send_link_reconf_resp(struct hostapd_data *hapd,
+			      struct sta_info *assoc_sta,
+			      struct link_reconf_req_list *req_list)
+{
+	u8 *buf, *orig_pos, *pos;
+	struct ieee80211_mgmt *mgmt;
+	struct link_reconf_req_info *info;
+	struct mld_info mld;
+	int ret;
+	unsigned int count;
+	u8 dialog_token;
+	bool reject_all = false;
+	size_t len, pos_len, kde_len, mle_len;
+
+	count = dl_list_len(&req_list->add_req) +
+		dl_list_len(&req_list->del_req);
+	if (!count)
+		return 0;
+
+	os_memset(&mld, 0, sizeof(mld));
+
+	dialog_token = req_list->dialog_token;
+
+	/*
+	 * Link Reconfiguration Response:
+	 *
+	 * IEEE80211 Header (24B) +
+	 * Category (1B) + Action code (1B) + Dialog Token (1B) +
+	 * Count (1B) + Status list (count * 3B) +
+	 * Optional: Group Key Data field (variable) +
+	 * Optional: OCI element (6B) +
+	 * Optional: Basic Multi-Link element (variable)
+	 */
+	len = IEEE80211_HDRLEN + 3 + 1 + count * 3;
+	kde_len = mle_len = 0;
+
+	if (req_list->links_add_ok) {
+		kde_len = wpa_auth_ml_group_kdes_len(
+			assoc_sta->wpa_sm, req_list->links_add_ok) + 1;
+		len += kde_len;
+
+		if (wpa_auth_uses_ocv(assoc_sta->wpa_sm))
+			len += OCV_OCI_EXTENDED_LEN;
+
+		mld.mld_sta = true;
+		dl_list_for_each(info, &req_list->add_req,
+				 struct link_reconf_req_info, list) {
+			struct mld_link_info *link = &mld.links[info->link_id];
+			struct hostapd_data *lhapd = NULL;
+
+			if (info->status != WLAN_STATUS_SUCCESS)
+				continue;
+
+			link->status = info->status;
+
+			lhapd = hostapd_mld_get_link_bss(hapd, info->link_id);
+			if (!lhapd)
+				continue;
+
+			link->valid = true;
+			ieee80211_ml_build_assoc_resp(lhapd, link);
+		}
+		mle_len = hostapd_eid_eht_ml_len(&mld, false);
+		len += mle_len;
+	}
+
+	buf = os_zalloc(len);
+	if (!buf) {
+		wpa_printf(MSG_INFO,
+			   "MLD: Failed to allocate Link Reconf Response buffer (%zu bytes)",
+			   len);
+		return -1;
+	}
+
+	mgmt = (struct ieee80211_mgmt *) buf;
+	mgmt->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT,
+					   WLAN_FC_STYPE_ACTION);
+	os_memcpy(mgmt->da, assoc_sta->addr, ETH_ALEN);
+	os_memcpy(mgmt->sa, hapd->mld->mld_addr, ETH_ALEN);
+	os_memcpy(mgmt->bssid, hapd->mld->mld_addr, ETH_ALEN);
+
+	mgmt->u.action.category = WLAN_ACTION_PROTECTED_EHT;
+	mgmt->u.action.u.link_reconf_resp.action =
+		WLAN_PROT_EHT_LINK_RECONFIG_RESPONSE;
+	mgmt->u.action.u.link_reconf_resp.dialog_token = dialog_token;
+	mgmt->u.action.u.link_reconf_resp.count = count;
+
+	orig_pos = pos = mgmt->u.action.u.link_reconf_resp.variable;
+	pos_len = 28; /* IEEE80211 Header, category, code, token, count */
+
+	dl_list_for_each(info, &req_list->add_req, struct link_reconf_req_info,
+			 list) {
+		*pos++ = info->link_id;
+		WPA_PUT_LE16(pos, info->status);
+		pos += 2;
+		pos_len += 3;
+	}
+
+	dl_list_for_each(info, &req_list->del_req, struct link_reconf_req_info,
+			 list) {
+		/* Mark the status as INVALID for rejected link to recover */
+		if (!(req_list->links_del_ok & BIT(info->link_id)) &&
+		    info->status == WLAN_STATUS_SUCCESS)
+			info->status = WLAN_STATUS_UNSPECIFIED_FAILURE;
+
+		*pos++ = info->link_id;
+		WPA_PUT_LE16(pos, info->status);
+		pos += 2;
+		pos_len += 3;
+	}
+
+	if (!req_list->links_add_ok)
+		goto send_resp;
+
+	/* Key Data for add links */
+	if (kde_len) {
+		u8 *kde_pos = pos;
+
+		kde_pos = wpa_auth_ml_group_kdes(assoc_sta->wpa_sm, ++kde_pos,
+						 req_list->links_add_ok);
+		*pos = kde_pos - pos - 1;
+		if (kde_len - 1 != *pos) {
+			reject_all = true;
+			goto reject_all_req;
+		}
+
+		wpa_hexdump_key(MSG_DEBUG, "MLD: Group KDE", pos + 1, *pos);
+
+		pos += kde_len;
+		pos_len += kde_len;
+	}
+
+	/* OCI element for add links */
+	if (wpa_auth_uses_ocv(assoc_sta->wpa_sm)) {
+		struct wpa_channel_info ci;
+
+		if (hostapd_drv_channel_info(hapd, &ci)) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Failed to fetch OCI; reject all requests");
+			reject_all = true;
+			goto reject_all_req;
+		}
+
+		if (ocv_insert_extended_oci(&ci, pos)) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Failed to add OCI element; reject all requests");
+			reject_all = true;
+			goto reject_all_req;
+		}
+
+		pos += OCV_OCI_EXTENDED_LEN;
+		pos_len += OCV_OCI_EXTENDED_LEN;
+	}
+
+	/* Basic Multi-Link element for add links */
+	if (mle_len) {
+		u8 *mle_pos = pos;
+
+		mle_pos = hostapd_eid_eht_basic_ml_common(hapd, mle_pos, &mld,
+							  false);
+		if ((size_t) (mle_pos - pos) != mle_len) {
+			reject_all = true;
+			goto reject_all_req;
+		}
+
+		pos += mle_len;
+		pos_len += mle_len;
+	}
+
+reject_all_req:
+	if (reject_all) {
+		pos = orig_pos;
+		pos_len = 28; /* reset pos_len */
+		pos += hostapd_reject_all_reconf_req(hapd, orig_pos, req_list);
+		pos_len += pos - orig_pos;
+
+		req_list->links_add_ok = req_list->links_del_ok = 0;
+		req_list->new_valid_links = 0;
+	}
+
+send_resp:
+	ret = hostapd_drv_send_mlme(hapd, mgmt, pos_len, 0, NULL, 0, 0);
+	os_free(buf);
+
+	if (mld.mld_sta)
+		ap_sta_free_sta_profile(&mld);
+
+	return ret;
+}
+
+
 /* Returns:
  * 0 = successful parsing
  * 1 = per-STA profile (subelement) skipped or rejected
@@ -2206,7 +2452,11 @@ skip_oci_validation:
 		goto out;
 
 	req_list->dialog_token = dialog_token;
-	ret = 0;
+	ret = hostapd_send_link_reconf_resp(hapd, assoc_sta, req_list);
+	if (ret)
+		wpa_printf(MSG_INFO,
+			   "MLD: Failed to send Link Reconfiguration Response (%d)",
+			   ret);
 
 out:
 	if (ret) {

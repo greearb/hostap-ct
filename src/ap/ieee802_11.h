@@ -309,6 +309,8 @@ int ieee80211_ml_process_link(struct hostapd_data *hapd,
 			      struct mld_link_info *link,
 			      const u8 *ies, size_t ies_len,
 			      enum link_parse_type type, bool offload);
+void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
+				   struct mld_link_info *link);
 
 void ieee802_11_rx_protected_eht_action(struct hostapd_data *hapd,
 					const struct ieee80211_mgmt *mgmt,
