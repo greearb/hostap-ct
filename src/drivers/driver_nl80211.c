@@ -2845,6 +2845,11 @@ static int nl80211_action_subscribe_ap(struct i802_bss *bss)
 	if (nl80211_register_action_frame(bss, (u8 *) "\x12", 1) < 0)
 		ret = -1;
 #endif /* CONFIG_FST */
+#ifdef CONFIG_IEEE80211BE
+	/* Protected EHT - Link Reconfiguration Request */
+	if (nl80211_register_action_frame(bss, (u8 *) "\x25\x0b", 2) < 0)
+		ret = -1;
+#endif /* CONFIG_IEEE80211BE */
 	/* Vendor-specific Protected */
 	if (nl80211_register_action_frame(bss, (u8 *) "\x7e", 1) < 0)
 		ret = -1;
