@@ -9,6 +9,7 @@
 #include "utils/includes.h"
 #include "utils/common.h"
 #include "common/ocv.h"
+#include "common/wpa_ctrl.h"
 #include "crypto/crypto.h"
 #include "crypto/dh_groups.h"
 #include "hostapd.h"
@@ -1684,6 +1685,9 @@ void hostapd_link_reconf_resp_tx_status(struct hostapd_data *hapd,
 
 		/* Free as a link STA */
 		ap_free_sta(lhapd, lsta);
+		wpa_msg(hapd->msg_ctx, MSG_INFO,
+			WPA_EVENT_LINK_STA_REMOVED "sta=" MACSTR " link_id=%u",
+			MAC2STR(lsta->addr), link_id);
 
 		for_each_mld_link(other_hapd, lhapd) {
 			struct mld_link_info *link;
@@ -2497,6 +2501,10 @@ hostapd_validate_link_reconf_req(struct hostapd_data *hapd,
 		} else {
 			total_kde_len += link_kde_len;
 			links_add_ok |= BIT(info->link_id);
+			wpa_msg(hapd->msg_ctx, MSG_INFO,
+				WPA_EVENT_LINK_STA_ADDED "sta=" MACSTR
+				" link_id=%u", MAC2STR(req_list->sta_mld_addr),
+				info->link_id);
 		}
 
 		info->status = status;
