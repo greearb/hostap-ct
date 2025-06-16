@@ -127,10 +127,10 @@ u8 * hostapd_eid_eht_ml_assoc(struct hostapd_data *hapd, struct sta_info *info,
 			      u8 *eid);
 u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 				     u8 *eid, struct mld_info *mld_info,
-				     bool include_mld_id);
+				     bool include_mld_id, bool include_bpcc);
 size_t hostapd_eid_eht_basic_ml_len(struct hostapd_data *hapd,
 				    struct sta_info *info,
-				    bool include_mld_id);
+				    bool include_mld_id, bool include_pbcc);
 size_t hostapd_eid_eht_ml_beacon_len(struct hostapd_data *hapd,
 				     struct mld_info *info,
 				     bool include_mld_id);

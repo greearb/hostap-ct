@@ -8567,9 +8567,8 @@ static size_t hostapd_eid_mbssid_elem_len(struct hostapd_data *hapd,
 		 * be in the frame body */
 		if (bss->conf->mld_ap &&
 		    (bss != hapd || frame_type != WLAN_FC_STYPE_PROBE_RESP))
-			nontx_profile_len += hostapd_eid_eht_basic_ml_len(bss,
-									  NULL,
-									  true);
+			nontx_profile_len += hostapd_eid_eht_basic_ml_len(
+				bss, NULL, true, false);
 #endif /* CONFIG_IEEE80211BE */
 
 		if (ie_count)
@@ -8744,7 +8743,7 @@ static u8 * hostapd_eid_mbssid_elem(struct hostapd_data *hapd, u8 *eid, u8 *end,
 		if (bss->conf->mld_ap &&
 		    (bss != hapd || frame_type != WLAN_FC_STYPE_PROBE_RESP))
 			eid = hostapd_eid_eht_basic_ml_common(bss, eid, NULL,
-							      true);
+							      true, false);
 #endif /* CONFIG_IEEE80211BE */
 		if (ie_count) {
 			*eid++ = WLAN_EID_EXTENSION;

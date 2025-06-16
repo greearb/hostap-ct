@@ -451,13 +451,12 @@ void hostapd_get_eht_capab(struct hostapd_data *hapd,
 #define EHT_ML_COMMON_INFO_LEN 13
 /*
  * control (2) + station info length (1) + MAC address (6) +
- * beacon interval (2) + TSF offset (8) + DTIM info (2) +
- * BSS Parameters Change count(1)
+ * beacon interval (2) + TSF offset (8) + DTIM info (2)
  */
-#define EHT_ML_STA_INFO_LEN 22
+#define EHT_ML_STA_INFO_LEN 21
 u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 				     u8 *eid, struct mld_info *mld_info,
-				     bool include_mld_id)
+				     bool include_mld_id, bool include_bpcc)
 {
 	struct wpabuf *buf;
 	u16 control;
@@ -551,10 +550,9 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	/* Add link info for the other links */
 	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 		struct mld_link_info *link = &mld_info->links[link_id];
+		size_t sta_info_len = EHT_ML_STA_INFO_LEN;
 		struct hostapd_data *link_bss;
-
-		size_t total_len = EHT_ML_STA_INFO_LEN +
-			link->resp_sta_profile_len;
+		size_t total_len;
 
 		/* Skip the local one */
 		if (link_id == hapd->mld_link_id || !link->valid)
@@ -566,6 +564,13 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 				   "MLD: Couldn't find link BSS - skip it");
 			continue;
 		}
+
+		/* BSS Parameters Change Count (1) for (Re)Association Response
+		 * frames */
+		if (include_bpcc)
+			sta_info_len++;
+
+		total_len = sta_info_len + link->resp_sta_profile_len;
 
 		/* Per-STA Profile subelement */
 		wpabuf_put_u8(buf, EHT_ML_SUB_ELEM_PER_STA_PROFILE);
@@ -581,14 +586,17 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 			EHT_PER_STA_CTRL_COMPLETE_PROFILE_MSK |
 			EHT_PER_STA_CTRL_TSF_OFFSET_PRESENT_MSK |
 			EHT_PER_STA_CTRL_BEACON_INTERVAL_PRESENT_MSK |
-			EHT_PER_STA_CTRL_DTIM_INFO_PRESENT_MSK |
-			EHT_PER_STA_CTRL_BSS_PARAM_CNT_PRESENT_MSK;
+			EHT_PER_STA_CTRL_DTIM_INFO_PRESENT_MSK;
+
+		if (include_bpcc)
+			control |= EHT_PER_STA_CTRL_BSS_PARAM_CNT_PRESENT_MSK;
+
 		wpabuf_put_le16(buf, control);
 
 		/* STA Info */
 
 		/* STA Info Length */
-		wpabuf_put_u8(buf, EHT_ML_STA_INFO_LEN - 2);
+		wpabuf_put_u8(buf, sta_info_len - 2);
 		wpabuf_put_data(buf, link->local_addr, ETH_ALEN);
 		wpabuf_put_le16(buf, link_bss->iconf->beacon_int);
 
@@ -604,7 +612,8 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 		wpabuf_put_u8(buf, link_bss->conf->dtim_period);
 
 		/* BSS Parameters Change Count */
-		wpabuf_put_u8(buf, hapd->eht_mld_bss_param_change);
+		if (include_bpcc)
+			wpabuf_put_u8(buf, hapd->eht_mld_bss_param_change);
 
 		if (!link->resp_sta_profile)
 			continue;
@@ -617,7 +626,7 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 			ptr = link->resp_sta_profile;
 			len = link->resp_sta_profile_len;
 
-			slice_len = 255 - EHT_ML_STA_INFO_LEN;
+			slice_len = 255 - sta_info_len;
 
 			wpabuf_put_data(buf, ptr, slice_len);
 			len -= slice_len;
@@ -680,7 +689,7 @@ out:
 
 size_t hostapd_eid_eht_basic_ml_len(struct hostapd_data *hapd,
 				    struct sta_info *info,
-				    bool include_mld_id)
+				    bool include_mld_id, bool include_bpcc)
 {
 	int link_id;
 	size_t len, num_frags;
@@ -717,6 +726,11 @@ size_t hostapd_eid_eht_basic_ml_len(struct hostapd_data *hapd,
 				   "MLD: Couldn't find link BSS - skip it");
 			continue;
 		}
+
+		/* BSS Parameters Change Count (1) for (Re)Association Response
+		 * frames */
+		if (include_bpcc)
+			sta_prof_len++;
 
 		/* Per-STA Profile Subelement(1), Length (1) */
 		len += 2;
@@ -816,7 +830,7 @@ static u8 * hostapd_eid_eht_reconf_ml(struct hostapd_data *hapd, u8 *eid)
 
 
 static size_t hostapd_eid_eht_ml_len(struct mld_info *info,
-				     bool include_mld_id)
+				     bool include_mld_id, bool include_bpcc)
 {
 	size_t len = 0;
 	size_t eht_ml_len = 2 + EHT_ML_COMMON_INFO_LEN;
@@ -835,6 +849,11 @@ static size_t hostapd_eid_eht_ml_len(struct mld_info *info,
 			continue;
 
 		sta_len += link->resp_sta_profile_len;
+
+		/* BSS Parameters Change Count (1) for (Re)Association Response
+		 * frames */
+		if (include_bpcc)
+			sta_len++;
 
 		/* Element data and (fragmentation) headers */
 		eht_ml_len += sta_len;
@@ -860,7 +879,8 @@ u8 * hostapd_eid_eht_ml_beacon(struct hostapd_data *hapd,
 			       struct mld_info *info,
 			       u8 *eid, bool include_mld_id)
 {
-	eid = hostapd_eid_eht_basic_ml_common(hapd, eid, info, include_mld_id);
+	eid = hostapd_eid_eht_basic_ml_common(hapd, eid, info, include_mld_id,
+					      false);
 	return hostapd_eid_eht_reconf_ml(hapd, eid);
 }
 
@@ -873,7 +893,7 @@ u8 * hostapd_eid_eht_ml_assoc(struct hostapd_data *hapd, struct sta_info *info,
 		return eid;
 
 	eid = hostapd_eid_eht_basic_ml_common(hapd, eid, &info->mld_info,
-					      false);
+					      false, true);
 	ap_sta_free_sta_profile(&info->mld_info);
 	return hostapd_eid_eht_reconf_ml(hapd, eid);
 }
@@ -883,7 +903,7 @@ size_t hostapd_eid_eht_ml_beacon_len(struct hostapd_data *hapd,
 				     struct mld_info *info,
 				     bool include_mld_id)
 {
-	return hostapd_eid_eht_ml_len(info, include_mld_id);
+	return hostapd_eid_eht_ml_len(info, include_mld_id, false);
 }
 
 
@@ -1904,7 +1924,14 @@ hostapd_send_link_reconf_resp(struct hostapd_data *hapd,
 			link->valid = true;
 			ieee80211_ml_build_assoc_resp(lhapd, link);
 		}
-		mle_len = hostapd_eid_eht_ml_len(&mld, false);
+		/* TODO: Basic MLE is not supposed to include BPCC in Link
+		 * Reconfiguration Response, but mac80211 implementation for
+		 * processing this frame requires that to be present. For now,
+		 * include that subfield as a workaround. This should be removed
+		 * once mac80211 is fixed to match the standard (or this comment
+		 * be removed if the standard is modified to match
+		 * implementation). */
+		mle_len = hostapd_eid_eht_ml_len(&mld, false, true);
 		len += mle_len;
 	}
 
@@ -2000,8 +2027,15 @@ hostapd_send_link_reconf_resp(struct hostapd_data *hapd,
 	if (mle_len) {
 		u8 *mle_pos = pos;
 
+		/* TODO: Basic MLE is not supposed to include BPCC in Link
+		 * Reconfiguration Response, but mac80211 implementation for
+		 * processing this frame requires that to be present. For now,
+		 * include that subfield as a workaround. This should be removed
+		 * once mac80211 is fixed to match the standard (or this comment
+		 * be removed if the standard is modified to match
+		 * implementation). */
 		mle_pos = hostapd_eid_eht_basic_ml_common(hapd, mle_pos, &mld,
-							  false);
+							  false, true);
 		if ((size_t) (mle_pos - pos) != mle_len) {
 			reject_all = true;
 			goto reject_all_req;
