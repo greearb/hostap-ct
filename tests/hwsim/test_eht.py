@@ -2605,3 +2605,87 @@ def test_eht_mld_no_common_key_mgmt(dev, apdev):
 
         eht_verify_wifi_version(wpas)
         traffic_test(wpas, hapd_selected)
+
+def test_eht_ml_setup_reconfig_AB_A_AB(dev, apdev, params):
+        """EHT MLD with two links. ML Setup reconfig link removal and addition"""
+        with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+            HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+            wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+            wpas.interface_add(wpas_iface)
+            check_sae_capab(wpas)
+
+            # Associate AP and STA in two links
+            ssid = "eht_ml_reconf"
+            passphrase = 'qwertyuiop'
+
+            ap_params = eht_mld_ap_wpa2_params(ssid, passphrase,
+                                            key_mgmt="SAE", mfp="2", pwe='1')
+            hapd0 = eht_mld_enable_ap(hapd_iface, 0, ap_params)
+
+            ap_params['channel'] = '6'
+            hapd1 = eht_mld_enable_ap(hapd_iface, 1, ap_params)
+
+            wpas.set("sae_pwe", "1")
+            wpas.connect(ssid, sae_password=passphrase, scan_freq="2412 2437",
+                         key_mgmt="SAE", ieee80211w="2")
+
+            eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                              valid_links=3, active_links=3)
+            eht_verify_wifi_version(wpas)
+            traffic_test(wpas, hapd0)
+
+            # Prepare and send ML Setup reconfig link removal for link id=1
+            link_id = '1'
+            sta = hapd0.get_sta(wpas.own_addr())
+
+            if "OK" not in wpas.request("SETUP_LINK_RECONFIG delete={}".format(link_id)):
+                raise Exception("Failed to request link reconfig removal for link={}".format(link_id))
+
+            filters = ["wlan.fc.type_subtype == 0x000d && " +
+                       "(wlan.sa == {} && wlan.da == {})".format(hapd0.own_addr(), sta['peer_addr[0]'])]
+            out = run_tshark(os.path.join(params['logdir'], 'hwsim0.pcapng'),
+                             filters, display=['frame.number'])
+            if not out.splitlines():
+                raise Exception('No Link Reconfig response frame found for removal')
+
+            ev = hapd0.wait_event(["CTRL-EVENT-LINK-STA-REMOVED"], timeout=10)
+            if ev is None:
+                raise Exception("Link STA removal event not seen")
+
+            if "sta={} link_id={}".format(wpas.own_addr(), link_id) not in ev:
+                raise Exception("Unexpected sta/link id for ML Setup reconfig link removal")
+
+            # Prepare and send ML Setup reconfig link add for link id=1
+            sta = hapd0.get_sta(wpas.own_addr())
+
+            if "OK" not in wpas.request("SETUP_LINK_RECONFIG add={}".format(link_id)):
+                raise Exception("Failed to request link reconfig add for link={}".format(link_id))
+
+            filters = ["wlan.fc.type_subtype == 0x000d && " +
+                       "(wlan.sa == {} && (wlan.da == {}))".format(hapd0.own_addr(), sta['peer_addr[0]'])]
+            out = run_tshark(os.path.join(params['logdir'], 'hwsim0.pcapng'),
+                             filters, display=['frame.number'])
+            if len(out.splitlines()) < 2:
+                raise Exception('No Link Reconfig response frame found for addition')
+
+            ev = hapd0.wait_event(["CTRL-EVENT-LINK-STA-ADDED"], timeout=10)
+            if ev is None:
+                raise Exception("Link STA addition event not seen")
+
+            if "sta={} link_id={}".format(wpas.own_addr(), link_id) not in ev:
+                raise Exception("Unexpected sta/link id for ML Setup reconfig link addition")
+
+            sta = hapd0.get_sta(wpas.own_addr())
+            try:
+                sta['peer_addr[1]']
+            except KeyError:
+                raise Exception('Link failed to add using ML Setup reconfig')
+
+            if "OK" not in hapd0.request("REKEY_GTK"):
+                raise Exception("REKEY_GTK failed")
+
+            ev = wpas.wait_event(["MLO RSN: Group rekeying completed"],
+                                 timeout=2)
+            if ev is None:
+                raise Exception("GTK rekey timed out after link addition")
