@@ -4354,8 +4354,7 @@ static void wpa_auth_get_ml_key_info(struct wpa_authenticator *wpa_auth,
 }
 
 
-static size_t wpa_auth_ml_group_kdes_len(struct wpa_state_machine *sm,
-					 u16 req_links)
+size_t wpa_auth_ml_group_kdes_len(struct wpa_state_machine *sm, u16 req_links)
 {
 	struct wpa_authenticator *wpa_auth;
 	size_t kde_len = 0;

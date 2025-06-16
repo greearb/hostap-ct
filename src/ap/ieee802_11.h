@@ -26,6 +26,15 @@ struct sae_pk;
 struct sae_pt;
 struct sae_password_entry;
 struct mld_info;
+struct mld_link_info;
+
+enum link_parse_type {
+	LINK_PARSE_ASSOC,
+	LINK_PARSE_REASSOC,
+	LINK_PARSE_RECONF,
+};
+
+#define LINK_RECONF_GROUP_KDE_MAX_LEN 255
 
 struct link_reconf_req_info {
 	struct dl_list list;
@@ -295,6 +304,11 @@ int hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 				  bool offload);
 
 void ml_deinit_link_reconf_req(struct link_reconf_req_list **req_list_ptr);
+int ieee80211_ml_process_link(struct hostapd_data *hapd,
+			      struct sta_info *origin_sta,
+			      struct mld_link_info *link,
+			      const u8 *ies, size_t ies_len,
+			      enum link_parse_type type, bool offload);
 
 void ieee802_11_rx_protected_eht_action(struct hostapd_data *hapd,
 					const struct ieee80211_mgmt *mgmt,

@@ -1532,6 +1532,85 @@ void ml_deinit_link_reconf_req(struct link_reconf_req_list **req_list_ptr)
 }
 
 
+static bool recover_from_zero_links(u16 *links_del_ok, u8 *recovery_link)
+{
+	u8 pos = 0;
+	u16 del_links;
+
+	del_links = *links_del_ok;
+
+	while (del_links) {
+		if (del_links & 1)
+			break;
+		del_links >>= 1;
+		pos++;
+	}
+
+	/* No link found */
+	if (!del_links) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Total valid links is 0 and no del-link found to reject for recovery");
+		return false;
+	}
+
+	*recovery_link = pos;
+	*links_del_ok &= ~BIT(*recovery_link);
+	wpa_printf(MSG_INFO,
+		   "MLD: Del-link request for link (%u) rejected to recover from no remaining links",
+		   *recovery_link);
+	return true;
+}
+
+
+static u16
+hostapd_ml_process_reconf_link(struct hostapd_data *hapd,
+			       struct sta_info *assoc_sta, const u8 *ies,
+			       size_t ies_len, u8 link_id, const u8 *link_addr)
+{
+	struct hostapd_data *lhapd, *other_hapd;
+	struct mld_link_info link;
+	struct sta_info *lsta, *other_sta;
+
+	lhapd = hostapd_mld_get_link_bss(hapd, link_id);
+	if (!lhapd) /* This cannot be NULL */
+		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+
+	os_memset(&link, 0, sizeof(link));
+
+	link.valid = 1;
+	os_memcpy(link.local_addr, lhapd->own_addr, ETH_ALEN);
+	os_memcpy(link.peer_addr, link_addr, ETH_ALEN);
+
+	/* Parse STA profile, check the IEs, and send ADD_LINK_STA */
+	ieee80211_ml_process_link(lhapd, assoc_sta, &link, ies, ies_len,
+				  LINK_PARSE_RECONF, false);
+	if (link.status != WLAN_STATUS_SUCCESS)
+		return link.status;
+
+	lsta = ap_get_sta(lhapd, assoc_sta->addr);
+	if (!lsta)
+		return WLAN_STATUS_AP_UNABLE_TO_HANDLE_NEW_STA;
+
+	for_each_mld_link(other_hapd, lhapd) {
+		struct mld_link_info *_link;
+
+		other_sta = ap_get_sta(other_hapd, lsta->addr);
+		if (!other_sta)
+			continue;
+
+		_link = &other_sta->mld_info.links[link_id];
+		_link->valid = true;
+		_link->status = WLAN_STATUS_SUCCESS;
+		os_memcpy(_link->local_addr, other_hapd->own_addr, ETH_ALEN);
+		os_memcpy(_link->peer_addr, link_addr, ETH_ALEN);
+	}
+	wpa_auth_set_ml_info(lsta->wpa_sm, lsta->mld_assoc_link_id,
+			     &lsta->mld_info);
+
+	return WLAN_STATUS_SUCCESS;
+}
+
+
 /* Returns:
  * 0 = successful parsing
  * 1 = per-STA profile (subelement) skipped or rejected
@@ -1880,6 +1959,132 @@ fail:
 }
 
 
+static bool
+hostapd_validate_link_reconf_req(struct hostapd_data *hapd,
+				 struct sta_info *sta,
+				 struct link_reconf_req_list *req_list)
+{
+	struct hostapd_data *assoc_hapd;
+	struct link_reconf_req_info *info;
+	struct sta_info *assoc_sta;
+	struct mld_info *mld_info;
+	u8 recovery_link;
+	u16 valid_links = 0, links_add_ok = 0, links_del_ok = 0, status;
+	size_t link_kde_len, total_kde_len = 0;
+	int i;
+
+	assoc_sta = hostapd_ml_get_assoc_sta(hapd, sta, &assoc_hapd);
+	if (!assoc_sta)
+		return false;
+
+	if (dl_list_empty(&req_list->add_req) &&
+	    dl_list_empty(&req_list->del_req)) {
+		wpa_printf(MSG_DEBUG, "MLD: No add or delete request found");
+		return false;
+	}
+
+	mld_info = &assoc_sta->mld_info;
+	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
+		if (mld_info->links[i].valid &&
+		    mld_info->links[i].status == WLAN_STATUS_SUCCESS)
+			valid_links |= BIT(i);
+	}
+
+	/* Check IEs for add-link STA profiles */
+	dl_list_for_each(info, &req_list->add_req, struct link_reconf_req_info,
+			 list) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Add Link Reconf STA for link id=%u status=%u",
+			   info->link_id, info->status);
+		if (info->status != WLAN_STATUS_SUCCESS ||
+		    info->sta_prof_len < 2)
+			continue;
+
+		/* Offset 2 bytes for Capabilities in STA Profile */
+		status = hostapd_ml_process_reconf_link(hapd, assoc_sta,
+							info->sta_prof + 2,
+							info->sta_prof_len - 2,
+							info->link_id,
+							info->peer_addr);
+		if (status != WLAN_STATUS_SUCCESS) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Add link IE validation failed for link=%u",
+				   info->link_id);
+			info->status = status;
+			continue;
+		}
+
+		link_kde_len = wpa_auth_ml_group_kdes_len(assoc_sta->wpa_sm,
+							  BIT(info->link_id));
+
+		/* Since Group KDE element Length subfield is one byte,
+		 * accept as many add-link requests as can be fit.
+		 */
+		if (total_kde_len + link_kde_len >
+		    LINK_RECONF_GROUP_KDE_MAX_LEN) {
+			wpa_printf(MSG_INFO,
+				   "MLD: Group KDEs cannot fit (%zu > %u) for link=%u",
+				   total_kde_len + link_kde_len,
+				   LINK_RECONF_GROUP_KDE_MAX_LEN,
+				   info->link_id);
+			status = WLAN_STATUS_UNSPECIFIED_FAILURE;
+		} else {
+			total_kde_len += link_kde_len;
+			links_add_ok |= BIT(info->link_id);
+		}
+
+		info->status = status;
+	}
+
+	dl_list_for_each(info, &req_list->del_req, struct link_reconf_req_info,
+			list) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Del Link Reconf STA for link id=%u status=%u",
+			   info->link_id, info->status);
+		if (info->status == WLAN_STATUS_SUCCESS)
+			links_del_ok |= BIT(info->link_id);
+	}
+
+	wpa_printf(MSG_INFO, "MLD: valid_links=0x%x add_ok=0x%x del_ok=0x%x",
+		   valid_links, links_add_ok, links_del_ok);
+
+	if ((links_add_ok && (valid_links & links_add_ok)) ||
+	    (links_del_ok && !(valid_links & links_del_ok))) {
+		wpa_printf(MSG_INFO,
+			   "MLD: Links requested failed to satisfy valid links");
+		return false;
+	}
+
+	if (links_add_ok & links_del_ok) {
+		wpa_printf(MSG_INFO,
+			   "MLD: Links (0x%x) present in both valid add and delete requests",
+			   links_add_ok & links_del_ok);
+		return false;
+	}
+
+	valid_links |= links_add_ok;
+	valid_links &= ~links_del_ok;
+	if (!valid_links) {
+		if (!recover_from_zero_links(&links_del_ok, &recovery_link)) {
+			wpa_printf(MSG_INFO,
+				   "MLD: Total-links validation failed");
+			return false;
+		}
+		/* Add the recovery link back to valid_links */
+		valid_links |= BIT(recovery_link);
+	}
+
+	req_list->new_valid_links = valid_links;
+	req_list->links_add_ok = links_add_ok;
+	req_list->links_del_ok = links_del_ok;
+
+	/* TODO: Add support to handle multiple requests from the non-AP MLD */
+	assoc_sta->reconf_req = req_list;
+
+	return true;
+}
+
+
 static int
 hostapd_handle_link_reconf_req(struct hostapd_data *hapd, const u8 *buf,
 			       size_t len)
@@ -1996,8 +2201,11 @@ hostapd_handle_link_reconf_req(struct hostapd_data *hapd, const u8 *buf,
 	}
 
 skip_oci_validation:
+	/* Do STA profile validation */
+	if (!hostapd_validate_link_reconf_req(hapd, assoc_sta, req_list))
+		goto out;
+
 	req_list->dialog_token = dialog_token;
-	assoc_sta->reconf_req = req_list;
 	ret = 0;
 
 out:
