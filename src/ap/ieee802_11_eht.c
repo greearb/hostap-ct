@@ -449,6 +449,12 @@ void hostapd_get_eht_capab(struct hostapd_data *hapd,
  * EML Capabilities (2) + MLD Capabilities (2)
  */
 #define EHT_ML_COMMON_INFO_LEN 13
+/*
+ * control (2) + station info length (1) + MAC address (6) +
+ * beacon interval (2) + TSF offset (8) + DTIM info (2) +
+ * BSS Parameters Change count(1)
+ */
+#define EHT_ML_STA_INFO_LEN 22
 u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 				     u8 *eid, struct mld_info *mld_info,
 				     bool include_mld_id)
@@ -547,12 +553,6 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 		struct mld_link_info *link = &mld_info->links[link_id];
 		struct hostapd_data *link_bss;
 
-		/*
-		 * control (2) + station info length (1) + MAC address (6) +
-		 * beacon interval (2) + TSF offset (8) + DTIM info (2) + BSS
-		 * parameters change counter (1) + station profile length.
-		 */
-#define EHT_ML_STA_INFO_LEN 22
 		size_t total_len = EHT_ML_STA_INFO_LEN +
 			link->resp_sta_profile_len;
 
@@ -678,12 +678,6 @@ out:
 }
 
 
-/*
- * control (2) + station info length (1) + MAC address (6) +
- * beacon interval (2) + TSF offset (8) + DTIM info (2) + BSS
- * parameters change counter (1)
- */
-#define EHT_ML_STA_INFO_LENGTH 22
 size_t hostapd_eid_eht_basic_ml_len(struct hostapd_data *hapd,
 				    struct sta_info *info,
 				    bool include_mld_id)
@@ -710,7 +704,7 @@ size_t hostapd_eid_eht_basic_ml_len(struct hostapd_data *hapd,
 	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
 		struct mld_link_info *link = &info->mld_info.links[link_id];
 		struct hostapd_data *link_bss;
-		size_t sta_prof_len = EHT_ML_STA_INFO_LENGTH +
+		size_t sta_prof_len = EHT_ML_STA_INFO_LEN +
 			link->resp_sta_profile_len;
 
 		/* Skip the local one */
