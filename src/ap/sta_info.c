@@ -469,6 +469,7 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 
 #ifdef CONFIG_IEEE80211BE
 	ap_sta_free_sta_profile(&sta->mld_info);
+	ml_deinit_link_reconf_req(&sta->reconf_req);
 #endif /* CONFIG_IEEE80211BE */
 
 #ifdef CONFIG_TESTING_OPTIONS

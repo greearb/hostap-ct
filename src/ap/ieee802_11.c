@@ -6497,6 +6497,11 @@ static int handle_action(struct hostapd_data *hapd,
 		hostapd_handle_radio_measurement(hapd, (const u8 *) mgmt, len);
 		return 1;
 #endif /* CONFIG_NO_RRM */
+#ifdef CONFIG_IEEE80211BE
+	case WLAN_ACTION_PROTECTED_EHT:
+		ieee802_11_rx_protected_eht_action(hapd, mgmt, len);
+		return 1;
+#endif /* CONFIG_IEEE80211BE */
 	}
 
 	hostapd_logger(hapd, mgmt->sa, HOSTAPD_MODULE_IEEE80211,

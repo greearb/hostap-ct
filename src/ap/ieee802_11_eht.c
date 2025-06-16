@@ -8,10 +8,13 @@
 
 #include "utils/includes.h"
 #include "utils/common.h"
+#include "common/ocv.h"
 #include "crypto/crypto.h"
 #include "crypto/dh_groups.h"
 #include "hostapd.h"
 #include "sta_info.h"
+#include "ap_drv_ops.h"
+#include "wpa_auth.h"
 #include "ieee802_11.h"
 
 
@@ -1497,4 +1500,539 @@ out:
 	}
 
 	return WLAN_STATUS_SUCCESS;
+}
+
+
+void ml_deinit_link_reconf_req(struct link_reconf_req_list **req_list_ptr)
+{
+	struct link_reconf_req_list *req_list;
+	struct link_reconf_req_info *info, *tmp;
+
+	if (!(*req_list_ptr))
+		return;
+
+	wpa_printf(MSG_DEBUG, "MLD: Deinit Link Reconf Request context");
+
+	req_list = *req_list_ptr;
+
+	dl_list_for_each_safe(info, tmp, &req_list->add_req,
+			      struct link_reconf_req_info, list) {
+		dl_list_del(&info->list);
+		os_free(info);
+	}
+
+	dl_list_for_each_safe(info, tmp, &req_list->del_req,
+			      struct link_reconf_req_info, list) {
+		dl_list_del(&info->list);
+		os_free(info);
+	}
+
+	os_free(req_list);
+	*req_list_ptr = NULL;
+}
+
+
+/* Returns:
+ * 0 = successful parsing
+ * 1 = per-STA profile (subelement) skipped or rejected
+ * -1 = fail due to fatal errors
+ */
+static int
+hostapd_parse_link_reconf_req_sta_profile(struct hostapd_data *hapd,
+					    struct link_reconf_req_list *req,
+					    const u8 *buf, size_t len)
+{
+	struct link_reconf_req_info *info = NULL;
+	const struct ieee80211_eht_per_sta_profile *per_sta_prof;
+	const struct element *elem;
+	struct hostapd_data *lhapd = NULL;
+	struct sta_info *lsta;
+	size_t sta_info_len, sta_prof_len = 0;
+	u16 sta_control, reconf_type_mask;
+	u8 link_id, reconf_type;
+	const u8 *sta_info = NULL, *end;
+	u8 sta_addr[ETH_ALEN];
+	size_t nstr_bitmap_size = 0;
+	int ret = -1;
+	u16 status;
+
+	if (len < sizeof(*elem) + 2UL)
+		goto out;
+
+	elem = (const struct element *) buf;
+	end = buf + len;
+
+	os_memset(sta_addr, 0, ETH_ALEN);
+
+	if (elem->id != EHT_ML_SUB_ELEM_PER_STA_PROFILE) {
+		wpa_printf(MSG_DEBUG, "MLD: Unexpected subelement (%u) found",
+			   elem->id);
+		ret = 1; /* skip this subelement */
+		goto out;
+	}
+
+	status = WLAN_STATUS_UNSPECIFIED_FAILURE;
+
+	per_sta_prof = (const struct ieee80211_eht_per_sta_profile *)
+		elem->data;
+	sta_control = le_to_host16(per_sta_prof->sta_control);
+	sta_info_len = 1;
+
+	link_id = sta_control & EHT_PER_STA_RECONF_CTRL_LINK_ID_MSK;
+	wpa_printf(MSG_DEBUG, "MLD: Per-STA profile for link=%u", link_id);
+
+	reconf_type_mask =
+		sta_control & EHT_PER_STA_RECONF_CTRL_OP_UPDATE_TYPE_MSK;
+	reconf_type =
+		EHT_PER_STA_RECONF_CTRL_OP_UPDATE_TYPE_VAL(reconf_type_mask);
+
+	switch (reconf_type) {
+	case EHT_RECONF_TYPE_ADD_LINK:
+	case EHT_RECONF_TYPE_DELETE_LINK:
+		break;
+	default:
+		wpa_printf(MSG_ERROR,
+			   "MLD: Unsupported Reconfiguration type %u",
+			   reconf_type);
+		ret = 1; /* skip this per-STA profile */
+		goto out;
+	}
+
+	if (!(sta_control & EHT_PER_STA_RECONF_CTRL_MAC_ADDR)) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: STA MAC address not set in STA control");
+		ret = 1; /* reject this per-STA profile */
+		goto add_to_list;
+	}
+	sta_info_len += ETH_ALEN;
+
+	if (sta_control & EHT_PER_STA_RECONF_CTRL_AP_REMOVAL_TIMER) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: AP removal timer set in STA control");
+		sta_info_len += 2;
+	}
+
+	if (sta_control & EHT_PER_STA_RECONF_CTRL_OP_PARAMS) {
+		wpa_printf(MSG_DEBUG, "MLD: Op params set in STA control");
+		sta_info_len += 3;
+	}
+
+	if (!(sta_control & EHT_PER_STA_RECONF_CTRL_COMPLETE_PROFILE)) {
+		if (reconf_type == EHT_RECONF_TYPE_ADD_LINK) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Complete profile not set in STA control");
+			ret = 1; /* reject this per-STA profile */
+			goto add_to_list;
+		}
+	} else {
+		if (reconf_type == EHT_RECONF_TYPE_DELETE_LINK)
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Complete profile set in STA control");
+	}
+
+	if (sta_control & EHT_PER_STA_RECONF_CTRL_NSTR_INDICATION) {
+		nstr_bitmap_size = 1;
+		if (sta_control &
+		    EHT_PER_STA_RECONF_CTRL_NSTR_BITMAP_SIZE)
+			nstr_bitmap_size = 2;
+
+		if (reconf_type == EHT_RECONF_TYPE_DELETE_LINK)
+			wpa_printf(MSG_DEBUG,
+				   "MLD: NSTR Indication set in STA control");
+	}
+	sta_info_len += nstr_bitmap_size;
+
+	sta_info = per_sta_prof->variable;
+	if (*sta_info > end - sta_info) {
+		wpa_printf(MSG_DEBUG, "MLD: Not enough room for STA Info");
+		goto out;
+	}
+
+	if (*sta_info < sta_info_len) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Invalid Reconf STA Info len (%u); min expected=%zu",
+			   *sta_info, sta_info_len);
+		goto out;
+	}
+
+	sta_info_len = *sta_info;
+
+	os_memcpy(sta_addr, sta_info + 1, ETH_ALEN);
+	wpa_printf(MSG_DEBUG, "MLD: Link STA addr=" MACSTR, MAC2STR(sta_addr));
+
+	sta_info += sta_info_len;
+
+	lhapd = hostapd_mld_get_link_bss(hapd, link_id);
+	if (!lhapd) {
+		wpa_printf(MSG_DEBUG, "MLD: No AP link found for link id=%u",
+			   link_id);
+		ret = 1; /* reject this per-STA profile */
+		goto add_to_list;
+	}
+
+	lsta = ap_get_sta(lhapd, req->sta_mld_addr);
+
+	if (reconf_type == EHT_RECONF_TYPE_DELETE_LINK) {
+		/* DELETE_LINK request shall not have STA profile */
+		if (len != sizeof(sta_control) + sta_info_len)
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Delete link request has STA profile");
+
+		if (!lsta || !ap_sta_is_mld(lhapd, lsta) ||
+		    !lsta->mld_info.links[link_id].valid) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: STA invalid for link id=%u peer addr="
+				   MACSTR, link_id, MAC2STR(sta_addr));
+			ret = 1; /* reject this per-STA profile */
+			goto add_to_list;
+		}
+
+		if (!ether_addr_equal(lsta->mld_info.links[link_id].peer_addr,
+				      sta_addr)) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: STA invalid for addr=" MACSTR,
+				   MAC2STR(sta_addr));
+			ret = 1; /* reject this per-STA profile */
+			goto add_to_list;
+		}
+
+		status = WLAN_STATUS_SUCCESS;
+		ret = 0;
+		goto add_to_list;
+	}
+
+	/* EHT_RECONF_TYPE_ADD_LINK */
+	if (len < sizeof(sta_control) + sta_info_len + 2)
+		goto out;
+	sta_prof_len = len - sizeof(sta_control) - sta_info_len - 2;
+	if (sta_prof_len > (size_t) (end - sta_info)) {
+		wpa_printf(MSG_DEBUG, "MLD: STA Profile with excess length");
+		goto out;
+	}
+
+	if (lsta) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: STA exists for link id=%u MLD addr=" MACSTR,
+			   link_id, MAC2STR(req->sta_mld_addr));
+		ret = 1; /* reject this per-STA profile */
+		goto add_to_list;
+	}
+
+	status = WLAN_STATUS_SUCCESS; /* IE validations done later */
+	ret = 0;
+
+add_to_list:
+	info = os_zalloc(sizeof(struct link_reconf_req_info) + sta_prof_len);
+	if (!info) {
+		wpa_printf(MSG_DEBUG, "MLD: Failed to allocate request info");
+		ret = 1; /* skip this per-STA profile */
+		goto out;
+	}
+
+	info->link_id = link_id;
+	info->status = status;
+	os_memcpy(info->peer_addr, sta_addr, ETH_ALEN);
+	if (lhapd)
+		os_memcpy(info->local_addr, lhapd->own_addr, ETH_ALEN);
+
+	if (reconf_type == EHT_RECONF_TYPE_DELETE_LINK) {
+		dl_list_add_tail(&req->del_req, &info->list);
+	} else if (sta_info) {
+		os_memcpy(info->sta_prof, sta_info, sta_prof_len);
+		info->sta_prof_len = sta_prof_len;
+
+		dl_list_add_tail(&req->add_req, &info->list);
+	} else {
+		os_free(info);
+	}
+	wpa_printf(MSG_INFO, "MLD: Link (%d) parsed to %s request; status=%u",
+		   link_id,
+		   reconf_type == EHT_RECONF_TYPE_DELETE_LINK ? "del" : "add",
+		   status);
+
+out:
+	if (ret < 0)
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Failed to parse reconf req STA profile");
+	return ret;
+}
+
+
+static int
+hostapd_parse_link_reconf_req_reconf_mle(
+		struct hostapd_data *hapd, const u8 *mle, size_t mle_len,
+		struct link_reconf_req_list **req_list_ptr)
+{
+	struct link_reconf_req_list *req_list;
+	struct wpabuf *mlbuf = NULL;
+	struct sta_info *sta;
+	const struct ieee80211_eht_ml *ml;
+	const struct eht_ml_reconf_common_info *ml_common_info;
+	size_t len, ml_common_len;
+	u16 ml_control;
+	const u8 *pos, *end;
+	int ret = -1;
+
+	mlbuf = ieee802_11_defrag(mle, mle_len, true);
+	if (!mlbuf) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Failed to defrag Reconfiguration MLE");
+		goto fail;
+	}
+
+	ml = (const struct ieee80211_eht_ml *) wpabuf_head(mlbuf);
+	len = wpabuf_len(mlbuf);
+	end = ((const u8 *) ml) + len;
+
+	wpa_hexdump(MSG_DEBUG, "MLD: Defragged Reconfiguration MLE",
+		    (const void *) ml, len);
+
+	if (len < sizeof(*ml) + ETH_ALEN + 1UL)
+		goto fail;
+
+	ml_control = WPA_GET_LE16((const u8 *) ml) >> 4;
+	ml_common_len = 1;
+	if (!(ml_control & RECONF_MULTI_LINK_CTRL_PRES_MLD_MAC_ADDR))
+		goto fail;
+	ml_common_len += ETH_ALEN;
+
+	if (ml_control & RECONF_MULTI_LINK_CTRL_PRES_EML_CAPA)
+		ml_common_len += 2;
+
+	if (ml_control & RECONF_MULTI_LINK_CTRL_PRES_MLD_CAPA)
+		ml_common_len += 2;
+
+	if (ml_control & RECONF_MULTI_LINK_CTRL_PRES_EXT_MLD_CAP)
+		ml_common_len += 2;
+
+	ml_common_info =
+		(const struct eht_ml_reconf_common_info *) ml->variable;
+	if (len < sizeof(*ml) + ml_common_info->len) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Unexpected Reconfiguration ML element length (%zu < %zu)",
+			   len, sizeof(*ml) + ml_common_info->len);
+		goto fail;
+	}
+
+	if (ml_common_info->len < ml_common_len) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Invalid Reconf common info len (%u); min expected=%zu",
+			   ml_common_info->len, ml_common_len);
+		goto fail;
+	}
+
+	pos = (const u8 *) ml_common_info->variable;
+
+	sta = ap_get_sta(hapd, pos);
+	if (!sta || !ap_sta_is_mld(hapd, sta)) {
+		wpa_printf(MSG_DEBUG, "MLD: STA invalid%s for " MACSTR,
+			   sta ? "" : " (NULL)", MAC2STR(pos));
+		goto fail;
+	}
+
+	*req_list_ptr = os_zalloc(sizeof(struct link_reconf_req_list));
+	if (!(*req_list_ptr)) {
+		wpa_printf(MSG_ERROR, "MLD: Failed to allocate request list");
+		goto fail;
+	}
+	req_list = *req_list_ptr;
+
+	os_memcpy(req_list->sta_mld_addr, pos, ETH_ALEN);
+	dl_list_init(&req_list->del_req);
+	dl_list_init(&req_list->add_req);
+
+	pos = ml->variable + ml_common_info->len;
+
+	while (end - pos > 2) {
+		size_t sub_elem_len;
+		int num_frag_subelems;
+
+		num_frag_subelems =
+			ieee802_11_defrag_mle_subelem(mlbuf, pos,
+						      &sub_elem_len);
+		if (num_frag_subelems < 0) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Failed to parse Reconfiguration MLE subelem");
+			goto fail;
+		}
+
+		len -= num_frag_subelems * 2;
+		end = ((const u8 *) ml) + len;
+
+		if (sub_elem_len + 2 > (size_t) (end - pos))
+			goto fail;
+
+		if (hostapd_parse_link_reconf_req_sta_profile(
+			    hapd, req_list, pos, sub_elem_len + 2) < 0)
+			goto fail;
+
+		pos += sub_elem_len + 2;
+	}
+
+	ret = 0;
+
+fail:
+	if (ret)
+		ml_deinit_link_reconf_req(req_list_ptr);
+
+	wpabuf_free(mlbuf);
+	return ret;
+}
+
+
+static int
+hostapd_handle_link_reconf_req(struct hostapd_data *hapd, const u8 *buf,
+			       size_t len)
+{
+	struct ieee802_11_elems elems;
+	struct hostapd_data *assoc_hapd;
+	struct sta_info *sta, *assoc_sta = NULL;
+	u8 dialog_token;
+	const struct ieee80211_mgmt *mgmt = (const struct ieee80211_mgmt *) buf;
+	struct link_reconf_req_list *req_list = NULL;
+	const u8 *pos = NULL;
+	int ret = -1;
+
+	wpa_printf(MSG_DEBUG,
+		   "MLD: Link Reconfiguration Request frame from " MACSTR,
+		   MAC2STR(mgmt->sa));
+
+	/* Min length: IEEE80211 Header (24B) + Category (1B) + Action (1B) +
+	 *	       Dialog token (1B) +
+	 *	       Reconfiguration MLE header and extension ID (3B)
+	 */
+	if (len < IEEE80211_HDRLEN + 3 + 3) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Invalid minimum length (%zu) for Link Reconfiguration Request",
+			   len);
+		goto out;
+	}
+
+	dialog_token = mgmt->u.action.u.link_reconf_req.dialog_token;
+	pos = mgmt->u.action.u.link_reconf_req.variable;
+
+	sta = ap_get_sta(hapd, mgmt->sa);
+	if (!sta) {
+		wpa_printf(MSG_DEBUG, "MLD: No STA found for " MACSTR
+			   "; drop Link Reconfiguration Request",
+			   MAC2STR(mgmt->sa));
+		goto out;
+	}
+
+	if (!ap_sta_is_mld(hapd, sta)) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Not an MLD connection; drop Link Reconfiguration Request");
+		goto out;
+	}
+
+	assoc_sta = hostapd_ml_get_assoc_sta(hapd, sta, &assoc_hapd);
+	if (!assoc_sta) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Not able to get assoc link STA; drop Link Reconfiguration Request");
+		goto out;
+	}
+
+	if (assoc_sta->reconf_req) {
+		wpa_printf(MSG_INFO,
+			   "MLD: Link Reconfiguration Request from this STA with token=%u is already in progress",
+			   assoc_sta->reconf_req->dialog_token);
+		goto out;
+	}
+
+	/* Parse Reconfiguration Multi-Link element and OCI elements */
+	if (ieee802_11_parse_elems(pos, len - (pos - buf), &elems, 1) ==
+	    ParseFailed) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Could not parse Link Reconfiguration Request");
+		goto out;
+	}
+
+	if (!elems.reconf_mle || !elems.reconf_mle_len) {
+		wpa_printf(MSG_DEBUG, "MLD: No Reconfiguration ML element");
+		goto out;
+	}
+
+	/* Process Reconfiguration MLE */
+	if (hostapd_parse_link_reconf_req_reconf_mle(hapd, elems.reconf_mle,
+						     elems.reconf_mle_len,
+						     &req_list)) {
+		wpa_printf(MSG_INFO,
+			   "MLD: Reconfiguration MLE parsing failed; drop Link Reconfiguration Request");
+		goto out;
+	}
+
+	/* Do OCI element validation */
+	if (dl_list_empty(&req_list->add_req))
+		goto skip_oci_validation;
+
+	if (!elems.oci || !elems.oci_len) {
+		if (wpa_auth_uses_ocv(assoc_sta->wpa_sm) == 1) {
+			wpa_printf(MSG_INFO,
+				   "MLD: No OCI element present; drop Link Reconfiguration Request");
+			goto out;
+		}
+	} else {
+		struct wpa_channel_info ci;
+
+		if (!wpa_auth_uses_ocv(assoc_sta->wpa_sm)) {
+			wpa_printf(MSG_INFO,
+				   "MLD: Unexpected OCI element found; drop Link Reconfiguration Request");
+			goto out;
+		}
+
+		if (hostapd_drv_channel_info(hapd, &ci)) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Failed to get channel info to verify OCI element");
+			goto out;
+		}
+
+		if (!ocv_verify_tx_params(elems.oci, elems.oci_len, &ci,
+					  channel_width_to_int(ci.chanwidth),
+					  ci.seg1_idx)) {
+			wpa_printf(MSG_INFO,
+				   "MLD: OCI verification failed; drop Link Reconfiguration Request");
+			goto out;
+		}
+	}
+
+skip_oci_validation:
+	req_list->dialog_token = dialog_token;
+	assoc_sta->reconf_req = req_list;
+	ret = 0;
+
+out:
+	if (ret) {
+		ml_deinit_link_reconf_req(&req_list);
+		if (assoc_sta && assoc_sta->reconf_req)
+			assoc_sta->reconf_req = NULL;
+	}
+	return ret;
+}
+
+
+void ieee802_11_rx_protected_eht_action(struct hostapd_data *hapd,
+					const struct ieee80211_mgmt *mgmt,
+					size_t len)
+{
+	const u8 *payload;
+	u8 action;
+
+	if (!hapd->conf->mld_ap)
+		return;
+
+	payload = ((const u8 *) mgmt) + IEEE80211_HDRLEN + 1;
+	action = *payload++;
+
+	switch (action) {
+	case WLAN_PROT_EHT_LINK_RECONFIG_REQUEST:
+		if (hostapd_handle_link_reconf_req(hapd, (const u8 *) mgmt,
+						   len))
+			wpa_printf(MSG_INFO,
+				   "MLD: Link Reconf Request processing failed");
+		return;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "MLD: Unsupported Protected EHT Action %u from " MACSTR
+		   " discarded", action, MAC2STR(mgmt->sa));
 }

@@ -9,6 +9,8 @@
 #ifndef IEEE802_11_H
 #define IEEE802_11_H
 
+#include "utils/list.h"
+
 struct hostapd_iface;
 struct hostapd_data;
 struct sta_info;
@@ -24,6 +26,26 @@ struct sae_pk;
 struct sae_pt;
 struct sae_password_entry;
 struct mld_info;
+
+struct link_reconf_req_info {
+	struct dl_list list;
+	u16 status;
+	u8 link_id;
+	u8 local_addr[ETH_ALEN];
+	u8 peer_addr[ETH_ALEN];
+	size_t sta_prof_len;
+	u8 sta_prof[];
+};
+
+struct link_reconf_req_list {
+	u8 sta_mld_addr[ETH_ALEN];
+	u8 dialog_token;
+	u16 links_add_ok;
+	u16 links_del_ok;
+	u16 new_valid_links;
+	struct dl_list del_req; /* list of struct link_reconf_req_info */
+	struct dl_list add_req; /* list of struct link_reconf_req_info */
+};
 
 int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 		    struct hostapd_frame_info *fi);
@@ -271,5 +293,11 @@ int hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 				  const u8 *ies, size_t ies_len,
 				  bool reassoc, int tx_link_status,
 				  bool offload);
+
+void ml_deinit_link_reconf_req(struct link_reconf_req_list **req_list_ptr);
+
+void ieee802_11_rx_protected_eht_action(struct hostapd_data *hapd,
+					const struct ieee80211_mgmt *mgmt,
+					size_t len);
 
 #endif /* IEEE802_11_H */
