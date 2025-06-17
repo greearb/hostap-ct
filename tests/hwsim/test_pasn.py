@@ -1088,3 +1088,153 @@ def test_pasn_sae_driver(dev, apdev):
             raise Exception("Unexpected event 2b contents: " + ev)
     finally:
         dev[0].set("sae_pwe", "0")
+
+def test_pasn_sae_driver_params(dev, apdev):
+    """PASN authentication using driver event as trigger"""
+    check_pasn_capab(dev[0])
+    check_sae_capab(dev[0])
+
+    params = hostapd.wpa2_params(ssid="test-pasn-sae",
+                                 passphrase="12345678")
+    params['ieee80211w'] = "2"
+    params['wpa_key_mgmt'] = 'SAE SAE-EXT-KEY PASN'
+    params['sae_pwe'] = "2"
+    hapd = start_pasn_ap(apdev[0], params)
+    bssid = hapd.own_addr()
+
+    params = hostapd.wpa2_params(ssid="test-pasn-sae-2",
+                                 passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE PASN'
+    params['sae_pwe'] = "2"
+    hapd2 = start_pasn_ap(apdev[1], params)
+    bssid2 = hapd2.own_addr()
+
+    dev[0].scan_for_bss(bssid, freq=2412)
+    dev[0].scan_for_bss(bssid2, freq=2412)
+
+
+    try:
+        dev[0].set("sae_pwe", "2")
+        cmd = f"PASN_DRIVER auth bssid={bssid} akmp=SAE cipher=CCMP password=12345678"
+
+        cmd += " " + f"bssid={bssid2} akmp=SAE cipher=CCMP password=12345678"
+
+        if "OK" not in dev[0].request(cmd):
+            raise Exception("PASN_DRIVER failed")
+
+        ev = dev[0].wait_event(["PASN-AUTH-STATUS"], timeout=10)
+        if ev is None:
+            raise Exception("No PASN-AUTH-STATUS event (1)")
+        if f"{bssid} akmp=SAE, status=0" not in ev:
+            raise Exception("Unexpected event 1 contents: " + ev)
+
+        ev = dev[0].wait_event(["PASN-AUTH-STATUS"], timeout=10)
+        if ev is None:
+            raise Exception("No PASN-AUTH-STATUS event (2)")
+        if f"{bssid2} akmp=SAE, status=0" not in ev:
+            raise Exception("Unexpected event 2 contents: " + ev)
+
+        hapd2.disable()
+        time.sleep(1)
+        dev[0].dump_monitor()
+
+        cmd2 = f"PASN_DRIVER del bssid={bssid} bssid={bssid2}"
+        if "OK" not in dev[0].request(cmd2):
+            raise Exception("PASN_DRIVER failed")
+
+        if "OK" not in dev[0].request(cmd):
+            raise Exception("PASN_DRIVER failed")
+
+        ev = dev[0].wait_event(["PASN-AUTH-STATUS"], timeout=10)
+        if ev is None:
+            raise Exception("No PASN-AUTH-STATUS event (1b)")
+        if f"{bssid} akmp=SAE, status=0" not in ev:
+            raise Exception("Unexpected event 1b contents: " + ev)
+
+        ev = dev[0].wait_event(["PASN-AUTH-STATUS"], timeout=10)
+        if ev is None:
+            raise Exception("No PASN-AUTH-STATUS event (2b)")
+        if f"{bssid2} akmp=SAE, status=1" not in ev:
+            raise Exception("Unexpected event 2b contents: " + ev)
+
+    finally:
+        dev[0].set("sae_pwe", "0")
+
+@remote_compatible
+def test_pasn_driver_comeback(dev, apdev, params):
+    """PASN authentication with comeback flow"""
+    check_pasn_capab(dev[0])
+
+    params = pasn_ap_params("PASN", "CCMP", "19")
+    params['sae_anti_clogging_threshold'] = '0'
+    hapd = hostapd.add_ap(apdev[0], params)
+    bssid = hapd.own_addr()
+
+    dev[0].scan(type="ONLY", freq=2412)
+    cmd = "PASN_DRIVER auth bssid=%s akmp=PASN cipher=CCMP group=19" % bssid
+
+    resp = dev[0].request(cmd)
+    if "OK" not in resp:
+        raise Exception("Failed to start PASN authentication")
+
+    ev = dev[0].wait_event(["PASN-AUTH-STATUS"], 3)
+    if not ev:
+        raise Exception("PASN: PASN-AUTH-STATUS not seen")
+
+    if bssid + " akmp=PASN, status=30 comeback_after=" not in ev:
+        raise Exception("PASN: unexpected status")
+
+    comeback = re.split("comeback=", ev)[1]
+
+    cmd = "PASN_DRIVER auth bssid=%s akmp=PASN cipher=CCMP group=19 comeback=%s" % \
+            (bssid, comeback)
+
+    resp = dev[0].request(cmd)
+    if "OK" not in resp:
+        raise Exception("Failed to start PASN authentication")
+
+    ev = dev[0].wait_event(["PASN-AUTH-STATUS"], 3)
+    if not ev:
+        raise Exception("PASN: PASN-AUTH-STATUS not seen")
+
+    if bssid + " akmp=PASN, status=0" not in ev:
+        raise Exception("PASN: unexpected status with comeback token")
+
+    check_pasn_ptk(dev[0], hapd, "CCMP")
+
+def test_pasn_sae_driver_comeback_0(dev, apdev):
+    """PASN authentication using driver event as trigger"""
+    check_pasn_capab(dev[0])
+    check_sae_capab(dev[0])
+
+    params = hostapd.wpa2_params(ssid="test-pasn-sae",
+                                 passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE SAE-EXT-KEY PASN'
+    params['sae_pwe'] = "2"
+    params['anti_clogging_threshold'] = '0'
+    params['pasn_comeback_after'] = '0'
+
+    hapd = start_pasn_ap(apdev[0], params)
+    bssid = hapd.own_addr()
+
+
+    dev[0].scan_for_bss(bssid, freq=2412)
+
+
+    try:
+        dev[0].set("sae_groups", "19")
+        dev[0].set("sae_pwe", "2")
+
+        cmd = f"PASN_DRIVER auth bssid={bssid} akmp=SAE cipher=CCMP password=12345678"
+
+        if "OK" not in dev[0].request(cmd):
+            raise Exception("PASN_DRIVER failed")
+
+        ev = dev[0].wait_event(["PASN-AUTH-STATUS"], timeout=10)
+        if ev is None:
+            raise Exception("No PASN-AUTH-STATUS event (1)")
+        if f"{bssid} akmp=SAE, status=0" not in ev:
+            raise Exception("Unexpected event 1 contents: " + ev)
+
+    finally:
+        dev[0].set("sae_pwe", "0")
