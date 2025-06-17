@@ -1048,7 +1048,7 @@ def test_pasn_sae_driver(dev, apdev):
 
     try:
         dev[0].set("sae_pwe", "2")
-        cmd = f"PASN_DRIVER auth {bssid} 02:11:22:33:44:55 {bssid2}"
+        cmd = f"PASN_DRIVER auth bssid={bssid} bssid=02:11:22:33:44:55 bssid={bssid2}"
         if "OK" not in dev[0].request(cmd):
             raise Exception("PASN_DRIVER failed")
 
@@ -1068,7 +1068,7 @@ def test_pasn_sae_driver(dev, apdev):
         time.sleep(1)
         dev[0].dump_monitor()
 
-        cmd2 = f"PASN_DRIVER del {bssid} {bssid2}"
+        cmd2 = f"PASN_DRIVER del bssid={bssid} bssid={bssid2}"
         if "OK" not in dev[0].request(cmd2):
             raise Exception("PASN_DRIVER failed")
 
