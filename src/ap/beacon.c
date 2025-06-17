@@ -2685,6 +2685,14 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 		return -1;
 	}
 
+#ifdef CONFIG_IEEE80211AX
+	if (hapd->cca_in_progress) {
+		wpa_printf(MSG_ERROR,
+			   "Cannot set beacons during CCA period");
+		return -1;
+	}
+#endif /* CONFIG_IEEE80211AX */
+
 	hapd->beacon_set_done = 1;
 
 	if (ieee802_11_build_ap_params(hapd, &params) < 0)
