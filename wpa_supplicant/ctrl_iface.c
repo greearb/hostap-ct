@@ -964,6 +964,7 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 	} else if (os_strcasecmp(cmd, "ric_ies") == 0) {
 		ret = wpas_ctrl_iface_set_ric_ies(wpa_s, value);
 	} else if (os_strcasecmp(cmd, "roaming") == 0) {
+		wpa_s->sta_roaming_disabled = atoi(value) ? false : true;
 		ret = wpa_drv_roaming(wpa_s, atoi(value), NULL);
 #ifdef CONFIG_WNM
 	} else if (os_strcasecmp(cmd, "coloc_intf_elems") == 0) {

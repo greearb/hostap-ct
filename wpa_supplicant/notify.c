@@ -108,7 +108,7 @@ void wpas_notify_state_changed(struct wpa_supplicant *wpa_s,
 
 	if (new_state == WPA_COMPLETED) {
 		wpas_p2p_notif_connected(wpa_s);
-		if (ssid)
+		if (ssid && !wpa_s->sta_roaming_disabled)
 			wpa_drv_roaming(wpa_s, !ssid->bssid_set,
 					ssid->bssid_set ? ssid->bssid : NULL);
 	} else if (old_state >= WPA_ASSOCIATED && new_state < WPA_ASSOCIATED) {
