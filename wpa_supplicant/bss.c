@@ -1791,7 +1791,6 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
  * wpa_bss_parse_basic_ml_element - Parse the Basic Multi-Link element
  * @wpa_s: Pointer to wpa_supplicant data
  * @bss: BSS table entry
- * @mld_addr: AP MLD address (or %NULL)
  * @link_info: Array to store link information (or %NULL),
  *   should be initialized and #MAX_NUM_MLD_LINKS elements long
  * @missing_links: Result bitmask of links that were not discovered (or %NULL)
@@ -1812,7 +1811,6 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
  */
 int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 				   struct wpa_bss *bss,
-				   u8 *ap_mld_addr,
 				   u16 *missing_links,
 				   struct wpa_ssid *ssid,
 				   bool *nontransmitted)
@@ -1918,11 +1916,6 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 
 	if (ml_basic_common_info->len < sizeof(*ml_basic_common_info) + pos)
 		goto out;
-
-	/* Get the MLD address and MLD link ID */
-	if (ap_mld_addr)
-		os_memcpy(ap_mld_addr, ml_basic_common_info->mld_addr,
-			  ETH_ALEN);
 
 	link_id = ml_basic_common_info->variable[0] & EHT_ML_LINK_ID_MSK;
 

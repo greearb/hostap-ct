@@ -528,6 +528,7 @@ static void wpas_sme_set_mlo_links(struct wpa_supplicant *wpa_s,
 {
 	u8 i;
 
+	os_memcpy(wpa_s->ap_mld_addr, bss->mld_addr, ETH_ALEN);
 	wpa_s->valid_links = 0;
 	wpa_s->mlo_assoc_link_id = bss->mld_link_id;
 
@@ -613,8 +614,7 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 	os_memset(&params, 0, sizeof(params));
 
 	if ((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
-	    !wpa_bss_parse_basic_ml_element(wpa_s, bss, wpa_s->ap_mld_addr,
-					    NULL, ssid, NULL) &&
+	    !wpa_bss_parse_basic_ml_element(wpa_s, bss, NULL, ssid, NULL) &&
 	    bss->valid_links) {
 		wpa_printf(MSG_DEBUG, "MLD: In authentication");
 		wpas_sme_set_mlo_links(wpa_s, bss, ssid);

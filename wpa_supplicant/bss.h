@@ -219,7 +219,6 @@ void calculate_update_time(const struct os_reltime *fetch_time,
 
 int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 				   struct wpa_bss *bss,
-				   u8 *ap_mld_addr,
 				   u16 *missing_links,
 				   struct wpa_ssid *ssid,
 				   bool *nontransmitted);

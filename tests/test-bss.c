@@ -60,7 +60,6 @@ void test_parse_basic_ml(struct wpa_supplicant *wpa_s, u8 mld_id,
 		u8 ies[sizeof(rnr_ie) + sizeof(ml_ie_mld_id) +
 		       sizeof(mbssid_idx_ie)];
 	} bss;
-	u8 ap_mld_addr[ETH_ALEN];
 	u16 missing_links;
 	u8 ret;
 	bool nontransmitted;
@@ -83,7 +82,7 @@ void test_parse_basic_ml(struct wpa_supplicant *wpa_s, u8 mld_id,
 		bss.bss.ie_len += sizeof(mbssid_idx_ie);
 	}
 
-	ret = wpa_bss_parse_basic_ml_element(wpa_s, &bss.bss, ap_mld_addr,
+	ret = wpa_bss_parse_basic_ml_element(wpa_s, &bss.bss,
 					     &missing_links, NULL,
 					     &nontransmitted);
 
