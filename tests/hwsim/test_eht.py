@@ -2417,6 +2417,74 @@ def test_eht_mlo_color_change(dev, apdev):
         hapd0.dump_monitor()
         hapd1.dump_monitor()
 
+def _test_eht_mld_invalid_link(hapd_iface, wpas_iface, test_params,
+                               key_mgmt="SAE", pwe="1", rsn_pairwise=None):
+    wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+    wpas.interface_add(wpas_iface)
+
+    passphrase = 'asdf-qwer-tzui-ghjk'
+    ssid = "mld_ap_two_links"
+
+    params = eht_mld_ap_wpa2_params(ssid, passphrase, key_mgmt=key_mgmt,
+                                    mfp="2", pwe=pwe)
+    if rsn_pairwise is not None:
+        params['rsn_pairwise'] = rsn_pairwise
+    hapd0 = eht_mld_enable_ap(hapd_iface, 0, params)
+
+    params = eht_mld_ap_wpa2_params(ssid, passphrase, key_mgmt="SAE", mfp="2",
+                                    pwe="1")
+    params['channel'] = '6'
+    hapd1 = eht_mld_enable_ap(hapd_iface, 1, params)
+
+    wpas.set("sae_pwe", "1")
+    wpas.set("sae_groups", "19 20 21")
+    wpas.connect(ssid, psk=passphrase, scan_freq="2437",
+                 key_mgmt="WPA-PSK SAE SAE-EXT-KEY",
+                 pairwise="CCMP GCMP-256", group="CCMP GCMP-256",
+                 ieee80211w="2")
+
+    filters = [
+        'wlan.fc.type_subtype == 0x0000 && wlan.ext_tag.number == 107 && wlan.eht.multi_link.type_0.sta_profile_count == 0',
+        f'wlan.fc.type_subtype == 0x0000 && wlan.ext_tag.number == 107 && wlan.ext_tag.data == 00:01:09:{wpas.own_addr()}:00:00'
+    ]
+    out = run_tshark(os.path.join(test_params['logdir'], 'hwsim0.pcapng'),
+                     filters, display=['frame.number'])
+    logger.debug("tshark output: " + str(out))
+    if not out.splitlines():
+        raise Exception('No ML association found or wrong number of STA profiles')
+
+    eht_verify_status(wpas, hapd1, 2437, 20, is_ht=True, mld=True,
+                      valid_links=2, active_links=2)
+    eht_verify_wifi_version(wpas)
+    traffic_test(wpas, hapd0)
+
+def test_eht_mld_invalid_link(dev, apdev, params):
+    """EHT AP MLD where one AP advertises only WPA-PSK and the other SAE"""
+
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        _test_eht_mld_invalid_link(hapd_iface, wpas_iface, params,
+                                   key_mgmt="WPA-PSK", pwe=None)
+
+def test_eht_mld_invalid_link_akm(dev, apdev, params):
+    """EHT AP MLD where one AP uses a different AKM cipher"""
+
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        _test_eht_mld_invalid_link(hapd_iface, wpas_iface, params,
+                                   key_mgmt="SAE-EXT-KEY", pwe="1")
+
+def test_eht_mld_invalid_link_pairwise(dev, apdev, params):
+    """EHT AP MLD where one AP uses a different pairwise cipher"""
+
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        _test_eht_mld_invalid_link(hapd_iface, wpas_iface, params,
+                                   rsn_pairwise="GCMP-256")
+
 def test_eht_mld_control_socket_connectivity(dev, apdev):
     """AP MLD control socket connectivity"""
     with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
