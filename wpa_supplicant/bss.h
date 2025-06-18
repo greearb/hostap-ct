@@ -128,6 +128,12 @@ struct wpa_bss {
 	/** For MLD, denotes whether the BSS is a non-transmitted one; useful
 	 * for ML probe */
 	bool mld_bss_non_transmitted;
+	/** MLD Capabilities And Operations */
+	u16 mld_capa;
+	/** Extended MLD Capabilities And Operations */
+	u16 ext_mld_capa;
+	/** EML Capabilities */
+	u16 eml_capa;
 
 	/** An array of MLD links, any link found in the RNR is "valid" */
 	u16 valid_links;

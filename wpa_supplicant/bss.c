@@ -1788,6 +1788,7 @@ u16 wpa_bss_get_usable_links(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 
 	for_each_link(bss->valid_links, link_id) {
 		struct wpa_bss *neigh_bss;
+		u16 ext_mld_capa_mask;
 
 		if (link_id == bss->mld_link_id)
 			continue;
@@ -1804,6 +1805,65 @@ u16 wpa_bss_get_usable_links(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 		if (!neigh_bss) {
 			if (missing_links)
 				*missing_links |= BIT(link_id);
+			continue;
+		}
+
+		/* Check that the affiliated links are for the same AP MLD and
+		 * the information matches */
+		if (!neigh_bss->valid_links) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"MLD: Neighbor without Multi-Link support");
+			continue;
+		}
+
+		if (neigh_bss->mld_link_id != link_id) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"MLD: Neighbor has unexpected link ID (%d != %d)",
+				neigh_bss->mld_link_id, link_id);
+			continue;
+		}
+
+		if (!ether_addr_equal(bss->mld_addr, neigh_bss->mld_addr)) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"MLD: Neighbor has a different MLD MAC address ("
+				MACSTR " != " MACSTR ")",
+				MAC2STR(neigh_bss->mld_addr),
+				MAC2STR(bss->mld_addr));
+			continue;
+		}
+
+		if ((bss->mld_capa & ~EHT_ML_MLD_CAPA_RESERVED) !=
+		    (neigh_bss->mld_capa & ~EHT_ML_MLD_CAPA_RESERVED)) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"MLD: Neighbor's MLD Capabilities do not match (0x%04x != 0x%04x)",
+				neigh_bss->mld_capa, bss->mld_capa);
+			continue;
+		}
+
+		if ((bss->eml_capa & ~EHT_ML_EML_CAPA_RESERVED) !=
+		    (neigh_bss->eml_capa & ~EHT_ML_EML_CAPA_RESERVED)) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"MLD: Neighbor's EML Capabilities do not match (0x%04x != 0x%04x",
+				neigh_bss->eml_capa, bss->eml_capa);
+			continue;
+		}
+
+		/*
+		 * Check well-defined values in Extended MLD Capabilities.
+		 * In particular the Recommended Max Simultaneous Links
+		 * subfield may change over time and is reserved depending on
+		 * the frame that it is carried in.
+		 * See IEEE Std 802.11be-2024, Table 9-417o.
+		 */
+		ext_mld_capa_mask =
+			EHT_ML_EXT_MLD_CAPA_OP_PARAM_UPDATE |
+			EHT_ML_EXT_MLD_CAPA_NSTR_UPDATE |
+			EHT_ML_EXT_MLD_CAPA_EMLSR_ENA_ONE_LINK;
+		if ((bss->ext_mld_capa & ext_mld_capa_mask) !=
+		    (neigh_bss->ext_mld_capa & ext_mld_capa_mask)) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"MLD: Neighbors Extended MLD Capabilities do not match (0x%04x != 0x%04x)",
+				neigh_bss->ext_mld_capa, bss->ext_mld_capa);
 			continue;
 		}
 
@@ -1915,17 +1975,29 @@ void wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 	    sizeof(*ml_basic_common_info) + 1 + 1 + 2)
 		goto out;
 
-	/* LINK_ID, BSS_PARAM_CH_COUNT, MLD_CAPA (see control/control_mask) */
+	/* Link ID Info, BSS Parameters Change Count (see control/control_mask)
+	 */
 	link_id = ml_basic_common_info->variable[0] & EHT_ML_LINK_ID_MSK;
-	pos = 1 + 1 + 2;
+	pos = 1 + 1;
 
+	/* Medium Synchronization Delay Information */
 	if (le_to_host16(eht_ml->ml_control) &
 	    BASIC_MULTI_LINK_CTRL_PRES_MSD_INFO)
 		pos += 2;
 
+	/* EML Capabilities */
+	bss->eml_capa = 0;
 	if (le_to_host16(eht_ml->ml_control) &
-	    BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA)
+	    BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA) {
+		bss->eml_capa =
+			WPA_GET_LE16(&ml_basic_common_info->variable[pos]);
 		pos += 2;
+	}
+
+	/* MLD Capabilities And Operations (always present, see
+	 * control/control_mask) */
+	bss->mld_capa = WPA_GET_LE16(&ml_basic_common_info->variable[pos]);
+	pos += 2;
 
 	/* AP MLD ID from MLE if present (see comment below) */
 	if (le_to_host16(eht_ml->ml_control) &
@@ -1939,6 +2011,20 @@ void wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 		pos++;
 	} else {
 		ap_mld_id = 0;
+	}
+
+	/* Extended MLD Capabilities And Operations */
+	bss->ext_mld_capa = 0;
+	if (le_to_host16(eht_ml->ml_control) &
+	    BASIC_MULTI_LINK_CTRL_PRES_EXT_MLD_CAP) {
+		if (ml_basic_common_info->len <
+		    sizeof(*ml_basic_common_info) + pos + 2)
+			goto out;
+
+		bss->ext_mld_capa =
+			WPA_GET_LE16(&ml_basic_common_info->variable[pos]);
+
+		pos += 2;
 	}
 
 	if (ml_basic_common_info->len < sizeof(*ml_basic_common_info) + pos)

@@ -2866,6 +2866,7 @@ struct eht_ml_basic_common_info {
 #define EHT_ML_EML_CAPA_EMLMR_SUPP               0x0080
 #define EHT_ML_EML_CAPA_EMLMR_DELAY_MASK         0x0700
 #define EHT_ML_EML_CAPA_TRANSITION_TIMEOUT_MASK  0x7800
+#define EHT_ML_EML_CAPA_RESERVED                 0x8780
 
 #define EHT_ML_MLD_CAPA_MAX_NUM_SIM_LINKS_MASK        0x000f
 #define EHT_ML_MLD_CAPA_SRS_SUPP                      0x0010
@@ -2876,6 +2877,8 @@ struct eht_ml_basic_common_info {
 #define EHT_ML_MLD_CAPA_FREQ_SEP_FOR_STR_MASK         0x0f80
 #define EHT_ML_MLD_CAPA_AAR_SUPP                      0x1000
 #define EHT_ML_MLD_CAPA_LINK_RECONF_OP_SUPPORT        0x2000
+#define EHT_ML_MLD_CAPA_ALIGNED_TWT_SUPPORT           0x4000
+#define EHT_ML_MLD_CAPA_RESERVED                      0x8000
 
 #define EHT_ML_EXT_MLD_CAPA_OP_PARAM_UPDATE           0x0001
 #define EHT_ML_EXT_MLD_CAPA_OP_RECO_MAX_LINKS_MASK    0x001e
