@@ -125,6 +125,9 @@ struct wpa_bss {
 	u8 mld_addr[ETH_ALEN];
 	/** Link ID of this affiliated AP of the AP MLD */
 	u8 mld_link_id;
+	/** For MLD, denotes whether the BSS is a non-transmitted one; useful
+	 * for ML probe */
+	bool mld_bss_non_transmitted;
 
 	/** An array of MLD links, any link found in the RNR is "valid" */
 	u16 valid_links;
@@ -217,11 +220,10 @@ void calculate_update_time(const struct os_reltime *fetch_time,
 			   unsigned int age_ms,
 			   struct os_reltime *update_time);
 
-u16 wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
-				   struct wpa_bss *bss,
-				   u16 *missing_links,
-				   struct wpa_ssid *ssid,
-				   bool *nontransmitted);
+u16 wpa_bss_get_usable_links(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
+			     struct wpa_ssid *ssid, u16 *missing_links);
+void wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
+				    struct wpa_bss *bss);
 u16 wpa_bss_parse_reconf_ml_element(struct wpa_supplicant *wpa_s,
 				    struct wpa_bss *bss);
 

@@ -60,9 +60,8 @@ void test_parse_basic_ml(struct wpa_supplicant *wpa_s, u8 mld_id,
 		u8 ies[sizeof(rnr_ie) + sizeof(ml_ie_mld_id) +
 		       sizeof(mbssid_idx_ie)];
 	} bss;
-	u16 missing_links;
+	u16 missing_links = 0;
 	u8 ret;
-	bool nontransmitted;
 
 	memcpy(bss.bss.ies, rnr_ie, sizeof(rnr_ie));
 	bss.bss.ie_len = sizeof(rnr_ie);
@@ -82,14 +81,13 @@ void test_parse_basic_ml(struct wpa_supplicant *wpa_s, u8 mld_id,
 		bss.bss.ie_len += sizeof(mbssid_idx_ie);
 	}
 
-	ret = wpa_bss_parse_basic_ml_element(wpa_s, &bss.bss,
-					     &missing_links, NULL,
-					     &nontransmitted);
+	wpa_bss_parse_basic_ml_element(wpa_s, &bss.bss);
+	ret = wpa_bss_get_usable_links(wpa_s, &bss.bss, NULL, &missing_links);
 
 	ASSERT_CMP_INT(ret, ==, 1);
 	ASSERT_CMP_INT(bss.bss.valid_links, ==, 3);
 	ASSERT_CMP_INT(missing_links, ==, 0x0002);
-	ASSERT_CMP_INT(nontransmitted, ==, mbssid_idx > 0);
+	ASSERT_CMP_INT(bss.bss.mld_bss_non_transmitted, ==, mbssid_idx > 0);
 }
 
 #define RUN_TEST(func, ...) do {			\

@@ -590,10 +590,8 @@ static struct wpa_bss * wpa_bss_add(struct wpa_supplicant *wpa_s,
 {
 	struct wpa_bss *bss;
 	char extra[100];
-	const u8 *ml_ie;
 	char *pos, *end;
 	int ret = 0;
-	const u8 *mld_addr;
 
 	bss = os_zalloc(sizeof(*bss) + res->ie_len + res->beacon_ie_len);
 	if (bss == NULL)
@@ -608,13 +606,7 @@ static struct wpa_bss * wpa_bss_add(struct wpa_supplicant *wpa_s,
 	os_memcpy(bss->ies, res + 1, res->ie_len + res->beacon_ie_len);
 	wpa_bss_set_hessid(bss);
 
-	os_memset(bss->mld_addr, 0, ETH_ALEN);
-	ml_ie = wpa_scan_get_ml_ie(res, MULTI_LINK_CONTROL_TYPE_BASIC);
-	if (ml_ie) {
-		mld_addr = get_basic_mle_mld_addr(&ml_ie[3], ml_ie[1] - 1);
-		if (mld_addr)
-			os_memcpy(bss->mld_addr, mld_addr, ETH_ALEN);
-	}
+	wpa_bss_parse_basic_ml_element(wpa_s, bss);
 
 	if (wpa_s->num_bss + 1 > wpa_s->conf->bss_max_count &&
 	    wpa_bss_remove_oldest(wpa_s) != 0) {
@@ -905,17 +897,9 @@ wpa_bss_update(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 		dl_list_add(prev, &bss->list_id);
 	}
 	if (changes & WPA_BSS_IES_CHANGED_FLAG) {
-		const u8 *ml_ie, *mld_addr;
-
 		wpa_bss_set_hessid(bss);
-		os_memset(bss->mld_addr, 0, ETH_ALEN);
-		ml_ie = wpa_scan_get_ml_ie(res, MULTI_LINK_CONTROL_TYPE_BASIC);
-		if (ml_ie) {
-			mld_addr = get_basic_mle_mld_addr(&ml_ie[3],
-							  ml_ie[1] - 1);
-			if (mld_addr)
-				os_memcpy(bss->mld_addr, mld_addr, ETH_ALEN);
-		}
+
+		wpa_bss_parse_basic_ml_element(wpa_s, bss);
 	}
 	dl_list_add_tail(&wpa_s->bss, &bss->list);
 
@@ -1639,8 +1623,7 @@ static void
 wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 			     struct wpa_bss *bss, u8 ap_mld_id,
 			     const struct ieee80211_neighbor_ap_info *ap_info,
-			     size_t len, u16 *seen, u16 *usable, u16 *missing,
-			     struct wpa_ssid *ssid)
+			     size_t len, u16 *seen)
 {
 	const u8 *pos, *end;
 	const u8 *mld_params;
@@ -1677,15 +1660,7 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Reported link not part of MLD");
 		} else if (!(BIT(link_id) & *seen)) {
-			struct wpa_bss *neigh_bss;
 			struct mld_link *l;
-
-			if (ssid && ssid->ssid_len)
-				neigh_bss = wpa_bss_get(wpa_s, pos + 1,
-							ssid->ssid,
-							ssid->ssid_len);
-			else
-				neigh_bss = wpa_bss_get_bssid(wpa_s, pos + 1);
 
 			*seen |= BIT(link_id);
 			wpa_printf(MSG_DEBUG, "MLD: mld ID=%u, link ID=%u",
@@ -1699,17 +1674,6 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 			l->freq = ieee80211_chan_to_freq(NULL,
 							 ap_info->op_class,
 							 ap_info->channel);
-
-			if (!neigh_bss) {
-				*missing |= BIT(link_id);
-			} else if ((!ssid ||
-				    wpa_scan_res_match(wpa_s, 0, neigh_bss,
-						       ssid, 1, 0, true)) &&
-				   !wpa_bssid_ignore_is_listed(
-					   wpa_s, neigh_bss->bssid)) {
-				l->freq = neigh_bss->freq;
-				*usable |= BIT(link_id);
-			}
 		}
 	}
 }
@@ -1792,32 +1756,101 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 
 
 /**
+ * wpa_bss_get_usable_links - Retrieve the usable links of the AP MLD
+ * @wpa_s: Pointer to wpa_supplicant data
+ * @bss: BSS table entry
+ * @ssid: Target SSID (or %NULL)
+ * @missing_links: Result bitmask of links that were not discovered (or %NULL)
+ * Returns: Bitmap of links that are usable, or 0 for non-MLD or failure
+ *
+ * Validate each link of the MLD to verify that it is compatible and connection
+ * to each of the links is allowed.
+ */
+u16 wpa_bss_get_usable_links(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
+			     struct wpa_ssid *ssid, u16 *missing_links)
+{
+	int rsne_type, key_mgmt;
+	u16 usable_links = 0;
+	u8 link_id;
+
+	if (!bss->valid_links)
+		return 0;
+
+	rsne_type = -1;
+	if (ssid &&
+	    !wpa_bss_validate_rsne_ml(wpa_s, ssid, bss, &key_mgmt,
+				      &rsne_type)) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No valid key management");
+		return 0;
+	}
+
+	usable_links = BIT(bss->mld_link_id);
+
+	for_each_link(bss->valid_links, link_id) {
+		struct wpa_bss *neigh_bss;
+
+		if (link_id == bss->mld_link_id)
+			continue;
+
+		if (ssid && ssid->ssid_len)
+			neigh_bss = wpa_bss_get(wpa_s,
+						bss->mld_links[link_id].bssid,
+						ssid->ssid,
+						ssid->ssid_len);
+		else
+			neigh_bss = wpa_bss_get_bssid(wpa_s,
+						      bss->mld_links[link_id].bssid);
+
+		if (!neigh_bss) {
+			if (missing_links)
+				*missing_links |= BIT(link_id);
+			continue;
+		}
+
+		if (ssid) {
+			int neigh_key_mgmt;
+
+			/* As per IEEE Std 802.11be-2024, 12.6.2 (RSNA
+			 * selection), all APs affiliated with an AP MLD shall
+			 * advertise at least one common AKM suite selector in
+			 * the AKM Suite List field of the RSNE. Discard links
+			 * that do not have compatible configuration with the
+			 * association link.
+			 */
+			if (!wpa_bss_validate_rsne_ml(wpa_s, ssid, neigh_bss,
+						      &neigh_key_mgmt,
+						      &rsne_type) ||
+			    !(key_mgmt & neigh_key_mgmt)) {
+				wpa_printf(MSG_DEBUG,
+					   "MLD: Discard link %u due to RSN parameter mismatch",
+					   link_id);
+				continue;
+			}
+		}
+
+		if ((!ssid ||
+		     wpa_scan_res_match(wpa_s, 0, neigh_bss, ssid, 1, 0,
+					true)) &&
+		    !wpa_bssid_ignore_is_listed(wpa_s, neigh_bss->bssid)) {
+			usable_links |= BIT(link_id);
+		}
+	}
+
+	return usable_links;
+}
+
+
+/**
  * wpa_bss_parse_basic_ml_element - Parse the Basic Multi-Link element
  * @wpa_s: Pointer to wpa_supplicant data
  * @bss: BSS table entry
- * @link_info: Array to store link information (or %NULL),
- *   should be initialized and #MAX_NUM_MLD_LINKS elements long
- * @missing_links: Result bitmask of links that were not discovered (or %NULL)
- * @ssid: Target SSID (or %NULL)
- * @nontransmitted: Out parameter denoting whether the BSSID is nontransmitted
- *    (or %NULL)
- * Returns: Usable links bitmask, or 0 for non-MLD or parsing failures
  *
  * Parses the Basic Multi-Link element of the BSS into @link_info using the scan
  * information stored in the wpa_supplicant data to fill in information for
- * links where possible. The @missing_links out parameter will contain any links
- * for which no corresponding BSS was found.
- *
- * The @nontransmitted out parameter can be used to create a well formatted ML
- * Probe Request for the AP. If this out parameter is set to %true, the
- * AP MLD ID should not be included in an ML Probe Request sent to its BSSID,
- * otherwise it should be included and set to zero.
+ * links where possible.
  */
-u16 wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
-				   struct wpa_bss *bss,
-				   u16 *missing_links,
-				   struct wpa_ssid *ssid,
-				   bool *nontransmitted)
+void wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
+				    struct wpa_bss *bss)
 {
 	struct ieee802_11_elems elems;
 	struct wpabuf *mlbuf = NULL;
@@ -1825,6 +1858,7 @@ u16 wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 	size_t ml_ie_len;
 	const struct ieee80211_eht_ml *eht_ml;
 	const struct eht_ml_basic_common_info *ml_basic_common_info;
+	const u8 *mbssid_idx_elem;
 	u8 i, pos, link_id, ap_mld_id;
 	const u16 control_mask =
 		MULTI_LINK_CONTROL_TYPE_MASK |
@@ -1836,11 +1870,9 @@ u16 wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 		BASIC_MULTI_LINK_CTRL_PRES_LINK_ID |
 		BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT |
 		BASIC_MULTI_LINK_CTRL_PRES_MLD_CAPA;
-	u16 missing = 0;
-	u16 seen, usable = 0;
+	u16 seen;
 	const u8 *ies_pos = wpa_bss_ie_ptr(bss);
 	size_t ies_len = bss->ie_len ? bss->ie_len : bss->beacon_ie_len;
-	int rsne_type, key_mgmt;
 	struct mld_link *l;
 
 	if (ieee802_11_parse_elems(ies_pos, ies_len, &elems, 1) ==
@@ -1856,14 +1888,6 @@ u16 wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 	}
 
 	ml_ie_len = wpabuf_len(mlbuf);
-
-	rsne_type = -1;
-	if (ssid &&
-	    !wpa_bss_validate_rsne_ml(wpa_s, ssid, bss, &key_mgmt,
-				      &rsne_type)) {
-		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No valid key management");
-		goto out;
-	}
 
 	/*
 	 * for ext ID + 2 control + common info len
@@ -1922,61 +1946,50 @@ u16 wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 
 	link_id = ml_basic_common_info->variable[0] & EHT_ML_LINK_ID_MSK;
 
+	os_memcpy(bss->mld_addr, ml_basic_common_info->mld_addr, ETH_ALEN);
+
 	bss->mld_link_id = link_id;
 	bss->valid_links = BIT(link_id);
-	usable = seen = bss->valid_links;
+	seen = bss->valid_links;
 
 	l = &bss->mld_links[link_id];
 	os_memcpy(l->bssid, bss->bssid, ETH_ALEN);
 	l->freq = bss->freq;
 
+	bss->mld_bss_non_transmitted = false;
 
-	/* Read Multiple BSSID Index for *nontransmitted and AP MLD ID */
-	if (nontransmitted || !(le_to_host16(eht_ml->ml_control) &
-				BASIC_MULTI_LINK_CTRL_PRES_AP_MLD_ID)) {
-		const u8 *mbssid_idx_elem;
-
-		/*
-		 * We should be able to rely on the Multiple BSSID Index element
-		 * to be included if the BSS is nontransmitted. Both if it was
-		 * extracted from a beacon and if it came from an ML probe
-		 * response (i.e., not listed in IEEE Std 802.11be-2024,
-		 * 35.3.3.4).
-		 *
-		 * Note that the AP MLD ID and the Multiple-BSSID Index will be
-		 * identical if the information was reported by the
-		 * corresponding transmitting AP (IEEE Std P802.11be-2024,
-		 * 9.4.2.169.2).
-		 * As an AP MLD ID will not be explicitly provided we need to
-		 * rely on the Multiple-BSSID Index element. This is generally
-		 * the case when the BSS information was read from a
-		 * Multiple-BSSID element.
-		 *
-		 * The alternative scenario is a BSS discovered using a
-		 * Multi-Link Probe Response. In that case, we can still
-		 * determine whether the BSS is nontransmitted or not using the
-		 * Multiple BSSID-Index element. However, the AP MLD ID may be
-		 * different inside the ML Probe Response and the driver also
-		 * needs to deal with this during inheritance.
-		 *
-		 * We assume the driver either
-		 *  - includes the appropriate AP MLD ID in the MLE it generates
-		 *    (see above), or
-		 *  - rewrites the RNR so that the AP MLD ID matches the
-		 *    Multiple-BSSID Index element.
-		 */
-		mbssid_idx_elem = wpa_bss_get_ie(bss,
-						 WLAN_EID_MULTIPLE_BSSID_INDEX);
-		if (mbssid_idx_elem && mbssid_idx_elem[1] >= 1) {
-			if (!(le_to_host16(eht_ml->ml_control) &
-			    BASIC_MULTI_LINK_CTRL_PRES_AP_MLD_ID))
-				ap_mld_id = mbssid_idx_elem[2];
-			if (nontransmitted)
-				*nontransmitted = !!mbssid_idx_elem[2];
-		} else {
-			if (nontransmitted)
-				*nontransmitted = false;
-		}
+	/*
+	 * We should be able to rely on the Multiple BSSID Index element
+	 * to be included if the BSS is nontransmitted. Both if it was
+	 * extracted from a beacon and if it came from an ML probe
+	 * response (i.e. not listed in IEEE Std 802.11be-2024, 35.3.3.4).
+	 *
+	 * Note that the AP MLD ID and the Multiple-BSSID Index will be
+	 * identical if the information was reported by the
+	 * corresponding transmitting AP (IEEE Std 802.11be-2024, 9.4.2.169.2).
+	 * As an AP MLD ID will not be explicitly provided we need to
+	 * rely on the Multiple-BSSID Index element. This is generally the case
+	 * when the BSS information was read from a Multiple-BSSID element.
+	 *
+	 * The alternative scenario is a BSS discovered using a
+	 * Multi-Link Probe Response. In that case, we can still
+	 * determine whether the BSS is nontransmitted or not using the
+	 * Multiple BSSID-Index element. However, the AP MLD ID may be
+	 * different inside the ML Probe Response and the driver also
+	 * needs to deal with this during inheritance.
+	 *
+	 * We assume the driver either
+	 *  - includes the appropriate AP MLD ID in the MLE it generates
+	 *    (see above), or
+	 *  - rewrites the RNR so that the AP MLD ID matches the
+	 *    Multiple-BSSID Index element.
+	 */
+	mbssid_idx_elem = wpa_bss_get_ie(bss, WLAN_EID_MULTIPLE_BSSID_INDEX);
+	if (mbssid_idx_elem && mbssid_idx_elem[1] >= 1) {
+		if (!(le_to_host16(eht_ml->ml_control) &
+		      BASIC_MULTI_LINK_CTRL_PRES_AP_MLD_ID))
+			ap_mld_id = mbssid_idx_elem[2];
+		bss->mld_bss_non_transmitted = !!mbssid_idx_elem[2];
 	}
 
 	for_each_element_id(elem, WLAN_EID_REDUCED_NEIGHBOR_REPORT,
@@ -2000,65 +2013,28 @@ u16 wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 				goto out;
 
 			wpa_bss_parse_ml_rnr_ap_info(wpa_s, bss, ap_mld_id,
-						     ap_info, ap_info_len,
-						     &seen, &usable, &missing,
-						     ssid);
+						     ap_info, len, &seen);
 
 			ap_info_pos += ap_info_len;
 			len -= ap_info_len;
 		}
 	}
 
-	for_each_link(usable, i) {
-		struct wpa_bss *neigh_bss;
-		int neigh_key_mgmt;
-
-		if (!ssid)
-			break;
-
-		if (i == link_id)
-			continue;
-
-		neigh_bss = wpa_bss_get_bssid(wpa_s, bss->mld_links[i].bssid);
-		if (!neigh_bss) /* cannot be NULL at this point */
-			continue;
-
-		/* As per IEEE P802.11be/D7.0, 12.6.2 (RSNA selection), all APs
-		 * affiliated with an AP MLD shall advertise at least one common
-		 * AKM suite selector in the AKM Suite List field of an RSNE or
-		 * RSNXE. Discard links that do not have compatibility
-		 * configuration with the association link.
-		 */
-		if (!wpa_bss_validate_rsne_ml(wpa_s, ssid, neigh_bss,
-					      &neigh_key_mgmt, &rsne_type) ||
-		    !(key_mgmt & neigh_key_mgmt)) {
-			wpa_printf(MSG_DEBUG,
-				   "MLD: Discard link %u due to RSN parameter mismatch",
-				   i);
-			usable &= ~BIT(i);
-			continue;
-		}
-	}
-
-	wpa_printf(MSG_DEBUG,
-		   "MLD: valid_links=0x%04hx usable=0x%04hx (unresolved: 0x%04hx)",
-		   bss->valid_links, usable, missing);
+	wpa_printf(MSG_DEBUG, "MLD: valid_links=0x%04hx",
+		   bss->valid_links);
 
 	for_each_link(bss->valid_links, i) {
 		wpa_printf(MSG_DEBUG, "MLD: link=%u, bssid=" MACSTR,
 			   i, MAC2STR(bss->mld_links[i].bssid));
 	}
 
-	if (missing_links)
-		*missing_links = missing;
-
 	wpabuf_free(mlbuf);
-	return usable;
+	return;
 
 out:
+	os_memset(bss->mld_addr, 0, ETH_ALEN);
 	bss->valid_links = 0;
 	wpabuf_free(mlbuf);
-	return 0;
 }
 
 
