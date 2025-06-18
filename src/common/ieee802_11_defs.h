@@ -2848,6 +2848,7 @@ struct eht_ml_basic_common_info {
 	 * Medium Synchronization Delay Information: 2 octets
 	 * EML Capabilities: 2 octets
 	 * MLD Capabilities and Operations: 2 octets
+	 * Extended MLD Capabilities And Operations: 2 octets
 	 * AP MLD ID: 1 octet
 	 */
 	u8 variable[];
@@ -2875,6 +2876,12 @@ struct eht_ml_basic_common_info {
 #define EHT_ML_MLD_CAPA_FREQ_SEP_FOR_STR_MASK         0x0f80
 #define EHT_ML_MLD_CAPA_AAR_SUPP                      0x1000
 #define EHT_ML_MLD_CAPA_LINK_RECONF_OP_SUPPORT        0x2000
+
+#define EHT_ML_EXT_MLD_CAPA_OP_PARAM_UPDATE           0x0001
+#define EHT_ML_EXT_MLD_CAPA_OP_RECO_MAX_LINKS_MASK    0x001e
+#define EHT_ML_EXT_MLD_CAPA_NSTR_UPDATE               0x0020
+#define EHT_ML_EXT_MLD_CAPA_EMLSR_ENA_ONE_LINK        0x0040
+#define EHT_ML_EXT_MLD_CAPA_BTM_MLD_RECO_MULTI_AP     0x0080
 
 #define EHT_PER_STA_CTRL_LINK_ID_MSK                  0x000f
 #define EHT_PER_STA_CTRL_COMPLETE_PROFILE_MSK         0x0010
