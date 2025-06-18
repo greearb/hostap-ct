@@ -1639,7 +1639,7 @@ static void
 wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 			     struct wpa_bss *bss, u8 ap_mld_id,
 			     const struct ieee80211_neighbor_ap_info *ap_info,
-			     size_t len, u16 *seen, u16 *missing,
+			     size_t len, u16 *seen, u16 *usable, u16 *missing,
 			     struct wpa_ssid *ssid)
 {
 	const u8 *pos, *end;
@@ -1678,6 +1678,7 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 				   "MLD: Reported link not part of MLD");
 		} else if (!(BIT(link_id) & *seen)) {
 			struct wpa_bss *neigh_bss;
+			struct mld_link *l;
 
 			if (ssid && ssid->ssid_len)
 				neigh_bss = wpa_bss_get(wpa_s, pos + 1,
@@ -1690,6 +1691,15 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 			wpa_printf(MSG_DEBUG, "MLD: mld ID=%u, link ID=%u",
 				   *mld_params, link_id);
 
+			bss->valid_links |= BIT(link_id);
+			l = &bss->mld_links[link_id];
+			os_memcpy(l->bssid, pos + 1, ETH_ALEN);
+			l->disabled = mld_params[2] &
+				RNR_TBTT_INFO_MLD_PARAM2_LINK_DISABLED;
+			l->freq = ieee80211_chan_to_freq(NULL,
+							 ap_info->op_class,
+							 ap_info->channel);
+
 			if (!neigh_bss) {
 				*missing |= BIT(link_id);
 			} else if ((!ssid ||
@@ -1697,14 +1707,8 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 						       ssid, 1, 0, true)) &&
 				   !wpa_bssid_ignore_is_listed(
 					   wpa_s, neigh_bss->bssid)) {
-				struct mld_link *l;
-
-				bss->valid_links |= BIT(link_id);
-				l = &bss->mld_links[link_id];
-				os_memcpy(l->bssid, pos + 1, ETH_ALEN);
 				l->freq = neigh_bss->freq;
-				l->disabled = mld_params[2] &
-					RNR_TBTT_INFO_MLD_PARAM2_LINK_DISABLED;
+				*usable |= BIT(link_id);
 			}
 		}
 	}
@@ -1797,7 +1801,7 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
  * @ssid: Target SSID (or %NULL)
  * @nontransmitted: Out parameter denoting whether the BSSID is nontransmitted
  *    (or %NULL)
- * Returns: 0 on success or -1 for non-MLD or parsing failures
+ * Returns: Usable links bitmask, or 0 for non-MLD or parsing failures
  *
  * Parses the Basic Multi-Link element of the BSS into @link_info using the scan
  * information stored in the wpa_supplicant data to fill in information for
@@ -1809,14 +1813,14 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
  * AP MLD ID should not be included in an ML Probe Request sent to its BSSID,
  * otherwise it should be included and set to zero.
  */
-int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
+u16 wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 				   struct wpa_bss *bss,
 				   u16 *missing_links,
 				   struct wpa_ssid *ssid,
 				   bool *nontransmitted)
 {
 	struct ieee802_11_elems elems;
-	struct wpabuf *mlbuf;
+	struct wpabuf *mlbuf = NULL;
 	const struct element *elem;
 	size_t ml_ie_len;
 	const struct ieee80211_eht_ml *eht_ml;
@@ -1833,23 +1837,22 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 		BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT |
 		BASIC_MULTI_LINK_CTRL_PRES_MLD_CAPA;
 	u16 missing = 0;
-	u16 seen;
+	u16 seen, usable = 0;
 	const u8 *ies_pos = wpa_bss_ie_ptr(bss);
 	size_t ies_len = bss->ie_len ? bss->ie_len : bss->beacon_ie_len;
-	int ret = -1, rsne_type, key_mgmt;
+	int rsne_type, key_mgmt;
 	struct mld_link *l;
-	u16 valid_links;
 
 	if (ieee802_11_parse_elems(ies_pos, ies_len, &elems, 1) ==
 	    ParseFailed) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: Failed to parse elements");
-		return ret;
+		goto out;
 	}
 
 	mlbuf = ieee802_11_defrag(elems.basic_mle, elems.basic_mle_len, true);
 	if (!mlbuf) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No Multi-Link element");
-		return ret;
+		goto out;
 	}
 
 	ml_ie_len = wpabuf_len(mlbuf);
@@ -1920,7 +1923,8 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 	link_id = ml_basic_common_info->variable[0] & EHT_ML_LINK_ID_MSK;
 
 	bss->mld_link_id = link_id;
-	seen = bss->valid_links = BIT(link_id);
+	bss->valid_links = BIT(link_id);
+	usable = seen = bss->valid_links;
 
 	l = &bss->mld_links[link_id];
 	os_memcpy(l->bssid, bss->bssid, ETH_ALEN);
@@ -1997,18 +2001,15 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 
 			wpa_bss_parse_ml_rnr_ap_info(wpa_s, bss, ap_mld_id,
 						     ap_info, ap_info_len,
-						     &seen, &missing, ssid);
+						     &seen, &usable, &missing,
+						     ssid);
 
 			ap_info_pos += ap_info_len;
 			len -= ap_info_len;
 		}
 	}
 
-	wpa_printf(MSG_DEBUG, "MLD: valid_links=%04hx (unresolved: 0x%04hx)",
-		   bss->valid_links, missing);
-
-	valid_links = bss->valid_links;
-	for_each_link(bss->valid_links, i) {
+	for_each_link(usable, i) {
 		struct wpa_bss *neigh_bss;
 		int neigh_key_mgmt;
 
@@ -2034,16 +2035,14 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Discard link %u due to RSN parameter mismatch",
 				   i);
-			valid_links &= ~BIT(i);
+			usable &= ~BIT(i);
 			continue;
 		}
 	}
 
-	if (valid_links != bss->valid_links) {
-		wpa_printf(MSG_DEBUG, "MLD: Updated valid links=%04hx",
-			   valid_links);
-		bss->valid_links = valid_links;
-	}
+	wpa_printf(MSG_DEBUG,
+		   "MLD: valid_links=0x%04hx usable=0x%04hx (unresolved: 0x%04hx)",
+		   bss->valid_links, usable, missing);
 
 	for_each_link(bss->valid_links, i) {
 		wpa_printf(MSG_DEBUG, "MLD: link=%u, bssid=" MACSTR,
@@ -2053,11 +2052,13 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 	if (missing_links)
 		*missing_links = missing;
 
-
-	ret = 0;
-out:
 	wpabuf_free(mlbuf);
-	return ret;
+	return usable;
+
+out:
+	bss->valid_links = 0;
+	wpabuf_free(mlbuf);
+	return 0;
 }
 
 

@@ -126,7 +126,7 @@ struct wpa_bss {
 	/** Link ID of this affiliated AP of the AP MLD */
 	u8 mld_link_id;
 
-	/** An array of MLD links */
+	/** An array of MLD links, any link found in the RNR is "valid" */
 	u16 valid_links;
 	struct mld_link {
 		u8 bssid[ETH_ALEN];
@@ -217,7 +217,7 @@ void calculate_update_time(const struct os_reltime *fetch_time,
 			   unsigned int age_ms,
 			   struct os_reltime *update_time);
 
-int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
+u16 wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 				   struct wpa_bss *bss,
 				   u16 *missing_links,
 				   struct wpa_ssid *ssid,

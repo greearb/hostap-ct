@@ -86,8 +86,8 @@ void test_parse_basic_ml(struct wpa_supplicant *wpa_s, u8 mld_id,
 					     &missing_links, NULL,
 					     &nontransmitted);
 
-	ASSERT_CMP_INT(ret, ==, 0);
-	ASSERT_CMP_INT(bss.bss.valid_links, ==, 1);
+	ASSERT_CMP_INT(ret, ==, 1);
+	ASSERT_CMP_INT(bss.bss.valid_links, ==, 3);
 	ASSERT_CMP_INT(missing_links, ==, 0x0002);
 	ASSERT_CMP_INT(nontransmitted, ==, mbssid_idx > 0);
 }

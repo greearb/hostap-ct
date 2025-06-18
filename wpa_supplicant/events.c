@@ -1179,9 +1179,7 @@ static bool wpas_valid_ml_bss(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 {
 	u16 removed_links;
 
-	if (wpa_bss_parse_basic_ml_element(wpa_s, bss, NULL, NULL, NULL))
-		return true;
-
+	wpa_bss_parse_basic_ml_element(wpa_s, bss, NULL, NULL, NULL);
 	if (!bss->valid_links)
 		return true;
 
@@ -1891,17 +1889,17 @@ static int wpa_supplicant_connect_ml_missing(struct wpa_supplicant *wpa_s,
 					     struct wpa_ssid *ssid)
 {
 	int *freqs;
-	u16 missing_links = 0, removed_links;
+	u16 missing_links = 0, removed_links, usable_links;
 	bool nontransmitted;
 
 	if (!((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
 	      (wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME)))
 		return 0;
 
-	if (wpa_bss_parse_basic_ml_element(wpa_s, selected,
-					   &missing_links, ssid,
-					   &nontransmitted) ||
-	    !missing_links)
+	usable_links = wpa_bss_parse_basic_ml_element(wpa_s, selected,
+						      &missing_links, ssid,
+						      &nontransmitted);
+	if (!usable_links || !missing_links)
 		return 0;
 
 	removed_links = wpa_bss_parse_reconf_ml_element(wpa_s, selected);

@@ -526,13 +526,24 @@ static int wpas_sme_ml_auth(struct wpa_supplicant *wpa_s,
 static void wpas_sme_set_mlo_links(struct wpa_supplicant *wpa_s,
 				   struct wpa_bss *bss, struct wpa_ssid *ssid)
 {
+	u16 usable_links;
 	u8 i;
+
+	wpas_reset_mlo_info(wpa_s);
+
+	if (!(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO))
+		return;
+
+	usable_links = wpa_bss_parse_basic_ml_element(wpa_s, bss, NULL,
+						      ssid, NULL);
+	if (!usable_links)
+		return;
 
 	os_memcpy(wpa_s->ap_mld_addr, bss->mld_addr, ETH_ALEN);
 	wpa_s->valid_links = 0;
 	wpa_s->mlo_assoc_link_id = bss->mld_link_id;
 
-	for_each_link(bss->valid_links, i) {
+	for_each_link(usable_links, i) {
 		const u8 *bssid = bss->mld_links[i].bssid;
 
 		wpa_s->valid_links |= BIT(i);
@@ -613,11 +624,10 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 
 	os_memset(&params, 0, sizeof(params));
 
-	if ((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
-	    !wpa_bss_parse_basic_ml_element(wpa_s, bss, NULL, ssid, NULL) &&
-	    bss->valid_links) {
+	wpas_sme_set_mlo_links(wpa_s, bss, ssid);
+
+	if (wpa_s->valid_links) {
 		wpa_printf(MSG_DEBUG, "MLD: In authentication");
-		wpas_sme_set_mlo_links(wpa_s, bss, ssid);
 
 #ifdef CONFIG_TESTING_OPTIONS
 		bss = wpas_ml_connect_pref(wpa_s, bss, ssid);
