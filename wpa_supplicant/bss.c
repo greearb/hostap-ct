@@ -1637,7 +1637,7 @@ int wpa_bss_ext_capab(const struct wpa_bss *bss, unsigned int capab)
 
 static void
 wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
-			     struct wpa_bss *bss, u8 mbssid_idx,
+			     struct wpa_bss *bss, u8 ap_mld_id,
 			     const struct ieee80211_neighbor_ap_info *ap_info,
 			     size_t len, u16 *seen, u16 *missing,
 			     struct wpa_ssid *ssid)
@@ -1673,7 +1673,7 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
 		if (link_id >= MAX_NUM_MLD_LINKS)
 			continue;
 
-		if (*mld_params != mbssid_idx) {
+		if (*mld_params != ap_mld_id) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Reported link not part of MLD");
 		} else if (!(BIT(link_id) & *seen)) {
@@ -1796,29 +1796,34 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
  *   should be initialized and #MAX_NUM_MLD_LINKS elements long
  * @missing_links: Result bitmask of links that were not discovered (or %NULL)
  * @ssid: Target SSID (or %NULL)
- * @ap_mld_id: On return would hold the corresponding AP MLD ID (or %NULL)
+ * @nontransmitted: Out parameter denoting whether the BSSID is nontransmitted
+ *    (or %NULL)
  * Returns: 0 on success or -1 for non-MLD or parsing failures
  *
  * Parses the Basic Multi-Link element of the BSS into @link_info using the scan
  * information stored in the wpa_supplicant data to fill in information for
  * links where possible. The @missing_links out parameter will contain any links
  * for which no corresponding BSS was found.
+ *
+ * The @nontransmitted out parameter can be used to create a well formatted ML
+ * Probe Request for the AP. If this out parameter is set to %true, the
+ * AP MLD ID should not be included in an ML Probe Request sent to its BSSID,
+ * otherwise it should be included and set to zero.
  */
 int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 				   struct wpa_bss *bss,
 				   u8 *ap_mld_addr,
 				   u16 *missing_links,
 				   struct wpa_ssid *ssid,
-				   u8 *ap_mld_id)
+				   bool *nontransmitted)
 {
 	struct ieee802_11_elems elems;
 	struct wpabuf *mlbuf;
 	const struct element *elem;
-	u8 mbssid_idx = 0;
 	size_t ml_ie_len;
 	const struct ieee80211_eht_ml *eht_ml;
 	const struct eht_ml_basic_common_info *ml_basic_common_info;
-	u8 i, link_id;
+	u8 i, pos, link_id, ap_mld_id;
 	const u16 control_mask =
 		MULTI_LINK_CONTROL_TYPE_MASK |
 		BASIC_MULTI_LINK_CTRL_PRES_LINK_ID |
@@ -1860,10 +1865,9 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 	}
 
 	/*
-	 * for ext ID + 2 control + common info len + MLD address +
-	 * link info
+	 * for ext ID + 2 control + common info len
 	 */
-	if (ml_ie_len < 2UL + 1UL + ETH_ALEN + 1UL)
+	if (ml_ie_len < sizeof(*eht_ml) + sizeof(*ml_basic_common_info))
 		goto out;
 
 	eht_ml = (const struct ieee80211_eht_ml *) wpabuf_head(mlbuf);
@@ -1878,8 +1882,41 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 	ml_basic_common_info =
 		(const struct eht_ml_basic_common_info *) eht_ml->variable;
 
-	/* Common info length should be valid */
-	if (ml_basic_common_info->len < ETH_ALEN + 1UL)
+	if (ml_ie_len < sizeof(*eht_ml) + ml_basic_common_info->len)
+		goto out;
+
+	/* Minimum Common info length to be valid */
+	if (ml_basic_common_info->len <
+	    sizeof(*ml_basic_common_info) + 1 + 1 + 2)
+		goto out;
+
+	/* LINK_ID, BSS_PARAM_CH_COUNT, MLD_CAPA (see control/control_mask) */
+	link_id = ml_basic_common_info->variable[0] & EHT_ML_LINK_ID_MSK;
+	pos = 1 + 1 + 2;
+
+	if (le_to_host16(eht_ml->ml_control) &
+	    BASIC_MULTI_LINK_CTRL_PRES_MSD_INFO)
+		pos += 2;
+
+	if (le_to_host16(eht_ml->ml_control) &
+	    BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA)
+		pos += 2;
+
+	/* AP MLD ID from MLE if present (see comment below) */
+	if (le_to_host16(eht_ml->ml_control) &
+	    BASIC_MULTI_LINK_CTRL_PRES_AP_MLD_ID) {
+		if (ml_basic_common_info->len <
+		    sizeof(*ml_basic_common_info) + pos + 1)
+			goto out;
+
+		ap_mld_id = ml_basic_common_info->variable[pos];
+
+		pos++;
+	} else {
+		ap_mld_id = 0;
+	}
+
+	if (ml_basic_common_info->len < sizeof(*ml_basic_common_info) + pos)
 		goto out;
 
 	/* Get the MLD address and MLD link ID */
@@ -1897,30 +1934,59 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 	l->freq = bss->freq;
 
 
-	/*
-	 * The AP MLD ID in the RNR corresponds to the MBSSID index, see
-	 * IEEE P802.11be/D4.0, 9.4.2.169.2 (Neighbor AP Information field).
-	 *
-	 * For the transmitting BSSID it is clear that both the MBSSID index
-	 * and the AP MLD ID in the RNR are zero.
-	 *
-	 * For nontransmitted BSSIDs we will have a BSS generated from the
-	 * MBSSID element(s) using inheritance rules. Included in the elements
-	 * is the MBSSID Index Element. The RNR is copied from the Beacon/Probe
-	 * Response frame that was send by the transmitting BSSID. As such, the
-	 * reported AP MLD ID in the RNR will match the value in the MBSSID
-	 * Index Element.
-	 */
-	elem = (const struct element *)
-		wpa_bss_get_ie(bss, WLAN_EID_MULTIPLE_BSSID_INDEX);
-	if (elem && elem->datalen >= 1)
-		mbssid_idx = elem->data[0];
+	/* Read Multiple BSSID Index for *nontransmitted and AP MLD ID */
+	if (nontransmitted || !(le_to_host16(eht_ml->ml_control) &
+				BASIC_MULTI_LINK_CTRL_PRES_AP_MLD_ID)) {
+		const u8 *mbssid_idx_elem;
+
+		/*
+		 * We should be able to rely on the Multiple BSSID Index element
+		 * to be included if the BSS is nontransmitted. Both if it was
+		 * extracted from a beacon and if it came from an ML probe
+		 * response (i.e., not listed in IEEE Std 802.11be-2024,
+		 * 35.3.3.4).
+		 *
+		 * Note that the AP MLD ID and the Multiple-BSSID Index will be
+		 * identical if the information was reported by the
+		 * corresponding transmitting AP (IEEE Std P802.11be-2024,
+		 * 9.4.2.169.2).
+		 * As an AP MLD ID will not be explicitly provided we need to
+		 * rely on the Multiple-BSSID Index element. This is generally
+		 * the case when the BSS information was read from a
+		 * Multiple-BSSID element.
+		 *
+		 * The alternative scenario is a BSS discovered using a
+		 * Multi-Link Probe Response. In that case, we can still
+		 * determine whether the BSS is nontransmitted or not using the
+		 * Multiple BSSID-Index element. However, the AP MLD ID may be
+		 * different inside the ML Probe Response and the driver also
+		 * needs to deal with this during inheritance.
+		 *
+		 * We assume the driver either
+		 *  - includes the appropriate AP MLD ID in the MLE it generates
+		 *    (see above), or
+		 *  - rewrites the RNR so that the AP MLD ID matches the
+		 *    Multiple-BSSID Index element.
+		 */
+		mbssid_idx_elem = wpa_bss_get_ie(bss,
+						 WLAN_EID_MULTIPLE_BSSID_INDEX);
+		if (mbssid_idx_elem && mbssid_idx_elem[1] >= 1) {
+			if (!(le_to_host16(eht_ml->ml_control) &
+			    BASIC_MULTI_LINK_CTRL_PRES_AP_MLD_ID))
+				ap_mld_id = mbssid_idx_elem[2];
+			if (nontransmitted)
+				*nontransmitted = !!mbssid_idx_elem[2];
+		} else {
+			if (nontransmitted)
+				*nontransmitted = false;
+		}
+	}
 
 	for_each_element_id(elem, WLAN_EID_REDUCED_NEIGHBOR_REPORT,
 			    wpa_bss_ie_ptr(bss),
 			    bss->ie_len ? bss->ie_len : bss->beacon_ie_len) {
 		const struct ieee80211_neighbor_ap_info *ap_info;
-		const u8 *pos = elem->data;
+		const u8 *ap_info_pos = elem->data;
 		size_t len = elem->datalen;
 
 		/* RNR IE may contain more than one Neighbor AP Info */
@@ -1929,18 +1995,18 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 			u8 count;
 
 			ap_info = (const struct ieee80211_neighbor_ap_info *)
-				pos;
+				ap_info_pos;
 			count = RNR_TBTT_INFO_COUNT_VAL(ap_info->tbtt_info_hdr) + 1;
 			ap_info_len += count * ap_info->tbtt_info_len;
 
 			if (ap_info_len > len)
 				goto out;
 
-			wpa_bss_parse_ml_rnr_ap_info(wpa_s, bss, mbssid_idx,
+			wpa_bss_parse_ml_rnr_ap_info(wpa_s, bss, ap_mld_id,
 						     ap_info, ap_info_len,
 						     &seen, &missing, ssid);
 
-			pos += ap_info_len;
+			ap_info_pos += ap_info_len;
 			len -= ap_info_len;
 		}
 	}
@@ -1994,8 +2060,6 @@ int wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 	if (missing_links)
 		*missing_links = missing;
 
-	if (ap_mld_id)
-		*ap_mld_id = mbssid_idx;
 
 	ret = 0;
 out:
