@@ -1684,16 +1684,18 @@ wpa_bss_parse_ml_rnr_ap_info(struct wpa_supplicant *wpa_s,
  * @wpa_s: Pointer to wpa_supplicant data
  * @ssid: Network config
  * @bss: BSS table entry
- * Returns: true if the BSS configuration matches local profile and the elements
- * meet MLO requirements, false otherwise
- * @key_mgmt: Pointer to store key management
  * @rsne_type_p: Type of RSNE to validate. If -1 is given, choose as per the
  *	presence of RSN elements (association link); otherwise, validate
  *	against the requested type (other affiliated links).
+ * @ref_rsne: Buffer for RSNE data; filled in from the main link to compare
+ *	against and used internally
+ * Returns: true if the BSS configuration matches local profile and the elements
+ * meet MLO requirements, false otherwise
  */
 static bool
 wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
-			 struct wpa_bss *bss, int *key_mgmt, int *rsne_type_p)
+			 struct wpa_bss *bss, int *rsne_type_p,
+			 struct wpa_ie_data *ref_rsne)
 {
 	struct ieee802_11_elems elems;
 	struct wpa_ie_data wpa_ie;
@@ -1744,14 +1746,39 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 
 	wpa_ie.key_mgmt &= ~(WPA_KEY_MGMT_PSK | WPA_KEY_MGMT_FT_PSK |
 			     WPA_KEY_MGMT_PSK_SHA256);
+	if (!(wpa_ie.key_mgmt & ssid->key_mgmt)) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No valid key management");
+		return false;
+	}
 	wpa_dbg(wpa_s, MSG_DEBUG, "MLD: key_mgmt=0x%x", wpa_ie.key_mgmt);
 
-	if (key_mgmt)
-		*key_mgmt = wpa_ie.key_mgmt;
+	wpa_ie.pairwise_cipher &= ~(WPA_CIPHER_NONE | WPA_CIPHER_WEP40 |
+				    WPA_CIPHER_WEP104 | WPA_CIPHER_TKIP);
+	if (!(wpa_ie.pairwise_cipher & ssid->pairwise_cipher)) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No valid pairwise cipher");
+		return false;
+	}
 
-	*rsne_type_p = rsne_type;
+	if (*rsne_type_p == -1) {
+		os_memcpy(ref_rsne, &wpa_ie, sizeof(wpa_ie));
 
-	return !!(wpa_ie.key_mgmt & ssid->key_mgmt);
+		*rsne_type_p = rsne_type;
+	} else {
+		/* Verify the neighbor given rsne_type_p and ref_rsne */
+		if (!(wpa_ie.key_mgmt & ref_rsne->key_mgmt)) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"MLD: Neighbor without common AKM");
+			return false;
+		}
+
+		if (!(wpa_ie.pairwise_cipher & ref_rsne->pairwise_cipher)) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"MLD: Neighbor without common pairwise cipher");
+			return false;
+		}
+	}
+
+	return true;
 }
 
 
@@ -1769,7 +1796,8 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 u16 wpa_bss_get_usable_links(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 			     struct wpa_ssid *ssid, u16 *missing_links)
 {
-	int rsne_type, key_mgmt;
+	struct wpa_ie_data rsne;
+	int rsne_type;
 	u16 usable_links = 0;
 	u8 link_id;
 
@@ -1777,9 +1805,9 @@ u16 wpa_bss_get_usable_links(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 		return 0;
 
 	rsne_type = -1;
+	os_memset(&rsne, 0, sizeof(rsne));
 	if (ssid &&
-	    !wpa_bss_validate_rsne_ml(wpa_s, ssid, bss, &key_mgmt,
-				      &rsne_type)) {
+	    !wpa_bss_validate_rsne_ml(wpa_s, ssid, bss, &rsne_type, &rsne)) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No valid key management");
 		return 0;
 	}
@@ -1868,8 +1896,6 @@ u16 wpa_bss_get_usable_links(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 		}
 
 		if (ssid) {
-			int neigh_key_mgmt;
-
 			/* As per IEEE Std 802.11be-2024, 12.6.2 (RSNA
 			 * selection), all APs affiliated with an AP MLD shall
 			 * advertise at least one common AKM suite selector in
@@ -1878,9 +1904,7 @@ u16 wpa_bss_get_usable_links(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 			 * association link.
 			 */
 			if (!wpa_bss_validate_rsne_ml(wpa_s, ssid, neigh_bss,
-						      &neigh_key_mgmt,
-						      &rsne_type) ||
-			    !(key_mgmt & neigh_key_mgmt)) {
+						      &rsne_type, &rsne)) {
 				wpa_printf(MSG_DEBUG,
 					   "MLD: Discard link %u due to RSN parameter mismatch",
 					   link_id);
