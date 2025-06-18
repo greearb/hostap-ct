@@ -2434,9 +2434,9 @@ hostapd_validate_link_reconf_req(struct hostapd_data *hapd,
 				 struct sta_info *sta,
 				 struct link_reconf_req_list *req_list)
 {
-	struct hostapd_data *assoc_hapd;
+	struct hostapd_data *assoc_hapd, *lhapd;
 	struct link_reconf_req_info *info;
-	struct sta_info *assoc_sta;
+	struct sta_info *assoc_sta, *lsta;
 	struct mld_info *mld_info;
 	u8 recovery_link;
 	u16 valid_links = 0, links_add_ok = 0, links_del_ok = 0, status;
@@ -2463,6 +2463,9 @@ hostapd_validate_link_reconf_req(struct hostapd_data *hapd,
 	/* Check IEs for add-link STA profiles */
 	dl_list_for_each(info, &req_list->add_req, struct link_reconf_req_info,
 			 list) {
+		lhapd = NULL;
+		lsta = NULL;
+
 		wpa_printf(MSG_DEBUG,
 			   "MLD: Add Link Reconf STA for link id=%u status=%u",
 			   info->link_id, info->status);
@@ -2498,6 +2501,14 @@ hostapd_validate_link_reconf_req(struct hostapd_data *hapd,
 				   LINK_RECONF_GROUP_KDE_MAX_LEN,
 				   info->link_id);
 			status = WLAN_STATUS_UNSPECIFIED_FAILURE;
+
+			lhapd = hostapd_mld_get_link_bss(hapd, info->link_id);
+			if (lhapd)
+				lsta = ap_get_sta(lhapd,
+						  req_list->sta_mld_addr);
+
+			if (lsta)
+				ap_free_sta(lhapd, lsta);
 		} else {
 			total_kde_len += link_kde_len;
 			links_add_ok |= BIT(info->link_id);
