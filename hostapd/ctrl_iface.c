@@ -5799,6 +5799,7 @@ static int
 hostapd_epcs_teardown(struct hostapd_data *hapd, struct epcs_entry *entry,
 		      struct mld_info *mld, char *buf, size_t len)
 {
+#ifdef CONFIG_IEEE80211BE
 	mld->epcs.enabled = false;
 
 	if (hostapd_drv_set_epcs(hapd, entry, mld))
@@ -5806,13 +5807,14 @@ hostapd_epcs_teardown(struct hostapd_data *hapd, struct epcs_entry *entry,
 
 	if (ieee802_11_send_epcs_teardown(hapd, mld))
 		return os_snprintf(buf, len, "Fail to send EPCS teardown\n");
-
+#endif
 	return 0;
 }
 
 static int
 hostapd_ctrl_iface_epcs(struct hostapd_data *hapd, char *cmd, char *buf, size_t len)
 {
+#ifdef CONFIG_IEEE80211BE
 	struct hapd_interfaces *ifaces = hapd->iface->interfaces;
 	struct epcs_entry *entry = NULL;
 	char *pos, *addr_str = NULL;
@@ -5984,6 +5986,10 @@ hostapd_ctrl_iface_epcs(struct hostapd_data *hapd, char *cmd, char *buf, size_t 
 		return os_snprintf(buf, len, "Unknown command: %s\n", cmd);
 
 	return os_snprintf(buf, len, "OK\n");
+#else
+	os_snprintf(buf, len, "%s: not AP MLD\n", hapd->conf->iface);
+	return -1;
+#endif
 }
 
 static int
@@ -6255,6 +6261,7 @@ static int
 hostapd_ctrl_iface_del_mscs(struct hostapd_data *hapd, char *cmd,
 			    char *buf, size_t buflen)
 {
+#ifdef CONFIG_IEEE80211BE
 	u8 addr[ETH_ALEN];
 	struct sta_info *sta;
 
@@ -6270,7 +6277,9 @@ hostapd_ctrl_iface_del_mscs(struct hostapd_data *hapd, char *cmd,
 	return os_snprintf(buf, buflen, "OK\n");
 
 fail:
-	return os_snprintf(buf, buflen, "FAIL\n");
+#endif
+	os_snprintf(buf, buflen, "FAIL\n");
+	return -1;
 }
 
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
@@ -7771,10 +7780,12 @@ static int hostapd_ctrl_bss_remove(struct hapd_interfaces *interfaces,
 static int hostapd_ctrl_mld_remove(struct hapd_interfaces *interfaces,
 				   char *buf)
 {
+#ifdef CONFIG_IEEE80211BE
 	if (hostapd_remove_mld(interfaces, buf) < 0) {
 		wpa_printf(MSG_ERROR, "Removing AP MLD %s failed", buf);
 		return -1;
 	}
+#endif
 	return 0;
 }
 

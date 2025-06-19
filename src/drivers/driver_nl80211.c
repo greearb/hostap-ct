@@ -17412,13 +17412,13 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.mu_ctrl = nl80211_mu_ctrl,
 	.mu_dump = nl80211_mu_dump,
 	.beacon_ctrl = nl80211_beacon_ctrl,
-	.set_epcs = nl80211_set_epcs,
 #ifdef CONFIG_DPP
 	.dpp_listen = nl80211_dpp_listen,
 #endif /* CONFIG_DPP */
 	.get_sta_mlo_info = nl80211_get_sta_mlo_info,
 	.link_add = nl80211_link_add,
 #ifdef CONFIG_IEEE80211BE
+	.set_epcs = nl80211_set_epcs,
 	.set_eml_omn = nl80211_set_eml_omn,
 	.link_remove = driver_nl80211_link_remove,
 	.set_sta_ttlm = nl80211_set_sta_ttlm,
