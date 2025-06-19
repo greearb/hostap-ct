@@ -5641,6 +5641,7 @@ static int
 hostapd_ctrl_iface_del_mscs(struct hostapd_data *hapd, char *cmd,
 			    char *buf, size_t buflen)
 {
+#ifdef CONFIG_IEEE80211BE
 	u8 addr[ETH_ALEN];
 	struct sta_info *sta;
 
@@ -5656,7 +5657,9 @@ hostapd_ctrl_iface_del_mscs(struct hostapd_data *hapd, char *cmd,
 	return os_snprintf(buf, buflen, "OK\n");
 
 fail:
-	return os_snprintf(buf, buflen, "FAIL\n");
+#endif
+	os_snprintf(buf, buflen, "FAIL\n");
+	return -1;
 }
 
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
@@ -7158,10 +7161,12 @@ static int hostapd_ctrl_bss_remove(struct hapd_interfaces *interfaces,
 static int hostapd_ctrl_mld_remove(struct hapd_interfaces *interfaces,
 				   char *buf)
 {
+#ifdef CONFIG_IEEE80211BE
 	if (hostapd_remove_mld(interfaces, buf) < 0) {
 		wpa_printf(MSG_ERROR, "Removing AP MLD %s failed", buf);
 		return -1;
 	}
+#endif
 	return 0;
 }
 

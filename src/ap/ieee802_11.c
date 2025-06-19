@@ -3814,6 +3814,7 @@ static u16 check_wmm(struct hostapd_data *hapd, struct sta_info *sta,
 	return WLAN_STATUS_SUCCESS;
 }
 
+#ifdef CONFIG_IEEE80211BE
 static void check_mscs_desc_elem(struct hostapd_data *hapd, struct sta_info *sta,
 				 struct ieee802_11_elems *elems)
 {
@@ -3825,6 +3826,7 @@ static void check_mscs_desc_elem(struct hostapd_data *hapd, struct sta_info *sta
 				 elems->mscs_desc_len);
 	sta->mscs_assoc_included = 1;
 }
+#endif
 
 static u16 check_multi_ap(struct hostapd_data *hapd, struct sta_info *sta,
 			  const u8 *multi_ap_ie, size_t multi_ap_len)
@@ -4884,6 +4886,7 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 }
 
 
+#ifdef CONFIG_IEEE80211BE
 static bool is_rsne_present_in_assoc_resp(struct wpa_state_machine *sm,
 					  struct hostapd_data *hapd,
 					  u8 **pmkid)
@@ -4917,9 +4920,6 @@ static bool is_rsne_present_in_assoc_resp(struct wpa_state_machine *sm,
 
 	return false;
 }
-
-
-#ifdef CONFIG_IEEE80211BE
 
 void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
 				   struct mld_link_info *link,
