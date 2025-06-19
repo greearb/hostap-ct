@@ -412,6 +412,7 @@ size_t hostapd_eid_eht_epcs_ml_len(struct mld_info *mld)
 int hostapd_eid_eht_epcs_ml(struct hostapd_data *hapd, struct wpabuf *buf,
 			    struct mld_info *mld, u16 *wmm_idx_tbl)
 {
+#ifdef CONFIG_IEEE80211BE
 	struct hapd_interfaces *ifaces = hapd->iface->interfaces;
 	int link_id;
 
@@ -460,6 +461,7 @@ int hostapd_eid_eht_epcs_ml(struct hostapd_data *hapd, struct wpabuf *buf,
 			params->txop_limit = host_to_le16(epcs->txop_limit);
 		}
 	}
+#endif
 
 	return 0;
 }

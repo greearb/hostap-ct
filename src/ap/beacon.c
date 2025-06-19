@@ -3456,7 +3456,7 @@ int ieee802_11_set_beacon_for_colocat(struct hostapd_data *hapd)
 		return 0;
 
 	for (i = 0; i < iface->interfaces->count; i++) {
-		struct hostapd_data *bss, *tmp;
+		struct hostapd_data *bss;
 		struct hostapd_iface *other;
 
 		other = iface->interfaces->iface[i];
@@ -3474,6 +3474,7 @@ int ieee802_11_set_beacon_for_colocat(struct hostapd_data *hapd)
 			 */
 			if (bss->conf->mld_ap) {
 				bool skip = false;
+				struct hostapd_data *tmp;
 
 				for_each_mld_link(tmp, bss) {
 					if (tmp != bss && tmp->started &&
@@ -3589,10 +3590,10 @@ int ieee802_11_set_bss_critical_update(struct hostapd_data *hapd,
 
 		h->eht_mld_bss_critical_update = BSS_CRIT_UPDATE_FLAG;
 	}
-#endif
 
 	if (update_txbss_beacon)
 		ieee802_11_set_beacon(hostapd_mbssid_get_tx_bss(hapd));
+#endif
 
 	return 0;
 }

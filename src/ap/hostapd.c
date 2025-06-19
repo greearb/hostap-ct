@@ -4473,6 +4473,7 @@ int hostapd_remove_iface(struct hapd_interfaces *interfaces, char *buf)
 }
 
 
+#ifdef CONFIG_IEEE80211BE
 static int hostapd_remove_mld_link_by_idx(struct hostapd_iface *iface, int idx)
 {
 	size_t j;
@@ -4564,7 +4565,7 @@ int hostapd_remove_mld(struct hapd_interfaces *interfaces, char *buf)
 	hostapd_cleanup_unused_mlds(interfaces);
 	return 0;
 }
-
+#endif
 
 /**
  * hostapd_new_assoc_sta - Notify that a new station associated with the AP
