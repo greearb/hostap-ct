@@ -4431,6 +4431,7 @@ static int
 hostapd_ctrl_iface_set_mu(struct hostapd_data *hapd, char *cmd,
 			  char *buf, size_t buflen)
 {
+#ifdef CONFIG_IEEE80211AX
 	char *pos, *config, *value;
 	u8 i;
 	int cnt = 0, ret;
@@ -4617,7 +4618,9 @@ para_fail:
 	os_free(val);
 	wpa_printf(MSG_ERROR, "Input number or value is incorrect\n");
 fail:
-	return os_snprintf(buf, buflen, "FAIL\n");
+#endif
+	os_snprintf(buf, buflen, "FAIL\n");
+	return -1;
 }
 
 
@@ -4921,6 +4924,7 @@ hostapd_ctrl_iface_dump_amnt(struct hostapd_data *hapd, char *cmd,
 	struct amnt_resp_data *resp_buf;
 	char *pos, *end;
 	struct amnt_data *res;
+	int i;
 
 	pos = buf;
 	end = buf + buflen;
@@ -4956,7 +4960,7 @@ hostapd_ctrl_iface_dump_amnt(struct hostapd_data *hapd, char *cmd,
 		return -1;
 	}
 
-	for (int i = 0; i < resp_buf->sta_num && i < AIR_MONITOR_MAX_ENTRY; i++) {
+	for (i = 0; i < resp_buf->sta_num && i < AIR_MONITOR_MAX_ENTRY; i++) {
 		res = &resp_buf->resp_data[i];
 		ret = os_snprintf(pos, end - pos,
 				"[hostapd_cli] amnt_idx: %d, addr="MACSTR
@@ -5008,35 +5012,11 @@ hostapd_ctrl_iface_set_background_radar_mode(struct hostapd_data *hapd, char *cm
 	return os_snprintf(buf, buflen, "OK\n");
 }
 
-struct hostapd_data *
-hostapd_get_hapd_by_band_idx(struct hostapd_data *hapd, u8 band_idx)
-{
-#if 0
-	struct hostapd_data *link;
-
-	if (!hostapd_is_mld_ap(hapd))
-		return hapd;
-	/* TODO: band_idx */
-
-	for_each_mld_link(link, hapd) {
-		if (link->iconf->band_idx == band_idx)
-			break;
-	}
-
-	if (!link || link->iconf->band_idx != band_idx) {
-		wpa_printf(MSG_ERROR, "Invalid band idx %d\n", band_idx);
-		return NULL;
-	}
-
-	return link;
-#endif
-	return hapd;
-}
-
 static int
 hostapd_ctrl_iface_set_pp(struct hostapd_data *hapd, char *cmd, char *buf,
 			  size_t buflen)
 {
+#ifdef CONFIG_IEEE80211BE
 	char *config, *value;
 
 	config = cmd;
@@ -5069,14 +5049,23 @@ hostapd_ctrl_iface_set_pp(struct hostapd_data *hapd, char *cmd, char *buf,
 		return -1;
 	}
 	return os_snprintf(buf, buflen, "OK\n");
+#else
+	os_snprintf(buf, buflen, "FAIL\n");
+	return -1;
+#endif
 }
 
 static int
 hostapd_ctrl_iface_get_pp(struct hostapd_data *hapd, char *cmd, char *buf,
 			  size_t buflen)
 {
+#ifdef CONFIG_IEEE80211BE
 	return os_snprintf(buf, buflen, "pp_mode: %d, punct_bitmap: 0x%04x\n",
 			   hapd->iconf->pp_mode, hapd->iconf->punct_bitmap);
+#else
+	os_snprintf(buf, buflen, "FAIL\n");
+	return -1;
+#endif
 }
 
 static int
@@ -5101,6 +5090,7 @@ static int
 hostapd_ctrl_iface_set_eml_resp(struct hostapd_data *hapd, char *value,
 				char *buf, size_t buflen)
 {
+#ifdef CONFIG_IEEE80211BE
 	struct hostapd_data *link;
 	int cnt = 0;
 	u16 *val;
@@ -5130,7 +5120,9 @@ para_fail:
 	os_free(val);
 	wpa_printf(MSG_ERROR, "Input number or value is incorrect\n");
 fail:
-	return os_snprintf(buf, buflen, "FAIL\n");
+#endif
+	os_snprintf(buf, buflen, "FAIL\n");
+	return -1;
 }
 
 static int
@@ -5324,6 +5316,7 @@ static int
 hostapd_ctrl_iface_wmm(struct hostapd_data *hapd, char *cmd, char *buf,
 		       size_t buflen)
 {
+#ifdef CONFIG_IEEE80211BE
 	char *pos = cmd, *ac, *token, *context = NULL;
 	struct hostapd_wmm_ac_params *acp;
 	int num;
@@ -5391,6 +5384,10 @@ hostapd_ctrl_iface_wmm(struct hostapd_data *hapd, char *cmd, char *buf,
 		return -1;
 
 	return os_snprintf(buf, buflen, "OK\n");
+#else
+	os_snprintf(buf, buflen, "FAIL\n");
+	return -1;
+#endif
 }
 
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
