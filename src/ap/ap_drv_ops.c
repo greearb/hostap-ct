@@ -1462,8 +1462,10 @@ int hostapd_drv_configure_edcca_enable(struct hostapd_data *hapd)
 	if (!hapd->driver || !hapd->driver->configure_edcca_enable)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		link_id = hapd->mld_link_id;
+#endif
 
 	return hapd->driver->configure_edcca_enable(hapd->drv_priv, link_id,
 						    hapd->iconf->edcca_enable,
@@ -1479,8 +1481,10 @@ int hostapd_drv_configure_edcca_threshold(struct hostapd_data *hapd,
 	if (!hapd->driver || !hapd->driver->configure_edcca_threshold)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		link_id = hapd->mld_link_id;
+#endif
 
 	return hapd->driver->configure_edcca_threshold(hapd->drv_priv, link_id, threshold);
 }
@@ -1493,8 +1497,10 @@ int hostapd_drv_get_edcca(struct hostapd_data *hapd, const u8 mode, u8 *value)
 	if (!hapd->driver || !hapd->driver->get_edcca)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		link_id = hapd->mld_link_id;
+#endif
 
 	return hapd->driver->get_edcca(hapd->drv_priv, link_id, mode, value);
 }
@@ -1506,8 +1512,10 @@ int hostapd_drv_mu_ctrl(struct hostapd_data *hapd, u8 mode)
 	if (!hapd->driver || !hapd->driver->mu_ctrl)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		link_id = hapd->mld_link_id;
+#endif
 
 	return hapd->driver->mu_ctrl(hapd->drv_priv, mode, link_id);
 }
@@ -1519,8 +1527,10 @@ int hostapd_drv_mu_dump(struct hostapd_data *hapd, u8 *mu_onoff)
 	if (!hapd->driver || !hapd->driver->mu_dump)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		link_id = hapd->mld_link_id;
+#endif
 
 	return hapd->driver->mu_dump(hapd->drv_priv, mu_onoff, link_id);
 }
@@ -1647,8 +1657,10 @@ int hostapd_drv_amnt_set(struct hostapd_data *hapd, u8 amnt_idx, u8 *amnt_sta_ma
 	if (!hapd->driver || !hapd->driver->amnt_set)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		link_id = hapd->mld_link_id;
+#endif
 
 	return hapd->driver->amnt_set(hapd->drv_priv, amnt_idx, amnt_sta_mac,
 				      link_id);
@@ -1661,8 +1673,10 @@ int hostapd_drv_amnt_dump(struct hostapd_data *hapd, u8 amnt_idx, u8 *amnt_dump_
 	if (!hapd->driver || !hapd->driver->amnt_dump)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		link_id = hapd->mld_link_id;
+#endif
 
 	return hapd->driver->amnt_dump(hapd->drv_priv, amnt_idx, amnt_dump_buf,
 				       link_id);
@@ -1734,6 +1748,7 @@ int hostapd_drv_set_eml_omn(struct hostapd_data *hapd, const u8 *mac,
 int hostapd_drv_set_epcs(struct hostapd_data *hapd, struct epcs_entry *entry,
 			 struct mld_info *mld)
 {
+#ifdef CONFIG_IEEE80211BE
 	struct hapd_interfaces *ifaces = hapd->iface->interfaces;
 	int i, ret;
 
@@ -1754,6 +1769,9 @@ int hostapd_drv_set_epcs(struct hostapd_data *hapd, struct epcs_entry *entry,
 	}
 
 	return ret;
+#else
+	return -EOPNOTSUPP;
+#endif
 }
 
 int hostapd_drv_csi_set(struct hostapd_data *hapd, u8 mode, u8 cfg, u8 v1, u32 v2, u8 *mac)
@@ -1763,8 +1781,10 @@ int hostapd_drv_csi_set(struct hostapd_data *hapd, u8 mode, u8 cfg, u8 v1, u32 v
 	if (!hapd->driver || !hapd->driver->csi_set)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		link_id = hapd->mld_link_id;
+#endif
 
 	return hapd->driver->csi_set(hapd->drv_priv, link_id, mode, cfg, v1, v2, mac);
 }
@@ -1776,8 +1796,10 @@ int hostapd_drv_csi_dump(struct hostapd_data *hapd, void *dump_buf)
 	if (!hapd->driver || !hapd->driver->csi_dump)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		link_id = hapd->mld_link_id;
+#endif
 
 	return hapd->driver->csi_dump(hapd->drv_priv, link_id, dump_buf);
 }
@@ -1798,8 +1820,10 @@ int hostapd_drv_dfs_tx_mode(struct hostapd_data *hapd, u8 dfs_tx_mode)
 	if (!hapd->driver || !hapd->driver->dfs_tx_mode)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		link_id = hapd->mld_link_id;
+#endif
 
 	return hapd->driver->dfs_tx_mode(hapd->drv_priv, link_id,
 					 dfs_tx_mode);
