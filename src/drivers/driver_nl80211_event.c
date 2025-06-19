@@ -1713,7 +1713,6 @@ static void mlme_event_link_addition(struct wpa_driver_nl80211_data *drv,
 			   "Link Reconfiguration Response frame is NULL - unspecified reason");
 		return;
 	}
-	wpa_hexdump(MSG_DEBUG, "JKM", frame, len);
 	end = frame + len;
 
 	os_memset(&event, 0, sizeof(event));
