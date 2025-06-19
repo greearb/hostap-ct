@@ -6221,9 +6221,18 @@ static int wpas_pasn_auth(struct wpa_supplicant *wpa_s,
 {
 #ifdef CONFIG_P2P
 	struct ieee802_11_elems elems;
+	size_t auth_length;
 
-	if (len < 24) {
-		wpa_printf(MSG_DEBUG, "nl80211: Too short Management frame");
+	auth_length = IEEE80211_HDRLEN + sizeof(mgmt->u.auth);
+
+	if (len < auth_length) {
+		wpa_printf(MSG_DEBUG, "PASN: Too short Authentication frame");
+		return -2;
+	}
+
+	if (le_to_host16(mgmt->u.auth.auth_alg) != WLAN_AUTH_PASN) {
+		wpa_printf(MSG_DEBUG,
+			   "PASN: Not a PASN Authentication frame, skip frame parsing");
 		return -2;
 	}
 
