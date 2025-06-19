@@ -37,6 +37,4 @@ hostapd_global_ctrl_iface_deinit(struct hapd_interfaces *interface)
 {
 }
 #endif /* CONFIG_NO_CTRL_IFACE */
-struct hostapd_data *
-hostapd_get_hapd_by_band_idx(struct hostapd_data *hapd, u8 band_idx);
 #endif /* CTRL_IFACE_H */
