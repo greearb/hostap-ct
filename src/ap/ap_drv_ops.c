@@ -1536,8 +1536,10 @@ int hostapd_drv_txpower_ctrl(struct hostapd_data *hapd)
 	if (!hapd->driver || !hapd->driver->txpower_ctrl)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		link_id = hapd->mld_link_id;
+#endif
 
 	return hapd->driver->txpower_ctrl(hapd->drv_priv, hapd->iconf->lpi_psd,
 					  hapd->iconf->sku_idx,
@@ -1552,8 +1554,10 @@ int hostapd_drv_ap_wireless(struct hostapd_data *hapd, u8 sub_vendor_id, int val
 	if (!hapd->driver || !hapd->driver->ap_wireless)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		link_id = hapd->mld_link_id;
+#endif
 
 	return hapd->driver->ap_wireless(hapd->drv_priv, sub_vendor_id, value,
 					 link_id);
@@ -1566,8 +1570,10 @@ int hostapd_drv_ap_rfeatures(struct hostapd_data *hapd, u8 sub_vendor_id, int va
 	if (!hapd->driver || !hapd->driver->ap_rfeatures)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		link_id = hapd->mld_link_id;
+#endif
 
 	return hapd->driver->ap_rfeatures(hapd->drv_priv, sub_vendor_id, value,
 					  link_id);
@@ -1580,8 +1586,10 @@ int hostapd_drv_ap_trig_type(struct hostapd_data *hapd, u8 enable, u8 type)
 	if (!hapd->driver || !hapd->driver->ap_trigtype)
 		return 0;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		link_id = hapd->mld_link_id;
+#endif
 
 	return hapd->driver->ap_trigtype(hapd->drv_priv, enable, type,
 					 link_id);
@@ -1617,6 +1625,7 @@ int hostapd_drv_background_radar_mode(struct hostapd_data *hapd)
 
 int hostapd_drv_pp_mode_set(struct hostapd_data *hapd)
 {
+#ifdef CONFIG_IEEE80211BE
 	s8 link_id = -1;
 
 	if (!hapd->driver || !hapd->driver->pp_mode_set ||
@@ -1631,6 +1640,9 @@ int hostapd_drv_pp_mode_set(struct hostapd_data *hapd)
 					 hapd->iconf->pp_mode,
 					 link_id,
 					 hapd->iconf->punct_bitmap);
+#else
+	return 0;
+#endif
 }
 
 int hostapd_drv_beacon_ctrl(struct hostapd_data *hapd, u8 beacon_mode)
@@ -1643,6 +1655,7 @@ int hostapd_drv_beacon_ctrl(struct hostapd_data *hapd, u8 beacon_mode)
 int hostapd_drv_set_eml_omn(struct hostapd_data *hapd, const u8 *mac,
 			    struct eml_omn_element *omn_ie)
 {
+#ifdef CONFIG_IEEE80211BE
 	u8 link_id;
 
 	if (!hapd->driver || !hapd->driver->set_eml_omn)
@@ -1654,6 +1667,9 @@ int hostapd_drv_set_eml_omn(struct hostapd_data *hapd, const u8 *mac,
 	link_id = hapd->mld_link_id;
 
 	return hapd->driver->set_eml_omn(hapd->drv_priv, link_id, mac, omn_ie);
+#else
+	return 0;
+#endif
 }
 
 int hostapd_drv_csi_set(struct hostapd_data *hapd, u8 mode, u8 cfg, u8 v1, u32 v2, u8 *mac)

@@ -3079,10 +3079,12 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		break;
 #endif /* NEED_AP_MLME */
 	case EVENT_PP_BITMAP_UPDATE:
+#ifdef CONFIG_IEEE80211BE
 		if (!data)
 			break;
 		hapd = switch_link_hapd(hapd, data->ch_switch.link_id);
 		hostapd_event_pp_bitmap_update(hapd, &data->ch_switch);
+#endif
 		break;
 	case EVENT_INTERFACE_ENABLED:
 #ifdef CONFIG_IEEE80211BE

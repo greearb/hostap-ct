@@ -1028,6 +1028,7 @@ int hostapd_handle_dfs(struct hostapd_iface *iface)
 			return -1;
 	}
 
+#ifdef CONFIG_IEEE80211BE
 	/* Remove the CAC link from the active links of AP MLD temporarily to avoid
 	 * it being reported in the RNR of the affiliated APs of the same AP MLD
 	 */
@@ -1043,6 +1044,7 @@ int hostapd_handle_dfs(struct hostapd_iface *iface)
 			hapd->mld->active_links &= ~BIT(hapd->mld_link_id);
 		}
 	}
+#endif
 
 	return 0;
 }
@@ -1382,6 +1384,7 @@ int hostapd_dfs_complete_cac(struct hostapd_iface *iface, int success, int freq,
 			 */
 			if (iface->state != HAPD_IFACE_ENABLED &&
 			    hostapd_is_dfs_chan_available(iface)) {
+#ifdef CONFIG_IEEE80211BE
 				for (i = 0; i < iface->num_bss; i++) {
 					struct hostapd_data *h, *hapd = iface->bss[i];
 
@@ -1395,6 +1398,7 @@ int hostapd_dfs_complete_cac(struct hostapd_iface *iface, int success, int freq,
 					hapd->mld->link_reconf_in_progress &=
 								~BIT(hapd->mld_link_id);
 				}
+#endif
 				hostapd_setup_interface_complete(iface, 0);
 			}
 
@@ -1704,7 +1708,9 @@ int hostapd_dfs_radar_detected(struct hostapd_iface *iface, int freq,
 			return 0;
 	}
 
+#ifdef CONFIG_IEEE80211BE
 	iface->bss[0]->iconf->punct_bitmap = 0;
+#endif
 
 	if (hostapd_dfs_background_start_channel_switch(iface, freq)) {
 		/* Radar detected while operating, switch the channel. */

@@ -16516,6 +16516,7 @@ static int nl80211_background_radar_mode(void *priv, const u8 background_radar_m
 	return ret;
 }
 
+#ifdef CONFIG_IEEE80211BE
 static int nl80211_pp_mode_set(void *priv, const u8 pp_mode, s8 link_id, u16 punct_bitmap)
 {
 	struct i802_bss *bss = priv;
@@ -16562,7 +16563,6 @@ fail:
 	return -ENOBUFS;
 }
 
-#ifdef CONFIG_IEEE80211BE
 static int nl80211_get_mld_addr(void *priv, u8 *addr)
 {
 	struct i802_bss *bss = priv;
@@ -17079,13 +17079,13 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.mu_ctrl = nl80211_mu_ctrl,
 	.mu_dump = nl80211_mu_dump,
 	.beacon_ctrl = nl80211_beacon_ctrl,
-	.set_eml_omn = nl80211_set_eml_omn,
 #ifdef CONFIG_DPP
 	.dpp_listen = nl80211_dpp_listen,
 #endif /* CONFIG_DPP */
 	.get_sta_mlo_info = nl80211_get_sta_mlo_info,
 	.link_add = nl80211_link_add,
 #ifdef CONFIG_IEEE80211BE
+	.set_eml_omn = nl80211_set_eml_omn,
 	.link_remove = driver_nl80211_link_remove,
 	.set_attlm = nl80211_set_attlm,
 	.is_drv_shared = nl80211_is_drv_shared,
@@ -17114,8 +17114,8 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.amnt_set = nl80211_amnt_set,
 	.amnt_dump = nl80211_amnt_dump,
 	.background_radar_mode = nl80211_background_radar_mode,
-	.pp_mode_set = nl80211_pp_mode_set,
 #ifdef CONFIG_IEEE80211BE
+	.pp_mode_set = nl80211_pp_mode_set,
 	.get_mld_addr = nl80211_get_mld_addr,
 	.set_scs = nl80211_set_scs,
 #endif

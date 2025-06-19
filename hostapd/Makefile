@@ -354,6 +354,7 @@ endif
 ifdef CONFIG_IEEE80211AX
 CFLAGS += -DCONFIG_IEEE80211AX
 OBJS += ../src/ap/ieee802_11_he.o
+LIBS += -lm
 endif
 
 ifdef CONFIG_MBO

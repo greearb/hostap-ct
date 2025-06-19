@@ -5487,6 +5487,7 @@ struct wpa_driver_ops {
 	int (*link_remove)(void *priv, enum wpa_driver_if_type type,
 			   const char *ifname, u8 link_id);
 
+#ifdef CONFIG_IEEE80211BE
 	/**
 	 * set_attlm - Set AP MLD advertised Tid-to-Link Mapping
 	 * @priv: Private driver interface data
@@ -5494,6 +5495,7 @@ struct wpa_driver_ops {
 	 * Returns: 0 on success, negative value on failure
 	 */
 	int (*set_attlm)(void *priv, struct attlm_settings *attlm);
+#endif
 
 	/**
 	 * is_drv_shared - Check whether the driver interface is shared
@@ -5746,6 +5748,8 @@ struct wpa_driver_ops {
 	 * @background_radar_mode: background radar mode
 	 */
 	int (*background_radar_mode)(void *priv, u8 background_radar_mode);
+
+#ifdef CONFIG_IEEE80211BE
 	/**
 	 * pp_mode_set - Set preamble puncture operation mode
 	 * @priv: Private driver interface data
@@ -5754,8 +5758,9 @@ struct wpa_driver_ops {
 	 * @punct_bitmap: current puncture bitmap
 	 */
 	int (*pp_mode_set)(void *priv, const u8 pp_mode, s8 link_id, u16 punct_bitmap);
-#ifdef CONFIG_IEEE80211BE
+
 	int (*get_mld_addr)(void *priv, u8 *addr);
+
 	/**
 	 * set_scs - Configure Stream Classification Service
 	 * @priv: Private driver interface data

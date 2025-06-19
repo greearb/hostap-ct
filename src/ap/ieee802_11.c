@@ -1106,6 +1106,7 @@ void sae_accept_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	crypto_bignum_deinit(sta->sae->peer_commit_scalar_accepted, 0);
 	sta->sae->peer_commit_scalar_accepted = sta->sae->peer_commit_scalar;
 	sta->sae->peer_commit_scalar = NULL;
+#ifdef CONFIG_IEEE80211BE
 	if (hostapd_is_mld_ap(hapd)) {
 		struct hostapd_data *link = NULL;
 
@@ -1117,7 +1118,9 @@ void sae_accept_sta(struct hostapd_data *hapd, struct sta_info *sta)
 					sta->sae->pmkid, sta->sae->akmp,
 					ap_sta_is_mld(hapd, sta));
 		}
-	} else {
+	} else
+#endif
+	{
 		wpa_auth_pmksa_add_sae(hapd->wpa_auth, sta->addr,
 				sta->sae->pmk, sta->sae->pmk_len,
 				sta->sae->pmkid, sta->sae->akmp,
@@ -6552,7 +6555,9 @@ static int handle_action(struct hostapd_data *hapd,
 			return 1;
 		break;
 	case WLAN_ACTION_PROTECTED_EHT:
+#ifdef CONFIG_IEEE80211BE
 		ieee802_11_rx_prot_eht(hapd, mgmt, len);
+#endif
 		return 1;
 	case WLAN_ACTION_VENDOR_SPECIFIC:
 		if (hapd->vendor_action_cb) {
@@ -6578,8 +6583,8 @@ static int handle_action(struct hostapd_data *hapd,
 	case WLAN_ACTION_ROBUST_AV_STREAMING:
 		hostapd_handle_scs(hapd, (const u8 *) mgmt, len);
 		return 1;
-	}
 #endif /* CONFIG_IEEE80211BE */
+	}
 
 	hostapd_logger(hapd, mgmt->sa, HOSTAPD_MODULE_IEEE80211,
 		       HOSTAPD_LEVEL_DEBUG,
@@ -7661,8 +7666,8 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 					  u8 chan1, u8 chan2)
 {
 	u8 bw;
-	enum oper_chan_width oper_chwidth = CONF_OPER_CHWIDTH_160MHZ;
 #ifdef CONFIG_IEEE80211BE
+	enum oper_chan_width oper_chwidth = CONF_OPER_CHWIDTH_160MHZ;
 	u16 punct_bitmap = hapd->cs_freq_params.punct_bitmap;
 #endif /* CONFIG_IEEE80211BE */
 
@@ -7685,7 +7690,9 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 		else
 			chan1 += 16;
 
+#ifdef CONFIG_IEEE80211BE
 		oper_chwidth = CONF_OPER_CHWIDTH_320MHZ;
+#endif
 		/* fallthrough */
 	case 160:
 		/* Update the CCFS0 and CCFS1 values in the element based on
@@ -7708,11 +7715,15 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 		break;
 	case 80:
 		bw = 1;
+#ifdef CONFIG_IEEE80211BE
 		oper_chwidth = CONF_OPER_CHWIDTH_80MHZ;
+#endif
 		break;
 	case 40:
 		bw = 0;
+#ifdef CONFIG_IEEE80211BE
 		oper_chwidth = CONF_OPER_CHWIDTH_USE_HT;
+#endif
 		break;
 	default:
 		/* not valid VHT bandwidth or not in CSA */
