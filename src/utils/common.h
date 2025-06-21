@@ -601,6 +601,8 @@ void int_array_add_unique(int **res, int a);
 bool int_array_includes(const int *arr, int val);
 bool int_array_equal(const int *a, const int *b);
 int * int_array_dup(const int *a);
+/* Is 'b' a subset of 'a' */
+bool int_array_subset(const int *a, const int *b);
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
