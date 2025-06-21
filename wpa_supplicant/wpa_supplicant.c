@@ -9915,7 +9915,8 @@ int get_shared_radio_freqs_data(struct wpa_supplicant *wpa_s,
 	unsigned int idx = 0, i;
 
 	wpa_dbg(wpa_s, MSG_DEBUG,
-		"Determining shared radio frequencies (max len %u)", len);
+		"Determining shared radio frequencies (max len %u, phy-bands: 0x%x)",
+		len, wpa_s->conf->phy_bands);
 	os_memset(freqs_data, 0, sizeof(struct wpa_used_freq_data) * len);
 
 	dl_list_for_each(ifs, &wpa_s->radio->ifaces, struct wpa_supplicant,
