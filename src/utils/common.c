@@ -1028,6 +1028,38 @@ bool int_array_equal(const int *a, const int *b)
 	return true;
 }
 
+/* Is 'b' a subset of 'a', or 'a' is empty meaning any/all */
+bool int_array_subset(const int *a, const int *b)
+{
+	size_t /* alen, q, */ blen, i;
+
+	if (!b)
+		return true; /* nothing is in everything */
+
+	if (!a)
+		return true; /* a does not specify, so assume it is infinite */
+
+	/* alen = int_array_len(a); */
+	blen = int_array_len(b);
+
+	for (i = 0; i <= blen; i++) {
+		if (!int_array_includes(a, b[i])) {
+#if 0
+			wpa_printf(MSG_DEBUG, "array-subset: %d not found in 'a'",
+				   (int)(b[i]));
+			for (q = 0; q<alen; q++) {
+				wpa_printf(MSG_DEBUG, "  array-subset: a[%d] == %d",
+					   (int)(q), (int)(a[q]));
+			}
+#endif
+
+			return false;
+		}
+	}
+
+	return true;
+}
+
 
 void str_clear_free(char *str)
 {
