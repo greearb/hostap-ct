@@ -186,6 +186,8 @@ static void wpas_trigger_scan_cb(struct wpa_radio_work *work, int deinit)
 	struct wpa_supplicant *wpa_s = work->wpa_s;
 	struct wpa_driver_scan_params *params = work->ctx;
 	int ret;
+	int i;
+	struct os_reltime now;
 
 	if (deinit) {
 		if (!work->started) {
@@ -214,6 +216,14 @@ static void wpas_trigger_scan_cb(struct wpa_radio_work *work, int deinit)
 	}
 
 	wpa_supplicant_notify_scanning(wpa_s, 1);
+
+	os_get_reltime(&now);
+	for (i = 0; i<3; i++) {
+		if ((wpa_s->conf->phy_bands == 0) ||
+		    wpa_s->conf->phy_bands & (1<<i)) {
+			wpa_s->radio->last_scan_started_at[i] = now;
+		}
+	}
 
 	if (wpa_s->clear_driver_scan_cache) {
 		wpa_printf(MSG_DEBUG,
@@ -1122,6 +1132,7 @@ void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 	size_t max_ssids;
 	int connect_without_scan = 0;
 	int scan_on_channel = 0;
+	int allow_scan_on_channel = 1;
 
 	wpa_s->ignore_post_flush_scan_res = 0;
 
@@ -1326,6 +1337,7 @@ void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 		if (params.freqs) {
 			params.freqs[0] = wpa_s->assoc_freq;
 			params.freqs[1] = 0;
+			allow_scan_on_channel = 0; /* override scan-on-chan */
 		}
 
 		/*
@@ -1448,6 +1460,7 @@ ssid_list_set:
 		wpa_dbg(wpa_s, MSG_DEBUG, "Limit manual scan to specified channels");
 		params.freqs = wpa_s->manual_scan_freqs;
 		wpa_s->manual_scan_freqs = NULL;
+		allow_scan_on_channel = 0; /* override scan-on-chan */
 	}
 
 	if (params.freqs == NULL && wpa_s->select_network_scan_freqs) {
@@ -1455,6 +1468,7 @@ ssid_list_set:
 			"Limit select_network scan to specified channels");
 		params.freqs = wpa_s->select_network_scan_freqs;
 		wpa_s->select_network_scan_freqs = NULL;
+		allow_scan_on_channel = 0; /* override scan-on-chan */
 	}
 
 	if (params.freqs == NULL && wpa_s->next_scan_freqs) {
@@ -1466,8 +1480,13 @@ ssid_list_set:
 	wpa_s->next_scan_freqs = NULL;
 
 	/* Use current associated channel? */
-	if (wpa_s->conf->scan_cur_freq && !params.freqs) {
+	if (wpa_s->conf->scan_cur_freq && allow_scan_on_channel) {
 		unsigned int num = wpa_s->num_multichan_concurrent;
+
+		if (params.freqs) {
+			os_free(params.freqs);
+			params.freqs = NULL;
+		}
 		/* Hack for mtk7996 combined phy */
 		if (wpa_s->conf->phy_bands)
 			num = 3; /* Look for frequency in all 3 bands */
@@ -1704,12 +1723,27 @@ void wpa_supplicant_req_scan(struct wpa_supplicant *wpa_s, int sec, int usec)
 	 * scans.
 	 */
 	if (wpa_s->conf->min_scan_gap) {
-		int mingap;
+		int mingap = 0;
+		int i;
 		struct os_reltime t;
+		unsigned int last_scan_sec = 0;
+
 		os_get_reltime(&t);
 
-		mingap = wpa_s->conf->min_scan_gap
-			- (t.sec - wpa_s->last_scan_rx_sec);
+		for (i = 0; i<3; i++) {
+			if (wpa_s->conf->phy_bands == 0 ||
+			    (wpa_s->conf->phy_bands & (1<<i))) {
+				if (wpa_s->radio->last_scan_started_at[i].sec > last_scan_sec)
+					last_scan_sec = wpa_s->radio->last_scan_started_at[i].sec;
+			}
+		}
+
+		if (last_scan_sec)
+			mingap = wpa_s->conf->min_scan_gap - (t.sec - last_scan_sec);
+		else
+			mingap = wpa_s->conf->min_scan_gap;
+		if (mingap < 0)
+			mingap = 0;
 		if (mingap > wpa_s->conf->min_scan_gap)
 			mingap = wpa_s->conf->min_scan_gap;
 		if (mingap > sec)
@@ -1719,14 +1753,14 @@ void wpa_supplicant_req_scan(struct wpa_supplicant *wpa_s, int sec, int usec)
 	res = eloop_deplete_timeout(sec, usec, wpa_supplicant_scan, wpa_s,
 				    NULL);
 	if (res == 1) {
-		wpa_dbg(wpa_s, MSG_DEBUG, "Rescheduling scan request: %d.%06d sec",
-			sec, usec);
+		wpa_dbg(wpa_s, MSG_DEBUG, "Rescheduling scan request: %d.%06d sec min-scan-gap: %d",
+			sec, usec, wpa_s->conf->min_scan_gap);
 	} else if (res == 0) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "Ignore new scan request for %d.%06d sec since an earlier request is scheduled to trigger sooner",
 			sec, usec);
 	} else {
-		wpa_dbg(wpa_s, MSG_DEBUG, "Setting scan request: %d.%06d sec",
-			sec, usec);
+		wpa_dbg(wpa_s, MSG_DEBUG, "Setting scan request: %d.%06d sec  min-scan-gap: %d",
+			sec, usec, wpa_s->conf->min_scan_gap);
 		eloop_register_timeout(sec, usec, wpa_supplicant_scan, wpa_s, NULL);
 	}
 }

@@ -1723,6 +1723,27 @@ struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 		return NULL;
 	}
 
+	if (wpa_s->conf->phy_bands) {
+		if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_2G) &&
+		    !(bss->freq > 2000 && bss->freq < 3000)) {
+			if (debug_print)
+				wpa_dbg(wpa_s, MSG_DEBUG, "  skip - band 2.4GHz disallowed");
+			return NULL;
+		}
+		if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_5G) &&
+		    !(bss->freq > 3000 && bss->freq < 5950)) {
+			if (debug_print)
+				wpa_dbg(wpa_s, MSG_DEBUG, "  skip - band 5GHz disallowed");
+			return NULL;
+		}
+		if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_6G) &&
+		    !(bss->freq > 5955 && bss->freq < 8000)) {
+			if (debug_print)
+				wpa_dbg(wpa_s, MSG_DEBUG, "  skip - band 6GHz disallowed");
+			return NULL;
+		}
+	}
+
 	if (wpa_s->conf->freq_list &&
 	    !int_array_includes(wpa_s->conf->freq_list, bss->freq)) {
 		if (debug_print)
@@ -2555,7 +2576,6 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 #ifndef CONFIG_NO_RANDOM_POOL
 	size_t i, num;
 #endif /* CONFIG_NO_RANDOM_POOL */
-	struct os_reltime t;
 
 #ifdef CONFIG_AP
 	if (wpa_s->ap_iface)
@@ -2660,9 +2680,6 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 			ret = 1;
 		goto scan_work_done;
 	}
-
-	os_get_reltime(&t);
-	wpa_s->last_scan_rx_sec = t.sec;
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "New scan results available (own=%u ext=%u)",
 		wpa_s->own_scan_running,
@@ -2986,9 +3003,8 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 	return 0;
 }
 
-
-static bool equal_scan_freq_list(struct wpa_supplicant *self,
-				 struct wpa_supplicant *other)
+static bool subset_scan_freq_list(struct wpa_supplicant *self,
+				  struct wpa_supplicant *other)
 {
 	const int *list1, *list2;
 
@@ -2997,7 +3013,10 @@ static bool equal_scan_freq_list(struct wpa_supplicant *self,
 	list2 = other->conf->freq_list ? other->conf->freq_list :
 		other->last_scan_freqs;
 
-	return int_array_equal(list1, list2);
+	/* Self may have scanned a subset of channels.  As long as other
+	 * can use all of these self's channels, then ok to share scan results.
+	 */
+	return int_array_subset(list2, list1);
 }
 
 
@@ -3044,7 +3063,9 @@ static int wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	 */
 	dl_list_for_each(ifs, &wpa_s->radio->ifaces, struct wpa_supplicant,
 			 radio_list) {
-		if (ifs != wpa_s && equal_scan_freq_list(wpa_s, ifs)) {
+		if (ifs != wpa_s &&
+		    subset_scan_freq_list(wpa_s, ifs) &&
+		    ((ifs->conf->phy_bands & wpa_s->conf->phy_bands) == ifs->conf->phy_bands)) {
 			wpa_dbg(wpa_s, MSG_DEBUG, "Updating scan results for "
 				"sibling: %s, res: %d", ifs->ifname, res);
 			res = _wpa_supplicant_event_scan_results(ifs, data, 0,
