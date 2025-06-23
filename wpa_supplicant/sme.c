@@ -577,9 +577,9 @@ static void wpas_sme_set_mlo_links(struct wpa_supplicant *wpa_s,
 		const u8 *bssid = bss->mld_links[i].bssid;
 		u32 freq = bss->mld_links[i].freq;
 
-		if ((ssid->disable_link_2g && (freq < 3000)) ||
-		    (ssid->disable_link_5g && (freq > 3000 && freq < 5925)) ||
-		    (ssid->disable_link_6g && (freq >= 5925))) {
+		if ((ssid->disable_link_2g && IS_2P4GHZ(freq)) ||
+		    (ssid->disable_link_5g && IS_5GHZ(freq)) ||
+		    (ssid->disable_link_6g && is_6ghz_freq(freq))) {
 			wpa_dbg(wpa_s, MSG_DEBUG, "Configured to skip link, freq: %d  link-id: %d",
 				freq, i);
 			continue;
