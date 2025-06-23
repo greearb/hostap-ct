@@ -4263,56 +4263,56 @@ static bool check_sa_query(struct hostapd_data *hapd, struct sta_info *sta,
 static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 			     const u8 *ies, size_t ies_len,
 			     struct ieee802_11_elems *elems,
-			     enum link_parse_type type, bool link)
+			     enum link_parse_type type,
+			     struct wpa_state_machine *assoc_wpa_sm)
 {
 	int resp;
 	const u8 *wpa_ie;
 	size_t wpa_ie_len;
 	const u8 *p2p_dev_addr = NULL;
-	struct hostapd_data *assoc_hapd;
-	struct sta_info *assoc_sta = NULL;
 
 	if (type != LINK_PARSE_RECONF) {
 		resp = check_ssid(hapd, sta, elems->ssid, elems->ssid_len);
 		if (resp != WLAN_STATUS_SUCCESS)
-			return resp;
+			goto out;
 	}
 
 	resp = check_wmm(hapd, sta, elems->wmm, elems->wmm_len);
 	if (resp != WLAN_STATUS_SUCCESS)
-		return resp;
+		goto out;
 	resp = check_ext_capab(hapd, sta, elems->ext_capab,
 			       elems->ext_capab_len);
 	if (resp != WLAN_STATUS_SUCCESS)
-		return resp;
+		goto out;
 	resp = copy_supp_rates(hapd, sta, elems);
 	if (resp != WLAN_STATUS_SUCCESS)
-		return resp;
+		goto out;
 
 	resp = check_multi_ap(hapd, sta, elems->multi_ap, elems->multi_ap_len);
 	if (resp != WLAN_STATUS_SUCCESS)
-		return resp;
+		goto out;
 
 	resp = copy_sta_ht_capab(hapd, sta, elems->ht_capabilities);
 	if (resp != WLAN_STATUS_SUCCESS)
-		return resp;
+		goto out;
 	if (hapd->iconf->ieee80211n && hapd->iconf->require_ht &&
 	    !(sta->flags & WLAN_STA_HT)) {
 		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_INFO, "Station does not support "
 			       "mandatory HT PHY - reject association");
-		return WLAN_STATUS_ASSOC_DENIED_NO_HT;
+		resp = WLAN_STATUS_ASSOC_DENIED_NO_HT;
+		goto out;
 	}
 
 #ifdef CONFIG_IEEE80211AC
 	if (hapd->iconf->ieee80211ac) {
 		resp = copy_sta_vht_capab(hapd, sta, elems->vht_capabilities);
 		if (resp != WLAN_STATUS_SUCCESS)
-			return resp;
+			goto out;
 
 		resp = set_sta_vht_opmode(hapd, sta, elems->opmode_notif);
 		if (resp != WLAN_STATUS_SUCCESS)
-			return resp;
+			goto out;
 	}
 
 	if (hapd->iconf->ieee80211ac && hapd->iconf->require_vht &&
@@ -4320,14 +4320,15 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_INFO, "Station does not support "
 			       "mandatory VHT PHY - reject association");
-		return WLAN_STATUS_ASSOC_DENIED_NO_VHT;
+		resp = WLAN_STATUS_ASSOC_DENIED_NO_VHT;
+		goto out;
 	}
 
 	if (hapd->conf->vendor_vht && !elems->vht_capabilities) {
 		resp = copy_sta_vendor_vht(hapd, sta, elems->vendor_vht,
 					   elems->vendor_vht_len);
 		if (resp != WLAN_STATUS_SUCCESS)
-			return resp;
+			goto out;
 	}
 #endif /* CONFIG_IEEE80211AC */
 #ifdef CONFIG_IEEE80211AX
@@ -4336,14 +4337,15 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 					 elems->he_capabilities,
 					 elems->he_capabilities_len);
 		if (resp != WLAN_STATUS_SUCCESS)
-			return resp;
+			goto out;
 
 		if (hapd->iconf->require_he && !(sta->flags & WLAN_STA_HE)) {
 			hostapd_logger(hapd, sta->addr,
 				       HOSTAPD_MODULE_IEEE80211,
 				       HOSTAPD_LEVEL_INFO,
 				       "Station does not support mandatory HE PHY - reject association");
-			return WLAN_STATUS_DENIED_HE_NOT_SUPPORTED;
+			resp = WLAN_STATUS_DENIED_HE_NOT_SUPPORTED;
+			goto out;
 		}
 
 		if (is_6ghz_op_class(hapd->iconf->op_class)) {
@@ -4352,12 +4354,13 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 					       HOSTAPD_MODULE_IEEE80211,
 					       HOSTAPD_LEVEL_INFO,
 					       "Station does not support mandatory HE PHY - reject association");
-				return WLAN_STATUS_DENIED_HE_NOT_SUPPORTED;
+				resp = WLAN_STATUS_DENIED_HE_NOT_SUPPORTED;
+				goto out;
 			}
 			resp = copy_sta_he_6ghz_capab(hapd, sta,
 						      elems->he_6ghz_band_cap);
 			if (resp != WLAN_STATUS_SUCCESS)
-				return resp;
+				goto out;
 		}
 	}
 #endif /* CONFIG_IEEE80211AX */
@@ -4369,12 +4372,12 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 					  elems->eht_capabilities,
 					  elems->eht_capabilities_len);
 		if (resp != WLAN_STATUS_SUCCESS)
-			return resp;
+			goto out;
 
-		if (!link) {
+		if (!assoc_wpa_sm) {
 			resp = hostapd_process_ml_assoc_req(hapd, elems, sta);
 			if (resp != WLAN_STATUS_SUCCESS)
-				return resp;
+				goto out;
 		}
 	}
 #endif /* CONFIG_IEEE80211BE */
@@ -4431,7 +4434,8 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		if (sta->wps_ie && wps_validate_assoc_req(sta->wps_ie) < 0) {
 			wpa_printf(MSG_DEBUG, "WPS: Invalid WPS IE in "
 				   "(Re)Association Request - reject");
-			return WLAN_STATUS_INVALID_IE;
+			resp = WLAN_STATUS_INVALID_IE;
+			goto out;
 		}
 	} else if (hapd->conf->wps_state && wpa_ie == NULL) {
 		wpa_printf(MSG_DEBUG, "STA did not include WPA/RSN IE in "
@@ -4443,7 +4447,8 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_INFO,
 			       "No WPA/RSN IE in association request");
-		return WLAN_STATUS_INVALID_IE;
+		resp = WLAN_STATUS_INVALID_IE;
+		goto out;
 	}
 
 	if (hapd->conf->wpa && wpa_ie) {
@@ -4457,10 +4462,10 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		wpa_ie_len += 2;
 
 		if (!sta->wpa_sm) {
-			if (!link)
-				assoc_sta = hostapd_ml_get_assoc_sta(
-					hapd, sta, &assoc_hapd);
-
+			/* NOTE: For links other than the assoc-link the
+			 * separate wpa_sm is only allocated internally to this
+			 * function.
+			 */
 			sta->wpa_sm = wpa_auth_sta_init(hapd->wpa_auth,
 							sta->addr,
 							p2p_dev_addr);
@@ -4468,7 +4473,8 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 			if (!sta->wpa_sm) {
 				wpa_printf(MSG_WARNING,
 					   "Failed to initialize RSN state machine");
-				return WLAN_STATUS_UNSPECIFIED_FAILURE;
+				resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+				goto out;
 			}
 		}
 
@@ -4495,11 +4501,11 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 					  0,
 					  elems->mdie, elems->mdie_len,
 					  elems->owe_dh, elems->owe_dh_len,
-					  assoc_sta ? assoc_sta->wpa_sm : NULL,
+					  assoc_wpa_sm,
 					  ap_sta_is_mld(hapd, sta));
 		resp = wpa_res_to_status_code(res);
 		if (resp != WLAN_STATUS_SUCCESS)
-			return resp;
+			goto out;
 
 		if (wpa_auth_uses_mfp(sta->wpa_sm))
 			sta->flags |= WLAN_STA_MFP;
@@ -4518,17 +4524,18 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 					   "to use association (not "
 					   "re-association) with FT auth_alg",
 					   MAC2STR(sta->addr));
-				return WLAN_STATUS_UNSPECIFIED_FAILURE;
+				resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+				goto out;
 			}
 
 			resp = wpa_ft_validate_reassoc(sta->wpa_sm, ies,
 						       ies_len);
 			if (resp != WLAN_STATUS_SUCCESS)
-				return resp;
+				goto out;
 		}
 #endif /* CONFIG_IEEE80211R_AP */
 
-		if (link)
+		if (assoc_wpa_sm)
 			goto skip_sae_owe;
 #ifdef CONFIG_SAE
 		if (wpa_auth_uses_sae(sta->wpa_sm) && sta->sae &&
@@ -4543,7 +4550,8 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 				wpa_printf(MSG_DEBUG,
 					   "SAE: No PMKSA cache entry found for "
 					   MACSTR, MAC2STR(sta->addr));
-				return WLAN_STATUS_INVALID_PMKID;
+				resp = WLAN_STATUS_INVALID_PMKID;
+				goto out;
 			}
 			wpa_printf(MSG_DEBUG, "SAE: " MACSTR
 				   " using PMKSA caching", MAC2STR(sta->addr));
@@ -4555,7 +4563,8 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 			wpa_printf(MSG_DEBUG, "SAE: " MACSTR " tried to use "
 				   "SAE AKM after non-SAE auth_alg %u",
 				   MAC2STR(sta->addr), sta->auth_alg);
-			return WLAN_STATUS_NOT_SUPPORTED_AUTH_ALG;
+			resp = WLAN_STATUS_NOT_SUPPORTED_AUTH_ALG;
+			goto out;
 		}
 
 		if (hapd->conf->sae_pwe == SAE_PWE_BOTH &&
@@ -4566,7 +4575,8 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 			wpa_printf(MSG_INFO, "SAE: " MACSTR
 				   " indicates support for SAE H2E, but did not use it",
 				   MAC2STR(sta->addr));
-			return WLAN_STATUS_UNSPECIFIED_FAILURE;
+			resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+			goto out;
 		}
 #endif /* CONFIG_SAE */
 
@@ -4580,7 +4590,7 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 			resp = owe_process_assoc_req(hapd, sta, elems->owe_dh,
 						     elems->owe_dh_len);
 			if (resp != WLAN_STATUS_SUCCESS)
-				return resp;
+				goto out;
 		}
 #endif /* CONFIG_OWE */
 	skip_sae_owe:
@@ -4593,7 +4603,7 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		    (hapd->conf->wpa_key_mgmt & WPA_KEY_MGMT_DPP) &&
 		    hapd->conf->dpp_netaccesskey && sta->wpa_sm &&
 		    wpa_auth_sta_key_mgmt(sta->wpa_sm) == WPA_KEY_MGMT_DPP &&
-		    elems->owe_dh && !link) {
+		    elems->owe_dh && !assoc_wpa_sm) {
 			sta->dpp_pfs = dpp_pfs_init(
 				wpabuf_head(hapd->conf->dpp_netaccesskey),
 				wpabuf_len(hapd->conf->dpp_netaccesskey));
@@ -4608,10 +4618,11 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 					    elems->owe_dh_len) < 0) {
 				dpp_pfs_free(sta->dpp_pfs);
 				sta->dpp_pfs = NULL;
-				return WLAN_STATUS_UNSPECIFIED_FAILURE;
+				resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+				goto out;
 			}
 		}
-		if (!link)
+		if (!assoc_wpa_sm)
 			wpa_auth_set_dpp_z(sta->wpa_sm, sta->dpp_pfs ?
 					   sta->dpp_pfs->secret : NULL);
 	pfs_fail:
@@ -4624,7 +4635,8 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 				       HOSTAPD_LEVEL_INFO,
 				       "Station tried to use TKIP with HT "
 				       "association");
-			return WLAN_STATUS_CIPHER_REJECTED_PER_POLICY;
+			resp = WLAN_STATUS_CIPHER_REJECTED_PER_POLICY;
+			goto out;
 		}
 
 		wpa_auth_set_ssid_protection(
@@ -4656,7 +4668,8 @@ skip_wpa_ies:
 			wpa_printf(MSG_DEBUG,
 				   "HS 2.0: PMF not negotiated by release %d station "
 				   MACSTR, release, MAC2STR(sta->addr));
-			return WLAN_STATUS_ROBUST_MGMT_FRAME_POLICY_VIOLATION;
+			resp = WLAN_STATUS_ROBUST_MGMT_FRAME_POLICY_VIOLATION;
+			goto out;
 		}
 	} else {
 		sta->hs20_ie = NULL;
@@ -4687,7 +4700,8 @@ skip_wpa_ies:
 	    hapd->conf->ieee80211w != NO_MGMT_FRAME_PROTECTION) {
 		wpa_printf(MSG_INFO,
 			   "MBO: Reject WPA2 association without PMF");
-		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+		resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+		goto out;
 	}
 #endif /* CONFIG_MBO */
 
@@ -4705,14 +4719,17 @@ skip_wpa_ies:
 		if (hostapd_drv_channel_info(hapd, &ci) != 0) {
 			wpa_printf(MSG_WARNING,
 				   "Failed to get channel info to validate received OCI in FILS (Re)Association Request frame");
-			return WLAN_STATUS_UNSPECIFIED_FAILURE;
+			resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+			goto out;
 		}
 
 		if (get_sta_tx_parameters(sta->wpa_sm,
 					  channel_width_to_int(ci.chanwidth),
 					  ci.seg1_idx, &tx_chanwidth,
-					  &tx_seg1_idx) < 0)
-			return WLAN_STATUS_UNSPECIFIED_FAILURE;
+					  &tx_seg1_idx) < 0) {
+			resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+			goto out;
+		}
 
 		res = ocv_verify_tx_params(elems->oci, elems->oci_len, &ci,
 					   tx_chanwidth, tx_seg1_idx);
@@ -4728,7 +4745,8 @@ skip_wpa_ies:
 			wpa_msg(hapd->msg_ctx, MSG_INFO, OCV_FAILURE "addr="
 				MACSTR " frame=fils-reassoc-req error=%s",
 				MAC2STR(sta->addr), ocv_errorstr);
-			return WLAN_STATUS_UNSPECIFIED_FAILURE;
+			resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+			goto out;
 		}
 	}
 #endif /* CONFIG_FILS && CONFIG_OCV */
@@ -4767,7 +4785,21 @@ skip_wpa_ies:
 		hostapd_wfa_capab(hapd, sta, elems->wfa_capab,
 				  elems->wfa_capab + elems->wfa_capab_len);
 
-	return WLAN_STATUS_SUCCESS;
+out:
+	if (resp != WLAN_STATUS_SUCCESS || assoc_wpa_sm) {
+		wpa_auth_sta_deinit(sta->wpa_sm);
+
+		/* Only keep a reference to the main wpa_sm and drop the
+		 * per-link instance.
+		 * This reference is needed during group rekey handling.
+		 */
+		if (resp == WLAN_STATUS_SUCCESS)
+			sta->wpa_sm = assoc_wpa_sm;
+		else
+			sta->wpa_sm = NULL;
+	}
+
+	return resp;
 }
 
 
@@ -4784,7 +4816,7 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		return WLAN_STATUS_UNSPECIFIED_FAILURE;
 	}
 
-	return __check_assoc_ies(hapd, sta, ies, ies_len, &elems, type, false);
+	return __check_assoc_ies(hapd, sta, ies, ies_len, &elems, type, NULL);
 }
 
 
@@ -4907,7 +4939,8 @@ int ieee80211_ml_process_link(struct hostapd_data *hapd,
 	sta->mld_assoc_link_id = origin_sta->mld_assoc_link_id;
 	ap_sta_set_mld(sta, true);
 
-	status = __check_assoc_ies(hapd, sta, NULL, 0, &elems, type, true);
+	status = __check_assoc_ies(hapd, sta, NULL, 0, &elems, type,
+				   origin_sta->wpa_sm);
 	if (status != WLAN_STATUS_SUCCESS) {
 		wpa_printf(MSG_DEBUG, "MLD: link: Element check failed");
 		goto out;
@@ -4942,12 +4975,6 @@ int ieee80211_ml_process_link(struct hostapd_data *hapd,
 		if (update_ht_state(hapd, sta) > 0)
 			ieee802_11_update_beacons(hapd->iface);
 	}
-
-	/* Maintain state machine reference on all link STAs, this is needed
-	 * during group rekey handling.
-	 */
-	wpa_auth_sta_deinit(sta->wpa_sm);
-	sta->wpa_sm = origin_sta->wpa_sm;
 
 	/*
 	 * Do not initialize the EAPOL state machine.
