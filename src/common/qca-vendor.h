@@ -1410,6 +1410,14 @@ enum qca_radiotap_vendor_ids {
  *	state of any of the links along with the reason.
  *	The attributes used in this event are defined in the
  *	enum qca_wlan_vendor_attr_link_state_change.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_DAR: This vendor subcommand is used to initiate
+ *	the Dynamic Analytics Report (DAR) request or session terminate from
+ *	the driver. The request or session terminate type is identified over
+ *	the %QCA_WLAN_VENDOR_ATTR_DAR_OP_TYPE attribute.
+ *
+ *	The attributes used with this command are defined in
+ *	enum qca_wlan_vendor_attr_dar.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1658,6 +1666,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_WLAN_TELEMETRY_WIPHY = 262,
 	QCA_NL80211_VENDOR_SUBCMD_WLAN_TELEMETRY_WDEV = 263,
 	QCA_NL80211_VENDOR_SUBCMD_LINK_STATE_CHANGE = 264,
+	QCA_NL80211_VENDOR_SUBCMD_DAR = 265,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -20133,6 +20142,481 @@ enum qca_wlan_vendor_attr_link_state_change {
 	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_MAX =
 	QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_AFTER_LAST - 1,
+};
+
+/*
+ * enum qca_wlan_dar_latency_report: Represents the possible values for
+ * %QCA_WLAN_DAR_STATS_LATENCY_ATTR_REPORT_TYPE.
+ *
+ * @QCA_WLAN_DAR_LATENCY_REPORT_HISTOGRAM: Indicates the Latency Statistics
+ * List field contains, or is requested to contain, histogram(s) of latency
+ * measurements.
+ *
+ * @QCA_WLAN_DAR_LATENCY_REPORT_PERCENTILE: Indicates the Latency Statistics
+ * List field contains, or is requested to contain, set(s) of percentile values
+ * of latency.
+ *
+ * @QCA_WLAN_DAR_LATENCY_REPORT_NO_PREF: Indicates the request has no preference
+ * as to the contents of the Latency Statistics List field; this value is
+ * reserved when the attribute is included in a DAR Response or DAR Report frame
+ */
+enum qca_wlan_dar_latency_report {
+	QCA_WLAN_DAR_LATENCY_REPORT_HISTOGRAM = 0,
+	QCA_WLAN_DAR_LATENCY_REPORT_PERCENTILE = 1,
+	QCA_WLAN_DAR_LATENCY_REPORT_NO_PREF = 2,
+};
+
+/*
+ * enum qca_wlan_dar_report_granularity: Represents the possible values for
+ * %QCA_WLAN_DAR_STATS_LATENCY_ATTR_REPORT_GRANULARITY,
+ * %QCA_WLAN_DAR_RTS_STATS_ATTR_REPORT_GRANULARITY,
+ * %QCA_WLAN_DAR_MPDU_COUNT_STATS_ATTR_REPORT_GRANULARITY.
+ *
+ * @QCA_WLAN_DAR_REPORT_GRANULARITY_TID: Indicates the DAR report field
+ * contains, or is requested to contain, values with granularity at the
+ * TID level.
+ *
+ * @QCA_WLAN_DAR_REPORT_GRANULARITY_AC: Indicates the DAR report field
+ * contains, or is requested to contain, values with granularity at the AC
+ * level.
+ *
+ * @QCA_WLAN_DAR_REPORT_GRANULARITY_AGGREGATED_AC: Indicates the DAR field
+ * contains, or is requested to contain, values with granularity aggregated
+ * across all ACs.
+ */
+enum qca_wlan_dar_report_granularity {
+	QCA_WLAN_DAR_REPORT_GRANULARITY_TID = 0,
+	QCA_WLAN_DAR_REPORT_GRANULARITY_AC = 1,
+	QCA_WLAN_DAR_REPORT_GRANULARITY_AGGREGATED_AC = 2,
+};
+
+/*
+ * enum qca_wlan_dar_link_granularity: Represents the possible values
+ * for %QCA_WLAN_DAR_STATS_LATENCY_ATTR_LINK_GRANULARITY,
+ * %QCA_WLAN_DAR_OBSERVED_CU_FRACTIONAL_ATTR_LINK_GRANULARITY,
+ * %QCA_WLAN_DAR_MPDU_COUNT_STATS_ATTR_LINK_GRANULARITY,
+ * %QCA_WLAN_DAR_FCS_FAILURE_ATTR_LINK_GRANULARITY,
+ * %QCA_WLAN_DAR_RTS_STATS_ATTR_LINK_GRANULARITY.
+ *
+ * @QCA_WLAN_DAR_LINK_GRANULARITY_DEVICE_LEVEL: Indicates the Latency
+ * Statistics List field contains, or is requested to contain, values at the
+ * device level. If the DAR responder is an MLD, this means at the MLD level.
+ *
+ * @QCA_WLAN_DAR_LINK_GRANULARITY_PER_LINK: Indicates the Latency
+ * Statistics List field contains, or is requested to contain, values at the
+ * link level (for an MLD). This value is only used if the DAR responder is an
+ * MLD.
+ */
+enum qca_wlan_dar_link_granularity {
+	QCA_WLAN_DAR_LINK_GRANULARITY_DEVICE_LEVEL = 0,
+	QCA_WLAN_DAR_LINK_GRANULARITY_PER_LINK = 1,
+};
+
+/*
+ * enum qca_wlan_dar_stats_latency_attr - Represents the possible latency
+ * statistics attributes for configuring
+ * %QCA_WLAN_VENDOR_ATTR_DAR_STATS_LATENCY_CONFIG.
+ *
+ * @QCA_WLAN_DAR_STATS_LATENCY_ATTR_REPORT_TYPE: Optional u8 attribute,
+ * indicates the type of report. Values are defined in
+ * enum qca_wlan_dar_latency_report.
+ *
+ * @QCA_WLAN_DAR_STATS_LATENCY_ATTR_REPORT_GRANULARITY: Optional u8 attribute,
+ * indicates the report granularity. Values are defined in enum
+ * qca_wlan_dar_report_granularity.
+ *
+ * @QCA_WLAN_DAR_STATS_LATENCY_ATTR_LINK_GRANULARITY: Optional u8 attribute,
+ * indicates the link granularity. Values are defined in enum
+ * qca_wlan_dar_link_granularity.
+ *
+ * @QCA_WLAN_DAR_STATS_LATENCY_ATTR_THRESHOLDS: An array of threshold values
+ * used to trigger reporting of latency statistics. Indexed first by link
+ * identifier. The number of threshold values is determined by: A * B * C, where
+ * - A is the Hamming weight of the Report Granularity Bitmap if Report
+ * Granularity is 0 or 1; otherwise A is 1.
+ * - B is the Hamming weight of the Link Granularity Bitmap if Link Granularity
+ * is 1; otherwise B is 1.
+ */
+enum qca_wlan_dar_stats_latency_attr {
+	QCA_WLAN_DAR_STATS_LATENCY_ATTR_INVALID = 0,
+	QCA_WLAN_DAR_STATS_LATENCY_ATTR_REPORT_TYPE = 1,
+	QCA_WLAN_DAR_STATS_LATENCY_ATTR_REPORT_GRANULARITY = 2,
+	QCA_WLAN_DAR_STATS_LATENCY_ATTR_LINK_GRANULARITY = 3,
+	QCA_WLAN_DAR_STATS_LATENCY_ATTR_THRESHOLDS = 4,
+
+	/* keep last */
+	QCA_WLAN_DAR_STATS_LATENCY_ATTR_AFTER_LAST,
+	QCA_WLAN_DAR_STATS_LATENCY_ATTR_MAX =
+	QCA_WLAN_DAR_STATS_LATENCY_ATTR_AFTER_LAST - 1,
+};
+
+/*
+ * enum qca_wlan_dar_radio_counter_fields - Represents the possible subfields in
+ * the radio counter attribute for
+ * %QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_PRESENCE_BITMAP.
+ *
+ * @QCA_WLAN_DAR_RADIO_COUNTERS_TRANSMIT_POWER_FIELD: Indicates that transmit
+ * power field is included in the radio counter attribute.
+ *
+ * @QCA_WLAN_DAR_RADIO_COUNTERS_OBSERVED_CU_FRACTION_FIELD: Indicates that
+ * observed cu fraction field is included in the radio counter attribute.
+ *
+ * @QCA_WLAN_DAR_RADIO_COUNTERS_MPDU_COUNT_STATISTICS_FIELD: Indicates that MPDU
+ * count statistics field is included in the radio counter attribute.
+ *
+ * @QCA_WLAN_DAR_RADIO_COUNTERS_RTS_STATISTICS_FIELD: Indicates that RTS
+ * statistics field is included in the radio counter attribute.
+ *
+ * @QCA_WLAN_DAR_RADIO_COUNTERS_FCS_FAILURE_FIELD: Indicates that FCS failure
+ * field is included in the radio counter attribute.
+ *
+ * @QCA_WLAN_DAR_RADIO_COUNTERS_THRESHOLD_FIELDS_PRESENT: Indicates the presence
+ * of threshold fields in the radio counter attribute. This bit is set to 0 if
+ * the attribute is in a DAR Report frame.
+ */
+enum qca_wlan_dar_radio_counter_fields {
+	QCA_WLAN_DAR_RADIO_COUNTERS_TRANSMIT_POWER_FIELD = BIT(0),
+	QCA_WLAN_DAR_RADIO_COUNTERS_OBSERVED_CU_FRACTION_FIELD = BIT(1),
+	QCA_WLAN_DAR_RADIO_COUNTERS_MPDU_COUNT_STATISTICS_FIELD = BIT(2),
+	QCA_WLAN_DAR_RADIO_COUNTERS_RTS_STATISTICS_FIELD = BIT(3),
+	QCA_WLAN_DAR_RADIO_COUNTERS_FCS_FAILURE_FIELD = BIT(4),
+	QCA_WLAN_DAR_RADIO_COUNTERS_THRESHOLD_FIELDS_PRESENT = BIT(5),
+};
+
+/*
+ * enum qca_wlan_dar_observed_cu_fractional_fields_attr - Represents the
+ * possible parameters inside the attribute
+ * %QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_OBSERVED_CU_FRACTIONAL
+ *
+ * @QCA_WLAN_DAR_OBSERVED_CU_FRACTIONAL_ATTR_LINK_GRANULARITY: Optional u8
+ * attribute, indicates the granularity level of the Observed CU Fraction List
+ * field. Values are defined in enum qca_wlan_dar_link_granularity.
+ *
+ * @QCA_WLAN_DAR_OBSERVED_CU_FRACTIONAL_ATTR_THRESHOLDS: An array of
+ * possible 8-bit values, indexed by the link identifier. List of thresholds
+ * each of which is channel utilization fraction normalized to 255. If the
+ * granularity is at device level only one value will be included in this list.
+ */
+enum qca_wlan_dar_observed_cu_fractional_fields_attr {
+	QCA_WLAN_DAR_OBSERVED_CU_FRACTIONAL_ATTR_INVALID = 0,
+	QCA_WLAN_DAR_OBSERVED_CU_FRACTIONAL_ATTR_LINK_GRANULARITY = 1,
+	QCA_WLAN_DAR_OBSERVED_CU_FRACTIONAL_ATTR_THRESHOLDS = 2,
+
+	/* keep last */
+	QCA_WLAN_DAR_OBSERVED_CU_FRACTIONAL_ATTR_AFTER_LAST,
+	QCA_WLAN_DAR_OBSERVED_CU_FRACTIONAL_ATTR_MAX =
+	QCA_WLAN_DAR_OBSERVED_CU_FRACTIONAL_ATTR_AFTER_LAST - 1,
+};
+
+/*
+ * enum qca_wlan_dar_mpdu_count_stats_field_attr - Represents the possible
+ * radio statistics attribute configuration for
+ * %QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_MPDU_COUNT_STATS.
+ *
+ * @QCA_WLAN_DAR_MPDU_COUNT_STATS_ATTR_REPORT_GRANULARITY: u8 attribute,
+ * Indicates the granularity level of the MPDU count statistics attribute field.
+ * values are defined in enum qca_wlan_dar_report_granularity.
+ *
+ * @QCA_WLAN_DAR_MPDU_COUNT_STATS_ATTR_LINK_GRANULARITY: u8 attribute,
+ * Indicates the granularity level of the MPDU count stats field.
+ * Values are defined in enum qca_wlan_dar_link_granularity.
+ *
+ * @QCA_WLAN_DAR_MPDU_COUNT_STATS_ATTR_THRESHOLDS: An array of unsigned 8-bit
+ * values. Indexed by the link identifier. List of thresholds each of which is
+ * a one-octet percentile MPDU Retry Rate, equal to {100 * MPDU Retry Count /
+ * Total MPDU Count}, rounded to the nearest integer. If the Total MPDU Count
+ * for a measurement is zero, then the threshold is considered to not have been
+ * exceeded for that measurement. If the granularity is at device level only one
+ * value will be included in this list.
+ */
+enum qca_wlan_dar_mpdu_count_stats_field_attr {
+	QCA_WLAN_DAR_MPDU_COUNT_STATS_ATTR_INVALID = 0,
+	QCA_WLAN_DAR_MPDU_COUNT_STATS_ATTR_REPORT_GRANULARITY = 1,
+	QCA_WLAN_DAR_MPDU_COUNT_STATS_ATTR_LINK_GRANULARITY = 2,
+	QCA_WLAN_DAR_MPDU_COUNT_STATS_ATTR_THRESHOLDS = 3,
+
+	/* keep last */
+	QCA_WLAN_DAR_MPDU_COUNT_STATS_AFTER_LAST,
+	QCA_WLAN_DAR_MPDU_COUNT_STATS_MAX =
+	QCA_WLAN_DAR_MPDU_COUNT_STATS_AFTER_LAST - 1,
+};
+
+/*
+ * enum qca_wlan_dar_fcs_failure_fields_attr - Represents the possible
+ * parameters inside the attribute
+ * %QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_FCS_FAILURE.
+ *
+ * @QCA_WLAN_DAR_FCS_FAILURE_ATTR_LINK_GRANULARITY: u8 attribute,
+ * Indicates the granularity level of the FCS failure link field.
+ * Values are defined in enum qca_wlan_dar_link_granularity.
+ */
+enum qca_wlan_dar_fcs_failure_fields_attr {
+	QCA_WLAN_DAR_FCS_FAILURE_ATTR_INVALID = 0,
+	QCA_WLAN_DAR_FCS_FAILURE_ATTR_LINK_GRANULARITY = 1,
+
+	/* keep last */
+	QCA_WLAN_DAR_FCS_FAILURE_ATTR_AFTER_LAST,
+	QCA_WLAN_DAR_FCS_FAILURE_ATTR_MAX =
+	QCA_WLAN_DAR_FCS_FAILURE_ATTR_AFTER_LAST - 1,
+};
+
+/*
+ * enum qca_wlan_dar_rts_stats_field_attr - Represents the possible
+ * radio stats attribute configuration for
+ * %QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_RTS_STATS.
+ *
+ * @QCA_WLAN_DAR_RTS_STATS_ATTR_REPORT_GRANULARITY: Optional u8 attribute,
+ * Indicates the granularity level of the RTS statistics attribute field.
+ * Values are defined in enum qca_wlan_dar_report_granularity.
+ *
+ * @QCA_WLAN_DAR_RTS_STATS_ATTR_LINK_GRANULARITY:  Optional u8 attribute,
+ * Indicates the granularity level of the RTS stats field.
+ * Values are defined in enum qca_wlan_dar_link_granularity.
+ *
+ * @QCA_WLAN_DAR_RTS_STATS_ATTR_THRESHOLDS: An array of unsigned 8-bit values.
+ * Indexed by the link identifier. List of thresholds each of which is a
+ * one-octet percentile RTS Failure Rate, equal to {100 * RTS Failure Count /
+ * Total RTS Count}, rounded to the nearest integer. If the Total RTS Count for
+ * a measurement is zero, then the threshold is considered to not have been
+ * exceeded for that measurement. If the granularity is at device level only one
+ * value will be included in this list.
+ */
+enum qca_wlan_dar_rts_stats_field_attr {
+	QCA_WLAN_DAR_RTS_STATS_ATTR_INVALID = 0,
+	QCA_WLAN_DAR_RTS_STATS_ATTR_REPORT_GRANULARITY = 1,
+	QCA_WLAN_DAR_RTS_STATS_ATTR_LINK_GRANULARITY = 2,
+	QCA_WLAN_DAR_RTS_STATS_ATTR_THRESHOLDS = 3,
+
+	/* keep last */
+	QCA_WLAN_DAR_RTS_STATS_ATTR_AFTER_LAST,
+	QCA_WLAN_DAR_RTS_STATS_ATTR_MAX =
+	QCA_WLAN_DAR_RTS_STATS_ATTR_AFTER_LAST - 1,
+};
+
+/*
+ * enum qca_wlan_dar_radio_counters_attr - Represents the possible
+ * radio counters attribute configuration for
+ * %QCA_WLAN_VENDOR_ATTR_DAR_RADIO_COUNTERS_CONFIG.
+ *
+ * @QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_PRESENCE_BITMAP: Mandatory u16
+ * attribute, indicates the Radio Counter fields that are requested to the peer
+ * in the DAR request frame.
+ * Values are defined in enum qca_wlan_dar_radio_counter_fields.
+ *
+ * @QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_OBSERVED_CU_FRACTIONAL:
+ * Optional nested attribute to configure the parameters that will be included
+ * in observed channel utilization fractional field.
+ * This attribute is included only when
+ * %QCA_WLAN_DAR_RADIO_COUNTERS_OBSERVED_CU_FRACTION_FIELD bit is set in the
+ * %QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_PRESENCE_BITMAP.
+ * The attributes used inside this nested attribute is defined in enum
+ * qca_wlan_dar_observed_cu_fractional_fields_attr.
+ *
+ * @QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_MPDU_COUNT_STATS: Optional nested attribute
+ * to configure the parameters that will be included in MPDU Count statistics
+ * field.
+ * This attribute is included only when
+ * %QCA_WLAN_DAR_RADIO_COUNTERS_MPDU_COUNT_STATISTICS_FIELD bit is set in the
+ * %QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_PRESENCE_BITMAP.
+ * The attribute used inside this nested attribute is defined in enum
+ * qca_wlan_dar_mpdu_count_stats_field_attr.
+ *
+ * @QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_RTS_STATS: Optional nested attribute to
+ * configure the parameters that will be included in RTS statistics field.
+ * This attribute is included only when
+ * %QCA_WLAN_DAR_RADIO_COUNTERS_RTS_STATISTICS_FIELD bit is set in the radio
+ * counters presence field bitmap.
+ * The attribute used inside this nested attribute is defined in enum
+ * qca_wlan_dar_rts_stats_field_attr.
+ *
+ * @QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_FCS_FAILURE: Optional nested attribute to
+ * configure the parameters that will be included in FCS failure statistics
+ * field.
+ * This attribute is included only when
+ * %QCA_WLAN_DAR_RADIO_COUNTERS_FCS_FAILURE_FIELD bit is set in the radio
+ * counters presence field bitmap.
+ * The attribute used inside this nested attribute is defined in enum
+ * qca_wlan_dar_fcs_failure_fields_attr.
+ */
+enum qca_wlan_dar_radio_counters_attr {
+	QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_INVALID = 0,
+	QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_PRESENCE_BITMAP = 1,
+	QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_OBSERVED_CU_FRACTIONAL = 2,
+	QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_MPDU_COUNT_STATS = 3,
+	QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_RTS_STATS = 4,
+	QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_FCS_FAILURE = 5,
+
+	/* keep last */
+	QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_AFTER_LAST,
+	QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_MAX =
+	QCA_WLAN_DAR_RADIO_COUNTERS_ATTR_AFTER_LAST - 1,
+};
+
+/*
+ * enum qca_wlan_dar_tuple_codes_attr - Represents the possible control plane
+ * events tuple code parameters in a request for
+ * %QCA_WLAN_DAR_CONTROL_PLANE_EVENTS_ATTR_TUPLE_CODES.
+ *
+ * @QCA_WLAN_DAR_TUPLE_CODES_ATTR_CATEGORY_CODE: Optional u8 attribute.
+ * Indicates the category of the control plane event as defined in Wi-Fi QoS
+ * Management Specification Version 3.0 + WorkingR4, Table 32. Control Plane
+ * Event Codes.
+ * @QCA_WLAN_DAR_TUPLE_CODES_ATTR_SUBCATEGORY_CODE: Optional u8 attribute
+ * Indicates the subcategory of the control plane event as defined in Wi-Fi QoS
+ * Management Specification Version 3.0 + WorkingR4, Table 32. Control Plane
+ * Event Codes.
+ */
+enum qca_wlan_dar_tuple_codes_attr {
+	QCA_WLAN_DAR_TUPLE_CODES_ATTR_INVALID = 0,
+	QCA_WLAN_DAR_TUPLE_CODES_ATTR_CATEGORY_CODE = 1,
+	QCA_WLAN_DAR_TUPLE_CODES_ATTR_SUBCATEGORY_CODE = 2,
+
+	/* keep last */
+	QCA_WLAN_DAR_TUPLE_CODES_ATTR_AFTER_LAST,
+	QCA_WLAN_DAR_TUPLE_CODES_ATTR_MAX =
+	QCA_WLAN_DAR_TUPLE_CODES_ATTR_AFTER_LAST - 1,
+};
+
+/*
+ * enum qca_wlan_dar_control_plane_events_attr - Represents the possible control
+ * plane events attribute configuration for
+ * %QCA_WLAN_VENDOR_ATTR_DAR_CONTROL_PLANE_EVENTS_CONFIG.
+ *
+ * @QCA_WLAN_DAR_CONTROL_PLANE_EVENTS_ATTR_EVENT_COUNT: u8 attribute.
+ * This attribute specifiess the number of control plane event tuples.
+ * @QCA_WLAN_DAR_CONTROL_PLANE_EVENTS_ATTR_TUPLE_CODES: Optional array of nested
+ * attributes specified by enum qca_wlan_dar_tuple_codes_attr. The size of the
+ * array specified by %QCA_WLAN_DAR_CONTROL_PLANE_EVENTS_ATTR_EVENT_COUNT
+ * attribute.
+ */
+enum qca_wlan_dar_control_plane_events_attr {
+	QCA_WLAN_DAR_CONTROL_PLANE_EVENTS_ATTR_INVALID = 0,
+	QCA_WLAN_DAR_CONTROL_PLANE_EVENTS_ATTR_EVENT_COUNT = 1,
+	QCA_WLAN_DAR_CONTROL_PLANE_EVENTS_ATTR_TUPLE_CODES = 2,
+
+	/* keep last */
+	QCA_WLAN_DAR_CONTROL_PLANE_EVENTS_ATTR_AFTER_LAST,
+	QCA_WLAN_DAR_CONTROL_PLANE_EVENTS_ATTR_MAX =
+	QCA_WLAN_DAR_CONTROL_PLANE_EVENTS_ATTR_AFTER_LAST - 1,
+};
+
+/*
+ * enum qca_wlan_dar_stats_types - Represents the type of the DAR statistics
+ * attribute for %QCA_WLAN_VENDOR_ATTR_DAR_STATS_BITMAP.
+ *
+ * @QCA_WLAN_DAR_STATS_TYPE_LATENCY: Indicates that latency statistic attribute
+ * is requested in DAR request frame and DAR session terminate in the DAR
+ * response attribute.
+ * @QCA_WLAN_DAR_STATS_TYPE_RADIO_COUNTERS: Indicates that radio counters
+ * statistic attribute is requested in DAR request frame and DAR session
+ * terminate in the DAR response attribute.
+ * @QCA_WLAN_DAR_STATS_TYPE_CONTROL_PLANE: Indicates that control plane
+ * statistic attribute is requested in DAR request frame and DAR session
+ * terminate in the DAR response attribute.
+ */
+enum qca_wlan_dar_stats_types {
+	QCA_WLAN_DAR_STATS_TYPE_LATENCY = BIT(0),
+	QCA_WLAN_DAR_STATS_TYPE_RADIO_COUNTERS = BIT(1),
+	QCA_WLAN_DAR_STATS_TYPE_CONTROL_PLANE = BIT(2),
+};
+
+/*
+ * enum qca_wlan_dar_report_method - Specifies the report method for the
+ * DAR Request attribute %QCA_WLAN_VENDOR_ATTR_DAR_REPORT_METHOD.
+ *
+ * @QCA_WLAN_DAR_REPORT_PERIODIC: Specifies that the report should be sent at
+ * regular intervals based on the defined periodicity, supporting continuous
+ * monitoring.
+ * @QCA_WLAN_DAR_REPORT_ON_DEMAND: Specifies that the report should be sent
+ * immediately or after the measurement duration, upon request by the initiator.
+ * @QCA_WLAN_DAR_REPORT_TRIGGERED: Specifies that the report should be sent when
+ * a predefined trigger condition is met, enabling event-driven reporting.
+ */
+enum qca_wlan_dar_report_method {
+	QCA_WLAN_DAR_REPORT_PERIODIC = 0,
+	QCA_WLAN_DAR_REPORT_ON_DEMAND = 1,
+	QCA_WLAN_DAR_REPORT_TRIGGERED = 2,
+};
+
+/*
+ * enum qca_wlan_dar_op_type - Specifies the type of DAR operation for
+ * %QCA_WLAN_VENDOR_ATTR_DAR_OP_TYPE attribute.
+ *
+ * @QCA_WLAN_DAR_OP_TYPE_REQUEST_ADD: Triggers the driver to fill the request
+ * type as add in the DAR request attribute of the QoS management element sent
+ * in the DAR request frame.
+ * @QCA_WLAN_DAR_OP_TYPE_REQUEST_REMOVE: Triggers the driver to fill the
+ * request type as remove in the DAR request attribute of the QoS Management
+ * element sent in the DAR request frame.
+ * @QCA_WLAN_DAR_OP_TYPE_RESPONSE_TERMINATE: Triggers the driver to fill the
+ * status code as terminate DAR session in the DAR response attribute of the
+ * QoS management element sent in the DAR response frame.
+ */
+enum qca_wlan_dar_op_type {
+	QCA_WLAN_DAR_OP_TYPE_REQUEST_ADD = 0,
+	QCA_WLAN_DAR_OP_TYPE_REQUEST_REMOVE = 1,
+	QCA_WLAN_DAR_OP_TYPE_RESPONSE_TERMINATE = 2,
+};
+
+/*
+ * enum qca_wlan_vendor_attr_dar: Attributes used by vendor command
+ * %QCA_NL80211_VENDOR_SUBCMD_DAR.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_DAR_OP_TYPE: Mandatory u8 attribute to specify the type
+ * of DAR operation in request/response attributes. Values are defined in enum
+ * qca_wlan_dar_op_type.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_DAR_STATS_BITMAP: Mandatory u8 attribute. Bitmap of
+ * various DAR request attribute types. Refer the enum qca_wlan_dar_stats_types.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_DAR_REPORT_METHOD: Optional u8 attribute. This
+ * attribute specifies the reporting method of the DAR Request attribute. It can
+ * be either periodic, on-demand, or triggered. Refer enum
+ * qca_wlan_dar_report_method.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_DAR_MEASUREMENT_DURATION: Optional u16 attribute.
+ * This attribute specifies the requested measurement period in units of ms.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_DAR_MEASUREMENTS: Optional u16 attribute. This
+ * attribute indicates the non-zero value for the requested number of
+ * measurements.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_DAR_STATS_LATENCY_CONFIG: Optional nested attribute
+ * to configure latency statistic attribute. This attribute is included only
+ * when %QCA_WLAN_DAR_STATS_TYPE_LATENCY is set in
+ * %QCA_WLAN_VENDOR_ATTR_DAR_STATS_BITMAP.
+ * The attributes used inside this nested attribute are defined in enum
+ * qca_wlan_dar_stats_latency_attr.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_DAR_RADIO_COUNTERS_CONFIG: Optional nested attribute to
+ * configure radio counters attribute. This attribute is included only when
+ * %QCA_WLAN_DAR_STATS_TYPE_RADIO_COUNTERS is set in
+ * %QCA_WLAN_VENDOR_ATTR_DAR_STATS_BITMAP.
+ * The attributes used inside this nested attribute is defined in enum
+ * qca_wlan_dar_radio_counters_attr.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_DAR_CONTROL_PLANE_EVENTS_CONFIG: Optional nested
+ * attribute to configure. This attribute is included only when
+ * %QCA_WLAN_DAR_STATS_TYPE_CONTROL_PLANE is set in the
+ * %QCA_WLAN_VENDOR_ATTR_DAR_STATS_BITMAP.
+ * The attributes used inside this nested attribute is defined in enum
+ * qca_wlan_dar_control_plane_events_attr.
+ */
+enum qca_wlan_vendor_attr_dar {
+	QCA_WLAN_VENDOR_ATTR_DAR_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_DAR_OP_TYPE = 1,
+	QCA_WLAN_VENDOR_ATTR_DAR_STATS_BITMAP = 2,
+	QCA_WLAN_VENDOR_ATTR_DAR_REPORT_METHOD = 3,
+	QCA_WLAN_VENDOR_ATTR_DAR_MEASUREMENT_DURATION = 4,
+	QCA_WLAN_VENDOR_ATTR_DAR_MEASUREMENTS = 5,
+	QCA_WLAN_VENDOR_ATTR_DAR_STATS_LATENCY_CONFIG = 6,
+	QCA_WLAN_VENDOR_ATTR_DAR_RADIO_COUNTERS_CONFIG = 7,
+	QCA_WLAN_VENDOR_ATTR_DAR_CONTROL_PLANE_EVENTS_CONFIG = 8,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_DAR_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_DAR_MAX =
+	QCA_WLAN_VENDOR_ATTR_DAR_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
