@@ -1383,6 +1383,26 @@ enum qca_radiotap_vendor_ids {
  *	enable/disable Notice of Absence (NoA) as a GO in a P2P connection.
  *	The attributes used with this command are defined in
  *	enum qca_wlan_vendor_attr_p2p_set_noa.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_WLAN_TELEMETRY_WIPHY: Vendor subcommand/event
+ *	which is used to get WLAN statistics from the driver to userspace
+ *	application for the WIPHY level interfaces like device/radio.
+ *
+ *	The attributes used for this subcommand are defined in
+ *	enum qca_wlan_vendor_attr_wlan_telemetry.
+ *
+ *	The attributes used for the event reply are defined in
+ *	enum qca_wlan_vendor_attr_wlan_telemetry_event_reply.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_WLAN_TELEMETRY_WDEV: Vendor subcommand/event
+ *	which is used to get WLAN statistics from the driver to userspace
+ *	application for the WDEV level interfaces like vdev/station.
+ *
+ *	The attributes used for this subcommand are defined in
+ *	enum qca_wlan_vendor_attr_wlan_telemetry.
+ *
+ *	The attributes used for the event reply are defined in
+ *	enum qca_wlan_vendor_attr_wlan_telemetry_event_reply.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1628,6 +1648,8 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_RX_MCS_MAP_CONFIG = 259,
 	QCA_NL80211_VENDOR_SUBCMD_IQ_DATA_INFERENCE = 260,
 	QCA_NL80211_VENDOR_SUBCMD_P2P_SET_NOA = 261,
+	QCA_NL80211_VENDOR_SUBCMD_WLAN_TELEMETRY_WIPHY = 262,
+	QCA_NL80211_VENDOR_SUBCMD_WLAN_TELEMETRY_WDEV = 263,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -19705,6 +19727,332 @@ enum qca_wlan_vendor_attr_p2p_set_noa {
 	QCA_WLAN_VENDOR_ATTR_P2P_SET_NOA_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_P2P_SET_NOA_MAX =
 	QCA_WLAN_VENDOR_ATTR_P2P_SET_NOA_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_wlan_telemetry - Represents the attributes sent
+ * from userspace application to the driver to get WLAN statistics.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_OBJECT: u8 attribute representing the
+ * object type for which the statistics are requested. The types of objects are
+ * defined in enum qca_wlan_vendor_wlan_telemetry_obj_type.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_FEATURE: Nested attribute representing
+ * the set of WLAN features for which statistics are requested.
+ * The nested attributes are of type NLA_FLAG and allow userspace applications
+ * to request multiple feature-specific statistics simultaneously. When a
+ * userspace application needs specific feature statistics, the corresponding
+ * feature attribute will be present. If a feature is not specified by the user,
+ * all feature attributes will be present by default. The nested flag
+ * attributes identifying the types of features are defined in
+ * enum qca_wlan_vendor_wlan_telemetry_feat_type.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_STA_MAC: 6 byte MAC address attribute of
+ * a atation which is required when the statistics are being requested for a
+ * specific station. This can be either an MLD MAC address or a link MAC
+ * address. In case the MLD MAC address and the link MAC address are same,
+ * an additional attribute @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_LINK_ID to
+ * specify the Link ID is required.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_REQUEST_ID: u64 attribute representing
+ * the request ID for a non-blocking statistics request. This request ID will
+ * be returned back in the corresponding reply event from the driver to allow
+ * userspace to correlate the event reply with its request command.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_LINK_ID: u8 attribute representing the
+ * link ID for which the statistics are requested.
+ */
+enum qca_wlan_vendor_attr_wlan_telemetry {
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_OBJECT = 1,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_FEATURE = 2,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_STA_MAC = 3,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_REQUEST_ID = 4,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_LINK_ID = 5,
+
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_MAX =
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_AFTER_LAST - 1,
+};
+
+/**
+ * qca_wlan_vendor_wlan_telemetry_obj_type - Represents the object types for
+ * which the statistics are requested.
+ *
+ * @QCA_WLAN_VENDOR_WLAN_TELEMETRY_OBJ_STA: Represents the station object. This
+ * enum value will be present if the userspace application requests for station
+ * level statistics from the driver.
+ *
+ * @QCA_WLAN_VENDOR_WLAN_TELEMETRY_OBJ_VDEV: Represents the vdev object which
+ * corresponds to the virtual interface of the radio. This enum
+ * value will be present if the userspace application requests for vdev level
+ * statistics from the driver.
+ *
+ * @QCA_WLAN_VENDOR_WLAN_TELEMETRY_OBJ_RADIO: Represents the radio interface
+ * of the device. This enum value will be present if the userspace application
+ * requests for radio level statistics from the driver.
+ *
+ * @QCA_WLAN_VENDOR_WLAN_TELEMETRY_OBJ_DEVICE: Represents the device object.
+ * This enum value will be present if the userspace application requests
+ * for device level statistics from the driver.
+ */
+
+enum qca_wlan_vendor_wlan_telemetry_obj_type {
+	QCA_WLAN_VENDOR_WLAN_TELEMETRY_OBJ_STA = 1,
+	QCA_WLAN_VENDOR_WLAN_TELEMETRY_OBJ_VDEV = 2,
+	QCA_WLAN_VENDOR_WLAN_TELEMETRY_OBJ_RADIO = 3,
+	QCA_WLAN_VENDOR_WLAN_TELEMETRY_OBJ_DEVICE = 4,
+};
+
+/**
+ * qca_wlan_vendor_attr_wlan_telemetry_feat_type - Represents the feature types
+ * for which the statistics are requested.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_FEAT_TX: Flag attribute representing the
+ * TX feature type which will be present if the userspace application requests
+ * for TX statistics from the driver.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_FEAT_RX: Flag attribute representing the
+ * RX feature type which will be present if the userspace application requests
+ * for RX statistics from the driver.
+ *
+ */
+enum qca_wlan_vendor_attr_wlan_telemetry_feat_type {
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_FEAT_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_FEAT_TX = 1,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_FEAT_RX = 2,
+
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_FEAT_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_FEAT_MAX =
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_FEAT_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_wlan_telemetry_event_reply - Represents the set of
+ * attributes included in the event reply from the driver to the userspace
+ * application in response to the WLAN statistics request command.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_EVENT_OBJECT: u8 attribute representing
+ * the object type of the statistics event reply. The types of objects are
+ * defined in enum qca_wlan_vendor_wlan_telemetry_obj_type.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_EVENT_LINK_ID: u8 attribute representing
+ * the link ID of the statistics event reply.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_EVENT_REQUEST_ID: u64 attribute
+ * representing the request ID of the statistics event reply. This ID is taken
+ * from the statistics request command sent by userspace application and
+ * included in the statistics event reply to correlate the event reply with its
+ * request command.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_EVENT_RX_STATS: Nested attribute
+ * representing the types of WLAN RX statistics. This attribute will be present
+ * if the userspace application requests for RX statistics
+ * (QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_FEAT_RX) in the request command.
+ * The types of RX statistics are defined in enum
+ * qca_wlan_vendor_attr_wlan_telemetry_rx_stats_types.
+ */
+enum qca_wlan_vendor_attr_wlan_telemetry_event_reply {
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_EVENT_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_EVENT_OBJECT = 1,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_EVENT_LINK_ID = 2,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_EVENT_REQUEST_ID = 3,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_EVENT_RX_STATS = 4,
+
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_EVENT_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_EVENT_MAX =
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_EVENT_AFTER_LAST - 1,
+};
+
+/**
+ * qca_wlan_vendor_attr_wlan_telemetry_rx_stats_types - Represents the types of
+ * RX statistics included in the event reply from driver to userspace
+ * application.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_RX_STATS_RXDMA_ERR_EVENT: Nested
+ * attribute representing the types of RXDMA error statistics included in the
+ * event reply. The types of RXDMA errors are defined in
+ * enum qca_wlan_vendor_wlan_telemetry_rxdma_error_types.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_RX_STATS_REO_ERR_EVENT: Nested attribute
+ * representing the types of REO error statistics included in the event reply.
+ * The types of REO errors are defined in
+ * enum qca_wlan_vendor_wlan_telemetry_reo_error_types.
+ */
+
+enum qca_wlan_vendor_attr_wlan_telemetry_rx_stats_types {
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_RX_STATS_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_RX_STATS_RXDMA_ERR_EVENT = 1,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_RX_STATS_REO_ERR_EVENT = 2,
+
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_RX_STATS_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_RX_STATS_MAX =
+	QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_RX_STATS_AFTER_LAST - 1,
+};
+
+/**
+ * qca_wlan_vendor_attr_wlan_telemetry_rxdma_error_types - Representing the
+ * types of RXDMA errors.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_OVERFLOW: u32 attribute
+ * representing the number of MPDU frames that are not completed due to a
+ * FIFO overflow.
+ *
+ * @ QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_MPDU_LENGTH: u32 attribute
+ * representing the number of MPDU frames that are not complete due to receiving
+ * an incomplete MPDU from the PHY.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_FCS: u32 attribute representing
+ * the FCS check failure on the MPDU frames.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_DECRYPT: u32 attribute representing
+ * the decryption error.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_TKIP_MIC: u32 attribute
+ * representing the TKIP MIC error.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_UNENCRYPTED: u32 attribute
+ * representing the number of frames which are expected to be encrypted but was
+ * not encrypted.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_MSDU_LEN: u32 attribute
+ * representing the failures due to MPDU length errors.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_MSDU_LIMIT: u32 attribute
+ * representing the number of MSDUs which exceeded the max allowed in MPDUs.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_WIFI_PARSE: u32 attribute
+ * representing the wifi parsing error.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_AMSDU_PARSE: u32 attribute
+ * representing the A-MSDU parsing error.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_SA_TIMEOUT: u32 attribute
+ * representing the source address search timeout.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_DA_TIMEOUT: u32 attribute
+ * representing the destination address search timeout.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_FLOW_TIMEOUT: u32 attribute
+ * representing the flow search timeout.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_FLUSH_REQUEST: u32 attribute
+ * representing the RXDMA FIFO flush requests.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_AMSDU_FRAGMENT: u32 attribute
+ * representing the presence of fragmented MPDUs as well as A-MSDUs, as
+ * reported by the RX PCU.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_MULTICAST_ECHO: u32 attribute
+ * representing multicast echo as reported by the RX OLE.
+ */
+
+enum qca_wlan_vendor_attr_wlan_telemetry_rxdma_error_types {
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_OVERFLOW = 1,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_MPDU_LENGTH = 2,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_FCS = 3,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_DECRYPT = 4,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_TKIP_MIC = 5,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_UNENCRYPTED = 6,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_MSDU_LEN = 7,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_MSDU_LIMIT = 8,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_WIFI_PARSE = 9,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_AMSDU_PARSE = 10,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_SA_TIMEOUT = 11,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_DA_TIMEOUT = 12,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_FLOW_TIMEOUT = 13,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_FLUSH_REQUEST = 14,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_AMSDU_FRAGMENT = 15,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_MULTICAST_ECHO = 16,
+
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_MAX =
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_wlan_telemetry_reo_error_types - Represents the
+ * types of REO errors.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_QUEUE_DESC_ADDR_0: u32 attribute
+ * representing the number of times the REO queue descriptor provided in the
+ * REO_ENTRANCE ring is 0.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_QUEUE_DESC_INVALID: u32 attribute
+ * representing the number of times the REO queue descriptor valid bit is not
+ * set.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_AMPDU_IN_NON_BA: u32 attribute
+ * representing the number of times A-MPDU frames are received without BA
+ * session.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_NON_BA_DUPLICATE: u32 attribute
+ * representing the duplicate frames in a non BA session.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_BA_DUPLICATE: u32 attribute
+ * representing the duplicate frame in a BA session.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_REGULAR_FRAME_2K_JUMP: u32 attribute
+ * representing the number of times a normal frame (Management/Data frame)
+ * received with 2K jump in SN.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_BAR_FRAME_2K_JUMP: u32 attribute
+ * representing the number of times a BAR frame received with 2K jump in SSN.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_REGULAR_FRAME_OOR: u32 attribute
+ * representing the number of times a normal frame (Management/Data frame)
+ * received with SN falling within the OOR window.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_BAR_FRAME_OOR: u32 attribute
+ * representing the number of times a BAR is received with SN falling within
+ * the OOR window.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_BAR_FRAME_NO_BA_SESSION: u32
+ * attribute representing the number of times a BAR received without a BA
+ * session.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_BAR_FRAME_SN_EQUALS_SSN: u32
+ * attribute representing the number of times a BAR received with SSN equal to
+ * SN.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_PN_CHECK_FAILED: u32 attribute
+ * representing the number of times PN check failed for a frame.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_2K_ERROR_HANDLING_FLAG_SET: u32
+ * attribute representing the number of times a frame is forwarded due to
+ * Seq_2k_error_detected_flag being set in the REO queue descriptor.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_PN_ERROR_HANDLING_FLAG_SET: u32
+ * attribute representing the number of times a frame is forwarded due to
+ * pn_error_detected_flag being set in the REO queue descriptor.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_QUEUE_DESC_BLOCKED_SET: u32
+ * attribute representing the number of times a frame is forwarded as a result
+ * of the queue descriptor (address) being blocked as software/firmware appears
+ * to be in the process of updating this descriptor.
+ */
+enum qca_wlan_vendor_attr_wlan_telemetry_reo_error_types {
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_QUEUE_DESC_ADDR_0 = 1,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_QUEUE_DESC_INVALID = 2,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_AMPDU_IN_NON_BA = 3,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_NON_BA_DUPLICATE = 4,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_BA_DUPLICATE = 5,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_REGULAR_FRAME_2K_JUMP = 6,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_BAR_FRAME_2K_JUMP = 7,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_REGULAR_FRAME_OOR = 8,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_BAR_FRAME_OOR = 9,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_BAR_FRAME_NO_BA_SESSION = 10,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_BAR_FRAME_SN_EQUALS_SSN = 11,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_PN_CHECK_FAILED = 12,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_2K_ERROR_HANDLING_FLAG_SET = 13,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_PN_ERROR_HANDLING_FLAG_SET = 14,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_QUEUE_DESC_BLOCKED_SET = 15,
+
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_MAX =
+	QCA_WLAN_VENDOR_ATTR_TELEMETRY_REO_ERR_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
