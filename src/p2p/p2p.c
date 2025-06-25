@@ -6144,6 +6144,10 @@ void p2p_process_usd_elems(struct p2p_data *p2p, const u8 *ies, u16 ies_len,
 		return;
 	}
 
+	if (msg.device_name[0])
+		os_memcpy(dev->info.device_name, msg.device_name,
+			  sizeof(dev->info.device_name));
+
 	dev->p2p2 = true;
 	/* Reset info from old IEs */
 	dev->info.reg_info = 0;
