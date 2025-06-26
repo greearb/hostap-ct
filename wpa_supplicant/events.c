@@ -4669,6 +4669,8 @@ static int could_be_psk_mismatch(struct wpa_supplicant *wpa_s, u16 reason_code,
 	if (locally_generated) {
 		if (reason_code == WLAN_REASON_IE_IN_4WAY_DIFFERS)
 			return 0;
+		if (reason_code == WLAN_REASON_DISASSOC_DUE_TO_INACTIVITY)
+			return 0;
 	}
 
 	return 1;
