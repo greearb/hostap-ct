@@ -786,8 +786,6 @@ def test_wnm_bss_tm_req(dev, apdev):
     resp = rx_bss_tm_resp(hapd, expect_dialog=8, expect_status=7)
     dev[0].dump_monitor()
 
-@remote_compatible
-@disable_ipv6
 def test_wnm_bss_keep_alive(dev, apdev):
     """WNM keep-alive"""
     run_wnm_bss_keep_alive(dev, apdev, False)
@@ -796,6 +794,7 @@ def test_wnm_bss_protected_keep_alive(dev, apdev):
     """WNM protected keep-alive"""
     run_wnm_bss_keep_alive(dev, apdev, True)
 
+@disable_ipv6
 def run_wnm_bss_keep_alive(dev, apdev, protected):
     hapd = start_wnm_ap(apdev[0], bss_transition=False, ap_max_inactivity=1,
                         bss_max_idle=2 if protected else 1, rsn=True)
