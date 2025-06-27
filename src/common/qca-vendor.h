@@ -19748,7 +19748,7 @@ enum qca_wlan_vendor_attr_p2p_set_noa {
  * enum qca_wlan_vendor_wlan_telemetry_feat_type.
  *
  * @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_STA_MAC: 6 byte MAC address attribute of
- * a atation which is required when the statistics are being requested for a
+ * a station which is required when the statistics are being requested for a
  * specific station. This can be either an MLD MAC address or a link MAC
  * address. In case the MLD MAC address and the link MAC address are same,
  * an additional attribute @QCA_WLAN_VENDOR_ATTR_WLAN_TELEMETRY_LINK_ID to
@@ -19898,7 +19898,7 @@ enum qca_wlan_vendor_attr_wlan_telemetry_rx_stats_types {
  * representing the number of MPDU frames that are not completed due to a
  * FIFO overflow.
  *
- * @ QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_MPDU_LENGTH: u32 attribute
+ * @QCA_WLAN_VENDOR_ATTR_TELEMETRY_RXDMA_ERR_MPDU_LENGTH: u32 attribute
  * representing the number of MPDU frames that are not complete due to receiving
  * an incomplete MPDU from the PHY.
  *
