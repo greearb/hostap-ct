@@ -2668,6 +2668,7 @@ static int hostapd_setup_interface_complete_sync(struct hostapd_iface *iface,
 			for (;;) {
 				hapd = iface->bss[j];
 				hostapd_bss_deinit_no_free(hapd);
+				hostapd_bss_link_deinit(hapd);
 				hostapd_free_hapd_data(hapd);
 				if (j == 0)
 					break;
@@ -2686,6 +2687,7 @@ static int hostapd_setup_interface_complete_sync(struct hostapd_iface *iface,
 				for (;;) {
 					hapd = iface->bss[j];
 					hostapd_bss_deinit_no_free(hapd);
+					hostapd_bss_link_deinit(hapd);
 					hostapd_free_hapd_data(hapd);
 					if (j == 0)
 						break;
