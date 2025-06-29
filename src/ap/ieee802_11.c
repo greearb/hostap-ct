@@ -8425,8 +8425,10 @@ repeat_rnr_len:
 
 		struct hostapd_local_bss_info *local_bss = &hapd->conf->local_bss_info[start];
 
-		if (is_zero_ether_addr(local_bss->own_addr))
+		if (is_zero_ether_addr(local_bss->own_addr)) {
+			start++;
 			continue;
+		}
 
 		if (!len ||
 		    len + RNR_TBTT_HEADER_LEN + RNR_TBTT_INFO_LEN > 255) {
@@ -8851,8 +8853,10 @@ repeat_rnr:
 		struct hostapd_local_bss_info *local_bss = &hapd->conf->local_bss_info[start];
 		u8 bss_param;
 
-		if (is_zero_ether_addr(local_bss->own_addr))
+		if (is_zero_ether_addr(local_bss->own_addr)) {
+			start++;
 			continue;
+		}
 
 		/* wpa_printf(MSG_DEBUG, "hostapd_eid_rnr_iface, found local-bss[%i]: " MACSTR,
 		              (int)(start), MAC2STR(local_bss->own_addr)); */
