@@ -111,8 +111,8 @@ int linux_set_ifhwaddr(int sock, const char *ifname, const u8 *addr)
 	ifr.ifr_hwaddr.sa_family = ARPHRD_ETHER;
 
 	if (ioctl(sock, SIOCSIFHWADDR, &ifr)) {
-		wpa_printf(MSG_DEBUG, "Could not set interface %s hwaddr: %s",
-			   ifname, strerror(errno));
+		wpa_printf(MSG_DEBUG, "Could not set interface %s hwaddr to " MACSTR ": %s",
+			   ifname, MAC2STR(addr), strerror(errno));
 		return -1;
 	}
 
