@@ -16741,8 +16741,8 @@ static int nl80211_pp_mode_set(void *priv, const u8 pp_mode, s8 link_id, u16 pun
 	int ret;
 
 	if (!drv->mtk_pp_vendor_cmd_avail) {
-		wpa_printf(MSG_DEBUG,
-			   "nl80211: Driver does not support setting preamble puncture");
+		wpa_dbg(drv->ctx, MSG_DEBUG,
+			"nl80211: Driver does not support setting preamble puncture");
 		return 0;
 	}
 
@@ -16768,8 +16768,8 @@ static int nl80211_pp_mode_set(void *priv, const u8 pp_mode, s8 link_id, u16 pun
 	ret = send_and_recv_cmd(drv, msg);
 
 	if (ret)
-		wpa_printf(MSG_ERROR, "Failed to set pp_enable. ret=%d (%s)",
-			   ret, strerror(-ret));
+		wpa_dbg(drv->ctx, MSG_ERROR, "Failed to set pp_enable, PP_CTRL: %d link-id: %d punc: 0x%x. ret=%d (%s)",
+			MTK_NL80211_VENDOR_SUBCMD_PP_CTRL, link_id, punct_bitmap, ret, strerror(-ret));
 
 	return ret;
 
