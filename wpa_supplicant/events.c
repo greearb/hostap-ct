@@ -1727,22 +1727,23 @@ struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 	}
 
 	if (wpa_s->conf->phy_bands) {
+		int ok = 0;
 		if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_2G) &&
-		    !(bss->freq > 2000 && bss->freq < 3000)) {
-			if (debug_print)
-				wpa_dbg(wpa_s, MSG_DEBUG, "  skip - band 2.4GHz disallowed");
-			return NULL;
+		    (bss->freq > 2000 && bss->freq < 3000)) {
+			ok++;
 		}
 		if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_5G) &&
-		    !(bss->freq > 3000 && bss->freq < 5950)) {
-			if (debug_print)
-				wpa_dbg(wpa_s, MSG_DEBUG, "  skip - band 5GHz disallowed");
-			return NULL;
+		    (bss->freq > 3000 && bss->freq < 5950)) {
+			ok++;
 		}
 		if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_6G) &&
-		    !(bss->freq > 5955 && bss->freq < 8000)) {
+		    (bss->freq > 5955 && bss->freq < 8000)) {
+			ok++;
+		}
+		if (!ok) {
 			if (debug_print)
-				wpa_dbg(wpa_s, MSG_DEBUG, "  skip - band 6GHz disallowed");
+				wpa_dbg(wpa_s, MSG_DEBUG, "  skip - band disallowed, phy-bands: 0x%x freq: %d",
+					wpa_s->conf->phy_bands, bss->freq);
 			return NULL;
 		}
 	}
