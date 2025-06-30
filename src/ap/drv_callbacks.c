@@ -2749,6 +2749,10 @@ static void hostapd_event_pp_bitmap_update(struct hostapd_data *hapd,
 	    freq != ch_switch->freq)
 		return;
 
+	wpa_dbg(hapd->msg_ctx, MSG_DEBUG,
+		"pp-bitmap-update, conf bitmap: 0x%x  ch-switch bitmap: 0x%x  freq: %d\n",
+		iface->conf->punct_bitmap, ch_switch->punct_bitmap, freq);
+
 	/* Setup CSA request */
 	os_memset(&csa_settings, 0, sizeof(csa_settings));
 	csa_settings.cs_count = 5;
