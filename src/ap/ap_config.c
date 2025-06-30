@@ -327,7 +327,7 @@ struct hostapd_config * hostapd_config_defaults(void)
 	conf->three_wire_enable = THREE_WIRE_MODE_DISABLE;
 	conf->ibf_enable = IBF_DEFAULT_ENABLE;
 	conf->amsdu = 1;
-	conf->pp_mode = PP_FW_MODE;
+	conf->pp_mode = PP_USR_MODE; /* was: PP_FW_MODE --Ben */;
 
 	conf->lpi_psd = 0;
 	conf->sku_idx = -1;
