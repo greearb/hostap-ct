@@ -10934,6 +10934,14 @@ enum qca_wlan_vendor_attr_wifi_test_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_BTM_REQ_RESP = 79,
 
+	/* 8-bit unsigned value to configure Restricted TWT feature support
+	 * within the EHT capabilities element of the Association Request frame.
+	 *
+	 * This attribute is used to configure the testbed device.
+	 * 1-enable, 0-disable.
+	 */
+	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_EHT_RTWT_SUPPORT = 80,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_MAX =
