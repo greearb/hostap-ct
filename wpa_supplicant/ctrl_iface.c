@@ -7843,7 +7843,6 @@ static int p2p_ctrl_set(struct wpa_supplicant *wpa_s, char *cmd)
 		return 0;
 	}
 
-#ifdef CONFIG_TESTING_OPTIONS
 	if (os_strcmp(cmd, "supported_bootstrapmethods") == 0) {
 		p2p_set_bootstrapmethods(wpa_s->global->p2p, atoi(param));
 		return 0;
@@ -7878,7 +7877,6 @@ static int p2p_ctrl_set(struct wpa_supplicant *wpa_s, char *cmd)
 		p2p_set_invitation_op_freq(wpa_s->global->p2p, atoi(param));
 		return 0;
 	}
-#endif /* CONFIG_TESTING_OPTIONS */
 
 	wpa_printf(MSG_DEBUG, "CTRL_IFACE: Unknown P2P_SET field value '%s'",
 		   cmd);

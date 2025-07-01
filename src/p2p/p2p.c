@@ -4962,8 +4962,6 @@ void p2p_set_managed_oper(struct p2p_data *p2p, int enabled)
 }
 
 
-#ifdef CONFIG_TESTING_OPTIONS
-
 void p2p_set_bootstrapmethods(struct p2p_data *p2p, int bootstrap_methods)
 {
 	p2p_dbg(p2p, "Bootstraping methods: 0x%x", bootstrap_methods);
@@ -5026,8 +5024,6 @@ void p2p_set_invitation_op_freq(struct p2p_data *p2p, int freq)
 	p2p->cfg->inv_op_class = op_class;
 	p2p->cfg->inv_op_channel = channel;
 }
-
-#endif /* CONFIG_TESTING_OPTIONS */
 
 
 int p2p_config_get_random_social(struct p2p_config *p2p, u8 *op_class,
