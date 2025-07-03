@@ -734,12 +734,12 @@ void p2p_check_pref_chan(struct p2p_data *p2p, int go,
 		return;
 
 	/* Obtain our preferred frequency list from driver based on P2P role. */
-	size = P2P_MAX_PREF_CHANNELS;
+	size = ARRAY_SIZE(p2p->pref_freq_list);
 	if (p2p->cfg->get_pref_freq_list(p2p->cfg->cb_ctx, go,
-					 &p2p->num_pref_freq,
+					 &size,
 					 p2p->pref_freq_list))
 		return;
-	size = p2p->num_pref_freq;
+	p2p->num_pref_freq = size;
 	if (!size)
 		return;
 	/* Filter out frequencies that are not acceptable for P2P use */
