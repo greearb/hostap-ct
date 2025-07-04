@@ -34,7 +34,8 @@ static const struct ikev2_prf_alg ikev2_prf_algs[] = {
 
 static const struct ikev2_encr_alg ikev2_encr_algs[] = {
 	{ ENCR_AES_CBC, 16, 16 }, /* only 128-bit keys supported for now */
-	{ ENCR_3DES, 24, 8 }
+	{ ENCR_3DES, 24, 8 },
+	{ ENCR_NULL, 0, 0 }
 };
 
 #define NUM_ENCR_ALGS ARRAY_SIZE(ikev2_encr_algs)
@@ -185,6 +186,9 @@ int ikev2_encr_encrypt(int alg, const u8 *key, size_t key_len, const u8 *iv,
 	case ENCR_AES_CBC:
 		encr_alg = CRYPTO_CIPHER_ALG_AES;
 		break;
+	case ENCR_NULL:
+		encr_alg = CRYPTO_CIPHER_NULL;
+		break;
 	default:
 		wpa_printf(MSG_DEBUG, "IKEV2: Unsupported encr alg %d", alg);
 		return -1;
@@ -219,6 +223,9 @@ int ikev2_encr_decrypt(int alg, const u8 *key, size_t key_len, const u8 *iv,
 		break;
 	case ENCR_AES_CBC:
 		encr_alg = CRYPTO_CIPHER_ALG_AES;
+		break;
+	case ENCR_NULL:
+		encr_alg = CRYPTO_CIPHER_NULL;
 		break;
 	default:
 		wpa_printf(MSG_DEBUG, "IKEV2: Unsupported encr alg %d", alg);
@@ -577,9 +584,15 @@ int ikev2_build_encrypted(int encr_id, int integ_id, struct ikev2_keys *keys,
 		return -1;
 	}
 
-	pad_len = iv_len - (wpabuf_len(plain) + 1) % iv_len;
-	if (pad_len == iv_len)
+	if (iv_len) {
+		pad_len = iv_len - (wpabuf_len(plain) + 1) % iv_len;
+		if (pad_len == iv_len)
+			pad_len = 0;
+	} else {
+		/* Avoid padding when not necessary */
 		pad_len = 0;
+	}
+
 	wpabuf_put(plain, pad_len);
 	wpabuf_put_u8(plain, pad_len);
 
