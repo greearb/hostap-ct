@@ -1343,7 +1343,13 @@ void tls_deinit(void *ssl_ctx)
 
 	if (data->tls_session_lifetime > 0) {
 		wpa_printf(MSG_DEBUG, "OpenSSL: Flush sessions");
+#if OPENSSL_VERSION_NUMBER >= 0x30400000L && \
+	!defined(LIBRESSL_VERSION_NUMBER) && \
+	!defined(OPENSSL_IS_BORINGSSL)
+		SSL_CTX_flush_sessions_ex(ssl, 0);
+#else /* OpenSSL version >= 3.4 */
 		SSL_CTX_flush_sessions(ssl, 0);
+#endif /* OpenSSL version >= 3.4 */
 		wpa_printf(MSG_DEBUG, "OpenSSL: Flush sessions - done");
 	}
 	while ((sess_data = dl_list_first(&context->sessions,
