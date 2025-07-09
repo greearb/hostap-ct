@@ -1210,6 +1210,8 @@ void wpas_notify_nan_subscribe_terminated(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_NAN_USD */
 
 
+#ifdef CONFIG_PR
+
 void wpas_notify_pr_pasn_result(struct wpa_supplicant *wpa_s, u8 role,
 				u8 protocol_type, u8 op_class, u8 op_channel,
 				const char *country)
@@ -1219,3 +1221,18 @@ void wpas_notify_pr_pasn_result(struct wpa_supplicant *wpa_s, u8 role,
 		       role, protocol_type, op_class, op_channel,
 		       country[0], country[1]);
 }
+
+
+void wpas_notify_pr_ranging_params(struct wpa_supplicant *wpa_s,
+				   const u8 *dev_addr, const u8 *peer_addr,
+				   u8 ranging_role, u8 protocol_type, int freq,
+				   int channel, int bw, int format_bw)
+{
+	wpa_msg_global(wpa_s, MSG_INFO, PR_RANGING_PARAMS
+		       "dev_addr=" MACSTR " peer_addr=" MACSTR
+		       " role=%u protocol=%u freq=%d channel=%d bw=%d format_bw=%d",
+		       MAC2STR(dev_addr), MAC2STR(peer_addr), ranging_role,
+		       protocol_type, freq, channel, bw, format_bw);
+}
+
+#endif /* CONFIG_PR */

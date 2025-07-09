@@ -267,6 +267,25 @@ static void wpas_pr_pasn_result(void *ctx, u8 role, u8 protocol_type,
 }
 
 
+static void wpas_pr_ranging_params(void *ctx, const u8 *dev_addr,
+				   const u8 *peer_addr, u8 ranging_role,
+				   u8 protocol_type, u8 op_class, u8 op_channel,
+				   u8 self_format_bw, u8 peer_format_bw)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+	int bw, format_bw, freq;
+
+	bw = oper_class_bw_to_int(get_oper_class(NULL, op_class));
+	format_bw = self_format_bw < peer_format_bw ?
+		self_format_bw : peer_format_bw;
+	freq = ieee80211_chan_to_freq(NULL, op_class, op_channel);
+
+	wpas_notify_pr_ranging_params(wpa_s, dev_addr, peer_addr, ranging_role,
+				      protocol_type, freq, op_channel, bw,
+				      format_bw);
+}
+
+
 static void wpas_pr_pasn_set_keys(void *ctx, const u8 *own_addr,
 				  const u8 *peer_addr, int cipher, int akmp,
 				  struct wpa_ptk *ptk)
@@ -357,6 +376,7 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 
 	pr.pasn_send_mgmt = wpas_pr_pasn_send_mgmt;
 	pr.pasn_result = wpas_pr_pasn_result;
+	pr.get_ranging_params = wpas_pr_ranging_params;
 	pr.set_keys = wpas_pr_pasn_set_keys;
 	pr.clear_keys = wpas_pr_pasn_clear_keys;
 

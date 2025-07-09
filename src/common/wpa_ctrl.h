@@ -476,6 +476,9 @@ extern "C" {
  */
 #define PR_PASN_RESULT "PR-PASN-RESULT "
 
+/* Proximity Ranging parameters to use in ranging */
+#define PR_RANGING_PARAMS "PR-RANGING-PARAMS "
+
 /* BSS command information masks */
 
 #define WPA_BSS_MASK_ALL		0xFFFDFFFF

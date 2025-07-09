@@ -1977,6 +1977,7 @@ int pr_pasn_auth_tx_status(struct pr_data *pr, const u8 *data, size_t data_len,
 	struct pasn_data *pasn;
 	const struct ieee80211_mgmt *mgmt =
 		(const struct ieee80211_mgmt *) data;
+	u8 self_format_bw, peer_format_bw;
 
 	if (!pr)
 		return -1;
@@ -1997,6 +1998,32 @@ int pr_pasn_auth_tx_status(struct pr_data *pr, const u8 *data, size_t data_len,
 		pr->cfg->pasn_result(pr->cfg->cb_ctx, dev->ranging_role,
 				     dev->protocol_type, dev->final_op_class,
 				     dev->final_op_channel, pr->cfg->country);
+
+	if (dev->protocol_type & PR_EDCA_BASED_RANGING) {
+		self_format_bw = pr->cfg->edca_format_and_bw;
+		peer_format_bw = dev->edca_caps.edca_hw_caps &
+			EDCA_FORMAT_AND_BW_MASK;
+
+	} else if ((dev->protocol_type & PR_NTB_SECURE_LTF_BASED_RANGING) ||
+		   (dev->protocol_type & PR_NTB_OPEN_BASED_RANGING)) {
+		self_format_bw = pr->cfg->ntb_format_and_bw;
+		peer_format_bw = dev->ntb_caps.ntb_hw_caps &
+			NTB_FORMAT_AND_BW_MASK;
+	} else {
+		wpa_printf(MSG_INFO, "PR PASN: Invalid protocol type: %u",
+			   dev->protocol_type);
+		return -1;
+	}
+
+	if (ret == 1 && acked && pr->cfg->get_ranging_params)
+		pr->cfg->get_ranging_params(pr->cfg->cb_ctx, pr->cfg->dev_addr,
+					    dev->pr_device_addr,
+					    dev->ranging_role,
+					    dev->protocol_type,
+					    dev->final_op_class,
+					    dev->final_op_channel,
+					    self_format_bw,
+					    peer_format_bw);
 	wpabuf_free(pasn->frame);
 	pasn->frame = NULL;
 
@@ -2403,6 +2430,8 @@ fail:
 static int pr_pasn_handle_auth_3(struct pr_data *pr, struct pr_device *dev,
 				 const struct ieee80211_mgmt *mgmt, size_t len)
 {
+	u8 self_format_bw, peer_format_bw;
+
 	if (dev->pasn_role != PR_ROLE_PASN_RESPONDER) {
 		wpa_printf(MSG_INFO,
 			   "PR PASN: Auth3 not expected on initiator");
@@ -2428,6 +2457,32 @@ static int pr_pasn_handle_auth_3(struct pr_data *pr, struct pr_device *dev,
 		pr->cfg->pasn_result(pr->cfg->cb_ctx, dev->ranging_role,
 				     dev->protocol_type, dev->final_op_class,
 				     dev->final_op_channel, pr->cfg->country);
+
+	if (dev->protocol_type & PR_EDCA_BASED_RANGING) {
+		self_format_bw = pr->cfg->edca_format_and_bw;
+		peer_format_bw = dev->edca_caps.edca_hw_caps &
+			EDCA_FORMAT_AND_BW_MASK;
+
+	} else if ((dev->protocol_type & PR_NTB_SECURE_LTF_BASED_RANGING) ||
+		   (dev->protocol_type & PR_NTB_OPEN_BASED_RANGING)) {
+		self_format_bw = pr->cfg->ntb_format_and_bw;
+		peer_format_bw = dev->ntb_caps.ntb_hw_caps &
+			NTB_FORMAT_AND_BW_MASK;
+	} else {
+		wpa_printf(MSG_INFO, "PR PASN: Invalid protocol type: %u",
+			   dev->protocol_type);
+		goto fail;
+	}
+
+	if (pr->cfg->get_ranging_params)
+		pr->cfg->get_ranging_params(pr->cfg->cb_ctx, pr->cfg->dev_addr,
+					    dev->pr_device_addr,
+					    dev->ranging_role,
+					    dev->protocol_type,
+					    dev->final_op_class,
+					    dev->final_op_channel,
+					    self_format_bw,
+					    peer_format_bw);
 	return 0;
 
 fail:

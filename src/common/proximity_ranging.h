@@ -432,6 +432,11 @@ struct pr_config {
 			 int cipher, int akmp, struct wpa_ptk *ptk);
 
 	void (*clear_keys)(void *ctx, const u8 *own_addr, const u8 *peer_addr);
+
+	void (*get_ranging_params)(void *ctx, const u8 *dev_addr,
+				   const u8 *peer_addr, u8 ranging_role,
+				   u8 protocol_type, u8 op_class, u8 op_channel,
+				   u8 self_format_bw, u8 peer_format_bw);
 };
 
 struct pr_data {
