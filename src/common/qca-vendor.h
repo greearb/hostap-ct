@@ -2436,6 +2436,9 @@ enum qca_wlan_vendor_acs_hw_mode {
  *	P2P Connection Compatibility mode in which GO allows connection
  *	with both P2P R1 and R2 clients.
  *
+ * @QCA_WLAN_VENDOR_FEATURE_SUPPORT_TX_POWER_LIMIT: Flag indicates that the
+ *	driver supports enabling TX power limit from the userspace.
+ *
  * @NUM_QCA_WLAN_VENDOR_FEATURES: Number of assigned feature bits
  */
 enum qca_wlan_vendor_features {
@@ -2469,6 +2472,7 @@ enum qca_wlan_vendor_features {
 	QCA_WLAN_VENDOR_FEATURE_ACS_PREFER_6GHZ_PSC = 27,
 	QCA_WLAN_VENDOR_FEATURE_P2P_V2 = 28,
 	QCA_WLAN_VENDOR_FEATURE_PCC_MODE = 29,
+	QCA_WLAN_VENDOR_FEATURE_SUPPORT_TX_POWER_LIMIT = 30,
 	NUM_QCA_WLAN_VENDOR_FEATURES /* keep last */
 };
 
@@ -4026,6 +4030,14 @@ enum qca_wlan_vendor_attr_config {
 	 * to %QCA_WLAN_VENDOR_OPM_MODE_LATENCY_BASED mode.
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_OPM_LATENCY_TOLERANCE = 134,
+
+	/* 8-bit unsigned value to control transmit TX power limit. When
+	 * this flag attribute is present, the firmware shall apply the vendor
+	 * configured TX power limit that is stored in the Board Data File
+	 * (BDF) for all bands and all the interfaces.
+	 * 1 - Enable, 0 - Disable.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_TX_POWER_LIMIT_ENABLE = 135,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
