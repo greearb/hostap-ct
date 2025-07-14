@@ -6596,6 +6596,9 @@ static int wpa_driver_nl80211_ap(struct wpa_driver_nl80211_data *drv,
 		wpa_printf(MSG_DEBUG, "nl80211: Setup AP operations for P2P "
 			   "group (GO)");
 		nlmode = NL80211_IFTYPE_P2P_GO;
+#ifdef CONFIG_DRIVER_NL80211_QCA
+		nl80211_set_p2p_mode(drv->first_bss, params->p2p_mode);
+#endif /* CONFIG_DRIVER_NL80211_QCA */
 	} else
 		nlmode = NL80211_IFTYPE_AP;
 

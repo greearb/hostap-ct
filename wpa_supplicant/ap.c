@@ -1039,8 +1039,10 @@ int wpa_supplicant_create_ap(struct wpa_supplicant *wpa_s,
 
 #ifdef CONFIG_P2P
 	if (ssid->mode == WPAS_MODE_P2P_GO ||
-	    ssid->mode == WPAS_MODE_P2P_GROUP_FORMATION)
+	    ssid->mode == WPAS_MODE_P2P_GROUP_FORMATION) {
 		params.p2p = 1;
+		params.p2p_mode = wpa_s->p2p_mode;
+	}
 #endif /* CONFIG_P2P */
 
 	if (wpa_s->p2pdev->set_ap_uapsd)

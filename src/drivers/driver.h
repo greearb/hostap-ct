@@ -1423,6 +1423,11 @@ struct wpa_driver_associate_params {
 	 * bssid_filter_count - Number of allowed BSSIDs
 	 */
 	unsigned int bssid_filter_count;
+
+	/**
+	 * p2p_mode - P2P R1 only, P2P R2 only, or PCC mode
+	 */
+	enum wpa_p2p_mode p2p_mode;
 };
 
 enum hide_ssid {
