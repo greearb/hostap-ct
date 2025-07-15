@@ -132,6 +132,8 @@ static void wpas_update_fils_connect_params(struct wpa_supplicant *wpa_s);
 #ifdef CONFIG_OWE
 static void wpas_update_owe_connect_params(struct wpa_supplicant *wpa_s);
 #endif /* CONFIG_OWE */
+static void radio_remove_pending_connect(struct wpa_supplicant *wpa_s,
+					 const struct wpa_ssid *ssid);
 
 
 #ifdef CONFIG_WEP
@@ -5165,6 +5167,7 @@ int wpa_supplicant_remove_network(struct wpa_supplicant *wpa_s, int id)
 	if (!ssid)
 		return -1;
 	wpas_notify_network_removed(wpa_s, ssid);
+	radio_remove_pending_connect(wpa_s, ssid);
 
 	if (ssid == prev || !prev) {
 #ifdef CONFIG_SME
@@ -7342,6 +7345,31 @@ void radio_remove_pending_work(struct wpa_supplicant *wpa_s, void *ctx)
 			work->type, work, work->started ? " (started)" : "");
 		radio_work_free(work);
 		break;
+	}
+}
+
+
+static void radio_remove_pending_connect(struct wpa_supplicant *wpa_s,
+					 const struct wpa_ssid *ssid)
+{
+	struct wpa_radio_work *work, *tmp;
+	struct wpa_radio *radio = wpa_s->radio;
+	struct wpa_connect_work *cwork;
+
+	dl_list_for_each_safe(work, tmp, &radio->work, struct wpa_radio_work,
+			      list) {
+		if (!radio_work_is_connect(work))
+			continue;
+
+		cwork = work->ctx;
+		if (cwork->ssid != ssid)
+			continue;
+
+		wpa_printf(MSG_DEBUG, "Remove radio work '%s'@%p ssid=%s",
+			   work->type, work,
+			   wpa_ssid_txt(ssid->ssid, ssid->ssid_len));
+		work->cb(work, 1);
+		radio_work_free(work);
 	}
 }
 
