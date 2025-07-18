@@ -2723,7 +2723,7 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 			wpa_dbg(wpa_s, MSG_DEBUG, "Re-requesting scan to apply min-gap/scan-on-freq");
 
 			/* Cancel any existing scan request */
-			wpa_supplicant_cancel_scan(wpa_s);
+			wpa_supplicant_cancel_scan(wpa_s, "re-requesting scan");
 			wpa_supplicant_req_scan(wpa_s, 1, 0);
 		}
 	}
@@ -4757,7 +4757,7 @@ static void wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 		}
 		wpa_supplicant_req_auth_timeout(wpa_s, timeout, timeoutms);
 	}
-	wpa_supplicant_cancel_scan(wpa_s);
+	wpa_supplicant_cancel_scan(wpa_s, "event-assoc");
 
 	if (ft_completed) {
 		/*
@@ -6689,7 +6689,9 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			wpa_msg_ctrl(wpa_s, MSG_INFO, WPA_EVENT_SCAN_STARTED);
 		}
 		break;
-	case EVENT_SCAN_RESULTS:
+	case EVENT_SCAN_RESULTS: {
+		struct os_reltime now;
+
 		if (wpa_s->wpa_state == WPA_INTERFACE_DISABLED) {
 			wpa_s->scan_res_handler = NULL;
 			wpa_s->own_scan_running = 0;
@@ -6698,10 +6700,16 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			break;
 		}
 
+		os_get_reltime(&now);
+		wpa_s->radio->last_scan_completed_at = now;
+		wpa_dbg(wpa_s, MSG_DEBUG,
+			"Scan results received at %ld.%06ld.",
+			now.sec, now.usec);
+
 		if (!(data && data->scan_info.external_scan) &&
 		    os_reltime_initialized(&wpa_s->scan_start_time)) {
-			struct os_reltime now, diff;
-			os_get_reltime(&now);
+			struct os_reltime diff;
+
 			os_reltime_sub(&now, &wpa_s->scan_start_time, &diff);
 			wpa_s->scan_start_time.sec = 0;
 			wpa_s->scan_start_time.usec = 0;
@@ -6717,6 +6725,7 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			wpa_s->radio->external_scan_req_interface = NULL;
 		radio_work_check_next(wpa_s);
 		break;
+	}
 #endif /* CONFIG_NO_SCAN_PROCESSING */
 	case EVENT_ASSOCINFO:
 		wpa_supplicant_event_associnfo(wpa_s, data);
