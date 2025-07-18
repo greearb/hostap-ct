@@ -390,7 +390,7 @@ static void wpa_supplicant_eapol_cb(struct eapol_sm *eapol,
 				       auth_addr, PASN_GROUP_NOT_SPECIFIED);
 	}
 
-	wpa_supplicant_cancel_scan(wpa_s);
+	wpa_supplicant_cancel_scan(wpa_s, "eapol-cb");
 	wpa_supplicant_cancel_auth_timeout(wpa_s);
 	wpa_supplicant_set_state(wpa_s, WPA_COMPLETED);
 
