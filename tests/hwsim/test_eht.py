@@ -1401,6 +1401,43 @@ def _5ghz_chanwidth_to_bw(op):
         3: "80+80",
     }.get(op, "20")
 
+def eht_5ghz_params(channel, chanwidth, ccfs1, ccfs2=0,
+                    he_ccfs1=None, he_oper_chanwidth=None):
+    if he_ccfs1 is None:
+        he_ccfs1 = ccfs1
+    if he_oper_chanwidth is None:
+        he_oper_chanwidth = chanwidth
+
+    params = {"country_code": "US",
+              "hw_mode": "a",
+              "channel": str(channel),
+              "ieee80211n": "1",
+              "ieee80211ac": "1",
+              "ieee80211ax": "1",
+              "ieee80211be": "1",
+              "vht_oper_chwidth": str(he_oper_chanwidth),
+              "vht_oper_centr_freq_seg0_idx": str(he_ccfs1),
+              "vht_oper_centr_freq_seg1_idx": str(ccfs2),
+              "he_oper_chwidth": str(he_oper_chanwidth),
+              "he_oper_centr_freq_seg0_idx": str(he_ccfs1),
+              "he_oper_centr_freq_seg1_idx": str(ccfs2),
+              "eht_oper_centr_freq_seg0_idx": str(ccfs1),
+              "eht_oper_chwidth": str(chanwidth)}
+
+    if he_oper_chanwidth == 0:
+        if channel < he_ccfs1:
+                params["ht_capab"] = "[HT40+]"
+        elif channel > he_ccfs1:
+                params["ht_capab"] = "[HT40-]"
+    else:
+        params["ht_capab"] = "[HT40+]"
+        if he_oper_chanwidth == 2:
+            params["vht_capab"] = "[VHT160]"
+        elif he_oper_chanwidth == 3:
+            params["vht_capab"] = "[VHT160-80PLUS80]"
+
+    return params
+
 def _test_eht_5ghz(dev, apdev, channel, chanwidth, ccfs1, ccfs2=0,
                    eht_oper_puncturing_override=None,
                    he_ccfs1=None, he_oper_chanwidth=None):
@@ -1410,34 +1447,10 @@ def _test_eht_5ghz(dev, apdev, channel, chanwidth, ccfs1, ccfs2=0,
         he_oper_chanwidth = chanwidth
 
     try:
-        params = {"ssid": "eht",
-                  "country_code": "US",
-                  "hw_mode": "a",
-                  "channel": str(channel),
-                  "ieee80211n": "1",
-                  "ieee80211ac": "1",
-                  "ieee80211ax": "1",
-                  "ieee80211be": "1",
-                  "vht_oper_chwidth": str(he_oper_chanwidth),
-                  "vht_oper_centr_freq_seg0_idx": str(he_ccfs1),
-                  "vht_oper_centr_freq_seg1_idx": str(ccfs2),
-                  "he_oper_chwidth": str(he_oper_chanwidth),
-                  "he_oper_centr_freq_seg0_idx": str(he_ccfs1),
-                  "he_oper_centr_freq_seg1_idx": str(ccfs2),
-                  "eht_oper_centr_freq_seg0_idx": str(ccfs1),
-                  "eht_oper_chwidth": str(chanwidth)}
+        params = eht_5ghz_params(channel, chanwidth, ccfs1, ccfs2,
+                                 he_ccfs1, he_oper_chanwidth)
+        params['ssid'] = 'eht'
 
-        if he_oper_chanwidth == 0:
-            if channel < he_ccfs1:
-                  params["ht_capab"] = "[HT40+]"
-            elif channel > he_ccfs1:
-                  params["ht_capab"] = "[HT40-]"
-        else:
-            params["ht_capab"] = "[HT40+]"
-            if he_oper_chanwidth == 2:
-                params["vht_capab"] = "[VHT160]"
-            elif he_oper_chanwidth == 3:
-                params["vht_capab"] = "[VHT160-80PLUS80]"
 
         if eht_oper_puncturing_override:
             params['eht_oper_puncturing_override'] = eht_oper_puncturing_override
