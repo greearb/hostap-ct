@@ -1958,6 +1958,9 @@ static int wpa_supplicant_connect_ml_missing(struct wpa_supplicant *wpa_s,
 	      (wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME)))
 		return 0;
 
+	if (ssid->disable_mlo)
+		return 0;
+
 	if (wpa_bss_parse_basic_ml_element(wpa_s, selected, NULL,
 					   &missing_links, ssid,
 					   &ap_mld_id))
