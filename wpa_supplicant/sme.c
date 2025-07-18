@@ -1196,7 +1196,7 @@ no_fils:
 #endif /* CONFIG_FILS */
 
 	wpa_supplicant_cancel_sched_scan(wpa_s);
-	wpa_supplicant_cancel_scan(wpa_s);
+	wpa_supplicant_cancel_scan(wpa_s, "send-auth");
 
 	wpa_msg(wpa_s, MSG_INFO, "SME: Trying to authenticate with " MACSTR
 		" (SSID='%s' freq=%d MHz)", MAC2STR(params.bssid),

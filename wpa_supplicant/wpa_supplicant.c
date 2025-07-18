@@ -721,7 +721,7 @@ static void wpa_supplicant_cleanup(struct wpa_supplicant *wpa_s)
 	wpa_bss_deinit(wpa_s);
 
 	wpa_supplicant_cancel_delayed_sched_scan(wpa_s);
-	wpa_supplicant_cancel_scan(wpa_s);
+	wpa_supplicant_cancel_scan(wpa_s, "cleanup");
 	wpa_supplicant_cancel_auth_timeout(wpa_s);
 	eloop_cancel_timeout(wpa_supplicant_stop_countermeasures, wpa_s, NULL);
 #ifdef CONFIG_DELAYED_MIC_ERROR_REPORT
@@ -4722,7 +4722,7 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit)
 	if (!wpa_s->pno)
 		wpa_supplicant_cancel_sched_scan(wpa_s);
 
-	wpa_supplicant_cancel_scan(wpa_s);
+	wpa_supplicant_cancel_scan(wpa_s, "start-assoc-cb");
 
 	wpa_clear_keys(wpa_s, bss ? bss->bssid : NULL);
 	use_crypt = 1;
@@ -9871,7 +9871,7 @@ void wpas_request_disconnection(struct wpa_supplicant *wpa_s)
 	wpa_s->reassociate = 0;
 	wpa_s->disconnected = 1;
 	wpa_supplicant_cancel_sched_scan(wpa_s);
-	wpa_supplicant_cancel_scan(wpa_s);
+	wpa_supplicant_cancel_scan(wpa_s, "request disconnect");
 	wpas_abort_ongoing_scan(wpa_s);
 	wpa_supplicant_deauthenticate(wpa_s, WLAN_REASON_DEAUTH_LEAVING);
 	eloop_cancel_timeout(wpas_network_reenabled, wpa_s, NULL);

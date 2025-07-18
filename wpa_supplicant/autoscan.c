@@ -111,7 +111,7 @@ int autoscan_init(struct wpa_supplicant *wpa_s, int req_scan)
 	 * Cancelling existing scan requests, if any.
 	 */
 	wpa_supplicant_cancel_sched_scan(wpa_s);
-	wpa_supplicant_cancel_scan(wpa_s);
+	wpa_supplicant_cancel_scan(wpa_s, "autoscan-init");
 
 	/*
 	 * Firing first scan, which will lead to call autoscan_notify_scan.
