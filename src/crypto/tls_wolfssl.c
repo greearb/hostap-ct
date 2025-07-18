@@ -166,6 +166,9 @@ static int wolfssl_receive_cb(WOLFSSL *ssl, char *buf, int sz, void *ctx)
 	if (!data)
 		return -1;
 
+	if (!data->in_data)
+		return -2; /* WANT_READ */
+
 	if (get > (wpabuf_len(data->in_data) - data->consumed))
 		get = wpabuf_len(data->in_data) - data->consumed;
 
