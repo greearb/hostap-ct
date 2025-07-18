@@ -1374,7 +1374,7 @@ int wpas_wps_cancel(struct wpa_supplicant *wpa_s)
 	if (wpa_s->wpa_state == WPA_SCANNING ||
 	    wpa_s->wpa_state == WPA_DISCONNECTED) {
 		wpa_printf(MSG_DEBUG, "WPS: Cancel operation - cancel scan");
-		wpa_supplicant_cancel_scan(wpa_s);
+		wpa_supplicant_cancel_scan(wpa_s, "wps-cancel-operation");
 		wpas_clear_wps(wpa_s);
 	} else if (wpa_s->wpa_state >= WPA_ASSOCIATING) {
 		wpa_printf(MSG_DEBUG, "WPS: Cancel operation - "
