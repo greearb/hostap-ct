@@ -1137,7 +1137,7 @@ send_bss_resp_fail:
 
 	wnm_btm_reset(wpa_s);
 
-	return 0;
+	return 1;
 }
 
 
