@@ -457,8 +457,16 @@ int wpa_driver_nl80211_scan(struct i802_bss *bss,
 
 			/*
 			 * mac80211 does not allow scan requests in AP mode, so
-			 * try to do this in station mode.
+			 * try to do this in station mode. Do so only if there
+			 * are not active links in the AP MLD.
 			 */
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: AP scan failed on %s. Links=0x%x",
+				   bss->ifname, bss->valid_links);
+
+			if (bss->valid_links)
+				goto fail;
+
 			drv->ap_scan_as_station = drv->nlmode;
 			if (wpa_driver_nl80211_set_mode(
 				    bss, NL80211_IFTYPE_STATION) ||
