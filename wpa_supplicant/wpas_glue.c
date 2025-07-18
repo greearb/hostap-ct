@@ -380,7 +380,7 @@ static void wpa_supplicant_eapol_cb(struct eapol_sm *eapol,
 		wpa_printf(MSG_DEBUG, "Failed to set PMK to the driver");
 	}
 
-	wpa_supplicant_cancel_scan(wpa_s);
+	wpa_supplicant_cancel_scan(wpa_s, "eapol-cb");
 	wpa_supplicant_cancel_auth_timeout(wpa_s);
 	wpa_supplicant_set_state(wpa_s, WPA_COMPLETED);
 

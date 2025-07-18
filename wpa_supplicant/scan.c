@@ -1157,6 +1157,29 @@ void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 		return;
 	}
 
+	if (wpa_s->conf->min_scan_gap) {
+		struct os_reltime now, diff;
+
+		/*
+		 * If we are trying to space out scans a bit, then ensure last scan completed
+		 * at least 2 second ago, if not, reschedule.
+		 */
+		os_get_reltime(&now);
+		os_reltime_sub(&now, &wpa_s->radio->last_scan_completed_at, &diff);
+
+		wpa_dbg(wpa_s, MSG_DEBUG,
+			"Last scan completed %ld.%06ld seconds ago.",
+			diff.sec, diff.usec);
+
+		if (diff.sec < 2) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"Deferring scan due to recent scan scan completing %ld.%06ld seconds ago.",
+				diff.sec, diff.usec);
+			wpa_supplicant_req_scan(wpa_s, 2, 0);
+			return;
+		}
+	}
+
 	if (!wpa_supplicant_enabled_networks(wpa_s) &&
 	    wpa_s->scan_req == NORMAL_SCAN_REQ) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "No enabled networks - do not scan");
@@ -2115,9 +2138,9 @@ scan:
  * This function is used to cancel a scan request scheduled with
  * wpa_supplicant_req_scan().
  */
-void wpa_supplicant_cancel_scan(struct wpa_supplicant *wpa_s)
+void wpa_supplicant_cancel_scan(struct wpa_supplicant *wpa_s, const char* dbg)
 {
-	wpa_dbg(wpa_s, MSG_DEBUG, "Cancelling scan request");
+	wpa_dbg(wpa_s, MSG_DEBUG, "Cancelling scan request: %s", dbg);
 	eloop_cancel_timeout(wpa_supplicant_scan, wpa_s, NULL);
 
         radio_remove_works(wpa_s, "scan", 0);
@@ -4122,7 +4145,7 @@ int wpas_start_pno(struct wpa_supplicant *wpa_s)
 	}
 
 	if (wpa_s->wpa_state == WPA_SCANNING) {
-		wpa_supplicant_cancel_scan(wpa_s);
+		wpa_supplicant_cancel_scan(wpa_s, "start-pno");
 		if (wpa_s->sched_scanning) {
 			wpa_printf(MSG_DEBUG, "Schedule PNO on completion of "
 				   "ongoing sched scan");
