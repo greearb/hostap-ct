@@ -343,6 +343,7 @@ struct wpa_radio {
 	struct dl_list ifaces; /* struct wpa_supplicant::radio_list entries */
 	struct dl_list work; /* struct wpa_radio_work::list entries */
 	struct os_reltime last_scan_started_at[3]; /* for each band */
+	struct os_reltime last_scan_completed_at; /* for all bands */
 };
 
 /**

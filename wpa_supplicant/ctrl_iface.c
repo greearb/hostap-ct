@@ -3445,7 +3445,7 @@ static int wpa_supplicant_ctrl_iface_mesh_group_remove(
 	wpa_s->reassociate = 0;
 	wpa_s->disconnected = 1;
 	wpa_supplicant_cancel_sched_scan(wpa_s);
-	wpa_supplicant_cancel_scan(wpa_s);
+	wpa_supplicant_cancel_scan(wpa_s, "mesh-group-remove");
 
 	/*
 	 * TODO: If necessary write our own group_remove function,
