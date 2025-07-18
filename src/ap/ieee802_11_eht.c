@@ -2001,6 +2001,7 @@ hostapd_send_link_reconf_resp(struct hostapd_data *hapd,
 		pos_len += kde_len;
 	}
 
+#ifdef CONFIG_OCV
 	/* OCI element for add links */
 	if (wpa_auth_uses_ocv(assoc_sta->wpa_sm)) {
 		struct wpa_channel_info ci;
@@ -2022,6 +2023,7 @@ hostapd_send_link_reconf_resp(struct hostapd_data *hapd,
 		pos += OCV_OCI_EXTENDED_LEN;
 		pos_len += OCV_OCI_EXTENDED_LEN;
 	}
+#endif
 
 	/* Basic Multi-Link element for add links */
 	if (mle_len) {
@@ -2707,6 +2709,7 @@ hostapd_handle_link_reconf_req(struct hostapd_data *hapd, const u8 *buf,
 			goto out;
 		}
 
+#ifdef CONFIG_OCV
 		if (!ocv_verify_tx_params(elems.oci, elems.oci_len, &ci,
 					  channel_width_to_int(ci.chanwidth),
 					  ci.seg1_idx)) {
@@ -2714,6 +2717,7 @@ hostapd_handle_link_reconf_req(struct hostapd_data *hapd, const u8 *buf,
 				   "MLD: OCI verification failed; drop Link Reconfiguration Request");
 			goto out;
 		}
+#endif
 	}
 
 skip_oci_validation:

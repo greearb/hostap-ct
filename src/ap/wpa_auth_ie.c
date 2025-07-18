@@ -1385,21 +1385,24 @@ int wpa_auth_uses_spp_amsdu(struct wpa_state_machine *sm)
 	return sm ? sm->spp_amsdu : 0;
 }
 
-#ifdef CONFIG_OCV
-
 void wpa_auth_set_ocv(struct wpa_state_machine *sm, int ocv)
 {
+#ifdef CONFIG_OCV
+
 	if (sm)
 		sm->ocv_enabled = ocv;
+#endif
 }
 
 
 int wpa_auth_uses_ocv(struct wpa_state_machine *sm)
 {
+#ifdef CONFIG_OCV
 	return sm ? sm->ocv_enabled : 0;
+#else
+	return 0;
+#endif
 }
-
-#endif /* CONFIG_OCV */
 
 
 #ifdef CONFIG_OWE

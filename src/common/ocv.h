@@ -43,5 +43,4 @@ enum oci_verify_result
 ocv_verify_tx_params(const u8 *oci_ie, size_t oci_ie_len,
 		     struct wpa_channel_info *ci, int tx_chanwidth,
 		     int tx_seg1_idx);
-
 #endif /* OCV_H */
