@@ -23,6 +23,8 @@ struct multiple_bssid {
 
 struct neighbor_report {
 	u8 bssid[ETH_ALEN];
+	u8 mld_addr[ETH_ALEN];
+	u16 mld_links; /* may be zero if no link IDs were specified */
 	u32 bssid_info;
 	u8 regulatory_class;
 	u8 channel_number;

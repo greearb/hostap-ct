@@ -444,6 +444,113 @@ void wnm_btm_reset(struct wpa_supplicant *wpa_s)
 }
 
 
+static void wnm_parse_neighbor_report_multi_link(struct neighbor_report *rep,
+						 u8 id, u8 elen, const u8 *pos)
+{
+	const struct ieee80211_eht_ml *ml =
+		(const struct ieee80211_eht_ml *) pos;
+	bool has_link_id;
+	u8 common_info_len;
+
+	/* The Basic Multi-Link subelement has the same body as the Basic MLE.
+	 * It includes at least the 2 octet Multi-Link Control field, 1 octet
+	 * Common Info Length, and the 6 oxtet MLD MAC Address fields. */
+	if (elen < sizeof(*ml) + 1 + ETH_ALEN) {
+		wpa_printf(MSG_DEBUG, "WNM: Too short ML element");
+		return;
+	}
+
+	/* The ML control should be all zeroes except for the Link ID Info
+	 * Present field. */
+	if ((le_to_host16(ml->ml_control) &
+	     ~BASIC_MULTI_LINK_CTRL_PRES_LINK_ID))
+		wpa_printf(MSG_DEBUG,
+			   "WNM: Ignore unsupported ML Control field bits: 0x%04x",
+			   le_to_host16(ml->ml_control) &
+			   ~BASIC_MULTI_LINK_CTRL_PRES_LINK_ID);
+
+	has_link_id = !!(le_to_host16(ml->ml_control) &
+			 BASIC_MULTI_LINK_CTRL_PRES_LINK_ID);
+
+	/* Followed by the Common Info Length and the MLD MAC Address fields */
+	common_info_len = pos[2];
+	if (common_info_len < 1 + ETH_ALEN) {
+		wpa_printf(MSG_DEBUG, "WNM: Too short ML Common Info: %u < 7",
+			   common_info_len);
+		return;
+	}
+
+	/* MLD MAC Address */
+	os_memcpy(rep->mld_addr, &pos[3], ETH_ALEN);
+
+	if (!has_link_id)
+		return;
+
+	if (common_info_len < 1 + ETH_ALEN + 1 || common_info_len + 2 > elen) {
+		wpa_printf(MSG_DEBUG,
+			   "WNM: ML Common Info too short or does not fit: %u (elen: %u)",
+			   common_info_len, elen);
+		return;
+	}
+
+	/* Link ID Info */
+	if ((pos[9] & EHT_ML_LINK_ID_MSK) >= MAX_NUM_MLD_LINKS) {
+		wpa_printf(MSG_DEBUG,
+			   "WNM: ML common info contains invalid link ID");
+		return;
+	}
+
+	rep->mld_links = BIT(pos[9] & EHT_ML_LINK_ID_MSK);
+
+	elen -= common_info_len + 2;
+	pos += common_info_len + 2;
+
+	/* Parse out per-STA information */
+	while (elen >= 2) {
+		u8 sub_elem_len = pos[1];
+
+		if (2 + sub_elem_len > elen) {
+			wpa_printf(MSG_DEBUG,
+				   "WNM: Invalid sub-element length: %u %u",
+				   2 + sub_elem_len, elen);
+			rep->mld_links = 0;
+			break;
+		}
+
+		if  (*pos == EHT_ML_SUB_ELEM_PER_STA_PROFILE) {
+			const struct ieee80211_eht_per_sta_profile *sta_prof =
+				(const struct ieee80211_eht_per_sta_profile *)
+				(pos + 2);
+			u16 control;
+			u8 link_id;
+
+			if (sub_elem_len < sizeof(*sta_prof)) {
+				wpa_printf(MSG_DEBUG,
+					   "WNM: Invalid STA-profile length: %u",
+					   sub_elem_len);
+				rep->mld_links = 0;
+				break;
+			}
+
+			control = le_to_host16(sta_prof->sta_control);
+
+			link_id = control & EHT_PER_STA_RECONF_CTRL_LINK_ID_MSK;
+			rep->mld_links |= BIT(link_id);
+		}
+
+		pos += 2 + sub_elem_len;
+		elen -= 2 + sub_elem_len;
+	}
+
+	if (elen != 0) {
+		wpa_printf(MSG_DEBUG,
+			   "WNM: Data left at end of multi-link element: %u",
+			   elen);
+		rep->mld_links = 0;
+	}
+}
+
+
 static void wnm_parse_neighbor_report_elem(struct neighbor_report *rep,
 					   u8 id, u8 elen, const u8 *pos)
 {
@@ -531,6 +638,9 @@ static void wnm_parse_neighbor_report_elem(struct neighbor_report *rep,
 		rep->mul_bssid->max_bssid_indicator = pos[0];
 		rep->mul_bssid->subelem_len = elen - 1;
 		os_memcpy(rep->mul_bssid->subelems, pos + 1, elen - 1);
+		break;
+	case WNM_NEIGHBOR_MULTI_LINK:
+		wnm_parse_neighbor_report_multi_link(rep, id, elen, pos);
 		break;
 	default:
 		wpa_printf(MSG_DEBUG,
@@ -1184,15 +1294,22 @@ static void wnm_dump_cand_list(struct wpa_supplicant *wpa_s)
 		return;
 	for (i = 0; i < wpa_s->wnm_num_neighbor_report; i++) {
 		struct neighbor_report *nei;
+		char mld_info[42] = "";
 
 		nei = &wpa_s->wnm_neighbor_report_elements[i];
+
+		if (!is_zero_ether_addr(nei->mld_addr))
+			os_snprintf(mld_info, sizeof(mld_info) - 1,
+				    " mld_addr=" MACSTR " links=0x%02x",
+				    MAC2STR(nei->mld_addr), nei->mld_links);
+
 		wpa_printf(MSG_DEBUG, "%u: " MACSTR
-			   " info=0x%x op_class=%u chan=%u phy=%u pref=%d freq=%d",
+			   " info=0x%x op_class=%u chan=%u phy=%u pref=%d freq=%d%s",
 			   i, MAC2STR(nei->bssid), nei->bssid_info,
 			   nei->regulatory_class,
 			   nei->channel_number, nei->phy_type,
 			   nei->preference_present ? nei->preference : -1,
-			   nei->freq);
+			   nei->freq, mld_info);
 	}
 }
 
@@ -1964,7 +2081,9 @@ bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 		struct neighbor_report *nei;
 
 		nei = &wpa_s->wnm_neighbor_report_elements[i];
-		if (!ether_addr_equal(nei->bssid, bss->bssid))
+		if (!ether_addr_equal(nei->bssid, bss->bssid) &&
+		    (is_zero_ether_addr(bss->mld_addr) ||
+		     !ether_addr_equal(nei->mld_addr, bss->mld_addr)))
 			continue;
 
 		if (nei->preference_present && nei->preference == 0)
@@ -1974,6 +2093,17 @@ bool wnm_is_bss_excluded(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 		if (nei->drv_mbo_reject)
 			return true;
 #endif /* CONFIG_MBO */
+
+		/*
+		 * NOTE: We should select one entry and stick with it, but to
+		 * do that we need to refactor the BSS selection to be MLD
+		 * aware from the beginning. Instead we just check whether the
+		 * link is permitted in any possible configuration. We are not
+		 * supposed to do that, however the AP is able to reject a
+		 * subset of the requested links.
+		 */
+		if (nei->mld_links && !(nei->mld_links & BIT(bss->mld_link_id)))
+			continue;
 
 		break;
 	}
