@@ -44,7 +44,7 @@ int wpa_supplicant_delayed_sched_scan(struct wpa_supplicant *wpa_s,
 				      int sec, int usec);
 void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx);
 int wpa_supplicant_req_sched_scan(struct wpa_supplicant *wpa_s);
-void wpa_supplicant_cancel_scan(struct wpa_supplicant *wpa_s);
+void wpa_supplicant_cancel_scan(struct wpa_supplicant *wpa_s, const char* dbg);
 void wpa_supplicant_cancel_delayed_sched_scan(struct wpa_supplicant *wpa_s);
 void wpa_supplicant_cancel_sched_scan(struct wpa_supplicant *wpa_s);
 void wpa_supplicant_notify_scanning(struct wpa_supplicant *wpa_s,
