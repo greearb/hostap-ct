@@ -390,16 +390,25 @@ static int error_handler(struct sockaddr_nl *nla, struct nlmsgerr *err,
 				   len, (char *) nla_data(tb[NLMSGERR_ATTR_MSG]));
 	}
 
-	if (!err_args->err_info)
-		return NL_SKIP;
-
-	/* Check if it was a per-link error report */
-
+	/* Done if the the problematic attribute was not specified */
 	if (!tb[NLMSGERR_ATTR_OFFS] ||
 	    os_memcmp(orig_nlh, &err->msg, sizeof(err->msg)) != 0)
 		return NL_SKIP;
 
 	offset = nla_get_u32(tb[NLMSGERR_ATTR_OFFS]);
+
+	if (offset < orig_nlh->nlmsg_len) {
+		struct nlattr *orig_attr =
+			(void *) ((unsigned char *) orig_nlh + offset);
+
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: kernel reports error at offset %u, attribute type %d",
+			   offset, nla_type(orig_attr));
+	}
+
+	/* Resolve problematic link if err_info is not NULL */
+	if (!err_args->err_info)
+		return NL_SKIP;
 
 	mlo_links = nlmsg_find_attr(orig_nlh, GENL_HDRLEN,
 				    NL80211_ATTR_MLO_LINKS);
