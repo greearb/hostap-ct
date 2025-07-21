@@ -1042,9 +1042,12 @@ bool int_array_subset(const int *a, const int *b)
 	/* alen = int_array_len(a); */
 	blen = int_array_len(b);
 
-	for (i = 0; i <= blen; i++) {
+	for (i = 0; i < blen; i++) {
 		if (!int_array_includes(a, b[i])) {
 #if 0
+			int q;
+			int alen = int_array_len(a);
+
 			wpa_printf(MSG_DEBUG, "array-subset: %d not found in 'a'",
 				   (int)(b[i]));
 			for (q = 0; q<alen; q++) {
