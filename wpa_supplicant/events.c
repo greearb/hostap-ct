@@ -3015,6 +3015,11 @@ static bool subset_scan_freq_list(struct wpa_supplicant *self,
 	list2 = other->conf->freq_list ? other->conf->freq_list :
 		other->last_scan_freqs;
 
+	//wpa_printf(MSG_DEBUG, "%s: self->conf->freq_list: %p self->last_scan_freqs: %p  list1: %p\n",
+	//	   __func__, self->conf->freq_list, self->last_scan_freqs, list1);
+	//wpa_printf(MSG_DEBUG, "%s: other->conf->freq_list: %p other->last_scan_freqs: %p  list2: %p\n",
+	//	   __func__, other->conf->freq_list, other->last_scan_freqs, list2);
+
 	/* Self may have scanned a subset of channels.  As long as other
 	 * can use all of these self's channels, then ok to share scan results.
 	 */
@@ -3075,6 +3080,16 @@ static int wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 			if (res < 0)
 				return 0;
 		}
+#if 0
+		else {
+			if (ifs != wpa_s) {
+				wpa_dbg(wpa_s, MSG_DEBUG, "Not sharing scan results with sibling "
+					"%s, subset-freq-list: %d  ifs-phy-bands: %d  wpa_s-phy-bands: %d",
+					ifs->ifname, subset_scan_freq_list(wpa_s, ifs),
+					ifs->conf->phy_bands, wpa_s->conf->phy_bands);
+			}
+		}
+#endif
 	}
 
 	return 0;
