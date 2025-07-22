@@ -2789,6 +2789,8 @@ static void nl80211_spurious_frame(struct i802_bss *bss, struct nlattr **tb,
 	event.rx_from_unknown.bssid = bss->addr;
 	event.rx_from_unknown.addr = nla_data(tb[NL80211_ATTR_MAC]);
 	event.rx_from_unknown.wds = wds;
+	event.rx_from_unknown.link_id = tb[NL80211_ATTR_MLO_LINK_ID] ?
+		nla_get_u8(tb[NL80211_ATTR_MLO_LINK_ID]) : -1;
 
 	wpa_supplicant_event(drv->ctx, EVENT_RX_FROM_UNKNOWN, &event);
 }

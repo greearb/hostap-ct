@@ -6660,6 +6660,7 @@ union wpa_event_data {
 		const u8 *bssid;
 		const u8 *addr;
 		int wds;
+		int link_id;
 	} rx_from_unknown;
 
 	/**
