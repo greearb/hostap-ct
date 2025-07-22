@@ -9,6 +9,7 @@
 #include "utils/includes.h"
 
 #include "utils/common.h"
+#include "utils/eloop.h"
 #include "common/nan_de.h"
 #include "wpa_supplicant_i.h"
 #include "offchannel.h"
@@ -181,6 +182,16 @@ static void wpas_nan_usd_listen_work_done(struct wpa_supplicant *wpa_s)
 }
 
 
+static void wpas_nan_usd_remain_on_channel_timeout(void *eloop_ctx,
+						   void *timeout_ctx)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctx;
+	struct wpas_nan_usd_listen_work *lwork = timeout_ctx;
+
+	wpas_nan_usd_cancel_remain_on_channel_cb(wpa_s, lwork->freq);
+}
+
+
 static void wpas_nan_usd_start_listen_cb(struct wpa_radio_work *work,
 					 int deinit)
 {
@@ -208,6 +219,12 @@ static void wpas_nan_usd_start_listen_cb(struct wpa_radio_work *work,
 		wpa_printf(MSG_DEBUG,
 			   "NAN: Failed to request the driver to remain on channel (%u MHz) for listen",
 			   lwork->freq);
+		eloop_cancel_timeout(wpas_nan_usd_remain_on_channel_timeout,
+				     wpa_s, ELOOP_ALL_CTX);
+		/* Restart the listen state after a delay */
+		eloop_register_timeout(0, 500,
+				       wpas_nan_usd_remain_on_channel_timeout,
+				       wpa_s, lwork);
 		wpas_nan_usd_listen_work_done(wpa_s);
 		return;
 	}
@@ -351,6 +368,8 @@ int wpas_nan_usd_init(struct wpa_supplicant *wpa_s)
 
 void wpas_nan_usd_deinit(struct wpa_supplicant *wpa_s)
 {
+	eloop_cancel_timeout(wpas_nan_usd_remain_on_channel_timeout,
+			     wpa_s, ELOOP_ALL_CTX);
 	nan_de_deinit(wpa_s->nan_de);
 	wpa_s->nan_de = NULL;
 }
