@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DIR=`mktemp -d`
+DIR=${DIR:-`mktemp -d`}
 pushd ../.. > /dev/null
 git archive --format=tar --prefix=hostap-build/ HEAD > $DIR/hostap-build.tar
 popd > /dev/null
