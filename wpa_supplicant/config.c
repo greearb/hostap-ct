@@ -1448,6 +1448,29 @@ static int * wpa_config_parse_int_array(const char *value)
 }
 
 
+static int wpa_config_print_int_array(char *buf, size_t buflen, int *array)
+{
+	int res, tmp;
+
+	if (!array)
+		return -1;
+
+	res = 0;
+	for (; *array != 0; array++) {
+		tmp = os_snprintf(buf + res, buflen - res, "%d ", *array);
+		if (os_snprintf_error(buflen - res, tmp))
+			return -1;
+
+		res += tmp;
+	}
+	/* strip last space */
+	if (res > 0)
+		buf[--res] = '\0';
+
+	return res;
+}
+
+
 static int wpa_config_parse_scan_freq(const struct parse_data *data,
 				      struct wpa_ssid *ssid, int line,
 				      const char *value)
@@ -5454,6 +5477,45 @@ static int wpa_config_get_bgscan(const char *name, struct wpa_config *config,
 }
 
 
+static int wpa_config_get_freq_list(const char *name, struct wpa_config *config,
+				    long offset, char *buf, size_t buflen,
+				    int pretty_print)
+{
+	int **val = (int **) (((u8 *) config) + (long) offset);
+	int res, tmp;
+
+	if (pretty_print) {
+		if (*val) {
+			res = os_snprintf(buf, buflen, "%s=", name);
+			if (os_snprintf_error(buflen, res))
+				return -1;
+
+			tmp = wpa_config_print_int_array(buf + res,
+							 buflen - res, *val);
+			if (tmp < 0)
+				return -1;
+			res += tmp;
+
+			tmp = os_snprintf(buf + res, buflen - res, "\n");
+			if (os_snprintf_error(buflen - res, tmp))
+				return -1;
+			res += tmp;
+		} else {
+			res = os_snprintf(buf, buflen, "%s=null\n", name);
+		}
+
+	} else if (!*val) {
+		return -1;
+	} else {
+		res = wpa_config_print_int_array(buf, buflen, *val);
+	}
+	if (os_snprintf_error(buflen, res))
+		res = -1;
+
+	return res;
+}
+
+
 #ifdef CONFIG_P2P
 static int wpa_config_get_ipv4(const char *name, struct wpa_config *config,
 			       long offset, char *buf, size_t buflen,
@@ -5665,7 +5727,7 @@ static const struct global_parse_data global_fields[] = {
 	{ FUNC(ap_assocresp_elements), 0 },
 	{ FUNC(ap_vendor_elements), 0 },
 	{ INT_RANGE(ignore_old_scan_res, 0, 1), 0 },
-	{ FUNC(freq_list), 0 },
+	{ FUNC_WITH_GET(freq_list), 0 },
 	{ FUNC(initial_freq_list), 0},
 	{ INT(scan_cur_freq), 0 },
 	{ INT(scan_res_valid_for_connect), 0},
