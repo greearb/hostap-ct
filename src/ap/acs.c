@@ -936,6 +936,10 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 			if (!is_in_freqlist(iface, chan2))
 				continue;
 
+			if (iface->conf->acs_exclude_6ghz_non_psc &&
+			    !is_6ghz_psc_frequency(chan2->freq))
+				continue;
+
 			/* find the best channel in this segment */
 			if (!best || chan2->interference_factor <
 			    best->interference_factor)
