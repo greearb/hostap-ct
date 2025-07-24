@@ -979,7 +979,7 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 				   chan->interference_factor,
 				   best->interference_factor);
 #ifdef CONFIG_IEEE80211BE
-			index_primary = (chan->freq - best->freq) / 20;
+			index_primary = (best->freq - chan->freq) / 20;
 #endif /* CONFIG_IEEE80211BE */
 			chan = best;
 		}
