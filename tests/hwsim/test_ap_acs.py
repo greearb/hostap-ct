@@ -817,3 +817,38 @@ def run_ap_acs_eht320(dev, apdev, bw32_offset):
         hapd.wait_sta_disconnect()
     finally:
         clear_regdom(hapd, dev)
+
+def test_ap_acs_exclude_6g_non_psc(dev, apdev, params):
+    """Automatic channel selection, exclude 6 GHz non-PSC"""
+    try:
+        hapd = None
+        force_prev_ap_on_6g(apdev[0])
+        params = hostapd.wpa2_params(ssid="test-acs", passphrase="12345678")
+        params['hw_mode'] = 'a'
+        params["ieee80211ax"] = "1"
+        params["ieee80211be"] = "1"
+        params['channel'] = '0'
+        params['op_class'] = '133'
+        params['country_code'] = 'CA'
+        params['acs_num_scans'] = '1'
+        params['ieee80211w'] = '2'
+        params['wpa_key_mgmt'] = 'SAE-EXT-KEY'
+        params['acs_num_scans'] = '1'
+        params['acs_exclude_6ghz_non_psc'] = '1'
+
+        hapd = hostapd.add_ap(apdev[0], params)
+        freq = hapd.get_status_field("freq")
+        if int(freq) not in [5975, 6055, 6135, 6215, 6295, 6375, 6455, 6535,
+                             6615, 6695, 6775, 6855, 6935, 7015, 7095]:
+            raise Exception("Unexpected frequency: %d" % freq)
+        dev[0].set("sae_groups", "")
+        dev[0].connect("test-acs", psk="12345678", key_mgmt="SAE-EXT-KEY",
+                       ieee80211w="2", scan_freq=freq)
+        hapd.wait_sta()
+        dev[0].wait_regdom(country_ie=True)
+
+        dev[0].request("DISCONNECT")
+        dev[0].wait_disconnected()
+        hapd.wait_sta_disconnect()
+    finally:
+        clear_regdom(hapd, dev)
