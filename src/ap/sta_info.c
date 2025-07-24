@@ -967,7 +967,7 @@ static void ap_sta_disconnect_common(struct hostapd_data *hapd,
 	if (free_1x)
 		ieee802_1x_free_station(hapd, sta);
 #ifdef CONFIG_IEEE80211BE
-	if (!hapd->conf->mld_ap ||
+	if (!ap_sta_is_mld(hapd, sta) ||
 	    hapd->mld_link_id == sta->mld_assoc_link_id) {
 		wpa_auth_sta_deinit(sta->wpa_sm);
 		clear_wpa_sm_for_each_partner_link(hapd, sta);
