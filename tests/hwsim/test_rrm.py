@@ -243,7 +243,8 @@ def test_rrm_neighbor_rep_req(dev, apdev):
 
     params = {"ssid": "test", "rnr": "1"}
     hostapd.add_ap(apdev[0], params)
-    params = {"ssid": "test2", "rrm_neighbor_report": "1", "rnr": "1"}
+    params = {"ssid": "test2", "rrm_neighbor_report": "1", "rnr": "1",
+              "ftm_responder": "1", "lci": lci, "civic": civic}
     hapd = hostapd.add_ap(apdev[1], params)
 
     bssid1 = apdev[1]['bssid']

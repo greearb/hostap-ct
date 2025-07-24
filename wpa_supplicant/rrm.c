@@ -160,6 +160,7 @@ int wpas_rrm_send_neighbor_rep_request(struct wpa_supplicant *wpa_s,
 	rrm_ie = wpa_bss_get_ie(wpa_s->current_bss,
 				WLAN_EID_RRM_ENABLED_CAPABILITIES);
 	if (!rrm_ie || !(wpa_s->current_bss->caps & IEEE80211_CAP_RRM) ||
+	    rrm_ie[1] < 1 ||
 	    !(rrm_ie[2] & WLAN_RRM_CAPS_NEIGHBOR_REPORT)) {
 		wpa_dbg(wpa_s, MSG_DEBUG,
 			"RRM: No network support for Neighbor Report.");
@@ -188,6 +189,24 @@ int wpas_rrm_send_neighbor_rep_request(struct wpa_supplicant *wpa_s,
 		(ssid ? wpa_ssid_txt(ssid->ssid, ssid->ssid_len) : ""),
 		wpa_s->rrm.next_neighbor_rep_token);
 
+	/*
+	 * According to IEEE Std 802.11-2024, 11.10.10.2 (Requesting a neighbor
+	 * report) LCI and civic requests depend on FTM responder support.
+	 */
+	if (lci || civic) {
+		const u8 *ext_capab;
+
+		ext_capab = wpa_bss_get_ie(wpa_s->current_bss,
+					   WLAN_EID_EXT_CAPAB);
+		if (!ieee802_11_ext_capab(ext_capab,
+					  WLAN_EXT_CAPAB_FTM_RESPONDER)) {
+			wpa_printf(MSG_DEBUG,
+				   "AP doesn't support FTM responder, can't request LCI and civic");
+			lci = 0;
+			civic = 0;
+		}
+	}
+
 	wpabuf_put_u8(buf, WLAN_ACTION_RADIO_MEASUREMENT);
 	wpabuf_put_u8(buf, WLAN_RRM_NEIGHBOR_REPORT_REQUEST);
 	wpabuf_put_u8(buf, wpa_s->rrm.next_neighbor_rep_token);
@@ -197,7 +216,8 @@ int wpas_rrm_send_neighbor_rep_request(struct wpa_supplicant *wpa_s,
 		wpabuf_put_data(buf, ssid->ssid, ssid->ssid_len);
 	}
 
-	if (lci) {
+	if (lci && rrm_ie[1] >= 2 &&
+	    (rrm_ie[3] & WLAN_RRM_CAPS_LCI_MEASUREMENT)) {
 		/* IEEE Std 802.11-2024, 9.4.2.19 (Measurement Request element)
 		 */
 		wpabuf_put_u8(buf, WLAN_EID_MEASURE_REQUEST);
@@ -231,9 +251,12 @@ int wpas_rrm_send_neighbor_rep_request(struct wpa_supplicant *wpa_s,
 		wpabuf_put_u8(buf, LCI_REQ_SUBELEM_MAX_AGE);
 		wpabuf_put_u8(buf, 2);
 		wpabuf_put_le16(buf, 0xffff);
+	} else if (lci) {
+		wpa_printf(MSG_DEBUG, "RRM: LCI request isn't supported by AP");
 	}
 
-	if (civic) {
+	if (civic && rrm_ie[1] >= 5 &&
+	    (rrm_ie[6] & WLAN_RRM_CAPS_CIVIC_LOCATION_MEASUREMENT)) {
 		/* IEEE Std 802.11-2024, 9.4.2.19 (Measurement Request element)
 		 */
 		wpabuf_put_u8(buf, WLAN_EID_MEASURE_REQUEST);
@@ -263,6 +286,9 @@ int wpas_rrm_send_neighbor_rep_request(struct wpa_supplicant *wpa_s,
 		 */
 		wpabuf_put_le16(buf, 0);
 		/* No optional subelements */
+	} else if (civic) {
+		wpa_printf(MSG_DEBUG,
+			   "RRM: Civic request isn't supported by AP");
 	}
 
 	wpa_s->rrm.next_neighbor_rep_token++;
