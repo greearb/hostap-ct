@@ -831,7 +831,8 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 			 struct hostapd_channel_data **ideal_chan,
 			 long double *ideal_factor)
 {
-	struct hostapd_channel_data *chan, *adj_chan = NULL, *best;
+	struct hostapd_channel_data *chan, *adj_chan = NULL,
+		*chan2 = NULL, *best;
 	long double factor;
 	int i, j;
 	int bw320_offset = 0, ideal_bw320_offset = 0;
@@ -849,43 +850,6 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 		struct acs_bias *bias, tmp_bias;
 
 		chan = &mode->channels[i];
-
-		/* Since in the current ACS implementation the first channel is
-		 * always a primary channel, skip channels not available as
-		 * primary until more sophisticated channel selection is
-		 * implemented.
-		 *
-		 * If this implementation is changed to allow any channel in
-		 * the bandwidth to be the primary one, the last parameter to
-		 * acs_update_puncturing_bitmap() should be changed to the index
-		 * of the primary channel
-		 */
-		if (!chan_pri_allowed(chan))
-			continue;
-
-		if ((chan->flag & HOSTAPD_CHAN_RADAR) &&
-		    iface->conf->acs_exclude_dfs)
-			continue;
-
-		if (!is_in_chanlist(iface, chan))
-			continue;
-
-		if (!is_in_freqlist(iface, chan))
-			continue;
-
-		if (chan->max_tx_power < iface->conf->min_tx_power)
-			continue;
-
-		if ((chan->flag & HOSTAPD_CHAN_INDOOR_ONLY) &&
-		    iface->conf->country[2] == 0x4f)
-			continue;
-
-		if (!chan_bw_allowed(chan, bw, secondary_channel != -1, 1)) {
-			wpa_printf(MSG_DEBUG,
-				   "ACS: Channel %d: BW %u is not supported",
-				   chan->chan, bw);
-			continue;
-		}
 
 		/* HT40 on 5 GHz has a limited set of primary channels as per
 		 * 11n Annex J */
@@ -931,35 +895,51 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 
 		factor = 0;
 		best = NULL;
-		if (acs_usable_chan(chan)) {
-			factor = chan->interference_factor;
-			total_weight = 1;
-			best = chan;
-		}
 
-		for (j = 1; j < n_chans; j++) {
-			adj_chan = acs_find_chan(iface, chan->freq +
-						 j * secondary_channel * 20);
-			if (!adj_chan)
+		for (j = 0; j < n_chans; j++) {
+			chan2 = acs_find_chan(iface, chan->freq +
+					      j * secondary_channel * 20);
+			if (!chan2)
 				break;
 
-			if (!chan_bw_allowed(adj_chan, bw, 1, 0)) {
+			if (!chan_bw_allowed(chan2, bw, secondary_channel != -1,
+					     j == 0)) {
 				wpa_printf(MSG_DEBUG,
-					   "ACS: PRI Channel %d: secondary channel %d BW %u is not supported",
-					   chan->chan, adj_chan->chan, bw);
+					   "ACS: Channel %d: BW %u is not supported",
+					   chan2->chan, bw);
 				break;
 			}
 
-			if (!acs_usable_chan(adj_chan))
+			if ((chan2->flag & HOSTAPD_CHAN_RADAR) &&
+			    iface->conf->acs_exclude_dfs)
+				break;
+
+			if (chan2->max_tx_power < iface->conf->min_tx_power)
+				break;
+
+			if ((chan2->flag & HOSTAPD_CHAN_INDOOR_ONLY) &&
+			    iface->conf->country[2] == 0x4f)
+				break;
+
+			if (!acs_usable_chan(chan2))
 				continue;
 
-			factor += adj_chan->interference_factor;
+			factor += chan2->interference_factor;
 			total_weight += 1;
 
+			if (!chan_pri_allowed(chan2))
+				continue;
+
+			if (!is_in_chanlist(iface, chan2))
+				continue;
+
+			if (!is_in_freqlist(iface, chan2))
+				continue;
+
 			/* find the best channel in this segment */
-			if (!best || adj_chan->interference_factor <
+			if (!best || chan2->interference_factor <
 			    best->interference_factor)
-				best = adj_chan;
+				best = chan2;
 		}
 
 		if (j != n_chans) {
@@ -968,11 +948,18 @@ acs_find_ideal_chan_mode(struct hostapd_iface *iface,
 			continue;
 		}
 
+		if (!best) {
+			wpa_printf(MSG_DEBUG,
+				   "ACS: No valid channel found in the segment starting with channel %d",
+				   chan->chan);
+			continue;
+		}
+
 		/* If the AP is in the 5 GHz or 6 GHz band, lets prefer a less
 		 * crowded primary channel if one was found in the segment */
 		if (iface->current_mode &&
 		    iface->current_mode->mode == HOSTAPD_MODE_IEEE80211A &&
-		    best && chan != best) {
+		    chan != best) {
 			wpa_printf(MSG_DEBUG,
 				   "ACS: promoting channel %d over %d (less interference %Lg/%Lg)",
 				   best->chan, chan->chan,
