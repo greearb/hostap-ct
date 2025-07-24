@@ -5429,6 +5429,31 @@ static int wpa_config_get_str(const char *name, struct wpa_config *config,
 }
 
 
+static int wpa_config_get_bgscan(const char *name, struct wpa_config *config,
+				 long offset, char *buf, size_t buflen,
+				 int pretty_print)
+{
+	char **val = (char **) (((u8 *) config) + (long) offset);
+	int res;
+
+	if (pretty_print) {
+		if (*val)
+			res = os_snprintf(buf, buflen, "%s=\"%s\"\n", name,
+					  *val);
+		else
+			res = os_snprintf(buf, buflen, "%s=null\n", name);
+	} else if (!*val) {
+		return -1;
+	} else {
+		res = os_snprintf(buf, buflen, "\"%s\"", *val);
+	}
+	if (os_snprintf_error(buflen, res))
+		res = -1;
+
+	return res;
+}
+
+
 #ifdef CONFIG_P2P
 static int wpa_config_get_ipv4(const char *name, struct wpa_config *config,
 			       long offset, char *buf, size_t buflen,
@@ -5478,6 +5503,8 @@ static int wpa_config_process_mld_connect_bssid_pref(
 #define OFFSET(v) ((void *) &((struct wpa_config *) 0)->v)
 
 #define FUNC(f) #f, wpa_config_process_ ## f, NULL, OFFSET(f), NULL, NULL
+#define FUNC_WITH_GET(f) #f, wpa_config_process_ ## f, wpa_config_get_ ## f, \
+		OFFSET(f), NULL, NULL
 #define FUNC_NO_VAR(f) #f, wpa_config_process_ ## f, NULL, NULL, NULL, NULL
 #define _INT(f) #f, wpa_global_config_parse_int, wpa_config_get_int, OFFSET(f)
 #define INT(f) _INT(f), NULL, NULL
@@ -5504,7 +5531,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT_RANGE(eapol_version, 1, 2), 0 },
 #endif /* CONFIG_MACSEC */
 	{ INT(ap_scan), 0 },
-	{ FUNC(bgscan), CFG_CHANGED_BGSCAN },
+	{ FUNC_WITH_GET(bgscan), CFG_CHANGED_BGSCAN },
 #ifdef CONFIG_MESH
 	{ INT(user_mpm), 0 },
 	{ INT_RANGE(max_peer_links, 0, 255), 0 },
