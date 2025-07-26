@@ -4947,6 +4947,8 @@ out:
 
 bool hostapd_is_mld_ap(struct hostapd_data *hapd)
 {
+	struct hostapd_data *bss;
+
 	if (!hapd->conf->mld_ap)
 		return false;
 
@@ -4954,7 +4956,18 @@ bool hostapd_is_mld_ap(struct hostapd_data *hapd)
 	    hapd->iface->interfaces->count <= 1)
 		return false;
 
-	return true;
+	/*
+	 * Checking for interfaces count above is not sufficient as there
+	 * could be non-MLD interfaces or MLD interface that are not affiliated
+	 * with the same MLD as the currently processing one. So need to check
+	 * if other partner links exist for this the same AP MLD.
+	 */
+	for_each_mld_link(bss, hapd) {
+		if (bss != hapd)
+			return true;
+	}
+
+	return false;
 }
 
 #endif /* CONFIG_IEEE80211BE */
