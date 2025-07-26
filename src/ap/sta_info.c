@@ -1087,7 +1087,7 @@ static bool ap_sta_ml_disconnect(struct hostapd_data *hapd,
 	unsigned int i, link_id;
 	struct hapd_interfaces *interfaces;
 
-	if (!hostapd_is_mld_ap(hapd))
+	if (!hostapd_is_multiple_link_mld(hapd))
 		return false;
 
 	/*

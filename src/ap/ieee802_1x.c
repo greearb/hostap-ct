@@ -151,7 +151,7 @@ static void ieee802_1x_ml_set_sta_authorized(struct hostapd_data *hapd,
 #ifdef CONFIG_IEEE80211BE
 	unsigned int i;
 
-	if (!hostapd_is_mld_ap(hapd))
+	if (!hostapd_is_multiple_link_mld(hapd))
 		return;
 
 	/*

@@ -1074,7 +1074,7 @@ void hostapd_notif_disassoc(struct hostapd_data *hapd, const u8 *addr)
 
 	sta = ap_get_sta(hapd, addr);
 #ifdef CONFIG_IEEE80211BE
-	if (hostapd_is_mld_ap(hapd)) {
+	if (hostapd_is_multiple_link_mld(hapd)) {
 		struct hostapd_data *assoc_hapd;
 		unsigned int i;
 

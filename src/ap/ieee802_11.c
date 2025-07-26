@@ -4945,7 +4945,7 @@ out:
 }
 
 
-bool hostapd_is_mld_ap(struct hostapd_data *hapd)
+bool hostapd_is_multiple_link_mld(struct hostapd_data *hapd)
 {
 	struct hostapd_data *bss;
 
@@ -4983,7 +4983,7 @@ int hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 #ifdef CONFIG_IEEE80211BE
 	unsigned int i;
 
-	if (!hostapd_is_mld_ap(hapd))
+	if (!hostapd_is_multiple_link_mld(hapd))
 		return 0;
 
 	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
@@ -6197,7 +6197,7 @@ static bool hostapd_ml_handle_disconnect(struct hostapd_data *hapd,
 	struct sta_info *assoc_sta;
 	struct sta_info *tmp_sta;
 
-	if (!hostapd_is_mld_ap(hapd))
+	if (!hostapd_is_multiple_link_mld(hapd))
 		return false;
 
 	/*
@@ -6886,7 +6886,7 @@ static void hostapd_ml_handle_assoc_cb(struct hostapd_data *hapd,
 #ifdef CONFIG_IEEE80211BE
 	struct hostapd_data *tmp_hapd;
 
-	if (!hostapd_is_mld_ap(hapd))
+	if (!hostapd_is_multiple_link_mld(hapd))
 		return;
 
 	for_each_mld_link(tmp_hapd, hapd) {
