@@ -182,6 +182,11 @@ static void ieee802_1x_ml_set_sta_authorized(struct hostapd_data *hapd,
 			    tmp_sta->aid != sta->aid)
 				continue;
 
+			if (!ether_addr_equal(
+				    tmp_sta->mld_info.common_info.mld_addr,
+				    sta->mld_info.common_info.mld_addr))
+				continue;
+
 			ieee802_1x_set_authorized(tmp_hapd, tmp_sta,
 						  authorized, true);
 			break;
