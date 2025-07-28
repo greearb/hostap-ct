@@ -15934,8 +15934,6 @@ static int nl80211_configure_edcca_enable(void *priv, s8 link_id,
 	if (ret) {
 		wpa_printf(MSG_ERROR, "Failed to configure EDCCA enable. ret=%d (%s) ",
 			   ret, strerror(-ret));
-		/* TODO:  Figure out why this is failing.  Ignore for now. --Ben */
-		ret = 0;
 	}
 	return ret;
 }
