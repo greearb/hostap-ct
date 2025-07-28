@@ -359,7 +359,7 @@ struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 				    bool ro)
 {
 	FILE *f;
-	char buf[512], *pos;
+	char buf[1024], *pos;
 	int errors = 0, line = 0;
 	struct wpa_ssid *ssid, *tail, *head;
 	struct wpa_cred *cred, *cred_tail, *cred_head;
