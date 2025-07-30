@@ -45,11 +45,17 @@
 /* Candela hacker space. */
 #define CANDELA_VENDOR_ID 0xCD1A
 struct ct_assoc_info {
-#define CT_DISABLE_TWT    (1<<0)
-#define CT_DISABLE_160MHZ (1<<1)
-#define CT_DISABLE_OFDMA (1<<2)
-#define CT_DISABLE_320MHZ (1<<3)
-#define CT_IGNORE_EDCA (1<<4)
+#define CT_ASSOC_DISABLE_TWT    (1<<0)
+#define CT_ASSOC_DISABLE_160MHZ (1<<1)
+#define CT_ASSOC_DISABLE_OFDMA  (1<<2)
+#define CT_ASSOC_DISABLE_320MHZ (1<<3)
+#define CT_ASSOC_IGNORE_EDCA    (1<<4)
+#define CT_ASSOC_DISABLE_40MHZ  (1<<5)
+#define CT_ASSOC_DISABLE_80MHZ  (1<<6)
+#define CT_ASSOC_DISABLE_HT     (1<<7)
+#define CT_ASSOC_DISABLE_VHT    (1<<8)
+#define CT_ASSOC_DISABLE_HE     (1<<9)
+#define CT_ASSOC_DISABLE_EHT    (1<<10)
 	u32 flags;
 	u32 pad32[7]; /* room to grow */
 } __attribute__((packed));
