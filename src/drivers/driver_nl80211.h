@@ -330,7 +330,7 @@ int nl80211_create_iface(struct wpa_driver_nl80211_data *drv,
 			 void *arg, int use_existing);
 void nl80211_remove_iface(struct wpa_driver_nl80211_data *drv, int ifidx);
 unsigned int nl80211_get_assoc_freq(struct wpa_driver_nl80211_data *drv);
-const u8 * nl80211_get_assoc_bssid(struct wpa_driver_nl80211_data *drv);
+const u8 * nl80211_get_assoc_bssid(struct i802_bss *bss);
 int nl80211_get_assoc_ssid(struct wpa_driver_nl80211_data *drv, u8 *ssid);
 enum chan_width convert2width(int width);
 void nl80211_mark_disconnected(struct wpa_driver_nl80211_data *drv);
@@ -339,10 +339,9 @@ struct i802_bss * get_bss_ifindex(struct wpa_driver_nl80211_data *drv,
 int is_ap_interface(enum nl80211_iftype nlmode);
 int is_sta_interface(enum nl80211_iftype nlmode);
 int wpa_driver_nl80211_authenticate_retry(struct wpa_driver_nl80211_data *drv);
-int nl80211_get_link_signal(struct wpa_driver_nl80211_data *drv,
-			    const u8 *bssid,
+int nl80211_get_link_signal(struct i802_bss *bss, const u8 *bssid,
 			    struct hostap_sta_driver_data *data);
-int nl80211_get_link_noise(struct wpa_driver_nl80211_data *drv,
+int nl80211_get_link_noise(struct i802_bss *bss,
 			   struct wpa_signal_info *sig_change);
 int nl80211_get_wiphy_index(struct i802_bss *bss);
 int wpa_driver_nl80211_set_mode(struct i802_bss *bss,
@@ -434,6 +433,6 @@ struct hostapd_multi_hw_info *
 nl80211_get_multi_hw_info(struct i802_bss *bss, unsigned int *num_multi_hws);
 u32 get_nl80211_protocol_features(struct wpa_driver_nl80211_data *drv);
 
-int get_sta_mlo_interface_info(struct wpa_driver_nl80211_data *drv);
+int get_sta_mlo_interface_info(struct i802_bss *bss);
 
 #endif /* DRIVER_NL80211_H */
