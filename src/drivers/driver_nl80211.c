@@ -5532,6 +5532,130 @@ static int nl80211_put_freq_params(struct nl_msg *msg,
 	return 0;
 }
 
+static void populate_ct_priv_preq_nl(struct i802_bss *bss,
+				     struct ct_preq_info *cpi)
+{
+	/* If explicitly setting a wifi mode, use fall-through to prevent
+	 * advertising higher-level modes
+	 */
+	if (bss->adv_wifi_mode != WIFI_MODE_DEFAULT) {
+		switch (bss->adv_wifi_mode) {
+		case WIFI_MODE_LEGACY:
+			cpi->flags |= CT_PREQ_DISABLE_HT;
+		case WIFI_MODE_HT:
+			cpi->flags |= CT_PREQ_DISABLE_VHT;
+		case WIFI_MODE_VHT:
+			cpi->flags |= CT_PREQ_DISABLE_HE;
+		case WIFI_MODE_HE:
+			cpi->flags |= CT_PREQ_DISABLE_EHT;
+		case WIFI_MODE_EHT:
+		default:
+			/* Nothing to disable */;
+		}
+	}
+
+	if (bss->adv_bw != WIFI_BW_DEFAULT) {
+		switch (bss->adv_bw) {
+		case WIFI_BW_20:
+			cpi->flags |= CT_PREQ_DISABLE_40;
+		case WIFI_BW_40:
+			cpi->flags |= CT_PREQ_DISABLE_80;
+		case WIFI_BW_80:
+			cpi->flags |= CT_PREQ_DISABLE_160;
+		case WIFI_BW_160:
+			cpi->flags |= CT_PREQ_DISABLE_320;
+		case WIFI_BW_320:
+		default:
+			/* Nothing to disable */;
+		}
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "nl80211:  CT Vendor preq flags: 0x%x",
+		   cpi->flags);
+}
+
+static void populate_ct_priv_assoc_nl(struct i802_bss *bss,
+				      struct ct_assoc_info *cai,
+				      struct wpa_driver_ap_params *ap_params,
+				      struct wpa_driver_associate_params *assoc_params)
+{
+
+	/* If explicitly setting a wifi mode, use fall-through to prevent
+	 * advertising higher-level modes
+	 */
+	if (bss->adv_wifi_mode != WIFI_MODE_DEFAULT) {
+		switch (bss->adv_wifi_mode) {
+		case WIFI_MODE_LEGACY:
+			cai->flags |= CT_ASSOC_DISABLE_HT;
+		case WIFI_MODE_HT:
+			cai->flags |= CT_ASSOC_DISABLE_VHT;
+		case WIFI_MODE_VHT:
+			cai->flags |= CT_ASSOC_DISABLE_HE;
+		case WIFI_MODE_HE:
+			cai->flags |= CT_ASSOC_DISABLE_EHT;
+		case WIFI_MODE_EHT:
+		default:
+			/* Nothing to disable */;
+		}
+	}
+
+	if (bss->adv_bw != WIFI_BW_DEFAULT) {
+		switch (bss->adv_bw) {
+		case WIFI_BW_20:
+			cai->flags |= CT_ASSOC_DISABLE_40MHZ;
+		case WIFI_BW_40:
+			cai->flags |= CT_ASSOC_DISABLE_80MHZ;
+		case WIFI_BW_80:
+			cai->flags |= CT_ASSOC_DISABLE_160MHZ;
+		case WIFI_BW_160:
+			cai->flags |= CT_ASSOC_DISABLE_320MHZ;
+		case WIFI_BW_320:
+		default:
+			/* Nothing to disable */;
+		}
+	}
+
+
+	if (ap_params && ap_params->he_ofdma_disable) {
+		cai->flags |= CT_ASSOC_DISABLE_OFDMA;
+		wpa_printf(MSG_DEBUG, "  * OFDMA disabled");
+	}
+
+	if (assoc_params) {
+#ifdef CONFIG_HE_OVERRIDES
+		if (assoc_params->disable_twt) {
+			cai->flags |= CT_ASSOC_DISABLE_TWT;
+			wpa_printf(MSG_DEBUG, "  * TWT disabled");
+		}
+
+		if (assoc_params->disable_160) {
+			cai->flags |= CT_ASSOC_DISABLE_160MHZ;
+			wpa_printf(MSG_DEBUG, "  * 160Mhz disabled");
+		}
+
+		if (assoc_params->disable_320) {
+			cai->flags |= CT_ASSOC_DISABLE_320MHZ;
+			wpa_printf(MSG_DEBUG, "  * 320Mhz disabled");
+		}
+
+		if (assoc_params->disable_ofdma) {
+			cai->flags |= CT_ASSOC_DISABLE_OFDMA;
+			wpa_printf(MSG_DEBUG, "  * OFDMA disabled");
+		}
+
+		if (assoc_params->ignore_edca) {
+			cai->flags |= CT_ASSOC_IGNORE_EDCA;
+			wpa_printf(MSG_DEBUG, "  * EDCA ignored");
+		}
+#endif
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "nl80211:  CT Vendor assoc flags: 0x%x",
+		   cai->flags);
+}
+
 
 static int wpa_driver_nl80211_set_ap(void *priv,
 				     struct wpa_driver_ap_params *params)
@@ -5899,10 +6023,7 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 	{
 		struct ct_assoc_info cai = {0};
 
-		if (params->he_ofdma_disable) {
-			cai.flags |= CT_DISABLE_OFDMA;
-			wpa_printf(MSG_DEBUG, "  * OFDMA disabled");
-		}
+		populate_ct_priv_assoc_nl(bss, &cai, params, NULL);
 
 		if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, CANDELA_VENDOR_ID))
 			return -1;
@@ -7021,7 +7142,8 @@ static int nl80211_leave_ibss(struct i802_bss *bss, int reset_mode)
 }
 
 
-static int nl80211_ht_vht_overrides(struct nl_msg *msg,
+static int nl80211_ht_vht_overrides(struct i802_bss *bss,
+				    struct nl_msg *msg,
 				    struct wpa_driver_associate_params *params)
 {
 	if (params->disable_ht && nla_put_flag(msg, NL80211_ATTR_DISABLE_HT))
@@ -7068,30 +7190,7 @@ static int nl80211_ht_vht_overrides(struct nl_msg *msg,
 	{
 		struct ct_assoc_info cai = {0};
 
-		if (params->disable_twt) {
-			cai.flags |= CT_DISABLE_TWT;
-			wpa_printf(MSG_DEBUG, "  * TWT disabled");
-		}
-
-		if (params->disable_160) {
-			cai.flags |= CT_DISABLE_160MHZ;
-			wpa_printf(MSG_DEBUG, "  * 160Mhz disabled");
-		}
-
-		if (params->disable_320) {
-			cai.flags |= CT_DISABLE_320MHZ;
-			wpa_printf(MSG_DEBUG, "  * 320Mhz disabled");
-		}
-
-		if (params->disable_ofdma) {
-			cai.flags |= CT_DISABLE_OFDMA;
-			wpa_printf(MSG_DEBUG, "  * OFDMA disabled");
-		}
-
-		if (params->ignore_edca) {
-			cai.flags |= CT_IGNORE_EDCA;
-			wpa_printf(MSG_DEBUG, "  * EDCA ignored");
-		}
+		populate_ct_priv_assoc_nl(bss, &cai, NULL, params);
 
 		if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, CANDELA_VENDOR_ID))
 			return -1;
@@ -7111,7 +7210,8 @@ static int nl80211_ht_vht_overrides(struct nl_msg *msg,
 }
 
 
-static int wpa_driver_nl80211_ibss(struct i802_bss *bss,
+static int wpa_driver_nl80211_ibss(struct wpa_driver_nl80211_data *drv,
+				   struct i802_bss *bss,
 				   struct wpa_driver_associate_params *params)
 {
 	struct nl_msg *msg;
@@ -7179,7 +7279,7 @@ retry:
 			goto fail;
 	}
 
-	ret = nl80211_ht_vht_overrides(msg, params);
+	ret = nl80211_ht_vht_overrides(bss, msg, params);
 	if (ret < 0)
 		goto fail;
 
@@ -7263,6 +7363,7 @@ static unsigned int num_bits_set(u32 val)
 
 
 static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
+				  struct i802_bss *bss,
 				  struct wpa_driver_associate_params *params,
 				  struct nl_msg *msg)
 {
@@ -7587,7 +7688,7 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 			return -1;
 	}
 
-	if (nl80211_ht_vht_overrides(msg, params) < 0)
+	if (nl80211_ht_vht_overrides(bss, msg, params) < 0)
 		return -1;
 
 	if (params->p2p)
@@ -7735,7 +7836,7 @@ static int wpa_driver_nl80211_try_connect(
 	if (!msg)
 		return -1;
 
-	ret = nl80211_connect_common(drv, params, msg);
+	ret = nl80211_connect_common(drv, bss, params, msg);
 	if (ret)
 		goto fail;
 
@@ -7880,7 +7981,7 @@ static int wpa_driver_nl80211_associate(
 		return wpa_driver_nl80211_ap(drv, params);
 
 	if (params->mode == IEEE80211_MODE_IBSS)
-		return wpa_driver_nl80211_ibss(bss, params);
+		return wpa_driver_nl80211_ibss(drv, bss, params);
 
 	if (!(drv->capa.flags & WPA_DRIVER_FLAGS_SME)) {
 		enum nl80211_iftype nlmode = params->p2p ?
@@ -7900,7 +8001,7 @@ static int wpa_driver_nl80211_associate(
 	if (!msg)
 		return -1;
 
-	ret = nl80211_connect_common(drv, params, msg);
+	ret = nl80211_connect_common(drv, bss, params, msg);
 	if (ret)
 		goto fail;
 
@@ -10242,40 +10343,7 @@ static int nl80211_set_legacy_rates(struct i802_bss *bss,
 	{
 		struct ct_preq_info cpi = { 0 };
 
-		/* If explicitly setting a wifi mode, use fall-through to prevent
-		 * advertising higher-level modes
-		 */
-		if (bss->adv_wifi_mode != WIFI_MODE_DEFAULT) {
-			switch (bss->adv_wifi_mode) {
-			case WIFI_MODE_LEGACY:
-				cpi.flags |= CT_PREQ_DISABLE_HT;
-			case WIFI_MODE_HT:
-				cpi.flags |= CT_PREQ_DISABLE_VHT;
-			case WIFI_MODE_VHT:
-				cpi.flags |= CT_PREQ_DISABLE_HE;
-			case WIFI_MODE_HE:
-				cpi.flags |= CT_PREQ_DISABLE_EHT;
-			case WIFI_MODE_EHT:
-			default:
-				/* Nothing to disable */;
-			}
-		}
-
-		if (bss->adv_bw != WIFI_BW_DEFAULT) {
-			switch (bss->adv_bw) {
-			case WIFI_BW_20:
-				cpi.flags |= CT_PREQ_DISABLE_40;
-			case WIFI_BW_40:
-				cpi.flags |= CT_PREQ_DISABLE_80;
-			case WIFI_BW_80:
-				cpi.flags |= CT_PREQ_DISABLE_160;
-			case WIFI_BW_160:
-				cpi.flags |= CT_PREQ_DISABLE_320;
-			case WIFI_BW_320:
-			default:
-				/* Nothing to disable */;
-			}
-		}
+		populate_ct_priv_preq_nl(bss, &cpi);
 
 		if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, CANDELA_VENDOR_ID))
 			goto fail;
