@@ -8,8 +8,11 @@ mount --bind /etc /tmp/etc
 mount tmpfs -t tmpfs /etc
 # we need our own /dev/rfkill, and don't want device access
 mount tmpfs -t tmpfs /dev
-# some sockets go into /var/run, and / is read-only
-mount tmpfs -t tmpfs /var/run
+# make /var and /run writable and hide the host data
+# /var/run is expected to be a symlink to /run
+mount tmpfs -t tmpfs /var
+mount tmpfs -t tmpfs /run
+ln -s /run /var/run
 mount proc -t proc /proc
 mount sysfs -t sysfs /sys
 # needed for tracing
