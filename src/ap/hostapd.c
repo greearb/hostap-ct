@@ -4570,40 +4570,44 @@ static int hostapd_change_config_freq(struct hostapd_data *hapd,
 }
 
 
+enum oper_chan_width
+hostapd_chan_width_from_freq_params(struct hostapd_freq_params *freq_params)
+{
+	switch (freq_params->bandwidth) {
+	case 80:
+		if (freq_params->center_freq2)
+			return CONF_OPER_CHWIDTH_80P80MHZ;
+		else
+			return CONF_OPER_CHWIDTH_80MHZ;
+	case 160:
+		return CONF_OPER_CHWIDTH_160MHZ;
+	case 320:
+		return CONF_OPER_CHWIDTH_320MHZ;
+	default:
+		return CONF_OPER_CHWIDTH_USE_HT;
+	}
+}
+
+
 static int hostapd_fill_csa_settings(struct hostapd_data *hapd,
 				     struct csa_settings *settings)
 {
 	struct hostapd_iface *iface = hapd->iface;
 	struct hostapd_freq_params old_freq;
 	int ret;
-	u8 chan, bandwidth;
+	enum oper_chan_width chanwidth;
+	u8 chan;
 
 	os_memset(&old_freq, 0, sizeof(old_freq));
 	if (!iface || !iface->freq || hapd->csa_in_progress)
 		return -1;
 
-	switch (settings->freq_params.bandwidth) {
-	case 80:
-		if (settings->freq_params.center_freq2)
-			bandwidth = CONF_OPER_CHWIDTH_80P80MHZ;
-		else
-			bandwidth = CONF_OPER_CHWIDTH_80MHZ;
-		break;
-	case 160:
-		bandwidth = CONF_OPER_CHWIDTH_160MHZ;
-		break;
-	case 320:
-		bandwidth = CONF_OPER_CHWIDTH_320MHZ;
-		break;
-	default:
-		bandwidth = CONF_OPER_CHWIDTH_USE_HT;
-		break;
-	}
+	chanwidth = hostapd_chan_width_from_freq_params(&settings->freq_params);
 
 	if (ieee80211_freq_to_channel_ext(
 		    settings->freq_params.freq,
 		    settings->freq_params.sec_channel_offset,
-		    bandwidth,
+		    chanwidth,
 		    &hapd->iface->cs_oper_class,
 		    &chan) == NUM_HOSTAPD_MODES) {
 		wpa_printf(MSG_DEBUG,

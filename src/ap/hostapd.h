@@ -899,4 +899,7 @@ static inline bool ap_pmf_enabled(struct hostapd_bss_config *conf)
 		conf->rsn_override_mfp_2 != NO_MGMT_FRAME_PROTECTION;
 }
 
+enum oper_chan_width
+hostapd_chan_width_from_freq_params(struct hostapd_freq_params *freq_params);
+
 #endif /* HOSTAPD_H */
