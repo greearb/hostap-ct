@@ -36,6 +36,7 @@
 #define DEFAULT_MESH_RSSI_THRESHOLD 1 /* no change */
 #define DEFAULT_DISABLE_HT 0
 #define DEFAULT_DISABLE_HT40 0
+#define DEFAULT_DISABLE_VHT80 0
 #define DEFAULT_DISABLE_SGI 0
 #define DEFAULT_DISABLE_LDPC 0
 #define DEFAULT_TX_STBC -1 /* no change */
@@ -837,6 +838,14 @@ struct wpa_ssid {
 	 * to 1 to have it disabled.
 	 */
 	int disable_vht;
+
+	/**
+	 * disable_vht80 - Disable 80Mhz for this network
+	 *
+	 * By default, use it if it is available, but this can be configured
+	 * to 1 to have it disabled.
+	 */
+	int disable_vht80;
 
 	/**
 	 * vht_capa - VHT capabilities to use

@@ -249,9 +249,11 @@ int hostapd_config_tx_queue(struct hostapd_tx_queue_params queue[],
 enum hostapd_hw_mode ieee80211_freq_to_chan(int freq, u8 *channel);
 int ieee80211_chan_to_freq(const char *country, u8 op_class, u8 chan);
 enum hostapd_hw_mode
-ieee80211_freq_to_channel_ext(unsigned int freq, int sec_channel,
+_ieee80211_freq_to_channel_ext(unsigned int freq, int sec_channel,
 			      enum oper_chan_width chanwidth,
-			      u8 *op_class, u8 *channel);
+			      u8 *op_class, u8 *channel, const char* dbg);
+#define ieee80211_freq_to_channel_ext(f, s, c, oc, ch) \
+	_ieee80211_freq_to_channel_ext((f), (s), (c), (oc), (ch), __func__)
 int ieee80211_chaninfo_to_channel(unsigned int freq, enum chan_width chanwidth,
 				  int sec_channel, u8 *op_class, u8 *channel);
 int ieee80211_is_dfs(int freq, const struct hostapd_hw_modes *modes,

@@ -1514,7 +1514,8 @@ static const char *network_fields[] = {
 	"ampdu_density", "ht_mcs", "rx_stbc", "tx_stbc",
 #endif /* CONFIG_HT_OVERRIDES */
 #ifdef CONFIG_VHT_OVERRIDES
-	"disable_vht", "vht_capa", "vht_capa_mask", "vht_rx_mcs_nss_1",
+	"disable_vht", "disable_vht80",
+	"vht_capa", "vht_capa_mask", "vht_rx_mcs_nss_1",
 	"vht_rx_mcs_nss_2", "vht_rx_mcs_nss_3", "vht_rx_mcs_nss_4",
 	"vht_rx_mcs_nss_5", "vht_rx_mcs_nss_6", "vht_rx_mcs_nss_7",
 	"vht_rx_mcs_nss_8", "vht_tx_mcs_nss_1", "vht_tx_mcs_nss_2",

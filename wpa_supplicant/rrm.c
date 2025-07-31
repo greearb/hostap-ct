@@ -738,7 +738,9 @@ static int * wpas_beacon_request_freqs(struct wpa_supplicant *wpa_s,
 }
 
 
-int wpas_get_op_chan_phy(int freq, const u8 *ies, size_t ies_len,
+int wpas_get_op_chan_phy(struct wpa_supplicant* wpa_s,
+			 struct wpa_ssid *ssid,
+			 int freq, const u8 *ies, size_t ies_len,
 			 u8 *op_class, u8 *chan, u8 *phy_type)
 {
 	const u8 *ie;
@@ -759,6 +761,9 @@ int wpas_get_op_chan_phy(int freq, const u8 *ies, size_t ies_len,
 		else if (sec_chan_offset ==
 			 HT_INFO_HT_PARAM_SECONDARY_CHNL_BELOW)
 			sec_chan = -1;
+		if ((ssid && ssid->disable_ht40) ||
+		    (wpa_s && wpa_s->conf->disable_ht40))
+			sec_chan = 0;
 	}
 
 	ie = get_ie(ies, ies_len, WLAN_EID_VHT_OPERATION);
@@ -786,6 +791,9 @@ int wpas_get_op_chan_phy(int freq, const u8 *ies, size_t ies_len,
 			vht = CONF_OPER_CHWIDTH_USE_HT;
 			break;
 		}
+		if ((ssid && (ssid->disable_vht80 || ssid->disable_ht40)) ||
+		    (wpa_s && (wpa_s->conf->disable_vht80 || wpa_s->conf->disable_ht40)))
+			vht = CONF_OPER_CHWIDTH_USE_HT;
 	}
 
 	if (ieee80211_freq_to_channel_ext(freq, sec_chan, vht, op_class,
@@ -980,7 +988,7 @@ static int wpas_add_beacon_rep(struct wpa_supplicant *wpa_s,
 	     os_memcmp(data->ssid, bss->ssid, bss->ssid_len) != 0))
 		return 0;
 
-	if (wpas_get_op_chan_phy(bss->freq, ies, ies_len, &rep.op_class,
+	if (wpas_get_op_chan_phy(wpa_s, NULL, bss->freq, ies, ies_len, &rep.op_class,
 				 &rep.channel, &rep.report_info) < 0)
 		return 0;
 

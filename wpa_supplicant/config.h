@@ -1965,6 +1965,24 @@ struct wpa_config {
 	int disable_btm;
 
 	/**
+	 * disable_ht40 - Disable 40MHz operation (20MHz only)
+	 * - Set to 0 to allow 40MHz
+	 * - Set to 1 to disable 40MHz
+	 *
+	 * By default 40MHz is enabled if otherwise supported.
+	 */
+	int disable_ht40;
+
+	/**
+	 * disable_vht40 - Disable 80MHz operation (20/40MHz only)
+	 * - Set to 0 to allow 80MHz
+	 * - Set to 1 to disable 80MHz
+	 *
+	 * By default 80MHz is enabled if otherwise supported.
+	 */
+	int disable_vht80;
+
+	/**
 	 * extended_key_id - Extended Key ID support
 	 *
 	 * IEEE Std 802.11-2016 optionally allows to use Key ID 0 and 1 for PTK
