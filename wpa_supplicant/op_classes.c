@@ -505,7 +505,8 @@ static int wpas_op_class_supported(struct wpa_supplicant *wpa_s,
 }
 
 
-static int wpas_sta_secondary_channel_offset(struct wpa_bss *bss, u8 *current,
+static int wpas_sta_secondary_channel_offset(struct wpa_bss *bss,
+					     struct wpa_ssid *ssid, u8 *current,
 					     u8 *channel)
 {
 
@@ -517,7 +518,7 @@ static int wpas_sta_secondary_channel_offset(struct wpa_bss *bss, u8 *current,
 		return -1;
 	ies = wpa_bss_ie_ptr(bss);
 	ies_len = bss->ie_len ? bss->ie_len : bss->beacon_ie_len;
-	return wpas_get_op_chan_phy(bss->freq, ies, ies_len, current,
+	return wpas_get_op_chan_phy(NULL, ssid, bss->freq, ies, ies_len, current,
 				    channel, &phy_type);
 }
 
@@ -540,7 +541,7 @@ size_t wpas_supp_op_class_ie(struct wpa_supplicant *wpa_s,
 	 * accurate guess based on frequency if the needed IEs are not available
 	 * or used.
 	 */
-	if (wpas_sta_secondary_channel_offset(bss, &current, &chan) < 0 &&
+	if (wpas_sta_secondary_channel_offset(bss, ssid, &current, &chan) < 0 &&
 	    ieee80211_freq_to_channel_ext(bss->freq, 0,
 					  CONF_OPER_CHWIDTH_USE_HT, &current,
 					  &chan) == NUM_HOSTAPD_MODES)
