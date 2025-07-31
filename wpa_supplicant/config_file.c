@@ -996,6 +996,7 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid,
 #endif /* CONFIG_HT_OVERRIDES */
 #ifdef CONFIG_VHT_OVERRIDES
 	INT(disable_vht);
+	INT_DEF(disable_vht80, DEFAULT_DISABLE_VHT80);
 	INT(vht_capa);
 	INT(vht_capa_mask);
 	INT_DEF(vht_rx_mcs_nss_1, -1);
@@ -1826,6 +1827,10 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 	if (!is_zero_ether_addr(config->mld_connect_bssid_pref))
 		fprintf(f, "mld_connect_bssid_pref=" MACSTR "\n",
 			MAC2STR(config->mld_connect_bssid_pref));
+	if (config->disable_ht40)
+		fprintf(f, "disable_ht40=1\n");
+	if (config->disable_vht80)
+		fprintf(f, "disable_vht80=1\n");
 #endif /* CONFIG_TESTING_OPTIONS */
 	if (config->ft_prepend_pmkid)
 		fprintf(f, "ft_prepend_pmkid=%d\n", config->ft_prepend_pmkid);

@@ -2740,6 +2740,7 @@ static const struct parse_data ssid_fields[] = {
 #ifdef CONFIG_HT_OVERRIDES
 	{ INT_RANGE(disable_ht, 0, 1) },
 	{ INT_RANGE(disable_ht40, 0, 1) },
+	{ INT_RANGE(disable_vht80, 0, 1) },
 	{ INT_RANGE(disable_sgi, 0, 1) },
 	{ INT_RANGE(disable_ldpc, 0, 1) },
 	{ INT_RANGE(ht40_intolerant, 0, 1) },
@@ -3377,6 +3378,7 @@ void wpa_config_set_user_network_defaults(struct wpa_config *config, struct wpa_
 #endif
 #ifdef CONFIG_VHT_OVERRIDES
 			ssid->disable_vht = s->disable_vht;
+			ssid->disable_vht80 = s->disable_vht80;
 			ssid->vht_capa = s->vht_capa;
 			ssid->vht_capa_mask = s->vht_capa_mask;
 			ssid->vht_rx_mcs_nss_1 = s->vht_rx_mcs_nss_1;
@@ -3445,6 +3447,7 @@ void wpa_config_set_network_defaults(struct wpa_ssid *ssid)
 	ssid->ampdu_density = DEFAULT_AMPDU_DENSITY;
 #endif /* CONFIG_HT_OVERRIDES */
 #ifdef CONFIG_VHT_OVERRIDES
+	ssid->disable_vht80 = DEFAULT_DISABLE_VHT80;
 	ssid->vht_rx_mcs_nss_1 = -1;
 	ssid->vht_rx_mcs_nss_2 = -1;
 	ssid->vht_rx_mcs_nss_3 = -1;
@@ -6037,6 +6040,8 @@ static const struct global_parse_data global_fields[] = {
 	{ INT_RANGE(mld_allowed_phy, 0, 7), 0 },
 	{ INT_RANGE(mld_connect_band_pref, 0, MLD_CONNECT_BAND_PREF_MAX), 0 },
 	{ FUNC(mld_connect_bssid_pref), 0 },
+	{ INT_RANGE(disable_ht40, 0, 1), 0 },
+	{ INT_RANGE(disable_vht80, 0, 1), 0 },
 #endif /* CONFIG_TESTING_OPTIONS */
 	{ BOOL(ft_prepend_pmkid), CFG_CHANGED_FT_PREPEND_PMKID },
 	{ INT_RANGE(wfa_gen_capa, 0, 2), 0},

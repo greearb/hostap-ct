@@ -1859,7 +1859,9 @@ int wpas_update_random_addr(struct wpa_supplicant *wpa_s,
 			    struct wpa_ssid *ssid);
 int wpas_update_random_addr_disassoc(struct wpa_supplicant *wpa_s);
 
-int wpas_get_op_chan_phy(int freq, const u8 *ies, size_t ies_len,
+int wpas_get_op_chan_phy(struct wpa_supplicant *wpa_s,
+			 struct wpa_ssid *ssid,
+			 int freq, const u8 *ies, size_t ies_len,
 			 u8 *op_class, u8 *chan, u8 *phy_type);
 
 int wpas_twt_send_setup(struct wpa_supplicant *wpa_s, u8 dtok, int exponent,
