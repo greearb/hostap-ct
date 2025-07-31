@@ -1435,13 +1435,16 @@ enum hostapd_hw_mode ieee80211_freq_to_chan(int freq, u8 *channel)
  * Returns: hw_mode on success, NUM_HOSTAPD_MODES on failure
  */
 enum hostapd_hw_mode
-ieee80211_freq_to_channel_ext(unsigned int freq, int sec_channel,
+_ieee80211_freq_to_channel_ext(unsigned int freq, int sec_channel,
 			      enum oper_chan_width chanwidth,
-			      u8 *op_class, u8 *channel)
+			      u8 *op_class, u8 *channel, const char* dbg)
 {
 	u8 vht_opclass;
 
-	/* TODO: more operating classes */
+	/* TODO: more operating classes:
+	 * Table E-1 "Operating classes in the United States" */
+	wpa_printf(MSG_DEBUG, "freq-to-channel-ext, freq: %d sec-channel: %d chanwidth: %d dbg: %s",
+		   freq, sec_channel, chanwidth, dbg);
 
 	if (sec_channel > 1 || sec_channel < -1)
 		return NUM_HOSTAPD_MODES;
@@ -1507,11 +1510,11 @@ ieee80211_freq_to_channel_ext(unsigned int freq, int sec_channel,
 		if (vht_opclass)
 			*op_class = vht_opclass;
 		else if (sec_channel == 1)
-			*op_class = 116;
+			*op_class = 116; /* 40mhz */
 		else if (sec_channel == -1)
-			*op_class = 117;
+			*op_class = 117; /* 40Mhz */
 		else
-			*op_class = 115;
+			*op_class = 115; /* 20mhz */
 
 		*channel = (freq - 5000) / 5;
 
@@ -1545,11 +1548,11 @@ ieee80211_freq_to_channel_ext(unsigned int freq, int sec_channel,
 		if (vht_opclass)
 			*op_class = vht_opclass;
 		else if (sec_channel == 1)
-			*op_class = 126;
+			*op_class = 126; /* 40mhz */
 		else if (sec_channel == -1)
-			*op_class = 127;
+			*op_class = 127; /* 40mhz */
 		else
-			*op_class = 125;
+			*op_class = 125; /* 20mhz */
 
 		*channel = (freq - 5000) / 5;
 
