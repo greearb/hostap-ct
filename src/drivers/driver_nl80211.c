@@ -3529,6 +3529,29 @@ static int wpa_key_mgmt_to_suites(unsigned int key_mgmt_suites, u32 suites[],
 }
 
 
+static int wpa_ver_supported(struct wpa_driver_nl80211_data *drv,
+			     int key_mgmt_suites, int proto)
+{
+	enum nl80211_wpa_versions ver = 0;
+
+	if (proto & WPA_PROTO_WPA)
+		ver |= NL80211_WPA_VERSION_1;
+	if (proto & WPA_PROTO_RSN) {
+		/*
+		 * NL80211_ATTR_SAE_PASSWORD is related and was added
+		 * at the same time as NL80211_WPA_VERSION_3.
+		 */
+		if (nl80211_attr_supported(drv, NL80211_ATTR_SAE_PASSWORD) &&
+		    wpa_key_mgmt_sae(key_mgmt_suites))
+			ver |= NL80211_WPA_VERSION_3;
+		else
+			ver |= NL80211_WPA_VERSION_2;
+	}
+
+	return ver;
+}
+
+
 #ifdef CONFIG_DRIVER_NL80211_QCA
 static int issue_key_mgmt_set_key(struct i802_bss *bss, const u8 *key,
 				  size_t key_len)
@@ -5249,7 +5272,7 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 	int beacon_set;
 	int num_suites;
 	u32 suites[20], suite;
-	u32 ver;
+	enum nl80211_wpa_versions ver;
 #ifdef CONFIG_MESH
 	struct wpa_driver_mesh_bss_params mesh_params;
 #endif /* CONFIG_MESH */
@@ -5361,12 +5384,9 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 			goto fail;
 	}
 
-	wpa_printf(MSG_DEBUG, "nl80211: wpa_version=0x%x", params->wpa_version);
-	ver = 0;
-	if (params->wpa_version & WPA_PROTO_WPA)
-		ver |= NL80211_WPA_VERSION_1;
-	if (params->wpa_version & WPA_PROTO_RSN)
-		ver |= NL80211_WPA_VERSION_2;
+	ver = wpa_ver_supported(drv, params->key_mgmt_suites,
+				params->wpa_version);
+	wpa_printf(MSG_DEBUG, "nl80211: wpa_version=0x%x", ver);
 	if (ver &&
 	    nla_put_u32(msg, NL80211_ATTR_WPA_VERSIONS, ver))
 		goto fail;
@@ -6997,23 +7017,10 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 		return -1;
 
 	if (params->wpa_proto) {
-		enum nl80211_wpa_versions ver = 0;
+		enum nl80211_wpa_versions ver;
 
-		if (params->wpa_proto & WPA_PROTO_WPA)
-			ver |= NL80211_WPA_VERSION_1;
-		if (params->wpa_proto & WPA_PROTO_RSN) {
-			/*
-			 * NL80211_ATTR_SAE_PASSWORD is related and was added
-			 * at the same time as NL80211_WPA_VERSION_3.
-			 */
-			if (nl80211_attr_supported(drv,
-						   NL80211_ATTR_SAE_PASSWORD) &&
-			    wpa_key_mgmt_sae(params->key_mgmt_suite))
-				ver |= NL80211_WPA_VERSION_3;
-			else
-				ver |= NL80211_WPA_VERSION_2;
-		}
-
+		ver = wpa_ver_supported(drv, params->key_mgmt_suite,
+					params->wpa_proto);
 		wpa_printf(MSG_DEBUG, "  * WPA Versions 0x%x", ver);
 		if (nla_put_u32(msg, NL80211_ATTR_WPA_VERSIONS, ver))
 			return -1;
