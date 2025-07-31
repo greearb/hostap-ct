@@ -2422,6 +2422,9 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_FLAGS2_P2P_FEATURE_V2	0x0000000002000000ULL
 /** Driver supports P2P PCC mode */
 #define WPA_DRIVER_FLAGS2_P2P_FEATURE_PCC_MODE	0x0000000004000000ULL
+/** Driver supports arbitrary channel width changes in AP mode */
+#define WPA_DRIVER_FLAGS2_AP_CHANWIDTH_CHANGE	0x0000000008000000ULL
+
 	u64 flags2;
 
 #define FULL_AP_CLIENT_STATE_SUPP(drv_flags) \

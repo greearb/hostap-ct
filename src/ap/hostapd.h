@@ -845,6 +845,10 @@ void hostapd_event_sta_opmode_changed(struct hostapd_data *hapd, const u8 *addr,
 				      enum smps_mode smps_mode,
 				      enum chan_width chan_width, u8 rx_nss);
 
+int hostapd_change_config_freq(struct hostapd_data *hapd,
+			       struct hostapd_config *conf,
+			       struct hostapd_freq_params *params,
+			       struct hostapd_freq_params *old_params);
 #ifdef CONFIG_FST
 void fst_hostapd_fill_iface_obj(struct hostapd_data *hapd,
 				struct fst_wpa_obj *iface_obj);

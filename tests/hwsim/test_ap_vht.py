@@ -1339,3 +1339,41 @@ def test_ap_vht_csa_invalid(dev, apdev):
         time.sleep(1)
     finally:
         clear_regdom(hapd, dev)
+
+def test_ap_vht_bwswitch(dev, apdev):
+    """Do a bandwidth switch without a CSA"""
+    try:
+        params = {"ssid": "vht",
+                  "country_code": "FI",
+                  "hw_mode": "a",
+                  "channel": "36",
+                  "ht_capab": "[HT40+]",
+                  "ieee80211n": "1",
+                  "ieee80211ac": "1",
+                  "vht_oper_chwidth": "1",
+                  "vht_capab": "[MAX-MPDU-11454]",
+                  "vht_oper_centr_freq_seg0_idx": "42"}
+        hapd = hostapd.add_ap(apdev[0], params)
+
+        dev[0].connect("vht", key_mgmt="NONE", scan_freq='5180')
+
+        for request, expected in [
+            (None,
+             ('FREQUENCY=5180', 'WIDTH=80 MHz', 'CENTER_FRQ1=5210')),
+            ('center_freq1=5210 sec_channel_offset=1 bandwidth=40 ht vht',
+             ('FREQUENCY=5180', 'WIDTH=40 MHz', 'CENTER_FRQ1=5190')),
+            ('center_freq1=5210 sec_channel_offset=0 bandwidth=20 ht vht',
+             ('FREQUENCY=5180', 'WIDTH=20 MHz', 'CENTER_FRQ1=5180')),
+            ('bandwidth=80 sec_channel_offset=1 center_freq1=5210 ht vht',
+             ('FREQUENCY=5180', 'WIDTH=80 MHz', 'CENTER_FRQ1=5210')),
+        ]:
+            if request is not None:
+                if 'OK' not in hapd.request("SET_BW " + request):
+                    raise Exception("SET_BW request failed")
+            time.sleep(1)
+            sig = dev[0].request('SIGNAL_POLL').splitlines()
+            for e in expected:
+                if not e in sig:
+                    raise Exception("%s not found in %r" % (e, sig))
+    finally:
+        clear_regdom(hapd, dev)

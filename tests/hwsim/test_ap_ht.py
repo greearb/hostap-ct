@@ -972,6 +972,48 @@ def test_ap_ht_40mhz_intolerant_sta(dev, apdev):
     if hapd.get_status_field("secondary_channel") != "-1":
         raise Exception("Unexpected secondary_channel (did not re-enable 40 MHz)")
 
+def test_ap_ht_20_40_switch(dev, apdev):
+    """Do a bandwidth switch from 20 to 40 MHz without doing a CSA"""
+    clear_scan_cache(apdev[0])
+    params = {"ssid": "ht_20_40",
+              "channel": "6",
+              "ht_capab": "[HT40-]"}
+    hapd = hostapd.add_ap(apdev[0], params)
+    if hapd.get_status_field("secondary_channel") != "-1":
+        raise Exception("Unexpected secondary_channel")
+
+    dev[0].connect("ht_20_40", key_mgmt="NONE", scan_freq="2437")
+    if hapd.get_status_field("secondary_channel") != "-1":
+        raise Exception("Unexpected secondary_channel")
+
+    hapd.request("SET_BW bandwidth=20 ht")
+    time.sleep(1)
+    if hapd.get_status_field("secondary_channel") != "0":
+        raise Exception("Unexpected secondary_channel")
+    sig = dev[0].request('SIGNAL_POLL').splitlines()
+    expected = (
+        'FREQUENCY=2437',
+        'WIDTH=20 MHz',
+        'CENTER_FRQ1=2437',
+    )
+    for e in expected:
+        if not e in sig:
+            raise Exception("%s not found in %r" % (e, sig))
+
+    hapd.request("SET_BW bandwidth=40 sec_channel_offset=-1 ht")
+    time.sleep(1)
+    if hapd.get_status_field("secondary_channel") != "-1":
+        raise Exception("Unexpected secondary_channel")
+    sig = dev[0].request('SIGNAL_POLL').splitlines()
+    expected = (
+        'FREQUENCY=2437',
+        'WIDTH=40 MHz',
+        'CENTER_FRQ1=2427',
+    )
+    for e in expected:
+        if not e in sig:
+            raise Exception("%s not found in %r" % (e, sig))
+
 def test_ap_ht_40mhz_intolerant_sta_deinit(dev, apdev):
     """Associated STA indicating 40 MHz intolerant and hostapd deinit"""
     clear_scan_cache(apdev[0])

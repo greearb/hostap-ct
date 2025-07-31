@@ -3046,6 +3046,55 @@ static char hostapd_ctrl_iface_notify_cw_change(struct hostapd_data *hapd,
 }
 
 
+static int hostapd_ctrl_iface_set_bw(struct hostapd_iface *iface, char *pos)
+{
+#ifdef NEED_AP_MLME
+	struct hostapd_freq_params freq_params;
+	int ret;
+	enum oper_chan_width chanwidth;
+	u8 chan, oper_class;
+
+	if (!(iface->drv_flags2 & WPA_DRIVER_FLAGS2_AP_CHANWIDTH_CHANGE))
+		return -1;
+
+	ret = hostapd_parse_freq_params(pos, &freq_params, iface->freq);
+	if (ret)
+		return ret;
+
+	chanwidth = hostapd_chan_width_from_freq_params(&freq_params);
+
+	if (ieee80211_freq_to_channel_ext(
+		    freq_params.freq,
+		    freq_params.sec_channel_offset,
+		    chanwidth, &oper_class,
+		    &chan) == NUM_HOSTAPD_MODES) {
+		wpa_printf(MSG_DEBUG,
+			   "invalid channel: (freq=%d, sec_channel_offset=%d, vht_enabled=%d, he_enabled=%d)",
+			   freq_params.freq,
+			   freq_params.sec_channel_offset,
+			   freq_params.vht_enabled,
+			   freq_params.he_enabled);
+		return -1;
+	}
+
+	freq_params.channel = chan;
+
+	/* FIXME: What if the newly extended channel overlaps radar ranges? */
+
+	ret = hostapd_change_config_freq(iface->bss[0], iface->conf,
+					 &freq_params, NULL);
+	if (ret)
+		return ret;
+
+	ieee802_11_set_beacons(iface);
+	return 0;
+
+#else /* NEED_AP_MLME */
+	return -1;
+#endif /* NEED_AP_MLME */
+}
+
+
 static int hostapd_ctrl_iface_mib(struct hostapd_data *hapd, char *reply,
 				  int reply_size, const char *param)
 {
@@ -4364,6 +4413,10 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 						 reply_size);
 	} else if (os_strncmp(buf, "REGISTER_FRAME ", 15) == 0) {
 		if (hostapd_ctrl_register_frame(hapd, buf + 16) < 0)
+			reply_len = -1;
+	} else if (os_strncmp(buf, "SET_BW ", 7) == 0) {
+		/* note: preserve the space for hostapd_parse_freq_params() */
+		if (hostapd_ctrl_iface_set_bw(hapd->iface, buf + 6))
 			reply_len = -1;
 #endif /* CONFIG_TESTING_OPTIONS */
 	} else if (os_strncmp(buf, "CHAN_SWITCH ", 12) == 0) {

@@ -747,8 +747,10 @@ static void wiphy_info_feature_flags(struct wiphy_info_data *info,
 	if (flags & NL80211_FEATURE_NEED_OBSS_SCAN)
 		capa->flags |= WPA_DRIVER_FLAGS_OBSS_SCAN;
 
-	if (flags & NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE)
+	if (flags & NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE) {
 		capa->flags |= WPA_DRIVER_FLAGS_HT_2040_COEX;
+		capa->flags2 |= WPA_DRIVER_FLAGS2_AP_CHANWIDTH_CHANGE;
+	}
 
 	if (flags & NL80211_FEATURE_TDLS_CHANNEL_SWITCH) {
 		wpa_printf(MSG_DEBUG, "nl80211: TDLS channel switch");

@@ -1231,6 +1231,13 @@ static int hostapd_cli_cmd_notify_cw_change(struct wpa_ctrl *ctrl,
 }
 
 
+static int hostapd_cli_cmd_set_bw(struct wpa_ctrl *ctrl,
+				  int argc, char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "SET_BW", 0, argc, argv);
+}
+
+
 static int hostapd_cli_cmd_enable(struct wpa_ctrl *ctrl, int argc,
 				  char *argv[])
 {
@@ -1770,6 +1777,10 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 #endif /* CONFIG_IEEE80211AX */
 	{ "notify_cw_change", hostapd_cli_cmd_notify_cw_change, NULL,
 	  "<channel_width> = 0 - 20 MHz, 1 - 40 MHz, 2 - 80 MHz, 3 - 160 MHz" },
+	{ "set_bw", hostapd_cli_cmd_set_bw, NULL,
+	  "[sec_channel_offset=] [center_freq1=]\n"
+	  "  [center_freq2=] [bandwidth=] [ht|vht]\n"
+	  "  = change channel bandwidth" },
 	{ "hs20_wnm_notif", hostapd_cli_cmd_hs20_wnm_notif, NULL,
 	  "<addr> <url>\n"
 	  "  = send WNM-Notification Subscription Remediation Request" },

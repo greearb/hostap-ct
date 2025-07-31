@@ -4466,10 +4466,10 @@ free_ap_params:
  * the same hw_mode. Any other changes to MAC parameters or provided settings
  * are not supported.
  */
-static int hostapd_change_config_freq(struct hostapd_data *hapd,
-				      struct hostapd_config *conf,
-				      struct hostapd_freq_params *params,
-				      struct hostapd_freq_params *old_params)
+int hostapd_change_config_freq(struct hostapd_data *hapd,
+			       struct hostapd_config *conf,
+			       struct hostapd_freq_params *params,
+			       struct hostapd_freq_params *old_params)
 {
 	int channel;
 	u8 seg0 = 0, seg1 = 0;
