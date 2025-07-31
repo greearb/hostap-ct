@@ -1127,6 +1127,47 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 }
 
 
+int hostapd_parse_freq_params(const char *pos,
+			      struct hostapd_freq_params *params,
+			      unsigned int freq)
+{
+	os_memset(params, 0, sizeof(*params));
+
+	if (freq)
+		params->freq = freq;
+	else
+		params->freq = atoi(pos);
+
+	if (params->freq == 0) {
+		wpa_printf(MSG_ERROR, "freq_params: invalid freq provided");
+		return -1;
+	}
+
+#define SET_FREQ_PARAM(str) \
+	do { \
+		const char *pos2 = os_strstr(pos, " " #str "="); \
+		if (pos2) { \
+			pos2 += sizeof(" " #str "=") - 1; \
+			params->str = atoi(pos2); \
+		} \
+	} while (0)
+
+	SET_FREQ_PARAM(center_freq1);
+	SET_FREQ_PARAM(center_freq2);
+	SET_FREQ_PARAM(bandwidth);
+	SET_FREQ_PARAM(sec_channel_offset);
+	SET_FREQ_PARAM(punct_bitmap);
+	params->ht_enabled = !!os_strstr(pos, " ht");
+	params->vht_enabled = !!os_strstr(pos, " vht");
+	params->eht_enabled = !!os_strstr(pos, " eht");
+	params->he_enabled = !!os_strstr(pos, " he") ||
+		params->eht_enabled;
+#undef SET_FREQ_PARAM
+
+	return 0;
+}
+
+
 int hostapd_parse_csa_settings(const char *pos,
 			       struct csa_settings *settings)
 {
@@ -1139,35 +1180,9 @@ int hostapd_parse_csa_settings(const char *pos,
 		return -1;
 	}
 
-	settings->freq_params.freq = atoi(end);
-	if (settings->freq_params.freq == 0) {
-		wpa_printf(MSG_ERROR, "chanswitch: invalid freq provided");
-		return -1;
-	}
-
-#define SET_CSA_SETTING(str) \
-	do { \
-		const char *pos2 = os_strstr(pos, " " #str "="); \
-		if (pos2) { \
-			pos2 += sizeof(" " #str "=") - 1; \
-			settings->freq_params.str = atoi(pos2); \
-		} \
-	} while (0)
-
-	SET_CSA_SETTING(center_freq1);
-	SET_CSA_SETTING(center_freq2);
-	SET_CSA_SETTING(bandwidth);
-	SET_CSA_SETTING(sec_channel_offset);
-	SET_CSA_SETTING(punct_bitmap);
-	settings->freq_params.ht_enabled = !!os_strstr(pos, " ht");
-	settings->freq_params.vht_enabled = !!os_strstr(pos, " vht");
-	settings->freq_params.eht_enabled = !!os_strstr(pos, " eht");
-	settings->freq_params.he_enabled = !!os_strstr(pos, " he") ||
-		settings->freq_params.eht_enabled;
 	settings->block_tx = !!os_strstr(pos, " blocktx");
-#undef SET_CSA_SETTING
 
-	return 0;
+	return hostapd_parse_freq_params(end, &settings->freq_params, 0);
 }
 
 
