@@ -1843,6 +1843,8 @@ int ap_switch_channel(struct wpa_supplicant *wpa_s,
 	if (!iface || !iface->bss[0])
 		return -1;
 
+	hostapd_chan_switch_config(iface->bss[0], &settings->freq_params);
+
 	return hostapd_switch_channel(iface->bss[0], settings);
 #else /* NEED_AP_MLME */
 	return -1;
