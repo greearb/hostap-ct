@@ -383,6 +383,10 @@ def run_autogo_chan_switch(dev):
     time.sleep(0.1)
     hwsim_utils.test_connectivity_p2p(dev[0], dev[1])
 
+    # Wait a bit longer as the kernel might disconnect on a malformed beacon
+    time.sleep(0.5)
+    hwsim_utils.test_connectivity_p2p(dev[0], dev[1])
+
     dev[0].remove_group()
     dev[1].wait_go_ending_session()
 
