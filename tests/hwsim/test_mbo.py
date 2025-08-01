@@ -225,9 +225,9 @@ def test_mbo_assoc_disallow(dev, apdev, params):
     if "Destination address: " + hapd1.own_addr() in out:
         raise Exception("Association request sent to disallowed AP")
 
-    timestamp = run_tshark(os.path.join(params['logdir'], "hwsim0.pcapng"),
-                           "wlan.fc.type_subtype == 0x00",
-                           display=['frame.time'], wait=False)
+    frame_number = run_tshark(os.path.join(params['logdir'], "hwsim0.pcapng"),
+                              "wlan.fc.type_subtype == 0x00",
+                              display=['frame.number'], wait=False)
 
     logger.debug("Allow associations to AP1 and disallow associations to AP2")
     if "OK" not in hapd1.request("SET mbo_assoc_disallow 0"):
@@ -243,7 +243,7 @@ def test_mbo_assoc_disallow(dev, apdev, params):
 
     dev[0].connect("MBO", key_mgmt="NONE", scan_freq="2412")
 
-    filter = 'wlan.fc.type == 0 && wlan.fc.type_subtype == 0x00 && frame.time > "' + timestamp.rstrip() + '"'
+    filter = f'wlan.fc.type == 0 && wlan.fc.type_subtype == 0x00 && frame.number > {frame_number.rstrip()}'
     out = run_tshark(os.path.join(params['logdir'], "hwsim0.pcapng"),
                      filter, wait=False)
     if "Destination address: " + hapd2.own_addr() in out:
