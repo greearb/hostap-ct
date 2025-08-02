@@ -4531,7 +4531,10 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 #endif /* CONFIG_SAE */
 
 #ifdef CONFIG_OWE
-		if ((hapd->conf->wpa_key_mgmt & WPA_KEY_MGMT_OWE) &&
+		if (((hapd->conf->wpa_key_mgmt |
+		      hapd->conf->rsn_override_key_mgmt |
+		      hapd->conf->rsn_override_key_mgmt_2) &
+		     WPA_KEY_MGMT_OWE) &&
 		    wpa_auth_sta_key_mgmt(sta->wpa_sm) == WPA_KEY_MGMT_OWE &&
 		    elems->owe_dh) {
 			resp = owe_process_assoc_req(hapd, sta, elems->owe_dh,
@@ -5264,7 +5267,10 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 
 #ifdef CONFIG_OWE
 	if (sta && status_code == WLAN_STATUS_SUCCESS &&
-	    (hapd->conf->wpa_key_mgmt & WPA_KEY_MGMT_OWE))
+	    ((hapd->conf->wpa_key_mgmt |
+	      hapd->conf->rsn_override_key_mgmt |
+	      hapd->conf->rsn_override_key_mgmt_2) &
+	     WPA_KEY_MGMT_OWE))
 		p = wpa_auth_write_assoc_resp_owe(sta->wpa_sm, p,
 						  buf + buflen - p,
 						  ies, ies_len);
@@ -5353,7 +5359,8 @@ rsnxe_done:
 #endif /* CONFIG_IEEE80211BE */
 
 #ifdef CONFIG_OWE
-	if ((hapd->conf->wpa_key_mgmt & WPA_KEY_MGMT_OWE) &&
+	if (((hapd->conf->wpa_key_mgmt | hapd->conf->rsn_override_key_mgmt |
+	      hapd->conf->rsn_override_key_mgmt_2) & WPA_KEY_MGMT_OWE) &&
 	    sta && sta->owe_ecdh && status_code == WLAN_STATUS_SUCCESS &&
 	    wpa_auth_sta_key_mgmt(sta->wpa_sm) == WPA_KEY_MGMT_OWE &&
 	    !wpa_auth_sta_get_pmksa(sta->wpa_sm)) {

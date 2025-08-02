@@ -412,13 +412,17 @@ static const u8 * hostapd_wpa_auth_get_psk(void *ctx, const u8 *addr,
 #endif /* CONFIG_SAE */
 
 #ifdef CONFIG_OWE
-	if ((hapd->conf->wpa_key_mgmt & WPA_KEY_MGMT_OWE) &&
+	if (((hapd->conf->wpa_key_mgmt | hapd->conf->rsn_override_key_mgmt |
+	      hapd->conf->rsn_override_key_mgmt_2) &
+	     WPA_KEY_MGMT_OWE) &&
 	    sta && sta->owe_pmk) {
 		if (psk_len)
 			*psk_len = sta->owe_pmk_len;
 		return sta->owe_pmk;
 	}
-	if ((hapd->conf->wpa_key_mgmt & WPA_KEY_MGMT_OWE) && sta) {
+	if (((hapd->conf->wpa_key_mgmt | hapd->conf->rsn_override_key_mgmt |
+	      hapd->conf->rsn_override_key_mgmt_2) &
+	     WPA_KEY_MGMT_OWE) && sta) {
 		struct rsn_pmksa_cache_entry *sa;
 
 		sa = wpa_auth_sta_get_pmksa(sta->wpa_sm);
