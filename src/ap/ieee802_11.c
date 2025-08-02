@@ -4550,7 +4550,7 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		    (hapd->conf->wpa_key_mgmt & WPA_KEY_MGMT_DPP) &&
 		    hapd->conf->dpp_netaccesskey && sta->wpa_sm &&
 		    wpa_auth_sta_key_mgmt(sta->wpa_sm) == WPA_KEY_MGMT_DPP &&
-		    elems->owe_dh) {
+		    elems->owe_dh && !link) {
 			sta->dpp_pfs = dpp_pfs_init(
 				wpabuf_head(hapd->conf->dpp_netaccesskey),
 				wpabuf_len(hapd->conf->dpp_netaccesskey));
@@ -4568,9 +4568,9 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 				return WLAN_STATUS_UNSPECIFIED_FAILURE;
 			}
 		}
-
-		wpa_auth_set_dpp_z(sta->wpa_sm, sta->dpp_pfs ?
-				   sta->dpp_pfs->secret : NULL);
+		if (!link)
+			wpa_auth_set_dpp_z(sta->wpa_sm, sta->dpp_pfs ?
+					   sta->dpp_pfs->secret : NULL);
 	pfs_fail:
 #endif /* CONFIG_DPP2 */
 
