@@ -2182,9 +2182,13 @@ static void hostapd_cli_action_ping(void *eloop_ctx, void *timeout_ctx)
 	if (wpa_ctrl_request(ctrl, "PING", 4, buf, &len,
 			     hostapd_cli_action_cb) < 0 ||
 	    len < 4 || os_memcmp(buf, "PONG", 4) != 0) {
-		printf("hostapd did not reply to PING command - exiting\n");
-		eloop_terminate();
-		return;
+		printf("hostapd did not reply to PING command - open a new connection\n");
+		hostapd_cli_close_connection();
+		if (hostapd_cli_reconnect(ctrl_ifname)) {
+			printf("Failed to establish new connection - exit\n");
+			eloop_terminate();
+			return;
+		}
 	}
 	eloop_register_timeout(ping_interval, 0, hostapd_cli_action_ping,
 			       ctrl, NULL);
