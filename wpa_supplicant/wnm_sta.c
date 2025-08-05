@@ -1338,8 +1338,6 @@ static int chan_supported(struct wpa_supplicant *wpa_s, int freq)
 
 static void wnm_set_scan_freqs(struct wpa_supplicant *wpa_s)
 {
-	int *freqs;
-	int num_freqs = 0;
 	unsigned int i;
 
 	if (!wpa_s->wnm_neighbor_report_elements)
@@ -1350,10 +1348,6 @@ static void wnm_set_scan_freqs(struct wpa_supplicant *wpa_s)
 
 	os_free(wpa_s->next_scan_freqs);
 	wpa_s->next_scan_freqs = NULL;
-
-	freqs = os_calloc(wpa_s->wnm_num_neighbor_report + 1, sizeof(int));
-	if (freqs == NULL)
-		return;
 
 	for (i = 0; i < wpa_s->wnm_num_neighbor_report; i++) {
 		struct neighbor_report *nei;
@@ -1368,22 +1362,21 @@ static void wnm_set_scan_freqs(struct wpa_supplicant *wpa_s)
 				   "WNM: Unknown neighbor operating frequency for "
 				   MACSTR " - scan all channels",
 				   MAC2STR(nei->bssid));
-			os_free(freqs);
+			os_free(wpa_s->next_scan_freqs);
+			wpa_s->next_scan_freqs = NULL;
 			return;
 		}
 		if (chan_supported(wpa_s, nei->freq))
-			add_freq(freqs, &num_freqs, nei->freq);
+			int_array_add_unique(&wpa_s->next_scan_freqs,
+					     nei->freq);
 	}
 
-	if (num_freqs == 0) {
-		os_free(freqs);
+	if (!wpa_s->next_scan_freqs)
 		return;
-	}
 
 	wpa_printf(MSG_DEBUG,
-		   "WNM: Scan %d frequencies based on transition candidate list",
-		   num_freqs);
-	wpa_s->next_scan_freqs = freqs;
+		   "WNM: Scan %zu frequencies based on transition candidate list",
+		   int_array_len(wpa_s->next_scan_freqs));
 }
 
 

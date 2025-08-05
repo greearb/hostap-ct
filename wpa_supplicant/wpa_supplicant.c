@@ -8769,20 +8769,6 @@ void wpa_supplicant_update_config(struct wpa_supplicant *wpa_s)
 }
 
 
-void add_freq(int *freqs, int *num_freqs, int freq)
-{
-	int i;
-
-	for (i = 0; i < *num_freqs; i++) {
-		if (freqs[i] == freq)
-			return;
-	}
-
-	freqs[*num_freqs] = freq;
-	(*num_freqs)++;
-}
-
-
 void wpas_connection_failed(struct wpa_supplicant *wpa_s, const u8 *bssid,
 			    const u8 **link_bssids)
 {
