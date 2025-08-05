@@ -17192,7 +17192,7 @@ nl80211_csi_dump(void *priv, s8 link_id, void *dump_buf)
 	struct hostapd_data *hapd = bss->ctx;
 	struct nl_msg *msg;
 	struct nlattr *data;
-	int ret;
+	int ret = 0;
 	struct csi_resp_data *csi_resp;
 	u16 pkt_num, i;
 	u8 radio_idx = 0;

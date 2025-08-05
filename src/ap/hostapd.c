@@ -4508,7 +4508,7 @@ static int hostapd_remove_mld_link_by_idx(struct hostapd_iface *iface, int idx)
 int hostapd_remove_mld(struct hapd_interfaces *interfaces, char *buf)
 {
 	struct hostapd_iface *iface;
-	struct hostapd_data *first_hapd;
+	struct hostapd_data *first_hapd = NULL;
 	struct hostapd_mld *mld = NULL;
 	int i, j, num_mld, first_hapd_idx;
 
@@ -4560,6 +4560,9 @@ int hostapd_remove_mld(struct hapd_interfaces *interfaces, char *buf)
 			}
 		}
 	}
+
+	if (!first_hapd)
+		return -1;
 
 	hostapd_remove_mld_link_by_idx(first_hapd->iface, first_hapd_idx);
 	hostapd_cleanup_unused_mlds(interfaces);

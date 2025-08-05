@@ -3122,9 +3122,9 @@ static void ieee802_11_rx_neg_ttlm_req(struct hostapd_data *hapd, const u8 *addr
 				       const u8 *frm, size_t len)
 {
 	struct hostapd_data *assoc_hapd;
-	struct neg_ttlm_req *neg_ttlm_req;
+	struct neg_ttlm_req *neg_ttlm_req = NULL;
 	struct ieee802_11_elems elems;
-	struct ieee80211_neg_ttlm *neg_ttlm;
+	struct ieee80211_neg_ttlm *neg_ttlm = NULL;
 	struct sta_info *sta;
 	u8 direction;
 	u16 status_code = WLAN_STATUS_DENIED_TID_TO_LINK_MAPPING;
@@ -3183,14 +3183,16 @@ fail:
 	if (status_code == WLAN_STATUS_SUCCESS) {
 		ret = hostapd_drv_set_sta_ttlm(assoc_hapd, addr, neg_ttlm);
 	} else {
-		os_memset(neg_ttlm, 0, sizeof(*neg_ttlm));
+		if (neg_ttlm)
+			os_memset(neg_ttlm, 0, sizeof(*neg_ttlm));
 		return;
 	}
 
 	if (ret) {
 		ieee802_11_send_neg_ttlm_teardown(hapd, addr);
 		hostapd_teardown_neg_ttlm(assoc_hapd, sta);
-		os_memset(neg_ttlm, 0, sizeof(*neg_ttlm));
+		if (neg_ttlm)
+			os_memset(neg_ttlm, 0, sizeof(*neg_ttlm));
 	}
 }
 
@@ -3301,7 +3303,7 @@ ieee802_11_rx_epcs_req(struct hostapd_data *hapd, const u8 *addr,
 	struct epcs_entry *entry = hostapd_epcs_get_entry(ifaces, addr);
 	u16 status = WLAN_STATUS_SUCCESS;
 	struct sta_info *sta;
-	struct mld_info *mld;
+	struct mld_info *mld = NULL;
 
 	wpa_printf(MSG_INFO, "Receive EPCS request from " MACSTR, MAC2STR(addr));
 
