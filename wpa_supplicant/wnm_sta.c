@@ -1339,6 +1339,7 @@ static int chan_supported(struct wpa_supplicant *wpa_s, int freq)
 static void wnm_set_scan_freqs(struct wpa_supplicant *wpa_s)
 {
 	unsigned int i;
+	bool has_6ghz = false;
 
 	if (!wpa_s->wnm_neighbor_report_elements)
 		return;
@@ -1369,6 +1370,7 @@ static void wnm_set_scan_freqs(struct wpa_supplicant *wpa_s)
 		if (chan_supported(wpa_s, nei->freq))
 			int_array_add_unique(&wpa_s->next_scan_freqs,
 					     nei->freq);
+		has_6ghz |= is_6ghz_freq(nei->freq);
 	}
 
 	if (!wpa_s->next_scan_freqs)
@@ -1377,6 +1379,70 @@ static void wnm_set_scan_freqs(struct wpa_supplicant *wpa_s)
 	wpa_printf(MSG_DEBUG,
 		   "WNM: Scan %zu frequencies based on transition candidate list",
 		   int_array_len(wpa_s->next_scan_freqs));
+
+	/*
+	 * Candidates on 6 GHz channels might be collocated ones, and thus, in
+	 * order to discover them need to include the frequencies on the 2.4
+	 * and 5 GHz bands. Since the scan time can be long, optimize the case
+	 * of a single channel by forcing passive scan instead of doing a
+	 * collocated scan.
+	 */
+	if (has_6ghz) {
+		struct hostapd_channel_data *chan;
+		struct os_reltime now;
+
+		/* In case the candidate validity time is too short, force it
+		 * to be long enough to account for the longer scan time.
+		 */
+		os_get_reltime(&now);
+		now.sec += 5;
+
+		if (os_reltime_initialized(&wpa_s->wnm_cand_valid_until) &&
+		    !os_reltime_before(&wpa_s->wnm_cand_valid_until, &now)) {
+			wpa_printf(MSG_DEBUG,
+				   "WNM: Scan: 6 GHz: update validity time");
+
+			os_memcpy(&wpa_s->wnm_cand_valid_until, &now,
+				  sizeof(now));
+		}
+
+		if (int_array_len(wpa_s->next_scan_freqs) == 1) {
+			wpa_printf(MSG_DEBUG,
+				   "WNM: Scan: Single 6 GHz channel: passive");
+
+			wpa_s->scan_req = MANUAL_SCAN_REQ;
+			wpa_s->manual_scan_passive = 1;
+			return;
+		}
+
+		wpa_printf(MSG_DEBUG,
+			   "WNM: Scan: Add 2.4/5 GHz channels as well for 6 GHz discovery");
+
+		for (i = 0; i < wpa_s->hw.num_modes; i++) {
+			struct hostapd_hw_modes *mode = &wpa_s->hw.modes[i];
+			int j;
+
+			/* skip all the irrelevant modes */
+			if ((mode->mode != HOSTAPD_MODE_IEEE80211B &&
+			     mode->mode != HOSTAPD_MODE_IEEE80211G &&
+			     mode->mode != HOSTAPD_MODE_IEEE80211A) ||
+			    mode->is_6ghz)
+				continue;
+
+			for (j = 0; j < mode->num_channels; j++) {
+				chan = &mode->channels[j];
+				if (chan->flag & HOSTAPD_CHAN_DISABLED)
+					continue;
+
+				int_array_add_unique(&wpa_s->next_scan_freqs,
+						     chan->freq);
+			}
+		}
+
+		wpa_printf(MSG_DEBUG,
+			   "WNM: Scan %zu frequencies (including collocated)",
+			   int_array_len(wpa_s->next_scan_freqs));
+	}
 }
 
 
