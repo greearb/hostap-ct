@@ -7225,7 +7225,6 @@ static int wpa_driver_nl80211_ibss(struct wpa_driver_nl80211_data *drv,
 	struct nl_msg *msg;
 	int ret = -1;
 	int count = 0;
-	struct wpa_driver_nl80211_data *drv = bss->drv;
 
 	wpa_printf(MSG_DEBUG, "nl80211: Join IBSS (ifindex=%d)", drv->ifindex);
 
@@ -17301,7 +17300,7 @@ nl80211_csi_dump(void *priv, s8 link_id, void *dump_buf)
 	struct hostapd_data *hapd = bss->ctx;
 	struct nl_msg *msg;
 	struct nlattr *data;
-	int ret;
+	int ret = 0;
 	struct csi_resp_data *csi_resp;
 	u16 pkt_num, i;
 	u8 radio_idx = 0;

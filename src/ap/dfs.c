@@ -1290,7 +1290,7 @@ static void
 hostapd_dfs_background_expand(struct hostapd_iface *iface, int chan_width)
 {
 	struct hostapd_hw_modes *mode = iface->current_mode;
-	struct hostapd_channel_data *chan;
+	struct hostapd_channel_data *chan = NULL;
 	int i, channel, width = channel_width_to_int(chan_width);
 
 	if (iface->conf->channel - iface->radar_background.channel == width / 5)

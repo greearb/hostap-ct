@@ -2966,7 +2966,6 @@ out:
 	return;
 }
 
-
 void ieee802_11_rx_protected_eht_action(struct hostapd_data *hapd,
 					const struct ieee80211_mgmt *mgmt,
 					size_t len)
