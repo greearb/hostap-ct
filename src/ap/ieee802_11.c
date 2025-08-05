@@ -42,6 +42,7 @@
 #include "sta_info.h"
 #include "ieee802_1x.h"
 #include "wpa_auth.h"
+#include "wpa_auth_i.h"
 #include "pmksa_cache_auth.h"
 #include "wmm.h"
 #include "ap_list.h"
