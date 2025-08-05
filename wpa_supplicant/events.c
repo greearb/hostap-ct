@@ -1770,7 +1770,8 @@ wpa_supplicant_select_bss(struct wpa_supplicant *wpa_s,
 
 
 struct wpa_bss * wpa_supplicant_pick_network(struct wpa_supplicant *wpa_s,
-					     struct wpa_ssid **selected_ssid)
+					     struct wpa_ssid **selected_ssid,
+					     bool clear_ignorelist)
 {
 	struct wpa_bss *selected = NULL;
 	size_t prio;
@@ -1809,7 +1810,7 @@ struct wpa_bss * wpa_supplicant_pick_network(struct wpa_supplicant *wpa_s,
 
 		if (!selected &&
 		    (wpa_s->bssid_ignore || wnm_active_bss_trans_mgmt(wpa_s)) &&
-		    !wpa_s->countermeasures) {
+		    !wpa_s->countermeasures && clear_ignorelist) {
 			wpa_dbg(wpa_s, MSG_DEBUG,
 				"No APs found - clear BSSID ignore list and try again");
 			wnm_btm_reset(wpa_s);
@@ -2725,7 +2726,7 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 	os_free(wpa_s->owe_trans_scan_freq);
 	wpa_s->owe_trans_scan_freq = NULL;
 #endif /* CONFIG_OWE */
-	selected = wpa_supplicant_pick_network(wpa_s, &ssid);
+	selected = wpa_supplicant_pick_network(wpa_s, &ssid, new_scan);
 
 #ifdef CONFIG_MESH
 	if (wpa_s->ifmsh) {

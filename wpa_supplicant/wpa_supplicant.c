@@ -8783,46 +8783,11 @@ void add_freq(int *freqs, int *num_freqs, int freq)
 }
 
 
-static int * get_bss_freqs_in_ess(struct wpa_supplicant *wpa_s)
-{
-	struct wpa_bss *bss, *cbss;
-	const int max_freqs = 10;
-	int *freqs;
-	int num_freqs = 0;
-
-	freqs = os_calloc(max_freqs + 1, sizeof(int));
-	if (freqs == NULL)
-		return NULL;
-
-	cbss = wpa_s->current_bss;
-
-	dl_list_for_each(bss, &wpa_s->bss, struct wpa_bss, list) {
-		if (bss == cbss)
-			continue;
-		if (bss->ssid_len == cbss->ssid_len &&
-		    os_memcmp(bss->ssid, cbss->ssid, bss->ssid_len) == 0 &&
-		    !wpa_bssid_ignore_is_listed(wpa_s, bss->bssid)) {
-			add_freq(freqs, &num_freqs, bss->freq);
-			if (num_freqs == max_freqs)
-				break;
-		}
-	}
-
-	if (num_freqs == 0) {
-		os_free(freqs);
-		freqs = NULL;
-	}
-
-	return freqs;
-}
-
-
 void wpas_connection_failed(struct wpa_supplicant *wpa_s, const u8 *bssid,
 			    const u8 **link_bssids)
 {
 	int timeout;
 	int count;
-	int *freqs = NULL;
 
 	wpas_connect_work_done(wpa_s);
 
@@ -8859,27 +8824,15 @@ void wpas_connection_failed(struct wpa_supplicant *wpa_s, const u8 *bssid,
 	 * attempt if there could be other APs that could accept association.
 	 */
 	count = wpa_bssid_ignore_add(wpa_s, bssid);
-	if (count == 1 && wpa_s->current_bss) {
-		/*
-		 * This BSS was not in the ignore list before. If there is
-		 * another BSS available for the same ESS, we should try that
-		 * next. Otherwise, we may as well try this one once more
-		 * before allowing other, likely worse, ESSes to be considered.
-		 */
-		freqs = get_bss_freqs_in_ess(wpa_s);
-		if (freqs) {
-			wpa_dbg(wpa_s, MSG_DEBUG, "Another BSS in this ESS "
-				"has been seen; try it next");
-			wpa_bssid_ignore_add(wpa_s, bssid);
-			/*
-			 * On the next scan, go through only the known channels
-			 * used in this ESS based on previous scans to speed up
-			 * common load balancing use case.
-			 */
-			os_free(wpa_s->next_scan_freqs);
-			wpa_s->next_scan_freqs = freqs;
-		}
-	}
+
+	/*
+	 * This BSS was not in the ignore list before. If there is
+	 * another BSS available for the same ESS, we should try that
+	 * next. Otherwise, we may as well try this one once more
+	 * before allowing other, likely worse, ESSes to be considered.
+	 */
+	if (count == 1 && wpa_supplicant_fast_associate(wpa_s) == 1)
+		return;
 
 	wpa_s->consecutive_conn_failures++;
 
@@ -8914,11 +8867,6 @@ void wpas_connection_failed(struct wpa_supplicant *wpa_s, const u8 *bssid,
 	wpa_dbg(wpa_s, MSG_DEBUG,
 		"Consecutive connection failures: %d --> request scan in %d ms",
 		wpa_s->consecutive_conn_failures, timeout);
-
-	/*
-	 * TODO: if more than one possible AP is available in scan results,
-	 * could try the other ones before requesting a new scan.
-	 */
 
 	/* speed up the connection attempt with normal scan */
 	wpa_s->normal_scans = 0;

@@ -148,7 +148,7 @@ int wpas_wps_eapol_cb(struct wpa_supplicant *wpa_s)
 
 		wpa_printf(MSG_DEBUG, "WPS: Checking whether fast association "
 			   "without a new scan can be used");
-		bss = wpa_supplicant_pick_network(wpa_s, &ssid);
+		bss = wpa_supplicant_pick_network(wpa_s, &ssid, true);
 		if (bss) {
 			struct wpabuf *wps;
 			struct wps_parse_attr attr;

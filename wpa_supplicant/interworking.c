@@ -899,7 +899,7 @@ static int already_connected(struct wpa_supplicant *wpa_s,
 		return 0;
 
 	sel_ssid = NULL;
-	selected = wpa_supplicant_pick_network(wpa_s, &sel_ssid);
+	selected = wpa_supplicant_pick_network(wpa_s, &sel_ssid, true);
 	if (selected && sel_ssid && sel_ssid->priority > ssid->priority)
 		return 0; /* higher priority network in scan results */
 
