@@ -7244,7 +7244,6 @@ static int wpa_driver_nl80211_ibss(struct wpa_driver_nl80211_data *drv,
 	struct nl_msg *msg;
 	int ret = -1;
 	int count = 0;
-	struct wpa_driver_nl80211_data *drv = bss->drv;
 
 	wpa_printf(MSG_DEBUG, "nl80211: Join IBSS (ifindex=%d)", drv->ifindex);
 
@@ -16251,4 +16250,5 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.nan_stop = wpa_driver_nl80211_nan_stop,
 	.nan_change_config = wpa_driver_nl80211_nan_change_config,
 #endif /* CONFIG_NAN */
+	.get_vif_radio_mask = nl80211_get_vif_radio_mask,
 };
