@@ -461,13 +461,18 @@ static void wpa_driver_wext_event_wireless(struct wpa_driver_wext_data *drv,
 				drv->assoc_req_ies = NULL;
 				os_free(drv->assoc_resp_ies);
 				drv->assoc_resp_ies = NULL;
-				wpa_supplicant_event(drv->ctx, EVENT_DISASSOC,
-						     NULL);
 
+				if (!drv->ignore_next_disconnect) {
+					wpa_supplicant_event(drv->ctx,
+							     EVENT_DISASSOC,
+							     NULL);
+					drv->ignore_next_disconnect = false;
+				}
 			} else {
 				wpa_driver_wext_event_assoc_ies(drv);
 				wpa_supplicant_event(drv->ctx, EVENT_ASSOC,
 						     NULL);
+				drv->ignore_next_disconnect = false;
 			}
 			break;
 		case IWEVMICHAELMICFAILURE:
@@ -1891,6 +1896,9 @@ static void wpa_driver_wext_disconnect(struct wpa_driver_wext_data *drv)
 				   "SSID to disconnect");
 		}
 	}
+
+	/* wpa_supplicant generates a disconnect event internally already */
+	drv->ignore_next_disconnect = true;
 }
 
 
@@ -2123,6 +2131,9 @@ int wpa_driver_wext_associate(void *priv,
 	if (drv->cfg80211 &&
 	    wpa_driver_wext_set_ssid(drv, params->ssid, params->ssid_len) < 0)
 		ret = -1;
+
+	/* Ignore spurious disconnect event if we are reassociating */
+	drv->ignore_next_disconnect = true;
 
 	return ret;
 }
