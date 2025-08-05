@@ -42,6 +42,7 @@
 #include "sta_info.h"
 #include "ieee802_1x.h"
 #include "wpa_auth.h"
+#include "wpa_auth_i.h"
 #include "pmksa_cache_auth.h"
 #include "wmm.h"
 #include "ap_list.h"
@@ -6105,7 +6106,6 @@ static void handle_assoc(struct hostapd_data *hapd,
 		 */
 		if (sta->ft_over_ds && ap_sta_is_mld(hapd, sta)) {
 			sta->mld_assoc_link_id = hapd->mld_link_id;
-			sta->mld_assoc_sta = sta;
 
 			/*
 			 * Set the MLD address as the station address and the

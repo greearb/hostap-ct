@@ -1367,6 +1367,7 @@ static int hostapd_start_beacon(struct hostapd_data *hapd,
 		}
 	}
 
+#ifdef CONFIG_IEEE80211BE
 	if (flush_old_stations &&
 	    conf->broadcast_deauth && (hapd->conf->mld_ap && !hapd->mld->started)) {
 		u8 addr[ETH_ALEN];
@@ -1385,9 +1386,6 @@ static int hostapd_start_beacon(struct hostapd_data *hapd,
 
 	if (hapd->driver && hapd->driver->set_operstate)
 		hapd->driver->set_operstate(hapd->drv_priv, 1);
-
-	if (conf->start_disabled)
-		hostapd_drv_beacon_ctrl(hapd, false);
 
 	return 0;
 }
@@ -4477,7 +4475,7 @@ static int hostapd_remove_mld_link_by_idx(struct hostapd_iface *iface, int idx)
 int hostapd_remove_mld(struct hapd_interfaces *interfaces, char *buf)
 {
 	struct hostapd_iface *iface;
-	struct hostapd_data *first_hapd;
+	struct hostapd_data *first_hapd = NULL;
 	struct hostapd_mld *mld = NULL;
 	int i, j, num_mld, first_hapd_idx;
 
@@ -4529,6 +4527,9 @@ int hostapd_remove_mld(struct hapd_interfaces *interfaces, char *buf)
 			}
 		}
 	}
+
+	if (!first_hapd)
+		return -1;
 
 	hostapd_remove_mld_link_by_idx(first_hapd->iface, first_hapd_idx);
 	hostapd_cleanup_unused_mlds(interfaces);
