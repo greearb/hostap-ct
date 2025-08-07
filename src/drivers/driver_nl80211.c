@@ -494,7 +494,7 @@ static int send_event_marker(struct wpa_driver_nl80211_data *drv)
 
 out:
 	nlmsg_free(msg);
-	if (err)
+	if (err < 0)
 		wpa_printf(MSG_INFO, "nl80211: %s failed: %s",
 			   __func__, nl_geterror(err));
 	return res;
