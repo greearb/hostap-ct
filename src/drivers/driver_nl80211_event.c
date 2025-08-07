@@ -4438,6 +4438,11 @@ int process_global_event(struct nl_msg *msg, void *arg)
 	int wdev_id_set = 0;
 	int wiphy_idx_set = 0;
 	bool processed = false;
+	int res;
+
+	res = nl80211_reply_hook(global, msg, process_global_event, arg);
+	if (res != NL_OK)
+		return res;
 
 	/* Event marker, all prior events have been processed */
 	if (gnlh->cmd == NL80211_CMD_GET_PROTOCOL_FEATURES) {
@@ -4530,6 +4535,12 @@ int process_bss_event(struct nl_msg *msg, void *arg)
 	struct i802_bss *bss = arg;
 	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
 	struct nlattr *tb[NL80211_ATTR_MAX + 1];
+	int res;
+
+	res = nl80211_reply_hook(bss->drv->global, msg,
+				 process_bss_event, arg);
+	if (res != NL_OK)
+		return res;
 
 	nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
 		  genlmsg_attrlen(gnlh, 0), NULL);

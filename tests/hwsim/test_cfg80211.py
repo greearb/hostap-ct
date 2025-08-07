@@ -9,6 +9,7 @@ import logging
 logger = logging.getLogger()
 import binascii
 import os
+import threading
 import time
 
 import hostapd
@@ -150,3 +151,54 @@ def test_cfg80211_hostapd_ext_sta_remove(dev, apdev):
     # further action happens here. If that event were to be used to remove the
     # STA entry from hostapd even in device_ap_sme == 0 case, this test case
     # could be extended to cover additional operations.
+
+def test_nl80211_event_during_cmd(dev, apdev):
+    """nl80211 event queueing during command handling"""
+
+    # Test an event arriving while processing send_and_recv works fine,
+    # i.e., it is pushed to pending_events and processed from a timer after
+    # completion.
+    # Note that we can only trigger this when the event is on the same socket
+    # that we are sending the command on. This is primarily the case for the
+    # nl_connect socket. We trigger the case here by sending an EAPOL frame
+    # while a DEAUTH command is queued up already.
+    params = hostapd.wpa2_params(ssid='test', passphrase='test1234',
+                                 wpa_key_mgmt="WPA-PSK")
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].connect('test', psk='test1234', key_mgmt="WPA-PSK")
+    ev = hapd.wait_event(["AP-STA-CONNECTED"], timeout=5)
+    if ev is None:
+        raise Exception("No connection event received from hostapd")
+
+    dev[0].dump_monitor()
+
+    # This inserts a 1 second sleep in front of the next nl80211 request. Next
+    # the "queued" fail test checks that an event was queued (i.e., the EAPOL
+    # frame).
+    with fail_test(dev[0],
+                   1, "pre-send-sleep;send_and_recv",
+                   1, "queued;nl80211_reply_hook"):
+
+        def disconnect_thread_func():
+            assert 'OK' in dev[0].request('DISCONNECT'), 'Failed to disconnect'
+
+        disconnect_thread = threading.Thread(target=disconnect_thread_func)
+        disconnect_thread.start()
+
+        # Wait a little bit to ensure wpa_supplicant is in the pre-send-sleep
+        time.sleep(0.2)
+
+        # Trigger an EAPOL frame from hapd
+        hapd.request('REKEY_GTK')
+
+        disconnect_thread.join()
+
+        # Finally verify that the EAPOL frame was processed
+        ev = dev[0].wait_event(['EAPOL-RX'], timeout=1)
+        if ev is None:
+            raise Exception("EAPOL event was not processed properly")
+
+    ev = hapd.wait_event(["AP-STA-DISCONNECTED"], timeout=5)
+    if ev is None:
+        raise Exception("No disconnection event received from hostapd")

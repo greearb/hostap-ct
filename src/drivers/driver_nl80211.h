@@ -22,6 +22,8 @@
 	nla_nest_start(msg, NLA_F_NESTED | (attrtype))
 #endif
 
+struct nl_msg;
+
 struct nl80211_global {
 	void *ctx;
 	struct dl_list interfaces;
@@ -37,6 +39,15 @@ struct nl80211_global {
 	int ioctl_sock; /* socket for ioctl() use */
 
 	struct nl_sock *nl_event;
+
+	/* Handling of sync replies */
+	bool sync_reply_handling;
+	u32 reply_seq;
+	int (*reply_handler)(struct nl_msg *, void *);
+	void *reply_data;
+
+	/* pending events that happened while waiting for a sync reply */
+	struct dl_list pending_events;
 };
 
 struct nl80211_wiphy_data {
@@ -268,8 +279,6 @@ struct wpa_driver_nl80211_data {
 #endif /* CONFIG_DRIVER_NL80211_QCA */
 };
 
-struct nl_msg;
-
 struct nl80211_err_info {
 	int link_id;
 };
@@ -280,6 +289,10 @@ struct nl_msg * nl80211_cmd_msg(struct i802_bss *bss, int flags, uint8_t cmd);
 struct nl_msg * nl80211_drv_msg(struct wpa_driver_nl80211_data *drv, int flags,
 				uint8_t cmd);
 struct nl_msg * nl80211_bss_msg(struct i802_bss *bss, int flags, uint8_t cmd);
+
+int nl80211_reply_hook(struct nl80211_global *global, struct nl_msg *msg,
+		       int (*delayed_handler)(struct nl_msg *, void *),
+		       void *delayed_data);
 
 int send_and_recv_glb(struct nl80211_global *global,
 		      struct wpa_driver_nl80211_data *drv, /* may be NULL */

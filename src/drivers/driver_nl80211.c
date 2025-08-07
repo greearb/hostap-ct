@@ -501,6 +501,111 @@ out:
 }
 
 
+struct nl80211_pending_event {
+	struct dl_list list;
+
+	struct nl_msg *msg;
+	int (*handler)(struct nl_msg *, void *);
+	void *data;
+};
+
+
+static void nl80211_remove_pending_event(struct nl80211_pending_event *event)
+{
+	dl_list_del(&event->list);
+	nlmsg_free(event->msg);
+	os_free(event);
+}
+
+
+static void nl80211_deliver_pending_events(void *eloop_ctx, void *data)
+{
+	struct nl80211_global *global = eloop_ctx;
+	struct dl_list pending_events;
+
+	wpa_printf(MSG_DEBUG, "nl80211: Delivering pending events");
+
+	global->pending_events.next->prev = &pending_events;
+	global->pending_events.prev->next = &pending_events;
+	pending_events.next = global->pending_events.next;
+	pending_events.prev = global->pending_events.prev;
+	dl_list_init(&global->pending_events);
+
+	while (!dl_list_empty(&pending_events)) {
+		struct nl80211_pending_event *event =
+			dl_list_first(&pending_events,
+				      struct nl80211_pending_event, list);
+
+		event->handler(event->msg, event->data);
+		nl80211_remove_pending_event(event);
+	}
+}
+
+
+/* Unfortunately, libnl does not permit us to call an existing handler. If we
+ * could either fetch the information or if nl_cb_call was exposed, this would
+ * be much more elegant. Unfortunately it is not, so we need a hook in every
+ * event handler that might need to be overriden.
+ */
+int nl80211_reply_hook(struct nl80211_global *global, struct nl_msg *msg,
+		       int (*delayed_handler)(struct nl_msg *, void *),
+		       void *delayed_data)
+{
+	struct nlmsghdr *hdr = nlmsg_hdr(msg);
+	struct nl80211_pending_event *event;
+
+	if (!global->sync_reply_handling) {
+		/* We cannot rely on eloop handling the timeout before trying
+		 * to read the socket again (it should usually, but it may not
+		 * if multiple timeouts have expired). As such, check here if
+		 * there are already pending events, and if there are, queue
+		 * this one.
+		 */
+		if (!dl_list_empty(&global->pending_events))
+			goto queue_event;
+
+		return NL_OK;
+	}
+
+	/* This may be a reply if the port ID is nonzero (broadcast). In that
+	 * case the sequence number should also match. We will treat everything
+	 * else as an event and queue it for later processing.
+	 */
+	if (hdr->nlmsg_pid && hdr->nlmsg_seq == global->reply_seq) {
+		if (global->reply_handler)
+			global->reply_handler(msg, global->reply_data);
+
+		return NL_SKIP;
+	}
+
+	/* Schedule a timeout to deliver the events from the eventloop. */
+	if (dl_list_empty(&global->pending_events)) {
+		if (eloop_register_timeout(0, 0, nl80211_deliver_pending_events,
+					   global, NULL) < 0)
+			wpa_printf(MSG_ERROR, "%s: failed to register timeout",
+				   __func__);
+	}
+
+queue_event:
+	TEST_FAIL_TAG("queued");
+
+	event = os_zalloc(sizeof(*event));
+	if (!event) {
+		wpa_printf(MSG_ERROR,
+			   "%s: failed to allocate delayed event context",
+			   __func__);
+		return NL_SKIP;
+	}
+
+	event->handler = delayed_handler;
+	event->data = delayed_data;
+	nlmsg_get(msg);
+	event->msg = msg;
+	dl_list_add_tail(&global->pending_events, &event->list);
+
+	return NL_SKIP;
+}
+
 int send_and_recv_glb(struct nl80211_global *global,
 		      struct wpa_driver_nl80211_data *drv, /* may be NULL */
 		      struct nl_sock *nl_handle, struct nl_msg *msg,
@@ -541,6 +646,9 @@ int send_and_recv_glb(struct nl80211_global *global,
 			   "nl80211: setsockopt(NETLINK_CAP_ACK) failed: %s (ignored)",
 			   strerror(errno));
 
+	if (TEST_FAIL_TAG("pre-send-sleep"))
+		os_sleep(1, 0);
+
 	err.err = nl_send_auto_complete(nl_handle, msg);
 	if (err.err < 0) {
 		wpa_printf(MSG_INFO,
@@ -567,12 +675,13 @@ int send_and_recv_glb(struct nl80211_global *global,
 		nl_cb_set(cb, NL_CB_ACK, NL_CB_CUSTOM,
 			  ack_handler_custom, ack_data);
 	} else {
-		nl_cb_set(cb, NL_CB_ACK, NL_CB_CUSTOM, ack_handler, &err);
+		nl_cb_set(cb, NL_CB_ACK, NL_CB_CUSTOM, ack_handler, &err.err);
 	}
 
-	if (valid_handler)
-		nl_cb_set(cb, NL_CB_VALID, NL_CB_CUSTOM,
-			  valid_handler, valid_data);
+	global->sync_reply_handling = true;
+	global->reply_seq = nlmsg_hdr(msg)->nlmsg_seq;
+	global->reply_handler = valid_handler;
+	global->reply_data = valid_data;
 
 	while (err.err > 0) {
 		int res = nl_recvmsgs(nl_handle, cb);
@@ -596,6 +705,12 @@ int send_and_recv_glb(struct nl80211_global *global,
 				   __func__, res, nl_geterror(res));
 		}
 	}
+
+	global->sync_reply_handling = false;
+	global->reply_seq = 0;
+	global->reply_handler = NULL;
+	global->reply_data = NULL;
+
  out:
 	nl_cb_put(cb);
 	/* Always clear the message as it can potentially contain keys */
@@ -2063,6 +2178,14 @@ static int wpa_driver_nl80211_init_nl_global(struct nl80211_global *global)
 	if (global->nl_event == NULL)
 		goto err;
 
+	/* Needs to be registered early so that process_global_event() calls
+	 * the sync reply handler hook.
+	 */
+	nl_cb_set(global->nl_cb, NL_CB_SEQ_CHECK, NL_CB_CUSTOM,
+		  no_seq_check, NULL);
+	nl_cb_set(global->nl_cb, NL_CB_VALID, NL_CB_CUSTOM,
+		  process_global_event, global);
+
 	ret = nl_get_multicast_id(global, "nl80211", "scan");
 	if (ret >= 0)
 		ret = nl_socket_add_membership(global->nl_event, ret);
@@ -2125,11 +2248,6 @@ static int wpa_driver_nl80211_init_nl_global(struct nl80211_global *global)
 		   global->nl80211_maxattr);
 	genl_family_put(family);
 	nl_cache_free(cache);
-
-	nl_cb_set(global->nl_cb, NL_CB_SEQ_CHECK, NL_CB_CUSTOM,
-		  no_seq_check, NULL);
-	nl_cb_set(global->nl_cb, NL_CB_VALID, NL_CB_CUSTOM,
-		  process_global_event, global);
 
 	nl80211_register_eloop_read(&global->nl_event,
 				    wpa_driver_nl80211_event_receive,
@@ -2309,11 +2427,21 @@ static int nl80211_init_bss(struct i802_bss *bss)
 
 static void nl80211_destroy_bss(struct i802_bss *bss)
 {
+	struct nl80211_pending_event *event, *next;
+
 	nl_cb_put(bss->nl_cb);
 	bss->nl_cb = NULL;
 
 	if (bss->nl_connect)
 		nl80211_destroy_eloop_handle(&bss->nl_connect, 1);
+
+	dl_list_for_each_safe(event, next, &bss->drv->global->pending_events,
+			      struct nl80211_pending_event, list) {
+		if (event->data != bss)
+			continue;
+
+		nl80211_remove_pending_event(event);
+	}
 }
 
 
@@ -10271,6 +10399,7 @@ static void * nl80211_global_init(void *ctx)
 	global->ctx = ctx;
 	global->ioctl_sock = -1;
 	dl_list_init(&global->interfaces);
+	dl_list_init(&global->pending_events);
 	global->if_add_ifindex = -1;
 
 	cfg = os_zalloc(sizeof(*cfg));
@@ -10313,6 +10442,16 @@ static void nl80211_global_deinit(void *priv)
 		wpa_printf(MSG_ERROR, "nl80211: %u interface(s) remain at "
 			   "nl80211_global_deinit",
 			   dl_list_len(&global->interfaces));
+	}
+
+	eloop_cancel_timeout(nl80211_deliver_pending_events, global, NULL);
+
+	while (!dl_list_empty(&global->pending_events)) {
+		struct nl80211_pending_event *event =
+			dl_list_first(&global->pending_events,
+				      struct nl80211_pending_event, list);
+
+		nl80211_remove_pending_event(event);
 	}
 
 	if (global->netlink)
