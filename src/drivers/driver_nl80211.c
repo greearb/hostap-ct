@@ -5283,7 +5283,8 @@ err:
 
 
 static int nl80211_put_freq_params(struct nl_msg *msg,
-				   const struct hostapd_freq_params *freq)
+				   const struct hostapd_freq_params *freq,
+				   struct i802_bss *bss)
 {
 	enum hostapd_hw_mode hw_mode;
 	int is_24ghz;
@@ -5344,6 +5345,20 @@ static int nl80211_put_freq_params(struct nl_msg *msg,
 		     nla_put_u32(msg, NL80211_ATTR_CENTER_FREQ2,
 				 freq->center_freq2)))
 			return -ENOBUFS;
+
+		if (freq->eht_enabled && freq->punct_bitmap) {
+			if (!bss->drv->puncturing) {
+				wpa_printf(MSG_INFO,
+					   "nl80211: Puncture bitmap is set but the driver does dot support puncturing");
+				return -EINVAL;
+			}
+			wpa_printf(MSG_DEBUG, "  * punct_bitmap=0x%x",
+				   freq->punct_bitmap);
+			if (nla_put_u32(msg, NL80211_ATTR_PUNCT_BITMAP,
+					freq->punct_bitmap))
+				return -ENOBUFS;
+
+		}
 	} else if (freq->ht_enabled) {
 		enum nl80211_channel_type ct;
 
@@ -5669,7 +5684,7 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 		nla_nest_end(msg, ftm);
 	}
 
-	if (params->freq && nl80211_put_freq_params(msg, params->freq) < 0)
+	if (params->freq && nl80211_put_freq_params(msg, params->freq, bss) < 0)
 		goto fail;
 
 #ifdef CONFIG_IEEE80211AX
@@ -5747,14 +5762,6 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 	if (params->fd_max_int && nl80211_fils_discovery(bss, msg, params) < 0)
 		goto fail;
 #endif /* CONFIG_FILS */
-
-	if (params->punct_bitmap) {
-		wpa_printf(MSG_DEBUG, "nl80211: Puncturing bitmap=0x%04x",
-			   params->punct_bitmap);
-		if (nla_put_u32(msg, NL80211_ATTR_PUNCT_BITMAP,
-				params->punct_bitmap))
-			goto fail;
-	}
 
 #ifdef CONFIG_DRIVER_NL80211_QCA
 	if (cmd == NL80211_CMD_NEW_BEACON && params->allowed_freqs)
@@ -5839,7 +5846,7 @@ static int nl80211_set_channel(struct i802_bss *bss,
 
 	msg = nl80211_bss_msg(bss, 0, set_chan ? NL80211_CMD_SET_CHANNEL :
 			      NL80211_CMD_SET_WIPHY);
-	if (!msg || nl80211_put_freq_params(msg, freq) < 0) {
+	if (!msg || nl80211_put_freq_params(msg, freq, bss) < 0) {
 		nlmsg_free(msg);
 		return -1;
 	}
@@ -6893,7 +6900,7 @@ retry:
 	os_memcpy(drv->ssid, params->ssid, params->ssid_len);
 	drv->ssid_len = params->ssid_len;
 
-	if (nl80211_put_freq_params(msg, &params->freq) < 0 ||
+	if (nl80211_put_freq_params(msg, &params->freq, bss) < 0 ||
 	    nl80211_put_beacon_int(msg, params->beacon_int))
 		goto fail;
 
@@ -10944,7 +10951,7 @@ static int nl80211_start_radar_detection(void *priv,
 	}
 
 	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_RADAR_DETECT)) ||
-	    nl80211_put_freq_params(msg, freq) < 0) {
+	    nl80211_put_freq_params(msg, freq, bss) < 0) {
 		nlmsg_free(msg);
 		return -1;
 	}
@@ -11141,7 +11148,7 @@ nl80211_tdls_enable_channel_switch(void *priv, const u8 *addr, u8 oper_class,
 	if (!msg ||
 	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, addr) ||
 	    nla_put_u8(msg, NL80211_ATTR_OPER_CLASS, oper_class) ||
-	    (ret = nl80211_put_freq_params(msg, params))) {
+	    (ret = nl80211_put_freq_params(msg, params, bss))) {
 		nlmsg_free(msg);
 		wpa_printf(MSG_DEBUG, "nl80211: Could not build TDLS chan switch");
 		return ret;
@@ -11821,12 +11828,9 @@ static int nl80211_switch_channel(void *priv, struct csa_settings *settings)
 	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_CHANNEL_SWITCH)) ||
 	    nla_put_u32(msg, NL80211_ATTR_CH_SWITCH_COUNT,
 			settings->cs_count) ||
-	    (ret = nl80211_put_freq_params(msg, &settings->freq_params)) ||
+	    (ret = nl80211_put_freq_params(msg, &settings->freq_params, bss)) ||
 	    (settings->block_tx &&
 	     nla_put_flag(msg, NL80211_ATTR_CH_SWITCH_BLOCK_TX)) ||
-	    (settings->freq_params.punct_bitmap &&
-	     nla_put_u32(msg, NL80211_ATTR_PUNCT_BITMAP,
-			 settings->freq_params.punct_bitmap)) ||
 	    (settings->link_id != NL80211_DRV_LINK_ID_NA &&
 	     nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, settings->link_id)))
 		goto error;
@@ -12567,7 +12571,7 @@ static int nl80211_join_mesh(struct i802_bss *bss,
 	wpa_printf(MSG_DEBUG, "nl80211: mesh join (ifindex=%d)", drv->ifindex);
 	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_JOIN_MESH);
 	if (!msg ||
-	    nl80211_put_freq_params(msg, &params->freq) ||
+	    nl80211_put_freq_params(msg, &params->freq, bss) ||
 	    nl80211_put_basic_rates(msg, params->basic_rates) ||
 	    nl80211_put_mesh_id(msg, params->meshid, params->meshid_len) ||
 	    nl80211_put_beacon_int(msg, params->beacon_int) ||
