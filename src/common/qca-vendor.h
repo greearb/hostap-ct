@@ -10942,6 +10942,15 @@ enum qca_wlan_vendor_attr_wifi_test_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_EHT_RTWT_SUPPORT = 80,
 
+	/* 8-bit unsigned value to configure BTM MLD Recommendation For Multiple
+	 * APs Support within the Extended MLD capability of Multi-link element
+	 * in the Association Request frame.
+	 *
+	 * This attribute is used to configure the testbed device.
+	 * 1-enable, 0-disable.
+	 */
+	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_EHT_BTM_RECOMM_MULTI_AP_SUPPORT = 81,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_MAX =
