@@ -6070,11 +6070,14 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 #endif /* CONFIG_SAE */
 
 #ifdef CONFIG_FILS
-	if ((params->fd_max_int ||
+	if (params->fd_max_int ||
 	    ((params->freq && is_6ghz_freq(params->freq->freq)) &&
-	      !(params->ubpr.unsol_bcast_probe_resp_interval))) &&
-	     nl80211_fils_discovery(bss, msg, params) < 0)
-		goto fail;
+	      !(params->ubpr.unsol_bcast_probe_resp_interval))) {
+		ret = nl80211_fils_discovery(bss, msg, params);
+
+		if (params->fd_max_int && ret < 0)
+			goto fail;
+	}
 #endif /* CONFIG_FILS */
 
 	if (params->punct_bitmap) {
