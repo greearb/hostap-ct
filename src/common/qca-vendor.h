@@ -5746,6 +5746,30 @@ enum qca_wlan_vendor_attr_ll_stats_results {
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_MLO_LINK = 93,
 
+	/* Unsigned 32 bit value. It represents the number of MSDUs sent by the
+	 * driver that were retransmitted and eventually transmitted
+	 * successfully.
+	 */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_TX_RETRY_MSDU_CNT = 94,
+
+	/* Unsigned 32 bit value. It represents the number of MSDUs that were
+	 * successfully transmitted by the driver, including those that were
+	 * retransmitted and eventually succeeded.
+	 */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_TX_SUCC_MSDU_CNT = 95,
+
+	/* Unsigned 32 bit value. It represents the number of MSDUs that were
+	 * handed off by the driver for transmission but were ultimately dropped
+	 * by the firmware.
+	 */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_TX_FW_DROP_MSDU_CNT = 96,
+
+	/* Unsigned 32 bit value. It represents the number of MSDUs that were
+	 * intended for transmission but were dropped by the driver before being
+	 * handed off to the firmware.
+	 */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_TX_DRIVER_DROP_MSDU_CNT = 97,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_MAX =
