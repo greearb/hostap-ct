@@ -1118,7 +1118,7 @@ static void nan_de_rx_sda(struct nan_de *de, const u8 *peer_addr, const u8 *a3,
 	sda += NAN_SERVICE_ID_LEN;
 	instance_id = *sda++;
 	req_instance_id = *sda++;
-	ctrl = *sda;
+	ctrl = *sda++;
 	type = ctrl & NAN_SRV_CTRL_TYPE_MASK;
 	wpa_printf(MSG_DEBUG,
 		   "NAN: SDA - Service ID %02x%02x%02x%02x%02x%02x Instance ID %u Requestor Instance ID %u Service Control 0x%x (Service Control Type %u)",
