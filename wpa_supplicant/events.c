@@ -4727,6 +4727,10 @@ static void wpa_supplicant_event_disassoc_finish(struct wpa_supplicant *wpa_s,
 			"pre-shared key may be incorrect");
 		if (wpas_p2p_4way_hs_failed(wpa_s) > 0)
 			return; /* P2P group removed */
+		bssid = wpa_s->bssid;
+		if (is_zero_ether_addr(bssid))
+			bssid = wpa_s->pending_bssid;
+		wpa_bssid_ignore_add(wpa_s, bssid);
 		wpas_auth_failed(wpa_s, "WRONG_KEY", wpa_s->pending_bssid);
 		wpas_notify_psk_mismatch(wpa_s);
 	}
