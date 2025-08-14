@@ -433,7 +433,9 @@ void wpa_supplicant_mark_disassoc(struct wpa_supplicant *wpa_s)
 
 	wpa_s->wps_scan_done = false;
 	wpas_reset_mlo_info(wpa_s);
+#ifndef CONFIG_NO_ROBUST_AV
 	wpas_scs_deinit(wpa_s);
+#endif /* CONFIG_NO_ROBUST_AV */
 
 #ifdef CONFIG_SME
 	wpa_s->sme.bss_max_idle_period = 0;
@@ -6321,11 +6323,13 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 				   "Ignore unexpected EVENT_ASSOC in disconnected state");
 			break;
 		}
+#ifndef CONFIG_NO_ROBUST_AV
 		if (dl_list_len(&wpa_s->active_scs_ids) > 0) {
 			wpa_printf(MSG_DEBUG,
 				   "SCS rules renegotiation required after roaming");
 			wpa_s->scs_reconfigure = true;
 		}
+#endif /* CONFIG_NO_ROBUST_AV */
 		wpa_supplicant_event_assoc(wpa_s, data);
 		wpa_s->assoc_status_code = WLAN_STATUS_SUCCESS;
 		if (data &&
