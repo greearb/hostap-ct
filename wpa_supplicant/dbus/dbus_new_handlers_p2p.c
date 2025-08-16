@@ -2580,6 +2580,17 @@ dbus_bool_t wpas_dbus_getter_p2p_group_vendor_ext(
 }
 
 
+dbus_bool_t wpas_dbus_getter_p2p_group_go_device_address(
+	const struct wpa_dbus_property_desc *property_desc,
+	DBusMessageIter *iter, DBusError *error, void *user_data)
+{
+	struct wpa_supplicant *wpa_s = user_data;
+	return wpas_dbus_simple_array_property_getter(
+		iter, DBUS_TYPE_BYTE, wpa_s->go_dev_addr,
+		ETH_ALEN, error);
+}
+
+
 dbus_bool_t wpas_dbus_setter_p2p_group_vendor_ext(
 	const struct wpa_dbus_property_desc *property_desc,
 	DBusMessageIter *iter, DBusError *error, void *user_data)

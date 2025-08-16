@@ -127,6 +127,7 @@ DECLARE_ACCESSOR(wpas_dbus_getter_p2p_group_passphrase);
 DECLARE_ACCESSOR(wpas_dbus_getter_p2p_group_psk);
 DECLARE_ACCESSOR(wpas_dbus_getter_p2p_group_vendor_ext);
 DECLARE_ACCESSOR(wpas_dbus_setter_p2p_group_vendor_ext);
+DECLARE_ACCESSOR(wpas_dbus_getter_p2p_group_go_device_address);
 
 /*
  * P2P Persistent Groups and properties

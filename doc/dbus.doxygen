@@ -2629,6 +2629,11 @@ Interface implemented by objects representing active P2P groups.
     <h3>WPSVendorExtensions - aay - (read/write)</h3>
     <p>WPS vendor extension attributes used on the GO. This is valid only the in the GO role. An empty array is returned in P2P Client role. At maximum, 10 separate vendor extension byte arrays can be configured. The GO device will include the configured attributes in WPS exchanges.</p>
   </li>
+
+  <li>
+    <h3>GODeviceAddress - ay - (read)</h3>
+    <p>Returns the device address of the GO of the group. This is available for both client and GO roles.</p>
+  </li>
 </ul>
 
 \subsection dbus_group_signals Signals
