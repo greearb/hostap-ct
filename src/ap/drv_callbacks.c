@@ -1026,29 +1026,24 @@ static void hostapd_remove_sta(struct hostapd_data *hapd, struct sta_info *sta)
 void hostapd_notif_disassoc_mld(struct hostapd_data *assoc_hapd,
 				struct sta_info *sta, const u8 *addr)
 {
-	unsigned int link_id, i;
+	unsigned int i;
 	struct hostapd_data *tmp_hapd;
 	struct hapd_interfaces *interfaces = assoc_hapd->iface->interfaces;
 
 	/* Remove STA entry in non-assoc links */
-	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
-		if (!sta->mld_info.links[link_id].valid)
+	for (i = 0; i < interfaces->count; i++) {
+		struct sta_info *tmp_sta;
+
+		tmp_hapd = interfaces->iface[i]->bss[0];
+
+		if (!tmp_hapd->conf->mld_ap ||
+		    assoc_hapd == tmp_hapd ||
+		    assoc_hapd->conf->mld_id != tmp_hapd->conf->mld_id)
 			continue;
 
-		for (i = 0; i < interfaces->count; i++) {
-			struct sta_info *tmp_sta;
-
-			tmp_hapd = interfaces->iface[i]->bss[0];
-
-			if (!tmp_hapd->conf->mld_ap ||
-			    assoc_hapd == tmp_hapd ||
-			    assoc_hapd->conf->mld_id != tmp_hapd->conf->mld_id)
-				continue;
-
-			tmp_sta = ap_get_sta(tmp_hapd, addr);
-			if (tmp_sta)
-				ap_free_sta(tmp_hapd, tmp_sta);
-		}
+		tmp_sta = ap_get_sta(tmp_hapd, addr);
+		if (tmp_sta)
+			ap_free_sta(tmp_hapd, tmp_sta);
 	}
 
 	/* Remove STA in assoc link */
