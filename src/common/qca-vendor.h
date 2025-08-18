@@ -111,6 +111,31 @@ enum qca_radiotap_vendor_ids {
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_NUM_RX_CHAINS_5GHZ: The number of chains to be
  * used for receiving the data in the 5/6 GHz band.
  *
+ * Global chain-mask configuration - Applies to 2.4 GHz or 5/6 GHz band
+ * The following band specific attributes are used to dynamically configure the
+ * global chain masks (e.g., 0x1 for Chain 0, 0x2 for Chain 1, 0x4 for Chain 2)
+ * to be used for transmitting the data in the 2.4 GHz or 5/6 GHz band.
+ *
+ * These attributes can be used independently.
+ * This configuration is allowed when the driver is active.
+ * The driver/firmware will intersect (AND operation) the newly configured
+ * global TX chain mask with other chain configurations (e.g., the global
+ * chain-mask configuration, global chain configuration, and per band chain
+ * configuration) to determine the final active chain mask.
+ *
+ * If the intersection of these configurations results in no available chains,
+ * the driver/firmware will reject the configuration attempt.
+ *
+ * To effectively clear or reset the chain mask configuration, user-space
+ * can set the attribute to a bitmask representing all available chains
+ * (i.e., 0xFF or 255), allowing the driver to apply the default chain mask
+ * configuration.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_TX_CHAIN_MASK_2GHZ: Bitmask of chains to be used
+ * for transmitting the data in the 2.4 GHz band.
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_TX_CHAIN_MASK_5GHZ: Bitmask of chains to be used
+ * for transmitting the data in the 5/6 GHz band.
+ *
  * The following scenarios capture how the driver process the configuration when
  * different TX/RX NSS and chain config attributes are used in the command.
  *
@@ -4047,6 +4072,16 @@ enum qca_wlan_vendor_attr_config {
 	 *	    QCA_WLAN_VENDOR_ATTR_CONFIG_PEER_MAC address
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AMSDU_ADDR_CHECK_VALIDATION = 136,
+
+	/* 8-bit unsigned value. The TX chain mask to be configured dynamically
+	 * for transmitting the data in the 2.4 GHz band.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_TX_CHAIN_MASK_2GHZ = 137,
+
+	/* 8-bit unsigned value. The TX chain mask to be configured dynamically
+	 * for transmitting the data in the 5/6 GHz band.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_TX_CHAIN_MASK_5GHZ = 138,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
