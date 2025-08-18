@@ -1038,7 +1038,7 @@ void hostapd_notif_disassoc_mld(struct hostapd_data *assoc_hapd,
 
 		if (!tmp_hapd->conf->mld_ap ||
 		    assoc_hapd == tmp_hapd ||
-		    assoc_hapd->conf->mld_id != tmp_hapd->conf->mld_id)
+		    !hostapd_is_ml_partner(assoc_hapd, tmp_hapd))
 			continue;
 
 		tmp_sta = ap_get_sta(tmp_hapd, addr);
@@ -1088,7 +1088,7 @@ void hostapd_notif_disassoc(struct hostapd_data *hapd, const u8 *addr)
 				struct hostapd_bss_config *hconf = h_hapd->conf;
 
 				if (!hconf->mld_ap ||
-				    hconf->mld_id != hapd->conf->mld_id)
+				    !hostapd_is_ml_partner(hapd, h_hapd))
 					continue;
 
 				sta = ap_get_sta(h_hapd, addr);
