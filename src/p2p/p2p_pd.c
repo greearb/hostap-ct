@@ -1694,6 +1694,12 @@ static void p2p_process_prov_disc_bootstrap_resp(struct p2p_data *p2p,
 			p2p_dbg(p2p, "Truncated PBMA");
 			return;
 		}
+
+		if (cookie_len > sizeof(dev->bootstrap_params->cookie)) {
+			p2p_dbg(p2p, "Too long PBMA cookie");
+			return;
+		}
+
 		cookie = pos;
 
 		dev->bootstrap_params =
