@@ -2643,6 +2643,7 @@ do {                                    \
 	d->go_venue_group = s->go_venue_group;
 	d->go_venue_type = s->go_venue_type;
 	d->p2p_add_cli_chan = s->p2p_add_cli_chan;
+	d->disable_op_classes_80_80_mhz = s->disable_op_classes_80_80_mhz;
 }
 
 

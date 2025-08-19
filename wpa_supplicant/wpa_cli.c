@@ -524,6 +524,7 @@ static char ** wpa_cli_complete_set(const char *str, int pos)
 #endif /* CONFIG_TESTING_OPTIONS */
 		"relative_rssi", "relative_band_adjust",
 		"extended_key_id",
+		"disable_op_classes_80_80_mhz",
 	};
 	int i, num_fields = ARRAY_SIZE(fields);
 
@@ -624,7 +625,8 @@ static char ** wpa_cli_complete_get(const char *str, int pos)
 		"tdls_external_control", "wowlan_triggers",
 		"p2p_search_delay", "mac_addr", "rand_addr_lifetime",
 		"preassoc_mac_addr", "key_mgmt_offload", "passive_scan",
-		"reassoc_same_bss_optim", "extended_key_id"
+		"reassoc_same_bss_optim", "extended_key_id",
+		"disable_op_classes_80_80_mhz"
 	};
 	int i, num_fields = ARRAY_SIZE(fields);
 

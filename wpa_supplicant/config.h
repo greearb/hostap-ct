@@ -1899,6 +1899,16 @@ struct wpa_config {
 	 * wfa_gen_capa_supp.
 	 */
 	struct wpabuf *wfa_gen_capa_cert;
+
+	/**
+	 * disable_op_classes_80_80_mhz - Disable advertisement of 80+80 MHz
+	 * channel capabilities in the Supported Operating Classes element
+	 *
+	 * By default, %wpa_supplicant tries to advertise 80+80 MHz channel
+	 * capabilities in the Supported Operating Classes element if the driver
+	 * supports this.
+	*/
+	bool disable_op_classes_80_80_mhz;
 };
 
 

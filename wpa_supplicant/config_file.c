@@ -1753,6 +1753,9 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 		fprintf(f, "wfa_gen_capa=%d\n", config->wfa_gen_capa);
 	write_global_bin(f, "wfa_gen_capa_supp", config->wfa_gen_capa_supp);
 	write_global_bin(f, "wfa_gen_capa_cert", config->wfa_gen_capa_cert);
+	if (config->disable_op_classes_80_80_mhz)
+		fprintf(f, "disable_op_classes_80_80_mhz=%d\n",
+			config->disable_op_classes_80_80_mhz);
 }
 
 static void wpa_config_write_identity(FILE *f, struct wpa_dev_ik *dev_ik)
