@@ -774,7 +774,7 @@ void p2p_invitation_resp_cb(struct p2p_data *p2p, const u8 *peer, int success)
 	struct p2p_device *dev;
 
 	dev = p2p_get_device(p2p, peer);
-	if (dev && dev->pasn) {
+	if (dev && dev->pasn && dev->pasn->pmksa) {
 		pasn_responder_pmksa_cache_get(dev->pasn->pmksa,
 					       dev->pasn->peer_addr, _pmkid,
 					       _pmk, &pmk_len);
