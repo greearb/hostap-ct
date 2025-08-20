@@ -12565,9 +12565,9 @@ enum qca_wlan_vendor_cfr_capture_type {
  *
  * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_BANDWIDTH: Optional (u8)
  * BW of measurement, attribute uses the values in enum nl80211_chan_width
- * Supported values: 20, 40, 80, 80+80, 160.
+ * Supported bandwidth: 20, 40, 80, 80+80, 160, 320.
  * Note that all targets may not support all bandwidths.
- * This attribute is mandatory for version 1 if attribute
+ * This attribute is mandatory for version 1 and version 3 if attribute
  * QCA_WLAN_VENDOR_ATTR_PEER_CFR_ENABLE is used.
  *
  * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_PERIODICITY: Optional (u32)
@@ -12575,14 +12575,14 @@ enum qca_wlan_vendor_cfr_capture_type {
  * Periodicity should be a multiple of Base timer.
  * Current Base timer value supported is 10 milliseconds (default).
  * 0 for one shot capture.
- * This attribute is mandatory for version 1 if attribute
- * QCA_WLAN_VENDOR_ATTR_PEER_CFR_ENABLE is used.
+ * This attribute is mandatory for version 1 and optional for version 3 if
+ * attribute QCA_WLAN_VENDOR_ATTR_PEER_CFR_ENABLE is used.
  *
  * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_METHOD: Optional (u8)
  * Method used to capture Channel Frequency Response.
  * Attribute uses the values defined in enum qca_wlan_vendor_cfr_method.
- * This attribute is mandatory for version 1 if attribute
- * QCA_WLAN_VENDOR_ATTR_PEER_CFR_ENABLE is used.
+ * This attribute is mandatory for version 1 and optional for version 3 if
+ * attribute QCA_WLAN_VENDOR_ATTR_PEER_CFR_ENABLE is used.
  *
  * @QCA_WLAN_VENDOR_ATTR_PERIODIC_CFR_CAPTURE_ENABLE: Optional (flag)
  * Enable periodic CFR capture.
@@ -12590,9 +12590,9 @@ enum qca_wlan_vendor_cfr_capture_type {
  * If this attribute is not present, periodic CFR capture is disabled.
  *
  * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_VERSION: Optional (u8)
- * Value is 1 or 2 since there are two versions of CFR capture. Two versions
- * can't be enabled at same time. This attribute is mandatory if target
- * support both versions and use one of them.
+ * Value is 1, 2, or 3 since there are three versions of CFR capture.
+ * Only one version can be enabled at a time. This attribute is mandatory
+ * if the target supports multiple versions and uses one of the versions.
  *
  * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_ENABLE_GROUP_BITMAP: Optional (u32)
  * This attribute is mandatory for version 2 if
@@ -12647,7 +12647,7 @@ enum qca_wlan_vendor_cfr_capture_type {
  * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_GROUP_TA: Optional (6-byte MAC address)
  * Transmitter address which is used to filter frames. This MAC address takes
  * effect with QCA_WLAN_VENDOR_ATTR_PEER_CFR_GROUP_TA_MASK. This is for CFR
- * version 2 only.
+ * version 2 and version 3.
  *
  * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_GROUP_RA: Optional (6-byte MAC address)
  * Receiver address which is used to filter frames. This MAC address takes
@@ -12656,7 +12656,7 @@ enum qca_wlan_vendor_cfr_capture_type {
  *
  * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_GROUP_TA_MASK: Optional (6-byte MAC address)
  * Mask of transmitter address which is used to filter frames. This is for CFR
- * version 2 only.
+ * version 2 and version 3.
  *
  * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_GROUP_RA_MASK: Optional (6-byte MAC address)
  * Mask of receiver address which is used to filter frames. This is for CFR
@@ -12664,8 +12664,9 @@ enum qca_wlan_vendor_cfr_capture_type {
  *
  * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_GROUP_NSS: Optional (u32)
  * Indicates frames with a specific NSS will be filtered for CFR capture.
- * This is for CFR version 2 only. This is a bitmask. Bits 7:0 request CFR
- * capture to be done for frames matching the NSS specified within this bitmask.
+ * This is for CFR version 2 and version 3. This is a bitmask. Bits 7:0 request
+ * CFR capture to be done for frames matching the NSS specified within this
+ * bitmask.
  * Bits 31:8 are reserved for future use. Bits 7:0 map to NSS:
  *     bit 0 : NSS 1
  *     bit 1 : NSS 2
@@ -12722,6 +12723,36 @@ enum qca_wlan_vendor_cfr_capture_type {
  *
  * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_PAD: Attribute used for padding for 64-bit
  * alignment.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_FREQ: Optional (u32)
+ * Frequency (in MHz) used for CFR capture.
+ * Applicable only for CFR version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_FRAME_TYPE: Optional (u8)
+ * IEEE 802.11 WLAN frame type configuration.
+ * Applicable only for CFR version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_FRAME_SUBTYPE: Optional (u8)
+ * IEEE 802.11 WLAN frame subtype configuration.
+ * Applicable only for CFR version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_REPORT_INTERVAL: Optional (u32)
+ * Interval (in milliseconds) at which CSI reports are generated
+ * and delivered to the user.
+ * Applicable only for CFR version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_DATA_FORMAT_OUI: Optional (u8 array, 3 or
+ * 5 bytes) Organizationally Unique Identifier (OUI) for the CFR data format.
+ * The OUI is assigned by IEEE and uniquely identifies the vendor or
+ * organization.
+ * Applicable only for CFR version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_DATA_FORMAT_VERSION: Optional (u8)
+ * Version of the CFR data format associated with the specified OUI.
+ * If not set, version 1 is used by default.
+ * OUI and version together define the vendor-specific format to interpret CFR
+ * data.
+ * Applicable only for CFR version 3.
  */
 enum qca_wlan_vendor_peer_cfr_capture_attr {
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_CAPTURE_INVALID = 0,
@@ -12754,6 +12785,12 @@ enum qca_wlan_vendor_peer_cfr_capture_attr {
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_DATA_RECEIVER_PID = 27,
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_RESP_DATA = 28,
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_PAD = 29,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_FREQ = 30,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_FRAME_TYPE = 31,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_FRAME_SUBTYPE = 32,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_REPORT_INTERVAL = 33,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_DATA_FORMAT_OUI = 34,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_DATA_FORMAT_VERSION = 35,
 
 	/* Keep last */
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_AFTER_LAST,
