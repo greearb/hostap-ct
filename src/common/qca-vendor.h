@@ -2485,6 +2485,10 @@ enum qca_wlan_vendor_acs_hw_mode {
  * @QCA_WLAN_VENDOR_FEATURE_SUPPORT_USER_SCENARIO_TO_DSI_MAPPING: Flag indicates
  *  that the driver supports enabling the user scenario to DSI index mapping.
  *
+ * @QCA_WLAN_VENDOR_FEATURE_SUPPORT_STA_INDOOR_CH_SCC: Flag indicates driver
+ *	support for SCC (Single Channel Concurrency) with a STA connected
+ *	indoor channel for P2P GO, SAP, and NAN.
+ *
  * @NUM_QCA_WLAN_VENDOR_FEATURES: Number of assigned feature bits
  */
 enum qca_wlan_vendor_features {
@@ -2520,6 +2524,7 @@ enum qca_wlan_vendor_features {
 	QCA_WLAN_VENDOR_FEATURE_PCC_MODE = 29,
 	QCA_WLAN_VENDOR_FEATURE_SUPPORT_TX_POWER_LIMIT = 30,
 	QCA_WLAN_VENDOR_FEATURE_SUPPORT_USER_SCENARIO_TO_DSI_MAPPING = 31,
+	QCA_WLAN_VENDOR_FEATURE_SUPPORT_STA_INDOOR_CH_SCC = 32,
 	NUM_QCA_WLAN_VENDOR_FEATURES /* keep last */
 };
 
@@ -4104,6 +4109,18 @@ enum qca_wlan_vendor_attr_config {
 	 * for transmitting the data in the 5/6 GHz band.
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_TX_CHAIN_MASK_5GHZ = 138,
+
+	/* 8-bit unsigned value to enable or disable the feature to allow
+	 * SCC with STA connected indoor channel for P2P GO, SAP, and NAN
+	 * to the driver in STA mode. This configuration is applicable only
+	 * when a STA interface is in connected state.
+	 * When the STA disconnects, any P2P_GO/SAP/NAN interface present in
+	 * SCC with STA connected indoor channel will re-evaluate its operating
+	 * channel and either remain on the current channel or switch to other
+	 * valid channel, depending on regulatory and underlying driver policy.
+	 * 1 - Enable, 0 - Disable.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ALLOW_STA_INDOOR_CH_SCC = 139,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
