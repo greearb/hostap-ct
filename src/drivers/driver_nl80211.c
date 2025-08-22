@@ -9754,9 +9754,14 @@ int nl80211_remove_link(struct i802_bss *bss, int link_id)
 
 	/* First remove the link locally */
 	os_memset(link->addr, 0, ETH_ALEN);
+
+	eloop_cancel_timeout(wpa_driver_nl80211_scan_timeout, drv, bss->ctx);
 	/* Clear the active links and set the flink */
 	nl80211_update_active_links(bss, link_id);
 	bss->valid_links &= ~BIT(link_id);
+
+	if (bss->scan_link == link)
+		bss->scan_link = NULL;
 
 	/* If this was the last link, reset default link */
 	if (!bss->valid_links) {
