@@ -1614,11 +1614,27 @@ def test_dbus_connect_oom(dev, apdev):
                     if 'frequency' not in res or res['frequency'] != 2412:
                         self.state = -1
                         logger.info("Unexpected SignalPoll result")
-                    iface.RemoveNetwork(self.netw)
+                    try:
+                        iface.RemoveNetwork(self.netw)
+                    except dbus.exceptions.DBusException as e:
+                        # Work around known issues caused by OOM messing up with
+                        # D-Bus message processing.
+                        if "InvalidArgs" in str(e):
+                            iface.RemoveNetwork(self.netw)
+                        else:
+                            raise
             if 'State' in properties and properties['State'] == "disconnected":
                 if self.state == 1:
                     self.state = 2
-                    iface.SelectNetwork(self.netw)
+                    try:
+                        iface.SelectNetwork(self.netw)
+                    except dbus.exceptions.DBusException as e:
+                        # Work around known issues caused by OOM messing up with
+                        # D-Bus message processing.
+                        if "InvalidArgs" in str(e):
+                            iface.SelectNetwork(self.netw)
+                        else:
+                            raise
                 elif self.state == 3:
                     self.state = 4
                     iface.Reassociate()
@@ -1656,6 +1672,7 @@ def test_dbus_connect_oom(dev, apdev):
 
     count = 0
     for i in range(1, 1000):
+        hapd.dump_monitor()
         for j in range(3):
             dev[j].dump_monitor()
         dev[0].request("TEST_ALLOC_FAIL %d:main" % i)
