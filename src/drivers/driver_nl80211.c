@@ -9705,9 +9705,6 @@ fail:
 
 void nl80211_update_active_links(struct i802_bss *bss, int link_id)
 {
-	struct i802_link *link = &bss->links[link_id];
-	size_t i;
-
 	wpa_printf(MSG_DEBUG, "nl80211: Update link (ifindex=%d link_id=%u)",
 		   bss->ifindex, link_id);
 
@@ -9720,14 +9717,6 @@ void nl80211_update_active_links(struct i802_bss *bss, int link_id)
 	wpa_driver_nl80211_del_beacon(bss, link_id);
 
 	bss->active_links &= ~BIT(link_id);
-
-	/* Choose new deflink if we are removing that link */
-	if (bss->flink == link) {
-		for_each_link(bss->active_links, i) {
-			bss->flink = &bss->links[i];
-			break;
-		}
-	}
 }
 
 
@@ -9738,6 +9727,7 @@ int nl80211_remove_link(struct i802_bss *bss, int link_id)
 	struct nl_msg *msg;
 	int ret;
 	u8 link_addr[ETH_ALEN];
+	size_t i;
 
 	wpa_printf(MSG_DEBUG, "nl80211: Remove link (ifindex=%d link_id=%u)",
 		   bss->ifindex, link_id);
@@ -9762,6 +9752,14 @@ int nl80211_remove_link(struct i802_bss *bss, int link_id)
 
 	if (bss->scan_link == link)
 		bss->scan_link = NULL;
+
+	/* Choose new deflink if we are removing that link */
+	if (bss->flink == link) {
+		for_each_link(bss->valid_links, i) {
+			bss->flink = &bss->links[i];
+			break;
+		}
+	}
 
 	/* If this was the last link, reset default link */
 	if (!bss->valid_links) {
@@ -11095,10 +11093,14 @@ static int driver_nl80211_link_remove(void *priv, enum wpa_driver_if_type type,
 
 	nl80211_remove_link(bss, link_id);
 
-	bss->ctx = bss->flink->ctx;
-
-	if (drv->first_bss == bss && bss->valid_links)
+	if (drv->ctx == bss->ctx) {
+		eloop_cancel_timeout(wpa_driver_nl80211_send_rfkill,
+				     drv, drv->ctx);
+		bss->ctx = bss->flink->ctx;
 		drv->ctx = bss->ctx;
+	} else {
+		bss->ctx = bss->flink->ctx;
+	}
 
 	if (!bss->valid_links) {
 		void *ctx = bss->ctx;
