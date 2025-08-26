@@ -4070,6 +4070,25 @@ fail:
 #endif /* CONFIG_NAN_USD */
 
 
+#ifdef CONFIG_SAE
+static int hostapd_ctrl_iface_sae_password_bind(struct hostapd_data *hapd,
+						const char *cmd)
+{
+	u8 addr[ETH_ALEN];
+	const char *password;
+
+	if (hwaddr_aton(cmd, addr))
+		return -1;
+	password = os_strchr(cmd, ' ');
+	if (!password)
+		return -1;
+	password++;
+
+	return sae_password_bind(hapd, addr, password);
+}
+#endif /* CONFIG_SAE */
+
+
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
 					      int reply_size,
@@ -4673,6 +4692,11 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 			reply_len = -1;
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
+#ifdef CONFIG_SAE
+	} else if (os_strncmp(buf, "SAE_PASSWORD_BIND ", 18) == 0) {
+		if (hostapd_ctrl_iface_sae_password_bind(hapd, buf + 18))
+			reply_len = -1;
+#endif /* CONFIG_SAE */
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;

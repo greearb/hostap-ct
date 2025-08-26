@@ -560,6 +560,28 @@ static bool has_sae_success_seen(struct hostapd_data *hapd,
 }
 
 
+static int sae_password_mark_success(struct hostapd_data *hapd,
+				      struct sae_password_entry *pw,
+				      const u8 *addr)
+{
+	if (in_mac_addr_list(pw->success_mac, pw->num_success_mac, addr))
+		return 0;
+
+	if (!pw->success_mac) {
+		pw->success_mac = os_zalloc(hapd->conf->sae_track_password *
+					    ETH_ALEN);
+		if (!pw->success_mac)
+			return -1;
+		pw->num_success_mac = hapd->conf->sae_track_password;
+	}
+
+	os_memcpy(&pw->success_mac[pw->next_success_mac * ETH_ALEN], addr,
+		  ETH_ALEN);
+	pw->next_success_mac = (pw->next_success_mac + 1) % pw->num_success_mac;
+	return 0;
+}
+
+
 static void sae_password_track_success(struct hostapd_data *hapd,
 				       struct sta_info *sta)
 {
@@ -572,22 +594,7 @@ static void sae_password_track_success(struct hostapd_data *hapd,
 	if (!pw)
 		return;
 
-	if (in_mac_addr_list(pw->success_mac,
-			     pw->num_success_mac,
-			     sta->addr))
-		return;
-
-	if (!pw->success_mac) {
-		pw->success_mac = os_zalloc(hapd->conf->sae_track_password *
-					    ETH_ALEN);
-		if (!pw->success_mac)
-			return;
-		pw->num_success_mac = hapd->conf->sae_track_password;
-	}
-
-	os_memcpy(&pw->success_mac[pw->next_success_mac * ETH_ALEN], sta->addr,
-		  ETH_ALEN);
-	pw->next_success_mac = (pw->next_success_mac + 1) % pw->num_success_mac;
+	sae_password_mark_success(hapd, pw, sta->addr);
 }
 
 
@@ -621,6 +628,27 @@ static bool sae_password_track_fail(struct hostapd_data *hapd,
 	pw->next_fail_mac = (pw->next_fail_mac + 1) % pw->num_fail_mac;
 
 	return is_other_sae_password(hapd, sta, pw);
+}
+
+
+int sae_password_bind(struct hostapd_data *hapd, const u8 *addr,
+		      const char *password)
+{
+	struct sae_password_entry *pw;
+
+	if (!hapd->conf->sae_track_password)
+		return -1;
+
+	for (pw = hapd->conf->sae_passwords; pw; pw = pw->next) {
+		if (pw->identifier ||
+		    !is_broadcast_ether_addr(pw->peer_addr) ||
+		    os_strcmp(password, pw->password) != 0)
+			continue;
+
+		return sae_password_mark_success(hapd, pw, addr);
+	}
+
+	return -1;
 }
 
 
