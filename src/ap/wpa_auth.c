@@ -6551,9 +6551,10 @@ int wpa_auth_pmksa_add_preauth(struct wpa_authenticator *wpa_auth,
 
 int wpa_auth_pmksa_add_sae(struct wpa_authenticator *wpa_auth, const u8 *addr,
 			   const u8 *pmk, size_t pmk_len, const u8 *pmkid,
-			   int akmp, bool is_ml)
+			   int akmp, bool is_ml, int vlan_id)
 {
 	struct rsn_pmksa_cache *pmksa = wpa_auth->pmksa;
+	struct rsn_pmksa_cache_entry *entry;
 	const u8 *aa = wpa_auth->addr;
 
 	if (wpa_auth->conf.disable_pmksa_caching)
@@ -6570,11 +6571,14 @@ int wpa_auth_pmksa_add_sae(struct wpa_authenticator *wpa_auth, const u8 *addr,
 	}
 #endif /* CONFIG_IEEE80211BE */
 
-	if (pmksa_cache_auth_add(pmksa, pmk, pmk_len, pmkid, NULL, 0, aa, addr,
-				 0, NULL, akmp))
-		return 0;
+	entry = pmksa_cache_auth_add(pmksa, pmk, pmk_len, pmkid, NULL, 0,
+				     aa, addr, 0, NULL, akmp);
+	if (!entry)
+		return -1;
 
-	return -1;
+	entry->sae_vlan_id = vlan_id;
+
+	return 0;
 }
 
 

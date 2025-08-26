@@ -2267,7 +2267,7 @@ static void p2p_go_configured(void *ctx, void *data)
 				       params->peer_device_addr,
 				       params->pmk, params->pmk_len,
 				       params->pmkid, WPA_KEY_MGMT_SAE,
-				       false);
+				       false, 0);
 		hostapd_add_pmkid(hapd, params->peer_device_addr,
 				  params->pmk, params->pmk_len,
 				  params->pmkid, WPA_KEY_MGMT_SAE);
@@ -2924,7 +2924,7 @@ static void wpas_set_go_security_config(void *ctx,
 				       params->peer_device_addr,
 				       params->pmk, params->pmk_len,
 				       params->pmkid, WPA_KEY_MGMT_SAE,
-				       false);
+				       false, 0);
 		hostapd_add_pmkid(hapd, params->peer_device_addr,
 				  params->pmk, params->pmk_len,
 				  params->pmkid, WPA_KEY_MGMT_SAE);

@@ -1049,40 +1049,51 @@ static void sae_sme_send_external_auth_status(struct hostapd_data *hapd,
 }
 
 
-void sae_accept_sta(struct hostapd_data *hapd, struct sta_info *sta)
+static int sae_assign_vlan(struct hostapd_data *hapd, struct sta_info *sta,
+			   int vlan_id)
 {
 #ifndef CONFIG_NO_VLAN
 	struct vlan_description vlan_desc;
 
-	if (sta->sae->tmp && sta->sae->tmp->vlan_id > 0) {
+	if (vlan_id > 0) {
 		wpa_printf(MSG_DEBUG, "SAE: Assign STA " MACSTR
 			   " to VLAN ID %d",
-			   MAC2STR(sta->addr), sta->sae->tmp->vlan_id);
+			   MAC2STR(sta->addr), vlan_id);
 
 		if (!(hapd->iface->drv_flags & WPA_DRIVER_FLAGS_VLAN_OFFLOAD)) {
 			os_memset(&vlan_desc, 0, sizeof(vlan_desc));
 			vlan_desc.notempty = 1;
-			vlan_desc.untagged = sta->sae->tmp->vlan_id;
+			vlan_desc.untagged = vlan_id;
 			if (!hostapd_vlan_valid(hapd->conf->vlan, &vlan_desc)) {
 				wpa_printf(MSG_INFO,
 					   "Invalid VLAN ID %d in sae_password",
-					   sta->sae->tmp->vlan_id);
-				return;
+					   vlan_id);
+				return -1;
 			}
 
 			if (ap_sta_set_vlan(hapd, sta, &vlan_desc) < 0 ||
 			    ap_sta_bind_vlan(hapd, sta) < 0) {
 				wpa_printf(MSG_INFO,
 					   "Failed to assign VLAN ID %d from sae_password to "
-					   MACSTR, sta->sae->tmp->vlan_id,
+					   MACSTR, vlan_id,
 					   MAC2STR(sta->addr));
-				return;
+				return -1;
 			}
 		} else {
-			sta->vlan_id = sta->sae->tmp->vlan_id;
+			sta->vlan_id = vlan_id;
 		}
 	}
 #endif /* CONFIG_NO_VLAN */
+
+	return 0;
+}
+
+
+void sae_accept_sta(struct hostapd_data *hapd, struct sta_info *sta)
+{
+	if (sta->sae->tmp &&
+	    sae_assign_vlan(hapd, sta, sta->sae->tmp->vlan_id) < 0)
+		return;
 
 	sta->flags |= WLAN_STA_AUTH;
 	sta->auth_alg = WLAN_AUTH_SAE;
@@ -1095,7 +1106,7 @@ void sae_accept_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	wpa_auth_pmksa_add_sae(hapd->wpa_auth, sta->addr,
 			       sta->sae->pmk, sta->sae->pmk_len,
 			       sta->sae->pmkid, sta->sae->akmp,
-			       ap_sta_is_mld(hapd, sta));
+			       ap_sta_is_mld(hapd, sta), sta->vlan_id);
 	sae_sme_send_external_auth_status(hapd, sta, WLAN_STATUS_SUCCESS);
 }
 
@@ -4508,6 +4519,7 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 			}
 			wpa_printf(MSG_DEBUG, "SAE: " MACSTR
 				   " using PMKSA caching", MAC2STR(sta->addr));
+			sae_assign_vlan(hapd, sta, sa->sae_vlan_id);
 		} else if (wpa_auth_uses_sae(sta->wpa_sm) &&
 			   sta->auth_alg != WLAN_AUTH_SAE &&
 			   !(sta->auth_alg == WLAN_AUTH_FT &&
