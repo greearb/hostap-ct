@@ -317,6 +317,139 @@ def test_sae_mixed(dev, apdev):
     if sta2['wpa'] != '2' or sta2['AKMSuiteSelector'] != '00-0f-ac-2':
         raise Exception("PSK STA(2) AKM suite selector reported incorrectly")
 
+def test_sae_mixed_diff_passwords(dev, apdev):
+    """Mixed SAE and non-SAE network with different passwords"""
+    check_sae_capab(dev[0])
+
+    params = hostapd.wpa2_params(ssid="test-sae", passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE WPA-PSK'
+    params['ieee80211w'] = '1'
+    params['sae_password'] = 'password'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    logger.info("Valid WPA2-Personal passphrase")
+    dev[0].connect("test-sae", psk="12345678", scan_freq="2412")
+    dev[0].request("REMOVE_NETWORK all")
+    dev[0].wait_disconnected()
+
+    logger.info("Invalid WPA2-Personal passphrase")
+    dev[0].connect("test-sae", psk="password", scan_freq="2412",
+                   wait_connect=False)
+    ev = dev[0].wait_event(["CTRL-EVENT-CONNECTED",
+                            "WPA: 4-Way Handshake failed"], timeout=10)
+    if ev is None:
+        raise Exception("PSK failure not reported")
+    if "CTRL-EVENT-CONNECTED" in ev:
+        raise Exception("Unexpected PSK success")
+    dev[0].request("REMOVE_NETWORK all")
+    dev[0].dump_monitor()
+
+    logger.info("Valid WPA3-Personal password")
+    dev[0].set("sae_groups", "")
+    dev[0].connect("test-sae", psk="password", key_mgmt="SAE", ieee80211w="2",
+                   scan_freq="2412")
+    dev[0].request("REMOVE_NETWORK all")
+    dev[0].wait_disconnected()
+
+    logger.info("Invalid WPA3-Personal password")
+    dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE", ieee80211w="2",
+                   scan_freq="2412", wait_connect=False)
+    ev = dev[0].wait_event(["CTRL-EVENT-CONNECTED",
+                            "CTRL-EVENT-AUTH-REJECT"], timeout=10)
+    if ev is None:
+        raise Exception("SAE failure not reported")
+    if "CTRL-EVENT-CONNECTED" in ev:
+        raise Exception("Unexpected SAE success")
+    dev[0].request("REMOVE_NETWORK all")
+    dev[0].dump_monitor()
+
+def test_sae_mixed_diff_passwords_dynamic(dev, apdev, params):
+    """Mixed SAE and non-SAE network with different passwords and dynamic adding"""
+    check_sae_capab(dev[0])
+    check_sae_capab(dev[1])
+
+    psk_file = params['prefix'] + '.wpa_psk'
+    with open(psk_file, 'w') as f:
+        f.write('00:00:00:00:00:00 passphrase0\n')
+        f.write('00:00:00:00:00:00 passphrase1\n')
+        f.write(dev[0].own_addr() + ' passphrase2\n')
+
+    params = hostapd.wpa2_params(ssid="test-sae", passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE WPA-PSK'
+    params['sae_password_psk'] = '1'
+    params['ieee80211w'] = '1'
+    params['wpa_psk_file'] = psk_file
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    logger.info("Valid WPA2-Personal passphrase")
+    dev[0].connect("test-sae", psk="12345678", scan_freq="2412")
+    dev[0].request("REMOVE_NETWORK all")
+    dev[0].wait_disconnected()
+
+    logger.info("Valid WPA2-Personal passphrase(0)")
+    dev[0].connect("test-sae", psk="passphrase0", scan_freq="2412")
+    dev[0].request("REMOVE_NETWORK all")
+    dev[0].wait_disconnected()
+
+    logger.info("Valid WPA2-Personal passphrase(2)")
+    dev[0].connect("test-sae", psk="passphrase2", scan_freq="2412")
+    dev[0].request("REMOVE_NETWORK all")
+    dev[0].wait_disconnected()
+
+    logger.info("Invalid WPA3-Personal password")
+    dev[0].set("sae_groups", "")
+    dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE", ieee80211w="2",
+                   scan_freq="2412", wait_connect=False)
+    ev = dev[0].wait_event(["CTRL-EVENT-CONNECTED",
+                            "CTRL-EVENT-AUTH-REJECT"], timeout=10)
+    if ev is None:
+        raise Exception("SAE failure not reported")
+    if "CTRL-EVENT-CONNECTED" in ev:
+        raise Exception("Unexpected SAE success")
+    dev[0].request("REMOVE_NETWORK all")
+    dev[0].dump_monitor()
+
+    logger.info("Invalid WPA3-Personal password(2)")
+    dev[0].set("sae_groups", "")
+    dev[0].connect("test-sae", psk="passphrase2", key_mgmt="SAE",
+                   ieee80211w="2", scan_freq="2412", wait_connect=False)
+    ev = dev[0].wait_event(["CTRL-EVENT-CONNECTED",
+                            "CTRL-EVENT-AUTH-REJECT"], timeout=10)
+    if ev is None:
+        raise Exception("SAE failure not reported")
+    if "CTRL-EVENT-CONNECTED" in ev:
+        raise Exception("Unexpected SAE success")
+    dev[0].request("REMOVE_NETWORK all")
+    dev[0].dump_monitor()
+
+    logger.info("Valid WPA3-Personal passphrase")
+    hapd.set("sae_password", "password|mac=" + dev[0].own_addr())
+    dev[0].connect("test-sae", psk="password", key_mgmt="SAE", ieee80211w="2",
+                   scan_freq="2412")
+    dev[0].request("REMOVE_NETWORK all")
+    dev[0].wait_disconnected()
+
+    logger.info("Invalid WPA3-Personal password[1]")
+    dev[1].set("sae_groups", "")
+    dev[1].connect("test-sae", psk="password", key_mgmt="SAE", ieee80211w="2",
+                   scan_freq="2412", wait_connect=False)
+    ev = dev[1].wait_event(["CTRL-EVENT-CONNECTED",
+                            "CTRL-EVENT-AUTH-REJECT"], timeout=10)
+    if ev is None:
+        raise Exception("SAE failure not reported")
+    if "CTRL-EVENT-CONNECTED" in ev:
+        raise Exception("Unexpected SAE success")
+    dev[1].request("REMOVE_NETWORK all")
+    dev[1].dump_monitor()
+
+    logger.info("Valid WPA3-Personal passphrase[1]")
+    hapd.set("sae_password", "password1|mac=" + dev[1].own_addr())
+    dev[1].set("sae_groups", "")
+    dev[1].connect("test-sae", psk="password1", key_mgmt="SAE", ieee80211w="2",
+                   scan_freq="2412")
+    dev[1].request("REMOVE_NETWORK all")
+    dev[1].wait_disconnected()
+
 def test_sae_and_psk(dev, apdev):
     """SAE and PSK enabled in network profile"""
     check_sae_capab(dev[0])
@@ -1777,6 +1910,26 @@ def test_sae_password(dev, apdev):
     dev[2].request("SET sae_groups ")
     dev[2].connect("test-sae", sae_password="sae-password", key_mgmt="SAE",
                    scan_freq="2412")
+
+def test_sae_password_dynamic(dev, apdev):
+    """SAE and password added dynamically"""
+    check_sae_capab(dev[0])
+    params = hostapd.wpa3_params(ssid="test-sae")
+    params['sae_pwe'] = "1"
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].set("sae_groups", "")
+    try:
+        dev[0].set("sae_pwe", "1")
+        dev[0].connect("test-sae", sae_password="password", key_mgmt="SAE",
+                       ieee80211w="2", scan_freq="2412", wait_connect=False)
+        ev = dev[0].wait_event(["EVENT-AUTH-REJECT"], timeout=10)
+        if ev is None:
+            raise Exception("Authentication was not rejected")
+        hapd.set("sae_password", "password")
+        dev[0].wait_connected()
+    finally:
+        dev[0].set("sae_pwe", "0")
 
 def test_sae_password_short(dev, apdev):
     """SAE and short password"""
