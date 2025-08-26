@@ -1807,23 +1807,125 @@ def test_sae_password_multiple(dev, apdev):
     check_sae_capab(dev[0])
     check_sae_capab(dev[1])
     check_sae_capab(dev[2])
-    params = hostapd.wpa3_params(ssid="test-sae",
-                                 password=["owner", "iot", "guest"])
+    passwords = ["owner", "iot", "guest"]
+    params = hostapd.wpa3_params(ssid="test-sae", password=passwords)
     params['sae_track_password'] = "10"
     params['sae_confirm_immediate'] = '1'
     hapd = hostapd.add_ap(apdev[0], params)
 
-    dev[0].set("sae_groups", "")
-    dev[0].connect("test-sae", sae_password="owner", key_mgmt="SAE",
-                   ieee80211w="2", scan_freq="2412")
+    for i in range(3):
+        dev[i].set("sae_groups", "")
+        dev[i].connect("test-sae", sae_password=passwords[i], key_mgmt="SAE",
+                       ieee80211w="2", scan_freq="2412")
 
-    dev[1].set("sae_groups", "")
-    dev[1].connect("test-sae", sae_password="iot", key_mgmt="SAE",
-                   ieee80211w="2", scan_freq="2412")
+    for i in range(3):
+        dev[i].request("DISCONNECT")
+        dev[i].wait_disconnected()
+    hapd.dump_monitor()
 
-    dev[2].set("sae_groups", "")
-    dev[2].connect("test-sae", sae_password="guest", key_mgmt="SAE",
-                   ieee80211w="2", scan_freq="2412")
+    for i in range(3):
+        dev[i].request("RECONNECT")
+        ev = dev[i].wait_event(["CTRL-EVENT-CONNECTED",
+                                "PMKSA-CACHE-ADDED",
+                                "CTRL-EVENT-AUTH-REJECT"], timeout=10)
+        if "CTRL-EVENT-AUTH-REJECT" in ev:
+            raise Exception("Unexpected authentication rejection")
+        if "PMKSA-CACHE-ADDED" in ev:
+            raise Exception("Unexpected new PMKSA entry")
+
+    for i in range(3):
+        dev[i].request("DISCONNECT")
+        dev[i].wait_disconnected()
+    hapd.dump_monitor()
+
+    for i in range(3):
+        dev[i].request("PMKSA_FLUSH")
+        dev[i].request("RECONNECT")
+        ev = dev[i].wait_event(["CTRL-EVENT-CONNECTED",
+                                "CTRL-EVENT-AUTH-REJECT"], timeout=10)
+        if "CTRL-EVENT-AUTH-REJECT" in ev:
+            raise Exception("Unexpected authentication rejection")
+
+def test_sae_password_multiple_vlan(dev, apdev):
+    """SAE with multiple default password entries and VLANs"""
+    check_sae_capab(dev[0])
+    check_sae_capab(dev[1])
+    check_sae_capab(dev[2])
+    passwords = [("owner", 1), ("iot", 2), ("guest", 3)]
+    pw = ['%s|vlanid=%d' % (x[0], x[1]) for x in passwords]
+    params = hostapd.wpa3_params(ssid="test-sae", password=pw)
+    params['sae_track_password'] = "10"
+    params['sae_confirm_immediate'] = '1'
+    params['dynamic_vlan'] = '1'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    for i in range(3):
+        dev[i].set("sae_groups", "")
+        dev[i].connect("test-sae", sae_password=passwords[i][0], key_mgmt="SAE",
+                       ieee80211w="2", scan_freq="2412")
+        ev = hapd.wait_sta(addr=dev[i].own_addr())
+        vlanid = int(ev.split()[2].split('=')[1])
+        if vlanid != passwords[i][1]:
+            raise Exception("Unexpected VLANID for dev[%d]: %s" % (i, ev))
+
+    for i in range(3):
+        dev[i].request("DISCONNECT")
+        dev[i].wait_disconnected()
+    hapd.dump_monitor()
+
+    for i in range(3):
+        dev[i].request("RECONNECT")
+        ev = dev[i].wait_event(["CTRL-EVENT-CONNECTED",
+                                "PMKSA-CACHE-ADDED",
+                                "CTRL-EVENT-AUTH-REJECT"], timeout=10)
+        if "CTRL-EVENT-AUTH-REJECT" in ev:
+            raise Exception("Unexpected authentication rejection")
+        if "PMKSA-CACHE-ADDED" in ev:
+            raise Exception("Unexpected new PMKSA entry")
+        ev = hapd.wait_sta(addr=dev[i].own_addr())
+        vlanid = int(ev.split()[2].split('=')[1])
+        if vlanid != passwords[i][1]:
+            raise Exception("Unexpected VLANID for dev[%d]: %s" % (i, ev))
+
+    for i in range(3):
+        dev[i].request("DISCONNECT")
+        dev[i].wait_disconnected()
+    hapd.dump_monitor()
+
+    for i in range(3):
+        dev[i].request("PMKSA_FLUSH")
+        dev[i].request("RECONNECT")
+        ev = dev[i].wait_event(["CTRL-EVENT-CONNECTED",
+                                "CTRL-EVENT-AUTH-REJECT"], timeout=10)
+        if "CTRL-EVENT-AUTH-REJECT" in ev:
+            raise Exception("Unexpected authentication rejection")
+        ev = hapd.wait_sta(addr=dev[i].own_addr())
+        vlanid = int(ev.split()[2].split('=')[1])
+        if vlanid != passwords[i][1]:
+            raise Exception("Unexpected VLANID for dev[%d]: %s" % (i, ev))
+
+    for i in range(3):
+        dev[i].request("DISCONNECT")
+        dev[i].wait_disconnected()
+    hapd.dump_monitor()
+
+    hostapd.remove_bss(apdev[0])
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    for i in range(3):
+        res = hapd.request("SAE_PASSWORD_BIND %s %s" % (dev[i].own_addr(),
+                                                        passwords[i][0]))
+        if "OK" not in res:
+            raise Exception("SAE_PASSWORD_BIND failed")
+        dev[i].request("RECONNECT")
+        ev = dev[i].wait_event(["CTRL-EVENT-CONNECTED",
+                                "CTRL-EVENT-AUTH-REJECT"], timeout=10)
+        if "CTRL-EVENT-AUTH-REJECT" in ev:
+            raise Exception("Unexpected authentication rejection")
+        ev = hapd.wait_sta(addr=dev[i].own_addr())
+        vlanid = int(ev.split()[2].split('=')[1])
+        if vlanid != passwords[i][1]:
+            raise Exception("Unexpected VLANID for dev[%d]: %s" % (i, ev))
 
 def test_sae_connect_cmd(dev, apdev):
     """SAE with connect command"""
