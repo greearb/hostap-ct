@@ -1598,10 +1598,13 @@ void ap_sta_set_authorized_event(struct hostapd_data *hapd,
 		char dpp_pkhash_buf[100];
 		char keyid_buf[100];
 		char ip_addr[100];
+		char vlanid_buf[20];
 
 		dpp_pkhash_buf[0] = '\0';
 		keyid_buf[0] = '\0';
 		ip_addr[0] = '\0';
+		vlanid_buf[0] = '\0';
+
 #ifdef CONFIG_P2P
 		if (wpa_auth_get_ip_addr(sta->wpa_sm, ip_addr_buf) == 0) {
 			os_snprintf(ip_addr, sizeof(ip_addr),
@@ -1630,15 +1633,21 @@ void ap_sta_set_authorized_event(struct hostapd_data *hapd,
 					 dpp_pkhash, SHA256_MAC_LEN);
 		}
 
-		wpa_msg(hapd->msg_ctx, MSG_INFO, AP_STA_CONNECTED "%s%s%s%s",
-			buf, ip_addr, keyid_buf, dpp_pkhash_buf);
+#ifndef CONFIG_NO_VLAN
+		if (sta->vlan_id)
+			os_snprintf(vlanid_buf, sizeof(vlanid_buf),
+				    " vlanid=%u", sta->vlan_id);
+#endif /* CONFIG_NO_VLAN */
+
+		wpa_msg(hapd->msg_ctx, MSG_INFO, AP_STA_CONNECTED "%s%s%s%s%s",
+			buf, ip_addr, keyid_buf, dpp_pkhash_buf, vlanid_buf);
 
 		if (hapd->msg_ctx_parent &&
 		    hapd->msg_ctx_parent != hapd->msg_ctx)
 			wpa_msg_no_global(hapd->msg_ctx_parent, MSG_INFO,
-					  AP_STA_CONNECTED "%s%s%s%s",
+					  AP_STA_CONNECTED "%s%s%s%s%s",
 					  buf, ip_addr, keyid_buf,
-					  dpp_pkhash_buf);
+					  dpp_pkhash_buf, vlanid_buf);
 	} else {
 		wpa_msg(hapd->msg_ctx, MSG_INFO, AP_STA_DISCONNECTED "%s", buf);
 
