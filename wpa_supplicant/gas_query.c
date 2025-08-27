@@ -685,7 +685,7 @@ static int gas_query_dialog_token_available(struct gas_query *gas,
 {
 	struct gas_query_pending *q;
 	dl_list_for_each(q, &gas->pending, struct gas_query_pending, list) {
-		if (ether_addr_equal(dst, q->addr) &&
+		if ((!dst || ether_addr_equal(dst, q->addr)) &&
 		    dialog_token == q->dialog_token)
 			return 0;
 	}
@@ -756,6 +756,18 @@ static int gas_query_new_dialog_token(struct gas_query *gas, const u8 *dst)
 	 * token by checking random values. Use a limit on the number of
 	 * iterations to handle the unexpected case of large number of pending
 	 * queries cleanly. */
+	for (i = 0; i < 256; i++) {
+		/* Get a random number and check if it is not used in any
+		 * pending entry for any peer. */
+		if (os_get_random(&dialog_token, sizeof(dialog_token)) < 0)
+			break;
+		if (gas_query_dialog_token_available(gas, NULL, dialog_token))
+			return dialog_token;
+	}
+
+	/* In the highly unlikely case there were so many pending queries that
+	 * no available unused dialog token was available. Try to find one that
+	 * is unique for this specific peer. */
 	for (i = 0; i < 256; i++) {
 		/* Get a random number and check if the slot is available */
 		if (os_get_random(&dialog_token, sizeof(dialog_token)) < 0)
