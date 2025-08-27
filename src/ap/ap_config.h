@@ -660,6 +660,7 @@ struct hostapd_bss_config {
 	enum sae_pwe sae_pwe;
 	int *sae_groups;
 	struct sae_password_entry *sae_passwords;
+	int sae_password_psk;
 	int sae_track_password;
 
 	char *wowlan_triggers; /* Wake-on-WLAN triggers */

@@ -720,7 +720,7 @@ const char * sae_get_password(struct hostapd_data *hapd,
 			pk = pw->pk;
 		break;
 	}
-	if (!password && !rx_id) {
+	if (!password && !rx_id && !hapd->conf->sae_password_psk) {
 		password = hapd->conf->ssid.wpa_passphrase;
 		pt = hapd->conf->ssid.pt;
 	}

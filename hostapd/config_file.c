@@ -4369,6 +4369,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 				   line);
 			return 1;
 		}
+	} else if (os_strcmp(buf, "sae_password_psk") == 0) {
+		bss->sae_password_psk = atoi(pos);
 	} else if (os_strcmp(buf, "sae_track_password") == 0) {
 		bss->sae_track_password = atoi(pos);
 #endif /* CONFIG_SAE */
