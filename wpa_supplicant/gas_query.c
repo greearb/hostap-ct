@@ -199,19 +199,29 @@ void gas_query_deinit(struct gas_query *gas)
 static struct gas_query_pending *
 gas_query_get_pending(struct gas_query *gas, const u8 *addr, u8 dialog_token)
 {
-	struct gas_query_pending *q;
+	struct gas_query_pending *q, *alt = NULL;
 	struct wpa_supplicant *wpa_s = gas->wpa_s;
+	void *ctx = gas->work ? gas->work->ctx : NULL;
 
+	/* Prefer a pending entry that matches with the current radio_work to
+	 * avoid issues when freeing the pending entry in gas_query_free(). That
+	 * case should not really happen, but due to the special case for
+	 * AP MLD MAC address here, a same dialog token value might end up
+	 * being pending and matching the same query. */
 	dl_list_for_each(q, &gas->pending, struct gas_query_pending, list) {
-		if (ether_addr_equal(q->addr, addr) &&
-		    q->dialog_token == dialog_token)
-			return q;
-		if (wpa_s->valid_links &&
-		    ether_addr_equal(wpa_s->ap_mld_addr, addr) &&
-		    wpas_ap_link_address(wpa_s, q->addr))
-			return q;
+		if ((ether_addr_equal(q->addr, addr) &&
+		     q->dialog_token == dialog_token) ||
+		    (wpa_s->valid_links &&
+		     ether_addr_equal(wpa_s->ap_mld_addr, addr) &&
+		     wpas_ap_link_address(wpa_s, q->addr))) {
+			if (q == ctx)
+				return q;
+			if (!alt)
+				alt = q;
+		}
 	}
-	return NULL;
+
+	return alt;
 }
 
 
