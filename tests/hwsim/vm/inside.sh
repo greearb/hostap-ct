@@ -14,6 +14,7 @@ mount proc -t proc /proc
 mount sysfs -t sysfs /sys
 # needed for tracing
 mount debugfs -t debugfs /sys/kernel/debug
+mount tracefs -t tracefs /sys/kernel/tracing
 
 mkdir /tmp/wireshark-share
 mount --bind /usr/share/wireshark /tmp/wireshark-share
