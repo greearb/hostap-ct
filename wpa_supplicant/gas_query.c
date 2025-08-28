@@ -46,6 +46,7 @@ struct gas_query_pending {
 	unsigned int retry:1;
 	unsigned int wildcard_bssid:1;
 	unsigned int maintain_addr:1;
+	unsigned int sent:1;
 	int freq;
 	u16 status_code;
 	struct wpabuf *req;
@@ -209,6 +210,8 @@ gas_query_get_pending(struct gas_query *gas, const u8 *addr, u8 dialog_token)
 	 * AP MLD MAC address here, a same dialog token value might end up
 	 * being pending and matching the same query. */
 	dl_list_for_each(q, &gas->pending, struct gas_query_pending, list) {
+		if (!q->sent)
+			continue;
 		if ((ether_addr_equal(q->addr, addr) &&
 		     q->dialog_token == dialog_token) ||
 		    (wpa_s->valid_links &&
@@ -327,8 +330,10 @@ static int gas_query_tx(struct gas_query *gas, struct gas_query_pending *query,
 				     wpabuf_len(req), wait_time,
 				     gas_query_tx_status, 0);
 
-	if (res == 0)
+	if (res == 0) {
+		query->sent = 1;
 		query->offchannel_tx_started = 1;
+	}
 	return res;
 }
 
