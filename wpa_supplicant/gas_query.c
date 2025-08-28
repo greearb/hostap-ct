@@ -47,6 +47,7 @@ struct gas_query_pending {
 	unsigned int wildcard_bssid:1;
 	unsigned int maintain_addr:1;
 	unsigned int sent:1;
+	unsigned int radio_work_removal_scheduled:1;
 	int freq;
 	u16 status_code;
 	struct wpabuf *req;
@@ -146,6 +147,8 @@ static void gas_query_free(struct gas_query_pending *query, int del_list)
 	if (gas->work && gas->work->ctx == query) {
 		radio_work_done(gas->work);
 		gas->work = NULL;
+	} else if (!query->radio_work_removal_scheduled) {
+		radio_remove_pending_work(gas->wpa_s, query);
 	}
 
 	eloop_cancel_timeout(gas_query_tx_comeback_timeout, gas, query);
@@ -706,6 +709,7 @@ static void gas_query_start_cb(struct wpa_radio_work *work, int deinit)
 	struct wpa_supplicant *wpa_s = gas->wpa_s;
 
 	if (deinit) {
+		query->radio_work_removal_scheduled = 1;
 		if (work->started) {
 			gas->work = NULL;
 			gas_query_done(gas, query, GAS_QUERY_DELETED_AT_DEINIT);
@@ -720,6 +724,7 @@ static void gas_query_start_cb(struct wpa_radio_work *work, int deinit)
 		if (wpas_update_random_addr_disassoc(wpa_s) < 0) {
 			wpa_msg(wpa_s, MSG_INFO,
 				"Failed to assign random MAC address for GAS");
+			query->radio_work_removal_scheduled = 1;
 			gas_query_free(query, 1);
 			radio_work_done(work);
 			return;
