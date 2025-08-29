@@ -73,6 +73,7 @@ void nan_de_deinit(struct nan_de *de);
 void nan_de_listen_started(struct nan_de *de, unsigned int freq,
 			   unsigned int duration);
 void nan_de_listen_ended(struct nan_de *de, unsigned int freq);
+void nan_de_update_nmi(struct nan_de *de, const u8 *nmi);
 void nan_de_tx_status(struct nan_de *de, unsigned int freq, const u8 *dst);
 void nan_de_tx_wait_ended(struct nan_de *de);
 

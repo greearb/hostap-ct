@@ -729,6 +729,13 @@ void nan_de_listen_ended(struct nan_de *de, unsigned int freq)
 }
 
 
+void nan_de_update_nmi(struct nan_de *de, const u8 *nmi)
+{
+	if (de)
+		os_memcpy(de->nmi, nmi, ETH_ALEN);
+}
+
+
 void nan_de_tx_status(struct nan_de *de, unsigned int freq, const u8 *dst)
 {
 	if (freq == de->tx_wait_status_freq)
