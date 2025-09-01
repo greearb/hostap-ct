@@ -3179,6 +3179,7 @@ fail:
 	if (!mld)
 		return;
 
+	interfaces->mld_ctrl_iface_deinit(mld);
 	wpa_printf(MSG_DEBUG, "AP MLD %s: free mld %p", mld->name, mld);
 	os_free(mld);
 	hapd->mld = NULL;
