@@ -271,6 +271,7 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	struct hostapd_data *vlan_bss = hapd;
 #endif /* CONFIG_NO_VLAN */
 	int set_beacon = 0;
+	u16 aid_offset = hapd->conf->mld_ap ? 64 : 0;
 
 	accounting_sta_stop(hapd, sta);
 
@@ -298,9 +299,9 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	ap_sta_hash_del(hapd, sta);
 	ap_sta_list_del(hapd, sta);
 
-	if (sta->aid - 64 > 0)
-		hapd->sta_aid[(sta->aid - 1 - 64) / 32] &=
-			~BIT((sta->aid - 1 - 64) % 32);
+	if (sta->aid - aid_offset > 0)
+		hapd->sta_aid[(sta->aid - 1 - aid_offset) / 32] &=
+			~BIT((sta->aid - 1 - aid_offset) % 32);
 
 	hapd->num_sta--;
 	if (sta->nonerp_set) {
