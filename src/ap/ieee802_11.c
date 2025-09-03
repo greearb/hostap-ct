@@ -3761,9 +3761,12 @@ int hostapd_get_aid(struct hostapd_data *hapd, struct sta_info *sta)
 	/* Allocate aid starting from 65 */
 	/* Reserve 16 mbss + 3 * 16 mld affiliated links */
 	aid = i * 32 + j;
+
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap)
 		aid += 65;
 	else
+#endif
 		aid += (1 << hostapd_max_bssid_indicator(hapd));
 
 	if (aid > 2007)
