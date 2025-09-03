@@ -306,7 +306,11 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 #endif /* CONFIG_NO_VLAN */
 	int set_beacon = 0;
 	bool remove = true;
-	u16 aid_offset = hapd->conf->mld_ap ? 64 : 0;
+	u16 aid_offset = 0;
+
+#ifdef CONFIG_IEEE80211BE
+	aid_offset = hapd->conf->mld_ap ? 64 : 0;
+#endif /* CONFIG_IEEE80211BE */
 
 	accounting_sta_stop(hapd, sta);
 
