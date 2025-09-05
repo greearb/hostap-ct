@@ -9990,14 +9990,18 @@ int get_shared_radio_freqs_data(struct wpa_supplicant *wpa_s,
 			continue;
 
 		if (wpa_s->conf->phy_bands) {
+			int freq_in_band = 0;
 			if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_2G) &&
-			    !(freq >= 0 && freq <= 3000))
-				continue;
+			    (freq >= 0 && freq <= 3000))
+				freq_in_band = 1;
 			if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_5G) &&
-			    !(freq >= 3000 && freq <= 5950))
-				continue;
+			    (freq >= 3000 && freq <= 5950))
+				freq_in_band = 1;
 			if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_6G) &&
-			    !(freq >= 5955 && freq <= 8000))
+			    (freq >= 5955 && freq <= 8000))
+				freq_in_band = 1;
+
+			if (!freq_in_band)
 				continue;
 		}
 
