@@ -9237,6 +9237,7 @@ static int wpa_driver_nl80211_if_remove(struct i802_bss *bss,
 				   bss->brname, strerror(errno));
 	}
 
+	bss->in_deinit = 1;
 	if (bss != drv->first_bss) {
 		struct i802_bss *tbss;
 
