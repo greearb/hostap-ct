@@ -377,6 +377,8 @@ int ap_sta_set_vlan(struct hostapd_data *hapd, struct sta_info *sta,
 		    struct vlan_description *vlan_desc);
 void ap_sta_start_sa_query(struct hostapd_data *hapd, struct sta_info *sta);
 void ap_sta_stop_sa_query(struct hostapd_data *hapd, struct sta_info *sta);
+void ap_sta_set_sa_query_timeout(struct hostapd_data *hapd,
+				 struct sta_info *sta, int value);
 int ap_check_sa_query_timeout(struct hostapd_data *hapd, struct sta_info *sta);
 const char * ap_sta_wpa_get_keyid(struct hostapd_data *hapd,
 				  struct sta_info *sta);

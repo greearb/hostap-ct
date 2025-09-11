@@ -7040,7 +7040,7 @@ static void handle_assoc_cb(struct hostapd_data *hapd,
 	else
 		mlme_associate_indication(hapd, sta);
 
-	sta->sa_query_timed_out = 0;
+	ap_sta_set_sa_query_timeout(hapd, sta, 0);
 
 	if (sta->eapol_sm == NULL) {
 		/*

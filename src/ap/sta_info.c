@@ -1432,6 +1432,13 @@ done:
 }
 
 
+void ap_sta_set_sa_query_timeout(struct hostapd_data *hapd,
+				 struct sta_info *sta, int value)
+{
+	sta->sa_query_timed_out = value;
+}
+
+
 int ap_check_sa_query_timeout(struct hostapd_data *hapd, struct sta_info *sta)
 {
 	u32 tu;
@@ -1444,7 +1451,7 @@ int ap_check_sa_query_timeout(struct hostapd_data *hapd, struct sta_info *sta)
 			       HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_DEBUG,
 			       "association SA Query timed out");
-		sta->sa_query_timed_out = 1;
+		ap_sta_set_sa_query_timeout(hapd, sta, 1);
 		os_free(sta->sa_query_trans_id);
 		sta->sa_query_trans_id = NULL;
 		sta->sa_query_count = 0;
