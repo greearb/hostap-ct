@@ -77,6 +77,24 @@ struct sta_info * ap_get_sta(struct hostapd_data *hapd, const u8 *sta)
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+struct sta_info * ap_get_link_sta(struct hostapd_data *hapd,
+				  const u8 *link_addr)
+{
+	struct sta_info *link_sta;
+
+	for (link_sta = hapd->sta_list; link_sta; link_sta = link_sta->next) {
+		if (link_sta->mld_info.mld_sta &&
+		    ether_addr_equal(link_sta->mld_info.links[hapd->mld_link_id].peer_addr,
+				     link_addr))
+			return link_sta;
+	}
+
+	return NULL;
+}
+#endif /* CONFIG_IEEE80211BE */
+
+
 #ifdef CONFIG_P2P
 struct sta_info * ap_get_sta_p2p(struct hostapd_data *hapd, const u8 *addr)
 {

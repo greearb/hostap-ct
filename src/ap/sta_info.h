@@ -347,6 +347,8 @@ int ap_for_each_sta(struct hostapd_data *hapd,
 			      void *ctx),
 		    void *ctx);
 struct sta_info * ap_get_sta(struct hostapd_data *hapd, const u8 *sta);
+struct sta_info * ap_get_link_sta(struct hostapd_data *hapd,
+				  const u8 *link_addr);
 struct sta_info * ap_get_sta_p2p(struct hostapd_data *hapd, const u8 *addr);
 void ap_sta_hash_add(struct hostapd_data *hapd, struct sta_info *sta);
 void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta);
