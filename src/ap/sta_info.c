@@ -1436,6 +1436,22 @@ void ap_sta_set_sa_query_timeout(struct hostapd_data *hapd,
 				 struct sta_info *sta, int value)
 {
 	sta->sa_query_timed_out = value;
+#ifdef CONFIG_IEEE80211BE
+	if (ap_sta_is_mld(hapd, sta)) {
+		struct hostapd_data *lhapd;
+
+		for_each_mld_link(lhapd, hapd) {
+			struct sta_info *lsta;
+
+			if (lhapd == hapd)
+				continue;
+
+			lsta = ap_get_sta(lhapd, sta->addr);
+			if (lsta)
+				lsta->sa_query_timed_out = value;
+		}
+	}
+#endif /* CONFIG_IEEE80211BE */
 }
 
 
