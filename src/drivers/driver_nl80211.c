@@ -13895,8 +13895,8 @@ static int nl80211_nan_publish(void *priv, const u8 *src, int publish_id,
 	    nla_put_u8(msg, QCA_WLAN_VENDOR_ATTR_USD_SERVICE_PROTOCOL_TYPE,
 		       srv_proto_type) ||
 	    nla_put_u16(msg, QCA_WLAN_VENDOR_ATTR_USD_TTL, params->ttl) ||
-	    nla_put(msg, QCA_WLAN_VENDOR_ATTR_USD_ELEMENT_CONTAINER,
-		    wpabuf_len(elems), wpabuf_head(elems)) ||
+	    (elems && nla_put(msg, QCA_WLAN_VENDOR_ATTR_USD_ELEMENT_CONTAINER,
+		    wpabuf_len(elems), wpabuf_head(elems))) ||
 	    (ssi && nla_put(msg, QCA_WLAN_VENDOR_ATTR_USD_SSI,
 			    wpabuf_len(ssi), wpabuf_head(ssi))))
 		goto fail;
@@ -14048,8 +14048,8 @@ static int nl80211_nan_subscribe(void *priv, const u8 *src, int subscribe_id,
 	    nla_put_u8(msg, QCA_WLAN_VENDOR_ATTR_USD_SERVICE_PROTOCOL_TYPE,
 		       srv_proto_type) ||
 	    nla_put_u16(msg, QCA_WLAN_VENDOR_ATTR_USD_TTL, params->ttl) ||
-	    nla_put(msg, QCA_WLAN_VENDOR_ATTR_USD_ELEMENT_CONTAINER,
-		    wpabuf_len(elems), wpabuf_head(elems)) ||
+	    (elems && nla_put(msg, QCA_WLAN_VENDOR_ATTR_USD_ELEMENT_CONTAINER,
+		    wpabuf_len(elems), wpabuf_head(elems))) ||
 	    (ssi && nla_put(msg, QCA_WLAN_VENDOR_ATTR_USD_SSI,
 			    wpabuf_len(ssi), wpabuf_head(ssi))))
 		goto fail;
