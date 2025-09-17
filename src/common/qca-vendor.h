@@ -2489,6 +2489,10 @@ enum qca_wlan_vendor_acs_hw_mode {
  *	support for SCC (Single Channel Concurrency) with a STA connected
  *	indoor channel for P2P GO, SAP, and NAN.
  *
+ * @QCA_WLAN_VENDOR_FEATURE_SUPPORT_STA_DFS_CH_SCC_P2P: Flag indicates driver
+ *	support for SCC (Single Channel Concurrency) with a STA connected
+ *	DFS channel for P2P.
+
  * @NUM_QCA_WLAN_VENDOR_FEATURES: Number of assigned feature bits
  */
 enum qca_wlan_vendor_features {
@@ -2525,6 +2529,7 @@ enum qca_wlan_vendor_features {
 	QCA_WLAN_VENDOR_FEATURE_SUPPORT_TX_POWER_LIMIT = 30,
 	QCA_WLAN_VENDOR_FEATURE_SUPPORT_USER_SCENARIO_TO_DSI_MAPPING = 31,
 	QCA_WLAN_VENDOR_FEATURE_SUPPORT_STA_INDOOR_CH_SCC = 32,
+	QCA_WLAN_VENDOR_FEATURE_SUPPORT_STA_DFS_CH_SCC_P2P = 33,
 	NUM_QCA_WLAN_VENDOR_FEATURES /* keep last */
 };
 
@@ -4121,6 +4126,29 @@ enum qca_wlan_vendor_attr_config {
 	 * 1 - Enable, 0 - Disable.
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_ALLOW_STA_INDOOR_CH_SCC = 139,
+
+	/* 8-bit unsigned value to enable or disable the feature to allow
+	 * SCC with STA connected DFS channel for P2P GO/Client to the driver in
+	 * STA mode. This configuration is applicable only when a STA interface
+	 * is in connected state and can be updated/modified only in STA
+	 * disconnected state.
+	 *
+	 * When enabled, behavior on a P2P Client is following: On STA
+	 * disconnect/roam/CSA to different channel, the P2P Client
+	 * interface operating in SCC with STA on DFS channel will disconnect
+	 * internally. No Deauthentication frame is sent over the air to the
+	 * P2P GO on the DFS channel.
+	 *
+	 * When enabled, behavior on a P2P GO is following: On STA disconnect/
+	 * roam/CSA to different channel, the P2P GO interface will initiate a
+	 * Channel Switch Announcement (CSA) to switch to a valid channel
+	 * depending on regulatory and underlying driver policy. Beacon frames
+	 * with CSA element will be sent in compliance with regulatories after
+	 * STA moved away from the DFS channel due to disconnect/roam/CSA.
+	 *
+	 * 1 - Enable, 0 - Disable.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ALLOW_STA_DFS_CH_SCC_P2P = 140,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
