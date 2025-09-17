@@ -545,22 +545,23 @@ int handle_auth_pasn_resp(struct pasn_data *pasn, const u8 *own_addr,
 		goto fail;
 	}
 
-	wpa_pasn_add_parameter_ie(buf, pasn->group,
-				  pasn->wrapped_data_format,
-				  pubkey, true, NULL, 0);
-
 	if (wpa_pasn_add_wrapped_data(buf, wrapped_data_buf) < 0)
 		goto fail;
 
 	wpabuf_free(wrapped_data_buf);
 	wrapped_data_buf = NULL;
-	wpabuf_free(pubkey);
-	pubkey = NULL;
 
 	/* Add RSNXE if needed */
 	rsnxe_ie = pasn->rsnxe_ie;
 	if (rsnxe_ie)
 		wpabuf_put_data(buf, rsnxe_ie, 2 + rsnxe_ie[1]);
+
+	wpa_pasn_add_parameter_ie(buf, pasn->group,
+				  pasn->wrapped_data_format,
+				  pubkey, true, NULL, 0);
+
+	wpabuf_free(pubkey);
+	pubkey = NULL;
 
 	if (pasn->prepare_data_element && pasn->cb_ctx)
 		pasn->prepare_data_element(pasn->cb_ctx, peer_addr);

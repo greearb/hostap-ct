@@ -641,9 +641,6 @@ static struct wpabuf * wpas_pasn_build_auth_1(struct pasn_data *pasn,
 	if (!wrapped_data_buf)
 		wrapped_data = WPA_PASN_WRAPPED_DATA_NO;
 
-	wpa_pasn_add_parameter_ie(buf, pasn->group, wrapped_data,
-				  pubkey, true, comeback, -1);
-
 	if (wpa_pasn_add_wrapped_data(buf, wrapped_data_buf) < 0)
 		goto fail;
 
@@ -651,6 +648,9 @@ static struct wpabuf * wpas_pasn_build_auth_1(struct pasn_data *pasn,
 		wpabuf_put_data(buf, pasn->rsnxe_ie, 2 + pasn->rsnxe_ie[1]);
 	else
 		wpa_pasn_add_rsnxe(buf, pasn->rsnxe_capab);
+
+	wpa_pasn_add_parameter_ie(buf, pasn->group, wrapped_data,
+				  pubkey, true, comeback, -1);
 
 	wpa_pasn_add_extra_ies(buf, pasn->extra_ies, pasn->extra_ies_len);
 
@@ -710,13 +710,13 @@ static struct wpabuf * wpas_pasn_build_auth_3(struct pasn_data *pasn)
 	if (!wrapped_data_buf)
 		wrapped_data = WPA_PASN_WRAPPED_DATA_NO;
 
-	wpa_pasn_add_parameter_ie(buf, pasn->group, wrapped_data,
-				  NULL, false, NULL, -1);
-
 	if (wpa_pasn_add_wrapped_data(buf, wrapped_data_buf) < 0)
 		goto fail;
 	wpabuf_free(wrapped_data_buf);
 	wrapped_data_buf = NULL;
+
+	wpa_pasn_add_parameter_ie(buf, pasn->group, wrapped_data,
+				  NULL, false, NULL, -1);
 
 	if (pasn->prepare_data_element && pasn->cb_ctx)
 		pasn->prepare_data_element(pasn->cb_ctx, pasn->peer_addr);
