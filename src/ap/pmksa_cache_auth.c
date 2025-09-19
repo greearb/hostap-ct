@@ -471,6 +471,17 @@ void pmksa_cache_auth_deinit(struct rsn_pmksa_cache *pmksa)
 
 
 /**
+ * pmksa_cache_auth_set_ctx - Set the context for PMKSA cache
+ * @cache: Pointer to the PMKSA cache structure
+ * @ctx: Context pointer to be stored in the cache
+ */
+void pmksa_cache_auth_set_ctx(struct rsn_pmksa_cache *cache, void *ctx)
+{
+	cache->ctx = ctx;
+}
+
+
+/**
  * pmksa_cache_auth_get - Fetch a PMKSA cache entry
  * @pmksa: Pointer to PMKSA cache data from pmksa_cache_auth_init()
  * @spa: Supplicant address or %NULL to match any

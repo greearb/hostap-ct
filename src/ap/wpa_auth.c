@@ -947,6 +947,7 @@ void wpa_deinit(struct wpa_authenticator *wpa_auth)
 			 * authenticator and start rekey timer.
 			 */
 			next_pa->primary_auth = true;
+			pmksa_cache_auth_set_ctx(next_pa->ml_pmksa, next_pa);
 			if (next_pa->conf.wpa_group_rekey)
 				eloop_register_timeout(
 					next_pa->conf.wpa_group_rekey,
