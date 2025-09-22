@@ -1448,6 +1448,12 @@ enum qca_radiotap_vendor_ids {
  *	a specific feature enablement based on the OUI data and capabilities of
  *	the AP. The attributes used with this command are defined in
  *	enum qca_wlan_vendor_attr_feature_config.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_GET_COEX_STATS: Vendor subcommand used to retrieve
+ *     Wi-Fi and Bluetooth coexistence statistics from the driver.
+ *
+ *     The attributes used with this command are defined in
+ *     enum qca_wlan_vendor_attr_coex_stats.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1698,6 +1704,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_LINK_STATE_CHANGE = 264,
 	QCA_NL80211_VENDOR_SUBCMD_DAR = 265,
 	QCA_NL80211_VENDOR_SUBCMD_FEATURE_CONFIG = 266,
+	QCA_NL80211_VENDOR_SUBCMD_GET_COEX_STATS = 267,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -13496,18 +13503,22 @@ enum qca_wlan_vendor_attr_add_sta_node_params {
  * enum qca_btc_chain_mode - Specifies BT coex chain mode.
  * This enum defines the valid set of values of BT coex chain mode.
  * These values are used by attribute %QCA_VENDOR_ATTR_BTC_CHAIN_MODE of
- * %QCA_NL80211_VENDOR_SUBCMD_BTC_CHAIN_MODE.
+ * %QCA_NL80211_VENDOR_SUBCMD_BTC_CHAIN_MODE or
+ * %QCA_NL80211_VENDOR_SUBCMD_GET_COEX_STATS.
  *
  * @QCA_BTC_CHAIN_SHARED: chains of BT and WLAN 2.4 GHz are shared.
  * @QCA_BTC_CHAIN_SEPARATED_HYBRID: chains of BT and WLAN 2.4 GHz are
  * separated, hybrid mode.
  * @QCA_BTC_CHAIN_SEPARATED_FDD: chains of BT and WLAN 2.4 GHz are
  * separated, fixed FDD mode.
+ * @QCA_BTC_CHAIN_DBAM: DBAM (Dedicated BT Antenna Mode) for BT/WLAN
+ * coexistence.
  */
 enum qca_btc_chain_mode {
 	QCA_BTC_CHAIN_SHARED = 0,
 	QCA_BTC_CHAIN_SEPARATED_HYBRID = 1,
 	QCA_BTC_CHAIN_SEPARATED_FDD = 2,
+	QCA_BTC_CHAIN_DBAM = 3,
 };
 
 /* deprecated legacy name */
@@ -13535,6 +13546,50 @@ enum qca_vendor_attr_btc_chain_mode {
 	QCA_VENDOR_ATTR_BTC_CHAIN_MODE_LAST,
 	QCA_VENDOR_ATTR_BTC_CHAIN_MODE_MAX =
 	QCA_VENDOR_ATTR_BTC_CHAIN_MODE_LAST - 1,
+};
+
+/**
+ * enum qca_btc_policy - Specifies Bluetooth coexistence (BTC) policy.
+ * This enum defines the valid set of BTC policy values.
+ * These values are used by attribute %QCA_WLAN_VENDOR_ATTR_COEX_BTC_POLICY.
+ *
+ * @QCA_BTC_POLICY_FREE_FRUN: "Free run" mode for BTC. WLAN operates without
+ * strict BTC constraints.
+ *
+ * @QCA_BTC_POLICY_OCS: "OCS" (Off Channel Scheme) mode for BTC. Specific
+ * coexistence mechanisms are enforced to manage interference between Bluetooth
+ * and WLAN.
+ *
+ * @QCA_BTC_POLICY_INVALID: Invalid policy value. Used for error handling or
+ * uninitialized state.
+ */
+enum qca_btc_policy {
+	QCA_BTC_POLICY_FREE_FRUN = 0,
+	QCA_BTC_POLICY_OCS = 1,
+	QCA_BTC_POLICY_INVALID = 255
+};
+
+/**
+ * enum qca_wlan_vendor_attr_coex_stats - Coexistence statistics attributes
+ * @QCA_WLAN_VENDOR_ATTR_COEX_STATS_ARRAY_INDEX: Nested attribute containing
+ * the following attributes:
+ *      %QCA_WLAN_VENDOR_ATTR_COEX_PDEV_ID
+ *      %QCA_WLAN_VENDOR_ATTR_COEX_BTC_POLICY
+ *      %QCA_VENDOR_ATTR_BTC_CHAIN_MODE
+ * @QCA_WLAN_VENDOR_ATTR_COEX_PDEV_ID: 8-bit unsigned value to indicate PDEV ID.
+ * @QCA_WLAN_VENDOR_ATTR_COEX_BTC_POLICY: 8-bit unsigned value to current BTC
+ * policy. The policies are defined in enum qca_btc_policy.
+ */
+enum qca_wlan_vendor_attr_coex_stats {
+	QCA_WLAN_VENDOR_ATTR_COEX_STATS_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_COEX_STATS_ARRAY_INDEX = 1,
+	QCA_WLAN_VENDOR_ATTR_COEX_PDEV_ID = 2,
+	QCA_WLAN_VENDOR_ATTR_COEX_BTC_POLICY = 3,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_COEX_STATS_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_COEX_STATS_MAX =
+	QCA_WLAN_VENDOR_ATTR_COEX_STATS_AFTER_LAST - 1,
 };
 
 /**
