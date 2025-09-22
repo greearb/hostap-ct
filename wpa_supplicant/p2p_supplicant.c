@@ -7185,8 +7185,12 @@ int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 	}
 
 #ifdef CONFIG_PASN
-	if (wpa_s->p2p2 && !wpa_s->p2p_pd_before_go_neg)
-		wpas_p2p_initiate_pasn_auth(wpa_s, peer_addr, force_freq);
+	if (wpa_s->p2p2 && !wpa_s->p2p_pd_before_go_neg) {
+		int listen_freq = p2p_get_listen_freq(wpa_s->global->p2p,
+						      peer_addr);
+
+		wpas_p2p_initiate_pasn_auth(wpa_s, peer_addr, listen_freq);
+	}
 #endif /* CONFIG_PASN */
 
 	return ret;
