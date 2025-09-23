@@ -601,6 +601,17 @@ void ap_handle_timer(void *eloop_ctx, void *timeout_ctx)
 			sta->timeout_next = STA_DISASSOC;
 			goto skip_poll;
 		} else if (inactive_sec < max_inactivity) {
+#ifdef CONFIG_TESTING_OPTIONS
+			if (hapd->conf->skip_inactivity_poll == -1) {
+				wpa_msg(hapd->msg_ctx, MSG_DEBUG,
+					"Force inactivity timeout for station "
+					MACSTR
+					" even though it has been active %is ago",
+					MAC2STR(sta->addr), inactive_sec);
+				sta->timeout_next = STA_DISASSOC;
+				goto skip_poll;
+			}
+#endif /* CONFIG_TESTING_OPTIONS */
 			/* station activity detected; reset timeout state */
 			wpa_msg(hapd->msg_ctx, MSG_DEBUG,
 				"Station " MACSTR " has been active %is ago",

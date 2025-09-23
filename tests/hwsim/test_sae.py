@@ -3674,3 +3674,21 @@ def test_sae_dump_beacon(dev, apdev):
 
     # Make sure there is enough time to capture at least one Beacon frame
     time.sleep(0.2)
+
+def test_sae_inactivity_timeout(dev, apdev):
+    """SAE and inactivity timeout"""
+    check_sae_capab(dev[0])
+    params = hostapd.wpa3_params(ssid="test-sae", password="12345678")
+    params['ap_max_inactivity'] = "3"
+    params['skip_inactivity_poll'] = "-1"
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].set("sae_groups", "")
+    dev[0].connect("test-sae", sae_password="12345678", key_mgmt="SAE",
+                   ieee80211w="2", scan_freq="2412")
+    hapd.wait_sta()
+    ev = hapd.wait_event(["AP-STA-DISCONNECTED"], timeout=10)
+    if ev is None:
+        raise Exception("STA disconnection on inactivity was not reported")
+    dev[0].wait_disconnected()
+    dev[0].wait_connected()
