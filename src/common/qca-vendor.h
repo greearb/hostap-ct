@@ -21348,7 +21348,7 @@ enum qca_wlan_vendor_attr_telemetry_tqm_rel_reason_types {
 };
 
 /**
- * enum qca_wlan_vendor_link_state_change_Reason - Defines the different types
+ * enum qca_wlan_vendor_link_state_change_reason - Defines the different types
  * of reasons for the link state change. Will be used with
  * QCA_WLAN_VENDOR_ATTR_LINK_STATE_CHANGE_REASON attribute.
  *
