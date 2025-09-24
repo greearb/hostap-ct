@@ -13962,6 +13962,16 @@ enum qca_vendor_wlan_sta_guard_interval {
  * used in STA mode. This represents the number of MSDU packets
  * (unicast/multicast/broadcast) transmitted/received with each NSS value. See
  * enum qca_wlan_vendor_attr_nss_pkt.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_MCS_PKT_COUNT: Array of nested attributes,
+ * used in STA mode. This represents the number of PPDUs
+ * (unicast/multicast/broadcast) transmitted/received with each MCS value. See
+ * enum qca_wlan_vendor_attr_mcs_pkt.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_BW_PKT_COUNT: Array of nested attributes,
+ * used in STA mode. This represents the number of PPDUs
+ * (unicast/multicast/broadcast) transmitted/received on each bandwidth value.
+ * See enum qca_wlan_vendor_attr_bw_pkt.
  */
 enum qca_wlan_vendor_attr_get_sta_info {
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_INVALID = 0,
@@ -14020,6 +14030,8 @@ enum qca_wlan_vendor_attr_get_sta_info {
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_PAD = 53,
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_UPLINK_DELAY_JITTER = 54,
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_NSS_PKT_COUNT = 55,
+	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_MCS_PKT_COUNT = 56,
+	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_BW_PKT_COUNT = 57,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_AFTER_LAST,
@@ -19226,6 +19238,67 @@ enum qca_wlan_vendor_attr_nss_pkt {
 	QCA_WLAN_VENDOR_ATTR_NSS_PKT_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_NSS_PKT_MAX =
 	QCA_WLAN_VENDOR_ATTR_NSS_PKT_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_mcs_pkt - Attributes used by
+ * %QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_MCS_PKT_COUNT.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_MCS_PKT_MCS_INDEX: u8 attribute. This
+ * represents the value of MCS index.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_MCS_PKT_TX_PACKET_COUNT: u64 attribute. This
+ * represents the number of PPDUs transmitted with the MCS index
+ * specified in %QCA_WLAN_VENDOR_ATTR_MCS_PKT_MCS_INDEX.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_MCS_PKT_RX_PACKET_COUNT: u64 attribute. This
+ * represents the number of PPDUs received with the MCS index
+ * specified in %QCA_WLAN_VENDOR_ATTR_MCS_PKT_MCS_INDEX.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_MCS_PKT_PAD: Attribute used for padding for 64-bit
+ * alignment.
+ */
+enum qca_wlan_vendor_attr_mcs_pkt {
+	QCA_WLAN_VENDOR_ATTR_MCS_PKT_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_MCS_PKT_MCS_INDEX = 1,
+	QCA_WLAN_VENDOR_ATTR_MCS_PKT_TX_PACKET_COUNT = 2,
+	QCA_WLAN_VENDOR_ATTR_MCS_PKT_RX_PACKET_COUNT = 3,
+	QCA_WLAN_VENDOR_ATTR_MCS_PKT_PAD = 4,
+
+	QCA_WLAN_VENDOR_ATTR_MCS_PKT_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_MCS_PKT_MAX =
+	QCA_WLAN_VENDOR_ATTR_MCS_PKT_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_bw_pkt - Attributes used by
+ * %QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_BW_PKT_COUNT.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_BW_PKT_BW_CHAN_WIDTH: u8 attribute. This
+ * represents the value of bandwidth. This attribute uses values defined in
+ * enum nl80211_chan_width.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_BW_PKT_TX_PACKET_COUNT: u64 attribute. This
+ * represents the number of PPDUs transmitted with the bandwidth
+ * specified in %QCA_WLAN_VENDOR_ATTR_BW_PKT_BW_VALUE.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_BW_PKT_RX_PACKET_COUNT: u64 attribute. This
+ * represents the number of PPDUs received with the bandwidth
+ * specified in %QCA_WLAN_VENDOR_ATTR_BW_PKT_BW_VALUE.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_BW_PKT_PAD: Attribute used for padding for 64-bit
+ * alignment.
+ */
+enum qca_wlan_vendor_attr_bw_pkt {
+	QCA_WLAN_VENDOR_ATTR_BW_PKT_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_BW_PKT_BW_CHAN_WIDTH = 1,
+	QCA_WLAN_VENDOR_ATTR_BW_PKT_TX_PACKET_COUNT = 2,
+	QCA_WLAN_VENDOR_ATTR_BW_PKT_RX_PACKET_COUNT = 3,
+	QCA_WLAN_VENDOR_ATTR_BW_PKT_PAD = 4,
+
+	QCA_WLAN_VENDOR_ATTR_BW_PKT_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_BW_PKT_MAX =
+	QCA_WLAN_VENDOR_ATTR_BW_PKT_AFTER_LAST - 1,
 };
 
 /**
