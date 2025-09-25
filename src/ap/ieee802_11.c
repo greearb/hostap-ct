@@ -5801,6 +5801,15 @@ static void handle_assoc(struct hostapd_data *hapd,
 				mld_addrs_not_translated = true;
 			}
 
+			/* Allow link address to be changed if an SA query
+			 * procedure has expired. */
+			if (sta->sa_query_timed_out) {
+				u8 _link = hapd->mld_link_id;
+
+				os_memcpy(sta->mld_info.links[_link].peer_addr,
+					  mgmt->sa, ETH_ALEN);
+			}
+
 		}
 	}
 #endif /* CONFIG_IEEE80211BE */
