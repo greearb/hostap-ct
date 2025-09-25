@@ -2700,7 +2700,27 @@ static int tls_verify_cb(int preverify_ok, X509_STORE_CTX *x509_ctx)
 	suffix_match = conn->suffix_match;
 	domain_match = conn->domain_match;
 
-	if (!preverify_ok && !conn->ca_cert_verify)
+	if (!conn->ca_cert_verify && depth == 0 &&
+	    !(conn->flags & TLS_CONN_DISABLE_TIME_CHECKS)) {
+		if (X509_cmp_current_time(X509_get_notBefore(err_cert)) > 0) {
+			wpa_printf(MSG_INFO,
+				   "OpenSSL: Server certificate is not valid at the current time");
+			err = X509_V_ERR_CERT_NOT_YET_VALID;
+			X509_STORE_CTX_set_error(x509_ctx, err);
+			preverify_ok = 0;
+		} else if (X509_cmp_current_time(X509_get_notAfter(err_cert)) <
+			   0) {
+			wpa_printf(MSG_INFO,
+				   "TLS: Server certificate has expired");
+			err = X509_V_ERR_CERT_HAS_EXPIRED;
+			X509_STORE_CTX_set_error(x509_ctx, err);
+			preverify_ok = 0;
+		}
+	}
+
+	if (!preverify_ok && !conn->ca_cert_verify &&
+	    !(err == X509_V_ERR_CERT_HAS_EXPIRED ||
+	      err == X509_V_ERR_CERT_NOT_YET_VALID))
 		preverify_ok = 1;
 	if (!preverify_ok && depth > 0 && conn->server_cert_only)
 		preverify_ok = 1;
