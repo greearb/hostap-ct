@@ -5794,10 +5794,13 @@ static void handle_assoc(struct hostapd_data *hapd,
 		sta = handle_mlo_translate(hapd, mgmt, len, reassoc,
 					   &assoc_hapd);
 		if (sta) {
-			wpa_printf(MSG_DEBUG,
-				   "MLD: Switching to assoc hapd/station");
-			hapd = assoc_hapd;
-			mld_addrs_not_translated = true;
+			if (hapd != assoc_hapd) {
+				wpa_printf(MSG_DEBUG,
+					   "MLD: Switching to assoc hapd/station");
+				hapd = assoc_hapd;
+				mld_addrs_not_translated = true;
+			}
+
 		}
 	}
 #endif /* CONFIG_IEEE80211BE */
