@@ -3879,6 +3879,8 @@ int hostapd_add_iface(struct hapd_interfaces *interfaces, char *buf)
 			}
 
 			if (hostapd_setup_interface(hapd_iface)) {
+				/* Deinit link for the first bss */
+				hostapd_bss_link_deinit(hapd_iface->bss[0]);
 				hostapd_deinit_driver(
 					hapd_iface->bss[0]->driver,
 					hapd_iface->bss[0]->drv_priv,
