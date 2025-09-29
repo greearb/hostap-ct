@@ -3788,6 +3788,18 @@ def test_dbus_p2p_autogo(dev, apdev):
             if go != '/':
                 self.exceptions = True
                 raise Exception("Unexpected PeerGO value: " + str(go))
+
+            g_obj = bus.get_object(WPAS_DBUS_SERVICE, self.group)
+            res = g_obj.GetAll(WPAS_DBUS_GROUP,
+                               dbus_interface=dbus.PROPERTIES_IFACE,
+                               byte_arrays=True)
+            logger.debug("Group properties: " + str(res))
+            if "GODeviceAddress" not in res:
+                raise Exeption("GODeviceAddress not included in group proterties")
+            go_dev_addr = ':'.join(["%02x" % i for i in struct.unpack('6B', res["GODeviceAddress"])])
+            if go_dev_addr != dev[0].p2p_dev_addr():
+                raise Exception("Unexpected GODeviceAddress value: " + go_dev_addr)
+
             if self.first:
                 self.first = False
                 logger.info("Remove persistent group instance")
@@ -4220,6 +4232,11 @@ def test_dbus_p2p_join(dev, apdev):
                                dbus_interface=dbus.PROPERTIES_IFACE,
                                byte_arrays=True)
             logger.debug("Group properties: " + str(res))
+            if "GODeviceAddress" not in res:
+                raise Exeption("GODeviceAddress not included in group proterties")
+            go_dev_addr = ':'.join(["%02x" % i for i in struct.unpack('6B', res["GODeviceAddress"])])
+            if go_dev_addr != dev[1].p2p_dev_addr():
+                raise Exception("Unexpected GODeviceAddress value: " + go_dev_addr)
 
             ext = dbus.ByteArray(b"\x11\x22\x33\x44")
             try:
