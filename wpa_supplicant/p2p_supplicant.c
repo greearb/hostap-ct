@@ -1440,6 +1440,9 @@ static void wpas_p2p_group_started(struct wpa_supplicant *wpa_s,
 		   wpa_s->ifname, go ? "GO" : "client", ssid_txt, freq,
 		   MAC2STR(go_dev_addr), persistent ? " [PERSISTENT]" : "",
 		   extra);
+
+	if (go && is_zero_ether_addr(wpa_s->go_dev_addr))
+		os_memcpy(wpa_s->go_dev_addr, go_dev_addr, ETH_ALEN);
 }
 
 
