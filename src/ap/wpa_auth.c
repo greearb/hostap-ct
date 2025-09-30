@@ -5455,8 +5455,9 @@ SM_STATE(WPA_PTK_GROUP, REKEYNEGOTIATING)
 	sm->TimeoutEvt = false;
 	/* Send EAPOL(1, 1, 1, !Pair, G, RSC, GNonce, MIC(PTK), GTK[GN]) */
 	os_memset(rsc, 0, WPA_KEY_RSC_LEN);
-	if (gsm->wpa_group_state == WPA_GROUP_SETKEYSDONE)
+	if (gsm->wpa_group_state == WPA_GROUP_SETKEYSDONE && !is_mld)
 		wpa_auth_get_seqnum(sm->wpa_auth, NULL, gsm->GN, rsc);
+
 	wpa_auth_logger(sm->wpa_auth, wpa_auth_get_spa(sm), LOGGER_DEBUG,
 			"sending 1/2 msg of Group Key Handshake");
 
