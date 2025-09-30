@@ -2191,3 +2191,45 @@ def test_wpas_ctrl_interface_add_driver_init_failure(dev, apdev):
         if "FAIL" not in res:
             raise Exception("Unexpected result: " + res)
     dev[0].dump_monitor()
+
+def test_wpas_ctrl_global_freq_list(dev):
+    """wpa_supplicant global freq_list parameter"""
+    wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+    wpas.interface_add("wlan5")
+    freqs = "2412 2437 2462"
+    wpas.set("freq_list", freqs)
+    vals = wpas.get_config()
+    if 'freq_list' not in vals or vals['freq_list'] != freqs:
+        raise Exception("freq_list not reported correctly in DUMP")
+    val = wpas.request("GET freq_list")
+    if val != freqs:
+        raise Exception("freq_list not reported correctly in GET")
+
+    wpas.set("freq_list", "")
+    vals = wpas.get_config()
+    if 'freq_list' not in vals or vals['freq_list'] != "null":
+        raise Exception("freq_list not reported correctly in DUMP (2)")
+    val = wpas.request("GET freq_list")
+    if not val.startswith("FAIL"):
+        raise Exception("freq_list not reported correctly in GET (2)")
+
+def test_wpas_ctrl_global_bgscan(dev):
+    """wpa_supplicant global bgscan parameter"""
+    wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+    wpas.interface_add("wlan5")
+    bgscan = '"simple:1:-20:2"'
+    wpas.set("bgscan", bgscan)
+    vals = wpas.get_config()
+    if 'bgscan' not in vals or vals['bgscan'] != bgscan:
+        raise Exception("bgscan not reported correctly in DUMP")
+    val = wpas.request("GET bgscan")
+    if val != bgscan:
+        raise Exception("bgscan not reported correctly in GET")
+
+    wpas.set("bgscan", '""')
+    vals = wpas.get_config()
+    if 'bgscan' not in vals or vals['bgscan'] != '""':
+        raise Exception("bgscan not reported correctly in DUMP (2)")
+    val = wpas.request("GET bgscan")
+    if val != '""':
+        raise Exception("bgscan not reported correctly in GET (2)")
