@@ -723,10 +723,6 @@ static u32 wnm_get_bss_info(struct wpa_supplicant *wpa_s, struct wpa_bss *bss)
 		info |= NEI_REP_BSSID_INFO_APSD;
 	if (bss->caps & WLAN_CAPABILITY_RADIO_MEASUREMENT)
 		info |= NEI_REP_BSSID_INFO_RM;
-	if (bss->caps & WLAN_CAPABILITY_DELAYED_BLOCK_ACK)
-		info |= NEI_REP_BSSID_INFO_DELAYED_BA;
-	if (bss->caps & WLAN_CAPABILITY_IMM_BLOCK_ACK)
-		info |= NEI_REP_BSSID_INFO_IMM_BA;
 	if (wpa_bss_ies_eq(bss, wpa_s->current_bss, WLAN_EID_MOBILITY_DOMAIN))
 		info |= NEI_REP_BSSID_INFO_MOBILITY_DOMAIN;
 	if (wpa_bss_ies_eq(bss, wpa_s->current_bss, WLAN_EID_HT_CAP))
