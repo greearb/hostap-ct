@@ -156,14 +156,13 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
 		eml = WPA_GET_LE16(pos);
 		pos += 2;
 		wpa_printf(MSG_DEBUG,
-			   "EML Capabilities: 0x%x (EMLSR=%u EMLSR_Padding_Delay=%u EMLSR_Transition_Delay=%u EMLMR=%u EMLMR_Delay=%u Transition_Timeout=%u Reserved=%u)",
+			   "EML Capabilities: 0x%x (EMLSR=%u EMLSR_Padding_Delay=%u EMLSR_Transition_Delay=%u EMLMR=%u Transition_Timeout=%u Reserved=%u)",
 			   eml,
 			   !!(eml & EHT_ML_EML_CAPA_EMLSR_SUPP),
 			   (eml & EHT_ML_EML_CAPA_EMLSR_PADDING_DELAY_MASK) >>
 			   1,
 			   (eml & EHT_ML_EML_CAPA_EMLSR_TRANS_DELAY_MASK) >> 4,
 			   !!(eml & EHT_ML_EML_CAPA_EMLMR_SUPP),
-			   (eml & EHT_ML_EML_CAPA_EMLMR_DELAY_MASK) >> 8,
 			   (eml & EHT_ML_EML_CAPA_TRANSITION_TIMEOUT_MASK) >>
 			   11,
 			   !!(eml & BIT(15)));
@@ -481,14 +480,13 @@ static void parse_reconfig_ml(const u8 *ie, size_t len,
 		eml = WPA_GET_LE16(pos);
 		pos += 2;
 		wpa_printf(MSG_DEBUG,
-			   "EML Capabilities: 0x%x (EMLSR=%u EMLSR_Padding_Delay=%u EMLSR_Transition_Delay=%u EMLMR=%u EMLMR_Delay=%u Transition_Timeout=%u Reserved=%u)",
+			   "EML Capabilities: 0x%x (EMLSR=%u EMLSR_Padding_Delay=%u EMLSR_Transition_Delay=%u EMLMR=%u Transition_Timeout=%u Reserved=%u)",
 			   eml,
 			   !!(eml & EHT_ML_EML_CAPA_EMLSR_SUPP),
 			   (eml & EHT_ML_EML_CAPA_EMLSR_PADDING_DELAY_MASK) >>
 			   1,
 			   (eml & EHT_ML_EML_CAPA_EMLSR_TRANS_DELAY_MASK) >> 4,
 			   !!(eml & EHT_ML_EML_CAPA_EMLMR_SUPP),
-			   (eml & EHT_ML_EML_CAPA_EMLMR_DELAY_MASK) >> 8,
 			   (eml & EHT_ML_EML_CAPA_TRANSITION_TIMEOUT_MASK) >>
 			   11,
 			   !!(eml & BIT(15)));
