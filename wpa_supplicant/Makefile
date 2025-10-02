@@ -72,7 +72,7 @@ mkconfig:
 		echo '.config exists - did not replace it'; \
 		exit 1; \
 	fi
-	echo CONFIG_DRIVER_HOSTAP=y >> .config
+	echo CONFIG_DRIVER_NL80211=y >> .config
 	echo CONFIG_DRIVER_WEXT=y >> .config
 
 $(DESTDIR)$(BINDIR)/%: %
