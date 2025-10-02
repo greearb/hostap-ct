@@ -2764,7 +2764,9 @@ static int tls_verify_cb(int preverify_ok, X509_STORE_CTX *x509_ctx)
 				err_str = "Server certificate mismatch";
 				err = X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN;
 				preverify_ok = 0;
-			} else if (!preverify_ok) {
+			} else if (!preverify_ok &&
+				   err != X509_V_ERR_CERT_HAS_EXPIRED &&
+				   err != X509_V_ERR_CERT_NOT_YET_VALID) {
 				/*
 				 * Certificate matches pinned certificate, allow
 				 * regardless of other problems.
