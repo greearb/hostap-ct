@@ -2501,16 +2501,16 @@ static char * wpa_config_write_mac_value(const struct parse_data *data,
 #endif /* NO_CONFIG_WRITE */
 
 #ifdef CONFIG_IEEE80211AH
-static int wpa_config_parse_backoffs(const struct parse_data *data,
-				     struct wpa_ssid *ssid, int line,
-				     const char *value)
+static int wpa_config_parse_auth_retry_backoff(const struct parse_data *data,
+					       struct wpa_ssid *ssid, int line,
+					       const char *value)
 {
-	ssid->backoffs = wpa_config_parse_int_array(value);
-	if (!ssid->backoffs)
+	ssid->auth_retry_backoff = wpa_config_parse_int_array(value);
+	if (!ssid->auth_retry_backoff)
 		return -1;
-	if (ssid->backoffs[0] == 0) {
-		free(ssid->backoffs);
-		ssid->backoffs = NULL;
+	if (ssid->auth_retry_backoff[0] == 0) {
+		os_free(ssid->auth_retry_backoff);
+		ssid->auth_retry_backoff = NULL;
 		return -1;
 	}
 
@@ -2519,10 +2519,10 @@ static int wpa_config_parse_backoffs(const struct parse_data *data,
 
 
 #ifndef NO_CONFIG_WRITE
-static char *wpa_config_write_backoffs(const struct parse_data *data,
-					 struct wpa_ssid *ssid)
+static char * wpa_config_write_auth_retry_backoff(const struct parse_data *data,
+						  struct wpa_ssid *ssid)
 {
-	return wpa_config_write_freqs(data, ssid->backoffs);
+	return wpa_config_write_freqs(data, ssid->auth_retry_backoff);
 }
 #endif /* NO_CONFIG_WRITE */
 #endif
@@ -2888,11 +2888,7 @@ static const struct parse_data ssid_fields[] = {
 	{ INT_RANGE(enable_4addr_mode, 0, 1)},
 	{ INT_RANGE(max_idle, 0, 65535)},
 	{ INT_RANGE(ssid_protection, 0, 1)},
-	{ INT_RANGE(rsn_overriding, 0, 2)},
-	{ INT_RANGE(sae_password_id_change, 0, 1)},
-#ifdef CONFIG_PMKSA_PRIVACY
-	{ INT_RANGE(pmksa_privacy, 0, 1)},
-#endif /* CONFIG_PMKSA_PRIVACY */
+	{ FUNC(auth_retry_backoff) },
 #ifdef CONFIG_IEEE80211AH
 	{ INT_RANGE(raw_sta_priority, 0, 7) },
 	{ INT_RANGE(cac, 0, 1) },
@@ -2902,7 +2898,6 @@ static const struct parse_data ssid_fields[] = {
 	{ INT_RANGE(s1g_prim_chwidth, 0, 2) },
 	{ INT_RANGE(s1g_prim_1mhz_chan_index, 0, 8) },
 	{ INT_RANGE(disable_s1g_sgi, 0, 1) },
-	{ FUNC(backoffs) },
 #ifdef CONFIG_MESH
 	{ INT_RANGE(mesh_beaconless_mode, 0, 1) },
 	{ INT_RANGE(mesh_dynamic_peering, 0, 1) },
@@ -3115,6 +3110,7 @@ void wpa_config_free_ssid(struct wpa_ssid *ssid)
 #ifdef CONFIG_SAE
 	sae_deinit_pt(ssid->pt);
 #endif /* CONFIG_SAE */
+	os_free(ssid->auth_retry_backoff);
 	bin_clear_free(ssid, sizeof(*ssid));
 }
 
