@@ -943,6 +943,12 @@ void wpas_notify_psk_mismatch(struct wpa_supplicant *wpa_s)
 }
 
 
+void wpas_notify_sae_password_mismatch(struct wpa_supplicant *wpa_s)
+{
+	wpas_dbus_signal_sae_password_mismatch(wpa_s);
+}
+
+
 void wpas_notify_network_bssid_set_changed(struct wpa_supplicant *wpa_s,
 					   struct wpa_ssid *ssid)
 {
