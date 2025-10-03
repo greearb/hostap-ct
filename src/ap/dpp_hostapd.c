@@ -2310,7 +2310,6 @@ hostapd_dpp_rx_pkex_exchange_resp(struct hostapd_data *hapd, const u8 *src,
 		DPP_PA_PKEX_COMMIT_REVEAL_REQ);
 	hostapd_drv_send_action(hapd, freq, 0, src,
 				wpabuf_head(msg), wpabuf_len(msg));
-	wpabuf_free(msg);
 }
 
 

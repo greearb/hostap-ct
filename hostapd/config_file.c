@@ -3628,6 +3628,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		conf->s1g_prim_chwidth = atoi(pos);
 	} else if (os_strcmp(buf, "s1g_prim_1mhz_chan_index") == 0) {
 		conf->s1g_prim_1mhz_chan_index = atoi(pos);
+	} else if (os_strcmp(buf, "raw") == 0) {
+		bss->raw_enabled = atoi(pos);
 	} else if (os_strcmp(buf, "s1g_capab") == 0) {
 		conf->s1g_capab = 0;
 		if (hostapd_config_s1g_capab(conf, pos) < 0) {

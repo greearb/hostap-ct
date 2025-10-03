@@ -5257,7 +5257,7 @@ int process_global_event(struct nl_msg *msg, void *arg)
 	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
 	struct nlattr *tb[NL80211_ATTR_MAX + 1];
 	struct wpa_driver_nl80211_data *drv, *tmp;
-	int ifidx = -1, wiphy_idx_rx = -1;
+	int ifidx = -1, wiphy_idx = -1, wiphy_idx_rx = -1;
 	struct i802_bss *bss;
 	u64 wdev_id = 0;
 	int wdev_id_set = 0;
@@ -5335,6 +5335,39 @@ int process_global_event(struct nl_msg *msg, void *arg)
 
 		if (!nl80211_bss_in_drv(drv, bss))
 			break;
+
+		/* Second pass: Check all other conditions including bridge */
+		for (bss = drv->first_bss; bss; bss = bss->next) {
+			if (wiphy_idx_set)
+				wiphy_idx = nl80211_get_wiphy_index(bss);
+			if ((ifidx == -1 && !wiphy_idx_set && !wdev_id_set) ||
+			    ifidx == bss->ifindex ||
+			    (bss->br_ifindex > 0 &&
+			     nl80211_has_ifidx(drv, bss->br_ifindex, ifidx)) ||
+			    (wiphy_idx_set && wiphy_idx == wiphy_idx_rx) ||
+			    (wdev_id_set && bss->wdev_id_set &&
+			     wdev_id == bss->wdev_id)) {
+				processed = true;
+				do_process_drv_event(bss, gnlh->cmd, tb);
+				/* There are two types of events that may need
+				 * to be delivered to multiple interfaces:
+				 * 1. Events for a wiphy, as it can have
+				 * multiple interfaces.
+				 * 2. "Global" events, like
+				 * NL80211_CMD_REG_CHANGE.
+				 *
+				 * Terminate early only if the event is directed
+				 * to a specific interface or wdev. */
+				if (ifidx != -1 || wdev_id_set)
+					return NL_SKIP;
+				/* The driver instance could have been removed,
+				 * e.g., due to NL80211_CMD_RADAR_DETECT event,
+				 * so need to stop the loop if that has
+				 * happened. */
+				if (!nl80211_drv_in_list(global, unique_drv_id))
+					break;
+			}
+		}
 	}
 
 	if (processed)

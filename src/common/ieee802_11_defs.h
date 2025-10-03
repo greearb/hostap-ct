@@ -1329,6 +1329,14 @@ struct ieee80211_ampe_ie {
 	 */
 } STRUCT_PACKED;
 
+struct ieee80211_s1g_operation {
+	u8 s1g_chwidth;
+	u8 s1g_oper_class;
+	u8 s1g_primary_ch;
+	u8 s1g_oper_ch;
+	le16 s1g_basic_mcs_nss;
+} STRUCT_PACKED;
+
 
 #define ERP_INFO_NON_ERP_PRESENT BIT(0)
 #define ERP_INFO_USE_PROTECTION BIT(1)
@@ -1520,6 +1528,14 @@ struct ieee80211_ampe_ie {
 #define S1G_CAP0_SGI_ALL	((u8) (S1G_CAP0_SGI_1MHZ | S1G_CAP0_SGI_2MHZ | \
 					S1G_CAP0_SGI_4MHZ | S1G_CAP0_SGI_8MHZ | \
 					S1G_CAP0_SGI_16MHZ))
+
+#define S1G_OPERATION_PRIMARY_CHANNEL_WIDTH_MASK        ((u8) BIT(0))
+#define S1G_OPERATION_PRIMARY_CHANNEL_WIDTH_SHIFT       (0)
+#define S1G_OPERATION_OPERATING_CHANNEL_WIDTH_MASK      ((u8) (BIT(1) | BIT(2) | BIT(3) | BIT(4)))
+#define S1G_OPERATION_OPERATING_CHANNEL_WIDTH_SHIFT     (1)
+#define S1G_OPERATION_PRIMARY_CHANNEL_LOC_MASK          ((u8) BIT(5))
+#define S1G_OPERATION_PRIMARY_CHANNEL_LOC_SHIFT         (5)
+#define S1G_OPERATION_NO_MCS10                          ((u8) BIT(7))
 
 /** Centralized Authentication Control (CAC) parameters */
 #define S1G_CAC_CONTROL			((u16) BIT(0))	/* 0 CAC, 1 DAC */

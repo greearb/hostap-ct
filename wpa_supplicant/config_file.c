@@ -1181,8 +1181,8 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid,
 #ifdef CONFIG_IEEE80211AH
 	INT(cac);
 	INT_DEF(disable_s1g_sgi, DEFAULT_DISABLE_SGI);
-	STR(backoffs);
 #endif
+	STR(auth_retry_backoff);
 	INT(disable_eht);
 	INT(disable_uhr);
 	INT(disable_mlo);

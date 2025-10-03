@@ -1386,9 +1386,6 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 
 	if (state == WPA_DISCONNECTED || state == WPA_INACTIVE)
 	{
-#ifdef CONFIG_MORSE_WNM
-		morse_set_long_sleep_enabled(wpa_s->ifname, false);
-#endif
 		wpa_supplicant_start_autoscan(wpa_s);
 	}
 
@@ -4641,6 +4638,25 @@ pfs_fail:
 	}
 mscs_end:
 #endif /* CONFIG_NO_ROBUST_AV */
+
+#ifdef CONFIG_IEEE80211AH
+	/* If the STA has a priority for use with RAW insert a QoS Traffic
+	 * Capability.
+	 */
+	wpa_printf(MSG_DEBUG, "raw_sta_priority: %d", ssid->raw_sta_priority);
+	if (ssid && (ssid->raw_sta_priority >= 0)) {
+		u8 qos_traffic_cap[QOS_TRAFFIC_CAP_SIZE] = {
+			WLAN_EID_QOS_TRAFFIC_CAPABILITY,
+			1,
+			(ssid->raw_sta_priority << QOS_TRAFFIC_UP_SHIFT) & QOS_TRAFFIC_UP_MASK
+		};
+
+		if (wpa_ie_len + QOS_TRAFFIC_CAP_SIZE <= max_wpa_ie_len) {
+			os_memcpy(wpa_ie + wpa_ie_len, qos_traffic_cap, QOS_TRAFFIC_CAP_SIZE);
+			wpa_ie_len += QOS_TRAFFIC_CAP_SIZE;
+		}
+	}
+#endif
 
 	wpa_ie_len = wpas_populate_wfa_capa(wpa_s, bss, wpa_ie, wpa_ie_len,
 					    max_wpa_ie_len);
@@ -10161,8 +10177,8 @@ void wpas_auth_failed(struct wpa_supplicant *wpa_s, const char *reason,
 #ifdef CONFIG_IEEE80211AH
 	if (wpa_s->conf->enable_halow) {
 		int i;
-		if (ssid->backoffs) {
-			for (i = 0; ssid->backoffs[i]; i++)
+		if (ssid->auth_retry_backoff) {
+			for (i = 0; ssid->auth_retry_backoff[i]; i++)
 				backoff_cnt++;
 		}
 	}
@@ -10182,16 +10198,15 @@ void wpas_auth_failed(struct wpa_supplicant *wpa_s, const char *reason,
 #endif /* CONFIG_P2P */
 
 	/* Use a configured backoff time if present */
-	if (ssid->auth_failures <= backoff_cnt) {
-#ifdef CONFIG_IEEE80211AH
-   int rand = os_random() % 10;
-		dur = ssid->backoffs[ssid->auth_failures - 1];
+	if (backoff_cnt > 0) {
+		int idx = MIN(ssid->auth_failures, backoff_cnt);
+		int rand = os_random() % 10;
 
+		dur = ssid->auth_retry_backoff[idx - 1];
 		wpa_msg(wpa_s, MSG_INFO,
-			"WPA: Using configured backoff of %u + %d random seconds",
+			"WPA: Using configured auth retry backoff of %u+%d seconds",
 			dur, rand);
 		dur += rand;
-#endif
 	} else {
 		if (ssid->auth_failures > 50)
 			dur = 300;

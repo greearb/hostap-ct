@@ -711,6 +711,14 @@ struct ml_sta_link_info {
 	u16 status;
 };
 
+enum dpp_pb_discovery_round {
+	DPP_PB_DISCOVERY_NOT_STARTED = 0,
+	DPP_PB_DISCOVERY_ROUND_1,
+	DPP_PB_DISCOVERY_ROUND_2,
+	DPP_PB_DISCOVERY_ROUND_3A,
+	DPP_PB_DISCOVERY_ROUND_3B,
+	DPP_PB_DISCOVERY_ROUND_3C,
+};
 
 enum local_hw_capab {
 	CAPAB_HT,
