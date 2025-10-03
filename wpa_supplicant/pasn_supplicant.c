@@ -717,7 +717,8 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 	ssid = wpa_config_get_network(wpa_s->conf, awork->network_id);
 
 #ifdef CONFIG_SAE
-	if (awork->akmp == WPA_KEY_MGMT_SAE) {
+	if (awork->akmp == WPA_KEY_MGMT_SAE ||
+	    awork->akmp == WPA_KEY_MGMT_SAE_EXT_KEY) {
 		if (!ssid) {
 			wpa_printf(MSG_DEBUG,
 				   "PASN: No network profile found for SAE");

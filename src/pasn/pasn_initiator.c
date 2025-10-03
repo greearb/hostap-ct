@@ -518,6 +518,7 @@ static struct wpabuf * wpas_pasn_get_wrapped_data(struct pasn_data *pasn)
 		/* no wrapped data */
 		return NULL;
 	case WPA_KEY_MGMT_SAE:
+	case WPA_KEY_MGMT_SAE_EXT_KEY:
 #ifdef CONFIG_SAE
 		if (pasn->trans_seq == 0)
 			return wpas_pasn_wd_sae_commit(pasn);
@@ -558,6 +559,7 @@ static u8 wpas_pasn_get_wrapped_data_format(struct pasn_data *pasn)
 	/* Note: Valid AKMP is expected to already be validated */
 	switch (pasn->akmp) {
 	case WPA_KEY_MGMT_SAE:
+	case WPA_KEY_MGMT_SAE_EXT_KEY:
 		return WPA_PASN_WRAPPED_DATA_SAE;
 	case WPA_KEY_MGMT_FILS_SHA256:
 	case WPA_KEY_MGMT_FILS_SHA384:
@@ -895,7 +897,8 @@ static int wpas_pasn_set_pmk(struct pasn_data *pasn,
 	}
 
 #ifdef CONFIG_SAE
-	if (pasn->akmp == WPA_KEY_MGMT_SAE) {
+	if (pasn->akmp == WPA_KEY_MGMT_SAE ||
+	    pasn->akmp == WPA_KEY_MGMT_SAE_EXT_KEY) {
 		int ret;
 
 		ret = wpas_pasn_wd_sae_rx(pasn, wrapped_data);
@@ -1037,6 +1040,7 @@ int wpas_pasn_start(struct pasn_data *pasn, const u8 *own_addr,
 		break;
 #ifdef CONFIG_SAE
 	case WPA_KEY_MGMT_SAE:
+	case WPA_KEY_MGMT_SAE_EXT_KEY:
 
 		if (beacon_rsnxe &&
 		    !ieee802_11_rsnx_capab(beacon_rsnxe,
