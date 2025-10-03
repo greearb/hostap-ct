@@ -964,8 +964,8 @@ static int wpa_config_write_network(HKEY hk, struct wpa_ssid *ssid, int id)
 	INT(ft_eap_pmksa_caching);
 #ifdef CONFIG_IEEE80211AH
 	INT(cac);
-	FUNC(backoffs);
 #endif
+	FUNC(auth_retry_backoff);
 
 #undef STR
 #undef INT

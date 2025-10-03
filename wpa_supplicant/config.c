@@ -2584,16 +2584,16 @@ static char * wpa_config_write_mac_value(const struct parse_data *data,
 #endif /* NO_CONFIG_WRITE */
 
 #ifdef CONFIG_IEEE80211AH
-static int wpa_config_parse_backoffs(const struct parse_data *data,
-				     struct wpa_ssid *ssid, int line,
-				     const char *value)
+static int wpa_config_parse_auth_retry_backoff(const struct parse_data *data,
+					       struct wpa_ssid *ssid, int line,
+					       const char *value)
 {
-	ssid->backoffs = wpa_config_parse_int_array(value);
-	if (!ssid->backoffs)
+	ssid->auth_retry_backoff = wpa_config_parse_int_array(value);
+	if (!ssid->auth_retry_backoff)
 		return -1;
-	if (ssid->backoffs[0] == 0) {
-		free(ssid->backoffs);
-		ssid->backoffs = NULL;
+	if (ssid->auth_retry_backoff[0] == 0) {
+		os_free(ssid->auth_retry_backoff);
+		ssid->auth_retry_backoff = NULL;
 		return -1;
 	}
 
@@ -2601,11 +2601,12 @@ static int wpa_config_parse_backoffs(const struct parse_data *data,
 }
 
 #ifndef NO_CONFIG_WRITE
-static char *wpa_config_write_backoffs(const struct parse_data *data,
-					 struct wpa_ssid *ssid)
+static char * wpa_config_write_auth_retry_backoff(const struct parse_data *data,
+						  struct wpa_ssid *ssid)
 {
-	return wpa_config_write_freqs(data, ssid->backoffs);
+	return wpa_config_write_freqs(data, ssid->auth_retry_backoff);
 }
+
 #endif
 #endif /* CONFIG_IEEEE80211AH */
 
@@ -3068,6 +3069,7 @@ static const struct parse_data ssid_fields[] = {
 #endif /* CONFIG_PASN */
 	{ FUNC(security_profiles) },
 	{ BOOL(disable_pmksa_caching) },
+	{ FUNC(auth_retry_backoff) },
 #ifdef CONFIG_IEEE80211AH
 	{ INT_RANGE(raw_sta_priority, 0, 7) },
 	{ INT_RANGE(cac, 0, 1) },
@@ -3077,7 +3079,6 @@ static const struct parse_data ssid_fields[] = {
 	{ INT_RANGE(s1g_prim_chwidth, 0, 2) },
 	{ INT_RANGE(s1g_prim_1mhz_chan_index, 0, 8) },
 	{ INT_RANGE(disable_s1g_sgi, 0, 1) },
-	{ FUNC(backoffs) },
 #ifdef CONFIG_MESH
 	{ INT_RANGE(mesh_beaconless_mode, 0, 1) },
 	{ INT_RANGE(mesh_dynamic_peering, 0, 1) },
@@ -3300,6 +3301,7 @@ void wpa_config_free_ssid(struct wpa_ssid *ssid)
 	os_free(ssid->pasn_groups);
 #endif /* CONFIG_PASN */
 	os_free(ssid->security_profiles);
+	os_free(ssid->auth_retry_backoff);
 	bin_clear_free(ssid, sizeof(*ssid));
 }
 
