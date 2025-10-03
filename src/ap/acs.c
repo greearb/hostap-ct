@@ -1236,13 +1236,19 @@ acs_s1g_find_ideal_chan(struct hostapd_iface *iface)
 		if (s1g_op_class == MORSE_S1G_RETURN_ERROR)
 			continue;
 
+		if (morse_s1g_is_chan_conf_primary_disabled(iface->conf, mode, s1g_chan)) {
+			wpa_printf(MSG_DEBUG, "ACS: Skipping channel %d due to disabled primary",
+				   s1g_chan);
+			continue;
+		}
+
 		bias = NULL;
 		if (iface->conf->acs_chan_bias) {
 			for (k = 0; k < iface->conf->num_acs_chan_bias; k++) {
 				bias = &iface->conf->acs_chan_bias[k];
 				wpa_printf(MSG_DEBUG,
-						   "ACS: Checking for matching bias channel %d, chan %d",
-						   bias->channel, s1g_chan);
+					   "ACS: Checking for matching bias channel %d, chan %d",
+					   bias->channel, s1g_chan);
 				if (bias->channel == s1g_chan)
 					break;
 				bias = NULL;

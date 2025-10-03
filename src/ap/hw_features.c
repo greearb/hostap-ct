@@ -1206,6 +1206,33 @@ static int hostapd_is_usable_chans(struct hostapd_iface *iface)
 	if (!iface->conf->secondary_channel)
 		return 1;
 
+#ifdef CONFIG_IEEE80211AH
+	if (iface->conf->ieee80211ah) {
+		int ht_center_chan;
+		struct hostapd_channel_data *op_chan;
+
+		/* Find and verify the S1G operating channel */
+		ht_center_chan = morse_ht_chan_to_ht_chan_center(iface->conf, pri_chan->chan);
+		if (ht_center_chan == MORSE_S1G_RETURN_ERROR) {
+			wpa_printf(MSG_ERROR, "Could not find HT center channel");
+			return 0;
+		}
+
+		op_chan = hw_get_channel_chan(iface->current_mode, ht_center_chan, NULL);
+		if (!op_chan || op_chan->flag & HOSTAPD_CHAN_DISABLED) {
+			wpa_printf(MSG_ERROR, "HT center channel disabled (%d)",
+				   op_chan ? op_chan->chan : -1);
+			return 0;
+		}
+
+		/* If the S1G primary channel width is 1MHz there is no need to verify the HT40
+		 * secondary channel
+		 */
+		if (iface->conf->s1g_prim_chwidth == S1G_PRIM_CHWIDTH_1)
+			return 1;
+	}
+#endif
+
 	err = hostapd_is_usable_chan(iface, iface->freq +
 				     iface->conf->secondary_channel * 20, 0);
 	if (err > 0) {

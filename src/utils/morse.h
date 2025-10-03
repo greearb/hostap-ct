@@ -31,7 +31,7 @@
 #define MORSE_JP_S1G_NON_OVERLAP_CHAN 21
 
 #define S1G_OP_CLASS_IE_LEN 3 /* eid + ie len + op class */
-extern const int S1G_OP_CLASSES_LEN;
+extern const unsigned int S1G_OP_CLASSES_LEN;
 
 /* Define Maximum interfaces supported for MBSSID IE */
 #define MBSSID_MAX_INTERFACES 2
@@ -82,6 +82,7 @@ enum morse_dot11ah_region {
 	MORSE_AU,
 	MORSE_CA,
 	MORSE_EU,
+	MORSE_GB,
 	MORSE_IN,
 	MORSE_JP,
 	MORSE_KR,
@@ -206,6 +207,9 @@ int morse_s1g_get_first_center_freq_for_country(char *cc);
 
 
 int morse_is_s1g_freq(struct hostapd_freq_params *params);
+
+/* Return the configured 1 or 2MHz primary channel */
+int morse_s1g_get_primary_channel(struct hostapd_config *conf, int bw);
 
 /* Defined in driver/driver/h */
 enum wnm_oper;
@@ -498,5 +502,21 @@ int morse_raw_global_enable(const char *ifname, bool enable);
 int morse_raw_priority_enable(const char *ifname, bool enable, u8 prio, u32 start_time_us,
 	u32 duration_us, u8 num_slots, bool cross_slot, u16 max_bcn_spread, u16 nom_stas_per_bcn,
 	u8 praw_period, u8 praw_start_offset);
+
+/**
+ * Determine if a channel has a disabled primary channel confiuration
+ *
+ * This function checks if a HT-mapped operating channel has a disabled HT primary or HT secondary
+ * channel. The function is only valid to be called on a channel that has the same bandwidth as the
+ * configs operating class, as it uses the primary channel index from the config.
+ *
+ * @param conf Hostapd config, including configuration containing primary channel parameters
+ * @param mode Supported HW mode information, including a list of enabled/disabled channels
+ * @param s1g_op_chan S1G operating channel
+ *
+ * @return True if HT primary or HT secondary is disabled
+ */
+bool morse_s1g_is_chan_conf_primary_disabled(struct hostapd_config *conf,
+					     struct hostapd_hw_modes *mode, int s1g_op_chan);
 
 #endif /* MORSE_H */

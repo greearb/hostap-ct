@@ -12,6 +12,7 @@
 #include "utils/common.h"
 #include "drivers/driver.h"
 #include "drivers/nl80211_copy.h"
+#include "common/hw_features_common.h"
 
 #include "morse.h"
 #include "config.h"
@@ -41,12 +42,12 @@ struct s1g_ht_chan_pair {
 static const int vht80_chans[] = {
 	42, 58, 106, 122, 155, 171
 };
-static const int num_vht80_chans = ARRAY_SIZE(vht80_chans);
+static const unsigned int num_vht80_chans = ARRAY_SIZE(vht80_chans);
 
 static const int vht160_chans[] = {
 	50, 114, 163
 };
-static const int num_vht160_chans = ARRAY_SIZE(vht160_chans);
+static const unsigned int num_vht160_chans = ARRAY_SIZE(vht160_chans);
 
 static const int ht_40_pri_1mhz_offset[] = {
 	-2, 2,
@@ -221,6 +222,7 @@ static const char *ah_country[] = {
 	[MORSE_AU] = "AU",
 	[MORSE_CA] = "CA",
 	[MORSE_EU] = "EU",
+	[MORSE_GB] = "GB",
 	[MORSE_IN] = "IN",
 	[MORSE_JP] = "JP",
 	[MORSE_KR] = "KR",
@@ -327,13 +329,26 @@ static const struct ah_class eu6 = {
 	.s1g_op_class_idx = 6,
 	.global_op_class = 66,
 	.s1g_width = IEEE80211_CHAN_1MHZ,
-	.cc_list = {"EU"},
+	.cc_list = {"EU", "GB"},
 	.chans = (
 		S1G_CHAN_ENABLED_FLAG(1) |
 		S1G_CHAN_ENABLED_FLAG(3) |
 		S1G_CHAN_ENABLED_FLAG(5) |
 		S1G_CHAN_ENABLED_FLAG(7) |
 		S1G_CHAN_ENABLED_FLAG(9)
+	),
+};
+
+static const struct ah_class eu7 = {
+	.s1g_freq_start = 863000,
+	.s1g_op_class = 7,
+	.s1g_op_class_idx = 7,
+	.global_op_class = 67,
+	.s1g_width = IEEE80211_CHAN_2MHZ,
+	.cc_list = {"EU", "GB"},
+	.chans = (
+		S1G_CHAN_ENABLED_FLAG(2) |
+		S1G_CHAN_ENABLED_FLAG(6)
 	),
 };
 
@@ -681,7 +696,7 @@ static const struct ah_class
 	&us4,
 	NULL,
 	&eu6,
-	NULL,
+	&eu7,
 	&jp8,
 	&jp9,
 	&jp10,
@@ -708,7 +723,7 @@ static const struct ah_class
 	&in31,
 };
 
-const int S1G_OP_CLASSES_LEN = ARRAY_SIZE(s1g_op_classes);
+const unsigned int S1G_OP_CLASSES_LEN = ARRAY_SIZE(s1g_op_classes);
 
 /*
  * Classify an operating class number as S1G local, global or invalid.
@@ -895,9 +910,18 @@ int morse_ht_freq_to_s1g_chan(int ht_freq)
 
 int morse_s1g_chan_to_ht20_prim_chan(int s1g_op_channel, int s1g_prim_1MHz_channel, char *cc)
 {
-	if (strncmp(cc, "JP", COUNTRY_CODE_LEN) == 0)
-		return morse_s1g_chan_to_ht_chan(s1g_prim_1MHz_channel) +
-				morse_ht_chan_offset_jp(s1g_op_channel, s1g_prim_1MHz_channel, 0);
+	int ht_chan;
+	int offset;
+
+	if (strncmp(cc, "JP", COUNTRY_CODE_LEN) == 0) {
+		ht_chan = morse_s1g_chan_to_ht_chan(s1g_prim_1MHz_channel);
+		offset = morse_ht_chan_offset_jp(s1g_op_channel, s1g_prim_1MHz_channel, 0);
+
+		if (ht_chan < 0 || offset < 0)
+			return MORSE_S1G_RETURN_ERROR;
+		else
+			return ht_chan + offset;
+	}
 	else
 		return morse_s1g_chan_to_ht_chan(s1g_prim_1MHz_channel);
 }
@@ -1478,6 +1502,7 @@ int morse_s1g_get_start_freq_for_country(char *cc, int freq, int bw)
 				start_freq = 902000;
 				break;
 			case MORSE_EU:
+			case MORSE_GB:
 				if (freq > 901400)
 					start_freq = 901400;
 				else
@@ -1517,6 +1542,26 @@ int morse_s1g_get_start_freq_for_country(char *cc, int freq, int bw)
 }
 
 #ifdef CONFIG_IEEE80211AH
+int morse_s1g_get_primary_channel(struct hostapd_config *conf, int bw)
+{
+	int ht_center_chan = morse_ht_chan_to_ht_chan_center(conf, conf->channel);
+	int s1g_op_chan = morse_ht_chan_to_s1g_chan(ht_center_chan);
+	int op_bw = morse_s1g_chan_to_bw(s1g_op_chan);
+
+	/* Can only retrieve the 1Mhz or 2MHz primary channel variant */
+	if (bw < 1 || bw > 2)
+		return MORSE_INVALID_CHANNEL;
+
+	if (conf->s1g_prim_1mhz_chan_index >= op_bw)
+		return MORSE_INVALID_CHANNEL;
+
+	return morse_cc_get_primary_s1g_channel(op_bw,
+						bw,
+						s1g_op_chan,
+						conf->s1g_prim_1mhz_chan_index,
+						conf->op_country);
+}
+
 /* Validate ht centre channel with index and returns corresponding ht channel */
 int morse_validate_ht_channel_with_idx(u8 s1g_op_class, int ht_center_channel,
 				int *oper_chwidth, int s1g_prim_1mhz_chan_index,
@@ -1646,13 +1691,87 @@ int morse_s1g_freq_and_cc_to_ht_freq(int s1g_frequency, const char *cc)
 	return MORSE_S1G_RETURN_ERROR;
 }
 
+/**
+ * Find the 5G-mapped centre frequency of a primary channel
+ *
+ * @param s1g_op_bw S1G operating bandwidth (MHz)
+ * @param s1g_prim_bw S1G primary bandwidth (MHz)
+ * @param s1g_op_chan Operating channel
+ * @param s1g_prim_1mhz_chan_index Primary S1G 1MHz channel index
+ * @param country Country code
+ *
+ * @return 5G-mapped centre frequency of primary channel (KHz)
+ */
+static int morse_s1g_chan_get_primary_chan_freq_ht(int s1g_op_bw, int s1g_prim_bw, int s1g_op_chan,
+					    int s1g_prim_1mhz_chan_index, char* country)
+{
+	int s1g_prim_chan;
+	int ht_prim_chan;
+	int ht_prim_freq;
+
+	s1g_prim_chan = morse_cc_get_primary_s1g_channel(s1g_op_bw, s1g_prim_bw, s1g_op_chan,
+							     s1g_prim_1mhz_chan_index, country);
+	if (s1g_prim_chan < 0)
+		return MORSE_S1G_RETURN_ERROR;
+
+	ht_prim_chan = morse_s1g_chan_to_ht20_prim_chan(s1g_op_chan, s1g_prim_chan, country);
+	if (ht_prim_chan < 0)
+		return MORSE_S1G_RETURN_ERROR;
+
+	ht_prim_freq = ieee80211_channel_to_frequency(ht_prim_chan, NL80211_BAND_5GHZ);
+	return ht_prim_freq ? ht_prim_freq : MORSE_S1G_RETURN_ERROR;
+}
+
+bool morse_s1g_is_chan_conf_primary_disabled(struct hostapd_config *conf,
+					     struct hostapd_hw_modes *mode, int s1g_op_chan)
+{
+	int ht20_prim_freq;
+	int ht20_sec_freq;
+	int s1g_op_bw;
+	struct hostapd_channel_data *chan;
+
+	/* Primary 1MHz channel index taken from config means that this function is not capable of
+	 * validating operating channel with a different bandwidth to the configuration, as the
+	 * 1MHz index will be meaningless and potentially invalid.
+	 */
+	char* country = conf->op_country;
+	int s1g_prim_1mhz_chan_index = conf->s1g_prim_1mhz_chan_index;
+
+	s1g_op_bw = morse_s1g_chan_to_bw(s1g_op_chan);
+	if (s1g_op_bw == MORSE_S1G_RETURN_ERROR)
+		return true;
+
+	/* HT mapping of S1G 1MHz primary channel, not S1G primary channel. This is the HT primary
+	 * channel in the 5G mapping
+	 */
+	ht20_prim_freq = morse_s1g_chan_get_primary_chan_freq_ht(s1g_op_bw, IEEE80211_CHAN_1MHZ,
+								 s1g_op_chan,
+								 s1g_prim_1mhz_chan_index,
+								 country);
+	if (ht20_prim_freq == MORSE_S1G_RETURN_ERROR)
+		return true;
+
+	chan = hw_mode_get_channel(mode, ht20_prim_freq, NULL);
+	if (!chan || (chan->flag & HOSTAPD_CHAN_DISABLED))
+		return true;
+
+	/* 2, 4 and 8MHz channels have an HT 20MHz secondary channel, which maps to the S1G 1MHz
+	 * secondary channel. Validate it if S1G primary channel width is 2MHz.
+	 */
+	if (conf->secondary_channel && conf->s1g_prim_chwidth == S1G_PRIM_CHWIDTH_2) {
+		ht20_sec_freq = ht20_prim_freq + conf->secondary_channel * 20;
+		chan = hw_mode_get_channel(mode, ht20_sec_freq, NULL);
+		if (!chan || (chan->flag & HOSTAPD_CHAN_DISABLED))
+			return true;
+	}
+	return false;
+}
+
 /* Validate ECSA primary channel with the current primary and operating channels */
 int morse_s1g_csa_validate_primary_chan(struct hostapd_iface *iface, int csa_ht20_frequency)
 {
 	int oper_chwidth;
 	int prim_chwidth;
-	int current_s1g_prim_chan;
-	int ht20_mapped_channel;
 	int current_ht20_frequency;
 	int ht_center_chan = morse_ht_chan_to_ht_chan_center(iface->conf, iface->conf->channel);
 	int current_s1g_chan_center = morse_ht_chan_to_s1g_chan(ht_center_chan);
@@ -1682,18 +1801,20 @@ int morse_s1g_csa_validate_primary_chan(struct hostapd_iface *iface, int csa_ht2
 		return MORSE_S1G_RETURN_ERROR;
 	}
 
-	current_s1g_prim_chan = morse_cc_get_primary_s1g_channel(
-					oper_chwidth, IEEE80211_CHAN_1MHZ, current_s1g_chan_center,
+	current_ht20_frequency = morse_s1g_chan_get_primary_chan_freq_ht(
+					oper_chwidth,
+					IEEE80211_CHAN_1MHZ,
+					current_s1g_chan_center,
 					iface->conf->s1g_prim_1mhz_chan_index,
-					iface->conf->op_country);
-	ht20_mapped_channel = morse_s1g_chan_to_ht20_prim_chan(current_s1g_chan_center,
-				current_s1g_prim_chan, iface->conf->op_country);
-	current_ht20_frequency = ieee80211_channel_to_frequency(ht20_mapped_channel,
-				NL80211_BAND_5GHZ);
+					iface->conf->op_country
+				);
+	if (current_ht20_frequency == MORSE_S1G_RETURN_ERROR)
+		return MORSE_S1G_RETURN_ERROR;
 
 	if (csa_ht20_frequency == current_ht20_frequency) {
-		wpa_printf(MSG_ERROR, "ECSA: Switching to same primary 1Mhz channel %d not allowed",
-			   current_s1g_prim_chan);
+		wpa_printf(MSG_ERROR,
+			   "ECSA: Switching to same primary 1Mhz channel not allowed (freq: %d)",
+			   current_ht20_frequency);
 		return MORSE_S1G_RETURN_ERROR;
 	}
 
@@ -1892,7 +2013,7 @@ int morse_insert_supported_op_class(struct wpabuf *buf, char *cc,
 {
 	const struct ah_class *class;
 	const struct ah_class *current_class;
-	int i;
+	unsigned int i;
 
 	/* Fill current operating class based on oper ie */
 	current_class = morse_s1g_ch_to_op_class(s1g_ch_width, cc, s1g_op_chan);
@@ -2001,6 +2122,7 @@ int morse_s1g_get_first_center_freq_for_country(char *cc)
 				freq = 902500;
 				break;
 			case MORSE_EU:
+			case MORSE_GB:
 				freq = 863500;
 				break;
 			case MORSE_IN:
