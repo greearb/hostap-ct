@@ -491,6 +491,38 @@ def test_pasn_sae(dev, apdev):
         dev[0].set("sae_pwe", "0")
 
 @remote_compatible
+def test_pasn_sae_ext_key(dev, apdev):
+    """PASN authentication with SAE-EXT-KEY AP with PMK derivation + PMKSA caching"""
+    check_pasn_capab(dev[0])
+    check_sae_capab(dev[0])
+
+    params = hostapd.wpa2_params(ssid="test-pasn-sae",
+                                 passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE SAE-EXT-KEY PASN'
+    params['sae_pwe'] = "2"
+    hapd = start_pasn_ap(apdev[0], params)
+
+    try:
+        dev[0].set("sae_pwe", "2")
+        dev[0].connect("test-pasn-sae", psk="12345678", key_mgmt="SAE-EXT-KEY",
+                       scan_freq="2412", only_add_network=True)
+
+        # first test with a valid PSK
+        check_pasn_akmp_cipher(dev[0], hapd, "SAE-EXT-KEY", "CCMP", nid="0")
+
+        # And now with PMKSA caching
+        check_pasn_akmp_cipher(dev[0], hapd, "SAE-EXT-KEY", "CCMP")
+
+        # And now with a wrong passphrase
+        if "FAIL" in dev[0].request("PMKSA_FLUSH"):
+            raise Exception("PMKSA_FLUSH failed")
+
+        dev[0].set_network_quoted(0, "psk", "12345678787")
+        check_pasn_akmp_cipher(dev[0], hapd, "SAE-EXT-KEY", "CCMP", status=1, nid="0")
+    finally:
+        dev[0].set("sae_pwe", "0")
+
+@remote_compatible
 def test_pasn_sae_while_connected_same_channel(dev, apdev):
     """PASN SAE authentication while connected same channel"""
     check_pasn_capab(dev[0])
