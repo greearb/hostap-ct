@@ -6963,14 +6963,16 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 			return -1;
 	}
 
-	if (params->freq.freq && !params->mld_params.mld_addr) {
-		wpa_printf(MSG_DEBUG, "  * freq=%d", params->freq.freq);
-		if (nla_put_u32(msg, NL80211_ATTR_WIPHY_FREQ,
-				params->freq.freq))
-			return -1;
+	if (params->freq.freq) {
+		if (!params->mld_params.mld_addr) {
+			wpa_printf(MSG_DEBUG, "  * freq=%d", params->freq.freq);
+			if (nla_put_u32(msg, NL80211_ATTR_WIPHY_FREQ,
+					params->freq.freq))
+				return -1;
+		}
+
 		drv->assoc_freq = params->freq.freq;
-	} else
-		drv->assoc_freq = 0;
+	}
 
 	if (params->freq_hint) {
 		wpa_printf(MSG_DEBUG, "  * freq_hint=%d", params->freq_hint);
