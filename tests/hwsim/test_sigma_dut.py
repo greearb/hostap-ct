@@ -5347,7 +5347,8 @@ def test_sigma_dut_ft_rsnxe_used_mismatch(dev, apdev):
             raise Exception("Unexpected number of association attempts for the first FT protocol exchange (expecting success)")
 
         dut.cmd_check("sta_set_rfeature,interface,%s,prog,WPA3,ReassocReq_RSNXE_Used,1" % ifname)
-        dut.cmd_check("sta_reassoc,interface,%s,Channel,1,bssid,%s" % (ifname, bssid))
+        dut.cmd_check("sta_reassoc,interface,%s,Channel,1,bssid,%s" % (ifname, bssid),
+                      timeout=20)
         count = 0
         for i in range(5):
             ev = dev[0].wait_event(["Trying to associate",
