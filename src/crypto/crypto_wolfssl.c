@@ -822,7 +822,6 @@ struct crypto_cipher * crypto_cipher_init(enum crypto_cipher_alg alg,
 		}
 		break;
 #endif /* NO_DES3 */
-	case CRYPTO_CIPHER_ALG_RC2:
 	case CRYPTO_CIPHER_ALG_DES:
 	default:
 		os_free(ctx);
