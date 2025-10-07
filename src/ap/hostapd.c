@@ -4471,8 +4471,7 @@ int hostapd_change_config_freq(struct hostapd_data *hapd,
 			       struct hostapd_freq_params *params,
 			       struct hostapd_freq_params *old_params)
 {
-	int channel;
-	u8 seg0 = 0, seg1 = 0;
+	u8 channel, op_class, seg0 = 0, seg1 = 0;
 	struct hostapd_hw_modes *mode;
 
 	if (!params->channel) {
@@ -4557,6 +4556,14 @@ int hostapd_change_config_freq(struct hostapd_data *hapd,
 	    ieee80211_freq_to_chan(params->center_freq2,
 				   &seg1) == NUM_HOSTAPD_MODES)
 		return -1;
+	if (ieee80211_freq_to_channel_ext(params->freq,
+					  conf->secondary_channel,
+					  hostapd_get_oper_chwidth(hapd->iconf),
+					  &op_class, &channel) ==
+	    NUM_HOSTAPD_MODES)
+		return -1;
+
+	conf->op_class = op_class;
 	hostapd_set_oper_centr_freq_seg0_idx(conf, seg0);
 	hostapd_set_oper_centr_freq_seg1_idx(conf, seg1);
 
