@@ -807,6 +807,10 @@ int handle_auth_pasn_1(struct pasn_data *pasn,
 		return -1;
 	}
 
+	if (pasn->ecdh) {
+		crypto_ecdh_deinit(pasn->ecdh);
+		pasn->ecdh = NULL;
+	}
 	pasn->ecdh = crypto_ecdh_init(pasn_params.group);
 	if (!pasn->ecdh) {
 		wpa_printf(MSG_DEBUG, "PASN: Failed to init ECDH");
