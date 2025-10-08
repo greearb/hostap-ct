@@ -8690,10 +8690,11 @@ static size_t hostapd_eid_mbssid_elem_len(struct hostapd_data *hapd,
 }
 
 
-size_t hostapd_eid_mbssid_len(struct hostapd_data *hapd, u32 frame_type,
+size_t hostapd_eid_mbssid_len(struct hostapd_data *hapd_probed, u32 frame_type,
 			      u8 *elem_count, const u8 *known_bss,
 			      size_t known_bss_len, size_t *rnr_len)
 {
+	struct hostapd_data *hapd = hostapd_mbssid_get_tx_bss(hapd_probed);
 	size_t len = 0, bss_index = 1;
 
 	if (!hapd->iconf->mbssid || hapd->iface->num_bss <= 1 ||
@@ -8713,7 +8714,7 @@ size_t hostapd_eid_mbssid_len(struct hostapd_data *hapd, u32 frame_type,
 	while (bss_index < hapd->iface->num_bss) {
 		size_t rnr_count = bss_index;
 
-		len += hostapd_eid_mbssid_elem_len(hapd, frame_type,
+		len += hostapd_eid_mbssid_elem_len(hapd_probed, frame_type,
 						   &bss_index, known_bss,
 						   known_bss_len);
 
@@ -8875,12 +8876,13 @@ static u8 * hostapd_eid_mbssid_elem(struct hostapd_data *hapd, u8 *eid, u8 *end,
 }
 
 
-u8 * hostapd_eid_mbssid(struct hostapd_data *hapd, u8 *eid, u8 *end,
+u8 * hostapd_eid_mbssid(struct hostapd_data *hapd_probed, u8 *eid, u8 *end,
 			unsigned int frame_stype, u8 elem_count,
 			u8 **elem_offset,
 			const u8 *known_bss, size_t known_bss_len, u8 *rnr_eid,
 			u8 *rnr_count, u8 **rnr_offset, size_t rnr_len)
 {
+	struct hostapd_data *hapd = hostapd_mbssid_get_tx_bss(hapd_probed);
 	size_t bss_index = 1, cur_len = 0;
 	u8 elem_index = 0, *rnr_start_eid = rnr_eid;
 	bool add_rnr;
@@ -8913,7 +8915,8 @@ u8 * hostapd_eid_mbssid(struct hostapd_data *hapd, u8 *eid, u8 *end,
 			elem_offset[elem_index] = eid;
 			elem_index = elem_index + 1;
 		}
-		eid = hostapd_eid_mbssid_elem(hapd, eid, end, frame_stype,
+		eid = hostapd_eid_mbssid_elem(hapd_probed, eid, end,
+					      frame_stype,
 					      hostapd_max_bssid_indicator(hapd),
 					      &bss_index, elem_count,
 					      known_bss, known_bss_len);

@@ -738,9 +738,7 @@ static void hostapd_free_probe_resp_params(struct probe_resp_params *params)
 static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 					   struct probe_resp_params *params)
 {
-#ifdef CONFIG_IEEE80211BE
 	struct hostapd_data *hapd_probed = hapd;
-#endif /* CONFIG_IEEE80211BE */
 	size_t buflen = 0;
 
 	hapd = hostapd_mbssid_get_tx_bss(hapd);
@@ -796,7 +794,8 @@ static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 	}
 #endif /* CONFIG_IEEE80211BE */
 
-	buflen += hostapd_eid_mbssid_len(hapd, WLAN_FC_STYPE_PROBE_RESP, NULL,
+	buflen += hostapd_eid_mbssid_len(hapd_probed, WLAN_FC_STYPE_PROBE_RESP,
+					 NULL,
 					 params->known_bss,
 					 params->known_bss_len, NULL);
 	buflen += hostapd_eid_rnr_len(hapd, WLAN_FC_STYPE_PROBE_RESP, true);
@@ -815,9 +814,7 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 					  struct probe_resp_params *params,
 					  u8 *pos, size_t len)
 {
-#ifdef CONFIG_IEEE80211BE
 	struct hostapd_data *hapd_probed = hapd;
-#endif /* CONFIG_IEEE80211BE */
 	u8 *csa_pos;
 	u8 *epos;
 
@@ -857,7 +854,8 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 
 	pos = hostapd_get_rsne(hapd, pos, epos - pos);
 	pos = hostapd_eid_bss_load(hapd, pos, epos - pos);
-	pos = hostapd_eid_mbssid(hapd, pos, epos, WLAN_FC_STYPE_PROBE_RESP, 0,
+	pos = hostapd_eid_mbssid(hapd_probed, pos, epos,
+				 WLAN_FC_STYPE_PROBE_RESP, 0,
 				 NULL, params->known_bss, params->known_bss_len,
 				 NULL, NULL, NULL, 0);
 	pos = hostapd_eid_rm_enabled_capab(hapd, pos, epos - pos);
