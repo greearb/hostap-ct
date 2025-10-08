@@ -4318,6 +4318,11 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 		break;
 	case NL80211_CMD_REG_CHANGE:
 	case NL80211_CMD_WIPHY_REG_CHANGE:
+		if (cmd == NL80211_CMD_REG_CHANGE &&
+		    (drv->capa.flags &
+		     WPA_DRIVER_FLAGS_SELF_MANAGED_REGULATORY))
+			break;
+
 		nl80211_reg_change_event(drv, tb);
 		break;
 	case NL80211_CMD_REG_BEACON_HINT:
