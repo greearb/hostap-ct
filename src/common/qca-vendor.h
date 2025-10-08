@@ -11368,6 +11368,12 @@ enum qca_wlan_vendor_attr_wifi_test_config {
  * related information for example TWT required bit in AP capabilities etc.
  * The reason for the notification is sent using
  * QCA_WLAN_VENDOR_ATTR_CONFIG_TWT_NOTIFY_STATUS.
+ *
+ * @QCA_WLAN_TWT_EARLY_TERMINATION_IND: Indicate early termination for the
+ * ongoing SP. Required parameters are configured through
+ * QCA_WLAN_VENDOR_ATTR_CONFIG_TWT_PARAMS. Refer the enum
+ * qca_wlan_vendor_attr_twt_early_termination_ind.
+ * Valid only after the TWT session is successfully setup.
  */
 enum qca_wlan_twt_operation {
 	QCA_WLAN_TWT_SET = 0,
@@ -11382,6 +11388,7 @@ enum qca_wlan_twt_operation {
 	QCA_WLAN_TWT_SETUP_READY_NOTIFY = 9,
 	QCA_WLAN_TWT_SET_PARAM = 10,
 	QCA_WLAN_TWT_NOTIFY = 11,
+	QCA_WLAN_TWT_EARLY_TERMINATION_IND = 12,
 };
 
 /**
@@ -11396,8 +11403,9 @@ enum qca_wlan_twt_operation {
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_TWT_PARAMS: Nested attribute representing the
  * parameters configured for TWT. These parameters are represented by
  * enum qca_wlan_vendor_attr_twt_setup, enum qca_wlan_vendor_attr_twt_resume,
- * enum qca_wlan_vendor_attr_twt_set_param, or
- * enum qca_wlan_vendor_attr_twt_stats based on the operation.
+ * enum qca_wlan_vendor_attr_twt_set_param, enum qca_wlan_vendor_attr_twt_stats,
+ * or enum qca_wlan_vendor_attr_twt_early_termination_ind based on the
+ * operation.
  *
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_TWT_NOTIFY_STATUS: Size is u8, mandatory when
  * QCA_WLAN_VENDOR_ATTR_CONFIG_TWT_OPERATION is set to QCA_WLAN_TWT_NOTIFY.
@@ -12406,6 +12414,26 @@ enum qca_wlan_vendor_twt_setup_req_type {
 	QCA_WLAN_VENDOR_TWT_SETUP_ALTERNATE_TWT = 6,
 	QCA_WLAN_VENDOR_TWT_SETUP_DICTATE_TWT = 7,
 	QCA_WLAN_VENDOR_TWT_SETUP_REJECT_TWT = 8,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_twt_early_termination_ind: Represents attributes
+ * for TWT early SP termination operation. Attributes are sent as part of
+ * %QCA_WLAN_TWT_EARLY_TERMINATION_IND operation.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TWT_EARLY_TERM_FLOW_ID: Required (u8)
+ * Flow ID is the unique identifier for the TWT session.
+ * Flow ID values from 0 to 254 represent a single TWT session.
+ * Flow ID value of 255 represents all TWT sessions.
+ */
+enum qca_wlan_vendor_attr_twt_early_termination_ind {
+	QCA_WLAN_VENDOR_ATTR_TWT_EARLY_TERM_FLOW_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TWT_EARLY_TERM_FLOW_ID = 1,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TWT_EARLY_TERM_FLOW_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TWT_EARLY_TERM_FLOW_MAX =
+	QCA_WLAN_VENDOR_ATTR_TWT_EARLY_TERM_FLOW_AFTER_LAST - 1,
 };
 
 /**
