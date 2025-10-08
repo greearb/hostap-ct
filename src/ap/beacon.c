@@ -1723,7 +1723,8 @@ void handle_probe_req(struct hostapd_data *hapd,
 				params.ecsa_pos - (u8 *) params.resp;
 	}
 
-	ret = hostapd_drv_send_mlme(hapd, params.resp, params.resp_len, noack,
+	ret = hostapd_drv_send_mlme(hostapd_mbssid_get_tx_bss(hapd),
+				    params.resp, params.resp_len, noack,
 				    csa_offs_len ? csa_offs : NULL,
 				    csa_offs_len, 0);
 
