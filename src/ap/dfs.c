@@ -981,6 +981,7 @@ static int hostapd_dfs_request_channel_switch(struct hostapd_iface *iface,
 	u8 new_vht_oper_chwidth;
 	unsigned int i;
 	unsigned int num_err = 0;
+	u8 op_class, chan;
 
 	wpa_printf(MSG_DEBUG, "DFS will switch to a new channel %d", channel);
 	wpa_msg(iface->bss[0]->msg_ctx, MSG_INFO, DFS_EVENT_NEW_CHANNEL
@@ -989,6 +990,13 @@ static int hostapd_dfs_request_channel_switch(struct hostapd_iface *iface,
 
 	new_vht_oper_chwidth = hostapd_get_oper_chwidth(iface->conf);
 	hostapd_set_oper_chwidth(iface->conf, current_vht_oper_chwidth);
+	if (ieee80211_freq_to_channel_ext(freq, secondary_channel,
+					  new_vht_oper_chwidth, &op_class,
+					  &chan) != NUM_HOSTAPD_MODES) {
+		wpa_printf(MSG_DEBUG, "Update op_class %d->%d",
+			   iface->conf->op_class, op_class);
+		iface->conf->op_class = op_class;
+	}
 
 	/* Setup CSA request */
 	os_memset(&csa_settings, 0, sizeof(csa_settings));
@@ -1318,6 +1326,7 @@ static int hostapd_dfs_start_channel_switch_cac(struct hostapd_iface *iface)
 	u8 oper_centr_freq_seg1_idx = 0;
 	enum dfs_channel_type channel_type = DFS_ANY_CHANNEL;
 	int err = 1;
+	u8 op_class, chan;
 
 	/* Radar detected during active CAC */
 	iface->cac_started = 0;
@@ -1350,6 +1359,14 @@ static int hostapd_dfs_start_channel_switch_cac(struct hostapd_iface *iface)
 					     oper_centr_freq_seg0_idx);
 	hostapd_set_oper_centr_freq_seg1_idx(iface->conf,
 					     oper_centr_freq_seg1_idx);
+	if (ieee80211_freq_to_channel_ext(channel->freq, secondary_channel,
+					  hostapd_get_oper_chwidth(iface->conf),
+					  &op_class, &chan) !=
+	    NUM_HOSTAPD_MODES) {
+		wpa_printf(MSG_DEBUG, "Update op_class %d->%d",
+			   iface->conf->op_class, op_class);
+		iface->conf->op_class = op_class;
+	}
 	err = 0;
 
 	hostapd_setup_interface_complete(iface, err);
