@@ -14104,6 +14104,21 @@ enum qca_wlan_vendor_attr_update_sta_info {
  * able to move to the channel mentioned by the AP in CSA.
  *
  * @QCA_DISCONNECT_REASON_USER_TRIGGERED: User triggered disconnection.
+ *
+ * @QCA_DISCONNECT_REASON_KEY_FAIL_TO_INSTALL: Disconnection triggered because
+ * the encryption keys couldn't be installed during the secure handshake
+ * process.
+ *
+ * @QCA_DISCONNECT_REASON_FW_TRIGGERED_LINK_SWITCH: Firmware initiated a switch
+ * from the active link to a standby link, resulting in disconnection from the
+ * current link.
+ *
+ * @QCA_DISCONNECT_REASON_HOST_TRIGGERED_LINK_DELETE: Host system dynamically
+ * removed a link, causing the associated connection to drop.
+ *
+ * @QCA_DISCONNECT_REASON_HOST_OCI_MISMATCH: Disconnect occurred due to a
+ * mismatch in Operating Channel Information between the AP and STA, violating
+ * channel coordination.
  */
 enum qca_disconnect_reason_codes {
 	QCA_DISCONNECT_REASON_UNSPECIFIED = 0,
@@ -14123,6 +14138,10 @@ enum qca_disconnect_reason_codes {
 	QCA_DISCONNECT_REASON_BEACON_MISS_FAILURE = 14,
 	QCA_DISCONNECT_REASON_CHANNEL_SWITCH_FAILURE = 15,
 	QCA_DISCONNECT_REASON_USER_TRIGGERED = 16,
+	QCA_DISCONNECT_REASON_KEY_FAIL_TO_INSTALL = 17,
+	QCA_DISCONNECT_REASON_FW_TRIGGERED_LINK_SWITCH = 18,
+	QCA_DISCONNECT_REASON_HOST_TRIGGERED_LINK_DELETE = 19,
+	QCA_DISCONNECT_REASON_HOST_OCI_MISMATCH = 20,
 };
 
 /**
