@@ -738,7 +738,8 @@ static void hostapd_free_probe_resp_params(struct probe_resp_params *params)
 static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 					   struct probe_resp_params *params)
 {
-	struct hostapd_data *hapd_probed = hapd;
+	struct hostapd_data *hapd_probed = params->mld_ap ? params->mld_ap :
+		hapd;
 	size_t buflen = 0;
 
 	hapd = hostapd_mbssid_get_tx_bss(hapd);
@@ -770,27 +771,32 @@ static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be) {
-		struct hostapd_data *ml_elem_ap =
-			params->mld_ap ? params->mld_ap : hapd;
 
 		buflen += hostapd_eid_eht_capab_len(hapd, IEEE80211_MODE_AP);
 		buflen += 3 + sizeof(struct ieee80211_eht_operation);
 		if (hapd->iconf->punct_bitmap)
 			buflen += EHT_OPER_DISABLED_SUBCHAN_BITMAP_SIZE;
 
-		if (ml_elem_ap->conf->mld_ap) {
+		if (params->mld_ap && params->mld_ap->conf->mld_ap) {
 			buflen += hostapd_eid_eht_ml_beacon_len(
-				ml_elem_ap, params->mld_info, !!params->mld_ap);
+				params->mld_ap, params->mld_info,
+				!!params->mld_ap);
+
+			if (hapd->conf->mld_ap)
+				buflen += hostapd_eid_eht_ml_beacon_len(
+					hapd, NULL, false);
+
+			/* For Max Channel Switch Time element during channel
+			 * switch */
+			buflen += 6;
+		} else if (hapd->conf->mld_ap) {
+			buflen += hostapd_eid_eht_ml_beacon_len(
+				hapd, params->mld_info, false);
 
 			/* For Max Channel Switch Time element during channel
 			 * switch */
 			buflen += 6;
 		}
-
-		if (hapd_probed != hapd && hapd_probed->conf->mld_ap)
-			buflen += hostapd_eid_eht_basic_ml_len(hapd_probed,
-							       NULL, true,
-							       false);
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -814,7 +820,8 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 					  struct probe_resp_params *params,
 					  u8 *pos, size_t len)
 {
-	struct hostapd_data *hapd_probed = hapd;
+	struct hostapd_data *hapd_probed = params->mld_ap ? params->mld_ap :
+		hapd;
 	u8 *csa_pos;
 	u8 *epos;
 
@@ -942,21 +949,24 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 
 #ifdef CONFIG_IEEE80211BE
 	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be) {
-		struct hostapd_data *ml_elem_ap =
-			params->mld_ap ? params->mld_ap : hapd;
-
-		if (ml_elem_ap->conf->mld_ap)
+		if (params->mld_ap && params->mld_ap->conf->mld_ap) {
 			pos = hostapd_eid_eht_ml_beacon(
-				ml_elem_ap, params->mld_info,
+				params->mld_ap, params->mld_info,
 				pos, !!params->mld_ap);
+
+			if (hapd->conf->mld_ap)
+				pos = hostapd_eid_eht_ml_beacon(
+					hapd, NULL, pos, false);
+
+		} else if (hapd->conf->mld_ap) {
+			pos = hostapd_eid_eht_ml_beacon(hapd,
+							params->mld_info,
+							pos, false);
+		}
 
 		pos = hostapd_eid_eht_capab(hapd, pos, IEEE80211_MODE_AP);
 		pos = hostapd_eid_eht_operation(hapd, pos);
 	}
-
-	if (hapd_probed != hapd && hapd_probed->conf->mld_ap)
-		pos = hostapd_eid_eht_basic_ml_common(hapd_probed, pos, NULL,
-						      true, false);
 #endif /* CONFIG_IEEE80211BE */
 
 #ifdef CONFIG_IEEE80211AC
