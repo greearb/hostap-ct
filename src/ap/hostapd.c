@@ -4563,6 +4563,9 @@ int hostapd_change_config_freq(struct hostapd_data *hapd,
 	    NUM_HOSTAPD_MODES)
 		return -1;
 
+	wpa_printf(MSG_DEBUG,
+		   "%s:Update op_class %d->%d and channel=%d based on freq=%d",
+		   __func__, conf->op_class, op_class, channel, params->freq);
 	conf->op_class = op_class;
 	hostapd_set_oper_centr_freq_seg0_idx(conf, seg0);
 	hostapd_set_oper_centr_freq_seg1_idx(conf, seg1);
