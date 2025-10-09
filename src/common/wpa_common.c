@@ -4101,7 +4101,7 @@ int wpa_pasn_add_wrapped_data(struct wpabuf *buf,
 	data_len -= len - 1;
 
 	while (data_len) {
-		if (wpabuf_tailroom(buf) < 1 + data_len)
+		if (wpabuf_tailroom(buf) < 2 + data_len)
 			return -1;
 		wpabuf_put_u8(buf, WLAN_EID_FRAGMENT);
 		len = data_len > 255 ? 255 : data_len;
