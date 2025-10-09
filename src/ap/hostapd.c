@@ -5113,10 +5113,7 @@ u8 hostapd_get_mld_id(struct hostapd_data *hapd)
 	if (!hapd->conf->mld_ap)
 		return 255;
 
-	/* MLD ID 0 represents self */
-	return 0;
-
-	/* TODO: MLD ID for Multiple BSS cases */
+	return hostapd_mbssid_get_bss_index(hapd);
 }
 
 
