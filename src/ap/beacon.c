@@ -1088,18 +1088,27 @@ static void hostapd_fill_probe_resp_ml_params(struct hostapd_data *hapd,
 		   "MLD: Got ML probe request with AP MLD ID %d for links %04x",
 		   mld_id, links);
 
+	/*
+	 * Set mld_ap if the ML probe request explicitly requested a specific
+	 * AP MLD ID.
+	 */
+	if (mld_id > 0) {
+		if (hapd == hostapd_mbssid_get_tx_bss(hapd)) {
+			hapd = hostapd_get_mbssid_bss_by_idx(hapd, mld_id);
+			if (!hapd) {
+				wpa_printf(MSG_INFO,
+					   "Ignore Probe Request from " MACSTR
+					   " since no matched non-TX BSS found for MBSSID Index %d",
+					   MAC2STR(mgmt->sa), mld_id);
+				goto fail;
+			}
+		}
+		params->mld_ap = hapd;
+	}
+
 	for_each_mld_link(link, hapd) {
 		struct mld_link_info *link_info;
 		u8 mld_link_id = link->mld_link_id;
-
-		/*
-		 * Set mld_ap iff the ML probe request explicitly
-		 * requested a specific MLD ID. In that case, the targeted
-		 * AP may have been a nontransmitted BSSID on the same
-		 * interface.
-		 */
-		if (mld_id != -1 && link->iface == hapd->iface)
-			params->mld_ap = link;
 
 		/* Never duplicate main Probe Response frame body */
 		if (link == hapd)
@@ -1118,7 +1127,7 @@ static void hostapd_fill_probe_resp_ml_params(struct hostapd_data *hapd,
 			   mld_link_id, link_info->resp_sta_profile_len);
 	}
 
-	if (mld_id != -1 && !params->mld_ap) {
+	if (mld_id > 0 && !params->mld_ap) {
 		wpa_printf(MSG_DEBUG,
 			   "MLD: No nontransmitted BSSID for MLD ID %d",
 			   mld_id);

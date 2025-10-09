@@ -5273,3 +5273,13 @@ u16 hostapd_get_punct_bitmap(struct hostapd_data *hapd)
 
 	return punct_bitmap;
 }
+
+
+struct hostapd_data *
+hostapd_get_mbssid_bss_by_idx(struct hostapd_data *hapd, size_t idx)
+{
+	if (idx < hapd->iface->num_bss)
+		return hapd->iface->bss[idx];
+
+	return NULL;
+}
