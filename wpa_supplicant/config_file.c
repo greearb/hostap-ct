@@ -356,7 +356,7 @@ static struct wpa_dev_ik * wpa_config_read_identity(FILE *f, int *line, int id)
 
 
 struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
-				    bool ro)
+				    bool ro, bool show_details)
 {
 	FILE *f;
 	char buf[1024], *pos;
@@ -393,14 +393,21 @@ struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 	wpa_printf(MSG_DEBUG, "Reading configuration file '%s'", name);
 	f = fopen(name, "r");
 	if (f == NULL) {
-		wpa_printf(MSG_ERROR, "Failed to open config file '%s', "
-			   "error: %s", name, strerror(errno));
+		if (show_details)
+			wpa_printf(MSG_ERROR,
+				   "Failed to open config file '%s', error: %s",
+				   name, strerror(errno));
 		if (config != cfgp)
 			os_free(config);
 		return NULL;
 	}
 
 	while (wpa_config_get_line(buf, sizeof(buf), f, &line, &pos)) {
+#ifndef WPA_IGNORE_CONFIG_ERRORS
+		if (errors && !show_details)
+			break;
+#endif /* WPA_IGNORE_CONFIG_ERRORS */
+
 		if (os_strcmp(pos, "network={") == 0) {
 			ssid = wpa_config_read_network(f, &line, id++);
 			if (ssid == NULL) {
@@ -463,9 +470,12 @@ struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 				identity_tail->next = identity;
 				identity_tail = identity;
 			}
-		} else if (wpa_config_process_global(config, pos, line) < 0) {
-			wpa_printf(MSG_ERROR, "Line %d: Invalid configuration "
-				   "line '%s'.", line, pos);
+		} else if (wpa_config_process_global(config, pos, line,
+						     show_details) < 0) {
+			if (show_details)
+				wpa_printf(MSG_ERROR,
+					   "Line %d: Invalid configuration line '%s'.",
+					   line, pos);
 			errors++;
 			continue;
 		}

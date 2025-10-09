@@ -1973,7 +1973,8 @@ void wpa_config_debug_dump_networks(struct wpa_config *config);
 
 
 /* Prototypes for common functions from config.c */
-int wpa_config_process_global(struct wpa_config *config, char *pos, int line);
+int wpa_config_process_global(struct wpa_config *config, char *pos, int line,
+			      bool show_details);
 
 int wpa_config_get_num_global_field_names(void);
 
@@ -1987,6 +1988,7 @@ const char * wpa_config_get_global_field_name(unsigned int i, int *no_var);
  * configuration file)
  * @cfgp: Pointer to previously allocated configuration data or %NULL if none
  * @ro: Whether to mark networks from this configuration as read-only
+ * @show_details: Whether to show parsing errors and other details in debug log
  * Returns: Pointer to allocated configuration data or %NULL on failure
  *
  * This function reads configuration data, parses its contents, and allocates
@@ -1996,7 +1998,7 @@ const char * wpa_config_get_global_field_name(unsigned int i, int *no_var);
  * Each configuration backend needs to implement this function.
  */
 struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
-				    bool ro);
+				    bool ro, bool show_details);
 
 /**
  * wpa_config_write - Write or update configuration data

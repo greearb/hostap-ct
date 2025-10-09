@@ -4672,7 +4672,7 @@ dbus_bool_t wpas_dbus_setter_iface_global(
 		return FALSE;
 	}
 
-	ret = wpa_config_process_global(wpa_s->conf, buf, -1);
+	ret = wpa_config_process_global(wpa_s->conf, buf, -1, false);
 	if (ret < 0) {
 		dbus_set_error(error, DBUS_ERROR_INVALID_ARGS,
 			       "Failed to set interface property %s",

@@ -5880,6 +5880,7 @@ const char * wpa_config_get_global_field_name(unsigned int i, int *no_var)
  * @config: Pointer to global configuration data
  * @pos: Name and value in the format "{name}={value}"
  * @line: Line number in configuration file or 0 if not used
+ * @show_details: Whether to show parsing errors and other details in debug log
  * Returns: 0 on success with a possible change in value, 1 on success with no
  * change to previously configured value, or -1 on failure
  *
@@ -5888,7 +5889,8 @@ const char * wpa_config_get_global_field_name(unsigned int i, int *no_var)
  * parameter must be in the same format as the text-based configuration file is
  * using. For example, strings are using double quotation marks.
  */
-int wpa_config_process_global(struct wpa_config *config, char *pos, int line)
+int wpa_config_process_global(struct wpa_config *config, char *pos, int line,
+			      bool show_details)
 {
 	size_t i;
 	int ret = 0;
@@ -5902,8 +5904,10 @@ int wpa_config_process_global(struct wpa_config *config, char *pos, int line)
 
 		ret = field->parser(field, config, line, pos + flen + 1);
 		if (ret < 0) {
-			wpa_printf(MSG_ERROR, "Line %d: failed to "
-				   "parse '%s'.", line, pos);
+			if (show_details)
+				wpa_printf(MSG_ERROR,
+					   "Line %d: failed to parse '%s'.",
+					   line, pos);
 			ret = -1;
 		}
 		if (ret == 1)
@@ -5919,7 +5923,7 @@ int wpa_config_process_global(struct wpa_config *config, char *pos, int line)
 			char *tmp = os_strchr(pos, '=');
 
 			if (!tmp) {
-				if (line < 0)
+				if (show_details)
 					wpa_printf(MSG_ERROR,
 						   "Line %d: invalid line %s",
 						   line, pos);
@@ -5928,9 +5932,10 @@ int wpa_config_process_global(struct wpa_config *config, char *pos, int line)
 			*tmp++ = '\0';
 			if (hostapd_config_tx_queue(config->tx_queue, pos,
 						    tmp)) {
-				wpa_printf(MSG_ERROR,
-					   "Line %d: invalid TX queue item",
-					   line);
+				if (show_details)
+					wpa_printf(MSG_ERROR,
+						   "Line %d: invalid TX queue item",
+						   line);
 				return -1;
 			}
 			return ret;
@@ -5941,15 +5946,19 @@ int wpa_config_process_global(struct wpa_config *config, char *pos, int line)
 			if (tmp == NULL) {
 				if (line < 0)
 					return -1;
-				wpa_printf(MSG_ERROR, "Line %d: invalid line "
-					   "'%s'", line, pos);
+				if (show_details)
+					wpa_printf(MSG_ERROR,
+						   "Line %d: invalid line '%s'",
+						   line, pos);
 				return -1;
 			}
 			*tmp++ = '\0';
 			if (hostapd_config_wmm_ac(config->wmm_ac_params, pos,
 						  tmp)) {
-				wpa_printf(MSG_ERROR, "Line %d: invalid WMM "
-					   "AC item", line);
+				if (show_details)
+					wpa_printf(MSG_ERROR,
+						   "Line %d: invalid WMM AC item",
+						   line);
 				return -1;
 			}
 			return ret;
@@ -5957,8 +5966,10 @@ int wpa_config_process_global(struct wpa_config *config, char *pos, int line)
 #endif /* CONFIG_AP */
 		if (line < 0)
 			return -1;
-		wpa_printf(MSG_ERROR, "Line %d: unknown global field '%s'.",
-			   line, pos);
+		if (show_details)
+			wpa_printf(MSG_ERROR,
+				   "Line %d: unknown global field '%s'.",
+				   line, pos);
 		ret = -1;
 	}
 

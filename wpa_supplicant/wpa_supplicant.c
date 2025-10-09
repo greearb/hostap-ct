@@ -1407,14 +1407,16 @@ int wpa_supplicant_reload_configuration(struct wpa_supplicant *wpa_s)
 
 	if (wpa_s->confname == NULL)
 		return -1;
-	conf = wpa_config_read(wpa_s->confname, NULL, false);
+	conf = wpa_config_read(wpa_s->confname, NULL, false,
+			       wpa_s->global->params.show_details);
 	if (conf == NULL) {
 		wpa_msg(wpa_s, MSG_ERROR, "Failed to parse the configuration "
 			"file '%s' - exiting", wpa_s->confname);
 		return -1;
 	}
 	if (wpa_s->confanother &&
-	    !wpa_config_read(wpa_s->confanother, conf, true)) {
+	    !wpa_config_read(wpa_s->confanother, conf, true,
+			     wpa_s->global->params.show_details)) {
 		wpa_msg(wpa_s, MSG_ERROR,
 			"Failed to parse the configuration file '%s' - exiting",
 			wpa_s->confanother);
@@ -7652,7 +7654,9 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 #else /* CONFIG_BACKEND_FILE */
 		wpa_s->confname = os_strdup(iface->confname);
 #endif /* CONFIG_BACKEND_FILE */
-		wpa_s->conf = wpa_config_read(wpa_s->confname, NULL, false);
+		wpa_s->conf = wpa_config_read(
+			wpa_s->confname, NULL, false,
+			wpa_s->global->params.show_details);
 		if (wpa_s->conf == NULL) {
 			wpa_printf(MSG_ERROR, "Failed to read or parse "
 				   "configuration '%s'.", wpa_s->confname);
@@ -7660,7 +7664,8 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 		}
 		wpa_s->confanother = os_rel2abs_path(iface->confanother);
 		if (wpa_s->confanother &&
-		    !wpa_config_read(wpa_s->confanother, wpa_s->conf, true)) {
+		    !wpa_config_read(wpa_s->confanother, wpa_s->conf, true,
+				     wpa_s->global->params.show_details)) {
 			wpa_printf(MSG_ERROR,
 				   "Failed to read or parse configuration '%s'.",
 				   wpa_s->confanother);
@@ -8473,6 +8478,7 @@ struct wpa_global * wpa_supplicant_init(struct wpa_params *params)
 	global->params.daemonize = params->daemonize;
 	global->params.wait_for_monitor = params->wait_for_monitor;
 	global->params.dbus_ctrl_interface = params->dbus_ctrl_interface;
+	global->params.show_details = params->show_details;
 
 	if (params->pid_file) {
 		global->params.pid_file = os_strdup(params->pid_file);
@@ -8709,6 +8715,24 @@ void wpa_supplicant_deinit(struct wpa_global *global)
 	wpa_debug_close_syslog();
 	wpa_debug_close_file();
 	wpa_debug_close_linux_tracing();
+}
+
+
+int wpa_supplicant_parse_config(const char *fname)
+{
+	struct wpa_config *conf;
+	int ret = -1;
+
+	wpa_printf(MSG_INFO, "Validating parsing of %s", fname);
+	conf = wpa_config_read(fname, NULL, false, true);
+	if (conf) {
+		wpa_printf(MSG_INFO, "Parsing succeeded");
+		ret = 0;
+		wpa_config_free(conf);
+	} else {
+		wpa_printf(MSG_INFO, "Parsing failed");
+	}
+	return ret;
 }
 
 

@@ -534,7 +534,8 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 			ret = -1;
 		} else {
 			value[-1] = '=';
-			wpa_config_process_global(wpa_s->conf, cmd, -1);
+			wpa_config_process_global(wpa_s->conf, cmd, -1,
+						  true);
 		}
 	} else if (os_strcasecmp(cmd, "dot11RSNAConfigPMKReauthThreshold") ==
 		   0) {
@@ -543,7 +544,8 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 			ret = -1;
 		} else {
 			value[-1] = '=';
-			wpa_config_process_global(wpa_s->conf, cmd, -1);
+			wpa_config_process_global(wpa_s->conf, cmd, -1,
+						  true);
 		}
 	} else if (os_strcasecmp(cmd, "dot11RSNAConfigSATimeout") == 0) {
 		if (wpa_sm_set_param(wpa_s->wpa, RSNA_SA_TIMEOUT,
@@ -551,7 +553,8 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 			ret = -1;
 		} else {
 			value[-1] = '=';
-			wpa_config_process_global(wpa_s->conf, cmd, -1);
+			wpa_config_process_global(wpa_s->conf, cmd, -1,
+						  true);
 		}
 	} else if (os_strcasecmp(cmd, "wps_fragment_size") == 0) {
 		wpa_s->wps_fragment_size = atoi(value);
@@ -918,7 +921,8 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 		ret = wpas_mbo_update_non_pref_chan(wpa_s, value);
 		if (ret == 0) {
 			value[-1] = '=';
-			wpa_config_process_global(wpa_s->conf, cmd, -1);
+			wpa_config_process_global(wpa_s->conf, cmd, -1,
+						  true);
 		}
 	} else if (os_strcasecmp(cmd, "mbo_cell_capa") == 0) {
 		int val = atoi(value);
@@ -987,7 +991,9 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_PASN */
 	} else {
 		value[-1] = '=';
-		ret = wpa_config_process_global(wpa_s->conf, cmd, -1);
+		ret = wpa_config_process_global(
+			wpa_s->conf, cmd, -1,
+			wpa_s->global->params.show_details);
 		if (ret == 0)
 			wpa_supplicant_update_config(wpa_s);
 		else if (ret == 1)

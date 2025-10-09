@@ -1530,7 +1530,7 @@ int main(int argc, char *argv[])
 	dl_list_init(&wpa_s.bss);
 	dl_list_init(&wpa_s.bss_id);
 	if (conf)
-		wpa_s.conf = wpa_config_read(conf, NULL, false);
+		wpa_s.conf = wpa_config_read(conf, NULL, false, true);
 	else
 		wpa_s.conf = wpa_config_alloc_empty(ctrl_iface, NULL);
 	if (wpa_s.conf == NULL) {

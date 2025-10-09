@@ -32,10 +32,10 @@ static void usage(void)
 #ifdef CONFIG_CTRL_IFACE_DBUS_NEW
 	       "u"
 #endif /* CONFIG_CTRL_IFACE_DBUS_NEW */
-	       "vW] [-P<pid file>] "
+	       "vWy] [-P<pid file>] "
 	       "[-g<global ctrl>] \\\n"
 	       "        [-G<group>] \\\n"
-	       "        -i<ifname> -c<config file> [-C<ctrl>] [-D<driver>] "
+	       "        [-i<ifname>] -c<config file> [-C<ctrl>] [-D<driver>] "
 	       "[-p<driver_param>] \\\n"
 	       "        [-b<br_ifname>] [-e<entropy file>]"
 #ifdef CONFIG_DEBUG_FILE
@@ -103,11 +103,15 @@ static void usage(void)
 	       "  -u = enable DBus control interface\n"
 #endif /* CONFIG_CTRL_IFACE_DBUS_NEW */
 	       "  -v = show version\n"
-	       "  -W = wait for a control interface monitor before starting\n");
+	       "  -W = wait for a control interface monitor before starting\n"
+	       "  -y = show configuration parsing details in debug log\n");
 
 	printf("example:\n"
 	       "  wpa_supplicant -D%s -iwlan0 -c/etc/wpa_supplicant.conf\n",
 	       wpa_drivers[0] ? wpa_drivers[0]->name : "nl80211");
+	printf("\nIf run without specifying a network interface or control interface, the a\n"
+	       "configuration file is parsed without starting any operation.\n"
+		"This can be used to check whether a configuration file has valid contents.\n");
 #endif /* CONFIG_NO_STDOUT_DEBUG */
 }
 
@@ -202,7 +206,7 @@ int main(int argc, char *argv[])
 
 	for (;;) {
 		c = getopt(argc, argv,
-			   "b:Bc:C:D:de:f:g:G:hi:I:KLMm:No:O:p:P:qsTtuvW");
+			   "b:Bc:C:D:de:f:g:G:hi:I:KLMm:No:O:p:P:qsTtuvWy");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -332,6 +336,9 @@ int main(int argc, char *argv[])
 			iface = &ifaces[iface_count - 1];
 			os_memset(iface, 0, sizeof(*iface));
 			break;
+		case 'y':
+			params.show_details = true;
+			break;
 		default:
 			usage();
 			exitcode = 0;
@@ -345,13 +352,23 @@ int main(int argc, char *argv[])
 		wpa_printf(MSG_ERROR, "Failed to initialize wpa_supplicant");
 		exitcode = -1;
 		goto out;
-	} else {
-		wpa_printf(MSG_INFO, "Successfully initialized "
-			   "wpa_supplicant");
 	}
+
+	if (iface_count == 1 && ifaces[0].confname && !ifaces[0].ifname &&
+#ifdef CONFIG_MATCH_IFACE
+	    !params.match_iface_count &&
+#endif /* CONFIG_MATCH_IFACE */
+	    !ifaces[0].ctrl_interface && !params.dbus_ctrl_interface) {
+		exitcode = wpa_supplicant_parse_config(ifaces[0].confname);
+		wpa_supplicant_deinit(global);
+		goto out;
+	}
+
+	wpa_printf(MSG_INFO, "Successfully initialized wpa_supplicant");
 
 	if (fst_global_init()) {
 		wpa_printf(MSG_ERROR, "Failed to initialize FST");
+		wpa_supplicant_deinit(global);
 		exitcode = -1;
 		goto out;
 	}
