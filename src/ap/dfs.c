@@ -1054,6 +1054,14 @@ static int hostapd_dfs_request_channel_switch(struct hostapd_iface *iface,
 						     oper_centr_freq_seg0_idx);
 		hostapd_set_oper_centr_freq_seg1_idx(iface->conf,
 						     oper_centr_freq_seg1_idx);
+		if (ieee80211_freq_to_channel_ext(freq, secondary_channel,
+						  new_vht_oper_chwidth,
+						  &op_class, &chan) !=
+		    NUM_HOSTAPD_MODES) {
+			wpa_printf(MSG_DEBUG, "Update op_class %d->%d",
+				   iface->conf->op_class, op_class);
+			iface->conf->op_class = op_class;
+		}
 
 		hostapd_disable_iface(iface);
 		hostapd_enable_iface(iface);
