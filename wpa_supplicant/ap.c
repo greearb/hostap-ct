@@ -585,6 +585,7 @@ static int wpa_supplicant_conf_ap(struct wpa_supplicant *wpa_s,
 		bss->wpa_pairwise = WPA_CIPHER_CCMP;
 		bss->rsn_override_pairwise = WPA_CIPHER_CCMP;
 		bss->rsn_override_mfp = 2;
+		bss->rsn_override_omit_rsnxe = 1;
 	}
 #endif /* CONFIG_P2P */
 
