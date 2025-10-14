@@ -1549,12 +1549,12 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 	}
 
 #if defined(CONFIG_MBO) && defined(CONFIG_TESTING_OPTIONS)
-	if (wpa_s->reject_btm_req_reason) {
+	if (wpa_s->conf->reject_btm_req_reason) {
 		wpa_printf(MSG_INFO,
 			   "WNM: Testing - reject BSS Transition Management Request: reject_btm_req_reason=%d",
-			   wpa_s->reject_btm_req_reason);
+			   wpa_s->conf->reject_btm_req_reason);
 		wnm_send_bss_transition_mgmt_resp(
-			wpa_s, wpa_s->reject_btm_req_reason,
+			wpa_s, wpa_s->conf->reject_btm_req_reason,
 			MBO_TRANSITION_REJECT_REASON_UNSPECIFIED, 0, NULL);
 		goto reset;
 	}
