@@ -850,7 +850,7 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 		else
 			wpa_s->link_ies[link_id] = wpabuf_parse_bin(pos);
 	} else if (os_strcasecmp(cmd, "reject_btm_req_reason") == 0) {
-		wpa_s->reject_btm_req_reason = atoi(value);
+		wpa_s->conf->reject_btm_req_reason = atoi(value);
 	} else if (os_strcasecmp(cmd, "get_pref_freq_list_override") == 0) {
 		os_free(wpa_s->get_pref_freq_list_override);
 		if (!value[0])
@@ -9112,7 +9112,6 @@ static void wpa_supplicant_ctrl_iface_flush(struct wpa_supplicant *wpa_s)
 	wpa_s->testing_resend_assoc = 0;
 	wpa_s->ignore_sae_h2e_only = 0;
 	wpa_s->ft_rsnxe_used = 0;
-	wpa_s->reject_btm_req_reason = 0;
 	wpa_sm_set_test_assoc_ie(wpa_s->wpa, NULL);
 	wpa_sm_set_test_eapol_m2_elems(wpa_s->wpa, NULL);
 	wpa_sm_set_test_eapol_m4_elems(wpa_s->wpa, NULL);

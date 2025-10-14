@@ -1142,6 +1142,10 @@ struct wpa_config {
 	int first_eapol_timeout;
 
 #if CONFIG_TESTING_OPTIONS
+        /* Shall we ignore BTM requests?  Non-zero value will cause that rejection code.
+	 */
+	int reject_btm_req_reason;
+
 	/* Allow users to configure supplicant to drop a percentage of management frames.
 	 * 0 == never, 65535 == always
 	 *

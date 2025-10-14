@@ -1373,7 +1373,6 @@ struct wpa_supplicant {
 	unsigned int extra_roc_dur;
 	enum wpa_supplicant_test_failure test_failure;
 	char *get_pref_freq_list_override;
-	unsigned int reject_btm_req_reason;
 	unsigned int p2p_go_csa_on_inv:1;
 	unsigned int ignore_assoc_disallow:1;
 	unsigned int disable_sa_query:1;
