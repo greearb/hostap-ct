@@ -332,6 +332,14 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 	bool updated = false;
 	bool driver_acl;
 
+#ifdef CONFIG_P2P
+	if (hapd->p2p_group && (!hapd->started || hapd->disabled)) {
+		wpa_printf(MSG_DEBUG,
+			   "hostapd_notif_assoc: Ignore assoc event - P2P GO not started or disabled");
+		return 0;
+	}
+#endif /* CONFIG_P2P */
+
 	if (addr == NULL) {
 		/*
 		 * This could potentially happen with unexpected event from the
