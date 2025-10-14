@@ -13976,6 +13976,11 @@ enum qca_vendor_wlan_sta_guard_interval {
  * @QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_CCA_STAT: Array of nested attributes
  * representing the CCA statistics for the affiliated AP(s) in STA mode. This
  * uses attributes defined in enum qca_wlan_vendor_attr_cca_stat.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_BEACON_MISS_STAT: Array of nested
+ * attributes representing the beacon miss data for the affiliated AP(s) in STA
+ * mode. This uses attributes defined in
+ * enum qca_wlan_vendor_attr_beacon_miss_stat.
  */
 enum qca_wlan_vendor_attr_get_sta_info {
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_INVALID = 0,
@@ -14037,6 +14042,7 @@ enum qca_wlan_vendor_attr_get_sta_info {
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_MCS_PKT_COUNT = 56,
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_BW_PKT_COUNT = 57,
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_CCA_STAT = 58,
+	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_BEACON_MISS_STAT = 59,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_AFTER_LAST,
@@ -22622,6 +22628,34 @@ enum qca_wlan_vendor_attr_cca_stat {
 	QCA_WLAN_VENDOR_ATTR_CCA_STAT_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CCA_STAT_MAX =
 	QCA_WLAN_VENDOR_ATTR_CCA_STAT_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_beacon_miss_stat - Attributes used by
+ * %QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_BEACON_MISS_STAT.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_BEACON_MISS_STAT_LINK_ID - u8 attribute. This is
+ * mandatory attribute in case of MLO connection and represents the link ID of
+ * the affiliated AP/link. For non-MLO connection, this attribute will not be
+ * present.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_BEACON_MISS_STAT_DATA - Mandatory byte array attribute.
+ * This attribute indicates the record of beacon miss data when the STA is
+ * operating on the affiliated AP/link channel. Each bit in the byte array
+ * corresponds to a TBTT slot: 0 means the beacon was received, 1 means it was
+ * missed. The least significant bit of the first byte of the byte array
+ * indicates the most recent TBTT slot's status. The length of this attribute
+ * depends on the maximum number of TBTT slot statuses that hardware is capable
+ * of reporting.
+ */
+enum qca_wlan_vendor_attr_beacon_miss_stat {
+	QCA_WLAN_VENDOR_ATTR_BEACON_MISS_STAT_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_BEACON_MISS_STAT_LINK_ID = 1,
+	QCA_WLAN_VENDOR_ATTR_BEACON_MISS_STAT_DATA = 2,
+
+	QCA_WLAN_VENDOR_ATTR_BEACON_MISS_STAT_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_BEACON_MISS_STAT_MAX =
+	QCA_WLAN_VENDOR_ATTR_BEACON_MISS_STAT_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
