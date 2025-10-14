@@ -4910,6 +4910,7 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 	config->eapol_completed_timeout = 0; /* default: use values baked into the code. */
 	config->first_eapol_timeout = 0; /* default: use values baked into the code. */
 #if CONFIG_TESTING_OPTIONS
+	config->reject_btm_req_reason = 0;
 	config->ignore_auth_resp = DEFAULT_IGNORE_AUTH_RESP;
 	config->ignore_assoc = DEFAULT_IGNORE_AUTH_RESP;
 	config->ignore_deauth = DEFAULT_IGNORE_AUTH_RESP;
@@ -5950,6 +5951,7 @@ static const struct global_parse_data global_fields[] = {
 	{ INT(eapol_completed_timeout), 0 },
 	{ INT(first_eapol_timeout), 0 },
 #if CONFIG_TESTING_OPTIONS
+	{ INT(reject_btm_req_reason), 0 },
 	{ INT(ignore_auth_resp), 0 },
 	{ INT(ignore_assoc), 0 },
 	{ INT(ignore_deauth), 0 },
