@@ -13972,6 +13972,10 @@ enum qca_vendor_wlan_sta_guard_interval {
  * used in STA mode. This represents the number of PPDUs
  * (unicast/multicast/broadcast) transmitted/received on each bandwidth value.
  * See enum qca_wlan_vendor_attr_bw_pkt.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_CCA_STAT: Array of nested attributes
+ * representing the CCA statistics for the affiliated AP(s) in STA mode. This
+ * uses attributes defined in enum qca_wlan_vendor_attr_cca_stat.
  */
 enum qca_wlan_vendor_attr_get_sta_info {
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_INVALID = 0,
@@ -14032,6 +14036,7 @@ enum qca_wlan_vendor_attr_get_sta_info {
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_NSS_PKT_COUNT = 55,
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_MCS_PKT_COUNT = 56,
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_BW_PKT_COUNT = 57,
+	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_CCA_STAT = 58,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_AFTER_LAST,
@@ -22587,6 +22592,36 @@ enum qca_wlan_vendor_attr_atf_offload_ssid_scheduling_policy {
 	QCA_WLAN_VENDOR_ATTR_ATF_OFFLOAD_SSID_SCHED_LAST,
 	QCA_WLAN_VENDOR_ATTR_ATF_OFFLOAD_SSID_SCHED_MAX =
 	QCA_WLAN_VENDOR_ATTR_ATF_OFFLOAD_SSID_SCHED_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_cca_stat - Attributes used by
+ * %QCA_WLAN_VENDOR_ATTR_GET_STA_INFO_CCA_STAT.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CCA_STAT_LINK_ID - u8 attribute. This is mandatory
+ * attribute in case of MLO connection and represents the link ID of the
+ * affiliated AP/link. For non-MLO connection, this attribute will not be
+ * present.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CCA_STAT_ON_TIME - u32 attribute, which represents
+ * total number of milliseconds the radio is monitored with wideband energy
+ * detection feature on the whole affiliated AP/link channel width accruing
+ * over time, corresponding to the respective channel.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CCA_STAT_BUSY_TIME - u32 attribute, representing total
+ * number of milliseconds the the CCA register is busy accruing over time
+ * corresponding to the whole affiliated AP/link channel width where radio was
+ * awake for @QCA_WLAN_VENDOR_ATTR_CCA_STAT_ON_TIME.
+ */
+enum qca_wlan_vendor_attr_cca_stat {
+	QCA_WLAN_VENDOR_ATTR_CCA_STAT_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_CCA_STAT_LINK_ID = 1,
+	QCA_WLAN_VENDOR_ATTR_CCA_STAT_ON_TIME = 2,
+	QCA_WLAN_VENDOR_ATTR_CCA_STAT_BUSY_TIME = 3,
+
+	QCA_WLAN_VENDOR_ATTR_CCA_STAT_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_CCA_STAT_MAX =
+	QCA_WLAN_VENDOR_ATTR_CCA_STAT_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
