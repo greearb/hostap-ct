@@ -374,7 +374,8 @@ static void radius_server_session_free(struct radius_server_data *data,
 	os_free(sess->username);
 	os_free(sess->nas_ip);
 	os_free(sess);
-	data->num_sess--;
+	if (data)
+		data->num_sess--;
 }
 
 
