@@ -8828,6 +8828,11 @@ void wpa_supplicant_update_config(struct wpa_supplicant *wpa_s)
 		wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_FT_PREPEND_PMKID,
 				 wpa_s->conf->ft_prepend_pmkid);
 
+#ifdef CONFIG_P2P
+	if (wpa_s->conf->changed_parameters & CFG_CHANGED_P2P_DISABLED)
+		wpas_p2p_disabled_changed(wpa_s);
+#endif /* CONFIG_P2P */
+
 #ifdef CONFIG_BGSCAN
 	/*
 	 * We default to global bgscan parameters only when per-network bgscan

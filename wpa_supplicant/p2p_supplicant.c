@@ -11682,3 +11682,56 @@ void wpas_p2p_update_dev_addr(struct wpa_supplicant *wpa_s)
 	os_memcpy(wpa_s->global->p2p_dev_addr, wpa_s->own_addr, ETH_ALEN);
 	p2p_set_dev_addr(wpa_s->global->p2p, wpa_s->own_addr);
 }
+
+
+static void wpas_p2p_set_disabled(struct wpa_supplicant *wpa_s)
+{
+	wpa_printf(MSG_DEBUG, "P2P: Disabled");
+
+	if (!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_DEDICATED_P2P_DEVICE) ||
+	    wpa_s->p2p_mgmt) {
+		wpa_printf(MSG_DEBUG,
+			   "P2P: Disable only implemented on parent interface");
+	} else {
+		if (wpa_s->global->p2p_init_wpa_s &&
+		    wpa_s->global->p2p &&
+		    wpa_s->global->p2p_init_wpa_s->parent == wpa_s) {
+			wpa_supplicant_remove_iface(
+				wpa_s->global, wpa_s->global->p2p_init_wpa_s,
+				0);
+		} else {
+			wpa_printf(MSG_DEBUG, "P2P: Not global P2P owner");
+		}
+	}
+}
+
+
+static void wpas_p2p_set_enabled(struct wpa_supplicant *wpa_s)
+{
+	wpa_printf(MSG_DEBUG, "P2P: Enabled");
+
+	if (!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_DEDICATED_P2P_DEVICE) ||
+	    wpa_s->p2p_mgmt) {
+		wpa_printf(MSG_INFO,
+			   "P2P: Enabling only implemented on parent interface");
+	} else if (!wpa_s->global->p2p &&
+		   !wpa_s->global->p2p_disabled) {
+		if (wpas_p2p_add_p2pdev_interface(
+			    wpa_s, wpa_s->global->params.conf_p2p_dev) < 0) {
+			wpa_printf(MSG_DEBUG,
+				   "P2P: Failed to enable P2P Device interface");
+		}
+	} else {
+		wpa_printf(MSG_DEBUG,
+			   "P2P: Not enabling, global P2P configured or globally disabled");
+	}
+}
+
+
+void wpas_p2p_disabled_changed(struct wpa_supplicant *wpa_s)
+{
+	if (wpa_s->conf->p2p_disabled)
+		wpas_p2p_set_disabled(wpa_s);
+	else
+		wpas_p2p_set_enabled(wpa_s);
+}

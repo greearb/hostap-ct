@@ -481,6 +481,7 @@ struct wpa_dev_ik {
 #define CFG_CHANGED_DISABLE_BTM BIT(19)
 #define CFG_CHANGED_BGSCAN BIT(20)
 #define CFG_CHANGED_FT_PREPEND_PMKID BIT(21)
+#define CFG_CHANGED_P2P_DISABLED BIT(22)
 
 /**
  * struct wpa_config - wpa_supplicant configuration data
