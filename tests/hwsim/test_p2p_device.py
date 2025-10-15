@@ -604,3 +604,36 @@ def test_p2p_device_persistent_group_go_bssid(dev):
         ev = wpas.wait_global_event(["P2P-GROUP-STARTED"], timeout=30)
         if ev is None:
             raise Exception("Timeout on group restart")
+
+def test_p2p_device_test_dynamic_disable(dev, apdev):
+    """P2P device removal and addition via p2p_disable"""
+    with HWSimRadio(use_p2p_device=True) as (radio, iface):
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(iface)
+
+        res = dev[0].p2p_start_go()
+        bssid = dev[0].get_group_status_field('bssid')
+
+        wpas.scan_for_bss(bssid, res['freq'])
+        res2 = connect_cli(dev[0], wpas, freq=res['freq'])
+        if not res2['ifname'].startswith('p2p-' + iface):
+            raise Exception("Unexpected group ifname: " + res2['ifname'])
+
+        # connected, disable P2P which will disconnect and remove all interfaces
+        wpas.set("p2p_disabled", "1")
+        interfaces = wpas.request("INTERFACES").split()
+        if len(interfaces) != 1 or interfaces[0] != iface:
+            raise Exception(f'Unexpected interfaces after disablement: {interfaces}')
+
+        wpas.set("p2p_disabled", "0")
+        interfaces = wpas.request("INTERFACES").split()
+        if len(interfaces) != 2:
+            raise Exception(f'Expected two interfaces, got: {interfaces}')
+
+        # connect a second time after re-adding the P2P device
+        wpas.scan_for_bss(bssid, res['freq'])
+        res2 = connect_cli(dev[0], wpas, freq=res['freq'])
+        if not res2['ifname'].startswith('p2p-' + iface):
+            raise Exception("Unexpected group ifname: " + res2['ifname'])
+
+        terminate_group(dev[0], wpas)
