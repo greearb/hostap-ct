@@ -378,10 +378,14 @@ static int ieee802_11_parse_extension(const u8 *pos, size_t elen,
 		elems->password_id_len = elen;
 		break;
 	case WLAN_EID_EXT_HE_CAPABILITIES:
+		if (elen < HE_CAPABILITIES_ELEM_MIN_LEN)
+			break;
 		elems->he_capabilities = pos;
 		elems->he_capabilities_len = elen;
 		break;
 	case WLAN_EID_EXT_HE_OPERATION:
+		if (elen < HE_OPERATION_ELEM_MIN_LEN)
+			break;
 		elems->he_operation = pos;
 		elems->he_operation_len = elen;
 		break;
@@ -403,10 +407,14 @@ static int ieee802_11_parse_extension(const u8 *pos, size_t elen,
 		elems->pasn_params_len = elen;
 		break;
 	case WLAN_EID_EXT_EHT_CAPABILITIES:
+		if (elen < EHT_CAPABILITIES_ELEM_MIN_LEN)
+			break;
 		elems->eht_capabilities = pos;
 		elems->eht_capabilities_len = elen;
 		break;
 	case WLAN_EID_EXT_EHT_OPERATION:
+		if (elen < EHT_OPERATION_ELEM_MIN_LEN)
+			break;
 		elems->eht_operation = pos;
 		elems->eht_operation_len = elen;
 		break;

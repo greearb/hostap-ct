@@ -2535,6 +2535,8 @@ struct ieee80211_spatial_reuse {
 	u8 params[19];
 } STRUCT_PACKED;
 
+#define HE_CAPABILITIES_ELEM_MIN_LEN		21
+
 /* HE Capabilities Information defines */
 
 #define HE_MACCAP_TWT_RESPONDER			((u8) BIT(2))
@@ -2585,6 +2587,9 @@ struct ieee80211_spatial_reuse {
 #define HE_OPERATION_BSS_COLOR_DISABLED		((u32) BIT(31))
 #define HE_OPERATION_BSS_COLOR_OFFSET		24
 #define HE_OPERATION_BSS_COLOR_MAX		64
+
+/* HE operation fields length */
+#define HE_OPERATION_ELEM_MIN_LEN				6
 
 /**
  * enum he_reg_info_6ghz_ap_type - Allowed Access Point types for 6 GHz Band
@@ -2690,6 +2695,7 @@ struct ieee80211_he_mu_edca_parameter_set {
 #define RNR_TBTT_INFO_MLD_PARAM2_LINK_DISABLED  0x20
 
 /* IEEE P802.11be/D2.3, 9.4.2.311 - EHT Operation element */
+#define EHT_OPERATION_ELEM_MIN_LEN                       1
 
 /* Figure 9-1002b: EHT Operation Parameters field subfields */
 #define EHT_OPER_INFO_PRESENT                          BIT(0)
@@ -2724,6 +2730,7 @@ struct ieee80211_eht_operation {
 #define IEEE80211_EHT_OP_MIN_LEN (1 + 4)
 
 /* IEEE P802.11be/D1.5, 9.4.2.313 - EHT Capabilities element */
+#define EHT_CAPABILITIES_ELEM_MIN_LEN             11
 
 /* Figure 9-1002af: EHT MAC Capabilities Information field */
 #define EHT_MACCAP_EPCS_PRIO			BIT(0)
