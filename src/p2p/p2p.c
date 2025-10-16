@@ -7173,7 +7173,8 @@ static int p2p_handle_pasn_auth(struct p2p_data *p2p, struct p2p_device *dev,
 		} else {
 			pasn_groups[0] = 19;
 		}
-		pasn->pasn_groups = pasn_groups;
+		os_free(pasn->pasn_groups);
+		pasn->pasn_groups = int_array_dup(pasn_groups);
 
 		if (p2p_pasn_handle_action_wrapper(p2p, dev, mgmt, len, freq,
 						   auth_transaction)) {

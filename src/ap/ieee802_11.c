@@ -2873,7 +2873,8 @@ static void hapd_initialize_pasn(struct hostapd_data *hapd,
 	pasn_set_peer_addr(pasn, sta->addr);
 	pasn_set_wpa_key_mgmt(pasn, hapd->conf->wpa_key_mgmt);
 	pasn_set_rsn_pairwise(pasn, hapd->conf->rsn_pairwise);
-	pasn->pasn_groups = hapd->conf->pasn_groups;
+	os_free(pasn->pasn_groups);
+	pasn->pasn_groups = int_array_dup(hapd->conf->pasn_groups);
 	pasn->noauth = hapd->conf->pasn_noauth;
 	if (hapd->iface->drv_flags2 & WPA_DRIVER_FLAGS2_SEC_LTF_AP)
 		pasn_enable_kdk_derivation(pasn);

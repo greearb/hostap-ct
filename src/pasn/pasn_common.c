@@ -34,6 +34,7 @@ void pasn_data_deinit(struct pasn_data *pasn)
 		return;
 	os_free(pasn->rsnxe_ie);
 	wpabuf_free(pasn->frame);
+	os_free(pasn->pasn_groups);
 	bin_clear_free(pasn, sizeof(struct pasn_data));
 }
 
