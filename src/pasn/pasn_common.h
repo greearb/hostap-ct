@@ -122,7 +122,6 @@ struct pasn_data {
 	bool noauth; /* Whether PASN without mutual authentication is enabled */
 	int disable_pmksa_caching;
 	int *pasn_groups;
-	struct wpabuf *wrapped_data;
 	int use_anti_clogging;
 	const u8 *rsn_ie;
 	size_t rsn_ie_len;
