@@ -521,7 +521,7 @@ static int wpa_supplicant_conf_ap(struct wpa_supplicant *wpa_s,
 			list[0] = 60;
 			list[1] = 120;
 			list[2] = 240;
-			list[3] = -1;
+			list[3] = 0;
 		}
 		conf->basic_rates = list;
 
@@ -535,7 +535,7 @@ static int wpa_supplicant_conf_ap(struct wpa_supplicant *wpa_s,
 			list[5] = 360;
 			list[6] = 480;
 			list[7] = 540;
-			list[8] = -1;
+			list[8] = 0;
 		}
 		conf->supported_rates = list;
 	}

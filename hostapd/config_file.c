@@ -861,7 +861,7 @@ static int hostapd_parse_intlist(int **int_list, char *val)
 			break;
 		pos = end + 1;
 	}
-	list[count] = -1;
+	list[count] = 0;
 
 	*int_list = list;
 	return 0;

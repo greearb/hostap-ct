@@ -1382,7 +1382,6 @@ void hostapd_config_free_bss(struct hostapd_bss_config *conf);
 void hostapd_config_free(struct hostapd_config *conf);
 int hostapd_maclist_found(struct mac_acl_entry *list, int num_entries,
 			  const u8 *addr, struct vlan_description *vlan_id);
-int hostapd_rate_found(int *list, int rate);
 const u8 * hostapd_get_psk(const struct hostapd_bss_config *conf,
 			   const u8 *addr, const u8 *p2p_dev_addr,
 			   const u8 *prev_psk, int *vlan_id);

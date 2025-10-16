@@ -1780,7 +1780,7 @@ def test_mesh_oom(dev, apdev):
         if ev is None:
             raise Exception("Init failure not reported")
 
-    with alloc_fail(dev[0], 2, "=wpa_supplicant_mesh_init"):
+    with alloc_fail(dev[0], 1, "int_array_dup;wpa_supplicant_mesh_init"):
         add_open_mesh_network(dev[0], basic_rates="60 120 240")
         ev = dev[0].wait_event(["Failed to init mesh"])
         if ev is None:

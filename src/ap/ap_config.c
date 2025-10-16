@@ -1075,21 +1075,6 @@ int hostapd_maclist_found(struct mac_acl_entry *list, int num_entries,
 }
 
 
-int hostapd_rate_found(int *list, int rate)
-{
-	int i;
-
-	if (list == NULL)
-		return 0;
-
-	for (i = 0; list[i] >= 0; i++)
-		if (list[i] == rate)
-			return 1;
-
-	return 0;
-}
-
-
 int hostapd_vlan_valid(struct hostapd_vlan *vlan,
 		       struct vlan_description *vlan_desc)
 {

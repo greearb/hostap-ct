@@ -4747,7 +4747,7 @@ static int nl80211_put_basic_rates(struct nl_msg *msg, const int *basic_rates)
 	if (!basic_rates)
 		return 0;
 
-	for (i = 0; i < NL80211_MAX_SUPP_RATES && basic_rates[i] >= 0; i++)
+	for (i = 0; i < NL80211_MAX_SUPP_RATES && basic_rates[i] > 0; i++)
 		rates[rates_len++] = basic_rates[i] / 5;
 
 	return nla_put(msg, NL80211_ATTR_BSS_BASIC_RATES, rates_len, rates);
