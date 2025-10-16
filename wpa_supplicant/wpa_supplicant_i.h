@@ -995,6 +995,9 @@ struct wpa_supplicant {
 	unsigned int connection_he:1;
 	unsigned int connection_eht:1;
 	unsigned int disable_mbo_oce:1;
+	u8 connection_max_nss_rx;
+	u8 connection_max_nss_tx;
+	enum chan_width connection_channel_bandwidth;
 
 	struct os_reltime last_mac_addr_change;
 	enum wpas_mac_addr_style last_mac_addr_style;

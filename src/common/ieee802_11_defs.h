@@ -2597,6 +2597,9 @@ struct ieee80211_spatial_reuse {
 
 /* HE operation fields length */
 #define HE_OPERATION_ELEM_MIN_LEN				6
+#define HE_OPERATION_VHT_OPER_INFO_LEN				3
+#define HE_OPERATION_COHOSTED_BSSID_INDICATOR_LEN		1
+#define HE_OPERATION_6GHZ_OPER_INFO_LEN				5
 
 /**
  * enum he_reg_info_6ghz_ap_type - Allowed Access Point types for 6 GHz Band
@@ -2713,6 +2716,7 @@ struct ieee80211_he_mu_edca_parameter_set {
 #define EHT_OPER_DISABLED_SUBCHAN_BITMAP_SIZE          2
 
 /* Control subfield: Channel Width subfield; see Table 9-401b */
+#define EHT_OPER_CHANNEL_WIDTH_MASK                    0x7
 #define EHT_OPER_CHANNEL_WIDTH_20MHZ                   0
 #define EHT_OPER_CHANNEL_WIDTH_40MHZ                   1
 #define EHT_OPER_CHANNEL_WIDTH_80MHZ                   2
@@ -2720,6 +2724,8 @@ struct ieee80211_he_mu_edca_parameter_set {
 #define EHT_OPER_CHANNEL_WIDTH_320MHZ                  4
 
 /* Figure 9-1002c: EHT Operation Information field format */
+#define EHT_OPER_INFO_MIN_LEN                          3
+
 struct ieee80211_eht_oper_info {
 	u8 control; /* B0..B2: Channel Width */
 	u8 ccfs0;
