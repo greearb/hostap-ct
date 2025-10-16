@@ -2456,9 +2456,16 @@ enum nr_chan_width {
 struct ieee80211_he_capabilities {
 	u8 he_mac_capab_info[6];
 	u8 he_phy_capab_info[11];
-	/* Followed by 4, 8, or 12 octets of Supported HE-MCS And NSS Set field
-	* and optional variable length PPE Thresholds field. */
-	u8 optional[37];
+	/* Supported HE-MCS And NSS Set field */
+	struct {
+		le16 rx_map; /* Rx HE-MCS Map <= 80 MHz */
+		le16 tx_map; /* Tx HE-MCS Map <= 80 MHz */
+		/* Followed by 0, 4, or 8 octets of optional Rx/Tx HE-MCS maps
+		 * for 160 MHz and 80+80 MHz. These are included in the
+		 * optional[] below. */
+	} he_basic_supported_mcs_set;
+	/* Followed by optional variable length PPE Thresholds field. */
+	u8 optional[33];
 } STRUCT_PACKED;
 #define IEEE80211_HE_CAPAB_MIN_LEN (6 + 11)
 

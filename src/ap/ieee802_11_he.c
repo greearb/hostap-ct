@@ -70,7 +70,8 @@ static int ieee80211_invalid_he_cap_size(const u8 *buf, size_t len)
 	u8 ppe_thres_hdr;
 
 	cap = (struct ieee80211_he_capabilities *) buf;
-	cap_len = sizeof(*cap) - sizeof(cap->optional);
+	cap_len = sizeof(cap->he_mac_capab_info) +
+		sizeof(cap->he_phy_capab_info);
 	if (len < cap_len)
 		return 1;
 
@@ -94,6 +95,7 @@ u8 * hostapd_eid_he_capab(struct hostapd_data *hapd, u8 *eid,
 	const struct he_capabilities *he_capab;
 	u8 *pos = eid;
 	u8 ie_size = 0, mcs_nss_size, ppet_size;
+	u8 *epos;
 
 	if (!mode)
 		return eid;
@@ -117,11 +119,12 @@ u8 * hostapd_eid_he_capab(struct hostapd_data *hapd, u8 *eid,
 		  HE_MAX_MAC_CAPAB_SIZE);
 	os_memcpy(cap->he_phy_capab_info, he_capab->phy_cap,
 		  HE_MAX_PHY_CAPAB_SIZE);
-	os_memcpy(cap->optional, he_capab->mcs, mcs_nss_size);
+	epos = (u8 *) &cap->he_basic_supported_mcs_set;
+	os_memcpy(epos, he_capab->mcs, mcs_nss_size);
+	epos += mcs_nss_size;
 
 	if (ppet_size)
-		os_memcpy(&cap->optional[mcs_nss_size], he_capab->ppet,
-			  ppet_size);
+		os_memcpy(epos, he_capab->ppet, ppet_size);
 
 	if (hapd->iface->conf->he_phy_capab.he_su_beamformer)
 		cap->he_phy_capab_info[HE_PHYCAP_SU_BEAMFORMER_CAPAB_IDX] |=
@@ -411,14 +414,15 @@ static int check_valid_he_mcs(struct hostapd_data *hapd, const u8 *sta_he_capab,
 {
 	u16 sta_rx_mcs_set, ap_tx_mcs_set;
 	u8 mcs_count = 0;
-	const u16 *ap_mcs_set, *sta_mcs_set;
+	const u16 *ap_mcs_set;
+	const u8 *sta_mcs_set;
 	int i;
 
 	if (!hapd->iface->current_mode)
 		return 1;
 	ap_mcs_set = (u16 *) hapd->iface->current_mode->he_capab[opmode].mcs;
-	sta_mcs_set = (u16 *) ((const struct ieee80211_he_capabilities *)
-			       sta_he_capab)->optional;
+	sta_mcs_set = (const u8 *) &((const struct ieee80211_he_capabilities *)
+				     sta_he_capab)->he_basic_supported_mcs_set;
 
 	/*
 	 * Disable HE capabilities for STAs for which there is not even a single
@@ -442,7 +446,7 @@ static int check_valid_he_mcs(struct hostapd_data *hapd, const u8 *sta_he_capab,
 		int j;
 
 		/* AP Tx MCS map vs. STA Rx MCS map */
-		sta_rx_mcs_set = WPA_GET_LE16((const u8 *) &sta_mcs_set[i * 2]);
+		sta_rx_mcs_set = WPA_GET_LE16(&sta_mcs_set[i * 4]);
 		ap_tx_mcs_set = WPA_GET_LE16((const u8 *)
 					     &ap_mcs_set[(i * 2) + 1]);
 
