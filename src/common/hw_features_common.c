@@ -387,6 +387,7 @@ static void punct_update_legacy_bw_80(u8 bitmap, u8 pri_chan, u8 *seg0)
 
 	switch (bitmap) {
 	case 0x6:
+	case 0x9:
 		*seg0 = 0;
 		return;
 	case 0x8:
