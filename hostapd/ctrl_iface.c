@@ -2778,6 +2778,7 @@ static char hostapd_ctrl_iface_notify_cw_change(struct hostapd_data *hapd,
 }
 
 
+#ifdef CONFIG_TESTING_OPTIONS
 static int hostapd_ctrl_iface_set_bw(struct hostapd_iface *iface, char *pos)
 {
 #ifdef NEED_AP_MLME
@@ -2825,6 +2826,7 @@ static int hostapd_ctrl_iface_set_bw(struct hostapd_iface *iface, char *pos)
 	return -1;
 #endif /* NEED_AP_MLME */
 }
+#endif /* CONFIG_TESTING_OPTIONS */
 
 
 static int hostapd_ctrl_iface_mib(struct hostapd_data *hapd, char *reply,
