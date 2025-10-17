@@ -122,6 +122,16 @@ static void pr_deinit_dev_iks(struct pr_data *pr)
 }
 
 
+void pr_flush(struct pr_data *pr)
+{
+#ifdef CONFIG_PASN
+	if (pr->initiator_pmksa)
+		pasn_initiator_pmksa_cache_flush(pr->initiator_pmksa);
+	if (pr->responder_pmksa)
+		pasn_responder_pmksa_cache_flush(pr->responder_pmksa);
+#endif /* CONFIG_PASN */
+}
+
 void pr_deinit(struct pr_data *pr)
 {
 	struct pr_device *dev, *prev;

@@ -479,6 +479,7 @@ struct operation_mode {
 };
 
 struct pr_data * pr_init(const struct pr_config *cfg);
+void pr_flush(struct pr_data *pr);
 void pr_deinit(struct pr_data *pr);
 void pr_set_dev_addr(struct pr_data *pr, const u8 *addr);
 void pr_clear_dev_iks(struct pr_data *pr);

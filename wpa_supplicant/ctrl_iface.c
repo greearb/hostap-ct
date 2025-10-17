@@ -9181,6 +9181,8 @@ static void wpa_supplicant_ctrl_iface_flush(struct wpa_supplicant *wpa_s)
 #ifdef CONFIG_NAN_USD
 	wpas_nan_usd_flush(wpa_s);
 #endif /* CONFIG_NAN_USD */
+
+	wpas_pr_flush(wpa_s);
 }
 
 

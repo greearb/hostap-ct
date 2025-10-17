@@ -413,6 +413,14 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 }
 
 
+void wpas_pr_flush(struct wpa_supplicant *wpa_s)
+{
+	struct pr_data *pr = wpa_s->global->pr;
+
+	if (pr)
+		pr_flush(pr);
+}
+
 void wpas_pr_deinit(struct wpa_supplicant *wpa_s)
 {
 	if (wpa_s == wpa_s->global->pr_init_wpa_s) {
