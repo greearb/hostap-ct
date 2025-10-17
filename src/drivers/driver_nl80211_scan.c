@@ -270,6 +270,12 @@ nl80211_scan_common(struct i802_bss *bss, u8 cmd,
 	if (!drv->hostapd && is_ap_interface(drv->nlmode)) {
 		wpa_printf(MSG_DEBUG, "nl80211: Add NL80211_SCAN_FLAG_AP");
 		scan_flags |= NL80211_SCAN_FLAG_AP;
+	} else if (drv->support_ap_scan && is_ap_interface(drv->nlmode) &&
+		   !nl80211_get_link(bss, params->link_id)->beacon_set) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Add NL80211_SCAN_FLAG_AP for scan for link %d that is not beaconing",
+			   params->link_id);
+		scan_flags |= NL80211_SCAN_FLAG_AP;
 	}
 
 	if (params->only_new_results) {

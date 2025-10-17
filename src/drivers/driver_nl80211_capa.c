@@ -82,6 +82,7 @@ struct wiphy_info_data {
 	unsigned int update_ft_ies_supported:1;
 	unsigned int has_key_mgmt:1;
 	unsigned int has_key_mgmt_iftype:1;
+	unsigned int support_ap_scan:1;
 };
 
 
@@ -789,6 +790,9 @@ static void wiphy_info_feature_flags(struct wiphy_info_data *info,
 
 	if (flags & NL80211_FEATURE_FULL_AP_CLIENT_STATE)
 		capa->flags |= WPA_DRIVER_FLAGS_FULL_AP_CLIENT_STATE;
+
+	if (flags & NL80211_FEATURE_AP_SCAN)
+		info->support_ap_scan = 1;
 }
 
 
@@ -1583,6 +1587,7 @@ int wpa_driver_nl80211_capa(struct wpa_driver_nl80211_data *drv)
 	if (info.set_qos_map_supported)
 		drv->capa.flags |= WPA_DRIVER_FLAGS_QOS_MAPPING;
 	drv->have_low_prio_scan = info.have_low_prio_scan;
+	drv->support_ap_scan = info.support_ap_scan;
 
 	/*
 	 * If the driver doesn't support data TX status, we won't get TX
