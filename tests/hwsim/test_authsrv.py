@@ -260,3 +260,14 @@ def test_authsrv_unknown_client(dev, apdev):
     if ev is None:
         raise Exception("EAP not started")
     dev[0].request("REMOVE_NETWORK all")
+
+def test_authsrv_invalid_clients_file(dev, apdev, params):
+    """Authentication server and invalid clients file"""
+    conf = params['prefix'] + '.authsrv.conf'
+    with open(conf, 'w') as f:
+        f.write("1.2.3.4	foo\nfoo")
+    p = authsrv_params()
+    p["radius_server_clients"] = conf
+    hapd = hostapd.add_ap(apdev[0], p, no_enable=True)
+    if "FAIL" not in hapd.request("ENABLE"):
+        raise Exception("ENABLE did not fail")
