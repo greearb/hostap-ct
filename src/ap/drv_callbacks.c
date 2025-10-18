@@ -499,7 +499,7 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 				continue;
 
 			bss = hostapd_mld_get_link_bss(hapd, link_id);
-			if (bss != hapd &&
+			if (bss && bss != hapd &&
 			    hostapd_check_acl(bss, addr, NULL) !=
 			    HOSTAPD_ACL_ACCEPT) {
 				wpa_printf(MSG_INFO, "STA " MACSTR
@@ -508,7 +508,8 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 				reason = WLAN_REASON_UNSPECIFIED;
 				goto fail;
 			}
-			if (hostapd_check_acl(bss, info->peer_addr, NULL) !=
+			if (bss &&
+			    hostapd_check_acl(bss, info->peer_addr, NULL) !=
 			    HOSTAPD_ACL_ACCEPT) {
 				wpa_printf(MSG_INFO, "link addr " MACSTR
 					   " not allowed to connect",
