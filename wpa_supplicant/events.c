@@ -4133,18 +4133,21 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 			nstr_bitmap_len;
 		if (sta_info_len_min > ml_len ||
 		    sta_info_len_min > (size_t) (end - pos) ||
-		    sta_info_len_min + 2 > sub_elem_len ||
-		    sta_info_len_min > *pos) {
+		    sta_info_len_min + 2 > sub_elem_len) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Invalid STA info min len=%zu, len=%u",
 				   sta_info_len_min, *pos);
 			goto out;
 		}
 		sta_info_len = *pos;
-		/* Make static analyzers happier with an explicit check even
-		 * though this was already checked above with *pos.. */
-		if (sta_info_len < sta_info_len_min)
+		if (sta_info_len > ml_len ||
+		    sta_info_len > sub_elem_len - 2 ||
+		    sta_info_len < sta_info_len_min) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Invalid STA info min len=%zu, len=%zu",
+				   sta_info_len_min, sta_info_len);
 			goto out;
+		}
 
 		/* Get the link address */
 		wpa_printf(MSG_DEBUG,
@@ -4169,6 +4172,8 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 		wpa_hexdump(MSG_MSGDUMP, "MLD: STA profile", pos, sub_elem_len);
 		ml_info[i].status = WPA_GET_LE16(pos + 2);
 
+		if (sub_elem_len > ml_len)
+			goto out;
 		pos += sub_elem_len;
 		ml_len -= sub_elem_len;
 
