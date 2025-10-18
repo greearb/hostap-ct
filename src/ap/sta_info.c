@@ -884,7 +884,7 @@ struct sta_info * ap_sta_add(struct hostapd_data *hapd, const u8 *addr)
 	for (i = 0; i < WLAN_SUPP_RATES_MAX; i++) {
 		if (!hapd->iface->basic_rates)
 			break;
-		if (hapd->iface->basic_rates[i] < 0)
+		if (hapd->iface->basic_rates[i] <= 0)
 			break;
 		sta->supported_rates[i] = hapd->iface->basic_rates[i] / 5;
 	}
