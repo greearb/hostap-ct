@@ -4794,10 +4794,18 @@ out:
 		 * per-link instance.
 		 * This reference is needed during group rekey handling.
 		 */
-		if (resp == WLAN_STATUS_SUCCESS)
+		if (resp == WLAN_STATUS_SUCCESS) {
 			sta->wpa_sm = assoc_wpa_sm;
-		else
+#ifdef CONFIG_IEEE80211BE
+			set_wpa_sm_for_each_partner_link(hapd, sta,
+							 assoc_wpa_sm);
+#endif /* CONFIG_IEEE80211BE */
+		} else {
 			sta->wpa_sm = NULL;
+#ifdef CONFIG_IEEE80211BE
+			clear_wpa_sm_for_each_partner_link(hapd, sta);
+#endif /* CONFIG_IEEE80211BE */
+		}
 	}
 
 	return resp;

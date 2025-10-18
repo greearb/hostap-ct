@@ -436,6 +436,8 @@ static inline void ap_sta_set_mld(struct sta_info *sta, bool mld)
 void ap_sta_free_sta_profile(struct mld_info *info);
 
 void hostapd_free_link_stas(struct hostapd_data *hapd);
+void set_wpa_sm_for_each_partner_link(struct hostapd_data *hapd,
+				      struct sta_info *psta, void *wpa_sm);
 void clear_wpa_sm_for_each_partner_link(struct hostapd_data *hapd,
 					struct sta_info *psta);
 
