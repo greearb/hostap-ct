@@ -11638,14 +11638,23 @@ static int wpas_ctrl_iface_pasn_driver(struct wpa_supplicant *wpa_s, char *cmd)
 			if (hwaddr_aton(token + 6, bssid))
 				goto out;
 
-		if (event.pasn_auth.num_peers == WPAS_MAX_PASN_PEERS)
-			goto out;
-		peer = &event.pasn_auth.peer[event.pasn_auth.num_peers];
-		os_memcpy(peer->own_addr, wpa_s->own_addr, ETH_ALEN);
-		os_memcpy(peer->peer_addr, bssid, ETH_ALEN);
-		event.pasn_auth.num_peers++;
+			if (event.pasn_auth.num_peers == WPAS_MAX_PASN_PEERS)
+				goto out;
+			peer = &event.pasn_auth.peer[event.pasn_auth.num_peers];
+			os_memcpy(peer->own_addr, wpa_s->own_addr, ETH_ALEN);
+			os_memcpy(peer->peer_addr, bssid, ETH_ALEN);
+			event.pasn_auth.num_peers++;
+			continue;
+		}
 
-		} else if (os_strcmp(token, "akmp=PASN") == 0) {
+		if (!peer) {
+			wpa_printf(MSG_INFO,
+				   "CTRL: PASN: No peer (bssid) specified before parameter '%s'",
+				   token);
+			goto out;
+		}
+
+		if (os_strcmp(token, "akmp=PASN") == 0) {
 			peer->akmp = WPA_KEY_MGMT_PASN;
 #ifdef CONFIG_IEEE80211R
 		} else if (os_strcmp(token, "akmp=FT-PSK") == 0) {
