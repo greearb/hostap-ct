@@ -510,7 +510,7 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 			}
 			if (hostapd_check_acl(bss, info->peer_addr, NULL) !=
 			    HOSTAPD_ACL_ACCEPT) {
-				wpa_printf(MSG_INFO, "link addr" MACSTR
+				wpa_printf(MSG_INFO, "link addr " MACSTR
 					   " not allowed to connect",
 					   MAC2STR(info->peer_addr));
 				reason = WLAN_REASON_UNSPECIFIED;
