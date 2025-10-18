@@ -185,7 +185,7 @@ int pasn_set_extra_ies(struct pasn_data *pasn, const u8 *extra_ies,
 
 	if (pasn->extra_ies) {
 		os_free((u8 *) pasn->extra_ies);
-		pasn->extra_ies_len = extra_ies_len;
+		pasn->extra_ies_len = 0;
 	}
 
 	pasn->extra_ies = os_memdup(extra_ies, extra_ies_len);
