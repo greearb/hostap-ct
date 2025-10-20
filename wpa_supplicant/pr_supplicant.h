@@ -39,7 +39,7 @@ static inline int wpas_pr_init(struct wpa_global *global,
 			       struct wpa_supplicant *wpa_s,
 			       const struct wpa_driver_capa *capa)
 {
-	return -1;
+	return 0;
 }
 
 static inline void wpas_pr_flush(struct wpa_supplicant *wpa_s)
