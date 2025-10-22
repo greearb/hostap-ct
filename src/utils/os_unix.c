@@ -714,15 +714,7 @@ int testing_get_fail_pattern(bool is_alloc, char *buf, size_t buflen)
 	return -1;
 #endif /* WPA_TRACE_BFD */
 }
-
-#else /* defined(WPA_TRACE_BFD) && defined(CONFIG_TESTING_OPTIONS) */
-
-static inline int testing_test_fail(const char *tag, bool is_alloc)
-{
-	return 0;
-}
-
-#endif
+#endif /* defined(WPA_TRACE_BFD) && defined(CONFIG_TESTING_OPTIONS) */
 
 void * os_malloc(size_t size)
 {
