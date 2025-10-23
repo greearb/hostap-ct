@@ -49,5 +49,6 @@ void wpas_nan_usd_cancel_remain_on_channel_cb(struct wpa_supplicant *wpa_s,
 					      unsigned int freq);
 void wpas_nan_usd_tx_wait_expire(struct wpa_supplicant *wpa_s);
 int * wpas_nan_usd_all_freqs(struct wpa_supplicant *wpa_s);
+void wpas_nan_usd_state_change_notif(struct wpa_supplicant *wpa_s);
 
 #endif /* NAN_USD_H */

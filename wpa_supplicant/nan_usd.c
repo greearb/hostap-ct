@@ -663,3 +663,52 @@ int * wpas_nan_usd_all_freqs(struct wpa_supplicant *wpa_s)
 
 	return freqs;
 }
+
+
+void wpas_nan_usd_state_change_notif(struct wpa_supplicant *wpa_s)
+{
+	struct wpa_supplicant *ifs;
+	unsigned int n_active = 0;
+	struct nan_de_cfg cfg;
+
+	if (!wpa_s->radio)
+		return;
+
+	os_memset(&cfg, 0, sizeof(cfg));
+
+	dl_list_for_each(ifs, &wpa_s->radio->ifaces, struct wpa_supplicant,
+			 radio_list) {
+		if (ifs->wpa_state >= WPA_AUTHENTICATING)
+			n_active++;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "NAN: state change notif: n_active=%u, p2p_in_progress=%u",
+		   n_active, wpas_p2p_in_progress(wpa_s));
+
+	if (n_active) {
+		cfg.n_max = 3;
+
+		if (!wpas_p2p_in_progress(wpa_s)) {
+			/* Limit the USD operation on channel to 100 - 300 TUs
+			 * to allow more time for other interfaces.
+			 */
+			cfg.n_min = 1;
+		} else {
+			/* Limit the USD operation on channel to 200 - 300 TUs
+			 * to allow P2P operation to complete.
+			 */
+			cfg.n_min = 2;
+		}
+
+		/* Each 500 ms suspend USD operation for 300 ms */
+		cfg.cycle = 500;
+		cfg.suspend = 300;
+	}
+
+	dl_list_for_each(ifs, &wpa_s->radio->ifaces, struct wpa_supplicant,
+			 radio_list) {
+		if (ifs->nan_de)
+			nan_de_config(ifs->nan_de, &cfg);
+	}
+}

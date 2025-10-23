@@ -40,6 +40,7 @@
 #include "wps_supplicant.h"
 #include "p2p_supplicant.h"
 #include "wifi_display.h"
+#include "nan_usd.h"
 
 
 /*
@@ -2899,6 +2900,12 @@ static void wpas_set_go_security_config(void *ctx,
 	struct wpa_supplicant *tmp, *ifs = NULL;
 	struct hostapd_data *hapd;
 
+	wpa_printf(MSG_DEBUG, "P2P: GO security config callback");
+
+#ifdef CONFIG_NAN_USD
+	wpas_nan_usd_state_change_notif(wpa_s);
+#endif /* CONFIG_NAN_USD */
+
 	if (!params->p2p2)
 		return;
 
@@ -2953,6 +2960,10 @@ static void wpas_go_neg_completed(void *ctx, struct p2p_go_neg_results *res)
 		wpa_s->p2p_pasn_auth_work = NULL;
 	}
 #endif /* CONFIG_PASN */
+
+#ifdef CONFIG_NAN_USD
+	wpas_nan_usd_state_change_notif(wpa_s);
+#endif /* CONFIG_NAN_USD */
 
 	if (res->status) {
 		wpa_msg_global(wpa_s, MSG_INFO,
@@ -6168,15 +6179,24 @@ static int wpas_p2p_auth_go_neg(struct wpa_supplicant *wpa_s,
 				struct wpa_ssid *ssid, unsigned int pref_freq,
 				u16 bootstrap, const char *password)
 {
+	int ret;
+
 	if (persistent_group && wpa_s->conf->persistent_reconnect)
 		persistent_group = 2;
 
-	return p2p_authorize(wpa_s->global->p2p, peer_addr, wps_method,
-			     go_intent, own_interface_addr, force_freq,
-			     persistent_group, ssid ? ssid->ssid : NULL,
-			     ssid ? ssid->ssid_len : 0, pref_freq,
-			     wps_method == WPS_NFC ? wpa_s->p2p_oob_dev_pw_id :
-			     0, bootstrap, password);
+	ret = p2p_authorize(wpa_s->global->p2p, peer_addr, wps_method,
+			    go_intent, own_interface_addr, force_freq,
+			    persistent_group, ssid ? ssid->ssid : NULL,
+			    ssid ? ssid->ssid_len : 0, pref_freq,
+			    wps_method == WPS_NFC ? wpa_s->p2p_oob_dev_pw_id :
+			    0, bootstrap, password);
+	if (!ret) {
+		wpa_printf(MSG_DEBUG, "P2P: Peer authorized");
+#ifdef CONFIG_NAN_USD
+		wpas_nan_usd_state_change_notif(wpa_s);
+#endif /* CONFIG_NAN_USD */
+	}
+	return ret;
 }
 
 

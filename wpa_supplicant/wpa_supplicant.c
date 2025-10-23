@@ -1323,6 +1323,10 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 	if (update_fils_connect_params)
 		wpas_update_fils_connect_params(wpa_s);
 #endif /* CONFIG_FILS && IEEE8021X_EAPOL */
+
+#ifdef CONFIG_NAN_USD
+	wpas_nan_usd_state_change_notif(wpa_s);
+#endif /* CONFIG_NAN_USD */
 }
 
 
