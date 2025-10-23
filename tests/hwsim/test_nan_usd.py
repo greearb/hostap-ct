@@ -11,6 +11,7 @@ logger = logging.getLogger()
 
 import hostapd
 from utils import *
+from p2p_utils import *
 
 def check_nan_usd_capab(dev):
     capa = dev.request("GET_CAPABILITY nan")
@@ -167,6 +168,45 @@ def test_nan_usd_match3(dev, apdev):
 
     dev[0].request("NAN_CANCEL_SUBSCRIBE id=" + id0)
     dev[1].request("NAN_CANCEL_PUBLISH id=" + id1)
+
+def test_nan_usd_match_p2p(dev, apdev):
+    """NAN USD Publish/Subscribe match with P2P connection"""
+    check_nan_usd_capab(dev[0])
+
+    # Use separate P2P group interface for P2P to avoid issues with NAN USD
+    dev[0].global_request("SET p2p_no_group_iface 0")
+    dev[1].global_request("SET p2p_no_group_iface 0")
+
+    cmd = "NAN_PUBLISH service_name=_test unsolicited=0 srv_proto_type=2 ssi=6677 ttl=10"
+    id1 = dev[1].request(cmd)
+    if "FAIL" in id1:
+        raise Exception("NAN_PUBLISH failed")
+
+    # Set up a P2P GO and connect a P2P client to it. Before doing so, sleep a
+    # little to allow the USD logic to start publishing.
+    time.sleep(1)
+    autogo(dev[1])
+    connect_cli(dev[1], dev[0], social=True, freq=2412)
+    hwsim_utils.test_connectivity_p2p(dev[0], dev[1])
+
+    cmd = "NAN_SUBSCRIBE service_name=_test active=1 srv_proto_type=2 ssi=1122334455"
+    id0 = dev[0].request(cmd)
+    if "FAIL" in id0:
+        raise Exception("NAN_SUBSCRIBE failed")
+
+    ev = dev[0].wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+    if ev is None:
+        raise Exception("DiscoveryResult event not seen")
+    if "srv_proto_type=2" not in ev.split(' '):
+        raise Exception("Unexpected srv_proto_type: " + ev)
+    if "ssi=6677" not in ev.split(' '):
+        raise Exception("Unexpected ssi: " + ev)
+
+    dev[0].request("NAN_CANCEL_SUBSCRIBE id=" + id0)
+    dev[1].request("NAN_CANCEL_PUBLISH id=" + id1)
+
+    dev[1].remove_group()
+    dev[0].wait_go_ending_session()
 
 def split_nan_event(ev):
     vals = dict()
