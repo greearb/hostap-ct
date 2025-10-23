@@ -172,4 +172,16 @@ int nan_de_transmit(struct nan_de *de, int handle,
 
 int nan_de_stop_listen(struct nan_de *de, int handle);
 
+struct nan_de_cfg {
+	/* N and M minimal and maximal values */
+	u32 n_min, n_max;
+
+	/* When not in pause state, stop the DE radio usage for 'suspend' ms
+	 * every 'cycle' ms.
+	 */
+	u32 suspend, cycle;
+};
+
+int nan_de_config(struct nan_de *de, struct nan_de_cfg *cfg);
+
 #endif /* NAN_DE_H */

@@ -68,6 +68,9 @@ struct nan_de_service {
 	bool listen_stopped;
 };
 
+#define NAN_DE_N_MIN 5
+#define NAN_DE_N_MAX 10
+
 struct nan_de {
 	u8 nmi[ETH_ALEN];
 	bool offload;
@@ -84,6 +87,9 @@ struct nan_de {
 	unsigned int listen_freq;
 	unsigned int tx_wait_status_freq;
 	unsigned int tx_wait_end_freq;
+
+	struct nan_de_cfg cfg;
+	struct os_reltime suspend_cycle_start;
 };
 
 
@@ -114,6 +120,9 @@ struct nan_de * nan_de_init(const u8 *nmi, bool offload, bool ap,
 	de->ap = ap;
 	de->max_listen = max_listen ? max_listen : 1000;
 	os_memcpy(&de->cb, cb, sizeof(*cb));
+
+	de->cfg.n_min = NAN_DE_N_MIN;
+	de->cfg.n_max = NAN_DE_N_MAX;
 
 	return de;
 }
@@ -548,7 +557,8 @@ static int nan_de_srv_time_to_next(struct nan_de *de,
 }
 
 
-static void nan_de_start_new_publish_state(struct nan_de_service *srv,
+static void nan_de_start_new_publish_state(struct nan_de *de,
+					   struct nan_de_service *srv,
 					   bool force_single)
 {
 	unsigned int n;
@@ -558,9 +568,8 @@ static void nan_de_start_new_publish_state(struct nan_de_service *srv,
 	else
 		srv->in_multi_chan = !srv->in_multi_chan;
 
-	/* Use hardcoded Nmin=5 and Nmax=10 and pick a random N from that range.
-	 * Use same values for M. */
-	n = 5 + os_random() % 5;
+	/* Use same values for N and M. */
+	n = de->cfg.n_min + os_random() % (de->cfg.n_max - de->cfg.n_min);
 	srv->next_publish_duration = n * 100;
 
 	nan_de_set_publish_times(srv);
@@ -585,6 +594,26 @@ static void nan_de_start_new_publish_state(struct nan_de_service *srv,
 }
 
 
+static u32 nan_de_listen_duration(struct nan_de *de, struct nan_de_service *srv)
+{
+	u32 duration = 1000;
+	u32 max_duration = de->max_listen;
+
+	/* Limit the listen duration based on the maximal 'N' value */
+	if (de->cfg.n_max && de->cfg.n_max * 100 < max_duration)
+		max_duration = de->cfg.n_max * 100;
+
+	if (srv->type == NAN_DE_PUBLISH) {
+		nan_de_check_chan_change(srv);
+		duration = nan_de_time_to_next_chan_change(srv);
+		if (duration < 150)
+			duration = 150;
+	}
+
+	return MIN(duration, max_duration);
+}
+
+
 static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 {
 	struct nan_de *de = eloop_ctx;
@@ -594,6 +623,55 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 	struct os_reltime now;
 
 	os_get_reltime(&now);
+
+	/* Based on the USD specification, the device should always be either on
+	 * the default channel or one of the configured channels. However, to
+	 * allow operation of other interfaces, suspend the USD functionality
+	 * based on the cycle and suspend parameters. This would lower the
+	 * probability of service discovery, but would allow functionality of
+	 * other interfaces.
+	 */
+	if (!de->listen_freq && de->cfg.cycle) {
+		u32 diff_ms;
+
+		if (os_reltime_initialized(&de->suspend_cycle_start)) {
+			struct os_reltime diff;
+
+			os_reltime_sub(&now, &de->suspend_cycle_start, &diff);
+			diff_ms = os_reltime_in_ms(&diff);
+		} else {
+			/* We want to start a new cycle */
+			diff_ms = de->cfg.cycle;
+		}
+
+		if (diff_ms < de->cfg.suspend) {
+			wpa_printf(MSG_DEBUG,
+				   "NAN: USD: Suspend in progress: diff_ms=%u",
+				   diff_ms);
+
+			/* Set the timer to fire at the end of the suspend */
+			diff_ms = de->cfg.suspend - diff_ms;
+		} else if (diff_ms >= de->cfg.cycle) {
+			wpa_printf(MSG_DEBUG,
+				   "NAN: Suspend USD for %u ms (passed=%u ms)",
+				   de->cfg.suspend, diff_ms);
+			de->suspend_cycle_start = now;
+
+			/* Set the timer to fire at the end of the suspend */
+			diff_ms = de->cfg.suspend;
+		} else {
+			diff_ms = 0;
+		}
+
+		if (diff_ms) {
+			wpa_printf(MSG_DEBUG, "NAN: diff_ms=%u ms", diff_ms);
+
+			eloop_register_timeout(diff_ms / 1000,
+					       (diff_ms % 1000) * 1000,
+					       nan_de_timer, de, NULL);
+			return;
+		}
+	}
 
 	for (i = 0; i < NAN_DE_MAX_SERVICE; i++) {
 		struct nan_de_service *srv = de->service[i];
@@ -619,7 +697,7 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 
 		if (os_reltime_initialized(&srv->next_publish_state) &&
 		    os_reltime_before(&srv->next_publish_state, &now))
-			nan_de_start_new_publish_state(srv, false);
+			nan_de_start_new_publish_state(de, srv, false);
 
 		if (srv->type == NAN_DE_PUBLISH &&
 		    os_reltime_initialized(&srv->pause_state_end) &&
@@ -674,7 +752,7 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 		      !srv->publish.unsolicited && srv->publish.solicited) ||
 		     (srv->type == NAN_DE_SUBSCRIBE &&
 		      !srv->subscribe.active))) {
-			int duration = 1000;
+			u32 duration;
 
 			if (srv->listen_stopped) {
 				wpa_printf(MSG_DEBUG,
@@ -682,12 +760,7 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 				continue;
 			}
 
-			if (srv->type == NAN_DE_PUBLISH) {
-				nan_de_check_chan_change(srv);
-				duration = nan_de_time_to_next_chan_change(srv);
-				if (duration < 150)
-					duration = 150;
-			}
+			duration = nan_de_listen_duration(de, srv);
 
 			started = true;
 			if (de->cb.listen(de->cb.ctx, srv->freq, duration) == 0)
@@ -1417,7 +1490,7 @@ int nan_de_publish(struct nan_de *de, const char *service_name,
 	/* Prepare for single and multi-channel states; starting with
 	 * single channel */
 	srv->first_multi_chan = true;
-	nan_de_start_new_publish_state(srv, true);
+	nan_de_start_new_publish_state(de, srv, true);
 
 	wpa_printf(MSG_DEBUG, "NAN: Assigned new publish handle %d for %s",
 		   publish_id, service_name ? service_name : "Ranging");
@@ -1632,5 +1705,46 @@ int nan_de_stop_listen(struct nan_de *de, int handle)
 	if (!srv)
 		return -1;
 	srv->listen_stopped = true;
+	return 0;
+}
+
+
+int nan_de_config(struct nan_de *de, struct nan_de_cfg *cfg)
+{
+	if (!de || !cfg)
+		return -1;
+
+	 /* No change in configuration */
+	if (de->cfg.n_min == cfg->n_min && de->cfg.n_max == cfg->n_max &&
+	    de->cfg.cycle == cfg->cycle && de->cfg.suspend == cfg->suspend)
+		return 0;
+
+	wpa_printf(MSG_DEBUG,
+		   "NAN: Configuring NAN DE: n=(%u, %u), suspend=%u, cycle=%u",
+		   cfg->n_min, cfg->n_max, cfg->suspend, cfg->cycle);
+
+	if (!cfg->n_min && !cfg->n_max) {
+		cfg->n_min = NAN_DE_N_MIN;
+		cfg->n_max = NAN_DE_N_MAX;
+	} else if (cfg->n_min < 1 || cfg->n_max < cfg->n_min) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: Invalid configuration parameters: N");
+		return -1;
+	}
+
+	if (((!!cfg->suspend) ^ (!!cfg->cycle)) ||
+	    (cfg->cycle && cfg->suspend >= cfg->cycle)) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: Invalid configuration parameters: cycle");
+		return -1;
+	}
+
+	de->cfg = *cfg;
+
+	os_memset(&de->suspend_cycle_start, 0, sizeof(de->suspend_cycle_start));
+
+	if (!de->listen_freq)
+		nan_de_run_timer(de);
+
 	return 0;
 }
