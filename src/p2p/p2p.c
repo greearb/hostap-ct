@@ -1986,6 +1986,7 @@ void p2p_go_complete(struct p2p_data *p2p, struct p2p_device *peer)
 #endif /* CONFIG_PASN */
 
 	if (p2p->go_role && peer->p2p2) {
+		p2p_set_state(p2p, P2P_IDLE);
 		p2p->cfg->set_go_security_config(p2p->cfg->cb_ctx, &res);
 		p2p->go_role = false;
 	} else {
