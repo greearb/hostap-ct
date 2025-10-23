@@ -7080,21 +7080,26 @@ int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 			if (!wpa_s->p2p2)
 				return ret;
 
-			wpa_s->create_p2p_iface = wpas_p2p_create_iface(wpa_s);
-			if (wpa_s->create_p2p_iface) {
-				if_addr = wpa_s->pending_interface_addr;
-			} else {
-				if (wpa_s->p2p_mgmt)
-					if_addr = wpa_s->parent->own_addr;
-				else
-					if_addr = wpa_s->own_addr;
-				os_memset(wpa_s->go_dev_addr, 0, ETH_ALEN);
+			/* When P2P connect request is configured with 'p2p2',
+			 * 'join' and 'auth', the local device is expected to
+			 * allow a peer device to join an existing group. Thus,
+			 * having 'persistent_id' set is not allowed.
+			 */
+			if (ssid) {
+				wpa_printf(MSG_DEBUG,
+					   "P2P: No persistent group SSID provided for P2P2 join");
+				return -1;
 			}
 
+			/* Iterate over existing interface and try to find an
+			 * interface that is already hosting a P2P GO.
+			 */
 			dl_list_for_each(ifs, &wpa_s->radio->ifaces,
 					 struct wpa_supplicant, radio_list) {
 				if (!ifs->current_ssid ||
-				    ifs->current_ssid->mode != WPAS_MODE_P2P_GO)
+				    ifs->current_ssid->mode !=
+				    WPAS_MODE_P2P_GO ||
+				    ifs->wpa_state != WPA_COMPLETED)
 					continue;
 
 				ssid = ifs->current_ssid;
@@ -7108,6 +7113,18 @@ int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 				force_freq = ifs->ap_iface->freq;
 				break;
 			}
+
+			if (ssid) {
+				wpa_printf(MSG_DEBUG,
+					   "P2P: Reusing existing GO interface=%s",
+					   ifs->ifname);
+				if_addr = ifs->own_addr;
+			} else {
+				wpa_printf(MSG_DEBUG,
+					   "P2P: No existing GO interface found for P2P2 join");
+				return -1;
+			}
+
 			p2p_set_go_role(wpa_s->global->p2p, true);
 			return wpas_p2p_auth_go_neg(wpa_s, peer_addr,
 						    wps_method, 15, if_addr,
