@@ -469,3 +469,111 @@ def test_nan_usd_publish_multi_chan_pause(dev, apdev):
     ev = dev[0].wait_event(["NAN-PUBLISH-TERMINATED"], timeout=15)
     if ev is None:
         raise Exception("PublishTerminated event not seen")
+
+def test_nan_usd_provisioning(dev, apdev):
+    """NAN USD for provisioning protocols"""
+    check_nan_usd_capab(dev[0])
+    check_nan_usd_capab(dev[1])
+
+    hostapd.add_ap(apdev[0], {"ssid": "ap",
+                              "channel": "11"})
+
+    cmd = "NAN_PUBLISH service_name=_test_provisioning srv_proto_type=3 ssi=6677 ttl=10"
+    id0 = dev[0].request(cmd)
+    if "FAIL" in id0:
+        raise Exception("NAN_PUBLISH failed")
+
+    cmd = "NAN_SUBSCRIBE service_name=_test_provisioning srv_proto_type=3 ssi=1122334455"
+    id1 = dev[1].request(cmd)
+    if "FAIL" in id0:
+        raise Exception("NAN_SUBSCRIBE failed")
+
+    ev = dev[1].wait_event(["NAN-DISCOVERY-RESULT"], timeout=10)
+    if ev is None:
+        raise Exception("DiscoveryResult event not seen")
+    vals = split_nan_event(ev)
+    if vals['srv_proto_type'] != '3':
+        raise Exception("Unexpected srv_proto_type: " + ev)
+    if vals['ssi'] != '6677':
+        raise Exception("Unexpected ssi: " + ev)
+    if vals['subscribe_id'] != id1:
+        raise Exception("Unexpected subscribe_id: " + ev)
+    if vals['publish_id'] != id0:
+        raise Exception("Unexpected publish_id: " + ev)
+    addr0 = vals['address']
+
+    # Automatically sent Follow-up message without ssi
+    ev = dev[0].wait_event(["NAN-RECEIVE"], timeout=5)
+    if ev is None:
+        raise Exception("Receive event not seen")
+    vals2 = split_nan_event(ev)
+    if vals2['ssi'] != '':
+        raise Exception("Unexpected ssi in Follow-up: " + ev)
+
+    # Follow-up from subscriber to publisher
+    time.sleep(0.2)
+    cmd = "NAN_TRANSMIT handle={} req_instance_id={} address={} ssi=8899".format(vals['subscribe_id'], vals['publish_id'], addr0)
+    if "FAIL" in dev[1].request(cmd):
+        raise Exception("NAN_TRANSMIT failed")
+
+    ev = dev[0].wait_event(["NAN-RECEIVE"], timeout=5)
+    if ev is None:
+        raise Exception("Receive event not seen")
+    vals = split_nan_event(ev)
+    if vals['ssi'] != '8899':
+        raise Exception("Unexpected ssi in Follow-up: " + ev)
+    if vals['id'] != id1:
+        raise Exception("Unexpected id: " + ev)
+    if vals['peer_instance_id'] != id1:
+        raise Exception("Unexpected peer_instance_id: " + ev)
+    addr1 = vals['address']
+
+    # Follow-up from publisher to subscriber
+    cmd = "NAN_TRANSMIT handle={} req_instance_id={} address={} ssi=aabbccdd".format(id0, vals['peer_instance_id'], addr1)
+    if "FAIL" in dev[0].request(cmd):
+        raise Exception("NAN_TRANSMIT failed")
+
+    ev = dev[1].wait_event(["NAN-RECEIVE"], timeout=5)
+    if ev is None:
+        raise Exception("Receive event not seen")
+    vals = split_nan_event(ev)
+    if vals['ssi'] != 'aabbccdd':
+        raise Exception("Unexpected ssi in Follow-up: " + ev)
+    if vals['id'] != id1:
+        raise Exception("Unexpected id: " + ev)
+    if vals['peer_instance_id'] != id0:
+        raise Exception("Unexpected peer_instance_id: " + ev)
+
+    # Simulate provisioning of a network profile and connection using it.
+    # Stop NAN USD listen operation first to avoid parallel radio operations
+    # while trying to connect.
+    cmd = "NAN_PUBLISH_STOP_LISTEN id=" + id0;
+    if "OK" not in dev[0].request(cmd):
+        raise Exception("Failed to stop publisher listen operation")
+    # Add the provisioned network profile and connect.
+    id = dev[0].add_network()
+    dev[0].set_network_quoted(id, "ssid", "ap")
+    dev[0].set_network(id, "key_mgmt", "NONE")
+    dev[0].set_network(id, "scan_freq", "2462")
+    dev[0].select_network(id)
+    dev[0].wait_connected()
+
+    # Another Follow-up message from publisher to subscriber to simulate
+    # connection result reporting
+    cmd = "NAN_TRANSMIT handle={} req_instance_id={} address={} ssi=eeff".format(id1, vals['peer_instance_id'], addr1)
+    if "FAIL" in dev[0].request(cmd):
+        raise Exception("NAN_TRANSMIT failed")
+
+    ev = dev[1].wait_event(["NAN-RECEIVE"], timeout=5)
+    if ev is None:
+        raise Exception("Receive event not seen")
+    vals = split_nan_event(ev)
+    if vals['ssi'] != 'eeff':
+        raise Exception("Unexpected ssi in Follow-up: " + ev)
+    if vals['id'] != id1:
+        raise Exception("Unexpected id: " + ev)
+    if vals['peer_instance_id'] != id0:
+        raise Exception("Unexpected peer_instance_id: " + ev)
+
+    dev[0].request("NAN_CANCEL_PUBLISH id=" + id0)
+    dev[1].request("NAN_CANCEL_SUBSCRIBE id=" + id1)
