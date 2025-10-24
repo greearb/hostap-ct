@@ -2044,3 +2044,21 @@ def test_scan_short_ssid_list(dev, apdev):
 
     if not found:
         raise Exception("AP not found in scan results")
+
+def test_scan_freq_network(dev, apdev):
+    """Scanning channels based on network profiles"""
+    hostapd.add_ap(apdev[0], {"ssid": "test-scan"})
+
+    id = dev[0].add_network()
+    dev[0].set_network_quoted(id, "ssid", "foo")
+    dev[0].set_network(id, "key_mgmt", "NONE")
+    dev[0].set_network(id, "disabled", "0")
+
+    id2 = dev[0].add_network()
+    dev[0].set_network_quoted(id2, "ssid", "test-scan")
+    dev[0].set_network(id2, "key_mgmt", "NONE")
+    dev[0].set_network(id2, "disabled", "0")
+    dev[0].set_network(id2, "scan_freq", "2412")
+
+    dev[0].select_network(id2)
+    dev[0].wait_connected()

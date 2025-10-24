@@ -6754,3 +6754,23 @@ def test_dbus_nan_usd_publish_followup(dev, apdev):
     with TestDbusNANUSD(bus) as t:
         if not t.success():
             raise Exception("Expected signals not seen")
+
+def test_dbus_scan_freq_network(dev, apdev):
+    """D-Bus scanning channels based on network profiles"""
+    (bus, wpas_obj, path, if_obj) = prepare_dbus(dev[0])
+    iface = dbus.Interface(if_obj, WPAS_DBUS_IFACE)
+
+    hostapd.add_ap(apdev[0], {"ssid": "test-scan"})
+
+    args = dbus.Dictionary({'ssid': "foo",
+                            'key_mgmt': 'NONE'},
+                           signature='sv')
+    netw0 = iface.AddNetwork(args)
+
+    args = dbus.Dictionary({'ssid': "test-scan",
+                            'key_mgmt': 'NONE',
+                            'scan_freq': 2412},
+                           signature='sv')
+    netw = iface.AddNetwork(args)
+    iface.SelectNetwork(netw)
+    dev[0].wait_connected()
