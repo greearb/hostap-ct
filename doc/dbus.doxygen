@@ -806,6 +806,20 @@ fi.w1.wpa_supplicant1.CreateInterface.
 	</dl>
       </li>
       <li>
+	<h3>NANPublishStopListen ( u : publish_id ) --> nothing</h3>
+	<p>Stop listen operation for a previously added NAN USD publisher service.</p>
+	<h4>Arguments</h4>
+	<dl>
+	  <dt>u : publish_id</dt>
+	  <dd>Publish ID from NANPublish().</dd>
+	</dl>
+	<h4>Possible errors</h4>
+	<dl>
+	  <dt>fi.w1.wpa_supplicant1.InvalidArgs</dt>
+	  <dd>Invalid entries were found in the passed argument.</dd>
+	</dl>
+      </li>
+      <li>
 	<h3>NANSubscribe ( a{sv} : args ) --> u : subscribe_id</h3>
 	<p>Subscribe to a NAN USD service.</p>
 	<h4>Arguments</h4>
@@ -836,6 +850,20 @@ fi.w1.wpa_supplicant1.CreateInterface.
       <li>
 	<h3>NANCancelSubscribe ( u : subscribe_id ) --> nothing</h3>
 	<p>Cancel a previously started NAN USD subscription.</p>
+	<h4>Arguments</h4>
+	<dl>
+	  <dt>u : subscribe_id</dt>
+	  <dd>Subscription ID from NANSubscribe().</dd>
+	</dl>
+	<h4>Possible errors</h4>
+	<dl>
+	  <dt>fi.w1.wpa_supplicant1.InvalidArgs</dt>
+	  <dd>Invalid entries were found in the passed argument.</dd>
+	</dl>
+      </li>
+      <li>
+	<h3>NANSubscribeStopListen ( u : subscribe_id ) --> nothing</h3>
+	<p>Stop listen operation for a previously started NAN USD subscription.</p>
 	<h4>Arguments</h4>
 	<dl>
 	  <dt>u : subscribe_id</dt>

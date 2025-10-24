@@ -65,6 +65,7 @@ struct nan_de_service {
 	unsigned int next_publish_duration;
 	bool is_p2p;
 	bool is_pr;
+	bool listen_stopped;
 };
 
 struct nan_de {
@@ -641,6 +642,11 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 			duration = os_reltime_in_ms(&diff);
 			if (duration < 0)
 				continue;
+			if (srv->listen_stopped) {
+				wpa_printf(MSG_DEBUG,
+					   "NAN: Publisher listen stopped temporarily - do not start driver listen operation");
+				continue;
+			}
 			if ((unsigned int) duration > de->max_listen)
 				duration = de->max_listen;
 			if (de->cb.listen(de->cb.ctx, srv->freq, duration) ==
@@ -669,6 +675,12 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 		     (srv->type == NAN_DE_SUBSCRIBE &&
 		      !srv->subscribe.active))) {
 			int duration = 1000;
+
+			if (srv->listen_stopped) {
+				wpa_printf(MSG_DEBUG,
+					   "NAN: Listen stopped temporarily - do not start driver listen operation");
+				continue;
+			}
 
 			if (srv->type == NAN_DE_PUBLISH) {
 				nan_de_check_chan_change(srv);
@@ -1604,5 +1616,21 @@ int nan_de_transmit(struct nan_de *de, int handle,
 	nan_de_tx_sdf(de, srv, 100, NAN_SRV_CTRL_FOLLOW_UP,
 		      peer_addr, a3, req_instance_id, ssi);
 
+	srv->listen_stopped = false;
+	return 0;
+}
+
+
+int nan_de_stop_listen(struct nan_de *de, int handle)
+{
+	struct nan_de_service *srv;
+
+	if (handle < 1 || handle > NAN_DE_MAX_SERVICE)
+		return -1;
+
+	srv = de->service[handle - 1];
+	if (!srv)
+		return -1;
+	srv->listen_stopped = true;
 	return 0;
 }

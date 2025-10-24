@@ -12863,6 +12863,31 @@ fail:
 }
 
 
+static int wpas_ctrl_nan_publish_stop_listen(struct wpa_supplicant *wpa_s,
+					     char *cmd)
+{
+	char *token, *context = NULL;
+	int publish_id = 0;
+
+	while ((token = str_token(cmd, " ", &context))) {
+		if (sscanf(token, "id=%i", &publish_id) == 1)
+			continue;
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid NAN_PUBLISH_STOP_LISTEN parameter: %s",
+			   token);
+		return -1;
+	}
+
+	if (publish_id <= 0) {
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid or missing NAN_PUBLISH_STOP_LISTEN publish_id");
+		return -1;
+	}
+
+	return wpas_nan_usd_publish_stop_listen(wpa_s, publish_id);
+}
+
+
 static int wpas_ctrl_nan_subscribe(struct wpa_supplicant *wpa_s, char *cmd,
 				   char *buf, size_t buflen)
 {
@@ -12986,6 +13011,31 @@ static int wpas_ctrl_nan_cancel_subscribe(struct wpa_supplicant *wpa_s,
 
 	wpas_nan_usd_cancel_subscribe(wpa_s, subscribe_id);
 	return 0;
+}
+
+
+static int wpas_ctrl_nan_subscribe_stop_listen(struct wpa_supplicant *wpa_s,
+					       char *cmd)
+{
+	char *token, *context = NULL;
+	int subscribe_id = 0;
+
+	while ((token = str_token(cmd, " ", &context))) {
+		if (sscanf(token, "id=%i", &subscribe_id) == 1)
+			continue;
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid NAN_SUBSCRIBE_STOP_LISTEN parameter: %s",
+			   token);
+		return -1;
+	}
+
+	if (subscribe_id <= 0) {
+		wpa_printf(MSG_INFO,
+			   "CTRL: Invalid or missing NAN_SUBSCRIBE_STOP_LISTEN subscribe_id");
+		return -1;
+	}
+
+	return wpas_nan_usd_subscribe_stop_listen(wpa_s, subscribe_id);
 }
 
 
@@ -14112,11 +14162,17 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strncmp(buf, "NAN_UPDATE_PUBLISH ", 19) == 0) {
 		if (wpas_ctrl_nan_update_publish(wpa_s, buf + 19) < 0)
 			reply_len = -1;
+	} else if (os_strncmp(buf, "NAN_PUBLISH_STOP_LISTEN ", 24) == 0) {
+		if (wpas_ctrl_nan_publish_stop_listen(wpa_s, buf + 24) < 0)
+			reply_len = -1;
 	} else if (os_strncmp(buf, "NAN_SUBSCRIBE ", 14) == 0) {
 		reply_len = wpas_ctrl_nan_subscribe(wpa_s, buf + 14, reply,
 						    reply_size);
 	} else if (os_strncmp(buf, "NAN_CANCEL_SUBSCRIBE ", 21) == 0) {
 		if (wpas_ctrl_nan_cancel_subscribe(wpa_s, buf + 21) < 0)
+			reply_len = -1;
+	} else if (os_strncmp(buf, "NAN_SUBSCRIBE_STOP_LISTEN ", 26) == 0) {
+		if (wpas_ctrl_nan_subscribe_stop_listen(wpa_s, buf + 26) < 0)
 			reply_len = -1;
 	} else if (os_strncmp(buf, "NAN_TRANSMIT ", 13) == 0) {
 		if (wpas_ctrl_nan_transmit(wpa_s, buf + 13) < 0)

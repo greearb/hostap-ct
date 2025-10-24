@@ -170,4 +170,6 @@ int nan_de_transmit(struct nan_de *de, int handle,
 		    const struct wpabuf *ssi, const struct wpabuf *elems,
 		    const u8 *peer_addr, u8 req_instance_id);
 
+int nan_de_stop_listen(struct nan_de *de, int handle);
+
 #endif /* NAN_DE_H */

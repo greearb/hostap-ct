@@ -490,6 +490,42 @@ int wpas_nan_usd_unpause_publish(struct wpa_supplicant *wpa_s, int publish_id,
 }
 
 
+static int wpas_nan_stop_listen(struct wpa_supplicant *wpa_s, int id)
+{
+	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD)
+		return 0;
+
+	if (nan_de_stop_listen(wpa_s->nan_de, id) < 0)
+		return -1;
+
+	if (wpa_s->nan_usd_listen_work) {
+		wpa_printf(MSG_DEBUG, "NAN: Stop listen operation");
+		wpa_drv_cancel_remain_on_channel(wpa_s);
+		wpas_nan_usd_listen_work_done(wpa_s);
+	}
+
+	if (wpa_s->nan_usd_tx_work) {
+		wpa_printf(MSG_DEBUG, "NAN: Stop TX wait operation");
+		offchannel_send_action_done(wpa_s);
+		wpas_nan_usd_tx_work_done(wpa_s);
+	}
+
+	return 0;
+}
+
+
+int wpas_nan_usd_publish_stop_listen(struct wpa_supplicant *wpa_s,
+				     int publish_id)
+{
+	if (!wpa_s->nan_de)
+		return -1;
+
+	wpa_printf(MSG_DEBUG, "NAN: Request to stop listen for publish_id=%d",
+		   publish_id);
+	return wpas_nan_stop_listen(wpa_s, publish_id);
+}
+
+
 int wpas_nan_usd_subscribe(struct wpa_supplicant *wpa_s,
 			   const char *service_name,
 			   enum nan_service_protocol_type srv_proto_type,
@@ -544,6 +580,18 @@ void wpas_nan_usd_cancel_subscribe(struct wpa_supplicant *wpa_s,
 	nan_de_cancel_subscribe(wpa_s->nan_de, subscribe_id);
 	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD)
 		wpas_drv_nan_cancel_subscribe(wpa_s, subscribe_id);
+}
+
+
+int wpas_nan_usd_subscribe_stop_listen(struct wpa_supplicant *wpa_s,
+				       int subscribe_id)
+{
+	if (!wpa_s->nan_de)
+		return -1;
+
+	wpa_printf(MSG_DEBUG, "NAN: Request to stop listen for subscribe_id=%d",
+		   subscribe_id);
+	return wpas_nan_stop_listen(wpa_s, subscribe_id);
 }
 
 

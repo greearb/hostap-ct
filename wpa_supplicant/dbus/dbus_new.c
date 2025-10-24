@@ -3869,6 +3869,13 @@ static const struct wpa_dbus_method_desc wpas_dbus_interface_methods[] = {
 		  END_ARGS
 	  }
 	},
+	{ "NANPublishStopListen", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  (WPADBusMethodHandler) wpas_dbus_handler_nan_publish_stop_listen,
+	  {
+		  { "publish_id", "u", ARG_IN },
+		  END_ARGS
+	  }
+	},
 	{ "NANSubscribe", WPAS_DBUS_NEW_IFACE_INTERFACE,
 	  (WPADBusMethodHandler) wpas_dbus_handler_nan_subscribe,
 	  {
@@ -3879,6 +3886,13 @@ static const struct wpa_dbus_method_desc wpas_dbus_interface_methods[] = {
 	},
 	{ "NANCancelSubscribe", WPAS_DBUS_NEW_IFACE_INTERFACE,
 	  (WPADBusMethodHandler) wpas_dbus_handler_nan_cancel_subscribe,
+	  {
+		  { "subscribe_id", "u", ARG_IN },
+		  END_ARGS
+	  }
+	},
+	{ "NANSubscribeStopListen", WPAS_DBUS_NEW_IFACE_INTERFACE,
+	  (WPADBusMethodHandler) wpas_dbus_handler_nan_subscribe_stop_listen,
 	  {
 		  { "subscribe_id", "u", ARG_IN },
 		  END_ARGS

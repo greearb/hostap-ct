@@ -296,11 +296,16 @@ DBusMessage * wpas_dbus_handler_nan_cancel_publish(
 	DBusMessage *message, struct wpa_supplicant *wpa_s);
 DBusMessage * wpas_dbus_handler_nan_update_publish(
 	DBusMessage *message, struct wpa_supplicant *wpa_s);
+DBusMessage * wpas_dbus_handler_nan_publish_stop_listen(
+	DBusMessage *message, struct wpa_supplicant *wpa_s);
 DBusMessage * wpas_dbus_handler_nan_subscribe(DBusMessage *message,
 					      struct wpa_supplicant *wpa_s);
 DBusMessage *
 wpas_dbus_handler_nan_cancel_subscribe(DBusMessage *message,
 				       struct wpa_supplicant *wpa_s);
+DBusMessage *
+wpas_dbus_handler_nan_subscribe_stop_listen(DBusMessage *message,
+					    struct wpa_supplicant *wpa_s);
 DBusMessage * wpas_dbus_handler_nan_transmit(DBusMessage *message,
 					     struct wpa_supplicant *wpa_s);
 
