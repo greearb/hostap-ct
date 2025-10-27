@@ -103,6 +103,7 @@ struct sae_pt {
 
 	const struct dh_group *dh;
 	struct crypto_bignum *ffc_pt;
+	struct wpabuf *password_id;
 #ifdef CONFIG_SAE_PK
 	u8 ssid[32];
 	size_t ssid_len;

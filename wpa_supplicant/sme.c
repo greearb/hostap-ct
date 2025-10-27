@@ -288,6 +288,11 @@ reuse_data:
 		else
 			wpabuf_put_le16(buf,WLAN_STATUS_SUCCESS);
 	}
+
+	if (use_pt && ssid->pt && ssid->pt->password_id) {
+		password_id = wpabuf_head(ssid->pt->password_id);
+		password_id_len = wpabuf_len(ssid->pt->password_id);
+	}
 	if (sae_write_commit(&wpa_s->sme.sae, buf, wpa_s->sme.sae_token,
 			     password_id, password_id_len) < 0) {
 		wpabuf_free(buf);
@@ -1820,6 +1825,23 @@ static int sme_sae_auth(struct wpa_supplicant *wpa_s, u16 auth_transaction,
 	if (auth_transaction == 1 &&
 	    status_code == WLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER) {
 		const u8 *bssid = sa ? sa : wpa_s->pending_bssid;
+		struct wpa_ssid *ssid = wpa_s->current_ssid;
+
+		if (ssid && ssid->alt_sae_password_ids &&
+		    ssid->alt_sae_passwords_ids_used) {
+			wpa_printf(MSG_DEBUG,
+				   "SAE: Remove alternative password identifier (idx=%u) due to rejection",
+				   ssid->alt_sae_passwords_ids_idx);
+			wpabuf_array_remove(ssid->alt_sae_password_ids,
+					    ssid->alt_sae_passwords_ids_idx);
+
+#ifndef CONFIG_NO_CONFIG_WRITE
+			if (wpa_s->conf->update_config &&
+			    wpa_config_write(wpa_s->confname, wpa_s->conf))
+				wpa_printf(MSG_DEBUG,
+					   "SAE: Failed to update configuration");
+#endif /* CONFIG_NO_CONFIG_WRITE */
+		}
 
 		wpa_msg(wpa_s, MSG_INFO,
 			WPA_EVENT_SAE_UNKNOWN_PASSWORD_IDENTIFIER MACSTR,

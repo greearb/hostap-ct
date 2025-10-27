@@ -269,6 +269,10 @@ struct wpa_ssid {
 	 */
 	char *sae_password_id;
 
+	struct wpabuf_array *alt_sae_password_ids;
+	unsigned int alt_sae_passwords_ids_idx;
+	bool alt_sae_passwords_ids_used;
+
 	struct sae_pt *pt;
 
 	/**
@@ -1336,6 +1340,10 @@ struct wpa_ssid {
 	 */
 	int go_dik_id;
 
+	/**
+	 * sae_password_id_change - Whether to use changing SAE password IDs
+	 */
+	bool sae_password_id_change;
 };
 
 #endif /* CONFIG_SSID_H */

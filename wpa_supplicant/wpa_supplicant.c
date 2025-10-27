@@ -2290,6 +2290,9 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 						   WPA_CIPHER_GCMP) &&
 			 (wpa_s->wpa_proto & WPA_PROTO_RSN));
 
+	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_SAE_PW_ID_CHANGE,
+			 ssid->sae_password_id && ssid->sae_password_id_change);
+
 	if (!skip_default_rsne) {
 		if (wpa_sm_set_assoc_wpa_ie_default(wpa_s->wpa, wpa_ie,
 						    wpa_ie_len)) {
@@ -2677,6 +2680,7 @@ void wpa_s_setup_sae_pt(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 	const u8 *password_id = (const u8 *) ssid->sae_password_id;
 	size_t password_id_len = ssid->sae_password_id ?
 		os_strlen(ssid->sae_password_id) : 0;
+	struct wpabuf_array *ids;
 
 	if (!groups || groups[0] <= 0)
 		groups = default_groups;
@@ -2700,8 +2704,33 @@ void wpa_s_setup_sae_pt(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 		return;
 	}
 
-	if (ssid->pt)
-		return; /* PT already derived */
+	ids = ssid->alt_sae_password_ids;
+	if (ids && ids->num) {
+		unsigned int idx = os_random() % ids->num;
+		struct wpabuf *id = ids->buf[idx];
+
+		password_id = wpabuf_head(id);
+		password_id_len = wpabuf_len(id);
+		wpa_hexdump(MSG_DEBUG,
+			    "SAE: Prepare PT for alternative password ID",
+			    password_id, password_id_len);
+		ssid->alt_sae_passwords_ids_idx = idx;
+		ssid->alt_sae_passwords_ids_used = true;
+	}
+
+	if (ssid->pt) {
+		if (!password_id && !ssid->pt->password_id)
+			return; /* PT already derived for no PW ID */
+		if (password_id && ssid->pt->password_id &&
+		    password_id_len == wpabuf_len(ssid->pt->password_id) &&
+		    os_memcmp(password_id, wpabuf_head(ssid->pt->password_id),
+			      password_id_len == 0))
+			return; /* PT already derived for same PW ID */
+
+		/* PT was derived for another password identifier */
+		sae_deinit_pt(ssid->pt);
+		ssid->pt = NULL;
+	}
 	ssid->pt = sae_derive_pt(groups, ssid->ssid, ssid->ssid_len,
 				 (const u8 *) password, os_strlen(password),
 				 password_id, password_id_len);

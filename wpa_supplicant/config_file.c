@@ -787,6 +787,7 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 	STR(sae_password);
 	STR(sae_password_id);
 	write_int(f, "sae_pwe", ssid->sae_pwe, DEFAULT_SAE_PWE);
+	INT(sae_password_id_change);
 	write_proto(f, ssid);
 	write_key_mgmt(f, ssid);
 	INT_DEF(bg_scan_period, DEFAULT_BG_SCAN_PERIOD);
@@ -1004,7 +1005,20 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 	INT(max_idle);
 	INT(ssid_protection);
 	INT_DEF(rsn_overriding, RSN_OVERRIDING_NOT_SET);
+#ifdef CONFIG_SAE
+	if (ssid->alt_sae_password_ids) {
+		struct wpabuf_array *ids = ssid->alt_sae_password_ids;
+		unsigned int idx;
+		char hex[255 * 2 + 1];
 
+		for (idx = 0; idx < ids->num; idx++) {
+			wpa_snprintf_hex(hex, sizeof(hex),
+					 wpabuf_head(ids->buf[idx]),
+					 wpabuf_len(ids->buf[idx]));
+			fprintf(f, "\talt_sae_password_ids=%s\n", hex);
+		}
+	}
+#endif /* CONFIG_SAE */
 #undef STR
 #undef INT
 #undef INT_DEF

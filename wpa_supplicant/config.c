@@ -666,6 +666,42 @@ static char * wpa_config_write_psk(const struct parse_data *data,
 #endif /* NO_CONFIG_WRITE */
 
 
+static int wpa_config_parse_alt_sae_password_ids(const struct parse_data *data,
+						 struct wpa_ssid *ssid,
+						 int line, const char *value)
+{
+	struct wpabuf *tmp;
+
+	if (!value[0]) {
+		wpabuf_array_free(ssid->alt_sae_password_ids);
+		return 0;
+	}
+
+	tmp = wpabuf_parse_bin(value);
+	if (!tmp) {
+		wpa_printf(MSG_ERROR, "Line %d: invalid alt_sae_password_ids",
+			   line);
+		return -1;
+	}
+
+	if (!ssid->alt_sae_password_ids)
+		ssid->alt_sae_password_ids = wpabuf_array_alloc();
+	if (wpabuf_array_add(ssid->alt_sae_password_ids, tmp) < 0)
+		return -1;
+	return 0;
+}
+
+
+#ifndef NO_CONFIG_WRITE
+static char *
+wpa_config_write_alt_sae_password_ids(const struct parse_data *data,
+				      struct wpa_ssid *ssid)
+{
+	return NULL;
+}
+#endif /* NO_CONFIG_WRITE */
+
+
 static int wpa_config_parse_proto(const struct parse_data *data,
 				  struct wpa_ssid *ssid, int line,
 				  const char *value)
@@ -2554,6 +2590,7 @@ static const struct parse_data ssid_fields[] = {
 	{ INT(mem_only_psk) },
 	{ STR_KEY(sae_password) },
 	{ STR(sae_password_id) },
+	{ FUNC(alt_sae_password_ids) },
 	{ INT(sae_pwe) },
 	{ FUNC(proto) },
 	{ FUNC(key_mgmt) },
@@ -2786,6 +2823,7 @@ static const struct parse_data ssid_fields[] = {
 	{ INT_RANGE(max_idle, 0, 65535)},
 	{ INT_RANGE(ssid_protection, 0, 1)},
 	{ INT_RANGE(rsn_overriding, 0, 2)},
+	{ INT_RANGE(sae_password_id_change, 0, 1)},
 };
 
 #undef OFFSET
@@ -2958,6 +2996,7 @@ void wpa_config_free_ssid(struct wpa_ssid *ssid)
 	os_free(ssid->ext_psk);
 	str_clear_free(ssid->sae_password);
 	os_free(ssid->sae_password_id);
+	wpabuf_array_free(ssid->alt_sae_password_ids);
 #ifdef IEEE8021X_EAPOL
 	eap_peer_config_free(&ssid->eap);
 #endif /* IEEE8021X_EAPOL */

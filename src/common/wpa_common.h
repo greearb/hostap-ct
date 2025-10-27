@@ -673,6 +673,8 @@ struct wpa_eapol_ie_parse {
 	size_t igtk_len;
 	const u8 *bigtk;
 	size_t bigtk_len;
+	const u8 *sae_pw_ids;
+	size_t sae_pw_ids_len;
 	const u8 *mdie;
 	size_t mdie_len;
 	const u8 *ftie;

@@ -458,6 +458,10 @@ void perror(const char *s);
 #define BIT(x) (1U << (x))
 #endif
 
+#ifndef BIT_ULL
+#define BIT_ULL(x) (1ULL << (x))
+#endif
+
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif

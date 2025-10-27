@@ -1065,6 +1065,12 @@ sae_derive_pt_group(int group, const u8 *ssid, size_t ssid_len,
 	if (!pt)
 		return NULL;
 
+	if (identifier) {
+		pt->password_id = wpabuf_alloc_copy(identifier, identifier_len);
+		if (!pt->password_id)
+			goto fail;
+	}
+
 #ifdef CONFIG_SAE_PK
 	os_memcpy(pt->ssid, ssid, ssid_len);
 	pt->ssid_len = ssid_len;
@@ -1281,6 +1287,7 @@ void sae_deinit_pt(struct sae_pt *pt)
 		crypto_ec_point_deinit(pt->ecc_pt, 1);
 		crypto_bignum_deinit(pt->ffc_pt, 1);
 		crypto_ec_deinit(pt->ec);
+		wpabuf_free(pt->password_id);
 		prev = pt;
 		pt = pt->next;
 		os_free(prev);

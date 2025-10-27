@@ -115,6 +115,7 @@ struct wpa_sm {
 	unsigned int prot_range_neg_x20:1;
 	unsigned int ssid_protection:1;
 	unsigned int spp_amsdu:1;
+	unsigned int sae_pw_id_change:1;
 
 	u8 *assoc_wpa_ie; /* Own WPA/RSN IE from (Re)AssocReq */
 	size_t assoc_wpa_ie_len;

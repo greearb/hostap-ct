@@ -1449,6 +1449,30 @@ static void wpa_supplicant_ssid_verified(void *_wpa_s)
 	wpa_msg(wpa_s, MSG_INFO, "RSN: SSID matched expected value");
 }
 
+
+static void wpa_supplicant_sae_pw_id_change(void *_wpa_s,
+					    struct wpabuf_array *wa)
+{
+	struct wpa_supplicant *wpa_s = _wpa_s;
+	struct wpa_ssid *ssid = wpa_s->current_ssid;
+
+	wpa_msg(wpa_s, MSG_INFO, "RSN: Received %u SAE Password Identifier(s)",
+		wa->num);
+	if (!ssid) {
+		wpabuf_array_free(wa);
+		return;
+	}
+
+	wpabuf_array_free(ssid->alt_sae_password_ids);
+	ssid->alt_sae_password_ids = wa;
+
+#ifndef CONFIG_NO_CONFIG_WRITE
+	if (wpa_s->conf->update_config &&
+	    wpa_config_write(wpa_s->confname, wpa_s->conf))
+		wpa_printf(MSG_DEBUG, "SAE: Failed to update configuration");
+#endif /* CONFIG_NO_CONFIG_WRITE */
+}
+
 #endif /* CONFIG_NO_WPA */
 
 
@@ -1519,6 +1543,7 @@ int wpa_supplicant_init_wpa(struct wpa_supplicant *wpa_s)
 #endif /* CONFIG_PASN */
 	ctx->notify_pmksa_cache_entry = wpa_supplicant_notify_pmksa_cache_entry;
 	ctx->ssid_verified = wpa_supplicant_ssid_verified;
+	ctx->sae_pw_id_change = wpa_supplicant_sae_pw_id_change;
 
 	wpa_s->wpa = wpa_sm_init(ctx);
 	if (wpa_s->wpa == NULL) {

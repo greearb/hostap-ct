@@ -301,7 +301,7 @@ int wpa_gen_wpa_ie(struct wpa_sm *sm, u8 *wpa_ie, size_t wpa_ie_len)
 int wpa_gen_rsnxe(struct wpa_sm *sm, u8 *rsnxe, size_t rsnxe_len)
 {
 	u8 *pos = rsnxe;
-	u32 capab = 0, tmp;
+	u64 capab = 0, tmp;
 	size_t flen;
 
 	if (wpa_key_mgmt_sae(sm->key_mgmt) &&
@@ -326,6 +326,8 @@ int wpa_gen_rsnxe(struct wpa_sm *sm, u8 *rsnxe, size_t rsnxe_len)
 		capab |= BIT(WLAN_RSNX_CAPAB_SSID_PROTECTION);
 	if (sm->spp_amsdu)
 		capab |= BIT(WLAN_RSNX_CAPAB_SPP_A_MSDU);
+	if (sm->sae_pw_id_change)
+		capab |= BIT_ULL(WLAN_RSNX_CAPAB_SAE_PW_ID_CHANGE);
 
 	if (!capab)
 		return 0; /* no supported extended RSN capabilities */

@@ -2717,6 +2717,52 @@ failed:
 }
 
 
+static void wpa_sm_sae_pw_id_change(struct wpa_sm *sm, const u8 *kde,
+				    size_t kde_len)
+{
+	const u8 *pos = kde, *end = kde + kde_len;
+	u8 flags;
+	struct wpabuf_array *wa;
+
+	wpa_hexdump(MSG_DEBUG, "RSN: Received SAE Password Identifiers KDE",
+		    kde, kde_len);
+
+	if (end - pos < 1)
+		return;
+	flags = *pos++;
+	wpa_printf(MSG_DEBUG, "RSN: SAE Password Identifiers Flags: 0x%x",
+		   flags);
+
+	if (!sm->ctx->sae_pw_id_change)
+		return;
+
+	wa = wpabuf_array_alloc();
+	if (!wa)
+		return;
+
+	while (end > pos) {
+		u8 len;
+
+		len = *pos++;
+		if (end - pos < len) {
+			wpa_printf(MSG_INFO,
+				   "RSN: Truncated SAE Password Identifier Tuple");
+			wpabuf_array_free(wa);
+			return;
+		}
+		wpa_hexdump(MSG_DEBUG, "RSN: SAE Password Identifier",
+			    pos, len);
+		if (wpabuf_array_add(wa, wpabuf_alloc_copy(pos, len))) {
+			wpabuf_array_free(wa);
+			return;
+		}
+		pos += len;
+	}
+
+	sm->ctx->sae_pw_id_change(sm->ctx->ctx, wa);
+}
+
+
 static void wpa_supplicant_process_3_of_4(struct wpa_sm *sm,
 					  const struct wpa_eapol_key *key,
 					  u16 ver, const u8 *key_data,
@@ -2997,6 +3043,9 @@ static void wpa_supplicant_process_3_of_4(struct wpa_sm *sm,
 
 	if (ie.transition_disable)
 		wpa_sm_transition_disable(sm, ie.transition_disable[0]);
+	if (ie.sae_pw_ids && wpa_key_mgmt_sae(sm->key_mgmt) &&
+	    sm->sae_pw_id_change)
+		wpa_sm_sae_pw_id_change(sm, ie.sae_pw_ids, ie.sae_pw_ids_len);
 	sm->msg_3_of_4_ok = 1;
 	return;
 
@@ -5070,6 +5119,9 @@ int wpa_sm_set_param(struct wpa_sm *sm, enum wpa_sm_conf_params param,
 		break;
 	case WPA_PARAM_RSN_OVERRIDE_SUPPORT:
 		sm->rsn_override_support = value;
+		break;
+	case WPA_PARAM_SAE_PW_ID_CHANGE:
+		sm->sae_pw_id_change = !!value;
 		break;
 	default:
 		break;
