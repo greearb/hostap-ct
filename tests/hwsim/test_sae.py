@@ -3692,3 +3692,106 @@ def test_sae_inactivity_timeout(dev, apdev):
         raise Exception("STA disconnection on inactivity was not reported")
     dev[0].wait_disconnected()
     dev[0].wait_connected()
+
+def test_sae_password_id_change(dev, apdev):
+    """SAE and password identifier change"""
+    check_sae_capab(dev[0])
+    params = hostapd.wpa2_params(ssid="test-sae")
+    params['wpa_key_mgmt'] = 'SAE'
+    params['sae_pwe'] = '1'
+    params['sae_pw_id_num'] = '3'
+    params['sae_pw_id_key'] = '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'
+    params['sae_password'] = 'secret|id=pw id'
+    params['disable_pmksa_caching'] = '1'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    try:
+        dev[0].set("sae_groups", "")
+        dev[0].set("sae_pwe", "1")
+        dev[0].connect("test-sae", sae_password="secret",
+                       sae_password_id="pw id",
+                       sae_password_id_change="1",
+                       key_mgmt="SAE", scan_freq="2412")
+        dev[0].dump_monitor()
+
+        for i in range(2):
+            dev[0].request("DISCONNECT")
+            dev[0].wait_disconnected()
+            dev[0].dump_monitor()
+            dev[0].request("PMKSA_FLUSH")
+
+            dev[0].request("RECONNECT")
+            dev[0].wait_connected()
+            dev[0].dump_monitor()
+    finally:
+        dev[0].set("sae_groups", "")
+        dev[0].set("sae_pwe", "0")
+
+def test_sae_password_id_change_ap_reject(dev, apdev):
+    """SAE and password identifier change with AP rejection"""
+    check_sae_capab(dev[0])
+    params = hostapd.wpa2_params(ssid="test-sae")
+    params['wpa_key_mgmt'] = 'SAE'
+    params['sae_pwe'] = '1'
+    params['sae_pw_id_num'] = '2'
+    params['sae_pw_id_key'] = '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'
+    params['sae_password'] = 'secret|id=pw id'
+    params['disable_pmksa_caching'] = '1'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    try:
+        dev[0].set("sae_groups", "")
+        dev[0].set("sae_pwe", "1")
+        dev[0].connect("test-sae", sae_password="secret",
+                       sae_password_id="pw id",
+                       sae_password_id_change="1",
+                       key_mgmt="SAE", scan_freq="2412")
+        dev[0].dump_monitor()
+
+        dev[0].request("DISCONNECT")
+        dev[0].wait_disconnected()
+        dev[0].dump_monitor()
+        dev[0].request("PMKSA_FLUSH")
+
+        # Change sae_pw_id_key to force hostapd to be unable to decrypt the
+        # encrypted password identifier.
+        hapd.set('sae_pw_id_key',
+                 'ff0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f')
+
+        dev[0].request("RECONNECT")
+        dev[0].wait_connected()
+        dev[0].dump_monitor()
+    finally:
+        dev[0].set("sae_groups", "")
+        dev[0].set("sae_pwe", "0")
+
+def test_sae_password_id_change_config_file(dev, apdev, params):
+    """SAE and password identifier change in config file """
+    config = params['prefix'] + '.conf.wlan5'
+    with open(config, "w") as f:
+        f.write("update_config=1\n")
+
+    wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+    wpas.interface_add("wlan5", config=config)
+    check_sae_capab(wpas)
+
+    params = hostapd.wpa2_params(ssid="test-sae")
+    params['wpa_key_mgmt'] = 'SAE'
+    params['sae_pwe'] = '1'
+    params['sae_pw_id_num'] = '2'
+    params['sae_pw_id_key'] = '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'
+    params['sae_password'] = 'secret|id=pw id'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    wpas.set("sae_groups", "")
+    wpas.set("sae_pwe", "1")
+    wpas.connect("test-sae", sae_password="secret",
+                   sae_password_id="pw id",
+                   sae_password_id_change="1",
+                   key_mgmt="SAE", scan_freq="2412")
+    wpas.request("DISCONNECT")
+    wpas.wait_disconnected()
+
+    wpas.interface_remove("wlan5")
+    wpas.interface_add("wlan5", config=config)
+    wpas.wait_connected()
