@@ -112,7 +112,8 @@ ip link set lo up
 # create logs mountpoint and mount the logshare
 mkdir /tmp/logs
 if grep -q rootfstype=hostfs /proc/cmdline; then
-    mount -t hostfs none /tmp/logs -o $LOGDIR
+    mount -t hostfs none /tmp/logs -o hostfs=$LOGDIR || \
+    mount -t hostfs none /tmp/logs -o $LOGDIR || exit 2
 else
     mount -t 9p -o trans=virtio,rw logshare /tmp/logs
 fi
