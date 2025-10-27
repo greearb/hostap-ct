@@ -654,7 +654,7 @@ int sae_password_bind(struct hostapd_data *hapd, const u8 *addr,
 
 const char * sae_get_password(struct hostapd_data *hapd,
 			      struct sta_info *sta,
-			      const char *rx_id,
+			      const u8 *rx_id, size_t rx_id_len,
 			      struct sae_password_entry **pw_entry,
 			      struct sae_pt **s_pt,
 			      const struct sae_pk **s_pk)
@@ -712,7 +712,8 @@ const char * sae_get_password(struct hostapd_data *hapd,
 		if ((rx_id && !pw->identifier) || (!rx_id && pw->identifier))
 			continue;
 		if (rx_id && pw->identifier &&
-		    os_strcmp(rx_id, pw->identifier) != 0)
+		    (rx_id_len != os_strlen(pw->identifier) ||
+		     os_memcmp(rx_id, pw->identifier, rx_id_len) != 0))
 			continue;
 		password = pw->password;
 		pt = pw->pt;
@@ -753,7 +754,8 @@ static struct wpabuf * auth_build_sae_commit(struct hostapd_data *hapd,
 	struct wpabuf *buf;
 	const char *password = NULL;
 	struct sae_password_entry *pw;
-	const char *rx_id = NULL;
+	const u8 *rx_id = NULL;
+	size_t rx_id_len = 0;
 	int use_pt = 0;
 	struct sae_pt *pt = NULL;
 	const struct sae_pk *pk = NULL;
@@ -767,6 +769,9 @@ static struct wpabuf * auth_build_sae_commit(struct hostapd_data *hapd,
 	if (sta->sae->tmp) {
 		rx_id = sta->sae->tmp->parsed_pw_id ?
 			sta->sae->tmp->parsed_pw_id : sta->sae->tmp->pw_id;
+		rx_id_len = sta->sae->tmp->parsed_pw_id ?
+			sta->sae->tmp->parsed_pw_id_len :
+			sta->sae->tmp->pw_id_len;
 		use_pt = sta->sae->h2e;
 #ifdef CONFIG_SAE_PK
 		os_memcpy(sta->sae->tmp->own_addr, own_addr, ETH_ALEN);
@@ -782,7 +787,7 @@ static struct wpabuf * auth_build_sae_commit(struct hostapd_data *hapd,
 		 status_code == WLAN_STATUS_SAE_PK)
 		use_pt = 1;
 
-	password = sae_get_password(hapd, sta, rx_id, &pw, &pt, &pk);
+	password = sae_get_password(hapd, sta, rx_id, rx_id_len, &pw, &pt, &pk);
 	if (!password || (use_pt && !pt)) {
 		wpa_printf(MSG_DEBUG, "SAE: No password available");
 		return NULL;
@@ -814,11 +819,11 @@ static struct wpabuf * auth_build_sae_commit(struct hostapd_data *hapd,
 	}
 
 	buf = wpabuf_alloc(SAE_COMMIT_MAX_LEN +
-			   (rx_id ? 3 + os_strlen(rx_id) : 0));
+			   (rx_id ? 3 + rx_id_len : 0));
 	if (buf &&
 	    sae_write_commit(sta->sae, buf, sta->sae->tmp ?
 			     sta->sae->tmp->anti_clogging_token : NULL,
-			     rx_id) < 0) {
+			     rx_id, rx_id_len) < 0) {
 		wpabuf_free(buf);
 		buf = NULL;
 	}
@@ -1185,10 +1190,12 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 
 			if (tmp && tmp->parsed_pw_id && !tmp->pw_id) {
 				tmp->pw_id = tmp->parsed_pw_id;
+				tmp->pw_id_len = tmp->parsed_pw_id_len;
 				tmp->parsed_pw_id = NULL;
-				wpa_printf(MSG_DEBUG,
-					   "SAE: Known Password Identifier bound to this STA: '%s'",
-					   tmp->pw_id);
+				tmp->parsed_pw_id_len = 0;
+				wpa_hexdump_ascii(MSG_DEBUG,
+						  "SAE: Known Password Identifier bound to this STA",
+						  tmp->pw_id, tmp->pw_id_len);
 			}
 
 			sae_set_state(sta, SAE_COMMITTED, "Sent Commit");
@@ -2885,7 +2892,7 @@ static void hapd_initialize_pasn(struct hostapd_data *hapd,
 		pasn_enable_kdk_derivation(pasn);
 #endif /* CONFIG_TESTING_OPTIONS */
 	pasn->use_anti_clogging = use_anti_clogging(hapd);
-	pasn_set_password(pasn, sae_get_password(hapd, sta, NULL, NULL,
+	pasn_set_password(pasn, sae_get_password(hapd, sta, NULL, 0, NULL,
 						 &pasn->pt, NULL));
 	pasn->rsn_ie = wpa_auth_get_wpa_ie(hapd->wpa_auth, &pasn->rsn_ie_len);
 	pasn_set_rsnxe_ie(pasn, hostapd_wpa_ie(hapd, WLAN_EID_RSNX));

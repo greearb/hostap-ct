@@ -2674,6 +2674,9 @@ void wpa_s_setup_sae_pt(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 	int default_groups[] = { 19, 20, 21, 0 };
 	const char *password;
 	enum sae_pwe sae_pwe;
+	const u8 *password_id = (const u8 *) ssid->sae_password_id;
+	size_t password_id_len = ssid->sae_password_id ?
+		os_strlen(ssid->sae_password_id) : 0;
 
 	if (!groups || groups[0] <= 0)
 		groups = default_groups;
@@ -2701,7 +2704,7 @@ void wpa_s_setup_sae_pt(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 		return; /* PT already derived */
 	ssid->pt = sae_derive_pt(groups, ssid->ssid, ssid->ssid_len,
 				 (const u8 *) password, os_strlen(password),
-				 ssid->sae_password_id);
+				 password_id, password_id_len);
 #endif /* CONFIG_SAE */
 }
 

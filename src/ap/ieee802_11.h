@@ -293,7 +293,8 @@ bool hostapd_is_multiple_link_mld(struct hostapd_data *hapd);
 int sae_password_bind(struct hostapd_data *hapd, const u8 *addr,
 		      const char *password);
 const char * sae_get_password(struct hostapd_data *hapd,
-			      struct sta_info *sta, const char *rx_id,
+			      struct sta_info *sta, const u8 *rx_id,
+			      size_t rx_id_len,
 			      struct sae_password_entry **pw_entry,
 			      struct sae_pt **s_pt, const struct sae_pk **s_pk);
 struct sta_info * hostapd_ml_get_assoc_sta(struct hostapd_data *hapd,

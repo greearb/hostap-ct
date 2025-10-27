@@ -416,7 +416,7 @@ static int sae_tests(void)
 		goto fail;
 
 	/* Check that output matches the test vector */
-	if (sae_write_commit(&sae, buf, NULL, NULL) < 0)
+	if (sae_write_commit(&sae, buf, NULL, NULL, 0) < 0)
 		goto fail;
 	wpa_hexdump_buf(MSG_DEBUG, "SAE: Commit message", buf);
 
@@ -449,7 +449,9 @@ static int sae_tests(void)
 
 	pt_info = sae_derive_pt(pt_groups,
 				(const u8 *) ssid, os_strlen(ssid),
-				(const u8 *) pw, os_strlen(pw), pwid);
+				(const u8 *) pw, os_strlen(pw),
+				(const u8 *) pwid,
+				os_strlen(pwid));
 	if (!pt_info)
 		goto fail;
 

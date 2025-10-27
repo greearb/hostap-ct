@@ -58,8 +58,10 @@ struct sae_temporary_data {
 	struct crypto_bignum *prime_buf;
 	struct crypto_bignum *order_buf;
 	struct wpabuf *anti_clogging_token;
-	char *pw_id;
-	char *parsed_pw_id;
+	u8 *pw_id;
+	size_t pw_id_len;
+	u8 *parsed_pw_id;
+	size_t parsed_pw_id_len;
 	int vlan_id;
 	u8 bssid[ETH_ALEN];
 	struct wpabuf *own_rejected_groups;
@@ -140,7 +142,8 @@ int sae_prepare_commit_pt(struct sae_data *sae, const struct sae_pt *pt,
 			  int *rejected_groups, const struct sae_pk *pk);
 int sae_process_commit(struct sae_data *sae);
 int sae_write_commit(struct sae_data *sae, struct wpabuf *buf,
-		     const struct wpabuf *token, const char *identifier);
+		     const struct wpabuf *token, const u8 *identifier,
+		     size_t identifier_len);
 u16 sae_parse_commit(struct sae_data *sae, const u8 *data, size_t len,
 		     const u8 **token, size_t *token_len, int *allowed_groups,
 		     int h2e, int *ie_offset);
@@ -154,7 +157,7 @@ size_t sae_ffc_prime_len_2_hash_len(size_t prime_len);
 struct sae_pt * sae_derive_pt(const int *groups,
 			      const u8 *ssid, size_t ssid_len,
 			      const u8 *password, size_t password_len,
-			      const char *identifier);
+			      const u8 *identifier, size_t identifier_len);
 struct crypto_ec_point *
 sae_derive_pwe_from_pt_ecc(const struct sae_pt *pt,
 			   const u8 *addr1, const u8 *addr2);

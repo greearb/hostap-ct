@@ -126,7 +126,7 @@ static struct wpabuf * wpas_pasn_wd_sae_commit(struct pasn_data *pasn)
 	wpabuf_put_le16(buf, 1);
 	wpabuf_put_le16(buf, WLAN_STATUS_SAE_HASH_TO_ELEMENT);
 
-	sae_write_commit(&pasn->sae, buf, NULL, NULL);
+	sae_write_commit(&pasn->sae, buf, NULL, NULL, 0);
 	pasn->sae.state = SAE_COMMITTED;
 
 	return buf;

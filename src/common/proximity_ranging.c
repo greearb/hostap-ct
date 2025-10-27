@@ -1666,7 +1666,7 @@ static void pr_pasn_set_password(struct pasn_data *pasn, u8 pasn_type,
 	}
 	pasn->pt = sae_derive_pt(pasn_groups, (const u8 *) PR_PASN_SSID,
 				 os_strlen(PR_PASN_SSID),
-				 (const u8 *) passphrase, len, NULL);
+				 (const u8 *) passphrase, len, NULL, 0);
 	/* Set passphrase for PASN responder to validate Auth 1 frame */
 	pasn->password = passphrase;
 }

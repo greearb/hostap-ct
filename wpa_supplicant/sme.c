@@ -106,6 +106,9 @@ static struct wpabuf * sme_auth_build_sae_commit(struct wpa_supplicant *wpa_s,
 		wpa_s->key_mgmt;
 	const u8 *addr = mld_addr ? mld_addr : bssid;
 	enum sae_pwe sae_pwe;
+	const u8 *password_id = (const u8 *) ssid->sae_password_id;
+	size_t password_id_len = ssid->sae_password_id ?
+		os_strlen(ssid->sae_password_id) : 0;
 
 	if (ret_use_pt)
 		*ret_use_pt = 0;
@@ -286,7 +289,7 @@ reuse_data:
 			wpabuf_put_le16(buf,WLAN_STATUS_SUCCESS);
 	}
 	if (sae_write_commit(&wpa_s->sme.sae, buf, wpa_s->sme.sae_token,
-			     ssid->sae_password_id) < 0) {
+			     password_id, password_id_len) < 0) {
 		wpabuf_free(buf);
 		goto fail;
 	}

@@ -252,7 +252,7 @@ static struct wpabuf * pasn_get_sae_wd(struct pasn_data *pasn)
 	wpabuf_put_le16(buf, WLAN_STATUS_SAE_HASH_TO_ELEMENT);
 
 	/* Write the actual commit and update the length accordingly */
-	sae_write_commit(&pasn->sae, buf, NULL, NULL);
+	sae_write_commit(&pasn->sae, buf, NULL, NULL, 0);
 	len = wpabuf_len(buf);
 	WPA_PUT_LE16(len_ptr, len - 2);
 

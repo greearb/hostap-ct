@@ -127,8 +127,10 @@ wpas_pasn_sae_derive_pt(struct wpa_ssid *ssid, int group)
 	}
 
 	return sae_derive_pt(groups, ssid->ssid, ssid->ssid_len,
-			    (const u8 *) password, os_strlen(password),
-			    ssid->sae_password_id);
+			     (const u8 *) password, os_strlen(password),
+			     (const u8 *) ssid->sae_password_id,
+			     ssid->sae_password_id ?
+			     os_strlen(ssid->sae_password_id) : 0);
 }
 
 

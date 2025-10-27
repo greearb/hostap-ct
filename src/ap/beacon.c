@@ -2543,8 +2543,8 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 			return -1;
 		}
 
-		params->sae_password = sae_get_password(hapd, NULL, NULL, NULL,
-							NULL, NULL);
+		params->sae_password = sae_get_password(hapd, NULL, NULL, 0,
+							NULL, NULL, NULL);
 		if (!params->sae_password) {
 			wpa_printf(MSG_ERROR, "SAE password not configured for offload");
 			return -1;
