@@ -4398,6 +4398,11 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->sae_confirm_immediate = atoi(pos);
 	} else if (os_strcmp(buf, "sae_pwe") == 0) {
 		bss->sae_pwe = atoi(pos);
+	} else if (os_strcmp(buf, "sae_pw_id_num") == 0) {
+		bss->sae_pw_id_num = atoi(pos);
+	} else if (os_strcmp(buf, "sae_pw_id_key") == 0) {
+		if (parse_wpabuf_hex(line, buf, &bss->sae_pw_id_key, pos))
+			return 1;
 	} else if (os_strcmp(buf, "local_pwr_constraint") == 0) {
 		int val = atoi(pos);
 		if (val < 0 || val > 255) {

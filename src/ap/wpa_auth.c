@@ -1142,6 +1142,7 @@ static void wpa_free_sta_sm(struct wpa_state_machine *sm)
 #ifdef CONFIG_DPP2
 	wpabuf_clear_free(sm->dpp_z);
 #endif /* CONFIG_DPP2 */
+	wpabuf_free(sm->sae_pw_id);
 	bin_clear_free(sm, sizeof(*sm));
 }
 
@@ -4757,6 +4758,99 @@ static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
 }
 
 
+#ifdef CONFIG_SAE
+static u8 * add_sae_pw_ids(struct wpa_state_machine *sm, u8 *pos, u8 *end)
+{
+	static const size_t max_padding = 8;
+	u8 *start = pos, *len;
+	unsigned int i;
+	struct wpa_auth_config *conf = &sm->wpa_auth->conf;
+	u8 *data, *dpos;
+	unsigned int counter;
+	size_t pw_id_len = wpabuf_len(sm->sae_pw_id);
+	struct os_time t;
+	size_t kde_len;
+
+	wpa_printf(MSG_DEBUG, "RSN: Add SAE Password Identifiers KDE (num=%u)",
+		   conf->sae_pw_id_num);
+	wpa_hexdump_buf(MSG_DEBUG, "RSN: Real SAE Password Identifier",
+			sm->sae_pw_id);
+	data = os_malloc(pw_id_len + max_padding + 4 + 4);
+	if (!data)
+		return NULL;
+
+	if (end - pos < 2 + RSN_SELECTOR_LEN + 1) {
+		pos = NULL;
+		goto fail;
+	}
+	*pos++ = WLAN_EID_VENDOR_SPECIFIC;
+	len = pos++; /* Length to be filled */
+	RSN_SELECTOR_PUT(pos, RSN_KEY_DATA_SAE_PW_IDS);
+	pos += RSN_SELECTOR_LEN;
+
+	*pos++ = 0; /* Flags */
+
+	counter = sm->sae_pw_id_counter + conf->sae_pw_id_num;
+
+	os_get_time(&t);
+
+	WPA_PUT_BE32(data, t.sec);
+	os_memcpy(data + 4, wpabuf_head(sm->sae_pw_id), pw_id_len);
+
+	for (i = 0; i < conf->sae_pw_id_num; i++) {
+		size_t pad_len, dlen, elen;
+
+		pad_len = 1 + os_random() % max_padding;
+		dpos = data + 4 + pw_id_len;
+		os_memset(dpos, 0, pad_len);
+		dpos += pad_len;
+		WPA_PUT_BE32(dpos, counter);
+		dpos += 4;
+		dlen = dpos - data;
+		elen = dlen + AES_BLOCK_SIZE;
+		counter++;
+
+		kde_len = (pos - len - 1) + (1 + elen);
+		if ((size_t) (end - pos) < 1 + elen || kde_len > 255) {
+			wpa_printf(MSG_INFO,
+				   "RSN: Not enough room in the buffer for a new SAE Password Identifier - send only %u",
+				   i);
+			break;
+		}
+
+		*pos++ = elen;
+		if (aes_siv_encrypt(conf->sae_pw_id_key,
+				    sizeof(conf->sae_pw_id_key),
+				    data, dlen, 0, NULL, NULL, pos) < 0) {
+			wpa_printf(MSG_INFO,
+				   "RSN: Failed to encrypt SAE Password Identifier");
+			pos = NULL;
+			goto fail;
+		}
+		pos += elen;
+	}
+
+	kde_len = pos - len - 1;
+	if (kde_len > 255) {
+		wpa_printf(MSG_INFO,
+			   "RSN: SAE Password Identifiers do not fit in a KDE");
+		wpa_hexdump_key(MSG_DEBUG, "RSN: KDE", start, pos - start);
+		pos = NULL;
+		goto fail;
+	}
+
+	*len = kde_len;
+
+	wpa_hexdump_key(MSG_DEBUG, "RSN: SAE Password Identifiers KDE",
+			start, pos - start);
+
+fail:
+	os_free(data);
+	return pos;
+}
+#endif /* CONFIG_SAE */
+
+
 SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 {
 	u8 rsc[WPA_KEY_RSC_LEN], *_rsc, *gtk, *kde = NULL, *pos, stub_gtk[32];
@@ -4772,6 +4866,9 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 #else /* CONFIG_IEEE80211BE */
 	bool is_mld = false;
 #endif /* CONFIG_IEEE80211BE */
+#ifdef CONFIG_SAE
+	bool sae_pw_ids = false;
+#endif /* CONFIG_SAE */
 
 	SM_ENTRY_MA(WPA_PTK, PTKINITNEGOTIATING, wpa_ptk);
 	sm->TimeoutEvt = false;
@@ -4972,6 +5069,17 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 	if (sm->ssid_protection)
 		kde_len += 2 + conf->ssid_len;
 
+#ifdef CONFIG_SAE
+	if (wpa_key_mgmt_sae(sm->wpa_key_mgmt) &&
+	    conf->sae_pw_id_num &&
+	    sm->sae_pw_id &&
+	    ieee802_11_rsnx_capab(sm->rsnxe,
+				  WLAN_RSNX_CAPAB_SAE_PW_ID_CHANGE)) {
+		kde_len += 2 + 255;
+		sae_pw_ids = true;
+	}
+#endif /* CONFIG_SAE */
+
 #ifdef CONFIG_TESTING_OPTIONS
 	if (conf->eapol_m3_elements)
 		kde_len += wpabuf_len(conf->eapol_m3_elements);
@@ -5101,6 +5209,23 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 		os_memcpy(pos, conf->ssid, conf->ssid_len);
 		pos += conf->ssid_len;
 	}
+
+#ifdef CONFIG_SAE
+	if (sae_pw_ids) {
+		u8 *npos;
+
+		npos = add_sae_pw_ids(sm, pos, kde + kde_len);
+		if (!npos) {
+			wpa_printf(MSG_DEBUG,
+				   "RSN: Failed to add SAE Password Identifiers KDE");
+			/* Ignore this since it is not a fatal error for the
+			 * Authenticator and the STA can decide whether to
+			 * proceed without getting new identifiers. */
+		} else {
+			pos = npos;
+		}
+	}
+#endif /* CONFIG_SAE */
 
 #ifdef CONFIG_TESTING_OPTIONS
 	if (conf->eapol_m3_elements) {
@@ -7733,3 +7858,15 @@ struct wpa_group * wpa_select_vlan_wpa_group(struct wpa_group *gsm, int vlan_id)
 	return vlan_gsm;
 }
 #endif /* CONFIG_IEEE80211BE */
+
+
+void wpa_auth_set_sae_pw_id(struct wpa_state_machine *sm,
+			    const struct wpabuf *pw_id,
+			    unsigned int counter)
+{
+	if (sm) {
+		wpabuf_free(sm->sae_pw_id);
+		sm->sae_pw_id = wpabuf_dup(pw_id);
+		sm->sae_pw_id_counter = counter;
+	}
+}

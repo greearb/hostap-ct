@@ -323,6 +323,9 @@ struct sta_info {
 			      * units of 1000 TUs */
 
 	u64 last_known_sta_id_timestamp;
+
+	struct wpabuf *sae_pw_id;
+	unsigned int sae_pw_id_counter;
 };
 
 

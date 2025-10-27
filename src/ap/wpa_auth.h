@@ -323,6 +323,9 @@ struct wpa_auth_config {
 	int rsn_override_omit_rsnxe;
 
 	bool spp_amsdu;
+
+	unsigned int sae_pw_id_num;
+	u8 sae_pw_id_key[32];
 };
 
 typedef enum {
@@ -714,5 +717,8 @@ bool wpa_auth_sm_known_sta_identification(struct wpa_state_machine *sm,
 					  const u8 *mic, size_t mic_len);
 struct wpa_group * wpa_select_vlan_wpa_group(struct wpa_group *gsm,
 					     int vlan_id);
+void wpa_auth_set_sae_pw_id(struct wpa_state_machine *sm,
+			    const struct wpabuf *pw_id,
+			    unsigned int counter);
 
 #endif /* WPA_AUTH_H */

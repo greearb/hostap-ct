@@ -62,6 +62,9 @@ struct sae_temporary_data {
 	size_t pw_id_len;
 	u8 *parsed_pw_id;
 	size_t parsed_pw_id_len;
+	char *dec_pw_id;
+	size_t dec_pw_id_len;
+	unsigned int pw_id_counter;
 	int vlan_id;
 	u8 bssid[ETH_ALEN];
 	struct wpabuf *own_rejected_groups;

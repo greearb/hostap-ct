@@ -662,6 +662,8 @@ struct hostapd_bss_config {
 	struct sae_password_entry *sae_passwords;
 	int sae_password_psk;
 	int sae_track_password;
+	struct wpabuf *sae_pw_id_key;
+	unsigned int sae_pw_id_num;
 
 	char *wowlan_triggers; /* Wake-on-WLAN triggers */
 

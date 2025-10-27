@@ -1008,6 +1008,8 @@ void hostapd_config_free_bss(struct hostapd_bss_config *conf)
 	os_free(conf->pasn_groups);
 #endif /* CONFIG_PASN */
 
+	wpabuf_clear_free(conf->sae_pw_id_key);
+
 	os_free(conf);
 }
 

@@ -192,6 +192,9 @@ struct wpa_state_machine {
 #endif /* CONFIG_IEEE80211BE */
 
 	bool ssid_protection;
+
+	struct wpabuf *sae_pw_id;
+	unsigned int sae_pw_id_counter;
 };
 
 

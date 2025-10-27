@@ -17,6 +17,8 @@
 #include "crypto/sha384.h"
 #include "crypto/sha512.h"
 #include "crypto/random.h"
+#include "crypto/aes.h"
+#include "crypto/aes_siv.h"
 #include "common/ieee802_11_defs.h"
 #include "common/ieee802_11_common.h"
 #include "common/wpa_ctrl.h"
@@ -735,6 +737,73 @@ const char * sae_get_password(struct hostapd_data *hapd,
 		}
 	}
 
+	/* Try to decrypt the received password identifier if no plaintext
+	 * identifier match was found. */
+	if (!password && rx_id && rx_id_len > 4 + 4 + AES_BLOCK_SIZE &&
+	    hapd->conf->sae_pw_id_key) {
+		u8 *plain, *pos, *counter;
+		size_t plain_len;
+		const u8 *id;
+		size_t id_len;
+
+		plain = os_malloc(rx_id_len);
+		if (!plain)
+			goto fail;
+		if (aes_siv_decrypt(
+			    wpabuf_head(hapd->conf->sae_pw_id_key),
+			    wpabuf_len(hapd->conf->sae_pw_id_key),
+			    rx_id, rx_id_len, 0, NULL, NULL, plain) < 0)
+			goto fail;
+		plain_len = rx_id_len - AES_BLOCK_SIZE;
+		wpa_hexdump_ascii(MSG_DEBUG,
+				  "SAE: Decrypted password identifier info",
+				  plain, plain_len);
+		/* 4 octet date | Password ID | <padding> | 4 octet counter */
+		counter = plain + plain_len - 4;
+		wpa_printf(MSG_DEBUG, "SAE: Generation time %u counter %u",
+			   WPA_GET_BE32(plain), WPA_GET_BE32(counter));
+		id = pos = plain + 4;
+		while (pos < counter) {
+			if (*pos == 0x00)
+				break;
+			pos++;
+		}
+		id_len = pos - id;
+		wpa_hexdump_ascii(MSG_DEBUG,
+				  "SAE: Decrypted password identifier",
+				  id, id_len);
+		for (pw = hapd->conf->sae_passwords; pw; pw = pw->next) {
+			if (!is_broadcast_ether_addr(pw->peer_addr) &&
+			    (!sta ||
+			     !ether_addr_equal(pw->peer_addr, sta->addr)))
+				continue;
+			if (!pw->identifier ||
+			    os_strlen(pw->identifier) != id_len ||
+			    os_memcmp(id, pw->identifier, id_len) != 0)
+				continue;
+			password = pw->password;
+			if (!(hapd->conf->mesh & MESH_ENABLED))
+				pk = pw->pk;
+			if (sta && sta->sae && sta->sae->tmp) {
+				os_free(sta->sae->tmp->dec_pw_id);
+				sta->sae->tmp->dec_pw_id =
+					os_zalloc(id_len + 1);
+				if (sta->sae->tmp->dec_pw_id) {
+					os_memcpy(sta->sae->tmp->dec_pw_id,
+						  id, id_len);
+					sta->sae->tmp->dec_pw_id_len = id_len;
+					sta->sae->tmp->pw_id_counter =
+						WPA_GET_BE32(counter);
+					wpa_printf(MSG_DEBUG,
+						   "SAE: Bound decrypted password identifier to STA");
+				}
+			}
+			break;
+		}
+	fail:
+		os_free(plain);
+	}
+
 found:
 	if (pw_entry)
 		*pw_entry = pw;
@@ -788,15 +857,48 @@ static struct wpabuf * auth_build_sae_commit(struct hostapd_data *hapd,
 		use_pt = 1;
 
 	password = sae_get_password(hapd, sta, rx_id, rx_id_len, &pw, &pt, &pk);
-	if (!password || (use_pt && !pt)) {
+	if (!password) {
 		wpa_printf(MSG_DEBUG, "SAE: No password available");
 		return NULL;
 	}
 
-	if (update && use_pt &&
-	    sae_prepare_commit_pt(sta->sae, pt, own_addr, sta->addr,
-				  NULL, pk) < 0)
-		return NULL;
+	if (use_pt) {
+		struct sae_pt *tmp_pt = NULL;
+		bool failed = false;
+
+		if (!pt && pw) {
+			int groups[2] = { sta->sae->group, 0 };
+
+			wpa_printf(MSG_DEBUG,
+				   "SAE: Derive PT for encrypted PW ID");
+			tmp_pt = sae_derive_pt(groups, hapd->conf->ssid.ssid,
+					       hapd->conf->ssid.ssid_len,
+					       (const u8 *) pw->password,
+					       os_strlen(pw->password),
+					       rx_id, rx_id_len);
+			if (!tmp_pt) {
+				wpa_printf(MSG_DEBUG,
+					   "SAE: Could not derive PT");
+				return NULL;
+			}
+			pt = tmp_pt;
+			update = 1;
+		}
+
+		if (!pt) {
+			wpa_printf(MSG_DEBUG, "SAE: No PT available");
+			return NULL;
+		}
+
+		if (update &&
+		    sae_prepare_commit_pt(sta->sae, pt, own_addr, sta->addr,
+					  NULL, pk) < 0)
+			failed = true;
+
+		sae_deinit_pt(tmp_pt);
+		if (failed)
+			return NULL;
+	}
 
 	if (update && !use_pt &&
 	    sae_prepare_commit(own_addr, sta->addr,
@@ -1141,6 +1243,20 @@ void sae_accept_sta(struct hostapd_data *hapd, struct sta_info *sta)
 			       sta->sae->pmkid, sta->sae->akmp,
 			       ap_sta_is_mld(hapd, sta), sta->vlan_id);
 	sae_sme_send_external_auth_status(hapd, sta, WLAN_STATUS_SUCCESS);
+	if (sta->sae->tmp) {
+		struct sae_temporary_data *tmp = sta->sae->tmp;
+
+		wpabuf_free(sta->sae_pw_id);
+		sta->sae_pw_id = NULL;
+		if (tmp->dec_pw_id) {
+			sta->sae_pw_id = wpabuf_alloc_copy(
+				tmp->dec_pw_id, tmp->dec_pw_id_len);
+			sta->sae_pw_id_counter = tmp->pw_id_counter;
+		} else if (tmp->pw_id) {
+			sta->sae_pw_id = wpabuf_alloc_copy(
+				tmp->pw_id, tmp->pw_id_len);
+		}
+	}
 }
 
 
@@ -4498,6 +4614,9 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 #endif /* CONFIG_IEEE80211BE */
 
 		wpa_auth_set_auth_alg(sta->wpa_sm, sta->auth_alg);
+		if (sta->auth_alg == WLAN_AUTH_SAE)
+			wpa_auth_set_sae_pw_id(sta->wpa_sm, sta->sae_pw_id,
+					       sta->sae_pw_id_counter);
 		wpa_auth_set_rsn_selection(sta->wpa_sm, elems->rsn_selection,
 					   elems->rsn_selection_len);
 		res = wpa_validate_wpa_ie(hapd->wpa_auth, sta->wpa_sm,

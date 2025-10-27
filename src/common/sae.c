@@ -115,6 +115,7 @@ void sae_clear_temp_data(struct sae_data *sae)
 	wpabuf_free(tmp->peer_rejected_groups);
 	os_free(tmp->pw_id);
 	os_free(tmp->parsed_pw_id);
+	os_free(tmp->dec_pw_id);
 	bin_clear_free(tmp, sizeof(*tmp));
 	sae->tmp = NULL;
 }

@@ -514,6 +514,8 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	forced_memzero(sta->last_tk, WPA_TK_MAX_LEN);
 #endif /* CONFIG_TESTING_OPTIONS */
 
+	wpabuf_free(sta->sae_pw_id);
+
 	os_free(sta);
 }
 

@@ -341,6 +341,14 @@ static void hostapd_wpa_auth_conf(struct hostapd_iface *iface,
 	wconf->rsn_override_omit_rsnxe = conf->rsn_override_omit_rsnxe;
 	wconf->spp_amsdu = conf->spp_amsdu &&
 		(iface->drv_flags2 & WPA_DRIVER_FLAGS2_SPP_AMSDU);
+
+	if (conf->sae_pw_id_num && conf->sae_pw_id_key &&
+	    wpabuf_len(conf->sae_pw_id_key) == sizeof(wconf->sae_pw_id_key)) {
+		wconf->sae_pw_id_num = conf->sae_pw_id_num;
+		os_memcpy(wconf->sae_pw_id_key,
+			  wpabuf_head(conf->sae_pw_id_key),
+			  wpabuf_len(conf->sae_pw_id_key));
+	}
 }
 
 
