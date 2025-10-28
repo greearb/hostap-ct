@@ -559,7 +559,7 @@ static void pr_buf_add_channel_list(struct wpabuf *buf, const char *country,
 	size_t i;
 
 	wpabuf_put_data(buf, country, 3); /* Country String */
-	wpabuf_put(buf, chan->op_classes); /* Number of Channel Entries */
+	wpabuf_put_u8(buf, chan->op_classes); /* Number of Channel Entries */
 
 	/* Channel Entry List */
 	for (i = 0; i < chan->op_classes; i++) {
