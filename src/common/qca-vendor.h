@@ -12551,13 +12551,47 @@ enum qca_wlan_vendor_cfr_capture_type {
 };
 
 /**
+ * enum qca_wlan_vendor_cfr_ltf_type - CSI/LTF type for CFR events.
+ *
+ * @QCA_WLAN_VENDOR_CFR_LTF_TYPE_HT: CSI from HT-LTF (IEEE 802.11n)
+ * @QCA_WLAN_VENDOR_CFR_LTF_TYPE_VHT: CSI from VHT-LTF (IEEE 802.11ac)
+ * @QCA_WLAN_VENDOR_CFR_LTF_TYPE_HE: CSI from HE-LTF (IEEE 802.11ax)
+ * @QCA_WLAN_VENDOR_CFR_LTF_TYPE_EHT: CSI from EHT-LTF (IEEE 802.11be)
+ */
+enum qca_wlan_vendor_cfr_ltf_type {
+	QCA_WLAN_VENDOR_CFR_LTF_TYPE_HT = 0,
+	QCA_WLAN_VENDOR_CFR_LTF_TYPE_VHT = 1,
+	QCA_WLAN_VENDOR_CFR_LTF_TYPE_HE = 2,
+	QCA_WLAN_VENDOR_CFR_LTF_TYPE_EHT = 3,
+};
+
+/**
+ * enum qca_wlan_vendor_chip_id - WLAN Chip identifier code.
+ */
+enum qca_wlan_vendor_chip_id {
+	QCA_WLAN_VENDOR_CHIP_ID_WCN3680B = 0,
+	QCA_WLAN_VENDOR_CHIP_ID_WCN3910 = 1,
+	QCA_WLAN_VENDOR_CHIP_ID_WCN3950 = 2,
+	QCA_WLAN_VENDOR_CHIP_ID_WCN3988 = 3,
+	QCA_WLAN_VENDOR_CHIP_ID_WCN3991 = 4,
+	QCA_WLAN_VENDOR_CHIP_ID_WCN3998 = 5,
+	QCA_WLAN_VENDOR_CHIP_ID_QCA639x = 6,
+	QCA_WLAN_VENDOR_CHIP_ID_WCN685x = 7,
+	QCA_WLAN_VENDOR_CHIP_ID_WCN6750 = 8,
+	QCA_WLAN_VENDOR_CHIP_ID_WCN785x = 9,
+	QCA_WLAN_VENDOR_CHIP_ID_WCN7750 = 10,
+	QCA_WLAN_VENDOR_CHIP_ID_WCN7950 = 11,
+};
+
+/**
  * enum qca_wlan_vendor_peer_cfr_capture_attr - Used by the vendor command
  * QCA_NL80211_VENDOR_SUBCMD_PEER_CFR_CAPTURE_CFG to configure peer
  * Channel Frequency Response capture parameters and enable periodic CFR
  * capture.
  *
  * @QCA_WLAN_VENDOR_ATTR_CFR_PEER_MAC_ADDR: Optional (6-byte MAC address)
- * MAC address of peer. This is for CFR version 1 only.
+ * MAC address of peer. This is for CFR version 1 and in peer CFR event for
+ * version 3.
  *
  * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_ENABLE: Required (flag)
  * Enable peer CFR capture. This attribute is mandatory to enable peer CFR
@@ -12569,6 +12603,8 @@ enum qca_wlan_vendor_cfr_capture_type {
  * Note that all targets may not support all bandwidths.
  * This attribute is mandatory for version 1 and version 3 if attribute
  * QCA_WLAN_VENDOR_ATTR_PEER_CFR_ENABLE is used.
+ * This attribute is also applicable for peer CFR event with CFR data format
+ * version 3
  *
  * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_PERIODICITY: Optional (u32)
  * Periodicity of CFR measurement in milliseconds.
@@ -12753,6 +12789,70 @@ enum qca_wlan_vendor_cfr_capture_type {
  * OUI and version together define the vendor-specific format to interpret CFR
  * data.
  * Applicable only for CFR version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_TIMESTAMP_US: Optional (u64)
+ * Timestamp (in microseconds) indicating when the packet was received,
+ * based on the receiver's internal clock. This value represents the local
+ * timing reference for the captured frame.
+ * Applicable for peer CFR event and CFR data format version 3 only.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_RX_ANTENNA_INFO: Optional (nested)
+ * Nested attribute containing one or more antenna entries. Each entry is a
+ * nested attribute that includes:
+ *	%QCA_WLAN_VENDOR_ATTR_PEER_CFR_RX_ANTENNA_INDEX,
+ *	%QCA_WLAN_VENDOR_ATTR_PEER_CFR_RX_ANTENNA_RSSI,
+ *	%QCA_WLAN_VENDOR_ATTR_PEER_CFR_RX_ANTENNA_AGC,
+ * Applicable for peer CFR event with CFR data format version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_RX_ANTENNA_INDEX: Optional (u8)
+ * Index of the receiving antenna corresponding to each entry.
+ * Applicable for peer CFR event with CFR data format version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_RX_ANTENNA_RSSI: Optional (s8)
+ * RSSI value (in dBm) measured on the antenna specified by
+ * %QCA_WLAN_VENDOR_ATTR_PEER_CFR_RX_ANTENNA_INDEX.
+ * Applicable for peer CFR event with CFR data format version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_RX_ANTENNA_AGC: Optional (u8)
+ * AGC (Automatic Gain Control) value in dB for the antenna
+ * specified by %QCA_WLAN_VENDOR_ATTR_PEER_CFR_RX_ANTENNA_INDEX.
+ * Applicable for peer CFR event with CFR data format version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_IS_LAST_REPORT: Optional (flag)
+ * Indicates that this event is the last entry in the current CSI reporting
+ * period. This flag is used when %QCA_WLAN_VENDOR_ATTR_PEER_CFR_REPORT_INTERVAL
+ * is configured to help the receiver determine the end of a CSI report batch.
+ * Applicable for peer CFR event with CFR data format version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_FRAME_SEQUENCE_NUMBER: Optional (u16)
+ * Sequence number of the IEEE 802.11 frame (without the fragment number) that
+ * triggered the CSI capture.
+ * Applicable for peer CFR event with CFR data format version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_CHIP_ID: Optional (u16)
+ * Vendor-specific chip identifier of the reporting device. Values are defined
+ * in enum qca_wlan_vendor_chip_id.
+ * Applicable for peer CFR event with CFR data format version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_CAPTURE_TSF: Optional (u64)
+ * TSF (Timing Synchronization Function) timestamp in microseconds.
+ * This value is derived at the receiver of the frame by aligning with
+ * the TSF provided by the AP through periodic Beacon or Probe Response frames.
+ * Applicable for peer CFR events using CFR data format version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_CFO: Optional (s16)
+ * Carrier Frequency Offset (in 0.01 ppm) indicating frequency drift between the
+ * transmitter and receiver for the captured frame.
+ * Applicable for peer CFR event with CFR data format version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_CSI_LTF_TYPE: Optional (u8)
+ * CSI LTF type for the CFR event. Values are defined by
+ * enum qca_wlan_vendor_cfr_ltf_type.
+ * Applicable for peer CFR event with CFR data format version 3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_PEER_CFR_CSI_NUM_SPATIAL_STREAMS: Optional (u8)
+ * Number of spatial streams used to capture the CFR data.
+ * Applicable for peer CFR event with CFR data format version 3.
  */
 enum qca_wlan_vendor_peer_cfr_capture_attr {
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_CAPTURE_INVALID = 0,
@@ -12791,6 +12891,18 @@ enum qca_wlan_vendor_peer_cfr_capture_attr {
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_REPORT_INTERVAL = 33,
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_DATA_FORMAT_OUI = 34,
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_DATA_FORMAT_VERSION = 35,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_TIMESTAMP_US = 36,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_RX_ANTENNA_INFO = 37,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_RX_ANTENNA_INDEX = 38,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_RX_ANTENNA_RSSI = 39,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_RX_ANTENNA_AGC = 40,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_IS_LAST_REPORT = 41,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_FRAME_SEQUENCE_NUMBER = 42,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_CHIP_ID = 43,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_CAPTURE_TSF = 44,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_CFO = 45,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_CSI_LTF_TYPE = 46,
+	QCA_WLAN_VENDOR_ATTR_PEER_CFR_NUM_SPATIAL_STREAMS = 47,
 
 	/* Keep last */
 	QCA_WLAN_VENDOR_ATTR_PEER_CFR_AFTER_LAST,
