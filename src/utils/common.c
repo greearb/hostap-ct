@@ -1016,7 +1016,7 @@ bool int_array_equal(const int *a, const int *b)
 	if (alen != blen)
 		return false;
 
-	for (i = 0; i <= alen; i++) {
+	for (i = 0; i < alen; i++) {
 		if (!int_array_includes(b, a[i]))
 			return false;
 	}
