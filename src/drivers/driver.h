@@ -389,6 +389,8 @@ struct hostapd_multi_hw_info {
  * of TSF of the BSS specified by %tsf_bssid.
  * @tsf_bssid: The BSS that %parent_tsf TSF time refers to.
  * @beacon_newer: Whether the Beacon frame data is known to be newer
+ * @mlo_tput_accumulated: Whether the scan result throughput is accumulated
+ * (used during scan result processing)
  * @ie_len: length of the following IE field in octets
  * @beacon_ie_len: length of the following Beacon IE field in octets
  *
@@ -423,6 +425,7 @@ struct wpa_scan_res {
 	u64 parent_tsf;
 	u8 tsf_bssid[ETH_ALEN];
 	bool beacon_newer;
+	bool mlo_tput_accumulated;
 	size_t ie_len;
 	size_t beacon_ie_len;
 	/* Followed by ie_len + beacon_ie_len octets of IE data */

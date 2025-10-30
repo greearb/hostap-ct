@@ -3415,6 +3415,231 @@ void scan_est_throughput(struct wpa_supplicant *wpa_s,
 }
 
 
+static struct wpa_scan_res *
+wpa_scan_get_bssid(struct wpa_scan_results *scan_res, const u8 *bssid)
+{
+	size_t i;
+
+	for (i = 0; i < scan_res->num; i++) {
+		struct wpa_scan_res *scan_res_item = scan_res->res[i];
+
+		if (ether_addr_equal(scan_res_item->bssid, bssid))
+			return scan_res_item;
+	}
+
+	return NULL;
+}
+
+
+#ifdef CONFIG_IEEE80211BE
+
+static unsigned int
+get_partner_est_tput(struct wpa_supplicant *wpa_s,
+		     struct wpa_scan_results *scan_res,
+		     struct wpa_scan_res *res, u8 mbssid_idx,
+		     const struct ieee80211_neighbor_ap_info *ap_info,
+		     size_t len, u16 *seen)
+{
+	const u8 *pos, *end;
+	const u8 *mld_params;
+	u8 count, mld_params_offset;
+	u8 i, type, link_id;
+	unsigned int total_partner_tput = 0;
+
+	if (len < sizeof(*ap_info))
+		return 0;
+
+	count = RNR_TBTT_INFO_COUNT_VAL(ap_info->tbtt_info_hdr) + 1;
+	type = ap_info->tbtt_info_hdr & RNR_TBTT_INFO_HDR_TYPE_MSK;
+
+	if (type != 0 || ap_info->tbtt_info_len < RNR_TBTT_INFO_MLD_LEN)
+		return 0;
+
+	mld_params_offset = RNR_TBTT_INFO_LEN;
+
+	pos = (const u8 *) ap_info;
+	end = pos + len;
+	pos += sizeof(*ap_info);
+	for (i = 0; i < count; i++) {
+		if (end - pos < ap_info->tbtt_info_len)
+			break;
+
+		mld_params = pos + mld_params_offset;
+		if (mld_params_offset + 2 > ap_info->tbtt_info_len)
+			break;
+
+		link_id = *(mld_params + 1) & EHT_ML_LINK_ID_MSK;
+		if (link_id < MAX_NUM_MLD_LINKS &&
+		    *mld_params == mbssid_idx &&
+		    ((*seen & BIT(link_id)) == 0)) {
+			struct wpa_scan_res *neigh_scan_res;
+
+			neigh_scan_res = wpa_scan_get_bssid(scan_res, pos + 1);
+			if (!neigh_scan_res)
+				continue;
+
+			*seen |= BIT(link_id);
+			if (neigh_scan_res->mlo_tput_accumulated) {
+				res->mlo_tput_accumulated = true;
+				return neigh_scan_res->est_throughput;
+			}
+
+			total_partner_tput += neigh_scan_res->est_throughput;
+		}
+		pos += ap_info->tbtt_info_len;
+	}
+
+	return total_partner_tput;
+}
+
+
+static void mlo_scan_est_throughput(struct wpa_supplicant *wpa_s,
+				    struct wpa_scan_results *scan_res,
+				    struct wpa_scan_res *res,
+				    bool sta_emlsr_support)
+{
+	const u8 *ies = (const u8 *) (res + 1);
+	size_t ie_len = res->ie_len;
+	u8 mbssid_idx = 0;
+	const struct element *elem;
+	const u8 *mle;
+	u8 mle_len;
+	const u8 *ap_eml_capa;
+	bool ap_emlsr_support = false;
+	u16 seen;
+	unsigned int mlo_est_throughput = res->est_throughput;
+	unsigned int partner_est_throughput = 0;
+	int link_id;
+
+	if (!(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO))
+		return;
+
+	if (!ie_len)
+		ie_len = res->beacon_ie_len;
+
+	mle = wpa_scan_get_ml_ie(res, MULTI_LINK_CONTROL_TYPE_BASIC);
+	if (!mle)
+		return;
+	mle_len = mle[1];
+	if (mle_len < 2)
+		return;
+	mle += 3;
+	mle_len--;
+
+	ap_eml_capa = get_basic_mle_eml_capa(mle, mle_len);
+	if (ap_eml_capa) {
+		u16 eml_capa = WPA_GET_LE16(ap_eml_capa);
+
+		if (eml_capa & EHT_ML_EML_CAPA_EMLSR_SUPP)
+			ap_emlsr_support = true;
+	}
+
+	link_id = get_basic_mle_link_id(mle, mle_len);
+	if (link_id < 0)
+		return;
+
+	seen = BIT(link_id);
+	elem = (const struct element *)
+		wpa_scan_get_ie(res, WLAN_EID_MULTIPLE_BSSID_INDEX);
+	if (elem && elem->datalen >= 1)
+		mbssid_idx = elem->data[0];
+
+	/*
+	 * The following three scenarios need to be considered when estimating
+	 * throughput for ML cases:
+	 * 1. Non-AP MLD is MLSR and finds an AP MLD that does not support MLSR
+	 * 2. Non-AP MLD is MLSR and finds an AP MLD that supports MLSR
+	 * 3. Non-AP MLD is MLMR and finds an AP MLD that may or may not
+	 * support MLSR
+	 *
+	 * In the first case, since the non-AP MLD is in MLSR mode and detects
+	 * an AP MLD that doesn't support MLSR, keep the AP MLD's original
+	 * throughput unchanged.
+	 *
+	 * In the second case, since the non-AP MLD is in MLSR mode, select the
+	 * partner link with the highest throughput and update the scan result
+	 * accordingly.
+	 *
+	 * In the third case, since the non-AP MLD is in MLMR mode, sum the
+	 * throughput of all links, including partners, regardless of AP MLD
+	 * support.
+	 */
+
+	for_each_element_id(elem, WLAN_EID_REDUCED_NEIGHBOR_REPORT,
+			    ies, ie_len) {
+		const struct ieee80211_neighbor_ap_info *ap_info;
+		const u8 *pos = elem->data;
+		size_t len = elem->datalen;
+
+		/* RNR element may contain more than one Neighbor AP Info */
+		while (sizeof(*ap_info) <= len) {
+			size_t ap_info_len = sizeof(*ap_info);
+			u8 count;
+
+			ap_info =
+				(const struct ieee80211_neighbor_ap_info *) pos;
+			count =
+				RNR_TBTT_INFO_COUNT_VAL(ap_info->tbtt_info_hdr)
+				+ 1;
+			ap_info_len += count * ap_info->tbtt_info_len;
+
+			if (ap_info_len > len)
+				return;
+
+			partner_est_throughput =
+				get_partner_est_tput(wpa_s, scan_res, res,
+						     mbssid_idx, ap_info,
+						     len, &seen);
+
+			if (sta_emlsr_support && !ap_emlsr_support)
+				return;
+
+			if (sta_emlsr_support && ap_emlsr_support) {
+				if (partner_est_throughput >
+				    mlo_est_throughput)
+					mlo_est_throughput =
+						partner_est_throughput;
+			} else {
+				/*
+				 * The following additional scenarios need to
+				 * be handled here:
+				 *
+				 * 1. The current scan result is the first scan
+				 * result with its partners unseen:
+				 * Loop through all partners, accumulate
+				 * their estimated throughput and update
+				 * its own bss->est_throughput to the new
+				 * accumulated throughput.
+				 *
+				 * 2. Scan result with one of its partners
+				 * already seen:
+				 * Iterator returns the partner's
+				 * est_throughput. Once it sees the partner
+				 * who has an accumulated throughput, it
+				 * marks self as seen and overrides its
+				 * bss->est_throughput with the same.
+				 */
+				if (!res->mlo_tput_accumulated) {
+					mlo_est_throughput +=
+						partner_est_throughput;
+				} else {
+					res->est_throughput =
+						partner_est_throughput;
+					return;
+				}
+			}
+
+			pos += ap_info_len;
+			len -= ap_info_len;
+		}
+	}
+	res->mlo_tput_accumulated = true;
+	res->est_throughput = mlo_est_throughput;
+}
+
+#endif /* CONFIG_IEEE80211BE */
+
+
 /**
  * wpa_supplicant_get_scan_results - Get scan results
  * @wpa_s: Pointer to wpa_supplicant data
@@ -3464,6 +3689,14 @@ wpa_supplicant_get_scan_results(struct wpa_supplicant *wpa_s,
 		compar = wpa_scan_result_wps_compar;
 	}
 #endif /* CONFIG_WPS */
+
+#ifdef CONFIG_IEEE80211BE
+	for (i = 0; i < scan_res->num; i++) {
+		mlo_scan_est_throughput(wpa_s, scan_res, scan_res->res[i],
+					wpa_s->eml_capa &
+					EHT_ML_EML_CAPA_EMLSR_SUPP);
+	}
+#endif /* CONFIG_IEEE80211BE */
 
 	if (scan_res->res) {
 		qsort(scan_res->res, scan_res->num,
