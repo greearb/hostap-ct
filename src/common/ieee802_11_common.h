@@ -382,9 +382,9 @@ int ieee802_edmg_is_allowed(struct ieee80211_edmg_config allowed,
 			    struct ieee80211_edmg_config requested);
 
 struct wpabuf * ieee802_11_defrag(const u8 *data, size_t len, bool ext_elem);
-size_t ieee802_11_defrag_mle_subelem(struct wpabuf *mlbuf,
-				     const u8 *parent_subelem,
-				     size_t *defrag_len);
+ssize_t ieee802_11_defrag_mle_subelem(struct wpabuf *mlbuf,
+				      const u8 *parent_subelem,
+				      size_t *defrag_len);
 const u8 * get_ml_ie(const u8 *ies, size_t len, u8 type);
 const u8 * get_basic_mle_mld_addr(const u8 *buf, size_t len);
 const u8 * get_basic_mle_eml_capa(const u8 *buf, size_t len);
