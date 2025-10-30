@@ -951,6 +951,9 @@ struct wpa_supplicant {
 	const u8 *extended_capa, *extended_capa_mask;
 	unsigned int extended_capa_len;
 
+	/* EML and MLD capabilities supported by the driver */
+	u16 eml_capa, mld_capa;
+
 	int max_scan_ssids;
 	int max_sched_scan_ssids;
 	unsigned int max_sched_scan_plans;

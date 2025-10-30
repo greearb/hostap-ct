@@ -1041,6 +1041,16 @@ static inline int wpa_drv_get_ext_capa(struct wpa_supplicant *wpa_s,
 					    &wpa_s->extended_capa_len);
 }
 
+static inline int wpa_drv_get_mld_capa(struct wpa_supplicant *wpa_s,
+				       enum wpa_driver_if_type type,
+				       u16 *mld_eml_capa, u16 *mld_mld_capa)
+{
+	if (!wpa_s->driver->get_mld_capab)
+		return -1;
+	return wpa_s->driver->get_mld_capab(wpa_s->drv_priv, type,
+					    mld_eml_capa, mld_mld_capa);
+}
+
 static inline int wpa_drv_p2p_lo_start(struct wpa_supplicant *wpa_s,
 				       unsigned int channel,
 				       unsigned int period,

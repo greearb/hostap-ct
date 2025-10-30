@@ -7844,6 +7844,8 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 
 	capa_res = wpa_drv_get_capa(wpa_s, &capa);
 	if (capa_res == 0) {
+		u16 eml_capa, mld_capa;
+
 		wpa_s->drv_capa_known = 1;
 		wpa_s->drv_flags = capa.flags;
 		wpa_s->drv_flags2 = capa.flags2;
@@ -7886,6 +7888,12 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 		    wpa_s->extended_capa_len >= 3 &&
 		    wpa_s->extended_capa[2] & 0x40)
 			wpa_s->multi_bss_support = 1;
+
+		if (wpa_drv_get_mld_capa(wpa_s, WPA_IF_STATION,
+					 &eml_capa, &mld_capa) == 0) {
+			wpa_s->eml_capa = eml_capa;
+			wpa_s->mld_capa = mld_capa;
+		}
 	} else {
 		wpa_s->drv_max_probe_req_ie_len = 1500;
 	}
