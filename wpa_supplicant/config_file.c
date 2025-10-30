@@ -367,7 +367,8 @@ struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 	struct wpa_config *config;
 	static int id = 0;
 	static int cred_id = 0;
-	static int identity_id = 1;
+	static int base_identity_id = 0;
+	int identity_id = base_identity_id;
 
 	if (name == NULL)
 		return NULL;
@@ -416,6 +417,7 @@ struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 				errors++;
 				continue;
 			}
+			ssid->go_dik_id += base_identity_id;
 			ssid->ro = ro;
 			if (head == NULL) {
 				head = tail = ssid;
@@ -456,7 +458,7 @@ struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 #endif /* CONFIG_NO_CONFIG_BLOBS */
 		} else if (os_strcmp(pos, "identity={") == 0) {
 			identity = wpa_config_read_identity(f, &line,
-							    identity_id++);
+							    ++identity_id);
 			if (!identity) {
 				wpa_printf(MSG_ERROR,
 					   "Line %d: failed to parse identity block.",
@@ -487,6 +489,8 @@ struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 	wpa_config_debug_dump_networks(config);
 	config->cred = cred_head;
 	config->identity = identity_head;
+
+	base_identity_id = identity_id;
 
 #ifndef WPA_IGNORE_CONFIG_ERRORS
 	if (errors) {
@@ -768,7 +772,8 @@ static void write_mka_ckn(FILE *f, struct wpa_ssid *ssid)
 #endif /* CONFIG_MACSEC */
 
 
-static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
+static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid,
+				     struct wpa_config *config)
 {
 #define STR(t) write_str(f, #t, ssid)
 #define INT(t) write_int(f, #t, ssid->t, 0)
@@ -910,7 +915,20 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 	write_p2p_client_list(f, ssid);
 	write_p2p2_client_list(f, ssid);
 	write_psk_list(f, ssid);
-	INT(go_dik_id);
+	{
+		struct wpa_dev_ik *dev_ik;
+		int i = 1, go_dik_id = 0;
+
+		for (dev_ik = config->identity;
+		     dev_ik;
+		     dev_ik = dev_ik->next, i++) {
+			if (dev_ik->id == ssid->go_dik_id) {
+				go_dik_id = i;
+				break;
+			}
+		}
+		write_int(f, "go_dik_id", go_dik_id, 0);
+	}
 #endif /* CONFIG_P2P */
 	INT(ap_max_inactivity);
 	INT(dtim_period);
@@ -1860,7 +1878,7 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 		    !ssid->pmk_valid)
 			continue; /* do not save invalid network */
 		fprintf(f, "\nnetwork={\n");
-		wpa_config_write_network(f, ssid);
+		wpa_config_write_network(f, ssid, config);
 		fprintf(f, "}\n");
 	}
 
