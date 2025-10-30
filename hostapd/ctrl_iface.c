@@ -30,6 +30,7 @@
 #include "utils/common.h"
 #include "utils/eloop.h"
 #include "utils/module_tests.h"
+#include "utils/trace.h"
 #include "common/version.h"
 #include "common/ieee802_11_defs.h"
 #include "common/ctrl_iface_common.h"
@@ -3893,6 +3894,7 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		wpa_debug_stop_log();
 	} else if (os_strncmp(buf, "NOTE ", 5) == 0) {
 		wpa_printf(MSG_INFO, "NOTE: %s", buf + 5);
+		wpa_trace_set_context(buf + 5);
 	} else if (os_strcmp(buf, "STATUS") == 0) {
 		reply_len = hostapd_ctrl_iface_status(hapd, reply,
 						      reply_size);

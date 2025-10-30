@@ -15,6 +15,7 @@
 #include "utils/eloop.h"
 #include "utils/uuid.h"
 #include "utils/module_tests.h"
+#include "utils/trace.h"
 #include "common/version.h"
 #include "common/ieee802_11_defs.h"
 #include "common/ieee802_11_common.h"
@@ -13211,6 +13212,7 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 			reply_len = -1;
 	} else if (os_strncmp(buf, "NOTE ", 5) == 0) {
 		wpa_printf(MSG_INFO, "NOTE: %s", buf + 5);
+		wpa_trace_set_context(buf + 5);
 	} else if (os_strcmp(buf, "MIB") == 0) {
 		reply_len = wpa_sm_get_mib(wpa_s->wpa, reply, reply_size);
 		if (reply_len >= 0) {

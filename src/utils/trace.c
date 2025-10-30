@@ -17,6 +17,8 @@
 
 #ifdef WPA_TRACE
 
+const char *current_btrace_ctx;
+
 static struct dl_list active_references =
 { &active_references, &active_references };
 
@@ -346,7 +348,8 @@ size_t wpa_trace_calling_func(const char *buf[], size_t len)
 
 #endif /* WPA_TRACE_BFD */
 
-void wpa_trace_dump_func(const char *title, void **btrace, int btrace_num)
+void wpa_trace_dump_func(const char *title, void **btrace, int btrace_num,
+			 const char *btrace_ctx)
 {
 	char **sym;
 	int i;
@@ -378,6 +381,9 @@ void wpa_trace_dump_func(const char *title, void **btrace, int btrace_num)
 			state = TRACE_TAIL;
 	}
 	free(sym);
+	if (btrace_ctx)
+		wpa_printf(MSG_INFO, "WPA_TRACE: External context: %s",
+			   btrace_ctx);
 	wpa_printf(MSG_INFO, "WPA_TRACE: %s - END", title);
 }
 
@@ -420,6 +426,32 @@ void wpa_trace_deinit(void)
 #ifdef WPA_TRACE_BFD
 	free(syms);
 	syms = NULL;
+#endif /* WPA_TRACE_BFD */
+}
+
+struct btrace_ctx_entry {
+	struct dl_list list;
+	char ctx[];
+};
+static struct dl_list old_btrace_ctxs = DL_LIST_HEAD_INIT(old_btrace_ctxs);
+
+void wpa_trace_set_context(const char *ctx)
+{
+#ifdef WPA_TRACE_BFD
+	/*
+	 * Old values might still be referenced, keep them in a list so that
+	 * they are not freed and so that a reference exists for the sanitizer.
+	 */
+	if (ctx) {
+		struct btrace_ctx_entry *entry;
+
+		entry = malloc(sizeof(*entry) + os_strlen(ctx) + 1);
+		strcpy(entry->ctx, ctx);
+		dl_list_add(&old_btrace_ctxs, &entry->list);
+
+		current_btrace_ctx = entry->ctx;
+	} else
+		current_btrace_ctx = NULL;
 #endif /* WPA_TRACE_BFD */
 }
 
