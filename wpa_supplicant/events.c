@@ -2657,16 +2657,16 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 
 	os_free(wpa_s->last_scan_freqs);
 	wpa_s->last_scan_freqs = NULL;
-	wpa_s->num_last_scan_freqs = 0;
 	if (own_request && data &&
 	    data->scan_info.freqs && data->scan_info.num_freqs) {
-		wpa_s->last_scan_freqs = os_malloc(sizeof(int) *
-						   data->scan_info.num_freqs);
+		wpa_s->last_scan_freqs =
+			os_malloc(sizeof(int) *
+				  (data->scan_info.num_freqs + 1));
 		if (wpa_s->last_scan_freqs) {
 			os_memcpy(wpa_s->last_scan_freqs,
 				  data->scan_info.freqs,
 				  sizeof(int) * data->scan_info.num_freqs);
-			wpa_s->num_last_scan_freqs = data->scan_info.num_freqs;
+			wpa_s->last_scan_freqs[data->scan_info.num_freqs] = 0;
 		}
 	}
 

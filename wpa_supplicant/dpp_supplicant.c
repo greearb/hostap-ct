@@ -334,17 +334,17 @@ static char * wpas_dpp_scan_channel_list(struct wpa_supplicant *wpa_s)
 	u8 last_op_class = 0;
 	int res;
 
-	if (!wpa_s->last_scan_freqs || !wpa_s->num_last_scan_freqs)
+	len = int_array_len(wpa_s->last_scan_freqs);
+	if (!len)
 		return NULL;
 
-	len = wpa_s->num_last_scan_freqs * 8;
-	str = os_zalloc(len);
+	str = os_zalloc(len * 8);
 	if (!str)
 		return NULL;
 	end = str + len;
 	pos = str;
 
-	for (i = 0; i < wpa_s->num_last_scan_freqs; i++) {
+	for (i = 0; wpa_s->last_scan_freqs[i]; i++) {
 		enum hostapd_hw_mode mode;
 		u8 op_class, channel;
 
