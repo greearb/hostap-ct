@@ -323,4 +323,7 @@ void hostapd_link_reconf_resp_tx_status(struct hostapd_data *hapd,
 					const struct ieee80211_mgmt *mgmt,
 					size_t len, int ok);
 
+size_t hostapd_eid_eht_ml_tid_to_link_map_len(struct hostapd_data *hapd);
+u8 * hostapd_eid_eht_ml_tid_to_link_map(struct hostapd_data *hapd, u8 *eid);
+
 #endif /* IEEE802_11_H */

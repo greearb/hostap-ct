@@ -798,6 +798,10 @@ static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 			 * switch */
 			buflen += 6;
 		}
+
+		if (hapd->conf->mld_ap)
+			buflen += hostapd_eid_eht_ml_tid_to_link_map_len(
+				hapd);
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -967,6 +971,9 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 
 		pos = hostapd_eid_eht_capab(hapd, pos, IEEE80211_MODE_AP);
 		pos = hostapd_eid_eht_operation(hapd, pos);
+
+		if (hapd->conf->mld_ap)
+			pos = hostapd_eid_eht_ml_tid_to_link_map(hapd, pos);
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -2278,6 +2285,8 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 		 */
 		if (hapd->conf->mld_ap) {
 			tail_len += 256;
+			tail_len +=
+				hostapd_eid_eht_ml_tid_to_link_map_len(hapd);
 
 			/* for Max Channel Switch Time element during channel
 			 * switch */
@@ -2466,6 +2475,9 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 		tailpos = hostapd_eid_eht_capab(hapd, tailpos,
 						IEEE80211_MODE_AP);
 		tailpos = hostapd_eid_eht_operation(hapd, tailpos);
+		if (hapd->conf->mld_ap)
+			tailpos = hostapd_eid_eht_ml_tid_to_link_map(hapd,
+								     tailpos);
 	}
 #endif /* CONFIG_IEEE80211BE */
 

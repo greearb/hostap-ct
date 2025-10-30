@@ -5423,6 +5423,8 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 		buflen += 3 + sizeof(struct ieee80211_eht_operation);
 		if (hapd->iconf->punct_bitmap)
 			buflen += EHT_OPER_DISABLED_SUBCHAN_BITMAP_SIZE;
+		if (ap_sta_is_mld(hapd, sta))
+			buflen += hostapd_eid_eht_ml_tid_to_link_map_len(hapd);
 	}
 #endif /* CONFIG_IEEE80211BE */
 
@@ -5582,6 +5584,8 @@ rsnxe_done:
 			p = hostapd_eid_eht_ml_assoc(hapd, sta, p);
 		p = hostapd_eid_eht_capab(hapd, p, IEEE80211_MODE_AP);
 		p = hostapd_eid_eht_operation(hapd, p);
+		if (ap_sta_is_mld(hapd, sta))
+			p = hostapd_eid_eht_ml_tid_to_link_map(hapd, p);
 	}
 #endif /* CONFIG_IEEE80211BE */
 

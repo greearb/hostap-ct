@@ -2749,3 +2749,62 @@ void ieee802_11_rx_protected_eht_action(struct hostapd_data *hapd,
 		   "MLD: Unsupported Protected EHT Action %u from " MACSTR
 		   " discarded", action, MAC2STR(mgmt->sa));
 }
+
+
+size_t hostapd_eid_eht_ml_tid_to_link_map_len(struct hostapd_data *hapd)
+{
+	if (!hapd->conf->mld_ap)
+		return 0;
+
+#ifdef CONFIG_TESTING_OPTIONS
+	/*
+	 * Allocate enough space for mld_indicate_disabled. i.e.:
+	 *  Element ID, Length, and Element ID Extension (3) +
+	 *  Control including presence bitmap (2) + 8 * 2 byte link mappings
+	 */
+	return 3 + 2 + 8 * 2;
+#else /* CONFIG_TESTING_OPTIONS */
+	return 0;
+#endif /* CONFIG_TESTING_OPTIONS */
+}
+
+
+u8 * hostapd_eid_eht_ml_tid_to_link_map(struct hostapd_data *hapd, u8 *eid)
+{
+#ifdef CONFIG_TESTING_OPTIONS
+	struct hostapd_data *other_hapd;
+	bool need_ttlm = false;
+	u16 ttlm = 0;
+#endif /* CONFIG_TESTING_OPTIONS */
+	u8 *pos = eid;
+
+	if (!hapd->conf->mld_ap)
+		return eid;
+
+#ifdef CONFIG_TESTING_OPTIONS
+	for_each_mld_link(other_hapd, hapd) {
+		if (other_hapd->conf->mld_indicate_disabled)
+			need_ttlm = true;
+		else
+			ttlm |= BIT(other_hapd->mld_link_id);
+	}
+
+	if (need_ttlm) {
+		int i;
+
+		*pos++ = WLAN_EID_EXTENSION;
+		/* ext EID + 2 bytes control + 8 * link mappings */
+		*pos++ = 1 + 2 + 8 * 2;
+		*pos++ = WLAN_EID_EXT_TID_TO_LINK_MAPPING;
+		*pos++ = EHT_TID_TO_LINK_MAP_DIRECTION_BOTH;
+		*pos++ = 0xff; /* link mapping presence bitmap */
+
+		for (i = 0; i < 8; i++) {
+			WPA_PUT_LE16(pos, ttlm);
+			pos += 2;
+		}
+	}
+#endif /* CONFIG_TESTING_OPTIONS */
+
+	return pos;
+}

@@ -3106,6 +3106,17 @@ enum scs_request_type {
 	SCS_REQ_CHANGE = 2,
 };
 
+/* IEEE Std 802.11be-2024, 9.4.2.324 (TID-To-Link Mapping element)
+ * Figure 9-1074ax (TID-TO-Link Mapping Control field format) */
+#define EHT_TID_TO_LINK_MAP_DIRECTION_DOWN	0
+#define EHT_TID_TO_LINK_MAP_DIRECTION_UP	1
+#define EHT_TID_TO_LINK_MAP_DIRECTION_BOTH	2
+#define EHT_TID_TO_LINK_MAP_DIRECTION_MSK	0x03
+#define EHT_TID_TO_LINK_MAP_DEFAULT		0x04
+#define EHT_TID_TO_LINK_MAP_SWITCH_TIME_PRESENT	0x08
+#define EHT_TID_TO_LINK_MAP_EXPECT_DUR_PRESENT	0x10
+#define EHT_TID_TO_LINK_MAP_LINK_MAPPING_SIZE	0x20
+
 /*
  * IEEE Std 802.11be-2024, 9.4.2.326 QoS Characteristics element,
  * Table 9-417w (Direction subfield encoding)
