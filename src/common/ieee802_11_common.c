@@ -3562,3 +3562,83 @@ const u8 * get_basic_mle_mld_addr(const u8 *buf, size_t len)
 
 	return &buf[mld_addr_pos];
 }
+
+
+const u8 * get_basic_mle_eml_capa(const u8 *buf, size_t len)
+{
+	const struct ieee80211_eht_ml *ml =
+		(const struct ieee80211_eht_ml *) buf;
+	u16 ctrl;
+	size_t eml_capa_pos =
+		MULTI_LINK_CONTROL_LEN + /* Multi-Link Control field */
+		1 + /* Common Info Length field (Basic) */
+		ETH_ALEN; /* MLD MAC Address field (Basic) */
+	size_t common_info_limit;
+	u8 common_info_len;
+
+	if (len < MULTI_LINK_CONTROL_LEN)
+		return NULL;
+
+	ctrl = le_to_host16(ml->ml_control);
+	if ((ctrl & MULTI_LINK_CONTROL_TYPE_MASK) !=
+	    MULTI_LINK_CONTROL_TYPE_BASIC)
+		return NULL;
+	if (!(ctrl & BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA))
+		return NULL;
+
+	/* Validate Common Info Length against available data */
+	common_info_len = buf[MULTI_LINK_CONTROL_LEN];
+	if (len < (size_t) MULTI_LINK_CONTROL_LEN + common_info_len)
+		return NULL;
+	common_info_limit = MULTI_LINK_CONTROL_LEN + common_info_len;
+
+	if (ctrl & BASIC_MULTI_LINK_CTRL_PRES_LINK_ID)
+		eml_capa_pos += EHT_ML_LINK_ID_LEN;
+
+	if (ctrl & BASIC_MULTI_LINK_CTRL_PRES_BSS_PARAM_CH_COUNT)
+		eml_capa_pos++;
+
+	if (ctrl & BASIC_MULTI_LINK_CTRL_PRES_MSD_INFO)
+		eml_capa_pos += 2;
+
+	/* Ensure EML Capabilities field fits within the declared Common Info */
+	if (eml_capa_pos + EHT_ML_EML_CAPA_LEN > common_info_limit)
+		return NULL;
+
+	return &buf[eml_capa_pos];
+}
+
+
+int get_basic_mle_link_id(const u8 *buf, size_t len)
+{
+	struct ieee80211_eht_ml *ml = (struct ieee80211_eht_ml *) buf;
+	u16 ctrl;
+	size_t link_id_pos =
+		MULTI_LINK_CONTROL_LEN + /* Multi-Link Control field */
+		1 + /* Common Info Length field (Basic) */
+		ETH_ALEN; /* MLD MAC Address field (Basic) */
+	size_t common_info_limit;
+	u8 common_info_len;
+
+	if (len < MULTI_LINK_CONTROL_LEN)
+		return -1;
+
+	ctrl = le_to_host16(ml->ml_control);
+	if ((ctrl & MULTI_LINK_CONTROL_TYPE_MASK) !=
+	    MULTI_LINK_CONTROL_TYPE_BASIC)
+		return -1;
+
+	/* Validate Common Info Length against available data */
+	common_info_len = buf[MULTI_LINK_CONTROL_LEN];
+	if (len < (size_t) MULTI_LINK_CONTROL_LEN + common_info_len)
+		return -1;
+	common_info_limit = MULTI_LINK_CONTROL_LEN + common_info_len;
+
+	if (!(ctrl & BASIC_MULTI_LINK_CTRL_PRES_LINK_ID))
+		return -1;
+
+	if (link_id_pos + EHT_ML_LINK_ID_LEN > common_info_limit)
+		return -1;
+
+	return buf[link_id_pos] & BASIC_MLE_STA_CTRL_LINK_ID_MASK;
+}

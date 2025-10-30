@@ -2859,6 +2859,12 @@ struct eht_ml_basic_common_info {
 	u8 variable[];
 } STRUCT_PACKED;
 
+/* Length of the EML Capabilities field in the Common Info field (in octets) */
+#define EHT_ML_EML_CAPA_LEN  2
+
+/* Length of the Link ID Info field in the Common Info field (in octets) */
+#define EHT_ML_LINK_ID_LEN  1
+
 #define EHT_ML_LINK_ID_MSK   0x0f
 
 #define EHT_ML_MEDIUM_SYNC_DELAY_DURATION   0x00ff

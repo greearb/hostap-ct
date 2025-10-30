@@ -387,5 +387,7 @@ size_t ieee802_11_defrag_mle_subelem(struct wpabuf *mlbuf,
 				     size_t *defrag_len);
 const u8 * get_ml_ie(const u8 *ies, size_t len, u8 type);
 const u8 * get_basic_mle_mld_addr(const u8 *buf, size_t len);
+const u8 * get_basic_mle_eml_capa(const u8 *buf, size_t len);
+int get_basic_mle_link_id(const u8 *buf, size_t len);
 
 #endif /* IEEE802_11_COMMON_H */
