@@ -2906,7 +2906,7 @@ struct eht_ml_basic_common_info {
 #define EHT_ML_EML_CAPA_EMLSR_TRANS_DELAY_MASK   0x0070
 #define EHT_ML_EML_CAPA_EMLMR_SUPP               0x0080
 #define EHT_ML_EML_CAPA_TRANSITION_TIMEOUT_MASK  0x7800
-#define EHT_ML_EML_CAPA_RESERVED                 0x8780
+#define EHT_ML_EML_CAPA_RESERVED                 0x8700
 
 #define EHT_ML_MLD_CAPA_MAX_NUM_SIM_LINKS_MASK        0x000f
 #define EHT_ML_MLD_CAPA_SRS_SUPP                      0x0010
