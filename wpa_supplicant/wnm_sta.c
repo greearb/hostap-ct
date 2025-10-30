@@ -439,6 +439,8 @@ void wnm_btm_reset(struct wpa_supplicant *wpa_s)
 	os_free(wpa_s->wnm_neighbor_report_elements);
 	wpa_s->wnm_neighbor_report_elements = NULL;
 
+	wpa_s->wnm_target_bss = NULL;
+
 	wpa_s->wnm_cand_valid_until.sec = 0;
 	wpa_s->wnm_cand_valid_until.usec = 0;
 
