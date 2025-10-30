@@ -411,11 +411,11 @@ def test_p2p_pcc_auto_go_and_pcc_client_join(dev, apdev):
     time.sleep(2)
 
     cli = dev[0]
-    id2 = cli.add_network()
-    cli.set_network_quoted(id2, "ssid", res['ssid'])
-    cli.set_network_quoted(id2, "psk", res['passphrase'])
-    cli.set_network(id2, "mode", "0")
-    cli.set_network(id2, "disabled", "2")
+    id2 = cli.p2pdev_add_network()
+    cli.p2pdev_set_network_quoted(id2, "ssid", res['ssid'])
+    cli.p2pdev_set_network_quoted(id2, "psk", res['passphrase'])
+    cli.p2pdev_set_network(id2, "mode", "0")
+    cli.p2pdev_set_network(id2, "disabled", "2")
     cmd = "P2P_GROUP_ADD persistent=" + str(id2) + " p2p2 p2pmode=2 freq=2437"
     id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
