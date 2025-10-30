@@ -1084,12 +1084,14 @@ nl80211_get_wiphy_data_ap(struct i802_bss *bss)
 		w->nl_beacons = nl_create_handle(bss->drv->global->nl_cb,
 						 "wiphy beacons");
 		if (w->nl_beacons == NULL) {
+			nl_cb_put(w->nl_cb);
 			os_free(w);
 			return NULL;
 		}
 
 		if (nl80211_register_beacons(bss->drv, w)) {
 			nl_destroy_handles(&w->nl_beacons);
+			nl_cb_put(w->nl_cb);
 			os_free(w);
 			return NULL;
 		}
