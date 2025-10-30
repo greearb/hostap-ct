@@ -2222,8 +2222,9 @@ def get_mld_devs(hapd_iface, count, prefix, rnr=False):
 
     return [hapd_mld1_link0, hapd_mld1_link1, hapd_mld2_link0, hapd_mld2_link1]
 
-def stop_mld_devs(hapds, pid):
-    pid = pid + ".hostapd.pid"
+def stop_mld_devs(hapds, prefix):
+    pid = prefix + ".hostapd.pid"
+    log = prefix + ".hostapd-log"
 
     if "OK" not in hapds[0].request("TERMINATE"):
         raise Exception("Failed to terminate hostapd process")
@@ -2240,6 +2241,11 @@ def stop_mld_devs(hapds, pid):
             break
     if os.path.exists(pid):
         raise Exception("PID file exits after process termination")
+
+    with open(log, 'rb') as f:
+        log_data = f.read()
+        if b'WPA_TRACE:' in log_data:
+            raise Exception(f'WPA_TRACE messages found in {log}')
 
 def eht_parse_rnr(bss, rnr=False, exp_bssid=None):
         partner_rnr_pattern = re.compile(".*ap_info.*, mld ID=0, link ID=",
