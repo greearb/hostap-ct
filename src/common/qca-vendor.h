@@ -22235,6 +22235,14 @@ enum qca_wlan_vendor_attr_feature_config_data {
  * APs which meet the enable criteria and disable DSMPS for all other APs after
  * the configuration.
  *
+ * Interaction with
+ * %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ADAPTIVE_DSMPS_BY_RSSI:
+ * If %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ADAPTIVE_DSMPS_BY_RSSI is also
+ * configured and the connected AP matches the adaptive action’s
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST, the adaptive logic may
+ * disable DSMPS when the AP RSSI is below the firmware-provided threshold, even
+ * if this static action would otherwise enable DSMPS for that AP.
+ *
  * @QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISABLE_DSMPS - Disable dynamic SMPS
  * only when contents advertised by the AP in its Beacon and Probe Response
  * frames matches at least one of the configuration data entry from the array of
@@ -22249,10 +22257,48 @@ enum qca_wlan_vendor_attr_feature_config_data {
  * data entries with this action the driver will disable the DSMPS only for
  * the APs which meet the disable criteria and enable DSMPS for all other APs
  * after the configuration.
+ *
+ * Interaction with
+ * %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ADAPTIVE_DSMPS_BY_RSSI:
+ * If an AP is present in the
+ * %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISABLE_DSMPS list, DSMPS remains
+ * disabled for that AP regardless of any
+ * %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ADAPTIVE_DSMPS_BY_RSSI or RSSI
+ * changes.
+ *
+ * @QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ADAPTIVE_DSMPS_BY_RSSI - Enable
+ * Dynamic Spatial Multiplexing Power Save (DSMPS) adaptively based on AP RSSI.
+ * This action enables DSMPS only when the Access Point (AP) signal strength
+ * (RSSI) exceeds a predefined threshold after a connection is established. The
+ * driver activates or deactivates DSMPS dynamically during the association,
+ * based on whether the AP’s RSSI is above or below the threshold. The RSSI
+ * threshold is determined by the default configuration set by the firmware.
+ * DSMPS is activated or deactivated only if the information advertised in the
+ * AP’s Beacon and Probe Response frames matches at least one entry from the
+ * configuration data list specified in
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST. The DSMPS state is
+ * continuously evaluated during the association. If the AP's RSSI crosses the
+ * threshold (either above or below), the driver will enable or disable DSMPS
+ * accordingly, as long as the AP matches the configuration data list.
+ *
+ * Interaction with other actions:
+ * - %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ADAPTIVE_DSMPS_BY_RSSI can co-exist
+ *   with %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ENABLE_DSMPS and
+ *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISABLE_DSMPS.
+ * - When AP matches with the configuration data of the both
+ *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ENABLE_DSMPS and
+ *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ADAPTIVE_DSMPS_BY_RSSI, DSMPS can be
+ *   disabled due to signal strength being below the RSSI threshold even if the
+ *   AP matches the enable list.
+ * - The %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ADAPTIVE_DSMPS_BY_RSSI action
+ *   takes effect only for APs not matching with the configuration data of
+ *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISABLE_DSMPS. For APs in the
+ *   disable list, DSMPS remains disabled regardless of RSSI.
  */
 enum qca_wlan_vendor_feature_config_action {
 	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ENABLE_DSMPS = 0,
 	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISABLE_DSMPS = 1,
+	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ADAPTIVE_DSMPS_BY_RSSI = 2,
 };
 
 /**
