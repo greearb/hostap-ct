@@ -713,6 +713,7 @@ static void eloop_sock_table_destroy(struct eloop_sock_table *table)
 						table->table[i].handler);
 			wpa_trace_dump("eloop sock", &table->table[i]);
 		}
+		eloop_trace_sock_remove_ref(table);
 		os_free(table->table);
 	}
 }
