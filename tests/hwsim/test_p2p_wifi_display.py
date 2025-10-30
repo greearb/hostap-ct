@@ -101,6 +101,7 @@ def test_wifi_display(dev):
                                   timeout=20, go_intent=15, freq=2437)
     res2 = dev[0].p2p_go_neg_auth_result()
 
+    # WPS enrollment does not happen on the P2P device interface
     bss = dev[0].get_bss("p2p_dev_addr=" + dev[1].p2p_dev_addr())
     if bss['bssid'] != dev[1].p2p_interface_addr():
         raise Exception("Unexpected BSSID in the BSS entry for the GO")
@@ -128,7 +129,8 @@ def test_wifi_display(dev):
             raise Exception("Could not discover GO")
     if "wfd_dev_info=0x" + wfd_devinfo2 not in ev:
         raise Exception("Wi-Fi Display Info not in P2P-DEVICE-FOUND event")
-    bss = dev[2].get_bss("p2p_dev_addr=" + dev[1].p2p_dev_addr())
+    bss = dev[2].get_bss("p2p_dev_addr=" + dev[1].p2p_dev_addr(),
+                         ifname=dev[2].p2p_dev_ifname)
     if bss['bssid'] != dev[1].p2p_interface_addr():
         raise Exception("Unexpected BSSID in the BSS entry for the GO")
     if wfd_devinfo2 not in bss['wfd_subelems']:
