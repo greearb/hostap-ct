@@ -1067,6 +1067,39 @@ def test_eht_all_links_rejected(dev, apdev, params):
             # connects.
             wpas.wait_connected(timeout=15)
 
+def test_eht_assoc_failure(dev, apdev, params):
+    """EHT MLD AP with MLD client that fails the association the first time"""
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+        check_sae_capab(wpas)
+
+        ssid = "mld_ap"
+        passphrase = 'qwertyuiop'
+        link_params = eht_mld_ap_wpa2_params(ssid, passphrase, mfp="2",
+                                             key_mgmt="SAE", pwe='2')
+        link_params['channel'] = '1'
+        link_params['bssid'] = '00:11:22:33:44:01'
+        hapd0 = eht_mld_enable_ap(hapd_iface, 0, link_params)
+
+        link_params['channel'] = '6'
+        link_params['bssid'] = '00:11:22:33:44:02'
+        hapd1 = eht_mld_enable_ap(hapd_iface, 1, link_params)
+
+        wpas.set("sae_pwe", "2")
+        with fail_test(wpas, 1, "denied-unspec;mlme_event_assoc"):
+            wpas.connect(ssid, sae_password=passphrase, ieee80211w="2",
+                         key_mgmt="SAE", scan_freq="2412")
+
+        # connection succeeds on the second attempt which uses an open
+        # authentication
+        eht_verify_status(wpas, hapd1, 2437, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
+        traffic_test(wpas, hapd0)
+        traffic_test(wpas, hapd1)
+
 def test_eht_non_assoc_links_rejected(dev, apdev, params):
     """EHT MLD AP with all non assoc links rejected in association"""
     with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
