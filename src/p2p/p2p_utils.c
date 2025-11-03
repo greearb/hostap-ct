@@ -589,7 +589,8 @@ void p2p_pref_channel_filter(const struct p2p_channels *p2p_chan,
 
 	for (i = 0; i < p2p_chan->reg_classes; i++) {
 		const struct p2p_reg_class *reg = &p2p_chan->reg_class[i];
-		struct p2p_reg_class *res_reg = &res->reg_class[i];
+		struct p2p_reg_class *res_reg =
+			&res->reg_class[res->reg_classes];
 
 		if (num_channels > 0) {
 			for (j = 0; j < reg->channels; j++) {
