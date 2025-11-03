@@ -19359,17 +19359,46 @@ enum qca_wlan_vendor_attr_flow_stats {
  * @QCA_WLAN_VENDOR_ATTR_FLOW_CLASSIFY_RESULT_UL_TID: Optional u8 attribute
  * indicates the TID value to be used by the driver in uplink direction for this
  * flow tuple.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_FLOW_CLASSIFY_RESULT_INSIGHTS: Optional nested
+ * attribute array containing classify results insights. Each array element
+ * contains traffic type and probability information using attributes from
+ * enum qca_wlan_vendor_attr_classify_insights.
  */
 enum qca_wlan_vendor_attr_flow_classify_result {
 	QCA_WLAN_VENDOR_ATTR_FLOW_CLASSIFY_RESULT_INVALID = 0,
 	QCA_WLAN_VENDOR_ATTR_FLOW_CLASSIFY_RESULT_FLOW_TUPLE = 1,
 	QCA_WLAN_VENDOR_ATTR_FLOW_CLASSIFY_RESULT_TRAFFIC_TYPE = 2,
 	QCA_WLAN_VENDOR_ATTR_FLOW_CLASSIFY_RESULT_UL_TID = 3,
+	QCA_WLAN_VENDOR_ATTR_FLOW_CLASSIFY_RESULT_INSIGHTS = 4,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_FLOW_CLASSIFY_RESULT_LAST,
 	QCA_WLAN_VENDOR_ATTR_FLOW_CLASSIFY_RESULT_MAX =
 	QCA_WLAN_VENDOR_ATTR_FLOW_CLASSIFY_RESULT_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_classify_insights - Classify results insights
+ * used by @QCA_WLAN_VENDOR_ATTR_FLOW_CLASSIFY_RESULT_INSIGHTS as nested
+ * attributes within each array element.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CLASSIFY_INSIGHTS_PROBABLE_TRAFFIC_TYPE: Mandatory u8
+ * attribute indicates probable traffic type. Uses values from the
+ * enum qca_traffic_type.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CLASSIFY_INSIGHTS_PROBABILITY: Mandatory u8 attribute
+ * indicates probability percentages for probable traffic type. Range: 0-100.
+ */
+enum qca_wlan_vendor_attr_classify_insights {
+	QCA_WLAN_VENDOR_ATTR_CLASSIFY_INSIGHTS_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_CLASSIFY_INSIGHTS_PROBABLE_TRAFFIC_TYPE = 1,
+	QCA_WLAN_VENDOR_ATTR_CLASSIFY_INSIGHTS_PROBABILITY = 2,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_CLASSIFY_INSIGHTS_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_CLASSIFY_INSIGHTS_MAX =
+	QCA_WLAN_VENDOR_ATTR_CLASSIFY_INSIGHTS_AFTER_LAST - 1
 };
 
 /**
