@@ -171,9 +171,7 @@ wext_pmf wext_wpa2_psk wext_wep_open_auth wext_open wext_rfkill wext_scan_hidden
 
 WEXT failures are due to the specific cfg80211/mac80211 version from
 Backports not allowing WEXT support to be enabled. A newer build
-addresses that and these WEXT test cases pass, e.g., with this snapshot
-build:
-http://buildbot.w1.fi/backports-wireless-testing/backports-wireless-testing-2015-01-18-ba3f765.tar.bz2
+addresses that and these WEXT test cases pass.
 
 With that version, ibss_rsn is failing due to a known cfg80211
 regression in the specific snapshot build. All other test cases passed
