@@ -323,6 +323,13 @@ int wpas_send_mscs_req(struct wpa_supplicant *wpa_s)
 		return -1;
 	}
 
+	if (wpa_s->mscs_setup_done &&
+	    wpa_s->robust_av.request_type == SCS_REQ_ADD) {
+		wpa_msg(wpa_s, MSG_INFO,
+			"MSCS: Failed to send MSCS ADD request: MSCS session already active");
+		return -1;
+	}
+
 	if (!wpa_s->mscs_setup_done &&
 	    wpa_s->robust_av.request_type != SCS_REQ_ADD) {
 		wpa_msg(wpa_s, MSG_INFO,
