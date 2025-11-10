@@ -7922,7 +7922,8 @@ static void p2p_ctrl_flush(struct wpa_supplicant *wpa_s)
 #ifdef CONFIG_TESTING_OPTIONS
 	os_free(wpa_s->get_pref_freq_list_override);
 	wpa_s->get_pref_freq_list_override = NULL;
-	p2p_set_invitation_op_freq(wpa_s->global->p2p, -1);
+	if (wpa_s->global->p2p)
+		p2p_set_invitation_op_freq(wpa_s->global->p2p, -1);
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	wpas_p2p_stop_find(wpa_s);
