@@ -11490,6 +11490,7 @@ static int wpas_ctrl_iface_pasn_deauthenticate(struct wpa_supplicant *wpa_s,
 
 
 #ifdef CONFIG_PR
+
 static int wpas_ctrl_iface_pr_pasn_start(struct wpa_supplicant *wpa_s,
 					 char *cmd)
 {
@@ -11540,12 +11541,8 @@ static int wpas_ctrl_iface_pr_pasn_start(struct wpa_supplicant *wpa_s,
 	return wpas_pr_initiate_pasn_auth(wpa_s, addr, freq, auth_mode, role,
 					  ranging_type, forced_pr_freq);
 }
-#endif /* CONFIG_PR */
 
 
-#ifdef CONFIG_TESTING_OPTIONS
-
-#ifdef CONFIG_PR
 static int wpas_ctrl_iface_pr_set_dik_ctx(struct wpa_supplicant *wpa_s,
 					  char *cmd)
 {
@@ -11594,9 +11591,11 @@ fail:
 	wpabuf_clear_free(pmk_buf);
 	return ret;
 }
+
 #endif /* CONFIG_PR */
 
 
+#ifdef CONFIG_TESTING_OPTIONS
 static int wpas_ctrl_iface_pasn_driver(struct wpa_supplicant *wpa_s, char *cmd)
 {
 	char *token, *context = NULL;
@@ -14198,15 +14197,13 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strncmp(buf, "PR_PASN_START ", 14) == 0) {
 		if (wpas_ctrl_iface_pr_pasn_start(wpa_s, buf + 14) < 0)
 			reply_len = -1;
-#endif /* CONFIG_PR */
-#ifdef CONFIG_TESTING_OPTIONS
-#ifdef CONFIG_PR
 	} else if (os_strncmp(buf, "PR_SET_DIK_CONTEXT ", 19) == 0) {
 		if (wpas_ctrl_iface_pr_set_dik_ctx(wpa_s, buf + 19) < 0)
 			reply_len = -1;
 	} else if (os_strcmp(buf, "PR_CLEAR_DIK_CONTEXT") == 0) {
 		wpas_pr_clear_dev_iks(wpa_s);
 #endif /* CONFIG_PR */
+#ifdef CONFIG_TESTING_OPTIONS
 	} else if (os_strncmp(buf, "PASN_DRIVER ", 12) == 0) {
 		if (wpas_ctrl_iface_pasn_driver(wpa_s, buf + 12) < 0)
 			reply_len = -1;
