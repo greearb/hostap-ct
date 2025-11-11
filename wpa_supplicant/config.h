@@ -1143,6 +1143,7 @@ struct wpa_config {
 
 #if CONFIG_TESTING_OPTIONS
         /* Shall we ignore BTM requests?  Non-zero value will cause that rejection code.
+	 * 65535 will cause us to ignore and return no response at all.
 	 */
 	int reject_btm_req_reason;
 
