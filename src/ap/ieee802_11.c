@@ -7514,8 +7514,16 @@ int ieee802_11_get_mib(struct hostapd_data *hapd, char *buf, size_t buflen)
 int ieee802_11_get_mib_sta(struct hostapd_data *hapd, struct sta_info *sta,
 			   char *buf, size_t buflen)
 {
-	/* TODO */
-	return 0;
+	int len = 0, ret;
+
+	ret = os_snprintf(buf + len, buflen - len,
+			  "auth_alg=%d\n",
+			  sta->auth_alg);
+	if (os_snprintf_error(buflen - len, ret))
+		return len;
+	len += ret;
+
+	return len;
 }
 
 
