@@ -36,6 +36,8 @@
 
 static const u8 null_rsc[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
+static const u8 * wpa_sm_get_ap_rsnxe(struct wpa_sm *sm, size_t *len);
+
 
 static void _wpa_hexdump_link(int level, u8 link_id, const char *title,
 			      const void *buf, size_t len, bool key)
@@ -716,9 +718,11 @@ static int wpa_derive_ptk(struct wpa_sm *sm, const unsigned char *src_addr,
 			  const struct wpa_eapol_key *key, struct wpa_ptk *ptk)
 {
 	int ret;
-	const u8 *z = NULL;
-	size_t z_len = 0, kdk_len;
+	const u8 *z = NULL, *ap_rsnxe;
+	size_t z_len = 0, kdk_len, ap_rsnxe_len;
 	int akmp;
+
+	ap_rsnxe = wpa_sm_get_ap_rsnxe(sm, &ap_rsnxe_len);
 
 #ifdef CONFIG_IEEE80211R
 	if (wpa_key_mgmt_ft(sm->key_mgmt))
@@ -744,7 +748,7 @@ static int wpa_derive_ptk(struct wpa_sm *sm, const unsigned char *src_addr,
 
 	if (sm->force_kdk_derivation ||
 	    (sm->secure_ltf &&
-	     ieee802_11_rsnx_capab(sm->ap_rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF)))
+	     ieee802_11_rsnx_capab(ap_rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF)))
 		kdk_len = WPA_KDK_MAX_LEN;
 	else
 		kdk_len = 0;
@@ -761,7 +765,7 @@ static int wpa_derive_ptk(struct wpa_sm *sm, const unsigned char *src_addr,
 
 #ifdef CONFIG_PASN
 	if (sm->secure_ltf &&
-	    ieee802_11_rsnx_capab(sm->ap_rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF))
+	    ieee802_11_rsnx_capab(ap_rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF))
 		ret = wpa_ltf_keyseed(ptk, akmp, sm->pairwise_cipher);
 #endif /* CONFIG_PASN */
 
@@ -1223,6 +1227,10 @@ static int wpa_supplicant_install_ptk(struct wpa_sm *sm,
 	int keylen, rsclen;
 	enum wpa_alg alg;
 	const u8 *key_rsc;
+#ifdef CONFIG_PASN
+	const u8 *ap_rsnxe;
+	size_t ap_rsnxe_len;
+#endif /* CONFIG_PASN */
 
 	if (sm->ptk.installed ||
 	    (sm->ptk.installed_rx && (key_flag & KEY_FLAG_NEXT))) {
@@ -1279,8 +1287,9 @@ static int wpa_supplicant_install_ptk(struct wpa_sm *sm,
 	}
 
 #ifdef CONFIG_PASN
+	ap_rsnxe = wpa_sm_get_ap_rsnxe(sm, &ap_rsnxe_len);
 	if (sm->secure_ltf &&
-	    ieee802_11_rsnx_capab(sm->ap_rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF) &&
+	    ieee802_11_rsnx_capab(ap_rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF) &&
 	    wpa_sm_set_ltf_keyseed(sm, sm->own_addr, sm->bssid,
 				   sm->ptk.ltf_keyseed_len,
 				   sm->ptk.ltf_keyseed) < 0) {
@@ -5145,6 +5154,19 @@ static const u8 * wpa_sm_get_ap_rsne(struct wpa_sm *sm, size_t *len)
 
 	*len = sm->ap_rsn_ie_len;
 	return sm->ap_rsn_ie;
+}
+
+
+static const u8 * wpa_sm_get_ap_rsnxe(struct wpa_sm *sm, size_t *len)
+{
+	if (sm->rsn_override != RSN_OVERRIDE_NOT_USED &&
+	    sm->ap_rsnxe_override && sm->ap_rsnxe_override_len) {
+		*len = sm->ap_rsnxe_override_len;
+		return sm->ap_rsnxe_override;
+	}
+
+	*len = sm->ap_rsnxe_len;
+	return sm->ap_rsnxe;
 }
 
 
