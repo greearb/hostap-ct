@@ -436,3 +436,32 @@ def test_rsn_override_compatibility_mode(dev, apdev):
     finally:
         dev[0].set("sae_pwe", "0")
         dev[0].set("rsn_overriding", "0")
+
+def test_rsn_override_kdk_secure_ltf(dev, apdev):
+    """RSN overriding with KDK derivation due to Secure LTF support"""
+
+    ssid = "test-rsn-override"
+    params = hostapd.wpa2_params(ssid=ssid,
+                                 passphrase="12345678",
+                                 ieee80211w='1')
+    params['rsn_override_key_mgmt'] = 'SAE SAE-EXT-KEY'
+    params['rsn_override_pairwise'] = 'CCMP GCMP-256'
+    params['rsn_override_mfp'] = '2'
+    params['rsn_override_omit_rsnxe'] = '1'
+    params['beacon_prot'] = '1'
+    params['sae_groups'] = '19 20'
+    params['sae_require_mfp'] = '1'
+    params['sae_pwe'] = '2'
+    params['driver_params'] = "secure_ltf=1"
+    hapd = hostapd.add_ap(apdev[0], params)
+    bssid = hapd.own_addr()
+
+    wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+    wpas.interface_add("wlan5", drv_params="secure_ltf=1")
+    check_sae_capab(wpas)
+
+    wpas.set("rsn_overriding", "1")
+    wpas.set("sae_pwe", "2")
+    wpas.set("sae_groups", "")
+    wpas.connect(ssid, sae_password="12345678", key_mgmt="SAE",
+                 ieee80211w="2", scan_freq="2412")
