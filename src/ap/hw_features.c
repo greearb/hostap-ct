@@ -72,6 +72,49 @@ static char * dfs_info(struct hostapd_channel_data *chan)
 #endif /* CONFIG_NO_STDOUT_DEBUG */
 
 
+static void move_survey_data(struct hostapd_channel_data *new_chan,
+			     struct hostapd_channel_data *old_chan)
+{
+	struct freq_survey *survey, *tmp;
+
+	/* Copy the survey list from the old to new channel */
+	if (old_chan->flag & HOSTAPD_CHAN_SURVEY_LIST_INITIALIZED) {
+		dl_list_init(&new_chan->survey_list);
+		dl_list_for_each_safe(survey, tmp, &old_chan->survey_list,
+				      struct freq_survey, list) {
+			dl_list_del(&survey->list);
+			dl_list_add(&new_chan->survey_list,
+				    &survey->list);
+		}
+		new_chan->flag |= HOSTAPD_CHAN_SURVEY_LIST_INITIALIZED;
+	}
+}
+
+
+static void move_hw_mode_data(struct hostapd_hw_modes *new_feature,
+			      struct hostapd_hw_modes *old_feature)
+{
+	int i, j;
+
+	for (i = 0; i < new_feature->num_channels; i++) {
+		struct hostapd_channel_data *new_chan;
+		struct hostapd_channel_data *old_chan;
+
+		new_chan = &new_feature->channels[i];
+
+		for (j = 0; j < old_feature->num_channels; j++) {
+			old_chan = &old_feature->channels[j];
+
+			if (new_chan->freq != old_chan->freq)
+				continue;
+
+			move_survey_data(new_chan, old_chan);
+			break;
+		}
+	}
+}
+
+
 int hostapd_get_hw_features(struct hostapd_iface *iface)
 {
 	struct hostapd_data *hapd = iface->bss[0];
@@ -113,9 +156,6 @@ int hostapd_get_hw_features(struct hostapd_iface *iface)
 		is_6ghz = iface->current_mode->is_6ghz;
 		iface->current_mode = NULL;
 	}
-	hostapd_free_hw_features(iface->hw_features, iface->num_hw_features);
-	iface->hw_features = modes;
-	iface->num_hw_features = num_modes;
 
 	for (i = 0; i < num_modes; i++) {
 		struct hostapd_hw_modes *feature = &modes[i];
@@ -163,7 +203,22 @@ int hostapd_get_hw_features(struct hostapd_iface *iface)
 				   feature->channels[j].max_tx_power,
 				   dfs ? dfs_info(&feature->channels[j]) : "");
 		}
+
+		/* Move any old data that should be kept */
+		for (j = 0; j < iface->num_hw_features; j++) {
+			struct hostapd_hw_modes *old_feature =
+				&iface->hw_features[j];
+
+			if (feature->mode != old_feature->mode)
+				continue;
+
+			move_hw_mode_data(feature, old_feature);
+		}
 	}
+
+	hostapd_free_hw_features(iface->hw_features, iface->num_hw_features);
+	iface->hw_features = modes;
+	iface->num_hw_features = num_modes;
 
 	if (orig_mode_valid && !iface->current_mode) {
 		wpa_printf(MSG_ERROR,
