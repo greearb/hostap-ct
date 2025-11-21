@@ -873,6 +873,7 @@ int hostapd_build_beacon_data(struct hostapd_data *hapd,
 void free_beacon_data(struct beacon_data *beacon);
 int hostapd_fill_cca_settings(struct hostapd_data *hapd,
 			      struct cca_settings *settings);
+void hostapd_refresh_all_iface_beacons(struct hostapd_iface *hapd_iface);
 
 #ifdef CONFIG_IEEE80211BE
 

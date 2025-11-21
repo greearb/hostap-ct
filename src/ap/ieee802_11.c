@@ -8171,7 +8171,8 @@ repeat_rnr_len:
 			struct hostapd_data *bss = hapd->iface->bss[i];
 			bool ap_mld = false;
 
-			if (!bss || !bss->conf || !bss->started)
+			if (!bss || !bss->conf || !bss->started ||
+			    !bss->beacon_set_done)
 				continue;
 
 #ifdef CONFIG_IEEE80211BE
@@ -8449,7 +8450,8 @@ static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
 #endif /* CONFIG_IEEE80211BE */
 
 	if (!bss || !bss->conf || !bss->started ||
-	    bss == reporting_hapd || bss->conf->ignore_broadcast_ssid)
+	    bss == reporting_hapd || bss->conf->ignore_broadcast_ssid ||
+	    !bss->beacon_set_done)
 		return false;
 
 	if (hostapd_skip_rnr(i, skip_profiles, ap_mld, tbtt_info_len,

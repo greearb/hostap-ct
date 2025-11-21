@@ -3578,7 +3578,7 @@ static void hostapd_deinit_driver(const struct wpa_driver_ops *driver,
 }
 
 
-static void hostapd_refresh_all_iface_beacons(struct hostapd_iface *hapd_iface)
+void hostapd_refresh_all_iface_beacons(struct hostapd_iface *hapd_iface)
 {
 	size_t j;
 
