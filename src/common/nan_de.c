@@ -605,7 +605,6 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 		if (nan_de_srv_expired(srv, &now)) {
 			wpa_printf(MSG_DEBUG, "NAN: Service id %d expired",
 				   srv->id);
-			nan_de_del_srv(de, srv, NAN_DE_REASON_TIMEOUT);
 			if (srv->type == NAN_DE_PUBLISH &&
 			    de->cb.offload_cancel_publish)
 				de->cb.offload_cancel_publish(de->cb.ctx,
@@ -614,6 +613,7 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 			    de->cb.offload_cancel_subscribe)
 				de->cb.offload_cancel_subscribe(de->cb.ctx,
 								srv->id);
+			nan_de_del_srv(de, srv, NAN_DE_REASON_TIMEOUT);
 			continue;
 		}
 
