@@ -219,6 +219,7 @@ char * xml_node_get_base64_text(struct xml_node_ctx *ctx, xml_node_t *node,
 	}
 	os_memcpy(txt, ret, len);
 	txt[len] = '\0';
+	os_free(ret);
 	return txt;
 }
 
