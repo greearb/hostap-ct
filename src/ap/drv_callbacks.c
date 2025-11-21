@@ -2244,6 +2244,8 @@ void hostapd_event_get_survey(struct hostapd_iface *iface,
 			continue;
 		if (chan->flag & HOSTAPD_CHAN_DISABLED)
 			continue;
+		if (!(chan->flag & HOSTAPD_CHAN_SURVEY_LIST_INITIALIZED))
+			continue;
 
 		dl_list_del(&survey->list);
 		dl_list_add_tail(&chan->survey_list, &survey->list);
