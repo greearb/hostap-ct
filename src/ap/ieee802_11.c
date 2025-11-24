@@ -4258,8 +4258,7 @@ u16 owe_process_rsn_ie(struct hostapd_data *hapd,
 	status = owe_process_assoc_req(hapd, sta, owe_dh, owe_dh_len);
 	if (status != WLAN_STATUS_SUCCESS)
 		goto end;
-	owe_buf = wpa_auth_write_assoc_resp_owe(sta->wpa_sm, ie, sizeof(ie),
-						NULL, 0);
+	owe_buf = wpa_auth_write_assoc_resp_owe(sta->wpa_sm, ie, sizeof(ie));
 	if (!owe_buf) {
 		status = WLAN_STATUS_UNSPECIFIED_FAILURE;
 		goto end;
@@ -5489,8 +5488,7 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 	      hapd->conf->rsn_override_key_mgmt_2) &
 	     WPA_KEY_MGMT_OWE))
 		p = wpa_auth_write_assoc_resp_owe(sta->wpa_sm, p,
-						  buf + buflen - p,
-						  ies, ies_len);
+						  buf + buflen - p);
 #endif /* CONFIG_OWE */
 
 	if (sta && status_code == WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY)
@@ -5728,14 +5726,14 @@ u8 * owe_assoc_req_process(struct hostapd_data *hapd, struct sta_info *sta,
 		wpa_printf(MSG_DEBUG, "OWE: Using IE override");
 		*status = WLAN_STATUS_SUCCESS;
 		return wpa_auth_write_assoc_resp_owe(sta->wpa_sm, owe_buf,
-						     owe_buf_len, NULL, 0);
+						     owe_buf_len);
 	}
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	if (wpa_auth_sta_get_pmksa(sta->wpa_sm)) {
 		wpa_printf(MSG_DEBUG, "OWE: Using PMKSA caching");
 		owe_buf = wpa_auth_write_assoc_resp_owe(sta->wpa_sm, owe_buf,
-							owe_buf_len, NULL, 0);
+							owe_buf_len);
 		*status = WLAN_STATUS_SUCCESS;
 		return owe_buf;
 	}
@@ -5751,7 +5749,7 @@ u8 * owe_assoc_req_process(struct hostapd_data *hapd, struct sta_info *sta,
 		return NULL;
 
 	owe_buf = wpa_auth_write_assoc_resp_owe(sta->wpa_sm, owe_buf,
-						owe_buf_len, NULL, 0);
+						owe_buf_len);
 
 	if (sta->owe_ecdh && owe_buf) {
 		struct wpabuf *pub;

@@ -637,8 +637,7 @@ void wpa_auth_get_fils_aead_params(struct wpa_state_machine *sm,
 void wpa_auth_add_fils_pmk_pmkid(struct wpa_state_machine *sm, const u8 *pmk,
 				 size_t pmk_len, const u8 *pmkid);
 u8 * wpa_auth_write_assoc_resp_owe(struct wpa_state_machine *sm,
-				   u8 *pos, size_t max_len,
-				   const u8 *req_ies, size_t req_ies_len);
+				   u8 *pos, size_t max_len);
 u8 * wpa_auth_write_assoc_resp_fils(struct wpa_state_machine *sm,
 				    u8 *pos, size_t max_len,
 				    const u8 *req_ies, size_t req_ies_len);
