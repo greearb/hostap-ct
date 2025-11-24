@@ -5477,8 +5477,7 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 	     sta->auth_alg == WLAN_AUTH_FILS_SK_PFS ||
 	     sta->auth_alg == WLAN_AUTH_FILS_PK))
 		p = wpa_auth_write_assoc_resp_fils(sta->wpa_sm, p,
-						   buf + buflen - p,
-						   ies, ies_len);
+						   buf + buflen - p);
 #endif /* CONFIG_FILS */
 
 #ifdef CONFIG_OWE

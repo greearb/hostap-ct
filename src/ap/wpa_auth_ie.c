@@ -1442,8 +1442,7 @@ u8 * wpa_auth_write_assoc_resp_owe(struct wpa_state_machine *sm,
 #ifdef CONFIG_FILS
 
 u8 * wpa_auth_write_assoc_resp_fils(struct wpa_state_machine *sm,
-				    u8 *pos, size_t max_len,
-				    const u8 *req_ies, size_t req_ies_len)
+				    u8 *pos, size_t max_len)
 {
 	int res;
 
