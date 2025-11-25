@@ -12430,10 +12430,17 @@ enum qca_wlan_vendor_twt_setup_req_type {
  * Flow ID is the unique identifier for the TWT session.
  * Flow ID values from 0 to 254 represent a single TWT session.
  * Flow ID value of 255 represents all TWT sessions.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TWT_EARLY_TERM_PEER_MAC_ADDR: Optional, 6-byte
+ * MAC address.
+ * Represents the MAC address of the peer for which the TWT Flow ID is
+ * provided. This is a mandatory attribute in AP mode to represent the
+ * respective client.
  */
 enum qca_wlan_vendor_attr_twt_early_termination_ind {
 	QCA_WLAN_VENDOR_ATTR_TWT_EARLY_TERM_FLOW_INVALID = 0,
 	QCA_WLAN_VENDOR_ATTR_TWT_EARLY_TERM_FLOW_ID = 1,
+	QCA_WLAN_VENDOR_ATTR_TWT_EARLY_TERM_PEER_MAC_ADDR = 2,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_TWT_EARLY_TERM_FLOW_AFTER_LAST,
