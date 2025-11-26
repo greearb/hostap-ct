@@ -514,7 +514,6 @@ static struct wpabuf * wpas_wfa_gen_capab_attr(struct wpa_supplicant *wpa_s)
 	size_t gen_len, supp_len;
 	const u8 *supp;
 	u8 supp_buf[1];
-	bool add_cert;
 
 	if (wpa_s->conf->wfa_gen_capa == WFA_GEN_CAPA_DISABLED)
 		return NULL;
@@ -537,14 +536,7 @@ static struct wpabuf * wpas_wfa_gen_capab_attr(struct wpa_supplicant *wpa_s)
 		supp = wpabuf_head(wpa_s->conf->wfa_gen_capa_supp);
 	}
 
-	add_cert = wpa_s->conf->wfa_gen_capa_cert &&
-		wpabuf_len(wpa_s->conf->wfa_gen_capa_cert) == supp_len;
-
 	gen_len = 1 + supp_len;
-	if (add_cert) {
-		gen_len++;
-		gen_len += wpabuf_len(wpa_s->conf->wfa_gen_capa_cert);
-	}
 
 	attr = wpabuf_alloc(2 + gen_len);
 	if (!attr)
@@ -554,11 +546,6 @@ static struct wpabuf * wpas_wfa_gen_capab_attr(struct wpa_supplicant *wpa_s)
 	wpabuf_put_u8(attr, gen_len);
 	wpabuf_put_u8(attr, supp_len);
 	wpabuf_put_data(attr, supp, supp_len);
-	if (add_cert) {
-		wpabuf_put_u8(attr,
-			      wpabuf_len(wpa_s->conf->wfa_gen_capa_cert));
-		wpabuf_put_buf(attr, wpa_s->conf->wfa_gen_capa_cert);
-	}
 
 	return attr;
 }

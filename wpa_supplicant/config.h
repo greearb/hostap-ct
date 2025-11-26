@@ -1892,15 +1892,6 @@ struct wpa_config {
 	struct wpabuf *wfa_gen_capa_supp;
 
 	/**
-	 * wfa_gen_capa_cert: Certified Generations (hexdump of a bit field)
-	 *
-	 * This has the same format as wfa_gen_capa_supp. This is an optional
-	 * field, but if included, shall have the same length as
-	 * wfa_gen_capa_supp.
-	 */
-	struct wpabuf *wfa_gen_capa_cert;
-
-	/**
 	 * disable_op_classes_80_80_mhz - Disable advertisement of 80+80 MHz
 	 * channel capabilities in the Supported Operating Classes element
 	 *
