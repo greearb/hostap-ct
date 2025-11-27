@@ -911,8 +911,8 @@ static int wpas_pasn_set_pmk(struct pasn_data *pasn,
 		}
 
 		wpa_printf(MSG_DEBUG, "PASN: Success deriving PMK with SAE");
-		pasn->pmk_len = PMK_LEN;
-		os_memcpy(pasn->pmk, pasn->sae.pmk, PMK_LEN);
+		pasn->pmk_len = pasn->sae.pmk_len;
+		os_memcpy(pasn->pmk, pasn->sae.pmk, pasn->pmk_len);
 
 		pasn->pmksa_entry = pmksa_cache_add(pasn->pmksa, pasn->pmk,
 						    pasn->pmk_len,

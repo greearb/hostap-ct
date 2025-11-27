@@ -392,8 +392,8 @@ pasn_derive_keys(struct pasn_data *pasn,
 		case WPA_KEY_MGMT_SAE:
 		case WPA_KEY_MGMT_SAE_EXT_KEY:
 			if (pasn->sae.state == SAE_COMMITTED) {
-				pmk_len = PMK_LEN;
-				os_memcpy(pmk, pasn->sae.pmk, PMK_LEN);
+				pmk_len = pasn->sae.pmk_len;
+				os_memcpy(pmk, pasn->sae.pmk, pmk_len);
 				break;
 			}
 #endif /* CONFIG_SAE */
