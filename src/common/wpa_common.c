@@ -1533,6 +1533,39 @@ static bool pasn_use_sha384(int akmp, int cipher)
 
 
 /**
+ * pasn_select_hash_alg - Select hash algorithm for PTK derivation
+ * @akmp: Authentication and key management protocol
+ * @cipher: The cipher suite
+ * @pmk_len: PMK length in octets
+ *
+ * According to IEEE Std 802.11-2024, Table 9-190 (AKM suite selectors), AKMs
+ * 00-0F-AC:24 and 00-0F-AC:25 have the length of the PMK, the length
+ * of the SAE key confirmation key, SAE-KCK, and PTK-KCK, and the length of
+ * PTK-KEK depending on the hash algorithm specified in 12.4.2 (see 12.7.1.3
+ * and 12.7.3), i.e, the hash algorithm depends on the prime length associated
+ * with the selected group per Table 12-1 (Hash algorithm based on length of
+ * prime).
+ */
+static enum rsn_hash_alg pasn_select_hash_alg(int akmp, int cipher,
+					      size_t pmk_len)
+{
+#ifdef CONFIG_SAE
+	if (wpa_key_mgmt_sae_ext_key(akmp)) {
+		if (pmk_len == 64)
+			return RSN_HASH_SHA512;
+		if (pmk_len == 48)
+			return RSN_HASH_SHA384;
+	}
+#endif /* CONFIG_SAE */
+
+	if (pasn_use_sha384(akmp, cipher))
+		return RSN_HASH_SHA384;
+
+	return RSN_HASH_SHA256;
+}
+
+
+/**
  * pasn_pmk_to_ptk - Calculate PASN PTK from PMK, addresses, etc.
  * @pmk: Pairwise master key
  * @pmk_len: Length of PMK
@@ -1607,21 +1640,38 @@ int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 	if (ptk_len > sizeof(tmp))
 		goto err;
 
-	*alg = pasn_use_sha384(akmp, cipher) ? RSN_HASH_SHA384 :
-		RSN_HASH_SHA256;
+	*alg = pasn_select_hash_alg(akmp, cipher, pmk_len);
 
-	if (pasn_use_sha384(akmp, cipher)) {
+	switch (*alg) {
+	case RSN_HASH_SHA512:
+#ifdef CONFIG_SHA512
+		wpa_printf(MSG_DEBUG, "PASN: PTK derivation using SHA512");
+
+		if (sha512_prf(pmk, pmk_len, label, data, data_len, tmp,
+			       ptk_len) < 0)
+			goto err;
+		break;
+#endif
+	case RSN_HASH_SHA384:
+#ifdef CONFIG_SHA384
 		wpa_printf(MSG_DEBUG, "PASN: PTK derivation using SHA384");
 
 		if (sha384_prf(pmk, pmk_len, label, data, data_len, tmp,
 			       ptk_len) < 0)
 			goto err;
-	} else {
+		break;
+#endif
+	case RSN_HASH_SHA256:
 		wpa_printf(MSG_DEBUG, "PASN: PTK derivation using SHA256");
 
 		if (sha256_prf(pmk, pmk_len, label, data, data_len, tmp,
 			       ptk_len) < 0)
 			goto err;
+		break;
+	default:
+		wpa_printf(MSG_DEBUG, "PASN: Unsupported hash algorithm %d",
+			   *alg);
+		goto err;
 	}
 
 	wpa_printf(MSG_DEBUG,
