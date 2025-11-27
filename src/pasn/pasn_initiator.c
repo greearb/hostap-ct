@@ -1198,18 +1198,6 @@ int wpa_pasn_auth_rx(struct pasn_data *pasn, const u8 *data, size_t len,
 		goto fail;
 	}
 
-	/* Check that the MIC IE exists. Save it and zero out the memory */
-	mic_len = pasn_mic_len(pasn->akmp, pasn->cipher);
-	if (status == WLAN_STATUS_SUCCESS) {
-		if (!elems.mic || elems.mic_len != mic_len) {
-			wpa_printf(MSG_DEBUG,
-				   "PASN: Invalid MIC. Expecting len=%u",
-				   mic_len);
-			goto fail;
-		}
-		os_memcpy(mic, elems.mic, mic_len);
-	}
-
 	if (!elems.pasn_params || !elems.pasn_params_len) {
 		wpa_printf(MSG_DEBUG,
 			   "PASN: Missing PASN Parameters IE");
@@ -1348,6 +1336,18 @@ int wpa_pasn_auth_rx(struct pasn_data *pasn, const u8 *data, size_t len,
 	wrapped_data = NULL;
 	wpabuf_free(secret);
 	secret = NULL;
+
+	/* Check that the MIC IE exists. Save it and zero out the memory */
+	mic_len = pasn_mic_len(pasn->akmp, pasn->cipher);
+	if (status == WLAN_STATUS_SUCCESS) {
+		if (!elems.mic || elems.mic_len != mic_len) {
+			wpa_printf(MSG_DEBUG,
+				   "PASN: Invalid MIC. Expecting len=%u",
+				   mic_len);
+			goto fail;
+		}
+		os_memcpy(mic, elems.mic, mic_len);
+	}
 
 	/* Use a copy of the message since we need to clear the MIC field */
 	if (!elems.mic)
