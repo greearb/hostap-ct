@@ -783,7 +783,7 @@ int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 
 size_t pasn_mic_len(enum rsn_hash_alg alg);
 
-int pasn_mic(enum rsn_hash_alg alg, const u8 *kck,
+int pasn_mic(enum rsn_hash_alg alg, const u8 *kck, size_t kck_len,
 	     const u8 *addr1, const u8 *addr2,
 	     const u8 *data, size_t data_len,
 	     const u8 *frame, size_t frame_len, u8 *mic);

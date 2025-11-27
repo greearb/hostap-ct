@@ -1790,6 +1790,7 @@ int wpa_ltf_keyseed(struct wpa_ptk *ptk, int akmp, int cipher)
  * pasn_mic - Calculate PASN MIC
  * @alg: Selected hash algorithm from pasn_pmk_to_ptk()
  * @kck: The key confirmation key for the PASN PTKSA
+ * @kck_len: KCK length in octets
  * @addr1: For the 2nd PASN frame supplicant address; for the 3rd frame the
  *	BSSID
  * @addr2: For the 2nd PASN frame the BSSID; for the 3rd frame the supplicant
@@ -1805,7 +1806,7 @@ int wpa_ltf_keyseed(struct wpa_ptk *ptk, int akmp, int cipher)
  *	maximal MIC length
  * Returns: 0 on success, -1 on failure
  */
-int pasn_mic(enum rsn_hash_alg alg, const u8 *kck,
+int pasn_mic(enum rsn_hash_alg alg, const u8 *kck, size_t kck_len,
 	     const u8 *addr1, const u8 *addr2,
 	     const u8 *data, size_t data_len,
 	     const u8 *frame, size_t frame_len, u8 *mic)
@@ -1818,6 +1819,13 @@ int pasn_mic(enum rsn_hash_alg alg, const u8 *kck,
 
 	if (!kck) {
 		wpa_printf(MSG_ERROR, "PASN: No KCK for MIC calculation");
+		return -1;
+	}
+
+	if (kck_len != WPA_PASN_KCK_LEN) {
+		wpa_printf(MSG_ERROR,
+			   "PASN: Unexpected KCK length %zu for MIC calculation",
+			   kck_len);
 		return -1;
 	}
 
@@ -1844,7 +1852,7 @@ int pasn_mic(enum rsn_hash_alg alg, const u8 *kck,
 	wpa_hexdump_key(MSG_DEBUG, "PASN: MIC: frame", frame, frame_len);
 	os_memcpy(buf + 2 * ETH_ALEN + data_len, frame, frame_len);
 
-	wpa_hexdump_key(MSG_DEBUG, "PASN: MIC: KCK", kck, WPA_PASN_KCK_LEN);
+	wpa_hexdump_key(MSG_DEBUG, "PASN: MIC: KCK", kck, kck_len);
 	wpa_hexdump_key(MSG_DEBUG, "PASN: MIC: buf", buf, buf_len);
 
 	mic_len = pasn_mic_len(alg);
@@ -1853,20 +1861,20 @@ int pasn_mic(enum rsn_hash_alg alg, const u8 *kck,
 #ifdef CONFIG_SHA512
 	case RSN_HASH_SHA512:
 		wpa_printf(MSG_DEBUG, "PASN: MIC using HMAC-SHA512");
-		if (hmac_sha512(kck, WPA_PASN_KCK_LEN, buf, buf_len, hash))
+		if (hmac_sha512(kck, kck_len, buf, buf_len, hash))
 			goto err;
 		break;
 #endif /* CONFIG_SHA512 */
 #ifdef CONFIG_SHA384
 	case RSN_HASH_SHA384:
 		wpa_printf(MSG_DEBUG, "PASN: MIC using HMAC-SHA384");
-		if (hmac_sha384(kck, WPA_PASN_KCK_LEN, buf, buf_len, hash))
+		if (hmac_sha384(kck, kck_len, buf, buf_len, hash))
 			goto err;
 		break;
 #endif /* CONFIG_SHA384 */
 	case RSN_HASH_SHA256:
 		wpa_printf(MSG_DEBUG, "PASN: MIC using HMAC-SHA256");
-		if (hmac_sha256(kck, WPA_PASN_KCK_LEN, buf, buf_len, hash))
+		if (hmac_sha256(kck, kck_len, buf, buf_len, hash))
 			goto err;
 		break;
 	default:
