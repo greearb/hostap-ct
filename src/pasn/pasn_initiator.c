@@ -107,6 +107,7 @@ static struct wpabuf * wpas_pasn_wd_sae_commit(struct pasn_data *pasn)
 		return NULL;
 	}
 
+	pasn->sae.akmp = pasn->akmp;
 	ret = sae_prepare_commit_pt(&pasn->sae, pasn->pt,
 				    pasn->own_addr, pasn->peer_addr,
 				    NULL, NULL);

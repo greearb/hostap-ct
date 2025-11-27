@@ -141,6 +141,7 @@ static int pasn_wd_handle_sae_commit(struct pasn_data *pasn,
 		return -1;
 	}
 
+	pasn->sae.akmp = pasn->akmp;
 	if (!pasn->password || !pasn->pt) {
 		wpa_printf(MSG_DEBUG, "PASN: No SAE PT found");
 		return -1;
