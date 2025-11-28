@@ -493,6 +493,24 @@ def test_pasn_sae(dev, apdev):
 @remote_compatible
 def test_pasn_sae_ext_key(dev, apdev):
     """PASN authentication with SAE-EXT-KEY AP with PMK derivation + PMKSA caching"""
+    run_pasn_sae_ext_key(dev, apdev, None)
+
+@remote_compatible
+def test_pasn_sae_ext_key_19(dev, apdev):
+    """PASN Authentication with SAE-EXT-KEY AKM (group 19)"""
+    run_pasn_sae_ext_key(dev, apdev, 19)
+
+@remote_compatible
+def test_pasn_sae_ext_key_20(dev, apdev):
+    """PASN Authentication with SAE-EXT-KEY AKM (group 20)"""
+    run_pasn_sae_ext_key(dev, apdev, 20)
+
+@remote_compatible
+def test_pasn_sae_ext_key_21(dev, apdev):
+    """PASN Authentication with SAE-EXT-KEY AKM (group 21)"""
+    run_pasn_sae_ext_key(dev, apdev, 21)
+
+def run_pasn_sae_ext_key(dev, apdev, group):
     check_pasn_capab(dev[0])
     check_sae_capab(dev[0])
 
@@ -500,6 +518,11 @@ def test_pasn_sae_ext_key(dev, apdev):
                                  passphrase="12345678")
     params['wpa_key_mgmt'] = 'SAE SAE-EXT-KEY PASN'
     params['sae_pwe'] = "2"
+    if group:
+        params['pasn_groups'] = "19 20 21"
+        params['sae_groups'] = "19 20 21"
+    else:
+        group = "19"
     hapd = start_pasn_ap(apdev[0], params)
 
     try:
@@ -508,17 +531,19 @@ def test_pasn_sae_ext_key(dev, apdev):
                        scan_freq="2412", only_add_network=True)
 
         # first test with a valid PSK
-        check_pasn_akmp_cipher(dev[0], hapd, "SAE-EXT-KEY", "CCMP", nid="0")
+        check_pasn_akmp_cipher(dev[0], hapd, "SAE-EXT-KEY", "CCMP", group=group,
+                               nid="0")
 
         # And now with PMKSA caching
-        check_pasn_akmp_cipher(dev[0], hapd, "SAE-EXT-KEY", "CCMP")
+        check_pasn_akmp_cipher(dev[0], hapd, "SAE-EXT-KEY", "CCMP", group=group)
 
         # And now with a wrong passphrase
         if "FAIL" in dev[0].request("PMKSA_FLUSH"):
             raise Exception("PMKSA_FLUSH failed")
 
         dev[0].set_network_quoted(0, "psk", "12345678787")
-        check_pasn_akmp_cipher(dev[0], hapd, "SAE-EXT-KEY", "CCMP", status=1, nid="0")
+        check_pasn_akmp_cipher(dev[0], hapd, "SAE-EXT-KEY", "CCMP", group=group,
+                               status=1, nid="0")
     finally:
         dev[0].set("sae_pwe", "0")
 
