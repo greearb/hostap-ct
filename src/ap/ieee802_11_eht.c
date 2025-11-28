@@ -1577,7 +1577,7 @@ void hostapd_link_reconf_resp_tx_status(struct hostapd_data *hapd,
 			   "; revert link additions",
 			   MAC2STR(mgmt->da));
 
-		dl_list_for_each(info, &req_list->del_req,
+		dl_list_for_each(info, &req_list->add_req,
 				 struct link_reconf_req_info, list) {
 			if (info->status != WLAN_STATUS_SUCCESS)
 				continue;
