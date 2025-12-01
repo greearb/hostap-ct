@@ -471,6 +471,27 @@ def test_sae_and_psk2(dev, apdev):
     dev[0].connect("test-psk", psk="12345678", key_mgmt="SAE WPA-PSK",
                    scan_freq="2412")
 
+def test_sae_and_psk_disable_sae(dev, apdev):
+    """SAE and PSK enabled in network profile; SAE first, then SAE disabled"""
+    check_sae_capab(dev[0])
+    params = hostapd.wpa2_params(ssid="test-sae", passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE WPA-PSK'
+    params['ieee80211w'] = '1'
+    params['sae_require_mfp'] = '1'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].set("sae_groups", "")
+    dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE WPA-PSK",
+                   ieee80211w="1", scan_freq="2412")
+    hapd.disable()
+    dev[0].wait_disconnected()
+    dev[0].dump_monitor()
+
+    logger.info("Disable SAE on AP and try to reconnect to the same AP")
+    hapd.set('wpa_key_mgmt', 'WPA-PSK')
+    hapd.enable()
+    dev[0].wait_connected()
+
 def test_sae_wpa3_roam(dev, apdev):
     """SAE and WPA3-Personal transition mode roaming"""
     check_sae_capab(dev[0])
