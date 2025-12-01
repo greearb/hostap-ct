@@ -80,4 +80,4 @@ fi
 if [ -z $FIPSLD_CC ]; then
 export FIPSLD_CC=gcc
 fi
-make QUIET=1 -j$JOBS
+make QUIET=1 -j$JOBS wpa_supplicant wpa_cli eapol_test

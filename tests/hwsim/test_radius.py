@@ -1882,3 +1882,22 @@ def test_radius_tls_freeradius(dev, apdev, test_params):
             pid = int(f.read())
             if pid > 0:
                 os.kill(pid, signal.SIGTERM)
+
+def test_radius_eapol_test(dev, apdev, test_params):
+    """RADIUS testing with eapol_test"""
+    et_path = "../../wpa_supplicant/eapol_test"
+    if not os.path.exists(et_path):
+        raise HwsimSkip("eapol_test not available")
+
+    config = test_params['prefix'] + ".eapol_test.conf"
+    with open(config, "w") as f:
+        f.write("network={\n")
+        f.write("eap=PWD\n")
+        f.write('identity="pwd user"\n')
+        f.write('password="secret password"\n')
+        f.write("}\n")
+
+    res = subprocess.check_output([et_path, '-c', config])
+    logger.debug("eapol_test: " + res.decode().strip())
+    if "SUCCESS" not in res.decode().splitlines():
+        raise Exception("eapol_test did not report success")
