@@ -1882,21 +1882,3 @@ def test_radius_tls_freeradius(dev, apdev, test_params):
             pid = int(f.read())
             if pid > 0:
                 os.kill(pid, signal.SIGTERM)
-
-def foo():
-    params['auth_server_addr'] = "127.0.0.1"
-    params['auth_server_port'] = "2083"
-    params['auth_server_type'] = "TLS"
-    params['auth_server_shared_secret'] = "radsec"
-    params['auth_server_ca_cert'] = certdir + "/ca.pem"
-    params['auth_server_client_cert'] = certdir + "/client.pem"
-    params['auth_server_private_key'] = certdir + "/client.key"
-    params['auth_server_private_key_passwd'] = "whatever"
-    params['acct_server_addr'] = "127.0.0.1"
-    params['acct_server_port'] = "2083"
-    params['acct_server_type'] = "TLS"
-    params['acct_server_shared_secret'] = "radsec"
-    params['acct_server_ca_cert'] = certdir + "/ca.pem"
-    params['acct_server_client_cert'] = certdir + "/client.pem"
-    params['acct_server_private_key'] = certdir + "/client.key"
-    params['acct_server_private_key_passwd'] = "whatever"
