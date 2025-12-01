@@ -1833,6 +1833,7 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_SAE */
 	const u8 *bss_wpa, *bss_rsn, *bss_rsnx;
 	bool wmm;
+	struct rsn_pmksa_cache_entry *pmksa;
 
 	if (bss) {
 		bss_wpa = wpa_bss_get_vendor_ie(bss, WPA_IE_VENDOR_TYPE);
@@ -2143,6 +2144,26 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 		wpa_msg(wpa_s, MSG_WARNING, "WPA: Failed to select "
 			"authenticated key management type");
 		return -1;
+	}
+
+	/* There might be a PMKSA cache entry for the target AP, but the current
+	 * connection is trying to use PSK (which does not use PMKSA caching) or
+	 * an AKM that does not match the one that was used to generate the
+	 * selected PMKSA entry. The previously selected PMKSA cache entry needs
+	 * to be cleared in such cases to avoid indicating an incorrect PMKID
+	 * and exchange that would likely end up failing with the AP attempting
+	 * to use a different PMK. This is not really supposed to happen in
+	 * normal use cases, but it is possible that some corner cases of the AP
+	 * changing its configuration might trigger a failure due to mismatching
+	 * PMK. */
+	pmksa = pmksa_cache_get_current(wpa_s->wpa);
+	if (pmksa &&
+	    (wpa_key_mgmt_wpa_psk_no_sae(wpa_s->key_mgmt) ||
+	     (pmksa->akmp && pmksa->akmp != wpa_s->key_mgmt))) {
+		wpa_printf(MSG_DEBUG,
+			   "RSN: Disable PMKSA caching due to incompatible AKMP (PMKSA: 0x%x, selected: 0x%x)",
+			   pmksa->akmp, wpa_s->key_mgmt);
+		pmksa_cache_clear_current(wpa_s->wpa);
 	}
 
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_KEY_MGMT, wpa_s->key_mgmt);
