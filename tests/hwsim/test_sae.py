@@ -3816,3 +3816,21 @@ def test_sae_password_id_change_config_file(dev, apdev, params):
     wpas.interface_remove("wlan5")
     wpas.interface_add("wlan5", config=config)
     wpas.wait_connected()
+
+def test_sae_pmksa_caching_ap_lost_entry(dev, apdev):
+    """SAE and PMKSA caching when AP lost an entry"""
+    check_sae_capab(dev[0])
+    params = hostapd.wpa2_params(ssid="test-sae",
+                                 passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].set("sae_groups", "")
+    dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE",
+                   scan_freq="2412")
+    dev[0].request("DISCONNECT")
+    dev[0].wait_disconnected()
+
+    hapd.request("PMKSA_FLUSH");
+    dev[0].request("RECONNECT")
+    dev[0].wait_connected(timeout=15, error="Reconnect timed out")
