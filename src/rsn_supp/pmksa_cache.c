@@ -637,6 +637,7 @@ void pmksa_cache_clear_current(struct wpa_sm *sm)
  * @network_ctx: Network configuration context
  * @try_opportunistic: Whether to allow opportunistic PMKSA caching
  * @fils_cache_id: Pointer to FILS Cache Identifier or %NULL if not used
+ * @akmp: Specific AKMP to search for or 0 for any
  * @associated: Whether the device is associated
  * Returns: 0 if PMKSA was found or -1 if no matching entry was found
  */
