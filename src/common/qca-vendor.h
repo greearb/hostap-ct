@@ -11292,6 +11292,18 @@ enum qca_wlan_vendor_attr_wifi_test_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_EHT_BTM_RECOMM_MULTI_AP_SUPPORT = 81,
 
+	/* 8-bit unsigned value to set the reserved fields within the MLE
+	 * starting from Multi-Link Control to STA control within Per-STA
+	 * profile. It does not set the subsequent STA Info or HT/HE/EHT
+	 * Capabilities elements.
+	 * This configuration is for Probe Request variant in Multi-link Probe
+	 * Request frames and Basic variant in Association Request frames.
+	 *
+	 * This attribute is used to configure the testbed device.
+	 * 1-set the reserved fields, 0-default behavior
+	 */
+	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_EHT_SET_MLE_RESERVED_FIELDS = 82,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_WIFI_TEST_CONFIG_MAX =
