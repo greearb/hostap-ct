@@ -3377,7 +3377,11 @@ static void handle_auth(struct hostapd_data *hapd,
 		goto fail;
 	}
 
-	if (!(auth_transaction == 1 || auth_alg == WLAN_AUTH_SAE ||
+	if (!(auth_transaction == 1 ||
+#ifdef CONFIG_SAE
+	      (auth_alg == WLAN_AUTH_SAE &&
+	       auth_transaction == WLAN_AUTH_TR_SEQ_SAE_CONFIRM) ||
+#endif /* CONFIG_SAE */
 #ifdef CONFIG_PASN
 	      (auth_alg == WLAN_AUTH_PASN &&
 	       auth_transaction == WLAN_AUTH_TR_SEQ_PASN_AUTH3) ||
