@@ -3531,11 +3531,11 @@ static void wpas_parse_connection_info(struct wpa_supplicant *wpa_s,
 
 	max_nss_rx_req = get_max_nss_capability(&req_elems, 1);
 	max_nss_rx_resp = get_max_nss_capability(&resp_elems, 1);
-	wpa_s->connection_max_nss_rx = MIN(max_nss_rx_resp, max_nss_rx_req);
-
 	max_nss_tx_req = get_max_nss_capability(&req_elems, 0);
 	max_nss_tx_resp = get_max_nss_capability(&resp_elems, 0);
-	wpa_s->connection_max_nss_tx = MIN(max_nss_tx_resp, max_nss_tx_req);
+
+	wpa_s->connection_max_nss_rx = MIN(max_nss_tx_resp, max_nss_rx_req);
+	wpa_s->connection_max_nss_tx = MIN(max_nss_rx_resp, max_nss_tx_req);
 
 	sta_supported_chan_width = get_supported_channel_width(&req_elems);
 	ap_operation_chan_width = get_operation_channel_width(&resp_elems);
