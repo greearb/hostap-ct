@@ -3188,7 +3188,7 @@ static void handle_auth_pasn(struct hostapd_data *hapd, struct sta_info *sta,
 	wpa_printf(MSG_INFO, "PASN authentication: sta=" MACSTR,
 		   MAC2STR(sta->addr));
 
-	if (trans_seq == 1) {
+	if (trans_seq == WLAN_AUTH_TR_SEQ_PASN_AUTH1) {
 		if (sta->pasn) {
 			wpa_printf(MSG_DEBUG,
 				   "PASN: Not expecting transaction == 1");
@@ -3221,7 +3221,7 @@ static void handle_auth_pasn(struct hostapd_data *hapd, struct sta_info *sta,
 							   NULL, 0, NULL, 1);
 			ap_free_sta(hapd, sta);
 		}
-	} else if (trans_seq == 3) {
+	} else if (trans_seq == WLAN_AUTH_TR_SEQ_PASN_AUTH3) {
 		if (!sta->pasn) {
 			wpa_printf(MSG_DEBUG,
 				   "PASN: Not expecting transaction == 3");
@@ -3379,7 +3379,8 @@ static void handle_auth(struct hostapd_data *hapd,
 
 	if (!(auth_transaction == 1 || auth_alg == WLAN_AUTH_SAE ||
 #ifdef CONFIG_PASN
-	      (auth_alg == WLAN_AUTH_PASN && auth_transaction == 3) ||
+	      (auth_alg == WLAN_AUTH_PASN &&
+	       auth_transaction == WLAN_AUTH_TR_SEQ_PASN_AUTH3) ||
 #endif /* CONFIG_PASN */
 	      (auth_alg == WLAN_AUTH_SHARED_KEY && auth_transaction == 3))) {
 		wpa_printf(MSG_INFO, "Unknown authentication transaction number (%d)",

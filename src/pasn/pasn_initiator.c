@@ -289,7 +289,7 @@ static struct wpabuf * wpas_pasn_fils_build_auth(struct pasn_data *pasn)
 	wpabuf_put_le16(buf, WLAN_AUTH_FILS_SK);
 
 	/* Authentication Transaction seq# */
-	wpabuf_put_le16(buf, 1);
+	wpabuf_put_le16(buf, WLAN_AUTH_TR_SEQ_PASN_AUTH1);
 
 	/* Status Code */
 	wpabuf_put_le16(buf, WLAN_STATUS_SUCCESS);
@@ -694,7 +694,7 @@ static struct wpabuf * wpas_pasn_build_auth_3(struct pasn_data *pasn)
 
 	wpa_printf(MSG_DEBUG, "PASN: Building frame 3");
 
-	if (pasn->trans_seq != 2)
+	if (pasn->trans_seq != WLAN_AUTH_TR_SEQ_PASN_AUTH2)
 		return NULL;
 
 	buf = wpabuf_alloc(1500);
@@ -705,7 +705,8 @@ static struct wpabuf * wpas_pasn_build_auth_3(struct pasn_data *pasn)
 
 	wpa_pasn_build_auth_header(buf, pasn->bssid,
 				   pasn->own_addr, pasn->peer_addr,
-				   pasn->trans_seq + 1, WLAN_STATUS_SUCCESS);
+				   WLAN_AUTH_TR_SEQ_PASN_AUTH3,
+				   WLAN_STATUS_SUCCESS);
 
 	wrapped_data_buf = wpas_pasn_get_wrapped_data(pasn);
 
@@ -1482,7 +1483,7 @@ int wpa_pasn_auth_tx_status(struct pasn_data *pasn,
 	 * try to complete the flow, relying on the PASN timeout callback to
 	 * clean up.
 	 */
-	if (pasn->trans_seq == 3) {
+	if (pasn->trans_seq == WLAN_AUTH_TR_SEQ_PASN_AUTH3) {
 		wpa_printf(MSG_DEBUG, "PASN: auth complete with: " MACSTR,
 			   MAC2STR(pasn->peer_addr));
 		/*

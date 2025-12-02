@@ -2069,7 +2069,7 @@ static int pr_process_pasn_ranging_wrapper(struct pr_data *pr,
 		goto end;
 	}
 
-	if (trans_seq == 2) {
+	if (trans_seq == WLAN_AUTH_TR_SEQ_PASN_AUTH2) {
 		if (!msg.status_ie || !msg.status_ie_len) {
 			wpa_printf(MSG_DEBUG, "PR INFO: * No status attribute");
 			wpabuf_free(buf);
@@ -2157,10 +2157,10 @@ static int pr_process_pasn_ranging_wrapper(struct pr_data *pr,
 		edca_caps_valid = true;
 	}
 
-	if (trans_seq == 1)
+	if (trans_seq == WLAN_AUTH_TR_SEQ_PASN_AUTH1)
 		status = pr_pasn_get_best_op_mode(pr, supp_ranging_role,
 						  &op_mode, &res_op_mode);
-	else if (trans_seq == 2)
+	else if (trans_seq == WLAN_AUTH_TR_SEQ_PASN_AUTH2)
 		status = pr_pasn_get_final_op_mode(pr, supp_ranging_role,
 						   &op_mode, &res_op_mode);
 
@@ -2171,7 +2171,7 @@ static int pr_process_pasn_ranging_wrapper(struct pr_data *pr,
 		goto end;
 	}
 
-	if (trans_seq == 1) {
+	if (trans_seq == WLAN_AUTH_TR_SEQ_PASN_AUTH1) {
 		pr_buf_add_ranging_capa_info(buf, &caps);
 		if (edca_caps_valid)
 			pr_buf_add_edca_capa_info(buf, &edca);
@@ -2185,7 +2185,7 @@ static int pr_process_pasn_ranging_wrapper(struct pr_data *pr,
 	dev->ranging_role = res_op_mode.role;
 	dev->protocol_type = res_op_mode.protocol_type;
 
-	if (trans_seq == 2) {
+	if (trans_seq == WLAN_AUTH_TR_SEQ_PASN_AUTH2) {
 		dev->final_op_channel =
 			res_op_mode.channels.op_class[0].channel[0];
 		dev->final_op_class = res_op_mode.channels.op_class[0].op_class;
@@ -2524,11 +2524,11 @@ int pr_pasn_auth_rx(struct pr_data *pr, const struct ieee80211_mgmt *mgmt,
 	}
 
 	auth_transaction = le_to_host16(mgmt->u.auth.auth_transaction);
-	if (auth_transaction == 1)
+	if (auth_transaction == WLAN_AUTH_TR_SEQ_PASN_AUTH1)
 		return pr_pasn_handle_auth_1(pr, dev, mgmt, len, freq);
-	if (auth_transaction == 2)
+	if (auth_transaction == WLAN_AUTH_TR_SEQ_PASN_AUTH2)
 		return pr_pasn_handle_auth_2(pr, dev, mgmt, len);
-	if (auth_transaction == 3)
+	if (auth_transaction == WLAN_AUTH_TR_SEQ_PASN_AUTH3)
 		return pr_pasn_handle_auth_3(pr, dev, mgmt, len);
 
 	return -1;

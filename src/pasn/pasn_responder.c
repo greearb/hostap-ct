@@ -293,7 +293,7 @@ static struct wpabuf * pasn_get_fils_wd(struct pasn_data *pasn)
 	wpabuf_put_le16(buf, WLAN_AUTH_FILS_SK);
 
 	/* Authentication Transaction seq# */
-	wpabuf_put_le16(buf, 2);
+	wpabuf_put_le16(buf, WLAN_AUTH_TR_SEQ_PASN_AUTH2);
 
 	/* Status Code */
 	wpabuf_put_le16(buf, WLAN_STATUS_SUCCESS);

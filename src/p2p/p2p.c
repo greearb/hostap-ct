@@ -6712,7 +6712,7 @@ static int p2p_pasn_handle_action_wrapper(struct p2p_data *p2p,
 		}
 	}
 
-	if (trans_seq == 1) {
+	if (trans_seq == WLAN_AUTH_TR_SEQ_PASN_AUTH1) {
 		if (ieee802_11_parse_elems(mgmt->u.auth.variable,
 					   len - offsetof(struct ieee80211_mgmt,
 							  u.auth.variable),
@@ -6774,7 +6774,7 @@ static int p2p_pasn_handle_action_wrapper(struct p2p_data *p2p,
 		} else {
 			p2p_dbg(p2p, "Invalid action frame wrapper in Auth1");
 		}
-	} else if (trans_seq == 2) {
+	} else if (trans_seq == WLAN_AUTH_TR_SEQ_PASN_AUTH2) {
 		if (data && data_len >= 1 && data[0] == P2P_INVITATION_RESP) {
 			p2p_process_invitation_resp(p2p, mgmt->sa, data + 1,
 						    data_len - 1);
@@ -6794,7 +6794,7 @@ static int p2p_pasn_handle_action_wrapper(struct p2p_data *p2p,
 		} else {
 			p2p_dbg(p2p, "Invalid action frame wrapper in Auth2");
 		}
-	} else if (trans_seq == 3) {
+	} else if (trans_seq == WLAN_AUTH_TR_SEQ_PASN_AUTH3) {
 		if (data && data_len >= 1 && data[0] == P2P_GO_NEG_CONF)
 			p2p_handle_go_neg_conf(p2p, mgmt->sa, data + 1,
 					       data_len - 1, true);
@@ -7153,13 +7153,14 @@ static int p2p_handle_pasn_auth(struct p2p_data *p2p, struct p2p_device *dev,
 		return -1;
 	}
 
-	if (auth_alg != WLAN_AUTH_PASN || auth_transaction == 2) {
+	if (auth_alg != WLAN_AUTH_PASN ||
+	    auth_transaction == WLAN_AUTH_TR_SEQ_PASN_AUTH2) {
 		p2p_dbg(p2p,
 			"PASN Responder: Not a PASN frame or unexpected Authentication frame, auth_alg=%d",
 			auth_alg);
 		return -1;
 	}
-	if (auth_transaction == 1) {
+	if (auth_transaction == WLAN_AUTH_TR_SEQ_PASN_AUTH1) {
 		pasn_type = p2p->cfg->pairing_config.pasn_type;
 		if (pasn_type & 0xc && pasn_type & 0x3) {
 			pasn_groups[0] = 20;
@@ -7184,7 +7185,7 @@ static int p2p_handle_pasn_auth(struct p2p_data *p2p, struct p2p_device *dev,
 				"PASN Responder: Handle Auth 1 failed");
 			return -1;
 		}
-	} else if (auth_transaction == 3) {
+	} else if (auth_transaction == WLAN_AUTH_TR_SEQ_PASN_AUTH3) {
 		if (handle_auth_pasn_3(pasn, p2p->cfg->dev_addr, mgmt->sa, mgmt,
 				       len) < 0) {
 			p2p_dbg(p2p,
@@ -7245,7 +7246,8 @@ int p2p_pasn_auth_rx(struct p2p_data *p2p, const struct ieee80211_mgmt *mgmt,
 				p2p->cfg->pasn_validate_pmkid);
 	auth_transaction = le_to_host16(mgmt->u.auth.auth_transaction);
 
-	if (dev->role == P2P_ROLE_PAIRING_INITIATOR && auth_transaction == 2) {
+	if (dev->role == P2P_ROLE_PAIRING_INITIATOR &&
+	    auth_transaction == WLAN_AUTH_TR_SEQ_PASN_AUTH2) {
 		if (p2p_pasn_handle_action_wrapper(p2p, dev, mgmt, len, freq,
 						   auth_transaction)) {
 			p2p_dbg(p2p,
