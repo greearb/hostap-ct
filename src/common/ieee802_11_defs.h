@@ -100,6 +100,10 @@
 #define WLAN_AUTH_PASN			7
 #define WLAN_AUTH_LEAP			128
 
+/* Authentication transaction sequence number */
+#define WLAN_AUTH_TR_SEQ_SAE_COMMIT 1
+#define WLAN_AUTH_TR_SEQ_SAE_CONFIRM 2
+
 #define WLAN_AUTH_CHALLENGE_LEN 128
 
 /* IEEE Std 802.11-2024, 9.4.1.4 (Capability Information field) */

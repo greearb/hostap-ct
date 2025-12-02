@@ -1062,7 +1062,7 @@ static const u8 * auth_skip_fixed_fields(struct hostapd_data *hapd,
 		return pos;
 #ifdef CONFIG_SAE
 	case WLAN_AUTH_SAE:
-		if (auth_transaction == 1) {
+		if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT) {
 			if (status_code == WLAN_STATUS_SUCCESS) {
 				wpa_printf(MSG_DEBUG,
 					   "EHT: SAE H2E is mandatory for MLD");
@@ -1071,7 +1071,7 @@ static const u8 * auth_skip_fixed_fields(struct hostapd_data *hapd,
 
 			return sae_commit_skip_fixed_fields(mgmt, len, pos,
 							    status_code);
-		} else if (auth_transaction == 2) {
+		} else if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_CONFIRM) {
 			return sae_confirm_skip_fixed_fields(hapd, mgmt, len,
 							     pos, status_code);
 		}

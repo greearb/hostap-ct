@@ -1685,7 +1685,7 @@ static int sme_sae_auth(struct wpa_supplicant *wpa_s, u16 auth_transaction,
 	wpa_dbg(wpa_s, MSG_DEBUG, "SME: SAE authentication transaction %u "
 		"status code %u", auth_transaction, status_code);
 
-	if (auth_transaction == 1 &&
+	if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT &&
 	    status_code == WLAN_STATUS_ANTI_CLOGGING_TOKEN_REQ &&
 	    wpa_s->sme.sae.state == SAE_COMMITTED &&
 	    ((external && wpa_s->sme.ext_auth_wpa_ssid) ||
@@ -1794,7 +1794,7 @@ static int sme_sae_auth(struct wpa_supplicant *wpa_s, u16 auth_transaction,
 		return 0;
 	}
 
-	if (auth_transaction == 1 &&
+	if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT &&
 	    status_code == WLAN_STATUS_FINITE_CYCLIC_GROUP_NOT_SUPPORTED &&
 	    wpa_s->sme.sae.state == SAE_COMMITTED &&
 	    ((external && wpa_s->sme.ext_auth_wpa_ssid) ||
@@ -1822,7 +1822,7 @@ static int sme_sae_auth(struct wpa_supplicant *wpa_s, u16 auth_transaction,
 		return 0;
 	}
 
-	if (auth_transaction == 1 &&
+	if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT &&
 	    status_code == WLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER) {
 		const u8 *bssid = sa ? sa : wpa_s->pending_bssid;
 		struct wpa_ssid *ssid = wpa_s->current_ssid;
@@ -1861,7 +1861,7 @@ static int sme_sae_auth(struct wpa_supplicant *wpa_s, u16 auth_transaction,
 		return -2;
 	}
 
-	if (auth_transaction == 1) {
+	if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT) {
 		u16 res;
 
 		groups = wpa_s->conf->sae_groups;
@@ -1935,7 +1935,7 @@ static int sme_sae_auth(struct wpa_supplicant *wpa_s, u16 auth_transaction,
 			sme_external_auth_send_sae_confirm(wpa_s, sa);
 		}
 		return 0;
-	} else if (auth_transaction == 2) {
+	} else if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_CONFIRM) {
 		if (status_code != WLAN_STATUS_SUCCESS)
 			return -1;
 		wpa_dbg(wpa_s, MSG_DEBUG, "SME SAE confirm");
@@ -2090,7 +2090,8 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 				   data->auth.ies_len, 0, data->auth.peer,
 				   &ie_offset);
 		if (res < 0) {
-			if (data->auth.auth_transaction == 2 &&
+			if (data->auth.auth_transaction ==
+			    WLAN_AUTH_TR_SEQ_SAE_CONFIRM &&
 			    data->auth.status_code ==
 			    WLAN_STATUS_CHALLENGE_FAIL)
 				wpas_notify_sae_password_mismatch(wpa_s);

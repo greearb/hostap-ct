@@ -1136,7 +1136,7 @@ static void process_sae_auth(struct wlantest *wt, struct wlantest_bss *bss,
 		return;
 
 	trans = le_to_host16(mgmt->u.auth.auth_transaction);
-	if (trans != 1)
+	if (trans != WLAN_AUTH_TR_SEQ_SAE_COMMIT)
 		return;
 
 	status = le_to_host16(mgmt->u.auth.status_code);
@@ -1188,7 +1188,8 @@ static void rx_mgmt_auth(struct wlantest *wt, const u8 *data, size_t len)
 
 	if (status == WLAN_STATUS_SUCCESS &&
 	    ((alg == WLAN_AUTH_OPEN && trans == 2) ||
-	     (alg == WLAN_AUTH_SAE && trans == 2 && from_ap))) {
+	     (alg == WLAN_AUTH_SAE && trans == WLAN_AUTH_TR_SEQ_SAE_CONFIRM &&
+	      from_ap))) {
 		if (sta->state == STATE1) {
 			add_note(wt, MSG_DEBUG, "STA " MACSTR
 				 " moved to State 2 with " MACSTR,

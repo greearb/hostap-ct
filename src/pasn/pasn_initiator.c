@@ -522,7 +522,7 @@ static struct wpabuf * wpas_pasn_get_wrapped_data(struct pasn_data *pasn)
 #ifdef CONFIG_SAE
 		if (pasn->trans_seq == 0)
 			return wpas_pasn_wd_sae_commit(pasn);
-		if (pasn->trans_seq == 2)
+		if (pasn->trans_seq == WLAN_AUTH_TR_SEQ_SAE_CONFIRM)
 			return wpas_pasn_wd_sae_confirm(pasn);
 #endif /* CONFIG_SAE */
 		wpa_printf(MSG_ERROR,

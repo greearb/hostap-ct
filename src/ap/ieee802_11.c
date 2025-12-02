@@ -400,7 +400,7 @@ static int send_auth_reply(struct hostapd_data *hapd, struct sta_info *sta,
 #ifdef CONFIG_SAE
 	if (hapd->conf->sae_confirm_immediate == 2 &&
 	    auth_alg == WLAN_AUTH_SAE) {
-		if (auth_transaction == 1 && sta &&
+		if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT && sta &&
 		    (resp == WLAN_STATUS_SUCCESS ||
 		     resp == WLAN_STATUS_SAE_HASH_TO_ELEMENT ||
 		     resp == WLAN_STATUS_SAE_PK)) {
@@ -412,7 +412,8 @@ static int send_auth_reply(struct hostapd_data *hapd, struct sta_info *sta,
 			return WLAN_STATUS_SUCCESS;
 		}
 
-		if (auth_transaction == 2 && sta && sta->sae_postponed_commit) {
+		if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_CONFIRM &&
+		    sta && sta->sae_postponed_commit) {
 			wpa_printf(MSG_DEBUG,
 				   "TESTING: Send postponed SAE Commit first, immediately followed by SAE Confirm");
 			if (hostapd_drv_send_mlme(hapd,
@@ -1268,14 +1269,16 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 
 	*sta_removed = 0;
 
-	if (auth_transaction != 1 && auth_transaction != 2)
+	if (auth_transaction != WLAN_AUTH_TR_SEQ_SAE_COMMIT &&
+	    auth_transaction != WLAN_AUTH_TR_SEQ_SAE_CONFIRM)
 		return WLAN_STATUS_UNSPECIFIED_FAILURE;
 
 	wpa_printf(MSG_DEBUG, "SAE: Peer " MACSTR " state=%s auth_trans=%u",
 		   MAC2STR(sta->addr), sae_state_txt(sta->sae->state),
 		   auth_transaction);
 
-	if (auth_transaction == 1 && sae_proto_instance_disabled(sta)) {
+	if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT &&
+	    sae_proto_instance_disabled(sta)) {
 		wpa_printf(MSG_DEBUG,
 			   "SAE: Protocol instance temporarily disabled - discard received SAE commit");
 		return WLAN_STATUS_SUCCESS;
@@ -1283,7 +1286,7 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 
 	switch (sta->sae->state) {
 	case SAE_NOTHING:
-		if (auth_transaction == 1) {
+		if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT) {
 			struct sae_temporary_data *tmp = sta->sae->tmp;
 			bool immediate_confirm;
 
@@ -1376,7 +1379,7 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 		break;
 	case SAE_COMMITTED:
 		sae_clear_retransmit_timer(hapd, sta);
-		if (auth_transaction == 1) {
+		if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT) {
 			if (sae_process_commit(sta->sae) < 0)
 				return WLAN_STATUS_UNSPECIFIED_FAILURE;
 
@@ -1423,7 +1426,7 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 		break;
 	case SAE_CONFIRMED:
 		sae_clear_retransmit_timer(hapd, sta);
-		if (auth_transaction == 1) {
+		if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT) {
 			if (sae_check_big_sync(hapd, sta))
 				return WLAN_STATUS_SUCCESS;
 			sta->sae->sync++;
@@ -1446,7 +1449,7 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 		}
 		break;
 	case SAE_ACCEPTED:
-		if (auth_transaction == 1 &&
+		if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT &&
 		    (hapd->conf->mesh & MESH_ENABLED)) {
 			wpa_printf(MSG_DEBUG, "SAE: remove the STA (" MACSTR
 				   ") doing reauthentication",
@@ -1454,7 +1457,7 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 			wpa_auth_pmksa_remove(hapd->wpa_auth, sta->addr);
 			ap_free_sta(hapd, sta);
 			*sta_removed = 1;
-		} else if (auth_transaction == 1) {
+		} else if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT) {
 			wpa_printf(MSG_DEBUG, "SAE: Start reauthentication");
 			ret = auth_sae_send_commit(hapd, sta, 1, status_code);
 			if (ret)
@@ -1653,7 +1656,8 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 	}
 
 #ifdef CONFIG_TESTING_OPTIONS
-	if (hapd->conf->sae_reflection_attack && auth_transaction == 1) {
+	if (hapd->conf->sae_reflection_attack &&
+	    auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT) {
 		wpa_printf(MSG_DEBUG, "SAE: TESTING - reflection attack");
 		pos = mgmt->u.auth.variable;
 		end = ((const u8 *) mgmt) + len;
@@ -1665,7 +1669,8 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 		goto remove_sta;
 	}
 
-	if (hapd->conf->sae_commit_override && auth_transaction == 1) {
+	if (hapd->conf->sae_commit_override &&
+	    auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT) {
 		wpa_printf(MSG_DEBUG, "SAE: TESTING - commit override");
 		send_auth_reply(hapd, sta, sta->addr,
 				WLAN_AUTH_SAE,
@@ -1677,7 +1682,7 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 	}
 #endif /* CONFIG_TESTING_OPTIONS */
 	if (!sta->sae) {
-		if (auth_transaction != 1 ||
+		if (auth_transaction != WLAN_AUTH_TR_SEQ_SAE_COMMIT ||
 		    !sae_status_success(hapd, status_code)) {
 			wpa_printf(MSG_DEBUG, "SAE: Unexpected Status Code %u",
 				   status_code);
@@ -1702,7 +1707,7 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 		sta->mesh_sae_pmksa_caching = 0;
 	}
 
-	if (auth_transaction == 1) {
+	if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT) {
 		const u8 *token = NULL;
 		size_t token_len = 0;
 		int allow_reuse = 0;
@@ -1884,7 +1889,7 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 
 		resp = sae_sm_step(hapd, sta, auth_transaction,
 				   status_code, allow_reuse, &sta_removed);
-	} else if (auth_transaction == 2) {
+	} else if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_CONFIRM) {
 		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_DEBUG,
 			       "SAE authentication (RX confirm, status=%u (%s))",
@@ -1970,7 +1975,7 @@ reply:
 	}
 
 remove_sta:
-	if (auth_transaction == 1)
+	if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT)
 		success_status = sae_status_success(hapd, status_code);
 	else
 		success_status = status_code == WLAN_STATUS_SUCCESS;
@@ -2170,7 +2175,8 @@ void handle_auth_fils(struct hostapd_data *hapd, struct sta_info *sta,
 	struct wpa_ie_data rsn;
 	struct rsn_pmksa_cache_entry *pmksa = NULL;
 
-	if (auth_transaction != 1 || status_code != WLAN_STATUS_SUCCESS)
+	if (auth_transaction != WLAN_AUTH_TR_SEQ_SAE_COMMIT ||
+	    status_code != WLAN_STATUS_SUCCESS)
 		return;
 
 	end = pos + len;
@@ -3487,8 +3493,9 @@ static void handle_auth(struct hostapd_data *hapd,
 
 #ifdef CONFIG_SAE
 	if (auth_alg == WLAN_AUTH_SAE && !from_queue &&
-	    (auth_transaction == 1 ||
-	     (auth_transaction == 2 && auth_sae_queued_addr(hapd, sa)))) {
+	    (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT ||
+	     (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_CONFIRM &&
+	      auth_sae_queued_addr(hapd, sa)))) {
 		/* Handle SAE Authentication commit message through a queue to
 		 * provide more control for postponing the needed heavy
 		 * processing under a possible DoS attack scenario. In addition,
@@ -7007,7 +7014,8 @@ static void handle_auth_cb(struct hostapd_data *hapd,
 fail:
 	success_status = status_code == WLAN_STATUS_SUCCESS;
 #ifdef CONFIG_SAE
-	if (auth_alg == WLAN_AUTH_SAE && auth_transaction == 1)
+	if (auth_alg == WLAN_AUTH_SAE &&
+	    auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT)
 		success_status = sae_status_success(hapd, status_code);
 #endif /* CONFIG_SAE */
 	if (!success_status && sta->added_unassoc) {
