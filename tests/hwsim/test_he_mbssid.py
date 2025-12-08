@@ -416,8 +416,15 @@ def test_he_ap_ema(dev, apdev, params):
         subprocess.call(['ip', 'link', 'set', 'dev', apdev[0]['ifname'],
                          'address', apdev[0]['bssid']])
 
-def test_he_ap_mbssid_beacon_prot(dev, apdev, params):
-    """HE AP MBSSID beacon protection"""
+def test_he_ap_mbssid_beacon_prot_tx_then_non_tx(dev, apdev, params):
+    """HE AP MBSSID beacon protection with Association on Tx BSS followed by non-Tx BSS"""
+    run_mbssid_beacon_prot(dev, apdev, params, False)
+
+def test_mbssid_beacon_prot_non_tx_then_tx(dev, apdev, params):
+    """HE AP MBSSID beacon protection with Association on non-Tx BSS followed by Tx BSS"""
+    run_mbssid_beacon_prot(dev, apdev, params, True)
+
+def run_mbssid_beacon_prot(dev, apdev, params, non_tx_first):
     check_sae_capab(dev[0])
     check_sae_capab(dev[1])
     f, fname, ifname = mbssid_create_cfg_file(apdev, params)
@@ -439,10 +446,16 @@ def test_he_ap_mbssid_beacon_prot(dev, apdev, params):
         dev[1].set("sae_groups", "")
         hapd, pid = mbssid_start_ap(dev, apdev, params, fname, ifname, None,
                                     only_start_ap=True)
-        dev[0].connect("bss-0", psk="12345678", key_mgmt="SAE",
-                       ieee80211w="2", beacon_prot="1", scan_freq="2412")
-        dev[1].connect("bss-1", psk="another password", key_mgmt="SAE",
-                       ieee80211w="2", beacon_prot="1", scan_freq="2412")
+        if non_tx_first:
+            dev[1].connect("bss-1", psk="another password", key_mgmt="SAE",
+                           ieee80211w="2", beacon_prot="1", scan_freq="2412")
+            dev[0].connect("bss-0", psk="12345678", key_mgmt="SAE",
+                           ieee80211w="2", beacon_prot="1", scan_freq="2412")
+        else:
+            dev[0].connect("bss-0", psk="12345678", key_mgmt="SAE",
+                           ieee80211w="2", beacon_prot="1", scan_freq="2412")
+            dev[1].connect("bss-1", psk="another password", key_mgmt="SAE",
+                           ieee80211w="2", beacon_prot="1", scan_freq="2412")
 
         beacon_loss0 = False
         beacon_loss1 = False
@@ -455,8 +468,10 @@ def test_he_ap_mbssid_beacon_prot(dev, apdev, params):
 
         mbssid_stop_ap(hapd, pid)
 
-        if beacon_loss0 or beacon_loss1:
-            raise Exception("Beacon loss detected")
+        if beacon_loss0:
+            raise Exception("Beacon loss detected on TX BSS")
+        if beacon_loss1:
+            raise Exception("Beacon loss detected on non-TX BSS")
     finally:
         subprocess.call(['ip', 'link', 'set', 'dev', apdev[0]['ifname'],
                          'address', apdev[0]['bssid']])
