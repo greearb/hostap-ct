@@ -4211,7 +4211,7 @@ static u8 * ieee80211w_kde_add(struct wpa_state_machine *sm, u8 *pos)
 	bigtk.keyid[0] = gsm->GN_bigtk;
 	bigtk.keyid[1] = 0;
 	if (gsm->wpa_group_state != WPA_GROUP_SETKEYSDONE ||
-	    wpa_auth_get_seqnum(sm->wpa_auth, NULL, gsm->GN_bigtk, rsc) < 0)
+	    wpa_auth_get_seqnum(wpa_auth, NULL, gsm->GN_bigtk, rsc) < 0)
 		os_memset(bigtk.pn, 0, sizeof(bigtk.pn));
 	else
 		os_memcpy(bigtk.pn, rsc, sizeof(bigtk.pn));
