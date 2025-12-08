@@ -2388,6 +2388,20 @@ static int wpa_supplicant_ctrl_iface_status(struct wpa_supplicant *wpa_s,
 				return pos - buf;
 			pos += ret;
 		}
+		if (wpa_s->connection_set) {
+			ret = os_snprintf(
+				pos, end - pos,
+				"max_nss_rx=%u\n"
+				"max_nss_tx=%u\n"
+				"channel_width=%u\n",
+				wpa_s->connection_max_nss_rx,
+				wpa_s->connection_max_nss_tx,
+				channel_width_to_int(
+					wpa_s->connection_channel_bandwidth));
+			if (os_snprintf_error(end - pos, ret))
+				return pos - buf;
+			pos += ret;
+		}
 
 #ifdef CONFIG_AP
 		if (wpa_s->ap_iface) {
