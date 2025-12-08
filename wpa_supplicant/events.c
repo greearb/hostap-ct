@@ -3444,6 +3444,40 @@ static int wpa_supplicant_use_own_rsne_params(struct wpa_supplicant *wpa_s,
 }
 
 
+static void wpas_parse_connection_info(struct wpa_supplicant *wpa_s,
+				       unsigned int freq,
+				       const u8 *req_ies, size_t req_ies_len,
+				       const u8 *resp_ies, size_t resp_ies_len)
+{
+	struct ieee802_11_elems req_elems, resp_elems;
+
+	wpa_s->connection_set = 0;
+
+	if (!req_ies || !resp_ies ||
+	    ieee802_11_parse_elems(req_ies, req_ies_len, &req_elems, 0) ==
+	    ParseFailed ||
+	    ieee802_11_parse_elems(resp_ies, resp_ies_len, &resp_elems, 0) ==
+	    ParseFailed)
+		return;
+
+	wpa_s->connection_set = 1;
+	wpa_s->connection_ht = req_elems.ht_capabilities &&
+		resp_elems.ht_capabilities;
+
+	/* Do not include subset of VHT on 2.4 GHz vendor extension in
+	 * consideration for reporting VHT association. */
+	wpa_s->connection_vht = req_elems.vht_capabilities &&
+		resp_elems.vht_capabilities &&
+		(!freq || wpas_freq_to_band(freq) != BAND_2_4_GHZ);
+	wpa_s->connection_he = req_elems.he_capabilities &&
+		resp_elems.he_capabilities;
+	wpa_s->connection_eht = req_elems.eht_capabilities &&
+		resp_elems.eht_capabilities;
+	if (req_elems.rrm_enabled)
+		wpa_s->rrm.rrm_used = 1;
+}
+
+
 static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 					  union wpa_event_data *data)
 {
@@ -3500,35 +3534,11 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 		wpa_dbg(wpa_s, MSG_DEBUG, "freq=%u MHz",
 			data->assoc_info.freq);
 
-	wpa_s->connection_set = 0;
-	if (data->assoc_info.req_ies && data->assoc_info.resp_ies) {
-		struct ieee802_11_elems req_elems, resp_elems;
-
-		if (ieee802_11_parse_elems(data->assoc_info.req_ies,
-					   data->assoc_info.req_ies_len,
-					   &req_elems, 0) != ParseFailed &&
-		    ieee802_11_parse_elems(data->assoc_info.resp_ies,
-					   data->assoc_info.resp_ies_len,
-					   &resp_elems, 0) != ParseFailed) {
-			wpa_s->connection_set = 1;
-			wpa_s->connection_ht = req_elems.ht_capabilities &&
-				resp_elems.ht_capabilities;
-			/* Do not include subset of VHT on 2.4 GHz vendor
-			 * extension in consideration for reporting VHT
-			 * association. */
-			wpa_s->connection_vht = req_elems.vht_capabilities &&
-				resp_elems.vht_capabilities &&
-				(!data->assoc_info.freq ||
-				 wpas_freq_to_band(data->assoc_info.freq) !=
-				 BAND_2_4_GHZ);
-			wpa_s->connection_he = req_elems.he_capabilities &&
-				resp_elems.he_capabilities;
-			wpa_s->connection_eht = req_elems.eht_capabilities &&
-				resp_elems.eht_capabilities;
-			if (req_elems.rrm_enabled)
-				wpa_s->rrm.rrm_used = 1;
-		}
-	}
+	wpas_parse_connection_info(wpa_s, data->assoc_info.freq,
+				   data->assoc_info.req_ies,
+				   data->assoc_info.req_ies_len,
+				   data->assoc_info.resp_ies,
+				   data->assoc_info.resp_ies_len);
 
 	p = data->assoc_info.req_ies;
 	l = data->assoc_info.req_ies_len;
