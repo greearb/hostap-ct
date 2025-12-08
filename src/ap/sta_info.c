@@ -1280,8 +1280,9 @@ retry:
 }
 
 
-int ap_sta_set_vlan(struct hostapd_data *hapd, struct sta_info *sta,
-		    struct vlan_description *vlan_desc)
+static int ap_sta_set_vlan_helper(struct hostapd_data *hapd,
+				  struct sta_info *sta,
+				  struct vlan_description *vlan_desc)
 {
 	struct hostapd_vlan *vlan = NULL, *wildcard_vlan = NULL;
 	struct hostapd_data *vlan_bss = hapd;
@@ -1392,7 +1393,41 @@ done:
 }
 
 
-int ap_sta_bind_vlan(struct hostapd_data *hapd, struct sta_info *sta)
+int ap_sta_set_vlan(struct hostapd_data *hapd, struct sta_info *sta,
+		    struct vlan_description *vlan_desc)
+{
+	int ret;
+#ifdef CONFIG_IEEE80211BE
+	size_t i;
+#endif /* CONFIG_IEEE80211BE */
+	struct hapd_interfaces *interfaces = hapd->iface->interfaces;
+
+	ret = ap_sta_set_vlan_helper(hapd, sta, vlan_desc);
+	if (ret)
+		return ret;
+#ifdef CONFIG_IEEE80211BE
+	for (i = 0; interfaces && i < interfaces->count; i++) {
+		struct sta_info *tmp_sta;
+		struct hostapd_data *tmp_hapd = interfaces->iface[i]->bss[0];
+
+		if (!tmp_hapd->conf->mld_ap ||
+		    hapd == tmp_hapd ||
+		    !hostapd_is_ml_partner(hapd, tmp_hapd))
+			continue;
+
+		tmp_sta = ap_get_sta(tmp_hapd, sta->addr);
+		if (tmp_sta)
+			ap_sta_set_vlan_helper(tmp_hapd, tmp_sta, vlan_desc);
+	}
+
+#endif /* CONFIG_IEEE80211BE */
+
+	return 0;
+}
+
+
+static int ap_sta_bind_vlan_helper(struct hostapd_data *hapd,
+				   struct sta_info *sta)
 {
 #ifndef CONFIG_NO_VLAN
 	const char *iface;
@@ -1464,7 +1499,8 @@ skip_counting:
 		       HOSTAPD_LEVEL_DEBUG, "binding station to interface "
 		       "'%s'", iface);
 
-	if (wpa_auth_sta_set_vlan(sta->wpa_sm, sta->vlan_id) < 0)
+	if (wpa_auth_sta_set_vlan(sta->wpa_sm, hapd->wpa_auth,
+				  sta->vlan_id) < 0)
 		wpa_printf(MSG_INFO, "Failed to update VLAN-ID for WPA");
 
 	ret = hostapd_drv_set_sta_vlan(iface, hapd, sta->addr, sta->vlan_id,
@@ -1484,6 +1520,37 @@ done:
 #else /* CONFIG_NO_VLAN */
 	return 0;
 #endif /* CONFIG_NO_VLAN */
+}
+
+
+int ap_sta_bind_vlan(struct hostapd_data *hapd, struct sta_info *sta)
+{
+	int ret;
+#ifdef CONFIG_IEEE80211BE
+	size_t i;
+#endif /* CONFIG_IEEE80211BE */
+	struct hapd_interfaces *interfaces = hapd->iface->interfaces;
+
+	ret = ap_sta_bind_vlan_helper(hapd, sta);
+	if (ret)
+		return ret;
+#ifdef CONFIG_IEEE80211BE
+	for (i = 0; interfaces && i < interfaces->count; i++) {
+		struct sta_info *tmp_sta;
+		struct hostapd_data *tmp_hapd = interfaces->iface[i]->bss[0];
+
+		if (!tmp_hapd->conf->mld_ap ||
+		    hapd == tmp_hapd ||
+		    !hostapd_is_ml_partner(hapd, tmp_hapd))
+			continue;
+
+		tmp_sta = ap_get_sta(tmp_hapd, sta->addr);
+		if (tmp_sta)
+			ap_sta_bind_vlan_helper(tmp_hapd, tmp_sta);
+	}
+#endif /* CONFIG_IEEE80211BE */
+
+	return 0;
 }
 
 
