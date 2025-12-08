@@ -119,8 +119,14 @@ static void wpa_gkeydone_sta(struct wpa_state_machine *sm)
 	sm->GUpdateStationKeys = false;
 
 #ifdef CONFIG_IEEE80211BE
-	for_each_sm_auth(sm, link_id)
-		sm->mld_links[link_id].wpa_auth->group->GKeyDoneStations--;
+	for_each_sm_auth(sm, link_id) {
+		struct wpa_authenticator *partner_auth =
+			sm->mld_links[link_id].wpa_auth;
+		struct wpa_group *partner_group =
+			wpa_select_vlan_wpa_group(partner_auth->group,
+						  sm->group->vlan_id);
+		partner_group->GKeyDoneStations--;
+	}
 #endif /* CONFIG_IEEE80211BE */
 }
 
@@ -5914,11 +5920,17 @@ static int wpa_group_update_sta(struct wpa_state_machine *sm, void *ctx)
 	int link_id;
 
 	for (link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
+		struct wpa_group *g;
+
 		if (!sm->mld_links[link_id].valid)
 			continue;
-		if (sm->mld_links[link_id].wpa_auth &&
-		    sm->mld_links[link_id].wpa_auth->group == ctx) {
-			group = sm->mld_links[link_id].wpa_auth->group;
+		if (!sm->mld_links[link_id].wpa_auth)
+			continue;
+		g = wpa_select_vlan_wpa_group(
+			sm->mld_links[link_id].wpa_auth->group,
+			sm->group->vlan_id);
+		if (g == ctx) {
+			group = g;
 			wpa_auth = sm->mld_links[link_id].wpa_auth;
 			break;
 		}
@@ -5962,8 +5974,14 @@ static int wpa_group_update_sta(struct wpa_state_machine *sm, void *ctx)
 
 	sm->group->GKeyDoneStations++;
 #ifdef CONFIG_IEEE80211BE
-	for_each_sm_auth(sm, link_id)
-		sm->mld_links[link_id].wpa_auth->group->GKeyDoneStations++;
+	for_each_sm_auth(sm, link_id) {
+		struct wpa_authenticator *partner_auth =
+			sm->mld_links[link_id].wpa_auth;
+		struct wpa_group *partner_group =
+			wpa_select_vlan_wpa_group(partner_auth->group,
+						  sm->group->vlan_id);
+		partner_group->GKeyDoneStations++;
+	}
 #endif /* CONFIG_IEEE80211BE */
 
 	sm->GUpdateStationKeys = true;
@@ -6296,12 +6314,16 @@ static void wpa_group_sm_step_links(struct wpa_state_machine *sm)
 
 	if (!sm || !sm->wpa_auth)
 		return;
-	wpa_group_sm_step(sm->wpa_auth, sm->wpa_auth->group);
+	wpa_group_sm_step(sm->wpa_auth, sm->group);
 
 #ifdef CONFIG_IEEE80211BE
 	for_each_sm_auth(sm, link_id) {
-		wpa_group_sm_step(sm->mld_links[link_id].wpa_auth,
-				  sm->mld_links[link_id].wpa_auth->group);
+		struct wpa_authenticator *partner_auth =
+			sm->mld_links[link_id].wpa_auth;
+		struct wpa_group *partner_group =
+			wpa_select_vlan_wpa_group(partner_auth->group,
+						  sm->group->vlan_id);
+		wpa_group_sm_step(partner_auth, partner_group);
 	}
 #endif /* CONFIG_IEEE80211BE */
 }
