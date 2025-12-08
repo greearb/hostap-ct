@@ -2606,11 +2606,38 @@ SM_STATE(WPA_PTK, AUTHENTICATION)
 }
 
 
+static bool wpa_group_first_sta_seen_mbssid(struct wpa_authenticator *wpa_auth,
+					  struct wpa_group *group)
+{
+	if (!wpa_auth->cb->first_sta_seen_mbssid)
+		return false;
+
+	return wpa_auth->cb->first_sta_seen_mbssid(wpa_auth->cb_ctx,
+						   group->vlan_id);
+}
+
+
 static void wpa_group_ensure_init(struct wpa_authenticator *wpa_auth,
 				  struct wpa_group *group)
 {
-	if (group->first_sta_seen)
+	bool first_sta_seen_mbssid =
+		wpa_group_first_sta_seen_mbssid(wpa_auth, group);
+
+	/* Skip group keys renewal for below cases:
+	 * This is not the first station association on this authenticator.
+	 * In MBSSID case, this is not the first station association in the
+	 * MBSSID set.
+	 */
+	if (group->first_sta_seen || first_sta_seen_mbssid)
 		return;
+
+	if (!first_sta_seen_mbssid && wpa_auth->conf.tx_bss_auth) {
+		struct wpa_group *tx_group =
+			wpa_auth->conf.tx_bss_auth->group;
+		tx_group->bigtk_set = false;
+		tx_group->bigtk_configured = false;
+	}
+
 	/*
 	 * System has run bit further than at the time hostapd was started
 	 * potentially very early during boot up. This provides better chances
@@ -7887,4 +7914,17 @@ void wpa_auth_set_sae_pw_id(struct wpa_state_machine *sm,
 		sm->sae_pw_id = wpabuf_dup(pw_id);
 		sm->sae_pw_id_counter = counter;
 	}
+}
+
+
+bool wpa_auth_get_first_sta_seen(struct wpa_authenticator *wpa_auth,
+				 int vlan_id)
+{
+	struct wpa_group *group;
+
+	if (!wpa_auth)
+		return false;
+
+	group = wpa_select_vlan_wpa_group(wpa_auth->group, vlan_id);
+	return group->first_sta_seen;
 }

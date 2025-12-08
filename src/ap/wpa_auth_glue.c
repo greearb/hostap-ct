@@ -1670,6 +1670,26 @@ static int hostapd_set_ltf_keyseed(void *ctx, const u8 *peer_addr,
 #endif /* CONFIG_PASN */
 
 
+static bool hostapd_first_sta_seen_mbssid(void *ctx, int vlan_id)
+{
+	struct hostapd_data *hapd = ctx;
+
+	if (hapd->iconf->mbssid) {
+		size_t i;
+
+		for (i = 0; i < hapd->iface->num_bss; i++) {
+			struct hostapd_data *tmp_hapd = hapd->iface->bss[i];
+
+			if (wpa_auth_get_first_sta_seen(tmp_hapd->wpa_auth,
+							vlan_id))
+				return true;
+		}
+	}
+
+	return false;
+}
+
+
 #ifdef CONFIG_IEEE80211BE
 
 static int hostapd_wpa_auth_get_ml_key_info(void *ctx,
@@ -1821,6 +1841,7 @@ int hostapd_setup_wpa(struct hostapd_data *hapd)
 #endif /* CONFIG_IEEE80211BE */
 		.get_drv_flags = hostapd_wpa_auth_get_drv_flags,
 		.remove_pmkid = hostapd_wpa_auth_remove_pmkid,
+		.first_sta_seen_mbssid = hostapd_first_sta_seen_mbssid,
 	};
 	const u8 *wpa_ie;
 	size_t wpa_ie_len;

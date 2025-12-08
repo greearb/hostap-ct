@@ -437,6 +437,7 @@ struct wpa_auth_callbacks {
 #endif /* CONFIG_IEEE80211BE */
 	int (*get_drv_flags)(void *ctx, u64 *drv_flags, u64 *drv_flags2);
 	int (*remove_pmkid)(void *ctx, const u8 *sta_addr, const u8 *pmkid);
+	bool (*first_sta_seen_mbssid)(void *ctx, int vlan_id);
 };
 
 struct wpa_authenticator * wpa_init(const u8 *addr,
@@ -498,6 +499,8 @@ int wpa_auth_get_pairwise(struct wpa_state_machine *sm);
 const u8 * wpa_auth_get_pmk(struct wpa_state_machine *sm, int *len);
 const u8 * wpa_auth_get_dpp_pkhash(struct wpa_state_machine *sm);
 int wpa_auth_sta_key_mgmt(struct wpa_state_machine *sm);
+bool wpa_auth_get_first_sta_seen(struct wpa_authenticator *wpa_auth,
+				 int vlan_id);
 int wpa_auth_sta_wpa_version(struct wpa_state_machine *sm);
 int wpa_auth_sta_ft_tk_already_set(struct wpa_state_machine *sm);
 int wpa_auth_sta_fils_tk_already_set(struct wpa_state_machine *sm);
