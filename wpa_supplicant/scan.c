@@ -2802,7 +2802,7 @@ static const struct minsnr_bitrate_entry he160_table[] = {
 	{ -1, 1441200 }  /* SNR > 51 */
 };
 
-/* See IEEE P802.11be/D7.0, Table 36-78 - EHT-MCSs for 484+242-tone MRU,
+/* See IEEE Std 802.11be-2024, Table 36-78 - EHT-MCSs for 484+242-tone MRU,
  * NSS,u = 1
  */
 static const struct minsnr_bitrate_entry eht60_table[] = {
@@ -2824,7 +2824,7 @@ static const struct minsnr_bitrate_entry eht60_table[] = {
 	{ -1, 516200 }  /* SNR > 48 */
 };
 
-/* See IEEE P802.11be/D7.0, Table 36-80 - EHT-MCSs for 996+484-tone MRU,
+/* See IEEE Std 802.11be-2024, Table 36-80 - EHT-MCSs for 996+484-tone MRU,
  * NSS,u = 1
  */
 static const struct minsnr_bitrate_entry eht120_table[] = {
@@ -2846,7 +2846,7 @@ static const struct minsnr_bitrate_entry eht120_table[] = {
 	{ -1, 1064700 }  /* SNR > 51 */
 };
 
-/* See IEEE P802.11be/D7.0, Table 36-81 - EHT-MCSs for 996+484+242-tone MRU,
+/* See IEEE Std 802.11be-2024, Table 36-81 - EHT-MCSs for 996+484+242-tone MRU,
  * NSS,u = 1
  */
 static const struct minsnr_bitrate_entry eht140_table[] = {
@@ -2868,7 +2868,7 @@ static const struct minsnr_bitrate_entry eht140_table[] = {
 	{ -1, 1236800 }  /* SNR > 51 */
 };
 
-/* See IEEE P802.11be/D7.0, Table 36-83 - EHT-MCSs for 2x996+484-tone NRU,
+/* See IEEE Std 802.11be-2024, Table 36-83 - EHT-MCSs for 2x996+484-tone NRU,
  * NSS,u = 1
  */
 static const struct minsnr_bitrate_entry eht200_table[] = {
@@ -2890,7 +2890,7 @@ static const struct minsnr_bitrate_entry eht200_table[] = {
 	{ -1, 1785300 }   /* SNR > 54 */
 };
 
-/* See IEEE P802.11be/D7.0, Table 36-84 - EHT-MCSs for 3x996-tone MRU,
+/* See IEEE Std 802.11be-2024, Table 36-84 - EHT-MCSs for 3x996-tone MRU,
  * NSS,u = 1
  */
 static const struct minsnr_bitrate_entry eht240_table[] = {
@@ -2912,7 +2912,7 @@ static const struct minsnr_bitrate_entry eht240_table[] = {
 	{ -1, 2161800 }   /* SNR > 54 */
 };
 
-/* See IEEE P802.11be/D7.0, Table 36-85: EHT-MCSs for 3x996+484-tone MRU,
+/* See IEEE Std 802.11be-2024, Table 36-85: EHT-MCSs for 3x996+484-tone MRU,
  * NSS,u = 1
  */
 static const struct minsnr_bitrate_entry eht280_table[] = {
@@ -2934,7 +2934,8 @@ static const struct minsnr_bitrate_entry eht280_table[] = {
 	{ -1, 2505900 }   /* SNR > 54 */
 };
 
-/* See IEEE P802.11be/D2.0, Table 36-86: EHT-MCSs for 4x996-tone RU, NSS,u = 1
+/* See IEEE Std 802.11be-2024, Table 36-86: EHT-MCSs for 4x996-tone RU,
+ * NSS,u = 1
  */
 static const struct minsnr_bitrate_entry eht320_table[] = {
 	{ 0, 0 },

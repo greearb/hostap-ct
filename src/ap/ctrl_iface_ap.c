@@ -1244,7 +1244,8 @@ static int hostapd_ctrl_check_freq_params(struct hostapd_freq_params *params,
 		}
 	} else { /* Non-6 GHz channel */
 		/* An EHT STA is also an HE STA as defined in
-		 * IEEE P802.11be/D5.0, 4.3.16a. */
+		 * IEEE Std 802.11be-2024, 4.3.16a (Extremely high throughput
+		 * (EHT) STA). */
 		if (params->he_enabled || params->eht_enabled) {
 			params->he_enabled = 1;
 			/* An HE STA is also a VHT STA if operating in the 5 GHz

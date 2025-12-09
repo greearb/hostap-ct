@@ -2488,7 +2488,7 @@ const struct oper_class_map global_op_class[] = {
 	{ HOSTAPD_MODE_IEEE80211A, 135, 1, 233, 16, BW80P80, NO_P2P_SUPP },
 	{ HOSTAPD_MODE_IEEE80211A, 136, 2, 2, 4, BW20, NO_P2P_SUPP },
 
-	/* IEEE P802.11be/D5.0, Table E-4 (Global operating classes) */
+	/* IEEE Std 802.11be-2024, Table E-4 (Global operating classes) */
 	{ HOSTAPD_MODE_IEEE80211A, 137, 31, 191, 32, BW320, NO_P2P_SUPP },
 
 	/*
@@ -3483,7 +3483,7 @@ struct wpabuf * ieee802_11_defrag(const u8 *data, size_t len, bool ext_elem)
  * It should be called individually for each subelement.
  *
  * Subelements can use the Fragment subelement if they pack more than 255 bytes
- * of data, see IEEE P802.11be/D7.0 Figure 35-4 - Per-STA Profile subelement
+ * of data, see IEEE Std 802.11be-2024, Figure 35-4 - Per-STA Profile subelement
  * fragmentation within a fragmented Multi-Link element.
  */
 size_t ieee802_11_defrag_mle_subelem(struct wpabuf *mlbuf,

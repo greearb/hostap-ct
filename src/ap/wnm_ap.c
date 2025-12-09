@@ -1031,7 +1031,7 @@ int wnm_send_bss_tm_req(struct hostapd_data *hapd, struct sta_info *sta,
 	if (disassoc_timer) {
 #ifdef CONFIG_IEEE80211BE
 		/* Link removal is scheduled only when the Link Removal Imminent
-		 * field is set to 1 in BTM as per IEEE P802.11be/D7.0,
+		 * field is set to 1 in BTM as per IEEE Std 802.11be-2024,
 		 * 9.6.13.9 (BSS Transition Management Request frame format);
 		 * else schedule full disconnection.
 		 */

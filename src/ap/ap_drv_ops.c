@@ -964,7 +964,7 @@ int hostapd_drv_wnm_oper(struct hostapd_data *hapd, enum wnm_oper oper,
 #ifdef CONFIG_IEEE80211BE
 static bool hostapd_is_action_frame_link_agnostic(u8 category, u8 sub_category)
 {
-	/* As per IEEE P802.11be/D7.0, 35.3.14 (MLD individually addressed
+	/* As per IEEE Std 802.11be-2024, 35.3.14 (MLD individually addressed
 	 * Management frame delivery), between an AP MLD and a non-AP MLD, the
 	 * following individually addressed MMPDUs shall be intended for an MLD.
 	 */

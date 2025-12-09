@@ -1588,11 +1588,13 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
 	disassoc_imminent = wpa_s->wnm_mode & WNM_BSS_TM_REQ_DISASSOC_IMMINENT;
 
 	/*
-	 * Based on IEEE P802.11be/D5.0, when a station is a non-AP MLD with
-	 * more than one affiliated link, the Link Removal Imminent field is
-	 * set to 1, and the BSS Termination Included field is set to 1, only
-	 * one of the links is removed and the other links remain associated.
-	 * Ignore the Disassociation Imminent field in such a case.
+	 * Based on IEEE Std 802.11be-2024, Table 9-538a (BSS Termination
+	 * Included and Link Removal Imminent fields encoding), when a station
+	 * is a non-AP MLD with more than one affiliated link, the Link Removal
+	 * Imminent field is set to 1, and the BSS Termination Included field
+	 * is set to 1, only one of the links is removed and the other links
+	 * remain associated. Ignore the Disassociation Imminent field in such
+	 * a case.
 	 *
 	 * TODO: We should check if the AP has more than one link.
 	 * TODO: We should pass the RX link and use that

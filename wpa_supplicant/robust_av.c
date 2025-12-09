@@ -205,8 +205,8 @@ skip_tclas_elem:
 			qos_elem->mask &=
 				~SCS_QOS_BIT_SERVICE_START_TIME_LINKID;
 
-		/* IEEE P802.11be/D4.0, 9.4.2.316 QoS Characteristics element,
-		 * Figure 9-1001av (Control Info field format)
+		/* IEEE Std 802.11be-2024, 9.4.2.326 QoS Characteristics
+		 * element, Figure 9-1074bd (Control Info field format)
 		 */
 		control_info = ((u32) qos_elem->direction <<
 				EHT_QOS_CONTROL_INFO_DIRECTION_OFFSET);

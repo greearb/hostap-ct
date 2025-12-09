@@ -20029,8 +20029,8 @@ enum qca_wlan_vendor_attr_chan_usage_req {
  * Response frame of the BSS.
  *
  * @QCA_WLAN_FW_SCAN_BSS_EHT_OPS: This indicates EHT Operation element
- * (IEEE P802.11be/D7.0, 9.4.2.321) is present in the Beacon or Probe Response
- * frame of the BSS.
+ * (IEEE Std 802.11be-2024, 9.4.2.321) is present in the Beacon or Probe
+ * Response frame of the BSS.
  *
  * @QCA_WLAN_FW_SCAN_BSS_FTM_RESPONDER: This indicates Fine Timing Measurement
  * Responder bit is set to 1 in the Extended Capabilities field of the Extended

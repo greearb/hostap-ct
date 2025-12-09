@@ -7862,11 +7862,11 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 	 */
 	switch (hapd->cs_freq_params.bandwidth) {
 	case 320:
-		/* As per IEEE P802.11be/D7.0, 35.15.3,
-		 * For EHT BSS operating channel width wider than 160 MHz,
-		 * the announced BSS bandwidth in the Wide Bandwidth
-		 * Channel Switch element is less than the BSS bandwidth
-		 * in the Bandwidth Indication element
+		/* As per IEEE Std 802.11be-2024, 35.15.3 (Channel switching
+		 * methods for an EHT BSS), for EHT BSS operating channel width
+		 * wider than 160 MHz, the announced BSS bandwidth in the Wide
+		 * Bandwidth Channel Switch element is less than the BSS
+		 * bandwidth in the Bandwidth Indication element
 		 */
 
 		/* Modifying the center frequency to 160 MHz */
