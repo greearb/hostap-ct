@@ -3820,7 +3820,7 @@ no_pfs:
 		if (p[0] == WLAN_EID_RSNX && p[1] >= 1)
 			wpa_sm_set_ap_rsnxe(wpa_s->wpa, p, len);
 
-		if (p[0] == WLAN_EID_VENDOR_SPECIFIC && p[1] >= 6 &&
+		if (p[0] == WLAN_EID_VENDOR_SPECIFIC && p[1] >= 5 &&
 		    WPA_GET_BE32(&p[2]) == RSNXE_OVERRIDE_IE_VENDOR_TYPE)
 			wpa_sm_set_ap_rsnxe_override(wpa_s->wpa, p, len);
 
