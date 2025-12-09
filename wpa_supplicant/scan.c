@@ -705,7 +705,7 @@ static struct wpabuf * wpa_supplicant_ml_probe_ie(int mld_id, u16 links)
 		wpa_printf(MSG_DEBUG, "MLD: Probing links 0x%04x", links);
 
 	for_each_link(links, link_id) {
-		wpabuf_put_u8(extra_ie, EHT_ML_SUB_ELEM_PER_STA_PROFILE);
+		wpabuf_put_u8(extra_ie, MULTI_LINK_SUB_ELEM_ID_PER_STA_PROFILE);
 
 		/* Subelement length includes only the control */
 		wpabuf_put_u8(extra_ie, 2);

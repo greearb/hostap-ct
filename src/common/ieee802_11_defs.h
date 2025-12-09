@@ -3030,14 +3030,6 @@ struct ieee80211_eht_ml {
 	u8 variable[];
 } STRUCT_PACKED;
 
-/* Table 9-401c - Optional subelement IDs for Link Info field of the
- * Multi-Link element */
-enum ieee80211_eht_ml_sub_elem {
-	EHT_ML_SUB_ELEM_PER_STA_PROFILE = 0,
-	EHT_ML_SUB_ELEM_VENDOR = 221,
-	EHT_ML_SUB_ELEM_FRAGMENT = 254,
-};
-
 /* IEEE P802.11be/D7.0, 9.4.2.329 (Bandwidth Indication element) defines the
  * Bandwidth Indication Information field to have the same definition as the
  * EHT Operation Information field in the EHT Operation element.

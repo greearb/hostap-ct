@@ -224,10 +224,10 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
 		const u8 *fpos;
 		u8 flen;
 
-		if (elem->id == EHT_ML_SUB_ELEM_FRAGMENT)
+		if (elem->id == MULTI_LINK_SUB_ELEM_ID_FRAGMENT)
 			continue;
 
-		if (elem->id != EHT_ML_SUB_ELEM_PER_STA_PROFILE) {
+		if (elem->id != MULTI_LINK_SUB_ELEM_ID_PER_STA_PROFILE) {
 			wpa_printf(MSG_DEBUG, "Link Info subelement id=%u",
 				   elem->id);
 			wpa_hexdump(MSG_DEBUG, "Link Info subelement data",
@@ -242,7 +242,7 @@ static void parse_basic_ml(const u8 *ie, size_t len, bool ap,
 		flen = elem->datalen;
 		fpos = elem->data + flen;
 		while (flen == 255 && li_end - fpos >= 2 &&
-		       *fpos == EHT_ML_SUB_ELEM_FRAGMENT &&
+		       *fpos == MULTI_LINK_SUB_ELEM_ID_FRAGMENT &&
 		       li_end - fpos >= 2 + fpos[1]) {
 			/* Reassemble truncated subelement */
 			fpos++;
@@ -541,10 +541,10 @@ static void parse_reconfig_ml(const u8 *ie, size_t len,
 		const u8 *fpos;
 		u8 flen;
 
-		if (elem->id == EHT_ML_SUB_ELEM_FRAGMENT)
+		if (elem->id == MULTI_LINK_SUB_ELEM_ID_FRAGMENT)
 			continue;
 
-		if (elem->id != EHT_ML_SUB_ELEM_PER_STA_PROFILE) {
+		if (elem->id != MULTI_LINK_SUB_ELEM_ID_PER_STA_PROFILE) {
 			wpa_printf(MSG_DEBUG, "Link Info subelement id=%u",
 				   elem->id);
 			wpa_hexdump(MSG_DEBUG, "Link Info subelement data",
@@ -559,7 +559,7 @@ static void parse_reconfig_ml(const u8 *ie, size_t len,
 		flen = elem->datalen;
 		fpos = elem->data + flen;
 		while (flen == 255 && li_end - fpos >= 2 &&
-		       *fpos == EHT_ML_SUB_ELEM_FRAGMENT &&
+		       *fpos == MULTI_LINK_SUB_ELEM_ID_FRAGMENT &&
 		       li_end - fpos >= 2 + fpos[1]) {
 			/* Reassemble truncated subelement */
 			fpos++;

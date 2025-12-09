@@ -517,7 +517,7 @@ static void wnm_parse_neighbor_report_multi_link(struct neighbor_report *rep,
 			break;
 		}
 
-		if  (*pos == EHT_ML_SUB_ELEM_PER_STA_PROFILE) {
+		if  (*pos == MULTI_LINK_SUB_ELEM_ID_PER_STA_PROFILE) {
 			const struct ieee80211_eht_per_sta_profile *sta_prof =
 				(const struct ieee80211_eht_per_sta_profile *)
 				(pos + 2);

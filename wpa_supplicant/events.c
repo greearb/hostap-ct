@@ -4091,10 +4091,10 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 		}
 
 		switch (*pos) {
-		case EHT_ML_SUB_ELEM_PER_STA_PROFILE:
+		case MULTI_LINK_SUB_ELEM_ID_PER_STA_PROFILE:
 			break;
-		case EHT_ML_SUB_ELEM_FRAGMENT:
-		case EHT_ML_SUB_ELEM_VENDOR:
+		case MULTI_LINK_SUB_ELEM_ID_FRAGMENT:
+		case MULTI_LINK_SUB_ELEM_ID_VENDOR:
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Skip subelement id=%u, len=%zu",
 				   *pos, sub_elem_len);
