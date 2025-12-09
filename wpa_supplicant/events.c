@@ -4122,44 +4122,44 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 		pos += 2;
 		ml_len -= 2;
 
-		if (!(ctrl & EHT_PER_STA_CTRL_COMPLETE_PROFILE_MSK)) {
+		if (!(ctrl & BASIC_MLE_STA_CTRL_COMPLETE_PROFILE)) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Per STA complete profile expected");
 			goto out;
 		}
 
-		if (!(ctrl & EHT_PER_STA_CTRL_MAC_ADDR_PRESENT_MSK)) {
+		if (!(ctrl & BASIC_MLE_STA_CTRL_PRES_STA_MAC)) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Per STA MAC address not present");
 			goto out;
 		}
 
-		if (!(ctrl & EHT_PER_STA_CTRL_TSF_OFFSET_PRESENT_MSK)) {
+		if (!(ctrl & BASIC_MLE_STA_CTRL_PRES_TSF_OFFSET)) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Per STA TSF offset not present");
 			goto out;
 		}
 
-		if (!(ctrl & EHT_PER_STA_CTRL_BEACON_INTERVAL_PRESENT_MSK)) {
+		if (!(ctrl & BASIC_MLE_STA_CTRL_PRES_BEACON_INT)) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Beacon interval not present");
 			goto out;
 		}
 
-		if (!(ctrl & EHT_PER_STA_CTRL_DTIM_INFO_PRESENT_MSK)) {
+		if (!(ctrl & BASIC_MLE_STA_CTRL_PRES_DTIM_INFO)) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD:  DTIM information not present");
 			goto out;
 		}
 
-		if (ctrl & EHT_PER_STA_CTRL_NSTR_LINK_PAIR_PRESENT_MSK) {
-			if (ctrl & EHT_PER_STA_CTRL_NSTR_BM_SIZE_MSK)
+		if (ctrl & BASIC_MLE_STA_CTRL_PRES_NSTR_LINK_PAIR) {
+			if (ctrl & BASIC_MLE_STA_CTRL_NSTR_BITMAP)
 				nstr_bitmap_len = 2;
 			else
 				nstr_bitmap_len = 1;
 		}
 
-		if (!(ctrl & EHT_PER_STA_CTRL_BSS_PARAM_CNT_PRESENT_MSK)) {
+		if (!(ctrl & BASIC_MLE_STA_CTRL_PRES_BSS_PARAM_COUNT)) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD:  BSS params change count not present");
 			goto out;
@@ -4190,7 +4190,7 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 			   "MLD: link addr: " MACSTR " nstr BM len=%u",
 			   MAC2STR(pos + 1), nstr_bitmap_len);
 
-		ml_info[i].link_id = ctrl & EHT_PER_STA_CTRL_LINK_ID_MSK;
+		ml_info[i].link_id = ctrl & BASIC_MLE_STA_CTRL_LINK_ID_MASK;
 		os_memcpy(ml_info[i].bssid, pos + 1, ETH_ALEN);
 
 		pos += sta_info_len;

@@ -710,7 +710,7 @@ static struct wpabuf * wpa_supplicant_ml_probe_ie(int mld_id, u16 links)
 		/* Subelement length includes only the control */
 		wpabuf_put_u8(extra_ie, 2);
 
-		control = link_id | EHT_PER_STA_CTRL_COMPLETE_PROFILE_MSK;
+		control = link_id | BASIC_MLE_STA_CTRL_COMPLETE_PROFILE;
 
 		wpabuf_put_le16(extra_ie, control);
 	}

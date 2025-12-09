@@ -560,14 +560,14 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 
 		/* STA Control */
 		control = (link_id & 0xf) |
-			EHT_PER_STA_CTRL_MAC_ADDR_PRESENT_MSK |
-			EHT_PER_STA_CTRL_COMPLETE_PROFILE_MSK |
-			EHT_PER_STA_CTRL_TSF_OFFSET_PRESENT_MSK |
-			EHT_PER_STA_CTRL_BEACON_INTERVAL_PRESENT_MSK |
-			EHT_PER_STA_CTRL_DTIM_INFO_PRESENT_MSK;
+			BASIC_MLE_STA_CTRL_PRES_STA_MAC |
+			BASIC_MLE_STA_CTRL_COMPLETE_PROFILE |
+			BASIC_MLE_STA_CTRL_PRES_TSF_OFFSET |
+			BASIC_MLE_STA_CTRL_PRES_BEACON_INT |
+			BASIC_MLE_STA_CTRL_PRES_DTIM_INFO;
 
 		if (include_bpcc)
-			control |= EHT_PER_STA_CTRL_BSS_PARAM_CNT_PRESENT_MSK;
+			control |= BASIC_MLE_STA_CTRL_PRES_BSS_PARAM_COUNT;
 
 		wpabuf_put_le16(buf, control);
 
@@ -1408,23 +1408,23 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 		}
 		control = WPA_GET_LE16(pos);
 		link_info = &info->links[control &
-					 EHT_PER_STA_CTRL_LINK_ID_MSK];
+					 BASIC_MLE_STA_CTRL_LINK_ID_MASK];
 		pos += 2;
 
-		if (!(control & EHT_PER_STA_CTRL_COMPLETE_PROFILE_MSK)) {
+		if (!(control & BASIC_MLE_STA_CTRL_COMPLETE_PROFILE)) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Per-STA complete profile expected");
 			goto out;
 		}
 
-		if (!(control & EHT_PER_STA_CTRL_MAC_ADDR_PRESENT_MSK)) {
+		if (!(control & BASIC_MLE_STA_CTRL_PRES_STA_MAC)) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Per-STA MAC address not present");
 			goto out;
 		}
 
-		if ((control & (EHT_PER_STA_CTRL_BEACON_INTERVAL_PRESENT_MSK |
-				EHT_PER_STA_CTRL_DTIM_INFO_PRESENT_MSK))) {
+		if ((control & (BASIC_MLE_STA_CTRL_PRES_BEACON_INT |
+				BASIC_MLE_STA_CTRL_PRES_DTIM_INFO))) {
 			wpa_printf(MSG_DEBUG,
 				   "MLD: Beacon/DTIM interval not expected");
 			goto out;
@@ -1433,8 +1433,8 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 		/* The length octet and the MAC address must be present */
 		sta_info_len = 1 + ETH_ALEN;
 
-		if (control & EHT_PER_STA_CTRL_NSTR_LINK_PAIR_PRESENT_MSK) {
-			if (control & EHT_PER_STA_CTRL_NSTR_BM_SIZE_MSK)
+		if (control & BASIC_MLE_STA_CTRL_PRES_NSTR_LINK_PAIR) {
+			if (control & BASIC_MLE_STA_CTRL_NSTR_BITMAP)
 				link_info->nstr_bitmap_len = 2;
 			else
 				link_info->nstr_bitmap_len = 1;
@@ -1460,7 +1460,7 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 		os_memcpy(link_info->peer_addr, pos, ETH_ALEN);
 		wpa_printf(MSG_DEBUG,
 			   "MLD: assoc: link id=%u, addr=" MACSTR,
-			   control & EHT_PER_STA_CTRL_LINK_ID_MSK,
+			   control & BASIC_MLE_STA_CTRL_LINK_ID_MASK,
 			   MAC2STR(link_info->peer_addr));
 
 		pos += ETH_ALEN;
