@@ -263,6 +263,11 @@ struct wpa_params {
 	 * show_details - Whether to show config parsing details in debug log
 	 */
 	bool show_details;
+
+	/**
+	 * proc_coord_dir - Process coordination directory
+	 */
+	const char *proc_coord_dir;
 };
 
 struct p2p_srv_bonjour {
@@ -326,6 +331,10 @@ struct wpa_global {
 #endif /* CONFIG_WIFI_DISPLAY */
 
 	struct psk_list_entry *add_psk; /* From group formation */
+
+#ifdef CONFIG_PROCESS_COORDINATION
+	struct proc_coord *pc;
+#endif /* CONFIG_PROCESS_COORDINATION */
 };
 
 

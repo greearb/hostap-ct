@@ -42,6 +42,9 @@ static void usage(void)
 	       " [-f<debug file>]"
 #endif /* CONFIG_DEBUG_FILE */
 	       " \\\n"
+#ifdef CONFIG_PROCESS_COORDINATION
+	       "        [-z<process coordination directory>] \\\n"
+#endif /* CONFIG_PROCESS_COORDINATION */
 	       "        [-o<override driver>] [-O<override ctrl>] \\\n"
 	       "        [-N -i<ifname> -c<conf> [-C<ctrl>] "
 	       "[-D<driver>] \\\n"
@@ -104,7 +107,11 @@ static void usage(void)
 #endif /* CONFIG_CTRL_IFACE_DBUS_NEW */
 	       "  -v = show version\n"
 	       "  -W = wait for a control interface monitor before starting\n"
-	       "  -y = show configuration parsing details in debug log\n");
+	       "  -y = show configuration parsing details in debug log\n"
+#ifdef CONFIG_PROCESS_COORDINATION
+	       "  -z = process coordination directory\n"
+#endif /* CONFIG_PROCESS_COORDINATION */
+		);
 
 	printf("example:\n"
 	       "  wpa_supplicant -D%s -iwlan0 -c/etc/wpa_supplicant.conf\n",
@@ -206,7 +213,7 @@ int main(int argc, char *argv[])
 
 	for (;;) {
 		c = getopt(argc, argv,
-			   "b:Bc:C:D:de:f:g:G:hi:I:KLMm:No:O:p:P:qsTtuvWy");
+			   "b:Bc:C:D:de:f:g:G:hi:I:KLMm:No:O:p:P:qsTtuvWyz:");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -339,6 +346,11 @@ int main(int argc, char *argv[])
 		case 'y':
 			params.show_details = true;
 			break;
+#ifdef CONFIG_PROCESS_COORDINATION
+		case 'z':
+			params.proc_coord_dir = optarg;
+			break;
+#endif /* CONFIG_PROCESS_COORDINATION */
 		default:
 			usage();
 			exitcode = 0;

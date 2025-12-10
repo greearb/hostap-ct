@@ -1720,6 +1720,11 @@ OBJS += src/utils/json.c
 L_CFLAGS += -DCONFIG_JSON
 endif
 
+ifdef CONFIG_PROCESS_COORDINATION
+L_CFLAGS += -DCONFIG_PROCESS_COORDINATION
+OBJS += src/common/proc_coord.c
+endif
+
 OBJS += src/drivers/driver_common.c
 
 OBJS += wpa_supplicant.c events.c bssid_ignore.c wpas_glue.c scan.c

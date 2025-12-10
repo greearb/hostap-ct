@@ -43,6 +43,7 @@
 #include "common/gas_server.h"
 #include "common/dpp.h"
 #include "common/ptksa_cache.h"
+#include "common/proc_coord.h"
 #include "p2p/p2p.h"
 #include "fst/fst.h"
 #include "bssid_ignore.h"
@@ -8625,6 +8626,16 @@ struct wpa_global * wpa_supplicant_init(struct wpa_params *params)
 
 	random_init(params->entropy_file);
 
+#ifdef CONFIG_PROCESS_COORDINATION
+	if (params->proc_coord_dir) {
+		global->pc = proc_coord_init(params->proc_coord_dir);
+		if (!global->pc) {
+			wpa_supplicant_deinit(global);
+			return NULL;
+		}
+	}
+#endif /* CONFIG_PROCESS_COORDINATION */
+
 	global->ctrl_iface = wpa_supplicant_global_ctrl_iface_init(global);
 	if (global->ctrl_iface == NULL) {
 		wpa_supplicant_deinit(global);
@@ -8744,6 +8755,10 @@ void wpa_supplicant_deinit(struct wpa_global *global)
 	os_free(global->drv_priv);
 
 	random_deinit();
+
+#ifdef CONFIG_PROCESS_COORDINATION
+	proc_coord_deinit(global->pc);
+#endif /* CONFIG_PROCESS_COORDINATION */
 
 	eloop_destroy();
 

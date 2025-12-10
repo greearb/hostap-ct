@@ -1918,6 +1918,11 @@ OBJS += ../src/utils/json.o
 CFLAGS += -DCONFIG_JSON
 endif
 
+ifdef CONFIG_PROCESS_COORDINATION
+CFLAGS += -DCONFIG_PROCESS_COORDINATION
+OBJS += ../src/common/proc_coord.o
+endif
+
 ifdef CONFIG_MODULE_TESTS
 CFLAGS += -DCONFIG_MODULE_TESTS
 OBJS += wpas_module_tests.o

@@ -1311,6 +1311,11 @@ ifdef CONFIG_NO_TKIP
 CFLAGS += -DCONFIG_NO_TKIP
 endif
 
+ifdef CONFIG_PROCESS_COORDINATION
+CFLAGS += -DCONFIG_PROCESS_COORDINATION
+OBJS += ../src/common/proc_coord.o
+endif
+
 $(DESTDIR)$(BINDIR)/%: %
 	install -D $(<) $(@)
 
