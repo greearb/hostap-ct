@@ -1734,7 +1734,7 @@ struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 			ok++;
 		}
 		if ((wpa_s->conf->phy_bands & CFG_PHY_BAND_6G) &&
-		    (bss->freq > 5955 && bss->freq < 8000)) {
+		    (bss->freq >= 5955 && bss->freq < 8000)) {
 			ok++;
 		}
 		if (!ok) {
