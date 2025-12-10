@@ -22551,11 +22551,48 @@ enum qca_wlan_vendor_attr_feature_config_data {
  *   takes effect only for APs not matching with the configuration data of
  *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISABLE_DSMPS. For APs in the
  *   disable list, DSMPS remains disabled regardless of RSSI.
+ *
+ * @QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ALLOW_NSS_GT_2:
+ * Enable connections using more than two spatial streams (RX or TX) only if
+ * the AP’s Beacon and Probe Response frames include information that matches
+ * at least one entry from the configuration data list specified in
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST.
+ * If no match is found, the driver must restrict the connection to two spatial
+ * streams, even if the AP supports more than two spatial streams.
+ *
+ * Interaction with other actions:
+ * - If a new configuration with
+ *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ALLOW_NSS_GT_2
+ *   is specified, any existing configuration with
+ *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISALLOW_NSS_GT_2 will be cleared.
+ * - If neither %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ALLOW_NSS_GT_2 nor
+ *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISALLOW_NSS_GT_2 is configured, the
+ *   driver follows its default NSS negotiation logic.
+ *
+ * @QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISALLOW_NSS_GT_2:
+ * Restrict connections to a maximum of two spatial streams (RX or TX) if the
+ * AP’s Beacon and Probe Response frames include information that matches at
+ * least one entry from the configuration data list specified in
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST.
+ * If no match is found, the driver may allow more than two spatial streams,
+ * provided the AP supports them.
+ *
+ * Interaction with other actions:
+ * - If a new configuration with
+ *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISALLOW_NSS_GT_2
+ *   is specified, any existing configuration with
+ *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ALLOW_NSS_GT_2 will be cleared.
+ * - If neither %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ALLOW_NSS_GT_2 nor
+ *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISALLOW_NSS_GT_2 is configured, the
+ *   driver follows its default NSS negotiation logic.
  */
+
 enum qca_wlan_vendor_feature_config_action {
 	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ENABLE_DSMPS = 0,
 	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISABLE_DSMPS = 1,
 	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ADAPTIVE_DSMPS_BY_RSSI = 2,
+	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ALLOW_NSS_GT_2 = 3,
+	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISALLOW_NSS_GT_2 = 4,
 };
 
 /**
