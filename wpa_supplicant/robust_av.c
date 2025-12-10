@@ -1,6 +1,7 @@
 /*
  * wpa_supplicant - Robust AV procedures
  * Copyright (c) 2020, The Linux Foundation
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.

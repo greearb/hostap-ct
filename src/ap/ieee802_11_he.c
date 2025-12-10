@@ -2,6 +2,7 @@
  * hostapd / IEEE 802.11ax HE
  * Copyright (c) 2016-2017, Qualcomm Atheros, Inc.
  * Copyright (c) 2019 John Crispin <john@phrozen.org>
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.

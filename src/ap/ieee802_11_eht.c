@@ -1,6 +1,6 @@
 /*
  * hostapd / IEEE 802.11be EHT
- * Copyright (c) 2021-2022, Qualcomm Innovation Center, Inc.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.

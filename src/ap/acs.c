@@ -2,6 +2,7 @@
  * ACS - Automatic Channel Selection module
  * Copyright (c) 2011, Atheros Communications
  * Copyright (c) 2013, Qualcomm Atheros, Inc.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.

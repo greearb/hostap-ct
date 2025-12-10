@@ -1,6 +1,7 @@
 /*
  * hostapd / IEEE 802.11 Management
  * Copyright (c) 2002-2017, Jouni Malinen <j@w1.fi>
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.

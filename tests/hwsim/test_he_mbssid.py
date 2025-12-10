@@ -1,6 +1,6 @@
 # Multiple BSSID and enhanced multi-BSS advertisements (EMA)
 # Copyright (c) 2019, The Linux Foundation
-# Copyright (c) 2022, Qualcomm Innovation Center, Inc
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 #
 # This software may be distributed under the terms of the BSD license.
 # See README for more details.

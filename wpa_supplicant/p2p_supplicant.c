@@ -2,6 +2,7 @@
  * wpa_supplicant - P2P
  * Copyright (c) 2009-2010, Atheros Communications
  * Copyright (c) 2010-2014, Jouni Malinen <j@w1.fi>
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
