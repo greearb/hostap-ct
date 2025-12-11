@@ -40,6 +40,7 @@
 #include "common/wpa_ctrl.h"
 #include "common/ptksa_cache.h"
 #include "common/nan_de.h"
+#include "common/proc_coord.h"
 #include "crypto/tls.h"
 #include "drivers/driver.h"
 #include "eapol_auth/eapol_auth_sm.h"
@@ -3873,6 +3874,69 @@ static int hostapd_ctrl_iface_sae_password_bind(struct hostapd_data *hapd,
 #endif /* CONFIG_SAE */
 
 
+#ifdef CONFIG_TESTING_OPTIONS
+#ifdef CONFIG_PROCESS_COORDINATION
+
+static bool hapd_ctrl_proc_coord_cb(void *ctx, int src,
+				    enum proc_coord_message_types msg_type,
+				    enum proc_coord_commands cmd,
+				    u32 seq, const struct wpabuf *msg)
+{
+	struct hostapd_data *hapd = ctx;
+
+	if (cmd != PROC_COORD_CMD_TEST)
+		return false;
+
+	wpa_msg(hapd->msg_ctx, MSG_INFO,
+		"PROC-COORD-TEST RX src=%u msg_type=%d seq=%u msg_len=%zu",
+		src, msg_type, seq, wpabuf_len(msg));
+
+	if (msg_type == PROC_COORD_MSG_REQUEST)
+		proc_coord_send_response(hapd->iface->interfaces->pc,
+					 src, cmd, seq, msg);
+	return false;
+}
+
+
+static void hapd_ctrl_proc_coord_test_cb(void *ctx, int pid,
+					 const struct wpabuf *msg)
+{
+	struct hostapd_data *hapd = ctx;
+
+	wpa_msg(hapd->msg_ctx, MSG_INFO,
+		"PROC-COORD-TEST RX-RESP src=%u msg_len=%d",
+		pid, msg ? (int) wpabuf_len(msg) : -1);
+
+}
+
+
+static int hostapd_ctrl_iface_proc_coord_test(struct hostapd_data *hapd,
+					      const char *cmd)
+{
+	int res, dst;
+	struct wpabuf *msg;
+
+	if (!hapd->iface->interfaces->pc)
+		return -1;
+
+	dst = atoi(cmd);
+
+	msg = wpabuf_alloc(1);
+	if (!msg)
+		return -1;
+	wpabuf_put_u8(msg, 123);
+
+	res = proc_coord_send_request(hapd->iface->interfaces->pc,
+				      dst, PROC_COORD_CMD_TEST, msg, 1000,
+				      hapd_ctrl_proc_coord_test_cb, hapd);
+	wpabuf_free(msg);
+	return res < 0 ? -1 : 0;
+}
+
+#endif /* CONFIG_PROCESS_COORDINATION */
+#endif /* CONFIG_TESTING_OPTIONS */
+
+
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
 					      int reply_size,
@@ -4486,6 +4550,13 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 		if (hostapd_ctrl_iface_sae_password_bind(hapd, buf + 18))
 			reply_len = -1;
 #endif /* CONFIG_SAE */
+#ifdef CONFIG_TESTING_OPTIONS
+#ifdef CONFIG_PROCESS_COORDINATION
+	} else if (os_strncmp(buf, "PROC_COORD_TEST ", 16) == 0) {
+		if (hostapd_ctrl_iface_proc_coord_test(hapd, buf + 16))
+			reply_len = -1;
+#endif /* CONFIG_PROCESS_COORDINATION */
+#endif /* CONFIG_TESTING_OPTIONS */
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;
@@ -5198,6 +5269,14 @@ fail:
 	hapd->msg_ctx = hapd;
 	wpa_msg_register_cb(hostapd_ctrl_iface_msg_cb);
 
+#ifdef CONFIG_TESTING_OPTIONS
+#ifdef CONFIG_PROCESS_COORDINATION
+	if (hapd->iface->interfaces->pc)
+		proc_coord_register_handler(hapd->iface->interfaces->pc,
+					    hapd_ctrl_proc_coord_cb, hapd);
+#endif /* CONFIG_PROCESS_COORDINATION */
+#endif /* CONFIG_TESTING_OPTIONS */
+
 	return 0;
 
 fail:
@@ -5253,6 +5332,14 @@ void hostapd_ctrl_iface_deinit(struct hostapd_data *hapd)
 #ifdef CONFIG_TESTING_OPTIONS
 	l2_packet_deinit(hapd->l2_test);
 	hapd->l2_test = NULL;
+#ifdef CONFIG_PROCESS_COORDINATION
+	if (hapd->iface->interfaces->pc) {
+		proc_coord_unregister_handler(hapd->iface->interfaces->pc,
+					      hapd_ctrl_proc_coord_cb, hapd);
+		proc_coord_cancel_wait(hapd->iface->interfaces->pc,
+				       hapd_ctrl_proc_coord_test_cb, hapd);
+	}
+#endif /* CONFIG_PROCESS_COORDINATION */
 #endif /* CONFIG_TESTING_OPTIONS */
 }
 

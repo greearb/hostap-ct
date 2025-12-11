@@ -21,6 +21,7 @@ enum proc_coord_commands {
 	PROC_COORD_CMD_STARTING = 0,
 	PROC_COORD_CMD_STOPPING = 1,
 	PROC_COORD_CMD_PING = 2,
+	PROC_COORD_CMD_TEST = 3,
 };
 
 /**
