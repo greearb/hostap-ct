@@ -381,8 +381,7 @@ CONFIG_IPV6=y
 #CONFIG_WPA_CLI_EDIT=y
 
 # Opportunistic Wireless Encryption (OWE)
-# Experimental implementation of draft-harkins-owe-07.txt
-#CONFIG_OWE=y
+CONFIG_OWE=y
 
 # Airtime policy support
 #CONFIG_AIRTIME_POLICY=y
