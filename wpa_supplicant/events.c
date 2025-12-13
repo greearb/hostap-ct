@@ -5148,13 +5148,19 @@ static void wpa_supplicant_event_ibss_auth(struct wpa_supplicant *wpa_s,
 
 
 #ifdef CONFIG_IEEE80211R
-static void ft_rx_action(struct wpa_supplicant *wpa_s, const u8 *data,
-			 size_t len)
+static void ft_rx_action(struct wpa_supplicant *wpa_s, const u8 *da,
+			 const u8 *sa, const u8 *data, size_t len)
 {
 	const u8 *sta_addr, *target_ap_addr;
 	u16 status;
 
 	wpa_hexdump(MSG_MSGDUMP, "FT: RX Action", data, len);
+	if (is_multicast_ether_addr(da)) {
+		wpa_printf(MSG_DEBUG,
+			   "FT: Ignore group-addressed FT Action frame (A1=" MACSTR " A2=" MACSTR ")",
+			   MAC2STR(da), MAC2STR(sa));
+		return;
+	}
 	if (!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME))
 		return; /* only SME case supported for now */
 	if (len < 1 + 2 * ETH_ALEN + 2)
@@ -5505,7 +5511,7 @@ static void wpas_event_rx_mgmt_action(struct wpa_supplicant *wpa_s,
 
 #ifdef CONFIG_IEEE80211R
 	if (category == WLAN_ACTION_FT) {
-		ft_rx_action(wpa_s, payload, plen);
+		ft_rx_action(wpa_s, mgmt->da, mgmt->sa, payload, plen);
 		return;
 	}
 #endif /* CONFIG_IEEE80211R */
@@ -5563,6 +5569,15 @@ static void wpas_event_rx_mgmt_action(struct wpa_supplicant *wpa_s,
 	    payload[0] == QOS_QOS_MAP_CONFIG) {
 		const u8 *pos = payload + 1;
 		size_t qlen = plen - 1;
+
+		if (is_multicast_ether_addr(mgmt->da)) {
+			wpa_printf(MSG_DEBUG,
+				   "Interworking: Ignore group-addressed Qos Map Configure frame (A1="
+				   MACSTR " A2=" MACSTR ")",
+				   MAC2STR(mgmt->da), MAC2STR(mgmt->sa));
+			return;
+		}
+
 		wpa_dbg(wpa_s, MSG_DEBUG, "Interworking: Received QoS Map Configure frame from "
 			MACSTR, MAC2STR(mgmt->sa));
 		if (ether_addr_equal(mgmt->sa, wpa_s->bssid) &&
@@ -5585,7 +5600,8 @@ static void wpas_event_rx_mgmt_action(struct wpa_supplicant *wpa_s,
 
 	if (category == WLAN_ACTION_RADIO_MEASUREMENT &&
 	    payload[0] == WLAN_RRM_NEIGHBOR_REPORT_RESPONSE) {
-		wpas_rrm_process_neighbor_rep(wpa_s, payload + 1, plen - 1);
+		wpas_rrm_process_neighbor_rep(wpa_s, mgmt->da, mgmt->sa,
+					      payload + 1, plen - 1);
 		return;
 	}
 
@@ -5632,21 +5648,21 @@ static void wpas_event_rx_mgmt_action(struct wpa_supplicant *wpa_s,
 #ifndef CONFIG_NO_ROBUST_AV
 	if (category == WLAN_ACTION_ROBUST_AV_STREAMING &&
 	    payload[0] == ROBUST_AV_SCS_RESP) {
-		wpas_handle_robust_av_scs_recv_action(wpa_s, mgmt->sa,
+		wpas_handle_robust_av_scs_recv_action(wpa_s, mgmt->da, mgmt->sa,
 						      payload + 1, plen - 1);
 		return;
 	}
 
 	if (category == WLAN_ACTION_ROBUST_AV_STREAMING &&
 	    payload[0] == ROBUST_AV_MSCS_RESP) {
-		wpas_handle_robust_av_recv_action(wpa_s, mgmt->sa,
+		wpas_handle_robust_av_recv_action(wpa_s, mgmt->da, mgmt->sa,
 						  payload + 1, plen - 1);
 		return;
 	}
 
 	if (category == WLAN_ACTION_VENDOR_SPECIFIC_PROTECTED && plen > 4 &&
 	    WPA_GET_BE32(payload) == QM_ACTION_VENDOR_TYPE) {
-		wpas_handle_qos_mgmt_recv_action(wpa_s, mgmt->sa,
+		wpas_handle_qos_mgmt_recv_action(wpa_s, mgmt->da, mgmt->sa,
 						 payload + 4, plen - 4);
 		return;
 	}

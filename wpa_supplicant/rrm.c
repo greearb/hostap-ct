@@ -56,13 +56,24 @@ void wpas_rrm_reset(struct wpa_supplicant *wpa_s)
 /*
  * wpas_rrm_process_neighbor_rep - Handle incoming neighbor report
  * @wpa_s: Pointer to wpa_supplicant
+ * @da: DA of the received frame
+ * @sa: SA of the received frame
  * @report: Neighbor report buffer, prefixed by a 1-byte dialog token
  * @report_len: Length of neighbor report buffer
  */
 void wpas_rrm_process_neighbor_rep(struct wpa_supplicant *wpa_s,
+				   const u8 *da, const u8 *sa,
 				   const u8 *report, size_t report_len)
 {
 	struct wpabuf *neighbor_rep;
+
+	if (is_multicast_ether_addr(da)) {
+		wpa_printf(MSG_DEBUG,
+			   "RRM: Ignore group-addressed Neighbor Report Response frame (A1="
+			   MACSTR " A2=" MACSTR ")",
+			   MAC2STR(da), MAC2STR(sa));
+		return;
+	}
 
 	wpa_hexdump(MSG_DEBUG, "RRM: New Neighbor Report", report, report_len);
 	if (report_len < 1)

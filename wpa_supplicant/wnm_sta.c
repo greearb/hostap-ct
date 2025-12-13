@@ -304,6 +304,7 @@ static void wnm_sleep_mode_exit_success(struct wpa_supplicant *wpa_s,
 
 
 static void ieee802_11_rx_wnmsleep_resp(struct wpa_supplicant *wpa_s,
+					const u8 *da, const u8 *sa,
 					const u8 *frm, int len)
 {
 	/*
@@ -325,6 +326,14 @@ static void ieee802_11_rx_wnmsleep_resp(struct wpa_supplicant *wpa_s,
 	if (!wpa_s->wnmsleep_used) {
 		wpa_printf(MSG_DEBUG,
 			   "WNM: Ignore WNM-Sleep Mode Response frame since WNM-Sleep Mode operation has not been requested");
+		return;
+	}
+
+	if (is_multicast_ether_addr(da)) {
+		wpa_printf(MSG_DEBUG,
+			   "WNM: Ignore group-addressed WNM-Sleep Mode Response frame (A1="
+			   MACSTR " A2=" MACSTR ")",
+			   MAC2STR(da), MAC2STR(sa));
 		return;
 	}
 
@@ -1926,10 +1935,19 @@ static void ieee802_11_rx_wnm_notif_req_wfa(struct wpa_supplicant *wpa_s,
 
 
 static void ieee802_11_rx_wnm_notif_req(struct wpa_supplicant *wpa_s,
-					const u8 *sa, const u8 *frm, int len)
+					const u8 *da, const u8 *sa,
+					const u8 *frm, int len)
 {
 	const u8 *pos, *end;
 	u8 dialog_token, type;
+
+	if (is_multicast_ether_addr(da)) {
+		wpa_printf(MSG_DEBUG,
+			   "WNM: Ignore group-addressed WNM Notification Request frame (A1="
+			   MACSTR " A2=" MACSTR ")",
+			   MAC2STR(da), MAC2STR(sa));
+		return;
+	}
 
 	/* Dialog Token [1] | Type [1] | Subelements */
 
@@ -2039,10 +2057,12 @@ void ieee802_11_rx_wnm_action(struct wpa_supplicant *wpa_s,
 						 !(mgmt->da[0] & 0x01));
 		break;
 	case WNM_SLEEP_MODE_RESP:
-		ieee802_11_rx_wnmsleep_resp(wpa_s, pos, end - pos);
+		ieee802_11_rx_wnmsleep_resp(wpa_s, mgmt->da, mgmt->sa,
+					    pos, end - pos);
 		break;
 	case WNM_NOTIFICATION_REQ:
-		ieee802_11_rx_wnm_notif_req(wpa_s, mgmt->sa, pos, end - pos);
+		ieee802_11_rx_wnm_notif_req(wpa_s, mgmt->da, mgmt->sa,
+					    pos, end - pos);
 		break;
 	case WNM_COLLOCATED_INTERFERENCE_REQ:
 		ieee802_11_rx_wnm_coloc_intf_req(wpa_s, mgmt->sa, pos,

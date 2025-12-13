@@ -567,6 +567,14 @@ int gas_query_rx(struct gas_query *gas, const u8 *da, const u8 *sa,
 		return 0;
 	}
 
+	if (pmf && is_multicast_ether_addr(da)) {
+		wpa_printf(MSG_DEBUG,
+			   "GAS: Ignore group-addressed GAS frame (A1=" MACSTR
+			   " A2=" MACSTR ") when PMF is enabled",
+			   MAC2STR(da), MAC2STR(sa));
+		return 0;
+	}
+
 	query = gas_query_get_pending(gas, sa, dialog_token);
 	if (query == NULL) {
 		wpa_printf(MSG_DEBUG, "GAS: No pending query found for " MACSTR

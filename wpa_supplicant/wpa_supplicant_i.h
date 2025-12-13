@@ -1792,6 +1792,7 @@ int wpas_twt_send_teardown(struct wpa_supplicant *wpa_s, u8 flags);
 
 void wpas_rrm_reset(struct wpa_supplicant *wpa_s);
 void wpas_rrm_process_neighbor_rep(struct wpa_supplicant *wpa_s,
+				   const u8 *da, const u8 *sa,
 				   const u8 *report, size_t report_len);
 int wpas_rrm_send_neighbor_rep_request(struct wpa_supplicant *wpa_s,
 				       const struct wpa_ssid_value *ssid,
@@ -2015,8 +2016,8 @@ int wpas_send_mscs_req(struct wpa_supplicant *wpa_s);
 void wpas_populate_mscs_descriptor_ie(struct robust_av_data *robust_av,
 				      struct wpabuf *buf);
 void wpas_handle_robust_av_recv_action(struct wpa_supplicant *wpa_s,
-				       const u8 *src, const u8 *buf,
-				       size_t len);
+				       const u8 *dst, const u8 *src,
+				       const u8 *buf, size_t len);
 void wpas_handle_assoc_resp_mscs(struct wpa_supplicant *wpa_s, const u8 *bssid,
 				 const u8 *ies, size_t ies_len);
 int wpas_send_scs_req(struct wpa_supplicant *wpa_s);
@@ -2024,11 +2025,11 @@ int wpas_scs_reconfigure(struct wpa_supplicant *wpa_s);
 void free_up_tclas_elem(struct scs_desc_elem *elem);
 void free_up_scs_desc(struct scs_robust_av_data *data);
 void wpas_handle_robust_av_scs_recv_action(struct wpa_supplicant *wpa_s,
-					   const u8 *src, const u8 *buf,
-					   size_t len);
+					   const u8 *dst, const u8 *src,
+					   const u8 *buf, size_t len);
 void wpas_scs_deinit(struct wpa_supplicant *wpa_s);
 void wpas_handle_qos_mgmt_recv_action(struct wpa_supplicant *wpa_s,
-				      const u8 *src,
+				      const u8 *dst, const u8 *src,
 				      const u8 *buf, size_t len);
 void wpas_dscp_deinit(struct wpa_supplicant *wpa_s);
 int wpas_send_dscp_response(struct wpa_supplicant *wpa_s,
