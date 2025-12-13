@@ -3416,6 +3416,8 @@ void scan_est_throughput(struct wpa_supplicant *wpa_s,
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+
 static struct wpa_scan_res *
 wpa_scan_get_bssid(struct wpa_scan_results *scan_res, const u8 *bssid)
 {
@@ -3431,8 +3433,6 @@ wpa_scan_get_bssid(struct wpa_scan_results *scan_res, const u8 *bssid)
 	return NULL;
 }
 
-
-#ifdef CONFIG_IEEE80211BE
 
 static unsigned int
 get_partner_est_tput(struct wpa_supplicant *wpa_s,
