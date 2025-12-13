@@ -522,7 +522,7 @@ def test_nan_usd_provisioning(dev, apdev):
     vals = split_nan_event(ev)
     if vals['ssi'] != '8899':
         raise Exception("Unexpected ssi in Follow-up: " + ev)
-    if vals['id'] != id1:
+    if vals['id'] != id0:
         raise Exception("Unexpected id: " + ev)
     if vals['peer_instance_id'] != id1:
         raise Exception("Unexpected peer_instance_id: " + ev)
@@ -536,12 +536,12 @@ def test_nan_usd_provisioning(dev, apdev):
     ev = dev[1].wait_event(["NAN-RECEIVE"], timeout=5)
     if ev is None:
         raise Exception("Receive event not seen")
-    vals = split_nan_event(ev)
-    if vals['ssi'] != 'aabbccdd':
+    vals1 = split_nan_event(ev)
+    if vals1['ssi'] != 'aabbccdd':
         raise Exception("Unexpected ssi in Follow-up: " + ev)
-    if vals['id'] != id1:
+    if vals1['id'] != id1:
         raise Exception("Unexpected id: " + ev)
-    if vals['peer_instance_id'] != id0:
+    if vals1['peer_instance_id'] != id0:
         raise Exception("Unexpected peer_instance_id: " + ev)
 
     # Simulate provisioning of a network profile and connection using it.
@@ -560,7 +560,7 @@ def test_nan_usd_provisioning(dev, apdev):
 
     # Another Follow-up message from publisher to subscriber to simulate
     # connection result reporting
-    cmd = "NAN_TRANSMIT handle={} req_instance_id={} address={} ssi=eeff".format(id1, vals['peer_instance_id'], addr1)
+    cmd = "NAN_TRANSMIT handle={} req_instance_id={} address={} ssi=eeff".format(id0, vals['peer_instance_id'], addr1)
     if "FAIL" in dev[0].request(cmd):
         raise Exception("NAN_TRANSMIT failed")
 
