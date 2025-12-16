@@ -5849,6 +5849,16 @@ enum qca_wlan_vendor_attr_ll_stats_results {
 	 */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_TX_DRIVER_DROP_MSDU_CNT = 97,
 
+	/* Unsigned 32 bit value. It represents the number of MSDUs that were
+	 * received from hardware fast receiving rings.
+	 */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_RX_DRIVER_MSDU_CNT = 98,
+
+	/* Unsigned 32 bit value. It represents the number of MPDUs that were
+	 * received from hardware fast receiving rings.
+	 */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_RX_DRIVER_MPDU_CNT = 99,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_MAX =
