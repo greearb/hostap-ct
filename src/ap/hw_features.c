@@ -194,17 +194,18 @@ int hostapd_get_hw_features(struct hostapd_iface *iface)
 }
 
 
-int hostapd_prepare_rates(struct hostapd_iface *iface,
+int hostapd_prepare_rates(struct hostapd_data *hapd,
 			  struct hostapd_hw_modes *mode)
 {
+	struct hostapd_bss_config *conf = hapd->conf;
 	int i, num_basic_rates = 0;
 	int basic_rates_a[] = { 60, 120, 240, 0 };
 	int basic_rates_b[] = { 10, 20, 0 };
 	int basic_rates_g[] = { 10, 20, 55, 110, 0 };
 	const int *basic_rates;
 
-	if (iface->conf->basic_rates)
-		basic_rates = iface->conf->basic_rates;
+	if (conf->basic_rates)
+		basic_rates = conf->basic_rates;
 	else switch (mode->mode) {
 	case HOSTAPD_MODE_IEEE80211A:
 		basic_rates = basic_rates_a;
@@ -221,15 +222,15 @@ int hostapd_prepare_rates(struct hostapd_iface *iface,
 		return -1;
 	}
 
-	os_free(iface->basic_rates);
-	iface->basic_rates = int_array_dup(basic_rates);
+	os_free(hapd->basic_rates);
+	hapd->basic_rates = int_array_dup(basic_rates);
 
-	os_free(iface->current_rates);
-	iface->num_rates = 0;
+	os_free(hapd->current_rates);
+	hapd->num_rates = 0;
 
-	iface->current_rates =
+	hapd->current_rates =
 		os_calloc(mode->num_rates, sizeof(struct hostapd_rate_data));
-	if (!iface->current_rates) {
+	if (!hapd->current_rates) {
 		wpa_printf(MSG_ERROR, "Failed to allocate memory for rate "
 			   "table.");
 		return -1;
@@ -238,27 +239,26 @@ int hostapd_prepare_rates(struct hostapd_iface *iface,
 	for (i = 0; i < mode->num_rates; i++) {
 		struct hostapd_rate_data *rate;
 
-		if (iface->conf->supported_rates &&
-		    !int_array_includes(iface->conf->supported_rates,
-					mode->rates[i]))
+		if (conf->supported_rates &&
+		    !int_array_includes(conf->supported_rates, mode->rates[i]))
 			continue;
 
-		rate = &iface->current_rates[iface->num_rates];
+		rate = &hapd->current_rates[hapd->num_rates];
 		rate->rate = mode->rates[i];
 		if (int_array_includes(basic_rates, rate->rate)) {
 			rate->flags |= HOSTAPD_RATE_BASIC;
 			num_basic_rates++;
 		}
 		wpa_printf(MSG_DEBUG, "RATE[%d] rate=%d flags=0x%x",
-			   iface->num_rates, rate->rate, rate->flags);
-		iface->num_rates++;
+			   hapd->num_rates, rate->rate, rate->flags);
+		hapd->num_rates++;
 	}
 
-	if ((iface->num_rates == 0 || num_basic_rates == 0) &&
-	    (!iface->conf->ieee80211n || !iface->conf->require_ht)) {
+	if ((hapd->num_rates == 0 || num_basic_rates == 0) &&
+	    (!hapd->iconf->ieee80211n || !hapd->iconf->require_ht)) {
 		wpa_printf(MSG_ERROR, "No rates remaining in supported/basic "
 			   "rate sets (%d,%d).",
-			   iface->num_rates, num_basic_rates);
+			   hapd->num_rates, num_basic_rates);
 		return -1;
 	}
 

@@ -1050,16 +1050,16 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 						   mode->mcs_set);
 	}
 
-	if (iface->current_rates && iface->num_rates) {
+	if (hapd->current_rates && hapd->num_rates) {
 		ret = os_snprintf(buf + len, buflen - len, "supported_rates=");
 		if (os_snprintf_error(buflen - len, ret))
 			return len;
 		len += ret;
 
-		for (j = 0; j < iface->num_rates; j++) {
+		for (j = 0; j < hapd->num_rates; j++) {
 			ret = os_snprintf(buf + len, buflen - len, "%s%02x",
 					  j > 0 ? " " : "",
-					  iface->current_rates[j].rate / 5);
+					  hapd->current_rates[j].rate / 5);
 			if (os_snprintf_error(buflen - len, ret))
 				return len;
 			len += ret;

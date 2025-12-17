@@ -186,6 +186,14 @@ static void hostapd_reload_bss(struct hostapd_data *hapd)
 
 	hostapd_neighbor_sync_own_report(hapd);
 
+	if (hapd->iface->current_mode &&
+	    hostapd_prepare_rates(hapd, hapd->iface->current_mode)) {
+		wpa_printf(MSG_ERROR, "Failed to prepare rates table.");
+		hostapd_logger(hapd, NULL, HOSTAPD_MODULE_IEEE80211,
+			       HOSTAPD_LEVEL_WARNING,
+			       "Failed to prepare rates table.");
+	}
+
 	ieee802_11_set_beacon(hapd);
 	hostapd_update_wps(hapd);
 
@@ -463,6 +471,11 @@ void hostapd_free_hapd_data(struct hostapd_data *hapd)
 	hapd->probereq_cb = NULL;
 	hapd->num_probereq_cb = 0;
 
+	os_free(hapd->current_rates);
+	hapd->current_rates = NULL;
+	os_free(hapd->basic_rates);
+	hapd->basic_rates = NULL;
+
 #ifdef CONFIG_P2P
 	wpabuf_free(hapd->p2p_beacon_ie);
 	hapd->p2p_beacon_ie = NULL;
@@ -727,10 +740,6 @@ void hostapd_cleanup_iface_partial(struct hostapd_iface *iface)
 	iface->hw_features = NULL;
 	iface->num_hw_features = 0;
 	iface->current_mode = NULL;
-	os_free(iface->current_rates);
-	iface->current_rates = NULL;
-	os_free(iface->basic_rates);
-	iface->basic_rates = NULL;
 	iface->cac_started = 0;
 	ap_list_deinit(iface);
 	sta_track_deinit(iface);
@@ -1429,6 +1438,16 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 
 	wpa_printf(MSG_DEBUG, "%s(hapd=%p (%s), first=%d)",
 		   __func__, hapd, conf->iface, first);
+
+	/* Prepare per-BSS rates early from BSS config and current mode */
+	if (hapd->iface->current_mode &&
+	    hostapd_prepare_rates(hapd, hapd->iface->current_mode)) {
+		wpa_printf(MSG_ERROR, "Failed to prepare rates table.");
+		hostapd_logger(hapd, NULL, HOSTAPD_MODULE_IEEE80211,
+			       HOSTAPD_LEVEL_WARNING,
+			       "Failed to prepare rates table.");
+		return -1;
+	}
 
 #ifdef EAP_SERVER_TNC
 	if (conf->tnc && tncs_global_init() < 0) {
@@ -2642,17 +2661,6 @@ static int hostapd_setup_interface_complete_sync(struct hostapd_iface *iface,
 					     hapd->iconf))) {
 			wpa_printf(MSG_ERROR, "Could not set channel for "
 				   "kernel driver");
-			goto fail;
-		}
-	}
-
-	if (iface->current_mode) {
-		if (hostapd_prepare_rates(iface, iface->current_mode)) {
-			wpa_printf(MSG_ERROR, "Failed to prepare rates "
-				   "table.");
-			hostapd_logger(hapd, NULL, HOSTAPD_MODULE_IEEE80211,
-				       HOSTAPD_LEVEL_WARNING,
-				       "Failed to prepare rates table.");
 			goto fail;
 		}
 	}

@@ -327,6 +327,9 @@ struct hostapd_bss_config {
 
 	struct hostapd_ssid ssid;
 
+	int *supported_rates;
+	int *basic_rates;
+
 	char *eap_req_id_text; /* optional displayable message sent with
 				* EAP Request-Identity */
 	size_t eap_req_id_text_len;
@@ -1060,8 +1063,6 @@ struct hostapd_config {
 		SHORT_PREAMBLE = 1
 	} preamble;
 
-	int *supported_rates;
-	int *basic_rates;
 	unsigned int beacon_rate;
 	enum beacon_rate_type rate_type;
 

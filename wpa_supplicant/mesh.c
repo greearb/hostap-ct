@@ -261,7 +261,7 @@ static int wpas_mesh_complete(struct wpa_supplicant *wpa_s)
 
 	params->ies = ifmsh->mconf->rsn_ie;
 	params->ie_len = ifmsh->mconf->rsn_ie_len;
-	params->basic_rates = ifmsh->basic_rates;
+	params->basic_rates = ifmsh->bss[0]->basic_rates;
 	params->conf.flags |= WPA_DRIVER_MESH_CONF_FLAG_HT_OP_MODE;
 	params->conf.ht_opmode = ifmsh->bss[0]->iface->ht_op_mode;
 
@@ -527,14 +527,15 @@ static int wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		 * advertised in beacons match the one in peering frames, sigh.
 		 */
 		if (conf->hw_mode == HOSTAPD_MODE_IEEE80211G) {
-			conf->basic_rates = os_memdup(basic_rates_erp,
-						      sizeof(basic_rates_erp));
-			if (!conf->basic_rates)
+			bss->conf->basic_rates = os_memdup(
+				basic_rates_erp,
+				sizeof(basic_rates_erp));
+			if (!bss->conf->basic_rates)
 				goto out_free;
 		}
 	} else {
-		conf->basic_rates = int_array_dup(ssid->mesh_basic_rates);
-		if (conf->basic_rates == NULL)
+		bss->conf->basic_rates = int_array_dup(ssid->mesh_basic_rates);
+		if (bss->conf->basic_rates == NULL)
 			goto out_free;
 	}
 

@@ -883,6 +883,8 @@ void hostapd_config_free_bss(struct hostapd_bss_config *conf)
 	os_free(conf->radius_das_shared_secret);
 	hostapd_config_free_vlan(conf);
 	os_free(conf->time_zone);
+	os_free(conf->supported_rates);
+	os_free(conf->basic_rates);
 
 #ifdef CONFIG_IEEE80211R_AP
 	hostapd_config_clear_rxkhs(conf);
@@ -1028,8 +1030,6 @@ void hostapd_config_free(struct hostapd_config *conf)
 	for (i = 0; i < conf->num_bss; i++)
 		hostapd_config_free_bss(conf->bss[i]);
 	os_free(conf->bss);
-	os_free(conf->supported_rates);
-	os_free(conf->basic_rates);
 	os_free(conf->acs_ch_list.range);
 	os_free(conf->acs_freq_list.range);
 	os_free(conf->driver_params);

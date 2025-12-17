@@ -225,6 +225,10 @@ struct hostapd_data {
 	void *msg_ctx; /* ctx for wpa_msg() calls */
 	void *msg_ctx_parent; /* parent interface ctx for wpa_msg() calls */
 
+	int num_rates;
+	struct hostapd_rate_data *current_rates;
+	int *basic_rates;
+
 	struct radius_client_data *radius;
 	u64 acct_session_id;
 	struct radius_das_data *radius_das;
@@ -631,11 +635,6 @@ struct hostapd_iface {
 	struct hostapd_hw_modes *hw_features;
 	int num_hw_features;
 	struct hostapd_hw_modes *current_mode;
-	/* Rates that are currently used (i.e., filtered copy of
-	 * current_mode->channels */
-	int num_rates;
-	struct hostapd_rate_data *current_rates;
-	int *basic_rates;
 	int freq;
 
 	bool radar_detected;

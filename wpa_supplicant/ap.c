@@ -523,7 +523,7 @@ static int wpa_supplicant_conf_ap(struct wpa_supplicant *wpa_s,
 			list[2] = 240;
 			list[3] = 0;
 		}
-		conf->basic_rates = list;
+		bss->basic_rates = list;
 
 		list = os_malloc(9 * sizeof(int));
 		if (list) {
@@ -537,7 +537,7 @@ static int wpa_supplicant_conf_ap(struct wpa_supplicant *wpa_s,
 			list[7] = 540;
 			list[8] = 0;
 		}
-		conf->supported_rates = list;
+		bss->supported_rates = list;
 	}
 
 	bss->isolate = !wpa_s->conf->p2p_intra_bss;

@@ -125,12 +125,12 @@ static size_t hostapd_supp_rates(struct hostapd_data *hapd, u8 *buf)
 	u8 *pos = buf;
 	int i;
 
-	if (!hapd->iface->current_rates)
+	if (!hapd->current_rates)
 		return 0;
 
-	for (i = 0; i < hapd->iface->num_rates; i++) {
-		*pos = hapd->iface->current_rates[i].rate / 5;
-		if (hapd->iface->current_rates[i].flags & HOSTAPD_RATE_BASIC)
+	for (i = 0; i < hapd->num_rates; i++) {
+		*pos = hapd->current_rates[i].rate / 5;
+		if (hapd->current_rates[i].flags & HOSTAPD_RATE_BASIC)
 			*pos |= 0x80;
 		pos++;
 	}
