@@ -16,7 +16,6 @@
 #ifdef CONFIG_SAE
 #include "common/sae.h"
 #endif /* CONFIG_SAE */
-#include "crypto/sha384.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -86,7 +85,7 @@ struct pasn_data {
 	bool using_pmksa;
 	enum rsn_hash_alg hash_alg;
 
-	u8 hash[SHA384_MAC_LEN];
+	struct wpabuf *auth1;
 
 	struct wpabuf *beacon_rsne_rsnxe;
 	struct wpa_ptk ptk;

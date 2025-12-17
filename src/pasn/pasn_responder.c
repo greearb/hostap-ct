@@ -17,6 +17,7 @@
 #include "common/ieee802_11_defs.h"
 #include "crypto/sha384.h"
 #include "crypto/sha256.h"
+#include "crypto/sha512.h"
 #include "crypto/random.h"
 #include "crypto/crypto.h"
 #include "ap/hostapd.h"
@@ -898,11 +899,11 @@ int handle_auth_pasn_1(struct pasn_data *pasn,
 
 	pasn->wrapped_data_format = pasn_params.wrapped_data_format;
 
-	ret = pasn_auth_frame_hash(pasn->akmp, pasn->cipher,
-				   ((const u8 *) mgmt) + IEEE80211_HDRLEN,
-				   len - IEEE80211_HDRLEN, pasn->hash);
-	if (ret) {
-		wpa_printf(MSG_DEBUG, "PASN: Failed to compute hash");
+	wpabuf_free(pasn->auth1);
+	pasn->auth1 = wpabuf_alloc_copy(((const u8 *) mgmt) + IEEE80211_HDRLEN,
+					len - IEEE80211_HDRLEN);
+	if (!pasn->auth1) {
+		wpa_printf(MSG_DEBUG, "PASN: Failed to store a copy of Auth1");
 		status = WLAN_STATUS_UNSPECIFIED_FAILURE;
 		goto send_resp;
 	}
@@ -974,11 +975,11 @@ int handle_auth_pasn_1(struct pasn_data *pasn,
 		goto send_resp;
 	}
 
-	ret = pasn_auth_frame_hash(pasn->akmp, pasn->cipher,
-				   ((const u8 *) mgmt) + IEEE80211_HDRLEN,
-				   len - IEEE80211_HDRLEN, pasn->hash);
-	if (ret) {
-		wpa_printf(MSG_DEBUG, "PASN: Failed to compute hash");
+	wpabuf_free(pasn->auth1);
+	pasn->auth1 = wpabuf_alloc_copy(((const u8 *) mgmt) + IEEE80211_HDRLEN,
+					len - IEEE80211_HDRLEN);
+	if (!pasn->auth1) {
+		wpa_printf(MSG_DEBUG, "PASN: Failed to store a copy of Auth1");
 		status = WLAN_STATUS_UNSPECIFIED_FAILURE;
 	}
 
@@ -1014,6 +1015,7 @@ int handle_auth_pasn_3(struct pasn_data *pasn, const u8 *own_addr,
 	int ret;
 	u8 *copy = NULL;
 	size_t copy_len, mic_offset;
+	u8 hash[SHA512_MAC_LEN];
 
 	if (ieee802_11_parse_elems(mgmt->u.auth.variable,
 				   len - offsetof(struct ieee80211_mgmt,
@@ -1064,9 +1066,16 @@ int handle_auth_pasn_3(struct pasn_data *pasn, const u8 *own_addr,
 	if (!copy)
 		goto fail;
 	os_memset(copy + mic_offset, 0, mic_len);
+	if (!pasn->auth1 ||
+	    pasn_auth_frame_hash(pasn->akmp, pasn->cipher,
+				 wpabuf_head(pasn->auth1),
+				 wpabuf_len(pasn->auth1), hash)) {
+		wpa_printf(MSG_INFO, "PASN: Failed to calculate Auth1 hash");
+		goto fail;
+	}
 	ret = pasn_mic(pasn->ptk.kck, pasn->akmp, pasn->cipher,
 		       peer_addr, own_addr,
-		       pasn->hash, mic_len * 2,
+		       hash, mic_len * 2,
 		       copy, copy_len, out_mic);
 	os_free(copy);
 	copy = NULL;
