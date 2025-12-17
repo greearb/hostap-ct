@@ -1546,13 +1546,14 @@ bool pasn_use_sha384(int akmp, int cipher)
  * @cipher: Negotiated pairwise cipher
  * @kdk_len: the length in octets that should be derived for HTLK. Can be zero.
  * @kek_len: The length in octets that should be derived for KEK. Can be zero.
+ * @alg: Output variable for indicating the selected hash algorithm
  * Returns: 0 on success, -1 on failure
  */
 int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 		    const u8 *spa, const u8 *bssid,
 		    const u8 *dhss, size_t dhss_len,
 		    struct wpa_ptk *ptk, int akmp, int cipher,
-		    size_t kdk_len, size_t kek_len)
+		    size_t kdk_len, size_t kek_len, enum rsn_hash_alg *alg)
 {
 	u8 tmp[WPA_KCK_MAX_LEN + WPA_KEK_MAX_LEN + WPA_TK_MAX_LEN +
 	       WPA_KDK_MAX_LEN];
@@ -1605,6 +1606,9 @@ int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 	ptk_len = ptk->kck_len + ptk->tk_len + ptk->kdk_len + ptk->kek_len;
 	if (ptk_len > sizeof(tmp))
 		goto err;
+
+	*alg = pasn_use_sha384(akmp, cipher) ? RSN_HASH_SHA384 :
+		RSN_HASH_SHA256;
 
 	if (pasn_use_sha384(akmp, cipher)) {
 		wpa_printf(MSG_DEBUG, "PASN: PTK derivation using SHA384");

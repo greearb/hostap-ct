@@ -649,12 +649,13 @@ static int pasn_test_pasn_auth(void)
 	};
 	struct wpa_ptk ptk;
 	int ret;
+	enum rsn_hash_alg hash_alg;
 
 	ret = pasn_pmk_to_ptk(pmk, sizeof(pmk),
 			      spa_addr, bssid,
 			      dhss, sizeof(dhss),
 			      &ptk, WPA_KEY_MGMT_PASN, WPA_CIPHER_CCMP,
-			      WPA_KDK_MAX_LEN, 0);
+			      WPA_KDK_MAX_LEN, 0, &hash_alg);
 
 	if (ret)
 		return ret;

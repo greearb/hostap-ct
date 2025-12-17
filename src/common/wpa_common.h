@@ -28,6 +28,12 @@
 
 #define OWE_DH_GROUP 19
 
+enum rsn_hash_alg {
+	RSN_HASH_SHA256,
+	RSN_HASH_SHA384,
+	RSN_HASH_SHA512,
+};
+
 #ifdef CONFIG_NO_TKIP
 #define WPA_ALLOWED_PAIRWISE_CIPHERS \
 (WPA_CIPHER_CCMP | WPA_CIPHER_GCMP | WPA_CIPHER_NONE | \
@@ -774,7 +780,7 @@ int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 		    const u8 *spa, const u8 *bssid,
 		    const u8 *dhss, size_t dhss_len,
 		    struct wpa_ptk *ptk, int akmp, int cipher,
-		    size_t kdk_len, size_t kek_len);
+		    size_t kdk_len, size_t kek_len, enum rsn_hash_alg *alg);
 
 u8 pasn_mic_len(int akmp, int cipher);
 
