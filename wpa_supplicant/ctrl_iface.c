@@ -11567,6 +11567,7 @@ static int wpas_ctrl_iface_pr_set_dik_ctx(struct wpa_supplicant *wpa_s,
 	const char *password = NULL;
 	const u8 *pmk = NULL, *dik = NULL;
 	struct wpabuf *pmk_buf = NULL, *dik_buf = NULL;
+	size_t pmk_len;
 
 	while ((token = str_token(cmd, " ", &context))) {
 		if (os_strcmp(token, "self") == 0) {
@@ -11592,6 +11593,7 @@ static int wpas_ctrl_iface_pr_set_dik_ctx(struct wpa_supplicant *wpa_s,
 			if (!pmk_buf)
 				goto fail;
 			pmk = wpabuf_head_u8(pmk_buf);
+			pmk_len = wpabuf_len(pmk_buf);
 			continue;
 		}
 	}
@@ -11599,7 +11601,7 @@ static int wpas_ctrl_iface_pr_set_dik_ctx(struct wpa_supplicant *wpa_s,
 	if (!dik)
 		goto fail;
 
-	wpas_pr_set_dev_ik(wpa_s, dik, password, pmk, own);
+	wpas_pr_set_dev_ik(wpa_s, dik, password, pmk, pmk_len, own);
 	ret = 0;
 fail:
 	wpabuf_clear_free(dik_buf);

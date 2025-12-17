@@ -185,7 +185,7 @@ void pr_clear_dev_iks(struct pr_data *pr)
 
 
 void pr_add_dev_ik(struct pr_data *pr, const u8 *dik, const char *password,
-		   const u8 *pmk, bool own)
+		   const u8 *pmk, size_t pmk_len, bool own)
 {
 	struct pr_dev_ik *dev_ik;
 
@@ -197,6 +197,11 @@ void pr_add_dev_ik(struct pr_data *pr, const u8 *dik, const char *password,
 				   sizeof(pr->cfg->global_password));
 			pr->cfg->global_password_valid = true;
 		}
+		return;
+	}
+
+	if (pmk && (pmk_len != 32 && pmk_len != 48 && pmk_len != 64)) {
+		wpa_printf(MSG_INFO, "PR: Unexpected PMK length %zu", pmk_len);
 		return;
 	}
 
@@ -220,7 +225,8 @@ void pr_add_dev_ik(struct pr_data *pr, const u8 *dik, const char *password,
 		dev_ik->password_valid = true;
 	}
 	if (pmk) {
-		os_memcpy(dev_ik->pmk, pmk, WPA_PASN_PMK_LEN);
+		os_memcpy(dev_ik->pmk, pmk, pmk_len);
+		dev_ik->pmk_len = pmk_len;
 		dev_ik->pmk_valid = true;
 	}
 
@@ -457,7 +463,8 @@ static int pr_validate_dira(struct pr_data *pr, struct pr_device *dev,
 			}
 			if (dev_ik->pmk_valid) {
 				os_memcpy(dev->pmk, dev_ik->pmk,
-					  WPA_PASN_PMK_LEN);
+					  dev_ik->pmk_len);
+				dev->pmk_len = dev_ik->pmk_len;
 				dev->pmk_valid = true;
 			}
 			return 0;
@@ -1755,14 +1762,14 @@ static int pr_pasn_initialize(struct pr_data *pr, struct pr_device *dev,
 						       pasn->own_addr,
 						       pasn->peer_addr,
 						       dev->pmk,
-						       WPA_PASN_PMK_LEN,
+						       dev->pmk_len,
 						       pmkid);
 		else
 			pasn_responder_pmksa_cache_add(pr->responder_pmksa,
 						       pasn->own_addr,
 						       pasn->peer_addr,
 						       dev->pmk,
-						       WPA_PASN_PMK_LEN,
+						       dev->pmk_len,
 						       pmkid);
 		pasn->akmp = WPA_KEY_MGMT_SAE;
 	} else {

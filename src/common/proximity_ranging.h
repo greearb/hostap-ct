@@ -261,7 +261,8 @@ struct pr_dev_ik {
 	u8 dik[DEVICE_IDENTITY_KEY_LEN];
 	char password[100];
 	bool password_valid;
-	u8 pmk[WPA_PASN_PMK_LEN];
+	u8 pmk[PMK_LEN_MAX];
+	size_t pmk_len;
 	bool pmk_valid;
 };
 
@@ -292,6 +293,7 @@ struct pr_device {
 	 * This is updated with valid PMK if DIRA matches for the peer.
 	 */
 	u8 pmk[PMK_LEN_MAX];
+	size_t pmk_len;
 	bool pmk_valid;
 
 #ifdef CONFIG_PASN
@@ -489,7 +491,7 @@ void pr_deinit(struct pr_data *pr);
 void pr_set_dev_addr(struct pr_data *pr, const u8 *addr);
 void pr_clear_dev_iks(struct pr_data *pr);
 void pr_add_dev_ik(struct pr_data *pr, const u8 *dik, const char *password,
-		   const u8 *pmk, bool own);
+		   const u8 *pmk, size_t pmk_len, bool own);
 struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr);
 void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 			  const u8 *peer_addr, unsigned int freq);

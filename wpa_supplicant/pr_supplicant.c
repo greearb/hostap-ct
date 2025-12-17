@@ -473,14 +473,15 @@ void wpas_pr_clear_dev_iks(struct wpa_supplicant *wpa_s)
 
 
 void wpas_pr_set_dev_ik(struct wpa_supplicant *wpa_s, const u8 *dik,
-			const char *password, const u8 *pmk, bool own)
+			const char *password, const u8 *pmk, size_t pmk_len,
+			bool own)
 {
 	struct pr_data *pr = wpa_s->global->pr;
 
 	if (!pr || !dik)
 		return;
 
-	pr_add_dev_ik(pr, dik, password, pmk, own);
+	pr_add_dev_ik(pr, dik, password, pmk, pmk_len, own);
 }
 
 
