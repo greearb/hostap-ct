@@ -728,7 +728,7 @@ static struct wpabuf * wpas_pasn_build_auth_3(struct pasn_data *pasn)
 	wpa_pasn_add_extra_ies(buf, pasn->extra_ies, pasn->extra_ies_len);
 
 	/* Add the MIC */
-	mic_len = pasn_mic_len(pasn->akmp, pasn->cipher);
+	mic_len = pasn_mic_len(pasn->hash_alg);
 	wpabuf_put_u8(buf, WLAN_EID_MIC);
 	wpabuf_put_u8(buf, mic_len);
 	ptr = wpabuf_put(buf, mic_len);
@@ -739,14 +739,13 @@ static struct wpabuf * wpas_pasn_build_auth_3(struct pasn_data *pasn)
 	data_len = wpabuf_len(buf) - IEEE80211_HDRLEN;
 
 	if (!pasn->auth1 ||
-	    pasn_auth_frame_hash(pasn->akmp, pasn->cipher,
-				 wpabuf_head(pasn->auth1),
+	    pasn_auth_frame_hash(pasn->hash_alg, wpabuf_head(pasn->auth1),
 				 wpabuf_len(pasn->auth1), hash)) {
 		wpa_printf(MSG_INFO, "PASN: Failed to calculate Auth1 hash");
 		goto fail;
 	}
 
-	ret = pasn_mic(pasn->ptk.kck, pasn->akmp, pasn->cipher,
+	ret = pasn_mic(pasn->hash_alg, pasn->ptk.kck,
 		       pasn->own_addr, pasn->peer_addr,
 		       hash, mic_len * 2, data, data_len, mic);
 	if (ret) {
@@ -1338,7 +1337,7 @@ int wpa_pasn_auth_rx(struct pasn_data *pasn, const u8 *data, size_t len,
 	secret = NULL;
 
 	/* Check that the MIC IE exists. Save it and zero out the memory */
-	mic_len = pasn_mic_len(pasn->akmp, pasn->cipher);
+	mic_len = pasn_mic_len(pasn->hash_alg);
 	if (status == WLAN_STATUS_SUCCESS) {
 		if (!elems.mic || elems.mic_len != mic_len) {
 			wpa_printf(MSG_DEBUG,
@@ -1363,7 +1362,7 @@ int wpa_pasn_auth_rx(struct pasn_data *pasn, const u8 *data, size_t len,
 
 	if (pasn->beacon_rsne_rsnxe) {
 		/* Verify the MIC */
-		ret = pasn_mic(pasn->ptk.kck, pasn->akmp, pasn->cipher,
+		ret = pasn_mic(pasn->hash_alg, pasn->ptk.kck,
 			       pasn->peer_addr, pasn->own_addr,
 			       wpabuf_head(pasn->beacon_rsne_rsnxe),
 			       wpabuf_len(pasn->beacon_rsne_rsnxe),
@@ -1398,7 +1397,7 @@ int wpa_pasn_auth_rx(struct pasn_data *pasn, const u8 *data, size_t len,
 				rsne_rsnxe, rsne_rsnxe_len);
 
 		/* Verify the MIC */
-		ret = pasn_mic(pasn->ptk.kck, pasn->akmp, pasn->cipher,
+		ret = pasn_mic(pasn->hash_alg, pasn->ptk.kck,
 			       pasn->peer_addr, pasn->own_addr,
 			       rsne_rsnxe,
 			       rsne_rsnxe_len,

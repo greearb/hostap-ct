@@ -782,16 +782,16 @@ int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 		    struct wpa_ptk *ptk, int akmp, int cipher,
 		    size_t kdk_len, size_t kek_len, enum rsn_hash_alg *alg);
 
-u8 pasn_mic_len(int akmp, int cipher);
+size_t pasn_mic_len(enum rsn_hash_alg alg);
 
-int pasn_mic(const u8 *kck, int akmp, int cipher,
+int pasn_mic(enum rsn_hash_alg alg, const u8 *kck,
 	     const u8 *addr1, const u8 *addr2,
 	     const u8 *data, size_t data_len,
 	     const u8 *frame, size_t frame_len, u8 *mic);
 
 int wpa_ltf_keyseed(struct wpa_ptk *ptk, int akmp, int cipher);
 
-int pasn_auth_frame_hash(int akmp, int cipher, const u8 *data, size_t len,
+int pasn_auth_frame_hash(enum rsn_hash_alg alg, const u8 *data, size_t len,
 			 u8 *hash);
 
 void wpa_pasn_build_auth_header(struct wpabuf *buf, const u8 *bssid,
