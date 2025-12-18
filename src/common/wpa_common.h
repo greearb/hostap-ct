@@ -247,7 +247,6 @@ struct wpa_eapol_key {
 #define FILS_ICK_MAX_LEN 48
 #define FILS_FT_MAX_LEN 48
 #define WPA_PASN_KCK_LEN 32
-#define WPA_PASN_MIC_MAX_LEN 24
 #define WPA_LTF_KEYSEED_MAX_LEN 48
 
 /**
