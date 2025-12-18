@@ -810,6 +810,7 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 	if (wpa_s->wpa_proto == WPA_PROTO_WPA) {
 		wpa_ie = os_memdup(wpa_s->sme.assoc_req_ie,
 				   wpa_s->sme.assoc_req_ie_len);
+		omit_rsnxe = 1;
 		if (wpa_ie) {
 			wpa_dbg(wpa_s, MSG_DEBUG, "WPA: Storing WPA IE");
 
@@ -858,8 +859,8 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		    wpa_sm_has_ft_keys(wpa_s->wpa, md)) {
 			wpa_dbg(wpa_s, MSG_DEBUG, "SME: Trying to use FT "
 				"over-the-air");
-			omit_rsnxe = !wpa_bss_get_rsnxe(wpa_s, bss, ssid,
-							false);
+			omit_rsnxe |= !wpa_bss_get_rsnxe(wpa_s, bss, ssid,
+							 false);
 			params.auth_alg = WPA_AUTH_ALG_FT;
 			params.ie = wpa_s->sme.ft_ies;
 			params.ie_len = wpa_s->sme.ft_ies_len;
