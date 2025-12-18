@@ -1360,7 +1360,7 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 	os_memcpy(sm->wpa_ie, wpa_ie, wpa_ie_len);
 	sm->wpa_ie_len = wpa_ie_len;
 
-	if (rsnxe && rsnxe_len) {
+	if (sm->wpa != WPA_VERSION_WPA && rsnxe && rsnxe_len) {
 		if (!sm->rsnxe || sm->rsnxe_len < rsnxe_len) {
 			os_free(sm->rsnxe);
 			sm->rsnxe = os_malloc(rsnxe_len);
