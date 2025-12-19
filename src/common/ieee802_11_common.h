@@ -217,6 +217,9 @@ void ieee802_11_elems_clear_ext_ids(struct ieee802_11_elems *elems,
 ParseRes ieee802_11_parse_link_assoc_req(struct ieee802_11_elems *elems,
 					 struct wpabuf *mlbuf,
 					 u8 link_id, bool show_errors);
+ParseRes ieee802_11_parse_link_assoc_resp(struct ieee802_11_elems *elems,
+					  struct wpabuf *mlbuf,
+					  u8 link_id, bool show_errors);
 int ieee802_11_ie_count(const u8 *ies, size_t ies_len);
 struct wpabuf * ieee802_11_vendor_ie_concat(const u8 *ies, size_t ies_len,
 					    u32 oui_type);
