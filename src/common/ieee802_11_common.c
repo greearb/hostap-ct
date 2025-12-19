@@ -1042,7 +1042,8 @@ ParseRes ieee802_11_parse_link_assoc_req(struct ieee802_11_elems *elems,
 				   "MLD: Failed to parse MLE subelem");
 			goto out;
 		}
-
+		if ((size_t) num_frag_subelems * 2 > len)
+			goto out;
 		len -= num_frag_subelems * 2;
 
 		wpa_printf(MSG_DEBUG,
