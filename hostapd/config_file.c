@@ -3338,6 +3338,7 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 			return 1;
 		}
 	} else if (os_strcmp(buf, "beacon_rate") == 0) {
+		enum beacon_rate_type rate_type;
 		int val;
 
 		if (os_strncmp(pos, "ht:", 3) == 0) {
@@ -3348,8 +3349,7 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 					   line, val);
 				return 1;
 			}
-			conf->rate_type = BEACON_RATE_HT;
-			conf->beacon_rate = val;
+			rate_type = BEACON_RATE_HT;
 		} else if (os_strncmp(pos, "vht:", 4) == 0) {
 			val = atoi(pos + 4);
 			if (val < 0 || val > 9) {
@@ -3358,8 +3358,7 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 					   line, val);
 				return 1;
 			}
-			conf->rate_type = BEACON_RATE_VHT;
-			conf->beacon_rate = val;
+			rate_type = BEACON_RATE_VHT;
 		} else if (os_strncmp(pos, "he:", 3) == 0) {
 			val = atoi(pos + 3);
 			if (val < 0 || val > 11) {
@@ -3368,8 +3367,7 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 					   line, val);
 				return 1;
 			}
-			conf->rate_type = BEACON_RATE_HE;
-			conf->beacon_rate = val;
+			rate_type = BEACON_RATE_HE;
 		} else {
 			val = atoi(pos);
 			if (val < 10 || val > 10000) {
@@ -3378,9 +3376,11 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 					   line, val);
 				return 1;
 			}
-			conf->rate_type = BEACON_RATE_LEGACY;
-			conf->beacon_rate = val;
+			rate_type = BEACON_RATE_LEGACY;
 		}
+
+		bss->rate_type = rate_type;
+		bss->beacon_rate = val;
 	} else if (os_strcmp(buf, "preamble") == 0) {
 		if (atoi(pos))
 			conf->preamble = SHORT_PREAMBLE;

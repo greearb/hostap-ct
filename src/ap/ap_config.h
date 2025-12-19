@@ -295,6 +295,9 @@ struct hostapd_bss_config {
 
 	int max_num_sta; /* maximum number of STAs in station table */
 
+	enum beacon_rate_type rate_type;
+	unsigned int beacon_rate;
+
 	int dtim_period;
 	unsigned int bss_load_update_period;
 	unsigned int chan_util_avg_period;
@@ -1062,9 +1065,6 @@ struct hostapd_config {
 		LONG_PREAMBLE = 0,
 		SHORT_PREAMBLE = 1
 	} preamble;
-
-	unsigned int beacon_rate;
-	enum beacon_rate_type rate_type;
 
 	const struct wpa_driver_ops *driver;
 	char *driver_params;
