@@ -23,8 +23,7 @@ struct wpabuf * p2p_build_invitation_req(struct p2p_data *p2p,
 					 struct p2p_device *peer,
 					 const u8 *go_dev_addr, int dev_pw_id)
 {
-	struct wpabuf *buf;
-	u8 *len;
+	struct wpabuf *buf, *elems, *p2p_ie;
 	const u8 *dev_addr;
 	size_t extra = 0;
 	bool is_6ghz_capab;
@@ -63,24 +62,29 @@ struct wpabuf * p2p_build_invitation_req(struct p2p_data *p2p,
 	p2p_buf_add_public_action_hdr(buf, P2P_INVITATION_REQ,
 				      peer->dialog_token);
 
-	len = p2p_buf_add_ie_hdr(buf);
+	elems = wpabuf_alloc(1000);
+	if (!elems) {
+		wpabuf_free(buf);
+		return NULL;
+	}
+
 	if (p2p->inv_role == P2P_INVITE_ROLE_ACTIVE_GO || !p2p->inv_persistent)
-		p2p_buf_add_config_timeout(buf, 0, 0);
+		p2p_buf_add_config_timeout(elems, 0, 0);
 	else
-		p2p_buf_add_config_timeout(buf, p2p->go_timeout,
+		p2p_buf_add_config_timeout(elems, p2p->go_timeout,
 					   p2p->client_timeout);
-	p2p_buf_add_invitation_flags(buf, p2p->inv_persistent ?
+	p2p_buf_add_invitation_flags(elems, p2p->inv_persistent ?
 				     P2P_INVITATION_FLAGS_TYPE : 0);
 	if (p2p->inv_role != P2P_INVITE_ROLE_CLIENT ||
 	    !(peer->flags & P2P_DEV_NO_PREF_CHAN))
-		p2p_buf_add_operating_channel(buf, p2p->cfg->country,
+		p2p_buf_add_operating_channel(elems, p2p->cfg->country,
 					      p2p->op_reg_class,
 					      p2p->op_channel);
 	if (p2p->inv_bssid_set)
-		p2p_buf_add_group_bssid(buf, p2p->inv_bssid);
+		p2p_buf_add_group_bssid(elems, p2p->inv_bssid);
 	is_6ghz_capab = is_p2p_6ghz_capable(p2p) &&
 		p2p_is_peer_6ghz_capab(p2p, peer->info.p2p_device_addr);
-	p2p_buf_add_channel_list(buf, p2p->cfg->country, &p2p->channels,
+	p2p_buf_add_channel_list(elems, p2p->cfg->country, &p2p->channels,
 				 is_6ghz_capab);
 	if (go_dev_addr)
 		dev_addr = go_dev_addr;
@@ -88,9 +92,18 @@ struct wpabuf * p2p_build_invitation_req(struct p2p_data *p2p,
 		dev_addr = peer->info.p2p_device_addr;
 	else
 		dev_addr = p2p->cfg->dev_addr;
-	p2p_buf_add_group_id(buf, dev_addr, p2p->inv_ssid, p2p->inv_ssid_len);
-	p2p_buf_add_device_info(buf, p2p, peer);
-	p2p_buf_update_ie_hdr(buf, len);
+	p2p_buf_add_group_id(elems, dev_addr, p2p->inv_ssid, p2p->inv_ssid_len);
+	p2p_buf_add_device_info(elems, p2p, peer);
+
+	p2p_ie = p2p_encaps_ie(elems, P2P_IE_VENDOR_TYPE);
+	wpabuf_free(elems);
+	if (!p2p_ie) {
+		wpabuf_free(buf);
+		return NULL;
+	}
+
+	wpabuf_put_buf(buf, p2p_ie);
+	wpabuf_free(p2p_ie);
 
 	p2p_buf_add_pref_channel_list(buf, p2p->pref_freq_list,
 				      p2p->num_pref_freq);
@@ -121,8 +134,7 @@ static struct wpabuf * p2p_build_invitation_resp(struct p2p_data *p2p,
 						 const u8 *ssid,
 						 size_t ssid_len)
 {
-	struct wpabuf *buf;
-	u8 *len;
+	struct wpabuf *buf, *elems, *p2p_ie;
 	size_t extra = 0;
 
 #ifdef CONFIG_WIFI_DISPLAY
@@ -156,14 +168,19 @@ static struct wpabuf * p2p_build_invitation_resp(struct p2p_data *p2p,
 	p2p_buf_add_public_action_hdr(buf, P2P_INVITATION_RESP,
 				      dialog_token);
 
-	len = p2p_buf_add_ie_hdr(buf);
-	p2p_buf_add_status(buf, status);
-	p2p_buf_add_config_timeout(buf, 0, 0); /* FIX */
+	elems = wpabuf_alloc(1000);
+	if (!elems) {
+		wpabuf_free(buf);
+		return NULL;
+	}
+
+	p2p_buf_add_status(elems, status);
+	p2p_buf_add_config_timeout(elems, 0, 0); /* FIX */
 	if (reg_class && channel)
-		p2p_buf_add_operating_channel(buf, p2p->cfg->country,
+		p2p_buf_add_operating_channel(elems, p2p->cfg->country,
 					      reg_class, channel);
 	if (group_bssid)
-		p2p_buf_add_group_bssid(buf, group_bssid);
+		p2p_buf_add_group_bssid(elems, group_bssid);
 
 	if (ssid_len && ssid) {
 		const u8 *dev_addr;
@@ -173,7 +190,7 @@ static struct wpabuf * p2p_build_invitation_resp(struct p2p_data *p2p,
 		else
 			dev_addr = p2p->cfg->dev_addr;
 
-		p2p_buf_add_group_id(buf, dev_addr, ssid, ssid_len);
+		p2p_buf_add_group_id(elems, dev_addr, ssid, ssid_len);
 	}
 
 	if (channels) {
@@ -181,10 +198,19 @@ static struct wpabuf * p2p_build_invitation_resp(struct p2p_data *p2p,
 
 		is_6ghz_capab = is_p2p_6ghz_capable(p2p) &&
 			p2p_is_peer_6ghz_capab(p2p, peer->info.p2p_device_addr);
-		p2p_buf_add_channel_list(buf, p2p->cfg->country, channels,
+		p2p_buf_add_channel_list(elems, p2p->cfg->country, channels,
 					 is_6ghz_capab);
 	}
-	p2p_buf_update_ie_hdr(buf, len);
+
+	p2p_ie = p2p_encaps_ie(elems, P2P_IE_VENDOR_TYPE);
+	wpabuf_free(elems);
+	if (!p2p_ie) {
+		wpabuf_free(buf);
+		return NULL;
+	}
+
+	wpabuf_put_buf(buf, p2p_ie);
+	wpabuf_free(p2p_ie);
 
 #ifdef CONFIG_WIFI_DISPLAY
 	if (wfd_ie)
