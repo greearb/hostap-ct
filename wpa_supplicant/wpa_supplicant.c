@@ -6050,6 +6050,7 @@ void wpa_supplicant_rx_eapol(void *ctx, const u8 *src_addr,
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	if (wpa_s->wpa_state < WPA_ASSOCIATED ||
+	    wpa_s->ext_auth_to_same_bss ||
 	    (wpa_s->last_eapol_matches_bssid &&
 #ifdef CONFIG_AP
 	     !wpa_s->ap_iface &&

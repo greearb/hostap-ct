@@ -1954,6 +1954,16 @@ static int sme_sae_auth(struct wpa_supplicant *wpa_s, u16 auth_transaction,
 		wpa_s_clear_sae_rejected(wpa_s);
 
 		if (external) {
+			const u8 *connected_addr = wpa_s->valid_links ?
+				wpa_s->ap_mld_addr : wpa_s->bssid;
+			const u8 *src = wpa_s->sme.ext_ml_auth ?
+				wpa_s->sme.ext_auth_ap_mld_addr :
+				wpa_s->sme.ext_auth_bssid;
+
+			wpa_s->ext_auth_to_same_bss =
+				wpa_s->wpa_state > WPA_ASSOCIATED &&
+				ether_addr_equal(src, connected_addr);
+
 			/* Report success to driver */
 			sme_send_external_auth_status(wpa_s,
 						      WLAN_STATUS_SUCCESS);

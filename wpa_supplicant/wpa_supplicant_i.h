@@ -1655,6 +1655,9 @@ struct wpa_supplicant {
 	unsigned int next_beacon_check;
 
 	bool scs_reconfigure;
+	bool ext_auth_to_same_bss; /* Whether external authentication has been
+				    * completed successfully with the BSS that
+				    * we are already associated with. */
 };
 
 
