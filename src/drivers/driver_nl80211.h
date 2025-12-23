@@ -48,6 +48,10 @@ struct nl80211_global {
 
 	/* pending events that happened while waiting for a sync reply */
 	struct dl_list pending_events;
+#ifdef CONFIG_NAN
+	/* Dedicated socket for NAN interface creation and events */
+	struct nl_sock *nl_nan;
+#endif /* CONFIG_NAN */
 };
 
 struct nl80211_wiphy_data {

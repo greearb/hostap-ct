@@ -133,6 +133,9 @@ static void wiphy_info_supported_iftypes(struct wiphy_info_data *info,
 		case NL80211_IFTYPE_P2P_CLIENT:
 			info->p2p_client_supported = 1;
 			break;
+		case NL80211_IFTYPE_NAN:
+			info->capa->flags2 |= WPA_DRIVER_FLAGS2_SUPPORT_NAN;
+			break;
 		}
 	}
 }
@@ -1194,6 +1197,20 @@ static int wiphy_info_handler(struct nl_msg *msg, void *arg)
 
 	if (tb[NL80211_ATTR_MLO_SUPPORT])
 		capa->flags2 |= WPA_DRIVER_FLAGS2_MLO;
+
+#ifdef CONFIG_NAN
+	if (tb[NL80211_ATTR_BANDS]) {
+		u32 bands;
+
+		bands = nla_get_u32(tb[NL80211_ATTR_BANDS]);
+		wpa_printf(MSG_DEBUG, "nl80211: NAN supported bands 0x%x",
+			   bands);
+		if ((bands & BIT(NL80211_BAND_2GHZ)) &&
+		    (bands & BIT(NL80211_BAND_5GHZ)))
+			capa->nan_flags |=
+				WPA_DRIVER_FLAGS_NAN_SUPPORT_DUAL_BAND;
+	}
+#endif /* CONFIG_NAN */
 
 	return NL_SKIP;
 }
