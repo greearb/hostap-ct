@@ -73,6 +73,8 @@ struct nan_de_service {
 
 struct nan_de {
 	u8 nmi[ETH_ALEN];
+	u8 cluster_id[ETH_ALEN];
+	bool cluster_id_set;
 	bool offload;
 	bool ap;
 	unsigned int max_listen;
@@ -1747,4 +1749,15 @@ int nan_de_config(struct nan_de *de, struct nan_de_cfg *cfg)
 		nan_de_run_timer(de);
 
 	return 0;
+}
+
+
+void nan_de_set_cluster_id(struct nan_de *de, const u8 *cluster_id)
+{
+	if (cluster_id) {
+		os_memcpy(de->cluster_id, cluster_id, ETH_ALEN);
+		de->cluster_id_set = true;
+	} else {
+		de->cluster_id_set = false;
+	}
 }

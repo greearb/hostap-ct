@@ -106,6 +106,7 @@ int wpas_nan_stop(struct wpa_supplicant *wpa_s)
 		return -1;
 
 	nan_stop(wpa_s->nan);
+	nan_de_set_cluster_id(wpa_s->nan_de, NULL);
 
 	return 0;
 }
@@ -127,9 +128,10 @@ void wpas_nan_cluster_join(struct wpa_supplicant *wpa_s,
 	if (!wpas_nan_ready(wpa_s))
 		return;
 
-	/* TODO: Handle cluster merge */
-	wpa_printf(MSG_DEBUG, "NAN: Joined cluster " MACSTR " (new: %d)",
-		   MAC2STR(cluster_id), new_cluster);
+	wpa_msg_global(wpa_s, MSG_INFO, NAN_CLUSTER_JOIN "cluster_id=" MACSTR
+		       " new=%d", MAC2STR(cluster_id), new_cluster);
+
+	nan_de_set_cluster_id(wpa_s->nan_de, cluster_id);
 }
 
 
