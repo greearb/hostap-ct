@@ -63,6 +63,7 @@
 #include "sme.h"
 #include "nan_usd.h"
 #include "pr_supplicant.h"
+#include "nan_supplicant.h"
 
 #ifdef __NetBSD__
 #include <net/if_ether.h>
@@ -4941,14 +4942,30 @@ static int wpa_supplicant_ctrl_iface_get_capability(
 	}
 #endif /* CONFIG_DPP */
 
-#ifdef CONFIG_NAN_USD
 	if (os_strcmp(field, "nan") == 0) {
-		res = os_snprintf(buf, buflen, "USD");
+		char *pos = buf;
+
+#ifdef CONFIG_NAN_USD
+		res = os_snprintf(pos, buflen, "USD");
 		if (os_snprintf_error(buflen, res))
 			return -1;
-		return res;
-	}
+
+		pos += res;
+		buflen -= res;
 #endif /* CONFIG_NAN_USD */
+#ifdef CONFIG_NAN
+		if ((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_SUPPORT_NAN)) {
+			res = os_snprintf(pos, buflen, "%sNAN",
+					  pos == buf ? "" : " ");
+			if (os_snprintf_error(buflen, res))
+				return -1;
+
+			pos += res;
+			buflen -= res;
+		}
+#endif /* CONFIG_NAN */
+		return pos - buf;
+	}
 
 #ifdef CONFIG_SAE
 	if (os_strcmp(field, "sae") == 0 &&
@@ -14275,6 +14292,14 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 		if (wpas_update_random_addr_disassoc(wpa_s) != 1)
 			reply_len = -1;
 		wpa_s->conf->preassoc_mac_addr = mac_addr_style;
+#ifdef CONFIG_NAN
+	} else if (os_strncmp(buf, "NAN_START", 9) == 0) {
+		if (wpas_nan_start(wpa_s) < 0)
+			reply_len = -1;
+	} else if (os_strncmp(buf, "NAN_STOP", 8) == 0) {
+		if (wpas_nan_stop(wpa_s) < 0)
+			reply_len = -1;
+#endif /* CONFIG_NAN */
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;
