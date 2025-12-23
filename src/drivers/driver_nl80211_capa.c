@@ -1210,6 +1210,39 @@ static int wiphy_info_handler(struct nl_msg *msg, void *arg)
 			capa->nan_flags |=
 				WPA_DRIVER_FLAGS_NAN_SUPPORT_DUAL_BAND;
 	}
+
+	if (tb[NL80211_ATTR_NAN_CAPABILITIES]) {
+		static struct nla_policy nan_capa_policy[
+			NL80211_NAN_CAPABILITIES_MAX + 1] = {
+			[NL80211_NAN_CAPA_CONFIGURABLE_SYNC] =
+			{ .type = NLA_FLAG },
+			[NL80211_NAN_CAPA_USERSPACE_DE] = { .type = NLA_FLAG },
+		};
+		struct nlattr *tb_nan_capa[NL80211_NAN_CAPABILITIES_MAX + 1];
+
+		if (nla_parse_nested(tb_nan_capa,
+				     NL80211_NAN_CAPABILITIES_MAX,
+				     tb[NL80211_ATTR_NAN_CAPABILITIES],
+				     nan_capa_policy)) {
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: Failed to parse NAN capabilities");
+			return NL_SKIP;
+		}
+
+		if (tb_nan_capa[NL80211_NAN_CAPA_CONFIGURABLE_SYNC]) {
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: NAN sync offload supported");
+			capa->nan_flags |=
+				WPA_DRIVER_FLAGS_NAN_SUPPORT_SYNC_CONFIG;
+		}
+
+		if (tb_nan_capa[NL80211_NAN_CAPA_USERSPACE_DE]) {
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: NAN user space DE is supported");
+			capa->nan_flags |=
+				WPA_DRIVER_FLAGS_NAN_SUPPORT_USERSPACE_DE;
+		}
+	}
 #endif /* CONFIG_NAN */
 
 	return NL_SKIP;
