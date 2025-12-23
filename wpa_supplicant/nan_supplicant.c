@@ -109,3 +109,26 @@ void wpas_nan_flush(struct wpa_supplicant *wpa_s)
 
 	nan_flush(wpa_s->nan);
 }
+
+
+void wpas_nan_cluster_join(struct wpa_supplicant *wpa_s,
+			   const u8 *cluster_id,
+			   bool new_cluster)
+{
+	if (!wpas_nan_ready(wpa_s))
+		return;
+
+	/* TODO: Handle cluster merge */
+	wpa_printf(MSG_DEBUG, "NAN: Joined cluster " MACSTR " (new: %d)",
+		   MAC2STR(cluster_id), new_cluster);
+}
+
+
+void wpas_nan_next_dw(struct wpa_supplicant *wpa_s, u32 freq)
+{
+	if (!wpas_nan_ready(wpa_s))
+		return;
+
+	/* TODO: Handle DW notification */
+	wpa_printf(MSG_DEBUG, "NAN: Next DW notification freq=%d", freq);
+}

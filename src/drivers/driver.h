@@ -6221,6 +6221,30 @@ enum wpa_event_type {
 	 * EVENT_SETUP_LINK_RECONFIG - Notification that new AP links added
 	 */
 	EVENT_SETUP_LINK_RECONFIG,
+
+	/**
+	 * EVENT_NAN_CLUSTER_JOIN - Notification of a new cluster having been
+	 * joined or started.
+	 *
+	 * This event is used to notify wpa_supplicant that a NAN cluster has
+	 * been joined or started. The event data includes the NAN cluster ID
+	 * and a boolean indicating whether a new cluster was started or an
+	 * existing cluster was joined.
+	 *
+	 * Described in wpa_event_data.nan_cluster_join_info.
+	 */
+	EVENT_NAN_CLUSTER_JOIN,
+
+	/**
+	 * EVENT_NAN_NEXT_DW - Notification of NAN next Discovery Window
+	 *
+	 * This event is used to notify wpa_supplicant that the device/driver
+	 * is ready for the next Discovery Window (DW) frames. It may be used
+	 * to trigger transmission of multicast SDFs (active subscribe and
+	 * unsolicited publish).
+	 * The event data includes the DW frequency.
+	 */
+	EVENT_NAN_NEXT_DW,
 };
 
 
@@ -7220,6 +7244,15 @@ union wpa_event_data {
 		const u8 *resp_ie; /* Starting from Group Key Data */
 		size_t resp_ie_len;
 	} reconfig_info;
+
+	struct nan_cluster_join_info {
+		const u8 *bssid;
+		bool new_cluster;
+	} nan_cluster_join_info;
+
+	struct nan_next_dw_info {
+		int freq;
+	} nan_next_dw_info;
 };
 
 /**

@@ -7352,6 +7352,15 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		if (data)
 			wpas_setup_link_reconfig(wpa_s, &data->reconfig_info);
 		break;
+#ifdef CONFIG_NAN
+	case EVENT_NAN_CLUSTER_JOIN:
+		wpas_nan_cluster_join(wpa_s, data->nan_cluster_join_info.bssid,
+				      data->nan_cluster_join_info.new_cluster);
+		break;
+	case EVENT_NAN_NEXT_DW:
+		wpas_nan_next_dw(wpa_s, data->nan_next_dw_info.freq);
+		break;
+#endif /* CONFIG_NAN */
 	default:
 		wpa_msg(wpa_s, MSG_INFO, "Unknown event %d", event);
 		break;

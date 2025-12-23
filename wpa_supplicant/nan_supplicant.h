@@ -16,6 +16,10 @@ void wpas_nan_deinit(struct wpa_supplicant *wpa_s);
 int wpas_nan_start(struct wpa_supplicant *wpa_s);
 int wpas_nan_stop(struct wpa_supplicant *wpa_s);
 void wpas_nan_flush(struct wpa_supplicant *wpa_s);
+void wpas_nan_cluster_join(struct wpa_supplicant *wpa_s,
+			   const u8 *cluster_id,
+			   bool new_cluster);
+void wpas_nan_next_dw(struct wpa_supplicant *wpa_s, u32 freq);
 
 #else /* CONFIG_NAN */
 
