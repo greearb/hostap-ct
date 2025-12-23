@@ -293,7 +293,7 @@ static void wpas_nan_usd_offload_cancel_publish(void *ctx, int publish_id)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 
-	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD)
+	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_USD_OFFLOAD)
 		wpas_drv_nan_cancel_publish(wpa_s, publish_id);
 }
 
@@ -311,7 +311,7 @@ static void wpas_nan_usd_offload_cancel_subscribe(void *ctx, int subscribe_id)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 
-	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD)
+	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_USD_OFFLOAD)
 		wpas_drv_nan_cancel_subscribe(wpa_s, subscribe_id);
 }
 
@@ -354,7 +354,8 @@ static void wpas_nan_process_pr_usd_elems(void *ctx, const u8 *buf, u16 buf_len,
 int wpas_nan_usd_init(struct wpa_supplicant *wpa_s)
 {
 	struct nan_callbacks cb;
-	bool offload = wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD;
+	bool offload = !!(wpa_s->drv_flags2 &
+			  WPA_DRIVER_FLAGS2_NAN_USD_OFFLOAD);
 
 	os_memset(&cb, 0, sizeof(cb));
 	cb.ctx = wpa_s;
@@ -406,7 +407,7 @@ void wpas_nan_usd_flush(struct wpa_supplicant *wpa_s)
 	if (!wpa_s->nan_de)
 		return;
 	nan_de_flush(wpa_s->nan_de);
-	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD)
+	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_USD_OFFLOAD)
 		wpas_drv_nan_flush(wpa_s);
 }
 
@@ -441,7 +442,7 @@ int wpas_nan_usd_publish(struct wpa_supplicant *wpa_s, const char *service_name,
 	publish_id = nan_de_publish(wpa_s->nan_de, service_name, srv_proto_type,
 				    ssi, elems, params, p2p);
 	if (publish_id >= 1 &&
-	    (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD) &&
+	    (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_USD_OFFLOAD) &&
 	    wpas_drv_nan_publish(wpa_s, addr, publish_id, service_name,
 				 nan_de_get_service_id(wpa_s->nan_de,
 						       publish_id),
@@ -460,7 +461,7 @@ void wpas_nan_usd_cancel_publish(struct wpa_supplicant *wpa_s, int publish_id)
 	if (!wpa_s->nan_de)
 		return;
 	nan_de_cancel_publish(wpa_s->nan_de, publish_id);
-	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD)
+	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_USD_OFFLOAD)
 		wpas_drv_nan_cancel_publish(wpa_s, publish_id);
 }
 
@@ -473,7 +474,8 @@ int wpas_nan_usd_update_publish(struct wpa_supplicant *wpa_s, int publish_id,
 	if (!wpa_s->nan_de)
 		return -1;
 	ret = nan_de_update_publish(wpa_s->nan_de, publish_id, ssi);
-	if (ret == 0 && (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD) &&
+	if (ret == 0 && (wpa_s->drv_flags2 &
+			 WPA_DRIVER_FLAGS2_NAN_USD_OFFLOAD) &&
 	    wpas_drv_nan_update_publish(wpa_s, publish_id, ssi) < 0)
 		return -1;
 	return ret;
@@ -492,7 +494,7 @@ int wpas_nan_usd_unpause_publish(struct wpa_supplicant *wpa_s, int publish_id,
 
 static int wpas_nan_stop_listen(struct wpa_supplicant *wpa_s, int id)
 {
-	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD)
+	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_USD_OFFLOAD)
 		return 0;
 
 	if (nan_de_stop_listen(wpa_s->nan_de, id) < 0)
@@ -558,7 +560,7 @@ int wpas_nan_usd_subscribe(struct wpa_supplicant *wpa_s,
 					srv_proto_type, ssi, elems, params,
 					p2p);
 	if (subscribe_id >= 1 &&
-	    (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD) &&
+	    (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_USD_OFFLOAD) &&
 	    wpas_drv_nan_subscribe(wpa_s, addr, subscribe_id, service_name,
 				   nan_de_get_service_id(wpa_s->nan_de,
 							 subscribe_id),
@@ -578,7 +580,7 @@ void wpas_nan_usd_cancel_subscribe(struct wpa_supplicant *wpa_s,
 	if (!wpa_s->nan_de)
 		return;
 	nan_de_cancel_subscribe(wpa_s->nan_de, subscribe_id);
-	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_OFFLOAD)
+	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_NAN_USD_OFFLOAD)
 		wpas_drv_nan_cancel_subscribe(wpa_s, subscribe_id);
 }
 

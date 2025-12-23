@@ -2417,8 +2417,8 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_FLAGS2_HT_VHT_TWT_RESPONDER	0x0000000000200000ULL
 /** Driver supports RSN override elements */
 #define WPA_DRIVER_FLAGS2_RSN_OVERRIDE_STA	0x0000000000400000ULL
-/** Driver supports NAN offload */
-#define WPA_DRIVER_FLAGS2_NAN_OFFLOAD		0x0000000000800000ULL
+/** Driver supports NAN USD offload */
+#define WPA_DRIVER_FLAGS2_NAN_USD_OFFLOAD	0x0000000000800000ULL
 /** Driver/device supports SPP A-MSDUs */
 #define WPA_DRIVER_FLAGS2_SPP_AMSDU		0x0000000001000000ULL
 /** Driver supports P2P V2 */

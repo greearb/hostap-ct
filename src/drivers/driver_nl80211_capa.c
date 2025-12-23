@@ -1467,7 +1467,7 @@ static void qca_nl80211_get_features(struct wpa_driver_nl80211_data *drv)
 		drv->capa.flags2 |= WPA_DRIVER_FLAGS2_RSN_OVERRIDE_STA;
 	}
 	if (check_feature(QCA_WLAN_VENDOR_FEATURE_NAN_USD_OFFLOAD, &info))
-		drv->capa.flags2 |= WPA_DRIVER_FLAGS2_NAN_OFFLOAD;
+		drv->capa.flags2 |= WPA_DRIVER_FLAGS2_NAN_USD_OFFLOAD;
 
 	if (check_feature(QCA_WLAN_VENDOR_FEATURE_P2P_V2, &info))
 		drv->capa.flags2 |= WPA_DRIVER_FLAGS2_P2P_FEATURE_V2;
