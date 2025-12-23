@@ -38,7 +38,9 @@ int wpas_nan_init(struct wpa_supplicant *wpa_s)
 {
 	struct nan_config nan;
 
-	if (!(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_SUPPORT_NAN)) {
+	if (!(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_SUPPORT_NAN) ||
+	    !(wpa_s->nan_drv_flags & WPA_DRIVER_FLAGS_NAN_SUPPORT_SYNC_CONFIG))
+	{
 		wpa_printf(MSG_INFO, "NAN: Driver does not support NAN");
 		return -1;
 	}
@@ -83,6 +85,13 @@ int wpas_nan_start(struct wpa_supplicant *wpa_s)
 
 	if (!wpas_nan_ready(wpa_s))
 		return -1;
+
+	if (!(wpa_s->nan_drv_flags &
+	      WPA_DRIVER_FLAGS_NAN_SUPPORT_SYNC_CONFIG)) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: Driver doesn't support configurable NAN sync");
+		return -1;
+	}
 
 	cluster_config.master_pref = DEFAULT_NAN_MASTER_PREF;
 	cluster_config.dual_band = DEFAULT_NAN_DUAL_BAND;
