@@ -30,7 +30,7 @@
 #include "common/ieee802_11_defs.h"
 #include "common/ieee802_11_common.h"
 #include "common/wpa_common.h"
-#include "common/nan.h"
+#include "common/nan_defs.h"
 #include "common/nan_de.h"
 #include "crypto/sha256.h"
 #include "crypto/sha384.h"

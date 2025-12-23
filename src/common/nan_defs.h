@@ -6,8 +6,8 @@
  * See README for more details.
  */
 
-#ifndef NAN_H
-#define NAN_H
+#ifndef NAN_DEFS_H
+#define NAN_DEFS_H
 
 enum nan_attr_id {
 	NAN_ATTR_MASTER_INDICATION = 0x00,
@@ -95,4 +95,4 @@ enum nan_service_protocol_type {
 
 #define NAN_USD_DEFAULT_FREQ 2437
 
-#endif /* NAN_H */
+#endif /* NAN_DEFS_H */

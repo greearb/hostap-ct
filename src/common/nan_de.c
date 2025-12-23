@@ -13,7 +13,7 @@
 #include "crypto/crypto.h"
 #include "crypto/sha256.h"
 #include "ieee802_11_defs.h"
-#include "nan.h"
+#include "nan_defs.h"
 #include "nan_de.h"
 
 static const u8 nan_network_id[ETH_ALEN] =

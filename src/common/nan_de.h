@@ -9,7 +9,7 @@
 #ifndef NAN_DE_H
 #define NAN_DE_H
 
-#include "nan.h"
+#include "nan_defs.h"
 
 /* Maximum number of active local publish and subscribe instances */
 #ifndef NAN_DE_MAX_SERVICE
