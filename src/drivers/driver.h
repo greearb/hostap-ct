@@ -2579,6 +2579,10 @@ struct wpa_driver_capa {
 #ifdef CONFIG_NAN
 /* Driver supports dual band NAN operation */
 #define WPA_DRIVER_FLAGS_NAN_SUPPORT_DUAL_BAND		0x00000001
+/* Driver supports NAN synchronization configuration */
+#define WPA_DRIVER_FLAGS_NAN_SUPPORT_SYNC_CONFIG	0x00000002
+/* Driver supports DW notifications and SDF TX/RX over NAN device interface */
+#define WPA_DRIVER_FLAGS_NAN_SUPPORT_USERSPACE_DE	0x00000004
 	u32 nan_flags;
 #endif /* CONFIG_NAN */
 };

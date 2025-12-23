@@ -1670,6 +1670,7 @@ struct wpa_supplicant {
 	bool nan_mgmt;
 
 #ifdef CONFIG_NAN
+	u32 nan_drv_flags;
 	struct nan_data *nan;
 #endif /* CONFIG_NAN */
 };
