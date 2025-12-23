@@ -2433,7 +2433,8 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_FLAGS2_NON_TRIGGER_BASED_RESPONDER   0x0000000020000000ULL
 /** Driver supports non-trigger based ranging initiator functionality */
 #define WPA_DRIVER_FLAGS2_NON_TRIGGER_BASED_INITIATOR	0x0000000040000000ULL
-
+/** Driver supports NAN Device interface and NAN Synchronization */
+#define WPA_DRIVER_FLAGS2_SUPPORT_NAN			0x0000000080000000ULL
 	u64 flags2;
 
 #define FULL_AP_CLIENT_STATE_SUPP(drv_flags) \
@@ -2574,6 +2575,12 @@ struct wpa_driver_capa {
 	u8 max_rx_sts_gt_80;
 	u8 max_tx_sts_le_80;
 	u8 max_tx_sts_gt_80;
+
+#ifdef CONFIG_NAN
+/* Driver supports dual band NAN operation */
+#define WPA_DRIVER_FLAGS_NAN_SUPPORT_DUAL_BAND		0x00000001
+	u32 nan_flags;
+#endif /* CONFIG_NAN */
 };
 
 
@@ -3196,6 +3203,11 @@ struct driver_sta_mlo_info {
 		unsigned int freq;
 		struct t2lm_mapping t2lmap;
 	} links[MAX_NUM_MLD_LINKS];
+};
+
+struct nan_cluster_config {
+	u8 master_pref;
+	u8 dual_band;
 };
 
 /**
@@ -5544,6 +5556,34 @@ struct wpa_driver_ops {
 	 */
 	struct hostapd_multi_hw_info *
 	(*get_multi_hw_info)(void *priv, unsigned int *num_multi_hws);
+
+#ifdef CONFIG_NAN
+	/**
+	 * nan_start - Start NAN operation
+	 * @priv: Private driver interface data
+	 * @conf: NAN configuration parameters
+	 * Returns: 0 on success, -1 on failure
+	 *
+	 * This command joins an existing NAN cluster or starts a new one.
+	 */
+	int (*nan_start)(void *priv, struct nan_cluster_config *conf);
+
+	/**
+	 * nan_change_config - Update the NAN cluster configuration
+	 * @priv: Private driver interface data
+	 * @conf: NAN configuration parameters
+	 * Returns: 0 on success, -1 on failure
+	 *
+	 * This command modifies the NAN cluster configuration.
+	 */
+	int (*nan_change_config)(void *priv, struct nan_cluster_config *conf);
+
+	/**
+	 * nan_stop - Stop NAN operation
+	 * @priv: Private driver interface data
+	 */
+	void (*nan_stop)(void *priv);
+#endif /* CONFIG_NAN */
 };
 
 /**
