@@ -3212,6 +3212,7 @@ struct driver_sta_mlo_info {
 struct nan_cluster_config {
 	u8 master_pref;
 	u8 dual_band;
+	bool enable_dw_notif;
 };
 
 /**

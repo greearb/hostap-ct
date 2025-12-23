@@ -15225,6 +15225,7 @@ static int wpa_driver_nl80211_nan_start(void *priv,
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct nl_msg *msg;
+	struct nlattr *conf;
 	u32 bands = 0;
 	int ret;
 
@@ -15260,6 +15261,25 @@ static int wpa_driver_nl80211_nan_start(void *priv,
 			   "nl80211: Failed to build start NAN command");
 		goto fail;
 	}
+
+	conf = nla_nest_start(msg, NL80211_ATTR_NAN_CONFIG);
+	if (!conf)
+		goto fail;
+
+	if (params->enable_dw_notif) {
+		if (!(drv->capa.nan_flags &
+		      WPA_DRIVER_FLAGS_NAN_SUPPORT_USERSPACE_DE)) {
+			wpa_printf(MSG_INFO,
+				   "nl80211: Driver doesn't support NAN DW notifications");
+			goto fail;
+		}
+
+		if (nla_put_flag(msg, NL80211_NAN_CONF_NOTIFY_DW))
+			goto fail;
+	}
+
+	/* TODO: Set more attributes */
+	nla_nest_end(msg, conf);
 
 	ret = send_and_recv_resp(drv, msg, NULL, NULL);
 	if (!ret)
