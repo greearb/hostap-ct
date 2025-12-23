@@ -140,6 +140,6 @@ void wpas_nan_next_dw(struct wpa_supplicant *wpa_s, u32 freq)
 	if (!wpas_nan_ready(wpa_s))
 		return;
 
-	/* TODO: Handle DW notification */
 	wpa_printf(MSG_DEBUG, "NAN: Next DW notification freq=%d", freq);
+	nan_de_dw_trigger(wpa_s->nan_de, freq);
 }

@@ -66,6 +66,7 @@ struct nan_de_service {
 	bool is_p2p;
 	bool is_pr;
 	bool listen_stopped;
+	bool sync;
 };
 
 #define NAN_DE_N_MIN 5
@@ -92,6 +93,8 @@ struct nan_de {
 
 	struct nan_de_cfg cfg;
 	struct os_reltime suspend_cycle_start;
+
+	int dw_freq;
 };
 
 
@@ -376,11 +379,13 @@ static void nan_de_tx_multicast(struct nan_de *de, struct nan_de_service *srv,
 
 		type = NAN_SRV_CTRL_PUBLISH;
 
-		nan_de_check_chan_change(srv);
-		ms = nan_de_time_to_next_chan_change(srv);
-		if (ms < 100)
-			ms = 100;
-		wait_time = ms;
+		if (!srv->sync) {
+			nan_de_check_chan_change(srv);
+			ms = nan_de_time_to_next_chan_change(srv);
+			if (ms < 100)
+				ms = 100;
+			wait_time = ms;
+		}
 	} else if (srv->type == NAN_DE_SUBSCRIBE) {
 		type = NAN_SRV_CTRL_SUBSCRIBE;
 	} else {
@@ -393,6 +398,17 @@ static void nan_de_tx_multicast(struct nan_de *de, struct nan_de_service *srv,
 	} else {
 		network_id = nan_network_id;
 		bssid = nan_network_id;
+	}
+
+	if (srv->sync) {
+		if (!de->cluster_id_set || !de->dw_freq) {
+			wpa_printf(MSG_DEBUG,
+				   "NAN: Cluster ID or DW frequency are not set - skip sync TX");
+			return;
+		}
+
+		wait_time = 0;
+		bssid = de->cluster_id;
 	}
 
 	nan_de_tx_sdf(de, srv, wait_time, type, network_id, bssid,
@@ -565,6 +581,9 @@ static void nan_de_start_new_publish_state(struct nan_de *de,
 {
 	unsigned int n;
 
+	if (srv->sync)
+		return;
+
 	if (force_single || !srv->freq_list || srv->freq_list[0] == 0)
 		srv->in_multi_chan = false;
 	else
@@ -696,6 +715,9 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 			nan_de_del_srv(de, srv, NAN_DE_REASON_TIMEOUT);
 			continue;
 		}
+
+		if (srv->sync)
+			continue;
 
 		if (os_reltime_initialized(&srv->next_publish_state) &&
 		    os_reltime_before(&srv->next_publish_state, &now))
@@ -972,6 +994,10 @@ static void nan_de_rx_publish(struct nan_de *de, struct nan_de_service *srv,
 			      enum nan_service_protocol_type srv_proto_type,
 			      const u8 *ssi, size_t ssi_len)
 {
+	/* Skip USD logic */
+	if (srv->sync)
+		goto send_event;
+
 	/* Subscribe function processing of a receive Publish message */
 	if (!os_reltime_initialized(&srv->first_discovered)) {
 		os_get_reltime(&srv->first_discovered);
@@ -993,6 +1019,7 @@ static void nan_de_rx_publish(struct nan_de *de, struct nan_de_service *srv,
 				instance_id);
 	}
 
+send_event:
 	if (de->cb.discovery_result)
 		de->cb.discovery_result(
 			de->cb.ctx, srv->id, srv_proto_type,
@@ -1136,12 +1163,12 @@ static void nan_de_rx_subscribe(struct nan_de *de, struct nan_de_service *srv,
 	else if (srv->is_p2p)
 		a3 = de->nmi;
 
-	nan_de_tx(de, srv->freq, 100,
+	nan_de_tx(de, srv->sync ? 0 : srv->freq, srv->sync ? 0 : 100,
 		  srv->publish.solicited_multicast ? network_id : peer_addr,
 		  de->nmi, a3, buf);
 	wpabuf_free(buf);
 
-	if (!srv->is_p2p)
+	if (!srv->is_p2p && !srv->sync)
 		nan_de_pause_state(srv, peer_addr, instance_id);
 
 offload:
@@ -1168,7 +1195,7 @@ static void nan_de_rx_follow_up(struct nan_de *de, struct nan_de_service *srv,
 		return;
 	}
 
-	if (srv->type == NAN_DE_PUBLISH && !ssi)
+	if (srv->type == NAN_DE_PUBLISH && !ssi && !srv->sync)
 		nan_de_pause_state(srv, peer_addr, instance_id);
 
 	os_memcpy(srv->a3, a3, ETH_ALEN);
@@ -1444,6 +1471,18 @@ int nan_de_publish(struct nan_de *de, const char *service_name,
 		return -1;
 	}
 
+	if (params->sync && !de->cluster_id_set) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: Publish() - can't publish sync, cluster id is not set");
+		return -1;
+	}
+
+	if (p2p && params->sync) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: Publish() - P2P is not supported with sync");
+		return -1;
+	}
+
 	publish_id = nan_de_get_handle(de);
 	if (publish_id < 1)
 		return -1;
@@ -1488,6 +1527,8 @@ int nan_de_publish(struct nan_de *de, const char *service_name,
 		if (!srv->elems)
 			goto fail;
 	}
+
+	srv->sync = params->sync;
 
 	/* Prepare for single and multi-channel states; starting with
 	 * single channel */
@@ -1592,6 +1633,18 @@ int nan_de_subscribe(struct nan_de *de, const char *service_name,
 		return -1;
 	}
 
+	if (params->sync && !de->cluster_id_set) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: Subscribe() - can't publish sync, cluster id is not set");
+		return -1;
+	}
+
+	if (p2p && params->sync) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: Subscribe() - P2P is not supported with sync");
+		return -1;
+	}
+
 	subscribe_id = nan_de_get_handle(de);
 	if (subscribe_id < 1)
 		return -1;
@@ -1642,6 +1695,7 @@ int nan_de_subscribe(struct nan_de *de, const char *service_name,
 	srv->id = subscribe_id;
 	srv->is_p2p = p2p;
 	srv->is_pr = params->proximity_ranging && params->active;
+	srv->sync = params->sync;
 	nan_de_add_srv(de, srv);
 	nan_de_run_timer(de);
 	return subscribe_id;
@@ -1679,8 +1733,16 @@ int nan_de_transmit(struct nan_de *de, int handle,
 	if (!srv)
 		return -1;
 
+	if (srv->sync && !de->cluster_id_set) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: Cannot transmit Follow-up, cluster ID not set");
+		return -1;
+	}
+
 	if (srv->is_p2p)
 		network_id = p2p_network_id;
+	else if (srv->sync)
+		network_id = de->cluster_id;
 	else
 		network_id = nan_network_id;
 
@@ -1749,6 +1811,39 @@ int nan_de_config(struct nan_de *de, struct nan_de_cfg *cfg)
 		nan_de_run_timer(de);
 
 	return 0;
+}
+
+
+void nan_de_dw_trigger(struct nan_de *de, int freq)
+{
+	int i;
+	struct os_reltime now;
+
+	de->dw_freq = freq;
+
+	if (!de->cluster_id_set) {
+		wpa_printf(MSG_DEBUG, "NAN: Skip DW, cluster ID not set");
+		return;
+	}
+
+	os_get_reltime(&now);
+	for (i = 0; i < NAN_DE_MAX_SERVICE; i++) {
+		struct nan_de_service *srv = de->service[i];
+
+		if (!srv || !srv->sync)
+			continue;
+
+		if (nan_de_srv_expired(srv, &now)) {
+			nan_de_del_srv(de, srv, NAN_DE_REASON_TIMEOUT);
+			continue;
+		}
+
+		if ((srv->type == NAN_DE_PUBLISH &&
+		     srv->publish.unsolicited) ||
+		    (srv->type == NAN_DE_SUBSCRIBE && srv->subscribe.active)) {
+			nan_de_tx_multicast(de, srv, 0);
+		}
+	}
 }
 
 
