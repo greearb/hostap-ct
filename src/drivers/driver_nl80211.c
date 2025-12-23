@@ -2308,8 +2308,8 @@ static void wpa_driver_nl80211_rfkill_blocked(void *ctx)
 	wpa_printf(MSG_DEBUG, "nl80211: RFKILL blocked");
 
 	/*
-	 * rtnetlink ifdown handler will report interfaces other than the P2P
-	 * Device interface as disabled.
+	 * rtnetlink ifdown handler will report interfaces other than the
+	 * P2P/NAN Device interfaces as disabled.
 	 */
 	if (!nl80211_is_netdev_iftype(drv->nlmode))
 		wpa_supplicant_event(drv->ctx, EVENT_INTERFACE_DISABLED, NULL);
@@ -2330,8 +2330,8 @@ static void wpa_driver_nl80211_rfkill_unblocked(void *ctx)
 		nl80211_disable_11b_rates(drv, drv->ifindex, 1);
 
 	/*
-	 * rtnetlink ifup handler will report interfaces other than the P2P
-	 * Device interface as enabled.
+	 * rtnetlink ifup handler will report interfaces other than the P2P/NAN
+	 * Device interfaces as enabled.
 	 */
 	if (!nl80211_is_netdev_iftype(drv->nlmode))
 		wpa_supplicant_event(drv->ctx, EVENT_INTERFACE_ENABLED, NULL);
@@ -3142,9 +3142,46 @@ static int nl80211_set_p2pdev(struct i802_bss *bss, int start)
 }
 
 
+#ifdef CONFIG_NAN
+static void nl80211_nan_stop(struct i802_bss *bss)
+{
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+
+	if (drv->nlmode != NL80211_IFTYPE_NAN || !drv->nan_started)
+		return;
+
+	msg = nl80211_cmd_msg(bss, 0, NL80211_CMD_STOP_NAN);
+	if (!msg) {
+		wpa_printf(MSG_ERROR,
+			   "nl80211: Failed to alloc NAN stop command");
+		return;
+	}
+
+	if (send_and_recv_resp(drv, msg, NULL, NULL))
+		wpa_printf(MSG_ERROR,
+			   "nl80211: Failed to send NAN stop command");
+
+	drv->nan_started = 0;
+}
+#endif /* CONFIG_NAN */
+
+
 static int nl80211_set_nandev(struct i802_bss *bss, int start)
 {
-	/* TODO: This will be implemented once NAN start/stop APIs are added */
+#ifdef CONFIG_NAN
+	/*
+	 * We don't implicitly start NAN.
+	 * NAN is started through a dedicated API, however we do need to
+	 * stop it.
+	 * For rfkill, we rely on ENABLED/DISABLED events.
+	 */
+	if (start)
+		return 0;
+
+	nl80211_nan_stop(bss);
+
+#endif /* CONFIG_NAN */
 	return 0;
 }
 
@@ -15180,6 +15217,71 @@ wpa_driver_get_multi_hw_info(void *priv, unsigned int *num_multi_hws)
 }
 
 
+#ifdef CONFIG_NAN
+
+static int wpa_driver_nl80211_nan_start(void *priv,
+					struct nan_cluster_config *params)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	u32 bands = 0;
+	int ret;
+
+	if (drv->nlmode != NL80211_IFTYPE_NAN)
+		return -EOPNOTSUPP;
+
+	if (drv->nan_started)
+		return -EALREADY;
+
+	wpa_printf(MSG_DEBUG, "nl80211: Start/join NAN cluster");
+
+	if (params->dual_band > 1)
+		return -EINVAL;
+
+	bands |= BIT(NL80211_BAND_2GHZ);
+
+	if (params->dual_band) {
+		if (drv->capa.nan_flags &
+		    WPA_DRIVER_FLAGS_NAN_SUPPORT_DUAL_BAND) {
+			bands |= BIT(NL80211_BAND_5GHZ);
+		} else {
+			wpa_printf(MSG_DEBUG,
+				   "nl80211: Driver doesn't support NAN dual band operation");
+			return -EINVAL;
+		}
+	}
+
+	msg = nl80211_cmd_msg(bss, 0, NL80211_CMD_START_NAN);
+	if (!msg || nla_put_u8(msg, NL80211_ATTR_NAN_MASTER_PREF,
+			       params->master_pref) ||
+	    (bands && nla_put_u32(msg, NL80211_ATTR_BANDS, bands))) {
+		wpa_printf(MSG_ERROR,
+			   "nl80211: Failed to build start NAN command");
+		goto fail;
+	}
+
+	ret = send_and_recv_resp(drv, msg, NULL, NULL);
+	if (!ret)
+		drv->nan_started = 1;
+
+	return ret;
+fail:
+	nlmsg_free(msg);
+	return -1;
+}
+
+
+static void wpa_driver_nl80211_nan_stop(void *priv)
+{
+	struct i802_bss *bss = priv;
+
+	nl80211_nan_stop(bss);
+}
+
+#endif /* CONFIG_NAN */
+
+
 const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.name = "nl80211",
 	.desc = "Linux nl80211/cfg80211",
@@ -15351,4 +15453,8 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.radio_disable = testing_nl80211_radio_disable,
 #endif /* CONFIG_TESTING_OPTIONS */
 	.get_multi_hw_info = wpa_driver_get_multi_hw_info,
+#ifdef CONFIG_NAN
+	.nan_start = wpa_driver_nl80211_nan_start,
+	.nan_stop = wpa_driver_nl80211_nan_stop,
+#endif /* CONFIG_NAN */
 };

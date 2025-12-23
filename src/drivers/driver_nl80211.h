@@ -282,6 +282,10 @@ struct wpa_driver_nl80211_data {
 	u8 *pending_link_reconfig_data;
 	size_t pending_link_reconfig_data_len;
 #endif /* CONFIG_DRIVER_NL80211_QCA */
+
+#ifdef CONFIG_NAN
+	unsigned int nan_started:1;
+#endif /* CONFIG_NAN */
 };
 
 struct nl80211_err_info {
