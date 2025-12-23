@@ -4142,6 +4142,49 @@ static void nl80211_obss_color_event(struct i802_bss *bss,
 #endif /* CONFIG_IEEE80211AX */
 
 
+#ifdef CONFIG_NAN
+
+static void
+nl80211_nan_cluster_joined_event(struct wpa_driver_nl80211_data *drv,
+				 struct nlattr **tb)
+{
+	union wpa_event_data data;
+
+	wpa_printf(MSG_DEBUG, "nl80211: NAN cluster joined event");
+
+	if (!tb[NL80211_ATTR_MAC])
+		return;
+
+	os_memset(&data, 0, sizeof(data));
+
+	data.nan_cluster_join_info.bssid = nla_data(tb[NL80211_ATTR_MAC]);
+	data.nan_cluster_join_info.new_cluster =
+		!!nla_get_flag(tb[NL80211_ATTR_NAN_NEW_CLUSTER]);
+
+	wpa_supplicant_event(drv->ctx, EVENT_NAN_CLUSTER_JOIN, &data);
+}
+
+
+static void nl80211_nan_next_dw_event(struct wpa_driver_nl80211_data *drv,
+				      struct nlattr **tb)
+{
+	union wpa_event_data data;
+
+	wpa_printf(MSG_DEBUG, "nl80211: NAN Next DW event");
+
+	if (!tb[NL80211_ATTR_WIPHY_FREQ])
+		return;
+
+	os_memset(&data, 0, sizeof(data));
+
+	data.nan_next_dw_info.freq =
+		nla_get_u32(tb[NL80211_ATTR_WIPHY_FREQ]);
+	wpa_supplicant_event(drv->ctx, EVENT_NAN_NEXT_DW, &data);
+}
+
+#endif /* CONFIG_NAN */
+
+
 static void do_process_drv_event(struct i802_bss *bss, int cmd,
 				 struct nlattr **tb)
 {
@@ -4414,6 +4457,14 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 	case NL80211_CMD_ASSOC_MLO_RECONF:
 		mlme_event_link_addition(bss, nla_data(frame), nla_len(frame));
 		break;
+#ifdef CONFIG_NAN
+	case NL80211_CMD_NAN_CLUSTER_JOINED:
+		nl80211_nan_cluster_joined_event(drv, tb);
+		break;
+	case NL80211_CMD_NAN_NEXT_DW_NOTIFICATION:
+		nl80211_nan_next_dw_event(drv, tb);
+		break;
+#endif /* CONFIG_NAN */
 	default:
 		wpa_dbg(drv->ctx, MSG_DEBUG, "nl80211: Ignored unknown event "
 			"(cmd=%d)", cmd);
