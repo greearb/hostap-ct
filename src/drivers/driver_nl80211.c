@@ -6529,7 +6529,8 @@ static int nl80211_create_iface_once(struct wpa_driver_nl80211_data *drv,
 	if (nla_put_flag(msg, NL80211_ATTR_IFACE_SOCKET_OWNER))
 		goto fail;
 
-	if ((addr && iftype == NL80211_IFTYPE_P2P_DEVICE) &&
+	if ((addr && (iftype == NL80211_IFTYPE_P2P_DEVICE ||
+		      iftype == NL80211_IFTYPE_NAN)) &&
 	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, addr))
 		goto fail;
 
