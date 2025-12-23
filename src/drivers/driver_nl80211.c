@@ -2724,6 +2724,43 @@ static int nl80211_register_action_frame(struct i802_bss *bss,
 }
 
 
+#define NAN_PUB_ACTION ((const u8 *) "\x04\x09\x50\x6f\x9a\x13")
+
+static int nl80211_mgmt_subscribe_nan(struct i802_bss *bss)
+{
+#ifdef CONFIG_NAN
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+
+	if (!(drv->capa.nan_flags &
+	      WPA_DRIVER_FLAGS_NAN_SUPPORT_USERSPACE_DE)) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: User space DE is not supported, don't subscribe to NAN public action frames");
+		return 0;
+	}
+
+	if (nl80211_alloc_mgmt_handle(bss))
+		return -1;
+
+	wpa_printf(MSG_DEBUG,
+		   "nl80211: Subscribe to mgmt frames for NAN with handle %p",
+		   bss->nl_mgmt);
+
+	/* NAN SDF Public Action */
+	if (nl80211_register_action_frame2(bss, NAN_PUB_ACTION, 6, true)) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Failed to subscribe to NAN public action frames");
+		nl_destroy_handles(&bss->nl_mgmt);
+		return -1;
+	}
+
+	nl80211_mgmt_handle_register_eloop(bss);
+
+#endif /* CONFIG_NAN */
+
+	return 0;
+}
+
+
 static int nl80211_mgmt_subscribe_non_ap(struct i802_bss *bss)
 {
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -2796,7 +2833,6 @@ static int nl80211_mgmt_subscribe_non_ap(struct i802_bss *bss)
 		ret = -1;
 #endif /* CONFIG_P2P */
 #ifdef CONFIG_NAN_USD
-#define NAN_PUB_ACTION ((u8 *) "\x04\x09\x50\x6f\x9a\x13")
 	/* NAN SDF Public Action */
 	if (nl80211_register_action_frame2(bss, NAN_PUB_ACTION, 6, true) < 0) {
 		/* fallback to non-multicast */
@@ -2804,7 +2840,6 @@ static int nl80211_mgmt_subscribe_non_ap(struct i802_bss *bss)
 						   false) < 0)
 			ret = -1;
 	}
-#undef NAN_PUB_ACTION
 #endif /* CONFIG_NAN_USD */
 #ifdef CONFIG_DPP
 	/* DPP Public Action */
@@ -7993,9 +8028,8 @@ done:
 	    nl80211_mgmt_subscribe_mesh(bss))
 		return -1;
 
-	/* TODO: Register to NAN management frames */
 	if (nlmode == NL80211_IFTYPE_NAN)
-		return 0;
+		return nl80211_mgmt_subscribe_nan(bss);
 
 	if (!bss->in_deinit && !is_ap_interface(nlmode) &&
 	    !is_mesh_interface(nlmode) &&
