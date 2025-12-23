@@ -68,6 +68,7 @@
 #include "dpp_supplicant.h"
 #include "nan_usd.h"
 #include "pr_supplicant.h"
+#include "nan_supplicant.h"
 #ifdef CONFIG_MESH
 #include "ap/ap_config.h"
 #include "ap/hostapd.h"
@@ -6226,7 +6227,8 @@ int wpa_supplicant_update_mac_addr(struct wpa_supplicant *wpa_s)
 
 	if ((!wpa_s->p2p_mgmt ||
 	     !(wpa_s->drv_flags & WPA_DRIVER_FLAGS_DEDICATED_P2P_DEVICE)) &&
-	    !(wpa_s->drv_flags & WPA_DRIVER_FLAGS_P2P_DEDICATED_INTERFACE)) {
+	    !(wpa_s->drv_flags & WPA_DRIVER_FLAGS_P2P_DEDICATED_INTERFACE) &&
+	    !wpa_s->nan_mgmt) {
 		l2_packet_deinit(wpa_s->l2);
 		wpa_s->l2 = l2_packet_init(wpa_s->ifname,
 					   wpa_drv_get_mac_addr(wpa_s),
@@ -7928,6 +7930,8 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 	if (wpa_s->drv_flags & WPA_DRIVER_FLAGS_DEDICATED_P2P_DEVICE)
 		wpa_s->p2p_mgmt = iface->p2p_mgmt;
 
+	wpa_s->nan_mgmt = iface->nan_mgmt;
+
 	if (wpa_s->num_multichan_concurrent == 0)
 		wpa_s->num_multichan_concurrent = 1;
 
@@ -7935,7 +7939,7 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 		return -1;
 
 #ifdef CONFIG_TDLS
-	if (!iface->p2p_mgmt && wpa_tdls_init(wpa_s->wpa))
+	if (!iface->p2p_mgmt && !iface->nan_mgmt && wpa_tdls_init(wpa_s->wpa))
 		return -1;
 #endif /* CONFIG_TDLS */
 
@@ -8085,6 +8089,11 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 
 	wpa_supplicant_set_default_scan_ies(wpa_s);
 
+	if (wpa_s->nan_mgmt && wpas_nan_init(wpa_s) < 0) {
+		wpa_msg(wpa_s, MSG_ERROR, "Failed to init NAN");
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -8135,6 +8144,8 @@ static void wpa_supplicant_deinit_iface(struct wpa_supplicant *wpa_s,
 
 	wpa_supplicant_cleanup(wpa_s);
 	wpas_p2p_deinit_iface(wpa_s);
+
+	wpas_nan_deinit(wpa_s);
 
 	wpas_ctrl_radio_work_flush(wpa_s);
 	radio_remove_interface(wpa_s);
@@ -8303,7 +8314,7 @@ struct wpa_supplicant * wpa_supplicant_add_iface(struct wpa_global *global,
 		return NULL;
 	}
 
-	if (iface->p2p_mgmt == 0) {
+	if (iface->p2p_mgmt == 0 && !iface->nan_mgmt) {
 		/* Notify the control interfaces about new iface */
 		if (wpas_notify_iface_added(wpa_s)) {
 			wpa_supplicant_deinit_iface(wpa_s, 1, 0);
@@ -8321,7 +8332,7 @@ struct wpa_supplicant * wpa_supplicant_add_iface(struct wpa_global *global,
 	wpa_supplicant_set_state(wpa_s, WPA_DISCONNECTED);
 
 #ifdef CONFIG_P2P
-	if (wpa_s->global->p2p == NULL &&
+	if (!wpa_s->global->p2p && !iface->nan_mgmt &&
 	    !wpa_s->global->p2p_disabled && !wpa_s->conf->p2p_disabled &&
 	    (wpa_s->drv_flags & WPA_DRIVER_FLAGS_DEDICATED_P2P_DEVICE) &&
 	    wpas_p2p_add_p2pdev_interface(

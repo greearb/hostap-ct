@@ -283,6 +283,12 @@ L_CFLAGS += -DCONFIG_DPP3
 endif
 endif
 
+ifdef CONFIG_NAN
+OBJS += nan_supplicant.c
+OBJS += src/nan/nan.c
+CFLAGS += -DCONFIG_NAN
+endif
+
 ifdef CONFIG_NAN_USD
 OBJS += src/common/nan_de.c
 OBJS += nan_usd.c

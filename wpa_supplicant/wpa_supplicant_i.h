@@ -135,6 +135,11 @@ struct wpa_interface {
 		WPA_IFACE_MATCHED
 	} matched;
 #endif /* CONFIG_MATCH_IFACE */
+
+	/**
+	 * nan_mgmt - Interface used for NAN management (NAN Device operations)
+	 */
+	bool nan_mgmt;
 };
 
 /**
@@ -1661,6 +1666,12 @@ struct wpa_supplicant {
 	bool ext_auth_to_same_bss; /* Whether external authentication has been
 				    * completed successfully with the BSS that
 				    * we are already associated with. */
+
+	bool nan_mgmt;
+
+#ifdef CONFIG_NAN
+	struct nan_data *nan;
+#endif /* CONFIG_NAN */
 };
 
 

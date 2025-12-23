@@ -317,6 +317,12 @@ CFLAGS += -DCONFIG_DPP3
 endif
 endif
 
+ifdef CONFIG_NAN
+OBJS += nan_supplicant.o
+OBJS += ../src/nan/nan.o
+CFLAGS += -DCONFIG_NAN
+endif
+
 ifdef CONFIG_NAN_USD
 OBJS += ../src/common/nan_de.o
 OBJS += nan_usd.o

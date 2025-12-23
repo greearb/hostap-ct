@@ -54,6 +54,7 @@
 #include "nan_usd.h"
 #include "dpp_supplicant.h"
 #include "pr_supplicant.h"
+#include "nan_supplicant.h"
 
 
 #define MAX_OWE_TRANSITION_BSS_SELECT_COUNT 5
@@ -7041,7 +7042,7 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			else
 				wpa_sm_pmksa_cache_reconfig(wpa_s->wpa);
 			wpa_supplicant_set_default_scan_ies(wpa_s);
-			if (wpa_s->p2p_mgmt) {
+			if (wpa_s->p2p_mgmt || wpa_s->nan_mgmt) {
 				wpa_supplicant_set_state(wpa_s,
 							 WPA_DISCONNECTED);
 				break;
@@ -7064,6 +7065,12 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		break;
 	case EVENT_INTERFACE_DISABLED:
 		wpa_dbg(wpa_s, MSG_DEBUG, "Interface was disabled");
+		if (wpa_s->nan_mgmt) {
+			wpas_nan_flush(wpa_s);
+			wpa_supplicant_set_state(wpa_s,
+						 WPA_INTERFACE_DISABLED);
+			break;
+		}
 #ifdef CONFIG_P2P
 		if (wpa_s->p2p_group_interface == P2P_GROUP_INTERFACE_GO ||
 		    (wpa_s->current_ssid && wpa_s->current_ssid->p2p_group &&

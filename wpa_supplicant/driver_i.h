@@ -1277,4 +1277,24 @@ wpas_drv_nan_cancel_subscribe(struct wpa_supplicant *wpa_s, int subscribe_id)
 						   subscribe_id);
 }
 
+
+#ifdef CONFIG_NAN
+
+static inline int wpa_drv_nan_start(struct wpa_supplicant *wpa_s,
+				    struct nan_cluster_config *conf)
+{
+	if (!wpa_s->driver->nan_start)
+		return -1;
+	return wpa_s->driver->nan_start(wpa_s->drv_priv, conf);
+}
+
+static inline void wpa_drv_nan_stop(struct wpa_supplicant *wpa_s)
+{
+	if (!wpa_s->driver->nan_stop)
+		return;
+	wpa_s->driver->nan_stop(wpa_s->drv_priv);
+}
+
+#endif /* CONFIG_NAN */
+
 #endif /* DRIVER_I_H */

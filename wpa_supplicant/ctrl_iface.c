@@ -14379,6 +14379,9 @@ static int wpa_supplicant_global_iface_add(struct wpa_global *global,
 				type = WPA_IF_STATION;
 			} else if (os_strcmp(pos, "ap") == 0) {
 				type = WPA_IF_AP_BSS;
+			} else if (os_strcmp(pos, "nan") == 0) {
+				type = WPA_IF_NAN;
+				iface.nan_mgmt = true;
 			} else {
 				wpa_printf(MSG_DEBUG,
 					   "INTERFACE_ADD unsupported interface type: '%s'",
