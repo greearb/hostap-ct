@@ -9559,7 +9559,6 @@ int get_shared_radio_freqs_data(struct wpa_supplicant *wpa_s,
 {
 	struct wpa_supplicant *ifs;
 	u8 bssid[ETH_ALEN];
-	int freq;
 	unsigned int idx = 0, i;
 
 	wpa_dbg(wpa_s, MSG_DEBUG,
@@ -9568,36 +9567,64 @@ int get_shared_radio_freqs_data(struct wpa_supplicant *wpa_s,
 
 	dl_list_for_each(ifs, &wpa_s->radio->ifaces, struct wpa_supplicant,
 			 radio_list) {
+		int freqs[MAX_NUM_MLD_LINKS];
+		unsigned int j, n_freqs = 0;
+
 		if (idx == len)
 			break;
 
 		if (exclude_current && ifs == wpa_s)
 			continue;
 
-		if (ifs->current_ssid == NULL || ifs->assoc_freq == 0)
+		if (!ifs->current_ssid ||
+		    (!ifs->assoc_freq && !ifs->valid_links))
 			continue;
 
 		if (ifs->current_ssid->mode == WPAS_MODE_AP ||
 		    ifs->current_ssid->mode == WPAS_MODE_P2P_GO ||
-		    ifs->current_ssid->mode == WPAS_MODE_MESH)
-			freq = ifs->current_ssid->frequency;
-		else if (wpa_drv_get_bssid(ifs, bssid) == 0)
-			freq = ifs->assoc_freq;
-		else
+		    ifs->current_ssid->mode == WPAS_MODE_MESH) {
+			freqs[n_freqs++] = ifs->current_ssid->frequency;
+		} else if (ifs->valid_links) {
+			struct driver_sta_mlo_info drv_mlo;
+
+			os_memset(&drv_mlo, 0, sizeof(drv_mlo));
+
+			if (wpas_drv_get_sta_mlo_info(ifs, &drv_mlo)) {
+				wpa_dbg(wpa_s, MSG_INFO,
+					"Failed to get MLO link info");
+				continue;
+			}
+
+			if (!drv_mlo.valid_links)
+				continue;
+
+			for_each_link(drv_mlo.valid_links, j) {
+				if (!drv_mlo.links[j].freq)
+					continue;
+
+				freqs[n_freqs++] = drv_mlo.links[j].freq;
+			}
+		} else if (wpa_drv_get_bssid(ifs, bssid) == 0) {
+			freqs[n_freqs++] = ifs->assoc_freq;
+		} else {
 			continue;
+		}
 
 		/* Hold only distinct freqs */
-		for (i = 0; i < idx; i++)
-			if (freqs_data[i].freq == freq)
-				break;
+		for (j = 0; j < n_freqs && idx < len; j++) {
+			for (i = 0; i < idx; i++)
+				if (freqs_data[i].freq == freqs[j])
+					break;
 
-		if (i == idx)
-			freqs_data[idx++].freq = freq;
+			if (i == idx)
+				freqs_data[idx++].freq = freqs[j];
 
-		if (ifs->current_ssid->mode == WPAS_MODE_INFRA) {
-			freqs_data[i].flags |= ifs->current_ssid->p2p_group ?
-				WPA_FREQ_USED_BY_P2P_CLIENT :
-				WPA_FREQ_USED_BY_INFRA_STATION;
+			if (ifs->current_ssid->mode == WPAS_MODE_INFRA) {
+				freqs_data[i].flags |=
+					ifs->current_ssid->p2p_group ?
+					WPA_FREQ_USED_BY_P2P_CLIENT :
+					WPA_FREQ_USED_BY_INFRA_STATION;
+			}
 		}
 	}
 
