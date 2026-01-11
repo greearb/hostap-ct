@@ -19,6 +19,8 @@ from tshark import run_tshark
 from test_gas import hs20_ap_params
 from test_dpp import check_dpp_capab, wait_auth_success
 from test_rrm import build_beacon_request, run_req_beacon, BeaconReport
+from p2p_utils import *
+import utils
 
 def eht_verify_wifi_version(dev):
     status = dev.get_status()
@@ -2830,3 +2832,44 @@ def test_eht_ml_setup_reconfig_AB_A_AB(dev, apdev, params):
                                  timeout=2)
             if ev is None:
                 raise Exception("GTK rekey timed out after link addition")
+
+def test_eht_mld_and_autogo(dev, apdev):
+    """EHT MLD connection and autonomous P2P GO on the station device"""
+    with HWSimRadio(use_mlo=True, n_channels=2) as (hapd0_radio, hapd0_iface), \
+        HWSimRadio(use_mlo=True, n_channels=2) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+
+        ssid = "ap_mld"
+        params = eht_mld_ap_wpa2_params(ssid, key_mgmt="OWE", mfp="2")
+
+        hapds = []
+        freqs = ""
+        for i in range(1, 3):
+            params['channel'] = str(i)
+            freqs += str(2407 + 5 * i) + " "
+            hapds.append(eht_mld_enable_ap(hapd0_iface, i - 1, params))
+
+        wpas.connect(ssid, scan_freq=freqs, key_mgmt="OWE", ieee80211w="2")
+        eht_verify_status(wpas, hapds[0], 2412, 20, is_ht=True, mld=True,
+                          valid_links=0x03, active_links=0x03)
+        eht_verify_wifi_version(wpas)
+        hwsim_utils.test_connectivity(wpas, hapds[0])
+
+        res = autogo(wpas)
+        if "p2p-wlan" not in res['ifname']:
+            raise Exception("Unexpected group interface name on GO")
+
+        if res['ifname'] not in utils.get_ifnames():
+            raise Exception("Could not find group interface netdev")
+
+        if res['freq'] != "2412" and res['freq'] != "2417":
+            raise Exception("Unexpected group interface frequency")
+
+        connect_cli(wpas, dev[0])
+        wpas.remove_group()
+
+        dev[0].wait_go_ending_session()
+        if res['ifname'] in utils.get_ifnames():
+            raise Exception("Group interface netdev was not removed")
