@@ -1468,6 +1468,13 @@ enum qca_radiotap_vendor_ids {
  *
  *     The attributes used with this command are defined in
  *     enum qca_wlan_vendor_attr_dcs.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_QSH_GET_STATS: Retrieve Qualcomm Sensing Hub (QSH)
+ *	related Wi-Fi statistics from the sensor. Currently supports scan count;
+ *	might be extended in the future.
+ *
+ *	No attributes are used in the request. The response includes attributes
+ *	defined in enum qca_wlan_vendor_attr_qsh_stats.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1721,6 +1728,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_GET_COEX_STATS = 267,
 	QCA_NL80211_VENDOR_SUBCMD_ATF_OFFLOAD_OPS = 268,
 	QCA_NL80211_VENDOR_SUBCMD_DCS_CONFIG = 269,
+	QCA_NL80211_VENDOR_SUBCMD_QSH_GET_STATS = 270,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -23184,6 +23192,24 @@ enum qca_wlan_vendor_attr_dcs {
 	QCA_WLAN_VENDOR_ATTR_DCS_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_DCS_MAX =
 	QCA_WLAN_VENDOR_ATTR_DCS_AFTER_LAST - 1
+};
+
+/**
+ * enum qca_wlan_vendor_attr_qsh_stats - Attributes used by
+ * %QCA_NL80211_VENDOR_SUBCMD_QSH_GET_STATS.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_QSH_STATS_SCAN_COUNT: 32-bit unsigned value
+ *     representing the Wi-Fi scan count from the sensor. This attribute is
+ *     mandatory. It's a response-only attribute.
+ */
+enum qca_wlan_vendor_attr_qsh_stats {
+	QCA_WLAN_VENDOR_ATTR_QSH_STATS_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_QSH_STATS_SCAN_COUNT = 1,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_QSH_STATS_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_QSH_STATS_MAX =
+	QCA_WLAN_VENDOR_ATTR_QSH_STATS_AFTER_LAST - 1
 };
 
 #endif /* QCA_VENDOR_H */
