@@ -4205,6 +4205,19 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_ALLOW_STA_DFS_CH_SCC_P2P = 140,
 
+	/*
+	 * 8-bit unsigned value to enable or disable QSH-initiated Wi-Fi scans,
+	 * providing a mechanism to optimize power consumption. By default, this
+	 * feature is enabled.
+	 *
+	 * Valid values:
+	 * 0 - Disable
+	 * 1 - Enable
+	 *
+	 * Values other than 0 or 1 are invalid and shall be rejected.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_QSH_SCAN_CTRL = 141,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
