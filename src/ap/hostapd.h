@@ -925,4 +925,10 @@ hostapd_is_vht_enabled(struct hostapd_data *hapd)
 	return hapd->iconf->ieee80211ac && !hapd->conf->disable_11ac;
 }
 
+static inline bool
+hostapd_is_he_enabled(struct hostapd_data *hapd)
+{
+	return hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax;
+}
+
 #endif /* HOSTAPD_H */

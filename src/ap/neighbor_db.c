@@ -233,7 +233,7 @@ void hostapd_neighbor_set_own_report(struct hostapd_data *hapd)
 	u16 capab = hostapd_own_capab_info(hapd);
 	int ht = hostapd_is_ht_enabled(hapd);
 	int vht = hostapd_is_vht_enabled(hapd);
-	int he = hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax;
+	int he = hostapd_is_he_enabled(hapd);
 	bool eht = he && hapd->iconf->ieee80211be && !hapd->conf->disable_11be;
 	struct wpa_ssid_value ssid;
 	u8 channel, op_class;

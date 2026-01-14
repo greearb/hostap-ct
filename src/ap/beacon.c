@@ -675,7 +675,7 @@ static size_t he_elem_len(struct hostapd_data *hapd)
 	size_t len = 0;
 
 #ifdef CONFIG_IEEE80211AX
-	if (!hapd->iconf->ieee80211ax || hapd->conf->disable_11ax)
+	if (!hostapd_is_he_enabled(hapd))
 		return len;
 
 	len += 3 + sizeof(struct ieee80211_he_capabilities) +
@@ -916,7 +916,7 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 #endif /* CONFIG_IEEE80211AC */
 
 #ifdef CONFIG_IEEE80211AX
-	if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax &&
+	if (hostapd_is_he_enabled(hapd) &&
 	    is_6ghz_op_class(hapd->iconf->op_class))
 		pos = hostapd_eid_txpower_envelope(hapd, pos);
 #endif /* CONFIG_IEEE80211AX */
@@ -932,7 +932,7 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 	pos = hostapd_get_rsnxe(hapd, pos, epos - pos);
 
 #ifdef CONFIG_IEEE80211AX
-	if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax) {
+	if (hostapd_is_he_enabled(hapd)) {
 		u8 *cca_pos;
 
 		pos = hostapd_eid_he_capab(hapd, pos, IEEE80211_MODE_AP);
@@ -1897,7 +1897,7 @@ static u16 hostapd_gen_fils_discovery_phy_index(struct hostapd_data *hapd)
 #endif /* CONFIG_IEEE80211BE */
 
 #ifdef CONFIG_IEEE80211AX
-	if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax)
+	if (hostapd_is_he_enabled(hapd))
 		return FD_CAP_PHY_INDEX_HE;
 #endif /* CONFIG_IEEE80211AX */
 
@@ -2430,7 +2430,7 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 #endif /* CONFIG_IEEE80211AC */
 
 #ifdef CONFIG_IEEE80211AX
-	if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax &&
+	if (hostapd_is_he_enabled(hapd) &&
 	    is_6ghz_op_class(hapd->iconf->op_class))
 		tailpos = hostapd_eid_txpower_envelope(hapd, tailpos);
 #endif /* CONFIG_IEEE80211AX */
@@ -2448,7 +2448,7 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 					    params->mbssid.mbssid_elem_count);
 
 #ifdef CONFIG_IEEE80211AX
-	if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax) {
+	if (hostapd_is_he_enabled(hapd)) {
 		u8 *cca_pos;
 
 		tailpos = hostapd_eid_he_capab(hapd, tailpos,

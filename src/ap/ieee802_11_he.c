@@ -474,7 +474,7 @@ u16 copy_sta_he_capab(struct hostapd_data *hapd, struct sta_info *sta,
 		      size_t he_capab_len)
 {
 	if (!he_capab || !(sta->flags & WLAN_STA_WMM) ||
-	    !hapd->iconf->ieee80211ax || hapd->conf->disable_11ax ||
+	    !hostapd_is_he_enabled(hapd) ||
 	    !check_valid_he_mcs(hapd, he_capab, opmode) ||
 	    ieee80211_invalid_he_cap_size(he_capab, he_capab_len) ||
 	    he_capab_len > sizeof(struct ieee80211_he_capabilities)) {
@@ -503,8 +503,7 @@ u16 copy_sta_he_capab(struct hostapd_data *hapd, struct sta_info *sta,
 u16 copy_sta_he_6ghz_capab(struct hostapd_data *hapd, struct sta_info *sta,
 			   const u8 *he_6ghz_capab)
 {
-	if (!he_6ghz_capab || !hapd->iconf->ieee80211ax ||
-	    hapd->conf->disable_11ax ||
+	if (!he_6ghz_capab || !hostapd_is_he_enabled(hapd) ||
 	    !is_6ghz_op_class(hapd->iconf->op_class) ||
 	    !(sta->flags & WLAN_STA_HE)) {
 		sta->flags &= ~WLAN_STA_6GHZ;
@@ -535,7 +534,7 @@ int hostapd_get_he_twt_responder(struct hostapd_data *hapd,
 
 	if (!hapd->iface->current_mode ||
 	    !hapd->iface->current_mode->he_capab[mode].he_supported ||
-	    !hapd->iconf->ieee80211ax || hapd->conf->disable_11ax)
+	    !hostapd_is_he_enabled(hapd))
 		return 0;
 
 	mac_cap = hapd->iface->current_mode->he_capab[mode].mac_cap;

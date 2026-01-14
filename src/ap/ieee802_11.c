@@ -4472,7 +4472,7 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 	}
 #endif /* CONFIG_IEEE80211AC */
 #ifdef CONFIG_IEEE80211AX
-	if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax) {
+	if (hostapd_is_he_enabled(hapd)) {
 		resp = copy_sta_he_capab(hapd, sta, IEEE80211_MODE_AP,
 					 elems->he_capabilities,
 					 elems->he_capabilities_len);
@@ -5006,7 +5006,7 @@ void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
 		p = hostapd_eid_vht_operation(hapd, p);
 	}
 
-	if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax) {
+	if (hostapd_is_he_enabled(hapd)) {
 		p = hostapd_eid_he_capab(hapd, p, IEEE80211_MODE_AP);
 		p = hostapd_eid_he_operation(hapd, p);
 		p = hostapd_eid_spatial_reuse(hapd, p);
@@ -5543,7 +5543,7 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 #endif /* CONFIG_IEEE80211AC */
 
 #ifdef CONFIG_IEEE80211AX
-	if (hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax) {
+	if (hostapd_is_he_enabled(hapd)) {
 		p = hostapd_eid_he_capab(hapd, p, IEEE80211_MODE_AP);
 		p = hostapd_eid_he_operation(hapd, p);
 		p = hostapd_eid_cca(hapd, p);
@@ -8006,7 +8006,7 @@ u8 * hostapd_eid_chsw_wrapper(struct hostapd_data *hapd, u8 *eid)
 	int freq1;
 
 	if (!hostapd_is_vht_enabled(hapd) &&
-	    !(hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax) &&
+	    !hostapd_is_he_enabled(hapd) &&
 	    !(hapd->iconf->ieee80211be && !hapd->conf->disable_11be))
 		return eid;
 

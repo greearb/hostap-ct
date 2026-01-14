@@ -740,7 +740,7 @@ static void ieee802_11_rx_wnm_event_report(struct hostapd_data *hapd,
 	switch (report_ie->type) {
 #ifdef CONFIG_IEEE80211AX
 	case WNM_EVENT_TYPE_BSS_COLOR_COLLISION:
-		if (!hapd->iconf->ieee80211ax || hapd->conf->disable_11ax)
+		if (!hostapd_is_he_enabled(hapd))
 			return;
 		if (report_ie->len <
 		    fixed_field_len + tsf_len + 8) {
@@ -756,7 +756,7 @@ static void ieee802_11_rx_wnm_event_report(struct hostapd_data *hapd,
 		hostapd_switch_color(hapd->iface->bss[0], bitmap);
 		break;
 	case WNM_EVENT_TYPE_BSS_COLOR_IN_USE:
-		if (!hapd->iconf->ieee80211ax || hapd->conf->disable_11ax)
+		if (!hostapd_is_he_enabled(hapd))
 			return;
 		if (report_ie->len < fixed_field_len + tsf_len + 1) {
 			wpa_printf(MSG_DEBUG,
