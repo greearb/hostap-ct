@@ -232,7 +232,7 @@ void hostapd_neighbor_set_own_report(struct hostapd_data *hapd)
 #ifdef NEED_AP_MLME
 	u16 capab = hostapd_own_capab_info(hapd);
 	int ht = hostapd_is_ht_enabled(hapd);
-	int vht = hapd->iconf->ieee80211ac && !hapd->conf->disable_11ac;
+	int vht = hostapd_is_vht_enabled(hapd);
 	int he = hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax;
 	bool eht = he && hapd->iconf->ieee80211be && !hapd->conf->disable_11be;
 	struct wpa_ssid_value ssid;

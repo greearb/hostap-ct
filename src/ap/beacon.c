@@ -907,7 +907,7 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 #endif /* CONFIG_FST */
 
 #ifdef CONFIG_IEEE80211AC
-	if (hapd->iconf->ieee80211ac && !hapd->conf->disable_11ac &&
+	if (hostapd_is_vht_enabled(hapd) &&
 	    !is_6ghz_op_class(hapd->iconf->op_class)) {
 		pos = hostapd_eid_vht_capabilities(hapd, pos, 0);
 		pos = hostapd_eid_vht_operation(hapd, pos);
@@ -1902,7 +1902,7 @@ static u16 hostapd_gen_fils_discovery_phy_index(struct hostapd_data *hapd)
 #endif /* CONFIG_IEEE80211AX */
 
 #ifdef CONFIG_IEEE80211AC
-	if (hapd->iconf->ieee80211ac && !hapd->conf->disable_11ac)
+	if (hostapd_is_vht_enabled(hapd))
 		return FD_CAP_PHY_INDEX_VHT;
 #endif /* CONFIG_IEEE80211AC */
 
@@ -2421,7 +2421,7 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 #endif /* CONFIG_FST */
 
 #ifdef CONFIG_IEEE80211AC
-	if (hapd->iconf->ieee80211ac && !hapd->conf->disable_11ac &&
+	if (hostapd_is_vht_enabled(hapd) &&
 	    !is_6ghz_op_class(hapd->iconf->op_class)) {
 		tailpos = hostapd_eid_vht_capabilities(hapd, tailpos, 0);
 		tailpos = hostapd_eid_vht_operation(hapd, tailpos);

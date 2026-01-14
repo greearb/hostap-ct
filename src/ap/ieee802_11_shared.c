@@ -1247,7 +1247,7 @@ bool hostapd_get_ht_vht_twt_responder(struct hostapd_data *hapd)
 {
 	return hapd->iconf->ht_vht_twt_responder &&
 		(hostapd_is_ht_enabled(hapd) ||
-		 (hapd->iconf->ieee80211ac && !hapd->conf->disable_11ac)) &&
+		 hostapd_is_vht_enabled(hapd)) &&
 		(hapd->iface->drv_flags2 &
 		 WPA_DRIVER_FLAGS2_HT_VHT_TWT_RESPONDER);
 }

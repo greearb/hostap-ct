@@ -893,8 +893,7 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 			  hostapd_is_ht_enabled(hapd) ?
 			  iface->conf->secondary_channel : 0,
 			  hostapd_is_ht_enabled(hapd),
-			  iface->conf->ieee80211ac &&
-			  !hapd->conf->disable_11ac,
+			  hostapd_is_vht_enabled(hapd),
 			  iface->conf->ieee80211ax &&
 			  !hapd->conf->disable_11ax,
 			  iface->conf->ieee80211be &&
@@ -1008,7 +1007,7 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 	}
 #endif /* CONFIG_IEEE80211AX */
 
-	if (iface->conf->ieee80211ac && !hapd->conf->disable_11ac) {
+	if (hostapd_is_vht_enabled(hapd)) {
 		ret = os_snprintf(buf + len, buflen - len,
 				  "vht_oper_chwidth=%d\n"
 				  "vht_oper_centr_freq_seg0_idx=%d\n"
@@ -1023,7 +1022,7 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 		len += ret;
 	}
 
-	if (iface->conf->ieee80211ac && !hapd->conf->disable_11ac && mode) {
+	if (hostapd_is_vht_enabled(hapd) && mode) {
 		u16 rxmap = WPA_GET_LE16(&mode->vht_mcs_set[0]);
 		u16 txmap = WPA_GET_LE16(&mode->vht_mcs_set[4]);
 

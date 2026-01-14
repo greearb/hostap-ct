@@ -5001,7 +5001,7 @@ void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
 	p = hostapd_eid_ht_capabilities(hapd, p);
 	p = hostapd_eid_ht_operation(hapd, p);
 
-	if (hapd->iconf->ieee80211ac && !hapd->conf->disable_11ac) {
+	if (hostapd_is_vht_enabled(hapd)) {
 		p = hostapd_eid_vht_capabilities(hapd, p, 0);
 		p = hostapd_eid_vht_operation(hapd, p);
 	}
@@ -5519,7 +5519,7 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 	p = hostapd_eid_ht_operation(hapd, p);
 
 #ifdef CONFIG_IEEE80211AC
-	if (hapd->iconf->ieee80211ac && !hapd->conf->disable_11ac &&
+	if (hostapd_is_vht_enabled(hapd) &&
 	    !is_6ghz_op_class(hapd->iconf->op_class)) {
 		u32 nsts = 0, sta_nsts;
 
@@ -8005,7 +8005,7 @@ u8 * hostapd_eid_chsw_wrapper(struct hostapd_data *hapd, u8 *eid)
 	u8 *eid_len_offset;
 	int freq1;
 
-	if (!(hapd->iconf->ieee80211ac && !hapd->conf->disable_11ac) &&
+	if (!hostapd_is_vht_enabled(hapd) &&
 	    !(hapd->iconf->ieee80211ax && !hapd->conf->disable_11ax) &&
 	    !(hapd->iconf->ieee80211be && !hapd->conf->disable_11be))
 		return eid;
