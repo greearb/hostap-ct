@@ -376,7 +376,7 @@ u16 copy_sta_eht_capab(struct hostapd_data *hapd, struct sta_info *sta,
 	struct hostapd_hw_modes *c_mode = hapd->iface->current_mode;
 	enum hostapd_hw_mode mode = c_mode ? c_mode->mode : NUM_HOSTAPD_MODES;
 
-	if (!hapd->iconf->ieee80211be || hapd->conf->disable_11be ||
+	if (!hostapd_is_eht_enabled(hapd) ||
 	    !he_capab || he_capab_len < IEEE80211_HE_CAPAB_MIN_LEN ||
 	    !eht_capab ||
 	    ieee80211_invalid_eht_cap_size(mode, hapd->iconf->op_class,

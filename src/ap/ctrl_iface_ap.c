@@ -895,8 +895,7 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 			  hostapd_is_ht_enabled(hapd),
 			  hostapd_is_vht_enabled(hapd),
 			  hostapd_is_he_enabled(hapd),
-			  iface->conf->ieee80211be &&
-			  !hapd->conf->disable_11be,
+			  hostapd_is_eht_enabled(hapd),
 			  iface->conf->beacon_int,
 			  hapd->conf->dtim_period);
 	if (os_snprintf_error(buflen - len, ret))
@@ -904,7 +903,7 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 	len += ret;
 
 #ifdef CONFIG_IEEE80211BE
-	if (iface->conf->ieee80211be && !hapd->conf->disable_11be) {
+	if (hostapd_is_eht_enabled(hapd)) {
 		ret = os_snprintf(buf + len, buflen - len,
 				  "eht_oper_chwidth=%d\n"
 				  "eht_oper_centr_freq_seg0_idx=%d\n",

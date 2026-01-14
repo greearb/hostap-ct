@@ -3148,8 +3148,7 @@ void hostapd_bss_setup_multi_link(struct hostapd_data *hapd,
 
 	conf = hapd->conf;
 
-	if (!hapd->iconf || !hapd->iconf->ieee80211be || !conf->mld_ap ||
-	    conf->disable_11be)
+	if (!hapd->iconf || !conf->mld_ap || !hostapd_is_eht_enabled(hapd))
 		return;
 
 	for (i = 0; i < interfaces->mld_count; i++) {
