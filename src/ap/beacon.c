@@ -1906,7 +1906,7 @@ static u16 hostapd_gen_fils_discovery_phy_index(struct hostapd_data *hapd)
 		return FD_CAP_PHY_INDEX_VHT;
 #endif /* CONFIG_IEEE80211AC */
 
-	if (hapd->iconf->ieee80211n && !hapd->conf->disable_11n)
+	if (hostapd_is_ht_enabled(hapd))
 		return FD_CAP_PHY_INDEX_HT;
 
 	return 0;
@@ -2643,7 +2643,7 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 			hapd->iface->num_sta_no_short_slot_time > 0 ? 0 : 1;
 	else
 		params->short_slot_time = -1;
-	if (!hapd->iconf->ieee80211n || hapd->conf->disable_11n)
+	if (!hostapd_is_ht_enabled(hapd))
 		params->ht_opmode = -1;
 	else
 		params->ht_opmode = hapd->iface->ht_op_mode;

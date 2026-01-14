@@ -890,9 +890,9 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 			  iface->conf->channel,
 			  iface->conf->enable_edmg,
 			  iface->conf->edmg_channel,
-			  iface->conf->ieee80211n && !hapd->conf->disable_11n ?
+			  hostapd_is_ht_enabled(hapd) ?
 			  iface->conf->secondary_channel : 0,
-			  iface->conf->ieee80211n && !hapd->conf->disable_11n,
+			  hostapd_is_ht_enabled(hapd),
 			  iface->conf->ieee80211ac &&
 			  !hapd->conf->disable_11ac,
 			  iface->conf->ieee80211ax &&
@@ -1036,7 +1036,7 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 		len += ret;
 	}
 
-	if (iface->conf->ieee80211n && !hapd->conf->disable_11n) {
+	if (hostapd_is_ht_enabled(hapd)) {
 		ret = os_snprintf(buf + len, buflen - len,
 				  "ht_caps_info=%04x\n",
 				  hapd->iconf->ht_capab);
@@ -1045,7 +1045,7 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 		len += ret;
 	}
 
-	if (iface->conf->ieee80211n && !hapd->conf->disable_11n && mode) {
+	if (hostapd_is_ht_enabled(hapd) && mode) {
 		len = hostapd_write_ht_mcs_bitmask(buf, buflen, len,
 						   mode->mcs_set);
 	}

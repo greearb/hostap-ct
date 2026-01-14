@@ -913,4 +913,10 @@ hostapd_chan_width_from_freq_params(struct hostapd_freq_params *freq_params);
 struct hostapd_data *
 hostapd_get_mbssid_bss_by_idx(struct hostapd_data *hapd, size_t idx);
 
+static inline bool
+hostapd_is_ht_enabled(struct hostapd_data *hapd)
+{
+	return hapd->iconf->ieee80211n && !hapd->conf->disable_11n;
+}
+
 #endif /* HOSTAPD_H */

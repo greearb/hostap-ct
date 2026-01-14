@@ -1246,7 +1246,7 @@ struct sta_info * hostapd_ml_get_assoc_sta(struct hostapd_data *hapd,
 bool hostapd_get_ht_vht_twt_responder(struct hostapd_data *hapd)
 {
 	return hapd->iconf->ht_vht_twt_responder &&
-		((hapd->iconf->ieee80211n && !hapd->conf->disable_11n) ||
+		(hostapd_is_ht_enabled(hapd) ||
 		 (hapd->iconf->ieee80211ac && !hapd->conf->disable_11ac)) &&
 		(hapd->iface->drv_flags2 &
 		 WPA_DRIVER_FLAGS2_HT_VHT_TWT_RESPONDER);
