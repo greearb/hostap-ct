@@ -1475,6 +1475,11 @@ enum qca_radiotap_vendor_ids {
  *
  *	No attributes are used in the request. The response includes attributes
  *	defined in enum qca_wlan_vendor_attr_qsh_stats.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_WLAN_HOST_TXRX_STATS: This vendor subcommand is
+ *     used to retrieve WLAN host driver side TX/RX statistics.
+ *     The attributes used with this command are defined in
+ *     enum qca_wlan_host_txrx_stats_attr.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1729,6 +1734,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_ATF_OFFLOAD_OPS = 268,
 	QCA_NL80211_VENDOR_SUBCMD_DCS_CONFIG = 269,
 	QCA_NL80211_VENDOR_SUBCMD_QSH_GET_STATS = 270,
+	QCA_NL80211_VENDOR_SUBCMD_WLAN_HOST_TXRX_STATS = 271,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -23272,6 +23278,45 @@ enum qca_wlan_vendor_attr_qsh_stats {
 	QCA_WLAN_VENDOR_ATTR_QSH_STATS_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_QSH_STATS_MAX =
 	QCA_WLAN_VENDOR_ATTR_QSH_STATS_AFTER_LAST - 1
+};
+
+/**
+ * enum qca_wlan_host_txrx_stats_attr - Defines attributes to be used
+ * with vendor subcmd QCA_NL80211_VENDOR_SUBCMD_WLAN_HOST_TXRX_STATS.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_TX_PKTS: 32-bit unsigned value
+ *	for total TX packets successfully transmitted to the firmware.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_TX_DROPPED: 32-bit unsigned
+ *	value for total TX packets dropped by the WLAN host driver (e.g., due
+ *	to queue exhaustion).
+ *
+ * @QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_RX_PKTS: 32-bit unsigned value
+ *	for total RX packets successfully delivered to the network stack.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_RX_DROPPED: 32-bit unsigned
+ *	value for total RX packets dropped by the WLAN host driver.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_IPA_EXCEPTION_RX_DROPPED:
+ *	64-bit unsigned value for IPA exception RX drops. Counts packets
+ *	routed from IPA to WLAN driver that were dropped.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_PAD: Attribute used for padding
+ *	for 64-bit alignment.
+ */
+
+enum qca_wlan_host_txrx_stats_attr {
+	QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_TX_PKTS = 1,
+	QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_TX_DROPPED = 2,
+	QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_RX_PKTS = 3,
+	QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_RX_DROPPED = 4,
+	QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_IPA_EXCEPTION_RX_DROPPED = 5,
+	QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_PAD = 6,
+
+	QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_LAST,
+	QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_MAX =
+	QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_LAST - 1
 };
 
 #endif /* QCA_VENDOR_H */
