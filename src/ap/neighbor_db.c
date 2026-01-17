@@ -310,7 +310,8 @@ void hostapd_neighbor_set_own_report(struct hostapd_data *hapd)
 	wpabuf_put_le32(nr, bssid_info);
 	wpabuf_put_u8(nr, op_class);
 	wpabuf_put_u8(nr, channel);
-	wpabuf_put_u8(nr, ieee80211_get_phy_type(hapd->iface->freq, ht, vht));
+	wpabuf_put_u8(nr, ieee80211_get_phy_type(hapd->iface->freq, ht, vht,
+						 he));
 
 	/*
 	 * Wide Bandwidth Channel subelement may be needed to allow the

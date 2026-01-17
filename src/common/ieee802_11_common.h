@@ -260,7 +260,7 @@ int ieee80211_is_dfs(int freq, const struct hostapd_hw_modes *modes,
 		     u16 num_modes);
 int is_dfs_global_op_class(u8 op_class);
 bool is_80plus_op_class(u8 op_class);
-enum phy_type ieee80211_get_phy_type(int freq, int ht, int vht);
+enum phy_type ieee80211_get_phy_type(int freq, bool ht, bool vht, bool he);
 
 int supp_rates_11b_only(struct ieee802_11_elems *elems);
 int mb_ies_info_by_ies(struct mb_ies_info *info, const u8 *ies_buf,

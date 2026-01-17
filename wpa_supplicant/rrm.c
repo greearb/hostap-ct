@@ -783,7 +783,8 @@ int wpas_get_op_chan_phy(int freq, const u8 *ies, size_t ies_len,
 	}
 
 	*phy_type = ieee80211_get_phy_type(freq, elems.ht_operation != NULL,
-					   elems.vht_operation != NULL);
+					   elems.vht_operation != NULL,
+					   elems.he_operation != NULL);
 	if (*phy_type == PHY_TYPE_UNSPECIFIED) {
 		wpa_printf(MSG_DEBUG, "Cannot determine phy type");
 		return -1;

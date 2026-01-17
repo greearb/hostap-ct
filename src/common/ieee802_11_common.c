@@ -2572,8 +2572,10 @@ static enum phy_type ieee80211_phy_type_by_freq(int freq)
 
 
 /* ieee80211_get_phy_type - Derive the phy type by freq and bandwidth */
-enum phy_type ieee80211_get_phy_type(int freq, int ht, int vht)
+enum phy_type ieee80211_get_phy_type(int freq, bool ht, bool vht, bool he)
 {
+	if (he)
+		return PHY_TYPE_HE;
 	if (vht)
 		return PHY_TYPE_VHT;
 	if (ht)
