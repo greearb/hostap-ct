@@ -3961,6 +3961,10 @@ void rx_mgmt(struct wlantest *wt, const u8 *data, size_t len)
 	    !(hdr->addr1[0] & 0x01) &&
 	    (stype == WLAN_FC_STYPE_DEAUTH ||
 	     stype == WLAN_FC_STYPE_DISASSOC ||
+	     stype == WLAN_FC_STYPE_ASSOC_REQ ||
+	     stype == WLAN_FC_STYPE_ASSOC_RESP ||
+	     stype == WLAN_FC_STYPE_REASSOC_REQ ||
+	     stype == WLAN_FC_STYPE_REASSOC_RESP ||
 	     stype == WLAN_FC_STYPE_ACTION ||
 	     stype == WLAN_FC_STYPE_ACTION_NO_ACK)) {
 		decrypted = mgmt_decrypt(wt, data, len, &dlen);
@@ -3976,6 +3980,10 @@ void rx_mgmt(struct wlantest *wt, const u8 *data, size_t len)
 	    !(hdr->addr1[0] & 0x01) &&
 	    (stype == WLAN_FC_STYPE_DEAUTH ||
 	     stype == WLAN_FC_STYPE_DISASSOC ||
+	     stype == WLAN_FC_STYPE_ASSOC_REQ ||
+	     stype == WLAN_FC_STYPE_ASSOC_RESP ||
+	     stype == WLAN_FC_STYPE_REASSOC_REQ ||
+	     stype == WLAN_FC_STYPE_REASSOC_RESP ||
 	     stype == WLAN_FC_STYPE_ACTION ||
 	     stype == WLAN_FC_STYPE_ACTION_NO_ACK)) {
 		if (check_mgmt_ccmp_gcmp(wt, data, len) < 0)
