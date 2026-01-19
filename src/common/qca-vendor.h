@@ -4179,6 +4179,10 @@ enum qca_wlan_vendor_attr_config {
 	 * channel and either remain on the current channel or switch to other
 	 * valid channel, depending on regulatory and underlying driver policy.
 	 * 1 - Enable, 0 - Disable.
+	 *
+	 * See
+	 * @QCA_WLAN_VENDOR_ATTR_CONFIG_ALLOW_PEER_PROTOCOL_INDOOR_CH_STA_SCC
+	 * for a more granular configuration of this per peer protocol.
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_ALLOW_STA_INDOOR_CH_SCC = 139,
 
@@ -4217,6 +4221,27 @@ enum qca_wlan_vendor_attr_config {
 	 * Values other than 0 or 1 are invalid and shall be rejected.
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_QSH_SCAN_CTRL = 141,
+
+	/* 8-bit bitmap to enable the feature to allow SCC with STA connected
+	 * indoor channel per peer protocol to the driver in STA mode. This
+	 * configuration is applicable only when a STA interface is in
+	 * connected state.
+	 * When the STA disconnects, any peer protocol interface present in
+	 * SCC with STA connected indoor channel will re-evaluate its operating
+	 * channel and either remain on the current channel or switch to other
+	 * valid channel, depending on regulatory and underlying driver policy.
+	 *
+	 * Either @QCA_WLAN_VENDOR_ATTR_CONFIG_ALLOW_STA_INDOOR_CH_SCC attribute
+	 * or @QCA_WLAN_VENDOR_ATTR_CONFIG_ALLOW_PEER_PROTOCOL_INDOOR_CH_STA_SCC
+	 * attribute can be used by userspace at a time to allow indoor channel
+	 * SCC with STA.
+	 *
+	 * bit 0: Setting bit0 indicates to allow SCC with STA connected indoor
+	 *        channel for P2P
+	 * bit 1: Setting bit1 indicates to allow SCC with STA connected indoor
+	 *        channel for NAN
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ALLOW_PEER_PROTOCOL_INDOOR_CH_STA_SCC = 142,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
