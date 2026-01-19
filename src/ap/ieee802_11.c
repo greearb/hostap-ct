@@ -3320,10 +3320,10 @@ static void handle_auth(struct hostapd_data *hapd,
 		challenge = &mgmt->u.auth.variable[2];
 
 	wpa_printf(MSG_DEBUG, "authentication: STA=" MACSTR " auth_alg=%d "
-		   "auth_transaction=%d status_code=%d wep=%d%s "
+		   "auth_transaction=%d status_code=%d protected=%d%s "
 		   "seq_ctrl=0x%x%s%s",
 		   MAC2STR(sa), auth_alg, auth_transaction,
-		   status_code, !!(fc & WLAN_FC_ISWEP),
+		   status_code, !!(fc & WLAN_FC_PROTECTED),
 		   challenge ? " challenge" : "",
 		   seq_ctrl, (fc & WLAN_FC_RETRY) ? " retry" : "",
 		   from_queue ? " (from queue)" : "");
@@ -3663,7 +3663,7 @@ static void handle_auth(struct hostapd_data *hapd,
 #ifndef CONFIG_NO_RC4
 	case WLAN_AUTH_SHARED_KEY:
 		resp = auth_shared_key(hapd, sta, auth_transaction, challenge,
-				       fc & WLAN_FC_ISWEP);
+				       fc & WLAN_FC_PROTECTED);
 		if (resp != 0)
 			wpa_printf(MSG_DEBUG,
 				   "auth_shared_key() failed: status=%d", resp);
@@ -6625,7 +6625,7 @@ static int handle_action(struct hostapd_data *hapd,
 	}
 
 	if (sta && (sta->flags & WLAN_STA_MFP) &&
-	    !(mgmt->frame_control & host_to_le16(WLAN_FC_ISWEP)) &&
+	    !(mgmt->frame_control & host_to_le16(WLAN_FC_PROTECTED)) &&
 	    robust_action_frame(mgmt->u.action.category)) {
 		hostapd_logger(hapd, mgmt->sa, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_DEBUG,

@@ -1283,9 +1283,9 @@ static void rx_mgmt_deauth(struct wlantest *wt, const u8 *data, size_t len,
 			sta->counters[WLANTEST_STA_COUNTER_DEAUTH_RX_AWAKE]++;
 
 		fc = le_to_host16(mgmt->frame_control);
-		if (!(fc & WLAN_FC_ISWEP) && reason == 6)
+		if (!(fc & WLAN_FC_PROTECTED) && reason == 6)
 			sta->counters[WLANTEST_STA_COUNTER_DEAUTH_RX_RC6]++;
-		else if (!(fc & WLAN_FC_ISWEP) && reason == 7)
+		else if (!(fc & WLAN_FC_PROTECTED) && reason == 7)
 			sta->counters[WLANTEST_STA_COUNTER_DEAUTH_RX_RC7]++;
 	} else
 		sta->counters[valid ? WLANTEST_STA_COUNTER_VALID_DEAUTH_TX :
@@ -2856,9 +2856,9 @@ static void rx_mgmt_disassoc(struct wlantest *wt, const u8 *data, size_t len,
 				WLANTEST_STA_COUNTER_DISASSOC_RX_AWAKE]++;
 
 		fc = le_to_host16(mgmt->frame_control);
-		if (!(fc & WLAN_FC_ISWEP) && reason == 6)
+		if (!(fc & WLAN_FC_PROTECTED) && reason == 6)
 			sta->counters[WLANTEST_STA_COUNTER_DISASSOC_RX_RC6]++;
-		else if (!(fc & WLAN_FC_ISWEP) && reason == 7)
+		else if (!(fc & WLAN_FC_PROTECTED) && reason == 7)
 			sta->counters[WLANTEST_STA_COUNTER_DISASSOC_RX_RC7]++;
 	} else
 		sta->counters[valid ? WLANTEST_STA_COUNTER_VALID_DISASSOC_TX :
@@ -3953,11 +3953,11 @@ void rx_mgmt(struct wlantest *wt, const u8 *data, size_t len)
 		   " #%u",
 		   mgmt_stype(stype),
 		   fc & WLAN_FC_PWRMGT ? " PwrMgt" : "",
-		   fc & WLAN_FC_ISWEP ? " Prot" : "",
+		   fc & WLAN_FC_PROTECTED ? " Prot" : "",
 		   MAC2STR(hdr->addr1), MAC2STR(hdr->addr2),
 		   MAC2STR(hdr->addr3), wt->frame_num);
 
-	if ((fc & WLAN_FC_ISWEP) &&
+	if ((fc & WLAN_FC_PROTECTED) &&
 	    !(hdr->addr1[0] & 0x01) &&
 	    (stype == WLAN_FC_STYPE_DEAUTH ||
 	     stype == WLAN_FC_STYPE_DISASSOC ||
@@ -3972,7 +3972,7 @@ void rx_mgmt(struct wlantest *wt, const u8 *data, size_t len)
 			valid = 0;
 	}
 
-	if (!(fc & WLAN_FC_ISWEP) &&
+	if (!(fc & WLAN_FC_PROTECTED) &&
 	    !(hdr->addr1[0] & 0x01) &&
 	    (stype == WLAN_FC_STYPE_DEAUTH ||
 	     stype == WLAN_FC_STYPE_DISASSOC ||

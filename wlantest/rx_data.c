@@ -768,7 +768,7 @@ static void rx_data_bss(struct wlantest *wt, const struct ieee80211_hdr *hdr,
 			const u8 *src, const u8 *data, size_t len)
 {
 	u16 fc = le_to_host16(hdr->frame_control);
-	int prot = !!(fc & WLAN_FC_ISWEP);
+	int prot = !!(fc & WLAN_FC_PROTECTED);
 
 	if (qos) {
 		u8 ack = (qos[0] & 0x60) >> 5;
@@ -937,7 +937,7 @@ void rx_data(struct wlantest *wt, const u8 *data, size_t len)
 			   MACSTR " BSSID=" MACSTR,
 			   data_stype(WLAN_FC_GET_STYPE(fc)),
 			   fc & WLAN_FC_PWRMGT ? " PwrMgt" : "",
-			   fc & WLAN_FC_ISWEP ? " Prot" : "",
+			   fc & WLAN_FC_PROTECTED ? " Prot" : "",
 			   MAC2STR(hdr->addr1), MAC2STR(hdr->addr2),
 			   MAC2STR(hdr->addr3));
 		add_direct_link(wt, hdr->addr3, hdr->addr1, hdr->addr2);
@@ -949,7 +949,7 @@ void rx_data(struct wlantest *wt, const u8 *data, size_t len)
 			   " BSSID=" MACSTR " SA=" MACSTR,
 			   data_stype(WLAN_FC_GET_STYPE(fc)),
 			   fc & WLAN_FC_PWRMGT ? " PwrMgt" : "",
-			   fc & WLAN_FC_ISWEP ? " Prot" : "",
+			   fc & WLAN_FC_PROTECTED ? " Prot" : "",
 			   MAC2STR(hdr->addr1), MAC2STR(hdr->addr2),
 			   MAC2STR(hdr->addr3));
 		add_ap_path(wt, hdr->addr2, hdr->addr1, hdr->addr3);
@@ -961,7 +961,7 @@ void rx_data(struct wlantest *wt, const u8 *data, size_t len)
 			   " SA=" MACSTR " DA=" MACSTR,
 			   data_stype(WLAN_FC_GET_STYPE(fc)),
 			   fc & WLAN_FC_PWRMGT ? " PwrMgt" : "",
-			   fc & WLAN_FC_ISWEP ? " Prot" : "",
+			   fc & WLAN_FC_PROTECTED ? " Prot" : "",
 			   MAC2STR(hdr->addr1), MAC2STR(hdr->addr2),
 			   MAC2STR(hdr->addr3));
 		add_ap_path(wt, hdr->addr1, hdr->addr3, hdr->addr2);
@@ -973,7 +973,7 @@ void rx_data(struct wlantest *wt, const u8 *data, size_t len)
 			   MACSTR " DA=" MACSTR " SA=" MACSTR,
 			   data_stype(WLAN_FC_GET_STYPE(fc)),
 			   fc & WLAN_FC_PWRMGT ? " PwrMgt" : "",
-			   fc & WLAN_FC_ISWEP ? " Prot" : "",
+			   fc & WLAN_FC_PROTECTED ? " Prot" : "",
 			   MAC2STR(hdr->addr1), MAC2STR(hdr->addr2),
 			   MAC2STR(hdr->addr3),
 			   MAC2STR((const u8 *) (hdr + 1)));

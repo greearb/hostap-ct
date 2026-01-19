@@ -46,7 +46,7 @@ static void ccmp_aad_nonce(const struct ieee80211_hdr *hdr, const u8 *data,
 		nonce[0] |= 0x10; /* Management */
 
 	fc &= ~(WLAN_FC_RETRY | WLAN_FC_PWRMGT | WLAN_FC_MOREDATA);
-	fc |= WLAN_FC_ISWEP;
+	fc |= WLAN_FC_PROTECTED;
 	WPA_PUT_LE16(aad, fc);
 	pos = aad + 2;
 	os_memcpy(pos, hdr->addr1, 3 * ETH_ALEN);
@@ -223,7 +223,7 @@ u8 * ccmp_encrypt(const u8 *tk, u8 *frame, size_t len, size_t hdrlen,
 
 	os_memcpy(crypt, frame, hdrlen);
 	hdr = (struct ieee80211_hdr *) crypt;
-	hdr->frame_control |= host_to_le16(WLAN_FC_ISWEP);
+	hdr->frame_control |= host_to_le16(WLAN_FC_PROTECTED);
 	pos = crypt + hdrlen;
 	*pos++ = pn[5]; /* PN0 */
 	*pos++ = pn[4]; /* PN1 */
@@ -356,7 +356,7 @@ u8 * ccmp_256_encrypt(const u8 *tk, u8 *frame, size_t len, size_t hdrlen,
 
 	os_memcpy(crypt, frame, hdrlen);
 	hdr = (struct ieee80211_hdr *) crypt;
-	hdr->frame_control |= host_to_le16(WLAN_FC_ISWEP);
+	hdr->frame_control |= host_to_le16(WLAN_FC_PROTECTED);
 	pos = crypt + hdrlen;
 	*pos++ = pn[5]; /* PN0 */
 	*pos++ = pn[4]; /* PN1 */
