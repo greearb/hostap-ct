@@ -20586,10 +20586,18 @@ enum qca_wlan_vendor_iq_inference_cmd_type {
  *
  * @QCA_WLAN_VENDOR_IQ_INFERENCE_STAGE_SECOND_PASS: Represents the second
  * pass in inference stage.
+ *
+ * @QCA_WLAN_VENDOR_IQ_INFERENCE_STAGE_THIRD_PASS: Represents the third
+ * pass in inference stage.
+ *
+ * @QCA_WLAN_VENDOR_IQ_INFERENCE_STAGE_FOURTH_PASS: Represents the fourth
+ * pass in inference stage.
  */
 enum qca_wlan_vendor_iq_inference_stage {
 	QCA_WLAN_VENDOR_IQ_INFERENCE_STAGE_FIRST_PASS = 0,
 	QCA_WLAN_VENDOR_IQ_INFERENCE_STAGE_SECOND_PASS = 1,
+	QCA_WLAN_VENDOR_IQ_INFERENCE_STAGE_THIRD_PASS = 2,
+	QCA_WLAN_VENDOR_IQ_INFERENCE_STAGE_FOURTH_PASS = 3,
 };
 
 /**
