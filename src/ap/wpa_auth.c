@@ -2186,6 +2186,7 @@ void __wpa_send_eapol(struct wpa_authenticator *wpa_auth,
 		if (aes_siv_encrypt(sm->PTK.kek, sm->PTK.kek_len, kde, kde_len,
 				    1, aad, aad_len, key_mic + 2) < 0) {
 			wpa_printf(MSG_DEBUG, "WPA: AES-SIV encryption failed");
+			os_free(hdr);
 			return;
 		}
 
