@@ -603,6 +603,9 @@ def _test_ap_open_tdls_external_control(dev, apdev):
     dev[1].connect("test-open", key_mgmt="NONE", scan_freq="2412")
     addr0 = dev[0].own_addr()
     addr1 = dev[1].own_addr()
+    hapd.wait_sta()
+    hapd.wait_sta()
+    connectivity(dev, hapd)
 
     dev[0].set("tdls_external_control", "1")
     if "FAIL" in dev[0].request("TDLS_SETUP " + addr1):
