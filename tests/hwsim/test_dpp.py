@@ -3242,9 +3242,13 @@ def test_dpp_hostapd_enrollee_gas_timeout_comeback(dev, apdev):
     if "result=TIMEOUT" not in ev:
         raise Exception("GAS timeout not reported")
 
-def process_dpp_frames(dev, count=3):
+def process_dpp_frames(dev, count=3, only_dpp_action=False):
     for i in range(count):
         msg = dev.mgmt_rx()
+        payload = msg['payload']
+        categ, action = struct.unpack('BB', payload[0:2])
+        if only_dpp_action and (categ != 4 or action != 9):
+            raise Exception("Unexpected Action frame: categ=%d action=%d" % (categ, action))
         cmd = "MGMT_RX_PROCESS freq={} datarate={} ssi_signal={} frame={}".format(msg['freq'], msg['datarate'], msg['ssi_signal'], binascii.hexlify(msg['frame']).decode())
         if "OK" not in dev.request(cmd):
             raise Exception("MGMT_RX_PROCESS failed")
@@ -3319,7 +3323,9 @@ def test_dpp_hostapd_enrollee_gas_proto(dev, apdev):
     process_dpp_frames(dev[0], count=3)
     msg = dev[0].mgmt_rx()
     payload = msg['payload']
-    dialog_token, = struct.unpack('B', payload[2:3])
+    categ, action, dialog_token = struct.unpack('BBB', payload[0:3])
+    if categ != 4 or action != 12:
+        raise Exception("Unexpected Action frame: categ=%d action=%d" % (categ, action))
     hdr = struct.pack('<BBBHBH', 4, 13, dialog_token, 0, 0x80, 0)
     # GAS: Advertisement Protocol changed between initial and comeback response from 02:00:00:00:00:00
     adv_proto = "6c087fdd05506f9a1a02"
@@ -3338,7 +3344,9 @@ def test_dpp_hostapd_enrollee_gas_proto(dev, apdev):
     process_dpp_frames(dev[0], count=3)
     msg = dev[0].mgmt_rx()
     payload = msg['payload']
-    dialog_token, = struct.unpack('B', payload[2:3])
+    categ, action, dialog_token = struct.unpack('BBB', payload[0:3])
+    if categ != 4 or action != 12:
+        raise Exception("Unexpected Action frame: categ=%d action=%d" % (categ, action))
     # Another comeback delay
     hdr = struct.pack('<BBBHBH', 4, 13, dialog_token, 0, 0x80, 1)
     adv_proto = "6c087fdd05506f9a1a01"
@@ -3363,7 +3371,9 @@ def test_dpp_hostapd_enrollee_gas_proto(dev, apdev):
     process_dpp_frames(dev[0], count=3)
     msg = dev[0].mgmt_rx()
     payload = msg['payload']
-    dialog_token, = struct.unpack('B', payload[2:3])
+    categ, action, dialog_token = struct.unpack('BBB', payload[0:3])
+    if categ != 4 or action != 12:
+        raise Exception("Unexpected Action frame: categ=%d action=%d" % (categ, action))
     # Valid comeback response
     hdr = struct.pack('<BBBHBH', 4, 13, dialog_token, 0, 0x80, 0)
     action = binascii.hexlify(hdr).decode() + adv_proto + "0300" + "001001"
@@ -3392,7 +3402,9 @@ def test_dpp_hostapd_enrollee_gas_proto(dev, apdev):
     process_dpp_frames(dev[0], count=3)
     msg = dev[0].mgmt_rx()
     payload = msg['payload']
-    dialog_token, = struct.unpack('B', payload[2:3])
+    categ, action, dialog_token = struct.unpack('BBB', payload[0:3])
+    if categ != 4 or action != 12:
+        raise Exception("Unexpected Action frame: categ=%d action=%d" % (categ, action))
     # GAS: Unexpected initial response from 02:00:00:00:00:00 dialog token 3 when waiting for comeback response
     hdr = struct.pack('<BBBHBH', 4, 11, dialog_token, 0, 0x80, 0)
     action = binascii.hexlify(hdr).decode() + adv_proto + "0300" + "001001"
@@ -3450,15 +3462,18 @@ def test_dpp_hostapd_enrollee_gas_proto(dev, apdev):
     if not ev or "result=FAILURE" not in ev:
         raise Exception("Unexpect GAS query result: " + str(ev))
     dev[0].request("DPP_STOP_LISTEN")
+    time.sleep(1)
     hapd.dump_monitor()
     dev[0].dump_monitor()
 
     dev[0].dpp_listen(2437, role="configurator")
     hapd.dpp_auth_init(uri=uri0, role="enrollee")
-    process_dpp_frames(dev[0], count=2)
+    process_dpp_frames(dev[0], count=2, only_dpp_action=True)
     msg = dev[0].mgmt_rx()
     payload = msg['payload']
-    dialog_token, = struct.unpack('B', payload[2:3])
+    categ, action, dialog_token = struct.unpack('BBB', payload[0:3])
+    if categ != 4 or action != 10:
+        raise Exception("Unexpected Action frame: categ=%d action=%d" % (categ, action))
     # Unexpected comeback delay
     hdr = struct.pack('<BBBHBH', 4, 13, dialog_token, 0, 0x80, 0)
     adv_proto = "6c087fdd05506f9a1a01"
