@@ -12620,6 +12620,21 @@ static int wpas_ctrl_iface_mlo_status(struct wpa_supplicant *wpa_s,
 		if (os_snprintf_error(end - pos, ret))
 			return pos - buf;
 		pos += ret;
+
+		if (wpa_s->connection_set) {
+			ret = os_snprintf(
+				pos, end - pos,
+				"max_nss_rx=%u\n"
+				"max_nss_tx=%u\n"
+				"channel_width=%u\n",
+				wpa_s->links[i].max_nss_rx,
+				wpa_s->links[i].max_nss_tx,
+				channel_width_to_int(
+					wpa_s->links[i].channel_bandwidth));
+			if (os_snprintf_error(end - pos, ret))
+				return pos - buf;
+			pos += ret;
+		}
 	}
 
 	return pos - buf;
