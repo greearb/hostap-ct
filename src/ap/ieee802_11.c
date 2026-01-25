@@ -3574,12 +3574,6 @@ static void handle_auth(struct hostapd_data *hapd,
 	if (!sta->added_unassoc && auth_transaction == 1) {
 		ap_sta_free_sta_profile(&sta->mld_info);
 		os_memset(&sta->mld_info, 0, sizeof(sta->mld_info));
-		if ((!(sta->flags & WLAN_STA_MFP) ||
-		     !ap_sta_is_authorized(sta)) && sta->wpa_sm) {
-			wpa_auth_sta_deinit(sta->wpa_sm);
-			sta->wpa_sm = NULL;
-			clear_wpa_sm_for_each_partner_link(hapd, sta);
-		}
 
 		if (mld_sta) {
 			u8 link_id = hapd->mld_link_id;
@@ -3597,6 +3591,13 @@ static void handle_auth(struct hostapd_data *hapd,
 				  mgmt->sa, ETH_ALEN);
 			os_memcpy(sta->mld_info.links[link_id].local_addr,
 				  hapd->own_addr, ETH_ALEN);
+		}
+
+		if ((!(sta->flags & WLAN_STA_MFP) ||
+		     !ap_sta_is_authorized(sta)) && sta->wpa_sm) {
+			wpa_auth_sta_deinit(sta->wpa_sm);
+			sta->wpa_sm = NULL;
+			clear_wpa_sm_for_each_partner_link(hapd, sta);
 		}
 	}
 #endif /* CONFIG_IEEE80211BE */
