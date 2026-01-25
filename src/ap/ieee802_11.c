@@ -3595,7 +3595,10 @@ static void handle_auth(struct hostapd_data *hapd,
 
 		if ((!(sta->flags & WLAN_STA_MFP) ||
 		     !ap_sta_is_authorized(sta)) && sta->wpa_sm) {
-			wpa_auth_sta_deinit(sta->wpa_sm);
+			struct wpa_state_machine *sm = sta->wpa_sm;
+
+			clear_wpa_sm_for_all_sta(hapd, sm);
+			wpa_auth_sta_deinit(sm);
 			sta->wpa_sm = NULL;
 			clear_wpa_sm_for_each_partner_link(hapd, sta);
 		}
@@ -4927,7 +4930,10 @@ skip_wpa_ies:
 
 out:
 	if (resp != WLAN_STATUS_SUCCESS || assoc_wpa_sm) {
-		wpa_auth_sta_deinit(sta->wpa_sm);
+		struct wpa_state_machine *sm = sta->wpa_sm;
+
+		clear_wpa_sm_for_all_sta(hapd, sm);
+		wpa_auth_sta_deinit(sm);
 
 		/* Only keep a reference to the main wpa_sm and drop the
 		 * per-link instance.

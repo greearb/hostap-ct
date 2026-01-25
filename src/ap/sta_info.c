@@ -247,6 +247,25 @@ void clear_wpa_sm_for_each_partner_link(struct hostapd_data *hapd,
 	set_wpa_sm_for_each_partner_link(hapd, psta, NULL);
 }
 
+
+void clear_wpa_sm_for_all_sta(struct hostapd_data *hapd,
+			      struct wpa_state_machine *wpa_sm)
+{
+	struct hostapd_data *lhapd;
+
+	if (!hapd->mld)
+		return;
+
+	for_each_mld_link(lhapd, hapd) {
+		struct sta_info *sta;
+
+		for (sta = lhapd->sta_list; sta; sta = sta->next) {
+			if (sta->wpa_sm == wpa_sm)
+				sta->wpa_sm = NULL;
+		}
+	}
+}
+
 #endif /* CONFIG_IEEE80211BE */
 
 

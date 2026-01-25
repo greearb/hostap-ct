@@ -443,5 +443,7 @@ void set_wpa_sm_for_each_partner_link(struct hostapd_data *hapd,
 				      struct sta_info *psta, void *wpa_sm);
 void clear_wpa_sm_for_each_partner_link(struct hostapd_data *hapd,
 					struct sta_info *psta);
+void clear_wpa_sm_for_all_sta(struct hostapd_data *hapd,
+			      struct wpa_state_machine *wpa_sm);
 
 #endif /* STA_INFO_H */
