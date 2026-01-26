@@ -8205,7 +8205,8 @@ repeat_rnr_len:
 #endif /* CONFIG_IEEE80211BE */
 
 			if (bss == reporting_hapd ||
-			    bss->conf->ignore_broadcast_ssid)
+			    (bss->conf->ignore_broadcast_ssid &&
+			     !(ap_mld && mld_update)))
 				continue;
 
 			if (hostapd_skip_rnr(i, skip_profiles, ap_mld,
@@ -8474,9 +8475,10 @@ static bool hostapd_eid_rnr_bss(struct hostapd_data *hapd,
 	ap_mld = !!hapd->conf->mld_ap;
 #endif /* CONFIG_IEEE80211BE */
 
+	/* MLD RNR has to be included for the parameter change count */
 	if (!bss || !bss->conf || !bss->started ||
-	    bss == reporting_hapd || bss->conf->ignore_broadcast_ssid ||
-	    !bss->beacon_set_done)
+	    bss == reporting_hapd || !bss->beacon_set_done ||
+	    (bss->conf->ignore_broadcast_ssid && !(ap_mld && mld_update)))
 		return false;
 
 	if (hostapd_skip_rnr(i, skip_profiles, ap_mld, tbtt_info_len,
