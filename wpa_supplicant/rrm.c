@@ -751,18 +751,22 @@ static int * wpas_beacon_request_freqs(struct wpa_supplicant *wpa_s,
 int wpas_get_op_chan_phy(int freq, const u8 *ies, size_t ies_len,
 			 u8 *op_class, u8 *chan, u8 *phy_type)
 {
-	const u8 *ie;
-	int sec_chan = 0, vht = 0;
-	struct ieee80211_ht_operation *ht_oper = NULL;
-	struct ieee80211_vht_operation *vht_oper = NULL;
-	u8 seg0, seg1;
+	int sec_chan = 0, chanwidth = 0;
+	struct ieee802_11_elems elems;
+	struct ieee80211_ht_operation *ht_oper;
 
-	ie = get_ie(ies, ies_len, WLAN_EID_HT_OPERATION);
-	if (ie && ie[1] >= sizeof(struct ieee80211_ht_operation)) {
-		u8 sec_chan_offset;
+	if (ieee802_11_parse_elems(ies, ies_len, &elems, 1) == ParseFailed)
+		return -1;
 
-		ht_oper = (struct ieee80211_ht_operation *) (ie + 2);
-		sec_chan_offset = ht_oper->ht_param &
+	chanwidth = get_operation_channel_width(&elems);
+	if (chanwidth == CHAN_WIDTH_UNKNOWN) {
+		wpa_printf(MSG_DEBUG, "Cannot determine channel width");
+		return -1;
+	}
+
+	ht_oper = (struct ieee80211_ht_operation *) elems.ht_operation;
+	if (ht_oper) {
+		u8 sec_chan_offset = ht_oper->ht_param &
 			HT_INFO_HT_PARAM_SECONDARY_CHNL_OFF_MASK;
 		if (sec_chan_offset == HT_INFO_HT_PARAM_SECONDARY_CHNL_ABOVE)
 			sec_chan = 1;
@@ -771,42 +775,15 @@ int wpas_get_op_chan_phy(int freq, const u8 *ies, size_t ies_len,
 			sec_chan = -1;
 	}
 
-	ie = get_ie(ies, ies_len, WLAN_EID_VHT_OPERATION);
-	if (ie && ie[1] >= sizeof(struct ieee80211_vht_operation)) {
-		vht_oper = (struct ieee80211_vht_operation *) (ie + 2);
-
-		switch (vht_oper->vht_op_info_chwidth) {
-		case CHANWIDTH_80MHZ:
-			seg0 = vht_oper->vht_op_info_chan_center_freq_seg0_idx;
-			seg1 = vht_oper->vht_op_info_chan_center_freq_seg1_idx;
-			if (seg1 && abs(seg1 - seg0) == 8)
-				vht = CONF_OPER_CHWIDTH_160MHZ;
-			else if (seg1)
-				vht = CONF_OPER_CHWIDTH_80P80MHZ;
-			else
-				vht = CONF_OPER_CHWIDTH_80MHZ;
-			break;
-		case CHANWIDTH_160MHZ:
-			vht = CONF_OPER_CHWIDTH_160MHZ;
-			break;
-		case CHANWIDTH_80P80MHZ:
-			vht = CONF_OPER_CHWIDTH_80P80MHZ;
-			break;
-		default:
-			vht = CONF_OPER_CHWIDTH_USE_HT;
-			break;
-		}
-	}
-
-	if (ieee80211_freq_to_channel_ext(freq, sec_chan, vht, op_class,
+	if (ieee80211_chaninfo_to_channel(freq, chanwidth, sec_chan, op_class,
 					  chan) == NUM_HOSTAPD_MODES) {
 		wpa_printf(MSG_DEBUG,
 			   "Cannot determine operating class and channel");
 		return -1;
 	}
 
-	*phy_type = ieee80211_get_phy_type(freq, ht_oper != NULL,
-					   vht_oper != NULL);
+	*phy_type = ieee80211_get_phy_type(freq, elems.ht_operation != NULL,
+					   elems.vht_operation != NULL);
 	if (*phy_type == PHY_TYPE_UNSPECIFIED) {
 		wpa_printf(MSG_DEBUG, "Cannot determine phy type");
 		return -1;
