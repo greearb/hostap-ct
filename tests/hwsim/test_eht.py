@@ -946,7 +946,7 @@ def test_eht_ml_probe_req(dev, apdev):
         if ev is None:
             raise Exception("ML_PROBE_REQ did not result in scan results")
 
-def test_eht_mld_connect_probes(dev, apdev, params):
+def _eht_mld_connect_probes(params, hidden=False):
     """MLD client sends ML probe to connect to not discovered links"""
     with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
         HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
@@ -961,15 +961,22 @@ def test_eht_mld_connect_probes(dev, apdev, params):
                                              key_mgmt="SAE", pwe='2')
         link_params['channel'] = '1'
         link_params['bssid'] = '00:11:22:33:44:01'
+        if hidden:
+            link_params['ignore_broadcast_ssid'] = '1'
+
         hapd0 = eht_mld_enable_ap(hapd_iface, 0, link_params)
 
         link_params['channel'] = '6'
         link_params['bssid'] = '00:11:22:33:44:02'
         hapd1 = eht_mld_enable_ap(hapd_iface, 1, link_params)
 
+        # In the hidden test, scan passively to have the BSSs without SSID
+        if hidden:
+            wpas.scan(freq="2412,2437", passive=True)
+
         wpas.set("sae_pwe", "1")
         wpas.connect(ssid, sae_password= passphrase, ieee80211w="2",
-                     key_mgmt="SAE", scan_freq="2412")
+                     key_mgmt="SAE", scan_freq="2412", scan_ssid="1")
 
         filters = ['wlan.fc.type_subtype == 0x0004 && wlan.ext_tag.length == 8 && wlan.ext_tag.number == 107 && wlan.eht.multi_link.control == 0x0011 && wlan.eht.multi_link.common_info.length == 2 && wlan.eht.multi_link.common_info.mld_id == 0 && wlan.eht.multi_link.sta_profile.subelt_id == 0 && wlan.eht.multi_link.sta_profile.subelt_len == 2 && wlan.eht.multi_link.type_1.sta_profile_count == 1 && wlan.eht.multi_link.sta_profile_id_list == \'1\'',
                    'wlan.fc.type_subtype == 0x0004 && wlan.ext_tag.length == 8 && wlan.ext_tag.number == 107 && wlan.eht.multi_link_control == 0x0011 && wlan.eht.multi_link.common_info.length == 2 && wlan.eht.multi_link.common_info.mld_id == 0 && wlan.eht.multi_link.sta_profile.subelt_id == 0 && wlan.eht.multi_link.sta_profile.subelt_len == 2 && wlan.eht.multi_link.type_1.sta_profile_count == 1 && wlan.eht.multi_link.sta_profile_id_list == 1',
@@ -993,6 +1000,14 @@ def test_eht_mld_connect_probes(dev, apdev, params):
                           valid_links=3, active_links=3)
         traffic_test(wpas, hapd0)
         traffic_test(wpas, hapd1)
+
+def test_eht_mld_connect_probes(dev, apdev, params):
+    """MLD client sends ML probe to connect to not discovered links"""
+    _eht_mld_connect_probes(params)
+
+def test_eht_mld_connect_probes_hidden(dev, apdev, params):
+    """MLD client sends ML probe with SSID to connect to not discovered links"""
+    _eht_mld_connect_probes(params, hidden=True)
 
 def test_eht_tx_link_rejected_connect_other(dev, apdev, params):
     """EHT MLD AP with MLD client being rejected on TX link, but then connecting on second link"""
