@@ -202,8 +202,11 @@ def test_nan_usd_match_p2p(dev, apdev):
     if "ssi=6677" not in ev.split(' '):
         raise Exception("Unexpected ssi: " + ev)
 
-    dev[0].request("NAN_CANCEL_SUBSCRIBE id=" + id0)
-    dev[1].request("NAN_CANCEL_PUBLISH id=" + id1)
+    if "OK" not in dev[0].request("NAN_CANCEL_SUBSCRIBE subscribe_id=" + id0):
+        raise Exception("NAN_CANCEL_SUBSCRIBE failed")
+    if "OK" not in dev[1].request("NAN_CANCEL_PUBLISH publish_id=" + id1):
+        raise Exception("NAN_CANCEL_PUBLISH failed")
+    time.sleep(1)
 
     dev[1].remove_group()
     dev[0].wait_go_ending_session()
