@@ -1301,7 +1301,7 @@ static int wpa_supplicant_install_ptk(struct wpa_sm *sm,
 	}
 #endif /* CONFIG_PASN */
 
-	wpa_sm_store_ptk(sm, sm->bssid, sm->pairwise_cipher,
+	wpa_sm_store_ptk(sm, wpa_sm_get_auth_addr(sm), sm->pairwise_cipher,
 			 sm->dot11RSNAConfigPMKLifetime, &sm->ptk);
 
 	if (key_flag & KEY_FLAG_NEXT) {
@@ -7027,7 +7027,7 @@ int fils_process_assoc_resp(struct wpa_sm *sm, const u8 *resp, size_t len)
 		goto fail;
 	}
 
-	wpa_sm_store_ptk(sm, sm->bssid, sm->pairwise_cipher,
+	wpa_sm_store_ptk(sm, wpa_sm_get_auth_addr(sm), sm->pairwise_cipher,
 			 sm->dot11RSNAConfigPMKLifetime, &sm->ptk);
 
 	/* TODO: TK could be cleared after auth frame exchange now that driver
