@@ -1267,6 +1267,7 @@ void eloop_destroy(void)
 {
 	struct eloop_timeout *timeout, *prev;
 	struct os_reltime now;
+	size_t i;
 
 	os_get_reltime(&now);
 	dl_list_for_each_safe(timeout, prev, &eloop.timeout,
@@ -1290,6 +1291,10 @@ void eloop_destroy(void)
 	eloop_sock_table_destroy(&eloop.readers);
 	eloop_sock_table_destroy(&eloop.writers);
 	eloop_sock_table_destroy(&eloop.exceptions);
+
+	for (i = 0; i < eloop.signal_count; i++)
+		signal(eloop.signals[i].sig, SIG_DFL);
+
 	os_free(eloop.signals);
 
 #ifdef CONFIG_ELOOP_POLL
