@@ -104,6 +104,10 @@ uml_issue_tests = ["eht_connect_invalid_link",
                    "ap_open_ps_mc_buf",
                    "wmediumd_path_rann",
                    "mbo_assoc_disallow",
+                   "mesh_scan_oom",
+                   "fst_session_oom",
+                   "authsrv_oom",
+                   "gas_failures",
                    "ieee8021x_reauth_wep"]
 
 # Test cases that depend on dumping full process memory
