@@ -4249,6 +4249,12 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_ALLOW_PEER_PROTOCOL_INDOOR_CH_STA_SCC = 142,
 
+	/* Nested attribute to configure or report Estimated Service Parameters
+	 * (ESP). This contains nested attributes defined in
+	 * enum qca_wlan_vendor_attr_config_esp_param.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_PARAMS = 143,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
@@ -23317,6 +23323,70 @@ enum qca_wlan_host_txrx_stats_attr {
 	QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_LAST,
 	QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_MAX =
 	QCA_WLAN_VENDOR_ATTR_HOST_TXRX_STATS_PARAM_LAST - 1
+};
+
+/**
+ * enum qca_wlan_vendor_attr_config_esp_param - Parameters for ESP configuration
+ *
+ * Attributes used to configure (set command) or report (get command)
+ * Estimated Service Parameters (ESP). ESP describes predicted service
+ * characteristics such as airtime availability, PPDU duration, and Block Ack
+ * window size per access category and it is advertised in the Estimated Service
+ * Parameters Inbound element (see IEEE Std 802.11-2024, 9.4.2.172).
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_ENABLE: u8. Enable (1) or disable (0)
+ * the advertisement of the Estimated Service Parameters Inbound element
+ * in Beacon and Probe Response frames.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_AIRTIME_BE: u8. Predicted percentage of
+ * airtime available for AC_BE. This is the exact 8-bit value used in the ESP
+ * Information field as defined in IEEE Std 802.11-2024, 9.4.2.172. The
+ * value is linearly scaled: 0 represents 0% airtime, 255 represents 100%
+ * airtime.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_PPDU_DUR_BE: u8. BE Access Category "target"
+ * duration for PPDUs that carry Data MPDUs, i.e., how long the AP expects a
+ * typical data transmission PPDU to last for the BE AC. Encoded in unts of 50
+ * microseconds (actual_duration_us = value × 50) as defined in IEEE Std
+ * 802.11-2024, 9.4.2.172.
+ * Range: 0..255 units (0..12.75 ms). Example: value 16 -> 800 microseconds.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_BA_WINDOW_BE: u8. BA Window Size subfield
+ * for AC_BE as defined in IEEE Std 802.11-2024, Table 9-334 (BA Window Size
+ * subfield encoding).
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_AIRTIME_BK: u8. Airtime for AC_BK.
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_PPDU_DUR_BK: u8. PPDU duration for AC_BK.
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_BA_WINDOW_BK: u8. BA window for AC_BK.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_AIRTIME_VI: u8. Airtime for AC_VI.
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_PPDU_DUR_VI: u8. PPDU duration for AC_VI.
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_BA_WINDOW_VI: u8. BA window for AC_VI.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_AIRTIME_VO: u8. Airtime for AC_VO.
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_PPDU_DUR_VO: u8. PPDU duration for AC_VO.
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_BA_WINDOW_VO: u8. BA window for AC_VO.
+ */
+enum qca_wlan_vendor_attr_config_esp_param {
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_ENABLE = 1,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_AIRTIME_BE = 2,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_PPDU_DUR_BE = 3,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_BA_WINDOW_BE = 4,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_AIRTIME_BK = 5,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_PPDU_DUR_BK = 6,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_BA_WINDOW_BK = 7,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_AIRTIME_VI = 8,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_PPDU_DUR_VI = 9,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_BA_WINDOW_VI = 10,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_AIRTIME_VO = 11,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_PPDU_DUR_VO = 12,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_BA_WINDOW_VO = 13,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_MAX =
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
