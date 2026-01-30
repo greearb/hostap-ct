@@ -10494,6 +10494,32 @@ def run_ap_wps_conf_and_sae_h2e(dev, apdev):
     if 'pmf' not in status or status['pmf'] != "1":
         raise Exception("PMF not enabled")
 
+def test_ap_wps_conf_and_sae_mbo(dev, apdev):
+    """WPS provisioning with configured AP using PSK+SAE and MBO"""
+    try:
+        run_ap_wps_conf_and_sae_mbo(dev, apdev)
+    finally:
+        dev[0].set("wps_cred_add_sae", "0")
+
+def run_ap_wps_conf_and_sae_mbo(dev, apdev):
+    check_sae_capab(dev[0])
+    ssid = "test-wps-conf-sae-mbo"
+    hapd = hostapd.add_ap(apdev[0],
+                          {"ssid": ssid, "eap_server": "1", "wps_state": "2",
+                           "wpa_passphrase": "12345678", "wpa": "2",
+                           "ieee80211w": "1", "sae_require_mfp": "1",
+                           "wpa_key_mgmt": "WPA-PSK SAE",
+                           "rsn_pairwise": "CCMP",
+                           "mbo": "1"})
+
+    dev[0].set("wps_cred_add_sae", "1")
+    dev[0].set("sae_groups", "")
+    dev[0].scan_for_bss(apdev[0]['bssid'], freq="2412")
+    pin = dev[0].wps_read_pin()
+    hapd.request("WPS_PIN any " + pin)
+    dev[0].request("WPS_PIN " + apdev[0]['bssid'] + " " + pin)
+    dev[0].wait_connected(timeout=30)
+
 def test_ap_wps_reg_config_and_sae(dev, apdev):
     """WPS registrar configuring an AP using AP PIN and using PSK+SAE"""
     try:
