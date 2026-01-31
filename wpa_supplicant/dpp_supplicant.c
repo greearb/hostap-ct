@@ -1822,6 +1822,7 @@ static int wpas_dpp_handle_config_obj(struct wpa_supplicant *wpa_s,
 	if (!wpa_s->dpp_pb_result_indicated) {
 		wpa_msg(wpa_s, MSG_INFO, DPP_EVENT_PB_RESULT "success");
 		wpa_s->dpp_pb_result_indicated = true;
+		wpas_dpp_push_button_stop(wpa_s);
 	}
 
 #endif /* CONFIG_DPP3 */
