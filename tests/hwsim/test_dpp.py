@@ -7437,14 +7437,29 @@ def dpp_sign_cert(cacert, cakey, csr_der):
 
 def test_dpp_enterprise(dev, apdev, params):
     """DPP and enterprise EAP-TLS provisioning"""
+    dpp_enterprise(dev, apdev, params, 0)
+
+def test_dpp_enterprise_1400ms(dev, apdev, params):
+    """DPP and enterprise EAP-TLS provisioning (1400 ms CA delay)"""
+    dpp_enterprise(dev, apdev, params, 1.4)
+
+def test_dpp_enterprise_2400ms(dev, apdev, params):
+    """DPP and enterprise EAP-TLS provisioning (2400 ms CA delay)"""
+    dpp_enterprise(dev, apdev, params, 2.4)
+
+def test_dpp_enterprise_5000ms(dev, apdev, params):
+    """DPP and enterprise EAP-TLS provisioning (5000 ms CA delay)"""
+    dpp_enterprise(dev, apdev, params, 5)
+
+def dpp_enterprise(dev, apdev, params, ca_delay):
     check_dpp_capab(dev[0], min_ver=2)
     try:
         dev[0].set("dpp_config_processing", "2")
-        run_dpp_enterprise(dev, apdev, params)
+        run_dpp_enterprise(dev, apdev, params, ca_delay=ca_delay)
     finally:
         dev[0].set("dpp_config_processing", "0", allow_fail=True)
 
-def run_dpp_enterprise(dev, apdev, params):
+def run_dpp_enterprise(dev, apdev, params, ca_delay=0):
     if not openssl_imported:
         raise HwsimSkip("OpenSSL python method not available")
     check_dpp_capab(dev[0])
@@ -7494,6 +7509,10 @@ def run_dpp_enterprise(dev, apdev, params):
     csr = csr[4:]
     csr = base64.b64decode(csr.encode())
     logger.info("CSR: " + binascii.hexlify(csr).decode())
+
+    if ca_delay:
+        logger.info("Wait for %d s before signing" % ca_delay)
+        time.sleep(ca_delay)
 
     cert = dpp_sign_cert(cacert, cakey, csr)
     with open(cert_file, 'wb') as f:
