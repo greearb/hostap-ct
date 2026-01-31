@@ -470,9 +470,9 @@ def test_nan_usd_publish_multi_chan_pause(dev, apdev):
     if "FAIL" in id2:
         raise Exception("NAN_SUBSCRIBE failed")
 
-    ev = dev[0].wait_event(["NAN-RECEIVE"], timeout=10)
+    ev = dev[0].wait_event(["NAN-RECEIVE", "NAN-REPLIED"], timeout=10)
     if ev is None:
-        raise Exception("Receive event not seen")
+        raise Exception("No receive or replied event not seen")
     if "address=" + dev[1].own_addr() in ev.split():
         dev1 = dev[1]
         dev2 = dev[2]
@@ -480,7 +480,7 @@ def test_nan_usd_publish_multi_chan_pause(dev, apdev):
         dev1 = dev[2]
         dev2 = dev[1]
     else:
-        raise Exception("Unexpected address in NAN-RECEIVE: " + ev)
+        raise Exception("Unexpected address in NAN-RECEIVE/NAN-REPLIED: " + ev)
 
     ev = dev1.wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
     if ev is None:
