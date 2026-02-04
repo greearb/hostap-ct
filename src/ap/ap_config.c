@@ -170,7 +170,9 @@ void hostapd_config_defaults_bss(struct hostapd_bss_config *bss)
 #ifdef CONFIG_TESTING_OPTIONS
 	bss->sae_commit_status = -1;
 	bss->test_assoc_comeback_type = -1;
+#ifdef CONFIG_IEEE80211BE
 	bss->mld_link_id = -1;
+#endif
 #endif /* CONFIG_TESTING_OPTIONS */
 
 #ifdef CONFIG_PASN
