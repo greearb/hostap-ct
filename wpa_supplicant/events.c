@@ -4571,8 +4571,9 @@ out:
 
 static void wpa_supplicant_tx_queue_params(struct wpa_supplicant *wpa_s){
 	struct hostapd_tx_queue_params *p;
+	int i;
 
-	for (int i = 0; i < NUM_TX_QUEUES; i++){
+	for (i = 0; i < NUM_TX_QUEUES; i++){
 		p = &wpa_s->conf->tx_queue[i];
 		if(wpa_drv_set_tx_queue_params(wpa_s, i, p->aifs,
 						      p->cwmin, p->cwmax,

@@ -5590,11 +5590,15 @@ static int hostapd_ctrl_bss_remove(struct hapd_interfaces *interfaces,
 static int hostapd_ctrl_mld_remove(struct hapd_interfaces *interfaces,
 				   char *buf)
 {
+#ifdef CONFIG_IEEE80211BE
 	if (hostapd_remove_mld(interfaces, buf) < 0) {
 		wpa_printf(MSG_ERROR, "Removing AP MLD %s failed", buf);
 		return -1;
 	}
 	return 0;
+#else
+	return -1;
+#endif
 }
 
 

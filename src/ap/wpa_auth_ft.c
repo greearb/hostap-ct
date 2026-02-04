@@ -2207,9 +2207,11 @@ static void wpa_auth_ft_store_pmks(struct wpa_state_machine *sm, const u8 *pmk_r
 	size_t identity_len, radius_cui_len;
 	int session_timeout;
 
+#ifdef CONFIG_IEEE80211BE
 	if (link_id >= 0)
 		wpa_auth = wpa_get_link_auth(sm->wpa_auth, link_id);
 	else
+#endif
 		wpa_auth = sm->wpa_auth;
 
 	if (!wpa_auth)
@@ -2245,6 +2247,7 @@ void wpa_auth_ft_store_keys(struct wpa_state_machine *sm, const u8 *pmk_r0,
 			    const u8 *pmk_r1, const u8 *pmk_r0_name,
 			    size_t key_len)
 {
+#ifdef CONFIG_IEEE80211BE
 	int link_id;
 
 	if (sm->mld_assoc_link_id == -1) {
@@ -2258,6 +2261,7 @@ void wpa_auth_ft_store_keys(struct wpa_state_machine *sm, const u8 *pmk_r0,
 
 		wpa_auth_ft_store_pmks(sm, pmk_r0, pmk_r0_name, pmk_r1, key_len, link_id);
 	}
+#endif
 	return;
 }
 
@@ -2891,7 +2895,9 @@ u8 * wpa_sm_write_assoc_resp_ies(struct wpa_state_machine *sm, u8 *pos,
 					   "key subelement");
 				return NULL;
 			}
-		} else {
+		}
+#ifdef CONFIG_IEEE80211BE
+		else {
 			u8 *link_key_subelem;
 			size_t link_key_len;
 			u8 *nbuf;
@@ -2926,6 +2932,7 @@ u8 * wpa_sm_write_assoc_resp_ies(struct wpa_state_machine *sm, u8 *pos,
 				os_free(link_key_subelem);
 			}
 		}
+#endif
 #ifdef CONFIG_OCV
 		if (wpa_auth_uses_ocv(sm)) {
 			struct wpa_channel_info ci;
@@ -3792,6 +3799,7 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 	struct wpa_auth_config *conf;
 	int retval = WLAN_STATUS_UNSPECIFIED_FAILURE;
 	struct ft_links ft_sta_links;
+	int i;
 
 	if (sm == NULL)
 		return WLAN_STATUS_UNSPECIFIED_FAILURE;
@@ -3989,7 +3997,7 @@ int wpa_ft_validate_reassoc(struct wpa_state_machine *sm, const u8 *ies,
 		wpa_hexdump(MSG_MSGDUMP, "FT: RSNXE",
 			    parse.rsnxe ? parse.rsnxe - 2 : NULL,
 			    parse.rsnxe ? parse.rsnxe_len + 2 : 0);
-		for (int i = 0; i < ft_sta_links.link_count; i++)  {
+		for (i = 0; i < ft_sta_links.link_count; i++)  {
 			struct ft_link_data *link_data;
 
 			link_data = &ft_sta_links.links[i];
@@ -4632,6 +4640,7 @@ static int wpa_ft_rrb_rx_r1(struct wpa_authenticator *wpa_auth,
 		session_timeout = 0;
 	wpa_printf(MSG_DEBUG, "FT: session_timeout %d", session_timeout);
 
+#ifdef CONFIG_IEEE80211BE
 	if (wpa_auth->is_ml) {
 		struct wpa_authenticator *link_auth;
 		for (int link_id = 0; link_id < MAX_NUM_MLD_LINKS; link_id++) {
@@ -4649,7 +4658,9 @@ static int wpa_ft_rrb_rx_r1(struct wpa_authenticator *wpa_auth,
 				goto out;
 
 		}
-	} else {
+	} else
+#endif
+	{
 		ret = wpa_ft_store_pmk_r1(wpa_auth, f_s1kh_id, f_pmk_r1, pmk_r1_len,
 					  f_pmk_r1_name,
 					  pairwise, &vlan, expires_in, session_timeout,
@@ -5241,11 +5252,13 @@ void wpa_ft_rrb_oui_rx(struct wpa_authenticator *wpa_auth, const u8 *src_addr,
 		return;
 	}
 
+#ifdef CONFIG_IEEE80211BE
 	if (ether_addr_equal(wpa_auth->mld_addr, dst_addr) && wpa_auth->is_ml &&
 	    !wpa_auth->primary_auth) {
 		wpa_printf(MSG_DEBUG, "MLD: FT: RRB frame handled by primary auth");
 		return;
 	}
+#endif
 
 	auth = data + sizeof(u16);
 	wpa_hexdump(MSG_MSGDUMP, "FT: Authenticated payload", auth, alen);

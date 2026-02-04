@@ -4958,7 +4958,9 @@ out:
 	if (resp != WLAN_STATUS_SUCCESS || assoc_wpa_sm) {
 		struct wpa_state_machine *sm = sta->wpa_sm;
 
+#ifdef CONFIG_IEEE80211BE
 		clear_wpa_sm_for_all_sta(hapd, sm);
+#endif
 		wpa_auth_sta_deinit(sm);
 
 		/* Only keep a reference to the main wpa_sm and drop the
@@ -5000,6 +5002,8 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 }
 
 
+#ifdef CONFIG_IEEE80211BE
+
 static bool is_rsne_present_in_assoc_resp(struct wpa_state_machine *sm,
 					  struct hostapd_data *hapd,
 					  u8 **pmkid)
@@ -5034,8 +5038,6 @@ static bool is_rsne_present_in_assoc_resp(struct wpa_state_machine *sm,
 	return false;
 }
 
-
-#ifdef CONFIG_IEEE80211BE
 
 void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
 				   struct mld_link_info *link,
@@ -8098,6 +8100,8 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 				       hapd->cs_freq_params.channel,
 				       &oper_chwidth, &chan1, &chan2);
 	}
+#else
+	(void)(oper_chwidth);
 #endif /* CONFIG_IEEE80211BE */
 
 	*eid++ = WLAN_EID_WIDE_BW_CHSWITCH;

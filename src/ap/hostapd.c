@@ -1348,11 +1348,14 @@ static int db_table_create_radius_attributes(sqlite3 *db)
 static int hostapd_start_beacon(struct hostapd_data *hapd,
 				bool flush_old_stations)
 {
+#ifdef CONFIG_IEEE80211BE
 	struct hostapd_bss_config *conf = hapd->conf;
+#endif
 
 	if (ieee802_11_set_beacon(hapd) < 0)
 		return -1;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap && !hapd->mld->started) {
 		struct hostapd_data *p_hapd;
 		u16 valid_links = 0;
@@ -1367,7 +1370,6 @@ static int hostapd_start_beacon(struct hostapd_data *hapd,
 		}
 	}
 
-#ifdef CONFIG_IEEE80211BE
 	if (flush_old_stations &&
 	    conf->broadcast_deauth && (hapd->conf->mld_ap && !hapd->mld->started)) {
 		u8 addr[ETH_ALEN];
@@ -1477,12 +1479,14 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first,
 		flush_old_stations = 0;
 		wpa_printf(MSG_DEBUG,
 			   "MLD: %s: Setting non-first BSS", __func__);
+#ifdef CONFIG_IEEE80211BE
 	} else if (hapd->conf->mld_ap &&
 		   hapd->iface->state == HAPD_IFACE_DFS) {
 		/* Also, avoid flushing old STA when the first BSS of the MLD requires CAC. */
 		flush_old_stations = 0;
 		wpa_printf(MSG_DEBUG,
 			   "MLD: %s: Setting first BSS after CAC complete", __func__);
+#endif
 	}
 
 	wpa_printf(MSG_DEBUG, "%s(hapd=%p (%s), first=%d)",
@@ -4441,6 +4445,7 @@ int hostapd_remove_iface(struct hapd_interfaces *interfaces, char *buf)
 }
 
 
+#ifdef CONFIG_IEEE80211BE
 static int hostapd_remove_mld_link_by_idx(struct hostapd_iface *iface, int idx)
 {
 	size_t j;
@@ -4535,7 +4540,7 @@ int hostapd_remove_mld(struct hapd_interfaces *interfaces, char *buf)
 	hostapd_cleanup_unused_mlds(interfaces);
 	return 0;
 }
-
+#endif
 
 /**
  * hostapd_new_assoc_sta - Notify that a new station associated with the AP
@@ -5148,7 +5153,9 @@ void hostapd_chan_switch_config(struct hostapd_data *hapd,
 int hostapd_switch_channel(struct hostapd_data *hapd,
 			   struct csa_settings *settings)
 {
+#ifdef CONFIG_IEEE80211BE
 	struct hostapd_data *link_bss;
+#endif
 	int ret;
 
 	if (!hapd->beacon_set_done)
@@ -5159,11 +5166,13 @@ int hostapd_switch_channel(struct hostapd_data *hapd,
 		return -1;
 	}
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap) {
 		/* Generate per STA profiles for each affiliated APs */
 		for_each_mld_link(link_bss, hapd)
 			hostapd_gen_per_sta_profiles(link_bss);
 	}
+#endif
 
 	ret = hostapd_fill_csa_settings(hapd, settings);
 	if (ret)
