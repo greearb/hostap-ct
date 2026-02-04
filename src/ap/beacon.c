@@ -2357,12 +2357,15 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 	os_memcpy(head->bssid, hapd->own_addr, ETH_ALEN);
 	head->u.beacon.beacon_int =
 		host_to_le16(hapd->iconf->beacon_int);
+
+#ifdef CONFIG_IEEE80211BE
 	/* if MLD AP hasn't finished setting up all links, also set beacon interval
 	 * to 0. This allows mac80211 to bypass some beacon active checks, for
 	 * example, when doing ACS
 	 */
 	if (hapd->conf->mld_ap && !hapd->mld->started)
 		head->u.beacon.beacon_int = host_to_le16(0);
+#endif
 
 	/* hardware or low-level driver will setup seq_ctrl and timestamp */
 	capab_info = hostapd_own_capab_info(hapd);
@@ -2801,9 +2804,11 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 	struct hostapd_hw_modes *mode;
 	struct hostapd_channel_info info;
 
+#ifdef CONFIG_IEEE80211BE
 	/* skip setting beacon if other links are not started yet */
 	if (hapd->conf->mld_ap && !hapd->mld->started && hapd->beacon_set_done)
 		return 0;
+#endif
 
 	if (!hapd->drv_priv) {
 		wpa_printf(MSG_ERROR, "Interface is disabled");

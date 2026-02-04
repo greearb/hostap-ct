@@ -1134,10 +1134,12 @@ static int hostapd_wpa_auth_send_oui(void *ctx, const u8 *dst, u8 oui_suffix,
 	if (!oui_ctx)
 		return -1;
 
+#ifdef CONFIG_IEEE80211BE
 	/* TODO handle non-mld sta roaming with mld ap */
 	return eth_p_oui_send(oui_ctx,
 			      hapd->conf->mld_ap ? hapd->mld->mld_addr : hapd->own_addr,
 			      dst, data, data_len);
+#endif
 #else /* CONFIG_ETH_P_OUI */
 	return -1;
 #endif /* CONFIG_ETH_P_OUI */
@@ -1606,8 +1608,11 @@ static void hostapd_rrb_receive(void *ctx, const u8 *src_addr, const u8 *buf,
 	wpa_printf(MSG_DEBUG, "FT: RRB received packet " MACSTR " -> "
 		   MACSTR, MAC2STR(ethhdr->h_source), MAC2STR(ethhdr->h_dest));
 	if (!is_multicast_ether_addr(ethhdr->h_dest) &&
-	    !ether_addr_equal(hapd->own_addr, ethhdr->h_dest) &&
-	    !(hapd->mld && ether_addr_equal(hapd->mld->mld_addr, ethhdr->h_dest)))
+	    !ether_addr_equal(hapd->own_addr, ethhdr->h_dest)
+#ifdef CONFIG_IEEE80211BE
+	    && !(hapd->mld && ether_addr_equal(hapd->mld->mld_addr, ethhdr->h_dest))
+#endif
+		)
 		return;
 	wpa_ft_rrb_rx(hapd->wpa_auth, ethhdr->h_source, buf + sizeof(*ethhdr),
 		      len - sizeof(*ethhdr));
@@ -1623,8 +1628,11 @@ static void hostapd_rrb_oui_receive(void *ctx, const u8 *src_addr,
 	wpa_printf(MSG_DEBUG, "FT: RRB received packet " MACSTR " -> "
 		   MACSTR, MAC2STR(src_addr), MAC2STR(dst_addr));
 	if (!is_multicast_ether_addr(dst_addr) &&
-	    !ether_addr_equal(hapd->own_addr, dst_addr) &&
-	    !(hapd->mld && ether_addr_equal(hapd->mld->mld_addr, dst_addr)))
+	    !ether_addr_equal(hapd->own_addr, dst_addr)
+#ifdef CONFIG_IEEE80211BE
+	    && !(hapd->mld && ether_addr_equal(hapd->mld->mld_addr, dst_addr))
+#endif
+		)
 		return;
 	wpa_ft_rrb_oui_rx(hapd->wpa_auth, src_addr, dst_addr, oui_suffix, buf,
 			  len);
@@ -1715,9 +1723,9 @@ static int hostapd_set_ltf_keyseed(void *ctx, const u8 *peer_addr,
 }
 #endif /* CONFIG_PASN */
 
-
 static bool hostapd_first_sta_seen_mbssid(void *ctx, int vlan_id)
 {
+#ifdef CONFIG_IEEE80211BE
 	struct hostapd_data *hapd = ctx;
 
 	if (hapd->iconf->mbssid) {
@@ -1731,7 +1739,7 @@ static bool hostapd_first_sta_seen_mbssid(void *ctx, int vlan_id)
 				return true;
 		}
 	}
-
+#endif
 	return false;
 }
 

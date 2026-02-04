@@ -9523,6 +9523,8 @@ static u8 * hostapd_eid_wb_channel_switch(struct hostapd_data *hapd, u8 *eid,
 				       hapd->cs_freq_params.channel,
 				       &oper_chwidth, &chan1, &chan2);
 	}
+#else
+	(void)(oper_chwidth);
 #endif /* CONFIG_IEEE80211BE */
 
 	*eid++ = WLAN_EID_WIDE_BW_CHSWITCH;

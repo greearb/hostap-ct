@@ -8362,6 +8362,7 @@ void wpa_auth_set_sae_pw_id(struct wpa_state_machine *sm,
 bool wpa_auth_get_first_sta_seen(struct wpa_authenticator *wpa_auth,
 				 int vlan_id)
 {
+#ifdef CONFIG_IEEE80211BE
 	struct wpa_group *group;
 
 	if (!wpa_auth)
@@ -8369,6 +8370,9 @@ bool wpa_auth_get_first_sta_seen(struct wpa_authenticator *wpa_auth,
 
 	group = wpa_select_vlan_wpa_group(wpa_auth->group, vlan_id);
 	return group->first_sta_seen;
+#else
+	return false;
+#endif
 }
 
 #ifdef CONFIG_IEEE8021X_AUTH

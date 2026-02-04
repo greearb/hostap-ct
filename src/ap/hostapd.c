@@ -1338,11 +1338,14 @@ static int db_table_create_radius_attributes(sqlite3 *db)
 static int hostapd_start_beacon(struct hostapd_data *hapd,
 				bool flush_old_stations)
 {
+#ifdef CONFIG_IEEE80211BE
 	struct hostapd_bss_config *conf = hapd->conf;
+#endif
 
 	if (!conf->start_disabled && ieee802_11_set_beacon(hapd) < 0)
 		return -1;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap && !hapd->mld->started) {
 		struct hostapd_data *p_hapd;
 		u16 valid_links = 0;
@@ -1356,6 +1359,7 @@ static int hostapd_start_beacon(struct hostapd_data *hapd,
 			ieee802_11_set_beacon(hapd);
 		}
 	}
+#endif
 
 	if (flush_old_stations && !conf->start_disabled &&
 	    conf->broadcast_deauth) {
@@ -4421,6 +4425,7 @@ int hostapd_remove_iface(struct hapd_interfaces *interfaces, char *buf)
 }
 
 
+#ifdef CONFIG_IEEE80211BE
 static int hostapd_remove_mld_link_by_idx(struct hostapd_iface *iface, int idx)
 {
 	size_t j;
@@ -4515,7 +4520,7 @@ int hostapd_remove_mld(struct hapd_interfaces *interfaces, char *buf)
 	hostapd_cleanup_unused_mlds(interfaces);
 	return 0;
 }
-
+#endif
 
 /**
  * hostapd_new_assoc_sta - Notify that a new station associated with the AP
@@ -5173,7 +5178,9 @@ void hostapd_chan_switch_config(struct hostapd_data *hapd,
 int hostapd_switch_channel(struct hostapd_data *hapd,
 			   struct csa_settings *settings)
 {
+#ifdef CONFIG_IEEE80211BE
 	struct hostapd_data *link_bss;
+#endif
 	int ret;
 
 	if (!hapd->beacon_set_done)
@@ -5184,11 +5191,13 @@ int hostapd_switch_channel(struct hostapd_data *hapd,
 		return -1;
 	}
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap) {
 		/* Generate per STA profiles for each affiliated APs */
 		for_each_mld_link(link_bss, hapd)
 			hostapd_gen_per_sta_profiles(link_bss);
 	}
+#endif
 
 	ret = hostapd_fill_csa_settings(hapd, settings);
 	if (ret)

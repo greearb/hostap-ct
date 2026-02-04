@@ -50,7 +50,9 @@ static void ap_sta_disassoc_cb_timeout(void *eloop_ctx, void *timeout_ctx);
 static void ap_sa_query_timer(void *eloop_ctx, void *timeout_ctx);
 static int ap_sta_remove(struct hostapd_data *hapd, struct sta_info *sta);
 static void ap_sta_delayed_1x_auth_fail_cb(void *eloop_ctx, void *timeout_ctx);
+#ifdef CONFIG_IEEE80211BE
 static void ap_sta_remove_link_sta(struct hostapd_data *hapd, struct sta_info *sta);
+#endif
 
 int ap_for_each_sta(struct hostapd_data *hapd,
 		    int (*cb)(struct hostapd_data *hapd, struct sta_info *sta,
@@ -76,6 +78,7 @@ struct sta_info * ap_get_sta(struct hostapd_data *hapd, const u8 *sta)
 	while (s != NULL && os_memcmp(s->addr, sta, 6) != 0)
 		s = s->hnext;
 
+#ifdef CONFIG_IEEE80211BE
 	if (hapd->conf->mld_ap && !s) {
 		u8 link_id;
 
@@ -93,6 +96,7 @@ struct sta_info * ap_get_sta(struct hostapd_data *hapd, const u8 *sta)
 					return s;
 		}
 	}
+#endif
 
 	return s;
 }
@@ -638,8 +642,10 @@ void ap_handle_timer(void *eloop_ctx, void *timeout_ctx)
 		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_INFO, "deauthenticated due to "
 			       "local deauth request");
+#ifdef CONFIG_IEEE80211BE
 		if (ap_sta_is_mld(hapd, sta))
 			ap_sta_remove_link_sta(hapd, sta);
+#endif
 		ap_free_sta(hapd, sta);
 		return;
 	}
@@ -808,8 +814,10 @@ skip_poll:
 		mlme_deauthenticate_indication(
 			hapd, sta,
 			WLAN_REASON_PREV_AUTH_NOT_VALID);
+#ifdef CONFIG_IEEE80211BE
 		if (ap_sta_is_mld(hapd, sta))
 			ap_sta_remove_link_sta(hapd, sta);
+#endif
 		ap_free_sta(hapd, sta);
 		break;
 	}
