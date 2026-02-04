@@ -3183,7 +3183,9 @@ static int tls_connection_ca_cert(struct tls_data *data,
 		unsigned long err;
 		X509 *cert;
 		int count;
+#if OPENSSL_VERSION_NUMBER >= 0x10200000L
 		BIO *bio;
+#endif
 
 		cert = d2i_X509(NULL,
 				(const unsigned char **) &ca_cert_blob,
@@ -3202,6 +3204,7 @@ static int tls_connection_ca_cert(struct tls_data *data,
 		}
 
 		count = 0;
+#if OPENSSL_VERSION_NUMBER >= 0x10200000L
 		bio = BIO_new_mem_buf(ca_cert_blob, ca_cert_blob_len);
 		if (bio) {
 			while ((cert = PEM_read_bio_X509(bio, NULL, NULL,
@@ -3222,6 +3225,7 @@ static int tls_connection_ca_cert(struct tls_data *data,
 			}
 			BIO_free(bio);
 		}
+#endif
 
 		if (count == 0) {
 			tls_show_errors(MSG_WARNING, __func__,
@@ -5971,6 +5975,7 @@ static void openssl_debug_dump_cipher_list(SSL_CTX *ssl_ctx)
 
 #if !defined(LIBRESSL_VERSION_NUMBER) && !defined(BORINGSSL_API_VERSION)
 
+#if OPENSSL_VERSION_NUMBER >= 0x10200000L
 static const char * openssl_pkey_type_str(const EVP_PKEY *pkey)
 {
 	if (!pkey)
@@ -6031,6 +6036,7 @@ static void openssl_debug_dump_certificates(SSL_CTX *ssl_ctx)
 	}
 	openssl_debug_dump_certificate(0, SSL_CTX_get0_certificate(ssl_ctx));
 }
+#endif
 
 #endif
 
@@ -6038,6 +6044,7 @@ static void openssl_debug_dump_certificates(SSL_CTX *ssl_ctx)
 static void openssl_debug_dump_certificate_chains(SSL_CTX *ssl_ctx)
 {
 #if !defined(LIBRESSL_VERSION_NUMBER) && !defined(BORINGSSL_API_VERSION)
+#if OPENSSL_VERSION_NUMBER >= 0x10200000L
 	int res;
 
 	for (res = SSL_CTX_set_current_cert(ssl_ctx, SSL_CERT_SET_FIRST);
@@ -6046,6 +6053,7 @@ static void openssl_debug_dump_certificate_chains(SSL_CTX *ssl_ctx)
 		openssl_debug_dump_certificates(ssl_ctx);
 
 	SSL_CTX_set_current_cert(ssl_ctx, SSL_CERT_SET_FIRST);
+#endif
 #endif
 }
 
