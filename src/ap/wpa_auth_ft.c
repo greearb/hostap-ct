@@ -2889,7 +2889,7 @@ u8 * wpa_sm_write_assoc_resp_ies(struct wpa_state_machine *sm, u8 *pos,
 		snonce = sm->SNonce;
 		if (!mld_sta) {
 			subelem = wpa_ft_group_key_subelem(sm, &subelem_len, reassoc,
-							   vlan_id, 0);
+							   vlan_id, -1);
 			if (!subelem) {
 				wpa_printf(MSG_DEBUG, "FT: Failed to add group"
 					   "key subelement");
