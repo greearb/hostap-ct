@@ -3584,6 +3584,9 @@ void scan_est_throughput(struct wpa_supplicant *wpa_s,
 	const u8 *ies = (const void *) (res + 1);
 	size_t ie_len = res->ie_len;
 
+	wpa_dbg(wpa_s, MSG_DEBUG, "scan-est-throughput, starting res est: %d",
+		res->est_throughput);
+
 	if (res->est_throughput)
 		return;
 
@@ -3595,6 +3598,8 @@ void scan_est_throughput(struct wpa_supplicant *wpa_s,
 	res->est_throughput = wpas_get_est_tpt(wpa_s, ies, ie_len, rate, snr,
 					       res->freq, &res->max_cw);
 
+	wpa_dbg(wpa_s, MSG_DEBUG, "scan-est-throughput, new res est: %d freq: %d snr: %d max-cw: %d",
+		res->est_throughput, res->freq, snr, res->max_cw);
 	/* TODO: channel utilization and AP load (e.g., from AP Beacon) */
 }
 
