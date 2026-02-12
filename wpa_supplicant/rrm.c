@@ -986,6 +986,9 @@ static int wpas_add_beacon_rep(struct wpa_supplicant *wpa_s,
 	rep.antenna_id = 0; /* unknown */
 	rep.parent_tsf = host_to_le32(parent_tsf);
 
+	wpa_dbg(wpa_s, MSG_DEBUG, "wpas-add-beacon-rep, rcpi: %d level: %d bssid: " MACSTR,
+		rep.rcpi, bss->level, MAC2STR(bss->bssid));
+
 	do {
 		int ret;
 
@@ -1023,7 +1026,7 @@ static void wpas_beacon_rep_table(struct wpa_supplicant *wpa_s,
 	if (!(*buf))
 		wpas_beacon_rep_no_results(wpa_s, buf);
 
-	wpa_hexdump_buf(MSG_DEBUG, "RRM: Radio Measurement report", *buf);
+	wpa_hexdump_buf(MSG_DEBUG, "RRM: Radio Measurement report from rep-table", *buf);
 }
 
 
@@ -1655,7 +1658,7 @@ int wpas_beacon_rep_scan_process(struct wpa_supplicant *wpa_s,
 	if (!buf && wpas_beacon_rep_no_results(wpa_s, &buf))
 		goto out;
 
-	wpa_hexdump_buf(MSG_DEBUG, "RRM: Radio Measurement report", buf);
+	wpa_hexdump_buf(MSG_DEBUG, "RRM: Radio Measurement report from scan-process:", buf);
 
 	wpas_rrm_send_msr_report(wpa_s, buf);
 	wpabuf_free(buf);
