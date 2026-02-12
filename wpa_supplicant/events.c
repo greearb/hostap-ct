@@ -2747,14 +2747,20 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 		goto scan_work_done;
 #endif /* CONFIG_NO_RRM */
 
-	if (ml_link_probe_scan(wpa_s))
+	if (ml_link_probe_scan(wpa_s)) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "ml-link-probe-scan, done with scan work.");
 		goto scan_work_done;
+	}
 
-	if ((wpa_s->conf->ap_scan == 2 && !wpas_wps_searching(wpa_s)))
+	if ((wpa_s->conf->ap_scan == 2 && !wpas_wps_searching(wpa_s))) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "not wpas-wps-searching, done with scan work.");
 		goto scan_work_done;
+	}
 
-	if (autoscan_notify_scan(wpa_s, scan_res))
+	if (autoscan_notify_scan(wpa_s, scan_res)) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "autoscan-notify-scan, done with scan work.");
 		goto scan_work_done;
+	}
 
 	if (wpa_s->disconnected) {
 		wpa_supplicant_set_state(wpa_s, WPA_DISCONNECTED);
@@ -2762,17 +2768,23 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 	}
 
 	if (!wpas_driver_bss_selection(wpa_s) &&
-	    bgscan_notify_scan(wpa_s, scan_res) == 1)
+	    bgscan_notify_scan(wpa_s, scan_res) == 1) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "bgscan-notify-scan == 1, done with scan work.");
 		goto scan_work_done;
+	}
 
 	wpas_wps_update_ap_info(wpa_s, scan_res);
 
-	if (wnm_scan_process(wpa_s, false) > 0)
+	if (wnm_scan_process(wpa_s, false) > 0) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "wnm-scan-process > 0, done with scan work.");
 		goto scan_work_done;
+	}
 
 	if (wpa_s->wpa_state >= WPA_AUTHENTICATING &&
-	    wpa_s->wpa_state < WPA_COMPLETED)
+	    wpa_s->wpa_state < WPA_COMPLETED) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "not wpa_s state: %d, done with scan work.", wpa_s->wpa_state);
 		goto scan_work_done;
+	}
 
 	if (wpa_s->current_ssid && trigger_6ghz_scan && own_request && data &&
 	    wpas_short_ssid_match(wpa_s, scan_res)) {
@@ -2799,11 +2811,15 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 		}
 	}
 
-	if (wpa_s->supp_pbc_active && !wpas_wps_partner_link_scan_done(wpa_s))
+	if (wpa_s->supp_pbc_active && !wpas_wps_partner_link_scan_done(wpa_s)) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "supp-pbc-active, done with scan work.");
 		return ret;
+	}
 
-	if (short_ssid_match_found && wpas_trigger_6ghz_scan(wpa_s, data) > 0)
+	if (short_ssid_match_found && wpas_trigger_6ghz_scan(wpa_s, data) > 0) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "short-match-found, trigger 6ghz, done with scan work.");
 		return 1;
+	}
 
 	return wpas_select_network_from_last_scan(wpa_s, 1, own_request,
 						  trigger_6ghz_scan, data);
