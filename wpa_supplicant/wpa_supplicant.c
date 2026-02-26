@@ -7212,6 +7212,18 @@ void wpa_supplicant_apply_he_overrides(
 	params->disable_ofdma = ssid->disable_ofdma;
 	params->ignore_edca = ssid->ignore_edca;
 }
+
+void wpa_supplicant_apply_he_auth_overrides(
+	struct wpa_supplicant *wpa_s,
+	struct wpa_ssid *ssid,
+	struct wpa_driver_auth_params *params)
+{
+	if (!ssid)
+		return;
+
+	params->disable_160 = ssid->disable_160;
+	params->disable_320 = ssid->disable_320;
+}
 #endif /* CONFIG_HE_OVERRIDES */
 
 

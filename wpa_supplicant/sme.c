@@ -1250,6 +1250,10 @@ no_fils:
 	}
 #endif /* CONFIG_P2P */
 
+#ifdef CONFIG_HE_OVERRIDES
+	wpa_supplicant_apply_he_auth_overrides(wpa_s, ssid, &params);
+#endif /* CONFIG_HE_OVERRIDES */
+
 	if (skip_auth) {
 		wpa_msg(wpa_s, MSG_DEBUG,
 			"SME: Skip authentication step on reassoc-to-same-BSS");

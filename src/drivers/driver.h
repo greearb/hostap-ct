@@ -814,6 +814,17 @@ struct wpa_driver_auth_params {
 	 * The MLD AP address
 	 */
 	const u8 *ap_mld_addr;
+
+#ifdef CONFIG_HE_OVERRIDES
+	/**
+	 * disable_160 - Disable 160Mhz for this authentication
+	 */
+	int disable_160;
+	/**
+	 * disable_320 - Disable 320Mhz for this authentication
+	 */
+	int disable_320;
+#endif
 };
 
 /**

@@ -4435,6 +4435,44 @@ nl80211_put_bss_membership_selectors(struct wpa_driver_nl80211_data *drv,
 		       selectors_len, selectors);
 }
 
+static void populate_ct_priv_auth_nl(struct i802_bss *bss,
+				     struct ct_assoc_info *cai,
+				     struct wpa_driver_auth_params *auth_params)
+{
+	if (bss->adv_bw != WIFI_BW_DEFAULT) {
+		switch(bss->adv_bw) {
+		case WIFI_BW_20:
+			cai->flags |= CT_ASSOC_DISABLE_40MHZ;
+		case WIFI_BW_40:
+			cai->flags |= CT_ASSOC_DISABLE_80MHZ;
+		case WIFI_BW_80:
+			cai->flags |= CT_ASSOC_DISABLE_160MHZ;
+		case WIFI_BW_160:
+			cai->flags |= CT_ASSOC_DISABLE_320MHZ;
+		case WIFI_BW_320:
+		default:
+			/* Nothing to disable */;
+		}
+	}
+
+	if (auth_params) {
+#ifdef CONFIG_HE_OVERRIDES
+		if (auth_params->disable_160) {
+			cai->flags |= CT_ASSOC_DISABLE_160MHZ;
+			wpa_printf(MSG_DEBUG, "  * 160Mhz disabled");
+		}
+
+		if (auth_params->disable_320) {
+			cai->flags |= CT_ASSOC_DISABLE_320MHZ;
+			wpa_printf(MSG_DEBUG, "  * 320Mhz disabled");
+		}
+#endif /* CONFIG_HE_OVERRIDES */
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "nl80211:  CT Vendor assoc flags: 0x%x",
+		   cai->flags);
+}
 
 static int wpa_driver_nl80211_authenticate(
 	struct i802_bss *bss, struct wpa_driver_auth_params *params)
@@ -4553,6 +4591,16 @@ retry:
 		    nla_put(msg, NL80211_ATTR_MLD_ADDR, ETH_ALEN,
 			    params->ap_mld_addr))
 			goto fail;
+	}
+
+	{
+		struct ct_assoc_info cai = { 0 };
+
+		populate_ct_priv_auth_nl(bss, &cai, params);
+		if (nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, CANDELA_VENDOR_ID))
+			return -1;
+		if (nla_put(msg, NL80211_ATTR_VENDOR_DATA, sizeof(cai), &cai))
+			return -1;
 	}
 
 	ret = send_and_recv_cmd(drv, msg);

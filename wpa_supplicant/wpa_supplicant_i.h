@@ -1738,6 +1738,10 @@ void wpa_supplicant_apply_vht_overrides(
 void wpa_supplicant_apply_he_overrides(
 	struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 	struct wpa_driver_associate_params *params);
+void wpa_supplicant_apply_he_auth_overrides(
+	struct wpa_supplicant *wpa_s,
+	struct wpa_ssid *ssid,
+	struct wpa_driver_auth_params *params);
 void wpa_supplicant_apply_eht_overrides(
 	struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 	struct wpa_driver_associate_params *params);
