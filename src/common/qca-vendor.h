@@ -20344,11 +20344,19 @@ enum qca_wlan_vendor_attr_audio_transport_switch {
  * algorithm. The driver can offload EPPKE authentication to supplicant via
  * QCA_NL80211_VENDOR_SUBCMD_EXTERNAL_AUTH only if this flag is enabled.
  *
+ * @QCA_CONNECT_EXT_FEATURE_EXT_AUTH_8021X: Flag attribute. This indicates
+ * supplicant support for external authentication with IEEE 802.1X
+ * Authentication algorithm (EAP over Authentication frames) as specified
+ * in IEEE P802.11bi/D4.0, 12.16.5. The driver can offload authentication to
+ * supplicant via QCA_NL80211_VENDOR_SUBCMD_EXTERNAL_AUTH only if this flag is
+ * enabled.
+ *
  * @NUM_QCA_WLAN_VENDOR_FEATURES: Number of assigned feature bits.
  */
 enum qca_wlan_connect_ext_features {
 	QCA_CONNECT_EXT_FEATURE_RSNO	= 0,
 	QCA_CONNECT_EXT_FEATURE_EXT_AUTH_EPPKE = 1,
+	QCA_CONNECT_EXT_FEATURE_EXT_AUTH_8021X = 2,
 	NUM_QCA_CONNECT_EXT_FEATURES /* keep last */
 };
 
