@@ -23899,6 +23899,18 @@ enum qca_wlan_vendor_external_auth_action {
  *	for the authentication request event interface. This specifies the
  *	entire element data to be included in the RSNXE of the Authentication
  *	frames.
+ * @QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_PTK_KCK: Optional binary attribute for
+ *	the authentication response command interface. This attribute is
+ *	present	only when the NL80211_AUTHTYPE_IEEE8021X authentication
+ *	algorithm is used with (re)association frame encryption.
+ *
+ *	In SME-in-driver mode, the (re)association exchange is entirely handled
+ *	by the driver. The standard requires that the (Re)Association Request
+ *	frame includes a Message Integrity Code (MIC) calculated using the Key
+ *	Confirmation Key (KCK). This attribute is used to pass the KCK from the
+ *	supplicant to the driver. With the KCK provided, the driver can
+ *	calculate the MIC and append it to the (Re)Association Request frame as
+ *	mandated by IEEE P802.11bi/D4.0, 12.16.6.2/12.16.6.3.
  */
 enum qca_wlan_vendor_attr_external_auth {
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_INVALID = 0,
@@ -23915,6 +23927,7 @@ enum qca_wlan_vendor_attr_external_auth {
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_PMKID = 11,
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_RSN_CAPAB = 12,
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_RSNXE_DATA = 13,
+	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_PTK_KCK = 14,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_AFTER_LAST,
