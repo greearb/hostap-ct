@@ -5416,7 +5416,7 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 						*(sm->ANonce));
 		wpa_send_eapol(sm->wpa_auth, sm,
 			       (secure ? WPA_KEY_INFO_SECURE : 0) |
-			       (wpa_mic_len(sm->wpa_key_mgmt, sm->pmk_len) ?
+			       (wpa_mic_len(sm->wpa_key_mgmt, sm->pmk_len, sm->hash_alg) ?
 				WPA_KEY_INFO_MIC : 0) |
 			       WPA_KEY_INFO_ACK | WPA_KEY_INFO_INSTALL |
 			       WPA_KEY_INFO_KEY_TYPE,

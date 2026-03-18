@@ -3934,7 +3934,7 @@ enum eapol_key_msg_type wpa_eapol_key_type(struct wpa_sm *sm, const u8 *buf, siz
 	size_t mic_len, keyhdrlen;
 
 	*msg_type = I_EAPOL_MSG_TYPE_UNKNOWN;
-	mic_len = wpa_mic_len(sm->key_mgmt, sm->pmk_len);
+	mic_len = wpa_mic_len(sm->key_mgmt, sm->pmk_len, sm->hash_alg);
 	keyhdrlen = sizeof(*key) + mic_len + 2;
 
 	if (len < sizeof(*hdr)) {
