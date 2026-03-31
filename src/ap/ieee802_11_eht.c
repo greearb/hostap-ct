@@ -1399,6 +1399,7 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 		u16 control;
 		const u8 *sub_elem_end;
 		int num_frag_subelems;
+		u8 link_id;
 
 		num_frag_subelems =
 			ieee802_11_defrag_mle_subelem(mlbuf, pos,
@@ -1450,8 +1451,13 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 			goto out;
 		}
 		control = WPA_GET_LE16(pos);
-		link_info = &info->links[control &
-					 BASIC_MLE_STA_CTRL_LINK_ID_MASK];
+		link_id = control & BASIC_MLE_STA_CTRL_LINK_ID_MASK;
+		if (link_id >= MAX_NUM_MLD_LINKS) {
+			wpa_printf(MSG_DEBUG,
+				   "MLD: Invalid Link ID in Per-STA Profile subelement");
+			goto out;
+		}
+		link_info = &info->links[link_id];
 		pos += 2;
 
 		if (!(control & BASIC_MLE_STA_CTRL_COMPLETE_PROFILE)) {
