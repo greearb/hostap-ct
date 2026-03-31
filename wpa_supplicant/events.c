@@ -4334,6 +4334,13 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 		goto out;
 	}
 
+	if (sizeof(*ml) + common_info->len > ml_len) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Truncated common info (common_info->len=%u ml_len=%zu)",
+			   common_info->len, ml_len);
+		goto out;
+	}
+
 	wpa_printf(MSG_DEBUG, "MLD: address: " MACSTR,
 		   MAC2STR(common_info->mld_addr));
 
