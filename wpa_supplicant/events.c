@@ -4346,7 +4346,12 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 	pos = common_info->variable;
 
 	/* Store the information for the association link */
-	ml_info[i].link_id = *pos;
+	ml_info[i].link_id = *pos & EHT_ML_LINK_ID_MSK;
+	if (ml_info[i].link_id >= MAX_NUM_MLD_LINKS) {
+		wpa_printf(MSG_DEBUG,
+			   "MLD: Invalid Link ID value for assoc link");
+		goto out;
+	}
 	pos++;
 
 	/* Skip the BSS Parameters Change Count */
@@ -4502,6 +4507,10 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 			   MAC2STR(pos + 1), nstr_bitmap_len);
 
 		ml_info[i].link_id = ctrl & BASIC_MLE_STA_CTRL_LINK_ID_MASK;
+		if (ml_info[i].link_id >= MAX_NUM_MLD_LINKS) {
+			wpa_printf(MSG_DEBUG, "MLD: Invalid Link ID value");
+			goto out;
+		}
 		os_memcpy(ml_info[i].bssid, pos + 1, ETH_ALEN);
 
 		pos += sta_info_len;
