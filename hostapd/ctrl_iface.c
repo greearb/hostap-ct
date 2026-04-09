@@ -3709,6 +3709,7 @@ static int hostapd_ctrl_iface_disable_mld(struct hostapd_iface *iface)
 
 
 #ifdef CONFIG_TESTING_OPTIONS
+
 static int hostapd_ctrl_iface_link_remove(struct hostapd_data *hapd, char *cmd,
 					  char *buf, size_t buflen)
 {
@@ -3729,6 +3730,77 @@ static int hostapd_ctrl_iface_link_remove(struct hostapd_data *hapd, char *cmd,
 
 	return ret;
 }
+
+
+static int hostapd_ctrl_iface_link_enable(struct hostapd_data *hapd, char *cmd)
+{
+	struct hapd_interfaces *interfaces = hapd->iface->interfaces;
+	const char *conf_file, *phy, *ifname;
+	struct hostapd_iface *iface = NULL;
+	size_t len = os_strlen(cmd) + 1;
+	struct hostapd_config *conf;
+	char *pos, *cmd_buf;
+	int ret = -1;
+	size_t i;
+
+	if (!hapd || !hapd->conf->mld_ap || !hapd->mld ||
+	    os_strncmp(cmd, "bss_config=", 11) != 0)
+		return -1;
+
+	cmd_buf = os_malloc(len);
+	if (!cmd_buf)
+		return -1;
+
+	os_snprintf(cmd_buf, len, "%s", cmd);
+	phy = cmd_buf + 11;
+	pos = os_strchr(phy, ':');
+	if (!pos)
+		goto free_cmd_buffer;
+
+	*pos++ = '\0';
+	conf_file = pos;
+	if (*conf_file == '\0')
+		goto free_cmd_buffer;
+
+	conf = interfaces->config_read_cb(conf_file);
+	if (!conf)
+		goto free_cmd_buffer;
+
+	if (!conf->bss[0]->mld_ap)
+		goto free_config;
+
+	ifname = conf->bss[0]->iface;
+	if (!ifname || ifname[0] == '\0')
+		goto free_config;
+
+	for (i = 0; i < interfaces->count; i++) {
+		if (os_strcmp(interfaces->iface[i]->phy, phy) == 0) {
+			iface = interfaces->iface[i];
+			break;
+		}
+	}
+
+	if (!iface || iface->state != HAPD_IFACE_DISABLED)
+		goto free_config;
+
+	for (i = 0; i < iface->num_bss; i++) {
+		struct hostapd_data *h = iface->bss[i];
+
+		if (os_strncmp(ifname, h->conf->iface,
+			       sizeof(h->conf->iface)) == 0) {
+			ret = hostapd_enable_iface(iface);
+			break;
+		}
+	}
+
+free_config:
+	hostapd_config_free(conf);
+free_cmd_buffer:
+	os_free(cmd_buf);
+
+	return ret;
+}
+
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
 
@@ -4718,6 +4790,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 	} else if (os_strncmp(buf, "LINK_REMOVE ", 12) == 0) {
 		if (hostapd_ctrl_iface_link_remove(hapd, buf + 12,
 						   reply, reply_size))
+			reply_len = -1;
+	} else if (os_strncmp(buf, "LINK_ENABLE ", 12) == 0) {
+		if (hostapd_ctrl_iface_link_enable(hapd, buf + 12))
 			reply_len = -1;
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */

@@ -1354,6 +1354,7 @@ static int hostapd_cli_cmd_enable_mld(struct wpa_ctrl *ctrl, int argc,
 
 
 #ifdef CONFIG_TESTING_OPTIONS
+
 static int hostapd_cli_cmd_remove_link(struct wpa_ctrl *ctrl, int argc,
 				       char *argv[])
 {
@@ -1364,6 +1365,14 @@ static int hostapd_cli_cmd_remove_link(struct wpa_ctrl *ctrl, int argc,
 
 	return wpa_ctrl_command(ctrl, buf);
 }
+
+
+static int hostapd_cli_cmd_link_enable(struct wpa_ctrl *ctrl, int argc,
+				    char *argv[])
+{
+	return hostapd_cli_cmd(ctrl, "LINK_ENABLE", 1, argc, argv);
+}
+
 #endif /* CONFIG_TESTING_OPTIONS */
 
 
@@ -1892,6 +1901,9 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 #ifdef CONFIG_TESTING_OPTIONS
 	{ "remove_link", hostapd_cli_cmd_remove_link, NULL,
 	  "<count> = remove MLO link and send Reconfiguration MLE" },
+	{ "link_enable", hostapd_cli_cmd_link_enable, NULL,
+	  " bss_config=<phy>:<config file>\n"
+	  " = Enable a link previously removed from the MLD AP" },
 #endif /* CONFIG_TESTING_OPTIONS */
 	{ "disable_mld", hostapd_cli_cmd_disable_mld, NULL,
 	  "= disable AP MLD to which the interface is affiliated" },
