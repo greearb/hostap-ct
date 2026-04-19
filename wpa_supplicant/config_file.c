@@ -11,9 +11,7 @@
  */
 
 #include "includes.h"
-#ifdef ANDROID
 #include <sys/stat.h>
-#endif /* ANDROID */
 
 #include "common.h"
 #include "config.h"
@@ -1859,6 +1857,7 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 	const char *orig_name = name;
 	int tmp_len;
 	char *tmp_name;
+	struct stat file_stat;
 
 	if (!name) {
 		wpa_printf(MSG_ERROR, "No configuration file for writing");
@@ -1880,6 +1879,11 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 		os_free(tmp_name);
 		return -1;
 	}
+
+	if (stat(orig_name, &file_stat) == 0)
+		chmod(name,
+		      (file_stat.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO)) |
+		      S_IRUSR | S_IWUSR);
 
 	wpa_config_write_global(f, config);
 
