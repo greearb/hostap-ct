@@ -29,6 +29,10 @@
 #include "wpa_supplicant_i.h"
 #include "ctrl_iface.h"
 
+#ifndef CONFIG_CTRL_IFACE_MSG_QUEUE_LIMIT
+#define CONFIG_CTRL_IFACE_MSG_QUEUE_LIMIT 2000
+#endif /* CONFIG_CTRL_IFACE_MSG_QUEUE_LIMIT */
+
 /* Per-interface ctrl_iface */
 
 struct ctrl_iface_priv {
@@ -413,7 +417,7 @@ static void wpas_ctrl_msg_queue_limit(unsigned int throttle_count,
 {
 	struct ctrl_iface_msg *msg;
 
-	if (throttle_count < 2000)
+	if (throttle_count < CONFIG_CTRL_IFACE_MSG_QUEUE_LIMIT)
 		return;
 
 	msg = dl_list_first(queue, struct ctrl_iface_msg, list);

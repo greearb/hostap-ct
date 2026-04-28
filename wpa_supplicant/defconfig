@@ -698,3 +698,8 @@ CONFIG_DPP2=y
 # IEEE P802.11bi/D4.0, 12.16.5 (IEEE 802.1X authentication utilizing
 # Authentication frames)
 #CONFIG_IEEE8021X_AUTH=y
+
+# Maximum number of pending ctrl_iface monitor messages to queue before
+# dropping the oldest. Default is 2000. Embedded platforms with limited
+# memory may benefit from a lower value (e.g., 100).
+#CONFIG_CTRL_IFACE_MSG_QUEUE_LIMIT=2000
