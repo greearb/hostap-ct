@@ -1406,7 +1406,7 @@ def check_mac80211_bigtk(dev, hapd):
     replays = int(sta_key['replays'])
     icverrors = int(sta_key['icverrors'])
     if replays > 0 or icverrors > 0:
-        raise Exception("STA reported errors: replays=%d icverrors=%d" % replays, icverrors)
+        raise Exception(f"STA reported errors: replays={replays} icverrors={icverrors}")
 
     rx_spec = int(sta_key['rx_spec'], base=16)
     if rx_spec < 3:
