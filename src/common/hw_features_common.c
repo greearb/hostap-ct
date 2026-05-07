@@ -475,6 +475,79 @@ void punct_update_legacy_bw(u16 bitmap, u8 pri, enum oper_chan_width *width,
 }
 
 
+static int hostapd_set_freq_dbe(struct hostapd_freq_params *data, u8 dbe_bw)
+{
+	int starting_freq, offset, index, bw_mhz, start_new, start_old;
+	bool is_5ghz = is_5ghz_freq(data->freq);
+	bool is_6ghz = is_6ghz_freq(data->freq);
+	unsigned int punct_shift;
+
+	if (is_6ghz)
+		starting_freq = 5955;
+	else if (data->freq < 5745)
+		starting_freq = 5180;
+	else
+		starting_freq = 5745;
+
+	switch (dbe_bw) {
+	case IEEE80211_UHR_OPER_DBE_BW_40_MHZ:
+	case IEEE80211_UHR_OPER_DBE_BW_80_MHZ:
+	case IEEE80211_UHR_OPER_DBE_BW_160_MHZ:
+		if (is_5ghz)
+			break;
+		/* fallthrough */
+	case IEEE80211_UHR_OPER_DBE_BW_320_2_MHZ:
+	case IEEE80211_UHR_OPER_DBE_BW_320_1_MHZ:
+		if (is_6ghz)
+			break;
+		/* fallthrough */
+	default:
+		return -1;
+	}
+
+	switch (dbe_bw) {
+	case IEEE80211_UHR_OPER_DBE_BW_40_MHZ:
+		bw_mhz = 40;
+		break;
+	case IEEE80211_UHR_OPER_DBE_BW_80_MHZ:
+		bw_mhz = 80;
+		break;
+	case IEEE80211_UHR_OPER_DBE_BW_160_MHZ:
+		bw_mhz = 160;
+		break;
+	case IEEE80211_UHR_OPER_DBE_BW_320_2_MHZ:
+		starting_freq += 160;
+		/* fallthrough */
+	case IEEE80211_UHR_OPER_DBE_BW_320_1_MHZ:
+		bw_mhz = 320;
+		break;
+	default:
+		/* already handled above - silence compiler warnings */
+		return -1;
+	}
+
+	if (data->freq < starting_freq)
+		return -1;
+
+	start_old = data->center_freq1 - data->bandwidth / 2;
+
+	offset = data->freq - starting_freq;
+	index = offset / bw_mhz;
+	start_new = starting_freq - 10 + index * bw_mhz;
+	data->center_freq1 = start_new + bw_mhz / 2;
+	data->bandwidth = bw_mhz;
+
+	if (start_new < start_old)
+		punct_shift = (start_old - start_new) / 20;
+	else
+		punct_shift = 0;
+
+	data->punct_bitmap <<= punct_shift;
+
+	return 0;
+}
+
+
 int hostapd_set_freq_params(struct hostapd_freq_params *data,
 			    const struct hostapd_channel_info *info)
 {
@@ -495,6 +568,7 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 	const struct he_capabilities *he_cap = info->he.cap;
 	const struct eht_capabilities *eht_cap = info->eht.cap;
 	u16 punct_bitmap = info->eht.punct_bitmap;
+	bool uhr_enabled = info->uhr.enabled;
 	enum oper_chan_width oper_chwidth_legacy;
 	u8 seg0_legacy, seg1_legacy;
 
@@ -502,6 +576,9 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 		he_enabled = 0;
 	if (!eht_cap || !eht_cap->eht_supported)
 		eht_enabled = 0;
+	if (!info->uhr.cap || !info->uhr.cap->uhr_supported)
+		uhr_enabled = false;
+
 	os_memset(data, 0, sizeof(*data));
 	data->mode = mode;
 	data->freq = freq;
@@ -597,7 +674,7 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 		data->ht_enabled = 0;
 		data->vht_enabled = 0;
 
-		return 0;
+		goto handle_uhr;
 	}
 
 	if (data->eht_enabled) switch (oper_chwidth) {
@@ -838,6 +915,19 @@ int hostapd_set_freq_params(struct hostapd_freq_params *data,
 		break;
 	default:
 		break;
+	}
+
+handle_uhr:
+	if (uhr_enabled && info->uhr.dbe_bandwidth) {
+		/* check DBE against UHR capabilities? */
+
+		if (hostapd_set_freq_dbe(data, info->uhr.dbe_bandwidth)) {
+			wpa_printf(MSG_ERROR, "Invalid DBE bandwidth %d",
+				   info->uhr.dbe_bandwidth);
+			return -1;
+		}
+
+		data->punct_bitmap = info->uhr.dbe_punct_bitmap;
 	}
 
 	return 0;

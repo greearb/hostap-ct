@@ -1249,6 +1249,8 @@ struct hostapd_config {
 	int ieee80211bn;
 #ifdef CONFIG_IEEE80211BN
 	bool require_uhr;
+	u8 dbe_bandwidth;
+	u16 dbe_punct_bitmap;
 #endif /* CONFIG_IEEE80211BN */
 
 	/* EHT enable/disable config from CHAN_SWITCH */

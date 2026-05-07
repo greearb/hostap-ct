@@ -77,6 +77,13 @@ struct hostapd_channel_info {
 		const struct eht_capabilities *cap;
 		u16 punct_bitmap;
 	} eht;
+
+	struct {
+		bool enabled;
+		const struct uhr_capabilities *cap;
+		u8 dbe_bandwidth;
+		u16 dbe_punct_bitmap;
+	} uhr;
 };
 
 int hostapd_set_freq_params(struct hostapd_freq_params *data,

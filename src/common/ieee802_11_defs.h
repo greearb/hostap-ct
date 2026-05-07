@@ -3335,6 +3335,7 @@ struct ieee80211_uhr_capabilities {
 #define UHR_OPER_CTRL_NPCA_ENA              0x0002
 #define UHR_OPER_CTRL_P_EDCA_ENA            0x0004
 #define UHR_OPER_CTRL_DBE_ENA               0x0008
+#define UHR_OPER_CTRL_DBE_BW_SHIFT		4
 #define UHR_OPER_CTRL_DBE_BW_MASK           0x0070
 #define UHR_OPER_CTRL_DUO_OP_PARAMS_PRES    0x0080
 #define UHR_OPER_CTRL_DPS_OP_PARAMS_PRES    0x0100
@@ -3348,6 +3349,16 @@ struct ieee80211_uhr_operation {
 	u8 basic_uhr_mcs_nss_set[4];
 	/* UHR Operations Parameters - variable */
 } STRUCT_PACKED;
+
+/* DBE Operation Parameters field
+ * IEEE P802.11bn/D1.4, Figure 9-aa6
+ */
+#define IEEE80211_UHR_OPER_DBE_BW_40_MHZ		1
+#define IEEE80211_UHR_OPER_DBE_BW_80_MHZ		2
+#define IEEE80211_UHR_OPER_DBE_BW_160_MHZ		3
+#define IEEE80211_UHR_OPER_DBE_BW_320_1_MHZ		4
+#define IEEE80211_UHR_OPER_DBE_BW_320_2_MHZ		5
+#define IEEE80211_UHR_OPER_DBE_DIS_SUBCH_BMAP_PRES	0x8
 
 /* Max size in IEEE P802.11bn/D1.4 with DUO, DPS, NPCA, P-EDCA, DBE */
 #define IEEE80211_UHR_OPER_MAX_SIZE	\

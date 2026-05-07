@@ -103,17 +103,25 @@ u8 * hostapd_eid_uhr_capab(struct hostapd_data *hapd, u8 *eid,
 u8 * hostapd_eid_uhr_operation(struct hostapd_data *hapd, u8 *eid, bool beacon)
 {
 	struct ieee80211_uhr_operation *oper;
-	u8 *pos = eid;
+	u8 *pos = eid, *len, *start = eid;
+	u16 oper_ctrl = 0;
 
 	if (!hapd->iface->current_mode)
 		return eid;
 
 	*pos++ = WLAN_EID_EXTENSION;
-	*pos++ = 1 + sizeof(*oper);
+	len = pos++;
 	*pos++ = WLAN_EID_EXT_UHR_OPERATION;
 
 	oper = (struct ieee80211_uhr_operation *) pos;
-	oper->oper_ctrl = 0;
+
+	if (hapd->iconf->dbe_bandwidth) {
+		u8 dbe_bw = hapd->iconf->dbe_bandwidth <<
+			UHR_OPER_CTRL_DBE_BW_SHIFT;
+
+		oper_ctrl |= UHR_OPER_CTRL_DBE_ENA;
+		oper_ctrl |= dbe_bw;
+	}
 
 	/* TODO: Fill in appropriate UHR-MCS max Nss information */
 	oper->basic_uhr_mcs_nss_set[0] = 0x11;
@@ -121,7 +129,30 @@ u8 * hostapd_eid_uhr_operation(struct hostapd_data *hapd, u8 *eid, bool beacon)
 	oper->basic_uhr_mcs_nss_set[2] = 0x00;
 	oper->basic_uhr_mcs_nss_set[3] = 0x00;
 
-	return pos + sizeof(*oper);
+	pos += sizeof(*oper);
+
+	/* UHR Operation Parameters field */
+
+	if (!beacon && hapd->iconf->dbe_bandwidth) {
+		oper_ctrl |= UHR_OPER_CTRL_DPE_OP_PARAMS_PRES;
+
+		/* DBE Operation Parameters field */
+		*pos = hapd->iconf->dbe_bandwidth;
+
+		if (hapd->iconf->dbe_punct_bitmap)
+			*pos |= IEEE80211_UHR_OPER_DBE_DIS_SUBCH_BMAP_PRES;
+		pos++;
+
+		if (hapd->iconf->dbe_punct_bitmap) {
+			WPA_PUT_LE16(pos, hapd->iconf->dbe_punct_bitmap);
+			pos += sizeof(u16);
+		}
+	}
+
+	oper->oper_ctrl = host_to_le16(oper_ctrl);
+
+	*len = pos - start - 2;
+	return pos;
 }
 
 

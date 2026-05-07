@@ -4997,6 +4997,16 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		conf->ieee80211bn = atoi(pos);
 	} else if (os_strcmp(buf, "require_uhr") == 0) {
 		conf->require_uhr = atoi(pos);
+	} else if (os_strcmp(buf, "dbe_bandwidth") == 0) {
+		int val = atoi(pos);
+
+		if (val < 0 || val > 5)
+			return 1;
+
+		conf->dbe_bandwidth = val;
+	} else if (os_strcmp(buf, "dbe_punct_bitmap") == 0) {
+		if (get_u16(pos, line, &conf->dbe_punct_bitmap))
+			return 1;
 #endif /* CONFIG_IEEE80211BN */
 	} else if (os_strcmp(buf, "i2r_lmr_policy") == 0) {
 		conf->i2r_lmr_policy = atoi(pos);
