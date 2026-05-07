@@ -6355,6 +6355,14 @@ static int wpa_driver_nl80211_sta_add(void *priv,
 				goto fail;
 		}
 
+		if (params->uhr_capab) {
+			wpa_hexdump(MSG_DEBUG, "  * uhr_capab",
+				    params->uhr_capab, params->uhr_capab_len);
+			if (nla_put(msg, NL80211_ATTR_UHR_CAPABILITY,
+				    params->uhr_capab_len, params->uhr_capab))
+				goto fail;
+		}
+
 		if (params->ext_capab) {
 			wpa_hexdump(MSG_DEBUG, "  * ext_capab",
 				    params->ext_capab, params->ext_capab_len);
@@ -7292,6 +7300,12 @@ static int nl80211_ht_vht_overrides(struct nl_msg *msg,
 	if (params->disable_eht) {
 		wpa_printf(MSG_DEBUG, "  * EHT disabled");
 		if (nla_put_flag(msg, NL80211_ATTR_DISABLE_EHT))
+			return -1;
+	}
+
+	if (params->disable_uhr) {
+		wpa_printf(MSG_DEBUG, "  * UHR disabled");
+		if (nla_put_flag(msg, NL80211_ATTR_DISABLE_UHR))
 			return -1;
 	}
 

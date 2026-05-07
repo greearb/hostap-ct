@@ -227,6 +227,13 @@ bool eht_supported(const struct hostapd_hw_modes *hw_mode,
 }
 
 
+bool uhr_supported(const struct hostapd_hw_modes *hw_mode,
+		   enum ieee80211_op_mode op_mode)
+{
+	return hw_mode->uhr_capab[op_mode].uhr_supported;
+}
+
+
 static int wpa_check_wowlan_trigger(const char *start, const char *trigger,
 				    int capa_trigger, u8 *param_trigger)
 {

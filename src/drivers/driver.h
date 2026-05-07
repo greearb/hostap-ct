@@ -217,6 +217,13 @@ struct eht_capabilities {
 	u8 ppet[EHT_PPE_THRESH_CAPAB_LEN];
 };
 
+/* struct uhr_capabilities - IEEE 802.11bn UHR capabilities */
+struct uhr_capabilities {
+	bool uhr_supported;
+	u8 mac[6];
+	u8 phy[5];
+};
+
 #define HOSTAPD_MODE_FLAG_HT_INFO_KNOWN BIT(0)
 #define HOSTAPD_MODE_FLAG_VHT_INFO_KNOWN BIT(1)
 #define HOSTAPD_MODE_FLAG_HE_INFO_KNOWN BIT(2)
@@ -327,6 +334,11 @@ struct hostapd_hw_modes {
 	 * eht_capab - EHT (IEEE 802.11be) capabilities
 	 */
 	struct eht_capabilities eht_capab[IEEE80211_MODE_NUM];
+
+	/**
+	 * uhr_capab - UHR (IEEE 802.11bn) capabilities
+	 */
+	struct uhr_capabilities uhr_capab[IEEE80211_MODE_NUM];
 };
 
 
@@ -1403,6 +1415,11 @@ struct wpa_driver_associate_params {
 	 * disable_eht - Disable EHT for this connection
 	 */
 	int disable_eht;
+
+	/**
+	 * disable_uhr - Disable UHR for this connection
+	 */
+	bool disable_uhr;
 
 	/*
 	 * mld_params - MLD association parameters
@@ -2852,6 +2869,9 @@ struct hostapd_sta_add_params {
 	s8 mld_link_id;
 	const u8 *mld_link_addr;
 	u16 eml_cap;
+
+	const struct ieee80211_uhr_capabilities *uhr_capab;
+	size_t uhr_capab_len;
 
 #ifdef CONFIG_NAN
 	/*
@@ -7892,6 +7912,8 @@ int vht_supported(const struct hostapd_hw_modes *mode);
 bool he_supported(const struct hostapd_hw_modes *hw_mode,
 		  enum ieee80211_op_mode op_mode);
 bool eht_supported(const struct hostapd_hw_modes *hw_mode,
+		   enum ieee80211_op_mode op_mode);
+bool uhr_supported(const struct hostapd_hw_modes *hw_mode,
 		   enum ieee80211_op_mode op_mode);
 
 struct wowlan_triggers *
