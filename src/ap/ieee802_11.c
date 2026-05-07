@@ -7339,7 +7339,7 @@ static void handle_assoc(struct hostapd_data *hapd,
 			hostapd_logger(hapd, mgmt->sa,
 				       HOSTAPD_MODULE_IEEE80211,
 				       HOSTAPD_LEVEL_INFO,
-				       "Station tried to associate before authentication (aid=%d flags=0x%x)",
+				       "Station tried to associate before authentication (aid=%d flags=0x%llx)",
 				       sta ? sta->aid : -1,
 				       sta ? sta->flags : 0);
 			send_deauth(hapd, mgmt->sa,

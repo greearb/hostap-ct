@@ -602,7 +602,7 @@ void ap_handle_timer(void *eloop_ctx, void *timeout_ctx)
 	int reason;
 	int max_inactivity = hapd->conf->ap_max_inactivity;
 
-	wpa_printf(MSG_DEBUG, "%s: %s: " MACSTR " flags=0x%x timeout_next=%d",
+	wpa_printf(MSG_DEBUG, "%s: %s: " MACSTR " flags=0x%llx timeout_next=%d",
 		   hapd->conf->iface, __func__, MAC2STR(sta->addr), sta->flags,
 		   sta->timeout_next);
 	if (sta->timeout_next == STA_REMOVE) {
@@ -1964,7 +1964,7 @@ void ap_sta_clear_assoc_timeout(struct hostapd_data *hapd,
 }
 
 
-int ap_sta_flags_txt(u32 flags, char *buf, size_t buflen)
+int ap_sta_flags_txt(unsigned long long flags, char *buf, size_t buflen)
 {
 	int res;
 

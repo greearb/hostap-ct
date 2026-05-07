@@ -20,35 +20,35 @@
 #include "hostapd.h"
 
 /* STA flags */
-#define WLAN_STA_AUTH BIT(0)
-#define WLAN_STA_ASSOC BIT(1)
-#define WLAN_STA_SPP_AMSDU BIT(2)
-#define WLAN_STA_AUTHORIZED BIT(5)
-#define WLAN_STA_PENDING_POLL BIT(6) /* pending activity poll not ACKed */
-#define WLAN_STA_SHORT_PREAMBLE BIT(7)
-#define WLAN_STA_PREAUTH BIT(8)
-#define WLAN_STA_WMM BIT(9)
-#define WLAN_STA_MFP BIT(10)
-#define WLAN_STA_HT BIT(11)
-#define WLAN_STA_WPS BIT(12)
-#define WLAN_STA_MAYBE_WPS BIT(13)
-#define WLAN_STA_WDS BIT(14)
-#define WLAN_STA_ASSOC_REQ_OK BIT(15)
-#define WLAN_STA_WPS2 BIT(16)
-#define WLAN_STA_GAS BIT(17)
-#define WLAN_STA_VHT BIT(18)
-#define WLAN_STA_WNM_SLEEP_MODE BIT(19)
-#define WLAN_STA_VHT_OPMODE_ENABLED BIT(20)
-#define WLAN_STA_VENDOR_VHT BIT(21)
-#define WLAN_STA_PENDING_FILS_ERP BIT(22)
-#define WLAN_STA_MULTI_AP BIT(23)
-#define WLAN_STA_HE BIT(24)
-#define WLAN_STA_6GHZ BIT(25)
-#define WLAN_STA_PENDING_PASN_FILS_ERP BIT(26)
-#define WLAN_STA_EHT BIT(27)
-#define WLAN_STA_PENDING_DISASSOC_CB BIT(29)
-#define WLAN_STA_PENDING_DEAUTH_CB BIT(30)
-#define WLAN_STA_NONERP BIT(31)
+#define WLAN_STA_AUTH BIT_ULL(0)
+#define WLAN_STA_ASSOC BIT_ULL(1)
+#define WLAN_STA_SPP_AMSDU BIT_ULL(2)
+#define WLAN_STA_AUTHORIZED BIT_ULL(5)
+#define WLAN_STA_PENDING_POLL BIT_ULL(6) /* pending activity poll not ACKed */
+#define WLAN_STA_SHORT_PREAMBLE BIT_ULL(7)
+#define WLAN_STA_PREAUTH BIT_ULL(8)
+#define WLAN_STA_WMM BIT_ULL(9)
+#define WLAN_STA_MFP BIT_ULL(10)
+#define WLAN_STA_HT BIT_ULL(11)
+#define WLAN_STA_WPS BIT_ULL(12)
+#define WLAN_STA_MAYBE_WPS BIT_ULL(13)
+#define WLAN_STA_WDS BIT_ULL(14)
+#define WLAN_STA_ASSOC_REQ_OK BIT_ULL(15)
+#define WLAN_STA_WPS2 BIT_ULL(16)
+#define WLAN_STA_GAS BIT_ULL(17)
+#define WLAN_STA_VHT BIT_ULL(18)
+#define WLAN_STA_WNM_SLEEP_MODE BIT_ULL(19)
+#define WLAN_STA_VHT_OPMODE_ENABLED BIT_ULL(20)
+#define WLAN_STA_VENDOR_VHT BIT_ULL(21)
+#define WLAN_STA_PENDING_FILS_ERP BIT_ULL(22)
+#define WLAN_STA_MULTI_AP BIT_ULL(23)
+#define WLAN_STA_HE BIT_ULL(24)
+#define WLAN_STA_6GHZ BIT_ULL(25)
+#define WLAN_STA_PENDING_PASN_FILS_ERP BIT_ULL(26)
+#define WLAN_STA_EHT BIT_ULL(27)
+#define WLAN_STA_PENDING_DISASSOC_CB BIT_ULL(29)
+#define WLAN_STA_PENDING_DEAUTH_CB BIT_ULL(30)
+#define WLAN_STA_NONERP BIT_ULL(31)
 
 /* Maximum number of supported rates (from both Supported Rates and Extended
  * Supported Rates IEs). */
@@ -112,7 +112,7 @@ struct sta_info {
 	struct dl_list ip6addr; /* list head for struct ip6addr */
 	u16 aid; /* STA's unique AID (1 .. 2007) or 0 if not yet assigned */
 	u16 disconnect_reason_code; /* RADIUS server override */
-	u32 flags; /* Bitfield of WLAN_STA_* */
+	unsigned long long flags; /* Bitfield of WLAN_STA_* */
 	u16 capability;
 	u16 listen_interval; /* or beacon_int for APs */
 	u8 supported_rates[WLAN_SUPP_RATES_MAX];
@@ -441,7 +441,7 @@ void ap_sta_clear_disconnect_timeouts(struct hostapd_data *hapd,
 void ap_sta_clear_assoc_timeout(struct hostapd_data *hapd,
 				struct sta_info *sta);
 
-int ap_sta_flags_txt(u32 flags, char *buf, size_t buflen);
+int ap_sta_flags_txt(unsigned long long flags, char *buf, size_t buflen);
 void ap_sta_delayed_1x_auth_fail_disconnect(struct hostapd_data *hapd,
 					    struct sta_info *sta,
 					    unsigned timeout);
