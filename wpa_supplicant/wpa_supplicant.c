@@ -4979,6 +4979,7 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit)
 	wpa_supplicant_apply_he_overrides(wpa_s, ssid, &params);
 #endif /* CONFIG_HE_OVERRIDES */
 	wpa_supplicant_apply_eht_overrides(wpa_s, ssid, &params);
+	wpa_supplicant_apply_uhr_overrides(wpa_s, ssid, &params);
 
 #ifdef CONFIG_P2P
 	/*
@@ -6929,6 +6930,17 @@ void wpa_supplicant_apply_eht_overrides(
 		return;
 
 	params->disable_eht = ssid->disable_eht;
+}
+
+
+void wpa_supplicant_apply_uhr_overrides(
+	struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
+	struct wpa_driver_associate_params *params)
+{
+	if (!ssid)
+		return;
+
+	params->disable_uhr = ssid->disable_uhr;
 }
 
 

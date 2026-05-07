@@ -4538,6 +4538,7 @@ mscs_fail:
 	wpa_supplicant_apply_he_overrides(wpa_s, ssid, &params);
 #endif /* CONFIG_HE_OVERRIDES */
 	wpa_supplicant_apply_eht_overrides(wpa_s, ssid, &params);
+	wpa_supplicant_apply_uhr_overrides(wpa_s, ssid, &params);
 #ifdef CONFIG_IEEE80211R
 	if (auth_type == WLAN_AUTH_FT && wpa_s->sme.ft_ies &&
 	    get_ie(wpa_s->sme.ft_ies, wpa_s->sme.ft_ies_len,

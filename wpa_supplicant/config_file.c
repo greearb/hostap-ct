@@ -1019,6 +1019,7 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid,
 	INT(disable_he);
 #endif /* CONFIG_HE_OVERRIDES */
 	INT(disable_eht);
+	INT(disable_uhr);
 	INT(enable_4addr_mode);
 	INT(max_idle);
 	INT(ssid_protection);
