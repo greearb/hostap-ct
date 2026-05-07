@@ -3311,6 +3311,16 @@ struct ieee80211_s1g_beacon_compat {
 	le32 tsf_completion;
 } STRUCT_PACKED;
 
+#define IEEE80211_UHR_MAC_CAP1_DBE_SUPP		0x04
+
+/* DBE Maximum Supported Bandwidth
+ * IEEE P802.11bn/D1.4, Table 9-bb6 */
+#define IEEE80211_UHR_DBE_CAP_MAX_BW_MASK	0x07
+#define IEEE80211_UHR_DBE_CAP_MAX_BW_40MHZ	1
+#define IEEE80211_UHR_DBE_CAP_MAX_BW_80MHZ	2
+#define IEEE80211_UHR_DBE_CAP_MAX_BW_160MHZ	3
+#define IEEE80211_UHR_DBE_CAP_MAX_BW_320MHZ	4
+
 /* UHR Capabilities element format */
 struct ieee80211_uhr_capabilities {
 	/* UHR MAC Capabilities Information */

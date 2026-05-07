@@ -18,6 +18,8 @@ size_t hostapd_eid_uhr_capab_len(struct hostapd_data *hapd,
 {
 	struct hostapd_hw_modes *mode;
 	struct uhr_capabilities *uhr_cap;
+	size_t len = 3 /* ext elem header */ +
+		sizeof(struct ieee80211_uhr_capabilities);
 
 	mode = hapd->iface->current_mode;
 	if (!mode)
@@ -27,8 +29,10 @@ size_t hostapd_eid_uhr_capab_len(struct hostapd_data *hapd,
 	if (!uhr_cap->uhr_supported)
 		return 0;
 
-	return 3 /* ext elem header */ +
-		sizeof(struct ieee80211_uhr_capabilities);
+	if (uhr_cap->mac[1] & IEEE80211_UHR_MAC_CAP1_DBE_SUPP)
+		len++;
+
+	return len;
 }
 
 
@@ -36,6 +40,8 @@ u8 * hostapd_eid_uhr_capab(struct hostapd_data *hapd, u8 *eid,
 			   enum ieee80211_op_mode opmode)
 {
 	struct hostapd_hw_modes *mode;
+	struct he_capabilities *he_cap;
+	struct eht_capabilities *eht_cap;
 	struct uhr_capabilities *uhr_cap;
 	struct ieee80211_uhr_capabilities *cap;
 	u8 *pos = eid, *length_pos;
@@ -44,8 +50,12 @@ u8 * hostapd_eid_uhr_capab(struct hostapd_data *hapd, u8 *eid,
 	if (!mode)
 		return eid;
 
+	he_cap = &mode->he_capab[opmode];
+	eht_cap = &mode->eht_capab[opmode];
 	uhr_cap = &mode->uhr_capab[opmode];
-	if (!uhr_cap->uhr_supported)
+	if (!he_cap->he_supported ||
+	    !eht_cap->eht_supported ||
+	    !uhr_cap->uhr_supported)
 		return eid;
 
 	*pos++ = WLAN_EID_EXTENSION;
@@ -56,6 +66,34 @@ u8 * hostapd_eid_uhr_capab(struct hostapd_data *hapd, u8 *eid,
 	os_memcpy(cap->mac, uhr_cap->mac, sizeof(cap->mac));
 	os_memcpy(cap->phy, uhr_cap->phy, sizeof(cap->phy));
 	pos += sizeof(*cap);
+
+	if (opmode == IEEE80211_MODE_AP &&
+	    cap->mac[1] & IEEE80211_UHR_MAC_CAP1_DBE_SUPP) {
+		/*
+		 * Assume that HE implies VHT implies 80 MHz at least,
+		 * DBE doesn't exist on 2.4 GHz and the capability
+		 * shouldn't be set by the driver.
+		 *
+		 * It's also not very relevant if DBE isn't enabled.
+		 */
+		u8 dbe_bw = IEEE80211_UHR_DBE_CAP_MAX_BW_80MHZ;
+
+		if (he_cap->phy_cap[HE_PHYCAP_CHANNEL_WIDTH_SET_IDX] &
+		    HE_PHYCAP_CHANNEL_WIDTH_SET_160MHZ_IN_5G)
+			dbe_bw = IEEE80211_UHR_DBE_CAP_MAX_BW_160MHZ;
+
+		if (is_6ghz_op_class(hapd->iconf->op_class) &&
+		    eht_cap->phy_cap[EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_IDX] &
+		    EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_MASK)
+			dbe_bw = IEEE80211_UHR_DBE_CAP_MAX_BW_320MHZ;
+
+		/*
+		 * No MCS maps or other further DBE capabilities since we just
+		 * use EHT capabilities and advertise full EHT capabilities
+		 * even if operating in a lower bandwidth.
+		 */
+		*pos++ = dbe_bw;
+	}
 
 	*length_pos = pos - (eid + 2);
 	return pos;
