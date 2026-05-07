@@ -2271,7 +2271,7 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 		wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_USE_EXT_KEY_ID, 0);
 	}
 
-	/* Mark WMM enabled for any HT/VHT/HE/EHT association to get more
+	/* Mark WMM enabled for any HT/VHT/HE/EHT/UHR association to get more
 	 * appropriate advertisement of the supported number of PTKSA receive
 	 * counters. In theory, this could be based on a driver capability, but
 	 * in practice all cases using WMM support at least eight replay
@@ -2282,7 +2282,8 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 	 * is far more likely for any current device to support WMM. */
 	wmm = wpa_s->connection_set &&
 		(wpa_s->connection_ht || wpa_s->connection_vht ||
-		 wpa_s->connection_he || wpa_s->connection_eht);
+		 wpa_s->connection_he || wpa_s->connection_eht ||
+		 wpa_s->connection_uhr);
 	if (!wmm && bss)
 		wmm = !!wpa_bss_get_vendor_ie(bss, WMM_IE_VENDOR_TYPE);
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_WMM_ENABLED, wmm);
