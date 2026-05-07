@@ -6201,6 +6201,14 @@ void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
 	}
 
 	p = hostapd_eid_ext_capab(hapd, p, false);
+
+#ifdef CONFIG_IEEE80211BN
+	if (hostapd_is_uhr_enabled(hapd)) {
+		p = hostapd_eid_uhr_capab(hapd, p, IEEE80211_MODE_AP);
+		p = hostapd_eid_uhr_operation(hapd, p, false);
+	}
+#endif /* CONFIG_IEEE80211BN */
+
 	p = hostapd_eid_mbo(hapd, p, buf + buflen - p);
 	p = hostapd_eid_wmm(hapd, p);
 
@@ -6628,6 +6636,12 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 			buflen += hostapd_eid_eht_ml_tid_to_link_map_len(hapd);
 	}
 #endif /* CONFIG_IEEE80211BE */
+#ifdef CONFIG_IEEE80211BN
+	if (hostapd_is_uhr_enabled(hapd)) {
+		buflen += hostapd_eid_uhr_capab_len(hapd, IEEE80211_MODE_AP);
+		buflen += 3 + IEEE80211_UHR_OPER_MAX_SIZE;
+	}
+#endif /* CONFIG_IEEE80211BN */
 
 	buf = os_zalloc(buflen);
 	if (!buf) {
@@ -6789,6 +6803,13 @@ rsnxe_done:
 			p = hostapd_eid_eht_ml_tid_to_link_map(hapd, p);
 	}
 #endif /* CONFIG_IEEE80211BE */
+
+#ifdef CONFIG_IEEE80211BN
+	if (hostapd_is_uhr_enabled(hapd)) {
+		p = hostapd_eid_uhr_capab(hapd, p, IEEE80211_MODE_AP);
+		p = hostapd_eid_uhr_operation(hapd, p, false);
+	}
+#endif /* CONFIG_IEEE80211BN */
 
 #ifdef CONFIG_OWE
 	if (((hapd->conf->wpa_key_mgmt | hapd->conf->rsn_override_key_mgmt |

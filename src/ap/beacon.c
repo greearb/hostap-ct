@@ -814,6 +814,14 @@ static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 					 params->known_bss,
 					 params->known_bss_len, NULL);
 	buflen += hostapd_eid_rnr_len(hapd, WLAN_FC_STYPE_PROBE_RESP, true);
+
+#ifdef CONFIG_IEEE80211BN
+	if (hostapd_is_uhr_enabled(hapd)) {
+		buflen += hostapd_eid_uhr_capab_len(hapd, IEEE80211_MODE_AP);
+		buflen += 3 + IEEE80211_UHR_OPER_MAX_SIZE;
+	}
+#endif /* CONFIG_IEEE80211BN */
+
 	buflen += hostapd_mbo_ie_len(hapd);
 	buflen += hostapd_eid_owe_trans_len(hapd);
 	buflen += hostapd_eid_dpp_cc_len(hapd);
@@ -980,6 +988,13 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 			pos = hostapd_eid_eht_ml_tid_to_link_map(hapd, pos);
 	}
 #endif /* CONFIG_IEEE80211BE */
+
+#ifdef CONFIG_IEEE80211BN
+	if (hostapd_is_uhr_enabled(hapd)) {
+		pos = hostapd_eid_uhr_capab(hapd, pos, IEEE80211_MODE_AP);
+		pos = hostapd_eid_uhr_operation(hapd, pos, false);
+	}
+#endif /* CONFIG_IEEE80211BN */
 
 #ifdef CONFIG_IEEE80211AC
 	if (hapd->conf->vendor_vht)
@@ -2303,6 +2318,12 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 	    hapd == hostapd_mbssid_get_tx_bss(hapd))
 		tail_len += 5; /* Multiple BSSID Configuration element */
 	tail_len += hostapd_eid_rnr_len(hapd, WLAN_FC_STYPE_BEACON, true);
+
+#ifdef CONFIG_IEEE80211BN
+	if (hostapd_is_uhr_enabled(hapd))
+		tail_len += 3 + sizeof(struct ieee80211_uhr_operation);
+#endif /* CONFIG_IEEE80211BN */
+
 	tail_len += hostapd_mbo_ie_len(hapd);
 	tail_len += hostapd_eid_owe_trans_len(hapd);
 	tail_len += hostapd_eid_dpp_cc_len(hapd);
@@ -2484,6 +2505,11 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 								     tailpos);
 	}
 #endif /* CONFIG_IEEE80211BE */
+
+#ifdef CONFIG_IEEE80211BN
+	if (hostapd_is_uhr_enabled(hapd))
+		tailpos = hostapd_eid_uhr_operation(hapd, tailpos, true);
+#endif /* CONFIG_IEEE80211BN */
 
 #ifdef CONFIG_IEEE80211AC
 	if (hapd->conf->vendor_vht)
