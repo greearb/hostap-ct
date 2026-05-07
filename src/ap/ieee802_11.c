@@ -155,6 +155,11 @@ static size_t hostapd_supp_rates(struct hostapd_data *hapd, u8 *buf)
 		*pos++ = 0x80 | BSS_MEMBERSHIP_SELECTOR_EHT_PHY;
 #endif /* CONFIG_IEEE80211BE */
 
+#ifdef CONFIG_IEEE80211BN
+	if (hapd->iconf->ieee80211bn && hapd->iconf->require_uhr)
+		*pos++ = 0x80 | BSS_MEMBERSHIP_SELECTOR_UHR_PHY;
+#endif /* CONFIG_IEEE80211BN */
+
 #ifdef CONFIG_SAE
 	if ((hapd->conf->sae_pwe == SAE_PWE_HASH_TO_ELEMENT ||
 	     hostapd_sae_pw_id_in_use(hapd->conf) == 2) &&
