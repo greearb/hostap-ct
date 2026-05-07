@@ -474,6 +474,7 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	os_free(sta->he_capab);
 	os_free(sta->he_6ghz_capab);
 	os_free(sta->eht_capab);
+	os_free(sta->uhr_capab);
 	hostapd_free_psk_list(sta->psk);
 	os_free(sta->identity);
 	os_free(sta->radius_cui);
@@ -1970,7 +1971,7 @@ int ap_sta_flags_txt(unsigned long long flags, char *buf, size_t buflen)
 
 	buf[0] = '\0';
 	res = os_snprintf(buf, buflen,
-			  "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
+			  "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
 			  (flags & WLAN_STA_AUTH ? "[AUTH]" : ""),
 			  (flags & WLAN_STA_ASSOC ? "[ASSOC]" : ""),
 			  (flags & WLAN_STA_AUTHORIZED ? "[AUTHORIZED]" : ""),
@@ -1991,6 +1992,7 @@ int ap_sta_flags_txt(unsigned long long flags, char *buf, size_t buflen)
 			  (flags & WLAN_STA_VHT ? "[VHT]" : ""),
 			  (flags & WLAN_STA_HE ? "[HE]" : ""),
 			  (flags & WLAN_STA_EHT ? "[EHT]" : ""),
+			  (flags & WLAN_STA_UHR ? "[UHR]" : ""),
 			  (flags & WLAN_STA_6GHZ ? "[6GHZ]" : ""),
 			  (flags & WLAN_STA_VENDOR_VHT ? "[VENDOR_VHT]" : ""),
 			  (flags & WLAN_STA_SPP_AMSDU ? "[SPP-A-MSDU]" : ""),

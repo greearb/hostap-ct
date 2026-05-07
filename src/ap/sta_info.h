@@ -49,6 +49,7 @@
 #define WLAN_STA_PENDING_DISASSOC_CB BIT_ULL(29)
 #define WLAN_STA_PENDING_DEAUTH_CB BIT_ULL(30)
 #define WLAN_STA_NONERP BIT_ULL(31)
+#define WLAN_STA_UHR BIT_ULL(32)
 
 /* Maximum number of supported rates (from both Supported Rates and Extended
  * Supported Rates IEs). */
@@ -226,6 +227,8 @@ struct sta_info {
 	struct ieee80211_he_6ghz_band_cap *he_6ghz_capab;
 	struct ieee80211_eht_capabilities *eht_capab;
 	size_t eht_capab_len;
+	struct ieee80211_uhr_capabilities *uhr_capab;
+	size_t uhr_capab_len;
 
 	int sa_query_count; /* number of pending SA Query requests;
 			     * 0 = no SA Query in progress */

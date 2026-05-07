@@ -5542,6 +5542,23 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		}
 	}
 #endif /* CONFIG_IEEE80211BE */
+#ifdef CONFIG_IEEE80211BN
+	if (hostapd_is_uhr_enabled(hapd)) {
+		resp = copy_sta_uhr_capab(hapd, sta, IEEE80211_MODE_AP,
+					  elems->uhr_capabilities,
+					  elems->uhr_capabilities_len);
+		if (resp != WLAN_STATUS_SUCCESS)
+			return resp;
+
+		if (hapd->iconf->require_uhr && !(sta->flags & WLAN_STA_UHR)) {
+			hostapd_logger(hapd, sta->addr,
+				       HOSTAPD_MODULE_IEEE80211,
+				       HOSTAPD_LEVEL_INFO,
+				       "Station does not support mandatory UHR PHY - reject association");
+			return WLAN_STATUS_DENIED_UHR_NOT_SUPPORTED;
+		}
+	}
+#endif /* CONFIG_IEEE80211BN */
 
 #ifdef CONFIG_P2P
 	if (elems->p2p && ies && ies_len) {
