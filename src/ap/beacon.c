@@ -2737,6 +2737,7 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 	bool twt_he_responder = false;
 	int res, ret = -1, i;
 	struct hostapd_hw_modes *mode;
+	struct hostapd_channel_info info;
 
 	if (!hapd->drv_priv) {
 		wpa_printf(MSG_ERROR, "Interface is disabled");
@@ -2806,20 +2807,27 @@ static int __ieee802_11_set_beacon(struct hostapd_data *hapd)
 	params.punct_bitmap = iconf->punct_bitmap;
 #endif /* CONFIG_IEEE80211BE */
 
-	if (cmode &&
-	    hostapd_set_freq_params(&freq, iconf->hw_mode, iface->freq,
-				    iconf->channel, iconf->enable_edmg,
-				    iconf->edmg_channel, iconf->ieee80211n,
-				    iconf->ieee80211ac, iconf->ieee80211ax,
-				    iconf->ieee80211be,
-				    iconf->secondary_channel,
-				    hostapd_get_oper_chwidth(iconf),
-				    hostapd_get_oper_centr_freq_seg0_idx(iconf),
-				    hostapd_get_oper_centr_freq_seg1_idx(iconf),
-				    cmode->vht_capab,
-				    &cmode->he_capab[IEEE80211_MODE_AP],
-				    &cmode->eht_capab[IEEE80211_MODE_AP],
-				    hostapd_get_punct_bitmap(hapd)) == 0) {
+	info = (struct hostapd_channel_info) {
+		.mode = iconf->hw_mode,
+		.freq = iface->freq,
+		.channel = iconf->channel,
+		.edmg.enabled = iconf->enable_edmg,
+		.edmg.channel = iconf->edmg_channel,
+		.ht.enabled = iconf->ieee80211n,
+		.vht.enabled = iconf->ieee80211ac,
+		.he.enabled = iconf->ieee80211ax,
+		.eht.enabled = iconf->ieee80211be,
+		.ht.sec_channel_offset = iconf->secondary_channel,
+		.oper_chwidth = hostapd_get_oper_chwidth(iconf),
+		.center_segment0 = hostapd_get_oper_centr_freq_seg0_idx(iconf),
+		.center_segment1 = hostapd_get_oper_centr_freq_seg1_idx(iconf),
+		.vht.caps = cmode ? cmode->vht_capab : 0,
+		.he.cap = cmode ? &cmode->he_capab[IEEE80211_MODE_AP] : NULL,
+		.eht.cap = cmode ? &cmode->eht_capab[IEEE80211_MODE_AP] : NULL,
+		.eht.punct_bitmap = hostapd_get_punct_bitmap(hapd),
+	};
+
+	if (cmode && hostapd_set_freq_params(&freq, &info) == 0) {
 		freq.link_id = -1;
 #ifdef CONFIG_IEEE80211BE
 		if (hapd->conf->mld_ap)

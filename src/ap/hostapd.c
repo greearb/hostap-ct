@@ -4522,23 +4522,34 @@ int hostapd_change_config_freq(struct hostapd_data *hapd,
 	mode = hapd->iface->current_mode;
 
 	/* if a pointer to old_params is provided we save previous state */
-	if (old_params &&
-	    hostapd_set_freq_params(old_params, conf->hw_mode,
-				    hostapd_hw_get_freq(hapd, conf->channel),
-				    conf->channel, conf->enable_edmg,
-				    conf->edmg_channel, conf->ieee80211n,
-				    conf->ieee80211ac, conf->ieee80211ax,
-				    conf->ieee80211be, conf->secondary_channel,
-				    hostapd_get_oper_chwidth(conf),
-				    hostapd_get_oper_centr_freq_seg0_idx(conf),
-				    hostapd_get_oper_centr_freq_seg1_idx(conf),
-				    conf->vht_capab,
-				    mode ? &mode->he_capab[IEEE80211_MODE_AP] :
-				    NULL,
-				    mode ? &mode->eht_capab[IEEE80211_MODE_AP] :
-				    NULL,
-				    hostapd_get_punct_bitmap(hapd)))
-		return -1;
+	if (old_params) {
+		struct hostapd_channel_info info = {
+			.mode = conf->hw_mode,
+			.freq = hostapd_hw_get_freq(hapd, conf->channel),
+			.channel = conf->channel,
+			.edmg.enabled = conf->enable_edmg,
+			.edmg.channel = conf->edmg_channel,
+			.ht.enabled = conf->ieee80211n,
+			.vht.enabled = conf->ieee80211ac,
+			.he.enabled = conf->ieee80211ax,
+			.eht.enabled = conf->ieee80211be,
+			.ht.sec_channel_offset = conf->secondary_channel,
+			.oper_chwidth = hostapd_get_oper_chwidth(conf),
+			.center_segment0 =
+			hostapd_get_oper_centr_freq_seg0_idx(conf),
+			.center_segment1 =
+			hostapd_get_oper_centr_freq_seg1_idx(conf),
+			.vht.caps = conf->vht_capab,
+			.he.cap = mode ? &mode->he_capab[IEEE80211_MODE_AP] :
+			NULL,
+			.eht.cap = mode ? &mode->eht_capab[IEEE80211_MODE_AP] :
+			NULL,
+			.eht.punct_bitmap = hostapd_get_punct_bitmap(hapd),
+		};
+
+		if (hostapd_set_freq_params(old_params, &info))
+			return -1;
+	}
 
 	switch (params->bandwidth) {
 	case 0:

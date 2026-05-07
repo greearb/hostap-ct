@@ -3360,6 +3360,7 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 	};
 
 	struct hostapd_freq_params vht_freq;
+	struct hostapd_channel_info info;
 	int i;
 	unsigned int j, k;
 	int chwidth, seg0, seg1;
@@ -3524,15 +3525,25 @@ static bool ibss_mesh_select_80_160mhz(struct wpa_supplicant *wpa_s,
 	}
 
 skip_80mhz:
-	if (hostapd_set_freq_params(&vht_freq, mode->mode, freq->freq,
-				    freq->channel, ssid->enable_edmg,
-				    ssid->edmg_channel, freq->ht_enabled,
-				    freq->vht_enabled, freq->he_enabled,
-				    freq->eht_enabled,
-				    freq->sec_channel_offset,
-				    chwidth, seg0, seg1, vht_caps,
-				    &mode->he_capab[ieee80211_mode],
-				    &mode->eht_capab[ieee80211_mode], 0) != 0)
+	info = (struct hostapd_channel_info) {
+		.mode = mode->mode,
+		.freq = freq->freq,
+		.channel = freq->channel,
+		.edmg.enabled = ssid->enable_edmg,
+		.edmg.channel = ssid->edmg_channel,
+		.ht.enabled = freq->ht_enabled,
+		.vht.enabled = freq->vht_enabled,
+		.he.enabled = freq->he_enabled,
+		.eht.enabled = freq->eht_enabled,
+		.ht.sec_channel_offset = freq->sec_channel_offset,
+		.oper_chwidth = chwidth,
+		.center_segment0 = seg0,
+		.center_segment1 = seg1,
+		.vht.caps = vht_caps,
+		.he.cap = &mode->he_capab[ieee80211_mode],
+		.eht.cap = &mode->eht_capab[ieee80211_mode],
+	};
+	if (hostapd_set_freq_params(&vht_freq, &info))
 		return false;
 
 	*freq = vht_freq;

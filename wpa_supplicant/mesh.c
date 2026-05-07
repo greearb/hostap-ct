@@ -190,28 +190,28 @@ static int wpas_mesh_update_freq_params(struct wpa_supplicant *wpa_s)
 {
 	struct wpa_driver_mesh_join_params *params = wpa_s->mesh_params;
 	struct hostapd_iface *ifmsh = wpa_s->ifmsh;
-	struct he_capabilities *he_capab = NULL;
+	struct hostapd_channel_info info = {
+		.mode = ifmsh->conf->hw_mode,
+		.freq = ifmsh->freq,
+		.channel = ifmsh->conf->channel,
+		.edmg.enabled = ifmsh->conf->enable_edmg,
+		.edmg.channel = ifmsh->conf->edmg_channel,
+		.ht.enabled = ifmsh->conf->ieee80211n,
+		.vht.enabled = ifmsh->conf->ieee80211ac,
+		.he.enabled = ifmsh->conf->ieee80211ax,
+		.eht.enabled = ifmsh->conf->ieee80211be,
+		.ht.sec_channel_offset = ifmsh->conf->secondary_channel,
+		.oper_chwidth = hostapd_get_oper_chwidth(ifmsh->conf),
+		.center_segment0 =
+		hostapd_get_oper_centr_freq_seg0_idx(ifmsh->conf),
+		.center_segment1 =
+		hostapd_get_oper_centr_freq_seg1_idx(ifmsh->conf),
+		.vht.caps = ifmsh->conf->vht_capab,
+		.he.cap = ifmsh->current_mode ?
+		&ifmsh->current_mode->he_capab[IEEE80211_MODE_MESH] : NULL,
+	};
 
-	if (ifmsh->current_mode)
-		he_capab = &ifmsh->current_mode->he_capab[IEEE80211_MODE_MESH];
-
-	if (hostapd_set_freq_params(
-		    &params->freq,
-		    ifmsh->conf->hw_mode,
-		    ifmsh->freq,
-		    ifmsh->conf->channel,
-		    ifmsh->conf->enable_edmg,
-		    ifmsh->conf->edmg_channel,
-		    ifmsh->conf->ieee80211n,
-		    ifmsh->conf->ieee80211ac,
-		    ifmsh->conf->ieee80211ax,
-		    ifmsh->conf->ieee80211be,
-		    ifmsh->conf->secondary_channel,
-		    hostapd_get_oper_chwidth(ifmsh->conf),
-		    hostapd_get_oper_centr_freq_seg0_idx(ifmsh->conf),
-		    hostapd_get_oper_centr_freq_seg1_idx(ifmsh->conf),
-		    ifmsh->conf->vht_capab,
-		    he_capab, NULL, 0)) {
+	if (hostapd_set_freq_params(&params->freq, &info)) {
 		wpa_printf(MSG_ERROR, "Error updating mesh frequency params");
 		wpa_supplicant_mesh_deinit(wpa_s, true);
 		return -1;

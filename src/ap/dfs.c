@@ -983,6 +983,7 @@ static int hostapd_dfs_request_channel_switch(struct hostapd_iface *iface,
 	unsigned int i;
 	unsigned int num_err = 0;
 	u8 op_class, chan;
+	struct hostapd_channel_info info;
 
 	wpa_printf(MSG_DEBUG, "DFS will switch to a new channel %d", channel);
 	wpa_msg(iface->bss[0]->msg_ctx, MSG_INFO, DFS_EVENT_NEW_CHANNEL
@@ -1012,24 +1013,28 @@ static int hostapd_dfs_request_channel_switch(struct hostapd_iface *iface,
 	if (iface->mconf)
 		ieee80211_mode = IEEE80211_MODE_MESH;
 #endif /* CONFIG_MESH */
-	err = hostapd_set_freq_params(&csa_settings.freq_params,
-				      iface->conf->hw_mode,
-				      freq, channel,
-				      iface->conf->enable_edmg,
-				      iface->conf->edmg_channel,
-				      iface->conf->ieee80211n,
-				      iface->conf->ieee80211ac,
-				      iface->conf->ieee80211ax,
-				      iface->conf->ieee80211be,
-				      secondary_channel,
-				      new_vht_oper_chwidth,
-				      oper_centr_freq_seg0_idx,
-				      oper_centr_freq_seg1_idx,
-				      cmode->vht_capab,
-				      &cmode->he_capab[ieee80211_mode],
-				      &cmode->eht_capab[ieee80211_mode],
-				      hostapd_get_punct_bitmap(iface->bss[0]));
 
+	info = (struct hostapd_channel_info) {
+		.mode = iface->conf->hw_mode,
+		.freq = freq,
+		.channel = channel,
+		.edmg.enabled = iface->conf->enable_edmg,
+		.edmg.channel = iface->conf->edmg_channel,
+		.ht.enabled = iface->conf->ieee80211n,
+		.vht.enabled = iface->conf->ieee80211ac,
+		.he.enabled = iface->conf->ieee80211ax,
+		.eht.enabled = iface->conf->ieee80211be,
+		.ht.sec_channel_offset = secondary_channel,
+		.oper_chwidth = new_vht_oper_chwidth,
+		.center_segment0 = oper_centr_freq_seg0_idx,
+		.center_segment1 = oper_centr_freq_seg1_idx,
+		.vht.caps = cmode->vht_capab,
+		.he.cap = &cmode->he_capab[ieee80211_mode],
+		.eht.cap = &cmode->eht_capab[ieee80211_mode],
+		.eht.punct_bitmap = hostapd_get_punct_bitmap(iface->bss[0]),
+	};
+
+	err = hostapd_set_freq_params(&csa_settings.freq_params, &info);
 	if (err) {
 		wpa_printf(MSG_ERROR,
 			   "DFS failed to calculate CSA freq params");

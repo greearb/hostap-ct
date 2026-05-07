@@ -476,18 +476,25 @@ void punct_update_legacy_bw(u16 bitmap, u8 pri, enum oper_chan_width *width,
 
 
 int hostapd_set_freq_params(struct hostapd_freq_params *data,
-			    enum hostapd_hw_mode mode,
-			    int freq, int channel, int enable_edmg,
-			    u8 edmg_channel, int ht_enabled,
-			    int vht_enabled, int he_enabled,
-			    bool eht_enabled, int sec_channel_offset,
-			    enum oper_chan_width oper_chwidth,
-			    int center_segment0,
-			    int center_segment1, u32 vht_caps,
-			    struct he_capabilities *he_cap,
-			    struct eht_capabilities *eht_cap,
-			    u16 punct_bitmap)
+			    const struct hostapd_channel_info *info)
 {
+	enum hostapd_hw_mode mode = info->mode;
+	int freq = info->freq;
+	int channel = info->channel;
+	int enable_edmg = info->edmg.enabled;
+	u8 edmg_channel = info->edmg.channel;
+	int ht_enabled = info->ht.enabled;
+	int vht_enabled = info->vht.enabled;
+	int he_enabled = info->he.enabled;
+	bool eht_enabled = info->eht.enabled;
+	int sec_channel_offset = info->ht.sec_channel_offset;
+	enum oper_chan_width oper_chwidth = info->oper_chwidth;
+	int center_segment0 = info->center_segment0;
+	int center_segment1 = info->center_segment1;
+	u32 vht_caps = info->vht.caps;
+	const struct he_capabilities *he_cap = info->he.cap;
+	const struct eht_capabilities *eht_cap = info->eht.cap;
+	u16 punct_bitmap = info->eht.punct_bitmap;
 	enum oper_chan_width oper_chwidth_legacy;
 	u8 seg0_legacy, seg1_legacy;
 

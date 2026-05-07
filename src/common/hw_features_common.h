@@ -37,18 +37,50 @@ int check_40mhz_2g4(struct hostapd_hw_modes *mode,
 		    int sec_chan);
 void punct_update_legacy_bw(u16 bitmap, u8 pri_chan,
 			    enum oper_chan_width *width, u8 *seg0, u8 *seg1);
+
+/* Channel information to derive frequency parameters from */
+struct hostapd_channel_info {
+	enum hostapd_hw_mode mode;
+
+	int freq;
+	int channel;
+	enum oper_chan_width oper_chwidth;
+
+	/* EDMG */
+	struct {
+		int enabled;
+		u8 channel;
+	} edmg;
+
+	struct {
+		int enabled;
+		int sec_channel_offset;
+	} ht;
+
+	int center_segment0;
+
+	/* Only valid for 80+80 */
+	int center_segment1;
+
+	struct {
+		int enabled;
+		u32 caps;
+	} vht;
+
+	struct {
+		int enabled;
+		const struct he_capabilities *cap;
+	} he;
+
+	struct {
+		int enabled;
+		const struct eht_capabilities *cap;
+		u16 punct_bitmap;
+	} eht;
+};
+
 int hostapd_set_freq_params(struct hostapd_freq_params *data,
-			    enum hostapd_hw_mode mode,
-			    int freq, int channel, int edmg, u8 edmg_channel,
-			    int ht_enabled,
-			    int vht_enabled, int he_enabled,
-			    bool eht_enabled, int sec_channel_offset,
-			    enum oper_chan_width oper_chwidth,
-			    int center_segment0,
-			    int center_segment1, u32 vht_caps,
-			    struct he_capabilities *he_caps,
-			    struct eht_capabilities *eht_cap,
-			    u16 punct_bitmap);
+			    const struct hostapd_channel_info *info);
 void set_disable_ht40(struct ieee80211_ht_capabilities *htcaps,
 		      int disabled);
 int ieee80211ac_cap_check(u32 hw, u32 conf);
