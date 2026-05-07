@@ -5319,11 +5319,11 @@ static void wpa_supplicant_event_disassoc_finish(struct wpa_supplicant *wpa_s,
 #ifdef CONFIG_DPP2
 	wpas_dpp_send_conn_status_result(wpa_s, DPP_STATUS_AUTH_FAILURE);
 #endif /* CONFIG_DPP2 */
+	wpa_supplicant_mark_disassoc(wpa_s);
 	if (wpa_supplicant_dynamic_keys(wpa_s)) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "Disconnect event - remove keys");
 		wpa_clear_keys(wpa_s, wpa_s->bssid);
 	}
-	wpa_supplicant_mark_disassoc(wpa_s);
 
 	if (curr)
 		wpa_bss_remove(wpa_s, curr, "Connection to AP lost");

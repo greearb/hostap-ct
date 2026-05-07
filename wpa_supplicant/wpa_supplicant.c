@@ -889,12 +889,33 @@ void wpa_clear_keys(struct wpa_supplicant *wpa_s, const u8 *addr)
 {
 	int i, max = 6;
 
-	/* MLME-DELETEKEYS.request */
-	for (i = 0; i < max; i++) {
-		if (wpa_s->keys_cleared & BIT(i))
-			continue;
-		wpa_drv_set_key(wpa_s, -1, WPA_ALG_NONE, NULL, i, 0, NULL, 0,
-				NULL, 0, KEY_FLAG_GROUP);
+	/* MLME-DELETEKEYS.request
+	 *
+	 * For still associated MLO connections, group keys are per-link and at
+	 * least in the case of Linux nl80211 interface, the cfg80211 validator
+	 * rejects DEL_KEY for group keys with link_id=-1 when wdev->valid_links
+	 * is set. Iterate over each valid link and pass the corresponding
+	 * link_id so the keys are properly cleared.
+	 */
+	if (wpa_s->valid_links && wpa_s->wpa_state > WPA_ASSOCIATED) {
+		int link_id;
+
+		for_each_link(wpa_s->valid_links, link_id) {
+			for (i = 0; i < max; i++) {
+				if (wpa_s->keys_cleared & BIT(i))
+					continue;
+				wpa_drv_set_key(wpa_s, link_id, WPA_ALG_NONE,
+						NULL, i, 0, NULL, 0,
+						NULL, 0, KEY_FLAG_GROUP);
+			}
+		}
+	} else {
+		for (i = 0; i < max; i++) {
+			if (wpa_s->keys_cleared & BIT(i))
+				continue;
+			wpa_drv_set_key(wpa_s, -1, WPA_ALG_NONE, NULL, i, 0,
+					NULL, 0, NULL, 0, KEY_FLAG_GROUP);
+		}
 	}
 	/* Pairwise Key ID 1 for Extended Key ID is tracked in bit 15 */
 	if (~wpa_s->keys_cleared & (BIT(0) | BIT(15)) && addr &&
