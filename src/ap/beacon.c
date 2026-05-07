@@ -2507,8 +2507,22 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 #endif /* CONFIG_IEEE80211BE */
 
 #ifdef CONFIG_IEEE80211BN
-	if (hostapd_is_uhr_enabled(hapd))
+	if (hostapd_is_uhr_enabled(hapd)) {
+		u8 *uhr_oper;
+
 		tailpos = hostapd_eid_uhr_operation(hapd, tailpos, true);
+		params->uhr_oper = os_zalloc(3 + IEEE80211_UHR_OPER_MAX_SIZE);
+		if (!params->uhr_oper)
+			goto error;
+
+		uhr_oper = hostapd_eid_uhr_operation(hapd, params->uhr_oper,
+						     false);
+		/* check that it was filled */
+		if (uhr_oper == params->uhr_oper) {
+			os_free(params->uhr_oper);
+			params->uhr_oper = NULL;
+		}
+	}
 #endif /* CONFIG_IEEE80211BN */
 
 #ifdef CONFIG_IEEE80211AC
@@ -2718,6 +2732,8 @@ error:
 	os_free(head);
 	os_free(tail);
 	os_free(resp);
+	os_free(params->uhr_oper);
+	params->uhr_oper = NULL;
 	return -1;
 #endif /* CONFIG_SAE || NEED_AP_MLME */
 }
@@ -2749,6 +2765,8 @@ void ieee802_11_free_ap_params(struct wpa_driver_ap_params *params)
 #endif /* CONFIG_IEEE80211AX */
 	os_free(params->allowed_freqs);
 	params->allowed_freqs = NULL;
+	os_free(params->uhr_oper);
+	params->uhr_oper = NULL;
 }
 
 

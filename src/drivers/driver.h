@@ -1951,6 +1951,12 @@ struct wpa_driver_ap_params {
 	 * sae_password - SAE password for SAE offload
 	 */
 	const char *sae_password;
+
+	/**
+	 * uhr_oper - Full UHR operation (beacon only has abridged data),
+	 * includes the extended element header
+	 */
+	u8 *uhr_oper;
 };
 
 struct wpa_driver_mesh_bss_params {
