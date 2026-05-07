@@ -452,6 +452,14 @@ static int ieee802_11_parse_extension(const u8 *pos, size_t elen,
 		elems->supported_groups = pos;
 		elems->supported_groups_len = elen;
 		break;
+	case WLAN_EID_EXT_UHR_CAPABILITIES:
+		elems->uhr_capabilities = pos;
+		elems->uhr_capabilities_len = elen;
+		break;
+	case WLAN_EID_EXT_UHR_OPERATION:
+		elems->uhr_operation = pos;
+		elems->uhr_operation_len = elen;
+		break;
 	default:
 		if (show_errors) {
 			wpa_printf(MSG_MSGDUMP,
@@ -1025,6 +1033,14 @@ void ieee802_11_elems_clear_ext_ids(struct ieee802_11_elems *elems,
 		case WLAN_EID_EXT_EHT_OPERATION:
 			elems->eht_operation = NULL;
 			elems->eht_operation_len = 0;
+			break;
+		case WLAN_EID_EXT_UHR_CAPABILITIES:
+			elems->uhr_capabilities = NULL;
+			elems->uhr_capabilities_len = 0;
+			break;
+		case WLAN_EID_EXT_UHR_OPERATION:
+			elems->uhr_operation = NULL;
+			elems->uhr_operation_len = 0;
 			break;
 		}
 	}
