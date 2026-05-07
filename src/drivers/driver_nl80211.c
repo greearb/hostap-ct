@@ -6080,6 +6080,15 @@ static int wpa_driver_nl80211_set_ap(void *priv,
 		goto fail;
 #endif /* CONFIG_IEEE80211AX */
 
+#ifdef CONFIG_IEEE80211BN
+	if (params->uhr_oper &&
+	    nla_put(msg, NL80211_ATTR_UHR_OPERATION,
+		    /* nl80211 wants it without the extended element header */
+		    params->uhr_oper[1] - 1,
+		    params->uhr_oper + 3))
+		goto fail;
+#endif /* CONFIG_IEEE80211BN */
+
 #ifdef CONFIG_SAE
 	if (wpa_key_mgmt_sae(params->key_mgmt_suites) &&
 	    nl80211_put_sae_pwe(msg, params->sae_pwe) < 0)
