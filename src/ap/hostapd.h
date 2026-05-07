@@ -965,4 +965,10 @@ hostapd_is_eht_enabled(struct hostapd_data *hapd)
 	return hapd->iconf->ieee80211be && !hapd->conf->disable_11be;
 }
 
+static inline bool
+hostapd_is_uhr_enabled(struct hostapd_data *hapd)
+{
+	return hapd->iconf->ieee80211bn && !hapd->conf->disable_11bn;
+}
+
 #endif /* HOSTAPD_H */

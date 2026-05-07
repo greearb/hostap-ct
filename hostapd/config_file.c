@@ -4876,6 +4876,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->disable_11ax = !!atoi(pos);
 	} else if (os_strcmp(buf, "disable_11be") == 0) {
 		bss->disable_11be = !!atoi(pos);
+	} else if (os_strcmp(buf, "disable_11bn") == 0) {
+		bss->disable_11bn = !!atoi(pos);
 #ifdef CONFIG_PASN
 #ifdef CONFIG_TESTING_OPTIONS
 	} else if (os_strcmp(buf, "force_kdk_derivation") == 0) {
@@ -4990,6 +4992,12 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		conf->disable_mcs15_rx = atoi(pos);
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_IEEE80211BE */
+#ifdef CONFIG_IEEE80211BN
+	} else if (os_strcmp(buf, "ieee80211bn") == 0) {
+		conf->ieee80211bn = atoi(pos);
+	} else if (os_strcmp(buf, "require_uhr") == 0) {
+		conf->require_uhr = atoi(pos);
+#endif /* CONFIG_IEEE80211BN */
 	} else if (os_strcmp(buf, "i2r_lmr_policy") == 0) {
 		conf->i2r_lmr_policy = atoi(pos);
 	} else {

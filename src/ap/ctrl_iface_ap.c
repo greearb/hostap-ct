@@ -885,6 +885,7 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 			  "ieee80211ac=%d\n"
 			  "ieee80211ax=%d\n"
 			  "ieee80211be=%d\n"
+			  "ieee80211bn=%d\n"
 			  "beacon_int=%u\n"
 			  "dtim_period=%d\n",
 			  iface->conf->channel,
@@ -896,6 +897,7 @@ int hostapd_ctrl_iface_status(struct hostapd_data *hapd, char *buf,
 			  hostapd_is_vht_enabled(hapd),
 			  hostapd_is_he_enabled(hapd),
 			  hostapd_is_eht_enabled(hapd),
+			  hostapd_is_uhr_enabled(hapd),
 			  iface->conf->beacon_int,
 			  hapd->conf->dtim_period);
 	if (os_snprintf_error(buflen - len, ret))
