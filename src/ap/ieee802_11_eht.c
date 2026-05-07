@@ -489,8 +489,7 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	/* Own Link ID */
 	wpabuf_put_u8(buf, hapd->mld_link_id);
 
-	/* Currently hard code the BSS Parameters Change Count to 0x1 */
-	wpabuf_put_u8(buf, 0x1);
+	wpabuf_put_u8(buf, hapd->eht_mld_bss_param_change);
 
 	wpa_printf(MSG_DEBUG, "MLD: EML Capabilities=0x%x",
 		   hapd->iface->mld_eml_capa);
@@ -594,7 +593,7 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 
 		/* BSS Parameters Change Count */
 		if (include_bpcc)
-			wpabuf_put_u8(buf, hapd->eht_mld_bss_param_change);
+			wpabuf_put_u8(buf, link_bss->eht_mld_bss_param_change);
 
 		if (!link->resp_sta_profile)
 			continue;
