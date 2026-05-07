@@ -6496,6 +6496,7 @@ static int add_associated_sta(struct hostapd_data *hapd,
 	struct ieee80211_vht_capabilities vht_cap;
 	struct ieee80211_he_capabilities he_cap;
 	struct ieee80211_eht_capabilities eht_cap;
+	struct ieee80211_uhr_capabilities uhr_cap;
 	int set = 1;
 	const u8 *mld_link_addr = NULL;
 	bool mld_link_sta = false, epp_sta = false;
@@ -6577,6 +6578,11 @@ static int add_associated_sta(struct hostapd_data *hapd,
 		hostapd_get_eht_capab(hapd, sta->eht_capab, &eht_cap,
 				      sta->eht_capab_len);
 #endif /* CONFIG_IEEE80211BE */
+#ifdef CONFIG_IEEE80211BN
+	if (sta->flags & WLAN_STA_UHR)
+		hostapd_get_uhr_capab(hapd, sta->uhr_capab, &uhr_cap,
+				      sta->uhr_capab_len);
+#endif /* CONFIG_IEEE80211BN */
 
 	/*
 	 * Add the station with forced WLAN_STA_ASSOC flag. The sta->flags
@@ -6592,6 +6598,8 @@ static int add_associated_sta(struct hostapd_data *hapd,
 			    sta->flags & WLAN_STA_HE ? sta->he_capab_len : 0,
 			    sta->flags & WLAN_STA_EHT ? &eht_cap : NULL,
 			    sta->flags & WLAN_STA_EHT ? sta->eht_capab_len : 0,
+			    sta->flags & WLAN_STA_UHR ? &uhr_cap : NULL,
+			    sta->flags & WLAN_STA_UHR ? sta->uhr_capab_len : 0,
 			    sta->he_6ghz_capab,
 			    sta->flags | WLAN_STA_ASSOC, sta->qosinfo,
 			    sta->vht_opmode, sta->p2p_ie ? 1 : 0,

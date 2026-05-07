@@ -477,6 +477,8 @@ int hostapd_sta_add(struct hostapd_data *hapd,
 		    size_t he_capab_len,
 		    const struct ieee80211_eht_capabilities *eht_capab,
 		    size_t eht_capab_len,
+		    const struct ieee80211_uhr_capabilities *uhr_capab,
+		    size_t uhr_capab_len,
 		    const struct ieee80211_he_6ghz_band_cap *he_6ghz_capab,
 		    u32 flags, u8 qosinfo, u8 vht_opmode, int supp_p2p_ps,
 		    int set, const u8 *link_addr, bool mld_link_sta,
@@ -502,6 +504,8 @@ int hostapd_sta_add(struct hostapd_data *hapd,
 	params.he_capab_len = he_capab_len;
 	params.eht_capab = eht_capab;
 	params.eht_capab_len = eht_capab_len;
+	params.uhr_capab = uhr_capab;
+	params.uhr_capab_len = uhr_capab_len;
 	params.he_6ghz_capab = he_6ghz_capab;
 	params.vht_opmode_enabled = !!(flags & WLAN_STA_VHT_OPMODE_ENABLED);
 	params.vht_opmode = vht_opmode;
