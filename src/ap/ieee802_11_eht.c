@@ -479,6 +479,12 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 		common_info_len++;
 	}
 
+	if (hostapd_is_uhr_enabled(hapd)) {
+		/* Enhanced Critical Updates Information */
+		control |= BASIC_MULTI_LINK_CTRL_PRES_ENH_CRIT_UPD;
+		common_info_len++;
+	}
+
 	wpabuf_put_le16(buf, control);
 
 	wpabuf_put_u8(buf, common_info_len);
@@ -490,6 +496,10 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	wpabuf_put_u8(buf, hapd->mld_link_id);
 
 	wpabuf_put_u8(buf, hapd->eht_mld_bss_param_change);
+
+	/* Currently hard-code Enhanced Critical Updates Information to zero */
+	if (hostapd_is_uhr_enabled(hapd))
+		wpabuf_put_u8(buf, 0);
 
 	wpa_printf(MSG_DEBUG, "MLD: EML Capabilities=0x%x",
 		   hapd->iface->mld_eml_capa);
@@ -549,6 +559,9 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 		 * frames */
 		if (include_bpcc)
 			sta_info_len++;
+		/* Enhanced Critical Updates Information */
+		if (include_bpcc && hostapd_is_uhr_enabled(hapd))
+			sta_info_len++;
 
 		total_len = sta_info_len + link->resp_sta_profile_len;
 
@@ -570,6 +583,8 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 
 		if (include_bpcc)
 			control |= BASIC_MLE_STA_CTRL_PRES_BSS_PARAM_COUNT;
+		if (include_bpcc && hostapd_is_uhr_enabled(hapd))
+			control |= BASIC_MLE_STA_CTRL_PRES_ENH_CRIT_UPD;
 
 		wpabuf_put_le16(buf, control);
 
@@ -594,6 +609,9 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 		/* BSS Parameters Change Count */
 		if (include_bpcc)
 			wpabuf_put_u8(buf, link_bss->eht_mld_bss_param_change);
+		/* Enhanced Critical Updates Information */
+		if (include_bpcc && hostapd_is_uhr_enabled(hapd))
+			wpabuf_put_u8(buf, 0);
 
 		if (!link->resp_sta_profile)
 			continue;
