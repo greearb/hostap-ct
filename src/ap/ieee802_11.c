@@ -10383,10 +10383,26 @@ size_t hostapd_eid_mbssid_len(struct hostapd_data *hapd_probed, u32 frame_type,
 	struct hostapd_data *hapd = hostapd_mbssid_get_tx_bss(hapd_probed);
 	size_t len = 0, bss_index = 1;
 
-	if (!hapd->iconf->mbssid || hapd->iface->num_bss <= 1 ||
+	if (!hapd->iconf->mbssid ||
 	    (frame_type != WLAN_FC_STYPE_BEACON &&
 	     frame_type != WLAN_FC_STYPE_PROBE_RESP))
 		return 0;
+
+	/*
+	 * Include the Multiple BSSID element whenever MBSSID is enabled. The
+	 * element may include zero or more nontransmitted BSSID profiles.
+	 */
+	if (hapd->iface->num_bss == 1) {
+		if (frame_type == WLAN_FC_STYPE_BEACON) {
+			if (!elem_count) {
+				wpa_printf(MSG_INFO,
+					   "MBSSID: Insufficient data for Beacon frames");
+				return 0;
+			}
+			*elem_count = 1;
+		}
+		return 3;
+	}
 
 	if (frame_type == WLAN_FC_STYPE_BEACON) {
 		if (!elem_count) {
@@ -10573,7 +10589,7 @@ u8 * hostapd_eid_mbssid(struct hostapd_data *hapd_probed, u8 *eid, u8 *end,
 	u8 elem_index = 0, *rnr_start_eid = rnr_eid;
 	bool add_rnr;
 
-	if (!hapd->iconf->mbssid || hapd->iface->num_bss <= 1 ||
+	if (!hapd->iconf->mbssid ||
 	    (frame_stype != WLAN_FC_STYPE_BEACON &&
 	     frame_stype != WLAN_FC_STYPE_PROBE_RESP))
 		return eid;
@@ -10587,6 +10603,20 @@ u8 * hostapd_eid_mbssid(struct hostapd_data *hapd_probed, u8 *eid, u8 *end,
 	add_rnr = hapd->iconf->mbssid == ENHANCED_MBSSID_ENABLED &&
 		frame_stype == WLAN_FC_STYPE_BEACON &&
 		rnr_eid && rnr_count && rnr_offset && rnr_len;
+
+	/*
+	 * Include the Multiple BSSID element whenever MBSSID is enabled. The
+	 * element may include zero or more nontransmitted BSSID profiles.
+	 */
+	if (hapd->iface->num_bss == 1) {
+		if (frame_stype == WLAN_FC_STYPE_BEACON)
+			elem_offset[0] = eid;
+
+		return hostapd_eid_mbssid_elem(
+			hapd_probed, eid, end, frame_stype,
+			hostapd_max_bssid_indicator(hapd),
+			&bss_index, elem_count, known_bss, known_bss_len);
+	}
 
 	while (bss_index < hapd->iface->num_bss) {
 		unsigned int rnr_start_count = bss_index;

@@ -2389,7 +2389,11 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 	tailpos = hostapd_eid_ht_capabilities(hapd, tailpos);
 	tailpos = hostapd_eid_ht_operation(hapd, tailpos);
 
-	if (hapd->iconf->mbssid && hapd->iconf->num_bss > 1) {
+	/*
+	 * Include the Multiple BSSID element whenever MBSSID is enabled. The
+	 * element may include zero or more nontransmitted BSSID profiles.
+	 */
+	if (hapd->iconf->mbssid) {
 		if (ieee802_11_build_ap_params_mbssid(hapd, params)) {
 			wpa_printf(MSG_ERROR,
 				   "MBSSID: Failed to set beacon data");
