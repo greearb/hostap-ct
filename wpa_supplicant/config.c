@@ -3069,8 +3069,9 @@ static const struct parse_data ssid_fields[] = {
 #endif /* CONFIG_PASN */
 	{ FUNC(security_profiles) },
 	{ BOOL(disable_pmksa_caching) },
-	{ FUNC(auth_retry_backoff) },
 #ifdef CONFIG_IEEE80211AH
+	{ FUNC(auth_retry_backoff) },
+	{ INT_RANGE(ssid_protection, 0, 1)},
 	{ INT_RANGE(raw_sta_priority, 0, 7) },
 	{ INT_RANGE(cac, 0, 1) },
 	{ INT_RANGE(channel, 0, 60) },
@@ -3301,7 +3302,10 @@ void wpa_config_free_ssid(struct wpa_ssid *ssid)
 	os_free(ssid->pasn_groups);
 #endif /* CONFIG_PASN */
 	os_free(ssid->security_profiles);
+
+#ifdef CONFIG_IEEE80211AH
 	os_free(ssid->auth_retry_backoff);
+#endif
 	bin_clear_free(ssid, sizeof(*ssid));
 }
 
@@ -5574,10 +5578,11 @@ static int wpa_config_process_country(const struct global_parse_data *data,
 	config->country[1] = pos[1];
 	wpa_printf(MSG_DEBUG, "country='%c%c'",
 		   config->country[0], config->country[1]);
+#ifdef CONFIG_IEEE80211AH
 	if (config->enable_halow) {
 		morse_set_s1g_ht_chan_pairs(config->country);
 	}
-
+#endif
 	return 0;
 }
 

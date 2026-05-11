@@ -650,11 +650,12 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 			     struct wpa_ssid *ssid)
 {
 	struct wpa_driver_mesh_join_params *params = os_zalloc(sizeof(*params));
-	struct hostapd_config *conf = NULL;
 	int ret = 0;
 	int channel_or_frequency = ssid->frequency;
 
 #ifdef CONFIG_IEEE80211AH
+	struct hostapd_config *conf = NULL;
+
 	if (wpa_s->conf->enable_halow) {
 		conf = hostapd_config_defaults();
 		channel_or_frequency = ssid->channel;
