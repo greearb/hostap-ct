@@ -1951,15 +1951,16 @@ no_fils:
 	wpa_supplicant_cancel_sched_scan(wpa_s);
 	wpa_supplicant_cancel_scan(wpa_s, "send-auth");
 
-	#ifdef CONFIG_IEEE80211AH
+#ifdef CONFIG_IEEE80211AH
 	if(wpa_s->conf->enable_halow) {
 		wpa_msg(wpa_s, MSG_INFO, "SME: Trying to authenticate with " MACSTR
 			" (SSID='%s' %s=%d%s)", MAC2STR(params.bssid),
 			wpa_ssid_txt(params.ssid, params.ssid_len),
 			"chan", morse_ht_freq_to_s1g_chan(bss->freq), "");
 	}
-	else {
-	#endif
+	else
+#endif
+	{
 		wpa_msg(wpa_s, MSG_INFO, "SME: Trying to authenticate with " MACSTR
 			" (SSID='%s' %s=%d%s)", MAC2STR(params.bssid),
 			wpa_ssid_txt(params.ssid, params.ssid_len),
