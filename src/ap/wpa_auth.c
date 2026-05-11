@@ -918,8 +918,6 @@ struct wpa_authenticator * wpa_init(const u8 *addr,
 
 	if (conf->tx_bss_auth && conf->beacon_prot) {
 		conf->tx_bss_auth->non_tx_beacon_prot = true;
-		if (!conf->tx_bss_auth->conf.beacon_prot)
-			conf->tx_bss_auth->conf.beacon_prot = true;
 		if (!conf->tx_bss_auth->conf.group_mgmt_cipher)
 			conf->tx_bss_auth->conf.group_mgmt_cipher =
 				conf->group_mgmt_cipher;
