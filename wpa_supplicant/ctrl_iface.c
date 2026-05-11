@@ -2427,7 +2427,7 @@ static int wpa_supplicant_ctrl_iface_status(struct wpa_supplicant *wpa_s,
 			pos += ret;
 		}
 
-#ifdef CONFIG_AP
+#if defined(CONFIG_AP) && defined(CONFIG_IEEE80211AH)
 		if (wpa_s->conf->enable_halow && wpa_s->ap_iface) {
 			pos += ap_ctrl_iface_wpa_get_status(wpa_s, pos,
 							    end - pos,
