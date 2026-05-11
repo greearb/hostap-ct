@@ -3053,10 +3053,12 @@ void wpa_supplicant_associate(struct wpa_supplicant *wpa_s,
 	if (ssid->mode == WPAS_MODE_AP || ssid->mode == WPAS_MODE_P2P_GO ||
 	    ssid->mode == WPAS_MODE_P2P_GROUP_FORMATION) {
 #ifdef CONFIG_AP
+#ifdef CONFIG_IEEE80211AH
 		if (wpa_s->conf->enable_halow && !wpa_s->conf->op_class) {
 			wpa_printf(MSG_INFO, "op_class not set. Need op_class to start as Halow AP");
 			return;
 		}
+#endif
 		if (!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_AP)) {
 			wpa_msg(wpa_s, MSG_INFO, "Driver does not support AP "
 				"mode");
@@ -10101,7 +10103,9 @@ void wpas_auth_failed(struct wpa_supplicant *wpa_s, const char *reason,
 	struct wpa_ssid *ssid = wpa_s->current_ssid;
 	int dur;
 	struct os_reltime now;
+#ifdef CONFIG_IEEE80211AH
 	unsigned int backoff_cnt = 0;
+#endif
 
 	if (ssid == NULL) {
 		wpa_printf(MSG_DEBUG, "Authentication failure but no known "
@@ -10134,7 +10138,7 @@ void wpas_auth_failed(struct wpa_supplicant *wpa_s, const char *reason,
 		return;
 	}
 #endif /* CONFIG_P2P */
-
+#ifdef CONFIG_IEEE80211AH
 	/* Use a configured backoff time if present */
 	if (backoff_cnt > 0) {
 		int idx = MIN(ssid->auth_failures, backoff_cnt);
@@ -10145,7 +10149,10 @@ void wpas_auth_failed(struct wpa_supplicant *wpa_s, const char *reason,
 			"WPA: Using configured auth retry backoff of %u+%d seconds",
 			dur, rand);
 		dur += rand;
-	} else {
+	}
+	else
+#endif
+	{
 		if (ssid->auth_failures > 50)
 			dur = 300;
 		else if (ssid->auth_failures > 10)
