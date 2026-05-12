@@ -1319,3 +1319,46 @@ void hostapd_wfa_capab(struct hostapd_data *hapd, struct sta_info *sta,
 	if (gen_capa)
 		hostapd_wfa_gen_capab(hapd, sta, gen_capa + 2, gen_capa[1]);
 }
+
+
+u8 hostapd_eid_wfa_capab_len(struct hostapd_data *hapd)
+{
+	u8 buf[257], *pos = buf;
+
+	pos = hostapd_eid_wfa_capab(hapd, NULL, pos);
+	return pos - buf;
+}
+
+
+u8 * hostapd_eid_wfa_capab(struct hostapd_data *hapd, struct sta_info *sta,
+			   u8 *eid)
+{
+	u8 *len;
+	u8 capab = 0;
+
+#ifdef CONFIG_ROBUST_AV
+	if (hapd->conf->enable_dscp_policy_capa &&
+	    ap_pmf_enabled(hapd->conf) &&
+	    (!sta || (sta->flags & WLAN_STA_DSCP_POLICY)))
+		capab |= WFA_CAPA_QM_DSCP_POLICY | WFA_CAPA_QM_UNSOLIC_DSCP;
+#endif /* CONFIG_ROBUST_AV */
+
+	if (!capab)
+		return eid;
+
+	/* Wi-Fi Alliance Capabilities element */
+	*eid++ = WLAN_EID_VENDOR_SPECIFIC;
+	len = eid++;
+	WPA_PUT_BE24(eid, OUI_WFA);
+	eid += 3;
+	*eid++ = WFA_CAPA_OUI_TYPE;
+
+	*eid++ = 1; /* Capabilities Length */
+	*eid++ = capab; /* Capabilities */
+
+	/* Followed by optional Attributes */
+
+	*len = eid - len - 1;
+
+	return eid;
+}

@@ -22,6 +22,7 @@
 #include "hs20.h"
 #include "wpa_auth.h"
 #include "hw_features.h"
+#include "robust_av.h"
 #include "ap_drv_ops.h"
 
 
@@ -74,7 +75,7 @@ int hostapd_build_ap_extra_ies(struct hostapd_data *hapd,
 			       struct wpabuf **assocresp_ret)
 {
 	struct wpabuf *beacon = NULL, *proberesp = NULL, *assocresp = NULL;
-	u8 buf[200], *pos;
+	u8 buf[208], *pos;
 
 	*beacon_ret = *proberesp_ret = *assocresp_ret = NULL;
 
@@ -118,6 +119,12 @@ int hostapd_build_ap_extra_ies(struct hostapd_data *hapd,
 	    add_buf_data(&proberesp, buf, pos - buf) < 0)
 		goto fail;
 #endif /* CONFIG_FILS */
+
+	pos = hostapd_eid_wfa_capab(hapd, NULL, buf);
+	if (add_buf_data(&beacon, buf, pos - buf) < 0 ||
+	    add_buf_data(&proberesp, buf, pos - buf) < 0 ||
+	    add_buf_data(&assocresp, buf, pos - buf) < 0)
+		goto fail;
 
 	if (!hapd->conf->rsn_override_omit_rsnxe) {
 		pos = hostapd_eid_rsnxe(hapd, buf, sizeof(buf));

@@ -34,6 +34,7 @@
 #include "dfs.h"
 #include "taxonomy.h"
 #include "ieee802_11_auth.h"
+#include "robust_av.h"
 
 
 #ifdef NEED_AP_MLME
@@ -828,6 +829,7 @@ static size_t hostapd_probe_resp_elems_len(struct hostapd_data *hapd,
 	buflen += hostapd_get_rsne_override_len(hapd);
 	buflen += hostapd_get_rsne_override_2_len(hapd);
 	buflen += hostapd_get_rsnxe_override_len(hapd);
+	buflen += hostapd_eid_wfa_capab_len(hapd);
 
 	return buflen;
 }
@@ -1040,6 +1042,8 @@ static u8 * hostapd_probe_resp_fill_elems(struct hostapd_data *hapd,
 	pos = hostapd_get_rsne_override(hapd, pos, epos - pos);
 	pos = hostapd_get_rsne_override_2(hapd, pos, epos - pos);
 	pos = hostapd_get_rsnxe_override(hapd, pos, epos - pos);
+
+	pos = hostapd_eid_wfa_capab(hapd, NULL, pos);
 
 	if (hapd->conf->vendor_elements) {
 		os_memcpy(pos, wpabuf_head(hapd->conf->vendor_elements),
@@ -2333,6 +2337,7 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 	tail_len += hostapd_get_rsne_override_len(hapd);
 	tail_len += hostapd_get_rsne_override_2_len(hapd);
 	tail_len += hostapd_get_rsnxe_override_len(hapd);
+	tail_len += hostapd_eid_wfa_capab_len(hapd);
 
 	tailpos = tail = os_malloc(tail_len);
 	if (head == NULL || tail == NULL) {
@@ -2575,6 +2580,8 @@ int ieee802_11_build_ap_params(struct hostapd_data *hapd,
 					      tail + tail_len - tailpos);
 	tailpos = hostapd_get_rsnxe_override(hapd, tailpos,
 					     tail + tail_len - tailpos);
+
+	tailpos = hostapd_eid_wfa_capab(hapd, NULL, tailpos);
 
 	if (hapd->conf->vendor_elements) {
 		os_memcpy(tailpos, wpabuf_head(hapd->conf->vendor_elements),

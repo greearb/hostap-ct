@@ -170,6 +170,9 @@ int hostapd_get_he_twt_responder(struct hostapd_data *hapd,
 bool hostapd_get_ht_vht_twt_responder(struct hostapd_data *hapd);
 void hostapd_wfa_capab(struct hostapd_data *hapd, struct sta_info *sta,
 		       const u8 *pos, const u8 *end);
+u8 * hostapd_eid_wfa_capab(struct hostapd_data *hapd, struct sta_info *sta,
+			   u8 *eid);
+u8 hostapd_eid_wfa_capab_len(struct hostapd_data *hapd);
 u8 * hostapd_eid_cca(struct hostapd_data *hapd, u8 *eid);
 void hostapd_tx_status(struct hostapd_data *hapd, const u8 *addr,
 		       const u8 *buf, size_t len, int ack);
@@ -316,7 +319,8 @@ int ieee80211_ml_process_link(struct hostapd_data *hapd,
 			      enum link_parse_type type, bool offload,
 			      bool *set_beacon);
 void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
-				   struct mld_link_info *link);
+				   struct mld_link_info *link,
+				   struct sta_info *sta);
 
 void ieee802_11_rx_protected_eht_action(struct hostapd_data *hapd,
 					const struct ieee80211_mgmt *mgmt,

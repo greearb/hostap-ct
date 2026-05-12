@@ -62,6 +62,7 @@
 #include "comeback_token.h"
 #include "nan_usd_ap.h"
 #include "pasn/pasn_common.h"
+#include "robust_av.h"
 
 
 #ifdef CONFIG_FILS
@@ -6181,7 +6182,8 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 #ifdef CONFIG_IEEE80211BE
 
 void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
-				   struct mld_link_info *link)
+				   struct mld_link_info *link,
+				   struct sta_info *sta)
 {
 	u8 buf[EHT_ML_MAX_STA_PROF_LEN];
 	u8 *p = buf;
@@ -6233,6 +6235,9 @@ void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
 
 	p = hostapd_eid_mbo(hapd, p, buf + buflen - p);
 	p = hostapd_eid_wmm(hapd, p);
+
+	if (sta)
+		p = hostapd_eid_wfa_capab(hapd, sta, p);
 
 	if (hapd->conf->assocresp_elements &&
 	    (size_t) (buf + buflen - p) >=
@@ -6369,7 +6374,7 @@ out:
 	link->status = status;
 
 	if (!offload && type != LINK_PARSE_RECONF)
-		ieee80211_ml_build_assoc_resp(hapd, link);
+		ieee80211_ml_build_assoc_resp(hapd, link, sta);
 
 	wpa_printf(MSG_DEBUG, "MLD: link: status=%u", status);
 	if (status != WLAN_STATUS_SUCCESS) {
@@ -6451,12 +6456,12 @@ int hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 
 			link->status = WLAN_STATUS_UNSPECIFIED_FAILURE;
 			if (!offload)
-				ieee80211_ml_build_assoc_resp(hapd, link);
+				ieee80211_ml_build_assoc_resp(hapd, link, sta);
 		} else if (tx_link_status != WLAN_STATUS_SUCCESS) {
 			/* TX link rejected the connection */
 			link->status = WLAN_STATUS_DENIED_TX_LINK_NOT_ACCEPTED;
 			if (!offload)
-				ieee80211_ml_build_assoc_resp(hapd, link);
+				ieee80211_ml_build_assoc_resp(hapd, link, sta);
 		} else {
 			if (ieee80211_ml_process_link(
 				    bss, sta, link, ies, ies_len,
@@ -7012,6 +7017,7 @@ rsnxe_done:
 #endif /* CONFIG_P2P_MANAGER */
 
 	p = hostapd_eid_mbo(hapd, p, buf + buflen - p);
+	p = hostapd_eid_wfa_capab(hapd, sta, p);
 
 	if (hapd->conf->assocresp_elements &&
 	    (size_t) (buf + buflen - p) >=
