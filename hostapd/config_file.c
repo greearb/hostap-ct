@@ -5010,6 +5010,10 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 #endif /* CONFIG_IEEE80211BN */
 	} else if (os_strcmp(buf, "i2r_lmr_policy") == 0) {
 		conf->i2r_lmr_policy = atoi(pos);
+#ifdef CONFIG_ROBUST_AV
+	} else if (os_strcmp(buf, "enable_dscp_policy_capa") == 0) {
+		bss->enable_dscp_policy_capa = atoi(pos);
+#endif /* CONFIG_ROBUST_AV */
 	} else {
 		wpa_printf(MSG_ERROR,
 			   "Line %d: unknown configuration item '%s'",
