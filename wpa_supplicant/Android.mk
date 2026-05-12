@@ -1085,6 +1085,11 @@ OBJS += src/ap/acs.c
 LIBS += -lm
 endif
 
+ifdef CONFIG_ROBUST_AV
+L_CFLAGS += -DCONFIG_ROBUST_AV
+OBJS += src/ap/robust_av.c
+endif
+
 ifdef CONFIG_PCSC
 # PC/SC interface for smartcards (USIM, GSM SIM)
 L_CFLAGS += -DPCSC_FUNCS -I/usr/include/PCSC

@@ -18,6 +18,7 @@
 #include "ap_drv_ops.h"
 #include "wpa_auth.h"
 #include "dpp_hostapd.h"
+#include "robust_av.h"
 #include "ieee802_11.h"
 
 
@@ -1307,6 +1308,9 @@ void hostapd_wfa_capab(struct hostapd_data *hapd, struct sta_info *sta,
 	capab_len = *pos++;
 	if (capab_len > end - pos)
 		return;
+
+	hostapd_update_dscp_policy_capability(hapd, sta, pos, capab_len);
+
 	pos += capab_len; /* skip the Capabilities field */
 
 	/* Wi-Fi Alliance Capabilities attributes use a header that is similar

@@ -1167,6 +1167,11 @@ L_CFLAGS += -DCONFIG_PROCESS_COORDINATION
 OBJS += src/common/proc_coord.c
 endif
 
+ifdef CONFIG_ROBUST_AV
+L_CFLAGS += -DCONFIG_ROBUST_AV
+OBJS += src/ap/robust_av.c
+endif
+
 OBJS_c = hostapd_cli.c
 OBJS_c += src/common/wpa_ctrl.c
 OBJS_c += src/utils/os_$(CONFIG_OS).c

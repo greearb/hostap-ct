@@ -428,3 +428,9 @@ CONFIG_DPP2=y
 # IEEE P802.11bi/D4.0, 12.16.5 (IEEE 802.1X authentication utilizing
 # Authentication frames)
 #CONFIG_IEEE8021X_AUTH=y
+
+# Robust AV Streaming Support
+# This controls inclusion of QoS Management / DSCP Policy support that is
+# used as part of Robust AV Streaming. At present, this enables DSCP Policy
+# capability handling in hostapd.
+#CONFIG_ROBUST_AV=y

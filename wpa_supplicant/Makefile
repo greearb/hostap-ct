@@ -1079,6 +1079,10 @@ endif
 ifdef CONFIG_CTRL_IFACE
 OBJS += ../src/ap/ctrl_iface_ap.o
 endif
+ifdef CONFIG_ROBUST_AV
+CFLAGS += -DCONFIG_ROBUST_AV
+OBJS += ../src/ap/robust_av.o
+endif
 
 CFLAGS += -DEAP_SERVER -DEAP_SERVER_IDENTITY
 OBJS += ../src/eap_server/eap_server.o

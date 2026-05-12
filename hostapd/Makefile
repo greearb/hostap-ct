@@ -1277,6 +1277,11 @@ OBJS += ../src/ap/ndisc_snoop.o
 endif
 endif
 
+ifdef CONFIG_ROBUST_AV
+CFLAGS += -DCONFIG_ROBUST_AV
+OBJS += ../src/ap/robust_av.o
+endif
+
 OBJS += ../src/drivers/driver_common.o
 
 ifdef CONFIG_WPA_CLI_EDIT
