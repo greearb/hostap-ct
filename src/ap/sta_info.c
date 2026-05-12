@@ -39,6 +39,7 @@
 #include "sta_info.h"
 #include "vlan.h"
 #include "wps_hostapd.h"
+#include "robust_av.h"
 
 static void ap_sta_remove_in_other_bss(struct hostapd_data *hapd,
 				       struct sta_info *sta);
@@ -528,6 +529,8 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	ap_sta_free_sta_profile(&sta->mld_info);
 	ml_deinit_link_reconf_req(&sta->reconf_req);
 #endif /* CONFIG_IEEE80211BE */
+
+	free_dscp_policies(sta);
 
 #ifdef CONFIG_TESTING_OPTIONS
 	os_free(sta->sae_postponed_commit);

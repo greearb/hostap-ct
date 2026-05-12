@@ -794,6 +794,16 @@ static int hostapd_ctrl_iface_set_dscp_policy(struct hostapd_data *hapd,
 		return -1;
 	}
 
+	if (add_dscp_policy_to_sta(sta, &policy) < 0) {
+		wpa_printf(MSG_INFO, "DSCP: Failed to add policy for STA "
+			   MACSTR, MAC2STR(sta->addr));
+		free_dscp_policy(&policy);
+		return -1;
+	}
+
+	wpa_printf(MSG_DEBUG, "DSCP: Added policy ID %u to STA " MACSTR,
+		   policy.policy_id, MAC2STR(addr));
+
 	free_dscp_policy(&policy);
 	return 0;
 }

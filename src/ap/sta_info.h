@@ -365,6 +365,8 @@ struct sta_info {
 #endif /* CONFIG_IEEE8021X_AUTH */
 
 #ifdef CONFIG_ROBUST_AV
+	struct hostapd_dscp_policy **policies;
+	unsigned int num_dscp_policies;
 	bool dscp_reset;
 #endif /* CONFIG_ROBUST_AV */
 };

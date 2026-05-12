@@ -89,6 +89,7 @@ struct hostapd_dscp_policy {
 void hostapd_update_dscp_policy_capability(struct hostapd_data *hapd,
 					   struct sta_info *sta,
 					   const u8 *pos, size_t len);
+void free_dscp_policies(struct sta_info *sta);
 
 #else /* CONFIG_ROBUST_AV */
 
@@ -96,6 +97,10 @@ static inline void
 hostapd_update_dscp_policy_capability(struct hostapd_data *hapd,
 				      struct sta_info *sta,
 				      const u8 *pos, size_t len)
+{
+}
+
+static inline void free_dscp_policies(struct sta_info *sta)
 {
 }
 
@@ -107,5 +112,7 @@ int parse_dscp_policy_string(struct sta_info *sta,
 			     struct hostapd_dscp_policy *policy,
 			     const char *params);
 int build_frame_classifier(struct hostapd_dscp_policy *policy);
+int add_dscp_policy_to_sta(struct sta_info *sta,
+			   const struct hostapd_dscp_policy *new_policy);
 
 #endif /* ROBUST_AV_H */

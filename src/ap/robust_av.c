@@ -382,3 +382,104 @@ int build_frame_classifier(struct hostapd_dscp_policy *policy)
 		return 0;
 	}
 }
+
+
+int add_dscp_policy_to_sta(struct sta_info *sta,
+			   const struct hostapd_dscp_policy *new_policy)
+{
+	struct hostapd_dscp_policy **updated_policy_list;
+	struct hostapd_dscp_policy *copy;
+	unsigned int i;
+
+	/* Check for existing policy_id and update */
+	for (i = 0; i < sta->num_dscp_policies; i++) {
+		struct hostapd_dscp_policy *existing = sta->policies[i];
+		char *new_domain = NULL;
+		u8 *new_fc = NULL;
+
+		if (!existing || existing->policy_id != new_policy->policy_id)
+			continue;
+
+		wpa_printf(MSG_DEBUG, "DSCP: Updating policy ID %u for STA "
+			   MACSTR, new_policy->policy_id, MAC2STR(sta->addr));
+		if (new_policy->domain_name) {
+			new_domain = os_strdup(new_policy->domain_name);
+			if (!new_domain)
+				return -ENOMEM;
+		}
+
+		if (new_policy->frame_classifier &&
+		    new_policy->frame_classifier_len > 0) {
+			new_fc = os_memdup(new_policy->frame_classifier,
+					   new_policy->frame_classifier_len);
+			if (!new_fc) {
+				os_free(new_domain);
+				return -ENOMEM;
+			}
+		}
+		free_dscp_policy(existing);
+		os_memcpy(existing, new_policy, sizeof(*existing));
+		existing->domain_name = new_domain;
+		existing->frame_classifier = new_fc;
+		return 0;
+	}
+
+	copy = os_memdup(new_policy, sizeof(*copy));
+	if (!copy)
+		return -ENOMEM;
+
+	copy->domain_name = NULL;
+	copy->frame_classifier = NULL;
+
+	if (new_policy->domain_name) {
+		copy->domain_name = os_strdup(new_policy->domain_name);
+		if (!copy->domain_name) {
+			os_free(copy);
+			return -ENOMEM;
+		}
+	}
+
+	if (new_policy->frame_classifier &&
+	    new_policy->frame_classifier_len > 0) {
+		copy->frame_classifier =
+			os_memdup(new_policy->frame_classifier,
+				  new_policy->frame_classifier_len);
+		if (!copy->frame_classifier) {
+			free_dscp_policy(copy);
+			os_free(copy);
+			return -ENOMEM;
+		}
+	}
+
+	updated_policy_list = os_realloc_array(sta->policies,
+					       sta->num_dscp_policies + 1,
+					       sizeof(*sta->policies));
+	if (!updated_policy_list) {
+		free_dscp_policy(copy);
+		os_free(copy);
+		return -1;
+	}
+
+	sta->policies = updated_policy_list;
+	sta->policies[sta->num_dscp_policies++] = copy;
+
+	return 0;
+}
+
+
+void free_dscp_policies(struct sta_info *sta)
+{
+	unsigned int i;
+
+	if (!sta || !sta->policies)
+		return;
+
+	for (i = 0; i < sta->num_dscp_policies; i++) {
+		free_dscp_policy(sta->policies[i]);
+		os_free(sta->policies[i]);
+	}
+
+	os_free(sta->policies);
+	sta->policies = NULL;
+	sta->num_dscp_policies = 0;
+}
