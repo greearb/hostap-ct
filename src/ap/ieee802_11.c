@@ -7906,6 +7906,33 @@ static void handle_beacon(struct hostapd_data *hapd,
 }
 
 
+#ifdef CONFIG_ROBUST_AV
+static void hostapd_dscp_action(struct hostapd_data *hapd, struct sta_info *sta,
+				const u8 *pos, const u8 *end)
+{
+	u8 subtype;
+
+	if (!hapd->conf->enable_dscp_policy_capa)
+		return;
+
+	if (end - pos < 1) {
+		wpa_printf(MSG_DEBUG, "DSCP Action: Frame too short");
+		return;
+	}
+
+	subtype = *pos++;
+	switch (subtype) {
+	case QM_DSCP_POLICY_QUERY:
+		hostapd_handle_dscp_policy_query(hapd, sta, pos, end - pos);
+		break;
+	default:
+		wpa_printf(MSG_DEBUG, "QM Action: Unknown subtype %u", subtype);
+		break;
+	}
+}
+#endif /* CONFIG_ROBUST_AV */
+
+
 static int hostapd_action_vs(struct hostapd_data *hapd,
 			     struct sta_info *sta,
 			     const struct ieee80211_mgmt *mgmt, size_t len,
@@ -7928,6 +7955,16 @@ static int hostapd_action_vs(struct hostapd_data *hapd,
 	case WFA_CAPAB_VENDOR_TYPE:
 		hostapd_wfa_capab(hapd, sta, pos, end);
 		return 0;
+#ifdef CONFIG_ROBUST_AV
+	case QM_ACTION_VENDOR_TYPE:
+		if (!protected) {
+			wpa_printf(MSG_DEBUG,
+				   "DSCP: Ignoring unprotected frame");
+			return -1;
+		}
+		hostapd_dscp_action(hapd, sta, pos, end);
+		return 0;
+#endif /* CONFIG_ROBUST_AV */
 	default:
 		wpa_printf(MSG_DEBUG,
 			   "Ignore unknown Vendor Specific Action frame OUI/type %08x%s",

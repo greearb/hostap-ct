@@ -15,6 +15,7 @@ struct sta_info;
 #define CLASSIFIER_TYPE_4	4
 
 /* Bit positions for classifier mask */
+#define TCLAS_MASK_VERSION	BIT(0)
 #define TCLAS_MASK_SRC_IP	BIT(1)
 #define TCLAS_MASK_DST_IP	BIT(2)
 #define TCLAS_MASK_SRC_PORT	BIT(3)
@@ -86,6 +87,17 @@ struct hostapd_dscp_policy {
 	bool port_range_info;
 };
 
+struct dscp_context {
+	struct hostapd_data *hapd;
+	struct sta_info *sta;
+	u8 dialog_token;
+	struct hostapd_dscp_policy **query_policy;
+	unsigned int num_query_policies;
+	struct hostapd_dscp_policy **req_policy;
+	unsigned int num_req_policies;
+	bool is_wildcard;
+};
+
 
 #ifdef CONFIG_ROBUST_AV
 
@@ -122,5 +134,8 @@ int hostapd_send_unsolicited_dscp_policy_request(struct hostapd_data *hapd,
 						 u8 reset,
 						 const int *policy_ids,
 						 unsigned int num_policies);
+int hostapd_handle_dscp_policy_query(struct hostapd_data *hapd,
+				     struct sta_info *sta,
+				     const u8 *data, size_t len);
 
 #endif /* ROBUST_AV_H */
