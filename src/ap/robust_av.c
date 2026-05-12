@@ -1413,3 +1413,255 @@ cleanup:
 	os_free(ctx.req_policy);
 	return 0;
 }
+
+
+static void update_policy_status(struct sta_info *sta, u8 policy_id,
+				 enum dscp_policy_status status)
+{
+	unsigned int i;
+
+	if (!sta || !sta->policies)
+		return;
+
+	for (i = 0; i < sta->num_dscp_policies; i++) {
+		if (!sta->policies[i] ||
+		    sta->policies[i]->policy_id != policy_id)
+			continue;
+
+		sta->policies[i]->status = status;
+
+		if (status == DSCP_STATUS_SUCCESS) {
+			wpa_printf(MSG_DEBUG,
+				   "DSCP: Policy %u marked as accepted",
+				   policy_id);
+		} else {
+			wpa_printf(MSG_DEBUG,
+				   "DSCP: Policy %u marked as rejected %u",
+				   policy_id, status);
+		}
+		return;
+	}
+
+	wpa_printf(MSG_DEBUG, "DSCP: Policy %u not found to update status",
+		   policy_id);
+}
+
+
+static void invalidate_policy_by_id(struct sta_info *sta, u8 policy_id)
+{
+	unsigned int i;
+
+	for (i = 0; i < sta->num_dscp_policies; i++) {
+		struct hostapd_dscp_policy *policy = sta->policies[i];
+
+		if (policy && policy->policy_id == policy_id) {
+			wpa_printf(MSG_DEBUG, "DSCP: Invalidating policy %u",
+				   policy_id);
+			free_dscp_policy(policy);
+			sta->policies[i] = NULL;
+			break;
+		}
+	}
+}
+
+
+static void reset_dscp_state(struct sta_info *sta)
+{
+	if (sta) {
+		sta->dscp_state.offset = 0;
+		sta->dscp_state.last_dialog_token = 0;
+		sta->dscp_state.pending_more = false;
+	}
+}
+
+
+static struct wpabuf *
+hostapd_build_dscp_policy_request_from_offset(struct hostapd_data *hapd,
+					      struct sta_info *sta,
+					      u8 dialog_token,
+					      u8 reset, size_t offset,
+					      size_t *next_offset,
+					      bool *more)
+{
+	struct wpabuf *buf;
+	size_t i, frame_len;
+
+	buf = new_dscp_policy_req_frame(hapd, sta, dialog_token, reset, 0);
+	if (!buf)
+		return NULL;
+
+	frame_len = wpabuf_len(buf);
+	*more = false;
+
+	for (i = offset; i < sta->num_dscp_policies; i++) {
+		struct hostapd_dscp_policy *policy = sta->policies[i];
+		struct wpabuf *elem;
+
+		if (!policy)
+			continue;
+
+		elem = hostapd_build_qos_element(policy);
+		if (!elem)
+			continue;
+
+		if (frame_len + 2 + wpabuf_len(elem) > MAX_DSCP_REQ_SIZE) {
+			wpabuf_free(elem);
+			*more = true;
+			break;
+		}
+
+		wpabuf_put_u8(buf, WLAN_EID_VENDOR_SPECIFIC);
+		wpabuf_put_u8(buf, wpabuf_len(elem));
+		wpabuf_put_buf(buf, elem);
+		wpabuf_free(elem);
+		frame_len = wpabuf_len(buf);
+	}
+
+	if (*more) {
+		u8 *buf_ptr = wpabuf_mhead_u8(buf);
+
+		buf_ptr[7] |= DSCP_POLICY_CTRL_MORE;
+	}
+
+	if (next_offset)
+		*next_offset = i;
+
+	return buf;
+}
+
+
+static void hostapd_send_next_dscp_policy_batch(struct hostapd_data *hapd,
+						struct sta_info *sta,
+						size_t start_offset)
+{
+	struct wpabuf *frame;
+	size_t next_offset = 0;
+	u8 dialog_token;
+	bool more = false;
+
+	if (!hapd || !sta || !sta->policies || sta->num_dscp_policies == 0)
+		return;
+
+	dialog_token = get_next_unsolicited_dialog_token(sta);
+
+	frame = hostapd_build_dscp_policy_request_from_offset(hapd, sta,
+							      dialog_token,
+							      0, start_offset,
+							      &next_offset,
+							      &more);
+	if (!frame)
+		return;
+
+	if (hostapd_drv_send_action(hapd, hapd->iface->freq, 0, sta->addr,
+				    wpabuf_head(frame), wpabuf_len(frame)) < 0)
+	{
+		wpa_printf(MSG_INFO,
+			   "DSCP: Failed to send next policy frame to " MACSTR,
+			   MAC2STR(sta->addr));
+	}
+
+	wpabuf_free(frame);
+
+	sta->dscp_state.offset = next_offset;
+	sta->dscp_state.last_dialog_token = dialog_token;
+	sta->dscp_state.pending_more = more;
+}
+
+
+/* Handle DSCP Policy Response frame */
+int hostapd_handle_dscp_policy_response(struct hostapd_data *hapd,
+					struct sta_info *sta,
+					const u8 *data, size_t len)
+{
+	const u8 *pos = data, *end = data + len;
+	u8 dialog_token;
+	u8 response_control;
+	u8 count;
+
+	if (!sta || !(sta->flags & WLAN_STA_DSCP_POLICY)) {
+		wpa_printf(MSG_DEBUG, "DSCP: STA " MACSTR " not capable",
+			   MAC2STR(sta->addr));
+		return -1;
+	}
+
+	if (len < 2)
+		return -1;
+
+	dialog_token = *pos++;
+	response_control = *pos++;
+
+	/* Handle reset case */
+	if (response_control & DSCP_POLICY_CTRL_RESET) {
+		free_dscp_policies(sta);
+		reset_dscp_state(sta);
+	}
+
+	/* Unsolicited Response (Dialog Token 0) */
+	if (dialog_token == 0 && (response_control & DSCP_POLICY_CTRL_RESET)) {
+		wpa_printf(MSG_DEBUG, "DSCP: STA " MACSTR
+			   " issued unsolicited reset", MAC2STR(sta->addr));
+		free_dscp_policies(sta);
+		reset_dscp_state(sta);
+		return 0;
+	}
+
+	if (len < 3)
+		return -1;
+	count = *pos++;
+
+	/* Process status duples */
+	while (count > 0 && end - pos >= 2) {
+		struct hostapd_dscp_policy *policy = NULL;
+		u8 policy_id = *pos++;
+		u8 status = *pos++;
+		unsigned int i;
+
+		count--;
+
+		for (i = 0; i < sta->num_dscp_policies; i++) {
+			if (sta->policies[i]->policy_id == policy_id) {
+				policy = sta->policies[i];
+				break;
+			}
+		}
+
+		if (!policy) {
+			wpa_printf(MSG_DEBUG,
+				   "DSCP: Unknown policy ID %u in response",
+				   policy_id);
+			continue;
+		}
+
+		switch (status) {
+		case DSCP_STATUS_SUCCESS:
+			if (policy->req_type == DSCP_POLICY_REQ_REMOVE)
+				invalidate_policy_by_id(sta, policy_id);
+			else
+				update_policy_status(sta, policy_id, status);
+			break;
+		case DSCP_STATUS_CLASSIFIER_NOT_SUPPORTED:
+		case DSCP_STATUS_REQUEST_DECLINED:
+		case DSCP_STATUS_INSUFFICIENT_RESOURCES:
+			invalidate_policy_by_id(sta, policy_id);
+			break;
+		default:
+			wpa_printf(MSG_DEBUG,
+				   "DSCP: Unknown status %u for policy %u",
+				   status, policy_id);
+			break;
+		}
+	}
+
+	/* If More bit is set, STA wants more policies */
+	if ((response_control & DSCP_POLICY_CTRL_MORE) &&
+	    sta->dscp_state.pending_more) {
+		wpa_printf(MSG_DEBUG,
+			   "DSCP: STA " MACSTR
+			   " requested additional policy batch",
+			   MAC2STR(sta->addr));
+		hostapd_send_next_dscp_policy_batch(hapd, sta,
+						    sta->dscp_state.offset);
+	}
+
+	return 0;
+}

@@ -41,6 +41,14 @@ enum ip_version {
 };
 
 
+enum dscp_policy_status {
+	DSCP_STATUS_SUCCESS = 0,
+	DSCP_STATUS_REQUEST_DECLINED = 1,
+	DSCP_STATUS_CLASSIFIER_NOT_SUPPORTED = 2,
+	DSCP_STATUS_INSUFFICIENT_RESOURCES = 3,
+};
+
+
 struct ipv4_params {
 	struct in_addr src_ip;
 	struct in_addr dst_ip;
@@ -85,6 +93,7 @@ struct hostapd_dscp_policy {
 	u16 start_port;
 	u16 end_port;
 	bool port_range_info;
+	enum dscp_policy_status status;
 };
 
 struct dscp_context {
@@ -137,5 +146,8 @@ int hostapd_send_unsolicited_dscp_policy_request(struct hostapd_data *hapd,
 int hostapd_handle_dscp_policy_query(struct hostapd_data *hapd,
 				     struct sta_info *sta,
 				     const u8 *data, size_t len);
+int hostapd_handle_dscp_policy_response(struct hostapd_data *hapd,
+					struct sta_info *sta,
+					const u8 *data, size_t len);
 
 #endif /* ROBUST_AV_H */

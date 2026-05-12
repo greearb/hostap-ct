@@ -7925,6 +7925,9 @@ static void hostapd_dscp_action(struct hostapd_data *hapd, struct sta_info *sta,
 	case QM_DSCP_POLICY_QUERY:
 		hostapd_handle_dscp_policy_query(hapd, sta, pos, end - pos);
 		break;
+	case QM_DSCP_POLICY_RESP:
+		hostapd_handle_dscp_policy_response(hapd, sta, pos, end - pos);
+		break;
 	default:
 		wpa_printf(MSG_DEBUG, "QM Action: Unknown subtype %u", subtype);
 		break;
