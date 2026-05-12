@@ -483,3 +483,183 @@ void free_dscp_policies(struct sta_info *sta)
 	sta->policies = NULL;
 	sta->num_dscp_policies = 0;
 }
+
+
+static u8 get_next_unsolicited_dialog_token(struct sta_info *sta)
+{
+	sta->unsolicited_dialog_token++;
+	if (sta->unsolicited_dialog_token == 0)
+		sta->unsolicited_dialog_token = 1;
+	return sta->unsolicited_dialog_token;
+}
+
+
+static struct hostapd_dscp_policy *
+hostapd_get_dscp_policy_by_id(struct sta_info *sta, int id)
+{
+	unsigned int i;
+
+	for (i = 0; i < sta->num_dscp_policies; i++) {
+		if (sta->policies[i] && sta->policies[i]->policy_id == id)
+			return sta->policies[i];
+	}
+
+	return NULL;
+}
+
+
+static struct wpabuf *
+hostapd_build_qos_element(struct hostapd_dscp_policy *policy)
+{
+	struct wpabuf *elem;
+	size_t domain_len;
+
+	elem = wpabuf_alloc(512);
+	if (!elem)
+		return NULL;
+
+	wpabuf_put_be32(elem, QM_IE_VENDOR_TYPE);
+	wpabuf_put_u8(elem, QM_ATTR_DSCP_POLICY);
+	wpabuf_put_u8(elem, QM_ATTR_DSCP_POLICY_LEN);
+	wpabuf_put_u8(elem, policy->policy_id);
+	wpabuf_put_u8(elem, policy->req_type);
+	wpabuf_put_u8(elem, policy->req_type == DSCP_POLICY_REQ_REMOVE ?
+		      255 : policy->dscp);
+
+	if (policy->frame_classifier && policy->frame_classifier_len > 0) {
+		wpabuf_put_u8(elem, QM_ATTR_TCLAS);
+		wpabuf_put_u8(elem, policy->frame_classifier_len);
+		wpabuf_put_data(elem, policy->frame_classifier,
+				policy->frame_classifier_len);
+	}
+
+	if (policy->domain_name) {
+		domain_len = os_strlen(policy->domain_name);
+		if (domain_len < 256) {
+			wpabuf_put_u8(elem, QM_ATTR_DOMAIN_NAME);
+			wpabuf_put_u8(elem, domain_len);
+			wpabuf_put_data(elem, policy->domain_name, domain_len);
+		}
+	}
+
+	if (policy->port_range_info) {
+		wpabuf_put_u8(elem, QM_ATTR_PORT_RANGE);
+		wpabuf_put_u8(elem, 4);
+		wpabuf_put_be16(elem, policy->start_port);
+		wpabuf_put_be16(elem, policy->end_port);
+	}
+
+	return elem;
+}
+
+
+static struct wpabuf * new_dscp_policy_req_frame(struct hostapd_data *hapd,
+						 struct sta_info *sta,
+						 u8 dialog_token,
+						 u8 reset, u8 more)
+{
+	u8 request_control = 0;
+	struct wpabuf *frame;
+
+	frame = wpabuf_alloc(MAX_DSCP_REQ_SIZE);
+	if (!frame)
+		return NULL;
+
+	wpabuf_put_u8(frame, WLAN_ACTION_VENDOR_SPECIFIC_PROTECTED);
+	wpabuf_put_be32(frame, QM_ACTION_VENDOR_TYPE);
+	wpabuf_put_u8(frame, QM_DSCP_POLICY_REQ);
+	wpabuf_put_u8(frame, dialog_token);
+
+	if (reset)
+		request_control |= DSCP_POLICY_CTRL_RESET;
+	if (more)
+		request_control |= DSCP_POLICY_CTRL_MORE;
+
+	wpabuf_put_u8(frame, request_control);
+
+	return frame;
+}
+
+
+int hostapd_send_unsolicited_dscp_policy_request(struct hostapd_data *hapd,
+						 struct sta_info *sta,
+						 u8 reset,
+						 const int *policy_ids,
+						 unsigned int num_policies)
+{
+	struct wpabuf *frame = NULL;
+	u8 dialog_token;
+	size_t i;
+	size_t frame_len;
+	bool more = false;
+
+	/* TODO: When sending a request, if this is not a resync (reset == 0),
+	 * start a response timer bound to dialog_token. If no DSCP Policy
+	 * Response frame with the same token is received before timeout, set a
+	 * per-STA flag (e.g, sta->dscp_state.force_reset = 1). The next time
+	 * this function is called for this STA, force reset = 1 and include all
+	 * policies relevant to the STA to resynchronize state.
+	 */
+
+	if (!(sta->flags & WLAN_STA_DSCP_POLICY))
+		return -1;
+
+	dialog_token = get_next_unsolicited_dialog_token(sta);
+	frame = new_dscp_policy_req_frame(hapd, sta, dialog_token, reset, more);
+	if (!frame)
+		return -1;
+
+	frame_len = wpabuf_len(frame);
+
+	for (i = 0; i < num_policies; i++) {
+		struct hostapd_dscp_policy *policy;
+		struct wpabuf *elem;
+
+		policy = hostapd_get_dscp_policy_by_id(sta, policy_ids[i]);
+		if (!policy)
+			continue;
+
+		if (reset && policy->req_type == DSCP_POLICY_REQ_REMOVE)
+			continue;
+
+		elem = hostapd_build_qos_element(policy);
+		if (!elem)
+			continue;
+
+		if (frame_len + 2 + wpabuf_len(elem) > MAX_DSCP_REQ_SIZE) {
+			more = true;
+			wpabuf_free(elem);
+			break;
+		}
+
+		wpabuf_put_u8(frame, WLAN_EID_VENDOR_SPECIFIC);
+		wpabuf_put_u8(frame, wpabuf_len(elem));
+		wpabuf_put_buf(frame, elem);
+		wpabuf_free(elem);
+		frame_len = wpabuf_len(frame);
+	}
+
+	if (more) {
+		u8 *buf = wpabuf_mhead_u8(frame);
+
+		buf[7] |= DSCP_POLICY_CTRL_MORE;
+	}
+
+	/* Only send if the frame contains at least one QoS element beyond the
+	 * header */
+	if (frame && wpabuf_len(frame) > 5 &&
+	    hostapd_drv_send_action(hapd, hapd->iface->freq, 0, sta->addr,
+				    wpabuf_head(frame), wpabuf_len(frame))) {
+		wpa_printf(MSG_DEBUG, "DSCP: Failed to send policy request to "
+			   MACSTR, MAC2STR(sta->addr));
+		wpabuf_free(frame);
+		return -1;
+	}
+
+	wpabuf_free(frame);
+
+	sta->dscp_state.offset = i;
+	sta->dscp_state.last_dialog_token = dialog_token;
+	sta->dscp_state.pending_more = more;
+	return 0;
+}

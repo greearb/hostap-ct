@@ -883,6 +883,7 @@ static int hostapd_cli_cmd_send_qos_map_conf(struct wpa_ctrl *ctrl,
 
 
 #ifdef CONFIG_ROBUST_AV
+
 static int hostapd_cli_cmd_set_dscp_policy(struct wpa_ctrl *ctrl,
 					   int argc, char *argv[])
 {
@@ -917,6 +918,38 @@ static int hostapd_cli_cmd_set_dscp_policy(struct wpa_ctrl *ctrl,
 
 	return wpa_ctrl_command(ctrl, cmd);
 }
+
+
+static int hostapd_cli_cmd_send_unsolicited_dscp_req(struct wpa_ctrl *ctrl,
+						     int argc, char *argv[])
+{
+	char cmd[512];
+	int res;
+	int i;
+	size_t total;
+
+	if (argc < 3) {
+		printf("Invalid send_unsolicited_dscp_req command\n"
+		       "usage: sta_addr=<addr> [reset=] [policy_id_list=]\n");
+		return -1;
+	}
+
+	res = os_snprintf(cmd, sizeof(cmd), "SEND_UNSOLICITED_DSCP_REQ");
+	if (os_snprintf_error(sizeof(cmd), res))
+		return -1;
+
+	total = res;
+	for (i = 0; i < argc; i++) {
+		res = os_snprintf(cmd + total, sizeof(cmd) - total, " %s",
+				  argv[i]);
+		if (os_snprintf_error(sizeof(cmd) - total, res))
+			return -1;
+		total += res;
+	}
+
+	return wpa_ctrl_command(ctrl, cmd);
+}
+
 #endif /* CONFIG_ROBUST_AV */
 
 
@@ -1964,6 +1997,9 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	 "<sta_addr> <policy_id=> <request_type=> <dscp=> [classifier_mask=]\n"
 	 "[ip_version=] [src_ip=] [dst_ip=] [src_port=] [dst_port=]\n"
 	 "[protocol=] [domain_name=] [reset=] = Set DSCP policy"},
+	{"send_unsolicited_dscp_req", hostapd_cli_cmd_send_unsolicited_dscp_req,
+	 NULL,
+	 "<addr>, [reset=], [policy_id_list=], Send unsolicited DSCP request"},
 #endif /* CONFIG_ROBUST_AV */
 	{ NULL, NULL, NULL, NULL }
 };

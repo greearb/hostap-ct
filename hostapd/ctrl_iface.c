@@ -752,6 +752,7 @@ static int hostapd_ctrl_iface_send_qos_map_conf(struct hostapd_data *hapd,
 
 
 #ifdef CONFIG_ROBUST_AV
+
 static int hostapd_ctrl_iface_set_dscp_policy(struct hostapd_data *hapd,
 					      const char *cmd)
 {
@@ -807,6 +808,95 @@ static int hostapd_ctrl_iface_set_dscp_policy(struct hostapd_data *hapd,
 	free_dscp_policy(&policy);
 	return 0;
 }
+
+
+static int hostapd_ctrl_send_unsolicited_dscp_req(struct hostapd_data *hapd,
+						  const char *cmd)
+{
+	struct sta_info *sta;
+	u8 addr[ETH_ALEN];
+	int reset = 0;
+	int *policy_ids = NULL;
+	size_t num_policies = 0;
+	char *buf, *p, *end;
+	int ret;
+
+	if (!hapd->conf->enable_dscp_policy_capa)
+		return -1;
+
+	buf = os_strdup(cmd);
+	if (!buf)
+		return -1;
+
+	p = buf;
+	end = os_strchr(p, ' ');
+	if (!end || hwaddr_aton(p, addr)) {
+		os_free(buf);
+		return -1;
+	}
+
+	*end = '\0';
+	p = end + 1;
+	end = os_strchr(p, ' ');
+	if (!end || os_strncmp(p, "reset=", 6) != 0) {
+		os_free(buf);
+		return -1;
+	}
+
+	*end = '\0';
+	reset = atoi(p + 6);
+	p = end + 1;
+
+	if (os_strncmp(p, "policy_id_list=", 15) != 0) {
+		os_free(buf);
+		return -1;
+	}
+	p += 15;
+
+	while (*p && num_policies < 255) {
+		int val = strtol(p, &end, 10);
+
+		if (p == end)
+			break;
+
+		if (num_policies == 0) {
+			policy_ids = os_malloc(sizeof(int));
+			if (!policy_ids)
+				break;
+		} else {
+			int *tmp;
+
+			tmp = os_realloc_array(policy_ids, num_policies + 1,
+					       sizeof(int));
+			if (!tmp)
+				break;
+			policy_ids = tmp;
+		}
+		policy_ids[num_policies++] = val;
+		if (*end == '_')
+			p = end + 1;
+		else
+			break;
+	}
+	os_free(buf);
+
+	if (num_policies == 0) {
+		wpa_printf(MSG_INFO, "DSCP: No valid policy IDs found");
+		os_free(policy_ids);
+		return -1;
+	}
+
+	sta = ap_get_sta(hapd, addr);
+	if (!sta)
+		return -1;
+
+	ret = hostapd_send_unsolicited_dscp_policy_request(hapd, sta, reset,
+							   policy_ids,
+							   num_policies);
+	os_free(policy_ids);
+	return ret;
+}
+
 #endif /* CONFIG_ROBUST_AV */
 
 
@@ -4643,6 +4733,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 #ifdef CONFIG_ROBUST_AV
 	} else if (os_strncmp(buf, "DSCP_POLICY ", 12) == 0) {
 		if (hostapd_ctrl_iface_set_dscp_policy(hapd, buf + 12))
+			reply_len = -1;
+	} else if (os_strncmp(buf, "SEND_UNSOLICITED_DSCP_REQ ", 26) == 0) {
+		if (hostapd_ctrl_send_unsolicited_dscp_req(hapd, buf + 26))
 			reply_len = -1;
 #endif /* CONFIG_ROBUST_AV */
 	} else {

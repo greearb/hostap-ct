@@ -8754,6 +8754,27 @@ skip_update:
 		sta->pending_eapol_rx = NULL;
 	}
 
+#ifdef CONFIG_ROBUST_AV
+	if (hapd->conf->enable_dscp_policy_capa && sta &&
+	    (sta->flags & WLAN_STA_DSCP_POLICY) && sta->num_dscp_policies > 0) {
+		int *policy_ids = NULL;
+		size_t num_policies = 0;
+		unsigned int i;
+
+		policy_ids = os_calloc(sta->num_dscp_policies, sizeof(int));
+		if (!policy_ids)
+			return;
+
+		for (i = 0; i < sta->num_dscp_policies; i++)
+			policy_ids[num_policies++] =
+				sta->policies[i]->policy_id;
+
+		hostapd_send_unsolicited_dscp_policy_request(
+			hapd, sta, 0, policy_ids, num_policies);
+		os_free(policy_ids);
+	}
+#endif /* CONFIG_ROBUST_AV */
+
 handle_ml:
 	hostapd_ml_handle_assoc_cb(hapd, sta, ok);
 }

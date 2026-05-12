@@ -30,6 +30,9 @@ struct sta_info;
 #define PROTOCOL_LEN	1
 #define HEADER_LEN	3
 
+#define MAX_DSCP_REQ_SIZE 1500
+
+#define QM_ATTR_DSCP_POLICY_LEN 3
 
 enum ip_version {
 	IPV4 = 4,
@@ -114,5 +117,10 @@ int parse_dscp_policy_string(struct sta_info *sta,
 int build_frame_classifier(struct hostapd_dscp_policy *policy);
 int add_dscp_policy_to_sta(struct sta_info *sta,
 			   const struct hostapd_dscp_policy *new_policy);
+int hostapd_send_unsolicited_dscp_policy_request(struct hostapd_data *hapd,
+						 struct sta_info *sta,
+						 u8 reset,
+						 const int *policy_ids,
+						 unsigned int num_policies);
 
 #endif /* ROBUST_AV_H */
