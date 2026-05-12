@@ -4678,7 +4678,7 @@ retry:
 		}
 	} else {
 		wpa_printf(MSG_DEBUG,
-			   "nl80211: Authentication request send successfully");
+			   "nl80211: Authentication request sent successfully");
 	}
 
 fail:
@@ -7892,7 +7892,7 @@ skip_auth_type:
 		drv->roam_indication_done = false;
 #endif /* CONFIG_DRIVER_NL80211_QCA */
 		wpa_printf(MSG_DEBUG,
-			   "nl80211: Connect request send successfully");
+			   "nl80211: Connect request sent successfully");
 	}
 
 fail:
@@ -8036,7 +8036,7 @@ static int wpa_driver_nl80211_associate(
 		}
 	} else {
 		wpa_printf(MSG_DEBUG,
-			   "nl80211: Association request send successfully");
+			   "nl80211: Association request sent successfully");
 	}
 
 fail:
@@ -12968,7 +12968,7 @@ static int nl80211_join_mesh(struct i802_bss *bss,
 	}
 	ret = 0;
 	drv->assoc_freq = bss->flink->freq = params->freq.freq;
-	wpa_printf(MSG_DEBUG, "nl80211: mesh join request send successfully");
+	wpa_printf(MSG_DEBUG, "nl80211: mesh join request sent successfully");
 
 fail:
 	nlmsg_free(msg);
@@ -13023,7 +13023,7 @@ static int wpa_driver_nl80211_leave_mesh(void *priv)
 			   ret, strerror(-ret));
 	} else {
 		wpa_printf(MSG_DEBUG,
-			   "nl80211: mesh leave request send successfully");
+			   "nl80211: mesh leave request sent successfully");
 		drv->first_bss->flink->freq = 0;
 	}
 
