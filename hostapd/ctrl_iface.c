@@ -66,6 +66,7 @@
 #include "ap/dpp_hostapd.h"
 #include "ap/dfs.h"
 #include "ap/nan_usd_ap.h"
+#include "ap/robust_av.h"
 #include "wps/wps_defs.h"
 #include "wps/wps.h"
 #include "fst/fst_ctrl_iface.h"
@@ -748,6 +749,55 @@ static int hostapd_ctrl_iface_send_qos_map_conf(struct hostapd_data *hapd,
 }
 
 #endif /* CONFIG_INTERWORKING */
+
+
+#ifdef CONFIG_ROBUST_AV
+static int hostapd_ctrl_iface_set_dscp_policy(struct hostapd_data *hapd,
+					      const char *cmd)
+{
+	u8 addr[ETH_ALEN];
+	struct hostapd_dscp_policy policy;
+	struct sta_info *sta;
+	const char *params;
+	char *reset_str;
+
+	if (!hapd->conf->enable_dscp_policy_capa)
+		return -1;
+
+	if (hwaddr_aton(cmd, addr))
+		return -1;
+
+	sta = ap_get_sta(hapd, addr);
+	if (!sta) {
+		wpa_printf(MSG_INFO, "DSCP: STA " MACSTR " not capable",
+			   MAC2STR(addr));
+		return -1;
+	}
+
+	params = os_strchr(cmd, ' ');
+	if (!params || *++params == '\0')
+		return -1;
+
+	reset_str = os_strstr(params, "reset=");
+	if (reset_str) {
+		sta->dscp_reset = atoi(reset_str + 6);
+		wpa_printf(MSG_DEBUG,
+			   "DSCP: Reset flag set to %d for STA " MACSTR,
+			   sta->dscp_reset, MAC2STR(addr));
+		return 0;
+	}
+
+	if (parse_dscp_policy_string(sta, &policy, params) < 0 ||
+	    validate_dscp_policy(&policy) < 0 ||
+	    build_frame_classifier(&policy) < 0) {
+		free_dscp_policy(&policy);
+		return -1;
+	}
+
+	free_dscp_policy(&policy);
+	return 0;
+}
+#endif /* CONFIG_ROBUST_AV */
 
 
 #ifdef CONFIG_WNM_AP
@@ -4580,6 +4630,11 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 			reply_len = -1;
 #endif /* CONFIG_PROCESS_COORDINATION */
 #endif /* CONFIG_TESTING_OPTIONS */
+#ifdef CONFIG_ROBUST_AV
+	} else if (os_strncmp(buf, "DSCP_POLICY ", 12) == 0) {
+		if (hostapd_ctrl_iface_set_dscp_policy(hapd, buf + 12))
+			reply_len = -1;
+#endif /* CONFIG_ROBUST_AV */
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;

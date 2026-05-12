@@ -363,6 +363,10 @@ struct sta_info {
 #ifdef CONFIG_IEEE8021X_AUTH
 	struct eap_over_auth_data eap_auth_data;
 #endif /* CONFIG_IEEE8021X_AUTH */
+
+#ifdef CONFIG_ROBUST_AV
+	bool dscp_reset;
+#endif /* CONFIG_ROBUST_AV */
 };
 
 

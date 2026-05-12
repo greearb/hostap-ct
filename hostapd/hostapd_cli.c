@@ -882,6 +882,44 @@ static int hostapd_cli_cmd_send_qos_map_conf(struct wpa_ctrl *ctrl,
 }
 
 
+#ifdef CONFIG_ROBUST_AV
+static int hostapd_cli_cmd_set_dscp_policy(struct wpa_ctrl *ctrl,
+					   int argc, char *argv[])
+{
+	char cmd[512];
+	int res;
+	int i;
+	size_t total = 0;
+
+	if (argc < 2) {
+		printf("Invalid dscp_policy command\n"
+		       "usage: dscp_policy <sta_addr> <policy_id=> <request_type=> <dscp=>\n"
+		       "[classifier_mask=] [ip_version=] [src_ip=] [dst_ip=] [src_port=] [dst_port=]\n"
+		       "[protocol=] [domain_name=] [reset=]\n");
+		return -1;
+	}
+
+	res = os_snprintf(cmd, sizeof(cmd), "DSCP_POLICY");
+	if (os_snprintf_error(sizeof(cmd), res))
+		return -1;
+
+	total = res;
+
+	for (i = 0; i < argc; i++) {
+		res = os_snprintf(cmd + total, sizeof(cmd) - total, " %s",
+				  argv[i]);
+		if (os_snprintf_error(sizeof(cmd) - total, res)) {
+			printf("Too long DSCP_POLICY command.\n");
+			return -1;
+		}
+		total += res;
+	}
+
+	return wpa_ctrl_command(ctrl, cmd);
+}
+#endif /* CONFIG_ROBUST_AV */
+
+
 static int hostapd_cli_cmd_hs20_wnm_notif(struct wpa_ctrl *ctrl, int argc,
 					  char *argv[])
 {
@@ -1921,6 +1959,12 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
 	{ "driver", hostapd_cli_cmd_driver, NULL,
 	  "<driver sub command> [<hex formatted data>] = send driver command data" },
 #endif /* ANDROID */
+#ifdef CONFIG_ROBUST_AV
+	{"dscp_policy", hostapd_cli_cmd_set_dscp_policy, NULL,
+	 "<sta_addr> <policy_id=> <request_type=> <dscp=> [classifier_mask=]\n"
+	 "[ip_version=] [src_ip=] [dst_ip=] [src_port=] [dst_port=]\n"
+	 "[protocol=] [domain_name=] [reset=] = Set DSCP policy"},
+#endif /* CONFIG_ROBUST_AV */
 	{ NULL, NULL, NULL, NULL }
 };
 
