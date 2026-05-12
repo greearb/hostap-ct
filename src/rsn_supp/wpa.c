@@ -1407,6 +1407,16 @@ static int wpa_supplicant_validate_gtk_kde_len(size_t gtk_len)
 }
 
 
+static int wpa_supplicant_validate_mlo_gtk_kde_len(size_t gtk_len)
+{
+	if (gtk_len < RSN_MLO_GTK_KDE_PREFIX_LENGTH ||
+	    gtk_len - RSN_MLO_GTK_KDE_PREFIX_LENGTH > WPA_GTK_MAX_LEN)
+		return -1;
+
+	return 0;
+}
+
+
 static int wpa_supplicant_install_gtk(struct wpa_sm *sm,
 				      const struct wpa_gtk_data *gd,
 				      const u8 *key_rsc, int wnm_sleep)
@@ -1600,8 +1610,7 @@ static int wpa_supplicant_mlo_gtk(struct wpa_sm *sm, u8 link_id, const u8 *gtk,
 			     "RSN: received GTK in pairwise handshake",
 			     gtk, gtk_len);
 
-	if (gtk_len < RSN_MLO_GTK_KDE_PREFIX_LENGTH ||
-	    gtk_len - RSN_MLO_GTK_KDE_PREFIX_LENGTH > sizeof(gd.gtk))
+	if (wpa_supplicant_validate_mlo_gtk_kde_len(gtk_len) < 0)
 		return -1;
 
 	gd.keyidx = gtk[0] & 0x3;
@@ -2881,6 +2890,14 @@ static void wpa_supplicant_process_3_of_4(struct wpa_sm *sm,
 		if (!ie.mlo_gtk[i]) {
 			wpa_msg(sm->ctx->msg_ctx, MSG_ERROR,
 				"RSN: GTK not found for link ID %u", i);
+			goto failed;
+		}
+
+		if (wpa_supplicant_validate_mlo_gtk_kde_len(
+			    ie.mlo_gtk_len[i]) < 0) {
+			wpa_msg(sm->ctx->msg_ctx, MSG_WARNING,
+				"RSN: Invalid MLO GTK KDE length %zu for link ID %u",
+				ie.mlo_gtk_len[i], i);
 			goto failed;
 		}
 
