@@ -9,6 +9,8 @@
 #ifndef PR_SUPPLICANT_H
 #define PR_SUPPLICANT_H
 
+#include "common/proximity_ranging.h"
+
 #ifdef CONFIG_PR
 
 int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
@@ -27,7 +29,8 @@ void wpas_pr_process_usd_elems(struct wpa_supplicant *wpa_s, const u8 *buf,
 int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 			       const u8 *peer_addr, int freq, u8 auth_mode,
 			       u8 ranging_role, u8 ranging_type,
-			       int forced_pr_freq);
+			       int forced_pr_freq, const u8 *src_addr,
+			       enum pr_pasn_role pasn_role);
 int wpas_pr_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
 				size_t data_len, bool acked);
 int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
@@ -74,7 +77,9 @@ static inline int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 					     const u8 *peer_addr, int freq,
 					     u8 auth_mode, u8 ranging_role,
 					     u8 ranging_type,
-					     int forced_pr_freq)
+					     int forced_pr_freq,
+					     const u8 *src_addr,
+					     enum pr_pasn_role pasn_role)
 {
 	return 0;
 }

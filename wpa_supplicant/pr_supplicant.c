@@ -609,7 +609,8 @@ fail:
 int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 			       const u8 *peer_addr, int freq, u8 auth_mode,
 			       u8 ranging_role, u8 ranging_type,
-			       int forced_pr_freq)
+			       int forced_pr_freq, const u8 *src_addr,
+			       enum pr_pasn_role pasn_role)
 {
 	struct wpa_pr_pasn_auth_work *awork;
 

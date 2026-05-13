@@ -11564,6 +11564,8 @@ static int wpas_ctrl_iface_pr_pasn_start(struct wpa_supplicant *wpa_s,
 	int freq = 0, forced_pr_freq = 0;
 	u8 ranging_type = 0, role = 0, auth_mode = 0;
 	bool got_addr = false;
+	u8 src_addr[ETH_ALEN], *p_src_addr = NULL;
+	enum pr_pasn_role pasn_role = PR_ROLE_PASN_INITIATOR;
 
 	while ((token = str_token(cmd, " ", &context))) {
 		if (os_strncmp(token, "addr=", 5) == 0) {
@@ -11586,6 +11588,14 @@ static int wpas_ctrl_iface_pr_pasn_start(struct wpa_supplicant *wpa_s,
 			auth_mode = atoi(token + 5);
 		} else if (os_strncmp(token, "forced_pr_freq=", 15) == 0) {
 			forced_pr_freq = atoi(token + 15);
+		} else if (os_strncmp(token, "src_addr=", 9) == 0) {
+			if (hwaddr_aton(token + 9, src_addr))
+				return -1;
+			p_src_addr = src_addr;
+		} else if (os_strcmp(token, "pasn_role=INITIATOR") == 0) {
+			pasn_role = PR_ROLE_PASN_INITIATOR;
+		} else if (os_strcmp(token, "pasn_role=RESPONDER") == 0) {
+			pasn_role = PR_ROLE_PASN_RESPONDER;
 		} else {
 			wpa_printf(MSG_DEBUG,
 				   "CTRL: PASN invalid parameter: '%s'",
@@ -11599,12 +11609,15 @@ static int wpas_ctrl_iface_pr_pasn_start(struct wpa_supplicant *wpa_s,
 			   "CTRL: Proximity Ranging PASN missing parameter");
 		return -1;
 	}
+
 	wpa_printf(MSG_DEBUG,
-		   "CTRL: PR PASN params: ranging type=0x%x, role=0x%x, auth_mode=%d, forced pr freq=%d, addr=" MACSTR,
-		   ranging_type, role, auth_mode, forced_pr_freq,
-		   MAC2STR(addr));
+		   "CTRL: PR PASN params: ranging type=0x%x, role=0x%x, pasn_role=%d, auth_mode=%d, forced pr freq=%d, addr="
+		   MACSTR " src_addr=" MACSTR,
+		   ranging_type, role, pasn_role, auth_mode, forced_pr_freq,
+		   MAC2STR(addr), MAC2STR(p_src_addr ? p_src_addr : addr));
 	return wpas_pr_initiate_pasn_auth(wpa_s, addr, freq, auth_mode, role,
-					  ranging_type, forced_pr_freq);
+					  ranging_type, forced_pr_freq,
+					  p_src_addr, pasn_role);
 }
 
 
