@@ -277,5 +277,5 @@ int hostapd_nan_usd_transmit(struct hostapd_data *hapd, int handle,
 	if (!hapd->nan_de)
 		return -1;
 	return nan_de_transmit(hapd->nan_de, handle, ssi, elems, peer_addr,
-			       req_instance_id, NULL);
+			       req_instance_id, NULL, NULL);
 }

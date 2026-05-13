@@ -105,6 +105,19 @@ struct nan_de_service {
 
 #define NAN_DE_RSSI_CLOSE_PROXIMITY (-70) /* dBm */
 
+struct nan_de_tracked_tx {
+	struct dl_list list;
+	u8 dst[ETH_ALEN];
+	u32 cookie;
+	u8 digest[SHA256_MAC_LEN];
+	bool with_wait;
+};
+
+enum nan_de_flush_tracked_tx_reason {
+	NAN_DE_FLUSH_TRACKED_TX_FLUSH_ALL,
+	NAN_DE_FLUSH_TRACKED_TX_WAIT_EXPIRED,
+};
+
 struct nan_de {
 	u8 nmi[ETH_ALEN];
 	u8 cluster_id[ETH_ALEN];
@@ -131,6 +144,13 @@ struct nan_de {
 
 	/* RSSI threshold for close proximity, or zero if not limited */
 	int rssi_threshold;
+
+	/*
+	 * List of transmit requests (struct nan_de_tracked_tx::list) for which
+	 * the caller requested status indicating whether the frame was
+	 * acknowledged
+	 */
+	struct dl_list tracked_tx;
 
 #ifdef CONFIG_TESTING_OPTIONS
 	/*
@@ -175,6 +195,7 @@ struct nan_de * nan_de_init(const u8 *nmi, bool offload, bool ap,
 	de->cfg.n_max = NAN_DE_N_MAX;
 
 	de->rssi_threshold = NAN_DE_RSSI_CLOSE_PROXIMITY;
+	dl_list_init(&de->tracked_tx);
 
 	return de;
 }
@@ -210,11 +231,133 @@ static void nan_de_service_deinit(struct nan_de *de, struct nan_de_service *srv,
 }
 
 
+static void nan_de_flush_tracked_tx(struct nan_de *de,
+				    enum nan_de_flush_tracked_tx_reason reason)
+{
+	struct nan_de_tracked_tx *tx, *tmp;
+
+	dl_list_for_each_safe(tx, tmp, &de->tracked_tx,
+			      struct nan_de_tracked_tx, list) {
+		if (reason == NAN_DE_FLUSH_TRACKED_TX_WAIT_EXPIRED &&
+		    !tx->with_wait)
+			continue;
+
+		de->cb.transmit_req_status(de->cb.ctx, tx->cookie, false);
+		dl_list_del(&tx->list);
+		os_free(tx);
+	}
+}
+
+
 static void nan_de_clear_pending(struct nan_de *de)
 {
+	nan_de_flush_tracked_tx(de, NAN_DE_FLUSH_TRACKED_TX_FLUSH_ALL);
+
 	de->listen_freq = 0;
 	de->tx_wait_status_freq = 0;
 	de->tx_wait_end_freq = 0;
+}
+
+
+static int nan_de_track_tx_digest(const u8 *data, size_t len, u8 *digest)
+{
+	return sha256_vector(1, &data, &len, digest);
+}
+
+
+static struct nan_de_tracked_tx *
+nan_de_add_tracked_tx(struct nan_de *de, const u8 *dst, bool with_wait,
+		      u32 cookie, const struct wpabuf *buf)
+{
+	struct nan_de_tracked_tx *tx;
+	u8 digest[SHA256_MAC_LEN];
+
+	if (!de->cb.transmit_req_status) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: No tx_status callback, cannot track Tx");
+		return NULL;
+	}
+
+	if (!cookie) {
+		wpa_printf(MSG_DEBUG, "NAN: Invalid cookie for Tx tracking");
+		return NULL;
+	}
+
+	if (nan_de_track_tx_digest(wpabuf_head(buf), wpabuf_len(buf), digest)) {
+		wpa_printf(MSG_INFO, "NAN: Failed to compute Tx digest");
+		return NULL;
+	}
+
+	dl_list_for_each(tx, &de->tracked_tx, struct nan_de_tracked_tx, list) {
+		if (!ether_addr_equal(tx->dst, dst))
+			continue;
+
+		if (tx->cookie == cookie) {
+			wpa_printf(MSG_DEBUG,
+				   "NAN: Already tracking Tx cookie %u to "
+				   MACSTR, cookie, MAC2STR(dst));
+			return NULL;
+		}
+
+		if (os_memcmp(tx->digest, digest, SHA256_MAC_LEN) == 0) {
+			wpa_printf(MSG_DEBUG,
+				   "NAN: Already tracking identical payload to "
+				   MACSTR " (cookie %u)",
+				   MAC2STR(dst), tx->cookie);
+			return NULL;
+		}
+	}
+
+	tx = os_zalloc(sizeof(*tx));
+	if (!tx)
+		return NULL;
+
+	os_memcpy(tx->dst, dst, ETH_ALEN);
+	tx->cookie = cookie;
+	tx->with_wait = with_wait;
+	os_memcpy(tx->digest, digest, SHA256_MAC_LEN);
+
+	dl_list_add(&de->tracked_tx, &tx->list);
+
+	wpa_printf(MSG_DEBUG, "NAN: Track Tx cookie %u", tx->cookie);
+	wpa_hexdump(MSG_DEBUG, "NAN: Track Tx digest",
+		    tx->digest, SHA256_MAC_LEN);
+
+	return tx;
+}
+
+
+static void nan_de_tx_status_match(struct nan_de *de, const u8 *data,
+				   size_t len, u8 acked)
+{
+	struct nan_de_tracked_tx *tx;
+	const struct ieee80211_mgmt *mgmt =
+		(const struct ieee80211_mgmt *) data;
+	const u8 *pos = (const u8 *) &mgmt->u.action;
+	u8 digest[SHA256_MAC_LEN];
+
+	if (len <= offsetof(struct ieee80211_mgmt, u.action))
+		return;
+
+	len = data + len - pos;
+
+	if (nan_de_track_tx_digest(pos, len, digest))
+		return;
+
+	dl_list_for_each(tx, &de->tracked_tx,
+			 struct nan_de_tracked_tx, list) {
+		if (!ether_addr_equal(tx->dst, mgmt->da) ||
+		    os_memcmp(tx->digest, digest, SHA256_MAC_LEN) != 0)
+			continue;
+
+		wpa_printf(MSG_DEBUG, "NAN: Tx status for cookie=%u ack=%u",
+			   tx->cookie, acked);
+
+		de->cb.transmit_req_status(de->cb.ctx, tx->cookie, acked);
+		dl_list_del(&tx->list);
+		os_free(tx);
+		return;
+	}
 }
 
 
@@ -294,16 +437,29 @@ static struct wpabuf * nan_de_alloc_sdf(struct nan_de *de, const u8 *dst,
 static int nan_de_tx(struct nan_de *de, unsigned int freq,
 		     unsigned int wait_time,
 		     const u8 *dst, const u8 *src, const u8 *bssid,
-		     const struct wpabuf *buf)
+		     const struct wpabuf *buf,  u32 *cookie)
 {
+	struct nan_de_tracked_tx *tracked_tx = NULL;
 	int res;
 
 	if (!de->cb.tx)
 		return -1;
 
+	if (cookie) {
+		tracked_tx = nan_de_add_tracked_tx(de, dst, !!wait_time,
+						   *cookie, buf);
+		if (!tracked_tx)
+			return -1;
+	}
+
 	res = de->cb.tx(de->cb.ctx, freq, wait_time, dst, src, bssid, buf);
-	if (res < 0)
+	if (res < 0) {
+		if (tracked_tx) {
+			dl_list_del(&tracked_tx->list);
+			os_free(tracked_tx);
+		}
 		return res;
+	}
 
 	de->tx_wait_status_freq = freq;
 	de->tx_wait_end_freq = wait_time ? freq : 0;
@@ -337,7 +493,7 @@ static void nan_de_tx_sdf(struct nan_de *de, struct nan_de_service *srv,
 			  enum nan_service_control_type type,
 			  const u8 *dst, const u8 *a3, u8 req_instance_id,
 			  const struct wpabuf *ssi,
-			  const struct wpabuf *attrs)
+			  const struct wpabuf *attrs,  u32 *cookie)
 {
 	struct wpabuf *buf;
 	size_t len = 0, sda_len, sdea_len;
@@ -514,7 +670,7 @@ static void nan_de_tx_sdf(struct nan_de *de, struct nan_de_service *srv,
 	}
 
 	nan_de_tx(de, srv->sync ? 0 : srv->freq, srv->sync ? 0 : wait_time,
-		  dst, forced_addr, a3, buf);
+		  dst, forced_addr, a3, buf, cookie);
 	wpabuf_free(buf);
 }
 
@@ -619,7 +775,7 @@ static void nan_de_tx_multicast(struct nan_de *de, struct nan_de_service *srv,
 	}
 
 	nan_de_tx_sdf(de, srv, wait_time, type, network_id, bssid,
-		      req_instance_id, srv->ssi, NULL);
+		      req_instance_id, srv->ssi, NULL, NULL);
 	os_get_reltime(&srv->last_multicast);
 }
 
@@ -1058,6 +1214,8 @@ void nan_de_tx_status(struct nan_de *de, unsigned int freq, const u8 *dst,
 {
 	if (freq == de->tx_wait_status_freq)
 		de->tx_wait_status_freq = 0;
+
+	nan_de_tx_status_match(de, data, data_len, ack);
 }
 
 
@@ -1067,6 +1225,9 @@ void nan_de_tx_wait_ended(struct nan_de *de)
 		wpa_printf(MSG_DEBUG,
 			   "NAN: TX wait for response ended (freq=%u)",
 			   de->tx_wait_end_freq);
+
+	nan_de_flush_tracked_tx(de, NAN_DE_FLUSH_TRACKED_TX_WAIT_EXPIRED);
+
 	de->tx_wait_end_freq = 0;
 	nan_de_run_timer(de);
 }
@@ -1525,7 +1686,7 @@ static bool nan_de_rx_publish(struct nan_de *de, struct nan_de_service *srv,
 		 * Service Specific Info field if it received a matching
 		 * unsolicited Publish message. */
 		nan_de_transmit(de, srv->id, NULL, NULL, peer_addr,
-				instance_id, NULL);
+				instance_id, NULL, NULL);
 	}
 
 send_event:
@@ -1630,7 +1791,8 @@ static bool nan_de_rx_subscribe(struct nan_de *de, struct nan_de_service *srv,
 
 	nan_de_tx_sdf(de, srv, 100, NAN_SRV_CTRL_PUBLISH,
 		      srv->publish.solicited_multicast ?
-		      network_id : peer_addr, a3, instance_id, srv->ssi, NULL);
+		      network_id : peer_addr, a3, instance_id, srv->ssi, NULL,
+		      NULL);
 
 	if (!srv->is_p2p && !srv->sync)
 		nan_de_pause_state(srv, peer_addr, instance_id);
@@ -2457,7 +2619,7 @@ void nan_de_cancel_subscribe(struct nan_de *de, int subscribe_id)
 int nan_de_transmit(struct nan_de *de, int handle,
 		    const struct wpabuf *ssi, const struct wpabuf *elems,
 		    const u8 *peer_addr, u8 req_instance_id,
-		    const struct wpabuf *nan_attrs)
+		    const struct wpabuf *nan_attrs, u32 *cookie)
 {
 	struct nan_de_service *srv;
 	const u8 *a3;
@@ -2488,7 +2650,8 @@ int nan_de_transmit(struct nan_de *de, int handle,
 	else
 		a3 = network_id;
 	nan_de_tx_sdf(de, srv, 100, NAN_SRV_CTRL_FOLLOW_UP,
-		      peer_addr, a3, req_instance_id, ssi, nan_attrs);
+		      peer_addr, a3, req_instance_id, ssi, nan_attrs,
+		      cookie);
 
 	srv->listen_stopped = false;
 	return 0;

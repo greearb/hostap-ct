@@ -82,6 +82,7 @@ struct nan_callbacks {
 				     unsigned int freq);
 	void (*add_extra_attrs)(void *ctx, struct wpabuf *buf);
 	bool (*is_peer_paired)(void *ctx, const u8 *addr);
+	void (*transmit_req_status)(void *ctx, u32 cookie, bool ack);
 };
 
 bool nan_de_is_nan_network_id(const u8 *addr);
@@ -270,7 +271,7 @@ void nan_de_cancel_subscribe(struct nan_de *de, int subscribe_id);
 int nan_de_transmit(struct nan_de *de, int handle,
 		    const struct wpabuf *ssi, const struct wpabuf *elems,
 		    const u8 *peer_addr, u8 req_instance_id,
-		    const struct wpabuf *nan_attrs);
+		    const struct wpabuf *nan_attrs, u32 *cookie);
 
 void nan_de_dw_trigger(struct nan_de *de, int freq);
 void nan_de_set_cluster_id(struct nan_de *de, const u8 *cluster_id);
