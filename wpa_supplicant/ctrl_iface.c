@@ -12795,6 +12795,7 @@ static int wpas_ctrl_nan_publish(struct wpa_supplicant *wpa_s, char *cmd,
 	int *cipher_list = NULL;
 	u8 nd_pmk[PMK_LEN];
 	bool p2p = false;
+	u8 forced_addr[ETH_ALEN];
 
 	os_memset(&params, 0, sizeof(params));
 	/* USD shall use both solicited and unsolicited transmissions */
@@ -12946,6 +12947,16 @@ static int wpas_ctrl_nan_publish(struct wpa_supplicant *wpa_s, char *cmd,
 			continue;
 		}
 
+		if (os_strncmp(token, "forced_addr=", 12) == 0) {
+			if (hwaddr_aton(token + 12, forced_addr)) {
+				wpa_printf(MSG_INFO,
+					   "CTRL: Invalid forced_addr");
+				goto fail;
+			}
+			params.forced_addr = forced_addr;
+			continue;
+		}
+
 		wpa_printf(MSG_INFO, "CTRL: Invalid NAN_PUBLISH parameter: %s",
 			   token);
 		goto fail;
@@ -13074,6 +13085,7 @@ static int wpas_ctrl_nan_subscribe(struct wpa_supplicant *wpa_s, char *cmd,
 	enum nan_service_protocol_type srv_proto_type = 0;
 	int *freq_list = NULL;
 	bool p2p = false;
+	u8 forced_addr[ETH_ALEN];
 
 	os_memset(&params, 0, sizeof(params));
 	params.freq = NAN_USD_DEFAULT_FREQ;
@@ -13186,6 +13198,16 @@ static int wpas_ctrl_nan_subscribe(struct wpa_supplicant *wpa_s, char *cmd,
 
 		if (os_strncmp(token, "pbm=", 4) == 0) {
 			params.pbm = strtol(token + 4, NULL, 0);
+			continue;
+		}
+
+		if (os_strncmp(token, "forced_addr=", 12) == 0) {
+			if (hwaddr_aton(token + 12, forced_addr)) {
+				wpa_printf(MSG_INFO,
+					   "CTRL: Invalid forced_addr");
+				goto fail;
+			}
+			params.forced_addr = forced_addr;
 			continue;
 		}
 
