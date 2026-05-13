@@ -736,11 +736,15 @@ out_fail:
 		ndl->status = NAN_NDL_STATUS_REJECTED;
 		ndl->reason = reason;
 		ndl->send_naf_on_error = 1;
+
+		/*
+		 * Do not modify the state. Full cleanup will be done on Tx
+		 * status handling.
+		 */
+	} else {
+		nan_ndl_clear(nan, peer);
 	}
 
-	/* Clear the NDL info but leave the state, status, and reason. Full
-	 * cleanup will be done on Tx status handling. */
-	nan_ndl_clear(nan, peer);
 	return -1;
 }
 
