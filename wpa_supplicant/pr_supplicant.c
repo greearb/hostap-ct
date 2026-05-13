@@ -388,7 +388,9 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 	os_memcpy(pr.dev_addr, wpa_s->own_addr, ETH_ALEN);
 	pr.cb_ctx = wpa_s;
 	pr.dev_name = wpa_s->conf->device_name;
-	pr.pasn_type = wpa_s->conf->pr_pasn_type;
+	pr.pasn_type = wpa_s->conf->pr_pasn_type ?
+		wpa_s->conf->pr_pasn_type :
+		(int) (PR_PASN_DH19_UNAUTH | PR_PASN_DH19_AUTH);
 	pr.preferred_ranging_role = wpa_s->conf->pr_preferred_role;
 
 	pr.edca_ista_support = capa->ista.support_edca;
