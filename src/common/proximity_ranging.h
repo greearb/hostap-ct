@@ -256,6 +256,25 @@ enum pr_attr_id {
 #define PR_PASN_AUTH_MODE_SAE    1
 #define PR_PASN_AUTH_MODE_PMK    2
 
+/**
+ * struct pr_pasn_ranging_params - Peer parameters to be used in PASN to trigger
+ * ranging in case PR PASN is successful.
+ */
+struct pr_pasn_ranging_params {
+	enum {
+		PR_PASN_AND_RANGING,
+		PR_STOP_RANGING,
+	} action;
+	u8 peer_addr[ETH_ALEN];
+	u8 ranging_type;
+	u8 ranging_role;
+	u8 pr_pasn_status;
+	u8 auth_mode;
+	int freq;
+	u8 src_addr[ETH_ALEN];
+	enum pr_pasn_role pasn_role;
+};
+
 struct pr_dev_ik {
 	struct dl_list list;
 	u8 dik[DEVICE_IDENTITY_KEY_LEN];
@@ -471,6 +490,10 @@ struct pr_data {
 	/* PMKSA cache for PASN-PMK authentication */
 	struct rsn_pmksa_cache *initiator_pmksa;
 	struct rsn_pmksa_cache *responder_pmksa;
+
+	/* PR PASN request tracking - similar to pasn_params in wpa_supplicant
+	 */
+	struct pr_pasn_ranging_params *pr_pasn_params;
 };
 
 /* PR Device Identity Resolution Attribute parameters */

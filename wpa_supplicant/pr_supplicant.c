@@ -840,6 +840,79 @@ int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 }
 
 
+/**
+ * wpas_pr_pasn_trigger - Entry point to trigger PASN authentication for PR
+ */
+void wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
+			  struct pr_pasn_ranging_params *pr_pasn_params)
+{
+	struct pr_data *pr = wpa_s->global->pr;
+
+	if (!pr_pasn_params) {
+		wpa_printf(MSG_DEBUG, "PR PASN: trigger: NULL params");
+		return;
+	}
+
+	if (!pr) {
+		wpa_printf(MSG_DEBUG, "PR PASN: trigger: PR not initialized");
+		return;
+	}
+
+	if (pr->pr_pasn_params) {
+		wpa_printf(MSG_DEBUG,
+			   "PR PASN: auth_trigger: Already in progress");
+		pr_pasn_params->pr_pasn_status = PASN_STATUS_FAILURE;
+		return;
+	}
+
+	if (pr_pasn_params->action == PR_PASN_AND_RANGING) {
+		wpa_printf(MSG_DEBUG,
+			   "PR PASN: Triggering PASN authentication for " MACSTR
+			   " type=%u role=%u mode=%u freq=%d",
+			   MAC2STR(pr_pasn_params->peer_addr),
+			   pr_pasn_params->ranging_type,
+			   pr_pasn_params->ranging_role,
+			   pr_pasn_params->auth_mode,
+			   pr_pasn_params->freq);
+
+		/* Allocate and store the params to track the request */
+		pr->pr_pasn_params = os_zalloc(sizeof(*pr->pr_pasn_params));
+		if (!pr->pr_pasn_params) {
+			wpa_printf(MSG_INFO,
+				   "PR PASN: Failed to allocate params");
+			pr_pasn_params->pr_pasn_status = PASN_STATUS_FAILURE;
+			return;
+		}
+
+		os_memcpy(pr->pr_pasn_params, pr_pasn_params,
+			  sizeof(*pr->pr_pasn_params));
+
+		/* Initiate PASN authentication for the peer */
+		if (wpas_pr_initiate_pasn_auth(wpa_s, pr_pasn_params->peer_addr,
+					       pr_pasn_params->freq,
+					       pr_pasn_params->auth_mode,
+					       pr_pasn_params->ranging_role,
+					       pr_pasn_params->ranging_type, 0,
+					       pr_pasn_params->src_addr,
+					       pr_pasn_params->pasn_role)) {
+			wpa_printf(MSG_DEBUG,
+				   "PR PASN: Failed to initiate PASN for "
+				   MACSTR,
+				   MAC2STR(pr_pasn_params->peer_addr));
+			pr_pasn_params->pr_pasn_status = PASN_STATUS_FAILURE;
+			os_free(pr->pr_pasn_params);
+			pr->pr_pasn_params = NULL;
+			return;
+		}
+	} else {
+		wpa_printf(MSG_INFO,
+			   "PR PASN: Unsupported action %u, ignoring request",
+			   pr_pasn_params->action);
+		pr_pasn_params->pr_pasn_status = PASN_STATUS_FAILURE;
+	}
+}
+
+
 int wpas_pr_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
 				size_t data_len, bool acked)
 {

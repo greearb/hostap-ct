@@ -149,6 +149,9 @@ void pr_deinit(struct pr_data *pr)
 	pr_deinit_dev_iks(pr);
 
 #ifdef CONFIG_PASN
+	os_free(pr->pr_pasn_params);
+	pr->pr_pasn_params = NULL;
+
 	pasn_initiator_pmksa_cache_deinit(pr->initiator_pmksa);
 	pasn_responder_pmksa_cache_deinit(pr->responder_pmksa);
 #endif /* CONFIG_PASN */

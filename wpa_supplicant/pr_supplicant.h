@@ -38,6 +38,8 @@ int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 			 int freq);
 void wpas_pr_cancel_remain_on_channel_cb(struct wpa_supplicant *wpa_s,
 					 unsigned int freq);
+void wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
+			  struct pr_pasn_ranging_params *pr_pasn_params);
 
 #else /* CONFIG_PR */
 
@@ -103,6 +105,12 @@ static inline int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 static inline void
 wpas_pr_cancel_remain_on_channel_cb(struct wpa_supplicant *wpa_s,
 				    unsigned int freq)
+{
+}
+
+static inline void
+wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
+		     struct pr_pasn_ranging_params *pr_pasn_params)
 {
 }
 
