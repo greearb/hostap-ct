@@ -36,6 +36,8 @@ int wpas_pr_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
 int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 			 const struct ieee80211_mgmt *mgmt, size_t len,
 			 int freq);
+void wpas_pr_cancel_remain_on_channel_cb(struct wpa_supplicant *wpa_s,
+					 unsigned int freq);
 
 #else /* CONFIG_PR */
 
@@ -96,6 +98,12 @@ static inline int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 				       size_t len, int freq)
 {
 	return 0;
+}
+
+static inline void
+wpas_pr_cancel_remain_on_channel_cb(struct wpa_supplicant *wpa_s,
+				    unsigned int freq)
+{
 }
 
 #endif /* CONFIG_PR */

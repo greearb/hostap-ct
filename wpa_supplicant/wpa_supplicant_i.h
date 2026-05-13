@@ -1681,6 +1681,7 @@ struct wpa_supplicant {
 	struct wpa_radio_work *p2p_pasn_auth_work;
 #endif /* CONFIG_P2P */
 	struct wpa_radio_work *pr_pasn_auth_work;
+	struct wpa_radio_work *pr_roc_work;
 #endif /* CONFIG_PASN */
 
 	bool is_6ghz_enabled;
@@ -1757,6 +1758,14 @@ struct wpa_supplicant {
 	u8 pmkid_anonce[NONCE_LEN];
 	bool pmkid_anonce_set;
 #endif /* CONFIG_PMKSA_PRIVACY */
+	/**
+	 * pr_responder_mode - Waiting for PASN M1 as responder
+	 *
+	 * Set when ROC has been started on this interface to listen for an
+	 * incoming PASN Auth1 frame. Cleared once the dedicated PR interface
+	 * is created on M1 reception.
+	 */
+	bool pr_responder_mode;
 };
 
 

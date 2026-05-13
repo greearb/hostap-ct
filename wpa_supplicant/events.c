@@ -7317,6 +7317,10 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 #endif /* CONFIG_DPP */
 		wpas_nan_usd_cancel_remain_on_channel_cb(
 			wpa_s, data->remain_on_channel.freq);
+#ifdef CONFIG_PR
+		wpas_pr_cancel_remain_on_channel_cb(
+			wpa_s, data->remain_on_channel.freq);
+#endif /* CONFIG_PR */
 		break;
 	case EVENT_EAPOL_RX:
 		wpa_supplicant_rx_eapol(wpa_s, data->eapol_rx.src,
