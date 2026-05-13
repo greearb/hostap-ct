@@ -681,6 +681,9 @@ CONFIG_DPP2=y
 # Wi-Fi Aware (NAN) support
 #CONFIG_NAN=y
 
+# Proximity Ranging (PR) support
+#CONFIG_PR=y
+
 # Enhanced Privacy Protection (IEEE P802.11bi)
 # Note: These features are experimental and still changing; do not enable for
 # production use.
