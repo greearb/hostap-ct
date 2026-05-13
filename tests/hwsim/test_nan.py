@@ -10,9 +10,10 @@ logger = logging.getLogger()
 from utils import *
 import string
 import hwsim_utils
-from hwsim import HWSimRadio
+from hwsim import HWSimRadio, HWSimController
 from contextlib import contextmanager, ExitStack
 from test_p2p_channel import set_country
+import time
 
 @contextmanager
 def hwsim_nan_radios(count=2, n_channels=3):
@@ -2128,3 +2129,144 @@ def test_nan_override_potential_availability(dev, apdev, params):
         # expect any changes during the test execution.
         if potential != old_potential:
             raise Exception("Potential availability did not revert to original after clearing override")
+
+def test_nan_stopped_on_iface_removal(dev, apdev, params):
+    """NAN cluster and discovery followed by radio destruction reports NAN-STOPPED"""
+    controller = HWSimController()
+    radio1 = HWSimRadio(n_channels=3, use_nan=True)
+    radio1_id, ifname1 = radio1.__enter__()
+    radio1_destroyed = False
+
+    try:
+        with HWSimRadio(n_channels=3, use_nan=True) as (radio2_id, ifname2):
+            wpas1 = WpaSupplicant(global_iface="/tmp/wpas-wlan5")
+            wpas1.interface_add(ifname1)
+            wpas2 = WpaSupplicant(global_iface="/tmp/wpas-wlan6")
+            wpas2.interface_add(ifname2)
+
+            nan_ifname = "nan0"
+
+            logger.info("Starting NAN on publisher")
+            pub = NanDevice(wpas1, nan_ifname)
+            pub.start()
+
+            with NanDevice(wpas2, "nan1") as sub:
+                logger.info("Verifying service discovery")
+                nan_sync_discovery(pub, sub, "test_service",
+                                   pssi="aabbccdd", sssi="ddbbccaa")
+
+                logger.info("Destroying publisher radio")
+                wpas1.dump_monitor()
+                controller.destroy_radio(radio1_id)
+                radio1_destroyed = True
+
+                logger.info("Waiting for NAN-STOPPED event on publisher")
+                ev = wpas1.wait_global_event(["NAN-STOPPED"], timeout=5)
+                if ev is None:
+                    raise Exception("NAN-STOPPED event not received after radio destruction")
+                if f"ifname={nan_ifname}" not in ev:
+                    raise Exception(f"Unexpected NAN-STOPPED event content: {ev}")
+
+                logger.info("Removing old interface and adding new radio")
+                sub.wpas.dump_monitor()
+                wpas1.interface_remove(ifname1)
+
+                radio1 = HWSimRadio(n_channels=3, use_nan=True)
+                radio1_id, ifname1_new = radio1.__enter__()
+                radio1_destroyed = False
+                wpas1.interface_add(ifname1_new)
+
+                logger.info("Starting NAN on re-added radio")
+                pub = NanDevice(wpas1, nan_ifname)
+                pub.start()
+
+                logger.info("Verifying service discovery on re-added radio")
+                nan_sync_discovery(pub, sub, "test_service2",
+                                   pssi="11223344", sssi="44332211")
+    finally:
+        if not radio1_destroyed:
+            radio1.__exit__(None, None, None)
+
+def test_nan_stopped_on_iface_removal_with_ndp(dev, apdev, params):
+    """NAN cluster, NDP establishment, then radio destruction reports NAN-STOPPED"""
+    set_country("US")
+    controller = HWSimController()
+    radio1 = HWSimRadio(n_channels=3, use_nan=True)
+    radio1_id, ifname1 = radio1.__enter__()
+    radio1_destroyed = False
+
+    try:
+        with HWSimRadio(n_channels=3, use_nan=True) as (radio2_id, ifname2):
+            wpas1 = WpaSupplicant(global_iface="/tmp/wpas-wlan5")
+            wpas1.interface_add(ifname1)
+            wpas2 = WpaSupplicant(global_iface="/tmp/wpas-wlan6")
+            wpas2.interface_add(ifname2)
+
+            nan_ifname = "nan0"
+            ndi_name = "ndi0"
+
+            logger.info("Starting NAN on publisher with NDI")
+            pub = NanDevice(wpas1, nan_ifname, ndi_name)
+            pub.start()
+
+            with NanDevice(wpas2, "nan1", "ndi1") as sub:
+                logger.info("Establishing NDP between publisher and subscriber")
+                pid, sid, paddr, saddr = _nan_discover_service(
+                    pub, sub, "test_service", "aabbccdd", "ddbbccaa",
+                    data_path=True)
+                ndp_id, init_ndi = _nan_ndp_request_and_accept(
+                    pub, sub, pid, sid, paddr, saddr,
+                    req_ssi="aabbcc", resp_ssi="ddeeff")
+
+                logger.info("Verifying connectivity over NDP")
+                _nan_test_connectivity(pub, sub)
+
+                logger.info("Destroying publisher radio while NDP is active")
+                wpas1.dump_monitor()
+                sub.wpas.dump_monitor()
+                controller.destroy_radio(radio1_id)
+                radio1_destroyed = True
+
+                logger.info("Waiting for NAN-STOPPED event on publisher")
+                ev = wpas1.wait_global_event(["NAN-STOPPED"], timeout=5)
+                if ev is None:
+                    raise Exception("NAN-STOPPED event not received after radio destruction")
+                if f"ifname={nan_ifname}" not in ev:
+                    raise Exception(f"Unexpected NAN-STOPPED event content: {ev}")
+
+                logger.info("Terminating NDP on subscriber")
+                sub.ndp_terminate(paddr, init_ndi, ndp_id)
+                ev = sub.wpas.wait_event(["NAN-NDP-DISCONNECTED"], timeout=5)
+                if ev is None:
+                    raise Exception("NAN-NDP-DISCONNECTED not received on subscriber")
+
+                logger.info("Removing old interface and adding new radio")
+                sub.wpas.dump_monitor()
+                wpas1.interface_remove(ifname1)
+
+                radio1 = HWSimRadio(n_channels=3, use_nan=True)
+                radio1_id, ifname1_new = radio1.__enter__()
+                radio1_destroyed = False
+
+                wpas1.interface_add(ifname1_new)
+
+                logger.info("Starting NAN on re-added radio with NDI")
+                pub = NanDevice(wpas1, nan_ifname, ndi_name)
+                pub.start()
+
+                logger.info("Establishing NDP on re-added radio")
+                pid, sid, paddr, saddr = _nan_discover_service(
+                    pub, sub, "test_service2", "11223344", "44332211",
+                    data_path=True)
+                ndp_id, init_ndi = _nan_ndp_request_and_accept(
+                    pub, sub, pid, sid, paddr, saddr,
+                    req_ssi="aabbcc", resp_ssi="ddeeff")
+
+                logger.info("Verifying connectivity on re-added radio")
+                _nan_test_connectivity(pub, sub)
+
+                logger.info("NDP recovery after radio destruction verified successfully")
+    finally:
+        if not radio1_destroyed:
+            radio1.__exit__(None, None, None)
+        set_country("00")
