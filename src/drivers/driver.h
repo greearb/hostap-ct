@@ -2169,6 +2169,11 @@ enum wpa_driver_if_type {
 	 */
 	WPA_IF_NAN_DATA,
 
+	/*
+	 * WPA_IF_PD - Proxymity Detection (PD) Device
+	 */
+	WPA_IF_PD,
+
 	/* keep last */
 	WPA_IF_MAX
 };

@@ -248,7 +248,8 @@ static int is_p2p_net_interface(enum nl80211_iftype nlmode)
 
 static bool nl80211_is_netdev_iftype(enum nl80211_iftype t)
 {
-	return t != NL80211_IFTYPE_P2P_DEVICE && t != NL80211_IFTYPE_NAN;
+	return t != NL80211_IFTYPE_P2P_DEVICE && t != NL80211_IFTYPE_NAN &&
+		t != NL80211_IFTYPE_PD;
 }
 
 
@@ -3252,6 +3253,23 @@ static int nl80211_set_p2pdev(struct i802_bss *bss, int start)
 }
 
 
+static int nl80211_set_pr_dev(struct i802_bss *bss, bool start)
+{
+	struct nl_msg *msg;
+	int ret;
+
+	msg = nl80211_cmd_msg(bss, 0, start ? NL80211_CMD_START_PD :
+			      NL80211_CMD_STOP_PD);
+	ret = send_and_recv_cmd(bss->drv, msg);
+
+	wpa_printf(MSG_DEBUG, "nl80211: %s PD Device %s (0x%llx): %s",
+		   start ? "Start" : "Stop",
+		   bss->ifname, (unsigned long long) bss->wdev_id,
+		   strerror(-ret));
+	return ret;
+}
+
+
 #ifdef CONFIG_NAN
 static void nl80211_nan_stop(struct i802_bss *bss)
 {
@@ -3308,6 +3326,11 @@ static int i802_set_iface_flags(struct i802_bss *bss, int up)
 
 	if (nlmode == NL80211_IFTYPE_NAN)
 		return nl80211_set_nandev(bss, up);
+
+	if (nlmode == NL80211_IFTYPE_PD) {
+		/* PR Device has start/stop which is equivalent */
+		return nl80211_set_pr_dev(bss, up);
+	}
 
 	return linux_set_iface_flags(bss->drv->global->ioctl_sock,
 				     bss->ifname, up);
@@ -3504,7 +3527,8 @@ wpa_driver_nl80211_finish_drv_init(struct i802_bss *bss, const u8 *set_addr,
 			nl80211_disable_11b_rates(bss->drv,
 						  bss->drv->ifindex, 1);
 
-		if (nlmode == NL80211_IFTYPE_P2P_DEVICE)
+		if (nlmode == NL80211_IFTYPE_P2P_DEVICE ||
+		    nlmode == NL80211_IFTYPE_PD)
 			return ret;
 	} else {
 		wpa_printf(MSG_DEBUG, "nl80211: Could not yet enable "
@@ -4868,7 +4892,8 @@ static int wpa_driver_nl80211_send_mlme(struct i802_bss *bss, const u8 *data,
 	}
 
 	if ((is_sta_interface(drv->nlmode) ||
-	     drv->nlmode == NL80211_IFTYPE_P2P_DEVICE) &&
+	     drv->nlmode == NL80211_IFTYPE_P2P_DEVICE ||
+	     drv->nlmode == NL80211_IFTYPE_PD) &&
 	    WLAN_FC_GET_TYPE(fc) == WLAN_FC_TYPE_MGMT &&
 	    WLAN_FC_GET_STYPE(fc) == WLAN_FC_STYPE_AUTH) {
 		if (freq == 0 &&
@@ -6674,6 +6699,8 @@ const char * nl80211_iftype_str(enum nl80211_iftype mode)
 		return "NAN DEVICE";
 	case NL80211_IFTYPE_NAN_DATA:
 		return "NAN_DATA";
+	case NL80211_IFTYPE_PD:
+		return "PD DEVICE";
 	default:
 		return "unknown";
 	}
@@ -6711,6 +6738,7 @@ static int nl80211_create_iface_once(struct wpa_driver_nl80211_data *drv,
 		goto fail;
 
 	if ((addr && (iftype == NL80211_IFTYPE_P2P_DEVICE ||
+		      iftype == NL80211_IFTYPE_PD ||
 		      iftype == NL80211_IFTYPE_NAN)) &&
 	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, addr))
 		goto fail;
@@ -9466,6 +9494,8 @@ static enum nl80211_iftype wpa_driver_nl80211_if_type(
 		return NL80211_IFTYPE_NAN;
 	case WPA_IF_NAN_DATA:
 		return NL80211_IFTYPE_NAN_DATA;
+	case WPA_IF_PD:
+		return NL80211_IFTYPE_PD;
 	default:
 		return -1;
 	}
