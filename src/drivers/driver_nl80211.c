@@ -14407,7 +14407,8 @@ static int nl80211_nan_publish(void *priv, const u8 *src, int publish_id,
 			       enum nan_service_protocol_type srv_proto_type,
 			       const struct wpabuf *ssi,
 			       const struct wpabuf *elems,
-			       struct nan_publish_params *params)
+			       struct nan_publish_params *params,
+			       const u8 *network_id)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -14443,7 +14444,9 @@ static int nl80211_nan_publish(void *priv, const u8 *src, int publish_id,
 	    (elems && nla_put(msg, QCA_WLAN_VENDOR_ATTR_USD_ELEMENT_CONTAINER,
 		    wpabuf_len(elems), wpabuf_head(elems))) ||
 	    (ssi && nla_put(msg, QCA_WLAN_VENDOR_ATTR_USD_SSI,
-			    wpabuf_len(ssi), wpabuf_head(ssi))))
+			    wpabuf_len(ssi), wpabuf_head(ssi))) ||
+	    (network_id && nla_put(msg, QCA_WLAN_VENDOR_ATTR_USD_NETWORK_ID,
+				   ETH_ALEN, network_id)))
 		goto fail;
 
 	attr = nla_nest_start(msg, QCA_WLAN_VENDOR_ATTR_USD_CHAN_CONFIG);
@@ -14559,7 +14562,8 @@ static int nl80211_nan_subscribe(void *priv, const u8 *src, int subscribe_id,
 				 enum nan_service_protocol_type srv_proto_type,
 				 const struct wpabuf *ssi,
 				 const struct wpabuf *elems,
-				 struct nan_subscribe_params *params)
+				 struct nan_subscribe_params *params,
+				 const u8 *network_id)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -14596,7 +14600,9 @@ static int nl80211_nan_subscribe(void *priv, const u8 *src, int subscribe_id,
 	    (elems && nla_put(msg, QCA_WLAN_VENDOR_ATTR_USD_ELEMENT_CONTAINER,
 		    wpabuf_len(elems), wpabuf_head(elems))) ||
 	    (ssi && nla_put(msg, QCA_WLAN_VENDOR_ATTR_USD_SSI,
-			    wpabuf_len(ssi), wpabuf_head(ssi))))
+			    wpabuf_len(ssi), wpabuf_head(ssi))) ||
+	    (network_id && nla_put(msg, QCA_WLAN_VENDOR_ATTR_USD_NETWORK_ID,
+				   ETH_ALEN, network_id)))
 		goto fail;
 
 	attr = nla_nest_start(msg, QCA_WLAN_VENDOR_ATTR_USD_CHAN_CONFIG);

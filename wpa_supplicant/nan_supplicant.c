@@ -4533,7 +4533,8 @@ int wpas_nan_publish(struct wpa_supplicant *wpa_s, const char *service_name,
 	    wpas_drv_nan_publish(wpa_s, addr, publish_id, service_name,
 				 nan_de_get_service_id(wpa_s->nan_de,
 						       publish_id),
-				 srv_proto_type, ssi, elems, params) < 0) {
+				 srv_proto_type, ssi, elems, params,
+				 p2p ? p2p_network_id : nan_network_id) < 0) {
 		nan_de_cancel_publish(wpa_s->nan_de, publish_id);
 		publish_id = -1;
 	}
@@ -4693,7 +4694,8 @@ int wpas_nan_subscribe(struct wpa_supplicant *wpa_s,
 	    wpas_drv_nan_subscribe(wpa_s, addr, subscribe_id, service_name,
 				   nan_de_get_service_id(wpa_s->nan_de,
 							 subscribe_id),
-				   srv_proto_type, ssi, elems, params) < 0) {
+				   srv_proto_type, ssi, elems, params,
+				   p2p ? p2p_network_id : nan_network_id) < 0) {
 		nan_de_cancel_subscribe(wpa_s->nan_de, subscribe_id);
 		subscribe_id = -1;
 	}

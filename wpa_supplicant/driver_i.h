@@ -1222,14 +1222,15 @@ wpas_drv_nan_publish(struct wpa_supplicant *wpa_s, const u8 *addr,
 		     const u8 *service_id,
 		     enum nan_service_protocol_type srv_proto_type,
 		     const struct wpabuf *ssi, const struct wpabuf *elems,
-		     struct nan_publish_params *params)
+		     struct nan_publish_params *params, const u8 *network_id)
 {
 	if (!wpa_s->driver->nan_publish)
 		return 0;
 
 	return wpa_s->driver->nan_publish(wpa_s->drv_priv, addr, publish_id,
 					  service_name, service_id,
-					  srv_proto_type, ssi, elems, params);
+					  srv_proto_type, ssi, elems, params,
+					  network_id);
 }
 
 static inline int
@@ -1258,14 +1259,16 @@ wpas_drv_nan_subscribe(struct wpa_supplicant *wpa_s, const u8 *addr,
 		       const u8 *service_id,
 		       enum nan_service_protocol_type srv_proto_type,
 		       const struct wpabuf *ssi, const struct wpabuf *elems,
-		       struct nan_subscribe_params *params)
+		       struct nan_subscribe_params *params,
+		       const u8 *network_id)
 {
 	if (!wpa_s->driver->nan_subscribe)
 		return 0;
 
 	return wpa_s->driver->nan_subscribe(wpa_s->drv_priv, addr, subscribe_id,
 					    service_name, service_id,
-					    srv_proto_type, ssi, elems, params);
+					    srv_proto_type, ssi, elems, params,
+					    network_id);
 }
 
 static inline int

@@ -5683,7 +5683,8 @@ struct wpa_driver_ops {
 			   const char *service_name, const u8 *service_id,
 			   enum nan_service_protocol_type srv_proto_type,
 			   const struct wpabuf *ssi, const struct wpabuf *elems,
-			   struct nan_publish_params *params);
+			   struct nan_publish_params *params,
+			   const u8 *network_id);
 
 	/**
 	 * nan_cancel_publish - NAN offload for CancelPublish()
@@ -5720,7 +5721,8 @@ struct wpa_driver_ops {
 			     enum nan_service_protocol_type srv_proto_type,
 			     const struct wpabuf *ssi,
 			     const struct wpabuf *elems,
-			     struct nan_subscribe_params *params);
+			     struct nan_subscribe_params *params,
+			     const u8 *network_id);
 
 	/**
 	 * nan_cancel_subscribe - NAN offload for CancelSubscribe()
