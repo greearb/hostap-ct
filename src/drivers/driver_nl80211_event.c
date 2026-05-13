@@ -4406,6 +4406,27 @@ nl80211_nan_channel_evacuate_event(struct wpa_driver_nl80211_data *drv,
 	wpa_supplicant_event(drv->ctx, EVENT_NAN_CHAN_EVACUATION, &data);
 }
 
+
+static void
+nl80211_nan_del_interface_event(struct i802_bss *bss, struct nlattr **tb)
+{
+	union wpa_event_data event;
+
+	os_memset(&event, 0, sizeof(event));
+
+	wpa_printf(MSG_DEBUG, "nl80211: NAN interface removed event for %s",
+		   bss->ifname);
+
+	os_strlcpy(event.interface_status.ifname, bss->ifname,
+		   sizeof(event.interface_status.ifname));
+
+	event.interface_status.ievent = EVENT_INTERFACE_REMOVED;
+
+	bss->drv->nan_started = false;
+
+	wpa_supplicant_event(bss->ctx, EVENT_INTERFACE_STATUS, &event);
+}
+
 #endif /* CONFIG_NAN */
 
 
@@ -4785,6 +4806,10 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 		break;
 	case NL80211_CMD_NAN_CHANNEL_EVAC:
 		nl80211_nan_channel_evacuate_event(drv, tb);
+		break;
+	case NL80211_CMD_DEL_INTERFACE:
+		if (drv->nlmode == NL80211_IFTYPE_NAN)
+			nl80211_nan_del_interface_event(bss, tb);
 		break;
 #endif /* CONFIG_NAN */
 	case NL80211_CMD_INCUMBENT_SIGNAL_DETECT:

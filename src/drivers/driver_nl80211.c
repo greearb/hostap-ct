@@ -2199,6 +2199,18 @@ static int wpa_driver_nl80211_init_nl_global(struct nl80211_global *global)
 	nl_cb_set(global->nl_cb, NL_CB_VALID, NL_CB_CUSTOM,
 		  process_global_event, global);
 
+#ifdef CONFIG_NAN
+	ret = nl_get_multicast_id(global, "nl80211", "config");
+	if (ret >= 0)
+		ret = nl_socket_add_membership(global->nl_event, ret);
+	if (ret < 0) {
+		wpa_printf(MSG_ERROR,
+			   "nl80211: Could not add multicast membership for config events: %d (%s)",
+			   ret, nl_geterror(ret));
+		goto err;
+	}
+#endif /* CONFIG_NAN */
+
 	ret = nl_get_multicast_id(global, "nl80211", "scan");
 	if (ret >= 0)
 		ret = nl_socket_add_membership(global->nl_event, ret);
