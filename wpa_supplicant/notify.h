@@ -259,5 +259,6 @@ void wpas_notify_nan_pairing_status(struct wpa_supplicant *wpa_s,
 				    u16 status, const u8 *nd_pmk);
 void wpas_notify_nan_chan_evacuation(struct wpa_supplicant *wpa_s,
 				     u8 map_id, int freq);
+void wpas_notify_nan_stopped(struct wpa_supplicant *wpa_s);
 
 #endif /* NOTIFY_H */

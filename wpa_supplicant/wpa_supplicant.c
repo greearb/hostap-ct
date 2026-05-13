@@ -1167,6 +1167,15 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 	if (state == WPA_INTERFACE_DISABLED) {
 		/* Assure normal scan when interface is restored */
 		wpa_s->normal_scans = 0;
+
+		/*
+		 * A NAN management interface is not expected to be disabled. If
+		 * it disabled, it means that NAN functionality is no longer
+		 * possible so deinit (which would also stop any ongoing NAN
+		 * operations).
+		 */
+		if (wpa_s->nan_mgmt)
+			wpas_nan_deinit(wpa_s);
 	}
 
 	if (state == WPA_COMPLETED) {

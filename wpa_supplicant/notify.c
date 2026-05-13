@@ -1531,6 +1531,13 @@ void wpas_notify_nan_chan_evacuation(struct wpa_supplicant *wpa_s,
 		       map_id, freq);
 }
 
+
+void wpas_notify_nan_stopped(struct wpa_supplicant *wpa_s)
+{
+	wpa_msg_global(wpa_s, MSG_INFO, NAN_STOPPED "ifname=%s",
+		       wpa_s->ifname);
+}
+
 #endif /* CONFIG_NAN || CONFIG_NAN_USD */
 
 

@@ -270,6 +270,7 @@ extern "C" {
  * parameters: map_id=<map_id> freq=<freq>
  */
 #define NAN_CHAN_EVACUATION "NAN-CHAN-EVACUATION "
+#define NAN_STOPPED "NAN-STOPPED "
 
 /* MESH events */
 #define MESH_GROUP_STARTED "MESH-GROUP-STARTED "
