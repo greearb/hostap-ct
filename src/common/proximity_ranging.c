@@ -24,8 +24,8 @@ static bool valid_country_ch(char c)
 
 static void pr_device_free(struct pr_data *pr, struct pr_device *dev)
 {
-	wpabuf_free(dev->ranging_wrapper);
 #ifdef CONFIG_PASN
+	wpabuf_free(dev->ranging_wrapper);
 	if (dev->pasn) {
 		wpa_pasn_reset(dev->pasn);
 		pasn_data_deinit(dev->pasn);
