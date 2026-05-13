@@ -379,7 +379,7 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 	pr.pr_max_peer_rsta_role = capa->rsta.max_peers;
 	pr.max_ftms_per_burst = capa->max_ftms_per_burst;
 
-	pr.support_6ghz = wpas_is_6ghz_supported(wpa_s, true);
+	pr.support_6ghz = capa->support_6ghz;
 
 	pr.pasn_send_mgmt = wpas_pr_pasn_send_mgmt;
 	pr.pasn_result = wpas_pr_pasn_result;
