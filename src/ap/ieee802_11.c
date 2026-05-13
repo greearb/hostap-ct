@@ -8139,12 +8139,6 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 	int ret = 0;
 	unsigned int freq;
 	int ssi_signal = fi ? fi->ssi_signal : 0;
-#ifdef CONFIG_NAN_USD
-	static const u8 nan_network_id[ETH_ALEN] =
-		{ 0x51, 0x6f, 0x9a, 0x01, 0x00, 0x00 };
-	static const u8 p2p_network_id[ETH_ALEN] =
-		{ 0x51, 0x6f, 0x9a, 0x02, 0x00, 0x00 };
-#endif /* CONFIG_NAN_USD */
 
 	if (len < 24)
 		return 0;

@@ -85,6 +85,9 @@ struct nan_callbacks {
 	void (*transmit_req_status)(void *ctx, u32 cookie, bool ack);
 };
 
+extern const u8 nan_network_id[ETH_ALEN];
+extern const u8 p2p_network_id[ETH_ALEN];
+
 bool nan_de_is_nan_network_id(const u8 *addr);
 bool nan_de_is_p2p_network_id(const u8 *addr);
 struct nan_de * nan_de_init(const u8 *nmi, bool offload, bool ap,

@@ -19,7 +19,7 @@
 #include "nan_defs.h"
 #include "nan_de.h"
 
-static const u8 nan_network_id[ETH_ALEN] =
+const u8 nan_network_id[ETH_ALEN] =
 { 0x51, 0x6f, 0x9a, 0x01, 0x00, 0x00 };
 
 enum nan_de_service_type {
@@ -27,7 +27,7 @@ enum nan_de_service_type {
 	NAN_DE_SUBSCRIBE,
 };
 
-static const u8 p2p_network_id[ETH_ALEN] =
+const u8 p2p_network_id[ETH_ALEN] =
 { 0x51, 0x6f, 0x9a, 0x02, 0x00, 0x00 };
 
 static const u8 wildcard_bssid[ETH_ALEN] =
