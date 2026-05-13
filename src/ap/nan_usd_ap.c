@@ -37,7 +37,7 @@ static int hostapd_nan_de_tx(void *ctx, unsigned int freq,
 
 
 static int hostapd_nan_de_listen(void *ctx, unsigned int freq,
-			      unsigned int duration)
+			      unsigned int duration, const u8 *forced_addr)
 {
 	return 0;
 }

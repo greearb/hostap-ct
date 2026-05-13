@@ -49,7 +49,8 @@ struct nan_callbacks {
 	int (*tx)(void *ctx, unsigned int freq, unsigned int wait_time,
 		  const u8 *dst, const u8 *src, const u8 *bssid,
 		  const struct wpabuf *buf);
-	int (*listen)(void *ctx, unsigned int freq, unsigned int duration);
+	int (*listen)(void *ctx, unsigned int freq, unsigned int duration,
+		      const u8 *forced_addr);
 
 	/* NAN DE Events */
 	void (*discovery_result)(void *ctx, struct nan_discovery_result *res);

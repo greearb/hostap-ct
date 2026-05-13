@@ -4175,6 +4175,8 @@ static int wpas_nan_de_tx(void *ctx, unsigned int freq, unsigned int wait_time,
 struct wpas_nan_usd_listen_work {
 	unsigned int freq;
 	unsigned int duration;
+	u8 forced_addr[ETH_ALEN];
+	bool forced_addr_set;
 };
 
 
@@ -4225,7 +4227,11 @@ static void wpas_nan_usd_start_listen_cb(struct wpa_radio_work *work,
 		duration = wpa_s->max_remain_on_chan;
 	wpa_printf(MSG_DEBUG, "NAN: Start listen on %u MHz for %u ms",
 		   lwork->freq, duration);
-	if (wpa_drv_remain_on_channel(wpa_s, lwork->freq, duration, NULL) < 0) {
+	if (wpa_drv_remain_on_channel(wpa_s, lwork->freq, duration,
+				      (lwork->forced_addr_set &&
+				       (wpa_s->drv_flags2 &
+					WPA_DRIVER_FLAGS2_ROC_ADDR_FILTER)) ?
+				      lwork->forced_addr : NULL) < 0) {
 		wpa_printf(MSG_DEBUG,
 			   "NAN: Failed to request the driver to remain on channel (%u MHz) for listen",
 			   lwork->freq);
@@ -4242,7 +4248,7 @@ static void wpas_nan_usd_start_listen_cb(struct wpa_radio_work *work,
 
 
 static int wpas_nan_de_listen(void *ctx, unsigned int freq,
-			      unsigned int duration)
+			      unsigned int duration, const u8 *forced_addr)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 	struct wpas_nan_usd_listen_work *lwork;
@@ -4252,6 +4258,10 @@ static int wpas_nan_de_listen(void *ctx, unsigned int freq,
 		return -1;
 	lwork->freq = freq;
 	lwork->duration = duration;
+	if (forced_addr) {
+		os_memcpy(lwork->forced_addr, forced_addr, ETH_ALEN);
+		lwork->forced_addr_set = true;
+	}
 
 	if (!radio_add_work(wpa_s, freq, "nan-usd-listen", 0,
 			    wpas_nan_usd_start_listen_cb, lwork)) {

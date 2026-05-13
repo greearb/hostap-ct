@@ -1114,8 +1114,9 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 			}
 			if ((unsigned int) duration > de->max_listen)
 				duration = de->max_listen;
-			if (de->cb.listen(de->cb.ctx, srv->freq, duration) ==
-			    0) {
+			if (de->cb.listen(de->cb.ctx, srv->freq, duration,
+					  srv->forced_addr_set ?
+					  srv->forced_addr : NULL) == 0) {
 				wpa_printf(MSG_DEBUG,
 					   "NAN: Publisher in pauseState - started listen on %u MHz",
 					   srv->freq);
@@ -1150,7 +1151,9 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 			duration = nan_de_listen_duration(de, srv);
 
 			started = true;
-			if (de->cb.listen(de->cb.ctx, srv->freq, duration) == 0)
+			if (de->cb.listen(de->cb.ctx, srv->freq, duration,
+					  srv->forced_addr_set ?
+					  srv->forced_addr : NULL) == 0)
 				de->listen_freq = srv->freq;
 		}
 
