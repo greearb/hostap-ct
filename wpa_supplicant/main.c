@@ -275,7 +275,8 @@ int main(int argc, char *argv[])
 			goto out;
 #ifdef CONFIG_P2P
 		case 'm':
-			params.conf_p2p_dev = optarg;
+			os_free(params.conf_p2p_dev);
+			params.conf_p2p_dev = os_rel2abs_path(optarg);
 			break;
 #endif /* CONFIG_P2P */
 		case 'o':
@@ -432,6 +433,9 @@ out:
 	os_free(params.match_ifaces);
 #endif /* CONFIG_MATCH_IFACE */
 	os_free(params.pid_file);
+#ifdef CONFIG_P2P
+	os_free(params.conf_p2p_dev);
+#endif /* CONFIG_P2P */
 
 	crypto_unload();
 	os_program_deinit();
