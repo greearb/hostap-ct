@@ -279,11 +279,15 @@ class NanDevice:
         if "OK" not in self.wpas.request("NAN_UPDATE_CONFIG"):
             raise Exception(f"{self.ifname}: failed to update NAN configuration")
 
-    def transmit(self, handle, req_instance_id, address, ssi=None):
+    def transmit(self, handle, req_instance_id, address, ssi=None, cookie=None):
         logger.info(f"Transmitting followup on {self.ifname}")
         cmd = f"NAN_TRANSMIT handle={handle} req_instance_id={req_instance_id} address={address}"
         if ssi is not None:
             cmd += f" ssi={ssi}"
+
+        if cookie is not None:
+            cmd += f" cookie={cookie}"
+
         if "OK" not in self.wpas.request(cmd):
             raise Exception(f"{self.ifname}: failed to transmit NAN followup")
 
@@ -448,6 +452,38 @@ def test_nan_sync_followup(dev, apdev, params):
         ev = pub.wpas.wait_event(["NAN-RECEIVE"], timeout=2)
         if ev is None or f"id={pid}" not in ev or f"peer_instance_id={sid}" not in ev or "ssi=11223344" not in ev:
             raise Exception("NAN-RECEIVE followup event not seen or invalid format")
+
+def test_nan_sync_followup_tracking(dev, apdev, params):
+    """NAN synchronized active subscribe and solicited publish with followup tracking"""
+    with hwsim_nan_radios(count=2) as [wpas1, wpas2], \
+        NanDevice(wpas1, "nan0") as pub, NanDevice(wpas2, "nan1") as sub:
+        pid, sid, paddr, _ = nan_sync_discovery(pub, sub, "test_service",
+                                                pssi="aabbccdd",
+                                                sssi="ddbbccaa",
+                                                unsolicited=0, timeout=2)
+
+        # Check followup to the publisher. Acknowledgment is expected.
+        cookie = 127
+        sub.transmit(handle=sid, req_instance_id=pid, address=paddr,
+                     ssi="11223344", cookie=cookie)
+        ev = pub.wpas.wait_event(["NAN-RECEIVE"], timeout=2)
+        if ev is None or f"id={pid}" not in ev or f"peer_instance_id={sid}" not in ev or "ssi=11223344" not in ev:
+            raise Exception("NAN-RECEIVE followup event not seen or invalid format")
+
+        ev = sub.wpas.wait_event(["NAN-TRANSMIT-STATUS"], timeout=2)
+        if ev is None or f"cookie={cookie}" not in ev or "acked=1" not in ev:
+            raise Exception("NAN-TX-STATUS event not seen or invalid data")
+
+        # Check followup to an invalid address. Acknowledgment is not expected.
+        cookie = 243
+        suffix = int(paddr[-2:], 16) ^ 0xFF
+        addr = paddr[:-2] + f"{suffix:02x}"
+
+        sub.transmit(handle=sid, req_instance_id=pid, address=addr,
+                     cookie=cookie)
+        ev = sub.wpas.wait_event(["NAN-TRANSMIT-STATUS"], timeout=2)
+        if ev is None or f"cookie={cookie}" not in ev or "acked=0" not in ev:
+            raise Exception("NAN-TX-STATUS event not seen or invalid data")
 
 def test_nan_sync_active_subscribe_two_publishers(dev, apdev, params):
     """NAN synchronized active subscribe and 2 publishers"""
