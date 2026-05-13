@@ -345,7 +345,7 @@ static void pr_get_ntb_capabilities(struct pr_data *pr,
 		MAX_TX_STS_GT_80;
 
 	capab->ntb_hw_caps = ntb_hw_caps;
-	os_memcpy(&capab->channels, &pr->cfg->edca_channels,
+	os_memcpy(&capab->channels, &pr->cfg->ntb_channels,
 		  sizeof(struct pr_channels));
 }
 
