@@ -2407,7 +2407,8 @@ static int pr_pasn_handle_auth_1(struct pr_data *pr, struct pr_device *dev,
 		goto fail;
 	}
 
-	if (pr->cfg->set_keys)
+	if (!(dev->protocol_type & PR_EDCA_BASED_RANGING) &&
+	    pr->cfg->set_keys)
 		pr->cfg->set_keys(pr->cfg->cb_ctx, pr->cfg->dev_addr,
 				  dev->pr_device_addr, dev->pasn->cipher,
 				  dev->pasn->akmp, &dev->pasn->ptk);
@@ -2456,7 +2457,8 @@ static int pr_pasn_handle_auth_2(struct pr_data *pr, struct pr_device *dev,
 		goto fail;
 	}
 
-	if (pr->cfg->set_keys)
+	if (!(dev->protocol_type & PR_EDCA_BASED_RANGING) &&
+	    pr->cfg->set_keys)
 		pr->cfg->set_keys(pr->cfg->cb_ctx, pr->cfg->dev_addr,
 				  dev->pr_device_addr, dev->pasn->cipher,
 				  dev->pasn->akmp, &dev->pasn->ptk);
