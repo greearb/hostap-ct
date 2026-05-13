@@ -4025,7 +4025,11 @@ static int wpa_driver_nl80211_set_key(struct i802_bss *bss,
 	    KEY_FLAG_PAIRWISE_RX_TX_MODIFY) {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: SET_KEY (pairwise RX/TX modify)");
-		msg = nl80211_ifindex_msg(drv, ifindex, 0, NL80211_CMD_SET_KEY);
+		if (!nl80211_is_netdev_iftype(drv->nlmode))
+			msg = nl80211_cmd_msg(bss, 0, NL80211_CMD_SET_KEY);
+		else
+			msg = nl80211_ifindex_msg(drv, ifindex, 0,
+						  NL80211_CMD_SET_KEY);
 		if (!msg)
 			goto fail2;
 	} else if (alg == WPA_ALG_NONE && (key_flag & KEY_FLAG_RX_TX)) {
