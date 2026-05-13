@@ -181,6 +181,8 @@ void pr_clear_dev_iks(struct pr_data *pr)
 	dl_list_for_each(dev, &pr->devices, struct pr_device, list) {
 		dev->password_valid = false;
 		os_memset(dev->password, 0, sizeof(dev->password));
+		dev->dik_valid = false;
+		os_memset(dev->dik, 0, DEVICE_IDENTITY_KEY_LEN);
 	}
 
 	pr_deinit_dev_iks(pr);
@@ -419,6 +421,10 @@ static int pr_validate_dira(struct pr_data *pr, struct pr_device *dev,
 	const char *label = "DIR";
 	const u8 *dira_nonce, *dira_tag;
 
+	/* Reset DevIK state - set only if DIRA verification succeeds */
+	os_memset(dev->dik, 0, DEVICE_IDENTITY_KEY_LEN);
+	dev->dik_valid = false;
+
 	if (dira_len < 1 + DEVICE_IDENTITY_NONCE_LEN + DEVICE_IDENTITY_TAG_LEN)
 	{
 		wpa_printf(MSG_DEBUG, "PR: Truncated DIRA (length %u)",
@@ -470,6 +476,9 @@ static int pr_validate_dira(struct pr_data *pr, struct pr_device *dev,
 				dev->pmk_len = dev_ik->pmk_len;
 				dev->pmk_valid = true;
 			}
+			os_memcpy(dev->dik, dev_ik->dik,
+				  DEVICE_IDENTITY_KEY_LEN);
+			dev->dik_valid = true;
 			return 0;
 		}
 	}

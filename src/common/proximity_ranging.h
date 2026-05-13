@@ -315,6 +315,13 @@ struct pr_device {
 	size_t pmk_len;
 	bool pmk_valid;
 
+	/* DevIK of the peer resolved via DIRA verification.
+	 * Set to the matched dev_ik->dik when pr_validate_dira() succeeds.
+	 * Cleared by pr_clear_dev_iks().
+	 */
+	u8 dik[DEVICE_IDENTITY_KEY_LEN];
+	bool dik_valid;
+
 #ifdef CONFIG_PASN
 	/* PASN data structure */
 	struct pasn_data *pasn;
