@@ -876,6 +876,8 @@ bool nan_has_active_ndp(struct nan_data *nan);
 int nan_get_status(struct nan_data *nan, char *buf, size_t buflen);
 int nan_peer_dump_ndps_to_buf(struct nan_data *nan, const u8 *addr,
 			      char *buf, size_t buflen);
+void nan_terminate_ndi_ndps(struct nan_data *nan, const u8 *ndi_addr);
+
 #ifdef CONFIG_PASN
 int nan_pairing_add_attrs(struct nan_data *nan_data, struct wpabuf *buf);
 int nan_pairing_initiate_pasn_auth(struct nan_data *nan_data, const u8 *addr,

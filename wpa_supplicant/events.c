@@ -5344,6 +5344,30 @@ wpa_supplicant_event_interface_status(struct wpa_supplicant *wpa_s,
 		}
 #endif /* CONFIG_P2P */
 
+#ifdef CONFIG_NAN
+		if (wpa_s->nan_data) {
+			wpa_printf(MSG_DEBUG, "%s: NAN data interface removed",
+				   wpa_s->ifname);
+
+			wpas_nan_data_interface_removed(wpa_s);
+			wpa_supplicant_remove_iface(wpa_s->global, wpa_s, 0);
+			break;
+		}
+
+		if (wpa_s->nan_mgmt) {
+			wpa_printf(MSG_DEBUG,
+				   "%s: NAN management interface removed",
+				   wpa_s->ifname);
+
+			/*
+			 * Note: NAN is stopped when the interface is
+			 * disabled.
+			 */
+			wpa_supplicant_remove_iface(wpa_s->global, wpa_s, 0);
+			break;
+		}
+#endif /* CONFIG_NAN */
+
 #ifdef CONFIG_MATCH_IFACE
 		if (wpa_s->matched) {
 			wpa_supplicant_remove_iface(wpa_s->global, wpa_s, 0);

@@ -43,6 +43,7 @@ int wpas_nan_status(struct wpa_supplicant *wpa_s, char *reply,
 int wpas_nan_bootstrap_request(struct wpa_supplicant *wpa_s, char *cmd);
 int wpas_nan_bootstrap_reset(struct wpa_supplicant *wpa_s, char *cmd);
 bool wpas_nan_is_peer_paired(struct wpa_supplicant *wpa_s, const u8 *peer_addr);
+void wpas_nan_data_interface_removed(struct wpa_supplicant *wpa_s);
 
 int wpas_nan_pair(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 		  u8 auth_mode, int cipher, int handle, u8 peer_instance_id,

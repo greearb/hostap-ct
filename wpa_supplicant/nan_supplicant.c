@@ -4915,3 +4915,16 @@ void wpas_nan_rx_naf(struct wpa_supplicant *wpa_s,
 	nan_action_rx(wpa_s->nan, mgmt, len);
 }
 #endif /* CONFIG_NAN */
+
+
+void wpas_nan_data_interface_removed(struct wpa_supplicant *wpa_s)
+{
+	struct wpa_supplicant *nan_dev_wpas = wpas_nan_get_mgmt_iface(wpa_s);
+
+	wpa_printf(MSG_DEBUG,
+		   "NAN: Data interface removed (%s) - terminate NDPs on "
+		   MACSTR, wpa_s->ifname, MAC2STR(wpa_s->own_addr));
+
+	if (nan_dev_wpas)
+		nan_terminate_ndi_ndps(nan_dev_wpas->nan, wpa_s->own_addr);
+}

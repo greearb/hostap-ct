@@ -3622,3 +3622,30 @@ int nan_peer_dump_ndps_to_buf(struct nan_data *nan, const u8 *addr,
 
 	return pos - buf;
 }
+
+
+/**
+ * nan_terminate_ndi_ndps - Terminate all NDPs with a given NDI address
+ * @nan: NAN module context from nan_init()
+ * @ndi_addr: NDI address for which all NDPs should be terminated
+ *
+ * This function terminates all NDPs that have the given NDI address as either
+ * initiator or responder NDI.
+ */
+void nan_terminate_ndi_ndps(struct nan_data *nan, const u8 *ndi_addr)
+{
+	struct nan_peer *peer;
+
+	if (!nan)
+		return;
+
+	dl_list_for_each(peer, &nan->peer_list, struct nan_peer, list) {
+		/*
+		 * It is possible that an NDP setup in progress is not on the
+		 * NDI that is being removed. However, to simplify things, stop
+		 * the setup, so the other NDPs could be cleanly removed.
+		 */
+		nan_ndp_setup_stop(nan, peer);
+		nan_terminate_ndps_for_ndi(nan, peer, ndi_addr);
+	}
+}
