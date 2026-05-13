@@ -273,7 +273,10 @@ static void nan_peer_clear_all(struct nan_data *nan)
 void nan_deinit(struct nan_data *nan)
 {
 	wpa_printf(MSG_DEBUG, "NAN: Deinit");
-	nan_peer_clear_all(nan);
+
+	nan_stop(nan);
+	nan_flush(nan);
+
 #ifdef CONFIG_PASN
 	pasn_initiator_pmksa_cache_deinit(nan->initiator_pmksa);
 	pasn_responder_pmksa_cache_deinit(nan->responder_pmksa);
@@ -414,12 +417,6 @@ void nan_flush(struct nan_data *nan)
 {
 	wpa_printf(MSG_DEBUG, "NAN: Reset internal state");
 
-	if (!nan->nan_started) {
-		wpa_printf(MSG_DEBUG, "NAN: Already stopped");
-		return;
-	}
-
-	nan->nan_started = 0;
 	nan_peer_clear_all(nan);
 	wpabuf_free(nan->sched.elems);
 	os_memset(&nan->sched, 0, sizeof(nan->sched));
@@ -457,7 +454,9 @@ void nan_stop(struct nan_data *nan)
 		nan->bigtk_id = 0;
 	}
 
+	/* Even though NAN is stopping, flush internal state */
 	nan_flush(nan);
+	nan->nan_started = 0;
 	nan->cfg->stop(nan->cfg->cb_ctx);
 }
 

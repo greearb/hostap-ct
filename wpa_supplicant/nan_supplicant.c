@@ -194,6 +194,7 @@ static void wpas_nan_stop_cb(void *ctx)
 	}
 
 	wpa_drv_nan_stop(wpa_s);
+	nan_de_set_cluster_id(wpa_s->nan_de, NULL);
 }
 
 
@@ -1535,7 +1536,6 @@ int wpas_nan_stop(struct wpa_supplicant *wpa_s)
 		return -1;
 
 	nan_stop(wpa_s->nan);
-	nan_de_set_cluster_id(wpa_s->nan_de, NULL);
 
 	return 0;
 }
