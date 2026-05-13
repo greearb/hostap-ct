@@ -10051,7 +10051,8 @@ static int nl80211_put_any_link_id(struct nl_msg *msg,
 
 
 static int wpa_driver_nl80211_remain_on_channel(void *priv, unsigned int freq,
-						unsigned int duration)
+						unsigned int duration,
+						const u8 *filter_addr)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
@@ -10067,12 +10068,30 @@ static int wpa_driver_nl80211_remain_on_channel(void *priv, unsigned int freq,
 		return -1;
 	}
 
+	/* Add MAC address filter if provided and supported */
+	if (filter_addr) {
+		if (!(drv->capa.flags2 & WPA_DRIVER_FLAGS2_ROC_ADDR_FILTER)) {
+			wpa_printf(MSG_INFO,
+				   "nl80211: Driver does not support ROC address filter");
+			nlmsg_free(msg);
+			return -1;
+		}
+
+		if (nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, filter_addr)) {
+			wpa_printf(MSG_INFO,
+				   "nl80211: Failed to add MAC address filter");
+			nlmsg_free(msg);
+			return -1;
+		}
+	}
+
 	cookie = 0;
 	ret = send_and_recv_resp(drv, msg, cookie_handler, &cookie);
 	if (ret == 0) {
-		wpa_printf(MSG_DEBUG, "nl80211: Remain-on-channel cookie "
-			   "0x%llx for freq=%u MHz duration=%u",
-			   (long long unsigned int) cookie, freq, duration);
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Remain-on-channel cookie 0x%llx for freq=%u MHz duration=%u%s",
+			   (unsigned long long) cookie, freq, duration,
+			   filter_addr ? " (with MAC filter)" : "");
 		drv->remain_on_chan_cookie = cookie;
 		drv->pending_remain_on_chan = 1;
 		return 0;

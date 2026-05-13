@@ -2529,6 +2529,8 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_FLAGS2_802_1X_AUTH		0x0000000800000000ULL
 /** Driver supports PMKSA caching privacy */
 #define WPA_DRIVER_FLAGS2_PMKSA_PRIVACY		0x0000001000000000ULL
+/** Driver supports MAC address filter for remain-on-channel */
+#define WPA_DRIVER_FLAGS2_ROC_ADDR_FILTER	0x0000002000000000ULL
 	u64 flags2;
 
 #define FULL_AP_CLIENT_STATE_SUPP(drv_flags) \
@@ -4490,6 +4492,8 @@ struct wpa_driver_ops {
 	 * @priv: Private driver interface data
 	 * @freq: Frequency (in MHz) of the channel
 	 * @duration: Duration in milliseconds
+	 * @filter_addr: an additional MAC address to accept frames to (NULL for
+	 *	using only the interface address)
 	 * Returns: 0 on success, -1 on failure
 	 *
 	 * This command is used to request the driver to remain awake on the
@@ -4497,6 +4501,10 @@ struct wpa_driver_ops {
 	 * Action frames with EVENT_RX_MGMT events. Optionally, received
 	 * Probe Request frames may also be requested to be reported by calling
 	 * probe_req_report(). These will be reported with EVENT_RX_PROBE_REQ.
+	 *
+	 * If filter_addr is provided, the driver will configure an additional
+	 * MAC address for frame filtering, i.e., this new address will be used
+	 * in addition to the interface address.
 	 *
 	 * The driver may not be at the requested channel when this function
 	 * returns, i.e., the return code is only indicating whether the
@@ -4508,7 +4516,7 @@ struct wpa_driver_ops {
 	 * executed.
 	 */
 	int (*remain_on_channel)(void *priv, unsigned int freq,
-				 unsigned int duration);
+				 unsigned int duration, const u8 *filter_addr);
 
 	/**
 	 * cancel_remain_on_channel - Cancel remain-on-channel operation

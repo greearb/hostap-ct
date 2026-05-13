@@ -1034,7 +1034,7 @@ static void dpp_start_listen_cb(struct wpa_radio_work *work, int deinit)
 	wpa_s->dpp_pending_listen_freq = lwork->freq;
 
 	if (wpa_drv_remain_on_channel(wpa_s, lwork->freq,
-				      wpa_s->max_remain_on_chan) < 0) {
+				      wpa_s->max_remain_on_chan, NULL) < 0) {
 		wpa_printf(MSG_DEBUG,
 			   "DPP: Failed to request the driver to remain on channel (%u MHz) for listen",
 			   lwork->freq);

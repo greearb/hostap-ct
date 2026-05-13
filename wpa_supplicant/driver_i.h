@@ -460,11 +460,12 @@ static inline int wpa_drv_if_remove(struct wpa_supplicant *wpa_s,
 
 static inline int wpa_drv_remain_on_channel(struct wpa_supplicant *wpa_s,
 					    unsigned int freq,
-					    unsigned int duration)
+					    unsigned int duration,
+					    const u8 *filter_addr)
 {
 	if (wpa_s->driver->remain_on_channel)
 		return wpa_s->driver->remain_on_channel(wpa_s->drv_priv, freq,
-							duration);
+							duration, filter_addr);
 	return -1;
 }
 

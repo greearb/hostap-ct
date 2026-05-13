@@ -3265,7 +3265,7 @@ static void wpas_start_listen_cb(struct wpa_radio_work *work, int deinit)
 	}
 #endif /* CONFIG_TESTING_OPTIONS */
 
-	if (wpa_drv_remain_on_channel(wpa_s, lwork->freq, duration) < 0) {
+	if (wpa_drv_remain_on_channel(wpa_s, lwork->freq, duration, NULL) < 0) {
 		wpa_printf(MSG_DEBUG, "P2P: Failed to request the driver "
 			   "to remain on channel (%u MHz) for Listen "
 			   "state", lwork->freq);

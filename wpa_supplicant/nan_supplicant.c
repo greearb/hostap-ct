@@ -4225,7 +4225,7 @@ static void wpas_nan_usd_start_listen_cb(struct wpa_radio_work *work,
 		duration = wpa_s->max_remain_on_chan;
 	wpa_printf(MSG_DEBUG, "NAN: Start listen on %u MHz for %u ms",
 		   lwork->freq, duration);
-	if (wpa_drv_remain_on_channel(wpa_s, lwork->freq, duration) < 0) {
+	if (wpa_drv_remain_on_channel(wpa_s, lwork->freq, duration, NULL) < 0) {
 		wpa_printf(MSG_DEBUG,
 			   "NAN: Failed to request the driver to remain on channel (%u MHz) for listen",
 			   lwork->freq);
