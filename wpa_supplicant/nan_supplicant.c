@@ -4337,6 +4337,14 @@ static void wpas_nan_de_receive(void *ctx, int id, int peer_instance_id,
 }
 
 
+static void wpas_nan_de_transmit_req_status(void *ctx, u32 cookie, bool ack)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	wpas_notify_nan_transmit_req_status(wpa_s, cookie, ack);
+}
+
+
 #ifdef CONFIG_P2P
 static void wpas_nan_process_p2p_usd_elems(void *ctx, const u8 *buf,
 					   u16 buf_len, const u8 *peer_addr,
@@ -4388,6 +4396,7 @@ int wpas_nan_de_init(struct wpa_supplicant *wpa_s)
 	cb.offload_cancel_publish = wpas_nan_usd_offload_cancel_publish;
 	cb.offload_cancel_subscribe = wpas_nan_usd_offload_cancel_subscribe;
 	cb.receive = wpas_nan_de_receive;
+	cb.transmit_req_status = wpas_nan_de_transmit_req_status;
 #ifdef CONFIG_P2P
 	cb.process_p2p_usd_elems = wpas_nan_process_p2p_usd_elems;
 #endif /* CONFIG_P2P */
@@ -4724,12 +4733,12 @@ int wpas_nan_usd_subscribe_stop_listen(struct wpa_supplicant *wpa_s,
 
 int wpas_nan_transmit(struct wpa_supplicant *wpa_s, int handle,
 		      const struct wpabuf *ssi, const struct wpabuf *elems,
-		      const u8 *peer_addr, u8 req_instance_id)
+		      const u8 *peer_addr, u8 req_instance_id, u32 *cookie)
 {
 	if (!wpa_s->nan_de)
 		return -1;
 	return nan_de_transmit(wpa_s->nan_de, handle, ssi, elems, peer_addr,
-			       req_instance_id, NULL, NULL);
+			       req_instance_id, NULL, cookie);
 }
 
 
@@ -4864,6 +4873,11 @@ int wpas_nan_tx_status(struct wpa_supplicant *wpa_s,
 		(const struct ieee80211_mgmt *) data;
 
 	wpa_s = wpas_nan_get_mgmt_iface(wpa_s);
+
+	if (wpa_s->nan_de)
+		nan_de_tx_status(wpa_s->nan_de, 0, mgmt->da, data, data_len,
+				 acked);
+
 	if (!wpas_nan_ndp_allowed(wpa_s))
 		return -1;
 

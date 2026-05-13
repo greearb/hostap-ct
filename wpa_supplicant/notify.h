@@ -201,6 +201,8 @@ void wpas_notify_nan_publish_terminated(struct wpa_supplicant *wpa_s,
 void wpas_notify_nan_subscribe_terminated(struct wpa_supplicant *wpa_s,
 					  int subscribe_id,
 					  enum nan_de_reason reason);
+void wpas_notify_nan_transmit_req_status(struct wpa_supplicant *wpa_s,
+					 u32 cookie, bool acked);
 void wpas_notify_nan_nik_received(struct wpa_supplicant *wpa_s,
 				  const u8 *nik, size_t nik_len,
 				  int cipher_ver, int akmp,

@@ -1268,6 +1268,14 @@ void wpas_notify_nan_subscribe_terminated(struct wpa_supplicant *wpa_s,
 }
 
 
+void wpas_notify_nan_transmit_req_status(struct wpa_supplicant *wpa_s,
+					 u32 cookie, bool acked)
+{
+	wpa_msg_global(wpa_s, MSG_INFO, NAN_TRANSMIT_STATUS
+		       "cookie=%u acked=%u", cookie, acked);
+}
+
+
 void wpas_notify_nan_bootstrap_request(struct wpa_supplicant *wpa_s,
 				       const u8 *peer_nmi, u16 pbm,
 				       int handle, u8 requestor_instance_id)
