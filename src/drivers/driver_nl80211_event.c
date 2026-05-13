@@ -1849,6 +1849,7 @@ static void mlme_event(struct i802_bss *bss,
 	size_t len;
 	int link_id = -1;
 	struct i802_link *mld_link = NULL;
+	const struct ieee80211_mgmt *mgmt = NULL;
 
 	if (timed_out && addr) {
 		mlme_timeout_event(drv, cmd, addr);
@@ -1889,9 +1890,11 @@ static void mlme_event(struct i802_bss *bss,
 
 	/* PASN Authentication frame can be received with a different source MAC
 	 * address. Allow NL80211_CMD_FRAME event with foreign addresses also.
+	 * NAN USD frames (Public Action/Vendor Specific with NAN SDF OUI) may
+	 * be addressed to the NAN Network ID or unicast to a forced address
+	 * (e.g., solicited publish replies, follow-ups), allow those, too.
 	 */
 	if (cmd == NL80211_CMD_FRAME && len >= 24) {
-		const struct ieee80211_mgmt *mgmt;
 		u16 fc;
 
 		mgmt = (const struct ieee80211_mgmt *) data;
@@ -1905,6 +1908,19 @@ static void mlme_event(struct i802_bss *bss,
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: %s: Allow PASN frame for foreign address",
 			   bss->ifname);
+#ifdef CONFIG_NAN_USD
+	} else if (cmd == NL80211_CMD_FRAME &&
+		   stype == WLAN_FC_STYPE_ACTION && mgmt &&
+		   len >= offsetof(struct ieee80211_mgmt,
+				   u.action.u.vs_public_action.variable) + 1 &&
+		   mgmt->u.action.category == WLAN_ACTION_PUBLIC &&
+		   mgmt->u.action.u.vs_public_action.action ==
+		   WLAN_PA_VENDOR_SPECIFIC &&
+		   WPA_GET_BE32(mgmt->u.action.u.vs_public_action.oui) ==
+		   NAN_SDF_VENDOR_TYPE) {
+		wpa_printf(MSG_DEBUG, "nl80211: %s: Allow NAN USD frame",
+			   bss->ifname);
+#endif /* CONFIG_NAN_USD */
 	} else if (cmd != NL80211_CMD_FRAME_TX_STATUS  &&
 		   !(data[4] & 0x01) &&
 		   !ether_addr_equal(bss->addr, data + 4) &&
