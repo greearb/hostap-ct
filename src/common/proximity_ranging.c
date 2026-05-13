@@ -2047,6 +2047,7 @@ int pr_pasn_auth_tx_status(struct pr_data *pr, const u8 *data, size_t data_len,
 					    dev->final_op_channel,
 					    self_format_bw,
 					    peer_format_bw);
+		pr_flush(pr);
 	}
 
 out:
@@ -2515,6 +2516,7 @@ static int pr_pasn_handle_auth_3(struct pr_data *pr, struct pr_device *dev,
 					    dev->final_op_channel,
 					    self_format_bw,
 					    peer_format_bw);
+	pr_flush(pr);
 	return 0;
 
 fail:
