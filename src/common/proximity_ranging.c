@@ -1975,8 +1975,15 @@ int pr_initiate_pasn_auth(struct pr_data *pr, const u8 *addr, int freq,
 				      pasn->group, pasn->freq, NULL, 0, NULL, 0,
 				      NULL);
 	}
-	if (ret)
+	if (ret) {
 		wpa_printf(MSG_INFO, "PR PASN: Failed to start PASN");
+	} else {
+		/* M1 sent successfully - notify that negotiation has started */
+		if (pr->cfg->negotiation_started)
+			pr->cfg->negotiation_started(pr->cfg->cb_ctx, addr,
+						     ranging_role,
+						     ranging_type);
+	}
 
 out:
 	wpabuf_free(extra_ies);
@@ -2394,6 +2401,12 @@ static int pr_pasn_handle_auth_1(struct pr_data *pr, struct pr_device *dev,
 		pr->cfg->set_keys(pr->cfg->cb_ctx, pr->cfg->dev_addr,
 				  dev->pr_device_addr, dev->pasn->cipher,
 				  dev->pasn->akmp, &dev->pasn->ptk);
+
+	/* M1 received and M2 sent - notify that negotiation has started */
+	if (pr->cfg->negotiation_started)
+		pr->cfg->negotiation_started(pr->cfg->cb_ctx, mgmt->sa,
+					     dev->ranging_role,
+					     dev->protocol_type);
 	ret = 0;
 
 fail:

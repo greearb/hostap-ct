@@ -496,6 +496,11 @@ extern "C" {
 /* PASN authentication status */
 #define PASN_AUTH_STATUS "PASN-AUTH-STATUS "
 
+/* Proximity Ranging PASN negotiation started
+ * peer_addr=<MAC> role=<role> protocol=<protocol type>
+ */
+#define PR_PASN_NEGOTIATION_STARTED "PR-PASN-NEGOTIATION-STARTED "
+
 /* Result of PASN performed for Proximity Ranging
  * <result> role=<role> protocol=<protocol type> opclass=<op class> channel=<op channel> cc=<country>
  */

@@ -1554,6 +1554,16 @@ void wpas_notify_pr_pasn_result(struct wpa_supplicant *wpa_s, u8 role,
 }
 
 
+void wpas_notify_pr_negotiation_started(struct wpa_supplicant *wpa_s,
+					const u8 *peer_addr, u8 role,
+					u8 protocol_type)
+{
+	wpa_msg_global(wpa_s, MSG_INFO, PR_PASN_NEGOTIATION_STARTED
+		       "peer_addr=" MACSTR " role=%u protocol=%u",
+		       MAC2STR(peer_addr), role, protocol_type);
+}
+
+
 void wpas_notify_pr_ranging_params(struct wpa_supplicant *wpa_s,
 				   const u8 *dev_addr, const u8 *peer_addr,
 				   u8 ranging_role, u8 protocol_type, int freq,

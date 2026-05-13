@@ -260,6 +260,16 @@ static int wpas_pr_pasn_send_mgmt(void *ctx, const u8 *data, size_t data_len,
 }
 
 
+static void wpas_pr_pasn_negotiation_started(void *ctx, const u8 *peer_addr,
+					     u8 role, u8 protocol_type)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	wpas_notify_pr_negotiation_started(wpa_s, peer_addr, role,
+					   protocol_type);
+}
+
+
 static void wpas_pr_pasn_result(void *ctx, u8 role, u8 protocol_type,
 				u8 op_class, u8 op_channel, const char *country)
 {
@@ -413,6 +423,7 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 	pr.support_6ghz = capa->support_6ghz;
 
 	pr.pasn_send_mgmt = wpas_pr_pasn_send_mgmt;
+	pr.negotiation_started = wpas_pr_pasn_negotiation_started;
 	pr.pasn_result = wpas_pr_pasn_result;
 	pr.get_ranging_params = wpas_pr_ranging_params;
 	pr.set_keys = wpas_pr_pasn_set_keys;

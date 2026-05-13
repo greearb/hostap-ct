@@ -460,6 +460,19 @@ struct pr_config {
 	int (*pasn_send_mgmt)(void *ctx, const u8 *data, size_t data_len,
 			      int noack, unsigned int freq, unsigned int wait);
 
+	/**
+	 * negotiation_started - Called when PASN negotiation begins
+	 * @ctx: Callback context from cb_ctx
+	 * @peer_addr: MAC address of the peer
+	 * @role: Ranging role (initiator or responder)
+	 * @protocol_type: Ranging protocol type
+	 *
+	 * Fired on the initiator after Auth frame 1 (M1) is sent, and on the
+	 * responder after Auth frame 1 (M1) is received and M2 is sent back.
+	 */
+	void (*negotiation_started)(void *ctx, const u8 *peer_addr, u8 role,
+				    u8 protocol_type);
+
 	void (*pasn_result)(void *ctx, u8 role, u8 protocol_type, u8 op_class,
 			    u8 op_channel, const char *country);
 

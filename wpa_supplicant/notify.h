@@ -211,6 +211,9 @@ void wpas_notify_nan_nik_received(struct wpa_supplicant *wpa_s,
 void wpas_notify_pr_pasn_result(struct wpa_supplicant *wpa_s, u8 role,
 				u8 protocol_type, u8 op_class, u8 op_channel,
 				const char *country);
+void wpas_notify_pr_negotiation_started(struct wpa_supplicant *wpa_s,
+					const u8 *peer_addr, u8 role,
+					u8 protocol_type);
 void wpas_notify_pr_ranging_params(struct wpa_supplicant *wpa_s,
 				   const u8 *dev_addr, const u8 *peer_addr,
 				   u8 role, u8 protocol, int freq, int channel,
