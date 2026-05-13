@@ -350,10 +350,8 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 	pr.pasn_type = wpa_s->conf->pr_pasn_type;
 	pr.preferred_ranging_role = wpa_s->conf->pr_preferred_role;
 
-	pr.edca_ista_support = wpa_s->drv_flags2 &
-		WPA_DRIVER_FLAGS2_FTM_INITIATOR;
-	pr.edca_rsta_support = wpa_s->drv_flags &
-		WPA_DRIVER_FLAGS_FTM_RESPONDER;
+	pr.edca_ista_support = capa->ista.support_edca;
+	pr.edca_rsta_support = capa->rsta.support_edca;
 	pr.edca_format_and_bw = capa->edca_format_and_bw;
 	pr.max_rx_antenna = capa->max_rx_antenna;
 	pr.max_tx_antenna = capa->max_tx_antenna;
@@ -361,10 +359,8 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 	wpas_pr_setup_edca_channels(wpa_s, &pr.edca_channels,
 				    pr.edca_format_and_bw);
 
-	pr.ntb_ista_support = wpa_s->drv_flags2 &
-		WPA_DRIVER_FLAGS2_NON_TRIGGER_BASED_INITIATOR;
-	pr.ntb_rsta_support = wpa_s->drv_flags2 &
-		WPA_DRIVER_FLAGS2_NON_TRIGGER_BASED_RESPONDER;
+	pr.ntb_ista_support = capa->ista.support_ntb;
+	pr.ntb_rsta_support = capa->rsta.support_ntb;
 	pr.ntb_format_and_bw = capa->ntb_format_and_bw;
 	pr.max_tx_ltf_repetations = capa->max_tx_ltf_repetations;
 	pr.max_rx_ltf_repetations = capa->max_rx_ltf_repetations;
