@@ -2660,6 +2660,7 @@ struct wpa_driver_capa {
 	u8 edca_format_and_bw;
 	u8 max_tx_antenna;
 	u8 max_rx_antenna;
+	u32 edca_min_ranging_interval;
 
 	/* NTB based ranging capabilities */
 	u8 ntb_format_and_bw;
@@ -2671,6 +2672,34 @@ struct wpa_driver_capa {
 	u8 max_rx_sts_gt_80;
 	u8 max_tx_sts_le_80;
 	u8 max_tx_sts_gt_80;
+	u32 ntb_min_ranging_interval;
+
+	/* Peer measurement capabilities */
+	u32 pmsr_max_peers;
+	u8 max_ftms_per_burst;
+	bool concurrent_ista_rsta;
+	bool support_6ghz;
+	u32 pd_preambles;
+	u32 pd_bandwidths;
+
+	struct {
+		bool support_ntb;
+		bool support_tb;
+		bool support_edca;
+		u32 max_peers;
+	} ista;
+
+	struct {
+		bool support_ntb;
+		bool support_tb;
+		bool support_edca;
+		u32 max_peers;
+	} rsta;
+
+	struct {
+		bool infra_support;
+		bool pd_support;
+	} ranging_type;
 
 #ifdef CONFIG_NAN
 	struct nan_capa nan_capa;

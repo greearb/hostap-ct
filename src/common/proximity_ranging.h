@@ -358,6 +358,8 @@ struct pr_config {
 
 	u8 edca_format_and_bw;
 
+	u32 edca_min_ranging_interval;
+
 	u8 max_tx_antenna;
 
 	u8 max_rx_antenna;
@@ -367,6 +369,16 @@ struct pr_config {
 	bool ntb_ista_support;
 
 	bool ntb_rsta_support;
+
+	bool concurrent_ista_rsta;
+
+	u32 pmsr_max_peers;
+
+	u32 pr_max_peer_ista_role;
+
+	u32 pr_max_peer_rsta_role;
+
+	u8 max_ftms_per_burst;
 
 	bool secure_he_ltf;
 
@@ -387,6 +399,8 @@ struct pr_config {
 	u8 max_tx_sts_gt_80;
 
 	u8 ntb_format_and_bw;
+
+	u32 ntb_min_ranging_interval;
 
 	struct pr_channels ntb_channels;
 

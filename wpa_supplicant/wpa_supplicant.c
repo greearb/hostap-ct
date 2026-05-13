@@ -8080,8 +8080,12 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
-	if (wpas_pr_init(wpa_s->global, wpa_s, &capa) < 0)
+	if (!capa.ranging_type.pd_support) {
+		wpa_printf(MSG_DEBUG,
+			   "PR: Driver does not support Proximity Ranging - PR disabled");
+	} else if (wpas_pr_init(wpa_s->global, wpa_s, &capa) < 0) {
 		return -1;
+	}
 
 	if (wpa_bss_init(wpa_s) < 0)
 		return -1;

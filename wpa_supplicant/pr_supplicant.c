@@ -375,6 +375,14 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 	pr.max_tx_sts_le_80 = capa->max_tx_sts_le_80;
 	pr.max_tx_sts_gt_80 = capa->max_tx_sts_gt_80;
 
+	pr.edca_min_ranging_interval = capa->edca_min_ranging_interval;
+	pr.ntb_min_ranging_interval = capa->ntb_min_ranging_interval;
+	pr.concurrent_ista_rsta = capa->concurrent_ista_rsta;
+	pr.pmsr_max_peers = capa->pmsr_max_peers;
+	pr.pr_max_peer_ista_role = capa->ista.max_peers;
+	pr.pr_max_peer_rsta_role = capa->rsta.max_peers;
+	pr.max_ftms_per_burst = capa->max_ftms_per_burst;
+
 	pr.support_6ghz = wpas_is_6ghz_supported(wpa_s, true);
 
 	pr.pasn_send_mgmt = wpas_pr_pasn_send_mgmt;

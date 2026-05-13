@@ -14,6 +14,7 @@
 #include "utils/common.h"
 #include "common/ieee802_11_common.h"
 #include "common/wpa_common.h"
+#include "common/proximity_ranging.h"
 #include "common/qca-vendor.h"
 #include "common/qca-vendor-attr.h"
 #include "common/brcm_vendor.h"
@@ -1136,6 +1137,162 @@ out:
 #endif /* CONFIG_NAN */
 
 
+#ifdef CONFIG_PR
+
+static void pmsr_type_ftm_handler(struct wpa_driver_nl80211_data *drv,
+				  struct nlattr *capa)
+{
+	u32 max_rx_sts, max_tx_sts;
+	struct nlattr *tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX + 1];
+	struct nlattr *ista_caps[NL80211_PMSR_FTM_CAPA_ATTR_MAX + 1];
+	struct nlattr *type_caps[NL80211_PMSR_FTM_TYPE_CAPA_ATTR_MAX + 1];
+	struct nlattr *rsta_caps[NL80211_PMSR_FTM_CAPA_ATTR_MAX + 1];
+
+	if (nla_parse_nested(tb, NL80211_PMSR_FTM_CAPA_ATTR_MAX, capa, NULL))
+		return;
+
+	/* Parse ISTA capabilities */
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_ISTA_CAPS] &&
+	    nla_parse_nested(ista_caps, NL80211_PMSR_FTM_CAPA_ATTR_MAX,
+			     tb[NL80211_PMSR_FTM_CAPA_ATTR_ISTA_CAPS],
+			     NULL) == 0) {
+		drv->capa.ista.support_ntb =
+			!!ista_caps[NL80211_PMSR_FTM_CAPA_ATTR_SUPPORT_NTB];
+		drv->capa.ista.support_tb =
+			!!ista_caps[NL80211_PMSR_FTM_CAPA_ATTR_SUPPORT_TB];
+		drv->capa.ista.support_edca =
+			!!ista_caps[NL80211_PMSR_FTM_CAPA_ATTR_SUPPORT_EDCA];
+		if (ista_caps[NL80211_PMSR_ATTR_MAX_PEER_ISTA_ROLE])
+			drv->capa.ista.max_peers =
+				nla_get_u32(ista_caps[NL80211_PMSR_ATTR_MAX_PEER_ISTA_ROLE]);
+	}
+
+	/* Parse ranging type capabilities */
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_TYPE_CAPS] &&
+	    !nla_parse_nested(type_caps, NL80211_PMSR_FTM_TYPE_CAPA_ATTR_MAX,
+			      tb[NL80211_PMSR_FTM_CAPA_ATTR_TYPE_CAPS],
+			      NULL) == 0) {
+		drv->capa.ranging_type.infra_support =
+			!!type_caps[NL80211_PMSR_FTM_TYPE_CAPA_ATTR_INFRA_SUPPORT];
+		drv->capa.ranging_type.pd_support =
+			!!type_caps[NL80211_PMSR_FTM_TYPE_CAPA_ATTR_PD_SUPPORT];
+	}
+
+	drv->capa.concurrent_ista_rsta =
+		!!tb[NL80211_PMSR_FTM_CAPA_ATTR_CONCURRENT_ISTA_RSTA_SUPPORT];
+
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_TX_LTF_REP])
+		drv->capa.max_tx_ltf_repetations =
+			nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_TX_LTF_REP]);
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_RX_LTF_REP])
+		drv->capa.max_rx_ltf_repetations =
+			nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_RX_LTF_REP]);
+
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_RX_STS]) {
+		max_rx_sts = nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_RX_STS]);
+		drv->capa.max_rx_sts_le_80 = max_rx_sts;
+		drv->capa.max_rx_sts_gt_80 = max_rx_sts;
+	}
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_TX_STS]) {
+		max_tx_sts = nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_TX_STS]);
+		drv->capa.max_tx_sts_le_80 = max_tx_sts;
+		drv->capa.max_tx_sts_gt_80 = max_tx_sts;
+	}
+
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_TOTAL_LTF_TX])
+		drv->capa.max_tx_ltf_total =
+			nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_TOTAL_LTF_TX]);
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_TOTAL_LTF_RX])
+		drv->capa.max_rx_ltf_total =
+			nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_TOTAL_LTF_RX]);
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_FTMS_PER_BURST])
+		drv->capa.max_ftms_per_burst =
+			nla_get_u8(tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_FTMS_PER_BURST]);
+
+	/* Parse RSTA capabilities */
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_RSTA_SUPPORT] &&
+	    tb[NL80211_PMSR_FTM_CAPA_ATTR_RSTA_CAPS] &&
+	    !nla_parse_nested(rsta_caps, NL80211_PMSR_FTM_CAPA_ATTR_MAX,
+			      tb[NL80211_PMSR_FTM_CAPA_ATTR_RSTA_CAPS],
+			      NULL) == 0) {
+		drv->capa.rsta.support_ntb =
+			!!rsta_caps[NL80211_PMSR_FTM_CAPA_ATTR_SUPPORT_NTB];
+		drv->capa.rsta.support_tb =
+			!!rsta_caps[NL80211_PMSR_FTM_CAPA_ATTR_SUPPORT_TB];
+		drv->capa.rsta.support_edca =
+			!!rsta_caps[NL80211_PMSR_FTM_CAPA_ATTR_SUPPORT_EDCA];
+		if (rsta_caps[NL80211_PMSR_ATTR_MAX_PEER_RSTA_ROLE])
+			drv->capa.rsta.max_peers =
+				nla_get_u32(rsta_caps[NL80211_PMSR_ATTR_MAX_PEER_RSTA_ROLE]);
+	}
+
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_NUM_TX_ANTENNAS])
+		drv->capa.max_tx_antenna =
+			nla_get_u8(tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_NUM_TX_ANTENNAS]);
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_NUM_RX_ANTENNAS])
+		drv->capa.max_rx_antenna =
+			nla_get_u8(tb[NL80211_PMSR_FTM_CAPA_ATTR_MAX_NUM_RX_ANTENNAS]);
+
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_MIN_INTERVAL_EDCA])
+		drv->capa.edca_min_ranging_interval =
+			nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_MIN_INTERVAL_EDCA]);
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_MIN_INTERVAL_NTB])
+		drv->capa.ntb_min_ranging_interval =
+			nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_MIN_INTERVAL_NTB]);
+
+	/* Parse additional ranging capabilities */
+	drv->capa.support_6ghz = !!tb[NL80211_PMSR_FTM_CAPA_ATTR_6GHZ_SUPPORT];
+
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_PD_PREAMBLES])
+		drv->capa.pd_preambles =
+			nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_PD_PREAMBLES]);
+	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_PD_BANDWIDTHS])
+		drv->capa.pd_bandwidths =
+			nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_PD_BANDWIDTHS]);
+}
+
+
+static void wiphy_info_pmsr_type_capa(struct wpa_driver_nl80211_data *drv,
+				      struct nlattr *attr)
+{
+	struct nlattr *pos;
+	int rem;
+
+	nla_for_each_nested(pos, attr, rem) {
+		if (nla_type(pos) == NL80211_PMSR_TYPE_FTM)
+			pmsr_type_ftm_handler(drv, pos);
+	}
+}
+
+
+static void wiphy_info_pmsr_capa(struct wpa_driver_nl80211_data *drv,
+				 struct nlattr *tb[])
+{
+	struct nlattr *pmsr_capa[NL80211_PMSR_ATTR_MAX + 1];
+	static struct nla_policy
+	pmsr_policy[NL80211_PMSR_ATTR_MAX + 1] = {
+		[NL80211_PMSR_ATTR_MAX_PEERS] = { .type = NLA_U32 },
+		[NL80211_PMSR_ATTR_TYPE_CAPA] = { .type = NLA_NESTED },
+	};
+
+	if (nla_parse_nested(pmsr_capa, NL80211_PMSR_ATTR_MAX,
+			     tb[NL80211_ATTR_PEER_MEASUREMENTS],
+			     pmsr_policy)) {
+		wpa_printf(MSG_DEBUG, "nl80211: Failed to parse PMSR capabilities");
+		return;
+	}
+
+	if (pmsr_capa[NL80211_PMSR_ATTR_MAX_PEERS])
+		drv->capa.pmsr_max_peers =
+			nla_get_u32(pmsr_capa[NL80211_PMSR_ATTR_MAX_PEERS]);
+	if (pmsr_capa[NL80211_PMSR_ATTR_TYPE_CAPA])
+		wiphy_info_pmsr_type_capa(drv,
+					  pmsr_capa[NL80211_PMSR_ATTR_TYPE_CAPA]);
+}
+
+#endif /* CONFIG_PR */
+
+
 static int wiphy_info_handler(struct nl_msg *msg, void *arg)
 {
 	struct nlattr *tb[NL80211_ATTR_MAX + 1];
@@ -1261,6 +1418,11 @@ static int wiphy_info_handler(struct nl_msg *msg, void *arg)
 	}
 
 	wiphy_info_extended_capab(drv, tb[NL80211_ATTR_IFTYPE_EXT_CAPA]);
+
+#ifdef CONFIG_PR
+	if (tb[NL80211_ATTR_PEER_MEASUREMENTS])
+		wiphy_info_pmsr_capa(drv, tb);
+#endif /* CONFIG_PR */
 
 	if (tb[NL80211_ATTR_VENDOR_DATA]) {
 		struct nlattr *nl;
