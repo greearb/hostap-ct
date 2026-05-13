@@ -288,7 +288,7 @@ static void wpas_pr_ranging_params(void *ctx, const u8 *dev_addr,
 	struct wpa_supplicant *wpa_s = ctx;
 	int bw, format_bw, freq;
 
-	bw = oper_class_bw_to_int(get_oper_class(NULL, op_class));
+	bw = op_class_to_bandwidth(op_class);
 	format_bw = self_format_bw < peer_format_bw ?
 		self_format_bw : peer_format_bw;
 	freq = ieee80211_chan_to_freq(NULL, op_class, op_channel);
