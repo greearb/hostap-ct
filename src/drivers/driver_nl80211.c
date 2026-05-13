@@ -4074,6 +4074,16 @@ static int wpa_driver_nl80211_set_key(struct i802_bss *bss,
 			wpa_hexdump(MSG_DEBUG, "nl80211: KEY_SEQ",
 				    seq, seq_len);
 		}
+
+		if (params->ltf_keyseed_len && params->ltf_keyseed) {
+			if (nla_put(key_msg, NL80211_KEY_LTF_SEED,
+				    params->ltf_keyseed_len,
+				    params->ltf_keyseed))
+				goto fail;
+			wpa_hexdump_key(MSG_DEBUG, "nl80211: KEY_LTF_SEED",
+					params->ltf_keyseed,
+					params->ltf_keyseed_len);
+		}
 	}
 
 	if (addr && !is_broadcast_ether_addr(addr)) {

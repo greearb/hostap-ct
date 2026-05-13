@@ -2099,6 +2099,21 @@ struct wpa_driver_set_key_params {
 	 *
 	 * Set to a valid Link ID (0-14) when applicable, otherwise -1. */
 	int link_id;
+
+	/**
+	 * ltf_keyseed_len - Length of the LTF keyseed in octets
+	 *
+	 * Set to 0 if no LTF keyseed is provided.
+	 */
+	u8 ltf_keyseed_len;
+
+	/**
+	 * ltf_keyseed - LTF keyseed for secure ranging (IEEE 802.11az)
+	 *
+	 * Used to configure the secure LTF key seed for a peer measurement
+	 * session. Set to NULL if not applicable.
+	 */
+	const u8 *ltf_keyseed;
 };
 
 enum wpa_driver_if_type {

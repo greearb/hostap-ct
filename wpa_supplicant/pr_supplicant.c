@@ -291,13 +291,29 @@ static void wpas_pr_pasn_set_keys(void *ctx, const u8 *own_addr,
 				  struct wpa_ptk *ptk)
 {
 	struct wpa_supplicant *wpa_s = ctx;
+	struct wpa_driver_set_key_params params;
 
 	wpa_printf(MSG_DEBUG, "PR PASN: Set secure ranging context for " MACSTR,
 		   MAC2STR(peer_addr));
-	wpa_drv_set_secure_ranging_ctx(wpa_s, own_addr, peer_addr, cipher,
-				       ptk->tk_len, ptk->tk,
-				       ptk->ltf_keyseed_len,
-				       ptk->ltf_keyseed, 0);
+
+	if (!wpa_s->driver->set_key)
+		return;
+
+	os_memset(&params, 0, sizeof(params));
+	params.ifname = wpa_s->ifname;
+	params.alg = wpa_cipher_to_alg(cipher);
+	params.addr = peer_addr;
+	params.key_idx = 0;
+	params.set_tx = 1;
+	params.key = ptk->tk;
+	params.key_len = ptk->tk_len;
+	params.key_flag = KEY_FLAG_PAIRWISE_RX_TX;
+	params.link_id = -1;
+	params.ltf_keyseed = ptk->ltf_keyseed;
+	params.ltf_keyseed_len = ptk->ltf_keyseed_len;
+
+	if (wpa_s->driver->set_key(wpa_s->drv_priv, &params) < 0)
+		wpa_printf(MSG_INFO, "PR PASN: Failed to set TK");
 }
 
 
@@ -305,11 +321,23 @@ static void wpas_pr_pasn_clear_keys(void *ctx, const u8 *own_addr,
 				    const u8 *peer_addr)
 {
 	struct wpa_supplicant *wpa_s = ctx;
+	struct wpa_driver_set_key_params params;
 
 	wpa_printf(MSG_DEBUG, "PR PASN: Clear secure ranging context for "
 		   MACSTR, MAC2STR(peer_addr));
-	wpa_drv_set_secure_ranging_ctx(wpa_s, own_addr, peer_addr, 0, 0, NULL,
-				       0, NULL, 1);
+
+	if (!wpa_s->driver->set_key)
+		return;
+
+	os_memset(&params, 0, sizeof(params));
+	params.ifname = wpa_s->ifname;
+	params.alg = WPA_ALG_NONE;
+	params.addr = peer_addr;
+	params.key_idx = 0;
+	params.link_id = -1;
+
+	if (wpa_s->driver->set_key(wpa_s->drv_priv, &params) < 0)
+		wpa_printf(MSG_INFO, "PR PASN: Failed to clear TK");
 }
 
 
