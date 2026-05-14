@@ -1529,6 +1529,7 @@ static bool nan_de_rx_publish(struct nan_de *de, struct nan_de_service *srv,
 	}
 
 send_event:
+	os_memset(&res, 0, sizeof(res));
 	if (buf && buf_len > 0) {
 		/* Parse Cipher Suite Information Attribute */
 		cipher_suite_count = nan_de_parse_csia(
@@ -1552,7 +1553,6 @@ send_event:
 		res.pbm = nan_de_get_advertise_pbm(buf, buf_len);
 	}
 
-	os_memset(&res, 0, sizeof(res));
 	res.subscribe_id = srv->id;
 	res.srv_proto_type = srv_proto_type;
 	res.ssi = ssi;
