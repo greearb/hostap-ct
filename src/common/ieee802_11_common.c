@@ -3752,6 +3752,7 @@ int get_basic_mle_link_id(const u8 *buf, size_t len)
 		ETH_ALEN; /* MLD MAC Address field (Basic) */
 	size_t common_info_limit;
 	u8 common_info_len;
+	u8 link_id;
 
 	if (len < MULTI_LINK_CONTROL_LEN)
 		return -1;
@@ -3773,7 +3774,11 @@ int get_basic_mle_link_id(const u8 *buf, size_t len)
 	if (link_id_pos + EHT_ML_LINK_ID_LEN > common_info_limit)
 		return -1;
 
-	return buf[link_id_pos] & BASIC_MLE_STA_CTRL_LINK_ID_MASK;
+	link_id = buf[link_id_pos] & BASIC_MLE_STA_CTRL_LINK_ID_MASK;
+	if (link_id >= MAX_NUM_MLD_LINKS)
+		return -1;
+
+	return link_id;
 }
 
 
