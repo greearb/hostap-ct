@@ -1430,6 +1430,7 @@ static bool parse_ml_probe_req(const struct ieee80211_eht_ml *ml, size_t ml_len,
 	for_each_element_id(sub, 0, pos, len) {
 		const struct ieee80211_eht_per_sta_profile *sta;
 		u16 sta_control;
+		u8 link_id;
 
 		if (*links == 0xffff)
 			*links = 0;
@@ -1449,7 +1450,9 @@ static bool parse_ml_probe_req(const struct ieee80211_eht_ml *ml, size_t ml_len,
 		 * partial profile was requested.
 		 */
 		sta_control = le_to_host16(sta->sta_control);
-		*links |= BIT(sta_control & BASIC_MLE_STA_CTRL_LINK_ID_MASK);
+		link_id = sta_control & BASIC_MLE_STA_CTRL_LINK_ID_MASK;
+		if (link_id < MAX_NUM_MLD_LINKS)
+			*links |= BIT(link_id);
 	}
 
 	if (!for_each_element_completed(sub, pos, len)) {
