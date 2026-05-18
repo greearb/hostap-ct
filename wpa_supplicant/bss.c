@@ -2006,13 +2006,20 @@ void wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 
 	/* Medium Synchronization Delay Information */
 	if (le_to_host16(eht_ml->ml_control) &
-	    BASIC_MULTI_LINK_CTRL_PRES_MSD_INFO)
+	    BASIC_MULTI_LINK_CTRL_PRES_MSD_INFO) {
+		if (ml_basic_common_info->len <
+		    sizeof(*ml_basic_common_info) + pos + 2)
+			goto out;
 		pos += 2;
+	}
 
 	/* EML Capabilities */
 	bss->eml_capa = 0;
 	if (le_to_host16(eht_ml->ml_control) &
 	    BASIC_MULTI_LINK_CTRL_PRES_EML_CAPA) {
+		if (ml_basic_common_info->len <
+		    sizeof(*ml_basic_common_info) + pos + 2)
+			goto out;
 		bss->eml_capa =
 			WPA_GET_LE16(&ml_basic_common_info->variable[pos]);
 		pos += 2;
@@ -2020,6 +2027,8 @@ void wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 
 	/* MLD Capabilities And Operations (always present, see
 	 * control/control_mask) */
+	if (ml_basic_common_info->len < sizeof(*ml_basic_common_info) + pos + 2)
+		goto out;
 	bss->mld_capa = WPA_GET_LE16(&ml_basic_common_info->variable[pos]);
 	pos += 2;
 
