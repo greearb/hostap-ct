@@ -2001,7 +2001,6 @@ void wpa_bss_parse_basic_ml_element(struct wpa_supplicant *wpa_s,
 
 	/* Link ID Info, BSS Parameters Change Count (see control/control_mask)
 	 */
-	link_id = ml_basic_common_info->variable[0] & EHT_ML_LINK_ID_MSK;
 	pos = 1 + 1;
 
 	/* Medium Synchronization Delay Information */
