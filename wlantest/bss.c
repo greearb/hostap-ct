@@ -241,11 +241,18 @@ void bss_update(struct wlantest *wt, struct wlantest_bss *bss,
 	    elems->basic_mle[2] >= 1 + ETH_ALEN + 1 &&
 	    (WPA_GET_LE16(elems->basic_mle) &
 	     BASIC_MULTI_LINK_CTRL_PRES_LINK_ID)) {
-		    bss->link_id = elems->basic_mle[2 + 1 + ETH_ALEN] & 0x0f;
-		    wpa_printf(MSG_DEBUG,
-			       "Learned AP MLD Link ID %u for this affiliated link",
-			       bss->link_id);
-		    bss->link_id_set = true;
+		    u8 link_id = elems->basic_mle[2 + 1 + ETH_ALEN] & 0x0f;
+
+		    if (link_id >= MAX_NUM_MLD_LINKS) {
+			    wpa_printf(MSG_INFO, "Invalid AP MLD Link ID %u",
+				       link_id);
+		    } else {
+			    wpa_printf(MSG_DEBUG,
+				       "Learned AP MLD Link ID %u for this affiliated link",
+				       link_id);
+			    bss->link_id = link_id;
+			    bss->link_id_set = true;
+		    }
 	}
 
 	if (!update)
