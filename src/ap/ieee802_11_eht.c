@@ -2183,6 +2183,8 @@ hostapd_parse_link_reconf_req_sta_profile(struct hostapd_data *hapd,
 
 	link_id = sta_control & EHT_PER_STA_RECONF_CTRL_LINK_ID_MSK;
 	wpa_printf(MSG_DEBUG, "MLD: Per-STA profile for link=%u", link_id);
+	if (link_id >= MAX_NUM_MLD_LINKS)
+		goto out;
 
 	reconf_type_mask =
 		sta_control & EHT_PER_STA_RECONF_CTRL_OP_UPDATE_TYPE_MSK;

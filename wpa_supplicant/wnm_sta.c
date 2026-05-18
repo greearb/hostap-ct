@@ -546,7 +546,8 @@ static void wnm_parse_neighbor_report_multi_link(struct neighbor_report *rep,
 			control = le_to_host16(sta_prof->sta_control);
 
 			link_id = control & EHT_PER_STA_RECONF_CTRL_LINK_ID_MSK;
-			rep->mld_links |= BIT(link_id);
+			if (link_id < MAX_NUM_MLD_LINKS)
+				rep->mld_links |= BIT(link_id);
 		}
 
 		pos += 2 + sub_elem_len;

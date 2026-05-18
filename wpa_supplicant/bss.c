@@ -2243,7 +2243,8 @@ u16 wpa_bss_parse_reconf_ml_element(struct wpa_supplicant *wpa_s,
 			u8 link_id;
 
 			link_id = control & EHT_PER_STA_RECONF_CTRL_LINK_ID_MSK;
-			removed_links |= BIT(link_id);
+			if (link_id < MAX_NUM_MLD_LINKS)
+				removed_links |= BIT(link_id);
 		}
 
 		pos += 2 + sub_elem_len;
