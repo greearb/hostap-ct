@@ -3464,18 +3464,13 @@ static void wpa_supplicant_process_1_of_2(struct wpa_sm *sm,
 		goto failed;
 	}
 	gtk_len = ie.gtk_len;
-	if (gtk_len < 2) {
+	if (wpa_supplicant_validate_gtk_kde_len(gtk_len) < 0) {
 		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
 			"RSN: Invalid GTK KDE length (%u) in Group Key msg 1/2",
 			gtk_len);
 		goto failed;
 	}
 	gtk_len -= 2;
-	if (gtk_len > sizeof(gd.gtk)) {
-		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
-			"RSN: Too long GTK in GTK KDE (len=%u)", gtk_len);
-		goto failed;
-	}
 	maxkeylen = gd.gtk_len = gtk_len;
 
 #ifdef CONFIG_OCV
