@@ -1176,6 +1176,7 @@ int nan_ndl_handle_ndl_attr(struct nan_data *nan, struct nan_peer *peer,
 	 * "done" here.
 	 */
 	if (msg->oui_subtype == NAN_SUBTYPE_DATA_PATH_CONFIRM &&
+	    peer->ndl &&
 	    peer->ndl->state == NAN_NDL_STATE_REQ_RECV &&
 	    peer->ndl->status == NAN_NDL_STATUS_ACCEPTED) {
 		wpa_printf(MSG_DEBUG,
