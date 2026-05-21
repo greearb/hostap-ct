@@ -2408,10 +2408,13 @@ static int pr_pasn_handle_auth_1(struct pr_data *pr, struct pr_device *dev,
 	}
 
 	if (!(dev->protocol_type & PR_EDCA_BASED_RANGING) &&
-	    pr->cfg->set_keys)
-		pr->cfg->set_keys(pr->cfg->cb_ctx, pr->cfg->dev_addr,
-				  dev->pr_device_addr, dev->pasn->cipher,
-				  dev->pasn->akmp, &dev->pasn->ptk);
+	    pr->cfg->set_keys &&
+	    pr->cfg->set_keys(pr->cfg->cb_ctx, pr->cfg->dev_addr,
+			      dev->pr_device_addr, dev->pasn->cipher,
+			      dev->pasn->akmp, &dev->pasn->ptk) < 0) {
+		wpa_printf(MSG_INFO, "PR PASN: Key configuration failed");
+		goto fail;
+	}
 
 	/* M1 received and M2 sent - notify that negotiation has started */
 	if (pr->cfg->negotiation_started)
@@ -2458,10 +2461,13 @@ static int pr_pasn_handle_auth_2(struct pr_data *pr, struct pr_device *dev,
 	}
 
 	if (!(dev->protocol_type & PR_EDCA_BASED_RANGING) &&
-	    pr->cfg->set_keys)
-		pr->cfg->set_keys(pr->cfg->cb_ctx, pr->cfg->dev_addr,
-				  dev->pr_device_addr, dev->pasn->cipher,
-				  dev->pasn->akmp, &dev->pasn->ptk);
+	    pr->cfg->set_keys &&
+	    pr->cfg->set_keys(pr->cfg->cb_ctx, pr->cfg->dev_addr,
+			      dev->pr_device_addr, dev->pasn->cipher,
+			      dev->pasn->akmp, &dev->pasn->ptk) < 0) {
+		wpa_printf(MSG_INFO, "PR PASN: Key configuration failed");
+		goto fail;
+	}
 	ret = 0;
 
 fail:

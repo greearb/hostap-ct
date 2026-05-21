@@ -483,8 +483,8 @@ struct pr_config {
 	void (*pasn_result)(void *ctx, u8 role, u8 protocol_type, u8 op_class,
 			    u8 op_channel, const char *country);
 
-	void (*set_keys)(void *ctx, const u8 *own_addr, const u8 *peer_addr,
-			 int cipher, int akmp, struct wpa_ptk *ptk);
+	int (*set_keys)(void *ctx, const u8 *own_addr, const u8 *peer_addr,
+			int cipher, int akmp, struct wpa_ptk *ptk);
 
 	void (*clear_keys)(void *ctx, const u8 *own_addr, const u8 *peer_addr);
 

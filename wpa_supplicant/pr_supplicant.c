@@ -299,9 +299,9 @@ static void wpas_pr_ranging_params(void *ctx, const u8 *dev_addr,
 }
 
 
-static void wpas_pr_pasn_set_keys(void *ctx, const u8 *own_addr,
-				  const u8 *peer_addr, int cipher, int akmp,
-				  struct wpa_ptk *ptk)
+static int wpas_pr_pasn_set_keys(void *ctx, const u8 *own_addr,
+				 const u8 *peer_addr, int cipher, int akmp,
+				 struct wpa_ptk *ptk)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 	struct wpa_driver_set_key_params params;
@@ -310,7 +310,7 @@ static void wpas_pr_pasn_set_keys(void *ctx, const u8 *own_addr,
 		   MAC2STR(peer_addr));
 
 	if (!wpa_s->driver->set_key)
-		return;
+		return -1;
 
 	os_memset(&params, 0, sizeof(params));
 	params.ifname = wpa_s->ifname;
@@ -325,8 +325,12 @@ static void wpas_pr_pasn_set_keys(void *ctx, const u8 *own_addr,
 	params.ltf_keyseed = ptk->ltf_keyseed;
 	params.ltf_keyseed_len = ptk->ltf_keyseed_len;
 
-	if (wpa_s->driver->set_key(wpa_s->drv_priv, &params) < 0)
+	if (wpa_s->driver->set_key(wpa_s->drv_priv, &params) < 0) {
 		wpa_printf(MSG_INFO, "PR PASN: Failed to set TK");
+		return -1;
+	}
+
+	return 0;
 }
 
 
