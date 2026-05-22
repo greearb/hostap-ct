@@ -147,6 +147,7 @@ struct pasn_data {
 	const int *pasn_test_groups;
 #endif /* CONFIG_TESTING_OPTIONS */
 	int network_id;
+	void *network_ctx;
 
 	u8 wrapped_data_format;
 	struct wpabuf *secret;

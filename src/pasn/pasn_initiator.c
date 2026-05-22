@@ -1037,7 +1037,8 @@ static int wpas_pasn_set_pmk(struct pasn_data *pasn,
 						    pasn->pmk_len,
 						    pasn->sae.pmkid,
 						    NULL, 0, pasn->peer_addr,
-						    pasn->own_addr, NULL,
+						    pasn->own_addr,
+						    pasn->network_ctx,
 						    pasn->akmp, NULL,
 						    pasn->auth_alg);
 		return 0;

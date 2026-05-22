@@ -945,6 +945,12 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 	pasn->rsn_capab = awork->rsn_capab;
 	pasn_set_rsnxe_ie(pasn, awork->rsnxe_data);
 	pasn->is_ml_peer = awork->is_ml_peer;
+	/*
+	 * Set network_ctx so the PMKSA entry is stored with the correct
+	 * network context for lookup on reconnection.
+	 */
+	if (awork->auth_alg == WLAN_AUTH_EPPKE && ssid)
+		pasn->network_ctx = ssid;
 #endif /* CONFIG_ENC_ASSOC */
 
 	ret = wpas_pasn_start(pasn, awork->own_addr, awork->peer_addr,
