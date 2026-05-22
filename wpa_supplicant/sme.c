@@ -2267,6 +2267,24 @@ static bool is_sae_key_mgmt_suite(struct wpa_supplicant *wpa_s, u32 suite)
 
 
 #ifdef CONFIG_ENC_ASSOC
+
+static bool is_eppke_auth_key_mgmt_suite(struct wpa_supplicant *wpa_s,
+					 u32 suite)
+{
+	/* Supported AKM suites for EPPKE */
+	if (suite == RSN_AUTH_KEY_MGMT_SAE_EXT_KEY)
+		wpa_s->sme.ext_auth_key_mgmt = WPA_KEY_MGMT_SAE_EXT_KEY;
+	else if (suite == RSN_AUTH_KEY_MGMT_FT_SAE_EXT_KEY)
+		wpa_s->sme.ext_auth_key_mgmt = WPA_KEY_MGMT_FT_SAE_EXT_KEY;
+	else if (suite == RSN_AUTH_KEY_MGMT_EPPKE)
+		wpa_s->sme.ext_auth_key_mgmt = WPA_KEY_MGMT_EPPKE;
+	else
+		return false;
+
+	return true;
+}
+
+
 static int sme_handle_eppke_external_auth_start(struct wpa_supplicant *wpa_s,
 						union wpa_event_data *data)
 {
@@ -2329,6 +2347,7 @@ static int sme_handle_eppke_external_auth_start(struct wpa_supplicant *wpa_s,
 				    data->external_auth.rsnxe_data,
 				    is_ml_peer);
 }
+
 #endif /* CONFIG_ENC_ASSOC */
 
 
@@ -2351,14 +2370,24 @@ static void sme_ext_auth_get_freq(struct wpa_supplicant *wpa_s,
 void sme_external_auth_trigger(struct wpa_supplicant *wpa_s,
 			       union wpa_event_data *data)
 {
-	bool is_sae = false;
-
+	switch (data->external_auth.auth_alg) {
+#ifdef CONFIG_ENC_ASSOC
+	case WLAN_AUTH_EPPKE:
+		if (!is_eppke_auth_key_mgmt_suite(
+			    wpa_s, data->external_auth.key_mgmt_suite))
+			return;
+		break;
+#endif /* CONFIG_ENC_ASSOC */
+	default:
 #ifdef CONFIG_SAE
-	is_sae = is_sae_key_mgmt_suite(wpa_s,
-				       data->external_auth.key_mgmt_suite);
-#endif /* CONFIG_SAE */
-	if (!is_sae)
+		if (!is_sae_key_mgmt_suite(wpa_s,
+					   data->external_auth.key_mgmt_suite))
+			return;
+		break;
+#else /* CONFIG_SAE */
 		return;
+#endif /* CONFIG_SAE */
+	}
 
 	if (data->external_auth.action == EXT_AUTH_START) {
 		if (!data->external_auth.bssid || !data->external_auth.ssid)
