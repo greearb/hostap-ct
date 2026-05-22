@@ -2173,6 +2173,17 @@ void sme_send_external_auth_status(struct wpa_supplicant *wpa_s, u16 status)
 	if (wpa_s->conf->sae_pmkid_in_assoc && status == WLAN_STATUS_SUCCESS)
 		params.pmkid = wpa_s->sme.sae.pmkid;
 #endif /* CONFIG_SAE */
+#ifdef CONFIG_ENC_ASSOC
+	if (status == WLAN_STATUS_SUCCESS &&
+	    wpa_s->sme.ext_auth_alg == WLAN_AUTH_EPPKE &&
+	    wpa_s->pasn.using_pmksa) {
+		struct rsn_pmksa_cache_entry *pmksa;
+
+		pmksa = pmksa_cache_get_current(wpa_s->wpa);
+		if (pmksa)
+			params.pmkid = pmksa->pmkid;
+	}
+#endif /* CONFIG_ENC_ASSOC */
 #ifdef CONFIG_IEEE8021X_AUTH
 	if (status == WLAN_STATUS_SUCCESS &&
 	    wpa_s->sme.ext_auth_alg == WLAN_AUTH_802_1X) {
@@ -2346,6 +2357,8 @@ static int sme_handle_eppke_external_auth_start(struct wpa_supplicant *wpa_s,
 			   "EPPKE: No matching network block found");
 		return -1;
 	}
+
+	wpa_s->sme.ext_auth_alg = data->external_auth.auth_alg;
 
 	if (data->external_auth.mld_addr) {
 		is_ml_peer = true;
