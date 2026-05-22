@@ -2262,8 +2262,28 @@ static bool is_sae_key_mgmt_suite(struct wpa_supplicant *wpa_s, u32 suite)
 static int sme_handle_eppke_external_auth_start(struct wpa_supplicant *wpa_s,
 						union wpa_event_data *data)
 {
+	struct wpa_ssid *ssid;
+	size_t ssid_str_len = data->external_auth.ssid_len;
+	const u8 *ssid_str = data->external_auth.ssid;
 	u8 peer_addr[ETH_ALEN];
 	bool is_ml_peer;
+
+	wpa_s->sme.ext_auth_wpa_ssid = NULL;
+	/* Find the network profil based on the selected SSID */
+	for (ssid = wpa_s->conf->ssid; ssid; ssid = ssid->next) {
+		if (!wpas_network_disabled(wpa_s, ssid) &&
+		    wpa_key_mgmt_eppke(ssid->key_mgmt) &&
+		    ssid_str_len == ssid->ssid_len &&
+		    os_memcmp(ssid_str, ssid->ssid, ssid_str_len) == 0) {
+			wpa_s->sme.ext_auth_wpa_ssid = ssid;
+			break;
+		}
+	}
+	if (!ssid) {
+		wpa_printf(MSG_DEBUG,
+			   "EPPKE: No matching network block found");
+		return -1;
+	}
 
 	if (data->external_auth.mld_addr) {
 		is_ml_peer = true;
@@ -2282,7 +2302,7 @@ static int sme_handle_eppke_external_auth_start(struct wpa_supplicant *wpa_s,
 				    rsn_key_mgmt_to_wpa_akm(
 					    data->external_auth.key_mgmt_suite),
 				    data->external_auth.pairwise_cipher,
-				    wpa_s->sme.sae.group, 0, NULL, 0,
+				    wpa_s->sme.sae.group, ssid->id, NULL, 0,
 				    data->external_auth.auth_alg,
 				    data->external_auth.group_cipher,
 				    data->external_auth.group_mgmt_cipher,
