@@ -1110,6 +1110,8 @@ struct wpa_supplicant {
 		int sae_group_index;
 		unsigned int sae_pmksa_caching:1;
 		u16 seq_num;
+		int *sae_rejected_groups;
+#endif /* CONFIG_SAE */
 		u8 ext_auth_bssid[ETH_ALEN];
 		unsigned int ext_auth_freq;
 		struct wpa_ssid *ext_auth_wpa_ssid;
@@ -1118,8 +1120,6 @@ struct wpa_supplicant {
 		int ext_auth_key_mgmt;
 		u8 ext_auth_ap_mld_addr[ETH_ALEN];
 		bool ext_ml_auth;
-		int *sae_rejected_groups;
-#endif /* CONFIG_SAE */
 		u16 assoc_auth_type;
 	} sme;
 #endif /* CONFIG_SME */

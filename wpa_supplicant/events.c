@@ -7619,13 +7619,12 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		bgscan_notify_beacon_loss(wpa_s);
 		break;
 	case EVENT_EXTERNAL_AUTH:
-#ifdef CONFIG_SAE
 		if (!wpa_s->current_ssid) {
-			wpa_printf(MSG_DEBUG, "SAE: current_ssid is NULL");
+			wpa_printf(MSG_DEBUG,
+				   "EXTERNAL_AUTH: current_ssid is NULL");
 			break;
 		}
 		sme_external_auth_trigger(wpa_s, data);
-#endif /* CONFIG_SAE */
 		break;
 #ifdef CONFIG_PASN
 	case EVENT_PASN_AUTH:
