@@ -2216,6 +2216,7 @@ void sme_send_external_auth_status(struct wpa_supplicant *wpa_s, u16 status)
 	if (status == WLAN_STATUS_SUCCESS &&
 	    wpa_s->sme.ext_auth_alg == WLAN_AUTH_802_1X) {
 		struct ptksa_cache_entry *entry;
+		struct rsn_pmksa_cache_entry *pmksa;
 
 		entry = ptksa_cache_get(wpa_s->ptksa,
 					sme_get_peer_addr(wpa_s, true),
@@ -2223,6 +2224,11 @@ void sme_send_external_auth_status(struct wpa_supplicant *wpa_s, u16 status)
 		if (entry && entry->ptk.kck_len) {
 			params.kck = entry->ptk.kck;
 			params.kck_len = entry->ptk.kck_len;
+		}
+		if (wpa_s->auth_1x && wpa_s->auth_1x->pmkid_found) {
+			pmksa = pmksa_cache_get_current(wpa_s->wpa);
+			if (pmksa)
+				params.pmkid = pmksa->pmkid;
 		}
 	}
 #endif /* CONFIG_IEEE8021X_AUTH */
