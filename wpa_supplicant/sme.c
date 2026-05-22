@@ -3545,7 +3545,7 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 		if (pasn->pmksa_entry)
 			wpa_sm_set_cur_pmksa(wpa_s->wpa, pasn->pmksa_entry);
 		wpa_sm_set_pmk(wpa_s->wpa, pasn->pmk, pasn->pmk_len,
-			       pasn->sae.pmkid, pasn->own_addr);
+			       pasn->sae.pmkid, NULL);
 
 		sme_send_authentication(wpa_s, wpa_s->current_bss,
 					wpa_s->current_ssid, 0);
