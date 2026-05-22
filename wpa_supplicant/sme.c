@@ -2267,6 +2267,7 @@ static int sme_handle_eppke_external_auth_start(struct wpa_supplicant *wpa_s,
 	const u8 *ssid_str = data->external_auth.ssid;
 	u8 peer_addr[ETH_ALEN];
 	bool is_ml_peer;
+	int group;
 
 	wpa_s->sme.ext_auth_wpa_ssid = NULL;
 	/* Find the network profil based on the selected SSID */
@@ -2293,8 +2294,18 @@ static int sme_handle_eppke_external_auth_start(struct wpa_supplicant *wpa_s,
 		os_memcpy(peer_addr, data->external_auth.bssid, ETH_ALEN);
 	}
 
-	if (sme_set_sae_group(wpa_s, 0) < 0) {
-		wpa_printf(MSG_DEBUG, "EPPKE: Failed to select group");
+	group = wpas_pasn_get_group(wpa_s, ssid, NULL);
+	if (!group) {
+		wpa_printf(MSG_DEBUG, "EPPKE: Failed to select PASN group");
+		return -1;
+	}
+
+	/* As per IEEE P802.11-REVmf/D2.1, 12.13.5, when SAE is wrapped within
+	 * PASN authentication, both shall use the same finite cyclic group.
+	 */
+	if (sae_set_group(&wpa_s->sme.sae, group) < 0) {
+		wpa_printf(MSG_INFO, "EPPKE: Failed to set SAE group %u",
+			   group);
 		return -1;
 	}
 
@@ -2302,7 +2313,7 @@ static int sme_handle_eppke_external_auth_start(struct wpa_supplicant *wpa_s,
 				    rsn_key_mgmt_to_wpa_akm(
 					    data->external_auth.key_mgmt_suite),
 				    data->external_auth.pairwise_cipher,
-				    wpa_s->sme.sae.group, ssid->id, NULL, 0,
+				    group, ssid->id, NULL, 0,
 				    data->external_auth.auth_alg,
 				    data->external_auth.group_cipher,
 				    data->external_auth.group_mgmt_cipher,
