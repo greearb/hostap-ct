@@ -53,6 +53,21 @@ static void sme_stop_sa_query(struct wpa_supplicant *wpa_s);
 static int sme_validate_basic_mle(const struct ieee802_11_elems *elems,
 				  const u8 *addr);
 
+static const u8 * sme_get_peer_addr(struct wpa_supplicant *wpa_s, bool external)
+{
+	if (external)
+		return wpa_s->sme.ext_ml_auth ?
+			wpa_s->sme.ext_auth_ap_mld_addr :
+			wpa_s->sme.ext_auth_bssid;
+	return wpa_s->valid_links ? wpa_s->ap_mld_addr : wpa_s->pending_bssid;
+}
+
+
+static int sme_get_key_mgmt(struct wpa_supplicant *wpa_s, bool external)
+{
+	return external ? wpa_s->sme.ext_auth_key_mgmt : wpa_s->key_mgmt;
+}
+
 
 #ifdef CONFIG_SAE
 
@@ -369,7 +384,7 @@ static void sme_802_1x_auth_data_free(struct wpa_supplicant *wpa_s)
 
 
 static struct wpabuf *
-sme_build_802_1x_for_ptk(struct wpa_supplicant *wpa_s)
+sme_build_802_1x_for_ptk(struct wpa_supplicant *wpa_s, bool external)
 {
 	struct wpabuf *pubkey_buf = NULL;
 	struct wpabuf *buf = NULL;
@@ -399,11 +414,19 @@ sme_build_802_1x_for_ptk(struct wpa_supplicant *wpa_s)
 	}
 
 	/* Generate RSNE */
-	rsne_len = wpa_gen_wpa_ie_rsn(wpa_s->auth_1x->rsne,
-				      sizeof(wpa_s->auth_1x->rsne),
-				      wpa_s->pairwise_cipher,
-				      wpa_s->group_cipher, wpa_s->key_mgmt,
-				      wpa_s->mgmt_group_cipher, wpa_s->wpa);
+	if (external)
+		rsne_len = wpa_external_auth_add_rsne(
+			wpa_s->auth_1x->rsne, sizeof(wpa_s->auth_1x->rsne),
+			wpa_s->wpa, wpa_s->sme.ext_auth_key_mgmt,
+			wpa_s->sme.ext_pairwise_cipher,
+			wpa_s->sme.ext_group_cipher,
+			wpa_s->sme.ext_mgmt_group_cipher,
+			wpa_s->sme.ext_rsn_capab);
+	else
+		rsne_len = wpa_gen_wpa_ie_rsn(
+			wpa_s->auth_1x->rsne, sizeof(wpa_s->auth_1x->rsne),
+			wpa_s->pairwise_cipher, wpa_s->group_cipher,
+			wpa_s->key_mgmt, wpa_s->mgmt_group_cipher, wpa_s->wpa);
 	if (rsne_len < 0) {
 		wpa_dbg(wpa_s, MSG_INFO, "Failed to generate RSNE");
 		goto fail;
@@ -411,8 +434,15 @@ sme_build_802_1x_for_ptk(struct wpa_supplicant *wpa_s)
 	wpa_s->auth_1x->rsne_len = rsne_len;
 
 	/* Generate RSNXE */
-	rsnxe_len = wpa_gen_rsnxe(wpa_s->wpa, wpa_s->auth_1x->rsnxe,
-				  sizeof(wpa_s->auth_1x->rsnxe));
+	if (external) {
+		/* Store driver-provided RSNXE directly */
+		os_memcpy(wpa_s->auth_1x->rsnxe, wpa_s->sme.ext_rsnxe,
+			  wpa_s->sme.ext_rsnxe_len);
+		rsnxe_len = wpa_s->sme.ext_rsnxe_len;
+	} else {
+		rsnxe_len = wpa_gen_rsnxe(wpa_s->wpa, wpa_s->auth_1x->rsnxe,
+					  sizeof(wpa_s->auth_1x->rsnxe));
+	}
 	if (rsnxe_len < 0) {
 		wpa_dbg(wpa_s, MSG_INFO, "Failed to generate RSNXE");
 		goto fail;
@@ -454,16 +484,17 @@ fail:
 
 
 static struct wpabuf * sme_build_802_1x_auth_start(struct wpa_supplicant *wpa_s,
-						   struct wpa_ssid *ssid)
+						   struct wpa_ssid *ssid,
+						   bool external)
 {
 	struct wpabuf *buf, *eapol_pdu;
 	size_t buf_len;
 	u32 suite = 0;
 	struct wpabuf *buf_for_ptk = NULL;
+	int key_mgmt = sme_get_key_mgmt(wpa_s, external);
 
-	if (wpa_key_mgmt_wpa_ieee8021x(wpa_s->key_mgmt &
-				       ~WPA_KEY_MGMT_IEEE8021X))
-		suite = wpa_akm_to_suite(wpa_s->key_mgmt);
+	if (wpa_key_mgmt_wpa_ieee8021x(key_mgmt & ~WPA_KEY_MGMT_IEEE8021X))
+		suite = wpa_akm_to_suite(key_mgmt);
 
 	if (suite == 0) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "No matching IEEE 802.1X AKM found");
@@ -478,7 +509,7 @@ static struct wpabuf * sme_build_802_1x_auth_start(struct wpa_supplicant *wpa_s,
 	buf_len = 2 + 2 + 2 + wpabuf_len(eapol_pdu);
 
 	if (wpa_s->auth_1x->derive_ptk) {
-		buf_for_ptk = sme_build_802_1x_for_ptk(wpa_s);
+		buf_for_ptk = sme_build_802_1x_for_ptk(wpa_s, external);
 		if (!buf_for_ptk) {
 			wpabuf_free(eapol_pdu);
 			return NULL;
@@ -555,13 +586,15 @@ sme_build_802_1x_auth_continue(struct wpa_supplicant *wpa_s)
 
 static void sme_check_802_1x_pmksa_caching(struct wpa_supplicant *wpa_s,
 					   struct wpa_bss *bss,
-					   struct wpa_ssid *ssid)
+					   struct wpa_ssid *ssid,
+					   bool external)
 {
 	struct rsn_pmksa_cache_entry *pmksa;
 	const u8 *rsnxe, *peer_addr;
+	int key_mgmt;
 
-	peer_addr = wpa_s->valid_links ?
-		wpa_s->ap_mld_addr : wpa_s->pending_bssid;
+	peer_addr = sme_get_peer_addr(wpa_s, external);
+	key_mgmt = sme_get_key_mgmt(wpa_s, external);
 
 	rsnxe = wpa_bss_get_ie(bss, WLAN_EID_RSNX);
 	if (ssid->eap_over_auth_frame &&
@@ -573,7 +606,7 @@ static void sme_check_802_1x_pmksa_caching(struct wpa_supplicant *wpa_s,
 
 	if (wpa_s->auth_1x->derive_ptk &&
 	    pmksa_cache_set_current(wpa_s->wpa, NULL, peer_addr, ssid, 0, NULL,
-				    wpa_s->key_mgmt, false) == 0) {
+				    key_mgmt, false) == 0) {
 		wpa_dbg(wpa_s, MSG_DEBUG,
 			"IEEE 802.1X: PMKSA cache entry found, using PMKSA caching");
 		wpa_sm_set_pmk_from_pmksa(wpa_s->wpa);
@@ -590,7 +623,8 @@ static void sme_check_802_1x_pmksa_caching(struct wpa_supplicant *wpa_s,
 static struct wpabuf *
 sme_build_802_1x_auth_request(struct wpa_supplicant *wpa_s,
 			      struct wpa_bss *bss,
-			      struct wpa_ssid *ssid, bool start)
+			      struct wpa_ssid *ssid, bool start,
+			      bool external)
 {
 	if (start) {
 		sme_802_1x_auth_data_free(wpa_s);
@@ -598,7 +632,7 @@ sme_build_802_1x_auth_request(struct wpa_supplicant *wpa_s,
 		if (!wpa_s->auth_1x)
 			return NULL;
 
-		sme_check_802_1x_pmksa_caching(wpa_s, bss, ssid);
+		sme_check_802_1x_pmksa_caching(wpa_s, bss, ssid, external);
 
 		if (!wpa_s->auth_1x->pmksa_caching) {
 			eapol_sm_set_eap_over_auth_frame(wpa_s->eapol, true);
@@ -606,7 +640,7 @@ sme_build_802_1x_auth_request(struct wpa_supplicant *wpa_s,
 		}
 
 		wpa_s->auth_1x->auth_trans = 1;
-		return sme_build_802_1x_auth_start(wpa_s, ssid);
+		return sme_build_802_1x_auth_start(wpa_s, ssid, external);
 	}
 
 	return sme_build_802_1x_auth_continue(wpa_s);
@@ -1780,7 +1814,8 @@ skip_setup:
 
 #ifdef CONFIG_IEEE8021X_AUTH
 	if (!skip_auth && params.auth_alg == WPA_AUTH_ALG_802_1X) {
-		resp = sme_build_802_1x_auth_request(wpa_s, bss, ssid, start);
+		resp = sme_build_802_1x_auth_request(wpa_s, bss, ssid, start,
+						     false);
 		if (!resp) {
 			wpas_connection_failed(wpa_s, bss->bssid, NULL);
 			return;
@@ -2367,6 +2402,163 @@ static void sme_ext_auth_get_freq(struct wpa_supplicant *wpa_s,
 }
 
 
+#ifdef CONFIG_IEEE8021X_AUTH
+
+static void sme_external_auth_build_802_1x_buf(struct wpabuf *buf,
+					       struct wpabuf *params,
+					       const u8 *sa, const u8 *da,
+					       const u8 *mld_addr)
+{
+	struct ieee80211_hdr *hdr;
+
+	hdr = wpabuf_put(buf, sizeof(*hdr));
+	hdr->frame_control = host_to_le16((WLAN_FC_TYPE_MGMT << 2) |
+					  (WLAN_FC_STYPE_AUTH << 4));
+	os_memcpy(hdr->addr1, da, ETH_ALEN);
+	os_memcpy(hdr->addr2, sa, ETH_ALEN);
+	os_memcpy(hdr->addr3, da, ETH_ALEN);
+
+	wpabuf_put_le16(buf, WLAN_AUTH_802_1X);
+
+	if (params)
+		wpabuf_put_buf(buf, params);
+
+	if (mld_addr)
+		wpa_auth_ml_ie(buf, mld_addr);
+}
+
+
+static int sme_external_auth_send_802_1x(struct wpa_supplicant *wpa_s,
+					 struct wpa_ssid *ssid, bool start)
+{
+	struct wpabuf *resp, *buf;
+	struct wpa_bss *bss = NULL;
+	size_t buf_len;
+	int ret = -1;
+
+	if (start)
+		bss = wpa_bss_get_bssid_latest(wpa_s,
+					       wpa_s->sme.ext_auth_bssid);
+
+	resp = sme_build_802_1x_auth_request(wpa_s, bss, ssid, start, true);
+	if (!resp)
+		return -1;
+
+	buf_len = offsetof(struct ieee80211_mgmt, u.auth.variable) +
+		wpabuf_len(resp);
+	if (wpa_s->sme.ext_ml_auth)
+		buf_len += WPA_AUTH_FRAME_ML_IE_LEN;
+
+	buf = wpabuf_alloc(buf_len);
+	if (!buf)
+		goto fail;
+
+	sme_external_auth_build_802_1x_buf(buf, resp, wpa_s->own_addr,
+					   wpa_s->sme.ext_auth_bssid,
+					   wpa_s->sme.ext_ml_auth ?
+					   wpa_s->own_addr : NULL);
+
+	if (wpa_drv_send_mlme(wpa_s, wpabuf_head(buf), wpabuf_len(buf),
+			      0, 0, 0) < 0) {
+		wpa_printf(MSG_INFO,
+			   "IEEE 802.1X: Failed to send Authentication frame");
+		goto fail;
+	}
+
+	ret = 0;
+fail:
+	wpabuf_free(resp);
+	wpabuf_free(buf);
+	return ret;
+}
+
+
+static int sme_external_auth_start_802_1x(struct wpa_supplicant *wpa_s,
+					  struct external_auth *ext_auth)
+{
+	struct wpa_ssid *ssid;
+	const u8 *ssid_str = ext_auth->ssid;
+	size_t ssid_str_len = ext_auth->ssid_len;
+
+	wpa_s->sme.ext_auth_wpa_ssid = NULL;
+	/* Match the driver-provided SSID against configured network blocks */
+	for (ssid = wpa_s->conf->ssid; ssid; ssid = ssid->next) {
+		if (!wpas_network_disabled(wpa_s, ssid) &&
+		    ssid_str_len == ssid->ssid_len &&
+		    os_memcmp(ssid_str, ssid->ssid, ssid_str_len) == 0 &&
+		    wpa_key_mgmt_wpa_ieee8021x(ssid->key_mgmt)) {
+			wpa_s->sme.ext_auth_wpa_ssid = ssid;
+			break;
+		}
+	}
+	if (!ssid)
+		return -1;
+
+	wpa_s->sme.ext_auth_alg = ext_auth->auth_alg;
+	wpa_s->sme.ext_pairwise_cipher = ext_auth->pairwise_cipher;
+	wpa_s->sme.ext_group_cipher = ext_auth->group_cipher;
+	wpa_s->sme.ext_mgmt_group_cipher = ext_auth->group_mgmt_cipher;
+	wpa_s->sme.ext_rsn_capab = ext_auth->rsn_capab;
+	if (ext_auth->rsnxe_data &&
+	    ext_auth->rsnxe_data_len <= sizeof(wpa_s->sme.ext_rsnxe)) {
+		os_memcpy(wpa_s->sme.ext_rsnxe, ext_auth->rsnxe_data,
+			  ext_auth->rsnxe_data_len);
+		wpa_s->sme.ext_rsnxe_len = ext_auth->rsnxe_data_len;
+	}
+
+	if (sme_external_auth_send_802_1x(wpa_s, ssid, 1) < 0)
+		return -1;
+
+	return 0;
+}
+
+
+static bool is_ieee8021x_key_mgmt_suite(struct wpa_supplicant *wpa_s, u32 suite)
+{
+	/*
+	 * If an originator chooses to initiate IEEE 802.1X authentication
+	 * utilizing Authentication frames, it shall select an IEEE 802.1X AKM,
+	 * other than IEEE 802.1X AKM 00-0F-AC:1.
+	 */
+	static const struct {
+		u32 selector;
+		int key_mgmt;
+	} suite_map[] = {
+		{ RSN_AUTH_KEY_MGMT_FT_802_1X, WPA_KEY_MGMT_FT_IEEE8021X },
+		{ RSN_AUTH_KEY_MGMT_802_1X_SHA256,
+		  WPA_KEY_MGMT_IEEE8021X_SHA256 },
+		{ RSN_AUTH_KEY_MGMT_802_1X_SUITE_B,
+		  WPA_KEY_MGMT_IEEE8021X_SUITE_B },
+		{ RSN_AUTH_KEY_MGMT_802_1X_SUITE_B_192,
+		  WPA_KEY_MGMT_IEEE8021X_SUITE_B_192 },
+		{ RSN_AUTH_KEY_MGMT_FT_802_1X_SHA384,
+		  WPA_KEY_MGMT_FT_IEEE8021X_SHA384 },
+		{ RSN_AUTH_KEY_MGMT_FILS_SHA256,
+		  WPA_KEY_MGMT_FILS_SHA256 },
+		{ RSN_AUTH_KEY_MGMT_FILS_SHA384,
+		  WPA_KEY_MGMT_FILS_SHA384 },
+		{ RSN_AUTH_KEY_MGMT_FT_FILS_SHA256,
+		  WPA_KEY_MGMT_FT_FILS_SHA256 },
+		{ RSN_AUTH_KEY_MGMT_FT_FILS_SHA384,
+		  WPA_KEY_MGMT_FT_FILS_SHA384 },
+		{ RSN_AUTH_KEY_MGMT_802_1X_SHA384,
+		  WPA_KEY_MGMT_IEEE8021X_SHA384 },
+	};
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(suite_map); i++) {
+		if (suite == suite_map[i].selector) {
+			wpa_s->sme.ext_auth_key_mgmt = suite_map[i].key_mgmt;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+#endif /* CONFIG_IEEE8021X_AUTH */
+
+
 void sme_external_auth_trigger(struct wpa_supplicant *wpa_s,
 			       union wpa_event_data *data)
 {
@@ -2378,6 +2570,13 @@ void sme_external_auth_trigger(struct wpa_supplicant *wpa_s,
 			return;
 		break;
 #endif /* CONFIG_ENC_ASSOC */
+#ifdef CONFIG_IEEE8021X_AUTH
+	case WLAN_AUTH_802_1X:
+		if (!is_ieee8021x_key_mgmt_suite(
+			    wpa_s, data->external_auth.key_mgmt_suite))
+			return;
+		break;
+#endif /* CONFIG_IEEE8021X_AUTH */
 	default:
 #ifdef CONFIG_SAE
 		if (!is_sae_key_mgmt_suite(wpa_s,
@@ -2414,6 +2613,15 @@ void sme_external_auth_trigger(struct wpa_supplicant *wpa_s,
 			return;
 		}
 #endif /* CONFIG_ENC_ASSOC */
+#ifdef CONFIG_IEEE8021X_AUTH
+		if (data->external_auth.auth_alg == WLAN_AUTH_802_1X) {
+			if (sme_external_auth_start_802_1x(
+				    wpa_s, &data->external_auth) < 0)
+				sme_send_external_auth_status(
+					wpa_s, WLAN_STATUS_UNSPECIFIED_FAILURE);
+			return;
+		}
+#endif /* CONFIG_IEEE8021X_AUTH */
 #ifdef CONFIG_SAE
 		wpa_s->sme.seq_num = 0;
 		wpa_s->sme.sae.state = SAE_NOTHING;

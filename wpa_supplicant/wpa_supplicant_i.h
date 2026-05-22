@@ -1121,6 +1121,13 @@ struct wpa_supplicant {
 		u8 ext_auth_ap_mld_addr[ETH_ALEN];
 		bool ext_ml_auth;
 		u16 assoc_auth_type;
+		int ext_auth_alg;
+		int ext_pairwise_cipher;
+		int ext_group_cipher;
+		int ext_mgmt_group_cipher;
+		u16 ext_rsn_capab;
+		u8 ext_rsnxe[257];
+		size_t ext_rsnxe_len;
 	} sme;
 #endif /* CONFIG_SME */
 
