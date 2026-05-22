@@ -792,7 +792,7 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 	const u8 *indic;
 	u16 fils_info;
 #endif /* CONFIG_FILS */
-	u32 capab = 0;
+	u64 capab = 0;
 	bool derive_kdk;
 	int ret;
 
@@ -909,6 +909,20 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 			capab |= BIT(WLAN_RSNX_CAPAB_ASSOC_FRAME_ENCRYPTION);
 			capab |= BIT(WLAN_RSNX_CAPAB_KEK_IN_PASN);
 			pasn->derive_kek = true;
+#ifdef CONFIG_SAE
+			/*
+			 * Advertise support for changing SAE password
+			 * identifiers if configured per network profile.
+			 */
+			if (ssid && ssid->sae_password_id &&
+			    ssid->sae_password_id_change &&
+			    wpa_key_mgmt_sae_ext_key(awork->akmp)) {
+				capab |= BIT_ULL(
+					WLAN_RSNX_CAPAB_SAE_PW_ID_CHANGE);
+				wpa_sm_set_param(wpa_s->wpa,
+						 WPA_PARAM_SAE_PW_ID_CHANGE, 1);
+			}
+#endif /* CONFIG_SAE */
 #ifdef CONFIG_PMKSA_PRIVACY
 			if ((wpa_s->drv_flags2 &
 			     WPA_DRIVER_FLAGS2_PMKSA_PRIVACY) &&
