@@ -1236,6 +1236,7 @@ static int wpas_pasn_immediate_retry(struct wpa_supplicant *wpa_s,
 	u8 own_addr[ETH_ALEN];
 	u8 peer_addr[ETH_ALEN];
 	int network_id;
+	unsigned int auth_alg;
 
 	wpa_printf(MSG_DEBUG, "PASN: Immediate retry");
 	os_memcpy(own_addr, pasn->own_addr, ETH_ALEN);
@@ -1244,11 +1245,19 @@ static int wpas_pasn_immediate_retry(struct wpa_supplicant *wpa_s,
 	/* Hold network ID to avoid losing it in wpas_pasn_reset(). */
 	network_id = pasn->network_id;
 
+	/*
+	 * Cache auth_alg before reset as wpas_pasn_reset() clears the pasn
+	 * struct. This path is shared with EPPKE, so without preserving it,
+	 * a group rejection retry would incorrectly restart with PASN instead
+	 * of EPPKE.
+	 */
+	auth_alg = pasn->auth_alg;
+
 	wpas_pasn_reset(wpa_s);
 
 	return wpas_pasn_auth_start(wpa_s, own_addr, peer_addr, akmp, cipher,
 				    group, network_id, params->comeback,
-				    params->comeback_len, pasn->auth_alg,
+				    params->comeback_len, auth_alg,
 				    pasn->group_cipher,
 				    pasn->group_mgmt_cipher, pasn->rsn_capab,
 				    pasn->rsnxe_ie, pasn->is_ml_peer);
