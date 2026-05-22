@@ -15138,7 +15138,10 @@ static int nl80211_send_external_auth_status(void *priv,
 			     PMKID_LEN, params->pmkid)) ||
 		    (params->bssid &&
 		     nla_put(msg, QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_BSSID,
-			     ETH_ALEN, params->bssid)))
+			     ETH_ALEN, params->bssid)) ||
+		    (params->kck && params->kck_len &&
+		     nla_put(msg, QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_PTK_KCK,
+			     params->kck_len, params->kck)))
 			goto fail;
 
 		nla_nest_end(msg, attr);

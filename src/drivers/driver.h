@@ -3216,6 +3216,9 @@ enum wpa_drv_update_connect_params_mask {
  * @rsn_capab: RSN capabilities
  * @rsnxe_data: Extended RSN capabilities data
  * @rsnxe_data_len: Length of Extended RSN capabilities data in octets
+ * @kck: Key Confirmation Key (KCK) to pass to driver for IEEE 802.1X
+ *	Authentication offload
+ * @kck_len: Length of the KCK
  */
 struct external_auth {
 	enum {
@@ -3236,6 +3239,9 @@ struct external_auth {
 	u16 rsn_capab;
 	const u8 *rsnxe_data;
 	size_t rsnxe_data_len;
+
+	const u8 *kck;
+	size_t kck_len;
 };
 
 #define WPAS_MAX_PASN_PEERS 10
