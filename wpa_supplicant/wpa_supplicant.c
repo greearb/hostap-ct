@@ -3951,6 +3951,17 @@ static u8 * wpas_populate_assoc_ies(
 		algs = WPA_AUTH_ALG_SAE;
 #endif /* CONFIG_SAE */
 
+#ifdef CONFIG_IEEE8021X_AUTH
+	if (ssid->eap_over_auth_frame &&
+	    (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_802_1X_AUTH) &&
+	    wpa_key_mgmt_wpa_ieee8021x(wpa_s->key_mgmt &
+				       ~WPA_KEY_MGMT_IEEE8021X)) {
+		wpa_dbg(wpa_s, MSG_DEBUG,
+			"IEEE 802.1X Authentication using Authentication frames");
+		algs = WPA_AUTH_ALG_802_1X;
+	}
+#endif /* CONFIG_IEEE8021X_AUTH */
+
 	wpa_dbg(wpa_s, MSG_DEBUG, "Automatic auth_alg selection: 0x%x", algs);
 	if (ssid->auth_alg) {
 		algs = ssid->auth_alg;
