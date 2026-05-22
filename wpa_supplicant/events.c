@@ -3565,6 +3565,13 @@ static void wpas_parse_connection_info(struct wpa_supplicant *wpa_s,
 			    "PMKID privacy: ANonce in Assoc Response",
 			    wpa_s->pmkid_anonce, NONCE_LEN);
 	}
+	if (wpa_s->assoc_resp_encrypted && req_elems.nonce) {
+		os_memcpy(wpa_s->pmkid_snonce, req_elems.nonce, NONCE_LEN);
+		wpa_s->pmkid_snonce_set = true;
+		wpa_hexdump(MSG_DEBUG,
+			    "PMKID privacy: SNonce in Assoc Request",
+			    wpa_s->pmkid_snonce, NONCE_LEN);
+	}
 #endif /* CONFIG_PMKSA_PRIVACY */
 
 	sta_supported_chan_width = get_supported_channel_width(&req_elems);
@@ -4767,7 +4774,9 @@ static void wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 	    wpa_s->assoc_resp_encrypted &&
 	    wpa_sm_pmksa_privacy_supported(wpa_s->wpa) &&
 	    (wpa_s->drv_flags2 &
-	     WPA_DRIVER_FLAGS2_ASSOCIATION_FRAME_ENCRYPTION)) {
+	     WPA_DRIVER_FLAGS2_ASSOCIATION_FRAME_ENCRYPTION) &&
+	    ((wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME) ||
+	     (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_PMKSA_PRIVACY))) {
 		struct rsn_pmksa_cache *t = wpa_sm_get_pmksa_cache(wpa_s->wpa);
 		const u8 *addr = wpa_s->valid_links ?
 			wpa_s->ap_mld_addr : wpa_s->bssid;

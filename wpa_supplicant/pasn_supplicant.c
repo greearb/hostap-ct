@@ -884,8 +884,14 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 	if ((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_SPP_AMSDU) &&
 	    ieee802_11_rsnx_capab(rsnxe, WLAN_RSNX_CAPAB_SPP_A_MSDU))
 		capab |= BIT(WLAN_RSNX_CAPAB_SPP_A_MSDU);
+	ssid = wpa_config_get_network(wpa_s->conf, awork->network_id);
 #ifdef CONFIG_ENC_ASSOC
 	if (awork->auth_alg == WLAN_AUTH_EPPKE) {
+		if (!ssid) {
+			wpa_printf(MSG_DEBUG,
+				   "EPPKE: No network profile found");
+			goto fail;
+		}
 		if (!ieee802_11_rsnx_capab(rsnxe, WLAN_RSNX_CAPAB_KEK_IN_PASN))
 		{
 			wpa_printf(MSG_INFO,
@@ -903,6 +909,16 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 			capab |= BIT(WLAN_RSNX_CAPAB_ASSOC_FRAME_ENCRYPTION);
 			capab |= BIT(WLAN_RSNX_CAPAB_KEK_IN_PASN);
 			pasn->derive_kek = true;
+#ifdef CONFIG_PMKSA_PRIVACY
+			if ((wpa_s->drv_flags2 &
+			     WPA_DRIVER_FLAGS2_PMKSA_PRIVACY) &&
+			    ssid->pmksa_privacy &&
+			    ieee802_11_rsnx_capab(
+				    rsnxe,
+				    WLAN_RSNX_CAPAB_PMKSA_CACHING_PRIVACY))
+				capab |= BIT(
+					WLAN_RSNX_CAPAB_PMKSA_CACHING_PRIVACY);
+#endif /* CONFIG_PMKSA_PRIVACY */
 		}
 	}
 #endif /* CONFIG_ENC_ASSOC */
@@ -910,7 +926,6 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 	pasn_set_rsnxe_caps(pasn, capab);
 	pasn_register_callbacks(pasn, wpa_s, wpas_pasn_send_mlme, NULL, NULL,
 				NULL);
-	ssid = wpa_config_get_network(wpa_s->conf, awork->network_id);
 
 #ifdef CONFIG_SAE
 	if (awork->akmp == WPA_KEY_MGMT_SAE ||
