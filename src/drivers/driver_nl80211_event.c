@@ -990,7 +990,8 @@ static void mlme_event_connect(struct wpa_driver_nl80211_data *drv,
 			       struct nlattr *fils_erp_next_seq_num,
 			       struct nlattr *fils_pmk,
 			       struct nlattr *fils_pmkid,
-			       struct nlattr *mlo_links)
+			       struct nlattr *mlo_links,
+			       struct nlattr *assoc_encrypted)
 {
 	union wpa_event_data event;
 	const u8 *ssid = NULL;
@@ -1164,6 +1165,9 @@ static void mlme_event_connect(struct wpa_driver_nl80211_data *drv,
 
 	if (fils_pmkid)
 		event.assoc_info.fils_pmkid = nla_data(fils_pmkid);
+
+	if (assoc_encrypted)
+		event.assoc_info.assoc_encrypted = true;
 
 	wpa_supplicant_event(drv->ctx, EVENT_ASSOC, &event);
 
@@ -3116,7 +3120,8 @@ static void qca_nl80211_key_mgmt_auth(struct wpa_driver_nl80211_data *drv,
 			   tb[QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_FILS_ERP_NEXT_SEQ_NUM],
 			   tb[QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_PMK],
 			   tb[QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_PMKID],
-			   tb[QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_MLO_LINKS]);
+			   tb[QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_MLO_LINKS],
+			   NULL);
 
 #ifdef ANDROID
 #ifdef ANDROID_LIB_EVENT
@@ -4671,7 +4676,8 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 				   tb[NL80211_ATTR_FILS_ERP_NEXT_SEQ_NUM],
 				   tb[NL80211_ATTR_PMK],
 				   tb[NL80211_ATTR_PMKID],
-				   tb[NL80211_ATTR_MLO_LINKS]);
+				   tb[NL80211_ATTR_MLO_LINKS],
+				   tb[NL80211_ATTR_ASSOC_ENCRYPTED]);
 		break;
 	case NL80211_CMD_CH_SWITCH_STARTED_NOTIFY:
 		mlme_event_ch_switch(drv,

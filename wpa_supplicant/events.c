@@ -3716,9 +3716,16 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 	wpa_s->ssid_verified = false;
 	wpa_s->bigtk_set = false;
 #ifdef CONFIG_ENC_ASSOC
-	if (data->assoc_info.resp_frame &&
-	    data->assoc_info.resp_frame_len >= 2 &&
-	    (WPA_GET_LE16(data->assoc_info.resp_frame) & WLAN_FC_PROTECTED)) {
+	/*
+	 * For SME-in-wpa_supplicant, check the Protected bit in the frame
+	 * header. For SME-in-driver, the full frame is not available, so use
+	 * the assoc_encrypted flag indicated by the driver instead.
+	 */
+	if ((data->assoc_info.resp_frame &&
+	     data->assoc_info.resp_frame_len >= 2 &&
+	     (WPA_GET_LE16(data->assoc_info.resp_frame) & WLAN_FC_PROTECTED)) ||
+	    (!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME) &&
+	     data->assoc_info.assoc_encrypted)) {
 		wpa_printf(MSG_INFO, "Association Response frame is encrypted");
 		wpa_s->assoc_resp_encrypted = true;
 	} else {

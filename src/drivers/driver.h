@@ -6846,6 +6846,13 @@ union wpa_event_data {
 		 *	-1 if MLO is not used
 		 */
 		int assoc_link_id;
+
+		/**
+		 * assoc_encrypted - Indicate that the (Re)Association
+		 * Request/Response frames are transmitted encrypted over the
+		 * air.
+		 */
+		bool assoc_encrypted;
 	} assoc_info;
 
 	/**
