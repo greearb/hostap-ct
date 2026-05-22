@@ -52,6 +52,10 @@ static void sme_obss_scan_timeout(void *eloop_ctx, void *timeout_ctx);
 static void sme_stop_sa_query(struct wpa_supplicant *wpa_s);
 static int sme_validate_basic_mle(const struct ieee802_11_elems *elems,
 				  const u8 *addr);
+#ifdef CONFIG_IEEE8021X_AUTH
+static void sme_process_802_1x_auth_response(struct wpa_supplicant *wpa_s,
+					     union wpa_event_data *data);
+#endif /* CONFIG_IEEE8021X_AUTH */
 
 static const u8 * sme_get_peer_addr(struct wpa_supplicant *wpa_s, bool external)
 {
@@ -3112,6 +3116,26 @@ void sme_external_auth_mgmt_rx(struct wpa_supplicant *wpa_s,
 			return;
 		}
 #endif /* CONFIG_ENC_ASSOC */
+#ifdef CONFIG_IEEE8021X_AUTH
+	} else if (le_to_host16(header->u.auth.auth_alg) ==
+		   WLAN_AUTH_802_1X) {
+		union wpa_event_data data;
+
+		os_memset(&data, 0, sizeof(data));
+		os_memcpy(data.auth.peer, header->sa, ETH_ALEN);
+		data.auth.auth_type = le_to_host16(header->u.auth.auth_alg);
+		data.auth.auth_transaction =
+			le_to_host16(header->u.auth.auth_transaction);
+		data.auth.status_code =
+			le_to_host16(header->u.auth.status_code);
+		data.auth.ies = header->u.auth.variable;
+		data.auth.ies_len = len - auth_length;
+		data.auth.frame_body = (const u8 *) &header->u.auth;
+		data.auth.frame_body_len = len - IEEE80211_HDRLEN;
+
+		sme_process_802_1x_auth_response(wpa_s, &data);
+		return;
+#endif /* CONFIG_IEEE8021X_AUTH */
 	}
 #endif /* CONFIG_SAE */
 }
