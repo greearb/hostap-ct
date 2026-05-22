@@ -2858,6 +2858,15 @@ static int nl80211_mgmt_subscribe_non_ap(struct i802_bss *bss)
 	}
 #endif /* CONFIG_ENC_ASSOC */
 
+#ifdef CONFIG_IEEE8021X_AUTH
+	if ((drv->capa.flags2 & WPA_DRIVER_FLAGS2_802_1X_AUTH) &&
+	    !(drv->capa.flags & WPA_DRIVER_FLAGS_SME)) {
+		/* register for IEEE 802.1X Authentication frames */
+		nl80211_register_frame(bss, bss->nl_mgmt, type,
+				       (const u8 *) "\x08\x00", 2, false);
+	}
+#endif /* CONFIG_IEEE8021X_AUTH */
+
 #ifdef CONFIG_PASN
 	/* register for PASN Authentication frames */
 	if (nl80211_register_frame(bss, bss->nl_mgmt, type,
