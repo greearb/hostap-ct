@@ -947,6 +947,13 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 				   "EPPKE: ASSOC_FRAME_ENCRYPTION not set in AP RSNXE");
 			goto fail;
 		}
+		if (awork->akmp == WPA_KEY_MGMT_EPPKE &&
+		    !ieee802_11_rsnx_capab(rsnxe,
+					   WLAN_RSNX_CAPAB_UNAUTH_EPPKE)) {
+			wpa_printf(MSG_DEBUG,
+				   "EPPKE: AP does not support unauthenticated EPPKE");
+			goto fail;
+		}
 		if (wpa_s->drv_flags2 &
 		    WPA_DRIVER_FLAGS2_ASSOCIATION_FRAME_ENCRYPTION) {
 			capab |= BIT(WLAN_RSNX_CAPAB_ASSOC_FRAME_ENCRYPTION);
