@@ -23161,6 +23161,45 @@ enum qca_wlan_vendor_attr_feature_config_data {
  * - If neither %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ALLOW_NSS_GT_2 nor
  *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISALLOW_NSS_GT_2 is configured, the
  *   driver follows its default NSS negotiation logic.
+ *
+ * @QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_ENABLE:
+ * Enable UL TX Beamformer capability only if the AP's Beacon and Probe
+ * Response frames include information that matches at least one entry from
+ * the configuration data list specified in
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST irrespective of AP's
+ * beamforming capabilities.
+ * If no match is found, the driver must disable the UL TX Beamformer
+ * capability.
+ *
+ * Interaction with other actions:
+ * - If a new configuration with
+ *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_ENABLE
+ *   is specified, any existing configuration with
+ *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_DISABLE will be
+ *   cleared.
+ * - If neither %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_ENABLE
+ *   nor %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_DISABLE is
+ *   configured, the driver uses UL TX Beamformer capability based on default
+ *   configuration and device support.
+ *
+ * @QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_DISABLE:
+ * Disable UL TX Beamformer capability if the AP's Beacon and Probe Response
+ * frames include information that matches at least one entry from the
+ * configuration data list specified in
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST irrespective of AP's
+ * beamforming capabilities.
+ * If no match is found, the driver may enable UL TX Beamformer capability.
+ *
+ * Interaction with other actions:
+ * - If a new configuration with
+ *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_DISABLE
+ *   is specified, any existing configuration with
+ *   %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_ENABLE will be
+ *   cleared.
+ * - If neither %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_ENABLE
+ *   nor %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_DISABLE is
+ *   configured, the driver uses UL TX Beamformer capability based on default
+ *   configuration and device support.
  */
 
 enum qca_wlan_vendor_feature_config_action {
@@ -23169,6 +23208,8 @@ enum qca_wlan_vendor_feature_config_action {
 	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ADAPTIVE_DSMPS_BY_RSSI = 2,
 	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ALLOW_NSS_GT_2 = 3,
 	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISALLOW_NSS_GT_2 = 4,
+	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_ENABLE = 5,
+	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_DISABLE = 6,
 };
 
 /**
