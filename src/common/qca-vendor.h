@@ -4365,6 +4365,12 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_VLAN = 144,
 
+	/* 8-bit unsigned value to enable/disable the driver to allow forwarding
+	 * 3-address multicast frames in WDS mode
+	 * 1-Enable, 0-Disable.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_ALLOW_3ADDR_MC = 145,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
