@@ -3059,8 +3059,11 @@ static int sme_sae_set_pmk(struct wpa_supplicant *wpa_s, const u8 *bssid)
 static void sme_handle_eppke_unknown_password_id(struct wpa_supplicant *wpa_s,
 						 bool external)
 {
-	struct wpa_ssid *ssid = wpa_s->current_ssid;
-	const u8 *bssid = wpa_s->pending_bssid;
+	struct wpa_ssid *ssid;
+	const u8 *bssid;
+
+	ssid = external ? wpa_s->sme.ext_auth_wpa_ssid : wpa_s->current_ssid;
+	bssid = external ? wpa_s->sme.ext_auth_bssid : wpa_s->pending_bssid;
 
 	if (ssid && ssid->alt_sae_password_ids &&
 	    ssid->alt_sae_passwords_ids_used) {
@@ -3082,8 +3085,13 @@ static void sme_handle_eppke_unknown_password_id(struct wpa_supplicant *wpa_s,
 		WPA_EVENT_SAE_UNKNOWN_PASSWORD_IDENTIFIER MACSTR,
 		MAC2STR(bssid));
 
-	wpas_connection_failed(wpa_s, bssid, NULL);
-	wpa_supplicant_set_state(wpa_s, WPA_DISCONNECTED);
+	if (external) {
+		sme_send_external_auth_status(wpa_s,
+					      WLAN_STATUS_UNSPECIFIED_FAILURE);
+	} else {
+		wpas_connection_failed(wpa_s, bssid, NULL);
+		wpa_supplicant_set_state(wpa_s, WPA_DISCONNECTED);
+	}
 }
 #endif /* CONFIG_ENC_ASSOC */
 
@@ -3133,14 +3141,26 @@ void sme_external_auth_mgmt_rx(struct wpa_supplicant *wpa_s,
 			return;
 #ifdef CONFIG_ENC_ASSOC
 	} else if (le_to_host16(header->u.auth.auth_alg) == WLAN_AUTH_EPPKE) {
-		int res = wpas_pasn_auth_rx(wpa_s, header, len);
+		int res;
+		u16 status_code = le_to_host16(header->u.auth.status_code);
 
+		/*
+		 * Handle unknown password identifier rejection for EPPKE:
+		 * remove the rejected alternative password identifier and
+		 * report the event.
+		 */
+		if (status_code == WLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER) {
+			sme_handle_eppke_unknown_password_id(wpa_s, true);
+			return;
+		}
+
+		res = wpas_pasn_auth_rx(wpa_s, header, len);
 		if (res < 0) {
 			/* Notify failure to the driver */
 			sme_send_external_auth_status(
 				wpa_s,
 				res == -2 ?
-				le_to_host16(header->u.auth.status_code) :
+				status_code :
 				WLAN_STATUS_UNSPECIFIED_FAILURE);
 			return;
 		}
