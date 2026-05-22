@@ -986,12 +986,21 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 #ifdef CONFIG_SAE
 	if (awork->akmp == WPA_KEY_MGMT_SAE ||
 	    awork->akmp == WPA_KEY_MGMT_SAE_EXT_KEY) {
+		struct sae_pt *pt = NULL;
+
 		if (!ssid) {
 			wpa_printf(MSG_DEBUG,
 				   "PASN: No network profile found for SAE");
 			goto fail;
 		}
-		pasn_set_pt(pasn, wpas_pasn_sae_derive_pt(ssid, awork->group));
+#ifdef CONFIG_ENC_ASSOC
+		if (awork->auth_alg == WLAN_AUTH_EPPKE)
+			pt = wpas_pasn_sae_derive_pt_for_eppke(ssid,
+							       awork->group);
+#endif /* CONFIG_ENC_ASSOC */
+		if (awork->auth_alg != WLAN_AUTH_EPPKE)
+			pt = wpas_pasn_sae_derive_pt(ssid, awork->group);
+		pasn_set_pt(pasn, pt);
 		if (!pasn->pt) {
 			wpa_printf(MSG_DEBUG, "PASN: Failed to derive PT");
 			goto fail;
