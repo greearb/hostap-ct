@@ -663,20 +663,42 @@ static void wpas_pasn_reset(struct wpa_supplicant *wpa_s)
 
 static struct wpa_bss * wpas_pasn_allowed(struct wpa_supplicant *wpa_s,
 					  const u8 *peer_addr, int akmp,
-					  int cipher)
+					  int cipher, int auth_alg,
+					  int group_cipher,
+					  int group_mgmt_cipher)
 {
 	struct wpa_bss *bss;
 	const u8 *rsne;
 	struct wpa_ie_data rsne_data;
 	int ret;
 
-	if (ether_addr_equal(wpa_s->bssid, peer_addr)) {
+	if (auth_alg != WLAN_AUTH_EPPKE &&
+	    ether_addr_equal(wpa_s->bssid, peer_addr)) {
 		wpa_printf(MSG_DEBUG,
 			   "PASN: Not doing authentication with current BSS");
 		return NULL;
 	}
 
-	bss = wpa_bss_get_bssid_latest(wpa_s, peer_addr);
+	if (auth_alg == WLAN_AUTH_EPPKE) {
+#if defined(CONFIG_SME) && defined(CONFIG_SAE)
+		/* EPPKE processing can reach here only when external
+		 * authentication is used.
+		 *
+		 * In this flow, peer_addr is the peer MLD address for MLO.
+		 * However, wpa_bss_get_bssid_latest() matches a link BSSID
+		 * entry in the BSS table. Use the link BSSID saved by SME
+		 * in ext_auth_bssid for BSS lookup.
+		 */
+		bss = wpa_bss_get_bssid_latest(wpa_s,
+					       wpa_s->sme.ext_auth_bssid);
+#else /* CONFIG_SME && CONFIG_SAE */
+		wpa_printf(MSG_ERROR,
+			   "EPPKE ext-auth requires CONFIG_SME and CONFIG_SAE");
+		return NULL;
+#endif /* CONFIG_SME && CONFIG_SAE */
+	} else {
+		bss = wpa_bss_get_bssid_latest(wpa_s, peer_addr);
+	}
 	if (!bss) {
 		wpa_printf(MSG_DEBUG, "PASN: BSS not found");
 		return NULL;
@@ -700,6 +722,23 @@ static struct wpa_bss * wpas_pasn_allowed(struct wpa_supplicant *wpa_s,
 			   "PASN: AP does not support requested AKMP or cipher");
 		return NULL;
 	}
+
+#ifdef CONFIG_ENC_ASSOC
+	if (auth_alg == WLAN_AUTH_EPPKE) {
+		if (group_cipher &
+		    !(rsne_data.group_cipher & group_cipher)) {
+			wpa_printf(MSG_DEBUG,
+				   "EPPKE: AP does not support requested group cipher");
+			return NULL;
+		}
+		if (group_mgmt_cipher &&
+		    !(rsne_data.mgmt_group_cipher & group_mgmt_cipher)) {
+			wpa_printf(MSG_DEBUG,
+				   "EPPKE: AP does not support requested group mgmt cipher");
+			return NULL;
+		}
+	}
+#endif /* CONFIG_ENC_ASSOC */
 
 	return bss;
 }
@@ -740,7 +779,9 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 	 * established.
 	 */
 	bss = wpas_pasn_allowed(wpa_s, awork->peer_addr, awork->akmp,
-				awork->cipher);
+				awork->cipher, awork->auth_alg,
+				awork->group_cipher,
+				awork->group_mgmt_cipher);
 	if (!bss) {
 		wpa_printf(MSG_DEBUG, "PASN: auth_start_cb: Not allowed");
 		goto fail;
@@ -967,7 +1008,8 @@ int wpas_pasn_auth_start(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
-	bss = wpas_pasn_allowed(wpa_s, peer_addr, akmp, cipher);
+	bss = wpas_pasn_allowed(wpa_s, peer_addr, akmp, cipher, auth_alg,
+				group_cipher, group_mgmt_cipher);
 	if (!bss)
 		return -1;
 

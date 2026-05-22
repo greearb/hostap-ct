@@ -1254,8 +1254,9 @@ static bool is_pasn_auth_frame(struct pasn_data *pasn,
 		    !ether_addr_equal(mgmt->da, pasn->peer_addr)))
 		return false;
 
-	/* Not PASN; do nothing */
-	if (mgmt->u.auth.auth_alg != host_to_le16(WLAN_AUTH_PASN))
+	/* Not PASN/EPPKE; do nothing */
+	if (mgmt->u.auth.auth_alg != host_to_le16(WLAN_AUTH_PASN) &&
+	    mgmt->u.auth.auth_alg != host_to_le16(WLAN_AUTH_EPPKE))
 		return false;
 
 	return true;
