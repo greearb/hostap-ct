@@ -302,6 +302,113 @@ int wpa_gen_wpa_ie(struct wpa_sm *sm, u8 *wpa_ie, size_t wpa_ie_len)
 }
 
 
+/*
+ * wpa_external_auth_add_rsne - Build an RSNE for external authentication
+ * @rsne: Buffer in which the RSNE will be written
+ * @rsne_len: Length of the RSNE buffer
+ * @sm: Pointer to WPA state machine data from wpa_sm_init()
+ * @akmp: Authentication and key management protocol
+ * @pairwise_cipher: The pairwise cipher suite
+ * @group_cipher: The group addressed data cipher suite
+ * @group_mgmt_cipher: The group addressed management cipher suite
+ * @rsn_capab: RSN capabilities field
+ * Returns: Length of the RSNE or -1 on failure
+ */
+int wpa_external_auth_add_rsne(u8 *rsne, size_t rsne_len, struct wpa_sm *sm,
+			       int akmp, int pairwise_cipher, int group_cipher,
+			       int group_mgmt_cipher, u16 rsn_capab)
+{
+	struct rsn_ie_hdr *hdr;
+	u32 suite;
+	u8 *pos;
+
+	wpa_printf(MSG_DEBUG, "RSN: Ext-Auth: Build RSNE");
+
+	if (rsne_len < sizeof(*hdr) + RSN_SELECTOR_LEN +
+	    2 + RSN_SELECTOR_LEN + 2 + RSN_SELECTOR_LEN + 2 +
+	    (sm->cur_pmksa ? 2 + PMKID_LEN : 0)) {
+		wpa_printf(MSG_DEBUG, "Ext-Auth: Too short RSNE buffer (%lu bytes)",
+			   (unsigned long) rsne_len);
+		return -1;
+	}
+
+	hdr = (struct rsn_ie_hdr *) rsne;
+	hdr->elem_id = WLAN_EID_RSN;
+	WPA_PUT_LE16(hdr->version, RSN_VERSION);
+	pos = (u8 *) (hdr + 1);
+
+	/* Group cipher */
+	suite = wpa_cipher_to_suite(WPA_PROTO_RSN, group_cipher);
+	if (!suite || !wpa_cipher_valid_group(group_cipher)) {
+		wpa_printf(MSG_INFO,
+			   "RSN: Ext-Auth: Invalid group cipher 0x%x",
+			   group_cipher);
+		return -1;
+	}
+	RSN_SELECTOR_PUT(pos, suite);
+	pos += RSN_SELECTOR_LEN;
+
+	/* Pairwise cipher */
+	WPA_PUT_LE16(pos, 1);
+	pos += 2;
+	suite = wpa_cipher_to_suite(WPA_PROTO_RSN, pairwise_cipher);
+	if (!suite ||
+	    (!wpa_cipher_valid_pairwise(pairwise_cipher) &&
+	     pairwise_cipher != WPA_CIPHER_NONE)) {
+		wpa_printf(MSG_INFO,
+			   "RSN: Ext-Auth: Invalid pairwise cipher 0x%x",
+			   pairwise_cipher);
+		return -1;
+	}
+	RSN_SELECTOR_PUT(pos, suite);
+	pos += RSN_SELECTOR_LEN;
+
+	/* AKM suite */
+	WPA_PUT_LE16(pos, 1);
+	pos += 2;
+	suite = wpa_akm_to_suite(akmp);
+	if (!suite) {
+		wpa_printf(MSG_INFO, "RSN: Ext-Auth: Invalid AKMP 0x%x", akmp);
+		return -1;
+	}
+	RSN_SELECTOR_PUT(pos, suite);
+	pos += RSN_SELECTOR_LEN;
+
+	/* RSN Capabilities */
+	WPA_PUT_LE16(pos, rsn_capab);
+	pos += 2;
+
+	if (sm->cur_pmksa) {
+		wpa_printf(MSG_DEBUG, "RSN: Ext-Auth: Adding PMKID");
+		/* PMKID Count (2 octets, little endian) */
+		WPA_PUT_LE16(pos, 1);
+		/* PMKID */
+		os_memcpy(pos, sm->cur_pmksa->pmkid, PMKID_LEN);
+		pos += PMKID_LEN;
+	}
+
+	/* Group Management Cipher Suite */
+	if (wpa_cipher_valid_mgmt_group(group_mgmt_cipher)) {
+		if (!sm->cur_pmksa) {
+			/* PMKID Count */
+			WPA_PUT_LE16(pos, 0);
+			pos += 2;
+		}
+
+		/* Management Group Cipher Suite */
+		RSN_SELECTOR_PUT(pos, wpa_cipher_to_suite(WPA_PROTO_RSN,
+							  group_mgmt_cipher));
+		pos += RSN_SELECTOR_LEN;
+	}
+
+	hdr->len = (pos - rsne) - 2;
+
+	WPA_ASSERT((size_t) (pos - rsne) <= rsne_len);
+
+	return pos - rsne;
+}
+
+
 int wpa_gen_rsnxe(struct wpa_sm *sm, u8 *rsnxe, size_t rsnxe_len)
 {
 	u8 *pos = rsnxe;

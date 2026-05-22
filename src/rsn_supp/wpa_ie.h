@@ -18,5 +18,9 @@ int wpa_gen_wpa_ie_rsn(u8 *rsn_ie, size_t rsn_ie_len,
 		       struct wpa_sm *sm);
 int wpa_gen_rsnxe(struct wpa_sm *sm, u8 *rsnxe, size_t rsnxe_len);
 u16 rsn_supp_capab(struct wpa_sm *sm);
+int wpa_external_auth_add_rsne(u8 *rsne, size_t rsne_len, struct wpa_sm *sm,
+			       int akmp, int pairwise_cipher,
+			       int group_cipher, int group_mgmt_cipher,
+			       u16 rsn_capab);
 
 #endif /* WPA_IE_H */

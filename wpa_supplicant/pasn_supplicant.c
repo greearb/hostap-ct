@@ -20,6 +20,7 @@
 #include "crypto/random.h"
 #include "eap_common/eap_defs.h"
 #include "rsn_supp/wpa.h"
+#include "rsn_supp/wpa_ie.h"
 #include "rsn_supp/pmksa_cache.h"
 #include "wpa_supplicant_i.h"
 #include "driver_i.h"
@@ -745,6 +746,40 @@ static struct wpa_bss * wpas_pasn_allowed(struct wpa_supplicant *wpa_s,
 }
 
 
+#ifdef CONFIG_ENC_ASSOC
+/*
+ * Build RSNE for EPPKE in SME-in-driver mode.
+ */
+static int wpas_eppke_set_rsne(struct wpa_supplicant *wpa_s,
+			       struct pasn_data *pasn,
+			       struct wpa_pasn_auth_work *awork)
+{
+	u8 rsne[257];
+	int rsne_len;
+
+	rsne_len = wpa_external_auth_add_rsne(rsne, sizeof(rsne), wpa_s->wpa,
+					      awork->akmp, awork->cipher,
+					      awork->group_cipher,
+					      awork->group_mgmt_cipher,
+					      awork->rsn_capab);
+	if (rsne_len < 0) {
+		wpa_printf(MSG_DEBUG, "EPPKE: Failed to build RSNE");
+		return -1;
+	}
+
+	pasn_set_rsne(pasn, rsne);
+	if (!pasn->rsn_ie)
+		return -1;
+
+	wpa_printf(MSG_DEBUG,
+		   "EPPKE: RSNE for ext-auth (group=0x%x mgmt=0x%x capab=0x%x)",
+		   awork->group_cipher, awork->group_mgmt_cipher,
+		   awork->rsn_capab);
+	return 0;
+}
+#endif /* CONFIG_ENC_ASSOC */
+
+
 static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 {
 	struct wpa_supplicant *wpa_s = work->wpa_s;
@@ -952,6 +987,13 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 	 */
 	if (awork->auth_alg == WLAN_AUTH_EPPKE && ssid)
 		pasn->network_ctx = ssid;
+
+	/* Build RSNE for EPPKE Authentication in SME-in-driver mode */
+	if (awork->auth_alg == WLAN_AUTH_EPPKE &&
+	    wpas_eppke_set_rsne(wpa_s, pasn, awork) < 0) {
+		wpa_printf(MSG_DEBUG, "EPPKE: Failed to configure RSNE");
+		goto fail;
+	}
 #endif /* CONFIG_ENC_ASSOC */
 
 	ret = wpas_pasn_start(pasn, awork->own_addr, awork->peer_addr,
