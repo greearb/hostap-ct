@@ -4912,7 +4912,8 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit)
 	    wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_EPPKE) {
 		params.eppke_supported = true;
 		if (wpa_key_mgmt_sae_ext_key(params.key_mgmt_suite) ||
-		    wpa_key_mgmt_sae_ext_key(params.allowed_key_mgmts)) {
+		    wpa_key_mgmt_sae_ext_key(params.allowed_key_mgmts) ||
+		    wpa_key_mgmt_eppke(params.key_mgmt_suite)) {
 			wpa_dbg(wpa_s, MSG_DEBUG, "EPPKE authentication");
 			params.auth_alg = WPA_AUTH_ALG_EPPKE;
 		}
