@@ -26,6 +26,7 @@
 #include "bss.h"
 #include "scan.h"
 #include "config.h"
+#include "sme.h"
 
 static const int dot11RSNAConfigPMKLifetime = 43200;
 
@@ -1345,12 +1346,64 @@ fail:
 }
 
 
+#ifdef CONFIG_SME
+#ifdef CONFIG_ENC_ASSOC
+static u16 wpas_eppke_external_auth_set_keys(struct wpa_supplicant *wpa_s,
+					     struct pasn_data *pasn, bool acked)
+{
+	static const u8 zero[WPA_TK_MAX_LEN] = { 0 };
+	enum wpa_alg alg;
+	struct ptksa_cache_entry *entry;
+
+	if (!acked) {
+		wpa_printf(MSG_DEBUG,
+			   "EPPKE: Authentication frame 3 TX was not ACKed");
+		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+	}
+
+	alg = wpa_cipher_to_alg(pasn_get_cipher(pasn));
+	entry = ptksa_cache_get(wpa_s->ptksa, pasn->peer_addr,
+				pasn_get_cipher(pasn));
+	if (!entry) {
+		wpa_printf(MSG_INFO,
+			   "EPPKE: No PTKSA found to configure keys");
+		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+	}
+
+	/* Install TK to driver. */
+	if (wpa_drv_set_key(wpa_s, -1, alg, pasn->peer_addr, 0, 1, zero, 6,
+			    entry->ptk.tk, entry->ptk.tk_len,
+			    KEY_FLAG_PAIRWISE_RX_TX)) {
+		wpa_printf(MSG_DEBUG,
+			   "EPPKE: Failed to install TK to driver");
+		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+	}
+
+	/* Install LTF Keyseed to driver. */
+	if (pasn->secure_ltf &&
+	    wpa_drv_set_secure_ranging_ctx(wpa_s, pasn->own_addr,
+					   pasn->peer_addr,
+					   pasn_get_cipher(pasn), 0, NULL,
+					   entry->ptk.ltf_keyseed_len,
+					   entry->ptk.ltf_keyseed, 0)) {
+		wpa_printf(MSG_DEBUG,
+			   "EPPKE: Failed to install LTF Keyseed");
+		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+	}
+
+	return WLAN_STATUS_SUCCESS;
+}
+#endif /* CONFIG_ENC_ASSOC */
+#endif /* CONFIG_SME */
+
+
 int wpas_pasn_auth_tx_status(struct wpa_supplicant *wpa_s,
 			     const u8 *data, size_t data_len, u8 acked)
 
 {
 	struct pasn_data *pasn = &wpa_s->pasn;
 	int ret;
+	enum pasn_status auth_status = PASN_STATUS_SUCCESS;
 
 	if (!wpa_s->pasn_auth_work) {
 		wpa_printf(MSG_DEBUG,
@@ -1362,6 +1415,22 @@ int wpas_pasn_auth_tx_status(struct wpa_supplicant *wpa_s,
 	if (ret != 1)
 		return ret;
 
+	if (pasn->auth_alg == WLAN_AUTH_EPPKE) {
+#ifdef CONFIG_SME
+#ifdef CONFIG_ENC_ASSOC
+		u16 status;
+
+		status = wpas_eppke_external_auth_set_keys(wpa_s, pasn, acked);
+		if (status != WLAN_STATUS_SUCCESS)
+			auth_status = PASN_STATUS_FAILURE;
+#ifdef CONFIG_SAE
+		sme_send_external_auth_status(wpa_s, status);
+#endif /* CONFIG_SAE */
+#endif /* CONFIG_ENC_ASSOC */
+#endif /* CONFIG_SME */
+		goto auth_done;
+	}
+
 	if (!wpa_s->pasn_params) {
 		wpas_pasn_auth_stop(wpa_s);
 		return 0;
@@ -1370,8 +1439,9 @@ int wpas_pasn_auth_tx_status(struct wpa_supplicant *wpa_s,
 	wpas_pasn_set_keys_from_cache(wpa_s, pasn->own_addr, pasn->peer_addr,
 				      pasn_get_cipher(pasn),
 				      pasn_get_akmp(pasn));
+auth_done:
 	wpas_pasn_auth_stop(wpa_s);
-	wpas_pasn_auth_work_done(wpa_s, PASN_STATUS_SUCCESS);
+	wpas_pasn_auth_work_done(wpa_s, auth_status);
 
 	return 0;
 }

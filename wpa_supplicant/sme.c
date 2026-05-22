@@ -2142,8 +2142,7 @@ static int sme_external_auth_send_sae_commit(struct wpa_supplicant *wpa_s,
 }
 
 
-static void sme_send_external_auth_status(struct wpa_supplicant *wpa_s,
-					  u16 status)
+void sme_send_external_auth_status(struct wpa_supplicant *wpa_s, u16 status)
 {
 	struct external_auth params;
 
