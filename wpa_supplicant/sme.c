@@ -921,46 +921,6 @@ static void sme_add_assoc_req_ie(struct wpa_supplicant *wpa_s,
 
 #ifdef CONFIG_ENC_ASSOC
 
-static struct sae_pt *
-sme_eppke_sae_derive_pt(struct wpa_ssid *ssid, int group)
-{
-	const char *password = ssid->sae_password;
-	int groups[2] = { group, 0 };
-	const u8 *password_id = NULL;
-	size_t password_id_len = 0;
-
-	if (!password)
-		password = ssid->passphrase;
-
-	if (!password) {
-		wpa_printf(MSG_DEBUG, "EPPKE: SAE without a password");
-		return NULL;
-	}
-
-	/* Prefer an alternative (changing) password identifier if available */
-	if (ssid->alt_sae_password_ids && ssid->alt_sae_password_ids->num) {
-		unsigned int idx =
-			os_random() % ssid->alt_sae_password_ids->num;
-		struct wpabuf *id = ssid->alt_sae_password_ids->buf[idx];
-
-		password_id = wpabuf_head(id);
-		password_id_len = wpabuf_len(id);
-		wpa_hexdump(MSG_DEBUG,
-			    "EPPKE: Prepare PT for alternative password ID",
-			    password_id, password_id_len);
-		ssid->alt_sae_passwords_ids_idx = idx;
-		ssid->alt_sae_passwords_ids_used = true;
-	} else if (ssid->sae_password_id) {
-		password_id = (const u8 *) ssid->sae_password_id;
-		password_id_len = os_strlen(ssid->sae_password_id);
-	}
-
-	return sae_derive_pt(groups, ssid->ssid, ssid->ssid_len,
-			     (const u8 *) password, os_strlen(password),
-			     password_id, password_id_len);
-}
-
-
 static bool wpas_eppke_ap_capable(struct wpa_supplicant *wpa_s,
 				  struct wpa_bss *bss, bool unauth_eppke)
 {
@@ -1099,7 +1059,8 @@ static int wpas_eppke_initialize(struct wpa_supplicant *wpa_s,
 		}
 		if (pasn->pt)
 			sae_deinit_pt(pasn->pt);
-		pasn_set_pt(pasn, sme_eppke_sae_derive_pt(ssid, group));
+		pasn_set_pt(pasn, wpas_pasn_sae_derive_pt_for_eppke(ssid,
+								    group));
 		if (!pasn->pt) {
 			wpa_printf(MSG_DEBUG, "EPPKE: Failed to derive PT");
 			goto fail;

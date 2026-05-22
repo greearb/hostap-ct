@@ -2187,6 +2187,8 @@ int wpas_pasn_deauthenticate(struct wpa_supplicant *wpa_s, const u8 *own_addr,
 void wpas_pasn_auth_trigger(struct wpa_supplicant *wpa_s,
 			    struct pasn_auth *pasn_auth);
 void wpas_pasn_auth_work_done(struct wpa_supplicant *wpa_s, int status);
+struct sae_pt * wpas_pasn_sae_derive_pt_for_eppke(struct wpa_ssid *ssid,
+						  int group);
 bool wpas_is_6ghz_supported(struct wpa_supplicant *wpa_s, bool only_enabled);
 
 bool wpa_is_non_eht_scs_traffic_desc_supported(struct wpa_bss *bss);
