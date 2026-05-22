@@ -7569,7 +7569,8 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 	    params->key_mgmt_suite == WPA_KEY_MGMT_FT_FILS_SHA384 ||
 	    params->key_mgmt_suite == WPA_KEY_MGMT_OWE ||
 	    params->key_mgmt_suite == WPA_KEY_MGMT_DPP ||
-	    params->key_mgmt_suite == WPA_KEY_MGMT_IEEE8021X_SHA384) {
+	    params->key_mgmt_suite == WPA_KEY_MGMT_IEEE8021X_SHA384 ||
+	    params->key_mgmt_suite == WPA_KEY_MGMT_EPPKE) {
 		u32 *mgmt;
 		unsigned int akm_count = 1, i;
 
@@ -7652,6 +7653,9 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 			break;
 		case WPA_KEY_MGMT_IEEE8021X_SHA384:
 			mgmt[0] = RSN_AUTH_KEY_MGMT_802_1X_SHA384;
+			break;
+		case WPA_KEY_MGMT_EPPKE:
+			mgmt[0] = RSN_AUTH_KEY_MGMT_EPPKE;
 			break;
 		case WPA_KEY_MGMT_PSK:
 		default:
