@@ -3550,6 +3550,8 @@ static int get_auth_algo(enum nl80211_auth_type auth_alg)
 		return WLAN_AUTH_FILS_PK;
 	case NL80211_AUTHTYPE_EPPKE:
 		return WLAN_AUTH_EPPKE;
+	case NL80211_AUTHTYPE_IEEE8021X:
+		return WLAN_AUTH_802_1X;
 	default:
 		return -1;
 	}
