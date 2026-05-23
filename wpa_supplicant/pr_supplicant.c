@@ -1071,6 +1071,8 @@ int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 
 	if (pasn_role == PR_ROLE_PASN_RESPONDER) {
 		struct wpa_pr_pasn_roc_work *rwork;
+		struct pr_data *pr = wpa_s->global->pr;
+		unsigned int roc_time_ms = PR_PASN_RESPONDER_ROC_DURATION;
 		bool has_src_addr = src_addr && !is_zero_ether_addr(src_addr);
 
 		wpa_printf(MSG_DEBUG,
@@ -1112,9 +1114,15 @@ int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 		/*
 		 * Register the total-budget timer. When it fires it clears
 		 * pr_responder_mode so the cancel callback stops restarting
-		 * chunks.
+		 * chunks. Defaults to PR_PASN_RESPONDER_ROC_DURATION;
+		 * overridden by continuous_ranging_session_time when non-zero.
 		 */
-		eloop_register_timeout(0, PR_PASN_RESPONDER_ROC_DURATION * 1000,
+		if (pr && pr->pr_pasn_params &&
+		    pr->pr_pasn_params->continuous_ranging_session_time > 0)
+			roc_time_ms = pr->pr_pasn_params->continuous_ranging_session_time;
+
+		eloop_register_timeout(roc_time_ms / 1000,
+				       (roc_time_ms % 1000) * 1000,
 				       wpas_pr_pasn_roc_total_timeout,
 				       wpa_s, NULL);
 		return 0;
