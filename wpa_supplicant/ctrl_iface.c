@@ -11560,64 +11560,63 @@ static int wpas_ctrl_iface_pr_pasn_start(struct wpa_supplicant *wpa_s,
 					 char *cmd)
 {
 	char *token, *context = NULL;
-	u8 addr[ETH_ALEN];
-	int freq = 0, forced_pr_freq = 0;
-	u8 ranging_type = 0, role = 0, auth_mode = 0;
+	struct pr_pasn_ranging_params params;
 	bool got_addr = false;
-	u8 src_addr[ETH_ALEN], *p_src_addr = NULL;
-	enum pr_pasn_role pasn_role = PR_ROLE_PASN_INITIATOR;
+
+	os_memset(&params, 0, sizeof(params));
+	params.action = PR_PASN_AND_RANGING;
 
 	while ((token = str_token(cmd, " ", &context))) {
 		if (os_strncmp(token, "addr=", 5) == 0) {
-			if (hwaddr_aton(token + 5, addr))
+			if (hwaddr_aton(token + 5, params.peer_addr))
 				return -1;
 			got_addr = true;
 		} else if (os_strcmp(token, "role=ISTA") == 0) {
-			role |= PR_ISTA_SUPPORT;
+			params.ranging_role |= PR_ISTA_SUPPORT;
 		} else if (os_strcmp(token, "role=RSTA") == 0) {
-			role |= PR_RSTA_SUPPORT;
+			params.ranging_role |= PR_RSTA_SUPPORT;
 		} else if (os_strcmp(token, "ranging_type=EDCA") == 0) {
-			ranging_type |= PR_EDCA_BASED_RANGING;
+			params.ranging_type |= PR_EDCA_BASED_RANGING;
 		} else if (os_strcmp(token, "ranging_type=NTB-OPEN-PHY") == 0) {
-			ranging_type |= PR_NTB_OPEN_BASED_RANGING;
+			params.ranging_type |= PR_NTB_OPEN_BASED_RANGING;
 		} else if (os_strcmp(token, "ranging_type=NTB-SEC-PHY") == 0) {
-			ranging_type |= PR_NTB_SECURE_LTF_BASED_RANGING;
+			params.ranging_type |= PR_NTB_SECURE_LTF_BASED_RANGING;
 		} else if (os_strncmp(token, "freq=", 5) == 0) {
-			freq = atoi(token + 5);
+			params.freq = atoi(token + 5);
 		} else if (os_strncmp(token, "auth=", 5) == 0) {
-			auth_mode = atoi(token + 5);
+			params.auth_mode = atoi(token + 5);
 		} else if (os_strncmp(token, "forced_pr_freq=", 15) == 0) {
-			forced_pr_freq = atoi(token + 15);
+			params.forced_pr_freq = atoi(token + 15);
 		} else if (os_strncmp(token, "src_addr=", 9) == 0) {
-			if (hwaddr_aton(token + 9, src_addr))
+			if (hwaddr_aton(token + 9, params.src_addr))
 				return -1;
-			p_src_addr = src_addr;
 		} else if (os_strcmp(token, "pasn_role=INITIATOR") == 0) {
-			pasn_role = PR_ROLE_PASN_INITIATOR;
+			params.pasn_role = PR_ROLE_PASN_INITIATOR;
 		} else if (os_strcmp(token, "pasn_role=RESPONDER") == 0) {
-			pasn_role = PR_ROLE_PASN_RESPONDER;
+			params.pasn_role = PR_ROLE_PASN_RESPONDER;
 		} else {
 			wpa_printf(MSG_DEBUG,
-				   "CTRL: PASN invalid parameter: '%s'",
+				   "CTRL: PR_PASN_START invalid parameter: '%s'",
 				   token);
 			return -1;
 		}
 	}
 
-	if (!got_addr || ranging_type == 0 || role == 0 || freq == 0) {
+	if (!got_addr || params.ranging_type == 0 || params.ranging_role == 0 ||
+	    params.freq == 0) {
 		wpa_printf(MSG_DEBUG,
-			   "CTRL: Proximity Ranging PASN missing parameter");
+			   "CTRL: PR_PASN_START missing parameter");
 		return -1;
 	}
 
 	wpa_printf(MSG_DEBUG,
-		   "CTRL: PR PASN params: ranging type=0x%x, role=0x%x, pasn_role=%d, auth_mode=%d, forced pr freq=%d, addr="
-		   MACSTR " src_addr=" MACSTR,
-		   ranging_type, role, pasn_role, auth_mode, forced_pr_freq,
-		   MAC2STR(addr), MAC2STR(p_src_addr ? p_src_addr : addr));
-	return wpas_pr_initiate_pasn_auth(wpa_s, addr, freq, auth_mode, role,
-					  ranging_type, forced_pr_freq,
-					  p_src_addr, pasn_role);
+		   "CTRL: PR_PASN_START params: ranging type=0x%x, role=0x%x,"
+		   " auth_mode=%d, freq=%d, addr=" MACSTR " src_addr=" MACSTR " pasn_role=%d",
+		   params.ranging_type, params.ranging_role, params.auth_mode,
+		   params.freq, MAC2STR(params.peer_addr),
+		   MAC2STR(params.src_addr), params.pasn_role);
+
+	return wpas_pr_pasn_trigger(wpa_s, &params);
 }
 
 
