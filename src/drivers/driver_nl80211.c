@@ -4886,6 +4886,17 @@ static int wpa_driver_nl80211_send_mlme(struct i802_bss *bss, const u8 *data,
 		   noack, freq, no_cck, offchanok, wait_time,
 		   no_encrypt, fc, fc2str(fc), drv->nlmode);
 
+#ifdef CONFIG_PR
+	/* Route MLME TX via PD wdev if source address matches */
+	if (drv->pd_bss && ether_addr_equal(mgmt->sa, drv->pd_bss->addr)) {
+		bss = drv->pd_bss;
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: send_mlme - route via PD wdev sa=" MACSTR,
+			   MAC2STR(mgmt->sa));
+		link = bss->flink;
+	}
+#endif /* CONFIG_PR */
+
 	if ((is_sta_interface(drv->nlmode) ||
 	     drv->nlmode == NL80211_IFTYPE_P2P_DEVICE) &&
 	    WLAN_FC_GET_TYPE(fc) == WLAN_FC_TYPE_MGMT &&
