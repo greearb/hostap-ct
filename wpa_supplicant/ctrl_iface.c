@@ -14523,6 +14523,8 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 			reply_len = -1;
 	} else if (os_strcmp(buf, "PR_CLEAR_DIK_CONTEXT") == 0) {
 		wpas_pr_clear_dev_iks(wpa_s);
+	} else if (os_strcmp(buf, "PR_RANGING_ABORT") == 0) {
+		wpas_pr_abort_ranging(wpa_s);
 #endif /* CONFIG_PR */
 #ifdef CONFIG_TESTING_OPTIONS
 	} else if (os_strncmp(buf, "PASN_DRIVER ", 12) == 0) {

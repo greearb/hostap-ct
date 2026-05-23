@@ -1629,4 +1629,51 @@ int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 	return pr_pasn_auth_rx(pr, mgmt, len, freq);
 }
 
+
+void wpas_pr_abort_ranging(struct wpa_supplicant *wpa_s)
+{
+	struct pr_data *pr = wpa_s->global->pr;
+
+	if (!pr) {
+		wpa_printf(MSG_DEBUG, "PR: abort_ranging: PR not initialized");
+		return;
+	}
+
+	/* Check if there's an active ranging session */
+	if (is_zero_ether_addr(wpa_s->pd_addr) && !pr->pr_pasn_params) {
+		wpa_printf(MSG_DEBUG,
+			   "PR: abort_ranging: no active ranging session");
+		return;
+	}
+
+	wpa_printf(MSG_DEBUG, "PR: Aborting ranging session");
+
+	/*
+	 * Cancel PASN and ROC in case PD wdev is not yet created
+	 * (PASN still in progress or responder ROC active).
+	 */
+	wpas_pr_pasn_cancel_auth_work(wpa_s);
+	wpa_s->pr_pasn_auth_work = NULL;
+	if (wpa_s->pr_responder_mode) {
+		eloop_cancel_timeout(wpas_pr_pasn_roc_total_timeout,
+				     wpa_s, NULL);
+		wpa_drv_cancel_remain_on_channel(wpa_s);
+		wpa_s->off_channel_freq = 0;
+		wpa_s->roc_waiting_drv_freq = 0;
+		wpas_pr_pasn_roc_work_done(wpa_s);
+		wpa_s->pr_responder_mode = false;
+		os_memset(wpa_s->pr_responder_src_addr, 0, ETH_ALEN);
+	}
+
+	/* Stop PD wdev and cleanup all ranging resources */
+	wpas_pr_pd_stop(wpa_s);
+
+	/* Free ranging params so a new session can be started */
+	if (pr->pr_pasn_params) {
+		os_free(pr->pr_pasn_params);
+		pr->pr_pasn_params = NULL;
+		pr->ranging_final_received = false;
+	}
+}
+
 #endif /* CONFIG_PASN */
