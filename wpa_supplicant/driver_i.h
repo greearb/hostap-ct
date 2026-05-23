@@ -738,6 +738,26 @@ static inline int wpa_drv_wowlan(struct wpa_supplicant *wpa_s,
 	return wpa_s->driver->set_wowlan(wpa_s->drv_priv, triggers);
 }
 
+#ifdef CONFIG_PR
+
+static inline int
+wpa_drv_pd_start(struct wpa_supplicant *wpa_s, const u8 *addr, u8 *pd_addr)
+{
+	if (!wpa_s->driver->pd_start)
+		return -1;
+	return wpa_s->driver->pd_start(wpa_s->drv_priv, addr, pd_addr);
+}
+
+static inline void
+wpa_drv_pd_stop(struct wpa_supplicant *wpa_s)
+{
+	if (!wpa_s->driver->pd_stop)
+		return;
+	wpa_s->driver->pd_stop(wpa_s->drv_priv);
+}
+
+#endif /* CONFIG_PR */
+
 static inline int wpa_drv_vendor_cmd(struct wpa_supplicant *wpa_s,
 				     int vendor_id, int subcmd, const u8 *data,
 				     size_t data_len,

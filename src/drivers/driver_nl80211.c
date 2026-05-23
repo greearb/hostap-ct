@@ -199,6 +199,9 @@ static int nl80211_put_mesh_config(struct nl_msg *msg,
 #endif /* CONFIG_MESH */
 static int i802_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr,
 			     u16 reason, int link_id);
+#ifdef CONFIG_PR
+static void nl80211_pd_stop(void *priv);
+#endif /* CONFIG_PR */
 
 
 /* Converts nl80211_chan_width to a common format */
@@ -3643,6 +3646,9 @@ static void wpa_driver_nl80211_deinit(struct i802_bss *bss)
 		eloop_unregister_read_sock(drv->eapol_tx_sock);
 	if (drv->eapol_tx_sock >= 0)
 		close(drv->eapol_tx_sock);
+#ifdef CONFIG_PR
+	nl80211_pd_stop(bss);
+#endif /* CONFIG_PR */
 
 	if (bss->nl_preq)
 		wpa_driver_nl80211_probe_req_report(bss, 0);
@@ -16100,6 +16106,117 @@ fail:
 #endif /* CONFIG_NAN */
 
 
+#ifdef CONFIG_PR
+
+/**
+ * nl80211_pd_start - Create interface for Proximity Detection
+ */
+static int nl80211_pd_start(void *priv, const u8 *addr, u8 *pd_addr)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct i802_bss *pd_bss;
+	struct wdev_info info;
+	int ret;
+
+	if (drv->pd_bss) {
+		wpa_printf(MSG_DEBUG, "nl80211: PD wdev already active");
+		if (pd_addr)
+			os_memcpy(pd_addr, drv->pd_bss->addr, ETH_ALEN);
+		return 0;
+	}
+
+	pd_bss = os_zalloc(sizeof(*pd_bss));
+	if (!pd_bss)
+		return -1;
+
+	pd_bss->drv = drv;
+	pd_bss->ctx = bss->ctx; /* parent wpa_s */
+	pd_bss->flink = &pd_bss->links[0];
+	os_strlcpy(pd_bss->ifname, "pd-wdev", sizeof(pd_bss->ifname));
+
+	os_memset(&info, 0, sizeof(info));
+	ret = nl80211_create_iface(drv, "pd-wdev", NL80211_IFTYPE_PD, addr,
+				   0, nl80211_wdev_handler, &info, 0);
+	if (ret || !info.wdev_id_set) {
+		wpa_printf(MSG_ERROR,
+			   "nl80211: Failed to create PD wdev (ret=%d)", ret);
+		os_free(pd_bss);
+		return -1;
+	}
+
+	pd_bss->wdev_id = info.wdev_id;
+	pd_bss->wdev_id_set = 1;
+	if (!is_zero_ether_addr(info.macaddr))
+		os_memcpy(pd_bss->addr, info.macaddr, ETH_ALEN);
+	else if (addr)
+		os_memcpy(pd_bss->addr, addr, ETH_ALEN);
+	os_memcpy(pd_bss->flink->addr, pd_bss->addr, ETH_ALEN);
+
+	/* Activate the PD device */
+	ret = nl80211_set_pr_dev(pd_bss, 1);
+	if (ret) {
+		wpa_printf(MSG_ERROR,
+			   "nl80211: Failed to start PD device (ret=%d)", ret);
+		goto failed;
+	}
+
+	if (nl80211_init_bss(pd_bss)) {
+		wpa_printf(MSG_ERROR,
+			   "nl80211: Failed to init PD BSS");
+		goto failed_stop;
+	}
+
+	if (nl80211_mgmt_subscribe_non_ap(pd_bss))
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Failed to register frame processing for PD interface - ignore for now");
+
+	drv->pd_bss = pd_bss;
+
+	if (pd_addr)
+		os_memcpy(pd_addr, pd_bss->addr, ETH_ALEN);
+
+	wpa_printf(MSG_DEBUG,
+		   "nl80211: PD wdev created wdev_id=0x%llx addr=" MACSTR,
+		   (unsigned long long) pd_bss->wdev_id,
+		   MAC2STR(pd_bss->addr));
+	return 0;
+
+failed_stop:
+	nl80211_set_pr_dev(pd_bss, 0);
+failed:
+	nl80211_del_non_netdev(pd_bss);
+	os_free(pd_bss);
+	return -1;
+}
+
+
+/**
+ * nl80211_pd_stop - Stop interface for Proximity Detection
+ */
+static void nl80211_pd_stop(void *priv)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+
+	if (!drv->pd_bss)
+		return;
+
+	wpa_printf(MSG_DEBUG,
+		   "nl80211: Stopping PD wdev wdev_id=0x%llx addr=" MACSTR,
+		   (unsigned long long) drv->pd_bss->wdev_id,
+		   MAC2STR(drv->pd_bss->addr));
+
+	nl80211_set_pr_dev(drv->pd_bss, 0);
+	nl80211_destroy_bss(drv->pd_bss);
+	nl80211_del_non_netdev(drv->pd_bss);
+	os_free(drv->pd_bss);
+	drv->pd_bss = NULL;
+}
+
+#endif /* CONFIG_PR */
+
+
 const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.name = "nl80211",
 	.desc = "Linux nl80211/cfg80211",
@@ -16278,4 +16395,8 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.nan_config_schedule = wpa_driver_nl80211_nan_config_schedule,
 	.nan_config_peer_schedule = wpa_driver_nl80211_nan_config_peer_schedule,
 #endif /* CONFIG_NAN */
+#ifdef CONFIG_PR
+	.pd_start = nl80211_pd_start,
+	.pd_stop = nl80211_pd_stop,
+#endif /* CONFIG_PR */
 };

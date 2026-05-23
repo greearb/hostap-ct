@@ -5908,6 +5908,23 @@ struct wpa_driver_ops {
 					const struct wpabuf *ulw,
 					struct nan_peer_schedule_config *sched);
 #endif /* CONFIG_NAN */
+
+#ifdef CONFIG_PR
+	/**
+	 * pd_start - Create interface for Proximity Detection
+	 * @priv: Private driver interface data
+	 * @addr: Requested MAC address
+	 * @pd_addr: MAC address of the interface
+	 * Returns: 0 on success, -1 on failure
+	 */
+	int (*pd_start)(void *priv, const u8 *addr, u8 *pd_addr);
+
+	/**
+	 * pd_stop - Stop interface for Proximity Detection
+	 * @priv: Private driver interface data
+	 */
+	void (*pd_stop)(void *priv);
+#endif /* CONFIG_PR */
 };
 
 /**

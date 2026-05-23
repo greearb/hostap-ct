@@ -287,6 +287,9 @@ struct wpa_driver_nl80211_data {
 #ifdef CONFIG_NAN
 	unsigned int nan_started:1;
 #endif /* CONFIG_NAN */
+#ifdef CONFIG_PR
+	struct i802_bss *pd_bss; /* PD wdev; not in the BSS list */
+#endif /* CONFIG_PR */
 };
 
 struct nl80211_err_info {
