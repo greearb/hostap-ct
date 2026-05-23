@@ -4266,6 +4266,260 @@ static void nl80211_assoc_comeback(struct wpa_driver_nl80211_data *drv,
 }
 
 
+#ifdef CONFIG_PR
+
+static void
+nl80211_parse_peer_ftm_result(struct peer_measurement_ftm_result *ftm,
+			      struct nlattr *ftm_data)
+{
+	struct nlattr *ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_MAX + 1];
+
+	if (nla_parse_nested(ftm_tb, NL80211_PMSR_FTM_RESP_ATTR_MAX,
+			     ftm_data, NULL))
+		return;
+
+	ftm->has_data = true;
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_FAIL_REASON]) {
+		ftm->fail = true;
+		ftm->fail_reason = nla_get_u32(
+			ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_FAIL_REASON]);
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Ranging failed with reason %u",
+			   ftm->fail_reason);
+		return;
+	}
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_BURST_INDEX])
+		ftm->burst_index =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_BURST_INDEX]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_NUM_FTMR_ATTEMPTS])
+		ftm->num_ftmr_attempts =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_NUM_FTMR_ATTEMPTS]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_NUM_FTMR_SUCCESSES])
+		ftm->num_ftmr_successes =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_NUM_FTMR_SUCCESSES]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_BUSY_RETRY_TIME])
+		ftm->busy_retry_time =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_BUSY_RETRY_TIME]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_NUM_BURSTS_EXP])
+		ftm->num_bursts_exp =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_NUM_BURSTS_EXP]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_BURST_DURATION])
+		ftm->burst_duration =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_BURST_DURATION]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_FTMS_PER_BURST])
+		ftm->ftms_per_burst =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_FTMS_PER_BURST]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_RSSI_AVG])
+		ftm->rssi_avg =
+			nla_get_s32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_RSSI_AVG]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_RSSI_SPREAD])
+		ftm->rssi_spread =
+			nla_get_s32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_RSSI_SPREAD]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_RTT_AVG])
+		ftm->rtt_avg =
+			nla_get_s64(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_RTT_AVG]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_RTT_VARIANCE])
+		ftm->rtt_variance =
+			nla_get_u64(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_RTT_VARIANCE]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_RTT_SPREAD])
+		ftm->rtt_spread =
+			nla_get_u64(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_RTT_SPREAD]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_DIST_AVG])
+		ftm->dist_avg =
+			nla_get_s64(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_DIST_AVG]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_DIST_VARIANCE])
+		ftm->dist_variance =
+			nla_get_u64(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_DIST_VARIANCE]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_DIST_SPREAD])
+		ftm->dist_spread =
+			nla_get_u64(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_DIST_SPREAD]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_LCI]) {
+		ftm->lci = os_memdup(
+			nla_data(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_LCI]),
+			nla_len(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_LCI]));
+		ftm->lci_len = nla_len(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_LCI]);
+	}
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_CIVICLOC]) {
+		ftm->civicloc = os_memdup(
+			nla_data(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_CIVICLOC]),
+			nla_len(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_CIVICLOC]));
+		ftm->civicloc_len =
+			nla_len(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_CIVICLOC]);
+	}
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_BURST_PERIOD])
+		ftm->burst_period =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_BURST_PERIOD]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_TX_LTF_REPETITION_COUNT])
+		ftm->tx_ltf_repetition_count =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_TX_LTF_REPETITION_COUNT]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_RX_LTF_REPETITION_COUNT])
+		ftm->rx_ltf_repetition_count =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_RX_LTF_REPETITION_COUNT]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_MAX_TIME_BETWEEN_MEASUREMENTS])
+		ftm->max_time_between_measurements =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_MAX_TIME_BETWEEN_MEASUREMENTS]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_MIN_TIME_BETWEEN_MEASUREMENTS])
+		ftm->min_time_between_measurements =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_MIN_TIME_BETWEEN_MEASUREMENTS]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_NUM_TX_SPATIAL_STREAMS])
+		ftm->num_tx_spatial_streams =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_NUM_TX_SPATIAL_STREAMS]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_NUM_RX_SPATIAL_STREAMS])
+		ftm->num_rx_spatial_streams =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_NUM_RX_SPATIAL_STREAMS]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_NOMINAL_TIME])
+		ftm->nominal_time =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_NOMINAL_TIME]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_AVAILABILITY_WINDOW])
+		ftm->availability_window =
+			nla_get_u8(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_AVAILABILITY_WINDOW]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_CHANNEL_WIDTH])
+		ftm->band_width =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_CHANNEL_WIDTH]);
+
+	if (ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_PREAMBLE])
+		ftm->preamble =
+			nla_get_u32(ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_PREAMBLE]);
+
+	ftm->is_delayed_lmr = ftm_tb[NL80211_PMSR_FTM_RESP_ATTR_IS_DELAYED_LMR];
+}
+
+
+static void nl80211_peer_measurement_result_event(struct i802_bss *bss,
+						  struct nlattr **tb)
+{
+	struct nlattr *pmsr[NL80211_PMSR_ATTR_MAX + 1];
+	struct nlattr *peer;
+	u64 cookie = 0;
+	int rem;
+	struct nla_policy pmsr_policy[NL80211_PMSR_ATTR_MAX + 1] = {
+		[NL80211_PMSR_ATTR_PEERS] = { .type = NLA_NESTED },
+	};
+	struct nla_policy peer_policy[NL80211_PMSR_PEER_ATTR_MAX + 1] = {
+		[NL80211_PMSR_PEER_ATTR_ADDR] = {
+			.minlen = ETH_ALEN,
+			.maxlen = ETH_ALEN,
+		},
+		[NL80211_PMSR_PEER_ATTR_RESP] = { .type = NLA_NESTED },
+	};
+	struct nla_policy resp_policy[NL80211_PMSR_RESP_ATTR_MAX + 1] = {
+		[NL80211_PMSR_RESP_ATTR_DATA] = { .type = NLA_NESTED },
+		[NL80211_PMSR_RESP_ATTR_STATUS] = { .type = NLA_U32 },
+		[NL80211_PMSR_RESP_ATTR_HOST_TIME] = { .type = NLA_U64 },
+		[NL80211_PMSR_RESP_ATTR_AP_TSF] = { .type = NLA_U64 },
+		[NL80211_PMSR_RESP_ATTR_FINAL] = { .type = NLA_FLAG },
+	};
+
+	if (tb[NL80211_ATTR_COOKIE]) {
+		cookie = nla_get_u64(tb[NL80211_ATTR_COOKIE]);
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: PR: Peer measurement cookie: %llu",
+			   (unsigned long long) cookie);
+	}
+
+	if (!tb[NL80211_ATTR_PEER_MEASUREMENTS] ||
+	    nla_parse_nested(pmsr, NL80211_PMSR_ATTR_MAX,
+			     tb[NL80211_ATTR_PEER_MEASUREMENTS], pmsr_policy))
+		return;
+
+	if (!pmsr[NL80211_PMSR_ATTR_PEERS])
+		return;
+
+	nla_for_each_nested(peer, pmsr[NL80211_PMSR_ATTR_PEERS], rem) {
+		struct nlattr *peer_tb[NL80211_PMSR_PEER_ATTR_MAX + 1];
+		struct nlattr *resp_tb[NL80211_PMSR_RESP_ATTR_MAX + 1];
+		union wpa_event_data data;
+
+		os_memset(&data, 0, sizeof(data));
+
+		if (nla_parse_nested(peer_tb, NL80211_PMSR_PEER_ATTR_MAX,
+				     peer, peer_policy))
+			continue;
+
+		if (!peer_tb[NL80211_PMSR_PEER_ATTR_ADDR] ||
+		    !peer_tb[NL80211_PMSR_PEER_ATTR_RESP])
+			continue;
+
+		data.peer_measurement_result.cookie = cookie;
+
+		os_memcpy(data.peer_measurement_result.addr,
+			  nla_data(peer_tb[NL80211_PMSR_PEER_ATTR_ADDR]),
+			  ETH_ALEN);
+
+		if (nla_parse_nested(resp_tb, NL80211_PMSR_RESP_ATTR_MAX,
+				     peer_tb[NL80211_PMSR_PEER_ATTR_RESP],
+				     resp_policy))
+			continue;
+
+		if (resp_tb[NL80211_PMSR_RESP_ATTR_STATUS])
+			data.peer_measurement_result.status =
+				nla_get_u32(resp_tb[NL80211_PMSR_RESP_ATTR_STATUS]);
+
+		if (resp_tb[NL80211_PMSR_RESP_ATTR_HOST_TIME])
+			data.peer_measurement_result.host_time =
+				nla_get_u64(resp_tb[NL80211_PMSR_RESP_ATTR_HOST_TIME]);
+
+		if (resp_tb[NL80211_PMSR_RESP_ATTR_AP_TSF])
+			data.peer_measurement_result.ap_tsf =
+				nla_get_u64(resp_tb[NL80211_PMSR_RESP_ATTR_AP_TSF]);
+
+		if (resp_tb[NL80211_PMSR_RESP_ATTR_FINAL])
+			data.peer_measurement_result.final = true;
+
+		if (resp_tb[NL80211_PMSR_RESP_ATTR_DATA]) {
+			struct nlattr *data_type_tb[NL80211_PMSR_TYPE_MAX + 1];
+
+			if (nla_parse_nested(data_type_tb,
+					     NL80211_PMSR_TYPE_MAX,
+					     resp_tb[NL80211_PMSR_RESP_ATTR_DATA],
+					     NULL))
+				continue;
+
+			if (data_type_tb[NL80211_PMSR_TYPE_FTM])
+				nl80211_parse_peer_ftm_result(
+					&data.peer_measurement_result.ftm,
+					data_type_tb[NL80211_PMSR_TYPE_FTM]);
+		}
+
+		wpa_supplicant_event(bss->ctx, EVENT_PEER_MEASUREMENT_RESULT,
+				     &data);
+		/* Free deep-copied LCI/civic location data */
+		os_free((void *) data.peer_measurement_result.ftm.lci);
+		os_free((void *) data.peer_measurement_result.ftm.civicloc);
+	}
+}
+
+#endif /* CONFIG_PR */
+
+
 #ifdef CONFIG_IEEE80211AX
 
 static void nl80211_obss_color_event(struct i802_bss *bss,
@@ -4841,6 +5095,11 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 	case NL80211_CMD_INCUMBENT_SIGNAL_DETECT:
 		nl80211_incumbt_sig_intf_event(bss, tb);
 		break;
+#ifdef CONFIG_PR
+	case NL80211_CMD_PEER_MEASUREMENT_RESULT:
+		nl80211_peer_measurement_result_event(bss, tb);
+		break;
+#endif /* CONFIG_PR */
 	default:
 		wpa_dbg(drv->ctx, MSG_DEBUG, "nl80211: Ignored unknown event "
 			"(cmd=%d)", cmd);

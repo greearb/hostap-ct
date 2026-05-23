@@ -6651,6 +6651,13 @@ enum wpa_event_type {
 	 * activities).
 	 */
 	EVENT_NAN_CHAN_EVACUATION,
+
+	/**
+	 * EVENT_PEER_MEASUREMENT_RESULT - Ranging measurement result
+	 *
+	 * This event is used to indicate a ranging measurement result.
+	 */
+	EVENT_PEER_MEASUREMENT_RESULT,
 };
 
 
@@ -7709,6 +7716,63 @@ union wpa_event_data {
 	struct nan_chan_evacuation_info {
 		int freq;
 	} nan_chan_evacuation_info;
+
+	/**
+	 * struct peer_measurement_result - Ranging measurement result for
+	 * EVENT_PEER_MEASUREMENT_RESULT
+	 */
+	struct peer_measurement_result {
+		u8 addr[ETH_ALEN];
+		u32 status;
+		u64 host_time;
+		u64 ap_tsf;
+		bool final;
+		u64 cookie;
+
+		/**
+		 * struct peer_measurement_ftm_result -
+		 * FTM-specific measurement results
+		 */
+		struct peer_measurement_ftm_result {
+			bool fail;
+			u32 fail_reason;
+			u32 burst_index;
+			u32 num_ftmr_attempts;
+			u32 num_ftmr_successes;
+			u32 busy_retry_time;
+			u32 num_bursts_exp;
+			u32 burst_duration;
+			u32 ftms_per_burst;
+			s32 rssi_avg;
+			s32 rssi_spread;
+			s64 rtt_avg;
+			u64 rtt_variance;
+			u64 rtt_spread;
+			s64 dist_avg;
+			u64 dist_variance;
+			u64 dist_spread;
+			const u8 *lci;
+			size_t lci_len;
+			const u8 *civicloc;
+			size_t civicloc_len;
+			/* Additional FTM parameters */
+			u32 burst_period;
+			u32 tx_ltf_repetition_count;
+			u32 rx_ltf_repetition_count;
+			u32 max_time_between_measurements;
+			u32 min_time_between_measurements;
+			u32 num_tx_spatial_streams;
+			u32 num_rx_spatial_streams;
+			u32 nominal_time;
+			u8 availability_window;
+			u32 band_width;
+			u32 preamble;
+			bool is_delayed_lmr;
+			/* Flag indicating if FTM data is present */
+			bool has_data;
+		} ftm;
+
+	} peer_measurement_result;
 };
 
 /**
