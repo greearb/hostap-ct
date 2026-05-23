@@ -240,6 +240,44 @@ void pr_add_dev_ik(struct pr_data *pr, const u8 *dik, const char *password,
 }
 
 
+int pr_set_peer_credentials(struct pr_data *pr, const u8 *addr,
+			    const u8 *pmk, size_t pmk_len,
+			    const char *password)
+{
+	struct pr_device *dev;
+
+	if (!pr || !addr)
+		return -1;
+
+	dev = pr_get_device(pr, addr);
+	if (!dev) {
+		wpa_printf(MSG_DEBUG, "PR: set_peer_credentials: " MACSTR
+			   " not found", MAC2STR(addr));
+		return -1;
+	}
+
+	if (pmk && pmk_len) {
+		if (pmk_len > PMK_LEN_MAX)
+			return -1;
+		os_memcpy(dev->pmk, pmk, pmk_len);
+		dev->pmk_len = pmk_len;
+		dev->pmk_valid = true;
+		wpa_printf(MSG_DEBUG, "PR: PMK set for " MACSTR, MAC2STR(addr));
+	}
+
+	if (password) {
+		if (os_strlen(password) >= sizeof(dev->password))
+			return -1;
+		os_strlcpy(dev->password, password, sizeof(dev->password));
+		dev->password_valid = true;
+		wpa_printf(MSG_DEBUG, "PR: password set for " MACSTR,
+			   MAC2STR(addr));
+	}
+
+	return 0;
+}
+
+
 static struct wpabuf * pr_encaps_elem(const struct wpabuf *subelems,
 				      u32 ie_type)
 {

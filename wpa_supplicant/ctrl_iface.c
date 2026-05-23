@@ -11629,6 +11629,34 @@ static int wpas_ctrl_iface_pr_pasn_start(struct wpa_supplicant *wpa_s,
 			params.egress_threshold = atoll(token + 17);
 		} else if (os_strcmp(token, "pd_suppress_results=1") == 0) {
 			params.pr_suppress_results = true;
+		} else if (os_strncmp(token, "password=", 9) == 0) {
+			size_t pwd_len = os_strlen(token + 9);
+
+			if (pwd_len == 0 ||
+			    pwd_len >= sizeof(params.password)) {
+				wpa_printf(MSG_INFO,
+					   "CTRL: PR_PASN_START invalid password length %zu",
+					   pwd_len);
+				return -1;
+			}
+			os_strlcpy(params.password, token + 9,
+				   sizeof(params.password));
+			params.password_valid = true;
+		} else if (os_strncmp(token, "pmk=", 4) == 0) {
+			size_t pmk_len = os_strlen(token + 4) / 2;
+
+			if (pmk_len != 32 && pmk_len != 48 && pmk_len != 64) {
+				wpa_printf(MSG_INFO,
+					   "CTRL: PR_PASN_START invalid PMK length %zu",
+					   pmk_len);
+				return -1;
+			}
+			if (hexstr2bin(token + 4, params.pmk, pmk_len)) {
+				wpa_printf(MSG_INFO,
+					   "CTRL: PR_PASN_START invalid PMK");
+				return -1;
+			}
+			params.pmk_len = pmk_len;
 		} else {
 			wpa_printf(MSG_DEBUG,
 				   "CTRL: PR_PASN_START invalid parameter: '%s'",
@@ -11655,6 +11683,14 @@ static int wpas_ctrl_iface_pr_pasn_start(struct wpa_supplicant *wpa_s,
 	    params.freq == 0) {
 		wpa_printf(MSG_DEBUG,
 			   "CTRL: PR_PASN_START missing parameter");
+		return -1;
+	}
+
+	/* pmk and password are only valid for authenticated modes */
+	if (params.auth_mode == PR_PASN_AUTH_MODE_PASN &&
+	    (params.pmk_len > 0 || params.password_valid)) {
+		wpa_printf(MSG_INFO,
+			   "CTRL: PR_PASN_START pmk/password not applicable for unauthenticated mode");
 		return -1;
 	}
 

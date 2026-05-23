@@ -358,6 +358,12 @@ struct pr_pasn_ranging_params {
 	u32 center_freq1;
 	u32 center_freq2;
 	u64 cookie;
+
+	/* Per-session credentials - if set, used instead of stored ones */
+	char password[100];
+	bool password_valid;
+	u8 pmk[PMK_LEN_MAX];
+	size_t pmk_len;
 };
 
 struct pr_dev_ik {
@@ -644,6 +650,9 @@ void pr_set_dev_addr(struct pr_data *pr, const u8 *addr);
 void pr_clear_dev_iks(struct pr_data *pr);
 void pr_add_dev_ik(struct pr_data *pr, const u8 *dik, const char *password,
 		   const u8 *pmk, size_t pmk_len, bool own);
+int pr_set_peer_credentials(struct pr_data *pr, const u8 *addr,
+			    const u8 *pmk, size_t pmk_len,
+			    const char *password);
 struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr);
 void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 			  const u8 *peer_addr, unsigned int freq);

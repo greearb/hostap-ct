@@ -1486,6 +1486,24 @@ int wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
 		os_memcpy(pr->pr_pasn_params, pr_pasn_params,
 			  sizeof(*pr->pr_pasn_params));
 
+		/* Ensure peer device entry exists before setting credentials */
+		if (pr_pasn_params->pmk_len > 0 ||
+		    pr_pasn_params->password_valid) {
+			if (pr_ensure_oob_peer(pr, pr_pasn_params->peer_addr,
+					       pr_pasn_params->freq) < 0 ||
+			    pr_set_peer_credentials(
+				    pr, pr_pasn_params->peer_addr,
+				    pr_pasn_params->pmk_len > 0 ?
+				    pr_pasn_params->pmk : NULL,
+				    pr_pasn_params->pmk_len,
+				    pr_pasn_params->password_valid ?
+				    pr_pasn_params->password : NULL) < 0) {
+				pr_pasn_params->pr_pasn_status =
+					PASN_STATUS_FAILURE;
+				return -1;
+			}
+		}
+
 		/* Log EDCA parameters if applicable */
 		if (pr_pasn_params->ranging_type & PR_EDCA_BASED_RANGING) {
 			wpa_printf(MSG_DEBUG,
