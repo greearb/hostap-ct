@@ -1275,6 +1275,8 @@ static void pmsr_type_ftm_handler(struct wpa_driver_nl80211_data *drv,
 	/* Parse additional ranging capabilities */
 	drv->capa.support_6ghz = !!tb[NL80211_PMSR_FTM_CAPA_ATTR_6GHZ_SUPPORT];
 
+	drv->capa.asap_support = !!tb[NL80211_PMSR_FTM_CAPA_ATTR_ASAP];
+
 	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_PD_PREAMBLES])
 		drv->capa.pd_preambles = nl80211_to_pd_preamble_bitmap(
 			nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_PD_PREAMBLES]));

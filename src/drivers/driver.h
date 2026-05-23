@@ -2709,6 +2709,7 @@ struct wpa_driver_capa {
 	u8 max_ftms_per_burst;
 	bool concurrent_ista_rsta;
 	bool support_6ghz;
+	bool asap_support;
 	u32 pd_preambles;
 	u32 pd_bandwidths;
 

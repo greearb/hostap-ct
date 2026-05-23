@@ -404,8 +404,10 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 		wpas_pr_best_edca_format_bw(capa->pd_bandwidths,
 					    capa->pd_preambles);
 	pr.edca_ista_support = capa->ista.support_edca &&
+		capa->asap_support &&
 		pr.edca_format_and_bw != EDCA_FORMAT_AND_BW_INVALID;
 	pr.edca_rsta_support = capa->rsta.support_edca &&
+		capa->asap_support &&
 		pr.edca_format_and_bw != EDCA_FORMAT_AND_BW_INVALID;
 	pr.pd_format_bw_bitmap = capa->pd_bandwidths;
 	pr.pd_preamble_bitmap = capa->pd_preambles;
