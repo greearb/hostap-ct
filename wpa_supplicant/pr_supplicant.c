@@ -974,6 +974,121 @@ int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 
 
 /**
+ * wpas_pr_validate_ranging_request - Validate PR ranging request parameters
+ */
+static int
+wpas_pr_validate_ranging_request(struct wpa_supplicant *wpa_s,
+				 struct pr_pasn_ranging_params *pr_pasn_params)
+{
+	struct pr_data *pr = wpa_s->global->pr;
+	struct pr_config *cfg;
+	bool is_edca, is_ntb, is_ista;
+
+	if (!pr || !pr->cfg) {
+		wpa_printf(MSG_INFO, "PR: PR not initialized");
+		return -1;
+	}
+
+	cfg = pr->cfg;
+
+	/* Peer address must not be all-zeros */
+	if (is_zero_ether_addr(pr_pasn_params->peer_addr)) {
+		wpa_printf(MSG_INFO, "PR: Invalid peer address (all zeros)");
+		return -1;
+	}
+
+	/* Frequency must be set */
+	if (!pr_pasn_params->freq) {
+		wpa_printf(MSG_INFO, "PR: Invalid frequency (zero)");
+		return -1;
+	}
+
+	/* ranging_type must have at least one valid bit and no unknown bits */
+	if (!pr_pasn_params->ranging_type ||
+	    (pr_pasn_params->ranging_type &
+	     ~(PR_EDCA_BASED_RANGING | PR_NTB_SECURE_LTF_BASED_RANGING |
+	       PR_NTB_OPEN_BASED_RANGING))) {
+		wpa_printf(MSG_INFO, "PR: Invalid ranging_type=0x%x",
+			   pr_pasn_params->ranging_type);
+		return -1;
+	}
+
+	/* ranging_role must have at least one valid bit and no unknown bits */
+	if (!pr_pasn_params->ranging_role ||
+	    (pr_pasn_params->ranging_role &
+	     ~(PR_ISTA_SUPPORT | PR_RSTA_SUPPORT))) {
+		wpa_printf(MSG_INFO, "PR: Invalid ranging_role=0x%x",
+			   pr_pasn_params->ranging_role);
+		return -1;
+	}
+
+	is_edca = pr_pasn_params->ranging_type & PR_EDCA_BASED_RANGING;
+	is_ntb = pr_pasn_params->ranging_type &
+		(PR_NTB_SECURE_LTF_BASED_RANGING |
+		 PR_NTB_OPEN_BASED_RANGING);
+	is_ista = pr_pasn_params->ranging_role & PR_ISTA_SUPPORT;
+
+	/* Validate ranging type against device capabilities */
+	if (is_edca) {
+		if (is_ista && !cfg->edca_ista_support) {
+			wpa_printf(MSG_INFO,
+				   "PR: EDCA ISTA ranging not supported by device");
+			return -1;
+		}
+		if (!is_ista && !cfg->edca_rsta_support) {
+			wpa_printf(MSG_INFO,
+				   "PR: EDCA RSTA ranging not supported by device");
+			return -1;
+		}
+	}
+
+	if (is_ntb) {
+		if (is_ista && !cfg->ntb_ista_support) {
+			wpa_printf(MSG_INFO,
+				   "PR: NTB ISTA ranging not supported by device");
+			return -1;
+		}
+		if (!is_ista && !cfg->ntb_rsta_support) {
+			wpa_printf(MSG_INFO,
+				   "PR: NTB RSTA ranging not supported by device");
+			return -1;
+		}
+
+		/* Secure LTF requires explicit device support */
+		if ((pr_pasn_params->ranging_type &
+		     PR_NTB_SECURE_LTF_BASED_RANGING) &&
+		    !cfg->secure_he_ltf) {
+			wpa_printf(MSG_INFO,
+				   "PR: Secure HE-LTF NTB ranging not supported by device");
+			return -1;
+		}
+
+		/* min must not exceed max time between measurements */
+		if (pr_pasn_params->min_time_between_measurements &&
+		    pr_pasn_params->max_time_between_measurements &&
+		    pr_pasn_params->min_time_between_measurements >
+		    pr_pasn_params->max_time_between_measurements * 100) {
+			wpa_printf(MSG_INFO,
+				   "PR: min_time_between_measurements=%u > max=%u (units: 100us vs 10ms)",
+				   pr_pasn_params->min_time_between_measurements,
+				   pr_pasn_params->max_time_between_measurements);
+			return -1;
+		}
+	}
+
+	/* lmr_feedback is only valid for NTB ranging */
+	if (pr_pasn_params->lmr_feedback && !is_ntb) {
+		wpa_printf(MSG_INFO,
+			   "PR: lmr_feedback is only valid for NTB ranging");
+		return -1;
+	}
+
+	wpa_printf(MSG_DEBUG, "PR: Ranging request validation successful");
+	return 0;
+}
+
+
+/**
  * wpas_pr_pasn_trigger - Entry point to trigger PASN authentication for PR
  */
 void wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
@@ -994,6 +1109,13 @@ void wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
 	if (pr->pr_pasn_params) {
 		wpa_printf(MSG_DEBUG,
 			   "PR PASN: auth_trigger: Already in progress");
+		pr_pasn_params->pr_pasn_status = PASN_STATUS_FAILURE;
+		return;
+	}
+
+	/* Validate request before proceeding */
+	if (wpas_pr_validate_ranging_request(wpa_s, pr_pasn_params) < 0) {
+		wpa_printf(MSG_DEBUG, "PR PASN: Request validation failed");
 		pr_pasn_params->pr_pasn_status = PASN_STATUS_FAILURE;
 		return;
 	}
