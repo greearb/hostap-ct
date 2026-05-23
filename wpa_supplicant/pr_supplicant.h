@@ -23,7 +23,8 @@ void wpas_pr_clear_dev_iks(struct wpa_supplicant *wpa_s);
 void wpas_pr_set_dev_ik(struct wpa_supplicant *wpa_s, const u8 *dik,
 			const char *password, const u8 *pmk, size_t pmk_len,
 			bool own);
-struct wpabuf * wpas_pr_usd_elems(struct wpa_supplicant *wpa_s);
+struct wpabuf * wpas_pr_usd_elems(struct wpa_supplicant *wpa_s,
+				  const u8 *src_addr);
 void wpas_pr_process_usd_elems(struct wpa_supplicant *wpa_s, const u8 *buf,
 			       u16 buf_len, const u8 *peer_addr,
 			       unsigned int freq);
@@ -82,7 +83,8 @@ static inline void wpas_pr_set_dev_ik(struct wpa_supplicant *wpa_s,
 {
 }
 
-static inline struct wpabuf * wpas_pr_usd_elems(struct wpa_supplicant *wpa_s)
+static inline struct wpabuf * wpas_pr_usd_elems(struct wpa_supplicant *wpa_s,
+						const u8 *src_addr)
 {
 	return NULL;
 }

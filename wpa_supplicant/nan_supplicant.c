@@ -4525,7 +4525,10 @@ int wpas_nan_publish(struct wpa_supplicant *wpa_s, const char *service_name,
 		elems = wpas_p2p_usd_elems(wpa_s, service_name);
 		addr = wpa_s->global->p2p_dev_addr;
 	} else if (params->proximity_ranging) {
-		elems = wpas_pr_usd_elems(wpa_s);
+		const u8 *src = params->forced_addr ?
+			params->forced_addr : wpa_s->own_addr;
+
+		elems = wpas_pr_usd_elems(wpa_s, src);
 	}
 
 	if (params->forced_addr) {
@@ -4685,7 +4688,10 @@ int wpas_nan_subscribe(struct wpa_supplicant *wpa_s,
 		elems = wpas_p2p_usd_elems(wpa_s, service_name);
 		addr = wpa_s->global->p2p_dev_addr;
 	} else if (params->proximity_ranging) {
-		elems = wpas_pr_usd_elems(wpa_s);
+		const u8 *src = params->forced_addr ?
+			params->forced_addr : wpa_s->own_addr;
+
+		elems = wpas_pr_usd_elems(wpa_s, src);
 	}
 
 	if (params->forced_addr) {

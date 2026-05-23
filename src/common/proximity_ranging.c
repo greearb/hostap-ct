@@ -394,7 +394,8 @@ static void pr_get_ntb_capabilities(struct pr_data *pr,
 }
 
 
-static int pr_derive_dira(struct pr_data *pr, struct pr_dira *dira)
+static int pr_derive_dira(struct pr_data *pr, const u8 *src_addr,
+			  struct pr_dira *dira)
 {
 	u8 nonce[DEVICE_IDENTITY_NONCE_LEN];
 	u8 tag[DEVICE_MAX_HASH_LEN];
@@ -423,7 +424,7 @@ static int pr_derive_dira(struct pr_data *pr, struct pr_dira *dira)
 	 *                                Nonce))
 	 */
 	os_memcpy(data, "DIR", DIR_STR_LEN);
-	os_memcpy(&data[DIR_STR_LEN], pr->cfg->dev_addr, ETH_ALEN);
+	os_memcpy(&data[DIR_STR_LEN], src_addr, ETH_ALEN);
 	os_memcpy(&data[DIR_STR_LEN + ETH_ALEN], nonce,
 		  DEVICE_IDENTITY_NONCE_LEN);
 
@@ -752,7 +753,7 @@ static void pr_buf_add_dira(struct wpabuf *buf, const struct pr_dira *dira)
 }
 
 
-struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr)
+struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr, const u8 *src_addr)
 {
 	u32 ie_type;
 	struct wpabuf *buf, *buf2;
@@ -780,7 +781,7 @@ struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr)
 		pr_buf_add_ntb_capa_info(buf, &ntb_caps);
 	}
 
-	if (!pr_derive_dira(pr, &dira))
+	if (!pr_derive_dira(pr, src_addr, &dira))
 		pr_buf_add_dira(buf, &dira);
 
 	ie_type = (OUI_WFA << 8) | PR_OUI_TYPE;
@@ -1691,7 +1692,7 @@ static int pr_prepare_pasn_pr_elem(struct pr_data *pr, struct wpabuf *extra_ies,
 	pr_buf_add_operation_mode(buf, &op_mode);
 
 	/* PR Device Identity Resolution attribute */
-	if (!pr_derive_dira(pr, &dira))
+	if (!pr_derive_dira(pr, pr->cfg->dev_addr, &dira))
 		pr_buf_add_dira(buf, &dira);
 
 	ie_type = (OUI_WFA << 8) | PR_OUI_TYPE;

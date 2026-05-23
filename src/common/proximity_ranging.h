@@ -653,7 +653,7 @@ void pr_add_dev_ik(struct pr_data *pr, const u8 *dik, const char *password,
 int pr_set_peer_credentials(struct pr_data *pr, const u8 *addr,
 			    const u8 *pmk, size_t pmk_len,
 			    const char *password);
-struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr);
+struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr, const u8 *src_addr);
 void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 			  const u8 *peer_addr, unsigned int freq);
 int pr_ensure_oob_peer(struct pr_data *pr, const u8 *addr, int freq);

@@ -603,12 +603,13 @@ static void wpas_pr_pasn_clear_keys(void *ctx, const u8 *own_addr,
 }
 
 
-struct wpabuf * wpas_pr_usd_elems(struct wpa_supplicant *wpa_s)
+struct wpabuf * wpas_pr_usd_elems(struct wpa_supplicant *wpa_s,
+				  const u8 *src_addr)
 {
 	if (!wpa_s->global->pr)
 		return NULL;
 
-	return pr_prepare_usd_elems(wpa_s->global->pr);
+	return pr_prepare_usd_elems(wpa_s->global->pr, src_addr);
 }
 
 
