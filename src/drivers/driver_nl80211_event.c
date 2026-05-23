@@ -4881,13 +4881,51 @@ static bool nl80211_drv_in_list(struct nl80211_global *global,
 }
 
 
+static struct i802_bss *
+nl80211_get_event_bss(struct wpa_driver_nl80211_data *drv, int ifidx,
+		      int wiphy_idx_rx, int wiphy_idx_set,
+		      u64 wdev_id, int wdev_id_set)
+{
+	struct i802_bss *bss;
+	int wiphy_idx = -1;
+
+	if (ifidx != -1) {
+		for (bss = drv->first_bss; bss; bss = bss->next) {
+			if (ifidx == bss->ifindex)
+				return bss;
+		}
+	}
+
+#ifdef CONFIG_PR
+	if (wdev_id_set && drv->pd_bss && drv->pd_bss->wdev_id_set &&
+	    wdev_id == drv->pd_bss->wdev_id)
+		return drv->pd_bss;
+#endif /* CONFIG_PR */
+
+	for (bss = drv->first_bss; bss; bss = bss->next) {
+		if (wiphy_idx_set)
+			wiphy_idx = nl80211_get_wiphy_index(bss);
+		if ((ifidx == -1 && !wiphy_idx_set && !wdev_id_set) ||
+		    (bss->br_ifindex > 0 &&
+		     nl80211_has_ifidx(drv, bss->br_ifindex, ifidx)) ||
+		    (!wdev_id_set && wiphy_idx_set &&
+		     wiphy_idx == wiphy_idx_rx) ||
+		    (wdev_id_set && bss->wdev_id_set &&
+		     wdev_id == bss->wdev_id))
+			return bss;
+	}
+
+	return NULL;
+}
+
+
 int process_global_event(struct nl_msg *msg, void *arg)
 {
 	struct nl80211_global *global = arg;
 	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
 	struct nlattr *tb[NL80211_ATTR_MAX + 1];
 	struct wpa_driver_nl80211_data *drv, *tmp;
-	int ifidx = -1, wiphy_idx = -1, wiphy_idx_rx = -1;
+	int ifidx = -1, wiphy_idx_rx = -1;
 	struct i802_bss *bss;
 	u64 wdev_id = 0;
 	int wdev_id_set = 0;
@@ -4940,53 +4978,31 @@ int process_global_event(struct nl_msg *msg, void *arg)
 			      struct wpa_driver_nl80211_data, list) {
 		unsigned int unique_drv_id = drv->unique_drv_id;
 
-		/* First pass: Check for exact ifindex match for events directed
-		 * to a specific interface to avoid incorrect selection based on
-		 * matching rules for bridged interfaces. */
-		if (ifidx != -1) {
-			for (bss = drv->first_bss; bss; bss = bss->next) {
-				if (ifidx == bss->ifindex) {
-					do_process_drv_event(bss, gnlh->cmd,
-							     tb);
-					return NL_SKIP;
-				}
-			}
-		}
+		bss = nl80211_get_event_bss(drv, ifidx, wiphy_idx_rx,
+					    wiphy_idx_set, wdev_id,
+					    wdev_id_set);
+		if (!bss)
+			continue;
 
-		/* Second pass: Check all other conditions including bridge */
-		for (bss = drv->first_bss; bss; bss = bss->next) {
-			if (wiphy_idx_set)
-				wiphy_idx = nl80211_get_wiphy_index(bss);
-			if ((ifidx == -1 && !wiphy_idx_set && !wdev_id_set) ||
-			    (bss->br_ifindex > 0 &&
-			     nl80211_has_ifidx(drv, bss->br_ifindex, ifidx)) ||
-			    (wiphy_idx_set && wiphy_idx == wiphy_idx_rx) ||
-			    (wdev_id_set && bss->wdev_id_set &&
-			     wdev_id == bss->wdev_id)) {
-				processed = true;
-				do_process_drv_event(bss, gnlh->cmd, tb);
-				/* There are two types of events that may need
-				 * to be delivered to multiple interfaces:
-				 * 1. Events for a wiphy, as it can have
-				 * multiple interfaces.
-				 * 2. "Global" events, like
-				 * NL80211_CMD_REG_CHANGE.
-				 *
-				 * Terminate early only if the event is directed
-				 * to a specific interface or wdev. */
-				if (ifidx != -1 || wdev_id_set)
-					return NL_SKIP;
-				/* The driver instance could have been removed,
-				 * e.g., due to NL80211_CMD_RADAR_DETECT event,
-				 * so need to stop the loop if that has
-				 * happened. */
-				if (!nl80211_drv_in_list(global, unique_drv_id))
-					break;
+		processed = true;
+		do_process_drv_event(bss, gnlh->cmd, tb);
+		/* There are two types of events that may need to be delivered
+		 * to multiple interfaces:
+		 * 1. Events for a wiphy, as it can have multiple interfaces.
+		 * 2. "Global" events, like NL80211_CMD_REG_CHANGE.
+		 *
+		 * Terminate early only if the event is directed to a specific
+		 * interface or wdev. */
+		if (ifidx != -1 || wdev_id_set)
+			return NL_SKIP;
+		/* The driver instance could have been removed, e.g., due to
+		 * NL80211_CMD_RADAR_DETECT event, so need to stop the loop if
+		 * that has happened. */
+		if (!nl80211_drv_in_list(global, unique_drv_id))
+			break;
 
-				if (!nl80211_bss_in_drv(drv, bss))
-					break;
-			}
-		}
+		if (!nl80211_bss_in_drv(drv, bss))
+			break;
 	}
 
 	if (processed)
