@@ -7692,6 +7692,10 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 		wpas_pr_measurement_result(wpa_s,
 					   &data->peer_measurement_result);
 		break;
+	case EVENT_PEER_MEASUREMENT_COMPLETE:
+		wpas_pr_measurement_complete(wpa_s,
+					     &data->peer_measurement_complete);
+		break;
 #endif /* CONFIG_PR */
 #ifdef CONFIG_NAN
 	case EVENT_NAN_CLUSTER_JOIN:

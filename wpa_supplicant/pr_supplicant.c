@@ -762,6 +762,41 @@ void wpas_pr_set_dev_ik(struct wpa_supplicant *wpa_s, const u8 *dik,
 }
 
 
+void wpas_pr_measurement_complete(struct wpa_supplicant *wpa_s,
+				  struct peer_measurement_complete *complete)
+{
+	struct pr_data *pr = wpa_s->global->pr;
+
+	if (!complete) {
+		wpa_printf(MSG_INFO,
+			   "PR: Invalid measurement complete event");
+		return;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "PR: Peer measurement complete cookie=%llu",
+		   (unsigned long long) complete->cookie);
+
+	/* Validate cookie if we have a pending ranging request */
+	if (pr && pr->pr_pasn_params && complete->cookie != 0 &&
+	    pr->pr_pasn_params->cookie != complete->cookie) {
+		wpa_printf(MSG_INFO,
+			   "PR: Complete cookie mismatch - expected %llu, got %llu. Ignoring.",
+			   (unsigned long long) pr->pr_pasn_params->cookie,
+			   (unsigned long long) complete->cookie);
+		return;
+	}
+
+	wpas_notify_pr_ranging_complete(wpa_s, complete->cookie);
+	if (pr) {
+		os_free(pr->pr_pasn_params);
+		pr->pr_pasn_params = NULL;
+		pr->ranging_final_received = false;
+	}
+	wpas_pr_pd_stop(wpa_s);
+}
+
+
 void wpas_pr_measurement_result(struct wpa_supplicant *wpa_s,
 				struct peer_measurement_result *result)
 {

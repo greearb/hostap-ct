@@ -1607,4 +1607,11 @@ void wpas_notify_pr_measurement_result(
 		       result->ftm.burst_index, rtt, dist);
 }
 
+
+void wpas_notify_pr_ranging_complete(struct wpa_supplicant *wpa_s, u64 cookie)
+{
+	wpa_msg_global(wpa_s, MSG_INFO, PR_EVENT_RANGING_COMPLETE
+		       "cookie=%llu", (unsigned long long) cookie);
+}
+
 #endif /* CONFIG_PR */
