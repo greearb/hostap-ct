@@ -373,6 +373,27 @@ static void wpas_pr_pasn_result(void *ctx, u8 role, u8 protocol_type,
 }
 
 
+static void wpas_pr_ranging_session_timeout(void *eloop_ctx, void *timeout_ctx)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctx;
+	struct pr_data *pr = wpa_s->global->pr;
+
+	wpa_printf(MSG_DEBUG, "PR: Ranging session timeout - cleaning up");
+
+	/* Stop peer measurement and cleanup ranging socket */
+	wpa_drv_stop_peer_measurement(wpa_s);
+
+	/* Free ranging params */
+	if (pr && pr->pr_pasn_params) {
+		os_free(pr->pr_pasn_params);
+		pr->pr_pasn_params = NULL;
+		pr->ranging_final_received = false;
+	}
+
+	wpas_pr_pd_stop(wpa_s);
+}
+
+
 /**
  * wpas_pr_trigger_ranging - Trigger FTM ranging after successful PASN auth
  */
@@ -458,6 +479,25 @@ static int wpas_pr_trigger_ranging(struct wpa_supplicant *wpa_s,
 
 	wpa_printf(MSG_DEBUG, "PR: Successfully triggered ranging measurement");
 
+	/* Start session timeout timer if continuous ranging session time is set
+	 */
+	if (params->continuous_ranging_session_time > 0) {
+		unsigned int timeout_sec, timeout_usec;
+
+		wpa_printf(MSG_DEBUG,
+			   "PR: Starting ranging session timeout timer for %u ms",
+			   params->continuous_ranging_session_time);
+
+		timeout_sec = params->continuous_ranging_session_time / 1000;
+		timeout_usec = (params->continuous_ranging_session_time %
+				1000) * 1000;
+		eloop_cancel_timeout(wpas_pr_ranging_session_timeout,
+				     wpa_s, NULL);
+		eloop_register_timeout(timeout_sec, timeout_usec,
+				       wpas_pr_ranging_session_timeout,
+				       wpa_s, NULL);
+	}
+
 	return 0;
 
 fail:
@@ -485,9 +525,20 @@ static void wpas_pr_ranging_params(void *ctx, const u8 *dev_addr,
 				      protocol_type, freq, op_channel, bw,
 				      format_bw);
 
+	/*
+	 * PASN succeeded - cancel the PASN timeout so it does not fire and
+	 * prematurely stop the PD wdev while ranging is in progress.
+	 * Cleanup happens on COMPLETE event or session timeout.
+	 */
+	eloop_cancel_timeout(wpas_pr_pasn_timeout, wpa_s, NULL);
+
 	/* Trigger ranging measurement after successful PASN authentication */
-	wpas_pr_trigger_ranging(wpa_s, peer_addr, freq, op_class, op_channel,
-				format_bw, protocol_type);
+	if (wpas_pr_trigger_ranging(wpa_s, peer_addr, freq, op_class,
+				    op_channel, format_bw, protocol_type) < 0) {
+		wpa_printf(MSG_INFO,
+			   "PR: Failed to trigger ranging, stopping PD wdev");
+		wpas_pr_pd_stop(wpa_s);
+	}
 }
 
 
@@ -713,11 +764,16 @@ void wpas_pr_deinit(struct wpa_supplicant *wpa_s)
 #ifdef CONFIG_PASN
 	eloop_cancel_timeout(wpas_pr_pasn_timeout, wpa_s, NULL);
 #endif /* CONFIG_PASN */
+	eloop_cancel_timeout(wpas_pr_ranging_session_timeout, wpa_s, NULL);
 }
 
 
 void wpas_pr_pd_stop(struct wpa_supplicant *wpa_s)
 {
+	/* Cancel ranging session timeout and stop peer measurement */
+	eloop_cancel_timeout(wpas_pr_ranging_session_timeout, wpa_s, NULL);
+	wpa_drv_stop_peer_measurement(wpa_s);
+
 	if (is_zero_ether_addr(wpa_s->pd_addr)) {
 		wpa_printf(MSG_DEBUG, "PR: pd_stop: no active PD wdev");
 		return;

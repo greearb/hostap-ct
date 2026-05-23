@@ -768,6 +768,14 @@ wpa_drv_start_peer_measurement(struct wpa_supplicant *wpa_s, const u8 *peer,
 						      params);
 }
 
+static inline void
+wpa_drv_stop_peer_measurement(struct wpa_supplicant *wpa_s)
+{
+	if (!wpa_s->driver->stop_peer_measurement)
+		return;
+	wpa_s->driver->stop_peer_measurement(wpa_s->drv_priv);
+}
+
 #endif /* CONFIG_PR */
 
 static inline int wpa_drv_vendor_cmd(struct wpa_supplicant *wpa_s,
