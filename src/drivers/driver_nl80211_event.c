@@ -4413,6 +4413,29 @@ nl80211_parse_peer_ftm_result(struct peer_measurement_ftm_result *ftm,
 }
 
 
+static void nl80211_peer_measurement_complete_event(struct i802_bss *bss,
+						    struct nlattr **tb)
+{
+	union wpa_event_data data;
+	u64 cookie = 0;
+
+	os_memset(&data, 0, sizeof(data));
+
+	if (tb[NL80211_ATTR_COOKIE]) {
+		cookie = nla_get_u64(tb[NL80211_ATTR_COOKIE]);
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: PR: Peer measurement complete cookie: %llu",
+			   (unsigned long long) cookie);
+	} else {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: PR: Peer measurement complete (no cookie)");
+	}
+
+	data.peer_measurement_complete.cookie = cookie;
+	wpa_supplicant_event(bss->ctx, EVENT_PEER_MEASUREMENT_COMPLETE, &data);
+}
+
+
 static void nl80211_peer_measurement_result_event(struct i802_bss *bss,
 						  struct nlattr **tb)
 {
@@ -5098,6 +5121,9 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 #ifdef CONFIG_PR
 	case NL80211_CMD_PEER_MEASUREMENT_RESULT:
 		nl80211_peer_measurement_result_event(bss, tb);
+		break;
+	case NL80211_CMD_PEER_MEASUREMENT_COMPLETE:
+		nl80211_peer_measurement_complete_event(bss, tb);
 		break;
 #endif /* CONFIG_PR */
 	default:

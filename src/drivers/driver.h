@@ -6658,6 +6658,14 @@ enum wpa_event_type {
 	 * This event is used to indicate a ranging measurement result.
 	 */
 	EVENT_PEER_MEASUREMENT_RESULT,
+
+	/**
+	 * EVENT_PEER_MEASUREMENT_COMPLETE - Ranging session fully done
+	 *
+	 * This event is used to notify that the entire peer
+	 * measurement session identified by the cookie has ended.
+	 */
+	EVENT_PEER_MEASUREMENT_COMPLETE,
 };
 
 
@@ -7773,6 +7781,14 @@ union wpa_event_data {
 		} ftm;
 
 	} peer_measurement_result;
+
+	/**
+	 * struct peer_measurement_complete - Ranging session complete for
+	 * EVENT_PEER_MEASUREMENT_COMPLETE
+	 */
+	struct peer_measurement_complete {
+		u64 cookie;
+	} peer_measurement_complete;
 };
 
 /**
