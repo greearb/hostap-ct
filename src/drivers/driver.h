@@ -1979,6 +1979,12 @@ struct wpa_driver_set_key_params {
 	const char *ifname;
 
 	/**
+	 * own_addr - Own MAC address identifying the virtual interface for
+	 * the key operation, or %NULL to use the default interface (ifname)
+	 */
+	const u8 *own_addr;
+
+	/**
 	 * alg - Encryption algorithm
 	 *
 	 * (%WPA_ALG_NONE, %WPA_ALG_WEP, %WPA_ALG_TKIP, %WPA_ALG_CCMP,

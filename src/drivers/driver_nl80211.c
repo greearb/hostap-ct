@@ -4006,6 +4006,7 @@ static int wpa_driver_nl80211_set_key(struct i802_bss *bss,
 	struct nl_msg *key_msg;
 	int ret;
 	int skip_set_key = 1;
+	bool is_pd_bss = false;
 	const char *ifname = params->ifname;
 	enum wpa_alg alg = params->alg;
 	const u8 *addr = params->addr;
@@ -4024,6 +4025,20 @@ static int wpa_driver_nl80211_set_key(struct i802_bss *bss,
 		return 0;
 
 	ifindex = if_nametoindex(ifname);
+
+#ifdef CONFIG_PR
+	/* Route key operation to PD wdev if own_addr matches */
+	if (drv->pd_bss && params->own_addr &&
+	    ether_addr_equal(params->own_addr, drv->pd_bss->addr)) {
+		bss = drv->pd_bss;
+		is_pd_bss = true;
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: set_key: routing to PD wdev " MACSTR,
+			   MAC2STR(bss->addr));
+		ifindex = 0; /* PD wdev has no ifindex */
+	}
+#endif /* CONFIG_PR */
+
 	wpa_printf(MSG_DEBUG, "%s: ifindex=%d (%s) alg=%d addr=%p key_idx=%d "
 		   "set_tx=%d seq_len=%lu key_len=%lu key_flag=0x%x link_id=%d",
 		   __func__, ifindex, ifname, alg, addr, key_idx, set_tx,
@@ -4070,7 +4085,7 @@ static int wpa_driver_nl80211_set_key(struct i802_bss *bss,
 	    KEY_FLAG_PAIRWISE_RX_TX_MODIFY) {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: SET_KEY (pairwise RX/TX modify)");
-		if (!nl80211_is_netdev_iftype(drv->nlmode))
+		if (!nl80211_is_netdev_iftype(drv->nlmode) || is_pd_bss)
 			msg = nl80211_cmd_msg(bss, 0, NL80211_CMD_SET_KEY);
 		else
 			msg = nl80211_ifindex_msg(drv, ifindex, 0,
@@ -4084,7 +4099,7 @@ static int wpa_driver_nl80211_set_key(struct i802_bss *bss,
 		goto fail2;
 	} else if (alg == WPA_ALG_NONE) {
 		wpa_printf(MSG_DEBUG, "nl80211: DEL_KEY");
-		if (!nl80211_is_netdev_iftype(drv->nlmode))
+		if (!nl80211_is_netdev_iftype(drv->nlmode) || is_pd_bss)
 			msg = nl80211_cmd_msg(bss, 0, NL80211_CMD_DEL_KEY);
 		else
 			msg = nl80211_ifindex_msg(drv, ifindex, 0,
@@ -4100,7 +4115,7 @@ static int wpa_driver_nl80211_set_key(struct i802_bss *bss,
 			goto fail2;
 		}
 		wpa_printf(MSG_DEBUG, "nl80211: NEW_KEY");
-		if (!nl80211_is_netdev_iftype(drv->nlmode))
+		if (!nl80211_is_netdev_iftype(drv->nlmode) || is_pd_bss)
 			msg = nl80211_cmd_msg(bss, 0, NL80211_CMD_NEW_KEY);
 		else
 			msg = nl80211_ifindex_msg(drv, ifindex, 0,

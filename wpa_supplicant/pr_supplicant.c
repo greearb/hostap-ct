@@ -317,6 +317,7 @@ static int wpas_pr_pasn_set_keys(void *ctx, const u8 *own_addr,
 
 	os_memset(&params, 0, sizeof(params));
 	params.ifname = wpa_s->ifname;
+	params.own_addr = own_addr;
 	params.alg = wpa_cipher_to_alg(cipher);
 	params.addr = peer_addr;
 	params.key_idx = 0;
@@ -351,6 +352,7 @@ static void wpas_pr_pasn_clear_keys(void *ctx, const u8 *own_addr,
 
 	os_memset(&params, 0, sizeof(params));
 	params.ifname = wpa_s->ifname;
+	params.own_addr = own_addr;
 	params.alg = WPA_ALG_NONE;
 	params.addr = peer_addr;
 	params.key_idx = 0;
