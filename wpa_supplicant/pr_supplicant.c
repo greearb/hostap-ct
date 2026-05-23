@@ -770,6 +770,8 @@ void wpas_pr_deinit(struct wpa_supplicant *wpa_s)
 
 void wpas_pr_pd_stop(struct wpa_supplicant *wpa_s)
 {
+	struct pr_data *pr = wpa_s->global->pr;
+
 	/* Cancel ranging session timeout and stop peer measurement */
 	eloop_cancel_timeout(wpas_pr_ranging_session_timeout, wpa_s, NULL);
 	wpa_drv_stop_peer_measurement(wpa_s);
@@ -784,7 +786,13 @@ void wpas_pr_pd_stop(struct wpa_supplicant *wpa_s)
 
 	wpa_drv_pd_stop(wpa_s);
 	os_memset(wpa_s->pd_addr, 0, ETH_ALEN);
-	wpa_printf(MSG_DEBUG, "PR: PD wdev stopped");
+
+	/* Restore dev_addr to station MAC now that PD wdev is gone */
+	if (pr)
+		pr_set_dev_addr(pr, wpa_s->own_addr);
+
+	wpa_printf(MSG_DEBUG, "PR: PD wdev stopped, dev_addr restored to "
+		   MACSTR, MAC2STR(wpa_s->own_addr));
 }
 
 
