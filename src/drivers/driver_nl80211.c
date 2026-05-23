@@ -891,6 +891,8 @@ struct wiphy_idx_data {
 	enum nl80211_iftype nlmode;
 	u8 *macaddr;
 	u8 use_4addr;
+	u64 wdev_id;
+	bool wdev_id_set;
 };
 
 
@@ -915,6 +917,11 @@ static int netdev_info_handler(struct nl_msg *msg, void *arg)
 
 	if (tb[NL80211_ATTR_4ADDR])
 		info->use_4addr = nla_get_u8(tb[NL80211_ATTR_4ADDR]);
+
+	if (tb[NL80211_ATTR_WDEV]) {
+		info->wdev_id = nla_get_u64(tb[NL80211_ATTR_WDEV]);
+		info->wdev_id_set = true;
+	}
 
 	return NL_SKIP;
 }
@@ -3473,6 +3480,29 @@ wpa_driver_nl80211_finish_drv_init(struct i802_bss *bss, const u8 *set_addr,
 		drv->ifindex = bss->ifindex;
 	bss->wdev_id = drv->global->if_add_wdevid;
 	bss->wdev_id_set = drv->global->if_add_wdevid_set;
+
+	/*
+	 * wdev_id is set for wdev-only interfaces during creation. For netdev
+	 * interfaces it is not set, so fetch it via GET_INTERFACE to allow
+	 * event routing by exact wdev_id match.
+	 */
+	if (!bss->wdev_id_set) {
+		struct nl_msg *msg;
+		struct wiphy_idx_data info;
+
+		os_memset(&info, 0, sizeof(info));
+		msg = nl80211_cmd_msg(bss, 0, NL80211_CMD_GET_INTERFACE);
+		if (msg &&
+		    send_and_recv_resp(drv, msg, netdev_info_handler,
+				       &info) == 0 &&
+		    info.wdev_id_set) {
+			bss->wdev_id = info.wdev_id;
+			bss->wdev_id_set = 1;
+			wpa_printf(MSG_DEBUG, "nl80211: %s wdev_id=0x%llx",
+				   bss->ifname,
+				   (unsigned long long) bss->wdev_id);
+		}
+	}
 
 	bss->if_dynamic = drv->ifindex == drv->global->if_add_ifindex;
 	bss->if_dynamic = bss->if_dynamic || drv->global->if_add_wdevid_set;
