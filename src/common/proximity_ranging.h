@@ -98,6 +98,7 @@ enum edca_format_and_bw_value {
 	EDCA_FORMAT_AND_BW_VHT80P80 = 14,
 	EDCA_FORMAT_AND_BW_VHT160_DUAL_LO = 15,
 	EDCA_FORMAT_AND_BW_VHT160_SINGLE_LO = 16,
+	EDCA_FORMAT_AND_BW_INVALID
 };
 
 /**
@@ -114,6 +115,7 @@ enum ntb_format_and_bw_value {
 	NTB_FORMAT_AND_BW_HE80P80 = 3,
 	NTB_FORMAT_AND_BW_HE160_DUAL_LO = 4,
 	NTB_FORMAT_AND_BW_HE160_SINGLE_LO = 5,
+	NTB_FORMAT_AND_BW_INVALID
 };
 
 struct pr_capabilities {
@@ -382,6 +384,7 @@ struct pr_config {
 
 	bool edca_rsta_support;
 
+	/* Best single format_bw value derived from pd_format_bw_bitmap */
 	u8 edca_format_and_bw;
 
 	u32 edca_min_ranging_interval;
@@ -424,6 +427,11 @@ struct pr_config {
 
 	u8 max_tx_sts_gt_80;
 
+	/* PD ranging preamble and bandwidth bitmaps (shared by EDCA and NTB) */
+	u32 pd_preamble_bitmap;
+	u32 pd_format_bw_bitmap;
+
+	/* Best single format_bw value derived from pd_format_bw_bitmap */
 	u8 ntb_format_and_bw;
 
 	u32 ntb_min_ranging_interval;

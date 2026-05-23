@@ -2266,6 +2266,18 @@ struct nan_capa {
 	bool he_valid;
 };
 
+/* Bit index values for pd_bandwidths bitmap */
+#define WPA_PR_CHAN_WIDTH_20	0
+#define WPA_PR_CHAN_WIDTH_40	1
+#define WPA_PR_CHAN_WIDTH_80	2
+#define WPA_PR_CHAN_WIDTH_80P80	3
+#define WPA_PR_CHAN_WIDTH_160	4
+
+/* Bit index values for pd_preambles bitmap */
+#define WPA_PR_PREAMBLE_HT	0
+#define WPA_PR_PREAMBLE_VHT	1
+#define WPA_PR_PREAMBLE_HE	2
+
 /**
  * struct wpa_driver_capa - Driver capability information
  */
@@ -2677,13 +2689,11 @@ struct wpa_driver_capa {
 	size_t max_probe_req_ie_len;
 
 	/* EDCA based ranging capabilities */
-	u8 edca_format_and_bw;
 	u8 max_tx_antenna;
 	u8 max_rx_antenna;
 	u32 edca_min_ranging_interval;
 
 	/* NTB based ranging capabilities */
-	u8 ntb_format_and_bw;
 	u8 max_tx_ltf_repetations;
 	u8 max_rx_ltf_repetations;
 	u8 max_tx_ltf_total;

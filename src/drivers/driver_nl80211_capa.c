@@ -1139,6 +1139,38 @@ out:
 
 #ifdef CONFIG_PR
 
+static u32 nl80211_to_pd_bw_bitmap(u32 nl_bitmap)
+{
+	u32 bandwidths = 0;
+
+	if (nl_bitmap & BIT(NL80211_CHAN_WIDTH_20))
+		bandwidths |= BIT(WPA_PR_CHAN_WIDTH_20);
+	if (nl_bitmap & BIT(NL80211_CHAN_WIDTH_40))
+		bandwidths |= BIT(WPA_PR_CHAN_WIDTH_40);
+	if (nl_bitmap & BIT(NL80211_CHAN_WIDTH_80))
+		bandwidths |= BIT(WPA_PR_CHAN_WIDTH_80);
+	if (nl_bitmap & BIT(NL80211_CHAN_WIDTH_80P80))
+		bandwidths |= BIT(WPA_PR_CHAN_WIDTH_80P80);
+	if (nl_bitmap & BIT(NL80211_CHAN_WIDTH_160))
+		bandwidths |= BIT(WPA_PR_CHAN_WIDTH_160);
+	return bandwidths;
+}
+
+
+static u32 nl80211_to_pd_preamble_bitmap(u32 nl_bitmap)
+{
+	u32 preambles = 0;
+
+	if (nl_bitmap & BIT(NL80211_PREAMBLE_HT))
+		preambles |= BIT(WPA_PR_PREAMBLE_HT);
+	if (nl_bitmap & BIT(NL80211_PREAMBLE_VHT))
+		preambles |= BIT(WPA_PR_PREAMBLE_VHT);
+	if (nl_bitmap & BIT(NL80211_PREAMBLE_HE))
+		preambles |= BIT(WPA_PR_PREAMBLE_HE);
+	return preambles;
+}
+
+
 static void pmsr_type_ftm_handler(struct wpa_driver_nl80211_data *drv,
 				  struct nlattr *capa)
 {
@@ -1244,11 +1276,11 @@ static void pmsr_type_ftm_handler(struct wpa_driver_nl80211_data *drv,
 	drv->capa.support_6ghz = !!tb[NL80211_PMSR_FTM_CAPA_ATTR_6GHZ_SUPPORT];
 
 	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_PD_PREAMBLES])
-		drv->capa.pd_preambles =
-			nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_PD_PREAMBLES]);
+		drv->capa.pd_preambles = nl80211_to_pd_preamble_bitmap(
+			nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_PD_PREAMBLES]));
 	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_PD_BANDWIDTHS])
-		drv->capa.pd_bandwidths =
-			nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_PD_BANDWIDTHS]);
+		drv->capa.pd_bandwidths = nl80211_to_pd_bw_bitmap(
+			nla_get_u32(tb[NL80211_PMSR_FTM_CAPA_ATTR_PD_BANDWIDTHS]));
 }
 
 
