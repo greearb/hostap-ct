@@ -463,6 +463,7 @@ static int wpas_pr_trigger_ranging(struct wpa_supplicant *wpa_s,
 fail:
 	os_free(pr->pr_pasn_params);
 	pr->pr_pasn_params = NULL;
+	pr->ranging_final_received = false;
 	return -1;
 }
 
@@ -758,6 +759,50 @@ void wpas_pr_set_dev_ik(struct wpa_supplicant *wpa_s, const u8 *dik,
 		return;
 
 	pr_add_dev_ik(pr, dik, password, pmk, pmk_len, own);
+}
+
+
+void wpas_pr_measurement_result(struct wpa_supplicant *wpa_s,
+				struct peer_measurement_result *result)
+{
+	struct pr_data *pr = wpa_s->global->pr;
+
+	if (!result) {
+		wpa_printf(MSG_INFO, "PR: Invalid measurement result");
+		return;
+	}
+
+	/* Drop results after final has been received */
+	if (pr && pr->ranging_final_received) {
+		wpa_printf(MSG_DEBUG,
+			   "PR: Ignoring result after final for " MACSTR,
+			   MAC2STR(result->addr));
+		return;
+	}
+
+	/* Validate cookie if we have a pending ranging request */
+	if (pr && pr->pr_pasn_params && result->cookie != 0 &&
+	    pr->pr_pasn_params->cookie != result->cookie) {
+		wpa_printf(MSG_INFO,
+			   "PR: Cookie mismatch - expected %llu, got %llu. Ignoring result.",
+			   (unsigned long long) pr->pr_pasn_params->cookie,
+			   (unsigned long long) result->cookie);
+		return;
+	}
+
+	/* Forward result to upper layer - includes failures and final */
+	if (result->ftm.has_data || result->ftm.fail)
+		wpas_notify_pr_measurement_result(wpa_s, result);
+
+	/* After final result, mark session done - no more results accepted */
+	if (result->final) {
+		wpa_printf(MSG_DEBUG,
+			   "PR: Final result received for " MACSTR
+			   " - no further results will be processed",
+			   MAC2STR(result->addr));
+		if (pr)
+			pr->ranging_final_received = true;
+	}
 }
 
 
@@ -1386,6 +1431,7 @@ int wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
 			pr_pasn_params->pr_pasn_status = PASN_STATUS_FAILURE;
 			os_free(pr->pr_pasn_params);
 			pr->pr_pasn_params = NULL;
+			pr->ranging_final_received = false;
 			return -1;
 		}
 		return 0;

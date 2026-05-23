@@ -218,6 +218,9 @@ void wpas_notify_pr_ranging_params(struct wpa_supplicant *wpa_s,
 				   const u8 *dev_addr, const u8 *peer_addr,
 				   u8 role, u8 protocol, int freq, int channel,
 				   int bw, int format_bw);
+void wpas_notify_pr_measurement_result(
+	struct wpa_supplicant *wpa_s,
+	const struct peer_measurement_result *result);
 void wpas_notify_nan_bootstrap_request(struct wpa_supplicant *wpa_s,
 				       const u8 *peer_addr, u16 pbm,
 				       int handle, u8 requestor_instance_id);

@@ -509,6 +509,9 @@ extern "C" {
 /* Proximity Ranging parameters to use in ranging */
 #define PR_RANGING_PARAMS "PR-RANGING-PARAMS "
 
+/* Proximity Ranging measurement result */
+#define PR_EVENT_PEER_MEASUREMENT "PR-PEER-MEASUREMENT "
+
 /* BSS command information masks */
 
 #define WPA_BSS_MASK_ALL		0xFFFDFFFF

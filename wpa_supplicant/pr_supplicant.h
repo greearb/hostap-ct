@@ -41,6 +41,8 @@ void wpas_pr_cancel_remain_on_channel_cb(struct wpa_supplicant *wpa_s,
 					 unsigned int freq);
 int wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
 			 struct pr_pasn_ranging_params *pr_pasn_params);
+void wpas_pr_measurement_result(struct wpa_supplicant *wpa_s,
+				struct peer_measurement_result *result);
 
 #else /* CONFIG_PR */
 
@@ -118,6 +120,12 @@ wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
 		     struct pr_pasn_ranging_params *pr_pasn_params)
 {
 	return -1;
+}
+
+static inline void
+wpas_pr_measurement_result(struct wpa_supplicant *wpa_s,
+			   struct peer_measurement_result *result)
+{
 }
 
 #endif /* CONFIG_PR */

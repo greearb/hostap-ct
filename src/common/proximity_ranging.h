@@ -601,6 +601,9 @@ struct pr_data {
 	/* PR PASN request tracking - similar to pasn_params in wpa_supplicant
 	 */
 	struct pr_pasn_ranging_params *pr_pasn_params;
+
+	/* Set when final measurement result received; blocks further results */
+	bool ranging_final_received;
 };
 
 /* PR Device Identity Resolution Attribute parameters */

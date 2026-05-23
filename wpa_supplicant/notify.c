@@ -1576,4 +1576,35 @@ void wpas_notify_pr_ranging_params(struct wpa_supplicant *wpa_s,
 		       protocol_type, freq, channel, bw, format_bw);
 }
 
+
+void wpas_notify_pr_measurement_result(
+	struct wpa_supplicant *wpa_s,
+	const struct peer_measurement_result *result)
+{
+	char rtt[32] = "";
+	char dist[32] = "";
+
+	if (result->ftm.fail) {
+		wpa_msg_global(wpa_s, MSG_INFO, PR_EVENT_PEER_MEASUREMENT
+			       "addr=" MACSTR
+			       " status=%u burst_index=%u fail=1 fail_reason=%u",
+			       MAC2STR(result->addr), result->status,
+			       result->ftm.burst_index,
+			       result->ftm.fail_reason);
+		return;
+	}
+
+	if (result->ftm.rtt_avg || result->ftm.has_data)
+		os_snprintf(rtt, sizeof(rtt), " rtt_avg=%lld",
+			    (long long) result->ftm.rtt_avg);
+	if (result->ftm.dist_avg || result->ftm.has_data)
+		os_snprintf(dist, sizeof(dist), " dist_avg=%lld",
+			    (long long) result->ftm.dist_avg);
+
+	wpa_msg_global(wpa_s, MSG_INFO, PR_EVENT_PEER_MEASUREMENT
+		       "addr=" MACSTR " status=%u burst_index=%u%s%s",
+		       MAC2STR(result->addr), result->status,
+		       result->ftm.burst_index, rtt, dist);
+}
+
 #endif /* CONFIG_PR */
