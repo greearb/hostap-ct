@@ -52,6 +52,10 @@ struct nl80211_global {
 	/* Dedicated socket for NAN interface creation and events */
 	struct nl_sock *nl_nan;
 #endif /* CONFIG_NAN */
+#ifdef CONFIG_PR
+	/* Dedicated socket for PR peer measurement commands and events */
+	struct nl_sock *nl_pr;
+#endif /* CONFIG_PR */
 };
 
 struct nl80211_wiphy_data {

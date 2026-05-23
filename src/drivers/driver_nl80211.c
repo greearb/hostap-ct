@@ -10974,6 +10974,11 @@ static void nl80211_global_deinit(void *priv)
 
 	nl_cb_put(global->nl_cb);
 
+#ifdef CONFIG_PR
+	if (global->nl_pr)
+		nl80211_destroy_eloop_handle(&global->nl_pr, 1);
+#endif /* CONFIG_PR */
+
 	if (global->ioctl_sock >= 0)
 		close(global->ioctl_sock);
 
@@ -16326,6 +16331,20 @@ static int nl80211_start_peer_measurement(void *priv, const u8 *peer_addr,
 		return -1;
 	}
 
+	/* Create dedicated ranging socket if not already created */
+	if (drv->global->nl_pr) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: PR ranging socket already in use");
+		return -1;
+	}
+
+	drv->global->nl_pr = nl_create_handle(drv->global->nl_cb, "pr");
+	if (!drv->global->nl_pr) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Failed to create PR ranging socket");
+		return -1;
+	}
+
 	/* Route via PD wdev if src_addr matches */
 	if (drv->pd_bss && !is_zero_ether_addr(params->src_addr) &&
 	    ether_addr_equal(params->src_addr, drv->pd_bss->addr)) {
@@ -16563,18 +16582,28 @@ static int nl80211_start_peer_measurement(void *priv, const u8 *peer_addr,
 	cookie = 0;
 	os_memset(&ack_arg, 0, sizeof(struct nl80211_ack_ext_arg));
 	ack_arg.ext_data = &cookie;
-	ret = send_and_recv(drv, drv->global->nl, msg, NULL, NULL,
+	ret = send_and_recv(drv, drv->global->nl_pr, msg, NULL, NULL,
 			    ack_handler_cookie, &ack_arg, NULL);
 	if (ret < 0) {
 		wpa_printf(MSG_INFO,
 			   "nl80211: Peer measurement start failed: ret=%d (%s)",
 			   ret, strerror(-ret));
+		nl_destroy_handles(&drv->global->nl_pr);
 	} else {
 		wpa_printf(MSG_DEBUG,
 			   "nl80211: Peer measurement started successfully addr="
 			   MACSTR " cookie=%llu", MAC2STR(peer_addr),
 			   (unsigned long long) cookie);
 		params->cookie = cookie;
+		/*
+		 * Register the PR socket with eloop so that
+		 * NL80211_CMD_PEER_MEASUREMENT_RESULT and
+		 * NL80211_CMD_PEER_MEASUREMENT_COMPLETE events are delivered
+		 * to the existing nl80211 event handler.
+		 */
+		nl80211_register_eloop_read(&drv->global->nl_pr,
+					    wpa_driver_nl80211_event_receive,
+					    drv->global->nl_cb, 1);
 	}
 
 	return ret;
@@ -16583,7 +16612,21 @@ fail:
 	wpa_printf(MSG_INFO,
 		   "nl80211: Failed to build peer measurement message");
 	nlmsg_free(msg);
+	nl_destroy_handles(&drv->global->nl_pr);
 	return -1;
+}
+
+
+static void nl80211_stop_peer_measurement(void *priv)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+
+	if (!drv->global->nl_pr)
+		return;
+
+	wpa_printf(MSG_DEBUG, "nl80211: Stopping PR ranging socket");
+	nl80211_destroy_eloop_handle(&drv->global->nl_pr, 1);
 }
 
 #endif /* CONFIG_PR */
@@ -16771,5 +16814,6 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.pd_start = nl80211_pd_start,
 	.pd_stop = nl80211_pd_stop,
 	.start_peer_measurement = nl80211_start_peer_measurement,
+	.stop_peer_measurement = nl80211_stop_peer_measurement,
 #endif /* CONFIG_PR */
 };

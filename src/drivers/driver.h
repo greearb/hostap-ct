@@ -5948,6 +5948,15 @@ struct wpa_driver_ops {
 	int (*start_peer_measurement)(void *priv, const u8 *peer_addr,
 				      int freq, u8 channel, int bw,
 				      struct pr_pasn_ranging_params *params);
+
+	/**
+	 * stop_peer_measurement - Stop peer measurement and destroy ranging socket
+	 * @priv: Private driver interface data
+	 *
+	 * Unregisters the ranging socket from eloop and frees all associated
+	 * resources. Safe to call when no ranging session is active (no-op).
+	 */
+	void (*stop_peer_measurement)(void *priv);
 #endif /* CONFIG_PR */
 };
 
