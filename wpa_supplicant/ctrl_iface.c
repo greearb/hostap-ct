@@ -11562,6 +11562,7 @@ static int wpas_ctrl_iface_pr_pasn_start(struct wpa_supplicant *wpa_s,
 	char *token, *context = NULL;
 	struct pr_pasn_ranging_params params;
 	bool got_addr = false;
+	int interval_time = 0;
 
 	os_memset(&params, 0, sizeof(params));
 	params.action = PR_PASN_AND_RANGING;
@@ -11587,6 +11588,32 @@ static int wpas_ctrl_iface_pr_pasn_start(struct wpa_supplicant *wpa_s,
 			params.auth_mode = atoi(token + 5);
 		} else if (os_strncmp(token, "forced_pr_freq=", 15) == 0) {
 			params.forced_pr_freq = atoi(token + 15);
+		} else if (os_strncmp(token, "num_bursts_exp=", 15) == 0) {
+			params.num_bursts_exp = atoi(token + 15);
+		} else if (os_strncmp(token, "ftmr_retries=", 13) == 0) {
+			params.ftmr_retries = atoi(token + 13);
+		} else if (os_strncmp(token, "burst_duration=", 15) == 0) {
+			params.burst_duration = atoi(token + 15);
+		} else if (os_strncmp(token, "ftms_per_burst=", 15) == 0) {
+			params.ftms_per_burst = atoi(token + 15);
+		} else if (os_strncmp(token, "interval_time=", 14) == 0) {
+			interval_time = atoi(token + 14);
+		} else if (os_strncmp(token, "min_time_between_meas=", 22) ==
+			   0) {
+			params.min_time_between_measurements = atoi(token + 22);
+		} else if (os_strncmp(token, "max_time_between_meas=", 22) ==
+			   0) {
+			params.max_time_between_measurements = atoi(token + 22);
+		} else if (os_strncmp(token, "availability_window=", 20) == 0) {
+			params.availability_window = atoi(token + 20);
+		} else if (os_strcmp(token, "request_lci=1") == 0) {
+			params.request_lci = true;
+		} else if (os_strcmp(token, "request_civicloc=1") == 0) {
+			params.request_civicloc = true;
+		} else if (os_strncmp(token, "continuous_session_time=", 24) ==
+			   0) {
+			params.continuous_ranging_session_time =
+				atoi(token + 24);
 		} else if (os_strncmp(token, "src_addr=", 9) == 0) {
 			if (hwaddr_aton(token + 9, params.src_addr))
 				return -1;
@@ -11594,12 +11621,34 @@ static int wpas_ctrl_iface_pr_pasn_start(struct wpa_supplicant *wpa_s,
 			params.pasn_role = PR_ROLE_PASN_INITIATOR;
 		} else if (os_strcmp(token, "pasn_role=RESPONDER") == 0) {
 			params.pasn_role = PR_ROLE_PASN_RESPONDER;
+		} else if (os_strcmp(token, "lmr_feedback=1") == 0) {
+			params.lmr_feedback = true;
+		} else if (os_strncmp(token, "ingress_threshold=", 18) == 0) {
+			params.ingress_threshold = atoll(token + 18);
+		} else if (os_strncmp(token, "egress_threshold=", 17) == 0) {
+			params.egress_threshold = atoll(token + 17);
+		} else if (os_strcmp(token, "pd_suppress_results=1") == 0) {
+			params.pr_suppress_results = true;
 		} else {
 			wpa_printf(MSG_DEBUG,
 				   "CTRL: PR_PASN_START invalid parameter: '%s'",
 				   token);
 			return -1;
 		}
+	}
+
+	/*
+	 * Map interval_time to the appropriate protocol-specific field:
+	 * - EDCA: burst_period
+	 * - NTB: nominal_time (nominal time between measurements)
+	 */
+	if (interval_time > 0) {
+		if (params.ranging_type & PR_EDCA_BASED_RANGING)
+			params.burst_period = interval_time;
+		else if (params.ranging_type &
+			 (PR_NTB_OPEN_BASED_RANGING |
+			  PR_NTB_SECURE_LTF_BASED_RANGING))
+			params.nominal_time = interval_time;
 	}
 
 	if (!got_addr || params.ranging_type == 0 || params.ranging_role == 0 ||
