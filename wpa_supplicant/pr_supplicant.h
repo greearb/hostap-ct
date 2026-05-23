@@ -17,6 +17,7 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 		 const struct wpa_driver_capa *capa);
 void wpas_pr_flush(struct wpa_supplicant *wpa_s);
 void wpas_pr_deinit(struct wpa_supplicant *wpa_s);
+void wpas_pr_pd_stop(struct wpa_supplicant *wpa_s);
 void wpas_pr_update_dev_addr(struct wpa_supplicant *wpa_s);
 void wpas_pr_clear_dev_iks(struct wpa_supplicant *wpa_s);
 void wpas_pr_set_dev_ik(struct wpa_supplicant *wpa_s, const u8 *dik,
@@ -55,6 +56,10 @@ static inline void wpas_pr_flush(struct wpa_supplicant *wpa_s)
 }
 
 static inline void wpas_pr_deinit(struct wpa_supplicant *wpa_s)
+{
+}
+
+static inline void wpas_pr_pd_stop(struct wpa_supplicant *wpa_s)
 {
 }
 

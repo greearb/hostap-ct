@@ -527,6 +527,22 @@ void wpas_pr_deinit(struct wpa_supplicant *wpa_s)
 }
 
 
+void wpas_pr_pd_stop(struct wpa_supplicant *wpa_s)
+{
+	if (is_zero_ether_addr(wpa_s->pd_addr)) {
+		wpa_printf(MSG_DEBUG, "PR: pd_stop: no active PD wdev");
+		return;
+	}
+
+	wpa_printf(MSG_DEBUG, "PR: Stopping PD wdev addr=" MACSTR,
+		   MAC2STR(wpa_s->pd_addr));
+
+	wpa_drv_pd_stop(wpa_s);
+	os_memset(wpa_s->pd_addr, 0, ETH_ALEN);
+	wpa_printf(MSG_DEBUG, "PR: PD wdev stopped");
+}
+
+
 void wpas_pr_update_dev_addr(struct wpa_supplicant *wpa_s)
 {
 	pr_set_dev_addr(wpa_s->global->pr, wpa_s->own_addr);
@@ -558,6 +574,39 @@ void wpas_pr_set_dev_ik(struct wpa_supplicant *wpa_s, const u8 *dik,
 
 
 #ifdef CONFIG_PASN
+
+static int wpas_pr_start_pd(struct wpa_supplicant *wpa_s, const u8 *src_addr)
+{
+	u8 pd_addr[ETH_ALEN];
+
+	if (!src_addr || is_zero_ether_addr(src_addr)) {
+		wpa_printf(MSG_INFO, "PR: Invalid MAC address for PD wdev");
+		return -1;
+	}
+
+	if (!is_zero_ether_addr(wpa_s->pd_addr)) {
+		wpa_printf(MSG_INFO, "PR: PD wdev already active addr=" MACSTR,
+			   MAC2STR(wpa_s->pd_addr));
+		return -1;
+	}
+
+	wpa_printf(MSG_DEBUG, "PR: Creating PD wdev with MAC address " MACSTR,
+		   MAC2STR(src_addr));
+
+	os_memset(pd_addr, 0, ETH_ALEN);
+	if (wpa_drv_pd_start(wpa_s, src_addr, pd_addr) < 0) {
+		wpa_printf(MSG_ERROR, "PR: Failed to create PD wdev");
+		return -1;
+	}
+
+	os_memcpy(wpa_s->pd_addr, pd_addr, ETH_ALEN);
+	pr_set_dev_addr(wpa_s->global->pr, pd_addr);
+
+	wpa_printf(MSG_DEBUG, "PR: PD wdev created addr=" MACSTR,
+		   MAC2STR(pd_addr));
+	return 0;
+}
+
 
 struct wpa_pr_pasn_auth_work {
 	u8 peer_addr[ETH_ALEN];
@@ -625,6 +674,7 @@ static void wpas_pr_pasn_roc_total_timeout(void *eloop_ctx, void *timeout_ctx)
 	wpa_printf(MSG_DEBUG,
 		   "PR PASN: Total ROC budget expired, stopping responder listen");
 	wpa_s->pr_responder_mode = false;
+	os_memset(wpa_s->pr_responder_src_addr, 0, ETH_ALEN);
 
 	if (wpa_s->pr_roc_work) {
 		wpa_drv_cancel_remain_on_channel(wpa_s);
@@ -664,6 +714,7 @@ static void wpas_pr_pasn_roc_start_cb(struct wpa_radio_work *work, int deinit)
 		eloop_cancel_timeout(wpas_pr_pasn_roc_total_timeout,
 				     wpa_s, NULL);
 		wpa_s->pr_responder_mode = false;
+		os_memset(wpa_s->pr_responder_src_addr, 0, ETH_ALEN);
 		os_free(rwork);
 		work->ctx = NULL;
 		return;
@@ -688,6 +739,7 @@ static void wpas_pr_pasn_roc_start_cb(struct wpa_radio_work *work, int deinit)
 		eloop_cancel_timeout(wpas_pr_pasn_roc_total_timeout,
 				     wpa_s, NULL);
 		wpa_s->pr_responder_mode = false;
+		os_memset(wpa_s->pr_responder_src_addr, 0, ETH_ALEN);
 		os_free(rwork);
 		work->ctx = NULL;
 		radio_work_done(work);
@@ -725,6 +777,7 @@ static void wpas_pr_schedule_responder_roc(struct wpa_supplicant *wpa_s,
 
 fail:
 	wpa_s->pr_responder_mode = false;
+	os_memset(wpa_s->pr_responder_src_addr, 0, ETH_ALEN);
 	eloop_cancel_timeout(wpas_pr_pasn_roc_total_timeout, wpa_s, NULL);
 }
 
@@ -764,6 +817,15 @@ static void wpas_pr_pasn_timeout(void *eloop_ctx, void *timeout_ctx)
 		wpas_pr_pasn_cancel_auth_work(wpa_s);
 		wpa_s->pr_pasn_auth_work = NULL;
 	}
+
+	/*
+	 * Stop the PD wdev only after radio_work_done() has fully returned.
+	 * Calling wpas_pr_pd_stop() from inside the radio-work deinit callback
+	 * would trigger a re-entrant radio_remove_works() -> radio_work_free()
+	 * on the same work item, causing a use-after-free / SIGSEGV.
+	 */
+	wpas_pr_pd_stop(wpa_s);
+
 	wpa_printf(MSG_DEBUG, "PR: PASN timed out");
 }
 
@@ -806,6 +868,8 @@ fail:
 	wpas_pr_pasn_free_auth_work(awork);
 	work->ctx = NULL;
 	radio_work_done(work);
+	/* Stop PD wdev after radio_work_done() to avoid use-after-free */
+	wpas_pr_pd_stop(wpa_s);
 }
 
 
@@ -819,14 +883,33 @@ int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 
 	if (pasn_role == PR_ROLE_PASN_RESPONDER) {
 		struct wpa_pr_pasn_roc_work *rwork;
+		bool has_src_addr = src_addr && !is_zero_ether_addr(src_addr);
+
+		wpa_printf(MSG_DEBUG,
+			   "PR PASN: Scheduling ROC at freq %d for responder role%s",
+			   freq, has_src_addr ? " with custom MAC" : "");
 
 		rwork = os_zalloc(sizeof(*rwork));
 		if (!rwork)
 			return -1;
 
 		rwork->freq = freq;
+		if (has_src_addr)
+			os_memcpy(rwork->src_addr, src_addr, ETH_ALEN);
+		/* else rwork->src_addr stays all-zeros (no MAC filter on ROC)
+		 */
 
+		/*
+		 * Store state so wpas_pr_pasn_auth_rx() can create the PD
+		 * interface when M1 arrives. When no custom MAC address is
+		 * given the PD wdev is skipped and the existing interface is
+		 * used.
+		 */
 		wpa_s->pr_responder_mode = true;
+		if (has_src_addr)
+			os_memcpy(wpa_s->pr_responder_src_addr, src_addr,
+				  ETH_ALEN);
+		/* else pr_responder_src_addr stays all-zeros */
 
 		if (!radio_add_work(wpa_s, freq, "pr-pasn-roc", 0,
 				    wpas_pr_pasn_roc_start_cb, rwork)) {
@@ -834,6 +917,7 @@ int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 				   "PR PASN: Failed to schedule ROC for responder");
 			os_free(rwork);
 			wpa_s->pr_responder_mode = false;
+			os_memset(wpa_s->pr_responder_src_addr, 0, ETH_ALEN);
 			return -1;
 		}
 
@@ -848,12 +932,26 @@ int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 		return 0;
 	}
 
+	/*
+	 * PASN initiator role: create the PD wdev if src_addr is provided,
+	 * then queue the radio work to send M1.
+	 */
+	if (src_addr && !is_zero_ether_addr(src_addr)) {
+		if (wpas_pr_start_pd(wpa_s, src_addr) < 0) {
+			wpa_printf(MSG_INFO,
+				   "PR PASN: Failed to create PD wdev");
+			return -1;
+		}
+	}
+
 	wpas_pr_pasn_cancel_auth_work(wpa_s);
 	wpa_s->pr_pasn_auth_work = NULL;
 
 	awork = os_zalloc(sizeof(*awork));
-	if (!awork)
+	if (!awork) {
+		wpas_pr_pd_stop(wpa_s);
 		return -1;
+	}
 
 	awork->freq = freq;
 	os_memcpy(awork->peer_addr, peer_addr, ETH_ALEN);
@@ -865,6 +963,7 @@ int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 	if (!radio_add_work(wpa_s, freq, "pr-pasn-start-auth", 1,
 			    wpas_pr_pasn_auth_start_cb, awork)) {
 		wpas_pr_pasn_free_auth_work(awork);
+		wpas_pr_pd_stop(wpa_s);
 		return -1;
 	}
 
@@ -952,10 +1051,31 @@ int wpas_pr_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
 {
 	struct pr_data *pr = wpa_s->global->pr;
 
-	if (!wpa_s->pr_pasn_auth_work)
+	if (!wpa_s->pr_pasn_auth_work && is_zero_ether_addr(wpa_s->pd_addr))
 		return -1;
 
 	return pr_pasn_auth_tx_status(pr, data, data_len, acked);
+}
+
+
+static int wpas_pr_check_pd_wdev_create(struct wpa_supplicant *wpa_s)
+{
+	if (is_zero_ether_addr(wpa_s->pr_responder_src_addr)) {
+		wpa_printf(MSG_DEBUG,
+			   "PR PASN: M1 received in responder mode, no custom MAC - using existing interface");
+		return 0;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "PR PASN: M1 received in responder mode, creating PD wdev");
+
+	if (wpas_pr_start_pd(wpa_s, wpa_s->pr_responder_src_addr) < 0) {
+		wpa_printf(MSG_INFO,
+			   "PR PASN: Failed to create PD wdev for responder");
+		return -1;
+	}
+
+	return 0;
 }
 
 
@@ -980,6 +1100,9 @@ int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 		auth_transaction = le_to_host16(mgmt->u.auth.auth_transaction);
 
 		if (auth_transaction == WLAN_AUTH_TR_SEQ_PASN_AUTH1) {
+			if (wpas_pr_check_pd_wdev_create(wpa_s) < 0)
+				return -1;
+
 			/*
 			 * Cancel the total-budget timer first so it does not
 			 * fire after we have already handed off to the PASN
@@ -1006,6 +1129,7 @@ int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 
 			/* Clear responder mode */
 			wpa_s->pr_responder_mode = false;
+			os_memset(wpa_s->pr_responder_src_addr, 0, ETH_ALEN);
 
 			wpa_printf(MSG_DEBUG,
 				   "PR PASN: M1 processed, proceeding with PASN");

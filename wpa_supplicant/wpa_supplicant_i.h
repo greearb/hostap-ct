@@ -1766,6 +1766,8 @@ struct wpa_supplicant {
 	u8 pmkid_anonce[NONCE_LEN];
 	bool pmkid_anonce_set;
 #endif /* CONFIG_PMKSA_PRIVACY */
+	u8 pd_addr[ETH_ALEN];
+
 	/**
 	 * pr_responder_mode - Waiting for PASN M1 as responder
 	 *
@@ -1774,6 +1776,14 @@ struct wpa_supplicant {
 	 * is created on M1 reception.
 	 */
 	bool pr_responder_mode;
+
+	/**
+	 * pr_responder_src_addr - Source MAC address used for responder ROC
+	 *
+	 * Stored when responder mode is activated so that the dedicated PR
+	 * interface can be created with the same address when M1 arrives.
+	 */
+	u8 pr_responder_src_addr[ETH_ALEN];
 };
 
 
