@@ -1020,6 +1020,38 @@ void wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
 		os_memcpy(pr->pr_pasn_params, pr_pasn_params,
 			  sizeof(*pr->pr_pasn_params));
 
+		/* Log EDCA parameters if applicable */
+		if (pr_pasn_params->ranging_type & PR_EDCA_BASED_RANGING) {
+			wpa_printf(MSG_DEBUG,
+				   "PR PASN: EDCA params - burst_period=%u num_bursts_exp=%u ftms_per_burst=%u ftmr_retries=%u burst_duration=%u",
+				   pr_pasn_params->burst_period,
+				   pr_pasn_params->num_bursts_exp,
+				   pr_pasn_params->ftms_per_burst,
+				   pr_pasn_params->ftmr_retries,
+				   pr_pasn_params->burst_duration);
+		}
+
+		/* Log NTB parameters if applicable */
+		if (pr_pasn_params->ranging_type &
+		    (PR_NTB_SECURE_LTF_BASED_RANGING |
+		     PR_NTB_OPEN_BASED_RANGING)) {
+			wpa_printf(MSG_DEBUG,
+				   "PR PASN: NTB params - min_time=%u max_time=%u aw=%u nominal_time=%u",
+				   pr_pasn_params->min_time_between_measurements,
+				   pr_pasn_params->max_time_between_measurements,
+				   pr_pasn_params->availability_window,
+				   pr_pasn_params->nominal_time);
+		}
+
+		/* Log location request parameters */
+		if (pr_pasn_params->request_lci ||
+		    pr_pasn_params->request_civicloc) {
+			wpa_printf(MSG_DEBUG,
+				   "PR PASN: Location requests - LCI=%d CivicLoc=%d",
+				   pr_pasn_params->request_lci,
+				   pr_pasn_params->request_civicloc);
+		}
+
 		/* Initiate PASN authentication for the peer */
 		if (wpas_pr_initiate_pasn_auth(wpa_s, pr_pasn_params->peer_addr,
 					       pr_pasn_params->freq,

@@ -275,6 +275,78 @@ struct pr_pasn_ranging_params {
 	int freq;
 	u8 src_addr[ETH_ALEN];
 	enum pr_pasn_role pasn_role;
+
+	/**
+	 * EDCA based ranging specific parameters
+	 *
+	 * @burst_period: Burst period in units of 100 milliseconds
+	 * @num_bursts_exp: Number of bursts exponent
+	 * @ftms_per_burst: Number of FTM frames per burst
+	 * @ftmr_retries: Number of retries for FTM Request frame
+	 * @burst_duration: Burst duration as defined in IEEE Std 802.11-2024,
+	 *  Table 9-322 (Burst Duration subfield encoding).
+	 */
+	u16 burst_period;
+	u8 num_bursts_exp;
+	u8 ftms_per_burst;
+	u8 ftmr_retries;
+	u8 burst_duration;
+
+	/**
+	 * NTB ranging specific parameters
+	 *
+	 * @min_time_between_measurements: Minimum time between two consecutive
+	 *  range measurements in units of 100 microseconds.
+	 * @max_time_between_measurements: Maximum time between two consecutive
+	 *  range measurements in units of 10 milliseconds, to avoid FTM
+	 *  negotiation.
+	 * @availability_window: Duration of the Availability Window (AW) in
+	 *  units of 1 millisecond (0-255 ms).
+	 * @nominal_time: Nominal duration between adjacent Availability Windows
+	 *  in units of milliseconds.
+	 */
+	u32 min_time_between_measurements;
+	u32 max_time_between_measurements;
+	u8 availability_window;
+	u32 nominal_time;
+
+	/**
+	 * @request_lci: Whether to request LCI
+	 * @request_civicloc: Whether to request civic location
+	 */
+	bool request_lci;
+	bool request_civicloc;
+
+	/**
+	 * @lmr_feedback: Negotiate LMR feedback for NTB ranging.
+	 * Only valid when NTB ranging type is set. Required for RSTA
+	 * to report measurement results back to the initiator.
+	 */
+	bool lmr_feedback;
+
+	/**
+	 * @ingress_threshold: Ingress range threshold in millimeters.
+	 * The kernel reports a measurement result when the device
+	 * moves into this range.
+	 */
+	u64 ingress_threshold;
+
+	/**
+	 * @egress_threshold: Egress range threshold in millimeters.
+	 * The kernel reports a measurement result when the device
+	 * moves out of this range.
+	 */
+	u64 egress_threshold;
+
+	/**
+	 * @pr_suppress_results: Suppress ranging results for PD requests.
+	 * Cannot be used with range_report or lmr_feedback.
+	 */
+	bool pr_suppress_results;
+
+	u32 continuous_ranging_session_time;
+
+	int forced_pr_freq;
 };
 
 struct pr_dev_ik {
