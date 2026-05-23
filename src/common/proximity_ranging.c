@@ -1149,6 +1149,7 @@ void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 
 	os_get_reltime(&dev->last_seen);
 	dev->listen_freq = freq;
+	dev->discovery_type = PR_DISCOVERY_TYPE_USD;
 
 	pr_process_ranging_capabilities(msg.pr_capability,
 					msg.pr_capability_len, &dev->pr_caps);
@@ -1171,11 +1172,45 @@ void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 }
 
 
+/**
+ * pr_ensure_oob_peer - Add a minimal OOB peer entry if not already present
+ */
+int pr_ensure_oob_peer(struct pr_data *pr, const u8 *addr, int freq)
+{
+	struct pr_device *dev;
+
+	if (!pr || !addr)
+		return -1;
+
+	dev = pr_get_device(pr, addr);
+	if (dev)
+		return 0;
+
+	dev = pr_create_device(pr, addr);
+	if (!dev) {
+		wpa_printf(MSG_INFO, "PR: Failed to create OOB peer " MACSTR,
+			   MAC2STR(addr));
+		return -1;
+	}
+
+	dev->discovery_type = PR_DISCOVERY_TYPE_OOB;
+	if (freq)
+		dev->listen_freq = freq;
+
+	wpa_printf(MSG_DEBUG, "PR: OOB peer " MACSTR " created at PASN_START",
+		   MAC2STR(addr));
+	return 0;
+}
+
+
 #ifdef CONFIG_PASN
 
 static bool pr_eq_ranging_capa_params(const struct pr_device *dev,
 				     const struct pr_capabilities *caps)
 {
+	if (dev->discovery_type == PR_DISCOVERY_TYPE_OOB)
+		return true;
+
 	return dev->pr_caps.edca_support == caps->edca_support &&
 		dev->pr_caps.ntb_support == caps->ntb_support &&
 		dev->pr_caps.pasn_type == caps->pasn_type &&
@@ -1188,6 +1223,9 @@ static bool pr_eq_ranging_capa_params(const struct pr_device *dev,
 static bool pr_eq_edca_params(const struct pr_device *dev,
 			      const struct edca_capabilities *edca_caps)
 {
+	if (dev->discovery_type == PR_DISCOVERY_TYPE_OOB)
+		return true;
+
 	return dev->edca_caps.ista_support == edca_caps->ista_support &&
 		dev->edca_caps.rsta_support == edca_caps->rsta_support &&
 		dev->edca_caps.edca_hw_caps == edca_caps->edca_hw_caps &&
@@ -1198,6 +1236,9 @@ static bool pr_eq_edca_params(const struct pr_device *dev,
 static bool pr_eq_ntb_params(const struct pr_device *dev,
 			     const struct ntb_capabilities *ntb_caps)
 {
+	if (dev->discovery_type == PR_DISCOVERY_TYPE_OOB)
+		return true;
+
 	return dev->ntb_caps.ista_support == ntb_caps->ista_support &&
 		dev->ntb_caps.rsta_support == ntb_caps->rsta_support &&
 		dev->ntb_caps.ntb_hw_caps == ntb_caps->ntb_hw_caps &&
@@ -1726,9 +1767,12 @@ static int pr_pasn_initialize(struct pr_data *pr, struct pr_device *dev,
 
 	/* As specified in Proximity Ranging Implementation Considerations for
 	 * P2P Operation D1.8, unauthenticated mode PASN with DH group 19
-	 * should be supported by all P2P proximity ranging devices. */
-	if (!(pr->cfg->pasn_type & BIT(0)) ||
-	    !(dev->pr_caps.pasn_type & BIT(0))) {
+	 * should be supported by all P2P proximity ranging devices. Skip
+	 * this check for OOB peers whose capabilities are not known.
+	 */
+	if (dev->discovery_type != PR_DISCOVERY_TYPE_OOB &&
+	    (!(pr->cfg->pasn_type & BIT(0)) ||
+	     !(dev->pr_caps.pasn_type & BIT(0)))) {
 		wpa_printf(MSG_DEBUG,
 			   "PR PASN: Unauthenticated DH group 19 NOT supported, PASN type of self 0x%x, peer 0x%x",
 			   pr->cfg->pasn_type, dev->pr_caps.pasn_type);
@@ -1936,7 +1980,8 @@ int pr_initiate_pasn_auth(struct pr_data *pr, const u8 *addr, int freq,
 		return -1;
 	}
 
-	if (pr_validate_pasn_request(pr, dev, auth_mode, ranging_role,
+	if (dev->discovery_type != PR_DISCOVERY_TYPE_OOB &&
+	    pr_validate_pasn_request(pr, dev, auth_mode, ranging_role,
 				     ranging_type) < 0) {
 		wpa_printf(MSG_INFO,
 			   "PR PASN: Invalid parameters to initiate authentication");

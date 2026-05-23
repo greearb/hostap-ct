@@ -1212,10 +1212,14 @@ int wpas_pr_initiate_pasn_auth(struct wpa_supplicant *wpa_s,
 			       enum pr_pasn_role pasn_role)
 {
 	struct wpa_pr_pasn_auth_work *awork;
+	struct pr_data *pr = wpa_s->global->pr;
+
+	/* Add OOB peer if not already in the discovery list */
+	if (pr && pr_ensure_oob_peer(pr, peer_addr, freq) < 0)
+		return -1;
 
 	if (pasn_role == PR_ROLE_PASN_RESPONDER) {
 		struct wpa_pr_pasn_roc_work *rwork;
-		struct pr_data *pr = wpa_s->global->pr;
 		unsigned int roc_time_ms = PR_PASN_RESPONDER_ROC_DURATION;
 		bool has_src_addr = src_addr && !is_zero_ether_addr(src_addr);
 

@@ -258,6 +258,10 @@ enum pr_attr_id {
 #define PR_PASN_AUTH_MODE_SAE    1
 #define PR_PASN_AUTH_MODE_PMK    2
 
+/* Peer discovery type */
+#define PR_DISCOVERY_TYPE_USD    0
+#define PR_DISCOVERY_TYPE_OOB    1
+
 /**
  * struct pr_pasn_ranging_params - Peer parameters to be used in PASN to trigger
  * ranging in case PR PASN is successful.
@@ -414,6 +418,7 @@ struct pr_device {
 	u8 protocol_type;
 	u8 final_op_class;
 	u8 final_op_channel;
+	u8 discovery_type;
 };
 
 
@@ -642,6 +647,7 @@ void pr_add_dev_ik(struct pr_data *pr, const u8 *dik, const char *password,
 struct wpabuf * pr_prepare_usd_elems(struct pr_data *pr);
 void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 			  const u8 *peer_addr, unsigned int freq);
+int pr_ensure_oob_peer(struct pr_data *pr, const u8 *addr, int freq);
 int pr_initiate_pasn_auth(struct pr_data *pr, const u8 *addr, int freq,
 			  u8 auth_mode, u8 ranging_role, u8 ranging_type,
 			  int forced_pr_freq);
