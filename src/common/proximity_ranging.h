@@ -273,6 +273,7 @@ struct pr_pasn_ranging_params {
 	u8 pr_pasn_status;
 	u8 auth_mode;
 	int freq;
+	u32 ranging_timeout;
 	u8 src_addr[ETH_ALEN];
 	enum pr_pasn_role pasn_role;
 
@@ -347,6 +348,12 @@ struct pr_pasn_ranging_params {
 	u32 continuous_ranging_session_time;
 
 	int forced_pr_freq;
+	u8 ranging_op_class;
+	u16 channel_width; /* channel width in MHz (20/40/80/160/320) */
+	u8 format_bw;
+	u32 center_freq1;
+	u32 center_freq2;
+	u64 cookie;
 };
 
 struct pr_dev_ik {

@@ -11,6 +11,7 @@
 #include "utils/common.h"
 #include "utils/eloop.h"
 #include "common/ieee802_11_defs.h"
+#include "common/ieee802_11_common.h"
 #include "common/proximity_ranging.h"
 #include "p2p/p2p.h"
 #include "wpa_supplicant_i.h"
@@ -130,6 +131,95 @@ wpas_pr_ntb_is_valid_op_class(u32 bw_bitmap, u32 preamble_bitmap,
 	default:
 		return false;
 	}
+}
+
+
+/**
+ * wpas_pr_op_class_to_chan_params - Derive center freq and width from op_class
+ */
+static int wpas_pr_op_class_to_chan_params(u8 op_class, u8 op_channel,
+					   u32 *center_freq1,
+					   u32 *center_freq2,
+					   u16 *channel_width)
+{
+	int control_freq, bw, offset = 0;
+	int half_bw, block_pos;
+
+	if (!center_freq1 || !center_freq2 || !channel_width)
+		return -1;
+
+	*center_freq1 = 0;
+	*center_freq2 = 0;
+	*channel_width = 0;
+
+	/* 80+80 MHz: center_freq2 is unknown from primary channel alone */
+	if (op_class == 130 || op_class == 135) {
+		wpa_printf(MSG_DEBUG,
+			   "PR: op_class %u (80+80 MHz) not supported, center_freq2 cannot be determined",
+			   op_class);
+		return -1;
+	}
+
+	control_freq = ieee80211_chan_to_freq(NULL, op_class, op_channel);
+	if (control_freq < 0) {
+		wpa_printf(MSG_DEBUG, "PR: Invalid op_class=%u channel=%u",
+			   op_class, op_channel);
+		return -1;
+	}
+
+	bw = op_class_to_bandwidth(op_class);
+
+	/*
+	 * 2.4 GHz 40 MHz: channels are 5 MHz apart so the generic offset
+	 * formula does not apply. Handle upper (op_class 83) and lower
+	 * (op_class 84) secondary channel directions explicitly.
+	 */
+	if (op_class == 83) {
+		*center_freq1 = control_freq + 10;
+		*channel_width = 40;
+		return 0;
+	}
+	if (op_class == 84) {
+		*center_freq1 = control_freq - 10;
+		*channel_width = 40;
+		return 0;
+	}
+
+	if (bw == 20) {
+		*center_freq1 = control_freq;
+		*channel_width = 20;
+		return 0;
+	}
+
+	/*
+	 * For 5 GHz and 6 GHz wider bandwidths, compute the primary channel's
+	 * position (in 20 MHz steps) within its band segment, then derive
+	 * center_freq1 using the formula:
+	 *   center_freq1 = control_freq + (bw/2 - 10) -
+	 *			(offset & (bw/20 - 1)) * 20
+	 */
+	if (control_freq >= 5955)
+		offset = (control_freq - 5955) / 20;
+	else if (control_freq >= 5745)
+		offset = (control_freq - 5745) / 20;
+	else if (control_freq >= 5180)
+		offset = (control_freq - 5180) / 20;
+
+	/* Distance from the primary channel to the center of the BW block */
+	half_bw = bw / 2 - 10;
+
+	/* Position of the primary channel within its BW block (in 20 MHz steps)
+	 */
+	block_pos = offset & (bw / 20 - 1);
+
+	/* Center = primary channel + half-BW offset - position within block */
+	*center_freq1 = control_freq + half_bw - block_pos * 20;
+	*channel_width = bw;
+
+	wpa_printf(MSG_DEBUG, "PR: op_class=%u ch=%u -> freq=%d cf1=%u bw=%d",
+		   op_class, op_channel, control_freq, *center_freq1, bw);
+
+	return 0;
 }
 
 
@@ -283,6 +373,100 @@ static void wpas_pr_pasn_result(void *ctx, u8 role, u8 protocol_type,
 }
 
 
+/**
+ * wpas_pr_trigger_ranging - Trigger FTM ranging after successful PASN auth
+ */
+static int wpas_pr_trigger_ranging(struct wpa_supplicant *wpa_s,
+				   const u8 *peer_addr, int freq, u8 op_class,
+				   u8 op_channel, u8 format_bw,
+				   u8 protocol_type)
+{
+	struct pr_data *pr = wpa_s->global->pr;
+	struct pr_pasn_ranging_params *params;
+	u16 channel_width = 0;
+	u32 center_freq1 = 0, center_freq2 = 0;
+	int ret;
+
+	if (!pr || !pr->pr_pasn_params) {
+		wpa_printf(MSG_DEBUG,
+			   "PR: No ranging params available for " MACSTR,
+			   MAC2STR(peer_addr));
+		return -1;
+	}
+
+	params = pr->pr_pasn_params;
+
+	wpa_printf(MSG_DEBUG,
+		   "PR: Triggering ranging for " MACSTR " freq=%d ch=%u",
+		   MAC2STR(peer_addr), freq, op_channel);
+
+	/* Derive center frequencies and channel width (MHz) from op_class */
+	ret = wpas_pr_op_class_to_chan_params(op_class, op_channel,
+					      &center_freq1, &center_freq2,
+					      &channel_width);
+	if (ret < 0) {
+		wpa_printf(MSG_INFO,
+			   "PR: Failed to derive channel params for op_class=%u ch=%u",
+			   op_class, op_channel);
+		goto fail;
+	}
+
+	/* Populate ranging params */
+	params->ranging_op_class = op_class;
+	params->channel_width = channel_width;
+	params->format_bw = format_bw;
+	params->center_freq1 = center_freq1;
+	params->center_freq2 = center_freq2;
+
+	/* Validate format_bw is within enum limits before setting preamble */
+	if (protocol_type & PR_EDCA_BASED_RANGING) {
+		if (format_bw < EDCA_FORMAT_AND_BW_VHT20 ||
+		    format_bw > EDCA_FORMAT_AND_BW_VHT160_SINGLE_LO) {
+			wpa_printf(MSG_INFO,
+				   "PR: Invalid EDCA format_bw %u (valid range: %u-%u)",
+				   format_bw, EDCA_FORMAT_AND_BW_VHT20,
+				   EDCA_FORMAT_AND_BW_VHT160_SINGLE_LO);
+			goto fail;
+		}
+	} else if (protocol_type & (PR_NTB_SECURE_LTF_BASED_RANGING |
+				    PR_NTB_OPEN_BASED_RANGING)) {
+		if (format_bw > NTB_FORMAT_AND_BW_HE160_SINGLE_LO) {
+			wpa_printf(MSG_INFO,
+				   "PR: Invalid NTB format_bw %u (valid range: 0-%u)",
+				   format_bw,
+				   NTB_FORMAT_AND_BW_HE160_SINGLE_LO);
+			goto fail;
+		}
+	} else {
+		wpa_printf(MSG_INFO, "PR: Unknown protocol_type %u",
+			   protocol_type);
+		goto fail;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "PR: Ranging params - op_class=%u, ch_width=%u, format_bw=%u, cf1=%u, cf2=%u",
+		   params->ranging_op_class, params->channel_width,
+		   params->format_bw, params->center_freq1,
+		   params->center_freq2);
+
+	/* Call driver operation to start peer measurement */
+	if (wpa_drv_start_peer_measurement(wpa_s, peer_addr, freq, op_channel,
+					   channel_width, params) < 0) {
+		wpa_printf(MSG_INFO, "PR: Failed to start peer measurement");
+		goto fail;
+	}
+
+	wpa_printf(MSG_DEBUG, "PR: Successfully triggered ranging measurement");
+
+	return 0;
+
+fail:
+	os_free(pr->pr_pasn_params);
+	pr->pr_pasn_params = NULL;
+	return -1;
+}
+
+
 static void wpas_pr_ranging_params(void *ctx, const u8 *dev_addr,
 				   const u8 *peer_addr, u8 ranging_role,
 				   u8 protocol_type, u8 op_class, u8 op_channel,
@@ -299,6 +483,10 @@ static void wpas_pr_ranging_params(void *ctx, const u8 *dev_addr,
 	wpas_notify_pr_ranging_params(wpa_s, dev_addr, peer_addr, ranging_role,
 				      protocol_type, freq, op_channel, bw,
 				      format_bw);
+
+	/* Trigger ranging measurement after successful PASN authentication */
+	wpas_pr_trigger_ranging(wpa_s, peer_addr, freq, op_class, op_channel,
+				format_bw, protocol_type);
 }
 
 

@@ -756,6 +756,18 @@ wpa_drv_pd_stop(struct wpa_supplicant *wpa_s)
 	wpa_s->driver->pd_stop(wpa_s->drv_priv);
 }
 
+static inline int
+wpa_drv_start_peer_measurement(struct wpa_supplicant *wpa_s, const u8 *peer,
+			       int freq, u8 channel, int bw,
+			       struct pr_pasn_ranging_params *params)
+{
+	if (!wpa_s->driver->start_peer_measurement)
+		return -1;
+	return wpa_s->driver->start_peer_measurement(wpa_s->drv_priv, peer,
+						      freq, channel, bw,
+						      params);
+}
+
 #endif /* CONFIG_PR */
 
 static inline int wpa_drv_vendor_cmd(struct wpa_supplicant *wpa_s,

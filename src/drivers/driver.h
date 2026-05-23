@@ -30,6 +30,7 @@
 
 struct nan_subscribe_params;
 struct nan_publish_params;
+struct pr_pasn_ranging_params;
 
 #define HOSTAPD_CHAN_DISABLED 0x00000001
 #define HOSTAPD_CHAN_NO_IR 0x00000002
@@ -5930,6 +5931,23 @@ struct wpa_driver_ops {
 	 * @priv: Private driver interface data
 	 */
 	void (*pd_stop)(void *priv);
+
+	/**
+	 * start_peer_measurement - Start peer measurement (FTM ranging)
+	 * @priv: Private driver interface data
+	 * @peer_addr: Peer MAC address
+	 * @freq: Operating frequency in MHz
+	 * @channel: Operating channel number
+	 * @bw: Channel bandwidth in MHz
+	 * @params: Ranging parameters (EDCA/NTB specific)
+	 * Returns: 0 on success, -1 on failure
+	 *
+	 * This function triggers peer measurement (FTM ranging) after
+	 * successful PASN authentication for proximity ranging.
+	 */
+	int (*start_peer_measurement)(void *priv, const u8 *peer_addr,
+				      int freq, u8 channel, int bw,
+				      struct pr_pasn_ranging_params *params);
 #endif /* CONFIG_PR */
 };
 

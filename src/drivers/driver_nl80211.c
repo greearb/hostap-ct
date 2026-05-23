@@ -32,6 +32,7 @@
 #include "common/wpa_common.h"
 #include "common/nan_defs.h"
 #include "common/nan_de.h"
+#include "common/proximity_ranging.h"
 #include "crypto/sha256.h"
 #include "crypto/sha384.h"
 #include "netlink.h"
@@ -16270,6 +16271,321 @@ static void nl80211_pd_stop(void *priv)
 	drv->pd_bss = NULL;
 }
 
+
+static u8 get_pr_preamble(u8 ranging_type, u8 format_bw)
+{
+	/* Determine preamble based on ranging type and format_bw */
+	if (ranging_type & PR_EDCA_BASED_RANGING) {
+		/* EDCA format_bw maps to different preambles */
+		switch (format_bw) {
+		case EDCA_FORMAT_AND_BW_HT40:
+			return NL80211_PREAMBLE_HT;
+		case EDCA_FORMAT_AND_BW_VHT20:
+		case EDCA_FORMAT_AND_BW_VHT40:
+		case EDCA_FORMAT_AND_BW_VHT80:
+		case EDCA_FORMAT_AND_BW_VHT80P80:
+		case EDCA_FORMAT_AND_BW_VHT160_DUAL_LO:
+		case EDCA_FORMAT_AND_BW_VHT160_SINGLE_LO:
+			return NL80211_PREAMBLE_VHT;
+		default:
+			return NL80211_PREAMBLE_VHT;
+		}
+	} else if (ranging_type & (PR_NTB_SECURE_LTF_BASED_RANGING |
+				   PR_NTB_OPEN_BASED_RANGING)) {
+		/* NTB format_bw all use HE preamble */
+		return NL80211_PREAMBLE_HE;
+	}
+
+	/* Default fallback */
+	return NL80211_PREAMBLE_VHT;
+}
+
+
+/**
+ * nl80211_start_peer_measurement - Send NL80211_CMD_PEER_MEASUREMENT_START
+ */
+static int nl80211_start_peer_measurement(void *priv, const u8 *peer_addr,
+					  int freq, u8 channel, int bw,
+					  struct pr_pasn_ranging_params *params)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	struct nlattr *pmsr_attr, *peers_attr, *peer_attr, *chan_attr,
+		*req_attr, *ftm_attr;
+	struct nlattr *data_attr;
+	int ret = -1, center_freq1 = 0, center_freq2 = 0;
+	struct nl80211_ack_ext_arg ack_arg;
+	enum nl80211_chan_width width;
+	u32 preamble;
+	u64 cookie;
+
+	if (!peer_addr || !params) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Invalid parameters for peer measurement");
+		return -1;
+	}
+
+	/* Route via PD wdev if src_addr matches */
+	if (drv->pd_bss && !is_zero_ether_addr(params->src_addr) &&
+	    ether_addr_equal(params->src_addr, drv->pd_bss->addr)) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Peer measurement routed via PD wdev addr="
+			   MACSTR, MAC2STR(drv->pd_bss->addr));
+		bss = drv->pd_bss;
+	}
+
+	wpa_printf(MSG_DEBUG, "nl80211: Start peer measurement for " MACSTR
+		   " freq=%d ch=%u bw=%d",
+		   MAC2STR(peer_addr), freq, channel, bw);
+
+	/* Use center frequencies from params (calculated in
+	 * wpas_pr_trigger_ranging()) */
+	center_freq1 = params->center_freq1;
+	center_freq2 = params->center_freq2;
+
+	/* channel_width is in MHz */
+	switch (params->channel_width) {
+	case 20:
+		width = NL80211_CHAN_WIDTH_20;
+		break;
+	case 40:
+		width = NL80211_CHAN_WIDTH_40;
+		break;
+	case 80:
+		width = NL80211_CHAN_WIDTH_80;
+		break;
+	case 160:
+		width = NL80211_CHAN_WIDTH_160;
+		break;
+	case 320:
+		width = NL80211_CHAN_WIDTH_320;
+		break;
+	default:
+		wpa_printf(MSG_INFO,
+			   "nl80211: Unsupported channel width %u MHz",
+			   params->channel_width);
+		return -1;
+	}
+
+	wpa_printf(MSG_DEBUG,
+		   "nl80211: Using center_freq1=%u, center_freq2=%u, width=%d",
+		   center_freq1, center_freq2, width);
+
+	/*
+	 * PD interfaces are non-netdev (ifindex=0); use nl80211_cmd_msg()
+	 * which emits NL80211_ATTR_WDEV instead of NL80211_ATTR_IFINDEX.
+	 */
+	msg = nl80211_cmd_msg(bss, 0, NL80211_CMD_PEER_MEASUREMENT_START);
+	if (!msg)
+		return -1;
+
+	/* Add timeout if specified */
+	if (params->ranging_timeout > 0) {
+		if (nla_put_u32(msg, NL80211_ATTR_TIMEOUT,
+				params->ranging_timeout))
+			goto fail;
+		wpa_printf(MSG_DEBUG, "nl80211: Added timeout %u ms",
+			   params->ranging_timeout);
+	}
+
+	/* Add peer measurements attribute */
+	pmsr_attr = nla_nest_start(msg, NL80211_ATTR_PEER_MEASUREMENTS);
+	if (!pmsr_attr)
+		goto fail;
+
+	/* Add peers array */
+	peers_attr = nla_nest_start(msg, NL80211_PMSR_ATTR_PEERS);
+	if (!peers_attr)
+		goto fail;
+
+	/* Add single peer */
+	peer_attr = nla_nest_start(msg, 0);
+	if (!peer_attr)
+		goto fail;
+
+	/* Peer MAC address */
+	if (nla_put(msg, NL80211_PMSR_PEER_ATTR_ADDR, ETH_ALEN, peer_addr))
+		goto fail;
+
+	/* Add proximity detection request type */
+	if (nla_put_u32(msg, NL80211_PMSR_PEER_ATTR_REQ_TYPE,
+			NL80211_PMSR_FTM_REQ_TYPE_PD))
+		goto fail;
+
+	/* Channel information */
+	chan_attr = nla_nest_start(msg, NL80211_PMSR_PEER_ATTR_CHAN);
+	if (!chan_attr)
+		goto fail;
+
+	if (nla_put_u32(msg, NL80211_ATTR_WIPHY_FREQ, freq) ||
+	    nla_put_u32(msg, NL80211_ATTR_CHANNEL_WIDTH, width) ||
+	    nla_put_u32(msg, NL80211_ATTR_CENTER_FREQ1, center_freq1))
+		goto fail;
+
+	if (center_freq2 &&
+	    nla_put_u32(msg, NL80211_ATTR_CENTER_FREQ2, center_freq2))
+		goto fail;
+
+	nla_nest_end(msg, chan_attr);
+
+
+	/* Request attributes */
+	req_attr = nla_nest_start(msg, NL80211_PMSR_PEER_ATTR_REQ);
+	if (!req_attr)
+		goto fail;
+
+	/* Add data attribute as required by nl80211 specification */
+	data_attr = nla_nest_start(msg, NL80211_PMSR_REQ_ATTR_DATA);
+	if (!data_attr)
+		goto fail;
+
+	/* FTM request */
+	ftm_attr = nla_nest_start(msg, NL80211_PMSR_TYPE_FTM);
+	if (!ftm_attr)
+		goto fail;
+
+	preamble = get_pr_preamble(params->ranging_type, params->format_bw);
+	if (nla_put_u32(msg, NL80211_PMSR_FTM_REQ_ATTR_PREAMBLE, preamble))
+		goto fail;
+
+	/* Map ranging parameters to NL80211 attributes based on protocol type
+	 */
+	if (params->ranging_type & PR_EDCA_BASED_RANGING) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Adding EDCA ranging parameters");
+
+		/* ASAP and BURST_PERIOD are always set for EDCA */
+		if (nla_put_flag(msg, NL80211_PMSR_FTM_REQ_ATTR_ASAP) ||
+		    nla_put_u16(msg, NL80211_PMSR_FTM_REQ_ATTR_BURST_PERIOD,
+				params->burst_period))
+			goto fail;
+
+		/* Other EDCA parameters are only set for ISTA */
+		if (params->ranging_role == PR_ISTA_SUPPORT &&
+		    (nla_put_u8(msg,
+				NL80211_PMSR_FTM_REQ_ATTR_NUM_BURSTS_EXP,
+				params->num_bursts_exp) ||
+		     nla_put_u8(msg,
+				NL80211_PMSR_FTM_REQ_ATTR_FTMS_PER_BURST,
+				params->ftms_per_burst) ||
+		     nla_put_u8(msg,
+				NL80211_PMSR_FTM_REQ_ATTR_NUM_FTMR_RETRIES,
+				params->ftmr_retries) ||
+		     nla_put_u8(msg,
+				NL80211_PMSR_FTM_REQ_ATTR_BURST_DURATION,
+				params->burst_duration)))
+			goto fail;
+	}
+
+	if (params->ranging_type & (PR_NTB_SECURE_LTF_BASED_RANGING |
+				    PR_NTB_OPEN_BASED_RANGING)) {
+		wpa_printf(MSG_DEBUG, "nl80211: Adding NTB ranging parameters");
+
+		/* Set non-trigger based flag */
+		if (nla_put_flag(msg,
+				 NL80211_PMSR_FTM_REQ_ATTR_NON_TRIGGER_BASED))
+			goto fail;
+
+		if (nla_put_u32(msg, NL80211_PMSR_FTM_REQ_ATTR_NOMINAL_TIME,
+				params->nominal_time))
+			goto fail;
+
+		/* ISTA-specific NTB parameters */
+		if (params->ranging_role == PR_ISTA_SUPPORT &&
+		    (nla_put_u32(msg,
+				 NL80211_PMSR_FTM_REQ_ATTR_MIN_TIME_BETWEEN_MEASUREMENTS,
+				 params->min_time_between_measurements) ||
+		     nla_put_u32(msg,
+				 NL80211_PMSR_FTM_REQ_ATTR_MAX_TIME_BETWEEN_MEASUREMENTS,
+				 params->max_time_between_measurements) ||
+		     nla_put_u32(msg, NL80211_PMSR_FTM_REQ_ATTR_AW_DURATION,
+				 params->availability_window) ||
+		     nla_put_u8(msg, NL80211_PMSR_FTM_REQ_ATTR_FTMS_PER_BURST,
+				params->ftms_per_burst)))
+			goto fail;
+	}
+
+	/* Location requests */
+	if (params->request_lci &&
+	    nla_put_flag(msg, NL80211_PMSR_FTM_REQ_ATTR_REQUEST_LCI))
+		goto fail;
+
+	if (params->request_civicloc &&
+	    nla_put_flag(msg, NL80211_PMSR_FTM_REQ_ATTR_REQUEST_CIVICLOC))
+		goto fail;
+
+	/* RSTA mode if responder role */
+	if (params->ranging_role == PR_RSTA_SUPPORT &&
+	    nla_put_flag(msg, NL80211_PMSR_FTM_REQ_ATTR_RSTA))
+		goto fail;
+
+	/*
+	 * LMR feedback: set for RSTA role in NTB ranging so that
+	 * the RSTA reports its measurement results back to the ISTA.
+	 * Only valid when NON_TRIGGER_BASED is set.
+	 */
+	if (params->ranging_role == PR_RSTA_SUPPORT &&
+	    (params->ranging_type & (PR_NTB_SECURE_LTF_BASED_RANGING |
+				     PR_NTB_OPEN_BASED_RANGING)) &&
+	    nla_put_flag(msg, NL80211_PMSR_FTM_REQ_ATTR_LMR_FEEDBACK))
+		goto fail;
+
+	/*
+	 * PD ingress/egress thresholds: only valid when
+	 * NL80211_PMSR_PEER_ATTR_REQ_TYPE is NL80211_PMSR_FTM_REQ_TYPE_PD
+	 * (always the case here). Thresholds are in millimeters.
+	 */
+	if (params->ingress_threshold &&
+	    nla_put_u64(msg, NL80211_PMSR_FTM_REQ_ATTR_INGRESS,
+			params->ingress_threshold))
+		goto fail;
+
+	if (params->egress_threshold &&
+	    nla_put_u64(msg, NL80211_PMSR_FTM_REQ_ATTR_EGRESS,
+			params->egress_threshold))
+		goto fail;
+
+	/*
+	 * PD suppress results: suppress ranging results for PD requests.
+	 */
+	if (params->pr_suppress_results &&
+	    nla_put_flag(msg, NL80211_PMSR_FTM_REQ_ATTR_PD_SUPPRESS_RESULTS))
+		goto fail;
+
+	nla_nest_end(msg, ftm_attr);
+	nla_nest_end(msg, data_attr);
+	nla_nest_end(msg, req_attr);
+	nla_nest_end(msg, peer_attr);
+	nla_nest_end(msg, peers_attr);
+	nla_nest_end(msg, pmsr_attr);
+
+	cookie = 0;
+	os_memset(&ack_arg, 0, sizeof(struct nl80211_ack_ext_arg));
+	ack_arg.ext_data = &cookie;
+	ret = send_and_recv(drv, drv->global->nl, msg, NULL, NULL,
+			    ack_handler_cookie, &ack_arg, NULL);
+	if (ret < 0) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Peer measurement start failed: ret=%d (%s)",
+			   ret, strerror(-ret));
+	} else {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Peer measurement started successfully addr="
+			   MACSTR " cookie=%llu", MAC2STR(peer_addr),
+			   (unsigned long long) cookie);
+		params->cookie = cookie;
+	}
+
+	return ret;
+
+fail:
+	wpa_printf(MSG_INFO,
+		   "nl80211: Failed to build peer measurement message");
+	nlmsg_free(msg);
+	return -1;
+}
+
 #endif /* CONFIG_PR */
 
 
@@ -16454,5 +16770,6 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 #ifdef CONFIG_PR
 	.pd_start = nl80211_pd_start,
 	.pd_stop = nl80211_pd_stop,
+	.start_peer_measurement = nl80211_start_peer_measurement,
 #endif /* CONFIG_PR */
 };
