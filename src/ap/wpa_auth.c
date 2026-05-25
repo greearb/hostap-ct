@@ -55,8 +55,6 @@ static void wpa_sm_call_step(void *eloop_ctx, void *timeout_ctx);
 static void wpa_group_sm_step(struct wpa_authenticator *wpa_auth,
 			      struct wpa_group *group);
 static void wpa_request_new_ptk(struct wpa_state_machine *sm);
-static int wpa_gtk_update(struct wpa_authenticator *wpa_auth,
-			  struct wpa_group *group);
 static int wpa_group_config_group_keys(struct wpa_authenticator *wpa_auth,
 				       struct wpa_group *group);
 static int wpa_derive_ptk(struct wpa_state_machine *sm, const u8 *snonce,
@@ -64,8 +62,6 @@ static int wpa_derive_ptk(struct wpa_state_machine *sm, const u8 *snonce,
 			  struct wpa_ptk *ptk, int force_sha256,
 			  u8 *pmk_r0, u8 *pmk_r1, u8 *pmk_r0_name,
 			  size_t *key_len, bool no_kdk);
-static void wpa_group_free(struct wpa_authenticator *wpa_auth,
-			   struct wpa_group *group);
 static void wpa_group_get(struct wpa_authenticator *wpa_auth,
 			  struct wpa_group *group);
 static void wpa_group_put(struct wpa_authenticator *wpa_auth,
