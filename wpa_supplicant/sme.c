@@ -4708,9 +4708,8 @@ mscs_fail:
 			"driver failed");
 
 		/* Prepare list of failed links for error report */
-		for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-			if (!(wpa_s->valid_links & BIT(i)) ||
-			    wpa_s->mlo_assoc_link_id == i ||
+		for_each_link(wpa_s->valid_links, i) {
+			if (wpa_s->mlo_assoc_link_id == i ||
 			    !params.mld_params.mld_links[i].error)
 				continue;
 

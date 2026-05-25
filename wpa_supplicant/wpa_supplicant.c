@@ -10178,9 +10178,7 @@ bool wpas_ap_supports_rsn_overriding(struct wpa_supplicant *wpa_s,
 	if (!wpa_s->valid_links)
 		return false;
 
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(wpa_s->valid_links & BIT(i)))
-			continue;
+	for_each_link(wpa_s->valid_links, i) {
 		if (wpa_s->links[i].bss &&
 		    (wpa_bss_get_vendor_ie(wpa_s->links[i].bss,
 					   RSNE_OVERRIDE_IE_VENDOR_TYPE) ||
@@ -10206,9 +10204,7 @@ bool wpas_ap_supports_rsn_overriding_2(struct wpa_supplicant *wpa_s,
 	if (!wpa_s->valid_links)
 		return false;
 
-	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
-		if (!(wpa_s->valid_links & BIT(i)))
-			continue;
+	for_each_link(wpa_s->valid_links, i) {
 		if (wpa_s->links[i].bss &&
 		    wpa_bss_get_vendor_ie(wpa_s->links[i].bss,
 					  RSNE_OVERRIDE_2_IE_VENDOR_TYPE))
