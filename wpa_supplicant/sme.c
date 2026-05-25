@@ -54,7 +54,7 @@ static int sme_validate_basic_mle(const struct ieee802_11_elems *elems,
 				  const u8 *addr);
 #ifdef CONFIG_IEEE8021X_AUTH
 static void sme_process_802_1x_auth_response(struct wpa_supplicant *wpa_s,
-					     union wpa_event_data *data,
+					     struct auth_info *auth,
 					     bool external);
 #endif /* CONFIG_IEEE8021X_AUTH */
 
@@ -3179,21 +3179,20 @@ void sme_external_auth_mgmt_rx(struct wpa_supplicant *wpa_s,
 #ifdef CONFIG_IEEE8021X_AUTH
 	} else if (le_to_host16(header->u.auth.auth_alg) ==
 		   WLAN_AUTH_802_1X) {
-		union wpa_event_data data;
+		struct auth_info auth;
 
-		os_memset(&data, 0, sizeof(data));
-		os_memcpy(data.auth.peer, header->sa, ETH_ALEN);
-		data.auth.auth_type = le_to_host16(header->u.auth.auth_alg);
-		data.auth.auth_transaction =
+		os_memset(&auth, 0, sizeof(auth));
+		os_memcpy(auth.peer, header->sa, ETH_ALEN);
+		auth.auth_type = le_to_host16(header->u.auth.auth_alg);
+		auth.auth_transaction =
 			le_to_host16(header->u.auth.auth_transaction);
-		data.auth.status_code =
-			le_to_host16(header->u.auth.status_code);
-		data.auth.ies = header->u.auth.variable;
-		data.auth.ies_len = len - auth_length;
-		data.auth.frame_body = (const u8 *) &header->u.auth;
-		data.auth.frame_body_len = len - IEEE80211_HDRLEN;
+		auth.status_code = le_to_host16(header->u.auth.status_code);
+		auth.ies = header->u.auth.variable;
+		auth.ies_len = len - auth_length;
+		auth.frame_body = (const u8 *) &header->u.auth;
+		auth.frame_body_len = len - IEEE80211_HDRLEN;
 
-		sme_process_802_1x_auth_response(wpa_s, &data, true);
+		sme_process_802_1x_auth_response(wpa_s, &auth, true);
 		return;
 #endif /* CONFIG_IEEE8021X_AUTH */
 	}
@@ -3567,7 +3566,7 @@ static size_t wpas_get_kdk_len(struct wpa_supplicant *wpa_s)
 
 
 static void sme_process_802_1x_auth_response(struct wpa_supplicant *wpa_s,
-					     union wpa_event_data *data,
+					     struct auth_info *auth,
 					     bool external)
 {
 	struct ieee802_11_elems elems;
@@ -3582,26 +3581,26 @@ static void sme_process_802_1x_auth_response(struct wpa_supplicant *wpa_s,
 		return;
 	}
 
-	if (data->auth.status_code != WLAN_STATUS_SUCCESS &&
-	    data->auth.status_code != WLAN_STATUS_802_1_X_AUTH_SUCCESS) {
+	if (auth->status_code != WLAN_STATUS_SUCCESS &&
+	    auth->status_code != WLAN_STATUS_802_1_X_AUTH_SUCCESS) {
 		wpa_msg(wpa_s, MSG_INFO,
 			"IEEE 802.1X: Authentication failed (status=%u)",
-			data->auth.status_code);
+			auth->status_code);
 		goto fail;
 	}
 
-	if (data->auth.auth_transaction != wpa_s->auth_1x->auth_trans + 1) {
+	if (auth->auth_transaction != wpa_s->auth_1x->auth_trans + 1) {
 		wpa_msg(wpa_s, MSG_INFO,
 			"IEEE 802.1X: Unexpected transaction number (received=%u, expected=%u) - discard",
-			data->auth.auth_transaction,
+			auth->auth_transaction,
 			wpa_s->auth_1x->auth_trans + 1);
 		return;
 	}
 
-	wpa_s->auth_1x->auth_trans = data->auth.auth_transaction;
+	wpa_s->auth_1x->auth_trans = auth->auth_transaction;
 
-	if (sme_parse_802_1x_auth_frame(wpa_s, data->auth.ies,
-					data->auth.ies_len, &elems, &pdu) < 0) {
+	if (sme_parse_802_1x_auth_frame(wpa_s, auth->ies, auth->ies_len, &elems,
+					&pdu) < 0) {
 		wpa_msg(wpa_s, MSG_INFO,
 			"IEEE 802.1X: Failed to parse Authentication frame");
 		return;
@@ -3613,7 +3612,7 @@ static void sme_process_802_1x_auth_response(struct wpa_supplicant *wpa_s,
 		goto cleanup;
 	}
 
-	if (data->auth.auth_transaction == 2) {
+	if (auth->auth_transaction == 2) {
 		if (wpa_s->auth_1x->derive_ptk) {
 			if (sme_validate_8021x_auth_elems(wpa_s, &elems, pdu) <
 			    0) {
@@ -3649,10 +3648,10 @@ static void sme_process_802_1x_auth_response(struct wpa_supplicant *wpa_s,
 	}
 
 	if (wpa_s->auth_1x->pmksa_caching &&
-	    data->auth.status_code != WLAN_STATUS_SUCCESS) {
+	    auth->status_code != WLAN_STATUS_SUCCESS) {
 		wpa_msg(wpa_s, MSG_INFO,
 			"IEEE 802.1X: PMKSA caching failed (status=%u)",
-			data->auth.status_code);
+			auth->status_code);
 		goto fail;
 	}
 
@@ -3674,15 +3673,14 @@ static void sme_process_802_1x_auth_response(struct wpa_supplicant *wpa_s,
 		}
 
 		if (eapol_sm_get_success(wpa_s->eapol) &&
-		    data->auth.status_code !=
-		    WLAN_STATUS_802_1_X_AUTH_SUCCESS) {
+		    auth->status_code != WLAN_STATUS_802_1_X_AUTH_SUCCESS) {
 			wpa_msg(wpa_s, MSG_INFO,
 				"IEEE 802.1X: Invalid status code in EAP-Success authentication frame");
 			goto fail;
 		}
 	}
 
-	if (data->auth.status_code == WLAN_STATUS_802_1_X_AUTH_SUCCESS ||
+	if (auth->status_code == WLAN_STATUS_802_1_X_AUTH_SUCCESS ||
 	    wpa_s->auth_1x->pmkid_found) {
 		if (wpa_s->auth_1x->derive_ptk) {
 			struct wpa_ptk ptk;
@@ -3726,8 +3724,8 @@ static void sme_process_802_1x_auth_response(struct wpa_supplicant *wpa_s,
 			wpa_s->auth_1x->dhss = NULL;
 
 			if (sme_validate_802_1x_auth_mic(
-				    wpa_s, data->auth.frame_body,
-				    data->auth.frame_body_len, &ptk,
+				    wpa_s, auth->frame_body,
+				    auth->frame_body_len, &ptk,
 				    external) < 0) {
 				wpa_msg(wpa_s, MSG_INFO,
 					"IEEE 802.1X: MIC validation failed");
@@ -3767,12 +3765,12 @@ static void sme_process_802_1x_auth_response(struct wpa_supplicant *wpa_s,
 			goto cleanup;
 		}
 		sme_associate(wpa_s, wpa_s->current_ssid->mode,
-			      data->auth.peer, data->auth.auth_type);
+			      auth->peer, auth->auth_type);
 		sme_802_1x_auth_data_free(wpa_s);
 		goto cleanup;
 	}
 
-	if (data->auth.status_code == WLAN_STATUS_SUCCESS) {
+	if (auth->status_code == WLAN_STATUS_SUCCESS) {
 		wpa_printf(MSG_DEBUG,
 			   "IEEE 802.1X: Authentication in progress, sending next frame");
 		if (external) {
@@ -3845,7 +3843,7 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 
 #ifdef CONFIG_IEEE8021X_AUTH
 	if (data->auth.auth_type == WLAN_AUTH_802_1X) {
-		sme_process_802_1x_auth_response(wpa_s, data, false);
+		sme_process_802_1x_auth_response(wpa_s, &data->auth, false);
 		return;
 	}
 #endif /* CONFIG_IEEE8021X_AUTH */
