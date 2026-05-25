@@ -2212,11 +2212,11 @@ void sme_send_external_auth_status(struct wpa_supplicant *wpa_s, u16 status)
 #ifdef CONFIG_SAE
 
 static int sme_handle_external_auth_start(struct wpa_supplicant *wpa_s,
-					  union wpa_event_data *data)
+					  struct external_auth *ext_auth)
 {
 	struct wpa_ssid *ssid;
-	size_t ssid_str_len = data->external_auth.ssid_len;
-	const u8 *ssid_str = data->external_auth.ssid;
+	size_t ssid_str_len = ext_auth->ssid_len;
+	const u8 *ssid_str = ext_auth->ssid;
 
 	wpa_s->sme.ext_auth_wpa_ssid = NULL;
 	/* Get the SSID conf from the ssid string obtained */
@@ -2232,7 +2232,7 @@ static int sme_handle_external_auth_start(struct wpa_supplicant *wpa_s,
 		}
 	}
 	if (!ssid ||
-	    sme_external_auth_send_sae_commit(wpa_s, data->external_auth.bssid,
+	    sme_external_auth_send_sae_commit(wpa_s, ext_auth->bssid,
 					      ssid) < 0)
 		return -1;
 
@@ -2332,11 +2332,11 @@ static bool is_eppke_auth_key_mgmt_suite(struct wpa_supplicant *wpa_s,
 
 
 static int sme_handle_eppke_external_auth_start(struct wpa_supplicant *wpa_s,
-						union wpa_event_data *data)
+						struct external_auth *ext_auth)
 {
 	struct wpa_ssid *ssid;
-	size_t ssid_str_len = data->external_auth.ssid_len;
-	const u8 *ssid_str = data->external_auth.ssid;
+	size_t ssid_str_len = ext_auth->ssid_len;
+	const u8 *ssid_str = ext_auth->ssid;
 	u8 peer_addr[ETH_ALEN];
 	bool is_ml_peer;
 	int group;
@@ -2358,14 +2358,14 @@ static int sme_handle_eppke_external_auth_start(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
-	wpa_s->sme.ext_auth_alg = data->external_auth.auth_alg;
+	wpa_s->sme.ext_auth_alg = ext_auth->auth_alg;
 
-	if (data->external_auth.mld_addr) {
+	if (ext_auth->mld_addr) {
 		is_ml_peer = true;
-		os_memcpy(peer_addr, data->external_auth.mld_addr, ETH_ALEN);
+		os_memcpy(peer_addr, ext_auth->mld_addr, ETH_ALEN);
 	} else {
 		is_ml_peer = false;
-		os_memcpy(peer_addr, data->external_auth.bssid, ETH_ALEN);
+		os_memcpy(peer_addr, ext_auth->bssid, ETH_ALEN);
 	}
 
 	group = wpas_pasn_get_group(wpa_s, ssid, NULL);
@@ -2385,14 +2385,14 @@ static int sme_handle_eppke_external_auth_start(struct wpa_supplicant *wpa_s,
 
 	return wpas_pasn_auth_start(wpa_s, wpa_s->own_addr, peer_addr,
 				    rsn_key_mgmt_to_wpa_akm(
-					    data->external_auth.key_mgmt_suite),
-				    data->external_auth.pairwise_cipher,
+					    ext_auth->key_mgmt_suite),
+				    ext_auth->pairwise_cipher,
 				    group, ssid->id, NULL, 0,
-				    data->external_auth.auth_alg,
-				    data->external_auth.group_cipher,
-				    data->external_auth.group_mgmt_cipher,
-				    data->external_auth.rsn_capab,
-				    data->external_auth.rsnxe_data,
+				    ext_auth->auth_alg,
+				    ext_auth->group_cipher,
+				    ext_auth->group_mgmt_cipher,
+				    ext_auth->rsn_capab,
+				    ext_auth->rsnxe_data,
 				    is_ml_peer);
 }
 
@@ -2573,27 +2573,26 @@ static bool is_ieee8021x_key_mgmt_suite(struct wpa_supplicant *wpa_s, u32 suite)
 
 
 void sme_external_auth_trigger(struct wpa_supplicant *wpa_s,
-			       union wpa_event_data *data)
+			       struct external_auth *ext_auth)
 {
-	switch (data->external_auth.auth_alg) {
+	switch (ext_auth->auth_alg) {
 #ifdef CONFIG_ENC_ASSOC
 	case WLAN_AUTH_EPPKE:
-		if (!is_eppke_auth_key_mgmt_suite(
-			    wpa_s, data->external_auth.key_mgmt_suite))
+		if (!is_eppke_auth_key_mgmt_suite(wpa_s,
+						  ext_auth->key_mgmt_suite))
 			return;
 		break;
 #endif /* CONFIG_ENC_ASSOC */
 #ifdef CONFIG_IEEE8021X_AUTH
 	case WLAN_AUTH_802_1X:
-		if (!is_ieee8021x_key_mgmt_suite(
-			    wpa_s, data->external_auth.key_mgmt_suite))
+		if (!is_ieee8021x_key_mgmt_suite(wpa_s,
+						 ext_auth->key_mgmt_suite))
 			return;
 		break;
 #endif /* CONFIG_IEEE8021X_AUTH */
 	default:
 #ifdef CONFIG_SAE
-		if (!is_sae_key_mgmt_suite(wpa_s,
-					   data->external_auth.key_mgmt_suite))
+		if (!is_sae_key_mgmt_suite(wpa_s, ext_auth->key_mgmt_suite))
 			return;
 		break;
 #else /* CONFIG_SAE */
@@ -2601,35 +2600,34 @@ void sme_external_auth_trigger(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_SAE */
 	}
 
-	if (data->external_auth.action == EXT_AUTH_START) {
-		if (!data->external_auth.bssid || !data->external_auth.ssid)
+	if (ext_auth->action == EXT_AUTH_START) {
+		if (!ext_auth->bssid || !ext_auth->ssid)
 			return;
-		os_memcpy(wpa_s->sme.ext_auth_bssid, data->external_auth.bssid,
+		os_memcpy(wpa_s->sme.ext_auth_bssid, ext_auth->bssid,
 			  ETH_ALEN);
-		sme_ext_auth_get_freq(wpa_s, data->external_auth.bssid);
-		os_memcpy(wpa_s->sme.ext_auth_ssid, data->external_auth.ssid,
-			  data->external_auth.ssid_len);
-		wpa_s->sme.ext_auth_ssid_len = data->external_auth.ssid_len;
-		if (data->external_auth.mld_addr) {
+		sme_ext_auth_get_freq(wpa_s, ext_auth->bssid);
+		os_memcpy(wpa_s->sme.ext_auth_ssid, ext_auth->ssid,
+			  ext_auth->ssid_len);
+		wpa_s->sme.ext_auth_ssid_len = ext_auth->ssid_len;
+		if (ext_auth->mld_addr) {
 			wpa_s->sme.ext_ml_auth = true;
 			os_memcpy(wpa_s->sme.ext_auth_ap_mld_addr,
-				  data->external_auth.mld_addr, ETH_ALEN);
+				  ext_auth->mld_addr, ETH_ALEN);
 		} else {
 			wpa_s->sme.ext_ml_auth = false;
 		}
 #ifdef CONFIG_ENC_ASSOC
-		if (data->external_auth.auth_alg == WLAN_AUTH_EPPKE) {
-			if (sme_handle_eppke_external_auth_start(wpa_s, data) <
-			    0)
+		if (ext_auth->auth_alg == WLAN_AUTH_EPPKE) {
+			if (sme_handle_eppke_external_auth_start(wpa_s,
+								 ext_auth) < 0)
 				sme_send_external_auth_status(
 					wpa_s, WLAN_STATUS_UNSPECIFIED_FAILURE);
 			return;
 		}
 #endif /* CONFIG_ENC_ASSOC */
 #ifdef CONFIG_IEEE8021X_AUTH
-		if (data->external_auth.auth_alg == WLAN_AUTH_802_1X) {
-			if (sme_external_auth_start_802_1x(
-				    wpa_s, &data->external_auth) < 0)
+		if (ext_auth->auth_alg == WLAN_AUTH_802_1X) {
+			if (sme_external_auth_start_802_1x(wpa_s, ext_auth) < 0)
 				sme_send_external_auth_status(
 					wpa_s, WLAN_STATUS_UNSPECIFIED_FAILURE);
 			return;
@@ -2640,11 +2638,11 @@ void sme_external_auth_trigger(struct wpa_supplicant *wpa_s,
 		wpa_s->sme.sae.state = SAE_NOTHING;
 		wpa_s->sme.sae.send_confirm = 0;
 		wpa_s->sme.sae_group_index = 0;
-		if (sme_handle_external_auth_start(wpa_s, data) < 0)
+		if (sme_handle_external_auth_start(wpa_s, ext_auth) < 0)
 			sme_send_external_auth_status(wpa_s,
 					      WLAN_STATUS_UNSPECIFIED_FAILURE);
 #endif /* CONFIG_SAE */
-	} else if (data->external_auth.action == EXT_AUTH_ABORT) {
+	} else if (ext_auth->action == EXT_AUTH_ABORT) {
 		/* Report failure to driver for the wrong trigger */
 		sme_send_external_auth_status(wpa_s,
 					      WLAN_STATUS_UNSPECIFIED_FAILURE);

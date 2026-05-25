@@ -7624,7 +7624,7 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 				   "EXTERNAL_AUTH: current_ssid is NULL");
 			break;
 		}
-		sme_external_auth_trigger(wpa_s, data);
+		sme_external_auth_trigger(wpa_s, &data->external_auth);
 		break;
 #ifdef CONFIG_PASN
 	case EVENT_PASN_AUTH:
