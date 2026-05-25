@@ -4849,6 +4849,23 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 }
 
 
+static bool nl80211_bss_in_drv(struct wpa_driver_nl80211_data *drv,
+			       struct i802_bss *bss)
+{
+	struct i802_bss *tbss;
+
+	if (!drv)
+		return false;
+
+	for (tbss = drv->first_bss; tbss; tbss = tbss->next) {
+		if (tbss == bss)
+			return true;
+	}
+
+	return false;
+}
+
+
 static bool nl80211_drv_in_list(struct nl80211_global *global,
 				unsigned int unique_drv_id)
 {
@@ -4964,6 +4981,9 @@ int process_global_event(struct nl_msg *msg, void *arg)
 				 * so need to stop the loop if that has
 				 * happened. */
 				if (!nl80211_drv_in_list(global, unique_drv_id))
+					break;
+
+				if (!nl80211_bss_in_drv(drv, bss))
 					break;
 			}
 		}
