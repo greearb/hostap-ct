@@ -81,10 +81,21 @@ static int wpas_wps_in_use(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_WPS */
 
 
-static int wpa_setup_mac_addr_rand_params(struct wpa_driver_scan_params *params,
+static int wpa_setup_mac_addr_rand_params(struct wpa_supplicant *wpa_s,
+					  struct wpa_driver_scan_params *params,
 					  const u8 *mac_addr)
 {
 	u8 *tmp;
+
+	/* If we are connected, there is no point in randomization */
+	if (wpa_s && wpa_s->wpa_state > WPA_SCANNING)
+		return 0;
+
+#ifdef CONFIG_P2P
+	/* The P2P GO might ignore our probe requests otherwise */
+	if (wpa_s && wpa_s->p2p_in_provisioning)
+		return 0;
+#endif /* CONFIG_P2P */
 
 	if (params->mac_addr) {
 		params->mac_addr_mask = NULL;
@@ -198,9 +209,9 @@ static void wpas_trigger_scan_cb(struct wpa_radio_work *work, int deinit)
 		return;
 	}
 
-	if ((wpa_s->mac_addr_rand_enable & MAC_ADDR_RAND_SCAN) &&
-	    wpa_s->wpa_state <= WPA_SCANNING)
-		wpa_setup_mac_addr_rand_params(params, wpa_s->mac_addr_scan);
+	if (wpa_s->mac_addr_rand_enable & MAC_ADDR_RAND_SCAN)
+		wpa_setup_mac_addr_rand_params(wpa_s, params,
+					       wpa_s->mac_addr_scan);
 
 	if (wpas_update_random_addr_disassoc(wpa_s) < 0) {
 		wpa_msg(wpa_s, MSG_INFO,
@@ -1459,9 +1470,9 @@ ssid_list_set:
 	}
 #endif /* CONFIG_P2P */
 
-	if ((wpa_s->mac_addr_rand_enable & MAC_ADDR_RAND_SCAN) &&
-	    wpa_s->wpa_state <= WPA_SCANNING)
-		wpa_setup_mac_addr_rand_params(&params, wpa_s->mac_addr_scan);
+	if (wpa_s->mac_addr_rand_enable & MAC_ADDR_RAND_SCAN)
+		wpa_setup_mac_addr_rand_params(wpa_s, &params,
+					       wpa_s->mac_addr_scan);
 
 	if (!is_zero_ether_addr(wpa_s->next_scan_bssid)) {
 		struct wpa_bss *bss;
@@ -1935,9 +1946,8 @@ scan:
 
 	wpa_setband_scan_freqs(wpa_s, scan_params);
 
-	if ((wpa_s->mac_addr_rand_enable & MAC_ADDR_RAND_SCHED_SCAN) &&
-	    wpa_s->wpa_state <= WPA_SCANNING)
-		wpa_setup_mac_addr_rand_params(&params,
+	if (wpa_s->mac_addr_rand_enable & MAC_ADDR_RAND_SCHED_SCAN)
+		wpa_setup_mac_addr_rand_params(wpa_s, &params,
 					       wpa_s->mac_addr_sched_scan);
 
 	wpa_scan_set_relative_rssi_params(wpa_s, scan_params);
@@ -3853,7 +3863,7 @@ wpa_scan_clone_params(const struct wpa_driver_scan_params *src)
 	}
 
 	if (src->mac_addr_rand &&
-	    wpa_setup_mac_addr_rand_params(params, src->mac_addr))
+	    wpa_setup_mac_addr_rand_params(NULL, params, src->mac_addr))
 		goto failed;
 
 	if (src->bssid) {
@@ -4043,9 +4053,9 @@ int wpas_start_pno(struct wpa_supplicant *wpa_s)
 		params.freqs = wpa_s->manual_sched_scan_freqs;
 	}
 
-	if ((wpa_s->mac_addr_rand_enable & MAC_ADDR_RAND_PNO) &&
-	    wpa_s->wpa_state <= WPA_SCANNING)
-		wpa_setup_mac_addr_rand_params(&params, wpa_s->mac_addr_pno);
+	if (wpa_s->mac_addr_rand_enable & MAC_ADDR_RAND_PNO)
+		wpa_setup_mac_addr_rand_params(wpa_s, &params,
+					       wpa_s->mac_addr_pno);
 
 	wpa_scan_set_relative_rssi_params(wpa_s, &params);
 
