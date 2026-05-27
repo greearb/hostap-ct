@@ -897,7 +897,7 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 	pasn->corrupt_mic = wpa_s->conf->pasn_corrupt_mic;
 #endif /* CONFIG_TESTING_OPTIONS */
 
-	if (wpa_key_mgmt_sae_ext_key(awork->akmp))
+	if (wpa_key_mgmt_sae(awork->akmp))
 		capab |= BIT(WLAN_RSNX_CAPAB_SAE_H2E);
 	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_SEC_LTF_STA)
 		capab |= BIT(WLAN_RSNX_CAPAB_SECURE_LTF);
