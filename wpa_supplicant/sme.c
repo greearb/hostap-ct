@@ -56,7 +56,6 @@ static int sme_validate_basic_mle(const struct ieee802_11_elems *elems,
 static void sme_process_802_1x_auth_response(struct wpa_supplicant *wpa_s,
 					     struct auth_info *auth,
 					     bool external);
-#endif /* CONFIG_IEEE8021X_AUTH */
 
 static const u8 * sme_get_peer_addr(struct wpa_supplicant *wpa_s, bool external)
 {
@@ -85,6 +84,8 @@ static bool sme_is_ml_auth(struct wpa_supplicant *wpa_s, bool external)
 {
 	return external ? wpa_s->sme.ext_ml_auth : wpa_s->valid_links;
 }
+
+#endif /* CONFIG_IEEE8021X_AUTH */
 
 
 #ifdef CONFIG_SAE
@@ -2056,6 +2057,7 @@ void sme_authenticate(struct wpa_supplicant *wpa_s,
 }
 
 
+#if defined(CONFIG_SAE) || defined(CONFIG_IEEE8021X_AUTH)
 
 #define WPA_AUTH_FRAME_ML_IE_LEN	(6 + ETH_ALEN)
 
@@ -2074,6 +2076,8 @@ static void wpa_auth_ml_ie(struct wpabuf *buf, const u8 *mld_addr)
 	wpabuf_put_u8(buf, 0x7); /* length = Length field + MLD MAC address */
 	wpabuf_put_data(buf, mld_addr, ETH_ALEN);
 }
+
+#endif /* CONFIG_SAE || CONFIG_IEEE8021X_AUTH */
 
 
 #ifdef CONFIG_SAE
