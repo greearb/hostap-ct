@@ -1091,33 +1091,33 @@ wpas_pr_validate_ranging_request(struct wpa_supplicant *wpa_s,
 /**
  * wpas_pr_pasn_trigger - Entry point to trigger PASN authentication for PR
  */
-void wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
-			  struct pr_pasn_ranging_params *pr_pasn_params)
+int wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
+			 struct pr_pasn_ranging_params *pr_pasn_params)
 {
 	struct pr_data *pr = wpa_s->global->pr;
 
 	if (!pr_pasn_params) {
 		wpa_printf(MSG_DEBUG, "PR PASN: trigger: NULL params");
-		return;
+		return -1;
 	}
 
 	if (!pr) {
 		wpa_printf(MSG_DEBUG, "PR PASN: trigger: PR not initialized");
-		return;
+		return -1;
 	}
 
 	if (pr->pr_pasn_params) {
 		wpa_printf(MSG_DEBUG,
 			   "PR PASN: auth_trigger: Already in progress");
 		pr_pasn_params->pr_pasn_status = PASN_STATUS_FAILURE;
-		return;
+		return -1;
 	}
 
 	/* Validate request before proceeding */
 	if (wpas_pr_validate_ranging_request(wpa_s, pr_pasn_params) < 0) {
 		wpa_printf(MSG_DEBUG, "PR PASN: Request validation failed");
 		pr_pasn_params->pr_pasn_status = PASN_STATUS_FAILURE;
-		return;
+		return -1;
 	}
 
 	if (pr_pasn_params->action == PR_PASN_AND_RANGING) {
@@ -1136,7 +1136,7 @@ void wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
 			wpa_printf(MSG_INFO,
 				   "PR PASN: Failed to allocate params");
 			pr_pasn_params->pr_pasn_status = PASN_STATUS_FAILURE;
-			return;
+			return -1;
 		}
 
 		os_memcpy(pr->pr_pasn_params, pr_pasn_params,
@@ -1189,13 +1189,15 @@ void wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
 			pr_pasn_params->pr_pasn_status = PASN_STATUS_FAILURE;
 			os_free(pr->pr_pasn_params);
 			pr->pr_pasn_params = NULL;
-			return;
+			return -1;
 		}
+		return 0;
 	} else {
 		wpa_printf(MSG_INFO,
 			   "PR PASN: Unsupported action %u, ignoring request",
 			   pr_pasn_params->action);
 		pr_pasn_params->pr_pasn_status = PASN_STATUS_FAILURE;
+		return -1;
 	}
 }
 
