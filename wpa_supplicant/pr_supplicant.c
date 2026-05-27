@@ -373,6 +373,16 @@ static void wpas_pr_pasn_result(void *ctx, u8 role, u8 protocol_type,
 }
 
 
+static void wpas_pr_clear_ranging_params(struct pr_data *pr)
+{
+	if (pr) {
+		os_free(pr->pr_pasn_params);
+		pr->pr_pasn_params = NULL;
+		pr->ranging_final_received = false;
+	}
+}
+
+
 static void wpas_pr_ranging_session_timeout(void *eloop_ctx, void *timeout_ctx)
 {
 	struct wpa_supplicant *wpa_s = eloop_ctx;
@@ -384,11 +394,7 @@ static void wpas_pr_ranging_session_timeout(void *eloop_ctx, void *timeout_ctx)
 	wpa_drv_stop_peer_measurement(wpa_s);
 
 	/* Free ranging params */
-	if (pr && pr->pr_pasn_params) {
-		os_free(pr->pr_pasn_params);
-		pr->pr_pasn_params = NULL;
-		pr->ranging_final_received = false;
-	}
+	wpas_pr_clear_ranging_params(pr);
 
 	wpas_pr_pd_stop(wpa_s);
 }
@@ -501,9 +507,7 @@ static int wpas_pr_trigger_ranging(struct wpa_supplicant *wpa_s,
 	return 0;
 
 fail:
-	os_free(pr->pr_pasn_params);
-	pr->pr_pasn_params = NULL;
-	pr->ranging_final_received = false;
+	wpas_pr_clear_ranging_params(pr);
 	return -1;
 }
 
@@ -853,11 +857,7 @@ void wpas_pr_measurement_complete(struct wpa_supplicant *wpa_s,
 	}
 
 	wpas_notify_pr_ranging_complete(wpa_s, complete->cookie);
-	if (pr) {
-		os_free(pr->pr_pasn_params);
-		pr->pr_pasn_params = NULL;
-		pr->ranging_final_received = false;
-	}
+	wpas_pr_clear_ranging_params(pr);
 	wpas_pr_pd_stop(wpa_s);
 }
 
@@ -1551,9 +1551,7 @@ int wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
 				   MACSTR,
 				   MAC2STR(pr_pasn_params->peer_addr));
 			pr_pasn_params->pr_pasn_status = PASN_STATUS_FAILURE;
-			os_free(pr->pr_pasn_params);
-			pr->pr_pasn_params = NULL;
-			pr->ranging_final_received = false;
+			wpas_pr_clear_ranging_params(pr);
 			return -1;
 		}
 		return 0;
@@ -1700,11 +1698,7 @@ void wpas_pr_abort_ranging(struct wpa_supplicant *wpa_s)
 	wpas_pr_pd_stop(wpa_s);
 
 	/* Free ranging params so a new session can be started */
-	if (pr->pr_pasn_params) {
-		os_free(pr->pr_pasn_params);
-		pr->pr_pasn_params = NULL;
-		pr->ranging_final_received = false;
-	}
+	wpas_pr_clear_ranging_params(pr);
 }
 
 #endif /* CONFIG_PASN */
