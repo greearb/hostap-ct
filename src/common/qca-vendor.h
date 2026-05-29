@@ -1528,6 +1528,12 @@ enum qca_radiotap_vendor_ids {
  *	configure the device with Geofenced Variable Power (GVP) operation
  *	parameters.
  *	Uses the attributes defined in enum qca_wlan_vendor_attr_gvp_info.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_N79_COEX: Vendor subcommand to control
+ *	WLAN host behavior based on N79 band activity.
+ *	The WLAN host manages NSS/chain reduction, AP coordination, and
+ *	hysteresis timers internally. Mode-agnostic: works regardless of
+ *	connection state or device mode.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1786,6 +1792,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_IPA_RING_STATS = 272,
 	QCA_NL80211_VENDOR_SUBCMD_EXTERNAL_AUTH = 273,
 	QCA_NL80211_VENDOR_SUBCMD_GVP_OPERATION = 274,
+	QCA_NL80211_VENDOR_SUBCMD_N79_COEX = 275,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -24067,6 +24074,42 @@ enum qca_wlan_vendor_attr_external_auth {
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_MAX =
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_n79_coex_op - Operation type for
+ * %QCA_NL80211_VENDOR_SUBCMD_N79_COEX vendor command.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_N79_COEX_OP_SET: Set the N79 coexistence state.
+ * @QCA_WLAN_VENDOR_ATTR_N79_COEX_OP_GET: Get the current N79 coexistence state.
+ */
+enum qca_wlan_vendor_attr_n79_coex_op {
+	QCA_WLAN_VENDOR_ATTR_N79_COEX_OP_SET = 0,
+	QCA_WLAN_VENDOR_ATTR_N79_COEX_OP_GET = 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_n79_coex - Attributes for
+ * %QCA_NL80211_VENDOR_SUBCMD_N79_COEX vendor command.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_N79_COEX_OP_TYPE: u8 attribute.
+ *	Specifies the operation type. See enum qca_wlan_vendor_attr_n79_coex_op.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_N79_COEX_STATE: u8 attribute.
+ *	Indicates N79 operational state.
+ *	0: N79 inactive.
+ *	1: N79 active.
+ *	Mandatory in SET operation; returned in GET response.
+ */
+enum qca_wlan_vendor_attr_n79_coex {
+	QCA_WLAN_VENDOR_ATTR_N79_COEX_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_N79_COEX_OP_TYPE = 1,
+	QCA_WLAN_VENDOR_ATTR_N79_COEX_STATE = 2,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_N79_COEX_CONFIG_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_N79_COEX_CONFIG_MAX =
+	QCA_WLAN_VENDOR_ATTR_N79_COEX_CONFIG_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
