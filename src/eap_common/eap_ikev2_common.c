@@ -15,7 +15,7 @@
 #include "eap_ikev2_common.h"
 
 
-int eap_ikev2_derive_keymat(int prf, struct ikev2_keys *keys,
+int eap_ikev2_derive_keymat(void* ctx, int prf, struct ikev2_keys *keys,
 			    const u8 *i_nonce, size_t i_nonce_len,
 			    const u8 *r_nonce, size_t r_nonce_len,
 			    u8 *keymat)
@@ -41,7 +41,7 @@ int eap_ikev2_derive_keymat(int prf, struct ikev2_keys *keys,
 	}
 	os_free(nonces);
 
-	wpa_hexdump_key(MSG_DEBUG, "EAP-IKEV2: KEYMAT",
+	wpa_hexdump_key(ctx, MSG_DEBUG, "EAP-IKEV2: KEYMAT",
 			keymat, EAP_MSK_LEN + EAP_EMSK_LEN);
 
 	return 0;

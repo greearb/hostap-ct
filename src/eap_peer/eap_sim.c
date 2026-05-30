@@ -247,7 +247,7 @@ static int eap_sim_ext_sim_result(struct eap_sm *sm, struct eap_sim_data *data,
 
 		if (hexstr2bin(pos, data->kc[i], EAP_SIM_KC_LEN) < 0)
 			goto invalid;
-		wpa_hexdump_key(MSG_DEBUG, "EAP-SIM: Kc",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-SIM: Kc",
 				data->kc[i], EAP_SIM_KC_LEN);
 		pos += EAP_SIM_KC_LEN * 2;
 		if (*pos != ':')
@@ -256,7 +256,7 @@ static int eap_sim_ext_sim_result(struct eap_sm *sm, struct eap_sim_data *data,
 
 		if (hexstr2bin(pos, data->sres[i], EAP_SIM_SRES_LEN) < 0)
 			goto invalid;
-		wpa_hexdump_key(MSG_DEBUG, "EAP-SIM: SRES",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-SIM: SRES",
 				data->sres[i], EAP_SIM_SRES_LEN);
 		pos += EAP_SIM_SRES_LEN * 2;
 		if (i + 1 < data->num_chal) {
@@ -343,9 +343,9 @@ static int eap_sim_gsm_auth(struct eap_sm *sm, struct eap_sim_data *data)
 			}
 			wpa_hexdump(MSG_DEBUG, "EAP-SIM: RAND",
 				    data->rand[i], GSM_RAND_LEN);
-			wpa_hexdump_key(MSG_DEBUG, "EAP-SIM: SRES",
+			wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-SIM: SRES",
 					data->sres[i], EAP_SIM_SRES_LEN);
-			wpa_hexdump_key(MSG_DEBUG, "EAP-SIM: Kc",
+			wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-SIM: Kc",
 					data->kc[i], EAP_SIM_KC_LEN);
 		}
 		return 0;

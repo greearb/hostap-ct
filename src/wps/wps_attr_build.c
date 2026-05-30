@@ -75,7 +75,7 @@ int wps_build_public_key(struct wps_data *wps, struct wpabuf *msg)
 		wpabuf_free(pubkey);
 		return -1;
 	}
-	wpa_hexdump_buf_key(MSG_DEBUG, "WPS: DH Private Key", wps->dh_privkey);
+	wpa_hexdump_buf_key(NULL, MSG_DEBUG, "WPS: DH Private Key", wps->dh_privkey);
 	wpa_hexdump_buf(MSG_DEBUG, "WPS: DH own Public Key", pubkey);
 
 	wpabuf_put_be16(msg, ATTR_PUBLIC_KEY);
@@ -450,7 +450,7 @@ int wps_build_oob_dev_pw(struct wpabuf *msg, u16 dev_pw_id,
 	wpabuf_put_data(msg, pubkey_hash, WPS_OOB_PUBKEY_HASH_LEN);
 	wpabuf_put_be16(msg, dev_pw_id);
 	if (dev_pw) {
-		wpa_hexdump_key(MSG_DEBUG, "WPS: OOB Device Password",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: OOB Device Password",
 				dev_pw, dev_pw_len);
 		wpabuf_put_data(msg, dev_pw, dev_pw_len);
 	}

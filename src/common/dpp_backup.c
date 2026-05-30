@@ -282,14 +282,14 @@ dpp_build_pw_recipient_info(struct dpp_authentication *auth, size_t hash_len,
 			      "Enveloped Data Password", key, key_len);
 	if (res < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG, "DPP: PBKDF2 key", key, key_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: PBKDF2 key", key, key_len);
 
 	if (dpp_pbkdf2(hash_len, key, key_len, wpabuf_head(salt), 64, 1000,
 		       kek, hash_len)) {
 		wpa_printf(MSG_DEBUG, "DPP: PBKDF2 failed");
 		goto fail;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "DPP: key-encryption key from PBKDF2",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: key-encryption key from PBKDF2",
 			kek, hash_len);
 
 	enc_key = wpabuf_alloc(hash_len + AES_BLOCK_SIZE);
@@ -396,7 +396,7 @@ dpp_build_enc_cont_info(struct dpp_authentication *auth, size_t hash_len,
 	if (!key_pkg || !enc_alg)
 		goto fail;
 
-	wpa_hexdump_buf_key(MSG_MSGDUMP, "DPP: DPPAsymmetricKeyPackage",
+	wpa_hexdump_buf_key(NULL, MSG_MSGDUMP, "DPP: DPPAsymmetricKeyPackage",
 			    key_pkg);
 
 	enc_cont_len = wpabuf_len(key_pkg) + AES_BLOCK_SIZE;
@@ -442,7 +442,7 @@ static struct wpabuf * dpp_gen_random(size_t len)
 		wpabuf_free(key);
 		key = NULL;
 	}
-	wpa_hexdump_buf_key(MSG_DEBUG, "DPP: content-encryption key", key);
+	wpa_hexdump_buf_key(NULL, MSG_DEBUG, "DPP: content-encryption key", key);
 	return key;
 }
 
@@ -866,7 +866,7 @@ dpp_parse_one_asymmetric_key(const u8 *buf, size_t len)
 	char txt[80];
 	struct dpp_asymmetric_key *key;
 
-	wpa_hexdump_key(MSG_MSGDUMP, "DPP: OneAsymmetricKey", buf, len);
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "DPP: OneAsymmetricKey", buf, len);
 
 	key = os_zalloc(sizeof(*key));
 	if (!key)
@@ -936,7 +936,7 @@ dpp_parse_one_asymmetric_key(const u8 *buf, size_t len)
 				"DPP: Expected OCTETSTRING (PrivateKey)");
 		goto fail;
 	}
-	wpa_hexdump_key(MSG_MSGDUMP, "DPP: PrivateKey",
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "DPP: PrivateKey",
 			hdr.payload, hdr.length);
 	pos = hdr.payload + hdr.length;
 	key->csign = crypto_ec_key_parse_priv(hdr.payload, hdr.length);
@@ -955,10 +955,10 @@ dpp_parse_one_asymmetric_key(const u8 *buf, size_t len)
 		asn1_unexpected(&hdr, "DPP: Expected [0] Attributes");
 		goto fail;
 	}
-	wpa_hexdump_key(MSG_MSGDUMP, "DPP: Attributes",
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "DPP: Attributes",
 			hdr.payload, hdr.length);
 	if (hdr.payload + hdr.length < end) {
-		wpa_hexdump_key(MSG_MSGDUMP,
+		wpa_hexdump_key(NULL, MSG_MSGDUMP,
 				"DPP: Ignore additional data at the end of OneAsymmetricKey",
 				hdr.payload + hdr.length,
 				end - (hdr.payload + hdr.length));
@@ -971,7 +971,7 @@ dpp_parse_one_asymmetric_key(const u8 *buf, size_t len)
 		goto fail;
 	}
 	if (hdr.payload + hdr.length < end) {
-		wpa_hexdump_key(MSG_MSGDUMP,
+		wpa_hexdump_key(NULL, MSG_MSGDUMP,
 				"DPP: Ignore additional data at the end of OneAsymmetricKey (after SET)",
 				hdr.payload + hdr.length,
 				end - (hdr.payload + hdr.length));
@@ -997,7 +997,7 @@ dpp_parse_one_asymmetric_key(const u8 *buf, size_t len)
 	if (asn1_get_sequence(pos, end - pos, &hdr, &pos) < 0)
 		goto fail;
 	if (pos < end) {
-		wpa_hexdump_key(MSG_MSGDUMP,
+		wpa_hexdump_key(NULL, MSG_MSGDUMP,
 				"DPP: Ignore additional data at the end of ATTRIBUTE",
 				pos, end - pos);
 	}
@@ -1027,12 +1027,12 @@ dpp_parse_one_asymmetric_key(const u8 *buf, size_t len)
 	 *    connectorTemplate		UTF8String OPTIONAL}
 	 */
 
-	wpa_hexdump_key(MSG_MSGDUMP, "DPP: DPPConfigurationParameters",
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "DPP: DPPConfigurationParameters",
 			pos, end - pos);
 	if (asn1_get_sequence(pos, end - pos, &hdr, &pos) < 0)
 		goto fail;
 	if (pos < end) {
-		wpa_hexdump_key(MSG_MSGDUMP,
+		wpa_hexdump_key(NULL, MSG_MSGDUMP,
 				"DPP: Ignore additional data after DPPConfigurationParameters",
 				pos, end - pos);
 	}
@@ -1048,7 +1048,7 @@ dpp_parse_one_asymmetric_key(const u8 *buf, size_t len)
 		asn1_unexpected(&hdr, "DPP: Expected OCTETSTRING (PrivateKey)");
 		goto fail;
 	}
-	wpa_hexdump_key(MSG_MSGDUMP, "DPP: privacyProtectionKey",
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "DPP: privacyProtectionKey",
 			hdr.payload, hdr.length);
 	pos = hdr.payload + hdr.length;
 	key->pp_key = crypto_ec_key_parse_priv(hdr.payload, hdr.length);
@@ -1103,7 +1103,7 @@ dpp_parse_dpp_asymmetric_key_package(const u8 *key_pkg, size_t key_pkg_len)
 	const u8 *pos = key_pkg, *end = key_pkg + key_pkg_len;
 	struct dpp_asymmetric_key *first = NULL, *last = NULL, *key;
 
-	wpa_hexdump_key(MSG_MSGDUMP, "DPP: DPPAsymmetricKeyPackage",
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "DPP: DPPAsymmetricKeyPackage",
 			key_pkg, key_pkg_len);
 
 	/*
@@ -1155,14 +1155,14 @@ int dpp_conf_resp_env_data(struct dpp_authentication *auth,
 			      "Enveloped Data Password", key, key_len);
 	if (res < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "DPP: PBKDF2 key", key, key_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: PBKDF2 key", key, key_len);
 
 	if (dpp_pbkdf2(data.prf_hash_len, key, key_len, data.salt, 64, 1000,
 		       kek, data.pbkdf2_key_len)) {
 		wpa_printf(MSG_DEBUG, "DPP: PBKDF2 failed");
 		return -1;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "DPP: key-encryption key from PBKDF2",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: key-encryption key from PBKDF2",
 			kek, data.pbkdf2_key_len);
 
 	if (data.enc_key_len < AES_BLOCK_SIZE ||
@@ -1180,7 +1180,7 @@ int dpp_conf_resp_env_data(struct dpp_authentication *auth,
 		return -1;
 	}
 	cont_encr_key_len = data.enc_key_len - AES_BLOCK_SIZE;
-	wpa_hexdump_key(MSG_DEBUG, "DPP: content-encryption key",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: content-encryption key",
 			cont_encr_key, cont_encr_key_len);
 
 	if (data.enc_cont_len < AES_BLOCK_SIZE)

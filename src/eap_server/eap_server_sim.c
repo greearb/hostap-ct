@@ -280,7 +280,7 @@ static struct wpabuf * eap_sim_build_reauth(struct eap_sm *sm,
 
 	if (random_get_bytes(data->nonce_s, EAP_SIM_NONCE_S_LEN))
 		return NULL;
-	wpa_hexdump_key(MSG_MSGDUMP, "EAP-SIM: NONCE_S",
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "EAP-SIM: NONCE_S",
 			data->nonce_s, EAP_SIM_NONCE_S_LEN);
 
 	eap_sim_derive_keys(data->mk, data->k_encr, data->k_aut, data->msk,

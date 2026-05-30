@@ -1220,7 +1220,7 @@ struct wpabuf * dh_init(const struct dh_group *dh, struct wpabuf **priv)
 	}
 	wpabuf_put(*priv, dh->prime_len);
 	wpabuf_put(pv, dh->prime_len);
-	wpa_hexdump_buf_key(MSG_DEBUG, "DH: private value", *priv);
+	wpa_hexdump_buf_key(NULL, MSG_DEBUG, "DH: private value", *priv);
 	wpa_hexdump_buf(MSG_DEBUG, "DH: public value", pv);
 
 	return pv;
@@ -1260,7 +1260,7 @@ struct wpabuf * dh_derive_shared(const struct wpabuf *peer_public,
 		return NULL;
 	}
 	wpabuf_put(shared, shared_len);
-	wpa_hexdump_buf_key(MSG_DEBUG, "DH: shared key", shared);
+	wpa_hexdump_buf_key(NULL, MSG_DEBUG, "DH: shared key", shared);
 
 	return shared;
 }

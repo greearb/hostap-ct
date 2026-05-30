@@ -443,7 +443,7 @@ static void eap_mschapv2_process_response(struct eap_sm *sm,
 			return;
 		}
 		data->master_key_valid = 1;
-		wpa_hexdump_key(MSG_DEBUG, "EAP-MSCHAPV2: Derived Master Key",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-MSCHAPV2: Derived Master Key",
 				data->master_key, MSCHAPV2_KEY_LEN);
 	} else {
 		wpa_hexdump(MSG_MSGDUMP, "EAP-MSCHAPV2: Expected NT-Response",
@@ -580,7 +580,7 @@ static u8 * eap_mschapv2_getKey(struct eap_sm *sm, void *priv, size_t *len)
 		os_free(key);
 		return NULL;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "EAP-MSCHAPV2: Derived key", key, *len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-MSCHAPV2: Derived key", key, *len);
 
 	return key;
 }

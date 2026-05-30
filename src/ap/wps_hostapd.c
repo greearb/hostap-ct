@@ -111,7 +111,7 @@ static int hostapd_wps_new_psk_cb(void *ctx, const u8 *mac_addr,
 			   " P2P Device Addr " MACSTR,
 			   MAC2STR(mac_addr), MAC2STR(p2p_dev_addr));
 	}
-	wpa_hexdump_key(MSG_DEBUG, "Per-device PSK", psk, psk_len);
+	wpa_hexdump_key(hapd->msg_ctx, MSG_DEBUG, "Per-device PSK", psk, psk_len);
 
 	if (psk_len != PMK_LEN) {
 		wpa_printf(MSG_DEBUG, "Unexpected PSK length %lu",
@@ -466,7 +466,7 @@ static int hapd_wps_cred_cb(struct hostapd_data *hapd, void *ctx)
 	if (hapd->wps == NULL)
 		return 0;
 
-	wpa_hexdump_key(MSG_DEBUG, "WPS: Received Credential attribute",
+	wpa_hexdump_key(hapd->msg_ctx, MSG_DEBUG, "WPS: Received Credential attribute",
 			cred->cred_attr, cred->cred_attr_len);
 
 	wpa_printf(MSG_DEBUG, "WPS: Received new AP Settings");
@@ -475,7 +475,7 @@ static int hapd_wps_cred_cb(struct hostapd_data *hapd, void *ctx)
 		   cred->auth_type);
 	wpa_printf(MSG_DEBUG, "WPS: Encryption Type 0x%x", cred->encr_type);
 	wpa_printf(MSG_DEBUG, "WPS: Network Key Index %d", cred->key_idx);
-	wpa_hexdump_key(MSG_DEBUG, "WPS: Network Key",
+	wpa_hexdump_key(hapd->msg_ctx, MSG_DEBUG, "WPS: Network Key",
 			cred->key, cred->key_len);
 	wpa_printf(MSG_DEBUG, "WPS: MAC Address " MACSTR,
 		   MAC2STR(cred->mac_addr));

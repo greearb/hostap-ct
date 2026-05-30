@@ -78,7 +78,7 @@ int wps_derive_keys(struct wps_data *wps)
 		return -1;
 	}
 
-	wpa_hexdump_buf_key(MSG_DEBUG, "WPS: DH Private Key", wps->dh_privkey);
+	wpa_hexdump_buf_key(NULL, MSG_DEBUG, "WPS: DH Private Key", wps->dh_privkey);
 	wpa_hexdump_buf(MSG_DEBUG, "WPS: DH peer Public Key", pubkey);
 	dh_shared = dh5_derive_shared(wps->dh_ctx, pubkey, wps->dh_privkey);
 	dh5_free(wps->dh_ctx);
@@ -93,13 +93,13 @@ int wps_derive_keys(struct wps_data *wps)
 	wpabuf_clear_free(wps->dh_privkey);
 	wps->dh_privkey = NULL;
 
-	wpa_hexdump_buf_key(MSG_DEBUG, "WPS: DH shared key", dh_shared);
+	wpa_hexdump_buf_key(NULL, MSG_DEBUG, "WPS: DH shared key", dh_shared);
 
 	/* DHKey = SHA-256(g^AB mod p) */
 	addr[0] = wpabuf_head(dh_shared);
 	len[0] = wpabuf_len(dh_shared);
 	sha256_vector(1, addr, len, dhkey);
-	wpa_hexdump_key(MSG_DEBUG, "WPS: DHKey", dhkey, sizeof(dhkey));
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: DHKey", dhkey, sizeof(dhkey));
 	wpabuf_clear_free(dh_shared);
 
 	/* KDK = HMAC-SHA-256_DHKey(N1 || EnrolleeMAC || N2) */
@@ -110,7 +110,7 @@ int wps_derive_keys(struct wps_data *wps)
 	addr[2] = wps->nonce_r;
 	len[2] = WPS_NONCE_LEN;
 	hmac_sha256_vector(dhkey, sizeof(dhkey), 3, addr, len, kdk);
-	wpa_hexdump_key(MSG_DEBUG, "WPS: KDK", kdk, sizeof(kdk));
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: KDK", kdk, sizeof(kdk));
 
 	wps_kdf(kdk, NULL, 0, "Wi-Fi Easy and Secure Key Derivation",
 		keys, sizeof(keys));
@@ -119,11 +119,11 @@ int wps_derive_keys(struct wps_data *wps)
 	os_memcpy(wps->emsk, keys + WPS_AUTHKEY_LEN + WPS_KEYWRAPKEY_LEN,
 		  WPS_EMSK_LEN);
 
-	wpa_hexdump_key(MSG_DEBUG, "WPS: AuthKey",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: AuthKey",
 			wps->authkey, WPS_AUTHKEY_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "WPS: KeyWrapKey",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: KeyWrapKey",
 			wps->keywrapkey, WPS_KEYWRAPKEY_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "WPS: EMSK", wps->emsk, WPS_EMSK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: EMSK", wps->emsk, WPS_EMSK_LEN);
 
 	return 0;
 }
@@ -146,8 +146,8 @@ int wps_derive_psk(struct wps_data *wps, const u8 *dev_passwd,
 
 	wpa_hexdump_ascii_key(MSG_DEBUG, "WPS: Device Password",
 			      dev_passwd, dev_passwd_len);
-	wpa_hexdump_key(MSG_DEBUG, "WPS: PSK1", wps->psk1, WPS_PSK_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "WPS: PSK2", wps->psk2, WPS_PSK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: PSK1", wps->psk1, WPS_PSK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: PSK2", wps->psk2, WPS_PSK_LEN);
 	return 0;
 }
 
@@ -180,7 +180,7 @@ struct wpabuf * wps_decrypt_encr_settings(struct wps_data *wps, const u8 *encr,
 		return NULL;
 	}
 
-	wpa_hexdump_buf_key(MSG_MSGDUMP, "WPS: Decrypted Encrypted Settings",
+	wpa_hexdump_buf_key(NULL, MSG_MSGDUMP, "WPS: Decrypted Encrypted Settings",
 			    decrypted);
 
 	pos = wpabuf_head_u8(decrypted) + wpabuf_len(decrypted) - 1;

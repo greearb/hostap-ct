@@ -220,7 +220,7 @@ int compute_password_element(EAP_PWD_group *grp, u16 num,
 			goto fail;
 		}
 
-		wpa_hexdump_key(MSG_DEBUG, "EAP-pwd: x_candidate",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-pwd: x_candidate",
 				prfbuf, primebytelen);
 		const_time_select_bin(found, x_bin, prfbuf, primebytelen,
 				      x_bin);
@@ -285,7 +285,7 @@ int compute_password_element(EAP_PWD_group *grp, u16 num,
 	const_time_select_bin(is_eq, x_y, x_y + MAX_ECC_PRIME_LEN,
 			      primebytelen, x_y + primebytelen);
 	os_memcpy(x_y, x_bin, primebytelen);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-pwd: PWE", x_y, 2 * primebytelen);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-pwd: PWE", x_y, 2 * primebytelen);
 	grp->pwe = crypto_ec_point_from_bin(grp->group, x_y);
 	if (!grp->pwe) {
 		wpa_printf(MSG_DEBUG, "EAP-pwd: Could not generate PWE");

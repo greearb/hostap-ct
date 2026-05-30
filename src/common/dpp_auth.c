@@ -484,7 +484,7 @@ static int dpp_auth_build_resp_ok(struct dpp_authentication *auth)
 		     auth->Nx, &secret_len) < 0)
 		goto fail;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: ECDH shared secret (N.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: ECDH shared secret (N.x)",
 			auth->Nx, auth->secret_len);
 	auth->Nx_len = auth->secret_len;
 
@@ -783,7 +783,7 @@ dpp_auth_req_rx(struct dpp_global *dpp, void *msg_ctx, u8 dpp_allowed_roles,
 		goto fail;
 	auth->secret_len = secret_len;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: ECDH shared secret (M.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: ECDH shared secret (M.x)",
 			auth->Mx, auth->secret_len);
 	auth->Mx_len = auth->secret_len;
 
@@ -1243,7 +1243,7 @@ struct dpp_authentication * dpp_auth_init(struct dpp_global *dpp, void *msg_ctx,
 		goto fail;
 	auth->secret_len = secret_len;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: ECDH shared secret (M.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: ECDH shared secret (M.x)",
 			auth->Mx, auth->secret_len);
 	auth->Mx_len = auth->secret_len;
 
@@ -1569,7 +1569,7 @@ dpp_auth_resp_rx(struct dpp_authentication *auth, const u8 *hdr,
 	auth->peer_protocol_key = pr;
 	pr = NULL;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: ECDH shared secret (N.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: ECDH shared secret (N.x)",
 			auth->Nx, auth->secret_len);
 	auth->Nx_len = auth->secret_len;
 

@@ -143,21 +143,21 @@ int nan_crypto_pmk_to_ptk(const u8 *pmk, const u8 *iaddr, const u8 *raddr,
 	if (ret)
 		goto out;
 
-	wpa_hexdump_key(MSG_DEBUG, "NAN: PMK", pmk, PMK_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "NAN: iaddr", iaddr, ETH_ALEN);
-	wpa_hexdump_key(MSG_DEBUG, "NAN: raddr", raddr, ETH_ALEN);
-	wpa_hexdump_key(MSG_DEBUG, "NAN: inonce", inonce, WPA_NONCE_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "NAN: rnonce", rnonce, WPA_NONCE_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "NAN: PTK", tmp, ptk_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: PMK", pmk, PMK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: iaddr", iaddr, ETH_ALEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: raddr", raddr, ETH_ALEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: inonce", inonce, WPA_NONCE_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: rnonce", rnonce, WPA_NONCE_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: PTK", tmp, ptk_len);
 
 	os_memcpy(ptk->kck, tmp, ptk->kck_len);
-	wpa_hexdump_key(MSG_DEBUG, "NAN: KCK", ptk->kck, ptk->kck_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: KCK", ptk->kck, ptk->kck_len);
 
 	os_memcpy(ptk->kek, tmp + ptk->kck_len, ptk->kek_len);
-	wpa_hexdump_key(MSG_DEBUG, "NAN: KEK", ptk->kek, ptk->kek_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: KEK", ptk->kek, ptk->kek_len);
 
 	os_memcpy(ptk->tk, tmp + ptk->kck_len + ptk->kek_len, ptk->tk_len);
-	wpa_hexdump_key(MSG_DEBUG, "NAN: TK", ptk->tk, ptk->tk_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: TK", ptk->tk, ptk->tk_len);
 
 out:
 	forced_memzero(data, sizeof(data));
@@ -201,7 +201,7 @@ int nan_crypto_calc_pmkid(const u8 *pmk, const u8 *iaddr, const u8 *raddr,
 	os_memcpy(data + sizeof(NAN_PMKID_LABEL) - 1 + 2 * ETH_ALEN, serv_id,
 		  NAN_SERVICE_ID_LEN);
 
-	wpa_hexdump_key(MSG_DEBUG, "NAN: PMKID data", data, sizeof(data));
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: PMKID data", data, sizeof(data));
 
 	if (NAN_CS_IS_128(cipher))
 		ret = hmac_sha256(pmk, PMK_LEN, data, sizeof(data), digest);
@@ -211,7 +211,7 @@ int nan_crypto_calc_pmkid(const u8 *pmk, const u8 *iaddr, const u8 *raddr,
 		goto out;
 
 	os_memcpy(pmkid, digest, PMKID_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "NAN: PMKID", pmkid, PMKID_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: PMKID", pmkid, PMKID_LEN);
 
 out:
 	forced_memzero(digest, sizeof(digest));
@@ -244,8 +244,8 @@ int nan_crypto_calc_auth_token(enum nan_cipher_suite_id cipher,
 		return ret;
 
 	os_memcpy(token, hash, NAN_AUTH_TOKEN_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "NAN: AUTH_TOKEN_DATA", buf, len);
-	wpa_hexdump_key(MSG_DEBUG, "NAN: AUTH TOKEN", token,
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: AUTH_TOKEN_DATA", buf, len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: AUTH TOKEN", token,
 			NAN_AUTH_TOKEN_LEN);
 
 	forced_memzero(hash, sizeof(hash));
@@ -276,8 +276,8 @@ int nan_crypto_key_mic(const u8 *buf, size_t len, const u8 *kck,
 	if (!NAN_CS_IS_VALID_NDP(cipher))
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG, "NAN: MIC data", buf, len);
-	wpa_hexdump_key(MSG_DEBUG, "NAN: KCK", kck, kck_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: MIC data", buf, len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: KCK", kck, kck_len);
 
 	if (NAN_CS_IS_128(cipher)) {
 		mic_len = NAN_KEY_MIC_LEN;
@@ -292,7 +292,7 @@ int nan_crypto_key_mic(const u8 *buf, size_t len, const u8 *kck,
 	os_memcpy(mic, digest, mic_len);
 	forced_memzero(digest, sizeof(digest));
 
-	wpa_hexdump_key(MSG_DEBUG, "NAN: MIC", mic, mic_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: MIC", mic, mic_len);
 	return 0;
 }
 
@@ -436,13 +436,13 @@ static int nan_crypto_derive_from_kdk(const u8 *kdk, size_t kdk_len,
 		return ret;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "NAN: KDK", kdk, kdk_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: KDK", kdk, kdk_len);
 	wpa_printf(MSG_DEBUG, "NAN: Label: %s", label);
 	wpa_printf(MSG_DEBUG, "NAN: Initiator NMI " MACSTR,
 		   MAC2STR(initiator_nmi));
 	wpa_printf(MSG_DEBUG, "NAN: Responder NMI " MACSTR,
 		   MAC2STR(responder_nmi));
-	wpa_hexdump_key(MSG_DEBUG, "NAN: Derived key", key, key_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: Derived key", key, key_len);
 
 	return 0;
 }
@@ -596,7 +596,7 @@ struct wpabuf * nan_crypto_encrypt_key_data(const struct wpabuf *key_data,
 		return NULL;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "NAN: Plain key data", wpabuf_head(key_data),
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: Plain key data", wpabuf_head(key_data),
 			key_data_len);
 
 	/* Calculate padding to align to 8 bytes (AES block size) */
@@ -663,7 +663,7 @@ struct wpabuf * nan_crypto_decrypt_key_data(const u8 *kek, size_t kek_len,
 		return NULL;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "NAN: Encrypted key data",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: Encrypted key data",
 			encrypted_data, encrypted_len);
 
 	if (!kek || !kek_len) {
@@ -672,7 +672,7 @@ struct wpabuf * nan_crypto_decrypt_key_data(const u8 *kek, size_t kek_len,
 		return NULL;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "NAN: KEK for decryption", kek, kek_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: KEK for decryption", kek, kek_len);
 
 	/* AES-WRAP adds 8 bytes overhead */
 	if (encrypted_len < 16 || encrypted_len % 8 != 0) {
@@ -698,7 +698,7 @@ struct wpabuf * nan_crypto_decrypt_key_data(const u8 *kek, size_t kek_len,
 		return NULL;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "NAN: Decrypted key data",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "NAN: Decrypted key data",
 			wpabuf_head(decrypted), wpabuf_len(decrypted));
 
 	return decrypted;

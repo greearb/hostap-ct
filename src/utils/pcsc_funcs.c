@@ -783,7 +783,7 @@ static long scard_transmit(struct scard_data *scard,
 	unsigned long rlen;
 #endif
 
-	wpa_hexdump_key(MSG_DEBUG, "SCARD: scard_transmit: send",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "SCARD: scard_transmit: send",
 			_send, send_len);
 	rlen = *recv_len;
 	ret = SCardTransmit(scard->card,

@@ -151,7 +151,7 @@ static int eap_gpsk_derive_keys_helper(u32 csuite_specifier,
 	WPA_PUT_BE16(pos, csuite_specifier); /* CSuite/Specifier */
 	pos += 2;
 	os_memcpy(pos, seed, seed_len); /* inputString */
-	wpa_hexdump_key(MSG_DEBUG, "EAP-GPSK: Data to MK derivation",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-GPSK: Data to MK derivation",
 			data, data_len);
 
 	if (gkdf(psk, data, data_len, mk, mk_len) < 0) {
@@ -159,26 +159,26 @@ static int eap_gpsk_derive_keys_helper(u32 csuite_specifier,
 		return -1;
 	}
 	os_free(data);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-GPSK: MK", mk, mk_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-GPSK: MK", mk, mk_len);
 
 	if (gkdf(mk, seed, seed_len, kdf_out, kdf_out_len) < 0)
 		return -1;
 
 	pos = kdf_out;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-GPSK: MSK", pos, EAP_MSK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-GPSK: MSK", pos, EAP_MSK_LEN);
 	os_memcpy(msk, pos, EAP_MSK_LEN);
 	pos += EAP_MSK_LEN;
 
-	wpa_hexdump_key(MSG_DEBUG, "EAP-GPSK: EMSK", pos, EAP_EMSK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-GPSK: EMSK", pos, EAP_EMSK_LEN);
 	os_memcpy(emsk, pos, EAP_EMSK_LEN);
 	pos += EAP_EMSK_LEN;
 
-	wpa_hexdump_key(MSG_DEBUG, "EAP-GPSK: SK", pos, sk_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-GPSK: SK", pos, sk_len);
 	os_memcpy(sk, pos, sk_len);
 	pos += sk_len;
 
 	if (pk) {
-		wpa_hexdump_key(MSG_DEBUG, "EAP-GPSK: PK", pos, pk_len);
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-GPSK: PK", pos, pk_len);
 		os_memcpy(pk, pos, pk_len);
 	}
 
@@ -293,7 +293,7 @@ int eap_gpsk_derive_keys(const u8 *psk, size_t psk_len, int vendor,
 	if (vendor != EAP_GPSK_VENDOR_IETF)
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG, "EAP-GPSK: PSK", psk, psk_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-GPSK: PSK", psk, psk_len);
 
 	/* Seed = RAND_Peer || ID_Peer || RAND_Server || ID_Server */
 	seed = os_malloc(2 * EAP_GPSK_RAND_LEN + id_server_len + id_peer_len);
@@ -431,7 +431,7 @@ int eap_gpsk_derive_session_id(const u8 *psk, size_t psk_len, int vendor,
 	if (vendor != EAP_GPSK_VENDOR_IETF)
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG, "EAP-GPSK: PSK", psk, psk_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-GPSK: PSK", psk, psk_len);
 
 	/*
 	 * inputString = RAND_Peer || ID_Peer || RAND_Server || ID_Server

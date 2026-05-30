@@ -103,7 +103,7 @@ static int ikev2_derive_keys(struct ikev2_responder_data *data)
 	wpabuf_free(data->r_dh_private);
 	data->r_dh_private = NULL;
 
-	wpa_hexdump_key(MSG_DEBUG, "IKEV2: SKEYSEED",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "IKEV2: SKEYSEED",
 			skeyseed, prf->hash_len);
 
 	ret = ikev2_derive_sk_keys(prf, integ, encr, skeyseed, buf, buf_len,
