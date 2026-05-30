@@ -298,12 +298,12 @@ static struct wpabuf * sme_auth_build_sae_commit(struct wpa_supplicant *wpa_s,
 	if (use_pt && !ssid->pt)
 		wpa_s_setup_sae_pt(wpa_s, ssid, true);
 	if (use_pt &&
-	    sae_prepare_commit_pt(&wpa_s->sme.sae, ssid->pt,
+	    sae_prepare_commit_pt(wpa_s, &wpa_s->sme.sae, ssid->pt,
 				  wpa_s->own_addr, addr,
 				  wpa_s->sme.sae_rejected_groups, NULL) < 0)
 		goto fail;
 	if (!use_pt &&
-	    sae_prepare_commit(wpa_s->own_addr, addr,
+	    sae_prepare_commit(wpa_s, wpa_s->own_addr, addr,
 			       (u8 *) password, os_strlen(password),
 			       &wpa_s->sme.sae) < 0) {
 		wpa_printf(MSG_DEBUG, "SAE: Could not pick PWE");
@@ -374,7 +374,7 @@ static struct wpabuf * sme_auth_build_sae_confirm(struct wpa_supplicant *wpa_s,
 		wpabuf_put_le16(buf, 2); /* Transaction seq# */
 		wpabuf_put_le16(buf, WLAN_STATUS_SUCCESS);
 	}
-	sae_write_confirm(&wpa_s->sme.sae, buf);
+	sae_write_confirm(wpa_s, &wpa_s->sme.sae, buf);
 
 	return buf;
 }
@@ -3052,7 +3052,7 @@ static int sme_sae_auth(struct wpa_supplicant *wpa_s, u16 auth_transaction,
 			    wpa_s->sme.sae.tmp->peer_rejected_groups))
 			return -1;
 
-		if (sae_process_commit(&wpa_s->sme.sae) < 0) {
+		if (sae_process_commit(wpa_s, &wpa_s->sme.sae) < 0) {
 			wpa_printf(MSG_DEBUG, "SAE: Failed to process peer "
 				   "commit");
 			return -1;
@@ -3078,7 +3078,7 @@ static int sme_sae_auth(struct wpa_supplicant *wpa_s, u16 auth_transaction,
 		wpa_dbg(wpa_s, MSG_DEBUG, "SME SAE confirm");
 		if (wpa_s->sme.sae.state != SAE_CONFIRMED)
 			return -1;
-		if (sae_check_confirm(&wpa_s->sme.sae, data, len,
+		if (sae_check_confirm(wpa_s, &wpa_s->sme.sae, data, len,
 				      ie_offset) < 0)
 			return -1;
 		if (external && wpa_s->sme.ext_ml_auth &&

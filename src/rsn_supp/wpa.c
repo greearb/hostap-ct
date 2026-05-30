@@ -102,7 +102,7 @@ static void _wpa_hexdump_link(int level, u8 link_id, const char *title,
 
 out:
 	if (key)
-		wpa_hexdump_key(level, link_title ? link_title : title, buf,
+		wpa_hexdump_key(NULL, level, link_title ? link_title : title, buf,
 				len);
 	else
 		wpa_hexdump(level, link_title ? link_title : title, buf, len);
@@ -179,7 +179,7 @@ int wpa_eapol_key_send(struct wpa_sm *sm, struct wpa_ptk *ptk,
 			goto out;
 		}
 		if (ptk)
-			wpa_hexdump_key(MSG_DEBUG, "WPA: KCK",
+			wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "WPA: KCK",
 					ptk->kck, ptk->kck_len);
 		wpa_hexdump(MSG_DEBUG, "WPA: Derived Key MIC",
 			    key_mic, mic_len);
@@ -437,7 +437,7 @@ static int wpa_supplicant_get_pmk(struct wpa_sm *sm,
 	    os_memcmp_const(pmkid, sm->cur_pmksa->pmkid, PMKID_LEN) == 0) {
 		wpa_hexdump(MSG_DEBUG, "RSN: matched PMKID", pmkid, PMKID_LEN);
 		wpa_sm_set_pmk_from_pmksa(sm);
-		wpa_hexdump_key(MSG_DEBUG, "RSN: PMK from PMKSA cache",
+		wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "RSN: PMK from PMKSA cache",
 				sm->pmk, sm->pmk_len);
 		eapol_sm_notify_cached(sm->eapol);
 #ifdef CONFIG_IEEE80211R
@@ -497,7 +497,7 @@ static int wpa_supplicant_get_pmk(struct wpa_sm *sm,
 				if (sm->fils_cache_id_set)
 					fils_cache_id = sm->fils_cache_id;
 #endif /* CONFIG_FILS */
-				wpa_hexdump_key(MSG_DEBUG,
+				wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG,
 						"FT: Cache XXKey/MPMK",
 						sm->xxkey, sm->xxkey_len);
 				sa = pmksa_cache_add(sm->pmksa,
@@ -521,7 +521,7 @@ static int wpa_supplicant_get_pmk(struct wpa_sm *sm,
 				fils_cache_id = sm->fils_cache_id;
 #endif /* CONFIG_FILS */
 
-			wpa_hexdump_key(MSG_DEBUG, "WPA: PMK from EAPOL state "
+			wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "WPA: PMK from EAPOL state "
 					"machines", sm->pmk, pmk_len);
 			sm->pmk_len = pmk_len;
 			wpa_supplicant_key_mgmt_set_pmk(sm);
@@ -806,7 +806,7 @@ int wpa_supplicant_send_2_of_4(struct wpa_sm *sm, const unsigned char *dst,
 		if (pad_len)
 			plain[plain_len - pad_len] = 0xdd;
 
-		wpa_hexdump_key(MSG_DEBUG, "RSN: AES-WRAP using KEK",
+		wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "RSN: AES-WRAP using KEK",
 				ptk->kek, ptk->kek_len);
 		if (aes_wrap(ptk->kek, ptk->kek_len, plain_len / 8, plain,
 			     key_mic + mic_len + 2)) {
@@ -868,7 +868,7 @@ static int wpa_derive_ptk(struct wpa_sm *sm, const unsigned char *src_addr,
 	else
 		kdk_len = 0;
 
-	ret = wpa_pmk_to_ptk(sm->pmk, sm->pmk_len, "Pairwise key expansion",
+	ret = wpa_pmk_to_ptk(sm->ctx->msg_ctx, sm->pmk, sm->pmk_len, "Pairwise key expansion",
 			     sm->own_addr, wpa_sm_get_auth_addr(sm), sm->snonce,
 			     key->key_nonce, ptk, akmp,
 			     sm->pairwise_cipher, z, z_len,
@@ -1109,7 +1109,7 @@ static void wpa_supplicant_process_1_of_4(struct wpa_sm *sm,
 
 	/* RSN: msg 1/4 should contain PMKID for the selected PMK */
 	wpa_hexdump(MSG_DEBUG, "RSN: msg 1/4 key data", key_data, key_data_len);
-	if (wpa_supplicant_parse_ies(key_data, key_data_len, &ie) < 0) {
+	if (wpa_supplicant_parse_ies(sm->ctx->msg_ctx, key_data, key_data_len, &ie) < 0) {
 		wpa_printf(MSG_DEBUG,
 			   "RSN: Discard EAPOL-Key msg 1/4 with invalid IEs/KDEs");
 		return;
@@ -1575,7 +1575,7 @@ static int wpa_supplicant_install_gtk(struct wpa_sm *sm,
 		return 0;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "WPA: Group Key", gd->gtk, gd->gtk_len);
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "WPA: Group Key", gd->gtk, gd->gtk_len);
 	wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG,
 		"WPA: Installing GTK to the driver (keyidx=%d tx=%d len=%d)",
 		gd->keyidx, gd->tx, gd->gtk_len);
@@ -1822,7 +1822,7 @@ static int wpa_supplicant_pairwise_gtk(struct wpa_sm *sm,
 	 */
 
 	os_memset(&gd, 0, sizeof(gd));
-	wpa_hexdump_key(MSG_DEBUG, "RSN: received GTK in pairwise handshake",
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "RSN: received GTK in pairwise handshake",
 			gtk, gtk_len);
 
 	if (wpa_supplicant_validate_gtk_kde_len(gtk_len) < 0)
@@ -1879,7 +1879,7 @@ static int wpa_supplicant_install_igtk(struct wpa_sm *sm,
 	wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG,
 		"WPA: IGTK keyid %d pn " COMPACT_MACSTR,
 		keyidx, MAC2STR(igtk->pn));
-	wpa_hexdump_key(MSG_DEBUG, "WPA: IGTK", igtk->igtk, len);
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "WPA: IGTK", igtk->igtk, len);
 	if (keyidx > 4095) {
 		wpa_msg(sm->ctx->msg_ctx, MSG_WARNING,
 			"WPA: Invalid IGTK KeyID %d", keyidx);
@@ -1948,7 +1948,7 @@ static int wpa_supplicant_install_bigtk(struct wpa_sm *sm,
 	wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG,
 		"WPA: BIGTK keyid %d pn " COMPACT_MACSTR,
 		keyidx, MAC2STR(bigtk->pn));
-	wpa_hexdump_key(MSG_DEBUG, "WPA: BIGTK", bigtk->bigtk, len);
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "WPA: BIGTK", bigtk->bigtk, len);
 	if (keyidx < 6 || keyidx > 7) {
 		wpa_msg(sm->ctx->msg_ctx, MSG_WARNING,
 			"WPA: Invalid BIGTK KeyID %d", keyidx);
@@ -2606,7 +2606,7 @@ int wpa_supplicant_send_4_of_4(struct wpa_sm *sm, const unsigned char *dst,
 		if (pad_len)
 			plain[plain_len - pad_len] = 0xdd;
 
-		wpa_hexdump_key(MSG_DEBUG, "RSN: AES-WRAP using KEK",
+		wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "RSN: AES-WRAP using KEK",
 				ptk->kek, ptk->kek_len);
 		if (aes_wrap(ptk->kek, ptk->kek_len, plain_len / 8, plain,
 			     key_mic + mic_len + 2)) {
@@ -2853,7 +2853,7 @@ static void wpa_supplicant_process_3_of_4_wpa(struct wpa_sm *sm,
 	key_info = WPA_GET_BE16(key->key_info);
 
 	wpa_hexdump(MSG_DEBUG, "WPA: IE KeyData", key_data, key_data_len);
-	if (wpa_supplicant_parse_ies(key_data, key_data_len, &ie) < 0)
+	if (wpa_supplicant_parse_ies(sm->ctx->msg_ctx, key_data, key_data_len, &ie) < 0)
 		goto failed;
 
 	if (wpa_supplicant_validate_ie(sm, sm->bssid, &ie) < 0)
@@ -2972,7 +2972,7 @@ static void wpa_supplicant_process_3_of_4(struct wpa_sm *sm,
 	key_info = WPA_GET_BE16(key->key_info);
 
 	wpa_hexdump(MSG_DEBUG, "WPA: IE KeyData", key_data, key_data_len);
-	if (wpa_supplicant_parse_ies(key_data, key_data_len, &ie) < 0)
+	if (wpa_supplicant_parse_ies(sm->ctx->msg_ctx, key_data, key_data_len, &ie) < 0)
 		goto failed;
 
 	if (sm->ssid_protection) {
@@ -3373,9 +3373,9 @@ static void wpa_supplicant_process_mlo_1_of_2(struct wpa_sm *sm,
 
 	wpa_sm_set_state(sm, WPA_GROUP_HANDSHAKE);
 
-	wpa_hexdump_key(MSG_DEBUG, "MLO RSN: msg 1/2 key data", key_data,
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "MLO RSN: msg 1/2 key data", key_data,
 			key_data_len);
-	if (wpa_supplicant_parse_ies(key_data, key_data_len, &ie) < 0)
+	if (wpa_supplicant_parse_ies(sm->ctx->msg_ctx, key_data, key_data_len, &ie) < 0)
 		goto failed;
 
 	if (!ie.valid_mlo_gtks) {
@@ -3611,9 +3611,9 @@ static void wpa_supplicant_process_1_of_2(struct wpa_sm *sm,
 
 	key_info = WPA_GET_BE16(key->key_info);
 
-	wpa_hexdump_key(MSG_DEBUG, "RSN: msg 1/2 key data",
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "RSN: msg 1/2 key data",
 			key_data, key_data_len);
-	if (wpa_supplicant_parse_ies(key_data, key_data_len, &ie) < 0)
+	if (wpa_supplicant_parse_ies(sm->ctx->msg_ctx, key_data, key_data_len, &ie) < 0)
 		goto failed;
 
 	wpa_sm_set_state(sm, WPA_GROUP_HANDSHAKE);
@@ -3664,7 +3664,7 @@ static void wpa_supplicant_process_1_of_2(struct wpa_sm *sm,
 					      &gd.key_rsc_len, &gd.alg))
 		goto failed;
 
-	wpa_hexdump_key(MSG_DEBUG, "RSN: received GTK in group key handshake",
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "RSN: received GTK in group key handshake",
 			ie.gtk, 2 + gtk_len);
 	gd.keyidx = ie.gtk[0] & 0x3;
 	gd.tx = wpa_supplicant_gtk_tx_bit_workaround(sm,
@@ -3884,7 +3884,7 @@ static int wpa_supplicant_decrypt_key_data(struct wpa_sm *sm,
 			"WPA: Unsupported key_info type %d", ver);
 		return -1;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "WPA: decrypted EAPOL-Key key data",
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "WPA: decrypted EAPOL-Key key data",
 			key_data, *key_data_len);
 	return 0;
 }
@@ -3996,7 +3996,7 @@ static int wpa_supp_aead_decrypt(struct wpa_sm *sm, u8 *buf, size_t buf_len,
 
 	/* AEAD decryption and validation completed successfully */
 	(*key_data_len) -= AES_BLOCK_SIZE;
-	wpa_hexdump_key(MSG_DEBUG, "WPA: Decrypted Key Data",
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "WPA: Decrypted Key Data",
 			tmp, *key_data_len);
 
 	/* Replace Key Data field with the decrypted version */
@@ -4975,7 +4975,7 @@ void wpa_sm_set_pmk(struct wpa_sm *sm, const u8 *pmk, size_t pmk_len,
 	if (sm == NULL)
 		return;
 
-	wpa_hexdump_key(MSG_DEBUG, "WPA: Set PMK based on external data",
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "WPA: Set PMK based on external data",
 			pmk, pmk_len);
 	sm->pmk_len = pmk_len;
 	os_memcpy(sm->pmk, pmk, pmk_len);
@@ -5020,7 +5020,7 @@ void wpa_sm_set_pmk_from_pmksa(struct wpa_sm *sm)
 		return;
 
 	if (sm->cur_pmksa) {
-		wpa_hexdump_key(MSG_DEBUG,
+		wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG,
 				"WPA: Set PMK based on current PMKSA",
 				sm->cur_pmksa->pmk, sm->cur_pmksa->pmk_len);
 		sm->pmk_len = sm->cur_pmksa->pmk_len;
@@ -6284,7 +6284,7 @@ int wpa_wnmsleep_install_key(struct wpa_sm *sm, u8 subelem_id, u8 *buf)
 
 		os_memcpy(gd.gtk, buf + 13, gd.gtk_len);
 
-		wpa_hexdump_key(MSG_DEBUG, "Install GTK (WNM SLEEP)",
+		wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "Install GTK (WNM SLEEP)",
 				gd.gtk, gd.gtk_len);
 		if (wpa_supplicant_install_gtk(sm, &gd, key_rsc, 1)) {
 			forced_memzero(&gd, sizeof(gd));
@@ -6943,7 +6943,7 @@ static int fils_ft_build_assoc_req_rsne(struct wpa_sm *sm, struct wpabuf *buf)
 	wpabuf_put_le16(buf, 1);
 
 	/* PMKID List [PMKR1Name] */
-	wpa_hexdump_key(MSG_DEBUG, "FILS+FT: XXKey (FILS-FT)",
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "FILS+FT: XXKey (FILS-FT)",
 			sm->fils_ft, sm->fils_ft_len);
 	wpa_hexdump_ascii(MSG_DEBUG, "FILS+FT: SSID", sm->ssid, sm->ssid_len);
 	wpa_hexdump(MSG_DEBUG, "FILS+FT: MDID",
@@ -7104,7 +7104,7 @@ struct wpabuf * fils_build_assoc_req(struct wpa_sm *sm, const u8 **kek,
 
 	*kek = sm->ptk.kek;
 	*kek_len = sm->ptk.kek_len;
-	wpa_hexdump_key(MSG_DEBUG, "FILS: KEK for AEAD", *kek, *kek_len);
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "FILS: KEK for AEAD", *kek, *kek_len);
 	*snonce = sm->fils_nonce;
 	wpa_hexdump(MSG_DEBUG, "FILS: SNonce for AEAD AAD", *snonce, NONCE_LEN);
 	*anonce = sm->fils_anonce;
@@ -7367,7 +7367,7 @@ int fils_process_assoc_resp(struct wpa_sm *sm, const u8 *resp, size_t len)
 					      &gd.key_rsc_len, &gd.alg))
 		goto fail;
 
-	wpa_hexdump_key(MSG_DEBUG, "FILS: Received GTK", kde.gtk, kde.gtk_len);
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "FILS: Received GTK", kde.gtk, kde.gtk_len);
 	gd.keyidx = kde.gtk[0] & 0x3;
 	gd.tx = wpa_supplicant_gtk_tx_bit_workaround(sm,
 						     !!(kde.gtk[0] & BIT(2)));
@@ -7398,7 +7398,7 @@ int fils_process_assoc_resp(struct wpa_sm *sm, const u8 *resp, size_t len)
 	}
 
 	rsclen = wpa_cipher_rsc_len(sm->pairwise_cipher);
-	wpa_hexdump_key(MSG_DEBUG, "FILS: Set TK to driver",
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "FILS: Set TK to driver",
 			sm->ptk.tk, keylen);
 	if (wpa_sm_set_key(sm, -1, alg, wpa_sm_get_auth_addr(sm), 0, 1,
 			   null_rsc, rsclen,
@@ -7574,7 +7574,7 @@ int owe_process_assoc_resp(struct wpa_sm *sm, const u8 *bssid,
 		wpa_printf(MSG_DEBUG, "OWE: Invalid peer DH public key");
 		return -1;
 	}
-	wpa_hexdump_buf_key(MSG_DEBUG, "OWE: DH shared secret", secret);
+	wpa_hexdump_buf_key(sm->ctx->msg_ctx, MSG_DEBUG, "OWE: DH shared secret", secret);
 
 	/* prk = HKDF-extract(C | A | group, z) */
 
@@ -7634,7 +7634,7 @@ int owe_process_assoc_resp(struct wpa_sm *sm, const u8 *bssid,
 	if (res < 0)
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG, "OWE: prk", prk, hash_len);
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "OWE: prk", prk, hash_len);
 
 	/* PMK = HKDF-expand(prk, "OWE Key Generation", n) */
 
@@ -7654,7 +7654,7 @@ int owe_process_assoc_resp(struct wpa_sm *sm, const u8 *bssid,
 	}
 	sm->pmk_len = hash_len;
 
-	wpa_hexdump_key(MSG_DEBUG, "OWE: PMK", sm->pmk, sm->pmk_len);
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "OWE: PMK", sm->pmk, sm->pmk_len);
 	wpa_hexdump(MSG_DEBUG, "OWE: PMKID", pmkid, PMKID_LEN);
 	pmksa_cache_add(sm->pmksa, sm->pmk, sm->pmk_len, pmkid, NULL, 0,
 			bssid, sm->own_addr, sm->network_ctx, sm->key_mgmt,
@@ -7827,10 +7827,10 @@ int wpa_sm_install_mlo_group_keys(struct wpa_sm *sm, const u8 *key_data,
 	if (!sm)
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG, "RSN: IE KeyData for MLO link reconfig",
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "RSN: IE KeyData for MLO link reconfig",
 			key_data, key_data_len);
 
-	if (wpa_supplicant_parse_ies(key_data, key_data_len, &ie) < 0)
+	if (wpa_supplicant_parse_ies(sm->ctx->msg_ctx, key_data, key_data_len, &ie) < 0)
 		return -1;
 
 	if (wpa_supplicant_install_mlo_gtk_keys(
@@ -7901,7 +7901,7 @@ static int process_key_delivery(struct wpa_sm *sm,
 					      &gd.key_rsc_len, &gd.alg))
 		goto fail;
 
-	wpa_hexdump_key(MSG_DEBUG, "ENC_ASSOC: Received GTK",
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "ENC_ASSOC: Received GTK",
 			kde->gtk, kde->gtk_len);
 	gd.keyidx = kde->gtk[0] & 0x3;
 	if (kde->gtk_len - 2 > sizeof(gd.gtk)) {
@@ -7946,7 +7946,7 @@ int process_encrypted_assoc_resp(struct wpa_sm *sm, int valid_links,
 
 	sm->eppke_completed = 0;
 	sm->eap_over_auth_frame_completed = 0;
-	wpa_hexdump_key(MSG_DEBUG, "ENC_ASSOC: (Re)Association Response frame",
+	wpa_hexdump_key(sm->ctx->msg_ctx, MSG_DEBUG, "ENC_ASSOC: (Re)Association Response frame",
 			ies, ies_len);
 
 	if (ieee802_11_parse_elems(ies, ies_len, &elems, 1) == ParseFailed)

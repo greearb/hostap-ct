@@ -1739,7 +1739,7 @@ static int wpa_supplicant_get_psk(struct wpa_supplicant *wpa_s,
 				  u8 *psk)
 {
 	if (ssid->psk_set) {
-		wpa_hexdump_key(MSG_MSGDUMP, "PSK (set in config)",
+		wpa_hexdump_key(wpa_s, MSG_MSGDUMP, "PSK (set in config)",
 				ssid->psk, PMK_LEN);
 		os_memcpy(psk, ssid->psk, PMK_LEN);
 		return 0;
@@ -1752,7 +1752,7 @@ static int wpa_supplicant_get_psk(struct wpa_supplicant *wpa_s,
 			wpa_msg(wpa_s, MSG_WARNING, "Error in pbkdf2_sha1()");
 			return -1;
 		}
-		wpa_hexdump_key(MSG_MSGDUMP, "PSK (from passphrase)",
+		wpa_hexdump_key(wpa_s, MSG_MSGDUMP, "PSK (from passphrase)",
 				psk, PMK_LEN);
 		return 0;
 	}
@@ -2902,7 +2902,7 @@ void wpa_s_setup_sae_pt(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 		sae_deinit_pt(ssid->pt);
 		ssid->pt = NULL;
 	}
-	ssid->pt = sae_derive_pt(groups, ssid->ssid, ssid->ssid_len,
+	ssid->pt = sae_derive_pt(wpa_s, groups, ssid->ssid, ssid->ssid_len,
 				 (const u8 *) password, os_strlen(password),
 				 password_id, password_id_len);
 #endif /* CONFIG_SAE */

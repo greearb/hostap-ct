@@ -496,22 +496,22 @@ struct ft_links {
 int wpa_eapol_key_mic(const u8 *key, size_t key_len, int akmp,
 		      enum rsn_hash_alg hash, int ver,
 		      const u8 *buf, size_t len, u8 *mic);
-int wpa_pmk_to_ptk(const u8 *pmk, size_t pmk_len, const char *label,
+int wpa_pmk_to_ptk(void *ctx, const u8 *pmk, size_t pmk_len, const char *label,
 		   const u8 *addr1, const u8 *addr2,
 		   const u8 *nonce1, const u8 *nonce2,
 		   struct wpa_ptk *ptk, int akmp, int cipher,
 		   const u8 *z, size_t z_len, size_t kdk_len);
-int fils_rmsk_to_pmk(int akmp, const u8 *rmsk, size_t rmsk_len,
+int fils_rmsk_to_pmk(void *ctx, int akmp, const u8 *rmsk, size_t rmsk_len,
 		     const u8 *snonce, const u8 *anonce, const u8 *dh_ss,
 		     size_t dh_ss_len, u8 *pmk, size_t *pmk_len);
 int fils_pmkid_erp(int akmp, const u8 *reauth, size_t reauth_len,
 		   u8 *pmkid);
-int fils_pmk_to_ptk(const u8 *pmk, size_t pmk_len, const u8 *spa, const u8 *aa,
+int fils_pmk_to_ptk(void *ctx, const u8 *pmk, size_t pmk_len, const u8 *spa, const u8 *aa,
 		    const u8 *snonce, const u8 *anonce, const u8 *dhss,
 		    size_t dhss_len, struct wpa_ptk *ptk,
 		    u8 *ick, size_t *ick_len, int akmp, int cipher,
 		    u8 *fils_ft, size_t *fils_ft_len, size_t kdk_len);
-int fils_key_auth_sk(const u8 *ick, size_t ick_len, const u8 *snonce,
+int fils_key_auth_sk(void *ctx, const u8 *ick, size_t ick_len, const u8 *snonce,
 		     const u8 *anonce, const u8 *sta_addr, const u8 *bssid,
 		     const u8 *g_sta, size_t g_sta_len,
 		     const u8 *g_ap, size_t g_ap_len,
@@ -529,7 +529,7 @@ int wpa_ft_mic(int key_mgmt, const u8 *kck, size_t kck_len, const u8 *sta_addr,
 	       struct ft_links *ft_links_data,
 	       const struct wpabuf *extra,
 	       u8 *mic);
-int wpa_derive_pmk_r0(const u8 *xxkey, size_t xxkey_len,
+int wpa_derive_pmk_r0(void *ctx, const u8 *xxkey, size_t xxkey_len,
 		      const u8 *ssid, size_t ssid_len,
 		      const u8 *mdid, const u8 *r0kh_id, size_t r0kh_id_len,
 		      const u8 *s0kh_id, u8 *pmk_r0, u8 *pmk_r0_name,
@@ -537,11 +537,11 @@ int wpa_derive_pmk_r0(const u8 *xxkey, size_t xxkey_len,
 int wpa_derive_pmk_r1_name(const u8 *pmk_r0_name, const u8 *r1kh_id,
 			   const u8 *s1kh_id, u8 *pmk_r1_name,
 			   size_t pmk_r1_len);
-int wpa_derive_pmk_r1(const u8 *pmk_r0, size_t pmk_r0_len,
+int wpa_derive_pmk_r1(void *ctx, const u8 *pmk_r0, size_t pmk_r0_len,
 		      const u8 *pmk_r0_name,
 		      const u8 *r1kh_id, const u8 *s1kh_id,
 		      u8 *pmk_r1, u8 *pmk_r1_name);
-int wpa_pmk_r1_to_ptk(const u8 *pmk_r1, size_t pmk_r1_len, const u8 *snonce,
+int wpa_pmk_r1_to_ptk(void *ctx, const u8 *pmk_r1, size_t pmk_r1_len, const u8 *snonce,
 		      const u8 *anonce, const u8 *sta_addr, const u8 *bssid,
 		      const u8 *pmk_r1_name,
 		      struct wpa_ptk *ptk, u8 *ptk_name, int akmp, int cipher,
@@ -784,11 +784,11 @@ struct wpa_eapol_ie_parse {
 	size_t rsn_override_link_len[MAX_NUM_MLD_LINKS];
 };
 
-int wpa_parse_kde_ies(const u8 *buf, size_t len, struct wpa_eapol_ie_parse *ie);
-static inline int wpa_supplicant_parse_ies(const u8 *buf, size_t len,
+int wpa_parse_kde_ies(void *ctx, const u8 *buf, size_t len, struct wpa_eapol_ie_parse *ie);
+static inline int wpa_supplicant_parse_ies(void *ctx, const u8 *buf, size_t len,
 					   struct wpa_eapol_ie_parse *ie)
 {
-	return wpa_parse_kde_ies(buf, len, ie);
+	return wpa_parse_kde_ies(ctx, buf, len, ie);
 }
 
 
@@ -813,7 +813,7 @@ int wpa_use_cmac(int akmp);
 int wpa_use_aes_key_wrap(int akmp);
 int fils_domain_name_hash(const char *domain, u8 *hash);
 
-int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
+int pasn_pmk_to_ptk(void *ctx, const u8 *pmk, size_t pmk_len,
 		    const u8 *spa, const u8 *bssid,
 		    const u8 *dhss, size_t dhss_len,
 		    struct wpa_ptk *ptk, int akmp, int cipher,
@@ -826,12 +826,12 @@ int wpa_auth_8021x_mic(int akmp, const u8 *kck, size_t kck_len, const u8 *addr1,
 		       const u8 *addr2, const u8 *data, size_t data_len,
 		       const u8 *frame, size_t frame_len, u8 *mic);
 
-int pasn_mic(enum rsn_hash_alg alg, const u8 *kck, size_t kck_len,
+int pasn_mic(void *ctx, enum rsn_hash_alg alg, const u8 *kck, size_t kck_len,
 	     const u8 *addr1, const u8 *addr2,
 	     const u8 *data, size_t data_len,
 	     const u8 *frame, size_t frame_len, u8 *mic);
 
-int wpa_ltf_keyseed(struct wpa_ptk *ptk, int akmp, int cipher);
+int wpa_ltf_keyseed(void *ctx, struct wpa_ptk *ptk, int akmp, int cipher);
 
 int pasn_auth_frame_hash(enum rsn_hash_alg alg, const u8 *data, size_t len,
 			 u8 *hash);

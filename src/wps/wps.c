@@ -57,7 +57,7 @@ struct wps_data * wps_init(const struct wps_config *cfg)
 			return NULL;
 		}
 		data->dev_password_len = cfg->pin_len;
-		wpa_hexdump_key(MSG_DEBUG, "WPS: AP PIN dev_password",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: AP PIN dev_password",
 				data->dev_password, data->dev_password_len);
 	}
 
@@ -81,8 +81,8 @@ struct wps_data * wps_init(const struct wps_config *cfg)
 			return NULL;
 		}
 		data->dev_password_len = wpabuf_len(cfg->wps->ap_nfc_dev_pw);
-		wpa_hexdump_key(MSG_DEBUG, "WPS: NFC dev_password",
-			    data->dev_password, data->dev_password_len);
+		wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: NFC dev_password",
+				data->dev_password, data->dev_password_len);
 	}
 #endif /* CONFIG_WPS_NFC */
 

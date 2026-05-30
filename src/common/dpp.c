@@ -2649,7 +2649,7 @@ static int dpp_parse_cred_legacy(struct dpp_config_obj *conf,
 			wpa_printf(MSG_DEBUG, "DPP: Invalid psk_hex encoding");
 			return -1;
 		}
-		wpa_hexdump_key(MSG_DEBUG, "DPP: Legacy PSK",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: Legacy PSK",
 				conf->psk, PMK_LEN);
 		conf->psk_set = 1;
 	} else {
@@ -4317,7 +4317,7 @@ dpp_peer_intro(struct dpp_introduction *intro, const char *own_connector,
 	if (dpp_ecdh(own_key, intro->peer_key, Nx, &Nx_len) < 0)
 		goto fail;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: ECDH shared secret (N.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: ECDH shared secret (N.x)",
 			Nx, Nx_len);
 
 	/* PMK = HKDF(<>, "DPP PMK", N.x) */

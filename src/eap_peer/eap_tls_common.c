@@ -601,7 +601,7 @@ static int eap_tls_process_input(struct eap_sm *sm, struct eap_ssl_data *data,
 	if (appl_data &&
 	    tls_connection_established(data->ssl_ctx, data->conn) &&
 	    !tls_connection_get_failed(data->ssl_ctx, data->conn)) {
-		wpa_hexdump_buf_key(MSG_MSGDUMP, "SSL: Application data",
+		wpa_hexdump_buf_key(NULL, MSG_MSGDUMP, "SSL: Application data",
 				    appl_data);
 		*out_data = appl_data;
 		return 2;

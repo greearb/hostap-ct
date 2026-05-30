@@ -122,7 +122,6 @@ static int syslog_priority(int level)
 }
 #endif /* CONFIG_DEBUG_SYSLOG */
 
-
 #ifdef CONFIG_DEBUG_LINUX_TRACING
 
 int wpa_debug_open_linux_tracing(void)
@@ -268,8 +267,9 @@ void wpa_printf(int level, const char *fmt, ...)
 #endif /* CONFIG_DEBUG_LINUX_TRACING */
 }
 
+static wpa_msg_get_ifname_func wpa_msg_ifname_cb = NULL;
 
-static void _wpa_hexdump(int level, const char *title, const u8 *buf,
+static void _wpa_hexdump(void *ctx, int level, const char *title, const u8 *buf,
 			 size_t len, int show, int only_syslog)
 {
 	size_t i;
@@ -368,13 +368,27 @@ static void _wpa_hexdump(int level, const char *title, const u8 *buf,
 	wpa_debug_print_timestamp();
 #ifdef CONFIG_DEBUG_FILE
 	if (out_file) {
-		fprintf(out_file, "%s - hexdump(len=%lu):",
-			title, (unsigned long) len);
+		const char *ifname = NULL;
+		if (wpa_msg_ifname_cb && ctx)
+			ifname = wpa_msg_ifname_cb(ctx);
+		if (ifname)
+			fprintf(out_file, "IFNAME=%s <%d>%s - hexdump(len=%lu):",
+				ifname, level, title, (unsigned long) len);
+		else
+			fprintf(out_file, "%s - hexdump(len=%lu):",
+				title, (unsigned long) len);
 		if (buf == NULL) {
 			fprintf(out_file, " [NULL]");
 		} else if (show) {
 			for (i = 0; i < len; i++)
 				fprintf(out_file, " %02x", buf[i]);
+			if (ctx && strstr(title, "PTK")) {
+				char tmp[len * 2 + strlen(title) + 10];
+				int sofar = snprintf(tmp, sizeof(tmp), "%s ", title);
+				for (i = 0; i < len; i++)
+					sofar += snprintf(tmp + sofar, sizeof(tmp) - sofar, "%02x", buf[i]);
+				wpa_msg(ctx, MSG_INFO, "%s", tmp);
+			}
 		} else {
 			fprintf(out_file, " [REMOVED]");
 		}
@@ -398,13 +412,13 @@ static void _wpa_hexdump(int level, const char *title, const u8 *buf,
 
 void wpa_hexdump(int level, const char *title, const void *buf, size_t len)
 {
-	_wpa_hexdump(level, title, buf, len, 1, 0);
+	_wpa_hexdump(NULL, level, title, buf, len, 1, 0);
 }
 
 
-void wpa_hexdump_key(int level, const char *title, const void *buf, size_t len)
+void wpa_hexdump_key(void *ctx, int level, const char *title, const void *buf, size_t len)
 {
-	_wpa_hexdump(level, title, buf, len, wpa_debug_show_keys, 0);
+	_wpa_hexdump(ctx, level, title, buf, len, wpa_debug_show_keys, 0);
 }
 
 
@@ -441,7 +455,7 @@ static void _wpa_hexdump_ascii(int level, const char *title, const void *buf,
 #else /* CONFIG_ANDROID_LOG */
 #ifdef CONFIG_DEBUG_SYSLOG
 	if (wpa_debug_syslog)
-		_wpa_hexdump(level, title, buf, len, show, 1);
+		_wpa_hexdump(NULL, level, title, buf, len, show, 1);
 #endif /* CONFIG_DEBUG_SYSLOG */
 	wpa_debug_print_timestamp();
 #ifdef CONFIG_DEBUG_FILE
@@ -649,8 +663,6 @@ void wpa_msg_register_cb(wpa_msg_cb_func func)
 	wpa_msg_cb = func;
 }
 
-
-static wpa_msg_get_ifname_func wpa_msg_ifname_cb = NULL;
 
 void wpa_msg_register_ifname_cb(wpa_msg_get_ifname_func func)
 {

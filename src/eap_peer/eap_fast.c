@@ -287,7 +287,7 @@ static int eap_fast_derive_key_auth(struct eap_sm *sm,
 	 * RFC 4851, Section 5.2:
 	 * S-IMCK[0] = session_key_seed
 	 */
-	wpa_hexdump_key(MSG_DEBUG,
+	wpa_hexdump_key(NULL, MSG_DEBUG,
 			"EAP-FAST: session_key_seed (SKS = S-IMCK[0])",
 			sks, EAP_FAST_SKS_LEN);
 	data->simck_idx = 0;
@@ -312,17 +312,17 @@ static int eap_fast_derive_key_provisioning(struct eap_sm *sm,
 	 * RFC 4851, Section 5.2:
 	 * S-IMCK[0] = session_key_seed
 	 */
-	wpa_hexdump_key(MSG_DEBUG,
+	wpa_hexdump_key(NULL, MSG_DEBUG,
 			"EAP-FAST: session_key_seed (SKS = S-IMCK[0])",
 			data->key_block_p->session_key_seed,
 			sizeof(data->key_block_p->session_key_seed));
 	data->simck_idx = 0;
 	os_memcpy(data->simck, data->key_block_p->session_key_seed,
 		  EAP_FAST_SIMCK_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-FAST: server_challenge",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-FAST: server_challenge",
 			data->key_block_p->server_challenge,
 			sizeof(data->key_block_p->server_challenge));
-	wpa_hexdump_key(MSG_DEBUG, "EAP-FAST: client_challenge",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-FAST: client_challenge",
 			data->key_block_p->client_challenge,
 			sizeof(data->key_block_p->client_challenge));
 	return 0;
@@ -719,17 +719,17 @@ static int eap_fast_get_cmk(struct eap_sm *sm, struct eap_fast_data *data,
 
 	if (eap_fast_get_phase2_key(sm, data, isk, sizeof(isk)) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_MSGDUMP, "EAP-FAST: ISK[j]", isk, sizeof(isk));
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "EAP-FAST: ISK[j]", isk, sizeof(isk));
 	if (sha1_t_prf(data->simck, EAP_FAST_SIMCK_LEN,
 		       "Inner Methods Compound Keys",
 		       isk, sizeof(isk), imck, sizeof(imck)) < 0)
 		return -1;
 	data->simck_idx++;
 	os_memcpy(data->simck, imck, EAP_FAST_SIMCK_LEN);
-	wpa_hexdump_key(MSG_MSGDUMP, "EAP-FAST: S-IMCK[j]",
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "EAP-FAST: S-IMCK[j]",
 			data->simck, EAP_FAST_SIMCK_LEN);
 	os_memcpy(cmk, imck + EAP_FAST_SIMCK_LEN, EAP_FAST_CMK_LEN);
-	wpa_hexdump_key(MSG_MSGDUMP, "EAP-FAST: CMK[j]",
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "EAP-FAST: CMK[j]",
 			cmk, EAP_FAST_CMK_LEN);
 
 	return 0;
@@ -843,7 +843,7 @@ static void eap_fast_parse_pac_tlv(struct eap_fast_pac *entry, int type,
 {
 	switch (type & 0x7fff) {
 	case PAC_TYPE_PAC_KEY:
-		wpa_hexdump_key(MSG_DEBUG, "EAP-FAST: PAC-Key", pos, len);
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-FAST: PAC-Key", pos, len);
 		if (len != EAP_FAST_PAC_KEY_LEN) {
 			wpa_printf(MSG_DEBUG, "EAP-FAST: Invalid PAC-Key "
 				   "length %lu", (unsigned long) len);

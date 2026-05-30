@@ -10977,7 +10977,7 @@ static int wpas_p2p_nfc_connection_handover(struct wpa_supplicant *wpa_s,
 		}
 		wpa_printf(MSG_DEBUG, "P2P: Static handover - use peer OOB "
 			   "Device Password Id %u", id);
-		wpa_hexdump_key(MSG_DEBUG, "P2P: Peer OOB Device Password",
+		wpa_hexdump_key(wpa_s, MSG_DEBUG, "P2P: Peer OOB Device Password",
 				params.oob_dev_pw + WPS_OOB_PUBKEY_HASH_LEN + 2,
 				params.oob_dev_pw_len -
 				WPS_OOB_PUBKEY_HASH_LEN - 2);

@@ -827,7 +827,7 @@ static void eapol_sm_processKey(struct eapol_sm *sm)
 		os_memcpy(datakey, key + 1, key_len);
 		rc4_skip(ekey, IEEE8021X_KEY_IV_LEN + encr_key_len, 0,
 			 datakey, key_len);
-		wpa_hexdump_key(MSG_DEBUG, "EAPOL: Decrypted(RC4) key",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAPOL: Decrypted(RC4) key",
 				datakey, key_len);
 #endif /* CONFIG_NO_RC4 */
 	} else if (key_len == 0) {
@@ -842,7 +842,7 @@ static void eapol_sm_processKey(struct eapol_sm *sm)
 		 */
 		key_len = rx_key_length;
 		os_memcpy(datakey, keydata.encr_key, key_len);
-		wpa_hexdump_key(MSG_DEBUG, "EAPOL: using part of EAP keying "
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAPOL: using part of EAP keying "
 				"material data encryption key",
 				datakey, key_len);
 	} else {

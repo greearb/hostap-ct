@@ -316,9 +316,9 @@ static int eap_ttls_v0_derive_key(struct eap_sm *sm,
 		return -1;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "EAP-TTLS: Derived key",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-TTLS: Derived key",
 			data->key_data, EAP_TLS_KEY_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-TTLS: Derived EMSK",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-TTLS: Derived EMSK",
 			data->key_data + EAP_TLS_KEY_LEN,
 			EAP_EMSK_LEN);
 
@@ -689,7 +689,7 @@ static int eap_ttls_phase2_request_mschap(struct eap_sm *sm,
 			return -1;
 		}
 
-		wpa_hexdump_key(MSG_DEBUG, "EAP-TTLS: MSCHAP password hash",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-TTLS: MSCHAP password hash",
 				password, 16);
 	} else {
 		/* NT-Response */
@@ -1122,7 +1122,7 @@ static int eap_ttls_encrypt_response(struct eap_sm *sm,
 	if (resp == NULL)
 		return 0;
 
-	wpa_hexdump_buf_key(MSG_DEBUG, "EAP-TTLS: Encrypting Phase 2 data",
+	wpa_hexdump_buf_key(NULL, MSG_DEBUG, "EAP-TTLS: Encrypting Phase 2 data",
 			    resp);
 	if (eap_peer_tls_encrypt(sm, &data->ssl, EAP_TYPE_TTLS,
 				 data->ttls_version, identifier,

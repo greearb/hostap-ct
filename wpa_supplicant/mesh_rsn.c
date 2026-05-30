@@ -117,7 +117,7 @@ static int auth_set_key(void *ctx, int vlan_id, enum wpa_alg alg,
 		wpa_printf(MSG_DEBUG, "AUTH: %s(alg=%d key_idx=%d)",
 			   __func__, alg, idx);
 	}
-	wpa_hexdump_key(MSG_DEBUG, "AUTH: set_key - key", key, key_len);
+	wpa_hexdump_key(mesh_rsn->wpa_s, MSG_DEBUG, "AUTH: set_key - key", key, key_len);
 
 	return wpa_drv_set_key(mesh_rsn->wpa_s, -1, alg, addr, idx,
 			       1, seq, 6, key, key_len, key_flag);
@@ -211,7 +211,7 @@ static int __mesh_rsn_auth_init(struct mesh_rsn *rsn, const u8 *addr,
 		rsn->igtk_key_id = 4;
 
 		/* group mgmt */
-		wpa_hexdump_key(MSG_DEBUG, "mesh: Own TX IGTK",
+		wpa_hexdump_key(rsn->wpa_s, MSG_DEBUG, "mesh: Own TX IGTK",
 				rsn->igtk, rsn->igtk_len);
 		wpa_drv_set_key(rsn->wpa_s, -1,
 				wpa_cipher_to_alg(rsn->mgmt_group_cipher),
@@ -222,7 +222,7 @@ static int __mesh_rsn_auth_init(struct mesh_rsn *rsn, const u8 *addr,
 	}
 
 	/* group privacy / data frames */
-	wpa_hexdump_key(MSG_DEBUG, "mesh: Own TX MGTK",
+	wpa_hexdump_key(rsn->wpa_s, MSG_DEBUG, "mesh: Own TX MGTK",
 			rsn->mgtk, rsn->mgtk_len);
 	wpa_drv_set_key(rsn->wpa_s, -1, wpa_cipher_to_alg(rsn->group_cipher),
 			broadcast_ether_addr,
@@ -362,7 +362,7 @@ static int mesh_rsn_build_sae_commit(struct wpa_supplicant *wpa_s,
 			return -1;
 		sta->sae->tmp->pw_id_len = os_strlen(ssid->sae_password_id);
 	}
-	return sae_prepare_commit(wpa_s->own_addr, sta->addr,
+	return sae_prepare_commit(wpa_s, wpa_s->own_addr, sta->addr,
 				  (u8 *) password, os_strlen(password),
 				  sta->sae);
 }
@@ -628,7 +628,7 @@ int mesh_rsn_protect_frame(struct mesh_rsn *rsn, struct sta_info *sta,
 	}
 
 skip_keys:
-	wpa_hexdump_key(MSG_DEBUG, "mesh: Plaintext AMPE element",
+	wpa_hexdump_key(rsn->wpa_s, MSG_DEBUG, "mesh: Plaintext AMPE element",
 			ampe_ie, 2 + len);
 
 	/* IE: MIC */
@@ -638,7 +638,7 @@ skip_keys:
 
 	/* encrypt after MIC */
 	mic_payload = wpabuf_put(buf, 2 + len + AES_BLOCK_SIZE);
-	wpa_hexdump_key(MSG_DEBUG, "mesh: Tx SHA Key element", sta->aek, sizeof(sta->aek));
+	wpa_hexdump_key(rsn->wpa_s, MSG_DEBUG, "mesh: Tx SHA Key element", sta->aek, sizeof(sta->aek));
 
 	if (aes_siv_encrypt(sta->aek, sizeof(sta->aek), ampe_ie, 2 + len, 3,
 			    aad, aad_len, mic_payload)) {
@@ -646,7 +646,7 @@ skip_keys:
 		ret = -ENOMEM;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "mesh: encrypted AMPE element",
+	wpa_hexdump_key(rsn->wpa_s, MSG_DEBUG, "mesh: encrypted AMPE element",
 			mic_payload, 2 + len + AES_BLOCK_SIZE);
 
 	os_free(ampe_ie);
@@ -718,8 +718,8 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		goto free;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "mesh: Encrypted AMPE element", elems->mic, crypt_len);
-	wpa_hexdump_key(MSG_DEBUG, "mesh: Rx SHA Key element", sta->aek, sizeof(sta->aek));
+	wpa_hexdump_key(wpa_s, MSG_DEBUG, "mesh: Encrypted AMPE element", elems->mic, crypt_len);
+	wpa_hexdump_key(wpa_s, MSG_DEBUG, "mesh: Rx SHA Key element", sta->aek, sizeof(sta->aek));
 	os_memcpy(crypt, elems->mic, crypt_len);
 
 	if (aes_siv_decrypt(sta->aek, sizeof(sta->aek), crypt, crypt_len, 3,
@@ -730,7 +730,7 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 	}
 
 	crypt_len -= AES_BLOCK_SIZE;
-	wpa_hexdump_key(MSG_DEBUG, "mesh: Decrypted AMPE element", ampe_buf, crypt_len);
+	wpa_hexdump_key(wpa_s, MSG_DEBUG, "mesh: Decrypted AMPE element", ampe_buf, crypt_len);
 
 	ampe_eid = *ampe_buf++;
 	ampe_ie_len = *ampe_buf++;
@@ -773,7 +773,7 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 	 */
 	if (cat[1] != PLINK_OPEN) {
 		if (end > pos) {
-			wpa_hexdump_key(MSG_DEBUG,
+			wpa_hexdump_key(wpa_s, MSG_DEBUG,
 					"mesh: Ignore unexpected GTKdata(etc.) fields in the end of AMPE element in Mesh Peering Confirm/Close",
 					pos, end - pos);
 		}
@@ -793,7 +793,7 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 	}
 	sta->mgtk_len = key_len;
 	os_memcpy(sta->mgtk, pos, sta->mgtk_len);
-	wpa_hexdump_key(MSG_DEBUG, "mesh: GTKdata - MGTK",
+	wpa_hexdump_key(wpa_s, MSG_DEBUG, "mesh: GTKdata - MGTK",
 			sta->mgtk, sta->mgtk_len);
 	pos += sta->mgtk_len;
 	wpa_hexdump(MSG_DEBUG, "mesh: GTKdata - MGTK - Key RSC",
@@ -821,7 +821,7 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		pos += 6;
 		os_memcpy(sta->igtk, pos, key_len);
 		sta->igtk_len = key_len;
-		wpa_hexdump_key(MSG_DEBUG, "mesh: IGTKdata - IGTK",
+		wpa_hexdump_key(wpa_s, MSG_DEBUG, "mesh: IGTKdata - IGTK",
 				sta->igtk, sta->igtk_len);
 	}
 

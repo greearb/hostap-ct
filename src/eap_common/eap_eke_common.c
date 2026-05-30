@@ -171,7 +171,7 @@ int eap_eke_dh_init(u8 group, u8 *ret_priv, u8 *ret_pub)
 	if (crypto_dh_init(gen, dh->prime, dh->prime_len, ret_priv,
 			   ret_pub) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: DH private value",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: DH private value",
 			ret_priv, dh->prime_len);
 	wpa_hexdump(MSG_DEBUG, "EAP-EKE: DH public value",
 		    ret_pub, dh->prime_len);
@@ -315,7 +315,7 @@ int eap_eke_derive_key(struct eap_eke_session *sess,
 	if (eap_eke_prf(sess->prf, zeros, sess->prf_len,
 			password, password_len, NULL, 0, temp) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: temp = prf(0+, password)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: temp = prf(0+, password)",
 			temp, sess->prf_len);
 
 	/* key = prf+(temp, ID_S | ID_P) */
@@ -332,7 +332,7 @@ int eap_eke_derive_key(struct eap_eke_session *sess,
 		return -1;
 	}
 	os_free(id);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: key = prf+(temp, ID_S | ID_P)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: key = prf+(temp, ID_S | ID_P)",
 			key, key_len);
 
 	return 0;
@@ -393,7 +393,7 @@ int eap_eke_shared_secret(struct eap_eke_session *sess, const u8 *key,
 		wpa_printf(MSG_INFO, "EAP-EKE: Failed to decrypt DHComponent");
 		return -1;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: Decrypted peer DH pubkey",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: Decrypted peer DH pubkey",
 			peer_pub, dh->prime_len);
 
 	/* SharedSecret = prf(0+, g ^ (x_s * x_p) (mod p)) */
@@ -412,7 +412,7 @@ int eap_eke_shared_secret(struct eap_eke_session *sess, const u8 *key,
 	if (eap_eke_prf(sess->prf, zeros, sess->auth_len, modexp, dh->prime_len,
 			NULL, 0, sess->shared_secret) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: SharedSecret",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: SharedSecret",
 			sess->shared_secret, sess->auth_len);
 
 	return 0;
@@ -464,9 +464,9 @@ int eap_eke_derive_ke_ki(struct eap_eke_session *sess,
 	}
 
 	os_memcpy(sess->ke, buf, ke_len);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: Ke", sess->ke, ke_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: Ke", sess->ke, ke_len);
 	os_memcpy(sess->ki, buf + ke_len, ki_len);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: Ki", sess->ki, ki_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: Ki", sess->ki, ki_len);
 
 	os_free(data);
 	return 0;
@@ -512,7 +512,7 @@ int eap_eke_derive_ka(struct eap_eke_session *sess,
 	}
 	os_free(data);
 
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: Ka", sess->ka, sess->prf_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: Ka", sess->ka, sess->prf_len);
 
 	return 0;
 }
@@ -562,8 +562,8 @@ int eap_eke_derive_msk(struct eap_eke_session *sess,
 	os_memcpy(emsk, buf + EAP_MSK_LEN, EAP_EMSK_LEN);
 	os_memset(buf, 0, sizeof(buf));
 
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: MSK", msk, EAP_MSK_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: EMSK", msk, EAP_EMSK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: MSK", msk, EAP_MSK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: EMSK", msk, EAP_EMSK_LEN);
 
 	return 0;
 }
@@ -676,7 +676,7 @@ int eap_eke_decrypt_prot(struct eap_eke_session *sess,
 		wpa_printf(MSG_INFO, "EAP-EKE: Failed to decrypt Prot() data");
 		return -1;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: Decrypted Prot() data",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: Decrypted Prot() data",
 			data, *data_len);
 
 	return 0;
@@ -687,7 +687,7 @@ int eap_eke_auth(struct eap_eke_session *sess, const char *label,
 		 const struct wpabuf *msgs, u8 *auth)
 {
 	wpa_printf(MSG_DEBUG, "EAP-EKE: Auth(%s)", label);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: Ka for Auth",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: Ka for Auth",
 			sess->ka, sess->auth_len);
 	wpa_hexdump_buf(MSG_MSGDUMP, "EAP-EKE: Messages for Auth", msgs);
 	return eap_eke_prf(sess->prf, sess->ka, sess->auth_len,

@@ -1066,7 +1066,7 @@ static struct wpabuf * auth_build_sae_commit(struct hostapd_data *hapd,
 
 			wpa_printf(MSG_DEBUG,
 				   "SAE: Derive PT for encrypted PW ID");
-			tmp_pt = sae_derive_pt(groups, hapd->conf->ssid.ssid,
+			tmp_pt = sae_derive_pt(hapd->msg_ctx, groups, hapd->conf->ssid.ssid,
 					       hapd->conf->ssid.ssid_len,
 					       (const u8 *) pw->password,
 					       os_strlen(pw->password),
@@ -1086,7 +1086,7 @@ static struct wpabuf * auth_build_sae_commit(struct hostapd_data *hapd,
 		}
 
 		if (update &&
-		    sae_prepare_commit_pt(sta->sae, pt, own_addr, sta->addr,
+		    sae_prepare_commit_pt(hapd->msg_ctx, sta->sae, pt, own_addr, sta->addr,
 					  NULL, pk) < 0)
 			failed = true;
 
@@ -1096,7 +1096,7 @@ static struct wpabuf * auth_build_sae_commit(struct hostapd_data *hapd,
 	}
 
 	if (update && !use_pt &&
-	    sae_prepare_commit(own_addr, sta->addr,
+	    sae_prepare_commit(hapd->msg_ctx, own_addr, sta->addr,
 			       (u8 *) password, os_strlen(password),
 			       sta->sae) < 0) {
 		wpa_printf(MSG_DEBUG, "SAE: Could not pick PWE");
@@ -1145,7 +1145,7 @@ static struct wpabuf * auth_build_sae_confirm(struct hostapd_data *hapd,
 #endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_SAE_PK */
 
-	if (sae_write_confirm(sta->sae, buf) < 0) {
+	if (sae_write_confirm(hapd->msg_ctx, sta->sae, buf) < 0) {
 		wpabuf_free(buf);
 		return NULL;
 	}
@@ -1513,7 +1513,7 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 
 			sae_set_state(sta, SAE_COMMITTED, "Sent Commit");
 
-			if (sae_process_commit(sta->sae) < 0)
+			if (sae_process_commit(hapd->msg_ctx, sta->sae) < 0)
 				return WLAN_STATUS_UNSPECIFIED_FAILURE;
 
 			/*
@@ -1574,7 +1574,7 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 	case SAE_COMMITTED:
 		sae_clear_retransmit_timer(hapd, sta);
 		if (auth_transaction == WLAN_AUTH_TR_SEQ_SAE_COMMIT) {
-			if (sae_process_commit(sta->sae) < 0)
+			if (sae_process_commit(hapd->msg_ctx, sta->sae) < 0)
 				return WLAN_STATUS_UNSPECIFIED_FAILURE;
 
 			ret = auth_sae_send_confirm(hapd, sta);
@@ -1629,7 +1629,7 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 			if (ret)
 				return ret;
 
-			if (sae_process_commit(sta->sae) < 0)
+			if (sae_process_commit(hapd->msg_ctx, sta->sae) < 0)
 				return WLAN_STATUS_UNSPECIFIED_FAILURE;
 
 			ret = auth_sae_send_confirm(hapd, sta);
@@ -1658,7 +1658,7 @@ static int sae_sm_step(struct hostapd_data *hapd, struct sta_info *sta,
 				return ret;
 			sae_set_state(sta, SAE_COMMITTED, "Sent Commit");
 
-			if (sae_process_commit(sta->sae) < 0)
+			if (sae_process_commit(hapd->msg_ctx, sta->sae) < 0)
 				return WLAN_STATUS_UNSPECIFIED_FAILURE;
 			sta->sae->sync = 0;
 			sae_set_retransmit_timer(hapd, sta);
@@ -2118,7 +2118,7 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 				return;
 			}
 
-			if (sae_check_confirm(sta->sae, var, var_len,
+			if (sae_check_confirm(hapd->msg_ctx, sta->sae, var, var_len,
 					      NULL) < 0) {
 				if (sae_password_track_fail(hapd, sta)) {
 					wpa_printf(MSG_DEBUG,
@@ -3066,7 +3066,7 @@ void handle_auth_fils(struct hostapd_data *hapd, struct sta_info *sta,
 			resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
 			goto fail;
 		}
-		wpa_hexdump_buf_key(MSG_DEBUG, "FILS: DH_SS", sta->fils_dh_ss);
+		wpa_hexdump_buf_key(hapd->msg_ctx, MSG_DEBUG, "FILS: DH_SS", sta->fils_dh_ss);
 		pos += elem_len;
 	} else {
 		crypto_ecdh_deinit(sta->fils_ecdh);
@@ -3343,7 +3343,7 @@ prepare_auth_resp_fils(struct hostapd_data *hapd,
 		wpabuf_put_u8(data, WLAN_EID_EXT_WRAPPED_DATA);
 		wpabuf_put_buf(data, erp_resp);
 
-		if (fils_rmsk_to_pmk(wpa_auth_sta_key_mgmt(sta->wpa_sm),
+		if (fils_rmsk_to_pmk(hapd->msg_ctx, wpa_auth_sta_key_mgmt(sta->wpa_sm),
 				     msk, msk_len, sta->fils_snonce, fils_nonce,
 				     sta->fils_dh_ss ?
 				     wpabuf_head(sta->fils_dh_ss) : NULL,
@@ -3620,14 +3620,14 @@ static void pasn_fils_auth_resp(struct hostapd_data *hapd,
 	wpa_hexdump(MSG_DEBUG, "RSN: Generated FILS ANonce",
 		    fils->anonce, NONCE_LEN);
 
-	ret = fils_rmsk_to_pmk(pasn_get_akmp(pasn), msk, msk_len, fils->nonce,
+	ret = fils_rmsk_to_pmk(hapd->msg_ctx, pasn_get_akmp(pasn), msk, msk_len, fils->nonce,
 			       fils->anonce, NULL, 0, pmk, &pmk_len);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "FILS: Failed to derive PMK");
 		goto fail;
 	}
 
-	ret = pasn_pmk_to_ptk(pmk, pmk_len, sta->addr, hapd->own_addr,
+	ret = pasn_pmk_to_ptk(hapd->msg_ctx, pmk, pmk_len, sta->addr, hapd->own_addr,
 			      wpabuf_head(pasn->secret),
 			      wpabuf_len(pasn->secret),
 			      pasn_get_ptk(sta->pasn), pasn_get_akmp(sta->pasn),
@@ -3640,7 +3640,7 @@ static void pasn_fils_auth_resp(struct hostapd_data *hapd,
 	}
 
 	if (pasn->secure_ltf) {
-		ret = wpa_ltf_keyseed(pasn_get_ptk(pasn), pasn_get_akmp(pasn),
+		ret = wpa_ltf_keyseed(hapd->msg_ctx, pasn_get_ptk(pasn), pasn_get_akmp(pasn),
 				      pasn_get_cipher(pasn));
 		if (ret) {
 			wpa_printf(MSG_DEBUG,
@@ -3907,7 +3907,7 @@ hapd_pasn_get_pt_for_pw_id(void *ctx, const u8 *pw_id, size_t pw_id_len,
 		 * pre-computed PT.  Clone it so the caller can free it
 		 * without affecting the password entry's own PT.
 		 * counter and dec_pw_id stay 0/NULL for plaintext. */
-		return sae_derive_pt(groups, hapd->conf->ssid.ssid,
+		return sae_derive_pt(ctx, groups, hapd->conf->ssid.ssid,
 				     hapd->conf->ssid.ssid_len,
 				     (const u8 *) pw_entry->password,
 				     os_strlen(pw_entry->password),
@@ -3965,7 +3965,7 @@ hapd_pasn_get_pt_for_pw_id(void *ctx, const u8 *pw_id, size_t pw_id_len,
 			os_free(plain);
 		}
 
-		pt = sae_derive_pt(groups, hapd->conf->ssid.ssid,
+		pt = sae_derive_pt(ctx, groups, hapd->conf->ssid.ssid,
 				   hapd->conf->ssid.ssid_len,
 				   (const u8 *) pw_entry->password,
 				   os_strlen(pw_entry->password),
@@ -5251,7 +5251,7 @@ static u16 owe_process_assoc_req(struct hostapd_data *hapd,
 		wpa_printf(MSG_DEBUG, "OWE: Invalid peer DH public key");
 		return WLAN_STATUS_UNSPECIFIED_FAILURE;
 	}
-	wpa_hexdump_buf_key(MSG_DEBUG, "OWE: DH shared secret", secret);
+	wpa_hexdump_buf_key(hapd->msg_ctx, MSG_DEBUG, "OWE: DH shared secret", secret);
 
 	/* prk = HKDF-extract(C | A | group, z) */
 
@@ -5312,7 +5312,7 @@ static u16 owe_process_assoc_req(struct hostapd_data *hapd,
 	if (res < 0)
 		return WLAN_STATUS_UNSPECIFIED_FAILURE;
 
-	wpa_hexdump_key(MSG_DEBUG, "OWE: prk", prk, hash_len);
+	wpa_hexdump_key(hapd->msg_ctx, MSG_DEBUG, "OWE: prk", prk, hash_len);
 
 	/* PMK = HKDF-expand(prk, "OWE Key Generation", n) */
 
@@ -5340,7 +5340,7 @@ static u16 owe_process_assoc_req(struct hostapd_data *hapd,
 	}
 	sta->owe_pmk_len = hash_len;
 
-	wpa_hexdump_key(MSG_DEBUG, "OWE: PMK", sta->owe_pmk, sta->owe_pmk_len);
+	wpa_hexdump_key(hapd->msg_ctx, MSG_DEBUG, "OWE: PMK", sta->owe_pmk, sta->owe_pmk_len);
 	wpa_hexdump(MSG_DEBUG, "OWE: PMKID", pmkid, PMKID_LEN);
 	wpa_auth_pmksa_add2(hapd->wpa_auth, sta->addr, sta->owe_pmk,
 			    sta->owe_pmk_len, pmkid, 0, WPA_KEY_MGMT_OWE,

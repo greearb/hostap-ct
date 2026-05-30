@@ -520,7 +520,7 @@ static void wpa_rekey_gmk(void *eloop_ctx, void *timeout_ctx)
 			   "Failed to get random data for WPA initialization.");
 	} else {
 		wpa_auth_logger(wpa_auth, NULL, LOGGER_DEBUG, "GMK rekeyd");
-		wpa_hexdump_key(MSG_DEBUG, "GMK",
+		wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "GMK",
 				wpa_auth->group->GMK, WPA_GMK_LEN);
 	}
 
@@ -717,7 +717,7 @@ static int wpa_group_init_gmk_and_counter(struct wpa_authenticator *wpa_auth,
 
 	if (random_get_bytes(group->GMK, WPA_GMK_LEN) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "GMK", group->GMK, WPA_GMK_LEN);
+	wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "GMK", group->GMK, WPA_GMK_LEN);
 
 	/*
 	 * Counter = PRF-256(Random number, "Init Counter",
@@ -737,7 +737,7 @@ static int wpa_group_init_gmk_and_counter(struct wpa_authenticator *wpa_auth,
 	if (sha1_prf(rkey, sizeof(rkey), "Init Counter", buf, sizeof(buf),
 		     group->Counter, WPA_NONCE_LEN) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "Key Counter",
+	wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "Key Counter",
 			group->Counter, WPA_NONCE_LEN);
 
 	return 0;
@@ -1805,7 +1805,7 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
 			goto out;
 		}
 		key_data = key_data_buf;
-		wpa_hexdump_key(MSG_DEBUG, "RSN: Decrypted EAPOL-Key Key Data",
+		wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "RSN: Decrypted EAPOL-Key Key Data",
 				key_data, key_data_length);
 	}
 
@@ -2246,10 +2246,10 @@ void __wpa_send_eapol(struct wpa_authenticator *wpa_auth,
 		size_t aad_len[1];
 
 		WPA_PUT_BE16(key_mic, AES_BLOCK_SIZE + kde_len);
-		wpa_hexdump_key(MSG_DEBUG, "Plaintext EAPOL-Key Key Data",
+		wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "Plaintext EAPOL-Key Key Data",
 				kde, kde_len);
 
-		wpa_hexdump_key(MSG_DEBUG, "WPA: KEK",
+		wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "WPA: KEK",
 				sm->PTK.kek, sm->PTK.kek_len);
 		/* AES-SIV AAD from EAPOL protocol version field (inclusive) to
 		 * to Key Data (exclusive). */
@@ -2278,13 +2278,13 @@ void __wpa_send_eapol(struct wpa_authenticator *wpa_auth,
 		if (pad_len)
 			*pos++ = 0xdd;
 
-		wpa_hexdump_key(MSG_DEBUG,
+		wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG,
 				"Plaintext EAPOL-Key Key Data (+ padding)",
 				buf, key_data_len);
 		if (version == WPA_KEY_INFO_TYPE_HMAC_SHA1_AES ||
 		    wpa_use_aes_key_wrap(sm->wpa_key_mgmt) ||
 		    version == WPA_KEY_INFO_TYPE_AES_128_CMAC) {
-			wpa_hexdump_key(MSG_DEBUG, "RSN: AES-WRAP using KEK",
+			wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "RSN: AES-WRAP using KEK",
 					sm->PTK.kek, sm->PTK.kek_len);
 			if (aes_wrap(sm->PTK.kek, sm->PTK.kek_len,
 				     (key_data_len - 8) / 8, buf, key_data)) {
@@ -3132,7 +3132,8 @@ static int wpa_derive_ptk(struct wpa_state_machine *sm, const u8 *snonce,
 		if (sm->ft_completed) {
 			u8 ptk_name[WPA_PMK_NAME_LEN];
 
-			ret = wpa_pmk_r1_to_ptk(sm->pmk_r1, sm->pmk_r1_len,
+			ret = wpa_pmk_r1_to_ptk(sm->wpa_auth->conf.msg_ctx,
+						sm->pmk_r1, sm->pmk_r1_len,
 						sm->SNonce, sm->ANonce,
 						wpa_auth_get_spa(sm),
 						wpa_auth_get_aa(sm),
@@ -3153,7 +3154,7 @@ static int wpa_derive_ptk(struct wpa_state_machine *sm, const u8 *snonce,
 		if (!no_kdk && sm->wpa_auth->conf.secure_ltf &&
 		    ieee802_11_rsnx_capab(sm->rsnxe,
 					  WLAN_RSNX_CAPAB_SECURE_LTF)) {
-			ret = wpa_ltf_keyseed(ptk, sm->wpa_key_mgmt,
+			ret = wpa_ltf_keyseed(sm->wpa_auth->conf.msg_ctx, ptk, sm->wpa_key_mgmt,
 					      sm->pairwise);
 			if (ret) {
 				wpa_printf(MSG_ERROR,
@@ -3175,7 +3176,8 @@ static int wpa_derive_ptk(struct wpa_state_machine *sm, const u8 *snonce,
 	akmp = sm->wpa_key_mgmt;
 	if (force_sha256)
 		akmp |= WPA_KEY_MGMT_PSK_SHA256;
-	ret = wpa_pmk_to_ptk(pmk, pmk_len, "Pairwise key expansion",
+	ret = wpa_pmk_to_ptk(sm->wpa_auth->conf.msg_ctx,
+			     pmk, pmk_len, "Pairwise key expansion",
 			     wpa_auth_get_aa(sm), wpa_auth_get_spa(sm),
 			     sm->ANonce, snonce, ptk, akmp,
 			     sm->pairwise, z, z_len, kdk_len);
@@ -3188,7 +3190,8 @@ static int wpa_derive_ptk(struct wpa_state_machine *sm, const u8 *snonce,
 #ifdef CONFIG_PASN
 	if (!no_kdk && sm->wpa_auth->conf.secure_ltf &&
 	    ieee802_11_rsnx_capab(sm->rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF)) {
-		ret = wpa_ltf_keyseed(ptk, sm->wpa_key_mgmt, sm->pairwise);
+		ret = wpa_ltf_keyseed(sm->wpa_auth->conf.msg_ctx,
+				      ptk, sm->wpa_key_mgmt, sm->pairwise);
 		if (ret) {
 			wpa_printf(MSG_DEBUG,
 				   "WPA: LTF keyseed derivation failed");
@@ -3219,7 +3222,8 @@ int fils_auth_pmk_to_ptk(struct wpa_state_machine *sm, const u8 *pmk,
 	else
 		kdk_len = 0;
 
-	res = fils_pmk_to_ptk(pmk, pmk_len, wpa_auth_get_spa(sm),
+	res = fils_pmk_to_ptk(sm->wpa_auth->conf.msg_ctx,
+			      pmk, pmk_len, wpa_auth_get_spa(sm),
 			      wpa_auth_get_aa(sm),
 			      snonce, anonce, dhss, dhss_len,
 			      &sm->PTK, ick, &ick_len,
@@ -3231,7 +3235,8 @@ int fils_auth_pmk_to_ptk(struct wpa_state_machine *sm, const u8 *pmk,
 #ifdef CONFIG_PASN
 	if (sm->wpa_auth->conf.secure_ltf &&
 	    ieee802_11_rsnx_capab(sm->rsnxe, WLAN_RSNX_CAPAB_SECURE_LTF)) {
-		res = wpa_ltf_keyseed(&sm->PTK, sm->wpa_key_mgmt, sm->pairwise);
+		res = wpa_ltf_keyseed(sm->wpa_auth->conf.msg_ctx,
+				      &sm->PTK, sm->wpa_key_mgmt, sm->pairwise);
 		if (res) {
 			wpa_printf(MSG_ERROR,
 				   "FILS: LTF keyseed derivation failed");
@@ -3249,7 +3254,8 @@ int fils_auth_pmk_to_ptk(struct wpa_state_machine *sm, const u8 *pmk,
 		struct wpa_auth_config *conf = &wpa_auth->conf;
 		u8 pmk_r0[PMK_LEN_MAX], pmk_r0_name[WPA_PMK_NAME_LEN];
 
-		if (wpa_derive_pmk_r0(fils_ft, fils_ft_len,
+		if (wpa_derive_pmk_r0(wpa_auth->conf.msg_ctx,
+				      fils_ft, fils_ft_len,
 				      conf->ssid, conf->ssid_len,
 				      conf->mobility_domain,
 				      conf->r0_key_holder,
@@ -3274,7 +3280,8 @@ int fils_auth_pmk_to_ptk(struct wpa_state_machine *sm, const u8 *pmk,
 	}
 #endif /* CONFIG_IEEE80211R_AP */
 
-	res = fils_key_auth_sk(ick, ick_len, snonce, anonce,
+	res = fils_key_auth_sk(sm->wpa_auth->conf.msg_ctx,
+			       ick, ick_len, snonce, anonce,
 			       wpa_auth_get_spa(sm),
 			       wpa_auth_get_aa(sm),
 			       g_sta ? wpabuf_head(g_sta) : NULL,
@@ -3335,7 +3342,7 @@ static int wpa_aead_decrypt(struct wpa_state_machine *sm, struct wpa_ptk *ptk,
 
 	/* AEAD decryption and validation completed successfully */
 	key_data_len -= AES_BLOCK_SIZE;
-	wpa_hexdump_key(MSG_DEBUG, "WPA: Decrypted Key Data",
+	wpa_hexdump_key(sm->wpa_auth->conf.msg_ctx, MSG_DEBUG, "WPA: Decrypted Key Data",
 			tmp, key_data_len);
 
 	/* Replace Key Data field with the decrypted version */
@@ -3590,7 +3597,7 @@ int fils_encrypt_assoc(struct wpa_state_machine *sm, u8 *buf,
 		return -1;
 	}
 
-	wpa_hexdump_buf_key(MSG_DEBUG, "FILS: Association Response plaintext",
+	wpa_hexdump_buf_key(sm->wpa_auth->conf.msg_ctx, MSG_DEBUG, "FILS: Association Response plaintext",
 			    plain);
 
 	if (aes_siv_encrypt(sm->PTK.kek, sm->PTK.kek_len,
@@ -4074,11 +4081,11 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
 			goto out;
 		}
 		key_data = key_data_buf;
-		wpa_hexdump_key(MSG_DEBUG, "RSN: Decrypted EAPOL-Key Key Data",
+		wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "RSN: Decrypted EAPOL-Key Key Data",
 				key_data, key_data_length);
 	}
 
-	if (wpa_parse_kde_ies(key_data, key_data_length, &kde) < 0) {
+	if (wpa_parse_kde_ies(sm->wpa_auth->conf.msg_ctx, key_data, key_data_length, &kde) < 0) {
 		wpa_auth_vlogger(wpa_auth, wpa_auth_get_spa(sm), LOGGER_INFO,
 				 "received EAPOL-Key msg 2/4 with invalid Key Data contents");
 		goto out;
@@ -4621,7 +4628,7 @@ u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos,
 			continue;
 
 		wpa_printf(MSG_DEBUG, "RSN: MLO GTK: link=%u", link_id);
-		wpa_hexdump_key(MSG_DEBUG, "RSN: MLO GTK",
+		wpa_hexdump_key(sm->wpa_auth->conf.msg_ctx, MSG_DEBUG, "RSN: MLO GTK",
 				ml_key_info.links[i].gtk,
 				ml_key_info.links[i].gtk_len);
 
@@ -4657,7 +4664,7 @@ u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos,
 			continue;
 
 		wpa_printf(MSG_DEBUG, "RSN: MLO IGTK: link=%u", link_id);
-		wpa_hexdump_key(MSG_DEBUG, "RSN: MLO IGTK",
+		wpa_hexdump_key(sm->wpa_auth->conf.msg_ctx, MSG_DEBUG, "RSN: MLO IGTK",
 				ml_key_info.links[i].igtk,
 				ml_key_info.links[i].igtk_len);
 
@@ -4701,7 +4708,7 @@ u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos,
 			continue;
 
 		wpa_printf(MSG_DEBUG, "RSN: MLO BIGTK: link=%u", link_id);
-		wpa_hexdump_key(MSG_DEBUG, "RSN: MLO BIGTK",
+		wpa_hexdump_key(sm->wpa_auth->conf.msg_ctx, MSG_DEBUG, "RSN: MLO BIGTK",
 				ml_key_info.links[i].bigtk,
 				ml_key_info.links[i].igtk_len);
 
@@ -5040,14 +5047,14 @@ static u8 * add_sae_pw_ids(struct wpa_state_machine *sm, u8 *pos, u8 *end)
 	if (kde_len > 255) {
 		wpa_printf(MSG_INFO,
 			   "RSN: SAE Password Identifiers do not fit in a KDE");
-		wpa_hexdump_key(MSG_DEBUG, "RSN: KDE", start, pos - start);
+		wpa_hexdump_key(sm->wpa_auth->conf.msg_ctx, MSG_DEBUG, "RSN: KDE", start, pos - start);
 		pos = NULL;
 		goto fail;
 	}
 
 	*len = kde_len;
 
-	wpa_hexdump_key(MSG_DEBUG, "RSN: SAE Password Identifiers KDE",
+	wpa_hexdump_key(sm->wpa_auth->conf.msg_ctx, MSG_DEBUG, "RSN: SAE Password Identifiers KDE",
 			start, pos - start);
 
 fail:
@@ -5526,7 +5533,7 @@ static int wpa_auth_validate_ml_kdes_m4(struct wpa_state_machine *sm)
 	    sizeof(*key) - mic_len - 2)
 		return -1;
 
-	if (wpa_parse_kde_ies(key_data, key_data_length, &kde) < 0) {
+	if (wpa_parse_kde_ies(sm->wpa_auth->conf.msg_ctx, key_data, key_data_length, &kde) < 0) {
 		wpa_auth_vlogger(sm->wpa_auth, wpa_auth_get_spa(sm),
 				 LOGGER_INFO,
 				 "received EAPOL-Key msg 4/4 with invalid Key Data contents");
@@ -5922,7 +5929,7 @@ SM_STATE(WPA_PTK_GROUP, REKEYESTABLISHED)
 	    sizeof(*key) - mic_len - 2)
 		return;
 
-	if (wpa_parse_kde_ies(key_data, key_data_length, &kde) < 0) {
+	if (wpa_parse_kde_ies(sm->wpa_auth->conf.msg_ctx, key_data, key_data_length, &kde) < 0) {
 		wpa_auth_vlogger(wpa_auth, wpa_auth_get_spa(sm), LOGGER_INFO,
 				 "received EAPOL-Key group msg 2/2 with invalid Key Data contents");
 		return;
@@ -6042,7 +6049,7 @@ static int wpa_gtk_update(struct wpa_authenticator *wpa_auth,
 			   wpa_auth->addr, group->GNonce,
 			   group->GTK[group->GN - 1], group->GTK_len) < 0)
 		ret = -1;
-	wpa_hexdump_key(MSG_DEBUG, "GTK",
+	wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "GTK",
 			group->GTK[group->GN - 1], group->GTK_len);
 
 	if (wpa_auth_pmf_enabled(conf)) {
@@ -6053,7 +6060,7 @@ static int wpa_gtk_update(struct wpa_authenticator *wpa_auth,
 				   wpa_auth->addr, group->GNonce,
 				   group->IGTK[group->GN_igtk - 4], len) < 0)
 			ret = -1;
-		wpa_hexdump_key(MSG_DEBUG, "IGTK",
+		wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "IGTK",
 				group->IGTK[group->GN_igtk - 4], len);
 	}
 
@@ -6086,7 +6093,7 @@ static int wpa_gtk_update(struct wpa_authenticator *wpa_auth,
 			   group->BIGTK[group->GN_bigtk - 6], len) < 0)
 		return -1;
 	group->bigtk_set = true;
-	wpa_hexdump_key(MSG_DEBUG, "BIGTK",
+	wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "BIGTK",
 			group->BIGTK[group->GN_bigtk - 6], len);
 
 	return ret;
@@ -6245,7 +6252,7 @@ int wpa_wnmsleep_gtk_subelem(struct wpa_state_machine *sm, u8 *pos)
 
 	wpa_printf(MSG_DEBUG, "WNM: GTK Key ID %u in WNM-Sleep Mode exit",
 		   gsm->GN);
-	wpa_hexdump_key(MSG_DEBUG, "WNM: GTK in WNM-Sleep Mode exit",
+	wpa_hexdump_key(sm->wpa_auth->conf.msg_ctx, MSG_DEBUG, "WNM: GTK in WNM-Sleep Mode exit",
 			gsm->GTK[gsm->GN - 1], gsm->GTK_len);
 
 	return pos - start;
@@ -6284,7 +6291,7 @@ int wpa_wnmsleep_igtk_subelem(struct wpa_state_machine *sm, u8 *pos)
 
 	wpa_printf(MSG_DEBUG, "WNM: IGTK Key ID %u in WNM-Sleep Mode exit",
 		   gsm->GN_igtk);
-	wpa_hexdump_key(MSG_DEBUG, "WNM: IGTK in WNM-Sleep Mode exit",
+	wpa_hexdump_key(sm->wpa_auth->conf.msg_ctx, MSG_DEBUG, "WNM: IGTK in WNM-Sleep Mode exit",
 			gsm->IGTK[gsm->GN_igtk - 4], len);
 
 	return pos - start;
@@ -6315,7 +6322,7 @@ int wpa_wnmsleep_bigtk_subelem(struct wpa_state_machine *sm, u8 *pos)
 
 	wpa_printf(MSG_DEBUG, "WNM: BIGTK Key ID %u in WNM-Sleep Mode exit",
 		   gsm->GN_bigtk);
-	wpa_hexdump_key(MSG_DEBUG, "WNM: BIGTK in WNM-Sleep Mode exit",
+	wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "WNM: BIGTK in WNM-Sleep Mode exit",
 			gsm->BIGTK[gsm->GN_bigtk - 6], len);
 
 	return pos - start;
@@ -6927,7 +6934,7 @@ int wpa_auth_pmksa_add(struct wpa_state_machine *sm, const u8 *pmk,
 		pmk_len = PMK_LEN;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "RSN: Cache PMK", pmk, pmk_len);
+	wpa_hexdump_key(sm->wpa_auth->conf.msg_ctx, MSG_DEBUG, "RSN: Cache PMK", pmk, pmk_len);
 	if (pmksa_cache_auth_add(sm->wpa_auth->pmksa, pmk, pmk_len, NULL,
 				 sm->PTK.kck, sm->PTK.kck_len,
 				 wpa_auth_get_aa(sm),
@@ -6947,7 +6954,7 @@ int wpa_auth_pmksa_add_preauth(struct wpa_authenticator *wpa_auth,
 	if (!wpa_auth)
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG, "RSN: Cache PMK from preauth", pmk, len);
+	wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "RSN: Cache PMK from preauth", pmk, len);
 	if (pmksa_cache_auth_add(wpa_auth->pmksa, pmk, len, NULL,
 				 NULL, 0,
 				 wpa_auth->addr,
@@ -6970,7 +6977,7 @@ int wpa_auth_pmksa_add_sae(struct wpa_authenticator *wpa_auth, const u8 *addr,
 	if (wpa_auth->conf.disable_pmksa_caching)
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG, "RSN: Cache PMK from SAE", pmk, pmk_len);
+	wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "RSN: Cache PMK from SAE", pmk, pmk_len);
 	if (!akmp)
 		akmp = WPA_KEY_MGMT_SAE;
 
@@ -7014,7 +7021,7 @@ int wpa_auth_pmksa_add2(struct wpa_authenticator *wpa_auth, const u8 *addr,
 	if (!wpa_auth || wpa_auth->conf.disable_pmksa_caching)
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG, "RSN: Cache PMK (3)", pmk, PMK_LEN);
+	wpa_hexdump_key(wpa_auth->conf.msg_ctx, MSG_DEBUG, "RSN: Cache PMK (3)", pmk, PMK_LEN);
 	pmksa = wpa_auth->pmksa;
 	aa = wpa_auth->addr;
 #ifdef CONFIG_IEEE80211BE

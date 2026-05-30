@@ -126,9 +126,9 @@ static struct wpabuf * eap_psk_build_3(struct eap_sm *sm,
 	if (eap_psk_derive_keys(data->kdk, data->rand_p, data->tek, data->msk,
 				data->emsk))
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PSK: TEK", data->tek, EAP_PSK_TEK_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PSK: MSK", data->msk, EAP_MSK_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PSK: EMSK", data->emsk, EAP_EMSK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PSK: TEK", data->tek, EAP_PSK_TEK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PSK: MSK", data->msk, EAP_MSK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PSK: EMSK", data->emsk, EAP_EMSK_LEN);
 
 	os_memset(nonce, 0, sizeof(nonce));
 	pchannel = wpabuf_put(req, 4 + 16 + 1);
@@ -285,8 +285,8 @@ static void eap_psk_process_2(struct eap_sm *sm,
 		data->state = FAILURE;
 		return;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PSK: AK", data->ak, EAP_PSK_AK_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PSK: KDK", data->kdk, EAP_PSK_KDK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PSK: AK", data->ak, EAP_PSK_AK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PSK: KDK", data->kdk, EAP_PSK_KDK_LEN);
 
 	wpa_hexdump(MSG_MSGDUMP, "EAP-PSK: RAND_P (client rand)",
 		    resp->rand_p, EAP_PSK_RAND_LEN);

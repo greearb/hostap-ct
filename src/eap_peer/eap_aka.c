@@ -229,7 +229,7 @@ static int eap_aka_ext_sim_result(struct eap_sm *sm, struct eap_aka_data *data,
 		pos = resp + 10;
 		if (hexstr2bin(pos, data->auts, EAP_AKA_AUTS_LEN) < 0)
 			goto invalid;
-		wpa_hexdump_key(MSG_DEBUG, "EAP-AKA: AUTS", data->auts,
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-AKA: AUTS", data->auts,
 				EAP_AKA_AUTS_LEN);
 		os_free(resp);
 		return -2;
@@ -246,7 +246,7 @@ static int eap_aka_ext_sim_result(struct eap_sm *sm, struct eap_aka_data *data,
 
 	if (hexstr2bin(pos, data->ik, EAP_AKA_IK_LEN) < 0)
 		goto invalid;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-AKA: IK", data->ik, EAP_AKA_IK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-AKA: IK", data->ik, EAP_AKA_IK_LEN);
 	pos += EAP_AKA_IK_LEN * 2;
 	if (*pos != ':')
 		goto invalid;
@@ -254,7 +254,7 @@ static int eap_aka_ext_sim_result(struct eap_sm *sm, struct eap_aka_data *data,
 
 	if (hexstr2bin(pos, data->ck, EAP_AKA_CK_LEN) < 0)
 		goto invalid;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-AKA: CK", data->ck, EAP_AKA_CK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-AKA: CK", data->ck, EAP_AKA_CK_LEN);
 	pos += EAP_AKA_CK_LEN * 2;
 	if (*pos != ':')
 		goto invalid;
@@ -267,7 +267,7 @@ static int eap_aka_ext_sim_result(struct eap_sm *sm, struct eap_aka_data *data,
 	}
 	if (hexstr2bin(pos, data->res, data->res_len) < 0)
 		goto invalid;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-AKA: RES", data->res, data->res_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-AKA: RES", data->res, data->res_len);
 
 	os_free(resp);
 	return 0;

@@ -401,7 +401,7 @@ static struct wpabuf * eap_ttls_build_phase2_eap_req(
 	if (buf == NULL)
 		return NULL;
 
-	wpa_hexdump_buf_key(MSG_DEBUG,
+	wpa_hexdump_buf_key(NULL, MSG_DEBUG,
 			    "EAP-TTLS/EAP: Encapsulate Phase 2 data", buf);
 
 	buf = eap_ttls_avp_encapsulate(buf, RADIUS_ATTR_EAP_MESSAGE, 1);
@@ -411,7 +411,7 @@ static struct wpabuf * eap_ttls_build_phase2_eap_req(
 		return NULL;
 	}
 
-	wpa_hexdump_buf_key(MSG_DEBUG, "EAP-TTLS/EAP: Encrypt encapsulated "
+	wpa_hexdump_buf_key(NULL, MSG_DEBUG, "EAP-TTLS/EAP: Encrypt encapsulated "
 			    "Phase 2 data", buf);
 
 	encr_req = eap_server_tls_encrypt(sm, &data->ssl, buf);
@@ -453,7 +453,7 @@ static struct wpabuf * eap_ttls_build_phase2_mschapv2(
 	}
 
 	wpabuf_set(&msgbuf, req, pos - req);
-	wpa_hexdump_buf_key(MSG_DEBUG, "EAP-TTLS/MSCHAPV2: Encrypting Phase 2 "
+	wpa_hexdump_buf_key(NULL, MSG_DEBUG, "EAP-TTLS/MSCHAPV2: Encrypting Phase 2 "
 			    "data", &msgbuf);
 
 	encr_req = eap_server_tls_encrypt(sm, &data->ssl, &msgbuf);
@@ -1045,7 +1045,7 @@ static void eap_ttls_process_phase2(struct eap_sm *sm,
 		return;
 	}
 
-	wpa_hexdump_buf_key(MSG_DEBUG, "EAP-TTLS: Decrypted Phase 2 EAP",
+	wpa_hexdump_buf_key(NULL, MSG_DEBUG, "EAP-TTLS: Decrypted Phase 2 EAP",
 			    in_decrypted);
 
 	if (eap_ttls_avp_parse(in_decrypted, &parse) < 0) {
@@ -1298,7 +1298,7 @@ static u8 * eap_ttls_getKey(struct eap_sm *sm, void *priv, size_t *len)
 					       EAP_TLS_KEY_LEN + EAP_EMSK_LEN);
 	if (eapKeyData) {
 		*len = EAP_TLS_KEY_LEN;
-		wpa_hexdump_key(MSG_DEBUG, "EAP-TTLS: Derived key",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-TTLS: Derived key",
 				eapKeyData, EAP_TLS_KEY_LEN);
 	} else {
 		wpa_printf(MSG_DEBUG, "EAP-TTLS: Failed to derive key");

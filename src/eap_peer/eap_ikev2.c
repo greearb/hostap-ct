@@ -117,7 +117,7 @@ static void eap_ikev2_deinit(struct eap_sm *sm, void *priv)
 
 static int eap_ikev2_peer_keymat(struct eap_ikev2_data *data)
 {
-	if (eap_ikev2_derive_keymat(
+	if (eap_ikev2_derive_keymat(NULL,
 		    data->ikev2.proposal.prf, &data->ikev2.keys,
 		    data->ikev2.i_nonce, data->ikev2.i_nonce_len,
 		    data->ikev2.r_nonce, data->ikev2.r_nonce_len,

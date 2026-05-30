@@ -243,7 +243,7 @@ static void wnm_sleep_mode_exit_success(struct wpa_supplicant *wpa_s,
 	/* point to key data field */
 	ptr = (u8 *) frm + 1 + 2;
 	end = ptr + key_len_total;
-	wpa_hexdump_key(MSG_DEBUG, "WNM: Key Data", ptr, key_len_total);
+	wpa_hexdump_key(wpa_s, MSG_DEBUG, "WNM: Key Data", ptr, key_len_total);
 
 	if (key_len_total && !wpa_sm_pmf_enabled(wpa_s->wpa)) {
 		wpa_msg(wpa_s, MSG_INFO,

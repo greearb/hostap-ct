@@ -187,9 +187,9 @@ static void eap_tls_success(struct eap_sm *sm, struct eap_tls_data *data,
 						 EAP_TLS_KEY_LEN +
 						 EAP_EMSK_LEN);
 	if (data->key_data) {
-		wpa_hexdump_key(MSG_DEBUG, "EAP-TLS: Derived key",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-TLS: Derived key",
 				data->key_data, EAP_TLS_KEY_LEN);
-		wpa_hexdump_key(MSG_DEBUG, "EAP-TLS: Derived EMSK",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-TLS: Derived EMSK",
 				data->key_data + EAP_TLS_KEY_LEN,
 				EAP_EMSK_LEN);
 	} else {

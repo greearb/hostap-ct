@@ -4059,7 +4059,7 @@ static int nl80211_set_pmk(struct i802_bss *bss, const u8 *key, size_t key_len,
 
 	wpa_printf(MSG_DEBUG, "nl80211: Set PMK to the driver for " MACSTR,
 		   MAC2STR(addr));
-	wpa_hexdump_key(MSG_DEBUG, "nl80211: PMK", key, key_len);
+	wpa_hexdump_key(drv->ctx, MSG_DEBUG, "nl80211: PMK", key, key_len);
 	msg = nl80211_bss_msg(bss, 0, NL80211_CMD_SET_PMK);
 	if (!msg ||
 	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, addr) ||
@@ -4208,7 +4208,7 @@ static int wpa_driver_nl80211_set_key(struct i802_bss *bss,
 		if (nla_put(key_msg, NL80211_KEY_DATA, key_len, key) ||
 		    nla_put_u32(key_msg, NL80211_KEY_CIPHER, suite))
 			goto fail;
-		wpa_hexdump_key(MSG_DEBUG, "nl80211: KEY_DATA", key, key_len);
+		wpa_hexdump_key(drv->ctx, MSG_DEBUG, "nl80211: KEY_DATA", key, key_len);
 
 		if (seq && seq_len) {
 			if (nla_put(key_msg, NL80211_KEY_SEQ, seq_len, seq))
@@ -4222,7 +4222,7 @@ static int wpa_driver_nl80211_set_key(struct i802_bss *bss,
 				    params->ltf_keyseed_len,
 				    params->ltf_keyseed))
 				goto fail;
-			wpa_hexdump_key(MSG_DEBUG, "nl80211: KEY_LTF_SEED",
+			wpa_hexdump_key(drv->ctx, MSG_DEBUG, "nl80211: KEY_LTF_SEED",
 					params->ltf_keyseed,
 					params->ltf_keyseed_len);
 		}
@@ -8106,7 +8106,7 @@ static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 	/* Add PSK in case of 4-way handshake offload */
 	if (params->psk &&
 	    (drv->capa.flags & WPA_DRIVER_FLAGS_4WAY_HANDSHAKE_PSK)) {
-		wpa_hexdump_key(MSG_DEBUG, "  * PSK", params->psk, 32);
+		wpa_hexdump_key(drv->ctx, MSG_DEBUG, "  * PSK", params->psk, 32);
 		if (nla_put(msg, NL80211_ATTR_PMK, 32, params->psk))
 			return -1;
 	}
@@ -15205,7 +15205,7 @@ static int nl80211_set_secure_ranging_ctx(void *priv,
 		if (nla_put(msg, QCA_WLAN_VENDOR_ATTR_SECURE_RANGING_CTX_TK,
 			    params->tk_len, params->tk))
 			goto fail;
-		wpa_hexdump_key(MSG_DEBUG, "nl80211: TK",
+		wpa_hexdump_key(drv->ctx, MSG_DEBUG, "nl80211: TK",
 				params->tk, params->tk_len);
 	}
 
@@ -15222,7 +15222,7 @@ static int nl80211_set_secure_ranging_ctx(void *priv,
 			    QCA_WLAN_VENDOR_ATTR_SECURE_RANGING_CTX_LTF_KEYSEED,
 			    params->ltf_keyseed_len, params->ltf_keyseed))
 			goto fail;
-		wpa_hexdump_key(MSG_DEBUG, "nl80211: LTF keyseed",
+		wpa_hexdump_key(drv->ctx, MSG_DEBUG, "nl80211: LTF keyseed",
 				params->ltf_keyseed, params->ltf_keyseed_len);
 	}
 	nla_nest_end(msg, attr);

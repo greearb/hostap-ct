@@ -150,7 +150,7 @@ static void sae_pwd_seed_key(const u8 *addr1, const u8 *addr2, u8 *key)
 }
 
 
-static int sae_test_pwd_seed_ecc(struct sae_data *sae, const u8 *pwd_seed,
+static int sae_test_pwd_seed_ecc(void *ctx, struct sae_data *sae, const u8 *pwd_seed,
 				 const u8 *prime, const u8 *qr, const u8 *qnr,
 				 u8 *pwd_value)
 {
@@ -160,7 +160,7 @@ static int sae_test_pwd_seed_ecc(struct sae_data *sae, const u8 *pwd_seed,
 	int cmp_prime;
 	unsigned int in_range;
 
-	wpa_hexdump_key(MSG_DEBUG, "SAE: pwd-seed", pwd_seed, SHA256_MAC_LEN);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: pwd-seed", pwd_seed, SHA256_MAC_LEN);
 
 	/* pwd-value = KDF-z(pwd-seed, "SAE Hunting and Pecking", p) */
 	bits = crypto_ec_prime_len_bits(sae->tmp->ec);
@@ -169,7 +169,7 @@ static int sae_test_pwd_seed_ecc(struct sae_data *sae, const u8 *pwd_seed,
 		return -1;
 	if (bits % 8)
 		buf_shift_right(pwd_value, sae->tmp->prime_len, 8 - bits % 8);
-	wpa_hexdump_key(MSG_DEBUG, "SAE: pwd-value",
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: pwd-value",
 			pwd_value, sae->tmp->prime_len);
 
 	cmp_prime = const_time_memcmp(pwd_value, prime, sae->tmp->prime_len);
@@ -199,7 +199,7 @@ static int sae_test_pwd_seed_ecc(struct sae_data *sae, const u8 *pwd_seed,
 
 /* Returns -1 on fatal failure, 0 if PWE cannot be derived from the provided
  * pwd-seed, or 1 if a valid PWE was derived from pwd-seed. */
-static int sae_test_pwd_seed_ffc(struct sae_data *sae, const u8 *pwd_seed,
+static int sae_test_pwd_seed_ffc(void *ctx, struct sae_data *sae, const u8 *pwd_seed,
 				 struct crypto_bignum *pwe)
 {
 	u8 pwd_value[SAE_MAX_PRIME_LEN];
@@ -209,14 +209,14 @@ static int sae_test_pwd_seed_ffc(struct sae_data *sae, const u8 *pwd_seed,
 	int res, is_val;
 	u8 pwd_value_valid;
 
-	wpa_hexdump_key(MSG_DEBUG, "SAE: pwd-seed", pwd_seed, SHA256_MAC_LEN);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: pwd-seed", pwd_seed, SHA256_MAC_LEN);
 
 	/* pwd-value = KDF-z(pwd-seed, "SAE Hunting and Pecking", p) */
 	if (sha256_prf_bits(pwd_seed, SHA256_MAC_LEN, "SAE Hunting and Pecking",
 			    sae->tmp->dh->prime, sae->tmp->prime_len, pwd_value,
 			    bits) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "SAE: pwd-value", pwd_value,
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: pwd-value", pwd_value,
 			sae->tmp->prime_len);
 
 	/* Check whether pwd-value < p */
@@ -286,7 +286,7 @@ fail:
 }
 
 
-static int sae_derive_pwe_ecc(struct sae_data *sae, const u8 *addr1,
+static int sae_derive_pwe_ecc(void *ctx, struct sae_data *sae, const u8 *addr1,
 			      const u8 *addr2, const u8 *password,
 			      size_t password_len)
 {
@@ -373,7 +373,7 @@ static int sae_derive_pwe_ecc(struct sae_data *sae, const u8 *addr1,
 			break;
 		}
 
-		res = sae_test_pwd_seed_ecc(sae, pwd_seed,
+		res = sae_test_pwd_seed_ecc(ctx, sae, pwd_seed,
 					    prime, qr_bin, qnr_bin, x_cand_bin);
 		const_time_select_bin(found, x_bin, x_cand_bin, prime_len,
 				      x_bin);
@@ -432,7 +432,7 @@ static int sae_derive_pwe_ecc(struct sae_data *sae, const u8 *addr1,
 	const_time_select_bin(is_eq, x_y, x_y + SAE_MAX_ECC_PRIME_LEN,
 			      prime_len, x_y + prime_len);
 	os_memcpy(x_y, x_bin, prime_len);
-	wpa_hexdump_key(MSG_DEBUG, "SAE: PWE", x_y, 2 * prime_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: PWE", x_y, 2 * prime_len);
 	crypto_ec_point_deinit(sae->tmp->pwe_ecc, 1);
 	sae->tmp->pwe_ecc = crypto_ec_point_from_bin(sae->tmp->ec, x_y);
 	if (!sae->tmp->pwe_ecc) {
@@ -455,7 +455,7 @@ fail:
 }
 
 
-static int sae_derive_pwe_ffc(struct sae_data *sae, const u8 *addr1,
+static int sae_derive_pwe_ffc(void *ctx, struct sae_data *sae, const u8 *addr1,
 			      const u8 *addr2, const u8 *password,
 			      size_t password_len)
 {
@@ -511,7 +511,7 @@ static int sae_derive_pwe_ffc(struct sae_data *sae, const u8 *addr1,
 		if (hmac_sha256_vector(addrs, sizeof(addrs), 2,
 				       addr, len, pwd_seed) < 0)
 			break;
-		res = sae_test_pwd_seed_ffc(sae, pwd_seed, pwe);
+		res = sae_test_pwd_seed_ffc(ctx, sae, pwd_seed, pwe);
 		/* res is -1 for fatal failure, 0 if a valid PWE was not found,
 		 * or 1 if a valid PWE was found. */
 		if (res < 0)
@@ -618,21 +618,21 @@ static int sswu_curve_param(int group, int *z)
 }
 
 
-static void debug_print_bignum(const char *title, const struct crypto_bignum *a,
+static void debug_print_bignum(void *ctx, const char *title, const struct crypto_bignum *a,
 			       size_t prime_len)
 {
 	u8 *bin;
 
 	bin = os_malloc(prime_len);
 	if (bin && crypto_bignum_to_bin(a, bin, prime_len, prime_len) >= 0)
-		wpa_hexdump_key(MSG_DEBUG, title, bin, prime_len);
+		wpa_hexdump_key(ctx, MSG_DEBUG, title, bin, prime_len);
 	else
 		wpa_printf(MSG_DEBUG, "Could not print bignum (%s)", title);
 	bin_clear_free(bin, prime_len);
 }
 
 
-static struct crypto_ec_point * sswu(struct crypto_ec *ec, int group,
+static struct crypto_ec_point * sswu(void *ctx, struct crypto_ec *ec, int group,
 				     const struct crypto_bignum *u)
 {
 	int z_int;
@@ -689,7 +689,7 @@ static struct crypto_ec_point * sswu(struct crypto_ec *ec, int group,
 	    crypto_bignum_sqrmod(t1, prime, t2) < 0 ||
 	    crypto_bignum_addmod(t1, t2, prime, t1) < 0)
 		goto fail;
-	debug_print_bignum("SSWU: m", t1, prime_len);
+	debug_print_bignum(ctx, "SSWU: m", t1, prime_len);
 
 	/* l = CEQ(m, 0)
 	 * t = CSEL(l, 0, inverse(m); where inverse(x) is calculated as
@@ -700,14 +700,14 @@ static struct crypto_ec_point * sswu(struct crypto_ec *ec, int group,
 	if (crypto_bignum_sub(prime, two, t2) < 0 ||
 	    crypto_bignum_exptmod(t1, t2, prime, t) < 0)
 		goto fail;
-	debug_print_bignum("SSWU: t", t, prime_len);
+	debug_print_bignum(ctx, "SSWU: t", t, prime_len);
 
 	/* b / (z * a) */
 	if (crypto_bignum_mulmod(z, a, prime, t1) < 0 ||
 	    crypto_bignum_inverse(t1, prime, t1) < 0 ||
 	    crypto_bignum_mulmod(b, t1, prime, x1a) < 0)
 		goto fail;
-	debug_print_bignum("SSWU: x1a = b / (z * a)", x1a, prime_len);
+	debug_print_bignum(ctx, "SSWU: x1a = b / (z * a)", x1a, prime_len);
 
 	/* (-b/a) * (1 + t) */
 	if (crypto_bignum_sub(prime, b, t1) < 0 ||
@@ -716,7 +716,7 @@ static struct crypto_ec_point * sswu(struct crypto_ec *ec, int group,
 	    crypto_bignum_addmod(one, t, prime, t2) < 0 ||
 	    crypto_bignum_mulmod(t1, t2, prime, x1b) < 0)
 		goto fail;
-	debug_print_bignum("SSWU: x1b = (-b/a) * (1 + t)", x1b, prime_len);
+	debug_print_bignum(ctx, "SSWU: x1b = (-b/a) * (1 + t)", x1b, prime_len);
 
 	/* x1 = CSEL(CEQ(m, 0), x1a, x1b) */
 	if (crypto_bignum_to_bin(x1a, bin1, sizeof(bin1), prime_len) < 0 ||
@@ -726,7 +726,7 @@ static struct crypto_ec_point * sswu(struct crypto_ec *ec, int group,
 	x1 = crypto_bignum_init_set(bin, prime_len);
 	if (!x1)
 		goto fail;
-	debug_print_bignum("SSWU: x1 = CSEL(l, x1a, x1b)", x1, prime_len);
+	debug_print_bignum(ctx, "SSWU: x1 = CSEL(l, x1a, x1b)", x1, prime_len);
 
 	/* gx1 = x1^3 + a * x1 + b */
 	if (crypto_bignum_exptmod(x1, three, prime, t1) < 0 ||
@@ -734,13 +734,13 @@ static struct crypto_ec_point * sswu(struct crypto_ec *ec, int group,
 	    crypto_bignum_addmod(t1, t2, prime, t1) < 0 ||
 	    crypto_bignum_addmod(t1, b, prime, gx1) < 0)
 		goto fail;
-	debug_print_bignum("SSWU: gx1 = x1^3 + a * x1 + b", gx1, prime_len);
+	debug_print_bignum(ctx, "SSWU: gx1 = x1^3 + a * x1 + b", gx1, prime_len);
 
 	/* x2 = z * u^2 * x1 */
 	if (crypto_bignum_mulmod(z, u2, prime, t1) < 0 ||
 	    crypto_bignum_mulmod(t1, x1, prime, x2) < 0)
 		goto fail;
-	debug_print_bignum("SSWU: x2 = z * u^2 * x1", x2, prime_len);
+	debug_print_bignum(ctx, "SSWU: x2 = z * u^2 * x1", x2, prime_len);
 
 	/* gx2 = x2^3 + a * x2 + b */
 	if (crypto_bignum_exptmod(x2, three, prime, t1) < 0 ||
@@ -748,7 +748,7 @@ static struct crypto_ec_point * sswu(struct crypto_ec *ec, int group,
 	    crypto_bignum_addmod(t1, t2, prime, t1) < 0 ||
 	    crypto_bignum_addmod(t1, b, prime, gx2) < 0)
 		goto fail;
-	debug_print_bignum("SSWU: gx2 = x2^3 + a * x2 + b", gx2, prime_len);
+	debug_print_bignum(ctx, "SSWU: gx2 = x2^3 + a * x2 + b", gx2, prime_len);
 
 	/* l = gx1 is a quadratic residue modulo p
 	 * --> gx1^((p-1)/2) modulo p is zero or one */
@@ -756,7 +756,7 @@ static struct crypto_ec_point * sswu(struct crypto_ec *ec, int group,
 	    crypto_bignum_rshift(t1, 1, t1) < 0 ||
 	    crypto_bignum_exptmod(gx1, t1, prime, t1) < 0)
 		goto fail;
-	debug_print_bignum("SSWU: gx1^((p-1)/2) modulo p", t1, prime_len);
+	debug_print_bignum(ctx, "SSWU: gx1^((p-1)/2) modulo p", t1, prime_len);
 	is_qr = const_time_eq(crypto_bignum_is_zero(t1) |
 			      crypto_bignum_is_one(t1), 1);
 
@@ -768,20 +768,20 @@ static struct crypto_ec_point * sswu(struct crypto_ec *ec, int group,
 	v = crypto_bignum_init_set(bin, prime_len);
 	if (!v)
 		goto fail;
-	debug_print_bignum("SSWU: v = CSEL(l, gx1, gx2)", v, prime_len);
+	debug_print_bignum(ctx, "SSWU: v = CSEL(l, gx1, gx2)", v, prime_len);
 
 	/* x = CSEL(l, x1, x2) */
 	if (crypto_bignum_to_bin(x1, bin1, sizeof(bin1), prime_len) < 0 ||
 	    crypto_bignum_to_bin(x2, bin2, sizeof(bin2), prime_len) < 0)
 		goto fail;
 	const_time_select_bin(is_qr, bin1, bin2, prime_len, x_y);
-	wpa_hexdump_key(MSG_DEBUG, "SSWU: x = CSEL(l, x1, x2)", x_y, prime_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SSWU: x = CSEL(l, x1, x2)", x_y, prime_len);
 
 	/* y = sqrt(v) */
 	y = crypto_bignum_init();
 	if (!y || dragonfly_sqrt(ec, v, y) < 0)
 		goto fail;
-	debug_print_bignum("SSWU: y = sqrt(v)", y, prime_len);
+	debug_print_bignum(ctx, "SSWU: y = sqrt(v)", y, prime_len);
 
 	/* l = CEQ(LSB(u), LSB(y)) */
 	if (crypto_bignum_to_bin(u, bin1, sizeof(bin1), prime_len) < 0 ||
@@ -793,15 +793,15 @@ static struct crypto_ec_point * sswu(struct crypto_ec *ec, int group,
 	/* P = CSEL(l, (x,y), (x, p-y)) */
 	if (crypto_bignum_sub(prime, y, t1) < 0)
 		goto fail;
-	debug_print_bignum("SSWU: p - y", t1, prime_len);
+	debug_print_bignum(ctx, "SSWU: p - y", t1, prime_len);
 	if (crypto_bignum_to_bin(y, bin1, sizeof(bin1), prime_len) < 0 ||
 	    crypto_bignum_to_bin(t1, bin2, sizeof(bin2), prime_len) < 0)
 		goto fail;
 	const_time_select_bin(is_eq, bin1, bin2, prime_len, &x_y[prime_len]);
 
 	/* output P */
-	wpa_hexdump_key(MSG_DEBUG, "SSWU: P.x", x_y, prime_len);
-	wpa_hexdump_key(MSG_DEBUG, "SSWU: P.y", &x_y[prime_len], prime_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SSWU: P.x", x_y, prime_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SSWU: P.y", &x_y[prime_len], prime_len);
 	p = crypto_ec_point_from_bin(ec, x_y);
 
 fail:
@@ -830,7 +830,7 @@ fail:
 }
 
 
-static int sae_pwd_seed(size_t hash_len, const u8 *ssid, size_t ssid_len,
+static int sae_pwd_seed(void *ctx, size_t hash_len, const u8 *ssid, size_t ssid_len,
 			const u8 *password, size_t password_len,
 			const u8 *identifier, size_t identifier_len,
 			u8 *pwd_seed)
@@ -856,7 +856,7 @@ static int sae_pwd_seed(size_t hash_len, const u8 *ssid, size_t ssid_len,
 	if (hkdf_extract(hash_len, ssid, ssid_len, num_elem, addr, len,
 			 pwd_seed) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "SAE: pwd-seed", pwd_seed, hash_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: pwd-seed", pwd_seed, hash_len);
 	return 0;
 }
 
@@ -872,7 +872,7 @@ size_t sae_ecc_prime_len_2_hash_len(size_t prime_len)
 
 
 static struct crypto_ec_point *
-sae_derive_pt_ecc(struct crypto_ec *ec, int group,
+sae_derive_pt_ecc(void *ctx, struct crypto_ec *ec, int group,
 		  const u8 *ssid, size_t ssid_len,
 		  const u8 *password, size_t password_len,
 		  const u8 *identifier, size_t identifier_len)
@@ -893,7 +893,7 @@ sae_derive_pt_ecc(struct crypto_ec *ec, int group,
 	/* len = olen(p) + ceil(olen(p)/2) */
 	pwd_value_len = prime_len + (prime_len + 1) / 2;
 
-	if (sae_pwd_seed(hash_len, ssid, ssid_len, password, password_len,
+	if (sae_pwd_seed(ctx, hash_len, ssid, ssid_len, password, password_len,
 			 identifier, identifier_len, pwd_seed) < 0)
 		goto fail;
 
@@ -903,7 +903,7 @@ sae_derive_pt_ecc(struct crypto_ec *ec, int group,
 			"SAE Hash to Element u1 P1", pwd_value, pwd_value_len) <
 	    0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG, "SAE: pwd-value (u1 P1)",
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: pwd-value (u1 P1)",
 			pwd_value, pwd_value_len);
 
 	/* u1 = pwd-value modulo p */
@@ -912,10 +912,10 @@ sae_derive_pt_ecc(struct crypto_ec *ec, int group,
 	    crypto_bignum_to_bin(bn, pwd_value, sizeof(pwd_value),
 				 prime_len) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG, "SAE: u1", pwd_value, prime_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: u1", pwd_value, prime_len);
 
 	/* P1 = SSWU(u1) */
-	p1 = sswu(ec, group, bn);
+	p1 = sswu(ctx, ec, group, bn);
 	if (!p1)
 		goto fail;
 
@@ -925,7 +925,7 @@ sae_derive_pt_ecc(struct crypto_ec *ec, int group,
 			"SAE Hash to Element u2 P2", pwd_value,
 			pwd_value_len) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG, "SAE: pwd-value (u2 P2)",
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: pwd-value (u2 P2)",
 			pwd_value, pwd_value_len);
 
 	/* u2 = pwd-value modulo p */
@@ -935,10 +935,10 @@ sae_derive_pt_ecc(struct crypto_ec *ec, int group,
 	    crypto_bignum_to_bin(bn, pwd_value, sizeof(pwd_value),
 				 prime_len) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG, "SAE: u2", pwd_value, prime_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: u2", pwd_value, prime_len);
 
 	/* P2 = SSWU(u2) */
-	p2 = sswu(ec, group, bn);
+	p2 = sswu(ctx, ec, group, bn);
 	if (!p2)
 		goto fail;
 
@@ -972,7 +972,7 @@ size_t sae_ffc_prime_len_2_hash_len(size_t prime_len)
 
 
 static struct crypto_bignum *
-sae_derive_pt_ffc(const struct dh_group *dh, int group,
+sae_derive_pt_ffc(void *ctx, const struct dh_group *dh, int group,
 		  const u8 *ssid, size_t ssid_len,
 		  const u8 *password, size_t password_len,
 		  const u8 *identifier, size_t identifier_len)
@@ -998,7 +998,7 @@ sae_derive_pt_ffc(const struct dh_group *dh, int group,
 	if (pwd_value_len > sizeof(pwd_value))
 		goto fail;
 
-	if (sae_pwd_seed(hash_len, ssid, ssid_len, password, password_len,
+	if (sae_pwd_seed(ctx, hash_len, ssid, ssid_len, password, password_len,
 			 identifier, identifier_len, pwd_seed) < 0)
 		goto fail;
 
@@ -1006,7 +1006,7 @@ sae_derive_pt_ffc(const struct dh_group *dh, int group,
 	if (hkdf_expand(hash_len, pwd_seed, hash_len,
 			"SAE Hash to Element", pwd_value, pwd_value_len) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG, "SAE: pwd-value",
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: pwd-value",
 			pwd_value, pwd_value_len);
 
 	/* pwd-value = (pwd-value modulo (p-2)) + 2 */
@@ -1021,7 +1021,7 @@ sae_derive_pt_ffc(const struct dh_group *dh, int group,
 	    crypto_bignum_to_bin(bn, pwd_value, sizeof(pwd_value),
 				 prime_len) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG, "SAE: pwd-value(reduced)",
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: pwd-value(reduced)",
 			pwd_value, prime_len);
 
 	/* PT = pwd-value^((p-1)/q) modulo p */
@@ -1034,7 +1034,7 @@ sae_derive_pt_ffc(const struct dh_group *dh, int group,
 		pt = NULL;
 		goto fail;
 	}
-	debug_print_bignum("SAE: PT", pt, prime_len);
+	debug_print_bignum(ctx, "SAE: PT", pt, prime_len);
 
 fail:
 	forced_memzero(pwd_seed, sizeof(pwd_seed));
@@ -1050,7 +1050,7 @@ fail:
 
 
 static struct sae_pt *
-sae_derive_pt_group(int group, const u8 *ssid, size_t ssid_len,
+sae_derive_pt_group(void *ctx, int group, const u8 *ssid, size_t ssid_len,
 		    const u8 *password, size_t password_len,
 		    const u8 *identifier, size_t identifier_len)
 {
@@ -1078,7 +1078,7 @@ sae_derive_pt_group(int group, const u8 *ssid, size_t ssid_len,
 	pt->group = group;
 	pt->ec = crypto_ec_init(group);
 	if (pt->ec) {
-		pt->ecc_pt = sae_derive_pt_ecc(pt->ec, group, ssid, ssid_len,
+		pt->ecc_pt = sae_derive_pt_ecc(ctx, pt->ec, group, ssid, ssid_len,
 					       password, password_len,
 					       identifier, identifier_len);
 		if (!pt->ecc_pt) {
@@ -1095,7 +1095,7 @@ sae_derive_pt_group(int group, const u8 *ssid, size_t ssid_len,
 		goto fail;
 	}
 
-	pt->ffc_pt = sae_derive_pt_ffc(pt->dh, group, ssid, ssid_len,
+	pt->ffc_pt = sae_derive_pt_ffc(ctx, pt->dh, group, ssid, ssid_len,
 				       password, password_len, identifier,
 				       identifier_len);
 	if (!pt->ffc_pt) {
@@ -1110,7 +1110,7 @@ fail:
 }
 
 
-struct sae_pt * sae_derive_pt(const int *groups,
+struct sae_pt * sae_derive_pt(void *ctx, const int *groups,
 			      const u8 *ssid, size_t ssid_len,
 			      const u8 *password, size_t password_len,
 			      const u8 *identifier, size_t identifier_len)
@@ -1122,7 +1122,7 @@ struct sae_pt * sae_derive_pt(const int *groups,
 	if (!groups)
 		groups = default_groups;
 	for (i = 0; groups[i] > 0; i++) {
-		tmp = sae_derive_pt_group(groups[i], ssid, ssid_len, password,
+		tmp = sae_derive_pt_group(ctx, groups[i], ssid, ssid_len, password,
 					  password_len, identifier,
 					  identifier_len);
 		if (!tmp)
@@ -1155,7 +1155,7 @@ static void sae_max_min_addr(const u8 *addr[], size_t len[],
 
 
 struct crypto_ec_point *
-sae_derive_pwe_from_pt_ecc(const struct sae_pt *pt,
+sae_derive_pwe_from_pt_ecc(void* ctx, const struct sae_pt *pt,
 			   const u8 *addr1, const u8 *addr2)
 {
 	u8 bin[SAE_MAX_ECC_PRIME_LEN * 2];
@@ -1173,8 +1173,8 @@ sae_derive_pwe_from_pt_ecc(const struct sae_pt *pt,
 	if (crypto_ec_point_to_bin(pt->ec, pt->ecc_pt,
 				   bin, bin + prime_len) < 0)
 		return NULL;
-	wpa_hexdump_key(MSG_DEBUG, "SAE: PT.x", bin, prime_len);
-	wpa_hexdump_key(MSG_DEBUG, "SAE: PT.y", bin + prime_len, prime_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: PT.x", bin, prime_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: PT.y", bin + prime_len, prime_len);
 
 	sae_max_min_addr(addr, len, addr1, addr2);
 
@@ -1197,7 +1197,7 @@ sae_derive_pwe_from_pt_ecc(const struct sae_pt *pt,
 	    crypto_bignum_mod(val, tmp, val) < 0 ||
 	    crypto_bignum_add(val, one, val) < 0)
 		goto fail;
-	debug_print_bignum("SAE: val(reduced to 1..q-1)", val, prime_len);
+	debug_print_bignum(ctx, "SAE: val(reduced to 1..q-1)", val, prime_len);
 
 	/* PWE = scalar-op(val, PT) */
 	pwe = crypto_ec_point_init(pt->ec);
@@ -1208,8 +1208,8 @@ sae_derive_pwe_from_pt_ecc(const struct sae_pt *pt,
 		pwe = NULL;
 		goto fail;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "SAE: PWE.x", bin, prime_len);
-	wpa_hexdump_key(MSG_DEBUG, "SAE: PWE.y", bin + prime_len, prime_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: PWE.x", bin, prime_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: PWE.y", bin + prime_len, prime_len);
 
 fail:
 	crypto_bignum_deinit(tmp, 1);
@@ -1220,7 +1220,7 @@ fail:
 
 
 struct crypto_bignum *
-sae_derive_pwe_from_pt_ffc(const struct sae_pt *pt,
+sae_derive_pwe_from_pt_ffc(void *ctx, const struct sae_pt *pt,
 			   const u8 *addr1, const u8 *addr2)
 {
 	size_t prime_len;
@@ -1258,7 +1258,7 @@ sae_derive_pwe_from_pt_ffc(const struct sae_pt *pt,
 	    crypto_bignum_mod(val, tmp, val) < 0 ||
 	    crypto_bignum_add(val, one, val) < 0)
 		goto fail;
-	debug_print_bignum("SAE: val(reduced to 1..q-1)", val, prime_len);
+	debug_print_bignum(ctx, "SAE: val(reduced to 1..q-1)", val, prime_len);
 
 	/* PWE = scalar-op(val, PT) */
 	pwe = crypto_bignum_init();
@@ -1267,7 +1267,7 @@ sae_derive_pwe_from_pt_ffc(const struct sae_pt *pt,
 		pwe = NULL;
 		goto fail;
 	}
-	debug_print_bignum("SAE: PWE", pwe, prime_len);
+	debug_print_bignum(ctx, "SAE: PWE", pwe, prime_len);
 
 fail:
 	crypto_bignum_deinit(tmp, 1);
@@ -1364,14 +1364,14 @@ static int sae_derive_commit(struct sae_data *sae)
 }
 
 
-int sae_prepare_commit(const u8 *addr1, const u8 *addr2,
+int sae_prepare_commit(void *ctx, const u8 *addr1, const u8 *addr2,
 		       const u8 *password, size_t password_len,
 		       struct sae_data *sae)
 {
 	if (sae->tmp == NULL ||
-	    (sae->tmp->ec && sae_derive_pwe_ecc(sae, addr1, addr2, password,
+	    (sae->tmp->ec && sae_derive_pwe_ecc(ctx, sae, addr1, addr2, password,
 						password_len) < 0) ||
-	    (sae->tmp->dh && sae_derive_pwe_ffc(sae, addr1, addr2, password,
+	    (sae->tmp->dh && sae_derive_pwe_ffc(ctx, sae, addr1, addr2, password,
 						password_len) < 0))
 		return -1;
 
@@ -1381,7 +1381,7 @@ int sae_prepare_commit(const u8 *addr1, const u8 *addr2,
 }
 
 
-int sae_prepare_commit_pt(struct sae_data *sae, const struct sae_pt *pt,
+int sae_prepare_commit_pt(void *ctx, struct sae_data *sae, const struct sae_pt *pt,
 			  const u8 *addr1, const u8 *addr2,
 			  int *rejected_groups, const struct sae_pk *pk)
 {
@@ -1422,7 +1422,7 @@ int sae_prepare_commit_pt(struct sae_data *sae, const struct sae_pt *pt,
 
 	if (pt->ec) {
 		crypto_ec_point_deinit(sae->tmp->pwe_ecc, 1);
-		sae->tmp->pwe_ecc = sae_derive_pwe_from_pt_ecc(pt, addr1,
+		sae->tmp->pwe_ecc = sae_derive_pwe_from_pt_ecc(ctx, pt, addr1,
 							       addr2);
 		if (!sae->tmp->pwe_ecc)
 			return -1;
@@ -1430,7 +1430,7 @@ int sae_prepare_commit_pt(struct sae_data *sae, const struct sae_pt *pt,
 
 	if (pt->dh) {
 		crypto_bignum_deinit(sae->tmp->pwe_ffc, 1);
-		sae->tmp->pwe_ffc = sae_derive_pwe_from_pt_ffc(pt, addr1,
+		sae->tmp->pwe_ffc = sae_derive_pwe_from_pt_ffc(ctx, pt, addr1,
 							       addr2);
 		if (!sae->tmp->pwe_ffc)
 			return -1;
@@ -1441,7 +1441,7 @@ int sae_prepare_commit_pt(struct sae_data *sae, const struct sae_pt *pt,
 }
 
 
-static int sae_derive_k_ecc(struct sae_data *sae, u8 *k)
+static int sae_derive_k_ecc(void *ctx, struct sae_data *sae, u8 *k)
 {
 	struct crypto_ec_point *K;
 	int ret = -1;
@@ -1468,7 +1468,7 @@ static int sae_derive_k_ecc(struct sae_data *sae, u8 *k)
 		goto fail;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "SAE: k", k, sae->tmp->prime_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: k", k, sae->tmp->prime_len);
 
 	ret = 0;
 fail:
@@ -1477,7 +1477,7 @@ fail:
 }
 
 
-static int sae_derive_k_ffc(struct sae_data *sae, u8 *k)
+static int sae_derive_k_ffc(void *ctx, struct sae_data *sae, u8 *k)
 {
 	struct crypto_bignum *K;
 	int ret = -1;
@@ -1506,7 +1506,7 @@ static int sae_derive_k_ffc(struct sae_data *sae, u8 *k)
 		goto fail;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "SAE: k", k, sae->tmp->prime_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: k", k, sae->tmp->prime_len);
 
 	ret = 0;
 fail:
@@ -1536,7 +1536,7 @@ static int sae_kdf_hash(size_t hash_len, const u8 *k, const char *label,
 }
 
 
-static int sae_derive_keys(struct sae_data *sae, const u8 *k)
+static int sae_derive_keys(void *ctx, struct sae_data *sae, const u8 *k)
 {
 	u8 zero[SAE_MAX_HASH_LEN], val[SAE_MAX_PRIME_LEN];
 	const u8 *salt;
@@ -1614,7 +1614,7 @@ static int sae_derive_keys(struct sae_data *sae, const u8 *k)
 	len[0] = prime_len;
 	if (hkdf_extract(hash_len, salt, salt_len, 1, addr, len, keyseed) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG, "SAE: keyseed", keyseed, hash_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: keyseed", keyseed, hash_len);
 
 	if (crypto_bignum_add(sae->tmp->own_commit_scalar,
 			      sae->peer_commit_scalar, tmp) < 0 ||
@@ -1661,14 +1661,14 @@ static int sae_derive_keys(struct sae_data *sae, const u8 *k)
 		os_memcpy(sae->tmp->kek, keys + hash_len + SAE_PMK_LEN,
 			  hash_len);
 		sae->tmp->kek_len = hash_len;
-		wpa_hexdump_key(MSG_DEBUG, "SAE: KEK for SAE-PK",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: KEK for SAE-PK",
 				sae->tmp->kek, sae->tmp->kek_len);
 	}
 #endif /* CONFIG_SAE_PK */
 	forced_memzero(keys, sizeof(keys));
-	wpa_hexdump_key(MSG_DEBUG, "SAE: KCK",
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: KCK",
 			sae->tmp->kck, sae->tmp->kck_len);
-	wpa_hexdump_key(MSG_DEBUG, "SAE: PMK", sae->pmk, sae->pmk_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE: PMK", sae->pmk, sae->pmk_len);
 
 	ret = 0;
 fail:
@@ -1678,15 +1678,15 @@ fail:
 }
 
 
-int sae_process_commit(struct sae_data *sae)
+int sae_process_commit(void *ctx, struct sae_data *sae)
 {
 	u8 k[SAE_MAX_PRIME_LEN];
 	int ret = 0;
 
 	if (sae->tmp == NULL ||
-	    (sae->tmp->ec && sae_derive_k_ecc(sae, k) < 0) ||
-	    (sae->tmp->dh && sae_derive_k_ffc(sae, k) < 0) ||
-	    sae_derive_keys(sae, k) < 0)
+	    (sae->tmp->ec && sae_derive_k_ecc(ctx, sae, k) < 0) ||
+	    (sae->tmp->dh && sae_derive_k_ffc(ctx, sae, k) < 0) ||
+	    sae_derive_keys(ctx, sae, k) < 0)
 		ret = -1;
 
 	forced_memzero(k, SAE_MAX_PRIME_LEN);
@@ -2395,7 +2395,7 @@ static int sae_cn_confirm_ffc(struct sae_data *sae, const u8 *sc,
 }
 
 
-int sae_write_confirm(struct sae_data *sae, struct wpabuf *buf)
+int sae_write_confirm(void *ctx, struct sae_data *sae, struct wpabuf *buf)
 {
 	const u8 *sc;
 	size_t hash_len;
@@ -2428,7 +2428,7 @@ int sae_write_confirm(struct sae_data *sae, struct wpabuf *buf)
 		return res;
 
 #ifdef CONFIG_SAE_PK
-	if (sae_write_confirm_pk(sae, buf) < 0)
+	if (sae_write_confirm_pk(ctx, sae, buf) < 0)
 		return -1;
 #endif /* CONFIG_SAE_PK */
 
@@ -2436,7 +2436,7 @@ int sae_write_confirm(struct sae_data *sae, struct wpabuf *buf)
 }
 
 
-int sae_check_confirm(struct sae_data *sae, const u8 *data, size_t len,
+int sae_check_confirm(void *ctx, struct sae_data *sae, const u8 *data, size_t len,
 		      int *ie_offset)
 {
 	u8 verifier[SAE_MAX_HASH_LEN];
@@ -2488,7 +2488,7 @@ int sae_check_confirm(struct sae_data *sae, const u8 *data, size_t len,
 	}
 
 #ifdef CONFIG_SAE_PK
-	if (sae_check_confirm_pk(sae, data + 2 + hash_len,
+	if (sae_check_confirm_pk(ctx, sae, data + 2 + hash_len,
 				 len - 2 - hash_len) < 0)
 		return -1;
 #endif /* CONFIG_SAE_PK */

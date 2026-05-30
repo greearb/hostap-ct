@@ -6899,7 +6899,7 @@ static void wpas_setup_link_reconfig(struct wpa_supplicant *wpa_s,
 
 		key_data_len = key_data[0];
 		key_data++;
-		wpa_hexdump_key(MSG_DEBUG,
+		wpa_hexdump_key(wpa_s, MSG_DEBUG,
 				"MLD: Link reconfig resp - Group Key Data",
 				key_data, key_data_len);
 

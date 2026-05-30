@@ -527,7 +527,7 @@ static int hostapd_derive_psk(struct hostapd_ssid *ssid)
 		wpa_printf(MSG_ERROR, "Error in pbkdf2_sha1()");
 		return -1;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "PSK (from passphrase)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "PSK (from passphrase)",
 			ssid->wpa_psk->psk, PMK_LEN);
 	return 0;
 }
@@ -564,7 +564,7 @@ int hostapd_setup_sae_pt(struct hostapd_bss_config *conf)
 	sae_deinit_pt(ssid->pt);
 	ssid->pt = NULL;
 	if (ssid->wpa_passphrase) {
-		ssid->pt = sae_derive_pt(groups, ssid->ssid, ssid->ssid_len,
+		ssid->pt = sae_derive_pt(NULL, groups, ssid->ssid, ssid->ssid_len,
 					 (const u8 *) ssid->wpa_passphrase,
 					 os_strlen(ssid->wpa_passphrase),
 					 NULL, 0);
@@ -574,7 +574,7 @@ int hostapd_setup_sae_pt(struct hostapd_bss_config *conf)
 
 	for (pw = conf->sae_passwords; pw; pw = pw->next) {
 		sae_deinit_pt(pw->pt);
-		pw->pt = sae_derive_pt(groups, ssid->ssid, ssid->ssid_len,
+		pw->pt = sae_derive_pt(NULL, groups, ssid->ssid, ssid->ssid_len,
 				       (const u8 *) pw->password,
 				       os_strlen(pw->password),
 				       (const u8 *) pw->identifier,

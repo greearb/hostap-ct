@@ -2038,7 +2038,7 @@ hostapd_send_link_reconf_resp(struct hostapd_data *hapd,
 			goto reject_all_req;
 		}
 
-		wpa_hexdump_key(MSG_DEBUG, "MLD: Group KDE", pos + 1, *pos);
+		wpa_hexdump_key(hapd->msg_ctx, MSG_DEBUG, "MLD: Group KDE", pos + 1, *pos);
 
 		pos += kde_len;
 		pos_len += kde_len;

@@ -1760,7 +1760,7 @@ static void tls_msg_cb(int write_p, int version, int content_type,
 		wpa_printf(MSG_DEBUG,
 			   "OpenSSL: session ver=0x%x content_type=%d",
 			   version, content_type);
-		wpa_hexdump_key(MSG_MSGDUMP, "OpenSSL: Data", buf, len);
+		wpa_hexdump_key(NULL, MSG_MSGDUMP, "OpenSSL: Data", buf, len);
 		return;
 	}
 
@@ -1768,7 +1768,7 @@ static void tls_msg_cb(int write_p, int version, int content_type,
 		   write_p ? "TX" : "RX", version, content_type,
 		   openssl_content_type(content_type),
 		   openssl_handshake_type(content_type, buf, len));
-	wpa_hexdump_key(MSG_MSGDUMP, "OpenSSL: Message", buf, len);
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "OpenSSL: Message", buf, len);
 	if (content_type == 24 && len >= 3 && pos[0] == 1) {
 		size_t payload_len = WPA_GET_BE16(pos + 1);
 		if (payload_len + 3 > len) {
@@ -4909,7 +4909,7 @@ openssl_get_appl_data(struct tls_connection *conn, size_t max_len)
 	}
 
 	wpabuf_put(appl_data, res);
-	wpa_hexdump_buf_key(MSG_MSGDUMP, "SSL: Application Data in Finished "
+	wpa_hexdump_buf_key(NULL, MSG_MSGDUMP, "SSL: Application Data in Finished "
 			    "message", appl_data);
 
 	return appl_data;

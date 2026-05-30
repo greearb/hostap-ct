@@ -439,7 +439,7 @@ eap_pwd_perform_commit_exchange(struct eap_sm *sm, struct eap_pwd_data *data,
 		}
 
 		/* salted-password = Hash(password | salt) */
-		wpa_hexdump_key(MSG_DEBUG, "EAP-pwd: Unsalted password",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-pwd: Unsalted password",
 				data->password, data->password_len);
 		wpa_hexdump(MSG_DEBUG, "EAP-pwd: Salt", ptr, salt_len);
 		salt_pwd[0] = data->password;
@@ -455,7 +455,7 @@ eap_pwd_perform_commit_exchange(struct eap_sm *sm, struct eap_pwd_data *data,
 		ptr += salt_len;
 		password = salthashpwd;
 		password_len = SHA1_MAC_LEN;
-		wpa_hexdump_key(MSG_DEBUG, "EAP-pwd: Salted password",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-pwd: Salted password",
 				password, password_len);
 		break;
 	case EAP_PWD_PREP_SSHA256:
@@ -476,7 +476,7 @@ eap_pwd_perform_commit_exchange(struct eap_sm *sm, struct eap_pwd_data *data,
 		}
 
 		/* salted-password = Hash(password | salt) */
-		wpa_hexdump_key(MSG_DEBUG, "EAP-pwd: Unsalted password",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-pwd: Unsalted password",
 				data->password, data->password_len);
 		wpa_hexdump(MSG_DEBUG, "EAP-pwd: Salt", ptr, salt_len);
 		salt_pwd[0] = data->password;
@@ -489,7 +489,7 @@ eap_pwd_perform_commit_exchange(struct eap_sm *sm, struct eap_pwd_data *data,
 		ptr += salt_len;
 		password = salthashpwd;
 		password_len = SHA256_MAC_LEN;
-		wpa_hexdump_key(MSG_DEBUG, "EAP-pwd: Salted password",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-pwd: Salted password",
 				password, password_len);
 		break;
 #ifdef CONFIG_SHA512
@@ -511,7 +511,7 @@ eap_pwd_perform_commit_exchange(struct eap_sm *sm, struct eap_pwd_data *data,
 		}
 
 		/* salted-password = Hash(password | salt) */
-		wpa_hexdump_key(MSG_DEBUG, "EAP-pwd: Unsalted password",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-pwd: Unsalted password",
 				data->password, data->password_len);
 		wpa_hexdump(MSG_DEBUG, "EAP-pwd: Salt", ptr, salt_len);
 		salt_pwd[0] = data->password;
@@ -524,7 +524,7 @@ eap_pwd_perform_commit_exchange(struct eap_sm *sm, struct eap_pwd_data *data,
 		ptr += salt_len;
 		password = salthashpwd;
 		password_len = SHA512_MAC_LEN;
-		wpa_hexdump_key(MSG_DEBUG, "EAP-pwd: Salted password",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-pwd: Salted password",
 				password, password_len);
 		break;
 #endif /* CONFIG_SHA512 */

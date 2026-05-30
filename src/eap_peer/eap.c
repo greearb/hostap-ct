@@ -733,7 +733,7 @@ void eap_peer_erp_init(struct eap_sm *sm, u8 *ext_session_id,
 		goto fail;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "EAP: EMSK", emsk, emsk_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP: EMSK", emsk, emsk_len);
 
 	if (ext_session_id) {
 		session_id = ext_session_id;
@@ -770,7 +770,7 @@ void eap_peer_erp_init(struct eap_sm *sm, u8 *ext_session_id,
 		goto fail;
 	}
 	erp->rRK_len = emsk_len;
-	wpa_hexdump_key(MSG_DEBUG, "EAP: ERP rRK", erp->rRK, erp->rRK_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP: ERP rRK", erp->rRK, erp->rRK_len);
 
 	ctx[0] = EAP_ERP_CS_HMAC_SHA256_128;
 	WPA_PUT_BE16(&ctx[1], erp->rRK_len);
@@ -781,7 +781,7 @@ void eap_peer_erp_init(struct eap_sm *sm, u8 *ext_session_id,
 		goto fail;
 	}
 	erp->rIK_len = erp->rRK_len;
-	wpa_hexdump_key(MSG_DEBUG, "EAP: ERP rIK", erp->rIK, erp->rIK_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP: ERP rIK", erp->rIK, erp->rIK_len);
 
 	wpa_printf(MSG_DEBUG, "EAP: Stored ERP keys %s", erp->keyname_nai);
 	dl_list_add(&sm->erp_keys, &erp->list);
@@ -2029,7 +2029,7 @@ no_auth_tag:
 		eap_sm_free_key(sm);
 		return;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "EAP: ERP rMSK",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP: ERP rMSK",
 			sm->eapKeyData, sm->eapKeyDataLen);
 	sm->eapKeyAvailable = true;
 	eapol_set_bool(sm, EAPOL_eapSuccess, true);
