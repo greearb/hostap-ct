@@ -372,7 +372,7 @@ static void wpa_supplicant_eapol_cb(struct eapol_sm *eapol,
 		return;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "RSN: Configure PMK for driver-based 4-way "
+	wpa_hexdump_key(wpa_s, MSG_DEBUG, "RSN: Configure PMK for driver-based 4-way "
 			"handshake", pmk, pmk_len);
 
 	if (wpa_drv_set_key(wpa_s, -1, 0, NULL, 0, 0, NULL, 0, pmk,

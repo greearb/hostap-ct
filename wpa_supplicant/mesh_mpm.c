@@ -916,16 +916,16 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 		MAC2STR(sta->addr));
 
 	if (conf->security & MESH_CONF_SEC_AMPE) {
-		wpa_hexdump_key(MSG_DEBUG, "mesh: MTK", sta->mtk, sta->mtk_len);
+		wpa_hexdump_key(wpa_s, MSG_DEBUG, "mesh: MTK", sta->mtk, sta->mtk_len);
 		wpa_drv_set_key(wpa_s, -1,
 				wpa_cipher_to_alg(conf->pairwise_cipher),
 				sta->addr, 0, 0, seq, sizeof(seq),
 				sta->mtk, sta->mtk_len,
 				KEY_FLAG_PAIRWISE_RX_TX);
 
-		wpa_hexdump_key(MSG_DEBUG, "mesh: RX MGTK Key RSC",
+		wpa_hexdump_key(wpa_s, MSG_DEBUG, "mesh: RX MGTK Key RSC",
 				sta->mgtk_rsc, sizeof(sta->mgtk_rsc));
-		wpa_hexdump_key(MSG_DEBUG, "mesh: RX MGTK",
+		wpa_hexdump_key(wpa_s, MSG_DEBUG, "mesh: RX MGTK",
 				sta->mgtk, sta->mgtk_len);
 		wpa_drv_set_key(wpa_s, -1,
 				wpa_cipher_to_alg(conf->group_cipher),
@@ -935,9 +935,9 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 				KEY_FLAG_GROUP_RX);
 
 		if (sta->igtk_len) {
-			wpa_hexdump_key(MSG_DEBUG, "mesh: RX IGTK Key RSC",
+			wpa_hexdump_key(wpa_s, MSG_DEBUG, "mesh: RX IGTK Key RSC",
 					sta->igtk_rsc, sizeof(sta->igtk_rsc));
-			wpa_hexdump_key(MSG_DEBUG, "mesh: RX IGTK",
+			wpa_hexdump_key(wpa_s, MSG_DEBUG, "mesh: RX IGTK",
 					sta->igtk, sta->igtk_len);
 			wpa_drv_set_key(
 				wpa_s, -1,

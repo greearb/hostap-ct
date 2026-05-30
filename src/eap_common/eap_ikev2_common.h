@@ -17,7 +17,7 @@
 
 struct ikev2_keys;
 
-int eap_ikev2_derive_keymat(int prf, struct ikev2_keys *keys,
+int eap_ikev2_derive_keymat(void *ctx, int prf, struct ikev2_keys *keys,
 			    const u8 *i_nonce, size_t i_nonce_len,
 			    const u8 *r_nonce, size_t r_nonce_len,
 			    u8 *keymat);

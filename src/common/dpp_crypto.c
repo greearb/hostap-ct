@@ -85,11 +85,11 @@ void dpp_debug_print_key(const char *title, struct crypto_ec_key *key)
 
 	der = crypto_ec_key_get_ecprivate_key(key, true);
 	if (der) {
-		wpa_hexdump_buf_key(MSG_DEBUG, "DPP: ECPrivateKey", der);
+		wpa_hexdump_buf_key(NULL, MSG_DEBUG, "DPP: ECPrivateKey", der);
 	} else {
 		der = crypto_ec_key_get_subject_public_key(key);
 		if (der)
-			wpa_hexdump_buf_key(MSG_DEBUG, "DPP: EC_PUBKEY", der);
+			wpa_hexdump_buf_key(NULL, MSG_DEBUG, "DPP: EC_PUBKEY", der);
 	}
 
 	wpabuf_clear_free(der);
@@ -398,7 +398,7 @@ int dpp_derive_k1(const u8 *Mx, size_t Mx_len, u8 *k1, unsigned int hash_len)
 	os_memset(salt, 0, hash_len);
 	if (dpp_hmac(hash_len, salt, hash_len, Mx, Mx_len, prk) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "DPP: PRK = HKDF-Extract(<>, IKM=M.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: PRK = HKDF-Extract(<>, IKM=M.x)",
 			prk, hash_len);
 
 	/* HKDF-Expand(PRK, info, L) */
@@ -407,7 +407,7 @@ int dpp_derive_k1(const u8 *Mx, size_t Mx_len, u8 *k1, unsigned int hash_len)
 	if (res < 0)
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: k1 = HKDF-Expand(PRK, info, L)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: k1 = HKDF-Expand(PRK, info, L)",
 			k1, hash_len);
 	return 0;
 }
@@ -426,7 +426,7 @@ int dpp_derive_k2(const u8 *Nx, size_t Nx_len, u8 *k2, unsigned int hash_len)
 	res = dpp_hmac(hash_len, salt, hash_len, Nx, Nx_len, prk);
 	if (res < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "DPP: PRK = HKDF-Extract(<>, IKM=N.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: PRK = HKDF-Extract(<>, IKM=N.x)",
 			prk, hash_len);
 
 	/* HKDF-Expand(PRK, info, L) */
@@ -435,7 +435,7 @@ int dpp_derive_k2(const u8 *Nx, size_t Nx_len, u8 *k2, unsigned int hash_len)
 	if (res < 0)
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: k2 = HKDF-Expand(PRK, info, L)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: k2 = HKDF-Expand(PRK, info, L)",
 			k2, hash_len);
 	return 0;
 }
@@ -481,7 +481,7 @@ int dpp_derive_bk_ke(struct dpp_authentication *auth)
 			      num_elem, addr, len, auth->bk);
 	if (res < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG,
+	wpa_hexdump_key(NULL, MSG_DEBUG,
 			"DPP: bk = HKDF-Extract(I-nonce | R-nonce, M.x | N.x [| L.x])",
 			auth->bk, hash_len);
 
@@ -491,7 +491,7 @@ int dpp_derive_bk_ke(struct dpp_authentication *auth)
 	if (res < 0)
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG,
+	wpa_hexdump_key(NULL, MSG_DEBUG,
 			"DPP: ke = HKDF-Expand(bk, \"DPP Key\", length)",
 			auth->ke, hash_len);
 
@@ -1082,7 +1082,7 @@ int dpp_auth_derive_l_responder(struct dpp_authentication *auth)
 				 auth->secret_len) < 0)
 		goto fail;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: L.x", auth->Lx, auth->secret_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: L.x", auth->Lx, auth->secret_len);
 	auth->Lx_len = auth->secret_len;
 	ret = 0;
 fail:
@@ -1124,7 +1124,7 @@ int dpp_auth_derive_l_initiator(struct dpp_authentication *auth)
 				 auth->secret_len) < 0)
 		goto fail;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: L.x", auth->Lx, auth->secret_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: L.x", auth->Lx, auth->secret_len);
 	auth->Lx_len = auth->secret_len;
 	ret = 0;
 fail:
@@ -1151,7 +1151,7 @@ int dpp_derive_pmk(const u8 *Nx, size_t Nx_len, u8 *pmk, unsigned int hash_len)
 	os_memset(salt, 0, hash_len);
 	if (dpp_hmac(hash_len, salt, hash_len, Nx, Nx_len, prk) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "DPP: PRK = HKDF-Extract(<>, IKM=N.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: PRK = HKDF-Extract(<>, IKM=N.x)",
 			prk, hash_len);
 
 	/* HKDF-Expand(PRK, info, L) */
@@ -1160,7 +1160,7 @@ int dpp_derive_pmk(const u8 *Nx, size_t Nx_len, u8 *pmk, unsigned int hash_len)
 	if (res < 0)
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: PMK = HKDF-Expand(PRK, info, L)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: PMK = HKDF-Expand(PRK, info, L)",
 			pmk, hash_len);
 	return 0;
 }
@@ -1492,7 +1492,7 @@ dpp_pkex_derive_Qi(const struct dpp_curve_params *curve, const u8 *mac_init,
 	num_elem++;
 	if (dpp_hash_vector(curve, num_elem, addr, len, hash) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG,
+	wpa_hexdump_key(NULL, MSG_DEBUG,
 			"DPP: H([MAC-Initiator |] [identifier |] code)",
 			hash, curve->hash_len);
 	Pi_key = dpp_pkex_get_role_elem(curve, 1);
@@ -1567,7 +1567,7 @@ dpp_pkex_derive_Qr(const struct dpp_curve_params *curve, const u8 *mac_resp,
 	num_elem++;
 	if (dpp_hash_vector(curve, num_elem, addr, len, hash) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG,
+	wpa_hexdump_key(NULL, MSG_DEBUG,
 			"DPP: H([MAC-Responder |] [identifier |] code)",
 			hash, curve->hash_len);
 	Pr_key = dpp_pkex_get_role_elem(curve, 0);
@@ -1630,7 +1630,7 @@ int dpp_pkex_derive_z(const u8 *mac_init, const u8 *mac_resp,
 	os_memset(salt, 0, hash_len);
 	if (dpp_hmac(hash_len, salt, hash_len, Kx, Kx_len, prk) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "DPP: PRK = HKDF-Extract(<>, IKM)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: PRK = HKDF-Extract(<>, IKM)",
 			prk, hash_len);
 	if (mac_init && mac_resp)
 		info_len = 2 * ETH_ALEN;
@@ -1673,7 +1673,7 @@ int dpp_pkex_derive_z(const u8 *mac_init, const u8 *mac_resp,
 	if (res < 0)
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: z = HKDF-Expand(PRK, info, L)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: z = HKDF-Expand(PRK, info, L)",
 			z, hash_len);
 	return 0;
 }
@@ -1722,7 +1722,7 @@ int dpp_reconfig_derive_ke_responder(struct dpp_authentication *auth,
 		wpa_printf(MSG_ERROR, "DPP: Failed to generate E-nonce");
 		goto fail;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "DPP: E-nonce",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: E-nonce",
 			auth->e_nonce, auth->curve->nonce_len);
 
 	/* M = { cR + pR } * CI */
@@ -1743,7 +1743,7 @@ int dpp_reconfig_derive_ke_responder(struct dpp_authentication *auth,
 		wpa_printf(MSG_ERROR, "DPP: Error during M computation");
 		goto fail;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "DPP: M.x", Mx, curve->prime_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: M.x", Mx, curve->prime_len);
 
 	/* ke = HKDF(C-nonce | E-nonce, "dpp reconfig key", M.x) */
 
@@ -1753,13 +1753,13 @@ int dpp_reconfig_derive_ke_responder(struct dpp_authentication *auth,
 	if (dpp_hmac(curve->hash_len, nonces, 2 * curve->nonce_len,
 		     Mx, curve->prime_len, prk) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG, "DPP: PRK", prk, curve->hash_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: PRK", prk, curve->hash_len);
 
 	/* HKDF-Expand(PRK, "dpp reconfig key", L) */
 	if (dpp_hkdf_expand(curve->hash_len, prk, curve->hash_len,
 			    "dpp reconfig key", auth->ke, curve->hash_len) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG,
+	wpa_hexdump_key(NULL, MSG_DEBUG,
 			"DPP: ke = HKDF(C-nonce | E-nonce, \"dpp reconfig key\", M.x)",
 			auth->ke, curve->hash_len);
 
@@ -1836,7 +1836,7 @@ int dpp_reconfig_derive_ke_initiator(struct dpp_authentication *auth,
 		goto fail;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: M.x", Mx, curve->prime_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: M.x", Mx, curve->prime_len);
 
 	/* ke = HKDF(C-nonce | E-nonce, "dpp reconfig key", M.x) */
 
@@ -1846,13 +1846,13 @@ int dpp_reconfig_derive_ke_initiator(struct dpp_authentication *auth,
 	if (dpp_hmac(curve->hash_len, nonces, 2 * curve->nonce_len,
 		     Mx, curve->prime_len, prk) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG, "DPP: PRK", prk, curve->hash_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: PRK", prk, curve->hash_len);
 
 	/* HKDF-Expand(PRK, "dpp reconfig key", L) */
 	if (dpp_hkdf_expand(curve->hash_len, prk, curve->hash_len,
 			    "dpp reconfig key", auth->ke, curve->hash_len) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG,
+	wpa_hexdump_key(NULL, MSG_DEBUG,
 			"DPP: ke = HKDF(C-nonce | E-nonce, \"dpp reconfig key\", M.x)",
 			auth->ke, curve->hash_len);
 
@@ -2062,7 +2062,7 @@ int dpp_pfs_process(struct dpp_pfs *pfs, const u8 *peer_ie, size_t peer_ie_len)
 		wpa_printf(MSG_DEBUG, "DPP: Invalid peer DH public key");
 		return -1;
 	}
-	wpa_hexdump_buf_key(MSG_DEBUG, "DPP: DH shared secret", pfs->secret);
+	wpa_hexdump_buf_key(NULL, MSG_DEBUG, "DPP: DH shared secret", pfs->secret);
 	return 0;
 }
 
@@ -2113,7 +2113,7 @@ struct wpabuf * dpp_build_csr(struct dpp_authentication *auth, const char *name)
 	if (dpp_hkdf_expand(hash_len, auth->bk, hash_len,
 			    "CSR challengePassword", cp, DPP_CP_LEN) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG,
+	wpa_hexdump_key(NULL, MSG_DEBUG,
 			"DPP: cp = HKDF-Expand(bk, \"CSR challengePassword\", 64)",
 			cp, DPP_CP_LEN);
 	password = base64_encode_no_lf(cp, DPP_CP_LEN, &password_len);
@@ -2198,14 +2198,14 @@ int dpp_validate_csr(struct dpp_authentication *auth,
 			   cp_len);
 		goto fail;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "DPP: cp from CSR challengePassword",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: cp from CSR challengePassword",
 			cp, cp_len);
 
 	/* cp = HKDF-Expand(bk, "CSR challengePassword", 64) */
 	if (dpp_hkdf_expand(hash_len, auth->bk, hash_len,
 			    "CSR challengePassword", exp_cp, DPP_CP_LEN) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG,
+	wpa_hexdump_key(NULL, MSG_DEBUG,
 			"DPP: cp = HKDF-Expand(bk, \"CSR challengePassword\", 64)",
 			exp_cp, DPP_CP_LEN);
 	if (os_memcmp_const(cp, exp_cp, DPP_CP_LEN) != 0) {
@@ -2423,7 +2423,7 @@ int dpp_derive_auth_i(struct dpp_authentication *auth, u8 *auth_i)
 		     Sx, &Sx_len) < 0)
 		goto fail;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: S.x", Sx, Sx_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: S.x", Sx, Sx_len);
 
 	/* tmp = HKDF-Extract(bk, S.x) */
 	addr[0] = Sx;
@@ -2431,7 +2431,7 @@ int dpp_derive_auth_i(struct dpp_authentication *auth, u8 *auth_i)
 	res = dpp_hmac_vector(hash_len, auth->bk, hash_len, 1, addr, len, tmp);
 	if (res < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG, "DPP: HKDF-Extract(bk, S.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: HKDF-Extract(bk, S.x)",
 			tmp, hash_len);
 	/* k = HKDF-Expand(tmp, "New DPP Protocol Key", len(hash-output))
 	 */
@@ -2439,7 +2439,7 @@ int dpp_derive_auth_i(struct dpp_authentication *auth, u8 *auth_i)
 	if (res < 0)
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG,
+	wpa_hexdump_key(NULL, MSG_DEBUG,
 			"DPP: k = HKDF-Expand(\"New DPP Protocol Key\")",
 			k, hash_len);
 
@@ -2465,7 +2465,7 @@ int dpp_derive_auth_i(struct dpp_authentication *auth, u8 *auth_i)
 
 	if (dpp_hmac_vector(hash_len, k, hash_len, 3, addr, len, auth_i) < 0)
 		goto fail;
-	wpa_hexdump_key(MSG_DEBUG,
+	wpa_hexdump_key(NULL, MSG_DEBUG,
 			"DPP: Auth-I = HMAC(k, E-nonce | Pc.x | Pe.x)",
 			auth_i, hash_len);
 	ret = 0;

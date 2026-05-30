@@ -60,13 +60,15 @@ int wpa_derive_ptk_ft(struct wpa_sm *sm, const unsigned char *src_addr,
 		sm->pmk_r0_len = mpmk_len;
 	else
 		sm->pmk_r0_len = use_sha384 ? SHA384_MAC_LEN : PMK_LEN;
-	if (wpa_derive_pmk_r0(mpmk, mpmk_len, sm->ssid,
+	if (wpa_derive_pmk_r0(sm->ctx->msg_ctx,
+			      mpmk, mpmk_len, sm->ssid,
 			      sm->ssid_len, sm->mobility_domain,
 			      sm->r0kh_id, sm->r0kh_id_len, sm->own_addr,
 			      sm->pmk_r0, sm->pmk_r0_name, sm->key_mgmt) < 0)
 		return -1;
 	sm->pmk_r1_len = sm->pmk_r0_len;
-	if (wpa_derive_pmk_r1(sm->pmk_r0, sm->pmk_r0_len, sm->pmk_r0_name,
+	if (wpa_derive_pmk_r1(sm->ctx->msg_ctx,
+			      sm->pmk_r0, sm->pmk_r0_len, sm->pmk_r0_name,
 			      sm->r1kh_id, sm->own_addr, sm->pmk_r1,
 			      sm->pmk_r1_name) < 0)
 		return -1;
@@ -80,7 +82,8 @@ int wpa_derive_ptk_ft(struct wpa_sm *sm, const unsigned char *src_addr,
 	else
 		kdk_len = 0;
 
-	ret = wpa_pmk_r1_to_ptk(sm->pmk_r1, sm->pmk_r1_len, sm->snonce,
+	ret = wpa_pmk_r1_to_ptk(sm->ctx->msg_ctx,
+				sm->pmk_r1, sm->pmk_r1_len, sm->snonce,
 				anonce, sm->own_addr, wpa_sm_get_auth_addr(sm),
 				sm->pmk_r1_name, ptk, ptk_name, sm->key_mgmt,
 				sm->pairwise_cipher, kdk_len);
@@ -691,7 +694,8 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 	wpa_hexdump(MSG_DEBUG, "FT: SNonce", sm->snonce, WPA_NONCE_LEN);
 	wpa_hexdump(MSG_DEBUG, "FT: ANonce", parse.fte_anonce, WPA_NONCE_LEN);
 	os_memcpy(sm->anonce, parse.fte_anonce, WPA_NONCE_LEN);
-	if (wpa_derive_pmk_r1(sm->pmk_r0, sm->pmk_r0_len, sm->pmk_r0_name,
+	if (wpa_derive_pmk_r1(sm->ctx->msg_ctx,
+			      sm->pmk_r0, sm->pmk_r0_len, sm->pmk_r0_name,
 			      sm->r1kh_id, sm->own_addr, sm->pmk_r1,
 			      sm->pmk_r1_name) < 0)
 		goto fail;
@@ -715,7 +719,8 @@ int wpa_ft_process_response(struct wpa_sm *sm, const u8 *ies, size_t ies_len,
 		kdk_len = 0;
 
 	/* TODO: AP MLD address for MLO */
-	if (wpa_pmk_r1_to_ptk(sm->pmk_r1, sm->pmk_r1_len, sm->snonce,
+	if (wpa_pmk_r1_to_ptk(sm->ctx->msg_ctx,
+			      sm->pmk_r1, sm->pmk_r1_len, sm->snonce,
 			      parse.fte_anonce, sm->own_addr, bssid,
 			      sm->pmk_r1_name, &sm->ptk, ptk_name, sm->key_mgmt,
 			      sm->pairwise_cipher,
@@ -826,7 +831,8 @@ static int wpa_ft_process_gtk_subelem(struct wpa_sm *sm, const u8 *gtk_elem,
 		return 0;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "FT: Received GTK in Reassoc Resp",
+	wpa_hexdump_key(sm->ctx->msg_ctx,
+			MSG_DEBUG, "FT: Received GTK in Reassoc Resp",
 			gtk_elem, gtk_elem_len);
 
 	if (gtk_elem_len < 11 + 24 || (gtk_elem_len - 11) % 8 ||
@@ -867,7 +873,8 @@ static int wpa_ft_process_gtk_subelem(struct wpa_sm *sm, const u8 *gtk_elem,
 		return -1;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "FT: GTK from Reassoc Resp", gtk, keylen);
+	wpa_hexdump_key(sm->ctx->msg_ctx,
+			MSG_DEBUG, "FT: GTK from Reassoc Resp", gtk, keylen);
 	if (sm->group_cipher == WPA_CIPHER_TKIP) {
 		/* Swap Tx/Rx keys for Michael MIC */
 		u8 tmp[8];
@@ -915,7 +922,8 @@ static int wpa_ft_process_igtk_subelem(struct wpa_sm *sm, const u8 *igtk_elem,
 		return 0;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "FT: Received IGTK in Reassoc Resp",
+	wpa_hexdump_key(sm->ctx->msg_ctx,
+			MSG_DEBUG, "FT: Received IGTK in Reassoc Resp",
 			igtk_elem, igtk_elem_len);
 
 	igtk_len = wpa_cipher_key_len(sm->mgmt_group_cipher);
@@ -940,7 +948,8 @@ static int wpa_ft_process_igtk_subelem(struct wpa_sm *sm, const u8 *igtk_elem,
 
 	keyidx = WPA_GET_LE16(igtk_elem);
 
-	wpa_hexdump_key(MSG_DEBUG, "FT: IGTK from Reassoc Resp", igtk,
+	wpa_hexdump_key(sm->ctx->msg_ctx,
+			MSG_DEBUG, "FT: IGTK from Reassoc Resp", igtk,
 			igtk_len);
 	if (wpa_sm_set_key(sm, -1, wpa_cipher_to_alg(sm->mgmt_group_cipher),
 			   broadcast_ether_addr, keyidx, 0,
@@ -981,7 +990,8 @@ static int wpa_ft_process_bigtk_subelem(struct wpa_sm *sm, const u8 *bigtk_elem,
 		kek_len = sm->ptk.kek_len;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "FT: Received BIGTK in Reassoc Resp",
+	wpa_hexdump_key(sm->ctx->msg_ctx,
+			MSG_DEBUG, "FT: Received BIGTK in Reassoc Resp",
 			bigtk_elem, bigtk_elem_len);
 
 	bigtk_len = wpa_cipher_key_len(sm->mgmt_group_cipher);
@@ -1008,7 +1018,8 @@ static int wpa_ft_process_bigtk_subelem(struct wpa_sm *sm, const u8 *bigtk_elem,
 
 	keyidx = WPA_GET_LE16(bigtk_elem);
 
-	wpa_hexdump_key(MSG_DEBUG, "FT: BIGTK from Reassoc Resp", bigtk,
+	wpa_hexdump_key(sm->ctx->msg_ctx,
+			MSG_DEBUG, "FT: BIGTK from Reassoc Resp", bigtk,
 			bigtk_len);
 	if (wpa_sm_set_key(sm, -1, wpa_cipher_to_alg(sm->mgmt_group_cipher),
 			   broadcast_ether_addr, keyidx, 0,

@@ -50,8 +50,8 @@ static void * eap_psk_init(struct eap_sm *sm)
 		os_free(data);
 		return NULL;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PSK: AK", data->ak, EAP_PSK_AK_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PSK: KDK", data->kdk, EAP_PSK_KDK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PSK: AK", data->ak, EAP_PSK_AK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PSK: KDK", data->kdk, EAP_PSK_KDK_LEN);
 	data->state = PSK_INIT;
 
 	identity = eap_get_config_identity(sm, &identity_len);
@@ -251,9 +251,9 @@ static struct wpabuf * eap_psk_process_3(struct eap_psk_data *data,
 		ret->decision = DECISION_FAIL;
 		return NULL;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PSK: TEK", data->tek, EAP_PSK_TEK_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PSK: MSK", data->msk, EAP_MSK_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PSK: EMSK", data->emsk, EAP_EMSK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PSK: TEK", data->tek, EAP_PSK_TEK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PSK: MSK", data->msk, EAP_MSK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PSK: EMSK", data->emsk, EAP_EMSK_LEN);
 
 	os_memset(nonce, 0, 12);
 	os_memcpy(nonce + 12, pchannel, 4);

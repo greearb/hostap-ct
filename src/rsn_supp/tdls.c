@@ -449,7 +449,7 @@ static void wpa_tdls_generate_tpk(struct wpa_tdls_peer *peer,
 	wpa_hexdump(MSG_DEBUG, "TDLS: min(Nonce)", nonce[0], WPA_NONCE_LEN);
 	wpa_hexdump(MSG_DEBUG, "TDLS: max(Nonce)", nonce[1], WPA_NONCE_LEN);
 	sha256_vector(2, nonce, len, key_input);
-	wpa_hexdump_key(MSG_DEBUG, "TDLS: TPK-Key-Input",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "TDLS: TPK-Key-Input",
 			key_input, SHA256_MAC_LEN);
 
 	/*
@@ -469,9 +469,9 @@ static void wpa_tdls_generate_tpk(struct wpa_tdls_peer *peer,
 
 	sha256_prf(key_input, SHA256_MAC_LEN, "TDLS PMK", data, sizeof(data),
 		   (u8 *) &peer->tpk, sizeof(peer->tpk));
-	wpa_hexdump_key(MSG_DEBUG, "TDLS: TPK-KCK",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "TDLS: TPK-KCK",
 			peer->tpk.kck, sizeof(peer->tpk.kck));
-	wpa_hexdump_key(MSG_DEBUG, "TDLS: TPK-TK",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "TDLS: TPK-TK",
 			peer->tpk.tk, sizeof(peer->tpk.tk));
 	peer->tpk_set = 1;
 }
@@ -533,7 +533,7 @@ static int wpa_tdls_ftie_mic(const u8 *kck, u8 trans_seq, const u8 *lnkid,
 	pos += fte_len;
 
 	wpa_hexdump(MSG_DEBUG, "TDLS: Data for FTIE MIC", buf, pos - buf);
-	wpa_hexdump_key(MSG_DEBUG, "TDLS: KCK", kck, 16);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "TDLS: KCK", kck, 16);
 	ret = omac1_aes_128(kck, buf, pos - buf, mic);
 	os_free(buf);
 	wpa_hexdump(MSG_DEBUG, "TDLS: FTIE MIC", mic, 16);
@@ -593,7 +593,7 @@ static int wpa_tdls_key_mic_teardown(const u8 *kck, u8 trans_seq, u16 rcode,
 	pos += fte_len;
 
 	wpa_hexdump(MSG_DEBUG, "TDLS: Data for FTIE MIC", buf, pos - buf);
-	wpa_hexdump_key(MSG_DEBUG, "TDLS: KCK", kck, 16);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "TDLS: KCK", kck, 16);
 	ret = omac1_aes_128(kck, buf, pos - buf, mic);
 	os_free(buf);
 	wpa_hexdump(MSG_DEBUG, "TDLS: FTIE MIC", mic, 16);
@@ -1010,7 +1010,7 @@ static int wpa_tdls_recv_teardown(struct wpa_sm *sm, const u8 *src_addr,
 	 * explicitly checked below. Some APs may add arbitrary padding to the
 	 * end of short TDLS frames and that would look like invalid IEs.
 	 */
-	if (wpa_supplicant_parse_ies((const u8 *) pos, ielen, &kde) < 0)
+	if (wpa_supplicant_parse_ies(sm->ctx->msg_ctx, (const u8 *) pos, ielen, &kde) < 0)
 		wpa_printf(MSG_DEBUG,
 			   "TDLS: Failed to parse IEs in Teardown - ignore as an interop workaround");
 
@@ -1624,7 +1624,8 @@ wpa_tdls_process_discovery_request(struct wpa_sm *sm, const u8 *addr,
 	 * discovery request packet. This needn't fail the response,
 	 * since the required IE are verified separately.
 	 */
-	if (wpa_supplicant_parse_ies(buf + sizeof(struct wpa_tdls_frame) + 1,
+	if (wpa_supplicant_parse_ies(sm->ctx->msg_ctx,
+				     buf + sizeof(struct wpa_tdls_frame) + 1,
 				     len - (sizeof(struct wpa_tdls_frame) + 1),
 				     &kde) < 0) {
 		wpa_printf(MSG_DEBUG,
@@ -2032,7 +2033,7 @@ static int wpa_tdls_process_tpk_m1(struct wpa_sm *sm, const u8 *src_addr,
 	 * explicitly checked below. Some APs may add arbitrary padding to the
 	 * end of short TDLS frames and that would look like invalid IEs.
 	 */
-	if (wpa_supplicant_parse_ies(cpos, ielen, &kde) < 0)
+	if (wpa_supplicant_parse_ies(sm->ctx->msg_ctx, cpos, ielen, &kde) < 0)
 		wpa_printf(MSG_DEBUG,
 			   "TDLS: Failed to parse IEs in TPK M1 - ignore as an interop workaround");
 
@@ -2446,7 +2447,7 @@ static int wpa_tdls_process_tpk_m2(struct wpa_sm *sm, const u8 *src_addr,
 	 * explicitly checked below. Some APs may add arbitrary padding to the
 	 * end of short TDLS frames and that would look like invalid IEs.
 	 */
-	if (wpa_supplicant_parse_ies(pos, ielen, &kde) < 0)
+	if (wpa_supplicant_parse_ies(sm->ctx->msg_ctx, pos, ielen, &kde) < 0)
 		wpa_printf(MSG_DEBUG,
 			   "TDLS: Failed to parse IEs in TPK M2 - ignore as an interop workaround");
 
@@ -2707,7 +2708,7 @@ static int wpa_tdls_process_tpk_m3(struct wpa_sm *sm, const u8 *src_addr,
 	 * of a TDLS Confirm packet, which will fail the link if we don't ignore
 	 * this error.
 	 */
-	if (wpa_supplicant_parse_ies((const u8 *) pos, ielen, &kde) < 0) {
+	if (wpa_supplicant_parse_ies(sm->ctx->msg_ctx, (const u8 *) pos, ielen, &kde) < 0) {
 		wpa_printf(MSG_DEBUG,
 			   "TDLS: Failed to parse KDEs in TPK M3 - ignore as an interop workaround");
 	}

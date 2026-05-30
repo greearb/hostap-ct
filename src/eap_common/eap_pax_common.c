@@ -140,11 +140,11 @@ int eap_pax_initial_key_derivation(u8 mac_id, const u8 *ak, const u8 *e,
 			e, 2 * EAP_PAX_RAND_LEN, EAP_PAX_MID_LEN, mid))
 		return -1;
 
-	wpa_hexdump_key(MSG_MSGDUMP, "EAP-PAX: AK", ak, EAP_PAX_AK_LEN);
-	wpa_hexdump_key(MSG_MSGDUMP, "EAP-PAX: MK", mk, EAP_PAX_MK_LEN);
-	wpa_hexdump_key(MSG_MSGDUMP, "EAP-PAX: CK", ck, EAP_PAX_CK_LEN);
-	wpa_hexdump_key(MSG_MSGDUMP, "EAP-PAX: ICK", ick, EAP_PAX_ICK_LEN);
-	wpa_hexdump_key(MSG_MSGDUMP, "EAP-PAX: MID", mid, EAP_PAX_MID_LEN);
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "EAP-PAX: AK", ak, EAP_PAX_AK_LEN);
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "EAP-PAX: MK", mk, EAP_PAX_MK_LEN);
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "EAP-PAX: CK", ck, EAP_PAX_CK_LEN);
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "EAP-PAX: ICK", ick, EAP_PAX_ICK_LEN);
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "EAP-PAX: MID", mid, EAP_PAX_MID_LEN);
 
 	return 0;
 }

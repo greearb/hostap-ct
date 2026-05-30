@@ -504,7 +504,7 @@ int wpa_eapol_key_mic(const u8 *key, size_t key_len, int akmp,
  * (Diffie-Hellman shared secret) when IEEE 802.1X authentication in
  * Authentication frames is  used.
  */
-int wpa_pmk_to_ptk(const u8 *pmk, size_t pmk_len, const char *label,
+int wpa_pmk_to_ptk(void *ctx, const u8 *pmk, size_t pmk_len, const char *label,
 		   const u8 *addr1, const u8 *addr2,
 		   const u8 *nonce1, const u8 *nonce2,
 		   struct wpa_ptk *ptk, int akmp, int cipher,
@@ -680,23 +680,23 @@ int wpa_pmk_to_ptk(const u8 *pmk, size_t pmk_len, const char *label,
 	wpa_hexdump(MSG_DEBUG, "WPA: Nonce1", nonce1, WPA_NONCE_LEN);
 	wpa_hexdump(MSG_DEBUG, "WPA: Nonce2", nonce2, WPA_NONCE_LEN);
 	if (z && z_len)
-		wpa_hexdump_key(MSG_DEBUG, "WPA: Z.x", z, z_len);
-	wpa_hexdump_key(MSG_DEBUG, "WPA: PMK", pmk, pmk_len);
-	wpa_hexdump_key(MSG_DEBUG, "WPA: PTK", tmp, ptk_len);
+		wpa_hexdump_key(ctx, MSG_DEBUG, "WPA: Z.x", z, z_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "WPA: PMK", pmk, pmk_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "WPA: PTK", tmp, ptk_len);
 
 	os_memcpy(ptk->kck, tmp, ptk->kck_len);
-	wpa_hexdump_key(MSG_DEBUG, "WPA: KCK", ptk->kck, ptk->kck_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "WPA: KCK", ptk->kck, ptk->kck_len);
 
 	os_memcpy(ptk->kek, tmp + ptk->kck_len, ptk->kek_len);
-	wpa_hexdump_key(MSG_DEBUG, "WPA: KEK", ptk->kek, ptk->kek_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "WPA: KEK", ptk->kek, ptk->kek_len);
 
 	os_memcpy(ptk->tk, tmp + ptk->kck_len + ptk->kek_len, ptk->tk_len);
-	wpa_hexdump_key(MSG_DEBUG, "WPA: TK", ptk->tk, ptk->tk_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "WPA: TK", ptk->tk, ptk->tk_len);
 
 	if (kdk_len) {
 		os_memcpy(ptk->kdk, tmp + ptk->kck_len + ptk->kek_len +
 			  ptk->tk_len, ptk->kdk_len);
-		wpa_hexdump_key(MSG_DEBUG, "WPA: KDK", ptk->kdk, ptk->kdk_len);
+		wpa_hexdump_key(ctx, MSG_DEBUG, "WPA: KDK", ptk->kdk, ptk->kdk_len);
 	}
 
 	ptk->kek2_len = 0;
@@ -710,7 +710,7 @@ int wpa_pmk_to_ptk(const u8 *pmk, size_t pmk_len, const char *label,
 
 #ifdef CONFIG_FILS
 
-int fils_rmsk_to_pmk(int akmp, const u8 *rmsk, size_t rmsk_len,
+int fils_rmsk_to_pmk(void *ctx, int akmp, const u8 *rmsk, size_t rmsk_len,
 		     const u8 *snonce, const u8 *anonce, const u8 *dh_ss,
 		     size_t dh_ss_len, u8 *pmk, size_t *pmk_len)
 {
@@ -730,7 +730,7 @@ int fils_rmsk_to_pmk(int akmp, const u8 *rmsk, size_t rmsk_len,
 	else
 		return -1;
 
-	wpa_hexdump_key(MSG_DEBUG, "FILS: rMSK", rmsk, rmsk_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FILS: rMSK", rmsk, rmsk_len);
 	wpa_hexdump(MSG_DEBUG, "FILS: SNonce", snonce, NONCE_LEN);
 	wpa_hexdump(MSG_DEBUG, "FILS: ANonce", anonce, NONCE_LEN);
 	wpa_hexdump(MSG_DEBUG, "FILS: DHss", dh_ss, dh_ss_len);
@@ -752,7 +752,7 @@ int fils_rmsk_to_pmk(int akmp, const u8 *rmsk, size_t rmsk_len,
 		res = hmac_sha256_vector(nonces, 2 * NONCE_LEN, num_elem,
 					 addr, len, pmk);
 	if (res == 0)
-		wpa_hexdump_key(MSG_DEBUG, "FILS: PMK", pmk, *pmk_len);
+		wpa_hexdump_key(ctx, MSG_DEBUG, "FILS: PMK", pmk, *pmk_len);
 	else
 		*pmk_len = 0;
 	return res;
@@ -784,7 +784,7 @@ int fils_pmkid_erp(int akmp, const u8 *reauth, size_t reauth_len,
 }
 
 
-int fils_pmk_to_ptk(const u8 *pmk, size_t pmk_len, const u8 *spa, const u8 *aa,
+int fils_pmk_to_ptk(void *ctx, const u8 *pmk, size_t pmk_len, const u8 *spa, const u8 *aa,
 		    const u8 *snonce, const u8 *anonce, const u8 *dhss,
 		    size_t dhss_len, struct wpa_ptk *ptk,
 		    u8 *ick, size_t *ick_len, int akmp, int cipher,
@@ -881,32 +881,32 @@ int fils_pmk_to_ptk(const u8 *pmk, size_t pmk_len, const u8 *spa, const u8 *aa,
 	wpa_hexdump(MSG_DEBUG, "FILS: SNonce", snonce, NONCE_LEN);
 	wpa_hexdump(MSG_DEBUG, "FILS: ANonce", anonce, NONCE_LEN);
 	if (dhss)
-		wpa_hexdump_key(MSG_DEBUG, "FILS: DHss", dhss, dhss_len);
-	wpa_hexdump_key(MSG_DEBUG, "FILS: PMK", pmk, pmk_len);
-	wpa_hexdump_key(MSG_DEBUG, "FILS: FILS-Key-Data", tmp, key_data_len);
+		wpa_hexdump_key(ctx, MSG_DEBUG, "FILS: DHss", dhss, dhss_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FILS: PMK", pmk, pmk_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FILS: FILS-Key-Data", tmp, key_data_len);
 
 	os_memcpy(ick, tmp, *ick_len);
 	offset = *ick_len;
-	wpa_hexdump_key(MSG_DEBUG, "FILS: ICK", ick, *ick_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FILS: ICK", ick, *ick_len);
 
 	os_memcpy(ptk->kek, tmp + offset, ptk->kek_len);
-	wpa_hexdump_key(MSG_DEBUG, "FILS: KEK", ptk->kek, ptk->kek_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FILS: KEK", ptk->kek, ptk->kek_len);
 	offset += ptk->kek_len;
 
 	os_memcpy(ptk->tk, tmp + offset, ptk->tk_len);
-	wpa_hexdump_key(MSG_DEBUG, "FILS: TK", ptk->tk, ptk->tk_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FILS: TK", ptk->tk, ptk->tk_len);
 	offset += ptk->tk_len;
 
 	if (fils_ft && fils_ft_len) {
 		os_memcpy(fils_ft, tmp + offset, *fils_ft_len);
-		wpa_hexdump_key(MSG_DEBUG, "FILS: FILS-FT",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "FILS: FILS-FT",
 				fils_ft, *fils_ft_len);
 		offset += *fils_ft_len;
 	}
 
 	if (ptk->kdk_len) {
 		os_memcpy(ptk->kdk, tmp + offset, ptk->kdk_len);
-		wpa_hexdump_key(MSG_DEBUG, "FILS: KDK", ptk->kdk, ptk->kdk_len);
+		wpa_hexdump_key(ctx, MSG_DEBUG, "FILS: KDK", ptk->kdk, ptk->kdk_len);
 	}
 
 	ptk->kek2_len = 0;
@@ -920,7 +920,7 @@ err:
 }
 
 
-int fils_key_auth_sk(const u8 *ick, size_t ick_len, const u8 *snonce,
+int fils_key_auth_sk(void *ctx, const u8 *ick, size_t ick_len, const u8 *snonce,
 		     const u8 *anonce, const u8 *sta_addr, const u8 *bssid,
 		     const u8 *g_sta, size_t g_sta_len,
 		     const u8 *g_ap, size_t g_ap_len,
@@ -934,7 +934,7 @@ int fils_key_auth_sk(const u8 *ick, size_t ick_len, const u8 *snonce,
 
 	wpa_printf(MSG_DEBUG, "FILS: Key-Auth derivation: STA-MAC=" MACSTR
 		   " AP-BSSID=" MACSTR, MAC2STR(sta_addr), MAC2STR(bssid));
-	wpa_hexdump_key(MSG_DEBUG, "FILS: ICK", ick, ick_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FILS: ICK", ick, ick_len);
 	wpa_hexdump(MSG_DEBUG, "FILS: SNonce", snonce, NONCE_LEN);
 	wpa_hexdump(MSG_DEBUG, "FILS: ANonce", anonce, NONCE_LEN);
 	wpa_hexdump(MSG_DEBUG, "FILS: gSTA", g_sta, g_sta_len);
@@ -1657,7 +1657,7 @@ static enum rsn_hash_alg pasn_select_hash_alg(int akmp, int cipher,
  * @is_eppke: EPPKE authentication
  * Returns: 0 on success, -1 on failure
  */
-int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
+int pasn_pmk_to_ptk(void *ctx, const u8 *pmk, size_t pmk_len,
 		    const u8 *spa, const u8 *bssid,
 		    const u8 *dhss, size_t dhss_len,
 		    struct wpa_ptk *ptk, int akmp, int cipher,
@@ -1761,28 +1761,28 @@ int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 		   "PASN: PTK derivation: SPA=" MACSTR " BSSID=" MACSTR,
 		   MAC2STR(spa), MAC2STR(bssid));
 
-	wpa_hexdump_key(MSG_DEBUG, "PASN: DHss", dhss, dhss_len);
-	wpa_hexdump_key(MSG_DEBUG, "PASN: PMK", pmk, pmk_len);
-	wpa_hexdump_key(MSG_DEBUG, "PASN: PASN-PTK", tmp, ptk_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "PASN: DHss", dhss, dhss_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "PASN: PMK", pmk, pmk_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "PASN: PASN-PTK", tmp, ptk_len);
 
 	os_memcpy(ptk->kck, tmp, WPA_PASN_KCK_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "PASN: KCK:", ptk->kck, WPA_PASN_KCK_LEN);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "PASN: KCK:", ptk->kck, WPA_PASN_KCK_LEN);
 	pos = &tmp[WPA_PASN_KCK_LEN];
 
 	if (kek_len) {
 		os_memcpy(ptk->kek, pos, kek_len);
-		wpa_hexdump_key(MSG_DEBUG, "PASN: KEK:",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "PASN: KEK:",
 				ptk->kek, ptk->kek_len);
 		pos += kek_len;
 	}
 
 	os_memcpy(ptk->tk, pos, ptk->tk_len);
-	wpa_hexdump_key(MSG_DEBUG, "PASN: TK:", ptk->tk, ptk->tk_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "PASN: TK:", ptk->tk, ptk->tk_len);
 	pos += ptk->tk_len;
 
 	if (kdk_len) {
 		os_memcpy(ptk->kdk, pos, ptk->kdk_len);
-		wpa_hexdump_key(MSG_DEBUG, "PASN: KDK:",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "PASN: KDK:",
 				ptk->kdk, ptk->kdk_len);
 	}
 
@@ -1821,7 +1821,7 @@ size_t pasn_mic_len(enum rsn_hash_alg alg)
  * @cipher: Negotiated pairwise cipher
  * Returns: 0 on success, -1 on failure
  */
-int wpa_ltf_keyseed(struct wpa_ptk *ptk, int akmp, int cipher)
+int wpa_ltf_keyseed(void *ctx, struct wpa_ptk *ptk, int akmp, int cipher)
 {
 	u8 *buf;
 	size_t buf_len;
@@ -1849,7 +1849,7 @@ int wpa_ltf_keyseed(struct wpa_ptk *ptk, int akmp, int cipher)
 		}
 		os_memcpy(ptk->ltf_keyseed, hash, SHA384_MAC_LEN);
 		ptk->ltf_keyseed_len = SHA384_MAC_LEN;
-		wpa_hexdump_key(MSG_DEBUG, "WPA: Secure LTF keyseed: ",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "WPA: Secure LTF keyseed: ",
 				ptk->ltf_keyseed, ptk->ltf_keyseed_len);
 
 	} else {
@@ -1862,7 +1862,7 @@ int wpa_ltf_keyseed(struct wpa_ptk *ptk, int akmp, int cipher)
 		}
 		os_memcpy(ptk->ltf_keyseed, hash, SHA256_MAC_LEN);
 		ptk->ltf_keyseed_len = SHA256_MAC_LEN;
-		wpa_hexdump_key(MSG_DEBUG, "WPA: Secure LTF keyseed: ",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "WPA: Secure LTF keyseed: ",
 				ptk->ltf_keyseed, ptk->ltf_keyseed_len);
 	}
 
@@ -2001,7 +2001,7 @@ out:
  *	maximal MIC length
  * Returns: 0 on success, -1 on failure
  */
-int pasn_mic(enum rsn_hash_alg alg, const u8 *kck, size_t kck_len,
+int pasn_mic(void *ctx, enum rsn_hash_alg alg, const u8 *kck, size_t kck_len,
 	     const u8 *addr1, const u8 *addr2,
 	     const u8 *data, size_t data_len,
 	     const u8 *frame, size_t frame_len, u8 *mic)
@@ -2041,14 +2041,14 @@ int pasn_mic(enum rsn_hash_alg alg, const u8 *kck, size_t kck_len,
 	os_memcpy(buf, addr1, ETH_ALEN);
 	os_memcpy(buf + ETH_ALEN, addr2, ETH_ALEN);
 
-	wpa_hexdump_key(MSG_DEBUG, "PASN: MIC: data", data, data_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "PASN: MIC: data", data, data_len);
 	os_memcpy(buf + 2 * ETH_ALEN, data, data_len);
 
-	wpa_hexdump_key(MSG_DEBUG, "PASN: MIC: frame", frame, frame_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "PASN: MIC: frame", frame, frame_len);
 	os_memcpy(buf + 2 * ETH_ALEN + data_len, frame, frame_len);
 
-	wpa_hexdump_key(MSG_DEBUG, "PASN: MIC: KCK", kck, kck_len);
-	wpa_hexdump_key(MSG_DEBUG, "PASN: MIC: buf", buf, buf_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "PASN: MIC: KCK", kck, kck_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "PASN: MIC: buf", buf, buf_len);
 
 	mic_len = pasn_mic_len(alg);
 
@@ -2079,7 +2079,7 @@ int pasn_mic(enum rsn_hash_alg alg, const u8 *kck, size_t kck_len,
 	}
 
 	os_memcpy(mic, hash, mic_len);
-	wpa_hexdump_key(MSG_DEBUG, "PASN: MIC", mic, mic_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "PASN: MIC", mic, mic_len);
 
 	ret = 0;
 err:
@@ -2479,7 +2479,7 @@ int wpa_default_rsn_cipher(int freq)
  *
  * IEEE Std 802.11r-2008 - 8.5.1.5.3
  */
-int wpa_derive_pmk_r0(const u8 *xxkey, size_t xxkey_len,
+int wpa_derive_pmk_r0(void *ctx, const u8 *xxkey, size_t xxkey_len,
 		      const u8 *ssid, size_t ssid_len,
 		      const u8 *mdid, const u8 *r0kh_id, size_t r0kh_id_len,
 		      const u8 *s0kh_id, u8 *pmk_r0, u8 *pmk_r0_name,
@@ -2517,7 +2517,7 @@ int wpa_derive_pmk_r0(const u8 *xxkey, size_t xxkey_len,
 	if (ssid_len > SSID_MAX_LEN || r0kh_id_len > FT_R0KH_ID_MAX_LEN)
 		return -1;
 	wpa_printf(MSG_DEBUG, "FT: Derive PMK-R0 using KDF-SHA%zu", q * 8);
-	wpa_hexdump_key(MSG_DEBUG, "FT: XXKey", xxkey, xxkey_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FT: XXKey", xxkey, xxkey_len);
 	wpa_hexdump_ascii(MSG_DEBUG, "FT: SSID", ssid, ssid_len);
 	wpa_hexdump(MSG_DEBUG, "FT: MDID", mdid, MOBILITY_DOMAIN_ID_LEN);
 	wpa_hexdump_ascii(MSG_DEBUG, "FT: R0KH-ID", r0kh_id, r0kh_id_len);
@@ -2572,8 +2572,8 @@ int wpa_derive_pmk_r0(const u8 *xxkey, size_t xxkey_len,
 	if (res < 0)
 		return res;
 	os_memcpy(pmk_r0, r0_key_data, q);
-	wpa_hexdump_key(MSG_DEBUG, "FT: PMK-R0", pmk_r0, q);
-	wpa_hexdump_key(MSG_DEBUG, "FT: PMK-R0Name-Salt", &r0_key_data[q], 16);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FT: PMK-R0", pmk_r0, q);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FT: PMK-R0Name-Salt", &r0_key_data[q], 16);
 
 	/*
 	 * PMKR0Name = Truncate-128(Hash("FT-R0N" || PMK-R0Name-Salt)
@@ -2669,7 +2669,7 @@ int wpa_derive_pmk_r1_name(const u8 *pmk_r0_name, const u8 *r1kh_id,
  *
  * IEEE Std 802.11r-2008 - 8.5.1.5.4
  */
-int wpa_derive_pmk_r1(const u8 *pmk_r0, size_t pmk_r0_len,
+int wpa_derive_pmk_r1(void *ctx, const u8 *pmk_r0, size_t pmk_r0_len,
 		      const u8 *pmk_r0_name,
 		      const u8 *r1kh_id, const u8 *s1kh_id,
 		      u8 *pmk_r1, u8 *pmk_r1_name)
@@ -2681,7 +2681,7 @@ int wpa_derive_pmk_r1(const u8 *pmk_r0, size_t pmk_r0_len,
 	/* PMK-R1 = KDF-Hash(PMK-R0, "FT-R1", R1KH-ID || S1KH-ID) */
 	wpa_printf(MSG_DEBUG, "FT: Derive PMK-R1 using KDF-SHA%zu",
 		   pmk_r0_len * 8);
-	wpa_hexdump_key(MSG_DEBUG, "FT: PMK-R0", pmk_r0, pmk_r0_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FT: PMK-R0", pmk_r0, pmk_r0_len);
 	wpa_hexdump(MSG_DEBUG, "FT: R1KH-ID", r1kh_id, FT_R1KH_ID_LEN);
 	wpa_printf(MSG_DEBUG, "FT: S1KH-ID: " MACSTR, MAC2STR(s1kh_id));
 	pos = buf;
@@ -2708,7 +2708,7 @@ int wpa_derive_pmk_r1(const u8 *pmk_r0, size_t pmk_r0_len,
 		wpa_printf(MSG_ERROR, "FT: Failed to derive PMK-R1");
 		return res;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "FT: PMK-R1", pmk_r1, pmk_r0_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FT: PMK-R1", pmk_r1, pmk_r0_len);
 
 	return wpa_derive_pmk_r1_name(pmk_r0_name, r1kh_id, s1kh_id,
 				      pmk_r1_name, pmk_r0_len);
@@ -2720,7 +2720,7 @@ int wpa_derive_pmk_r1(const u8 *pmk_r0, size_t pmk_r0_len,
  *
  * IEEE Std 802.11r-2008 - 8.5.1.5.5
  */
-int wpa_pmk_r1_to_ptk(const u8 *pmk_r1, size_t pmk_r1_len,
+int wpa_pmk_r1_to_ptk(void *ctx, const u8 *pmk_r1, size_t pmk_r1_len,
 		      const u8 *snonce, const u8 *anonce,
 		      const u8 *sta_addr, const u8 *bssid,
 		      const u8 *pmk_r1_name,
@@ -2758,7 +2758,7 @@ int wpa_pmk_r1_to_ptk(const u8 *pmk_r1, size_t pmk_r1_len,
 	 *                  BSSID || STA-ADDR)
 	 */
 	wpa_printf(MSG_DEBUG, "FT: Derive PTK using KDF-SHA%zu", key_len * 8);
-	wpa_hexdump_key(MSG_DEBUG, "FT: PMK-R1", pmk_r1, pmk_r1_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FT: PMK-R1", pmk_r1, pmk_r1_len);
 	wpa_hexdump(MSG_DEBUG, "FT: SNonce", snonce, WPA_NONCE_LEN);
 	wpa_hexdump(MSG_DEBUG, "FT: ANonce", anonce, WPA_NONCE_LEN);
 	wpa_printf(MSG_DEBUG, "FT: BSSID=" MACSTR " STA-ADDR=" MACSTR,
@@ -2819,7 +2819,7 @@ int wpa_pmk_r1_to_ptk(const u8 *pmk_r1, size_t pmk_r1_len,
 	}
 	if (res < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "FT: PTK", tmp, ptk_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FT: PTK", tmp, ptk_len);
 
 	/*
 	 * PTKName = Truncate-128(SHA-256(PMKR1Name || "FT-PTKN" || SNonce ||
@@ -2855,18 +2855,18 @@ int wpa_pmk_r1_to_ptk(const u8 *pmk_r1, size_t pmk_r1_len,
 	offset += ptk->kek2_len;
 	os_memcpy(ptk->kdk, tmp + offset, ptk->kdk_len);
 
-	wpa_hexdump_key(MSG_DEBUG, "FT: KCK", ptk->kck, ptk->kck_len);
-	wpa_hexdump_key(MSG_DEBUG, "FT: KEK", ptk->kek, ptk->kek_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FT: KCK", ptk->kck, ptk->kck_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FT: KEK", ptk->kek, ptk->kek_len);
 	if (ptk->kck2_len)
-		wpa_hexdump_key(MSG_DEBUG, "FT: KCK2",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "FT: KCK2",
 				ptk->kck2, ptk->kck2_len);
 	if (ptk->kek2_len)
-		wpa_hexdump_key(MSG_DEBUG, "FT: KEK2",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "FT: KEK2",
 				ptk->kek2, ptk->kek2_len);
 	if (ptk->kdk_len)
-		wpa_hexdump_key(MSG_DEBUG, "FT: KDK", ptk->kdk, ptk->kdk_len);
+		wpa_hexdump_key(ctx, MSG_DEBUG, "FT: KDK", ptk->kdk, ptk->kdk_len);
 
-	wpa_hexdump_key(MSG_DEBUG, "FT: TK", ptk->tk, ptk->tk_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "FT: TK", ptk->tk, ptk->tk_len);
 	wpa_hexdump(MSG_DEBUG, "FT: PTKName", ptk_name, WPA_PMK_NAME_LEN);
 
 	forced_memzero(tmp, sizeof(tmp));
@@ -3873,7 +3873,7 @@ static void wpa_parse_vendor_specific(const u8 *pos, const u8 *end,
  * @ie: Pointer to parsed IE data
  * Returns: 0 on success, 1 if end mark is found, 2 if KDE is not recognized
  */
-static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
+static int wpa_parse_generic(void *ctx, const u8 *pos, struct wpa_eapol_ie_parse *ie)
 {
 	u8 len = pos[1];
 	size_t dlen = 2 + len;
@@ -3918,7 +3918,7 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 	if (left > 2 && selector == RSN_KEY_DATA_GROUPKEY) {
 		ie->gtk = p;
 		ie->gtk_len = left;
-		wpa_hexdump_key(MSG_DEBUG, "WPA: GTK in EAPOL-Key", pos, dlen);
+		wpa_hexdump_key(ctx, MSG_DEBUG, "WPA: GTK in EAPOL-Key", pos, dlen);
 		return 0;
 	}
 
@@ -3932,7 +3932,7 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 	if (left > 2 && selector == RSN_KEY_DATA_IGTK) {
 		ie->igtk = p;
 		ie->igtk_len = left;
-		wpa_hexdump_key(MSG_DEBUG, "WPA: IGTK in EAPOL-Key",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "WPA: IGTK in EAPOL-Key",
 				pos, dlen);
 		return 0;
 	}
@@ -3940,7 +3940,7 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 	if (left > 2 && selector == RSN_KEY_DATA_BIGTK) {
 		ie->bigtk = p;
 		ie->bigtk_len = left;
-		wpa_hexdump_key(MSG_DEBUG, "WPA: BIGTK in EAPOL-Key",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "WPA: BIGTK in EAPOL-Key",
 				pos, dlen);
 		return 0;
 	}
@@ -3948,7 +3948,7 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 	if (left > 2 && selector == RSN_KEY_DATA_SAE_PW_IDS) {
 		ie->sae_pw_ids = p;
 		ie->sae_pw_ids_len = left;
-		wpa_hexdump_key(MSG_DEBUG,
+		wpa_hexdump_key(ctx, MSG_DEBUG,
 				"RSN: SAE Password Identifiers in EAPOL-Key",
 				pos, dlen);
 		return 0;
@@ -4007,7 +4007,7 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 				  "RSN: Link ID %u - MLO GTK KDE in EAPOL-Key",
 				  link_id);
 		if (!os_snprintf_error(sizeof(title), ret))
-			wpa_hexdump_key(MSG_DEBUG, title, pos, dlen);
+			wpa_hexdump_key(ctx, MSG_DEBUG, title, pos, dlen);
 		return 0;
 	}
 
@@ -4025,7 +4025,7 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 				  "RSN: Link ID %u - MLO IGTK KDE in EAPOL-Key",
 				  link_id);
 		if (!os_snprintf_error(sizeof(title), ret))
-			wpa_hexdump_key(MSG_DEBUG, title, pos, dlen);
+			wpa_hexdump_key(ctx, MSG_DEBUG, title, pos, dlen);
 		return 0;
 	}
 
@@ -4043,7 +4043,7 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 				  "RSN: Link ID %u - MLO BIGTK KDE in EAPOL-Key",
 				  link_id);
 		if (!os_snprintf_error(sizeof(title), ret))
-			wpa_hexdump_key(MSG_DEBUG, title, pos, dlen);
+			wpa_hexdump_key(ctx, MSG_DEBUG, title, pos, dlen);
 		return 0;
 	}
 
@@ -4121,7 +4121,7 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
 	    selector == NAN_KEY_DATA_NIK) {
 		ie->nan_nik = p;
 		ie->nan_nik_len = left;
-		wpa_hexdump_key(MSG_DEBUG, "RSN: NAN NIK KDE in EAPOL-Key",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "RSN: NAN NIK KDE in EAPOL-Key",
 				ie->nan_nik, ie->nan_nik_len);
 		return 0;
 	}
@@ -4148,7 +4148,7 @@ static int wpa_parse_generic(const u8 *pos, struct wpa_eapol_ie_parse *ie)
  * @ie: Pointer to parsed IE data
  * Returns: 0 on success, -1 on failure
  */
-int wpa_parse_kde_ies(const u8 *buf, size_t len, struct wpa_eapol_ie_parse *ie)
+int wpa_parse_kde_ies(void *ctx, const u8 *buf, size_t len, struct wpa_eapol_ie_parse *ie)
 {
 	const u8 *pos, *end;
 	int ret = 0;
@@ -4166,7 +4166,7 @@ int wpa_parse_kde_ies(const u8 *buf, size_t len, struct wpa_eapol_ie_parse *ie)
 			wpa_printf(MSG_DEBUG,
 				   "WPA: EAPOL-Key Key Data underflow (ie=%d len=%d pos=%d)",
 				   pos[0], pos[1], (int) (pos - buf));
-			wpa_hexdump_key(MSG_DEBUG, "WPA: Key Data", buf, len);
+			wpa_hexdump_key(ctx, MSG_DEBUG, "WPA: Key Data", buf, len);
 			ret = -1;
 			break;
 		}
@@ -4267,7 +4267,7 @@ int wpa_parse_kde_ies(const u8 *buf, size_t len, struct wpa_eapol_ie_parse *ie)
 			wpa_hexdump_ascii(MSG_DEBUG, "RSN: SSID in EAPOL-Key",
 					  ie->ssid, ie->ssid_len);
 		} else if (*pos == WLAN_EID_VENDOR_SPECIFIC) {
-			ret = wpa_parse_generic(pos, ie);
+			ret = wpa_parse_generic(ctx, pos, ie);
 			if (ret == 1) {
 				/* end mark found */
 				ret = 0;

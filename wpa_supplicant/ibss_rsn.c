@@ -160,7 +160,7 @@ static int supp_set_key(void *ctx, int link_id, enum wpa_alg alg,
 		   "set_tx=%d)",
 		   __func__, alg, MAC2STR(addr), key_idx, set_tx);
 	wpa_hexdump(MSG_DEBUG, "SUPP: set_key - seq", seq, seq_len);
-	wpa_hexdump_key(MSG_DEBUG, "SUPP: set_key - key", key, key_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "SUPP: set_key - key", key, key_len);
 
 	if (key_idx == 0) {
 		peer->authentication_status |= IBSS_RSN_SET_PTK_SUPP;
@@ -342,7 +342,7 @@ static int auth_set_key(void *ctx, int vlan_id, enum wpa_alg alg,
 		wpa_printf(MSG_DEBUG, "AUTH: %s(alg=%d key_idx=%d)",
 			   __func__, alg, idx);
 	}
-	wpa_hexdump_key(MSG_DEBUG, "AUTH: set_key - key", key, key_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "AUTH: set_key - key", key, key_len);
 
 	if (idx == 0) {
 		if (addr) {

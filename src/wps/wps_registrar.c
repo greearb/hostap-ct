@@ -1109,7 +1109,7 @@ void wps_registrar_complete(struct wps_registrar *registrar, const u8 *uuid_e,
 	if (dev_pw &&
 	    wps_registrar_invalidate_wildcard_pin(registrar, dev_pw,
 						  dev_pw_len) == 0) {
-		wpa_hexdump_key(MSG_DEBUG, "WPS: Invalidated wildcard PIN",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: Invalidated wildcard PIN",
 				dev_pw, dev_pw_len);
 	}
 }
@@ -1573,7 +1573,7 @@ static int wps_build_cred_network_key(struct wpabuf *msg,
 {
 	wpa_printf(MSG_DEBUG, "WPS:  * Network Key (len=%d)",
 		   (int) cred->key_len);
-	wpa_hexdump_key(MSG_DEBUG, "WPS: Network Key",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: Network Key",
 			cred->key, cred->key_len);
 	wpabuf_put_be16(msg, ATTR_NETWORK_KEY);
 	wpabuf_put_be16(msg, cred->key_len);
@@ -1741,7 +1741,7 @@ int wps_build_cred(struct wps_data *wps, struct wpabuf *msg)
 		os_memcpy(wps->cred.key, wps->new_psk, wps->new_psk_len);
 		wps->cred.key_len = wps->new_psk_len;
 	} else if (wps_cp_lookup_pskfile(reg, wps->mac_addr_e, &pskfile_psk)) {
-		wpa_hexdump_key(MSG_DEBUG, "WPS: Use PSK from wpa_psk_file",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: Use PSK from wpa_psk_file",
 				pskfile_psk, PMK_LEN);
 		wpa_snprintf_hex(hex, sizeof(hex), pskfile_psk, PMK_LEN);
 		os_memcpy(wps->cred.key, hex, PMK_LEN * 2);
@@ -1774,7 +1774,7 @@ int wps_build_cred(struct wps_data *wps, struct wpabuf *msg)
 			wps->new_psk = NULL;
 			return -1;
 		}
-		wpa_hexdump_key(MSG_DEBUG, "WPS: Generated per-device PSK",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: Generated per-device PSK",
 				wps->new_psk, wps->new_psk_len);
 		wpa_snprintf_hex(hex, sizeof(hex), wps->new_psk,
 				 wps->new_psk_len);
@@ -2293,7 +2293,7 @@ static int wps_process_e_snonce1(struct wps_data *wps, const u8 *e_snonce1)
 		return -1;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "WPS: E-SNonce1", e_snonce1,
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: E-SNonce1", e_snonce1,
 			WPS_SECRET_NONCE_LEN);
 
 	/* E-Hash1 = HMAC_AuthKey(E-S1 || PSK1 || PK_E || PK_R) */
@@ -2333,7 +2333,7 @@ static int wps_process_e_snonce2(struct wps_data *wps, const u8 *e_snonce2)
 		return -1;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "WPS: E-SNonce2", e_snonce2,
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: E-SNonce2", e_snonce2,
 			WPS_SECRET_NONCE_LEN);
 
 	/* E-Hash2 = HMAC_AuthKey(E-S2 || PSK2 || PK_E || PK_R) */
@@ -3768,7 +3768,7 @@ int wps_registrar_add_nfc_password_token(struct wps_registrar *reg,
 
 	wpa_hexdump(MSG_DEBUG, "WPS: Public Key Hash",
 		    hash, WPS_OOB_PUBKEY_HASH_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "WPS: Device Password", dev_pw, dev_pw_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: Device Password", dev_pw, dev_pw_len);
 
 	return wps_registrar_add_nfc_pw_token(reg, hash, id, dev_pw,
 					      dev_pw_len, 0);

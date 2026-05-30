@@ -545,7 +545,7 @@ struct dpp_pkex * dpp_pkex_rx_exchange_req(void *msg_ctx,
 	if (dpp_ecdh(pkex->y, pkex->x, Kx, &Kx_len) < 0)
 		goto fail;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: ECDH shared secret (K.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: ECDH shared secret (K.x)",
 			Kx, Kx_len);
 
 	/* z = HKDF(<>, info | M.x | N.x | code, K.x) */
@@ -833,7 +833,7 @@ struct wpabuf * dpp_pkex_rx_exchange_resp(struct dpp_pkex *pkex,
 	if (dpp_ecdh(pkex->own_bi->pubkey, pkex->y, Jx, &Jx_len) < 0)
 		goto fail;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: ECDH shared secret (J.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: ECDH shared secret (J.x)",
 			Jx, Jx_len);
 
 	/* u = HMAC(J.x, [MAC-Initiator |] A.x | Y'.x | X.x) */
@@ -866,7 +866,7 @@ struct wpabuf * dpp_pkex_rx_exchange_resp(struct dpp_pkex *pkex,
 	if (dpp_ecdh(pkex->x, pkex->y, Kx, &Kx_len) < 0)
 		goto fail;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: ECDH shared secret (K.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: ECDH shared secret (K.x)",
 			Kx, Kx_len);
 
 	/* z = HKDF(<>, info | M.x | N.x | code, K.x) */
@@ -1107,7 +1107,7 @@ struct wpabuf * dpp_pkex_rx_commit_reveal_req(struct dpp_pkex *pkex,
 	if (dpp_ecdh(pkex->y, pkex->peer_bootstrap_key, Jx, &Jx_len) < 0)
 		goto fail;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: ECDH shared secret (J.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: ECDH shared secret (J.x)",
 			Jx, Jx_len);
 
 	/* u' = HMAC(J'.x, [MAC-Initiator |] A'.x | Y.x | X'.x) */
@@ -1152,7 +1152,7 @@ struct wpabuf * dpp_pkex_rx_commit_reveal_req(struct dpp_pkex *pkex,
 	if (dpp_ecdh(pkex->own_bi->pubkey, pkex->x, Lx, &Lx_len) < 0)
 		goto fail;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: ECDH shared secret (L.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: ECDH shared secret (L.x)",
 			Lx, Lx_len);
 
 	/* v = HMAC(L.x, [MAC-Responder |] B.x | X'.x | Y.x) */
@@ -1286,7 +1286,7 @@ int dpp_pkex_rx_commit_reveal_resp(struct dpp_pkex *pkex, const u8 *hdr,
 	if (dpp_ecdh(pkex->x, pkex->peer_bootstrap_key, Lx, &Lx_len) < 0)
 		goto fail;
 
-	wpa_hexdump_key(MSG_DEBUG, "DPP: ECDH shared secret (L.x)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "DPP: ECDH shared secret (L.x)",
 			Lx, Lx_len);
 
 	/* v' = HMAC(L.x, [MAC-Responder |] B'.x | X.x | Y'.x) */

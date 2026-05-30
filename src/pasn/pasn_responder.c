@@ -199,7 +199,7 @@ static int pasn_wd_handle_sae_commit(struct pasn_data *pasn,
 		own_addr = pasn->mld_addr;
 #endif /* CONFIG_ENC_ASSOC */
 
-	ret = sae_prepare_commit_pt(&pasn->sae, pt ? pt : pasn->pt,
+	ret = sae_prepare_commit_pt(NULL, &pasn->sae, pt ? pt : pasn->pt,
 				    own_addr, peer_addr, NULL, NULL);
 	/* Free the on-the-fly derived PT now that it has been used */
 	sae_deinit_pt(pt);
@@ -209,7 +209,7 @@ static int pasn_wd_handle_sae_commit(struct pasn_data *pasn,
 	}
 
 	/* Process the commit message and derive the PMK */
-	ret = sae_process_commit(&pasn->sae);
+	ret = sae_process_commit(NULL, &pasn->sae);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "SAE: Failed to process peer commit");
 		return -1;
@@ -252,7 +252,7 @@ static int pasn_wd_handle_sae_confirm(struct pasn_data *pasn,
 		return -1;
 	}
 
-	res = sae_check_confirm(&pasn->sae, data + 6, buf_len - 6, NULL);
+	res = sae_check_confirm(NULL, &pasn->sae, data + 6, buf_len - 6, NULL);
 	if (res != WLAN_STATUS_SUCCESS) {
 		wpa_printf(MSG_DEBUG, "PASN: SAE failed checking confirm");
 		return -1;
@@ -268,7 +268,7 @@ static int pasn_wd_handle_sae_confirm(struct pasn_data *pasn,
 	if (pasn->disable_pmksa_caching)
 		return 0;
 
-	wpa_hexdump_key(MSG_DEBUG, "RSN: Cache PMK from SAE",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "RSN: Cache PMK from SAE",
 			pasn->sae.pmk, pasn->sae.pmk_len);
 	if (!pasn->sae.akmp)
 		pasn->sae.akmp = WPA_KEY_MGMT_SAE;
@@ -326,7 +326,7 @@ static struct wpabuf * pasn_get_sae_wd(struct pasn_data *pasn)
 	wpabuf_put_le16(buf, 2);
 	wpabuf_put_le16(buf, WLAN_STATUS_SUCCESS);
 
-	sae_write_confirm(&pasn->sae, buf);
+	sae_write_confirm(NULL, &pasn->sae, buf);
 	WPA_PUT_LE16(len_ptr, wpabuf_len(buf) - len - 2);
 
 	pasn->sae.state = SAE_CONFIRMED;
@@ -492,7 +492,7 @@ pasn_derive_keys(struct pasn_data *pasn,
 	}
 #endif /* CONFIG_ENC_ASSOC */
 
-	ret = pasn_pmk_to_ptk(pmk, pmk_len, peer_addr, own_addr,
+	ret = pasn_pmk_to_ptk(NULL, pmk, pmk_len, peer_addr, own_addr,
 			      wpabuf_head(secret), wpabuf_len(secret),
 			      &pasn->ptk, pasn->akmp,
 			      pasn->cipher, pasn->kdk_len, pasn->kek_len,
@@ -504,7 +504,7 @@ pasn_derive_keys(struct pasn_data *pasn,
 	}
 
 	if (pasn->secure_ltf) {
-		ret = wpa_ltf_keyseed(&pasn->ptk, pasn->akmp,
+		ret = wpa_ltf_keyseed(NULL, &pasn->ptk, pasn->akmp,
 				      pasn->cipher);
 		if (ret) {
 			wpa_printf(MSG_DEBUG,
@@ -760,7 +760,7 @@ int handle_auth_pasn_resp(struct pasn_data *pasn, const u8 *own_addr,
 		own_addr = pasn->mld_addr;
 #endif /* CONFIG_ENC_ASSOC */
 
-	ret = pasn_mic(pasn->hash_alg, pasn->ptk.kck, pasn->ptk.kck_len,
+	ret = pasn_mic(NULL, pasn->hash_alg, pasn->ptk.kck, pasn->ptk.kck_len,
 		       own_addr, peer_addr, data, data_len,
 		       frame, frame_len, mic);
 	os_free(data_buf);
@@ -1317,13 +1317,13 @@ int handle_auth_pasn_3(struct pasn_data *pasn, const u8 *own_addr,
 		wpa_printf(MSG_INFO, "PASN: Failed to calculate Auth1 hash");
 		goto fail;
 	}
-	ret = pasn_mic(pasn->hash_alg, pasn->ptk.kck, pasn->ptk.kck_len,
+	ret = pasn_mic(NULL, pasn->hash_alg, pasn->ptk.kck, pasn->ptk.kck_len,
 		       peer_addr, own_addr, hash, mic_len * 2,
 		       copy, copy_len, out_mic);
 	os_free(copy);
 	copy = NULL;
 
-	wpa_hexdump_key(MSG_DEBUG, "PASN: Frame MIC", mic, mic_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "PASN: Frame MIC", mic, mic_len);
 	if (ret || os_memcmp(mic, out_mic, mic_len) != 0) {
 		wpa_printf(MSG_DEBUG, "PASN: Failed MIC verification");
 		goto fail;

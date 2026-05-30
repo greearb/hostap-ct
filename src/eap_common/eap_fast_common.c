@@ -88,7 +88,7 @@ void eap_fast_derive_master_secret(const u8 *pac_key, const u8 *server_random,
 		   "PAC to master secret label hash",
 		   seed, sizeof(seed), master_secret, TLS_MASTER_SECRET_LEN);
 
-	wpa_hexdump_key(MSG_DEBUG, "EAP-FAST: master_secret",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-FAST: master_secret",
 			master_secret, TLS_MASTER_SECRET_LEN);
 }
 
@@ -121,7 +121,7 @@ int eap_fast_derive_eap_msk(const u8 *simck, u8 *msk)
 		       "Session Key Generating Function", (u8 *) "", 0,
 		       msk, EAP_FAST_KEY_LEN) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-FAST: Derived key (MSK)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-FAST: Derived key (MSK)",
 			msk, EAP_FAST_KEY_LEN);
 	return 0;
 }
@@ -139,7 +139,7 @@ int eap_fast_derive_eap_emsk(const u8 *simck, u8 *emsk)
 		       "Extended Session Key Generating Function", (u8 *) "", 0,
 		       emsk, EAP_EMSK_LEN) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-FAST: Derived key (EMSK)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-FAST: Derived key (EMSK)",
 			emsk, EAP_EMSK_LEN);
 	return 0;
 }

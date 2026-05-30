@@ -344,7 +344,7 @@ static void ieee802_1x_tx_key(struct hostapd_data *hapd, struct sta_info *sta)
 			return;
 		}
 
-		wpa_hexdump_key(MSG_DEBUG, "Individual WEP key",
+		wpa_hexdump_key(hapd->msg_ctx, MSG_DEBUG, "Individual WEP key",
 				ikey, hapd->conf->individual_wep_key_len);
 
 		ieee802_1x_tx_key_one(hapd, sta, 0, 0, ikey,
@@ -1629,9 +1629,9 @@ static void ieee802_1x_get_keys(struct hostapd_data *hapd,
 
 	if (keys && keys->send && keys->recv) {
 		len = keys->send_len + keys->recv_len;
-		wpa_hexdump_key(MSG_DEBUG, "MS-MPPE-Send-Key",
+		wpa_hexdump_key(hapd->msg_ctx, MSG_DEBUG, "MS-MPPE-Send-Key",
 				keys->send, keys->send_len);
-		wpa_hexdump_key(MSG_DEBUG, "MS-MPPE-Recv-Key",
+		wpa_hexdump_key(hapd->msg_ctx, MSG_DEBUG, "MS-MPPE-Recv-Key",
 				keys->recv, keys->recv_len);
 
 		os_free(sm->eap_if->aaaEapKeyData);
@@ -2241,7 +2241,7 @@ static int ieee802_1x_rekey_broadcast(struct hostapd_data *hapd)
 		return -1;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "IEEE 802.1X: New default WEP key",
+	wpa_hexdump_key(hapd->msg_ctx, MSG_DEBUG, "IEEE 802.1X: New default WEP key",
 			eapol->default_wep_key,
 			hapd->conf->default_wep_key_len);
 

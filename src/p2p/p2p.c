@@ -6050,11 +6050,11 @@ static int p2p_derive_nonce_tag(struct p2p_data *p2p)
 	dev_ik->dira_tag_len = DEVICE_IDENTITY_TAG_LEN;
 	os_memcpy(dev_ik->dira_tag, dira_tag, DEVICE_IDENTITY_TAG_LEN);
 
-	wpa_hexdump_key(MSG_DEBUG, "P2P: DIK", dev_ik->dik_data,
+	wpa_hexdump_key(NULL, MSG_DEBUG, "P2P: DIK", dev_ik->dik_data,
 			dev_ik->dik_len);
-	wpa_hexdump_key(MSG_DEBUG, "P2P: DIRA-NONCE", dev_ik->dira_nonce,
+	wpa_hexdump_key(NULL, MSG_DEBUG, "P2P: DIRA-NONCE", dev_ik->dira_nonce,
 			dev_ik->dira_nonce_len);
-	wpa_hexdump_key(MSG_DEBUG, "P2P: DIRA-TAG", dev_ik->dira_tag,
+	wpa_hexdump_key(NULL, MSG_DEBUG, "P2P: DIRA-TAG", dev_ik->dira_tag,
 			dev_ik->dira_tag_len);
 	return 0;
 }
