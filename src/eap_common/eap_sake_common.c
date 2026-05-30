@@ -279,39 +279,39 @@ int eap_sake_derive_keys(const u8 *root_secret_a, const u8 *root_secret_b,
 
 	wpa_printf(MSG_DEBUG, "EAP-SAKE: Deriving keys");
 
-	wpa_hexdump_key(MSG_DEBUG, "EAP-SAKE: Root-Secret-A",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-SAKE: Root-Secret-A",
 			root_secret_a, EAP_SAKE_ROOT_SECRET_LEN);
 	if (eap_sake_kdf(root_secret_a, EAP_SAKE_ROOT_SECRET_LEN,
 			 "SAKE Master Secret A",
 			 rand_p, EAP_SAKE_RAND_LEN, rand_s, EAP_SAKE_RAND_LEN,
 			 sms_a, EAP_SAKE_SMS_LEN) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-SAKE: SMS-A", sms_a, EAP_SAKE_SMS_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-SAKE: SMS-A", sms_a, EAP_SAKE_SMS_LEN);
 	if (eap_sake_kdf(sms_a, EAP_SAKE_SMS_LEN, "Transient EAP Key",
 			 rand_s, EAP_SAKE_RAND_LEN, rand_p, EAP_SAKE_RAND_LEN,
 			 tek, EAP_SAKE_TEK_LEN) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-SAKE: TEK-Auth",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-SAKE: TEK-Auth",
 			tek, EAP_SAKE_TEK_AUTH_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-SAKE: TEK-Cipher",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-SAKE: TEK-Cipher",
 			tek + EAP_SAKE_TEK_AUTH_LEN, EAP_SAKE_TEK_CIPHER_LEN);
 
-	wpa_hexdump_key(MSG_DEBUG, "EAP-SAKE: Root-Secret-B",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-SAKE: Root-Secret-B",
 			root_secret_b, EAP_SAKE_ROOT_SECRET_LEN);
 	if (eap_sake_kdf(root_secret_b, EAP_SAKE_ROOT_SECRET_LEN,
 			 "SAKE Master Secret B",
 			 rand_p, EAP_SAKE_RAND_LEN, rand_s, EAP_SAKE_RAND_LEN,
 			 sms_b, EAP_SAKE_SMS_LEN) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-SAKE: SMS-B", sms_b, EAP_SAKE_SMS_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-SAKE: SMS-B", sms_b, EAP_SAKE_SMS_LEN);
 	if (eap_sake_kdf(sms_b, EAP_SAKE_SMS_LEN, "Master Session Key",
 			 rand_s, EAP_SAKE_RAND_LEN, rand_p, EAP_SAKE_RAND_LEN,
 			 key_buf, sizeof(key_buf)) < 0)
 		return -1;
 	os_memcpy(msk, key_buf, EAP_MSK_LEN);
 	os_memcpy(emsk, key_buf + EAP_MSK_LEN, EAP_EMSK_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-SAKE: MSK", msk, EAP_MSK_LEN);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-SAKE: EMSK", emsk, EAP_EMSK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-SAKE: MSK", msk, EAP_MSK_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-SAKE: EMSK", emsk, EAP_EMSK_LEN);
 	return 0;
 }
 

@@ -466,7 +466,7 @@ static struct wpabuf * eap_eke_process_commit(struct eap_sm *sm,
 		return eap_eke_build_fail(data, ret, id,
 					  EAP_EKE_FAIL_PRIVATE_INTERNAL_ERROR);
 	}
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: Nonce_P",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: Nonce_P",
 			data->nonce_p, data->sess.nonce_len);
 	prot_len = wpabuf_tailroom(resp);
 	if (eap_eke_prot(&data->sess, data->nonce_p, data->sess.nonce_len,
@@ -541,7 +541,7 @@ static struct wpabuf * eap_eke_process_confirm(struct eap_eke_data *data,
 		return eap_eke_build_fail(data, ret, id,
 					  EAP_EKE_FAIL_AUTHENTICATION_FAIL);
 	}
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: Received Nonce_P | Nonce_S",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: Received Nonce_P | Nonce_S",
 			nonces, 2 * data->sess.nonce_len);
 	if (os_memcmp(data->nonce_p, nonces, data->sess.nonce_len) != 0) {
 		wpa_printf(MSG_INFO, "EAP-EKE: Received Nonce_P does not match transmitted Nonce_P");
@@ -551,7 +551,7 @@ static struct wpabuf * eap_eke_process_confirm(struct eap_eke_data *data,
 
 	os_memcpy(data->nonce_s, nonces + data->sess.nonce_len,
 		  data->sess.nonce_len);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-EKE: Nonce_S",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-EKE: Nonce_S",
 			data->nonce_s, data->sess.nonce_len);
 
 	if (eap_eke_derive_ka(&data->sess, data->serverid, data->serverid_len,

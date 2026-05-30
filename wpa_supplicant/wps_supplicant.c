@@ -398,7 +398,7 @@ static int wpa_supplicant_wps_cred(void *ctx,
 	} else
 		wpa_msg(wpa_s, MSG_INFO, WPS_EVENT_CRED_RECEIVED);
 
-	wpa_hexdump_key(MSG_DEBUG, "WPS: Received Credential attribute",
+	wpa_hexdump_key(wpa_s, MSG_DEBUG, "WPS: Received Credential attribute",
 			cred->cred_attr, cred->cred_attr_len);
 
 	if (wpa_s->conf->wps_cred_processing == 1)
@@ -409,7 +409,7 @@ static int wpa_supplicant_wps_cred(void *ctx,
 		   cred->auth_type);
 	wpa_printf(MSG_DEBUG, "WPS: Encryption Type 0x%x", cred->encr_type);
 	wpa_printf(MSG_DEBUG, "WPS: Network Key Index %d", cred->key_idx);
-	wpa_hexdump_key(MSG_DEBUG, "WPS: Network Key",
+	wpa_hexdump_key(wpa_s, MSG_DEBUG, "WPS: Network Key",
 			cred->key, cred->key_len);
 	wpa_printf(MSG_DEBUG, "WPS: MAC Address " MACSTR,
 		   MAC2STR(cred->mac_addr));
@@ -1465,7 +1465,7 @@ static int wpas_wps_new_psk_cb(void *ctx, const u8 *mac_addr,
 			   " P2P Device Addr " MACSTR,
 			   MAC2STR(mac_addr), MAC2STR(p2p_dev_addr));
 	}
-	wpa_hexdump_key(MSG_DEBUG, "Per-device PSK", psk, psk_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "Per-device PSK", psk, psk_len);
 
 	/* TODO */
 
@@ -2809,8 +2809,8 @@ int wpas_wps_nfc_report_handover(struct wpa_supplicant *wpa_s,
 				 const struct wpabuf *sel)
 {
 	wpa_printf(MSG_DEBUG, "NFC: WPS connection handover reported");
-	wpa_hexdump_buf_key(MSG_DEBUG, "WPS: Carrier record in request", req);
-	wpa_hexdump_buf_key(MSG_DEBUG, "WPS: Carrier record in select", sel);
+	wpa_hexdump_buf_key(wpa_s, MSG_DEBUG, "WPS: Carrier record in request", req);
+	wpa_hexdump_buf_key(wpa_s, MSG_DEBUG, "WPS: Carrier record in select", sel);
 	return wpas_wps_nfc_rx_handover_sel(wpa_s, sel);
 }
 

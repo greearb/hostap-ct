@@ -657,6 +657,7 @@ int ikev2_derive_sk_keys(const struct ikev2_prf_alg *prf,
 {
 	u8 *keybuf, *pos;
 	size_t keybuf_len;
+	void* ctx = NULL;
 
 	/*
 	 * {SK_d | SK_ai | SK_ar | SK_ei | SK_er | SK_pi | SK_pr } =
@@ -685,7 +686,7 @@ int ikev2_derive_sk_keys(const struct ikev2_prf_alg *prf,
 	keys->SK_d = os_malloc(keys->SK_d_len);
 	if (keys->SK_d) {
 		os_memcpy(keys->SK_d, pos, keys->SK_d_len);
-		wpa_hexdump_key(MSG_DEBUG, "IKEV2: SK_d",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "IKEV2: SK_d",
 				keys->SK_d, keys->SK_d_len);
 	}
 	pos += keys->SK_d_len;
@@ -693,7 +694,7 @@ int ikev2_derive_sk_keys(const struct ikev2_prf_alg *prf,
 	keys->SK_ai = os_malloc(keys->SK_integ_len);
 	if (keys->SK_ai) {
 		os_memcpy(keys->SK_ai, pos, keys->SK_integ_len);
-		wpa_hexdump_key(MSG_DEBUG, "IKEV2: SK_ai",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "IKEV2: SK_ai",
 				keys->SK_ai, keys->SK_integ_len);
 	}
 	pos += keys->SK_integ_len;
@@ -701,7 +702,7 @@ int ikev2_derive_sk_keys(const struct ikev2_prf_alg *prf,
 	keys->SK_ar = os_malloc(keys->SK_integ_len);
 	if (keys->SK_ar) {
 		os_memcpy(keys->SK_ar, pos, keys->SK_integ_len);
-		wpa_hexdump_key(MSG_DEBUG, "IKEV2: SK_ar",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "IKEV2: SK_ar",
 				keys->SK_ar, keys->SK_integ_len);
 	}
 	pos += keys->SK_integ_len;
@@ -709,7 +710,7 @@ int ikev2_derive_sk_keys(const struct ikev2_prf_alg *prf,
 	keys->SK_ei = os_malloc(keys->SK_encr_len);
 	if (keys->SK_ei) {
 		os_memcpy(keys->SK_ei, pos, keys->SK_encr_len);
-		wpa_hexdump_key(MSG_DEBUG, "IKEV2: SK_ei",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "IKEV2: SK_ei",
 				keys->SK_ei, keys->SK_encr_len);
 	}
 	pos += keys->SK_encr_len;
@@ -717,7 +718,7 @@ int ikev2_derive_sk_keys(const struct ikev2_prf_alg *prf,
 	keys->SK_er = os_malloc(keys->SK_encr_len);
 	if (keys->SK_er) {
 		os_memcpy(keys->SK_er, pos, keys->SK_encr_len);
-		wpa_hexdump_key(MSG_DEBUG, "IKEV2: SK_er",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "IKEV2: SK_er",
 				keys->SK_er, keys->SK_encr_len);
 	}
 	pos += keys->SK_encr_len;
@@ -725,7 +726,7 @@ int ikev2_derive_sk_keys(const struct ikev2_prf_alg *prf,
 	keys->SK_pi = os_malloc(keys->SK_prf_len);
 	if (keys->SK_pi) {
 		os_memcpy(keys->SK_pi, pos, keys->SK_prf_len);
-		wpa_hexdump_key(MSG_DEBUG, "IKEV2: SK_pi",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "IKEV2: SK_pi",
 				keys->SK_pi, keys->SK_prf_len);
 	}
 	pos += keys->SK_prf_len;
@@ -733,7 +734,7 @@ int ikev2_derive_sk_keys(const struct ikev2_prf_alg *prf,
 	keys->SK_pr = os_malloc(keys->SK_prf_len);
 	if (keys->SK_pr) {
 		os_memcpy(keys->SK_pr, pos, keys->SK_prf_len);
-		wpa_hexdump_key(MSG_DEBUG, "IKEV2: SK_pr",
+		wpa_hexdump_key(ctx, MSG_DEBUG, "IKEV2: SK_pr",
 				keys->SK_pr, keys->SK_prf_len);
 	}
 

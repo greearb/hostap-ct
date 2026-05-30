@@ -884,7 +884,7 @@ static u8 * eap_mschapv2_getKey(struct eap_sm *sm, void *priv, size_t *len)
 		return NULL;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "EAP-MSCHAPV2: Derived key",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-MSCHAPV2: Derived key",
 			key, key_len);
 
 	*len = key_len;

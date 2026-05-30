@@ -365,7 +365,7 @@ static u8 * eap_leap_getKey(struct eap_sm *sm, void *priv, size_t *len)
 			return NULL;
 		}
 	}
-	wpa_hexdump_key(MSG_DEBUG, "EAP-LEAP: pw_hash_hash",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-LEAP: pw_hash_hash",
 			pw_hash_hash, 16);
 	wpa_hexdump(MSG_DEBUG, "EAP-LEAP: peer_challenge",
 		    data->peer_challenge, LEAP_CHALLENGE_LEN);
@@ -390,7 +390,7 @@ static u8 * eap_leap_getKey(struct eap_sm *sm, void *priv, size_t *len)
 		os_free(key);
 		return NULL;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "EAP-LEAP: master key", key, LEAP_KEY_LEN);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-LEAP: master key", key, LEAP_KEY_LEN);
 	*len = LEAP_KEY_LEN;
 
 	forced_memzero(pw_hash, sizeof(pw_hash));

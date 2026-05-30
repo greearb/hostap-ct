@@ -311,7 +311,7 @@ static int wps_build_cred_network_key(struct wps_data *wps, struct wpabuf *msg)
 				   "WPS: Could not generate random PSK");
 			return -1;
 		}
-		wpa_hexdump_key(MSG_DEBUG, "WPS: Generated per-device PSK",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: Generated per-device PSK",
 				psk, sizeof(psk));
 		wpa_printf(MSG_DEBUG, "WPS:  * Network Key (len=%u)",
 			   (unsigned int) wps->new_psk_len * 2);
@@ -367,7 +367,7 @@ static int wps_build_ap_settings(struct wps_data *wps, struct wpabuf *plain)
 		wps_build_cred_network_key(wps, plain);
 	end = wpabuf_put(plain, 0);
 
-	wpa_hexdump_key(MSG_DEBUG, "WPS: Plaintext AP Settings",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: Plaintext AP Settings",
 			start, end - start);
 
 	return ret;
@@ -632,7 +632,7 @@ static int wps_process_r_snonce1(struct wps_data *wps, const u8 *r_snonce1)
 		return -1;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "WPS: R-SNonce1", r_snonce1,
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: R-SNonce1", r_snonce1,
 			WPS_SECRET_NONCE_LEN);
 
 	/* R-Hash1 = HMAC_AuthKey(R-S1 || PSK1 || PK_E || PK_R) */
@@ -672,7 +672,7 @@ static int wps_process_r_snonce2(struct wps_data *wps, const u8 *r_snonce2)
 		return -1;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "WPS: R-SNonce2", r_snonce2,
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: R-SNonce2", r_snonce2,
 			WPS_SECRET_NONCE_LEN);
 
 	/* R-Hash2 = HMAC_AuthKey(R-S2 || PSK2 || PK_E || PK_R) */

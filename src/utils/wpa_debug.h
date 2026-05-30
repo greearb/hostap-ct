@@ -33,7 +33,7 @@ enum {
 #define wpa_debug_stop_log() do { } while (0)
 #define wpa_dbg(args...) do { } while (0)
 
-static inline void wpa_hexdump(int level, const char *title,
+static inline void wpa_hexdump(void *ctx, int level, const char *title,
 			       const void *buf, size_t len)
 {
 }
@@ -43,7 +43,7 @@ static inline void wpa_hexdump_buf(int level, const char *title,
 {
 }
 
-static inline void wpa_hexdump_key(int level, const char *title,
+static inline void wpa_hexdump_key(void *ctx, int level, const char *title,
 				   const void *buf, size_t len)
 {
 }
@@ -132,12 +132,12 @@ static inline void wpa_hexdump_buf(int level, const char *title,
  * like wpa_hexdump(), but by default, does not include secret keys (passwords,
  * etc.) in debug output.
  */
-void wpa_hexdump_key(int level, const char *title, const void *buf, size_t len);
+void wpa_hexdump_key(void *ctx, int level, const char *title, const void *buf, size_t len);
 
-static inline void wpa_hexdump_buf_key(int level, const char *title,
+static inline void wpa_hexdump_buf_key(void *ctx, int level, const char *title,
 				       const struct wpabuf *buf)
 {
-	wpa_hexdump_key(level, title, buf ? wpabuf_head(buf) : NULL,
+	wpa_hexdump_key(ctx, level, title, buf ? wpabuf_head(buf) : NULL,
 			buf ? wpabuf_len(buf) : 0);
 }
 

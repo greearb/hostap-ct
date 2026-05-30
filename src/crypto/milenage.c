@@ -282,10 +282,10 @@ int milenage_check(const u8 *opc, const u8 *k, const u8 *sqn, const u8 *_rand,
 		return -1;
 
 	*res_len = 8;
-	wpa_hexdump_key(MSG_DEBUG, "Milenage: RES", res, *res_len);
-	wpa_hexdump_key(MSG_DEBUG, "Milenage: CK", ck, 16);
-	wpa_hexdump_key(MSG_DEBUG, "Milenage: IK", ik, 16);
-	wpa_hexdump_key(MSG_DEBUG, "Milenage: AK", ak, 6);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "Milenage: RES", res, *res_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "Milenage: CK", ck, 16);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "Milenage: IK", ik, 16);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "Milenage: AK", ak, 6);
 
 	/* AUTN = (SQN ^ AK) || AMF || MAC */
 	for (i = 0; i < 6; i++)
@@ -296,7 +296,7 @@ int milenage_check(const u8 *opc, const u8 *k, const u8 *sqn, const u8 *_rand,
 		u8 auts_amf[2] = { 0x00, 0x00 }; /* TS 33.102 v7.0.0, 6.3.3 */
 		if (milenage_f2345(opc, k, _rand, NULL, NULL, NULL, NULL, ak))
 			return -1;
-		wpa_hexdump_key(MSG_DEBUG, "Milenage: AK*", ak, 6);
+		wpa_hexdump_key(NULL, MSG_DEBUG, "Milenage: AK*", ak, 6);
 		for (i = 0; i < 6; i++)
 			auts[i] = sqn[i] ^ ak[i];
 		if (milenage_f1(opc, k, _rand, sqn, auts_amf, NULL, auts + 6))

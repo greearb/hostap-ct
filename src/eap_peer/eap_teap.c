@@ -177,7 +177,7 @@ static int eap_teap_derive_key_auth(struct eap_sm *sm,
 					data->simck, EAP_TEAP_SIMCK_LEN);
 	if (res)
 		return res;
-	wpa_hexdump_key(MSG_DEBUG,
+	wpa_hexdump_key(NULL, MSG_DEBUG,
 			"EAP-TEAP: session_key_seed (S-IMCK[0])",
 			data->simck, EAP_TEAP_SIMCK_LEN);
 	os_memcpy(data->simck_msk, data->simck, EAP_TEAP_SIMCK_LEN);
@@ -473,7 +473,7 @@ static struct wpabuf * eap_teap_process_basic_auth_req(
 	wpabuf_put_data(resp, identity, identity_len);
 	wpabuf_put_u8(resp, password_len);
 	wpabuf_put_data(resp, password, password_len);
-	wpa_hexdump_buf_key(MSG_DEBUG, "EAP-TEAP: Basic-Password-Auth-Resp",
+	wpa_hexdump_buf_key(NULL, MSG_DEBUG, "EAP-TEAP: Basic-Password-Auth-Resp",
 			    resp);
 	if (req_id_type)
 		resp = eap_teap_add_identity_type(sm, resp);
@@ -774,7 +774,7 @@ static struct wpabuf * eap_teap_process_crypto_binding(
 	} else {
 		return NULL;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "EAP-TEAP: Selected S-IMCK[j]",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-TEAP: Selected S-IMCK[j]",
 			data->simck, EAP_TEAP_SIMCK_LEN);
 
 	len = sizeof(struct teap_tlv_crypto_binding);

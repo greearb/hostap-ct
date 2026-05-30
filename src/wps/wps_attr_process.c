@@ -182,7 +182,7 @@ static int wps_process_cred_network_key(struct wps_credential *cred,
 		return -1;
 	}
 
-	wpa_hexdump_key(MSG_DEBUG, "WPS: Network Key", key, key_len);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "WPS: Network Key", key, key_len);
 	if (key_len <= sizeof(cred->key)) {
 		os_memcpy(cred->key, key, key_len);
 		cred->key_len = key_len;

@@ -356,7 +356,7 @@ static void sae_pk_buf_shift_left_1(u8 *buf, size_t len)
 }
 
 
-int sae_pk_set_password(struct sae_data *sae, const char *password)
+int sae_pk_set_password(void *ctx, struct sae_data *sae, const char *password)
 {
 	struct sae_temporary_data *tmp = sae->tmp;
 	size_t len, pw_len;
@@ -389,7 +389,7 @@ int sae_pk_set_password(struct sae_data *sae, const char *password)
 	 * octets and skipping the Sec_1b bits */
 	pos = &tmp->fingerprint[tmp->sec];
 	bits = tmp->fingerprint_bits - 8 * tmp->sec;
-	wpa_hexdump_key(MSG_DEBUG, "SAE-PK: PasswordBase", pw, pw_len);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE-PK: PasswordBase", pw, pw_len);
 	while (bits > 0) {
 		if (val_bits < 8) {
 			sae_pk_buf_shift_left_1(pw, pw_len); /* Sec_1b */
@@ -411,7 +411,7 @@ int sae_pk_set_password(struct sae_data *sae, const char *password)
 		*pos++ = val << (8 - bits);
 	}
 	tmp->fingerprint_bytes = pos - tmp->fingerprint;
-	wpa_hexdump_key(MSG_DEBUG, "SAE-PK: Fingerprint",
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE-PK: Fingerprint",
 			tmp->fingerprint, tmp->fingerprint_bytes);
 	bin_clear_free(pw, pw_len);
 	return 0;
@@ -542,7 +542,7 @@ int sae_hash(size_t hash_len, const u8 *data, size_t len, u8 *hash)
 }
 
 
-static int sae_pk_hash_sig_data(struct sae_data *sae, size_t hash_len,
+static int sae_pk_hash_sig_data(void *ctx, struct sae_data *sae, size_t hash_len,
 				bool ap, const u8 *m, size_t m_len,
 				const u8 *pubkey, size_t pubkey_len, u8 *hash)
 {
@@ -582,7 +582,7 @@ static int sae_pk_hash_sig_data(struct sae_data *sae, size_t hash_len,
 			ETH_ALEN);
 	wpabuf_put_data(sig_data, ap ? tmp->peer_addr : tmp->own_addr,
 			ETH_ALEN);
-	wpa_hexdump_buf_key(MSG_DEBUG, "SAE-PK: Data to be signed for KeyAuth",
+	wpa_hexdump_buf_key(ctx, MSG_DEBUG, "SAE-PK: Data to be signed for KeyAuth",
 			    sig_data);
 	if (sae_hash(hash_len, wpabuf_head(sig_data), wpabuf_len(sig_data),
 		     hash) < 0)
@@ -596,7 +596,7 @@ fail:
 }
 
 
-int sae_write_confirm_pk(struct sae_data *sae, struct wpabuf *buf)
+int sae_write_confirm_pk(void *ctx, struct sae_data *sae, struct wpabuf *buf)
 {
 	struct sae_temporary_data *tmp = sae->tmp;
 	struct wpabuf *sig = NULL;
@@ -641,7 +641,7 @@ int sae_write_confirm_pk(struct sae_data *sae, struct wpabuf *buf)
 	}
 
 	hash_len = sae_group_2_hash_len(pk->group);
-	if (sae_pk_hash_sig_data(sae, hash_len, true, wpabuf_head(pk->m),
+	if (sae_pk_hash_sig_data(ctx, sae, hash_len, true, wpabuf_head(pk->m),
 				 wpabuf_len(pk->m), wpabuf_head(pk->pubkey),
 				 wpabuf_len(pk->pubkey), hash) < 0)
 		goto fail;
@@ -700,7 +700,7 @@ fail:
 }
 
 
-static bool sae_pk_valid_fingerprint(struct sae_data *sae,
+static bool sae_pk_valid_fingerprint(void *ctx, struct sae_data *sae,
 				     const u8 *m, size_t m_len,
 				     const u8 *k_ap, size_t k_ap_len, int group)
 {
@@ -731,7 +731,7 @@ static bool sae_pk_valid_fingerprint(struct sae_data *sae,
 	pos += m_len;
 	os_memcpy(pos, k_ap, k_ap_len);
 
-	wpa_hexdump_key(MSG_DEBUG, "SAE-PK: SSID || M || K_AP",
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE-PK: SSID || M || K_AP",
 			hash_data, hash_data_len);
 	res = sae_hash(hash_len, hash_data, hash_data_len, hash);
 	bin_clear_free(hash_data, hash_data_len);
@@ -768,7 +768,7 @@ static bool sae_pk_valid_fingerprint(struct sae_data *sae,
 }
 
 
-int sae_check_confirm_pk(struct sae_data *sae, const u8 *ies, size_t ies_len)
+int sae_check_confirm_pk(void *ctx, struct sae_data *sae, const u8 *ies, size_t ies_len)
 {
 	struct sae_temporary_data *tmp = sae->tmp;
 	const u8 *k_ap;
@@ -829,7 +829,7 @@ int sae_check_confirm_pk(struct sae_data *sae, const u8 *ies, size_t ies_len)
 			   "SAE-PK: Failed to decrypt EncryptedModifier");
 		return -1;
 	}
-	wpa_hexdump_key(MSG_DEBUG, "SAE-PK: Modifier M", m, SAE_PK_M_LEN);
+	wpa_hexdump_key(ctx, MSG_DEBUG, "SAE-PK: Modifier M", m, SAE_PK_M_LEN);
 
 	if (elems.fils_pk[0] != 2) {
 		wpa_printf(MSG_INFO, "SAE-PK: Unsupported public key type %u",
@@ -849,7 +849,7 @@ int sae_check_confirm_pk(struct sae_data *sae, const u8 *ies, size_t ies_len)
 	}
 
 	group = crypto_ec_key_group(key);
-	if (!sae_pk_valid_fingerprint(sae, m, SAE_PK_M_LEN, k_ap, k_ap_len,
+	if (!sae_pk_valid_fingerprint(ctx, sae, m, SAE_PK_M_LEN, k_ap, k_ap_len,
 				      group)) {
 		crypto_ec_key_deinit(key);
 		return -1;
@@ -859,7 +859,7 @@ int sae_check_confirm_pk(struct sae_data *sae, const u8 *ies, size_t ies_len)
 		    elems.fils_key_confirm, elems.fils_key_confirm_len);
 
 	hash_len = sae_group_2_hash_len(group);
-	if (sae_pk_hash_sig_data(sae, hash_len, false, m, SAE_PK_M_LEN,
+	if (sae_pk_hash_sig_data(ctx, sae, hash_len, false, m, SAE_PK_M_LEN,
 				 k_ap, k_ap_len, hash) < 0) {
 		crypto_ec_key_deinit(key);
 		return -1;

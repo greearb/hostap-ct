@@ -630,7 +630,7 @@ static int wpa_config_parse_psk(const struct parse_data *data,
 	ssid->passphrase = NULL;
 
 	ssid->psk_set = 1;
-	wpa_hexdump_key(MSG_MSGDUMP, "PSK", ssid->psk, PMK_LEN);
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "PSK", ssid->psk, PMK_LEN);
 	return 0;
 }
 
@@ -1823,7 +1823,7 @@ static int wpa_config_parse_password(const struct parse_data *data,
 		return -1;
 	}
 
-	wpa_hexdump_key(MSG_MSGDUMP, data->name, hash, 16);
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, data->name, hash, 16);
 
 	if (ssid->eap.password && ssid->eap.password_len == 16 &&
 	    os_memcmp(ssid->eap.password, hash, 16) == 0 &&
@@ -1919,7 +1919,7 @@ static int wpa_config_parse_machine_password(const struct parse_data *data,
 		return -1;
 	}
 
-	wpa_hexdump_key(MSG_MSGDUMP, data->name, hash, 16);
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, data->name, hash, 16);
 
 	if (ssid->eap.machine_password &&
 	    ssid->eap.machine_password_len == 16 &&
@@ -2045,7 +2045,7 @@ static int wpa_config_parse_wep_key(u8 *key, size_t *len, int line,
 	str_clear_free(buf);
 	res = os_snprintf(title, sizeof(title), "wep_key%d", idx);
 	if (!os_snprintf_error(sizeof(title), res))
-		wpa_hexdump_key(MSG_MSGDUMP, title, key, *len);
+		wpa_hexdump_key(NULL, MSG_MSGDUMP, title, key, *len);
 	return 0;
 }
 
@@ -3852,7 +3852,7 @@ void wpa_config_update_psk(struct wpa_ssid *ssid)
 		wpa_printf(MSG_ERROR, "Error in pbkdf2_sha1()");
 		return;
 	}
-	wpa_hexdump_key(MSG_MSGDUMP, "PSK (from passphrase)",
+	wpa_hexdump_key(NULL, MSG_MSGDUMP, "PSK (from passphrase)",
 			ssid->psk, PMK_LEN);
 	ssid->psk_set = 1;
 #endif /* CONFIG_NO_PBKDF2 */

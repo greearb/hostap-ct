@@ -277,7 +277,7 @@ static int eap_peap_derive_cmk(struct eap_sm *sm, struct eap_peap_data *data)
 	tk = data->key_data;
 	if (tk == NULL)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PEAP: TK", tk, 60);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PEAP: TK", tk, 60);
 
 	resumed = tls_connection_resumed(sm->ssl_ctx, data->ssl.conn);
 	wpa_printf(MSG_DEBUG,
@@ -287,17 +287,17 @@ static int eap_peap_derive_cmk(struct eap_sm *sm, struct eap_peap_data *data)
 	if (data->reauth && !data->phase2_eap_started && resumed) {
 		/* Fast-connect: IPMK|CMK = TK */
 		os_memcpy(data->ipmk, tk, 40);
-		wpa_hexdump_key(MSG_DEBUG, "EAP-PEAP: IPMK from TK",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PEAP: IPMK from TK",
 				data->ipmk, 40);
 		os_memcpy(data->cmk, tk + 40, 20);
-		wpa_hexdump_key(MSG_DEBUG, "EAP-PEAP: CMK from TK",
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PEAP: CMK from TK",
 				data->cmk, 20);
 		return 0;
 	}
 
 	if (eap_peap_get_isk(sm, data, isk, sizeof(isk)) < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PEAP: ISK", isk, sizeof(isk));
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PEAP: ISK", isk, sizeof(isk));
 
 	/*
 	 * IPMK Seed = "Inner Methods Compound Keys" | ISK
@@ -306,20 +306,20 @@ static int eap_peap_derive_cmk(struct eap_sm *sm, struct eap_peap_data *data)
 	 * (note: draft-josefsson-pppext-eap-tls-eap-10.txt includes a space
 	 * in the end of the label just before ISK; is that just a typo?)
 	 */
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PEAP: TempKey", tk, 40);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PEAP: TempKey", tk, 40);
 	res = peap_prfplus(data->peap_version, tk, 40,
 			   "Inner Methods Compound Keys",
 			   isk, sizeof(isk), imck, sizeof(imck));
 	forced_memzero(isk, sizeof(isk));
 	if (res < 0)
 		return -1;
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PEAP: IMCK (IPMKj)",
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PEAP: IMCK (IPMKj)",
 			imck, sizeof(imck));
 
 	os_memcpy(data->ipmk, imck, 40);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PEAP: IPMK (S-IPMKj)", data->ipmk, 40);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PEAP: IPMK (S-IPMKj)", data->ipmk, 40);
 	os_memcpy(data->cmk, imck + 40, 20);
-	wpa_hexdump_key(MSG_DEBUG, "EAP-PEAP: CMK (CMKj)", data->cmk, 20);
+	wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PEAP: CMK (CMKj)", data->cmk, 20);
 	forced_memzero(imck, sizeof(imck));
 
 	return 0;
@@ -990,7 +990,7 @@ continue_req:
 		int skip_change2 = 0;
 		struct wpabuf *rmsg, buf;
 
-		wpa_hexdump_buf_key(MSG_DEBUG,
+		wpa_hexdump_buf_key(NULL, MSG_DEBUG,
 				    "EAP-PEAP: Encrypting Phase 2 data", resp);
 		/* PEAP version changes */
 		if (wpabuf_len(resp) >= 5 &&
@@ -1154,11 +1154,11 @@ static struct wpabuf * eap_peap_process(struct eap_sm *sm, void *priv,
 							EAP_TLS_KEY_LEN +
 							EAP_EMSK_LEN);
 			if (data->key_data) {
-				wpa_hexdump_key(MSG_DEBUG,
+				wpa_hexdump_key(NULL, MSG_DEBUG,
 						"EAP-PEAP: Derived key",
 						data->key_data,
 						EAP_TLS_KEY_LEN);
-				wpa_hexdump_key(MSG_DEBUG,
+				wpa_hexdump_key(NULL, MSG_DEBUG,
 						"EAP-PEAP: Derived EMSK",
 						data->key_data +
 						EAP_TLS_KEY_LEN,
@@ -1330,7 +1330,7 @@ static u8 * eap_peap_getKey(struct eap_sm *sm, void *priv, size_t *len)
 			os_free(key);
 			return NULL;
 		}
-		wpa_hexdump_key(MSG_DEBUG, "EAP-PEAP: CSK", csk, sizeof(csk));
+		wpa_hexdump_key(NULL, MSG_DEBUG, "EAP-PEAP: CSK", csk, sizeof(csk));
 		os_memcpy(key, csk, EAP_TLS_KEY_LEN);
 		wpa_hexdump(MSG_DEBUG, "EAP-PEAP: Derived key",
 			    key, EAP_TLS_KEY_LEN);
