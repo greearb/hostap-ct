@@ -2182,6 +2182,11 @@ enum qca_wlan_vendor_attr_roam_auth {
 	 * nested attribute are defined in enum qca_wlan_vendor_attr_mlo_links.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_MLO_LINKS = 15,
+	/* Flag attribute, The driver sets this flag to indicate that both the
+	 * (Re)Association Request frame and the corresponding (Re)Association
+	 * Response frame were transmitted encrypted over the air.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_ASSOC_ENCRYPTED = 16,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_AFTER_LAST,
