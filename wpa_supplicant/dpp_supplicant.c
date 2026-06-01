@@ -1446,6 +1446,9 @@ static struct wpa_ssid * wpas_dpp_add_network(struct wpa_supplicant *wpa_s,
 	os_memcpy(ssid->ssid, conf->ssid, conf->ssid_len);
 	ssid->ssid_len = conf->ssid_len;
 
+	if (!wpa_bss_get(wpa_s, NULL, conf->ssid, conf->ssid_len))
+		ssid->scan_ssid = 1;
+
 #ifdef CONFIG_DPP3
 	if (conf->akm == DPP_AKM_SAE && conf->password_id[0]) {
 		size_t len = os_strlen(conf->password_id);
