@@ -2431,6 +2431,34 @@ def run_dpp_auto_connect_legacy_pmf_required(dev, apdev):
         raise Exception("DPP network profile not generated")
     dev[0].wait_connected()
 
+def test_dpp_hidden_ssid(dev, apdev):
+    """DPP provisioning and connect to hidden SSID"""
+    check_dpp_capab(dev[0])
+    check_dpp_capab(dev[1])
+
+    params = hostapd.wpa2_params(ssid="dpp-hidden",
+                                 passphrase="secret passphrase")
+    params["ignore_broadcast_ssid"] = "1"
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    id0 = dev[0].dpp_bootstrap_gen(chan="81/1", mac=True)
+    uri0 = dev[0].request("DPP_BOOTSTRAP_GET_URI %d" % id0)
+    dev[0].set("dpp_config_processing", "2")
+    dev[0].dpp_listen(2412)
+    dev[1].dpp_auth_init(uri=uri0, conf="sta-psk", ssid="dpp-hidden",
+                         passphrase="secret passphrase")
+    wait_auth_success(dev[0], dev[1], configurator=dev[1], enrollee=dev[0])
+    ev = dev[0].wait_event(["DPP-NETWORK-ID"], timeout=1)
+    if ev is None:
+        raise Exception("DPP network profile not generated")
+    dev[0].wait_connected()
+    dev[0].request("DISCONNECT")
+    dev[0].wait_disconnected()
+    dev[0].set("dpp_config_processing", "0")
+    hapd.disable()
+    dev[0].flush_scan_cache(freq=2432)
+    dev[0].flush_scan_cache()
+
 def test_dpp_qr_code_auth_responder_configurator(dev, apdev):
     """DPP QR Code and responder as the configurator"""
     run_dpp_qr_code_auth_responder_configurator(dev, apdev, "")
