@@ -4343,6 +4343,15 @@ enum qca_wlan_vendor_attr_config {
 	 */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_ESP_PARAMS = 143,
 
+	/* 8-bit unsigned value, used in AP mode only, to indicate whether
+	 * AP_VLAN multicast hardware encryption offload handling is enabled for
+	 * dynamic VLAN operation.
+	 * This is intended for per-station AP_VLAN cases where different
+	 * VLAN instances may need separate GTK handling.
+	 * 1 - Enable, 0 - Disable.
+	 */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_VLAN = 144,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
