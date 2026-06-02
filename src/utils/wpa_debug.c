@@ -369,6 +369,8 @@ static void _wpa_hexdump(void *ctx, int level, const char *title, const u8 *buf,
 #ifdef CONFIG_DEBUG_FILE
 	if (out_file) {
 		const char *ifname = NULL;
+		int do_wpa_msg = 0;
+
 		if (wpa_msg_ifname_cb && ctx)
 			ifname = wpa_msg_ifname_cb(ctx);
 		if (ifname)
@@ -383,17 +385,20 @@ static void _wpa_hexdump(void *ctx, int level, const char *title, const u8 *buf,
 			for (i = 0; i < len; i++)
 				fprintf(out_file, " %02x", buf[i]);
 			if (ctx && (strstr(title, "WPA: PTK") ||
-				    strstr(title, "WPA: PMK"))) {
-				char tmp[len * 2 + strlen(title) + 10];
-				int sofar = snprintf(tmp, sizeof(tmp), "%s ", title);
-				for (i = 0; i < len; i++)
-					sofar += snprintf(tmp + sofar, sizeof(tmp) - sofar, "%02x", buf[i]);
-				wpa_msg(ctx, MSG_INFO, "%s", tmp);
-			}
+				    strstr(title, "WPA: PMK")))
+				do_wpa_msg = 1;
 		} else {
 			fprintf(out_file, " [REMOVED]");
 		}
 		fprintf(out_file, "\n");
+
+		if (do_wpa_msg) {
+			char tmp[len * 2 + strlen(title) + 10];
+			int sofar = snprintf(tmp, sizeof(tmp), "%s ", title);
+			for (i = 0; i < len; i++)
+				sofar += snprintf(tmp + sofar, sizeof(tmp) - sofar, "%02x", buf[i]);
+			wpa_msg(ctx, MSG_INFO, "%s", tmp);
+		}
 	}
 #endif /* CONFIG_DEBUG_FILE */
 	if (!wpa_debug_syslog && !out_file) {
