@@ -3754,6 +3754,7 @@ static void wpa_driver_nl80211_deinit(struct i802_bss *bss)
 		nl80211_mgmt_unsubscribe(bss, "deinit");
 		nl80211_del_non_netdev(bss);
 	}
+	nl80211_put_wiphy_data_ap(bss);
 
 	nl80211_destroy_bss(drv->first_bss);
 
