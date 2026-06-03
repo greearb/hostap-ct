@@ -5025,8 +5025,10 @@ static int wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 		wpa_supplicant_set_state(wpa_s, WPA_COMPLETED);
 		eapol_sm_notify_portValid(wpa_s->eapol, true);
 		eapol_sm_notify_eap_success(wpa_s->eapol, true);
-	} else if ((wpa_s->drv_flags & WPA_DRIVER_FLAGS_4WAY_HANDSHAKE_PSK) &&
-		   wpa_key_mgmt_wpa_psk(wpa_s->key_mgmt)) {
+	} else if (((wpa_s->drv_flags & WPA_DRIVER_FLAGS_4WAY_HANDSHAKE_PSK) &&
+		    wpa_key_mgmt_wpa_psk(wpa_s->key_mgmt)) ||
+		   ((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_OWE_OFFLOAD_STA) &&
+		    wpa_s->key_mgmt == WPA_KEY_MGMT_OWE)) {
 		if (already_authorized) {
 			/*
 			 * We are done; the driver will take care of RSN 4-way
