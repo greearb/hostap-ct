@@ -1756,6 +1756,9 @@ struct wpa_supplicant {
 	struct nan_channels nan_override_potential_avail;
 	unsigned int nan_ndi_ndp_refcount; /* Active NDP count on this NDI */
 	struct nan_gtk ndi_gtk;
+#ifdef CONFIG_TESTING_OPTIONS
+	bool nan_force_conditional_sched;
+#endif /* CONFIG_TESTING_OPTIONS */
 #endif /* CONFIG_NAN */
 #ifdef CONFIG_ENC_ASSOC
 	bool assoc_resp_encrypted; /* Whether (Re)Association Response frame

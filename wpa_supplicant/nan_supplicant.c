@@ -1928,6 +1928,11 @@ int wpas_nan_set(struct wpa_supplicant *wpa_s, char *cmd)
 		nan_de_set_tx_mcast_follow_up_prot(wpa_s->nan_de, val);
 		return 0;
 	}
+
+	if (os_strcmp("force_conditional_sched", cmd) == 0) {
+		wpa_s->nan_force_conditional_sched = !!atoi(param);
+		return 0;
+	}
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	if (os_strcmp("max_ndl_idle_period", cmd) == 0) {
@@ -2412,6 +2417,7 @@ wpas_nan_fill_ndp_schedule_chan(struct wpa_supplicant *wpa_s,
 				const struct nan_schedule_channel *chan)
 {
 	struct nan_chan_schedule *chan_sched;
+	struct nan_time_bitmap *tbm;
 	const u8 *bitmap_data;
 	size_t bitmap_len;
 
@@ -2439,11 +2445,21 @@ wpas_nan_fill_ndp_schedule_chan(struct wpa_supplicant *wpa_s,
 	chan_sched->chan.center_freq2 = chan->center_freq2;
 	chan_sched->chan.bandwidth = chan->bandwidth;
 
-	chan_sched->committed.duration = wpa_s->nan_capa.slot_duration >> 5;
-	chan_sched->committed.period = ffs(wpa_s->nan_capa.schedule_period) - 7;
-	chan_sched->committed.offset = 0;
-	chan_sched->committed.len = bitmap_len;
-	os_memcpy(chan_sched->committed.bitmap, bitmap_data, bitmap_len);
+	tbm = &chan_sched->committed;
+#ifdef CONFIG_TESTING_OPTIONS
+	if (wpa_s->nan_force_conditional_sched) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: Using conditional TBM for schedule channel");
+		tbm = &chan_sched->conditional;
+	}
+#endif /* CONFIG_TESTING_OPTIONS */
+
+	tbm->duration = wpa_s->nan_capa.slot_duration >> 5;
+	tbm->period = ffs(wpa_s->nan_capa.schedule_period) - 7;
+	tbm->offset = 0;
+	tbm->len = bitmap_len;
+	os_memcpy(tbm->bitmap, bitmap_data, bitmap_len);
+
 	wpa_printf(MSG_DEBUG,
 		   "NAN: NDP schedule channel added: map_id=%d freq=%d center_freq1=%d center_freq2=%d bandwidth=%d",
 		   chan_sched->map_id,
@@ -2559,6 +2575,7 @@ static int wpas_nan_select_ndc_copy_peers(struct wpa_supplicant *wpa_s,
 static int wpas_nan_select_ndc(struct wpa_supplicant *wpa_s,
 			       struct nan_ndp_params *ndp)
 {
+	struct nan_time_bitmap *tbm;
 	int i;
 
 	/* NDC attribute in request is optional, let the peer decide */
@@ -2570,8 +2587,16 @@ static int wpas_nan_select_ndc(struct wpa_supplicant *wpa_s,
 	    ndp->u.resp.status == NAN_NDP_STATUS_ACCEPTED)
 		return wpas_nan_select_ndc_copy_peers(wpa_s, ndp);
 
-	os_memcpy(&ndp->sched.ndc, &ndp->sched.chans[0].committed,
-		  sizeof(ndp->sched.ndc));
+	tbm = &ndp->sched.chans[0].committed;
+#ifdef CONFIG_TESTING_OPTIONS
+	if (wpa_s->nan_force_conditional_sched) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: Using conditional TBM for NDC selection");
+		tbm = &ndp->sched.chans[0].conditional;
+	}
+#endif /* CONFIG_TESTING_OPTIONS */
+
+	os_memcpy(&ndp->sched.ndc, tbm, sizeof(ndp->sched.ndc));
 	os_memset(ndp->sched.ndc.bitmap, 0, sizeof(ndp->sched.ndc.bitmap));
 	ndp->sched.ndc_map_id = ndp->sched.chans[0].map_id;
 
@@ -2590,14 +2615,13 @@ static int wpas_nan_select_ndc(struct wpa_supplicant *wpa_s,
 		byte_idx = dw_bit / 8;
 		bit_in_byte = dw_bit % 8;
 
-		if (ndp->sched.chans[0].committed.bitmap[byte_idx] &
-		    BIT(bit_in_byte)) {
+		if (tbm->bitmap[byte_idx] & BIT(bit_in_byte)) {
 			ndp->sched.ndc.bitmap[byte_idx] = BIT(bit_in_byte);
 			return 0;
 		}
 	} else if (ndp->sched.chans[0].chan.freq == 2437 &&
 		   wpa_s->nan_capa.slot_duration == 16) {
-		if (ndp->sched.chans[0].committed.bitmap[0] & 0x02) {
+		if (tbm->bitmap[0] & 0x02) {
 			ndp->sched.ndc.bitmap[0] = 0x02;
 			return 0;
 		}
@@ -2605,10 +2629,9 @@ static int wpas_nan_select_ndc(struct wpa_supplicant *wpa_s,
 
 	/* For other cases, select the first available slot */
 	for (i = 0; i < NAN_TIME_BITMAP_MAX_LEN; i++) {
-		if (ndp->sched.chans[0].committed.bitmap[i]) {
+		if (tbm->bitmap[i]) {
 			ndp->sched.ndc.bitmap[i] =
-				ndp->sched.chans[0].committed.bitmap[i] &
-				(~ndp->sched.chans[0].committed.bitmap[i] + 1);
+				tbm->bitmap[i] & (~tbm->bitmap[i] + 1);
 			break;
 		}
 	}
