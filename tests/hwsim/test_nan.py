@@ -1126,7 +1126,7 @@ def _nan_discover_service(pub, sub, service_name, pssi, sssi, ttl=None,
 def _nan_ndp_request_and_accept(pub, sub, pid, sid, paddr, saddr, req_ssi,
                                 resp_ssi, csid=None,
                                 password=None, pwd_hex=None, pmk=None,
-                                counter=False,
+                                counter=False, force_conditional=False,
                                 wrong_pwd=False, configure_schedule=True,
                                 pub_interface_id=None, sub_interface_id=None,
                                 gtk_csid=None):
@@ -1161,6 +1161,10 @@ def _nan_ndp_request_and_accept(pub, sub, pid, sid, paddr, saddr, req_ssi,
     init_ndi = data['init_ndi']
 
     # Configure schedule on publisher
+    if force_conditional:
+        pub.set("force_conditional_sched", "1")
+        sub.set("force_conditional_sched", "1")
+
     if configure_schedule:
         if counter:
             if "OK" not in pub.schedule_config((5745, "feffffff")):
@@ -1265,7 +1269,8 @@ def _nan_test_connectivity(pub, sub):
 def _run_nan_dp(counter=False, csid=None, wrong_pwd=False, use_pmk=False,
                 use_pwd_hex=False,
                 use_interface_id=False, verify_max_idle_period=False,
-                gtk_csid=None, mgmt_group_cipher=None):
+                gtk_csid=None, mgmt_group_cipher=None,
+                force_conditional=False):
     if use_pmk:
         pmk = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
         pwd = None
@@ -1311,6 +1316,7 @@ def _run_nan_dp(counter=False, csid=None, wrong_pwd=False, use_pmk=False,
                                              resp_ssi="ddeeff", csid=csid,
                                              password=pwd, pwd_hex=pwd_hex,
                                              pmk=pmk, counter=counter,
+                                             force_conditional=force_conditional,
                                              wrong_pwd=wrong_pwd,
                                              pub_interface_id=pub_interface_id,
                                              sub_interface_id=sub_interface_id,
@@ -1358,7 +1364,7 @@ def _run_nan_dp(counter=False, csid=None, wrong_pwd=False, use_pmk=False,
 def run_nan_dp(country="US", counter=False, csid=None, wrong_pwd=False,
                use_pmk=False, use_pwd_hex=False, use_interface_id=False,
                verify_max_idle_period=False, gtk_csid=None,
-               mgmt_group_cipher=None):
+               mgmt_group_cipher=None, force_conditional=False):
     set_country(country)
     try:
         _run_nan_dp(counter=counter, csid=csid, wrong_pwd=wrong_pwd,
@@ -1366,7 +1372,8 @@ def run_nan_dp(country="US", counter=False, csid=None, wrong_pwd=False,
                     use_interface_id=use_interface_id,
                     verify_max_idle_period=verify_max_idle_period,
                     gtk_csid=gtk_csid,
-                    mgmt_group_cipher=mgmt_group_cipher)
+                    mgmt_group_cipher=mgmt_group_cipher,
+                    force_conditional=force_conditional)
     finally:
         set_country("00")
 
@@ -1450,6 +1457,14 @@ def _run_nan_dp_2_ndps(secure_ndp2=False):
 def test_nan_dp_open_counter(dev, apdev, params):
     """NAN DP open with counter proposal"""
     run_nan_dp(counter=True, use_interface_id=True)
+
+def test_nan_dp_open_conditional(dev, apdev, params):
+    """NAN DP open with conditional availability"""
+    run_nan_dp(force_conditional=True)
+
+def test_nan_dp_open_counter_conditional(dev, apdev, params):
+    """NAN DP open with counter proposal using conditional availability"""
+    run_nan_dp(counter=True, force_conditional=True)
 
 def test_nan_dp_sk_ccmp128(dev, apdev, params):
     """NAN DP - 2way NDL + SK CCMP security"""
