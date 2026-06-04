@@ -568,6 +568,12 @@ int nan_pairing_initiate_pasn_auth(struct nan_data *nan_data, const u8 *addr,
 		return -1;
 	}
 
+	if (peer->bootstrap.in_progress) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: Pairing: Bootstrap in progress with peer");
+		return -1;
+	}
+
 	if (!nan_pairing_is_supported(nan_data, peer, auth_mode)) {
 		wpa_printf(MSG_INFO,
 			   "NAN: Pairing: Invalid params to initiate authentication");
