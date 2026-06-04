@@ -1777,7 +1777,7 @@ err:
  * @nan: Pointer to NAN data struct
  * @peer_sched: Pointer to peer schedule struct
  * @map_idx: Index of the availability map to check
- * Returns: Frequency of the committed channel that intersects with NDC,
+ * Returns: Frequency of the peer channel that intersects with NDC,
  *          or -1 on failure or if no intersection found
  *
  * In case NDC bitmap spans across multiple channels, only one channel is
@@ -1802,28 +1802,29 @@ int nan_get_peer_ndc_freq(struct nan_data *nan,
 		return -1;
 
 	for (i = 0; i < peer_sched->maps[map_idx].n_chans; i++) {
-		struct bitfield *committed_bf;
+		struct bitfield *peer_chan_map;
 
-		if (!peer_sched->maps[map_idx].chans[i].committed)
-			continue;
-
-		committed_bf =
+		/*
+		 * Check all peer channel entries (committed or conditional).
+		 * Potential entries are not part of the peer schedule.
+		 */
+		peer_chan_map =
 			nan_tbm_to_bf(nan,
 				      &peer_sched->maps[map_idx].chans[i].tbm);
-		if (!committed_bf) {
+		if (!peer_chan_map) {
 			wpa_printf(MSG_DEBUG,
-				   "NAN: Failed to convert peer committed TBM to bitfield");
+				   "NAN: Failed to convert peer channel TBM to bitfield");
 			bitfield_free(ndc_bf);
 			return -1;
 		}
 
-		if (bitfield_intersects(ndc_bf, committed_bf)) {
+		if (bitfield_intersects(ndc_bf, peer_chan_map)) {
 			bitfield_free(ndc_bf);
-			bitfield_free(committed_bf);
+			bitfield_free(peer_chan_map);
 			return peer_sched->maps[map_idx].chans[i].chan.freq;
 		}
 
-		bitfield_free(committed_bf);
+		bitfield_free(peer_chan_map);
 	}
 
 	bitfield_free(ndc_bf);
