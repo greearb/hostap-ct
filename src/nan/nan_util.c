@@ -897,7 +897,8 @@ int nan_add_avail_attrs(struct nan_data *nan, u8 sequence_id,
 		if (chan->conditional.len)
 			nan_add_avail_entry(nan, &chan->conditional,
 					    type_for_conditional,
-					    op_class, chan_bm, 0, buf);
+					    op_class, chan_bm, pri_chan_bm,
+					    buf);
 	}
 
 	if (last_map_id != NAN_INVALID_MAP_ID) {
