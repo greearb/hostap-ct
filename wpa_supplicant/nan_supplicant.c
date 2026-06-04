@@ -2723,6 +2723,32 @@ static int wpas_nan_fill_nd_pmk(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
+	/*
+	 * Get service ID from the local handle (subscribe on
+	 * requester and publish on responder)
+	 */
+	if (!nan_de_is_valid_instance_id(wpa_s->nan_de, handle,
+					 ndp->type == NAN_NDP_ACTION_RESP,
+					 service_id)) {
+		wpa_printf(MSG_INFO,
+			   "NAN: Invalid service instance handle: %d",
+			   handle);
+		return -1;
+	}
+
+	/*
+	 * For NDP response (publisher side), check if the requested CSID
+	 * is supported by the service (including open/NAN_CS_NONE).
+	 */
+	if (ndp->type == NAN_NDP_ACTION_RESP &&
+	    !nan_de_service_supports_csid(wpa_s->nan_de, handle,
+					  ndp->sec.csid)) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: CSID %d not supported by service",
+			   ndp->sec.csid);
+		return -1;
+	}
+
 	if (ndp->sec.csid == NAN_CS_NONE)
 		return 0;
 
@@ -2740,32 +2766,6 @@ static int wpas_nan_fill_nd_pmk(struct wpa_supplicant *wpa_s,
 	if ((!pwd || os_strlen(pwd) == 0) && (!pmk || os_strlen(pmk) == 0)) {
 		wpa_printf(MSG_INFO,
 			   "NAN: Password/PMK required for CSID %d",
-			   ndp->sec.csid);
-		return -1;
-	}
-
-	/*
-	 * Get service ID from the local handle (subscribe on
-	 * requester and publish on responder)
-	 */
-	if (!nan_de_is_valid_instance_id(wpa_s->nan_de, handle,
-					 ndp->type == NAN_NDP_ACTION_RESP,
-					 service_id)) {
-		wpa_printf(MSG_INFO,
-			   "NAN: Invalid service instance handle: %d",
-			   handle);
-		return -1;
-	}
-
-	/*
-	 * For NDP response (publisher side), check if the requested CSID is in
-	 * the service's advertised cipher suite list.
-	 */
-	if (ndp->type == NAN_NDP_ACTION_RESP &&
-	    !nan_de_service_supports_csid(wpa_s->nan_de, handle,
-					  ndp->sec.csid)) {
-		wpa_printf(MSG_DEBUG,
-			   "NAN: Requested CSID %d not advertised by service",
 			   ndp->sec.csid);
 		return -1;
 	}

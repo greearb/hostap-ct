@@ -34,6 +34,7 @@ struct nan_discovery_result {
 	bool fsd;
 	bool fsd_gas;
 	bool data_path;
+	bool security_required;
 	const u8 *pmkid_list;
 	unsigned int pmkid_count;
 	const u8 *cipher_suites;
@@ -182,6 +183,8 @@ struct nan_publish_params {
 
 	/* Request NAN Data Path */
 	bool data_path;
+
+	bool security_required;
 };
 
 /* Returns -1 on failure or >0 publish_id */

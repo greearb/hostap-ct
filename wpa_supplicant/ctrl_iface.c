@@ -12895,6 +12895,7 @@ static int wpas_ctrl_nan_publish(struct wpa_supplicant *wpa_s, char *cmd,
 	u8 nd_pmk[PMK_LEN];
 	bool p2p = false;
 	u8 forced_addr[ETH_ALEN];
+	bool security_required_set = false;
 
 	os_memset(&params, 0, sizeof(params));
 	/* USD shall use both solicited and unsolicited transmissions */
@@ -13056,10 +13057,20 @@ static int wpas_ctrl_nan_publish(struct wpa_supplicant *wpa_s, char *cmd,
 			continue;
 		}
 
+		if (os_strcmp(token, "security_required=0") == 0) {
+			params.security_required = false;
+			security_required_set = true;
+			continue;
+		}
+
 		wpa_printf(MSG_INFO, "CTRL: Invalid NAN_PUBLISH parameter: %s",
 			   token);
 		goto fail;
 	}
+
+	/* Default security_required to true when cipher suites are specified */
+	if (params.cipher_suites_list && !security_required_set)
+		params.security_required = true;
 
 	if (params.gtk_required &&
 	    !wpas_nan_gtk_cs_supported(params.cipher_suites_list)) {

@@ -86,6 +86,7 @@ struct nan_de_service {
 	bool close_proximity;
 	bool gtk_required;
 	bool data_path;
+	bool security_required;
 
 	/* Bootstrapping methods */
 	u16 pbm;
@@ -598,8 +599,12 @@ static void nan_de_tx_sdf(struct nan_de *de, struct nan_de_service *srv,
 				sdea_ctrl |= NAN_SDEA_CTRL_FSD_GAS;
 			if (srv->gtk_required)
 				sdea_ctrl |= NAN_SDEA_CTRL_GTK_REQ;
-			if (srv->data_path)
+			if (srv->data_path) {
 				sdea_ctrl |= NAN_SDEA_CTRL_DATA_PATH_REQ;
+				if (srv->cipher_suites_list &&
+				    srv->security_required)
+					sdea_ctrl |= NAN_SDEA_CTRL_SECURITY_REQ;
+			}
 		}
 
 		if (sdea_ctrl || ssi) {
@@ -1726,6 +1731,7 @@ send_event:
 	res.fsd = !!(sdea_control & NAN_SDEA_CTRL_FSD_REQ);
 	res.fsd_gas = !!(sdea_control & NAN_SDEA_CTRL_FSD_GAS);
 	res.data_path = !!(sdea_control & NAN_SDEA_CTRL_DATA_PATH_REQ);
+	res.security_required = !!(sdea_control & NAN_SDEA_CTRL_SECURITY_REQ);
 	res.cipher_suites = cipher_suite_count > 0 ? cipher_suites : NULL;
 	res.n_cipher_suites = cipher_suite_count;
 	res.pmkid_list = pmkid_count > 0 ? pmkid_list : NULL;
@@ -2318,6 +2324,7 @@ int nan_de_publish(struct nan_de *de, const char *service_name,
 	srv->pbm = params->pbm;
 	srv->gtk_required = params->gtk_required;
 	srv->data_path = params->data_path;
+	srv->security_required = params->security_required;
 
 	nan_de_add_srv(de, srv);
 	nan_de_run_timer(de);
@@ -2812,6 +2819,10 @@ bool nan_de_service_supports_csid(struct nan_de *de, int handle, int csid)
 	/* If cipher_suites_list is not set, all CSIDs are allowed */
 	if (!srv->cipher_suites_list)
 		return true;
+
+	/* Open is allowed only if security is not required */
+	if (csid == NAN_CS_NONE)
+		return !srv->security_required;
 
 	/* Check if the CSID is in the service's cipher suite list */
 	return int_array_includes(srv->cipher_suites_list, csid);
