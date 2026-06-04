@@ -413,6 +413,32 @@ int nan_update_config(struct nan_data *nan,
 }
 
 
+void nan_set_cdw_overwrite(struct nan_data *nan, int map_id_2g, int map_id_5g)
+{
+	u16 cdw_info;
+
+	if (!nan)
+		return;
+
+	cdw_info = nan->cfg->dev_capa.cdw_info;
+
+	if (map_id_2g >= 0) {
+		cdw_info &= ~NAN_CDW_INFO_2G_OVERRIDE_MASK;
+		cdw_info |= ((map_id_2g << NAN_CDW_INFO_2G_OVERRIDE_POS) &
+			     NAN_CDW_INFO_2G_OVERRIDE_MASK);
+	}
+
+	if (map_id_5g >= 0) {
+		cdw_info &= ~NAN_CDW_INFO_5G_OVERRIDE_MASK;
+		cdw_info |= ((map_id_5g << NAN_CDW_INFO_5G_OVERRIDE_POS) &
+			     NAN_CDW_INFO_5G_OVERRIDE_MASK);
+	}
+
+	wpa_printf(MSG_DEBUG, "NAN: Updated cdw_info=0x%04x", cdw_info);
+	nan->cfg->dev_capa.cdw_info = cdw_info;
+}
+
+
 void nan_flush(struct nan_data *nan)
 {
 	wpa_printf(MSG_DEBUG, "NAN: Reset internal state");

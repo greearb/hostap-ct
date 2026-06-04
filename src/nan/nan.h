@@ -794,6 +794,7 @@ void nan_deinit(struct nan_data *nan);
 int nan_start(struct nan_data *nan, const struct nan_cluster_config *config);
 int nan_update_config(struct nan_data *nan,
 		      const struct nan_cluster_config *config);
+void nan_set_cdw_overwrite(struct nan_data *nan, int map_id_2g, int map_id_5g);
 void nan_stop(struct nan_data *nan);
 void nan_flush(struct nan_data *nan);
 

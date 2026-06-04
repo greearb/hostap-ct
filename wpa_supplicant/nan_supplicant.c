@@ -1394,15 +1394,29 @@ int wpas_nan_init(struct wpa_supplicant *wpa_s)
 			   nan.security_capab);
 	}
 
-	/*
-	 * TODO: Set the device capabilities based on configuration and driver
-	 * data. For now do not set 'n_antennas', 'channel_switch_time' and
-	 * 'capa', i.e., indicating that the information is not available. This
-	 * information should also be retrieved from the driver.
-	 */
 	nan.dev_capa.cdw_info =
 		((1 << NAN_CDW_INFO_2G_POS) & NAN_CDW_INFO_2G_MASK) |
 		((1 << NAN_CDW_INFO_5G_POS) & NAN_CDW_INFO_5G_MASK);
+
+	/*
+	 * Wi-Fi Aware spec v4.0, Table 80 defines the 2.4 GHz and 5 GHz CDW
+	 * Override Map ID fields as mandatory without any option to indicate
+	 * "applies for all" as in other places in the specification that use
+	 * map_ids. At this stage we don't have a local schedule yet, so we will
+	 * be referencing non-existent map_id.
+	 *
+	 * In case of a single radio devices all maps will be using map_id 1,
+	 * so we can already configure it. Otherwise, we have no choice but to
+	 * leave it unassigned and let this field be updated when the schedule
+	 * is configured.
+	 *
+	 * TODO: Dual radio devices may want to properly query this information
+	 * from the driver/device.
+	 */
+	if (wpa_s->nan_capa.num_radios == 1) {
+		nan.dev_capa.cdw_info |= 0x1 << NAN_CDW_INFO_2G_OVERRIDE_POS;
+		nan.dev_capa.cdw_info |= 0x1 << NAN_CDW_INFO_5G_OVERRIDE_POS;
+	}
 
 	nan.dev_capa.supported_bands = NAN_DEV_CAPA_SBAND_2G;
 	if (wpa_s->nan_capa.drv_flags &
@@ -2104,6 +2118,7 @@ int wpas_nan_sched_config_map(struct wpa_supplicant *wpa_s, const char *cmd)
 	int shared_freqs_count, unused_freqs_count, ret = -1;
 	struct bitfield *bf_total;
 	unsigned int expected_bitmap_len;
+	bool cdw_overwrite_2g = false, cdw_overwrite_5g = false;
 
 	if (!wpas_nan_ndp_allowed(wpa_s))
 		return -1;
@@ -2181,9 +2196,17 @@ int wpas_nan_sched_config_map(struct wpa_supplicant *wpa_s, const char *cmd)
 		goto out;
 	}
 
-	/* Parse freq:timebitmap pairs */
+	/* Parse freq:timebitmap pairs and optional CDW overwrite flags */
 	pos++;
 	while ((token = str_token(pos, " ", &context))) {
+		if (os_strcmp(token, "cdw_overwrite_low_band") == 0) {
+			cdw_overwrite_2g = true;
+			continue;
+		}
+		if (os_strcmp(token, "cdw_overwrite_high_band") == 0) {
+			cdw_overwrite_5g = true;
+			continue;
+		}
 		int j, i = sched_cfg->num_channels;
 		struct bitfield *bf_chan = NULL;
 		char *colon = os_strchr(token, ':');
@@ -2360,6 +2383,13 @@ int wpas_nan_sched_config_map(struct wpa_supplicant *wpa_s, const char *cmd)
 		os_memset(sched_cfg, 0, sizeof(*sched_cfg));
 		wpas_nan_update_local_schedule(wpa_s);
 	}
+
+	/* Update CDW overwrite map_id for the specified band */
+	if (cdw_overwrite_2g || cdw_overwrite_5g)
+		nan_set_cdw_overwrite(wpa_s->nan,
+				      cdw_overwrite_2g ? map_id : -1,
+				      cdw_overwrite_5g ? map_id : -1);
+
 out:
 	os_free(bf_total);
 	os_free(shared_freqs);
