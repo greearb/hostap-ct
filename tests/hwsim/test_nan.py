@@ -1746,7 +1746,8 @@ def test_nan_sae_pairing_bootstrap(dev, apdev, params):
     """NAN Pairing setup using opportunistic bootstrapping"""
     run_nan_pairing_bootstrap("SAE", password="password123")
 
-def run_nan_pairing_verification(pairing_type, password=None):
+def run_nan_pairing_verification(pairing_type, password=None,
+                                  send_followup=False):
     with hwsim_nan_radios(count=2) as [wpas1, wpas2], \
         NanDevice(wpas1, "nan0") as pub, NanDevice(wpas2, "nan1") as sub:
         paddr = pub.wpas.own_addr()
@@ -1787,6 +1788,25 @@ def run_nan_pairing_verification(pairing_type, password=None):
 
         run_nan_pairing(sub, pub, pid, sid, "PMK")
 
+        if send_followup:
+            # Send unicast follow-up to peer's NMI - should be PMF protected
+            # with NM-TK after verification pairing
+            sub.transmit(handle=sid, req_instance_id=pid,
+                         address=paddr, ssi="aabbccddeeff")
+
+            ev = pub.wpas.wait_event(["NAN-RECEIVE"], timeout=2)
+            if ev is None or f"address={saddr}" not in ev or \
+               "ssi=aabbccddeeff" not in ev:
+                raise Exception("NAN-RECEIVE followup event not seen")
+
+            pub.transmit(handle=pid, req_instance_id=sid,
+                         address=saddr, ssi="ffeeddccbbaa")
+
+            ev = sub.wpas.wait_event(["NAN-RECEIVE"], timeout=2)
+            if ev is None or f"address={paddr}" not in ev or \
+               "ssi=ffeeddccbbaa" not in ev:
+                raise Exception("NAN-RECEIVE followup event not seen")
+
 def test_nan_opportunistic_pairing(dev, apdev, params):
     """NAN Pairing setup using opportunistic bootstrapping"""
     run_nan_pairing_verification("PASN")
@@ -1794,6 +1814,11 @@ def test_nan_opportunistic_pairing(dev, apdev, params):
 def test_nan_sae_pairing(dev, apdev, params):
     """NAN Pairing setup using a password (SAE)"""
     run_nan_pairing_verification("SAE", "nanpassword")
+
+def test_nan_prot_ucast_followup_after_verification(dev, apdev, params):
+    """NAN protected unicast follow-up after pairing verification"""
+    run_nan_pairing_verification("SAE", password="nanpassword",
+                                 send_followup=True)
 
 def test_nan_publish_with_pmk(dev, apdev, params):
     """NAN publish with PMK and cipher suites"""
