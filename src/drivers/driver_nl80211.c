@@ -11479,10 +11479,9 @@ static void parse_vht_mask(u16 *mask, int mask_len, const char* input)
 
 static int nl80211_set_param(void *priv, const char *param)
 {
-	char* tmp;
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
-	const char *pos;
+	const char *pos, *tmp;
 
 	if (param == NULL)
 		return 0;

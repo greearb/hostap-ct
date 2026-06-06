@@ -4293,7 +4293,8 @@ int hostapd_add_iface(struct hapd_interfaces *interfaces, char *buf)
 	struct hostapd_data *hapd;
 	char *ptr;
 	size_t i, j;
-	const char *conf_file = NULL, *phy_name = NULL;
+	const char *conf_file = NULL;
+	char *phy_name = NULL;
 
 	if (os_strncmp(buf, "bss_config=", 11) == 0) {
 		char *pos;

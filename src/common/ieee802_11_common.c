@@ -1431,7 +1431,7 @@ int hostapd_config_wmm_ac(struct hostapd_wmm_ac_params wmm_ac_params[],
 static int hostapd_config_read_int10(const char *value)
 {
 	int i, d;
-	char *pos;
+	const char *pos;
 
 	i = atoi(value);
 	pos = os_strchr(value, '.');
@@ -3185,7 +3185,8 @@ int ieee802_11_parse_candidate_list(struct hostapd_data *hapd, const char *pos, 
 	while (pos) {
 		u8 *nei_start;
 		long int val;
-		char *endptr, *tmp;
+		char *endptr;
+		const char *tmp;
 
 		pos = os_strstr(pos, " neighbor=");
 		if (!pos)
