@@ -6075,7 +6075,8 @@ static int wpa_supplicant_ctrl_iface_bss(struct wpa_supplicant *wpa_s,
 	struct dl_list *next;
 	int ret = 0;
 	int len;
-	const char *ctmp, *end = buf + buflen;
+	const char *end = buf + buflen;
+	const char *ctmp;
 	unsigned long mask = WPA_BSS_MASK_ALL;
 
 	if (os_strncmp(cmd, "RANGE=", 6) == 0) {
@@ -10738,8 +10739,12 @@ static int wpas_ctrl_test_rsnxe_data(struct wpa_supplicant *wpa_s,
 {
 	struct wpabuf *data = NULL, *mask = NULL;
 	char *pos;
+	char buf[50];
 
-	pos = os_strchr(cmd, ' ');
+	buf[0] = '\0';
+
+	os_strlcpy(buf, cmd, sizeof(buf));
+	pos = os_strchr(buf, ' ');
 	if (!pos)
 		return -1;
 	*pos++ = '\0';
