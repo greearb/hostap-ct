@@ -394,7 +394,7 @@ wpas_ctrl_set_relative_rssi(struct wpa_supplicant *wpa_s, const char *cmd)
 static int wpas_ctrl_set_relative_band_adjust(struct wpa_supplicant *wpa_s,
 					      const char *cmd)
 {
-	char *pos;
+	const char *pos;
 	int adjust_rssi;
 
 	/* <band>:adjust_value */
@@ -5931,7 +5931,8 @@ static int wpa_supplicant_ctrl_iface_bss(struct wpa_supplicant *wpa_s,
 	struct dl_list *next;
 	int ret = 0;
 	int len;
-	char *ctmp, *end = buf + buflen;
+	char *end = buf + buflen;
+	const char *ctmp;
 	unsigned long mask = WPA_BSS_MASK_ALL;
 
 	if (os_strncmp(cmd, "RANGE=", 6) == 0) {
@@ -6326,7 +6327,7 @@ static int p2ps_ctrl_parse_cpt_priority(const char *pos, u8 *cpt)
 static struct p2ps_provision * p2p_parse_asp_provision_cmd(const char *cmd)
 {
 	struct p2ps_provision *p2ps_prov;
-	char *pos;
+	const char *pos;
 	size_t info_len = 0;
 	char *info = NULL;
 	u8 role = P2PS_SETUP_NONE;
@@ -10563,8 +10564,12 @@ static int wpas_ctrl_test_rsnxe_data(struct wpa_supplicant *wpa_s,
 {
 	struct wpabuf *data = NULL, *mask = NULL;
 	char *pos;
+	char buf[50];
 
-	pos = os_strchr(cmd, ' ');
+	buf[0] = '\0';
+
+	os_strlcpy(buf, cmd, sizeof(buf));
+	pos = os_strchr(buf, ' ');
 	if (!pos)
 		return -1;
 	*pos++ = '\0';
@@ -12432,7 +12437,7 @@ free_scs_desc:
 static int wpas_ctrl_iface_send_dscp_resp(struct wpa_supplicant *wpa_s,
 					  const char *cmd)
 {
-	char *pos;
+	const char *pos;
 	struct dscp_policy_status *policy = NULL, *n;
 	int num_policies = 0, ret = -1;
 	struct dscp_resp_data resp_data;
@@ -12497,7 +12502,7 @@ fail:
 static int wpas_ctrl_iface_send_dscp_query(struct wpa_supplicant *wpa_s,
 					   const char *cmd)
 {
-	char *pos;
+	const char *pos;
 
 	/*
 	 * format:
