@@ -10811,11 +10811,23 @@ static int nl80211_mlo_signal_poll(void *priv,
 	mlo_si->valid_links = drv->sta_mlo_info.valid_links;
 
 	for_each_link(mlo_si->valid_links, i) {
+		/*
+		 * This should be requesting it not for each link, but for
+		 * the MLD address, and then parse out each link data.
+		 * However, that API isn't completed in the kernel yet,
+		 * and some non-upstream drivers erroneously implemented
+		 * a per-link query here. Be compatible with them for now,
+		 * but ignore if this fails since that happens upstream.
+		 *
+		 * Once a correct query is implemented outside the loop,
+		 * this should be skipped if the correct query returned
+		 * the necessary data.
+		 */
 		res = nl80211_get_link_signal(bss,
 					      drv->sta_mlo_info.links[i].bssid,
 					      &mlo_si->links[i].data);
-		if (res != 0)
-			return res;
+		if (res)
+			mlo_si->links[i].data.signal = -WPA_INVALID_NOISE;
 
 		mlo_si->links[i].center_frq1 = -1;
 		mlo_si->links[i].center_frq2 = -1;
