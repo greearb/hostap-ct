@@ -1534,6 +1534,49 @@ enum qca_radiotap_vendor_ids {
  *	The WLAN host manages NSS/chain reduction, AP coordination, and
  *	hysteresis timers internally. Mode-agnostic: works regardless of
  *	connection state or device mode.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_TDLS_EVENT: This vendor subcommand is used both
+ *	as a command and as an event. Userspace sends this command with
+ *	%QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_CONFIG to enable or disable reporting
+ *	of TDLS events. The driver sends this as an event with
+ *	%QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRIES to deliver TDLS events to
+ *	userspace. The driver can cache the events even before the reporting is
+ *	enabled and sends all the events cached when this command is received.
+ *	Each entry inside the nested attribute represents one TDLS event. The
+ *	driver can send one or more TDLS events with each nl80211 event.
+ *
+ *	The attributes used with this command are defined in
+ *	enum qca_wlan_vendor_attr_tdls_event.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_TDLS_STATS: This vendor subcommand is used both
+ *	as a command and as an event. Userspace sends this command with
+ *	%QCA_WLAN_VENDOR_ATTR_TDLS_STATS_CONFIG to enable or disable reporting
+ *	of TDLS data statistics. The driver sends this as an event with
+ *	%QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRIES to deliver TDLS statistics to
+ *	userspace. The driver can cache the statistics even before the reporting
+ *	is enabled and sends all the statistics cached when this command is
+ *	received. Each entry inside the nested attribute represents one set of
+ *	TDLS data statistics. The driver can send one or more sets of TDLS
+ *	statistics with each nl80211 event.
+ *
+ *	The attributes used with this command are defined in
+ *	enum qca_wlan_vendor_attr_tdls_stats.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_TDLS_REPORTING_CONFIG: Vendor command used by
+ *	userspace to configure the driver to send or stop sending TDLS events
+ *	and statistics. %QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_EVENTS
+ *	controls TDLS event reporting via %QCA_NL80211_VENDOR_SUBCMD_TDLS_EVENT
+ *	and %QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_STATS controls TDLS
+ *	statistics reporting via %QCA_NL80211_VENDOR_SUBCMD_TDLS_STATS. Use this
+ *	command when enabling or disabling both events and statistics reporting
+ *	simultaneously; use %QCA_NL80211_VENDOR_SUBCMD_TDLS_EVENT or
+ *	%QCA_NL80211_VENDOR_SUBCMD_TDLS_STATS to control them independently.
+ *	The driver can cache the statistics and events even before the reporting
+ *	is enabled by this command and sends all the statistics and events
+ *	cached when this command is received.
+ *
+ *	The attributes used with this command are defined in
+ *	enum qca_wlan_vendor_attr_tdls_reporting_config.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1793,6 +1836,9 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_EXTERNAL_AUTH = 273,
 	QCA_NL80211_VENDOR_SUBCMD_GVP_OPERATION = 274,
 	QCA_NL80211_VENDOR_SUBCMD_N79_COEX = 275,
+	QCA_NL80211_VENDOR_SUBCMD_TDLS_EVENT = 276,
+	QCA_NL80211_VENDOR_SUBCMD_TDLS_STATS = 277,
+	QCA_NL80211_VENDOR_SUBCMD_TDLS_REPORTING_CONFIG = 278,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -24116,6 +24162,395 @@ enum qca_wlan_vendor_attr_n79_coex {
 	QCA_WLAN_VENDOR_ATTR_N79_COEX_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_N79_COEX_CONFIG_MAX =
 	QCA_WLAN_VENDOR_ATTR_N79_COEX_CONFIG_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_tdls_config - Values used to enable or disable TDLS event and
+ * statistics reporting. Used by %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_CONFIG,
+ * %QCA_WLAN_VENDOR_ATTR_TDLS_STATS_CONFIG,
+ * %QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_EVENTS, and
+ * %QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_STATS attributes.
+ *
+ * @QCA_WLAN_TDLS_CONFIG_STOP: Stop sending TDLS events or statistics to
+ * userspace.
+ * @QCA_WLAN_TDLS_CONFIG_SEND: Send TDLS events or statistics to userspace.
+ */
+enum qca_wlan_tdls_config {
+	QCA_WLAN_TDLS_CONFIG_STOP = 0,
+	QCA_WLAN_TDLS_CONFIG_SEND = 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_tdls_event - Attributes used by
+ * %QCA_NL80211_VENDOR_SUBCMD_TDLS_EVENT vendor command.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_CONFIG: u8 attribute. Used to configure
+ * from userspace to enable/disable sending TDLS events.
+ * Uses values defined in enum qca_wlan_tdls_config.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRIES: Nested attribute containing one
+ * or more TDLS event entries. Each entry is a nested attribute with
+ * attributes defined in enum qca_wlan_vendor_attr_tdls_event_entry,
+ * representing a specific TDLS event.
+ */
+enum qca_wlan_vendor_attr_tdls_event {
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_CONFIG = 1,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRIES = 2,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_MAX =
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_tdls_event_entry - Attributes used inside nested
+ * attribute %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRIES to provide TDLS event
+ * information.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_LOCAL_MAC_ADDR: 6-byte MAC address.
+ * The device MAC address of the local STA. Mandatory attribute. The MLD MAC
+ * address is used if the local STA is an MLO device.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_PEER_MAC_ADDR: 6-byte MAC address.
+ * The MAC address of the TDLS peer STA. Mandatory attribute. The MLD MAC
+ * address is used if the peer STA is an MLO device.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_TYPE: u8 attribute.
+ * TDLS event type. Uses values defined in enum qca_wlan_tdls_event_type.
+ * Mandatory attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_SUBTYPE: u8 attribute.
+ * TDLS frame subtype. Uses values defined in enum qca_wlan_tdls_event_subtype.
+ * Included when %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_TYPE is set to
+ * QCA_WLAN_TDLS_EVENT_TYPE_DISCOVERY, QCA_WLAN_TDLS_EVENT_TYPE_SETUP, or
+ * QCA_WLAN_TDLS_EVENT_TYPE_CHANNEL_CHANGE. Not included for
+ * QCA_WLAN_TDLS_EVENT_TYPE_TEARDOWN (TDLS Teardown frames do not have a
+ * request/response/confirm subtype) or QCA_WLAN_TDLS_EVENT_TYPE_INITIATE_TDLS
+ * events.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_SUCCESS: Flag attribute.
+ * Event is successful if this attribute is present. When this attribute is not
+ * present, %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_REASON_CODE provides the
+ * reason for failure.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_ROLE: u8 attribute.
+ * Specify role of the device. Uses values defined in
+ * enum qca_wlan_tdls_event_role. Included when the driver is reporting TX or
+ * RX of a TDLS frame, i.e., when
+ * %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_TYPE is set to
+ * QCA_WLAN_TDLS_EVENT_TYPE_DISCOVERY, QCA_WLAN_TDLS_EVENT_TYPE_SETUP,
+ * QCA_WLAN_TDLS_EVENT_TYPE_TEARDOWN, or
+ * QCA_WLAN_TDLS_EVENT_TYPE_CHANNEL_CHANGE. Not included for
+ * QCA_WLAN_TDLS_EVENT_TYPE_INITIATE_TDLS events.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_OP_FREQ: u32 attribute.
+ * Station operating channel in frequency (MHz). Mandatory attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_OFFCHAN_FREQ: u32 attribute.
+ * TDLS off-channel frequency in MHz. Present only when the TDLS link is
+ * operating on an off-channel. Optional attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_RSSI: s8 attribute.
+ * RSSI of the frame in dBm (-127 ~ 0). For TX frame event, this field
+ * indicates the RSSI of the last received packet from the peer prior to
+ * sending. For RX frame event, this field indicates the RSSI of the received
+ * frame. Mandatory attribute while reporting TX or RX of a frame.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_LINK_ID: u8 attribute.
+ * The MLO link ID of the TDLS link on which the event occurred.
+ * Used only for MLO connections. Required attribute if TDLS is used in an ML
+ * association.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_TIMESTAMP: Mandatory u64 attribute.
+ * This attribute indicates the kernel boot timestamp at which the event
+ * was collected. Monotonic time value CLOCK_BOOTTIME in microseconds to be
+ * filled by the driver.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_REASON_CODE: u8 attribute.
+ * Reason code for the TDLS event. Uses values defined in
+ * enum qca_wlan_tdls_event_reason_code. For teardown events, the applicable
+ * values are QCA_WLAN_TDLS_EVENT_REASON_CODE_PEER_UNREACHABLE,
+ * QCA_WLAN_TDLS_EVENT_REASON_CODE_TEARDOWN_UNSPECIFIED,
+ * QCA_WLAN_TDLS_EVENT_REASON_CODE_INSUFFICIENT_TRAFFIC,
+ * QCA_WLAN_TDLS_EVENT_REASON_CODE_NO_TRAFFIC,
+ * QCA_WLAN_TDLS_EVENT_REASON_CODE_ROAMED,
+ * QCA_WLAN_TDLS_EVENT_REASON_CODE_CONCURRENT_OP_SAME_BAND,
+ * QCA_WLAN_TDLS_EVENT_REASON_CODE_CONCURRENT_OP_DIFF_BAND,
+ * QCA_WLAN_TDLS_EVENT_REASON_CODE_BT_COEX,
+ * QCA_WLAN_TDLS_EVENT_REASON_CODE_BSS_CHANNEL_SWITCH, and
+ * QCA_WLAN_TDLS_EVENT_REASON_CODE_DEAUTHENTICATED_LEAVING.
+ * For channel switch events (QCA_WLAN_TDLS_EVENT_TYPE_CHANNEL_CHANGE),
+ * the applicable values are
+ * QCA_WLAN_TDLS_EVENT_REASON_CODE_USER_INITIATED_CH_SWITCH and
+ * QCA_WLAN_TDLS_EVENT_REASON_CODE_PEER_INITIATED_CH_SWITCH.
+ * Not applicable for other event types.
+ */
+enum qca_wlan_vendor_attr_tdls_event_entry {
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_LOCAL_MAC_ADDR = 1,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_PEER_MAC_ADDR = 2,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_TYPE = 3,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_SUBTYPE = 4,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_SUCCESS = 5,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_ROLE = 6,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_OP_FREQ = 7,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_OFFCHAN_FREQ = 8,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_RSSI = 9,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_LINK_ID = 10,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_TIMESTAMP = 11,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_REASON_CODE = 12,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_MAX =
+	QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_tdls_event_type - Values for
+ * %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_TYPE attribute.
+ *
+ * @QCA_WLAN_TDLS_EVENT_TYPE_INITIATE_TDLS: A driver-internal event indicating
+ * that the driver has initiated a TDLS session. Generated before any TDLS
+ * frames are exchanged. %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_SUBTYPE and
+ * %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_ROLE are not included for this
+ * event type.
+ * @QCA_WLAN_TDLS_EVENT_TYPE_DISCOVERY: Reports TX or RX of a TDLS Discovery
+ * Request or Response frame. %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_SUBTYPE
+ * and %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_ROLE are included.
+ * @QCA_WLAN_TDLS_EVENT_TYPE_SETUP: Reports TX or RX of a TDLS Setup Request,
+ * Response, or Confirm frame. %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_SUBTYPE
+ * and %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_ROLE are included.
+ * @QCA_WLAN_TDLS_EVENT_TYPE_TEARDOWN: Reports TX or RX of a TDLS Teardown
+ * frame. %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_ROLE is included to indicate
+ * whether this device sent or received the Teardown frame.
+ * %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_SUBTYPE is not included.
+ * @QCA_WLAN_TDLS_EVENT_TYPE_CHANNEL_CHANGE: Reports TX or RX of a TDLS
+ * Channel Switch Request or Response Action frame.
+ * %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_SUBTYPE and
+ * %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_ROLE are included.
+ */
+enum qca_wlan_tdls_event_type {
+	QCA_WLAN_TDLS_EVENT_TYPE_INITIATE_TDLS = 0,
+	QCA_WLAN_TDLS_EVENT_TYPE_DISCOVERY = 1,
+	QCA_WLAN_TDLS_EVENT_TYPE_SETUP = 2,
+	QCA_WLAN_TDLS_EVENT_TYPE_TEARDOWN = 3,
+	QCA_WLAN_TDLS_EVENT_TYPE_CHANNEL_CHANGE = 4,
+};
+
+/**
+ * enum qca_wlan_tdls_event_subtype - Values for
+ * %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_SUBTYPE attribute.
+ *
+ * @QCA_WLAN_TDLS_EVENT_SUBTYPE_REQUEST: Request frame. Used when
+ *	%QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_TYPE is set to
+ *	QCA_WLAN_TDLS_EVENT_TYPE_DISCOVERY, QCA_WLAN_TDLS_EVENT_TYPE_SETUP, or
+ *	QCA_WLAN_TDLS_EVENT_TYPE_CHANNEL_CHANGE.
+ * @QCA_WLAN_TDLS_EVENT_SUBTYPE_RESPONSE: Response frame. Used when
+ *	%QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_TYPE is set to
+ *	QCA_WLAN_TDLS_EVENT_TYPE_DISCOVERY, QCA_WLAN_TDLS_EVENT_TYPE_SETUP, or
+ *	QCA_WLAN_TDLS_EVENT_TYPE_CHANNEL_CHANGE.
+ * @QCA_WLAN_TDLS_EVENT_SUBTYPE_CONFIRM: Confirm frame. Used when
+ *	%QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_TYPE is set to
+ *	QCA_WLAN_TDLS_EVENT_TYPE_SETUP.
+ */
+enum qca_wlan_tdls_event_subtype {
+	QCA_WLAN_TDLS_EVENT_SUBTYPE_REQUEST = 0,
+	QCA_WLAN_TDLS_EVENT_SUBTYPE_RESPONSE = 1,
+	QCA_WLAN_TDLS_EVENT_SUBTYPE_CONFIRM = 2,
+};
+
+/**
+ * enum qca_wlan_tdls_event_role - Values for
+ * %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_ROLE attribute.
+ *
+ * @QCA_WLAN_TDLS_EVENT_ROLE_SENDER: This device is the sender of a frame.
+ * @QCA_WLAN_TDLS_EVENT_ROLE_RECEIVER: This device is the receiver of a frame.
+ */
+enum qca_wlan_tdls_event_role {
+	QCA_WLAN_TDLS_EVENT_ROLE_SENDER = 0,
+	QCA_WLAN_TDLS_EVENT_ROLE_RECEIVER = 1,
+};
+
+/**
+ * enum qca_wlan_tdls_event_reason_code - Values for
+ * %QCA_WLAN_VENDOR_ATTR_TDLS_EVENT_ENTRY_REASON_CODE attribute.
+ *
+ * @QCA_WLAN_TDLS_EVENT_REASON_CODE_PEER_UNREACHABLE: TDLS peer became
+ * unreachable.
+ * @QCA_WLAN_TDLS_EVENT_REASON_CODE_TEARDOWN_UNSPECIFIED: Teardown due to
+ * an unspecified reason.
+ * @QCA_WLAN_TDLS_EVENT_REASON_CODE_INSUFFICIENT_TRAFFIC: TDLS link torn
+ * down due to insufficient traffic.
+ * @QCA_WLAN_TDLS_EVENT_REASON_CODE_NO_TRAFFIC: TDLS link torn down due to
+ * no traffic.
+ * @QCA_WLAN_TDLS_EVENT_REASON_CODE_ROAMED: TDLS link torn down because the
+ * device roamed to a different AP.
+ * @QCA_WLAN_TDLS_EVENT_REASON_CODE_CONCURRENT_OP_SAME_BAND: TDLS link torn
+ * down due to a concurrent operation on the same band.
+ * @QCA_WLAN_TDLS_EVENT_REASON_CODE_CONCURRENT_OP_DIFF_BAND: TDLS link torn
+ * down due to a concurrent operation on a different band.
+ * @QCA_WLAN_TDLS_EVENT_REASON_CODE_BT_COEX: TDLS link torn down due to
+ * Bluetooth coexistence.
+ * @QCA_WLAN_TDLS_EVENT_REASON_CODE_BSS_CHANNEL_SWITCH: TDLS link torn down
+ * due to a BSS channel switch.
+ * @QCA_WLAN_TDLS_EVENT_REASON_CODE_DEAUTHENTICATED_LEAVING: TDLS link torn
+ * down because the device was deauthenticated or is leaving the BSS.
+ * @QCA_WLAN_TDLS_EVENT_REASON_CODE_USER_INITIATED_CH_SWITCH: TDLS channel
+ * switch is because of user initiation.
+ * @QCA_WLAN_TDLS_EVENT_REASON_CODE_PEER_INITIATED_CH_SWITCH: TDLS channel
+ * switch is because of peer initiation.
+ */
+enum qca_wlan_tdls_event_reason_code {
+	QCA_WLAN_TDLS_EVENT_REASON_CODE_PEER_UNREACHABLE = 0,
+	QCA_WLAN_TDLS_EVENT_REASON_CODE_TEARDOWN_UNSPECIFIED = 1,
+	QCA_WLAN_TDLS_EVENT_REASON_CODE_INSUFFICIENT_TRAFFIC = 2,
+	QCA_WLAN_TDLS_EVENT_REASON_CODE_NO_TRAFFIC = 3,
+	QCA_WLAN_TDLS_EVENT_REASON_CODE_ROAMED = 4,
+	QCA_WLAN_TDLS_EVENT_REASON_CODE_CONCURRENT_OP_SAME_BAND = 5,
+	QCA_WLAN_TDLS_EVENT_REASON_CODE_CONCURRENT_OP_DIFF_BAND = 6,
+	QCA_WLAN_TDLS_EVENT_REASON_CODE_BT_COEX = 7,
+	QCA_WLAN_TDLS_EVENT_REASON_CODE_BSS_CHANNEL_SWITCH = 8,
+	QCA_WLAN_TDLS_EVENT_REASON_CODE_DEAUTHENTICATED_LEAVING = 9,
+	QCA_WLAN_TDLS_EVENT_REASON_CODE_USER_INITIATED_CH_SWITCH = 10,
+	QCA_WLAN_TDLS_EVENT_REASON_CODE_PEER_INITIATED_CH_SWITCH = 11,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_tdls_stats - Attributes used by
+ * %QCA_NL80211_VENDOR_SUBCMD_TDLS_STATS vendor command.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_CONFIG: u8 attribute. Used to configure
+ * from userspace to enable/disable sending TDLS data statistics.
+ * Uses values defined in enum qca_wlan_tdls_config.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRIES: Nested attribute containing one
+ * or more TDLS statistics entries. Each entry is a nested attribute with
+ * attributes defined in enum qca_wlan_vendor_attr_tdls_stats_entry,
+ * representing the data statistics for a TDLS link.
+ */
+enum qca_wlan_vendor_attr_tdls_stats {
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_CONFIG = 1,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRIES = 2,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_MAX =
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_tdls_stats_entry - Attributes used inside nested
+ * attribute %QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRIES to provide TDLS data
+ * statistics. When both %QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_OP_FREQ and
+ * %QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_OFFCHAN_FREQ are present in the
+ * same entry, the statistics cover both channels. Otherwise, the statistics
+ * cover only the channel indicated by whichever of those attributes is present.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_LOCAL_MAC_ADDR: 6-byte MAC address.
+ * The MAC address of the local STA. Mandatory attribute. The MLD MAC address is
+ * used if the local STA is an MLO device.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_PEER_MAC_ADDR: 6-byte MAC address.
+ * The MAC address of the peer STA. Mandatory attribute. The MLD MAC address is
+ * used if the peer STA is an MLO device.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_TX_DATA_RATE: u32 attribute.
+ * The PHY data rate of the latest transmitted Data frame on the TDLS link in
+ * units of 100 kbps. Mandatory attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_RX_DATA_RATE: u32 attribute.
+ * The PHY data rate of the latest received Data frame on the TDLS link in units
+ * of 100 kbps. Mandatory attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_TX_MPDUS: u32 attribute.
+ * Total TX MPDUs. Mandatory attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_TX_FAILURES: u32 attribute.
+ * Number of TX MPDUs that are failed to send or ACK is not received from the
+ * TDLS peer. Mandatory attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_RX_MPDUS: u32 attribute.
+ * Total RX MPDUs. Mandatory attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_MCS_PKT_COUNT: Array of nested
+ * attributes, used for the TDLS link. This represents the number of PPDUs
+ * transmitted/received with each MCS value.
+ * See enum qca_wlan_vendor_attr_mcs_pkt. Mandatory attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_RX_FAILURES: u32 attribute.
+ * RX MPDUs for which FCS check fails but the RA and TA matches the TDLS
+ * link addresses. This may not give the exact total number of RX failures of
+ * a TDLS link as the MAC address fields themselves might get corrupted for some
+ * of the RX MPDUs. Mandatory attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_LINK_ID: u8 attribute.
+ * The MLO link ID of the TDLS link on which the statistics are reported.
+ * Used only for MLO connections. Required attribute if TDLS is used in an ML
+ * association.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_OP_FREQ: u32 attribute.
+ * The AP's operating channel frequency in MHz on which the statistics are
+ * collected. Optional attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_OFFCHAN_FREQ: u32 attribute.
+ * TDLS off-channel frequency in MHz on which the statistics are collected.
+ * Present only when the TDLS link is operating on an off-channel.
+ * Optional attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_TIMESTAMP: Mandatory u64 attribute.
+ * This attribute indicates the kernel boot timestamp at which the statistics
+ * were collected. Monotonic time value CLOCK_BOOTTIME in microseconds to be
+ * filled by the driver.
+ */
+enum qca_wlan_vendor_attr_tdls_stats_entry {
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_LOCAL_MAC_ADDR = 1,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_PEER_MAC_ADDR = 2,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_TX_DATA_RATE = 3,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_RX_DATA_RATE = 4,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_TX_MPDUS = 5,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_TX_FAILURES = 6,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_RX_MPDUS = 7,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_MCS_PKT_COUNT = 8,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_RX_FAILURES = 9,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_LINK_ID = 10,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_OP_FREQ = 11,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_OFFCHAN_FREQ = 12,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_TIMESTAMP = 13,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_MAX =
+	QCA_WLAN_VENDOR_ATTR_TDLS_STATS_ENTRY_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_tdls_reporting_config - Attributes used by
+ * %QCA_NL80211_VENDOR_SUBCMD_TDLS_REPORTING_CONFIG vendor command.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_EVENTS: u8 attribute. Configures
+ * the driver to send or stop sending TDLS events to userspace via
+ * %QCA_NL80211_VENDOR_SUBCMD_TDLS_EVENT. Uses values defined in
+ * enum qca_wlan_tdls_config. Optional attribute.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_STATS: u8 attribute. Configures
+ * the driver to send or stop sending TDLS statistics to userspace via
+ * %QCA_NL80211_VENDOR_SUBCMD_TDLS_STATS. Uses values defined in
+ * enum qca_wlan_tdls_config. Optional attribute.
+ */
+enum qca_wlan_vendor_attr_tdls_reporting_config {
+	QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_EVENTS = 1,
+	QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_STATS = 2,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_MAX =
+	QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_AFTER_LAST - 1,
 };
 
 #endif /* QCA_VENDOR_H */
