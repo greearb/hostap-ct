@@ -582,10 +582,10 @@ static u64 rsnxe_capab(struct wpa_auth_config *conf, int key_mgmt)
 	 * Frame Encryption Support field in the RSNXE to 1.
 	 */
 	if (conf->assoc_frame_encryption ||
-	    conf->pmksa_caching_privacy) {
+	    conf->pmksa_caching_privacy)
 		capab |= BIT(WLAN_RSNX_CAPAB_ASSOC_FRAME_ENCRYPTION);
+	if (key_mgmt & WPA_KEY_MGMT_EPPKE)
 		capab |= BIT(WLAN_RSNX_CAPAB_KEK_IN_PASN);
-	}
 	if (conf->pmksa_caching_privacy)
 		capab |= BIT(WLAN_RSNX_CAPAB_PMKSA_CACHING_PRIVACY);
 	if (conf->eap_using_authentication_frames)

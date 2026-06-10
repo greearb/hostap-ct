@@ -1163,10 +1163,10 @@ u8 * hostapd_eid_rsnxe(struct hostapd_data *hapd, u8 *eid, size_t len)
 	if ((hapd->iface->drv_flags2 &
 	     WPA_DRIVER_FLAGS2_ASSOCIATION_FRAME_ENCRYPTION) &&
 	    (hapd->conf->assoc_frame_encryption ||
-	    hapd->conf->pmksa_caching_privacy)) {
+	    hapd->conf->pmksa_caching_privacy))
 		capab |= BIT(WLAN_RSNX_CAPAB_ASSOC_FRAME_ENCRYPTION);
+	if (hapd->conf->wpa_key_mgmt & WPA_KEY_MGMT_EPPKE)
 		capab |= BIT(WLAN_RSNX_CAPAB_KEK_IN_PASN);
-	}
 	if (hapd->conf->pmksa_caching_privacy)
 		capab |= BIT(WLAN_RSNX_CAPAB_PMKSA_CACHING_PRIVACY);
 	if (hapd->conf->eap_using_authentication_frames)
