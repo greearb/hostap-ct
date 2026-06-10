@@ -1577,6 +1577,14 @@ enum qca_radiotap_vendor_ids {
  *
  *	The attributes used with this command are defined in
  *	enum qca_wlan_vendor_attr_tdls_reporting_config.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_TAS: This vendor subcommand is used to manage
+ *	TAS (Time Average SAR) for Wi-Fi. The operation is selected via the
+ *	mandatory %QCA_WLAN_VENDOR_ATTR_TAS_OPERATION attribute; see
+ *	enum qca_wlan_tas_operation for the supported operations.
+ *
+ *	The attributes used with this command are defined in
+ *	enum qca_wlan_vendor_attr_tas.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1839,6 +1847,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_TDLS_EVENT = 276,
 	QCA_NL80211_VENDOR_SUBCMD_TDLS_STATS = 277,
 	QCA_NL80211_VENDOR_SUBCMD_TDLS_REPORTING_CONFIG = 278,
+	QCA_NL80211_VENDOR_SUBCMD_TAS = 279,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -24551,6 +24560,191 @@ enum qca_wlan_vendor_attr_tdls_reporting_config {
 	QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_MAX =
 	QCA_WLAN_VENDOR_ATTR_TDLS_REPORTING_CONFIG_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_tas_mode - TAS mode values used with
+ * %QCA_WLAN_VENDOR_ATTR_TAS_MODE_VALUE.
+ *
+ * @QCA_WLAN_TAS_MODE_NONE: Apply default TAS power table.
+ * @QCA_WLAN_TAS_MODE_INCREASE: Baseline + X dB (e.g., when the device is
+ *	away from the body).
+ * @QCA_WLAN_TAS_MODE_DECREASE: Baseline - Y dB (e.g., when BT is
+ *	active, applying TAS backoff).
+ */
+enum qca_wlan_tas_mode {
+	QCA_WLAN_TAS_MODE_NONE = 0,
+	QCA_WLAN_TAS_MODE_INCREASE = 1,
+	QCA_WLAN_TAS_MODE_DECREASE = 2,
+};
+
+/**
+ * enum qca_wlan_tas_operation - TAS operation values used with
+ * %QCA_WLAN_VENDOR_ATTR_TAS_OPERATION.
+ *
+ * @QCA_WLAN_TAS_OPERATION_SET_MODE: Set the TAS mode. See
+ *	%QCA_WLAN_VENDOR_ATTR_TAS_MODE_VALUE.
+ * @QCA_WLAN_TAS_OPERATION_GET_METRICS: Query per-band/per-antenna TX power
+ *	level classifications and the regulatory measurement time window from
+ *	the firmware. See %QCA_WLAN_VENDOR_ATTR_TAS_METRICS_TIME_WINDOW and
+ *	%QCA_WLAN_VENDOR_ATTR_TAS_BAND_ENTRIES.
+ * @QCA_WLAN_TAS_OPERATION_GET_PLIMIT: Query per-chain TX power limits for a
+ *	specified scenario from the firmware. See
+ *	%QCA_WLAN_VENDOR_ATTR_TAS_PLIMIT_SCENARIO and
+ *	%QCA_WLAN_VENDOR_ATTR_TAS_BAND_ENTRIES.
+ */
+enum qca_wlan_tas_operation {
+	QCA_WLAN_TAS_OPERATION_SET_MODE = 0,
+	QCA_WLAN_TAS_OPERATION_GET_METRICS = 1,
+	QCA_WLAN_TAS_OPERATION_GET_PLIMIT = 2,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_tas - Attributes for
+ * %QCA_NL80211_VENDOR_SUBCMD_TAS.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TAS_OPERATION: u32 attribute. Selects the TAS
+ *	operation to perform. Mandatory in all requests. Values are defined
+ *	in enum qca_wlan_tas_operation.
+ *
+ * -- %QCA_WLAN_TAS_OPERATION_SET_MODE attributes --
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TAS_MODE_VALUE: u32 attribute. TAS mode to
+ *	activate. Values are defined in enum qca_wlan_tas_mode.
+ *
+ * -- %QCA_WLAN_TAS_OPERATION_GET_METRICS attributes --
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TAS_METRICS_TIME_WINDOW: u32 attribute. Regulatory
+ *	measurement time window in seconds. Present in
+ *	%QCA_WLAN_TAS_OPERATION_GET_METRICS responses.
+ * @QCA_WLAN_VENDOR_ATTR_TAS_BAND_ENTRIES: Nested attribute. Array of per-band
+ *	entries in the response for %QCA_WLAN_TAS_OPERATION_GET_METRICS and
+ *	%QCA_WLAN_TAS_OPERATION_GET_PLIMIT. Each entry is a container defined
+ *	by enum qca_wlan_vendor_attr_tas_band, which holds
+ *	%QCA_WLAN_VENDOR_ATTR_TAS_BAND_INDEX and
+ *	%QCA_WLAN_VENDOR_ATTR_TAS_BAND_ANTENNA_LIST. Each element of
+ *	%QCA_WLAN_VENDOR_ATTR_TAS_BAND_ANTENNA_LIST is defined by
+ *	enum qca_wlan_vendor_attr_tas_antenna and carries
+ *	%QCA_WLAN_VENDOR_ATTR_TAS_ANTENNA_INDEX and
+ *	%QCA_WLAN_VENDOR_ATTR_TAS_ANTENNA_TX_POWER_LEVEL_INFO. The
+ *	%QCA_WLAN_VENDOR_ATTR_TAS_ANTENNA_TX_POWER_LEVEL_INFO container is
+ *	defined by enum qca_wlan_vendor_attr_tas_tx_power_level_info.
+ *
+ * -- %QCA_WLAN_TAS_OPERATION_GET_PLIMIT attributes --
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TAS_PLIMIT_SCENARIO: u32 attribute. Mandatory input
+ *	scenario for which the per-chain TX power limits are requested. Values
+ *	are defined in enum qca_wlan_power_scenario. The response uses
+ *	%QCA_WLAN_VENDOR_ATTR_TAS_BAND_ENTRIES (see above).
+ */
+enum qca_wlan_vendor_attr_tas {
+	QCA_WLAN_VENDOR_ATTR_TAS_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TAS_OPERATION = 1,
+	QCA_WLAN_VENDOR_ATTR_TAS_MODE_VALUE = 2,
+	QCA_WLAN_VENDOR_ATTR_TAS_METRICS_TIME_WINDOW = 3,
+	QCA_WLAN_VENDOR_ATTR_TAS_BAND_ENTRIES = 4,
+	QCA_WLAN_VENDOR_ATTR_TAS_PLIMIT_SCENARIO = 5,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TAS_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TAS_MAX =
+	QCA_WLAN_VENDOR_ATTR_TAS_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_tas_band - Attributes used inside nested
+ * attribute %QCA_WLAN_VENDOR_ATTR_TAS_BAND_ENTRIES. Used in
+ * %QCA_WLAN_TAS_OPERATION_GET_METRICS and %QCA_WLAN_TAS_OPERATION_GET_PLIMIT
+ * responses.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TAS_BAND_INDEX: u8 value to indicate the band for
+ *	this entry. Valid values are enumerated in enum %nl80211_band.
+ * @QCA_WLAN_VENDOR_ATTR_TAS_BAND_ANTENNA_LIST: Nested attribute. Array of
+ *	per-antenna entries for this band. Attributes for each entry are
+ *	defined in enum qca_wlan_vendor_attr_tas_antenna.
+ */
+enum qca_wlan_vendor_attr_tas_band {
+	QCA_WLAN_VENDOR_ATTR_TAS_BAND_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TAS_BAND_INDEX = 1,
+	QCA_WLAN_VENDOR_ATTR_TAS_BAND_ANTENNA_LIST = 2,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TAS_BAND_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TAS_BAND_MAX =
+	QCA_WLAN_VENDOR_ATTR_TAS_BAND_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_tas_antenna - Attributes used inside nested
+ * attribute %QCA_WLAN_VENDOR_ATTR_TAS_BAND_ANTENNA_LIST. Used in
+ * %QCA_WLAN_TAS_OPERATION_GET_METRICS and %QCA_WLAN_TAS_OPERATION_GET_PLIMIT
+ * responses.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TAS_ANTENNA_INDEX: u32 attribute. Zero-based antenna
+ *	chain index. The maximum value depends on the firmware and hardware
+ *	configuration.
+ * @QCA_WLAN_VENDOR_ATTR_TAS_ANTENNA_TX_POWER_LEVEL_INFO: Nested attribute.
+ *	TX power level info container for this antenna chain. Attributes are
+ *	defined in enum qca_wlan_vendor_attr_tas_tx_power_level_info. In
+ *	%QCA_WLAN_TAS_OPERATION_GET_METRICS responses,
+ *	%QCA_WLAN_VENDOR_ATTR_TAS_TX_POWER_LEVEL_INFO_LEVEL is populated. In
+ *	%QCA_WLAN_TAS_OPERATION_GET_PLIMIT responses,
+ *	%QCA_WLAN_VENDOR_ATTR_TAS_TX_POWER_LEVEL_INFO_LIMIT_DBM is populated.
+ */
+enum qca_wlan_vendor_attr_tas_antenna {
+	QCA_WLAN_VENDOR_ATTR_TAS_ANTENNA_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TAS_ANTENNA_INDEX = 1,
+	QCA_WLAN_VENDOR_ATTR_TAS_ANTENNA_TX_POWER_LEVEL_INFO = 2,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TAS_ANTENNA_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TAS_ANTENNA_MAX =
+	QCA_WLAN_VENDOR_ATTR_TAS_ANTENNA_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_tas_tx_power_level_info - Attributes used inside
+ * nested attribute %QCA_WLAN_VENDOR_ATTR_TAS_ANTENNA_TX_POWER_LEVEL_INFO for
+ * %QCA_WLAN_TAS_OPERATION_GET_METRICS and %QCA_WLAN_TAS_OPERATION_GET_PLIMIT
+ * responses.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_TAS_TX_POWER_LEVEL_INFO_LEVEL: u32 attribute.
+ *	TX power level classification for this antenna chain. Present in
+ *	%QCA_WLAN_TAS_OPERATION_GET_METRICS responses.
+ *	Values are defined in enum qca_wlan_tx_power_level.
+ * @QCA_WLAN_VENDOR_ATTR_TAS_TX_POWER_LEVEL_INFO_LIMIT_DBM: u32 attribute.
+ *	TX power limit for this antenna chain in units of 0.25 dBm. Present in
+ *	%QCA_WLAN_TAS_OPERATION_GET_PLIMIT responses.
+ */
+enum qca_wlan_vendor_attr_tas_tx_power_level_info {
+	QCA_WLAN_VENDOR_ATTR_TAS_TX_POWER_LEVEL_INFO_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TAS_TX_POWER_LEVEL_INFO_LEVEL = 1,
+	QCA_WLAN_VENDOR_ATTR_TAS_TX_POWER_LEVEL_INFO_LIMIT_DBM = 2,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TAS_TX_POWER_LEVEL_INFO_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TAS_TX_POWER_LEVEL_INFO_MAX =
+	QCA_WLAN_VENDOR_ATTR_TAS_TX_POWER_LEVEL_INFO_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_tx_power_level - TX power classification relative to the
+ * TAS DECREASE/Default/INCREASE thresholds of the active TAS table. Used as
+ * the value of
+ * %QCA_WLAN_VENDOR_ATTR_TAS_TX_POWER_LEVEL_INFO_LEVEL.
+ *
+ * @QCA_WLAN_TX_POWER_LEVEL_UNSUPPORTED: Antenna chain not present or unused.
+ * @QCA_WLAN_TX_POWER_LEVEL_LOW: Avg. TX power <= DECREASE limit.
+ * @QCA_WLAN_TX_POWER_LEVEL_MEDIUM: DECREASE < Avg. TX power <= Default.
+ * @QCA_WLAN_TX_POWER_LEVEL_HIGH: Default < Avg. TX power <= INCREASE limit.
+ * @QCA_WLAN_TX_POWER_LEVEL_EXTRA_HIGH: Avg. TX power > INCREASE limit.
+ */
+enum qca_wlan_tx_power_level {
+	QCA_WLAN_TX_POWER_LEVEL_UNSUPPORTED = 0,
+	QCA_WLAN_TX_POWER_LEVEL_LOW = 1,
+	QCA_WLAN_TX_POWER_LEVEL_MEDIUM = 2,
+	QCA_WLAN_TX_POWER_LEVEL_HIGH = 3,
+	QCA_WLAN_TX_POWER_LEVEL_EXTRA_HIGH = 4,
 };
 
 #endif /* QCA_VENDOR_H */
