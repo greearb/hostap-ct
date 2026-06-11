@@ -52,6 +52,7 @@ def test_ieee8021x_auth_alg_eap_tls(dev, apdev):
 
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_ttls_mschapv2(dev, apdev):
     """IEEE 802.1X authentication using Authentication frames with EAP-TTLS/MSCHAPv2"""
@@ -80,6 +81,7 @@ def test_ieee8021x_auth_alg_eap_ttls_mschapv2(dev, apdev):
 
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_peap_mschapv2(dev, apdev):
     """IEEE 802.1X authentication using Authentication frames with EAP-PEAP/MSCHAPv2"""
@@ -108,6 +110,7 @@ def test_ieee8021x_auth_alg_eap_peap_mschapv2(dev, apdev):
 
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_multiple_clients(dev, apdev):
     """IEEE 802.1X authentication with multiple clients"""
@@ -153,6 +156,8 @@ def test_ieee8021x_auth_alg_multiple_clients(dev, apdev):
 
     if sta1["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector for client 1")
+    hwsim_utils.test_connectivity(dev[0], hapd)
+    hwsim_utils.test_connectivity(dev[1], hapd)
 
 def test_ieee8021x_auth_alg_eap_tls_wpa_eap(dev, apdev):
     """IEEE 802.1X authentication with WPA-EAP (non-SHA256) AKM"""
@@ -181,6 +186,7 @@ def test_ieee8021x_auth_alg_eap_tls_wpa_eap(dev, apdev):
 
     if sta["AKMSuiteSelector"] != '00-0f-ac-1':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_tls_wpa_eap_sha384(dev, apdev):
     """IEEE 802.1X authentication with WPA-EAP-SHA384 AKM"""
@@ -210,6 +216,7 @@ def test_ieee8021x_auth_alg_eap_tls_wpa_eap_sha384(dev, apdev):
 
     if sta["AKMSuiteSelector"] != '00-0f-ac-23':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_tls_mixed_akm(dev, apdev):
     """IEEE 802.1X authentication with mixed AKM support"""
@@ -237,6 +244,7 @@ def test_ieee8021x_auth_alg_eap_tls_mixed_akm(dev, apdev):
 
     if sta0["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector for SHA256 client")
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_suite_b_192(dev, apdev):
     """IEEE 802.1X authentication using Authentication frames with Suite B 192-bit"""
@@ -273,6 +281,7 @@ def test_ieee8021x_auth_alg_suite_b_192(dev, apdev):
 
     if sta["AKMSuiteSelector"] != '00-0f-ac-12':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_sim(dev, apdev):
     """IEEE 802.1X authentication using Authentication frames with EAP-SIM"""
@@ -295,6 +304,7 @@ def test_ieee8021x_auth_alg_eap_sim(dev, apdev):
     sta = hapd.get_sta(dev[0].own_addr())
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_aka(dev, apdev):
     """IEEE 802.1X authentication using Authentication frames with EAP-AKA"""
@@ -317,6 +327,7 @@ def test_ieee8021x_auth_alg_eap_aka(dev, apdev):
     sta = hapd.get_sta(dev[0].own_addr())
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_aka_prime(dev, apdev):
     """IEEE 802.1X authentication using Authentication frames with EAP-AKA'"""
@@ -339,6 +350,7 @@ def test_ieee8021x_auth_alg_eap_aka_prime(dev, apdev):
     sta = hapd.get_sta(dev[0].own_addr())
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_pwd(dev, apdev):
     """IEEE 802.1X authentication using Authentication frames with EAP-pwd"""
@@ -361,6 +373,7 @@ def test_ieee8021x_auth_alg_eap_pwd(dev, apdev):
     sta = hapd.get_sta(dev[0].own_addr())
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_pax(dev, apdev):
     """IEEE 802.1X authentication using Authentication frames with EAP-PAX"""
@@ -382,6 +395,7 @@ def test_ieee8021x_auth_alg_eap_pax(dev, apdev):
     sta = hapd.get_sta(dev[0].own_addr())
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_psk(dev, apdev):
     """IEEE 802.1X authentication using Authentication frames with EAP-PSK"""
@@ -403,6 +417,7 @@ def test_ieee8021x_auth_alg_eap_psk(dev, apdev):
     sta = hapd.get_sta(dev[0].own_addr())
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_sake(dev, apdev):
     """IEEE 802.1X authentication using Authentication frames with EAP-SAKE"""
@@ -424,6 +439,7 @@ def test_ieee8021x_auth_alg_eap_sake(dev, apdev):
     sta = hapd.get_sta(dev[0].own_addr())
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_gpsk(dev, apdev):
     """IEEE 802.1X authentication using Authentication frames with EAP-GPSK"""
@@ -445,6 +461,7 @@ def test_ieee8021x_auth_alg_eap_gpsk(dev, apdev):
     sta = hapd.get_sta(dev[0].own_addr())
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_eke(dev, apdev):
     """IEEE 802.1X authentication using Authentication frames with EAP-EKE"""
@@ -466,6 +483,7 @@ def test_ieee8021x_auth_alg_eap_eke(dev, apdev):
     sta = hapd.get_sta(dev[0].own_addr())
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_ikev2(dev, apdev):
     """IEEE 802.1X authentication using Authentication frames with EAP-IKEv2"""
@@ -488,6 +506,7 @@ def test_ieee8021x_auth_alg_eap_ikev2(dev, apdev):
     sta = hapd.get_sta(dev[0].own_addr())
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_fast(dev, apdev):
     """IEEE 802.1X authentication using Authentication frames with EAP-FAST"""
@@ -515,6 +534,7 @@ def test_ieee8021x_auth_alg_eap_fast(dev, apdev):
     sta = hapd.get_sta(dev[0].own_addr())
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_mlo_single_link(dev, apdev):
     """IEEE 802.1X Authentication frames: MLO single-link EAP-TLS"""
@@ -556,6 +576,7 @@ def test_ieee8021x_auth_mlo_single_link(dev, apdev):
         # Verify MLD state: single link active
         eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
                           valid_links=1, active_links=1)
+        hwsim_utils.test_connectivity(wpas, hapd0)
 
 def test_ieee8021x_auth_mlo_two_links(dev, apdev):
     """IEEE 802.1X Authentication frames: MLO two-link EAP-TLS"""
@@ -602,6 +623,7 @@ def test_ieee8021x_auth_mlo_two_links(dev, apdev):
         # Verify MLD state: two links => bitmap 0b11 == 3
         eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
                           valid_links=3, active_links=3)
+        hwsim_utils.test_connectivity(wpas, hapd0)
 
 def test_ieee8021x_auth_mlo_three_links(dev, apdev):
     """IEEE 802.1X Authentication frames: MLO three-link EAP-TLS"""
@@ -647,6 +669,7 @@ def test_ieee8021x_auth_mlo_three_links(dev, apdev):
 
         eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
                           valid_links=7, active_links=7)
+        hwsim_utils.test_connectivity(wpas, hapd0)
 
 def test_ieee8021x_auth_mlo_connect_disconnect_reconnect(dev, apdev):
     """IEEE 802.1X Authentication frames: MLO two-link connect/disconnect/reconnect"""
@@ -686,6 +709,7 @@ def test_ieee8021x_auth_mlo_connect_disconnect_reconnect(dev, apdev):
 
         eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
                           valid_links=3, active_links=3)
+        hwsim_utils.test_connectivity(wpas, hapd0)
 
         for _ in range(2):
             wpas.request("DISCONNECT")
@@ -698,6 +722,7 @@ def test_ieee8021x_auth_mlo_connect_disconnect_reconnect(dev, apdev):
                     hapd.wait_sta()
                 except Exception:
                     pass
+            hwsim_utils.test_connectivity(wpas, hapd0)
 
 def test_ieee8021x_auth_connect_disconnect_reconnect(dev, apdev):
     """IEEE 802.1X Authentication frames: non-MLO connect/disconnect/reconnect"""
@@ -721,6 +746,7 @@ def test_ieee8021x_auth_connect_disconnect_reconnect(dev, apdev):
                    eap_over_auth_frame="1")
 
     hapd.wait_sta()
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
     for _ in range(2):
         dev[0].request("DISCONNECT")
@@ -728,6 +754,7 @@ def test_ieee8021x_auth_connect_disconnect_reconnect(dev, apdev):
         dev[0].request("RECONNECT")
         dev[0].wait_connected(timeout=15, error="Reconnect timed out")
         hapd.wait_sta()
+        hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_legacy_akm_wpa_eap(dev, apdev):
     """Legacy WPA-EAP authentication with AKM 1 (supplicant should not use IEEE 802.1X Authentication frames with AKM 1)"""
@@ -760,6 +787,7 @@ def test_ieee8021x_auth_alg_legacy_akm_wpa_eap(dev, apdev):
     logger.info("Auth Algorithm: " + str(auth_alg))
     if str(auth_alg) != "OPEN_SYSTEM" and str(auth_alg) != "0":
         raise Exception("Expected legacy OPEN_SYSTEM auth, got: " + str(auth_alg))
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_tls_pmksa_privacy(dev, apdev):
     """IEEE 802.1X authentication with EAP-TLS and PMKSA caching privacy"""
@@ -789,6 +817,7 @@ def test_ieee8021x_auth_alg_eap_tls_pmksa_privacy(dev, apdev):
 
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected()
@@ -800,6 +829,7 @@ def test_ieee8021x_auth_alg_eap_tls_pmksa_privacy(dev, apdev):
 
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value after PMKSA caching")
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_tls_ptk_rekey(dev, apdev):
     """IEEE 802.1X authentication with EAP-TLS and PTK rekey"""
@@ -828,10 +858,13 @@ def test_ieee8021x_auth_alg_eap_tls_ptk_rekey(dev, apdev):
 
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
     ev = dev[0].wait_event(["WPA: Key negotiation completed"], timeout=11)
     if ev is None:
         raise Exception("PTK rekey timed out")
+
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_alg_eap_tls_gtk_rekey(dev, apdev):
     """IEEE 802.1X authentication with EAP-TLS and GTK rekey"""
@@ -864,6 +897,8 @@ def test_ieee8021x_auth_alg_eap_tls_gtk_rekey(dev, apdev):
     ev = dev[0].wait_event(["RSN: Group rekeying completed"], timeout=11)
     if ev is None:
         raise Exception("GTK rekey timed out")
+
+    hwsim_utils.test_connectivity(dev[0], hapd)
 
 def test_ieee8021x_auth_protocol_eap_tls_pmksa_not_found_by_ap(dev, apdev):
     """IEEE 802.1X authentication with PMKSA caching fallback when AP does not recognize PMKID"""
@@ -912,3 +947,4 @@ def test_ieee8021x_auth_protocol_eap_tls_pmksa_not_found_by_ap(dev, apdev):
 
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
         raise Exception("Incorrect AKMSuiteSelector after PMKSA fallback")
+    hwsim_utils.test_connectivity(dev[0], hapd)
