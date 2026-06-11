@@ -1501,6 +1501,7 @@ int wpas_pr_pasn_trigger(struct wpa_supplicant *wpa_s,
 				    pr_pasn_params->password : NULL) < 0) {
 				pr_pasn_params->pr_pasn_status =
 					PASN_STATUS_FAILURE;
+				wpas_pr_clear_ranging_params(pr);
 				return -1;
 			}
 		}
