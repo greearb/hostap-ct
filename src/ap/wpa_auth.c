@@ -8150,6 +8150,26 @@ bool wpa_auth_ap_sta_support_assoc_enc(struct wpa_state_machine *sm)
 }
 
 
+void wpa_auth_ensure_group_init(struct wpa_state_machine *sm)
+{
+#ifdef CONFIG_IEEE80211BE
+	int link_id;
+#endif /* CONFIG_IEEE80211BE */
+
+	if (!sm)
+		return;
+
+	wpa_group_ensure_init(sm->wpa_auth, sm->group);
+#ifdef CONFIG_IEEE80211BE
+	for_each_sm_auth(sm, link_id)
+		wpa_group_ensure_init(sm->mld_links[link_id].wpa_auth,
+				      sm->mld_links[link_id].wpa_auth->group);
+#endif /* CONFIG_IEEE80211BE */
+
+	return;
+}
+
+
 u8 * wpa_auth_write_assoc_resp_eppke(struct wpa_state_machine *sm,
 				     u8 *pos, size_t max_len, bool is_ml)
 {

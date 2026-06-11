@@ -681,6 +681,7 @@ void wpa_store_eppke_pmk_ptk_sm(struct wpa_state_machine *sm,
 int wpa_auth_epp_derive_new_pmkid(const u8 *anonce, const u8 *snonce,
 				  int akmp, size_t pmk_len, u8 *pmkid);
 bool wpa_auth_ap_sta_support_assoc_enc(struct wpa_state_machine *sm);
+void wpa_auth_ensure_group_init(struct wpa_state_machine *sm);
 
 int wpa_auth_resend_m1(struct wpa_state_machine *sm, int change_anonce,
 		       void (*cb)(void *ctx1, void *ctx2),

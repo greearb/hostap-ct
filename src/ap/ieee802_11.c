@@ -6877,6 +6877,14 @@ rsnxe_done:
 	     sta->auth_alg == WLAN_AUTH_802_1X) &&
 	    wpa_auth_ap_sta_support_assoc_enc(sta->wpa_sm) &&
 	    status_code == WLAN_STATUS_SUCCESS) {
+		/* Ensure GMK/Counter are initialized before the Key Delivery
+		 * element is built. For auth-frame STAs the normal 4-way
+		 * handshake path (SM_STATE AUTHENTICATION2) is skipped, so
+		 * wpa_group_ensure_init() must be called here instead.
+		 * Without this, the first non-auth-frame STA that connects
+		 * later triggers a GTK rotation that is unknown to this STA,
+		 * breaking broadcast frame reception. */
+		wpa_auth_ensure_group_init(sta->wpa_sm);
 		reply->frame_control |= WLAN_FC_PROTECTED;
 
 #ifdef CONFIG_PMKSA_PRIVACY
