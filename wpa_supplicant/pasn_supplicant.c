@@ -39,10 +39,10 @@ struct wpa_pasn_auth_work {
 	u16 group;
 	int network_id;
 	struct wpabuf *comeback;
-#ifdef CONFIG_ENC_ASSOC
 	unsigned int auth_alg;
 	int group_cipher;
 	int group_mgmt_cipher;
+#ifdef CONFIG_ENC_ASSOC
 	u16 rsn_capab;
 	u8 *rsnxe_data;
 	bool is_ml_peer;
@@ -1162,10 +1162,10 @@ int wpas_pasn_auth_start(struct wpa_supplicant *wpa_s,
 	awork->cipher = cipher;
 	awork->group = group;
 	awork->network_id = network_id;
-#ifdef CONFIG_ENC_ASSOC
 	awork->auth_alg = auth_alg;
 	awork->group_cipher = group_cipher;
 	awork->group_mgmt_cipher = group_mgmt_cipher;
+#ifdef CONFIG_ENC_ASSOC
 	awork->rsn_capab = rsn_capab;
 	awork->is_ml_peer = is_ml_peer;
 
