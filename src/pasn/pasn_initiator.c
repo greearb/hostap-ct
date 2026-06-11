@@ -945,9 +945,6 @@ void wpa_pasn_reset(struct pasn_data *pasn)
 
 	wpabuf_free(pasn->frame);
 	pasn->frame = NULL;
-
-	wpabuf_free(pasn->auth1);
-	pasn->auth1 = NULL;
 }
 
 
