@@ -3121,7 +3121,7 @@ static void qca_nl80211_key_mgmt_auth(struct wpa_driver_nl80211_data *drv,
 			   tb[QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_PMK],
 			   tb[QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_PMKID],
 			   tb[QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_MLO_LINKS],
-			   NULL);
+			   tb[QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_ASSOC_ENCRYPTED]);
 
 #ifdef ANDROID
 #ifdef ANDROID_LIB_EVENT
