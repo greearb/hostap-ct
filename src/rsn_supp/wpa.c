@@ -7576,86 +7576,18 @@ int wpa_sm_install_mlo_group_keys(struct wpa_sm *sm, const u8 *key_data,
 static int process_key_delivery_link(struct wpa_sm *sm, u8 i,
 				     struct wpa_eapol_ie_parse *kde)
 {
-	struct wpa_gtk_data gd;
-	int ret = -1;
-	size_t gtk_kde_len;
-	const u8 *rsc;
-	int rsc_len;
-
-	os_memset(&gd, 0, sizeof(gd));
-
-	if (!kde->mlo_gtk[i]) {
-		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
-			"ENC_ASSOC: No MLO GTK for link ID %u", i);
-		goto fail;
-	}
-
-	gtk_kde_len = kde->mlo_gtk_len[i];
-
-	/* Minimal validation:
-	 * 1 byte KeyID + RSC + at least 5 bytes GTK
-	 */
-	if (gtk_kde_len < 1 + 6 + 5) {
-		wpa_printf(MSG_DEBUG,
-			   "ENC_ASSOC: Invalid MLO GTK KDE len=%zu for link %u",
-			   gtk_kde_len, i);
-		goto fail;
-	}
-
-	wpa_hexdump_key(MSG_DEBUG, "ENC_ASSOC: Received MLO GTK",
-			kde->mlo_gtk[i], gtk_kde_len);
-
-	/* KeyID in low 2 bits */
-	gd.keyidx = kde->mlo_gtk[i][0] & 0x3;
-
-	/* returns PN/RSC length */
-	rsc_len = wpa_cipher_rsc_len(sm->group_cipher);
-	if (rsc_len <= 0) {
-		wpa_printf(MSG_DEBUG,
-			   "ENC_ASSOC: Unsupported group cipher (no RSC len)");
-		goto fail;
-	}
-	rsc = kde->mlo_gtk[i] + 1;
-
-	/* Actual GTK length = total KDE - KeyID(1) - RSC/PN.
-	 * For CCMP/GCMP, gtk_kde_len is typically 23 -> 23 - 1 - 6 = 16.
-	 */
-	if (gtk_kde_len < 1U + rsc_len)
-		goto fail;
-	gd.gtk_len = gtk_kde_len - 1 - rsc_len;
-
-	/* Validate GTK length against algorithm requirements */
-	if (wpa_supplicant_check_group_cipher(sm, sm->group_cipher,
-					      gd.gtk_len, gd.gtk_len,
-					      &gd.key_rsc_len, &gd.alg))
-		goto fail;
-
-	if ((size_t) gd.gtk_len > sizeof(gd.gtk)) {
-		wpa_printf(MSG_DEBUG,
-			   "ENC_ASSOC: Too long GTK in GTK KDE (len=%u)",
-			   gd.gtk_len);
-		goto fail;
-	}
-
-	os_memcpy(gd.gtk, rsc + 1 + rsc_len, gd.gtk_len);
-
-	if (wpa_supplicant_install_mlo_gtk(sm, i, &gd, rsc, 0) < 0) {
-		wpa_printf(MSG_DEBUG,
-			   "ENC_ASSOC: Failed to set MLO GTK (link=%u)", i);
-		goto fail;
-	}
+	if (wpa_supplicant_mlo_gtk(sm, i, kde->mlo_gtk[i],
+				   kde->mlo_gtk_len[i], 0))
+		return -1;
 
 	if (_mlo_ieee80211w_set_keys(sm, i, kde) < 0) {
 		wpa_printf(MSG_DEBUG,
 			   "ENC_ASSOC: Failed to set MLO IGTK/BIGTK (link=%u)",
 			   i);
-		goto fail;
+		return -1;
 	}
 
-	ret = 0;
-fail:
-	forced_memzero(&gd, sizeof(gd));
-	return ret;
+	return 0;
 }
 
 
