@@ -951,12 +951,28 @@ def test_ieee8021x_auth_alg_eap_tls_pmksa_privacy(dev, apdev):
         raise Exception("Expected IEEE 802.1X auth (8), got: " + str(auth_alg))
     hwsim_utils.test_connectivity(dev[0], hapd)
 
+    pmksa1 = dev[0].get_pmksa(hapd.own_addr())
+    if pmksa1 is None:
+        raise Exception("No PMKSA entry after first connection")
+    pmkid1 = pmksa1['pmkid']
+    logger.info("PMKID after first connection: " + pmkid1)
+
     dev[0].request("DISCONNECT")
     dev[0].wait_disconnected()
     dev[0].request("RECONNECT")
     dev[0].wait_connected(timeout=15, error="Reconnect timed out")
 
     hapd.wait_sta()
+
+    pmksa2 = dev[0].get_pmksa(hapd.own_addr())
+    if pmksa2 is None:
+        raise Exception("No PMKSA entry after second connection")
+    pmkid2 = pmksa2['pmkid']
+    logger.info("PMKID after second connection: " + pmkid2)
+
+    if pmkid1 == pmkid2:
+        raise Exception("PMKID did not rotate: %s == %s" % (pmkid1, pmkid2))
+
     sta = hapd.get_sta(dev[0].own_addr())
 
     if sta["AKMSuiteSelector"] != '00-0f-ac-5':
@@ -1100,3 +1116,381 @@ def test_ieee8021x_auth_protocol_eap_tls_pmksa_not_found_by_ap(dev, apdev):
     if str(auth_alg) != "8":
         raise Exception("Expected IEEE 802.1X auth (8) after PMKSA fallback, got: " + str(auth_alg))
     hwsim_utils.test_connectivity(dev[0], hapd)
+
+def test_ieee8021x_auth_sta_eap_over_auth_frame_ap_no_support(dev, apdev):
+    """STA requests EAP over auth frames but AP does not support it; connection succeeds with Open System auth"""
+    ssid = "test-ieee8021x-auth-sta-only"
+
+    # AP does not set eap_using_authentication_frames, so it will not
+    # advertise or accept IEEE 802.1X Authentication frames. wpa_supplicant
+    # sets eap_over_auth_frame=1 but must gracefully fall back to the
+    # standard 802.11 Open System authentication + EAP-over-EAPOL path.
+    params = hostapd.wpa2_eap_params(ssid=ssid)
+    params["wpa_key_mgmt"] = "WPA-EAP-SHA256"
+
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].connect(ssid,
+                   key_mgmt="WPA-EAP-SHA256",
+                   eap="TLS",
+                   identity="tls user",
+                   ca_cert="auth_serv/ca.pem",
+                   client_cert="auth_serv/user.pem",
+                   private_key="auth_serv/user.key",
+                   scan_freq="2412",
+                   eap_over_auth_frame="1")
+
+    hapd.wait_sta()
+    sta = hapd.get_sta(dev[0].own_addr())
+
+    if sta["AKMSuiteSelector"] != '00-0f-ac-5':
+        raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+
+    auth_alg = sta.get("auth_alg")
+    logger.info("Auth Algorithm: " + str(auth_alg))
+    if str(auth_alg) != "0":
+        raise Exception("Expected OPEN_SYSTEM auth (0) when AP lacks auth frame support, got: " + str(auth_alg))
+    hwsim_utils.test_connectivity(dev[0], hapd)
+
+def test_ieee8021x_auth_sta_opts_out_of_auth_frames(dev, apdev):
+    """AP supports auth frames but STA explicitly opts out (eap_over_auth_frame=0)"""
+    ssid = "test-ieee8021x-sta-opts-out"
+
+    params = hostapd.wpa2_eap_params(ssid=ssid)
+    params["wpa_key_mgmt"] = "WPA-EAP-SHA256"
+    params["eap_using_authentication_frames"] = "1"
+    params["assoc_frame_encryption"] = "1"
+
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].connect(ssid,
+                   key_mgmt="WPA-EAP-SHA256",
+                   eap="TLS",
+                   identity="tls user",
+                   ca_cert="auth_serv/ca.pem",
+                   client_cert="auth_serv/user.pem",
+                   private_key="auth_serv/user.key",
+                   scan_freq="2412",
+                   eap_over_auth_frame="0")
+
+    hapd.wait_sta()
+    sta = hapd.get_sta(dev[0].own_addr())
+
+    if sta["AKMSuiteSelector"] != '00-0f-ac-5':
+        raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+
+    auth_alg = sta.get("auth_alg")
+    logger.info("Auth Algorithm: " + str(auth_alg))
+    if str(auth_alg) not in ("0", "OPEN_SYSTEM"):
+        raise Exception("Expected OPEN_SYSTEM auth (0) when STA opts out, got: " + str(auth_alg))
+
+    hwsim_utils.test_connectivity(dev[0], hapd)
+
+def test_ieee8021x_auth_eap_failure_wrong_password(dev, apdev):
+    """EAP authentication failure (wrong password) during auth frames exchange"""
+    ssid = "test-ieee8021x-eap-fail-pw"
+
+    params = hostapd.wpa2_eap_params(ssid=ssid)
+    params["wpa_key_mgmt"] = "WPA-EAP-SHA256"
+    params["eap_using_authentication_frames"] = "1"
+    params["assoc_frame_encryption"] = "1"
+
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].connect(ssid,
+                   key_mgmt="WPA-EAP-SHA256",
+                   eap="TTLS",
+                   identity="user",
+                   anonymous_identity="ttls",
+                   password="WRONG_PASSWORD",
+                   phase2="autheap=MSCHAPV2",
+                   ca_cert="auth_serv/ca.pem",
+                   scan_freq="2412",
+                   eap_over_auth_frame="1",
+                   wait_connect=False)
+
+    ev = dev[0].wait_event(["CTRL-EVENT-EAP-FAILURE",
+                            "CTRL-EVENT-SSID-TEMP-DISABLED"], timeout=15)
+    if ev is None:
+        raise Exception("Expected EAP failure event, got nothing")
+    logger.info("Got expected failure event: " + ev)
+
+def test_ieee8021x_auth_eap_tls_cert_failure(dev, apdev):
+    """EAP-TLS certificate failure during auth frames exchange"""
+    ssid = "test-ieee8021x-tls-cert-fail"
+
+    params = hostapd.wpa2_eap_params(ssid=ssid)
+    params["wpa_key_mgmt"] = "WPA-EAP-SHA256"
+    params["eap_using_authentication_frames"] = "1"
+    params["assoc_frame_encryption"] = "1"
+
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    # Use wrong CA cert so TLS handshake fails
+    dev[0].connect(ssid,
+                   key_mgmt="WPA-EAP-SHA256",
+                   eap="TLS",
+                   identity="tls user",
+                   ca_cert="auth_serv/ca-sha384.pem",
+                   client_cert="auth_serv/user.pem",
+                   private_key="auth_serv/user.key",
+                   scan_freq="2412",
+                   eap_over_auth_frame="1",
+                   wait_connect=False)
+
+    ev = dev[0].wait_event(["CTRL-EVENT-EAP-FAILURE",
+                            "CTRL-EVENT-SSID-TEMP-DISABLED"], timeout=15)
+    if ev is None:
+        raise Exception("Expected EAP-TLS certificate failure event, got nothing")
+    logger.info("Got expected TLS cert failure event: " + ev)
+
+def test_ieee8021x_auth_data_connectivity(dev, apdev):
+    """Verify data plane works after EAP-over-auth-frames connection"""
+    ssid = "test-ieee8021x-data-plane"
+
+    params = hostapd.wpa2_eap_params(ssid=ssid)
+    params["wpa_key_mgmt"] = "WPA-EAP-SHA256"
+    params["eap_using_authentication_frames"] = "1"
+    params["assoc_frame_encryption"] = "1"
+
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].connect(ssid,
+                   key_mgmt="WPA-EAP-SHA256",
+                   eap="TLS",
+                   identity="tls user",
+                   ca_cert="auth_serv/ca.pem",
+                   client_cert="auth_serv/user.pem",
+                   private_key="auth_serv/user.key",
+                   scan_freq="2412",
+                   eap_over_auth_frame="1")
+
+    hapd.wait_sta()
+    sta = hapd.get_sta(dev[0].own_addr())
+
+    if sta["AKMSuiteSelector"] != '00-0f-ac-5':
+        raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+
+    auth_alg = sta.get("auth_alg")
+    logger.info("Auth Algorithm: " + str(auth_alg))
+    if str(auth_alg) != "8":
+        raise Exception("Expected IEEE 802.1X auth (8), got: " + str(auth_alg))
+
+    hwsim_utils.test_connectivity(dev[0], hapd)
+
+def test_ieee8021x_auth_repeated_reconnects_auth_alg_stable(dev, apdev):
+    """Verify auth_alg=8 is stable across 5 connect/disconnect cycles"""
+    ssid = "test-ieee8021x-repeat-reconnect"
+
+    params = hostapd.wpa2_eap_params(ssid=ssid)
+    params["wpa_key_mgmt"] = "WPA-EAP-SHA256"
+    params["eap_using_authentication_frames"] = "1"
+    params["assoc_frame_encryption"] = "1"
+
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].connect(ssid,
+                   key_mgmt="WPA-EAP-SHA256",
+                   eap="TLS",
+                   identity="tls user",
+                   ca_cert="auth_serv/ca.pem",
+                   client_cert="auth_serv/user.pem",
+                   private_key="auth_serv/user.key",
+                   scan_freq="2412",
+                   eap_over_auth_frame="1")
+
+    hapd.wait_sta()
+
+    for cycle in range(5):
+        dev[0].request("DISCONNECT")
+        dev[0].wait_disconnected(timeout=5)
+        dev[0].request("RECONNECT")
+        dev[0].wait_connected(timeout=20,
+                              error="Reconnect failed on cycle %d" % cycle)
+        hapd.wait_sta()
+
+        sta = hapd.get_sta(dev[0].own_addr())
+        auth_alg = sta.get("auth_alg")
+        logger.info("Cycle %d auth_alg: %s" % (cycle, str(auth_alg)))
+        if str(auth_alg) != "8":
+            raise Exception("auth_alg not 8 on cycle %d: %s" % (cycle, str(auth_alg)))
+
+        hwsim_utils.test_connectivity(dev[0], hapd)
+
+def test_ieee8021x_auth_gcmp256_cipher(dev, apdev):
+    """IEEE 802.1X auth frames with GCMP-256 pairwise cipher"""
+    ssid = "test-ieee8021x-gcmp256"
+
+    params = hostapd.wpa2_eap_params(ssid=ssid)
+    params["wpa_key_mgmt"] = "WPA-EAP-SHA256"
+    params["rsn_pairwise"] = "GCMP-256"
+    params["eap_using_authentication_frames"] = "1"
+    params["assoc_frame_encryption"] = "1"
+    params["ieee80211w"] = "2"
+
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].connect(ssid,
+                   key_mgmt="WPA-EAP-SHA256",
+                   eap="TLS",
+                   identity="tls user",
+                   ca_cert="auth_serv/ca.pem",
+                   client_cert="auth_serv/user.pem",
+                   private_key="auth_serv/user.key",
+                   pairwise="GCMP-256",
+                   group="GCMP-256",
+                   ieee80211w="2",
+                   scan_freq="2412",
+                   eap_over_auth_frame="1")
+
+    hapd.wait_sta()
+    sta = hapd.get_sta(dev[0].own_addr())
+
+    if sta["AKMSuiteSelector"] != '00-0f-ac-5':
+        raise Exception("Incorrect AKMSuiteSelector value: " + sta["AKMSuiteSelector"])
+
+    auth_alg = sta.get("auth_alg")
+    logger.info("Auth Algorithm: " + str(auth_alg))
+    if str(auth_alg) != "8":
+        raise Exception("Expected IEEE 802.1X auth (8) with GCMP-256, got: " + str(auth_alg))
+
+    hwsim_utils.test_connectivity(dev[0], hapd)
+
+def test_ieee8021x_auth_deauth_during_exchange(dev, apdev):
+    """AP deauthenticates STA after connection; reconnect succeeds cleanly"""
+    ssid = "test-ieee8021x-deauth"
+
+    params = hostapd.wpa2_eap_params(ssid=ssid)
+    params["wpa_key_mgmt"] = "WPA-EAP-SHA256"
+    params["eap_using_authentication_frames"] = "1"
+    params["assoc_frame_encryption"] = "1"
+
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].connect(ssid,
+                   key_mgmt="WPA-EAP-SHA256",
+                   eap="TLS",
+                   identity="tls user",
+                   ca_cert="auth_serv/ca.pem",
+                   client_cert="auth_serv/user.pem",
+                   private_key="auth_serv/user.key",
+                   scan_freq="2412",
+                   eap_over_auth_frame="1")
+
+    hapd.wait_sta()
+    sta = hapd.get_sta(dev[0].own_addr())
+    if str(sta.get("auth_alg")) != "8":
+        raise Exception("Expected auth_alg=8 before deauth")
+
+    # Force AP to deauthenticate the STA
+    hapd.request("DEAUTHENTICATE " + dev[0].own_addr())
+    dev[0].wait_disconnected(timeout=5)
+
+    # Reconnect must succeed cleanly (no leaked state)
+    dev[0].wait_connected(timeout=20, error="Reconnect after deauth failed")
+    hapd.wait_sta()
+
+    sta = hapd.get_sta(dev[0].own_addr())
+    auth_alg = sta.get("auth_alg")
+    logger.info("Auth Algorithm after reconnect: " + str(auth_alg))
+    if str(auth_alg) != "8":
+        raise Exception("Expected auth_alg=8 after reconnect, got: " + str(auth_alg))
+
+    hwsim_utils.test_connectivity(dev[0], hapd)
+
+def test_ieee8021x_auth_roam_to_non_auth_frame_ap(dev, apdev):
+    """Roam from auth-frame AP to standard AP: STA falls back to Open System auth"""
+    ssid = "test-ieee8021x-roam"
+
+    params1 = hostapd.wpa2_eap_params(ssid=ssid)
+    params1["wpa_key_mgmt"] = "WPA-EAP-SHA256"
+    params1["eap_using_authentication_frames"] = "1"
+    params1["assoc_frame_encryption"] = "1"
+    hapd1 = hostapd.add_ap(apdev[0], params1)
+
+    params2 = hostapd.wpa2_eap_params(ssid=ssid)
+    params2["wpa_key_mgmt"] = "WPA-EAP-SHA256"
+    hapd2 = hostapd.add_ap(apdev[1], params2)
+
+    dev[0].connect(ssid,
+                   key_mgmt="WPA-EAP-SHA256",
+                   eap="TLS",
+                   identity="tls user",
+                   ca_cert="auth_serv/ca.pem",
+                   client_cert="auth_serv/user.pem",
+                   private_key="auth_serv/user.key",
+                   scan_freq="2412",
+                   eap_over_auth_frame="1")
+    hapd1.wait_sta()
+
+    sta1 = hapd1.get_sta(dev[0].own_addr())
+    auth_alg1 = sta1.get("auth_alg")
+    logger.info("Auth Algorithm on AP1: " + str(auth_alg1))
+    if str(auth_alg1) != "8":
+        raise Exception("Expected auth_alg=8 on AP1, got: " + str(auth_alg1))
+
+    # Roam to AP2 (no auth frame support)
+    dev[0].roam(apdev[1]['bssid'])
+    hapd2.wait_sta()
+
+    sta2 = hapd2.get_sta(dev[0].own_addr())
+    auth_alg2 = sta2.get("auth_alg")
+    logger.info("Auth Algorithm on AP2: " + str(auth_alg2))
+    if str(auth_alg2) not in ("0", "OPEN_SYSTEM"):
+        raise Exception("Expected OPEN_SYSTEM auth (0) on AP2, got: " + str(auth_alg2))
+
+    hwsim_utils.test_connectivity(dev[0], hapd2)
+
+def test_ieee8021x_auth_roam_between_auth_frame_aps(dev, apdev):
+    """Roam between two auth-frame APs: second AP requires full EAP, first uses PMKSA fast path on return"""
+    ssid = "test-ieee8021x-roam-both"
+
+    params1 = hostapd.wpa2_eap_params(ssid=ssid)
+    params1["wpa_key_mgmt"] = "WPA-EAP-SHA256"
+    params1["eap_using_authentication_frames"] = "1"
+    params1["assoc_frame_encryption"] = "1"
+    hapd1 = hostapd.add_ap(apdev[0], params1)
+
+    params2 = hostapd.wpa2_eap_params(ssid=ssid)
+    params2["wpa_key_mgmt"] = "WPA-EAP-SHA256"
+    params2["eap_using_authentication_frames"] = "1"
+    params2["assoc_frame_encryption"] = "1"
+    hapd2 = hostapd.add_ap(apdev[1], params2)
+
+    # Initial connection to AP1
+    dev[0].connect(ssid,
+                   key_mgmt="WPA-EAP-SHA256",
+                   eap="TLS",
+                   identity="tls user",
+                   ca_cert="auth_serv/ca.pem",
+                   client_cert="auth_serv/user.pem",
+                   private_key="auth_serv/user.key",
+                   scan_freq="2412",
+                   eap_over_auth_frame="1")
+    hapd1.wait_sta()
+
+    sta1 = hapd1.get_sta(dev[0].own_addr())
+    if str(sta1.get("auth_alg")) != "8":
+        raise Exception("Expected auth_alg=8 on AP1")
+
+    # Roam to AP2 (no PMKSA cache entry for AP2 yet — full EAP)
+    dev[0].roam(apdev[1]['bssid'])
+    hapd2.wait_sta()
+
+    sta2 = hapd2.get_sta(dev[0].own_addr())
+    auth_alg2 = sta2.get("auth_alg")
+    logger.info("Auth Algorithm on AP2: " + str(auth_alg2))
+    if str(auth_alg2) != "8":
+        raise Exception("Expected auth_alg=8 on AP2, got: " + str(auth_alg2))
+
+    # Roam back to AP1 (PMKSA cache hit — fast path)
+    dev[0].roam(apdev[0]['bssid'])
+    hapd1.wait_sta()
+
+    sta1b = hapd1.get_sta(dev[0].own_addr())
+    auth_alg1b = sta1b.get("auth_alg")
+    logger.info("Auth Algorithm back on AP1: " + str(auth_alg1b))
+    if str(auth_alg1b) != "8":
+        raise Exception("Expected auth_alg=8 on return to AP1, got: " + str(auth_alg1b))
+
+    hwsim_utils.test_connectivity(dev[0], hapd1)
