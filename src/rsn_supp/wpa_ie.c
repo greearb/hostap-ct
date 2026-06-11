@@ -382,6 +382,7 @@ int wpa_external_auth_add_rsne(u8 *rsne, size_t rsne_len, struct wpa_sm *sm,
 		wpa_printf(MSG_DEBUG, "RSN: Ext-Auth: Adding PMKID");
 		/* PMKID Count (2 octets, little endian) */
 		WPA_PUT_LE16(pos, 1);
+		pos += 2;
 		/* PMKID */
 		os_memcpy(pos, sm->cur_pmksa->pmkid, PMKID_LEN);
 		pos += PMKID_LEN;
