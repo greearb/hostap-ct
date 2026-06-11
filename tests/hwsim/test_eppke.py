@@ -8,6 +8,7 @@ import os
 import time
 
 import hostapd
+import hwsim_utils
 from wpasupplicant import WpaSupplicant
 from utils import *
 from hwsim import HWSimRadio
@@ -1249,3 +1250,68 @@ def test_eppke_without_base_akm_mld_ap(dev, apdev):
         if "MLD not supported" in str(e) or "Failed to add" in str(e):
             raise HwsimSkip("MLD not supported")
         raise
+
+def test_eppke_mixed_concurrent(dev, apdev):
+    """One STA uses EPPKE (auth_alg=9), another uses SAE-EXT-KEY (auth_alg=3) simultaneously"""
+    check_eppke_capab(dev[0])
+    check_eppke_capab(dev[1])
+    ssid = "test-eppke-mixed-concurrent"
+    passphrase = '1234567890'
+
+    # AP advertises both SAE-EXT-KEY and EPPKE so each STA can choose its
+    # own authentication algorithm.
+    params = hostapd.wpa3_params(ssid=ssid, password=passphrase)
+    params['wpa_key_mgmt'] = params['wpa_key_mgmt'] + ' SAE-EXT-KEY EPPKE'
+    params['assoc_frame_encryption'] = '1'
+    params['pmksa_caching_privacy'] = '1'
+    params['eap_using_authentication_frames'] = '1'
+    params['sae_pwe'] = '2'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    try:
+        # dev[0]: connects with EPPKE (auth_alg=9, AKMSuiteSelector=00-0f-ac-24)
+        dev[0].set("pasn_groups", "")
+        dev[0].set("sae_pwe", "1")
+        dev[0].connect(ssid, sae_password=passphrase, scan_freq="2412",
+                       key_mgmt="SAE-EXT-KEY EPPKE", ieee80211w="2",
+                       beacon_prot="1", pairwise="CCMP")
+        hapd.wait_sta()
+
+        sta0 = hapd.get_sta(dev[0].own_addr())
+        if sta0["AKMSuiteSelector"] != '00-0f-ac-24':
+            raise Exception("Incorrect AKMSuiteSelector for dev[0]: " +
+                            sta0["AKMSuiteSelector"])
+        if sta0["auth_alg"] != '9':
+            raise Exception("Expected EPPKE auth (9) for dev[0], got: " +
+                            sta0["auth_alg"])
+
+        # dev[1]: connects with SAE-EXT-KEY only (no EPPKE), falls back to
+        # standard SAE authentication (auth_alg=3, AKMSuiteSelector=00-0f-ac-24)
+        dev[1].set("pasn_groups", "")
+        dev[1].set("sae_pwe", "1")
+        dev[1].connect(ssid, sae_password=passphrase, scan_freq="2412",
+                       key_mgmt="SAE-EXT-KEY", ieee80211w="2",
+                       beacon_prot="1", pairwise="CCMP")
+        hapd.wait_sta()
+
+        sta1 = hapd.get_sta(dev[1].own_addr())
+        if sta1["AKMSuiteSelector"] != '00-0f-ac-24':
+            raise Exception("Incorrect AKMSuiteSelector for dev[1]: " +
+                            sta1["AKMSuiteSelector"])
+        if sta1["auth_alg"] != '3':
+            raise Exception("Expected SAE auth (3) for dev[1], got: " +
+                            sta1["auth_alg"])
+
+        # Test STA-to-STA data delivery in both directions including broadcast.
+        # Verifies the AP correctly forwards frames between an EPPKE STA
+        # (auth_alg=9) and a standard SAE STA (auth_alg=3).
+        # The GTK is delivered to dev[0] in the encrypted Association Response
+        # (Key Delivery element), so broadcast should work immediately.
+        hwsim_utils.test_connectivity(dev[0], dev[1])
+        hwsim_utils.test_connectivity(dev[1], dev[0])
+
+    finally:
+        dev[0].set("pasn_groups", "")
+        dev[0].set("sae_pwe", "0")
+        dev[1].set("pasn_groups", "")
+        dev[1].set("sae_pwe", "0")

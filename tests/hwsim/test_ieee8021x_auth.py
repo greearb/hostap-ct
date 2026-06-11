@@ -1494,3 +1494,63 @@ def test_ieee8021x_auth_roam_between_auth_frame_aps(dev, apdev):
         raise Exception("Expected auth_alg=8 on return to AP1, got: " + str(auth_alg1b))
 
     hwsim_utils.test_connectivity(dev[0], hapd1)
+
+def test_ieee8021x_auth_mixed_concurrent(dev, apdev):
+    """One STA uses EAP-over-auth-frames, another uses standard Open System + EAPOL simultaneously"""
+    ssid = "test-ieee8021x-mixed-concurrent"
+
+    params = hostapd.wpa2_eap_params(ssid=ssid)
+    params["wpa_key_mgmt"] = "WPA-EAP-SHA256"
+    params["eap_using_authentication_frames"] = "1"
+    params["assoc_frame_encryption"] = "1"
+
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    # dev[0]: uses IEEE 802.1X Authentication frames
+    dev[0].connect(ssid,
+                   key_mgmt="WPA-EAP-SHA256",
+                   eap="TLS",
+                   identity="tls user",
+                   ca_cert="auth_serv/ca.pem",
+                   client_cert="auth_serv/user.pem",
+                   private_key="auth_serv/user.key",
+                   scan_freq="2412",
+                   eap_over_auth_frame="1")
+    hapd.wait_sta()
+
+    # dev[1]: uses standard Open System auth + EAP-over-EAPOL (no auth frames)
+    dev[1].connect(ssid,
+                   key_mgmt="WPA-EAP-SHA256",
+                   eap="TLS",
+                   identity="tls user",
+                   ca_cert="auth_serv/ca.pem",
+                   client_cert="auth_serv/user.pem",
+                   private_key="auth_serv/user.key",
+                   scan_freq="2412")
+    hapd.wait_sta()
+
+    sta0 = hapd.get_sta(dev[0].own_addr())
+    sta1 = hapd.get_sta(dev[1].own_addr())
+
+    if sta0["AKMSuiteSelector"] != '00-0f-ac-5':
+        raise Exception("Incorrect AKMSuiteSelector for dev[0]")
+    if sta1["AKMSuiteSelector"] != '00-0f-ac-5':
+        raise Exception("Incorrect AKMSuiteSelector for dev[1]")
+
+    auth_alg0 = sta0.get("auth_alg")
+    logger.info("Auth Algorithm dev[0]: " + str(auth_alg0))
+    if str(auth_alg0) != "8":
+        raise Exception("Expected IEEE 802.1X auth (8) for dev[0], got: " + str(auth_alg0))
+
+    auth_alg1 = sta1.get("auth_alg")
+    logger.info("Auth Algorithm dev[1]: " + str(auth_alg1))
+    if str(auth_alg1) not in ("0", "OPEN_SYSTEM"):
+        raise Exception("Expected OPEN_SYSTEM auth (0) for dev[1], got: " + str(auth_alg1))
+
+    # Test STA-to-STA data delivery in both directions including broadcast.
+    # Verifies the AP correctly forwards frames between an auth-frame STA
+    # (auth_alg=8) and a standard EAPOL STA (auth_alg=0).
+    # The GTK is delivered to dev[0] in the encrypted Association Response
+    # (Key Delivery element), so broadcast should work immediately.
+    hwsim_utils.test_connectivity(dev[0], dev[1])
+    hwsim_utils.test_connectivity(dev[1], dev[0])
