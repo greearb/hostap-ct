@@ -497,10 +497,6 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 
 	wpabuf_put_u8(buf, hapd->eht_mld_bss_param_change);
 
-	/* Currently hard-code Enhanced Critical Updates Information to zero */
-	if (hostapd_is_uhr_enabled(hapd))
-		wpabuf_put_u8(buf, 0);
-
 	wpa_printf(MSG_DEBUG, "MLD: EML Capabilities=0x%x",
 		   hapd->iface->mld_eml_capa);
 	wpabuf_put_le16(buf, hapd->iface->mld_eml_capa);
@@ -533,6 +529,10 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 			   hostapd_get_mld_id(hapd));
 		wpabuf_put_u8(buf, hostapd_get_mld_id(hapd));
 	}
+
+	/* Currently hard-code Enhanced Critical Updates Information to zero */
+	if (hostapd_is_uhr_enabled(hapd))
+		wpabuf_put_u8(buf, 0);
 
 	if (!mld_info)
 		goto out;
