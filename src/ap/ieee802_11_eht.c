@@ -448,6 +448,7 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 	u8 common_info_len;
 	u16 mld_cap;
 	u8 max_simul_links, active_links;
+	u16 mld_eml_capa;
 
 	/*
 	 * As the Multi-Link element can exceed the size of 255 bytes need to
@@ -497,9 +498,16 @@ u8 * hostapd_eid_eht_basic_ml_common(struct hostapd_data *hapd,
 
 	wpabuf_put_u8(buf, hapd->eht_mld_bss_param_change);
 
-	wpa_printf(MSG_DEBUG, "MLD: EML Capabilities=0x%x",
-		   hapd->iface->mld_eml_capa);
-	wpabuf_put_le16(buf, hapd->iface->mld_eml_capa);
+	/* Set EMLSR/EMLMR Transition and Padding delay to zero for AP MLD as
+	 * per IEEE Std 802.11be-2024, 9.4.2.322.2.3 (Common Info field of the
+	 * Basic Multi-Link element).
+	 */
+	mld_eml_capa = hapd->iface->mld_eml_capa &
+		~(EHT_ML_EML_CAPA_EMLSR_TRANS_DELAY_MASK |
+		  EHT_ML_EML_CAPA_EMLSR_PADDING_DELAY_MASK);
+
+	wpa_printf(MSG_DEBUG, "MLD: EML Capabilities=0x%x", mld_eml_capa);
+	wpabuf_put_le16(buf, mld_eml_capa);
 
 	mld_cap = hapd->iface->mld_mld_capa;
 	max_simul_links = mld_cap & EHT_ML_MLD_CAPA_MAX_NUM_SIM_LINKS_MASK;
