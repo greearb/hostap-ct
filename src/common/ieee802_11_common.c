@@ -3649,6 +3649,7 @@ ssize_t ieee802_11_defrag_mle_subelem(struct wpabuf *mlbuf,
 
 		os_memmove(pos, pos + 2, end - (pos + 2));
 		end -= 2;
+		mlbuf->used -= 2;
 		pos += elen - 2;
 		subelem_len += elen - 2;
 
