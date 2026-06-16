@@ -2233,6 +2233,8 @@ u16 wpa_bss_parse_reconf_ml_element(struct wpa_supplicant *wpa_s,
 			break;
 		}
 
+		if ((size_t) num_frag_subelems * 2 > len)
+			goto out;
 		len -= num_frag_subelems * 2;
 
 		if (2 + sub_elem_len > len) {

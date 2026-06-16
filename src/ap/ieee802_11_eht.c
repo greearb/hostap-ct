@@ -1410,6 +1410,8 @@ u16 hostapd_process_ml_assoc_req(struct hostapd_data *hapd,
 			goto out;
 		}
 
+		if ((size_t) num_frag_subelems * 2 > ml_len)
+			goto out;
 		ml_len -= num_frag_subelems * 2;
 		ml_end = ((const u8 *) ml) + ml_len;
 
@@ -2470,6 +2472,8 @@ hostapd_parse_link_reconf_req_reconf_mle(
 			goto fail;
 		}
 
+		if ((size_t) num_frag_subelems * 2 > len)
+			goto fail;
 		len -= num_frag_subelems * 2;
 		end = ((const u8 *) ml) + len;
 

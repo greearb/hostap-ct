@@ -204,6 +204,8 @@ static int hostapd_update_sta_links_status(struct hostapd_data *hapd,
 		}
 
 		ie_len = 2 + subelem_defrag_len;
+		if ((size_t) num_frag_subelems * 2 > rem_len)
+			break;
 		rem_len -= num_frag_subelems * 2;
 
 		if (rem_len < ie_len)

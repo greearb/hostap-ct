@@ -4402,6 +4402,8 @@ static unsigned int wpas_ml_parse_assoc(struct wpa_supplicant *wpa_s,
 			goto out;
 		}
 
+		if ((size_t) num_frag_subelems * 2 > ml_len)
+			goto out;
 		ml_len -= num_frag_subelems * 2;
 
 		wpa_printf(MSG_DEBUG, "MLD: Subelement len=%zu", sub_elem_len);
