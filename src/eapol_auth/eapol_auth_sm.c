@@ -314,6 +314,7 @@ SM_STATE(AUTH_PAE, AUTHENTICATED)
 	sm->authPortStatus = Authorized;
 	setPortAuthorized();
 	sm->reAuthCount = 0;
+	sm->reAuthenticate = false;
 	if (sm->flags & EAPOL_SM_PREAUTH)
 		extra = " (pre-authentication)";
 	else if (sm->flags & EAPOL_SM_FROM_PMKSA_CACHE)
