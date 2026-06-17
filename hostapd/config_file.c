@@ -4102,12 +4102,24 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 			tok_start = os_strchr(tok_prev, ',');
 			if (tok_start) {
 				domain_len = tok_start - tok_prev;
+				if (domain_len > 255) {
+					wpa_printf(MSG_ERROR,
+						   "Line %d: domain_name is too long (max 255)", line);
+					os_free(domain_list);
+					return 1;
+				}
 				*domain_ptr = domain_len;
 				os_memcpy(domain_ptr + 1, tok_prev, domain_len);
 				domain_ptr += domain_len + 1;
 				tok_prev = ++tok_start;
 			} else {
 				domain_len = os_strlen(tok_prev);
+				if (domain_len > 255) {
+					wpa_printf(MSG_ERROR,
+						   "Line %d: domain_name is too long (max 255)", line);
+					os_free(domain_list);
+					return 1;
+				}
 				*domain_ptr = domain_len;
 				os_memcpy(domain_ptr + 1, tok_prev, domain_len);
 				domain_ptr += domain_len + 1;
