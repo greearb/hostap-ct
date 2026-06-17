@@ -116,7 +116,7 @@ static void usage(void)
 	printf("example:\n"
 	       "  wpa_supplicant -D%s -iwlan0 -c/etc/wpa_supplicant.conf\n",
 	       wpa_drivers[0] ? wpa_drivers[0]->name : "nl80211");
-	printf("\nIf run without specifying a network interface or control interface, the a\n"
+	printf("\nIf run without specifying a network interface or control interface, a\n"
 	       "configuration file is parsed without starting any operation.\n"
 		"This can be used to check whether a configuration file has valid contents.\n");
 #endif /* CONFIG_NO_STDOUT_DEBUG */
