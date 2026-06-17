@@ -4961,6 +4961,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		conf->ieee80211be = atoi(pos);
 	} else if (os_strcmp(buf, "require_eht") == 0) {
 		conf->require_eht = atoi(pos);
+	} else if (os_strcmp(buf, "bss_require_eht") == 0) {
+		bss->bss_require_eht = atoi(pos);
 	} else if (os_strcmp(buf, "eht_oper_chwidth") == 0) {
 		conf->eht_oper_chwidth = atoi(pos);
 	} else if (os_strcmp(buf, "eht_oper_centr_freq_seg0_idx") == 0) {

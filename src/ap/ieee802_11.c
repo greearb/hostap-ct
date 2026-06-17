@@ -152,7 +152,8 @@ static size_t hostapd_supp_rates(struct hostapd_data *hapd, u8 *buf)
 #endif /* CONFIG_IEEE80211AX */
 
 #ifdef CONFIG_IEEE80211BE
-	if (hapd->iconf->ieee80211be && hapd->iconf->require_eht)
+	if (hapd->iconf->ieee80211be && !hapd->conf->disable_11be &&
+	    (hapd->iconf->require_eht || hapd->conf->bss_require_eht))
 		*pos++ = 0x80 | BSS_MEMBERSHIP_SELECTOR_EHT_PHY;
 #endif /* CONFIG_IEEE80211BE */
 
@@ -5538,7 +5539,8 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 		if (resp != WLAN_STATUS_SUCCESS)
 			goto out;
 
-		if (hapd->iconf->require_eht && !(sta->flags & WLAN_STA_EHT)) {
+		if ((hapd->iconf->require_eht || hapd->conf->bss_require_eht) &&
+		    !(sta->flags & WLAN_STA_EHT)) {
 			hostapd_logger(hapd, sta->addr,
 				       HOSTAPD_MODULE_IEEE80211,
 				       HOSTAPD_LEVEL_INFO,
