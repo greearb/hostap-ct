@@ -1266,7 +1266,6 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 
 	if (wpa_s->valid_links) {
 		wpa_printf(MSG_DEBUG, "MLD: In authentication");
-		wpas_sme_set_mlo_links(wpa_s, bss, ssid);
 
 #ifdef CONFIG_TESTING_OPTIONS
 		bss = wpas_ml_connect_pref(wpa_s, bss, ssid);
