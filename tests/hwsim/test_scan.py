@@ -1083,6 +1083,55 @@ def test_scan_abort_on_connect(dev, apdev):
         raise Exception("Scan did not start")
     dev[0].connect("test-scan", key_mgmt="NONE")
 
+def test_scan_aborted_on_connect_no_reselect(dev, apdev):
+    """Aborted scan must not drive network selection during a connection"""
+    # When a scan is aborted (e.g., on a disconnection request issued while
+    # connecting to a network that is not present), the aborted - and thus
+    # incomplete - scan results must not be fed into network selection. If
+    # they are, "no suitable network" handling schedules yet another scan,
+    # which can again be aborted, and the supplicant ends up continuously
+    # processing aborted scan results. Verify that an aborted scan does not
+    # trigger such a follow-up scanning loop.
+    dev[0].flush_scan_cache()
+    try:
+        dev[0].dump_monitor()
+
+        dev[0].connect("nonexistent-network", psk="12345678", scan_ssid="1",
+                       scan_freq="2412", wait_connect=False)
+
+        ev = dev[0].wait_event(["CTRL-EVENT-SCAN-STARTED"], timeout=5)
+        if ev is None:
+            raise Exception("Scan did not start")
+
+        # Abort the ongoing scan. This is delivered as an aborted scan-results
+        # event while still trying to connect (disconnected flag not set), so
+        # it exercises the network-selection path for an aborted scan.
+        if "OK" not in dev[0].request("ABORT_SCAN"):
+            raise Exception("ABORT_SCAN failed")
+        ev = dev[0].wait_event(["CTRL-EVENT-SCAN-RESULTS"], timeout=2)
+        if ev is None:
+            raise Exception("Aborted scan did not terminate")
+        dev[0].dump_monitor()
+
+        # Without the fix, the aborted (incomplete) scan results are fed into
+        # network selection ("no suitable network found"), which schedules a
+        # follow-up scan (after scan_interval). With the fix, the aborted scan
+        # is short-circuited and no such follow-up scan is triggered. Observe
+        # for longer than scan_interval to catch the rescheduled scan.
+        ev = dev[0].wait_event(["CTRL-EVENT-SCAN-STARTED"], timeout=8)
+        scanned = ev is not None
+        logger.info("Follow-up scan after aborted scan: %s" % scanned)
+
+        # The control interface must remain responsive (a busy-loop would
+        # starve it and make PING time out).
+        if "PONG" not in dev[0].request("PING"):
+            raise Exception("Control interface not responsive after abort")
+
+        if scanned:
+            raise Exception("Aborted scan drove network selection and triggered a follow-up scan")
+    finally:
+        dev[0].request("REMOVE_NETWORK all")
+
 @remote_compatible
 def test_scan_ext(dev, apdev):
     """Custom IE in Probe Request frame"""
