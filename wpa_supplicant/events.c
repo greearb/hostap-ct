@@ -2753,6 +2753,12 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 		return 0;
 	}
 
+	if (data && data->scan_info.aborted) {
+		wpa_dbg(wpa_s, MSG_DEBUG,
+			"Scan was aborted - do not use the incomplete scan results to trigger new operations");
+		goto scan_work_done;
+	}
+
 	if (sme_proc_obss_scan(wpa_s) > 0)
 		goto scan_work_done;
 
