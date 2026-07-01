@@ -5848,6 +5848,8 @@ void wpas_dpp_push_button_stop(struct wpa_supplicant *wpa_s)
 		wpas_abort_ongoing_scan(wpa_s);
 		wpa_s->scan_res_handler = NULL;
 	}
+
+	offchannel_send_action_done(wpa_s);
 }
 
 #endif /* CONFIG_DPP3 */
