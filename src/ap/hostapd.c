@@ -1374,9 +1374,7 @@ static int db_table_create_radius_attributes(sqlite3 *db)
 static int hostapd_start_beacon(struct hostapd_data *hapd,
 				bool flush_old_stations)
 {
-#ifdef CONFIG_IEEE80211BE
 	struct hostapd_bss_config *conf = hapd->conf;
-#endif
 
 	if (!conf->start_disabled && ieee802_11_set_beacon(hapd) < 0)
 		return -1;

@@ -2165,7 +2165,7 @@ static int match_dn_field(const X509 *cert, int nid, const char *field,
 			  const struct tls_dn_field_order_cnt *dn_cnt)
 {
 	int i, ret = 0, len, config_dn_field_index, match_index = 0;
-	const X509_NAME *name;
+	X509_NAME *name;
 
 	len = os_strlen(value);
 	name = X509_get_subject_name((X509 *) cert);
@@ -2179,7 +2179,7 @@ static int match_dn_field(const X509 *cert, int nid, const char *field,
 	/* Fetch value based on NID */
 	for (i = -1; (i = X509_NAME_get_index_by_NID((X509_NAME *) name, nid,
 						     i)) > -1;) {
-		const X509_NAME_ENTRY *e;
+		X509_NAME_ENTRY *e;
 		const ASN1_STRING *cn;
 
 		e = X509_NAME_get_entry(name, i);
@@ -2335,7 +2335,7 @@ static int tls_match_suffix_helper(X509 *cert, const char *match,
 	int i;
 	stack_index_t j;
 	int dns_name = 0;
-	const X509_NAME *name;
+	X509_NAME *name;
 
 	wpa_printf(MSG_DEBUG, "TLS: Match domain against %s%s",
 		   full ? "": "suffix ", match);
@@ -2369,7 +2369,7 @@ static int tls_match_suffix_helper(X509 *cert, const char *match,
 	name = X509_get_subject_name(cert);
 	i = -1;
 	for (;;) {
-		const X509_NAME_ENTRY *e;
+		X509_NAME_ENTRY *e;
 		const ASN1_STRING *cn;
 
 		i = X509_NAME_get_index_by_NID((X509_NAME *) name,
