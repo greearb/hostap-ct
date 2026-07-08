@@ -1156,8 +1156,9 @@ static int wpas_add_beacon_rep(struct wpa_supplicant *wpa_s,
 	const u8 *ies = wpa_bss_ie_ptr(bss);
 	const u8 *pos = ies;
 	size_t ies_len = bss->ie_len ? bss->ie_len : bss->beacon_ie_len;
+	size_t orig_ies_len = ies_len;
 	struct rrm_measurement_beacon_report rep;
-	u8 idx = 0;
+	u16 idx = 0;
 
 	if (!ether_addr_equal(data->bssid, broadcast_ether_addr) &&
 	    !ether_addr_equal(data->bssid, bss->bssid))
@@ -1195,6 +1196,11 @@ static int wpas_add_beacon_rep(struct wpa_supplicant *wpa_s,
 					       &pos, &ies_len, idx++);
 		if (ret)
 			return ret;
+		if (idx >= 256) {
+			wpa_printf(MSG_ERROR, "More than 255 beacon-rep-elements.");
+			wpa_hexdump(MSG_ERROR, "wpa_bss_ie_ptr", ies, orig_ies_len);
+			return -EINVAL;
+		}
 	} while (data->report_detail != BEACON_REPORT_DETAIL_NONE &&
 		 ies_len >= 2);
 
