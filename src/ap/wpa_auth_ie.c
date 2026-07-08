@@ -1080,6 +1080,19 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 		key_mgmt = data.key_mgmt & wpa_auth->conf.rsn_override_key_mgmt;
 	else
 		key_mgmt = data.key_mgmt & wpa_auth->conf.wpa_key_mgmt;
+
+	/* For an MLO partner link, the STA may not include an RSN Selection
+	 * element (no RSNO support), so sm->rsn_override* are both false and
+	 * key_mgmt is matched against wpa_key_mgmt (e.g., WPA-PSK on 2.4 GHz).
+	 * But the STA negotiated via the primary link (e.g., SAE on 6 GHz)
+	 * and sends SAE in the per-STA profile RSNE assuming that the same
+	 * AKM is enabled on all affiliated links. When rsn_override_mlo_compat
+	 * is enabled, fall back to rsn_override_key_mgmt so that SAE is
+	 * accepted on the partner link in such cases.
+	 */
+	if (!key_mgmt && assoc_sm && wpa_auth->conf.rsn_override_mlo_compat)
+		key_mgmt = data.key_mgmt & wpa_auth->conf.rsn_override_key_mgmt;
+
 	if (!key_mgmt) {
 		wpa_printf(MSG_DEBUG, "Invalid WPA key mgmt (0x%x) from "
 			   MACSTR, data.key_mgmt, MAC2STR(sm->addr));

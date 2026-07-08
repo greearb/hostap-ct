@@ -405,6 +405,7 @@ struct hostapd_bss_config {
 	char *rsn_preauth_interfaces;
 
 	int rsn_override_omit_rsnxe;
+	int rsn_override_mlo_compat;
 
 #ifdef CONFIG_IEEE80211R_AP
 	/* IEEE 802.11r - Fast BSS Transition */

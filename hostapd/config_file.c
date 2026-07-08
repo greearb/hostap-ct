@@ -3050,6 +3050,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 #endif /* CONFIG_RSN_PREAUTH */
 	} else if (os_strcmp(buf, "rsn_override_omit_rsnxe") == 0) {
 		bss->rsn_override_omit_rsnxe = atoi(pos);
+	} else if (os_strcmp(buf, "rsn_override_mlo_compat") == 0) {
+		bss->rsn_override_mlo_compat = atoi(pos);
 	} else if (os_strcmp(buf, "peerkey") == 0) {
 		wpa_printf(MSG_INFO,
 			   "Line %d: Obsolete peerkey parameter ignored", line);

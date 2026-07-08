@@ -330,6 +330,7 @@ struct wpa_auth_config {
 	bool ssid_protection;
 
 	int rsn_override_omit_rsnxe;
+	int rsn_override_mlo_compat;
 
 	bool spp_amsdu;
 
