@@ -1851,6 +1851,20 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 }
 
 
+/*
+ * SME-based association with an AP MLD requires the driver to have a
+ * sufficiently recent scan entry for every requested link. With nl80211-based
+ * drivers, cfg80211 rejects the association if the BSS entry for any link is
+ * older than 30 seconds (IEEE80211_SCAN_RESULT_EXPIRE). Since the local BSS
+ * table keeps entries considerably longer than that (bss_expiration_age,
+ * 180 seconds by default) and does not refresh entries for the links of the
+ * current AP MLD while associated, consider an affiliated link with an older
+ * scan entry to be missing so that an ML probe request gets used to refresh
+ * the information before association. Leave some margin below the kernel
+ * limit to cover the time needed for authentication.
+ */
+#define WPA_BSS_ML_LINK_FRESH_AGE 25 /* seconds */
+
 /**
  * wpa_bss_get_usable_links - Retrieve the usable links of the AP MLD
  * @wpa_s: Pointer to wpa_supplicant data
@@ -1866,12 +1880,15 @@ u16 wpa_bss_get_usable_links(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 			     struct wpa_ssid *ssid, u16 *missing_links)
 {
 	struct wpa_ie_data rsne;
+	struct os_reltime now;
 	int rsne_type;
 	u16 usable_links = 0;
 	u8 link_id;
 
 	if (!bss->valid_links)
 		return 0;
+
+	os_get_reltime(&now);
 
 	rsne_type = -1;
 	os_memset(&rsne, 0, sizeof(rsne));
@@ -1910,6 +1927,17 @@ u16 wpa_bss_get_usable_links(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 						      bss->mld_links[link_id].bssid);
 
 		if (!neigh_bss) {
+			if (missing_links)
+				*missing_links |= BIT(link_id);
+			continue;
+		}
+
+		if (os_reltime_expired(&now, &neigh_bss->last_update,
+				       WPA_BSS_ML_LINK_FRESH_AGE)) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"MLD: Scan entry for neighbor " MACSTR
+				" is too old for association; consider link %u missing",
+				MAC2STR(neigh_bss->bssid), link_id);
 			if (missing_links)
 				*missing_links |= BIT(link_id);
 			continue;
