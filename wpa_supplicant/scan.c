@@ -1600,7 +1600,14 @@ ssid_list_set:
 		}
 	} else if (!is_zero_ether_addr(wpa_s->ml_probe_bssid)) {
 		wpa_printf(MSG_DEBUG, "Scanning for ML probe request");
-		params.bssid = wpa_s->ml_probe_bssid;
+		/*
+		 * When the scan visits the channels of the missing links in
+		 * addition to the association link's channel, use the wildcard
+		 * BSSID so that the affiliated APs on those channels respond
+		 * to the probe requests, too.
+		 */
+		if (!params.freqs || !params.freqs[0] || !params.freqs[1])
+			params.bssid = wpa_s->ml_probe_bssid;
 		params.min_probe_req_content = true;
 	}
 

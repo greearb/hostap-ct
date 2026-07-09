@@ -2011,7 +2011,9 @@ static int wpa_supplicant_connect_ml_missing(struct wpa_supplicant *wpa_s,
 					     struct wpa_ssid *ssid)
 {
 	int *freqs;
+	unsigned int num_freqs, i;
 	u16 missing_links = 0, removed_links, usable_links;
+	u8 link_id;
 
 	if (!((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
 	      (wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME)))
@@ -2035,7 +2037,7 @@ static int wpa_supplicant_connect_ml_missing(struct wpa_supplicant *wpa_s,
 		"MLD: Doing an ML probe for missing links 0x%04x",
 		missing_links);
 
-	freqs = os_malloc(sizeof(int) * 2);
+	freqs = os_malloc(sizeof(int) * (MAX_NUM_MLD_LINKS + 2));
 	if (!freqs)
 		return 0;
 
@@ -2043,7 +2045,29 @@ static int wpa_supplicant_connect_ml_missing(struct wpa_supplicant *wpa_s,
 	wpa_s->ml_connect_probe_bss = selected;
 
 	freqs[0] = selected->freq;
-	freqs[1] = 0;
+	num_freqs = 1;
+
+	/*
+	 * Also visit the channels of the missing links. The ML probe request
+	 * on the association link's channel is sufficient when the AP MLD
+	 * responds to it with complete per-STA profiles, but not all APs do
+	 * so. Scanning the channels of the missing links allows the
+	 * information to be updated from the Beacon or Probe Response frames
+	 * of the affiliated APs themselves.
+	 */
+	for_each_link(missing_links, link_id) {
+		int freq = selected->mld_links[link_id].freq;
+
+		if (!freq)
+			continue;
+		for (i = 0; i < num_freqs; i++) {
+			if (freqs[i] == freq)
+				break;
+		}
+		if (i == num_freqs)
+			freqs[num_freqs++] = freq;
+	}
+	freqs[num_freqs] = 0;
 
 	wpa_s->manual_scan_passive = 0;
 	wpa_s->manual_scan_use_id = 0;
