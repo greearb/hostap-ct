@@ -1043,6 +1043,55 @@ def test_eht_mld_connect_probes_hidden(dev, apdev, params):
     """MLD client sends ML probe with SSID to connect to not discovered links"""
     _eht_mld_connect_probes(params, hidden=True)
 
+def test_eht_mld_reconnect_stale_links(dev, apdev, params):
+    """MLD client uses ML probe to refresh stale link entries on reconnection"""
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+        HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+        check_sae_capab(wpas)
+
+        ssid = "mld_ap"
+        passphrase = 'qwertyuiop'
+        link_params = eht_mld_ap_wpa2_params(ssid, passphrase, mfp="2",
+                                             key_mgmt="SAE", pwe='2')
+        link_params['channel'] = '1'
+        link_params['bssid'] = '00:11:22:33:44:01'
+        hapd0 = eht_mld_enable_ap(hapd_iface, 0, link_params)
+
+        link_params['channel'] = '6'
+        link_params['bssid'] = '00:11:22:33:44:02'
+        hapd1 = eht_mld_enable_ap(hapd_iface, 1, link_params)
+
+        wpas.set("sae_pwe", "1")
+        # Make sure the BSS entries do not get removed from wpa_supplicant's
+        # BSS table while aging them below, so that the stale entry handling
+        # (and not the missing entry handling) gets exercised.
+        wpas.set("bss_expiration_age", "3600")
+        wpas.connect(ssid, sae_password=passphrase, ieee80211w="2",
+                     key_mgmt="SAE", scan_freq="2412")
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
+
+        wpas.request("DISCONNECT")
+        wpas.wait_disconnected()
+
+        # Age the BSS table entries beyond the kernel's freshness limit for
+        # association (IEEE80211_SCAN_RESULT_EXPIRE = 30 seconds) while
+        # keeping them in wpa_supplicant's BSS table (bss_expiration_age is
+        # 180 seconds by default). The reconnection scan covers only the
+        # first link (scan_freq=2412), so the second link needs to be
+        # refreshed with an ML probe before association can succeed.
+        time.sleep(35)
+
+        wpas.request("RECONNECT")
+        wpas.wait_connected()
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
+        traffic_test(wpas, hapd0)
+        traffic_test(wpas, hapd1)
+
 def test_eht_tx_link_rejected_connect_other(dev, apdev, params):
     """EHT MLD AP with MLD client being rejected on TX link, but then connecting on second link"""
     with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
