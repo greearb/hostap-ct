@@ -155,8 +155,9 @@ def test_kernel_reg_disconnect(dev, apdev):
 def test_kernel_kunit(dev, apdev):
     """KUnit tests"""
     modules = ('cfg80211-tests', 'mac80211-tests')
-    results = (subprocess.call(['modprobe', mod], stderr=subprocess.PIPE)
-               for mod in modules)
+    # force a list (not generator) to try all of them
+    results = [subprocess.call(['modprobe', mod], stderr=subprocess.PIPE)
+               for mod in modules]
 
     if all((r != 0 for r in results)):
         raise HwsimSkip("KUnit tests not available")
