@@ -1439,7 +1439,6 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		wpa_supplicant_set_non_wpa_policy(wpa_s, ssid);
 		wpa_s->sme.assoc_req_ie_len = 0;
 	}
-skip_setup:
 
 	/* In case the WPA vendor IE is used, it should be placed after all the
 	 * non-vendor IEs, as the lower layer expects the IEs to be ordered as
@@ -1674,6 +1673,7 @@ skip_setup:
 	}
 #endif /* CONFIG_MBO */
 
+skip_setup:
 #ifdef CONFIG_ENC_ASSOC
 	if (!skip_auth && params.auth_alg == WPA_AUTH_ALG_EPPKE) {
 		if (start) {
