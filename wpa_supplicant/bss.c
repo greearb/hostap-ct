@@ -1909,12 +1909,20 @@ u16 wpa_bss_get_usable_links(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 		struct wpa_bss *neigh_bss;
 		u16 ext_mld_capa_mask;
 
-		if (link_id == bss->mld_link_id)
+		if (link_id == bss->mld_link_id) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"MLD: Matching bss link_id (%d == %d)",
+				link_id, bss->mld_link_id);
 			continue;
+		}
 
 #ifdef CONFIG_TESTING_OPTIONS
-		if (!check_mld_allowed_phy(wpa_s, bss->mld_links[link_id].freq))
+		if (!check_mld_allowed_phy(wpa_s, bss->mld_links[link_id].freq)) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"MLD: Link phy not allowed (link = %d)",
+				link_id);
 			continue;
+		}
 #endif /* CONFIG_TESTING_OPTIONS */
 
 		if (ssid && ssid->ssid_len)
@@ -1929,6 +1937,8 @@ u16 wpa_bss_get_usable_links(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 		if (!neigh_bss) {
 			if (missing_links)
 				*missing_links |= BIT(link_id);
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"MLD: Missing neighbor BSS (link_id = %d)", link_id);
 			continue;
 		}
 

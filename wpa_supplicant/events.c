@@ -2069,6 +2069,17 @@ static int wpa_supplicant_connect_ml_missing(struct wpa_supplicant *wpa_s,
 	}
 	freqs[num_freqs] = 0;
 
+	{
+		char freqs_s[num_freqs * 5];
+		for (i = 0; i < num_freqs; i++) {
+			os_snprintf(&freqs_s[i * 5], 5, "% 4d", freqs[i]);
+			freqs_s[i * 5 + 4] = ' ';
+		}
+		freqs_s[(num_freqs * 5) - 1] = 0;
+
+		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: Scanning channels %s", freqs_s);
+	}
+
 	wpa_s->manual_scan_passive = 0;
 	wpa_s->manual_scan_use_id = 0;
 	wpa_s->manual_scan_only_new = 0;

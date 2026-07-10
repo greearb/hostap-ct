@@ -893,6 +893,10 @@ static void wpas_sme_set_mlo_links(struct wpa_supplicant *wpa_s,
 	if (!usable_links)
 		return;
 
+	wpa_dbg(wpa_s, MSG_DEBUG,
+		"MLD: bss usable_links=%u valid_links=%u",
+		usable_links, bss->valid_links);
+
 	os_memcpy(wpa_s->ap_mld_addr, bss->mld_addr, ETH_ALEN);
 	wpa_s->valid_links = 0;
 	wpa_s->mlo_assoc_link_id = bss->mld_link_id;
