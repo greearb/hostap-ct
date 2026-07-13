@@ -1178,6 +1178,8 @@ static void wpas_pr_pasn_timeout(void *eloop_ctx, void *timeout_ctx)
 	 */
 	wpas_pr_pd_stop(wpa_s);
 
+	wpas_pr_clear_ranging_params(wpa_s->global->pr);
+
 	wpa_printf(MSG_DEBUG, "PR: PASN timed out");
 }
 
@@ -1222,6 +1224,7 @@ fail:
 	radio_work_done(work);
 	/* Stop PD wdev after radio_work_done() to avoid use-after-free */
 	wpas_pr_pd_stop(wpa_s);
+	wpas_pr_clear_ranging_params(wpa_s->global->pr);
 }
 
 
