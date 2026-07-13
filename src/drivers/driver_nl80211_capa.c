@@ -1203,7 +1203,7 @@ static void pmsr_type_ftm_handler(struct wpa_driver_nl80211_data *drv,
 	if (tb[NL80211_PMSR_FTM_CAPA_ATTR_TYPE_CAPS] &&
 	    !nla_parse_nested(type_caps, NL80211_PMSR_FTM_TYPE_CAPA_ATTR_MAX,
 			      tb[NL80211_PMSR_FTM_CAPA_ATTR_TYPE_CAPS],
-			      NULL) == 0) {
+			      NULL)) {
 		drv->capa.ranging_type.infra_support =
 			!!type_caps[NL80211_PMSR_FTM_TYPE_CAPA_ATTR_INFRA_SUPPORT];
 		drv->capa.ranging_type.pd_support =
@@ -1246,7 +1246,7 @@ static void pmsr_type_ftm_handler(struct wpa_driver_nl80211_data *drv,
 	    tb[NL80211_PMSR_FTM_CAPA_ATTR_RSTA_CAPS] &&
 	    !nla_parse_nested(rsta_caps, NL80211_PMSR_FTM_CAPA_ATTR_MAX,
 			      tb[NL80211_PMSR_FTM_CAPA_ATTR_RSTA_CAPS],
-			      NULL) == 0) {
+			      NULL)) {
 		drv->capa.rsta.support_ntb =
 			!!rsta_caps[NL80211_PMSR_FTM_CAPA_ATTR_SUPPORT_NTB];
 		drv->capa.rsta.support_tb =
