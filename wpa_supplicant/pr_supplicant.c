@@ -22,6 +22,7 @@
 
 #ifdef CONFIG_PASN
 static void wpas_pr_pasn_timeout(void *eloop_ctx, void *timeout_ctx);
+static void wpas_pr_pasn_roc_total_timeout(void *eloop_ctx, void *timeout_ctx);
 
 /* Total listen window (ms) for the PASN responder ROC */
 #define PR_PASN_RESPONDER_ROC_DURATION 5000
@@ -768,6 +769,7 @@ void wpas_pr_deinit(struct wpa_supplicant *wpa_s)
 
 #ifdef CONFIG_PASN
 	eloop_cancel_timeout(wpas_pr_pasn_timeout, wpa_s, NULL);
+	eloop_cancel_timeout(wpas_pr_pasn_roc_total_timeout, wpa_s, NULL);
 #endif /* CONFIG_PASN */
 	eloop_cancel_timeout(wpas_pr_ranging_session_timeout, wpa_s, NULL);
 }
@@ -998,6 +1000,40 @@ static void wpas_pr_pasn_roc_work_done(struct wpa_supplicant *wpa_s)
 
 
 /**
+ * wpas_pr_cancel_roc - Stop all responder ROC activity, both active and queued
+ *
+ * Cancels any in-progress driver ROC, releases the active radio work item,
+ * and removes any pending pr-pasn-roc work items that have not yet started.
+ * Safe to call when no ROC is active; all sub-operations are idempotent.
+ * Must NOT be called from within a pr-pasn-roc radio work callback (deinit
+ * path) as that would cause re-entrant radio_remove_works() ->
+ * radio_work_free().
+ */
+static void wpas_pr_cancel_roc(struct wpa_supplicant *wpa_s)
+{
+	wpa_drv_cancel_remain_on_channel(wpa_s);
+	wpa_s->off_channel_freq = 0;
+	wpa_s->roc_waiting_drv_freq = 0;
+	wpas_pr_pasn_roc_work_done(wpa_s);
+	radio_remove_works(wpa_s, "pr-pasn-roc", 0);
+}
+
+
+/**
+ * wpas_pr_pasn_abort_responder - Cancel the responder PASN session and clean
+ * up all associated state. Safe to call from any responder error path; calling
+ * eloop_cancel_timeout() on an already-expired timer is a no-op.
+ */
+static void wpas_pr_pasn_abort_responder(struct wpa_supplicant *wpa_s)
+{
+	eloop_cancel_timeout(wpas_pr_pasn_roc_total_timeout, wpa_s, NULL);
+	wpa_s->pr_responder_mode = false;
+	os_memset(wpa_s->pr_responder_src_addr, 0, ETH_ALEN);
+	wpas_pr_clear_ranging_params(wpa_s->global->pr);
+}
+
+
+/**
  * wpas_pr_pasn_roc_total_timeout - Total ROC budget expiry; stop responder
  */
 static void wpas_pr_pasn_roc_total_timeout(void *eloop_ctx, void *timeout_ctx)
@@ -1006,15 +1042,9 @@ static void wpas_pr_pasn_roc_total_timeout(void *eloop_ctx, void *timeout_ctx)
 
 	wpa_printf(MSG_DEBUG,
 		   "PR PASN: Total ROC budget expired, stopping responder listen");
-	wpa_s->pr_responder_mode = false;
-	os_memset(wpa_s->pr_responder_src_addr, 0, ETH_ALEN);
 
-	if (wpa_s->pr_roc_work) {
-		wpa_drv_cancel_remain_on_channel(wpa_s);
-		wpa_s->off_channel_freq = 0;
-		wpa_s->roc_waiting_drv_freq = 0;
-		wpas_pr_pasn_roc_work_done(wpa_s);
-	}
+	wpas_pr_cancel_roc(wpa_s);
+	wpas_pr_pasn_abort_responder(wpa_s);
 }
 
 
@@ -1044,10 +1074,7 @@ static void wpas_pr_pasn_roc_start_cb(struct wpa_radio_work *work, int deinit)
 		 * regardless of whether the work was started or not - the
 		 * ROC will never fire now.
 		 */
-		eloop_cancel_timeout(wpas_pr_pasn_roc_total_timeout,
-				     wpa_s, NULL);
-		wpa_s->pr_responder_mode = false;
-		os_memset(wpa_s->pr_responder_src_addr, 0, ETH_ALEN);
+		wpas_pr_pasn_abort_responder(wpa_s);
 		os_free(rwork);
 		work->ctx = NULL;
 		return;
@@ -1069,14 +1096,8 @@ static void wpas_pr_pasn_roc_start_cb(struct wpa_radio_work *work, int deinit)
 				      NULL : rwork->src_addr) < 0) {
 		wpa_printf(MSG_ERROR,
 			   "PR PASN: Failed to start ROC for responder");
-		eloop_cancel_timeout(wpas_pr_pasn_roc_total_timeout,
-				     wpa_s, NULL);
-		wpa_s->pr_responder_mode = false;
-		os_memset(wpa_s->pr_responder_src_addr, 0, ETH_ALEN);
-		os_free(rwork);
-		work->ctx = NULL;
-		radio_work_done(work);
-		wpa_s->pr_roc_work = NULL;
+		wpas_pr_pasn_roc_work_done(wpa_s);
+		wpas_pr_pasn_abort_responder(wpa_s);
 		return;
 	}
 
@@ -1109,9 +1130,7 @@ static void wpas_pr_schedule_responder_roc(struct wpa_supplicant *wpa_s,
 	return;
 
 fail:
-	wpa_s->pr_responder_mode = false;
-	os_memset(wpa_s->pr_responder_src_addr, 0, ETH_ALEN);
-	eloop_cancel_timeout(wpas_pr_pasn_roc_total_timeout, wpa_s, NULL);
+	wpas_pr_pasn_abort_responder(wpa_s);
 }
 
 
@@ -1634,18 +1653,13 @@ int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 			/*
 			 * Cancel ROC on the listening interface; the dedicated
 			 * PR interface (if created) will handle all subsequent
-			 * frames. Then complete the radio work item so the
-			 * radio is released for other operations.
-			 *
-			 * wpas_pr_cancel_remain_on_channel_cb() may also fire
-			 * asynchronously when the driver processes the cancel
-			 * request, but wpas_pr_pasn_roc_work_done() is
-			 * idempotent (no-op if pr_roc_work is already NULL).
+			 * frames. wpas_pr_cancel_roc() also flushes any pending
+			 * pr-pasn-roc chunks that were queued but not yet
+			 * started (M1 can arrive between two ROC chunks when
+			 * pr_roc_work is already NULL but a next chunk is
+			 * already queued).
 			 */
-			wpa_drv_cancel_remain_on_channel(wpa_s);
-			wpa_s->off_channel_freq = 0;
-			wpa_s->roc_waiting_drv_freq = 0;
-			wpas_pr_pasn_roc_work_done(wpa_s);
+			wpas_pr_cancel_roc(wpa_s);
 
 			/* Clear responder mode */
 			wpa_s->pr_responder_mode = false;
@@ -1685,14 +1699,8 @@ void wpas_pr_abort_ranging(struct wpa_supplicant *wpa_s)
 	wpas_pr_pasn_cancel_auth_work(wpa_s);
 	wpa_s->pr_pasn_auth_work = NULL;
 	if (wpa_s->pr_responder_mode) {
-		eloop_cancel_timeout(wpas_pr_pasn_roc_total_timeout,
-				     wpa_s, NULL);
-		wpa_drv_cancel_remain_on_channel(wpa_s);
-		wpa_s->off_channel_freq = 0;
-		wpa_s->roc_waiting_drv_freq = 0;
-		wpas_pr_pasn_roc_work_done(wpa_s);
-		wpa_s->pr_responder_mode = false;
-		os_memset(wpa_s->pr_responder_src_addr, 0, ETH_ALEN);
+		wpas_pr_cancel_roc(wpa_s);
+		wpas_pr_pasn_abort_responder(wpa_s);
 	}
 
 	/* Stop PD wdev and cleanup all ranging resources */
