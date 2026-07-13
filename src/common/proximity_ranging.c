@@ -1661,7 +1661,8 @@ static int pr_prepare_pasn_pr_elem(struct pr_data *pr, struct wpabuf *extra_ies,
 		   ranging_type & PR_NTB_SECURE_LTF_BASED_RANGING) {
 		pr_get_ntb_capabilities(pr, &ntb_caps);
 		pr_buf_add_ntb_capa_info(buf, &ntb_caps);
-		pr_copy_channels(&op_channels, &ntb_caps.channels, false);
+		pr_copy_channels(&op_channels, &ntb_caps.channels,
+				 pr->cfg->support_6ghz);
 	} else {
 		wpa_printf(MSG_INFO, "PR: Unsupported ranging_type 0x%x",
 			   ranging_type);
@@ -1689,7 +1690,8 @@ static int pr_prepare_pasn_pr_elem(struct pr_data *pr, struct wpabuf *extra_ies,
 		op_mode.channels.op_class[0].channel[0] = forced_op_channel;
 		op_mode.channels.op_class[0].op_class = forced_op_class;
 	} else {
-		pr_copy_channels(&op_mode.channels, &op_channels, false);
+		pr_copy_channels(&op_mode.channels, &op_channels,
+				 pr->cfg->support_6ghz);
 	}
 
 	pr_buf_add_operation_mode(buf, &op_mode);
