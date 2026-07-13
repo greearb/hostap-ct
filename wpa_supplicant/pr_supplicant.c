@@ -23,6 +23,7 @@
 #ifdef CONFIG_PASN
 static void wpas_pr_pasn_timeout(void *eloop_ctx, void *timeout_ctx);
 static void wpas_pr_pasn_roc_total_timeout(void *eloop_ctx, void *timeout_ctx);
+static void wpas_pr_pasn_auth_work_done(struct wpa_supplicant *wpa_s);
 
 /* Total listen window (ms) for the PASN responder ROC */
 #define PR_PASN_RESPONDER_ROC_DURATION 5000
@@ -536,6 +537,7 @@ static void wpas_pr_ranging_params(void *ctx, const u8 *dev_addr,
 	 * Cleanup happens on COMPLETE event or session timeout.
 	 */
 	eloop_cancel_timeout(wpas_pr_pasn_timeout, wpa_s, NULL);
+	wpas_pr_pasn_auth_work_done(wpa_s);
 
 	/* Trigger ranging measurement after successful PASN authentication */
 	if (wpas_pr_trigger_ranging(wpa_s, peer_addr, freq, op_class,
@@ -978,6 +980,24 @@ static void wpas_pr_pasn_cancel_auth_work(struct wpa_supplicant *wpa_s)
 
 	/* Remove pending/started work */
 	radio_remove_works(wpa_s, "pr-pasn-start-auth", 0);
+}
+
+
+/**
+ * wpas_pr_pasn_auth_work_done - Release PASN auth radio work
+ */
+static void wpas_pr_pasn_auth_work_done(struct wpa_supplicant *wpa_s)
+{
+	struct wpa_pr_pasn_auth_work *awork;
+
+	if (!wpa_s->pr_pasn_auth_work)
+		return;
+
+	awork = wpa_s->pr_pasn_auth_work->ctx;
+	wpas_pr_pasn_free_auth_work(awork);
+	wpa_s->pr_pasn_auth_work->ctx = NULL;
+	radio_work_done(wpa_s->pr_pasn_auth_work);
+	wpa_s->pr_pasn_auth_work = NULL;
 }
 
 
