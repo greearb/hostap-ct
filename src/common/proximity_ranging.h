@@ -25,7 +25,7 @@
 /**
  * PR_MAX_OP_CLASSES - Maximum number of operating classes
  */
-#define PR_MAX_OP_CLASSES 15
+#define PR_MAX_OP_CLASSES 30
 
 /**
  * PR_MAX_OP_CLASS_CHANNELS - Maximum number of channels per operating class
