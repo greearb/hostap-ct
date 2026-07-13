@@ -3310,6 +3310,13 @@ static int wpa_cli_cmd_pr_clear_dik_context(struct wpa_ctrl *ctrl, int argc,
 	return wpa_ctrl_command(ctrl, "PR_CLEAR_DIK_CONTEXT");
 }
 
+
+static int wpa_cli_cmd_pr_ranging_abort(struct wpa_ctrl *ctrl, int argc,
+					char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "PR_RANGING_ABORT");
+}
+
 #endif /* CONFIG_PR */
 
 #endif /* CONFIG_PASN */
@@ -4234,6 +4241,8 @@ static const struct wpa_cli_cmd wpa_cli_commands[] = {
 	  "self dik=<own_dik/peerdik> password=<global_pw/unique_pw> pmk=<pmk>" },
 	{ "pr_clear_dik_context", wpa_cli_cmd_pr_clear_dik_context, NULL,
 	  cli_cmd_flag_none, "= Clear all DIK contexts" },
+	{ "pr_ranging_abort", wpa_cli_cmd_pr_ranging_abort, NULL,
+	  cli_cmd_flag_none, "= Abort an ongoing proximity ranging session" },
 #endif /* CONFIG_PR */
 #endif /* CONFIG_PASN */
 	{ "mscs", wpa_cli_cmd_mscs, NULL,
