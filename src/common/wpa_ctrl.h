@@ -505,6 +505,7 @@ extern "C" {
  * <result> role=<role> protocol=<protocol type> opclass=<op class> channel=<op channel> cc=<country>
  */
 #define PR_PASN_RESULT "PR-PASN-RESULT "
+#define PR_RANGING_TERMINATED "PR-RANGING-TERMINATED "
 
 /* Proximity Ranging parameters to use in ranging */
 #define PR_RANGING_PARAMS "PR-RANGING-PARAMS "

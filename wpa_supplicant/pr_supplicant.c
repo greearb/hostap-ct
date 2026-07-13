@@ -408,6 +408,7 @@ static void wpas_pr_ranging_session_timeout(void *eloop_ctx, void *timeout_ctx)
 	wpas_pr_clear_ranging_params(pr);
 
 	wpas_pr_pd_stop(wpa_s);
+	wpas_notify_pr_ranging_terminated(wpa_s, PR_SESSION_END_TIMEOUT);
 }
 
 
@@ -874,6 +875,8 @@ void wpas_pr_measurement_complete(struct wpa_supplicant *wpa_s,
 	wpas_notify_pr_ranging_complete(wpa_s, complete->cookie);
 	wpas_pr_clear_ranging_params(pr);
 	wpas_pr_pd_stop(wpa_s);
+	wpas_notify_pr_ranging_terminated(wpa_s,
+					  PR_SESSION_END_PEER_COMPLETE);
 }
 
 
@@ -1076,6 +1079,7 @@ static void wpas_pr_pasn_roc_total_timeout(void *eloop_ctx, void *timeout_ctx)
 
 	wpas_pr_cancel_roc(wpa_s);
 	wpas_pr_pasn_abort_responder(wpa_s);
+	wpas_notify_pr_ranging_terminated(wpa_s, PR_SESSION_END_NEG_FAILED);
 }
 
 
@@ -1212,6 +1216,7 @@ static void wpas_pr_pasn_timeout(void *eloop_ctx, void *timeout_ctx)
 	wpas_pr_clear_ranging_params(wpa_s->global->pr);
 
 	wpa_printf(MSG_DEBUG, "PR: PASN timed out");
+	wpas_notify_pr_ranging_terminated(wpa_s, PR_SESSION_END_NEG_FAILED);
 }
 
 
@@ -1712,6 +1717,8 @@ int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 		wpas_pr_pasn_auth_work_done(wpa_s);
 		wpas_pr_pd_stop(wpa_s);
 		wpas_pr_clear_ranging_params(wpa_s->global->pr);
+		wpas_notify_pr_ranging_terminated(wpa_s,
+						  PR_SESSION_END_NEG_FAILED);
 	}
 
 	return ret;
@@ -1752,6 +1759,7 @@ void wpas_pr_abort_ranging(struct wpa_supplicant *wpa_s)
 
 	/* Free ranging params so a new session can be started */
 	wpas_pr_clear_ranging_params(pr);
+	wpas_notify_pr_ranging_terminated(wpa_s, PR_SESSION_END_USER_ABORT);
 }
 
 #endif /* CONFIG_PASN */

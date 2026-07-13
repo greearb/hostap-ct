@@ -1637,4 +1637,11 @@ void wpas_notify_pr_device_found(struct wpa_supplicant *wpa_s,
 		       dev->dik_valid);
 }
 
+
+void wpas_notify_pr_ranging_terminated(struct wpa_supplicant *wpa_s, int reason)
+{
+	wpa_msg_global(wpa_s, MSG_INFO, PR_RANGING_TERMINATED "reason=%d",
+		       reason);
+}
+
 #endif /* CONFIG_PR */

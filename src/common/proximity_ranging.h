@@ -48,6 +48,16 @@ struct ieee80211_mgmt;
 #define PR_NEGOTIATION_UPDATE 1
 #define PR_NEGOTIATION_FAIL 2
 
+/**
+ * enum pr_session_end_reason - Reason codes for ranging session end
+ */
+enum pr_session_end_reason {
+	PR_SESSION_END_TIMEOUT       = 0,
+	PR_SESSION_END_USER_ABORT    = 1,
+	PR_SESSION_END_PEER_COMPLETE = 2,
+	PR_SESSION_END_NEG_FAILED    = 3,
+};
+
 enum pr_pasn_role {
 	PR_ROLE_IDLE = 0,
 	PR_ROLE_PASN_INITIATOR,
