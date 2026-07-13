@@ -356,6 +356,14 @@ static int wpas_pr_pasn_send_mgmt(void *ctx, const u8 *data, size_t data_len,
 }
 
 
+static void wpas_pr_device_found(void *ctx, const struct pr_device *dev)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+
+	wpas_notify_pr_device_found(wpa_s, dev);
+}
+
+
 static void wpas_pr_pasn_negotiation_started(void *ctx, const u8 *peer_addr,
 					     u8 role, u8 protocol_type)
 {
@@ -700,6 +708,7 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 	pr.pasn_result = wpas_pr_pasn_result;
 	pr.get_ranging_params = wpas_pr_ranging_params;
 	pr.set_keys = wpas_pr_pasn_set_keys;
+	pr.device_found = wpas_pr_device_found;
 	pr.clear_keys = wpas_pr_pasn_clear_keys;
 
 	pr.secure_he_ltf = wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_SEC_LTF_STA;

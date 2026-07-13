@@ -1210,6 +1210,9 @@ void pr_process_usd_elems(struct pr_data *pr, const u8 *ies, u16 ies_len,
 	if (msg.dira && msg.dira_len)
 		pr_validate_dira(pr, dev, msg.dira, msg.dira_len);
 
+	if (pr->cfg->device_found)
+		pr->cfg->device_found(pr->cfg->cb_ctx, dev);
+
 	pr_parse_free(&msg);
 }
 

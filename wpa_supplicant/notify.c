@@ -11,6 +11,7 @@
 #include "utils/common.h"
 #include "common/wpa_ctrl.h"
 #include "common/nan_de.h"
+#include "common/proximity_ranging.h"
 #include "config.h"
 #include "wpa_supplicant_i.h"
 #include "wps_supplicant.h"
@@ -1612,6 +1613,28 @@ void wpas_notify_pr_ranging_complete(struct wpa_supplicant *wpa_s, u64 cookie)
 {
 	wpa_msg_global(wpa_s, MSG_INFO, PR_EVENT_RANGING_COMPLETE
 		       "cookie=%llu", (unsigned long long) cookie);
+}
+
+
+void wpas_notify_pr_device_found(struct wpa_supplicant *wpa_s,
+				 const struct pr_device *dev)
+{
+	wpa_msg_global(wpa_s, MSG_INFO, PR_PEER_FOUND
+		       "peer_addr=" MACSTR
+		       " pasn_type=0x%02x name=%s edca=%d edca_ista=%d edca_rsta=%d ntb=%d ntb_ista=%d ntb_rsta=%d secure_ltf=%d 6ghz=%d freq=%d dik_valid=%d",
+		       MAC2STR(dev->pr_device_addr),
+		       dev->pr_caps.pasn_type,
+		       dev->pr_caps.device_name,
+		       dev->pr_caps.edca_support,
+		       dev->edca_caps.ista_support,
+		       dev->edca_caps.rsta_support,
+		       dev->pr_caps.ntb_support,
+		       dev->ntb_caps.ista_support,
+		       dev->ntb_caps.rsta_support,
+		       dev->pr_caps.secure_he_ltf,
+		       dev->pr_caps.support_6ghz,
+		       dev->listen_freq,
+		       dev->dik_valid);
 }
 
 #endif /* CONFIG_PR */

@@ -13,6 +13,8 @@
 #include "utils/list.h"
 #include "wps/wps_defs.h"
 
+struct ieee80211_mgmt;
+
 #define DEVICE_IDENTITY_KEY_LEN 16
 #define DEVICE_IDENTITY_TAG_LEN 8
 #define DEVICE_IDENTITY_NONCE_LEN 8
@@ -590,6 +592,8 @@ struct pr_config {
 				   const u8 *peer_addr, u8 ranging_role,
 				   u8 protocol_type, u8 op_class, u8 op_channel,
 				   u8 self_format_bw, u8 peer_format_bw);
+
+	void (*device_found)(void *ctx, const struct pr_device *dev);
 };
 
 struct pr_data {

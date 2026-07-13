@@ -515,6 +515,14 @@ extern "C" {
 /* Proximity Ranging measurement session complete */
 #define PR_EVENT_RANGING_COMPLETE "PR-RANGING-COMPLETE "
 
+/* Proximity Ranging capable peer discovered via USD
+ * peer_addr=<MAC> pasn_type=0x<hex> name=<string>
+ * edca=<0|1> edca_ista=<0|1> edca_rsta=<0|1>
+ * ntb=<0|1> ntb_ista=<0|1> ntb_rsta=<0|1>
+ * secure_ltf=<0|1> 6ghz=<0|1> freq=<MHz> dik_valid=<0|1>
+ */
+#define PR_PEER_FOUND "PR-PEER-FOUND "
+
 /* BSS command information masks */
 
 #define WPA_BSS_MASK_ALL		0xFFFDFFFF

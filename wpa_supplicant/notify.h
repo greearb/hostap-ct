@@ -20,6 +20,7 @@ struct rsn_pmksa_cache_entry;
 enum nan_de_reason;
 enum nan_service_protocol_type;
 struct nan_discovery_result;
+struct pr_device;
 
 int wpas_notify_supplicant_initialized(struct wpa_global *global);
 void wpas_notify_supplicant_deinitialized(struct wpa_global *global);
@@ -223,6 +224,8 @@ void wpas_notify_pr_measurement_result(
 	const struct peer_measurement_result *result);
 void wpas_notify_pr_ranging_complete(struct wpa_supplicant *wpa_s,
 				     u64 cookie);
+void wpas_notify_pr_device_found(struct wpa_supplicant *wpa_s,
+				 const struct pr_device *dev);
 void wpas_notify_nan_bootstrap_request(struct wpa_supplicant *wpa_s,
 				       const u8 *peer_addr, u16 pbm,
 				       int handle, u8 requestor_instance_id);
