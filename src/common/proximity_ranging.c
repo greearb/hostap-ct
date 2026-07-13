@@ -1656,7 +1656,8 @@ static int pr_prepare_pasn_pr_elem(struct pr_data *pr, struct wpabuf *extra_ies,
 	if (ranging_type & PR_EDCA_BASED_RANGING) {
 		pr_get_edca_capabilities(pr, &edca_caps);
 		pr_buf_add_edca_capa_info(buf, &edca_caps);
-		pr_copy_channels(&op_channels, &edca_caps.channels, false);
+		pr_copy_channels(&op_channels, &edca_caps.channels,
+				 pr->cfg->support_6ghz);
 	} else if (ranging_type & PR_NTB_OPEN_BASED_RANGING ||
 		   ranging_type & PR_NTB_SECURE_LTF_BASED_RANGING) {
 		pr_get_ntb_capabilities(pr, &ntb_caps);

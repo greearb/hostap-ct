@@ -228,7 +228,8 @@ static int wpas_pr_op_class_to_chan_params(u8 op_class, u8 op_channel,
 static void
 wpas_pr_setup_edca_channels(struct wpa_supplicant *wpa_s,
 			    struct pr_channels *chan,
-			    u32 bw_bitmap, u32 preamble_bitmap)
+			    u32 bw_bitmap, u32 preamble_bitmap,
+			    bool allow_6ghz)
 {
 	struct hostapd_hw_modes *mode;
 	int cla = 0, i;
@@ -240,7 +241,7 @@ wpas_pr_setup_edca_channels(struct wpa_supplicant *wpa_s,
 
 		mode = get_mode(wpa_s->hw.modes, wpa_s->hw.num_modes, o->mode,
 				is_6ghz_op_class(o->op_class));
-		if (!mode || is_6ghz_op_class(o->op_class) ||
+		if (!mode || (!allow_6ghz && is_6ghz_op_class(o->op_class)) ||
 		    !wpas_pr_edca_is_valid_op_class(bw_bitmap, preamble_bitmap,
 						    o))
 			continue;
@@ -666,7 +667,8 @@ int wpas_pr_init(struct wpa_global *global, struct wpa_supplicant *wpa_s,
 
 	wpas_pr_setup_edca_channels(wpa_s, &pr.edca_channels,
 				    capa->pd_bandwidths,
-				    capa->pd_preambles);
+				    capa->pd_preambles,
+				    pr.support_6ghz);
 	pr.ntb_format_and_bw =
 		wpas_pr_best_ntb_format_bw(capa->pd_bandwidths,
 					   capa->pd_preambles);
