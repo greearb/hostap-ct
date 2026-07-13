@@ -1648,6 +1648,7 @@ int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 			 int freq)
 {
 	struct pr_data *pr = wpa_s->global->pr;
+	int ret;
 
 	if (!pr)
 		return -2;
@@ -1695,7 +1696,16 @@ int wpas_pr_pasn_auth_rx(struct wpa_supplicant *wpa_s,
 		}
 	}
 
-	return pr_pasn_auth_rx(pr, mgmt, len, freq);
+	ret = pr_pasn_auth_rx(pr, mgmt, len, freq);
+
+	if (ret < 0) {
+		eloop_cancel_timeout(wpas_pr_pasn_timeout, wpa_s, NULL);
+		wpas_pr_pasn_auth_work_done(wpa_s);
+		wpas_pr_pd_stop(wpa_s);
+		wpas_pr_clear_ranging_params(wpa_s->global->pr);
+	}
+
+	return ret;
 }
 
 
