@@ -1008,9 +1008,12 @@ static int pr_process_channels(const u8 *channel_list, size_t channel_list_len,
 		os_memcpy(cl->channel, pos, cl->channels);
 		pos += channels;
 		ch->op_classes++;
+		if (ch->op_classes == PR_MAX_OP_CLASSES)
+			break;
 	}
 
-	if (ch->op_classes != op_class_count) {
+	if (ch->op_classes != op_class_count &&
+	    ch->op_classes < PR_MAX_OP_CLASSES) {
 		wpa_printf(MSG_INFO,
 			   "PR: Channel list count mismatch %lu != %d",
 			   ch->op_classes, op_class_count);
