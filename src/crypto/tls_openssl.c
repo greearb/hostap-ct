@@ -440,6 +440,11 @@ static EVP_PKEY * provider_load_key(const char *uri)
 
 	while (!OSSL_STORE_eof(store)) {
 		info = OSSL_STORE_load(store);
+		if (!info) {
+			if (OSSL_STORE_error(store))
+				break;
+			continue;
+		}
 		if ((OSSL_STORE_INFO_get_type(info)) == OSSL_STORE_INFO_PKEY)
 			key = OSSL_STORE_INFO_get1_PKEY(info);
 
@@ -481,6 +486,11 @@ static X509 * provider_load_cert(const char *cert_id)
 
 	while (!OSSL_STORE_eof(store)) {
 		info = OSSL_STORE_load(store);
+		if (!info) {
+			if (OSSL_STORE_error(store))
+				break;
+			continue;
+		}
 		if ((OSSL_STORE_INFO_get_type(info)) == OSSL_STORE_INFO_CERT)
 			cert = OSSL_STORE_INFO_get1_CERT(info);
 
