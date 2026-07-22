@@ -3444,7 +3444,8 @@ dbus_bool_t wpas_dbus_getter_capabilities(
 #endif /* CONFIG_WPS */
 
 #ifdef CONFIG_SAE
-		if ((capa.key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_SAE) &&
+		if (((capa.key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_SAE) ||
+		     (capa.flags & WPA_DRIVER_FLAGS_SAE)) &&
 		    !wpa_dbus_dict_string_array_add_element(&iter_array, "sae"))
 			goto nomem;
 #endif /* CONFIG_SAE */
