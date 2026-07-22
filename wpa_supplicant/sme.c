@@ -1230,12 +1230,12 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 
 #ifdef CONFIG_TESTING_OPTIONS
 		bss = wpas_ml_connect_pref(wpa_s, bss, ssid);
+#endif /* CONFIG_TESTING_OPTIONS */
 
 		if (wpa_s->conf->mld_force_single_link) {
 			wpa_printf(MSG_DEBUG, "MLD: Force single link");
 			wpa_s->valid_links = BIT(wpa_s->mlo_assoc_link_id);
 		}
-#endif /* CONFIG_TESTING_OPTIONS */
 		params.mld = true;
 		params.mld_link_id = wpa_s->mlo_assoc_link_id;
 		params.ap_mld_addr = wpa_s->ap_mld_addr;

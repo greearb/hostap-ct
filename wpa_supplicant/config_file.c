@@ -1787,9 +1787,9 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 			config->wowlan_disconnect_on_deinit);
 	if (config->rsn_overriding)
 		fprintf(f, "rsn_overriding=%d\n", config->rsn_overriding);
-#ifdef CONFIG_TESTING_OPTIONS
 	if (config->mld_force_single_link)
 		fprintf(f, "mld_force_single_link=1\n");
+#ifdef CONFIG_TESTING_OPTIONS
 	if (config->mld_connect_band_pref != MLD_CONNECT_BAND_PREF_AUTO)
 		fprintf(f, "mld_connect_band_pref=%d\n",
 			config->mld_connect_band_pref);
