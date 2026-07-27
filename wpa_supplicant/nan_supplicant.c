@@ -5292,6 +5292,15 @@ static int wpas_nan_de_listen(void *ctx, unsigned int freq,
 	struct wpa_supplicant *wpa_s = ctx;
 	struct wpas_nan_usd_listen_work *lwork;
 
+	/* TX and listen phases are mutually exclusive. Release any pending
+	 * TX work so the listen ROC can start immediately.
+	 */
+	if (wpa_s->nan_usd_tx_work) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: Releasing pending TX work before listen ROC");
+		wpas_nan_usd_tx_work_done(wpa_s);
+	}
+
 	lwork = os_zalloc(sizeof(*lwork));
 	if (!lwork)
 		return -1;
@@ -5883,6 +5892,12 @@ void wpas_nan_usd_remain_on_channel_cb(struct wpa_supplicant *wpa_s,
 				       unsigned int freq, unsigned int duration)
 {
 	wpas_nan_usd_listen_work_done(wpa_s);
+
+	/* Clean up pending offchannel TX state only when present; calling
+	 * it unconditionally cancels the current ROC when no TX is in flight.
+	 */
+	if (wpa_s->pending_action_tx || wpa_s->action_tx_wait_time_used)
+		offchannel_send_action_done(wpa_s);
 
 	if (wpa_s->nan_de)
 		nan_de_listen_started(wpa_s->nan_de, freq, duration);
