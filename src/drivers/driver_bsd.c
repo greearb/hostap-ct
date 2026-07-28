@@ -1001,8 +1001,7 @@ handle_read(void *ctx, const u8 *src_addr, const u8 *buf, size_t len)
 }
 
 static void *
-bsd_init(struct hostapd_data *hapd, struct wpa_init_params *params,
-	 enum wpa_p2p_mode p2p_mode)
+bsd_init(struct hostapd_data *hapd, struct wpa_init_params *params)
 {
 	struct bsd_driver_data *drv;
 
@@ -1562,7 +1561,8 @@ get80211opmode(struct bsd_driver_data *drv)
 }
 
 static void *
-wpa_driver_bsd_init(void *ctx, const char *ifname, void *priv)
+wpa_driver_bsd_init(void *ctx, const char *ifname, void *priv,
+		    enum wpa_p2p_mode p2p_mode)
 {
 #define	GETPARAM(drv, param, v) \
 	(((v) = get80211param(drv, param)) != -1)
