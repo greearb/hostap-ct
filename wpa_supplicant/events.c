@@ -467,7 +467,7 @@ static int wpa_find_assoc_pmkid_okc(struct wpa_supplicant *wpa_s,
 				     struct rsn_pmksa_cache_entry *cur_pmksa,
 				     int authorized)
 {
-#if defined(IEEE8021X_EAPOL) && !defined(CONFIG_NO_WPA)
+#if !defined(CONFIG_NO_WPA)
 	struct rsn_pmksa_cache_entry *okc_entry;
 	u8 derived_pmkid[PMKID_LEN];
 	const u8 *aa;
@@ -565,7 +565,7 @@ static int wpa_find_assoc_pmkid_okc(struct wpa_supplicant *wpa_s,
 
 	wpa_dbg(wpa_s, MSG_DEBUG,
 		"RSN: OKC derived PMKID does not match any PMKID in (Re)Associaton Request frame RSNE");
-#endif /* IEEE8021X_EAPOL && !CONFIG_NO_WPA */
+#endif /* !CONFIG_NO_WPA */
 	return -1;
 }
 
