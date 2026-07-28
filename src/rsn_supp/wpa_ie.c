@@ -306,17 +306,18 @@ int wpa_gen_wpa_ie(struct wpa_sm *sm, u8 *wpa_ie, size_t wpa_ie_len)
  * wpa_external_auth_add_rsne - Build an RSNE for external authentication
  * @rsne: Buffer in which the RSNE will be written
  * @rsne_len: Length of the RSNE buffer
- * @sm: Pointer to WPA state machine data from wpa_sm_init()
  * @akmp: Authentication and key management protocol
  * @pairwise_cipher: The pairwise cipher suite
  * @group_cipher: The group addressed data cipher suite
  * @group_mgmt_cipher: The group addressed management cipher suite
  * @rsn_capab: RSN capabilities field
+ * @pmkid: PMKID to include in the RSNE, or %NULL if no PMKID
  * Returns: Length of the RSNE or -1 on failure
  */
-int wpa_external_auth_add_rsne(u8 *rsne, size_t rsne_len, struct wpa_sm *sm,
-			       int akmp, int pairwise_cipher, int group_cipher,
-			       int group_mgmt_cipher, u16 rsn_capab)
+int wpa_external_auth_add_rsne(u8 *rsne, size_t rsne_len, int akmp,
+			       int pairwise_cipher, int group_cipher,
+			       int group_mgmt_cipher, u16 rsn_capab,
+			       const u8 *pmkid)
 {
 	struct rsn_ie_hdr *hdr;
 	u32 suite;
@@ -326,9 +327,9 @@ int wpa_external_auth_add_rsne(u8 *rsne, size_t rsne_len, struct wpa_sm *sm,
 
 	if (rsne_len < sizeof(*hdr) + RSN_SELECTOR_LEN +
 	    2 + RSN_SELECTOR_LEN + 2 + RSN_SELECTOR_LEN + 2 +
-	    (sm->cur_pmksa ? 2 + PMKID_LEN : 0) +
+	    (pmkid ? 2 + PMKID_LEN : 0) +
 	    (wpa_cipher_valid_mgmt_group(group_mgmt_cipher) ?
-	    (RSN_SELECTOR_LEN + (!sm->cur_pmksa ? 2 : 0)) : 0)) {
+	    (RSN_SELECTOR_LEN + (!pmkid ? 2 : 0)) : 0)) {
 		wpa_printf(MSG_DEBUG, "Ext-Auth: Too short RSNE buffer (%lu bytes)",
 			   (unsigned long) rsne_len);
 		return -1;
@@ -380,19 +381,19 @@ int wpa_external_auth_add_rsne(u8 *rsne, size_t rsne_len, struct wpa_sm *sm,
 	WPA_PUT_LE16(pos, rsn_capab);
 	pos += 2;
 
-	if (sm->cur_pmksa) {
+	if (pmkid) {
 		wpa_printf(MSG_DEBUG, "RSN: Ext-Auth: Adding PMKID");
 		/* PMKID Count (2 octets, little endian) */
 		WPA_PUT_LE16(pos, 1);
 		pos += 2;
 		/* PMKID */
-		os_memcpy(pos, sm->cur_pmksa->pmkid, PMKID_LEN);
+		os_memcpy(pos, pmkid, PMKID_LEN);
 		pos += PMKID_LEN;
 	}
 
 	/* Group Management Cipher Suite */
 	if (wpa_cipher_valid_mgmt_group(group_mgmt_cipher)) {
-		if (!sm->cur_pmksa) {
+		if (!pmkid) {
 			/* PMKID Count */
 			WPA_PUT_LE16(pos, 0);
 			pos += 2;

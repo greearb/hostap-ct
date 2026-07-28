@@ -799,11 +799,12 @@ static int wpas_eppke_set_rsne(struct wpa_supplicant *wpa_s,
 	u8 rsne[257];
 	int rsne_len;
 
-	rsne_len = wpa_external_auth_add_rsne(rsne, sizeof(rsne), wpa_s->wpa,
+	rsne_len = wpa_external_auth_add_rsne(rsne, sizeof(rsne),
 					      awork->akmp, awork->cipher,
 					      awork->group_cipher,
 					      awork->group_mgmt_cipher,
-					      awork->rsn_capab);
+					      awork->rsn_capab,
+					      sme_get_ext_auth_pmkid(wpa_s));
 	if (rsne_len < 0) {
 		wpa_printf(MSG_DEBUG, "EPPKE: Failed to build RSNE");
 		return -1;

@@ -56,6 +56,9 @@ static int sme_validate_basic_mle(const struct ieee802_11_elems *elems,
 static void sme_process_802_1x_auth_response(struct wpa_supplicant *wpa_s,
 					     struct auth_info *auth,
 					     bool external);
+#endif /* CONFIG_IEEE8021X_AUTH */
+
+#if defined(CONFIG_IEEE8021X_AUTH) || defined(CONFIG_ENC_ASSOC)
 
 static const u8 * sme_get_peer_addr(struct wpa_supplicant *wpa_s, bool external)
 {
@@ -66,6 +69,31 @@ static const u8 * sme_get_peer_addr(struct wpa_supplicant *wpa_s, bool external)
 	return wpa_s->valid_links ? wpa_s->ap_mld_addr : wpa_s->pending_bssid;
 }
 
+
+const u8 * sme_get_ext_auth_pmkid(struct wpa_supplicant *wpa_s)
+{
+	struct rsn_pmksa_cache *cache;
+	struct rsn_pmksa_cache_entry *entry;
+	const u8 *peer;
+
+	peer = sme_get_peer_addr(wpa_s, true);
+	if (!peer)
+		return NULL;
+
+	cache = wpa_sm_get_pmksa_cache(wpa_s->wpa);
+	if (!cache)
+		return NULL;
+
+	entry = pmksa_cache_get(cache, peer, wpa_s->own_addr, NULL,
+				wpa_s->sme.ext_auth_wpa_ssid,
+				wpa_s->sme.ext_auth_key_mgmt);
+	return entry ? entry->pmkid : NULL;
+}
+
+#endif /* CONFIG_IEEE8021X_AUTH || CONFIG_ENC_ASSOC */
+
+
+#ifdef CONFIG_IEEE8021X_AUTH
 
 static int sme_get_key_mgmt(struct wpa_supplicant *wpa_s, bool external)
 {
@@ -436,11 +464,12 @@ sme_build_802_1x_for_ptk(struct wpa_supplicant *wpa_s, bool external)
 	if (external)
 		rsne_len = wpa_external_auth_add_rsne(
 			wpa_s->auth_1x->rsne, sizeof(wpa_s->auth_1x->rsne),
-			wpa_s->wpa, wpa_s->sme.ext_auth_key_mgmt,
+			wpa_s->sme.ext_auth_key_mgmt,
 			wpa_s->sme.ext_pairwise_cipher,
 			wpa_s->sme.ext_group_cipher,
 			wpa_s->sme.ext_mgmt_group_cipher,
-			wpa_s->sme.ext_rsn_capab);
+			wpa_s->sme.ext_rsn_capab,
+			sme_get_ext_auth_pmkid(wpa_s));
 	else
 		rsne_len = wpa_gen_wpa_ie_rsn(
 			wpa_s->auth_1x->rsne, sizeof(wpa_s->auth_1x->rsne),
