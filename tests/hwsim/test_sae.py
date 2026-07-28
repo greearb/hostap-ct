@@ -3845,3 +3845,51 @@ def test_sae_alt_sae_password_id_config(dev, apdev):
     dev[0].set_network(id, "alt_sae_password_ids", "001122334466")
     dev[0].set_network(id, "alt_sae_password_ids", "")
     dev[0].set_network(id, "alt_sae_password_ids", "001122334477")
+
+def test_sae_pmksa_caching_reject_deauth(dev, apdev):
+    """SAE PMKSA caching attempt rejected with Deauthentication frame"""
+    check_sae_capab(dev[0])
+    params = hostapd.wpa2_params(ssid="test-sae",
+                                 passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    dev[0].set("sae_groups", "")
+    dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE",
+                   scan_freq="2412")
+    dev[0].request("DISCONNECT")
+    dev[0].wait_disconnected()
+
+    # The AP loses its PMKSA cache entry and rejects the PMKSA caching
+    # attempt by deauthenticating the STA (e.g., with reason code 9) instead
+    # of responding to the Association Request frame with an error status
+    # code. wpa_supplicant needs to drop its own PMKSA cache entry and fall
+    # back to a full SAE authentication for the connection to recover.
+    hapd.request("PMKSA_FLUSH")
+    hapd.set("ext_mgmt_frame_handling", "1")
+    hapd.dump_monitor()
+    dev[0].request("RECONNECT")
+    sae_auth = False
+    for i in range(30):
+        req = hapd.mgmt_rx()
+        if req is None:
+            raise Exception("MGMT RX wait timed out")
+        if req['subtype'] == 11:
+            algo, = struct.unpack('<H', req['payload'][0:2])
+            if algo == 3:
+                # Fallback to SAE authentication seen; process this frame
+                # normally and let the connection complete.
+                sae_auth = True
+                hapd.set("ext_mgmt_frame_handling", "0")
+                hapd.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=" + binascii.hexlify(req['frame']).decode())
+                break
+        if req['subtype'] == 0:
+            # Association Request frame of the PMKSA caching attempt: do not
+            # respond to it; deauthenticate the STA instead.
+            hapd.request("DEAUTHENTICATE " + dev[0].own_addr() +
+                         " reason=9")
+            continue
+        hapd.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=" + binascii.hexlify(req['frame']).decode())
+    if not sae_auth:
+        raise Exception("No fallback to SAE authentication seen")
+    dev[0].wait_connected(timeout=15, error="Reconnect timed out")
