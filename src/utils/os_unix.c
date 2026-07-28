@@ -96,20 +96,44 @@ int os_get_reltime(struct os_reltime *t)
 			t->usec = ts.tv_nsec / 1000;
 			return 0;
 		}
-		switch (clock_id) {
-#ifdef CLOCK_BOOTTIME
-		case CLOCK_BOOTTIME:
-			clock_id = CLOCK_MONOTONIC;
-			break;
-#endif
-#ifdef CLOCK_MONOTONIC
-		case CLOCK_MONOTONIC:
+
+		/* Try to fall back to alternative clockid_t values, if any */
+
+#if defined(CLOCK_BOOTTIME) && defined(CLOCK_MONOTONIC)
+		/* Some systems (e.g., FreeBSD 15.0) define both CLOCK_BOOTTIME
+		 * and CLOCK_MONOTONIC to have the same value, so handle that
+		 * as a special case. */
+		if (CLOCK_BOOTTIME == CLOCK_MONOTONIC &&
+		    clock_id == CLOCK_BOOTTIME) {
 			clock_id = CLOCK_REALTIME;
-			break;
-#endif
-		case CLOCK_REALTIME:
-			return -1;
+			continue;
 		}
+
+		if (clock_id == CLOCK_BOOTTIME) {
+			clock_id = CLOCK_MONOTONIC;
+			continue;
+		}
+#endif
+
+#ifdef CLOCK_BOOTTIME
+		/* CLOCK_MONOTONIC is not defined. Unknown whether such cases
+		 * exists, but it is safe to fall back to CLOCK_REALTIME.
+		 */
+		if (clock_id == CLOCK_BOOTTIME) {
+			clock_id = CLOCK_REALTIME;
+			continue;
+		}
+#endif
+
+#ifdef CLOCK_MONOTONIC
+		if (clock_id == CLOCK_MONOTONIC) {
+			clock_id = CLOCK_REALTIME;
+			continue;
+		}
+#endif
+
+		/* No additional clockid_t values to fall back to */
+		return -1;
 	}
 #else /* __MACH__ */
 	uint64_t abstime, nano;
