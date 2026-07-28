@@ -703,3 +703,11 @@ CONFIG_DPP2=y
 # dropping the oldest. Default is 2000. Embedded platforms with limited
 # memory may benefit from a lower value (e.g., 100).
 #CONFIG_CTRL_IFACE_MSG_QUEUE_LIMIT=2000
+
+# OpenSSL PKCS#11/OpenSC engine and module trusted-path validation
+# Validate PKCS#11 engine, PKCS#11 module, and OpenSC engine shared library
+# paths (root-owned, non-writable regular file under /usr/lib with root-owned
+# ancestor directories) before dlopen()ing them. Disabled by default to avoid
+# affecting deployments that run wpa_supplicant as a non-root user with shared
+# libraries in a custom directory owned by that user.
+#CONFIG_TLS_ENGINE_TRUSTED_PATH=y

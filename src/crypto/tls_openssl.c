@@ -7,6 +7,10 @@
  */
 
 #include "includes.h"
+#ifdef CONFIG_TLS_ENGINE_TRUSTED_PATH
+#include <sys/stat.h>
+#include <limits.h>
+#endif /* CONFIG_TLS_ENGINE_TRUSTED_PATH */
 #ifdef CONFIG_TESTING_OPTIONS
 #include <fcntl.h>
 #endif /* CONFIG_TESTING_OPTIONS */
@@ -1028,6 +1032,79 @@ static int tls_engine_load_dynamic_generic(const char *pre[],
 }
 
 
+#ifdef CONFIG_TLS_ENGINE_TRUSTED_PATH
+
+#define TRUSTED_PATH "/usr/lib/"
+
+/**
+ * tls_engine_path_trusted - Verify engine .so path is trusted for loading
+ * @path: Engine/module path supplied via configuration or D-Bus
+ * @real_path: Buffer for the canonical path (PATH_MAX bytes)
+ * Returns: 0 if trusted (real_path filled), -1 otherwise
+ *
+ * The PKCS#11/OpenSC engine and module shared object paths are loaded with
+ * dlopen() within this process, which may be running with elevated
+ * privileges. Verify that the supplied path cannot be used to load an
+ * attacker-controlled shared library by requiring, in addition to being
+ * located under the trusted path, that the target is a regular file owned by
+ * root, not writable by group or others, and that every ancestor directory up
+ * to the file is itself a directory, owned by root and not writable by group
+ * or others (otherwise a root-owned file could be swapped by whoever controls
+ * such a directory). lstat() is used for the file check so that a symlink is
+ * never followed, even though realpath() has already canonicalised the path.
+ */
+static int tls_engine_path_trusted(const char *path, char *real_path)
+{
+	struct stat st;
+	char dir[PATH_MAX];
+	char *slash, *next;
+
+	if (!path)
+		return -1;
+
+	if (!realpath(path, real_path)) {
+		wpa_printf(MSG_INFO,
+			   "ENGINE: Refusing to load %s: realpath: %s",
+			   path, strerror(errno));
+		return -1;
+	}
+
+	if (os_strncmp(TRUSTED_PATH, real_path, os_strlen(TRUSTED_PATH)) != 0) {
+		wpa_printf(MSG_INFO,
+			   "ENGINE: Refusing to load %s: not in trusted path %s",
+			   real_path, TRUSTED_PATH);
+		return -1;
+	}
+
+	if (lstat(real_path, &st) != 0 || !S_ISREG(st.st_mode) ||
+	    st.st_uid != 0 || (st.st_mode & (S_IWGRP | S_IWOTH))) {
+		wpa_printf(MSG_INFO,
+			   "ENGINE: Refusing to load %s: not a root-owned, non-writable regular file",
+			   real_path);
+		return -1;
+	}
+
+	os_strlcpy(dir, real_path, sizeof(dir));
+	slash = dir;
+	while ((next = os_strchr(slash + 1, '/')) {
+		*next = '\0';
+		if (stat(dir, &st) != 0 || !S_ISDIR(st.st_mode) ||
+		    st.st_uid != 0 || (st.st_mode & (S_IWGRP | S_IWOTH))) {
+			wpa_printf(MSG_INFO,
+				   "ENGINE: Refusing to load %s: insecure ancestor directory %s",
+				   real_path, dir);
+			return -1;
+		}
+		*next = '/';
+		slash = next;
+	}
+
+	return 0;
+}
+
+#endif /* CONFIG_TLS_ENGINE_TRUSTED_PATH */
+
+
 /**
  * tls_engine_load_dynamic_pkcs11 - load the pkcs11 engine provided by opensc
  * @pkcs11_so_path: pksc11_so_path from the configuration
@@ -1037,6 +1114,10 @@ static int tls_engine_load_dynamic_pkcs11(const char *pkcs11_so_path,
 					  const char *pkcs11_module_path)
 {
 	char *engine_id = "pkcs11";
+#ifdef CONFIG_TLS_ENGINE_TRUSTED_PATH
+	char real_pkcs11_so_path[PATH_MAX];
+	char real_pkcs11_module_path[PATH_MAX];
+#endif /* CONFIG_TLS_ENGINE_TRUSTED_PATH */
 	const char *pre_cmd[] = {
 		"SO_PATH", NULL /* pkcs11_so_path */,
 		"ID", NULL /* engine_id */,
@@ -1053,12 +1134,29 @@ static int tls_engine_load_dynamic_pkcs11(const char *pkcs11_so_path,
 	if (!pkcs11_so_path)
 		return 0;
 
+#ifdef CONFIG_TLS_ENGINE_TRUSTED_PATH
+	if (tls_engine_path_trusted(pkcs11_so_path, real_pkcs11_so_path) < 0)
+		return -1;
+	pre_cmd[1] = real_pkcs11_so_path;
+#else /* CONFIG_TLS_ENGINE_TRUSTED_PATH */
 	pre_cmd[1] = pkcs11_so_path;
+#endif /* CONFIG_TLS_ENGINE_TRUSTED_PATH */
 	pre_cmd[3] = engine_id;
+#ifdef CONFIG_TLS_ENGINE_TRUSTED_PATH
+	if (pkcs11_module_path) {
+		if (tls_engine_path_trusted(pkcs11_module_path,
+					    real_pkcs11_module_path) < 0)
+			return -1;
+		post_cmd[1] = real_pkcs11_module_path;
+	} else {
+		post_cmd[0] = NULL;
+	}
+#else /* CONFIG_TLS_ENGINE_TRUSTED_PATH */
 	if (pkcs11_module_path)
 		post_cmd[1] = pkcs11_module_path;
 	else
 		post_cmd[0] = NULL;
+#endif /* CONFIG_TLS_ENGINE_TRUSTED_PATH */
 
 	wpa_printf(MSG_DEBUG, "ENGINE: Loading pkcs11 Engine from %s",
 		   pkcs11_so_path);
@@ -1074,6 +1172,9 @@ static int tls_engine_load_dynamic_pkcs11(const char *pkcs11_so_path,
 static int tls_engine_load_dynamic_opensc(const char *opensc_so_path)
 {
 	char *engine_id = "opensc";
+#ifdef CONFIG_TLS_ENGINE_TRUSTED_PATH
+	char real_opensc_so_path[PATH_MAX];
+#endif /* CONFIG_TLS_ENGINE_TRUSTED_PATH */
 	const char *pre_cmd[] = {
 		"SO_PATH", NULL /* opensc_so_path */,
 		"ID", NULL /* engine_id */,
@@ -1085,7 +1186,13 @@ static int tls_engine_load_dynamic_opensc(const char *opensc_so_path)
 	if (!opensc_so_path)
 		return 0;
 
+#ifdef CONFIG_TLS_ENGINE_TRUSTED_PATH
+	if (tls_engine_path_trusted(opensc_so_path, real_opensc_so_path) < 0)
+		return -1;
+	pre_cmd[1] = real_opensc_so_path;
+#else /* CONFIG_TLS_ENGINE_TRUSTED_PATH */
 	pre_cmd[1] = opensc_so_path;
+#endif /* CONFIG_TLS_ENGINE_TRUSTED_PATH */
 	pre_cmd[3] = engine_id;
 
 	wpa_printf(MSG_DEBUG, "ENGINE: Loading OpenSC Engine from %s",
