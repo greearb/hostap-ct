@@ -5910,6 +5910,9 @@ static void wpas_event_deauth(struct wpa_supplicant *wpa_s,
 
 	wpa_reset_ft_completed(wpa_s->wpa);
 
+	if (wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME)
+		sme_event_deauth(wpa_s, info);
+
 	wpas_event_disconnect(wpa_s, addr, reason_code,
 			      locally_generated, ie, ie_len, 1);
 }

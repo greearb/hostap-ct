@@ -5020,6 +5020,40 @@ void sme_event_assoc_timed_out(struct wpa_supplicant *wpa_s,
 }
 
 
+void sme_event_deauth(struct wpa_supplicant *wpa_s, struct deauth_info *info)
+{
+#ifdef CONFIG_SAE
+	const u8 *aa;
+
+	/* Some APs reject a (Re)Association Request frame that tries to use
+	 * PMKSA caching by deauthenticating the STA with reason code 9
+	 * (STA_REQ_ASSOC_WITHOUT_AUTH) instead of responding to it with an
+	 * error status code. Drop the PMKSA cache entry for that AP in that
+	 * case so that the next attempt uses a full SAE authentication
+	 * instead of finding the same PMKSA cache entry again and repeating
+	 * the same failure. */
+	if (!wpa_s->sme.sae_pmksa_caching || !info || info->locally_generated ||
+	    info->reason_code != WLAN_REASON_STA_REQ_ASSOC_WITHOUT_AUTH ||
+	    wpa_s->wpa_state != WPA_ASSOCIATING || !wpa_s->current_ssid ||
+	    !wpa_key_mgmt_sae(wpa_s->current_ssid->key_mgmt))
+		return;
+
+	if (wpa_s->valid_links)
+		aa = wpa_s->ap_mld_addr;
+	else if (wpa_s->current_bss)
+		aa = wpa_s->current_bss->bssid;
+	else
+		return; /* Do not flush the PMKSA cache entries of the full ESS
+			 * based on an unprotected frame from a single AP. */
+
+	wpa_dbg(wpa_s, MSG_DEBUG,
+		"SME: PMKSA caching attempt rejected with deauthentication - drop PMKSA cache entry");
+	wpa_sm_aborted_cached(wpa_s->wpa);
+	wpa_sm_pmksa_cache_flush_addr(wpa_s->wpa, wpa_s->current_ssid, aa);
+#endif /* CONFIG_SAE */
+}
+
+
 void sme_event_disassoc(struct wpa_supplicant *wpa_s,
 			struct disassoc_info *info)
 {
