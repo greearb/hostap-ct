@@ -161,7 +161,8 @@ def test_prefer_eht_20(dev, apdev):
       raise Exception("Unexpected BSS1 est_throughput: " + est)
 
 def start_eht_sae_ap(apdev, ml=False, transition_mode=False,
-                     anti_clogging_token=False, require_eht=False):
+                     anti_clogging_token=False, require_eht=False,
+                     bss_require_eht=False):
     params = hostapd.wpa2_params(ssid="eht", passphrase="12345678")
     params["ieee80211ax"] = "1"
     params["ieee80211be"] = "1"
@@ -180,6 +181,8 @@ def start_eht_sae_ap(apdev, ml=False, transition_mode=False,
         params['vendor_elements'] = ml_elem
     if require_eht:
         params['require_eht'] = '1'
+    if bss_require_eht:
+        params['bss_require_eht'] = '1'
     try:
         hapd = hostapd.add_ap(apdev, params)
     except Exception as e:
@@ -204,11 +207,9 @@ def test_eht_sae(dev, apdev):
         dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
 
-def test_eht_sae_require_eht(dev, apdev):
-    """EHT AP requiring EHT for association"""
+def run_eht_sae_require_eht(dev, hapd):
     check_sae_capab(dev[0])
 
-    hapd = start_eht_sae_ap(apdev[0], require_eht=True)
     try:
         dev[0].set("sae_groups", "20")
         dev[0].set("sae_pwe", "2")
@@ -233,6 +234,16 @@ def test_eht_sae_require_eht(dev, apdev):
     finally:
         dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
+
+def test_eht_sae_require_eht(dev, apdev):
+    """EHT AP requiring EHT for association"""
+    hapd = start_eht_sae_ap(apdev[0], require_eht=True)
+    run_eht_sae_require_eht(dev, hapd)
+
+def test_eht_sae_bss_require_eht(dev, apdev):
+    """EHT AP requiring EHT for association in a BSS"""
+    hapd = start_eht_sae_ap(apdev[0], bss_require_eht=True)
+    run_eht_sae_require_eht(dev, hapd)
 
 def test_eht_sae_mlo(dev, apdev):
     """EHT+MLO AP with SAE"""
