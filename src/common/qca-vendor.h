@@ -2302,6 +2302,13 @@ enum qca_wlan_vendor_attr_roam_auth {
 	 * Response frame were transmitted encrypted over the air.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_ASSOC_ENCRYPTED = 16,
+	/* NLA_BINARY attribute, This attribute allows the driver to provide
+	 * KDEs (Key Delivery Elements) received from the AP in the EAPOL-Key
+	 * message 3/4. These KDEs are required by userspace for certain
+	 * operations, such as retrieving the SAE password identifier(s) needed
+	 * for the subsequent SAE connections.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_AP_KDE_INFO = 17,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_AFTER_LAST,
