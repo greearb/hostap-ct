@@ -3908,8 +3908,11 @@ static void hapd_initialize_pasn(struct hostapd_data *hapd,
 		pasn_set_own_mld_addr(pasn, hapd->mld->mld_addr);
 #endif /* CONFIG_IEEE80211BE && CONFIG_ENC_ASSOC */
 	pasn_set_peer_addr(pasn, sta->addr);
-	pasn_set_wpa_key_mgmt(pasn, hapd->conf->wpa_key_mgmt);
-	pasn_set_rsn_pairwise(pasn, hapd->conf->rsn_pairwise);
+	pasn_set_wpa_key_mgmt(pasn, hapd->conf->wpa_key_mgmt |
+			      hapd->conf->rsn_override_key_mgmt |
+			      hapd->conf->rsn_override_key_mgmt_2);
+	pasn_set_rsn_pairwise(pasn, hapd->conf->rsn_pairwise |
+			      hapd->conf->rsn_override_pairwise);
 	pasn_set_mfp(pasn, hapd->conf->ieee80211w);
 	os_free(pasn->pasn_groups);
 	pasn->pasn_groups = int_array_dup(hapd->conf->pasn_groups);
@@ -4340,7 +4343,9 @@ static void handle_auth(struct hostapd_data *hapd,
 #endif /* CONFIG_PASN */
 #ifdef CONFIG_ENC_ASSOC
 	      (hapd->conf->wpa &&
-	       (hapd->conf->wpa_key_mgmt & WPA_KEY_MGMT_EPPKE) &&
+	       ((hapd->conf->wpa_key_mgmt |
+		 hapd->conf->rsn_override_key_mgmt |
+		 hapd->conf->rsn_override_key_mgmt_2) & WPA_KEY_MGMT_EPPKE) &&
 	       hapd->conf->assoc_frame_encryption &&
 	       auth_alg == WLAN_AUTH_EPPKE) ||
 #endif /* CONFIG_ENC_ASSOC */
