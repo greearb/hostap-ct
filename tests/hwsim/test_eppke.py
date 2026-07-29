@@ -1345,3 +1345,40 @@ def test_eppke_mld_two_links_different_security(dev, apdev):
                      ieee80211w="2", beacon_prot="1", pairwise="CCMP")
         eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
                           valid_links=3, active_links=3)
+
+def test_eppke_rsno(dev, apdev):
+    """EPPKE with RSNO"""
+    check_eppke_capab(dev[0])
+    ssid = "test-eppke-authentication"
+    passphrase = '1234567890'
+    params = hostapd.wpa2_params(ssid=ssid,
+                                 passphrase=passphrase,
+                                 ieee80211w='1')
+    params['rsn_override_key_mgmt'] = 'SAE-EXT-KEY EPPKE'
+    params['rsn_override_pairwise'] = 'CCMP GCMP-256'
+    params['rsn_override_mfp'] = '2'
+    params['beacon_prot'] = '1'
+    params['sae_groups'] = '19'
+    params['sae_require_mfp'] = '1'
+    params['sae_pwe'] = '2'
+    params['assoc_frame_encryption'] = '1'
+    params['pmksa_caching_privacy'] = '1'
+    params['eap_using_authentication_frames'] = '1'
+    hapd = hostapd.add_ap(apdev[0], params)
+
+    try:
+        dev[0].set("pasn_groups", "")
+        dev[0].set("sae_pwe", "1")
+        dev[0].set("rsn_overriding", "1")
+        dev[0].connect(ssid, sae_password=passphrase, scan_freq="2412",
+                       key_mgmt="SAE-EXT-KEY EPPKE", ieee80211w="2",
+                       beacon_prot="1", pairwise="CCMP")
+        hapd.wait_sta();
+        sta = hapd.get_sta(dev[0].own_addr())
+        if sta["AKMSuiteSelector"] != '00-0f-ac-24' or sta["auth_alg"] != '9':
+            raise Exception("Incorrect Auth Algo/AKMSuiteSelector value")
+        hwsim_utils.test_connectivity(dev[0], hapd)
+    finally:
+        dev[0].set("pasn_groups", "")
+        dev[0].set("sae_pwe", "0")
+        dev[0].set("rsn_overriding", "0")
