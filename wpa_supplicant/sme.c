@@ -988,13 +988,16 @@ static int wpas_eppke_initialize(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
-	ap_rsne = wpa_bss_get_rsne(wpa_s, bss, NULL, false);
+	/* EPPKE has not been defined to be modified for RSN overriding, so use
+	 * the RSNE and RSNXE from the AP for PASN MIC calculation instead of
+	 * the RSNO elements, if any. */
+	ap_rsne = wpa_bss_get_ie(bss, WLAN_EID_RSN);
 	if (!ap_rsne) {
 		wpa_printf(MSG_DEBUG, "EPPKE: Can't connect without AP RSNE");
 		return -1;
 	}
 
-	ap_rsnxe = wpa_bss_get_rsnxe(wpa_s, bss, NULL, false);
+	ap_rsnxe = wpa_bss_get_ie(bss, WLAN_EID_RSNX);
 
 	ap_rsne_len = *(ap_rsne + 1) + 2;
 	ap_rsnxe_len = ap_rsnxe ? *(ap_rsnxe + 1) + 2 : 0;
@@ -1014,6 +1017,8 @@ static int wpas_eppke_initialize(struct wpa_supplicant *wpa_s,
 					ap_rsnxe, ap_rsnxe_len);
 	}
 
+	/* Use the RSNXOE, if it was included, for actual AP capability check */
+	ap_rsnxe = wpa_bss_get_rsnxe(wpa_s, bss, NULL, false);
 	if (!ieee802_11_rsnx_capab(ap_rsnxe, WLAN_RSNX_CAPAB_KEK_IN_PASN)) {
 		wpa_printf(MSG_DEBUG, "EPPKE: AP does not support KEK_IN_PASN");
 		goto fail;
