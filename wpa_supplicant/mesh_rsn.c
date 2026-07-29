@@ -654,7 +654,9 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 	u8 null_nonce[WPA_NONCE_LEN] = {};
 	u8 ampe_eid;
 	u8 ampe_ie_len;
-	u8 *ampe_buf, *crypt = NULL, *pos, *end;
+	u8 *ampe_buf, *plain, *pos, *end;
+	size_t plain_len;
+	const u8 *crypt;
 	size_t crypt_len;
 	const u8 *aad[] = { sta->addr, wpa_s->own_addr, cat };
 	const size_t aad_len[] = { ETH_ALEN, ETH_ALEN,
@@ -685,25 +687,17 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		return -1;
 	}
 
-	ampe_buf = (u8 *) elems->mic + elems->mic_len;
-	if ((int) elems_len < ampe_buf - start)
-		return -1;
-
-	crypt_len = elems_len - (elems->mic - start);
+	crypt = elems->mic;
+	crypt_len = elems_len - (crypt - start);
 	if (crypt_len < 2 + AES_BLOCK_SIZE) {
 		wpa_msg(wpa_s, MSG_DEBUG, "Mesh RSN: missing ampe ie");
 		return -1;
 	}
 
-	/* crypt is modified by siv_decrypt */
-	crypt = os_zalloc(crypt_len);
-	if (!crypt) {
-		wpa_printf(MSG_ERROR, "Mesh RSN: out of memory");
-		ret = -ENOMEM;
-		goto free;
-	}
-
-	os_memcpy(crypt, elems->mic, crypt_len);
+	plain_len = crypt_len - AES_BLOCK_SIZE;
+	ampe_buf = plain = os_malloc(plain_len);
+	if (!plain)
+		return -ENOMEM;
 
 	if (aes_siv_decrypt(sta->aek, sizeof(sta->aek), crypt, crypt_len, 3,
 			    aad, aad_len, ampe_buf)) {
@@ -810,6 +804,6 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 	}
 
 free:
-	os_free(crypt);
+	bin_clear_free(plain, plain_len);
 	return ret;
 }
