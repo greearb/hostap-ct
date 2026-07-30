@@ -1736,9 +1736,10 @@ void hostapd_link_reconf_resp_tx_status(struct hostapd_data *hapd,
 			if (i == MAX_NUM_MLD_LINKS) {
 				wpa_printf(MSG_INFO,
 					   "MLD: No new assoc STA could be found; disconnect STA");
-				hostapd_notif_disassoc_mld(assoc_hapd, sta,
-							   sta->addr);
-				goto exit;
+				hostapd_notif_disassoc_mld(assoc_hapd,
+							   assoc_sta,
+							   assoc_sta->addr);
+				return;
 			}
 			wpa_printf(MSG_DEBUG, "MLD: New assoc link=%d", i);
 
