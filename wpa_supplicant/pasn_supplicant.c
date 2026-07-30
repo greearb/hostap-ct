@@ -866,12 +866,13 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 		goto fail;
 	}
 
-	rsne = wpa_bss_get_rsne(wpa_s, bss, NULL, false);
+	rsne = wpa_bss_get_ie(bss, WLAN_EID_RSN);
 	if (!rsne) {
 		wpa_printf(MSG_DEBUG, "PASN: BSS without RSNE");
 		goto fail;
 	}
 
+	/* Use the RSNXOE, if it was included, for actual AP capability check */
 	rsnxe = wpa_bss_get_rsnxe(wpa_s, bss, NULL, false);
 
 	derive_kdk = (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_SEC_LTF_STA) &&
@@ -1084,6 +1085,11 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 		goto fail;
 	}
 #endif /* CONFIG_ENC_ASSOC */
+
+	/* PASN has not been defined to be modified for RSN overriding, so use
+	 * the RSNE and RSNXE from the AP for PASN MIC calculation instead of
+	 * the RSNO elements, if any. */
+	rsnxe = wpa_bss_get_ie(bss, WLAN_EID_RSNX);
 
 	ret = wpas_pasn_start(pasn, awork->own_addr, awork->peer_addr,
 			      awork->peer_addr, awork->akmp, awork->cipher,
