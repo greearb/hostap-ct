@@ -27,7 +27,7 @@ def check_pasn_capab(dev):
     if "PASN" not in dev.get_capability("auth_alg"):
         raise HwsimSkip("PASN not supported")
 
-def pasn_ap_params(akmp="PASN", cipher="CCMP", group="19"):
+def pasn_ap_params(akmp="PASN", cipher="CCMP", group="19", rsno=False):
     params = {"ssid": "test-wpa2-pasn",
               "wpa_passphrase": "12345678",
               "wpa": "2",
@@ -35,6 +35,11 @@ def pasn_ap_params(akmp="PASN", cipher="CCMP", group="19"):
               "wpa_key_mgmt": "WPA-PSK " + akmp,
               "rsn_pairwise": cipher,
               "pasn_groups" : group}
+
+    if rsno:
+        params['rsn_override_key_mgmt'] = akmp + ' SAE-EXT-KEY'
+        params['rsn_override_pairwise'] = 'CCMP GCMP-256'
+        params['rsn_override_mfp'] = '2'
 
     return params
 
@@ -170,6 +175,19 @@ def test_pasn_gcmp_256(dev, apdev):
     hapd = start_pasn_ap(apdev[0], params)
 
     check_pasn_akmp_cipher(dev[0], hapd, "PASN", "GCMP-256")
+
+def test_pasn_ccmp_ap_rsno(dev, apdev):
+    """PASN authentication with WPA2/CCMP AP that enables RSNO"""
+    check_pasn_capab(dev[0])
+
+    params = pasn_ap_params("PASN", "CCMP", "19", rsno=True)
+    hapd = start_pasn_ap(apdev[0], params)
+
+    try:
+        dev[0].set("rsn_overriding", "1")
+        check_pasn_akmp_cipher(dev[0], hapd, "PASN", "CCMP")
+    finally:
+        dev[0].set("rsn_overriding", "0")
 
 @remote_compatible
 def test_pasn_group_mismatch(dev, apdev):
