@@ -423,6 +423,9 @@ void wpa_trace_check_ref(const void *addr)
 
 void wpa_trace_deinit(void)
 {
+	free(prg_fname);
+	prg_fname = NULL;
+
 #ifdef WPA_TRACE_BFD
 	free(syms);
 	syms = NULL;
