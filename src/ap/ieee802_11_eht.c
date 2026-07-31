@@ -2313,7 +2313,7 @@ hostapd_parse_link_reconf_req_sta_profile(struct hostapd_data *hapd,
 	}
 
 	sta_info_len = *sta_info;
-	wpa_hexdump(MSG_MSGDUMP, "MLD: STA Info", sta_info + 1, sta_info_len);
+	wpa_hexdump(MSG_MSGDUMP, "MLD: STA Info", sta_info, sta_info_len);
 
 	os_memcpy(sta_addr, sta_info + 1, ETH_ALEN);
 	wpa_printf(MSG_DEBUG, "MLD: Link STA addr=" MACSTR, MAC2STR(sta_addr));
