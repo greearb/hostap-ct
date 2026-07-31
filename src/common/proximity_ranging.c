@@ -2119,6 +2119,14 @@ int pr_pasn_auth_tx_status(struct pr_data *pr, const u8 *data, size_t data_len,
 		   MAC2STR(mgmt->da), acked);
 
 	ret = wpa_pasn_auth_tx_status(pasn, data, data_len, acked);
+
+	/*
+	 * Authentication frame 1 was not acked; return to caller to schedule a
+	 * retransmission. Preserve pasn->frame for the retry.
+	 */
+	if (ret == 2)
+		return ret;
+
 	if (ret == 1 && acked && pr->cfg->pasn_result)
 		pr->cfg->pasn_result(pr->cfg->cb_ctx, dev->ranging_role,
 				     dev->protocol_type, dev->final_op_class,
@@ -2158,6 +2166,23 @@ out:
 	pasn->frame = NULL;
 
 	return ret;
+}
+
+
+int pr_pasn_auth_retransmit(struct pr_data *pr, const u8 *addr)
+{
+	struct pr_device *dev;
+	struct pasn_data *pasn;
+
+	dev = pr_get_device(pr, addr);
+	if (!dev || !dev->pasn || !dev->pasn->frame)
+		return -1;
+
+	pasn = dev->pasn;
+	wpa_printf(MSG_DEBUG, "PR PASN: retransmit Authentication frame 1 to "
+		   MACSTR, MAC2STR(addr));
+	return pasn->send_mgmt(pasn->cb_ctx, wpabuf_head(pasn->frame),
+			       wpabuf_len(pasn->frame), 0, pasn->freq, 1000);
 }
 
 

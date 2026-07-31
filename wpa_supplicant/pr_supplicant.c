@@ -24,9 +24,14 @@
 static void wpas_pr_pasn_timeout(void *eloop_ctx, void *timeout_ctx);
 static void wpas_pr_pasn_roc_total_timeout(void *eloop_ctx, void *timeout_ctx);
 static void wpas_pr_pasn_auth_work_done(struct wpa_supplicant *wpa_s);
+static void wpas_pr_pasn_auth_retry_timeout(void *eloop_ctx, void *timeout_ctx);
 
 /* Total listen window (ms) for the PASN responder ROC */
 #define PR_PASN_RESPONDER_ROC_DURATION 5000
+/* Initiator PASN authentication timeout (s) */
+#define PR_PASN_AUTH_TIMEOUT           10
+/* Retry interval (ms) for unacked PASN Authentication frame 1 */
+#define PR_PASN_AUTH1_RETRY_INTERVAL_MS 100
 #endif /* CONFIG_PASN */
 
 
@@ -784,6 +789,7 @@ void wpas_pr_deinit(struct wpa_supplicant *wpa_s)
 #ifdef CONFIG_PASN
 	eloop_cancel_timeout(wpas_pr_pasn_timeout, wpa_s, NULL);
 	eloop_cancel_timeout(wpas_pr_pasn_roc_total_timeout, wpa_s, NULL);
+	eloop_cancel_timeout(wpas_pr_pasn_auth_retry_timeout, wpa_s, NULL);
 #endif /* CONFIG_PASN */
 	eloop_cancel_timeout(wpas_pr_ranging_session_timeout, wpa_s, NULL);
 }
@@ -1012,6 +1018,7 @@ static void wpas_pr_pasn_auth_work_done(struct wpa_supplicant *wpa_s)
 	wpa_s->pr_pasn_auth_work->ctx = NULL;
 	radio_work_done(wpa_s->pr_pasn_auth_work);
 	wpa_s->pr_pasn_auth_work = NULL;
+	eloop_cancel_timeout(wpas_pr_pasn_auth_retry_timeout, wpa_s, NULL);
 }
 
 
@@ -1200,6 +1207,8 @@ static void wpas_pr_pasn_timeout(void *eloop_ctx, void *timeout_ctx)
 {
 	struct wpa_supplicant *wpa_s = eloop_ctx;
 
+	eloop_cancel_timeout(wpas_pr_pasn_auth_retry_timeout, wpa_s, NULL);
+
 	if (wpa_s->pr_pasn_auth_work) {
 		wpas_pr_pasn_cancel_auth_work(wpa_s);
 		wpa_s->pr_pasn_auth_work = NULL;
@@ -1250,7 +1259,8 @@ static void wpas_pr_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 	}
 
 	eloop_cancel_timeout(wpas_pr_pasn_timeout, wpa_s, NULL);
-	eloop_register_timeout(2, 0, wpas_pr_pasn_timeout, wpa_s, NULL);
+	eloop_register_timeout(PR_PASN_AUTH_TIMEOUT, 0, wpas_pr_pasn_timeout,
+			       wpa_s, NULL);
 	wpa_s->pr_pasn_auth_work = work;
 	return;
 
@@ -1628,11 +1638,35 @@ int wpas_pr_pasn_auth_tx_status(struct wpa_supplicant *wpa_s, const u8 *data,
 				size_t data_len, bool acked)
 {
 	struct pr_data *pr = wpa_s->global->pr;
+	int ret;
 
 	if (!wpa_s->pr_pasn_auth_work && is_zero_ether_addr(wpa_s->pd_addr))
 		return -1;
 
-	return pr_pasn_auth_tx_status(pr, data, data_len, acked);
+	ret = pr_pasn_auth_tx_status(pr, data, data_len, acked);
+	if (ret == 2) {
+		eloop_cancel_timeout(wpas_pr_pasn_auth_retry_timeout, wpa_s,
+				     NULL);
+		eloop_register_timeout(0,
+				       PR_PASN_AUTH1_RETRY_INTERVAL_MS * 1000,
+				       wpas_pr_pasn_auth_retry_timeout,
+				       wpa_s, NULL);
+		return 0;
+	}
+
+	return ret;
+}
+
+
+static void wpas_pr_pasn_auth_retry_timeout(void *eloop_ctx, void *timeout_ctx)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctx;
+	struct pr_data *pr = wpa_s->global->pr;
+
+	if (!pr || !pr->pr_pasn_params)
+		return;
+
+	pr_pasn_auth_retransmit(pr, pr->pr_pasn_params->peer_addr);
 }
 
 
@@ -1757,6 +1791,7 @@ void wpas_pr_abort_ranging(struct wpa_supplicant *wpa_s)
 	/* Stop PD wdev and cleanup all ranging resources */
 	wpas_pr_pd_stop(wpa_s);
 
+	eloop_cancel_timeout(wpas_pr_pasn_auth_retry_timeout, wpa_s, NULL);
 	/* Free ranging params so a new session can be started */
 	wpas_pr_clear_ranging_params(pr);
 	wpas_notify_pr_ranging_terminated(wpa_s, PR_SESSION_END_USER_ABORT);
