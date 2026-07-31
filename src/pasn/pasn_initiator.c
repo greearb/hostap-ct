@@ -1787,5 +1787,8 @@ int wpa_pasn_auth_tx_status(struct pasn_data *pasn,
 		return 1;
 	}
 
+	if (pasn->trans_seq == WLAN_AUTH_TR_SEQ_PASN_AUTH1 && !acked)
+		return 2;
+
 	return 0;
 }

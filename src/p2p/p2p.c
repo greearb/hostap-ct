@@ -7139,7 +7139,7 @@ int p2p_pasn_auth_tx_status(struct p2p_data *p2p, const u8 *data,
 	pasn = dev->pasn;
 
 	ret = wpa_pasn_auth_tx_status(pasn, data, data_len, acked);
-	if (ret != 1 && !acked && pasn->frame)
+	if (ret == 2 && pasn->frame)
 		return pasn->send_mgmt(pasn->cb_ctx, wpabuf_head(pasn->frame),
 				       wpabuf_len(pasn->frame), 0, pasn->freq,
 				       1000);
