@@ -2941,6 +2941,100 @@ def test_eht_ml_setup_reconfig_AB_A_AB(dev, apdev, params):
             if ev is None:
                 raise Exception("GTK rekey timed out after link addition")
 
+def test_eht_ml_setup_reconfig_proto(dev, apdev, params):
+    """EHT MLD with two links and link reconfiguration protocol testing"""
+    with HWSimRadio(use_mlo=True) as (hapd_radio, hapd_iface), \
+         HWSimRadio(use_mlo=True) as (wpas_radio, wpas_iface):
+
+        wpas = WpaSupplicant(global_iface='/tmp/wpas-wlan5')
+        wpas.interface_add(wpas_iface)
+        check_sae_capab(wpas)
+
+        # Associate AP and STA in two links
+        ssid = "eht_ml_reconf"
+        passphrase = 'qwertyuiop'
+
+        ap_params = eht_mld_ap_wpa2_params(ssid, passphrase,
+                                           key_mgmt="SAE", mfp="2", pwe='1')
+        hapd0 = eht_mld_enable_ap(hapd_iface, 0, ap_params)
+
+        ap_params['channel'] = '6'
+        hapd1 = eht_mld_enable_ap(hapd_iface, 1, ap_params)
+
+        wpas.set("sae_pwe", "1")
+        wpas.connect(ssid, sae_password=passphrase, scan_freq="2412 2437",
+                     key_mgmt="SAE", ieee80211w="2")
+
+        eht_verify_status(wpas, hapd0, 2412, 20, is_ht=True, mld=True,
+                          valid_links=3, active_links=3)
+
+        hapd0.set("ext_mgmt_frame_handling", "1")
+        hapd1.set("ext_mgmt_frame_handling", "1")
+
+        # Prepare and send ML Setup reconfig link removal for link id=1
+        if "OK" not in wpas.request("SETUP_LINK_RECONFIG delete=1"):
+            raise Exception("Failed to request link reconfig removal")
+
+        for i in wpas.request("MLO_STATUS").splitlines():
+            name, val = i.split('=')
+            if name == 'sta_link_addr':
+                link_addr = val.replace(':', '')
+                break
+
+        # Modify the Link Reconfiguration Request frame to request both links
+        # to be deleted.
+        while True:
+            req0 = hapd0.mgmt_rx()
+            if req0 and req0['subtype'] == 13:
+                frame = req0['frame']
+                hdr = frame[0:24]
+                hdr2 = frame[24:27]
+                mle = frame[27:50]
+                prof = binascii.unhexlify("0009a00107" + link_addr)
+                mle2 = struct.pack('BB', mle[0], mle[1] + len(prof)) + mle[2:] + prof
+                req = binascii.hexlify(hdr + hdr2 + mle2).decode()
+                hapd0.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=" + req)
+                ev = hapd0.wait_event(["MGMT-TX-STATUS"], timeout=5)
+                if ev is None:
+                    raise Exception("Management frame TX status not reported")
+                cmd = "MGMT_TX_STATUS_PROCESS %s" % (" ".join(ev.split(' ')[1:4]))
+                if "OK" not in hapd0.request(cmd):
+                    raise Exception("MGMT_TX_STATUS_PROCESS failed")
+                break
+            req1 = hapd1.mgmt_rx()
+            if req1 and req1['subtype'] == 13:
+                frame = req0['frame']
+                hdr = frame[0:24]
+                hdr2 = frame[24:27]
+                mle = frame[27:50]
+                prof = binascii.unhexlify("0009a00107" + link_addr)
+                mle2 = struct.pack('BB', mle[0], mle[1] + len(prof)) + mle[2:] + prof
+                req = binascii.hexlify(hdr + hdr2 + mle2).decode()
+                hapd1.request("MGMT_RX_PROCESS freq=2437 datarate=0 ssi_signal=-30 frame=" + req)
+                ev = hapd1.wait_event(["MGMT-TX-STATUS"], timeout=5)
+                if ev is None:
+                    raise Exception("Management frame TX status not reported")
+                cmd = "MGMT_TX_STATUS_PROCESS %s" % (" ".join(ev.split(' ')[1:4]))
+                if "OK" not in hapd1.request(cmd):
+                    raise Exception("MGMT_TX_STATUS_PROCESS failed")
+                break
+            if not req0 and not req1:
+                raise Exception("No link reconfig request seen")
+
+        hapd0.set("ext_mgmt_frame_handling", "0")
+        hapd1.set("ext_mgmt_frame_handling", "0")
+
+        # hostapd rejects the link 0 deletion request since that would have
+        # left no remaining links. Verify the response is send and received.
+
+        ev = hapd0.wait_event(["CTRL-EVENT-LINK-STA-REMOVED"], timeout=10)
+        if ev is None:
+            raise Exception("Link STA removal event not seen")
+
+        ev = wpas.wait_event(["CTRL-EVENT-LINK-RECONFIG"], timeout=1)
+        if ev is None:
+            raise Exception("Link removal event not seen")
+
 def test_eht_mld_and_autogo(dev, apdev):
     """EHT MLD connection and autonomous P2P GO on the station device"""
     with HWSimRadio(use_mlo=True, n_channels=2) as (hapd0_radio, hapd0_iface), \
