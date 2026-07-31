@@ -567,6 +567,7 @@ void * os_memdup(const void *src, size_t len)
 static struct wpa_trace_test_fail {
 	unsigned int fail_after;
 	char pattern[256];
+	bool uses_tag;
 } wpa_trace_test_fail[2][5];
 
 int testing_test_fail(const char *tag, bool is_alloc)
@@ -581,6 +582,9 @@ int testing_test_fail(const char *tag, bool is_alloc)
 	int match;
 
 	is_alloc = !!is_alloc;
+
+	if (wpa_trace_test_fail[is_alloc][0].uses_tag && !tag)
+		return 0;
 
 	for (idx = 0; idx < ARRAY_SIZE(wpa_trace_test_fail[is_alloc]); idx++) {
 		if (wpa_trace_test_fail[is_alloc][idx].fail_after != 0)
@@ -698,6 +702,15 @@ int testing_set_fail_pattern(bool is_alloc, char *patterns)
 			return -1;
 		}
 
+		if (idx == 0) {
+			const char *p1, *p2;
+
+			p1 = os_strchr(token, '-');
+			p2 = os_strchr(token, ';');
+			if (p1 && p2 && p1 < p2)
+				wpa_trace_test_fail[is_alloc][0].uses_tag =
+					true;
+		}
 		os_strlcpy(wpa_trace_test_fail[is_alloc][idx].pattern,
 			   token + 1,
 			   sizeof(wpa_trace_test_fail[is_alloc][0].pattern));
