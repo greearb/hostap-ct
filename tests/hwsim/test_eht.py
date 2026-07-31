@@ -554,6 +554,9 @@ def _eht_mld_owe_two_links(dev, apdev, second_link_disabled=False,
             ev = wpas.wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=65)
             if ev is not None:
                 raise Exception("Unexpected disconnection")
+        else:
+            wpas.request("DISCONNECT")
+            wpas.wait_disconnected()
 
 def test_eht_mld_owe_two_links_one_disabled(dev, apdev):
     """AP MLD with MLD client OWE connection when one of the AP MLD links is disabled"""
