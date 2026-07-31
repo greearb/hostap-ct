@@ -182,6 +182,7 @@ def test_wpas_config_file(dev, apdev, params):
 
     try:
         with open(config, "w") as f:
+            os.fchmod(f.fileno(), 0o600)
             f.write("update_config=1 \t\r\n")
             f.write("# foo\n")
             f.write("\n")
@@ -246,6 +247,9 @@ def test_wpas_config_file(dev, apdev, params):
 
         if "OK" not in wpas.request("SAVE_CONFIG"):
             raise Exception("Failed to save configuration file")
+        st = os.stat(config)
+        if st.st_mode & 0o777 != 0o600:
+            raise Exception("Unexpected configuration file permissions: %o" % st.st_mode)
         if "OK" not in wpas.global_request("SAVE_CONFIG"):
             raise Exception("Failed to save configuration file")
 
