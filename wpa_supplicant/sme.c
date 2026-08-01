@@ -4947,8 +4947,9 @@ void sme_event_assoc_reject(struct wpa_supplicant *wpa_s,
 		else
 			aa = NULL;
 
-		wpa_sm_pmksa_cache_flush_addr(wpa_s->wpa, wpa_s->current_ssid,
-					      aa);
+		if (aa)
+			wpa_sm_pmksa_cache_flush_addr(wpa_s->wpa,
+						      wpa_s->current_ssid, aa);
 		if (wpa_s->current_bss) {
 			struct wpa_ssid *ssid = wpa_s->current_ssid;
 
