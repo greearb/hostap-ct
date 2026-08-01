@@ -1867,10 +1867,11 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 
 	tmp_len = os_strlen(name) + 5; /* allow space for .tmp suffix */
 	tmp_name = os_malloc(tmp_len);
-	if (tmp_name) {
-		os_snprintf(tmp_name, tmp_len, "%s.tmp", name);
-		name = tmp_name;
-	}
+	if (!tmp_name)
+		return -1;
+
+	os_snprintf(tmp_name, tmp_len, "%s.tmp", name);
+	name = tmp_name;
 
 	wpa_printf(MSG_DEBUG, "Writing configuration file '%s'", name);
 
@@ -1932,18 +1933,14 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 
 	fclose(f);
 
-	if (tmp_name) {
-		int chmod_ret = 0;
-
 #ifdef ANDROID
-		chmod_ret = chmod(tmp_name,
-				  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+	if (!ret)
+		ret = chmod(tmp_name, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 #endif /* ANDROID */
-		if (chmod_ret != 0 || rename(tmp_name, orig_name) != 0)
-			ret = -1;
+	if (!ret)
+		ret = rename(tmp_name, orig_name);
 
-		os_free(tmp_name);
-	}
+	os_free(tmp_name);
 
 	wpa_printf(MSG_DEBUG, "Configuration file '%s' written %ssuccessfully",
 		   orig_name, ret ? "un" : "");
