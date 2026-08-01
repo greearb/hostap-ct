@@ -3710,25 +3710,14 @@ static int hostapd_ctrl_iface_disable_mld(struct hostapd_iface *iface)
 
 #ifdef CONFIG_TESTING_OPTIONS
 
-static int hostapd_ctrl_iface_link_remove(struct hostapd_data *hapd, char *cmd,
-					  char *buf, size_t buflen)
+static int hostapd_ctrl_iface_link_remove(struct hostapd_data *hapd, char *cmd)
 {
-	int ret;
 	u32 count = atoi(cmd);
 
 	if (!count)
 		count = 1;
 
-	ret = hostapd_link_remove(hapd, count);
-	if (ret == 0) {
-		ret = os_snprintf(buf, buflen, "%s\n", "OK");
-		if (os_snprintf_error(buflen, ret))
-			ret = -1;
-		else
-			ret = 0;
-	}
-
-	return ret;
+	return hostapd_link_remove(hapd, count);
 }
 
 
@@ -4788,8 +4777,7 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 			reply_len = -1;
 #ifdef CONFIG_TESTING_OPTIONS
 	} else if (os_strncmp(buf, "LINK_REMOVE ", 12) == 0) {
-		if (hostapd_ctrl_iface_link_remove(hapd, buf + 12,
-						   reply, reply_size))
+		if (hostapd_ctrl_iface_link_remove(hapd, buf + 12))
 			reply_len = -1;
 	} else if (os_strncmp(buf, "LINK_ENABLE ", 12) == 0) {
 		if (hostapd_ctrl_iface_link_enable(hapd, buf + 12))
