@@ -550,8 +550,17 @@ def get_rx_spec(phy, keytype=KT_PTK):
             files = os.listdir(keydir)
             if keytype == KT_PTK and "station" not in files:
                 continue
-            if keytype != KT_PTK and "station" in files:
-                continue
+            try:
+                # if present, check pairwise flag
+                with open(keydir + '/conf_flags') as f:
+                    flags = int(f.read(), 0)
+                if keytype != KT_PTK and flags & (1 << 3):
+                    continue
+                if keytype == KT_PTK and not (flags & (1 << 3)):
+                    continue
+            except OSError as e:
+                if keytype != KT_PTK and "station" in files:
+                    continue
             with open(keydir + "/rx_spec") as f:
                 return f.read()
     except OSError as e:
@@ -574,8 +583,17 @@ def get_tk_replay_counter(phy, keytype=KT_PTK):
             files = os.listdir(keydir)
             if keytype == KT_PTK and "station" not in files:
                 continue
-            if keytype != KT_PTK and "station" in files:
-                continue
+            try:
+                # if present, check pairwise flag
+                with open(keydir + '/conf_flags') as f:
+                    flags = int(f.read(), 0)
+                if keytype != KT_PTK and flags & (1 << 3):
+                    continue
+                if keytype == KT_PTK and not (flags & (1 << 3)):
+                    continue
+            except OSError as e:
+                if keytype != KT_PTK and "station" in files:
+                    continue
             with open(keydir + "/replays") as f:
                 return int(f.read())
     except OSError as e:
