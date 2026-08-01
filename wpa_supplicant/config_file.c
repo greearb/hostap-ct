@@ -1858,6 +1858,7 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 	int tmp_len;
 	char *tmp_name;
 	struct stat file_stat;
+	mode_t prev;
 
 	if (!name) {
 		wpa_printf(MSG_ERROR, "No configuration file for writing");
@@ -1873,7 +1874,9 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 
 	wpa_printf(MSG_DEBUG, "Writing configuration file '%s'", name);
 
+	prev = umask(S_IRWXG | S_IRWXO);
 	f = fopen(name, "w");
+	umask(prev);
 	if (f == NULL) {
 		wpa_printf(MSG_DEBUG, "Failed to open '%s' for writing", name);
 		os_free(tmp_name);
