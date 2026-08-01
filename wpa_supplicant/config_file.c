@@ -1855,25 +1855,31 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 #endif /* CONFIG_NO_CONFIG_BLOBS */
 	int ret = 0;
 	const char *orig_name = name;
-	int tmp_len;
+	size_t tmp_len, prefix_len, suffix_len;
 	char *tmp_name;
 	struct stat file_stat;
 	mode_t prev;
+	u8 suffix[8];
 
 	if (!name) {
 		wpa_printf(MSG_ERROR, "No configuration file for writing");
 		return -1;
 	}
 
-	tmp_len = os_strlen(name) + 5; /* allow space for .tmp suffix */
+	if (os_get_random(suffix, sizeof(suffix)) < 0)
+		return -1;
+
+	prefix_len = os_strlen(name) + 5;
+	suffix_len = 2 * sizeof(suffix);
+	tmp_len = prefix_len + suffix_len + 1;
 	tmp_name = os_malloc(tmp_len);
 	if (!tmp_name)
 		return -1;
 
-	os_snprintf(tmp_name, tmp_len, "%s.tmp", name);
+	os_snprintf(tmp_name, tmp_len, "%s.tmp-", name);
+	wpa_snprintf_hex(tmp_name + prefix_len, suffix_len + 1,
+			 suffix, sizeof(suffix));
 	name = tmp_name;
-
-	wpa_printf(MSG_DEBUG, "Writing configuration file '%s'", name);
 
 	prev = umask(S_IRWXG | S_IRWXO);
 	f = fopen(name, "w");
@@ -1883,6 +1889,8 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 		os_free(tmp_name);
 		return -1;
 	}
+
+	wpa_printf(MSG_DEBUG, "Writing configuration file '%s'", name);
 
 	if (stat(orig_name, &file_stat) == 0)
 		chmod(name,
