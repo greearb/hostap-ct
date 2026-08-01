@@ -1939,6 +1939,8 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 #endif /* ANDROID */
 	if (!ret)
 		ret = rename(tmp_name, orig_name);
+	if (ret)
+		unlink(tmp_name);
 
 	os_free(tmp_name);
 
