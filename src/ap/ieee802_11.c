@@ -4586,10 +4586,10 @@ static void handle_auth(struct hostapd_data *hapd,
 		     !ap_sta_is_authorized(sta)) && sta->wpa_sm) {
 			struct wpa_state_machine *sm = sta->wpa_sm;
 
+			clear_wpa_sm_for_each_partner_link(hapd, sta);
 			clear_wpa_sm_for_all_sta(hapd, sm);
 			wpa_auth_sta_deinit(sm);
 			sta->wpa_sm = NULL;
-			clear_wpa_sm_for_each_partner_link(hapd, sta);
 		}
 	}
 #endif /* CONFIG_IEEE80211BE */
@@ -6142,6 +6142,7 @@ out:
 		struct wpa_state_machine *sm = sta->wpa_sm;
 
 #ifdef CONFIG_IEEE80211BE
+		clear_wpa_sm_for_each_partner_link(hapd, sta);
 		clear_wpa_sm_for_all_sta(hapd, sm);
 #endif /* CONFIG_IEEE80211BE */
 
