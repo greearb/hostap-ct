@@ -197,6 +197,7 @@ static int hostapd_ctrl_iface_update(struct hostapd_data *hapd, char *txt)
 	hostapd_reload_config(iface, 1);
 
 	iface->interfaces->config_read_cb = config_read_cb;
+	return 0;
 }
 
 #ifdef NEED_AP_MLME
