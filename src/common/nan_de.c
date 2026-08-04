@@ -65,6 +65,8 @@ struct nan_de_service {
 	struct os_reltime pause_state_end;
 	u8 sel_peer_id;
 	u8 sel_peer_addr[ETH_ALEN];
+	/* The channel peer was discovered on */
+	unsigned int pause_peer_freq;
 
 	/* Publish state - channel iteration */
 	bool in_multi_chan;
@@ -438,7 +440,8 @@ static void nan_de_clear_retransmit(struct nan_de *de)
 
 
 static void nan_de_pause_state(struct nan_de *de, struct nan_de_service *srv,
-			       const u8 *peer_addr, u8 peer_id)
+			       const u8 *peer_addr, u8 peer_id,
+			       unsigned int peer_freq)
 {
 	bool was_paused = os_reltime_initialized(&srv->pause_state_end);
 
@@ -450,6 +453,7 @@ static void nan_de_pause_state(struct nan_de *de, struct nan_de_service *srv,
 		srv->pause_state_end = srv->end_time;
 	os_memcpy(srv->sel_peer_addr, peer_addr, ETH_ALEN);
 	srv->sel_peer_id = peer_id;
+	srv->pause_peer_freq = peer_freq;
 
 	/* Stop retransmitting while listening for the peer's follow-up.
 	 * Ongoing TX keeps the ROC active and blocks the listen window.
@@ -477,6 +481,7 @@ static void nan_de_unpause_state(struct nan_de_service *srv)
 	srv->pause_state_end.usec = 0;
 	os_memset(srv->sel_peer_addr, 0, ETH_ALEN);
 	srv->sel_peer_id = 0;
+	srv->pause_peer_freq = 0;
 }
 
 
@@ -1726,6 +1731,7 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 		    de->listen_freq == 0 && de->ext_listen_freq == 0) {
 			struct os_reltime diff;
 			int duration;
+			unsigned int listen_freq;
 
 			os_reltime_sub(&srv->pause_state_end, &now, &diff);
 			duration = os_reltime_in_ms(&diff);
@@ -1738,13 +1744,19 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 			}
 			if ((unsigned int) duration > de->max_listen)
 				duration = de->max_listen;
-			if (de->cb.listen(de->cb.ctx, srv->freq, duration,
+			/* Use the channel the peer was discovered on; for
+			 * multi-channel publishers this may differ from the
+			 * current TX channel.
+			 */
+			listen_freq = srv->pause_peer_freq ?
+				srv->pause_peer_freq : srv->freq;
+			if (de->cb.listen(de->cb.ctx, listen_freq, duration,
 					  srv->forced_addr_set ?
 					  srv->forced_addr : NULL) == 0) {
 				wpa_printf(MSG_DEBUG,
 					   "NAN: Publisher in pauseState - started listen on %u MHz",
-					   srv->freq);
-				de->listen_freq = srv->freq;
+					   listen_freq);
+				de->listen_freq = listen_freq;
 				return;
 			}
 		}
@@ -2576,7 +2588,8 @@ static bool nan_de_rx_subscribe(struct nan_de *de, struct nan_de_service *srv,
 				size_t matching_filter_len,
 				enum nan_service_protocol_type srv_proto_type,
 				const u8 *ssi, size_t ssi_len,
-				bool range_limit, int rssi)
+				bool range_limit, int rssi,
+				unsigned int freq)
 {
 	const u8 *network_id;
 
@@ -2629,7 +2642,7 @@ static bool nan_de_rx_subscribe(struct nan_de *de, struct nan_de_service *srv,
 		      NULL, 0);
 
 	if (!srv->is_p2p && !srv->sync)
-		nan_de_pause_state(de, srv, peer_addr, instance_id);
+		nan_de_pause_state(de, srv, peer_addr, instance_id, freq);
 
 offload:
 	if (!srv->publish.disable_events && de->cb.replied)
@@ -2643,7 +2656,8 @@ offload:
 static bool nan_de_rx_follow_up(struct nan_de *de, struct nan_de_service *srv,
 				const u8 *peer_addr, const u8 *a3,
 				u8 instance_id, const u8 *ssi, size_t ssi_len,
-				const u8 *buf, size_t len)
+				const u8 *buf, size_t len,
+				unsigned int freq)
 {
 	/* Follow-up function processing of a receive Follow-up message for a
 	 * Subscribe or Publish instance */
@@ -2671,7 +2685,7 @@ static bool nan_de_rx_follow_up(struct nan_de *de, struct nan_de_service *srv,
 	}
 
 	if (srv->type == NAN_DE_PUBLISH && !ssi && !srv->sync)
-		nan_de_pause_state(de, srv, peer_addr, instance_id);
+		nan_de_pause_state(de, srv, peer_addr, instance_id, freq);
 
 	os_memcpy(srv->a3, a3, ETH_ALEN);
 	srv->a3_set = true;
@@ -3277,12 +3291,12 @@ static bool nan_de_rx_sda(struct nan_de *de, const u8 *peer_addr, const u8 *a3,
 				matching_filter, matching_filter_len,
 				srv_proto_type, ssi, ssi_len,
 				ctrl & NAN_SRV_CTRL_DISCOVERY_RANGE_LIMITED,
-				rssi);
+				rssi, freq);
 			break;
 		case NAN_SRV_CTRL_FOLLOW_UP:
 			ret |= nan_de_rx_follow_up(de, srv, peer_addr, a3,
 						   instance_id, ssi, ssi_len,
-						   buf, len);
+						   buf, len, freq);
 			break;
 		}
 	}
