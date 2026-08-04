@@ -181,6 +181,9 @@ struct nan_publish_params {
 	/* Synchronized discovery */
 	bool sync;
 
+	/* USD service willing to discover a synchronized peer */
+	bool discover_sync;
+
 	/*
 	 * Null-terminated string containing the hex-encoded
 	 * representation of the matching filters.
@@ -278,6 +281,9 @@ struct nan_subscribe_params {
 
 	/* Synchronized discovery */
 	bool sync;
+
+	/* USD service willing to discover a synchronized peer */
+	bool discover_sync;
 
 	/*
 	 * Null-terminated string containing the hex-encoded

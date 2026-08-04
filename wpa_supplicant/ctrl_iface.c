@@ -13232,6 +13232,11 @@ static int wpas_ctrl_nan_publish(struct wpa_supplicant *wpa_s, char *cmd,
 			continue;
 		}
 
+		if (os_strcmp(token, "discover_sync=1") == 0) {
+			params.discover_sync = true;
+			continue;
+		}
+
 		if (os_strncmp(token, "match_filter_tx=", 16) == 0) {
 			params.match_filter_tx = token + 16;
 			continue;
@@ -13544,6 +13549,11 @@ static int wpas_ctrl_nan_subscribe(struct wpa_supplicant *wpa_s, char *cmd,
 
 		if (os_strcmp(token, "sync=1") == 0) {
 			params.sync = true;
+			continue;
+		}
+
+		if (os_strcmp(token, "discover_sync=1") == 0) {
+			params.discover_sync = true;
 			continue;
 		}
 

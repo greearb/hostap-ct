@@ -19,6 +19,9 @@
 #include "nan_defs.h"
 #include "nan_de.h"
 
+static void nan_de_run_timer(struct nan_de *de);
+static void nan_de_retransmit_timer(void *eloop_ctx, void *timeout_ctx);
+
 const u8 nan_network_id[ETH_ALEN] =
 { 0x51, 0x6f, 0x9a, 0x01, 0x00, 0x00 };
 
@@ -74,6 +77,7 @@ struct nan_de_service {
 	bool is_pr;
 	bool listen_stopped;
 	bool sync;
+	bool discover_sync;
 
 	/* Filters */
 	struct wpabuf *matching_filter_tx;
@@ -146,6 +150,24 @@ struct nan_de {
 	struct os_reltime suspend_cycle_start;
 
 	int dw_freq;
+
+	/* USD SDF retransmit state - periodic retransmissions within the ROC
+	 * window to improve reception probability for sync peers. Only
+	 * active for non-cluster (USD) services that opted in via
+	 * discover_sync; see nan_de_usd_retransmit_allowed().
+	 *
+	 * The addressing and frequency of the original SDF are captured so
+	 * that each retransmission is identical to it.
+	 */
+#define NAN_USD_RETRANSMIT_INTERVAL_MS 12
+	struct nan_de_service *retransmit_srv;
+	struct wpabuf *retransmit_buf;
+	u8 retransmit_dst[ETH_ALEN];
+	u8 retransmit_src[ETH_ALEN];
+	u8 retransmit_bssid[ETH_ALEN];
+	unsigned int retransmit_freq;
+	unsigned int retransmit_wait_ms;
+	struct os_reltime retransmit_start;
 
 	/* State for immediate response optimization */
 	u8 matched_nik[NAN_NIK_LEN];
@@ -406,9 +428,20 @@ void nan_de_flush(struct nan_de *de)
 }
 
 
-static void nan_de_pause_state(struct nan_de_service *srv, const u8 *peer_addr,
-			       u8 peer_id)
+static void nan_de_clear_retransmit(struct nan_de *de)
 {
+	eloop_cancel_timeout(nan_de_retransmit_timer, de, NULL);
+	de->retransmit_srv = NULL;
+	wpabuf_free(de->retransmit_buf);
+	de->retransmit_buf = NULL;
+}
+
+
+static void nan_de_pause_state(struct nan_de *de, struct nan_de_service *srv,
+			       const u8 *peer_addr, u8 peer_id)
+{
+	bool was_paused = os_reltime_initialized(&srv->pause_state_end);
+
 	wpa_printf(MSG_DEBUG, "NAN: Start pauseState");
 	os_get_reltime(&srv->pause_state_end);
 	srv->pause_state_end.sec += 60;
@@ -417,6 +450,23 @@ static void nan_de_pause_state(struct nan_de_service *srv, const u8 *peer_addr,
 		srv->pause_state_end = srv->end_time;
 	os_memcpy(srv->sel_peer_addr, peer_addr, ETH_ALEN);
 	srv->sel_peer_id = peer_id;
+
+	/* Stop retransmitting while listening for the peer's follow-up.
+	 * Ongoing TX keeps the ROC active and blocks the listen window.
+	 */
+	nan_de_clear_retransmit(de);
+
+	/* Clear the TX wait state so the listen ROC can start immediately
+	 * rather than waiting for the asynchronous cancel event.
+	 */
+	de->tx_wait_end_freq = 0;
+
+	/* Run the timer only on the initial pauseState entry. If the service
+	 * is already paused, the listen ROC may already be active, and
+	 * restarting it could interrupt an ongoing listen window.
+	 */
+	if (!was_paused)
+		nan_de_run_timer(de);
 }
 
 
@@ -461,10 +511,81 @@ static struct wpabuf * nan_de_alloc_sdf(struct nan_de *de, const u8 *dst,
 }
 
 
+/**
+ * nan_de_usd_retransmit_allowed - Check USD SDF retransmit eligibility
+ * @de: NAN DE context
+ * @srv: Service to check
+ * Returns: Whether SDFs for this service may be retransmitted
+ *
+ * USD SDF retransmission is a reliability aid for an unsynchronized device
+ * trying to reach a synchronized peer, so it is an opt-in per service via
+ * discover_sync and limited to non-cluster (USD) operation.
+ */
+static bool nan_de_usd_retransmit_allowed(struct nan_de *de,
+					  struct nan_de_service *srv)
+{
+	return srv->discover_sync && !srv->sync && !srv->is_p2p &&
+		!srv->is_pr && !de->cluster_id_set;
+}
+
+
+static void nan_de_retransmit_timer(void *eloop_ctx, void *timeout_ctx)
+{
+	struct nan_de *de = eloop_ctx;
+	struct nan_de_service *srv = de->retransmit_srv;
+	struct os_reltime now, diff;
+	unsigned int elapsed_ms;
+
+	/* Stop if ROC ended or service was removed */
+	if (!de->tx_wait_end_freq || !srv || !de->retransmit_buf)
+		return;
+
+	/* Stop if the service became ineligible, e.g., the device joined a
+	 * cluster - retransmit is for opted-in USD services only.
+	 */
+	if (!nan_de_usd_retransmit_allowed(de, srv))
+		return;
+
+	/* Stop during pauseState. nan_de_pause_state() cancels the
+	 * timer directly, so this is an additional safeguard.
+	 */
+	if (os_reltime_initialized(&srv->pause_state_end))
+		return;
+
+	/* Compute elapsed ROC time and check if the window has expired. */
+	os_get_reltime(&now);
+	os_reltime_sub(&now, &de->retransmit_start, &diff);
+	elapsed_ms = os_reltime_in_ms(&diff);
+	if (elapsed_ms >= de->retransmit_wait_ms)
+		return;
+
+	wpa_printf(MSG_DEBUG,
+		   "NAN: USD retransmit SDF on freq=%u (srv id=%d) remaining=%ums",
+		   de->retransmit_freq, srv->id,
+		   de->retransmit_wait_ms - elapsed_ms);
+
+	/* Send with wait_time=0 to avoid accumulating TX cookies in the
+	 * kernel that would delay the subsequent listen ROC. Reuse the
+	 * addressing and frequency captured from the original SDF so that
+	 * the peer sees identical frames.
+	 */
+	if (de->cb.tx)
+		de->cb.tx(de->cb.ctx, de->retransmit_freq, 0,
+			  de->retransmit_dst, de->retransmit_src,
+			  de->retransmit_bssid, de->retransmit_buf,
+			  srv->id);
+
+	/* Re-arm for next interval */
+	eloop_register_timeout(0, NAN_USD_RETRANSMIT_INTERVAL_MS * 1000,
+			       nan_de_retransmit_timer, de, NULL);
+}
+
+
 static int nan_de_tx(struct nan_de *de, unsigned int freq,
 		     unsigned int wait_time,
 		     const u8 *dst, const u8 *src, const u8 *bssid,
-		     const struct wpabuf *buf,  u32 *cookie, int handle)
+		     const struct wpabuf *buf, u32 *cookie, int handle,
+		     bool allow_retransmit)
 {
 	struct nan_de_tracked_tx *tracked_tx = NULL;
 	int res;
@@ -491,6 +612,30 @@ static int nan_de_tx(struct nan_de *de, unsigned int freq,
 
 	de->tx_wait_status_freq = freq;
 	de->tx_wait_end_freq = wait_time ? freq : 0;
+
+	/* Capture the SDF for USD retransmission. This is limited
+	 * to eligible multicast publish and subscribe SDFs.
+	 */
+	if (wait_time && freq) {
+		if (allow_retransmit) {
+			wpabuf_free(de->retransmit_buf);
+			de->retransmit_buf = wpabuf_dup(buf);
+			os_memcpy(de->retransmit_dst, dst, ETH_ALEN);
+			os_memcpy(de->retransmit_src, src, ETH_ALEN);
+			os_memcpy(de->retransmit_bssid, bssid, ETH_ALEN);
+			de->retransmit_freq = freq;
+			de->retransmit_wait_ms = wait_time;
+			os_get_reltime(&de->retransmit_start);
+		} else {
+			/* Not eligible, so drop any previously captured SDF
+			 * and stop the timer. This keeps a later frame from
+			 * reusing stale data and keeps a pending multicast
+			 * retransmit from interfering with an ongoing unicast
+			 * exchange.
+			 */
+			nan_de_clear_retransmit(de);
+		}
+	}
 
 	return res;
 }
@@ -1017,6 +1162,7 @@ static void nan_de_tx_sdf(struct nan_de *de, struct nan_de_service *srv,
 	bool has_randomization = false;
 	bool unicast_frame = false;
 	bool has_zero_rsid = false;
+	bool allow_retransmit;
 	int retry;
 
 	if ((srv->type == NAN_DE_PUBLISH &&
@@ -1106,10 +1252,14 @@ static void nan_de_tx_sdf(struct nan_de *de, struct nan_de_service *srv,
 
 	/* Use per-service source address if configured, otherwise use NMI */
 	forced_addr = srv->forced_addr_set ? srv->forced_addr : de->nmi;
+	allow_retransmit = type != NAN_SRV_CTRL_FOLLOW_UP &&
+		nan_de_usd_retransmit_allowed(de, srv) &&
+		is_multicast_ether_addr(dst);
 	nan_de_tx(de,
 		  peer_freq ? peer_freq : (srv->sync ? 0 : srv->freq),
 		  peer_freq ? wait_time : (srv->sync ? 0 : wait_time),
-		  dst, forced_addr, a3, buf, cookie, srv->id);
+		  dst, forced_addr, a3, buf, cookie, srv->id,
+		  allow_retransmit);
 	wpabuf_free(buf);
 }
 
@@ -1216,6 +1366,27 @@ static void nan_de_tx_multicast(struct nan_de *de, struct nan_de_service *srv,
 	nan_de_tx_sdf(de, srv, wait_time, type, network_id, bssid,
 		      req_instance_id, srv->ssi, NULL, NULL, 0);
 	os_get_reltime(&srv->last_multicast);
+
+	/* Arm periodic retransmit for opted-in USD publish/subscribe to
+	 * improve reception probability within the ROC window.
+	 */
+	if (nan_de_usd_retransmit_allowed(de, srv) &&
+	    wait_time > NAN_USD_RETRANSMIT_INTERVAL_MS) {
+		de->retransmit_srv = srv;
+		eloop_cancel_timeout(nan_de_retransmit_timer, de, NULL);
+		eloop_register_timeout(0,
+				       NAN_USD_RETRANSMIT_INTERVAL_MS * 1000,
+				       nan_de_retransmit_timer, de, NULL);
+		wpa_printf(MSG_DEBUG,
+			   "NAN: USD retransmit armed: srv id=%d freq=%u wait=%u ms interval=%d ms",
+			   srv->id, srv->freq, wait_time,
+			   NAN_USD_RETRANSMIT_INTERVAL_MS);
+	} else {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: USD retransmit not armed: discover_sync=%d sync=%d p2p=%d pr=%d cluster=%d wait_time=%u",
+			   srv->discover_sync, srv->sync, srv->is_p2p,
+			   srv->is_pr, de->cluster_id_set, wait_time);
+	}
 }
 
 
@@ -1240,6 +1411,11 @@ static void nan_de_del_srv(struct nan_de *de, struct nan_de_service *srv,
 			   enum nan_de_reason reason)
 {
 	de->service[srv->id - 1] = NULL;
+
+	/* If this service was the retransmit target, cancel the timer */
+	if (de->retransmit_srv == srv)
+		nan_de_clear_retransmit(de);
+
 	nan_de_service_deinit(de, srv, reason);
 	de->num_service--;
 	if (de->num_service == 0)
@@ -1304,9 +1480,14 @@ static int nan_de_next_multicast(struct nan_de *de, struct nan_de_service *srv,
 	os_reltime_add_ms(&next, period);
 
 	if (srv->type == NAN_DE_PUBLISH) {
-		if (!de->tx_wait_end_freq && srv->publish.unsolicited &&
-		    os_reltime_before(&next, now))
+		/* If the announcement period elapsed, send the next
+		 * announcement immediately.
+		 */
+		if (os_reltime_before(&next, now))
 			return 0;
+		/* Otherwise, wait for the next publish state boundary if it
+		 * occurs before the next announcement is due.
+		 */
 		next = srv->next_publish_state;
 	}
 
@@ -1622,7 +1803,10 @@ static void nan_de_run_timer(struct nan_de *de)
 
 void nan_de_deinit(struct nan_de *de)
 {
+	if (!de)
+		return;
 	eloop_cancel_timeout(nan_de_timer, de, NULL);
+	nan_de_clear_retransmit(de);
 	nan_de_flush(de);
 	os_free(de);
 }
@@ -1675,6 +1859,10 @@ void nan_de_tx_wait_ended(struct nan_de *de)
 	nan_de_flush_tracked_tx(de, NAN_DE_FLUSH_TRACKED_TX_WAIT_EXPIRED);
 
 	de->tx_wait_end_freq = 0;
+
+	/* Cancel any pending USD retransmit - ROC is over */
+	nan_de_clear_retransmit(de);
+
 	nan_de_run_timer(de);
 }
 
@@ -2441,7 +2629,7 @@ static bool nan_de_rx_subscribe(struct nan_de *de, struct nan_de_service *srv,
 		      NULL, 0);
 
 	if (!srv->is_p2p && !srv->sync)
-		nan_de_pause_state(srv, peer_addr, instance_id);
+		nan_de_pause_state(de, srv, peer_addr, instance_id);
 
 offload:
 	if (!srv->publish.disable_events && de->cb.replied)
@@ -2483,7 +2671,7 @@ static bool nan_de_rx_follow_up(struct nan_de *de, struct nan_de_service *srv,
 	}
 
 	if (srv->type == NAN_DE_PUBLISH && !ssi && !srv->sync)
-		nan_de_pause_state(srv, peer_addr, instance_id);
+		nan_de_pause_state(de, srv, peer_addr, instance_id);
 
 	os_memcpy(srv->a3, a3, ETH_ALEN);
 	srv->a3_set = true;
@@ -3344,6 +3532,7 @@ int nan_de_publish(struct nan_de *de, const char *service_name,
 	}
 
 	srv->sync = params->sync;
+	srv->discover_sync = params->discover_sync;
 
 	if (addr && params->forced_addr) {
 		os_memcpy(srv->forced_addr, addr, ETH_ALEN);
@@ -3661,6 +3850,7 @@ int nan_de_subscribe(struct nan_de *de, const char *service_name,
 	srv->is_p2p = p2p;
 	srv->is_pr = params->proximity_ranging && params->active;
 	srv->sync = params->sync;
+	srv->discover_sync = params->discover_sync;
 	srv->close_proximity = params->close_proximity;
 	srv->pbm = params->pbm;
 	srv->gtk_required = params->gtk_required;
@@ -3957,7 +4147,7 @@ static void nan_de_tx_merged_sdf(struct nan_de *de, unsigned int freq,
 		os_free(irsa_tag_tlv);
 	}
 
-	nan_de_tx(de, freq, 0, dst, de->nmi, bssid, buf, NULL, handle);
+	nan_de_tx(de, freq, 0, dst, de->nmi, bssid, buf, NULL, handle, false);
 	wpabuf_free(buf);
 
 	/* Update last_multicast time for all services */
