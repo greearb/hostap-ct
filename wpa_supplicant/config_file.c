@@ -505,8 +505,11 @@ struct wpa_config * wpa_config_read(const char *name, struct wpa_config *cfgp,
 	static int base_identity_id = 0;
 	int identity_id = base_identity_id;
 
-	if (name == NULL)
+	if (name == NULL) {
+		wpa_printf(MSG_ERROR, "wpa-config-read, name is null, cannot read");
 		return NULL;
+	}
+
 	if (cfgp)
 		config = cfgp;
 	else

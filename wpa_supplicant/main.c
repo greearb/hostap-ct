@@ -203,6 +203,7 @@ int main(int argc, char *argv[])
 
 	os_memset(&params, 0, sizeof(params));
 	params.wpa_debug_level = MSG_INFO;
+	params.show_details = true; /* BEN:  Enable this debugging always. */
 
 	iface = ifaces = os_zalloc(sizeof(struct wpa_interface));
 	if (ifaces == NULL)
