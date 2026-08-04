@@ -5231,9 +5231,11 @@ static void wpas_nan_usd_remain_on_channel_timeout(void *eloop_ctx,
 						   void *timeout_ctx)
 {
 	struct wpa_supplicant *wpa_s = eloop_ctx;
-	struct wpas_nan_usd_listen_work *lwork = timeout_ctx;
+	/* freq is passed as a pointer value to avoid needing to dereference a
+	 * freed lwork */
+	unsigned int freq = (unsigned int) (uintptr_t) timeout_ctx;
 
-	wpas_nan_usd_cancel_remain_on_channel_cb(wpa_s, lwork->freq);
+	wpas_nan_usd_cancel_remain_on_channel_cb(wpa_s, freq);
 }
 
 
@@ -5265,15 +5267,19 @@ static void wpas_nan_usd_start_listen_cb(struct wpa_radio_work *work,
 				       (wpa_s->drv_flags2 &
 					WPA_DRIVER_FLAGS2_ROC_ADDR_FILTER)) ?
 				      lwork->forced_addr : NULL) < 0) {
+		unsigned int freq = lwork->freq;
+
 		wpa_printf(MSG_DEBUG,
 			   "NAN: Failed to request the driver to remain on channel (%u MHz) for listen",
-			   lwork->freq);
+			   freq);
 		eloop_cancel_timeout(wpas_nan_usd_remain_on_channel_timeout,
 				     wpa_s, ELOOP_ALL_CTX);
-		/* Restart the listen state after a delay */
+		/* Pass freq as a pointer; lwork will already been freed when
+		 * the timeout is executed. */
 		eloop_register_timeout(0, 500,
 				       wpas_nan_usd_remain_on_channel_timeout,
-				       wpa_s, lwork);
+				       wpa_s,
+				       (void *) (uintptr_t) freq);
 		wpas_nan_usd_listen_work_done(wpa_s);
 		return;
 	}
