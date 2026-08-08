@@ -750,6 +750,72 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 		wpa_s->ext_mgmt_frame_handling = !!atoi(value);
 	} else if (os_strcasecmp(cmd, "ext_eapol_frame_io") == 0) {
 		wpa_s->ext_eapol_frame_io = !!atoi(value);
+	} else if (os_strcasecmp(cmd, "ignore_auth_resp") == 0) {
+		wpa_s->conf->ignore_auth_resp = atoi(value);
+	} else if (os_strcasecmp(cmd, "ignore_assoc") == 0) {
+		wpa_s->conf->ignore_assoc = atoi(value);
+	} else if (os_strcasecmp(cmd, "ignore_deauth") == 0) {
+		wpa_s->conf->ignore_deauth = atoi(value);
+	} else if (os_strcasecmp(cmd, "ignore_eapol_1_of_4") == 0) {
+		wpa_s->conf->ignore_eapol_1_of_4 = atoi(value);
+	} else if (os_strcasecmp(cmd, "ignore_eapol_3_of_4") == 0) {
+		wpa_s->conf->ignore_eapol_3_of_4 = atoi(value);
+	} else if (os_strcasecmp(cmd, "ignore_eapol_1_of_2") == 0) {
+		wpa_s->conf->ignore_eapol_1_of_2 = atoi(value);
+	} else if (os_strcasecmp(cmd, "ignore_eapol_key_req") == 0) {
+		wpa_s->conf->ignore_eapol_key_req = atoi(value);
+	} else if (os_strcasecmp(cmd, "ignore_eapol_id_req") == 0) {
+		wpa_s->conf->ignore_eapol_id_req = atoi(value);
+	} else if (os_strcasecmp(cmd, "ignore_eapol_other_req") == 0) {
+		wpa_s->conf->ignore_eapol_other_req = atoi(value);
+	} else if (os_strcasecmp(cmd, "corrupt_eapol_2_of_4") == 0) {
+		wpa_s->conf->corrupt_eapol_2_of_4 = atoi(value);
+	} else if (os_strcasecmp(cmd, "corrupt_eapol_4_of_4") == 0) {
+		wpa_s->conf->corrupt_eapol_4_of_4 = atoi(value);
+	} else if (os_strcasecmp(cmd, "corrupt_eapol_2_of_2") == 0) {
+		wpa_s->conf->corrupt_eapol_2_of_2 = atoi(value);
+	} else if (os_strcasecmp(cmd, "corrupt_eapol_key_req") == 0) {
+		wpa_s->conf->corrupt_eapol_key_req = atoi(value);
+	} else if (os_strcasecmp(cmd, "corrupt_eapol_id_resp") == 0) {
+		wpa_s->conf->corrupt_eapol_id_resp = atoi(value);
+	} else if (os_strcasecmp(cmd, "corrupt_eapol_other_resp") == 0) {
+		wpa_s->conf->corrupt_eapol_other_resp = atoi(value);
+	} else if (os_strcasecmp(cmd, "corrupt_pmkid") == 0) {
+		wpa_s->conf->corrupt_pmkid = atoi(value);
+	} else if (os_strcasecmp(cmd, "dup_eapol_2_of_4") == 0) {
+		wpa_s->conf->dup_eapol_2_of_4 = atoi(value);
+	} else if (os_strcasecmp(cmd, "dup_eapol_4_of_4") == 0) {
+		wpa_s->conf->dup_eapol_4_of_4 = atoi(value);
+	} else if (os_strcasecmp(cmd, "dup_eapol_2_of_2") == 0) {
+		wpa_s->conf->dup_eapol_2_of_2 = atoi(value);
+	} else if (os_strcasecmp(cmd, "dup_eapol_id_resp") == 0) {
+		wpa_s->conf->dup_eapol_id_resp = atoi(value);
+	} else if (os_strcasecmp(cmd, "dup_eapol_other_resp") == 0) {
+		wpa_s->conf->dup_eapol_other_resp = atoi(value);
+	} else if (os_strcasecmp(cmd, "delay_eapol_1_of_4_min") == 0) {
+		wpa_s->conf->delay_eapol_1_of_4_min = atoi(value);
+	} else if (os_strcasecmp(cmd, "delay_eapol_1_of_4_max") == 0) {
+		wpa_s->conf->delay_eapol_1_of_4_max = atoi(value);
+	} else if (os_strcasecmp(cmd, "delay_eapol_3_of_4_min") == 0) {
+		wpa_s->conf->delay_eapol_3_of_4_min = atoi(value);
+	} else if (os_strcasecmp(cmd, "delay_eapol_3_of_4_max") == 0) {
+		wpa_s->conf->delay_eapol_3_of_4_max = atoi(value);
+	} else if (os_strcasecmp(cmd, "delay_eapol_1_of_2_min") == 0) {
+		wpa_s->conf->delay_eapol_1_of_2_min = atoi(value);
+	} else if (os_strcasecmp(cmd, "delay_eapol_1_of_2_max") == 0) {
+		wpa_s->conf->delay_eapol_1_of_2_max = atoi(value);
+	} else if (os_strcasecmp(cmd, "delay_eapol_key_req_min") == 0) {
+		wpa_s->conf->delay_eapol_key_req_min = atoi(value);
+	} else if (os_strcasecmp(cmd, "delay_eapol_key_req_max") == 0) {
+		wpa_s->conf->delay_eapol_key_req_max = atoi(value);
+	} else if (os_strcasecmp(cmd, "delay_eapol_id_req_min") == 0) {
+		wpa_s->conf->delay_eapol_id_req_min = atoi(value);
+	} else if (os_strcasecmp(cmd, "delay_eapol_id_req_max") == 0) {
+		wpa_s->conf->delay_eapol_id_req_max = atoi(value);
+	} else if (os_strcasecmp(cmd, "delay_eapol_other_req_min") == 0) {
+		wpa_s->conf->delay_eapol_other_req_min = atoi(value);
+	} else if (os_strcasecmp(cmd, "delay_eapol_other_req_max") == 0) {
+		wpa_s->conf->delay_eapol_other_req_max = atoi(value);
 #ifdef CONFIG_AP
 		if (wpa_s->ap_iface) {
 			wpa_s->ap_iface->bss[0]->ext_eapol_frame_io =
