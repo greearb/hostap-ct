@@ -124,6 +124,8 @@ void wpas_ctrl_radio_work_flush(struct wpa_supplicant *wpa_s);
 
 int wpas_ctrl_cmd_debug_level(const char *cmd);
 
+void wpas_ctrl_neighbor_rep_cb(void *ctx, struct wpabuf *neighbor_rep);
+
 #else /* CONFIG_CTRL_IFACE */
 
 static inline struct ctrl_iface_priv *
