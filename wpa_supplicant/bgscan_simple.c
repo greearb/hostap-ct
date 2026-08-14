@@ -18,13 +18,15 @@
 #include "config.h"
 #include "wnm_sta.h"
 #include "bss.h"
+#include "ctrl_iface.h"
 #include "bgscan.h"
 
 struct bgscan_simple_data {
 	struct wpa_supplicant *wpa_s;
 	const struct wpa_ssid *ssid;
-	unsigned int use_btm_query;
-	unsigned int scan_action_count;
+	unsigned int use_btm_query; /* number of btm queries to schedule */
+	unsigned int use_nr_request; /* number of neighbor report requests */
+	unsigned int scan_action_count; /* counter for short scan actions */
 	int scan_interval;
 	int signal_threshold;
 	int short_scan_count; /* counter for scans using short scan interval */
@@ -34,55 +36,135 @@ struct bgscan_simple_data {
 	struct os_reltime last_bgscan;
 };
 
-
-static void bgscan_simple_timeout(void *eloop_ctx, void *timeout_ctx);
-
+#ifndef CONFIG_NO_RRM
+enum bgscan_scan_action_type {
+	BGSCAN_BTM_QUERY,
+	BGSCAN_NR_REQUEST,
+	/* Book mark for length of enum. Insert new members above.*/
+	BGSCAN_MAX
+};
 
 static bool bgscan_simple_btm_query(struct wpa_supplicant *wpa_s,
-				    struct bgscan_simple_data *data)
+	                            struct bgscan_simple_data *data)
 {
-	unsigned int mod;
-
 	if (!data->use_btm_query || wpa_s->conf->disable_btm ||
 	    !wpa_s->current_bss ||
 	    !wpa_bss_ext_capab(wpa_s->current_bss,
-			       WLAN_EXT_CAPAB_BSS_TRANSITION))
-		return false;
-
-	/* Try BTM x times, scan on x + 1 */
-	data->scan_action_count++;
-	mod = data->scan_action_count % (data->use_btm_query + 1);
-	if (mod >= data->use_btm_query)
-		return false;
-
-	wpa_printf(MSG_DEBUG,
-		   "bgscan simple: Send BSS transition management query %d/%d",
-		   mod, data->use_btm_query);
-	if (wnm_send_bss_transition_mgmt_query(
-		    wpa_s, WNM_TRANSITION_REASON_BETTER_AP_FOUND, NULL, 0)) {
+			       WLAN_EXT_CAPAB_BSS_TRANSITION)) {
 		wpa_printf(MSG_DEBUG,
-			   "bgscan simple: Failed to send BSS transition management query");
-		/* Fall through and do regular scan */
+			   "bgscan simple: Inadequate capabilities for BTM Query.");
 		return false;
 	}
 
-	/* Start a new timeout for the next one. We don't have scan callback to
-	 * otherwise trigger future progress when using BTM path. */
-	eloop_register_timeout(data->scan_interval, 0,
-			       bgscan_simple_timeout, data, NULL);
+	if (wnm_send_bss_transition_mgmt_query(wpa_s,
+					       WNM_TRANSITION_REASON_BETTER_AP_FOUND,
+					       NULL, 0)) {
+		wpa_printf(MSG_DEBUG,
+			   "bgscan simple: Failed to send BSS transition management query");
+		return false;
+	}
+
 	return true;
 }
 
+static bool bgscan_simple_nr_request(struct wpa_supplicant *wpa_s,
+	                             struct bgscan_simple_data *data)
+{
+	struct wpa_ssid_value ssid_p;
+
+	if (!data->use_nr_request ||
+	    !wpa_s->current_bss) {
+		wpa_printf(MSG_DEBUG,
+			   "bgscan simple: Inadequate capabilities for neighbor report request.");
+		return false;
+	}
+
+	memcpy(ssid_p.ssid, wpa_s->current_bss->ssid, SSID_MAX_LEN);
+	ssid_p.ssid_len = MIN(wpa_s->current_bss->ssid_len, SSID_MAX_LEN);
+	if (wpas_rrm_send_neighbor_rep_request(wpa_s, &ssid_p, 0, 0,
+					       wpas_ctrl_neighbor_rep_cb,
+					       wpa_s)) {
+		wpa_printf(MSG_DEBUG,
+			   "bgscan simple: Failed to send neighbor report request");
+		return false;
+	}
+
+	return true;
+}
+
+static bool bgscan_schedule_action(struct wpa_supplicant *wpa_s,
+				   struct bgscan_simple_data *data,
+				   unsigned int schedule_period,
+				   enum bgscan_scan_action_type type,
+				   unsigned int max_scan_actions,
+				   bool (*to_schedule)(struct wpa_supplicant*, struct bgscan_simple_data*),
+				   char* debug)
+{
+	unsigned int round;
+
+	/* Each schedulee takes an action each round, so dividing by the number
+	 * of schedulees gives the round count. The current period is then
+	 * determined with a modulus as the scheduling is cyclic. Returning
+	 * true here indicates we were able to schedule the schedulee, and vice-
+	 * versa. */
+	round = (data->scan_action_count / BGSCAN_MAX) % (schedule_period + 1);
+	if ((data->scan_action_count % BGSCAN_MAX == type))
+		data->scan_action_count++;
+	else
+		return false;
+	if (round >= max_scan_actions)
+		return false;
+
+	wpa_printf(MSG_DEBUG,
+		   "bgscan simple: Scheduled %s %d/%d",
+		   debug, (round + 1), max_scan_actions);
+
+	if (!to_schedule(wpa_s, data))
+		wpa_printf(MSG_DEBUG, "bgscan simple: Schedulable %s failed!", debug);
+
+	return true;
+}
+#endif
+
+static bool bgscan_run_schedule(struct wpa_supplicant *wpa_s,
+				struct bgscan_simple_data *data)
+{
+#ifndef CONFIG_NO_RRM
+	/* The schedule period is the longest running schedulee in terms of
+	 * rounds it will be present for. */
+	int i;
+	unsigned int schedule_period = data->use_btm_query;
+	schedule_period = MAX(schedule_period, data->use_nr_request);
+	/* Check the schedule twice, as we may need to in a cyclic manner;
+	 * If one schedulee has remaining rounds to run, but was just
+	 * previously scheduled, it will need to be checked again if all
+	 * the other schedulees forgo scheduling. */
+	for (i = 0; i < 2; i++) {
+		if (bgscan_schedule_action(wpa_s, data, schedule_period,
+					  BGSCAN_BTM_QUERY, data->use_btm_query,
+					  bgscan_simple_btm_query, "BTM Query"))
+			return true;
+		if (bgscan_schedule_action(wpa_s, data, schedule_period,
+					  BGSCAN_NR_REQUEST, data->use_nr_request,
+					  bgscan_simple_nr_request, "Neighbor Report Request"))
+			return true;
+	}
+#endif
+	return false;
+}
 
 static void bgscan_simple_timeout(void *eloop_ctx, void *timeout_ctx)
 {
 	struct bgscan_simple_data *data = eloop_ctx;
 	struct wpa_supplicant *wpa_s = data->wpa_s;
 	struct wpa_driver_scan_params params;
-	bool was_btm = false;
+	bool was_scan_action = false;
 
-	if (bgscan_simple_btm_query(wpa_s, data)) {
-		was_btm = true;
+	if (bgscan_run_schedule(wpa_s, data)) {
+		was_scan_action = true;
+		/* Start a new timeout for the next scan action. */
+		eloop_register_timeout(data->scan_interval, 0,
+				       bgscan_simple_timeout, data, NULL);
 		goto scan_ok;
 	}
 
@@ -121,7 +203,7 @@ static void bgscan_simple_timeout(void *eloop_ctx, void *timeout_ctx)
 			/* btm is more efficient than scan, we assume,
 			 * so don't penalize it.
 			 */
-			if (!was_btm)
+			if (!was_scan_action)
 				data->short_scan_count++;
 			if (data->short_scan_count >= data->max_short_scans) {
 				data->scan_interval = data->long_interval;
@@ -148,6 +230,7 @@ static int bgscan_simple_get_params(struct bgscan_simple_data *data,
 	const char *pos;
 
 	data->use_btm_query = 0;
+	data->use_nr_request = 0;
 
 	data->short_interval = atoi(params);
 
@@ -168,6 +251,11 @@ static int bgscan_simple_get_params(struct bgscan_simple_data *data,
 	if (pos) {
 		pos++;
 		data->use_btm_query = atoi(pos);
+	}
+	pos = os_strchr(pos, ':');
+	if (pos) {
+		pos++;
+		data->use_nr_request = atoi(pos);
 	}
 
 	return 0;
