@@ -1697,6 +1697,31 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 		}
 	}
 
+	/* Proactively clear tx_wait_end_freq if the ROC window has already
+	 * elapsed in wall-clock time. The kernel sends FRAME_WAIT_CANCEL
+	 * asynchronously, so nan_de_timer() can fire while tx_wait_end_freq
+	 * is still set even though the ROC is over. Without this check the
+	 * TX gate (tx_wait_end_freq == 0) blocks the next publish cycle until
+	 * FRAME_WAIT_CANCEL arrives - by which time nan_de_next_multicast()
+	 * no longer returns 0 and the TX is permanently suppressed.
+	 */
+	if (de->tx_wait_end_freq &&
+	    os_reltime_initialized(&de->retransmit_start) &&
+	    de->retransmit_wait_ms > 0) {
+		struct os_reltime diff;
+		unsigned int elapsed_ms;
+
+		os_reltime_sub(&now, &de->retransmit_start, &diff);
+		elapsed_ms = os_reltime_in_ms(&diff);
+		if (elapsed_ms >= de->retransmit_wait_ms) {
+			wpa_printf(MSG_DEBUG,
+				   "NAN: ROC elapsed (%u >= %u ms) but tx_wait_end_freq=%u still set - clearing proactively",
+				   elapsed_ms, de->retransmit_wait_ms,
+				   de->tx_wait_end_freq);
+			de->tx_wait_end_freq = 0;
+		}
+	}
+
 	for (i = 0; i < NAN_DE_MAX_SERVICE; i++) {
 		struct nan_de_service *srv = de->service[i];
 		int srv_next;
