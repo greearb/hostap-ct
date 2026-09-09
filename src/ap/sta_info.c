@@ -89,10 +89,7 @@ struct sta_info * ap_get_sta(struct hostapd_data *hapd, const u8 *sta)
 				continue;
 
 			for (s = h->sta_list; s; s = s->next)
-				if ((!os_memcmp(s->setup_link_addr, sta, 6) ||
-				     !os_memcmp(s->addr, sta, 6)) &&
-				     s->flags & WLAN_STA_ASSOC &&
-				     s->mld_info.mld_sta)
+				if (!os_memcmp(s->setup_link_addr, sta, 6))
 					return s;
 		}
 	}
