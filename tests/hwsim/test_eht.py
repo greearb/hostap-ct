@@ -108,9 +108,10 @@ def eht_verify_status(wpas, hapd, freq, bw, is_ht=False, is_vht=False,
     time.sleep(0.1)
     _eht_verify_links(wpas, valid_links, active_links)
 
-def traffic_test(wpas, hapd, success=True, ifname2=None):
+def traffic_test(wpas, hapd, success=True, ifname2=None, check_bcast_dup=False):
     hwsim_utils.test_connectivity(wpas, hapd, success_expected=success,
-                                  ifname2=ifname2)
+                                  ifname2=ifname2,
+                                  check_bcast_dup=check_bcast_dup)
 
 def test_eht_open(dev, apdev):
     """EHT AP with open mode configuration"""
@@ -545,7 +546,7 @@ def _eht_mld_owe_two_links(dev, apdev, second_link_disabled=False,
         traffic_test(wpas, hapd0)
 
         if not second_link_disabled:
-            traffic_test(wpas, hapd1)
+            traffic_test(wpas, hapd1, check_bcast_dup=True)
 
         if only_one_link:
             wpas.set("bssid_filter", "")

@@ -59,17 +59,23 @@ def run_multicast_connectivity_test(dev1, dev2, tos=None,
                                     ifname1=None, ifname2=None,
                                     config=True, timeout=5,
                                     send_len=None, multicast_to_unicast=False,
-                                    broadcast_retry_c=1):
+                                    broadcast_retry_c=1,
+                                    check_dup=False):
     addr1 = dev1.get_addr(dev1group)
     addr2 = dev2.get_addr(dev2group)
 
     if config:
         config_data_test(dev1, dev2, dev1group, dev2group, ifname1, ifname2)
 
-    cmd = "DATA_TEST_TX ff:ff:ff:ff:ff:ff {} {}".format(addr1, tos)
+    cmd_tmpl = "DATA_TEST_TX ff:ff:ff:ff:ff:ff {} {}".format(addr1, tos)
     if send_len is not None:
-        cmd += " len=" + str(send_len)
+        cmd_tmpl += " len=" + str(send_len)
+    rxed = set()
     for i in range(broadcast_retry_c):
+        if check_dup:
+            cmd = cmd_tmpl + " id=" + str(1000 + i)
+        else:
+            cmd = cmd_tmpl
         try:
             if dev1group:
                 dev1.group_request(cmd)
@@ -96,17 +102,46 @@ def run_multicast_connectivity_test(dev1, dev2, tos=None,
             else:
                 if " len=" in ev:
                     raise Exception("Unexpected dev1->dev2 broadcast data length")
+            if check_dup:
+                if not " id=" in ev:
+                    raise Exception("Expected IP ID in RX event")
+                idstr = ev.split(' id=')[1]
+                if ' ' in idstr:
+                    idstr = idstr.split(' ')[0]
+                _id = int(idstr)
+                if _id in rxed:
+                    raise Exception("duplicate packet with ID %d received" % _id)
+                rxed.add(_id)
             break
         except Exception as e:
             if i == broadcast_retry_c - 1:
                 raise
 
+    if check_dup:
+        if dev2group:
+            ev = dev2.wait_group_event(["DATA-TEST-RX"],
+                                       timeout=timeout)
+        else:
+            ev = dev2.wait_event(["DATA-TEST-RX"], timeout=timeout)
+        if not ev:
+            return
+        if not " id=" in ev:
+            raise Exception("Expected IP ID in RX event")
+        idstr = ev.split(' id=')[1]
+        if ' ' in idstr:
+            idstr = idstr.split(' ')[0]
+        _id = int(idstr)
+        if _id in rxed:
+            raise Exception("duplicate packet with ID %d received" % _id)
+
 def run_connectivity_test(dev1, dev2, tos, dev1group=False, dev2group=False,
                           ifname1=None, ifname2=None, config=True, timeout=5,
                           multicast_to_unicast=False, broadcast=True,
-                          send_len=None):
+                          send_len=None, check_bcast_dup=False):
     addr1 = dev1.get_addr(dev1group)
     addr2 = dev2.get_addr(dev2group)
+
+    assert not check_bcast_dup or broadcast
 
     dev1.dump_monitor()
     dev2.dump_monitor()
@@ -146,7 +181,8 @@ def run_connectivity_test(dev1, dev2, tos, dev1group=False, dev2group=False,
             run_multicast_connectivity_test(dev1, dev2, tos,
                                             dev1group, dev2group,
                                             ifname1, ifname2, False, timeout,
-                                            send_len, False, broadcast_retry_c)
+                                            send_len, False, broadcast_retry_c,
+                                            check_dup=check_bcast_dup)
 
         cmd = "DATA_TEST_TX {} {} {}".format(addr1, addr2, tos)
         if send_len is not None:
@@ -175,7 +211,8 @@ def run_connectivity_test(dev1, dev2, tos, dev1group=False, dev2group=False,
                                             dev2group, dev1group,
                                             ifname2, ifname1, False, timeout,
                                             send_len, multicast_to_unicast,
-                                            broadcast_retry_c)
+                                            broadcast_retry_c,
+                                            check_dup=check_bcast_dup)
 
     finally:
         if config:
@@ -192,7 +229,7 @@ def test_connectivity(dev1, dev2, dscp=None, tos=None, max_tries=1,
                       dev1group=False, dev2group=False,
                       ifname1=None, ifname2=None, config=True, timeout=5,
                       multicast_to_unicast=False, success_expected=True,
-                      broadcast=True, send_len=None):
+                      broadcast=True, send_len=None, check_bcast_dup=False):
     if dscp:
         tos = dscp << 2
     if not tos:
@@ -206,7 +243,8 @@ def test_connectivity(dev1, dev2, dscp=None, tos=None, max_tries=1,
                                   ifname1, ifname2, config=config,
                                   timeout=timeout,
                                   multicast_to_unicast=multicast_to_unicast,
-                                  broadcast=broadcast, send_len=send_len)
+                                  broadcast=broadcast, send_len=send_len,
+                                  check_bcast_dup=check_bcast_dup)
             success = True
             break
         except Exception as e:
