@@ -2014,7 +2014,7 @@ static void hostapd_data_test_rx(void *ctx, const u8 *src_addr, const u8 *buf,
 	struct ip ip;
 	const u8 *pos;
 	unsigned int i;
-	char extra[30];
+	char extra_len[30], extra_id[30];
 
 	if (len < sizeof(*eth) + sizeof(ip) || len > HWSIM_PACKETLEN) {
 		wpa_printf(MSG_DEBUG,
@@ -2043,11 +2043,18 @@ static void hostapd_data_test_rx(void *ctx, const u8 *src_addr, const u8 *buf,
 		pos++;
 	}
 
-	extra[0] = '\0';
+	extra_len[0] = '\0';
+	extra_id[0] = '\0';
 	if (ntohs(ip.ip_len) != HWSIM_IP_LEN)
-		os_snprintf(extra, sizeof(extra), " len=%d", ntohs(ip.ip_len));
-	wpa_msg(hapd->msg_ctx, MSG_INFO, "DATA-TEST-RX " MACSTR " " MACSTR "%s",
-		MAC2STR(eth->ether_dhost), MAC2STR(eth->ether_shost), extra);
+		os_snprintf(extra_len, sizeof(extra_len), " len=%d",
+			    ntohs(ip.ip_len));
+	if (ntohs(ip.ip_id))
+		os_snprintf(extra_id, sizeof(extra_id), " id=%d",
+			    ntohs(ip.ip_len));
+	wpa_msg(hapd->msg_ctx, MSG_INFO,
+		"DATA-TEST-RX " MACSTR " " MACSTR "%s%s",
+		MAC2STR(eth->ether_dhost), MAC2STR(eth->ether_shost),
+			extra_len, extra_id);
 }
 
 
@@ -2105,13 +2112,13 @@ static int hostapd_ctrl_iface_data_test_tx(struct hostapd_data *hapd, char *cmd)
 	struct ether_header *eth;
 	struct ip *ip;
 	u8 *dpos;
-	unsigned int i;
+	unsigned int i, ip_id = 0;
 	size_t send_len = HWSIM_IP_LEN;
 
 	if (hapd->l2_test == NULL)
 		return -1;
 
-	/* format: <dst> <src> <tos> [len=<length>] */
+	/* format: <dst> <src> <tos> [len=<length>] [id=<ipid>] */
 
 	pos = cmd;
 	used = hwaddr_aton2(pos, dst);
@@ -2138,6 +2145,14 @@ static int hostapd_ctrl_iface_data_test_tx(struct hostapd_data *hapd, char *cmd)
 		send_len = i;
 	}
 
+	pos = os_strstr(pos2, " id=");
+	if (pos) {
+		i = atoi(pos + 4);
+		if (i > 0xffff)
+			return -1;
+		ip_id = i;
+	}
+
 	eth = (struct ether_header *) &buf[2];
 	os_memcpy(eth->ether_dhost, dst, ETH_ALEN);
 	os_memcpy(eth->ether_shost, src, ETH_ALEN);
@@ -2146,6 +2161,7 @@ static int hostapd_ctrl_iface_data_test_tx(struct hostapd_data *hapd, char *cmd)
 	os_memset(ip, 0, sizeof(*ip));
 	ip->ip_hl = 5;
 	ip->ip_v = 4;
+	ip->ip_id = htons(ip_id);
 	ip->ip_ttl = 64;
 	ip->ip_tos = tos;
 	ip->ip_len = htons(send_len);
