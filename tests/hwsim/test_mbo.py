@@ -88,7 +88,7 @@ def run_mbo_supp_oper_classes(dev, apdev, hapd, hapd2, country, freq_list=None,
 
 def run_mbo_supp_oper_class(dev, apdev, country, expected, inc5,
                             freq_list=None, disable_ht=False,
-                            disable_vht=False, alt_expected=None):
+                            disable_vht=False):
     if inc5:
         params = {'ssid': "test-wnm-mbo",
                   'mbo': '1',
@@ -135,72 +135,78 @@ def run_mbo_supp_oper_class(dev, apdev, country, expected, inc5,
         if country3 != "00":
             clear_country(dev)
 
-    # For now, allow operating class 129 to be missing since not all
-    # installed regdb files include the 160 MHz channels.
-    expected2 = expected.replace('808182', '8082')
-    # For now, allow operating classes 121-123 to be missing since not all
-    # installed regdb files include the related US DFS channels.
-    expected2 = expected2.replace('78797a7b7c', '787c')
-    expected3 = expected
-    # For now, allow operating classes 124-127 to be missing for Finland
-    # since they were added only recently in regdb.
-    if country == "FI":
-        expected3 = expected3.replace("7b7c7d7e7f80", "7b80")
-    if res2 != expected and res2 != expected2 and res2 != expected3 and res2 != alt_expected:
-        raise Exception("Unexpected supp_op_class string (country=%s, 2.4 GHz): %s (expected: %s)" % (country, res2, expected))
-    if inc5 and res5 != expected and res5 != expected2 and res5 != expected3 and res5 != alt_expected:
-        raise Exception("Unexpected supp_op_class string (country=%s, 5 GHz): %s (expected: %s)" % (country, res5, expected))
+    opclasses_expected = list(expected)
+    for e in expected:
+        # For now, allow operating class 129 to be missing since not all
+        # installed regdb files include the 160 MHz channels, and operating
+        # classes 121-123 to be missing since not all installed regdb files
+        # include the related US DFS channels.
+        opclasses_expected.append(e.replace('808182', '8082').replace('78797a7b7c', '787c'))
+        if country == "FI":
+            # For now, allow operating classes 124-127 to be missing for Finland
+            # since they were added only recently in regdb.
+            opclasses_expected.append(e.replace("7b7c7d7e7f80", "7b80"))
+
+    assert res2 in opclasses_expected, \
+        f"Unexpected supp_op_class string (country={country}, 2.4 GHz): {res2} (expected: {opclasses_expected})"
+    assert not inc5 or res5 in opclasses_expected, \
+        f"Unexpected supp_op_class string (country={country}, 5 GHz): {res5} (expected: {opclasses_expected})"
 
 def test_mbo_supp_oper_classes_za(dev, apdev):
     """MBO and supported operating classes (ZA)"""
     run_mbo_supp_oper_class(dev, apdev, "ZA",
-                            "515354737475767778797a7b8081008280", True)
+                            ["515354737475767778797a7b8081008280",
+                             "515354737475767778797a7b7c7d7e7f808183848586890082808785"], True)
 
 def test_mbo_supp_oper_classes_fi(dev, apdev):
     """MBO and supported operating classes (FI)"""
     run_mbo_supp_oper_class(dev, apdev, "FI",
-                            "515354737475767778797a7b7c7d7e7f8081008280", True,
-                            alt_expected="515354737475767778797a7b7c7d7e7f8081838485860082808785")
+                            ["515354737475767778797a7b7c7d7e7f8081008280",
+                             "515354737475767778797a7b7c7d7e7f8081838485860082808785",
+                             "515354737475767778797a7b7c7d7e7f808183848586890082808785"], True)
 
 def test_mbo_supp_oper_classes_us(dev, apdev):
     """MBO and supported operating classes (US)"""
     run_mbo_supp_oper_class(dev, apdev, "US",
-                            "515354737475767778797a7b7c7d7e7f8081008280", True,
-                            alt_expected="515354737475767778797a7b7c7d7e7f808183848586890082808785")
+                            ["515354737475767778797a7b7c7d7e7f8081008280",
+                             "515354737475767778797a7b7c7d7e7f808183848586890082808785"], True)
 
 def test_mbo_supp_oper_classes_jp(dev, apdev):
     """MBO and supported operating classes (JP)"""
     run_mbo_supp_oper_class(dev, apdev, "JP",
-                            "51525354737475767778797a7b8081008280",
-                            True,
-                            alt_expected="51525354737475767778797a7b8081838485860082808785")
+                            ["51525354737475767778797a7b8081008280",
+                             "51525354737475767778797a7b8081838485860082808785",
+                             "51525354737475767778797a7b808183848586890082808785"],
+                            True)
 
 def test_mbo_supp_oper_classes_bd(dev, apdev):
     """MBO and supported operating classes (BD)"""
     run_mbo_supp_oper_class(dev, apdev, "BD",
-                            "5153547c7d7e7f80", False)
+                            ["5153547c7d7e7f80"], False)
 
 def test_mbo_supp_oper_classes_sy(dev, apdev):
     """MBO and supported operating classes (SY)"""
     run_mbo_supp_oper_class(dev, apdev, "SY",
-                            "515354", False)
+                            ["515354",
+                             "515354737475767778797a7b7c7d7e7f8081008280"], False)
 
 def test_mbo_supp_oper_classes_us_freq_list(dev, apdev):
     """MBO and supported operating classes (US) - freq_list"""
-    run_mbo_supp_oper_class(dev, apdev, "US", "515354", False,
+    run_mbo_supp_oper_class(dev, apdev, "US", ["515354"], False,
                             freq_list="2412 2437 2462")
 
 def test_mbo_supp_oper_classes_us_disable_ht(dev, apdev):
     """MBO and supported operating classes (US) - disable_ht"""
-    run_mbo_supp_oper_class(dev, apdev, "US", "517376797c7d", False,
-                            disable_ht=True, alt_expected="517376797c7d8384858689008785")
+    run_mbo_supp_oper_class(dev, apdev, "US",
+                            ["517376797c7d", "517376797c7d8384858689008785"], False,
+                            disable_ht=True)
 
 def test_mbo_supp_oper_classes_us_disable_vht(dev, apdev):
     """MBO and supported operating classes (US) - disable_vht"""
     run_mbo_supp_oper_class(dev, apdev, "US",
-                            "515354737475767778797a7b7c7d7e7f", False,
-                            disable_vht=True,
-                            alt_expected="515354737475767778797a7b7c7d7e7f8384858689008785")
+                            ["515354737475767778797a7b7c7d7e7f",
+                             "515354737475767778797a7b7c7d7e7f8384858689008785"], False,
+                            disable_vht=True)
 
 def test_mbo_assoc_disallow(dev, apdev, params):
     """MBO and association disallowed"""
