@@ -1761,9 +1761,23 @@ static int wpa_supplicant_install_igtk(struct wpa_sm *sm,
 		keyidx, MAC2STR(igtk->pn));
 	wpa_hexdump_key(MSG_DEBUG, "WPA: IGTK", igtk->igtk, len);
 	if (keyidx > 4095) {
-		wpa_msg(sm->ctx->msg_ctx, MSG_WARNING,
-			"WPA: Invalid IGTK KeyID %d", keyidx);
-		return -1;
+		u16 masked = keyidx & 0x00FF;
+
+		if (masked == 4 || masked == 5) {
+			/* Some APs send an IGTK KeyID larger than 4095 with
+			 * a valid key index (4 or 5) in the lower octet and
+			 * spurious bits in the higher octet. Mask out the
+			 * higher octet and use the lower octet as the key index
+			 * instead of rejecting the IGTK and disconnecting. */
+			wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+				"WPA: Workaround for non-compliant AP: corrected IGTK KeyID %d to %d",
+				keyidx, masked);
+			keyidx = masked;
+		} else {
+			wpa_msg(sm->ctx->msg_ctx, MSG_WARNING,
+				"WPA: Invalid IGTK KeyID %d", keyidx);
+			return -1;
+		}
 	}
 	if (wpa_sm_set_key(sm, -1, wpa_cipher_to_alg(sm->mgmt_group_cipher),
 			   broadcast_ether_addr,
