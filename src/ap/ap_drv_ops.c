@@ -837,10 +837,27 @@ int hostapd_driver_scan(struct hostapd_data *hapd,
 
 			h_hapd = h_iface->bss[0];
 
-			if (hostapd_is_ml_partner(hapd, h_hapd) &&
-			    h_hapd->iface->state == HAPD_IFACE_ACS) {
+			if (!hostapd_is_ml_partner(hapd, h_hapd) ||
+			    h_hapd->iface->state != HAPD_IFACE_ACS)
+				continue;
+
+			/* The partner has a scan in flight: wait for it. */
+			if (h_hapd->iface->scan_cb) {
 				wpa_printf(MSG_INFO,
 					   "ACS in progress in a partner link - try to scan later");
+				return -EBUSY;
+			}
+
+			/*
+			 * Both links are still waiting to start their ACS scan:
+			 * let the on with the lower link ID go first so the
+			 * scans serialise instead of deferring to each other
+			 * forever.
+			 */
+			if (h_hapd->mld_link_id < hapd->mld_link_id) {
+				wpa_printf(MSG_INFO,
+					   "Partner link %d starts ACS first - try to scan later",
+					   h_hapd->mld_link_id);
 				return -EBUSY;
 			}
 		}
