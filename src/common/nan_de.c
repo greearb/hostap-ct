@@ -1469,8 +1469,10 @@ static int nan_de_next_multicast(struct nan_de *de, struct nan_de_service *srv,
 	if (!os_reltime_initialized(&srv->last_multicast))
 		return 0;
 
-	if (srv->type == NAN_DE_PUBLISH && srv->publish.ttl == 0)
-		return -1;
+	/* TTL=0 means publish indefinitely — do not block retransmissions.
+	 * Only stop scheduling when an explicit TTL has expired (handled
+	 * via end_time / nan_de_srv_expired).
+	 */
 
 	if (srv->type == NAN_DE_PUBLISH &&
 	    os_reltime_initialized(&srv->pause_state_end))
@@ -1525,6 +1527,12 @@ static int nan_de_srv_time_to_next(struct nan_de *de,
 		tmp = os_reltime_in_ms(&diff);
 		if (next == -1 || tmp < next)
 			next = tmp;
+		/* During pauseState, wake at max_listen intervals so the
+		 * publisher can start a listen ROC on each interval.
+		 */
+		tmp = de->max_listen;
+		if (next == -1 || tmp < next)
+			next = tmp;
 		return next;
 	}
 
@@ -1534,7 +1542,10 @@ static int nan_de_srv_time_to_next(struct nan_de *de,
 
 	if (srv->type == NAN_DE_PUBLISH &&
 	    os_reltime_initialized(&srv->last_multicast)) {
-		/* Time out after one transmission (and wait for FSD) */
+		/* For explicit-TTL publishes: schedule expiry check shortly
+		 * after the first transmission (100 ms, or 1000 ms if waiting
+		 * for FSD follow-up).
+		 */
 		tmp = srv->publish.fsd ? 1000 : 100;
 		if (next == -1 || tmp < next)
 			next = tmp;
@@ -1715,15 +1726,11 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 		    os_reltime_before(&srv->next_publish_state, &now))
 			nan_de_start_new_publish_state(de, srv, false);
 
-		if (srv->type == NAN_DE_PUBLISH &&
-		    os_reltime_initialized(&srv->pause_state_end) &&
-		    (os_reltime_before(&srv->pause_state_end, &now)))
-			nan_de_unpause_state(srv);
-
-		srv_next = nan_de_srv_time_to_next(de, srv, &now);
-		if (srv_next >= 0 && (next == -1 || srv_next < next))
-			next = srv_next;
-
+		/* Start the listen ROC before pauseState expiration while the
+		 * pause_state_end deadline is still valid. Re-arm at
+		 * max_listen intervals so the publisher stays on the peer's
+		 * channel.
+		 */
 		if (srv->type == NAN_DE_PUBLISH &&
 		    srv->publish.fsd &&
 		    os_reltime_initialized(&srv->pause_state_end) &&
@@ -1736,17 +1743,18 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 			os_reltime_sub(&srv->pause_state_end, &now, &diff);
 			duration = os_reltime_in_ms(&diff);
 			if (duration < 0)
-				continue;
+				goto cont;
+
 			if (srv->listen_stopped) {
 				wpa_printf(MSG_DEBUG,
 					   "NAN: Publisher listen stopped temporarily - do not start driver listen operation");
-				continue;
+				goto cont;
 			}
+
 			if ((unsigned int) duration > de->max_listen)
 				duration = de->max_listen;
-			/* Use the channel the peer was discovered on; for
-			 * multi-channel publishers this may differ from the
-			 * current TX channel.
+			/* Listen on peer frequency.
+			 * Keep follow-up on discovery frequency.
 			 */
 			listen_freq = srv->pause_peer_freq ?
 				srv->pause_peer_freq : srv->freq;
@@ -1760,6 +1768,16 @@ static void nan_de_timer(void *eloop_ctx, void *timeout_ctx)
 				return;
 			}
 		}
+
+	cont:
+		if (srv->type == NAN_DE_PUBLISH &&
+		    os_reltime_initialized(&srv->pause_state_end) &&
+		    (os_reltime_before(&srv->pause_state_end, &now)))
+			nan_de_unpause_state(srv);
+
+		srv_next = nan_de_srv_time_to_next(de, srv, &now);
+		if (srv_next >= 0 && (next == -1 || srv_next < next))
+			next = srv_next;
 
 		if (srv_next == 0 && !started && !de->offload &&
 		    de->listen_freq == 0 && de->ext_listen_freq == 0 &&
