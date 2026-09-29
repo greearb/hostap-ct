@@ -13,6 +13,10 @@
 #include "eloop.h"
 #include "driver.h"
 #include "driver_wired_common.h"
+#ifdef __linux__
+#include "priv_netlink.h"
+#include "netlink.h"
+#endif /* __linux__ */
 
 #include <sys/ioctl.h>
 #undef IFNAMSIZ
@@ -49,6 +53,13 @@ struct wpa_driver_wired_data {
 
 	int dhcp_sock; /* socket for dhcp packets */
 	int use_pae_group_addr;
+
+#ifdef __linux__
+	/* Linux rtnetlink link-state monitoring */
+	struct netlink_data *netlink;
+	int ifindex;
+	bool link_up;
+#endif /* __linux__ */
 };
 
 
@@ -367,6 +378,134 @@ static void wired_driver_hapd_deinit(void *priv)
 }
 
 
+#ifdef __linux__
+
+static void wpa_driver_wired_event_rtm_newlink(void *ctx, struct ifinfomsg *ifi,
+					       u8 *buf, size_t len)
+{
+	struct wpa_driver_wired_data *drv = ctx;
+	bool up;
+
+	if (ifi->ifi_index != drv->ifindex)
+		return;
+
+	/*
+	 * The link is usable for EAPOL only when the interface is
+	 * administratively up (IFF_UP) and the L1 carrier is present
+	 * (IFF_LOWER_UP). A cable unplug/replug toggles IFF_LOWER_UP while
+	 * IFF_UP stays set, so both have to be checked to detect a link
+	 * toggle.
+	 */
+	up = (ifi->ifi_flags & IFF_UP) && (ifi->ifi_flags & IFF_LOWER_UP);
+
+	wpa_printf(MSG_DEBUG,
+		   "wired: RTM_NEWLINK: ifi_index=%d ifi_flags=0x%x (%s%s%s) link_up %d->%d",
+		   ifi->ifi_index, ifi->ifi_flags,
+		   (ifi->ifi_flags & IFF_UP) ? "[UP]" : "",
+		   (ifi->ifi_flags & IFF_RUNNING) ? "[RUNNING]" : "",
+		   (ifi->ifi_flags & IFF_LOWER_UP) ? "[LOWER_UP]" : "",
+		   drv->link_up, up);
+
+	if (drv->link_up == up)
+		return;
+
+	drv->link_up = up;
+	wpa_supplicant_event(drv->common.ctx, up ? EVENT_INTERFACE_ENABLED :
+			     EVENT_INTERFACE_DISABLED, NULL);
+}
+
+
+static bool wpa_driver_wired_is_initial_link_up(const char *ifname)
+{
+	char path[128], buf[32], *endp;
+	unsigned long flags;
+	FILE *f;
+
+	os_snprintf(path, sizeof(path), "/sys/class/net/%s/flags", ifname);
+	f = fopen(path, "r");
+	if (!f)
+		goto out_err;
+
+	if (!fgets(buf, sizeof(buf), f)) {
+		fclose(f);
+		goto out_err;
+	}
+	fclose(f);
+
+	flags = strtoul(buf, &endp, 0);
+	if (endp == buf)
+		goto out_err;
+
+	return (flags & IFF_UP) && (flags & IFF_LOWER_UP);
+
+out_err:
+	/* Assume up so a real unplug generates EVENT_INTERFACE_DISABLED
+	 * rather than being swallowed by a 0->0 no-op comparison. */
+	wpa_printf(MSG_INFO,
+		   "wired: Failed to query initial link state; assuming up");
+	return true;
+}
+
+
+static void
+wpa_driver_wired_link_monitor_init(struct wpa_driver_wired_data *drv,
+				   const char *ifname)
+{
+	struct netlink_config *cfg;
+
+	drv->ifindex = if_nametoindex(ifname);
+	if (drv->ifindex == 0) {
+		wpa_printf(MSG_ERROR, "wired: if_nametoindex(%s) failed",
+			   ifname);
+		return;
+	}
+
+	cfg = os_zalloc(sizeof(*cfg));
+	if (!cfg)
+		return;
+
+	cfg->ctx = drv;
+	cfg->newlink_cb = wpa_driver_wired_event_rtm_newlink;
+	drv->netlink = netlink_init(cfg);
+	if (!drv->netlink) {
+		os_free(cfg);
+		wpa_printf(MSG_INFO,
+			   "wired: Failed to initialize netlink; link-state monitoring disabled");
+		return;
+	}
+
+	/* Subscribe first, then snapshot state from sysfs. Any transition in
+	 * the gap between subscribe and read stays in the socket buffer and
+	 * is delivered normally by eloop - no events are lost. */
+	drv->link_up = wpa_driver_wired_is_initial_link_up(ifname);
+	wpa_printf(MSG_DEBUG, "wired: Initial link_up=%d", drv->link_up);
+}
+
+
+static void
+wpa_driver_wired_link_monitor_deinit(struct wpa_driver_wired_data *drv)
+{
+	netlink_deinit(drv->netlink);
+	drv->netlink = NULL;
+}
+
+#else /* __linux__ */
+
+static inline void
+wpa_driver_wired_link_monitor_init(struct wpa_driver_wired_data *drv,
+				   const char *ifname)
+{
+}
+
+
+static inline void
+wpa_driver_wired_link_monitor_deinit(struct wpa_driver_wired_data *drv)
+{
+}
+
+#endif /* __linux__ */
+
+
 static void * wpa_driver_wired_init(void *ctx, const char *ifname)
 {
 	struct wpa_driver_wired_data *drv;
@@ -380,6 +519,8 @@ static void * wpa_driver_wired_init(void *ctx, const char *ifname)
 		return NULL;
 	}
 
+	wpa_driver_wired_link_monitor_init(drv, ifname);
+
 	return drv;
 }
 
@@ -388,6 +529,7 @@ static void wpa_driver_wired_deinit(void *priv)
 {
 	struct wpa_driver_wired_data *drv = priv;
 
+	wpa_driver_wired_link_monitor_deinit(drv);
 	driver_wired_deinit_common(&drv->common);
 	os_free(drv);
 }
