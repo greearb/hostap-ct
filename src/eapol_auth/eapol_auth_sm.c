@@ -106,6 +106,9 @@ static void eapol_auth_tx_canned_eap(struct eapol_state_machine *sm,
 
 static void eapol_auth_tx_req(struct eapol_state_machine *sm)
 {
+	const struct eap_hdr *hdr;
+	enum eap_type type = EAP_TYPE_NONE;
+
 	if (sm->eap_if->eapReqData == NULL ||
 	    wpabuf_len(sm->eap_if->eapReqData) < sizeof(struct eap_hdr)) {
 		eapol_auth_logger(sm->eapol, sm->addr,
@@ -122,6 +125,13 @@ static void eapol_auth_tx_req(struct eapol_state_machine *sm)
 		return;
 	}
 
+	hdr = wpabuf_head(sm->eap_if->eapReqData);
+	if (hdr->code == EAP_CODE_REQUEST) {
+		type = eap_get_type(sm->eap_if->eapReqData);
+		if (type != EAP_TYPE_NONE)
+			sm->eap_type_authsrv = type;
+	}
+
 	sm->last_eap_id = eap_get_id(sm->eap_if->eapReqData);
 	eapol_auth_vlogger(sm->eapol, sm->addr, EAPOL_LOGGER_DEBUG,
 			   "Sending EAP Packet (identifier %d)",
@@ -131,7 +141,7 @@ static void eapol_auth_tx_req(struct eapol_state_machine *sm)
 				 wpabuf_head(sm->eap_if->eapReqData),
 				 wpabuf_len(sm->eap_if->eapReqData));
 	sm->dot1xAuthEapolFramesTx++;
-	if (eap_get_type(sm->eap_if->eapReqData) == EAP_TYPE_IDENTITY)
+	if (type == EAP_TYPE_IDENTITY)
 		sm->dot1xAuthEapolReqIdFramesTx++;
 	else
 		sm->dot1xAuthEapolReqFramesTx++;

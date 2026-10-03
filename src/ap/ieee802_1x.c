@@ -1581,8 +1581,6 @@ static void ieee802_1x_decapsulate_radius(struct hostapd_data *hapd,
 	hdr = wpabuf_head(eap);
 	switch (hdr->code) {
 	case EAP_CODE_REQUEST:
-		if (eap_type >= 0)
-			sm->eap_type_authsrv = eap_type;
 		os_snprintf(buf, sizeof(buf), "EAP-Request-%s (%d)",
 			    eap_server_get_name(0, eap_type), eap_type);
 		break;
