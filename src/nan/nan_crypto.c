@@ -767,6 +767,7 @@ int nan_crypto_pmkid_list(struct dl_list *pmkid_list, const u8 *raddr,
 			wpa_printf(MSG_DEBUG,
 				   "NAN: Failed to derive PMKID for cipher suite %d",
 				   cipher_suites[i]);
+			os_free(p);
 			nan_crypto_clear_pmkid_list(pmkid_list);
 			return ret;
 		}
