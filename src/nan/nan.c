@@ -2708,6 +2708,7 @@ static void nan_action_substitute_src(struct nan_data *nan,
 				   MAC2STR(peer->nmi_addr), MAC2STR(mgmt->sa));
 
 			os_memcpy((void *)mgmt->sa, peer->nmi_addr, ETH_ALEN);
+			return;
 		}
 	}
 
