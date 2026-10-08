@@ -731,8 +731,9 @@ void nan_crypto_clear_pmkid_list(struct dl_list *pmkid_list)
  * @pmk: PMK for which the PMKIDs are generated
  * Returns: 0 on success, -1 on failure
  *
- * This function generates a PMKID for each cipher suite in the provided array
- * and adds them to the pmkid_list.
+ * This function generates a PMKID for each NDP cipher suite in the provided
+ * array and adds them to the pmkid_list. Cipher suites that are not used for
+ * an ND-TKSA, e.g., the NCS-GTK-* suites, have no ND-PMK and are skipped.
  */
 int nan_crypto_pmkid_list(struct dl_list *pmkid_list, const u8 *raddr,
 			  const u8 *srv_id, const int *cipher_suites,
@@ -752,6 +753,9 @@ int nan_crypto_pmkid_list(struct dl_list *pmkid_list, const u8 *raddr,
 		};
 		enum nan_cipher_suite_id csid =
 			(enum nan_cipher_suite_id) cipher_suites[i];
+
+		if (!NAN_CS_IS_VALID_NDP(csid))
+			continue;
 
 		p = os_zalloc(sizeof(*p));
 		if (!p)
