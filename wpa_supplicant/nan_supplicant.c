@@ -183,10 +183,25 @@ static void clear_sched_config(struct nan_schedule_config *sched_cfg)
 }
 
 
+static void wpas_nan_sched_update_done_timeout(void *eloop_ctx,
+					       void *timeout_ctx)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctx;
+
+	wpas_notify_nan_sched_update_done(wpa_s, true);
+}
+
+
 static void wpas_nan_stop_cb(void *ctx)
 {
 	struct wpa_supplicant *wpa_s = ctx;
 	int i;
+
+	eloop_cancel_timeout(wpas_nan_sched_update_done_timeout, wpa_s, NULL);
+
+	/* A deferred update will never be completed by the driver now */
+	clear_sched_config(&wpa_s->nan_sched_update.sched);
+	nan_set_sched_update_pending(wpa_s->nan, false);
 
 	for (i = 0; i < MAX_NAN_RADIOS; i++) {
 		if (wpa_s->nan_sched[i].num_channels) {
@@ -1772,6 +1787,8 @@ void wpas_nan_deinit(struct wpa_supplicant *wpa_s)
 	if (!wpa_s || !wpa_s->nan)
 		return;
 
+	eloop_cancel_timeout(wpas_nan_sched_update_done_timeout, wpa_s, NULL);
+
 	for (i = 0; i < MAX_NAN_RADIOS; i++)
 		clear_sched_config(&wpa_s->nan_sched[i]);
 
@@ -2962,6 +2979,15 @@ int wpas_nan_sched_config_map(struct wpa_supplicant *wpa_s, char *cmd)
 			  sizeof(*sched_cfg));
 		os_memset(sched_cfg, 0, sizeof(*sched_cfg));
 		wpas_nan_update_local_schedule(wpa_s);
+
+		/*
+		 * Notify about schedule update completion also for the
+		 * non-deferred case. For deferred updates the driver will
+		 * generate the event. This allows the user to unconditionally
+		 * wait for the event after configuring the schedule.
+		 */
+		eloop_register_timeout(0, 0, wpas_nan_sched_update_done_timeout,
+				       wpa_s, NULL);
 	}
 
 	/* Update CDW overwrite map_id for the specified band */
@@ -3493,6 +3519,11 @@ int wpas_nan_ndp_request(struct wpa_supplicant *wpa_s, char *cmd)
 	if (!wpas_nan_ndp_allowed(wpa_s))
 		return -1;
 
+	if (wpa_s->nan_sched_update.sched.deferred) {
+		wpa_printf(MSG_INFO, "NAN: Local schedule update is pending");
+		return -1;
+	}
+
 	ndp.type = NAN_NDP_ACTION_REQ;
 	ndp.qos.min_slots = NAN_QOS_MIN_SLOTS_NO_PREF;
 	ndp.qos.max_latency = NAN_QOS_MAX_LATENCY_NO_PREF;
@@ -3727,6 +3758,11 @@ int wpas_nan_ndp_response(struct wpa_supplicant *wpa_s, char *cmd)
 
 	if (!wpas_nan_ndp_allowed(wpa_s))
 		return -1;
+
+	if (wpa_s->nan_sched_update.sched.deferred) {
+		wpa_printf(MSG_INFO, "NAN: Local schedule update is pending");
+		return -1;
+	}
 
 	os_memset(&ndp, 0, sizeof(ndp));
 
@@ -4242,6 +4278,11 @@ int wpas_nan_bootstrap_request(struct wpa_supplicant *wpa_s, char *cmd)
 	u16 bootstrap_method = 0;
 	bool auth = false;
 
+	if (wpa_s->nan_sched_update.sched.deferred) {
+		wpa_printf(MSG_INFO, "NAN: Local schedule update is pending");
+		return -1;
+	}
+
 	/* Parse peer address first */
 	if (hwaddr_aton(cmd, peer_nmi) < 0)
 		return -1;
@@ -4634,6 +4675,12 @@ int wpas_nan_pairing_start(struct wpa_supplicant *wpa_s, char *cmd)
 	bool responder = false;
 	bool auto_nik_exchange = true;
 	char *pos;
+
+	if (wpa_s->nan_sched_update.sched.deferred) {
+		wpa_printf(MSG_INFO,
+			   "NAN: Local schedule update is pending");
+		return -1;
+	}
 
 	/* Parse peer address first */
 	if (hwaddr_aton(cmd, addr) < 0)

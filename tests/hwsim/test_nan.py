@@ -1404,6 +1404,14 @@ def _nan_discover_service(pub, sub, service_name, pssi, sssi, ttl=None,
 
     return pid, sid, paddr, saddr
 
+def _nan_schedule_config(dev, *chans, map_id=1):
+    """Configure a schedule map and wait until the update completes."""
+    dev.wpas.dump_monitor()
+    if "OK" not in dev.schedule_config(*chans, map_id=map_id):
+        raise Exception("Failed to configure schedule")
+    if dev.wpas.wait_event(["NAN-SCHEDULE-UPDATE-DONE"], timeout=2) is None:
+        raise Exception("NAN-SCHEDULE-UPDATE-DONE event not seen")
+
 def _nan_ndp_request_and_accept(pub, sub, pid, sid, paddr, saddr, req_ssi,
                                 resp_ssi, csid=None,
                                 password=None, pwd_hex=None, pmk=None,
@@ -1418,9 +1426,7 @@ def _nan_ndp_request_and_accept(pub, sub, pid, sid, paddr, saddr, req_ssi,
     """
     # Configure schedule on subscriber if needed
     if configure_schedule:
-        if "OK" not in sub.schedule_config((2437, "0e000000"),
-                                           (5180, "f0ffffff")):
-            raise Exception("Failed to configure schedule (sub)")
+        _nan_schedule_config(sub, (2437, "0e000000"), (5180, "f0ffffff"))
 
     # NDP request
     if "OK" not in sub.ndp_request(sub.ndi_name, sid, paddr, pid, req_ssi,
@@ -1448,12 +1454,9 @@ def _nan_ndp_request_and_accept(pub, sub, pid, sid, paddr, saddr, req_ssi,
 
     if configure_schedule:
         if counter:
-            if "OK" not in pub.schedule_config((5745, "feffffff")):
-                raise Exception("Failed to configure schedule (pub)")
+            _nan_schedule_config(pub, (5745, "feffffff"))
         else:
-            if "OK" not in pub.schedule_config((2437, "0e000000"),
-                                               (5180, "f0ffffff")):
-                raise Exception("Failed to configure schedule (pub)")
+            _nan_schedule_config(pub, (2437, "0e000000"), (5180, "f0ffffff"))
 
     # Accept NDP request
     accept_pwd = "WRONG_PWD" if wrong_pwd else password
@@ -1489,8 +1492,7 @@ def _nan_ndp_request_and_accept(pub, sub, pid, sid, paddr, saddr, req_ssi,
         ndp_id = data['ndp_id']
         init_ndi = data['init_ndi']
 
-        if "OK" not in sub.schedule_config((5745, "feffffff")):
-            raise Exception("Failed to configure schedule (sub)")
+        _nan_schedule_config(sub, (5745, "feffffff"))
 
         if "OK" not in sub.ndp_response("accept", paddr, ndi=sub.ndi_name,
                                         ndp_id=ndp_id, handle=sid,
