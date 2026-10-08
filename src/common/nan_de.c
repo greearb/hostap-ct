@@ -14,6 +14,7 @@
 #include "utils/list.h"
 #include "crypto/crypto.h"
 #include "crypto/sha256.h"
+#include "ieee802_11_common.h"
 #include "ieee802_11_defs.h"
 #include "nan/nan.h"
 #include "nan_defs.h"
@@ -3399,6 +3400,153 @@ bool nan_de_rx_sdf(struct nan_de *de, const u8 *peer_addr, const u8 *a3,
 	}
 
 	return ret;
+}
+
+
+static bool nan_de_service_id_in_list(const u8 *list, size_t len,
+				      const u8 *service_id)
+{
+	size_t i;
+
+	if (!list || !len)
+		return false;
+
+	for (i = 0; i + NAN_SERVICE_ID_LEN <= len;
+	     i += NAN_SERVICE_ID_LEN) {
+		if (os_memcmp(&list[i], service_id, NAN_SERVICE_ID_LEN) == 0)
+			return true;
+	}
+
+	return false;
+}
+
+
+static void nan_de_beacon_tx_sdf(struct nan_de *de, struct nan_de_service *srv,
+				 const u8 *peer_addr)
+{
+	enum nan_service_control_type type;
+
+	if (srv->type == NAN_DE_PUBLISH)
+		type = NAN_SRV_CTRL_PUBLISH;
+	else
+		type = NAN_SRV_CTRL_SUBSCRIBE;
+
+	wpa_printf(MSG_DEBUG, "NAN: Beacon from " MACSTR " matches service %d",
+		   MAC2STR(peer_addr), srv->id);
+
+	nan_de_tx_sdf(de, srv, 0, type, peer_addr, de->cluster_id, 0, srv->ssi,
+		      NULL, NULL, 0);
+}
+
+
+static struct wpabuf * nan_de_defrag_beacon_nan_ie(const u8 *elems,
+						   size_t elems_len)
+{
+	const u8 *ie;
+	size_t len;
+
+	ie = get_vendor_ie(elems, elems_len, NAN_SDF_VENDOR_TYPE);
+	if (!ie)
+		return NULL;
+
+	len = ie[1];
+
+	/*
+	 * A NAN IE with a payload larger than 255 octets is carried in a Vendor
+	 * Specific element followed by Fragment elements.
+	 */
+	if (len == 255)
+		len = elems + elems_len - (ie + 2);
+
+	return ieee802_11_defrag(ie + 2, len, false);
+}
+
+
+/**
+ * nan_de_rx_beacon - Process a received beacon
+ * @de: Pointer to the NAN DE context
+ * @peer_addr: Transmitter address of the beacon
+ * @cluster_id: A3 of the beacon, i.e., the Cluster ID of the transmitter
+ * @elems: Elements of the beacon
+ * @elems_len: Length of @elems in octets
+ *
+ * Match the Service IDs advertised by the peer against the local services and
+ * transmit an SDF for each match, to allow service discovery during instant
+ * communication.
+ */
+void nan_de_rx_beacon(struct nan_de *de, const u8 *peer_addr,
+		      const u8 *cluster_id, const u8 *elems, size_t elems_len)
+{
+	struct wpabuf *attrs;
+	const u8 *pos, *end, *pub = NULL, *sub = NULL;
+	size_t pub_len = 0, sub_len = 0;
+	unsigned int i;
+
+	if (!de || de->offload || !de->cluster_id_set || !cluster_id ||
+	    !peer_addr)
+		return;
+
+	if (!ether_addr_equal(cluster_id, de->cluster_id)) {
+		wpa_printf(MSG_DEBUG, "NAN: Skip NAN beacon from " MACSTR
+			   " : not from own cluster " MACSTR,
+			   MAC2STR(peer_addr), MAC2STR(de->cluster_id));
+		return;
+	}
+
+	attrs = nan_de_defrag_beacon_nan_ie(elems, elems_len);
+	if (!attrs)
+		return;
+
+	/* Skip the OUI and OUI Type */
+	if (wpabuf_len(attrs) < 4)
+		goto out;
+
+	pos = wpabuf_head_u8(attrs) + 4;
+	end = wpabuf_head_u8(attrs) + wpabuf_len(attrs);
+
+	while (end - pos >= NAN_ATTR_HDR_LEN && !(sub && pub)) {
+		u8 id = pos[0];
+		u16 attr_len = WPA_GET_LE16(&pos[1]);
+
+		pos += NAN_ATTR_HDR_LEN;
+		if (attr_len > end - pos) {
+			wpa_printf(MSG_DEBUG,
+				   "NAN: Invalid NAN attribute in beacon");
+			break;
+		}
+
+		if (id == NAN_ATTR_NAN_ATTR_SERVICE_ID_LIST) {
+			pub = pos;
+			pub_len = attr_len;
+		} else if (id == NAN_ATTR_SUBSC_SERVICE_ID_LIST) {
+			sub = pos;
+			sub_len = attr_len;
+		}
+
+		pos += attr_len;
+	}
+
+	if (!pub && !sub)
+		goto out;
+
+	for (i = 0; i < NAN_DE_MAX_SERVICE; i++) {
+		struct nan_de_service *srv = de->service[i];
+
+		if (!srv || !srv->sync)
+			continue;
+
+		if (srv->type == NAN_DE_SUBSCRIBE &&
+		    nan_de_service_id_in_list(pub, pub_len,
+					      srv->service_id))
+			nan_de_beacon_tx_sdf(de, srv, peer_addr);
+		else if (srv->type == NAN_DE_PUBLISH &&
+			 nan_de_service_id_in_list(sub, sub_len,
+						   srv->service_id))
+			nan_de_beacon_tx_sdf(de, srv, peer_addr);
+	}
+
+out:
+	wpabuf_free(attrs);
 }
 
 

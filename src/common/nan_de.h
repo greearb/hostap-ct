@@ -138,6 +138,8 @@ void nan_de_tx_wait_ended(struct nan_de *de);
 bool nan_de_rx_sdf(struct nan_de *de, const u8 *peer_addr, const u8 *a3,
 		   unsigned int freq, const u8 *buf, size_t len, int rssi,
 		   const u8 *orig_addr);
+void nan_de_rx_beacon(struct nan_de *de, const u8 *peer_addr,
+		      const u8 *cluster_id, const u8 *elems, size_t elems_len);
 const u8 * nan_de_get_service_id(struct nan_de *de, int id);
 struct wpabuf * nan_de_get_service_id_attrs(struct nan_de *de);
 
