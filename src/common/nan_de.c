@@ -1261,8 +1261,8 @@ static void nan_de_tx_sdf(struct nan_de *de, struct nan_de_service *srv,
 		nan_de_usd_retransmit_allowed(de, srv) &&
 		is_multicast_ether_addr(dst);
 	nan_de_tx(de,
-		  peer_freq ? peer_freq : (srv->sync ? 0 : srv->freq),
-		  peer_freq ? wait_time : (srv->sync ? 0 : wait_time),
+		  srv->sync ? 0 : (peer_freq ? peer_freq : srv->freq),
+		  srv->sync ? 0 : wait_time,
 		  dst, forced_addr, a3, buf, cookie, srv->id,
 		  allow_retransmit);
 	wpabuf_free(buf);
@@ -3983,7 +3983,6 @@ int nan_de_transmit(struct nan_de *de, int handle,
 	struct nan_de_service *srv;
 	const u8 *a3;
 	const u8 *network_id;
-	unsigned int tx_wait;
 
 	srv = nan_de_get_service(de, handle);
 	if (!srv)
@@ -4013,15 +4012,7 @@ int nan_de_transmit(struct nan_de *de, int handle,
 	else
 		a3 = network_id;
 
-	/* When peer_freq is set, send the follow-up off-channel on the
-	 * peer's discovery frequency instead of the sync/DW path.
-	 */
-	if (peer_freq)
-		tx_wait = 100;
-	else
-		tx_wait = srv->sync ? 0 : 100;
-
-	nan_de_tx_sdf(de, srv, tx_wait, NAN_SRV_CTRL_FOLLOW_UP,
+	nan_de_tx_sdf(de, srv, 100, NAN_SRV_CTRL_FOLLOW_UP,
 		      peer_addr, a3, req_instance_id, ssi, nan_attrs,
 		      cookie, peer_freq);
 
