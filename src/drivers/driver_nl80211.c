@@ -3243,6 +3243,9 @@ static void nl80211_mgmt_unsubscribe(struct i802_bss *bss, const char *reason)
 	wpa_printf(MSG_DEBUG, "nl80211: Unsubscribe mgmt frames handle %p "
 		   "(%s)", bss->nl_mgmt, reason);
 	nl80211_destroy_eloop_handle(&bss->nl_mgmt, 0);
+#ifdef CONFIG_NAN
+	bss->drv->nan_beacons_registered = 0;
+#endif /* CONFIG_NAN */
 
 	nl80211_put_wiphy_data_ap(bss);
 }
@@ -15860,6 +15863,37 @@ wpa_driver_get_multi_hw_info(void *priv, unsigned int *num_multi_hws)
 
 #ifdef CONFIG_NAN
 
+static int nl80211_nan_register_beacons(struct i802_bss *bss)
+{
+	u16 type = (WLAN_FC_TYPE_MGMT << 2) | (WLAN_FC_STYPE_BEACON << 4);
+	struct nl_sock *handle;
+
+	if (bss->drv->nan_beacons_registered)
+		return 0;
+
+	if (!(bss->drv->capa.nan_capa.drv_flags &
+	      WPA_DRIVER_FLAGS_NAN_SUPPORT_USERSPACE_DE))
+		return 0;
+
+	if (!bss->nl_mgmt) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: No mgmt frames handle for NAN beacons");
+		return -1;
+	}
+
+	handle = (void *) (((intptr_t) bss->nl_mgmt) ^ ELOOP_SOCKET_INVALID);
+
+	if (nl80211_register_frame(bss, handle, type, NULL, 0, false)) {
+		wpa_printf(MSG_INFO,
+			   "nl80211: Failed to subscribe to NAN beacons");
+		return -1;
+	}
+
+	bss->drv->nan_beacons_registered = 1;
+	return 0;
+}
+
+
 static int nl80211_nan_config(struct i802_bss *bss,
 			      struct wpa_driver_nl80211_data *drv,
 			      const struct nan_cluster_config *params,
@@ -15868,6 +15902,7 @@ static int nl80211_nan_config(struct i802_bss *bss,
 	struct nl_msg *msg;
 	struct nlattr *conf, *bands_conf, *band;
 	u32 bands = 0;
+	int ret;
 
 	if (params->dual_band > 1)
 		return -EINVAL;
@@ -15881,6 +15916,21 @@ static int nl80211_nan_config(struct i802_bss *bss,
 		} else {
 			wpa_printf(MSG_DEBUG,
 				   "nl80211: Driver doesn't support NAN dual band operation");
+			return -EINVAL;
+		}
+	}
+
+	if (params->instant_comm) {
+		if (!(drv->capa.nan_capa.drv_flags &
+		      WPA_DRIVER_FLAGS_NAN_SUPPORT_INSTANT_COMM)) {
+			wpa_printf(MSG_INFO,
+				   "nl80211: Driver doesn't support NAN instant communication");
+			return -EINVAL;
+		}
+
+		if (!params->discovery_beacon_interval) {
+			wpa_printf(MSG_INFO,
+				   "nl80211: NAN instant communication requires a discovery beacon interval");
 			return -EINVAL;
 		}
 	}
@@ -15928,6 +15978,10 @@ static int nl80211_nan_config(struct i802_bss *bss,
 	if (params->discovery_beacon_interval &&
 	    nla_put_u8(msg, NL80211_NAN_CONF_DISCOVERY_BEACON_INTERVAL,
 		       params->discovery_beacon_interval))
+		goto fail;
+
+	if (params->instant_comm &&
+	    nla_put_flag(msg, NL80211_NAN_CONF_INSTANT_COMM))
 		goto fail;
 
 	bands_conf = nla_nest_start(msg, NL80211_NAN_CONF_BAND_CONFIGS);
@@ -15989,7 +16043,33 @@ static int nl80211_nan_config(struct i802_bss *bss,
 
 	nla_nest_end(msg, conf);
 
-	return send_and_recv_resp(drv, msg, NULL, NULL);
+	ret = send_and_recv_resp(drv, msg, NULL, NULL);
+	if (ret < 0)
+		return ret;
+
+	/*
+	 * Beacon frames are needed to support service discovery when Instant
+	 * Communication is enabled.
+	 */
+	if (params->instant_comm && nl80211_nan_register_beacons(bss) < 0) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: Failed to register NAN beacons");
+
+		/*
+		 * If this is the first time the kernel is configured, stop NAN.
+		 * Otherwise, the NAN operation would continue with Instant
+		 * communication enabled, but an error would be reported to the
+		 * caller.
+		 */
+		if (!drv->nan_started) {
+			drv->nan_started = 1;
+			nl80211_nan_stop(bss);
+		}
+
+		return -1;
+	}
+
+	return 0;
 fail:
 	nlmsg_free(msg);
 	return -1;

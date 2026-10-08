@@ -994,6 +994,7 @@ static void wiphy_info_nan_capa_handler(struct wpa_driver_capa *capa,
 		nan_capa_policy[NL80211_NAN_CAPABILITIES_MAX + 1] = {
 		[NL80211_NAN_CAPA_CONFIGURABLE_SYNC] = { .type = NLA_FLAG },
 		[NL80211_NAN_CAPA_USERSPACE_DE] = { .type = NLA_FLAG },
+		[NL80211_NAN_CAPA_INSTANT_COMM] = { .type = NLA_FLAG },
 	};
 	struct nlattr *tb_nan_capa[NL80211_NAN_CAPABILITIES_MAX + 1];
 	static struct nla_policy
@@ -1050,6 +1051,13 @@ static void wiphy_info_nan_capa_handler(struct wpa_driver_capa *capa,
 			   "nl80211: NAN user space DE is supported");
 		capa->nan_capa.drv_flags |=
 			WPA_DRIVER_FLAGS_NAN_SUPPORT_USERSPACE_DE;
+	}
+
+	if (tb_nan_capa[NL80211_NAN_CAPA_INSTANT_COMM]) {
+		wpa_printf(MSG_DEBUG,
+			   "nl80211: NAN instant communication is supported");
+		capa->nan_capa.drv_flags |=
+			WPA_DRIVER_FLAGS_NAN_SUPPORT_INSTANT_COMM;
 	}
 
 	if (tb_nan_capa[NL80211_NAN_CAPA_MAX_CHANNEL_SWITCH_TIME])
