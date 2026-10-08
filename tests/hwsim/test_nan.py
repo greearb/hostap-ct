@@ -13,7 +13,16 @@ import hwsim_utils
 from hwsim import HWSimRadio, HWSimController
 from contextlib import contextmanager, ExitStack
 from test_p2p_channel import set_country
+from tshark import run_tshark, run_tshark_json
+import hashlib
+import json
+import os
+import statistics
 import time
+
+NAN_ATTR_SERVICE_ID_LIST = 0x02
+NAN_ATTR_SUBSC_SERVICE_ID_LIST = 0x28
+NAN_VENDOR_IE_HDR = bytes([0x50, 0x6f, 0x9a, 0x13])
 
 @contextmanager
 def hwsim_nan_radios(count=2, n_channels=3):
@@ -43,9 +52,16 @@ def check_nan_capab(dev):
     if "NAN" not in capa:
         raise HwsimSkip(f"NAN not supported: {capa}")
 
+def check_nan_instant_comm_capab(dev):
+    capa = dev.request("GET_CAPABILITY nan")
+    logger.info(f"NAN capabilities: {capa}")
+
+    if "INSTANT_COMM" not in capa:
+        raise HwsimSkip(f"NAN instant communication not supported: {capa}")
+
 class NanDevice:
     def __init__(self, dev, ifname, ndi_name=None, nmi_addr=None,
-                 mgmt_group_cipher=None):
+                 mgmt_group_cipher=None, config=None):
         self.dev = dev
         self.ifname = ifname
         self.wpas = None
@@ -53,6 +69,7 @@ class NanDevice:
         self.nmi_addr = nmi_addr
         self.mgmt_group_cipher = mgmt_group_cipher
         self.cluster_id = None
+        self.config = config
 
     def __enter__(self):
         self.start()
@@ -72,6 +89,10 @@ class NanDevice:
         self.set("dual_band", "0")
         if self.mgmt_group_cipher is not None:
             self.set("mgmt_group_cipher", self.mgmt_group_cipher)
+
+        if self.config is not None:
+            for param, value in self.config.items():
+                self.set(param, str(value))
 
         if "OK" not in self.wpas.request("NAN_START"):
             raise Exception(f"Failed to start NAN functionality on {self.ifname}")
@@ -637,6 +658,228 @@ def test_nan_sync_passive_subscribe(dev, apdev, params):
                            pssi="aabbccdd001122334455667788",
                            sssi="ddbbccaa001122334455667788",
                            active=0)
+
+def nan_beacon_interval(logdir, cluster_id, addr):
+    """Median interval, in TUs, between the Beacon frames transmitted by addr"""
+    out = run_tshark(os.path.join(logdir, "hwsim0.pcapng"),
+                     f"wlan.fc.type_subtype == 8 && wlan.bssid == {cluster_id} && wlan.ta == {addr}",
+                     display=["frame.time_epoch"])
+
+    times = sorted(float(line) for line in (out or "").splitlines() if line)
+    if len(times) < 10:
+        raise Exception(f"Too few Beacon frames captured from {addr}: {len(times)}")
+
+    return statistics.median([(t2 - t1) * 1000 / 1.024
+                              for t1, t2 in zip(times, times[1:])])
+
+def nan_service_id(service_name):
+    return hashlib.sha256(service_name.lower().encode()).hexdigest()[:12]
+
+def nan_attr_service_ids(body, attr_id):
+    """Service IDs of the given NAN attribute in a Beacon frame body"""
+    attrs = b""
+    ies = body[12:]
+    while len(ies) >= 2:
+        eid, elen = ies[0], ies[1]
+        if eid == 221 and ies[2:6] == NAN_VENDOR_IE_HDR:
+            attrs += ies[6:2 + elen]
+        ies = ies[2 + elen:]
+
+    service_ids = set()
+    while len(attrs) >= 3:
+        alen = int.from_bytes(attrs[1:3], "little")
+        if attrs[0] == attr_id:
+            ids = attrs[3:3 + alen]
+            service_ids |= {ids[i:i + 6].hex() for i in range(0, len(ids) - 5, 6)}
+        attrs = attrs[3 + alen:]
+
+    return service_ids
+
+def nan_beacon_service_ids(logdir, addr, attr_id):
+    """Service IDs in the given NAN attribute of the Beacon frames from addr"""
+    out = run_tshark_json(os.path.join(logdir, "hwsim0.pcapng"),
+                          f"wlan.fc.type_subtype == 8 && wlan.ta == {addr}")
+
+    service_ids = set()
+    for frame in json.loads(out or "[]"):
+        body = frame["_source"]["layers"].get("wlan.mgt_raw")
+        if body:
+            service_ids |= nan_attr_service_ids(bytes.fromhex(body[0]), attr_id)
+
+    return service_ids
+
+def nan_check_instant_comm_beacons(logdir, pub, sub, service_name,
+                                   beacon_interval):
+    """Verify the sped up Discovery Beacons advertising the active services"""
+    service_id = nan_service_id(service_name)
+    for nan_dev, attr_id in ((pub, NAN_ATTR_SERVICE_ID_LIST),
+                             (sub, NAN_ATTR_SUBSC_SERVICE_ID_LIST)):
+        addr = nan_dev.wpas.own_addr()
+
+        interval = nan_beacon_interval(logdir, nan_dev.cluster_id, addr)
+        logger.info(f"Median Beacon interval of {addr}: {interval:.1f} TUs")
+        if interval > 1.1 * beacon_interval:
+            raise Exception(f"Discovery Beacon interval of {beacon_interval} TUs not as expected on {addr} (median {interval:.1f} TUs)")
+
+        service_ids = nan_beacon_service_ids(logdir, addr, attr_id)
+        if service_id not in service_ids:
+            raise Exception(f"Service ID {service_id} not advertised in attribute {attr_id:#04x} of the Beacon frames of {addr}: {service_ids}")
+
+
+def test_nan_sync_instant_comm(dev, apdev, params):
+    """NAN synchronized discovery with instant communication"""
+    beacon_interval = 50
+    config = {"instant_comm": 1,
+              "discovery_beacon_interval": beacon_interval}
+
+    with hwsim_nan_radios(count=2) as [wpas1, wpas2]:
+        for wpas in (wpas1, wpas2):
+            check_nan_instant_comm_capab(wpas)
+
+        with NanDevice(wpas1, "nan0", config=config) as pub:
+            with NanDevice(wpas2, "nan1", config=config) as sub:
+                for nan_dev in (pub, sub):
+                    if "OK" not in nan_dev.schedule_config((2437, "feffff00")):
+                        raise Exception(f"Failed to configure schedule on {nan_dev.ifname}")
+
+                nan_sync_discovery(pub, sub, "test_service",
+                                   pssi="aabbccdd", sssi="ddbbccaa",
+                                   unsolicited=0)
+
+                # Sleep to allow beacons with the Service ID attributes to be
+                # captured before checking the discovery beacon contents.
+                time.sleep(1)
+
+                # Discovery itself would succeed without instant communication
+                # as well, so verify that both devices advertise their services
+                # in the NAN Beacons and also verify that discovery beacon
+                # interval is as expected on both sides.
+                nan_check_instant_comm_beacons(params['logdir'], pub, sub,
+                                               "test_service", beacon_interval)
+
+def test_nan_dp_instant_comm(dev, apdev, params):
+    """NAN secure data path with instant communication"""
+    beacon_interval = 50
+    config = {"instant_comm": 1,
+              "discovery_beacon_interval": beacon_interval}
+    csid = 1  # SK CCMP-128
+
+    with hwsim_nan_radios(count=2) as [wpas1, wpas2]:
+        for wpas in (wpas1, wpas2):
+            check_nan_instant_comm_capab(wpas)
+
+        with NanDevice(wpas1, "nan0", "ndi0", config=config) as pub:
+            with NanDevice(wpas2, "nan1", "ndi1", config=config) as sub:
+                for nan_dev in (pub, sub):
+                    if "OK" not in nan_dev.schedule_config((2437, "feffff00")):
+                        raise Exception(f"Failed to configure schedule on {nan_dev.ifname}")
+
+                # A TTL is needed to keep the Publish alive while the Discovery
+                # Beacons are being captured below.
+                pid, sid, paddr, saddr = \
+                    _nan_discover_service(pub, sub, "test_service",
+                                          pssi="aabbccdd001122334455667788",
+                                          sssi="ddbbccaa001122334455667788",
+                                          ttl=10, csid=csid, data_path=True)
+
+                # Sleep to allow beacons with the Service ID attributes to be
+                # captured before checking the discovery beacon contents.
+                time.sleep(1)
+
+                nan_check_instant_comm_beacons(params['logdir'], pub, sub,
+                                               "test_service", beacon_interval)
+
+                ndp_id, init_ndi = \
+                    _nan_ndp_request_and_accept(pub, sub, pid, sid, paddr,
+                                                saddr, req_ssi="aabbcc",
+                                                resp_ssi="ddeeff", csid=csid,
+                                                password="NAN",
+                                                configure_schedule=False)
+
+                _nan_test_connectivity(pub, sub)
+                _nan_ndp_terminate(pub, sub, paddr, init_ndi, ndp_id)
+
+def _nan_beacon_discovery(pub, sub, instant_comm, timeout):
+    """Run a solicited-only Publish and a passive Subscribe and verify whether
+    the peers discover each other through the Discovery Beacons."""
+    pssi = "aabbccdd"
+    sssi = "ddbbccaa"
+
+    for nan_dev in (pub, sub):
+        nan_dev.set("instant_comm", instant_comm)
+        nan_dev.update_config()
+
+    # Let the SDFs triggered by the previously advertised Service ID lists
+    # settle before dropping the events of the earlier run.
+    time.sleep(0.5)
+    for nan_dev in (pub, sub):
+        nan_dev.wpas.dump_monitor()
+
+    paddr = pub.wpas.own_addr()
+    saddr = sub.wpas.own_addr()
+
+    # A solicited-only Publish and a passive Subscribe never transmit an SDF
+    # on their own, so discovery can only happen if the peer parses the
+    # Service ID lists of the received NAN Beacons and transmits an SDF in
+    # response.
+    #
+    # Note that the Wi-Fi Aware specification doesn't explicitly state how
+    # solicited-only Publishes and passive Subscribes should behave. The
+    # implementation currently advertises the Service ID lists in the
+    # Discovery Beacons regardless of whether they are solicited-only or
+    # passive. If the implementation changes, this test might need to be
+    # changed/removed.
+    pid = pub.publish("test_service", ssi=pssi, unsolicited=0)
+    sid = sub.subscribe("test_service", ssi=sssi, active=0)
+
+    logger.info(f"Publish ID: {pid}, Subscribe ID: {sid}")
+
+    disc = sub.wpas.wait_event(["NAN-DISCOVERY-RESULT"], timeout=timeout)
+    replied = pub.wpas.wait_event(["NAN-REPLIED"], timeout=timeout)
+
+    pub.cancel_publish(pid)
+    sub.cancel_subscribe(sid)
+
+    if not instant_comm:
+        if disc is not None:
+            raise Exception("Unexpected NAN-DISCOVERY-RESULT event without instant communication")
+        if replied is not None:
+            raise Exception("Unexpected NAN-REPLIED event without instant communication")
+        return
+
+    if disc is None:
+        raise Exception("NAN-DISCOVERY-RESULT event not seen")
+    nan_sync_verify_event(disc, paddr, pid, sid, pssi)
+
+    if replied is None:
+        raise Exception("NAN-REPLIED event not seen")
+    nan_sync_verify_event(replied, saddr, pid, sid, sssi)
+
+def test_nan_sync_instant_comm_beacon_discovery(dev, apdev, params):
+    """NAN discovery triggered only by the Discovery Beacon Service ID lists"""
+    config = {"instant_comm": 1,
+              "discovery_beacon_interval": 50}
+
+    with hwsim_nan_radios(count=2) as [wpas1, wpas2]:
+        for wpas in (wpas1, wpas2):
+            check_nan_instant_comm_capab(wpas)
+
+        with NanDevice(wpas1, "nan0", config=config) as pub:
+            with NanDevice(wpas2, "nan1", config=config) as sub:
+                for nan_dev in (pub, sub):
+                    if "OK" not in nan_dev.schedule_config((2437, "feffff00")):
+                        raise Exception(f"Failed to configure schedule on {nan_dev.ifname}")
+
+                nan_check_same_cluster(pub, sub)
+
+                # Verify service discovery through beacon frames with instant
+                # communication enabled.
+                _nan_beacon_discovery(pub, sub, 1, 5)
+
+                # The same services must not discover each other once instant
+                # communication is disabled, i.e., once the Service ID lists
+                # are no longer advertised in the Beacon frames.
+                _nan_beacon_discovery(pub, sub, 0, 2)
 
 def test_nan_sync_active_subscribe_no_match(dev, apdev, params):
     """NAN synchronized active subscribe and with 2 Publishes: no match"""
