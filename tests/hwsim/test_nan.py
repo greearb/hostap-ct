@@ -2283,7 +2283,9 @@ def test_nan_publish_with_pmk(dev, apdev, params):
 
         # Test PMK - 32 bytes (64 hex characters)
         nd_pmk = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-        cipher_suites = "1,2"  # NAN_CS_SK_CCM_128, NAN_CS_SK_GCM_256
+        # The GTK suites carry no ND-PMK, so they must be skipped rather than
+        # failing the whole publish
+        cipher_suites = "1,2,5,6"
 
         # Publish with PMK and cipher suites
         pid = pub.publish("secure_test", nd_pmk=nd_pmk, cipher_suites=cipher_suites)
