@@ -5022,6 +5022,17 @@ static int wpa_supplicant_ctrl_iface_get_capability(
 
 			pos += res;
 			buflen -= res;
+
+			if (wpa_s->nan_capa.drv_flags &
+			    WPA_DRIVER_FLAGS_NAN_SUPPORT_INSTANT_COMM) {
+				res = os_snprintf(pos, buflen,
+						  " INSTANT_COMM");
+				if (os_snprintf_error(buflen, res))
+					return -1;
+
+				pos += res;
+				buflen -= res;
+			}
 		}
 #endif /* CONFIG_NAN */
 		return pos - buf;
