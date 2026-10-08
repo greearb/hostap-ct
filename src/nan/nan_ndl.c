@@ -513,7 +513,7 @@ static enum nan_ndl_status nan_ndl_determine_status(struct nan_data *nan,
 		own_chan_bf = NULL;
 	}
 
-	if (!common_bf) {
+	if (bitfield_is_empty(common_bf)) {
 		wpa_printf(MSG_DEBUG,
 			   "NAN: NDL: No common availability between local and peer");
 

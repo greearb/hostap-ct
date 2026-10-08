@@ -26,6 +26,7 @@ int bitfield_intersect_in_place(struct bitfield *a, const struct bitfield *b);
 int bitfield_is_subset(const struct bitfield *a, const struct bitfield *b);
 size_t bitfield_size(const struct bitfield *bf);
 int bitfield_intersects(const struct bitfield *a, const struct bitfield *b);
+int bitfield_is_empty(const struct bitfield *bf);
 void bitfield_dump(struct bitfield *bf, const char *title);
 
 #endif /* BITFIELD_H */

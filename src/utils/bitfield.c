@@ -239,6 +239,22 @@ int bitfield_intersects(const struct bitfield *a, const struct bitfield *b)
 }
 
 
+int bitfield_is_empty(const struct bitfield *bf)
+{
+	size_t i, upper;
+
+	if (!bf)
+		return -1;
+
+	upper = (bf->max_bits + 7) / 8;
+	for (i = 0; i < upper; i++)
+		if (bf->bits[i])
+			return 0;
+
+	return 1;
+}
+
+
 void bitfield_dump(struct bitfield *bf, const char *title)
 {
 	wpa_printf(MSG_DEBUG, "bitfield: %s: max_bits=%zu",
