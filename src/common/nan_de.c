@@ -3451,6 +3451,65 @@ static int nan_de_derive_service_id(struct nan_de_service *srv)
 }
 
 
+static void nan_de_add_service_id_list(struct nan_de *de, struct wpabuf *attrs,
+				       enum nan_de_service_type type,
+				       enum nan_attr_id attr_id)
+{
+	unsigned int i, count = 0;
+
+	for (i = 0; i < NAN_DE_MAX_SERVICE && count < de->num_service; i++) {
+		struct nan_de_service *srv = de->service[i];
+
+		if (srv && srv->sync && srv->type == type)
+			count++;
+	}
+
+	if (!count)
+		return;
+
+	wpabuf_put_u8(attrs, attr_id);
+	wpabuf_put_le16(attrs, count * NAN_SERVICE_ID_LEN);
+
+	for (i = 0; i < NAN_DE_MAX_SERVICE; i++) {
+		struct nan_de_service *srv = de->service[i];
+
+		if (srv && srv->sync && srv->type == type)
+			wpabuf_put_data(attrs, srv->service_id,
+					NAN_SERVICE_ID_LEN);
+	}
+}
+
+
+/**
+ * nan_de_get_service_id_attrs - Get the Service ID List attributes
+ * @de: Pointer to the NAN DE context
+ * Returns: An allocated buffer holding a Service ID List attribute with the
+ *	Service IDs of the published services and a Subscribed Service ID List
+ *	attribute with the Service IDs of the subscribed services, or %NULL if
+ *	there are no active services. The caller is responsible for freeing the
+ *	buffer.
+ */
+struct wpabuf * nan_de_get_service_id_attrs(struct nan_de *de)
+{
+	struct wpabuf *attrs;
+
+	if (!de || !de->num_service)
+		return NULL;
+
+	attrs = wpabuf_alloc(2 * (1 + 2) +
+			     de->num_service * NAN_SERVICE_ID_LEN);
+	if (!attrs)
+		return NULL;
+
+	nan_de_add_service_id_list(de, attrs, NAN_DE_PUBLISH,
+				   NAN_ATTR_NAN_ATTR_SERVICE_ID_LIST);
+	nan_de_add_service_id_list(de, attrs, NAN_DE_SUBSCRIBE,
+				   NAN_ATTR_SUBSC_SERVICE_ID_LIST);
+
+	return attrs;
+}
+
+
 const u8 * nan_de_get_service_id(struct nan_de *de, int id)
 {
 	struct nan_de_service *srv;

@@ -1836,13 +1836,67 @@ static bool wpas_nan_ndp_allowed(struct wpa_supplicant *wpa_s)
 }
 
 
+/*
+ * Instant communication requires advertising the active services in the
+ * Discovery Beacons
+ */
+static struct wpabuf * wpas_nan_set_extra_attrs(struct wpa_supplicant *wpa_s)
+{
+	struct nan_cluster_config *config = &wpa_s->nan_cluster_config;
+	struct wpabuf *attrs;
+
+	config->extra_nan_attrs = NULL;
+	config->extra_nan_attrs_len = 0;
+
+	if (!config->instant_comm)
+		return NULL;
+
+	attrs = nan_de_get_service_id_attrs(wpa_s->nan_de);
+	if (attrs) {
+		config->extra_nan_attrs = wpabuf_head(attrs);
+		config->extra_nan_attrs_len = wpabuf_len(attrs);
+	}
+
+	return attrs;
+}
+
+
+static void wpas_nan_clear_extra_attrs(struct wpa_supplicant *wpa_s,
+				       struct wpabuf *attrs)
+{
+	struct nan_cluster_config *config = &wpa_s->nan_cluster_config;
+
+	config->extra_nan_attrs = NULL;
+	config->extra_nan_attrs_len = 0;
+	wpabuf_free(attrs);
+}
+
+
+static void wpas_nan_update_conf_timeout(void *eloop_ctx, void *timeout_ctx)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctx;
+
+	wpas_nan_update_conf(wpa_s);
+}
+
+
 /* Join a cluster using current configuration */
 int wpas_nan_start(struct wpa_supplicant *wpa_s)
 {
+	int ret;
+	struct wpabuf *attrs;
+
 	if (!wpas_nan_ready(wpa_s))
 		return -1;
 
-	return nan_start(wpa_s->nan, &wpa_s->nan_cluster_config);
+	/* The configuration used here supersedes a pending update */
+	eloop_cancel_timeout(wpas_nan_update_conf_timeout, wpa_s, NULL);
+
+	attrs = wpas_nan_set_extra_attrs(wpa_s);
+	ret = nan_start(wpa_s->nan, &wpa_s->nan_cluster_config);
+	wpas_nan_clear_extra_attrs(wpa_s, attrs);
+
+	return ret;
 }
 
 
@@ -2559,13 +2613,38 @@ int wpas_nan_set(struct wpa_supplicant *wpa_s, char *cmd)
 }
 
 
+/*
+ * The active services are advertised when instant communication is used
+ */
+static void wpas_nan_services_changed(struct wpa_supplicant *wpa_s)
+{
+	if (!wpa_s->nan_cluster_config.instant_comm)
+		return;
+
+	/* Coalesce the updates and avoid reentrancy from the DE callbacks */
+	eloop_cancel_timeout(wpas_nan_update_conf_timeout, wpa_s, NULL);
+	eloop_register_timeout(0, 0, wpas_nan_update_conf_timeout, wpa_s, NULL);
+}
+
+
 int wpas_nan_update_conf(struct wpa_supplicant *wpa_s)
 {
+	int ret;
+	struct wpabuf *attrs;
+
 	if (!wpas_nan_ready(wpa_s))
 		return -1;
 
 	wpa_printf(MSG_DEBUG, "NAN: Update NAN configuration");
-	return nan_update_config(wpa_s->nan, &wpa_s->nan_cluster_config);
+
+	/* An explicit update supersedes a pending one */
+	eloop_cancel_timeout(wpas_nan_update_conf_timeout, wpa_s, NULL);
+
+	attrs = wpas_nan_set_extra_attrs(wpa_s);
+	ret = nan_update_config(wpa_s->nan, &wpa_s->nan_cluster_config);
+	wpas_nan_clear_extra_attrs(wpa_s, attrs);
+
+	return ret;
 }
 
 
@@ -5446,6 +5525,9 @@ static void wpas_nan_de_publish_terminated(void *ctx, int publish_id,
 {
 	struct wpa_supplicant *wpa_s = ctx;
 
+#ifdef CONFIG_NAN
+	wpas_nan_services_changed(wpa_s);
+#endif /* CONFIG_NAN */
 	wpas_notify_nan_publish_terminated(wpa_s, publish_id, reason);
 }
 
@@ -5464,6 +5546,9 @@ static void wpas_nan_de_subscribe_terminated(void *ctx, int subscribe_id,
 {
 	struct wpa_supplicant *wpa_s = ctx;
 
+#ifdef CONFIG_NAN
+	wpas_nan_services_changed(wpa_s);
+#endif /* CONFIG_NAN */
 	wpas_notify_nan_subscribe_terminated(wpa_s, subscribe_id, reason);
 }
 
@@ -5600,6 +5685,12 @@ void wpas_nan_de_deinit(struct wpa_supplicant *wpa_s)
 			     wpa_s, ELOOP_ALL_CTX);
 	nan_de_deinit(wpa_s->nan_de);
 	wpa_s->nan_de = NULL;
+#ifdef CONFIG_NAN
+	/*
+	 * The service termination callbacks can request a configuration update
+	 */
+	eloop_cancel_timeout(wpas_nan_update_conf_timeout, wpa_s, NULL);
+#endif /* CONFIG_NAN */
 }
 
 
@@ -5751,6 +5842,10 @@ int wpas_nan_publish(struct wpa_supplicant *wpa_s, const char *service_name,
 		nan_de_cancel_publish(wpa_s->nan_de, publish_id);
 		publish_id = -1;
 	}
+#ifdef CONFIG_NAN
+	if (publish_id >= 1 && params->sync)
+		wpas_nan_services_changed(wpa_s);
+#endif /* CONFIG_NAN */
 #ifdef CONFIG_AP
 	if (publish_id >= 1 && wpa_s->ap_iface && wpa_s->ap_iface->bss[0]) {
 		wpa_printf(MSG_DEBUG, "NAN: Linking nan_de for AP interface");
@@ -5928,6 +6023,10 @@ int wpas_nan_subscribe(struct wpa_supplicant *wpa_s,
 		nan_de_cancel_subscribe(wpa_s->nan_de, subscribe_id);
 		subscribe_id = -1;
 	}
+#ifdef CONFIG_NAN
+	if (subscribe_id >= 1 && params->sync)
+		wpas_nan_services_changed(wpa_s);
+#endif /* CONFIG_NAN */
 #ifdef CONFIG_AP
 	if (subscribe_id >= 1 && wpa_s->ap_iface && wpa_s->ap_iface->bss[0]) {
 		wpa_printf(MSG_DEBUG, "NAN: Linking nan_de for AP interface");
