@@ -2481,6 +2481,9 @@ int wpas_nan_set(struct wpa_supplicant *wpa_s, char *cmd)
 	if (os_strcmp("tx_mcast_follow_up_prot", cmd) == 0) {
 		bool val = !!atoi(param);
 
+		if (!wpa_s->nan_de)
+			return -1;
+
 		nan_de_set_tx_mcast_follow_up_prot(wpa_s->nan_de, val);
 		return 0;
 	}
