@@ -6480,6 +6480,16 @@ static int wpa_driver_nl80211_sta_add(void *priv,
 				    params->vht_capabilities))
 				goto fail;
 		}
+
+		if (params->he_capab) {
+			wpa_hexdump(MSG_DEBUG, "  * he_capabilities",
+				    (const u8 *) params->he_capab,
+				    params->he_capab_len);
+			if (nla_put(msg, NL80211_ATTR_HE_CAPABILITY,
+				    params->he_capab_len,
+				    params->he_capab))
+				goto fail;
+		}
 	}
 #endif /* CONFIG_NAN */
 
