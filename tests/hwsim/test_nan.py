@@ -52,6 +52,7 @@ class NanDevice:
         self.ndi_name = ndi_name
         self.nmi_addr = nmi_addr
         self.mgmt_group_cipher = mgmt_group_cipher
+        self.cluster_id = None
 
     def __enter__(self):
         self.start()
@@ -79,12 +80,20 @@ class NanDevice:
         if ev is None:
             raise Exception(f"NAN-CLUSTER-JOIN event not received on {self.ifname}")
 
-        logger.info(f"NAN device started on {self.ifname}")
+        self.cluster_id = split_nan_event(ev)['cluster_id']
+        logger.info(f"NAN device started on {self.ifname} cluster_id={self.cluster_id}")
 
         # Add NDI
         if self.ndi_name is not None:
             self.dev.interface_add(self.ndi_name, if_type="nan_data",
                                    create=True)
+
+    def update_cluster_id(self):
+        """Pick up the Cluster ID of a cluster joined after the initial one."""
+        ev = self.wpas.wait_event(["NAN-CLUSTER-JOIN"], timeout=0)
+        if ev:
+            self.cluster_id = split_nan_event(ev)['cluster_id']
+        return self.cluster_id
 
     def stop(self):
         logger.info(f"NAN device stopping on {self.ifname}")
@@ -435,10 +444,27 @@ def nan_ndp_verify_event(ev, peer_nmi, publish_inst_id=None, init_ndi=None,
         if data['csid'] != str(csid):
             raise Exception(f"Unexpected csid: got {data['csid']}, expected {str(csid)} in event: {ev}")
 
+def nan_check_same_cluster(*nan_devs, timeout=1):
+    """Verify that the NAN devices converged into a single cluster"""
+    start = time.time()
+    while True:
+        cluster_ids = {nan_dev.update_cluster_id() for nan_dev in nan_devs}
+        if len(cluster_ids) == 1:
+            logger.info(f"NAN devices are in cluster {cluster_ids.pop()}")
+            return
+
+        if time.time() - start >= timeout:
+            raise Exception("NAN devices did not join the same cluster: " +
+                            str([nan_dev.cluster_id for nan_dev in nan_devs]))
+
+        time.sleep(0.1)
+
 def nan_sync_discovery(pub, sub, service_name, pssi, sssi,
                        unsolicited=1, solicited=1, active=1,
                        expect_discovery=True,
                        timeout=2, cipher_suites=None):
+    nan_check_same_cluster(pub, sub)
+
     paddr = pub.wpas.own_addr()
     saddr = sub.wpas.own_addr()
 
@@ -475,6 +501,35 @@ def test_nan_sync_active_subscribe(dev, apdev, params):
         nan_sync_discovery(pub, sub, "test_service",
                            pssi="aabbccdd", sssi="ddbbccaa",
                            unsolicited=0)
+
+def test_nan_sync_cluster_id_mismatch(dev, apdev, params):
+    """NAN synchronized discovery ignored on Cluster ID mismatch"""
+    with hwsim_nan_radios(count=2) as [wpas1, wpas2], \
+        NanDevice(wpas1, "nan0") as pub, NanDevice(wpas2, "nan1") as sub:
+        nan_check_same_cluster(pub, sub)
+
+        cluster_id = sub.cluster_id.replace(":", "")[-4:]
+        other_cluster_id = f"{int(cluster_id, 16) ^ 0xffff:04x}"
+
+        # Override the subscriber Cluster ID, so that the unsolicited Publish
+        # SDFs are still received but carry a non-matching Cluster ID in A3.
+        sub.set("test_cluster_id", other_cluster_id)
+
+        pid = pub.publish("test_service", ssi="aabbccdd", solicited=0, ttl=60)
+        sid = sub.subscribe("test_service", ssi="ddbbccaa", active=0)
+        logger.info(f"Publish ID: {pid}, Subscribe ID: {sid}")
+
+        ev = sub.wpas.wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+        if ev is not None:
+            raise Exception("Unexpected NAN-DISCOVERY-RESULT on Cluster ID mismatch: " + ev)
+
+        # Restore the real Cluster ID and verify successful discovery
+        sub.set("test_cluster_id", cluster_id)
+
+        ev = sub.wpas.wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+        if ev is None:
+            raise Exception("NAN-DISCOVERY-RESULT not seen after restoring the Cluster ID")
+        nan_sync_verify_event(ev, pub.wpas.own_addr(), pid, sid, "aabbccdd")
 
 def test_nan_sync_with_nmi_addresses(dev, apdev, params):
     """NAN synchronized active subscribe and solicited publish with NMI addresses"""
@@ -616,6 +671,8 @@ def _nan_sync_publisher_match_filter(sub_tx_filter=None, pub_rx_filter=None,
                                      match=True):
     with hwsim_nan_radios(count=2) as [wpas1, wpas2], \
         NanDevice(wpas1, "nan0") as pub, NanDevice(wpas2, "nan1") as sub:
+        nan_check_same_cluster(pub, sub)
+
         paddr = pub.wpas.own_addr()
         saddr = sub.wpas.own_addr()
 
@@ -728,6 +785,8 @@ def _nan_sync_subscriber_match_filter(pub_tx_filter=None, sub_rx_filter=None,
                                       match=True):
     with hwsim_nan_radios(count=2) as [wpas1, wpas2], \
         NanDevice(wpas1, "nan0") as pub, NanDevice(wpas2, "nan1") as sub:
+        nan_check_same_cluster(pub, sub)
+
         paddr = pub.wpas.own_addr()
         saddr = sub.wpas.own_addr()
 
@@ -1319,6 +1378,8 @@ def test_nan_sched(dev, apdev, params):
 
 def _nan_discover_service(pub, sub, service_name, pssi, sssi, ttl=None,
                           csid=None, gtk_csid=None, data_path=False):
+    nan_check_same_cluster(pub, sub)
+
     paddr = pub.wpas.own_addr()
     saddr = sub.wpas.own_addr()
 
