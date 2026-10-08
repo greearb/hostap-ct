@@ -482,6 +482,10 @@ static int wpas_nan_configure_nmi_sta_capa(struct wpa_supplicant *wpa_s,
 	ie = get_ie(elems, elems_len, WLAN_EID_VHT_CAP);
 	sta_params.vht_capabilities = ie ? (const void *) (ie + 2) : NULL;
 
+	ie = get_ie_ext(elems, elems_len, WLAN_EID_EXT_HE_CAPABILITIES);
+	sta_params.he_capab = ie ? (const void *) (ie + 3) : NULL;
+	sta_params.he_capab_len = ie ? ie[1] - 1 : 0;
+
 	return wpa_drv_sta_add(wpa_s, &sta_params);
 }
 
@@ -2959,6 +2963,7 @@ static struct wpabuf * wpas_nan_build_ndp_elems(struct wpa_supplicant *wpa_s)
 {
 	struct ieee80211_ht_capabilities *ht_cap;
 	struct ieee80211_vht_capabilities *vht_cap;
+	u8 he_mcs_nss_size = 0, he_ppet_size = 0;
 	size_t len;
 	struct wpabuf *buf;
 
@@ -2966,6 +2971,19 @@ static struct wpabuf * wpas_nan_build_ndp_elems(struct wpa_supplicant *wpa_s)
 	len = 2 + sizeof(struct ieee80211_ht_capabilities);
 	if (wpa_s->nan_capa.vht_valid)
 		len += 2 + sizeof(struct ieee80211_vht_capabilities);
+
+	if (wpa_s->nan_capa.vht_valid && wpa_s->nan_capa.he_valid) {
+		he_mcs_nss_size =
+			ieee80211_he_mcs_set_size(
+				wpa_s->nan_capa.he_capab.phy_cap);
+		he_ppet_size =
+			ieee80211_he_ppet_size(
+				wpa_s->nan_capa.he_capab.ppet[0],
+				wpa_s->nan_capa.he_capab.phy_cap);
+
+		len += 3 + IEEE80211_HE_CAPAB_MIN_LEN + he_mcs_nss_size +
+		       he_ppet_size;
+	}
 
 	buf = wpabuf_alloc(len);
 	if (!buf)
@@ -2991,7 +3009,20 @@ static struct wpabuf * wpas_nan_build_ndp_elems(struct wpa_supplicant *wpa_s)
 		  wpa_s->nan_capa.vht_mcs_set,
 		  sizeof(vht_cap->vht_supported_mcs_set));
 
-	/* TODO: Add HE capabilities */
+	if (!wpa_s->nan_capa.he_valid)
+		return buf;
+
+	wpabuf_put_u8(buf, WLAN_EID_EXTENSION);
+	wpabuf_put_u8(buf, 1 + IEEE80211_HE_CAPAB_MIN_LEN + he_mcs_nss_size +
+		      he_ppet_size);
+	wpabuf_put_u8(buf, WLAN_EID_EXT_HE_CAPABILITIES);
+	wpabuf_put_data(buf, wpa_s->nan_capa.he_capab.mac_cap,
+			sizeof(wpa_s->nan_capa.he_capab.mac_cap));
+	wpabuf_put_data(buf, wpa_s->nan_capa.he_capab.phy_cap,
+			sizeof(wpa_s->nan_capa.he_capab.phy_cap));
+	wpabuf_put_data(buf, &wpa_s->nan_capa.he_capab.mcs, he_mcs_nss_size);
+	wpabuf_put_data(buf, &wpa_s->nan_capa.he_capab.ppet, he_ppet_size);
+
 	return buf;
 }
 
