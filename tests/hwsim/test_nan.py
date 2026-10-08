@@ -3537,3 +3537,62 @@ def test_nan_cm_rekey_not_supported(dev, apdev):
                 raise Exception("ND-TK rekey not enabled again")
     finally:
         set_country("00")
+
+def test_nan_dp_non_overlapping_schedule(dev, apdev, params):
+    """NAN NDP rejected when peer schedules never overlap"""
+    with hwsim_nan_radios() as (wpas1, wpas2), \
+        NanDevice(wpas1, "nan0", "ndi0") as pub, \
+        NanDevice(wpas2, "nan1", "ndi1") as sub:
+
+        pssi = "aabbccdd001122334455667788"
+        sssi = "ddbbccaa001122334455667788"
+
+        pid, sid, paddr, saddr = _nan_discover_service(
+            pub, sub, "test_service", pssi, sssi, data_path=True)
+
+        sub_bitmap = "f0ffffff"
+        pub_bitmap = "0e000000"
+
+        if "OK" not in sub.schedule_config((2437, sub_bitmap)):
+            raise Exception("Failed to configure schedule (sub)")
+
+        if "OK" not in sub.ndp_request(sub.ndi_name, sid, paddr, pid,
+                                       "aabbcc"):
+            raise Exception("NDP request failed")
+
+        ev = pub.wpas.wait_event(["NAN-NDP-REQUEST"], timeout=5)
+        if ev is None:
+            raise Exception("NAN-NDP-REQUEST event not seen")
+
+        data = split_nan_event(ev)
+        ndp_id = data['ndp_id']
+        init_ndi = data['init_ndi']
+
+        if "OK" not in pub.schedule_config((2437, pub_bitmap)):
+            raise Exception("Failed to configure schedule (pub)")
+
+        if "OK" not in pub.ndp_response("accept", saddr, ndi=pub.ndi_name,
+                                        ndp_id=ndp_id, init_ndi=init_ndi,
+                                        handle=pid, ssi="ddeeff"):
+            raise Exception("NDP response (accept) failed")
+
+        ev = sub.wpas.wait_event(["NAN-NDP-COUNTER-REQUEST"], timeout=5)
+        if ev is None:
+            raise Exception("NAN-NDP-COUNTER-REQUEST event not seen")
+
+        data = split_nan_event(ev)
+        ndp_id = data['ndp_id']
+        init_ndi = data['init_ndi']
+
+        if "OK" not in sub.ndp_response("accept", paddr, ndi=sub.ndi_name,
+                                        ndp_id=ndp_id, init_ndi=init_ndi,
+                                        handle=sid, ssi="11223344"):
+            raise Exception("NDP response (confirm) failed")
+
+        ev = sub.wpas.wait_event(["NAN-NDP-DISCONNECTED"], timeout=5)
+        if ev is None or "failure=1" not in ev:
+            raise Exception("NDP not rejected on subscriber: %s" % ev)
+
+        ev = pub.wpas.wait_event(["NAN-NDP-DISCONNECTED"], timeout=5)
+        if ev is None or "failure=1" not in ev:
+            raise Exception("NDP not rejected on publisher: %s" % ev)
