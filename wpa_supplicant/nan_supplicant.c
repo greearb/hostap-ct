@@ -6253,6 +6253,25 @@ int wpas_nan_tx_status(struct wpa_supplicant *wpa_s,
 
 
 #ifdef CONFIG_NAN
+
+void wpas_nan_rx_beacon(struct wpa_supplicant *wpa_s,
+			const struct ieee80211_mgmt *mgmt, size_t len)
+{
+	size_t hdr_len = IEEE80211_HDRLEN + sizeof(mgmt->u.beacon);
+
+	/*
+	 * Process services advertised in beacons during Instant
+	 * Communication.
+	 */
+	if (!wpas_nan_ready(wpa_s) ||
+	    !wpa_s->nan_cluster_config.instant_comm || len < hdr_len)
+		return;
+
+	nan_de_rx_beacon(wpa_s->nan_de, mgmt->sa, mgmt->bssid,
+			 mgmt->u.beacon.variable, len - hdr_len);
+}
+
+
 void wpas_nan_rx_naf(struct wpa_supplicant *wpa_s,
 		     const struct ieee80211_mgmt *mgmt, size_t len)
 {
@@ -6284,4 +6303,5 @@ void wpas_nan_data_interface_removed(struct wpa_supplicant *wpa_s)
 	if (nan_dev_wpas)
 		nan_terminate_ndi_ndps(nan_dev_wpas->nan, wpa_s->own_addr);
 }
+
 #endif /* CONFIG_NAN */

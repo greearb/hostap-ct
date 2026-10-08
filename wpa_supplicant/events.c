@@ -7719,6 +7719,11 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 				break;
 			}
 
+			/* Beacons might also be needed for NAN */
+			if (stype == WLAN_FC_STYPE_BEACON)
+				wpas_nan_rx_beacon(wpa_s, mgmt,
+						   data->rx_mgmt.frame_len);
+
 			if (wpa_s->ifmsh) {
 				mesh_mpm_mgmt_rx(wpa_s, &data->rx_mgmt);
 				break;
