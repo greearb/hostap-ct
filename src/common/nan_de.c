@@ -3285,6 +3285,22 @@ static bool nan_de_rx_sda(struct nan_de *de, const u8 *peer_addr, const u8 *a3,
 				      NAN_SERVICE_ID_LEN) != 0)
 				continue;
 		}
+
+		/*
+		 * Synchronized services are bound to a single NAN cluster and
+		 * the SDF carries the Cluster ID in A3.
+		 */
+		if (srv->sync &&
+		    (!de->cluster_id_set || !a3 ||
+		     !ether_addr_equal(a3, de->cluster_id))) {
+			wpa_printf(MSG_DEBUG,
+				   "NAN: Skip sync service id %u - Cluster ID mismatch (RX A3 "
+				   MACSTR " local " MACSTR ")",
+				   srv->id, MAC2STR(a3 ? a3 : wildcard_bssid),
+				   MAC2STR(de->cluster_id));
+			continue;
+		}
+
 		if (type == NAN_SRV_CTRL_PUBLISH) {
 			if (srv->type == NAN_DE_PUBLISH)
 				continue;
