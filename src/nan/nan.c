@@ -21,7 +21,16 @@
 #define NAN_NDP_SETUP_TIMEOUT_LONG  30
 #define NAN_NDP_SETUP_TIMEOUT_SHORT 2
 
+/*
+ * Time to keep a transient peer NMI station configured after it is set up for
+ * a one-time unicast transmission to the peer (seconds).
+ */
+#define NAN_TRANSIENT_PEER_TIMEOUT 2
+
 static void nan_peer_state_timeout(void *eloop_ctx, void *timeout_ctx);
+static void nan_transient_peer_timeout(void *eloop_ctx, void *timeout_ctx);
+static void nan_arm_transient_timeout(struct nan_data *nan,
+				      struct nan_peer *peer);
 static void nan_idle_period_timeout(void *eloop_ctx, void *timeout_ctx);
 static void nan_ndp_disconnected(struct nan_data *nan, struct nan_peer *peer,
 				 enum nan_reason reason,
@@ -262,6 +271,7 @@ static void nan_del_peer(struct nan_data *nan, struct nan_peer *peer)
 	nan_ndl_reset(nan, peer);
 	nan_peer_flush_sec(&peer->info);
 	eloop_cancel_timeout(nan_peer_state_timeout, nan, peer);
+	eloop_cancel_timeout(nan_transient_peer_timeout, nan, peer);
 	nan_pairing_deinit_peer(nan, peer, true);
 	if (peer->peer_pkr.valid)
 		nan_remove_nik(nan, peer->peer_pkr.iik, NAN_NIK_TYPE_PEER);
@@ -1117,7 +1127,7 @@ static void nan_peer_update_schedule(struct nan_data *nan,
 	common_bf = nan_peer_schedule_intersection(nan, peer, sched);
 	if (common_bf && nan_ndl_meets_qos(nan, peer, common_bf) &&
 	    nan_ndl_validate_peer_avail(nan, peer))
-		ret = nan_configure_peer_schedule(nan, peer, sched);
+		ret = nan_configure_peer_schedule(nan, peer, sched, false);
 	else
 		wpa_printf(MSG_DEBUG, "NAN: New peer schedule breaks NDL");
 
@@ -1174,9 +1184,21 @@ static void nan_merge_peer_info(struct nan_data *nan, struct nan_peer *peer,
 
 	old->last_seen = new->last_seen;
 
-	if (schedule_changed && peer->ndl &&
-	    peer->ndl->state == NAN_NDL_STATE_DONE)
+	if (!schedule_changed)
+		return;
+
+	/*
+	 * Update the configured NMI station with the new peer availability.
+	 * For an NDL peer, validate it against the NDL; otherwise, reconfigure
+	 * the schedule, keeping any pending transient teardown.
+	 */
+	if (peer->ndl && peer->ndl->state == NAN_NDL_STATE_DONE)
 		nan_peer_update_schedule(nan, peer, &nan->sched);
+	else if (peer->configured)
+		nan_configure_peer_schedule(nan, peer, &nan->sched,
+					    eloop_is_timeout_registered(
+						    nan_transient_peer_timeout,
+						    nan, peer));
 }
 
 
@@ -1883,7 +1905,8 @@ nan_peer_get_committed_avail(const struct nan_data *nan,
 
 
 int nan_configure_peer_schedule(struct nan_data *nan, struct nan_peer *peer,
-				const struct nan_schedule *local_sched)
+				const struct nan_schedule *local_sched,
+				bool transient)
 {
 	int ret;
 	struct nan_dev_capa_entry *cur;
@@ -1941,6 +1964,16 @@ int nan_configure_peer_schedule(struct nan_data *nan, struct nan_peer *peer,
 	}
 
 	peer->configured = true;
+
+	/*
+	 * Unless this is a transient (one-time TX) configuration, an explicit
+	 * schedule configuration (e.g., for a pairing or NDP session) takes
+	 * ownership of the NMI station. Cancel any pending transient teardown
+	 * so the station is not removed.
+	 */
+	if (!transient)
+		eloop_cancel_timeout(nan_transient_peer_timeout, nan, peer);
+
 	return 0;
 }
 
@@ -1973,6 +2006,93 @@ int nan_clear_peer_schedule(struct nan_data *nan, struct nan_peer *peer)
 		wpa_printf(MSG_DEBUG, "NAN: Failed to clear peer schedule");
 
 	peer->configured = false;
+	return 0;
+}
+
+
+static void nan_transient_peer_timeout(void *eloop_ctx, void *timeout_ctx)
+{
+	struct nan_data *nan = eloop_ctx;
+	struct nan_peer *peer = timeout_ctx;
+	struct wpabuf *pending_auth1;
+
+	wpa_printf(MSG_DEBUG,
+		   "NAN: Transient peer " MACSTR
+		   " expired - remove NMI station", MAC2STR(peer->nmi_addr));
+
+	/*
+	 * Clearing peer schedule removes NMI station and resets pairing state.
+	 * Since we may have a pending pairing request, when this timeout fires,
+	 * detach the pending Auth1 buffer so it is not freed when clearing the
+	 * peer schedule. This allows the pending pairing request to still be
+	 * accepted or aborted later.
+	 */
+	pending_auth1 = peer->pairing.pending_auth1;
+	peer->pairing.pending_auth1 = NULL;
+	nan_clear_peer_schedule(nan, peer);
+	peer->pairing.pending_auth1 = pending_auth1;
+}
+
+
+static void nan_arm_transient_timeout(struct nan_data *nan,
+				      struct nan_peer *peer)
+{
+	eloop_cancel_timeout(nan_transient_peer_timeout, nan, peer);
+	eloop_register_timeout(NAN_TRANSIENT_PEER_TIMEOUT, 0,
+			       nan_transient_peer_timeout, nan, peer);
+}
+
+
+/**
+ * nan_setup_transient_peer - Configure a peer NMI station for one-time TX
+ * @nan: NAN module context from nan_init()
+ * @nmi_addr: Peer NMI
+ * Returns: 0 if a peer NMI station is configured (newly added or already
+ *	present), -1 otherwise
+ *
+ * Adds a dedicated NMI peer station (and schedule, when local and peer
+ * schedules are available) so that one-time unicast transmissions to the peer
+ * can use the peer's schedule, e.g., transmit during the peer's CDW (Committed
+ * DW information). The station is removed automatically a short time after it
+ * is set up, unless a pairing or NDP session takes ownership of the peer in the
+ * meantime. If the peer is already configured, the existing station is reused.
+ */
+int nan_setup_transient_peer(struct nan_data *nan, const u8 *nmi_addr)
+{
+	struct nan_peer *peer;
+
+	if (!nan || !nmi_addr)
+		return -1;
+
+	peer = nan_get_peer(nan, nmi_addr);
+	if (!peer) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: No known peer " MACSTR " for unicast TX",
+			   MAC2STR(nmi_addr));
+		return -1;
+	}
+
+	if (peer->configured) {
+		/*
+		 * If a transient teardown is pending, this is a transient peer;
+		 * refresh the timeout so multi-frame exchanges keep the same
+		 * NMI station. Otherwise the peer is owned by a session and
+		 * there is nothing to do.
+		 */
+		if (eloop_is_timeout_registered(nan_transient_peer_timeout,
+						nan, peer))
+			nan_arm_transient_timeout(nan, peer);
+		return 0;
+	}
+
+	if (nan_configure_peer_schedule(nan, peer, &nan->sched, true)) {
+		wpa_printf(MSG_DEBUG,
+			   "NAN: Failed to configure transient peer " MACSTR,
+			   MAC2STR(nmi_addr));
+		return -1;
+	}
+
+	nan_arm_transient_timeout(nan, peer);
 	return 0;
 }
 
@@ -2512,7 +2632,8 @@ static int nan_action_rx_ndp(struct nan_data *nan, struct nan_peer *peer,
 	if (peer->ndp_setup.state == NAN_NDP_STATE_DONE &&
 	    peer->ndl->state == NAN_NDL_STATE_DONE) {
 		wpa_printf(MSG_DEBUG, "NAN: NAF: NDP setup done");
-		if (nan_configure_peer_schedule(nan, peer, &nan->sched) ||
+		if (nan_configure_peer_schedule(nan, peer, &nan->sched,
+						false) ||
 		    nan_ndp_connected(nan, peer))
 			nan_ndp_disconnected(nan, peer,
 					     NAN_REASON_UNSPECIFIED_REASON,
@@ -2833,7 +2954,8 @@ int nan_tx_status(struct nan_data *nan, const u8 *dst, const u8 *data,
 	    peer->ndl->state == NAN_NDL_STATE_DONE) {
 		wpa_printf(MSG_DEBUG, "NAN: TX status: NDP setup done");
 
-		if (nan_configure_peer_schedule(nan, peer, &nan->sched) ||
+		if (nan_configure_peer_schedule(nan, peer, &nan->sched,
+						false) ||
 		    nan_ndp_connected(nan, peer))
 			nan_ndp_disconnected(nan, peer,
 					     NAN_REASON_UNSPECIFIED_REASON,
@@ -2895,7 +3017,8 @@ int nan_handle_ndp_setup(struct nan_data *nan, struct nan_ndp_params *params)
 
 		naf_oui = NAN_SUBTYPE_DATA_PATH_REQUEST;
 		timeout = NAN_NDP_SETUP_TIMEOUT_LONG;
-		ret = nan_configure_peer_schedule(nan, peer, &nan->sched);
+		ret = nan_configure_peer_schedule(nan, peer, &nan->sched,
+						  false);
 		if (ret) {
 			nan_ndp_setup_stop(nan, peer);
 			return ret;
@@ -2918,7 +3041,8 @@ int nan_handle_ndp_setup(struct nan_data *nan, struct nan_ndp_params *params)
 					    peer->ndp_setup.dialog_token);
 			if (!ret) {
 				ret = nan_configure_peer_schedule(nan, peer,
-								  &nan->sched);
+								  &nan->sched,
+								  false);
 				if (ret)
 					peer->ndl->send_naf_on_error = 1;
 			}
@@ -2953,7 +3077,7 @@ int nan_handle_ndp_setup(struct nan_data *nan, struct nan_ndp_params *params)
 				    peer->ndp_setup.dialog_token);
 		if (!ret) {
 			ret = nan_configure_peer_schedule(nan, peer,
-							  &nan->sched);
+							  &nan->sched, false);
 			if (ret)
 				peer->ndl->send_naf_on_error = 1;
 		}

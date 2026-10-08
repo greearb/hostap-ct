@@ -511,7 +511,7 @@ int nan_pairing_abort(struct nan_data *nan_data, const u8 *peer_addr)
 			   wpabuf_len(extra_ies));
 	wpabuf_free(extra_ies);
 
-	nan_configure_peer_schedule(nan_data, peer, &nan_data->sched);
+	nan_configure_peer_schedule(nan_data, peer, &nan_data->sched, false);
 
 	ret = handle_auth_pasn_resp(peer->pairing.pasn, nan_data->cfg->nmi_addr,
 				    peer_addr, NULL,
@@ -1376,7 +1376,7 @@ int nan_pairing_initiate_pasn_auth(struct nan_data *nan_data, const u8 *addr,
 
 	/* Skip DW schedule negotiation for non-cluster (USD) peers. */
 	if (!nan_peer_no_shared_cluster(nan_data, peer->nmi_addr) &&
-	    nan_configure_peer_schedule(nan_data, peer, sched))
+	    nan_configure_peer_schedule(nan_data, peer, sched, false))
 		wpa_printf(MSG_DEBUG, "NAN: Could not configure peer schedule");
 	if (responder) {
 		if (peer->pairing.pending_auth1) {

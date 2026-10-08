@@ -1069,7 +1069,8 @@ int nan_add_nira(struct wpabuf *buf, const u8 *tag, const u8 *nonce);
 void nan_parse_peer_dev_capa_ext(struct nan_data *nan, struct nan_peer *peer,
 				 struct nan_attrs *attrs);
 int nan_configure_peer_schedule(struct nan_data *nan, struct nan_peer *peer,
-				const struct nan_schedule *local_sched);
+				const struct nan_schedule *local_sched,
+				bool transient);
 bool nan_is_ndpe_supported(struct nan_data *nan, const struct nan_peer *peer);
 void nan_add_kde_hdr(struct wpabuf *buf, u32 kde, size_t data_len);
 int nan_clear_peer_schedule(struct nan_data *nan, struct nan_peer *peer);
