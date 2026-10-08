@@ -4083,7 +4083,8 @@ int nan_de_config(struct nan_de *de, struct nan_de_cfg *cfg)
 }
 
 
-static void nan_de_tx_merged_sdf(struct nan_de *de, unsigned int freq,
+static void nan_de_tx_merged_sdf(struct nan_de *de, bool sync,
+				 unsigned int freq, unsigned int wait_time,
 				 const u8 *dst, const u8 *bssid)
 {
 	struct wpabuf *buf;
@@ -4103,7 +4104,7 @@ static void nan_de_tx_merged_sdf(struct nan_de *de, unsigned int freq,
 	for (i = 0; i < NAN_DE_MAX_SERVICE; i++) {
 		struct nan_de_service *srv = de->service[i];
 
-		if (!srv)
+		if (!srv || srv->sync != sync)
 			continue;
 
 		if ((srv->type == NAN_DE_PUBLISH && srv->publish.unsolicited) ||
@@ -4220,7 +4221,8 @@ static void nan_de_tx_merged_sdf(struct nan_de *de, unsigned int freq,
 		os_free(irsa_tag_tlv);
 	}
 
-	nan_de_tx(de, freq, 0, dst, de->nmi, bssid, buf, NULL, handle, false);
+	nan_de_tx(de, sync ? 0 : freq, sync ? 0 : wait_time, dst, de->nmi,
+		  bssid, buf, NULL, handle, false);
 	wpabuf_free(buf);
 
 	/* Update last_multicast time for all services */
@@ -4262,7 +4264,8 @@ void nan_de_dw_trigger(struct nan_de *de, int freq)
 	}
 
 	if (has_services)
-		nan_de_tx_merged_sdf(de, freq, nan_network_id, de->cluster_id);
+		nan_de_tx_merged_sdf(de, true, freq, 0, nan_network_id,
+				     de->cluster_id);
 }
 
 
