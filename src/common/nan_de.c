@@ -4269,6 +4269,9 @@ void nan_de_dw_trigger(struct nan_de *de, int freq)
 void nan_de_set_cluster_id(struct nan_de *de, const u8 *cluster_id)
 {
 	if (cluster_id) {
+		wpa_printf(MSG_DEBUG, "NAN: Set cluster ID " MACSTR,
+			   MAC2STR(cluster_id));
+
 		os_memcpy(de->cluster_id, cluster_id, ETH_ALEN);
 		de->cluster_id_set = true;
 	} else {

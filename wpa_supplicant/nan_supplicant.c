@@ -2489,6 +2489,22 @@ int wpas_nan_set(struct wpa_supplicant *wpa_s, char *cmd)
 		wpa_s->nan_force_conditional_sched = !!atoi(param);
 		return 0;
 	}
+
+	if (os_strcmp("test_cluster_id", cmd) == 0) {
+		u8 cluster_id[ETH_ALEN] = { 0x50, 0x6f, 0x9a, 0x01, 0, 0 };
+
+		if (os_strlen(param) != 4 ||
+		    hexstr2bin(param, &cluster_id[4], 2) < 0) {
+			wpa_printf(MSG_INFO, "NAN: Invalid cluster ID");
+			return -1;
+		}
+
+		if (!wpa_s->nan_de)
+			return -1;
+
+		nan_de_set_cluster_id(wpa_s->nan_de, cluster_id);
+		return 0;
+	}
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	if (os_strcmp("max_ndl_idle_period", cmd) == 0) {
