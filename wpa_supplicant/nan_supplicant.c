@@ -2256,6 +2256,7 @@ int wpas_nan_set(struct wpa_supplicant *wpa_s, char *cmd)
 	NAN_PARSE_INT(scan_period, 0, 0xffff);
 	NAN_PARSE_INT(scan_dwell_time, 10, 150);
 	NAN_PARSE_INT(discovery_beacon_interval, 50, 200);
+	NAN_PARSE_INT(instant_comm, 0, 1);
 
 	NAN_PARSE_BAND(low_band_cfg);
 	NAN_PARSE_BAND(high_band_cfg);

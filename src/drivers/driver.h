@@ -2299,6 +2299,8 @@ struct nan_capa {
 #define WPA_DRIVER_FLAGS_NAN_SUPPORT_NDP		0x00000008
 /** Driver supports NAN beacon protection */
 #define WPA_DRIVER_FLAGS_NAN_SUPPORT_BEACON_PROT	0x00000010
+/** Driver supports NAN instant communication */
+#define WPA_DRIVER_FLAGS_NAN_SUPPORT_INSTANT_COMM	0x00000020
 	u32 drv_flags;
 	u8 num_radios;
 	u8 sched_chans;
@@ -3488,6 +3490,7 @@ struct nan_band_config {
  * @master_pref: Master preference for the cluster
  * @dual_band: Dual band operation enabled
  * @enable_dw_notif: Enable discovery window notifications
+ * @instant_comm: Enable NAN instant communication mode
  * @cluster_id: Cluster ID for the NAN cluster
  * @scan_period: Period for NAN scan in seconds
  * @scan_dwell_time: Dwell time for NAN scan in TUs per channel
@@ -3503,6 +3506,7 @@ struct nan_cluster_config {
 	u8 master_pref;
 	u8 dual_band;
 	bool enable_dw_notif;
+	bool instant_comm;
 
 	u8 cluster_id[ETH_ALEN];
 	u16 scan_period;
