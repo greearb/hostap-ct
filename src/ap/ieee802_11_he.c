@@ -21,48 +21,6 @@
 #include "ieee802_11.h"
 #include "dfs.h"
 
-static u8 ieee80211_he_ppet_size(u8 ppe_thres_hdr, const u8 *phy_cap_info)
-{
-	u8 sz = 0, ru;
-
-	if ((phy_cap_info[HE_PHYCAP_PPE_THRESHOLD_PRESENT_IDX] &
-	     HE_PHYCAP_PPE_THRESHOLD_PRESENT) == 0)
-		return 0;
-
-	ru = (ppe_thres_hdr >> HE_PPE_THRES_RU_INDEX_BITMASK_SHIFT) &
-		HE_PPE_THRES_RU_INDEX_BITMASK_MASK;
-	/* Count the number of 1 bits in RU Index Bitmask */
-	while (ru) {
-		if (ru & 0x1)
-			sz++;
-		ru >>= 1;
-	}
-
-	/* fixed header of 3 (NSTS) + 4 (RU Index Bitmask) = 7 bits */
-	/* 6 * (NSTS + 1) bits for bit 1 in RU Index Bitmask */
-	sz *= 1 + (ppe_thres_hdr & HE_PPE_THRES_NSS_MASK);
-	sz = (sz * 6) + 7;
-	/* PPE Pad to count the number of needed full octets */
-	sz = (sz + 7) / 8;
-
-	return sz;
-}
-
-
-static u8 ieee80211_he_mcs_set_size(const u8 *phy_cap_info)
-{
-	u8 sz = 4;
-
-	if (phy_cap_info[HE_PHYCAP_CHANNEL_WIDTH_SET_IDX] &
-	    HE_PHYCAP_CHANNEL_WIDTH_SET_80PLUS80MHZ_IN_5G)
-		sz += 4;
-	if (phy_cap_info[HE_PHYCAP_CHANNEL_WIDTH_SET_IDX] &
-	    HE_PHYCAP_CHANNEL_WIDTH_SET_160MHZ_IN_5G)
-		sz += 4;
-
-	return sz;
-}
-
 
 static int ieee80211_invalid_he_cap_size(const u8 *buf, size_t len)
 {

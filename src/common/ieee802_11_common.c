@@ -4392,3 +4392,116 @@ int ieee80211_get_center_freq(int ctrl_freq, u32 bw)
 		return -1;
 	}
 }
+
+
+u8 ieee80211_he_ppet_size(u8 ppe_thres_hdr, const u8 *phy_cap_info)
+{
+	u8 sz = 0, ru;
+
+	if ((phy_cap_info[HE_PHYCAP_PPE_THRESHOLD_PRESENT_IDX] &
+	     HE_PHYCAP_PPE_THRESHOLD_PRESENT) == 0)
+		return 0;
+
+	ru = (ppe_thres_hdr >> HE_PPE_THRES_RU_INDEX_BITMASK_SHIFT) &
+		HE_PPE_THRES_RU_INDEX_BITMASK_MASK;
+	/* Count the number of 1 bits in RU Index Bitmask */
+	while (ru) {
+		if (ru & 0x1)
+			sz++;
+		ru >>= 1;
+	}
+
+	/* fixed header of 3 (NSTS) + 4 (RU Index Bitmask) = 7 bits */
+	/* 6 * (NSTS + 1) bits for bit 1 in RU Index Bitmask */
+	sz *= 1 + (ppe_thres_hdr & HE_PPE_THRES_NSS_MASK);
+	sz = (sz * 6) + 7;
+	/* PPE Pad to count the number of needed full octets */
+	sz = (sz + 7) / 8;
+
+	return sz;
+}
+
+
+u8 ieee80211_he_mcs_set_size(const u8 *phy_cap_info)
+{
+	u8 sz = 4;
+
+	if (phy_cap_info[HE_PHYCAP_CHANNEL_WIDTH_SET_IDX] &
+	    HE_PHYCAP_CHANNEL_WIDTH_SET_80PLUS80MHZ_IN_5G)
+		sz += 4;
+	if (phy_cap_info[HE_PHYCAP_CHANNEL_WIDTH_SET_IDX] &
+	    HE_PHYCAP_CHANNEL_WIDTH_SET_160MHZ_IN_5G)
+		sz += 4;
+
+	return sz;
+}
+
+
+u16 ieee80211_eht_ppet_size(u16 ppe_thres_hdr, const u8 *phy_cap_info)
+{
+	u8 ru;
+	u16 sz = 0;
+
+	if ((phy_cap_info[EHT_PHYCAP_PPE_THRESHOLD_PRESENT_IDX] &
+	     EHT_PHYCAP_PPE_THRESHOLD_PRESENT) == 0)
+		return 0;
+
+	ru = (ppe_thres_hdr &
+	      EHT_PPE_THRES_RU_INDEX_MASK) >> EHT_PPE_THRES_RU_INDEX_SHIFT;
+	while (ru) {
+		if (ru & 0x1)
+			sz++;
+		ru >>= 1;
+	}
+
+	sz = sz * (1 + ((ppe_thres_hdr & EHT_PPE_THRES_NSS_MASK) >>
+			EHT_PPE_THRES_NSS_SHIFT));
+	sz = (sz * 6) + 9;
+	if (sz % 8)
+		sz += 8;
+	sz /= 8;
+
+	return sz;
+}
+
+
+u8 ieee80211_eht_mcs_set_size(enum hostapd_hw_mode mode, u8 opclass,
+			      const u8 *he_phy_cap, const u8 *eht_phy_cap)
+{
+	u8 sz = EHT_PHYCAP_MCS_NSS_LEN_20MHZ_PLUS;
+	bool band24, band5, band6;
+	u8 cap_chwidth;
+
+	cap_chwidth = he_phy_cap[HE_PHYCAP_CHANNEL_WIDTH_SET_IDX];
+
+	band24 = mode == HOSTAPD_MODE_IEEE80211B ||
+		mode == HOSTAPD_MODE_IEEE80211G ||
+		mode == NUM_HOSTAPD_MODES;
+	band5 = mode == HOSTAPD_MODE_IEEE80211A ||
+		mode == NUM_HOSTAPD_MODES;
+	band6 = is_6ghz_op_class(opclass);
+
+	if (band24 &&
+	    (cap_chwidth & HE_PHYCAP_CHANNEL_WIDTH_SET_40MHZ_IN_2G) == 0)
+		return EHT_PHYCAP_MCS_NSS_LEN_20MHZ_ONLY;
+
+	if (band5 &&
+	    (cap_chwidth &
+	     (HE_PHYCAP_CHANNEL_WIDTH_SET_40MHZ_80MHZ_IN_5G |
+	      HE_PHYCAP_CHANNEL_WIDTH_SET_160MHZ_IN_5G |
+	      HE_PHYCAP_CHANNEL_WIDTH_SET_80PLUS80MHZ_IN_5G)) == 0)
+		return EHT_PHYCAP_MCS_NSS_LEN_20MHZ_ONLY;
+
+	if (band5 &&
+	    (cap_chwidth &
+	     (HE_PHYCAP_CHANNEL_WIDTH_SET_160MHZ_IN_5G |
+	      HE_PHYCAP_CHANNEL_WIDTH_SET_80PLUS80MHZ_IN_5G)))
+	    sz += EHT_PHYCAP_MCS_NSS_LEN_20MHZ_PLUS;
+
+	if (band6 &&
+	    (eht_phy_cap[EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_IDX] &
+	     EHT_PHYCAP_320MHZ_IN_6GHZ_SUPPORT_MASK))
+		sz += EHT_PHYCAP_MCS_NSS_LEN_20MHZ_PLUS;
+
+	return sz;
+}

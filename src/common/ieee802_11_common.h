@@ -477,4 +477,11 @@ enum chan_width get_sta_operation_chan_width(
 	enum chan_width ap_operation_chan_width,
 	struct supported_chan_width sta_supported_width);
 
+u8 ieee80211_he_ppet_size(u8 ppe_thres_hdr, const u8 *phy_cap_info);
+u8 ieee80211_he_mcs_set_size(const u8 *phy_cap_info);
+
+u16 ieee80211_eht_ppet_size(u16 ppe_thres_hdr, const u8 *phy_cap_info);
+u8 ieee80211_eht_mcs_set_size(enum hostapd_hw_mode mode, u8 opclass,
+			      const u8 *he_phy_cap, const u8 *eht_phy_cap);
+
 #endif /* IEEE802_11_COMMON_H */
