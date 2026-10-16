@@ -588,6 +588,8 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 #endif /* CONFIG_PQC */
 #endif /* CONFIG_IEEE8021X_AUTH */
 
+	wpabuf_free(sta->unacked_assoc_resp);
+
 	os_free(sta);
 }
 
@@ -1127,6 +1129,8 @@ static void ap_sta_handle_disassociate(struct hostapd_data *hapd,
 		sta->flags &= ~(WLAN_STA_ASSOC | WLAN_STA_ASSOC_REQ_OK);
 		sta->timeout_next = STA_DEAUTH;
 	}
+	wpabuf_free(sta->unacked_assoc_resp);
+	sta->unacked_assoc_resp = NULL;
 
 	ap_sta_disconnect_common(hapd, sta, AP_MAX_INACTIVITY_AFTER_DISASSOC,
 				 true);
@@ -1165,6 +1169,8 @@ static void ap_sta_handle_deauthenticate(struct hostapd_data *hapd,
 		   hapd->conf->iface, MAC2STR(sta->addr));
 
 	sta->flags &= ~(WLAN_STA_AUTH | WLAN_STA_ASSOC | WLAN_STA_ASSOC_REQ_OK);
+	wpabuf_free(sta->unacked_assoc_resp);
+	sta->unacked_assoc_resp = NULL;
 
 	sta->timeout_next = STA_REMOVE;
 	ap_sta_disconnect_common(hapd, sta, AP_MAX_INACTIVITY_AFTER_DEAUTH,

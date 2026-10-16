@@ -375,6 +375,10 @@ struct sta_info {
 	u8 unsolicited_dialog_token;
 	struct dscp_policy_state dscp_state;
 #endif /* CONFIG_ROBUST_AV */
+
+	/* (Re)Association Response frame with status success whose TX status
+	 * reported no ACK; see ieee802_11_rx_from_unknown() */
+	struct wpabuf *unacked_assoc_resp;
 };
 
 

@@ -5881,6 +5881,9 @@ static void handle_auth(struct hostapd_data *hapd,
 	}
 #endif /* CONFIG_IEEE80211BE */
 
+	wpabuf_free(sta->unacked_assoc_resp);
+	sta->unacked_assoc_resp = NULL;
+
 	sta->last_seq_ctrl = seq_ctrl;
 	sta->last_subtype = WLAN_FC_STYPE_AUTH;
 #ifdef CONFIG_MBO
@@ -8957,6 +8960,9 @@ static void handle_assoc(struct hostapd_data *hapd,
 	epp_sta = sta->epp_sta;
 #endif /* CONFIG_ENC_ASSOC */
 
+	wpabuf_free(sta->unacked_assoc_resp);
+	sta->unacked_assoc_resp = NULL;
+
 	if ((fc & WLAN_FC_RETRY) &&
 	    sta->last_seq_ctrl != WLAN_INVALID_MGMT_SEQ &&
 	    sta->last_seq_ctrl == seq_ctrl &&
@@ -10147,11 +10153,22 @@ static void handle_assoc_cb(struct hostapd_data *hapd,
 	else
 		status = le_to_host16(mgmt->u.assoc_resp.status_code);
 
+	wpabuf_free(sta->unacked_assoc_resp);
+	sta->unacked_assoc_resp = NULL;
+
 	if (!ok) {
 		hostapd_logger(hapd, mgmt->da, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_DEBUG,
 			       "did not acknowledge association response");
 		sta->flags &= ~WLAN_STA_ASSOC_REQ_OK;
+		/*
+		 * The STA may well have received the frame and only its ACK
+		 * got lost: keep the frame, so that a Class 3 frame from the
+		 * STA can complete the association.
+		 */
+		if (status == WLAN_STATUS_SUCCESS && !epp_sta &&
+		    !ap_sta_is_mld(hapd, sta))
+			sta->unacked_assoc_resp = wpabuf_alloc_copy(mgmt, len);
 		/*
 		 * A non-EPP STA is added to the driver only for a successful
 		 * association. For EPP stations, the driver may retain the STA
@@ -10745,6 +10762,33 @@ void ieee802_11_rx_from_unknown(struct hostapd_data *hapd, const u8 *src,
 							   ifname_wds);
 		}
 		return;
+	}
+
+	if (sta && sta->unacked_assoc_resp && (sta->flags & WLAN_STA_AUTH)) {
+		struct wpabuf *resp = sta->unacked_assoc_resp;
+		const struct ieee80211_mgmt *mgmt = wpabuf_head(resp);
+		u16 fc = le_to_host16(mgmt->frame_control);
+		bool reassoc = WLAN_FC_GET_STYPE(fc) ==
+			WLAN_FC_STYPE_REASSOC_RESP;
+
+		/*
+		 * A Class 3 frame from the STA acknowledges the (Re)Association
+		 * Response frame as well as an ACK frame would: neither is
+		 * protected. Complete the association.
+		 */
+		wpa_printf(MSG_DEBUG, "Class 3 frame from " MACSTR
+			   " after an unacknowledged (Re)Association Response frame - complete the association",
+			   MAC2STR(src));
+		sta->unacked_assoc_resp = NULL;
+		/* The missing ACK removed the STA from the driver. */
+		if (add_associated_sta(hapd, sta, reassoc) == 0) {
+			sta->flags |= WLAN_STA_ASSOC_REQ_OK;
+			handle_assoc_cb(hapd, mgmt, wpabuf_len(resp), reassoc,
+					1);
+			wpabuf_free(resp);
+			return;
+		}
+		wpabuf_free(resp);
 	}
 
 	wpa_printf(MSG_DEBUG, "Data/PS-poll frame from not associated STA "
