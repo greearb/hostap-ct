@@ -3839,3 +3839,64 @@ def test_ap_ft_ssid_verified(dev, apdev):
     hapd0, hapd1 = start_ft(apdev)
     run_roams(dev[0], apdev, hapd0, hapd1, "test-ft", "12345678",
               check_ssid=True)
+
+def test_ap_ft_pmf_reassoc_resp_no_ack(dev, apdev):
+    """FT with PMF and the Reassociation Response frame reported unacknowledged"""
+    ssid = "test-ft"
+    passphrase = "12345678"
+    params = ft_params1(ssid=ssid, passphrase=passphrase)
+    params["ieee80211w"] = "2"
+    hapd0 = hostapd.add_ap(apdev[0], params)
+    params = ft_params2(ssid=ssid, passphrase=passphrase)
+    params["ieee80211w"] = "2"
+    hapd1 = hostapd.add_ap(apdev[1], params)
+
+    dev[0].connect(ssid, psk=passphrase, key_mgmt="FT-PSK", proto="WPA2",
+                   ieee80211w="2", scan_freq="2412", bssid=apdev[0]['bssid'])
+    dev[0].scan_for_bss(apdev[1]['bssid'], freq="2412")
+
+    # The STA receives the Reassociation Response frame, but its ACK is lost:
+    # the AP sees the TX status as not acknowledged.
+    hapd1.set("ext_mgmt_frame_handling", "1")
+    dev[0].request("ROAM " + apdev[1]['bssid'])
+    for stype in (11, 2):
+        for i in range(10):
+            req = hapd1.mgmt_rx()
+            if req is None:
+                raise Exception("MGMT RX wait timed out")
+            if req['subtype'] == stype:
+                break
+        else:
+            raise Exception("Frame subtype %d not received" % stype)
+        hapd1.request("MGMT_RX_PROCESS freq=2412 datarate=0 ssi_signal=-30 frame=" + binascii.hexlify(req['frame']).decode())
+        while True:
+            ev = hapd1.wait_event(["MGMT-TX-STATUS"], timeout=5)
+            if ev is None:
+                raise Exception("Management frame TX status not reported")
+            if "stype=%d" % (11 if stype == 11 else 3) in ev:
+                break
+        status = " ".join(ev.split(' ')[1:4])
+        if stype == 2:
+            status = status.replace("ok=1", "ok=0")
+        if "OK" not in hapd1.request("MGMT_TX_STATUS_PROCESS " + status):
+            raise Exception("MGMT_TX_STATUS_PROCESS failed")
+    dev[0].wait_connected()
+    hapd1.set("ext_mgmt_frame_handling", "0")
+
+    ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=1)
+    if ev is not None:
+        raise Exception("STA disconnected: " + ev)
+
+    # Trigger Class 3 Data frame TX from STA to AP
+    dev[0].request("DATA_TEST_CONFIG 1")
+    addr1 = dev[0].get_addr()
+    addr2 = hapd1.get_addr()
+    dev[0].request("DATA_TEST_TX {} {} {}".format(addr2, addr1, 0))
+    dev[0].request("DATA_TEST_CONFIG 0")
+
+    # Wait for hostapd to complete association
+    hapd1.wait_sta()
+
+    hwsim_utils.test_connectivity(dev[0], hapd1)
+    if "[ASSOC]" not in hapd1.get_sta(dev[0].own_addr())['flags']:
+        raise Exception("STA not associated on the AP")
