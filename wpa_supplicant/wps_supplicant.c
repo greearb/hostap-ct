@@ -26,6 +26,7 @@
 #include "wpa_supplicant_i.h"
 #include "driver_i.h"
 #include "notify.h"
+#include "wpas_glue.h"
 #include "bssid_ignore.h"
 #include "bss.h"
 #include "scan.h"
@@ -365,6 +366,14 @@ static void wpas_wps_remove_dup_network(struct wpa_supplicant *wpa_s,
 
 		/* Remove the duplicated older network entry. */
 		wpa_printf(MSG_DEBUG, "Remove duplicate network %d", ssid->id);
+		if (ssid == wpa_s->current_ssid) {
+			/* The older entry is the one used for the ongoing
+			 * association; continue with the new entry. */
+			wpa_s->current_ssid = new_ssid;
+			wpa_supplicant_rsn_supp_set_config(wpa_s, new_ssid);
+			eapol_sm_notify_config(wpa_s->eapol, &new_ssid->eap,
+					       NULL);
+		}
 		wpas_notify_network_removed(wpa_s, ssid);
 		wpa_config_remove_network(wpa_s->conf, ssid->id);
 	}
