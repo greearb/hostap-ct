@@ -20,6 +20,7 @@
 #include "dbus/dbus_new.h"
 #include "rsn_supp/wpa.h"
 #include "rsn_supp/pmksa_cache.h"
+#include "eapol_supp/eapol_supp_sm.h"
 #include "fst/fst.h"
 #include "crypto/tls.h"
 #include "bss.h"
@@ -412,8 +413,11 @@ void wpas_notify_network_removed(struct wpa_supplicant *wpa_s,
 		wpa_s->next_ssid = NULL;
 	if (wpa_s->last_ssid == ssid)
 		wpa_s->last_ssid = NULL;
-	if (wpa_s->current_ssid == ssid)
+	if (wpa_s->current_ssid == ssid) {
 		wpa_s->current_ssid = NULL;
+		wpa_sm_set_config(wpa_s->wpa, NULL);
+		eapol_sm_notify_config(wpa_s->eapol, NULL, NULL);
+	}
 	if (wpa_s->ml_connect_probe_ssid == ssid) {
 		wpa_s->ml_connect_probe_ssid = NULL;
 		wpa_s->ml_connect_probe_bss = NULL;
