@@ -5992,6 +5992,17 @@ static int print_bss_info(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 	if (mask & WPA_BSS_MASK_ML)
 		pos += print_ml(bss, pos, end);
 
+	if (mask & WPA_BSS_MASK_TIME_ZONE) {
+		char tz[256];
+
+		if (wpa_bss_get_time_zone(bss, tz, sizeof(tz)) > 0) {
+			ret = os_snprintf(pos, end - pos, "tz=%s\n", tz);
+			if (os_snprintf_error(end - pos, ret))
+				return 0;
+			pos += ret;
+		}
+	}
+
 	if (mask & WPA_BSS_MASK_DELIM) {
 		ret = os_snprintf(pos, end - pos, "====\n");
 		if (os_snprintf_error(end - pos, ret))

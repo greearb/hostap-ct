@@ -2467,6 +2467,13 @@ scan results.
 	</table>
 	<p>Unnamed ANQP elements have a generic entry name 'anqp[id]' where 'id' is the InfoID of the ANQP element as described in IEEE Std 802.11-2020, Table 9-331 (ANQP-element definitions).</p>
       </li>
+      <li>
+	<h3>TimeZone - s - (read)</h3>
+	<p>Local time zone advertised by the BSS (IEEE Std 802.11 Time Zone
+	element), as a string in IEEE Std 1003.1 TZ environment variable
+	format. Empty if the BSS does not advertise a time zone or the
+	advertised value contains characters outside printable ASCII.</p>
+      </li>
     </ul>
 
 \subsection dbus_bss_signals Signals

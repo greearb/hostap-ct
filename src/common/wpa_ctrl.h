@@ -575,6 +575,7 @@ extern "C" {
 #define WPA_BSS_MASK_RNR		BIT(25)
 #define WPA_BSS_MASK_ML			BIT(26)
 #define WPA_BSS_MASK_AP_MLD_ADDR	BIT(27)
+#define WPA_BSS_MASK_TIME_ZONE		BIT(28)
 
 
 /* VENDOR_ELEM_* frame id values */

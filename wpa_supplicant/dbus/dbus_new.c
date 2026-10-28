@@ -3122,6 +3122,11 @@ static const struct wpa_dbus_property_desc wpas_dbus_bss_properties[] = {
 	  NULL,
 	  NULL,
 	},
+	{ "TimeZone", WPAS_DBUS_NEW_IFACE_BSS, "s",
+	  wpas_dbus_getter_bss_time_zone,
+	  NULL,
+	  NULL
+	},
 	{ NULL, NULL, NULL, NULL, NULL, NULL }
 };
 

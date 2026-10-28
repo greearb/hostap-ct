@@ -186,6 +186,7 @@ struct wpa_bss * wpa_bss_get_id_range(struct wpa_supplicant *wpa_s,
 const u8 * wpa_bss_get_ie(const struct wpa_bss *bss, u8 ie);
 const u8 * wpa_bss_get_ie_beacon(const struct wpa_bss *bss, u8 ie);
 const u8 * wpa_bss_get_ie_ext(const struct wpa_bss *bss, u8 ext);
+int wpa_bss_get_time_zone(const struct wpa_bss *bss, char *buf, size_t buflen);
 const u8 * wpa_bss_get_vendor_ie(const struct wpa_bss *bss, u32 vendor_type);
 const u8 * wpa_bss_get_vendor_ie_beacon(const struct wpa_bss *bss,
 					u32 vendor_type);

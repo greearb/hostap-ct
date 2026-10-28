@@ -5791,6 +5791,38 @@ dbus_bool_t wpas_dbus_getter_bss_age(
 
 
 /**
+ * wpas_dbus_getter_bss_time_zone - Return the time zone advertised by the BSS
+ * @iter: Pointer to incoming dbus message iter
+ * @error: Location to store error on failure
+ * @user_data: Function specific data
+ * Returns: TRUE on success, FALSE on failure
+ *
+ * Getter for "TimeZone" property. Returns the Time Zone element contents in
+ * IEEE Std 1003.1 TZ environment variable format, or an empty string if the
+ * BSS does not advertise a (printable ASCII) time zone.
+ */
+dbus_bool_t wpas_dbus_getter_bss_time_zone(
+	const struct wpa_dbus_property_desc *property_desc,
+	DBusMessageIter *iter, DBusError *error, void *user_data)
+{
+	struct bss_handler_args *args = user_data;
+	struct wpa_bss *res;
+	char tz[256];
+	const char *str = tz;
+
+	res = get_bss_helper(args, error, __func__);
+	if (!res)
+		return FALSE;
+
+	if (wpa_bss_get_time_zone(res, tz, sizeof(tz)) < 0)
+		tz[0] = '\0';
+
+	return wpas_dbus_simple_property_getter(iter, DBUS_TYPE_STRING, &str,
+						error);
+}
+
+
+/**
  * wpas_dbus_getter_bss_anqp - Return all the ANQP fields of a BSS
  * @iter: Pointer to incoming dbus message iter
  * @error: Location to store error on failure

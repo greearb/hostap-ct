@@ -1391,6 +1391,41 @@ const u8 * wpa_bss_get_ie_ext(const struct wpa_bss *bss, u8 ext)
 
 
 /**
+ * wpa_bss_get_time_zone - Fetch the advertised time zone from a BSS entry
+ * @bss: BSS table entry
+ * @buf: Buffer for returning the time zone string
+ * @buflen: Length of the buffer in octets
+ * Returns: Length of the time zone string or -1 if not available
+ *
+ * This function fetches the Time Zone element (IEEE Std 802.11) from the
+ * Probe Response or Beacon frame elements of the BSS entry. The returned
+ * string is in the format specified in IEEE Std 1003.1 for the TZ environment
+ * variable. Since consumers may use the string to configure the local time
+ * zone, any element containing characters outside printable ASCII is
+ * rejected rather than returned.
+ */
+int wpa_bss_get_time_zone(const struct wpa_bss *bss, char *buf, size_t buflen)
+{
+	const u8 *ie;
+	size_t len, i;
+
+	ie = wpa_bss_get_ie(bss, WLAN_EID_TIME_ZONE);
+	if (!ie || ie[1] == 0 || (size_t) ie[1] + 1 > buflen)
+		return -1;
+
+	len = ie[1];
+	for (i = 0; i < len; i++) {
+		if (ie[2 + i] < 32 || ie[2 + i] > 126)
+			return -1;
+	}
+
+	os_memcpy(buf, &ie[2], len);
+	buf[len] = '\0';
+	return len;
+}
+
+
+/**
  * wpa_bss_get_vendor_ie - Fetch a vendor information element from a BSS entry
  * @bss: BSS table entry
  * @vendor_type: Vendor type (four octets starting the IE payload)
