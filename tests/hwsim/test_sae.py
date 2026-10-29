@@ -3857,6 +3857,64 @@ def test_sae_pmksa_caching_ap_lost_entry(dev, apdev):
     dev[0].request("RECONNECT")
     dev[0].wait_connected(timeout=15, error="Reconnect timed out")
 
+def test_sae_pmksa_caching_reject_preserves_other_ap(dev, apdev):
+    """SAE PMKSA rejection preserves another AP's cached key"""
+    check_sae_capab(dev[0])
+    params = hostapd.wpa2_params(ssid="test-sae", passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE'
+
+    # Full SAE with AP1 caches a PMKSA for AP1
+    hapd0 = hostapd.add_ap(apdev[0], params)
+    bssid0 = hapd0.own_addr()
+    dev[0].set("sae_groups", "")
+    dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE",
+                   scan_freq="2412")
+    pmksa0 = dev[0].get_pmksa(bssid0)
+    if pmksa0 is None:
+        raise Exception("Missing PMKSA entry for AP1")
+
+    # Full SAE with AP2 caches a second PMKSA, for AP2
+    hapd1 = hostapd.add_ap(apdev[1], params)
+    bssid1 = hapd1.own_addr()
+    dev[0].scan_for_bss(bssid1, freq="2412")
+    dev[0].roam(bssid1)
+    pmksa1 = dev[0].get_pmksa(bssid1)
+    if pmksa1 is None:
+        raise Exception("Missing PMKSA entry for AP2")
+
+    # AP1 drops its PMKSA, so the STA's AP1 PMKID becomes stale
+    if "OK" not in hapd0.request("PMKSA_FLUSH"):
+        raise Exception("AP1 PMKSA_FLUSH failed")
+
+    # PMKSA caching back to AP1 is rejected with status 53 (invalid PMKID)
+    dev[0].dump_monitor()
+    if "OK" not in dev[0].request("ROAM " + bssid0):
+        raise Exception("ROAM to AP1 failed")
+    ev = dev[0].wait_event(["CTRL-EVENT-ASSOC-REJECT"], timeout=10)
+    if ev is None or "status_code=53" not in ev:
+        raise Exception(f"Expected invalid PMKID rejection: {ev}")
+
+    # Full SAE fallback reconnects to AP1 with a new PMKSA
+    dev[0].wait_connected(timeout=15)
+    if dev[0].get_status_field('bssid') != bssid0:
+        raise Exception("Did not reconnect to AP1")
+    hwsim_utils.test_connectivity(dev[0], hapd0)
+    replacement = dev[0].get_pmksa(bssid0)
+    if replacement is None or replacement['pmkid'] == pmksa0['pmkid']:
+        raise Exception("AP1 stale PMKSA entry was not replaced")
+
+    # Only the AP1 entry was flushed; the AP2 entry is kept
+    preserved = dev[0].get_pmksa(bssid1)
+    if preserved is None or preserved['pmkid'] != pmksa1['pmkid']:
+        raise Exception("AP2 PMKSA entry lost after AP1 rejection")
+
+    # Roaming back to AP2 reuses the kept PMKSA (no new SAE)
+    dev[0].roam(bssid1)
+    reused = dev[0].get_pmksa(bssid1)
+    if reused is None or reused['pmkid'] != pmksa1['pmkid']:
+        raise Exception("AP2 PMKSA entry not reused on roam back")
+    hwsim_utils.test_connectivity(dev[0], hapd1)
+
 def test_sae_alt_sae_password_id_config(dev, apdev):
     """Configuration of alternative SAE password identifiers"""
     check_sae_capab(dev[0])
