@@ -1804,8 +1804,8 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 				sp_key_mgmt);
 			wpa_ie.key_mgmt |= sp_key_mgmt;
 		}
-	no_sp_match:
 	}
+no_sp_match:
 
 	wpa_ie.key_mgmt &= ~(WPA_KEY_MGMT_PSK | WPA_KEY_MGMT_FT_PSK |
 			     WPA_KEY_MGMT_PSK_SHA256);

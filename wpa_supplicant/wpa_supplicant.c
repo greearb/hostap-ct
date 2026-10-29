@@ -2951,8 +2951,8 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 		}
 		wpa_sm_set_security_profile(wpa_s->wpa,
 					    wpa_s->sel_security_profile);
-	no_valid_sp:
 	}
+no_valid_sp:
 
 	if (!skip_default_rsne) {
 		if (wpa_sm_set_assoc_wpa_ie_default(wpa_s->wpa, wpa_ie,
