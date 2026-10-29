@@ -3972,6 +3972,7 @@ get_supported_channel_width(struct ieee802_11_elems *elems, int freq)
 	struct ieee80211_eht_capabilities *ehtcaps;
 
 	supported_width.is_40_supported = false;
+	supported_width.is_80_supported = false;
 	supported_width.is_160_supported = false;
 	supported_width.is_80p80_supported = false;
 	supported_width.is_320_supported = false;
@@ -4016,6 +4017,7 @@ get_supported_channel_width(struct ieee802_11_elems *elems, int freq)
 		} else if (channel_width_set &
 			   HE_PHYCAP_CHANNEL_WIDTH_SET_40MHZ_80MHZ_IN_5G) {
 			supported_width.is_40_supported = true;
+			supported_width.is_80_supported = true;
 		}
 
 		if (channel_width_set &
@@ -4219,6 +4221,24 @@ enum chan_width get_operation_channel_width(struct ieee802_11_elems *elems)
 }
 
 
+static enum chan_width
+get_sta_max_supported_chan_width(struct supported_chan_width chan_width)
+{
+	if (chan_width.is_320_supported)
+		return CHAN_WIDTH_320;
+	if (chan_width.is_160_supported)
+		return CHAN_WIDTH_160;
+	if (chan_width.is_80p80_supported)
+		return CHAN_WIDTH_80P80;
+	if (chan_width.is_80_supported)
+		return CHAN_WIDTH_80;
+	if (chan_width.is_40_supported)
+		return CHAN_WIDTH_40;
+
+	return CHAN_WIDTH_20;
+}
+
+
 /*
  * Get STA operation channel width from AP's operation channel width and
  * STA's supported channel width
@@ -4227,24 +4247,11 @@ enum chan_width get_sta_operation_chan_width(
 	enum chan_width ap_operation_chan_width,
 	struct supported_chan_width sta_supported_chan_width)
 {
-	if (ap_operation_chan_width == CHAN_WIDTH_320 &&
-	    sta_supported_chan_width.is_320_supported)
-		return CHAN_WIDTH_320;
+	enum chan_width sta_max;
 
-	if (ap_operation_chan_width == CHAN_WIDTH_160 ||
-	    ap_operation_chan_width == CHAN_WIDTH_320)
-		return sta_supported_chan_width.is_160_supported ?
-			CHAN_WIDTH_160 : CHAN_WIDTH_80;
-
-	if (ap_operation_chan_width == CHAN_WIDTH_80P80)
-		return sta_supported_chan_width.is_80p80_supported ?
-			CHAN_WIDTH_80P80 : CHAN_WIDTH_80;
-
-	if (ap_operation_chan_width == CHAN_WIDTH_40)
-		return sta_supported_chan_width.is_40_supported ?
-			CHAN_WIDTH_40 : CHAN_WIDTH_20;
-
-	return ap_operation_chan_width;
+	sta_max = get_sta_max_supported_chan_width(sta_supported_chan_width);
+	return sta_max < ap_operation_chan_width ?
+		sta_max : ap_operation_chan_width;
 }
 
 

@@ -463,6 +463,7 @@ unsigned int get_max_nss_capability(struct ieee802_11_elems *elems,
 
 struct supported_chan_width {
 	bool is_40_supported;
+	bool is_80_supported;
 	bool is_160_supported;
 	bool is_80p80_supported;
 	bool is_320_supported;
