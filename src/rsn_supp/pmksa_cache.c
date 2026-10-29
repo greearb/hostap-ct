@@ -499,6 +499,7 @@ void pmksa_cache_flush(struct rsn_pmksa_cache *pmksa, void *network_ctx,
 	while (entry) {
 		if ((entry->network_ctx == network_ctx ||
 		     network_ctx == NULL) &&
+		    (!addr || ether_addr_equal(entry->aa, addr)) &&
 		    (pmk == NULL ||
 		     (pmk_len == entry->pmk_len &&
 		      os_memcmp(pmk, entry->pmk, pmk_len) == 0)) &&
