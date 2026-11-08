@@ -760,7 +760,7 @@ static int hostapd_ctrl_iface_set_dscp_policy(struct hostapd_data *hapd,
 	struct hostapd_dscp_policy policy;
 	struct sta_info *sta;
 	const char *params;
-	char *reset_str;
+	const char *reset_str;
 
 	if (!hapd->conf->enable_dscp_policy_capa)
 		return -1;
@@ -3724,7 +3724,8 @@ static int hostapd_ctrl_iface_link_remove(struct hostapd_data *hapd, char *cmd)
 static int hostapd_ctrl_iface_link_enable(struct hostapd_data *hapd, char *cmd)
 {
 	struct hapd_interfaces *interfaces = hapd->iface->interfaces;
-	const char *conf_file, *phy, *ifname;
+	const char *conf_file, *ifname;
+	char *phy;
 	struct hostapd_iface *iface = NULL;
 	size_t len = os_strlen(cmd) + 1;
 	struct hostapd_config *conf;

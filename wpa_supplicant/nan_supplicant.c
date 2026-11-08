@@ -2661,7 +2661,7 @@ static void wpas_nan_update_local_schedule(struct wpa_supplicant *wpa_s)
 
 /* Parse format NAN_SCHED_CONFIG_MAP map_id=<id> [freq:bitmap_hex]..
  * If no bitmaps provided - clear the map */
-int wpas_nan_sched_config_map(struct wpa_supplicant *wpa_s, const char *cmd)
+int wpas_nan_sched_config_map(struct wpa_supplicant *wpa_s, char *cmd)
 {
 	struct nan_schedule_config *sched_cfg = &wpa_s->nan_sched_update.sched;
 	struct nan_schedule_config old_sched_cfg;
@@ -4023,7 +4023,7 @@ int wpas_nan_peer_info(struct wpa_supplicant *wpa_s, const char *cmd,
 		       char *reply, size_t reply_size)
 {
 	u8 addr[ETH_ALEN];
-	char *pos;
+	const char *pos;
 	int ret = 0;
 
 	if (!wpas_nan_ready(wpa_s))
@@ -4067,7 +4067,7 @@ int wpas_nan_peer_info(struct wpa_supplicant *wpa_s, const char *cmd,
 		int map_id = 0;
 		const struct nan_device_capabilities *capa;
 		int written = 0;
-		char *m;
+		const char *m;
 
 		m = os_strchr(pos + 1, ' ');
 		if (m)

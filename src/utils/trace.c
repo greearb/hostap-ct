@@ -215,7 +215,7 @@ static void wpa_trace_bfd_addr(void *pc)
 		name = aname ? aname : data.function;
 		filename = data.filename;
 		if (filename) {
-			char *end = os_strrchr(filename, '/');
+			const char *end = os_strrchr(filename, '/');
 			int i = 0;
 			while (*filename && *filename == prg_fname[i] &&
 			       filename <= end) {
