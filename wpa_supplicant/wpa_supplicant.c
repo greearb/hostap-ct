@@ -10068,8 +10068,14 @@ void wpas_connection_failed(struct wpa_supplicant *wpa_s, const u8 *bssid,
 	 * next. Otherwise, we may as well try this one once more
 	 * before allowing other, likely worse, ESSes to be considered.
 	 */
-	if (count == 1 && wpa_supplicant_fast_associate(wpa_s) == 1)
-		return;
+	if (count == 1) {
+		/* Do not let the retry be skipped as an ongoing attempt */
+		if (wpa_s->wpa_state == WPA_AUTHENTICATING ||
+		    wpa_s->wpa_state == WPA_ASSOCIATING)
+			wpa_supplicant_set_state(wpa_s, WPA_DISCONNECTED);
+		if (wpa_supplicant_fast_associate(wpa_s) == 1)
+			return;
+	}
 
 	wpa_s->consecutive_conn_failures++;
 
