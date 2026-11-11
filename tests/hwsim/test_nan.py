@@ -552,6 +552,21 @@ def test_nan_sync_cluster_id_mismatch(dev, apdev, params):
             raise Exception("NAN-DISCOVERY-RESULT not seen after restoring the Cluster ID")
         nan_sync_verify_event(ev, pub.wpas.own_addr(), pid, sid, "aabbccdd")
 
+def test_nan_sync_peer_max_ssi_len(dev, apdev, params):
+    """NAN synchronized discovery and peer maximum SSI length from DCEA"""
+    with hwsim_nan_radios(count=2) as [wpas1, wpas2], \
+        NanDevice(wpas1, "nan0") as pub, NanDevice(wpas2, "nan1") as sub:
+        pub.publish("test_service", ssi="aabbccdd", unsolicited=0)
+        sub.subscribe("test_service", ssi="ddbbccaa")
+
+        ev = sub.wpas.wait_event(["NAN-DISCOVERY-RESULT"], timeout=5)
+        if ev is None:
+            raise Exception("NAN-DISCOVERY-RESULT event not seen")
+
+        # The driver does not indicate the maximum MMPDU length, so the
+        # publisher advertises the default 1400 - (24 + 7 + 64 + 100) = 1205
+        _check_discovery_result_field(ev, "max_ssi_len", "1205")
+
 def test_nan_sync_with_nmi_addresses(dev, apdev, params):
     """NAN synchronized active subscribe and solicited publish with NMI addresses"""
     pnmi_addr = "40:00:00:00:17:00"
