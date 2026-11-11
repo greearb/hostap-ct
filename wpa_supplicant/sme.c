@@ -6257,6 +6257,10 @@ static void sme_auth_timer(void *eloop_ctx, void *timeout_ctx)
 	struct wpa_supplicant *wpa_s = eloop_ctx;
 	if (wpa_s->wpa_state == WPA_AUTHENTICATING) {
 		wpa_msg(wpa_s, MSG_DEBUG, "SME: Authentication timeout");
+#ifdef CONFIG_SAE
+		wpabuf_free(wpa_s->sme.sae_token);
+		wpa_s->sme.sae_token = NULL;
+#endif /* CONFIG_SAE */
 		sme_deauth(wpa_s, NULL);
 	}
 }
