@@ -3973,3 +3973,35 @@ def test_sae_pmksa_caching_reject_deauth(dev, apdev):
     if not sae_auth:
         raise Exception("No fallback to SAE authentication seen")
     dev[0].wait_connected(timeout=15, error="Reconnect timed out")
+
+def test_sae_wrong_password_two_ssids(dev, apdev):
+    """SAE with wrong password for the preferred of two SSIDs"""
+    check_sae_capab(dev[0])
+    params = hostapd.wpa2_params(ssid="test-sae-1", passphrase="12345678")
+    params['wpa_key_mgmt'] = 'SAE'
+    hapd = hostapd.add_ap(apdev[0], params)
+    params = hostapd.wpa2_params(ssid="test-sae-2", passphrase="87654321")
+    params['wpa_key_mgmt'] = 'SAE'
+    hapd2 = hostapd.add_ap(apdev[1], params)
+
+    dev[0].scan_for_bss(hapd.own_addr(), freq=2412)
+    dev[0].scan_for_bss(hapd2.own_addr(), freq=2412)
+    dev[0].set("sae_groups", "")
+    id1 = dev[0].connect("test-sae-1", psk="wrong-password", key_mgmt="SAE",
+                         scan_freq="2412", only_add_network=True)
+    dev[0].set_network(id1, "priority", "1")
+    id2 = dev[0].connect("test-sae-2", psk="87654321", key_mgmt="SAE",
+                         scan_freq="2412", only_add_network=True)
+    dev[0].request("ENABLE_NETWORK all")
+
+    ev = dev[0].wait_event(["CTRL-EVENT-AUTH-REJECT"], timeout=10)
+    if ev is None:
+        raise Exception("Wrong password not rejected")
+    if hapd.own_addr() not in ev:
+        raise Exception("Unexpected BSS rejected: " + ev)
+    ev = dev[0].wait_event(["CTRL-EVENT-CONNECTED"], timeout=30)
+    if ev is None:
+        raise Exception("No connection with the second network")
+    if "[id=%d " % id2 not in ev:
+        raise Exception("Unexpected network used: " + ev)
+    hapd2.wait_sta()
