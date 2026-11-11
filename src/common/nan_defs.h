@@ -669,6 +669,14 @@ struct nan_shared_key {
 
 /* b22-b37: Maximum Service Specific Info length for SDEA in follow up unicast
  * frame the device can receive */
+#define NAN_DEV_CAPA_EXT_GET_MAX_SSI_LEN(info) \
+	((((info)[2] >> 6) & 0x03) | \
+	 (((u16) (info)[3]) << 2) | \
+	 (((u16) ((info)[4] & 0x3F)) << 10))
+
+/* Capability Info field length with b0-b15 and with b0-b39 */
+#define NAN_DEV_CAPA_EXT_MIN_LEN                  2
+#define NAN_DEV_CAPA_EXT_R5_LEN                   5
 
 /* Wi-Fi Aware spec v4.0, Table 22 (NIRA Cryptographic Parameters and Methods)
  */

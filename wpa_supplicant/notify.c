@@ -1106,6 +1106,7 @@ void wpas_notify_nan_discovery_result(struct wpa_supplicant *wpa_s,
 	char *ssi_hex, *pmkid_hex = NULL;
 	char *cipher_suites_str = NULL;
 	char proxied[100];
+	char max_ssi[30];
 	const char *locale;
 	const char *vendor;
 	const char *model;
@@ -1173,9 +1174,15 @@ err:
 	else
 		proxied[0] = '\0';
 
+	if (res->peer_max_ssi_len)
+		os_snprintf(max_ssi, sizeof(max_ssi), " max_ssi_len=%u",
+			    res->peer_max_ssi_len);
+	else
+		max_ssi[0] = '\0';
+
 	wpa_msg_global(wpa_s, MSG_INFO, NAN_DISCOVERY_RESULT
 		       "subscribe_id=%d publish_id=%d address=" MACSTR
-		       " fsd=%d fsd_gas=%d srv_proto_type=%u ssi=%s%s%s%s%s pairing_setup_supp=%d npk_nik_caching_supp=%d pbm=0x%04x data_path=%d%s%s%s%s%s%s%s%s%s",
+		       " fsd=%d fsd_gas=%d srv_proto_type=%u ssi=%s%s%s%s%s pairing_setup_supp=%d npk_nik_caching_supp=%d pbm=0x%04x data_path=%d%s%s%s%s%s%s%s%s%s%s",
 		       res->subscribe_id, res->peer_publish_id,
 		       MAC2STR(res->peer_addr),
 		       res->fsd, res->fsd_gas, res->srv_proto_type, ssi_hex,
@@ -1184,7 +1191,7 @@ err:
 		       cipher_suites_str ? " cipher_suites=" : "",
 		       cipher_suites_str ? cipher_suites_str : "",
 		       res->pairing_setup_supp, res->npk_nik_caching_supp,
-		       res->pbm, res->data_path, proxied,
+		       res->pbm, res->data_path, proxied, max_ssi,
 		       res->psi_locale ? " locale=" : "", locale,
 		       res->psi_vendor_name ? " vendorName=" : "", vendor,
 		       res->psi_model_name ? " modelName=" : "", model,

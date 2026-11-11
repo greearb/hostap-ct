@@ -2351,28 +2351,37 @@ static void nan_de_process_elem_container(struct nan_de *de, const u8 *buf,
 
 
 static void nan_de_parse_dcea(const u8 *buf, size_t len, bool *pairing_setup,
-			      bool *npk_nik_caching)
+			      bool *npk_nik_caching, u16 *peer_max_ssi_len)
 {
 	const u8 *dcea;
 	u16 dcea_len;
 
 	*pairing_setup = false;
 	*npk_nik_caching = false;
+	*peer_max_ssi_len = 0;
 
 	dcea = nan_de_get_attr(buf, len, NAN_ATTR_DCEA, 0);
 	if (!dcea)
 		return;
 
 	dcea_len = WPA_GET_LE16(dcea + 1);
-	if (dcea_len < 2) {
+	if (dcea_len < NAN_DEV_CAPA_EXT_MIN_LEN) {
 		wpa_printf(MSG_DEBUG, "NAN: DCEA length=%u too short",
 			   dcea_len);
 		return;
 	}
 
-	*pairing_setup =  !!(dcea[4] & NAN_DEV_CAPA_EXT_INFO_1_PAIRING_SETUP);
-	*npk_nik_caching = !!(dcea[4] &
+	/* Skip the attribute ID and length */
+	dcea += NAN_ATTR_HDR_LEN;
+
+	*pairing_setup =  !!(dcea[1] & NAN_DEV_CAPA_EXT_INFO_1_PAIRING_SETUP);
+	*npk_nik_caching = !!(dcea[1] &
 			      NAN_DEV_CAPA_EXT_INFO_1_NPK_NIK_CACHING);
+
+	/* Wi-Fi Aware R5: Capability Info bits b22-b37 specify max SSI length
+	 */
+	if (dcea_len >= NAN_DEV_CAPA_EXT_R5_LEN)
+		*peer_max_ssi_len = NAN_DEV_CAPA_EXT_GET_MAX_SSI_LEN(dcea);
 }
 
 
@@ -2573,11 +2582,13 @@ send_event:
 
 		/*
 		 * Parse Device Capability Extension attribute for pairing
-		 * setup and NPK/NIK caching support
+		 * setup and NPK/NIK caching support and the maximum Service
+		 * Specific Info length
 		 */
 		nan_de_parse_dcea(buf, buf_len,
 				  &res.pairing_setup_supp,
-				  &res.npk_nik_caching_supp);
+				  &res.npk_nik_caching_supp,
+				  &res.peer_max_ssi_len);
 
 		/* Get the bootstrapping methods */
 		res.pbm = nan_de_get_advertise_pbm(buf, buf_len);

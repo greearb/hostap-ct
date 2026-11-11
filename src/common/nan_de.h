@@ -47,6 +47,7 @@ struct nan_discovery_result {
 	const char *psi_vendor_name;
 	const char *psi_model_name;
 	const char *psi_pairing_name;
+	u16 peer_max_ssi_len;
 };
 
 struct nan_callbacks {
