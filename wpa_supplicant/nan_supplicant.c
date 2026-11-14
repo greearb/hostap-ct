@@ -5992,12 +5992,15 @@ int wpas_nan_transmit(struct wpa_supplicant *wpa_s, int handle,
 void wpas_nan_usd_remain_on_channel_cb(struct wpa_supplicant *wpa_s,
 				       unsigned int freq, unsigned int duration)
 {
+	bool nan = wpa_s->nan_usd_listen_work != NULL;
+
 	wpas_nan_usd_listen_work_done(wpa_s);
 
 	/* Clean up pending offchannel TX state only when present; calling
 	 * it unconditionally cancels the current ROC when no TX is in flight.
 	 */
-	if (wpa_s->pending_action_tx || wpa_s->action_tx_wait_time_used)
+	if (nan &&
+	    (wpa_s->pending_action_tx || wpa_s->action_tx_wait_time_used))
 		offchannel_send_action_done(wpa_s);
 
 	if (wpa_s->nan_de)
