@@ -2669,16 +2669,16 @@ static int nan_action_rx_ndp(struct nan_data *nan, struct nan_peer *peer,
  * the source address matches any known NDI address and if so, substitutes
  * it with the NMI address of the corresponding peer.
  */
-static void nan_action_substitute_src(struct nan_data *nan,
-				      const struct ieee80211_mgmt *mgmt,
-				      size_t len)
+static const u8 * nan_action_substitute_src(struct nan_data *nan,
+					    const struct ieee80211_mgmt *mgmt,
+					    size_t len)
 {
 	struct nan_peer *peer;
 
 	/* If the peer is known, nothing needs to be changed */
 	peer = nan_get_peer(nan, mgmt->sa);
 	if (peer)
-		return;
+		return mgmt->sa;
 
 	/*
 	 * Find a peer with which we have an NDI that matches the source address
@@ -2700,21 +2700,22 @@ static void nan_action_substitute_src(struct nan_data *nan,
 			else
 				addr = pndp->init_ndi;
 
-			if (os_memcmp(addr, mgmt->sa, ETH_ALEN))
+			if (!ether_addr_equal(addr, mgmt->sa))
 				continue;
 
 			wpa_printf(MSG_DEBUG,
-				   "NAN: NAF from=" MACSTR " Received on NDI=" MACSTR,
+				   "NAN: NAF from=" MACSTR " Received on NDI="
+				   MACSTR,
 				   MAC2STR(peer->nmi_addr), MAC2STR(mgmt->sa));
 
-			os_memcpy((void *)mgmt->sa, peer->nmi_addr, ETH_ALEN);
-			return;
+			return peer->nmi_addr;
 		}
 	}
 
 	wpa_printf(MSG_DEBUG,
 		   "NAN: NAF from unknown peer=" MACSTR,
 		   MAC2STR(mgmt->sa));
+	return mgmt->sa;
 }
 
 
@@ -2732,17 +2733,28 @@ int nan_action_rx(struct nan_data *nan, const struct ieee80211_mgmt *mgmt,
 	struct nan_peer *peer;
 	enum nan_subtype resp_oui = NAN_SUBTYPE_INVALID;
 	int ret;
+	const u8 *sa;
+	struct ieee80211_mgmt *mgmt_copy = NULL;
 
 	if (!nan_ndp_supported(nan))
 		return -1;
 
-	nan_action_substitute_src(nan, mgmt, len);
+	sa = nan_action_substitute_src(nan, mgmt, len);
+	if (!ether_addr_equal(sa, mgmt->sa)) {
+		mgmt_copy = os_memdup(mgmt, len);
+		if (!mgmt_copy)
+			return -1;
+		os_memcpy(mgmt_copy->sa, sa, ETH_ALEN);
+		mgmt = mgmt_copy;
+	}
 
 	/* Parse the NAF and validate its general structure */
 
 	ret = nan_parse_naf(nan, mgmt, len, &msg);
-	if (ret)
+	if (ret) {
+		os_free(mgmt_copy);
 		return ret;
+	}
 
 	ret = nan_add_peer(nan, mgmt->sa, NULL, 0,
 			   mgmt->u.action.u.naf.variable,
@@ -2799,6 +2811,7 @@ int nan_action_rx(struct nan_data *nan, const struct ieee80211_mgmt *mgmt,
 	ret = nan_action_rx_ndp(nan, peer, &msg, resp_oui);
 done:
 	nan_attrs_clear(nan, &msg.attrs);
+	os_free(mgmt_copy);
 	return ret;
 }
 
