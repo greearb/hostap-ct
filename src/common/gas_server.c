@@ -515,6 +515,9 @@ int gas_server_set_resp(struct gas_server *gas, void *resp_ctx,
 	}
 
 	response->resp = resp;
+	eloop_cancel_timeout(gas_server_response_timeout, response, NULL);
+	eloop_register_timeout(GAS_QUERY_TIMEOUT, 0,
+			       gas_server_response_timeout, response, NULL);
 	return 0;
 }
 
