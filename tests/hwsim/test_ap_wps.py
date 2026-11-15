@@ -1006,6 +1006,10 @@ def test_ap_wps_pbc_overlap_2ap(dev, apdev):
     ev = dev[0].wait_event(["WPS-OVERLAP-DETECTED"], timeout=15)
     hapd.request("DISABLE")
     hapd2.request("DISABLE")
+    dev[0].request("WPS_CANCEL")
+    dev[0].request("DISCONNECT")
+    dev[0].wait_event(["WPS-CANCEL"], timeout=1)
+    time.sleep(0.1)
     dev[0].flush_scan_cache()
     if ev is None:
         raise Exception("PBC session overlap not detected")
