@@ -34,7 +34,6 @@ def test_ap_mixed_security(dev, apdev):
                    password="abcdefghijklmnop0123456789abcdef",
                    scan_freq="2412")
     if sae:
-        dev[2].request("SET sae_groups ")
         dev[2].connect(ssid, psk=passphrase, key_mgmt="SAE", scan_freq="2412")
 
     logger.debug(dev[0].request("SCAN_RESULTS"))
@@ -116,7 +115,6 @@ def test_ap_mixed_security_wpa_sae(dev, apdev):
     params['own_ie_override'] = rsne + wpaie
     hapd = hostapd.add_ap(apdev[0], params)
 
-    dev[0].set("sae_groups", "")
     dev[0].connect(ssid, psk=passphrase, key_mgmt="SAE", scan_freq="2412")
     dev[1].connect(ssid, key_mgmt="WPA-PSK", proto="WPA",
                    psk=passphrase, scan_freq="2412")

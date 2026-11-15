@@ -156,7 +156,6 @@ def test_ap_multi_bss_acs(dev, apdev):
 
     dev[0].connect("bss-1", key_mgmt="NONE", scan_freq=freq)
     dev[1].connect("bss-2", psk="12345678", scan_freq=freq)
-    dev[2].set("sae_groups", "")
     dev[2].connect("bss-3", key_mgmt="SAE", psk="qwertyuiop", scan_freq=freq)
 
 def test_ap_acs_40mhz(dev, apdev):
@@ -783,7 +782,6 @@ def run_ap_acs_eht320(dev, apdev, bw32_offset):
         freq = hapd.get_status_field("freq")
         if int(freq) < 5900:
             raise Exception("Unexpected frequency")
-        dev[0].set("sae_groups", "")
         dev[0].connect("test-acs", psk="12345678", key_mgmt="SAE-EXT-KEY",
                        ieee80211w="2", scan_freq=freq)
         hapd.wait_sta()
@@ -841,7 +839,6 @@ def test_ap_acs_exclude_6g_non_psc(dev, apdev, params):
         if int(freq) not in [5975, 6055, 6135, 6215, 6295, 6375, 6455, 6535,
                              6615, 6695, 6775, 6855, 6935, 7015, 7095]:
             raise Exception("Unexpected frequency: %s" % freq)
-        dev[0].set("sae_groups", "")
         dev[0].connect("test-acs", psk="12345678", key_mgmt="SAE-EXT-KEY",
                        ieee80211w="2", scan_freq=freq)
         hapd.wait_sta()

@@ -205,7 +205,6 @@ def test_eht_sae(dev, apdev):
                        pairwise="GCMP-256", group="GCMP-256",
                        group_mgmt="BIP-GMAC-256", scan_freq="2412")
     finally:
-        dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
 
 def run_eht_sae_require_eht(dev, hapd):
@@ -233,7 +232,6 @@ def run_eht_sae_require_eht(dev, hapd):
         if "status_code=135" not in ev:
             raise Exception("Unexpected association rejection status: " + ev)
     finally:
-        dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
 
 def test_eht_sae_require_eht(dev, apdev):
@@ -259,7 +257,6 @@ def test_eht_sae_mlo(dev, apdev):
                        pairwise="GCMP-256", group="GCMP-256",
                        group_mgmt="BIP-GMAC-256", scan_freq="2412")
     finally:
-        dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
 
 def test_eht_sae_mlo_tm(dev, apdev):
@@ -286,9 +283,7 @@ def test_eht_sae_mlo_tm(dev, apdev):
                        group_mgmt="AES-128-CMAC", scan_freq="2412",
                        disable_eht="1")
     finally:
-        dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
-        dev[1].set("sae_groups", "")
 
 def test_eht_sae_mlo_anti_clogging_token(dev, apdev):
     """EHT+MLO AP with SAE and anti-clogging token"""
@@ -303,7 +298,6 @@ def test_eht_sae_mlo_anti_clogging_token(dev, apdev):
                        pairwise="GCMP-256", group="GCMP-256",
                        group_mgmt="BIP-GMAC-256", scan_freq="2412")
     finally:
-        dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
 
 def eht_mld_enable_ap(iface, link_id, params):
@@ -849,7 +843,6 @@ def test_eht_mld_sae_legacy_client(dev, apdev):
         hapd1 = eht_mld_enable_ap(hapd_iface, 1, params)
 
         try:
-            dev[0].set("sae_groups", "")
             dev[0].set("sae_pwe", "1")
             dev[0].connect(ssid, sae_password=passphrase, scan_freq="2412",
                            key_mgmt="SAE", ieee80211w="2", beacon_prot="1")
@@ -865,7 +858,6 @@ def test_eht_mld_sae_legacy_client(dev, apdev):
             eht_verify_status(dev[0], hapd0, 2412, 20, is_ht=True)
             traffic_test(dev[0], hapd0)
         finally:
-            dev[0].set("sae_groups", "")
             dev[0].set("sae_pwe", "0")
 
 def test_eht_mld_sae_transition(dev, apdev):
@@ -898,7 +890,6 @@ def test_eht_mld_sae_transition(dev, apdev):
         traffic_test(wpas, hapd0)
         traffic_test(wpas, hapd1)
 
-        dev[0].set("sae_groups", "")
         dev[0].connect(ssid, sae_password=passphrase, scan_freq="2412",
                        key_mgmt="SAE", ieee80211w="2", beacon_prot="1")
         dev[1].connect(ssid, psk=passphrase, scan_freq="2412",
@@ -1819,7 +1810,6 @@ def _test_eht_6ghz(dev, apdev, channel, op_class, ccfs1, stop=True):
             raise Exception("STATUS did not indicate ieee80211be=1")
 
         dev[0].set("sae_pwe", "1")
-        dev[0].set("sae_groups", "")
 
         freq = 5950 + channel * 5
         bw = _6ghz_op_class_to_bw(op_class)
@@ -2227,7 +2217,6 @@ def test_eht_mld_legacy_stas(dev, apdev):
         hapd0 = eht_mld_enable_ap(hapd_iface, 0, params)
 
         for i in range(3):
-            dev[i].set("sae_groups", "")
             dev[i].connect(ssid, sae_password=password, scan_freq="2412",
                            key_mgmt="SAE", ieee80211w="2", disable_eht="1")
         hapd0.wait_sta()
@@ -2959,7 +2948,6 @@ def test_eht_mld_no_common_key_mgmt(dev, apdev):
         hapd1 = eht_mld_enable_ap(hapd_iface, 1, params)
 
         scan_freq = "2412 2437"
-        wpas.set("sae_groups", "")
         wpas.connect(ssid, psk=passphrase, scan_freq=scan_freq,
                      key_mgmt="SAE SAE-EXT-KEY", sae_pwe='1', ieee80211w='2')
 
@@ -3210,7 +3198,6 @@ def test_eht_mld_and_autogo(dev, apdev):
 
 def eht_mld_preferred_bssid_connectivity(hapd0, hapd1, wpas, ssid, password,
                                          valid_links=3, bssid=None):
-    wpas.set("sae_groups", "")
     wpas.connect(ssid, sae_password=password, scan_freq="2412 2437",
                  key_mgmt="SAE", ieee80211w="2", beacon_prot="1",
                  bssid=bssid)

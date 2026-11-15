@@ -385,7 +385,6 @@ def test_mbo_cell_capa_update_sae(dev, apdev):
     if "OK" not in dev[0].request("SET mbo_cell_capa 1"):
         raise Exception("Failed to set STA as cellular data capable")
 
-    dev[0].set("sae_groups", "")
     dev[0].set("dot11RSNAConfigPMKLifetime", "10")
     dev[0].set("dot11RSNAConfigPMKReauthThreshold", "30")
     dev[0].connect(ssid, sae_password=password, key_mgmt="SAE",

@@ -10407,7 +10407,6 @@ def run_ap_wps_and_sae(dev, apdev):
 
     dev[0].flush_scan_cache()
     dev[0].set("wps_cred_add_sae", "1")
-    dev[0].request("SET sae_groups ")
     dev[0].scan_for_bss(apdev[0]['bssid'], freq="2412", force_scan=True)
     dev[0].request("WPS_PIN " + apdev[0]['bssid'] + " " + pin)
     dev[0].wait_connected(timeout=30)
@@ -10447,7 +10446,6 @@ def run_ap_wps_conf_and_sae(dev, apdev):
                            "rsn_pairwise": "CCMP"})
 
     dev[0].set("wps_cred_add_sae", "1")
-    dev[0].request("SET sae_groups ")
     dev[0].scan_for_bss(apdev[0]['bssid'], freq="2412")
     pin = dev[0].wps_read_pin()
     hapd.request("WPS_PIN any " + pin)
@@ -10483,7 +10481,6 @@ def run_ap_wps_conf_and_sae_h2e(dev, apdev):
 
     dev[0].set("wps_cred_add_sae", "1")
     dev[0].set("sae_pwe", "1")
-    dev[0].request("SET sae_groups ")
     dev[0].scan_for_bss(apdev[0]['bssid'], freq="2412")
     pin = dev[0].wps_read_pin()
     hapd.request("WPS_PIN any " + pin)
@@ -10514,7 +10511,6 @@ def run_ap_wps_conf_and_sae_mbo(dev, apdev):
                            "mbo": "1"})
 
     dev[0].set("wps_cred_add_sae", "1")
-    dev[0].set("sae_groups", "")
     dev[0].scan_for_bss(apdev[0]['bssid'], freq="2412")
     pin = dev[0].wps_read_pin()
     hapd.request("WPS_PIN any " + pin)
@@ -10538,7 +10534,6 @@ def run_ap_wps_reg_config_and_sae(dev, apdev):
     logger.info("WPS configuration step")
     dev[0].flush_scan_cache()
     dev[0].set("wps_cred_add_sae", "1")
-    dev[0].request("SET sae_groups ")
     dev[0].scan_for_bss(apdev[0]['bssid'], freq=2412)
     dev[0].dump_monitor()
     new_ssid = "wps-new-ssid"

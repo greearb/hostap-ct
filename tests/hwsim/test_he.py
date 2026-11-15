@@ -1208,7 +1208,6 @@ def test_he_6ghz(dev, apdev):
         hapd = hostapd.add_ap(apdev[0], params, set_channel=False)
         bssid = apdev[0]['bssid']
 
-        dev[0].set("sae_groups", "")
         dev[0].connect("he", sae_password="password", key_mgmt="SAE",
                        ieee80211w="2", scan_freq="5975")
         hwsim_utils.test_connectivity(dev[0], hapd)
@@ -1264,7 +1263,6 @@ def test_he_6ghz_auto_security(dev, apdev):
         hapd = hostapd.add_ap(apdev[0], params, set_channel=False)
         bssid = apdev[0]['bssid']
 
-        dev[0].set("sae_groups", "")
         dev[0].connect("he", psk="password", key_mgmt="SAE WPA-PSK",
                        ieee80211w="1", scan_freq="5975")
         status = dev[0].get_status()
@@ -1332,7 +1330,6 @@ def he_6ghz_acs(dev, apdev, op_class, bw):
         if bw == 20 and int(sec) != 0:
             raise Exception("Secondary channel set")
 
-        dev[0].set("sae_groups", "")
         dev[0].connect("he", sae_password="password", key_mgmt="SAE",
                        ieee80211w="2", scan_freq=freq)
         hwsim_utils.test_connectivity(dev[0], hapd)
@@ -1705,7 +1702,6 @@ def test_he_6ghz_reg(dev, apdev):
         hapd = hostapd.add_ap(apdev[0], params, set_channel=False)
 
         dev[0].set("sae_pwe", "1")
-        dev[0].set("sae_groups", "")
         dev[0].connect(ssid, sae_password="password", key_mgmt="SAE",
                        ieee80211w="2", scan_freq=str(freq))
         hapd.wait_sta()
@@ -1928,7 +1924,6 @@ def he_6ghz_incumbt_sig_intf(dev, apdev, ch_params, bitmap, expectation):
         bssid = apdev[0]['bssid']
 
         dev[0].set("sae_pwe", "1")
-        dev[0].set("sae_groups", "")
         dev[0].connect("he_incumbt_sig_intf", sae_password="password",
                        key_mgmt="SAE", ieee80211w="2", scan_freq="6195")
         hapd.wait_sta()
@@ -2006,7 +2001,6 @@ def he_6ghz_incumbt_sig_intf_bw_reduction(dev, apdev, ch_params, bitmap,
         bssid = apdev[0]['bssid']
 
         dev[0].set("sae_pwe", "1")
-        dev[0].set("sae_groups", "")
         dev[0].connect("he_incumbt_sig_intf", sae_password="password",
                        key_mgmt="SAE", ieee80211w="2", scan_freq="6195")
         hapd.wait_sta()

@@ -42,7 +42,6 @@ def test_rsn_override(dev, apdev):
             raise Exception("Unexpected BSS flags: " + flags)
 
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         dev[0].connect(ssid, sae_password="12345678", key_mgmt="SAE",
                        ieee80211w="2", scan_freq="2412")
     finally:
@@ -80,7 +79,6 @@ def test_rsn_override2(dev, apdev):
             raise Exception("Unexpected BSS flags: " + flags)
 
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         dev[0].connect(ssid, sae_password="12345678", key_mgmt="SAE",
                        ieee80211w="2", scan_freq="2412")
     finally:
@@ -108,7 +106,6 @@ def test_rsn_override_no_pairwise(dev, apdev):
         dev[0].set("rsn_overriding", "1")
         dev[0].scan_for_bss(bssid, freq=2412)
 
-        dev[0].set("sae_groups", "")
         dev[0].connect(ssid, psk="12345678", key_mgmt="WPA-PSK SAE",
                        pairwise="CCMP", ieee80211w="1", scan_freq="2412")
     finally:
@@ -277,7 +274,6 @@ def test_rsn_override_omit_rsnxe(dev, apdev):
         dev[0].set("rsn_overriding", "1")
         dev[0].scan_for_bss(bssid, freq=2412)
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         dev[0].connect(ssid, sae_password="12345678", key_mgmt="SAE",
                        ieee80211w="2", ssid_protection="1",
                        scan_freq="2412")
@@ -316,7 +312,6 @@ def test_rsn_override_replace_ies(dev, apdev):
         dev[0].set("rsn_overriding", "1")
         dev[0].scan_for_bss(bssid, freq=2412)
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         dev[0].connect(ssid, sae_password="12345678", key_mgmt="SAE",
                        ieee80211w="2", ssid_protection="1",
                        scan_freq="2412")
@@ -348,7 +343,6 @@ def test_rsn_override_rsnxe_extensibility(dev, apdev):
         dev[0].set("rsn_overriding", "1")
         dev[0].scan_for_bss(bssid, freq=2412)
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         dev[0].connect(ssid, sae_password="12345678", key_mgmt="SAE",
                        ieee80211w="2", ssid_protection="1",
                        scan_freq="2412")
@@ -364,7 +358,6 @@ def test_rsn_override_sta_only(dev, apdev):
     params['wpa_key_mgmt'] = 'SAE'
     hapd = hostapd.add_ap(apdev[0], params)
 
-    dev[0].set("sae_groups", "")
     try:
         dev[0].set("rsn_overriding", "1")
         dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE",
@@ -397,7 +390,6 @@ def test_rsn_override_compatibility_mode(dev, apdev):
         dev[0].set("rsn_overriding", "1")
         dev[0].scan_for_bss(bssid, freq=2412)
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         dev[0].connect(ssid, sae_password="12345678",
                        pairwise="GCMP-256", key_mgmt="SAE-EXT-KEY",
                        ieee80211w="2", scan_freq="2412")
@@ -463,7 +455,6 @@ def test_rsn_override_kdk_secure_ltf(dev, apdev):
 
     wpas.set("rsn_overriding", "1")
     wpas.set("sae_pwe", "2")
-    wpas.set("sae_groups", "")
     wpas.connect(ssid, sae_password="12345678", key_mgmt="SAE",
                  ieee80211w="2", scan_freq="2412")
 
@@ -490,7 +481,6 @@ def test_rsn_override_and_secprof(dev, apdev):
         enable_sta_security_profiles(dev[0], 9)
         dev[0].set("rsn_overriding", "1")
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         dev[0].connect(ssid, sae_password="12345678",
                        key_mgmt="SAE SAE-EXT-KEY",
                        ieee80211w="2", beacon_prot="1",

@@ -167,7 +167,6 @@ def test_he_ap_mbssid_same_security(dev, apdev, params):
 
     try:
         dev[0].set("sae_pwe", "1")
-        dev[0].set("sae_groups", "")
         sta_params = {"psk": "12345678", "key_mgmt": "SAE", "ieee80211w": "2",
                       "pairwise": "CCMP", "group": "CCMP", "scan_freq": "2412"}
         mbssid_start_ap(dev, apdev, params, fname, ifname, sta_params)
@@ -203,7 +202,6 @@ def test_he_ap_mbssid_mixed_security1(dev, apdev, params):
 
     try:
         dev[0].set("sae_pwe", "1")
-        dev[0].set("sae_groups", "")
         sta_params = {"psk": "12345678", "key_mgmt": "SAE", "ieee80211w": "2",
                       "pairwise": "CCMP", "group": "CCMP", "scan_freq": "2412"}
         mbssid_start_ap(dev, apdev, params, fname, ifname, sta_params)
@@ -263,7 +261,6 @@ def test_he_ap_mbssid_mixed_security3(dev, apdev, params):
 
     try:
         dev[0].set("sae_pwe", "1")
-        dev[0].set("sae_groups", "")
         sta_params = {"psk": "12345678", "key_mgmt": "WPA-PSK",
                       "pairwise": "CCMP", "group": "CCMP", "scan_freq": "2412"}
         sta_params2 = {"psk": "12345678", "key_mgmt": "SAE", "ieee80211w": "2",
@@ -297,7 +294,6 @@ def test_he_ap_mbssid_mixed_security4(dev, apdev, params):
         hapd, pid = mbssid_start_ap(dev, apdev, params, fname, ifname, None,
                                     only_start_ap=True)
         dev[0].set("sae_pwe", "1")
-        dev[0].set("sae_groups", "")
         dev[0].connect("bss-1", psk="12345678", key_mgmt="SAE", ieee80211w="2",
                        beacon_prot="1", scan_freq="2412")
         dev[1].connect("bss-0", psk="12345678", key_mgmt="WPA-PSK",
@@ -343,7 +339,6 @@ def test_he_ap_mbssid_single_ssid(dev, apdev, params):
 
     try:
         dev[0].set("sae_pwe", "1")
-        dev[0].set("sae_groups", "")
         sta_params = {"psk": "12345678", "key_mgmt": "WPA-PSK",
                       "pairwise": "CCMP", "group": "CCMP", "scan_freq": "2412"}
         sta_params2 = {"psk": "12345678", "key_mgmt": "SAE", "ieee80211w": "2",
@@ -374,7 +369,6 @@ def test_he_ap_mbssid_single_ssid_tm(dev, apdev, params):
     f.close()
 
     try:
-        dev[0].set("sae_groups", "")
         hapd, pid = mbssid_start_ap(dev, apdev, params, fname, ifname, None,
                                     single_ssid=True, only_start_ap=True)
         dev[0].connect("single", psk="12345678", key_mgmt="SAE WPA-PSK",
@@ -407,7 +401,6 @@ def test_he_ap_ema(dev, apdev, params):
 
     try:
         dev[0].set("sae_pwe", "1")
-        dev[0].set("sae_groups", "")
         sta_params = {"psk": "12345678", "key_mgmt": "SAE", "ieee80211w": "2",
                       "pairwise": "CCMP", "group": "CCMP", "scan_freq": "2412"}
         mbssid_start_ap(dev, apdev, params, fname, ifname, sta_params)
@@ -442,8 +435,6 @@ def run_mbssid_beacon_prot(dev, apdev, params, non_tx_first):
     mbssid_dump_config(fname)
 
     try:
-        dev[0].set("sae_groups", "")
-        dev[1].set("sae_groups", "")
         hapd, pid = mbssid_start_ap(dev, apdev, params, fname, ifname, None,
                                     only_start_ap=True)
         if non_tx_first:

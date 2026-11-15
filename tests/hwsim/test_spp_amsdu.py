@@ -125,7 +125,6 @@ def _run(dev, apdev, logdir, spp_amsdu, cipher=''):
     elif cipher == 'TKIP':
         dev.connect(ssid, psk=wpa_passphrase, pairwise=cipher, group=cipher)
     else:
-        dev.set("sae_groups", "")
         dev.connect(ssid, key_mgmt='SAE', psk=wpa_passphrase, pairwise=cipher,
                     group=cipher, ieee80211w='1')
     hapd.wait_sta()

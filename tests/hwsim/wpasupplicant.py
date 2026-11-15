@@ -33,6 +33,7 @@ class WpaSupplicant:
         self.host = remotehost.Host(hostname, ifname)
         self._group_dbg = None
         self.remote_cli = remote_cli
+        self.sae_groups_set = False
         if ifname:
             self.set_ifname(ifname, hostname, port)
             res = self.get_driver_status()
@@ -312,6 +313,8 @@ class WpaSupplicant:
         res = self.request("FLUSH")
         if "OK" not in res:
             logger.info("FLUSH to " + self.ifname + " failed: " + res)
+        if self.sae_groups_set:
+            self.set("sae_groups", "")
         self.global_request("REMOVE_NETWORK all")
         self.global_request("SET p2p_no_group_iface 1")
         self.global_request("P2P_FLUSH")
@@ -356,6 +359,8 @@ class WpaSupplicant:
             if allow_fail:
                 return
             raise Exception("Failed to set wpa_supplicant parameter " + field)
+        if field == "sae_groups":
+            self.sae_groups_set = len(value) > 0
 
     def add_network(self):
         id = self.request("ADD_NETWORK")

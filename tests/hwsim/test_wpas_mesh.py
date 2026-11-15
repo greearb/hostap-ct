@@ -397,11 +397,9 @@ def add_mesh_secure_net(dev, psk=True, pmf=False, pairwise=None, group=None,
 def test_wpas_mesh_secure(dev, apdev):
     """wpa_supplicant secure MESH network connectivity"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0])
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1])
     dev[1].mesh_group_add(id)
 
@@ -417,11 +415,9 @@ def test_wpas_mesh_secure(dev, apdev):
 def test_wpas_mesh_secure_sae_password(dev, apdev):
     """wpa_supplicant secure mesh using sae_password"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0], psk=False, sae_password=True)
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1])
     dev[1].mesh_group_add(id)
 
@@ -430,11 +426,9 @@ def test_wpas_mesh_secure_sae_password(dev, apdev):
 def test_mesh_secure_pmf(dev, apdev):
     """Secure mesh network connectivity with PMF enabled"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0], pmf=True)
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1], pmf=True)
     dev[1].mesh_group_add(id)
 
@@ -443,10 +437,8 @@ def test_mesh_secure_pmf(dev, apdev):
 def test_mesh_secure_ocv(dev, apdev):
     """Secure mesh network connectivity with OCV enabled"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0], pmf=True, ocv=True)
     dev[0].mesh_group_add(id)
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1], pmf=True, ocv=True)
     dev[1].mesh_group_add(id)
 
@@ -455,10 +447,8 @@ def test_mesh_secure_ocv(dev, apdev):
 def test_mesh_secure_ocv_compat(dev, apdev):
     """Secure mesh network where only one peer has OCV enabled"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0], pmf=True, ocv=True)
     dev[0].mesh_group_add(id)
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1], pmf=True, ocv=False)
     dev[1].mesh_group_add(id)
 
@@ -494,7 +484,6 @@ def run_mesh_secure_ocv_mix_legacy(dev, apdev):
     check_mesh_support(dev[0], secure=True)
     dev[0].set("country", "AZ")
 
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0], pmf=True, ocv=True)
     dev[0].set_network(id, "frequency", "5200")
     dev[0].set_network(id, "max_oper_chwidth", "2")
@@ -502,7 +491,6 @@ def run_mesh_secure_ocv_mix_legacy(dev, apdev):
     check_dfs_started(dev[0])
     check_dfs_finished(dev[0])
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1], pmf=True, ocv=True)
     dev[1].set_network(id, "frequency", "5200")
     dev[1].set_network(id, "disable_vht", "1")
@@ -522,7 +510,6 @@ def run_mesh_secure_ocv_mix_ht(dev, apdev):
     check_mesh_support(dev[0], secure=True)
     dev[0].set("country", "AZ")
 
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0], pmf=True, ocv=True)
     dev[0].set_network(id, "frequency", "5200")
     dev[0].set_network(id, "max_oper_chwidth", "2")
@@ -530,7 +517,6 @@ def run_mesh_secure_ocv_mix_ht(dev, apdev):
     check_dfs_started(dev[0])
     check_dfs_finished(dev[0])
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1], pmf=True, ocv=True)
     dev[1].set_network(id, "frequency", "5200")
     dev[1].set_network(id, "disable_vht", "1")
@@ -542,12 +528,10 @@ def run_mesh_secure(dev, cipher, pmf=False, group_mgmt=None):
     if cipher not in dev[0].get_capability("pairwise"):
         raise HwsimSkip("Cipher %s not supported" % cipher)
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0], pairwise=cipher, group=cipher, pmf=pmf,
                              group_mgmt=group_mgmt)
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1], pairwise=cipher, group=cipher, pmf=pmf,
                              group_mgmt=group_mgmt)
     dev[1].mesh_group_add(id)
@@ -590,7 +574,6 @@ def test_mesh_secure_invalid_pairwise_cipher(dev, apdev):
     """Secure mesh and invalid group cipher"""
     check_mesh_support(dev[0], secure=True)
     skip_without_tkip(dev[0])
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0], pairwise="TKIP", group="CCMP")
     if dev[0].mesh_group_add(id) != None:
         raise Exception("Unexpected group add success")
@@ -602,7 +585,6 @@ def test_mesh_secure_invalid_group_cipher(dev, apdev):
     """Secure mesh and invalid group cipher"""
     skip_without_tkip(dev[0])
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0], pairwise="CCMP", group="TKIP")
     if dev[0].mesh_group_add(id) != None:
         raise Exception("Unexpected group add success")
@@ -617,15 +599,15 @@ def test_wpas_mesh_secure_sae_group_mismatch(dev, apdev):
     addr1 = dev[1].p2p_interface_addr()
     addr2 = dev[2].p2p_interface_addr()
 
-    dev[0].request("SET sae_groups 19 25")
+    dev[0].set("sae_groups", "19 25")
     id = add_mesh_secure_net(dev[0])
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups 19")
+    dev[1].set("sae_groups", "19")
     id = add_mesh_secure_net(dev[1])
     dev[1].mesh_group_add(id)
 
-    dev[2].request("SET sae_groups 20")
+    dev[2].set("sae_groups", "20")
     id = add_mesh_secure_net(dev[2])
     dev[2].mesh_group_add(id)
 
@@ -657,29 +639,22 @@ def test_wpas_mesh_secure_sae_group_mismatch(dev, apdev):
     if ev is not None:
         raise Exception("Unexpected peer connection: " + ev)
 
-    dev[0].request("SET sae_groups ")
-    dev[1].request("SET sae_groups ")
-    dev[2].request("SET sae_groups ")
-
 def test_wpas_mesh_secure_sae_group_negotiation(dev, apdev):
     """wpa_supplicant secure MESH and SAE group negotiation"""
     check_mesh_support(dev[0], secure=True)
     addr0 = dev[0].own_addr()
     addr1 = dev[1].own_addr()
 
-    #dev[0].request("SET sae_groups 21 20 25 26")
-    dev[0].request("SET sae_groups 20")
+    #dev[0].set("sae_groups", "21 20 25 26")
+    dev[0].set("sae_groups", "20")
     id = add_mesh_secure_net(dev[0])
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups 19 20")
+    dev[1].set("sae_groups", "19 20")
     id = add_mesh_secure_net(dev[1])
     dev[1].mesh_group_add(id)
 
     check_mesh_joined_connected(dev)
-
-    dev[0].request("SET sae_groups ")
-    dev[1].request("SET sae_groups ")
 
 def test_wpas_mesh_secure_sae_missing_password(dev, apdev):
     """wpa_supplicant secure MESH and missing SAE password"""
@@ -700,30 +675,25 @@ def test_wpas_mesh_secure_sae_missing_password(dev, apdev):
 def test_wpas_mesh_secure_no_auto(dev, apdev):
     """wpa_supplicant secure MESH network connectivity"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups 19")
+    dev[0].set("sae_groups", "19")
     id = add_mesh_secure_net(dev[0])
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups 19")
+    dev[1].set("sae_groups", "19")
     id = add_mesh_secure_net(dev[1])
     dev[1].set_network(id, "no_auto_peer", "1")
     dev[1].mesh_group_add(id)
 
     check_mesh_joined_connected(dev, connectivity=True)
 
-    dev[0].request("SET sae_groups ")
-    dev[1].request("SET sae_groups ")
-
 def test_wpas_mesh_secure_dropped_frame(dev, apdev):
     """Secure mesh network connectivity when the first plink Open is dropped"""
     check_mesh_support(dev[0], secure=True)
 
     dev[0].request("SET ext_mgmt_frame_handling 1")
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0])
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1])
     dev[1].mesh_group_add(id)
 
@@ -753,11 +723,9 @@ def test_wpas_mesh_secure_dropped_frame(dev, apdev):
 def test_mesh_secure_fail(dev, apdev):
     """Secure mesh network connectivity failure"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0], pmf=True)
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1], pmf=True)
 
     with fail_test(dev[0], 1, "wpa_driver_nl80211_sta_add;mesh_mpm_auth_peer"):
@@ -1320,15 +1288,12 @@ def _test_mesh_open_vht_160(dev, apdev):
 def test_wpas_mesh_password_mismatch(dev, apdev):
     """Mesh network and one device with mismatching password"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0])
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1])
     dev[1].mesh_group_add(id)
 
-    dev[2].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[2])
     dev[2].set_network_quoted(id, "psk", "wrong password")
     dev[2].mesh_group_add(id)
@@ -1380,11 +1345,9 @@ def test_wpas_mesh_password_mismatch(dev, apdev):
 def test_wpas_mesh_password_mismatch_retry(dev, apdev):
     """Mesh password mismatch and retry"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0])
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1])
     dev[1].set_network_quoted(id, "psk", "wrong password")
     dev[1].mesh_group_add(id)
@@ -1409,7 +1372,6 @@ def test_wpas_mesh_password_mismatch_retry(dev, apdev):
 def test_mesh_wpa_auth_init_oom(dev, apdev):
     """Secure mesh network setup failing due to wpa_init() OOM"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
     with alloc_fail(dev[0], 1, "wpa_init"):
         id = add_mesh_secure_net(dev[0])
         dev[0].mesh_group_add(id)
@@ -1422,7 +1384,6 @@ def test_mesh_wpa_init_fail(dev, apdev):
     check_mesh_support(dev[0], secure=True)
     check_mesh_support(dev[1], secure=True)
     check_mesh_support(dev[2], secure=True)
-    dev[0].request("SET sae_groups ")
 
     with fail_test(dev[0], 1, "os_get_random;=__mesh_rsn_auth_init"):
         id = add_mesh_secure_net(dev[0])
@@ -1439,7 +1400,6 @@ def test_mesh_wpa_init_fail(dev, apdev):
     with fail_test(dev[0], 1, "os_get_random;mesh_rsn_init_ampe_sta"):
         id = add_mesh_secure_net(dev[0])
         dev[0].mesh_group_add(id)
-        dev[1].request("SET sae_groups ")
         id = add_mesh_secure_net(dev[1])
         dev[1].mesh_group_add(id)
         wait_fail_trigger(dev[0], "GET_FAIL")
@@ -1447,7 +1407,6 @@ def test_mesh_wpa_init_fail(dev, apdev):
     with fail_test(dev[0], 2, "=omac1_aes_vector;aes_siv_encrypt"):
         id = add_mesh_secure_net(dev[2])
         dev[0].mesh_group_add(id)
-        dev[2].request("SET sae_groups ")
         id = add_mesh_secure_net(dev[2])
         dev[2].mesh_group_add(id)
         wait_fail_trigger(dev[0], "GET_FAIL")
@@ -1462,11 +1421,9 @@ def test_wpas_mesh_reconnect(dev, apdev):
 
 def _test_wpas_mesh_reconnect(dev):
     dev[0].request("SET max_peer_links 2")
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0])
     dev[0].set_network(id, "beacon_int", "100")
     dev[0].mesh_group_add(id)
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1])
     dev[1].mesh_group_add(id)
     check_mesh_joined_connected(dev)
@@ -1544,11 +1501,9 @@ def test_wpas_mesh_gate_forwarding(dev, apdev, p):
 def test_wpas_mesh_pmksa_caching(dev, apdev):
     """Secure mesh network and PMKSA caching"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0])
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1])
     dev[1].mesh_group_add(id)
 
@@ -1578,12 +1533,10 @@ def test_wpas_mesh_pmksa_caching2(dev, apdev):
     check_mesh_support(dev[0], secure=True)
     addr0 = dev[0].own_addr()
     addr1 = dev[1].own_addr()
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0])
     dev[0].set_network(id, "no_auto_peer", "1")
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1])
     dev[1].set_network(id, "no_auto_peer", "1")
     dev[1].mesh_group_add(id)
@@ -1634,12 +1587,10 @@ def test_wpas_mesh_pmksa_caching_no_match(dev, apdev):
     check_mesh_support(dev[0], secure=True)
     addr0 = dev[0].own_addr()
     addr1 = dev[1].own_addr()
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0])
     dev[0].set_network(id, "no_auto_peer", "1")
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1])
     dev[1].set_network(id, "no_auto_peer", "1")
     dev[1].mesh_group_add(id)
@@ -1690,12 +1641,10 @@ def test_mesh_pmksa_caching_oom(dev, apdev):
     check_mesh_support(dev[0], secure=True)
     addr0 = dev[0].own_addr()
     addr1 = dev[1].own_addr()
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0])
     dev[0].set_network(id, "no_auto_peer", "1")
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1])
     dev[1].set_network(id, "no_auto_peer", "1")
     dev[1].mesh_group_add(id)
@@ -1728,11 +1677,9 @@ def test_mesh_pmksa_caching_oom(dev, apdev):
 def test_wpas_mesh_pmksa_caching_ext(dev, apdev):
     """Secure mesh network and PMKSA caching and external storage"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0])
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1])
     dev[1].mesh_group_add(id)
 
@@ -1823,7 +1770,6 @@ def test_wpas_mesh_pmksa_caching_ext(dev, apdev):
 def test_mesh_oom(dev, apdev):
     """Mesh network setup failing due to OOM"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
 
     with alloc_fail(dev[0], 1, "mesh_config_create"):
         add_open_mesh_network(dev[0])
@@ -1900,7 +1846,6 @@ def test_mesh_scan_oom(dev):
 def test_mesh_drv_fail(dev, apdev):
     """Mesh network setup failing due to driver command failure"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].request("SET sae_groups ")
 
     with fail_test(dev[0], 1, "nl80211_join_mesh"):
         add_open_mesh_network(dev[0])
@@ -1924,11 +1869,11 @@ def test_mesh_sae_groups_invalid(dev, apdev):
     """Mesh with invalid SAE group configuration"""
     check_mesh_support(dev[0], secure=True)
 
-    dev[0].request("SET sae_groups 20")
+    dev[0].set("sae_groups", "20")
     id = add_mesh_secure_net(dev[0])
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups 123 122 121")
+    dev[1].set("sae_groups", "123 122 121")
     id = add_mesh_secure_net(dev[1])
     dev[1].mesh_group_add(id)
 
@@ -1953,7 +1898,6 @@ def test_mesh_sae_groups_invalid(dev, apdev):
     # wpa_s->mesh_rsn->sae_group_index.
     dev[0].dump_monitor()
     dev[1].dump_monitor()
-    dev[2].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[2])
     dev[2].mesh_group_add(id)
     check_mesh_group_added(dev[2])
@@ -1966,16 +1910,9 @@ def test_mesh_sae_groups_invalid(dev, apdev):
     dev[1].dump_monitor()
     dev[2].dump_monitor()
 
-    dev[0].request("SET sae_groups ")
-    dev[1].request("SET sae_groups ")
-    dev[2].request("SET sae_groups ")
-
 def test_mesh_sae_failure(dev, apdev):
     """Mesh and local SAE failures"""
     check_mesh_support(dev[0], secure=True)
-
-    dev[0].request("SET sae_groups ")
-    dev[1].request("SET sae_groups ")
 
     funcs = [(1, "=mesh_rsn_auth_sae_sta", True),
              (1, "mesh_rsn_build_sae_commit;mesh_rsn_auth_sae_sta", False),
@@ -2089,11 +2026,9 @@ def test_mesh_missing_mic(dev, apdev):
     check_mesh_support(dev[0], secure=True)
 
     dev[0].request("SET ext_mgmt_frame_handling 1")
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0])
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1])
     dev[1].mesh_group_add(id)
 
@@ -2136,12 +2071,10 @@ def test_mesh_pmkid_mismatch(dev, apdev):
     check_mesh_support(dev[0], secure=True)
     addr0 = dev[0].own_addr()
     addr1 = dev[1].own_addr()
-    dev[0].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[0])
     dev[0].set_network(id, "no_auto_peer", "1")
     dev[0].mesh_group_add(id)
 
-    dev[1].request("SET sae_groups ")
     id = add_mesh_secure_net(dev[1])
     dev[1].set_network(id, "no_auto_peer", "1")
     dev[1].mesh_group_add(id)
@@ -2533,7 +2466,6 @@ def test_mesh_forwarding_secure(dev):
         set_group_map(dev[1], 3)
         set_group_map(dev[2], 2)
         for i in range(3):
-            dev[i].request("SET sae_groups ")
             id = add_mesh_secure_net(dev[i])
             dev[i].mesh_group_add(id)
             check_mesh_group_added(dev[i])
@@ -2564,7 +2496,7 @@ def run_mesh_sae_anti_clogging(dev, apdev):
     sock = start_monitor(apdev[1]["ifname"])
     radiotap = radiotap_build()
 
-    dev[0].request("SET sae_groups 21")
+    dev[0].set("sae_groups", "21")
     id = add_mesh_secure_net(dev[0])
     dev[0].mesh_group_add(id)
     check_mesh_group_added(dev[0])
@@ -2577,7 +2509,7 @@ def run_mesh_sae_anti_clogging(dev, apdev):
         frame = build_sae_commit(addr0, addr)
         sock.send(radiotap + frame)
 
-    dev[1].request("SET sae_groups 21")
+    dev[1].set("sae_groups", "21")
     id = add_mesh_secure_net(dev[1])
     dev[1].mesh_group_add(id)
     check_mesh_group_added(dev[1])
@@ -2599,7 +2531,7 @@ def run_mesh_sae_anti_clogging(dev, apdev):
         frame = build_sae_commit(addr0, addr)
         sock.send(radiotap + frame)
 
-    dev[2].request("SET sae_groups 21")
+    dev[2].set("sae_groups", "21")
     id = add_mesh_secure_net(dev[2])
     dev[2].mesh_group_add(id)
     check_mesh_group_added(dev[2])
@@ -2646,11 +2578,9 @@ def test_mesh_link_probe(dev, apdev, params):
 def test_wpas_mesh_sae_inject(dev, apdev):
     """wpa_supplicant secure mesh and injected SAE messages"""
     check_mesh_support(dev[0], secure=True)
-    dev[0].set("sae_groups", "")
     add_mesh_secure_net(dev[0])
     dev[0].mesh_group_add(id)
 
-    dev[1].set("sae_groups", "")
     add_mesh_secure_net(dev[1])
     dev[1].mesh_group_add(id)
 
@@ -2681,13 +2611,11 @@ def test_wpas_mesh_secure_6ghz_320(dev, apdev):
         # CA enables 320 MHz channels without NO-IR restriction
         set_reg(dev, 'CA')
 
-        dev[0].set("sae_groups", "")
         id = add_mesh_secure_net(dev[0])
         dev[0].set_network(id, "frequency", "5975")
         dev[0].set_network(id, "max_oper_chwidth", "9")
         dev[0].mesh_group_add(id)
 
-        dev[1].set("sae_groups", "")
         id = add_mesh_secure_net(dev[1])
         dev[1].set_network(id, "frequency", "5975")
         dev[1].set_network(id, "max_oper_chwidth", "9")

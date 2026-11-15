@@ -192,7 +192,6 @@ def _test_afc(dev, apdev, freq_info, chan_info, channel, op_class, ccfs1):
             raise Exception("Unexpected frequency: " + freq)
 
         dev[0].set("sae_pwe", "1")
-        dev[0].set("sae_groups", "")
 
         dev[0].connect("AFC", key_mgmt="SAE", sae_password="password",
                        ieee80211w="2", scan_freq=freq)

@@ -113,7 +113,6 @@ def test_dpp_tcp_pkex(dev, apdev, params):
 def run_dpp_tcp_pkex_auto_connect_2(dev, apdev, params, status, start_ap=True):
     check_dpp_capab(dev[0], min_ver=3)
     check_sae_capab(dev[0])
-    dev[0].set("sae_groups", "")
 
     cap_lo = params['prefix'] + ".lo.pcap"
 
@@ -194,7 +193,6 @@ def run_dpp_tcp_pkex_while_associated(dev, apdev, params, status):
     hapd2 = hostapd.add_ap(apdev[1], params)
 
     dev[0].set("dpp_config_processing", "2")
-    dev[0].set("sae_groups", "")
     dev[0].connect("current", psk="password", key_mgmt="SAE", ieee80211w="2",
                    scan_freq="2412")
     run_dpp_tcp_pkex(dev[0], dev[1], cap_lo, sae=True, status=status)
@@ -292,7 +290,6 @@ def test_dpp_push_button(dev, apdev):
     """DPP push button"""
     check_dpp_capab(dev[0], min_ver=3)
     check_sae_capab(dev[0])
-    dev[0].set("sae_groups", "")
 
     hapd = dpp_pb_ap(apdev[0])
     try:
@@ -340,7 +337,6 @@ def test_dpp_push_button_session_overlap_sta(dev, apdev):
     """DPP push button and session overlap detected by STA"""
     check_dpp_capab(dev[0], min_ver=3)
     check_sae_capab(dev[0])
-    dev[0].set("sae_groups", "")
 
     hapd = dpp_pb_ap(apdev[0])
     params = {"ssid": "another",
@@ -382,7 +378,6 @@ def test_dpp_push_button_session_overlap_ap(dev, apdev):
     check_dpp_capab(dev[1], min_ver=3)
     check_sae_capab(dev[0])
     check_sae_capab(dev[1])
-    dev[0].set("sae_groups", "")
 
     hapd = dpp_pb_ap(apdev[0])
 
@@ -436,8 +431,6 @@ def test_dpp_push_button_2sta(dev, apdev):
     check_dpp_capab(dev[1], min_ver=3)
     check_sae_capab(dev[0])
     check_sae_capab(dev[1])
-    dev[0].set("sae_groups", "")
-    dev[1].set("sae_groups", "")
 
     hapd = dpp_pb_ap(apdev[0])
     try:
@@ -475,7 +468,6 @@ def test_dpp_push_button_r_hash_mismatch_sta(dev, apdev):
     """DPP push button - Responder hash mismatch from STA"""
     check_dpp_capab(dev[0], min_ver=3)
     check_sae_capab(dev[0])
-    dev[0].set("sae_groups", "")
 
     hapd = dpp_pb_ap(apdev[0])
     if "OK" not in hapd.request("DPP_PUSH_BUTTON"):
@@ -492,7 +484,6 @@ def test_dpp_push_button_i_hash_mismatch_ap(dev, apdev):
     """DPP push button - Initiator hash mismatch from AP"""
     check_dpp_capab(dev[0], min_ver=3)
     check_sae_capab(dev[0])
-    dev[0].set("sae_groups", "")
 
     hapd = dpp_pb_ap(apdev[0])
     hapd.set("dpp_test", "99")
@@ -508,7 +499,6 @@ def test_dpp_push_button_r_hash_mismatch_ap(dev, apdev):
     """DPP push button - Responder hash mismatch from AP"""
     check_dpp_capab(dev[0], min_ver=3)
     check_sae_capab(dev[0])
-    dev[0].set("sae_groups", "")
 
     hapd = dpp_pb_ap(apdev[0])
     hapd.set("dpp_test", "100")
@@ -583,7 +573,6 @@ def test_dpp_push_button_tx_wait_cancel(dev, apdev):
     # channels in the pre-discovery scan.
     check_dpp_capab(dev[0], min_ver=3)
     check_sae_capab(dev[0])
-    dev[0].set("sae_groups", "")
 
     hapd = dpp_pb_ap(apdev[0])
     try:

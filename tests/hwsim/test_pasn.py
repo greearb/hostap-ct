@@ -358,7 +358,6 @@ def test_pasn_sae_kdk(dev, apdev):
         hapd = start_pasn_ap(apdev[0], params)
 
         dev[0].set("force_kdk_derivation", "1")
-        dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "2")
         dev[0].connect("test-sae", psk="12345678", key_mgmt="SAE",
                        scan_freq="2412")
@@ -387,7 +386,6 @@ def test_pasn_sae_kdk_ft(dev, apdev):
         hapd = start_pasn_ap(apdev[0], params)
 
         dev[0].set("force_kdk_derivation", "1")
-        dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "2")
         dev[0].connect("test-sae", psk="12345678", key_mgmt="FT-SAE",
                        scan_freq="2412")
@@ -1041,7 +1039,6 @@ def run_pasn_sae_kdk_secure_ltf(dev, apdev, ap_secure_ltf, sta_secure_ltf):
     check_sae_capab(wpas)
 
     try:
-        wpas.set("sae_groups", "")
         wpas.set("sae_pwe", "2")
         wpas.connect("test-sae", psk="12345678", key_mgmt="SAE",
                      scan_freq="2412")

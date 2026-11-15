@@ -114,14 +114,12 @@ def test_uhr_required_not_supported(dev, apdev):
             raise Exception("AP STATUS did not indicate ieee80211bn=1")
         ev = None
         try:
-            dev[0].set("sae_groups", "")
             dev[0].set("sae_pwe", "1")
             dev[0].connect("uhr", key_mgmt="SAE", sae_password=passphrase,
                            ieee80211w="2", scan_freq="2412",
                            disable_uhr="1", wait_connect=False)
             ev = dev[0].wait_event(["CTRL-EVENT-CONNECTED"], timeout=10)
         finally:
-            dev[0].set("sae_groups", "")
             dev[0].set("sae_pwe", "0")
 
         if ev:

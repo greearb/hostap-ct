@@ -912,7 +912,6 @@ def test_wpas_ap_sae_pwe_1(dev):
 def run_wpas_ap_sae(dev, sae_password, sae_password_id=False, pmf=0):
     check_sae_capab(dev[0])
     check_sae_capab(dev[1])
-    dev[0].request("SET sae_groups ")
     id = dev[0].add_network()
     dev[0].set_network(id, "mode", "2")
     dev[0].set_network_quoted(id, "ssid", "wpas-ap-sae")
@@ -935,7 +934,6 @@ def run_wpas_ap_sae(dev, sae_password, sae_password_id=False, pmf=0):
     dev[0].select_network(id)
     wait_ap_ready(dev[0])
 
-    dev[1].request("SET sae_groups ")
     dev[1].connect("wpas-ap-sae", key_mgmt="SAE", sae_password="12345678",
                    sae_password_id=pw_id, scan_freq="2412", ieee80211w=str(pmf))
 
@@ -980,7 +978,6 @@ def test_wpas_ap_sae_and_psk_transition_disable(dev):
     """wpa_supplicant AP mode - SAE+PSK transition disable indication"""
     check_sae_capab(dev[0])
     check_sae_capab(dev[1])
-    dev[0].set("sae_groups", "")
     id = dev[0].add_network()
     dev[0].set_network(id, "mode", "2")
     dev[0].set_network_quoted(id, "ssid", "wpas-ap-sae")
@@ -997,7 +994,6 @@ def test_wpas_ap_sae_and_psk_transition_disable(dev):
     dev[0].select_network(id)
     wait_ap_ready(dev[0])
 
-    dev[1].set("sae_groups", "")
     dev[1].connect("wpas-ap-sae", key_mgmt="SAE WPA-PSK",
                    psk="12345678", ieee80211w="1",
                    scan_freq="2412", wait_connect=False)

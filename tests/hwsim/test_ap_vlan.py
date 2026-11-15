@@ -817,7 +817,6 @@ def test_ap_vlan_sae(dev, apdev, params):
     hapd = start_ap_vlan_sae(apdev[0])
 
     for i in range(3):
-        dev[i].request("SET sae_groups ")
         dev[i].connect("test-sae-vlan", sae_password="pw%d" % (i + 1),
                        sae_password_id="id%d" % (i + 1),
                        key_mgmt="SAE", scan_freq="2412")
@@ -850,7 +849,6 @@ def test_ap_vlan_sae_group_rekey(dev, apdev, params):
     check_sae_capab(dev[0])
     hapd = start_ap_vlan_sae(apdev[0])
 
-    dev[0].set("sae_groups", "")
     dev[0].connect("test-sae-vlan", sae_password="pw1",
                        sae_password_id="id1",
                        key_mgmt="SAE", scan_freq="2412")

@@ -929,7 +929,6 @@ def test_sigma_dut_ap_sae(dev, apdev, params):
         dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,WPA2-SAE,PSK,12345678")
         dut.cmd_check("ap_config_commit,NAME,AP")
 
-        dev[0].request("SET sae_groups ")
         id = dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
                             ieee80211w="2", scan_freq="2412")
         if dev[0].get_status_field('sae_group') != '19':
@@ -954,7 +953,6 @@ def test_sigma_dut_ap_sae_confirm_immediate(dev, apdev, params):
         dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,WPA2-SAE,PSK,12345678,SAE_Confirm_Immediate,enable")
         dut.cmd_check("ap_config_commit,NAME,AP")
 
-        dev[0].request("SET sae_groups ")
         dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
                        ieee80211w="2", scan_freq="2412")
         if dev[0].get_status_field('sae_group') != '19':
@@ -972,7 +970,6 @@ def test_sigma_dut_ap_sae_password(dev, apdev, params):
         dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,WPA2-SAE,PSK," + 100*'C')
         dut.cmd_check("ap_config_commit,NAME,AP")
 
-        dev[0].request("SET sae_groups ")
         dev[0].connect("test-sae", key_mgmt="SAE", sae_password=100*'C',
                        ieee80211w="2", scan_freq="2412")
         if dev[0].get_status_field('sae_group') != '19':
@@ -996,7 +993,6 @@ def test_sigma_dut_ap_sae_pw_id(dev, apdev, params):
              open(conffile, "wb") as f2:
             f2.write(f.read())
 
-        dev[0].request("SET sae_groups ")
         tests = [("pw1", "id1"),
                  ("pw2", "id2"),
                  ("pw3", None),
@@ -1032,7 +1028,6 @@ def test_sigma_dut_ap_sae_pw_id_pwe_loop(dev, apdev, params):
              open(conffile, "wb") as f2:
             f2.write(f.read())
 
-        dev[0].set("sae_groups", "")
         dev[0].connect("test-sae", key_mgmt="SAE", sae_password="12345678",
                        sae_password_id="pwid",
                        ieee80211w="2", scan_freq="2412", wait_connect=False)
@@ -1062,7 +1057,6 @@ def test_sigma_dut_ap_sae_pw_id_ft(dev, apdev, params):
              open(conffile, "wb") as f2:
             f2.write(f.read())
 
-        dev[0].request("SET sae_groups ")
         tests = [("pw1", "id1", "SAE"),
                  ("pw2", "id2", "FT-SAE"),
                  ("pw3", None, "FT-SAE"),
@@ -1092,7 +1086,6 @@ def test_sigma_dut_ap_sae_group(dev, apdev, params):
         dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,WPA2-SAE,PSK,12345678,ECGroupID,20")
         dut.cmd_check("ap_config_commit,NAME,AP")
 
-        dev[0].request("SET sae_groups ")
         dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
                        ieee80211w="2", scan_freq="2412")
         if dev[0].get_status_field('sae_group') != '20':
@@ -1110,10 +1103,8 @@ def test_sigma_dut_ap_psk_sae(dev, apdev, params):
         dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,WPA2-PSK-SAE,PSK,12345678")
         dut.cmd_check("ap_config_commit,NAME,AP")
 
-        dev[2].request("SET sae_groups ")
         dev[2].connect("test-sae", key_mgmt="SAE", psk="12345678",
                        scan_freq="2412", ieee80211w="0", wait_connect=False)
-        dev[0].request("SET sae_groups ")
         dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
                        scan_freq="2412", ieee80211w="2")
         dev[1].connect("test-sae", psk="12345678", scan_freq="2412")
@@ -1143,7 +1134,6 @@ def test_sigma_dut_ap_psk_sae_ft(dev, apdev, params):
              open(conffile, "wb") as f2:
             f2.write(f.read())
 
-        dev[0].request("SET sae_groups ")
         dev[0].connect("test-sae-psk", key_mgmt="SAE FT-SAE",
                        sae_password="12345678", scan_freq="2412")
         dev[1].connect("test-sae-psk", key_mgmt="WPA-PSK FT-PSK",
@@ -1858,7 +1848,6 @@ def test_sigma_dut_dpp_qr_init_enrollee_sae(dev, apdev):
 
     with SigmaDut(dev=dev[0]) as dut:
         dev[0].set("dpp_config_processing", "2")
-        dev[0].set("sae_groups", "")
 
         cmd = "DPP_CONFIGURATOR_ADD"
         res = dev[1].request(cmd)
@@ -2607,7 +2596,6 @@ def run_sigma_dut_ap_dpp_qr(dev, apdev, params, ap_conf, sta_conf, extra="",
 
             id0b = dev[0].dpp_qr_code(uri1)
 
-            dev[1].set("sae_groups", "")
             dev[1].set("dpp_config_processing", "2")
             cmd = "DPP_LISTEN 2412"
             if "OK" not in dev[1].request(cmd):
@@ -4175,7 +4163,6 @@ def test_sigma_dut_dpp_pb_ap(dev, apdev, params):
         dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,WPA2-SAE,PSK,12345678")
         dut.cmd_check("ap_config_commit,NAME,AP")
 
-        dev[0].set("sae_groups", "")
         dev[0].set("dpp_config_processing", "2")
         if "OK" not in dev[0].request("DPP_PUSH_BUTTON"):
             raise Exception("Failed to press push button on the STA")
@@ -4893,7 +4880,6 @@ def test_sigma_dut_ap_sae_h2e(dev, apdev, params):
             dut.cmd_check("ap_config_commit,NAME,AP")
 
             for sae_pwe in [0, 1, 2]:
-                dev[0].request("SET sae_groups ")
                 dev[0].set("sae_pwe", str(sae_pwe))
                 dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
                                ieee80211w="2", scan_freq="2412")
@@ -4916,7 +4902,6 @@ def test_sigma_dut_ap_sae_h2e_only(dev, apdev, params):
             dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,WPA2-SAE,PSK,12345678,sae_pwe,h2e")
             dut.cmd_check("ap_config_commit,NAME,AP")
 
-            dev[0].request("SET sae_groups ")
             dev[0].set("sae_pwe", "1")
             dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
                            ieee80211w="2", scan_freq="2412")
@@ -4948,7 +4933,6 @@ def test_sigma_dut_ap_sae_loop_only(dev, apdev, params):
             dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,WPA2-SAE,PSK,12345678,sae_pwe,loop")
             dut.cmd_check("ap_config_commit,NAME,AP")
 
-            dev[0].request("SET sae_groups ")
             dev[0].set("sae_pwe", "0")
             dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
                            ieee80211w="2", scan_freq="2412")
@@ -5057,7 +5041,6 @@ def test_sigma_dut_ap_sae_h2e_rsnxe_mismatch(dev, apdev, params):
             dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,WPA2-SAE,PSK,12345678,sae_pwe,h2e,RSNXE_Content,EapolM3:F40100")
             dut.cmd_check("ap_config_commit,NAME,AP")
 
-            dev[0].request("SET sae_groups ")
             dev[0].set("sae_pwe", "1")
             dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
                            ieee80211w="2", scan_freq="2412", wait_connect=False)
@@ -5087,7 +5070,7 @@ def test_sigma_dut_ap_sae_h2e_group_rejection(dev, apdev, params):
             dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,WPA2-SAE,PSK,12345678,sae_pwe,h2e")
             dut.cmd_check("ap_config_commit,NAME,AP")
 
-            dev[0].request("SET sae_groups 21 20 19")
+            dev[0].set("sae_groups", "21 20 19")
             dev[0].set("sae_pwe", "1")
             dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
                            ieee80211w="2", scan_freq="2412")
@@ -5111,7 +5094,6 @@ def test_sigma_dut_ap_sae_h2e_anti_clogging(dev, apdev, params):
             dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,SAE,PSK,12345678,AntiCloggingThreshold,0")
             dut.cmd_check("ap_config_commit,NAME,AP")
 
-            dev[0].set("sae_groups", "")
             dev[0].set("sae_pwe", "2")
             dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
                            ieee80211w="2", scan_freq="2412")
@@ -5257,7 +5239,6 @@ def test_sigma_dut_ap_transition_disable(dev, apdev, params):
         dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,WPA2-SAE,PSK,12345678,PMF,Required,Transition_Disable,1,Transition_Disable_Index,0")
         dut.cmd_check("ap_config_commit,NAME,AP")
 
-        dev[0].set("sae_groups", "")
         dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
                        ieee80211w="2", scan_freq="2412", wait_connect=False)
         ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=15)
@@ -5277,7 +5258,6 @@ def test_sigma_dut_ap_transition_disable_change(dev, apdev, params):
         dut.cmd_check("ap_set_wireless,NAME,AP,CHANNEL,1,SSID,test-sae,MODE,11ng")
         dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,WPA2-SAE,PSK,12345678,PMF,Required")
         dut.cmd_check("ap_config_commit,NAME,AP")
-        dev[0].set("sae_groups", "")
         dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
                        ieee80211w="2", scan_freq="2412", wait_connect=False)
         ev = dev[0].wait_event(["TRANSITION-DISABLE"], timeout=15)
@@ -5381,7 +5361,6 @@ def test_sigma_dut_ap_ft_rsnxe_used_mismatch(dev, apdev, params):
              open(conffile, "wb") as f2:
             f2.write(f.read())
 
-        dev[0].set("sae_groups", "")
         dev[0].connect("test-sae", key_mgmt="FT-SAE", sae_password="hello",
                        ieee80211w="2", scan_freq="2412")
 
@@ -5453,7 +5432,6 @@ def test_sigma_dut_ap_ocv(dev, apdev, params):
              open(conffile, "wb") as f2:
             f2.write(f.read())
 
-        dev[0].set("sae_groups", "")
         dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
                        ieee80211w="2", ocv="1", scan_freq="2412")
         dev[0].request("REMOVE_NETWORK all")
@@ -5509,7 +5487,6 @@ def test_sigma_dut_ap_gtk_rekey(dev, apdev, params):
         dut.cmd_check("ap_set_security,NAME,AP,KEYMGNT,WPA2-SAE,PSK,12345678")
         dut.cmd_check("ap_config_commit,NAME,AP")
 
-        dev[0].set("sae_groups", "")
         dev[0].connect("test-sae", key_mgmt="SAE", psk="12345678",
                        ieee80211w="2", scan_freq="2412")
         dev[0].dump_monitor()
@@ -5572,7 +5549,6 @@ def run_sigma_dut_ap_sae_pk(dut, conffile, dev, ssid, pw, keypair, m, failure,
             f2.write(f.read())
             f2.write('\n'.encode())
 
-    dev.set("sae_groups", "")
     dev.connect(ssid, key_mgmt="SAE", sae_password=pw, ieee80211w="2",
                 scan_freq="2412", wait_connect=False)
 
@@ -5692,7 +5668,6 @@ def run_sigma_dut_ap_sae_pk_mixed(dut, conffile, dev, ssid, pw, keypair, m,
 
     dut.cmd_check("ap_set_rfeature,NAME,AP,type,WPA3,Transition_Disable,1,Transition_Disable_Index,0")
 
-    dev[0].set("sae_groups", "")
     dev[0].connect(ssid, key_mgmt="SAE", sae_password=pw, ieee80211w="2",
                    scan_freq="2412")
     dev[1].connect(ssid, key_mgmt="WPA-PSK", psk=pw, ieee80211w="2",

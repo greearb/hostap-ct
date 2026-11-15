@@ -53,7 +53,6 @@ def run_wfa_gen_capa(dev, apdev, automatic=False):
     params = hostapd.wpa3_params(ssid="wfa-capab", password="12345678")
     hapd = hostapd.add_ap(apdev[0], params)
 
-    dev[0].set("sae_groups", "")
     if automatic:
         dev[0].set("wfa_gen_capa_supp", "")
     else:

@@ -711,7 +711,6 @@ def test_eppke_fallback_no_sae_ext_key_in_ap_rsne(dev, apdev):
     try:
         dev[0].set("pasn_groups", "")
         dev[0].set("sae_pwe", "1")
-        dev[0].set("sae_groups", "")
         dev[0].connect(ssid, sae_password=passphrase, scan_freq="2412",
                        key_mgmt="SAE SAE-EXT-KEY EPPKE", ieee80211w="2",
                        beacon_prot="1", pairwise="CCMP")

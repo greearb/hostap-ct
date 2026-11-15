@@ -1196,7 +1196,6 @@ def start_ft_sae(dev, apdev, wpa_ptk_rekey=None, sae_pwe=None,
     if key_mgmt.split(' ')[0] != key_mgmt and not sae_transition:
         raise Exception("Unexpected GET_CONFIG(key_mgmt): " + key_mgmt)
 
-    dev.request("SET sae_groups ")
     return hapd0, hapd1
 
 def test_ap_ft_sae(dev, apdev):
@@ -1492,7 +1491,6 @@ def test_ap_ft_sae_pw_id(dev, apdev):
     params['sae_password'] = 'secret|id=pwid'
     hapd = hostapd.add_ap(apdev[1], params)
 
-    dev[0].request("SET sae_groups ")
     run_roams(dev[0], apdev, hapd0, hapd, ssid, passphrase=None, sae=True,
               sae_password="secret", sae_password_id="pwid")
 
@@ -1512,7 +1510,6 @@ def test_ap_ft_sae_with_both_akms(dev, apdev):
     if key_mgmt.split(' ')[0] != "FT-SAE":
         raise Exception("Unexpected GET_CONFIG(key_mgmt): " + key_mgmt)
 
-    dev[0].request("SET sae_groups ")
     run_roams(dev[0], apdev, hapd0, hapd, ssid, passphrase, sae=True,
               sae_and_psk=True)
 
@@ -1532,7 +1529,6 @@ def test_ap_ft_sae_pmksa_caching(dev, apdev):
     if key_mgmt.split(' ')[0] != "FT-SAE":
         raise Exception("Unexpected GET_CONFIG(key_mgmt): " + key_mgmt)
 
-    dev[0].request("SET sae_groups ")
     run_roams(dev[0], apdev, hapd0, hapd, ssid, passphrase, sae=True,
               pmksa_caching=True)
 
@@ -1553,12 +1549,10 @@ def test_ap_ft_sae_pmksa_caching_pwe(dev, apdev):
         raise Exception("Unexpected GET_CONFIG(key_mgmt): " + key_mgmt)
 
     try:
-        dev[0].request("SET sae_groups ")
         dev[0].set("sae_pwe", "2")
         run_roams(dev[0], apdev, hapd0, hapd, ssid, passphrase, sae=True,
                   pmksa_caching=True)
     finally:
-        dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
 
 def test_ap_ft_sae_pmksa_caching_h2e(dev, apdev):
@@ -1591,12 +1585,10 @@ def run_ap_ft_sae_pmksa_caching_h2e(dev, apdev):
         raise Exception("Unexpected GET_CONFIG(key_mgmt): " + key_mgmt)
 
     try:
-        dev[0].request("SET sae_groups ")
         dev[0].set("sae_pwe", "1")
         run_roams(dev[0], apdev, hapd0, hapd, ssid, passphrase, sae=True,
                   pmksa_caching=True)
     finally:
-        dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "0")
 
 def test_ap_ft_sae_ext_key_19(dev, apdev):
@@ -1606,7 +1598,6 @@ def test_ap_ft_sae_ext_key_19(dev, apdev):
     dev[0].set("sae_groups", "19")
     run_roams(dev[0], apdev, hapd0, hapd1, "test-ft", "12345678", sae=True,
               sae_ext_key=True)
-    dev[0].set("sae_groups", "")
 
 def run_ap_ft_sae_ext_key_gtk_rekey(dev, apdev, sae_group):
     """WPA2-FT-SAE-EXT-KEY AP with GTK Rekey"""
@@ -1635,7 +1626,6 @@ def test_ap_ft_sae_ext_key_20(dev, apdev):
     dev[0].set("sae_groups", "20")
     run_roams(dev[0], apdev, hapd0, hapd1, "test-ft", "12345678", sae=True,
               sae_ext_key=True)
-    dev[0].set("sae_groups", "")
 
 def test_ap_ft_sae_ext_key_21(dev, apdev):
     """WPA2-FT-SAE-EXT-KEY AP (group 21)"""
@@ -1644,7 +1634,6 @@ def test_ap_ft_sae_ext_key_21(dev, apdev):
     dev[0].set("sae_groups", "21")
     run_roams(dev[0], apdev, hapd0, hapd1, "test-ft", "12345678", sae=True,
               sae_ext_key=True)
-    dev[0].set("sae_groups", "")
 
 def test_ap_ft_sae_ext_key_19_over_ds(dev, apdev):
     """WPA2-FT-SAE-EXT-KEY AP over DS (group 19)"""
@@ -1653,7 +1642,6 @@ def test_ap_ft_sae_ext_key_19_over_ds(dev, apdev):
     dev[0].set("sae_groups", "19")
     run_roams(dev[0], apdev, hapd0, hapd1, "test-ft", "12345678", sae=True,
               sae_ext_key=True, over_ds=True)
-    dev[0].set("sae_groups", "")
 
 def test_ap_ft_sae_ext_key_20_over_ds(dev, apdev):
     """WPA2-FT-SAE-EXT-KEY AP over DS (group 20)"""
@@ -1662,7 +1650,6 @@ def test_ap_ft_sae_ext_key_20_over_ds(dev, apdev):
     dev[0].set("sae_groups", "20")
     run_roams(dev[0], apdev, hapd0, hapd1, "test-ft", "12345678", sae=True,
               sae_ext_key=True, over_ds=True)
-    dev[0].set("sae_groups", "")
 
 def test_ap_ft_sae_ext_key_21_over_ds(dev, apdev):
     """WPA2-FT-SAE-EXT-KEY AP over DS (group 21)"""
@@ -1671,7 +1658,6 @@ def test_ap_ft_sae_ext_key_21_over_ds(dev, apdev):
     dev[0].set("sae_groups", "21")
     run_roams(dev[0], apdev, hapd0, hapd1, "test-ft", "12345678", sae=True,
               sae_ext_key=True, over_ds=True)
-    dev[0].set("sae_groups", "")
 
 def generic_ap_ft_eap(dev, apdev, vlan=False, cui=False, over_ds=False,
                       discovery=False, roams=1, wpa_ptk_rekey=0,

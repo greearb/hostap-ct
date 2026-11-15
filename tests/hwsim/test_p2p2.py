@@ -267,7 +267,6 @@ def test_p2p_pairing_opportunistic(dev, apdev):
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT auth Failed")
 
-    dev[0].set("sae_groups", "")
     cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair provdisc he go_intent=5 p2p2 bstrapmethod=1"
     id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
@@ -345,7 +344,6 @@ def test_p2p_auto_go_and_client_join(dev, apdev):
     if "FAIL" in id0:
         raise Exception("P2P_CONNECT auth failed")
 
-    dev[0].set("sae_groups", "")
     cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair provdisc p2p2 join bstrapmethod=1"
     id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:
@@ -419,7 +417,6 @@ def test_p2p_pcc_auto_go_and_pcc_client_join(dev, apdev):
         raise Exception("passphrase mismatch(2)")
 
     cli = dev[0]
-    cli.set("sae_groups", "")
     id2 = cli.p2pdev_add_network()
     cli.p2pdev_set_network_quoted(id2, "ssid", res['ssid'])
     cli.p2pdev_set_network_quoted(id2, "psk", res['passphrase'])
@@ -740,7 +737,6 @@ def test_p2p_auto_go_pcc_with_two_cli(dev, apdev):
         dev[0].dump_monitor()
         dev[2].set("rsn_overriding", "1")
         dev[2].set("sae_pwe", "2")
-        dev[2].set("sae_groups", "")
         dev[2].connect(ssid=res['ssid'], sae_password=res['passphrase'],
                        proto='WPA2', key_mgmt='SAE', ieee80211w='2',
                        pairwise='GCMP-256 CCMP', group='GCMP-256 CCMP',
@@ -784,7 +780,6 @@ def test_p2p_auto_go_pcc_with_p2p2_cli(dev, apdev):
     if dev[0].group_request("P2P_GET_PASSPHRASE") != res['passphrase']:
         raise Exception("passphrase mismatch(2)")
 
-    dev[1].set("sae_groups", "")
     ssidhex =  binascii.hexlify(res['ssid'].encode()).decode()
     cmd = "P2P_CONNECT " + dev[0].p2p_dev_addr() + " pair p2p2 skip_prov join password=" + res['passphrase'] + " ssid=" + ssidhex
     id0 = dev[1].global_request(cmd)
@@ -805,7 +800,6 @@ def run_p2p_r2_pcc_go_and_pcc_client_join(go, cli):
     """Start a PCC Auto GO and join with a PCC client using SAE"""
     check_sae_capab(go)
     check_sae_capab(cli)
-    cli.set("sae_groups", "")
     set_p2p2_configs(go)
     set_p2p2_configs(cli)
 
@@ -925,7 +919,6 @@ def test_p2p_bootstrapping_comeback_pairing(dev, apdev):
     if "FAIL" in dev[1].global_request(cmd):
         raise Exception("NAN_CANCEL_PUBLISH for P2P failed")
 
-    dev[0].set("sae_groups", "")
     cmd = "P2P_CONNECT " + dev[1].p2p_dev_addr() + " pair he go_intent=5 p2p2 bstrapmethod=1"
     id0 = dev[0].global_request(cmd)
     if "FAIL" in id0:

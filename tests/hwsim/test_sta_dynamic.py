@@ -412,7 +412,6 @@ def test_sta_dynamic_random_mac_addr_per_ess_pmksa_caching(dev, apdev):
     addr0 = wpas.get_driver_status_field("addr")
     wpas.set("preassoc_mac_addr", "1")
     wpas.set("rand_addr_lifetime", "0")
-    wpas.set("sae_groups", "")
 
     wpas.scan_for_bss(hapd.own_addr(), freq=2412)
     wpas.scan_for_bss(hapd2.own_addr(), freq=2412)
@@ -498,7 +497,6 @@ def test_sta_dynamic_random_mac_addr_pmksa_cache(dev, apdev):
     wpas.request("SET preassoc_mac_addr 1")
     wpas.request("SET rand_addr_lifetime 0")
 
-    wpas.set("sae_groups", "")
     id = wpas.connect("sta-dynamic", key_mgmt="SAE", psk="12345678",
                       ieee80211w="2",
                       mac_addr="1", scan_freq="2412")

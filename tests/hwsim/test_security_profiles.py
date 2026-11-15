@@ -200,7 +200,6 @@ def test_security_profile_1_mixed_sae_ext_sta(dev, apdev):
         # SAE-EXT-KEY STA connecting to AP that supports both EPPKE and SAE-EXT-KEY
         enable_sta_security_profiles(dev[0], 9)
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         dev[0].connect("sp1-mixed", psk=passphrase,
                        key_mgmt="SAE-EXT-KEY",
                        ieee80211w="2", beacon_prot="1",
@@ -597,7 +596,6 @@ def test_security_profile_9_sae(dev, apdev):
     try:
         enable_sta_security_profiles(dev[0], 9)
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         dev[0].connect("sp9-sae", psk=passphrase, key_mgmt="SAE-EXT-KEY",
                        ieee80211w="2", beacon_prot="1",
                        pairwise="GCMP-256", group="GCMP-256",
@@ -647,7 +645,6 @@ def test_security_profile_9_11ax_sta(dev, apdev):
         # Disable EHT on this STA to make it 11ax-only
         enable_sta_security_profiles(dev[0], 9)
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         dev[0].connect(ssid, psk=passphrase, key_mgmt="SAE-EXT-KEY",
                        ieee80211w="2", beacon_prot="1",
                        pairwise="GCMP-256", group="GCMP-256",
@@ -699,7 +696,6 @@ def test_security_profile_9_sae_ext_with_rsnxe_mask(dev, apdev):
     try:
         enable_sta_security_profiles(dev[0], 9)
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         dev[0].connect(ssid, psk=passphrase, key_mgmt="SAE-EXT-KEY",
                        ieee80211w="2", beacon_prot="1",
                        pairwise="GCMP-256", group="GCMP-256",
@@ -763,7 +759,6 @@ def test_security_profile_9_psk2_base_sta_sae_ext_key(dev, apdev):
         # element still carries H2E. The STA reads H2E from the Security
         # Profile element and can connect using either SAE method.
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         # STA uses SAE-EXT-KEY/GCMP-256 via the security profile override.
         # Without the override the BSS would be rejected because the RSNE
         # only advertises WPA-PSK (not SAE-EXT-KEY).
@@ -827,7 +822,6 @@ def test_security_profile_9_sae_base_sta_sae_ext_key(dev, apdev):
     try:
         enable_sta_security_profiles(dev[0], 9)
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         # STA uses SAE-EXT-KEY/GCMP-256 via the security profile override.
         # Without the override the BSS would be rejected because the RSNE
         # only advertises SAE (not SAE-EXT-KEY).
@@ -891,7 +885,6 @@ def test_security_profile_9_sae_ccmp_base_sta_sae_ext_key(dev, apdev):
     try:
         enable_sta_security_profiles(dev[0], 9)
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         # STA uses SAE-EXT-KEY/GCMP-256 via the security profile override.
         # Without the override the BSS would be rejected because:
         #   - The RSNE only advertises SAE (not SAE-EXT-KEY)
@@ -958,7 +951,6 @@ def test_security_profile_override_akm_cipher_9(dev, apdev):
     try:
         enable_sta_security_profiles(dev[0], 9)
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         # STA configured with GCMP-256. The RSNE only has CCMP, so
         # without the security profile override the BSS would be rejected.
         # Our code detects the Security Profile element and augments
@@ -1089,7 +1081,6 @@ def test_security_profile_override_rsnx_capab(dev, apdev):
     try:
         enable_sta_security_profiles(dev[0], 9)
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         dev[0].scan_for_bss(bssid, freq=2412)
 
         # Connect using SAE hash-to-element (requires SAE-H2E capability).
@@ -1150,7 +1141,6 @@ def test_security_profile_override_rsn_caps_mfpr(dev, apdev):
     try:
         enable_sta_security_profiles(dev[0], 9)
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
         # STA connects with ieee80211w=2 (MFPR=1). The RSNE has
         # MFPR=0 (ieee80211w=1 on AP), but the security profile mandates
         # MFPR=1. Our code overrides ie.capabilities with MFPC=1/MFPR=1,
@@ -1210,7 +1200,6 @@ def test_rsn_override_with_security_profile_9(dev, apdev):
     try:
         dev[0].set("rsn_overriding", "1")
         dev[0].set("sae_pwe", "2")
-        dev[0].set("sae_groups", "")
 
         # Scan and verify BSS flags reflect the RSNOE
         # (SAE-EXT-KEY visible, not PSK)
@@ -1311,7 +1300,6 @@ def test_rsn_override_three_layer_coexistence(dev, apdev):
         disable_sta_security_profiles(dev[1])
         dev[1].set("rsn_overriding", "1")
         dev[1].set("sae_pwe", "2")
-        dev[1].set("sae_groups", "")
         dev[1].connect(ssid, sae_password=passphrase, key_mgmt="SAE",
                        ieee80211w="2",
                        pairwise="GCMP-256", group="GCMP-256",
@@ -1335,7 +1323,6 @@ def test_rsn_override_three_layer_coexistence(dev, apdev):
         # ---- STA 2: Security Profile 9 - SAE-EXT-KEY / GCMP-256 ----
         enable_sta_security_profiles(dev[2], 9)
         dev[2].set("sae_pwe", "2")
-        dev[2].set("sae_groups", "")
         dev[2].connect(ssid, psk=passphrase, key_mgmt="SAE-EXT-KEY",
                        ieee80211w="2",
                        pairwise="GCMP-256", group="GCMP-256",
@@ -1428,7 +1415,6 @@ def test_rsn_override_four_layer_coexistence(dev, apdev):
         disable_sta_security_profiles(dev[1])
         dev[1].set("rsn_overriding", "1")
         dev[1].set("sae_pwe", "2")
-        dev[1].set("sae_groups", "")
         dev[1].connect(ssid, sae_password=passphrase, key_mgmt="SAE",
                        ieee80211w="1",
                        pairwise="CCMP GCMP-256", group="GCMP-256",
@@ -1471,7 +1457,6 @@ def test_rsn_override_four_layer_coexistence(dev, apdev):
         wpas.interface_add('wlan5')
         enable_sta_security_profiles(wpas, 9)
         wpas.set("sae_pwe", "2")
-        wpas.set("sae_groups", "")
         wpas.connect(ssid, psk=passphrase, key_mgmt="SAE-EXT-KEY",
                      ieee80211w="2",
                      pairwise="GCMP-256", group="GCMP-256",
@@ -1577,7 +1562,6 @@ def test_rsn_override_eap_sha256_sp9(dev, apdev):
         # ---- STA 2: Security Profile 9 - SAE-EXT-KEY / GCMP-256 ----
         enable_sta_security_profiles(dev[2], 9)
         dev[2].set("sae_pwe", "2")
-        dev[2].set("sae_groups", "")
         dev[2].connect(ssid, psk=passphrase, key_mgmt="SAE-EXT-KEY",
                        ieee80211w="2",
                        pairwise="GCMP-256", group="GCMP-256",
@@ -1664,7 +1648,6 @@ def test_rsn_override_psk_owe_sp9(dev, apdev):
         # ---- STA 2: Security Profile 9 - SAE-EXT-KEY / GCMP-256 ----
         enable_sta_security_profiles(dev[2], 9)
         dev[2].set("sae_pwe", "2")
-        dev[2].set("sae_groups", "")
         dev[2].connect(ssid, psk=passphrase, key_mgmt="SAE-EXT-KEY",
                        ieee80211w="2",
                        pairwise="GCMP-256", group="GCMP-256",
@@ -1736,7 +1719,6 @@ def test_rsn_override_sae_sp1_eppke(dev, apdev):
         disable_sta_security_profiles(dev[1])
         dev[1].set("rsn_overriding", "1")
         dev[1].set("sae_pwe", "2")
-        dev[1].set("sae_groups", "")
         dev[1].connect(ssid, sae_password=passphrase, key_mgmt="SAE",
                        ieee80211w="2",
                        pairwise="GCMP-256", group="GCMP-256",
@@ -1838,7 +1820,6 @@ def test_rsn_override_five_layer_eppke(dev, apdev):
         disable_sta_security_profiles(dev[1])
         dev[1].set("rsn_overriding", "1")
         dev[1].set("sae_pwe", "2")
-        dev[1].set("sae_groups", "")
         dev[1].connect(ssid, sae_password=passphrase, key_mgmt="SAE",
                        ieee80211w="2",
                        pairwise="GCMP-256", group="GCMP-256",
@@ -1873,7 +1854,6 @@ def test_rsn_override_five_layer_eppke(dev, apdev):
         wpas_sae_ext.interface_add('wlan5')
         enable_sta_security_profiles(wpas_sae_ext, 9)
         wpas_sae_ext.set("sae_pwe", "2")
-        wpas_sae_ext.set("sae_groups", "")
         wpas_sae_ext.connect(ssid, psk=passphrase, key_mgmt="SAE-EXT-KEY",
                              ieee80211w="2",
                              pairwise="GCMP-256", group="GCMP-256",
@@ -2566,7 +2546,6 @@ def test_security_profile_9_ap_all_sta_key_mgmt(dev, apdev):
     hapd = sec_prof_ap_all(apdev)
 
     try:
-        dev[0].set("sae_groups", "")
         dev[0].set("sae_pwe", "2")
         dev[0].connect("sec-profs", sae_password="12345678",
                        key_mgmt="SAE-EXT-KEY",
