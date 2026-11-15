@@ -436,9 +436,11 @@ static void gas_server_handle_tx_status(struct gas_server_response *response,
 		return;
 	}
 
-	if (ack && !response->resp && response->comeback_delay) {
+	if (response->comeback_delay && !response->frag_id) {
+		/* No response data was sent, so the peer can ask again */
 		wpa_printf(MSG_DEBUG,
-			   "GAS: Waiting for response - keep pending entry");
+			   "GAS: Waiting for response (ack=%d) - keep pending entry",
+			   ack);
 		return;
 	}
 
