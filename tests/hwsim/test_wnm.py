@@ -2221,12 +2221,26 @@ def test_wnm_bss_transition_mgmt_disabled(dev, apdev):
     finally:
         dev[0].set("disable_btm", "0")
 
+def check_time_zone(dev, bssid):
+    bss = dev.get_bss(bssid)
+    if "tz" not in bss:
+        raise Exception("Time zone not reported")
+    if bss["tz"] != "EST5":
+        raise Exception("Unexpected time zone: " + bss["tz"])
+
+def test_wnm_time_adv(dev, apdev):
+    """WNM time advertisement"""
+    hapd = start_wnm_ap(apdev[0], time_adv=True)
+    dev[0].connect("test-wnm", key_mgmt="NONE", scan_freq="2412")
+    check_time_zone(dev[0], hapd.own_addr())
+
 def test_wnm_time_adv_restart(dev, apdev):
     """WNM time advertisement and interface restart"""
     hapd = start_wnm_ap(apdev[0], time_adv=True)
     hapd.disable()
     hapd.enable()
     dev[0].connect("test-wnm", key_mgmt="NONE", scan_freq="2412")
+    check_time_zone(dev[0], hapd.own_addr())
 
 def test_wnm_event_report(dev, apdev):
     """WNM event report"""
