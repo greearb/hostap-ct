@@ -8741,6 +8741,18 @@ static void wpas_gas_server_tx_status(struct wpa_supplicant *wpa_s,
 		   result == OFFCHANNEL_SEND_ACTION_SUCCESS ? "SUCCESS" :
 		   (result == OFFCHANNEL_SEND_ACTION_NO_ACK ? "no-ACK" :
 		    "FAILED"));
+#ifdef CONFIG_TESTING_OPTIONS
+	/* Report one comeback delay response as not ACKed */
+	if (dpp_test == DPP_TEST_GAS_COMEBACK_WAIT_NO_ACK &&
+	    data_len >= 24 + 8 && data[24] == WLAN_ACTION_PUBLIC &&
+	    data[25] == WLAN_PA_GAS_COMEBACK_RESP &&
+	    WPA_GET_LE16(&data[24 + 6])) {
+		dpp_test = DPP_TEST_DISABLED;
+		wpa_printf(MSG_INFO,
+			   "GAS: TESTING - comeback delay response not ACKed");
+		result = OFFCHANNEL_SEND_ACTION_NO_ACK;
+	}
+#endif /* CONFIG_TESTING_OPTIONS */
 	gas_server_tx_status(wpa_s->gas_server, dst, data, data_len,
 			     result == OFFCHANNEL_SEND_ACTION_SUCCESS);
 }

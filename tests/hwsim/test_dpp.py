@@ -7448,15 +7448,19 @@ def test_dpp_enterprise_5000ms(dev, apdev, params):
     """DPP and enterprise EAP-TLS provisioning (5000 ms CA delay)"""
     dpp_enterprise(dev, apdev, params, 5)
 
-def dpp_enterprise(dev, apdev, params, ca_delay):
+def dpp_enterprise(dev, apdev, params, ca_delay, dpp_test=0, ca_wait=None):
     check_dpp_capab(dev[0], min_ver=2)
     try:
         dev[0].set("dpp_config_processing", "2")
-        run_dpp_enterprise(dev, apdev, params, ca_delay=ca_delay)
+        if dpp_test:
+            dev[1].set("dpp_test", str(dpp_test))
+        run_dpp_enterprise(dev, apdev, params, ca_delay=ca_delay,
+                           ca_wait=ca_wait)
     finally:
         dev[0].set("dpp_config_processing", "0", allow_fail=True)
+        dev[1].set("dpp_test", "0", allow_fail=True)
 
-def run_dpp_enterprise(dev, apdev, params, ca_delay=0):
+def run_dpp_enterprise(dev, apdev, params, ca_delay=0, ca_wait=None):
     if not cryptography_imported:
         raise HwsimSkip("cryptography python module not available")
     check_dpp_capab(dev[0])
@@ -7504,7 +7508,9 @@ def run_dpp_enterprise(dev, apdev, params, ca_delay=0):
     csr = base64.b64decode(csr.encode())
     logger.info("CSR: " + binascii.hexlify(csr).decode())
 
-    if ca_delay:
+    if ca_wait:
+        ca_wait(dev[1])
+    elif ca_delay:
         logger.info("Wait for %d s before signing" % ca_delay)
         time.sleep(ca_delay)
 
@@ -7603,6 +7609,66 @@ def test_dpp_enterprise_reject(dev, apdev, params):
         raise Exception("DPP configuration not completed (Enrollee)")
     if "DPP-CONF-FAILED" not in ev:
         raise Exception("DPP configuration did not fail (Enrollee)")
+
+def dpp_gas_relay_process(dev, msg):
+    cmd = "MGMT_RX_PROCESS freq={} datarate={} ssi_signal={} frame={}".format(
+        msg['freq'], msg['datarate'], msg['ssi_signal'],
+        binascii.hexlify(msg['frame']).decode())
+    if "OK" not in dev.request(cmd):
+        raise Exception("MGMT_RX_PROCESS failed")
+
+def dpp_gas_relay(dev, hold=None, duration=4):
+    # Pass on the Configurator's received frames during the CA delay, but
+    # drop the second GAS Comeback Request, or hold it for hold seconds. The
+    # Enrollee must keep its dialog token.
+    dev.set("ext_mgmt_frame_handling", "1")
+    count = 0
+    try:
+        end = time.time() + duration
+        while True:
+            ev = dev.wait_event(["MGMT-RX"], timeout=0.1)
+            if ev is None:
+                # Stop only when no frame is pending
+                if time.time() >= end:
+                    break
+                continue
+            msg = dev.mgmt_rx_parse(ev)
+            categ, action = struct.unpack('BB', msg['payload'][0:2])
+            if count >= 2 and categ == 4 and action == 10:
+                raise Exception("GAS query restarted with a new dialog token")
+            if categ == 4 and action == 12:
+                count += 1
+                if count == 2:
+                    if hold is None:
+                        continue
+                    time.sleep(hold)
+            dpp_gas_relay_process(dev, msg)
+    finally:
+        dev.set("ext_mgmt_frame_handling", "0")
+    if count < 2:
+        raise Exception("No GAS Comeback Request to drop or hold")
+
+def test_dpp_enterprise_gas_lost_wait_ack(dev, apdev, params):
+    """DPP and enterprise EAP-TLS provisioning with a GAS comeback ACK lost"""
+    # DPP_TEST_GAS_COMEBACK_WAIT_NO_ACK
+    dpp_enterprise(dev, apdev, params, 1, dpp_test=101)
+    with open(os.path.join(params['logdir'], 'log1'), 'r') as f:
+        log = f.read()
+    if "TESTING - comeback delay response not ACKed" not in log:
+        raise Exception("Comeback delay response ACK was not dropped")
+    if "No pending GAS response" in log:
+        raise Exception("Configurator dropped the GAS exchange")
+
+def test_dpp_enterprise_gas_missed_comeback(dev, apdev, params):
+    """DPP and enterprise EAP-TLS provisioning with a GAS comeback missed"""
+    # The request is sent again 5 s after the dropped one
+    dpp_enterprise(dev, apdev, params, 0,
+                   ca_wait=lambda dev: dpp_gas_relay(dev, duration=6))
+
+def test_dpp_enterprise_gas_held_comeback(dev, apdev, params):
+    """DPP and enterprise EAP-TLS provisioning with a GAS comeback held"""
+    dpp_enterprise(dev, apdev, params, 0,
+                   ca_wait=lambda dev: dpp_gas_relay(dev, hold=2.5))
 
 def test_dpp_enterprise_tcp(dev, apdev, params):
     """DPP over TCP for enterprise provisioning"""
