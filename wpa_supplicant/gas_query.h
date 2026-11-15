@@ -41,6 +41,8 @@ int gas_query_req(struct gas_query *gas, const u8 *dst, int freq,
 			     const struct wpabuf *resp, u16 status_code),
 		  void *ctx);
 int gas_query_stop(struct gas_query *gas, u8 dialog_token);
+int gas_query_set_comeback_recover(struct gas_query *gas, const u8 *dst,
+				   u8 dialog_token);
 
 #else /* CONFIG_GAS */
 

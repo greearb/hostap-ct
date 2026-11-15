@@ -2098,6 +2098,9 @@ static void wpas_dpp_start_gas_client(struct wpa_supplicant *wpa_s)
 		wpa_printf(MSG_DEBUG,
 			   "DPP: GAS query started with dialog token %u", res);
 		wpa_s->dpp_gas_dialog_token = res;
+		if (auth->csr)
+			gas_query_set_comeback_recover(
+				wpa_s->gas, auth->peer_mac_addr, res);
 	}
 }
 

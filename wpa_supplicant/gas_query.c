@@ -32,6 +32,9 @@
 
 #define GAS_QUERY_MAX_COMEBACK_DELAY 60000
 
+#define GAS_QUERY_WAIT_TIME_RECOVER 5000
+#define GAS_QUERY_RECOVER_TIMEOUT 25
+
 /**
  * struct gas_query_pending - Pending GAS query
  */
@@ -48,6 +51,9 @@ struct gas_query_pending {
 	unsigned int wildcard_bssid:1;
 	unsigned int maintain_addr:1;
 	unsigned int sent:1;
+	unsigned int comeback_recover:1;
+	unsigned int frag_rx:1;
+	unsigned int reask_late:1;
 	int freq;
 	u16 status_code;
 	struct wpabuf *req;
@@ -267,6 +273,10 @@ static void gas_query_tx_status(struct wpa_supplicant *wpa_s,
 	}
 	os_get_reltime(&query->last_oper);
 
+	/* A missed comeback is retried when the listen time ends */
+	if (query->comeback_recover && query->wait_comeback)
+		return;
+
 	if (result == OFFCHANNEL_SEND_ACTION_SUCCESS ||
 	    result == OFFCHANNEL_SEND_ACTION_NO_ACK) {
 		eloop_cancel_timeout(gas_query_timeout, gas, query);
@@ -348,6 +358,35 @@ static void gas_query_tx_comeback_req(struct gas_query *gas,
 		return;
 	}
 
+	if (query->comeback_recover && query->wait_comeback) {
+		/* Ask again only after the listen time. Vary the delay to
+		 * avoid staying in step with gaps in the peer's listen. */
+		unsigned int ms = GAS_QUERY_WAIT_TIME_RECOVER + 10;
+
+		if (query->reask_late)
+			ms += 2500;
+		ms += os_random() % 300;
+		query->reask_late = !query->reask_late;
+		eloop_cancel_timeout(gas_query_tx_comeback_timeout, gas, query);
+		wait_time = GAS_QUERY_WAIT_TIME_RECOVER;
+		if (query->frag_rx) {
+			wait_time = GAS_QUERY_WAIT_TIME_COMEBACK;
+		} else if (query->offchannel_tx_started) {
+			offchannel_send_action_done(gas->wpa_s);
+			query->offchannel_tx_started = 0;
+		}
+		query->frag_rx = 0;
+		if (gas_query_tx(gas, query, req, wait_time) < 0)
+			wpa_printf(MSG_DEBUG,
+				   "GAS: Failed to send Comeback Request to "
+				   MACSTR, MAC2STR(query->addr));
+		eloop_register_timeout(ms / 1000, (ms % 1000) * 1000,
+				       gas_query_tx_comeback_timeout,
+				       gas, query);
+		wpabuf_free(req);
+		return;
+	}
+
 	wait_time = (query->retry || !query->offchannel_tx_started) ?
 		GAS_QUERY_WAIT_TIME_INITIAL : GAS_QUERY_WAIT_TIME_COMEBACK;
 
@@ -401,6 +440,17 @@ static void gas_query_tx_comeback_timeout(void *eloop_data, void *user_ctx)
 }
 
 
+static void gas_query_recover_watchdog(struct gas_query *gas,
+				       struct gas_query_pending *query,
+				       unsigned int secs, unsigned int usecs)
+{
+	query->reask_late = 0;
+	eloop_cancel_timeout(gas_query_timeout, gas, query);
+	eloop_register_timeout(secs + GAS_QUERY_RECOVER_TIMEOUT, usecs,
+			       gas_query_timeout, gas, query);
+}
+
+
 static void gas_query_tx_comeback_req_delay(struct gas_query *gas,
 					    struct gas_query_pending *query,
 					    u16 comeback_delay)
@@ -419,6 +469,8 @@ static void gas_query_tx_comeback_req_delay(struct gas_query *gas,
 	eloop_cancel_timeout(gas_query_tx_comeback_timeout, gas, query);
 	eloop_register_timeout(secs, usecs, gas_query_tx_comeback_timeout,
 			       gas, query);
+	if (query->comeback_recover)
+		gas_query_recover_watchdog(gas, query, secs, usecs);
 }
 
 
@@ -501,6 +553,8 @@ static void gas_query_rx_comeback(struct gas_query *gas,
 		return;
 	}
 	query->next_frag_id++;
+	if (query->comeback_recover)
+		gas_query_recover_watchdog(gas, query, 0, 0);
 
 	if (gas_query_append(query, resp, len) < 0) {
 		gas_query_done(gas, query, GAS_QUERY_INTERNAL_ERROR);
@@ -508,6 +562,7 @@ static void gas_query_rx_comeback(struct gas_query *gas,
 	}
 
 	if (more_frags) {
+		query->frag_rx = query->comeback_recover;
 		gas_query_tx_comeback_req(gas, query);
 		return;
 	}
@@ -918,6 +973,30 @@ int gas_query_req(struct gas_query *gas, const u8 *dst, int freq,
 	}
 
 	return dialog_token;
+}
+
+
+/**
+ * gas_query_set_comeback_recover - Retry comebacks on the same dialog token
+ * @gas: GAS query data from gas_query_init()
+ * @dst: Destination MAC address of the pending query
+ * @dialog_token: Dialog token returned by gas_query_req()
+ * Returns: 0 on success, -1 if no such query is pending
+ */
+int gas_query_set_comeback_recover(struct gas_query *gas, const u8 *dst,
+				   u8 dialog_token)
+{
+	struct gas_query_pending *query;
+
+	dl_list_for_each(query, &gas->pending, struct gas_query_pending, list) {
+		if (query->dialog_token == dialog_token &&
+		    ether_addr_equal(query->addr, dst)) {
+			query->comeback_recover = 1;
+			return 0;
+		}
+	}
+
+	return -1;
 }
 
 
