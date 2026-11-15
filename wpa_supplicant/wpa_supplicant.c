@@ -8963,6 +8963,7 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 				wpa_s->hw_capab |= BIT(CAPAB_HT);
 		}
 		wpa_s->support_6ghz = wpas_is_6ghz_supported(wpa_s, false);
+		wpa_s->is_6ghz_enabled = wpas_is_6ghz_supported(wpa_s, true);
 	}
 
 	capa_res = wpa_drv_get_capa(wpa_s, &capa);
