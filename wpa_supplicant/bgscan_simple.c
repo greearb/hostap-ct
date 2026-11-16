@@ -251,11 +251,12 @@ static int bgscan_simple_get_params(struct bgscan_simple_data *data,
 	if (pos) {
 		pos++;
 		data->use_btm_query = atoi(pos);
-	}
-	pos = os_strchr(pos, ':');
-	if (pos) {
-		pos++;
-		data->use_nr_request = atoi(pos);
+
+		pos = os_strchr(pos, ':');
+		if (pos) {
+			pos++;
+			data->use_nr_request = atoi(pos);
+		}
 	}
 
 	return 0;
