@@ -136,6 +136,8 @@ static inline void wpa_hexdump_buf(int level, const char *title,
  * configuration. The contents of buf is printed out has hex dump. This works
  * like wpa_hexdump(), but by default, does not include secret keys (passwords,
  * etc.) in debug output.
+ * Selected final Wi-Fi keys with a context are also sent as INFO control
+ * events, independently of debug verbosity and the debug key-display setting.
  */
 void wpa_hexdump_key(void *ctx, int level, const char *title, const void *buf, size_t len);
 

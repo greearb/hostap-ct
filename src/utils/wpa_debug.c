@@ -269,6 +269,75 @@ void wpa_printf(int level, const char *fmt, ...)
 
 static wpa_msg_get_ifname_func wpa_msg_ifname_cb = NULL;
 
+#ifndef CONFIG_ANDROID_LOG
+static const char * wpa_key_event_title(const char *title)
+{
+	static const struct {
+		const char *title;
+		const char *event;
+	} keys[] = {
+		{ "WPA: TK", "WPA: TK" },
+		{ "FT: TK", "WPA: TK" },
+		{ "FILS: TK", "WPA: TK" },
+		{ "FILS: Set TK to driver", "WPA: TK" },
+		{ "PASN: TK:", "WPA: TK" },
+		{ "FILS: PMK", "WPA: PMK" },
+		{ "PASN: PMK", "WPA: PMK" },
+		{ "OWE: PMK", "WPA: PMK" },
+		{ "WPA: Group Key", "WPA: GTK" },
+		{ "GTK", "WPA: GTK" },
+		{ "WPA: GTK", "WPA: GTK" },
+		{ "FT: GTK from Reassoc Resp", "WPA: GTK" },
+		{ "WPA: IGTK", "WPA: IGTK" },
+		{ "IGTK", "WPA: IGTK" },
+		{ "FT: IGTK from Reassoc Resp", "WPA: IGTK" },
+		{ "WPA: BIGTK", "WPA: BIGTK" },
+		{ "BIGTK", "WPA: BIGTK" },
+		{ "FT: BIGTK from Reassoc Resp", "WPA: BIGTK" },
+	};
+	size_t i;
+
+	/* Keep the existing PMK/PTK event names unchanged. */
+	if (os_strstr(title, "WPA: PTK") || os_strstr(title, "WPA: PMK"))
+		return title;
+
+	/* Match final keys, not KDEs or encrypted key-delivery records. */
+	for (i = 0; i < ARRAY_SIZE(keys); i++) {
+		if (os_strcmp(title, keys[i].title) == 0)
+			return keys[i].event;
+	}
+	return NULL;
+}
+
+
+static void wpa_hexdump_key_event(void *ctx, const char *title,
+				  const u8 *buf, size_t len)
+{
+	const char *event;
+	char *msg;
+	size_t title_len, msg_len;
+
+	if (!ctx || !buf || !len)
+		return;
+	event = wpa_key_event_title(title);
+	if (!event)
+		return;
+	title_len = os_strlen(event);
+	if (len > (SIZE_MAX - title_len - 2) / 2)
+		return;
+	msg_len = title_len + 2 * len + 2;
+	msg = os_malloc(msg_len);
+	if (!msg)
+		return;
+	os_memcpy(msg, event, title_len);
+	msg[title_len++] = ' ';
+	wpa_snprintf_hex(msg + title_len, msg_len - title_len, buf, len);
+	wpa_msg_ctrl(ctx, MSG_INFO, "%s", msg);
+	bin_clear_free(msg, msg_len);
+}
+#endif /* CONFIG_ANDROID_LOG */
+
+
 static void _wpa_hexdump(void *ctx, int level, const char *title, const u8 *buf,
 			 size_t len, int show, int only_syslog)
 {
@@ -369,7 +438,6 @@ static void _wpa_hexdump(void *ctx, int level, const char *title, const u8 *buf,
 #ifdef CONFIG_DEBUG_FILE
 	if (out_file) {
 		const char *ifname = NULL;
-		int do_wpa_msg = 0;
 
 		if (wpa_msg_ifname_cb && ctx)
 			ifname = wpa_msg_ifname_cb(ctx);
@@ -384,21 +452,10 @@ static void _wpa_hexdump(void *ctx, int level, const char *title, const u8 *buf,
 		} else if (show) {
 			for (i = 0; i < len; i++)
 				fprintf(out_file, " %02x", buf[i]);
-			if (ctx && (strstr(title, "WPA: PTK") ||
-				    strstr(title, "WPA: PMK")))
-				do_wpa_msg = 1;
 		} else {
 			fprintf(out_file, " [REMOVED]");
 		}
 		fprintf(out_file, "\n");
-
-		if (do_wpa_msg) {
-			char tmp[len * 2 + strlen(title) + 10];
-			int sofar = snprintf(tmp, sizeof(tmp), "%s ", title);
-			for (i = 0; i < len; i++)
-				sofar += snprintf(tmp + sofar, sizeof(tmp) - sofar, "%02x", buf[i]);
-			wpa_msg(ctx, MSG_INFO, "%s", tmp);
-		}
 	}
 #endif /* CONFIG_DEBUG_FILE */
 	if (!wpa_debug_syslog && !out_file) {
@@ -424,6 +481,11 @@ void wpa_hexdump(int level, const char *title, const void *buf, size_t len)
 
 void wpa_hexdump_key(void *ctx, int level, const char *title, const void *buf, size_t len)
 {
+#ifndef CONFIG_ANDROID_LOG
+	/* Control events carry selected final keys at normal verbosity, even
+	 * when key bytes are hidden in ordinary debug output. */
+	wpa_hexdump_key_event(ctx, title, buf, len);
+#endif /* CONFIG_ANDROID_LOG */
 	_wpa_hexdump(ctx, level, title, buf, len, wpa_debug_show_keys, 0);
 }
 

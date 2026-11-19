@@ -9,6 +9,16 @@ wpa_supplicant and hostapd with a simulated radio (mac80211_hwsim). See
 hwsim/READM and hwsim/vm/README for more details.
 
 
+Key event logging
+-----------------
+
+Run `sh tests/test-key-events.sh` from the repository root. This compiles a
+standalone test of the control-interface key event output, without a radio or
+a running supplicant/hostapd instance. It checks final key formats, control
+events without verbose debugging or key display, ordinary debug-dump filtering,
+and operation with and without debug-file support.
+
+
 Build testing
 -------------
 
